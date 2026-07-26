@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0004 — a "suspected gap" is a claim about the PROBE that was never written
+
+Session #209 (leaf `LANG-CAPABILITY-AUDIT.3b`, read-only). The previous leaf shipped a 16-row
+capability matrix with six rows marked ❓ UNMEASURED and an explicit instruction not to cite them
+as fact. This leaf wrote the probes. Four lessons.
+
+**1. ⭐⭐ Two of the three rows the matrix called the "extremely painful cluster" were not gaps at
+all.** Raku-style user-chosen delimiters (row 10) and here-documents (row 11) were logged as
+*suspected gaps* on the reasoning that they "need parse-state feeding the matcher". They do — and
+the parse state already reaches the matcher. Register the opening delimiter with `@emit_fact`, gate
+each body element with `lacks_fact` against it, gate the closer with `has_fact`, and both
+constructs parse correctly, including the heredoc case where a body line looks like a *different*
+tag. Had this leaf not run, `.4`'s primitive roadmap would have carried two work items for
+capabilities that already ship. **A row marked "suspected gap" is a statement about the absence of
+a probe, not about the absence of a capability.**
+
+**2. ⭐ The measurement did not just flip two verdicts — it replaced a vague primitive family with
+one named, bounded primitive.** `.3` hypothesised that rows 2/3/4/10/11 all needed the same new
+"parse state feeding the lexical layer" channel. For 10 and 11 that is now refuted; their single
+measured blocker is fact **lifetime**. Four source facts bound it: the only negative query is the
+parse-global `lacks_fact` (`semantic_runtime.rs:3963`); `lacks_fact_in_current_scope` and any
+fact-retraction directive are both absent (measured at 0 occurrences); `close_scope` pops the
+scope chain but never retracts facts, which the code says of itself at `:2852` and `:6152`; and the
+scope-local index is keyed by scope **depth** rather than identity (`:2170`), so two sibling quotes
+at the same depth collide even with a scope-local query. Crucially the `@open_scope`/`@close_scope`
+repair was *built and measured* rather than reasoned about — its four verdicts came back
+byte-for-byte identical to the unscoped ones. A cheap, specific primitive replaced an expensive,
+vague one **because the probe ran**.
+
+**3. ⭐ Verdicts that depend on selection semantics need a control probe, or they measure nothing.**
+Rows 8 and 9 both pass because "the engine keeps trying alternatives" — a sentence that is only
+meaningful once the default policy is measured. `a | a b` on `"ab"` discriminates: the default
+ACCEPTs (longest-match tournament), an explicit `@branch_policy: ordered` REJECTs, and
+`--lint-grammar` independently agrees by raising its policy-conditional shadowing error on the
+`ordered` rule alone. Running that control first is what turned rows 8 and 9 from plausible into
+measured — and it is what caught the book defect in lesson 4.
+
+**4. ⚠️ The same session found TWO documentation surfaces stating engine behaviour that the engine
+does not have.** `docs/book/src/developer-architecture.md:21` tells a reader *"PGEN is a faithful
+PEG: **ordered choice**, `&`/`!`, greedy quantifiers"*. The greedy-quantifier half is correct — and
+was independently re-measured here (`"a"* "ab"` rejects both `ab` and `aaab`; the loop never gives
+an iteration back, `ast_based_generator.rs:5692`). The ordered-choice half is false for the default
+policy, and it is the most fundamental semantic in the book. Separately, `grammars/ebnf.ebnf:688`,
+inside the meta-grammar's own *"COMPLETE EBNF GRAMMAR EXAMPLES (Documentation)"* block, advertises
+`@precedence: {level: 5, associativity: "left"}` — a payload the validator rejects and the engine's
+own test pins as invalid. Both were routed to a new leaf rather than fixed inline: a read-only leaf
+does not get to quietly edit a tracked grammar, and the fix deserves its own acceptance checklist.
+**This is the `.1` finding recurring in a worse place — decorative surface inside the examples a
+grammar author copies.**
+
 ## 2026-07-26 - PGEN-LEX-ADJACENCY-0001 — "the capability does not exist" is a claim about the SEARCH, not about the engine
 
 Session #208 (leaf `LEX-ADJACENCY.1`, read-only). The previous slice ended by opening a tree

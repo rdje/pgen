@@ -1,0 +1,57 @@
+=== ROW 10/11 — the semantic-store predicate vocabulary (the DYNAMIC-guard surface) ===
+  ENGINE_BUILTIN_PREDICATE_NAMES (semantic_runtime.rs):
+    - current_scope_is
+    - has_fact
+    - lacks_fact
+    - has_fact_in_current_scope
+    - has_fact_attribute
+    - fact_attribute_equals
+    - lacks_fact_attribute_equals
+    - scope_depth_at_least
+    - fact_count_at_least
+    - resolve_path
+    - content_kind_is
+    - value_compare
+    - value_compare_codepoint
+    - in_scope_kind
+    - not_in_scope_kind
+  scope-local NEGATIVE query present? 0 occurrence(s)
+  fact-RETRACTION directive present? 0 occurrence(s)
+  scope-local fact index is keyed by DEPTH, not scope identity:
+    2114:/// - `by_scope_and_name: HashMap<(usize, SemanticRuntimeValue), Vec<usize>>`
+    2170:    by_scope_and_name: FxHashMap<(usize, FactNameKey), Vec<usize>>,
+  close_scope pops the chain but never retracts facts (the code says so):
+    2852:    /// index, which `close_scope` never retracts). O(active-depth).
+    6152:        // fact predicates (never retracted on close) cannot provide.
+
+=== ROW 13(b) — Unicode NORMALIZATION (PEP 3131 compares identifiers after NFKC) ===
+  normalization crate in the dependency set:
+    0 match(es)  (0 = absent)
+  NFKC/NFC/NFD mentions anywhere in rust/src:
+    0 match(es)  (0 = absent)
+  the ONLY 'normalize_identifier' in the tree, and what it does:
+    rust/src/test_runner/normalization.rs:63:fn normalize_identifier(input: &str) -> String {
+      fn normalize_identifier(input: &str) -> String {
+          // Keep identifier case-sensitive; normalize surrounding whitespace only
+          input.trim().to_string()
+      }
+
+=== ROW 12 — is there a cross-rule PRECEDENCE-LADDER declaration? ===
+  what the validator accepts for @priority / @precedence:
+    656:                        message: "Directive '@priority/@precedence' expects an integer payload such as '5' or '[1, 9, 2]'.".to_string(),
+  the payload parser (integers / integer lists ONLY):
+    862:pub fn parse_semantic_numeric_list(payload: &str) -> Option<Vec<i64>> {
+  what the meta-grammar's OWN documentation block advertises:
+    688:# @precedence: {level: 5, associativity: "left"}
+  ...and the engine test that pins that shape as INVALID:
+    2862:    fn semantic_validator_warns_on_invalid_priority_payload() {
+    2869:                    content: "{level: 5}".to_string(),
+
+  re-run that oracle with:
+    cd rust && cargo test --features 'generated_parsers ebnf_dual_run' --lib \
+      semantic_validator_warns_on_invalid_priority_payload
+
+=== ROW 10 PRE-REQUISITE — where quantifier give-back is decided in codegen ===
+    5692:    fn generate_quantified_logic(
+    (the loop breaks on the first failing iteration and enforces only a MIN
+     count; no emission path re-tries the loop with fewer iterations)

@@ -1,5 +1,84 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0004 (docs-only, read-only leaf `LANG-CAPABILITY-AUDIT.3b`) — the audit's six UNMEASURED rows are measured, and TWO "suspected gaps" turn out to be capabilities PGEN already has
+
+**No code, grammar, generated artifact, contract or schema touched.** The scratch slot
+(`grammars/scratch/scratch.ebnf`, the blessed throwaway probe grammar) is overwritten while the
+driver runs and RESTORED by its `trap` on every exit path.
+
+**Why the leaf existed.** `.3` shipped a 16-row cross-language capability matrix and marked six
+rows ❓ UNMEASURED, explicitly forbidding anyone from citing them as fact. Two of those rows —
+Raku-style user-chosen delimiters and here-documents — were logged as *suspected gaps* and would
+have entered `.4`'s primitive roadmap as work items.
+
+**Method.** Two probe banks (one per grammar-level layout policy) driven through the PARSE-HARNESS
+**scratch slot** — authoritative *by construction*, since it runs the real register → codegen →
+drive pipeline. Each row parsed in isolation via `--entry-rule`, so the banks' top-level
+alternation cannot launder one row's verdict into another's. **43 cases, each with its required
+verdict declared in the driver**, so a gap prints as `⛔` rather than being read out of prose.
+
+**⭐⭐ Rows 10 and 11 are NOT gaps.** The open delimiter set is expressible today with a
+store-driven dynamic guard — register the opening delimiter with `@emit_fact`, gate every body
+element `lacks_fact` against it, gate the closer `has_fact`:
+
+```
+  ACCEPT  q/abc/   ACCEPT  q!abc!   ACCEPT  q#abc#   ACCEPT  q/ab!c/   ACCEPT  q//
+  REJECT  q/abc!                                        (closer must equal opener)
+```
+
+and the same construction gives a correct here-document **including the case that separates a real
+heredoc from a hack** — a body line that looks like a *different* tag:
+
+```
+  ACCEPT  <<END\nline1\nEOF\nline2\nEND\n      REJECT  <<EOF\nline1\n   (unterminated)
+```
+
+**⭐⭐ The real bound is fact LIFETIME — one named primitive, not a lexical-layer family.** Both
+rows fail identically once a *second* quote/heredoc appears: the first instance's delimiter fact is
+still live, so it blocks a legal body character and closes the wrong quote. Root-caused to four
+source facts — the only negative query is the parse-global `lacks_fact`
+(`semantic_runtime.rs:3963`); there is no `lacks_fact_in_current_scope` and no fact-retraction
+directive (both measured at 0 occurrences); `close_scope` pops the chain but never retracts
+(`:2852`, `:6152`); and the scope-local index is keyed by scope **depth**, not identity (`:2170`),
+so sibling instances collide anyway. The `@open_scope`/`@close_scope` repair was **built and
+measured**, not assumed: its verdicts are byte-for-byte the unscoped ones.
+
+⇒ this **half-refutes `.3`'s own hypothesis** that rows 2/3/4/10/11 all need "parse state feeding
+the lexical layer". Rows 10 and 11 need no new lexical channel — the store already steers the
+lexical decision. Recorded as a correction rather than smoothed over.
+
+**The other four verdicts.** Row 8 (contextual/soft keywords) ✅ **HAVE, and with no
+keyword-exclusion tax** — all three readings of Python's `match` parse against a deliberately
+un-taxed identifier token. Row 9 (cover grammars / delayed disambiguation) ✅ **HAVE**, including a
+disambiguator sitting past an arbitrarily deep ambiguous prefix. Row 12 confirmed and sharpened:
+`@priority`/`@precedence` take an **integer** payload and rank alternatives **inside one rule** —
+there is no cross-rule precedence ladder. Row 13 split: ✅ Unicode classes work
+(`\p{XID_Start}`/`\p{XID_Continue}` compile and discriminate) / ❌ NFKC normalization is absent
+(0 normalization crates, 0 NFKC/NFC/NFD mentions in `rust/src`).
+
+**⭐ A general engine law the matrix never named: quantifiers are POSSESSIVE.** `"a"* "ab"` rejects
+both `ab` and `aaab` — the loop never gives an iteration back. Trace-confirmed and located at
+`generate_quantified_logic` (`ast_based_generator.rs:5692`). This is consistent with the design
+(the book already says PGEN has "greedy/possessive repetition"), but it is why the naive
+`body* close` delimiter shape cannot work, and the author-facing consequence — write
+`(!close body)* close`, and reach for the store guard when `close` is not static — is documented
+nowhere. Both idioms measured working.
+
+**⚠️ TWO doc surfaces measured WRONG, routed to a new leaf `.5` rather than fixed inline.**
+`docs/book/src/developer-architecture.md:21` says *"PGEN is a faithful PEG: **ordered choice**,
+`&`/`!`, greedy quantifiers"* — the greedy half is right, the ordered-choice half is measurably
+false for the default policy (`a | a b` on `"ab"`: default ACCEPTs, `@branch_policy: ordered`
+REJECTs, and `--lint-grammar` independently flags the shadowing on the `ordered` rule only). And
+`grammars/ebnf.ebnf:688`, inside the meta-grammar's own documentation-examples block, advertises
+`@precedence: {level: 5, associativity: "left"}` — a payload the validator rejects, pinned by the
+engine's own test `semantic_validator_warns_on_invalid_priority_payload` (re-run this session:
+PASS). That is `.1`'s decorative-surface disease landing in the examples an author copies.
+
+**Verification.** 43/43 cases through the real pipeline; **10 printed `⛔` gaps, all inside the two
+named families and none elsewhere**; the whole set re-runnable by one command
+(`docs/tasks/artifacts/lang_capability_audit/run_capability_probes.sh`, exit 0). All 9 enforced
+doctrines PASS. Nothing shipped was touched, so there is no release, schema or ledger movement.
+
 ## 2026-07-26 - PGEN-LEX-ADJACENCY-0001 (docs-only, read-only design leaf `LEX-ADJACENCY.1`) — the "missing" no-layout primitive is not missing: it ships on BOTH halves and no grammar can ask for it
 
 **No code, grammar, generated artifact, contract or schema touched** — the leaf is read-only

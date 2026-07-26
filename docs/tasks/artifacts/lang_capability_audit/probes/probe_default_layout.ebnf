@@ -1,0 +1,224 @@
+# =============================================================================
+# LANG-CAPABILITY-AUDIT.3b — capability probe bank (DEFAULT layout policy)
+#
+# Purpose: turn the `.3` matrix's ❓ UNMEASURED rows into TOOL-BACKED verdicts.
+# Every rule below is reachable from `scratch` (so nothing is an unreferenced
+# orphan root — cf. `.2`'s blind spot), but each row is driven in ISOLATION with
+#   parseability_probe --parse scratch <input> --entry-rule <row_entry>
+# so the top-level alternation can never launder one row's verdict into another's.
+#
+# Rows covered here: 8 (soft keywords), 9 (cover grammars), 10 (user-chosen
+# delimiters), 13 (Unicode identifier classes). Row 11 (heredocs) needs the
+# whitespace-SENSITIVE policy and lives in probe_ws_sensitive.ebnf.
+# =============================================================================
+
+@fact_kind: { name: qdelim, attributes: [family], description: "The delimiter character that opened a user-delimited quote." }
+
+scratch := r00_policy
+scratch := r00_ordered
+scratch := r08_stmt
+scratch := r09_expr
+scratch := r10_bt
+scratch := r10_static
+scratch := r10_same
+scratch := r10_mirror
+scratch := r10_dyn
+scratch := r10_dyn_pair
+scratch := r10_sdyn
+scratch := r10_sdyn_pair
+scratch := r13_uident
+
+# =============================================================================
+# ROW 0 (CONTROL) — WHICH SELECTION SEMANTICS ACTUALLY DECIDE ROWS 8 AND 9?
+#
+# Rows 8 and 9 both hinge on "the engine keeps trying alternatives", so the
+# verdicts are only meaningful once the DEFAULT branch policy is measured rather
+# than assumed. `a | a b` on "ab" is the discriminator (TOOLBOX Protocol D, the
+# A2.3 case): a first-match-commit ordered choice takes `"a"` and strands `b`
+# (REJECT); a longest-match tournament tries both and keeps the longer (ACCEPT).
+#
+# `r00_ordered` is the same two alternatives under an explicit `@branch_policy:
+# ordered`, so the pair is a differential, not a single reading.
+#
+# ⚠️ EXPECTED, NOT A BUG: `--lint-grammar` reports exactly ONE shadowing error on
+# this bank, and it is on `r00_ordered` alone — "the rule's effective
+# @branch_policy is 'ordered' … the choice commits to the first successful
+# alternative". The identical `r00_policy` is NOT flagged. That is the A2.3
+# policy-conditional verdict working as designed, and it is a SECOND, independent
+# instrument agreeing with the parse measurement below.
+# =============================================================================
+
+r00_policy := "a"
+r00_policy := "a" "b"
+
+@branch_policy: ordered
+r00_ordered := "a"
+r00_ordered := "a" "b"
+
+# =============================================================================
+# ROW 8 — CONTEXTUAL / SOFT KEYWORDS
+#
+# Python 3.10+: `match` is a SOFT keyword. All three of these are legal Python:
+#     match x:      -> a match STATEMENT   (`match` is the keyword)
+#     match(x)      -> a CALL              (`match` is the callee identifier)
+#     match = 1     -> an ASSIGNMENT       (`match` is the target identifier)
+#
+# THE QUESTION: does PGEN need the classic keyword-EXCLUSION tax on the identifier
+# token (`ident := !keyword /[a-z]+/`) — the thing that makes soft keywords painful
+# in most toolkits — or does the branch TOURNAMENT resolve it with the identifier
+# rule left completely UN-TAXED?
+#
+# `r08_ident` below is deliberately un-taxed: it matches `match` like any word.
+# =============================================================================
+
+r08_stmt := r08_match_stmt
+r08_stmt := r08_call_stmt
+r08_stmt := r08_assign_stmt
+
+r08_match_stmt := "match" r08_ident ":"
+r08_call_stmt := r08_ident "(" r08_ident ")"
+r08_assign_stmt := r08_ident "=" r08_number
+
+r08_ident := /[A-Za-z_][A-Za-z_0-9]*/
+r08_number := /[0-9]+/
+
+# =============================================================================
+# ROW 9 — COVER GRAMMARS / DELAYED DISAMBIGUATION
+#
+# ECMA-262: `(a, b)` is a parenthesized expression OR an arrow-function parameter
+# list, and NOTHING inside the parentheses decides it — only the `=>` that may or
+# may not follow the `)`. Real engines parse a "cover grammar" and reinterpret.
+#
+# The probe reproduces the REAL difficulty, not a toy: an element may be
+# `x = <expr>`, which is a DEFAULT-VALUE under the parameter reading and an
+# ASSIGNMENT-EXPRESSION under the expression reading, and `<expr>` nests
+# arbitrarily deep — so the two readings stay simultaneously live for an
+# unbounded distance before the `)` `=>` decides.
+#
+#     (a = (((x))), b)        -> parenthesized expression list
+#     (a = (((x))), b) => c   -> arrow function, SAME prefix, different reading
+# =============================================================================
+
+r09_expr := r09_arrow
+r09_expr := r09_paren
+
+r09_arrow := "(" r09_params ")" "=>" r09_body
+r09_paren := "(" r09_items ")"
+
+r09_params := r09_param ("," r09_param)*
+r09_param := r09_ident "=" r09_value
+r09_param := r09_ident
+
+r09_items := r09_item ("," r09_item)*
+r09_item := r09_ident "=" r09_value
+r09_item := r09_ident
+
+r09_value := "(" r09_value ")"
+r09_value := r09_ident
+
+r09_body := r09_ident
+r09_ident := /[A-Za-z_][A-Za-z_0-9]*/
+
+# =============================================================================
+# ROW 10 — BALANCED / USER-CHOSEN DELIMITERS
+#
+# Raku: `q/.../`, `q|...|`, `q!...!` (closing == opening, over an OPEN set of
+# delimiter characters) and `q{...}`, `q[...]`, `q(...)`, `q<...>` (closing =
+# the MIRROR of the opening).
+#
+# Decomposed into five independently-measurable sub-probes:
+#
+#   r10_bt      PRE-REQUISITE. Does `*` re-try a SHORTER count when a later element
+#               fails? On "aaab": `"a"*` eats "aaa", leaving only "b" for `"ab"` ->
+#               the match exists ONLY if the quantifier gives one back.
+#
+#   r10_static  The PEG idiom every toolkit uses when the delimiter is STATIC:
+#               guard the loop element with a negative lookahead so the loop stops
+#               of its own accord and never needs a give-back.
+#
+#   r10_same    The naive OPEN-set attempt: unguarded body + a rule-span
+#               `value_compare` (eq) over the two delimiter captures.
+#
+#   r10_mirror  The MIRRORED case written the only way a fixed alphabet allows:
+#               one alternative per pair (measures the BOUND, not a gap —
+#               enumeration works for a CLOSED set, and `value_compare`'s six
+#               relational ops cannot express a MIRROR, which is a MAP).
+#
+#   r10_dyn     The real question: a DYNAMIC guard. The opening delimiter is
+#               registered in the semantic store (`@emit_fact`), each body
+#               character is gated `lacks_fact` against it, and the closing
+#               delimiter is gated `has_fact`. If this parses, the open-delimiter
+#               set is expressible and the capability is PRESENT.
+#
+#   r10_dyn_pair  The honest bound on r10_dyn: TWO quotes in one input. The store
+#               is parse-global, so the first quote's delimiter fact is still live
+#               when the second opens.
+# =============================================================================
+
+r10_bt := "a"* "ab"
+
+r10_static := "q" "/" r10_static_char* "/"
+r10_static_char := !"/" r10_char
+
+@predicate: { name: value_compare, args: [$2, eq, $4], phase: post }
+r10_same := "q" r10_delim r10_char* r10_delim
+
+r10_mirror := "q" "{" r10_inner* "}"
+r10_mirror := "q" "[" r10_inner* "]"
+r10_mirror := "q" "(" r10_inner* ")"
+r10_mirror := "q" "<" r10_inner* ">"
+r10_inner := /[A-Za-z0-9 ]/
+
+r10_dyn := "q" r10_open r10_bodychar* r10_close
+
+# The `-> { body: $1 }` shape + a NAMED `$body` ref is the proven store idiom
+# (`parse_harness_semantic_suite.rs` `sem_post_gate`); a bare positional `$1` on a
+# single-element rule does NOT resolve — measured: the directive fails with
+# "Semantic runtime could not resolve fact name for directive in current parse result".
+@emit_fact: { kind: qdelim, name: $body, family: d }
+r10_open := r10_delim -> { body: $1 }
+
+@predicate: { name: lacks_fact, args: [qdelim, $body], phase: post }
+r10_bodychar := r10_char -> { body: $1 }
+
+@predicate: { name: has_fact, args: [qdelim, $body], phase: post }
+r10_close := r10_delim -> { body: $1 }
+
+r10_dyn_pair := r10_dyn r10_dyn
+
+# r10_sdyn — the SCOPED repair attempt for r10_dyn_pair's measured unsoundness.
+# Each quote opens a scope and closes it on the closing delimiter, so the question
+# is whether `@close_scope` retires the delimiter fact from the GLOBAL `lacks_fact`
+# / `has_fact` queries (the only negative query PGEN ships is the global
+# `lacks_fact`; there is no `lacks_fact_in_current_scope`).
+r10_sdyn := "q" r10_sopen r10_sbodychar* r10_sclose
+r10_sdyn_pair := r10_sdyn r10_sdyn
+
+@open_scope: { kind: qs, name: "q" }
+@emit_fact: { kind: qdelim, name: $body, family: d }
+r10_sopen := r10_delim -> { body: $1 }
+
+@predicate: { name: lacks_fact, args: [qdelim, $body], phase: post }
+r10_sbodychar := r10_char -> { body: $1 }
+
+@close_scope: { kind: qs }
+@predicate: { name: has_fact, args: [qdelim, $body], phase: post }
+r10_sclose := r10_delim -> { body: $1 }
+
+r10_delim := /[^A-Za-z0-9 ]/
+r10_char := /[\s\S]/
+
+# =============================================================================
+# ROW 13 — UNICODE IDENTIFIER CLASSES
+#
+# Python PEP 3131 identifiers are `XID_Start XID_Continue*` **compared after NFKC
+# normalization**; ECMA-262 uses ID_Start/ID_Continue.
+#
+# Two separable questions:
+#   (a) CLASSES  — can a PGEN regex atom name the Unicode property classes at all?
+#   (b) NORMALIZATION — is `ﬁ` (U+FB01) the SAME identifier as `fi`? That is not a
+#       syntax question: it requires an NFKC fold before identity comparison, so
+#       it is measured against the engine's surfaces, not by parsing.
+# =============================================================================
+
+r13_uident := /[\p{XID_Start}][\p{XID_Continue}]*/

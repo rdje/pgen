@@ -1,0 +1,80 @@
+feature surface: AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true
+
+### building bank: probe_default_layout.ebnf
+    ok
+
+=== ROW 0 (CONTROL) — the DEFAULT branch policy, measured not assumed ===
+    ('a | a b' on "ab": first-match-commit strands the b; longest-match keeps the longer)
+  ACCEPT [want ACCEPT]    r0-default-ab          "ab"
+  REJECT [want REJECT]    r0-ordered-ab          "ab"
+
+=== ROW 8 — CONTEXTUAL / SOFT KEYWORDS (identifier token deliberately UN-taxed) ===
+  ACCEPT [want ACCEPT]    r8-match-stmt          "match x:"
+  ACCEPT [want ACCEPT]    r8-call                "match(x)"
+  ACCEPT [want ACCEPT]    r8-assign              "match = 1"
+  ACCEPT [want ACCEPT]    r8-plain               "foo = 1"
+
+=== ROW 9 — COVER GRAMMARS / DELAYED DISAMBIGUATION ===
+  ACCEPT [want ACCEPT]    r9-paren               "(a,b)"
+  ACCEPT [want ACCEPT]    r9-arrow               "(a,b)=>c"
+  ACCEPT [want ACCEPT]    r9-paren-deep          "(a=(((x))),b)"
+  ACCEPT [want ACCEPT]    r9-arrow-deep          "(a=(((x))),b)=>c"
+
+=== ROW 10 PRE-REQUISITE — does '*' give back a successful iteration? ===
+  REJECT [want ACCEPT] ⛔ r10-bt-ab              "ab"
+  REJECT [want ACCEPT] ⛔ r10-bt-aaab            "aaab"
+
+=== ROW 10 — STATIC delimiter (the negative-lookahead PEG idiom) ===
+  ACCEPT [want ACCEPT]    r10-static-ok          "q/abc/"
+  ACCEPT [want ACCEPT]    r10-static-empty       "q//"
+
+=== ROW 10 — OPEN-SET delimiter, naive value_compare over an unguarded body ===
+  REJECT [want ACCEPT] ⛔ r10-same-slash         "q/abc/"
+  REJECT [want ACCEPT] ⛔ r10-same-bang          "q!abc!"
+  REJECT [want REJECT]    r10-same-mixed         "q/abc!"
+
+=== ROW 10 — MIRRORED delimiters, enumerated (CLOSED set only) ===
+  ACCEPT [want ACCEPT]    r10-mirror-brace       "q{abc}"
+  ACCEPT [want ACCEPT]    r10-mirror-brack       "q[abc]"
+
+=== ROW 10 — OPEN-SET delimiter via the semantic store (DYNAMIC guard) ===
+  ACCEPT [want ACCEPT]    r10-dyn-slash          "q/abc/"
+  ACCEPT [want ACCEPT]    r10-dyn-bang           "q!abc!"
+  ACCEPT [want ACCEPT]    r10-dyn-hash           "q#abc#"
+  ACCEPT [want ACCEPT]    r10-dyn-inner          "q/ab!c/"
+  ACCEPT [want ACCEPT]    r10-dyn-empty          "q//"
+  REJECT [want REJECT]    r10-dyn-mixed          "q/abc!"
+
+=== ROW 10 — the BOUND: the fact store is parse-GLOBAL and monotone ===
+  ACCEPT [want ACCEPT]    r10-two-ok             "q/abc/q!de!"
+  REJECT [want ACCEPT] ⛔ r10-two-inner-slash    "q/abc/q!d/e!"
+  ACCEPT [want REJECT] ⛔ r10-two-wrong-close    "q/abc/q!de/"
+  -- same three under @open_scope/@close_scope (the repair attempt) --
+  ACCEPT [want ACCEPT]    r10-sdyn-single        "q/abc/"
+  ACCEPT [want ACCEPT]    r10-sdyn-two           "q/abc/q!de!"
+  REJECT [want ACCEPT] ⛔ r10-sdyn-inner-slash   "q/abc/q!d/e!"
+  ACCEPT [want REJECT] ⛔ r10-sdyn-wrong-close   "q/abc/q!de/"
+
+=== ROW 13(a) — UNICODE IDENTIFIER CLASSES ===
+  ACCEPT [want ACCEPT]    r13-ascii              "abc"
+  ACCEPT [want ACCEPT]    r13-latin1             "café"
+  ACCEPT [want ACCEPT]    r13-cjk                "变量"
+  ACCEPT [want ACCEPT]    r13-ligature           "ﬁle"
+  REJECT [want REJECT]    r13-digit-start        "1abc"
+
+### building bank: probe_ws_sensitive.ebnf
+    ok
+
+=== ROW 11 — HERE-DOCUMENTS (terminator named at parse time) ===
+  ACCEPT [want ACCEPT]    r11-basic              "<<EOF\nline1\nline2\nEOF\n"
+  ACCEPT [want ACCEPT]    r11-empty              "<<EOF\nEOF\n"
+  ACCEPT [want ACCEPT]    r11-lookalike          "<<END\nline1\nEOF\nline2\nEND\n"
+  REJECT [want REJECT]    r11-unterm             "<<EOF\nline1\n"
+  REJECT [want REJECT]    r11-wrongtag           "<<EOF\nline1\nEND\n"
+
+=== ROW 11 — the SAME parse-global-store bound, on line structure ===
+  ACCEPT [want ACCEPT]    r11-two-ok             "<<A\nx\nA\n<<B\ny\nB\n"
+  REJECT [want ACCEPT] ⛔ r11-two-cross          "<<A\nx\nA\n<<B\nA\ny\nB\n"
+  ACCEPT [want REJECT] ⛔ r11-two-wrong          "<<A\nx\nA\n<<B\ny\nA\n"
+
+(scratch slot restored on exit)

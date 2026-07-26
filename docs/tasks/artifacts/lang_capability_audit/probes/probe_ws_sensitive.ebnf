@@ -1,0 +1,58 @@
+# =============================================================================
+# LANG-CAPABILITY-AUDIT.3b — capability probe bank (WHITESPACE-SENSITIVE policy)
+#
+# Row 11 (here-documents) is the only ❓ row whose capability question is about
+# LINE STRUCTURE, so it needs the whitespace-sensitive layout policy: under the
+# default policy `trivia` is skipped before every terminal, which would eat the
+# very newlines a heredoc's shape is made of. `@whitespace_sensitive` is a
+# GRAMMAR-level directive, hence a separate bank from probe_default_layout.ebnf.
+#
+# Driven in isolation with:
+#   parseability_probe --parse scratch <input> --entry-rule <row_entry>
+# =============================================================================
+
+@whitespace_sensitive: true
+
+@fact_kind: { name: hdtag, attributes: [family], description: "The terminator tag a heredoc was opened with." }
+
+scratch := r11_heredoc
+scratch := r11_pair
+
+# =============================================================================
+# ROW 11 — HERE-DOCUMENTS
+#
+# Ruby / Perl / Raku / sh / PHP:
+#
+#     <<EOF
+#     line1
+#     EOF
+#
+# Two properties make this notoriously hard, and BOTH are tested:
+#   (1) the terminator is NAMED AT PARSE TIME — the grammar cannot know it;
+#   (2) a body line that merely LOOKS like some other tag is ordinary text —
+#       only the tag this heredoc was opened with ends it (the `<<END` … `EOF`
+#       … `END` case below is the discriminating input; a grammar that stops at
+#       any word-shaped line would get it wrong).
+#
+# The construction under test is the same store-driven DYNAMIC GUARD that row 10
+# measured: register the tag on open (`@emit_fact`), gate each body line
+# `lacks_fact` against it, and gate the terminator `has_fact`.
+# =============================================================================
+
+r11_heredoc := "<<" r11_tag r11_nl r11_body_line* r11_end
+
+@emit_fact: { kind: hdtag, name: $body, family: t }
+r11_tag := r11_word -> { body: $1 }
+
+@predicate: { name: lacks_fact, args: [hdtag, $body], phase: post }
+r11_body_line := r11_linetext r11_nl -> { body: $1 }
+
+@predicate: { name: has_fact, args: [hdtag, $body], phase: post }
+r11_end := r11_word r11_nl -> { body: $1 }
+
+# The same parse-global-store bound row 10 measured, re-measured on line structure.
+r11_pair := r11_heredoc r11_heredoc
+
+r11_word := /[A-Za-z_][A-Za-z_0-9]*/
+r11_linetext := /[^\n]*/
+r11_nl := /\n/
