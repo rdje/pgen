@@ -268,6 +268,31 @@ on this primitive.
   byte-identical (the `@quantified_separator` precedent — an empty policy map
   makes the path inert).
 
+#### Decomposition (session #208) — `.2` as a single leaf is beyond a safe slice
+
+`.2` spans the directive registry, the stimuli generator, six codegen sites, a new
+lint, a gate, and a real-grammar migration, and the parse half needs heavy
+rebuilds. Per the batch rule ("stop when a task expands beyond a safe slice") it is
+cut into four independently-committable sub-leaves, each one complete and verifiable
+on its own:
+
+| sub-leaf | scope | verified by | build cost |
+|---|---|---|---|
+| **`.2.1`** | **declare + GENERATE half.** Registry entry (`ParserAndStimuliSteering`), `compile_lexical_tokens` policy map, validator wiring, and the generator decoupling — set `atomic_token_depth` WITHOUT `last_terminal_from_atomic_rule` (the design's third state). | the `.1` probe grammars: the annotated rule must emit `timeunit 10ns;` — interior closed, exterior separated. Inertness: every un-annotated grammar byte-identical. | debug `ast_pipeline` only — no parser regen |
+| **`.2.2`** | **PARSE half.** Static no-layout twins over the annotated rule's closure, dropping BOTH implicit layout skipping and explicit `trivia` elements. | interior layout REJECTS, tight ACCEPTS, on a probe grammar. | codegen + parser regen |
+| **`.2.3`** | **retire the name-gate.** Remove `matches!(rule_name, "string_content_double" \| "string_content_single")` at all 6 sites + `fusibility_census.rs:60`, and declare `@lexical_token` in `return_annotation.ebnf` instead. | ⭐ the migration's own regression test: `generated/return_annotation_parser.rs` must keep `no-skip=10 of 20`, and the generated parser should be byte-identical. This is ruling (2) of the #208 directive applied. | parser regen |
+| **`.2.4`** | **lint + gate.** Hard-error an unbounded / non-lexical closure; wire a standing gate proving both settings behave as declared, on a synthetic grammar AND a real one. | the gate itself, red-path verified. | gate run |
+
+Sequencing rationale: `.2.1` is safe to land alone because a generate-honoured /
+parse-unhonoured directive makes the **parser strictly more permissive than the
+generator** — which is not a duality break (the generator's output still parses),
+only incomplete strictness. The reverse order would break the duality gate, which is
+exactly how `.3.11` died.
+
+##### `.2.1` — declare + honour the GENERATE half
+
+- **Status: `todo`** — the immediate next slice.
+
 ### `.3` — Land the blocked consumers
 
 - **Status: `todo`**, blocked on `.2`. Two known consumers, both already
