@@ -127,3 +127,57 @@ strongest candidate: precise, adversarial on lexical adjacency + ASI + regex-vs-
 and widely understood) and enumerate which of its constructs are *expressible in
 PGEN's EBNF today* — a paper exercise, no parser required, that converts invisible
 gaps into a ranked list.
+
+## ⭐⭐⭐ SHARPENED — the bar is EAGERNESS, not sufficiency (director, 2026-07-26, session #209)
+
+**Verbatim:** *"PGEN EBNF support shall so powerful, flexible that we should be eager to handle
+the creation of even more tricky languages"* — clarified moments later in the same session:
+*"… more tricky languages parsers."*
+
+This raises the bar of the goal above without changing its direction. Read it as three
+distinguishable commitments, all stricter than what the record previously said:
+
+1. **The test is EAGERNESS, not capability.** The prior framing ("shall be able to parse any
+   language like it is a walk in the park") is satisfiable by a grammar that is *possible* to
+   write. This one is not: if a notoriously-hard language would be answered with reluctance,
+   caveats, or "yes, but you would have to encode it as …", the EBNF is **not yet good enough**,
+   even though nothing is strictly missing. ⇒ **expressive AWKWARDNESS is now in scope as a
+   defect class**, not just expressive absence. Concrete precedent already on the record:
+   `LANG-CAPABILITY-AUDIT.3b` proved Raku-style user-chosen delimiters and here-documents are
+   *expressible today* — but only via a four-rule store-guard idiom with a monotone-store
+   caveat. Under the old bar that row closes as ✅; under this one it stays open until the
+   idiom is something an author reaches for **eagerly**.
+
+2. **"POWERFUL **and** FLEXIBLE"** — two properties, and the second is the one PGEN is thinner
+   on. Power = the construct can be expressed at all. Flexibility = it can be expressed
+   *naturally*, at the granularity the language actually varies at. The director has now made
+   the same point from three directions in two sessions — per-SEAM not per-rule
+   ([[project_ebnf_steers_the_engine_at_full_granularity]]), every user-controllable feature
+   declared IN the EBNF ([[project_ebnf_is_single_source_of_truth]]), and now flexibility as a
+   first-class goal. Treat a capability that exists but only at the wrong granularity as a
+   **gap**, not a win.
+
+3. **✅ "the creation of … tricky languages PARSERS" — the unit of work is the PARSER, and the
+   ambiguity is CLOSED.** The clarification ("*more tricky languages parsers*") settles what
+   could otherwise have been read two ways: this is **not** a new greenfield-language-DESIGN
+   audience. PGEN's job stays what this record already says — building signoff-grade *parsers*
+   for languages that already exist and are precisely described. The eagerness is ours, about
+   **taking on the next hard parser**, and the measure of it is how the grammar-authoring
+   experience feels when we do. ⇒ no scope widening, and the ranking input in (1)/(2) is
+   specifically the **grammar author's** ergonomic distance, not a language designer's.
+
+### How this re-prioritizes the work
+
+- **`LANG-CAPABILITY-AUDIT.4`** (the prioritized primitive roadmap with a per-gap cost model)
+  is now the highest-value open leaf on this axis: the directive is about **building**
+  capability, and `.4` is where measured gaps become ranked, priced work items. It outranks
+  `.6` (deleting a dead meta-grammar production) — that is hygiene, this is the goal.
+- **The matrix must keep GROWING.** "even more tricky languages" is an instruction not to close
+  the audit at the 16 rows `.3` enumerated. Each new notoriously-hard language is a column that
+  may surface a row nothing else does.
+- **Rank by AWKWARDNESS too, not only absence.** Per (1), `.4`'s ranking input is now
+  (coverage × tractability × *ergonomic distance*) — a row that is technically ✅ but reached
+  only through a multi-rule workaround competes for roadmap space with a row that is ❌.
+- The **duality** invariant (§2) and the **zero-cost/neutrality** acceptance test
+  ([[project_capability_growth_is_zero_cost_and_neutral]]) are unchanged and still bind every
+  new primitive: eagerness never buys an exemption from "non-users pay zero".

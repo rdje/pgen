@@ -570,13 +570,60 @@ byte-identity claim is worthless unless every non-semantic input is pinned.
 
 ### `.4` — Prioritized primitive roadmap
 
-- **Status: `todo`** — **UNBLOCKED** (`.2` and `.3`+`.3b` are `done`). Rank by
-  (coverage × tractability), attach a **cost model** to each per
-  [[project_capability_growth_is_zero_cost_and_neutral]], and feed the horizon record's
-  living axes list. Seeded by `.3b` with one already-named, already-priced-out
+- **Status: `todo`** — **UNBLOCKED** (`.2` and `.3`+`.3b` are `done`) and ⭐ **now the
+  highest-value open leaf in this tree**, ahead of `.6`, per the director steer below:
+  the directive is about *building* capability, and `.4` is where measured gaps become
+  ranked, priced work items. `.6` is hygiene; this is the goal.
+- Rank by (coverage × tractability × **ergonomic distance**), attach a **cost model** to
+  each per [[project_capability_growth_is_zero_cost_and_neutral]], and feed the horizon
+  record's living axes list. Seeded by `.3b` with one already-named, already-priced-out
   candidate: **fact retraction / instance-scoped fact lifetime**, whose absence is the
-  *sole* measured blocker on rows 10 and 11 and which is bounded by the four source
-  facts in `.3b` Finding 2. `.2`'s informational orphan report is the other seed.
+  *sole* measured blocker on rows 10 and 11 and which is bounded by the four source facts
+  in `.3b` Finding 2. `.2`'s informational orphan report is the other seed.
+
+#### ⭐⭐⭐ DIRECTOR STEER (2026-07-26, session #209) — the bar is EAGERNESS, not sufficiency
+
+**Verbatim:** *"PGEN EBNF support shall so powerful, flexible that we should be eager to
+handle the creation of even more tricky languages"* — clarified moments later: *"… more
+tricky languages parsers."* Banked in full at [[project_horizon_universal_parser]]. Three
+consequences that bind this leaf:
+
+1. ⭐ **Expressive AWKWARDNESS becomes a defect class.** The old bar ("a correct grammar must
+   be WRITABLE") is met by anything merely *possible* to write. This one is not: a
+   capability reached only through a multi-rule workaround is not something an author takes
+   on **eagerly**. ⇒ **`.3b`'s rows 10 and 11 do NOT close on their ✅.** They are expressible
+   — via a four-rule store-guard idiom carrying a monotone-store caveat — and under this bar
+   that keeps them open as *ergonomic* gaps even though the *expressive* gap is answered.
+   ⚠️ Whoever runs `.4` must not read `.3b`'s "OVERTURNED — expressible today" as "done".
+2. ⭐ **"Powerful AND flexible" are two properties, and flexibility is the thinner one.** A
+   capability that exists only at the wrong GRANULARITY counts as a gap. This is the third
+   time the director has made this point in two sessions (per-SEAM not per-rule
+   [[project_ebnf_steers_the_engine_at_full_granularity]]; every user-controllable feature
+   declared in the EBNF [[project_ebnf_is_single_source_of_truth]]; now flexibility itself).
+3. ⭐ **The matrix must keep GROWING** — "even more tricky languages" is an instruction not to
+   close the audit at `.3`'s 16 rows. Each new notoriously-hard language is a column that may
+   surface a row nothing else does. ⇒ new leaf `.3c` below.
+- ⛔ Unchanged and still binding: duality-completeness, and the zero-cost/neutrality
+  acceptance test — eagerness never buys an exemption from "non-users pay ZERO".
+
+### `.3c` — Keep widening the matrix with further notoriously-hard languages (`todo`)
+
+- **Status: `todo`**, opened by the `.4` steer above. `.3`'s 16 rows came from a fixed
+  candidate list (JS, Python, Ruby, Raku, VHDL, SV, C/C++, HTML, …). The directive says the
+  audit does not close there.
+- Method is `.3b`'s, unchanged: a capability is a ROW, languages are EVIDENCE, and no row
+  earns a verdict without a probe. Candidate columns not yet examined — each chosen because
+  it stresses an axis the current 16 rows may not cover: **Forth / PostScript**
+  (parse-time-definable words — check against the row-16 hard bound), **TeX** (catcode
+  reassignment = lexical classes mutable mid-document), **COBOL** (column-sensitive fixed
+  format + `COPY … REPLACING`), **Fortran** (fixed-form + significant-whitespace-free
+  tokenization, `DO 10 I=1,10` vs `DO10I=1.10`), **APL/J** (glyph tokenization, no reserved
+  words), **Makefile** (tab-significant, recursive macro expansion), **Nix/Dhall** (string
+  interpolation nesting), **Prolog** (user-declared operators via `op/3` — likely another
+  row-16 relative), **Wolfram/M4** (macro-expansion-time syntax).
+- ⚠️ Expect some to land on `.3`'s row 16 **HARD BOUND** (parse-time-mutable grammar, out of
+  scope by design). That is a legitimate outcome and must be recorded as such — the bound is
+  what keeps "any language" honest. The value is in the rows that do NOT.
 
 ## Acceptance Criteria (tree)
 
