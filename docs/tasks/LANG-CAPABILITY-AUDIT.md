@@ -113,10 +113,74 @@ Recorded as *unexplained*, not as a defect, per [[feedback_be_alert_root_cause_f
 
 ### `.2` — Root-cause the lint-vs-closure reachability discrepancy
 
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0002`, session #208). Read-only.
+
+#### ✅ RESOLVED — the linter is NOT wrong, and neither is the closure
+
+`rust/src/ast_pipeline/grammar_wellformedness.rs:299-306` documents the root set
+verbatim:
+
+> *"Roots = the canonical entry (`rule_order[0]`) **PLUS every rule that NOTHING
+> references** (a secondary entry…). Multi-entry-SAFE (an unreferenced top is a root,
+> never a false "unreachable") and **conservative** (an unreferenced dead orphan is
+> treated as a root → **not flagged**; only referenced-but-unreachable dead ISLANDS
+> are caught — **false negatives are safe**, false positives would wrongly reject a
+> good grammar)."*
+
+⇒ The two numbers answer **different questions**, and both are correct:
+
+| instrument | question | answer |
+|---|---|---|
+| `--lint-grammar` | is any rule a *referenced-but-unreachable dead island*? | **0** — sound, deliberately conservative |
+| the `.1` closure | is any rule unreachable from the *single canonical entry*? | **27** — all 27 are unreferenced orphans, which the lint classifies as roots |
+
+⛔ **No linter defect. The `.1` "second finding" is withdrawn as a suspicion** — and
+the design reason is good: PGEN grammars legitimately carry secondary entries (SV's
+`library_text`, `*_multi_entry_root`), so treating an unreferenced top as a root is
+what prevents false rejections of correct grammars.
+
+#### ⭐ BUT — the conservatism has a NAMED BLIND SPOT, and it is exactly the `.1` class
+
+Because *unreferenced ⇒ root ⇒ reachable*, a production that is **declared and never
+referenced by anything** can **never** be flagged by this check — not now, not ever.
+That is precisely the `parametric_rule` class: dead surface no gate can see.
+
+⇒ **Recommendation (routed to `.4`, not actioned here):** an **informational,
+opt-in** orphan report — *"N rules are unreferenced roots"* with names — separate
+from the hard `unreachable_rules` error so multi-entry safety is preserved. Dead
+surface becomes visible without false-failing legitimate grammars.
+
+⚠️ **Note the recurring shape — third time today:** a check that *structurally
+cannot see* a class of defect and reports green (cf. the self-hosting cross-check
+standing down, and mid-sequence annotations dropped silently). The unifying
+principle stays [`ANNOTATION-PLACEMENT`](ANNOTATION-PLACEMENT.md)'s: **a check that
+cannot run — or cannot see — must say so, not return green.**
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `.1` measured lint `unreachable_rules=0` vs a closure
+    of 27 on the same file; one had to be wrong.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `grammar_wellformedness.rs:299-306`
+    (`detect_unreachable_rules` / `reachable_rules`): roots = `rule_order[0]` ∪
+    every unreferenced rule. `parametric_rule` is referenced by nothing ⇒ it IS a
+    root ⇒ trivially reachable ⇒ correctly not flagged.
+  - [x] **FIX** — none required; the suspicion is withdrawn. Output is the
+    adjudication + the named blind spot routed to `.4`.
+  - [x] **ADDRESSED (verified)** — the doc-comment states the semantics and the
+    accepted false-negative class explicitly; the 27 are all unreferenced orphans,
+    matching that class exactly.
+  - [x] **NO REGRESSION** — read-only; nothing touched.
+  - [x] **LOCKSTEP** — `.1`'s "second finding" re-labelled RESOLVED (not a defect);
+    blind-spot recommendation carried into `.4`; `MEMORY.md` corrected.
+
+<details>
+<summary>Original charter (superseded by the resolution above)</summary>
+
 - **Status: `todo`** — **run before trusting either number.** Establish the lint's
   entry-universe semantics (`--lint-grammar` unreachable computation), re-run the
   closure over the same universe, and adjudicate: instrument bug, semantics
   mismatch, or my probe's entry choice. Toolbox-first; no verdict without tool output.
+
+</details>
 
 ### `.3` — The ECMA-262 expressiveness pass
 
