@@ -148,6 +148,30 @@ distinguishable commitments, all stricter than what the record previously said:
    caveat. Under the old bar that row closes as ✅; under this one it stays open until the
    idiom is something an author reaches for **eagerly**.
 
+2b. **What "FLEXIBLE" means — director clarification, 2026-07-26 session #209.** Asked whether
+   "flexible" meant granularity or composability, the director widened it past both. **Verbatim:**
+   *"What I mean by flexible, well composability is part of, yes. More generally, it should mean,
+   any feature that ease or help remove frictions with the environment in general, we can define
+   that more clearer later, but I don't necessarily mean extensibility, but it could, but we would
+   then need to define very precise ways to achieve that."* Three things to hold:
+   - ✅ **Composability IS in scope** — confirmed explicitly. (Note `import_statement` and
+     `grammar_inheritance` are both declared-and-unwired in our own meta-grammar: `.1`'s
+     grammar-composition family. That family now has a director-confirmed mandate.)
+   - ⭐ **The general definition is FRICTION REMOVAL with the environment** — deliberately broader
+     than granularity or composability, and broader than the EBNF notation itself. Anything that
+     eases or removes friction for the person building a parser counts. This is the widest reading
+     the record has of "flexible", and it is intentionally open.
+   - ⛔ **EXTENSIBILITY is NOT committed** — "I don't necessarily mean extensibility, but it could,
+     but we would then need to define very precise ways to achieve that." Record this as a
+     **deliberate non-commitment, not an approval**: extensibility is admissible only behind a
+     precisely-defined mechanism, agreed first. Do NOT start extensibility work on the strength of
+     this directive, and do not cite it as authorization. ⚠️ This matters because `.1` also found
+     `lexer_mode`, `parametric_rule` and `rule_modifier` declared-and-unwired — it would be easy to
+     read "flexible" as a green light for all of them. It is not.
+   - 🔜 **To be defined more precisely later** ("we can define that more clearer later"). The
+     definition above is the working one until then; `.4` should rank against it while flagging
+     any item whose justification rests mainly on the open part.
+
 2. **"POWERFUL **and** FLEXIBLE"** — two properties, and the second is the one PGEN is thinner
    on. Power = the construct can be expressed at all. Flexibility = it can be expressed
    *naturally*, at the granularity the language actually varies at. The director has now made
