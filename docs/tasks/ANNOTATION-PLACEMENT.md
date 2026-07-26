@@ -97,6 +97,38 @@ designed-but-unbuilt inline form, so it is the more urgent column.
 cannot describe in its own EBNF — and is called out for director routing rather than
 silently absorbed here.
 
+### ⚠️ ROOT-CAUSED (same session, after the director flagged the result as surprising)
+
+The claim was first derived structurally (no `[>` production in `ebnf.ebnf`). Run to
+ground in `rust/src/ebnf_frontend.rs:37-43`, it is **confirmed and ALREADY KNOWN to
+the code** — and it is *less* alarming than the bare statement implies. Verbatim:
+
+> *"LEXICAL-ANNOTATIONS.3c — when a grammar declares before-rule lexical
+> follow-restriction directives (`[> …]` / `[>! …]`), the generated `EbnfParser`
+> (built from the seed `grammars/ebnf.ebnf`) **does not yet know the construct, so
+> its cross-check would spuriously fail.** Gate the soft cross-check on their
+> presence, exactly as `has_inline_semantic_annotations` already does for inline
+> semantic annotations."*
+
+**Correct severity, stated honestly:**
+
+- ✅ **Production parsing is NOT broken.** The authoritative path is the hand-written
+  `scan_top_level_rules` + `convert_scanned_rule`; the generated `EbnfParser` is only
+  a **soft cross-check** (a verification step layered on top).
+- ⛔ **But the cross-check DISABLES ITSELF exactly where it would be most valuable.**
+  `ebnf_frontend.rs:61` — `if !has_inline_semantic_annotations && !has_lexical_annotations`
+  — so self-hosting verification is skipped for **precisely the two newest, least-verified
+  constructs**: inline semantic annotations and lexical annotations. Coverage is silently
+  strongest where the language is oldest and absent where it is newest.
+- ⛔ **`grammars/ebnf.ebnf` describes a STRICT SUBSET of the language PGEN accepts.**
+  That matters beyond the cross-check, because the `ebnf` meta-grammar has its own
+  shipped book billed as *"the grammar-author's reference for the EBNF input
+  language"* — so the reference under-documents the real surface.
+
+⭐ **Note the shape: this is the SAME failure pattern as the silent-drop finding above** —
+a safety mechanism that quietly stands down rather than reporting. Both belong to this
+tree'"'"'s diagnostic contract: *a check that cannot run must say so, not return green.*
+
 ## Relationship to `INLINE-ACTIONS`
 
 [`INLINE-ACTIONS`](INLINE-ACTIONS.md) owns *making inline ACTION directives fire*:
