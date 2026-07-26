@@ -32,12 +32,13 @@ strand a later, longer alternative.
 | `"lit"` / `'lit'` | `match_string("lit")` |
 | `r"lit"` | `match_string` with no escape decoding |
 | `/regex/` | `match_regex(/regex/)` (the embedded Rust regex engine) |
-| `any_char` / `builtin_any_char` | `match_any_char()` — a native UTF-8 char matcher, no regex engine |
-| `ascii_char` / `builtin_ascii_char` | a native ASCII char matcher |
+| `builtin_any_char` | `match_any_char()` — a native UTF-8 char matcher, no regex engine |
+| `builtin_ascii_char` | a native ASCII char matcher |
 | rule reference | a call to that rule's function |
 
-The `any_char` built-ins are what let a grammar be regex-engine-independent (the `REGEX-SELF-HOSTING`
-property of `grammars/regex.ebnf`).
+The `builtin_any_char` built-ins are what let a grammar be regex-engine-independent (the
+`REGEX-SELF-HOSTING` property of `grammars/regex.ebnf`). The `builtin_` prefix is part of the name —
+see [Terminals](terminals.md) for why the un-prefixed spelling is an ordinary rule reference.
 
 ## Quantifiers → the unified loop
 

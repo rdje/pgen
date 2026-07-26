@@ -73,7 +73,7 @@ Two idioms fix it, both proven to work:
 ```ebnf
 # 1. STATIC closer — guard the loop element with a negative lookahead, so the loop
 #    stops of its own accord and no give-back is needed.
-quoted := "q" "/" ( !"/" any_char )* "/"
+quoted := "q" "/" ( !"/" builtin_any_char )* "/"
 
 # 2. DYNAMIC closer (the closer is not known until parse time — a Raku-style
 #    user-chosen delimiter, a here-document terminator). Register it in the semantic
@@ -81,7 +81,7 @@ quoted := "q" "/" ( !"/" any_char )* "/"
 @emit_fact:  { kind: qdelim, name: $body, family: d }
 open      := delim -> { body: $1 }
 @predicate:  { name: lacks_fact, args: [qdelim, $body], phase: post }
-body_char := any_char -> { body: $1 }
+body_char := builtin_any_char -> { body: $1 }
 @predicate:  { name: has_fact, args: [qdelim, $body], phase: post }
 close     := delim -> { body: $1 }
 quoted    := "q" open body_char* close

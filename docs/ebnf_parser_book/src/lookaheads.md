@@ -24,12 +24,12 @@ if_tail := &"else" else_clause
 
 ### The "any char except …" idiom
 
-Negative lookahead plus an [`any_char` built-in](terminals.md) is how a self-hosting grammar expresses a
-negated character set without a regex class:
+Negative lookahead plus a [`builtin_any_char` built-in](terminals.md) is how a self-hosting grammar
+expresses a negated character set without a regex class:
 
 ```ebnf
 # a shorthand escape that is NOT one of the reserved letters/digits
-simple_escape := !"o{" !"x{" !"p{" !"P{" any_char -> {type: "escape", char: $5}
+simple_escape := !"o{" !"x{" !"p{" !"P{" builtin_any_char -> {type: "escape", char: $5}
 ```
 
 Each leading `!"…"` is a zero-width assertion, so the matched character is captured by the *first

@@ -27,6 +27,10 @@
 - Governed by [[project_capability_growth_is_zero_cost_and_neutral]]: every gap this
   audit prices must carry a cost model — non-users pay zero, users pay at codegen
   time where semantics permit.
+- **Current frontier (session #213): `.10.2`** — make `semantic_annotation.ebnf`
+  composable and restore `ebnf.ebnf`'s delegated annotation sub-language. Then `.10.3`
+  (retire the allowlist entry; **strictly after** `.10.2`), `.10.4` (`true`/`false`
+  zero-width builtins; independent). Other open leaves: `.2.1`, `.3c`, `.6`.
 
 ## PRIOR ART (per [[feedback_read_prior_art_before_designing]])
 
@@ -951,14 +955,35 @@ not restored**, and it is now tested.
 
 #### `grammars/ebnf.ebnf:18` — adjudicated on measurement, then removed
 
+> ⛔⛔ **THIS SUBSECTION IS WRONG AND IS SUPERSEDED BY `.10.1`. Retained verbatim
+> below as the record — do not act on it.** Two of its three bullets do not survive
+> measurement: the target file **does** exist under the singular spelling, and
+> `ebnf.ebnf` is **not** self-contained (`undefined_references=0` is produced by a
+> codegen allowlist, not by soundness). Read `.10` / `.10.1` before touching this
+> line again. Corrected in place per `.10` deliverable 4.
+
 The stale `include(semantic_annotations)` is deleted (replaced by a comment recording why).
 Decided on evidence, not convenience:
 
-- `grammars/semantic_annotations.ebnf` **has never existed**;
-- `ebnf.ebnf` lints `undefined_references=0` at 131 rules ⇒ it is **self-contained** and
-  needs nothing composed in;
-- pointing it at the real `semantic_annotation.ebnf` would import 112 rules that **collide
-  on 15 names** already defined in `ebnf.ebnf` ⇒ actively harmful.
+- ⛔ **FALSE (`.10.1`)** — ~~`grammars/semantic_annotations.ebnf` **has never existed**~~;
+  true of the **plural** spelling only. The singular `grammars/semantic_annotation.ebnf`
+  exists, defines `semantic_annotation`, and its own header advertises the plural
+  spelling (`# semantic_annotations.ebnf`, `# Usage: include(semantic_annotations)`) ⇒
+  a naming-drift typo for a file that is right there, not a reference to nothing.
+- ⛔ **FALSE (`.10.1`)** — ~~`ebnf.ebnf` lints `undefined_references=0` at 131 rules ⇒ it
+  is **self-contained** and needs nothing composed in~~; the grammar has **3 live
+  dangling references** (`grammar_file`, `annotation_list`, `inline_semantic_annotation`
+  all name `semantic_annotation`, which no rule defines). The lint reads 0 because
+  `"semantic_annotation"` is hard-coded into `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`,
+  the const the linter consumes as its allowlist. **The evidence cited here was
+  produced by the very masking this leaf was supposed to be removing.**
+- ✅ **STANDS (`.10.1`, re-measured)** — pointing it at the real
+  `semantic_annotation.ebnf` would import 112 rules that **collide on 15 names**
+  already defined in `ebnf.ebnf`. `.10.1` sharpens it: **11 of the 15 are genuine
+  semantic CONFLICTS**, not duplicate spellings, so the composition is a real design
+  problem — but "actively harmful" was the wrong conclusion to draw from it. The right
+  one is that `semantic_annotation.ebnf` **is not composable as it stands**, which is a
+  reason to make it composable (`.10.2`), not a reason to delete the delegation.
 
 - **Acceptance Checklist (enforced)**
   - [x] **REPRODUCE / ISSUE** — `.4` measured the silent drop; this leaf reproduced it on
@@ -1326,7 +1351,14 @@ the person who specified it.**
   scope by design). That is a legitimate outcome and must be recorded as such — the bound is
   what keeps "any language" honest. The value is in the rows that do NOT.
 
-### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`todo` — ⛔ DIRECTOR-SCHEDULED FOR A FRESH SESSION)
+### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` / `.10.3` / `.10.4`)
+
+> **Container as of session #213.** Opened in a fresh session per the director's ruling
+> below. `.10.1` (done) settled the target, audited the whole allowlist, and corrected
+> `.7`'s record; it also **overturned this charter's recommended target** and found a
+> second defect class the charter did not know about. **Frontier = `.10.2`.**
+> Read `.10.1` before acting on anything in this charter — two of its statements below
+> are annotated as superseded.
 
 > **Director, 2026-07-26 session #212**, on being shown `.7`'s account: *"The reference
 > in ebnf.ebnf had a typo."* → *"But we have grammars/semantic_annotation.ebnf"* →
@@ -1392,16 +1424,294 @@ resolved, not tolerated.
 1. Decide the target (**recommend `builtin_semantic_annotation`**, the bootstrap-safe
    twin — the meta-grammar has the same chicken-and-egg property the builtin grammars
    exist to break) and align the referenced rule name.
+   — ⛔ **RECOMMENDATION OVERTURNED BY `.10.1` ON SHAPE. See `.10.1`.**
 2. Resolve the 3 name collisions.
+   — re-scoped by `.10.1`: the target is the full grammar, so it is **11 conflicts of 15
+   collisions**, not 3.
 3. ⭐ **Retire `"semantic_annotation"` from `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`** so
    the undefined-reference check can see that class again — and re-run it to confirm it
    now reports 0 *because the grammar is sound*, not because the name is allowlisted.
-4. Correct `.7`'s record in place: its deletion and its *"self-contained"* conclusion
-   were both wrong, and the reasons are above.
+   — `.10.1` **sequences** this: it MUST land after the grammar is sound (`.10.3`).
+4. ✅ **DONE by `.10.1`** — correct `.7`'s record in place: its deletion and its
+   *"self-contained"* conclusion were both wrong, and the reasons are above.
 5. Byte-identity proof with input AND output paths pinned (`.5` / `BIN-BUILD-INTEGRITY.3`).
+   — ✅ done for `.10.1`'s own edit; still required for `.10.2`/`.10.3`.
 
 ⚠️ **Audit the other allowlist members while there** — the same question ("is this
 actually a codegen builtin, or a silenced defect?") has not been asked of them.
+— ✅ **DONE by `.10.1`, and it found a second defect class.**
+
+---
+
+### `.10.1` — adjudicate the target, audit the whole allowlist, correct `.7`'s record (`done`)
+
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0013`, session #213, 2026-07-26).
+  **Grammar comment block + docs + driver only** — the sole non-doc edit is a comment
+  block in `grammars/ebnf.ebnf`, proven codegen-INERT below. No Rust source, no
+  generated artifact, no contract, no release/schema/ledger movement.
+
+`.10` as chartered bundled an unresolved policy choice (which file to compose) with a
+multi-grammar merge, an allowlist retirement, and a record correction. Measurement
+overturned the choice, so per the splitting rules `.10` is now a container and this leaf
+banks what measurement settled.
+
+#### ⭐⭐⭐ Finding 1 — `.10`'s recommended target is the WRONG SHAPE, and the collision count was the wrong criterion
+
+`.10` recommended `builtin_semantic_annotation.ebnf` because it collides 3× instead of
+15×. **Collision count ranks the candidates; it does not tell you whether either one
+means the right thing.** Measured entry-rule shapes:
+
+| candidate | entry rule | matches the `@`? | verdict |
+|---|---|---|---|
+| `semantic_annotation.ebnf` | `semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value` | ✅ **yes** | the `@name: value` **line** — what `ebnf.ebnf` needs |
+| `builtin_semantic_annotation.ebnf` | `builtin_semantic_annotation := ws* semantic_payload ws*` | ⛔ **no** | the **payload** only — the text *after* the `:` |
+
+⇒ the builtin grammar is not a smaller version of the same object; it is a **different
+object**. It is the inferred behavioural spec of the hand-written bootstrap parser
+(its own header, verbatim: *"intentionally permissive"*, *"never hard-fails on syntax"*),
+and its fallback is `raw_payload := any_text` where `any_text := /(.|\n)*/` — an
+**always-succeeding, everything-swallowing** rule. Splicing that into `ebnf.ebnf`'s
+`grammar_file := (include_directive | semantic_annotation | grammar_rule | comment |
+whitespace)*` alternation would put an always-succeeding alternative inside the
+meta-grammar's top-level loop. **Cheaper by collision count, catastrophic by shape.**
+
+⇒ **DECIDED: the target is the full `grammars/semantic_annotation.ebnf`.** This also
+matches the director's own steer (*"But we have grammars/semantic_annotation.ebnf"*);
+`.10` read the third director statement (*"The builtin semantic annotation EBNF is
+grammars/builtin_semantic_annotation.ebnf"*) as target selection when it was
+disambiguation of which file is which.
+
+#### ⭐⭐ Finding 2 — the 15 collisions are 11 genuine CONFLICTS, so the composition is a real design problem
+
+`.10` (and `.7` before it) treated "15 collisions" as one number. Measured per rule
+(definition text compared with comments and whitespace normalized out):
+
+- **4 duplicates** (identical definitions): `decimal_literal`, `identifier_literal`,
+  `numeric_literal`, `scientific_literal`.
+- **11 genuine conflicts** (same name, different language): `binary_literal`,
+  `block_comment`, `boolean_literal`, `double_quoted_string`, `hexadecimal_literal`,
+  `integer_literal`, `line_comment`, `null_literal`, `octal_literal`,
+  `single_quoted_string`, `whitespace`.
+
+Two that show why this cannot be resolved by renaming alone:
+
+| rule | `ebnf.ebnf` | `semantic_annotation.ebnf` |
+|---|---|---|
+| `boolean_literal` | `("true" \| "false")` | adds `yes`/`no`/`on`/`off`/`enabled`/`disabled`/`active`/`inactive` |
+| `line_comment` | `("#" \| "//") comment_content` | `"//" /[^\r\n]*/` — **no `#`** |
+
+⇒ `semantic_annotation.ebnf` is **not a composable fragment**: it is a standalone
+grammar carrying its own private lexical layer that disagrees with the meta-grammar's.
+Since `.9` a cross-file collision is a hard error, so all 15 must be resolved. That is
+`.10.2`'s job and it is a design leaf, not a one-line repair.
+
+#### ⭐⭐⭐ Finding 3 — the allowlist audit found a SECOND defect class: `true` and `false` synthesize ALWAYS-SUCCEEDING ZERO-WIDTH matchers
+
+The `.10` charter asked whether the other allowlist members are genuine builtins. They
+are not one class — they are three, and one of them is a trap:
+
+| member | emitted matcher | consumes? | referenced by any tracked grammar? | verdict |
+|---|---|---|---|---|
+| `builtin_any_char` | one Unicode scalar, `self.position = end_pos` | ✅ yes | `regex.ebnf` | ✅ **genuine builtin** |
+| `builtin_ascii_char` | one ASCII byte | ✅ yes | `regex.ebnf` | ✅ **genuine builtin** |
+| `semantic_annotation` | `@` … to end of line | ✅ yes | `ebnf.ebnf` (dangling) | ⛔ **masked defect** — Finding 4 |
+| `true` | unconditional `Ok`, `Span::new(start_pos, start_pos)` | ⛔ **NO** | **none** | ⛔⛔ **dead surface AND a trap** |
+| `false` | unconditional `Ok`, `Span::new(start_pos, start_pos)` | ⛔ **NO** | **none** | ⛔⛔ **dead surface AND a trap** |
+
+Emitted verbatim (capture §A5):
+
+```rust
+pub fn parse_true(&mut self) -> ParseResult<ParseNode<'input>> {
+    let start_pos = self.position;
+    Ok(ParseNode {
+        rule_name: &"true",
+        content: ParseContent::Terminal("true"),
+        span: Span::new(start_pos, start_pos),   // <- zero width. Nothing consumed. Never fails.
+    })
+}
+```
+
+⭐ **The decisive contrast, measured behaviourally through the scratch slot** (one
+grammar, one build, 7 declared verdicts, 0 divergences) — same allowlist, opposite
+behaviour:
+
+| input | grammar fragment | verdict | what it proves |
+|---|---|---|---|
+| `TT` | `probe_true := "T" true "T"` | **ACCEPT** | ⛔ `true` matched **EMPTY** |
+| `TtrueT` | same | REJECT | `true` is zero-width, **not** a literal matcher — the `Terminal("true")` payload is a lie about the input |
+| `FF` | `probe_false := "F" false "F"` | **ACCEPT** | ⛔ `false` matched **EMPTY** |
+| `CzC` | `probe_any := "C" builtin_any_char "C"` | ACCEPT | ✅ a genuine builtin **consumes** |
+| `CC` | same | REJECT | ✅ …and **refuses to match empty** — the contrast |
+
+⇒ this is the **`.5` defect class exactly** (`digit := [0-9]` lints clean while
+compiling to an always-succeeding empty optional). A grammar author who writes a rule
+named `true` — an entirely natural name for a boolean-literal rule — gets a silently
+always-succeeding empty match **and** `undefined_references=0`. Nothing in the pipeline
+says a word. Neither name is referenced by any tracked grammar, so this is dead surface
+that exists only to be stepped on. Routed to `.10.4`.
+
+#### ⭐⭐ Finding 4 — the masking is structural, and the const's own rationale is false
+
+The `.10` charter said `undefined_references=0` is produced by the allowlist. Measured
+both directions (capture §A4), on a probe grammar with four dangling references:
+
+- probe naming `true`, `false`, `semantic_annotation`, `builtin_any_char` →
+  `undefined_references=0`;
+- probe naming one **non-member** → `undefined_references=1`.
+
+⇒ the check works; it is the allowlist that makes the four invisible. And the const's
+doc comment claims `semantic_annotation` is *"the native `@…`-line matcher used by the
+annotation grammars"* — **measured false**: `generated/ebnf.rs` is the ONLY generated
+parser carrying the native form. `semantic_annotation.ebnf` carries `parse_semantic_annotation`
+from its **own definition**, not from the fallback, and `builtin_semantic_annotation.ebnf`
+mentions the name only in a comment. The meta-grammar is the sole consumer, **and it
+consumes it because its include is broken** — precisely the workaround `.10` alleged,
+now measured rather than asserted.
+
+Two independent instruments were made to agree explicitly (capture §A3b): a text screen
+over the tracked grammars and the generated-parser census. The screen only became
+truthful after stripping three things that spell these names without referencing a
+rule — annotation lines (`@entry: true`), quoted/regex terminals (`("true" | "false")`),
+and return-annotation literals (`-> {negated: false}`). Before that it reported `true`
+as referenced by **16** grammars. **That screen is in the driver with the reason
+written next to it**, so the next reader does not re-derive the false number.
+
+#### ⭐⭐ Finding 5 — the grammar-author book documented a built-in that does not exist, in 5 chapters
+
+Asking "what are the real members of the const?" immediately convicted the book PGEN
+ships for grammar authors. `docs/ebnf_parser_book/` stated in **five** chapters
+(`terminals.md`, `glossary.md`, `codegen-model.md`, `lookaheads.md`, `quantifiers.md`)
+that `any_char` / `ascii_char` are native built-ins, equivalent to the `builtin_`-prefixed
+forms — `terminals.md` billing itself as *"the authoritative list of what the codegen
+actually matches"*. Measured, they are not on the const, and:
+
+```
+$ ast_pipeline --lint-grammar <(printf '@entry: true\nstart := "C" any_char "C"\n')
+undefined_references=1
+[error] … rule 'start' references UNDEFINED rule 'any_char' — codegen emits a
+never-matching stub for it, so every path through the reference ALWAYS fails
+```
+
+`any_char` is an **ordinary rule defined in exactly one grammar** — `grammars/regex.ebnf:2239`,
+`any_char = letter | digit | whitespace | special_char | unicode_char` — which is why the
+un-prefixed spelling reads as idiomatic throughout that file. The book had generalized
+one grammar's private rule into a platform primitive, and **four of its example snippets
+were uncopyable**: paste them anywhere else and you get a hard error (or, in a grammar
+that happens to define its own `any_char`, a silently different matcher).
+
+⭐ **No code defect here — the un-prefixed names SHOULD NOT exist.** The `builtin_`
+prefix is the director's 2026-06-07 namespacing rule precisely so a primitive can never
+be shadowed by a same-named grammar rule, and `regex.ebnf`'s `any_char` is exactly the
+rule it protects against. Withholding the alias is the correct design; only the
+documentation was wrong. All five chapters corrected, examples included, plus a residual
+sweep (the one surviving un-prefixed mention is `grammar-file-structure.md`, where the
+line is explicitly quoting `regex.ebnf`'s own idiom to illustrate the `=` operator).
+
+⇒ this is the same shape as `.5` (*"the meta-grammar's own comments were contradicting
+the book PGEN ships for authors"*) and `.9` (*"an undocumented capability is one nobody
+can defend"*) — **a mis-documented capability is worse than an undocumented one**,
+because a reader has no reason to doubt it.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `.7` certified `ebnf.ebnf` *"self-contained"* on
+  `undefined_references=0`. Reproduced: the grammar has 3 live references to an
+  undefined `semantic_annotation` and still lints 0.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `ast_based_generator.rs:1198-1204`,
+  `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`. `grammar_wellformedness.rs:333` consumes that
+  same const as the linter's allowlist (deliberately, so linter and codegen cannot
+  drift), so allowlisting a name for codegen **necessarily** blinds the linter to it.
+  The dispatch arm is `ast_based_generator.rs:1315-1343`. Tool-backed by the two-arm
+  lint differential (§A4) and the emitted-source extraction (§A5).
+- [x] **ADDRESSED** — for this leaf's own scope: the target is decided on shape
+  evidence, the allowlist is audited member-by-member, the false record is corrected in
+  both places it was written (`.7`'s leaf above and the comment block in
+  `grammars/ebnf.ebnf`), and the grammar-author book is corrected in all five chapters
+  that documented a built-in which does not exist (Finding 5 — that one is fully closed
+  here, no follow-up leaf, because the correct design is to withhold the alias). The
+  remaining repairs are `.10.2`/`.10.3`/`.10.4`.
+- [x] **NO REGRESSION** — the `grammars/ebnf.ebnf` edit is a comment block and is proven
+  **codegen-INERT**: generated twice **to the same pinned output path** from the same
+  pinned input path, HEAD vs edited, sha256
+  `8b91ef9097f5dc3143b3ab3d7ca85a61c01d89db6c0e98a0767051d3a880fbed` **both arms**,
+  `cmp` clean; the 229-entry return-annotation inventory is byte-identical too. Lint is
+  unchanged (131 rules, all counters 0). The scratch slot was restored to its committed
+  fixture **and** `parseability_probe` rebuilt against it (verified behaviourally:
+  `hello, pgen!` ACCEPT, `hello, mars!` REJECT at position 7).
+
+⚠️ **Method note banked for the next leaf.** The first byte-identity attempt reported a
+3,056-hunk diff for a comment-only edit. Root cause: the generated parser **embeds its
+own output path** as a `filename_str` logging literal, so the two arms differed only by
+`ebnf_before/` vs `ebnf_after/`. This is what *"input AND output paths pinned"* in `.5`
+and `BIN-BUILD-INTEGRITY.3` actually protects against — **generating to two different
+paths makes byte-identity structurally unachievable and the diff looks alarming.**
+Recorded because the failure mode reads as a codegen defect and is not one.
+
+---
+
+### `.10.2` — make `semantic_annotation.ebnf` composable, and restore the delegation (`todo`)
+
+- **Status: `todo`**, blocked on nothing; this is `.10`'s frontier. Design + code.
+
+`ebnf.ebnf` delegates its annotation sub-language by design — it defines no
+`annotation_name`/`annotation_value` and never has. The include was the mechanism.
+Restore it for real:
+
+1. Resolve the 15 collisions (4 duplicates, 11 conflicts) between `ebnf.ebnf` and
+   `semantic_annotation.ebnf`. The two live options, to be adjudicated on measurement,
+   not preference:
+   - **extract a fragment** — a `semantic_annotation` core (the rule plus
+     `annotation_name`/`annotation_value` and only the literals they need, under
+     non-colliding names) that BOTH `semantic_annotation.ebnf` and `ebnf.ebnf` include.
+     Fragments are an established shape here (`test_includes/*`); note the
+     `QUANT-PLUS-ITER.2` constraint that **a fragment must not declare `@entry`**, or
+     the spliced grammar declares two.
+   - **rename on one side** — cheaper to write, but it moves a shipped parser's rule
+     names and therefore its AST shape.
+2. Restore `include(semantic_annotation)` (**singular**) in `ebnf.ebnf`.
+3. Fix the misleading header in `grammars/semantic_annotation.ebnf` — it still says
+   `# semantic_annotations.ebnf` and `# Usage: include(semantic_annotations)`. That
+   header is what the typo was copied from; leaving it invites the same bug back.
+4. ⚠️ **This changes a shipped parser's behaviour**: `ebnf.ebnf`'s `semantic_annotation`
+   stops being an `@`-to-EOL slurp and becomes a structured `@name: value` parse.
+   Expect AST-shape movement on the `ebnf` parser and budget for release/schema/ledger
+   + `docs/ebnf_parser_book/` + `EBNF-BOOK` lockstep. Measure before→after; do not
+   assume byte-identity.
+
+### `.10.3` — retire `"semantic_annotation"` from `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (`todo`)
+
+- **Status: `todo`**, ⛔ **blocked on `.10.2` — the order is not negotiable.** Retiring
+  the entry first would leave `ebnf.ebnf` with 3 references the linter now reports as a
+  hard error and codegen compiles into never-matching stubs, breaking the self-hosting
+  meta-parser. Grammar sound first, allowlist retired second.
+
+Then re-run the lint and confirm `undefined_references=0` **because the grammar is
+sound**, not because the name is allowlisted — the distinction `.7` could not make. Drop
+the false *"used by the annotation grammars"* rationale from the const's doc comment,
+and delete the `"semantic_annotation"` dispatch arm (`ast_based_generator.rs:1315`); the
+`native_unresolved_builtins_const_matches_dispatch` oracle locks const and dispatch in
+both directions, so both move together or the test fails.
+
+### `.10.4` — `true` / `false`: always-succeeding zero-width builtins nobody uses (`todo`)
+
+- **Status: `todo`**, opened by `.10.1`'s Finding 3. Independent of `.10.2`/`.10.3` —
+  no tracked grammar references either name, so this can land on its own.
+
+Adjudicate and repair. The options, in the order `.10.1` would rank them:
+
+1. **Delete both** from the const and the dispatch. Nothing references them; the
+   boolean-literal spellings every tracked grammar actually uses are quoted terminals
+   (`("true" | "false")`), which are unaffected. Removes the trap outright.
+2. **Make them honest** — emit a real matcher that consumes the literal text `true` /
+   `false` and fails otherwise. Keeps the capability, kills the empty match. Note this
+   still leaves two un-prefixed names shadowable by ordinary grammar rules, against the
+   `builtin_` namespacing directive (director 2026-06-07).
+
+Whichever way it goes, the always-succeeding zero-width emission must not survive: it is
+the `.5` defect class, and the linter cannot see it because the name is allowlisted.
+⚠️ Check whether `always_succeeds_alternatives` can be taught to see through the
+allowlist — a rule reference that resolves to an unconditional zero-width `Ok` is
+exactly what that note exists to report.
 
 
 ## Acceptance Criteria (tree)
@@ -1436,3 +1746,13 @@ actually a codegen builtin, or a silenced defect?") has not been asked of them.
   pins, and all four consumer surfaces)
 - `docs/tasks/artifacts/lang_capability_audit/include_resolution_probes.txt` — `.7`
   capture (exit 0, 0 divergences)
+- `docs/tasks/artifacts/lang_capability_audit/run_native_builtin_audit.sh` — `.10.1`
+  driver. Three arms: **A** static (const membership, the rule-reference screen with its
+  three strip rules, the generated-parser census, the two-arm lint-masking differential,
+  and the emitted matcher per member), **B** shape (collision sets + conflict/duplicate
+  split + entry-rule shapes of both include candidates), **C** behaviour (7
+  declared-verdict parses through the scratch slot; **opt-in** via
+  `PGEN_AUDIT_RUN_SLOT_ARM=1` because it overwrites the slot and rebuilds — it restores
+  the fixture, its artifact, **and** the `parseability_probe` binary on every exit path).
+- `docs/tasks/artifacts/lang_capability_audit/native_builtin_audit.txt` — `.10.1`
+  capture, all three arms, **exit 0, 0 divergences**.

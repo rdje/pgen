@@ -14,13 +14,33 @@
 # Version: 2.0
 # Author: EBNF Parser Generator System
 
-# LANG-CAPABILITY-AUDIT.7 — a stale `include(semantic_annotations)` stood here.
-# It named a file that has never existed (`grammars/semantic_annotations.ebnf`),
-# and it survived only because the frontend used to discard include directives
-# without resolving them. Removed on measurement, not on suspicion: this grammar
-# lints with `undefined_references=0`, i.e. it is self-contained; and composing in
-# `semantic_annotation.ebnf` would collide on 15 rule names already defined below.
-# Includes are resolved for real now, so an unresolvable one is a hard error.
+# LANG-CAPABILITY-AUDIT.7 — an `include(semantic_annotations)` stood here, and .7
+# deleted it. ⛔ CORRECTED BY .10 (director, session #212): .7 got this wrong twice.
+#
+# 1. It was a TYPO, not a reference to nothing. Only the PLURAL spelling names a
+#    file that never existed; the SINGULAR `grammars/semantic_annotation.ebnf` is
+#    right here (112 rules, and it DEFINES `semantic_annotation`). That file's own
+#    header still advertises the plural spelling — verbatim, `# semantic_annotations.ebnf`
+#    and `# Usage: include(semantic_annotations) in your language grammars` — so the
+#    include matched the documentation of the very file it should have named.
+#
+# 2. This grammar is NOT self-contained, and `undefined_references=0` never said it
+#    was. Three live references below — in `grammar_file`, `annotation_list` and
+#    `inline_semantic_annotation` — name `semantic_annotation`, which NO rule in this
+#    file defines. The linter reports 0 because `"semantic_annotation"` is hard-coded
+#    into codegen's `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` allowlist (the linter
+#    consumes that const), so the one instrument that would have named the dangling
+#    reference is structurally blind to it.
+#
+# What that allowlist entry actually does: codegen synthesizes a native matcher that
+# takes `@` and slurps to end of line — no annotation structure, no name/value split.
+# Measured: `generated/ebnf.rs` is the ONLY generated parser that carries it, so the
+# const's "used by the annotation grammars" rationale is false — this grammar is its
+# sole consumer, and it consumes it BECAUSE the include is broken.
+#
+# The repair (make the delegation real, then retire the allowlist entry) is owned by
+# LANG-CAPABILITY-AUDIT.10.2 / .10.3. Do not re-delete the reference: the annotation
+# sub-language is DELEGATED by design, and the include was the mechanism.
 
 # =============================================================================
 # GRAMMAR FILE STRUCTURE

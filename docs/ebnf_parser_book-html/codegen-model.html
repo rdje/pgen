@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72cc8107.js";
+            window.path_to_searchindex_js = "searchindex-9064376a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -213,14 +213,15 @@ strand a later, longer alternative.</p>
 <tr><td><code>"lit"</code> / <code>'lit'</code></td><td><code>match_string("lit")</code></td></tr>
 <tr><td><code>r"lit"</code></td><td><code>match_string</code> with no escape decoding</td></tr>
 <tr><td><code>/regex/</code></td><td><code>match_regex(/regex/)</code> (the embedded Rust regex engine)</td></tr>
-<tr><td><code>any_char</code> / <code>builtin_any_char</code></td><td><code>match_any_char()</code> — a native UTF-8 char matcher, no regex engine</td></tr>
-<tr><td><code>ascii_char</code> / <code>builtin_ascii_char</code></td><td>a native ASCII char matcher</td></tr>
+<tr><td><code>builtin_any_char</code></td><td><code>match_any_char()</code> — a native UTF-8 char matcher, no regex engine</td></tr>
+<tr><td><code>builtin_ascii_char</code></td><td>a native ASCII char matcher</td></tr>
 <tr><td>rule reference</td><td>a call to that rule’s function</td></tr>
 </tbody>
 </table>
 </div>
-<p>The <code>any_char</code> built-ins are what let a grammar be regex-engine-independent (the <code>REGEX-SELF-HOSTING</code>
-property of <code>grammars/regex.ebnf</code>).</p>
+<p>The <code>builtin_any_char</code> built-ins are what let a grammar be regex-engine-independent (the
+<code>REGEX-SELF-HOSTING</code> property of <code>grammars/regex.ebnf</code>). The <code>builtin_</code> prefix is part of the name —
+see <a href="terminals.html">Terminals</a> for why the un-prefixed spelling is an ordinary rule reference.</p>
 <h2 id="quantifiers--the-unified-loop"><a class="header" href="#quantifiers--the-unified-loop">Quantifiers → the unified loop</a></h2>
 <p>Every quantifier (<code>?</code> <code>*</code> <code>+</code> <code>{n}</code> <code>{n,m}</code> <code>{n,}</code> <code>{,m}</code>) compiles to <strong>one</strong> loop shape with
 per-iteration atomicity (the Layer-0 engine, <a href="quantifiers.html">Quantifiers</a>). A quantified element yields a

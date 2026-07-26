@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72cc8107.js";
+            window.path_to_searchindex_js = "searchindex-9064376a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -247,7 +247,7 @@ closer and the rule can never complete.</p>
 <p>Two idioms fix it, both proven to work:</p>
 <pre><code class="language-ebnf"># 1. STATIC closer — guard the loop element with a negative lookahead, so the loop
 #    stops of its own accord and no give-back is needed.
-quoted := "q" "/" ( !"/" any_char )* "/"
+quoted := "q" "/" ( !"/" builtin_any_char )* "/"
 
 # 2. DYNAMIC closer (the closer is not known until parse time — a Raku-style
 #    user-chosen delimiter, a here-document terminator). Register it in the semantic
@@ -255,7 +255,7 @@ quoted := "q" "/" ( !"/" any_char )* "/"
 @emit_fact:  { kind: qdelim, name: $body, family: d }
 open      := delim -&gt; { body: $1 }
 @predicate:  { name: lacks_fact, args: [qdelim, $body], phase: post }
-body_char := any_char -&gt; { body: $1 }
+body_char := builtin_any_char -&gt; { body: $1 }
 @predicate:  { name: has_fact, args: [qdelim, $body], phase: post }
 close     := delim -&gt; { body: $1 }
 quoted    := "q" open body_char* close

@@ -53,7 +53,7 @@ becomes.
 
 - [Build Recipe](build-recipe.md) — generate, parse, lint, and prove a grammar; build this book.
 - [Grammar File Structure](grammar-file-structure.md) — the file: rules, operators, comments, whitespace.
-- [Terminals](terminals.md) — string/char literals, regex literals, the `any_char` built-ins, escapes.
+- [Terminals](terminals.md) — string/char literals, regex literals, the `builtin_any_char` built-ins, escapes.
 - [Rules and Expressions](rules-and-expressions.md) — ordered choice, sequences, grouping, optional,
   and the constructs the codegen does **not** implement.
 - [Quantifiers](quantifiers.md) — `?` `*` `+` `{n}` `{n,m}` `{n,}` `{,m}` and the Layer-0 unified engine.

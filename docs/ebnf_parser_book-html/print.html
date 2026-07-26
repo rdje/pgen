@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72cc8107.js";
+            window.path_to_searchindex_js = "searchindex-9064376a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -224,7 +224,7 @@ becomes.</p>
 <ul>
 <li><a href="#build-recipe">Build Recipe</a> — generate, parse, lint, and prove a grammar; build this book.</li>
 <li><a href="#grammar-file-structure">Grammar File Structure</a> — the file: rules, operators, comments, whitespace.</li>
-<li><a href="#terminals">Terminals</a> — string/char literals, regex literals, the <code>any_char</code> built-ins, escapes.</li>
+<li><a href="#terminals">Terminals</a> — string/char literals, regex literals, the <code>builtin_any_char</code> built-ins, escapes.</li>
 <li><a href="#rules-and-expressions">Rules and Expressions</a> — ordered choice, sequences, grouping, optional,
 and the constructs the codegen does <strong>not</strong> implement.</li>
 <li><a href="#quantifiers">Quantifiers</a> — <code>?</code> <code>*</code> <code>+</code> <code>{n}</code> <code>{n,m}</code> <code>{n,}</code> <code>{,m}</code> and the Layer-0 unified engine.</li>
@@ -483,7 +483,7 @@ annotation (it bounds how far a sequence will consume); it appears in <code>gram
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="terminals"><a class="header" href="#terminals">Terminals</a></h1>
 <p>A <strong>terminal</strong> matches literal input text. PGEN’s EBNF supports string and character literals, regex
-literals, and the native <code>any_char</code> built-ins. This chapter is the authoritative list of what the codegen
+literals, and the native <code>builtin_any_char</code> built-ins. This chapter is the authoritative list of what the codegen
 actually matches — and one important footgun about character classes.</p>
 <h2 id="string-literals"><a class="header" href="#string-literals">String literals</a></h2>
 <p>Double-quoted and single-quoted string literals match their contents exactly
@@ -522,23 +522,33 @@ lexical token.</p>
 so the generated regex parser does not call Rust’s own regex engine (the <code>REGEX-SELF-HOSTING</code> campaign).
 For a <em>general</em> grammar that is not trying to be regex-engine-independent, <code>/…/</code> literals are perfectly
 idiomatic and widely used (e.g. <code>grammars/systemverilog.ebnf</code>). If you specifically need to avoid the
-embedded regex engine, prefer string literals and the <code>any_char</code> built-ins below.</p>
+embedded regex engine, prefer string literals and the <code>builtin_any_char</code> built-ins below.</p>
 </blockquote>
-<h2 id="the-any_char-built-ins"><a class="header" href="#the-any_char-built-ins">The <code>any_char</code> built-ins</a></h2>
+<h2 id="the-builtin_any_char-built-ins"><a class="header" href="#the-builtin_any_char-built-ins">The <code>builtin_any_char</code> built-ins</a></h2>
 <p>PGEN provides two native single-character matchers that need no regex engine
-(<code>rust/src/ast_based_generator.rs</code>). You reference them by name like a rule, but they are built in — you do
-<strong>not</strong> define them:</p>
+(<code>rust/src/ast_pipeline/ast_based_generator.rs</code>). You reference them by name like a rule, but they
+are built in — you do <strong>not</strong> define them:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Built-in</th><th>Matches</th></tr>
 </thead>
 <tbody>
-<tr><td><code>any_char</code> / <code>builtin_any_char</code></td><td>any single UTF-8 character</td></tr>
-<tr><td><code>ascii_char</code> / <code>builtin_ascii_char</code></td><td>any single ASCII character</td></tr>
+<tr><td><code>builtin_any_char</code></td><td>any single UTF-8 character</td></tr>
+<tr><td><code>builtin_ascii_char</code></td><td>any single ASCII character</td></tr>
 </tbody>
 </table>
 </div>
+<blockquote>
+<p>⚠️ <strong>The <code>builtin_</code> prefix is part of the name, not decoration.</strong> There is no un-prefixed
+<code>any_char</code> / <code>ascii_char</code> built-in. <code>grammars/regex.ebnf</code> defines its <em>own</em> ordinary rule named
+<code>any_char</code> (<code>any_char = letter | digit | whitespace | special_char | unicode_char</code>, line 2239),
+which is why the un-prefixed spelling appears throughout that grammar. Copy it into a grammar that
+does not define it and you get a hard error — measured:
+<code>[error] … rule 'start' references UNDEFINED rule 'any_char' — codegen emits a never-matching stub</code>.
+The prefix exists (director 2026-06-07) precisely so a primitive can never be shadowed by a
+same-named grammar rule like that one.</p>
+</blockquote>
 <p>The canonical idiom — used all over <code>grammars/regex.ebnf</code> — is “match a run of characters until a
 delimiter”, combined with a <a href="#lookaheads">negative lookahead</a> and the <code>$text</code>
 <a href="#return-annotations">whole-match capture</a>:</p>
@@ -546,10 +556,50 @@ delimiter”, combined with a <a href="#lookaheads">negative lookahead</a> and t
 comment_text := ( !")" builtin_any_char )* -&gt; $text
 
 # a single shorthand escape: backslash already consumed, take the next char
-control_escape := "c" any_char -&gt; {type: "escape", kind: "control", char: $2}
+control_escape := "c" builtin_any_char -&gt; {type: "escape", kind: "control", char: $2}
 </code></pre>
 <p>This pair plus lookaheads is how a self-hosting grammar expresses “any character except …” without a
 character class.</p>
+<h2 id="the-reserved-name-footgun-true-and-false-match-empty"><a class="header" href="#the-reserved-name-footgun-true-and-false-match-empty">The reserved-name footgun: <code>true</code> and <code>false</code> match EMPTY</a></h2>
+<p>The <code>builtin_any_char</code> pair are not the only names PGEN treats as built in. The full list codegen
+recognizes is <code>builtin_any_char</code>, <code>builtin_ascii_char</code>, <code>semantic_annotation</code>, <code>true</code> and <code>false</code>
+(<code>AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS</code>). Only the first two behave the way the
+table above describes.</p>
+<blockquote>
+<p>⚠️ <strong>Do not name a rule <code>true</code> or <code>false</code>.</strong> If your grammar <em>references</em> either name without
+defining it, codegen does not report an undefined reference — it synthesizes a matcher that
+<strong>always succeeds and consumes nothing</strong>.</p>
+</blockquote>
+<pre><code class="language-ebnf"># ⛔ DON'T: `true` here is not your rule and not the text "true"
+flag := "flag=" true
+</code></pre>
+<p>That grammar accepts <code>flag=</code> — with nothing after the <code>=</code>. It also <em>rejects</em> <code>flag=true</code>, because
+the built-in never consumes the four characters; the node it returns carries the payload <code>"true"</code>
+regardless of what the input actually said. And <code>--lint-grammar</code> reports
+<code>undefined_references=0</code>, because the linter consumes the same built-in list as codegen: a name on
+that list is invisible to the undefined-reference check by construction.</p>
+<p>The contrast with a genuine built-in is exact — same list, opposite behaviour:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>grammar</th><th>input</th><th>verdict</th></tr>
+</thead>
+<tbody>
+<tr><td><code>probe := "T" true "T"</code></td><td><code>TT</code></td><td>⛔ <strong>accepted</strong> — <code>true</code> matched empty</td></tr>
+<tr><td><code>probe := "T" true "T"</code></td><td><code>TtrueT</code></td><td>rejected — <code>true</code> is zero-width, not a literal</td></tr>
+<tr><td><code>probe := "C" builtin_any_char "C"</code></td><td><code>CzC</code></td><td>accepted — the built-in consumed one character</td></tr>
+<tr><td><code>probe := "C" builtin_any_char "C"</code></td><td><code>CC</code></td><td>rejected — the built-in refused to match empty</td></tr>
+</tbody>
+</table>
+</div>
+<p>To match the literal words, quote them — which is what every shipped grammar already does, and it is
+completely unaffected by any of the above:</p>
+<pre><code class="language-ebnf"># ✅ DO: quoted terminals, not rule references
+boolean_literal := ("true" | "false")
+</code></pre>
+<p>This is a known defect, not a designed capability: no tracked grammar references either name, and
+removing the trap is tracked by task-tree leaf <code>LANG-CAPABILITY-AUDIT.10.4</code>. Until it lands, treat
+both names as reserved.</p>
 <h2 id="the-character-class-footgun----is-optional-not-a-class"><a class="header" href="#the-character-class-footgun----is-optional-not-a-class">The character-class footgun: <code>[ … ]</code> is OPTIONAL, not a class</a></h2>
 <p>This is the single most important terminal rule to internalize:</p>
 <blockquote>
@@ -595,7 +645,7 @@ here are PEG semantics, and ordering matters.</p>
 assignment     := lvalue "=" expression ";"
 </code></pre>
 <p>A reference to an <em>undefined</em> name resolves to a built-in matcher when the name is one of the
-<code>any_char</code> family (<a href="#terminals">Terminals</a>); otherwise an undefined reference is a grammar defect that
+<code>builtin_any_char</code> family (<a href="#terminals">Terminals</a>); otherwise an undefined reference is a grammar defect that
 <code>--lint-grammar</code> reports.</p>
 <h2 id="ordered-choice-"><a class="header" href="#ordered-choice-">Ordered choice (<code>|</code>)</a></h2>
 <p><code>|</code> is a <strong>branch tournament</strong>, not symmetric alternation — and (a common PEG misconception) <em>not</em>
@@ -782,7 +832,7 @@ closer and the rule can never complete.</p>
 <p>Two idioms fix it, both proven to work:</p>
 <pre><code class="language-ebnf"># 1. STATIC closer — guard the loop element with a negative lookahead, so the loop
 #    stops of its own accord and no give-back is needed.
-quoted := "q" "/" ( !"/" any_char )* "/"
+quoted := "q" "/" ( !"/" builtin_any_char )* "/"
 
 # 2. DYNAMIC closer (the closer is not known until parse time — a Raku-style
 #    user-chosen delimiter, a here-document terminator). Register it in the semantic
@@ -790,7 +840,7 @@ quoted := "q" "/" ( !"/" any_char )* "/"
 @emit_fact:  { kind: qdelim, name: $body, family: d }
 open      := delim -&gt; { body: $1 }
 @predicate:  { name: lacks_fact, args: [qdelim, $body], phase: post }
-body_char := any_char -&gt; { body: $1 }
+body_char := builtin_any_char -&gt; { body: $1 }
 @predicate:  { name: has_fact, args: [qdelim, $body], phase: post }
 close     := delim -&gt; { body: $1 }
 quoted    := "q" open body_char* close
@@ -847,10 +897,10 @@ comment_text := ( !")" builtin_any_char )* -&gt; $text
 if_tail := &amp;"else" else_clause
 </code></pre>
 <h3 id="the-any-char-except--idiom"><a class="header" href="#the-any-char-except--idiom">The “any char except …” idiom</a></h3>
-<p>Negative lookahead plus an <a href="#terminals"><code>any_char</code> built-in</a> is how a self-hosting grammar expresses a
-negated character set without a regex class:</p>
+<p>Negative lookahead plus a <a href="#terminals"><code>builtin_any_char</code> built-in</a> is how a self-hosting grammar
+expresses a negated character set without a regex class:</p>
 <pre><code class="language-ebnf"># a shorthand escape that is NOT one of the reserved letters/digits
-simple_escape := !"o{" !"x{" !"p{" !"P{" any_char -&gt; {type: "escape", char: $5}
+simple_escape := !"o{" !"x{" !"p{" !"P{" builtin_any_char -&gt; {type: "escape", char: $5}
 </code></pre>
 <p>Each leading <code>!"…"</code> is a zero-width assertion, so the matched character is captured by the <em>first
 consuming</em> element — note the positional reference <code>$5</code> skips the four non-consuming lookaheads. Count the
@@ -1548,14 +1598,15 @@ strand a later, longer alternative.</p>
 <tr><td><code>"lit"</code> / <code>'lit'</code></td><td><code>match_string("lit")</code></td></tr>
 <tr><td><code>r"lit"</code></td><td><code>match_string</code> with no escape decoding</td></tr>
 <tr><td><code>/regex/</code></td><td><code>match_regex(/regex/)</code> (the embedded Rust regex engine)</td></tr>
-<tr><td><code>any_char</code> / <code>builtin_any_char</code></td><td><code>match_any_char()</code> — a native UTF-8 char matcher, no regex engine</td></tr>
-<tr><td><code>ascii_char</code> / <code>builtin_ascii_char</code></td><td>a native ASCII char matcher</td></tr>
+<tr><td><code>builtin_any_char</code></td><td><code>match_any_char()</code> — a native UTF-8 char matcher, no regex engine</td></tr>
+<tr><td><code>builtin_ascii_char</code></td><td>a native ASCII char matcher</td></tr>
 <tr><td>rule reference</td><td>a call to that rule’s function</td></tr>
 </tbody>
 </table>
 </div>
-<p>The <code>any_char</code> built-ins are what let a grammar be regex-engine-independent (the <code>REGEX-SELF-HOSTING</code>
-property of <code>grammars/regex.ebnf</code>).</p>
+<p>The <code>builtin_any_char</code> built-ins are what let a grammar be regex-engine-independent (the
+<code>REGEX-SELF-HOSTING</code> property of <code>grammars/regex.ebnf</code>). The <code>builtin_</code> prefix is part of the name —
+see <a href="#terminals">Terminals</a> for why the un-prefixed spelling is an ordinary rule reference.</p>
 <h2 id="quantifiers--the-unified-loop"><a class="header" href="#quantifiers--the-unified-loop">Quantifiers → the unified loop</a></h2>
 <p>Every quantifier (<code>?</code> <code>*</code> <code>+</code> <code>{n}</code> <code>{n,m}</code> <code>{n,}</code> <code>{,m}</code>) compiles to <strong>one</strong> loop shape with
 per-iteration atomicity (the Layer-0 engine, <a href="#quantifiers">Quantifiers</a>). A quantified element yields a
@@ -1678,12 +1729,14 @@ function. See <a href="#grammar-file-structure">Grammar File Structure</a>.</p>
 <p><strong>Rule operator</strong> — <code>:=</code> / <code>::=</code> / <code>=</code> / <code>:-</code>, interchangeable at parse time.</p>
 </li>
 <li>
-<p><strong>Terminal</strong> — a literal matcher: string/char literal, regex literal <code>/…/</code>, or an <code>any_char</code> built-in.
-See <a href="#terminals">Terminals</a>.</p>
+<p><strong>Terminal</strong> — a literal matcher: string/char literal, regex literal <code>/…/</code>, or a
+<code>builtin_any_char</code> built-in. See <a href="#terminals">Terminals</a>.</p>
 </li>
 <li>
-<p><strong><code>any_char</code> / <code>ascii_char</code></strong> — native single-character matchers (also <code>builtin_any_char</code> /
-<code>builtin_ascii_char</code>) that need no regex engine. The basis of regex-engine-independent grammars.</p>
+<p><strong><code>builtin_any_char</code> / <code>builtin_ascii_char</code></strong> — native single-character matchers that need no
+regex engine. The basis of regex-engine-independent grammars. The <code>builtin_</code> prefix is part of
+the name: there is no un-prefixed <code>any_char</code> built-in, and <code>grammars/regex.ebnf</code> defines an
+ordinary rule of that name itself.</p>
 </li>
 <li>
 <p><strong>Ordered choice (<code>|</code>)</strong> — a branch <strong>tournament</strong>, <em>not</em> first-match commit by default: every

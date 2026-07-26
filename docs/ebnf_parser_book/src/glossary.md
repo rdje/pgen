@@ -13,11 +13,13 @@ docs cross-linked from [Welcome](welcome.md).
 
 - **Rule operator** — `:=` / `::=` / `=` / `:-`, interchangeable at parse time.
 
-- **Terminal** — a literal matcher: string/char literal, regex literal `/…/`, or an `any_char` built-in.
-  See [Terminals](terminals.md).
+- **Terminal** — a literal matcher: string/char literal, regex literal `/…/`, or a
+  `builtin_any_char` built-in. See [Terminals](terminals.md).
 
-- **`any_char` / `ascii_char`** — native single-character matchers (also `builtin_any_char` /
-  `builtin_ascii_char`) that need no regex engine. The basis of regex-engine-independent grammars.
+- **`builtin_any_char` / `builtin_ascii_char`** — native single-character matchers that need no
+  regex engine. The basis of regex-engine-independent grammars. The `builtin_` prefix is part of
+  the name: there is no un-prefixed `any_char` built-in, and `grammars/regex.ebnf` defines an
+  ordinary rule of that name itself.
 
 - **Ordered choice (`|`)** — a branch **tournament**, *not* first-match commit by default: every
   alternative is tried and the longest match wins (the default `longest_match`); `@branch_policy:

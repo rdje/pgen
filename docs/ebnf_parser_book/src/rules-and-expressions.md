@@ -14,7 +14,7 @@ assignment     := lvalue "=" expression ";"
 ```
 
 A reference to an *undefined* name resolves to a built-in matcher when the name is one of the
-`any_char` family ([Terminals](terminals.md)); otherwise an undefined reference is a grammar defect that
+`builtin_any_char` family ([Terminals](terminals.md)); otherwise an undefined reference is a grammar defect that
 `--lint-grammar` reports.
 
 ## Ordered choice (`|`)

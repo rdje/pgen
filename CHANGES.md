@@ -1,5 +1,47 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0013 (leaf `LANG-CAPABILITY-AUDIT.10.1`) — the annotation built-in was a workaround, and two of the five built-ins match nothing
+
+- **Corrected** — `grammars/ebnf.ebnf`'s comment block, which recorded that the
+  `include(semantic_annotations)` deleted from it named a file that had never existed and
+  that the grammar was therefore self-contained. Both claims were wrong. Only the *plural*
+  spelling names a missing file; `grammars/semantic_annotation.ebnf` exists and defines the
+  referenced rule — and that file's own header still advertises the plural spelling, which is
+  where the typo came from. The grammar has three live references to a rule nothing defines.
+- **Explained** — why no instrument said so. `--lint-grammar` reports
+  `undefined_references=0` because `"semantic_annotation"` is on codegen's
+  `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` list, and the linter deliberately consumes that same
+  list so the two can never drift. Allowlisting a name for codegen therefore blinds the linter
+  to it. Measured both ways: a probe grammar with four allowlisted dangling references reports
+  `0`; the same grammar with one non-allowlisted reference reports `1`.
+- **Found** — `true` and `false` are on that list and compile to matchers that always succeed
+  and consume nothing. A grammar that references either name accepts input with the reference
+  matching empty, and rejects input containing the literal word. Neither name is referenced by
+  any tracked grammar, so this is dead surface that exists only to be stepped on. The
+  contrast with a real built-in is exact: `"C" builtin_any_char "C"` rejects `CC`, while
+  `"T" true "T"` accepts `TT`.
+- **Fixed (docs)** — the grammar-author book stated in five chapters that `any_char` and
+  `ascii_char` are native built-ins. They are not: `any_char` is an ordinary rule defined in
+  one grammar (`grammars/regex.ebnf`), and referencing it elsewhere is a hard error. Four
+  example snippets could not be copied out of the book. All five chapters corrected, and the
+  `builtin_any_char` chapter now documents the reserved-name trap above.
+- **Decided** — when the delegation is restored, the include target is the full
+  `grammars/semantic_annotation.ebnf`, not the bootstrap twin the charter recommended. The
+  twin collides on 3 names instead of 15, but it describes the annotation *payload*, matches
+  no `@`, and falls back to a rule that matches everything — the wrong object at a better
+  price. The 15 collisions are 4 duplicates and 11 genuine conflicts, so that grammar is not
+  composable as it stands; making it composable is the next leaf.
+- **Verified** — driver
+  `docs/tasks/artifacts/lang_capability_audit/run_native_builtin_audit.sh`, three arms
+  (static, shape, behaviour through the parse-harness scratch slot), exit 0 and 0 divergences
+  across 7 declared parse verdicts and every declared count. The grammar edit is a comment
+  block and is proven codegen-inert: generated twice to the same pinned output path from the
+  same pinned input, identical sha256, `cmp` clean, return-annotation inventory unchanged. The
+  scratch slot, its artifact and the `parseability_probe` binary were all restored and
+  re-verified. ebnf-parser-book gate, mdBook docs gate and all 9 doctrines pass.
+- **Unchanged** — no Rust source, no generated artifact, no parser behaviour, no
+  release/schema/ledger/contract movement. `LIVE_ACHIEVEMENT_STATUS.md` is unaffected.
+
 ## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0004 (leaf `QUANT-PLUS-ITER.2`, steps B + C) — `@entry: true` is now mandatory, and the positional entry fallback is gone
 
 - **Required** — a main EBNF file must contain one and only one `@entry: true`, attached to

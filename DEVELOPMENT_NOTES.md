@@ -1,5 +1,92 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0013 — an allowlist is a place where evidence goes to die
+
+**Root cause.** `AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`
+(`rust/src/ast_pipeline/ast_based_generator.rs:1198`) lists the referenced-but-undefined rule
+names codegen synthesizes a native matcher for instead of a never-matching stub. The linter's
+`detect_undefined_references` consumes that same const as its allowlist
+(`grammar_wellformedness.rs:333`) — deliberately, so codegen and linter cannot drift. The
+consequence is structural and was not designed for: **putting a name on that list to make
+codegen handle it also removes the linter's ability to report it.** The list is not a set of
+primitives; it is a set of names the pipeline has agreed not to look at.
+
+`grammars/ebnf.ebnf` has three live references to `semantic_annotation` and no definition of
+it. `LANG-CAPABILITY-AUDIT.7` read `undefined_references=0` off that grammar and concluded it
+was self-contained, then deleted the include that was supposed to supply the missing rule. The
+number it trusted was produced by the masking it was in the middle of removing.
+
+**Why the recommended repair was wrong.** The follow-up charter recommended composing in
+`grammars/builtin_semantic_annotation.ebnf` because it collides on 3 rule names where the full
+`grammars/semantic_annotation.ebnf` collides on 15. Collision count ranks candidates; it says
+nothing about whether either one denotes the right thing. Measured, the two entry rules are:
+
+    semantic_annotation         := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
+    builtin_semantic_annotation := ws* semantic_payload ws*
+
+The second matches the annotation *payload* — the text after the colon — and never sees the
+`@`. Its fallback is `raw_payload := any_text` where `any_text := /(.|\n)*/`, i.e. a rule that
+always succeeds and swallows everything. Splicing it into
+
+    grammar_file := (include_directive | semantic_annotation | grammar_rule | comment | whitespace)*
+
+would have put an always-succeeding alternative inside the meta-grammar's top-level loop.
+Cheaper by collision count, catastrophic by shape. The lesson generalizes: **when ranking
+composition candidates, shape is a precondition, not a tiebreaker.**
+
+The 15 collisions also turned out to be two populations, not one — 4 identical definitions and
+11 genuine conflicts. `boolean_literal` gains `yes`/`no`/`on`/`off`/`enabled`/`disabled` on the
+annotation side; `line_comment` *loses* `#`. So the merge would silently change the
+meta-grammar's own comment and boolean semantics. `semantic_annotation.ebnf` is a standalone
+grammar carrying a private lexical layer, not a reusable fragment; making it one is the next
+leaf's design problem.
+
+**The second defect the audit was not looking for.** Asking the same question of every list
+member found that `true` and `false` compile to this:
+
+    pub fn parse_true(&mut self) -> ParseResult<ParseNode<'input>> {
+        let start_pos = self.position;
+        Ok(ParseNode {
+            rule_name: &"true",
+            content: ParseContent::Terminal("true"),
+            span: Span::new(start_pos, start_pos),
+        })
+    }
+
+Unconditional `Ok`, zero-width span, no input consumed, and a `Terminal("true")` payload that
+does not describe what was matched. Behaviourally, through the scratch slot: `"T" true "T"`
+accepts `TT` and rejects `TtrueT`. This is the defect class `LANG-CAPABILITY-AUDIT.5` found in
+`digit := [0-9]` — lints clean, compiles to something that matches nothing — and here the
+linter is additionally forbidden from looking. No tracked grammar references either name;
+every grammar that wants those words uses quoted terminals, which are unaffected.
+
+**The fifth finding, and the one worth generalizing.** The book PGEN ships for grammar authors
+claimed in five chapters that `any_char` / `ascii_char` are built-ins, `terminals.md` calling
+itself "the authoritative list of what the codegen actually matches". Measured, a grammar
+referencing bare `any_char` fails with an undefined-reference error: `any_char` is an ordinary
+rule defined in `grammars/regex.ebnf:2239` and nowhere else. The book had generalized one
+grammar's private rule into a platform primitive, and four of its examples could not be copied
+out of it. There is no code defect — withholding the un-prefixed alias *is* the `builtin_`
+namespacing rule, whose whole point is that a primitive must never be shadowable by a
+same-named grammar rule like `regex.ebnf`'s. Only the documentation was wrong. Companion to
+`.9`'s "an undocumented capability is one nobody can defend": **a mis-documented capability is
+worse, because a reader has no reason to doubt it.**
+
+**Method note.** The first byte-identity check on the comment-only grammar edit produced a
+3,056-hunk diff. The generated parser embeds its own output path as a `filename_str` logging
+literal, so generating the two arms to `ebnf_before/` and `ebnf_after/` made byte-identity
+structurally unachievable. This is exactly what "input **and output** paths pinned" in
+`LANG-CAPABILITY-AUDIT.5` and `BIN-BUILD-INTEGRITY.3` protects against. Regenerated to a single
+pinned path, both arms hash to `8b91ef9097f5dc3143b3ab3d7ca85a61c01d89db6c0e98a0767051d3a880fbed`.
+Worth recording because the failure mode reads as a codegen determinism defect and is not one.
+
+**Also banked in the driver.** The tracked-grammar reference census is a text screen, and it
+first reported `true` as referenced by 16 grammars. Three things spell these names without
+referencing a rule — annotation lines (`@entry: true`), quoted terminals (`("true" | "false")`)
+and return-annotation literals (`-> {negated: false}`). All three are stripped before matching,
+with the reason written next to the code, and the screen is cross-checked against the
+generated-parser census so a future disagreement fails loudly instead of quietly.
+
 ## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0002 — a control that varies two things is not a control
 
 **The lesson is about my own evidence, not about PGEN.** `PGEN-QUANT-PLUS-ITER-0001` proved

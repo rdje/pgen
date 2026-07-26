@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72cc8107.js";
+            window.path_to_searchindex_js = "searchindex-9064376a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -198,12 +198,14 @@ function. See <a href="grammar-file-structure.html">Grammar File Structure</a>.<
 <p><strong>Rule operator</strong> — <code>:=</code> / <code>::=</code> / <code>=</code> / <code>:-</code>, interchangeable at parse time.</p>
 </li>
 <li>
-<p><strong>Terminal</strong> — a literal matcher: string/char literal, regex literal <code>/…/</code>, or an <code>any_char</code> built-in.
-See <a href="terminals.html">Terminals</a>.</p>
+<p><strong>Terminal</strong> — a literal matcher: string/char literal, regex literal <code>/…/</code>, or a
+<code>builtin_any_char</code> built-in. See <a href="terminals.html">Terminals</a>.</p>
 </li>
 <li>
-<p><strong><code>any_char</code> / <code>ascii_char</code></strong> — native single-character matchers (also <code>builtin_any_char</code> /
-<code>builtin_ascii_char</code>) that need no regex engine. The basis of regex-engine-independent grammars.</p>
+<p><strong><code>builtin_any_char</code> / <code>builtin_ascii_char</code></strong> — native single-character matchers that need no
+regex engine. The basis of regex-engine-independent grammars. The <code>builtin_</code> prefix is part of
+the name: there is no un-prefixed <code>any_char</code> built-in, and <code>grammars/regex.ebnf</code> defines an
+ordinary rule of that name itself.</p>
 </li>
 <li>
 <p><strong>Ordered choice (<code>|</code>)</strong> — a branch <strong>tournament</strong>, <em>not</em> first-match commit by default: every

@@ -1,0 +1,145 @@
+
+===== A1. the allowlist, verbatim from the single source of truth =====
+      pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str] = &[
+          "builtin_any_char",
+          "builtin_ascii_char",
+          "false",
+          "semantic_annotation",
+          "true",
+      ];
+  OK  member count                                   got=5                        [want 5]
+
+===== A2. tracked-grammar reference census (who names each member as a RULE REFERENCE?) =====
+  builtin_any_char       referenced-by: regex.ebnf
+  builtin_ascii_char     referenced-by: regex.ebnf
+  false                  referenced-by: (none)
+  semantic_annotation    referenced-by: ebnf.ebnf semantic_annotation.ebnf
+  true                   referenced-by: (none)
+
+===== A3. generated-parser census (who CONSUMES the synthesized native matcher?) =====
+  builtin_any_char       emitted-in: regex_parser.rs
+  builtin_ascii_char     emitted-in: regex_parser.rs
+  false                  emitted-in: (none)
+  semantic_annotation    emitted-in: ebnf.rs semantic_annotation_parser.rs
+  true                   emitted-in: (none)
+  NOTE: generated/ is gitignored — regenerate with the per-grammar 'make -C rust focus_<g>'
+        targets if a row reads (none) unexpectedly.
+
+===== A3b. cross-check: does the text screen agree with codegen? =====
+  OK  builtin_any_char: screen-empty == codegen-empty got=no                       [want no]
+  OK  builtin_ascii_char: screen-empty == codegen-empty got=no                       [want no]
+  OK  false: screen-empty == codegen-empty           got=yes                      [want yes]
+  OK  semantic_annotation: screen-empty == codegen-empty got=no                       [want no]
+  OK  true: screen-empty == codegen-empty            got=yes                      [want yes]
+  (Exact file lists differ by construction: a grammar that DEFINES the rule emits
+   parse_<name> from its own definition, not from the native-builtin fallback —
+   which is why semantic_annotation.ebnf appears on both sides for its own rule.)
+
+===== A4. the masking: a grammar with FOUR undefined references lints clean =====
+  OK  undefined_references on 4 dangling refs        got=0                        [want 0]
+  OK  undefined_references on 1 NON-member ref       got=1                        [want 1]
+  => the check works; it is the ALLOWLIST that makes the four invisible.
+
+===== A5. emitted matcher shape per member (codegen, not prose) =====
+  --- parse_true
+          pub fn parse_true(&mut self) -> ParseResult<ParseNode<'input>> {
+              let start_pos = self.position;
+              Ok(ParseNode {
+                  rule_name: &"true",
+                  content: ParseContent::Terminal("true"),
+                  span: Span::new(start_pos, start_pos),
+              })
+          }
+  --- parse_false
+          pub fn parse_false(&mut self) -> ParseResult<ParseNode<'input>> {
+              let start_pos = self.position;
+              Ok(ParseNode {
+                  rule_name: &"false",
+                  content: ParseContent::Terminal("false"),
+                  span: Span::new(start_pos, start_pos),
+              })
+          }
+  --- parse_semantic_annotation
+          pub fn parse_semantic_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
+              let checkpoint = self.position;
+              self.consume_optional_whitespace();
+              let start_pos = self.position;
+              if start_pos >= self.input.len() || self.input.as_bytes()[start_pos] != b'@' {
+                  self.position = checkpoint;
+                  return Err(ParseError::Backtrack {
+                      position: checkpoint,
+                  });
+              }
+              while self.position < self.input.len() {
+                  let b = self.input.as_bytes()[self.position];
+                  if b == b'\n' || b == b'\r' {
+                      break;
+                  }
+                  self.position += 1;
+              }
+              let end_pos = self.position;
+              let matched = &self.input[start_pos..end_pos];
+              Ok(ParseNode {
+                  rule_name: &"semantic_annotation",
+                  content: ParseContent::Terminal(matched),
+                  span: Span::new(start_pos, end_pos),
+              })
+          }
+  --- parse_builtin_any_char
+          pub fn parse_builtin_any_char(&mut self) -> ParseResult<ParseNode<'input>> {
+              let start_pos = self.position;
+              let matched_char = match self.input[start_pos..].chars().next() {
+                  Some(ch) => ch,
+                  None => {
+                      return Err(ParseError::Backtrack {
+                          position: start_pos,
+                      });
+                  }
+              };
+              let end_pos = start_pos + matched_char.len_utf8();
+              self.position = end_pos;
+              Ok(ParseNode {
+                  rule_name: &"builtin_any_char",
+                  content: ParseContent::Terminal(&self.input[start_pos..end_pos]),
+                  span: Span::new(start_pos, end_pos),
+              })
+          }
+  OK  parse_true is zero-width (never consumes)      got=1                        [want 1]
+  OK  parse_builtin_any_char consumes                got=1                        [want 1]
+
+===== B. ebnf.ebnf's delegated 'semantic_annotation': the two include candidates =====
+  OK  collisions: ebnf x semantic_annotation         got=15                       [want 15]
+  OK  collisions: ebnf x builtin_semantic_annotation got=3                        [want 3]
+  full-grammar collisions: binary_literal block_comment boolean_literal decimal_literal double_quoted_string hexadecimal_literal identifier_literal integer_literal line_comment null_literal numeric_literal octal_literal scientific_literal single_quoted_string whitespace 
+  builtin collisions:      boolean_literal identifier_literal null_literal 
+    CONFLICT  binary_literal
+    CONFLICT  block_comment
+    CONFLICT  boolean_literal
+    CONFLICT  double_quoted_string
+    CONFLICT  hexadecimal_literal
+    CONFLICT  integer_literal
+    CONFLICT  line_comment
+    CONFLICT  null_literal
+    CONFLICT  octal_literal
+    CONFLICT  single_quoted_string
+    CONFLICT  whitespace
+  OK  collisions that are genuine CONFLICTS          got=11                       [want 11]
+  OK  collisions that are duplicates                 got=4                        [want 4]
+  entry rule, semantic_annotation.ebnf : semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
+  entry rule, builtin_...ebnf         : builtin_semantic_annotation := ws* semantic_payload ws*
+  builtin fallback rule               : raw_payload := any_text
+  builtin any_text                    : any_text := /(.|\n)*/
+  OK  semantic_annotation.ebnf matches the '@'       got=1                        [want 1]
+  OK  builtin_...ebnf matches the '@'                got=0                        [want 0]
+
+===== C. BEHAVIOUR through the scratch slot (opt-in: PGEN_AUDIT_RUN_SLOT_ARM=1) =====
+  OK  true matches empty [TT]                        got=ACCEPT                   [want ACCEPT]
+  OK  true is not a literal [TtrueT]                 got=REJECT                   [want REJECT]
+  OK  false matches empty [FF]                       got=ACCEPT                   [want ACCEPT]
+  OK  semantic_annotation @-line [A@name: value]     got=ACCEPT                   [want ACCEPT]
+  OK  semantic_annotation needs @ [Aname: value]     got=REJECT                   [want REJECT]
+  OK  builtin_any_char consumes [CzC]                got=ACCEPT                   [want ACCEPT]
+  OK  builtin_any_char not empty [CC]                got=REJECT                   [want REJECT]
+
+===== RESULT =====
+  ✅ 0 divergences — every declared verdict held.

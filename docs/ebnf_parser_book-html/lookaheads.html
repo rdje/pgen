@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72cc8107.js";
+            window.path_to_searchindex_js = "searchindex-9064376a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -205,10 +205,10 @@ comment_text := ( !")" builtin_any_char )* -&gt; $text
 if_tail := &amp;"else" else_clause
 </code></pre>
 <h3 id="the-any-char-except--idiom"><a class="header" href="#the-any-char-except--idiom">The “any char except …” idiom</a></h3>
-<p>Negative lookahead plus an <a href="terminals.html"><code>any_char</code> built-in</a> is how a self-hosting grammar expresses a
-negated character set without a regex class:</p>
+<p>Negative lookahead plus a <a href="terminals.html"><code>builtin_any_char</code> built-in</a> is how a self-hosting grammar
+expresses a negated character set without a regex class:</p>
 <pre><code class="language-ebnf"># a shorthand escape that is NOT one of the reserved letters/digits
-simple_escape := !"o{" !"x{" !"p{" !"P{" any_char -&gt; {type: "escape", char: $5}
+simple_escape := !"o{" !"x{" !"p{" !"P{" builtin_any_char -&gt; {type: "escape", char: $5}
 </code></pre>
 <p>Each leading <code>!"…"</code> is a zero-width assertion, so the matched character is captured by the <em>first
 consuming</em> element — note the positional reference <code>$5</code> skips the four non-consuming lookaheads. Count the

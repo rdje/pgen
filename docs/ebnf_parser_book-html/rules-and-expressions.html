@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-72cc8107.js";
+            window.path_to_searchindex_js = "searchindex-9064376a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -190,7 +190,7 @@ here are PEG semantics, and ordering matters.</p>
 assignment     := lvalue "=" expression ";"
 </code></pre>
 <p>A reference to an <em>undefined</em> name resolves to a built-in matcher when the name is one of the
-<code>any_char</code> family (<a href="terminals.html">Terminals</a>); otherwise an undefined reference is a grammar defect that
+<code>builtin_any_char</code> family (<a href="terminals.html">Terminals</a>); otherwise an undefined reference is a grammar defect that
 <code>--lint-grammar</code> reports.</p>
 <h2 id="ordered-choice-"><a class="header" href="#ordered-choice-">Ordered choice (<code>|</code>)</a></h2>
 <p><code>|</code> is a <strong>branch tournament</strong>, not symmetric alternation — and (a common PEG misconception) <em>not</em>
