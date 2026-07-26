@@ -399,6 +399,18 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         name: "default_profile",
         capability: SemanticDirectiveCapability::ParserSteering,
     },
+    // `QUANT-PLUS-ITER.2`: the grammar's ENTRY RULE (start symbol) — declared by
+    // attaching `@entry: true` to the rule itself. Compiled by
+    // `semantic_runtime::compile_entry_rule`, which returns the ATTACHMENT rule
+    // name; the grammar-load chokepoint then normalizes `rule_order` so that rule
+    // is first, and every downstream consumer (codegen, the linter's reachability
+    // roots, certificate coverage, stimuli, the parse-harness interpreter)
+    // inherits it structurally without a per-call-site change. Absent = the
+    // positional `rule_order[0]` default, byte-identical to today.
+    SemanticDirectiveSpec {
+        name: "entry",
+        capability: SemanticDirectiveCapability::ParserSteering,
+    },
     // `PROFILE-ALIAS.2`: grammar-level request-spelling alias map — which
     // requested profile spellings resolve to which canonical profile names
     // (e.g. SV's `2017` → `sv_2017`). Compiled by

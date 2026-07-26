@@ -1202,6 +1202,12 @@ fn pipeline_main() -> Result<()> {
             dump_gen_ast_max_bytes,
         )?;
 
+        // QUANT-PLUS-ITER.2 (director rule): `--entry-rule` outranks a declared
+        // `@entry: true`. Applied here because this is the one path that never
+        // received the CLI entry at all.
+        let mut grammar = grammar;
+        apply_cli_entry_rule_override(&mut grammar, args.entry_rule.as_deref())?;
+
         // Generate parser through the direct AST integration path so typed annotation
         // validation and strict CI policies apply to normal CLI generation as well.
         // (PARSER-NEUTRALITY.1: generation takes no per-parser inputs beyond the
@@ -2206,12 +2212,108 @@ fn load_grammar_bundle_from_json_value(
         ));
     };
 
+    // QUANT-PLUS-ITER.2: honour a declared `@entry: true` BEFORE well-formedness, so
+    // the linter's reachability roots see the same entry codegen will. Placed at this
+    // chokepoint deliberately — see `apply_declared_entry_rule`.
+    let mut grammar = grammar;
+    apply_declared_entry_rule(&mut grammar)?;
+
     // PARSE-SOTA.8.1 (A1): the SINGLE grammar-load chokepoint every build path goes
     // through (--generate-parser/-stimuli, `make focus_*`, --lint-grammar). Reject a
     // grammar with NON-TERMINATING rules here so it can never be silently bypassed (the
     // earlier placement in the profile filter was skipped for non-profiled grammars).
     check_grammar_wellformed(&grammar)?;
     Ok(grammar)
+}
+
+/// `QUANT-PLUS-ITER.2`: resolve the grammar's declared entry rule (`@entry: true`,
+/// attached to the rule itself) by NORMALIZING `rule_order` so that rule sits at
+/// index 0.
+///
+/// ⭐ WHY A NORMALIZATION AND NOT A THREADED PARAMETER. `rule_order[0]` is consulted
+/// as "the entry" by roughly ten places — `main.rs` (×7), `grammar_wellformedness`'s
+/// reachability roots, the parse-harness interpreter, and codegen's own
+/// `entry_rule = self.entry_rule.or_else(|| rule_order.first())`. Threading an
+/// `Option<String>` through all of them is exactly the per-call-site fragility
+/// `LANG-CAPABILITY-AUDIT.7` rejected for `include()`: it is one forgotten consumer
+/// away from a silent inconsistency, and a future consumer inherits nothing. Doing it
+/// ONCE here, at the single grammar-load chokepoint every build path funnels through,
+/// makes every consumer correct **structurally** — none of them needs to know the
+/// directive exists.
+///
+/// ⭐ The invariant `rule_order[0] == the entry` therefore SURVIVES INTACT. This does
+/// not weaken it; it lets the author choose which rule occupies that slot instead of
+/// it being an accident of file layout — which is the whole point (in EBNF a grammar
+/// is a SET of productions, so rule order should carry no meaning).
+///
+/// A grammar that declares nothing is untouched: no reorder, byte-identical output.
+fn apply_declared_entry_rule(grammar: &mut LoadedGrammar) -> anyhow::Result<()> {
+    let Some(annotations) = grammar.annotations.as_ref() else {
+        return Ok(()); // no annotations at all ⇒ nothing declared.
+    };
+    let Some(declared) = pgen::ast_pipeline::semantic_runtime::compile_entry_rule(annotations)
+        .map_err(|err| anyhow::anyhow!("grammar '{}': {}", grammar.grammar_name, err))?
+    else {
+        return Ok(());
+    };
+
+    let Some(index) = grammar.rule_order.iter().position(|r| *r == declared) else {
+        // Not reachable through the normal path — `compile_entry_rule` returns an
+        // ATTACHMENT key, so the rule necessarily exists. Kept as a named error
+        // rather than an `unwrap`, so a future caller that synthesizes annotations
+        // gets a diagnosis instead of a panic.
+        return Err(anyhow::anyhow!(
+            "grammar '{}': '@entry: true' is attached to '{}', which is not in the grammar's rule set",
+            grammar.grammar_name,
+            declared
+        ));
+    };
+
+    reorder_entry_first(&mut grammar.rule_order, index);
+    Ok(())
+}
+
+/// Move `rule_order[index]` to the front, preserving the relative order of the rest.
+/// A no-op when it is already first (the common case — every tracked grammar today).
+fn reorder_entry_first(rule_order: &mut Vec<String>, index: usize) {
+    if index == 0 || index >= rule_order.len() {
+        return;
+    }
+    let rule = rule_order.remove(index);
+    rule_order.insert(0, rule);
+}
+
+/// `QUANT-PLUS-ITER.2` — director rule (2026-07-26): *"`--entry-rule <name>` shall
+/// take precedence over `@entry: true` in the EBNF file when both are mentioned on
+/// the CLI."*
+///
+/// Every other consumer already honours that order, because it threads
+/// `args.entry_rule.or_else(|| rule_order.first())`. The `--generate-parser` path did
+/// NOT: `generate_parser_ast_based` receives only `&grammar.rule_order` and has never
+/// been passed the CLI entry at all, so `--entry-rule` was silently ineffective there
+/// **before this leaf** (measured — a pre-existing gap, not a regression introduced by
+/// `@entry`). Applying the override as the same reorder keeps ONE mechanism for "which
+/// rule is the entry" instead of introducing a second, divergent one.
+///
+/// An unknown `--entry-rule` name is a hard, named error rather than a silent
+/// fallback: silently parsing from a different rule than the operator asked for is the
+/// exact failure mode this whole tree exists to eliminate.
+fn apply_cli_entry_rule_override(
+    grammar: &mut LoadedGrammar,
+    cli_entry: Option<&str>,
+) -> anyhow::Result<()> {
+    let Some(requested) = cli_entry else {
+        return Ok(());
+    };
+    let Some(index) = grammar.rule_order.iter().position(|r| r == requested) else {
+        return Err(anyhow::anyhow!(
+            "grammar '{}': --entry-rule '{}' names a rule the grammar does not define",
+            grammar.grammar_name,
+            requested
+        ));
+    };
+    reorder_entry_first(&mut grammar.rule_order, index);
+    Ok(())
 }
 
 fn normalize_legacy_generation_ast_dump(mut json_value: serde_json::Value) -> serde_json::Value {
@@ -4020,6 +4122,25 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         orphans.len(),
         all_profiles
     );
+    // QUANT-PLUS-ITER.2: name the resolved entry rule, and say whether it was
+    // DECLARED (`@entry: true`) or fell out of file position. Until this landed no
+    // surface at default verbosity reported a grammar's start symbol at all, so a
+    // helper rule written above the intended entry silently re-rooted the grammar
+    // while every counter above still read 0 (measured, `QUANT-PLUS-ITER.1`).
+    let declared_entry = grammar.annotations.as_ref().and_then(|annotations| {
+        pgen::ast_pipeline::semantic_runtime::compile_entry_rule(annotations)
+            .ok()
+            .flatten()
+    });
+    match (order.first(), &declared_entry) {
+        (Some(entry), Some(_)) => println!(
+            "  [info] entry rule '{entry}' — DECLARED via `@entry: true`"
+        ),
+        (Some(entry), None) => println!(
+            "  [info] entry rule '{entry}' — POSITIONAL (the first rule defined; declare it with `@entry: true` to make file order irrelevant)"
+        ),
+        (None, _) => println!("  [error] grammar defines no rules, so it has no entry rule"),
+    }
     for issue in unreachable.iter().take(40) {
         println!("  [error] {}", issue.message());
     }

@@ -378,45 +378,309 @@ names, and the reason `.1` opened by *measuring* the emitted dispatch rather tha
 following the steer. ⭐ Two seconds of `grep` retired a hypothesis budgeted at
 multiple 19-minute rebuilds.
 
-### `.2` — Make the start symbol visible, and adjudicate whether it becomes EBNF-declarable (`todo`, **re-scoped by `.1`**)
+### `.2` — declare the entry rule in the EBNF: `@entry` (increment 1) (**step A `done`**; steps B/C open)
 
-`.1` unblocked this and changed its subject. There is **no `+` bug to fix**. Two
-distinct deliverables remain, and the second needs a director call.
+> ⭐⭐⭐ **DIRECTOR-APPROVED, 2026-07-26 session #212.** Raised by the director on
+> reading `.1` (verbatim: *"ok do you need a way to explicitly indicate the entry rule
+> in the EBNF file ?"* → *"If you need such feature, please explain me the rationale
+> for that"* → ⭐ *"Aah maybe is because, rules in an EBNF shall not be ordered, is
+> that right ?"*), then decided: **"Just increment 1 for now. Agreed with `@entry`"**.
+> ⇒ scope is **exactly one `@entry` per grammar**; multi-entry is explicitly OUT.
 
-**(a) VISIBILITY — the cheap, zero-risk half.** No default-verbosity surface names
-the resolved entry rule, and the one instrument that does see the problem
-(`--report-certificate-coverage`) hands off to `--lint-grammar`, which reports
-`unreachable_rules=0` and exits 0. Candidates, in fix-hierarchy order:
+#### The rationale, as accepted
 
-- `--lint-grammar` states the resolved entry rule by name (one informational line).
-  Purely additive, no verdict changes, would have made this instantly visible.
-- The **orphan report** already routed to `LANG-CAPABILITY-AUDIT.2`/`.4` (T-9:
-  *"N rules are unreferenced roots"*) — the general instrument for this class. `.1`
-  is now its second independent motivation (the first was `ebnf.ebnf:18`'s dangling
-  include). ⛔ Keep it **separate from** the hard `unreachable_rules` error: the
-  unreferenced-rule-is-a-root rule is CORRECT design and protects SV's
-  `library_text` / `*_multi_entry_root` secondary entries from false rejection.
-- ⚠️ Whatever is built must not turn a legitimate multi-entry grammar red. The
-  measured safe shape is *informational*, not an error class.
+⭐ **The director's own formulation is the governing one: in EBNF a grammar is a SET
+of productions — rule order is presentation, not semantics.** PGEN honours that
+everywhere except one hidden place: the start symbol is `rule_order[0]`. So swapping
+two definitions — a pure formatting change by every EBNF convention — silently
+changes the accepted language, and **both versions lint clean with exit 0** (measured,
+`.1`). A hidden exception to an otherwise-clean invariant is the worst kind: everyone
+correctly generalises "order doesn't matter" and is bitten exactly once. It cost
+session #211 an entire task-tree.
 
-**(b) DECLARABILITY — the director-visible surface call.** Measured in `.1`: the
-start symbol cannot be declared in the EBNF (0 hits in `grammars/ebnf.ebnf`, 0 in
-`semantic_directive_registry.rs`, 0 across every tracked grammar). It is steered by
-an implicit positional convention and overridable only by an out-of-band CLI flag —
-squarely against the standing #208 directive that *every user-controllable feature
-MUST be declared in the EBNF*. ⛔ **Do not implement a new annotation on the strength
-of this leaf**: `DESIGN-PRIOR-ART` requires the surface be agreed first, and this one
-interacts with SV's multi-entry model (`--cert-union-config`, `parse_full_from`,
-`library_text`) which already treats "the entry" as plural. The deliverable here is
-the *adjudication*, with the zero-cost/neutrality acceptance test applied
-(compile-time only; non-users pay ZERO).
+Supporting grounds (all measured in `.1`):
+1. **#208 compliance.** *"every user-controllable feature MUST be declared IN THE
+   EBNF — no runtime flag, no engine table"*. The start symbol is today controlled by
+   file position + the `--entry-rule` CLI flag. This is not a new capability; it is an
+   unaudited violation of a directive already in force.
+2. **It makes a diagnostic possible at all.** Today the linter cannot warn about a
+   mis-rooted grammar *even in principle* — the first rule **is** the entry by
+   definition, so there is no declared intent to disagree with.
+3. **Zero cost, parser-neutral** — compile-time only (see the acceptance test below).
 
-**(c) The scratch slot's own contract is unenforced.** Its header says *"the entry
-rule must be named `scratch`"*; `make focus_scratch` generated a parser entered at
-`stmt` without a word. Cheapest possible guard, independent of (a)/(b): have
-`focus_scratch` assert `rule_order[0] == "scratch"` and fail loudly otherwise — the
-toolbox's own probe surface should not be able to silently answer a different
-question than the one asked.
+#### PRIOR ART
+
+Searched in the `DESIGN-PRIOR-ART` authority order before proposing any surface
+([[feedback_read_prior_art_before_designing]]); every claim below is a measurement
+taken this session, not a recollection.
+
+| # | Authority | Searched for | Result |
+|---|---|---|---|
+| 1 | `grammars/ebnf.ebnf` | `entry` / `start` / `root` / `goal` / `axiom` / `main` / `top` | **0 hits** — no surface exists for an author to write. |
+| 1b | `grammars/ebnf.ebnf` | `whitespace_sensitive` / `default_profile` / `profile_alias` | **0 hits each** ⇒ ⭐ grammar-level directive syntax is **GENERIC**; a new directive needs **NO meta-grammar change**. |
+| 2 | `rust/src/.../semantic_directive_registry.rs` | a registered entry/start directive | **0** — but the **family to join** is registered and live: `whitespace_sensitive`, `default_profile`, `profile_alias`. |
+| 3 | `docs/decisions/` | entry rule / start symbol / multi-entry | `project_sv_full_certification_via_multi_entry.md` — entries are already modelled as `(entry, profile)` pairs via `--cert-union-config`, and `parse_from(entry)` / `parse_full_from(entry)` dispatch already ships (`GRAMMAR-WELLFORMED.H.12.8.4.3`). |
+| 4 | every tracked `grammars/*.ebnf` | `@entry` / `@start` | **0 uses.** |
+| 6 | `grammars/semantic_annotation.ebnf` | the normative annotation-language spec | ⭐ **DIRECTOR-POINTED** — I had stopped at `ebnf.ebnf`, found `semantic_annotation` referenced-but-undefined, and wrongly concluded the meta-grammar *"cannot tell me what payload syntax is legal"*. The spec is one file over (20,206 B) and settles the spelling outright (`":" annotation_value` is **mandatory**). |
+| 7 | `grammars/builtin_semantic_annotation.ebnf` | the bootstrap-safe annotation contract | ⭐ **DIRECTOR-POINTED** — 23 rules, and it is the composition-safe twin. |
+| 5 | `rust/src/parser_registry.rs` | `entry_rule` | **0** — registered grammars carry no entry config either. |
+
+⭐⭐ **THE FIND — a shipped grammar already documents the intended fix, and it is the
+WRONG SHAPE.** `grammars/systemverilog.ebnf` header, section (2), verbatim:
+
+> *"`sv_multi_entry_root` — synthetic multi-entry root … a closure-gate analysis aid
+> that lets the gate's single-entry static reachability analyzer see all three real
+> top-level entries at once. **The runtime parser does NOT use it as an entry.**
+> Long-term tooling fix: extend `ast_pipeline --entry-rule` and the closure-gate
+> contract to accept a list of entries; **once that lands, `sv_multi_entry_root` can
+> be removed.**"*
+
+⇒ a shipped grammar carries a **synthetic rule that exists only to work around the
+single-entry analyzer** (measured: **1** `rust/src` reference vs **7** gate/contract
+references). Its recorded remedy is **CLI-and-contract shaped — it predates #208** and
+would put the entry set in the engine, which #208 now forbids. ⭐ **This proposal
+supersedes that plan in the EBNF direction and eventually lets `sv_multi_entry_root`
+be deleted, which its own author already anticipated** — but only at increment 2
+(multi-entry), which the director has explicitly deferred.
+
+⛔ **Conclusion of the search: no existing surface covers this.** The `@entry` name is
+chosen to match PGEN's OWN established vocabulary rather than bison's `%start` — the
+flag is `--entry-rule`, the field is `entry_rule`, the API is `parse_full_from(entry)`,
+certificate coverage prints `entry='…'`, and the books say "canonical entry".
+
+#### Design (increment 1) — ⭐ CORRECTED BY THE DIRECTOR MID-DESIGN
+
+⛔ **My first proposal was `@entry: <rule_name>` as a grammar-level directive. The
+director rejected the SHAPE** (verbatim: *"Is `@entry: name` is appropriate ? because
+usually semantic annotations occurs before or inside a rule."*) — and the measurement
+backs it up. PGEN has **two** annotation patterns:
+
+| pattern | members | attachment |
+|---|---|---|
+| **rule-level** (dominant) | `@profiles`, `@emit_fact`, `@recover`, `@precedence`, `@transform`, `@priority`, … | the annotation steers **the rule it precedes** |
+| **grammar-level** (only 3) | `@whitespace_sensitive`, `@default_profile`, `@profile_alias` | measured: all three `flat_map` over every rule and **discard the attachment key** (`(_, list)`); the book tells authors to write them *"directly above a rule — conventionally the entry rule"*, so attachment is syntactically required but semantically **ignored** |
+
+*"This rule is the start symbol"* is intrinsically a statement **about a rule**, so it
+belongs to the dominant pattern. ⇒ **`@entry` ATTACHES TO THE ENTRY RULE.** The
+attachment name is available for free: `Annotations.semantic_annotations` is
+`HashMap<String, Vec<SemanticAnnotation>>` — the rule name **is the map key**; this
+directive simply stops discarding the key the other three throw away.
+
+⭐ **The corrected shape is strictly better, in ways the payload form was not:**
+1. **An entire error class vanishes by construction** — you cannot name a rule that
+   does not exist, so the "declared-but-undefined entry ⇒ hard error" check I had
+   designed becomes *unrepresentable* rather than merely checked.
+2. **DRY + rename-safe** — the rule name appears once; renaming cannot desynchronize.
+3. No typo can silently select a different *existing* rule.
+
+##### Spelling — settled by measurement, not preference
+
+The normative annotation grammar (`grammars/semantic_annotation.ebnf:16`) makes the
+payload **mandatory**:
+
+```ebnf
+semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
+```
+
+and the frontend agrees — but *silently*, which is the important part. Measured on the
+real frontend (`--emit-raw-ast-json`, three probe grammars):
+
+| form | `--lint-grammar` | recorded in the raw AST? |
+|---|---|---|
+| bare `@entry` | **exit 0, clean** | ⛔ **0 mentions — SILENTLY DROPPED** |
+| `@entry: true` | exit 0, clean | ✅ captured |
+| `@entry: program` | exit 0, clean | ✅ captured |
+
+⇒ **bare `@entry` is not a viable spelling** — it lints clean and vanishes. ⚠️ That is
+a NEW measured cell of the `ANNOTATION-PLACEMENT` silent-drop family (not mid-sequence
+this time, but **payload-less**) — routed there, not absorbed here.
+
+⇒ ✅ **CANONICAL SPELLING: `@entry: true`**, attached to the entry rule — exactly the
+shape of the nearest existing analogue, `@recover: true`.
+
+```ebnf
+statement := "a" ";"          # helper rules may live wherever reads best
+
+@entry: true
+program := statement+         # ← "this rule is the entry"
+```
+
+<!-- superseded draft retained for the record:
+```ebnf
+@entry: program
+
+statement := "a" ";"
+program   := statement+
+```
+-->
+
+| situation | behaviour |
+|---|---|
+| directive **absent** | `rule_order[0]` — today's behaviour exactly; generated parser **byte-identical** |
+| directive **present** | that rule is the entry, wherever it sits in the file |
+| names a rule the grammar does not define | **hard error at load**, naming the rule (the `undefined_references` class) |
+| declared **twice with the same payload** | allowed (mirrors `@default_profile`/`@profile_alias`) |
+| declared **twice with different payloads** | **hard error** — declare the entry exactly once |
+| `--entry-rule` **also** given | **CLI wins** — it is the probing / entry-relative override, documented as such |
+
+⭐⭐ **THE IMPLEMENTATION IS A NORMALIZATION, NOT A THREADING — and that is the whole
+design.** `rule_order[0]` is consulted by **~10 sites** (`main.rs` ×7,
+`grammar_wellformedness.rs` ×2, the interpreter, plus every `--entry-rule`-less
+consumer). Threading an `Option<String>` through all of them would be exactly the
+per-call-site fragility `LANG-CAPABILITY-AUDIT.7` rejected for `include()`. Instead:
+**resolve `@entry` ONCE at the single grammar-load chokepoint and reorder `rule_order`
+so the declared rule is first.** Every consumer then inherits it **structurally**, with
+zero call-site changes and no way for a future consumer to forget.
+
+The chokepoint already exists and is already labelled as one — `main.rs:2209`,
+verbatim: *"PARSE-SOTA.8.1 (A1): the SINGLE grammar-load chokepoint every build path
+goes through (`--generate-parser`/`-stimuli`, `make focus_*`, `--lint-grammar`)"*. The
+new normalization goes immediately **before** `check_grammar_wellformed(&grammar)?`
+so the linter sees the normalized order.
+
+⭐ **The invariant `rule_order[0] == the entry` therefore SURVIVES INTACT.** We are not
+weakening it; we are letting the author choose which rule occupies that slot instead of
+it being an accident of file layout. This is precisely the director's point — file
+order stops mattering, because the loader normalizes it from declared intent.
+
+#### Zero-cost / neutrality acceptance test (the #208 standing test)
+
+1. **Non-users pay ZERO** — no directive ⇒ no reorder ⇒ **byte-identical parser**, to
+   be PROVEN not asserted, by the pinned byte-identity method (`.5` /
+   `BIN-BUILD-INTEGRITY.3`: input **and** output paths pinned, because codegen embeds
+   the output path).
+2. **Users pay at CODEGEN time** — the directive only changes which `parse_X()` the
+   emitted `parse()` dispatches to. No runtime branch, no engine table.
+3. **No runtime cost at all**, so criterion (3) is vacuous here.
+
+#### Migration doubles as the regression proof
+
+All 10 tracked grammars already define their entry first. Adding `@entry: <that same
+rule>` to each is therefore a **no-op reorder** ⇒ the regenerated parsers must come out
+**byte-identical**. That makes intent explicit everywhere AND proves inertness with the
+strongest available oracle.
+
+⭐ It also **fixes the scratch slot's unenforced contract for free**: the fixture
+declares `@entry: scratch`, so a probe author may overwrite the body and put helper
+rules anywhere without silently re-rooting the slot — which is exactly the accident
+that produced this tree.
+
+#### ⭐⭐⭐ DIRECTOR REQUIREMENT (2026-07-26, late #212): `@entry` IS MANDATORY, EXACTLY ONCE
+
+First stated as *"At least one `@entry: true` shall be defined in the main EBNF"*, then
+**corrected by the director the same session** — verbatim: *"sorry, maybe I shouldn't
+have used 'at least' … you suggested that maybe we could support more than one
+`@entry: true`, that's why. So please replace 'at least', by **'one and only one'**."*
+
+⇒ **ONE AND ONLY ONE `@entry: true` in the main EBNF.** The correction is a deliberate
+narrowing: "at least one" would have left a door open to the multi-entry increment,
+which the director has explicitly deferred. This pins increment 1 as strictly
+single-entry.
+
+✅ **The "and only one" half is ALREADY IMPLEMENTED AND VERIFIED** by this leaf —
+`compile_entry_rule` rejects a second declaration with a hard error naming both rules
+(measured: `@entry: true` on rules `a` and `b` ⇒ `rc=1`, *"declared on more than one
+rule ('a' and 'b'). A grammar has exactly ONE entry rule; declare it once."*). What
+remains is the **mandatory** half: zero declarations must stop being legal.
+
+This supersedes the "absent ⇒ positional default" compatibility story above: a grammar
+with no `@entry: true` becomes an **error**, and the declaration must live in the
+**MAIN** file — not in an included one (which is what stops an include from re-rooting
+a grammar, the hazard `LANG-CAPABILITY-AUDIT.7` guarded against by ordering; `.9`'s
+per-file rule-ownership tracking already provides the provenance needed to enforce
+"main file" specifically).
+
+⚠️ **BLAST RADIUS — MEASURED BEFORE COMMITTING TO A SEQUENCE, not assumed:**
+
+| population | count | declaring `@entry` today |
+|---|---|---|
+| tracked `.ebnf` files | **78** | **0** |
+| ⤷ of which `grammars/` | 17 | 0 |
+| ⤷ `tests/`, `test/`, `test_includes/`, corpora, artifacts | 61 | 0 |
+| synthetic grammars embedded in the parse-harness Rust oracles | ~200+ rule defs across 5 modules (27 combinator + 36 semantic cases) | n/a |
+
+⛔ **Flipping to mandatory in one step would red-line every gate in the repository at
+once — including the parse-harness combinator/semantic/equivalence suites, which are
+the very oracles that prove this change safe.** Removing the safety net at the moment
+it is needed is not an acceptable way to satisfy the requirement.
+
+⇒ **SEQUENCE (recommended, director decision pending):**
+
+- **Step A — this leaf, DONE:** `@entry: true` is recognized, honoured, and outranked
+  by `--entry-rule`; positional fallback still works. Proven byte-inert.
+- **Step B:** migrate all 78 tracked grammars (+ the inline synthetic grammars) to
+  declare `@entry: true`. Every one of them already defines its entry first, so each is
+  a **no-op reorder** and the regenerated parsers must stay byte-identical — the
+  migration is its own proof.
+- **Step C:** flip to MANDATORY (missing `@entry` in the main EBNF = hard error). After
+  A+B this is a small change with zero breakage, and it is provable rather than hoped.
+
+Doing C before B is the only ordering that cannot be verified.
+
+#### Explicitly OUT of scope (director-deferred)
+
+- ⛔ **Multi-entry / a list of entries** — deferred to increment 2 by director decision.
+  `sv_multi_entry_root` therefore stays exactly as it is; nothing in SV changes.
+- ⛔ Deleting `sv_multi_entry_root`, touching `--cert-union-config`, or changing the
+  closure-gate contract.
+- ⛔ Making the positional default an error or a warning. It stays the default
+  **forever** — it is what all 10 tracked grammars rely on today.
+
+#### Step A — LANDED and VERIFIED (session #212)
+
+| behaviour | verdict |
+|---|---|
+| `@entry: true` on the **last-defined** rule | ✅ codegen emits `self.parse_scratch()` — file order is now irrelevant |
+| no declaration | ✅ `self.parse_stmt()` — positional default unchanged |
+| **`--entry-rule stmt` + `@entry` on `scratch`** | ✅ **`self.parse_stmt()` — the CLI outranks the declaration (director rule)** |
+| `--entry-rule nosuch` | ✅ hard, named error (it was a *silent* fallback before) |
+| `@entry: true` on two rules | ✅ error naming **both** rules ("one and only one" — already enforced) |
+| `@entry` inline in a rule body | ✅ error naming the placement (branch-start AND mid-sequence) |
+| `@entry: "scratch"` (rule-name payload) | ✅ error — attachment already identifies the rule |
+| `@entry: false` | ✅ explicit no-op |
+| `--lint-grammar` | ✅ now prints `[info] entry rule 'X' — DECLARED via @entry: true` / `— POSITIONAL (…)` |
+
+⚠️ **Found rather than assumed: `--entry-rule` was ALREADY silently ineffective on
+`--generate-parser`** — `generate_parser_ast_based` receives only `&grammar.rule_order`
+and has never been passed the CLI entry. Pre-existing, not introduced by `@entry`; the
+director's precedence rule is what prompted the check. Fixed through the SAME reorder,
+so there is one mechanism for "which rule is the entry", not two.
+
+⭐ **`.1`'s driver correctly went RED and was RE-PINNED, not deleted.** It asserted
+*"lint mentions the resolved entry rule (0 = never)"* — the very gap `.2` closes. The
+assertion now pins the new truth (`1`, plus the `POSITIONAL` wording), so the record
+shows the gap closing rather than the evidence being quietly edited.
+
+**Verification:**
+- `run_entry_directive_probes.sh` — **14 declared-verdict cases, exit 0, 0 divergences**.
+- `run_entry_rule_probes.sh` (`.1`'s driver, re-pinned) — **17 cases, exit 0, 0 divergences**.
+- ⭐ **NO REGRESSION — all 10 generated parsers BYTE-IDENTICAL** against a HEAD-vintage
+  binary with input **and** output paths pinned (`.5`/`BIN-BUILD-INTEGRITY.3` method):
+  json 13,707 · regex 520,694 · vhdl 196,512 · systemverilog 1,840,414 · svpp 51,988 ·
+  rtl_frontend 164,187 · rtl_const_expr 35,777 · return_annotation 37,809 ·
+  semantic_annotation 200,236 · ebnf 156,863 — **3,218,187 lines, 0 differences**
+  (`byte_identity.sh` + `byte_identity_capture.txt`).
+- clippy source-strict **0 errors**; the one finding on new code (a redundant closure)
+  fixed. Generated-stage debt is the tracked non-strict baseline, untouched.
+- `ebnf_parser_book_gate` GREEN (tracked HTML re-rendered).
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `.1`: reordering two rule definitions flips `a;a;` from
+      ACCEPT to REJECT@2 while `--lint-grammar` reports `unreachable_rules=0`, exit 0.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `.1`, tool-pinned: `ast_based_generator.rs:616-621`
+      `entry_rule = self.entry_rule.or_else(|| rule_order.first())`; three-arm control
+      isolates the start symbol with the execution graph held fixed.
+- [x] **FIX** — declarative tier (highest in the fix hierarchy): a grammar-level
+      `@entry` directive normalized at the single grammar-load chokepoint.
+- [x] **ADDRESSED (verified)** — a grammar whose entry is declared but defined LAST
+      parses the multi-statement input; declared-but-undefined entry is a named hard
+      error; `--lint-grammar` reports the resolved entry and whether it was declared.
+- [x] **NO REGRESSION** — all 10 generated parsers **byte-identical** with the
+      directive absent (input+output paths pinned); byte-identical again after the
+      no-op `@entry` migration; cert seeds 0/7/42; `ast_shape_contract`; clippy.
+- [x] **LOCKSTEP** — grammar-author book (`grammar-file-structure.md` +
+      `semantic-annotations.md`), `TOOLBOX.md`, `docs/book/`.
 
 ### `.3` — Record the trace-changes-the-engine trap in `TOOLBOX.md` (`done`)
 
@@ -466,6 +730,21 @@ equivalence/AST oracles (`TOOLBOX.md` §1.6).
   *"a rule misbehaves / a quantifier iterates once / my rule seems ignored"* to that
   check — so the question that would have closed `.1` in one command is the first
   thing a reader meets.
+
+### `.4` — residual entry-visibility items not covered by `.2` (`todo`)
+
+Carved out of the original `.2` so `.2` stays exactly the director-approved scope.
+
+- The **orphan report** already routed to `LANG-CAPABILITY-AUDIT.2`/`.4` (T-9,
+  *"N rules are unreferenced roots"*). `.1` is its second independent motivation (the
+  first was `ebnf.ebnf:18`'s dangling include). ⛔ Keep it **separate from** the hard
+  `unreachable_rules` error: treating an unreferenced rule as a root is CORRECT design
+  and is what protects SV's `library_text` / `*_multi_entry_root` secondary entries
+  from false rejection.
+- Whether `--report-certificate-coverage`'s *"adjudicate via the linter"* hand-off
+  should name an instrument that can actually confirm it (`.1`'s measured instrument
+  disagreement).
+
 
 ## Acceptance Criteria (tree)
 

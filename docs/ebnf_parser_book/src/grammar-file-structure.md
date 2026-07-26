@@ -6,13 +6,34 @@ interleaved with **include directives**, **semantic annotations**, **comments**,
 name in the file is in scope for every other rule, so you may reference a rule defined further down. It
 does, however, decide one thing, and it is the most important thing in the file: **the entry rule**.
 
-## ⚠️ The entry rule is the FIRST rule you define
+## The entry rule — declare it with `@entry: true`
 
-PGEN has no `@start` directive and no entry declaration. **The grammar's entry rule (start symbol) is
-whichever rule is defined first in the file** — `rule_order[0]`
-(`rust/src/ast_pipeline/ast_based_generator.rs`, `entry_rule = self.entry_rule.or_else(|| rule_order.first())`).
-Everything else follows from that: reachability analysis, the linter's dead-rule verdicts, certificate
-coverage and the emitted `parse()` all anchor on it.
+A grammar's **entry rule** (start symbol) is where parsing begins. Everything follows from it:
+reachability analysis, the linter's dead-rule verdicts, certificate coverage and the emitted `parse()`
+all anchor on it.
+
+**Declare it by attaching `@entry: true` to the rule itself:**
+
+```ebnf
+statement := "a" ";"        # helper rules may live wherever reads best
+
+@entry: true
+program := statement+       # ← this rule is the entry
+```
+
+The rule is identified by **what the annotation is attached to**, so the payload is just `true` — it
+does not name the rule. (A payload is required because PGEN's annotation syntax always takes one; see
+[Semantic Annotations](semantic-annotations.md). A bare `@entry` with no payload is *silently ignored*,
+so always write `: true`.)
+
+> **A main EBNF file shall contain one and only one `@entry: true`, attached to the proper rule.**
+> Declaring it on two rules is a hard error naming both. Writing it *inside* a rule body (branch-start
+> or mid-sequence) is also a hard error — it marks a whole rule, so it belongs directly above one.
+
+### ⚠️ Without a declaration, the entry is the FIRST rule you define
+
+If no rule declares `@entry`, PGEN falls back to `rule_order[0]` — **whichever rule appears first in the
+file**. That fallback is why declaring the entry matters:
 
 ```ebnf
 # ✅ entry is `program` — the parser parses a whole program
@@ -29,22 +50,34 @@ program := statement+
 ```
 
 Both grammars lint clean (`unreachable_rules=0`, exit 0) — an unreferenced rule such as `program` counts
-as a *root*, so it is never reported as unreachable. Writing helper rules above your start symbol
-therefore changes the language your parser accepts, silently. **Define your entry rule first.**
+as a *root*, so it is never reported as unreachable. Under the positional fallback, moving a helper rule
+above your start symbol therefore changes the language your parser accepts, silently. **Declare
+`@entry: true` and file order stops mattering** — which is the point: in EBNF a grammar is a *set* of
+productions, so rule order should carry no meaning.
 
-Two things to know:
+### Checking, and overriding, the entry
 
-- `--entry-rule RULE` (on `ast_pipeline` and `parseability_probe`) parses from an **alternate** start
-  symbol. It is an out-of-band override for probing and for genuinely multi-entry grammars — not the
-  normal way to select the entry.
-- **No command reports your grammar's entry rule back to you.** `--lint-grammar` does not name it, and
-  neither does `--generate-parser` at default verbosity. Read the top of your own file: the first rule
-  defined is the entry. (Certificate coverage *does* print `entry='…'` on its headline and flags rules
-  with no reach path from it — but it verifies witnesses through a real generated parser, so it only runs
-  for a **registered** grammar and refuses an arbitrary `.ebnf` with
-  `no generated parser is registered for grammar '…'`. It is therefore available for the
-  [scratch slot](../../book/src/parse-harness.md), not for a grammar you are drafting.) This visibility
-  gap is tracked in `docs/tasks/QUANT-PLUS-ITER.md`.
+`--lint-grammar` reports the resolved entry rule and says which way it was resolved:
+
+```text
+$ ast_pipeline grammars/mine.ebnf --lint-grammar
+grammar lint: 'mine' (2 rules) — left_recursive=0 …
+  [info] entry rule 'program' — DECLARED via `@entry: true`
+```
+
+```text
+  [info] entry rule 'statement' — POSITIONAL (the first rule defined; declare it with
+         `@entry: true` to make file order irrelevant)
+```
+
+`--entry-rule RULE` (on `ast_pipeline` and `parseability_probe`) parses from an **alternate** start
+symbol and **takes precedence over a declared `@entry`**. It is an out-of-band override for probing and
+for entry-relative inspection — not the normal way to select the entry. Naming a rule the grammar does
+not define is a hard error, not a silent fallback.
+
+Certificate coverage also prints `entry='…'` on its headline and flags rules with no reach path from it —
+but it verifies witnesses through a real generated parser, so it only runs for a **registered** grammar
+and refuses an arbitrary `.ebnf` with `no generated parser is registered for grammar '…'`.
 
 See also [Includes](includes.md), where the same rule is what stops an included file from re-rooting your
 grammar: main-file rules are always spliced first.

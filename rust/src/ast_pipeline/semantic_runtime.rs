@@ -382,6 +382,144 @@ pub(crate) fn parse_default_profile_payload(ast: &UnifiedSemanticAST) -> Result<
     Ok(trimmed.to_string())
 }
 
+/// The normalized directive name recognized by [`compile_entry_rule`].
+pub const ENTRY_RULE_DIRECTIVE_NAME: &str = "entry";
+
+/// `QUANT-PLUS-ITER.2`: scan a grammar's semantic annotations for the
+/// `@entry: true` directive and return **the name of the rule it is attached
+/// to** — the grammar's declared start symbol. Returns `Ok(None)` when no rule
+/// declares it, in which case the entry stays `rule_order[0]`, the positional
+/// default every tracked grammar relies on today.
+///
+/// WHY THIS EXISTS (director, 2026-07-26): in EBNF a grammar is a *set* of
+/// productions — rule order is presentation, not semantics. PGEN honoured that
+/// everywhere except one hidden place: the start symbol was whichever rule
+/// happened to be written first, so reordering two definitions silently changed
+/// the accepted language while `--lint-grammar` reported `unreachable_rules=0`
+/// and exited 0 (measured, `QUANT-PLUS-ITER.1` — it cost a whole task-tree).
+/// Declaring the entry makes file order irrelevant again, and satisfies the
+/// standing directive that every user-controllable feature be declared IN the
+/// EBNF rather than by a CLI flag or an engine table.
+///
+/// ⭐ SHAPE (director-corrected mid-design): this is a **rule-level** directive,
+/// like `@profiles` / `@emit_fact` / `@recover` — it steers the rule it precedes.
+/// It is deliberately NOT one of the three grammar-level directives
+/// ([`compile_layout_sensitivity`], [`compile_default_profile`],
+/// [`compile_profile_aliases`]), all of which `flat_map` over every rule and
+/// **discard the attachment key**. "This rule is the start symbol" is
+/// intrinsically a statement *about a rule*, so this compiler does the opposite:
+/// the attachment key IS the answer. That also makes "declared entry does not
+/// exist" unrepresentable rather than merely checked.
+///
+/// Payload: `true` — required only because the annotation grammar makes a
+/// payload syntactically mandatory (`grammars/semantic_annotation.ebnf`:
+/// `semantic_annotation := "@" … ":" … annotation_value`). A bare `@entry` is
+/// accepted by the frontend and then **silently dropped** (measured: 0 mentions
+/// in the raw AST), so it is not a viable spelling and is rejected here with a
+/// clear reason rather than tolerated. `@entry: false` is accepted and means
+/// "not the entry" (an explicit no-op), mirroring `@whitespace_sensitive: false`.
+///
+/// Increment 1 is single-entry by director decision: `@entry: true` on more than
+/// one rule is a hard error naming both rules.
+pub fn compile_entry_rule(annotations: &Annotations) -> Result<Option<String>, String> {
+    let mut declared: Option<String> = None;
+
+    // ANNOTATION-PLACEMENT: a directive the engine cannot honour in a given
+    // placement must HALT with a clear reason — never be silently dropped. An
+    // `@entry` written inside a rule body has no rule to name, so it is refused
+    // explicitly. BOTH inline maps are checked: branch-start
+    // (`branch_semantic_annotations`) AND mid-sequence
+    // (`branch_mid_sequence_semantic_annotations`) — the latter is the map the
+    // engine extracts and then never compiles, so a directive landing there would
+    // otherwise vanish without a word. Deterministic: rule names sorted.
+    let mut branch_rules: Vec<&String> = annotations.branch_semantic_annotations.keys().collect();
+    branch_rules.sort();
+    for rule in branch_rules {
+        let found = annotations.branch_semantic_annotations[rule]
+            .iter()
+            .flatten()
+            .any(is_entry_directive);
+        if found {
+            return Err(entry_placement_error(rule, "a branch of"));
+        }
+    }
+    let mut mid_rules: Vec<&String> = annotations
+        .branch_mid_sequence_semantic_annotations
+        .keys()
+        .collect();
+    mid_rules.sort();
+    for rule in mid_rules {
+        let found = annotations.branch_mid_sequence_semantic_annotations[rule]
+            .iter()
+            .flatten()
+            .any(|entry| is_entry_directive(&entry.annotation));
+        if found {
+            return Err(entry_placement_error(rule, "mid-sequence inside"));
+        }
+    }
+
+    // Deterministic: iterate the attachment keys in sorted order so a
+    // multi-declaration error names the same two rules on every run.
+    let mut rules: Vec<&String> = annotations.semantic_annotations.keys().collect();
+    rules.sort();
+    for rule in rules {
+        let Some(list) = annotations.semantic_annotations.get(rule) else {
+            continue;
+        };
+        for annotation in list {
+            let Some(name) = annotation.name() else {
+                continue;
+            };
+            if name.trim().to_ascii_lowercase() != ENTRY_RULE_DIRECTIVE_NAME {
+                continue;
+            }
+            if !parse_entry_rule_payload(annotation.ast())? {
+                continue; // `@entry: false` — an explicit no-op.
+            }
+            match &declared {
+                Some(prior) if prior != rule => {
+                    return Err(format!(
+                        "@{ENTRY_RULE_DIRECTIVE_NAME}: declared on more than one rule ('{prior}' and '{rule}'). \
+                         A grammar has exactly ONE entry rule; declare it once."
+                    ));
+                }
+                _ => declared = Some(rule.clone()),
+            }
+        }
+    }
+    Ok(declared)
+}
+
+/// Is this annotation the `@entry` directive (case-insensitive, trimmed)?
+fn is_entry_directive(annotation: &SemanticAnnotation) -> bool {
+    annotation
+        .name()
+        .is_some_and(|n| n.trim().to_ascii_lowercase() == ENTRY_RULE_DIRECTIVE_NAME)
+}
+
+/// The shared `@entry`-in-the-wrong-place diagnostic, so both inline placements
+/// report the same contract in the same words.
+fn entry_placement_error(rule: &str, placement: &str) -> String {
+    format!(
+        "@{ENTRY_RULE_DIRECTIVE_NAME}: found {placement} rule '{rule}'. \
+         '@{ENTRY_RULE_DIRECTIVE_NAME}' marks a whole RULE as the grammar's entry, so it must be \
+         written directly ABOVE the rule definition, not within one."
+    )
+}
+
+/// Parses one `@entry:` payload (see [`compile_entry_rule`]). `pub(crate)` so the
+/// annotation validator lints the payload through the SAME parser the loader
+/// compiles it with (no second dialect).
+pub(crate) fn parse_entry_rule_payload(ast: &UnifiedSemanticAST) -> Result<bool, String> {
+    const USAGE: &str = "Directive '@entry' expects the boolean `true` (written `@entry: true`, directly above the grammar's entry rule).";
+    let payload = ast
+        .structured_value()
+        .ok_or_else(|| format!("{USAGE} (payload is not a structured value)"))?;
+    scalar_bool(payload).ok_or_else(|| {
+        format!("{USAGE} (got a non-boolean payload: {payload:?}). Note: the entry rule is identified by WHICH rule the annotation is attached to, so the payload does not name it.")
+    })
+}
+
 /// The normalized directive name recognized by [`compile_profile_aliases`].
 pub const PROFILE_ALIAS_DIRECTIVE_NAME: &str = "profile_alias";
 

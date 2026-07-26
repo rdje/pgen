@@ -1,0 +1,13 @@
+===== BYTE-IDENTITY RESULT =====
+  json                             IDENTICAL (13707 lines)
+  regex                            IDENTICAL (520694 lines)
+  vhdl                             IDENTICAL (196512 lines)
+  systemverilog                    IDENTICAL (1840414 lines)
+  systemverilog_preprocessor       IDENTICAL (51988 lines)
+  rtl_frontend                     IDENTICAL (164187 lines)
+  rtl_const_expr                   IDENTICAL (35777 lines)
+  return_annotation                IDENTICAL (37809 lines)
+  semantic_annotation              IDENTICAL (200236 lines)
+  ebnf                             IDENTICAL (156863 lines)
+identical=10 differs=0 missing=0
+BYTE_IDENTITY_DONE

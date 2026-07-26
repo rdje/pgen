@@ -1326,6 +1326,84 @@ the person who specified it.**
   scope by design). That is a legitimate outcome and must be recorded as such — the bound is
   what keeps "any language" honest. The value is in the rows that do NOT.
 
+### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`todo` — ⛔ DIRECTOR-SCHEDULED FOR A FRESH SESSION)
+
+> **Director, 2026-07-26 session #212**, on being shown `.7`'s account: *"The reference
+> in ebnf.ebnf had a typo."* → *"But we have grammars/semantic_annotation.ebnf"* →
+> *"The builtin semantic annotation EBNF is grammars/builtin_semantic_annotation.ebnf"*.
+> Asked whether to fold the repair into session #212 alongside `@entry`, the director
+> ruled: **"In a new fresh session."** ⇒ **DO NOT START THIS IN A SESSION THAT IS
+> ALREADY CARRYING OTHER WORK.**
+
+⛔ **`.7` GOT THIS ONE WRONG, and the record must say so.** `.7` deleted
+`include(semantic_annotations)` from `grammars/ebnf.ebnf:18` as *"a stale include
+naming a file that has never existed"*. That is true **of the plural spelling only** —
+and the singular file is right there:
+
+| fact | measured |
+|---|---|
+| the deleted line (git `754d1a5e`) | `-include(semantic_annotations)` — **plural** |
+| `grammars/semantic_annotation.ebnf` | **exists**, 20,206 B, 112 rules — the normative annotation-language spec named by `README.md` |
+| `grammars/builtin_semantic_annotation.ebnf` | **exists**, 4,580 B, 23 rules — the bootstrap-safe twin |
+| `ebnf.ebnf` references to `semantic_annotation` | **3 live, non-comment** (`:30`, `:79`, `:134`) — none defined |
+
+⇒ it was a **one-character typo** (plural/singular) for a file that exists, not a
+reference to nothing. `.7` removed the symptom and certified the grammar
+*"self-contained"*.
+
+⭐⭐⭐ **AND THE REASON NOTHING CAUGHT IT IS THE REAL DEFECT — a FOURTH masking layer
+on top of the three `.7` itself found.** `--lint-grammar` reports
+`undefined_references=0` on a grammar with 3 undefined references, because the name is
+**hard-coded into a rule-NAME allowlist** (`ast_based_generator.rs`,
+`NATIVE_UNRESOLVED_REFERENCE_BUILTINS`):
+
+```rust
+pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str] = &[
+    "builtin_any_char", "builtin_ascii_char", "false",
+    "semantic_annotation",     // <- NOT a builtin: a real rule in another grammar file
+    "true",
+];
+```
+
+`builtin_any_char`/`builtin_ascii_char` are genuine codegen builtins and `true`/`false`
+are literals; **`semantic_annotation` is neither.** Its presence there is a workaround
+for the broken include that silenced the one instrument that would have named it. ⇒
+this is an **`EBNF-SOURCE-OF-TRUTH` breach of the exact class director #208 named**
+(*"no hard-coded rule-NAME `matches!` arm — that last disguise is exactly what hid the
+no-layout capability for a whole session"*), and `.7`'s `undefined_references=0`
+evidence rested on it.
+
+#### ⚠️ Fixing the typo is NECESSARY BUT NOT SUFFICIENT — measured, so the next session does not start optimistic
+
+Neither annotation grammar is a drop-in replacement:
+
+| candidate target | rules | collisions with `ebnf.ebnf`'s 131 | defines `semantic_annotation`? |
+|---|---|---|---|
+| `semantic_annotation.ebnf` (full) | 112 | **15** ← the number `.7` cited to justify deletion | ✅ yes (`:16`) |
+| `builtin_semantic_annotation.ebnf` | 23 | **3** — `boolean_literal`, `identifier_literal`, `null_literal` | ⛔ no — its entry rule is `builtin_semantic_annotation` |
+
+⇒ the builtin is far the better composition target (**3 collisions, not 15**) but does
+not supply the referenced NAME; the full one supplies the name but collides 5× worse.
+⭐ And since `.9`, a cross-file name collision is a **hard error**, so the 3 must be
+resolved, not tolerated.
+
+#### Deliverables
+
+1. Decide the target (**recommend `builtin_semantic_annotation`**, the bootstrap-safe
+   twin — the meta-grammar has the same chicken-and-egg property the builtin grammars
+   exist to break) and align the referenced rule name.
+2. Resolve the 3 name collisions.
+3. ⭐ **Retire `"semantic_annotation"` from `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`** so
+   the undefined-reference check can see that class again — and re-run it to confirm it
+   now reports 0 *because the grammar is sound*, not because the name is allowlisted.
+4. Correct `.7`'s record in place: its deletion and its *"self-contained"* conclusion
+   were both wrong, and the reasons are above.
+5. Byte-identity proof with input AND output paths pinned (`.5` / `BIN-BUILD-INTEGRITY.3`).
+
+⚠️ **Audit the other allowlist members while there** — the same question ("is this
+actually a codegen builtin, or a silenced defect?") has not been asked of them.
+
+
 ## Acceptance Criteria (tree)
 
 - A measured, re-runnable expressiveness matrix — not prose.

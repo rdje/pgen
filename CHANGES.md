@@ -1,5 +1,30 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0003 (leaf `QUANT-PLUS-ITER.2`, step A) — the entry rule is now declarable in the EBNF: `@entry: true`
+
+- **Added** — a rule-level `@entry: true` semantic annotation naming the grammar's entry rule
+  (start symbol). The rule is identified by *what the annotation is attached to*, so the
+  payload is just `true` and never repeats the rule name. Absent, the entry falls back to the
+  first rule defined, exactly as before.
+- **Why** — in EBNF a grammar is a *set* of productions, so rule order is presentation, not
+  semantics. PGEN honoured that everywhere except the start symbol, which was whichever rule
+  happened to be written first; reordering two definitions silently changed the accepted
+  language while the linter reported `unreachable_rules=0` and exited 0.
+- **Precedence** — `--entry-rule` on the CLI outranks a declared `@entry`. Checking that
+  revealed `--entry-rule` had *never* reached the `--generate-parser` path at all; it is now
+  applied through the same mechanism, so there is one way to select the entry, not two.
+- **Diagnostics** — `--lint-grammar` now names the resolved entry and whether it was
+  `DECLARED` or `POSITIONAL`. Declaring `@entry` on two rules, inside a rule body, or with a
+  rule-name payload are each hard errors rather than silent no-ops.
+- **Implementation** — resolved once at the single grammar-load chokepoint by reordering
+  `rule_order`, so codegen, the linter's reachability roots, certificate coverage, stimuli
+  generation and the parse-harness interpreter all inherit it without a per-call-site change.
+- **No regression** — all 10 generated parsers are byte-identical against a HEAD-vintage
+  binary with input and output paths pinned: 3,218,187 lines, 0 differences.
+- **Still open** — the director's requirement that a main EBNF file contain one and only one
+  `@entry: true` is half met: "only one" is enforced; making it mandatory needs the 78 tracked
+  grammars migrated first, and is tracked as steps B and C on the leaf.
+
 ## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0002 (leaf `QUANT-PLUS-ITER.3`) — two engine-routing hazards banked, and the confound they created in the previous commit's evidence eliminated
 
 - **Documented** — `TOOLBOX.md` now carries the routing caveat the charter asked for

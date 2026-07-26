@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0ad7fb7b.js";
+            window.path_to_searchindex_js = "searchindex-cd9267eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -186,12 +186,28 @@ interleaved with <strong>include directives</strong>, <strong>semantic annotatio
 (<code>grammars/ebnf.ebnf</code>, rule <code>grammar_file</code>). Rule order does not affect <strong>name resolution</strong> — every rule
 name in the file is in scope for every other rule, so you may reference a rule defined further down. It
 does, however, decide one thing, and it is the most important thing in the file: <strong>the entry rule</strong>.</p>
-<h2 id="-the-entry-rule-is-the-first-rule-you-define"><a class="header" href="#-the-entry-rule-is-the-first-rule-you-define">⚠️ The entry rule is the FIRST rule you define</a></h2>
-<p>PGEN has no <code>@start</code> directive and no entry declaration. <strong>The grammar’s entry rule (start symbol) is
-whichever rule is defined first in the file</strong> — <code>rule_order[0]</code>
-(<code>rust/src/ast_pipeline/ast_based_generator.rs</code>, <code>entry_rule = self.entry_rule.or_else(|| rule_order.first())</code>).
-Everything else follows from that: reachability analysis, the linter’s dead-rule verdicts, certificate
-coverage and the emitted <code>parse()</code> all anchor on it.</p>
+<h2 id="the-entry-rule--declare-it-with-entry-true"><a class="header" href="#the-entry-rule--declare-it-with-entry-true">The entry rule — declare it with <code>@entry: true</code></a></h2>
+<p>A grammar’s <strong>entry rule</strong> (start symbol) is where parsing begins. Everything follows from it:
+reachability analysis, the linter’s dead-rule verdicts, certificate coverage and the emitted <code>parse()</code>
+all anchor on it.</p>
+<p><strong>Declare it by attaching <code>@entry: true</code> to the rule itself:</strong></p>
+<pre><code class="language-ebnf">statement := "a" ";"        # helper rules may live wherever reads best
+
+@entry: true
+program := statement+       # ← this rule is the entry
+</code></pre>
+<p>The rule is identified by <strong>what the annotation is attached to</strong>, so the payload is just <code>true</code> — it
+does not name the rule. (A payload is required because PGEN’s annotation syntax always takes one; see
+<a href="semantic-annotations.html">Semantic Annotations</a>. A bare <code>@entry</code> with no payload is <em>silently ignored</em>,
+so always write <code>: true</code>.)</p>
+<blockquote>
+<p><strong>A main EBNF file shall contain one and only one <code>@entry: true</code>, attached to the proper rule.</strong>
+Declaring it on two rules is a hard error naming both. Writing it <em>inside</em> a rule body (branch-start
+or mid-sequence) is also a hard error — it marks a whole rule, so it belongs directly above one.</p>
+</blockquote>
+<h3 id="-without-a-declaration-the-entry-is-the-first-rule-you-define"><a class="header" href="#-without-a-declaration-the-entry-is-the-first-rule-you-define">⚠️ Without a declaration, the entry is the FIRST rule you define</a></h3>
+<p>If no rule declares <code>@entry</code>, PGEN falls back to <code>rule_order[0]</code> — <strong>whichever rule appears first in the
+file</strong>. That fallback is why declaring the entry matters:</p>
 <pre><code class="language-ebnf"># ✅ entry is `program` — the parser parses a whole program
 program := statement+
 statement := "a" ";"
@@ -203,22 +219,26 @@ statement := "a" ";"
 program := statement+
 </code></pre>
 <p>Both grammars lint clean (<code>unreachable_rules=0</code>, exit 0) — an unreferenced rule such as <code>program</code> counts
-as a <em>root</em>, so it is never reported as unreachable. Writing helper rules above your start symbol
-therefore changes the language your parser accepts, silently. <strong>Define your entry rule first.</strong></p>
-<p>Two things to know:</p>
-<ul>
-<li><code>--entry-rule RULE</code> (on <code>ast_pipeline</code> and <code>parseability_probe</code>) parses from an <strong>alternate</strong> start
-symbol. It is an out-of-band override for probing and for genuinely multi-entry grammars — not the
-normal way to select the entry.</li>
-<li><strong>No command reports your grammar’s entry rule back to you.</strong> <code>--lint-grammar</code> does not name it, and
-neither does <code>--generate-parser</code> at default verbosity. Read the top of your own file: the first rule
-defined is the entry. (Certificate coverage <em>does</em> print <code>entry='…'</code> on its headline and flags rules
-with no reach path from it — but it verifies witnesses through a real generated parser, so it only runs
-for a <strong>registered</strong> grammar and refuses an arbitrary <code>.ebnf</code> with
-<code>no generated parser is registered for grammar '…'</code>. It is therefore available for the
-<a href="../../book/src/parse-harness.html">scratch slot</a>, not for a grammar you are drafting.) This visibility
-gap is tracked in <code>docs/tasks/QUANT-PLUS-ITER.md</code>.</li>
-</ul>
+as a <em>root</em>, so it is never reported as unreachable. Under the positional fallback, moving a helper rule
+above your start symbol therefore changes the language your parser accepts, silently. <strong>Declare
+<code>@entry: true</code> and file order stops mattering</strong> — which is the point: in EBNF a grammar is a <em>set</em> of
+productions, so rule order should carry no meaning.</p>
+<h3 id="checking-and-overriding-the-entry"><a class="header" href="#checking-and-overriding-the-entry">Checking, and overriding, the entry</a></h3>
+<p><code>--lint-grammar</code> reports the resolved entry rule and says which way it was resolved:</p>
+<pre><code class="language-text">$ ast_pipeline grammars/mine.ebnf --lint-grammar
+grammar lint: 'mine' (2 rules) — left_recursive=0 …
+  [info] entry rule 'program' — DECLARED via `@entry: true`
+</code></pre>
+<pre><code class="language-text">  [info] entry rule 'statement' — POSITIONAL (the first rule defined; declare it with
+         `@entry: true` to make file order irrelevant)
+</code></pre>
+<p><code>--entry-rule RULE</code> (on <code>ast_pipeline</code> and <code>parseability_probe</code>) parses from an <strong>alternate</strong> start
+symbol and <strong>takes precedence over a declared <code>@entry</code></strong>. It is an out-of-band override for probing and
+for entry-relative inspection — not the normal way to select the entry. Naming a rule the grammar does
+not define is a hard error, not a silent fallback.</p>
+<p>Certificate coverage also prints <code>entry='…'</code> on its headline and flags rules with no reach path from it —
+but it verifies witnesses through a real generated parser, so it only runs for a <strong>registered</strong> grammar
+and refuses an arbitrary <code>.ebnf</code> with <code>no generated parser is registered for grammar '…'</code>.</p>
 <p>See also <a href="includes.html">Includes</a>, where the same rule is what stops an included file from re-rooting your
 grammar: main-file rules are always spliced first.</p>
 <h2 id="a-rule"><a class="header" href="#a-rule">A rule</a></h2>

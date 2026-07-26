@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0ad7fb7b.js";
+            window.path_to_searchindex_js = "searchindex-cd9267eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -245,6 +245,27 @@ type_declaration := "typedef" data_type identifier ";" -&gt; {kind: "typedef", n
 @predicate: has_fact(type_name, $1)
 known_type := identifier -&gt; {kind: "type_ref", name: $1}
 </code></pre>
+<h2 id="entry-rule--entry"><a class="header" href="#entry-rule--entry">Entry rule — <code>@entry</code></a></h2>
+<p>Marks the rule where parsing begins (the grammar’s start symbol). It is a <strong>rule-level</strong> directive: the
+entry is identified by <em>which rule the annotation is attached to</em>, so the payload is simply <code>true</code> and
+never names a rule.</p>
+<pre><code class="language-ebnf">statement := "a" ";"        # helper rules may live wherever reads best
+
+@entry: true
+program := statement+       # ← this rule is the entry
+</code></pre>
+<ul>
+<li><strong>A main EBNF file shall contain one and only one <code>@entry: true</code>.</strong> Two declarations are a hard error
+naming both rules.</li>
+<li>It marks a whole rule, so it must sit <strong>directly above a rule definition</strong> — writing it inside a rule
+body (branch-start or mid-sequence) is a hard error rather than a silent no-op.</li>
+<li>The payload must be the boolean <code>true</code>. <code>@entry: false</code> is an explicit no-op; a rule-name payload such
+as <code>@entry: program</code> is rejected (the attachment already says which rule). A <strong>bare <code>@entry</code></strong> with no
+payload is silently ignored by the frontend, so always write <code>: true</code>.</li>
+<li>Without any declaration, the entry falls back to the first rule defined in the file — see
+<a href="grammar-file-structure.html">Grammar File Structure</a>, which explains why relying on that is risky.</li>
+<li><code>--entry-rule RULE</code> on the CLI <strong>takes precedence</strong> over a declared <code>@entry</code>.</li>
+</ul>
 <h2 id="layout-policy--whitespace_sensitive"><a class="header" href="#layout-policy--whitespace_sensitive">Layout policy — <code>@whitespace_sensitive</code></a></h2>
 <p>By default a generated parser is <strong>whitespace-INSENSITIVE</strong>: it silently skips layout (whitespace and
 unclaimed comment introducers) before every string terminal and regex token, and consumes trailing

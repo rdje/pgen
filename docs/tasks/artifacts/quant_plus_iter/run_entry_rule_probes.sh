@@ -103,8 +103,14 @@ lint_rc=$?
 expect "lint exit code (0 = grammar declared well-formed)" "0" "$lint_rc"
 unreachable="$(printf '%s' "$lint_out" | grep -oE 'unreachable_rules=[0-9]+' | head -1)"
 expect "lint unreachable_rules"                            "unreachable_rules=0" "$unreachable"
-names_entry="$(printf '%s' "$lint_out" | grep -cE "entry" || true)"
-expect "lint mentions the resolved entry rule (0 = never)"  "0" "$names_entry"
+# ⭐ CHANGED BY `.2` — deliberately re-pinned, not deleted. When `.1` measured this,
+# `--lint-grammar` never named the entry rule (0 mentions), which is precisely why a
+# mis-rooted grammar was invisible. `.2` added the report, so the honest pin is now
+# "it DOES name it", and the diagnostic gap `.1` documented is closed.
+names_entry="$(printf '%s' "$lint_out" | grep -cE "\[info\] entry rule" || true)"
+expect "lint now NAMES the resolved entry (.2 closed .1's gap)" "1" "$names_entry"
+positional="$(printf '%s' "$lint_out" | grep -c "POSITIONAL" || true)"
+expect "…and reports this undeclared grammar as POSITIONAL" "1" "$positional"
 echo
 
 echo "--- 3. --generate-parser at DEFAULT verbosity: is the entry named? ----------"

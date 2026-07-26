@@ -73,6 +73,30 @@ type_declaration := "typedef" data_type identifier ";" -> {kind: "typedef", name
 known_type := identifier -> {kind: "type_ref", name: $1}
 ```
 
+## Entry rule — `@entry`
+
+Marks the rule where parsing begins (the grammar's start symbol). It is a **rule-level** directive: the
+entry is identified by *which rule the annotation is attached to*, so the payload is simply `true` and
+never names a rule.
+
+```ebnf
+statement := "a" ";"        # helper rules may live wherever reads best
+
+@entry: true
+program := statement+       # ← this rule is the entry
+```
+
+- **A main EBNF file shall contain one and only one `@entry: true`.** Two declarations are a hard error
+  naming both rules.
+- It marks a whole rule, so it must sit **directly above a rule definition** — writing it inside a rule
+  body (branch-start or mid-sequence) is a hard error rather than a silent no-op.
+- The payload must be the boolean `true`. `@entry: false` is an explicit no-op; a rule-name payload such
+  as `@entry: program` is rejected (the attachment already says which rule). A **bare `@entry`** with no
+  payload is silently ignored by the frontend, so always write `: true`.
+- Without any declaration, the entry falls back to the first rule defined in the file — see
+  [Grammar File Structure](grammar-file-structure.md), which explains why relying on that is risky.
+- `--entry-rule RULE` on the CLI **takes precedence** over a declared `@entry`.
+
 ## Layout policy — `@whitespace_sensitive`
 
 By default a generated parser is **whitespace-INSENSITIVE**: it silently skips layout (whitespace and
