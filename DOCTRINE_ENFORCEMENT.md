@@ -282,6 +282,7 @@ via [`.githooks/pre-commit`](.githooks/pre-commit) (E3) + CI (E4).
 | `REGEX-SELF-HOSTING` | oracle | `scripts/check_regex_self_hosting.sh` | the regex grammar self-hosts (gen↔parse duality) |
 | `KNOWLEDGE-MAP` | structural | `knowledge-map/scripts/check_knowledge_map.sh` | the derived Knowledge Map is in sync with its fact sources |
 | `DIAG-TOOLBOX-EVIDENCE` | evidence | `scripts/check_diagnosis_evidence.sh` | a code change carries tool-backed WHY+WHERE diagnosis + measured verification in its task leaf (see `TOOLBOX.md`) |
+| `DESIGN-PRIOR-ART` | evidence | `scripts/check_design_prior_art.sh` | a task leaf proposing a NEW annotation/directive surface records a prior-art search over `grammars/ebnf.ebnf` / `docs/decisions/` / `docs/tasks/` / `docs/book/` first (see `docs/decisions/feedback_read_prior_art_before_designing.md`) |
 | `REGEX-ORACLE-ANCHOR-SYNC` | structural | `scripts/check_regex_oracle_anchor_sync.sh` | the live PCRE2-oracle-tuple anchors (contract snapshot + validator chapter + `diagnosing-unknowns.md` + `MEMORY.md`) agree byte-for-byte and satisfy the tracked ratchet bounds (`REGEX-PCRE2-FIDELITY.DOCSYNC.2`) |
 
 Deterministic-oracle doctrines that run via the broader `make` gates / CI (cert-coverage at seeds

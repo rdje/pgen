@@ -108,6 +108,23 @@ on this primitive.
 
 - **Status: `done`** (`PGEN-LEX-ADJACENCY-0001`, session #208, 2026-07-26).
   **Read-only** — no code, grammar, or generated artifact touched.
+- ⛔ **PRIOR ART (retro-fitted 2026-07-26 after this leaf FAILED the check it caused).**
+  This section is what `.1` should have written BEFORE proposing a surface, and its
+  absence is exactly why `@lexical_token` reinvented an existing design. Recorded
+  honestly rather than quietly corrected — it is the worked example in
+  [[feedback_read_prior_art_before_designing]] and the motivating case for the
+  `DESIGN-PRIOR-ART` doctrine ([`DESIGN-PRIOR-ART`](DESIGN-PRIOR-ART.md)).
+  | source | what a search WOULD have found |
+  |---|---|
+  | `grammars/ebnf.ebnf` | inline annotations are admitted at branch-start AND mid-sequence (`:117-130`), with the file's own comment naming both — so the per-seam placement `.1` rejected was already expressible |
+  | `docs/decisions/` | [[project_lexical_annotations_fourth_pillar]] (2026-06-06, **with the director**) already specifies the `[> ]`/`[>! ]` notation AND its **inline** form binding the **preceding** item — i.e. the exact per-seam surface |
+  | `docs/tasks/` | [`LEXICAL-ANNOTATIONS`](LEXICAL-ANNOTATIONS.md) owns the pillar; [`INLINE-ACTIONS`](INLINE-ACTIONS.md) owns inline wiring (`.3` mid-sequence, `deferred`) |
+  | `docs/book/` | `lexical-annotations.md` lists the inline (per-element) form under *"Still to come"* |
+  ⇒ **`@lexical_token` was never needed.** `[>! /\s/]` already expresses "must not be
+  followed by white space" (IEEE 1800-2017 fn 44 verbatim), and the same notation
+  transliterates ECMA-262's `[no LineTerminator here]`. The real gaps are
+  (A) implement the designed inline form, (B) make lexical annotations
+  **parser-consumed** (measured generator-only), (C) the meta-grammar/self-hosting gap.
 - **The design record:** [`LEX-ADJACENCY-design.md`](LEX-ADJACENCY-design.md).
   Evidence bundle: `docs/tasks/artifacts/lex_adjacency/`.
 - **The decision, in one line:** add a rule-level **`@lexical_token: true`**
