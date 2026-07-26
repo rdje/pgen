@@ -120,7 +120,7 @@ Recorded as *unexplained*, not as a defect, per [[feedback_be_alert_root_cause_f
 
 ### `.3` — The ECMA-262 expressiveness pass
 
-- **Status: `todo`** — the pass the director greenlit. A **paper exercise**: no
+- **Status: `todo`** — ⭐ **DIRECTOR-APPROVED (2026-07-26, re-confirmed)**. The pass the director greenlit. A **paper exercise**: no
   grammar written, no parser built. For each canonical JS parsing construct, is it
   expressible in PGEN's EBNF *today*? Verdict per row: **expressible** /
   **expressible-but-unwired** / **gap**.

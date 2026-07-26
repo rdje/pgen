@@ -172,6 +172,53 @@ without implementing a single new cell.
 - Zero behaviour change for grammars whose annotations are all honoured
   (byte-identical parsers).
 
+### `.2a` — Make a SKIPPED self-hosting cross-check LOUD (director-approved 2026-07-26)
+
+- **Status: `todo`** — director ruled YES on this item. Small, concrete, and the
+  cheapest instance of this tree's contract.
+- **The defect (measured, `LEX-ADJACENCY`/`ANNOTATION-PLACEMENT` root-cause):**
+  `rust/src/ebnf_frontend.rs:61` gates the generated-`EbnfParser` cross-check on
+  `if !has_inline_semantic_annotations && !has_lexical_annotations`, so self-hosting
+  verification **silently stands down for precisely the two newest, least-verified
+  constructs** — and reports success either way.
+- **The fix (tier: diagnostics, not engine semantics):** when the cross-check is
+  skipped, say so — naming the grammar and the construct that caused the skip
+  (e.g. `self-hosting cross-check SKIPPED for 'systemverilog_preprocessor': the
+  seed ebnf.ebnf does not model lexical annotations`). Route through the shared
+  trace/diagnostic surface at a severity that is **not maskable by verbosity**
+  (the `DIAG-SEVERITY` doctrine already enforces that property).
+- **Acceptance:** a grammar WITH the constructs emits the notice; a grammar without
+  them is byte-identical and silent; the notice names grammar + construct + reason.
+  Verify on `systemverilog_preprocessor.ebnf` (12 lexical annotations) as the
+  positive control and any annotation-free grammar as the negative.
+- **Cost model** ([[project_capability_growth_is_zero_cost_and_neutral]]): frontend
+  diagnostic only — zero parse-time and zero generated-parser impact.
+- ⚠️ Needs a debug `ast_pipeline` rebuild to verify; not a paper leaf.
+
+### `.4` — Meta-grammar completeness: `ebnf.ebnf` must describe the language PGEN accepts (director-approved 2026-07-26)
+
+- **Status: `todo`** — director ruled YES on this item.
+- **The defect (measured):** `grammars/ebnf.ebnf` has **no** production for the
+  lexical-annotation notation `[> … ]` / `[>! … ]`; `annotation_list :=
+  semantic_annotation+` (`:74`) admits only `@`-forms. So PGEN's own meta-grammar
+  **cannot describe a grammar that uses a feature PGEN ships** —
+  `systemverilog_preprocessor.ebnf` uses it 12×.
+- **Why it is worth doing (two payoffs, not one):**
+  1. it **restores self-hosting verification** for those grammars — `.2a` makes the
+     gap loud, this leaf makes it *go away*, so the cross-check runs again;
+  2. it fixes the **`ebnf` book's under-documentation** — that book is billed as
+     *"the grammar-author's reference for the EBNF input language"* while the
+     meta-grammar it documents is a strict subset of the real surface.
+- **Scope note:** the inline lexical form (binding the PRECEDING element) is part of
+  the same surface and should be modelled here even if the engine does not yet honour
+  it — with `.2`'s diagnostic contract making the unhonoured cell loud rather than
+  silent. That is the correct order: **describe the language, then report honestly
+  about what is wired.**
+- **⛔ Do NOT confuse with the 27 unreachable productions** found by
+  `LANG-CAPABILITY-AUDIT.1` — that is the inverse defect (declared-but-unwired) and
+  is adjudicated there. This leaf is *shipped-but-undeclared*. Both are meta-grammar
+  fidelity; they are opposite directions and must not be merged.
+
 ### `.3` — Close the matrix cells that should be honoured
 
 - **Status: `todo`**, blocked on `.1`'s verdicts. Per-cell leaves, prioritized by
