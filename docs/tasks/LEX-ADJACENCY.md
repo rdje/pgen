@@ -291,7 +291,70 @@ exactly how `.3.11` died.
 
 ##### `.2.1` — declare + honour the GENERATE half
 
-- **Status: `todo`** — the immediate next slice.
+- ⛔ **STATUS: `blocked` — DO NOT IMPLEMENT AS SPECIFIED.** The surface it would
+  build (rule-level `@lexical_token`) is **REOPENED** by the director directive
+  below. A fresh session must re-adjudicate `.1`'s surface decision FIRST.
+
+##### ⛔⛔ DIRECTOR DIRECTIVE (2026-07-26, session #208, end of session) — `.1`'s SURFACE DECISION IS REOPENED
+
+Director, verbatim: *"For example, this lexical adjacency thing, right now you plan
+to control it using a semantic annotation. This shall allow the user really fine
+grain control on which pair of rules shall be spaced allowed or not. PGEN support
+inline semantic annotations, that is between rules' references in a sequence of a
+branch. You get this idea. EBNF shall really be the sole source of truth which can
+steer PGEN parser neutral, agnostic engine."*
+
+**The ask: per-SEAM control, not per-RULE.** A rule-level directive can only say
+"no layout anywhere inside this rule". The director wants a grammar to say which
+**specific pair of adjacent elements** admits layout and which does not — e.g. in
+`a b c`, tight across `a b` while `b c` stays spaced. Rule-level cannot express
+that; **inline** annotations sit exactly at the seam.
+
+**⚠️ THIS IS THE SURFACE `.1` REJECTED, AND `.1`'s GROUND FOR REJECTING IT WAS
+WEAK.** `.1` ruled out the sequence-level form citing the book's line *"per-rule and
+per-branch annotations are generator-visible; per-element ones are not"* — a
+**quoted claim, not a measurement**, which is precisely the failure mode this same
+session corrected elsewhere (the "mainstream simulators accept `10 ns`" retraction).
+The claim describes the CURRENT runtime, and `.1` silently upgraded it to a
+permanent property of the design space. It is not one.
+
+**What is MEASURED (verified this session, plus the pre-existing `INLINE-ACTIONS`
+probe table):**
+
+1. **The syntax already exists in the meta-grammar** — `grammars/ebnf.ebnf:117-130`:
+   `sequence_element := ( inline_semantic_annotation | quantified_element | primary_element )`,
+   with the file's own comment naming both positions: *"branch-start inline
+   annotations can mean branch-local steering; later inline annotations in a
+   sequence can mean true mid-sequence actions."* The director is right about the
+   syntax — as they were in the analogous 2026-06-09 directive that created
+   [`INLINE-ACTIONS`](INLINE-ACTIONS.md).
+2. **The runtime wiring is UNFINISHED, not absent** (`INLINE-ACTIONS`' measured
+   table): branch-start inline annotations ARE parsed and compiled into
+   `branch_directives_by_rule` but only `Predicate` is acted on (`EmitFact` /
+   `OpenScope` / `CloseScope` hit a no-op arm, `ast_based_generator.rs:3092-3099`);
+   mid-sequence inline annotations ARE parsed and extracted into
+   **`branch_mid_sequence_semantic_annotations`** but `compile_semantic_runtime_annotations`
+   never compiles that registry, so they are **silently dropped**.
+3. ⭐ **`branch_mid_sequence_semantic_annotations` is exactly the per-seam hook this
+   tree needs** — a registry that already captures *which position in which
+   branch*. The lexical-adjacency directive wants nothing more than that, honoured.
+
+**⇒ Consequences for this tree (for the re-adjudicating session):**
+
+- Re-open `.1`'s surface decision and price the **inline** form properly — measured
+  this time, on both halves. The rule-level form may survive as a *convenience
+  shorthand* ("this whole rule is one token") but it must not be the only surface.
+- This tree is now **coupled to `INLINE-ACTIONS`**: per-seam lexical adjacency needs
+  mid-sequence inline directives to actually fire. Adjudicate whether `.2` depends
+  on an `INLINE-ACTIONS` leaf landing first, or whether the lexical directive is
+  compile-time-only (it steers codegen + the generator, and may not need the
+  parse-time *action* machinery at all — a real distinction worth measuring, since
+  it could decouple the two trees entirely).
+- The director's closing sentence is the general principle, recorded in layer C as
+  [[project_ebnf_steers_the_engine_at_full_granularity]]: **the EBNF is the sole
+  source of truth for steering a parser-neutral, parser-agnostic engine — at the
+  granularity the grammar author needs, not merely at the granularity the engine
+  currently finds convenient.**
 
 ### `.3` — Land the blocked consumers
 
