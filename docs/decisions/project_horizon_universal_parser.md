@@ -64,3 +64,66 @@ stronger** — this is the driver for capability/primitive work.
   (a capability × representative-language × PGEN-status matrix) that drives the prioritized primitive
   roadmap. The `.4.7.c` forward/suffix-count and `.4.9` lookbehind-length primitives are the first
   concrete, already-scoped items on it.
+
+---
+
+## ⭐⭐ REAFFIRMED (director, 2026-07-26, session #208)
+
+Director, verbatim: *"the north idea goal or idea, is to make PGEN EBNF handling so
+good that we can venture in parsing very complex languages like Javascript, Raku,
+Ruby, …, that is any human design language shall be parsed with the right EBNF."*
+
+Note the load-bearing clause: **"with the right EBNF."** The bar is not "PGEN has a
+JS parser" — it is that **the EBNF language is expressive enough that a correct JS
+grammar is WRITABLE**, with the engine staying parser-neutral and agnostic
+([[project_ebnf_steers_the_engine_at_full_granularity]],
+[[project_ebnf_is_single_source_of_truth]]). Every capability gap is therefore an
+*expressiveness* gap in the EBNF surface first, and an engine gap only second.
+
+### Two capability axes ADDED to the living list (found session #208)
+
+Neither was on the axes list above; both are cross-language, and both were found
+while fixing ONE SystemVerilog defect.
+
+- **Lexical adjacency / no-layout boundaries** — *"these two elements admit no
+  layout (or no newline) between them."* PGEN can do it on both engine halves but
+  **no grammar can declare it** ([[project_no_layout_primitive_is_undeclarable]]);
+  owned by [`LEX-ADJACENCY`](../tasks/LEX-ADJACENCY.md).
+  ⭐ **This axis is squarely on the JavaScript path, and ECMA-262 writes it exactly
+  the way the director asked for it.** JS's Automatic Semicolon Insertion is
+  specified as `[no LineTerminator here]` markers placed **between two elements of a
+  production** — `return [no LineTerminator here] Expression`, and likewise for
+  `throw`, `break`, `continue`, postfix `++`/`--`, `async`/arrow `=>`. That is a
+  **per-seam lexical constraint stated inline in the production**, i.e. precisely the
+  inline-annotation placement the director directed. So the per-seam design is not a
+  SystemVerilog convenience — **it is the shape the JS standard itself uses**, and a
+  rule-level-only directive could not express ASI at all. Same axis, other targets:
+  Ruby (`foo?`/`foo!` method names; `a +b` argument vs `a + b` binary op), Raku
+  (whitespace-significant postfix/adverb syntax), C++ (`>>` vs `> >`).
+- **Steering-surface GRANULARITY (a meta-capability)** — not a parsing capability
+  itself, but the expressiveness of the annotation surface, which **gates every other
+  axis**. A capability declarable only per-rule cannot express a per-seam constraint
+  no matter how well the engine implements it. PGEN's meta-grammar already admits
+  inline annotations (`grammars/ebnf.ebnf:117-130`); the runtime drops mid-sequence
+  ones ([`INLINE-ACTIONS`](../tasks/INLINE-ACTIONS.md)). Completing that wiring is a
+  prerequisite for the adjacency axis and probably for others.
+
+### ⚠️ The meta-finding — the audit is PRESCRIBED but has never been RUN
+
+§3 above says "pursue it via a capability-gap audit, not language-by-language."
+In practice both axes above were found **reactively**: one from an SV corpus defect,
+one because the director noticed a design was too coarse. Two years of capability
+work has been instance-driven (regex/SV/VHDL trees hardening primitives as they
+break), which is effective but **discovers gaps only where a tracked language
+already hurts** — and JS/Ruby/Raku are not tracked languages, so their gaps are
+structurally invisible today.
+
+⇒ The concrete recommendation the director should rule on: **stand up the audit as a
+real tracked tree** (capability × representative-language × PGEN-status), seeded with
+the axes above plus the existing list, and drive primitive work from it — rather than
+waiting for the next reactive discovery. The cheapest high-value first pass is to
+take **one** untracked target language with a precise spec (JS/ECMA-262 is the
+strongest candidate: precise, adversarial on lexical adjacency + ASI + regex-vs-division,
+and widely understood) and enumerate which of its constructs are *expressible in
+PGEN's EBNF today* — a paper exercise, no parser required, that converts invisible
+gaps into a ranked list.
