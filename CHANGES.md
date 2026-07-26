@@ -1,5 +1,71 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0009 (leaf `LANG-CAPABILITY-AUDIT.4`) — pricing the roadmap re-measured the matrix, and two "gaps" turned out to be SHIPPED capabilities
+
+**Docs-only.** Every probe grammar and every generated parser lived in a `mktemp -d` the driver
+removes on exit. No Rust, no codegen, no generated artifact, no contract and no tracked grammar
+was touched; no release, schema or ledger movement.
+
+`.4` was meant only to *price* the gaps `.3`/`.3b` had already classified. Applying the
+DESIGN-PRIOR-ART doctrine's **RE-MEASURE before citing engine behaviour** clause to each row
+before ranking it moved **four of sixteen rows** — and two of them are not gaps at all.
+
+**⛔ Row 15 (grammar composition) is a REGRESSION, not a gap.** `include()` ships, is recognized
+(`ebnf_frontend.rs:246`) and is then silently discarded (`:152-155` — `idx += 1; continue`). A
+two-file probe loads **1 rule with the included rule absent, exit 0, zero diagnostics**. The
+capability was *implemented* in the retired Perl frontend (`perl/AST/Transform.pm:3234`) and is
+documented as working by a whole chapter of the shipped, gated grammar-author book. Measured
+damage on tracked grammars: `systemverilog_lrm_profiled_wrapper.ebnf` loads **3 of 1400 rules
+(99.8% lost)**, and `grammars/ebnf.ebnf:18` carries `include(semantic_annotations)` pointing at
+a file that **does not exist** — undetectable precisely because the directive never resolves.
+The linter then reports the missing rules as *"UNDEFINED … likely a typo"*, blaming an innocent
+rule. ⭐ **Director ruling (verbatim): "The linter should honour EBNF include() graph trees, of
+course."** ⇒ includes are made real and the linter resolves the include graph — new leaf `.7`.
+
+**⛔ Row 6 (error recovery) — "NOT yet in PGEN" was wrong; recovery SHIPS.** It exists as
+registered semantic directives `@recover`/`@sync`/`@panic_until` plus three budgets
+(`semantic_directive_registry.rs:253/269/273`), consumed by `rule_recovery_hints`
+(`ast_based_generator.rs:9505`) into an emitted `parser.recover_with_hints(...)` call
+(`:4222-4257`). **And `@recover: true` crashes codegen.** Root-caused from the emitted token
+dump: the three `Option<usize>` budgets are interpolated straight into `quote!`, which emits
+nothing for `None`, producing `recover_with_hints("stmt", parse_start, &[], &[], , , ,)` and
+*"expected an expression"* at byte 0. Five-cell control matrix: `@recover` alone FAIL, +1 budget
+FAIL, +all three OK — new leaf `.8`.
+
+**⛔ Row 1 (parameterized productions) is worse than unwired.** `expr[In, Yield]` compiles to
+`expr (In Yield)?` — an optional group — and **lints clean**, because `[` is the optional-element
+form. The audit's highest-value declared surface is ambiguous by construction with a core
+existing one.
+
+**⚠️ Row 5 (case-insensitive keywords) is expressible today**, at 69 hand-written `(?i:...)`
+across 216 rules in `grammars/vhdl.ebnf` — an ergonomic gap, not an expressive one. The declared
+`~i"begin"` alternative misparses.
+
+**⭐⭐ The unifying law: a name census is not a capability inventory.** The audit had been ranking
+on consumer counts for meta-grammar production *names*, and this leaf measured that count lying
+in both directions — false negative (every recovery production reads 0 while the capability
+ships under other names) and false positive (`parameter_list` 2, `named_capture` 29 on substring
+grep; both 0 word-anchored). `.3`'s "7 of 16 declared-unwired is the dominant class" is retracted.
+
+**✅ The zero-cost acceptance test, measured rather than asserted.** A non-recovering parser
+emits the recovery helper with **0 call sites**; `generated/json_parser.rs` carries **0 store
+hits across 13,707 lines**. Both P0/P1 families inherit "non-users pay zero" by construction.
+
+**The roadmap.** P0-1 include + linter graph → P0-2 `@recover` codegen fix → P1-3 fact
+retraction / instance-scoped lifetime → P1-4 declarative case-insensitivity → P2-5 parameterized
+productions (blocked on a surface call) → P2-6 cross-rule precedence → P2-7 offside + lexer modes
+→ P3-8 NFKC → T-9 orphan report. Extensibility, row-16 mutable grammars and the three misparsing
+declared syntaxes are recorded as deliberate exclusions.
+
+**Declared scope exception.** The author book's include chapter and `docs/EBNF_INCLUDE_SYSTEM.md`
+state a measured-false claim about a shipped, gated surface. Leaving them until `.7` lands would
+be exactly the book drift the director forbids, so both gained a dated status admonition whose
+removal is part of `.7`'s definition of done.
+
+**Verification.** `run_primitive_pricing_probes.sh` — exit 0, 0 declared-verdict divergences,
+byte-identical on re-run. `ebnf_parser_book_gate` GREEN (tracked HTML re-rendered). All 9
+doctrines PASS. Clippy N/A (no Rust or generated-Rust file changed).
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0005 (leaf `LANG-CAPABILITY-AUDIT.5`) — the two measured doc defects repaired, and the mandated sweep found a third that fails SILENTLY
 
 **Doc-surface only.** `grammars/ebnf.ebnf` is edited, but only inside a comment block: the

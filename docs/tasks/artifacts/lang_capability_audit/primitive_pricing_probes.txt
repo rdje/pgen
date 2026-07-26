@@ -1,0 +1,81 @@
+LANG-CAPABILITY-AUDIT.4 — primitive pricing probes
+binary: rust/target/debug/ast_pipeline
+
+=== ROW 15 — grammar composition: include() is RECOGNIZED then DISCARDED ===
+  OK  include("common") — included rule ABSENT     rules=1 [want 1]
+  --- and the diagnostic blames an innocent rule: ---
+      [error] grammar well-formedness ERROR: rule 'start' references UNDEFINED rule 'digit' — codegen emits a never-matching stub for it, so every path through the reference ALWAYS fails (the referencing production is dead). Define 'digit', or fix the reference (likely a typo), or — if a native primitive was intended — use one of codegen's builtins.
+
+=== ROW 15 — the drop reaches TRACKED grammars ===
+  OK  SV profiled WRAPPER as loaded                  rules=3 [want 3]
+  OK  SV profiled GENERATED (its include target)     rules=1400 [want 1400]
+  note: the wrapper loses 1397 of 1400 rules (99.8%) with exit 0 and no diagnostic
+  ebnf.ebnf:18 include target exists? NO — grammars/semantic_annotations.ebnf is absent (dangling include, undetectable)
+
+=== ROW 6 — error recovery SHIPS (@recover/@sync/@panic_until) but @recover: true BREAKS CODEGEN ===
+  OK  control: no recovery annotations               codegen=ok   [want ok]
+  OK  @sync alone (inert without @recover)           codegen=ok   [want ok]
+  OK  @recover: true, NO budgets — DEFECT          codegen=fail [want fail]
+  OK  @recover: true + 1 of 3 budgets — DEFECT     codegen=fail [want fail]
+  OK  @recover: true + ALL 3 budgets — the only usable form codegen=ok   [want ok]
+  --- WHY: Option<usize> budgets interpolate to NOTHING when None ---
+    recover_with_hints ("stmt" , parse_start , & [] , & [] , , , ,) { 
+    ^ three empty argument slots -> rustc: expected an expression
+  --- and the working form emits real arguments: ---
+    .recover_with_hints("stmt",parse_start,&[],&[],4usize,8usize,16usize,)
+
+
+=== ROW 6 — ZERO-COST test: does a NON-recovering parser pay? ===
+  rec_none     helper-definitions=1  CALL-SITES=0
+  rec_all      helper-definitions=1  CALL-SITES=1
+  => the helper is emitted unconditionally but INERT; only an opted-in rule calls it.
+
+=== ROW 1 — parametric productions: the DECLARED surface silently miscompiles ===
+  expr[In, Yield] compiles to:
+    [['rule', 'start'], ['rule_reference', 'expr'], ['group_open', '('], ['rule_reference', 'In'], ['rule_reference', 'Yield'], ['group_close', ')'], ['operator', '?']]
+  and the linter's verdict on it:
+    undefined_references=0 (error)
+    ^ LINT-CLEAN. The comma is swallowed; the parameter list became an optional group.
+
+=== ROW 5 — case-insensitive keywords: EXPRESSIBLE today, at 69x the boilerplate ===
+  (?i:...) occurrences in grammars/vhdl.ebnf : 69
+  rules in grammars/vhdl.ebnf                : 216
+  the DECLARED alternative (ebnf.ebnf:524 case_control, ~i"begin") instead misparses:
+    [['rule', 'start'], ['rule_reference', 'i'], ['quoted_string', 'begin']]
+    ^ the '~' is dropped and 'i' becomes a RULE REFERENCE.
+
+=== ROWS 10/11 — fact lifetime: the store is PAY-PER-USE (zero-cost precondition) ===
+  generated/json_parser.rs                 store-hits=0    lines=13707
+  generated/systemverilog_parser.rs        store-hits=24   lines=1840414
+  => a fact-free grammar emits ZERO store code, so a new fact-lifetime
+     primitive inherits 'non-users pay zero' by construction.
+
+=== The declared-unwired productions: engine consumers (re-measured) ===
+  production                 substr     word
+  parametric_rule                 0        0
+  parameter_list                  2        0   <- substring FALSE POSITIVE
+  lexer_mode                      0        0
+  case_control                    0        0
+  case_modifier                   0        0
+  error_production                0        0
+  error_recovery_action           0        0
+  panic_mode                      0        0
+  skip_to                         0        0
+  import_statement                0        0
+  grammar_inheritance             0        0
+  named_capture                  29        0   <- substring FALSE POSITIVE
+  rule_modifier                   0        0
+  TWO WAYS THIS TABLE LIES, both measured in this run:
+    FALSE POSITIVE — `parameter_list` matched `parse_macro_parameter_list`
+      (rust/src/sv_preprocessor.rs:1079, SV macro parameters) and `named_capture`
+      matched `named_captures` (the REGEX grammar's capture generation in
+      stimuli_generator.rs). Word-anchoring removes both; `.1`'s verdict survives.
+    FALSE NEGATIVE — a 0 means the META-GRAMMAR PRODUCTION is unconsumed. It says
+      NOTHING about whether the capability exists. Row 6 is the proof: every
+      error-recovery production reads 0, and error recovery SHIPS as registered
+      semantic directives.
+  => this table is a NAME census, never a capability inventory.
+
+=== SUMMARY ===
+declared-verdict divergences (⛔): 0
+all probes matched their declared verdicts

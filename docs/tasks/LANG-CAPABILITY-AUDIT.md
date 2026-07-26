@@ -218,12 +218,12 @@ Measured engine consumers (`grep -rc … rust/src/`): `case_control` **0**,
 
 | # | capability — *what the EBNF must be able to say* | languages that force it | PGEN today |
 |---|---|---|---|
-| 1 | **Parameterized productions** — `Expression[In, Yield, Await]`; one production family instantiated per parameter set | JS/ECMA-262 (pervasive), Ada, C++ | 🕳️ `parametric_rule`/`parameter_list` declared, **0 consumers** |
+| 1 | **Parameterized productions** — `Expression[In, Yield, Await]`; one production family instantiated per parameter set | JS/ECMA-262 (pervasive), Ada, C++ | 🕳️ declared, **0 consumers** — ⛔ **and `.4` measured WORSE than unwired: the declared surface `expr[In, Yield]` compiles to `expr (In Yield)?` (an optional group) and LINTS CLEAN**, because `[` is the optional-element form (`ebnf.ebnf:288`). Cannot be built at the declared syntax ⇒ needs a surface decision |
 | 2 | **Significant indentation / offside rule** — synthesize INDENT/DEDENT/NEWLINE from column state | Python, Haskell, YAML, Nim, F#, Raku heredocs | ❌ `@whitespace_sensitive` is grammar-global, not an offside primitive |
 | 3 | **Lexer modes / sub-languages** — switch lexical rules mid-parse and nest them | Ruby `#{}`, Python f-strings, JS templates `${}`, shell/Perl/Raku heredocs, embedded SQL/regex | 🕳️ `lexer_mode` declared, **0 consumers** |
 | 4 | **Lexical adjacency / no-layout boundaries** — "no white space (or no newline) between these two elements" | JS ASI `[no LineTerminator here]`, SV fn 44, Ruby `foo?`/`a +b`, Raku | ⚠️ notation exists (`[>! /\s/]`) but **generator-only**; inline per-seam form designed, unbuilt → [`LEX-ADJACENCY`](LEX-ADJACENCY.md) |
-| 5 | **Case-insensitive keywords** — `BEGIN`/`begin`/`Begin` one token, identifiers still case-preserving | **VHDL**, Ada, SQL, Fortran, Pascal | 🕳️ `case_control`/`case_modifier` declared, **0 consumers** ⇒ VHDL's case-insensitivity is currently handled *inside* the grammar, not declared |
-| 6 | **Error recovery / resync** — a spec whose *recovery* is normative | HTML (WHATWG defines it), any IDE-grade parser | 🕳️ `error_production`/`error_recovery_action`/`panic_mode`/`sync_to`/`skip_to` declared, **0 consumers**; the horizon record says "NOT yet in PGEN" |
+| 5 | **Case-insensitive keywords** — `BEGIN`/`begin`/`Begin` one token, identifiers still case-preserving | **VHDL**, Ada, SQL, Fortran, Pascal | ⚠️ **EXPRESSIBLE TODAY — `.4` re-measured**: `(?i:…)` inside a regex terminal works and is used **69 times across 216 rules** in `grammars/vhdl.ebnf`. So this is an **ERGONOMIC** gap (69× boilerplate), not an expressive one. The declared `case_control` alternative (`~i"begin"`) *misparses* — the `~` is dropped and `i` becomes a rule reference |
+| 6 | **Error recovery / resync** — a spec whose *recovery* is normative | HTML (WHATWG defines it), any IDE-grade parser | ⛔⛔ **THE VERDICT WAS WRONG — `.4` measured that recovery SHIPS.** The meta-grammar productions really do have 0 consumers, but the capability exists under different names: registered directives `@recover`/`@sync`/`@panic_until` + 3 budgets (`semantic_directive_registry.rs:253/269/273`) that codegen turns into `parser.recover_with_hints(…)` (`ast_based_generator.rs:4222-4257`). ⛔ **But `@recover: true` CRASHES CODEGEN** unless all three budgets are also set ⇒ unusable in practice. → [`.8`](#8--codegen-recover-true-emits-invalid-rust-when-a-budget-is-unset-todo) |
 | 7 | **Declaration-sensitive parsing** (the "lexer hack") — `T * x;` is a decl or a product depending on a *prior declaration* | C/C++, **SV** (`type_identifier`), VHDL | ✅ **PGEN's core strength** — semantic store `has_fact`/scopes, proven at SV scale |
 | 8 | **Contextual / soft keywords** — a word is a keyword only in some positions | Python (`match`, `case`, `type`), JS (`let`, `async`, `of`), SV, C# | ✅ **HAVE — `.3b`-measured, and with NO keyword-exclusion tax.** All three readings of `match` parse against a deliberately *un-taxed* identifier token (4/4) |
 | 9 | **Cover grammars / delayed disambiguation** — parse one shape, reinterpret later | JS `(a,b)` arrow-params vs paren-expr; C++ most-vexing-parse | ✅ **HAVE — `.3b`-measured** (4/4), including a disambiguator sitting past an arbitrarily deep ambiguous prefix |
@@ -232,14 +232,20 @@ Measured engine consumers (`grep -rc … rust/src/`): `case_control` **0**,
 | 12 | **Operator-precedence declaration** — a precedence/associativity table instead of a hand-rolled cascade | VHDL, SV, C, most expression languages | ⚠️ **CONFIRMED + sharpened by `.3b`:** `@priority`/`@precedence` take an **integer** payload and rank the alternatives **inside one rule**; there is no cross-rule ladder. The ~16-level `rtl_const_expr` cascade is **measured** un-generatable within the bounded ladder (PARSE-HARNESS `.5.5`) ⇒ a real, already-felt pain |
 | 13 | **Unicode identifier classes + normalization** | Python (PEP 3131, **NFKC**), JS ID_Start/ID_Continue, Raku | ✅ **(a) classes HAVE** — `.3b`-measured: `\p{XID_Start}`/`\p{XID_Continue}` compile and discriminate (5/5, incl. `café`/`变量`/reject `1abc`). ❌ **(b) NFKC normalization ABSENT** — 0 normalization crates, 0 NFKC/NFC/NFD mentions in `rust/src` |
 | 14 | **Preprocessor / macro phase** | C/C++, **SV** `` `define ``, Rust macros | ⚠️ svpp is a *separate grammar*, not a composable phase |
-| 15 | **Grammar composition** — import/extend another grammar | large LRMs, layered dialects | 🕳️ `import_statement`/`grammar_inheritance` declared, **0 consumers** |
+| 15 | **Grammar composition** — import/extend another grammar | large LRMs, layered dialects | ⛔⛔ **THE VERDICT WAS WRONG — `.4` measured a REGRESSION, not a gap.** `import_statement`/`grammar_inheritance` are indeed unwired, but `include()` **ships, is recognized, and is then SILENTLY DISCARDED** (`ebnf_frontend.rs:152-155`) — while the Perl frontend implemented it (`perl/AST/Transform.pm:3234`) and the shipped author book documents it as working. Tracked-grammar damage measured: the SV profiled wrapper loads **3 of 1400 rules**; `ebnf.ebnf:18` has a **dangling** include. ⭐ **DIRECTOR-ORDERED FIX** → [`.7`](#7--make-include-real-end-to-end-and-make-the-linter-honour-the-include-graph-todo) |
 | 16 | **Parse-time-mutable grammar** — the program *extends its own syntax* | **Raku** (slangs, custom operators), Perl 5 (`BEGIN`, prototypes) | ⛔ **HARD BOUND — out of scope by design.** The horizon record already scopes this: the realistic target is the *precise static subset*. Recording it keeps the boundary honest rather than pretending "any language" includes self-modifying ones. |
 
 #### Reading the matrix
 
-- **🕳️ declared-unwired is the dominant class (7 of 16 rows).** The capability was
-  *designed* and never built. That is a far cheaper starting position than "absent" —
-  and it is exactly why `.1` (audit our own meta-grammar) was the right first pass.
+- ⛔ **"🕳️ declared-unwired is the dominant class (7 of 16 rows)" — RETRACTED by `.4`.**
+  Three of those seven moved on re-measurement: rows **6** and **15** are shipped
+  capabilities (one broken, one silently discarded) and row **5** is expressible today at
+  69× boilerplate. The reading was wrong because it ranked on a **consumer count for the
+  meta-grammar PRODUCTION NAME**, which `.4` measured lying in both directions — 0
+  consumers does not mean the capability is absent (row 6), and a non-zero count can be a
+  substring false positive (`parameter_list`, `named_capture`). **A name census is not a
+  capability inventory.** The surviving declared-unwired rows are 1, 3, and the
+  `import`/`extends` half of 15.
 - **Rows 2, 10, 11 are the true "extremely painful" cluster** — Python indentation,
   Raku delimiters, heredocs. All three need **parse state feeding the lexical layer**,
   which is the same architectural seam as row 3 (lexer modes) and row 4 (adjacency).
@@ -568,18 +574,242 @@ byte-identity claim is worthless unless every non-semantic input is pinned.
   `ANNOTATION-PLACEMENT` named — *a check that cannot see a defect class must say so,
   not return green*. `--lint-grammar` reports 0 errors on `digit := [0-9]`.
 
-### `.4` — Prioritized primitive roadmap
+### `.4` — Prioritized primitive roadmap (`done`)
 
-- **Status: `todo`** — **UNBLOCKED** (`.2` and `.3`+`.3b` are `done`) and ⭐ **now the
-  highest-value open leaf in this tree**, ahead of `.6`, per the director steer below:
-  the directive is about *building* capability, and `.4` is where measured gaps become
-  ranked, priced work items. `.6` is hygiene; this is the goal.
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0009`, session #210). **Docs-only.**
+  No Rust, no codegen, no tracked grammar, no generated artifact, no contract touched.
+  Every probe grammar and every generated artifact was written to a `mktemp -d` the
+  driver removes on exit — the repo is only READ.
 - Rank by (coverage × tractability × **ergonomic distance**), attach a **cost model** to
   each per [[project_capability_growth_is_zero_cost_and_neutral]], and feed the horizon
-  record's living axes list. Seeded by `.3b` with one already-named, already-priced-out
-  candidate: **fact retraction / instance-scoped fact lifetime**, whose absence is the
-  *sole* measured blocker on rows 10 and 11 and which is bounded by the four source facts
-  in `.3b` Finding 2. `.2`'s informational orphan report is the other seed.
+  record's living axes list. Seeded by `.3b` with **fact retraction / instance-scoped
+  fact lifetime** and by `.2` with the informational orphan report.
+
+#### ⭐⭐⭐ THE HEADLINE: pricing the roadmap RE-MEASURED the matrix, and FOUR rows were wrong
+
+`.4`'s job is to price gaps. A price computed from `.3`'s prose verdicts would inherit
+their errors, so [[feedback_read_prior_art_before_designing]]'s **"RE-MEASURE before
+citing engine behaviour"** clause was applied to every row before it was ranked. Four
+rows moved — and **two of them are not gaps at all but SHIPPED capabilities**, one of
+which is *broken* and one of which is *silently discarded*.
+
+Re-run: `bash docs/tasks/artifacts/lang_capability_audit/run_primitive_pricing_probes.sh`
+(exit 0, **0 declared-verdict divergences**, byte-identical on re-run).
+
+| row | `.3`/`.1` said | `.4` MEASURED | why it matters |
+|---|---|---|---|
+| **15** composition | 🕳️ `import_statement` declared, 0 consumers | ⛔ **`include()` SHIPS, is RECOGNIZED, and is then DISCARDED** — silently, exit 0 | corrupts **tracked** grammars today |
+| **6** error recovery | 🕳️ declared, 0 consumers; *"NOT yet in PGEN"* | ⛔ **recovery SHIPS as registered semantic directives — and `@recover: true` CRASHES CODEGEN** | an entire matrix row was written off as absent |
+| **1** parametric | 🕳️ declared, 0 consumers | ⛔ **the declared surface `expr[In, Yield]` silently miscompiles to `expr (In Yield)?` and LINTS CLEAN** | the surface cannot be built as declared |
+| **5** case-insensitive | 🕳️ declared, 0 consumers | ⚠️ **expressible today — at 69 hand-written `(?i:…)` in one grammar**; the declared `~i"…"` *misparses* | an ERGONOMIC gap, not an expressive one |
+
+⇒ **the "declared-unwired consumer count" that `.1` and `.3` ranked on is a NAME census,
+never a capability inventory**, and this leaf measured it lying in *both* directions:
+
+- **FALSE NEGATIVE** — every error-recovery production reads 0 consumers while the
+  capability ships under completely different names (`@recover`/`@sync`/`@panic_until`).
+- **FALSE POSITIVE** — `parameter_list` read **2** and `named_capture` read **29** on a
+  bare substring grep; word-anchored both are **0** (`parse_macro_parameter_list` in
+  `sv_preprocessor.rs:1079`; the *regex* grammar's `named_captures` in
+  `stimuli_generator.rs`). `.1`'s verdict survives, its **method** does not — the driver
+  now prints both columns so the lesson cannot be lost.
+
+#### ⛔ FINDING 1 — `include()` is recognized and then thrown away, and it reaches TRACKED grammars
+
+`rust/src/ebnf_frontend.rs:152-155`, verbatim — the authoritative hand-written frontend:
+
+```rust
+if is_include_directive(trimmed) {
+    idx += 1;
+    continue;
+}
+```
+
+Recognized (`is_include_directive`, `:246`, covering `include(` / `include_file(` /
+`include_dir(` / `file(` / `dir(`) and **skipped**. Nothing is resolved, nothing is
+spliced. Measured on a two-file probe: **1 rule loaded, the included rule absent, exit 0,
+zero diagnostics.**
+
+⭐ **It is not a greenfield gap — it is a REGRESSION.** The capability was *implemented*
+in the retired Perl frontend (`perl/AST/Transform.pm:3234` `process_ast_includes`, with
+`resolve_include_files`, `resolve_include_directory`, recursive processing and cycle
+handling) and is documented across **two live surfaces**: `docs/EBNF_INCLUDE_SYSTEM.md`
+(12.8 KB) and — far worse — a whole chapter of the **shipped grammar-author book**,
+`docs/ebnf_parser_book/src/includes.md`, which states verbatim that the directives *"are
+recognized by the EBNF frontend (`rust/src/ebnf_frontend.rs`) and **resolved into a single
+combined grammar before code generation**"* and then tells the author (`:78-80`) that
+includes — not `import`/`extends` — are *"the supported mechanism"*.
+
+⛔ **Measured blast radius on TRACKED grammars:**
+
+| grammar | loaded | should be | loss |
+|---|---|---|---|
+| `grammars/systemverilog_lrm_profiled_wrapper.ebnf` (body = one `include`) | **3 rules** | 1400 | **1397 (99.8%)**, exit 0, no diagnostic |
+| `grammars/ebnf.ebnf:18` — `include(semantic_annotations)` | — | — | ⛔ **the target file does not exist**; a dangling include nothing can ever detect |
+
+⚠️ **And the diagnostic actively misleads.** With the include dropped, the linter reports:
+
+> *"rule 'start' references UNDEFINED rule 'digit' … **or fix the reference (likely a
+> typo)**"*
+
+The author wrote a correct include and is sent hunting for a typo — the `.3.10` law
+(*an innocent rule gets named*) reappearing at frontend scale.
+
+⭐⭐ **DIRECTOR RULING (2026-07-26, session #210, on seeing this measurement), verbatim:**
+*"The linter should honour EBNF include() graph trees, of course."* ⇒ the adjudication is
+decided in substance: **includes are to be made real, not deleted and not documented
+away** — and the linter specifically must resolve the include GRAPH before it reports
+undefined references, so the misattributed diagnostic disappears with the root cause
+rather than being reworded. Routed to new leaf [`.7`](#7--make-include-real-end-to-end-and-make-the-linter-honour-the-include-graph-todo).
+
+#### ⛔ FINDING 2 — error recovery SHIPS, and its enabling annotation crashes codegen
+
+Row 6 was written off quoting the horizon record's *"NOT yet in PGEN"*. Measured, the
+capability is **built, registered and wired**:
+
+- **declared directives** — `semantic_directive_registry.rs:253` `recover`, `:269` `sync`,
+  `:273` `panic_until` (+ `recover_budget` / `recover_parse_budget` /
+  `recover_global_budget`), resolved by `effective_rule_recovery_enabled` (`:805`);
+- **consumed by codegen** — `rule_recovery_hints` (`ast_based_generator.rs:9505`) feeds
+  the multi-branch failure path (`:4222-4257`), which emits
+  `parser.recover_with_hints(rule, start, sync, panic_until, budgets…)` and a
+  `🛟 Rule '…' recovered from branch failure` trace;
+- **pinned by a unit test** — `:12381` asserts `sync_tokens == [";", "end"]`.
+
+⛔ **And `@recover: true` does not compile.** Control matrix, all five cells measured:
+
+```
+  codegen=ok    control: no recovery annotations
+  codegen=ok    @sync alone                          (inert without @recover)
+  codegen=FAIL  @recover: true, NO budgets                    <- DEFECT
+  codegen=FAIL  @recover: true + 1 of 3 budgets                <- DEFECT
+  codegen=ok    @recover: true + ALL 3 budgets       (the only usable form)
+```
+
+**ROOT CAUSE (WHY + WHERE), from the emitted token dump — not inferred:**
+
+```
+recover_with_hints ("stmt" , parse_start , & [] , & [] , , , ,)
+                                                      ^^^^^^^ three empty slots
+```
+
+`recover_budget` / `recover_parse_budget` / `recover_global_budget` are `Option<usize>`
+interpolated straight into `quote!` at `ast_based_generator.rs:4240-4252`. `quote`'s
+`ToTokens for Option<T>` emits **nothing** for `None`, so the call collapses to invalid
+Rust and the pipeline aborts with *"Failed to parse generated TokenStream: expected an
+expression"* pointing at **byte 0** — a location that names nothing. The emitted helper's
+own signature takes `usize`, not `Option<usize>`, so there is no "no budget" value to
+emit either. Routed to new leaf [`.8`](#8--codegen-recover-true-emits-invalid-rust-when-a-budget-is-unset-todo).
+
+⇒ **the practical state of row 6: PGEN has panic-mode-with-sync-tokens recovery, with
+per-rule / per-parse / global budgets, and no grammar can switch it on** unless the
+author happens to also set all three budgets. Zero tracked grammars do.
+
+#### ⭐ FINDING 3 — the ZERO-COST acceptance test, measured rather than asserted
+
+[[project_capability_growth_is_zero_cost_and_neutral]] requires *non-users pay ZERO* —
+byte-identical, not "negligible". Both P0/P1 families were measured against it:
+
+| capability | non-user cost | measured |
+|---|---|---|
+| error recovery | the `fn recover_with_hints` **helper** is emitted unconditionally, but **0 call sites** in a non-recovering parser (1 in an opted-in one) | inert — nothing on any parse path |
+| semantic store (rows 10/11) | `generated/json_parser.rs`: **0** store hits across **13,707** lines (vs 24 in the SV parser) | pay-per-use — a fact-free grammar emits no store code at all |
+
+⇒ a fact-lifetime primitive and a recovery repair both inherit criterion (1) **by
+construction**; neither needs a new inertness argument.
+
+#### ⛔ FINDING 4 — the declared `parametric_rule` surface cannot be built as declared
+
+`ebnf.ebnf:595` declares `parametric_rule := rule_name "[" parameter_list "]"` — i.e.
+the author writes ECMA-262's `Expression[In, Yield]`. Measured, that input compiles to:
+
+```
+[['rule','start'], ['rule_reference','expr'],
+ ['group_open','('], ['rule_reference','In'], ['rule_reference','Yield'], ['group_close',')'],
+ ['operator','?']]                                   #  expr ( In Yield )?
+```
+
+**`undefined_references=0` — LINT-CLEAN.** The comma is swallowed and the parameter list
+becomes an *optional group*, because `[` is the optional-element form (`ebnf.ebnf:288`).
+This is **exactly `.5`'s silent `digit := [0-9]` defect**, on the single most structural
+JS construct: the highest-value declared-unwired surface in the whole audit is ambiguous
+by construction with a core existing one. ⇒ row 1 cannot be implemented at the declared
+syntax; it needs a director-level surface decision, in the same family as `.6`.
+
+#### The roadmap — ranked and priced
+
+Ranked by (**coverage** × **tractability** × **ergonomic distance**). Every cost model
+states the three acceptance-test answers in order: *non-user cost / user cost / runtime
+cost*. ⛔ **P0 outranks every new primitive: a shipped capability that does not work is
+worse than an absent one, because the audit itself was misled by both of them.**
+
+| # | item | row(s) | coverage | tractability | ergonomic distance | cost model | owner |
+|---|---|---|---|---|---|---|---|
+| **P0-1** | **make `include()` real + linter honours the include graph** | 15 | composition (**director-confirmed in scope** #209); multi-file LRMs, layered dialects; partially unblocks row 14 | **MEDIUM** — semantics designed AND once implemented (Perl); the frontend already *recognizes* the directives, it must resolve+splice instead of skip | **∞ today, and NEGATIVE** — the book's recommended mechanism is a no-op and the diagnostic blames the wrong rule | frontend/**codegen-time** splice ⇒ **zero** for a grammar with no include (identical IR by construction) / author pays parse-time of the included files / **zero** runtime | [`.7`](#7--make-include-real-end-to-end-and-make-the-linter-honour-the-include-graph-todo) — ⭐ **DIRECTOR-ORDERED** |
+| **P0-2** | **fix `@recover: true` codegen crash** | 6 | HTML-class recovery, IDE-grade parsers — the whole of row 6 | ⭐ **HIGHEST** — one `quote!` interpolation of three `Option<usize>`, one call site | **∞ today** (unusable unless all 3 budgets set; failure is an internal crash at byte 0) | **zero** (measured: 0 call sites when unused) / codegen-time / runtime only on an opted-in rule's failure path | [`.8`](#8--codegen-recover-true-emits-invalid-rust-when-a-budget-is-unset-todo) |
+| **P1-3** | **fact retraction / instance-scoped fact lifetime** | 10, 11 | Raku delimiters, heredocs, and every "closer named by the opener" form (Rust `r#""#`, Lua `[==[…]==]`) | **MEDIUM-HIGH** — bounded by `.3b` Finding 2's four source facts; needs a retraction directive *or* an instance-keyed (not depth-keyed) scope index (`semantic_runtime.rs:2170`) | **HIGH** — a 4-rule store-guard idiom that is *wrong on the second instance* (2 of 3 repeated cases) | **zero** (measured: store is pay-per-use) / grammar-author writes the directive / runtime — but the context-sensitivity is **semantically unavoidable**, which criterion (3) explicitly admits | `.4` seed → new leaf when scheduled |
+| **P1-4** | **declarative case-insensitive keywords** | 5 | VHDL, Ada, SQL, Fortran, Pascal — a whole language family | ⭐ **HIGHEST of the new surfaces** — pure codegen-time lowering to `(?i:…)`, which already works | **69 hand-written `(?i:` across 216 rules** in `grammars/vhdl.ebnf` — measured, the clearest awkwardness number in the audit | **byte-identical** for a grammar without the directive / codegen-time lowering / **zero** runtime | unscheduled — ⛔ see the surface warning below |
+| **P2-5** | **parameterized productions** | 1 | JS/ECMA-262 (pervasive), Ada, C++ | **LOW-MEDIUM** — ⛔ blocked on a **surface decision**: the declared `[…]` syntax miscompiles lint-clean (Finding 4) | manual expansion; up to 2^k rules per k parameters (*derived*, not measured) | **monomorphize at codegen** ⇒ zero for non-users / user pays codegen time + grammar size / **zero** runtime | unscheduled — needs a director surface call |
+| **P2-6** | **cross-rule precedence ladder** | 12 | VHDL, SV, C, most expression languages — **already-felt pain** | **MEDIUM** | the ~16-level `rtl_const_expr` cascade, measured un-generatable within the bounded ladder (PARSE-HARNESS `.5.5`) | codegen-time expansion into the cascade PGEN already emits ⇒ zero-cost by construction | unscheduled |
+| **P2-7** | **offside rule + lexer modes** | 2, 3 (with 4) | Python/Haskell/YAML/Nim; Ruby `#{}`, f-strings, JS `${}` | **LOW** — the one place `.3`'s "parse state feeds the lexical layer" hypothesis is **still unrefuted** | ❌ / 🕳️ | to be priced — the only family where a *runtime* channel may be unavoidable ⇒ price against criterion (2) **before** designing | gated on `LEX-ADJACENCY.2` (row 4 is the same seam, owned there) |
+| **P3-8** | **NFKC identifier normalization** | 13b | Python PEP 3131 only, and only for identifier *equality* | **HIGH** (a crate + one pass) but **LOWEST coverage** | ❌ absent (0 crates, 0 mentions) | opt-in pass ⇒ zero for non-users | unscheduled |
+| **T-9** | **informational unreferenced-root ("orphan") report** | — | tooling, not a primitive | **HIGH** — extend `detect_unreachable_rules` (`grammar_wellformedness.rs:308`), kept **separate** from the hard `unreachable_rules` error so multi-entry safety survives | — | lint-only, opt-in | `.2` seed — ⭐ **newly motivated**: it is the only instrument that would have surfaced `ebnf.ebnf:18`'s dangling include and the decorative productions |
+
+⛔ **DELIBERATE NON-COMMITMENTS — on the roadmap as *excluded*, so the boundary stays honest:**
+
+- **Extensibility.** Director #209 recorded it as an explicit NON-commitment. ⛔ Nothing
+  above may be cited as authorization for it, and the composability mandate (P0-1) is
+  **not** a back door — the director scoped composability IN and extensibility OUT in the
+  same sentence.
+- **Row 16 — parse-time-mutable grammar** (Raku slangs, Perl 5 `BEGIN`, Prolog `op/3`).
+  HARD BOUND, out of scope by design.
+- **The declared syntaxes `~i"…"` (`case_control`), `[a-z]` (`character_class`), and
+  `import`/`extends`.** All three are superseded by a canonical existing form — `(?i:…)`
+  and `/.../` per the `.6` director steer, `include()` per P0-1 — and all three
+  *misparse* today. ⇒ ⭐ **`.6` should widen from `character_class` alone to the whole
+  decorative-syntax set**, with one carve-out: `parametric_rule` is a capability the
+  roadmap **wants** (P2-5), so it must be **re-surfaced, never deleted**.
+
+#### ⚠️ What this leaf does NOT claim
+
+- The 2^k figure for P2-5 is **derived from the parameter count, not measured** — no
+  ECMA-262 grammar is vendored in this repo. Marked as such in the table.
+- P2-7 is the one row still carrying `.3`'s unrefuted hypothesis; it is **ranked, not
+  priced**, and says so.
+- Nothing here re-measures rows 7/8/9/13a/14/16 — they keep their `.3`/`.3b` verdicts.
+- **No claim that recovery WORKS end-to-end.** Measured: codegen emits the call with all
+  three budgets set. Whether `recover_with_hints` then recovers *correctly* on a
+  malformed input is unmeasured and belongs to `.8`.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — the tree's own acceptance criterion is *"every gap
+    carries a cost model before it becomes a work item"*, and `.4` was the last leaf
+    blocking the director's #209 "build capability" directive.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — per priced row, tool output + source location:
+    include drop `ebnf_frontend.rs:152-155` (+ blast radius 3 vs 1400 rules measured on a
+    tracked grammar); recovery crash `ast_based_generator.rs:4240-4252` proven by the
+    emitted token dump's three empty argument slots, isolated by a 5-cell control matrix;
+    `parametric_rule` collision `ebnf.ebnf:595` vs `:288` proven by the compiled IR;
+    case-insensitivity 69 `(?i:` in `grammars/vhdl.ebnf`; store pay-per-use 0/13,707 in
+    `generated/json_parser.rs`.
+  - [x] **FIX** — N/A (roadmap leaf). Output is the ranked+priced roadmap, four corrected
+    matrix rows, and leaves `.7`/`.8`. ⚠️ **One exception, declared:** the author book's
+    include chapter and `docs/EBNF_INCLUDE_SYSTEM.md` carry a measured-false claim on a
+    **shipped, gated** surface. Leaving them until `.7` lands would be exactly the book
+    drift the director forbids, so both gain a dated status admonition — the *claim* is
+    corrected, the *design* is untouched and stays `.7`'s to deliver.
+  - [x] **ADDRESSED (verified)** — `run_primitive_pricing_probes.sh`, every probe
+    carrying its declared verdict: **exit 0, 0 divergences, byte-identical on re-run**.
+    Two of `.1`'s consumer counts re-measured word-anchored and the false-positive
+    mechanism printed in the capture rather than silently corrected.
+  - [x] **NO REGRESSION** — docs-only. No `rust/`, no codegen, no generated artifact, no
+    contract, no tracked grammar. Probe grammars and generated parsers all live in a
+    `mktemp -d` removed by the driver's `trap`; `git status` shows only intended docs.
+    No release/schema/ledger movement.
+  - [x] **LOCKSTEP** — `.3` matrix rows 1/5/6/15 rewritten with their measured verdicts
+    (not appended-to — the wrong verdicts are struck); the horizon record gains the
+    director's include ruling; `.6` widening recommended with the `parametric_rule`
+    carve-out stated; both defects routed to `.7`/`.8` rather than fixed in a docs leaf.
 
 #### ⭐⭐⭐ DIRECTOR STEER (2026-07-26, session #209) — the bar is EAGERNESS, not sufficiency
 
@@ -605,6 +835,87 @@ consequences that bind this leaf:
    surface a row nothing else does. ⇒ new leaf `.3c` below.
 - ⛔ Unchanged and still binding: duality-completeness, and the zero-cost/neutrality
   acceptance test — eagerness never buys an exemption from "non-users pay ZERO".
+
+### `.7` — Make `include()` real end-to-end, and make the linter honour the include graph (`todo`)
+
+- **Status: `todo`**, opened by `.4` Finding 1. ⭐⭐ **DIRECTOR-ORDERED (2026-07-26,
+  session #210), verbatim:** *"The linter should honour EBNF include() graph trees, of
+  course."* ⇒ the adjudication is decided in substance: **includes are made real.** Not
+  deleted, not documented away, not replaced by a new surface.
+- **The defect, measured** (`.4` Finding 1): `ebnf_frontend.rs:152-155` recognizes every
+  include directive and `continue`s past it. Nothing resolves, nothing splices, exit 0,
+  zero diagnostics. Blast radius already on tracked grammars —
+  `systemverilog_lrm_profiled_wrapper.ebnf` loads **3 of 1400 rules (99.8% lost)** and
+  `grammars/ebnf.ebnf:18` carries `include(semantic_annotations)` pointing at **a file
+  that does not exist**.
+- **PRIOR ART (already searched — do not redo, extend):** the semantics are *designed and
+  once implemented*. `perl/AST/Transform.pm:3234` `process_ast_includes` +
+  `resolve_include_files` (`:3381`) + `resolve_include_directory` +
+  `process_ast_includes_from_content` (`:3473`) cover search paths, recursion and cycle
+  handling; `docs/EBNF_INCLUDE_SYSTEM.md` is the exhaustive reference;
+  `docs/ebnf_parser_book/src/includes.md` is the author-facing contract this leaf must
+  make true. `is_include_directive` (`ebnf_frontend.rs:246`) already fixes the accepted
+  spellings (`include(`, `include_file(`, `include_dir(`, `file(`, `dir(`).
+- **Scope:**
+  1. Resolve + splice in the Rust frontend: search path (grammar base dir → explicit
+     `include_dir` → `EBNF_INCLUDES`/`EBNFLIB` → cwd), `.ebnf` extension defaulting,
+     alphabetical order for directory includes, **recursive** processing, and
+     process-once cycle handling — all per the two existing specs.
+  2. ⭐ **The linter honours the include GRAPH** (the director's words): undefined
+     references are resolved against the *combined* grammar, so the misattributed
+     *"likely a typo"* diagnostic disappears **with its root cause**, not by rewording.
+  3. ⛔ **A missing / unresolvable include must be a hard, named error.** The whole class
+     of defect here is a directive that vanishes silently — replacing a silent drop with
+     a silent partial resolve would keep the disease. `ebnf.ebnf:18` is the built-in
+     red-test: it must FAIL until the dangling include is fixed or removed.
+  4. Then adjudicate `ebnf.ebnf:18` itself: no `grammars/semantic_annotations.ebnf`
+     exists (`semantic_annotation.ebnf` / `builtin_semantic_annotation.ebnf` do) — decide
+     on measurement whether it is a typo, a stale reference, or a real missing split.
+- ⚠️ **Traps named before implementation:**
+  - **This changes what tracked grammars MEAN.** Making the SV wrapper resolve takes it
+    from 3 rules to ~1400. That is not a regression — it is the fix — but it must be
+    measured as a deliberate, enumerated transition, not slipped in under a green gate.
+  - **`ebnf.ebnf` is the meta-grammar.** Any change to how it loads needs `.5`'s
+    byte-identity method (input **and** output paths pinned) plus the self-hosting
+    `ebnf_frontend_dual_run_gate`.
+  - Rule-name collisions across files are a real well-formedness concern the book already
+    warns about (`includes.md:51`) — the combined grammar must lint for them.
+- **Book obligation:** `docs/ebnf_parser_book/src/includes.md` and
+  `docs/EBNF_INCLUDE_SYSTEM.md` carry `.4`'s dated status admonition. **Removing those
+  admonitions is part of this leaf's definition of done**, not a follow-up.
+
+### `.8` — Codegen: `@recover: true` emits invalid Rust when a budget is unset (`todo`)
+
+- **Status: `todo`**, opened by `.4` Finding 2. **Code change** — needs its own
+  before→after measurement per the acceptance checklist.
+- **ROOT CAUSE, already established (WHY + WHERE) — do not re-diagnose:**
+  `ast_based_generator.rs:4240-4252` interpolates `recover_budget`,
+  `recover_parse_budget` and `recover_global_budget` — all `Option<usize>` from
+  `rule_recovery_hints` (`:9505`) — directly into `quote!`. `ToTokens for Option<T>`
+  emits **nothing** for `None`, so the emitted call is
+  `recover_with_hints("stmt", parse_start, &[], &[], , , ,)` (verbatim from the token
+  dump) and the pipeline aborts with *"expected an expression"* at **byte 0**. The
+  emitted helper's signature takes `usize`, so there is no "unbounded" value to emit.
+- **Control matrix already measured** (`.4`, 5 cells): `@recover: true` alone → FAIL;
+  `+1 of 3` budgets → FAIL; `+ all 3` → OK; `@sync` alone → OK but inert; no annotations
+  → OK. Re-runnable via `run_primitive_pricing_probes.sh`.
+- **Scope:** give the three budgets a representable "unbounded" form end-to-end — either
+  emit `Option<usize>` and widen `recover_with_hints`, or emit an explicit sentinel —
+  then make `@recover: true` alone generate and run. ⛔ Do **not** "fix" it by requiring
+  all three budgets; that is the bug, not the contract.
+- ⚠️ **The failure mode is itself a defect worth fixing:** a codegen `TokenStream` parse
+  error reports **byte 0** and names no rule, so a grammar author gets a location that
+  points at nothing. Worth a diagnostic improvement in the same leaf if cheap — this is
+  the `ANNOTATION-PLACEMENT` family again (*a check that cannot say where must not
+  pretend it can*).
+- **Then, and only then, measure whether recovery actually RECOVERS.** `.4` deliberately
+  claims nothing beyond codegen success. The end-to-end question — does
+  `recover_with_hints` resynchronize on `@sync` tokens and produce a usable AST? — is
+  this leaf's, and it decides whether row 6 closes as ✅ or reopens as ⚠️.
+- **Book obligation:** error recovery is documented **nowhere** in either book (measured:
+  0 hits for `@recover`/`@sync`/`@panic_until` across `docs/book/src` and
+  `docs/ebnf_parser_book/src`) — a shipped steering surface with no author-facing
+  documentation at all. Once it works, it needs a chapter.
 
 ### `.3c` — Keep widening the matrix with further notoriously-hard languages (`todo`)
 
@@ -645,3 +956,9 @@ consequences that bind this leaf:
 - `docs/tasks/artifacts/lang_capability_audit/probes/probe_default_layout.ebnf` — rows
   0/8/9/10/13
 - `docs/tasks/artifacts/lang_capability_audit/probes/probe_ws_sensitive.ebnf` — row 11
+- `docs/tasks/artifacts/lang_capability_audit/run_primitive_pricing_probes.sh` — `.4`
+  driver (declared-verdict pricing probes for rows 1/5/6/15 + the two zero-cost tests +
+  the word-anchored consumer census; every probe grammar and generated parser lives in a
+  `mktemp -d` the driver removes on exit)
+- `docs/tasks/artifacts/lang_capability_audit/primitive_pricing_probes.txt` — `.4`
+  capture (exit 0, 0 divergences, byte-identical on re-run)

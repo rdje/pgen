@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2da04218.js";
+            window.path_to_searchindex_js = "searchindex-85d6bd66.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -1243,11 +1243,27 @@ annotation, which the codegen genuinely consumes.</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="the-include-system"><a class="header" href="#the-include-system">The Include System</a></h1>
+<blockquote>
+<p>⛔ <strong>STATUS (measured 2026-07-26, <code>LANG-CAPABILITY-AUDIT.4</code>): the directives below are
+currently RECOGNIZED AND DISCARDED — they do not compose anything yet.</strong></p>
+<p>The shipping Rust frontend detects an include directive and skips the line
+(<code>rust/src/ebnf_frontend.rs:152-155</code>). No file is read and no rule is merged, <strong>with exit
+code 0 and no diagnostic</strong>. A grammar that relies on an include therefore loads with only
+its own rules, and the linter then reports the included rules as <em>undefined references
+(likely a typo)</em> — a misleading message that names the wrong cause.</p>
+<p>This is a regression, not a design: the resolution logic described in this chapter was
+implemented in the retired Perl frontend (<code>perl/AST/Transform.pm</code>) and was never carried
+over. <strong>Restoring it is directed work</strong> — see <code>docs/tasks/LANG-CAPABILITY-AUDIT.md</code> leaf
+<code>.7</code>, which also makes <code>--lint-grammar</code> honour the include graph. This notice is removed
+as part of that leaf.</p>
+<p><strong>Until then:</strong> keep a grammar in a single file. Everything below describes the intended
+and once-working behaviour, and is the contract <code>.7</code> restores.</p>
+</blockquote>
 <p>The include system lets you split a large grammar across multiple <code>.ebnf</code> files and share common rule
-libraries. The directives are recognized by the EBNF frontend (<code>rust/src/ebnf_frontend.rs</code>) and resolved
-into a single combined grammar before code generation. The authoritative, exhaustive reference — search
-paths, environment variables, recursive resolution, and cycle handling — is <code>docs/EBNF_INCLUDE_SYSTEM.md</code>;
-this chapter is the author-facing summary.</p>
+libraries. The directives are recognized by the EBNF frontend (<code>rust/src/ebnf_frontend.rs</code>) and — once
+<code>.7</code> lands — resolved into a single combined grammar before code generation. The authoritative,
+exhaustive reference — search paths, environment variables, recursive resolution, and cycle handling — is
+<code>docs/EBNF_INCLUDE_SYSTEM.md</code>; this chapter is the author-facing summary.</p>
 <h2 id="file-includes"><a class="header" href="#file-includes">File includes</a></h2>
 <pre><code class="language-ebnf"># short form (most common)
 include("tokens", "expressions", "statements")
@@ -1288,13 +1304,20 @@ forever.</li>
 </ol>
 <p>Because all included rules share one flat namespace, <strong>avoid rule-name collisions</strong> across files — two
 files defining the same rule name is a well-formedness concern (<code>--lint-grammar</code>).</p>
-<h2 id="a-real-example-the-meta-grammar-includes-itselfs-annotation-support"><a class="header" href="#a-real-example-the-meta-grammar-includes-itselfs-annotation-support">A real example: the meta-grammar includes itself’s annotation support</a></h2>
-<p><code>grammars/ebnf.ebnf</code> opens with:</p>
+<h2 id="a-cautionary-example-the-meta-grammars-own-include"><a class="header" href="#a-cautionary-example-the-meta-grammars-own-include">A cautionary example: the meta-grammar’s own include</a></h2>
+<p><code>grammars/ebnf.ebnf:18</code> opens with:</p>
 <pre><code class="language-ebnf">include(semantic_annotations)
 </code></pre>
-<p>That is how the EBNF meta-grammar composes in the semantic-annotation rules rather than restating them —
-the same mechanism you use to factor your own grammar into <code>tokens</code>, <code>expressions</code>, and <code>statements</code>
-files.</p>
+<p>This was written as the meta-grammar composing in the semantic-annotation rules rather than restating
+them. Measured, it does neither — <strong>and it is a good illustration of why leaf <code>.7</code> exists</strong>:</p>
+<ul>
+<li>the directive is discarded, so nothing is composed in; and</li>
+<li><strong><code>grammars/semantic_annotations.ebnf</code> does not exist.</strong> The nearest tracked files are
+<code>semantic_annotation.ebnf</code> and <code>builtin_semantic_annotation.ebnf</code>.</li>
+</ul>
+<p>A dangling include pointing at a missing file survived in the meta-grammar precisely because the
+directive is dropped before anything tries to resolve it. When <code>.7</code> lands, an unresolvable include
+becomes a hard, named error, and this line must be fixed or removed.</p>
 <h2 id="organizing-a-multi-file-grammar"><a class="header" href="#organizing-a-multi-file-grammar">Organizing a multi-file grammar</a></h2>
 <p>A common functional split:</p>
 <pre><code class="language-text">grammars/foolang/
@@ -1305,8 +1328,10 @@ files.</p>
 </code></pre>
 <blockquote>
 <p>Composition is done with <strong>includes</strong>, not the <code>import "…"</code> / <code>grammar … extends …</code> constructs the
-meta-grammar self-describes — those are not implemented (see
-<a href="#rules-and-expressions">Rules and Expressions</a>). The include system is the supported mechanism.</p>
+meta-grammar self-describes — those are not implemented and misparse (see
+<a href="#rules-and-expressions">Rules and Expressions</a>). Includes are the <em>designated</em> mechanism, and per
+the status notice at the top of this chapter they are the one being restored by
+<code>LANG-CAPABILITY-AUDIT.7</code>; the <code>import</code>/<code>extends</code> syntaxes are not.</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="the-bootstrap-path"><a class="header" href="#the-bootstrap-path">The Bootstrap Path</a></h1>

@@ -1,5 +1,58 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0009 — before you record that a system LACKS something, search for it by CAPABILITY, not by the name your own grammar gives it
+
+Session #210 (leaf `LANG-CAPABILITY-AUDIT.4`). Four lessons, three of them about method, and
+one of them is the reason the previous three leaves of this tree were partly wrong.
+
+**1. ⭐⭐ A name census is not a capability inventory — and it lies in BOTH directions.**
+`.1` and `.3` classified capabilities by grepping `rust/src/` for the meta-grammar's production
+names and reading a 0 as "this capability is absent". Measured this session, that instrument
+fails twice over:
+
+- **False negative.** `error_production`, `error_recovery_action`, `panic_mode` and `skip_to`
+  all read 0 consumers — and PGEN *has* error recovery. It ships as registered semantic
+  directives (`@recover`/`@sync`/`@panic_until` + budgets) that codegen turns into a
+  `recover_with_hints(...)` call. The production names were never the surface.
+- **False positive.** `parameter_list` read 2 and `named_capture` read 29. Word-anchored both
+  are 0: the hits were `parse_macro_parameter_list` in the SV preprocessor and the *regex*
+  grammar's `named_captures`. The verdicts survived; the method did not.
+
+The driver now prints both the substring and the word-anchored column, so the failure mode is
+visible in the capture rather than corrected silently. **Search by capability, across every
+surface — annotations, engine, retired frontends, books — never by the name your meta-grammar
+happens to use.**
+
+**2. ⭐ "Price the gaps" is not a cheap leaf — it is where the classification gets audited.**
+`.4` was scoped as a ranking exercise over verdicts already established. Re-measuring each row
+before ranking it moved four of sixteen, two of them from "gap" to "shipped". A cost model
+computed from the prose would have carried work items for a capability that already exists
+(recovery) and priced a "greenfield" feature that is really a regression (includes). The general
+form: **a leaf that consumes another leaf's verdicts must re-measure them, because ranking is
+exactly the moment a wrong verdict becomes an expensive commitment.**
+
+**3. ⭐ A capability can be worse than absent: shipped, documented, and silently inert.**
+`include()` is the sharpest case seen so far. It is recognized by the frontend, discarded, and
+described as working by a *gated* book chapter. The result is not a missing feature — it is a
+tracked grammar (`systemverilog_lrm_profiled_wrapper.ebnf`) quietly loading 3 of its 1400 rules,
+a dangling include in the meta-grammar itself that nothing can ever detect, and a linter
+diagnostic that tells the author to look for a typo. Absent would have been *safer*. This is the
+`ANNOTATION-PLACEMENT` principle again — a mechanism that cannot do its job must say so, not
+return green — and it now has a third instance at frontend scale.
+
+**4. ⚠️ `Option<T>` in a `quote!` interpolation is a silent codegen hazard.** `ToTokens for
+Option<T>` emits nothing for `None`, so an unset optional does not become a default — it
+*deletes the argument*, and the failure surfaces as a `TokenStream` parse error at byte 0 that
+names no rule. The three recovery budgets hit this. Worth remembering wherever codegen
+interpolates an `Option` into a call's argument list: the type checker cannot see it, and the
+error message points nowhere.
+
+**Method note on the doc edits.** This is a docs-only leaf that nonetheless edited two
+documentation surfaces beyond its own tree file. That was deliberate and is declared in the
+leaf: both state a measured-false claim about a shipped, gated surface, and the standing
+directive against book drift outranks leaf-scope tidiness. The admonitions correct the *claim*
+only — the design stays `.7`'s to deliver, and removing them is part of `.7`'s definition of done.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0005 — fix the defect you found, but sweep the surface first: it changes what the defect IS
 
 Session #209 (leaf `LANG-CAPABILITY-AUDIT.5`). Three lessons, two of them about method.

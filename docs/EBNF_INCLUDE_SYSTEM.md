@@ -1,5 +1,17 @@
 # EBNF Include System - Technical Reference
 
+> ⛔ **STATUS (measured 2026-07-26, `LANG-CAPABILITY-AUDIT.4`): NOT ACTIVE in the shipping
+> Rust frontend.** Include directives are recognized and then discarded
+> (`rust/src/ebnf_frontend.rs:152-155`) — no file is read, no rule is merged, exit code 0,
+> no diagnostic. Everything below describes the resolution logic as implemented in the
+> **retired Perl frontend** (`perl/AST/Transform.pm:3234` `process_ast_includes` and
+> friends), which the Rust migration never carried over.
+>
+> Treat this document as the **specification leaf `.7` restores**, not as a description of
+> current behaviour. See `docs/tasks/LANG-CAPABILITY-AUDIT.md` leaves `.4` (the
+> measurement) and `.7` (the directed fix, which also makes `--lint-grammar` honour the
+> include graph). This notice is removed when `.7` lands.
+
 This document provides comprehensive technical details about the include system in the EBNF Parser Generator.
 
 ## Overview

@@ -205,3 +205,41 @@ distinguishable commitments, all stricter than what the record previously said:
 - The **duality** invariant (§2) and the **zero-cost/neutrality** acceptance test
   ([[project_capability_growth_is_zero_cost_and_neutral]]) are unchanged and still bind every
   new primitive: eagerness never buys an exemption from "non-users pay zero".
+
+## Director ruling 2026-07-26 (session #210) — the linter honours the include graph
+
+**Verbatim:** *"The linter should honour EBNF include() graph trees, of course."*
+
+Given in response to `LANG-CAPABILITY-AUDIT.4`'s measurement that `include()` directives are
+recognized and then **discarded** by the shipping Rust frontend (`ebnf_frontend.rs:152-155`),
+with exit 0 and no diagnostic. The ruling settles the adjudication in substance:
+
+- ⭐ **Includes are MADE REAL.** Not deleted, not documented away, not replaced by a new
+  surface. This is the second time in two sessions the director has decided a
+  declared-vs-implemented divergence by naming the canonical form and having the other side
+  conform (cf. `/.../` for character classes, `.6`).
+- ⭐ **The LINTER specifically must resolve the include GRAPH** before reporting undefined
+  references. Today a dropped include produces *"references UNDEFINED rule 'digit' … likely a
+  typo"* — the author wrote a correct include and is sent hunting for a typo. The ruling means
+  that diagnostic disappears **with its root cause**, not by rewording.
+- ⇒ **composability, which this record recorded as director-confirmed IN SCOPE at #209, now has
+  a concrete first work item** (leaf `.7`) rather than a mandate in the abstract.
+
+⛔ **Unchanged:** extensibility remains the deliberate NON-commitment recorded at #209. Making
+`include()` work is composition of grammars the author already writes; it is **not** a step
+toward a grammar extending itself, and must not be cited as one.
+
+### The methodological finding this ruling came out of
+
+`.4` set out only to *price* the gaps `.3`/`.3b` had already classified. Re-measuring before
+ranking moved **four of sixteen rows**, and two of them were not gaps at all but shipped
+capabilities — error recovery (broken at its enabling annotation) and `include()` (silently
+discarded). The audit had been ranking on **consumer counts for meta-grammar production
+names**, which `.4` measured lying in both directions.
+
+⇒ **A NAME CENSUS IS NOT A CAPABILITY INVENTORY.** Zero consumers of `panic_mode` says nothing
+about whether PGEN can recover from errors; it ships as `@recover`/`@sync`/`@panic_until`. This
+belongs beside [[feedback_read_prior_art_before_designing]]'s RE-MEASURE clause: before
+recording that PGEN *lacks* something, search for it **by capability, across every surface**
+(annotations, engine, retired frontends, books) — not by the name the meta-grammar happens to
+give it.
