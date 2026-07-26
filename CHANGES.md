@@ -1,5 +1,29 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0002 (leaf `QUANT-PLUS-ITER.3`) — two engine-routing hazards banked, and the confound they created in the previous commit's evidence eliminated
+
+- **Documented** — `TOOLBOX.md` now carries the routing caveat the charter asked for
+  (**tracing switches which engine runs**: a logger sets `logger_enabled`, which clears
+  `bare_parse` and moves the parse off the fused `cascade_*` graph onto the protocol graph),
+  **plus a second one measurement turned up**: `--entry-rule` switches the engine too —
+  `parse_from` sets `self.bare_parse = false;` unconditionally, verified across all ten
+  generated parsers. An `--entry-rule X` versus default comparison therefore varies two
+  things; the remedy is stated with the caveat (pass `--entry-rule` on both arms).
+- **Corrected our own evidence** — that second hazard confounded the two-arm flip committed
+  in `PGEN-QUANT-PLUS-ITER-0001`. Re-run as a three-arm control on one binary: arm1
+  `default` (bare graph, entry `stmt`) and arm2 `--entry-rule stmt` (protocol graph, entry
+  `stmt`) give **identical** verdicts, so the engine graph is not the discriminator; arm2
+  versus arm3 `--entry-rule scratch` (protocol graph, entry `scratch`) flips REJECT to
+  ACCEPT, isolating the start symbol as the sole cause. The earlier conclusion is unchanged
+  and now rests on a controlled comparison. The confound is recorded in the tree and in the
+  evidence file rather than quietly repaired.
+- **Also added** — a "first question on any *this rule misbehaves*" entry (**is the rule you
+  are testing the rule being run?**) and a new first row in the toolbox Quick chooser, so the
+  one command that would have closed the whole investigation is what a reader meets first.
+- **Honest scope** — the two execution graphs agreed on all four inputs, so this is a
+  reasoning hazard (say which graph you observed), not a known correctness difference; the
+  graphs are held byte-identical by the equivalence/AST oracles.
+
 ## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0001 (leaf `QUANT-PLUS-ITER.1`) — `+` was never broken: the quantifier's rule was never entered, because the entry rule is whichever rule you define FIRST
 
 - **Diagnosed (docs-only, read-only)** — session #211 opened `QUANT-PLUS-ITER` on a measured

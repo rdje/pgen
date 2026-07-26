@@ -87,6 +87,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 
 | Symptom / question | Go to |
 |---|---|
+| **"A rule misbehaves / a quantifier iterates once / my rule seems ignored" — ASK FIRST: is that rule even the ENTRY?** | [1.1 first question](#11---parse--supports) — the entry is the rule DEFINED FIRST; `--lint-grammar` will not tell you, `--report-certificate-coverage` will |
 | "Does this file parse? Where does it fail?" | [1.1 `--parse`](#11---parse--supports) + [3.2 furthest-position](#32-furthest-position-error-diagnostic) |
 | "What AST did it produce? Is the shape right?" | [1.2 `--parse-dump-ast-pretty`](#12---parse-dump-ast-pretty) |
 | **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (in-process, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (in-process, NO compile) |
@@ -123,6 +124,26 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ./rust/target/release/parseability_probe --supports systemverilog
   ./rust/target/release/parseability_probe --parse systemverilog file.sv --profile sv_2017
   ```
+- **⭐ FIRST QUESTION ON ANY "THIS RULE MISBEHAVES" (`QUANT-PLUS-ITER.1`): *is the rule you are
+  testing the rule being run?*** The canonical entry is `rule_order[0]` — **the rule DEFINED FIRST in
+  the grammar file** — so a helper rule written above your start symbol silently re-roots the
+  grammar, and `--lint-grammar` will NOT tell you (an unreferenced rule counts as a root ⇒
+  `unreachable_rules=0`, exit 0). Confirm the entry before interrogating any rule's internals:
+  ```bash
+  # names the resolved entry on its headline + flags rules with no reach path from it
+  ./rust/target/debug/ast_pipeline grammars/<g>.ebnf --report-certificate-coverage --count 40 --seed 0
+  # CERTIFICATE-COVERAGE: grammar='…' entry='stmt' … UNKNOWN=1 fully_certified=false
+  #   WARNING … 1 UNKNOWN rules have NO reach path from the entry … ["scratch"]
+  ```
+  (Registered grammars only — it verifies witnesses through a real generated parser.) Session #211
+  spent a whole task-tree on a "`+` consumes one occurrence" bug that was this, and every one of its
+  six exonerations was correct and irrelevant.
+- **⚠️⚠️ ROUTING — `--entry-rule` ALSO CHANGES WHICH ENGINE RUNS (`QUANT-PLUS-ITER.3`, measured
+  across all 10 generated parsers).** `parse_from` sets `self.bare_parse = false;` **unconditionally**,
+  so an `--entry-rule` run always takes the PROTOCOL graph while a default `--parse` takes the fused
+  `cascade_*` graph. ⇒ **a `--entry-rule X` vs default comparison varies TWO things** (start symbol
+  AND execution graph). To isolate the start symbol, pass `--entry-rule` on **both** arms — including
+  the canonical entry — so only the rule name differs. (See 2.1 for the same hazard under tracing.)
 - **OUTPUT:** `parse_full passed for grammar '…' on '…'` (rc 0), or an error line carrying both the surface position and the `furthest_position` (see 3.2).
 - **Profiles:** SV accepts `2017`/`sv_2017`/`ieee1800-2017` and the `2023`/`1364-2005` equivalents — the request spellings are GRAMMAR-DECLARED via `@profile_alias` in `systemverilog.ebnf` (PROFILE-ALIAS.2; the generated parser carries them in `GRAMMAR_PROFILE_ALIASES` and resolves them case-insensitively in `set_grammar_profile`).
 
@@ -239,6 +260,20 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
   `--trace` alone implies `debug`. The `[file:position]` in each line is the **input byte position**, not a source line.
 - **⚠️ VOLUME:** full trace on a real input is hundreds of MB — almost always scope it with `--trace-rules` (2.2).
+- **⚠️⚠️ ROUTING — TRACING CHANGES WHICH ENGINE RUNS (`QUANT-PLUS-ITER.3`, measured).** Every
+  generated parser computes, at the top of `parse()`:
+  ```rust
+  self.bare_parse = !self.coverage_enabled && !self.logger_enabled
+      && !self.counters_observed.get()
+      && !crate::ast_pipeline::report_memo_stats_enabled();
+  ```
+  so **enabling a trace makes `logger_enabled` true and routes the parse off the fused `cascade_*`
+  graph onto the PROTOCOL graph** — the same observability-twin routing already documented for
+  memo-stats (3.3) and the counter dumps (3.4/3.5), but far easier to forget because tracing feels
+  passive. ⇒ **a traced run is not necessarily the run that produced the untraced verdict.** The two
+  graphs are held byte-identical by the equivalence/AST oracles (1.6), so this is a *reasoning*
+  hazard, not a known correctness difference — but when you are chasing a verdict, say which graph
+  you observed. Cost this trap real time in session #211.
 
 ### 2.2 `--trace-rules R1,R2,…`
 - **WHAT:** activate trace ONLY inside the call-tree of the listed rules (100–1000× volume reduction). Implies `--trace`.

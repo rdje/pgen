@@ -1,9 +1,14 @@
 QUANT-PLUS-ITER.1 — THE BEHAVIOURAL FLIP
 ========================================
 
-The decisive control: ONE binary, ONE grammar in the scratch slot, ONE variable
-changed (the start symbol, via `--entry-rule`). Nothing else moves — same codegen,
-same runtime, same input files, same process.
+ONE binary, ONE grammar in the scratch slot, the start symbol varied via
+`--entry-rule`. Same codegen, same runtime, same input files, same process.
+
+⚠️ READ THE ADDENDUM AT THE END OF THIS FILE BEFORE CITING THIS TABLE. `--entry-rule`
+was later measured to ALSO switch the execution graph (`parse_from` sets
+`bare_parse = false` unconditionally), so this two-arm comparison varied two things,
+not one. The addendum adds the missing same-engine control; the conclusion is
+unchanged and the confound is eliminated.
 
 Grammar installed in `grammars/scratch/scratch.ebnf` (verbatim the charter's shape,
 `stmt` defined ABOVE `scratch`):
@@ -135,3 +140,48 @@ six mechanisms without ever running the cheapest instrument.
 RESIDUAL DEFECT, HOWEVER: that warning's own advice is "adjudicate via the linter",
 and the linter then reports `unreachable_rules=0` and exits 0. Two instruments
 disagree, and the one the first one hands off to is the blind one.
+
+
+================================================================================
+ADDENDUM (same session, after PGEN-QUANT-PLUS-ITER-0001 was committed)
+THE ENGINE CONFOUND — FOUND, MEASURED, AND ELIMINATED
+================================================================================
+
+While banking the `.3` toolbox note, `parse_from` was measured to set
+`self.bare_parse = false;` UNCONDITIONALLY — verified across ALL TEN generated
+parsers (json, regex, return_annotation, rtl_const_expr, rtl_frontend, scratch,
+semantic_annotation, systemverilog, systemverilog_preprocessor, vhdl: 1/1 each).
+
+=> `--entry-rule` always takes the PROTOCOL graph, while a default `--parse` takes
+   the fused `cascade_*` graph. The two-arm flip above therefore varied TWO things
+   at once: the start symbol AND the execution graph. That is a real confound in
+   the evidence as first recorded, and it is recorded here rather than quietly
+   fixed.
+
+THE MISSING CONTROL, run on ONE freshly built binary with the same grammar:
+
+  arm1  default                 -> bare/cascade graph, entry = stmt
+  arm2  --entry-rule stmt       -> PROTOCOL graph,     entry = stmt   <- the control
+  arm3  --entry-rule scratch    -> PROTOCOL graph,     entry = scratch
+
+  | input      | arm1 (bare, stmt) | arm2 (protocol, stmt) | arm3 (protocol, scratch) |
+  |------------|-------------------|-----------------------|--------------------------|
+  | `a;`       | rc 0  ACCEPT      | rc 0  ACCEPT          | rc 0  ACCEPT             |
+  | `a;a;`     | rc 1  @ position 2| rc 1  @ position 2    | rc 0  ACCEPT             |
+  | `a;b;`     | rc 1  @ position 2| rc 1  @ position 2    | rc 0  ACCEPT             |
+  | `b;a;b;a;` | rc 1  @ position 2| rc 1  @ position 2    | rc 0  ACCEPT             |
+
+READING (the two comparisons are now independent):
+
+  arm1 vs arm2 — SAME start symbol, DIFFERENT engine graph  -> verdicts IDENTICAL
+                 => the engine graph is NOT the discriminator.
+  arm2 vs arm3 — SAME engine graph, DIFFERENT start symbol  -> REJECT flips to ACCEPT
+                 => the START SYMBOL is isolated as the sole cause.
+
+The `.1` conclusion is UNCHANGED and now rests on a controlled comparison rather
+than a confounded one: `+` is correct; the quantifier's rule was never entered.
+
+It also supplies the measured data point behind the `.3` toolbox note: the bare
+and protocol graphs AGREED on all four inputs here, so the routing hazard is a
+*reasoning* hazard — you may not be observing the path that produced the verdict —
+not a known correctness difference between the two graphs.

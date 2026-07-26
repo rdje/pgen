@@ -1,10 +1,15 @@
 # QUANT-PLUS-ITER: a `+` over a rule reference iterates ONCE in the scratch shape — and VHDL's identical idiom does not
 
+> **RESOLVED (session #212): `+` was never defective — the quantifier's rule was never
+> the entry rule.** The title states the charter's symptom, kept for continuity; read
+> the banner below for the actual finding.
+
 ## Metadata
 
 - Tree ID: `QUANT-PLUS-ITER`
-- Status: `active` (opened 2026-07-26, session #211; **`.1` RESOLVED session #212** —
-  the tree's premise is retired, `.2`/`.3` remain)
+- Status: `active` (opened 2026-07-26 session #211; **`.1` + `.3` DONE session #212** —
+  the tree's premise is retired; **`.2` is the only open leaf**, and its second half
+  carries a director-visible surface call)
 - Family / slice-id prefix: `PGEN-QUANT-PLUS-ITER-<NNNN>`
 - Created: `2026-07-26`
 - Owner: repo-local workflow
@@ -18,8 +23,9 @@
 PGEN's canonical entry rule is `rule_order[0]` — the rule **defined first in the
 file**. The probe grammar below defines `stmt` *above* `scratch`, so the generated
 parser was entered at `stmt`; `stmt` consumed exactly one `a;` and the parse then
-failed on the remainder, at position 2, every time. The `--entry-rule scratch` flip
-(one binary, one grammar, one variable) accepts `a;`, `a;a;`, `a;b;` and `b;a;b;a;`.
+failed on the remainder, at position 2, every time. Starting the parse at `scratch`
+instead accepts `a;`, `a;a;`, `a;b;` and `b;a;b;a;` — and a three-arm control pins the
+start symbol as the *sole* cause, with the execution graph held fixed.
 
 Everything in the "What was MEASURED" section below is **accurate and was correctly
 reasoned** — it is retained verbatim as the record. It is also, in its entirety,
@@ -30,7 +36,9 @@ The residual work is real and is NOT about `+`:
 - **`.2`** — no instrument says which rule became the start symbol, and the start
   symbol **cannot be declared in the EBNF at all** (measured: 0 hits across the
   meta-grammar, the directive registry, and every tracked grammar).
-- **`.3`** — the trace-changes-the-engine caveat, still worth banking.
+- ✅ **`.3` DONE** — the trace-changes-the-engine caveat is banked in `TOOLBOX.md`, and
+  measurement found a **second** routing hazard the charter did not know about:
+  `--entry-rule` switches the engine too (all ten generated parsers).
 
 Full diagnosis, evidence and the flip table: leaf `.1` below.
 
@@ -198,6 +206,33 @@ column is the flip — `+` iterates 1, 2 and 4 occurrences correctly the moment 
 parse actually starts at the rule that owns it. (Exit codes captured from the binary
 itself — an earlier harness of mine read `tail`'s status through a pipeline and
 reported a uniform "ACCEPT"; corrected before any conclusion was drawn.)
+
+##### ⚠️ THE ENGINE CONFOUND IN THAT TABLE — FOUND, MEASURED, ELIMINATED (same session)
+
+The two-arm flip above varied **two** things, not one. While banking `.3`,
+`parse_from` was measured to set `self.bare_parse = false;` **unconditionally** —
+verified across **all ten** generated parsers (1/1 each) — so `--entry-rule` always
+takes the PROTOCOL graph while a default `--parse` takes the fused `cascade_*` graph.
+Recorded as a real weakness in the evidence as first committed, not quietly repaired.
+
+The missing control, on one freshly built binary:
+
+| input | arm1 default (bare, `stmt`) | arm2 `--entry-rule stmt` (protocol, `stmt`) | arm3 `--entry-rule scratch` (protocol, `scratch`) |
+|---|---|---|---|
+| `a;` | rc 0 ACCEPT | rc 0 ACCEPT | rc 0 ACCEPT |
+| `a;a;` | rc 1 @ position 2 | rc 1 @ position 2 | ✅ rc 0 ACCEPT |
+| `a;b;` | rc 1 @ position 2 | rc 1 @ position 2 | ✅ rc 0 ACCEPT |
+| `b;a;b;a;` | rc 1 @ position 2 | rc 1 @ position 2 | ✅ rc 0 ACCEPT |
+
+- **arm1 vs arm2** — same start symbol, **different engine graph** ⇒ verdicts
+  **identical** ⇒ the engine graph is *not* the discriminator.
+- **arm2 vs arm3** — **same engine graph**, different start symbol ⇒ REJECT flips to
+  ACCEPT ⇒ **the start symbol is isolated as the sole cause.**
+
+⇒ the `.1` conclusion is **unchanged and now rests on a controlled comparison.** It
+also supplies `.3`'s measured data point: the two graphs **agreed** on all four
+inputs, so the routing hazard is a *reasoning* hazard (you may not be observing the
+path that produced the verdict), not a known correctness difference.
 
 #### CORROBORATION AT THE CODEGEN LAYER (cheap, no rebuild)
 
@@ -383,12 +418,54 @@ rule must be named `scratch`"*; `make focus_scratch` generated a parser entered 
 toolbox's own probe surface should not be able to silently answer a different
 question than the one asked.
 
-### `.3` — Record the trace-changes-the-engine trap in `TOOLBOX.md` (`todo`)
+### `.3` — Record the trace-changes-the-engine trap in `TOOLBOX.md` (`done`)
 
-- Independent of the outcome above and useful immediately: `bare_parse` means
-  enabling a trace switches the parser from the cascade engine to the memoized one.
-  A diagnostic session can therefore observe a path that did not produce the verdict
-  being investigated. This belongs in the toolbox as a standing caveat.
+> **Slice `PGEN-QUANT-PLUS-ITER-0002` (session #212) — docs-only.** The charter asked
+> for one caveat; measurement found **two**, and the second is what confounded `.1`'s
+> own first evidence table.
+
+Measured, from the emitted source of every generated parser:
+
+```rust
+self.bare_parse = !self.coverage_enabled && !self.logger_enabled
+    && !self.counters_observed.get()
+    && !crate::ast_pipeline::report_memo_stats_enabled();
+```
+
+1. **Tracing switches the engine** (the charter's ask) — a logger sets
+   `logger_enabled`, so a traced run leaves the fused `cascade_*` graph for the
+   PROTOCOL graph. ⇒ *a traced run is not necessarily the run that produced the
+   untraced verdict.*
+2. ⭐ **`--entry-rule` switches the engine too** (NEW this session) — `parse_from`
+   sets `self.bare_parse = false;` **unconditionally**, measured across **all ten**
+   generated parsers (json, regex, return_annotation, rtl_const_expr, rtl_frontend,
+   scratch, semantic_annotation, systemverilog, systemverilog_preprocessor, vhdl —
+   1/1 each). ⇒ **an `--entry-rule X` vs default comparison varies TWO things.** The
+   remedy is stated with the caveat: pass `--entry-rule` on *both* arms, including
+   the canonical entry, so only the rule name differs.
+
+Both are the same observability-twin routing already documented for memo-stats
+(§3.3) and the counter dumps (§3.4/§3.5) — but neither trace nor `--entry-rule`
+carried a routing note, and both *feel* passive, which is precisely why they mislead.
+
+⭐ **Honest scope of the hazard, measured not assumed:** `.1`'s three-arm control ran
+the same grammar and inputs on both graphs and they **agreed on all four inputs**. So
+this is a *reasoning* hazard — say which graph you observed — **not** a known
+correctness difference; the two graphs are held byte-identical by the
+equivalence/AST oracles (`TOOLBOX.md` §1.6).
+
+**LANDED in `TOOLBOX.md`:**
+- §2.1 — a `⚠️⚠️ ROUTING — TRACING CHANGES WHICH ENGINE RUNS` bullet with the verbatim
+  `bare_parse` computation.
+- §1.1 — a `⚠️⚠️ ROUTING — --entry-rule ALSO CHANGES WHICH ENGINE RUNS` bullet with
+  the both-arms remedy, **plus** a `⭐ FIRST QUESTION ON ANY "THIS RULE MISBEHAVES"`
+  bullet (*is the rule you are testing the rule being run?*) carrying the
+  entry-is-`rule_order[0]` rule, the lint-is-silent warning, and the one
+  cert-coverage command that answers it.
+- The **Quick chooser** table gains a first row routing
+  *"a rule misbehaves / a quantifier iterates once / my rule seems ignored"* to that
+  check — so the question that would have closed `.1` in one command is the first
+  thing a reader meets.
 
 ## Acceptance Criteria (tree)
 
@@ -422,4 +499,5 @@ question than the one asked.
 
 | slice | leaf | commit |
 |---|---|---|
-| `PGEN-QUANT-PLUS-ITER-0001` | `.1` | see git log (session #212, 2026-07-26) |
+| `PGEN-QUANT-PLUS-ITER-0001` | `.1` | `ce71ffaa` (session #212, 2026-07-26) |
+| `PGEN-QUANT-PLUS-ITER-0002` | `.3` (+ `.1` engine control) | see git log (session #212, 2026-07-26) |

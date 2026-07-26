@@ -1,5 +1,28 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0002 — a control that varies two things is not a control
+
+**The lesson is about my own evidence, not about PGEN.** `PGEN-QUANT-PLUS-ITER-0001` proved
+its root cause with a flip: same binary, same grammar, `--entry-rule` toggled, REJECT becomes
+ACCEPT. It was committed as "one variable changed". It was not. `parse_from` sets
+`self.bare_parse = false;` unconditionally in all ten generated parsers, so the `--entry-rule`
+arm also moved the parse from the fused `cascade_*` graph to the protocol graph. The
+conclusion happened to be right; the *evidence for it* was weaker than it read.
+
+The fix is the arm that was missing: run `--entry-rule` on **both** sides, including the
+canonical entry, so the engine is held fixed and only the rule name varies. Doing that turns
+one confounded comparison into two clean ones — engine held fixed (verdicts identical, so the
+engine is not the cause) and start symbol varied (verdicts flip, so it is). That is a
+generalizable habit for this codebase specifically, because PGEN has an *observability twin*:
+several diagnostic surfaces silently re-route the parse onto a different execution graph, so
+"I changed one flag" routinely means "I changed two things". Tracing, `--entry-rule`,
+memo-stats and the counter dumps all do it.
+
+**Why it was found at all:** only because the `.3` note had to be written accurately, which
+meant reading the `bare_parse` computation rather than restating the charter's summary of it.
+A documentation task audited a measurement task. That is worth keeping: writing the caveat
+down forced a re-read that a "the conclusion is already committed" mindset would have skipped.
+
 ## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0001 — six correct exonerations of a loop that never ran
 
 **1. Verify the harness before interrogating the machinery.** Session #211 ruled out `@recover`,
