@@ -1,0 +1,12 @@
+=== 1. LINTER verdict on all three placements ===
+  grammar lint: 'placement_probe' (5 rules) — left_recursive=0 (informational, handled by PGEN), non_terminating=0 (error), ordered_choice_shadowing=0 (error), always_succeeds_alternatives=0 (note), unreachable_rules=0 (error), undefined_references=0 (error), unbound_fact_kinds=0 (error), nullable_repetition=0 (warning), profile_orphans=0 (error; profiles=[])
+  lint exit=0
+
+=== 2. which placements REACH the generated parser ===
+  generate exit=0
+  marker_rule    -> 1 occurrence(s) in the emitted parser
+  marker_branch  -> 1 occurrence(s) in the emitted parser
+  marker_mid     -> 0 occurrence(s) in the emitted parser
+
+=== 3. is ANY diagnostic emitted for a placement that was dropped? ===
+  (none — the drop is SILENT and the exit code is 0)

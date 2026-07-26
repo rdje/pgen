@@ -1,0 +1,11 @@
+# Every placement the meta-grammar admits, same directive, three positions.
+scratch := rule_level_case | branch_start_case | mid_sequence_case
+
+@emit_fact: { kind: "marker_rule", name: "R" }
+rule_level_case := "R" ident
+
+branch_start_case := @emit_fact: { kind: "marker_branch", name: "B" } "B" ident
+
+mid_sequence_case := "M" @emit_fact: { kind: "marker_mid", name: "M" } ident
+
+ident := /[a-z]+/

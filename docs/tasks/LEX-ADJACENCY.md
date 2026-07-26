@@ -339,6 +339,56 @@ probe table):**
    tree needs** — a registry that already captures *which position in which
    branch*. The lexical-adjacency directive wants nothing more than that, honoured.
 
+##### ⭐⭐⭐ FOLLOW-UP DIRECTOR QUESTION (same session) — and it very likely RETIRES the `@lexical_token` invention
+
+Director: *"But we already have lexical annotation support. But not sure if it is
+only consumed by the generator."* … *"Not sure if we need both a semantic annotation
+of lexical purpose or we can use this lexical annotation notation we already
+support."*
+
+**MEASURED** (`artifacts/annotation_placement/lexical_annotation_reach.sh`):
+
+| question | answer |
+|---|---|
+| Is `[> … ]` / `[>! … ]` parser-consumed or generator-only? | ⛔ **GENERATOR-ONLY.** `ast_based_generator.rs` (parser codegen) = **0** hits; `stimuli_generator.rs` = **17**; `ebnf_frontend.rs` = 2 (parses it). The director's suspicion is correct. |
+| Is the notation expressible in PGEN's OWN meta-grammar? | ⛔ **NO.** `grammars/ebnf.ebnf` has **zero** productions for it; `annotation_list := semantic_annotation+` (`:74`) admits only `@`-forms. |
+| Do shipped grammars depend on it? | ✅ yes — `systemverilog_preprocessor.ebnf` carries **12** before-rule lexical annotations. |
+
+⭐ **ANSWER TO THE DESIGN QUESTION: use the EXISTING lexical notation — do NOT add
+`@lexical_token`.** Three independent reasons, none of them taste:
+
+1. **The notation already expresses adjacency directly.** `[>! /\s/]` *is* "must not
+   be followed by white space" — which is IEEE 1800-2017 footnote 44, verbatim. No
+   new vocabulary is needed.
+2. ⭐ **It matches how ECMA-262 writes ASI.** `return [>! /\n/] Expression` is a
+   near-transliteration of the spec's own `return [no LineTerminator here]
+   Expression`. Two independent standards, one notation.
+3. ⭐⭐ **The per-seam inline form was ALREADY DESIGNED — with the director, on
+   2026-06-06** ([[project_lexical_annotations_fourth_pillar]], *Placement*): *"an
+   inline **semantic** annotation binds the **following** item, whereas an inline
+   **lexical** annotation binds the **preceding** item (because it describes what may
+   follow the token it's about)."* That is exactly the per-seam placement directed in
+   #208. The book chapter lists it under *"Still to come: the inline (per-element)
+   form."* **It is specified and unimplemented, not missing.**
+
+⇒ `.1`'s `@lexical_token` was **reinventing an already-designed surface** — a fourth
+instance this session of building on a doc summary instead of measuring the repo.
+The design collapses to two known gaps in an existing feature:
+
+- **(A) implement the inline (per-element) lexical annotation** — designed 2026-06-06,
+  never built;
+- **(B) make lexical annotations PARSER-consumed**, not generator-only — the half that
+  enforces the constraint rather than merely rendering it faithfully. Note this is
+  what makes the primitive **duality-complete** ([[project_horizon_universal_parser]]),
+  and it must satisfy [[project_capability_growth_is_zero_cost_and_neutral]]
+  (compile-away: emit the restriction statically, no per-site runtime check).
+
+⚠️ **(C) a THIRD gap surfaced, and it is a self-hosting defect worth its own routing:**
+PGEN ships a notation its own meta-grammar cannot describe. `ebnf.ebnf` cannot parse
+`systemverilog_preprocessor.ebnf`. That breaks the "EBNF is the sole source of truth"
+posture at the meta level and should be tracked (candidate owner: `EBNF-BOOK` /
+`ANNOTATION-PLACEMENT`, director to route).
+
 **⇒ Consequences for this tree (for the re-adjudicating session):**
 
 - Re-open `.1`'s surface decision and price the **inline** form properly — measured

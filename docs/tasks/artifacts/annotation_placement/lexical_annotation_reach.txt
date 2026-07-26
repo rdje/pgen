@@ -1,0 +1,13 @@
+=== Q1. is the notation consumed by the PARSER codegen, or generator-only? ===
+  ast_pipeline/ast_based_generator.rs            0 hits   <- PARSER codegen
+  ast_pipeline/stimuli_generator.rs              17 hits   <- STIMULI generator
+  ebnf_frontend.rs                               2 hits   <- frontend (parses the notation)
+
+=== Q2. is the notation expressible in PGEN's OWN meta-grammar? ===
+  productions mentioning follow/lexical/restriction in grammars/ebnf.ebnf:
+    (NONE)
+  the annotation position admits only:
+    74:annotation_list := semantic_annotation+
+
+=== Q3. do real shipped grammars depend on it? ===
+  grammars/systemverilog_preprocessor.ebnf     12 before-rule lexical annotation(s)
