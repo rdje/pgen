@@ -63,8 +63,29 @@ the grammar's canonical entry point, so an included file can never silently re-r
 > include vanished silently and the linter then blamed the *referencing rule* for an "undefined
 > reference (likely a typo)" — pointing at everything except the actual cause.
 
-Because all included rules share one flat namespace, **avoid rule-name collisions** across files — two
-files defining the same rule name is a well-formedness concern (`--lint-grammar`).
+### Rule names must be unique across the composed grammar
+
+All included rules share one flat namespace, and **a rule name may be defined by only one file**.
+Two different files defining the same name is a **hard error at load**, naming the rule and both
+files:
+
+```
+duplicate rule definition: 'value' is defined in BOTH 'main.ebnf' and 'shared.ebnf'.
+A rule reference must resolve to exactly one definition, so the same rule name may not be
+defined by two different files. Rename one, or remove the duplicate include.
+```
+
+This is the invariant the whole system rests on: **any rule reference resolves to one and only
+one rule definition.** Before it was enforced, a collision merged silently — one file quietly
+added alternatives to another file's rule, changing what that rule accepted with no diagnostic.
+
+> **Not affected:** repeating a rule header **within a single file**. Those clauses merge into
+> alternatives of one rule and are an established idiom — see
+> [Multi-clause definition](rules-and-expressions.md#multi-clause-definition-repeating-the-header-instead-of-chaining-).
+> The unit of uniqueness is the *file*, not the clause.
+
+There is deliberately **no override mechanism** — you cannot include a base grammar and redefine
+one of its rules. If you need a variant, give it a different name.
 
 ## A real example: the SystemVerilog profiled wrapper
 

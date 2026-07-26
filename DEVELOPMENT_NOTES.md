@@ -1,5 +1,31 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0011 — measure the blast radius before you enforce an invariant, not after
+
+Session #210 (leaf `LANG-CAPABILITY-AUDIT.9`). Two lessons.
+
+**1. An invariant is cheap to state and expensive to scope.** "Any rule definition shall be
+unique" sounds like a one-line check. The first thing done was not writing it but asking *which
+tracked grammars would it fail today* — measured through the real frontend, not a regex (the
+regex disagreed with the loader on three files, which is its own warning). The answer:
+`grammars/json.ebnf` and `grammars/rtl_const_expr.ebnf` both repeat rule headers deliberately,
+because the clauses merge into alternatives and that lets each alternative carry its own return
+annotation. A per-clause uniqueness check would have hard-failed both shipped grammars on the
+first load.
+
+The fix was not to weaken the invariant but to find its correct **unit**: the file, not the
+clause. Repeated headers in one file are one definition written across several lines, so a
+reference still resolves to exactly one rule — the invariant holds, and the check can only fire
+when two distinct files are involved, which makes single-file grammars unaffected *by
+construction* rather than by testing.
+
+**2. A feature nobody documented is a feature nobody can defend.** The multi-clause idiom is
+load-bearing in two shipped grammars and appeared in the grammar-author book exactly once — in
+the includes chapter, described as a "well-formedness concern". Had the blast-radius measurement
+not run, the book would have been the only evidence available, and it pointed the wrong way. The
+same shape this tree keeps hitting: the documentation described a capability inaccurately, and
+anything reasoning from the prose alone inherits the error. Documented properly now.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0010 — a differential gate proves agreement, not correctness
 
 Session #210 (leaf `LANG-CAPABILITY-AUDIT.7`). Three lessons.

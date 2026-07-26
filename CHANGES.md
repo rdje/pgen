@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0011 (leaf `LANG-CAPABILITY-AUDIT.9`) — rule-definition uniqueness across a composed grammar, and the shipped multi-clause idiom finally documented
+
+**Code change.** `rust/src/ebnf_frontend.rs` + two grammar-author book chapters. No release,
+schema, ledger or contract movement.
+
+Director ruling, verbatim: *"when loading a given EBNF file, any rule definition shall be unique
+and any rule reference shall have one and only one rule definition."* That answers the
+error-vs-warning question `.7` left open: **error**, and the "deliberate override" idiom is
+rejected — there is no override mechanism.
+
+**The measurement that shaped the fix.** Enforcing uniqueness per rule *header* would have
+hard-failed two shipped grammars on the first load. Repeating a header is an existing, working
+PGEN idiom: the clauses merge into alternatives of one rule (`start := "a"` + `start := "b"`
+produces two raw_ast entries and `--lint-grammar` reports **1 rule**). `grammars/json.ebnf` uses
+seven `value :=` clauses so each alternative carries its own return annotation, and
+`grammars/rtl_const_expr.ebnf` writes its precedence cascade the same way. Those clauses are one
+definition written across several lines, so the director's invariant already holds for them.
+
+=> **The unit of uniqueness is the FILE, not the clause.** `register_rule_definitions` records
+the distinct rule names each file defines and rejects a name already owned by a different file,
+threaded through the whole composed graph at load. Zero risk to single-file grammars by
+construction: the check can only fire when two distinct files are involved. The diagnostic names
+the rule and **both** files.
+
+**The idiom was documented nowhere** — the book's only mention of repeated rule names was the
+includes chapter calling it a "well-formedness concern", i.e. describing a shipped, load-bearing
+feature as a problem. `rules-and-expressions.md` gains a **Multi-clause definition** section, and
+`includes.md` now states the actual hard-error contract with the quoted diagnostic and an explicit
+"there is deliberately no override mechanism".
+
+**Verified.** Driver extended to **22 declared-verdict cases, exit 0, 0 divergences**: cross-file
+collision exit 1 naming both files; within-file multi-clause still merges to 1 rule; json.ebnf 9
+and rtl_const_expr.ebnf 48 unchanged; a diamond does not false-positive. Blast radius was measured
+before the change rather than assumed — every tracked grammar was re-scanned through the real
+frontend, and only json, rtl_const_expr and the throwaway scratch slot carry repeats, all
+within-file. clippy strict source 0 errors and 0 hits on the changed file;
+`ebnf_frontend_dual_run_gate` GREEN (ebnf 131/131); `ebnf_parser_book_gate` GREEN; 9/9 doctrines.
+
+**The one open reading — CLOSED by the director, same session.** The leaf shipped with one
+question routed rather than absorbed: under a literal reading of the ruling, the within-file
+idiom would also be forbidden, meaning two shipped grammars rewritten into `|` chains with
+return-annotation and AST-shape risk. The director confirmed the reading taken here, verbatim:
+*"You are right, I forgot this `RuleA := Branch_A | Branch_B | Branch_C` is the same as 3 rules
+productions like `RuleA := Branch_A` then `RuleA := Branch_B` and `RuleA := Branch_C`"* => no
+follow-up leaf, no grammar rewritten, file-scoped uniqueness is the complete enforcement. Note
+that the question arose only because the idiom was documented nowhere — even its author needed
+reminding it existed, which is the strongest case for the book section this leaf adds.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0010 (leaf `LANG-CAPABILITY-AUDIT.7`) — include() reinstated for every EBNF consumer, and the detection failure root-caused
 
 **Code change.** `rust/src/ebnf_frontend.rs` (include resolution) + `grammars/ebnf.ebnf` (a

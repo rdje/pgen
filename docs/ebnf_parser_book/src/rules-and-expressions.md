@@ -53,6 +53,35 @@ sign := "+" -> {kind: "plus"}
       | "-" -> {kind: "minus"}
 ```
 
+### Multi-clause definition: repeating the header instead of chaining `|`
+
+You may also write each alternative as its **own clause**, repeating the rule name. The clauses
+merge into alternatives of a single rule — `start := "a"` followed by `start := "b"` is the same
+rule as `start := "a" | "b"`, and `--lint-grammar` counts it as **one** rule:
+
+```ebnf
+value := object                -> $1
+value := array                 -> $1
+value := /\s*true\s*/          -> {type: "boolean", value: true}
+value := /\s*null\s*/          -> {type: "null"}
+```
+
+This is the BNF-style spelling, and it is the better choice when each alternative carries a
+substantial return annotation: the annotation sits next to the alternative it shapes instead of
+trailing a long `|` chain. Two shipped grammars use it — `grammars/json.ebnf` (seven `value`
+clauses, exactly as above) and `grammars/rtl_const_expr.ebnf`, whose precedence cascade reads
+naturally one clause per production.
+
+Selection semantics are identical to `|`: the clauses form one ordered set of alternatives under
+the rule's effective `@branch_policy`. Which form you use is a readability choice, not a semantic
+one.
+
+> ⛔ **The clauses must live in the SAME file.** Two *different* files defining the same rule name
+> is a hard error at load — see [The Include System](includes.md). Repeated headers within one
+> file are one definition written across several lines; the same name arriving from two files is
+> an ambiguity, and it used to merge silently, with one file quietly adding alternatives to
+> another file's rule.
+
 ## Sequences
 
 Writing elements one after another matches them in order:

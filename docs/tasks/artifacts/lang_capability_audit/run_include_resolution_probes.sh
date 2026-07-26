@@ -180,6 +180,33 @@ fi
 echo "  (--lint-grammar is covered by case 1; the parse harness and the equivalence"
 echo "   suite call the same entry point, so they inherit resolution identically.)"
 
+echo
+echo "=== 8. RULE-DEFINITION UNIQUENESS (.9 — director ruling) ==="
+# "when loading a given EBNF file, any rule definition shall be unique and any rule
+# reference shall have one and only one rule definition."
+#
+# The unit of uniqueness is the FILE, not the clause. Repeating a header WITHIN one file
+# is an established PGEN idiom — the clauses merge into alternatives of a single rule, so
+# a reference still resolves to exactly one definition. Two DIFFERENT files defining the
+# same name is the case with no such intent, and it used to merge silently.
+mkdir -p "$WORK/uniq"
+printf 'value := "x"\n'                                    > "$WORK/uniq/other.ebnf"
+printf 'include("other")\n\nstart := value\nvalue := "y"\n' > "$WORK/uniq/collide.ebnf"
+want_exit "$WORK/uniq/collide.ebnf" 1 'CROSS-FILE duplicate definition is rejected'
+echo "  --- the diagnostic names the rule and BOTH files: ---"
+timeout 120 "$PIPELINE" "$WORK/uniq/collide.ebnf" --lint-grammar 2>&1 |
+  grep -F "duplicate rule definition" | head -1 | cut -c1-96 | sed 's/^/    /'
+
+# The idiom must survive. These two are TRACKED, SHIPPED grammars that depend on it:
+# json.ebnf gives each `value` alternative its own return annotation across 7 clauses,
+# and rtl_const_expr.ebnf writes its precedence cascade the same way.
+printf 'start := "a"\nstart := "b"\n' > "$WORK/uniq/multi.ebnf"
+want_rules "$WORK/uniq/multi.ebnf" 1 'WITHIN-FILE multi-clause merges to one rule'
+want_rules grammars/json.ebnf            9  'json.ebnf (7 `value` clauses) still loads'
+want_rules grammars/rtl_const_expr.ebnf  48 'rtl_const_expr.ebnf (cascade clauses) still loads'
+# A diamond visits the shared file twice but defines its rules once — must not false-positive.
+want_rules "$WORK/graph/top.ebnf" 4 'DIAMOND does not false-positive as a duplicate'
+
 printf '\n=== SUMMARY ===\n'
 printf 'declared-verdict divergences (⛔): %s\n' "$GAPS"
 [[ "$GAPS" -eq 0 ]] && { echo "all probes matched their declared verdicts"; exit 0; }

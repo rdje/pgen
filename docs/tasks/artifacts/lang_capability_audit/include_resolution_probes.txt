@@ -15,9 +15,9 @@ binary: rust/target/debug/ast_pipeline
   OK  missing include target fails the load                exit=1      [want 1]
   --- the diagnostic names the spec, the directive and the search path: ---
     Error: unresolvable include in 
-    '/var/folders/4h/29gg6nrx2pj9wfjkzc460hlr0000gn/T/tmp.aYlyozhGw3/bad.ebnf': 'does_not_exist' (from 
+    '/var/folders/4h/29gg6nrx2pj9wfjkzc460hlr0000gn/T/tmp.GLnoirp00h/bad.ebnf': 'does_not_exist' (from 
     `include("does_not_exist")`) was not found on the include search path 
-    [/var/folders/4h/29gg6nrx2pj9wfjkzc460hlr0000gn/T/tmp.aYlyozhGw3, .]. Add the file, fix the name, 
+    [/var/folders/4h/29gg6nrx2pj9wfjkzc460hlr0000gn/T/tmp.GLnoirp00h, .]. Add the file, fix the name, 
     or extend $EBNF_INCLUDES.
 
 === 4. GRAPH SEMANTICS — cycles, diamonds, depth, spelling ===
@@ -43,6 +43,15 @@ binary: rust/target/debug/ast_pipeline
   OK  RAW-AST export (the pipeline input)                  raw_ast=start,digit
   (--lint-grammar is covered by case 1; the parse harness and the equivalence
    suite call the same entry point, so they inherit resolution identically.)
+
+=== 8. RULE-DEFINITION UNIQUENESS (.9 — director ruling) ===
+  OK  CROSS-FILE duplicate definition is rejected          exit=1      [want 1]
+  --- the diagnostic names the rule and BOTH files: ---
+    Error: duplicate rule definition: 'value' is defined in BOTH '/var/folders/4h/29gg6nrx2pj9wfjkzc
+  OK  WITHIN-FILE multi-clause merges to one rule          rules=1      [want 1]
+  OK  json.ebnf (7 `value` clauses) still loads            rules=9      [want 9]
+  OK  rtl_const_expr.ebnf (cascade clauses) still loads    rules=48     [want 48]
+  OK  DIAMOND does not false-positive as a duplicate       rules=4      [want 4]
 
 === SUMMARY ===
 declared-verdict divergences (⛔): 0

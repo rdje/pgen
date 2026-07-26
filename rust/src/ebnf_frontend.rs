@@ -412,6 +412,54 @@ fn resolve_include_dir(spec: &str, search_path: &[PathBuf]) -> Option<Vec<PathBu
 /// downstream reachability and linting treat `rule_order[0]` as the canonical
 /// entry rule. Letting an included file supply rule 0 would silently re-root the
 /// grammar.
+/// LANG-CAPABILITY-AUDIT.9 — record which file defines each rule name, and reject a
+/// name defined by more than one file.
+///
+/// Director ruling (2026-07-26): *"when loading a given EBNF file, any rule definition
+/// shall be unique and any rule reference shall have one and only one rule definition."*
+///
+/// ⚠️ The unit of uniqueness is the **file**, not the clause, and that distinction is
+/// load-bearing. Repeating a header **within one file** is an established PGEN idiom —
+/// the clauses merge into alternatives of a single rule, which is how `grammars/json.ebnf`
+/// gives each `value` alternative its own return annotation and how
+/// `grammars/rtl_const_expr.ebnf` writes its precedence cascade. Those clauses are one
+/// definition, written across several lines, so a reference still resolves to exactly one
+/// rule.
+///
+/// Two *different files* defining the same name is the case with no such intent: before
+/// this check, the merge happened silently and one file quietly added alternatives to
+/// another file's rule. That is what is rejected here.
+fn register_rule_definitions(
+    rules: &[ScannedRule],
+    file_label: &str,
+    owners: &mut std::collections::BTreeMap<String, String>,
+) -> Result<()> {
+    let mut names_in_this_file: BTreeSet<&str> = BTreeSet::new();
+    for rule in rules {
+        names_in_this_file.insert(rule.name.as_str());
+    }
+
+    for name in names_in_this_file {
+        if let Some(previous) = owners.get(name) {
+            if previous != file_label {
+                return Err(anyhow!(
+                    "duplicate rule definition: '{}' is defined in BOTH '{}' and '{}'. A rule \
+                     reference must resolve to exactly one definition, so the same rule name may \
+                     not be defined by two different files. Rename one, or remove the duplicate \
+                     include. (Repeating a header WITHIN one file is fine — those clauses merge \
+                     into alternatives of a single rule.)",
+                    name,
+                    previous,
+                    file_label
+                ));
+            }
+        } else {
+            owners.insert(name.to_string(), file_label.to_string());
+        }
+    }
+    Ok(())
+}
+
 fn scan_rules_with_includes(input: &str, source_file: Option<&str>) -> Result<Vec<ScannedRule>> {
     let base_dir = source_file
         .map(Path::new)
@@ -426,13 +474,18 @@ fn scan_rules_with_includes(input: &str, source_file: Option<&str>) -> Result<Ve
         }
     }
 
+    let origin = source_file.unwrap_or("<memory>");
     let mut rules = scan_top_level_rules(input)?;
+    let mut owners: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
+    register_rule_definitions(&rules, origin, &mut owners)?;
+
     let included = collect_included_rules(
         input,
         base_dir.as_deref(),
         &[],
         &mut visited,
-        source_file.unwrap_or("<memory>"),
+        origin,
+        &mut owners,
     )?;
     rules.extend(included);
     Ok(rules)
@@ -451,6 +504,7 @@ fn collect_included_rules(
     inherited_dirs: &[PathBuf],
     visited: &mut BTreeSet<PathBuf>,
     origin: &str,
+    owners: &mut std::collections::BTreeMap<String, String>,
 ) -> Result<Vec<ScannedRule>> {
     let directives = scan_include_directives(input);
     if directives.is_empty() {
@@ -518,15 +572,19 @@ fn collect_included_rules(
                 }
                 nested_inherited.extend_from_slice(inherited_dirs);
 
-                collected.extend(scan_top_level_rules(&contents).with_context(|| {
+                let file_rules = scan_top_level_rules(&contents).with_context(|| {
                     format!("failed to scan included EBNF file '{}'", target_display)
-                })?);
+                })?;
+                register_rule_definitions(&file_rules, &target_display, owners)?;
+                collected.extend(file_rules);
+
                 collected.extend(collect_included_rules(
                     &contents,
                     nested_base.as_deref(),
                     &nested_inherited,
                     visited,
                     &target_display,
+                    owners,
                 )?);
             }
         }

@@ -1038,25 +1038,108 @@ what the director ordered here. → new leaf `.9`.
   `docs/ebnf_parser_book/src`) — a shipped steering surface with no author-facing
   documentation at all. Once it works, it needs a chapter.
 
-### `.9` — Cross-file rule-name collisions resolve silently (`todo`)
+### `.9` — Rule-definition uniqueness across a composed grammar (`done`)
 
-- **Status: `todo`**, opened by `.7` and named there rather than absorbed into it.
-- Now that `include()` composes for real, two files may define the same rule name. The
-  author book already warns about it (*"avoid rule-name collisions across files — two files
-  defining the same rule name is a well-formedness concern (`--lint-grammar`)"*), but the
-  linter has **no duplicate-definition check**: the combined grammar simply carries both and
-  one silently wins.
-- ⚠️ This is the tree's recurring shape yet again — the book promises a check that does not
-  exist, so the tool returns green on a real defect
-  ([`ANNOTATION-PLACEMENT`](ANNOTATION-PLACEMENT.md)'s principle). It became *reachable*
-  only when `.7` made composition work, so it is new exposure, not pre-existing debt.
-- Scope: measure which of {first wins, last wins, both retained} actually happens today,
-  then add a `duplicate_rule_definitions` lint reporting the name and **both** source files
-  — the file provenance is the whole value, and `ScannedRule` does not carry it yet.
-- ⚠️ Decide deliberately whether a collision is an ERROR or a WARNING: a *deliberate
-  override* ("include the base grammar, then redefine two rules") is a plausible and
-  useful composition idiom, and making it a hard error would forbid it. That is a director
-  -visible design call, not an implementation detail.
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0011`, session #210). **Code change** —
+  `rust/src/ebnf_frontend.rs`, plus the two book surfaces.
+- ⭐⭐ **DIRECTOR RULING (2026-07-26), verbatim:** *"when loading a given EBNF file, any rule
+  definition shall be unique and any rule reference shall have one and only one rule
+  definition."* ⇒ the error-vs-warning question `.7` left open is answered: **error**, and
+  the *deliberate override* idiom is rejected outright. No override mechanism exists.
+
+#### ⭐⭐ THE MEASUREMENT THAT SHAPED THE FIX — "unique" cannot mean per-clause
+
+The charter was going to enforce uniqueness per rule header. **Measuring first stopped that
+from breaking two shipped grammars.** Repeating a rule header is an existing, working PGEN
+idiom: the clauses **merge into alternatives of one rule**. Measured on the shipping binary —
+`start := "a"` + `start := "b"` produces two raw_ast entries and `--lint-grammar` reports
+**1 rule**.
+
+And it is not incidental; two **tracked** grammars are built on it:
+
+| grammar | loads as | uses it for |
+|---|---|---|
+| `grammars/json.ebnf` | 19 raw_ast entries → **9 rules** | seven `value :=` clauses, each with **its own return annotation** — far more readable than one `\|` chain of seven annotated branches |
+| `grammars/rtl_const_expr.ebnf` | 56 entries → **48 rules** | the precedence cascade, one clause per production (`unary_expr` ×5, `primary_expr` ×3, `conditional_expr`/`literal` ×2) |
+
+⇒ **the unit of uniqueness is the FILE, not the clause.** Those clauses are *one definition
+written across several lines*, so a reference still resolves to exactly one rule — the
+director's invariant holds. Enforcing per-clause uniqueness would have hard-failed the load
+of `json` and `rtl_const_expr` on the first run.
+
+⚠️ **The idiom was documented NOWHERE.** The only mention of repeated rule names anywhere in
+the grammar-author book was the includes chapter warning that it is a *"well-formedness
+concern"* — i.e. the book's sole statement on the subject described a shipped, load-bearing
+feature as a problem. Fixed here (see LOCKSTEP).
+
+#### The fix
+
+`register_rule_definitions` records, per **file**, the distinct rule names it defines, and
+rejects a name already owned by a *different* file. Threaded through `scan_rules_with_includes`
+and `collect_included_rules`, so it covers the whole composed graph at load — every EBNF
+consumer inherits it through the same chokepoint `.7` established.
+
+⭐ **Zero risk to single-file grammars by construction:** the check can only fire when two
+distinct files are involved, so a grammar with no includes cannot be affected no matter how
+many clauses it repeats.
+
+The diagnostic names the rule **and both files**, because the provenance is the entire value
+of the check:
+
+```
+duplicate rule definition: 'value' is defined in BOTH 'main.ebnf' and 'other.ebnf'.
+A rule reference must resolve to exactly one definition, so the same rule name may not be
+defined by two different files. Rename one, or remove the duplicate include.
+(Repeating a header WITHIN one file is fine — those clauses merge into alternatives of a
+single rule.)
+```
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `.7` made composition real, which made cross-file collisions
+    *reachable*: two files defining one name merged silently, one file adding alternatives to
+    another file's rule with no diagnostic. New exposure, not pre-existing debt.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — composition in `scan_rules_with_includes` concatenated
+    rule lists with no name bookkeeping, and the linter has no duplicate-definition check, so
+    the merge was indistinguishable from the intentional within-file idiom.
+  - [x] **FIX** — `register_rule_definitions` (`ebnf_frontend.rs`), file-scoped ownership,
+    hard error naming both files.
+  - [x] **ADDRESSED (verified)** — driver extended to **22 declared-verdict cases, exit 0, 0
+    divergences**: cross-file collision **exit 1** with both files named; within-file
+    multi-clause still merges to 1 rule; `json.ebnf` **9** and `rtl_const_expr.ebnf` **48**
+    unchanged; ⭐ a **diamond does not false-positive** (the shared file is visited once, so
+    its names are registered once).
+  - [x] **NO REGRESSION** — every tracked grammar re-measured through the real frontend for
+    duplicate definitions before the change, so the blast radius was known, not assumed: only
+    `json`, `rtl_const_expr` and the throwaway `scratch` slot carry repeats, **all
+    within-file**, hence all unaffected. `.7`'s full probe bank re-run green (SV wrapper 1403,
+    two-file compose 2, five no-include grammars pinned). clippy strict source **0 errors, 0
+    hits on the changed file**; `ebnf_frontend_dual_run_gate` GREEN; `ebnf_parser_book_gate`
+    GREEN; all 9 doctrines PASS. No release, schema, ledger or contract movement.
+  - [x] **LOCKSTEP** — `includes.md`'s vague *"well-formedness concern"* line replaced with
+    the actual hard-error contract, the quoted diagnostic, and an explicit *"there is
+    deliberately no override mechanism"*; and `rules-and-expressions.md` gains a new
+    **Multi-clause definition** section documenting the previously-undocumented idiom, with
+    the same-file constraint stated and cross-linked both ways.
+
+#### ✅ THE ONE OPEN READING — CLOSED BY THE DIRECTOR, SAME SESSION
+
+The leaf shipped with one question deliberately routed rather than absorbed: under a *literal*
+reading of the ruling ("any rule definition shall be unique"), the within-file multi-clause
+idiom would also be forbidden and two shipped grammars would need rewriting into `|` chains.
+This leaf took the reading under which the ruling's stated *purpose* holds — a reference
+resolves to exactly one definition — because the clauses **are** one definition.
+
+⭐ **The director confirmed that reading immediately, verbatim (2026-07-26, session #210):**
+*"You are right, I forgot this `RuleA := Branch_A | Branch_B | Branch_C` is the same as 3 rules
+productions like `RuleA := Branch_A` then `RuleA := Branch_B` and `RuleA := Branch_C`"*
+
+⇒ **no follow-up leaf is needed and no shipped grammar is rewritten.** The equivalence is
+confirmed at the source: the two spellings are the same rule, so file-scoped uniqueness is the
+correct and complete enforcement of the ruling. ⚠️ Worth noting *why* the question arose at all
+— the idiom was **documented nowhere**, so even its author had to be reminded it existed. That
+is the strongest possible argument for the book section this leaf adds, and one more instance of
+the tree's recurring finding: **an undocumented capability is one nobody can defend, including
+the person who specified it.**
 
 ### `.3c` — Keep widening the matrix with further notoriously-hard languages (`todo`)
 

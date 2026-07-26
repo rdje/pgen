@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bad91114.js";
+            window.path_to_searchindex_js = "searchindex-4bb09ec8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -222,6 +222,30 @@ may also carry its <strong>own</strong> inline <code>-&gt; …</code> return ann
 <pre><code class="language-ebnf">sign := "+" -&gt; {kind: "plus"}
       | "-" -&gt; {kind: "minus"}
 </code></pre>
+<h3 id="multi-clause-definition-repeating-the-header-instead-of-chaining-"><a class="header" href="#multi-clause-definition-repeating-the-header-instead-of-chaining-">Multi-clause definition: repeating the header instead of chaining <code>|</code></a></h3>
+<p>You may also write each alternative as its <strong>own clause</strong>, repeating the rule name. The clauses
+merge into alternatives of a single rule — <code>start := "a"</code> followed by <code>start := "b"</code> is the same
+rule as <code>start := "a" | "b"</code>, and <code>--lint-grammar</code> counts it as <strong>one</strong> rule:</p>
+<pre><code class="language-ebnf">value := object                -&gt; $1
+value := array                 -&gt; $1
+value := /\s*true\s*/          -&gt; {type: "boolean", value: true}
+value := /\s*null\s*/          -&gt; {type: "null"}
+</code></pre>
+<p>This is the BNF-style spelling, and it is the better choice when each alternative carries a
+substantial return annotation: the annotation sits next to the alternative it shapes instead of
+trailing a long <code>|</code> chain. Two shipped grammars use it — <code>grammars/json.ebnf</code> (seven <code>value</code>
+clauses, exactly as above) and <code>grammars/rtl_const_expr.ebnf</code>, whose precedence cascade reads
+naturally one clause per production.</p>
+<p>Selection semantics are identical to <code>|</code>: the clauses form one ordered set of alternatives under
+the rule’s effective <code>@branch_policy</code>. Which form you use is a readability choice, not a semantic
+one.</p>
+<blockquote>
+<p>⛔ <strong>The clauses must live in the SAME file.</strong> Two <em>different</em> files defining the same rule name
+is a hard error at load — see <a href="includes.html">The Include System</a>. Repeated headers within one
+file are one definition written across several lines; the same name arriving from two files is
+an ambiguity, and it used to merge silently, with one file quietly adding alternatives to
+another file’s rule.</p>
+</blockquote>
 <h2 id="sequences"><a class="header" href="#sequences">Sequences</a></h2>
 <p>Writing elements one after another matches them in order:</p>
 <pre><code class="language-ebnf">port := direction data_type identifier ";"

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bad91114.js";
+            window.path_to_searchindex_js = "searchindex-4bb09ec8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -239,8 +239,25 @@ search path that was tried. It is never skipped. Before this was enforced, a mis
 include vanished silently and the linter then blamed the <em>referencing rule</em> for an “undefined
 reference (likely a typo)” — pointing at everything except the actual cause.</p>
 </blockquote>
-<p>Because all included rules share one flat namespace, <strong>avoid rule-name collisions</strong> across files — two
-files defining the same rule name is a well-formedness concern (<code>--lint-grammar</code>).</p>
+<h3 id="rule-names-must-be-unique-across-the-composed-grammar"><a class="header" href="#rule-names-must-be-unique-across-the-composed-grammar">Rule names must be unique across the composed grammar</a></h3>
+<p>All included rules share one flat namespace, and <strong>a rule name may be defined by only one file</strong>.
+Two different files defining the same name is a <strong>hard error at load</strong>, naming the rule and both
+files:</p>
+<pre><code>duplicate rule definition: 'value' is defined in BOTH 'main.ebnf' and 'shared.ebnf'.
+A rule reference must resolve to exactly one definition, so the same rule name may not be
+defined by two different files. Rename one, or remove the duplicate include.
+</code></pre>
+<p>This is the invariant the whole system rests on: <strong>any rule reference resolves to one and only
+one rule definition.</strong> Before it was enforced, a collision merged silently — one file quietly
+added alternatives to another file’s rule, changing what that rule accepted with no diagnostic.</p>
+<blockquote>
+<p><strong>Not affected:</strong> repeating a rule header <strong>within a single file</strong>. Those clauses merge into
+alternatives of one rule and are an established idiom — see
+<a href="rules-and-expressions.html#multi-clause-definition-repeating-the-header-instead-of-chaining-">Multi-clause definition</a>.
+The unit of uniqueness is the <em>file</em>, not the clause.</p>
+</blockquote>
+<p>There is deliberately <strong>no override mechanism</strong> — you cannot include a base grammar and redefine
+one of its rules. If you need a variant, give it a different name.</p>
 <h2 id="a-real-example-the-systemverilog-profiled-wrapper"><a class="header" href="#a-real-example-the-systemverilog-profiled-wrapper">A real example: the SystemVerilog profiled wrapper</a></h2>
 <p><code>grammars/systemverilog_lrm_profiled_wrapper.ebnf</code> is a 32-line file whose body is one directive:</p>
 <pre><code class="language-ebnf">include("systemverilog_lrm_profiled_generated")
