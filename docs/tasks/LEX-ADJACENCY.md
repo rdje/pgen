@@ -344,12 +344,28 @@ probe table):**
 - Re-open `.1`'s surface decision and price the **inline** form properly — measured
   this time, on both halves. The rule-level form may survive as a *convenience
   shorthand* ("this whole rule is one token") but it must not be the only surface.
-- This tree is now **coupled to `INLINE-ACTIONS`**: per-seam lexical adjacency needs
-  mid-sequence inline directives to actually fire. Adjudicate whether `.2` depends
-  on an `INLINE-ACTIONS` leaf landing first, or whether the lexical directive is
-  compile-time-only (it steers codegen + the generator, and may not need the
-  parse-time *action* machinery at all — a real distinction worth measuring, since
-  it could decouple the two trees entirely).
+- ⭐⭐ **FIRST MEASUREMENT OF THE RE-ADJUDICATION — promoted to a load-bearing test
+  by the director's governing invariant** ([[project_capability_growth_is_zero_cost_and_neutral]],
+  2026-07-26 #208: capability growth must cost neither parser-neutrality nor
+  theoretical peak speed, and the mechanism is COMPILE AWAY): **is the per-seam
+  lexical directive compile-time-only, or does it need parse-time evaluation?**
+  - **compile-time-only** (it steers codegen + the stimuli generator) ⇒ satisfies
+    the invariant by construction, costs a bare parse nothing, and **DECOUPLES this
+    tree from `INLINE-ACTIONS` entirely** — the directive would need the inline
+    *placement* to be readable at codegen time, but not the parse-time **action**
+    machinery `INLINE-ACTIONS` would complete;
+  - **needs a per-sequence-position runtime check** ⇒ that is a constraint-2
+    violation and the design must be reworked **before** implementation, not after.
+  This is no longer a footnote — it decides both the cost model and the tree
+  dependency, so it runs first.
+- Pending that answer, this tree is **potentially coupled to `INLINE-ACTIONS`**:
+  if any part of the per-seam form needs mid-sequence directives to actually fire,
+  an `INLINE-ACTIONS` leaf must land first (its measured table shows mid-sequence
+  directives are extracted into `branch_mid_sequence_semantic_annotations` and then
+  never compiled).
+- **Cost model is now a required part of the surface proposal** (invariant, test 1):
+  a grammar WITHOUT the directive must produce a **byte-identical** parser — not
+  "negligible overhead", identical.
 - The director's closing sentence is the general principle, recorded in layer C as
   [[project_ebnf_steers_the_engine_at_full_granularity]]: **the EBNF is the sole
   source of truth for steering a parser-neutral, parser-agnostic engine — at the
