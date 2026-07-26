@@ -2,6 +2,7 @@
 # This grammar parses FSM condition and assignment expressions into ASTs
 
 # Top-level expression entry point
+@entry: true
 expression := logical_or_expr -> $1
 
 # Logical operations (in order of precedence, lowest to highest)

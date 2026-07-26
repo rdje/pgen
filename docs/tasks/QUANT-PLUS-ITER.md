@@ -378,7 +378,7 @@ names, and the reason `.1` opened by *measuring* the emitted dispatch rather tha
 following the steer. ⭐ Two seconds of `grep` retired a hypothesis budgeted at
 multiple 19-minute rebuilds.
 
-### `.2` — declare the entry rule in the EBNF: `@entry` (increment 1) (**step A `done`**; steps B/C open)
+### `.2` — declare the entry rule in the EBNF: `@entry` (increment 1) (`done` — steps A + B + C)
 
 > ⭐⭐⭐ **DIRECTOR-APPROVED, 2026-07-26 session #212.** Raised by the director on
 > reading `.1` (verbatim: *"ok do you need a way to explicitly indicate the entry rule
@@ -663,6 +663,58 @@ shows the gap closing rather than the evidence being quietly edited.
 - clippy source-strict **0 errors**; the one finding on new code (a redundant closure)
   fixed. Generated-stage debt is the tracked non-strict baseline, untouched.
 - `ebnf_parser_book_gate` GREEN (tracked HTML re-rendered).
+
+#### Steps B + C — LANDED (session #212, director: *"ok do B+C next"*)
+
+**Step B — migration.** `@entry: true` added to **58** tracked `.ebnf` files, each
+directly above the rule that was already `rule_order[0]`, so every one is a **no-op
+reorder** by construction. Deliberately excluded, with cause:
+
+| excluded | count | why |
+|---|---|---|
+| `docs/tasks/artifacts/**`, `stability_test_results/**` | 20 | captured historical evidence + generated outputs — editing them would rewrite the record |
+| `test_includes/common_rules.ebnf`, `operators/{basic,advanced}.ebnf` | 3 | **include FRAGMENTS** — the requirement is one `@entry` in the **MAIN** file; a fragment declaring one too would make the spliced grammar declare **two** (verified: reverted after the sweep flagged them) |
+| `grammars/systemverilog_lrm_profiled_generated.ebnf` | 1 | included by the wrapper |
+
+Plus **63 synthetic grammars** inside the parse-harness oracles (27 combinator + 36
+semantic), migrated in place so the suites exercise the real requirement rather than
+being exempted from it.
+
+⭐⭐⭐ **THE BYTE-IDENTITY ORACLE CAUGHT A REAL ZERO-COST VIOLATION — the migration was
+NOT inert on the first attempt, and the prediction in this leaf was WRONG.** Adding
+`@entry: true` flipped **8 of 10** generated parsers off byte-identity. Root cause,
+read from the emitted diff rather than guessed: a rule carrying ANY semantic
+annotation is pushed onto the full `with_semantic_runtime_rule_transaction` path — so
+the **entry rule, the hottest rule in any parser**, gained a transaction frame purely
+for carrying a directive that compiles to zero runtime directives. ⛔ That violates the
+standing acceptance test (*non-users pay ZERO; users pay at CODEGEN time, never per
+parse step*) on the worst possible rule.
+
+**Fix — an existing, precedented mechanism, not a new one:** `@entry` joins the
+inertness allowlist in `rule_has_no_semantic_annotations` alongside
+`@whitespace_sensitive` / `@default_profile` / `@profile_alias` /
+`@quantified_separator` / `@gen_emit_fact` / `@gen_predicate`. A mirroring unit test
+(`entry_directive_keeps_the_annotated_rule_on_the_fast_path`) pins it so the leak
+cannot return silently — modelled on the `@quantified_separator` test that exists
+because the *same* leak happened before.
+
+⇒ after the fix: **10/10 byte-identical**, so the whole migration is provably inert.
+
+**Step C — mandatory.** A main EBNF with no `@entry: true` is now refused at the
+grammar-load chokepoint with an actionable message naming the rule to annotate. The
+positional `rule_order[0]` fallback is **gone** — which is the point: it *was* the
+silent-re-rooting hazard. `@entry: false` declares nothing, so it is refused too.
+
+⭐ **Both probe drivers went RED and were RE-PINNED, not deleted** — `.1`'s driver
+asserted the very order-sensitivity that step C makes impossible, so it now asserts
+the **refusal** instead. The record shows the defect class closing rather than the
+evidence being quietly edited.
+
+⚠️ **KNOWN BOUND, named not hidden:** "main EBNF file" is enforced as *"the grammar as
+loaded"*. Because `.7` splices includes **before** this check, a declaration sitting in
+an *included* file would satisfy it. Closing that needs annotation-level provenance
+(`.9` added rule-level per-file ownership; the annotation side is not threaded yet).
+Recorded for `.4`.
 
 #### Acceptance Checklist (enforced)
 

@@ -9,7 +9,7 @@
 #       @entry: true
 #       program := statement+       # <- "this rule is the entry"
 #
-#   Absent => the entry stays `rule_order[0]` (the positional default, unchanged).
+#   Absent => REFUSED (step C): a main EBNF file shall contain one and only one.
 #   `--entry-rule <name>` on the CLI OUTRANKS a declared `@entry` (director rule).
 #
 # WHY IT EXISTS (director, 2026-07-26): in EBNF a grammar is a SET of productions —
@@ -74,8 +74,12 @@ dispatch_of() {  # $1 = grammar file, rest = extra ast_pipeline args
 echo "--- 1. the directive decides the entry, against file order -------------------"
 expect "declared @entry on the LAST-defined rule -> dispatch" \
        "self.parse_scratch()" "$(dispatch_of "$WORK/declared.ebnf")"
-expect "no declaration -> positional default (unchanged)" \
-       "self.parse_stmt()"    "$(dispatch_of "$WORK/positional.ebnf")"
+# STEP C: a main EBNF with no `@entry: true` is REFUSED, so there is no positional
+# default left to fall back to — that fallback WAS the silent-re-rooting hazard.
+undeclared_out="$("$PIPELINE" "$WORK/positional.ebnf" --lint-grammar 2>&1)"; undeclared_rc=$?
+expect "no declaration -> REFUSED (step C: @entry is mandatory)" "1" "$undeclared_rc"
+expect "…refusal names the one-and-only-one contract" "1" \
+       "$(printf '%s' "$undeclared_out" | grep -c 'one and only one')"
 echo
 
 echo "--- 2. --entry-rule OUTRANKS @entry (director rule) --------------------------"
@@ -88,10 +92,10 @@ expect "--entry-rule naming an undefined rule -> named error" "1" \
 echo
 
 echo "--- 3. the linter now REPORTS the resolved entry -----------------------------"
-lint_declared="$("$PIPELINE" "$WORK/declared.ebnf" --lint-grammar 2>&1 | grep -c "entry rule 'scratch' — DECLARED via")"
+lint_declared="$("$PIPELINE" "$WORK/declared.ebnf" --lint-grammar 2>&1 | grep -c "entry rule 'scratch' — declared via")"
 expect "lint names a DECLARED entry" "1" "$lint_declared"
-lint_positional="$("$PIPELINE" "$WORK/positional.ebnf" --lint-grammar 2>&1 | grep -c "entry rule 'stmt' — POSITIONAL")"
-expect "lint names a POSITIONAL entry (and says how to declare it)" "1" "$lint_positional"
+expect "lint reports no POSITIONAL case (step C removed the fallback)" "0" \
+       "$("$PIPELINE" "$WORK/declared.ebnf" --lint-grammar 2>&1 | grep -c "POSITIONAL")"
 echo
 
 echo "--- 4. 'ONE AND ONLY ONE' + placement, all HALT rather than drop -------------"
@@ -108,7 +112,9 @@ check_err() { # <label> <file> <expected_rc> <needle>
 check_err "@entry on TWO rules"                "$WORK/two.ebnf"     1 "declared on more than one rule"
 check_err "@entry inline inside a rule body"   "$WORK/inline.ebnf"  1 "marks a whole RULE"
 check_err "@entry with a rule-NAME payload"    "$WORK/payload.ebnf" 1 "expects the boolean"
-check_err "@entry: false (explicit no-op)"     "$WORK/false.ebnf"   0 ""
+# `@entry: false` is an explicit no-op, so the grammar declares NO entry — which
+# step C refuses. Both facts hold together; this pins the composition.
+check_err "@entry: false = declares nothing -> REFUSED"  "$WORK/false.ebnf" 1 "one and only one"
 echo
 
 echo "============================================================================"

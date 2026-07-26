@@ -1,4 +1,5 @@
 # Test: Nested object should be rejected by bootstrap mode
+@entry: true
 test_rule = "outer" "inner"
   -> {
     "outer": {

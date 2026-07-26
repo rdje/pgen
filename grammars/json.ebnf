@@ -1,6 +1,7 @@
 # Simplified JSON Grammar using regex syntax
 # Covers basic JSON structure with realistic string and number patterns
 
+@entry: true
 json := value
 -> {type: "json", value: $1}
 

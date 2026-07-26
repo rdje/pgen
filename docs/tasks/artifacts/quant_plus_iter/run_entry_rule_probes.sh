@@ -2,21 +2,27 @@
 # QUANT-PLUS-ITER.1 — the distinguishing factor between the "failing" scratch shape
 # and the working VHDL shape, proven by DECLARED VERDICTS.
 #
-# THESIS UNDER TEST
-#   PGEN's canonical entry rule is `rule_order[0]` — the rule DEFINED FIRST in the
-#   file (`ast_based_generator.rs`, `entry_rule = self.entry_rule.or_else(|| rule_order.first())`).
-#   The charter's probe grammar defines `stmt` ABOVE `scratch`, so the generated
-#   parser is entered at `stmt` and the `+` in `scratch` is never executed at all.
+# ORIGINAL THESIS (`.1`, historical — the defect this driver was written to pin)
+#   PGEN's canonical entry rule was `rule_order[0]` — the rule DEFINED FIRST in the
+#   file. The charter's probe grammar defines `stmt` ABOVE `scratch`, so the generated
+#   parser was entered at `stmt` and the `+` in `scratch` was never executed at all.
 #   `+` is not defective.
 #
+# ⭐ SUPERSEDED BY `.2`: the entry rule is now DECLARED (`@entry: true`, attached to
+#   the rule), and since step C a grammar that declares none is REFUSED. The
+#   order-sensitivity this driver originally demonstrated is therefore IMPOSSIBLE by
+#   construction. The driver is kept and RE-PINNED rather than deleted, so the record
+#   shows the defect class closing:
+#     §0 asserts the refusal (the fix),
+#     §1 asserts the DECLARED entry decides dispatch regardless of file position,
+#     §2 asserts the linter now NAMES the entry (`.1` measured that it never did).
+#
 # WHAT THIS DRIVER PROVES (all cheap — no parser rebuild required)
-#   1. codegen dispatches to `parse_stmt()` when `stmt` is defined first, and to
-#      `parse_scratch()` when `scratch` is defined first — SAME two rules, only the
-#      definition ORDER differs.
-#   2. `--lint-grammar` is SILENT: exit 0, `unreachable_rules=0`, entry never named.
-#   3. `--report-certificate-coverage` DOES see it, with no flags: it prints
-#      `entry='stmt'` and warns `scratch` has NO reach path from the entry.
-#   4. the shipped grammars that "work" define their entry FIRST (vhdl_file,
+#   0. an undeclared grammar is REFUSED with an actionable message.
+#   1. the declared entry decides dispatch in BOTH file orderings.
+#   2. `--lint-grammar` names the resolved entry (it never did when `.1` ran).
+#   3. `--report-certificate-coverage` refuses an unregistered grammar name.
+#   4. the shipped grammars that "worked" defined their entry FIRST (vhdl_file,
 #      and the scratch slot's own committed fixture) — which is why nothing caught it.
 #
 # The BEHAVIOURAL flip (default entry REJECTs `a;a;` at position 2 while
@@ -66,21 +72,40 @@ echo
 # ---------------------------------------------------------------------------
 # The two grammars differ ONLY in the ORDER the two rules are defined.
 # ---------------------------------------------------------------------------
+# ⭐ RE-PINNED BY `.2` STEP C. When `.1` ran, these two grammars differed ONLY in
+# definition order and that silently decided the entry rule. Since step C an
+# undeclared grammar is REFUSED, so the defect class `.1` documented is now
+# impossible by construction — the grammars below therefore DECLARE their entry,
+# and the order-sensitivity assertion is replaced by the refusal assertion in §0.
 cat > "$WORK/A_stmt_first.ebnf" <<'EOF'
 stmt := "a" ";"
       | "b" ";"
 
+@entry: true
 scratch := stmt+
 EOF
 
 cat > "$WORK/B_scratch_first.ebnf" <<'EOF'
+@entry: true
 scratch := stmt+
 
 stmt := "a" ";"
       | "b" ";"
 EOF
 
-echo "--- 1. codegen: which rule does the emitted parser dispatch to? -------------"
+cat > "$WORK/undeclared.ebnf" <<'EOF'
+stmt := "a" ";"
+scratch := stmt+
+EOF
+
+echo "--- 0. `.1`'s defect class is now IMPOSSIBLE (step C) ------------------------"
+undeclared_out="$("$PIPELINE" "$WORK/undeclared.ebnf" --lint-grammar 2>&1)"; undeclared_rc=$?
+expect "a grammar with no @entry is REFUSED (was silently mis-rooted)" "1" "$undeclared_rc"
+expect "…and the refusal explains how to fix it" "1" \
+       "$(printf '%s' "$undeclared_out" | grep -c 'must contain one and only one')"
+echo
+
+echo "--- 1. codegen: the DECLARED entry decides dispatch, not file order ----------"
 for variant in A_stmt_first B_scratch_first; do
   "$PIPELINE" "$WORK/$variant.ebnf" --generate-parser --output "$WORK/$variant.rs" \
     > "$WORK/$variant.gen.log" 2>&1
@@ -89,10 +114,10 @@ for variant in A_stmt_first B_scratch_first; do
               | grep -oE 'self\.parse_[a-z_]+\(\)' | head -1)"
   alias="$(grep -oE 'pub fn parse_full_[a-z_]+' "$WORK/$variant.rs" | head -1)"
   case "$variant" in
-    A_stmt_first)    expect "A (stmt defined first): parse() dispatches to"   "self.parse_stmt()"    "$dispatch"
-                     expect "A (stmt defined first): convenience alias"       "pub fn parse_full_stmt" "$alias" ;;
-    B_scratch_first) expect "B (scratch defined first): parse() dispatches to" "self.parse_scratch()" "$dispatch"
-                     expect "B (scratch defined first): convenience alias"    "pub fn parse_full_scratch" "$alias" ;;
+    A_stmt_first)    expect "A (entry declared LAST in file): dispatches to"    "self.parse_scratch()" "$dispatch"
+                     expect "A (entry declared LAST in file): alias"           "pub fn parse_full_scratch" "$alias" ;;
+    B_scratch_first) expect "B (entry declared FIRST in file): dispatches to"  "self.parse_scratch()" "$dispatch"
+                     expect "B (entry declared FIRST in file): alias"          "pub fn parse_full_scratch" "$alias" ;;
   esac
 done
 echo
@@ -109,8 +134,6 @@ expect "lint unreachable_rules"                            "unreachable_rules=0"
 # "it DOES name it", and the diagnostic gap `.1` documented is closed.
 names_entry="$(printf '%s' "$lint_out" | grep -cE "\[info\] entry rule" || true)"
 expect "lint now NAMES the resolved entry (.2 closed .1's gap)" "1" "$names_entry"
-positional="$(printf '%s' "$lint_out" | grep -c "POSITIONAL" || true)"
-expect "…and reports this undeclared grammar as POSITIONAL" "1" "$positional"
 echo
 
 echo "--- 3. --generate-parser at DEFAULT verbosity: is the entry named? ----------"

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cd9267eb.js";
+            window.path_to_searchindex_js = "searchindex-72cc8107.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -212,6 +212,7 @@ contract.</p>
 <tr><th>Group</th><th>Directives</th><th>Purpose</th></tr>
 </thead>
 <tbody>
+<tr><td>Entry</td><td><code>@entry</code></td><td>mark the rule where parsing begins — <strong>required, exactly once per main EBNF file</strong></td></tr>
 <tr><td>Store: declare</td><td><code>@fact_kind</code></td><td>declare a fact kind and its attributes (exportable, …)</td></tr>
 <tr><td>Store: emit</td><td><code>@emit_fact</code>, <code>@open_scope</code></td><td>record a fact / open a lexical scope as the parser matches</td></tr>
 <tr><td>Store: query (gate)</td><td><code>@predicate</code> (+ <code>has_fact</code> / <code>lacks_fact</code> / <code>fact_attribute_equals</code> / <code>len_bounds</code> / <code>numeric_bounds</code> / <code>fact_count_at_least</code> / …)</td><td>accept or reject a rule based on the store</td></tr>
@@ -262,8 +263,9 @@ body (branch-start or mid-sequence) is a hard error rather than a silent no-op.<
 <li>The payload must be the boolean <code>true</code>. <code>@entry: false</code> is an explicit no-op; a rule-name payload such
 as <code>@entry: program</code> is rejected (the attachment already says which rule). A <strong>bare <code>@entry</code></strong> with no
 payload is silently ignored by the frontend, so always write <code>: true</code>.</li>
-<li>Without any declaration, the entry falls back to the first rule defined in the file — see
-<a href="grammar-file-structure.html">Grammar File Structure</a>, which explains why relying on that is risky.</li>
+<li><strong>It is mandatory.</strong> A main EBNF file with no <code>@entry: true</code> is rejected at load — there is no
+“first rule defined” fallback any more; see <a href="grammar-file-structure.html">Grammar File Structure</a> for
+why that fallback was removed.</li>
 <li><code>--entry-rule RULE</code> on the CLI <strong>takes precedence</strong> over a declared <code>@entry</code>.</li>
 </ul>
 <h2 id="layout-policy--whitespace_sensitive"><a class="header" href="#layout-policy--whitespace_sensitive">Layout policy — <code>@whitespace_sensitive</code></a></h2>

@@ -3,4 +3,5 @@
 @validate: check($1, $2)  
 @transform: convert($1, $2, $3)
 @analyze: inspect($1, $2, $3, $4)
+@entry: true
 test_rule = "a" "b" "c" "d"

@@ -2,6 +2,7 @@
 # This should previously have shown "SKIPPED: Unhandled quantified element type"
 
 # Test case 1: Simple comma-separated list
+@entry: true
 number_list := number (',' /\s*/ number)*
 
 # Test case 2: Mixed elements  

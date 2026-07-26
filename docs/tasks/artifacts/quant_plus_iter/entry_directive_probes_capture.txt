@@ -3,7 +3,8 @@ AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true
 
 --- 1. the directive decides the entry, against file order -------------------
   ✅ declared @entry on the LAST-defined rule -> dispatch     self.parse_scratch()
-  ✅ no declaration -> positional default (unchanged)         self.parse_stmt()
+  ✅ no declaration -> REFUSED (step C: @entry is mandatory)  1
+  ✅ …refusal names the one-and-only-one contract           1
 
 --- 2. --entry-rule OUTRANKS @entry (director rule) --------------------------
   ✅ @entry=scratch + --entry-rule stmt -> CLI wins           self.parse_stmt()
@@ -12,7 +13,7 @@ AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true
 
 --- 3. the linter now REPORTS the resolved entry -----------------------------
   ✅ lint names a DECLARED entry                              1
-  ✅ lint names a POSITIONAL entry (and says how to declare it) 1
+  ✅ lint reports no POSITIONAL case (step C removed the fallback) 0
 
 --- 4. 'ONE AND ONLY ONE' + placement, all HALT rather than drop -------------
   ✅ @entry on TWO rules -> exit code                         1
@@ -21,10 +22,11 @@ AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true
   ✅ @entry inline inside a rule body -> diagnostic present   1
   ✅ @entry with a rule-NAME payload -> exit code             1
   ✅ @entry with a rule-NAME payload -> diagnostic present    1
-  ✅ @entry: false (explicit no-op) -> exit code              0
+  ✅ @entry: false = declares nothing -> REFUSED -> exit code 1
+  ✅ @entry: false = declares nothing -> REFUSED -> diagnostic present 1
 
 ============================================================================
-cases=14 divergences=0
+cases=16 divergences=0
 
 NO-REGRESSION (separate, expensive — see the leaf): all 10 generated parsers
 are BYTE-IDENTICAL against a HEAD-vintage binary with input AND output paths

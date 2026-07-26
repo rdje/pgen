@@ -1,3 +1,4 @@
 # Test: Flat array with multiple elements should parse successfully in bootstrap mode
+@entry: true
 test_rule = "a" "b" "c" "d"
   -> [$1, $2, $3, $4]

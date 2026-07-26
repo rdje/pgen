@@ -3,4 +3,5 @@
 @description: Simple character escape
 @effect: maps_to_literal_character  
 @constraint: interpretation depends on escaped character
+@entry: true
 test_rule = "\\n" | "\\t" | "\\r"

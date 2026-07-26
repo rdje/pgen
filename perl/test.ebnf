@@ -1,3 +1,4 @@
+@entry: true
 expression_list := expression ( "," expression )*
 number_list := number ( "," number )*
 word_sequence := word ( word )*

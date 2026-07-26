@@ -1,5 +1,6 @@
 # Auto-generated normalized grammar (extract_grammar_v2.py)
 
+@entry: true
 actual_argument ::=
     expression ;
 

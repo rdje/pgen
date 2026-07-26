@@ -8,6 +8,7 @@
 # - process + core sequential statements
 # - expression/type/literal baseline
 
+@entry: true
 vhdl_file := design_unit*
 -> {type: "vhdl_file", design_units: $1}
 

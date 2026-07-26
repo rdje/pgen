@@ -8,6 +8,7 @@
 # - binary arithmetic / shift / comparison / equality / bitwise / logical ops
 # - ternary `?:`
 
+@entry: true
 rtl_const_expr := conditional_expr
 -> {type: "rtl_const_expr", expr: $1}
 

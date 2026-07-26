@@ -38,6 +38,7 @@ The directives the AST pipeline interprets, grouped by what they do:
 
 | Group | Directives | Purpose |
 | --- | --- | --- |
+| Entry | `@entry` | mark the rule where parsing begins — **required, exactly once per main EBNF file** |
 | Store: declare | `@fact_kind` | declare a fact kind and its attributes (exportable, …) |
 | Store: emit | `@emit_fact`, `@open_scope` | record a fact / open a lexical scope as the parser matches |
 | Store: query (gate) | `@predicate` (+ `has_fact` / `lacks_fact` / `fact_attribute_equals` / `len_bounds` / `numeric_bounds` / `fact_count_at_least` / …) | accept or reject a rule based on the store |
@@ -93,8 +94,9 @@ program := statement+       # ← this rule is the entry
 - The payload must be the boolean `true`. `@entry: false` is an explicit no-op; a rule-name payload such
   as `@entry: program` is rejected (the attachment already says which rule). A **bare `@entry`** with no
   payload is silently ignored by the frontend, so always write `: true`.
-- Without any declaration, the entry falls back to the first rule defined in the file — see
-  [Grammar File Structure](grammar-file-structure.md), which explains why relying on that is risky.
+- **It is mandatory.** A main EBNF file with no `@entry: true` is rejected at load — there is no
+  "first rule defined" fallback any more; see [Grammar File Structure](grammar-file-structure.md) for
+  why that fallback was removed.
 - `--entry-rule RULE` on the CLI **takes precedence** over a declared `@entry`.
 
 ## Layout policy — `@whitespace_sensitive`

@@ -18,6 +18,7 @@
 # 4) If result is empty, return Passthrough.
 #
 # This is procedural behavior, represented here as two accepted forms.
+@entry: true
 bootstrap_return_annotation := arrow_form | bare_form
 -> $1
 

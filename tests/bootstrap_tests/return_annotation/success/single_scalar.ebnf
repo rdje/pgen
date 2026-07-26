@@ -1,3 +1,4 @@
 # Test: Single scalar should parse successfully in bootstrap mode
+@entry: true
 test_rule = "value"
   -> $1

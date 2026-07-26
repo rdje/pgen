@@ -2,6 +2,7 @@
 # Absolute minimal version to break the bootstrap dependency
 
 # Top-level rule - no optional whitespace
+@entry: true
 return_annotation := '->' /\s*/ return_expression
 
 # Core expression types (no quantifiers)

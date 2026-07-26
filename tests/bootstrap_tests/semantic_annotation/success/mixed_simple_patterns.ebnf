@@ -3,4 +3,5 @@
 @optimize: lookup_table
 @validate: range_check($1, $2)
 @semantic_value: extract_value($1)
+@entry: true
 test_rule = "start" "end"

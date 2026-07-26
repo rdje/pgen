@@ -3846,28 +3846,28 @@ mod tests {
             (
                 "fixed_prefix",
                 // The A2.3 fixed-terminal-prefix shape: longest_match must pick the LONGER alt on "ab".
-                "start := \"a\" | \"a\" \"b\"\n",
+                "@entry: true\nstart := \"a\" | \"a\" \"b\"\n",
                 &[("ab", true), ("a", true), ("b", false), ("abc", false)],
             ),
             (
                 "star_quant",
-                "start := item*\nitem := \"x\"\n",
+                "@entry: true\nstart := item*\nitem := \"x\"\n",
                 &[("", true), ("x", true), ("xxx", true), ("xy", false)],
             ),
             (
                 "plus_opt",
-                "start := \"a\" item+ tail?\nitem := \"b\"\ntail := \"c\"\n",
+                "@entry: true\nstart := \"a\" item+ tail?\nitem := \"b\"\ntail := \"c\"\n",
                 &[("ab", true), ("abbb", true), ("abbc", true), ("a", false)],
             ),
             (
                 "neg_lookahead",
-                "start := !\"x\" any\nany := \"y\" | \"z\"\n",
+                "@entry: true\nstart := !\"x\" any\nany := \"y\" | \"z\"\n",
                 &[("y", true), ("z", true), ("x", false)],
             ),
             (
                 "pos_lookahead",
                 // Positive lookahead `&`: the digit must be followed by `!`, then consumed by `rest`.
-                "start := &digit rest\ndigit := \"1\" | \"2\"\nrest := digit \"!\"\n",
+                "@entry: true\nstart := &digit rest\ndigit := \"1\" | \"2\"\nrest := digit \"!\"\n",
                 &[("1!", true), ("2!", true), ("1", false), ("x!", false)],
             ),
             // NOTE: bounded `{N,M}` quantifiers are covered by the dedicated

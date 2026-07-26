@@ -1,4 +1,5 @@
 # Test: Flat object with multiple keys should parse successfully in bootstrap mode
+@entry: true
 test_rule = "hello" "world"
   -> {
     "type": "greeting",

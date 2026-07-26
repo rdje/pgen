@@ -15,6 +15,7 @@
 # Parser trims outer whitespace first:
 #   trimmed = input.trim()
 # Then classifies trimmed text into TransformExpr, Structured, or Raw.
+@entry: true
 builtin_semantic_annotation := ws* semantic_payload ws*
 -> $2
 

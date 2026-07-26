@@ -2248,13 +2248,36 @@ fn load_grammar_bundle_from_json_value(
 ///
 /// A grammar that declares nothing is untouched: no reorder, byte-identical output.
 fn apply_declared_entry_rule(grammar: &mut LoadedGrammar) -> anyhow::Result<()> {
-    let Some(annotations) = grammar.annotations.as_ref() else {
-        return Ok(()); // no annotations at all ⇒ nothing declared.
-    };
-    let Some(declared) = pgen::ast_pipeline::semantic_runtime::compile_entry_rule(annotations)
-        .map_err(|err| anyhow::anyhow!("grammar '{}': {}", grammar.grammar_name, err))?
-    else {
-        return Ok(());
+    let declared = grammar
+        .annotations
+        .as_ref()
+        .map(|annotations| {
+            pgen::ast_pipeline::semantic_runtime::compile_entry_rule(annotations)
+                .map_err(|err| anyhow::anyhow!("grammar '{}': {}", grammar.grammar_name, err))
+        })
+        .transpose()?
+        .flatten();
+
+    // QUANT-PLUS-ITER.2 step C — director requirement (2026-07-26, verbatim): *"A main
+    // EBNF file shall contain one and only one `@entry: true` attached to the proper
+    // rule."* The "only one" half is enforced by `compile_entry_rule`; this is the
+    // "at least one" half. Declaring the start symbol is not optional, because the
+    // positional fallback is precisely the silent-re-rooting hazard this leaf exists
+    // to remove.
+    let Some(declared) = declared else {
+        return Err(anyhow::anyhow!(
+            "grammar '{}': no entry rule is declared. A main EBNF file must contain one and only \
+             one `@entry: true`, written directly above the rule where parsing starts:\n\
+             \n    @entry: true\n    {} := …\n\n\
+             (The first rule defined is no longer assumed to be the entry — relying on file \
+             order silently changes the accepted language when rules are reordered.)",
+            grammar.grammar_name,
+            grammar
+                .rule_order
+                .first()
+                .map(String::as_str)
+                .unwrap_or("<your entry rule>")
+        ));
     };
 
     let Some(index) = grammar.rule_order.iter().position(|r| *r == declared) else {
@@ -4122,24 +4145,18 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         orphans.len(),
         all_profiles
     );
-    // QUANT-PLUS-ITER.2: name the resolved entry rule, and say whether it was
-    // DECLARED (`@entry: true`) or fell out of file position. Until this landed no
-    // surface at default verbosity reported a grammar's start symbol at all, so a
-    // helper rule written above the intended entry silently re-rooted the grammar
-    // while every counter above still read 0 (measured, `QUANT-PLUS-ITER.1`).
-    let declared_entry = grammar.annotations.as_ref().and_then(|annotations| {
-        pgen::ast_pipeline::semantic_runtime::compile_entry_rule(annotations)
-            .ok()
-            .flatten()
-    });
-    match (order.first(), &declared_entry) {
-        (Some(entry), Some(_)) => println!(
-            "  [info] entry rule '{entry}' — DECLARED via `@entry: true`"
-        ),
-        (Some(entry), None) => println!(
-            "  [info] entry rule '{entry}' — POSITIONAL (the first rule defined; declare it with `@entry: true` to make file order irrelevant)"
-        ),
-        (None, _) => println!("  [error] grammar defines no rules, so it has no entry rule"),
+    // QUANT-PLUS-ITER.2: name the resolved entry rule. Until this landed no surface at
+    // default verbosity reported a grammar's start symbol at all, so a helper rule
+    // written above the intended entry silently re-rooted the grammar while every
+    // counter above still read 0 (measured, `QUANT-PLUS-ITER.1`).
+    //
+    // Since step C the entry is ALWAYS declared: a grammar without `@entry: true` is
+    // refused at the grammar-load chokepoint, which runs before this. So there is no
+    // "positional" case left to report — reaching lint at all means the entry was
+    // declared, and `rule_order[0]` is the rule it named.
+    match order.first() {
+        Some(entry) => println!("  [info] entry rule '{entry}' — declared via `@entry: true`"),
+        None => println!("  [error] grammar defines no rules, so it has no entry rule"),
     }
     for issue in unreachable.iter().take(40) {
         println!("  [error] {}", issue.message());

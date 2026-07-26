@@ -3,6 +3,7 @@
 # including nested objects, arrays, quantifiers, dot notation, and complex semantic actions
 
 # Main entry point - parses a complete data structure
+@entry: true
 data_structure := object_def | array_def | simple_value
     -> {type: "data_structure", content: $1}
 

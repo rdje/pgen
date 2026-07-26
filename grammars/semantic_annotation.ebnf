@@ -13,6 +13,7 @@
 # =============================================================================
 
 # Main semantic annotation rule - can appear before any grammar rule
+@entry: true
 semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
     -> {type: "semantic_annotation", name: $3, value: $6}
 

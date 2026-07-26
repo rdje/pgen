@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cd9267eb.js";
+            window.path_to_searchindex_js = "searchindex-72cc8107.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -205,32 +205,37 @@ so always write <code>: true</code>.)</p>
 Declaring it on two rules is a hard error naming both. Writing it <em>inside</em> a rule body (branch-start
 or mid-sequence) is also a hard error — it marks a whole rule, so it belongs directly above one.</p>
 </blockquote>
-<h3 id="-without-a-declaration-the-entry-is-the-first-rule-you-define"><a class="header" href="#-without-a-declaration-the-entry-is-the-first-rule-you-define">⚠️ Without a declaration, the entry is the FIRST rule you define</a></h3>
-<p>If no rule declares <code>@entry</code>, PGEN falls back to <code>rule_order[0]</code> — <strong>whichever rule appears first in the
-file</strong>. That fallback is why declaring the entry matters:</p>
+<h3 id="why-it-is-required-and-not-merely-recommended"><a class="header" href="#why-it-is-required-and-not-merely-recommended">Why it is required, and not merely recommended</a></h3>
+<p><code>@entry: true</code> is <strong>mandatory</strong>: a main EBNF file with no declaration is rejected at load with a
+message telling you what to add. PGEN used to fall back to “whichever rule appears first in the file”,
+and that fallback is exactly the hazard:</p>
 <pre><code class="language-ebnf"># ✅ entry is `program` — the parser parses a whole program
 program := statement+
 statement := "a" ";"
 </code></pre>
-<pre><code class="language-ebnf"># ⛔ SAME two rules, reordered — entry is now `statement`.
-#    The parser parses exactly ONE statement; `program` is never entered.
-#    `a;a;` is REJECTED at position 2. No diagnostic says so.
+<pre><code class="language-ebnf"># ⛔ SAME two rules, reordered — the entry silently became `statement`.
+#    The parser accepted exactly ONE statement; `a;a;` was REJECTED at position 2,
+#    and NOTHING reported it: `unreachable_rules=0`, exit 0.
 statement := "a" ";"
 program := statement+
 </code></pre>
-<p>Both grammars lint clean (<code>unreachable_rules=0</code>, exit 0) — an unreferenced rule such as <code>program</code> counts
-as a <em>root</em>, so it is never reported as unreachable. Under the positional fallback, moving a helper rule
-above your start symbol therefore changes the language your parser accepts, silently. <strong>Declare
-<code>@entry: true</code> and file order stops mattering</strong> — which is the point: in EBNF a grammar is a <em>set</em> of
-productions, so rule order should carry no meaning.</p>
+<p>An unreferenced rule such as <code>program</code> counts as a <em>root</em>, so it was never flagged as unreachable —
+moving a helper rule above your start symbol changed the language your parser accepted, silently. That
+cost a full investigation before the cause was found. Declaring the entry removes the failure mode
+<strong>by construction</strong>: rule order carries no meaning again, which is how EBNF is supposed to work.</p>
 <h3 id="checking-and-overriding-the-entry"><a class="header" href="#checking-and-overriding-the-entry">Checking, and overriding, the entry</a></h3>
-<p><code>--lint-grammar</code> reports the resolved entry rule and says which way it was resolved:</p>
+<p><code>--lint-grammar</code> reports the resolved entry rule:</p>
 <pre><code class="language-text">$ ast_pipeline grammars/mine.ebnf --lint-grammar
 grammar lint: 'mine' (2 rules) — left_recursive=0 …
-  [info] entry rule 'program' — DECLARED via `@entry: true`
+  [info] entry rule 'program' — declared via `@entry: true`
 </code></pre>
-<pre><code class="language-text">  [info] entry rule 'statement' — POSITIONAL (the first rule defined; declare it with
-         `@entry: true` to make file order irrelevant)
+<p>and a grammar that declares none never gets that far:</p>
+<pre><code class="language-text">$ ast_pipeline grammars/undeclared.ebnf --lint-grammar
+Error: grammar 'undeclared': no entry rule is declared. A main EBNF file must contain
+one and only one `@entry: true`, written directly above the rule where parsing starts:
+
+    @entry: true
+    program := …
 </code></pre>
 <p><code>--entry-rule RULE</code> (on <code>ast_pipeline</code> and <code>parseability_probe</code>) parses from an <strong>alternate</strong> start
 symbol and <strong>takes precedence over a declared <code>@entry</code></strong>. It is an out-of-band override for probing and

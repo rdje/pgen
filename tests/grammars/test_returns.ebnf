@@ -1,3 +1,4 @@
+@entry: true
 simple_value := /([a-z]+)/ -> $1
 
 simple_array := simple_value ("," simple_value)* -> [$1, $2*]

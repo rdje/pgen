@@ -2,6 +2,7 @@
 # Tests that each branch gets its own return annotation
 
 # Test 1: Different return types for each branch
+@entry: true
 value := object_value -> {type: "object", data: $1}
       | array_value -> {type: "array", data: $1}
       | string_value -> {type: "string", data: $1}

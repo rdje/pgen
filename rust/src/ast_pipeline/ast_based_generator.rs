@@ -267,7 +267,11 @@ impl AstBasedGenerator {
         // `@whitespace_sensitive:`, `@default_profile:`, and `@profile_alias:`
         // directives are compile-time only, and the rule-level
         // `@quantified_separator:` / `@gen_emit_fact:` / `@gen_predicate:`
-        // directives are generation-side only (each compiles to ZERO runtime
+        // directives are generation-side only, and `QUANT-PLUS-ITER.2`'s
+        // rule-level `@entry:` is LOADER-side only (it names the grammar's
+        // entry rule, which the grammar-load chokepoint resolves by
+        // normalizing `rule_order`; nothing about it survives into the parse).
+        // Each compiles to ZERO runtime
         // directives — see `semantic_runtime::compile_layout_sensitivity` /
         // `semantic_runtime::compile_default_profile` /
         // `semantic_runtime::compile_profile_aliases` /
@@ -292,6 +296,8 @@ impl AstBasedGenerator {
                         != crate::ast_pipeline::semantic_runtime::GEN_EMIT_FACT_DIRECTIVE_NAME
                     && normalized
                         != crate::ast_pipeline::semantic_runtime::GEN_PREDICATE_DIRECTIVE_NAME
+                    && normalized
+                        != crate::ast_pipeline::semantic_runtime::ENTRY_RULE_DIRECTIVE_NAME
             })
         };
         let Some(annotations) = &self.annotations else {
@@ -10563,6 +10569,66 @@ mod semantic_usage_tests {
                     .expect("parser generation should succeed")
             })
             .as_str()
+    }
+
+    // `QUANT-PLUS-ITER.2`: the loader-side-only `@entry` directive must NOT push
+    // its rule onto the full `with_semantic_runtime_rule_transaction` path. This
+    // is NOT a hypothetical: the byte-identity oracle CAUGHT the leak. Migrating
+    // the tracked grammars to declare `@entry: true` flipped 8 of 10 generated
+    // parsers off byte-identity, because the entry rule — the hottest rule in any
+    // parser — gained a transaction frame purely from carrying an annotation that
+    // compiles to zero runtime directives. That would have violated the standing
+    // zero-cost/neutrality rule (non-users pay ZERO; users pay at CODEGEN time,
+    // never per parse step) on the single hottest rule.
+    #[test]
+    fn entry_directive_keeps_the_annotated_rule_on_the_fast_path() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "file".to_string(),
+            vec![structured_named_annotation(
+                "entry",
+                "true",
+                UnifiedSemanticValue::Boolean(true),
+            )],
+        );
+        let generator = AstBasedGenerator {
+            grammar_name: "entry_fast_path_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            emit_typed_entry_skeleton: false,
+            enable_debug: false,
+            uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
+        };
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "file".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(token("rule_reference", "item")),
+                quantifier: "*".to_string(),
+            },
+        );
+        grammar_tree.insert("item".to_string(), token("quoted_string", "x"));
+        let rule_order = vec!["file".to_string(), "item".to_string()];
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "entry_fast_path.rs")
+            .expect("parser generation should succeed");
+        assert!(
+            !rendered.contains(r#"with_semantic_runtime_rule_transaction(Self::RULE_FILE"#),
+            "a rule annotated ONLY with @entry must keep the fast-path emission — it is \
+             loader-side only and compiles to ZERO runtime directives"
+        );
+        assert!(
+            rendered.contains(r#"push_rule_context_static("file")"#),
+            "the fast-path body still pushes the rule context for trace parity"
+        );
     }
 
     // `STIMULI-SIGNOFF.12`: the generation-side-only `@quantified_separator`

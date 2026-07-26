@@ -1,6 +1,7 @@
 // Test grammar for grouped alternatives feature
 
 // Simple grouped alternatives
+@entry: true
 literal := (string_literal | numeric_literal | bit_literal) -> $1
 
 // Mixed: grouped and individual alternatives  

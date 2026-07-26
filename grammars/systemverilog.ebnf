@@ -200,6 +200,7 @@
 @priority: [12, 3, 2, 1, 1]
 @coverage_target: 4
 @critical_path: true
+@entry: true
 systemverilog_file := trivia source_text trivia
                    -> {type: "systemverilog_file", source_text: $2}
 

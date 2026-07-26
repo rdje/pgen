@@ -6,6 +6,7 @@
 
 # Entry point - return annotation with optional arrow
 # `->` with no payload is treated as passthrough (equivalent to $1)
+@entry: true
 return_annotation := arrow expression
                  | arrow
                  | expression

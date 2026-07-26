@@ -27,6 +27,7 @@
 # =============================================================================
 
 # Root rule - a complete EBNF grammar file
+@entry: true
 grammar_file := (include_directive | semantic_annotation | grammar_rule | comment | whitespace)*
     -> {type: "grammar_file", elements: [$1*]}
 

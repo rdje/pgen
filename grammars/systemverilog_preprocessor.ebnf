@@ -21,6 +21,7 @@
 # EBNF-single-source-of-truth doctrine.)
 
 @whitespace_sensitive: { regex_tokens: true }
+@entry: true
 systemverilog_preprocessor_file := pp_item*
 -> {type: "systemverilog_preprocessor_file", items: $1}
 

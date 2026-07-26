@@ -320,7 +320,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_post_gate",
         construct: SemanticConstruct::PostGate,
-        grammar_body: "@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
                        program := decl use\n\
                        @emit_fact: { kind: name_decl, name: $body, family: var }\n\
                        decl := \"decl \" word \";\" -> { body: $2.body }\n\
@@ -340,7 +340,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_pre_gate",
         construct: SemanticConstruct::PreGate,
-        grammar_body: "@fact_kind: { name: flag, attributes: [family], description: \"A flag.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: flag, attributes: [family], description: \"A flag.\" }\n\
                        program := arm? gated\n\
                        @emit_fact: { kind: flag, name: \"on\", family: f }\n\
                        arm := \"arm;\"\n\
@@ -360,7 +360,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // `String("special")` and never matches (tool-established, session #47 scratch-slot trace:
         // `has_fact(kind=mode, name=String("special")) → false` with the fact present). SV's grammars
         // use unquoted identifiers in predicate args throughout, for exactly this reason.
-        grammar_body: "@fact_kind: { name: mode, attributes: [family], description: \"A mode.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: mode, attributes: [family], description: \"A mode.\" }\n\
                        program := setmode pick\n\
                        @emit_fact: { kind: mode, name: $body, family: m }\n\
                        setmode := \"mode:\" word \";\" -> { body: $2.body }\n\
@@ -387,7 +387,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_branch_select",
         construct: SemanticConstruct::BranchSelectionViaGate,
-        grammar_body: "@fact_kind: { name: mode, attributes: [family], description: \"A mode.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: mode, attributes: [family], description: \"A mode.\" }\n\
                        program := setmode pick\n\
                        @emit_fact: { kind: mode, name: $body, family: m }\n\
                        setmode := \"mode:\" word \";\" -> { body: $2.body }\n\
@@ -413,7 +413,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_attr_gate",
         construct: SemanticConstruct::AttributeGate,
-        grammar_body: "@fact_kind: { name: sym, attributes: [family], description: \"A symbol.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: sym, attributes: [family], description: \"A symbol.\" }\n\
                        program := intro use\n\
                        intro := cdecl | fdecl\n\
                        @emit_fact: { kind: sym, name: $body, family: cls }\n\
@@ -435,7 +435,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_lacks_gate",
         construct: SemanticConstruct::LacksGate,
-        grammar_body: "@fact_kind: { name: taken, attributes: [family], description: \"Taken.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: taken, attributes: [family], description: \"Taken.\" }\n\
                        program := decl fresh\n\
                        @emit_fact: { kind: taken, name: $body, family: t }\n\
                        decl := \"take \" word \";\" -> { body: $2.body }\n\
@@ -450,7 +450,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_count_gate",
         construct: SemanticConstruct::CountGate,
-        grammar_body: "@fact_kind: { name: item, attributes: [family], description: \"Item.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: item, attributes: [family], description: \"Item.\" }\n\
                        program := decl+ gated\n\
                        @emit_fact: { kind: item, name: $body, family: i }\n\
                        decl := \"item \" word \";\" -> { body: $2.body }\n\
@@ -469,7 +469,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_scope",
         construct: SemanticConstruct::ScopeVisibility,
-        grammar_body: "@fact_kind: { name: localv, attributes: [family], description: \"A block-local name.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: localv, attributes: [family], description: \"A block-local name.\" }\n\
                        program := blk use | decl use\n\
                        blk := opener decl closer\n\
                        @open_scope: { kind: block, name: \"b1\" }\n\
@@ -494,7 +494,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_scope_is",
         construct: SemanticConstruct::ScopeIs,
-        grammar_body: "program := opener inner | inner\n\
+        grammar_body: "@entry: true\nprogram := opener inner | inner\n\
                        @open_scope: { kind: class, name: \"c\" }\n\
                        opener := \"class{\"\n\
                        @predicate: { name: current_scope_is, args: [class, \"c\"], phase: pre }\n\
@@ -512,7 +512,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // `"special"` (String); `inner`'s pre gate queries the `$2`-named scope
         // (Identifier via the same coercion) with a QUOTED `"sc"`. Pre-fix both were
         // variant-strict misses (the F2 dead gate); post-fix both match textually.
-        grammar_body: "@fact_kind: { name: mode, attributes: [family], description: \"M.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: mode, attributes: [family], description: \"M.\" }\n\
                        program := mk use opener inner\n\
                        @emit_fact: { kind: mode, name: $2, family: m }\n\
                        mk := \"(\" word \")\"\n\
@@ -540,7 +540,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_rollback_loser",
         construct: SemanticConstruct::RollbackLoserBranch,
-        grammar_body: "@fact_kind: { name: mark, attributes: [family], description: \"Mark.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: mark, attributes: [family], description: \"Mark.\" }\n\
                        program := choice check\n\
                        choice := emitter \"y\" | \"e\" \"y\" \"z\" | \"e\" \"x\"\n\
                        @emit_fact: { kind: mark, name: \"m\", family: k }\n\
@@ -565,7 +565,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_zero_len_emit",
         construct: SemanticConstruct::ZeroLengthEmit,
-        grammar_body: "@fact_kind: { name: z, attributes: [family], description: \"Z.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: z, attributes: [family], description: \"Z.\" }\n\
                        program := maybe* check\n\
                        @emit_fact: { kind: z, name: \"zz\", family: f }\n\
                        maybe := \"x\"?\n\
@@ -589,7 +589,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // `mk`/`use`/`word` deliberately carry NO `->`: `$word` resolves through the RAW-tree
         // named-descendant walk (`find_semantic_named_descendant` recursing Sequence/Alternative
         // nodes to the node whose rule_name is `word`), not the shaped-Json path.
-        grammar_body: "@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
                        program := mk use\n\
                        @emit_fact: { kind: pf, name: $word, family: p }\n\
                        mk := \"(\" word \")\"\n\
@@ -615,7 +615,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // `Alternative` content (AST-dump-established, session #50), so `[0]` unwraps the wrapper
         // to the `pair` node and `[2]` then picks its 0-based sequence child 2 (the second `word`;
         // child 1 is the `","` literal).
-        grammar_body: "@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
                        program := mk use idx\n\
                        @emit_fact: { kind: pf, name: $2, family: p }\n\
                        mk := \"(\" word \")\"\n\
@@ -651,7 +651,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // the session #50 AST-dump finding), so the residual hard-error pin moves to `$3.word`:
         // position 3 is the literal `"]"` (Terminal content, no children, nothing named to match)
         // → resolution fails → the predicate hard-errors → `use` fails → REJECT on both sides.
-        grammar_body: "@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
                        program := mk use\n\
                        @emit_fact: { kind: pf, name: $2, family: p }\n\
                        mk := \"(\" word \")\"\n\
@@ -670,7 +670,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_ref_shaped",
         construct: SemanticConstruct::RefShaped,
-        grammar_body: "@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: pf, attributes: [family], description: \"PF.\" }\n\
                        program := mk use\n\
                        @emit_fact: { kind: pf, name: $inner.body, family: p }\n\
                        mk := \"(\" word \")\" -> { inner: { body: $2.body } }\n\
@@ -685,7 +685,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_ref_len",
         construct: SemanticConstruct::RefLen,
-        grammar_body: "@fact_kind: { name: lf, attributes: [family], description: \"LF.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: lf, attributes: [family], description: \"LF.\" }\n\
                        program := mk use\n\
                        @emit_fact: { kind: lf, name: $body.len, family: p }\n\
                        mk := \"(\" word \")\" -> { body: $2.body }\n\
@@ -701,7 +701,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_branch_start_emit",
         construct: SemanticConstruct::BranchStartEmit,
-        grammar_body: "@fact_kind: { name: bmark, attributes: [family], description: \"BM.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: bmark, attributes: [family], description: \"BM.\" }\n\
                        program := tag gated\n\
                        tag := @emit_fact: { kind: bmark, name: \"one\", family: b }\n\
                               \"t1\"\n\
@@ -718,7 +718,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_emit_attrs",
         construct: SemanticConstruct::EmitAttributesFromRefs,
-        grammar_body: "@fact_kind: { name: typed, attributes: [kindattr], description: \"Typed.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: typed, attributes: [kindattr], description: \"Typed.\" }\n\
                        program := decl use\n\
                        @emit_fact: { kind: typed, name: $name.body, kindattr: $kind.body }\n\
                        decl := word \":\" word \";\" -> { name: { body: $1.body }, kind: { body: $3.body } }\n\
@@ -738,7 +738,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_library_noop",
         construct: SemanticConstruct::LibraryNoop,
-        grammar_body: "@fact_kind: { name: pkg, attributes: [family], exportable: true, description: \"Pkg.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: pkg, attributes: [family], exportable: true, description: \"Pkg.\" }\n\
                        program := ex im\n\
                        @export_to_library: { kind: package, name_from: $body }\n\
                        @emit_fact: { kind: pkg, name: $body, family: p }\n\
@@ -755,7 +755,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_memo_gate_retry",
         construct: SemanticConstruct::MemoGateRetry,
-        grammar_body: "@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
                        program := gated \"?\" | en gated \"!\"\n\
                        @predicate: { name: has_fact, args: [g, \"on\"], phase: post }\n\
                        gated := \"go\"\n\
@@ -781,7 +781,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_memo_wrapper",
         construct: SemanticConstruct::MemoWrapperStaleness,
-        grammar_body: "@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
                        program := wrap \"?\" | en wrap \"!\"\n\
                        wrap := gated\n\
                        @predicate: { name: has_fact, args: [g, \"on\"], phase: post }\n\
@@ -814,7 +814,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_memo_success_verdict",
         construct: SemanticConstruct::MemoSuccessStaleness,
-        grammar_body: "@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
                        program := pick \"?\" | en pick \"!\"\n\
                        pick := wide | narrow\n\
                        @predicate: { name: has_fact, args: [g, \"on\"], phase: post }\n\
@@ -847,7 +847,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_memo_success_ast",
         construct: SemanticConstruct::MemoSuccessStaleness,
-        grammar_body: "@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: g, attributes: [family], description: \"G.\" }\n\
                        program := pick \"?\" | en pick \"!\"\n\
                        pick := special | normal\n\
                        @predicate: { name: has_fact, args: [g, \"on\"], phase: post }\n\
@@ -880,7 +880,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_value_enum_guard",
         construct: SemanticConstruct::ValueEnumGuard,
-        grammar_body: "program := token\n\
+        grammar_body: "@entry: true\nprogram := token\n\
                        @enum: [\"aa\", \"bb\"]\n\
                        token := /[a-z]+/\n",
         inputs: &[
@@ -898,7 +898,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_value_regex_guard",
         construct: SemanticConstruct::ValueRegexGuard,
-        grammar_body: "program := token\n\
+        grammar_body: "@entry: true\nprogram := token\n\
                        @regex: \"[A-Z]{2}\"\n\
                        token := /[A-Za-z]+/\n",
         inputs: &[
@@ -917,7 +917,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_value_range_guard",
         construct: SemanticConstruct::ValueRangeGuard,
-        grammar_body: "program := token\n\
+        grammar_body: "@entry: true\nprogram := token\n\
                        @range: [0, 255]\n\
                        token := /[0-9a-z]+/\n",
         inputs: &[
@@ -936,7 +936,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_value_len_guard",
         construct: SemanticConstruct::ValueLenGuard,
-        grammar_body: "program := token\n\
+        grammar_body: "@entry: true\nprogram := token\n\
                        @len: [2, 3]\n\
                        token := /[a-z]+/\n",
         inputs: &[
@@ -952,7 +952,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
     SemanticCase {
         name: "sem_value_guard_backtrack",
         construct: SemanticConstruct::ValueGuardBacktrack,
-        grammar_body: "program := small \"!\" | wide \"!\"\n\
+        grammar_body: "@entry: true\nprogram := small \"!\" | wide \"!\"\n\
                        @range: [0, 9]\n\
                        small := /[0-9]+/ -> { kind: \"small_pick\" }\n\
                        wide := /[0-9]+/ -> { kind: \"wide_pick\" }\n",
@@ -982,7 +982,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // discriminating anchor. `num := /[0-9]+/`; the leading letters delimit the pairs (no layout
         // needed). The comparison is the shared `compare_predicate_values` (decimal-integer when both
         // parse, lexical fallback otherwise; eq/ne textual).
-        grammar_body: "program := lt_p le_p gt_p ge_p eq_p ne_p\n\
+        grammar_body: "@entry: true\nprogram := lt_p le_p gt_p ge_p eq_p ne_p\n\
                        @predicate: { name: value_compare, args: [$2, lt, $4], phase: post }\n\
                        lt_p := \"a\" num \",\" num\n\
                        @predicate: { name: value_compare, args: [$2, le, $4], phase: post }\n\
@@ -1024,7 +1024,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // Mirrors sem_value_guard_backtrack with a value_compare gate: `ordered` is post-gated on
         // $1 lt $3; `any_pair` is the ungated same-shape sibling. When the gate fails the parse
         // does NOT die — `ordered` loses the tournament to `any_pair` (backtrackable Err).
-        grammar_body: "program := ordered \"!\" | any_pair \"!\"\n\
+        grammar_body: "@entry: true\nprogram := ordered \"!\" | any_pair \"!\"\n\
                        @predicate: { name: value_compare, args: [$1, lt, $3], phase: post }\n\
                        ordered := num \"-\" num -> { kind: \"ordered_pick\" }\n\
                        any_pair := num \"-\" num -> { kind: \"any_pick\" }\n\
@@ -1060,7 +1060,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // `sem_value_compare` proves the SAME positional value_compare WITHOUT a `->` already works
         // (POSITIONAL-PAYLOAD-REFS.2 — raw never shadowed); this case adds the `->` that used to break
         // it. Byte-identical interpreter vs oracle by construction (both carry the fix).
-        grammar_body: "@predicate: { name: value_compare, args: [$1, le, $3], phase: post }\n\
+        grammar_body: "@entry: true\n@predicate: { name: value_compare, args: [$1, le, $3], phase: post }\n\
                        checked_pair := num \",\" num -> { min: $1, max: $3 }\n\
                        num := /[0-9]+/\n",
         inputs: &[
@@ -1094,7 +1094,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // operands as a CODE POINT before comparing: bare char (`a`/`z`), hex `\x30`/`\x{100}`/`\x{FF}`,
         // octal `\101`/`\102`, control `\cA`/`\cB`, named `\a`. Several inputs discriminate code-point
         // from textual/`i64` ordering (a plain `value_compare` would give the OPPOSITE verdict).
-        grammar_body: "program := lt_p le_p gt_p ge_p eq_p ne_p\n\
+        grammar_body: "@entry: true\nprogram := lt_p le_p gt_p ge_p eq_p ne_p\n\
                        @predicate: { name: value_compare_codepoint, args: [$2, lt, $4], phase: post }\n\
                        lt_p := \"a\" catom \"-\" catom \";\"\n\
                        @predicate: { name: value_compare_codepoint, args: [$2, le, $4], phase: post }\n\
@@ -1141,7 +1141,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // concrete name) BEFORE `decl` — so a `post` gate on `use` would fire against a store that does
         // not yet hold the definition and REJECT the legal forward reference. `phase: final` defers the
         // check to parse completion, when `decl`'s `@emit_fact` is already in the store.
-        grammar_body: "@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
                        program := use decl\n\
                        @predicate: { name: has_fact, args: [name_decl, $body], phase: final }\n\
                        use := \"use \" word \";\" -> { body: $2.body }\n\
@@ -1168,7 +1168,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // commits (enqueuing it); `longref` is longer and carries none. When `longref` wins, `shortref`'s
         // obligation must be DISCARDED with its losing branch — otherwise discharge would check an
         // undefined name and wrongly reject the valid parse.
-        grammar_body: "@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
                        program := choice\n\
                        @predicate: { name: has_fact, args: [name_decl, $body], phase: final }\n\
                        shortref := \"use \" word \";\" -> { body: $2.body }\n\
@@ -1201,7 +1201,7 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         // the FINAL-PHASE-PREDICATE.3 other-view fallback. A single-branch rule resolved the same
         // key by the `semantic_raw_content == None` accident — which is exactly why the `.2`
         // single-branch final cases could not exercise this path.
-        grammar_body: "@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
+        grammar_body: "@entry: true\n@fact_kind: { name: name_decl, attributes: [family], description: \"A declared name.\" }\n\
                        program := ref decl\n\
                        @predicate: { name: has_fact, args: [name_decl, $r], phase: final }\n\
                        ref := \"k<\" word \">\" -> { r: $2.body } | \"g<\" word \">\" -> { r: $2.body }\n\

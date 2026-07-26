@@ -35,6 +35,7 @@
 #   accepts:  "hello, world!"  and  "hello, pgen!"
 #   rejects:  "hello, mars!"   (no matching `name` alternative)
 
+@entry: true
 scratch := "hello, " name "!"
 
 name := "world"

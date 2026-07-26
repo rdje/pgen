@@ -30,10 +30,11 @@ so always write `: true`.)
 > Declaring it on two rules is a hard error naming both. Writing it *inside* a rule body (branch-start
 > or mid-sequence) is also a hard error — it marks a whole rule, so it belongs directly above one.
 
-### ⚠️ Without a declaration, the entry is the FIRST rule you define
+### Why it is required, and not merely recommended
 
-If no rule declares `@entry`, PGEN falls back to `rule_order[0]` — **whichever rule appears first in the
-file**. That fallback is why declaring the entry matters:
+`@entry: true` is **mandatory**: a main EBNF file with no declaration is rejected at load with a
+message telling you what to add. PGEN used to fall back to "whichever rule appears first in the file",
+and that fallback is exactly the hazard:
 
 ```ebnf
 # ✅ entry is `program` — the parser parses a whole program
@@ -42,32 +43,37 @@ statement := "a" ";"
 ```
 
 ```ebnf
-# ⛔ SAME two rules, reordered — entry is now `statement`.
-#    The parser parses exactly ONE statement; `program` is never entered.
-#    `a;a;` is REJECTED at position 2. No diagnostic says so.
+# ⛔ SAME two rules, reordered — the entry silently became `statement`.
+#    The parser accepted exactly ONE statement; `a;a;` was REJECTED at position 2,
+#    and NOTHING reported it: `unreachable_rules=0`, exit 0.
 statement := "a" ";"
 program := statement+
 ```
 
-Both grammars lint clean (`unreachable_rules=0`, exit 0) — an unreferenced rule such as `program` counts
-as a *root*, so it is never reported as unreachable. Under the positional fallback, moving a helper rule
-above your start symbol therefore changes the language your parser accepts, silently. **Declare
-`@entry: true` and file order stops mattering** — which is the point: in EBNF a grammar is a *set* of
-productions, so rule order should carry no meaning.
+An unreferenced rule such as `program` counts as a *root*, so it was never flagged as unreachable —
+moving a helper rule above your start symbol changed the language your parser accepted, silently. That
+cost a full investigation before the cause was found. Declaring the entry removes the failure mode
+**by construction**: rule order carries no meaning again, which is how EBNF is supposed to work.
 
 ### Checking, and overriding, the entry
 
-`--lint-grammar` reports the resolved entry rule and says which way it was resolved:
+`--lint-grammar` reports the resolved entry rule:
 
 ```text
 $ ast_pipeline grammars/mine.ebnf --lint-grammar
 grammar lint: 'mine' (2 rules) — left_recursive=0 …
-  [info] entry rule 'program' — DECLARED via `@entry: true`
+  [info] entry rule 'program' — declared via `@entry: true`
 ```
 
+and a grammar that declares none never gets that far:
+
 ```text
-  [info] entry rule 'statement' — POSITIONAL (the first rule defined; declare it with
-         `@entry: true` to make file order irrelevant)
+$ ast_pipeline grammars/undeclared.ebnf --lint-grammar
+Error: grammar 'undeclared': no entry rule is declared. A main EBNF file must contain
+one and only one `@entry: true`, written directly above the rule where parsing starts:
+
+    @entry: true
+    program := …
 ```
 
 `--entry-rule RULE` (on `ast_pipeline` and `parseability_probe`) parses from an **alternate** start

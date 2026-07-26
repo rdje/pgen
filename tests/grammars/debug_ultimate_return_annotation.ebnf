@@ -2,6 +2,7 @@
 # Analysis focus: Why multi-element arrays fail
 
 # Main entry point
+@entry: true
 return_annotation := '->' /\s*/ return_expression
 
 # CORE: Recursive return expressions

@@ -45,6 +45,7 @@
 # annotation-system.md).
 @whitespace_sensitive: true
 @default_profile: pcre2
+@entry: true
 regex          = entry_alternation
 -> {type: "regex", pattern: $1}
 

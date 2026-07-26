@@ -8,6 +8,7 @@ include_file("common_rules.ebnf")
 include_dir("operators", "*.ebnf")
 
 # Main grammar rules
+@entry: true
 main := expression
 
 expression := term (operator term)*

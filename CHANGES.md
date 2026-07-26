@@ -1,5 +1,30 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0004 (leaf `QUANT-PLUS-ITER.2`, steps B + C) — `@entry: true` is now mandatory, and the positional entry fallback is gone
+
+- **Required** — a main EBNF file must contain one and only one `@entry: true`, attached to
+  the rule where parsing starts. A grammar that declares none is refused at load with a
+  message naming the rule to annotate. The old "whichever rule is defined first" fallback is
+  removed: that fallback *was* the hazard, since reordering two rules silently changed the
+  accepted language while the linter reported `unreachable_rules=0` and exited 0.
+- **Migrated** — 58 tracked `.ebnf` files plus 68 synthetic grammars inside the parse-harness
+  suites, each declaring the rule that was already the entry. Include fragments are
+  deliberately excluded: the declaration belongs in the main file, and a fragment declaring
+  one too would make the spliced grammar declare two.
+- **Fixed a zero-cost violation the byte-identity oracle caught** — the migration initially
+  flipped 8 of 10 generated parsers off byte-identity. A rule carrying any semantic annotation
+  is pushed onto the full semantic-runtime transaction path, so the entry rule (the hottest
+  rule in any parser) gained a transaction frame purely for carrying a directive that compiles
+  to zero runtime directives. `@entry` now joins the existing inertness allowlist alongside
+  `@whitespace_sensitive` and `@quantified_separator`, with a unit test pinning it. After the
+  fix all 10 parsers are byte-identical, so the migration is provably inert.
+- **Verified** — combinator gate 27/27, semantic gate 36/36, equivalence gate 4/4 certified
+  byte-identical, lib suite 1027 passed / 0 failed, 10/10 parsers byte-identical, clippy
+  source-strict 0 errors, both book gates green, 9/9 doctrines.
+- **Known bound** — "main EBNF file" is enforced as "the grammar as loaded"; because includes
+  are spliced before the check, a declaration in an included file would satisfy it. Closing
+  that needs annotation-level provenance and is tracked on the leaf.
+
 ## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0003 (leaf `QUANT-PLUS-ITER.2`, step A) — the entry rule is now declarable in the EBNF: `@entry: true`
 
 - **Added** — a rule-level `@entry: true` semantic annotation naming the grammar's entry rule

@@ -1,6 +1,7 @@
 // Test grammar with both direct and indirect left recursion
 // Based on classic arithmetic expression grammar
 
+@entry: true
 expr := expr "+" term -> {left: $1, op: $2, right: $3}
       | expr "-" term -> {left: $1, op: $2, right: $3}  
       | term -> $1
