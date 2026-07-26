@@ -543,16 +543,22 @@ impl AstBasedGenerator {
                 let dump_path = format!("{filename}.tokens_dump.rs");
                 let rendered = parser_tokens.to_string();
                 let _ = std::fs::write(&dump_path, &rendered);
-                // Try to localize the failure by binary-searching token chunks
-                // for syn-parse acceptance. The largest accepted prefix's
-                // boundary is a strong hint at where the broken token sits.
+                // LANG-CAPABILITY-AUDIT.8 — localize to the generated ITEM (and
+                // to the METHOD inside it, which names the grammar rule) before
+                // falling back to the byte-offset hint. The byte hint alone
+                // reported 0 for every real failure; see
+                // `locate_syn_parse_failure`.
+                let site = locate_syn_parse_failure(&parser_tokens);
                 let approx_byte = locate_syn_parse_boundary(&rendered);
                 let context_window =
                     render_token_context(&rendered, approx_byte, 200);
                 return Err(anyhow::anyhow!(
-                    "Failed to parse generated TokenStream: {} (dumped raw tokens to {})\n  approximate failure byte: {}\n  context: {}",
+                    "Failed to parse generated TokenStream: {} (dumped raw tokens to {})\n  failure site: {}\n  approximate failure byte: {}\n  context: {}",
                     err,
                     dump_path,
+                    site.unwrap_or_else(|| {
+                        "not localizable to a single generated item".to_string()
+                    }),
                     approx_byte,
                     context_window
                 ));
@@ -4236,6 +4242,18 @@ impl AstBasedGenerator {
             let recover_global_budget_label = recover_global_budget
                 .map(|limit| limit.to_string())
                 .unwrap_or_else(|| "unbounded".to_string());
+            // LANG-CAPABILITY-AUDIT.8 — the budgets MUST be emitted as explicit
+            // `Option<usize>` expressions. Interpolating the `Option<usize>` value
+            // itself is wrong in BOTH arms: `ToTokens for Option<T>` emits nothing
+            // for `None` (leaving an empty argument slot that fails the codegen
+            // TokenStream parse) and emits the bare payload for `Some(n)` (`4usize`,
+            // which then fails `rustc` with E0308 against the helper's declared
+            // `Option<usize>` parameter). `recover_with_hints` already implements
+            // "unbounded" as `None`, so `@recover: true` with no budget lowers to
+            // three `None`s and needs no signature change.
+            let recover_budget_expr = optional_usize_expr(recover_budget);
+            let recover_parse_budget_expr = optional_usize_expr(recover_parse_budget);
+            let recover_global_budget_expr = optional_usize_expr(recover_global_budget);
             let sync_tokens_for_code = sync_tokens.clone();
             let panic_until_tokens_for_code = panic_until_tokens.clone();
 
@@ -4246,9 +4264,9 @@ impl AstBasedGenerator {
                         parse_start,
                         &[#(#sync_tokens_for_code),*],
                         &[#(#panic_until_tokens_for_code),*],
-                        #recover_budget,
-                        #recover_parse_budget,
-                        #recover_global_budget,
+                        #recover_budget_expr,
+                        #recover_parse_budget_expr,
+                        #recover_global_budget_expr,
                     ) {
                         if parser.trace_enabled() {
                             parser.logger.log_warning(#filename, parser.position as u32, &format!(
@@ -9978,6 +9996,170 @@ impl AstBasedGenerator {
     }
 }
 
+/// Emit an `Option<usize>` **expression** for a codegen-time optional budget.
+///
+/// LANG-CAPABILITY-AUDIT.8. Interpolating an `Option<usize>` binding directly
+/// into `quote!` is a trap in both arms, because `ToTokens for Option<T>`
+/// forwards to the payload and emits *nothing* for `None`:
+///
+/// - `None` -> an EMPTY argument slot (`f(a, , b)`), which fails the codegen
+///   TokenStream parse with "expected an expression";
+/// - `Some(4)` -> the bare payload `4usize`, which parses as codegen but fails
+///   `rustc` with E0308 against an `Option<usize>` parameter.
+///
+/// Both arms must therefore be spelled explicitly.
+fn optional_usize_expr(value: Option<usize>) -> TokenStream {
+    match value {
+        Some(limit) => quote! { Some(#limit) },
+        None => quote! { None },
+    }
+}
+
+/// Split a TokenStream into top-level item-sized chunks WITHOUT parsing it.
+///
+/// A Rust item ends either at a top-level `;` (`use a::b;`, `type T = U;`) or
+/// at its trailing brace body (`impl X { … }`, `enum E { … }`). An attribute
+/// (`#` followed by a bracket group) belongs to the item that follows it and
+/// therefore never terminates a chunk. Splitting is deliberately syntactic and
+/// approximate: its only job is to give the syn-parse localizer a unit small
+/// enough to name, which is why every chunk is re-validated by `syn` afterwards.
+fn split_top_level_chunks(tokens: TokenStream) -> Vec<TokenStream> {
+    use proc_macro2::{Delimiter, TokenTree};
+
+    let mut chunks: Vec<TokenStream> = Vec::new();
+    let mut current: Vec<TokenTree> = Vec::new();
+    let mut iter = tokens.into_iter().peekable();
+
+    while let Some(tt) = iter.next() {
+        match &tt {
+            // `#[…]` / `#![…]` — part of the following item, never a terminator.
+            TokenTree::Punct(punct) if punct.as_char() == '#' => {
+                current.push(tt);
+                if matches!(iter.peek(), Some(TokenTree::Punct(bang)) if bang.as_char() == '!') {
+                    current.push(iter.next().expect("peeked token"));
+                }
+                if matches!(
+                    iter.peek(),
+                    Some(TokenTree::Group(group)) if group.delimiter() == Delimiter::Bracket
+                ) {
+                    current.push(iter.next().expect("peeked token"));
+                }
+            }
+            TokenTree::Punct(punct) if punct.as_char() == ';' => {
+                current.push(tt);
+                chunks.push(current.drain(..).collect());
+            }
+            TokenTree::Group(group) if group.delimiter() == Delimiter::Brace => {
+                current.push(tt);
+                chunks.push(current.drain(..).collect());
+            }
+            _ => current.push(tt),
+        }
+    }
+
+    if !current.is_empty() {
+        chunks.push(current.into_iter().collect());
+    }
+    chunks
+}
+
+/// The declaration head of a chunk — everything before its body or parameter
+/// list — as a single-line label. For a generated parser method that is
+/// `fn parse_<rule>`, so the label NAMES THE GRAMMAR RULE.
+fn chunk_label(chunk: &TokenStream) -> String {
+    let rendered = chunk.to_string();
+    let head: String = rendered
+        .chars()
+        .take_while(|c| *c != '{' && *c != '(')
+        .collect();
+    let head = head.split_whitespace().collect::<Vec<_>>().join(" ");
+    let label = if head.trim().is_empty() {
+        rendered
+    } else {
+        head
+    };
+    bounded_render(&label, 120)
+}
+
+/// Truncate a rendering to `limit` characters on a char boundary.
+fn bounded_render(text: &str, limit: usize) -> String {
+    let normalized = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if normalized.chars().count() <= limit {
+        return normalized;
+    }
+    let truncated: String = normalized.chars().take(limit).collect();
+    format!("{truncated}…")
+}
+
+/// The trailing brace body of a chunk, if it has one (`impl X { <body> }`).
+fn trailing_brace_body(chunk: &TokenStream) -> Option<TokenStream> {
+    use proc_macro2::{Delimiter, TokenTree};
+
+    match chunk.clone().into_iter().last() {
+        Some(TokenTree::Group(group)) if group.delimiter() == Delimiter::Brace => {
+            Some(group.stream())
+        }
+        _ => None,
+    }
+}
+
+/// Localize a codegen TokenStream parse failure to the generated ITEM and —
+/// when that item is an `impl`/`trait`/`mod` — to the generated MEMBER inside
+/// it.
+///
+/// LANG-CAPABILITY-AUDIT.8. This replaces a byte offset that could not be
+/// trusted: `locate_syn_parse_boundary` bisects BYTE PREFIXES and asks whether
+/// each still parses as a whole `syn::File`, but a prefix cut at an arbitrary
+/// byte almost never does, so the largest accepted prefix stayed 0 and every
+/// report pointed at the first token of the file regardless of the real cause
+/// (measured on `@recover: true`). Item-level chunking asks a question that
+/// CAN be answered instead — and because a PGEN parser emits one method per
+/// rule, the answer names the offending rule.
+///
+/// Returns `None` when every chunk parses, i.e. the failure is not localizable
+/// to a single item; callers must keep a fallback for that case.
+fn locate_syn_parse_failure(tokens: &TokenStream) -> Option<String> {
+    let chunks = split_top_level_chunks(tokens.clone());
+
+    for (index, chunk) in chunks.iter().enumerate() {
+        if syn::parse2::<syn::Item>(chunk.clone()).is_ok() {
+            continue;
+        }
+
+        let label = chunk_label(chunk);
+        // Only descend into containers whose members are themselves parseable
+        // units. Descending into a failed `struct`/`enum` would report its
+        // fields or variants, which are not items and would always "fail".
+        let is_container = ["impl", "trait", "mod"]
+            .iter()
+            .any(|keyword| label.split_whitespace().any(|word| word == *keyword));
+
+        if is_container {
+            if let Some(body) = trailing_brace_body(chunk) {
+                for member in split_top_level_chunks(body) {
+                    if syn::parse2::<syn::ImplItem>(member.clone()).is_ok() {
+                        continue;
+                    }
+                    return Some(format!(
+                        "generated item #{index} `{}` -> member `{}`\n  offending tokens: {}",
+                        label,
+                        chunk_label(&member),
+                        bounded_render(&member.to_string(), 300)
+                    ));
+                }
+            }
+        }
+
+        return Some(format!(
+            "generated item #{index} `{}`\n  offending tokens: {}",
+            label,
+            bounded_render(&chunk.to_string(), 300)
+        ));
+    }
+
+    None
+}
+
 /// Try to localize a syn-parse failure by binary-search: find the largest
 /// prefix of `rendered` that still parses as a `syn::File`. The byte at the
 /// boundary points near where the broken token sits.
@@ -10116,6 +10298,104 @@ fn relational_constraint_is_provably_truthy(expression: &str) -> bool {
         lowered.as_str(),
         "true" | "false" | "0" | "no" | "off" | "none" | "null"
     )
+}
+
+/// LANG-CAPABILITY-AUDIT.8 — the codegen failure localizer.
+#[cfg(test)]
+mod syn_parse_localization_tests {
+    use super::*;
+
+    /// The exact shape the `@recover: true` defect produced: a well-formed file
+    /// whose ONE broken method carries an empty argument slot. The byte-offset
+    /// localizer reported 0 for this; the item localizer must name the method.
+    #[test]
+    fn locates_the_failing_method_inside_an_impl() {
+        let tokens = quote! {
+            use std::collections::HashMap;
+
+            pub struct Parser;
+
+            impl Parser {
+                fn parse_ok(&self) -> bool { true }
+                fn parse_stmt(&mut self) -> bool {
+                    self.recover_with_hints("stmt", parse_start, &[], &[], , , ,)
+                }
+            }
+        };
+
+        // Precondition: the stream really is rejected as a whole file.
+        assert!(
+            syn::parse2::<syn::File>(tokens.clone()).is_err(),
+            "fixture must reproduce a syn-parse failure"
+        );
+
+        let site = locate_syn_parse_failure(&tokens)
+            .expect("a single broken method must be localizable");
+        assert!(
+            site.contains("fn parse_stmt"),
+            "localizer must NAME the offending method (the grammar rule), got: {site}"
+        );
+        assert!(
+            !site.contains("fn parse_ok"),
+            "localizer must not blame the healthy sibling method, got: {site}"
+        );
+    }
+
+    #[test]
+    fn locates_a_broken_top_level_item() {
+        let tokens = quote! {
+            use std::collections::HashMap;
+            pub const LIMIT: usize = ;
+            pub struct Parser;
+        };
+
+        let site = locate_syn_parse_failure(&tokens).expect("broken item must be localizable");
+        assert!(
+            site.contains("const LIMIT"),
+            "localizer must name the broken item, got: {site}"
+        );
+    }
+
+    #[test]
+    fn reports_no_site_when_every_item_parses() {
+        let tokens = quote! {
+            use std::collections::HashMap;
+            pub struct Parser;
+            impl Parser {
+                fn parse_stmt(&self) -> bool { true }
+            }
+        };
+
+        assert!(
+            locate_syn_parse_failure(&tokens).is_none(),
+            "a healthy stream must not be blamed on any item"
+        );
+    }
+
+    #[test]
+    fn attributes_do_not_split_the_item_they_decorate() {
+        let tokens = quote! {
+            #[derive(Debug, Clone)]
+            pub struct RecoveryEvent {
+                pub rule_name: String,
+            }
+        };
+
+        let chunks = split_top_level_chunks(tokens);
+        assert_eq!(
+            chunks.len(),
+            1,
+            "an attribute belongs to the item it decorates, got {} chunks",
+            chunks.len()
+        );
+        assert!(syn::parse2::<syn::Item>(chunks[0].clone()).is_ok());
+    }
+
+    #[test]
+    fn optional_usize_expr_spells_both_arms_explicitly() {
+        assert_eq!(optional_usize_expr(None).to_string(), "None");
+        assert_eq!(optional_usize_expr(Some(7)).to_string(), "Some (7usize)");
+    }
 }
 
 #[cfg(test)]
@@ -12469,20 +12749,83 @@ mod semantic_usage_tests {
             "recovery hook should carry sync/panic tokens, got: {}",
             rendered
         );
+        // LANG-CAPABILITY-AUDIT.8 — the budgets must be emitted as `Option<usize>`
+        // EXPRESSIONS. A bare `2usize` renders fine but fails `rustc` with E0308
+        // against `recover_with_hints`'s declared `Option<usize>` parameter, so
+        // asserting the bare literal is what let the defect ship.
+        for (budget, value) in [
+            ("recover_budget", "2usize"),
+            ("recover_parse_budget", "4usize"),
+            ("recover_global_budget", "6usize"),
+        ] {
+            assert!(
+                rendered.contains(&format!("Some ({value})")),
+                "recovery hook should carry {budget} as Some({value}), got: {rendered}"
+            );
+        }
+    }
+
+    #[test]
+    fn semantic_usage_codegen_emits_none_budgets_when_recover_has_no_limits() {
+        // LANG-CAPABILITY-AUDIT.8 — `@recover: true` with NO budget is the
+        // documented "recover without a limit" form. It must lower to three
+        // explicit `None`s: `ToTokens for Option<T>` emits NOTHING for `None`,
+        // which previously left empty argument slots and aborted codegen with
+        // "expected an expression".
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "stmt".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "recover".to_string(),
+                ast: UnifiedSemanticAST::Raw {
+                    content: "true".to_string(),
+                },
+            }],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            emit_typed_entry_skeleton: false,
+            enable_debug: false,
+            uses_match_regex: std::cell::Cell::new(false),
+            first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            analysis_runtime_annotations: std::cell::OnceCell::new(),
+            inline_decided_rules: std::cell::OnceCell::new(),
+            inline_emission_stack: std::cell::RefCell::new(Vec::new()),
+            cascade_emission_plan: std::cell::OnceCell::new(),
+            scan_emission_plan: std::cell::OnceCell::new(),
+        };
+
+        let logic = generator
+            .generate_node_parsing_logic(&or_rule(), "stmt", "semantic_usage.rs")
+            .expect("or-node logic generation should succeed");
+        let rendered = logic.to_string();
+
         assert!(
-            rendered.contains("2usize"),
-            "recovery hook should carry typed recover_budget value, got: {}",
-            rendered
+            rendered.contains("recover_with_hints"),
+            "recover-enabled rule should emit runtime recovery hook, got: {rendered}"
+        );
+        // The three budget arguments are the last three before the closing paren.
+        let call = rendered
+            .split("recover_with_hints")
+            .nth(1)
+            .expect("recovery hook call should be present");
+        let args = call
+            .split_once(')')
+            .map(|(head, _)| head)
+            .unwrap_or(call);
+        assert_eq!(
+            args.matches("None").count(),
+            3,
+            "unbudgeted recovery must pass three explicit None budgets, got: {args}"
         );
         assert!(
-            rendered.contains("4usize"),
-            "recovery hook should carry typed recover_parse_budget value, got: {}",
-            rendered
-        );
-        assert!(
-            rendered.contains("6usize"),
-            "recovery hook should carry typed recover_global_budget value, got: {}",
-            rendered
+            !args.contains(", ,"),
+            "unbudgeted recovery must not emit empty argument slots, got: {args}"
         );
     }
 

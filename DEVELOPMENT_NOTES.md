@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0012 — a green codegen is not a compiling parser, and a test can pin a bug as correct
+
+Three lessons from fixing `@recover`, all of which generalize past this leaf.
+
+**1. Measure the layer below the one that passed.** `.4` measured code generation and recorded
+"all 3 budgets → OK". That was accurate and honestly scoped — codegen really did succeed. But the
+artifact codegen produces has to *compile*, and it did not (`error[E0308]`, three times). The
+capability had been listed as partially working for as long as it had existed, when in fact no
+configuration of it had ever produced a usable parser. When a stage reports success, ask what the
+next consumer of its output does with it before recording the capability as present.
+
+**2. A render-level assertion cannot see a type error.** The bug shipped behind a passing test:
+
+```rust
+assert!(rendered.contains("2usize"), "recovery hook should carry typed recover_budget value");
+```
+
+That test **pinned the defect as expected output**. `2usize` is exactly what the buggy interpolation
+produced, and stringly-comparing generated code can never catch a mismatch against the signature the
+code is generated *against*. Where the assertion is on emitted source, the only assertion that
+closes the loop is compiling it — which is what the scratch slot is for.
+
+**3. `ToTokens for Option<T>` is a trap with no correct arm.** `quote!` forwards `Some(v)` to `v`
+and emits **nothing** for `None`. So interpolating an `Option` gives you an empty token slot in one
+arm and an unwrapped payload in the other — the first fails codegen, the second fails `rustc`. There
+is no value for which `#some_option` is right when the target parameter is itself an `Option`. A
+repo-wide sweep found no other instance, but the sweep is only worth citing because it was
+**validated against the pre-fix commit**, where it flags exactly the three known ones. A sweep that
+returns zero on already-fixed code demonstrates nothing about its own sensitivity.
+
+**Method note — the control is what made the side-finding safe to file.** Probing recovery surfaced
+an unrelated anomaly (a `+` over a rule reference iterating once). Rather than absorb it or assume
+the new code caused it, the same grammar was rebuilt with `@recover` removed: identical failure.
+That control is what allowed `.8` to close honestly and the anomaly to be routed to its own tree
+with an accurate scope — including the measurement that keeps it from being overstated, namely that
+VHDL's identical idiom parses correctly at gate scale.
+
+**Toolbox trap worth propagating.** `bare_parse` is set when neither coverage nor a logger is
+enabled, and it selects the *cascade* engine; enabling a trace selects the *memoized* one. Turning
+on `PGEN_TRACE_VERBOSITY` therefore changes which code path executes, so a traced run is not
+necessarily an observation of the path that produced the untraced verdict. Both engines were
+compared directly here and agreed, but the trap cost real time and is routed to `TOOLBOX.md` via
+`QUANT-PLUS-ITER.3`.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0011 — measure the blast radius before you enforce an invariant, not after
 
 Session #210 (leaf `LANG-CAPABILITY-AUDIT.9`). Two lessons.

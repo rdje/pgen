@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0012 (leaf `LANG-CAPABILITY-AUDIT.8`) — `@recover` never produced a working parser in ANY configuration; error recovery now works, is proven end-to-end, and is documented for the first time
+
+- **Fixed** — `@recover: true` code generation. The three `Option<usize>` recovery budgets were
+  interpolated directly into `quote!`, which is wrong in BOTH arms: `None` emits *nothing*
+  (`recover_with_hints("stmt", parse_start, &[], &[], , , ,)` ⇒ codegen aborts with "expected an
+  expression") and `Some(4)` emits the bare payload `4usize` against a parameter declared
+  `Option<usize>` (⇒ `error[E0308]`). New `optional_usize_expr` spells both arms explicitly.
+  `recover_with_hints` needed no change — it already declared `Option<usize>` and already
+  implemented "unbounded" as `None`.
+- **Scope correction** — `.4` had recorded "all 3 budgets → OK", which was true of *codegen* and
+  is where that leaf honestly stopped. Compiling the result shows the form does not build either,
+  so error recovery was a **100% dead shipped capability**, not a partially-broken one.
+- **Fixed** — the codegen `TokenStream` failure location. `locate_syn_parse_boundary` bisected byte
+  prefixes and asked whether each still parsed as a whole `syn::File`; a prefix cut mid-item almost
+  never does, so it reported byte 0 for every real failure. New `locate_syn_parse_failure` splits
+  the stream into top-level items, `syn`-parses each, and descends into a failing `impl` to name the
+  member — which for a PGEN parser is `parse_<rule>`, so the report names the offending grammar rule.
+- **Verified end-to-end** — recovery resynchronizes for real, measured through the PARSE-HARNESS
+  scratch slot: `🛟 Recovery for rule 'stmt': moved parser from 0 to 2 using sync token at 1`, with
+  the same grammar minus `@recover` rejecting the same input.
+- **Documented** — new book chapter `docs/book/src/error-recovery.md` (+ `SUMMARY.md`). This is the
+  first author-facing documentation of `@recover` / `@sync` / `@panic_until` / the three budgets in
+  either book; the leaf had measured 0 prior mentions across both.
+- **Known limit, now written down** — `@recover` is emitted only into the branch-tournament failure
+  path, so on a **single-branch rule it lints clean and emits nothing** (measured: 0 call sites vs 1).
+- **Tests** — 1 corrected (it had pinned the buggy `2usize` emission as expected output), 6 added
+  (the `None` arm, and 5 for the failure localizer).
+- **No regression** — all 11 generated parsers regenerated through the canonical Makefile invocation
+  with input and output paths pinned: **byte-identical**. No tracked grammar uses `@recover`.
+  `cargo test --lib --features generated_parsers`: 984 passed / 0 failed / 21 ignored. Clippy
+  source-strict: 0 errors, 0 hits in the new code. mdBook docs gate: PASS. Doctrines: 9/9.
+- **Opened** — `docs/tasks/QUANT-PLUS-ITER.md`, tracking a separate anomaly surfaced while probing:
+  a `+` over a rule reference iterates once in a minimal scratch grammar, while VHDL's identical
+  idiom works at gate scale. Proven unrelated to recovery by control, and deliberately not absorbed
+  into this leaf.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0011 (leaf `LANG-CAPABILITY-AUDIT.9`) — rule-definition uniqueness across a composed grammar, and the shipped multi-clause idiom finally documented
 
 **Code change.** `rust/src/ebnf_frontend.rs` + two grammar-author book chapters. No release,

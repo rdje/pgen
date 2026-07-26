@@ -14,6 +14,7 @@
 - [Diagnostic & Debug Toolbox](diagnosing-unknowns.md)
 - [Annotation System](annotation-system.md)
 - [The Semantic Store: Parser Memory](semantic-store.md)
+- [Error Recovery](error-recovery.md)
 - [Stimuli and Quality](stimuli-and-quality.md)
 - [Parser Families](parser-families.md)
 - [Embedding and Downstream Integration](embedding-and-downstream-integration.md)

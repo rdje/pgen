@@ -1005,10 +1005,176 @@ does not yet lint for it — a duplicate definition across two files currently r
 silently. It is a real gap in the same family this tree keeps finding, and it is **not**
 what the director ordered here. → new leaf `.9`.
 
-### `.8` — Codegen: `@recover: true` emits invalid Rust when a budget is unset (`todo`)
+### `.8` — Codegen: `@recover: true` emits invalid Rust when a budget is unset (`done`)
 
-- **Status: `todo`**, opened by `.4` Finding 2. **Code change** — needs its own
-  before→after measurement per the acceptance checklist.
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0012`, session #211, 2026-07-26).
+  **Code change**: `rust/src/ast_pipeline/ast_based_generator.rs` + 1 new book chapter.
+  No release/schema/ledger/contract movement — **all 11 generated parsers are
+  byte-identical** (proof below), because no tracked grammar uses `@recover`.
+
+#### ⭐⭐⭐ THE HEADLINE: the defect was WORSE than the leaf recorded — `@recover` NEVER worked, in ANY configuration
+
+`.4` measured **codegen** and honestly claimed nothing beyond it ("`+ all 3` → OK"
+meant *the TokenStream parsed*). This leaf measured the **next layer down**, and the
+"only usable form" is not usable either:
+
+| `@recover` configuration | `.4` verdict (codegen) | `.8` verdict (**does the parser COMPILE?**) |
+|---|---|---|
+| no annotations | ok | ✅ compiles |
+| `@sync` alone (inert) | ok | ✅ compiles |
+| `@recover: true`, no budget | **FAIL** — "expected an expression" | never reached codegen |
+| `+ 1 of 3` budgets | **FAIL** | never reached codegen |
+| `+ ALL 3` budgets — *"the only usable form"* | ok | ⛔ **`error[E0308]` ×3 — DOES NOT COMPILE** |
+
+⇒ **row 6 was a 100% dead shipped capability**, not a partially-broken one. The
+`ToTokens for Option<T>` trap is wrong in *both* arms: `None` emits **nothing**
+(empty argument slot ⇒ codegen abort) and `Some(4)` emits the **bare payload**
+`4usize` against a parameter declared `Option<usize>` (⇒ rustc E0308). A single
+`Option` interpolation cannot be right for any value.
+
+**The verbatim compiler diagnostic (the WHY+WHERE for the second layer):**
+
+```text
+error[E0308]: arguments to this method are incorrect
+    --> src/../../generated/scratch_parser.rs:2086:42
+2086 |                       .recover_with_hints(
+note: expected `Option<usize>`, found `usize`
+2091 |                       4usize,
+     = note: expected enum `std::option::Option<usize>`
+                found type `usize`
+```
+
+⚠️ **Why this survived review:** the unit test
+`semantic_usage_codegen_extracts_recovery_hints` asserted `rendered.contains("2usize")`
+— it **pinned the buggy emission as correct**. A render-level assertion cannot see a
+type error. The test now asserts `Some (2usize)`, and a new test covers the `None`
+arm that had no coverage at all.
+
+#### The fix
+
+`optional_usize_expr(Option<usize>) -> TokenStream` spells both arms explicitly
+(`Some(#limit)` / `None`). **No signature change was needed** — `recover_with_hints`
+already declared `Option<usize>` and already implemented "unbounded" as `None`
+(`:7247`/`:7261`/`:7274`), so the leaf's suggested "widen the helper" half was
+already done; only the *emission* was wrong.
+
+#### ⭐ Recovery is now measured END-TO-END: it really does RECOVER
+
+The leaf's open question ("does `recover_with_hints` resynchronize, or merely
+compile?") is answered **YES**, through the **PARSE-HARNESS scratch slot**
+(authoritative by construction — real register→codegen→compile→drive pipeline):
+
+```text
+🛟 Recovery for rule 'stmt': moved parser from 0 to 2 using sync token at 1
+🛟 Rule 'stmt' recovered from branch failure using sync=[;] panic_until=[]
+   budget(rule=unbounded, parse=unbounded, global=unbounded)
+```
+
+Differential (same grammar, `@recover` removed = the control): input `X;` →
+**rejected** without recovery, **accepted** with it. The `budget(rule=unbounded…)`
+line is the previously-unreachable no-budget form working for the first time.
+⇒ **row 6 closes as ✅.**
+
+#### ⚠️ A SECOND sharp edge found and DOCUMENTED (not silently absorbed)
+
+`@recover` is emitted only into the **branch-tournament failure path**, which
+exists only for a multi-branch rule. On a single-branch rule it is accepted,
+lints clean, and emits **nothing**:
+
+```text
+stmt := "a" ";"                 branch-count=1   recover CALL-SITES=0
+stmt := "a" ";" | "b" ";"       branch-count=2   recover CALL-SITES=1
+```
+
+This is the `ANNOTATION-PLACEMENT` family again (*a check that cannot see a defect
+class must say so, not return green*). It is **documented in the new book chapter**
+as a known limit; making it a diagnostic is left to a follow-up rather than
+smuggled into this leaf.
+
+#### The byte-0 diagnostic is fixed too (the leaf's "if cheap" item)
+
+**Root cause of the useless location:** `locate_syn_parse_boundary` bisects **byte
+prefixes** and asks whether each still parses as a whole `syn::File`. A prefix cut
+at an arbitrary byte almost never does, so `last_good` stayed **0** and every report
+pointed at the file's first token. Measured before:
+
+```text
+approximate failure byte: 0
+context: ...<<HERE@0>>use std :: collections :: HashMap ; ...
+```
+
+Replaced by `locate_syn_parse_failure`, which asks a question that *can* be
+answered: split the stream into top-level item chunks, `syn`-parse each, and
+descend one level into a failing `impl`/`trait`/`mod` to name the **member**.
+Because a PGEN parser emits one method per rule, **the answer names the offending
+grammar rule**. 5 new unit tests cover it (including the exact `, , ,` shape, the
+healthy-sibling non-blame case, and attribute chunking).
+
+#### Bug-class sweep (no silent second instance)
+
+A repo-wide sweep for the same trap — every `Option`-typed binding, **including
+tuple destructures**, that is interpolated into a `quote!` — reports **0** across
+all of `rust/src`. The sweep was **validated against the pre-fix commit**, where it
+flags exactly the 3 known instances:
+
+```text
+⚠️  ast_based_generator.rs:4220  #recover_budget : Option<usize>   (from rule_recovery_hints)
+⚠️  ast_based_generator.rs:4220  #recover_parse_budget : Option<usize>
+⚠️  ast_based_generator.rs:4220  #recover_global_budget : Option<usize>
+PRE-FIX Option slots destructured AND interpolated: 3
+```
+
+⇒ a sweep that finds nothing proves nothing until it is shown to catch the known
+instance. This one is.
+
+#### ACCEPTANCE CHECKLIST
+
+- [x] **REPRODUCE** — `.4`'s 5-cell control matrix re-run on the shipping binary at
+  HEAD, all 5 cells matching their declared verdicts; then the *new* layer: the
+  all-budgets parser compiled through the scratch slot and rejected by rustc.
+- [x] **ROOT CAUSE (WHY + WHERE)** — two layers, both tool-backed. Layer 1 (codegen):
+  the token dump shows `recover_with_hints ("stmt" , parse_start , & [] , & [] , , , ,)`
+  and `--lint-grammar`-clean grammars still abort. Layer 2 (compile): verbatim
+  `error[E0308]` at `generated/scratch_parser.rs:2086:42`, *"expected `Option<usize>`,
+  found `usize`"*. WHERE = `ast_based_generator.rs:4249-4251` (emission), NOT the
+  helper at `:7237` (already correct).
+- [x] **FIX** — `optional_usize_expr` + 3 call sites; `locate_syn_parse_failure`
+  wired into the codegen error path; 1 test corrected, 6 added.
+- [x] **ADDRESSED (verified, before→after)** — `@recover: true` alone: codegen
+  `rc=1` → `rc=0`, emitting `None, None, None`; all-budgets: `4usize` → `Some(4usize)`;
+  the generated parser **compiles** (`cargo build --features generated_parsers` green,
+  was `error[E0308]`); and recovery **fires at runtime** (`🛟` trace, reject→accept
+  differential vs the no-`@recover` control).
+- [x] **NO REGRESSION** — all **11** generated parsers regenerated with the fixed
+  codegen through the canonical Makefile invocation (cwd `rust/`, `../generated/...`
+  paths pinned so the embedded filename is identical) and **BYTE-IDENTICAL**:
+  json, regex, vhdl, systemverilog, systemverilog_preprocessor, rtl_const_expr,
+  rtl_frontend, return_annotation, semantic_annotation, ebnf. Zero tracked grammars
+  use `@recover` (measured: 0 files), so the fix is codegen-inert by construction.
+  `cargo test --lib --features generated_parsers`: **984 passed / 0 failed / 21 ignored**.
+- [x] **LOCKSTEP** — new book chapter `docs/book/src/error-recovery.md` + `SUMMARY.md`
+  entry. This is the FIRST author-facing documentation of recovery in either book
+  (the leaf measured 0 prior hits for `@recover`/`@sync`/`@panic_until`).
+
+#### ⛔ Deliberately NOT done in this leaf
+
+- Making `@recover`-on-a-single-branch-rule a **diagnostic** — documented as a known
+  limit, routed to a follow-up. Adding a new linter verdict is its own change.
+- The `+`-quantifier anomaly surfaced while probing (see the new `QUANT-PLUS-ITER`
+  tree) — unrelated to recovery, proven so by the control, and NOT absorbed here.
+
+#### Original charter (retained for provenance)
+
+> ⚠️ **One charter claim was WRONG and is corrected above:** *"The emitted helper's
+> signature takes `usize`, so there is no 'unbounded' value to emit."* It does not —
+> `recover_with_hints` declares `Option<usize>` and already handles `None` as
+> unbounded (`:7243-7245`, `:7247`/`:7261`/`:7274`). That error mattered: taken at
+> face value it would have sent the fix into a needless signature migration, and it
+> is also what masked the E0308 layer (a charter that believes the parameter is
+> `usize` cannot notice that `Some(4)` emitting `4usize` is a type error). Re-measuring
+> the cited source before acting is exactly [[feedback_read_prior_art_before_designing]]'s
+> RE-MEASURE clause, and it paid here for the second leaf running.
+
 - **ROOT CAUSE, already established (WHY + WHERE) — do not re-diagnose:**
   `ast_based_generator.rs:4240-4252` interpolates `recover_budget`,
   `recover_parse_budget` and `recover_global_budget` — all `Option<usize>` from
