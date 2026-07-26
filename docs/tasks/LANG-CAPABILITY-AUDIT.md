@@ -545,11 +545,25 @@ byte-identity claim is worthless unless every non-semantic input is pinned.
   (`scan_top_level_rules` / `convert_scanned_rule`) lowers `[` to the optional form
   instead. So the meta-grammar and the shipping frontend **disagree about what `[ … ]`
   means**, and the disagreement resolves silently in favour of the frontend.
-- Scope: adjudicate, don't assume — (a) confirm the divergence directly (the generated
-  `EbnfParser` vs the hand-written frontend on the same input; `ebnf_dual_run_diff` /
-  `ebnf_frontend_dual_run_gate` are the instruments), (b) then choose one of: implement
-  the class, delete the production, or mark it explicitly reserved — the tree's own
-  Acceptance Criteria already forbid leaving it as decorative surface.
+- ⭐⭐ **DIRECTOR STEER (2026-07-26, session #209, on reviewing `.5`), verbatim:** *"shouldn't
+  `digit := [0-9]` be written `digit := /[0-9]/`, instead. `/.../` is how we use regexes in
+  EBNF, so not sure why one would create a regex without enclosing it inside `/.../`"*
+  ⇒ **this decides the adjudication in substance: `/.../` is the ONE canonical way to write a
+  character class in PGEN's EBNF, so `character_class` has no reason to exist.** The default
+  arm is therefore **DELETE the production** (with its 5 helper rules
+  `character_class_negation` / `character_class_content` / `character_class_item` /
+  `character_range_item` / `normal_character`, if nothing else references them), NOT "mark it
+  reserved" — reserving a second syntax for something `/.../` already covers would keep the
+  ambiguity alive against the director's stated model. ⛔ *"Implement the class"* is now OFF
+  the table.
+- Scope: adjudicate on measurement, don't assume — (a) confirm the divergence directly (the
+  generated `EbnfParser` vs the hand-written frontend on the same input; `ebnf_dual_run_diff` /
+  `ebnf_frontend_dual_run_gate` are the instruments), (b) enumerate every referrer of
+  `character_class` and its helpers before deleting anything (some helpers may be shared —
+  `escaped_character` is referenced by `special_character` too), (c) delete per the steer, with
+  the byte-identity no-regression check `.5` established (input AND output paths pinned) plus
+  the self-hosting dual-run gate, since removing a *reachable* production is a real
+  meta-grammar change and NOT codegen-inert the way `.5`'s comment edit was.
 - ⚠️ Note for whoever takes it: this sits squarely in the family
   `ANNOTATION-PLACEMENT` named — *a check that cannot see a defect class must say so,
   not return green*. `--lint-grammar` reports 0 errors on `digit := [0-9]`.
