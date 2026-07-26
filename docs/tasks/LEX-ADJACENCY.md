@@ -220,6 +220,26 @@ on this primitive.
 ### `.2` — Implement + gate
 
 - **Status: `todo`** — **UNBLOCKED** by `.1`; this is the **current frontier**.
+- ⭐⭐ **DIRECTOR GO (2026-07-26, session #208).** The scope question `.1` raised
+  (*is strict fidelity here worth an engine change, given the deferred
+  dialect-tolerance switch?*) is **answered: build it.** Verbatim: *"PGEN SV needs
+  to be 100% compliant to the LRM by default. We can add dialect-tolerance later if
+  need be, but we need to work towards LRM full compliance and strictness, no
+  exception, no compromise and non-negotiable — but still allowing
+  dialect-tolerance, if need be at a later time in the future."* ⇒ strictness is
+  not contingent on anything; tolerance, if ever built, is an ADDITIVE opt-in on
+  top of a compliant default ([[feedback_sv_strict_lrm_compliance_default]]).
+  ⛔ **Provenance note:** the apparent tension this leaf was weighed against rested
+  on an UNVERIFIED engineer claim ("mainstream simulators accept `10 ns`") that had
+  already been measured FALSE in session #206 — **0 spaced vs 273 tight across
+  16,336 real-world files** — and then leaked back into the resume pointer. There
+  was never a real trade-off here.
+- ⭐ **DIRECTOR REAFFIRMATION, same session — and it is exactly this leaf's design:**
+  *"even dialect tolerance or any other feature shall be user controllable via the
+  EBNF, remember the sole source of truth."* `@lexical_token` is EBNF-declared by
+  construction, and step 3 below **retires** a hard-coded rule-NAME `matches!` arm —
+  the commonest disguise of an [[project_ebnf_is_single_source_of_truth]] breach.
+  That retirement is therefore not incidental cleanup; it is the directive applied.
   Engine tier, so the design record (`LEX-ADJACENCY-design.md`) had to come first
   per the fix hierarchy (annotations > store > grammar > engine). The directive
   itself is annotation-tier; only its *honouring* is engine-tier.

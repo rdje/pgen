@@ -1,10 +1,43 @@
 ---
 name: feedback_sv_strict_lrm_compliance_default
-description: STANDING POLICY — the SV parser is STRICT-LRM by default; over-acceptance is a defect to fix, not a feature to keep. A dialect-tolerance switch is DEFERRED until the measured accepts-invalid population proves a real need.
+description: "STANDING POLICY, REAFFIRMED NON-NEGOTIABLE (director 2026-07-26 session #208) — the SV parser works toward 100% IEEE LRM compliance and strictness BY DEFAULT: no exception, no compromise, non-negotiable. Over-acceptance is a defect to fix, never a feature to keep. Dialect tolerance may be ADDED later as an opt-in layer if a real need appears, but it is never a reason to relax the default or to leave an over-acceptance unfixed."
 metadata:
   node_type: memory
   type: feedback
 ---
+
+## ⭐ REAFFIRMATION (director 2026-07-26, session #208) — this is the operative wording
+
+Director, verbatim: *"PGEN SV needs to be 100% compliant to the LRM by default. We
+can add dialect-tolerance later if need be, but we need to work towards LRM full
+compliance and strictness, **no exception, no compromise and non-negotiable** — but
+still allowing dialect-tolerance, if need be at a later time in the future."*
+
+Two things this settles, both of which the earlier wording left softer than the
+director intended:
+
+1. **Strictness is NOT contingent on the accepts-invalid triage.** The earlier
+   "RE-OPEN TRIGGER" framing below read as *"find a construct real designs depend
+   on ⇒ reconsider strictness."* That is **not** the ruling. The ruling is: fix it
+   strictly regardless; a bucket-(a) row is evidence for **adding an opt-in
+   tolerance layer later**, never for leaving the grammar non-compliant.
+2. **Dialect tolerance is ADDITIVE and FUTURE.** It is a possible future *opt-in*
+   on top of a compliant default — never a fork of it, never a reason to defer a
+   fix.
+
+⛔ **Provenance correction the director asked to have on record.** The director's
+earlier openness to tolerance (*"if other simulators accept it, why wouldn't
+PGEN"*) was **caused by an unverified claim of mine** — "mainstream simulators
+accept `10 ns`" — asserted from general knowledge in session #206 and never
+measured. It was measured shortly after and is **false in the way that matters**
+(see the numbers below: 0 spaced vs 273 tight across 16,336 real-world files). The
+retraction was recorded, but the phrase leaked onward into `MEMORY.md` and was
+repeated back to the director in session #208 as if it were *their* position. **A
+claim about what external tools accept is a measurement, not a recollection** — do
+not state one without a run behind it, and purge a retracted claim from every
+layer, not just the one where it was retracted.
+
+## Historical framing (session #206) — superseded in emphasis by the reaffirmation above
 
 **Director decision (2026-07-25, session #206), stated after reviewing the `.3.11`
 measurement:** *"So, we will stick to strict-LRM compliance then, good I prefer
@@ -24,10 +57,16 @@ case at hand.
    [[project_lrm_extractor_sota_and_guardrails]]; footnote 48
    (`unbased_unsized_literal`) and footnote 44 (`time_literal`) are the worked
    examples that established this.
-3. **The dialect-tolerance switch is DEFERRED, not rejected.** It is re-openable
-   the moment evidence demands it (see the trigger below).
+3. **The dialect-tolerance switch is DEFERRED, not rejected — and ADDITIVE when it
+   comes.** Building it is a future option layered on top of a compliant default;
+   it is never a precondition for fixing an over-acceptance, and never a fork of
+   the default. (Reaffirmed #208.)
 
-## ⚠️ THE SCOPE LIMIT — this policy is a DEFAULT, not a proven-free blanket
+## ⚠️ THE SCOPE LIMIT — what is measured vs what is assumed
+
+⚠️ **Read this as a statement about COST, not about whether to comply.** Per the
+#208 reaffirmation, compliance is not conditional on what this triage finds; the
+triage tells us how much *care* a given tightening needs, not whether to do it.
 
 The decision was taken on the back of ONE measured case (`SV-CORPUS-GRAD.3.11`,
 `time_literal` / footnote 44), where strictness was proven free: **0 of 16,336
@@ -62,10 +101,14 @@ every known case so far is bucket (b)"*, not *"strict-LRM costs nothing."*
   CAN. So the per-FILE pass-set diff (the `.3.4` LAW) is not a formality on these
   leaves — it is the primary safety instrument, and any `pass -> fail` must halt
   the leaf and be routed to bucket (a) rather than argued away.
-- **THE RE-OPEN TRIGGER for the switch:** if the accepts-invalid triage finds ANY
-  bucket-(a) row — a construct real designs depend on that the LRM forbids — the
-  strictness-axis design is re-opened immediately, with that row as its motivating
-  evidence. One real case is worth more than the whole hypothetical design.
+- **THE TRIGGER FOR DESIGNING THE (additive) SWITCH:** if the accepts-invalid
+  triage finds ANY bucket-(a) row — a construct real designs depend on that the LRM
+  forbids — that row motivates designing the opt-in tolerance layer, with that row
+  as its evidence. One real case is worth more than the whole hypothetical design.
+  ⛔ **It does NOT pause or weaken the strict fix** (#208): the grammar is brought
+  into compliance either way, and the tolerance layer — if built — sits on top as
+  an explicit opt-in. "We found a bucket-(a) row" is never a reason to ship a
+  non-compliant default.
 
 ## If/when the switch IS built — constraints banked up front
 
