@@ -1,0 +1,32 @@
+=== --lint-grammar verdict ===
+  lint says: unreachable_rules=0
+
+=== independent reachability closure from the entry rule ===
+  entry='grammar_file'  rules=131  reachable=104  UNREACHABLE=27
+    - action_block
+    - action_content
+    - case_control
+    - case_modifier
+    - error_production
+    - error_recovery_action
+    - exception_list
+    - exception_rule
+    - grammar_inheritance
+    - import_statement
+    - lexer_mode
+    - named_capture
+    - optimization_directive
+    - optimization_hint
+    - optimization_parameter
+    - optimization_parameters
+    - panic_mode
+    - parameter_list
+    - parametric_rule
+    - predicate_content
+    - rule_modifier
+    - semantic_predicate
+    - skip_to
+    - sync_to
+    - template_instantiation
+    - type_argument
+    - type_argument_list
