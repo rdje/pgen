@@ -1,5 +1,16 @@
 # LANG-CAPABILITY-AUDIT: which real-language constructs can PGEN's EBNF actually express?
 
+> ⭐⭐ **SCOPE AMENDED (director, 2026-07-26, session #208):** *"LANG-CAPABILITY-AUDIT
+> shall not focus solely on Javascript, but on features that would be necessary for
+> PGEN EBNF to support cleanly that would allow PGEN to parse them, like Raku,
+> Python, Ruby, even VHDL, SysVerilog — I mean any language you know of, that are
+> well-known to be extremely painful to parse. PGEN shall be able to parse any
+> language like it is a walk in a park."*
+>
+> ⇒ The audit is **capability-first, cross-language**. ECMA-262 is ONE column, not
+> the subject. The unit of work is a **capability** (a thing an EBNF must be able to
+> say); languages are the *evidence* that the capability is needed.
+
 ## Metadata
 
 - Tree ID: `LANG-CAPABILITY-AUDIT`
@@ -182,20 +193,65 @@ cannot run — or cannot see — must say so, not return green.**
 
 </details>
 
-### `.3` — The ECMA-262 expressiveness pass
+### `.3` — The cross-language capability matrix (director-scoped; ECMA-262 is one column)
 
-- **Status: `todo`** — ⭐ **DIRECTOR-APPROVED (2026-07-26, re-confirmed)**. The pass the director greenlit. A **paper exercise**: no
-  grammar written, no parser built. For each canonical JS parsing construct, is it
-  expressible in PGEN's EBNF *today*? Verdict per row: **expressible** /
-  **expressible-but-unwired** / **gap**.
-- Seed rows (from the `.1` families + the known-hard JS list, all **UNMEASURED** until
-  this leaf runs): grammar parameters `[In, Yield, Await]`; ASI `[no LineTerminator here]`
-  (→ [`LEX-ADJACENCY`](LEX-ADJACENCY.md)); cover grammars / arrow-params-vs-parenthesized-expr;
-  regex-vs-division; contextual keywords; lookahead-set restrictions; template
-  literals with nested `${}`; Unicode ID_Start/ID_Continue; strict-mode directive
-  prologue; the Early Errors layer.
-- ⚠️ Do **not** assume PGEN's scannerless PEG handles the lexical ones for free —
-  measure, per this session's standing lesson.
+- **Status: `in_progress`** — first cut below. Rows are **capabilities**; the
+  languages are evidence. Verdicts: **✅ have** / **⚠️ partial** / **🕳️ declared-unwired**
+  (the surface exists in `ebnf.ebnf` with zero engine consumers — measured) /
+  **❌ gap** / **❓ unmeasured**.
+
+#### ⭐⭐ The corroboration that shapes this leaf
+
+The `.1` orphan set is **not random**. Cross-referencing it against the notorious-language
+feature list, the dead productions in our own meta-grammar land almost one-to-one on the
+hardest capabilities. Someone enumerated the right list and never wired it.
+Measured engine consumers (`grep -rc … rust/src/`): `case_control` **0**,
+`case_modifier` **0**, `lexer_mode` **0**, `error_production` **0**, `panic_mode` **0**,
+`import_statement` **0**, `parametric_rule` **0**.
+
+#### The matrix (first cut)
+
+| # | capability — *what the EBNF must be able to say* | languages that force it | PGEN today |
+|---|---|---|---|
+| 1 | **Parameterized productions** — `Expression[In, Yield, Await]`; one production family instantiated per parameter set | JS/ECMA-262 (pervasive), Ada, C++ | 🕳️ `parametric_rule`/`parameter_list` declared, **0 consumers** |
+| 2 | **Significant indentation / offside rule** — synthesize INDENT/DEDENT/NEWLINE from column state | Python, Haskell, YAML, Nim, F#, Raku heredocs | ❌ `@whitespace_sensitive` is grammar-global, not an offside primitive |
+| 3 | **Lexer modes / sub-languages** — switch lexical rules mid-parse and nest them | Ruby `#{}`, Python f-strings, JS templates `${}`, shell/Perl/Raku heredocs, embedded SQL/regex | 🕳️ `lexer_mode` declared, **0 consumers** |
+| 4 | **Lexical adjacency / no-layout boundaries** — "no white space (or no newline) between these two elements" | JS ASI `[no LineTerminator here]`, SV fn 44, Ruby `foo?`/`a +b`, Raku | ⚠️ notation exists (`[>! /\s/]`) but **generator-only**; inline per-seam form designed, unbuilt → [`LEX-ADJACENCY`](LEX-ADJACENCY.md) |
+| 5 | **Case-insensitive keywords** — `BEGIN`/`begin`/`Begin` one token, identifiers still case-preserving | **VHDL**, Ada, SQL, Fortran, Pascal | 🕳️ `case_control`/`case_modifier` declared, **0 consumers** ⇒ VHDL's case-insensitivity is currently handled *inside* the grammar, not declared |
+| 6 | **Error recovery / resync** — a spec whose *recovery* is normative | HTML (WHATWG defines it), any IDE-grade parser | 🕳️ `error_production`/`error_recovery_action`/`panic_mode`/`sync_to`/`skip_to` declared, **0 consumers**; the horizon record says "NOT yet in PGEN" |
+| 7 | **Declaration-sensitive parsing** (the "lexer hack") — `T * x;` is a decl or a product depending on a *prior declaration* | C/C++, **SV** (`type_identifier`), VHDL | ✅ **PGEN's core strength** — semantic store `has_fact`/scopes, proven at SV scale |
+| 8 | **Contextual / soft keywords** — a word is a keyword only in some positions | Python (`match`, `case`, `type`), JS (`let`, `async`, `of`), SV, C# | ⚠️ likely expressible via store + predicates + `@profiles`; **unmeasured as a general pattern** |
+| 9 | **Cover grammars / delayed disambiguation** — parse one shape, reinterpret later | JS `(a,b)` arrow-params vs paren-expr; C++ most-vexing-parse | ❓ tournament + backtracking *may* cover it; **unmeasured** |
+| 10 | **Balanced / user-chosen delimiters** — closing delimiter determined by the opening one, incl. mirrored pairs | **Raku** `q//`/`qq{}`/`«»`, Perl `q{}`, Rust `r#""#` | ❓ needs parse-state feeding the matcher; **unmeasured — suspected gap** |
+| 11 | **Here-documents** — terminator named *now*, body starts on the *next line* | Ruby, Perl, Raku, shell, PHP | ❓ non-context-free interaction of line structure + a named terminator; **suspected gap** |
+| 12 | **Operator-precedence declaration** — a precedence/associativity table instead of a hand-rolled cascade | VHDL, SV, C, most expression languages | ⚠️ `@priority`/`@associativity` exist per-rule; the ~16-level `rtl_const_expr` cascade is **measured** un-generatable within the bounded ladder (PARSE-HARNESS `.5.5`) ⇒ a real, already-felt pain |
+| 13 | **Unicode identifier classes + normalization** | Python (PEP 3131, **NFKC**), JS ID_Start/ID_Continue, Raku | ❓ regex-class support unmeasured; normalization almost certainly absent |
+| 14 | **Preprocessor / macro phase** | C/C++, **SV** `` `define ``, Rust macros | ⚠️ svpp is a *separate grammar*, not a composable phase |
+| 15 | **Grammar composition** — import/extend another grammar | large LRMs, layered dialects | 🕳️ `import_statement`/`grammar_inheritance` declared, **0 consumers** |
+| 16 | **Parse-time-mutable grammar** — the program *extends its own syntax* | **Raku** (slangs, custom operators), Perl 5 (`BEGIN`, prototypes) | ⛔ **HARD BOUND — out of scope by design.** The horizon record already scopes this: the realistic target is the *precise static subset*. Recording it keeps the boundary honest rather than pretending "any language" includes self-modifying ones. |
+
+#### Reading the matrix
+
+- **🕳️ declared-unwired is the dominant class (7 of 16 rows).** The capability was
+  *designed* and never built. That is a far cheaper starting position than "absent" —
+  and it is exactly why `.1` (audit our own meta-grammar) was the right first pass.
+- **Rows 2, 10, 11 are the true "extremely painful" cluster** — Python indentation,
+  Raku delimiters, heredocs. All three need **parse state feeding the lexical layer**,
+  which is the same architectural seam as row 3 (lexer modes) and row 4 (adjacency).
+  ⇒ Hypothesis for `.4`: **one primitive family may unlock 2/3/4/10/11 together.**
+- **Row 7 is where PGEN already beats most toolkits** — the store makes the lexer
+  hack declarative. Worth stating in the book: it is the strongest existing answer to
+  "extremely painful to parse".
+- ⚠️ **Six rows are ❓ unmeasured.** They are *assessments*, not measurements, and are
+  marked as such — no row here may be cited as fact until `.3b` probes it.
+
+### `.3b` — Measure the ❓ rows
+
+- **Status: `todo`.** Rows 8, 9, 10, 11, 13 (+ row 12's generality) are engineering
+  judgement, not tool output. Each needs a probe grammar through the existing harness
+  (`parse_harness` / scratch slot) before it earns a verdict. **Do not let this
+  matrix harden into fact without that pass** — this session produced four separate
+  instances of a plausible claim surviving because nobody re-ran it.
 
 ### `.4` — Prioritized primitive roadmap
 
