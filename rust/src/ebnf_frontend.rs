@@ -1,9 +1,10 @@
 use anyhow::{Context, Result, anyhow};
 use chrono::Utc;
 use serde_json::{Value, json};
+use std::collections::BTreeSet;
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::ast_pipeline::runtime_logger_box;
 #[cfg(has_generated_ebnf_parser)]
@@ -27,7 +28,11 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     grammar_name: &str,
     source_file: Option<&str>,
 ) -> Result<Value> {
-    let scanned_rules = scan_top_level_rules(input)?;
+    // LANG-CAPABILITY-AUDIT.7 — resolve `include(…)` / `include_dir(…)` directives into
+    // the rule set before anything downstream sees it. Every EBNF consumer in the
+    // repository funnels through this function or its file-reading sibling, so
+    // composing here is what makes include support universal rather than per-caller.
+    let scanned_rules = scan_rules_with_includes(input, source_file)?;
     let has_multiline_annotations = scanned_rules
         .iter()
         .flat_map(|rule| rule.annotations.iter())
@@ -252,6 +257,290 @@ fn is_include_directive(line: &str) -> bool {
             || s.starts_with("file(")
             || s.starts_with("dir(")
     )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LANG-CAPABILITY-AUDIT.7 — the include system.
+//
+// `scan_top_level_rules` deliberately ignores include directives so that the
+// rule scanner stays a single-file concern. Composition happens one level up, in
+// `scan_rules_with_includes`: each file is scanned INDEPENDENTLY and the rule
+// lists are concatenated. Splicing rules rather than raw text is what keeps a
+// `@annotation` or a `[> …]` directive at the end of one file from binding the
+// first rule of the next.
+//
+// Semantics follow `docs/EBNF_INCLUDE_SYSTEM.md` and the once-working Perl
+// implementation (`perl/AST/Transform.pm:3234 process_ast_includes`), with two
+// deliberate corrections, both recorded in the leaf:
+//   * the including file's own directory is ALWAYS on the search path. The Perl
+//     entry point never passed a base directory, so the documented "base
+//     directory" rule was inert there — measured.
+//   * an unresolvable include is a HARD ERROR. The whole defect class this leaf
+//     closes is a directive that vanishes without a word; a silent partial
+//     resolve would preserve the disease. (Perl returned an empty match list and
+//     carried on.)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum IncludeKind {
+    /// `include(…)`, `include_file(…)`, `file(…)` — named files.
+    File,
+    /// `include_dir(…)`, `dir(…)` — every `*.ebnf` in the named directories.
+    Dir,
+}
+
+/// Split a directive line into its kind and its argument specs, in source order.
+/// Both spellings that occur in tracked grammars are accepted: quoted
+/// (`include("a", "b")`) and bare (`include(a)` — the meta-grammar's own
+/// `include_item := quoted_string | rule_name`).
+fn parse_include_directive(line: &str) -> Option<(IncludeKind, Vec<String>)> {
+    let (kind, rest) = if let Some(rest) = line.strip_prefix("include_file(") {
+        (IncludeKind::File, rest)
+    } else if let Some(rest) = line.strip_prefix("include_dir(") {
+        (IncludeKind::Dir, rest)
+    } else if let Some(rest) = line.strip_prefix("include(") {
+        (IncludeKind::File, rest)
+    } else if let Some(rest) = line.strip_prefix("file(") {
+        (IncludeKind::File, rest)
+    } else if let Some(rest) = line.strip_prefix("dir(") {
+        (IncludeKind::Dir, rest)
+    } else {
+        return None;
+    };
+
+    let inner = rest.strip_suffix(')').unwrap_or_else(|| {
+        // Tolerate a trailing comment after the closing paren.
+        rest.rsplit_once(')').map(|(head, _)| head).unwrap_or(rest)
+    });
+
+    let specs: Vec<String> = inner
+        .split(',')
+        .map(|spec| spec.trim().trim_matches(['"', '\'']).trim().to_string())
+        .filter(|spec| !spec.is_empty())
+        .collect();
+
+    if specs.is_empty() { None } else { Some((kind, specs)) }
+}
+
+/// The include directives of one file, at column 0, in source order.
+fn scan_include_directives(input: &str) -> Vec<String> {
+    input
+        .lines()
+        .filter(|line| leading_whitespace_len(line) == 0)
+        .map(str::trim)
+        .filter(|trimmed| is_include_directive(trimmed))
+        .map(str::to_string)
+        .collect()
+}
+
+/// Search path for resolving one file's includes: the including file's own
+/// directory first, then any inherited directories (the chain of includers),
+/// then `$EBNF_INCLUDES` and `$EBNFLIB`, then the current directory. Duplicates
+/// are dropped while order is preserved, so the nearest definition wins.
+fn build_include_search_path(base_dir: Option<&Path>, inherited: &[PathBuf]) -> Vec<PathBuf> {
+    let mut path: Vec<PathBuf> = Vec::new();
+    let mut push_unique = |candidate: PathBuf, path: &mut Vec<PathBuf>| {
+        if !path.contains(&candidate) {
+            path.push(candidate);
+        }
+    };
+
+    if let Some(dir) = base_dir {
+        push_unique(dir.to_path_buf(), &mut path);
+    }
+    for dir in inherited {
+        push_unique(dir.clone(), &mut path);
+    }
+    for env_var in ["EBNF_INCLUDES", "EBNFLIB"] {
+        if let Ok(value) = env::var(env_var) {
+            for entry in value.split(':').map(str::trim).filter(|s| !s.is_empty()) {
+                push_unique(PathBuf::from(entry), &mut path);
+            }
+        }
+    }
+    push_unique(PathBuf::from("."), &mut path);
+    path
+}
+
+/// Resolve one file spec against the search path. `.ebnf` is appended when the
+/// spec does not already carry it; absolute paths bypass the search entirely.
+fn resolve_include_file(spec: &str, search_path: &[PathBuf]) -> Option<PathBuf> {
+    let filename = if spec.ends_with(".ebnf") {
+        spec.to_string()
+    } else {
+        format!("{}.ebnf", spec)
+    };
+
+    let candidate = Path::new(&filename);
+    if candidate.is_absolute() {
+        return candidate.is_file().then(|| candidate.to_path_buf());
+    }
+
+    search_path
+        .iter()
+        .map(|dir| dir.join(&filename))
+        .find(|full| full.is_file())
+}
+
+/// Resolve one directory spec to every `*.ebnf` it contains, alphabetically —
+/// the order the author book documents, and the only order that keeps a
+/// directory include deterministic.
+fn resolve_include_dir(spec: &str, search_path: &[PathBuf]) -> Option<Vec<PathBuf>> {
+    let candidate = Path::new(spec);
+    let dir = if candidate.is_absolute() {
+        candidate.is_dir().then(|| candidate.to_path_buf())?
+    } else {
+        search_path
+            .iter()
+            .map(|base| base.join(spec))
+            .find(|full| full.is_dir())?
+    };
+
+    let mut files: Vec<PathBuf> = fs::read_dir(&dir)
+        .ok()?
+        .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+        .filter(|path| path.is_file() && path.extension().is_some_and(|ext| ext == "ebnf"))
+        .collect();
+    files.sort();
+    Some(files)
+}
+
+/// Scan `input`'s own rules, then append the rules contributed by its includes,
+/// recursively.
+///
+/// Order matters and is not cosmetic: the main file's rules come FIRST, because
+/// downstream reachability and linting treat `rule_order[0]` as the canonical
+/// entry rule. Letting an included file supply rule 0 would silently re-root the
+/// grammar.
+fn scan_rules_with_includes(input: &str, source_file: Option<&str>) -> Result<Vec<ScannedRule>> {
+    let base_dir = source_file
+        .map(Path::new)
+        .and_then(Path::parent)
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .map(Path::to_path_buf);
+
+    let mut visited: BTreeSet<PathBuf> = BTreeSet::new();
+    if let Some(path) = source_file {
+        if let Ok(canonical) = fs::canonicalize(path) {
+            visited.insert(canonical);
+        }
+    }
+
+    let mut rules = scan_top_level_rules(input)?;
+    let included = collect_included_rules(
+        input,
+        base_dir.as_deref(),
+        &[],
+        &mut visited,
+        source_file.unwrap_or("<memory>"),
+    )?;
+    rules.extend(included);
+    Ok(rules)
+}
+
+/// Resolve every include directive in `input` and return the rules they
+/// contribute, in directive order.
+///
+/// `visited` holds canonical paths already processed, so a diamond include
+/// contributes its rules once and a cycle terminates instead of recursing
+/// forever. (The author book always promised this; the Perl implementation it
+/// documents actually had no such guard — measured, and recorded in the leaf.)
+fn collect_included_rules(
+    input: &str,
+    base_dir: Option<&Path>,
+    inherited_dirs: &[PathBuf],
+    visited: &mut BTreeSet<PathBuf>,
+    origin: &str,
+) -> Result<Vec<ScannedRule>> {
+    let directives = scan_include_directives(input);
+    if directives.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let search_path = build_include_search_path(base_dir, inherited_dirs);
+    let mut collected: Vec<ScannedRule> = Vec::new();
+
+    for directive in directives {
+        let Some((kind, specs)) = parse_include_directive(&directive) else {
+            return Err(anyhow!(
+                "malformed include directive in '{}': {}",
+                origin,
+                directive
+            ));
+        };
+
+        for spec in specs {
+            let targets: Vec<PathBuf> = match kind {
+                IncludeKind::File => vec![
+                    resolve_include_file(&spec, &search_path).ok_or_else(|| {
+                        anyhow!(
+                            "unresolvable include in '{}': '{}' (from `{}`) was not found on the \
+                             include search path [{}]. Add the file, fix the name, or extend \
+                             $EBNF_INCLUDES.",
+                            origin,
+                            spec,
+                            directive,
+                            render_search_path(&search_path)
+                        )
+                    })?,
+                ],
+                IncludeKind::Dir => resolve_include_dir(&spec, &search_path).ok_or_else(|| {
+                    anyhow!(
+                        "unresolvable include directory in '{}': '{}' (from `{}`) was not found on \
+                         the include search path [{}].",
+                        origin,
+                        spec,
+                        directive,
+                        render_search_path(&search_path)
+                    )
+                })?,
+            };
+
+            for target in targets {
+                let canonical = fs::canonicalize(&target).unwrap_or_else(|_| target.clone());
+                if !visited.insert(canonical) {
+                    // Already composed in through another path — process once.
+                    continue;
+                }
+
+                let target_display = target.display().to_string();
+                let contents = fs::read_to_string(&target).with_context(|| {
+                    format!(
+                        "failed to read included EBNF file '{}' (from '{}')",
+                        target_display, origin
+                    )
+                })?;
+
+                let nested_base = target.parent().map(Path::to_path_buf);
+                let mut nested_inherited: Vec<PathBuf> = Vec::new();
+                if let Some(dir) = base_dir {
+                    nested_inherited.push(dir.to_path_buf());
+                }
+                nested_inherited.extend_from_slice(inherited_dirs);
+
+                collected.extend(scan_top_level_rules(&contents).with_context(|| {
+                    format!("failed to scan included EBNF file '{}'", target_display)
+                })?);
+                collected.extend(collect_included_rules(
+                    &contents,
+                    nested_base.as_deref(),
+                    &nested_inherited,
+                    visited,
+                    &target_display,
+                )?);
+            }
+        }
+    }
+
+    Ok(collected)
+}
+
+fn render_search_path(search_path: &[PathBuf]) -> String {
+    search_path
+        .iter()
+        .map(|dir| dir.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn parse_rule_header(line: &str) -> Option<(String, String)> {

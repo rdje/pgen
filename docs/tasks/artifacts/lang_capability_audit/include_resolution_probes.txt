@@ -1,0 +1,49 @@
+LANG-CAPABILITY-AUDIT.7 — include() resolution probes
+binary: rust/target/debug/ast_pipeline
+
+=== 1. THE CORE REPAIR — a two-file grammar composes ===
+  OK  include("common") composes the included rule         rules=2      [want 2]
+  and the LINTER honours the graph: undefined_references=0 [want 0]
+  (before this leaf: rules=1, undefined_references=1, "likely a typo")
+
+=== 2. TRACKED grammars that were silently losing rules ===
+  OK  SV profiled wrapper (was 3 — 99.8% lost)           rules=1403   [want 1403]
+  OK  ebnf.ebnf after the stale include was removed        rules=131    [want 131]
+  ebnf.ebnf undefined_references=0 [want 0 — it is self-contained]
+
+=== 3. AN UNRESOLVABLE INCLUDE IS A HARD ERROR (was: silent, exit 0) ===
+  OK  missing include target fails the load                exit=1      [want 1]
+  --- the diagnostic names the spec, the directive and the search path: ---
+    Error: unresolvable include in 
+    '/var/folders/4h/29gg6nrx2pj9wfjkzc460hlr0000gn/T/tmp.aYlyozhGw3/bad.ebnf': 'does_not_exist' (from 
+    `include("does_not_exist")`) was not found on the include search path 
+    [/var/folders/4h/29gg6nrx2pj9wfjkzc460hlr0000gn/T/tmp.aYlyozhGw3, .]. Add the file, fix the name, 
+    or extend $EBNF_INCLUDES.
+
+=== 4. GRAPH SEMANTICS — cycles, diamonds, depth, spelling ===
+  OK  CYCLE a<->b terminates, each file once               rules=3      [want 3]
+  OK  DIAMOND composes the shared file exactly once        rules=4      [want 4]
+  OK  NESTED depth-3 + BARE spec + relative subdir         rules=3      [want 3]
+  OK  include_dir() pulls every *.ebnf                     rules=3      [want 3]
+
+=== 5. THE ENTRY RULE MUST NOT MOVE ===
+  OK  main-file rule stays first                           rule[0]=top [want top]
+   full order: ['top', 'l', 'shared', 'r']
+
+=== 6. NO REGRESSION — grammars with no include are untouched ===
+  OK  grammars/json.ebnf unchanged                         rules=9      [want 9]
+  OK  grammars/regex.ebnf unchanged                        rules=269    [want 269]
+  OK  grammars/vhdl.ebnf unchanged                         rules=216    [want 216]
+  OK  grammars/rtl_frontend.ebnf unchanged                 rules=169    [want 169]
+  OK  grammars/rtl_const_expr.ebnf unchanged               rules=48     [want 48]
+
+=== 7. EVERY EBNF CONSUMER INHERITS IT (the director's requirement) ===
+  OK  parser CODEGEN sees the included rule                fn parse_digit emitted
+  OK  STIMULI generation exercises the included rule       emitted digits: 02270182629622100000
+  OK  RAW-AST export (the pipeline input)                  raw_ast=start,digit
+  (--lint-grammar is covered by case 1; the parse harness and the equivalence
+   suite call the same entry point, so they inherit resolution identically.)
+
+=== SUMMARY ===
+declared-verdict divergences (⛔): 0
+all probes matched their declared verdicts

@@ -1,5 +1,42 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0010 — a differential gate proves agreement, not correctness
+
+Session #210 (leaf `LANG-CAPABILITY-AUDIT.7`). Three lessons.
+
+**1. Two implementations wrong in the same direction produce a clean diff.** The
+`ebnf_frontend_dual_run_diff_gate` compares the Perl and Rust EBNF frontends on
+`ebnf`/`json`/`regex` — rule counts and raw_ast rule-name sets. A dropped `include()` in the Rust
+frontend is precisely what it exists to catch, and `grammars/ebnf.ebnf` carried an include. It
+stayed green anyway, and the reason is worth remembering: the include target did not exist, so
+Perl's resolver also returned nothing. **A dangling include masked a dropped include** — two
+unrelated defects cancelling inside the one gate designed for the class. Two further maskings
+sat behind it (Perl's CLI passes no base directory, so a valid target would not have resolved
+either; and the grammar actually losing 1,397 rules has zero consumers in any gate).
+
+The generalization: a differential is only as strong as its weakest independent oracle, and if
+both sides share an oracle it has none. **Every differential gate needs at least one case whose
+expected value is asserted independently of both implementations.** That is what the new
+driver's declared verdicts are, and it is the shape to reach for the next time we diff two
+implementations of the same thing.
+
+**2. When a capability must hold "everywhere", find the chokepoint.** The director asked for
+include support in *every logic that consumes EBNF*. Rather than auditing consumers one by one,
+the measurement that mattered was that `ebnf_frontend.rs` exposes **two** public functions and
+all four consumers funnel through them. Putting resolution there makes the guarantee structural:
+no caller can opt out, and a consumer added next year inherits it. A per-consumer rollout would
+have been a list of future omissions — and the verification would have been a list too, rather
+than one probe run.
+
+**3. "Restoring" a behaviour means reading what it actually did, not what its doc says.** The
+plan was to port the Perl semantics. Two of them turned out not to exist: the documented "base
+directory" search-path entry was never passed by the Perl CLI (its own trace prints the path
+without it), and the book's long-standing promise that *"circular includes are handled
+gracefully — each file is processed once"* has **no** implementation behind it — there is no
+visited set anywhere in the Perl recursion. Both are now real, but they are recorded as **new
+guarantees, not restored ones**. Porting from a specification you have not executed is the same
+failure mode as designing from a prose summary, which this tree has now hit five times.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0009 — before you record that a system LACKS something, search for it by CAPABILITY, not by the name your own grammar gives it
 
 Session #210 (leaf `LANG-CAPABILITY-AUDIT.4`). Four lessons, three of them about method, and

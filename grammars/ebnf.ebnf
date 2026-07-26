@@ -14,8 +14,13 @@
 # Version: 2.0
 # Author: EBNF Parser Generator System
 
-# Include semantic annotation support
-include(semantic_annotations)
+# LANG-CAPABILITY-AUDIT.7 — a stale `include(semantic_annotations)` stood here.
+# It named a file that has never existed (`grammars/semantic_annotations.ebnf`),
+# and it survived only because the frontend used to discard include directives
+# without resolving them. Removed on measurement, not on suspicion: this grammar
+# lints with `undefined_references=0`, i.e. it is self-contained; and composing in
+# `semantic_annotation.ebnf` would collide on 15 rule names already defined below.
+# Includes are resolved for real now, so an unresolvable one is a hard error.
 
 # =============================================================================
 # GRAMMAR FILE STRUCTURE

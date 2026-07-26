@@ -1,16 +1,24 @@
 # EBNF Include System - Technical Reference
 
-> ⛔ **STATUS (measured 2026-07-26, `LANG-CAPABILITY-AUDIT.4`): NOT ACTIVE in the shipping
-> Rust frontend.** Include directives are recognized and then discarded
-> (`rust/src/ebnf_frontend.rs:152-155`) — no file is read, no rule is merged, exit code 0,
-> no diagnostic. Everything below describes the resolution logic as implemented in the
-> **retired Perl frontend** (`perl/AST/Transform.pm:3234` `process_ast_includes` and
-> friends), which the Rust migration never carried over.
+> **STATUS (2026-07-26, `LANG-CAPABILITY-AUDIT.7`): ACTIVE in the shipping Rust frontend.**
+> Includes are resolved in `rust/src/ebnf_frontend.rs` (`scan_rules_with_includes` /
+> `collect_included_rules`) before anything downstream sees the grammar, so every EBNF
+> consumer — codegen, `--lint-grammar`, stimuli generation, the parse harness — honours the
+> include graph through one entry point.
 >
-> Treat this document as the **specification leaf `.7` restores**, not as a description of
-> current behaviour. See `docs/tasks/LANG-CAPABILITY-AUDIT.md` leaves `.4` (the
-> measurement) and `.7` (the directed fix, which also makes `--lint-grammar` honour the
-> include graph). This notice is removed when `.7` lands.
+> Two clarifications where this document's Perl-era description and the current behaviour
+> differ, both deliberate:
+>
+> - **The including file's own directory is always on the search path.** The Perl entry
+>   point never passed a base directory, so the "base directory" rule documented below was
+>   inert in practice.
+> - **An unresolvable include is a HARD ERROR**, naming the spec, the directive and the
+>   search path tried. Perl returned an empty match list and continued silently — the exact
+>   failure mode that let a dangling include survive unnoticed in the meta-grammar.
+>
+> Cycle handling is as described below (each file composed exactly once); note that the
+> Perl implementation this document was written from had no such guard, so the guarantee is
+> new rather than restored.
 
 This document provides comprehensive technical details about the include system in the EBNF Parser Generator.
 

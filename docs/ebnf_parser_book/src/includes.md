@@ -1,27 +1,11 @@
 # The Include System
 
-> ⛔ **STATUS (measured 2026-07-26, `LANG-CAPABILITY-AUDIT.4`): the directives below are
-> currently RECOGNIZED AND DISCARDED — they do not compose anything yet.**
->
-> The shipping Rust frontend detects an include directive and skips the line
-> (`rust/src/ebnf_frontend.rs:152-155`). No file is read and no rule is merged, **with exit
-> code 0 and no diagnostic**. A grammar that relies on an include therefore loads with only
-> its own rules, and the linter then reports the included rules as *undefined references
-> (likely a typo)* — a misleading message that names the wrong cause.
->
-> This is a regression, not a design: the resolution logic described in this chapter was
-> implemented in the retired Perl frontend (`perl/AST/Transform.pm`) and was never carried
-> over. **Restoring it is directed work** — see `docs/tasks/LANG-CAPABILITY-AUDIT.md` leaf
-> `.7`, which also makes `--lint-grammar` honour the include graph. This notice is removed
-> as part of that leaf.
->
-> **Until then:** keep a grammar in a single file. Everything below describes the intended
-> and once-working behaviour, and is the contract `.7` restores.
-
 The include system lets you split a large grammar across multiple `.ebnf` files and share common rule
-libraries. The directives are recognized by the EBNF frontend (`rust/src/ebnf_frontend.rs`) and — once
-`.7` lands — resolved into a single combined grammar before code generation. The authoritative,
-exhaustive reference — search paths, environment variables, recursive resolution, and cycle handling — is
+libraries. The directives are resolved by the EBNF frontend (`rust/src/ebnf_frontend.rs`) into a single
+combined grammar before anything downstream — codegen, `--lint-grammar`, stimuli generation, the parse
+harness — sees it. Every EBNF consumer in the repository funnels through that one entry point, so
+include support is universal rather than per-tool. The authoritative, exhaustive reference — search
+paths, environment variables, recursive resolution, and cycle handling — is
 `docs/EBNF_INCLUDE_SYSTEM.md`; this chapter is the author-facing summary.
 
 ## File includes
@@ -58,35 +42,48 @@ dir("../shared", "./components")
 ## How resolution works (summary)
 
 1. The main grammar is scanned for include directives and rules.
-2. Each directive is resolved to concrete file paths against the search path (the grammar's base
-   directory, explicit `include_dir` directories, the `EBNF_INCLUDES` / `EBNFLIB` environment variables,
-   then the current directory — see `docs/EBNF_INCLUDE_SYSTEM.md`).
-3. Each included file is parsed and **recursively** processed for its own includes.
-4. **Circular includes are handled gracefully** — each file is processed once; a cycle does not loop
-   forever.
-5. All rules from all files are combined into a single grammar; every rule name is in scope everywhere.
+2. Each directive is resolved to concrete file paths against the search path, in this order:
+   the **including file's own directory**, the directories of any files that included it, the
+   `EBNF_INCLUDES` and `EBNFLIB` environment variables (colon-separated), then the current
+   directory. The first match wins, so the nearest definition takes precedence.
+3. Each included file is parsed and **recursively** processed for its own includes. An included
+   file's own directory goes on the search path for *its* includes, so a subtree can use paths
+   relative to itself.
+4. **Circular includes are handled gracefully** — each file is composed in exactly once, so a
+   cycle terminates and a diamond (two files including a third) does not duplicate rules.
+5. All rules from all files are combined into a single grammar; every rule name is in scope
+   everywhere.
+
+**Rule order:** the main grammar's own rules come **first**, then the included rules in directive
+order. This matters beyond tidiness — reachability analysis and the linter treat the first rule as
+the grammar's canonical entry point, so an included file can never silently re-root your grammar.
+
+> ⛔ **An include that cannot be resolved is a hard error**, naming the spec, the directive and the
+> search path that was tried. It is never skipped. Before this was enforced, a mistyped or missing
+> include vanished silently and the linter then blamed the *referencing rule* for an "undefined
+> reference (likely a typo)" — pointing at everything except the actual cause.
 
 Because all included rules share one flat namespace, **avoid rule-name collisions** across files — two
 files defining the same rule name is a well-formedness concern (`--lint-grammar`).
 
-## A cautionary example: the meta-grammar's own include
+## A real example: the SystemVerilog profiled wrapper
 
-`grammars/ebnf.ebnf:18` opens with:
+`grammars/systemverilog_lrm_profiled_wrapper.ebnf` is a 32-line file whose body is one directive:
 
 ```ebnf
-include(semantic_annotations)
+include("systemverilog_lrm_profiled_generated")
 ```
 
-This was written as the meta-grammar composing in the semantic-annotation rules rather than restating
-them. Measured, it does neither — **and it is a good illustration of why leaf `.7` exists**:
+It composes in the 1,400-rule generated grammar and adds its own wrapper rules on top — the whole
+point of a wrapper grammar, and exactly the "factor the big part out" shape this system exists for.
 
-- the directive is discarded, so nothing is composed in; and
-- **`grammars/semantic_annotations.ebnf` does not exist.** The nearest tracked files are
-  `semantic_annotation.ebnf` and `builtin_semantic_annotation.ebnf`.
-
-A dangling include pointing at a missing file survived in the meta-grammar precisely because the
-directive is dropped before anything tries to resolve it. When `.7` lands, an unresolvable include
-becomes a hard, named error, and this line must be fixed or removed.
+> **A cautionary note from the same repair.** Until includes were resolved for real, that wrapper
+> loaded **3 of its 1,400 rules** and reported success, and `grammars/ebnf.ebnf` carried an
+> `include(semantic_annotations)` naming a file that has never existed. Neither could be detected,
+> because the directive was discarded before anything tried to resolve it. Both are fixed: the
+> wrapper composes, and the meta-grammar's stale directive was removed (it lints
+> `undefined_references=0` without it — it was always self-contained). That is why an unresolvable
+> include is now a hard error rather than a skipped line.
 
 ## Organizing a multi-file grammar
 
@@ -102,6 +99,4 @@ grammars/foolang/
 
 > Composition is done with **includes**, not the `import "…"` / `grammar … extends …` constructs the
 > meta-grammar self-describes — those are not implemented and misparse (see
-> [Rules and Expressions](rules-and-expressions.md)). Includes are the *designated* mechanism, and per
-> the status notice at the top of this chapter they are the one being restored by
-> `LANG-CAPABILITY-AUDIT.7`; the `import`/`extends` syntaxes are not.
+> [Rules and Expressions](rules-and-expressions.md)). The include system is the supported mechanism.

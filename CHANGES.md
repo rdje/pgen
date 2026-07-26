@@ -1,5 +1,58 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0010 (leaf `LANG-CAPABILITY-AUDIT.7`) — include() reinstated for every EBNF consumer, and the detection failure root-caused
+
+**Code change.** `rust/src/ebnf_frontend.rs` (include resolution) + `grammars/ebnf.ebnf` (a
+stale dangling directive removed). No release, schema, ledger or contract movement — the
+frontend composes rules *before* codegen, so no shipped parser's AST changes.
+
+Director-ordered, in two parts: *"The linter should honour EBNF include() graph trees, of
+course"*, then *"Full support for include() must be reinstated for every logic that consume
+EBNF, not sure why this wasn't detected earlier and acted upon."*
+
+**The fix — one chokepoint.** `ebnf_frontend.rs` exposes exactly two public functions and every
+EBNF consumer goes through them (CLI codegen/lint/stimuli/raw-AST, the stimuli generator, the
+parse-harness interpreter, the equivalence suite). Resolution was placed in
+`parse_ebnf_text_to_raw_ast_envelope` above `scan_top_level_rules`, so no caller can opt out.
+Rules are spliced, not text, so a trailing annotation in one file cannot bind the first rule of
+the next; main-file rules stay first so an included file can never silently re-root the grammar.
+Search path: including file's dir -> its includers' dirs -> `EBNF_INCLUDES` -> `EBNFLIB` -> `.`.
+Two deliberate departures from the Perl behaviour: the including file's own directory is now
+actually on the search path, and **an unresolvable include is a hard, named error** instead of a
+silent no-op.
+
+**`grammars/ebnf.ebnf:18` removed on measurement** — `grammars/semantic_annotations.ebnf` has
+never existed, the grammar lints `undefined_references=0` without it, and composing in the real
+`semantic_annotation.ebnf` would collide on 15 rule names.
+
+**The reason nothing caught this — three independent maskings, all measured.** The
+`ebnf_frontend_dual_run_diff_gate` diffs Perl against Rust on `ebnf`/`json`/`regex` and is exactly
+the instrument for a dropped include. It stayed green because (1) the include target did not
+exist, so Perl contributed zero rules too — **a dangling include masked a dropped include**;
+(2) Perl's CLI passes no base directory, so even a valid target would not have resolved (its own
+trace prints the search path as `<EBNF_INCLUDES>, .`); (3) the grammar actually being destroyed,
+`systemverilog_lrm_profiled_wrapper.ebnf`, has **zero consumers** in any gate. And no gate
+anywhere loaded a multi-file grammar — the include system had no positive test at all.
+
+=> **A differential gate proves that two implementations AGREE, never that either is RIGHT.**
+Banked in the horizon record.
+
+**Verified.** `run_include_resolution_probes.sh` — 17 declared-verdict cases, exit 0, 0
+divergences: two-file compose 1->**2** rules with `undefined_references` 1->**0** (the linter now
+honours the graph and the misattributed "likely a typo" is gone with its cause); SV profiled
+wrapper **3 -> 1403** rules; unresolvable include exit **0 -> 1**; cycle terminates; diamond
+composes once; depth-3 + bare spec + relative subdir; `include_dir()` alphabetical; entry rule
+pinned; all four consumer surfaces re-measured. No regression: five no-include grammars pinned
+unchanged. The meta-grammar edit is **codegen-inert, proven byte-identical against a real HEAD
+baseline with input AND output paths pinned** (sha256 `c0f26ff7...`, 156,863 lines).
+`ebnf_frontend_dual_run_gate` GREEN at 131/131 Perl-vs-Rust parity on `ebnf`;
+`ebnf_parser_book_gate` GREEN; clippy strict source **0 errors, 0 hits on the changed file**;
+all 9 doctrines PASS.
+
+**Left open and named:** cross-file rule-name collisions still resolve silently — new leaf `.9`,
+which also carries a design call (a deliberate override may be a legitimate idiom, so
+error-vs-warning is not obvious).
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0009 (leaf `LANG-CAPABILITY-AUDIT.4`) — pricing the roadmap re-measured the matrix, and two "gaps" turned out to be SHIPPED capabilities
 
 **Docs-only.** Every probe grammar and every generated parser lived in a `mktemp -d` the driver

@@ -232,7 +232,7 @@ Measured engine consumers (`grep -rc … rust/src/`): `case_control` **0**,
 | 12 | **Operator-precedence declaration** — a precedence/associativity table instead of a hand-rolled cascade | VHDL, SV, C, most expression languages | ⚠️ **CONFIRMED + sharpened by `.3b`:** `@priority`/`@precedence` take an **integer** payload and rank the alternatives **inside one rule**; there is no cross-rule ladder. The ~16-level `rtl_const_expr` cascade is **measured** un-generatable within the bounded ladder (PARSE-HARNESS `.5.5`) ⇒ a real, already-felt pain |
 | 13 | **Unicode identifier classes + normalization** | Python (PEP 3131, **NFKC**), JS ID_Start/ID_Continue, Raku | ✅ **(a) classes HAVE** — `.3b`-measured: `\p{XID_Start}`/`\p{XID_Continue}` compile and discriminate (5/5, incl. `café`/`变量`/reject `1abc`). ❌ **(b) NFKC normalization ABSENT** — 0 normalization crates, 0 NFKC/NFC/NFD mentions in `rust/src` |
 | 14 | **Preprocessor / macro phase** | C/C++, **SV** `` `define ``, Rust macros | ⚠️ svpp is a *separate grammar*, not a composable phase |
-| 15 | **Grammar composition** — import/extend another grammar | large LRMs, layered dialects | ⛔⛔ **THE VERDICT WAS WRONG — `.4` measured a REGRESSION, not a gap.** `import_statement`/`grammar_inheritance` are indeed unwired, but `include()` **ships, is recognized, and is then SILENTLY DISCARDED** (`ebnf_frontend.rs:152-155`) — while the Perl frontend implemented it (`perl/AST/Transform.pm:3234`) and the shipped author book documents it as working. Tracked-grammar damage measured: the SV profiled wrapper loads **3 of 1400 rules**; `ebnf.ebnf:18` has a **dangling** include. ⭐ **DIRECTOR-ORDERED FIX** → [`.7`](#7--make-include-real-end-to-end-and-make-the-linter-honour-the-include-graph-todo) |
+| 15 | **Grammar composition** — import/extend another grammar | large LRMs, layered dialects | ⛔⛔ **THE VERDICT WAS WRONG — `.4` measured a REGRESSION, not a gap.** `import_statement`/`grammar_inheritance` are indeed unwired, but `include()` **ships, is recognized, and is then SILENTLY DISCARDED** (`ebnf_frontend.rs:152-155`) — while the Perl frontend implemented it (`perl/AST/Transform.pm:3234`) and the shipped author book documents it as working. Tracked-grammar damage measured: the SV profiled wrapper loads **3 of 1400 rules**; `ebnf.ebnf:18` has a **dangling** include. ✅ **REPAIRED by `.7`** (director-ordered): includes resolve for real at the single frontend chokepoint, the linter honours the graph, an unresolvable include is a hard error, and the SV wrapper now loads **1403** rules. The `import`/`extends` half stays unwired by design — `include()` is the canonical mechanism. |
 | 16 | **Parse-time-mutable grammar** — the program *extends its own syntax* | **Raku** (slangs, custom operators), Perl 5 (`BEGIN`, prototypes) | ⛔ **HARD BOUND — out of scope by design.** The horizon record already scopes this: the realistic target is the *precise static subset*. Recording it keeps the boundary honest rather than pretending "any language" includes self-modifying ones. |
 
 #### Reading the matrix
@@ -836,12 +836,64 @@ consequences that bind this leaf:
 - ⛔ Unchanged and still binding: duality-completeness, and the zero-cost/neutrality
   acceptance test — eagerness never buys an exemption from "non-users pay ZERO".
 
-### `.7` — Make `include()` real end-to-end, and make the linter honour the include graph (`todo`)
+### `.7` — Make `include()` real end-to-end, and make the linter honour the include graph (`done`)
 
-- **Status: `todo`**, opened by `.4` Finding 1. ⭐⭐ **DIRECTOR-ORDERED (2026-07-26,
-  session #210), verbatim:** *"The linter should honour EBNF include() graph trees, of
-  course."* ⇒ the adjudication is decided in substance: **includes are made real.** Not
-  deleted, not documented away, not replaced by a new surface.
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0010`, session #210). **Code change** —
+  `rust/src/ebnf_frontend.rs` + `grammars/ebnf.ebnf` (a tracked grammar).
+- ⭐⭐ **DIRECTOR-ORDERED (2026-07-26, session #210).** First, verbatim: *"The linter should
+  honour EBNF include() graph trees, of course."* Then, on reading `.4`: *"Full support for
+  include() must be reinstated for every logic that consume EBNF, not sure why this wasn't
+  detected earlier and acted upon."* ⇒ **two deliverables: the fix, AND an account of the
+  detection failure.** Both below. Includes are made real — not deleted, not documented
+  away, not replaced by a new surface.
+
+#### ⭐⭐⭐ WHY THIS WAS NEVER DETECTED — three independent maskings, all measured
+
+The answer is not "nobody looked." A gate exists whose whole purpose is to catch exactly
+this class, and **three separate things had to line up for it to stay green**.
+
+**1. The one instrument that could see it was aimed at the single grammar where the bug
+cancels itself out.** `ebnf_frontend_dual_run_diff_gate.sh` diffs the **Perl** frontend
+against the **Rust** frontend over `("ebnf" "json" "regex")`, comparing `perl_rule_count`
+vs `rust_rule_count` and the raw_ast rule-name sets. `grammars/ebnf.ebnf` carried
+`include(semantic_annotations)`, and Perl *does* resolve includes — so this gate should
+have gone red the moment the Rust frontend stopped.
+
+It did not, because **the include target does not exist**. Perl's `resolve_include_files`
+pushes a path only `if -f $full_path`; no match ⇒ empty list ⇒ Perl contributes **zero**
+rules, exactly like the Rust frontend that never looked. Both report 131, parity, green.
+⇒ **the dangling include masked the dropped include** — two unrelated defects cancelling
+in the one gate designed to catch the class.
+
+**2. Even a valid target would not have resolved on the Perl side.** From Perl's own trace,
+the search path it actually builds under `tools/ebnf_to_json.pl` is:
+
+```
+🔍 Include search paths: <EBNF_INCLUDES entries>, .
+```
+
+— **no base directory.** `load_ebnf_spec_from_content` (`Transform.pm:3509`) does call
+`process_ast_includes` (`:3542`), but the CLI passes no base dir, so the documented *"base
+directory (containing the main grammar file)"* rule was inert. A `grammars/…ebnf` target
+would have been sought in the repo root and missed. Proof the wiring is otherwise live:
+with `EBNF_INCLUDES` pointed at a probe directory, Perl emits
+`📁 Included file: …/common.ebnf` and returns **2 rules** where Rust returned 1.
+
+**3. The grammar actually being destroyed is in no gate at all.**
+`grammars/systemverilog_lrm_profiled_wrapper.ebnf` — losing 1,397 of 1,400 rules — has
+**zero** consumers across `rust/`, `scripts/` and `.github/` (measured). Nothing loads it,
+so nothing could notice.
+
+⚠️ **And no gate anywhere loaded a multi-file grammar.** The include system had no positive
+test of any kind; its only tracked users were one grammar in no gate and one dangling
+directive. ⇒ this leaf ships `run_include_resolution_probes.sh` as that missing coverage.
+
+⭐ **The generalizable lesson** (routed to layer C): **a differential gate proves only that
+two implementations AGREE, never that either is RIGHT.** Both sides were wrong in the same
+direction and the diff was clean. A differential needs at least one case whose expected
+value is asserted **independently of both implementations** — which is exactly what the new
+driver's declared verdicts are. Same family as `ANNOTATION-PLACEMENT`'s principle: *a check
+that cannot see a defect class must say so, not return green.*
 - **The defect, measured** (`.4` Finding 1): `ebnf_frontend.rs:152-155` recognizes every
   include directive and `continue`s past it. Nothing resolves, nothing splices, exit 0,
   zero diagnostics. Blast radius already on tracked grammars —
@@ -856,33 +908,102 @@ consequences that bind this leaf:
   `docs/ebnf_parser_book/src/includes.md` is the author-facing contract this leaf must
   make true. `is_include_directive` (`ebnf_frontend.rs:246`) already fixes the accepted
   spellings (`include(`, `include_file(`, `include_dir(`, `file(`, `dir(`).
-- **Scope:**
-  1. Resolve + splice in the Rust frontend: search path (grammar base dir → explicit
-     `include_dir` → `EBNF_INCLUDES`/`EBNFLIB` → cwd), `.ebnf` extension defaulting,
-     alphabetical order for directory includes, **recursive** processing, and
-     process-once cycle handling — all per the two existing specs.
-  2. ⭐ **The linter honours the include GRAPH** (the director's words): undefined
-     references are resolved against the *combined* grammar, so the misattributed
-     *"likely a typo"* diagnostic disappears **with its root cause**, not by rewording.
-  3. ⛔ **A missing / unresolvable include must be a hard, named error.** The whole class
-     of defect here is a directive that vanishes silently — replacing a silent drop with
-     a silent partial resolve would keep the disease. `ebnf.ebnf:18` is the built-in
-     red-test: it must FAIL until the dangling include is fixed or removed.
-  4. Then adjudicate `ebnf.ebnf:18` itself: no `grammars/semantic_annotations.ebnf`
-     exists (`semantic_annotation.ebnf` / `builtin_semantic_annotation.ebnf` do) — decide
-     on measurement whether it is a typo, a stale reference, or a real missing split.
-- ⚠️ **Traps named before implementation:**
-  - **This changes what tracked grammars MEAN.** Making the SV wrapper resolve takes it
-    from 3 rules to ~1400. That is not a regression — it is the fix — but it must be
-    measured as a deliberate, enumerated transition, not slipped in under a green gate.
-  - **`ebnf.ebnf` is the meta-grammar.** Any change to how it loads needs `.5`'s
-    byte-identity method (input **and** output paths pinned) plus the self-hosting
-    `ebnf_frontend_dual_run_gate`.
-  - Rule-name collisions across files are a real well-formedness concern the book already
-    warns about (`includes.md:51`) — the combined grammar must lint for them.
-- **Book obligation:** `docs/ebnf_parser_book/src/includes.md` and
-  `docs/EBNF_INCLUDE_SYSTEM.md` carry `.4`'s dated status admonition. **Removing those
-  admonitions is part of this leaf's definition of done**, not a follow-up.
+#### The fix — one chokepoint, so "every logic that consumes EBNF" is structural, not per-tool
+
+⭐ The director's *"every logic that consume EBNF"* is satisfied **by construction**, and
+that is worth stating precisely: `rust/src/ebnf_frontend.rs` exposes exactly **two** public
+functions, and every EBNF consumer in the repository goes through them —
+`main.rs` (CLI: codegen / lint / stimuli / raw-AST export), `ast_pipeline/stimuli_generator.rs`,
+`parse_harness_interpreter.rs` and `parse_harness_equivalence.rs`. Resolution was therefore
+placed in `parse_ebnf_text_to_raw_ast_envelope`, **above** `scan_top_level_rules`, so no
+caller can opt out and no future caller can forget.
+
+- **`scan_rules_with_includes`** — scans the main file's rules, then appends the rules its
+  includes contribute.
+- **`collect_included_rules`** — resolves each directive, recursing, carrying a `visited`
+  set of canonical paths.
+- ⭐ **Rules are spliced, not text.** Each file is scanned *independently* and the rule
+  lists concatenated, so a trailing `@annotation` or `[> …]` directive at the end of one
+  file cannot bind the first rule of the next — a bug text concatenation would have had.
+- ⭐ **Main-file rules come FIRST.** Downstream reachability and linting treat
+  `rule_order[0]` as the canonical entry; letting an included file supply rule 0 would
+  silently re-root the grammar. Measured and pinned (`top, l, shared, r`).
+- Search path: including file's own dir → the dirs of its includers → `EBNF_INCLUDES` →
+  `EBNFLIB` → `.`, deduped in order so the nearest definition wins. `.ebnf` appended when
+  absent; absolute paths bypass the search; `include_dir()` takes every `*.ebnf`
+  alphabetically; both quoted and **bare** specs accepted (both spellings occur in tracked
+  grammars).
+
+**Two deliberate departures from the Perl behaviour, both recorded rather than silently
+inherited:**
+
+1. **The including file's own directory is always on the search path.** Perl documented
+   this and never did it (masking #2 above).
+2. ⛔ **An unresolvable include is a HARD ERROR** naming the spec, the directive and the
+   search path tried. Perl returned an empty match list and carried on — the precise
+   behaviour that let a dangling include hide in the meta-grammar. A silent partial resolve
+   would have preserved the disease.
+
+Also: the author book has always promised *"circular includes are handled gracefully —
+each file is processed once"*. The Perl implementation it documents has **no such guard**
+(measured: no visited set anywhere in the recursion). The guarantee is therefore **new,
+not restored**, and it is now tested.
+
+#### `grammars/ebnf.ebnf:18` — adjudicated on measurement, then removed
+
+The stale `include(semantic_annotations)` is deleted (replaced by a comment recording why).
+Decided on evidence, not convenience:
+
+- `grammars/semantic_annotations.ebnf` **has never existed**;
+- `ebnf.ebnf` lints `undefined_references=0` at 131 rules ⇒ it is **self-contained** and
+  needs nothing composed in;
+- pointing it at the real `semantic_annotation.ebnf` would import 112 rules that **collide
+  on 15 names** already defined in `ebnf.ebnf` ⇒ actively harmful.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `.4` measured the silent drop; this leaf reproduced it on
+    a 2-file probe (1 rule, exit 0, no diagnostic) and on two tracked grammars.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `ebnf_frontend.rs:152-155`: `is_include_directive`
+    matched, then `idx += 1; continue`. No resolution existed anywhere on the Rust path.
+    The *detection* failure is separately root-caused above, with all three maskings
+    measured (dual-run parity via a dangling target; Perl's base-dir-less search path
+    printed from its own trace; the SV wrapper's zero consumers).
+  - [x] **FIX** — resolution at the single frontend chokepoint + the stale meta-grammar
+    directive removed. Fix-hierarchy tier: **engine capability restored**, no workaround.
+  - [x] **ADDRESSED (verified)** — `run_include_resolution_probes.sh`, **17 declared-verdict
+    cases, exit 0, 0 divergences**: two-file compose 1→**2** rules with
+    `undefined_references` 1→**0** (⭐ the linter now honours the graph — the director's
+    specific requirement, and the misattributed *"likely a typo"* is gone with its cause);
+    SV profiled wrapper **3 → 1403** rules; unresolvable include **exit 0 → exit 1** with a
+    named diagnostic; cycle terminates; diamond composes the shared file exactly once;
+    depth-3 + bare spec + relative subdir; `include_dir()` alphabetical; entry rule pinned;
+    and all four consumer surfaces re-measured end-to-end (codegen emits `fn parse_digit`,
+    stimuli generate digits, raw-AST export shows `start,digit`).
+  - [x] **NO REGRESSION** — five no-include grammars pinned unchanged (json 9 / regex 269 /
+    vhdl 216 / rtl_frontend 169 / rtl_const_expr 48). ⭐ **The meta-grammar edit is proven
+    CODEGEN-INERT**: a genuine HEAD baseline was built (HEAD `ebnf_frontend.rs` + HEAD
+    `ebnf.ebnf`), the parser generated, then the change restored and regenerated **with the
+    input path AND the output path pinned** per `.5`/`BIN-BUILD-INTEGRITY.3` —
+    **byte-identical, sha256 `c0f26ff7eeb92b03e0424a3740b1f8a13fd8445c55071a06ac65b99e1e124fee`,
+    156,863 lines both sides.** `ebnf_frontend_dual_run_gate` GREEN with `ebnf` at
+    **131/131 Perl-vs-Rust parity**; `ebnf_parser_book_gate` GREEN (tracked HTML
+    re-rendered); clippy strict source stage **0 errors and 0 hits on the changed file**
+    (the generated-stage debt is entirely in `systemverilog_parser.rs` 158 /
+    `rtl_frontend_parser.rs` 132 / +2, none regenerated here); all 9 doctrines PASS. No
+    release, schema, ledger or contract movement — the frontend composes rules *before*
+    codegen, so no shipped parser's AST changes.
+  - [x] **LOCKSTEP** — both book admonitions `.4` planted are **removed and replaced with
+    accurate descriptions** (this leaf's declared definition of done), including the new
+    hard-error rule, the rule-order guarantee and the corrected search path;
+    `docs/EBNF_INCLUDE_SYSTEM.md` gains an ACTIVE status note that flags the two departures
+    from its Perl-era text; `.3` matrix row 15 updated; the differential-gate lesson routed
+    to the horizon record.
+
+⚠️ **Left open deliberately, and named rather than absorbed:** cross-file **rule-name
+collision** detection. The book warns about it (`includes.md`) and the combined grammar
+does not yet lint for it — a duplicate definition across two files currently resolves
+silently. It is a real gap in the same family this tree keeps finding, and it is **not**
+what the director ordered here. → new leaf `.9`.
 
 ### `.8` — Codegen: `@recover: true` emits invalid Rust when a budget is unset (`todo`)
 
@@ -916,6 +1037,26 @@ consequences that bind this leaf:
   0 hits for `@recover`/`@sync`/`@panic_until` across `docs/book/src` and
   `docs/ebnf_parser_book/src`) — a shipped steering surface with no author-facing
   documentation at all. Once it works, it needs a chapter.
+
+### `.9` — Cross-file rule-name collisions resolve silently (`todo`)
+
+- **Status: `todo`**, opened by `.7` and named there rather than absorbed into it.
+- Now that `include()` composes for real, two files may define the same rule name. The
+  author book already warns about it (*"avoid rule-name collisions across files — two files
+  defining the same rule name is a well-formedness concern (`--lint-grammar`)"*), but the
+  linter has **no duplicate-definition check**: the combined grammar simply carries both and
+  one silently wins.
+- ⚠️ This is the tree's recurring shape yet again — the book promises a check that does not
+  exist, so the tool returns green on a real defect
+  ([`ANNOTATION-PLACEMENT`](ANNOTATION-PLACEMENT.md)'s principle). It became *reachable*
+  only when `.7` made composition work, so it is new exposure, not pre-existing debt.
+- Scope: measure which of {first wins, last wins, both retained} actually happens today,
+  then add a `duplicate_rule_definitions` lint reporting the name and **both** source files
+  — the file provenance is the whole value, and `ScannedRule` does not carry it yet.
+- ⚠️ Decide deliberately whether a collision is an ERROR or a WARNING: a *deliberate
+  override* ("include the base grammar, then redefine two rules") is a plausible and
+  useful composition idiom, and making it a hard error would forbid it. That is a director
+  -visible design call, not an implementation detail.
 
 ### `.3c` — Keep widening the matrix with further notoriously-hard languages (`todo`)
 
@@ -962,3 +1103,9 @@ consequences that bind this leaf:
   `mktemp -d` the driver removes on exit)
 - `docs/tasks/artifacts/lang_capability_audit/primitive_pricing_probes.txt` — `.4`
   capture (exit 0, 0 divergences, byte-identical on re-run)
+- `docs/tasks/artifacts/lang_capability_audit/run_include_resolution_probes.sh` — `.7`
+  driver (17 declared-verdict cases: compose, tracked-grammar repair, hard error, cycle,
+  diamond, depth-3, bare spec, `include_dir`, entry-rule pinning, 5 no-include regression
+  pins, and all four consumer surfaces)
+- `docs/tasks/artifacts/lang_capability_audit/include_resolution_probes.txt` — `.7`
+  capture (exit 0, 0 divergences)

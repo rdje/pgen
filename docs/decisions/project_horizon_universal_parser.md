@@ -243,3 +243,46 @@ belongs beside [[feedback_read_prior_art_before_designing]]'s RE-MEASURE clause:
 recording that PGEN *lacks* something, search for it **by capability, across every surface**
 (annotations, engine, retired frontends, books) — not by the name the meta-grammar happens to
 give it.
+
+### Follow-through 2026-07-26 (session #210) — include() reinstated, and why nothing caught it
+
+**Director, on reading the `.4` measurement:** *"Full support for include() must be
+reinstated for every logic that consume EBNF, not sure why this wasn't detected earlier and
+acted upon."*
+
+Delivered in leaf `.7`. Two things are worth keeping at this level.
+
+**1. "Every logic that consumes EBNF" is satisfiable structurally.** `rust/src/ebnf_frontend.rs`
+exposes exactly two public functions and every EBNF consumer in the repository goes through
+them (CLI codegen/lint/stimuli/raw-AST, the stimuli generator, the parse-harness interpreter,
+the equivalence suite). Composition was therefore placed at that chokepoint rather than per
+tool, so no caller can opt out and no future caller can forget. ⇒ **when a capability must
+hold "everywhere", find the chokepoint and put it there; a per-consumer rollout is a list of
+future omissions.**
+
+**2. ⭐⭐ A DIFFERENTIAL GATE PROVES AGREEMENT, NEVER CORRECTNESS.** This is the durable
+lesson from the detection failure, and it generalizes well past includes.
+
+`ebnf_frontend_dual_run_diff_gate` diffs the Perl frontend against the Rust frontend on
+`ebnf`/`json`/`regex`, comparing rule counts and raw_ast rule-name sets. It is precisely the
+instrument that should have caught a dropped include, because `grammars/ebnf.ebnf` carried
+one and Perl resolves includes. It stayed green because **three independent maskings lined
+up**, all measured in `.7`:
+
+- the include target **did not exist**, so Perl also contributed zero rules — *a dangling
+  include masked a dropped include*, two unrelated defects cancelling inside the one gate
+  designed to catch the class;
+- Perl's CLI passes **no base directory**, so even a valid `grammars/…` target would not
+  have resolved (its own trace prints the search path as `<EBNF_INCLUDES>, .`);
+- the grammar actually being destroyed — `systemverilog_lrm_profiled_wrapper.ebnf`, losing
+  1,397 of 1,400 rules — has **zero consumers** in any gate, test or Makefile.
+
+⇒ **a differential needs at least one case whose expected value is asserted independently of
+both implementations.** Two implementations wrong in the same direction produce a clean diff
+and a green gate. This sits directly beside [[project_ebnf_is_single_source_of_truth]]'s
+enforcement thinking and the `ANNOTATION-PLACEMENT` principle (*a check that cannot see a
+defect class must say so, not return green*) — here the check could not see it because both
+of its eyes were closed the same way.
+
+**Corollary adopted:** a capability with no positive test is not shipped, whatever the book
+says. The include system had none; `.7` ships one.
