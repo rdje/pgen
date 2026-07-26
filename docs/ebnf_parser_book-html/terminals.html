@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9064376a.js";
+            window.path_to_searchindex_js = "searchindex-3d888d22.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -259,46 +259,36 @@ control_escape := "c" builtin_any_char -&gt; {type: "escape", kind: "control", c
 </code></pre>
 <p>This pair plus lookaheads is how a self-hosting grammar expresses “any character except …” without a
 character class.</p>
-<h2 id="the-reserved-name-footgun-true-and-false-match-empty"><a class="header" href="#the-reserved-name-footgun-true-and-false-match-empty">The reserved-name footgun: <code>true</code> and <code>false</code> match EMPTY</a></h2>
-<p>The <code>builtin_any_char</code> pair are not the only names PGEN treats as built in. The full list codegen
-recognizes is <code>builtin_any_char</code>, <code>builtin_ascii_char</code>, <code>semantic_annotation</code>, <code>true</code> and <code>false</code>
-(<code>AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS</code>). Only the first two behave the way the
-table above describes.</p>
-<blockquote>
-<p>⚠️ <strong>Do not name a rule <code>true</code> or <code>false</code>.</strong> If your grammar <em>references</em> either name without
-defining it, codegen does not report an undefined reference — it synthesizes a matcher that
-<strong>always succeeds and consumes nothing</strong>.</p>
-</blockquote>
-<pre><code class="language-ebnf"># ⛔ DON'T: `true` here is not your rule and not the text "true"
-flag := "flag=" true
-</code></pre>
-<p>That grammar accepts <code>flag=</code> — with nothing after the <code>=</code>. It also <em>rejects</em> <code>flag=true</code>, because
-the built-in never consumes the four characters; the node it returns carries the payload <code>"true"</code>
-regardless of what the input actually said. And <code>--lint-grammar</code> reports
-<code>undefined_references=0</code>, because the linter consumes the same built-in list as codegen: a name on
-that list is invisible to the undefined-reference check by construction.</p>
-<p>The contrast with a genuine built-in is exact — same list, opposite behaviour:</p>
+<h2 id="the-complete-built-in-list"><a class="header" href="#the-complete-built-in-list">The complete built-in list</a></h2>
+<p>The <code>builtin_any_char</code> pair are not quite the only names codegen treats as built in. The full list
+is exactly three (<code>AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS</code>):</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>grammar</th><th>input</th><th>verdict</th></tr>
+<tr><th>Name</th><th>What it is</th></tr>
 </thead>
 <tbody>
-<tr><td><code>probe := "T" true "T"</code></td><td><code>TT</code></td><td>⛔ <strong>accepted</strong> — <code>true</code> matched empty</td></tr>
-<tr><td><code>probe := "T" true "T"</code></td><td><code>TtrueT</code></td><td>rejected — <code>true</code> is zero-width, not a literal</td></tr>
-<tr><td><code>probe := "C" builtin_any_char "C"</code></td><td><code>CzC</code></td><td>accepted — the built-in consumed one character</td></tr>
-<tr><td><code>probe := "C" builtin_any_char "C"</code></td><td><code>CC</code></td><td>rejected — the built-in refused to match empty</td></tr>
+<tr><td><code>builtin_any_char</code></td><td>the single-UTF-8-character matcher above</td></tr>
+<tr><td><code>builtin_ascii_char</code></td><td>the single-ASCII-character matcher above</td></tr>
+<tr><td><code>semantic_annotation</code></td><td>an internal <code>@</code>-to-end-of-line matcher used by the meta-grammar — <strong>not</strong> a primitive you should reference; write your annotations as annotations</td></tr>
 </tbody>
 </table>
 </div>
-<p>To match the literal words, quote them — which is what every shipped grammar already does, and it is
-completely unaffected by any of the above:</p>
-<pre><code class="language-ebnf"># ✅ DO: quoted terminals, not rule references
+<p><strong>Every other undefined name is an error.</strong> A reference to a rule you never defined is reported by
+<code>--lint-grammar</code> as <code>undefined_references=N (error)</code> naming the exact rule and reference, and
+codegen emits a never-matching stub plus an unconditional warning — so the production dies loudly
+rather than silently.</p>
+<p>To match literal words like <code>true</code>, quote them. This is what every shipped grammar does:</p>
+<pre><code class="language-ebnf"># ✅ quoted terminals — ordinary, unambiguous, and unrelated to the list above
 boolean_literal := ("true" | "false")
 </code></pre>
-<p>This is a known defect, not a designed capability: no tracked grammar references either name, and
-removing the trap is tracked by task-tree leaf <code>LANG-CAPABILITY-AUDIT.10.4</code>. Until it lands, treat
-both names as reserved.</p>
+<blockquote>
+<p><strong>History (<code>LANG-CAPABILITY-AUDIT.10.4</code>).</strong> <code>true</code> and <code>false</code> used to be on that list, and they
+compiled to matchers that <strong>always succeeded and consumed nothing</strong> — <code>probe := "T" true "T"</code>
+accepted <code>TT</code>, and <code>--lint-grammar</code> still reported <code>undefined_references=0</code>, because the linter
+consumes the same list as codegen. No tracked grammar referenced either name. Both were removed,
+so those names are now ordinary rule names you may use freely.</p>
+</blockquote>
 <h2 id="the-character-class-footgun----is-optional-not-a-class"><a class="header" href="#the-character-class-footgun----is-optional-not-a-class">The character-class footgun: <code>[ … ]</code> is OPTIONAL, not a class</a></h2>
 <p>This is the single most important terminal rule to internalize:</p>
 <blockquote>

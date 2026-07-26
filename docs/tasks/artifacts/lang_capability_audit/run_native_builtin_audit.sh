@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
-# LANG-CAPABILITY-AUDIT.10.1 — audit every member of
+# LANG-CAPABILITY-AUDIT.10.1 / .10.4 — audit every member of
 # `AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`.
 #
 # The question per member: is it a GENUINE codegen builtin (a deliberately
 # grammar-consumable primitive with a real native matcher), or a SILENCED DEFECT
 # (a name allowlisted so the undefined-reference check stops reporting it)?
+#
+# .10.1 asked it of all five members and convicted two: `true` and `false` compiled
+# to unconditional ZERO-WIDTH matchers, so `"T" true "T"` ACCEPTED `TT`. .10.4
+# removed both. This driver now asserts the POST-FIX truth; the pre-fix capture
+# (the same driver, declaring the defect's verdicts) is preserved in git at commit
+# `c3d9b000`. Re-running it against a tree where the trap came back FAILS loudly.
 #
 # Re-run:  bash docs/tasks/artifacts/lang_capability_audit/run_native_builtin_audit.sh
 # Capture: docs/tasks/artifacts/lang_capability_audit/native_builtin_audit.txt
@@ -56,8 +62,9 @@ undef_refs() { "$PIPELINE" --lint-grammar "$1" 2>&1 | grep -oE "undefined_refere
 # ---------------------------------------------------------------------------
 hdr "A1. the allowlist, verbatim from the single source of truth"
 sed -n '/pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS/,/\];/p' "$GEN" | sed 's/^/  /'
-MEMBERS=(builtin_any_char builtin_ascii_char false semantic_annotation true)
-want "member count" "${#MEMBERS[@]}" "5"
+MEMBERS=(builtin_any_char builtin_ascii_char semantic_annotation)
+want "member count" "${#MEMBERS[@]}" "3"
+RETIRED=(true false)   # .10.4 — must NOT be on the list, and must NOT be zero-width
 
 # ---------------------------------------------------------------------------
 hdr "A2. tracked-grammar reference census (who names each member as a RULE REFERENCE?)"
@@ -112,7 +119,7 @@ echo "   parse_<name> from its own definition, not from the native-builtin fallb
 echo "   which is why semantic_annotation.ebnf appears on both sides for its own rule.)"
 
 # ---------------------------------------------------------------------------
-hdr "A4. the masking: a grammar with FOUR undefined references lints clean"
+hdr "A4. the masking: what the allowlist hides, and what it no longer hides"
 cat > "$WORK/masked.ebnf" <<'EOF'
 @entry: true
 scratch := probe_true | probe_false | probe_annot | probe_any
@@ -122,28 +129,42 @@ probe_false := "F" false "F"
 probe_annot := "A" semantic_annotation
 probe_any := "C" builtin_any_char "C"
 EOF
-want "undefined_references on 4 dangling refs" "$(undef_refs "$WORK/masked.ebnf")" "0"
+# The probe names FOUR undefined rules. Before .10.4 all four were allowlisted and
+# the grammar lint-reported 0. Now only `semantic_annotation` and `builtin_any_char`
+# are, so exactly the two retired names must surface.
+want "undefined_references on 4 dangling refs" "$(undef_refs "$WORK/masked.ebnf")" "2"
+for r in "${RETIRED[@]}"; do
+  named="$("$PIPELINE" --lint-grammar "$WORK/masked.ebnf" 2>&1 | grep -c "UNDEFINED rule '$r'")"
+  want "the linter now NAMES '$r'" "$named" "1"
+done
 cat > "$WORK/unmasked.ebnf" <<'EOF'
 @entry: true
 scratch := "T" not_on_the_allowlist "T"
 EOF
 want "undefined_references on 1 NON-member ref" "$(undef_refs "$WORK/unmasked.ebnf")" "1"
-echo "  => the check works; it is the ALLOWLIST that makes the four invisible."
+echo "  => the check itself always worked; the ALLOWLIST decided what it could see."
+echo "  => .10.4 gave 'true'/'false' back to it (0 -> 2 on this very grammar)."
 
 # ---------------------------------------------------------------------------
 hdr "A5. emitted matcher shape per member (codegen, not prose)"
 "$PIPELINE" "$WORK/masked.ebnf" --generate-parser --bootstrap-mode \
   --output "$WORK/masked_parser.rs" >/dev/null 2>&1
-for m in true false semantic_annotation builtin_any_char; do
+for m in semantic_annotation builtin_any_char "${RETIRED[@]}"; do
   printf '  --- parse_%s\n' "$m"
   # index(), not a regex: "parse_true(" contains `(`, which is not a valid ERE atom.
   awk -v needle="pub fn parse_${m}(" 'index($0, needle) {p=1} p {print "      "$0} p && /^    }$/ {exit}' \
     "$WORK/masked_parser.rs"
 done
-# The decisive static contrast: zero-width unconditional Ok vs consuming matcher.
-tw="$(awk '/pub fn parse_true\(/,/^    }$/' "$WORK/masked_parser.rs" | grep -c 'Span::new(start_pos, start_pos)')"
+# The decisive static contrast. A retired name must now be the bare never-matching
+# stub — NOT the unconditional zero-width `Ok` .10.1 measured — while a genuine
+# builtin still consumes.
+for r in "${RETIRED[@]}"; do
+  body="$(awk -v needle="pub fn parse_${r}(" 'index($0, needle) {p=1} p {print} p && /^    }$/ {exit}' \
+    "$WORK/masked_parser.rs")"
+  want "parse_$r is the Backtrack stub" "$(grep -c 'Backtrack' <<<"$body")" "1"
+  want "parse_$r never succeeds" "$(grep -c 'Ok(ParseNode' <<<"$body")" "0"
+done
 aw="$(awk '/pub fn parse_builtin_any_char\(/,/^    }$/' "$WORK/masked_parser.rs" | grep -c 'self.position = end_pos')"
-want "parse_true is zero-width (never consumes)" "$tw" "1"
 want "parse_builtin_any_char consumes" "$aw" "1"
 
 # ---------------------------------------------------------------------------
@@ -185,14 +206,15 @@ hdr "C. BEHAVIOUR through the scratch slot (opt-in: PGEN_AUDIT_RUN_SLOT_ARM=1)"
 if [[ "${PGEN_AUDIT_RUN_SLOT_ARM:-0}" != "1" ]]; then
   echo "  SKIPPED (set PGEN_AUDIT_RUN_SLOT_ARM=1 to run; it overwrites grammars/scratch/scratch.ebnf"
   echo "  and rebuilds parseability_probe, then restores the slot + its artifact on exit)."
-  echo "  Verdicts recorded by the capture, all 7 OK, 0 divergences:"
-  echo "    TT             ACCEPT   <- 'true' matched EMPTY  (the trap)"
-  echo "    TtrueT         REJECT   <- 'true' is zero-width, NOT a literal matcher"
-  echo "    FF             ACCEPT   <- 'false' matched EMPTY (the trap)"
-  echo "    A@name: value  ACCEPT   <- native @-to-EOL matcher is live"
-  echo "    Aname: value   REJECT   <- it does require the '@'"
-  echo "    CzC            ACCEPT   <- builtin_any_char CONSUMES one char"
-  echo "    CC             REJECT   <- ...and refuses to match empty  (the CONTRAST)"
+  echo "  Verdicts recorded by the capture, all 7 OK, 0 divergences"
+  echo "  (arrow = the .10.1 pre-fix verdict this replaced):"
+  echo "    TT             REJECT   <- was ACCEPT: 'true' matched EMPTY.  THE FIX."
+  echo "    TtrueT         REJECT   <- unchanged; never was a literal matcher"
+  echo "    FF             REJECT   <- was ACCEPT: 'false' matched EMPTY. THE FIX."
+  echo "    A@name: value  ACCEPT   <- unchanged; native @-to-EOL matcher still live"
+  echo "    Aname: value   REJECT   <- unchanged; it does require the '@'"
+  echo "    CzC            ACCEPT   <- unchanged; builtin_any_char CONSUMES one char"
+  echo "    CC             REJECT   <- unchanged; and refuses to match empty"
 else
   SLOT="grammars/scratch/scratch.ebnf"
   cp "$SLOT" "$WORK/slot.bak"
@@ -220,9 +242,10 @@ else
       if "$PROBE" --parse scratch "$WORK/in.txt" 2>&1 | grep -q "parse_full passed"; then v=ACCEPT; else v=REJECT; fi
       want "$1 [$2]" "$v" "$3"
     }
-    probe "true matches empty"        "TT"            ACCEPT
+    # .10.4: these two flipped ACCEPT -> REJECT. That flip IS the fix.
+    probe "true no longer matches empty" "TT"         REJECT
     probe "true is not a literal"     "TtrueT"        REJECT
-    probe "false matches empty"       "FF"            ACCEPT
+    probe "false no longer matches empty" "FF"        REJECT
     probe "semantic_annotation @-line" "A@name: value" ACCEPT
     probe "semantic_annotation needs @" "Aname: value" REJECT
     probe "builtin_any_char consumes"  "CzC"          ACCEPT

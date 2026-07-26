@@ -1,5 +1,46 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0014 (leaf `LANG-CAPABILITY-AUDIT.10.4`) — the two built-ins that matched nothing are gone
+
+- **Removed** — `true` and `false` from `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (5 members
+  down to 3), together with their codegen dispatch arms and the three `first_set.rs` arms
+  that modelled them as nullable/epsilon. Referencing either name from a grammar used to
+  produce a matcher that always succeeded and consumed nothing; it is now an ordinary
+  undefined reference, reported by `--lint-grammar` and compiled to a never-matching stub
+  with a warning.
+- **Measured, before → after**, on one probe grammar: `"T" true "T"` on input `TT` goes
+  **ACCEPT → REJECT**; `"F" false "F"` on `FF` goes **ACCEPT → REJECT**;
+  `undefined_references` on that grammar goes **0 → 2** with the linter naming both rules;
+  the emitted `parse_true` goes from an unconditional zero-width `Ok` to a bare
+  `Err(Backtrack)` stub. The `semantic_annotation` and `builtin_any_char` verdicts are
+  unchanged, which is what makes the flip attributable.
+- **Unaffected** — every grammar that wants those words writes them as quoted terminals
+  (`("true" | "false")`), a path that never touched this code. No tracked grammar
+  referenced either name as a rule reference. `true` and `false` are now ordinary rule
+  names an author may use freely.
+- **Chose deletion over repair, on the standing directive** — the alternative was to emit
+  a real matcher consuming the literal text. That was rejected because the `builtin_`
+  prefix exists (director 2026-06-07) so a primitive can never be shadowed by an ordinary
+  grammar rule, and these two names are un-prefixed: keeping them would have entrenched a
+  directive violation to deliver a capability with no user.
+- **Fixed a test that was pinning the bug** — the codegen test asserted that the rendered
+  output contained the string `"true"`, which passes on a matcher that never consumes
+  input, because the emitted payload literal was all it inspected. Rewritten to assert
+  structure (must contain `Backtrack`, must not contain `Ok(ParseNode`) and renamed. This
+  is the third instance of a `contains`-over-rendered-tokens assertion hiding a defect.
+- **Verified** — all 11 generated parsers **byte-identical** across a before → after sweep
+  running the identical script in both arms, including a real regeneration of the 150 MB
+  SystemVerilog parser. Unit tests green (45 across the affected modules), audit driver
+  exit 0 with 0 divergences, clippy source-strict green.
+- **Documented** — `docs/ebnf_parser_book/src/terminals.md` now carries the complete
+  three-name built-in list with the removal as history, and
+  `docs/book/src/grammar-wellformedness.md` records the sharp edge behind all of this:
+  because the linter consumes the same const as codegen, every allowlisted name is also
+  removed from the undefined-reference check's sight.
+- **Unchanged** — no grammar, no generated artifact, no parser behaviour for any tracked
+  grammar, no release/schema/ledger/contract movement. `LIVE_ACHIEVEMENT_STATUS.md` rows
+  are unaffected.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0013 (leaf `LANG-CAPABILITY-AUDIT.10.1`) — the annotation built-in was a workaround, and two of the five built-ins match nothing
 
 - **Corrected** — `grammars/ebnf.ebnf`'s comment block, which recorded that the

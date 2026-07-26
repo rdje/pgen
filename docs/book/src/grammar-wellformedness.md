@@ -1437,9 +1437,21 @@ moment it emits a stub. Two deliberate design points: the check runs against the
 grammar (codegen always compiles the *full* grammar — profile selection is a runtime guard — so
 `@profiles`-gated definitions deliberately stripped from a filtered lint view must not read as
 dangling), and the allowlist of intentionally-undefined names is **codegen's own native-builtin
-set** (`builtin_any_char`, `builtin_ascii_char`, `true`, `false`, `semantic_annotation`), consumed
+set** (`builtin_any_char`, `builtin_ascii_char`, `semantic_annotation`), consumed
 from the single `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` constant and locked to the dispatch by an
 oracle test — the linter can never drift from what codegen actually synthesizes.
+
+That coupling has a sharp edge worth stating plainly, because it cost a whole leaf's evidence
+(`LANG-CAPABILITY-AUDIT.10.1`): **every name on that list is also removed from this check's sight.**
+Sharing the const is what stops linter and codegen drifting apart, but it means allowlisting a name
+*for codegen* necessarily blinds the diagnostic *to that name* — so `undefined_references=0` says
+"no dangling reference **outside the allowlist**", not "this grammar is sound". `grammars/ebnf.ebnf`
+reports 0 while carrying three live references to a rule nothing defines. The audit that found this
+also found that two members, `true` and `false`, compiled to matchers that always succeeded and
+consumed nothing while being invisible here; both were removed in `LANG-CAPABILITY-AUDIT.10.4`
+(measured on one probe grammar: `undefined_references` 0 → 2, with the linter naming both). The
+list is now three names, and the standing rule is that a name goes on it only when it genuinely is
+a codegen primitive — never to quiet a diagnostic.
 
 It *also* observes — but no longer as a *verdict* — an **earlier alternative that always succeeds**.
 In an ordered choice `a | b`, if `a` can never fail (it is `e?`, `e*`, an all-optional sequence, or a

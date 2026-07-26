@@ -1191,16 +1191,38 @@ impl AstBasedGenerator {
     /// the linter can never drift from what codegen actually synthesizes; the
     /// `native_unresolved_builtins_const_matches_dispatch` oracle test locks
     /// the const to the `generate_unresolved_reference_method` dispatch arms
-    /// in both directions. The `builtin_` prefix names are the deliberately
-    /// grammar-consumable primitives (director 2026-06-07); `true`/`false`
-    /// are the boolean-literal fallbacks; `semantic_annotation` is the native
-    /// `@…`-line matcher used by the annotation grammars.
+    /// in both directions.
+    ///
+    /// ⚠️ Every name added here is also **removed from the linter's sight**:
+    /// `detect_undefined_references` consumes this same const as its allowlist
+    /// (deliberately, so the two can never drift), so allowlisting a name for
+    /// codegen necessarily blinds the undefined-reference check to it. Add a
+    /// name only when it really is a codegen primitive — never to silence a
+    /// diagnostic (`LANG-CAPABILITY-AUDIT.10.1`).
+    ///
+    /// - `builtin_any_char` / `builtin_ascii_char` — the deliberately
+    ///   grammar-consumable primitives (director 2026-06-07). The `builtin_`
+    ///   prefix is load-bearing: it namespaces them so an ordinary grammar rule
+    ///   can never shadow one (e.g. `grammars/regex.ebnf`'s own `any_char`).
+    /// - `semantic_annotation` — the native `@…`-line matcher. ⚠️ NOT a
+    ///   primitive: it is a real rule in `grammars/semantic_annotation.ebnf`,
+    ///   and its sole consumer is `grammars/ebnf.ebnf`, which needs it only
+    ///   because that grammar's `include` is broken. Slated for retirement by
+    ///   `LANG-CAPABILITY-AUDIT.10.3`, strictly after `.10.2` repairs the
+    ///   include — retiring it first would break the self-hosting meta-parser.
+    ///
+    /// `true` / `false` were removed by `LANG-CAPABILITY-AUDIT.10.4`. They
+    /// synthesized unconditional zero-width matchers — `"T" true "T"` accepted
+    /// `TT` — so a rule reference to either name silently matched EMPTY while
+    /// the linter reported `undefined_references=0`. No tracked grammar
+    /// referenced them; grammars spell those words as quoted terminals
+    /// (`("true" | "false")`), which never touched this path. Do not re-add
+    /// them: un-prefixed names are shadowable by ordinary rules, which is
+    /// exactly what the `builtin_` rule exists to prevent.
     pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str] = &[
         "builtin_any_char",
         "builtin_ascii_char",
-        "false",
         "semantic_annotation",
-        "true",
     ];
 
     fn generate_unresolved_reference_methods(
@@ -1292,26 +1314,11 @@ impl AstBasedGenerator {
         // locks the two together: every const name must emit NON-stub tokens
         // here, and any non-const name must emit exactly the bare stub.
         match rule_name {
-            "true" => quote! {
-                pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
-                    let start_pos = self.position;
-                    Ok(ParseNode {
-                        rule_name: &#rule_name,
-                        content: ParseContent::Terminal("true"),
-                        span: Span::new(start_pos, start_pos),
-                    })
-                }
-            },
-            "false" => quote! {
-                pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
-                    let start_pos = self.position;
-                    Ok(ParseNode {
-                        rule_name: &#rule_name,
-                        content: ParseContent::Terminal("false"),
-                        span: Span::new(start_pos, start_pos),
-                    })
-                }
-            },
+            // LANG-CAPABILITY-AUDIT.10.4: the `"true"` / `"false"` arms lived here
+            // and emitted an unconditional `Ok` with a zero-width span — always
+            // succeed, consume nothing, and report a `Terminal("true")` payload the
+            // input never contained. Removed with the const entries; a reference to
+            // either name is now an ordinary undefined reference the linter reports.
             "semantic_annotation" => quote! {
                 pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
                     let checkpoint = self.position;
@@ -14479,8 +14486,17 @@ mod semantic_usage_tests {
         );
     }
 
+    /// LANG-CAPABILITY-AUDIT.10.4 — renamed from
+    /// `unresolved_reference_codegen_emits_semantic_and_boolean_fallbacks`, whose
+    /// `rendered.contains("\"true\"")` assertion **pinned the defect**: it passed on
+    /// an unconditional zero-width matcher because the emitted payload literal
+    /// `Terminal("true")` was all it looked at. A render-level `contains` cannot see
+    /// that the matcher never consumes input — the same blind spot `.8` hit, where a
+    /// `contains("2usize")` assertion pinned a type error. Both directions are now
+    /// asserted behaviourally-in-source: `semantic_annotation` must still test a byte,
+    /// and `true` must be an ordinary never-matching stub.
     #[test]
-    fn unresolved_reference_codegen_emits_semantic_and_boolean_fallbacks() {
+    fn unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names() {
         let generator = AstBasedGenerator::new("usage_test".to_string());
 
         let mut grammar_tree = HashMap::new();
@@ -14510,14 +14526,25 @@ mod semantic_usage_tests {
             rendered.contains("starts_with") || rendered.contains("b'@'"),
             "expected semantic_annotation fallback to detect '@' directives"
         );
+        // `true` is no longer a native builtin: it must emit the bare Backtrack stub
+        // like any other undefined reference, so the linter's undefined-reference
+        // error is the single diagnostic for it.
         assert!(
             rendered.contains("pub fn parse_true"),
-            "expected boolean fallback method for malformed rule_reference true"
+            "an unresolved reference still needs a method emitted for it"
+        );
+        let parse_true = rendered
+            .split("pub fn parse_true")
+            .nth(1)
+            .expect("parse_true must be emitted");
+        assert!(
+            parse_true.contains("Backtrack"),
+            "parse_true must be the never-matching stub, got: {parse_true}"
         );
         assert!(
-            rendered.contains("\"true\""),
-            "expected parse_true fallback to materialize boolean content, got: {}",
-            rendered
+            !parse_true.contains("Ok (ParseNode"),
+            "parse_true must NOT succeed — it was an unconditional zero-width match \
+             (LANG-CAPABILITY-AUDIT.10.4), got: {parse_true}"
         );
     }
 
@@ -14556,9 +14583,19 @@ mod semantic_usage_tests {
         // growth/shrink so a dispatch edit forces a conscious update here.
         assert_eq!(
             AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS.len(),
-            5,
+            3,
             "the native-builtin allowlist changed — update the linter docs/book and this count"
         );
+        // LANG-CAPABILITY-AUDIT.10.4: these two are gone for cause (unconditional
+        // zero-width matchers). Pin their ABSENCE, not just the count, so re-adding
+        // one while dropping another cannot slip through on an unchanged length.
+        for removed in ["true", "false"] {
+            assert!(
+                !AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS.contains(&removed),
+                "'{removed}' was removed by LANG-CAPABILITY-AUDIT.10.4 because it matched \
+                 EMPTY while the linter reported undefined_references=0 — do not re-add it"
+            );
+        }
     }
 
     #[test]

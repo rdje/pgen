@@ -1,5 +1,72 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0014 — deleting a capability that never worked, and the third test that pinned a bug
+
+**What was removed and why deletion beat repair.** `true` and `false` sat in
+`NATIVE_UNRESOLVED_REFERENCE_BUILTINS` and compiled to an unconditional `Ok` with a
+zero-width span. `.10.1` left two options: delete them, or make them honest by emitting a
+matcher that actually consumes the literal text. Option 2 loses on a standing directive,
+not on taste. The `builtin_` prefix (director 2026-06-07) exists so a primitive can never
+be shadowed by an ordinary grammar rule — `grammars/regex.ebnf`'s own `any_char` is the
+rule it protects against. `true` and `false` are un-prefixed, so "fixing" them would have
+entrenched a directive violation in order to ship a capability with no user: no tracked
+grammar references either name, and every grammar that wants those words writes quoted
+terminals, which never reach this code path.
+
+**Why the full regeneration sweep was necessary rather than ceremonial.** The obvious
+argument for inertness — "nothing references these names, so the arms are unreachable" —
+is true but incomplete. `first_set.rs` modelled both names in three places
+(`native_builtin_first_set`, `native_builtin_second_byte`, `native_builtin_prefix_trie`)
+as nullable/epsilon, and FIRST-set facts are compiled into the prune guards emitted into
+generated parsers. The edit therefore touched a path that *can* reach codegen, and only a
+before → after regeneration of all 11 parsers could show it did not. It did not: every
+hash matched, including a genuine rebuild of the 150 MB SystemVerilog parser.
+
+**Two ways that sweep silently lies, both hit in this session.**
+
+1. *`make` no-ops and you call it a baseline.* The first baseline arm completed in 91
+   seconds at 2.2 GB peak — it never rebuilt SystemVerilog, because the artifacts were
+   already up to date. The after arm *would* have rebuilt (the source edit invalidates the
+   targets), so the comparison would have been fresh artifacts against untouched ones. A
+   green result there means nothing. The sweep script now `touch`es the two sources at the
+   top of **both** arms.
+2. *The tooling reconfigures itself under you.* The `focus_*` targets rebuild
+   `ast_pipeline` with their own feature set, which drops `ebnf_dual_run` — so the `ebnf`
+   step died mid-sweep with "requires building with --features ebnf_dual_run", after the
+   make targets had already run. The script now rebuilds the binary with the feature after
+   the targets, identically in both arms.
+
+Both failures were loud enough to catch here. Both would have been silent if the script
+had hashed whatever files happened to exist.
+
+**The third test that pinned a bug.** `LANG-CAPABILITY-AUDIT.8` found a unit test
+asserting `rendered.contains("2usize")` on codegen output that did not compile — a
+render-level assertion cannot see a type error. The same shape was hiding here: the
+codegen test asserted that the rendered output contained the string `"true"`. That passes
+on a matcher that never consumes input, because the emitted payload literal
+`Terminal("true")` is the only thing it inspects — and that literal was itself the lie
+(the node claimed to have matched `true` regardless of the input). The test is now
+`unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names` and asserts
+structure: `parse_true` must contain `Backtrack` and must not contain `Ok(ParseNode`.
+
+The generalization, now at three occurrences: **a `contains` assertion over rendered
+tokens tests spelling, not behaviour.** It cannot distinguish a matcher that succeeds
+correctly from one that succeeds unconditionally, nor code that compiles from code that
+does not. Where the property under test is behavioural, assert on structure or run the
+thing.
+
+Worth noting how it survived: `.10.1`'s allowlist sweep looked in `rust/tests/` and this
+test is inline in a 14,000-line generator module. A sweep scoped to the test directory is
+not a sweep of the tests.
+
+**Residual, recorded rather than fixed.** `always_succeeds_alternatives` — the lint note
+for an alternative that can never fail — still cannot see through the builtin allowlist,
+so it would not have fired on this defect. With `true`/`false` gone, the only member that
+could exhibit the shape is `semantic_annotation`, which `.10.3` is slated to retire. There
+is no live instance, so teaching the lint now would be speculative work against a moving
+target; the gap is written down with a trigger instead: re-open it if a new allowlist
+member is ever proposed.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0013 — an allowlist is a place where evidence goes to die
 
 **Root cause.** `AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`

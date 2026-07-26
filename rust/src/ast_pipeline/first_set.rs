@@ -464,7 +464,10 @@ fn rule_first_set(
 /// - `builtin_any_char` consumes one Unicode scalar — at a char boundary of a valid
 ///   `&str` the next byte is always a UTF-8 lead byte (`0x00–0x7F` / `0xC2–0xF4`) and
 ///   the match succeeds, never skips layout ⇒ byte-decided.
-/// - `true` / `false` are zero-width ALWAYS-SUCCEED fallbacks ⇒ nullable, resolved.
+/// - `true` / `false` were listed here as zero-width ALWAYS-SUCCEED fallbacks until
+///   `LANG-CAPABILITY-AUDIT.10.4` removed them from the const for exactly that reason
+///   (a rule reference to either silently matched EMPTY). They are ordinary undefined
+///   references now, so this summary must not resolve them.
 /// - `semantic_annotation` is NOT listed: its native matcher skips leading layout
 ///   before requiring `@`, so first-byte peeking at the parse position is unsound —
 ///   it stays `unresolved` (the caller's fallback).
@@ -478,10 +481,6 @@ fn native_builtin_first_set(rule_name: &str) -> Option<FirstSetSummary> {
         "builtin_any_char" => Some(FirstSetSummary {
             first_bytes: (0x00u8..=0x7F).chain(0xC2u8..=0xF4).collect(),
             byte_decided: true,
-            ..FirstSetSummary::default()
-        }),
-        "true" | "false" => Some(FirstSetSummary {
-            nullable: true,
             ..FirstSetSummary::default()
         }),
         _ => None,
@@ -1151,10 +1150,6 @@ fn native_builtin_second_byte_summary(rule_name: &str) -> Option<SecondByteSumma
         "builtin_any_char" => Some(SecondByteSummary {
             second_bytes: (0x80u8..=0xBF).collect(),
             len1_possible: true,
-            ..SecondByteSummary::default()
-        }),
-        "true" | "false" => Some(SecondByteSummary {
-            nullable: true,
             ..SecondByteSummary::default()
         }),
         _ => None,
@@ -1989,7 +1984,6 @@ fn native_builtin_prefix_trie(rule_name: &str) -> Option<PrefixTrieNode> {
             leaf.truncated = true;
             Some(leaf)
         }
-        "true" | "false" => Some(PrefixTrieNode::epsilon()),
         _ => None,
     }
 }
@@ -2398,10 +2392,16 @@ mod tests {
         assert!(any.first_bytes.contains(&0x00) && any.first_bytes.contains(&0xF4));
         assert!(!any.first_bytes.contains(&0x80) && !any.first_bytes.contains(&0xC1));
 
-        for zero_width in ["true", "false"] {
-            let summary = summarize(&rule_ref(zero_width), &tree);
-            assert!(!summary.unresolved, "{zero_width} should resolve");
-            assert!(summary.nullable, "{zero_width} is zero-width always-succeed");
+        // LANG-CAPABILITY-AUDIT.10.4: `true`/`false` were zero-width always-succeed
+        // natives; they are gone, so they must now read as ordinary UNRESOLVED
+        // references (an undefined rule the linter reports) rather than as nullable.
+        for removed in ["true", "false"] {
+            let summary = summarize(&rule_ref(removed), &tree);
+            assert!(
+                summary.unresolved,
+                "{removed} is no longer a native builtin — it must be unresolved"
+            );
+            assert!(!summary.nullable, "{removed} must not read as nullable");
         }
 
         // The semantic_annotation native matcher skips layout — must stay unresolved.

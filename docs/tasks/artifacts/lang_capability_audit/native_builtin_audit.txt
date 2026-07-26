@@ -3,62 +3,39 @@
       pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str] = &[
           "builtin_any_char",
           "builtin_ascii_char",
-          "false",
           "semantic_annotation",
-          "true",
       ];
-  OK  member count                                   got=5                        [want 5]
+  OK  member count                                   got=3                        [want 3]
 
 ===== A2. tracked-grammar reference census (who names each member as a RULE REFERENCE?) =====
   builtin_any_char       referenced-by: regex.ebnf
   builtin_ascii_char     referenced-by: regex.ebnf
-  false                  referenced-by: (none)
   semantic_annotation    referenced-by: ebnf.ebnf semantic_annotation.ebnf
-  true                   referenced-by: (none)
 
 ===== A3. generated-parser census (who CONSUMES the synthesized native matcher?) =====
   builtin_any_char       emitted-in: regex_parser.rs
   builtin_ascii_char     emitted-in: regex_parser.rs
-  false                  emitted-in: (none)
   semantic_annotation    emitted-in: ebnf.rs semantic_annotation_parser.rs
-  true                   emitted-in: (none)
   NOTE: generated/ is gitignored — regenerate with the per-grammar 'make -C rust focus_<g>'
         targets if a row reads (none) unexpectedly.
 
 ===== A3b. cross-check: does the text screen agree with codegen? =====
   OK  builtin_any_char: screen-empty == codegen-empty got=no                       [want no]
   OK  builtin_ascii_char: screen-empty == codegen-empty got=no                       [want no]
-  OK  false: screen-empty == codegen-empty           got=yes                      [want yes]
   OK  semantic_annotation: screen-empty == codegen-empty got=no                       [want no]
-  OK  true: screen-empty == codegen-empty            got=yes                      [want yes]
   (Exact file lists differ by construction: a grammar that DEFINES the rule emits
    parse_<name> from its own definition, not from the native-builtin fallback —
    which is why semantic_annotation.ebnf appears on both sides for its own rule.)
 
-===== A4. the masking: a grammar with FOUR undefined references lints clean =====
-  OK  undefined_references on 4 dangling refs        got=0                        [want 0]
+===== A4. the masking: what the allowlist hides, and what it no longer hides =====
+  OK  undefined_references on 4 dangling refs        got=2                        [want 2]
+  OK  the linter now NAMES 'true'                    got=1                        [want 1]
+  OK  the linter now NAMES 'false'                   got=1                        [want 1]
   OK  undefined_references on 1 NON-member ref       got=1                        [want 1]
-  => the check works; it is the ALLOWLIST that makes the four invisible.
+  => the check itself always worked; the ALLOWLIST decided what it could see.
+  => .10.4 gave 'true'/'false' back to it (0 -> 2 on this very grammar).
 
 ===== A5. emitted matcher shape per member (codegen, not prose) =====
-  --- parse_true
-          pub fn parse_true(&mut self) -> ParseResult<ParseNode<'input>> {
-              let start_pos = self.position;
-              Ok(ParseNode {
-                  rule_name: &"true",
-                  content: ParseContent::Terminal("true"),
-                  span: Span::new(start_pos, start_pos),
-              })
-          }
-  --- parse_false
-          pub fn parse_false(&mut self) -> ParseResult<ParseNode<'input>> {
-              let start_pos = self.position;
-              Ok(ParseNode {
-                  rule_name: &"false",
-                  content: ParseContent::Terminal("false"),
-                  span: Span::new(start_pos, start_pos),
-              })
-          }
   --- parse_semantic_annotation
           pub fn parse_semantic_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
               let checkpoint = self.position;
@@ -104,7 +81,22 @@
                   span: Span::new(start_pos, end_pos),
               })
           }
-  OK  parse_true is zero-width (never consumes)      got=1                        [want 1]
+  --- parse_true
+          pub fn parse_true(&mut self) -> ParseResult<ParseNode<'input>> {
+              Err(ParseError::Backtrack {
+                  position: self.position,
+              })
+          }
+  --- parse_false
+          pub fn parse_false(&mut self) -> ParseResult<ParseNode<'input>> {
+              Err(ParseError::Backtrack {
+                  position: self.position,
+              })
+          }
+  OK  parse_true is the Backtrack stub               got=1                        [want 1]
+  OK  parse_true never succeeds                      got=0                        [want 0]
+  OK  parse_false is the Backtrack stub              got=1                        [want 1]
+  OK  parse_false never succeeds                     got=0                        [want 0]
   OK  parse_builtin_any_char consumes                got=1                        [want 1]
 
 ===== B. ebnf.ebnf's delegated 'semantic_annotation': the two include candidates =====
@@ -133,9 +125,9 @@
   OK  builtin_...ebnf matches the '@'                got=0                        [want 0]
 
 ===== C. BEHAVIOUR through the scratch slot (opt-in: PGEN_AUDIT_RUN_SLOT_ARM=1) =====
-  OK  true matches empty [TT]                        got=ACCEPT                   [want ACCEPT]
+  OK  true no longer matches empty [TT]              got=REJECT                   [want REJECT]
   OK  true is not a literal [TtrueT]                 got=REJECT                   [want REJECT]
-  OK  false matches empty [FF]                       got=ACCEPT                   [want ACCEPT]
+  OK  false no longer matches empty [FF]             got=REJECT                   [want REJECT]
   OK  semantic_annotation @-line [A@name: value]     got=ACCEPT                   [want ACCEPT]
   OK  semantic_annotation needs @ [Aname: value]     got=REJECT                   [want REJECT]
   OK  builtin_any_char consumes [CzC]                got=ACCEPT                   [want ACCEPT]

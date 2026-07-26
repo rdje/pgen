@@ -95,48 +95,34 @@ control_escape := "c" builtin_any_char -> {type: "escape", kind: "control", char
 This pair plus lookaheads is how a self-hosting grammar expresses "any character except …" without a
 character class.
 
-## The reserved-name footgun: `true` and `false` match EMPTY
+## The complete built-in list
 
-The `builtin_any_char` pair are not the only names PGEN treats as built in. The full list codegen
-recognizes is `builtin_any_char`, `builtin_ascii_char`, `semantic_annotation`, `true` and `false`
-(`AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`). Only the first two behave the way the
-table above describes.
+The `builtin_any_char` pair are not quite the only names codegen treats as built in. The full list
+is exactly three (`AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`):
 
-> ⚠️ **Do not name a rule `true` or `false`.** If your grammar *references* either name without
-> defining it, codegen does not report an undefined reference — it synthesizes a matcher that
-> **always succeeds and consumes nothing**.
+| Name | What it is |
+| --- | --- |
+| `builtin_any_char` | the single-UTF-8-character matcher above |
+| `builtin_ascii_char` | the single-ASCII-character matcher above |
+| `semantic_annotation` | an internal `@`-to-end-of-line matcher used by the meta-grammar — **not** a primitive you should reference; write your annotations as annotations |
 
-```ebnf
-# ⛔ DON'T: `true` here is not your rule and not the text "true"
-flag := "flag=" true
-```
+**Every other undefined name is an error.** A reference to a rule you never defined is reported by
+`--lint-grammar` as `undefined_references=N (error)` naming the exact rule and reference, and
+codegen emits a never-matching stub plus an unconditional warning — so the production dies loudly
+rather than silently.
 
-That grammar accepts `flag=` — with nothing after the `=`. It also *rejects* `flag=true`, because
-the built-in never consumes the four characters; the node it returns carries the payload `"true"`
-regardless of what the input actually said. And `--lint-grammar` reports
-`undefined_references=0`, because the linter consumes the same built-in list as codegen: a name on
-that list is invisible to the undefined-reference check by construction.
-
-The contrast with a genuine built-in is exact — same list, opposite behaviour:
-
-| grammar | input | verdict |
-| --- | --- | --- |
-| `probe := "T" true "T"` | `TT` | ⛔ **accepted** — `true` matched empty |
-| `probe := "T" true "T"` | `TtrueT` | rejected — `true` is zero-width, not a literal |
-| `probe := "C" builtin_any_char "C"` | `CzC` | accepted — the built-in consumed one character |
-| `probe := "C" builtin_any_char "C"` | `CC` | rejected — the built-in refused to match empty |
-
-To match the literal words, quote them — which is what every shipped grammar already does, and it is
-completely unaffected by any of the above:
+To match literal words like `true`, quote them. This is what every shipped grammar does:
 
 ```ebnf
-# ✅ DO: quoted terminals, not rule references
+# ✅ quoted terminals — ordinary, unambiguous, and unrelated to the list above
 boolean_literal := ("true" | "false")
 ```
 
-This is a known defect, not a designed capability: no tracked grammar references either name, and
-removing the trap is tracked by task-tree leaf `LANG-CAPABILITY-AUDIT.10.4`. Until it lands, treat
-both names as reserved.
+> **History (`LANG-CAPABILITY-AUDIT.10.4`).** `true` and `false` used to be on that list, and they
+> compiled to matchers that **always succeeded and consumed nothing** — `probe := "T" true "T"`
+> accepted `TT`, and `--lint-grammar` still reported `undefined_references=0`, because the linter
+> consumes the same list as codegen. No tracked grammar referenced either name. Both were removed,
+> so those names are now ordinary rule names you may use freely.
 
 ## The character-class footgun: `[ … ]` is OPTIONAL, not a class
 

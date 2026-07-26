@@ -29,8 +29,9 @@
   time where semantics permit.
 - **Current frontier (session #213): `.10.2`** — make `semantic_annotation.ebnf`
   composable and restore `ebnf.ebnf`'s delegated annotation sub-language. Then `.10.3`
-  (retire the allowlist entry; **strictly after** `.10.2`), `.10.4` (`true`/`false`
-  zero-width builtins; independent). Other open leaves: `.2.1`, `.3c`, `.6`.
+  (retire the allowlist entry; **strictly after** `.10.2`). ✅ `.10.4` (`true`/`false`
+  zero-width builtins) is **done** — it was independent and landed first. Other open
+  leaves: `.2.1`, `.3c`, `.6`.
 
 ## PRIOR ART (per [[feedback_read_prior_art_before_designing]])
 
@@ -1351,12 +1352,14 @@ the person who specified it.**
   scope by design). That is a legitimate outcome and must be recorded as such — the bound is
   what keeps "any language" honest. The value is in the rows that do NOT.
 
-### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` / `.10.3` / `.10.4`)
+### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` / `.10.3` / `.10.4` ✅)
 
 > **Container as of session #213.** Opened in a fresh session per the director's ruling
 > below. `.10.1` (done) settled the target, audited the whole allowlist, and corrected
 > `.7`'s record; it also **overturned this charter's recommended target** and found a
-> second defect class the charter did not know about. **Frontier = `.10.2`.**
+> second defect class the charter did not know about. `.10.4` (done) then removed that
+> second defect — the `true`/`false` zero-width builtins — with all 11 generated parsers
+> byte-identical. **Frontier = `.10.2`.**
 > Read `.10.1` before acting on anything in this charter — two of its statements below
 > are annotated as superseded.
 
@@ -1692,26 +1695,111 @@ and delete the `"semantic_annotation"` dispatch arm (`ast_based_generator.rs:131
 `native_unresolved_builtins_const_matches_dispatch` oracle locks const and dispatch in
 both directions, so both move together or the test fails.
 
-### `.10.4` — `true` / `false`: always-succeeding zero-width builtins nobody uses (`todo`)
+### `.10.4` — `true` / `false`: always-succeeding zero-width builtins nobody uses (`done`)
 
-- **Status: `todo`**, opened by `.10.1`'s Finding 3. Independent of `.10.2`/`.10.3` —
-  no tracked grammar references either name, so this can land on its own.
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0014`, session #213, 2026-07-26).
+  **CODE CHANGE** — `ast_based_generator.rs` + `first_set.rs` + 2 book chapters + the
+  `.10.1` driver. **All 11 generated parsers BYTE-IDENTICAL** ⇒ no release/schema/ledger/
+  contract movement. Opened by `.10.1`'s Finding 3; independent of `.10.2`/`.10.3`.
 
-Adjudicate and repair. The options, in the order `.10.1` would rank them:
+#### The decision, and why option 2 lost
 
-1. **Delete both** from the const and the dispatch. Nothing references them; the
-   boolean-literal spellings every tracked grammar actually uses are quoted terminals
-   (`("true" | "false")`), which are unaffected. Removes the trap outright.
-2. **Make them honest** — emit a real matcher that consumes the literal text `true` /
-   `false` and fails otherwise. Keeps the capability, kills the empty match. Note this
-   still leaves two un-prefixed names shadowable by ordinary grammar rules, against the
-   `builtin_` namespacing directive (director 2026-06-07).
+`.10.1` left two options. **Option 1 (delete) is taken**, on the standing directive
+rather than on preference: the `builtin_` prefix exists (director 2026-06-07) precisely
+so a primitive can never be shadowed by an ordinary grammar rule, and `true`/`false` are
+un-prefixed. Option 2 (*"make them honest"* — emit a real matcher consuming the literal
+text) would have **entrenched a directive violation** to deliver a capability that has
+no user: no tracked grammar references either name, and every grammar that wants those
+words already writes them as quoted terminals (`("true" | "false")`), a path that never
+touched this code. Nothing measured argued for keeping them.
 
-Whichever way it goes, the always-succeeding zero-width emission must not survive: it is
-the `.5` defect class, and the linter cannot see it because the name is allowlisted.
-⚠️ Check whether `always_succeeds_alternatives` can be taught to see through the
-allowlist — a rule reference that resolves to an unconditional zero-width `Ok` is
-exactly what that note exists to report.
+#### What changed
+
+| site | change |
+|---|---|
+| `ast_based_generator.rs` const | `true` / `false` removed ⇒ 5 members → **3** |
+| `ast_based_generator.rs` dispatch | both `quote!` arms removed (a comment records what stood there) |
+| `first_set.rs` ×3 | the `"true" \| "false"` arms in `native_builtin_first_set`, `native_builtin_second_byte`, `native_builtin_prefix_trie` — all three modelled the names as nullable/epsilon |
+| tests ×3 | const-length 5→3 **plus a new absence assertion**; the `first_set` test now requires both names to read *unresolved*; the codegen test rewritten (below) |
+| books ×2 | `docs/ebnf_parser_book/src/terminals.md` (the list is now 3, with the removal as history) and `docs/book/src/grammar-wellformedness.md` (the allowlist enumeration **plus** the sharp edge `.10.1` found) |
+
+⭐ **`first_set.rs` is why the byte-identity sweep was necessary rather than ceremonial.**
+FIRST-set facts are compiled into emitted prune guards, so this change touched a path
+that *can* reach codegen. Only a full regeneration could prove it did not.
+
+#### ⚠️ A THIRD test was pinning the bug — the same pattern `.8` found
+
+`.10.1`'s allowlist sweep did not find `unresolved_reference_codegen_emits_semantic_and_boolean_fallbacks`,
+because it greps `rust/tests/` and the test is **inline in the 14k-line generator**. It
+asserted:
+
+```rust
+assert!(rendered.contains("\"true\""),
+        "expected parse_true fallback to materialize boolean content");
+```
+
+That passes on an unconditional zero-width matcher, because the emitted payload literal
+`Terminal("true")` is all it looks at — **a render-level `contains` cannot see that the
+matcher never consumes input.** This is exactly `.8`'s finding (`contains("2usize")`
+pinning a type error) in a second place. Renamed to
+`unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names` and
+rewritten to assert *structure*: `parse_true` must contain `Backtrack` and must **not**
+contain `Ok(ParseNode`. ⇒ **banked lesson: a `contains` assertion over rendered tokens
+tests spelling, not behaviour** — third occurrence, and the rule-of-three is now met.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `.10.1` measured it through the scratch slot:
+  `probe_true := "T" true "T"` **ACCEPTED `TT`**, i.e. the reference matched empty,
+  while `--lint-grammar` reported `undefined_references=0`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `ast_based_generator.rs`, the `"true"`/`"false"`
+  arms of `generate_unresolved_reference_method`: `Ok(ParseNode{ …,
+  span: Span::new(start_pos, start_pos) })` — unconditional success, zero-width span, no
+  `self.position` advance. Invisible to the linter because
+  `detect_undefined_references` (`grammar_wellformedness.rs:333`) consumes the same const
+  as its allowlist.
+- [x] **ADDRESSED — measured before → after**, one probe grammar, one build:
+
+  | measurement | before | after |
+  |---|---|---|
+  | `"T" true "T"` on `TT` | **ACCEPT** | **REJECT** ✅ |
+  | `"F" false "F"` on `FF` | **ACCEPT** | **REJECT** ✅ |
+  | `"T" true "T"` on `TtrueT` | REJECT | REJECT (unchanged) |
+  | `undefined_references` on that grammar | **0** | **2** ✅ |
+  | linter names `true` / `false` | no | **yes, both** ✅ |
+  | emitted `parse_true` | unconditional `Ok`, zero-width | bare `Err(Backtrack)` stub ✅ |
+  | `"A" semantic_annotation` on `A@name: value` | ACCEPT | ACCEPT (unchanged) |
+  | `"C" builtin_any_char "C"` on `CzC` / `CC` | ACCEPT / REJECT | ACCEPT / REJECT (unchanged) |
+
+- [x] **NO REGRESSION** — **all 11 generated parsers BYTE-IDENTICAL** across a
+  before→after sweep running the *identical* script in both arms (`focus_json`,
+  `focus_scratch`, `focus_rtl_const_expr`, `focus_systemverilog_preprocessor`,
+  `focus_rtl_frontend`, `focus_vhdl`, `focus_regex`, `focus_systemverilog`,
+  `return_annotation_parser`, `semantic_annotation_parser`, and `ebnf` via the direct
+  route with its output path pinned). SV (150 MB) regenerated for real in both arms.
+  Unit tests green (45 passed across `first_set` / `native_unresolved` /
+  `undefined_reference` / `unresolved_reference`); driver re-run **exit 0, 0
+  divergences**; clippy source-strict pass green.
+
+⚠️ **Two sweep-methodology traps banked** (both silently produce a *false* green):
+1. **`make` no-ops.** The first baseline arm finished in 91 s at 2.2 GB without
+   rebuilding SystemVerilog — the artifacts were already up to date, so the "baseline"
+   was untouched files, and the after arm (forced to rebuild by the source edit) would
+   have been compared against them. The sweep script now `touch`es the two sources in
+   **both** arms so both genuinely regenerate.
+2. **The `focus_*` targets rebuild `ast_pipeline` with THEIR feature set**, dropping
+   `ebnf_dual_run` — so the `ebnf` step died with *"requires building with --features
+   ebnf_dual_run"* mid-sweep. The script now rebuilds the binary with the feature
+   *after* the make targets, in both arms.
+
+#### Residual, deliberately not absorbed
+
+`always_succeeds_alternatives` still cannot see through the allowlist: a rule reference
+resolving to an unconditional zero-width `Ok` is exactly what that note exists to
+report, and it would not have fired here. With `true`/`false` gone, the only remaining
+allowlist member that could exhibit it is `semantic_annotation`, which is slated for
+retirement by `.10.3` — so the gap has no live instance and is recorded rather than
+fixed speculatively. **Re-open if a new member is ever proposed.**
 
 
 ## Acceptance Criteria (tree)
