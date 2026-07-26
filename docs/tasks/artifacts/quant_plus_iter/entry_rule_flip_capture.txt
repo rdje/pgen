@@ -1,0 +1,137 @@
+QUANT-PLUS-ITER.1 — THE BEHAVIOURAL FLIP
+========================================
+
+The decisive control: ONE binary, ONE grammar in the scratch slot, ONE variable
+changed (the start symbol, via `--entry-rule`). Nothing else moves — same codegen,
+same runtime, same input files, same process.
+
+Grammar installed in `grammars/scratch/scratch.ebnf` (verbatim the charter's shape,
+`stmt` defined ABOVE `scratch`):
+
+    stmt := "a" ";"
+          | "b" ";"
+
+    scratch := stmt+
+
+Built with:
+    make -C rust SHELL=/bin/bash focus_scratch          # rc=0, 70s, peak 7,500 MB
+    touch rust/src/lib.rs
+    (cd rust && cargo build --release --features generated_parsers --bin parseability_probe)
+                                                         # rc=0, 18m44s, peak 12,101 MB
+    # relink asserted: probe mtime 1785077355 > generated/scratch_parser.rs mtime 1785076228
+
+MEASURED (`./rust/target/release/parseability_probe`, exit codes captured from the
+binary itself, not from a pipeline tail):
+
+    input='a;'
+       default       rc=0  parse_full passed for grammar 'scratch' on '.../in_1.txt'
+       entry=scratch rc=0  parse_full passed for grammar 'scratch' on '.../in_1.txt'
+    input='a;a;'
+       default       rc=1  Error: parse_full rejected sample for grammar 'scratch' on '.../in_2.txt':
+                           Parser did not consume full input at position 2
+                           [furthest_position=0, +0 bytes deeper than surface position]
+       entry=scratch rc=0  parse_full passed for grammar 'scratch' on '.../in_2.txt'
+    input='a;b;'
+       default       rc=1  Error: parse_full rejected sample ... at position 2
+                           [furthest_position=0, +0 bytes deeper than surface position]
+       entry=scratch rc=0  parse_full passed for grammar 'scratch' on '.../in_2mixed.txt'
+    input='b;a;b;a;'
+       default       rc=1  Error: parse_full rejected sample ... at position 2
+                           [furthest_position=0, +0 bytes deeper than surface position]
+       entry=scratch rc=0  parse_full passed for grammar 'scratch' on '.../in_4.txt'
+
+SUMMARY TABLE
+
+    | input      | DEFAULT entry (= `stmt`) | `--entry-rule scratch` |
+    |------------|--------------------------|------------------------|
+    | `a;`       | ACCEPT                   | ACCEPT                 |
+    | `a;a;`     | REJECT @ position 2      | ACCEPT                 |
+    | `a;b;`     | REJECT @ position 2      | ACCEPT                 |
+    | `b;a;b;a;` | REJECT @ position 2      | ACCEPT                 |
+
+The DEFAULT column reproduces the charter's failing table row for row. The
+`--entry-rule scratch` column is the flip: with the parse actually STARTED at the
+rule that owns the quantifier, `+` iterates 1, 2 and 4 occurrences correctly.
+
+=> `+` is CORRECT. The charter's four "shape variants" never moved the behaviour
+   because none of them changed the variable that matters: all four kept `stmt`
+   defined above the quantifying rule, so all four were entered at `stmt`.
+
+   The loudest row — `scratch := stmt+ "!"` rejecting even `a;!` at position 2 —
+   is the same single fact: the parse ran `stmt` alone, consumed `a;`, and stopped.
+   The `"!"` follower lives in a rule that was never entered.
+
+
+THE CODEGEN SIDE (no rebuild needed to reproduce — see run_entry_rule_probes.sh)
+-------------------------------------------------------------------------------
+
+Same two rules, only the DEFINITION ORDER differs:
+
+    A (`stmt` first)     pub fn parse(&mut self) { ... self.parse_stmt()    }
+                         pub fn parse_full_stmt(&mut self) -> ...
+    B (`scratch` first)  pub fn parse(&mut self) { ... self.parse_scratch() }
+                         pub fn parse_full_scratch(&mut self) -> ...
+
+Mechanism, in the generator's own words (`rust/src/ast_pipeline/ast_based_generator.rs:616-621`):
+
+        let entry_rule = self
+            .entry_rule
+            .as_ref()
+            .map(|s| s.clone())
+            .or_else(|| rule_order.first().cloned())
+            .ok_or_else(|| anyhow::anyhow!("No entry rule found"))?;
+
+and its own trace line, emitted on the canonical `make focus_scratch` path
+(`ast_based_generator.rs:623`, PGEN DBG verbosity, line 275,924 of the generation log):
+
+    [PGEN][DBG] 🧠 [src/ast_pipeline/ast_based_generator.rs:623]
+        Entry rule determined: 'stmt'
+
+
+WHY THE VHDL CONTROL WORKS (the tension the charter asked to start from)
+------------------------------------------------------------------------
+
+    grammars/vhdl.ebnf:11   vhdl_file := design_unit*      <- FIRST rule defined
+
+`vhdl_file` is the intended entry AND is defined first, so `record_element_declaration+`
+(`:208`) is genuinely reached and genuinely iterates. Re-verified at HEAD on a
+3-element record: `parse_full passed for grammar 'vhdl'`, rc=0.
+
+The committed scratch fixture likewise defines `scratch` first — which is exactly
+why the slot's own integration test never exposed this.
+
+
+WHAT NO INSTRUMENT SAID (measured, all at default verbosity)
+-------------------------------------------------------------
+
+    --lint-grammar            exit 0; unreachable_rules=0; entry rule NEVER named
+    --generate-parser         2 lines of output; entry rule NEVER named
+                              ("Entry rule determined" is DBG-only)
+
+`scratch` escapes the unreachable-rule check by construction: it is referenced by
+nothing, and `reachable_rules` (`grammar_wellformedness.rs:377-389`) treats every
+unreferenced rule as a ROOT. That is `LANG-CAPABILITY-AUDIT.2`'s named blind spot,
+here with a measured cost.
+
+
+WHAT THE TOOLBOX *DID* SAY — in one command, with no flags
+-----------------------------------------------------------
+
+    PGEN_CERT_COVERAGE_DUMP_ALL=1 ast_pipeline <grammar>.ebnf \
+      --report-certificate-coverage --count 40 --seed 0
+
+    CERTIFICATE-COVERAGE: grammar='scratch' entry='stmt' samples=40 total=2
+        proof=0 witness=1 UNKNOWN=1 fully_certified=false
+        (sample_parse_failures=0, proof_reverify_failures=0)
+      WARNING plannable-rule reach pass: 1 UNKNOWN rules have NO reach path from
+        the entry (dead-rule candidates — adjudicate via the linter): ["scratch"]
+      UNKNOWN rules (1 of 1 shown): ["scratch"]
+
+Step 0 of the standing 3-step UNKNOWN protocol prints `entry='stmt'` on its
+headline and names `scratch` as unreachable. This was NOT a toolbox gap — it was a
+toolbox-USE gap: the charter traced, read codegen, compared engines and exonerated
+six mechanisms without ever running the cheapest instrument.
+
+RESIDUAL DEFECT, HOWEVER: that warning's own advice is "adjudicate via the linter",
+and the linter then reports `unreachable_rules=0` and exits 0. Two instruments
+disagree, and the one the first one hands off to is the blind one.

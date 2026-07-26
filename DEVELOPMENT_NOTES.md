@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0001 — six correct exonerations of a loop that never ran
+
+**1. Verify the harness before interrogating the machinery.** Session #211 ruled out `@recover`,
+the cascade-vs-memoized engine split, the memo key, `try_parse` backtracking, the emitted `+` loop
+and layout sensitivity. Every one of those exonerations was *correct*. All six were also
+irrelevant, because they interrogated the internals of a quantifier that was never executed: the
+grammar's entry rule was a different rule entirely. The question that was never asked is the
+cheapest one available — **"is the rule I am testing the rule being run?"** A diagnosis that keeps
+eliminating plausible causes without the symptom moving is evidence that the *frame* is wrong, not
+that the remaining causes are exotic.
+
+**2. A "distinguishing factor" hypothesis costs nothing to falsify and should be falsified first.**
+The charter named the FIRST-set predictive-dispatch prune guard as the prime suspect, on the
+grounds that it is emitted only when `top_level && layout_sensitivity().terminals` — "a condition
+the tiny scratch grammar satisfies and VHDL does not". That was a plausible reading of source that
+had never been measured. `layout_sensitivity()` compiles only from a grammar-level
+`@whitespace_sensitive:` directive and otherwise returns all-false; **neither** grammar declares it,
+so the guard is emitted for neither and the suspect could not distinguish them in either direction.
+`grep -c whitespace_sensitive` on two files retired a hypothesis whose stated cost was several
+19-minute rebuilds. The charter also budgeted those rebuilds per variant; generating the parser
+*source* and reading the emitted dispatch costs seconds and answered the whole question.
+
+**3. Two instruments disagreed, and the authoritative one deferred to the blind one.** Certificate
+coverage sees this defect immediately — it prints the resolved entry on its headline and warns that
+the orphaned rule has no reach path — and then advises "adjudicate via the linter". The linter
+reports `unreachable_rules=0` and exits 0, because `reachable_rules` treats every unreferenced rule
+as a root (correct, deliberate, and what keeps SystemVerilog's `library_text` / `*_multi_entry_root`
+secondary entries from being falsely rejected). The design is right; the *handoff* is wrong. A
+warning that names a follow-up instrument should not name one that is structurally unable to
+confirm it.
+
+**4. The most fundamental property of a grammar is not declarable in it.** PGEN has no `@start`
+directive: the start symbol is whichever rule appears first in the file, overridable only by an
+out-of-band `--entry-rule` flag, and reported by no surface at default verbosity. Measured: zero
+hits for an entry/start production in `grammars/ebnf.ebnf`, zero registered entry directives in
+`semantic_directive_registry.rs`, zero `@entry`/`@start` uses across every tracked grammar, and no
+`entry_rule` in `parser_registry.rs`. Recorded as a surface call for the director rather than
+implemented, because it interacts with the SystemVerilog multi-entry model (`parse_full_from`,
+`--cert-union-config`, `library_text`) which already treats "the entry" as plural.
+
+**5. Ops, re-confirmed the hard way.** `make focus_scratch` overwrites `rust/target/debug/ast_pipeline`
+with a single-feature build — hit twice in one leaf; the probe driver now carries its own
+`--report-feature-surface` tripwire and refuses with the exact rebuild command (it fired for real).
+The release `parseability_probe` relink breached the default 12,288 MB memory-guard budget at
+12,362 MB, having peaked at 12,101 MB on an identical earlier build: it sits on the line, so use
+the banked 16,384 MB heavy-run budget for it, not just for the SystemVerilog fat-LTO link.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0012 — a green codegen is not a compiling parser, and a test can pin a bug as correct
 
 Three lessons from fixing `@recover`, all of which generalize past this leaf.

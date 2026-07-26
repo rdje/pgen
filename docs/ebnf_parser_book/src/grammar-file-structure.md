@@ -2,9 +2,52 @@
 
 A PGEN grammar is a plain-text `.ebnf` file. At the top level it is a sequence of **rules**, optionally
 interleaved with **include directives**, **semantic annotations**, **comments**, and **whitespace**
-(`grammars/ebnf.ebnf`, rule `grammar_file`). The order of rules does not matter for resolution — every
-rule name in the file is in scope for every other rule — but the **first reachable rule from the entry
-rule** anchors the grammar (you choose the entry with `--entry-rule`).
+(`grammars/ebnf.ebnf`, rule `grammar_file`). Rule order does not affect **name resolution** — every rule
+name in the file is in scope for every other rule, so you may reference a rule defined further down. It
+does, however, decide one thing, and it is the most important thing in the file: **the entry rule**.
+
+## ⚠️ The entry rule is the FIRST rule you define
+
+PGEN has no `@start` directive and no entry declaration. **The grammar's entry rule (start symbol) is
+whichever rule is defined first in the file** — `rule_order[0]`
+(`rust/src/ast_pipeline/ast_based_generator.rs`, `entry_rule = self.entry_rule.or_else(|| rule_order.first())`).
+Everything else follows from that: reachability analysis, the linter's dead-rule verdicts, certificate
+coverage and the emitted `parse()` all anchor on it.
+
+```ebnf
+# ✅ entry is `program` — the parser parses a whole program
+program := statement+
+statement := "a" ";"
+```
+
+```ebnf
+# ⛔ SAME two rules, reordered — entry is now `statement`.
+#    The parser parses exactly ONE statement; `program` is never entered.
+#    `a;a;` is REJECTED at position 2. No diagnostic says so.
+statement := "a" ";"
+program := statement+
+```
+
+Both grammars lint clean (`unreachable_rules=0`, exit 0) — an unreferenced rule such as `program` counts
+as a *root*, so it is never reported as unreachable. Writing helper rules above your start symbol
+therefore changes the language your parser accepts, silently. **Define your entry rule first.**
+
+Two things to know:
+
+- `--entry-rule RULE` (on `ast_pipeline` and `parseability_probe`) parses from an **alternate** start
+  symbol. It is an out-of-band override for probing and for genuinely multi-entry grammars — not the
+  normal way to select the entry.
+- **No command reports your grammar's entry rule back to you.** `--lint-grammar` does not name it, and
+  neither does `--generate-parser` at default verbosity. Read the top of your own file: the first rule
+  defined is the entry. (Certificate coverage *does* print `entry='…'` on its headline and flags rules
+  with no reach path from it — but it verifies witnesses through a real generated parser, so it only runs
+  for a **registered** grammar and refuses an arbitrary `.ebnf` with
+  `no generated parser is registered for grammar '…'`. It is therefore available for the
+  [scratch slot](../../book/src/parse-harness.md), not for a grammar you are drafting.) This visibility
+  gap is tracked in `docs/tasks/QUANT-PLUS-ITER.md`.
+
+See also [Includes](includes.md), where the same rule is what stops an included file from re-rooting your
+grammar: main-file rules are always spliced first.
 
 ## A rule
 

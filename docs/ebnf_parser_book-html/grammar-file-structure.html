@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4bb09ec8.js";
+            window.path_to_searchindex_js = "searchindex-0ad7fb7b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -183,9 +183,44 @@
                         <h1 id="grammar-file-structure"><a class="header" href="#grammar-file-structure">Grammar File Structure</a></h1>
 <p>A PGEN grammar is a plain-text <code>.ebnf</code> file. At the top level it is a sequence of <strong>rules</strong>, optionally
 interleaved with <strong>include directives</strong>, <strong>semantic annotations</strong>, <strong>comments</strong>, and <strong>whitespace</strong>
-(<code>grammars/ebnf.ebnf</code>, rule <code>grammar_file</code>). The order of rules does not matter for resolution — every
-rule name in the file is in scope for every other rule — but the <strong>first reachable rule from the entry
-rule</strong> anchors the grammar (you choose the entry with <code>--entry-rule</code>).</p>
+(<code>grammars/ebnf.ebnf</code>, rule <code>grammar_file</code>). Rule order does not affect <strong>name resolution</strong> — every rule
+name in the file is in scope for every other rule, so you may reference a rule defined further down. It
+does, however, decide one thing, and it is the most important thing in the file: <strong>the entry rule</strong>.</p>
+<h2 id="-the-entry-rule-is-the-first-rule-you-define"><a class="header" href="#-the-entry-rule-is-the-first-rule-you-define">⚠️ The entry rule is the FIRST rule you define</a></h2>
+<p>PGEN has no <code>@start</code> directive and no entry declaration. <strong>The grammar’s entry rule (start symbol) is
+whichever rule is defined first in the file</strong> — <code>rule_order[0]</code>
+(<code>rust/src/ast_pipeline/ast_based_generator.rs</code>, <code>entry_rule = self.entry_rule.or_else(|| rule_order.first())</code>).
+Everything else follows from that: reachability analysis, the linter’s dead-rule verdicts, certificate
+coverage and the emitted <code>parse()</code> all anchor on it.</p>
+<pre><code class="language-ebnf"># ✅ entry is `program` — the parser parses a whole program
+program := statement+
+statement := "a" ";"
+</code></pre>
+<pre><code class="language-ebnf"># ⛔ SAME two rules, reordered — entry is now `statement`.
+#    The parser parses exactly ONE statement; `program` is never entered.
+#    `a;a;` is REJECTED at position 2. No diagnostic says so.
+statement := "a" ";"
+program := statement+
+</code></pre>
+<p>Both grammars lint clean (<code>unreachable_rules=0</code>, exit 0) — an unreferenced rule such as <code>program</code> counts
+as a <em>root</em>, so it is never reported as unreachable. Writing helper rules above your start symbol
+therefore changes the language your parser accepts, silently. <strong>Define your entry rule first.</strong></p>
+<p>Two things to know:</p>
+<ul>
+<li><code>--entry-rule RULE</code> (on <code>ast_pipeline</code> and <code>parseability_probe</code>) parses from an <strong>alternate</strong> start
+symbol. It is an out-of-band override for probing and for genuinely multi-entry grammars — not the
+normal way to select the entry.</li>
+<li><strong>No command reports your grammar’s entry rule back to you.</strong> <code>--lint-grammar</code> does not name it, and
+neither does <code>--generate-parser</code> at default verbosity. Read the top of your own file: the first rule
+defined is the entry. (Certificate coverage <em>does</em> print <code>entry='…'</code> on its headline and flags rules
+with no reach path from it — but it verifies witnesses through a real generated parser, so it only runs
+for a <strong>registered</strong> grammar and refuses an arbitrary <code>.ebnf</code> with
+<code>no generated parser is registered for grammar '…'</code>. It is therefore available for the
+<a href="../../book/src/parse-harness.html">scratch slot</a>, not for a grammar you are drafting.) This visibility
+gap is tracked in <code>docs/tasks/QUANT-PLUS-ITER.md</code>.</li>
+</ul>
+<p>See also <a href="includes.html">Includes</a>, where the same rule is what stops an included file from re-rooting your
+grammar: main-file rules are always spliced first.</p>
 <h2 id="a-rule"><a class="header" href="#a-rule">A rule</a></h2>
 <p>The core unit is a rule definition (<code>grammars/ebnf.ebnf</code>, rule <code>rule_definition</code>):</p>
 <pre><code class="language-ebnf">rule_name  :=  expression  -&gt; return_annotation

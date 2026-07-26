@@ -1,5 +1,38 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-QUANT-PLUS-ITER-0001 (leaf `QUANT-PLUS-ITER.1`) — `+` was never broken: the quantifier's rule was never entered, because the entry rule is whichever rule you define FIRST
+
+- **Diagnosed (docs-only, read-only)** — session #211 opened `QUANT-PLUS-ITER` on a measured
+  symptom: a minimal grammar in which `scratch := stmt+` accepted `a;` but rejected `a;a;` at
+  position 2. The root cause is not the `+` operator. PGEN's canonical entry rule is
+  `rule_order[0]` — **the rule defined first in the file**
+  (`rust/src/ast_pipeline/ast_based_generator.rs:616-621`) — and the probe grammar defined `stmt`
+  above `scratch`. The parser was therefore entered at `stmt`, consumed exactly one `a;`, and
+  failed on the unconsumed remainder. Every row of the failing table, including the follower case
+  where even `a;!` rejected at position 2, is that one fact.
+- **Proven by a flip, not by argument** — one binary, one grammar in the scratch slot, one variable
+  changed: with the default entry `a;a;`, `a;b;` and `b;a;b;a;` all reject at position 2; with
+  `--entry-rule scratch` all three **accept**, `+` iterating 1, 2 and 4 occurrences correctly.
+  Corroborated at the codegen layer — the same two rules with only their definition order swapped
+  emit `self.parse_stmt()` versus `self.parse_scratch()`.
+- **The VHDL control is explained, not merely restated** — `grammars/vhdl.ebnf:11` defines
+  `vhdl_file` first, so `record_element_declaration+` is genuinely reached; the committed scratch
+  fixture likewise defines `scratch` first, which is why the slot's own integration test never
+  exposed this. There is no shape-specific behaviour and no second engine path.
+- **Documented** — the grammar-author book's `grammar-file-structure.md` said *"the order of rules
+  does not matter"* and *"you choose the entry with `--entry-rule`"*, never stating the default. It
+  now carries a **"⚠️ The entry rule is the FIRST rule you define"** section with a matched ✅/⛔
+  reordering pair, a warning that both variants lint clean, and the honest note that no command
+  reports a grammar's entry rule back to its author.
+- **Left open, named** — nothing diagnoses this. `--lint-grammar` reports `unreachable_rules=0` and
+  exits 0 (an unreferenced rule counts as a root, so it can never be flagged), and the start symbol
+  cannot be declared in the EBNF at all — measured zero hits in the meta-grammar, the semantic
+  directive registry, and every tracked grammar. Both routed to `QUANT-PLUS-ITER.2`; the
+  declarability question carries a director-visible surface call and was deliberately not
+  implemented.
+- **Verified** — `docs/tasks/artifacts/quant_plus_iter/run_entry_rule_probes.sh`: 16
+  declared-verdict cases, exit 0, 0 divergences, byte-identical on re-run.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0012 (leaf `LANG-CAPABILITY-AUDIT.8`) — `@recover` never produced a working parser in ANY configuration; error recovery now works, is proven end-to-end, and is documented for the first time
 
 - **Fixed** — `@recover: true` code generation. The three `Option<usize>` recovery budgets were

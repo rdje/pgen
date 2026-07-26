@@ -1,0 +1,53 @@
+=== QUANT-PLUS-ITER.1 — entry-rule probes ===================================
+AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true
+
+--- 1. codegen: which rule does the emitted parser dispatch to? -------------
+  ✅ A (stmt defined first): parse() dispatches to              self.parse_stmt()
+  ✅ A (stmt defined first): convenience alias                  pub fn parse_full_stmt
+  ✅ B (scratch defined first): parse() dispatches to           self.parse_scratch()
+  ✅ B (scratch defined first): convenience alias               pub fn parse_full_scratch
+
+--- 2. --lint-grammar on the failing shape: does anything warn? -------------
+  ✅ lint exit code (0 = grammar declared well-formed)          0
+  ✅ lint unreachable_rules                                     unreachable_rules=0
+  ✅ lint mentions the resolved entry rule (0 = never)          0
+
+--- 3. --generate-parser at DEFAULT verbosity: is the entry named? ----------
+  ✅ default-verbosity generation names the entry (0 = never)   0
+
+--- 4. --report-certificate-coverage: the instrument that DOES see it -------
+  ✅ cert-coverage refuses an UNREGISTERED grammar name (1 = refused) 1
+  ℹ️  the slot-loaded run (grammar name 'scratch', registered) printed, with NO flags:
+         CERTIFICATE-COVERAGE: grammar='scratch' entry='stmt' ... UNKNOWN=1 fully_certified=false
+         WARNING ... 1 UNKNOWN rules have NO reach path from the entry
+                 (dead-rule candidates — adjudicate via the linter): ["scratch"]
+      verbatim transcript + recipe: entry_rule_flip_capture.txt
+
+--- 5. the shipped grammars define their entry FIRST (why nothing caught it) -
+  ✅ grammars/vhdl.ebnf first-defined rule                      vhdl_file
+  ✅ committed scratch fixture first-defined rule               scratch
+
+--- 6. PRIOR ART: can the entry rule be DECLARED in the EBNF at all? --------
+  ✅ grammars/ebnf.ebnf declares an entry/start production (0 = no) 0
+  ✅ semantic_directive_registry registers an entry directive (0 = no) 0
+
+--- 7. the charter's named FIRST suspect, refuted by measurement -------------
+  ✅ grammars/vhdl.ebnf declares @whitespace_sensitive (0 = no) 0
+  ✅ committed scratch fixture declares @whitespace_sensitive (0 = no) 0
+  ✅ the failing probe grammar declares @whitespace_sensitive (0 = no) 0
+
+============================================================================
+cases=16 divergences=0
+
+The BEHAVIOURAL flip (needs a probe rebuild — see entry_rule_flip_capture.txt):
+  cp <A_stmt_first.ebnf> grammars/scratch/scratch.ebnf
+  make -C rust SHELL=/bin/bash focus_scratch
+  touch rust/src/lib.rs
+  (cd rust && cargo build --release --features generated_parsers --bin parseability_probe)
+  printf 'a;a;' > /tmp/in.txt
+  ./rust/target/release/parseability_probe --parse scratch /tmp/in.txt                        # rc=1, position 2
+  ./rust/target/release/parseability_probe --parse scratch /tmp/in.txt --entry-rule scratch   # rc=0, ACCEPT
+  git checkout grammars/scratch/scratch.ebnf   # then regenerate + rebuild
+  # NOTE: `make focus_scratch` overwrites target/debug/ast_pipeline with a
+  # SINGLE-feature build; rebuild it dual-feature afterwards.
+
