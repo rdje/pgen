@@ -685,8 +685,15 @@ panic_mode := "panic"
 # 
 # Advanced features:
 # @type: Expression
-# @precedence: {level: 5, associativity: "left"}
+# @precedence: 5
+# @associativity: left
 # expression := term (("+" | "-") term)* -> {type: "binary_op", left: $1, ops: [$2*]}
+#
+# (`@priority`/`@precedence` take an INTEGER or an integer list — `5` or `[1, 9, 2]` —
+#  and rank the alternatives INSIDE one rule; `@associativity` is its own directive.
+#  A `{level: …, associativity: …}` object payload is REJECTED with
+#  W_SEM_INVALID_PRIORITY_PAYLOAD. Corrected by LANG-CAPABILITY-AUDIT.5 after `.3b`
+#  measured the object form against the validator.)
 #
 # Includes:
 # include("common_rules", "operators")
@@ -700,10 +707,22 @@ panic_mode := "panic"
 # identifier := /[a-zA-Z_][a-zA-Z0-9_]*/ -> $1
 # number := /\d+(\.\d+)?/ -> {type: "number", value: $1}
 #
-# Character classes:
-# letter := [a-zA-Z]
-# digit := [0-9] 
-# special := [!@#$%^&*()]
+# Character classes — write them as REGEX ATOMS, not bare brackets:
+# letter := /[a-zA-Z]/
+# digit := /[0-9]/
+# special := /[!@#$%^&*()]/
+#
+# ⛔ A BARE bracket is NOT a character class in the input language PGEN actually
+#    accepts — `[ … ]` is the OPTIONAL-ELEMENT form (`optional_element`, below), so:
+#      letter  := [a-zA-Z]      -> hard lint ERROR (undefined references `Z`, …)
+#      special := [!@#$%^&*()]  -> hard lint ERROR
+#      digit   := [0-9]         -> ⚠️ SILENTLY compiles to an ALWAYS-SUCCEEDING EMPTY
+#                                  OPTIONAL (gen-AST `Quantified{Sequence[], "?"}`),
+#                                  lint-clean and matching nothing.
+#    The `character_class` production at the top of this file is declared but has ZERO
+#    engine consumers, so it never wins against `optional_element`. Corrected by
+#    LANG-CAPABILITY-AUDIT.5; the declared-vs-implemented divergence itself is tracked
+#    as LANG-CAPABILITY-AUDIT.6.
 #
 # Quantifiers:
 # exactly_three := element{3}

@@ -57,3 +57,35 @@ echo "=== ROW 10 PRE-REQUISITE — where quantifier give-back is decided in code
 grep -n "fn generate_quantified_logic" rust/src/ast_pipeline/ast_based_generator.rs | sed 's/^/    /'
 echo "    (the loop breaks on the first failing iteration and enforces only a MIN"
 echo "     count; no emission path re-tries the loop with fewer iterations)"
+
+echo
+echo "=== .5 — every example line of grammars/ebnf.ebnf's documentation block (:679-714) ==="
+TMPD="$(mktemp -d)"; trap 'rm -rf "$TMPD"' EXIT
+probe() {
+  printf '%s\n' "$2" > "$TMPD/blk.ebnf"
+  if ./rust/target/debug/ast_pipeline "$TMPD/blk.ebnf" --lint-grammar >"$TMPD/out" 2>&1
+  then echo "  LINT-OK   $1"
+  else echo "  LINT-FAIL $1  :: $(grep -oE '\[error\].*' "$TMPD/out" | head -1 | cut -c1-100)"; fi
+}
+probe "charclass: letter := [a-zA-Z]" 'letter := [a-zA-Z]'
+probe "charclass: digit  := [0-9]"    'digit := [0-9]'
+probe "charclass: special := [!@#\$%^&*()]" 'special := [!@#$%^&*()]'
+echo "  ⚠️ LINT-OK is NOT correctness — what does the frontend COMPILE '[0-9]' to?"
+printf 'digit := [0-9]\n' > "$TMPD/cc.ebnf"
+./rust/target/debug/ast_pipeline "$TMPD/cc.ebnf" --generate-parser \
+  --dump-gen-ast "$TMPD/cc.json" --output "$TMPD/cc.rs" >/dev/null 2>&1
+python3 -c "
+import json,sys;d=json.load(open('$TMPD/cc.json'))
+print('    gen-AST for rule digit:', json.dumps(d['grammar_tree']['digit']))"
+echo "    ⇒ an ALWAYS-SUCCEEDING EMPTY OPTIONAL, not a character class."
+echo "  the two competing '[' productions in the meta-grammar:"
+sed -n '232p;288p' grammars/ebnf.ebnf | sed 's/^/    /'
+echo "  engine consumers of the META-GRAMMAR's character_class (the .1 method):"
+echo "    total 'character_class' hits in rust/src : \
+$(grep -rn 'character_class' rust/src/ --include=*.rs | wc -l | tr -d ' ')"
+echo "    ...of which belong to the REGEX grammar's own class surface (validator + perf/census \
+bench labels), NOT to the EBNF meta-grammar:"
+grep -rln 'character_class' rust/src/ --include=*.rs | sed 's/^/      /'
+echo "    ⇒ hits attributable to the EBNF meta-grammar's character_class production: 0"
+echo "      (declared at ebnf.ebnf:232, reachable, and consumed by nothing —"
+echo "       a THIRD class beyond .1's unreachable orphans and .2's unreferenced roots)"

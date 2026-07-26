@@ -51,6 +51,48 @@ subsequent iterations.
 A zero-length guard prevents an inner rule that matches the empty string from looping forever, and a large
 safety limit backstops pathological repetition.
 
+## Repetition is POSSESSIVE — a quantifier never gives an iteration back
+
+Per-iteration atomicity is about a **failed** iteration. It is *not* backtracking into the loop count.
+Once an iteration has succeeded, nothing later in the sequence can make the quantifier hand it back:
+
+```ebnf
+# Measured: this rule rejects BOTH "ab" and "aaab".
+bt := "a"* "ab"
+```
+
+On `"ab"`, `"a"*` consumes the `a`, the loop stops, and `"ab"` is then attempted against the leftover
+`b` and fails. A regex engine (or a CFG parser) would retry with a shorter run; PGEN does not — the
+emitted loop breaks on the first failing iteration and enforces only the *minimum* count. So:
+
+> **Never write `body* closer` where `body` can also match `closer`.** The loop will swallow the
+> closer and the rule can never complete.
+
+Two idioms fix it, both proven to work:
+
+```ebnf
+# 1. STATIC closer — guard the loop element with a negative lookahead, so the loop
+#    stops of its own accord and no give-back is needed.
+quoted := "q" "/" ( !"/" any_char )* "/"
+
+# 2. DYNAMIC closer (the closer is not known until parse time — a Raku-style
+#    user-chosen delimiter, a here-document terminator). Register it in the semantic
+#    store on the way in and gate the body against it. See The Semantic Store.
+@emit_fact:  { kind: qdelim, name: $body, family: d }
+open      := delim -> { body: $1 }
+@predicate:  { name: lacks_fact, args: [qdelim, $body], phase: post }
+body_char := any_char -> { body: $1 }
+@predicate:  { name: has_fact, args: [qdelim, $body], phase: post }
+close     := delim -> { body: $1 }
+quoted    := "q" open body_char* close
+```
+
+⚠️ Idiom 2 carries one bound worth knowing before you rely on it: the fact store is **monotone within
+a parse** — there is no retraction directive, and `@close_scope` does not retire facts — so a *second*
+quoted string in the same input still sees the first one's delimiter fact. It is correct for one
+instance per parse, and the repeated-instance case is a tracked gap
+(`docs/tasks/LANG-CAPABILITY-AUDIT.md` `.3b`/`.4`).
+
 ## Quantifying a group
 
 A quantifier binds to the single element on its left — use a group to repeat more than one element:

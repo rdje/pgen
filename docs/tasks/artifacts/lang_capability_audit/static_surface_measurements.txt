@@ -55,3 +55,26 @@
     5692:    fn generate_quantified_logic(
     (the loop breaks on the first failing iteration and enforces only a MIN
      count; no emission path re-tries the loop with fewer iterations)
+
+=== .5 — every example line of grammars/ebnf.ebnf's documentation block (:679-714) ===
+  LINT-FAIL charclass: letter := [a-zA-Z]  :: [error] grammar well-formedness ERROR: rule 'letter' references UNDEFINED rule 'Z' — codegen emits
+  LINT-OK   charclass: digit  := [0-9]
+  LINT-FAIL charclass: special := [!@#$%^&*()]  :: 
+  ⚠️ LINT-OK is NOT correctness — what does the frontend COMPILE '[0-9]' to?
+    gen-AST for rule digit: {"Quantified": {"element": {"Sequence": {"elements": []}}, "quantifier": "?"}}
+    ⇒ an ALWAYS-SUCCEEDING EMPTY OPTIONAL, not a character class.
+  the two competing '[' productions in the meta-grammar:
+    character_class := "[" character_class_negation? character_class_content "]"
+    optional_element := "[" rule_expression "]"  
+  engine consumers of the META-GRAMMAR's character_class (the .1 method):
+    total 'character_class' hits in rust/src : 14
+    ...of which belong to the REGEX grammar's own class surface (validator + perf/census bench labels), NOT to the EBNF meta-grammar:
+      rust/src/regex_compile_validation.rs
+      rust/src/bin/regex_construction_census_probe.rs
+      rust/src/bin/regex_validation_microbench.rs
+      rust/src/bin/regex_alloc_census_probe.rs
+      rust/src/bin/regex_perf_probe.rs
+      rust/src/bin/regex_perf_probe_embedding_api.rs
+    ⇒ hits attributable to the EBNF meta-grammar's character_class production: 0
+      (declared at ebnf.ebnf:232, reachable, and consumed by nothing —
+       a THIRD class beyond .1's unreachable orphans and .2's unreferenced roots)

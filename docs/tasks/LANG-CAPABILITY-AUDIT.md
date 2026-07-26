@@ -429,24 +429,130 @@ on that axis and keep the hypothesis; it may no longer be quoted for 10/11.
     fixed inline (they are outside a read-only leaf's mandate); book update owned by
     `.5`.
 
-### `.5` — Repair the two measured doc-surface defects (`todo`)
+### `.5` — Repair the measured doc-surface defects (`done`)
 
-- **Status: `todo`**, opened by `.3b` Finding 4. Both are *documentation* defects with
-  tool-backed evidence already banked, so neither needs re-diagnosis:
-  1. `docs/book/src/developer-architecture.md:21` — "PGEN is a faithful PEG: ordered
-     choice…" must state the **default longest-match tournament** and name
-     `@branch_policy` (`ordered` / `longest_match` / `priority_first`). The
-     greedy/possessive-repetition sentence at `:19` is correct and stays.
-  2. `grammars/ebnf.ebnf:688` — the documentation block's
-     `@precedence: {level: 5, associativity: "left"}` must become a payload the
-     validator accepts (`@priority: 5` + a separate `@associativity: left`), or be
-     removed.
-- ⭐ Worth folding in while there: the **author-facing consequence** of possessive
-  quantifiers (`(!close body)*`, and the store guard when `close` is dynamic) is
-  currently undocumented, and `.3b` proved both idioms work.
-- ⚠️ Scope note: (2) edits a tracked `grammars/*.ebnf` file, which the code-change
-  doctrine treats as **code** — so this leaf carries the full acceptance checklist and
-  a no-regression run, even though the edited line is a comment.
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0005`, session #209). Opened by
+  `.3b` Finding 4 with the evidence already banked, so no re-diagnosis was needed —
+  but the mandated sweep of the surrounding surface **found a third defect, and it is
+  the worst of the three because it fails silently.**
+
+#### ⭐ The sweep first: WHERE ELSE does the repo make these claims?
+
+`.3b` found one bad sentence and one bad example. Both fixes are worthless if the same
+claim is repeated elsewhere, so the whole documentation surface was swept before
+editing anything — and the result reframes the defects:
+
+| claim | book (`docs/book/`) | grammar-author book (`docs/ebnf_parser_book/`) | the meta-grammar's own comments |
+|---|---|---|---|
+| `\|` selection semantics | ⛔ **`developer-architecture.md:21` WRONG** — but `parse-harness.md:531-534` and `grammar-wellformedness.md:182/220/1475` are all **already correct** (the latter even carries a 2026-07-05 correction retracting the "PEG commits to the first success" reasoning) | ✅ **already correct and detailed** — `rules-and-expressions.md:20-41` states *"PGEN's `\|` is not a first-match commit by default"* with the exact `a \| a b` example | — |
+| `[ … ]` is optional, NOT a character class | — | ✅ **already correct** — `terminals.md:89` calls it *"the single most important terminal rule to internalize"* and names the lowering (`ebnf_frontend.rs`), `rules-and-expressions.md:79-80` cross-references it | ⛔ **`ebnf.ebnf` WRONG** (found by this sweep) |
+| `@precedence` payload shape | — | — | ⛔ **`ebnf.ebnf` WRONG** |
+
+⇒ **both defects are isolated outliers in a documentation set that already agrees with
+the measurement**, and the meta-grammar's own comment block was contradicting the very
+book PGEN ships for grammar authors. That is a much better position than "the docs are
+wrong about ordered choice" — and it is only knowable because the sweep ran.
+
+#### ⛔ THE THIRD DEFECT — the block's "Character classes" section, and it fails SILENTLY
+
+Every one of the block's example lines was run through `--lint-grammar`, not eyeballed:
+
+```
+  LINT-FAIL  letter  := [a-zA-Z]        undefined rule 'Z' (+2 more) — hard error
+  LINT-FAIL  special := [!@#$%^&*()]    hard error
+  LINT-OK    digit   := [0-9]           ⚠️ and LINT-OK is the problem
+```
+
+`digit := [0-9]` lints clean and compiles to
+`Quantified{ element: Sequence{[]}, quantifier: "?" }` — **an always-succeeding empty
+optional that matches nothing.** `[ … ]` is the *optional-element* form
+(`ebnf.ebnf:288`), so a reader who copies the documented character-class syntax gets a
+hard error twice and a silently-vacuous rule once. All 15 example lines in the block were
+measured; the other 12 are correct.
+
+#### The three edits
+
+1. **`docs/book/src/developer-architecture.md:17-21`** — the PEG bullet now says PGEN
+   takes PEG's *determinism* property but **selects the winner by a branch tournament,
+   not first-match commit**; names the default `longest_match`, the `ordered` opt-in and
+   the measured `"a" | "a" "b"` / `"ab"` discriminator; keeps the (correct)
+   greedy/possessive-repetition and `&`/`!` claims; and points at the three surfaces
+   that already had it right. A sub-bullet records *why* this is load-bearing rather
+   than pedantic — two linter deadness verdicts were unsound for exactly this reason.
+2. **`grammars/ebnf.ebnf`** — `@precedence: {level: 5, associativity: "left"}` →
+   `@precedence: 5` + `@associativity: left`, with the rejected object payload named;
+   and the "Character classes" examples → regex atoms (`/[a-zA-Z]/`, `/[0-9]/`,
+   `/[!@#$%^&*()]/`) with the bare-bracket trap spelled out, including the silent
+   `[0-9]` case. (A stray trailing space on the old `# digit := [0-9] ` line goes too.)
+3. **`docs/ebnf_parser_book/src/quantifiers.md`** — new section *"Repetition is
+   POSSESSIVE — a quantifier never gives an iteration back"*, the author-facing
+   consequence `.3b` Finding 3 showed is documented nowhere: the measured `bt := "a"*
+   "ab"` rejection, the rule **never write `body* closer` where `body` can match
+   `closer`**, and both working idioms (static negative-lookahead guard; the store guard
+   for a dynamic closer) — with `.3b`'s monotone-store bound stated up front so nobody
+   adopts idiom 2 without knowing it.
+
+#### ⚠️ A measurement of mine was wrong, and the tool caught it
+
+The first no-regression run reported the regenerated `ebnf` parser as **DIVERGED**. It
+had not: I generated the two artifacts to *different* `--output` paths, and codegen
+embeds the output path in the emitted source, so all 12,224 diff lines were that string.
+Re-run with **both** the input path (`git stash` the edit in place) and the output path
+held constant: **byte-identical, sha256 `f56f907556e8e27c07c7fcd45749b83581a5b427070f636f2de9d35a1694342c`.**
+Recorded rather than quietly corrected — it is the same trap `BIN-BUILD-INTEGRITY.3`
+already named ("same output path so path-embedded strings are controlled"), and a
+byte-identity claim is worthless unless every non-semantic input is pinned.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `.3b` measured `developer-architecture.md:21`'s
+    ordered-choice claim false under the default policy (ROW-0 control, with
+    `--lint-grammar` independently agreeing) and `ebnf.ebnf`'s `@precedence` object
+    payload rejected by the validator; this leaf's own sweep then measured the
+    block's character-class examples 2× hard-error / 1× silently vacuous.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — the `|` claim: default `@branch_policy` is
+    `longest_match`, `ordered` is opt-in (measured both ways). The `@precedence` claim:
+    `parse_semantic_numeric_list` accepts integers/integer-lists only
+    (`annotation_validator.rs:656`; oracle test `:2862`, re-run PASS). The bracket
+    claim: `[` is `optional_element` (`ebnf.ebnf:288`) and the *declared*
+    `character_class` (`:232`) has **zero** consumers attributable to the meta-grammar —
+    all 14 `character_class` hits in `rust/src` belong to the **regex** grammar's class
+    surface (validator + perf/census bench labels), enumerated per file in the capture.
+  - [x] **FIX** — three documentation edits, fix-hierarchy tier **declarative/doc only**;
+    no engine or grammar *behaviour* touched.
+  - [x] **ADDRESSED (verified)** — the three corrected character-class examples now
+    lint **OK** (measured, all three); the corrected `@precedence`/`@associativity` pair
+    uses the payload shape the validator's own message prescribes; the book bullet now
+    matches the three surfaces that were already right, so the documentation set is
+    self-consistent for the first time.
+  - [x] **NO REGRESSION** — `grammars/ebnf.ebnf` is a tracked grammar, so it is treated
+    as **code**: the regenerated parser is **BYTE-IDENTICAL** with both input and output
+    paths controlled (sha256 `f56f9075…`), i.e. the edit is codegen-inert; the edited
+    meta-grammar lints clean (0 errors, the 2 pre-existing left-recursion `[info]` lines
+    unchanged); `mdbook_docs_gate` GREEN; all 9 doctrines PASS. No release, schema,
+    ledger or contract movement.
+  - [x] **LOCKSTEP** — both books updated in the same commit as the grammar comment;
+    the third defect's *deeper* question (a production the meta-grammar declares and the
+    shipping frontend does not implement) routed to a new leaf `.6` rather than absorbed
+    into a doc fix; measurement banked in the `.3b` static driver so it re-runs.
+
+### `.6` — `character_class`: declared in the meta-grammar, unimplemented by the frontend (`todo`)
+
+- **Status: `todo`**, opened by `.5`'s sweep. ⭐ **This is a THIRD deadness class, distinct
+  from both earlier findings:** `.1` found productions unreachable from the entry, `.2`
+  found unreferenced-root orphans that no lint can see — `character_class`
+  (`ebnf.ebnf:232`) is **reachable AND referenced AND lint-clean**, and still has zero
+  implementing consumers, because the authoritative hand-written frontend
+  (`scan_top_level_rules` / `convert_scanned_rule`) lowers `[` to the optional form
+  instead. So the meta-grammar and the shipping frontend **disagree about what `[ … ]`
+  means**, and the disagreement resolves silently in favour of the frontend.
+- Scope: adjudicate, don't assume — (a) confirm the divergence directly (the generated
+  `EbnfParser` vs the hand-written frontend on the same input; `ebnf_dual_run_diff` /
+  `ebnf_frontend_dual_run_gate` are the instruments), (b) then choose one of: implement
+  the class, delete the production, or mark it explicitly reserved — the tree's own
+  Acceptance Criteria already forbid leaving it as decorative surface.
+- ⚠️ Note for whoever takes it: this sits squarely in the family
+  `ANNOTATION-PLACEMENT` named — *a check that cannot see a defect class must say so,
+  not return green*. `--lint-grammar` reports 0 errors on `digit := [0-9]`.
 
 ### `.4` — Prioritized primitive roadmap
 

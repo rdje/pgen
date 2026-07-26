@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0005 — fix the defect you found, but sweep the surface first: it changes what the defect IS
+
+Session #209 (leaf `LANG-CAPABILITY-AUDIT.5`). Three lessons, two of them about method.
+
+**1. ⭐ The sweep changed the diagnosis, not just the scope.** `.3b` handed this leaf two
+point defects — a wrong sentence in `developer-architecture.md` and a wrong example in
+`grammars/ebnf.ebnf`. Sweeping the whole documentation surface before editing showed that
+`parse-harness.md`, `grammar-wellformedness.md` and the grammar-author's own
+`ebnf_parser_book/src/rules-and-expressions.md` all **already state the correct selection
+semantics** — the last one in detail, with the same `a | a b` example. So the finding is not
+"the docs are wrong about ordered choice"; it is "**one architecture chapter is the sole
+outlier, and the meta-grammar's own comments contradict the book PGEN ships for grammar
+authors**". Same edits, completely different severity and completely different follow-up. The
+sweep also found the third defect, which the point-fix would have walked straight past.
+
+**2. ⚠️ LINT-OK is not correctness — and the silent case is the dangerous one.** The
+documentation block's three character-class examples fail in two different ways: `[a-zA-Z]` and
+`[!@#$%^&*()]` raise hard lint errors, but `digit := [0-9]` **lints clean** and compiles to
+`Quantified{Sequence[], "?"}` — an always-succeeding empty optional that matches nothing.
+Checking each example line with `--lint-grammar` alone would have declared `[0-9]` fine. It took
+`--dump-gen-ast` to see what the frontend actually built. **When auditing examples, measure what
+the construct COMPILES TO, not merely whether it is accepted.**
+
+**3. ⚠️ A byte-identity claim is worthless unless every non-semantic input is pinned — and this
+one caught me.** The first no-regression run reported the regenerated `ebnf` parser as DIVERGED
+across 12,224 lines. It had not diverged: I generated the two artifacts to different `--output`
+paths and codegen embeds the output path in the emitted source, so every diff line was that
+string. Re-running with both the input path (`git stash` the edit in place, so the grammar path
+stays `grammars/ebnf.ebnf`) and the output path held constant gives byte-identity. This is the
+same trap `BIN-BUILD-INTEGRITY.3` already recorded — "same output path so path-embedded strings
+are controlled" — which is exactly why it is worth writing down twice: the failure mode is
+*plausible*, it looks like a real regression, and the tempting response is to go hunting for a
+codegen bug that does not exist.
+
+**A note on what was deliberately NOT done.** The third defect has a deeper question behind it:
+`character_class` is declared at `ebnf.ebnf:232`, is reachable and referenced and lint-clean, and
+has zero implementing consumers, because the authoritative hand-written frontend lowers `[` to
+the optional form. That is a **third deadness class** — distinct from `.1`'s unreachable orphans
+and `.2`'s unreferenced roots, and invisible to both instruments. It was routed to a new leaf
+`.6` rather than resolved inside a documentation fix. Adjudicating it means choosing between
+implementing the class, deleting the production, and marking it reserved, and that choice
+deserves its own measurement and its own acceptance checklist.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0004 — a "suspected gap" is a claim about the PROBE that was never written
 
 Session #209 (leaf `LANG-CAPABILITY-AUDIT.3b`, read-only). The previous leaf shipped a 16-row

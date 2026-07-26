@@ -17,8 +17,21 @@ semantic store. The three terms:
 - **PEG** (Ford, POPL 2004): a *recognition-based* grammar. Alternatives use **ordered
   choice** — the first matching alternative commits, so a PEG is **never ambiguous** (unlike
   a CFG used by yacc/bison/ANTLR). It has greedy/possessive repetition and **syntactic
-  predicates** `&e` / `!e` (unlimited lookahead that consumes nothing). PGEN is a faithful
-  PEG: ordered choice, `&`/`!`, greedy quantifiers.
+  predicates** `&e` / `!e` (unlimited lookahead that consumes nothing). PGEN takes the PEG
+  *determinism* property — every choice has exactly one winner, so a grammar is never
+  ambiguous — but **selects that winner by a branch tournament, not by first-match commit**.
+  ⚠️ **Do not read `|` as "first alternative wins":** the default `@branch_policy` is
+  `longest_match` (every alternative is tried and the one consuming the most input wins;
+  ties go to the earlier alternative). Classical PEG first-success commit is available, but
+  only when a rule asks for it with `@branch_policy: ordered`. Measured, on the discriminating
+  input `start := "a" | "a" "b"` against `"ab"`: the default **accepts** (the longer
+  alternative wins), `ordered` **rejects** (it commits to `"a"` and strands the `b`). The
+  `&`/`!` predicates and the greedy/possessive repetition are faithful PEG.
+  - This distinction is load-bearing, not pedantic: two `--lint-grammar` deadness verdicts
+    were unsound until they were made policy-conditional, precisely because they reasoned
+    "PEG commits to the first success". See *Grammar Well-Formedness* (the A2.2/A2.3/A2.4
+    corrections), the per-policy row table in *The Parse Harness*, and the grammar-author's
+    treatment in the `ebnf` parser book's *Rules and Expressions* chapter.
 - **Packrat** (Ford, ICFP 2002): the **linear-time *implementation* of a PEG** via
   memoizing every `(rule, position)` result, which eliminates PEG's worst-case exponential
   backtracking. PGEN does this (its `MemoEntry` cache). Packrat assumes a **pure** parse

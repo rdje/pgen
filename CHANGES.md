@@ -1,5 +1,77 @@
 # CHANGES.md
 
+## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0005 (leaf `LANG-CAPABILITY-AUDIT.5`) — the two measured doc defects repaired, and the mandated sweep found a third that fails SILENTLY
+
+**Doc-surface only.** `grammars/ebnf.ebnf` is edited, but only inside a comment block: the
+regenerated `ebnf` parser is **byte-identical** with both input and output paths pinned
+(sha256 `f56f907556e8e27c07c7fcd45749b83581a5b427070f636f2de9d35a1694342c`), so the change is
+codegen-inert. No release, schema, ledger or contract movement.
+
+**⭐ The sweep came first, and it reframed the defects.** `.3b` found one bad book sentence and
+one bad grammar example. Fixing them is worthless if the same claim is repeated elsewhere, so
+the whole documentation surface was swept before anything was edited. Result: `parse-harness.md`
+(the per-policy row table), `grammar-wellformedness.md` (which already carries a 2026-07-05
+correction retracting the "PEG commits to the first success" reasoning) and — most importantly —
+the grammar-author's own `docs/ebnf_parser_book/src/rules-and-expressions.md` were **already
+correct**. So `developer-architecture.md:21` was the **sole outlier**, and the meta-grammar's
+comment block was contradicting the very book PGEN ships for grammar authors.
+
+**⛔ The third defect, found by that sweep, is the worst of the three.** Every one of the
+documentation block's 15 example lines was run through `--lint-grammar` rather than eyeballed:
+
+```
+  LINT-FAIL  letter  := [a-zA-Z]        undefined rule 'Z' (+2 more) — hard error
+  LINT-FAIL  special := [!@#$%^&*()]    hard error
+  LINT-OK    digit   := [0-9]           ⚠️ and LINT-OK is the problem
+```
+
+`digit := [0-9]` lints clean and compiles to `Quantified{ element: Sequence{[]}, quantifier: "?" }`
+— **an always-succeeding empty optional that matches nothing.** `[ … ]` is the optional-element
+form (`ebnf.ebnf:288`), so a reader copying the documented character-class syntax gets a hard
+error twice and a silently-vacuous rule once. The other 12 lines measured correct.
+
+**The three edits.**
+
+- `docs/book/src/developer-architecture.md` — the PEG bullet now says PGEN takes PEG's
+  *determinism* property but **selects the winner by a branch tournament, not first-match
+  commit**; it names the default `longest_match`, the `@branch_policy: ordered` opt-in and the
+  measured `"a" | "a" "b"` / `"ab"` discriminator, keeps the (correct) greedy/possessive-repetition
+  and `&`/`!` claims, and records why the distinction is load-bearing — two `--lint-grammar`
+  deadness verdicts were unsound until they were made policy-conditional for exactly this reason.
+- `grammars/ebnf.ebnf` — `@precedence: {level: 5, associativity: "left"}` (a payload the
+  validator rejects) becomes `@precedence: 5` + `@associativity: left`; the character-class
+  examples become regex atoms (`/[a-zA-Z]/`, `/[0-9]/`, `/[!@#$%^&*()]/`) with the bare-bracket
+  trap spelled out, including the silent `[0-9]` case.
+- `docs/ebnf_parser_book/src/quantifiers.md` — new section **"Repetition is POSSESSIVE — a
+  quantifier never gives an iteration back"**: the measured `bt := "a"* "ab"` rejection, the rule
+  *never write `body* closer` where `body` can match `closer`*, and both working idioms (static
+  negative-lookahead guard; the semantic-store guard when the closer is only known at parse
+  time), with `.3b`'s monotone-store bound stated up front so nobody adopts the second idiom
+  without knowing it.
+
+**⚠️ A no-regression measurement of ours was wrong, and the tool caught it.** The first run
+reported the regenerated parser as DIVERGED across 12,224 lines. It had not diverged: the two
+artifacts were generated to *different* `--output` paths and codegen embeds the output path in
+the emitted source. Re-run with both the input path (`git stash` the edit in place) and the
+output path held constant, the result is byte-identical. Recorded rather than quietly corrected —
+it is the same trap `BIN-BUILD-INTEGRITY.3` already named, and a byte-identity claim is worthless
+unless every non-semantic input is pinned.
+
+**⭐ New leaf `.6` — a THIRD deadness class.** The third defect's deeper question is routed, not
+absorbed: `character_class` (`ebnf.ebnf:232`) is **reachable, referenced and lint-clean**, and
+still has zero implementing consumers — all 14 `character_class` hits in `rust/src` belong to the
+*regex* grammar's class surface. The authoritative hand-written frontend lowers `[` to the
+optional form instead, so the meta-grammar and the shipping frontend disagree about what `[ … ]`
+means and the disagreement resolves silently. That is distinct from `.1`'s unreachable orphans
+and `.2`'s unreferenced roots, and it belongs to the family `ANNOTATION-PLACEMENT` named: **a
+check that cannot see a defect class must say so, not return green.**
+
+**Verification.** Regenerated `ebnf` parser byte-identical (paths pinned); edited meta-grammar
+lints clean (0 errors, the 2 pre-existing left-recursion `[info]` lines unchanged); the three
+corrected character-class examples now lint OK; `mdbook_docs_gate` GREEN; `ebnf_parser_book_gate`
+GREEN with the tracked HTML re-rendered; all 9 doctrines PASS. Clippy not applicable — no Rust or
+generated-Rust file changed (proven by the byte-identity check).
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0004 (docs-only, read-only leaf `LANG-CAPABILITY-AUDIT.3b`) — the audit's six UNMEASURED rows are measured, and TWO "suspected gaps" turn out to be capabilities PGEN already has
 
 **No code, grammar, generated artifact, contract or schema touched.** The scratch slot
