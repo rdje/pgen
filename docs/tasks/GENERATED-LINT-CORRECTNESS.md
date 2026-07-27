@@ -434,26 +434,245 @@ Evidence:
 `.../degenerate_emission_sweep_capture_leaf2.txt`,
 `.../run_degenerate_emission_sweep.sh` (extended with the `.2` patterns).
 
-### `.3` — promote the generated-clippy correctness subset to a gate (`todo`)
+### `.3` — promote the generated-clippy correctness subset to a gate (`done`)
 
-- **Status: `todo`** — frontier. `.1` and `.2` are `done`, so the count IS 0 today and
-  the whole enumerable class is closed — but nothing yet stops it drifting back up.
-  Make it **stay** 0:
-  run the generated stage strictly for the **correctness category only** (not all of
-  clippy — the 84k style warnings on generated code are genuinely not worth chasing and
-  gating on them would be noise, not signal).
-- Wire it where the other maintained gates live so it runs in `ci_workflow_local_gate`,
-  and record the chosen lint subset in the contract so it cannot silently narrow.
-- ⭐ **Also owned by this leaf, routed from `.2`: two measured weaknesses in
-  `scripts/check_diagnosis_evidence.sh`.** (1) Its `DIAGNOSIS_SIG` list models correctness,
-  performance and build-integrity defects but **not codegen-emission defects**, whose
-  WHY+WHERE is an emission-site enumeration plus an artifact census — so a fully
-  evidence-backed leaf of that family fails the check. (2) The signature is grepped across
-  **all staged task files**, so an unrelated co-staged tree file can satisfy it for a leaf
-  that carries no signature of its own (measured: that is how `.1` passed). Fixing (2)
-  means scoping the grep to the leaf's own file; fixing (1) means adding a fourth token
-  group with its own decision record, as the performance and build-integrity groups each
-  got.
+- **Status: `done`** — `PGEN-GENERATED-LINT-CORRECTNESS-0004`, session #215 (2026-07-27).
+  **NOT a code change** in the enforcer's sense (no `grammars/*.ebnf`, no `rust/src/*`, no
+  `generated/*`, no `ast_shape_contract/*.json`): gate scripts, a tracked contract, a
+  `Makefile` lane, a workflow, the doctrine enforcer, and docs. **All 11 generated parsers
+  are untouched** — nothing in this leaf can move parse behaviour, which is why the proof
+  obligation below is gate-shaped rather than oracle-shaped.
+
+#### ⭐⭐⭐ THE HOLE WAS NOT "TOO NARROW" — THE CHECK WAS NEVER RUN BY ANYTHING
+
+The charter assumed the strict stage merely needed narrowing to the correctness category.
+Measurement said otherwise. A repo-wide sweep for `PGEN_CLIPPY_GENERATED_STRICT` found it is
+set by **no gate, no aggregate, no CI workflow, and no `Makefile` target** — every hit is
+prose (`COMMIT.md`, `PGEN_USER_GUIDE.md`, `DEVELOPMENT_NOTES.md`, task records). Its default
+was `0`. And `clippy_on_rust_change` — the only thing that runs the generated stage at all —
+is itself referenced by no aggregate and no CI workflow.
+
+⇒ when `.1` + `.2` drove the count 291 → 0, **nothing was left holding it there.** The
+0 was unguarded from the moment it landed. That is the same shape `.1` found in
+`ast_dump_contract_gate` ("belongs to no aggregate and no CI workflow, so nothing re-ran
+it"), one layer up: not *"cannot run strictly"* but *"is never asked to"*.
+
+#### ⭐⭐ WHAT THE MEASUREMENT SAID ABOUT THE SUBSET ITSELF
+
+`clippy::correctness` is **deny-by-default**, so the existing strict flag was *already*
+gating exactly the correctness category — the narrowing the charter asked for was, in
+effect, already the semantics. Censused at `730419a2` over the generated stage:
+
+| category | lints in group | firing today | where |
+|---|---|---|---|
+| `clippy::correctness` | 68 | **0** | — |
+| `clippy::suspicious` | 82 | **2** | BOTH in `rust/src/`, neither in `generated/` |
+| everything else | — | 78,858 warnings | overwhelmingly `generated/*.rs` |
+
+The two `suspicious` hits are `clippy::empty_line_after_doc_comments` at
+`rust/src/ast_pipeline/ast_based_generator.rs:6228` and
+`clippy::unnecessary_get_then_check` at `rust/src/ast_pipeline/mod.rs:5292`. They belong to
+the SOURCE lane, so `suspicious` is recorded in the contract as **considered-and-deferred**
+with that measurement and a named revisit condition — not silently omitted.
+
+⇒ the real deliverables are (a) make the check actually run, and (b) pin the subset so it
+cannot narrow **without anyone noticing**, which a deny-by-default reliance cannot do: if a
+future clippy demotes `eq_op` out of `correctness`, the stage silently stops failing on it.
+
+#### ⭐⭐⭐ THE VACUITY TRAP — a generated-code gate that lints NOTHING and exits 0
+
+`rust/build.rs:90-168` sets each `has_generated_<name>_parser` cfg **only when the artifact
+`is_file()`** (verified in source, all 8 cfg-guarded parsers), and `generated/` is untracked
+(`.gitignore:24`). Therefore in a clean checkout, on a CI runner, or inside the
+`ci_workflow_local_gate` export dir (`copy_tracked_worktree` copies `git ls-files` only),
+`--features generated_parsers` compiles with **zero** cfg-guarded generated parsers — and a
+naive "lint the generated stage" step would lint no generated code and **exit 0**.
+
+That is the tree's own unifying principle turned on the tree's own gate, so the gate carries
+two anti-vacuity checks and **REFUSES with exit 2** — never a pass — when either fails:
+
+1. **artifact-presence** — every contract-required artifact exists and is non-empty.
+2. **cfg-census** — every required artifact's `has_generated_*` cfg appears in **cargo's own**
+   `{"reason":"build-script-executed",…,"cfgs":[…]}` JSON message for *this* run. Measured:
+   cargo replays that message even from a warm cache, so it is cargo's testimony that the
+   artifact was compiled INTO the linted unit, not a re-reading of the disk.
+
+⚠️ **An asymmetry found while wiring it:** `return_annotation_parser.rs` and
+`semantic_annotation_parser.rs` are `include!`d in `rust/src/lib.rs:72,78` by hard relative
+path with **no cfg guard**, so they emit no cfg — their absence is a hard *compile error*
+rather than a silent exclusion. That is a stronger guarantee, and it is why the contract
+marks them `cfg_guarded: false` instead of pretending the census covers all ten.
+
+#### ⭐ A THIRD VACUITY MODE, CHECKED AND CLEARED
+
+A cached clippy verdict would also lint nothing. Measured on the GREEN run: the `pgen` lib
+target reports **`fresh: false`** (only third-party deps and build scripts were cached), so
+the analysis really ran. And it will keep running when it matters — rustc's dep-info for the
+`generated_parsers` build (`rust/target/debug/deps/pgen-f17101ed87693af9.d`) lists **all 11**
+generated artifacts, so any change to an emission invalidates the fingerprint.
+
+#### What was built
+
+| surface | what it does |
+|---|---|
+| `rust/test_data/grammar_quality/generated_clippy_correctness_contract_v0.json` | pins the 68-lint `clippy::correctness` roster BY NAME + the 11 artifacts + the two anti-vacuity checks + the deferred-`suspicious` record |
+| `rust/scripts/generated_clippy_correctness_gate.sh` | the gate. Exit **0** pass / **1** findings / **2** REFUSE (could not run soundly). Denies the *group* (so future clippy additions are covered) **and** every pinned *name* (so a departure is loud) |
+| `make -C rust generated_clippy_correctness_gate` | the repo-standard lane |
+| `make -C rust generated_clippy_correctness_policy` (`--policy-only`) | the no-cargo subset: presence + roster integrity |
+| `rust/scripts/clippy_on_rust_change.sh` | **`PGEN_CLIPPY_GENERATED_STRICT` now defaults to `1`**, plus the `--policy-only` stage; the policy files themselves now trigger the flow |
+| `.github/workflows/generated-clippy-correctness-gate.yml` | hosted lane — **regenerates the parsers first**, because a bare checkout would otherwise only prove the refusal |
+| `rust/scripts/ci_workflow_local_gate.sh` | `audit_generated_clippy_correctness_surface` |
+
+⭐ **Why the commit workflow does NOT get a second clippy pass.** Correctness lints are
+deny-by-default, so the generated stage `clippy_on_rust_change` already runs IS the finding
+check once the flag defaults to `1`. The one thing that stage cannot see is a lint being
+**demoted out of deny-by-default** — and roster integrity catches that with no cargo at all.
+So the commit workflow gets the full guarantee for **zero** added build cost, and the
+explicit-deny run stays available as its own gate. (This is the zero-cost acceptance test
+from the governing invariant applied to a gate rather than to a parser primitive.)
+
+⛔ **The charter's "so it runs in `ci_workflow_local_gate`" is NOT achievable as written, and
+this is measured, not assumed.** That gate exports `git ls-files` only, so its export dir has
+no `generated/` — the gate would REFUSE there by design. It is therefore wired as a **surface
+audit** (contract pinned, both anti-vacuity checks present, strict-by-default not silently
+reverted, the `Makefile` lanes present), with the real runs in the commit workflow, the
+standalone target, and the hosted workflow.
+
+#### ⚠️⚠️ FOUND WHILE WIRING — `ci_workflow_local_gate` HAS BEEN UNABLE TO COMPLETE FOR 1,371 COMMITS
+
+Registering the new audit meant running the gate, and it **died on its FIRST audit**:
+`audit_static_include_paths` asserts `assert_tracked "generated/ebnf.rs"`. Nothing under
+`generated/` is tracked — `git ls-files generated/ | wc -l` = **0** — and commit `0ed2b2ad`
+*"Slice 5: stop tracking generated/\* in git"* (2026-04-29) is an ancestor of `HEAD` with
+**1,371 commits** since. Seven `assert_tracked "generated/…"` call sites assert a condition
+repository policy guarantees can never hold.
+
+**Repaired here, because otherwise this leaf's own wiring would be unverifiable dead code** —
+the exact disease the tree treats. New helper `assert_generated_artifact` checks *presence on
+disk* (the condition `build.rs` actually tests) and refuses with the regeneration command.
+Verified: `audit_static_include_paths` now passes, and
+`audit_generated_clippy_correctness_surface` was executed in isolation → **PASS**.
+
+⛔ **The gate still does not complete, and the rest is NOT this leaf's to fix.** Measured
+after the repair: **8 of its 31 audit functions fail**, each for an independent, unrelated
+reason —
+
+| failing audit | reason |
+|---|---|
+| `audit_top_level_docs_surface` | allowlist missing 4 live files (`docs/TASK_TREE.md`, `docs/TASK_TREE_README.md`, `docs/POST_SV_AUDIT_LEDGER.md`, `docs/SV_EXH_PROOF_BASELINE.md`) |
+| `audit_contract_docs_surface` / `audit_reference_docs_surface` | allowlist drift |
+| `audit_active_docs_rehome_paths` | live docs still cite pre-rehome paths |
+| `audit_embedding_api_surface` | pins `EMBEDDING_API_VERSION = "1.2.0"`; the source has moved on |
+| `audit_ebnf_frontend_conversion_surface` | forbids `ebnf_to_json.pl` in `rust/Makefile`; it is there |
+| `audit_rtl_frontend_generated_contract_surface` | expects `expected_rule_texts`, superseded by the `0.2.0` typed-AST migration |
+| `audit_sv_formal_exhaustive_closure_surface` | pins contract prose that has since changed |
+
+Each needs its own adjudication (is the AUDIT stale, or is the REPO wrong?) — routed to the
+new tree `CI-PARITY-GATE-ROT`. ⭐ **Third instance in this tree of a maintained check that
+nothing runs**, and the most consequential: `README.md` names
+`make -C rust ci_workflow_local_gate` as *the* way to prove workflow parity **while hosted
+Actions are paused**.
+
+#### The two enforcer weaknesses routed from `.2`
+
+Both fixed, plus a third the fix's own probe found. Full rationale + limits:
+`docs/decisions/project_codegen_emission_root_cause_signature.md`.
+
+1. **Fourth `DIAGNOSIS_SIG` group — CODEGEN-EMISSION.**
+   `GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT`. A
+   generator emitting the wrong code has no parse to trace, no run to sample and no compiler
+   error, so groups 1–3 could not back it. Tokens are verbatim tool output on the
+   `error[EXXXX]` footing; bare `generated/…_parser.rs` and `make focus_<g>` were
+   **deliberately excluded** as too loose.
+2. **BOX-SCOPED evidence.** The signature must now sit inside the ticked box's own bullet.
+   This closes BOTH the `.2`-routed cross-FILE leak *and* — ⭐ **found by searching prior art
+   first, per `DESIGN-PRIOR-ART`** — the incidental-PROSE leak already recorded as a deferred
+   watch item in `docs/decisions/project_build_integrity_compiler_root_cause_signature.md`
+   (*"scope the grep to the ticked box's own bullet"*). One mechanism, two holes.
+3. ⚠️ **The probes caught a real bug in the first implementation.** It matched the box
+   KEYWORD against the whole body, so a box merely *mentioning* "root cause" could stand in
+   for the real one — probe RED-2 went green when it should have gone red. The keyword now
+   matches the **header line only** (reusing the original proven regex); the signature
+   matches the body. **The probes earned their keep by failing the first attempt.**
+
+⚠️ **A FIFTH signature family is visible and deliberately NOT added.** Replaying the new rule
+over every tracked leaf: **56 carry a ticked ROOT CAUSE box, 26 are box-scoped-backed, 30 are
+not.** Sampling them, many cite a `file.rs:NNN` plus the culprit expression or a controlled
+3-arm differential — genuine WHY+WHERE that no group models (e.g. `QUANT-PLUS-ITER.md:723`,
+`` `ast_based_generator.rs:616-621` … three-arm control isolates the start symbol ``).
+Widening to "any file:line" would weaken the gate to "cite a line number", so the question is
+routed to `.4` rather than answered by loosening a regex. The 30 are already-committed leaves
+and the rule binds only NEW commits — but the number is the honest price, recorded up front.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `.1` + `.2` left the generated correctness count at **0**, with
+      nothing holding it: `PGEN_CLIPPY_GENERATED_STRICT` defaulted to `0` and a repo-wide
+      sweep found **zero** non-prose setters (no gate, no aggregate, no CI workflow, no make
+      target).
+- [x] **ROOT CAUSE (WHY + WHERE)** — three distinct WHYs, each tool-pinned.
+      (a) *Never run:* `rust/scripts/clippy_on_rust_change.sh:15`,
+      `GENERATED_STRICT="${PGEN_CLIPPY_GENERATED_STRICT:-0}"`, plus
+      `grep -rn PGEN_CLIPPY_GENERATED_STRICT --include=*.sh --include=*.yml --include=Makefile`
+      returning only that one line.
+      (b) *Would pass vacuously:* `rust/build.rs:90-168` gates every
+      `has_generated_<n>_parser` cfg on `is_file()`, and `git ls-files generated/ | wc -l` is
+      **0**, so the artifacts are absent wherever the tree is not locally regenerated.
+      (c) *Would narrow silently:* the subset was implicit in clippy's deny-by-default
+      levels; censused mechanically from `clippy-driver -Whelp`, `clippy::correctness` holds
+      **68** lints including the two anchors `clippy::eq_op` and
+      `clippy::overly_complex_bool_expr` that produced the 291.
+      The instrument that reports this defect family is the lint lane itself — the
+      `GENERATED-CLIPPY-CORRECTNESS:` gate output and `clippy::<lint>` paths quoted above are
+      its verbatim signature.
+- [x] **FIX** — build the gate + contract + `Makefile` lanes + hosted workflow + local surface
+      audit; default `PGEN_CLIPPY_GENERATED_STRICT` to `1`; add the `--policy-only` stage to
+      the commit workflow; repair the 7 false `assert_tracked "generated/…"` assertions. No
+      lint suppression, no `#[allow]`, no Rust source or grammar touched.
+- [x] **ADDRESSED (verified)** — the gate runs and passes for real:
+      `artifact-presence 10/10 required + 1/1 optional`,
+      `roster-integrity 68 pinned, all still in clippy::correctness`,
+      `cfg-census 8/8 cfg-guarded required artifacts confirmed compiled in by cargo`,
+      `findings: total=0 (expected 0)`, `findings: in generated/=0 (expected 0)`,
+      **exit 0**, peak process-tree RSS **11,908 MB**, elapsed **130 s** under
+      `scripts/run_with_memory_guard.sh --budget-mb 14336`. Non-vacuity of that GREEN
+      independently confirmed: `pgen` lib `fresh: false` in the run's own
+      `compiler-artifact` stream.
+- [x] **NO REGRESSION** — `scripts/check_doctrines.sh` **9/9 PASS**;
+      gate probes `run_generated_clippy_gate_probes.sh` **6/6** (RED-A missing artifact,
+      RED-B roster departure, RED-C contract self-inconsistency, RED-D a real
+      `clippy::eq_op` finding, RED-E the vacuity refusal, CTRL clean → pass);
+      enforcer probes `run_diag_evidence_probes.sh` **6/6** (RED-1 cross-file, RED-2
+      out-of-box prose, RED-3 unticked, GREEN-1 correctness family, GREEN-2 codegen family,
+      CTRL-1 no code staged);
+      `audit_generated_clippy_correctness_surface` executed in isolation → PASS and
+      `audit_static_include_paths` repaired from fail → pass;
+      **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` and no
+      `ast_shape_contract/*.json` in the diff**, so all 11 generated parsers are
+      **byte-identical by construction** and no parse verdict can have moved — the reason
+      the oracle battery is not re-run here.
+- [x] **LOCKSTEP** — `docs/decisions/project_codegen_emission_root_cause_signature.md` (new)
+      + `docs/decisions/INDEX.md`, `docs/tasks/CI-PARITY-GATE-ROT.md` (new),
+      `docs/TASK_TREE.md`, `README.md`, `COMMIT.md`, `PGEN_USER_GUIDE.md`,
+      `docs/book/src/quality-and-closure-model.md`, `CHANGES.md`,
+      `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `LIVE_ACHIEVEMENT_STATUS.md`. No release /
+      schema / ledger / integration-contract movement.
+
+### `.4` — the fifth diagnosis family: is a controlled differential a valid ROOT-CAUSE signature? (`todo`)
+
+- **Status: `todo`** — frontier, routed from `.3`.
+- Box-scoping measured that **30 of 56** leaf files carrying a ticked ROOT CAUSE box do not
+  have a signature inside that box. Sampling shows a recurring, genuinely-diagnostic shape
+  that no group models: a **source citation plus a controlled experiment** — `file.rs:NNN`,
+  the culprit expression quoted, and an N-arm differential that isolates one variable
+  (`QUANT-PLUS-ITER.md:723` is the cleanest example).
+- The question to adjudicate: is that a FIFTH signature family deserving its own token group
+  (as correctness, performance, build-integrity and codegen-emission each got), or is it
+  prose that should be required to cite a tool? ⛔ Do **not** resolve it by adding a loose
+  `file\.rs:[0-9]+` token — that degrades the gate to "cite a line number", which is exactly
+  the weakening every prior extension refused.
+- Whatever is decided, the 30 files are already committed and the rule binds only new
+  commits; the leaf should say plainly whether they are back-filled or left as-is.
 
 ## Evidence
 

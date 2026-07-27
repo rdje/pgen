@@ -173,6 +173,19 @@ PGEN is a production-focused parser and stimuli generator platform.
   - set `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1` when a successful export/log bundle should be preserved deliberately
 - mdBook docs gate:
   - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Generated-parser clippy correctness gate:
+  - `make -C rust SHELL=/bin/bash generated_clippy_correctness_gate`
+  - holds the generated parsers' `clippy::correctness` finding count at **0**; the tracked
+    contract `rust/test_data/grammar_quality/generated_clippy_correctness_contract_v0.json`
+    pins the 68-lint roster **by name and by group**, so the subset cannot narrow silently
+  - gates on the **correctness category only** — the ~78.8k style/complexity warnings over
+    210.8 MB of emitted code are deliberately not gated (noise, not signal)
+  - ⛔ **refuses (exit 2) rather than passing** when the `generated/` artifacts are absent or
+    when cargo's own build-script cfg census does not confirm they were compiled into the
+    linted unit: `generated/` is untracked, so a naive run in a clean checkout would lint
+    nothing and exit 0. A skip is never a pass.
+  - cheap no-cargo subset (artifact presence + roster integrity):
+    - `make -C rust SHELL=/bin/bash generated_clippy_correctness_policy`
 - `rtl_frontend` generated contract gate:
   - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
   - focused workflow-parity replay example:

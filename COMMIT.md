@@ -73,7 +73,21 @@ When the activity is NOT a code change (pure live-docs/contracts/books/tracker/w
 2. Run clippy flow when Rust/generated Rust files are amended:
    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
    - strict source lint must pass.
-   - generated-parser lint runs too; set `PGEN_CLIPPY_GENERATED_STRICT=1` to fail on generated clippy debt.
+   - the generated-parser lint stage is **STRICT BY DEFAULT** since `GENERATED-LINT-CORRECTNESS.3`
+     (`PGEN_CLIPPY_GENERATED_STRICT` defaults to `1`). `clippy::correctness` lints are
+     deny-by-default, so this stage is what holds the generated-parser correctness floor at 0.
+     - a failure here is a real defect: per the `-0001` adjudication the fix is to change the
+       **emission at its codegen site**, never an `#[allow]` and never lowering the lint,
+     - `PGEN_CLIPPY_GENERATED_STRICT=0` drops back to advisory mode; that is the posture that
+       let 291 correctness errors accumulate unnoticed, so it is loud rather than silent.
+   - the flow also runs `generated_clippy_correctness_gate.sh --policy-only`, which verifies the
+     generated artifacts are present and that every lint pinned in
+     `rust/test_data/grammar_quality/generated_clippy_correctness_contract_v0.json` is still a
+     member of `clippy::correctness`. That is the one thing the clippy run itself cannot see — a
+     lint DEMOTED out of deny-by-default would silently stop being checked. It needs no cargo
+     invocation, so it costs nothing.
+   - full explicit-deny run (used by the hosted workflow, and available deliberately):
+     - `make -C rust SHELL=/bin/bash generated_clippy_correctness_gate`
 3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/reference/RUST_CODEBASE_ANALYSIS.md`, `README.md`, `LIVE_ACHIEVEMENT_STATUS.md`, others touched by task).
    - Treat markdown synchronization as systematic, not optional:
      - always review the tracked continuity/workflow markdown surface before commit,

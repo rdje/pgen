@@ -12,7 +12,16 @@ if [[ "${1:-}" == "--force" ]]; then
     FORCE_RUN=1
 fi
 
-GENERATED_STRICT="${PGEN_CLIPPY_GENERATED_STRICT:-0}"
+# GENERATED-LINT-CORRECTNESS.3 — the generated stage is now STRICT BY DEFAULT.
+#
+# It used to default to 0, and a repo-wide sweep found that NOTHING ever set it to 1: no gate, no
+# aggregate, no CI workflow — only prose in COMMIT.md. So when `.1` + `.2` took the generated
+# correctness-lint count 291 -> 0, nothing was left to keep it there. Correctness lints are
+# deny-by-default in clippy, so with this flag on, THIS stage is what holds the 0.
+#
+# Set PGEN_CLIPPY_GENERATED_STRICT=0 to deliberately drop back to advisory mode. That is a real
+# choice with a real cost, so it is loud (below) rather than silent.
+GENERATED_STRICT="${PGEN_CLIPPY_GENERATED_STRICT:-1}"
 
 mkdir -p "$LOG_DIR"
 
@@ -43,7 +52,15 @@ else
     )
 
     for path in "${changed_paths[@]}"; do
-        if [[ "$path" == rust/*.rs || "$path" == generated/*.rs || "$path" == rust/Cargo.toml || "$path" == rust/Cargo.lock ]]; then
+        # Rust/generated Rust, the manifests, and — since GENERATED-LINT-CORRECTNESS.3 — the two
+        # files that GOVERN the generated-parser correctness policy. A change to the pinned lint
+        # roster or to the gate that enforces it must re-verify, exactly as a code change does.
+        if [[ "$path" == rust/*.rs \
+           || "$path" == generated/*.rs \
+           || "$path" == rust/Cargo.toml \
+           || "$path" == rust/Cargo.lock \
+           || "$path" == rust/scripts/generated_clippy_correctness_gate.sh \
+           || "$path" == rust/test_data/grammar_quality/generated_clippy_correctness_contract_v0.json ]]; then
             should_run=1
             break
         fi
@@ -60,15 +77,39 @@ echo "Running clippy flow (Rust files amended/generated detected)."
 run_stage "clippy_source_all_targets" \
     cargo clippy --manifest-path "$RUST_DIR/Cargo.toml" --all-targets
 
+# The generated-parser CORRECTNESS policy, checked WITHOUT a second clippy pass.
+# `--policy-only` verifies (a) the generated artifacts this flow is about to lint are actually on
+# disk, and (b) every lint pinned in the tracked contract is still a member of clippy::correctness.
+# (b) is the part the clippy run itself CANNOT see: if a future clippy demotes `eq_op` out of
+# deny-by-default, the generated stage would quietly stop failing on it and the 0 would rot
+# silently. A REFUSE here (exit 2) is not a pass — it means the check could not run soundly.
+CORRECTNESS_GATE="$RUST_DIR/scripts/generated_clippy_correctness_gate.sh"
+if [[ -x "$CORRECTNESS_GATE" ]]; then
+    echo "==> generated_clippy_correctness_policy"
+    if ! "$CORRECTNESS_GATE" --policy-only; then
+        echo "Generated-parser correctness POLICY check failed — see the output above." >&2
+        echo "Full explicit-deny run: make -C rust SHELL=/bin/bash generated_clippy_correctness_gate" >&2
+        exit 1
+    fi
+else
+    echo "warning: $CORRECTNESS_GATE not found/executable — correctness policy NOT verified" >&2
+fi
+
 if run_stage "clippy_generated_all_targets" \
     cargo clippy --manifest-path "$RUST_DIR/Cargo.toml" --all-targets --features generated_parsers,ebnf_dual_run; then
     echo "Generated-parser clippy stage: pass"
 else
     if [[ "$GENERATED_STRICT" == "1" ]]; then
-        echo "Generated-parser clippy stage failed with PGEN_CLIPPY_GENERATED_STRICT=1" >&2
+        echo "Generated-parser clippy stage FAILED (strict — the default since GENERATED-LINT-CORRECTNESS.3)." >&2
+        echo "clippy's correctness lints are deny-by-default, so this is how the generated-parser" >&2
+        echo "correctness floor (0 findings) is held. Per the -0001 adjudication the fix is to change" >&2
+        echo "the EMISSION at its codegen site — never an #[allow], never lowering the lint." >&2
+        echo "See $LOG_DIR/clippy_generated_all_targets.log" >&2
         exit 1
     fi
-    echo "Generated-parser clippy stage failed (non-strict mode). See $LOG_DIR/clippy_generated_all_targets.log" >&2
+    echo "⚠️  Generated-parser clippy stage failed and PGEN_CLIPPY_GENERATED_STRICT=0 was set" >&2
+    echo "⚠️  EXPLICITLY, so it is being treated as advisory. This is the posture that let 291" >&2
+    echo "⚠️  correctness errors accumulate unnoticed. See $LOG_DIR/clippy_generated_all_targets.log" >&2
 fi
 
 echo "Clippy flow completed."

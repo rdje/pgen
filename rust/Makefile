@@ -577,6 +577,8 @@ help:
 	@echo "  embedding_api_gate - Validate stable embedding API contract/tests (bootstrap + generated)"
 	@echo "  nexsim_parser_embedding_contract_gate - Validate Nexsim parser-profile embedding contract (SV/VHDL profiles + diagnostics)"
 	@echo "  rtl_frontend_generated_contract_gate - Validate curated rtl_frontend generated and handwritten contract samples"
+	@echo "  generated_clippy_correctness_gate - Hold the generated-parser clippy::correctness floor at 0 (refuses if generated/ is absent)"
+	@echo "  generated_clippy_correctness_policy - The no-cargo subset: artifact presence + pinned correctness-roster integrity"
 	@echo "  regex_parser_integration_contract_gate - Validate regex parser integration contract (consumer-facing convenience API + diagnostics)"
 	@echo "  regex_embedded_code_block_contract_gate - Validate regex embedded code-block structural contract over the checked-in synthetic corpus"
 	@echo "  regex_corpus_bundle_contract_gate - Validate the tracked PCRE2-first regex corpus acquisition bundle contract"
@@ -1151,6 +1153,20 @@ rtl_const_expr_cert_gate:
 	@echo "🧪 Running rtl_const_expr canonical certificate-coverage gate..."
 	cd $(RUST_DIR) && ./scripts/rtl_const_expr_cert_gate.sh
 	@echo "✅ rtl_const_expr canonical certificate-coverage gate passed."
+
+# GENERATED-LINT-CORRECTNESS.3 — hold the generated-parser correctness-lint floor at 0.
+# Requires the generated/ artifacts on disk (they are untracked; regenerate with focus_<grammar>);
+# REFUSES with exit 2 rather than passing vacuously when they are absent.
+.PHONY: generated_clippy_correctness_gate
+generated_clippy_correctness_gate:
+	@echo "🧪 Running generated-parser clippy correctness gate..."
+	cd $(RUST_DIR) && ./scripts/generated_clippy_correctness_gate.sh
+	@echo "✅ generated-parser clippy correctness gate passed."
+
+# The no-cargo subset: artifact presence + pinned clippy::correctness roster integrity.
+.PHONY: generated_clippy_correctness_policy
+generated_clippy_correctness_policy:
+	cd $(RUST_DIR) && ./scripts/generated_clippy_correctness_gate.sh --policy-only
 
 .PHONY: verilog_2005_conformance_gate
 verilog_2005_conformance_gate:

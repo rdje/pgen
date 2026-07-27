@@ -73,10 +73,88 @@ fi
 # `grep -q` over multiple files returns 0 iff ANY line in ANY file matches — identical to scanning
 # the concatenation. (STORE-AWARE-GEN.4b.12: this race began false-failing once the owning task
 # leaf grew past ~64 KB.)
+#
+# ⭐ BOX-SCOPED EVIDENCE (GENERATED-LINT-CORRECTNESS.3, 2026-07-27). The signature that BACKS a
+# ticked box is now required to sit INSIDE THAT BOX'S OWN BULLET, not merely somewhere in the
+# staged task files. This closes two MEASURED soundness holes that made the check weaker than it
+# reads:
+#   (1) cross-FILE leakage — the greps ran over ALL staged `docs/tasks/*.md`, so a co-staged,
+#       unrelated tree file could supply the signature for a leaf that carried none. Measured:
+#       that is exactly how `GENERATED-LINT-CORRECTNESS.1` passed, on tokens belonging to
+#       `docs/tasks/QUANT-PLUS-ITER.md`.
+#   (2) incidental-PROSE leakage — a whole-file grep matched a token mentioned anywhere in the
+#       leaf rather than in the ticked box. Recorded as a known gap and deferred in
+#       docs/decisions/project_build_integrity_compiler_root_cause_signature.md ("Watch item":
+#       *"the underlying looseness (whole-file grep, not box-scoped) is a known soundness gap in
+#       all three signature groups and is worth a future hardening slice — scope the grep to the
+#       ticked box's own bullet"*). This IS that hardening slice; one mechanism closes both.
+# Rationale + the RED/GREEN evidence: docs/decisions/project_codegen_emission_root_cause_signature.md.
+#
+# A box's BODY runs from its `- [x] …` line up to (but not including) the next checklist box at
+# the same-or-shallower indent, or the next markdown heading, or EOF. More-indented nested boxes
+# belong to the parent body — they are the author's own elaboration of that box.
+
+# Repo-volume scratch (project data-locality policy: never /tmp when a repo-derived path works).
+WORK=""
+for cand in "$ROOT/rust/target/doctrine_checks" "${TMPDIR:-/tmp}"; do
+  if mkdir -p "$cand" 2>/dev/null && [ -w "$cand" ]; then
+    WORK="$(mktemp -d "$cand/diag_evidence.XXXXXX" 2>/dev/null || true)"
+    [ -n "$WORK" ] && break
+  fi
+done
+[ -n "$WORK" ] || { echo "diag-evidence: ✗ could not create a scratch dir" >&2; exit 1; }
+trap 'rm -rf "$WORK"' EXIT
+
+# box_body <start-line> <file> — print the box that STARTS at <start-line>, body included.
+# The body ends at the next checklist box at the same-or-shallower indent, at the next markdown
+# heading, or at EOF. More-indented nested boxes stay in the body: they are the author's own
+# elaboration of that box.
+box_body() {
+  awk -v start="$1" '
+    function isbox(l)     { return match(l, /^[ \t]*[-*][ \t]*\[[ xX]\][ \t]/) }
+    function indent(l, i) { i = match(l, /[^ \t]/); return (i == 0 ? 0 : i - 1) }
+    NR <  start { next }
+    NR == start { boxind = indent($0); print; next }
+    {
+      if (isbox($0) && indent($0) <= boxind) exit
+      if ($0 ~ /^#/) exit
+      print
+    }
+  ' "$2"
+}
+
+# box_matches <state> <box-keyword-regex> [<required-signature-regex>]
+# True iff SOME staged task file has a box in <state> whose HEADER LINE matches the keyword and
+# whose own BODY matches the signature (when one is required) — both in the SAME box.
+#
+# The keyword is matched against the header line only, using the same proven regex the pre-
+# box-scoping version used. Matching it against the body too would let a box that merely MENTIONS
+# "root cause" in its prose stand in for the real ROOT CAUSE box (found by this leaf's own RED-2
+# probe, which the first implementation of this function failed).
+box_matches() {
+  local state="$1" kw="$2" sig="${3:-}" f ln hdr_re
+  if [ "$state" = "x" ]; then
+    hdr_re="^[[:space:]]*[-*][[:space:]]*\[[xX]\][[:space:]].*($kw)"
+  else
+    hdr_re="^[[:space:]]*[-*][[:space:]]*\[[[:space:]]\][[:space:]].*($kw)"
+  fi
+  for f in "${staged_tasks[@]}"; do
+    [ -f "$f" ] || continue
+    grep -nEi -- "$hdr_re" "$f" >"$WORK/hdr.txt" 2>/dev/null || continue
+    [ -s "$WORK/hdr.txt" ] || continue
+    [ -z "$sig" ] && return 0
+    while IFS= read -r ln; do
+      [ -n "$ln" ] || continue
+      box_body "$ln" "$f" >"$WORK/body.txt" 2>/dev/null || continue
+      if grep -Eiq -- "$sig" "$WORK/body.txt"; then return 0; fi
+    done < <(cut -d: -f1 "$WORK/hdr.txt")
+  done
+  return 1
+}
 
 # A checked / unchecked checklist box mentioning a category keyword.
-checked()   { grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[xX]\][[:space:]].*($1)" "${staged_tasks[@]}"; }
-unchecked() { grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[[:space:]]\][[:space:]].*($1)" "${staged_tasks[@]}"; }
+checked()   { box_matches x   "$1" "${2:-}"; }
+unchecked() { box_matches ' ' "$1"; }
 
 # Evidence signatures that must BACK the ticked boxes.
 # The first group is the CORRECTNESS-defect diagnosis toolbox (cert/probe/trace/reach/lint — "why
@@ -93,16 +171,25 @@ unchecked() { grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[[:space:]]\][[:space:]]
 # not by a profiler (there is no run to sample). Tokens are verbatim rustc output, so they cannot
 # match unrelated prose; quoting them means a real compiler diagnostic was actually read. Rationale:
 # docs/decisions/project_build_integrity_compiler_root_cause_signature.md.
-DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|error\[E[0-9]{4}\]|could not compile'
+# The fourth group is the CODEGEN-EMISSION diagnosis toolbox (GENERATED-LINT-CORRECTNESS.3,
+# 2026-07-27): a defect where the GENERATOR emits the wrong CODE has no parse to trace (the parser
+# is correct), no run to sample (it is not a slowness defect) and no compiler error (the emission
+# compiles fine) - the WHY+WHERE is the emission site in the generator plus a census of the emitted
+# artifacts, and the instrument that reports it is the generated-parser lint lane. Tokens are
+# verbatim tool output on the same footing as `error[EXXXX]`: the correctness gate's own signature
+# line, a real `clippy::<lint>` path, and the generated stage's strict switch. Rationale:
+# docs/decisions/project_codegen_emission_root_cause_signature.md.
+DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT'
 NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corpus *1[0-9]/1[0-9]|shape.?contract|spf=0|sample_parse_failures=0|fully_certified|clippy'
 
 fails=()
 
-# Required box 1 — ROOT CAUSE (WHY + WHERE) ticked + a diagnosis tool signature present.
-if   unchecked 'root cause|why ?\+ ?where|\bwhy\b'; then fails+=("ROOT CAUSE box is present but UNTICKED ([ ]) — the cause is not yet established.")
-elif ! checked 'root cause|why ?\+ ?where|\bwhy\b'; then fails+=("ROOT CAUSE (WHY+WHERE) box is MISSING/unticked from the acceptance checklist.")
-elif ! grep -Eq "$DIAGNOSIS_SIG" "${staged_tasks[@]}"; then
-  fails+=("ROOT CAUSE box is ticked but NOT backed by a debug-tool signature (cert/probe/trace/furthest_position).")
+# Required box 1 — ROOT CAUSE (WHY + WHERE) ticked + a diagnosis tool signature IN THAT BOX.
+ROOT_KW='root cause|why ?\+ ?where|\bwhy\b'
+if   unchecked "$ROOT_KW"; then fails+=("ROOT CAUSE box is present but UNTICKED ([ ]) — the cause is not yet established.")
+elif ! checked "$ROOT_KW"; then fails+=("ROOT CAUSE (WHY+WHERE) box is MISSING/unticked from the acceptance checklist.")
+elif ! checked "$ROOT_KW" "$DIAGNOSIS_SIG"; then
+  fails+=("ROOT CAUSE box is ticked but the diagnosis-tool signature is NOT INSIDE THAT BOX (cert/probe/trace/furthest_position, profiler self-time/flamegraph, rustc error[EXXXX], or a codegen-emission signature such as clippy::<lint>). A token elsewhere in the file — or in a co-staged tree file — no longer counts.")
 fi
 
 # Required box 2 — ADDRESSED (verified) ticked.
@@ -110,11 +197,12 @@ if   unchecked 'addressed|verified|resolved|before.{0,5}after|reject.{0,6}pass';
 elif ! checked 'addressed|verified|resolved|before.{0,5}after|reject.{0,6}pass'; then fails+=("ADDRESSED (verified the issue is resolved) box is MISSING/unticked.")
 fi
 
-# Required box 3 — NO REGRESSION ticked + a global-gate signature present.
-if   unchecked 'no.?regress|regression'; then fails+=("NO REGRESSION box is present but UNTICKED — regressions are not yet cleared.")
-elif ! checked 'no.?regress|regression'; then fails+=("NO REGRESSION box is MISSING/unticked from the acceptance checklist.")
-elif ! grep -Eiq "$NOREGRESS_SIG" "${staged_tasks[@]}"; then
-  fails+=("NO REGRESSION box is ticked but NOT backed by a global-gate signature (seeds 0/7/42, byte-identical, external corpus, shape-contract, spf=0).")
+# Required box 3 — NO REGRESSION ticked + a global-gate signature IN THAT BOX.
+NOREG_KW='no.?regress|regression'
+if   unchecked "$NOREG_KW"; then fails+=("NO REGRESSION box is present but UNTICKED — regressions are not yet cleared.")
+elif ! checked "$NOREG_KW"; then fails+=("NO REGRESSION box is MISSING/unticked from the acceptance checklist.")
+elif ! checked "$NOREG_KW" "$NOREGRESS_SIG"; then
+  fails+=("NO REGRESSION box is ticked but the global-gate signature is NOT INSIDE THAT BOX (seeds 0/7/42, byte-identical, external corpus, shape-contract, spf=0, fully_certified, clippy). A token elsewhere in the file — or in a co-staged tree file — no longer counts.")
 fi
 
 if [ "${#fails[@]}" -gt 0 ]; then

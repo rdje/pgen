@@ -230,6 +230,51 @@ The general shape to carry away: **when an instrument cannot run, or structurall
 see a defect class, it must say so rather than return green** — and when you find one
 that cannot see, building it is part of the fix, not a follow-up.
 
+### The Sequel: Driving A Count To Zero Does Not Keep It There
+
+There is a third failure mode hiding behind the first two, and PGEN walked straight into
+it. Once the 291 errors became 0, the natural conclusion was that the strict stage could
+now be run — and it could. But a sweep for what actually *sets*
+`PGEN_CLIPPY_GENERATED_STRICT=1` found **no gate, no aggregate, no CI workflow and no
+`make` target**: every occurrence in the repository was prose in a document. Its default
+was `0`. So the hard-won zero was defended by nothing but the intention to type an
+environment variable.
+
+**A number is not a guarantee; the thing that re-measures it is.** The fix was to make the
+stage strict by default and give the policy its own tracked contract
+(`generated_clippy_correctness_contract_v0.json`) plus a repo-standard lane:
+
+```bash
+make -C rust SHELL=/bin/bash generated_clippy_correctness_gate
+```
+
+Three design choices in that gate generalize beyond lint counts.
+
+**Gate the category, not the noise.** Only `clippy::correctness` is enforced. The same
+artifacts still carry ~78,800 style and complexity warnings, and gating on those would
+recreate the original problem — an unrunnable check — in a new costume. The neighbouring
+`clippy::suspicious` category was measured rather than hand-waved: exactly two findings
+exist, both in hand-written source and neither in generated code, so the contract records
+it as *considered and deferred* with the file and line of each, and a named condition for
+revisiting. A subset that is written down can be argued with; a subset that is implicit
+just erodes.
+
+**Pin the roster by name *and* by group.** Denying the group alone means a future `clippy`
+that reclassifies `eq_op` out of `correctness` silently stops checking the exact defect
+class the gate was built for. Denying only the pinned names means new correctness lints are
+never picked up. The gate does both: the group catches additions, the 68 pinned names make
+any departure a loud failure rather than a quiet narrowing.
+
+**Refuse rather than pass when the gate cannot see.** This is the same principle as above,
+turned on the gate itself — and it was a live trap, not a hypothetical. `generated/` is
+not tracked in git, and `build.rs` includes each generated parser only when the artifact
+exists on disk. So in a clean checkout, on a CI runner, or inside the local workflow-parity
+gate's tracked-files-only export, "lint the generated parsers" would have compiled **zero**
+generated parsers, found nothing, and exited **0** — a perfect green over an empty room.
+The gate therefore exits `2` (a refusal, explicitly not a pass) unless two independent
+checks agree: every required artifact is present, *and* `cargo`'s own build-script output
+confirms each one was compiled into the unit that was linted. A skip is never a pass.
+
 ## Why Status Labels Stay Conservative
 
 This is why `LIVE_ACHIEVEMENT_STATUS.md` can keep a family at `Mostly Done` even when it already looks strong to a casual reader. The status labels are meant to reflect proof depth, not enthusiasm.

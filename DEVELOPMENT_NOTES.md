@@ -1,5 +1,110 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0004 — a gate can be green because it looked at nothing
+
+**The premise that did not survive contact.** The leaf was chartered to narrow the generated
+clippy stage "to the correctness category only". `clippy::correctness` is deny-by-default, so
+`PGEN_CLIPPY_GENERATED_STRICT=1` already had exactly those semantics — there was nothing to
+narrow. The sweep that established this also found the actual defect:
+
+```
+$ grep -rn PGEN_CLIPPY_GENERATED_STRICT --include=*.sh --include=*.yml --include=Makefile .
+rust/scripts/clippy_on_rust_change.sh:15:GENERATED_STRICT="${PGEN_CLIPPY_GENERATED_STRICT:-0}"
+rust/scripts/clippy_on_rust_change.sh:68:  echo "...failed with PGEN_CLIPPY_GENERATED_STRICT=1"
+```
+
+One definition, defaulting to `0`, and two prose mentions. No gate, no aggregate, no CI
+workflow, no make target sets it. `clippy_on_rust_change` is itself referenced by no aggregate
+and no workflow. The 291 → 0 result from `.1` + `.2` was therefore protected by nothing but an
+intention to type an environment variable — which is the same shape `.1` found in
+`ast_dump_contract_gate`, one layer up: not "cannot run strictly" but "is never asked to".
+
+**The vacuity trap, and why presence-on-disk is the whole ballgame.** `rust/build.rs:90-168`
+emits `cargo:rustc-cfg=has_generated_<n>_parser` only inside `if <path>_resolved.is_file()`,
+and `generated/` is untracked (`.gitignore:24`; `git ls-files generated/ | wc -l` → `0`). The
+consequence is sharp: `--features generated_parsers` compiles **successfully with zero
+cfg-guarded generated parsers** when the tree is absent. A generated-code lint gate in that
+state lints no generated code and exits 0. That is not a hypothetical environment — it is a
+clean checkout, any CI runner, and the `ci_workflow_local_gate` export dir, which copies
+`git ls-files` only.
+
+Two independent anti-vacuity checks were therefore built in, both refusing with exit 2 rather
+than passing:
+
+1. **artifact-presence** — every contract-required artifact exists and is non-empty.
+2. **cfg-census** — every required artifact's cfg appears in cargo's own
+   `{"reason":"build-script-executed",…,"cfgs":[…]}` message for *that* run. Measured
+   behaviour: cargo replays this message even from a warm cache, so it is cargo's testimony
+   about the compilation that just happened, not a second reading of the disk.
+
+An **asymmetry** surfaced while wiring the census and is recorded rather than smoothed over:
+`return_annotation_parser.rs` and `semantic_annotation_parser.rs` are `include!`d in
+`rust/src/lib.rs:72,78` by hard relative path with **no cfg guard**, so they emit no cfg. Their
+absence is a hard compile error rather than a silent exclusion — a stronger guarantee — which
+is why the contract marks them `cfg_guarded: false` instead of pretending the census covers
+all ten.
+
+**The third vacuity mode: a cached verdict.** A clippy run served entirely from cache would
+also examine nothing. Checked on the GREEN run via the `compiler-artifact` stream: the `pgen`
+lib target is `fresh: false` (only third-party deps and build scripts were cached). And it will
+keep being re-run when it matters — rustc's dep-info for the `generated_parsers` build
+(`rust/target/debug/deps/pgen-f17101ed87693af9.d`) lists all **11** generated artifacts, so any
+change to an emission invalidates the fingerprint. The 130 s wall time is real, not a no-op:
+peak process-tree RSS was 11,908 MB.
+
+**Why the commit workflow does not get a second clippy pass.** Adding a full explicit-deny run
+to `clippy_on_rust_change` would roughly double the heaviest step of the mandated commit
+workflow, on a host that OPS-MEMSAFE has already recorded being OS-killed near 15 GB. It is
+also unnecessary: deny-by-default means the existing generated stage IS the finding check once
+the flag defaults to 1. The one thing that stage structurally cannot see is a lint being
+*demoted out of* deny-by-default, and that is a pure metadata question answerable with no cargo
+invocation at all. Hence `--policy-only`: artifact presence + roster integrity, zero build cost.
+This is the "non-users pay ZERO / users pay at codegen time" acceptance test applied to a gate
+rather than to a parser primitive.
+
+**Pinning a lint subset so it cannot narrow quietly.** Denying only the group means a `clippy`
+that reclassifies `eq_op` out of `correctness` silently stops covering the exact defect class
+the gate was built for. Denying only the pinned names means new correctness lints are never
+picked up. The gate does both, and additionally asserts the two anchors (`eq_op`,
+`overly_complex_bool_expr` — the lints that produced the original 291) by name. The roster was
+generated mechanically from `clippy-driver -Whelp`, not hand-listed: 68 lints.
+
+**`clippy::suspicious`, measured not assumed.** The neighbouring warn-by-default category was
+censused before being excluded: exactly 2 findings exist repo-wide, and **both are in
+hand-written source** — `clippy::empty_line_after_doc_comments` at
+`rust/src/ast_pipeline/ast_based_generator.rs:6228` and `clippy::unnecessary_get_then_check` at
+`rust/src/ast_pipeline/mod.rs:5292`. Zero are attributed to `generated/*.rs`. Gating it here
+would fail this gate on defects belonging to the source lane, so the contract records the
+category as considered-and-deferred with those two locations and a named revisit condition.
+
+**Enforcer hardening, and a bug the probes caught.** `scripts/check_diagnosis_evidence.sh`
+gained a fourth `DIAGNOSIS_SIG` group for codegen-emission defects, and every signature is now
+box-scoped — required inside the ticked box's own bullet rather than anywhere in the staged
+task files. The first implementation matched the box *keyword* against the whole body, which
+let a box merely mentioning "root cause" satisfy the ROOT CAUSE requirement; probe RED-2 went
+green when it should have gone red. The keyword now matches the header line only (reusing the
+original proven regex) while the signature matches the body. Writing the RED arms before
+trusting the implementation is what caught it.
+
+**Measured friction, stated up front.** Replaying box-scoping over every tracked task file: 56
+carry a ticked ROOT CAUSE box, 26 are box-scoped-backed, 30 are not. Sampling the 30 shows a
+recurring, genuinely-diagnostic shape no signature group models — a source citation plus a
+controlled differential, e.g. `QUANT-PLUS-ITER.md:723` citing `ast_based_generator.rs:616-621`
+and a three-arm control isolating the start symbol. That is routed to `.4` as a candidate fifth
+family rather than resolved by adding a loose `file\.rs:[0-9]+` token, which would degrade the
+gate to "cite a line number".
+
+**`ci_workflow_local_gate` has been unable to complete for 1,371 commits.** Registering the new
+surface audit required running the gate, which dies on its first audit:
+`assert_tracked "generated/ebnf.rs"`, against a tree that policy guarantees is never tracked
+(stale since `0ed2b2ad`, 2026-04-29). Seven such call sites were repaired here — with a new
+`assert_generated_artifact` helper that checks presence on disk, the condition `build.rs`
+actually tests — because otherwise this leaf's own audit would have been unreachable dead code.
+The gate still does not complete: **8 of its 31 audit functions fail**, each for an unrelated
+reason, split between genuine allowlist/path drift (the audits are right) and audits pinned to
+superseded content (the audits are stale). None was force-greened; the adjudication is tracked
+as `CI-PARITY-GATE-ROT`.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0003 — when the fix is an instance of the bug
 
 **The three-state green.** This leaf's acceptance criterion is an error count, and the

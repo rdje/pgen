@@ -92,6 +92,24 @@ assert_tracked() {
     fail "required tracked file missing from git index: $repo_rel"
 }
 
+# GENERATED-LINT-CORRECTNESS.3 — `generated/` is pipeline output and is NOT tracked
+# (`.gitignore:24`, README "Key Project Paths", COMMIT.md). Asserting it is IN THE GIT INDEX is
+# therefore always false, and it had been doing so at 7 call sites since `0ed2b2ad`
+# ("Slice 5: stop tracking generated/* in git", 2026-04-29) — 1,371 commits during which this
+# gate could not get past its FIRST audit. The audit's real intent is that the artifact is
+# AVAILABLE to the include!() sites, which is presence on disk, exactly the condition
+# `rust/build.rs` tests with `is_file()`. Refuse loudly and name the regeneration command rather
+# than asserting a condition the repository policy guarantees can never hold.
+assert_generated_artifact() {
+  local repo_rel="$1"
+  [ -s "$ROOT_DIR/$repo_rel" ] || fail "required generated artifact missing or empty: $repo_rel
+  generated/ is untracked pipeline output — regenerate it before running this gate, e.g.
+    make -C rust SHELL=/bin/bash regex_parser_bootstrap   # seeds generated/ebnf.rs on a cold clone
+    make -C rust SHELL=/bin/bash annotation_parsers       # the two annotation parsers
+    make -C rust SHELL=/bin/bash focus_<grammar>          # one shipped parser
+  (This is a REFUSAL, not a pass: the gate cannot audit include! wiring it cannot see.)"
+}
+
 assert_workflow_contains() {
   local workflow_file="$1"
   local expected="$2"
@@ -137,9 +155,9 @@ audit_static_include_paths() {
     fail "absolute include!(...) literal found in rust/src or rust/src/bin"
   fi
 
-  assert_tracked "generated/ebnf.rs"
-  assert_tracked "generated/return_annotation_parser.rs"
-  assert_tracked "generated/semantic_annotation_parser.rs"
+  assert_generated_artifact "generated/ebnf.rs"
+  assert_generated_artifact "generated/return_annotation_parser.rs"
+  assert_generated_artifact "generated/semantic_annotation_parser.rs"
 }
 
 audit_markdown_repo_relative_paths() {
@@ -396,6 +414,7 @@ audit_workflow_surface() {
     .github/workflows/differential-regression-gate.yml \
     .github/workflows/ebnf-frontend-dual-run-diff.yml \
     .github/workflows/fixed-point-gate.yml \
+    .github/workflows/generated-clippy-correctness-gate.yml \
     .github/workflows/mdbook-docs-gate.yml \
     .github/workflows/performance-gate.yml \
     .github/workflows/stimuli-cross-family-platform-gate.yml \
@@ -481,8 +500,8 @@ audit_ebnf_frontend_conversion_surface() {
 audit_embedding_api_surface() {
   note "auditing public embedding API surface"
 
-  assert_tracked "generated/regex.json"
-  assert_tracked "generated/regex_parser.rs"
+  assert_generated_artifact "generated/regex.json"
+  assert_generated_artifact "generated/regex_parser.rs"
   assert_tracked "rust/src/embedding_api.rs"
   assert_tracked "rust/docs/EMBEDDING_API_CONTRACT.md"
   assert_tracked "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md"
@@ -850,8 +869,8 @@ audit_rtl_frontend_generated_contract_surface() {
   note "auditing rtl_frontend generated contract surface"
 
   assert_tracked ".github/workflows/rtl-frontend-generated-contract-gate.yml"
-  assert_tracked "generated/rtl_frontend.json"
-  assert_tracked "generated/rtl_frontend_parser.rs"
+  assert_generated_artifact "generated/rtl_frontend.json"
+  assert_generated_artifact "generated/rtl_frontend_parser.rs"
   assert_tracked "grammars/rtl_frontend.ebnf"
   assert_tracked "rtl_frontend/Cargo.toml"
   assert_tracked "rtl_frontend/src/lib.rs"
@@ -2711,6 +2730,65 @@ audit_sv_aggregate_contract_proof_surface() {
     'gap_stage3_json: $gap_stage3_json'
 }
 
+audit_generated_clippy_correctness_surface() {
+  # GENERATED-LINT-CORRECTNESS.3.
+  #
+  # ⛔ This is a SURFACE audit, not a run — and that is a measured decision, not a shortcut.
+  # `copy_tracked_worktree` exports `git ls-files` only, and `generated/` is untracked by
+  # repository policy, so the export dir has NO generated parsers. `rust/build.rs` sets each
+  # `has_generated_<n>_parser` cfg only when the artifact `is_file()`, so a lint run in there
+  # would compile ZERO generated parsers and report 0 findings — a vacuous green, which is the
+  # exact failure mode this tree exists to remove. The gate itself refuses in that situation
+  # (exit 2), so running it here would fail the whole local-parity gate by design.
+  # The real run is `make -C rust SHELL=/bin/bash generated_clippy_correctness_gate` where the
+  # artifacts exist, the commit workflow's strict generated stage, and the hosted workflow
+  # (which regenerates the parsers first).
+  note "auditing generated-parser clippy correctness surface"
+
+  assert_tracked ".github/workflows/generated-clippy-correctness-gate.yml"
+  assert_tracked "rust/scripts/generated_clippy_correctness_gate.sh"
+  assert_tracked "rust/scripts/clippy_on_rust_change.sh"
+  assert_tracked "rust/test_data/grammar_quality/generated_clippy_correctness_contract_v0.json"
+
+  # The contract must still pin the roster BY NAME (the anti-narrowing mechanism) and must still
+  # carry both anchor lints — the two that produced the 291 errors this tree opened on.
+  assert_file_contains \
+    "rust/test_data/grammar_quality/generated_clippy_correctness_contract_v0.json" \
+    '"correctness_roster"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/generated_clippy_correctness_contract_v0.json" \
+    '"eq_op"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/generated_clippy_correctness_contract_v0.json" \
+    '"overly_complex_bool_expr"'
+
+  # The two anti-vacuity checks must still be wired.
+  assert_file_contains \
+    "rust/scripts/generated_clippy_correctness_gate.sh" \
+    'build-script-executed'
+  assert_file_contains \
+    "rust/scripts/generated_clippy_correctness_gate.sh" \
+    'cannot lint generated parsers that are not on disk'
+
+  # The generated stage must remain STRICT BY DEFAULT — a silent flip back to 0 is precisely
+  # how the 291 accumulated unnoticed.
+  assert_file_contains \
+    "rust/scripts/clippy_on_rust_change.sh" \
+    'GENERATED_STRICT="${PGEN_CLIPPY_GENERATED_STRICT:-1}"'
+  assert_file_not_contains \
+    "rust/scripts/clippy_on_rust_change.sh" \
+    'GENERATED_STRICT="${PGEN_CLIPPY_GENERATED_STRICT:-0}"'
+
+  # The Makefile lane must exist so the gate has a repo-standard entry point.
+  assert_file_contains "rust/Makefile" "generated_clippy_correctness_gate:"
+  assert_file_contains "rust/Makefile" "generated_clippy_correctness_policy:"
+
+  # The roster pin is only meaningful while the enforcer recognizes codegen-emission evidence.
+  assert_file_contains \
+    "scripts/check_diagnosis_evidence.sh" \
+    'GENERATED-CLIPPY-CORRECTNESS:'
+}
+
 audit_summary_json_emission_surface() {
   note "auditing top-level proof summary.json emission surface"
 
@@ -2812,6 +2890,7 @@ main() {
   audit_sv_preprocessor_formal_exhaustive_closure_surface
   audit_vhdl_formal_exhaustive_closure_surface
   audit_sv_aggregate_contract_proof_surface
+  audit_generated_clippy_correctness_surface
   audit_summary_json_emission_surface
 
   run_workflow \

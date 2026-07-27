@@ -4337,7 +4337,13 @@ make -C rust SHELL=/bin/bash differential_refresh_baseline
 1. Regenerate/build the parser path you touched.
 2. If Rust or generated Rust changed, run clippy flow:
    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
-   - source clippy is strict; generated clippy runs every time and can be made strict with `PGEN_CLIPPY_GENERATED_STRICT=1`.
+   - source clippy is strict, and the generated-parser stage is **strict by default** since
+     `GENERATED-LINT-CORRECTNESS.3` (`PGEN_CLIPPY_GENERATED_STRICT` defaults to `1`) — that stage
+     is what holds the generated parsers' `clippy::correctness` finding count at 0. Set it to `0`
+     only to deliberately drop back to advisory mode.
+   - the flow also checks the correctness POLICY without a second clippy pass: the artifacts are
+     present, and every lint pinned in the tracked contract is still in `clippy::correctness`.
+     Full explicit-deny run: `make -C rust SHELL=/bin/bash generated_clippy_correctness_gate`.
 3. Run focused universal tests for return/semantic.
 4. Run annotation contract gate (`annotation_contract_gate`) for annotation-heavy changes.
 5. Run strict closed-loop stimuli verification (`annotation_stimuli_quality_gate`) when touching stimuli/coverage/gap logic.

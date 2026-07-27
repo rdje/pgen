@@ -1,5 +1,79 @@
 # CHANGES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0004 (leaf `GENERATED-LINT-CORRECTNESS.3`) — the 291 → 0 win was defended by nothing, and a generated-code gate can pass over an empty room
+
+- ⭐⭐⭐ **The charter's premise was wrong, and measurement said so.** `.3` was chartered to
+  "run the generated stage strictly for the correctness category only". But
+  `clippy::correctness` is already **deny-by-default**, so `PGEN_CLIPPY_GENERATED_STRICT=1`
+  already meant exactly that — the subset never needed narrowing. A repo-wide sweep found
+  the real hole: that variable is set by **no gate, no aggregate, no CI workflow and no
+  make target**; every occurrence is prose. Its default was `0`. ⇒ when `.1` + `.2` drove
+  the count 291 → 0, **nothing was left holding it there.**
+- ⭐⭐ **The vacuity trap the gate had to be built against.** `rust/build.rs:90-168` includes
+  each generated parser only when the artifact `is_file()`, and `generated/` is untracked
+  (`git ls-files generated/` → **0**). So in a clean checkout, on a CI runner, or inside the
+  `ci_workflow_local_gate` export dir (tracked files only), "lint the generated parsers"
+  compiles **zero** generated parsers, reports nothing, and **exits 0** — a green over an
+  empty room, which is the exact disease this tree exists to treat. The gate therefore
+  **REFUSES with exit 2** — never a pass — unless BOTH artifact-presence AND a cfg census
+  taken from **cargo's own `build-script-executed` JSON** confirm the artifacts were compiled
+  into the linted unit. A third vacuity mode (a cached clippy verdict) was checked and
+  cleared: the GREEN run reports `pgen` lib `fresh: false`, and rustc's dep-info for that
+  build lists all **11** generated artifacts, so any emission change invalidates it.
+- **What shipped.** A tracked contract pinning the 68-lint `clippy::correctness` roster **by
+  name AND by group** (group ⇒ future clippy additions are covered; names ⇒ a lint leaving
+  the group is a loud failure, not a silent narrowing); the gate
+  `make -C rust generated_clippy_correctness_gate` plus a no-cargo
+  `generated_clippy_correctness_policy` lane; a hosted workflow that **regenerates the parsers
+  first** (a bare checkout would otherwise only prove the refusal); a
+  `ci_workflow_local_gate` surface audit; and **`PGEN_CLIPPY_GENERATED_STRICT` now defaults
+  to `1`**.
+- ⭐ **The commit workflow pays ZERO extra build cost.** Correctness lints being deny-by-default
+  means the generated stage `clippy_on_rust_change` already runs IS the finding check once the
+  flag defaults to 1. The only thing that stage cannot see is a lint being *demoted* out of
+  deny-by-default — and that is caught by roster integrity, which needs no cargo invocation at
+  all. `clippy::suspicious` was measured rather than assumed and recorded as
+  considered-and-deferred: exactly 2 findings, **both in `rust/src/`**, neither in generated
+  code, each named with file and line.
+- **The doctrine enforcer gained a fourth signature group and got materially tighter.**
+  `scripts/check_diagnosis_evidence.sh` now recognizes CODEGEN-EMISSION evidence
+  (`GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT`) — a
+  generator emitting the wrong code has no parse to trace, no run to sample and no compiler
+  error, so groups 1–3 could not back it. And every signature is now **box-scoped**: it must
+  sit inside the ticked box's own bullet. That closes the measured cross-file leak (a
+  co-staged tree file supplying the token — exactly how `.1` passed) *and* the incidental-prose
+  leak already recorded as a deferred watch item in
+  `project_build_integrity_compiler_root_cause_signature.md` — found by searching prior art
+  before designing, per the `DESIGN-PRIOR-ART` doctrine.
+- ⚠️ **The probes caught a real bug in the first implementation.** It matched the box KEYWORD
+  against the whole body, so a box merely *mentioning* "root cause" could stand in for the real
+  one; probe RED-2 went green when it should have gone red. The keyword now matches the header
+  line only. The probes earned their keep by failing the first attempt.
+- ⚠️⚠️ **Found while wiring, and routed out: `make -C rust ci_workflow_local_gate` has been
+  unable to complete for 1,371 commits.** It died on its FIRST audit, which asserted
+  `assert_tracked "generated/ebnf.rs"` — a condition repository policy guarantees can never
+  hold, stale since `0ed2b2ad` ("stop tracking generated/* in git", 2026-04-29). The 7 such
+  call sites were repaired here **only because this leaf's own new audit would otherwise have
+  been unreachable dead code**. The remaining **8 of 31 failing audits** are independent defect
+  classes and are NOT force-greened — each is "audit stale vs repo wrong" and guessing destroys
+  a real check ⇒ new tree `CI-PARITY-GATE-ROT`. This is the **third** instance in two sessions
+  of a maintained check that nothing runs.
+- ⚠️ **A fifth diagnosis family is visible and deliberately not added.** Box-scoping measured
+  that **30 of 56** leaf files carrying a ticked ROOT CAUSE box cite a `file.rs:NNN` plus a
+  controlled differential that no signature group models. Widening to "any file:line" would
+  degrade the gate to "cite a line number", so the question is routed to `.4` rather than
+  answered by loosening a regex.
+- **Verified.** Gate probes **6/6** (missing artifact, roster departure, contract
+  self-inconsistency, a real `clippy::eq_op` finding, the vacuity refusal, clean control);
+  enforcer probes **6/6**; the gate GREEN for real (`artifact-presence 10/10 + 1/1 optional`,
+  `roster-integrity 68 pinned`, `cfg-census 8/8`, `findings total=0`, exit 0, peak
+  **11,908 MB** / 130 s under the memory guard); `clippy_on_rust_change` end-to-end exit 0
+  (peak 11,340 MB / 187 s) with all three stages green; `mdbook_docs_gate` GREEN;
+  `scripts/check_doctrines.sh` **9/9 PASS**. No `grammars/*.ebnf`, no `rust/src/*`, no
+  `generated/*` and no `ast_shape_contract/*.json` in the diff ⇒ all 11 generated parsers are
+  **byte-identical by construction** and no parse verdict can have moved. No release / schema /
+  ledger / integration-contract movement.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0003 (leaf `GENERATED-LINT-CORRECTNESS.2`) — the sweep closes the class, and `@associativity` gets its first oracle
 
 - **The enumerable class is closed.** `.1` fixed the two constants the clippy run

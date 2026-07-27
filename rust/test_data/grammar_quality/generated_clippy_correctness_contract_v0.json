@@ -1,0 +1,151 @@
+{
+  "contract": "generated_clippy_correctness",
+  "version": "0.1.0",
+  "gate": "generated_clippy_correctness_gate",
+  "owner_leaf": "GENERATED-LINT-CORRECTNESS.3",
+  "purpose": "Keep the generated-parser correctness-lint count at 0 by RUNNING the check, not by hoping. GENERATED-LINT-CORRECTNESS.1 + .2 took it 291 -> 0; nothing re-ran it afterwards, because PGEN_CLIPPY_GENERATED_STRICT=1 is a manual opt-in that no gate, no aggregate and no CI workflow ever sets.",
+
+  "lint_policy": {
+    "denied_group": "clippy::correctness",
+    "denied_group_rationale": "The group is denied AS A GROUP so that correctness lints ADDED by a future clippy are covered automatically. The roster below is denied by NAME on top of it, so a lint LEAVING the group (a silent narrowing) is caught instead of silently ceasing to be checked.",
+    "allowed": "everything else (-A warnings first, then the denials above)",
+    "allowed_rationale": "The generated stage carries ~78.8k style/complexity/perf warnings over 210.8 MB of emitted code. Gating on those would be noise, not signal, and would make the gate unrunnable for the same reason the 291 errors made the strict stage unrunnable. This gate deliberately gates on the CORRECTNESS category only.",
+
+    "considered_and_deferred": [
+      {
+        "category": "clippy::suspicious",
+        "verdict": "NOT gated in v0.1.0",
+        "measured_reason": "Measured at commit 730419a2 over the full generated stage: exactly 2 clippy::suspicious findings exist, and BOTH are in hand-written source, not in generated code -- clippy::empty_line_after_doc_comments at rust/src/ast_pipeline/ast_based_generator.rs:6228 and clippy::unnecessary_get_then_check at rust/src/ast_pipeline/mod.rs:5292. Gating them here would fail this gate on defects that belong to the SOURCE lane and are out of this leaf's remit.",
+        "revisit_when": "Those 2 source findings are cleared; then suspicious can be promoted into denied_group without changing the generated-code verdict (0 suspicious findings are attributed to generated/*.rs today)."
+      }
+    ],
+
+    "clippy_version_observed": "clippy 0.1.95 (59807616e1 2026-04-14)",
+    "correctness_roster_size": 68,
+    "correctness_roster": [
+      "absurd_extreme_comparisons",
+      "almost_swapped",
+      "approx_constant",
+      "async_yields_async",
+      "bad_bit_mask",
+      "cast_slice_different_sizes",
+      "char_indices_as_byte_indices",
+      "deprecated_semver",
+      "derive_ord_xor_partial_ord",
+      "derived_hash_with_manual_eq",
+      "eager_transmute",
+      "enum_clike_unportable_variant",
+      "eq_op",
+      "erasing_op",
+      "if_let_mutex",
+      "ifs_same_cond",
+      "impl_hash_borrow_with_str_and_bytes",
+      "impossible_comparisons",
+      "ineffective_bit_mask",
+      "infinite_iter",
+      "inherent_to_string_shadow_display",
+      "inline_fn_without_body",
+      "invalid_regex",
+      "inverted_saturating_sub",
+      "invisible_characters",
+      "iter_next_loop",
+      "iter_skip_zero",
+      "iterator_step_by_zero",
+      "let_underscore_lock",
+      "lint_groups_priority",
+      "match_str_case_mismatch",
+      "mem_replace_with_uninit",
+      "min_max",
+      "mistyped_literal_suffixes",
+      "modulo_one",
+      "mut_from_ref",
+      "never_loop",
+      "non_octal_unix_permissions",
+      "nonsensical_open_options",
+      "not_unsafe_ptr_arg_deref",
+      "option_env_unwrap",
+      "out_of_bounds_indexing",
+      "overly_complex_bool_expr",
+      "panicking_overflow_checks",
+      "panicking_unwrap",
+      "possible_missing_comma",
+      "read_line_without_trim",
+      "recursive_format_impl",
+      "redundant_comparisons",
+      "reversed_empty_ranges",
+      "self_assignment",
+      "serde_api_misuse",
+      "size_of_in_element_count",
+      "suspicious_splitn",
+      "transmute_null_to_fn",
+      "transmuting_null",
+      "uninit_assumed_init",
+      "uninit_vec",
+      "unit_cmp",
+      "unit_hash",
+      "unit_return_expecting_ord",
+      "unsound_collection_transmute",
+      "unused_io_amount",
+      "useless_attribute",
+      "vec_resize_to_zero",
+      "while_immutable_condition",
+      "wrong_transmute",
+      "zst_offset"
+    ],
+    "roster_anchor_lints": [
+      "eq_op",
+      "overly_complex_bool_expr"
+    ],
+    "roster_anchor_rationale": "These two ARE the 291 that opened this tree (158 eq_op in systemverilog_parser.rs, 132 in rtl_frontend_parser.rs, 1 overly_complex_bool_expr in systemverilog_preprocessor_parser.rs). If either ever leaves clippy::correctness, this gate stops covering the exact defect class it was built for -- so their membership is asserted separately and by name."
+  },
+
+  "cargo_invocation": {
+    "features": "generated_parsers,ebnf_dual_run",
+    "all_targets": true,
+    "all_targets_rationale": "generated/ebnf.rs is included TWICE -- once into the lib (rust/src/lib.rs) and once into the bin (rust/src/bin/ebnf_dual_run_diff.rs). A --lib-only run would leave the bin-side include unlinted."
+  },
+
+  "anti_vacuity": {
+    "principle": "A check that cannot run -- or cannot SEE -- must SAY SO, not return green. (GENERATED-LINT-CORRECTNESS's own unifying finding, third instance.)",
+    "why_this_gate_needs_it": "rust/build.rs sets each has_generated_<name>_parser cfg ONLY when the artifact is_file(). The generated/ tree is untracked. So in any clean checkout, any CI runner, or the ci_workflow_local_gate export dir (which copies `git ls-files` only), `--features generated_parsers` compiles with ZERO cfg-guarded generated parsers included -- and a naive generated-clippy stage would lint nothing and exit 0. That is a vacuous green, and it is precisely the failure mode this tree exists to remove.",
+    "checks": [
+      {
+        "id": "artifact-presence",
+        "asserts": "every required artifact below exists on disk and is non-empty",
+        "on_failure": "REFUSE (exit 2) naming the missing artifacts and the regeneration command -- never pass"
+      },
+      {
+        "id": "cfg-census",
+        "asserts": "every required artifact's has_generated_<name>_parser cfg appears in cargo's own build-script-executed JSON message for this run",
+        "source": "cargo clippy --message-format=json emits {\"reason\":\"build-script-executed\",...,\"cfgs\":[...]}, replayed even from a warm cache -- so this is cargo's verbatim testimony that the artifact was compiled INTO the unit that was linted, not merely present on disk",
+        "on_failure": "REFUSE (exit 2) naming the artifacts that were present but not compiled in"
+      }
+    ],
+    "unguarded_artifacts_note": "return_annotation_parser.rs and semantic_annotation_parser.rs are include!d in rust/src/lib.rs by hard relative path with NO has_generated_* cfg guard, so they emit no cfg. Their absence is a HARD COMPILE ERROR under --features generated_parsers rather than a silent exclusion -- a stronger guarantee than the cfg census, and the reason cfg_guarded is false for them below."
+  },
+
+  "generated_artifacts": [
+    { "path": "generated/ebnf.rs", "cfg": "has_generated_ebnf_parser", "cfg_guarded": true, "required": true },
+    { "path": "generated/json_parser.rs", "cfg": "has_generated_json_parser", "cfg_guarded": true, "required": true },
+    { "path": "generated/regex_parser.rs", "cfg": "has_generated_regex_parser", "cfg_guarded": true, "required": true },
+    { "path": "generated/rtl_const_expr_parser.rs", "cfg": "has_generated_rtl_const_expr_parser", "cfg_guarded": true, "required": true },
+    { "path": "generated/rtl_frontend_parser.rs", "cfg": "has_generated_rtl_frontend_parser", "cfg_guarded": true, "required": true },
+    { "path": "generated/systemverilog_parser.rs", "cfg": "has_generated_systemverilog_parser", "cfg_guarded": true, "required": true },
+    { "path": "generated/systemverilog_preprocessor_parser.rs", "cfg": "has_generated_systemverilog_preprocessor_parser", "cfg_guarded": true, "required": true },
+    { "path": "generated/vhdl_parser.rs", "cfg": "has_generated_vhdl_parser", "cfg_guarded": true, "required": true },
+    { "path": "generated/return_annotation_parser.rs", "cfg": null, "cfg_guarded": false, "required": true },
+    { "path": "generated/semantic_annotation_parser.rs", "cfg": null, "cfg_guarded": false, "required": true },
+    { "path": "generated/scratch_parser.rs", "cfg": "has_generated_scratch_parser", "cfg_guarded": true, "required": false,
+      "optional_rationale": "The PARSE-HARNESS.3 scratch slot is a blessed throwaway probe artifact whose absence is a normal checkout state (it exists only after `make -C rust focus_scratch`). It is NOT required to be present -- but when it IS present it is linted under the same policy, because a throwaway probe must not be a hole in the correctness floor." }
+  ],
+
+  "expected": {
+    "correctness_findings_total": 0,
+    "correctness_findings_in_generated": 0,
+    "measured_at_commit": "730419a2",
+    "measured_on": "2026-07-27",
+    "provenance": "GENERATED-LINT-CORRECTNESS.1 folded the branch-policy / layout-skip emissions (291 -> 0 errors); .2 folded the associativity / negative-case / terminal-layout emissions (a further 9,679 statically-decided expressions). This gate is what stops that 0 from drifting back up."
+  },
+
+  "done_rule": "generated_clippy_correctness_gate holds only while (a) every required artifact above is present AND cargo's own build-script cfg census proves it was compiled into the linted unit, (b) every roster lint above is still a member of the installed clippy's clippy::correctness group, and (c) `cargo clippy --all-targets --features generated_parsers,ebnf_dual_run -- -A warnings -D clippy::correctness -D clippy::<each roster lint>` reports 0 correctness findings. A skip is NEVER a pass: if the artifacts are absent the gate REFUSES with exit 2 and names what is missing."
+}
