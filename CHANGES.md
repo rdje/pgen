@@ -1,5 +1,38 @@
 # CHANGES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0001 (tree `GENERATED-LINT-CORRECTNESS`, opened) — the 291 generated-clippy errors, adjudicated
+
+- **Adjudicated, not assumed** — the generated-parser clippy stage reports 291
+  `deny`-by-default correctness errors. They are **not** parser defects. Both classes
+  were traced to their codegen sites: `clippy::eq_op` (158 in the SystemVerilog parser,
+  132 in `rtl_frontend`) comes from `ast_based_generator.rs:4687`, where the grammar's
+  branch policy is interpolated as a string literal, so a grammar whose policy *is*
+  `priority_first` emits `"priority_first" == "priority_first"`; the single
+  `clippy::overly_complex_bool_expr` comes from `:7016`, where a compile-time bool is
+  `false` for the whitespace-sensitive preprocessor grammar, making the guarded block
+  intentionally dead. In both cases the degenerate expression is the intended
+  per-grammar specialization.
+- **The gap that matters is a different one** — because those lints are
+  correctness-category and fire on every build, the generated stage can never be run
+  strictly, so a genuine correctness lint appearing in a generated parser would be
+  permanently invisible behind 291 errors and 84k warnings, over the largest shipped
+  artifacts in the repository. This is the same shape as the linter-allowlist finding in
+  `LANG-CAPABILITY-AUDIT.10.1`: a check that cannot be run strictly is a check that
+  reports nothing.
+- **Decided** — emit the folded form rather than silence the lint. The condition is
+  already resolved when the parser is generated, so codegen should emit the decided
+  branch and drop the degenerate arm. The lint then stops firing because the code is
+  gone, the artifacts shrink (these arms sit in hot branch-selection code, which the
+  speed north-star cares about), and rustc was folding them anyway, so runtime behaviour
+  is unchanged. Leaving it as-is and blanket-silencing the stage were both rejected, and
+  the reasons are recorded in the tree.
+- **Tracked** — new task tree `docs/tasks/GENERATED-LINT-CORRECTNESS.md` with three
+  leaves: fold the two known sites, sweep for other statically-degenerate emissions at
+  the codegen sites, then gate the correctness subset only. Note the count is
+  pre-existing rather than introduced by `PGEN-LANG-CAPABILITY-AUDIT-0014`, which left
+  all 11 generated parsers byte-identical.
+- **No code change in this slice** — tree creation and index registration only.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0014 (leaf `LANG-CAPABILITY-AUDIT.10.4`) — the two built-ins that matched nothing are gone
 
 - **Removed** — `true` and `false` from `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (5 members
