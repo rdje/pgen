@@ -1,0 +1,7 @@
+==============================================================================
+PER-AUDIT CENSUS of rust/scripts/ci_workflow_local_gate.sh
+==============================================================================
+FAIL  audit_embedding_api_surface
+        error: unexpected file content in docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md: found 'generated/regex.json'
+------------------------------------------------------------------------------
+audits=31  PASS=30  FAIL=1

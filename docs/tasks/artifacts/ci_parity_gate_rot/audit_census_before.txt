@@ -1,0 +1,3 @@
+        error: file content drift detected in rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json: expected '"required_surface_missing_detail": "SystemVerilog still lacks an explicit checked-in external corpus-backed proof surface sidecar'
+------------------------------------------------------------------------------
+audits=31  PASS=23  FAIL=8

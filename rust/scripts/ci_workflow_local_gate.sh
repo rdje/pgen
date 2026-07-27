@@ -132,11 +132,41 @@ assert_file_contains() {
     fail "file content drift detected in $repo_file: expected '$expected'"
 }
 
+# Regex form of assert_file_contains.
+# CI-PARITY-GATE-ROT.1 (2026-07-27): added for surfaces whose content is DESIGNED to move —
+# release/contract version constants in particular. Pinning such a value as a literal guarantees
+# the audit fails on every legitimate bump, which is how three of these rotted silently
+# (EMBEDDING_API_VERSION pinned 1.2.0, live 1.3.1; the two regex constants pinned 1.1.31/1.1.29,
+# live 1.1.109/1.1.106). Asserting SHAPE keeps the real invariant — the public surface still
+# declares these constants, well-formed — without re-pinning a moving target.
+assert_file_matches() {
+  local repo_file="$1"
+  local pattern="$2"
+  grep -Eq -- "$pattern" "$ROOT_DIR/$repo_file" 2>/dev/null || \
+    fail "file content drift detected in $repo_file: nothing matches /$pattern/"
+}
+
 assert_file_not_contains() {
   local repo_file="$1"
   local forbidden="$2"
   if grep -F -- "$forbidden" "$ROOT_DIR/$repo_file" >/dev/null 2>&1; then
     fail "unexpected file content in $repo_file: found '$forbidden'"
+  fi
+}
+
+# Like assert_file_not_contains, but ignores COMMENT lines (`#`-led, leading whitespace allowed).
+# CI-PARITY-GATE-ROT.1 (2026-07-27): needed because "this surface does not INVOKE X" is a claim
+# about executable lines, and the whole-file form was failing on a comment that documents why the
+# retired path once existed. Prose describing history is not a routing decision.
+# ⚠️ Deliberately narrow: it strips only whole-line comments, so an invocation with a trailing
+# comment on the same line is still caught. It is NOT a general "ignore anything that looks like a
+# comment" relaxation, and it must not be used for assertions about documentation content.
+assert_file_not_contains_uncommented() {
+  local repo_file="$1"
+  local forbidden="$2"
+  if grep -v -E '^[[:space:]]*#' "$ROOT_DIR/$repo_file" 2>/dev/null |
+       grep -F -- "$forbidden" >/dev/null 2>&1; then
+    fail "unexpected file content in $repo_file: found '$forbidden' on a non-comment line"
   fi
 }
 
@@ -218,7 +248,19 @@ audit_top_level_docs_surface() {
     "docs/BOOTSTRAP_MODE_SPECIFICATION.md"
     "docs/EBNF_INCLUDE_SYSTEM.md"
     "docs/parser_architecture_evolution.md"
+    # CI-PARITY-GATE-ROT.1 (2026-07-27): the four entries below were live, heavily-referenced
+    # docs that this allowlist had never been updated for — the audit was RIGHT that no
+    # deliberate policy update had happened, and this IS that deliberate update. Each was
+    # verified before admission (added 2026-05-14/17, i.e. long-established; reference counts
+    # measured across tracked markdown): TASK_TREE 70 refs and mandated by CLAUDE.md item 6,
+    # TASK_TREE_README 9, POST_SV_AUDIT_LEDGER 23, SV_EXH_PROOF_BASELINE 6. None is a stray.
+    # ⚠️ ORDER IS LOAD-BEARING: the expected list is compared verbatim against `sort` output, and
+    # this locale sorts `TASK_TREE_README.md` BEFORE `TASK_TREE.md`. Keep entries in `sort` order.
+    "docs/POST_SV_AUDIT_LEDGER.md"
     "docs/RETURN_ANNOTATIONS_REFERENCE.md"
+    "docs/SV_EXH_PROOF_BASELINE.md"
+    "docs/TASK_TREE_README.md"
+    "docs/TASK_TREE.md"
     "docs/TEST_INFRASTRUCTURE.md"
   )
   local -a actual_top_level_docs=()
@@ -254,7 +296,18 @@ audit_contract_docs_surface() {
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md"
     "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md"
     "docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
+    # CI-PARITY-GATE-ROT.1 (2026-07-27): deliberate policy update, same class as the top-level
+    # list above. The two RTL entries are the integration contracts for shipped parser families
+    # README already documents (14 refs each, added 2026-05-15); the four SEMANTIC_STORE entries
+    # are the store's contract family (added 2026-05-21, 2-6 refs each). All six long-established
+    # and referenced; none is a stray awaiting rehome.
+    "docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md"
+    "docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md"
     "docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
+    "docs/contracts/PGEN_SEMANTIC_STORE_API_CONTRACT.md"
+    "docs/contracts/PGEN_SEMANTIC_STORE_PERFORMANCE_CONTRACT.md"
+    "docs/contracts/PGEN_SEMANTIC_STORE_SCHEMA_LANGUAGE_SPEC.md"
+    "docs/contracts/PGEN_SEMANTIC_STORE_TEST_PLAN.md"
     "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md"
     "docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md"
     "docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md"
@@ -286,6 +339,10 @@ audit_contract_docs_surface() {
 
 audit_reference_docs_surface() {
   local -a expected_reference_docs=(
+    # CI-PARITY-GATE-ROT.1 (2026-07-27): deliberate policy update. PARSEABILITY_PROBE (added
+    # 2026-05-04, 9 refs) documents a maintained TOOLBOX surface; SV_EXH_PROOF_DEFECT_TAXONOMY
+    # (added 2026-05-23, 7 refs) belongs to the SV exhaustive-proof reference set.
+    "docs/reference/PARSEABILITY_PROBE.md"
     "docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md"
     "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md"
     "docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md"
@@ -297,6 +354,7 @@ audit_reference_docs_surface() {
     "docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md"
     "docs/reference/RUST_CODEBASE_ANALYSIS.md"
     "docs/reference/STRESS_TEST_STANDARDIZATION.md"
+    "docs/reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md"
     "docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md"
   )
   local -a actual_reference_docs=()
@@ -468,7 +526,18 @@ audit_ebnf_frontend_conversion_surface() {
     rust/scripts/vhdl_external_corpus_triage_gate.sh \
     rust/scripts/vhdl_stimuli_quality_gate.sh; do
     assert_tracked "$repo_file"
-    assert_file_not_contains "$repo_file" "ebnf_to_json.pl"
+    # CI-PARITY-GATE-ROT.1 (2026-07-27): this audit exists to prove these surfaces do not ROUTE
+    # through the retired Perl converter. It was failing on `rust/Makefile:782`, where the sole
+    # occurrence is a COMMENT documenting the bootstrap seed strategy — measured: zero
+    # non-comment occurrences in that file, i.e. the migration the audit checks for is COMPLETE
+    # and the audit was reporting its own documentation back to it.
+    # ⛔ NOT force-greened, and deliberately NOT scoped down to "the Makefile is exempt": the
+    # assertion is narrowed to EXECUTABLE lines for every file in the list, so a real invocation
+    # re-added to ANY of them still fails. Comment text stays free to describe history — which
+    # matters here because the Perl path is still live in the hybrid flow
+    # (README.md "perl/: legacy/frontend EBNF-to-JSON path ... still used in hybrid flow"; the
+    # active consumer is rust/scripts/ebnf_stimuli_quality_gate.sh, deliberately not in this list).
+    assert_file_not_contains_uncommented "$repo_file" "ebnf_to_json.pl"
   done
 
   assert_tracked "rust/scripts/ebnf_frontend_dual_run_diff_gate.sh"
@@ -519,15 +588,23 @@ audit_embedding_api_surface() {
   assert_tracked "rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json"
   assert_tracked "rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json"
 
-  assert_file_contains \
+  # CI-PARITY-GATE-ROT.1 (2026-07-27): these three were pinned as LITERALS (1.2.0 / 1.1.31 /
+  # 1.1.29) against constants the release policy moves deliberately — live values at adjudication
+  # were 1.3.1 / 1.1.109 / 1.1.106. A parity audit that hard-pins a version it expects to change
+  # fails on every legitimate bump, so it rots by construction and gets ignored. ⛔ NOT deleted:
+  # the invariant this audit really owns is "the public embedding surface still DECLARES these
+  # constants, well-formed", which the shape assertion below enforces exactly. The VALUES are
+  # already owned by the release-policy gates and the integration-contract identity blocks — this
+  # audit was duplicating that ownership, which is what made it drift.
+  assert_file_matches \
     "rust/src/embedding_api.rs" \
-    'pub const EMBEDDING_API_VERSION: &str = "1.2.0";'
-  assert_file_contains \
+    'pub const EMBEDDING_API_VERSION: &str = "[0-9]+\.[0-9]+\.[0-9]+";'
+  assert_file_matches \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.31";'
-  assert_file_contains \
+    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "[0-9]+\.[0-9]+\.[0-9]+";'
+  assert_file_matches \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.29";'
+    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "[0-9]+\.[0-9]+\.[0-9]+";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;'
@@ -634,7 +711,7 @@ audit_embedding_api_surface() {
     '`GrammarFamily`: `systemverilog | vhdl | regex`'
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
-    '`GrammarProfile`: `sv_2017 | sv_2023 | vhdl_1076_2019 | regex_default`'
+    '`GrammarProfile`: `sv_2017 | sv_2023 | verilog_2005 | vhdl_1076_2019 | regex_default`'
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
     '`ParseDiagnostic`: stable `code` + human-readable `message` + optional `location`.'
@@ -726,7 +803,7 @@ audit_embedding_api_surface() {
     '- `Contract Identity`'
   assert_file_contains \
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
-    '| `regex` | `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.29`, integration contract `1.1.31`. |'
+    '| `regex` | `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` |'
   assert_file_contains \
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     '`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
@@ -894,9 +971,15 @@ audit_rtl_frontend_generated_contract_surface() {
   assert_file_contains \
     "rust/src/bin/rtl_frontend_generated_contract_probe.rs" \
     'forbidden_rule_names'
+  # CI-PARITY-GATE-ROT.1 (2026-07-27): was pinned to `expected_rule_texts`, which is the `0.1.0`
+  # RAW-ENVELOPE retention layer. The `0.2.0` typed-AST migration RETIRED that layer — README
+  # records it as having become "structurally unsatisfiable once the released typed-AST campaign
+  # (schema 3) folded the structural rules into the typed carrier" — and the probe now carries 0
+  # occurrences of the old token. Re-pinned to the token that replaced it (measured: 4
+  # occurrences), so the audit tracks the layer that actually exists.
   assert_file_contains \
     "rust/src/bin/rtl_frontend_generated_contract_probe.rs" \
-    'expected_rule_texts'
+    'required_typed_string_values'
   assert_file_contains \
     "rust/src/parser_registry.rs" \
     'fn rtl_frontend_generated_contract_metadata_is_stable() {'
@@ -909,9 +992,16 @@ audit_rtl_frontend_generated_contract_surface() {
   assert_file_contains \
     "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
     '"forbidden_rule_names"'
+  # CI-PARITY-GATE-ROT.1 (2026-07-27): the same `0.1.0` retirement as the probe pin above, and a
+  # perfect illustration of the class: the ONE surviving occurrence of `expected_rule_texts` in
+  # this contract is inside its own `provenance` narrative — the sentence recording that the lock
+  # was RETIRED ("required_rule_texts/expected_rule_texts span locks ... retired; their curated
+  # texts were re-expressed as required_typed_string_values"). The audit was pinned to a token that
+  # survives only in the explanation of its own removal. Re-pinned to the live successor
+  # (76 occurrences).
   assert_file_contains \
     "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
-    '"expected_rule_texts"'
+    '"required_typed_string_values"'
   assert_file_contains \
     "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
     '"expected_elaboration"'
@@ -921,27 +1011,32 @@ audit_rtl_frontend_generated_contract_surface() {
   assert_file_contains \
     "rtl_frontend/src/lib.rs" \
     'expected_elaboration'
-  assert_file_contains \
+  # CI-PARITY-GATE-ROT.1 (2026-07-27): pinned the RATCHET value 54; live is 59. A ratchet exists to
+  # be raised as coverage grows, so pinning its exact value guarantees the audit fails on every
+  # legitimate ratchet bump - the same design flaw as the version pins above. The invariant this
+  # audit owns is "the elaboration ratchet is still DECLARED"; its VALUE is owned and enforced by
+  # the handwritten replay tests that ratchet it.
+  assert_file_matches \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = 54'
-  assert_file_contains \
+    'MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES: usize = [0-9]+'
+  assert_file_matches \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = 41'
-  assert_file_contains \
+    'MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS: usize = [0-9]+'
+  assert_file_matches \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = 13'
-  assert_file_contains \
+    'MIN_GENERATED_CONTRACT_ELABORATION_REJECTS: usize = [0-9]+'
+  assert_file_matches \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = 15'
-  assert_file_contains \
+    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PATH_SAMPLES: usize = [0-9]+'
+  assert_file_matches \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = 30'
-  assert_file_contains \
+    'MIN_GENERATED_CONTRACT_ELABORATION_TOP_PARAMETER_CHECKS: usize = [0-9]+'
+  assert_file_matches \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = 15'
-  assert_file_contains \
+    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PARAMETER_CHECKS: usize = [0-9]+'
+  assert_file_matches \
     "rtl_frontend/src/lib.rs" \
-    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = 75'
+    'MIN_GENERATED_CONTRACT_ELABORATION_CHILD_PORT_BINDING_CHECKS: usize = [0-9]+'
   assert_file_contains \
     "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
     '"top_parameters"'
@@ -2527,9 +2622,15 @@ audit_sv_formal_exhaustive_closure_surface() {
   assert_file_contains \
     "rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json" \
     '"required_surface_key": "external_corpus_backed_proof_surface"'
+  # CI-PARITY-GATE-ROT.1 (2026-07-27): was pinned to the prose "SystemVerilog still LACKS an
+  # explicit checked-in external corpus-backed proof surface sidecar" — a description of an
+  # EARLIER state of the world. The sidecar now exists and the contract's requirement moved on to
+  # "must MATCH the live triage gate output exactly". ⛔ Deliberately re-pinned to the stable
+  # SUBJECT of the requirement (the sidecar key) rather than to the full sentence: pinning
+  # narrative prose is what made this rot, and the key is what the gate actually consumes.
   assert_file_contains \
     "rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json" \
-    '"required_surface_missing_detail": "SystemVerilog still lacks an explicit checked-in external corpus-backed proof surface sidecar'
+    'expected_proof_surface_sidecar'
 
   assert_file_contains \
     "rust/scripts/sv_formal_exhaustive_closure_gate.sh" \

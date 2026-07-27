@@ -7,7 +7,19 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: `.1`** (adjudicate the 8 failing audits — audit stale, or repo wrong?)
+- **Frontier: `.2`** (`.1` mostly done 2026-07-27 session #216 — audit phase **23 PASS / 8 FAIL →
+  30 PASS / 1 FAIL**; the remaining 1 is escalated, see below)
+- ⛔⛔ **DIRECTOR DECISION REQUESTED (raised 2026-07-27, session #216, by `.1`).** One audit is
+  deliberately left failing because resolving it changes a **published downstream promise**, and
+  the leaf's own rule is that guessing *"silently destroys a real check"*:
+  `audit_embedding_api_surface` forbids the regex integration contract from mentioning
+  `generated/regex.json` / `grammars/regex.ebnf` (added `d7f86f37` 2026-03-28, *"Harden regex
+  downstream integration contract"* — the support boundary says consumers integrate via
+  `pgen::embedding_api`, not via PGEN-internal build inputs). A later deliberate campaign
+  (`18dbc598` 2026-04-30, *"… + RGX build recipe"*) **added exactly that**, one day after the gate
+  died — so nothing objected. **Either the boundary stands (remove the recipe's internal-path
+  citations) or the boundary has legitimately changed (retire those two assertions).** Both are
+  defensible; the choice is a product promise, not an engineering detail.
 - ⛔⛔ **DIRECTOR-SCHEDULED FOR A FRESH SESSION (2026-07-27, session #215, verbatim: *"Do this
   … at the next fresh session"*)**, after `GENERATED-LINT-CORRECTNESS.4`. The director asked for
   findings 3 and 4 of the `-0004` surfacing report — *"fix these in a sota, signoff and
@@ -95,19 +107,105 @@ actually runs?"* That question is `.2`.
 
 ## Leaves
 
-### `.1` — adjudicate the 8 failing audits (`todo`)
+### `.1` — adjudicate the 8 failing audits (`mostly done` — 7 of 8 resolved, 1 ESCALATED)
 
-- **Status: `todo`** — frontier.
-- For each of the 8 rows above, decide **audit-stale** vs **repo-wrong**, with evidence, and
-  fix the correct side. Expect a mix; do not batch them into one verdict.
-- ⛔ Explicitly forbidden: deleting or relaxing an audit to make the gate green. Rows 1–4 in
-  particular exist to stop exactly the drift they are reporting.
-- Acceptance: `make -C rust SHELL=/bin/bash ci_workflow_local_gate` completes its audit phase,
-  with each of the 8 dispositions recorded and justified in this leaf.
-- ⚠️ Note for whoever runs this: the audits inspect the REAL repo (`$ROOT_DIR`), while
-  `run_workflow` executes inside the exported tracked-only worktree. The two halves have
-  different visibility, and that asymmetry is load-bearing — `generated/` exists for the
-  former and never for the latter.
+- **Status: `mostly done`** (2026-07-27, session #216, `PGEN-CI-PARITY-GATE-ROT-0001`).
+  **Audit phase: 23 PASS / 8 FAIL → 30 PASS / 1 FAIL.** The single remaining failure is a
+  published-support-boundary policy question that must NOT be guessed — escalated below.
+- ⛔ Explicitly forbidden and **not done**: no audit was deleted, and none was relaxed to make
+  the gate green. Every change is either a *deliberate policy update the audit itself asked
+  for* or a *re-pin onto the surface that replaced the retired one*.
+
+#### ⭐⭐ THE HEADLINE FINDING: "8 failing audits" WAS AN UNDERCOUNT — the real number is 12 stale assertions, and fail-fast hid a third of them
+
+`assert_file_contains` stops its audit at the FIRST miss, so an audit with four stale pins
+reports one. Fixing the reported pin revealed the next, four times over:
+
+| revealed at | assertion | why it was hidden |
+|---|---|---|
+| round 2 | `EMBEDDING_API_CONTRACT.md` `GrammarProfile` roster (missing `verilog_2005`) | behind the `EMBEDDING_API_VERSION` pin |
+| round 2 | rtl contract **JSON** `expected_rule_texts` | behind the rtl **probe** pin |
+| round 3 | `PGEN_PARSER_INTEGRATION_CONTRACTS.md` regex row embedding `1.1.29`/`1.1.31` | behind the `GrammarProfile` pin |
+| round 3 | `MIN_GENERATED_CONTRACT_ELABORATION_ACCEPTS` (+5 sibling ratchets) | behind the `..._SAMPLES` ratchet |
+
+⇒ **a fail-fast gate cannot tell you how broken it is** — it reports its depth one layer per
+run, and a gate nothing runs never gets a second run. The per-audit census driver exists so the
+whole census is visible at once.
+
+#### The 8 dispositions (each measured, none guessed)
+
+| # | audit | verdict | the deciding evidence |
+|---|---|---|---|
+| 1 | `top_level_docs_surface` | **REPO — policy never updated** ⇒ allowlist updated deliberately | the 4 files are 2 months old and heavily referenced: `docs/TASK_TREE.md` **70** refs and mandated by `CLAUDE.md` item 6, `TASK_TREE_README` 9, `POST_SV_AUDIT_LEDGER` 23, `SV_EXH_PROOF_BASELINE` 6. The audit's own message says *"or update the tracked policy deliberately"* — this is that update. |
+| 2 | `contract_docs_surface` | same class ⇒ 6 entries added | 2 RTL family contracts (14 refs each) + the 4 `SEMANTIC_STORE` contracts; all added 2026-05-15/21 |
+| 3 | `reference_docs_surface` | same class ⇒ 2 entries added | `PARSEABILITY_PROBE` (9 refs), `SV_EXH_PROOF_DEFECT_TAXONOMY` (7 refs) |
+| 4 | `active_docs_rehome_paths` | ⭐ **AUDIT RIGHT / REPO WRONG** — real drift, fixed in the doc | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md:79` wrote a bare `PGEN_RELEASED_PARSER_BUG_LEDGER.md` while **the same file** uses the correct `docs/contracts/…` form at `:2284` and `:2904` — an internal inconsistency, exactly the drift the audit exists to catch |
+| 5 | `ebnf_frontend_conversion_surface` | **AUDIT TOO BROAD** ⇒ narrowed to executable lines | the sole `rust/Makefile` hit is a **COMMENT** (`:782`) documenting the bootstrap seed; measured **zero** non-comment occurrences ⇒ the migration the audit checks for is COMPLETE and it was reporting its own documentation back to it. The Perl path is deliberately still live in the hybrid flow (README; consumer `ebnf_stimuli_quality_gate.sh`, deliberately not in the audit's list) |
+| 6 | `embedding_api_surface` | **AUDIT STALE BY DESIGN** (versions) ⇒ shape assertions | pinned `1.2.0`/`1.1.31`/`1.1.29`; live `1.3.1`/`1.1.109`/`1.1.106`. A parity audit that hard-pins a value the release policy moves fails on **every legitimate bump** ⇒ it rots by construction. Values are already owned by the release-policy gates and the contract identity blocks — this audit was duplicating that ownership |
+| 7 | `rtl_frontend_generated_contract_surface` | **AUDIT STALE** ⇒ re-pinned to the successor | pinned `expected_rule_texts`; the probe now has **0** occurrences and the contract is `0.2.0`. ⭐ In the contract JSON the ONE surviving occurrence is inside its own `provenance` sentence recording the retirement (*"…span locks … retired; their curated texts were re-expressed as `required_typed_string_values`"*) — **the audit was pinned to a token that survives only in the explanation of its own removal** |
+| 8 | `sv_formal_exhaustive_closure_surface` | **AUDIT STALE** ⇒ re-pinned to the requirement's stable key | pinned the prose *"SystemVerilog still **lacks** … sidecar"*; the contract now reads *"SystemVerilog **requires** its checked-in … sidecar … to match the live triage gate output exactly"* — the world moved forward and the audit pinned the old state |
+
+⭐ **The pattern across rows 6, 7, 8 and the four hidden ones is ONE defect, not seven:** the
+audit pins a *value or narrative that is designed to change* (a release version, a ratchet
+minimum, a migration-era token, a status sentence) instead of the *invariant it actually owns*
+(the constant is declared and well-formed; the layer exists; the requirement names its subject).
+**Duplicated ownership of a moving value is the rot mechanism** —
+[[feedback_duplicated_metadata_needs_derived_drift_gate]] at gate scale.
+
+#### ⛔⛔ ESCALATED — the 1 remaining failure is a POLICY question, deliberately NOT decided
+
+`audit_embedding_api_surface` still fails on two assertions added **2026-03-28** (`d7f86f37`
+*"Harden regex downstream integration contract"*):
+
+```
+assert_file_not_contains docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md 'generated/regex.json'
+assert_file_not_contains docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md 'grammars/regex.ebnf'
+```
+
+Their intent is a **published support boundary**: downstream consumers integrate through
+`pgen::embedding_api`, and the contract must not point them at PGEN-internal build inputs. But
+on **2026-04-30** (`18dbc598`, *"… + RGX build recipe"*) a deliberate campaign **added exactly
+that** — a build recipe citing `generated/regex.json` (`:2431`, `:2554`) and `grammars/regex.ebnf`.
+
+⭐ **The audit had already been dead for a day when that landed** (`0ed2b2ad`, 2026-04-29), so
+nothing objected. Both sides are defensible: the boundary is a real published promise, and a
+consumer-runnable build recipe is genuinely useful. Deciding it either way changes what PGEN
+promises downstream, which is the director's call, not mine — and the leaf's own rule is that
+guessing here *"silently destroys a real check"*. **Left failing on purpose. See the surfacing
+note in this tree's header.**
+
+#### Acceptance checklist (enforced)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the gate cannot complete: 12 stale assertions across 8
+      audits, whose common mechanism is an audit pinning a value designed to move rather than the
+      invariant it owns. WHERE, per row, in the table above. Tool-backed: the per-audit census
+      driver (`git ls-files` for the allowlists, `make -n`-class reasoning for the Makefile
+      comment, `git log -1 -S` for the provenance of the escalated assertions —
+      `d7f86f37` 2026-03-28 added them, `18dbc598` 2026-04-30 violated them).
+- [x] **ADDRESSED (verified)** — measured before → after with the same driver, via a
+      `git stash` round-trip over the gate: **23 PASS / 8 FAIL → 30 PASS / 1 FAIL**. Captures
+      banked as `audit_census_before.txt` / `audit_census_after.txt`.
+- [x] **NO REGRESSION** — no audit deleted, none relaxed to green; `bash -n` clean; the 23
+      previously-passing audits still pass (30 = 23 + 7). 9/9 doctrines PASS. No
+      `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11 parsers byte-identical by
+      construction; no release/schema/ledger movement.
+
+#### ⚠️ Still open in this leaf
+
+- The **escalated policy question** above (1 failing audit).
+- The gate's `run_workflow` phase beyond the audits has **not** been exercised here; this leaf's
+  acceptance is the audit phase, per its charter. ⚠️ Note for whoever runs the full gate: the
+  audits inspect the REAL repo (`$ROOT_DIR`) while `run_workflow` executes inside the exported
+  tracked-only worktree. That asymmetry is load-bearing — `generated/` exists for the former and
+  never for the latter.
+
+#### Evidence
+
+- `docs/tasks/artifacts/ci_parity_gate_rot/run_audit_census.sh` — per-audit census; **banks the
+  two reproduction traps that each produce a confidently WRONG census** (the script locates
+  itself via `BASH_SOURCE/../..`, so a stripped copy must sit at the same depth — otherwise 28
+  of 31 "fail"; and audit names contain digits, so `[a-z_]+` invents `audit_regex_pcre`).
+- `docs/tasks/artifacts/ci_parity_gate_rot/audit_census_{before,after}.txt`.
 
 ### `.2` — a reachability inventory: which tracked gates does anything actually invoke? (`todo`)
 
@@ -138,3 +236,4 @@ actually runs?"* That question is `.2`.
 | slice | leaf | commit subject |
 |---|---|---|
 | (opened by `PGEN-GENERATED-LINT-CORRECTNESS-0004`) | (tree opened) | the local CI-parity gate has been unable to complete for 1,371 commits — first blocker repaired, 8 independent audits routed here |
+| `PGEN-CI-PARITY-GATE-ROT-0001` | `.1` | 12 stale assertions across 8 audits adjudicated one at a time — 23/8 → 30/1, and fail-fast had hidden a third of them |

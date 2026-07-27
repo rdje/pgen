@@ -1,5 +1,50 @@
 # CHANGES.md
 
+## 2026-07-27 - PGEN-CI-PARITY-GATE-ROT-0001 (leaf `CI-PARITY-GATE-ROT.1`) — the local parity gate's audit phase goes 23/8 to 30/1, and "8 failing audits" turned out to be an undercount
+
+- ⭐⭐ **"8 failing audits" WAS AN UNDERCOUNT — the real number is 12 stale assertions, and
+  fail-fast hid a third of them.** `assert_file_contains` stops its audit at the FIRST miss, so an
+  audit carrying four stale pins reports one. Fixing the reported pin revealed the next, four
+  times over (the `GrammarProfile` roster behind the version pin; the rtl contract JSON behind the
+  rtl probe; the contracts-table regex row behind the roster; six sibling ratchet constants behind
+  the first ratchet). ⇒ **a fail-fast gate cannot tell you how broken it is** — it reports its
+  depth one layer per run, and a gate nothing runs never gets a second run.
+- ⭐ **Rows 6, 7, 8 and all four hidden ones are ONE defect, not seven:** the audit pinned a value
+  or narrative *designed to change* — a release version, a ratchet minimum, a migration-era token,
+  a status sentence — instead of the invariant it actually owns. Duplicated ownership of a moving
+  value is the rot mechanism. Fixes assert SHAPE (`assert_file_matches`, new) or re-pin onto the
+  surface that replaced the retired one.
+- ⭐ **The sharpest instance:** `audit_rtl_frontend_generated_contract_surface` pinned
+  `expected_rule_texts` in the contract JSON, where the ONE surviving occurrence is inside the
+  file's own `provenance` sentence recording that the lock was **retired**. The audit was pinned
+  to a token that survives only in the explanation of its own removal.
+- ✅ **Row 4 was the audit being RIGHT**, and it is the only repo-side fix:
+  `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md:79` wrote a bare `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+  while the same file uses the correct `docs/contracts/…` form at `:2284` and `:2904`.
+- ✅ **Rows 1-3 were the audit asking for a deliberate policy update, and getting one.** The 12
+  flagged docs are 2 months old and heavily referenced (`docs/TASK_TREE.md` alone has 70 refs and
+  is mandated by `CLAUDE.md` item 6); none is a stray. The allowlists were stale, not the repo.
+- ✅ **Row 5 was the audit being too broad**, not the repo being wrong: the sole `rust/Makefile`
+  occurrence of `ebnf_to_json.pl` is a COMMENT documenting the bootstrap seed, with **zero**
+  non-comment occurrences — the migration it checks for is complete, and it was reporting its own
+  documentation back to it. Narrowed to executable lines for every file in its list, so a real
+  invocation re-added anywhere still fails.
+- ⛔ **No audit was deleted and none was relaxed to green.** One is deliberately LEFT FAILING and
+  escalated: `audit_embedding_api_surface` forbids the regex contract from citing
+  `generated/regex.json` / `grammars/regex.ebnf` (a published support boundary, `d7f86f37`
+  2026-03-28), and a later deliberate campaign added exactly that (`18dbc598` 2026-04-30, "RGX
+  build recipe") **one day after the gate died**, so nothing objected. Both sides are defensible;
+  the choice is a product promise, so it is the director's.
+- ⛔ **Two reproduction traps banked in the driver, each of which produces a confidently WRONG
+  census**: the gate locates itself via `BASH_SOURCE/../..`, so a stripped copy placed elsewhere
+  resolves ROOT_DIR one directory off and reports 28 of 31 "failing"; and audit names contain
+  digits, so harvesting them with `[a-z_]+` invents `audit_regex_pcre`. Both are the standing
+  TOOLBOX question — *is the thing I am testing the thing being run?* — applied to a shell gate.
+- Verified: audit phase **23 PASS / 8 FAIL → 30 PASS / 1 FAIL** (before→after via a `git stash`
+  round-trip over the gate), `bash -n` clean, 9/9 doctrines PASS. No `grammars/*.ebnf`, no
+  `rust/src/*`, no `generated/*` ⇒ all 11 parsers byte-identical by construction; no
+  release/schema/ledger movement.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0006 (leaf `GENERATED-LINT-CORRECTNESS.4`) — the fifth diagnosis family was refuted at 2 of 304, and the gap turned out to be placement
 
 - ⛔⛔ **The charter's own hypothesis was REFUTED by pricing it, not by arguing with it.** `.3`

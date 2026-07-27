@@ -1,5 +1,75 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-27 - PGEN-CI-PARITY-GATE-ROT-0001 — a fail-fast gate cannot tell you how broken it is
+
+**The census had to come before the adjudication.** `make -C rust ci_workflow_local_gate` runs its
+31 audits in sequence and stops at the first failure, so it can only ever name ONE broken audit per
+run — which is exactly how a gate carrying a dozen stale assertions looked like a single-blocker
+problem for 1,371 commits. The driver
+`docs/tasks/artifacts/ci_parity_gate_rot/run_audit_census.sh` isolates each audit in its own
+subshell so the whole census is visible at once.
+
+**Two reproduction traps, both hit, both banked — either one produces a confidently wrong census:**
+
+1. `ci_workflow_local_gate.sh` computes `ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"`.
+   Placing the stripped copy anywhere other than `rust/scripts/` silently resolves ROOT_DIR one
+   directory off, so every `assert_tracked` checks a nonexistent path. Observed: **28 of 31
+   "failing"**, with `rust/Makefile` reported "missing from git index" and a tell-tale doubled
+   `rust/rust/target/...` in the output.
+2. Harvesting the audit names with `grep -oE '^  audit_[a-z_]+'` truncates
+   `audit_regex_pcre2_compile_oracle_surface` at the `2`, inventing `audit_regex_pcre`, which then
+   fails as command-not-found and inflates the count.
+
+Both are the standing TOOLBOX question — *is the thing I am testing the thing being run?* — applied
+to a shell gate instead of a grammar rule. With the traps removed the census reproduces the tree's
+recorded figure exactly: **31 audits, 23 PASS, 8 FAIL.**
+
+**Fixing the 8 revealed 4 more.** `assert_file_contains` fails fast within an audit, so each fix
+exposed the next stale pin in the same function:
+
+```
+round 1 (recorded)  EMBEDDING_API_VERSION 1.2.0            (live 1.3.1)
+round 2 (hidden)    GrammarProfile roster missing verilog_2005
+round 3 (hidden)    contracts-table regex row pinning 1.1.29 / 1.1.31  (live 1.1.106 / 1.1.109)
+round 1 (recorded)  rtl probe   expected_rule_texts        (0 occurrences)
+round 2 (hidden)    rtl JSON    expected_rule_texts        (1 occurrence - in its own retirement note)
+round 3 (hidden)    MIN_GENERATED_CONTRACT_ELABORATION_SAMPLES 54  (live 59) + 6 sibling ratchets
+```
+
+**The unifying defect.** Every one of these pins a value or narrative that is *designed to change*
+— a release version, a ratchet minimum, a migration-era token, a status sentence — rather than the
+invariant the audit actually owns. A parity audit that hard-pins a version the release policy moves
+fails on every legitimate bump; a ratchet exists to be raised. The values were already owned
+elsewhere (the release-policy gates, the contract identity blocks, the handwritten replay tests
+that ratchet them), so the audit was duplicating ownership — which is the rot mechanism. The fix is
+a new `assert_file_matches` (shape, not literal) plus re-pins onto the successor surfaces.
+
+The sharpest single instance: the rtl contract JSON's only remaining `expected_rule_texts` is
+inside its own `provenance` sentence — *"required_rule_texts/expected_rule_texts span locks ...
+retired; their curated texts were re-expressed as required_typed_string_values"*. **The audit was
+pinned to a token that survives only in the explanation of its own removal.**
+
+**Not everything was the audit's fault.** Row 4 (`audit_active_docs_rehome_paths`) was the gate
+being exactly right: `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md:79` wrote a bare
+`PGEN_RELEASED_PARSER_BUG_LEDGER.md` while the same file uses the rehomed `docs/contracts/...`
+form at `:2284` and `:2904` — an internal inconsistency, fixed in the doc. Rows 1-3 were the audit
+correctly reporting that no deliberate policy update had happened; the 12 flagged docs were each
+verified (added 2026-05-04 through 2026-05-23, reference counts 2-70, `docs/TASK_TREE.md` mandated
+by `CLAUDE.md` item 6) before the allowlists were updated.
+
+**One audit is deliberately left failing.** `audit_embedding_api_surface` forbids the regex
+integration contract from citing `generated/regex.json` / `grammars/regex.ebnf` — a published
+support boundary added by `d7f86f37` (2026-03-28, *"Harden regex downstream integration
+contract"*): consumers integrate through `pgen::embedding_api`, not through PGEN-internal build
+inputs. A later deliberate campaign, `18dbc598` (2026-04-30, *"... + RGX build recipe"*), added
+exactly that — **one day after the gate died**, so nothing objected. Either the boundary stands
+(remove the internal-path citations) or it has legitimately changed (retire the two assertions).
+Both are defensible and the choice is a product promise, so it is escalated rather than guessed;
+the leaf's own rule is that guessing here silently destroys a real check.
+
+Result: **23 PASS / 8 FAIL → 30 PASS / 1 FAIL**, with the before state reproduced via a `git stash`
+round-trip over the gate rather than asserted.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0006 — a signature family that does not match the corpus is a gate that teaches you to waive it
 
 **The instrument had to be built before the decision could be taken.** `.3` reported *"30 of 56
