@@ -1,5 +1,64 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-28 - PGEN-DOCTRINE-GAP-OWNERSHIP-0002 — the census was itself a recorded-but-inert fact: 143 orphans triaged to 18, behind a ratchet that BLOCKS
+
+`DOCTRINE-GAP-OWNERSHIP.1` DONE. Docs + task-tree artifacts only — **no `grammars/*.ebnf`, no
+`rust/src/*`, no `generated/*`** ⇒ all 11 generated parsers byte-identical BY CONSTRUCTION; no
+release / schema / ledger / contract movement.
+
+- ⭐⭐⭐ **THE DIRECTIVE THAT RESHAPED THE LEAF MID-EXECUTION** (director, verbatim): *"An elite
+  core, you shouldn't let any issue, even the smallest slide. You should task-tree own, track it
+  for a latter activation … do whatever it takes to be 100% sure to address it either now or later
+  but do not let it slide unaddressed."* This **retired the plan `.1` was written with** — its
+  charter said to confirm a rule and then *"exclude the surface wholesale"* (63 hits, one judgement
+  call). A wholesale exclusion is precisely a decision nobody can re-check and nothing re-applies.
+  ⇒ the deliverable became a **per-hit terminal disposition for all 143**.
+- ⭐⭐ **AND MEASUREMENT IMMEDIATELY VINDICATED IT**: the wholesale-exclusion rule **did not hold as
+  written**. Of 64 `history-narrative` hits the first ancestor test resolved only **23**; only after
+  correcting it to walk the full ancestor CHAIN (a topical `### Important Boundaries` nested under a
+  dated `## <entry>`) did it reach **60/64**, with 4 still needing hand-triage. Dropping the surface
+  on the charter's say-so would have shipped the rule wrong.
+- ⭐⭐⭐ **THE HEADLINE — a one-shot census is the SAME DISEASE ONE LEVEL UP.** The founding defect
+  sat 58 commits because it was written down instead of tracked; a recorded count of *"140 orphans"*
+  is equally inert. So `.1` shipped a **RATCHET**, not a report: sweep → mechanically resolve →
+  join the residue against a TRACKED register → **exit nonzero on anything UNTRIAGED**.
+- **143 orphans → 18 hand-triaged residue**: 4 `FENCE` + 122 `PROVENANCE` + 89 `OWNED` re-derived
+  every run; residue = `ROUTED` 7 · `FALSE-POSITIVE` 4 · `BOUNDARY` 3 · `PROVENANCE` 2 ·
+  `DELIBERATE` 1 · `OWNED` 1. The charter's "10–25 real" estimate was right in magnitude: **7
+  genuine orphans**, now owned.
+- ⭐⭐ **FOUR DRIVER DEFECTS, EACH PRODUCING A CONFIDENTLY WRONG CENSUS** — the instrument was what
+  needed auditing: `whack-a-mole` matched `HACK` (no `\b`); a grammar's own quoted terminals
+  `"todo" | "fixme" | "bug"` matched as markers; the owner window was **3 lines** while a real
+  closure annotation sat **5 lines above** its hit; and gap phrases inside ``` fences were matched.
+- ⚠️ **A FIFTH DEFECT WAS INTRODUCED BY THE FIX AND CAUGHT BY THE PROBES** — generalising to
+  `\bXXX\b` made the combinator suite's own test literals `("xxx", true)` match, 4 fresh false
+  positives in one edit. ⇒ **a marker convention needs its colon to be a marker.** Both regressions
+  are now CONTROL arms.
+- ⚠️⚠️ **A SIXTH, IN THE AUDIT ITSELF** — auditing the OWNER test's soundness with `re.I` made
+  ordinary Rust method calls (`code.push`, `base.as`) match the leaf-ID pattern and marked all 5
+  real `rust-src` TODOs as OWNED. The driver was never case-insensitive; the audit was. Finding
+  withdrawn and re-run faithfully. **An instrument that disagrees with the thing it audits is
+  measuring itself.**
+- **THREE NEW LEAVES for the genuine orphans** (ownership now; fixing "when time permits"):
+  - **`.3`** — the return-annotation **CODEGEN placeholder class**: 5 paths that return `Ok(...)`
+    with **zero diagnostics**, emitting `<property_access>` / `<array_access>` / `<last_extraction>`
+    sentinels and a `/* TODO: Implement spread */` comment. ⭐ A **named, precedented** class —
+    `TOOLBOX.md` already calls `<invalid_sequence_access>` *"the return-annotation corruption
+    class"* and `SV-AST-SHAPE-FIDELITY.2.x` fixed 9 runtime sites of it; these five are the
+    **codegen half nothing tracks**. ✅ Bound stated: **0 shipped parsers carry them** — latent for
+    grammar authors, not live corruption.
+  - **`.4`** — `PGEN_USER_GUIDE.md:4198` presents regex parser `1.1.29` / contract `1.1.31` as
+    **current** when the contract's own identity block reads `1.1.104` / `1.1.106` (~75 releases).
+    ⭐ `CI-PARITY-GATE-ROT.1` already re-pinned the *gate assertion* carrying that same stale pair —
+    **fixing a gate's pin does not fix the document the pin was reading.**
+  - **`.5`** — the `??` **coalesce operator is promised in a PUBLISHED book**
+    (`docs/regex_parser_book/src/rules-quantifier.md:29`) and owned by nothing. The sharpest
+    instance in the census: not an internal note but a **promise to users**.
+- **Verified**: ratchet probes **11/11** (4 RED / 1 GREEN / 6 CONTROL), each RED arm audited to
+  block on **its own** condition (RED 1 `UNTRIAGED=1 bad=0`; RED 2 `UNTRIAGED=0 bad=1`; RED 3
+  `UNTRIAGED=1 bad=0`) — a probe that passes for the wrong reason is worse than no probe.
+  `run_gap_ownership_sweep.sh --check` **exit 0**; `scripts/check_doctrines.sh` **10/10 PASS**.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0007 / PGEN-CI-PARITY-GATE-ROT-0002 — closing a hole I had measured and then merely filed
 
 **The failure worth recording first.** `GENERATED-LINT-CORRECTNESS.4` measured that the acceptance

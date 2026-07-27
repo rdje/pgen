@@ -1,0 +1,43 @@
+# DOCTRINE-GAP-OWNERSHIP.1 — the triaged gap register (TRACKED; the ratchet's memory).
+#
+# Every RESIDUE hit from gap_ownership_sweep.py — i.e. every recorded gap the driver
+# cannot mechanically resolve as FENCE / PROVENANCE / OWNED — must appear here with a
+# TERMINAL disposition, or `gap_ownership_sweep.py --check` exits nonzero.
+#
+# ⛔ THE POINT: a gap that is merely WRITTEN DOWN is invisible. The founding case sat
+# 58 commits in a decision record's prose. This file is what makes "recorded" and
+# "tracked" the same thing. Own them; do NOT fix them here.
+#
+# Keys are sha1(path + NUL + normalized line)[:12] — stable under line movement, and
+# deliberately UNSTABLE under an edit to the gap sentence itself (the claim changed ⇒
+# re-triage it).
+#
+# disposition     meaning
+# --------------  ------------------------------------------------------------------
+# FALSE-POSITIVE  the pattern matched non-gap text (legend prose, a symptom table, …)
+# PROVENANCE      historical record, accurate as of its own entry — not open work
+# BOUNDARY        a published/deliberate support boundary, documented for consumers
+# DELIBERATE      a considered decision carrying its own stated rationale
+# STALE-CLOSED    the record reads OPEN but the work is DONE (owner = closing commit)
+# OWNED           a real gap already owned by a leaf (owner = leaf id)
+# ROUTED          a real gap; a leaf was opened for it here (owner = leaf id)
+#
+# key	disposition	surface	owner_or_reason	note
+69e996989a7a	PROVENANCE	history-narrative	CHANGES.md historical entry	Perl-era "Known Limitations" block (hash stringification) inside an append-only changelog entry; the h1 above it is an undated pasted narrative fragment, which is why the dated-ancestor rule misses it. Records what that iteration did NOT do.
+be3123e42256	FALSE-POSITIVE	root-docs	status-legend definition	"core capabilities or validation are still missing" is the DEFINITION of the `In Progress` status value, not a claim about any component.
+3312980f7692	ROUTED	root-docs	DOCTRINE-GAP-OWNERSHIP.4	MEASURED STALE: the guide presents regex "parser release 1.1.29 / integration contract 1.1.31" as CURRENT; the contract's own identity block reads parser 1.1.104 / contract 1.1.106 (~75 releases newer). User-facing drift in a top-level doc.
+e56cef3d545b	FALSE-POSITIVE	reference	roadmap framing prose	"What is still missing is not raw parsing power. It is a stronger front-end product shape." — a rhetorical framing sentence introducing the roadmap's opportunity section, not a recorded defect.
+6ebfc9c43f17	OWNED	reference	roadmap Phase T	"What is still missing for linter-grade use:" heads the linter roadmap's own gap enumeration; owned by roadmap Phase T (Cross-Language Linter Enablement).
+d64f6e1f39e3	FALSE-POSITIVE	reference	symptom-triage table	A row in "Symptom-To-Layer Triage Shortcuts" describing a SYMPTOM an operator might observe ("the expected parser/runtime path is still missing"), not a gap in the repo.
+96e53dce446b	FALSE-POSITIVE	root-docs	states the opposite	The sentence asserts "**The whole family is typed**"; the pattern matched incidental prose in the same line. No gap recorded.
+65ea91d6d207	PROVENANCE	root-docs	pre-campaign historical note	"Before the atom-subtree campaign (… in follow-up slices) this family emitted raw delimiter sequences" — explicitly past-tense, and the same paragraph states those shapes "no longer exist in any released" parser.
+fc18070405cf	ROUTED	root-docs	DOCTRINE-GAP-OWNERSHIP.5	A PUBLISHED book promises a future annotation-language feature: the `??` coalesce operator (`greediness: $2 ?? "greedy"`). No tree owns it. Restated in DEVELOPMENT_NOTES.md:14739 as "Future slice (option C)".
+ba3b6fdc2436	BOUNDARY	root-docs	published limitation section	"## Known limitations of spread forms" is a deliberate, user-facing constraints section (no mixed flatten-spread; inline-alt corrupts positions). Documented for consumers to design around; the CODEGEN half is routed separately as DOCTRINE-GAP-OWNERSHIP.3.
+f01aa89eb29f	BOUNDARY	root-docs	documented current AST shape	A json-carrier table cell recording which branches are typed vs raw envelope today — the shape contract consumers integrate against, maintained per typing slice.
+2dc62bd76ce8	BOUNDARY	root-docs	documented current AST shape	"inner `source_text_item` shapes are still raw envelope" — the SV book stating the shipped shape, paired with the calibrated regression-lock sample it names.
+02cbd34005a4	DELIBERATE	task-trees	BIN-BUILD-INTEGRITY rationale	The `Option<usize>` fields are left as-is WITH the reason stated inline: keeping the emitted JSON report contract byte-stable and consistent with its sibling field. A decision, not an unowned gap.
+232645343bd8	ROUTED	rust-src	DOCTRINE-GAP-OWNERSHIP.3	Codegen emits `/* TODO: Implement spread for: … */` and returns Ok — no warning, no error.
+1ed110082aa6	ROUTED	rust-src	DOCTRINE-GAP-OWNERSHIP.3	Codegen returns Ok emitting `ParseContent::Terminal("<property_access>")` — the parser yields the literal sentinel instead of the property value.
+658f0c338854	ROUTED	rust-src	DOCTRINE-GAP-OWNERSHIP.3	Codegen returns Ok emitting `ParseContent::Terminal("<array_access>")` — same silent-sentinel shape as property access.
+c5c032db11c1	ROUTED	rust-src	DOCTRINE-GAP-OWNERSHIP.3	Codegen returns Ok emitting `ParseContent::Terminal("<last_extraction>")` for `ExtractionTarget::Last` — "would need runtime determination".
+ce0e20135dc6	ROUTED	rust-src	DOCTRINE-GAP-OWNERSHIP.3	Semantic-annotation transform expressions are parsed as RAW STRINGS with a substring test (`trimmed.contains("::parse::<")`) rather than an AST — function calls / type parameters unmodelled.
