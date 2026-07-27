@@ -9,9 +9,16 @@
 # unticked or missing required box BLOCKS the commit. Exits NONZERO on any breach.
 #
 # The required checklist (label keywords are flexible; the [x] and the keyword are what matter):
-#   - [x] ROOT CAUSE (WHY + WHERE) ........ backed by a DIAGNOSIS tool signature (correctness:
-#                                           cert/probe/trace/reach/lint; performance/SPEED phase:
-#                                           a profiler — `sample`/`flamegraph` self-time+call-graph)
+#   - [x] ROOT CAUSE (WHY + WHERE) ........ backed by a DIAGNOSIS tool signature, from any of the
+#                                           FIVE families: (1) correctness — cert/probe/trace/
+#                                           reach/lint; (2) performance/SPEED — a profiler
+#                                           (`/usr/bin/sample`, `otool -tV`, flamegraph self-time
+#                                           + call-graph); (3) build-integrity — a rustc
+#                                           `error[EXXXX]`; (4) codegen-emission — a real
+#                                           `clippy::<lint>` over the generated artifacts;
+#                                           (5) ops/build-flow — a verbatim shell/git/make/errno
+#                                           invocation for a defect in the repo's own scripts,
+#                                           Makefiles, hooks or tracking state.
 #   - [x] ADDRESSED (verified)  ........... the issue is resolved (before->after on the symptom)
 #   - [x] NO REGRESSION ................... backed by a global-gate signature (seeds 0/7/42, etc.)
 # (REPRODUCE/FIX/LOCKSTEP boxes are recommended by the template but not hard-required here, to
@@ -179,7 +186,33 @@ unchecked() { box_matches ' ' "$1"; }
 # verbatim tool output on the same footing as `error[EXXXX]`: the correctness gate's own signature
 # line, a real `clippy::<lint>` path, and the generated stage's strict switch. Rationale:
 # docs/decisions/project_codegen_emission_root_cause_signature.md.
-DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT'
+#
+# ⭐ GROUP 2 VOCABULARY CORRECTED (GENERATED-LINT-CORRECTNESS.4, 2026-07-27). The performance group
+# was written from a GENERIC Rust-profiler vocabulary (`cargo flamegraph`, `self-time`) that this
+# repository's SPEED campaign does not actually use. MEASURED over every ticked ROOT CAUSE box in
+# docs/tasks/: group 2 backed exactly TWO boxes repo-wide, while `docs/tasks/RGX-0078.md` - the
+# SPEED tree itself, 153 such boxes - root-causes with macOS `/usr/bin/sample`, `otool -tV`
+# annotated disassembly, `spindump`/`filtercalltree`, a process-local `ITIMER_PROF` sampler, and
+# PGEN's own `--dump-rule-outcome-counts-json`. Those are verbatim tool invocations on exactly the
+# same footing as `cargo flamegraph`, so naming them is a CORRECTION of a bar aimed at the wrong
+# tools, NOT a relaxation of it. Without it a SPEED leaf using this repo's real profiler is forced
+# to waive - which is how a gate teaches authors to bypass it.
+#
+# The fifth group is the OPS / BUILD-FLOW diagnosis toolbox (GENERATED-LINT-CORRECTNESS.4,
+# 2026-07-27). A defect in the repository's OWN operational surface - a Makefile recipe that
+# swallows a nonzero exit, a version gate that passes vacuously, an `execve` argument list that
+# overflows ARG_MAX, awk array auto-vivification in the memory guard, untracked-residue hygiene -
+# has NO parse to trace, NO run to sample, NO compiler error (it is shell/make, not Rust) and NO
+# codegen emission. That is the IDENTICAL argument the record already used to admit groups 3 and 4.
+# ⭐ This family was requested BY THE CORPUS ITSELF and nobody read it: docs/tasks/RGX-0090.md:131
+# carries a hand-written waiver note inside the ticked box - verbatim "like RGX-0091 this is a
+# BUILD-FLOW defect - the parse/perf diagnosis-toolbox signatures do not apply" - and
+# docs/tasks/RGX-0091.md:119 wrote "Diagnosis tool signatures: grep -n ..." and got no credit.
+# Tokens are verbatim shell/git/OS invocations and errno names, so quoting one means the tool was
+# actually run. ⛔ A bare `grep` mention is DELIBERATELY EXCLUDED: it matches 16 boxes on prose such
+# as "verified by grep", i.e. it is a claim, not tool output. Rationale + the measured case:
+# docs/decisions/project_ops_build_flow_root_cause_signature.md.
+DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--dump-rule-outcome-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|/usr/bin/sample|\botool\b|\bspindump\b|\bfiltercalltree\b|\bITIMER_PROF\b|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT|git (ls-files|log -S|log --all -S|rev-list|fsck|reflog|diff-tree|merge-base|cat-file)|\bshellcheck\b|bash -n |sh -n |make -n |make --dry-run|\bE2BIG\b|\bENOSPC\b|\bEACCES\b|\bARG_MAX\b|guard\.[0-9]+\.marker|reason=(none|rss-budget|free-floor|disk-floor|timeout)'
 NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corpus *1[0-9]/1[0-9]|shape.?contract|spf=0|sample_parse_failures=0|fully_certified|clippy'
 
 fails=()
@@ -189,7 +222,7 @@ ROOT_KW='root cause|why ?\+ ?where|\bwhy\b'
 if   unchecked "$ROOT_KW"; then fails+=("ROOT CAUSE box is present but UNTICKED ([ ]) — the cause is not yet established.")
 elif ! checked "$ROOT_KW"; then fails+=("ROOT CAUSE (WHY+WHERE) box is MISSING/unticked from the acceptance checklist.")
 elif ! checked "$ROOT_KW" "$DIAGNOSIS_SIG"; then
-  fails+=("ROOT CAUSE box is ticked but the diagnosis-tool signature is NOT INSIDE THAT BOX (cert/probe/trace/furthest_position, profiler self-time/flamegraph, rustc error[EXXXX], or a codegen-emission signature such as clippy::<lint>). A token elsewhere in the file — or in a co-staged tree file — no longer counts.")
+  fails+=("ROOT CAUSE box is ticked but the diagnosis-tool signature is NOT INSIDE THAT BOX (cert/probe/trace/furthest_position; profiler self-time/flamegraph//usr/bin/sample/otool; rustc error[EXXXX]; a codegen-emission signature such as clippy::<lint>; or an ops/build-flow signature such as git ls-files / make -n / E2BIG). A token elsewhere in the file — or in a co-staged tree file — no longer counts.")
 fi
 
 # Required box 2 — ADDRESSED (verified) ticked.
@@ -210,7 +243,11 @@ if [ "${#fails[@]}" -gt 0 ]; then
 diag-evidence: ✗ the staged task leaf does NOT pass the required ACCEPTANCE CHECKLIST for a code
   change. A fix must be PROVABLY taken through the procedure (analyse -> root cause -> fix ->
   addressed -> no regression), not "trust me". Add/complete the checklist (template in TOOLBOX.md):
-    - [x] ROOT CAUSE (WHY + WHERE)  — backed by a debug-tool signature (cert / [plannable-probe] / predicate-rejection trace / furthest_position=)
+    - [x] ROOT CAUSE (WHY + WHERE)  — backed by a debug-tool signature from ONE of the five families:
+                                      correctness (cert / [plannable-probe] / predicate-rejection trace / furthest_position=),
+                                      performance (/usr/bin/sample / otool -tV / flamegraph self-time),
+                                      build-integrity (rustc error[EXXXX]), codegen-emission (clippy::<lint>),
+                                      ops/build-flow (git ls-files / make -n / shellcheck / E2BIG / guard marker reason=)
     - [x] ADDRESSED (verified)      — the issue is resolved (before->after on the symptom)
     - [x] NO REGRESSION             — global metrics (cert seeds 0/7/42 spf=0, 6 grammars byte-identical, external corpus 14/14, ast_shape_contract GREEN, clippy)
   An UNTICKED required box means the task is not done — finish the step, do not bypass. The

@@ -61,6 +61,25 @@ FIX / LOCKSTEP are part of the template and good practice, but not hard-blocked,
 false-positives. The whole task-tree's "start→finish" is then the sequence of its leaves, each
 passing this checklist, plus the tree's own Acceptance Criteria.
 
+⭐ **THE SIGNATURE MUST SIT INSIDE THE BOX'S OWN BULLET** (box-scoped since
+`GENERATED-LINT-CORRECTNESS.3`). A token elsewhere in the leaf — or in a co-staged tree file — does
+not count. Pick the signature family that matches YOUR defect; there are **five**, and a defect that
+fits none of them is a signal worth raising, not a reason to waive:
+
+| # | family | when it applies | verbatim tokens that count |
+|---|---|---|---|
+| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast` |
+| 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
+| 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
+| 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
+| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout` |
+
+⛔ **A bare `file.rs:NNN` citation is NOT a signature, and neither is *"verified by grep"*.** Both
+were measured and deliberately refused (`GENERATED-LINT-CORRECTNESS.4`): a line number is a
+*location*, and "verified by grep" is a *claim* — the box asks for the output of a tool you ran.
+Groups 2 and 5 exist because this repo's SPEED campaign and its ops defects were being forced to
+waive an otherwise-correct gate; if you find a sixth such class, **open a leaf rather than waive**.
+
 **A box is EARNED, not ticked.** A `[x]` you write is a *claim*; the proof is the **oracle re-run**.
 The ADDRESSED and NO-REGRESSION boxes must cite a **named, re-runnable oracle** (the exact gate /
 command + its deterministic result — e.g. cert-coverage at seeds 0/7/42, `ast_shape_contract_gate`,

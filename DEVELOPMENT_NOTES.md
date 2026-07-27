@@ -1,5 +1,108 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0006 — a signature family that does not match the corpus is a gate that teaches you to waive it
+
+**The instrument had to be built before the decision could be taken.** `.3` reported *"30 of 56
+leaf files"* unbacked; that is a FILE-level number. Censusing individual BOXES needed a tool that
+applies the enforcer's *exact* rule, so `run_root_cause_box_census.sh` **sources `DIAGNOSIS_SIG` and
+`ROOT_KW` live out of `scripts/check_diagnosis_evidence.sh`** rather than copying them. A census
+written with an independent regex would measure a different rule than the gate applies, and every
+number below would be an estimate instead of a fact about the gate.
+
+**Reading came before designing, and it changed the answer.** The leaf carried a hard precondition:
+*"OPEN AND READ THAT 144 BEFORE DESIGNING"* (`RGX-0078.md` holds 144 of the unbacked boxes, over
+double the rest of the sample). All 144 were read, plus all 110 boxes matching no descriptive probe.
+They are not weak: they name grammar rules, exact source sites, mechanisms, and measured
+populations. They simply do not contain the tokens the enforcer models.
+
+**Then the hypothesis was priced instead of adopted:**
+
+```
+SITE alone (FORBIDDEN - 'cite a line number')      134 of 304
+CONTRAST alone                                      15 of 304
+SITE **AND** CONTRAST   <== THE CHARTER'S HYPOTHESIS  2 of 304
+corrected macOS/native profiler vocabulary          11 of 304
+bare 'grep'  (EXCLUDED as too loose)                16 of 304
+```
+
+**And the placement split explained why every candidate priced so low:**
+
+```
+OUT-OF-BOX  (leaf HAS tool evidence, outside the ticked bullet) ..  288   94%
+NO-EVIDENCE (leaf file carries no diagnosis signature at all) ...   16    5%
+```
+
+⇒ the gap `.3` opened is not a missing signature family at all. It is the direct, correct
+consequence of box-scoping: the bar moved from *"the leaf shows tool output"* to *"the ticked
+bullet quotes tool output"*, and 94% of a corpus written under the old rule satisfies the former
+only. **No token set can close a placement gap.** The 288 are left as-is; back-filling 49 historical
+records to satisfy a rule that post-dates them would be back-dating the record.
+
+**The two real defects, both found only by measuring:**
+
+1. *Group 2 named the wrong tools.* It backed **2** boxes repo-wide. The SPEED campaign — the very
+   tree group 2 was built for — profiles with macOS `/usr/bin/sample`, `otool -tV`, `spindump` /
+   `filtercalltree` and a process-local `ITIMER_PROF` sampler. Only **6 of RGX-0078's 144** boxes
+   mention `/usr/bin/sample`, and only 1 of its 9 backed boxes matched on `self-time`. Correcting
+   the vocabulary takes group 2 from **2 to 14** without touching the strictness of the bar.
+2. *No family modelled ops/build-flow defects.* Calibration is what justifies adding one:
+
+```
+group 1 correctness ............................... 48
+group 2 performance   BEFORE the correction .......  2
+group 2 performance   AFTER  the correction ....... 14
+group 3 build-integrity ...........................  2
+group 4 codegen-emission ..........................  1
+group 5 ops/build-flow  (NEW in .4) ...............  7
+```
+
+Group 3 was admitted on the strength of ONE leaf and group 4 on ONE; the new family backs seven —
+more than groups 3 and 4 combined.
+
+**The corpus had already reported the gap in prose.** `docs/tasks/RGX-0090.md:131`, inside a ticked
+ROOT CAUSE box: *"(Waiver note: like RGX-0091 this is a BUILD-FLOW defect — the parse/perf
+diagnosis-toolbox signatures do not apply …)"*. `RGX-0091.md:119` even wrote a line headed
+*"Diagnosis tool signatures:"* citing `grep -n` output, and got no credit. Nobody read either.
+**Durable lesson: when an author writes a waiver, the gate is reporting a missing family — read it.**
+
+**Non-weakening was proven, not claimed.** `run_diag_evidence_family5_probes.sh` takes
+`PGEN_DIAG_CHECK_OVERRIDE`, so the same arms run against the pre-change enforcer:
+
+```
+BEFORE (enforcer at 2eed59b6):  RED 4/4 block | GREEN 0/5 (all five BLOCKED) | CTRL 4/4
+AFTER  (enforcer after .4):     RED 4/4 block | GREEN 5/5 allow             | CTRL 4/4
+```
+
+The RED and CONTROL arms are identical on both sides — a bare `file.rs:NNN` citation still blocks
+(RED-2), *"verified by grep"* still blocks (RED-3), and an ops signature placed *outside* the box
+still blocks (RED-4, proving box-scoping binds the new family too). GREEN-3/4/5 quote the **real**
+box text from `RGX-0090` / `SV-REPLAY-DEBT` / `REPO-HYGIENE`, because the claim under test is "the
+corpus this family was designed for now passes".
+
+**A drift defect was fixed because this change would otherwise have made it lie.** `.3`'s probe
+driver hand-copied `DIAGNOSIS_SIG` and `HDR_RE`. Correcting group 2 would have left that sweep
+silently measuring the stale rule — the duplicated-metadata class *inside the driver whose job is to
+verify the enforcer*. Both are now sourced from the enforcer, so drift is structurally impossible.
+
+**Routed, not fixed.** `code_changed` — the predicate deciding whether the checklist is demanded at
+all — covers `grammars/*.ebnf`, `rust/src/*`, `generated/*` and the shape-contract manifests. It
+does **not** cover `scripts/`, `rust/scripts/`, Makefiles, `.githooks/` or `.github/workflows/`:
+
+```
+commits total ..................................... 2618
+touching the OPS surface .......................... 521
+... of those, gate SILENT (no code_changed path) ... 397  (76%)
+```
+
+Every rot class this session found — `ast_dump_contract_gate` red since #212 and referenced by no
+aggregate, `PGEN_CLIPPY_GENERATED_STRICT` set by nothing at all, `ci_workflow_local_gate` unable to
+complete for 1,371 commits — is a defect on that surface. **The acceptance gate cannot see the
+surface where the rot is**, and the sharpest instance is this commit: editing
+`check_diagnosis_evidence.sh` produces, verbatim, `diag-evidence: OK (no code change staged;
+task-acceptance checklist not required)`. The enforcer does not police the enforcer. Widening the
+predicate newly binds ~397 commits' worth of change classes, so it is owned by `.5` and measured
+there, not bolted on here.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0004 — a gate can be green because it looked at nothing
 
 **The premise that did not survive contact.** The leaf was chartered to narrow the generated

@@ -162,7 +162,17 @@ in increasing strength:
    next to it. This catches "forgot to do the step." It is, by itself, *self-tickable* — be honest
    about that; it is necessary, not sufficient.
 2. **Evidence-shape:** the box co-occurs with a string only the real tools emit (a cert header, a
-   probe verdict, a trace rejection). Raises the cost of faking, does not eliminate it.
+   probe verdict, a trace rejection). Raises the cost of faking, does not eliminate it. The string
+   must sit **inside that box's own bullet** (box-scoped since `GENERATED-LINT-CORRECTNESS.3`), and
+   it must belong to one of **five** diagnosis families — correctness, performance, build-integrity,
+   codegen-emission, ops/build-flow — enumerated with their verbatim tokens in `TOOLBOX.md`.
+   ⚠️ **A signature family that does not match the real corpus is a gate that teaches authors to
+   waive it.** Measured in `GENERATED-LINT-CORRECTNESS.4`: the performance family named a generic
+   Rust vocabulary this repo does not use and backed **2** boxes repo-wide, while an author had
+   hand-written a waiver note *inside a ticked box* stating that no family fitted their defect
+   class — and it sat unread. When extending, **price the candidate against the whole corpus before
+   adopting it**: `.4`'s own chartered hypothesis, adopted on one clean sample, would have admitted
+   **2 of 304** boxes.
 3. **Oracle re-run (un-fakeable, CI / `make` gates):** the gate **re-executes the deterministic
    oracle the box claims** — e.g. a "NO REGRESSION" box is *earned* only when re-running
    certificate-coverage at seeds 0/7/42, the shape-contract gate, the byte-identical check across the

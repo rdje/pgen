@@ -1,5 +1,64 @@
 # CHANGES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0006 (leaf `GENERATED-LINT-CORRECTNESS.4`) — the fifth diagnosis family was refuted at 2 of 304, and the gap turned out to be placement
+
+- ⛔⛔ **The charter's own hypothesis was REFUTED by pricing it, not by arguing with it.** `.3`
+  routed an open question to `.4`: make the fifth signature group a CONJUNCTION of a **SITE**
+  (`file.ext:NNN`) **AND** a **CONTRAST** (an arm-vs-arm outcome difference). Measured against
+  every ticked ROOT CAUSE box in `docs/tasks/`: that conjunction admits **2 of 304 (0.7%)**.
+  CONTRAST alone admits 15; SITE alone admits 134 but only by becoming the "cite a line number"
+  degradation the leaf explicitly forbade. The hypothesis was built from `QUANT-PLUS-ITER.md:723`,
+  which `.3` itself labelled *"the cleanest example"* — **one clean sample generalised into a
+  rule**, the exact failure the leaf's own charter warned about.
+- ⭐⭐ **The real shape of the gap is PLACEMENT, and no regex can close it.** For every unbacked
+  box, does its own FILE carry a diagnosis signature elsewhere? **288 of 304 (94%) — yes.** `.3`
+  correctly moved the bar from *"the leaf shows tool output"* to *"the ticked bullet quotes tool
+  output"*, and a corpus written under the old rule satisfies the former only. That is why every
+  candidate priced at 0.7–3.6%: they were all answering the wrong question.
+  ⇒ **the 288 are left AS-IS and deliberately NOT back-filled** — the rule binds new commits, and
+  rewriting 49 historical records to satisfy a rule that post-dates them is back-dating the record
+  (refused on the `LEX-ADJACENCY.1` precedent, where the retro-fit was *marked as such*).
+- ✅ **Two narrow, non-weakening corrections did ship.** (1) **Group 2's tool vocabulary was
+  factually wrong for this repository** — it named `cargo flamegraph` / `self-time` and backed
+  exactly **2** boxes repo-wide, while the SPEED tree (153 such boxes) measures with macOS
+  `/usr/bin/sample`, `otool -tV` annotated disassembly, `spindump`/`filtercalltree`, a
+  process-local `ITIMER_PROF` sampler and `--dump-rule-outcome-counts-json`. Same token class as
+  `cargo flamegraph` ⇒ a correction of a bar aimed at the wrong tools, not a relaxation
+  (**2 → 14**). (2) **A genuine FIFTH family exists and it is OPS / BUILD-FLOW** (backs **7**):
+  a Makefile recipe swallowing a nonzero exit, a version gate passing vacuously, an `execve` list
+  overflowing `ARG_MAX`, awk auto-vivification in the memory guard, tracking-state hygiene — no
+  parse to trace, no run to sample, no rustc error (it is shell/make), no codegen emission, which
+  is the *identical* argument that admitted groups 3 and 4.
+- ⭐⭐ **The family was requested by the corpus itself and nobody read it.**
+  `docs/tasks/RGX-0090.md:131` carries a hand-written waiver note *inside the ticked box*,
+  verbatim: *"like RGX-0091 this is a BUILD-FLOW defect — the parse/perf diagnosis-toolbox
+  signatures do not apply"*; `RGX-0091.md:119` wrote *"Diagnosis tool signatures: `grep -n …`"*
+  and got no credit. An author telling a gate it does not model their defect class is the
+  strongest possible evidence of a missing family.
+- ⛔ **Deliberately excluded as too loose: a bare `grep` mention** — measured, it matches **16**
+  boxes on prose such as *"verified by grep"*. A claim, not tool output.
+- ✅ **Verified with a real before→after, not an assertion.** The probe driver accepts
+  `PGEN_DIAG_CHECK_OVERRIDE`, so the identical 13 arms replay against the older enforcer.
+  **BEFORE (`2eed59b6`): all 5 GREEN arms BLOCKED (8 passed / 5 failed). AFTER: 13/13.** The 4 RED
+  and 4 CONTROL arms are **identical in both runs** — that is the non-weakening proof: a bare
+  `file.rs:NNN` still blocks, *"verified by grep"* still blocks, an out-of-box ops signature still
+  blocks. Corpus effect: backed boxes **52 → 68**, no-evidence residual **16 → 9**.
+  9/9 doctrines PASS; `mdbook_docs_gate` GREEN.
+- ⚠️ **Fixed in passing, because this leaf would otherwise have made it lie:** `.3`'s probe driver
+  carried a **hand-copied duplicate** of `DIAGNOSIS_SIG`/`HDR_RE`, so correcting group 2 would have
+  left its sweep measuring the stale rule — the duplicated-metadata class inside the very driver
+  that verifies the enforcer. Both are now sourced live from the enforcer, as is the new census.
+- ⛔ **Routed, not fixed → new leaf `.5`.** Measured across all **2,618** commits: **521** touched
+  the ops surface (`scripts/`, `rust/scripts/`, Makefiles, `.githooks/`, `.github/workflows/`,
+  `rust/build.rs`) and **397 of them (76%) staged no `code_changed` path**, so the acceptance
+  checklist was never required. ⭐⭐ **Including this very commit** — the live gate answers
+  *"no code change staged; task-acceptance checklist not required"* for a slice that edits the
+  acceptance enforcer itself. Every rot class this session found (`ast_dump_contract_gate` red and
+  unrun, `PGEN_CLIPPY_GENERATED_STRICT` set by nothing, `ci_workflow_local_gate` dead for 1,371
+  commits) lives on exactly the surface the gate does not look at.
+- No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11 parsers byte-identical BY
+  CONSTRUCTION; no release / schema / ledger / contract movement.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0004 (leaf `GENERATED-LINT-CORRECTNESS.3`) — the 291 → 0 win was defended by nothing, and a generated-code gate can pass over an empty room
 
 - ⭐⭐⭐ **The charter's premise was wrong, and measurement said so.** `.3` was chartered to

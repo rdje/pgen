@@ -131,7 +131,15 @@ echo
 echo "=== SWEEP: box-scoped backing across every real task leaf ==="
 sweep_total=0; sweep_backed=0; sweep_unbacked=0
 unbacked_list="${WORK}/unbacked_leaves.txt"; : >"$unbacked_list"
-DIAG_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT'
+# ⚠️ SOURCED, NOT COPIED (GENERATED-LINT-CORRECTNESS.4). This sweep originally carried its own
+# hand-copied duplicate of DIAGNOSIS_SIG. The moment `.4` corrected group 2's tool vocabulary and
+# added the ops/build-flow family, that copy would have measured the STALE rule and reported a
+# gap the live enforcer no longer has — the duplicated-metadata class
+# ([[feedback_duplicated_metadata_needs_derived_drift_gate]]) inside the very driver that exists to
+# verify the enforcer. Reading the assignment out of the enforcer makes drift impossible.
+eval "$(grep -E '^DIAGNOSIS_SIG=' "${CHECK}")"
+DIAG_SIG="${DIAGNOSIS_SIG}"
+[ -n "${DIAG_SIG}" ] || { echo "probe: could not source DIAGNOSIS_SIG from ${CHECK}" >&2; exit 1; }
 
 box_body_probe() {
   awk -v start="$1" '
@@ -147,7 +155,9 @@ box_body_probe() {
   ' "$2"
 }
 
-HDR_RE='^[[:space:]]*[-*][[:space:]]*\[[xX]\][[:space:]].*(root cause|why ?\+ ?where)'
+# Sourced for the same anti-drift reason as DIAGNOSIS_SIG above.
+eval "$(grep -E '^ROOT_KW=' "${CHECK}")"
+HDR_RE="^[[:space:]]*[-*][[:space:]]*\[[xX]\][[:space:]].*(${ROOT_KW})"
 while IFS= read -r f; do
   hdrs="$(grep -nEi -- "$HDR_RE" "${ROOT_DIR}/$f" 2>/dev/null | cut -d: -f1 || true)"
   [ -n "$hdrs" ] || continue

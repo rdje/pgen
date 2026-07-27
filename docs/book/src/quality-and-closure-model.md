@@ -144,6 +144,41 @@ trackers, the workflow docs) may still use the lighter
 code specifically. The authoritative statement lives in
 `docs/TASK_TREE.md` ("Code-Change Doctrine") and `COMMIT.md`.
 
+### The acceptance checklist is machine-enforced, and it names five diagnosis families
+
+The owning leaf must carry a checklist whose **ROOT CAUSE**, **ADDRESSED**
+and **NO REGRESSION** boxes are ticked *and* backed by real tool output —
+checked at commit time by `scripts/check_diagnosis_evidence.sh`. The
+backing signature has to sit **inside that box's own bullet**, so a token
+elsewhere in the leaf, or in an unrelated co-staged tree file, does not
+count.
+
+Which tool output counts depends on what kind of defect it is, and PGEN
+recognizes **five** families, because the right instrument differs:
+
+| family | the defect | the instrument |
+|---|---|---|
+| correctness | the parser accepts or rejects the wrong input | certificate-coverage, `[plannable-probe]`, predicate-rejection traces |
+| performance | correct but slow | a profiler (`/usr/bin/sample`, `otool` disassembly, flamegraph self-time) |
+| build integrity | a target no longer compiles | the compiler's own `error[EXXXX]` |
+| codegen emission | the generator emits the wrong code — it compiles *and* parses fine | the generated-parser lint lane (`clippy::<lint>`) |
+| ops / build-flow | the defect is in PGEN's own scripts, Makefiles, hooks or tracking state | `git ls-files`, `make -n`, `shellcheck`, `E2BIG`/`ARG_MAX`, the memory-guard marker |
+
+The last two exist because a defect can be perfectly real while leaving
+*no* parse to trace, *no* run to sample and *no* compiler error. A gate
+whose families do not match the work people actually do does not raise
+quality — it teaches authors to waive it. That is not hypothetical: the
+performance family was measured backing just **two** root-cause boxes in
+the whole repository, while the speed campaign's own leaves used a
+different profiler entirely, and one author had written a waiver note
+directly into a checklist box explaining that no family fitted their
+defect.
+
+Two shapes are deliberately **not** accepted, both refused on
+measurement: a bare `file.rs:123` citation (a location is not a tool
+output — it would reduce the gate to "cite a line number") and prose such
+as *"verified by grep"* (a claim, not output).
+
 ## Closure Is Normalized Across Families
 
 PGEN does not use different quality philosophies for different parser families.
