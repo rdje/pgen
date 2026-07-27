@@ -45,10 +45,17 @@
   claim-carrying grammars, regex PCRE2 oracle green, source warnings 42 → 42, generated
   rustc warnings 35,981 → 35,964, 9/9 doctrines. No release / schema / ledger / contract
   movement.
-- ⚠️ **Ops:** two heavy jobs were OS-killed (`SIGTERM`) at ~15.1 and ~15.3 GB peaks
-  against the banked `--budget-mb 16384`; both passed at `18432`. The first kill left the
-  artifact tree in a mixed vintage, so the whole regeneration was redone rather than
-  patched.
+- ⚠️ **Ops — CORRECTED same session; the first reading of this was WRONG.** Two heavy jobs
+  were OS-killed (`signal: 15 SIGTERM`) at process-tree peaks of **15,079** and **15,253 MB**.
+  ⛔ The remedy first written here — *"the 16 GB budget is no longer enough, use 18432"* — is
+  **refuted by the guard markers: the second kill happened with `budget_mb=18432` already in
+  effect**. Neither was a guard kill: both markers read `reason=none`, both peaks are *below*
+  their budget, and `last_free_pct` was 82–83%, so the RSS budget and the system-free floor
+  both saw nothing. The cause is macOS memory pressure on a spike the 5-second sampler never
+  observed, on a 24 GB host whose swap is 4,096 MB total with 2,509 MB already used. Raising
+  the budget makes the guard *less* protective, not more. Routed to `OPS-MEMSAFE.4`. The first
+  kill left the artifact tree in a mixed vintage, so the whole regeneration was redone rather
+  than patched.
 
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0002 (leaf `GENERATED-LINT-CORRECTNESS.1`) — the degenerate emissions are folded at codegen: 291 clippy errors -> 0, and 22.3 MB off the shipped parsers
 

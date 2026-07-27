@@ -54,13 +54,29 @@ ARGUMENT to the shared `inlined_frame_call` helper, whose own `if negative_case_
 is a conditional over a runtime parameter. Folding that second one would have been wrong,
 and from the grep alone the two are indistinguishable.
 
-**Ops, measured.** Two heavy jobs were killed by the OS (`signal: 15, SIGTERM`,
-`make Error 101`) at process-tree peaks of 15,079 MB and 15,253 MB against
-`--budget-mb 16384`, with the guard reporting `exit=2` rather than a budget kill because
-it samples periodically and cannot see the spike. Both passed unchanged at `18432`. The
-first kill is the one worth remembering: it died partway through the regeneration and left
-2 of 11 parsers on the new codegen and 9 on the old, which would have made every
-downstream number unattributable. The whole regeneration was redone rather than resumed.
+**Ops — and a correction I had to make to my own finding, same session.** Two heavy jobs
+were killed by the OS (`signal: 15, SIGTERM`, `make Error 101`) at process-tree peaks of
+15,079 MB and 15,253 MB. My first reading was *"the banked 16 GB budget is no longer
+enough — use 18432"*. That is **refuted by the markers I had already written**:
+`guard.54226.marker` records the SECOND kill with `budget_mb=18432` **already in effect**.
+Raising the budget did not prevent it and could not have, because neither kill was a guard
+kill — both markers read `reason=none`, both peaks are *below* their budget, and
+`last_free_pct` was 82–83%, so the RSS budget and the system-free floor both saw nothing.
+
+The actual mechanism is macOS memory pressure acting on a spike the guard's 5-second
+sampler never observed, on a 24 GB host whose swap is 4,096 MB total with 2,509 MB already
+used (~1.5 GB free). Raising the budget makes the guard *less* protective, since it
+licenses 18.4 GB on a box that starts killing near 15; the re-runs succeeded because less
+incremental work remained and transient pressure eased. ⚠️ This exact failure mode was
+**already recorded in this file** (the `.3.x`-era note below: `reason=none`, periodic
+sampling blind to spikes, the capped swap). I re-discovered it and attached the wrong
+remedy — a RE-MEASURE failure of the prior-art discipline, on a fact that was one grep
+away. Routed to `OPS-MEMSAFE.4`.
+
+The first kill is still the one worth remembering operationally: it died partway through
+the regeneration and left 2 of 11 parsers on the new codegen and 9 on the old, which would
+have made every downstream number unattributable. The whole regeneration was redone rather
+than resumed.
 
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0002 — the residue that named a second and third emitter
 

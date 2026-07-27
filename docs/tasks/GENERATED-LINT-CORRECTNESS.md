@@ -372,14 +372,39 @@ landed — the honest outcome — and is the FOURTH occurrence of the banked sha
 `contains` assertion over rendered tokens tests SPELLING, not BEHAVIOUR"*. Now it
 requires `current_branch_index > best_branch_index` and FORBIDS `match "right"`.
 
-⚠️ **OPS — the 16 GB guard budget is no longer enough for these classes.** Two heavy
-jobs were killed by the OS (`signal: 15, SIGTERM`) at peaks of **15,079 MB** and
-**15,253 MB** against `--budget-mb 16384`, with the guard reporting `exit=2` rather than
-a budget kill (it samples periodically and cannot see the spike — the failure mode
-already recorded in `DEVELOPMENT_NOTES.md`). Both passed on a plain re-run at
-`--budget-mb 18432`. ⛔ The first kill left the artifact tree in a MIXED vintage (2 of 11
-regenerated); the whole regeneration was redone rather than patched, because a mixed
-tree makes every downstream measurement unattributable.
+⚠️⚠️ **OPS — THIS FINDING WAS WRONG AND IS CORRECTED IN PLACE (same session).** Two
+heavy jobs were killed by the OS (`signal: 15, SIGTERM`) at process-tree peaks of
+**15,079 MB** and **15,253 MB**. The first version of this note concluded *"the 16 GB
+guard budget is no longer enough — use `--budget-mb 18432`"*.
+
+⛔ **That is refuted by the guard's own markers**, which had already been written when
+the claim was made:
+
+| marker | budget_mb | peak_rss_mb | reason | exit | last_free_pct |
+|---|---|---|---|---|---|
+| `guard.24252` (`make focus_*`) | 16384 | 15,079 | `none` | 2 | 83 |
+| `guard.54226` (`parse_harness_combinator_gate`) | **18432** | 15,253 | `none` | 2 | 82 |
+
+**The second kill happened with the "fix" already in effect.** Neither was a guard kill:
+`reason=none` in both, both peaks are *below* their budget, and system-free was 82–83%,
+so the RSS budget AND the system-free floor both saw nothing. The mechanism is macOS
+memory pressure acting on a spike the guard's 5-second sampler never observed, on a 24 GB
+host whose swap is **4,096 MB total with 2,509 MB already used** (~1.5 GB free).
+
+⛔ **Raising the budget makes the guard LESS protective, not more** — it licenses 18.4 GB
+on a machine that starts killing near 15. The re-runs succeeded because less incremental
+work remained (a lower peak) and transient pressure had eased, not because of the budget.
+
+⚠️ **This exact failure mode was ALREADY RECORDED** in `DEVELOPMENT_NOTES.md` (`reason=none`,
+periodic sampling blind to spikes, the capped swap). It was re-discovered here and given
+the wrong remedy — a RE-MEASURE failure of
+[`docs/decisions/feedback_read_prior_art_before_designing.md`] on a fact one grep away.
+⇒ routed to **`OPS-MEMSAFE.4`**, which owns the real question (make the guard SEE spikes,
+and decide what the binding constraint on this host actually is).
+
+⛔ The first kill left the artifact tree in a MIXED vintage (2 of 11 regenerated); the
+whole regeneration was redone rather than patched, because a mixed tree makes every
+downstream measurement unattributable. **That part of the note stands.**
 
 ⚠️ **A GAP IN THE DOCTRINE ENFORCER, found by this leaf and recorded rather than worked
 around.** `scripts/check_diagnosis_evidence.sh` requires the ROOT CAUSE box to be backed

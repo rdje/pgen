@@ -3,7 +3,10 @@
 ## Metadata
 
 - Tree ID: `OPS-MEMSAFE`
-- Status: `complete` (2026-07-18 — REOPENED same day for leaf `.2` disk-floor guard after the RGX-0078 `.5.i.15` probe build died on host-disk exhaustion, and CLOSED with T10/T11 + regression green; previously `complete` 2026-07-14 with battery T1–T9; the DIRECTIVES stay binding: heavy jobs run UNDER the guard, disk hygiene is proactive)
+- Status: `active` (**REOPENED 2026-07-27 session #214 for leaf `.4`** — the guard cannot see a
+  spike between samples, and on this 24 GB host the RSS budget is not the binding constraint;
+  opened by `GENERATED-LINT-CORRECTNESS.2` after it drew the WRONG conclusion from two OS
+  kills. Previously `complete` 2026-07-18 — REOPENED same day for leaf `.2` disk-floor guard after the RGX-0078 `.5.i.15` probe build died on host-disk exhaustion, and CLOSED with T10/T11 + regression green; previously `complete` 2026-07-14 with battery T1–T9; the DIRECTIVES stay binding: heavy jobs run UNDER the guard, disk hygiene is proactive)
 - Roadmap lane: operational continuity / host-resource governance (standing director directive `docs/decisions/feedback_host_ram_budget_all_jobs.md` + the 2026-07-18 disk-hygiene directive `docs/decisions/feedback_disk_hygiene_proactive.md`)
 - Created: `2026-07-14`
 - Last updated: `2026-07-18`
@@ -194,3 +197,65 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
 - `2026-07-14`: First build's own T2 test killed the host's user session (awk auto-vivification made the tree walk system-wide; the kill list followed). Root-caused with the surviving guard logs + crash reports + a live repro; fixed (`!(p in mark)`) + three kill-path fail-safes; battery extended with T8 (scoping regression) + T9 (guard-interrupted); 23/23 PASS. Leaf `.1` DONE — heavy jobs now run UNDER the guard.
 - `2026-07-18`: Tree REOPENED for leaf `.2` after the RGX-0078 `.5.i.15` probe build died on host-disk exhaustion (100% disk, 1.1 GB free — the guard had no disk axis). Disk floor delivered mirroring the RAM floor's design (pre-flight refusal exit 96 `reason=disk-floor`; in-flight breach exit 95 via the existing kill path; `--disk-floor-gb` default 8, 0 disables; `df -Pk .` + deterministic seam); T10/T11 + full regression PASS; standing disk-hygiene directive recorded (`docs/decisions/feedback_disk_hygiene_proactive.md`). Leaf `.2` DONE — tree `complete` again.
 - `2026-07-19`: Tree REOPENED for leaf `.3` after the destructive-clean incident (director directive, emphatic): `make annotation_parsers` → alias → `clean` destroyed 102.8 GiB incl. every preserved perf probe. Delivered refuse-by-default guard on the `clean` family (exit 96, `PGEN_CONFIRM_CLEAN=1` opt-in), the registered doctrine check `check_destructive_target_guard.sh` (first run caught the latent `bootstrap-test` member), and the `preserved_probes/` relocation outside the `cargo clean` blast radius. Leaf `.3` DONE — tree `complete` again.
+
+## Leaf `.4` — the guard cannot SEE a spike, and on this host the RSS budget is not the binding constraint (`todo`)
+
+- **Status: `todo`** — REOPENS the tree (2026-07-27, session #214). Opened by
+  `GENERATED-LINT-CORRECTNESS.2`, which hit the failure twice and **first drew the wrong
+  conclusion from it**; the correction is what created this leaf.
+- ⛔ **The wrong conclusion, recorded so it is not repeated:** *"the banked
+  `--budget-mb 16384` is no longer enough — use 18432."* It is refuted by the guard's own
+  markers, which were already on disk when the claim was written:
+
+| marker | command | budget_mb | peak_rss_mb | reason | exit | last_free_pct |
+|---|---|---|---|---|---|---|
+| `guard.24252` | `make -C rust focus_*` | 16384 | 15,079 | `none` | 2 | 83 |
+| `guard.54226` | `make -C rust parse_harness_combinator_gate` | **18432** | 15,253 | `none` | 2 | 82 |
+
+  **The second kill happened with the proposed fix already in effect.** Neither was a guard
+  kill: `reason=none` in both, both peaks BELOW their budget, and system-free 82–83%, so
+  the RSS budget AND the `--floor-pct` system-free floor both saw nothing. The child rustc
+  received `signal: 15` from outside the guard.
+
+- **Measured host state (2026-07-27):** `hw.memsize` 24.0 GB; `vm.swapusage` total
+  4096.00M / **used 2509.75M** / free 1586.25M. ⇒ the binding constraint is RAM plus
+  nearly-exhausted swap headroom, not the guard's RSS budget. ⛔ **Raising the budget makes
+  the guard LESS protective** — it licenses 18.4 GB on a machine the OS starts killing near
+  15, i.e. it guarantees the OS wins the race.
+
+- ⚠️ **This was already known.** `DEVELOPMENT_NOTES.md` records the same mechanism from the
+  `.3.x` era: *"the guard reported `reason=none`, `last_free_pct=84`, because it samples
+  periodically and cannot see a spike between samples. Contributing factor: swap is capped
+  at 3,072 MB with ~1,989 MB already in use."* (Swap has since grown to 4,096 MB and is
+  still ~61% consumed.) Re-discovering it and attaching a wrong remedy is a RE-MEASURE
+  failure of `docs/decisions/feedback_read_prior_art_before_designing.md`.
+
+### The real questions this leaf owns
+
+1. **Make the guard SEE spikes, or say it cannot.** `--interval-s` defaults to 5 s and a
+   fat-LTO / large-crate link can add several GB inside one interval. Options to price:
+   a much shorter interval for the heavy classes; sampling *system* pressure rather than
+   only tree RSS; or — the honest minimum — emitting a distinguishable marker when the
+   child dies of an external signal, so `reason=none exit=2` stops reading like a normal
+   child failure. ⭐ This is the same principle the `GENERATED-LINT-CORRECTNESS` tree is
+   named for: **a check that cannot see must say so, not return green.**
+2. **Decide the budget doctrine on THIS host.** A budget *below* the OS-kill point converts
+   a random external SIGTERM into a deterministic, branchable guard kill (exit 97 with a
+   `reason=rss-budget` marker) — worse throughput, far better diagnosability. A budget
+   above it is decoration. Neither makes the job complete; that needs (3).
+3. **Reduce the peak.** The drivers are known: the `--test` lib link and the
+   `target/debug/ast_pipeline` rustc invocation, both dominated by the 130 MB SV parser.
+   Candidates: `-C debuginfo=0` for regeneration-only builds, splitting the `focus_*`
+   fan-out, or serializing so two heavy jobs never overlap.
+4. ⚠️ **A mixed-vintage hazard, already paid for once.** The first kill died partway
+   through a `focus_*` fan-out and left 2 of 11 generated parsers on the new codegen and 9
+   on the old. Nothing detected that; it was caught only because the operator was watching
+   timestamps. A partially-completed regeneration is silently unattributable evidence —
+   worth an explicit all-or-nothing marker.
+
+### Interim guidance (until this leaf lands)
+
+- ⛔ Do **not** treat `--budget-mb 18432` as the remedy; it is measured not to be one.
+- A `reason=none exit=2` marker on a heavy job means **an external kill**, not a guard
+  breach — re-run it, and if it recurs, reduce the peak rather than raise the budget.
+- After any interrupted `focus_*` fan-out, **redo the whole regeneration**; never resume it.

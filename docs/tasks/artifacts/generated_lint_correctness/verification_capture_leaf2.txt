@@ -1,8 +1,8 @@
 GENERATED-LINT-CORRECTNESS.2 — verification capture (ADDRESSED + NO REGRESSION)
 ================================================================================
 Working tree on top of commit bf48699b (leaf `.1`).
-Heavy jobs run under `scripts/run_with_memory_guard.sh --budget-mb 18432`
-(see the OPS note at the bottom — 16384 is no longer enough for these classes).
+Heavy jobs run under `scripts/run_with_memory_guard.sh` (see the CORRECTED OPS
+note at the bottom — the budget VALUE was not the problem).
 
 --------------------------------------------------------------------------------
 THE SWEEP — what `.2` enumerated, and how
@@ -199,19 +199,41 @@ zero-width `true`/`false` matcher, and `.10.1`'s sweep miss). Re-pinned to what
     assert!(!rendered.contains("match \"right\""));
 
 --------------------------------------------------------------------------------
-OPS — the 16 GB memory-guard budget is no longer sufficient for these classes
+OPS — CORRECTED. The first version of this section was WRONG.
 --------------------------------------------------------------------------------
 
-TWO heavy jobs were killed by the OS (`signal: 15, SIGTERM`, `make Error 101`)
-with the guard reporting `exit=2` rather than a budget kill, at peaks of
-**15,079 MB** and **15,253 MB** against `--budget-mb 16384`:
+TWO heavy jobs were killed by the OS (`signal: 15, SIGTERM`, `make Error 101`) at
+process-tree peaks of 15,079 MB and 15,253 MB:
 
   - `make -C rust focus_*` (the `target/debug/ast_pipeline` rustc invocation)
   - `make -C rust parse_harness_combinator_gate` (the `--test` lib link)
 
-The guard samples periodically and cannot see the spike between samples (the
-failure mode already recorded in `DEVELOPMENT_NOTES.md`). Both succeeded on a
-plain re-run at `--budget-mb 18432`. ⚠️ The first kill left the artifact tree in
-a MIXED vintage (2 of 11 parsers regenerated, 9 stale) — the whole regeneration
-was redone rather than patched, because a mixed tree would have made every
-downstream measurement unattributable.
+This section first concluded "the 16 GB budget is no longer sufficient — use
+18432". REFUTED by the guard's own markers, which were already on disk when the
+claim was written:
+
+  guard.24252  budget_mb=16384  peak_rss_mb=15079  reason=none  exit=2  free=83%
+  guard.54226  budget_mb=18432  peak_rss_mb=15253  reason=none  exit=2  free=82%
+
+The SECOND kill happened with `budget_mb=18432` ALREADY IN EFFECT. Neither was a
+guard kill — `reason=none` in both, both peaks BELOW their budget, and system
+free 82-83%, so the RSS budget AND the system-free floor both saw nothing.
+
+Measured host state (2026-07-27):
+  hw.memsize      24.0 GB
+  vm.swapusage    total 4096.00M / used 2509.75M / free 1586.25M
+  => the binding constraint is RAM plus nearly-exhausted swap headroom, NOT the
+     guard's RSS budget. Raising the budget makes the guard LESS protective: it
+     licenses 18.4 GB on a machine that starts killing near 15.
+
+The re-runs succeeded because less incremental work remained (a lower peak) and
+transient pressure had eased — not because of the budget.
+
+This failure mode was ALREADY recorded in DEVELOPMENT_NOTES.md (`reason=none`,
+periodic sampling blind to spikes, the capped swap). Re-discovering it and
+attaching the wrong remedy is a RE-MEASURE failure. Routed to OPS-MEMSAFE.4.
+
+STILL TRUE, and the operationally important part: the first kill left the
+artifact tree in a MIXED vintage (2 of 11 parsers regenerated, 9 stale) — the
+whole regeneration was redone rather than patched, because a mixed tree would
+have made every downstream measurement unattributable.
