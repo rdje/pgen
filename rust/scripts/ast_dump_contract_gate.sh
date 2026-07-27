@@ -119,12 +119,20 @@ PARSER_DUMP_B="$WORK_DIR/parser_ast_b.json"
 PARSER_DUMP_TRUNC="$WORK_DIR/parser_ast_trunc.json"
 PARSER_DUMP_DIFF="$WORK_DIR/parser_ast_determinism.diff"
 
+# QUANT-PLUS-ITER.4 (2026-07-27): `@entry: true` became MANDATORY at the grammar-load chokepoint
+# in `.2` step C, and this gate has been RED since that commit (`7219547c`). ⭐ Step B's migration
+# could not see these two fixtures because they are NOT `.ebnf` files — they are raw-AST JSON
+# heredocs, and an `.ebnf`-shaped sweep is structurally blind to a grammar expressed as raw AST.
+# The raw-AST encoding of the declaration was MEASURED from the frontend, not guessed:
+#   $ printf '@entry: true\nstart := "a"\n' > mini.ebnf && perl tools/ebnf_to_json.pl mini.ebnf
+#   ... "raw_ast":[[["rule","start"],["semantic_annotation",["entry","true"]],["quoted_string","a"]]]
 cat >"$GEN_GRAMMAR_JSON" <<'EOF'
 {
   "grammar_name": "mini",
   "raw_ast": [
     [
       ["rule", "start"],
+      ["semantic_annotation", ["entry", "true"]],
       ["quoted_string", "a"]
     ]
   ]
@@ -138,6 +146,7 @@ jq -n --arg tok "$large_token" '
   raw_ast: [
     [
       ["rule", "start"],
+      ["semantic_annotation", ["entry", "true"]],
       ["quoted_string", $tok]
     ]
   ]
@@ -149,7 +158,17 @@ large_left="$(printf '9%.0s' {1..400})"
 large_right="$(printf '8%.0s' {1..400})"
 printf '@priority: [%s, %s]\n' "$large_left" "$large_right" >"$PARSER_LARGE_INPUT"
 
-run_logged_rust "build_ast_pipeline" cargo build --bin ast_pipeline
+# QUANT-PLUS-ITER.4 (2026-07-27): built WITH `--features generated_parsers`, the canonical
+# annotation backend. ⭐ THE KNOCK-ON THE `@entry` MANDATE CREATED: making `@entry: true` mandatory
+# means EVERY grammar now carries a semantic annotation, so every consumer that loads a grammar now
+# needs the generated annotation backend — including this gate, which previously built a minimal
+# binary because its fixtures carried no annotations at all. The pipeline REFUSES the bootstrap
+# fallback here by design (it "can silently re-interpret constructs beyond its subset" — the
+# RGX-0078.5.i.1.t1 `null` -> "null" drift incident), and ⛔ `PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1`
+# is NOT the answer: it produces artifacts the message itself marks as non-canonical.
+# This costs the gate nothing new — it ALREADY builds `parseability_probe` with the same feature
+# below, so it already requires the `generated/` artifacts to be present.
+run_logged_rust "build_ast_pipeline" cargo build --features generated_parsers --bin ast_pipeline
 run_logged_rust "build_parseability_probe" cargo build --features generated_parsers --bin parseability_probe
 
 run_logged "generation_dump_a" \

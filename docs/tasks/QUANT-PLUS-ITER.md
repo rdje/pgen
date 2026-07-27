@@ -783,7 +783,74 @@ equivalence/AST oracles (`TOOLBOX.md` §1.6).
   check — so the question that would have closed `.1` in one command is the first
   thing a reader meets.
 
-### `.4` — residual entry-visibility items not covered by `.2` (`todo`)
+### `.4` — residual entry-visibility items not covered by `.2` (`mostly done` — the RED gate is FIXED)
+
+- ⭐⭐ **`make -C rust ast_dump_contract_gate` IS GREEN AGAIN** (2026-07-27, session #216,
+  `PGEN-QUANT-PLUS-ITER-0005`) — RED since `7219547c`, i.e. since this tree's own `.2` step C, and
+  fixed here rather than left routed. All 6 assertions pass
+  (`generation_dump_{deterministic,truncation_envelope,negative_path}` +
+  `parser_dump_{deterministic,truncation_envelope,negative_path}`).
+
+#### Root cause, and the SECOND layer the first fix exposed
+
+1. **The fixtures did not declare the now-mandatory entry.** Both are raw-AST **JSON heredocs**
+   inside `rust/scripts/ast_dump_contract_gate.sh` (`mini`, `mini_large`), so `.2` step B's sweep
+   over 58 `.ebnf` + 68 synthetic grammars was **structurally blind** to them. The raw-AST encoding
+   was **MEASURED, not guessed** — `perl tools/ebnf_to_json.pl` on a two-line probe grammar emits
+   `["semantic_annotation",["entry","true"]]` as an element of the rule's list.
+2. ⭐ **Then a knock-on the mandate created surfaced:** because `@entry: true` is now mandatory,
+   **every grammar carries a semantic annotation**, so every grammar-loading consumer now needs the
+   generated annotation backend. This gate deliberately built a minimal `ast_pipeline` (no
+   `--features generated_parsers`) precisely because its fixtures had no annotations — and the
+   pipeline **REFUSED**, by design, rather than silently falling back
+   (*"can silently re-interpret constructs beyond its subset"*). ⛔
+   `PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1` was rejected as the fix: the message itself marks
+   its artifacts non-canonical. The gate now builds with `--features generated_parsers`, which
+   costs it nothing new — it **already** builds `parseability_probe` with that feature, so it
+   already required the `generated/` artifacts.
+
+#### ⛔ Fixing it was not enough — it rotted because NOTHING INVOKED IT
+
+Measured: outside its own Makefile recipe and one help line, the string `ast_dump_contract_gate`
+appeared **nowhere** — no aggregate, no CI workflow. Repairing the gate without giving something a
+reason to run it would simply schedule the next rot. New **`audit_ast_dump_contract_surface`**
+registered in `ci_workflow_local_gate` (audit phase **31 → 32**, all green), pinning the exact
+regression that happened: both fixtures declare `@entry`, the build uses the canonical backend, and
+the bootstrap fallback is absent from executable lines.
+
+⚠️ **This leaf's own RED arms caught TWO defects in this leaf's own work**, which is the whole
+argument for writing them:
+- a `sed` that silently failed made the first RED run a **FALSE GREEN** — the file was never
+  modified and the census reported 32/32 for an unmodified tree. Re-run properly with `python3`;
+- the audit's `assert_file_contains` for the mandatory declaration **PASSED with one of the two
+  fixtures stripped** — presence is not enough when N instances must each hold. New
+  `assert_file_contains_count` asserts exactly 2. That is the vacuity class this repo keeps
+  re-deriving, found in a check written to prevent it.
+- and the first version of the audit fired on **its own comment** explaining why the bootstrap
+  fallback is refused — the second such instance this session, closed with the
+  `assert_file_not_contains_uncommented` helper built for the first.
+
+#### Acceptance checklist (enforced)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `.2` step C made `@entry: true` mandatory at the
+      grammar-load chokepoint; WHERE: the two raw-AST JSON fixtures in
+      `rust/scripts/ast_dump_contract_gate.sh` declare no entry, so the pipeline refused at
+      `main.rs:2269`. Tool-backed: `make -C rust ast_dump_contract_gate` quoted the refusal
+      verbatim, and the required encoding was derived by running `perl tools/ebnf_to_json.pl` over
+      a probe grammar rather than guessed. Second layer located the same way — the annotation
+      backend refusal names `--features generated_parsers` as the canonical path.
+- [x] **ADDRESSED (verified)** — before → after on the symptom: `make -C rust
+      ast_dump_contract_gate` **RED → GREEN**, 6/6 assertions
+      (`generation_dump_deterministic: 1`, `generation_dump_truncation_envelope: 1`,
+      `generation_dump_negative_path: 1`, `parser_dump_deterministic: 1`,
+      `parser_dump_truncation_envelope: 1`, `parser_dump_negative_path: 1`).
+- [x] **NO REGRESSION** — the parity-gate audit phase goes **31/31 → 32/32** (the new audit is
+      additive; the 31 existing audits still pass). RED-tested three ways: dropping one of the two
+      `@entry` declarations FAILS, dropping the canonical-backend feature FAILS, restoring passes.
+      10/10 doctrines PASS. No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11
+      parsers byte-identical by construction; no release/schema/ledger movement; clippy N/A.
+
+#### Still open in this leaf (unchanged, not touched here)
 
 Carved out of the original `.2` so `.2` stays exactly the director-approved scope.
 

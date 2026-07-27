@@ -7,7 +7,7 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: `.2`** (`.1` **done** 2026-07-27 session #216 — audit phase **23 PASS / 8 FAIL → 31 PASS /
+- **Frontier: `.2`** then **`.3`** (`.1` **done** 2026-07-27 session #216 — audit phase **23 PASS / 8 FAIL → 31 PASS /
   0 FAIL**; the escalated row was ruled on by the director same-session and executed as `.1b`)
 - ✅⛔ **DIRECTOR RULING RECEIVED (2026-07-27, session #216, verbatim):** *"We will republish PGEN
   regex parser at a later time"* + *"I agree we shouldn't cite either regex.json or regex.ebnf"*
@@ -252,6 +252,7 @@ note in this tree's header.**
 | slice | leaf | commit subject |
 |---|---|---|
 | (opened by `PGEN-GENERATED-LINT-CORRECTNESS-0004`) | (tree opened) | the local CI-parity gate has been unable to complete for 1,371 commits — first blocker repaired, 8 independent audits routed here |
+| `PGEN-QUANT-PLUS-ITER-0005` | (`.1b` follow-on) | `ast_dump_contract_gate` repaired and given the surface audit that makes it reachable — audit phase 31 → 32 |
 | `PGEN-CI-PARITY-GATE-ROT-0002` | `.1b` | the director ruled the boundary STANDS — the 5 consumer-facing internal-path citations removed, the assertion re-scoped to the recipe section, 31/31 |
 | `PGEN-CI-PARITY-GATE-ROT-0001` | `.1` | 12 stale assertions across 8 audits adjudicated one at a time — 23/8 → 30/1, and fail-fast had hidden a third of them |
 
@@ -282,3 +283,23 @@ note in this tree's header.**
   **RED-B** the section renamed away ⇒ **FAIL with an explicit "section not found" refusal, not a
   silent pass** (the *"a check that cannot run must SAY SO"* principle applied to the new helper
   itself); **GREEN** restored ⇒ **31/31**. 10/10 doctrines PASS.
+
+### `.3` — the gate's WORKFLOW phase has still never been exercised (`todo`)
+
+- **Status: `todo`** — opened 2026-07-27 session #216 by `.1b`, on measuring what `.1` did NOT
+  cover. ⛔ **Do not read "audit phase 32/32" as "the gate completes."**
+- **The measured gap.** `main()` runs the 32 audits and then `copy_tracked_worktree` +
+  **11 `run_workflow` replays** (`annotation-contract-gate`, `annotation-nonbootstrap-e2e-gate`,
+  `branch-protection-contract-gate`, `differential-regression-gate`, `ebnf-frontend-dual-run-diff`,
+  …). `.1`/`.1b` fixed the audit phase only — **the 11 replays have not been run once** in this
+  campaign, so the tree's headline claim (*"has not been able to complete for 1,371 commits"*) is
+  half-answered at best.
+- ⚠️ **Expect the export-visibility asymmetry to bite here, and budget for it.** `run_workflow`
+  executes inside `copy_tracked_worktree`'s export dir, which contains `git ls-files` output ONLY —
+  and `generated/` is untracked. Any replayed workflow that needs a generated parser will find an
+  empty room. That is the same vacuity class `GENERATED-LINT-CORRECTNESS.3` had to build its gate
+  against; here it is unmeasured.
+- 💡 Suggested first step (cheap, no full run): `PGEN_CI_WORKFLOW_LOCAL_FILTER=<one-workflow>` to
+  replay a single workflow and characterise the failure mode before attempting all 11.
+- ⛔ **HEAVY — use the memory guard** (`scripts/run_with_memory_guard.sh`, host-RAM directive); the
+  replays invoke full `make` gates with cargo builds.

@@ -146,6 +146,25 @@ assert_file_matches() {
     fail "file content drift detected in $repo_file: nothing matches /$pattern/"
 }
 
+# assert_file_contains_count <repo_file> <literal> <expected_count>
+# Presence is not enough when a surface has N instances that must EACH hold.
+# QUANT-PLUS-ITER.4 (2026-07-27): added because this leaf's own RED arm caught its own weak
+# assertion — `ast_dump_contract_gate.sh` carries TWO raw-AST fixtures (`mini`, `mini_large`) and a
+# plain `assert_file_contains` for the mandatory `@entry` declaration still PASSED after one of the
+# two was deleted. An audit that proves "at least one of N is correct" is a vacuity trap wearing a
+# green tick — the same class as `.3`'s "lint a directory that compiled zero parsers and exit 0".
+assert_file_contains_count() {
+  local repo_file="$1"
+  local expected="$2"
+  local want="$3"
+  local got
+  got="$(grep -F -c -- "$expected" "$ROOT_DIR/$repo_file" 2>/dev/null || true)"
+  [ -n "$got" ] || got=0
+  if [ "$got" != "$want" ]; then
+    fail "file content drift in $repo_file: expected exactly $want occurrence(s) of '$expected', found $got"
+  fi
+}
+
 assert_file_not_contains() {
   local repo_file="$1"
   local forbidden="$2"
@@ -2929,6 +2948,38 @@ audit_generated_clippy_correctness_surface() {
     'GENERATED-CLIPPY-CORRECTNESS:'
 }
 
+audit_ast_dump_contract_surface() {
+  note "auditing AST dump contract surface"
+
+  # QUANT-PLUS-ITER.4 (2026-07-27). ⭐ THIS AUDIT EXISTS BECAUSE THE GATE IT WATCHES ROTTED FOR
+  # FOUR SESSIONS WITH NOBODY NOTICING. `make -C rust ast_dump_contract_gate` was RED from
+  # `7219547c` (the `@entry: true` mandate) until this leaf, and the reason it stayed red is that
+  # it is referenced by NO aggregate and NO CI workflow — measured: outside its own Makefile
+  # recipe and the help text, the string `ast_dump_contract_gate` appeared nowhere.
+  # *A check that nothing INVOKES is indistinguishable from a check that does not exist.*
+  # Fixing the gate without giving something a reason to run it would simply schedule the next rot.
+  assert_tracked "rust/scripts/ast_dump_contract_gate.sh"
+  assert_file_contains "rust/Makefile" 'ast_dump_contract_gate:'
+  assert_file_contains "rust/Makefile" 'cd $(RUST_DIR) && ./scripts/ast_dump_contract_gate.sh'
+
+  # Pin the EXACT regression that happened: both raw-AST fixtures must declare the mandatory entry
+  # rule. These are JSON heredocs, not `.ebnf` files, so the `.2` step-B migration sweep was
+  # structurally blind to them — an `.ebnf`-shaped sweep cannot see a grammar expressed as raw AST.
+  # ⛔ COUNT, not presence: there are TWO fixtures (`mini` and `mini_large`) and BOTH must declare
+  # the mandatory entry. A presence check passed with one of them deleted — caught by this leaf's
+  # own RED arm, which is precisely why the RED arm exists.
+  assert_file_contains_count "rust/scripts/ast_dump_contract_gate.sh" '["semantic_annotation", ["entry", "true"]]' 2
+  # ... and it must be the CANONICAL annotation backend, not the bootstrap fallback the pipeline
+  # itself refuses (non-canonical artifacts).
+  assert_file_contains "rust/scripts/ast_dump_contract_gate.sh" \
+    'run_logged_rust "build_ast_pipeline" cargo build --features generated_parsers --bin ast_pipeline'
+  # ⚠️ UNCOMMENTED form — the whole-file assertion fired on this leaf's OWN comment explaining why
+  # the fallback is refused. Second instance in one session of an audit reporting documentation
+  # back to itself (the `ebnf_to_json.pl` Makefile comment was the first); the helper built for
+  # that one applies unchanged here.
+  assert_file_not_contains_uncommented "rust/scripts/ast_dump_contract_gate.sh" 'PGEN_ALLOW_BOOTSTRAP_ANNOTATION_FALLBACK=1'
+}
+
 audit_summary_json_emission_surface() {
   note "auditing top-level proof summary.json emission surface"
 
@@ -3031,6 +3082,7 @@ main() {
   audit_vhdl_formal_exhaustive_closure_surface
   audit_sv_aggregate_contract_proof_surface
   audit_generated_clippy_correctness_surface
+  audit_ast_dump_contract_surface
   audit_summary_json_emission_surface
 
   run_workflow \
