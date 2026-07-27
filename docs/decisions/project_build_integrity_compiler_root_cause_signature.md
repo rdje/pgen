@@ -50,7 +50,12 @@ for (2)")**. The third signature group is therefore settled doctrine, not a prov
 build-integrity defect is root-caused by the compiler, and a leaf quoting a verbatim rustc diagnostic
 satisfies the ROOT CAUSE box on the same footing as a cert/probe/trace or a profiler attribution.
 
-**Watch item.** The enforcer's `NOREGRESS_SIG` includes the bare token `clippy`, which matched
+**Watch item — ✅ CLOSED 2026-07-27 by `GENERATED-LINT-CORRECTNESS.3` (`5c5a0ca0`).** Every signature
+is now BOX-SCOPED: it must sit inside the ticked box's own bullet, so neither incidental prose nor a
+co-staged tree file can back a box. See [[project_codegen_emission_root_cause_signature]]. The
+original text is kept below for provenance.
+
+**Watch item (as recorded 2026-07-22).** The enforcer's `NOREGRESS_SIG` includes the bare token `clippy`, which matched
 INCIDENTAL PROSE elsewhere in the `BIN-BUILD-INTEGRITY` leaf rather than the NO REGRESSION box itself
 — i.e. that check can pass on a mention anywhere in the file. The leaf was corrected to carry a real
 measured clippy result, but the underlying looseness (whole-file grep, not box-scoped) is a known

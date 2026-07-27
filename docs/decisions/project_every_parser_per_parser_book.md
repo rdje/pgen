@@ -29,7 +29,13 @@ coverage complete and uniform — no parser is undocumented.
 
 **Status (2026-06-08).** Books exist for: `regex`, `systemverilog`, `systemverilog_preprocessor`, `vhdl`,
 `rtl_frontend`, `rtl_const_expr`, and **`json`** (`PGEN-BOOK-JSON-0001` — honestly framed as a *simplified
-built-in* grammar, paired with `json_corpus_bundle/` instead of a downstream contract). **Still missing
+built-in* grammar, paired with `json_corpus_bundle/` instead of a downstream contract). **✅ NO LONGER MISSING — the directive is COMPLETE (verified 2026-07-27): `ebnf`, `return_annotation`
+and `semantic_annotation` all have live gated books** (`docs/ebnf_parser_book/`,
+`docs/return_annotation_parser_book/`, `docs/semantic_annotation_parser_book/`), matching `README.md`'s
+"every-parser-book directive is now complete". The list below is kept as provenance of what was open
+on 2026-06-08 — ⛔ do NOT read it as open work.
+
+**Was missing at the time of writing
 (follow-up slices):** `ebnf` (the meta-grammar), `return_annotation`, `semantic_annotation` (the built-in
 annotation variants can share/redirect). Each new parser is "documented" only once it has its book + the
 top-level link.

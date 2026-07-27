@@ -54,4 +54,7 @@ already bails without the feature.
   `ast_based_generator.rs` route EVERY ⚠️ in those modules to debug-gated tracing —
   a standing severity-doctrine gap
   ([feedback_severity_never_gated_by_verbosity](feedback_severity_never_gated_by_verbosity.md));
-  surfaced to the director for a dedicated re-classification leaf.
+  surfaced to the director for a dedicated re-classification leaf. **OWNER (cross-referenced
+  2026-07-27): the `DIAG-SEVERITY` task tree** (`docs/tasks/DIAG-SEVERITY.md`), which owns the general
+  severity-classification campaign for exactly these always-on-vs-trace-gated channels. Still live:
+  171 `eprintln!` sites in `mod.rs`, 76 in `ast_based_generator.rs`.
