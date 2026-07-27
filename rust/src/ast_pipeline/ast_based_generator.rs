@@ -4230,6 +4230,78 @@ impl AstBasedGenerator {
             let associativity_mode = associativity.as_str();
             let branch_policy = self.rule_branch_policy(rule_name);
             let branch_policy_mode = branch_policy.as_str();
+            // GENERATED-LINT-CORRECTNESS.1 — the branch policy is resolved HERE,
+            // at codegen time. It used to be interpolated as a string LITERAL into
+            // the emitted parser and re-asked there (`#branch_policy_mode ==
+            // "ordered"`), so every multi-branch rule shipped all three policies'
+            // selection cascades behind statically-decided comparisons. rustc
+            // folded them, but `clippy` saw the degenerate expression: a rule whose
+            // policy IS `priority_first` emitted `"priority_first" ==
+            // "priority_first"`, a `deny`-by-default `clippy::eq_op` *correctness*
+            // error (measured 158 in `systemverilog_parser.rs` + 132 in
+            // `rtl_frontend_parser.rs`), which made the generated-parser clippy
+            // stage impossible to run strictly — so a GENUINE correctness lint in a
+            // generated parser would have been permanently invisible.
+            //
+            // Emitting the already-decided form removes the comparison *because the
+            // degenerate code is gone*, and takes the two dead cascades with it.
+            // `branch_policy_mode` stays live: it is still interpolated into the
+            // emitted TRACE strings, where a literal is exactly what is wanted.
+            //
+            // The associativity tie-break is shared verbatim between the two
+            // surviving cascades; folding `#associativity_mode` itself is the same
+            // defect class and is owned by leaf `.2` (it needs the `nonassoc_tie`
+            // binding's `mut` to become conditional).
+            let associativity_tie_break = quote! {
+                match #associativity_mode {
+                    "right" => current_branch_index > best_branch_index,
+                    "nonassoc" => {
+                        if current_branch_index != best_branch_index {
+                            nonassoc_tie = true;
+                        }
+                        false
+                    }
+                    _ => false,
+                }
+            };
+            let should_take_policy_expr = match branch_policy {
+                // Ordered keeps the first successful branch. (The `arm_inner`
+                // wrapper below already skips the whole body once a winner
+                // exists, so this is the faithful fold, not a stronger claim.)
+                SemanticBranchPolicy::Ordered => quote! { best_content.is_none() },
+                // Priority first, then longest, then the associativity tie-break.
+                SemanticBranchPolicy::PriorityFirst => quote! {
+                    if best_content.is_none() {
+                        true
+                    } else if candidate_priority > best_priority {
+                        true
+                    } else if candidate_priority < best_priority {
+                        false
+                    } else if candidate_end > best_end {
+                        true
+                    } else if candidate_end < best_end {
+                        false
+                    } else {
+                        #associativity_tie_break
+                    }
+                },
+                // Longest first, then priority, then the associativity tie-break.
+                SemanticBranchPolicy::LongestMatch => quote! {
+                    if best_content.is_none() {
+                        true
+                    } else if candidate_end > best_end {
+                        true
+                    } else if candidate_end < best_end {
+                        false
+                    } else if candidate_priority > best_priority {
+                        true
+                    } else if candidate_priority < best_priority {
+                        false
+                    } else {
+                        #associativity_tie_break
+                    }
+                },
+            };
             let deterministic_partition_policy =
                 self.rule_deterministic_partition_policy(rule_name);
             let deterministic_partition_annotation_enabled = deterministic_partition_policy.enabled;
@@ -4495,10 +4567,13 @@ impl AstBasedGenerator {
                     &mut second_byte_cache,
                     &mut prefix_trie_cache,
                 );
-                let arm_inner = quote! {
-                        if #branch_policy_mode == "ordered" && best_content.is_some() {
-                            // Ordered branch policy keeps first successful branch.
-                        } else {
+                // GENERATED-LINT-CORRECTNESS.1 — the keep-first-winner short
+                // circuit belongs to the `ordered` policy alone, and the policy is
+                // known here. Under any other policy this used to emit
+                // `"longest_match" == "ordered" && best_content.is_some()` —
+                // a statically-false guard around the branch body that every
+                // multi-branch rule paid for in emitted bytes.
+                let arm_body = quote! {
                             // RGX-0078.5.j.4 K1 — deferred cleanup of the LIVE
                             // best branch: this branch's body is about to run,
                             // so the previous winner's effects must leave the
@@ -4680,54 +4755,13 @@ impl AstBasedGenerator {
                                 | crate::ast_pipeline::SemanticRuntimeDirective::DefinePredicate(_) => {}
                                     }
                                 }
+                                // GENERATED-LINT-CORRECTNESS.1 — only the CONFIGURED
+                                // policy's selection cascade is emitted; see
+                                // `should_take_policy_expr` above.
                                 let should_take = if branch_predicate_blocked {
                                     false
-                                } else if #branch_policy_mode == "ordered" {
-                                    best_content.is_none()
-                                } else if #branch_policy_mode == "priority_first" {
-                                    if best_content.is_none() {
-                                        true
-                                    } else if candidate_priority > best_priority {
-                                        true
-                                    } else if candidate_priority < best_priority {
-                                        false
-                                    } else if candidate_end > best_end {
-                                        true
-                                    } else if candidate_end < best_end {
-                                        false
-                                    } else {
-                                        match #associativity_mode {
-                                            "right" => current_branch_index > best_branch_index,
-                                            "nonassoc" => {
-                                                if current_branch_index != best_branch_index {
-                                                    nonassoc_tie = true;
-                                                }
-                                                false
-                                            }
-                                            _ => false,
-                                        }
-                                    }
-                                } else if best_content.is_none() {
-                                    true
-                                } else if candidate_end > best_end {
-                                    true
-                                } else if candidate_end < best_end {
-                                    false
-                                } else if candidate_priority > best_priority {
-                                    true
-                                } else if candidate_priority < best_priority {
-                                    false
                                 } else {
-                                    match #associativity_mode {
-                                        "right" => current_branch_index > best_branch_index,
-                                        "nonassoc" => {
-                                            if current_branch_index != best_branch_index {
-                                                nonassoc_tie = true;
-                                            }
-                                            false
-                                        }
-                                        _ => false,
-                                    }
+                                    #should_take_policy_expr
                                 };
 
                                 // SV-EXH-PROOF.3.3.4.b.6.2.33 (C3-B FIX) +
@@ -4786,7 +4820,17 @@ impl AstBasedGenerator {
                             } else if parser.trace_enabled() {
                                 parser.logger.log_info(#filename, parser.position as u32, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                             }
+                };
+                let arm_inner = if matches!(branch_policy, SemanticBranchPolicy::Ordered) {
+                    quote! {
+                        if best_content.is_some() {
+                            // Ordered branch policy keeps first successful branch.
+                        } else {
+                            #arm_body
                         }
+                    }
+                } else {
+                    arm_body
                 };
                 // RGX-0078.5.c.2 — wrap the branch body in the FIRST-set prune
                 // guard when one applies; otherwise emit the arm unchanged
@@ -6951,9 +6995,90 @@ impl AstBasedGenerator {
             quote! {}
         };
 
+        // GENERATED-LINT-CORRECTNESS.1 — `allow_layout_skip_for_regexes` is a
+        // codegen-time constant (the grammar's `@whitespace_sensitive:`
+        // directive). Interpolating it into a runtime conditional made a
+        // whitespace-sensitive grammar emit `skip_leading_whitespace && false`,
+        // which `clippy` reports as `overly_complex_bool_expr` — *"this boolean
+        // expression contains a logic bug"* — a `deny`-by-default CORRECTNESS
+        // error over an INTENTIONALLY dead block (measured: 1 occurrence, in
+        // `systemverilog_preprocessor_parser.rs`). Emitting the decided form
+        // deletes the block rather than asking rustc to fold it; the emptiness
+        // flag it fed, the `skip_leading_whitespace` parameter and the layout
+        // skipper itself all go with it, so nothing is left behind as dead code.
+        let regex_skip_param = if allow_layout_skip_for_regexes {
+            format_ident!("skip_leading_whitespace")
+        } else {
+            format_ident!("_skip_leading_whitespace")
+        };
+        // Shared by both prelude forms: compile the pattern once per thread and
+        // cache it together with its precomputed `can_match_empty`.
+        let regex_cache_prime = quote! {
+            let mut cache = cache.borrow_mut();
+            if !cache.contains_key(pattern) {
+                // PARSE-TERMINATION.7.1: ANCHOR the terminal match at the parse position.
+                // match_regex only ever accepts a match at offset 0 (it filters
+                // m.start()==0), but an UNANCHORED `find` scans the ENTIRE remaining
+                // haystack (up to MBs) on every FAILING terminal attempt (the common PEG
+                // ordered-choice case) looking for the pattern elsewhere, then discards it
+                // — O(remaining input) per call = the dominant parse-time root (uvm). A
+                // leading `\A` (with `(?:..)` to preserve the pattern's precedence) makes
+                // `find` anchored => O(match length), no haystack scan. Semantically
+                // identical (same start-0 match or None). The cache key stays the ORIGINAL
+                // pattern so call sites still share the compiled instance.
+                let compiled = regex::Regex::new(&format!(r"\A(?:{})", pattern))?;
+                let empties = compiled
+                    .find("")
+                    .map(|m| m.start() == 0 && m.end() == 0)
+                    .unwrap_or(false);
+                cache.insert(pattern.to_string(), (compiled, empties));
+            }
+        };
+        let regex_layout_skip_prelude = if allow_layout_skip_for_regexes {
+            quote! {
+                // Phase 1: ensure pattern is compiled + cached (with its precomputed
+                // can_match_empty) and read the cached bool — no per-call regex execution.
+                let can_match_empty: bool = REGEX_CACHE.with(|cache| -> Result<bool, regex::Error> {
+                    #regex_cache_prime
+                    let (_re, empties) = cache.get(pattern).expect("just inserted");
+                    Ok(*empties)
+                }).map_err(|e| self.create_contextual_error(&format!(
+                    "Invalid regex pattern '{}': {}",
+                    pattern, e
+                )))?;
+
+                if skip_leading_whitespace {
+                    self.consume_layout_for_regex(can_match_empty, pattern);
+                }
+            }
+        } else {
+            quote! {
+                // Phase 1: ensure the pattern is compiled + cached. This grammar's
+                // regex tokens are whitespace-sensitive, so NO leading layout is
+                // ever skipped and the cached `can_match_empty` flag has no
+                // consumer — only the compile-and-cache side effect matters here.
+                // Phase 2 below reads the entry back.
+                REGEX_CACHE.with(|cache| -> Result<(), regex::Error> {
+                    #regex_cache_prime
+                    Ok(())
+                }).map_err(|e| self.create_contextual_error(&format!(
+                    "Invalid regex pattern '{}': {}",
+                    pattern, e
+                )))?;
+            }
+        };
+        // The layout skipper is reachable only from the prelude above, so a
+        // whitespace-sensitive grammar must not emit it at all — otherwise the
+        // fold would trade one lint for a `dead_code` warning.
+        let layout_skip_regex_fns = if allow_layout_skip_for_regexes {
+            layout_skip_regex_fns
+        } else {
+            quote! {}
+        };
+
         let match_regex_helper = if self.uses_match_regex.get() {
             quote! {
-            fn match_regex(&mut self, pattern: &str, skip_leading_whitespace: bool) -> ParseResult<&'input str> {
+            fn match_regex(&mut self, pattern: &str, #regex_skip_param: bool) -> ParseResult<&'input str> {
                 use std::cell::RefCell;
                 use std::collections::HashMap;
                 // Thread-local cache: each pattern is compiled once per thread,
@@ -6980,42 +7105,7 @@ impl AstBasedGenerator {
                         RefCell::new(HashMap::new());
                 }
 
-                // Phase 1: ensure pattern is compiled + cached (with its precomputed
-                // can_match_empty) and read the cached bool — no per-call regex execution.
-                let can_match_empty: bool = REGEX_CACHE.with(|cache| -> Result<bool, regex::Error> {
-                    let mut cache = cache.borrow_mut();
-                    if !cache.contains_key(pattern) {
-                        // PARSE-TERMINATION.7.1: ANCHOR the terminal match at the parse position.
-                        // match_regex only ever accepts a match at offset 0 (it filters
-                        // m.start()==0), but an UNANCHORED `find` scans the ENTIRE remaining
-                        // haystack (up to MBs) on every FAILING terminal attempt (the common PEG
-                        // ordered-choice case) looking for the pattern elsewhere, then discards it
-                        // — O(remaining input) per call = the dominant parse-time root (uvm). A
-                        // leading `\A` (with `(?:..)` to preserve the pattern's precedence) makes
-                        // `find` anchored => O(match length), no haystack scan. Semantically
-                        // identical (same start-0 match or None). The cache key stays the ORIGINAL
-                        // pattern so call sites still share the compiled instance.
-                        let compiled = regex::Regex::new(&format!(r"\A(?:{})", pattern))?;
-                        let empties = compiled
-                            .find("")
-                            .map(|m| m.start() == 0 && m.end() == 0)
-                            .unwrap_or(false);
-                        cache.insert(pattern.to_string(), (compiled, empties));
-                    }
-                    let (_re, empties) = cache.get(pattern).expect("just inserted");
-                    if #allow_layout_skip_for_regexes {
-                        Ok(*empties)
-                    } else {
-                        Ok(false)
-                    }
-                }).map_err(|e| self.create_contextual_error(&format!(
-                    "Invalid regex pattern '{}': {}",
-                    pattern, e
-                )))?;
-
-                if skip_leading_whitespace && #allow_layout_skip_for_regexes {
-                    self.consume_layout_for_regex(can_match_empty, pattern);
-                }
+                #regex_layout_skip_prelude
 
                 let Some(haystack) = self.input.get(self.position..) else {
                     return Err(self.create_contextual_error("Parser position is not on a UTF-8 boundary"));

@@ -1,5 +1,73 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0002 — the residue that named a second and third emitter
+
+**The measurement that refused to close.** The tree charter had root-caused the 291
+generated-clippy errors to one line, `ast_based_generator.rs:4687`, and the fold there was
+straightforward: resolve `SemanticBranchPolicy` in the generator and emit only the
+selected `should_take` cascade instead of all three behind statically-decided string
+comparisons. Regenerating `generated/json_parser.rs` afterwards should have shown zero
+degenerate comparisons. It showed **45** — down from 90, exactly half, and with the
+residue carrying the same 2:1 `ordered`:`priority_first` ratio as the original. A clean
+halving with an unchanged ratio is not a leftover; it is a second copy of the same
+emission. The grep that had "confirmed" a single site was
+`grep 'branch_policy_mode' rust/src/ast_pipeline/*.rs` — a glob that does not descend into
+`rust/src/ast_pipeline/ast_based_generator/`, where `cascade.rs` (the fused cascade / bare
+graph) and `scan.rs` (the match-only scan graph) each carry their own copy of the
+tournament. Three emitters, one shape.
+
+The lesson is narrow and mechanical: **PGEN emits three parse graphs from one grammar, so
+a codegen surface must be swept in all three, and a `*.rs` glob is not a sweep.** This is
+now written into leaf `.2` as a hard precondition rather than left as advice.
+
+**Why the error count was the wrong size of the problem.** `clippy::eq_op` requires
+*identical* operands, so it could only see the emissions where the grammar's policy
+happened to equal the arm being tested — 290 of them. The much larger population,
+`"longest_match" == "ordered"` and `"longest_match" == "priority_first"`, has different
+operands and no lint fires at all. Censusing every statically-decided form rather than
+every *reported* one turned 291 into **21,201**, and the fold turned 241.1 MB of shipped
+generated Rust into 219.8 MB. The SystemVerilog parser lost 13.3 MB. A lint count is a
+lower bound on a defect class, never a measure of it.
+
+**Two knock-ons that would have traded one lint for another.** Folding
+`#allow_layout_skip_for_regexes` deletes the only call site of
+`consume_layout_for_regex`, and it deletes the only consumer of the `can_match_empty`
+flag and of the `skip_leading_whitespace` parameter. Emitting the fold naively would have
+produced a `dead_code` warning, an unused-variable warning and an unused-parameter warning
+in the preprocessor parser — trading a reported correctness lint for three unreported
+style ones. The emission therefore drops the layout skipper entirely in that arm, keeps
+only the compile-and-cache side effect in the regex prelude, and spells the parameter
+`_skip_leading_whitespace`. Measured result: generated-parser warnings 35,981 -> 35,981,
+source warnings 42 -> 42.
+
+The same reasoning is why `#associativity_mode` was left to leaf `.2` rather than folded
+opportunistically here: it is the same defect class, but folding it makes the emitted
+`nonassoc_tie` binding's `mut` conditional, and a leaf whose acceptance is "291 -> 0"
+should not also be carrying an unrelated emission change.
+
+**Choosing an oracle that can actually see this change.** The fold moves a decision from
+run time to generation time, so the failure mode to fear is "a different branch now wins".
+The parse-harness combinator suite is the one instrument that isolates exactly that: it
+runs the **interpreter**, which still evaluates `SemanticBranchPolicy` at runtime from the
+enum and was not touched, against the **compile-and-run generated parser**, which no
+longer does, and requires byte-identical output on per-combinator isolating grammars. Its
+four `choice_*` rows exist precisely to discriminate the branch policies. All four came
+back `CLEAN` with `diverge=0`. Certificate coverage over `systemverilog` (158 of the 290
+folded sites) and `rtl_frontend` (the other 132) then confirmed `UNKNOWN=0
+fully_certified=true` with `sample_parse_failures=0`, deterministic across seeds 0/7/42.
+
+**A red gate found on the way, and why the previous sweep could not have caught it.**
+`make -C rust ast_dump_contract_gate` fails with *"grammar 'mini': no entry rule is
+declared"*. That refusal arrived with `7219547c` (`PGEN-QUANT-PLUS-ITER-0004`), which made
+`@entry: true` mandatory and migrated 58 tracked `.ebnf` files plus 68 synthetic harness
+grammars to satisfy it. This fixture is neither: it is a raw-AST JSON literal heredoc'd
+inside `rust/scripts/ast_dump_contract_gate.sh`, so a sweep shaped around `.ebnf` files is
+structurally blind to it. And the gate is referenced by no aggregate and no CI workflow,
+so nothing re-ran it afterwards. It is recorded as pre-existing on mechanical grounds —
+the refusal string is in `main.rs` at HEAD, this change touches only the three codegen
+emitters, and the gate dies at grammar load before any parser is emitted — and routed to
+`QUANT-PLUS-ITER.4` rather than absorbed here.
+
 ## 2026-07-26 - PGEN-LANG-CAPABILITY-AUDIT-0014 — deleting a capability that never worked, and the third test that pinned a bug
 
 **What was removed and why deletion beat repair.** `true` and `false` sat in

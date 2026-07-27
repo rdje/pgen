@@ -796,6 +796,39 @@ Carved out of the original `.2` so `.2` stays exactly the director-approved scop
 - Whether `--report-certificate-coverage`'s *"adjudicate via the linter"* hand-off
   should name an instrument that can actually confirm it (`.1`'s measured instrument
   disagreement).
+- ⚠️⚠️ **`make -C rust ast_dump_contract_gate` HAS BEEN RED SINCE `7219547c` (this tree's
+  own `.2` step C) — routed here 2026-07-27 by `GENERATED-LINT-CORRECTNESS.1`, which hit
+  it while verifying.** The gate dies on its first step:
+
+  ```
+  Error: grammar 'mini': no entry rule is declared. A main EBNF file must contain
+  one and only one `@entry: true` …
+  ```
+
+  ⭐ **Why step B's migration could not see it**: B migrated 58 tracked `.ebnf` files +
+  68 synthetic harness grammars. This fixture is **not an `.ebnf` file at all** — it is a
+  raw-AST JSON literal heredoc'd inside `rust/scripts/ast_dump_contract_gate.sh`
+  (`grammar_name` `mini` and `mini_large`, written straight into
+  `$WORK_DIR/mini_raw_ast.json`). An `.ebnf`-shaped sweep is **structurally blind** to a
+  grammar expressed as raw AST JSON. ⇒ the real lesson is that the mandate applies at the
+  **grammar-load chokepoint**, which raw-AST JSON also passes through, so the migration's
+  unit of coverage was the wrong one.
+
+  ⭐ **Why nobody noticed for a day**: `ast_dump_contract_gate` is referenced by **no
+  aggregate** (`sota_exit_gate`, `ci_workflow_local_gate`) and **no CI workflow** — a gate
+  nothing re-runs is a gate that cannot report. (Same shape as
+  `GENERATED-LINT-CORRECTNESS`'s thesis, one layer up: there the check could not be run
+  *strictly*; here it could not be run *at all*.)
+
+  **The fix is small and belongs to this tree**: give the `mini` / `mini_large` raw-AST
+  fixtures an entry declaration (or teach the fixture builder to emit one), then re-run
+  the gate. ⛔ Do **not** weaken the mandate to accommodate the fixture — step C's refusal
+  is working exactly as designed; it is the fixture that was missed.
+
+  **Worth doing at the same time**: audit for other non-`.ebnf` grammar carriers that
+  route through the same chokepoint (raw-AST JSON fixtures in scripts and tests), since
+  the `.ebnf`-shaped sweep was blind to all of them by construction — and consider whether
+  this gate should join an aggregate so a future break is reported rather than discovered.
 
 
 ## Acceptance Criteria (tree)

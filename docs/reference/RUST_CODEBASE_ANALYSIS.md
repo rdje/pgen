@@ -45,6 +45,33 @@ class) breaks every generator build against the on-disk artifacts — the record
 is an exact-semantics transient migration of `generated/*.rs`, never a bootstrap-binary
 regen (annotation-payload degradation).
 
+## Recent Architecture Change Note (2026-07-27)
+
+**Grammar configuration is now resolved at codegen, not re-asked in the emitted parser
+(`GENERATED-LINT-CORRECTNESS.1`, `PGEN-GENERATED-LINT-CORRECTNESS-0002`, session #214).**
+Several per-grammar configuration constants used to be interpolated into the emitted
+parser as string/bool **literals** and then compared there — e.g. `#branch_policy_mode ==
+"ordered"`, `skip_leading_whitespace && #allow_layout_skip_for_regexes`. rustc folded
+them, but the generated artifacts still carried every non-selected branch, and `clippy`
+reported the identical-operand cases as `deny`-by-default **correctness** errors
+(`eq_op`, `overly_complex_bool_expr`), which made the generated-parser lint stage
+impossible to run strictly. The generator now resolves `SemanticBranchPolicy` and the
+`@whitespace_sensitive` layout policy itself and emits **only the decided form**.
+
+⚠️ **The seam an editor must know: this shape lives in THREE emitters, one per parse
+graph** — `ast_based_generator.rs` (protocol / memoized),
+[rust/src/ast_pipeline/ast_based_generator/cascade.rs](../../rust/src/ast_pipeline/ast_based_generator/cascade.rs)
+(fused cascade / bare) and
+[rust/src/ast_pipeline/ast_based_generator/scan.rs](../../rust/src/ast_pipeline/ast_based_generator/scan.rs)
+(scan / match-only). Each carries its own copy of the branch tournament, so **a codegen
+change to one is a change to all three**, and a `rust/src/ast_pipeline/*.rs` glob does not
+reach the latter two. Measured effect: 21,201 statically-decided expressions removed, and
+the eleven generated artifacts fell from **241.1 MB to 219.8 MB** (`systemverilog_parser.rs`
+149.8 → 136.5 MB) — which partly gives back the fused graphs' growth recorded in the
+2026-07-15 note below. Behaviour is unchanged and differentially proven: the interpreter
+still evaluates the branch policy at runtime from the enum, and the parse-harness
+combinator suite requires it to agree byte-for-byte with the folded generated parser.
+
 ## Recent Architecture Change Note (2026-07-15)
 
 **The observability twin — dual-graph parser emission (`RGX-0078.5.i.7` D2-A,

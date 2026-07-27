@@ -90,7 +90,9 @@
 //! (`first_set_prune_guard_for_branch`, `degenerate_dispatch_byte_sets`,
 //! `quantified_prune_guard_for_element`) the protocol graph is emitted with.
 
-use super::super::{ASTNode, ASTValue, TokenValue, parse_quantifier_bounds};
+use super::super::{
+    ASTNode, ASTValue, SemanticBranchPolicy, TokenValue, parse_quantifier_bounds,
+};
 use super::{AstBasedGenerator, BranchAnnotation};
 use anyhow::Result;
 use proc_macro2::TokenStream;
@@ -870,8 +872,10 @@ impl AstBasedGenerator {
         let branch_priorities = self.rule_branch_priorities(rule_name, branch_count);
         let associativity = self.rule_associativity(rule_name);
         let associativity_mode = associativity.as_str();
+        // GENERATED-LINT-CORRECTNESS.1 — the cascade graph emits no trace
+        // strings, so once the policy is folded at codegen time (below) the
+        // `as_str()` spelling has no remaining consumer here.
         let branch_policy = self.rule_branch_policy(rule_name);
-        let branch_policy_mode = branch_policy.as_str();
 
         let emit_first_set_guard = top_level && self.layout_sensitivity().terminals;
         let mut first_set_cache: std::collections::HashMap<
@@ -943,6 +947,60 @@ impl AstBasedGenerator {
             .iter()
             .any(|alt| self.cascade_subtree_reaches_effects(alt));
 
+        // GENERATED-LINT-CORRECTNESS.1 — resolve the branch policy HERE rather
+        // than interpolating it as a string literal and re-asking in the emitted
+        // parser. See the same fold in `ast_based_generator.rs`: the cascade
+        // (bare) graph is the SECOND of the three emitters that carried this
+        // shape, and together with `scan.rs` it accounted for HALF of every
+        // affected parser's degenerate comparisons — the tree charter had named
+        // only the protocol emitter.
+        //
+        // The winner-selection cascade — the protocol's exact chain over
+        // (end, priority, index); `best_content.is_none()` becomes
+        // `!__pgen_best_found` (no values exist on the match pass).
+        let associativity_tie_break = quote! {
+            match #associativity_mode {
+                "right" => current_branch_index > best_branch_index,
+                _ => false,
+            }
+        };
+        let should_take_chain = match branch_policy {
+            SemanticBranchPolicy::Ordered => quote! {
+                let should_take = !__pgen_best_found;
+            },
+            SemanticBranchPolicy::PriorityFirst => quote! {
+                let should_take = if !__pgen_best_found {
+                    true
+                } else if candidate_priority > best_priority {
+                    true
+                } else if candidate_priority < best_priority {
+                    false
+                } else if candidate_end > best_end {
+                    true
+                } else if candidate_end < best_end {
+                    false
+                } else {
+                    #associativity_tie_break
+                };
+            },
+            SemanticBranchPolicy::LongestMatch => quote! {
+                let should_take = if !__pgen_best_found {
+                    true
+                } else if candidate_end > best_end {
+                    true
+                } else if candidate_end < best_end {
+                    false
+                } else if candidate_priority > best_priority {
+                    true
+                } else if candidate_priority < best_priority {
+                    false
+                } else {
+                    #associativity_tie_break
+                };
+            },
+        };
+        let branch_policy_is_ordered = matches!(branch_policy, SemanticBranchPolicy::Ordered);
+
         let mut branch_attempt_blocks: Vec<TokenStream> = Vec::new();
         for (idx, alternative) in alternatives.iter().enumerate() {
             let branch_logic = self.mtb_match_node_logic(alternative, rule_name, filename)?;
@@ -957,47 +1015,6 @@ impl AstBasedGenerator {
                 &mut prefix_trie_cache,
             );
 
-            // The winner-selection cascade — the protocol's exact chain over
-            // (end, priority, index); `best_content.is_none()` becomes
-            // `!__pgen_best_found` (no values exist on the match pass).
-            let should_take_chain = quote! {
-                let should_take = if #branch_policy_mode == "ordered" {
-                    !__pgen_best_found
-                } else if #branch_policy_mode == "priority_first" {
-                    if !__pgen_best_found {
-                        true
-                    } else if candidate_priority > best_priority {
-                        true
-                    } else if candidate_priority < best_priority {
-                        false
-                    } else if candidate_end > best_end {
-                        true
-                    } else if candidate_end < best_end {
-                        false
-                    } else {
-                        match #associativity_mode {
-                            "right" => current_branch_index > best_branch_index,
-                            _ => false,
-                        }
-                    }
-                } else if !__pgen_best_found {
-                    true
-                } else if candidate_end > best_end {
-                    true
-                } else if candidate_end < best_end {
-                    false
-                } else if candidate_priority > best_priority {
-                    true
-                } else if candidate_priority < best_priority {
-                    false
-                } else {
-                    match #associativity_mode {
-                        "right" => current_branch_index > best_branch_index,
-                        _ => false,
-                    }
-                };
-            };
-
             // IN-TAPE winner-segment compaction: the candidate segment
             // (appended after the current best segment) memmoves down over
             // the best; when the best is empty the copy is a no-op onto
@@ -1011,11 +1028,8 @@ impl AstBasedGenerator {
                 parser.deriv_tape.truncate(__pgen_or_mark + 1 + __pgen_cand_len);
             };
 
-            let arm_inner = if island {
+            let arm_body = if island {
                 quote! {
-                    if #branch_policy_mode == "ordered" && __pgen_best_found {
-                        // Ordered branch policy keeps the first successful branch.
-                    } else {
                         // RGX-0078.5.j.4 K1 — deferred cleanup of the LIVE
                         // best branch before this body runs (branch
                         // isolation); its delta may still win, so extract it
@@ -1082,7 +1096,6 @@ impl AstBasedGenerator {
                             // `try_parse` restores position/semantics only.
                             parser.deriv_tape.truncate(__pgen_cand_start);
                         }
-                    }
                 }
             } else {
                 let speculation = self.mtb_match_speculation_tokens(
@@ -1093,9 +1106,6 @@ impl AstBasedGenerator {
                     },
                 );
                 quote! {
-                    if #branch_policy_mode == "ordered" && __pgen_best_found {
-                        // Ordered branch policy keeps the first successful branch.
-                    } else {
                         parser.position = parse_start;
                         let __pgen_cand_start = parser.deriv_tape.len();
                         #speculation
@@ -1115,8 +1125,22 @@ impl AstBasedGenerator {
                                 parser.deriv_tape.truncate(__pgen_cand_start);
                             }
                         }
+                }
+            };
+            // GENERATED-LINT-CORRECTNESS.1 — only the `ordered` policy needs the
+            // keep-first-winner short circuit; every other policy used to emit
+            // `"longest_match" == "ordered" && __pgen_best_found` around the
+            // whole branch body.
+            let arm_inner = if branch_policy_is_ordered {
+                quote! {
+                    if __pgen_best_found {
+                        // Ordered branch policy keeps the first successful branch.
+                    } else {
+                        #arm_body
                     }
                 }
+            } else {
+                arm_body
             };
 
             let block = match first_set_prune_guard {

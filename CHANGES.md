@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0002 (leaf `GENERATED-LINT-CORRECTNESS.1`) — the degenerate emissions are folded at codegen: 291 clippy errors -> 0, and 22.3 MB off the shipped parsers
+
+- **The check that could never be run strictly now runs strictly.**
+  `PGEN_CLIPPY_GENERATED_STRICT=1 make -C rust clippy_on_rust_change` exits 0 with the
+  generated stage reporting `errors=0`, `eq_op=0`, `overly_complex_bool_expr=0` — down
+  from the adjudicated **291**. The fix is the one `-0001` decided: emit the
+  already-decided form, so the lint stops firing *because the degenerate code is gone*.
+  Nothing was silenced and no `#[allow]` was added.
+- **The charter named one emitter; there are three.** Folding the single site the charter
+  identified (`ast_based_generator.rs:4687`) left `generated/json_parser.rs` at exactly
+  **half** its degenerate count, with the residue carrying the identical 2:1
+  `ordered`:`priority_first` ratio — the signature of a duplicate emitter, not a
+  leftover. The branch-policy shape lives in the protocol graph
+  (`ast_based_generator.rs`), the fused cascade graph
+  (`ast_based_generator/cascade.rs`) and the scan graph
+  (`ast_based_generator/scan.rs`); the first grep missed the latter two because they sit
+  in a **subdirectory** that `rust/src/ast_pipeline/*.rs` does not reach. Any future
+  codegen sweep must name all three.
+- **The lint count understated the problem by two orders of magnitude.** `clippy::eq_op`
+  only fires on identical operands, so it saw 290 of **21,201** statically-decided
+  emissions; the other 20,910 (`"longest_match" == "ordered"` and friends) were never
+  lint-visible at all. Folding them all took the eleven shipped artifacts from
+  **241.1 MB to 219.8 MB (-8.8%)**, with the SystemVerilog parser alone losing
+  **13.3 MB** — directly on the speed north-star, since the removed arms sat in hot
+  branch-selection code.
+- **The decisive proof is that the interpreter did not change.**
+  `parse_harness_combinator_gate` compares the interpreter (which still evaluates the
+  branch policy at runtime, from the enum) against the compile-and-run generated parser
+  (now folded at codegen), byte-for-byte. All four branch-policy discrimination rows —
+  `choice_longest_default`, `choice_longest_explicit`, `choice_ordered`,
+  `choice_priority_first` — are `CLEAN` with `diverge=0`, alongside 27/27 combinator rows,
+  36/36 semantic-orchestration rows, and a 4/4 differential-equivalence gate.
+- **No regression, measured broadly.** Library suite 1027 passed / 0 failed / 29 ignored;
+  `rtl_frontend_generated_contract_gate` green; certificate coverage `UNKNOWN=0
+  fully_certified=true` with `sample_parse_failures=0`, deterministic at seeds 0/7/42,
+  for json / regex / vhdl / systemverilog_preprocessor / rtl_frontend / rtl_const_expr /
+  systemverilog — the last two carrying all 290 folded `eq_op` sites between them;
+  `regex_pcre2_compile_oracle_gate` green; source warnings 42 -> 42 and generated-parser
+  warnings 35,981 -> 35,981, i.e. the fold introduced none.
+- **Found while verifying, and not ours:** `make -C rust ast_dump_contract_gate` has been
+  red since commit `7219547c` (`PGEN-QUANT-PLUS-ITER-0004`, the `@entry: true` mandate).
+  Its fixture is a raw-AST JSON literal inside a shell script, not an `.ebnf` file, so
+  that leaf's grammar migration was structurally blind to it; and the gate belongs to no
+  aggregate and no CI workflow, so nothing re-ran it. Proven pre-existing rather than
+  asserted (the refusal lives in `main.rs` at HEAD; this change touches only the three
+  codegen emitters; the gate dies at grammar load, before any parser is emitted) and
+  routed to `QUANT-PLUS-ITER.4`.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0001 (tree `GENERATED-LINT-CORRECTNESS`, opened) — the 291 generated-clippy errors, adjudicated
 
 - **Adjudicated, not assumed** — the generated-parser clippy stage reports 291

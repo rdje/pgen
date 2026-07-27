@@ -159,6 +159,54 @@ The doctrine is the same across EBNF-based families:
 
 What differs is not the quality bar, but how much of the proof surface has already landed.
 
+## A Check That Cannot Be Run Reports Nothing
+
+A recurring failure mode in this project is worth naming explicitly, because it produces
+green dashboards over real blind spots: **a check that cannot be run strictly is a check
+that reports nothing.**
+
+The worked example is the generated-parser lint stage. PGEN runs `clippy` in two stages —
+strict over `rust/src/**` (hand-written code), and a separate stage over the artifacts in
+`generated/`, which can be made strict with `PGEN_CLIPPY_GENERATED_STRICT=1`. For a long
+time the generated stage reported **291 errors**, and all 291 were *correct observations
+about degenerate code that was nevertheless doing exactly the right thing*:
+
+- the parser generator resolves each rule's branch policy (`longest_match` / `ordered` /
+  `priority_first`) at generation time, and used to interpolate it as a string literal
+  and re-compare it in the emitted parser. For a rule whose policy *is* `priority_first`,
+  that emitted `"priority_first" == "priority_first"` — a `clippy::eq_op` **correctness**
+  error over a tautology that was the intended specialization;
+- likewise the `@whitespace_sensitive:` layout policy emitted
+  `skip_leading_whitespace && false` for a whitespace-sensitive grammar — a
+  `clippy::overly_complex_bool_expr` (*"contains a logic bug"*) over an intentionally
+  dead block.
+
+Neither was a parser defect. But because both lints are `deny`-by-default correctness
+lints, the strict stage could **never** pass, which meant a *genuine* correctness lint
+appearing in a generated parser would have been permanently invisible — buried under
+80,000 style warnings across 220 MB of emitted Rust.
+
+The resolution PGEN chose is worth internalizing, because the two obvious alternatives
+are both wrong:
+
+- ⛔ **leaving it** is the status quo that makes the strict stage unreachable, and it
+  trains every future reader to ignore the stage;
+- ⛔ **silencing the lints** converts a *measurable* gap into an *unmeasurable* one, which
+  is the entire problem being solved;
+- ⭐ **emitting the already-decided form** makes the lint stop firing *because the
+  degenerate code is gone*. The generator now emits only the branch cascade the
+  configured policy selects, and omits the layout-skip block entirely when layout
+  skipping is off.
+
+That fold removed **21,201** statically-decided expressions across the eleven generated
+parsers and **22.3 MB** of emitted Rust (the SystemVerilog parser alone lost 13.3 MB),
+with parse behaviour unchanged — verified by the parse-harness combinator suite, whose
+four branch-policy rows compare the interpreter (which still evaluates the policy at
+runtime) against the generated parser (which no longer does) byte-for-byte.
+
+The general shape to carry away: **when an instrument cannot run, or structurally cannot
+see a defect class, it must say so rather than return green.**
+
 ## Why Status Labels Stay Conservative
 
 This is why `LIVE_ACHIEVEMENT_STATUS.md` can keep a family at `Mostly Done` even when it already looks strong to a casual reader. The status labels are meant to reflect proof depth, not enthusiasm.

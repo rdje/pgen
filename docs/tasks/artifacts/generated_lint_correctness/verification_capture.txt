@@ -1,0 +1,173 @@
+GENERATED-LINT-CORRECTNESS.1 — verification capture (ADDRESSED + NO REGRESSION)
+================================================================================
+All commands run on the working tree on top of commit 8100b3ce.
+Heavy jobs run under `scripts/run_with_memory_guard.sh --budget-mb 16384`
+(the generated-clippy stage peaks ~12.0 GB; the 12288 default kills it).
+
+--------------------------------------------------------------------------------
+ADDRESSED — the symptom, before -> after
+--------------------------------------------------------------------------------
+
+[1] clippy generated stage, run STRICT (the check that could never be run):
+
+    PGEN_CLIPPY_GENERATED_STRICT=1 make -C rust SHELL=/opt/homebrew/bin/bash \
+        clippy_on_rust_change
+
+    BEFORE (recorded in the tree charter, measured at 779dca06):
+        291 errors — 158 clippy::eq_op in systemverilog_parser.rs
+                   + 132 clippy::eq_op in rtl_frontend_parser.rs
+                   +   1 clippy::overly_complex_bool_expr in
+                         systemverilog_preprocessor_parser.rs
+        => the stage could never pass, so a GENUINE correctness lint in a
+           generated parser was permanently invisible.
+
+    AFTER:
+        ==> clippy_source_all_targets     ok
+        ==> clippy_generated_all_targets  ok
+        Generated-parser clippy stage: pass
+        exit 0
+
+        rust/target/clippy_gate/logs/clippy_generated_all_targets.log
+            errors                    = 0
+            eq_op                     = 0
+            overly_complex_bool_expr  = 0
+            warnings                  = 80402   (style noise, deliberately not gated)
+        rust/target/clippy_gate/logs/clippy_source_all_targets.log
+            errors                    = 0
+
+[2] Statically-degenerate emissions across all 11 generated artifacts
+    (driver: run_degenerate_emission_sweep.sh, capture:
+     degenerate_emission_sweep_capture.txt):
+
+        TOTAL_DEGENERATE_before = 21201
+        TOTAL_DEGENERATE_after  = 0
+
+    The 291 clippy errors were the identical-operand SUBSET of those 21,201.
+
+[3] Shipped artifact size (same canonical output paths in both arms, so the
+    `.5`-era embedded-output-path trap does not apply):
+
+        BEFORE = 252,782,743 bytes (241.1 MB)
+        AFTER  = 230,524,147 bytes (219.8 MB)
+        delta  = -22,258,596 bytes (-8.8%)
+
+        systemverilog_parser.rs   149,751,672 -> 136,452,772  (-8.9%, -13.3 MB)
+        regex_parser.rs            43,484,398 ->  39,796,285  (-8.5%)
+        semantic_annotation_...    14,328,331 ->  12,736,462  (-11.1%)
+        vhdl_parser.rs             12,721,627 ->  11,789,806  (-7.3%)
+        ebnf.rs                    12,088,924 ->  10,855,368  (-10.2%)
+
+    NOTE (honest scope): `ebnf.rs`'s two vintages were produced by DIFFERENT
+    invocations (the committed artifact came from the `.10.1` route; the new one
+    from `ast_pipeline grammars/ebnf.ebnf --generate-parser --output`, the
+    `-0212` byte-identity script's route), so its byte delta is indicative, not
+    a clean A/B. Its degenerate count 1254 -> 0 is exact either way.
+
+--------------------------------------------------------------------------------
+NO REGRESSION
+--------------------------------------------------------------------------------
+
+[a] All 11 generated parsers COMPILE:
+      cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
+      exit 0, 0 errors. Lib warning count 35981 -> 35981 (unchanged: the
+      warnings are per-generated-method non_snake_case names, untouched by the
+      fold) => the fold introduced ZERO new warnings in generated code.
+
+[b] Source-side warning count unchanged: cargo check --lib
+      42 warnings BEFORE (measured on a `git stash`ed HEAD tree)
+      42 warnings AFTER   => zero new source warnings.
+
+[c] Parse-harness STRUCTURAL COMBINATOR suite (interpreter == compile-and-run
+    generated parser, byte-identical, per-combinator isolating grammars):
+      make -C rust parse_harness_combinator_gate  => exit 0
+      27/27 rows CLEAN, diverge=0, anchor_miss=0 — including the four rows
+      that discriminate exactly what this leaf folded:
+          choice_longest_default   CLEAN  samples=4 diverge=0
+          choice_longest_explicit  CLEAN  samples=3 diverge=0
+          choice_ordered           CLEAN  samples=3 diverge=0
+          choice_priority_first    CLEAN  samples=3 diverge=0
+      This is the decisive oracle: the INTERPRETER still evaluates the policy at
+      runtime from the enum, the GENERATED parser now has it folded at codegen,
+      and the two agree byte-for-byte on every sample.
+
+[d] Parse-harness SEMANTIC-DIRECTIVE orchestration suite:
+      make -C rust parse_harness_semantic_gate    => exit 0
+      36/36 rows CLEAN, diverge=0, anchor_miss=0.
+
+[e] Parse-harness DIFFERENTIAL-EQUIVALENCE gate (interpreter == generated
+    parser, byte-identical over the deterministic stimuli corpus, seeds 0/7/42):
+      make -C rust parse_harness_equivalence_gate => exit 0, 4 passed / 0 failed
+
+[f] Library test suite:
+      cargo test --features "generated_parsers ebnf_dual_run" --lib
+      1027 passed; 0 failed; 29 ignored   (matches the -0004 baseline exactly)
+
+[g] rtl_frontend generated contract gate (130 curated accept/reject samples +
+    coverage testimony + retained-text locks + handwritten-baseline replay +
+    the ratcheted elaboration layer):
+      make -C rust rtl_frontend_generated_contract_gate => exit 0
+        rtl_frontend_generated_contract_probe   pass
+        rtl_frontend_handwritten_contract_replay pass
+
+[h] Certificate coverage, UNKNOWN=0 and deterministic across seeds 0/7/42 on
+    every grammar that carries the claim (sample_parse_failures=0,
+    proof_reverify_failures=0 in every row):
+
+      json           total=9    proof=0  witness=9    UNKNOWN=0 fully_certified=true
+      regex          total=269  proof=9  witness=260  UNKNOWN=0 fully_certified=true
+      vhdl           total=216  proof=0  witness=216  UNKNOWN=0 fully_certified=true
+      sv_preproc     total=74   proof=0  witness=74   UNKNOWN=0 fully_certified=true
+      rtl_frontend   total=169  proof=1  witness=168  UNKNOWN=0 fully_certified=true
+      systemverilog  total=1352 proof=17 witness=1335 UNKNOWN=0 fully_certified=true
+        (--grammar-profile sv_2017 --entry-rule systemverilog_file --count 40)
+      rtl_const_expr total=48   proof=0  witness=48   UNKNOWN=0 fully_certified=true
+        (via the maintained `make -C rust rtl_const_expr_cert_gate`; the ad-hoc
+         `--count 40` invocation is NOT canonical for this grammar — it hits
+         "Stimuli generation depth exceeded max_depth=24 while expanding rule
+         'primary_expr'", which is a stimuli-generator bound, not a parse
+         verdict, and reproduces independently of this change.)
+
+      systemverilog carries 158 of the 290 folded eq_op sites and
+      rtl_frontend the other 132 — i.e. the two grammars the fold changed MOST
+      are both still fully certified with zero parse failures.
+
+[i] External-corpus oracle (regex, PCRE2):
+      make -C rust regex_pcre2_compile_oracle_gate => exit 0
+
+[j] General doctrine enforcer:
+      bash scripts/check_doctrines.sh => exit 0, ALL 9 doctrines PASS
+
+--------------------------------------------------------------------------------
+PRE-EXISTING FAILURE FOUND WHILE VERIFYING — NOT CAUSED BY THIS LEAF
+--------------------------------------------------------------------------------
+
+  make -C rust ast_dump_contract_gate  => exit 2
+
+      Error: grammar 'mini': no entry rule is declared. A main EBNF file must
+      contain one and only one `@entry: true` ...
+
+  PROOF that it is pre-existing (mechanical, not asserted):
+    - the refusal string lives in `rust/src/main.rs` at HEAD (line 2269),
+      introduced by commit 7219547c (PGEN-QUANT-PLUS-ITER-0004, session #212);
+      `git log -S "no entry rule is declared" -- rust/src/` names that one commit;
+    - this leaf's diff touches ONLY the three codegen emitters
+      (ast_based_generator.rs, .../cascade.rs, .../scan.rs) — `main.rs` is not
+      in it (`git diff --stat`);
+    - the gate dies on its FIRST step (`generation_dump_a`, a `--generate-stimuli`
+      run) at grammar LOAD, before any parser is emitted, so a parser-codegen
+      change cannot reach it.
+
+  WHY THE -0004 MIGRATION COULD NOT SEE IT: that leaf migrated 58 tracked
+  `.ebnf` files + 68 synthetic harness grammars. This fixture is a raw-AST
+  JSON literal heredoc'd inside `rust/scripts/ast_dump_contract_gate.sh`
+  (grammar_name "mini" / "mini_large") — not an `.ebnf` file at all, so an
+  `.ebnf`-shaped sweep is structurally blind to it.
+
+  WHY NOBODY NOTICED: `ast_dump_contract_gate` is standalone — it is referenced
+  by no aggregate (`sota_exit_gate`, `ci_workflow_local_gate`) and no CI
+  workflow, so nothing re-ran it after the mandate landed.
+
+  Routed to QUANT-PLUS-ITER.4 (which already owns the `@entry` provenance bound)
+  and recorded in this tree's leaf `.1` as a finding. Deliberately NOT fixed
+  here: it belongs to a different tree, and the code-change doctrine requires
+  the owning leaf first.
