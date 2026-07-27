@@ -41,6 +41,14 @@ new_repo() {
   git -C "$d" config user.email probe@pgen.local
   git -C "$d" config user.name probe
   cp "${CHECK}" "$d/scripts/check_diagnosis_evidence.sh"
+  # ⚠️ THE ENFORCER COPY MUST BE COMMITTED, NOT LEFT STAGED (GENERATED-LINT-CORRECTNESS.5).
+  # The probe repo needs `scripts/check_diagnosis_evidence.sh` to run the check at all, and `.5`
+  # widened `code_changed` to include `scripts/check_*.sh` — correctly, since editing the enforcer
+  # must require a checklist. Leaving that copy in the staged set makes EVERY arm look like a code
+  # change, which silently breaks the "no code change staged" control arms. Committing it first
+  # takes it out of `git diff --cached`, so each arm stages exactly what it means to.
+  git -C "$d" add scripts/check_diagnosis_evidence.sh >/dev/null 2>&1
+  git -C "$d" commit -qm "probe base: the enforcer itself" >/dev/null 2>&1
   printf 'fn main() {}\n' >"$d/rust/src/lib.rs"   # the staged CODE change that triggers the check
   printf '%s' "$d"
 }

@@ -924,6 +924,18 @@ looked like a proof-surface change and CTRL-3/4/5 failed for a reason unrelated 
 test. Fixed by committing the enforcer in the probe repo's base commit. **Same lesson as `.3`:
 write the control arms, and believe them when they fail.**
 
+⚠️⚠️ **KNOCK-ON, found only by re-running EVERY driver after the commit — and it is the same bug in
+two more places.** `.3`'s and `.4`'s probe harnesses build their throwaway repos the same way, so
+widening the predicate silently broke **their** "no code change staged" CONTROL arms too
+(`run_diag_evidence_probes` 5/1, `run_diag_evidence_family5_probes` 12/1). Neither is a defect in
+the rule — all three harnesses were staging a copy of the enforcer that `.5` now correctly counts as
+a proof-surface change. Both fixed with the same base-commit; all four enforcer drivers re-verified
+green (**6/6, 13/13, 12/12, 8/8**).
+⭐ **The lesson is about verification scope, not about the bug:** a change to a shared enforcer
+invalidates every harness that *exercises* it, not only the one written alongside it. Re-running the
+single driver for the current leaf would have reported a clean 12/12 and shipped two broken
+controls. **When the thing you changed is used by other checks, re-run all of them.**
+
 ### `.6` — a waiver is a bug report about the gate: mechanize it (`done`)
 
 - **Status: `done`** (2026-07-27, session #216, `PGEN-GENERATED-LINT-CORRECTNESS-0007`), on the
