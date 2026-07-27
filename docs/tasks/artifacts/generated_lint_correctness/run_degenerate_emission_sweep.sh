@@ -35,14 +35,27 @@ generated/ebnf.rs
 # clippy CORRECTNESS lint, deny-by-default) fires only on the two identical-
 # operand rows; the rest are dead weight that rustc folds but still ships.
 PATTERNS=(
+  # `.1` — the branch-policy family (`#branch_policy_mode`)
   '"longest_match" == "ordered"'
   '"longest_match" == "priority_first"'
   '"priority_first" == "ordered"'
   '"priority_first" == "priority_first"'   # clippy::eq_op
   '"ordered" == "ordered"'                 # clippy::eq_op
   '"ordered" == "priority_first"'
+  # `.1` — the regex layout-skip family (`#allow_layout_skip_for_regexes`)
   'skip_leading_whitespace && false'       # clippy::overly_complex_bool_expr
   'skip_leading_whitespace && true'
+  # `.2` — the associativity family (`#associativity_mode`)
+  'match "left" {'
+  'match "right" {'
+  'match "nonassoc" {'
+  # `.2` — the per-rule negative-case guard (`#negative_case_enabled`) and the
+  # terminal/trailing layout guards (`#allow_layout_skip_for_terminals`,
+  # `#allow_trailing_layout`). Both emit a bare `if true {` / `if false {`, and
+  # no other emission in a generated parser produces that literal form, so the
+  # bare pattern is a sound census for them.
+  'if true {'
+  'if false {'
 )
 
 capture() {

@@ -1843,7 +1843,18 @@ impl AstBasedGenerator {
     ) -> TokenStream {
         let parse_method = format_ident!("parse_{}", entry_rule);
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
-        let allow_trailing_layout = !self.layout_sensitivity().trailing;
+        // GENERATED-LINT-CORRECTNESS.2 — the trailing-layout policy is a
+        // codegen-time constant (`@whitespace_sensitive:`), so the emitted
+        // `if true { … }` / `if false { … }` is decided here instead. A
+        // trailing-layout-sensitive grammar simply does not get the skip.
+        let trailing_layout_skip = if self.layout_sensitivity().trailing {
+            quote! {}
+        } else {
+            quote! {
+                // Allow trailing layout/comments so the parse reports structural completeness.
+                self.consume_layout_for_terminal("<EOF>");
+            }
+        };
 
         // RGX-0078.5.i.7 (D2-A) — the BARE-PARSE verdict, cached once per parse:
         // true iff NO diagnostic consumer is active. Each clause routes one
@@ -2209,10 +2220,7 @@ impl AstBasedGenerator {
 
             pub fn parse_full(&mut self) -> ParseResult<ParseNode<'input>> {
                 let parsed = self.parse()?;
-                if #allow_trailing_layout {
-                    // Allow trailing layout/comments so parse_full reports structural completeness.
-                    self.consume_layout_for_terminal("<EOF>");
-                }
+                #trailing_layout_skip
                 if self.position == self.input.len() {
                     // FINAL-PHASE-PREDICATE.2: whole-input obligations discharge
                     // here, after full consumption is confirmed and the store is
@@ -2237,10 +2245,7 @@ impl AstBasedGenerator {
             /// trailing-layout / full-consumption check is byte-identical to `parse_full`.
             pub fn parse_full_from(&mut self, entry: &str) -> ParseResult<ParseNode<'input>> {
                 let parsed = self.parse_from(entry)?;
-                if #allow_trailing_layout {
-                    // Allow trailing layout/comments so the parse reports structural completeness.
-                    self.consume_layout_for_terminal("<EOF>");
-                }
+                #trailing_layout_skip
                 if self.position == self.input.len() {
                     // FINAL-PHASE-PREDICATE.2: whole-input obligations discharge
                     // on the entry-aware path too (drives cert witnesses +
@@ -3759,9 +3764,28 @@ impl AstBasedGenerator {
             line!()
         );
 
+        // GENERATED-LINT-CORRECTNESS.2 — the rule's `@negative_case` policy is a
+        // codegen-time constant, so the recording call is emitted only for a rule
+        // that asks for it. It used to emit `if false { self.record_negative_case_failure(…) }`
+        // once per rule — measured 1,475 times in `systemverilog_parser.rs` alone,
+        // and 0 tracked grammars enable the directive on any rule.
+        // `record_negative_case_failure` itself stays emitted: the shared
+        // `inlined_frame_call` helper calls it through a real runtime parameter.
         let negative_case_policy = self.rule_negative_case_policy(rule_name);
-        let negative_case_enabled = negative_case_policy.invalid_case;
         let negative_case_strict = negative_case_policy.negative;
+        let negative_case_record = if negative_case_policy.invalid_case {
+            quote! {
+                self.record_negative_case_failure(
+                    #rule_name,
+                    start_pos,
+                    self.position,
+                    #negative_case_strict,
+                    &format!("{:?}", e),
+                );
+            }
+        } else {
+            quote! {}
+        };
         let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
 
         // Optim #14: conditionally emit the semantic-runtime transaction
@@ -3982,15 +4006,7 @@ impl AstBasedGenerator {
                         }
                     }
                     Err(e) => {
-                        if #negative_case_enabled {
-                            self.record_negative_case_failure(
-                                #rule_name,
-                                start_pos,
-                                self.position,
-                                #negative_case_strict,
-                                &format!("{:?}", e),
-                            );
-                        }
+                        #negative_case_record
                         if self.trace_enabled() {
                             self.logger.log_error(#filename, self.position as u32, &format!("❌ Exiting rule '{}' with error: {:?} - backtracked to {}", #rule_name, e, self.position));
                         }
@@ -4248,28 +4264,112 @@ impl AstBasedGenerator {
             // `branch_policy_mode` stays live: it is still interpolated into the
             // emitted TRACE strings, where a literal is exactly what is wanted.
             //
-            // The associativity tie-break is shared verbatim between the two
-            // surviving cascades; folding `#associativity_mode` itself is the same
-            // defect class and is owned by leaf `.2` (it needs the `nonassoc_tie`
-            // binding's `mut` to become conditional).
-            let associativity_tie_break = quote! {
-                match #associativity_mode {
-                    "right" => current_branch_index > best_branch_index,
-                    "nonassoc" => {
-                        if current_branch_index != best_branch_index {
-                            nonassoc_tie = true;
-                        }
-                        false
-                    }
-                    _ => false,
+            // GENERATED-LINT-CORRECTNESS.2 — the associativity tie-break, shared by
+            // both surviving cascades, is resolved here for the same reason: it used
+            // to emit `match "left" { "right" => …, "nonassoc" => …, _ => false }`,
+            // three arms of which are statically dead. `associativity_mode` stays
+            // live below, where it is a TRACE-string argument rather than control
+            // flow.
+            //
+            // ⚠️ Folding it makes two emitted bindings conditional, or the fold
+            // would trade a degenerate expression for `unused` warnings:
+            //   - `nonassoc_tie` is only ever SET by the `nonassoc` arm, so under
+            //     any other associativity both it and the `if nonassoc_tie { … }`
+            //     failure arm are dead;
+            //   - `best_branch_index` is only ever READ by the `right`/`nonassoc`
+            //     arms and by the branch-start-effect lookup, so under `left` with
+            //     no branch-start effects it becomes write-only.
+            let is_nonassoc = matches!(associativity, SemanticAssociativity::NonAssoc);
+            let tracks_best_branch_index = !matches!(associativity, SemanticAssociativity::Left)
+                || self.rule_has_branch_start_effects(rule_name);
+            let associativity_tie_break = match associativity {
+                SemanticAssociativity::Right => {
+                    quote! { current_branch_index > best_branch_index }
                 }
+                SemanticAssociativity::NonAssoc => quote! {{
+                    if current_branch_index != best_branch_index {
+                        nonassoc_tie = true;
+                    }
+                    false
+                }},
+                // Left-associative: the earlier branch keeps the win, i.e. a tie
+                // never dethrones the incumbent.
+                SemanticAssociativity::Left => quote! { false },
             };
+            let best_branch_index_decl = if tracks_best_branch_index {
+                quote! { let mut best_branch_index: usize = 0usize; }
+            } else {
+                quote! {}
+            };
+            let best_branch_index_update = if tracks_best_branch_index {
+                quote! { best_branch_index = current_branch_index; }
+            } else {
+                quote! {}
+            };
+            let nonassoc_tie_decl = if is_nonassoc {
+                quote! { let mut nonassoc_tie = false; }
+            } else {
+                quote! {}
+            };
+            // The leading arm of the tournament's result chain. Emitted only under
+            // `nonassoc`, where `nonassoc_tie` can actually become true; otherwise
+            // the chain starts directly at `if let Some(content) = best_content`.
+            let nonassoc_tie_failure_arm = if is_nonassoc {
+                quote! {
+                    if nonassoc_tie {
+                        // RGX-0078.5.j.4 K1 — a nonassoc tie fails the WHOLE
+                        // choice: if the (dethroned-by-tie) best branch's effects
+                        // are still live, discard them before backtracking.
+                        if live_semantic_branch {
+                            parser
+                                .semantic_runtime_state
+                                .rollback_to_labeled(
+                                    tournament_semantic_checkpoint.clone(),
+                                    crate::ast_pipeline::RollbackLabel::C3bBranchCleanup {
+                                        rule: #rule_name,
+                                        branch: best_branch,
+                                        total: #branch_count,
+                                    },
+                                );
+                        }
+                        return Err(ParseError::Backtrack {
+                            position: parse_start,
+                        });
+                    } else
+                }
+            } else {
+                quote! {}
+            };
+            // ⚠️ When the tie-break folds to a literal `false` (left-associative —
+            // a tie never dethrones), the cascade's LAST `<` arm and the final
+            // `else` would both read `false`, which is `clippy::needless_bool` and
+            // a fresh instance of exactly the defect class this tree removes. The
+            // two are merged instead: `<` and `==` both answer "do not take", so
+            // dropping the `<` arm and letting the final `else` cover both is
+            // semantically identical and emits no degenerate pair.
+            let tie_break_is_constant_false =
+                matches!(associativity, SemanticAssociativity::Left);
             let should_take_policy_expr = match branch_policy {
                 // Ordered keeps the first successful branch. (The `arm_inner`
                 // wrapper below already skips the whole body once a winner
                 // exists, so this is the faithful fold, not a stronger claim.)
                 SemanticBranchPolicy::Ordered => quote! { best_content.is_none() },
                 // Priority first, then longest, then the associativity tie-break.
+                SemanticBranchPolicy::PriorityFirst if tie_break_is_constant_false => quote! {
+                    if best_content.is_none() {
+                        true
+                    } else if candidate_priority > best_priority {
+                        true
+                    } else if candidate_priority < best_priority {
+                        false
+                    } else {
+                        // Priorities tie: longer wins, and an end-tie does NOT
+                        // dethrone (left-associative), so the comparison IS the
+                        // answer. Emitted collapsed, or the tail would be a
+                        // `clippy::needless_bool` `if … { true } else { false }`.
+                        candidate_end > best_end
+                    }
+                },
                 SemanticBranchPolicy::PriorityFirst => quote! {
                     if best_content.is_none() {
                         true
@@ -4286,6 +4386,21 @@ impl AstBasedGenerator {
                     }
                 },
                 // Longest first, then priority, then the associativity tie-break.
+                SemanticBranchPolicy::LongestMatch if tie_break_is_constant_false => quote! {
+                    if best_content.is_none() {
+                        true
+                    } else if candidate_end > best_end {
+                        true
+                    } else if candidate_end < best_end {
+                        false
+                    } else {
+                        // Ends tie: higher priority wins, and a priority-tie does
+                        // NOT dethrone (left-associative), so the comparison IS the
+                        // answer. Emitted collapsed, or the tail would be a
+                        // `clippy::needless_bool` `if … { true } else { false }`.
+                        candidate_priority > best_priority
+                    }
+                },
                 SemanticBranchPolicy::LongestMatch => quote! {
                     if best_content.is_none() {
                         true
@@ -4783,7 +4898,7 @@ impl AstBasedGenerator {
                                     best_semantic_delta = None;
                                     best_end = candidate_end;
                                     best_priority = candidate_priority;
-                                    best_branch_index = current_branch_index;
+                                    #best_branch_index_update
                                     best_branch = #branch_num;
                                     if semantic_capture_raw_for_post {
                                         best_raw_content = Some(raw_content.clone());
@@ -4893,9 +5008,9 @@ impl AstBasedGenerator {
                 let mut best_raw_content: Option<ParseContent<'input>> = None;
                 let mut best_end = parse_start;
                 let mut best_priority: i64 = i64::MIN;
-                let mut best_branch_index: usize = 0usize;
+                #best_branch_index_decl
                 let mut best_branch = 0usize;
-                let mut nonassoc_tie = false;
+                #nonassoc_tie_decl
                 let mut result = ParseContent::Sequence(Vec::new());
                 // SV-EXH-PROOF.3.3.4.b.6.2.33 (C3-B FIX) — tournament-scope
                 // semantic checkpoint + the winner's captured delta.
@@ -4953,26 +5068,8 @@ impl AstBasedGenerator {
                     }
                 }
 
-                if nonassoc_tie {
-                    // RGX-0078.5.j.4 K1 — a nonassoc tie fails the WHOLE
-                    // choice: if the (dethroned-by-tie) best branch's effects
-                    // are still live, discard them before backtracking.
-                    if live_semantic_branch {
-                        parser
-                            .semantic_runtime_state
-                            .rollback_to_labeled(
-                                tournament_semantic_checkpoint.clone(),
-                                crate::ast_pipeline::RollbackLabel::C3bBranchCleanup {
-                                    rule: #rule_name,
-                                    branch: best_branch,
-                                    total: #branch_count,
-                                },
-                            );
-                    }
-                    return Err(ParseError::Backtrack {
-                        position: parse_start,
-                    });
-                } else if let Some(content) = best_content {
+                #nonassoc_tie_failure_arm
+                if let Some(content) = best_content {
                     parser.position = best_end;
                     semantic_selected_branch_index = Some(best_branch);
                     if parser.trace_enabled() {
@@ -6550,7 +6647,15 @@ impl AstBasedGenerator {
         // `@whitespace_sensitive:` directive (the grammar-NAME gate is
         // retired) — see `Self::layout_sensitivity`.
         let layout_sensitivity = self.layout_sensitivity();
+        // GENERATED-LINT-CORRECTNESS.2 — the terminal-layout policy is a
+        // codegen-time constant, so the four terminal matchers below get the skip
+        // or they do not; they no longer ship `if true { … }` / `if false { … }`.
         let allow_layout_skip_for_terminals = !layout_sensitivity.terminals;
+        let terminal_layout_skip = if allow_layout_skip_for_terminals {
+            quote! { self.consume_layout_for_terminal(expected); }
+        } else {
+            quote! {}
+        };
         let allow_layout_skip_for_regexes = !layout_sensitivity.regex_tokens;
         // GRAMMAR-WELLFORMED.H.11.5: per-introducer static comment-arm
         // suppression — see `grammar_claims_introducer_as_non_comment`. An
@@ -6772,7 +6877,18 @@ impl AstBasedGenerator {
                 }
             }
         };
-        let consume_layout_for_terminal_fn = if any_comment_arm {
+        // GENERATED-LINT-CORRECTNESS.2 — the terminal-side skipper has exactly two
+        // call families: the four terminal matchers (gated on
+        // `allow_layout_skip_for_terminals`) and `parse_full`/`parse_full_from`'s
+        // trailing-layout skip (gated on the trailing facet). With BOTH facets
+        // whitespace-sensitive — `grammars/regex.ebnf` is the shipped case — the
+        // folds above leave no caller, so emitting it anyway would trade the
+        // degenerate guard for a `dead_code` warning.
+        let emit_consume_layout_for_terminal =
+            allow_layout_skip_for_terminals || !layout_sensitivity.trailing;
+        let consume_layout_for_terminal_fn = if !emit_consume_layout_for_terminal {
+            quote! {}
+        } else if any_comment_arm {
             quote! {
             fn consume_layout_for_terminal(&mut self, expected: &str) {
                 // Skip comments as layout for structural terminals, but avoid swallowing
@@ -6955,9 +7071,7 @@ impl AstBasedGenerator {
                     expected: &'static str,
                     expected_bytes: &[u8; N],
                 ) -> CascadeResult<&'input str> {
-                    if #allow_layout_skip_for_terminals {
-                        self.consume_layout_for_terminal(expected);
-                    }
+                    #terminal_layout_skip
                     let start = self.position;
                     let end = start + N;
                     if end <= self.input.len()
@@ -6970,9 +7084,7 @@ impl AstBasedGenerator {
                 }
                 #[allow(dead_code)]
                 fn match_string_bare(&mut self, expected: &str) -> CascadeResult<&'input str> {
-                    if #allow_layout_skip_for_terminals {
-                        self.consume_layout_for_terminal(expected);
-                    }
+                    #terminal_layout_skip
                     let start = self.position;
                     let expected_bytes = expected.as_bytes();
                     let end = start + expected_bytes.len();
@@ -8504,9 +8616,7 @@ impl AstBasedGenerator {
                 if self.logger_enabled {
                     return self.match_string(expected);
                 }
-                if #allow_layout_skip_for_terminals {
-                    self.consume_layout_for_terminal(expected);
-                }
+                #terminal_layout_skip
                 let start = self.position;
                 let end = start + N;
                 if end <= self.input.len()
@@ -8518,9 +8628,7 @@ impl AstBasedGenerator {
                 Err(ParseError::Backtrack { position: start })
             }
             fn match_string(&mut self, expected: &str) -> ParseResult<&'input str> {
-                if #allow_layout_skip_for_terminals {
-                    self.consume_layout_for_terminal(expected);
-                }
+                #terminal_layout_skip
                 let start = self.position;
                 let expected_bytes = expected.as_bytes();
                 let end = start + expected_bytes.len();
@@ -14206,9 +14314,22 @@ mod semantic_usage_tests {
             "expected candidate priority tie-break support, got: {}",
             rendered
         );
+        // GENERATED-LINT-CORRECTNESS.2 — this used to assert
+        // `rendered.contains("match \"right\"")`, i.e. it PINNED the degenerate
+        // emission (`match "right" { "right" => …, _ => false }`) that the
+        // associativity fold removes. A `contains` over rendered tokens tests
+        // SPELLING, not behaviour — the same shape that let `.8`'s `Option`
+        // interpolation bug and `.10.4`'s zero-width `true`/`false` matcher survive
+        // review. Re-pinned (NOT deleted) to what `right` associativity MEANS.
         assert!(
-            rendered.contains("match \"right\""),
-            "expected associativity-aware logging content, got: {}",
+            rendered.contains("current_branch_index > best_branch_index"),
+            "right associativity must emit the later-branch-wins tie-break, got: {}",
+            rendered
+        );
+        assert!(
+            !rendered.contains("match \"right\""),
+            "the associativity must be resolved at CODEGEN, not re-asked in the emitted \
+             parser as a match over a string literal, got: {}",
             rendered
         );
     }

@@ -1,0 +1,217 @@
+GENERATED-LINT-CORRECTNESS.2 — verification capture (ADDRESSED + NO REGRESSION)
+================================================================================
+Working tree on top of commit bf48699b (leaf `.1`).
+Heavy jobs run under `scripts/run_with_memory_guard.sh --budget-mb 18432`
+(see the OPS note at the bottom — 16384 is no longer enough for these classes).
+
+--------------------------------------------------------------------------------
+THE SWEEP — what `.2` enumerated, and how
+--------------------------------------------------------------------------------
+
+The pattern is "a `#`-interpolated codegen-time constant used in emitted control
+flow". Enumerated mechanically at the codegen sites (NOT by reading 200 MB of
+emitted Rust), across every file that emits parser code:
+
+  grep -nE '(^|[^a-zA-Z_])(if|else if|while|match)[[:space:]]+#[a-z_]+|
+            &&[[:space:]]*#[a-z_]+|\|\|[[:space:]]*#[a-z_]+|#[a-z_]+[[:space:]]*(==|!=)'
+    rust/src/ast_pipeline/ast_code_generator.rs
+    rust/src/ast_pipeline/ast_based_generator.rs
+    rust/src/ast_pipeline/ast_return_transform.rs
+    rust/src/ast_pipeline/ast_based_generator/scan.rs
+    rust/src/ast_pipeline/ast_based_generator/cascade/value.rs
+    rust/src/ast_pipeline/ast_based_generator/cascade.rs
+
+cross-referenced against every interpolated identifier whose generator-side
+binding is a compile-time `bool` / `&'static str`. The COMPLETE classification:
+
+  FOLDED by this leaf
+    #associativity_mode              3 sites (all three emitters)   7,064 emissions
+    #negative_case_enabled           1 site  (protocol)             2,555 emissions
+    #allow_layout_skip_for_terminals 4 sites (protocol)  ) together     60 emissions
+    #allow_trailing_layout           2 sites (protocol)  )
+
+  CORRECT AS-IS — a real runtime expression, not a constant
+    #guard_condition    (3 emitters) — the FIRST-set prune guard
+    #failure_condition  (cascade.rs) — the lookahead polarity, ALREADY folded
+    #base_code / #base_value — the value being matched on, not the discriminant
+
+  CORRECT AS-IS — a constant that is a payload, not control flow
+    #branch_policy_mode / #associativity_mode inside emitted TRACE strings
+    #negative_case_enabled / #negative_case_strict passed as ARGUMENTS to the
+      shared `inlined_frame_call` helper, whose `if negative_case_enabled` is a
+      genuine conditional over a runtime parameter
+    #attributes / #items / #required / #profile_literals / #text
+
+--------------------------------------------------------------------------------
+ADDRESSED — before -> after
+--------------------------------------------------------------------------------
+
+[1] Statically-degenerate emissions across all 11 artifacts
+    (driver `run_degenerate_emission_sweep.sh`, extended with the `.2` patterns;
+     capture `degenerate_emission_sweep_capture_leaf2.txt`):
+
+        TOTAL_DEGENERATE_before = 9679      (the `.1` vintage)
+        TOTAL_DEGENERATE_after  = 0
+
+        `match "left" {`  7,064 -> 0   (the associativity tie-break)
+        `if false {`      2,555 -> 0   (per-rule @negative_case + layout guards)
+        `if true {`          60 -> 0   (layout guards)
+
+    Cumulative with `.1`: 21,201 + 9,679 = 30,880 statically-decided expressions
+    removed from the shipped generated parsers.
+
+[2] Shipped artifact size (same canonical output paths in both arms):
+
+        BEFORE = 230,524,147 bytes (219.8 MB)
+        AFTER  = 221,056,771 bytes (210.8 MB)
+        delta  = -9,467,376 bytes (-4.1%)
+
+        systemverilog_parser.rs   136,452,772 -> 130,646,239  (-5.8 MB)
+        regex_parser.rs            39,796,285 ->  38,302,385
+        semantic_annotation_...    12,736,462 ->  12,145,730
+        vhdl_parser.rs             11,789,806 ->  11,404,066
+        ebnf.rs                    10,855,368 ->  10,330,039
+
+    Cumulative with `.1`: 252.8 MB -> 221.1 MB = **-31.7 MB (-12.5%)**.
+
+[3] Generated-parser clippy, run STRICT
+    (`PGEN_CLIPPY_GENERATED_STRICT=1 make -C rust clippy_on_rust_change`):
+
+        exit 0; generated stage `pass`
+        errors                    0     (unchanged from `.1` — the gain is held)
+        warnings             80,402 -> 78,858   (**-1,544**, i.e. `.2` REDUCES
+                                                 the style noise it passes through)
+        source-stage errors       0
+
+--------------------------------------------------------------------------------
+⚠️ THE FOLD CREATED A FRESH INSTANCE OF THE CLASS IT REMOVES — CAUGHT BY RE-MEASURING
+--------------------------------------------------------------------------------
+
+The first associativity fold emitted, for a left-associative rule:
+
+    } else if candidate_priority < best_priority {
+        false
+    } else {
+        false          // <- the folded left tie-break
+    }
+
+which is `clippy::needless_bool`, measured at **7,482 new warnings** (generated
+stage 80,402 -> 93,822). Merging the two arms then left the tail as
+`else if candidate_priority > best_priority { true } else { false }` — the OTHER
+`needless_bool` phrasing, and still 7,482 of them. The emission now collapses
+the tail to the comparison itself:
+
+    } else if candidate_end < best_end {
+        false
+    } else {
+        candidate_priority > best_priority     // `<` and `==` both answer "no"
+    }
+
+Final count: `needless_bool` **0**, generated warnings **78,858** — below the
+`.1` baseline. The lesson, banked in the leaf: a fold that only watches the ERROR
+count can silently ship thousands of instances of the very shape it is removing;
+re-measure the WHOLE lint census, not the gate's verdict.
+
+--------------------------------------------------------------------------------
+NO REGRESSION
+--------------------------------------------------------------------------------
+
+[a] All 11 generated parsers COMPILE:
+      cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
+      exit 0, 0 errors; lib warning count 35,981 -> 35,964 (a DECREASE — the fold
+      removes emitted code, so it cannot add rustc warnings; measured, not assumed).
+
+[b] Source-side warnings unchanged: `cargo check --lib` 42 -> 42.
+
+[c] ⭐ THE ORACLE GAP THIS LEAF HAD TO CLOSE FIRST. Before `.2`, NOTHING in the
+    repository exercised `@associativity`: no combinator row, no semantic row, no
+    integration test, and no tracked grammar declares it (`grammars/ebnf.ebnf`
+    only *documents* the directive). Ticking NO-REGRESSION on the largest fold in
+    this leaf would have meant ticking it on an instrument that structurally could
+    not see the change. Three rows were therefore added to
+    `parse_harness_combinator_suite` — `assoc_left`, `assoc_right`,
+    `assoc_nonassoc` — sharing one grammar whose two alts TIE on consumed length
+    and priority, so only the tie-break can pick a winner:
+
+        @associativity: <mode>
+        start := pair | fused
+        pair  := "x" "y"
+        fused := "xy"
+
+      make -C rust parse_harness_combinator_gate => exit 0, **30/30 rows CLEAN**
+        assoc_left       CLEAN  samples=3 diverge=0 anchor_miss=0
+        assoc_right      CLEAN  samples=3 diverge=0 anchor_miss=0
+        assoc_nonassoc   CLEAN  samples=3 diverge=0 anchor_miss=0
+      (plus the four `choice_*` branch-policy rows from `.1`, still CLEAN)
+
+    ⭐ AND A DISCRIMINATION PROOF, because agreement alone would be vacuous —
+    both sides compile from the same generator, so a fold that inverted or dropped
+    the directive could still make them agree. `SampleOutcome` gained an
+    `interp_ast` field and the gate now asserts:
+      - (left, right, nonassoc) verdicts on "xy" == (accept, accept, REJECT)
+        => the tie is REAL and `nonassoc` genuinely fails the whole choice;
+      - left's typed AST != right's typed AST
+        => the tie-break DIRECTION is observable, so the rows can see an inversion.
+
+[d] parse_harness_semantic_gate     => exit 0, 36/36 rows CLEAN, diverge=0
+[e] parse_harness_equivalence_gate  => exit 0, 4 passed / 0 failed
+    (interpreter == generated parser, byte-identical, seeds 0/7/42)
+
+[f] Library suite: 1027 passed; 0 failed; 29 ignored.
+    ⚠️ It first failed 1026/1 — see the re-pinned test below.
+
+[g] rtl_frontend_generated_contract_gate => exit 0 (probe + handwritten replay)
+    rtl_const_expr_cert_gate             => exit 0
+      (total=48 proof=0 witness=48 UNKNOWN=0 fully_certified=true, seeds 0/7/42)
+
+[h] Certificate coverage, `UNKNOWN=0 fully_certified=true`,
+    `sample_parse_failures=0`, `proof_reverify_failures=0`, deterministic across
+    seeds 0/7/42:
+
+      json           total=9    proof=0  witness=9
+      regex          total=269  proof=9  witness=260
+      vhdl           total=216  proof=0  witness=216
+      sv_preproc     total=74   proof=0  witness=74
+      rtl_frontend   total=169  proof=1  witness=168
+      systemverilog  total=1352 proof=17 witness=1335
+        (--grammar-profile sv_2017 --entry-rule systemverilog_file --count 40)
+      rtl_const_expr total=48   proof=0  witness=48   (via its canonical gate)
+
+[i] regex_pcre2_compile_oracle_gate => exit 0
+
+--------------------------------------------------------------------------------
+⚠️ A FOURTH TEST THAT PINNED THE BUG — RE-PINNED, NOT DELETED
+--------------------------------------------------------------------------------
+
+`semantic_usage_codegen_emits_priority_and_associativity_tiebreak_logic` asserted
+
+    rendered.contains("match \"right\"")
+
+i.e. it required the emitted parser to contain the DEGENERATE `match` over an
+associativity string literal — the exact shape this leaf removes. It failed the
+moment the fold landed, which is the honest outcome, and it is the FOURTH
+occurrence of the banked shape *"a `contains` assertion over rendered tokens
+tests SPELLING, not BEHAVIOUR"* (after `.8`'s `Option` interpolation, `.10.4`'s
+zero-width `true`/`false` matcher, and `.10.1`'s sweep miss). Re-pinned to what
+`right` associativity MEANS:
+
+    assert!(rendered.contains("current_branch_index > best_branch_index"));
+    assert!(!rendered.contains("match \"right\""));
+
+--------------------------------------------------------------------------------
+OPS — the 16 GB memory-guard budget is no longer sufficient for these classes
+--------------------------------------------------------------------------------
+
+TWO heavy jobs were killed by the OS (`signal: 15, SIGTERM`, `make Error 101`)
+with the guard reporting `exit=2` rather than a budget kill, at peaks of
+**15,079 MB** and **15,253 MB** against `--budget-mb 16384`:
+
+  - `make -C rust focus_*` (the `target/debug/ast_pipeline` rustc invocation)
+  - `make -C rust parse_harness_combinator_gate` (the `--test` lib link)
+
+The guard samples periodically and cannot see the spike between samples (the
+failure mode already recorded in `DEVELOPMENT_NOTES.md`). Both succeeded on a
+plain re-run at `--budget-mb 18432`. ⚠️ The first kill left the artifact tree in
+a MIXED vintage (2 of 11 parsers regenerated, 9 stale) — the whole regeneration
+was redone rather than patched, because a mixed tree would have made every
+downstream measurement unattributable.

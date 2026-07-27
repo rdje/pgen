@@ -88,6 +88,15 @@ pub enum Combinator {
     ChoiceOrdered,
     /// Ordered choice under `@branch_policy: priority_first` + `@priority` — picks the highest `@priority`.
     ChoicePriorityFirst,
+    /// `@associativity: left` (the DEFAULT) — on an end+priority TIE the incumbent (earlier) alt keeps
+    /// the win. `GENERATED-LINT-CORRECTNESS.2` added these three rows: the associativity tie-break is
+    /// resolved at CODEGEN in the generated parser and at RUNTIME in the interpreter, so this is a
+    /// genuine differential over the fold.
+    AssociativityLeft,
+    /// `@associativity: right` — on a TIE the LATER alt dethrones the incumbent.
+    AssociativityRight,
+    /// `@associativity: nonassoc` — a TIE fails the WHOLE choice.
+    AssociativityNonAssoc,
     /// The `e? | keyword` always-succeeds shape (the `A2.2`/`A2.3` case): a branch that always matches
     /// (possibly empty) does NOT shadow a later branch under backtracking `longest_match`.
     AlwaysSucceeds,
@@ -157,6 +166,9 @@ impl Combinator {
         Combinator::ChoiceLongestMatchExplicit,
         Combinator::ChoiceOrdered,
         Combinator::ChoicePriorityFirst,
+        Combinator::AssociativityLeft,
+        Combinator::AssociativityRight,
+        Combinator::AssociativityNonAssoc,
         Combinator::AlwaysSucceeds,
         Combinator::SequenceBacktrack,
         Combinator::QuantifierOptional,
@@ -259,6 +271,38 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         entry_rule: None,
         requested_profile: None,
         note: "priority_first picks the higher-@priority alt (2) → accepts \"ab\" (reorders vs source)",
+    },
+    // ── The associativity tie-break (GENERATED-LINT-CORRECTNESS.2) ──────────────────────────────────
+    // All three share ONE shape: both alts consume exactly "xy", so end AND priority TIE and the
+    // associativity tie-break is the only thing that can pick a winner. The alts build DIFFERENT ASTs
+    // (a two-element sequence vs a single fused terminal), so the choice is OBSERVABLE in the compared
+    // typed AST rather than merely internal — without that the rows would agree vacuously.
+    CombinatorCase {
+        name: "assoc_left",
+        combinator: Combinator::AssociativityLeft,
+        grammar_body: "@entry: true\n@associativity: left\nstart := pair | fused\npair := \"x\" \"y\"\nfused := \"xy\"\n",
+        inputs: &[("xy", true), ("x", false), ("z", false)],
+        entry_rule: None,
+        requested_profile: None,
+        note: "left (the default): a TIE does NOT dethrone — the earlier `pair` alt keeps the win",
+    },
+    CombinatorCase {
+        name: "assoc_right",
+        combinator: Combinator::AssociativityRight,
+        grammar_body: "@entry: true\n@associativity: right\nstart := pair | fused\npair := \"x\" \"y\"\nfused := \"xy\"\n",
+        inputs: &[("xy", true), ("x", false), ("z", false)],
+        entry_rule: None,
+        requested_profile: None,
+        note: "right: a TIE dethrones the incumbent — the later `fused` alt wins (different AST)",
+    },
+    CombinatorCase {
+        name: "assoc_nonassoc",
+        combinator: Combinator::AssociativityNonAssoc,
+        grammar_body: "@entry: true\n@associativity: nonassoc\nstart := pair | fused\npair := \"x\" \"y\"\nfused := \"xy\"\n",
+        inputs: &[("xy", false), ("x", false), ("z", false)],
+        entry_rule: None,
+        requested_profile: None,
+        note: "nonassoc: a TIE fails the WHOLE choice — \"xy\" is REJECTED where left/right accept",
     },
     CombinatorCase {
         name: "always_succeeds",
@@ -564,6 +608,14 @@ pub struct SampleOutcome {
     pub anchor_ok: bool,
     /// A human-readable divergence detail on disagreement, else `None`.
     pub divergence: Option<String>,
+    /// The interpreter's serialized typed AST (`None` when it produced none).
+    ///
+    /// `GENERATED-LINT-CORRECTNESS.2` added this so a case can prove it is
+    /// **discriminating** and not merely agreeing: two cases that differ only in a
+    /// steering directive (the `assoc_left` / `assoc_right` pair) must produce
+    /// DIFFERENT ASTs on the same input, or a fold that silently inverted the
+    /// directive would pass the suite unnoticed.
+    pub interp_ast: Option<String>,
 }
 
 /// The result of running the differential over one combinator's isolating grammar.
@@ -740,6 +792,7 @@ pub(crate) fn compare(
                 Some(ast_diff_note(i.ast_json.as_ref(), o.ast_json.as_ref()))
             };
 
+            let interp_ast = i.ast_json.as_ref().map(|v| v.to_string());
             SampleOutcome {
                 input: input.to_string(),
                 interp_accepted: Some(i.accepted),
@@ -747,6 +800,7 @@ pub(crate) fn compare(
                 agreed,
                 anchor_ok,
                 divergence,
+                interp_ast,
             }
         }
         (Err(ie), Ok(o)) => SampleOutcome {
@@ -756,6 +810,7 @@ pub(crate) fn compare(
             agreed: false,
             anchor_ok: false,
             divergence: Some(format!("interpreter plumbing failed: {ie}")),
+            interp_ast: None,
         },
         (Ok(i), Err(oe)) => SampleOutcome {
             input: input.to_string(),
@@ -764,6 +819,7 @@ pub(crate) fn compare(
             agreed: false,
             anchor_ok: i.accepted == expected_accept,
             divergence: Some(format!("oracle plumbing failed: {oe}")),
+            interp_ast: i.ast_json.as_ref().map(|v| v.to_string()),
         },
         (Err(ie), Err(oe)) => SampleOutcome {
             input: input.to_string(),
@@ -772,6 +828,7 @@ pub(crate) fn compare(
             agreed: false,
             anchor_ok: false,
             divergence: Some(format!("both sides failed: interp={ie}; oracle={oe}")),
+            interp_ast: None,
         },
     }
 }
@@ -929,6 +986,38 @@ mod gate {
         assert!(
             !ab_verdict(Combinator::ChoiceOrdered),
             "ordered MUST reject \"ab\" (picks the first alt, leaves \"b\") — the A2.3 contrast"
+        );
+
+        // ── The associativity DISCRIMINATION proof (GENERATED-LINT-CORRECTNESS.2) ────────────────────
+        // The three `assoc_*` cases share one grammar shape whose two alts TIE on consumed length and
+        // priority, so only the tie-break can pick a winner. Agreement alone would not prove the rows
+        // see anything: a fold that inverted or dropped the directive could still make both sides agree
+        // (they compile from the same generator). These two assertions are what make the rows
+        // load-bearing — one on the VERDICT axis, one on the AST axis.
+        let sample_of = |c: Combinator, input: &str| -> SampleOutcome {
+            reports
+                .iter()
+                .find(|r| r.combinator == c)
+                .unwrap_or_else(|| panic!("report for {c:?} present"))
+                .samples
+                .iter()
+                .find(|s| s.input == input)
+                .unwrap_or_else(|| panic!("{input:?} sample present for {c:?}"))
+                .clone()
+        };
+        let left = sample_of(Combinator::AssociativityLeft, "xy");
+        let right = sample_of(Combinator::AssociativityRight, "xy");
+        let nonassoc = sample_of(Combinator::AssociativityNonAssoc, "xy");
+
+        assert_eq!(
+            (left.interp_accepted, right.interp_accepted, nonassoc.interp_accepted),
+            (Some(true), Some(true), Some(false)),
+            "a TIE must be REAL: left/right resolve it and accept \"xy\", nonassoc fails the whole choice"
+        );
+        assert_ne!(
+            left.interp_ast, right.interp_ast,
+            "left and right must select DIFFERENT alts on a tie — identical ASTs would mean the \
+             `assoc_*` rows cannot see the tie-break direction at all (a vacuous pass)"
         );
     }
 

@@ -1,5 +1,55 @@
 # CHANGES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0003 (leaf `GENERATED-LINT-CORRECTNESS.2`) — the sweep closes the class, and `@associativity` gets its first oracle
+
+- **The enumerable class is closed.** `.1` fixed the two constants the clippy run
+  happened to surface; `.2` classified EVERY `#`-interpolated identifier used in emitted
+  control flow across all six files that emit parser code. Four more constants were
+  degenerate and are folded (`#associativity_mode` 7,064 emissions,
+  `#negative_case_enabled` 2,555, `#allow_layout_skip_for_terminals` +
+  `#allow_trailing_layout` 60); three are genuine runtime expressions and are correct
+  as-is; the rest are payloads, including one — `#negative_case_enabled` passed as an
+  ARGUMENT to the shared `inlined_frame_call` helper — that looks identical from the
+  outside and must NOT be "fixed", because the helper's conditional is over a real
+  runtime parameter.
+- **Measured: 9,679 → 0 degenerate emissions; artifacts 219.8 MB → 210.8 MB.**
+  Cumulative across `.1` + `.2`: **30,880** statically-decided expressions removed and
+  **252.8 MB → 221.1 MB (−12.5%)** off the shipped generated parsers.
+  `PGEN_CLIPPY_GENERATED_STRICT=1` still passes with 0 errors, and the generated stage's
+  style noise went **80,402 → 78,858**.
+- ⚠️ **The fold shipped 7,482 fresh instances of the class it removes, and only
+  re-measuring caught it.** Folding the left-associative tie-break emitted
+  `} else if candidate_priority < best_priority { false } else { false }` —
+  `clippy::needless_bool`, 7,482 times, taking the generated stage to 93,822 warnings.
+  Merging the two arms produced the OTHER `needless_bool` phrasing, still 7,482. Only
+  collapsing the tail to the comparison itself cleared it. **The leaf's acceptance was an
+  ERROR count, and the error count stayed green through all three states** — a fold that
+  watches only the gate's verdict can ship thousands of instances of the very shape it
+  exists to remove.
+- ⭐ **Nothing in the repository exercised `@associativity` before this leaf** — no
+  combinator row, no semantic row, no test, and no tracked grammar declares it. Ticking
+  NO-REGRESSION on the largest fold here would have meant ticking it on instruments that
+  structurally could not see the change. Three rows now sit in the combinator suite
+  (`assoc_left` / `assoc_right` / `assoc_nonassoc`) over a grammar whose two alts TIE on
+  length and priority, plus a DISCRIMINATION proof — the verdicts must be
+  (accept, accept, REJECT) and left's typed AST must DIFFER from right's, so a fold that
+  inverted or dropped the directive could not pass by agreeing vacuously.
+- ⚠️ **A fourth test was pinning the shape being fixed.**
+  `semantic_usage_codegen_emits_priority_and_associativity_tiebreak_logic` asserted
+  `rendered.contains("match \"right\"")` — it required the emitted parser to contain the
+  degenerate `match` over an associativity literal. Re-pinned (not deleted) to what
+  `right` associativity means; it now also FORBIDS the literal.
+- **No regression:** combinator gate 30/30 CLEAN, semantic 36/36, equivalence 4/4, lib
+  1027/0/29, `rtl_frontend_generated_contract_gate` + `rtl_const_expr_cert_gate` green,
+  certificate coverage `UNKNOWN=0 fully_certified=true` at seeds 0/7/42 on all seven
+  claim-carrying grammars, regex PCRE2 oracle green, source warnings 42 → 42, generated
+  rustc warnings 35,981 → 35,964, 9/9 doctrines. No release / schema / ledger / contract
+  movement.
+- ⚠️ **Ops:** two heavy jobs were OS-killed (`SIGTERM`) at ~15.1 and ~15.3 GB peaks
+  against the banked `--budget-mb 16384`; both passed at `18432`. The first kill left the
+  artifact tree in a mixed vintage, so the whole regeneration was redone rather than
+  patched.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0002 (leaf `GENERATED-LINT-CORRECTNESS.1`) — the degenerate emissions are folded at codegen: 291 clippy errors -> 0, and 22.3 MB off the shipped parsers
 
 - **The check that could never be run strictly now runs strictly.**

@@ -42,7 +42,10 @@
 use super::super::fusibility_census::{
     compute_boundary_scanner_plan, BoundaryScannerRule, ScannerValueClass,
 };
-use super::super::{parse_quantifier_bounds, ASTNode, ASTValue, SemanticBranchPolicy, TokenValue};
+use super::super::{
+    parse_quantifier_bounds, ASTNode, ASTValue, SemanticAssociativity, SemanticBranchPolicy,
+    TokenValue,
+};
 use super::AstBasedGenerator;
 use anyhow::Result;
 use proc_macro2::TokenStream;
@@ -501,8 +504,10 @@ impl AstBasedGenerator {
         }
 
         let branch_priorities = self.rule_branch_priorities(rule_name, branch_count);
+        // GENERATED-LINT-CORRECTNESS.2 — with the tie-break folded below, the
+        // `as_str()` spelling has no consumer in this emitter (it emits no trace
+        // strings), exactly as `branch_policy_mode` lost its consumer in `.1`.
         let associativity = self.rule_associativity(rule_name);
-        let associativity_mode = associativity.as_str();
         // GENERATED-LINT-CORRECTNESS.1 — the scan graph emits no trace strings,
         // so once the policy is folded at codegen time (below) the `as_str()`
         // spelling has no remaining consumer here.
@@ -574,15 +579,55 @@ impl AstBasedGenerator {
         //
         // The winner-selection cascade — the protocol's exact chain over
         // (end, priority, index).
-        let associativity_tie_break = quote! {
-            match #associativity_mode {
-                "right" => current_branch_index > best_branch_index,
-                _ => false,
-            }
+        // GENERATED-LINT-CORRECTNESS.2 — the associativity is a codegen-time
+        // constant, so the tie-break is resolved here rather than emitted as
+        // `match "left" { "right" => …, _ => false }`.
+        // ⚠️ Unlike `cascade.rs`, THIS emitter reads `best_branch_index` from the
+        // tie-break and nowhere else, and `current_branch_index` only to feed it —
+        // so under any associativity but `right` the fold would leave both
+        // write-only. Both bindings therefore become conditional with the fold.
+        let tracks_branch_index = matches!(associativity, SemanticAssociativity::Right);
+        let associativity_tie_break = if tracks_branch_index {
+            quote! { current_branch_index > best_branch_index }
+        } else {
+            // Left keeps the incumbent on a tie; the scan graph has no
+            // `nonassoc_tie` channel, so `nonassoc` degrades to the same
+            // no-dethrone answer here exactly as it did through the `_` arm.
+            quote! { false }
         };
+        let branch_index_decl = if tracks_branch_index {
+            quote! { let mut best_branch_index: usize = 0usize; }
+        } else {
+            quote! {}
+        };
+        let branch_index_update = if tracks_branch_index {
+            quote! { best_branch_index = current_branch_index; }
+        } else {
+            quote! {}
+        };
+        // ⚠️ When the tie-break folds to a literal `false`, the cascade's last `<`
+        // arm and the final `else` would both read `false` — `clippy::needless_bool`,
+        // and a fresh instance of the very defect class this tree removes. They are
+        // merged instead: `<` and `==` both answer "do not take".
+        let tie_break_is_constant_false =
+            !matches!(associativity, SemanticAssociativity::Right);
         let should_take_chain = match branch_policy {
             SemanticBranchPolicy::Ordered => quote! {
                 let should_take = !__pgen_best_found;
+            },
+            SemanticBranchPolicy::PriorityFirst if tie_break_is_constant_false => quote! {
+                let should_take = if !__pgen_best_found {
+                    true
+                } else if candidate_priority > best_priority {
+                    true
+                } else if candidate_priority < best_priority {
+                    false
+                } else {
+                    // Priorities tie: longer wins, and an end-tie does not dethrone,
+                    // so the comparison IS the answer — emitted collapsed, or the
+                    // tail would be a `clippy::needless_bool`.
+                    candidate_end > best_end
+                };
             },
             SemanticBranchPolicy::PriorityFirst => quote! {
                 let should_take = if !__pgen_best_found {
@@ -597,6 +642,20 @@ impl AstBasedGenerator {
                     false
                 } else {
                     #associativity_tie_break
+                };
+            },
+            SemanticBranchPolicy::LongestMatch if tie_break_is_constant_false => quote! {
+                let should_take = if !__pgen_best_found {
+                    true
+                } else if candidate_end > best_end {
+                    true
+                } else if candidate_end < best_end {
+                    false
+                } else {
+                    // Ends tie: higher priority wins, and a priority-tie does not
+                    // dethrone, so the comparison IS the answer — emitted collapsed,
+                    // or the tail would be a `clippy::needless_bool`.
+                    candidate_priority > best_priority
                 };
             },
             SemanticBranchPolicy::LongestMatch => quote! {
@@ -634,19 +693,27 @@ impl AstBasedGenerator {
                 #branch_logic
                 Ok(())
             });
+            // `#branch_index` is per-branch, so this capture is built in the loop;
+            // its two siblings (`branch_index_decl` / `branch_index_update`) are
+            // rule-scoped and were resolved above.
+            let branch_index_capture = if tracks_branch_index {
+                quote! { let current_branch_index: usize = #branch_index; }
+            } else {
+                quote! {}
+            };
             let arm_body = quote! {
                     parser.position = parse_start;
                     #speculation
                     if let Some(()) = __pgen_attempt {
                         let candidate_end = parser.position;
                         let candidate_priority: i64 = #branch_priority;
-                        let current_branch_index: usize = #branch_index;
+                        #branch_index_capture
                         parser.position = parse_start;
                         #should_take_chain
                         if should_take {
                             best_end = candidate_end;
                             best_priority = candidate_priority;
-                            best_branch_index = current_branch_index;
+                            #branch_index_update
                             __pgen_best_found = true;
                         }
                     }
@@ -687,7 +754,7 @@ impl AstBasedGenerator {
             let mut __pgen_best_found = false;
             let mut best_end = parse_start;
             let mut best_priority: i64 = i64::MIN;
-            let mut best_branch_index: usize = 0usize;
+            #branch_index_decl
             #(#branch_attempt_blocks)*
             if __pgen_best_found {
                 parser.position = best_end;

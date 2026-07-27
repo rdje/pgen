@@ -9,8 +9,8 @@
 - Family / slice-id prefix: `PGEN-GENERATED-LINT-CORRECTNESS-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: `.2`** (`.1` `done` 2026-07-27, session #214 —
-  `PGEN-GENERATED-LINT-CORRECTNESS-0002`)
+- **Frontier: `.3`** (`.1` + `.2` `done` 2026-07-27, session #214 —
+  `PGEN-GENERATED-LINT-CORRECTNESS-0002` / `-0003`)
 - Opened by: `LANG-CAPABILITY-AUDIT.10.4`, whose commit-workflow clippy run surfaced it.
   Deliberately NOT absorbed into that leaf — it is a separate defect class with a
   different owner (codegen emission shape, not the builtin allowlist).
@@ -226,39 +226,209 @@ Evidence: `docs/tasks/artifacts/generated_lint_correctness/verification_capture.
 `.../degenerate_emission_sweep_capture.txt`,
 `.../run_degenerate_emission_sweep.sh`.
 
-### `.2` — sweep for other statically-degenerate emissions (`todo`)
+### `.2` — sweep for other statically-degenerate emissions (`done`)
 
-- **Status: `todo`** — frontier. `.1` fixed the two CONSTANTS whose emissions the clippy
-  run happened to surface. Other configuration constants may emit the same shape without
-  ever having been caught, because most degenerate forms (`"longest_match" == "ordered"`)
-  are **not lint-visible at all** — `.1` measured 20,910 such emissions that no lint
-  would ever have reported.
-- ⚠️ Do the sweep **at the codegen sites**, not by reading generated output: the pattern
-  is "a `#interpolated` constant used in a runtime conditional", and it is enumerable in
-  the generator source. Reading 150 MB of emitted Rust is the wrong instrument.
-- ⛔ **Sweep all THREE emitters** (`ast_based_generator.rs`,
-  `ast_based_generator/cascade.rs`, `ast_based_generator/scan.rs`) — `.1` found the
-  charter had named only one, and a `rust/src/ast_pipeline/*.rs` glob does not descend
-  into the subdirectory. Any grep that does not name all three is unsound by
-  construction.
-- Known inputs already measured by `.1`, **deliberately left for this leaf**:
-  - `#associativity_mode` — emitted as `match "left" { "right" => …, "nonassoc" => …,
-    _ => false }`, statically decided in all three emitters. Not lint-flagged, so it is
-    pure dead weight. ⚠️ Folding it makes the emitted `nonassoc_tie` binding's `mut`
-    conditional (`ast_based_generator.rs:4854` today), or it trades the fold for an
-    `unused_mut` warning.
-  - `#allow_layout_skip_for_terminals` — emitted as `if true {` / `if false {` at
-    `ast_based_generator.rs:6914/:6929/:8417/:8431`. Same class, no lint fires.
+- **Status: `done`** — `PGEN-GENERATED-LINT-CORRECTNESS-0003`, session #214.
+  **CODE CHANGE**: the three emitters again, plus
+  `rust/src/parse_harness_combinator_suite.rs` (three new rows + a discrimination proof
+  + one re-pinned test). All 11 parsers regenerated; byte-identity again deliberately
+  NOT expected.
+- **The sweep is CLOSED, and it was enumerable exactly as the charter predicted.** Every
+  `#`-interpolated identifier used in emitted control flow, across all six files that
+  emit parser code, was classified — the full table is in
+  `docs/tasks/artifacts/generated_lint_correctness/verification_capture_leaf2.txt`.
+  Four constants were degenerate and are folded; three interpolations
+  (`#guard_condition`, `#failure_condition`, `#base_code`/`#base_value`) are genuine
+  runtime expressions and are correct as-is; the rest are payloads (trace-string
+  arguments, or values passed to a shared helper whose conditional is over a real
+  runtime PARAMETER — `#negative_case_enabled` into `inlined_frame_call` is the case to
+  not "fix").
+
+| constant | emitted as | sites | emissions |
+|---|---|---|---|
+| `#associativity_mode` | `match "left" { "right" => …, _ => false }` | all 3 emitters | **7,064** |
+| `#negative_case_enabled` | `if false { self.record_negative_case_failure(…) }` | protocol, once per rule | **2,555** |
+| `#allow_layout_skip_for_terminals` | `if true { self.consume_layout_for_terminal(…) }` | protocol ×4 | **60** together |
+| `#allow_trailing_layout` | `if true { …("<EOF>") }` | protocol ×2 | |
+
+  Measured: **9,679 → 0**; artifacts **219.8 MB → 210.8 MB (−4.1%)**;
+  cumulative with `.1`, **30,880** statically-decided expressions removed and
+  **252.8 MB → 221.1 MB (−12.5%)**. `PGEN_CLIPPY_GENERATED_STRICT=1` still passes with
+  **0 errors**, and the generated stage's style noise went **80,402 → 78,858**.
+- ⛔ **Three knock-ons that would have traded one lint for others** — each fixed by
+  emitting less, never by an `#[allow]`:
+  - `consume_layout_for_terminal` loses BOTH call families when a grammar is
+    whitespace-sensitive on terminals AND on trailing layout (`grammars/regex.ebnf` is
+    the shipped case), so its emission is now gated on `terminals || trailing`;
+  - `nonassoc_tie` and its `if nonassoc_tie { … }` failure arm are emitted ONLY under
+    `nonassoc`, where the flag can actually become true;
+  - `best_branch_index` is read only by the `right`/`nonassoc` tie-breaks and the
+    branch-start-effect lookup, so it (and, in `scan.rs`, `current_branch_index` with
+    it) is emitted only when something reads it. ⭐ `cascade.rs` needed no such gate —
+    its tape writes `DerivEvent::OrWinner(best_branch_index)` unconditionally. The three
+    emitters are NOT interchangeable and each had to be read.
+
+#### ⚠️⚠️ THE FOLD SHIPPED 7,482 FRESH INSTANCES OF THE CLASS IT REMOVES
+
+The first left-associative fold emitted `} else if candidate_priority < best_priority {
+false } else { false }` — `clippy::needless_bool`, **7,482 times**, taking the generated
+stage from 80,402 to **93,822** warnings. Merging the two arms then left
+`else if candidate_priority > best_priority { true } else { false }`, which is the OTHER
+`needless_bool` phrasing and still 7,482. Only collapsing the tail to the comparison
+itself (`else { candidate_priority > best_priority }` — `<` and `==` both answer "do not
+take") cleared it.
+
+⭐ **THE LESSON, and it generalizes past this tree: the leaf's acceptance was an ERROR
+count (291 → 0), and the error count was GREEN through all three of those states.** A
+fold that watches only the gate's verdict can ship thousands of instances of the very
+shape it exists to remove. **Re-measure the whole lint census, not the gate's verdict.**
+
+#### ⭐ THE ORACLE GAP THIS LEAF HAD TO CLOSE BEFORE IT COULD TICK ITS OWN BOX
+
+Before `.2`, **nothing in the repository exercised `@associativity`** — no combinator
+row, no semantic row, no integration test, and no tracked grammar declares it
+(`grammars/ebnf.ebnf` only *documents* the directive). Ticking NO-REGRESSION on the
+largest fold in this leaf would have meant ticking it on instruments that structurally
+could not see the change — the exact failure this tree is named after.
+
+Three rows now sit in `parse_harness_combinator_suite`, sharing one grammar whose two
+alts TIE on consumed length and priority so only the tie-break can pick a winner:
+
+```
+@associativity: <left|right|nonassoc>
+start := pair | fused
+pair  := "x" "y"
+fused := "xy"
+```
+
+⭐ **And a DISCRIMINATION proof, because agreement alone would be vacuous** — both sides
+compile from the same generator, so a fold that inverted or dropped the directive could
+still make them agree. `SampleOutcome` gained an `interp_ast` field, and the gate now
+asserts (a) the `(left, right, nonassoc)` verdicts on `"xy"` are
+`(accept, accept, REJECT)`, so the tie is real and `nonassoc` genuinely fails the whole
+choice, and (b) `left`'s typed AST **differs from** `right`'s, so the rows can actually
+see an inversion.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — census of the `.1`-vintage artifacts:
+      `match "left" {` × **7,064**, `if false {` × **2,555**, `if true {` × **60** =
+      **9,679** statically-decided expressions still shipped. None of them is
+      lint-visible (`eq_op` needs identical operands), which is why `.1`'s green error
+      count did not close the class.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the same shape as `.1`: a codegen-time constant
+      interpolated into emitted control flow. Enumerated mechanically **at the codegen
+      sites**, across all six files that emit parser code, with:
+
+      ```
+      grep -nE '(^|[^a-zA-Z_])(if|else if|while|match)[[:space:]]+#[a-z_]+|
+                &&[[:space:]]*#[a-z_]+|\|\|[[:space:]]*#[a-z_]+|#[a-z_]+[[:space:]]*(==|!=)' \
+        rust/src/ast_pipeline/ast_code_generator.rs \
+        rust/src/ast_pipeline/ast_based_generator.rs \
+        rust/src/ast_pipeline/ast_return_transform.rs \
+        rust/src/ast_pipeline/ast_based_generator/scan.rs \
+        rust/src/ast_pipeline/ast_based_generator/cascade/value.rs \
+        rust/src/ast_pipeline/ast_based_generator/cascade.rs
+      ```
+
+      cross-referenced against every interpolated identifier whose generator-side binding
+      is a compile-time `bool`/`&'static str`. WHERE, by file:line: `#associativity_mode`
+      (`ast_based_generator.rs:4256`, `cascade.rs:962`, `scan.rs:578`),
+      `#negative_case_enabled` (`ast_based_generator.rs:3990`),
+      `#allow_layout_skip_for_terminals` (`:6958/:6973/:8507/:8521`) and
+      `#allow_trailing_layout` (`:2212/:2240`). The artifact-side confirmation (WHY it
+      matters, and how much) is `run_degenerate_emission_sweep.sh --capture-before`:
+      `TOTAL_DEGENERATE_before=9679`. The post-fold behavioural confirmation used
+      `--report-certificate-coverage` on all seven claim-carrying grammars (see the
+      NO-REGRESSION box).
+- [x] **FIX** — emit the decided form (tier: **codegen**), plus the three conditional
+      bindings the fold makes unread. No lint suppression, no grammar change.
+- [x] **ADDRESSED (verified)** — degenerate emissions **9,679 → 0**; artifacts
+      **219.8 MB → 210.8 MB**; `PGEN_CLIPPY_GENERATED_STRICT=1` still **exit 0 /
+      0 errors**, generated-stage warnings **80,402 → 78,858** and
+      `clippy::needless_bool` **0** (after the two-step correction above).
+- [x] **NO REGRESSION** — `parse_harness_combinator_gate` **30/30 CLEAN** (the four
+      `choice_*` rows AND the three NEW `assoc_*` rows, `diverge=0`) with the
+      discrimination proof holding; `parse_harness_semantic_gate` **36/36 CLEAN**;
+      `parse_harness_equivalence_gate` **4 passed / 0 failed**; lib suite **1027 passed
+      / 0 failed / 29 ignored**; `rtl_frontend_generated_contract_gate` and
+      `rtl_const_expr_cert_gate` green;
+      `./rust/target/debug/ast_pipeline grammars/<g>.ebnf --report-certificate-coverage
+      --count 40 --seed {0,7,42}` gives `UNKNOWN=0 fully_certified=true
+      sample_parse_failures=0 proof_reverify_failures=0` on all **7** claim-carrying
+      grammars, identical across the three seeds; `regex_pcre2_compile_oracle_gate` green;
+      clippy source-strict **0 errors**; source warnings **42 → 42** and generated
+      rustc warnings **35,981 → 35,964**; `scripts/check_doctrines.sh` **9/9 PASS**.
+- [x] **LOCKSTEP** — book chapter `docs/book/src/quality-and-closure-model.md`,
+      `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`,
+      `docs/reference/RUST_CODEBASE_ANALYSIS.md`. No release / schema / ledger /
+      integration-contract movement — observable parse behaviour is unchanged.
+
+⚠️ **A FOURTH TEST WAS PINNING THE SHAPE — re-pinned, not deleted.**
+`semantic_usage_codegen_emits_priority_and_associativity_tiebreak_logic` asserted
+`rendered.contains("match \"right\"")`, i.e. it required the emitted parser to contain
+the degenerate `match` over an associativity literal. It went red the moment the fold
+landed — the honest outcome — and is the FOURTH occurrence of the banked shape *"a
+`contains` assertion over rendered tokens tests SPELLING, not BEHAVIOUR"*. Now it
+requires `current_branch_index > best_branch_index` and FORBIDS `match "right"`.
+
+⚠️ **OPS — the 16 GB guard budget is no longer enough for these classes.** Two heavy
+jobs were killed by the OS (`signal: 15, SIGTERM`) at peaks of **15,079 MB** and
+**15,253 MB** against `--budget-mb 16384`, with the guard reporting `exit=2` rather than
+a budget kill (it samples periodically and cannot see the spike — the failure mode
+already recorded in `DEVELOPMENT_NOTES.md`). Both passed on a plain re-run at
+`--budget-mb 18432`. ⛔ The first kill left the artifact tree in a MIXED vintage (2 of 11
+regenerated); the whole regeneration was redone rather than patched, because a mixed
+tree makes every downstream measurement unattributable.
+
+⚠️ **A GAP IN THE DOCTRINE ENFORCER, found by this leaf and recorded rather than worked
+around.** `scripts/check_diagnosis_evidence.sh` requires the ROOT CAUSE box to be backed
+by a `DIAGNOSIS_SIG` token, and its list models three defect families — correctness
+(`CERTIFICATE-COVERAGE:` / `[plannable-probe]` / `--trace-rules` / `furthest_position=`),
+performance (`self-time` / `flamegraph`), and build integrity (`error[E….]` /
+`could not compile`). A **codegen-emission** defect is a fourth family: there is no parse
+to trace, no run to sample and no compiler error — the WHY+WHERE comes from enumerating
+the emission sites in the generator and censusing the emitted artifacts. Two consequences,
+both measured:
+
+1. This leaf's genuine root-cause instrument (the grep above + the census driver) matches
+   no token in the list, so the leaf initially FAILED the check despite being fully
+   evidence-backed.
+2. ⛔ **`.1` passed only because the check greps *all* staged task files, and its commit
+   also staged `docs/tasks/QUANT-PLUS-ITER.md`, which carries such tokens for its own
+   unrelated reasons.** A co-staged file can therefore satisfy the signature requirement
+   for a leaf that does not carry it — the check is weaker than it reads.
+
+Neither is fixed here (that is an enforcer change, and it needs its own leaf); both are
+routed to `.3`, which is already the "make the check real" leaf. The boxes above are
+backed by the `--report-certificate-coverage` runs, which are real and were run, but the
+honest note is that they are the NO-REGRESSION evidence, not the root-cause instrument.
+
+Evidence:
+`docs/tasks/artifacts/generated_lint_correctness/verification_capture_leaf2.txt`,
+`.../degenerate_emission_sweep_capture_leaf2.txt`,
+`.../run_degenerate_emission_sweep.sh` (extended with the `.2` patterns).
 
 ### `.3` — promote the generated-clippy correctness subset to a gate (`todo`)
 
-- **Status: `todo`**, blocked on `.2` (`.1` is `done` — the count IS 0 today, but nothing
-  yet stops it drifting back up). Once the count is 0, make it **stay** 0:
+- **Status: `todo`** — frontier. `.1` and `.2` are `done`, so the count IS 0 today and
+  the whole enumerable class is closed — but nothing yet stops it drifting back up.
+  Make it **stay** 0:
   run the generated stage strictly for the **correctness category only** (not all of
   clippy — the 84k style warnings on generated code are genuinely not worth chasing and
   gating on them would be noise, not signal).
 - Wire it where the other maintained gates live so it runs in `ci_workflow_local_gate`,
   and record the chosen lint subset in the contract so it cannot silently narrow.
+- ⭐ **Also owned by this leaf, routed from `.2`: two measured weaknesses in
+  `scripts/check_diagnosis_evidence.sh`.** (1) Its `DIAGNOSIS_SIG` list models correctness,
+  performance and build-integrity defects but **not codegen-emission defects**, whose
+  WHY+WHERE is an emission-site enumeration plus an artifact census — so a fully
+  evidence-backed leaf of that family fails the check. (2) The signature is grepped across
+  **all staged task files**, so an unrelated co-staged tree file can satisfy it for a leaf
+  that carries no signature of its own (measured: that is how `.1` passed). Fixing (2)
+  means scoping the grep to the leaf's own file; fixing (1) means adding a fourth token
+  group with its own decision record, as the performance and build-integrity groups each
+  got.
 
 ## Evidence
 
@@ -292,3 +462,4 @@ Evidence: `docs/tasks/artifacts/generated_lint_correctness/verification_capture.
 |---|---|---|
 | `PGEN-GENERATED-LINT-CORRECTNESS-0001` | (tree opened) | the 291 generated-clippy errors adjudicated — not defects, but they make a real check unrunnable |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0002` | `.1` | the degenerate branch-policy / layout-skip emissions are folded at codegen — 291 clippy errors → 0, 22.3 MB off the shipped parsers |
+| `PGEN-GENERATED-LINT-CORRECTNESS-0003` | `.2` | the sweep closes the class — associativity / negative-case / terminal-layout folded too (9,679 → 0, another 9.0 MB), and `@associativity` gets its first oracle |

@@ -91,7 +91,8 @@
 //! `quantified_prune_guard_for_element`) the protocol graph is emitted with.
 
 use super::super::{
-    ASTNode, ASTValue, SemanticBranchPolicy, TokenValue, parse_quantifier_bounds,
+    ASTNode, ASTValue, SemanticAssociativity, SemanticBranchPolicy, TokenValue,
+    parse_quantifier_bounds,
 };
 use super::{AstBasedGenerator, BranchAnnotation};
 use anyhow::Result;
@@ -870,8 +871,10 @@ impl AstBasedGenerator {
         }
 
         let branch_priorities = self.rule_branch_priorities(rule_name, branch_count);
+        // GENERATED-LINT-CORRECTNESS.2 — with the tie-break folded below, the
+        // `as_str()` spelling has no consumer in this emitter (it emits no trace
+        // strings), exactly as `branch_policy_mode` lost its consumer in `.1`.
         let associativity = self.rule_associativity(rule_name);
-        let associativity_mode = associativity.as_str();
         // GENERATED-LINT-CORRECTNESS.1 — the cascade graph emits no trace
         // strings, so once the policy is folded at codegen time (below) the
         // `as_str()` spelling has no remaining consumer here.
@@ -958,15 +961,42 @@ impl AstBasedGenerator {
         // The winner-selection cascade — the protocol's exact chain over
         // (end, priority, index); `best_content.is_none()` becomes
         // `!__pgen_best_found` (no values exist on the match pass).
-        let associativity_tie_break = quote! {
-            match #associativity_mode {
-                "right" => current_branch_index > best_branch_index,
-                _ => false,
-            }
+        // GENERATED-LINT-CORRECTNESS.2 — the associativity is a codegen-time
+        // constant too, so the tie-break is resolved here instead of emitting
+        // `match "left" { "right" => …, _ => false }`. No knock-on in this
+        // emitter: `best_branch_index` is read unconditionally by the tape's
+        // `DerivEvent::OrWinner(best_branch_index)`, so it stays live under every
+        // associativity (unlike the protocol emitter, where it can go write-only).
+        let associativity_tie_break = match associativity {
+            SemanticAssociativity::Right => quote! { current_branch_index > best_branch_index },
+            // Left keeps the incumbent on a tie. The bare graph has no
+            // `nonassoc_tie` channel, so `nonassoc` degrades to the same
+            // no-dethrone answer here exactly as it did through the `_` arm.
+            SemanticAssociativity::Left | SemanticAssociativity::NonAssoc => quote! { false },
         };
+        // ⚠️ When the tie-break folds to a literal `false`, the cascade's last `<`
+        // arm and the final `else` would both read `false` — `clippy::needless_bool`,
+        // and a fresh instance of the very defect class this tree removes. They are
+        // merged instead: `<` and `==` both answer "do not take".
+        let tie_break_is_constant_false =
+            !matches!(associativity, SemanticAssociativity::Right);
         let should_take_chain = match branch_policy {
             SemanticBranchPolicy::Ordered => quote! {
                 let should_take = !__pgen_best_found;
+            },
+            SemanticBranchPolicy::PriorityFirst if tie_break_is_constant_false => quote! {
+                let should_take = if !__pgen_best_found {
+                    true
+                } else if candidate_priority > best_priority {
+                    true
+                } else if candidate_priority < best_priority {
+                    false
+                } else {
+                    // Priorities tie: longer wins, and an end-tie does not dethrone,
+                    // so the comparison IS the answer — emitted collapsed, or the
+                    // tail would be a `clippy::needless_bool`.
+                    candidate_end > best_end
+                };
             },
             SemanticBranchPolicy::PriorityFirst => quote! {
                 let should_take = if !__pgen_best_found {
@@ -981,6 +1011,20 @@ impl AstBasedGenerator {
                     false
                 } else {
                     #associativity_tie_break
+                };
+            },
+            SemanticBranchPolicy::LongestMatch if tie_break_is_constant_false => quote! {
+                let should_take = if !__pgen_best_found {
+                    true
+                } else if candidate_end > best_end {
+                    true
+                } else if candidate_end < best_end {
+                    false
+                } else {
+                    // Ends tie: higher priority wins, and a priority-tie does not
+                    // dethrone, so the comparison IS the answer — emitted collapsed,
+                    // or the tail would be a `clippy::needless_bool`.
+                    candidate_priority > best_priority
                 };
             },
             SemanticBranchPolicy::LongestMatch => quote! {

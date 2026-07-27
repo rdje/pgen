@@ -198,14 +198,37 @@ are both wrong:
   configured policy selects, and omits the layout-skip block entirely when layout
   skipping is off.
 
-That fold removed **21,201** statically-decided expressions across the eleven generated
-parsers and **22.3 MB** of emitted Rust (the SystemVerilog parser alone lost 13.3 MB),
-with parse behaviour unchanged — verified by the parse-harness combinator suite, whose
-four branch-policy rows compare the interpreter (which still evaluates the policy at
-runtime) against the generated parser (which no longer does) byte-for-byte.
+That fold, and the sweep that followed it, removed **30,880** statically-decided
+expressions across the eleven generated parsers and **31.7 MB** of emitted Rust — the
+SystemVerilog parser went from 149.8 MB to 130.6 MB — with parse behaviour unchanged.
+
+Two things about *how* that was verified are worth more than the numbers, because they
+generalize to any quality claim you will read in this project:
+
+**A green gate is not the same as a green measurement.** The associativity fold's first
+two attempts each emitted 7,482 instances of `clippy::needless_bool` — a fresh instance
+of the very shape being removed. The gate never noticed: `needless_bool` is a *style*
+lint, and the acceptance criterion was an *error* count, which stayed at zero throughout.
+It was caught by censusing every warning kind before and after, not by reading the gate's
+verdict. The habit to copy: when you remove a defect class, re-measure the whole surface,
+not the check you happen to be gated on.
+
+**An oracle that cannot see the change is not evidence.** The largest part of the fold
+was the associativity tie-break — and before this work, *nothing* in the repository
+exercised `@associativity`: no differential row, no test, and no shipped grammar declares
+it. Every gate would have passed a fold that inverted the directive outright. The fix was
+to build the missing oracle first: three rows in the parse-harness combinator suite over
+a grammar whose two alternatives deliberately tie on consumed length and priority, so the
+tie-break is the only thing that can pick a winner. Even then, agreement between the
+interpreter and the generated parser is weak evidence — both are produced from the same
+generator, so a dropped directive would make them agree. So the suite also asserts that
+the three associativities *disagree with each other* in the required way: `nonassoc`
+rejects the tied input where `left` and `right` accept it, and `left` and `right` produce
+different ASTs. Only then does a passing row mean anything.
 
 The general shape to carry away: **when an instrument cannot run, or structurally cannot
-see a defect class, it must say so rather than return green.**
+see a defect class, it must say so rather than return green** — and when you find one
+that cannot see, building it is part of the fix, not a follow-up.
 
 ## Why Status Labels Stay Conservative
 

@@ -1,5 +1,67 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0003 — when the fix is an instance of the bug
+
+**The three-state green.** This leaf's acceptance criterion is an error count, and the
+error count was `0` in all three of the following states: before the associativity fold,
+after a fold that emitted 7,482 `clippy::needless_bool` pairs, and after a second attempt
+that emitted 7,482 of the *other* `needless_bool` phrasing. `clippy::needless_bool` is a
+STYLE lint, so the correctness-only gate never moved. What moved was the total warning
+count on the generated stage: 80,402 → 93,822 → 93,822 → 78,858. Only the last of those
+is below the baseline, and the only reason it was ever looked at is that the leaf's method
+is to census every warning kind rather than read the gate's verdict.
+
+The concrete shape: folding `match "left" { "right" => …, _ => false }` down to `false`
+leaves the preceding cascade arm and the new tail both reading `false`. Merging them
+(`<` and `==` both answer "do not take") then leaves the tail as
+`else if candidate_priority > best_priority { true } else { false }` — which is the same
+lint again. The emission that finally holds collapses the tail to the comparison itself.
+The correction is worth writing down because the intermediate state *looks* finished: the
+degenerate `match` is gone, the census script reports zero, the strict gate passes.
+
+**An oracle gap that had to be closed before the box could be ticked.** The largest fold
+in this leaf is the associativity tie-break — 7,064 emissions. Nothing in this repository
+exercised `@associativity`: not the combinator suite, not the semantic suite, not an
+integration test, and no tracked grammar declares it (`grammars/ebnf.ebnf` documents the
+directive without using it). Every gate would have gone green on a fold that inverted the
+directive outright. Three rows were added over a grammar whose two alternatives tie on
+consumed length and priority, so the tie-break is the only thing that can pick a winner —
+and then a second problem appeared: agreement between the interpreter and the generated
+parser is not evidence, because both compile from the same generator. A dropped directive
+would make them agree. The suite therefore gained an `interp_ast` field and two
+assertions: the three verdicts on the tied input must be (accept, accept, REJECT), and
+`left`'s typed AST must differ from `right`'s. The first proves the tie is real; the
+second proves the rows can see the direction.
+
+**Three knock-ons, each fixed by emitting less.** Folding a guard away can orphan whatever
+the guard was reaching. `consume_layout_for_terminal` loses both of its call families when
+a grammar is whitespace-sensitive on terminals *and* on trailing layout, which is
+`grammars/regex.ebnf` exactly; `nonassoc_tie` and its failure arm are dead under any
+associativity but `nonassoc`; and `best_branch_index` is read only by the `right`/
+`nonassoc` tie-breaks and the branch-start-effect lookup. Each is now emitted
+conditionally rather than left to produce `dead_code` / `unused_assignments`. ⭐ The
+instructive one is that `cascade.rs` needed NO such gate — its derivation tape writes
+`DerivEvent::OrWinner(best_branch_index)` unconditionally, so the binding is always read
+there. The three emitters look interchangeable at the call sites and are not; each had to
+be read.
+
+**The classification is the deliverable, not just the diff.** The sweep's value is that it
+is now closed and enumerable: every `#`-interpolated identifier in emitted control flow
+across the six emitting files is classified as folded, as a genuine runtime expression, or
+as a payload. The subtle bucket is the last one. `#negative_case_enabled` appears twice:
+once in a per-rule `if #negative_case_enabled { … }` (degenerate, folded) and once as an
+ARGUMENT to the shared `inlined_frame_call` helper, whose own `if negative_case_enabled`
+is a conditional over a runtime parameter. Folding that second one would have been wrong,
+and from the grep alone the two are indistinguishable.
+
+**Ops, measured.** Two heavy jobs were killed by the OS (`signal: 15, SIGTERM`,
+`make Error 101`) at process-tree peaks of 15,079 MB and 15,253 MB against
+`--budget-mb 16384`, with the guard reporting `exit=2` rather than a budget kill because
+it samples periodically and cannot see the spike. Both passed unchanged at `18432`. The
+first kill is the one worth remembering: it died partway through the regeneration and left
+2 of 11 parsers on the new codegen and 9 on the old, which would have made every
+downstream number unattributable. The whole regeneration was redone rather than resumed.
+
 ## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0002 — the residue that named a second and third emitter
 
 **The measurement that refused to close.** The tree charter had root-caused the 291

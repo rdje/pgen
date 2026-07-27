@@ -65,12 +65,24 @@ graph** — `ast_based_generator.rs` (protocol / memoized),
 [rust/src/ast_pipeline/ast_based_generator/scan.rs](../../rust/src/ast_pipeline/ast_based_generator/scan.rs)
 (scan / match-only). Each carries its own copy of the branch tournament, so **a codegen
 change to one is a change to all three**, and a `rust/src/ast_pipeline/*.rs` glob does not
-reach the latter two. Measured effect: 21,201 statically-decided expressions removed, and
-the eleven generated artifacts fell from **241.1 MB to 219.8 MB** (`systemverilog_parser.rs`
-149.8 → 136.5 MB) — which partly gives back the fused graphs' growth recorded in the
-2026-07-15 note below. Behaviour is unchanged and differentially proven: the interpreter
-still evaluates the branch policy at runtime from the enum, and the parse-harness
-combinator suite requires it to agree byte-for-byte with the folded generated parser.
+reach the latter two. Measured effect across the two leaves that closed the class
+(`.1` branch policy + regex layout; `.2` associativity, per-rule `@negative_case`, and the
+terminal/trailing layout guards): **30,880** statically-decided expressions removed, and
+the eleven generated artifacts fell from **241.1 MB to 210.8 MB**
+(`systemverilog_parser.rs` 149.8 → 130.6 MB) — which more than gives back the fused
+graphs' growth recorded in the 2026-07-15 note below. Behaviour is unchanged and
+differentially proven: the interpreter still evaluates these directives at runtime from
+their enums, and the parse-harness combinator suite requires it to agree byte-for-byte
+with the folded generated parser.
+
+⚠️ **Three emitted bindings are now conditional**, because folding a guard away can orphan
+what the guard reached: `consume_layout_for_terminal` is emitted only when a grammar is
+layout-insensitive on terminals or on trailing layout; `nonassoc_tie` and its failure arm
+only under `@associativity: nonassoc`; and `best_branch_index` only where something reads
+it — which in `scan.rs` also gates `current_branch_index`, but in `cascade.rs` gates
+nothing, because its tape writes `DerivEvent::OrWinner(best_branch_index)`
+unconditionally. An editor changing one emitter must check the same seam in the other
+two rather than assume symmetry.
 
 ## Recent Architecture Change Note (2026-07-15)
 
