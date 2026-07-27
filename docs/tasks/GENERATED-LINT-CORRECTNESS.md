@@ -9,8 +9,8 @@
 - Family / slice-id prefix: `PGEN-GENERATED-LINT-CORRECTNESS-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: `.5`** (`.1`–`.4` `done`; `.4` closed 2026-07-27 session #216 —
-  `PGEN-GENERATED-LINT-CORRECTNESS-0006`)
+- **Frontier: (none — tree COMPLETE)** — `.1`–`.6` all `done` (2026-07-27, sessions #214–#216).
+  `.5` + `.6` closed by `PGEN-GENERATED-LINT-CORRECTNESS-0007` on direct director order.
 - Opened by: `LANG-CAPABILITY-AUDIT.10.4`, whose commit-workflow clippy run surfaced it.
   Deliberately NOT absorbed into that leaf — it is a separate defect class with a
   different owner (codegen emission shape, not the builtin allowlist).
@@ -722,7 +722,8 @@ rustc error (it is shell/make), no codegen emission — **the identical argument
 3 and 4.**
 
 ⭐⭐ **THE FAMILY WAS REQUESTED BY THE CORPUS ITSELF AND NOBODY READ IT.**
-`docs/tasks/RGX-0090.md:131` carries a hand-written waiver note *inside the ticked box*, verbatim:
+`docs/tasks/RGX-0090.md:131` carries a hand-written waiver note *inside the ticked box* (now routed
+and CLOSED — see `GENERATED-LINT-CORRECTNESS.6`), verbatim:
 *"like RGX-0091 this is a BUILD-FLOW defect — the parse/perf diagnosis-toolbox signatures do not
 apply"*; `RGX-0091.md:119` wrote *"Diagnosis tool signatures: `grep -n …`"* and got no credit. An
 author telling the gate it does not model their defect class is the strongest possible evidence of
@@ -747,7 +748,8 @@ the third-largest family in the gate, more than groups 3 and 4 combined.
       `DIAGNOSIS_SIG` — group 2 names `cargo flamegraph`/`self-time` while the SPEED corpus uses
       `/usr/bin/sample`/`otool -tV` (group 2 backed 2 boxes repo-wide), and no group models
       ops/build-flow defects, which `docs/tasks/RGX-0090.md:131` says in a hand-written in-box
-      waiver note. Ops evidence is itself tool-backed: `git ls-files generated/` → 0,
+      waiver note (that class is now mechanized — `GENERATED-LINT-CORRECTNESS.6`). Ops evidence is
+      itself tool-backed: `git ls-files generated/` → 0,
       `git rev-list --count` over 2,618 commits, `make -n` on the swallowing recipe.
 - [x] **ADDRESSED (verified)** — before → after on the symptom, produced not asserted:
       `run_diag_evidence_family5_probes.sh` accepts `PGEN_DIAG_CHECK_OVERRIDE`, so the identical
@@ -872,27 +874,90 @@ a real bug in its first implementation — do not trust the regex without the ar
   correcting group 2 would have left that sweep measuring the stale rule — the
   duplicated-metadata class inside the very driver that verifies the enforcer. Now sourced.
 
-### `.5` — the acceptance gate is blind to the ops surface: 397 of 521 commits never faced it (`todo`)
+### `.5` — the acceptance gate is blind to the ops surface: 397 of 521 commits never faced it (`done`)
 
-- **Status: `todo`** — frontier, routed from `.4`.
-- **The measurement (all 2,618 commits):** 521 touched `scripts/` / `rust/scripts/` / Makefiles /
-  `.githooks/` / `.github/workflows/` / `rust/build.rs`; **397 (76%) staged no `code_changed` path**
-  ⇒ `check_diagnosis_evidence.sh` returned *"no code change staged"* and required nothing.
-- ⭐ **Why this matters more than its size:** it is the same family as the three rot classes this
-  session found — `ast_dump_contract_gate` (red, unrun), `PGEN_CLIPPY_GENERATED_STRICT` (set by
-  nothing), `ci_workflow_local_gate` (unable to complete for 1,371 commits). Every one of them is a
-  defect in the ops surface, and **every commit that could have caught them was in the 76% the gate
-  never looked at.** *A check that cannot SEE a defect class must say so, not return green.*
-- ⭐⭐ **The sharpest single instance: `PGEN-GENERATED-LINT-CORRECTNESS-0006` — the commit that
-  closed `.4` — EDITED `scripts/check_diagnosis_evidence.sh` and the live gate answered
-  *"no code change staged; task-acceptance checklist not required"*.** The enforcer does not police
-  changes to the enforcer.
-- ⚠️ Blast radius must be MEASURED before flipping: widening `code_changed` newly binds ~397
-  commits' worth of change classes, and a docs-only or pure-formatting script edit must not be
-  forced to invent a root cause. Expect a narrower predicate than "any file under `scripts/`"
-  (e.g. gate/enforcer/workflow files only), priced with the same before→after arms `.4` used.
-- ⛔ Do not resolve it by widening `DIAGNOSIS_SIG` — the ops family already landed in `.4`; the
-  question here is which STAGED PATHS demand a checklist at all.
+- **Status: `done`** (2026-07-27, session #216, `PGEN-GENERATED-LINT-CORRECTNESS-0007`).
+  ⛔⛔ **ROUTED IN `.4`, THEN FIXED HERE ON A DIRECT DIRECTOR ORDER** — verbatim: *"Why did let that
+  slide. You are the guarantor of the integrity of the repository. You are the guarantor that all
+  rules, doctrines of the project are strictly followed to the T."* The rebuke is recorded because
+  it is correct: `.4` MEASURED this hole and then deferred it to a leaf instead of closing it, which
+  is the same *"record it and move on"* failure `DOCTRINE-GAP-OWNERSHIP` exists to stop — committed
+  by the very session that opened that tree.
+
+#### The fix
+
+`code_changed` in `scripts/check_diagnosis_evidence.sh` now treats **the proof surface as part of
+the code**: `scripts/check_*.sh`, `rust/scripts/*.sh`, `Makefile` / `rust/Makefile`, `.githooks/*`,
+`.github/workflows/*.yml`, `rust/build.rs`. **A change to a gate is a change to what "verified"
+MEANS.**
+
+⭐ **Ordering was load-bearing: `.4` had to land first.** Widening the predicate without the
+ops/build-flow diagnosis family would have bound ~397 commits' worth of change classes to a gate
+whose signatures could not express their evidence — manufacturing waivers wholesale. With `.4` in
+place such a defect is root-caused with `git ls-files` / `make -n` / `shellcheck` / an errno, so the
+widening is satisfiable rather than punitive.
+
+⚠️ **Scoped deliberately narrower than "anything under `scripts/`"** — only the machinery deciding
+whether other checks run. Corpora, fixtures and ordinary tools stay unbound, pinned by CTRL-3/4/5.
+
+#### Acceptance checklist (enforced)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `code_changed` enumerated only parser artifacts, so a
+      change to the machinery that decides whether the parser is ever checked was invisible to the
+      acceptance gate. WHERE: `scripts/check_diagnosis_evidence.sh` `code_changed` case list.
+      Tool-backed with `git diff-tree`/`git log` over all 2,618 commits: **521 touched the proof
+      surface, 397 (76%) staged no path from the old list** ⇒ the gate answered *"no code change
+      staged"*. Every rot class of sessions #214–#216 lives on that surface and no other
+      (`ast_dump_contract_gate`, `PGEN_CLIPPY_GENERATED_STRICT`, `ci_workflow_local_gate`).
+- [x] **ADDRESSED (verified)** — `run_proof_surface_scope_probes.sh` **12/12**, replayed against the
+      pre-`.5` enforcer via `PGEN_DIAG_CHECK_OVERRIDE`: **BEFORE all 5 RED arms passed straight
+      through as "no code change staged"; AFTER all 5 BLOCK.** Re-measured blast radius: commits
+      bound **1,104 → 1,501**, i.e. exactly the **397** measured hole, no more.
+- [x] **NO REGRESSION** — CTRL-1/2 (rust/src, unchanged behaviour) and CTRL-3/4/5 (docs, corpus,
+      ordinary tool — the over-binding boundary) are **identical before and after**. 10/10 doctrines
+      PASS; clippy N/A (no Rust changed). No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒
+      all 11 parsers byte-identical by construction.
+
+⚠️ **The CONTROL arms caught a real bug in the probe harness, not the predicate** — `new_repo`
+staged its own copy of the enforcer, which now correctly matches `scripts/check_*.sh`, so every arm
+looked like a proof-surface change and CTRL-3/4/5 failed for a reason unrelated to the rule under
+test. Fixed by committing the enforcer in the probe repo's base commit. **Same lesson as `.3`:
+write the control arms, and believe them when they fail.**
+
+### `.6` — a waiver is a bug report about the gate: mechanize it (`done`)
+
+- **Status: `done`** (2026-07-27, session #216, `PGEN-GENERATED-LINT-CORRECTNESS-0007`), on the
+  director's question: *"What should do here to correct that and prevent that it does not happen
+  ever again."*
+- **The class.** `RGX-0090.md:131` carried a hand-written waiver *inside a ticked ROOT CAUSE box* —
+  *"the parse/perf diagnosis-toolbox signatures do not apply"* — and it sat unread for months;
+  `RGX-0091.md:147` did the same and even wrote *"Diagnosis tool signatures: `grep -n` …"*. Both
+  were RIGHT. `.4` re-derived the identical gap from scratch.
+- ⭐ **THE LAW: an author writing a waiver IS the gate reporting a missing capability** — the
+  highest-signal defect report a gate can receive, because it comes from someone who did the work,
+  hit the boundary, and wrote down where it was. Treating it as corner-cutting inverts the
+  diagnosis: the author complied; the instrument was incomplete.
+- **SHIPPED: the 10th enforced doctrine `WAIVER-ROUTING`** (`scripts/check_waiver_routing.sh`,
+  registered in `scripts/check_doctrines.sh`, mirrored in `DOCTRINE_ENFORCEMENT.md` §10). A staged
+  leaf that ADDS such a claim must name an owning leaf/slice id nearby, or the commit is blocked
+  with the line quoted.
+- ⛔ **It must not punish honesty** (constraint inherited from `DOCTRINE-GAP-OWNERSHIP.2`):
+  forbidding the language would delete the signal — authors would stop writing the note, which is
+  strictly worse than an unread one. The waiver stays **legal**; it just names an owner.
+- ⚠️ **Two boundaries learned by USING it, both of which would have made it wrong:**
+  (1) ⭐ **scope ≠ capability** — the first draft fired on a dozen honest *"this slice is pure-docs,
+  so the code-change gate does not apply"* statements, which are NOT bug reports; narrowed to
+  claims about the **signature surface**; (2) ⭐ **markdown wraps** — same-line discharge was
+  unsatisfiable for any wrapped paragraph (it failed on the two real waivers being routed) and
+  would have pushed authors toward deleting the waiver to pass ⇒ ±6-line window, kept small.
+- **Corpus swept and the founding cases ROUTED IN PLACE**: 6 waiver-shaped lines, **4 routed**
+  (was 1), 2 residual meta-prose. `RGX-0090`/`RGX-0091` annotated as **CLOSED by `.4`**, with the
+  retro-fit explicitly marked (`LEX-ADJACENCY.1` precedent — the failure stays visible).
+- Verified: probes **8/8** (3 RED incl. the **verbatim RGX-0090 text** / 2 GREEN / 3 CONTROL incl.
+  an untouched historical waiver proving the record is never retro-bound); the sweep **sources the
+  enforcer's own regexes** so it cannot measure a different rule than the gate applies; 10/10
+  doctrines PASS.
+- Decision record: `docs/decisions/project_waiver_is_a_gate_bug_report.md`.
 
 
 ## Evidence
@@ -928,4 +993,5 @@ a real bug in its first implementation — do not trust the regex without the ar
 | `PGEN-GENERATED-LINT-CORRECTNESS-0001` | (tree opened) | the 291 generated-clippy errors adjudicated — not defects, but they make a real check unrunnable |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0002` | `.1` | the degenerate branch-policy / layout-skip emissions are folded at codegen — 291 clippy errors → 0, 22.3 MB off the shipped parsers |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0003` | `.2` | the sweep closes the class — associativity / negative-case / terminal-layout folded too (9,679 → 0, another 9.0 MB), and `@associativity` gets its first oracle |
+| `PGEN-GENERATED-LINT-CORRECTNESS-0007` | `.5` + `.6` | the acceptance gate now sees the proof surface (397 blind commits closed), and a waiver is mechanized as the bug report about the gate that it is |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0006` | `.4` | the chartered fifth family is REFUTED at 2 of 304 — the gap is 94% placement, group 2 named the wrong profilers, and the real fifth family (ops/build-flow) was requested by the corpus itself in an unread waiver note |

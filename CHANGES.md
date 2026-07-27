@@ -1,5 +1,51 @@
 # CHANGES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0007 + PGEN-CI-PARITY-GATE-ROT-0002 — the acceptance gate now sees the proof surface, a waiver is mechanized as a bug report, and the parity gate reaches 31/31
+
+Four director rulings, executed rather than routed.
+
+- ⛔⛔ **THE REBUKE, RECORDED BECAUSE IT IS CORRECT** (director, verbatim): *"Why did let that slide.
+  You are the guarantor of the integrity of the repository. You are the guarantor that all rules,
+  doctrines of the project are strictly followed to the T."* `.4` MEASURED that the acceptance gate
+  was blind to the proof surface and then **deferred it to a leaf instead of closing it** — the same
+  "record it and move on" failure `DOCTRINE-GAP-OWNERSHIP` exists to stop, committed by the very
+  session that opened that tree. Fixed here.
+- ✅ **`GENERATED-LINT-CORRECTNESS.5` — the proof surface is now part of the code.** `code_changed`
+  covers `scripts/check_*.sh`, `rust/scripts/*.sh`, `Makefile`/`rust/Makefile`, `.githooks/*`,
+  `.github/workflows/*.yml`, `rust/build.rs`. **A change to a gate is a change to what "verified"
+  MEANS.** Measured: commits bound **1,104 → 1,501** — exactly the **397** blind commits, no more.
+  ⭐ Ordering was load-bearing: without `.4`'s ops/build-flow family this would have bound 397
+  commits' worth of change classes to a gate that could not express their evidence, manufacturing
+  waivers wholesale.
+- ✅ **`GENERATED-LINT-CORRECTNESS.6` — the 10th enforced doctrine, `WAIVER-ROUTING`.**
+  ⭐ **An author writing a waiver IS the gate reporting a missing capability** — the highest-signal
+  defect report a gate can receive, from someone who did the work and hit the boundary.
+  `RGX-0090.md:131` wrote exactly that inside a ticked ROOT CAUSE box and it sat unread for months.
+  A waiver stays **legal** and must simply name an owning leaf. ⛔ It must not punish honesty:
+  forbidding the language would delete the signal, which is worse than an unread note.
+- ⚠️ **Two boundaries learned by USING the new doctrine, either of which would have made it wrong:**
+  **scope ≠ capability** (a dozen honest *"pure-docs, so the code-change gate does not apply"*
+  statements are NOT bug reports — narrowed to claims about the *signature surface*), and
+  **markdown wraps** (same-line discharge was unsatisfiable for any wrapped paragraph, including
+  the two real waivers being routed ⇒ ±6-line window).
+- ✅ **`CI-PARITY-GATE-ROT.1b` — the escalated audit, ruled and executed: 30/1 → 31/0.** Director:
+  *"I agree we shouldn't cite either regex.json or regex.ebnf"* ⇒ the boundary STANDS. The 5
+  consumer-facing citations removed; the assertion re-scoped to the recipe section (the whole-file
+  form could only be satisfied by deleting ~35 historical provenance notes). ⭐ The 5th site turned
+  out to document a **REMOVED** mechanism — `--enable-parser-hooks` / `parse_regex_typed()`, retired
+  by `PARSER-NEUTRALITY.1` — so a consumer was being told to use a build variant that no longer
+  exists; replaced with an explicit "Removed" subsection.
+- ⚠️ **The CONTROL arms caught a real bug in the probe harness** (it staged its own copy of the
+  enforcer, which now correctly matches `scripts/check_*.sh`). Same lesson as `.3`: write the
+  control arms, and believe them when they fail.
+- Verified: proof-surface probes **12/12** with a real before→after (5 RED arms passed straight
+  through before, all BLOCK after; CTRL arms identical both sides = no over-binding), waiver probes
+  **8/8** (incl. the verbatim RGX-0090 text as RED and an untouched historical waiver as CONTROL),
+  parity-gate audit phase **31/31**, RED/GREEN on the re-scoped assertion (a re-added citation
+  FAILS; a renamed section REFUSES rather than silently passing), **10/10 doctrines PASS**,
+  `mdbook_docs_gate` GREEN. No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11
+  parsers byte-identical by construction; no release/schema/ledger movement.
+
 ## 2026-07-27 - PGEN-CI-PARITY-GATE-ROT-0001 (leaf `CI-PARITY-GATE-ROT.1`) — the local parity gate's audit phase goes 23/8 to 30/1, and "8 failing audits" turned out to be an undercount
 
 - ⭐⭐ **"8 failing audits" WAS AN UNDERCOUNT — the real number is 12 stale assertions, and

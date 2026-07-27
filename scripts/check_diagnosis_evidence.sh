@@ -43,10 +43,37 @@ else
 fi
 
 # Is this a CODE change? (grammars, rust sources, generated parsers, AST shape-contract manifests)
+#
+# ⭐⭐ THE PROOF SURFACE IS PART OF THE CODE (GENERATED-LINT-CORRECTNESS.5, 2026-07-27, on a direct
+# director order: *"You are the guarantor of the integrity of the repository ... that all rules,
+# doctrines of the project are strictly followed to the T"*).
+#
+# MEASURED across all 2,618 commits before widening: **521 touched the proof surface** (the gates,
+# the doctrine enforcers, the Makefiles that wire them, the git hooks, the CI workflows) and
+# **397 of those 521 (76%) staged no path from the old list**, so this check answered "no code
+# change staged" and required NOTHING of them.
+#
+# ⛔ That is not a small hole; it is the hole the last three sessions kept falling into. EVERY rot
+# class found in sessions #214-#216 lives on that surface and on no other:
+#   - `ast_dump_contract_gate` RED since #212, belonging to no aggregate  (a gate script)
+#   - `PGEN_CLIPPY_GENERATED_STRICT` set by NOTHING, defaulting to 0      (gate + Makefile wiring)
+#   - `ci_workflow_local_gate` unable to complete for 1,371 commits       (a gate script)
+# A check that guards the parser but not the machinery deciding whether the parser is ever checked
+# is guarding the wrong thing. **A change to a gate is a change to what "verified" MEANS.**
+#
+# ⚠️ SCOPED DELIBERATELY NARROWER THAN "anything under scripts/". Only the machinery that decides
+# whether other checks run is in scope; ordinary tooling, corpora and helper scripts are not. The
+# ops/build-flow diagnosis family added by `.4` is what makes this satisfiable rather than
+# punitive: such a defect can now be root-caused with `git ls-files` / `make -n` / `shellcheck` /
+# an errno, so an author is never forced to waive an otherwise-correct gate.
 code_changed=0
 for f in "${staged[@]:-}"; do
   case "$f" in
+    # the parser itself
     grammars/*.ebnf|rust/src/*|generated/*|rust/test_data/ast_shape_contract/*.json) code_changed=1 ;;
+    # the proof surface: the doctrine enforcers, the gates, their wiring, the hooks, CI
+    scripts/check_*.sh|rust/scripts/*.sh|.githooks/*|.github/workflows/*.yml|rust/build.rs) code_changed=1 ;;
+    Makefile|rust/Makefile) code_changed=1 ;;
   esac
 done
 

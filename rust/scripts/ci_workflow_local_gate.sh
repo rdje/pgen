@@ -154,6 +154,40 @@ assert_file_not_contains() {
   fi
 }
 
+# assert_markdown_section_not_contains <repo_file> <section-heading-regex> <forbidden>
+# Forbid a string inside ONE `##` section of a markdown file (heading line through to the next
+# `## `, or EOF).
+#
+# CI-PARITY-GATE-ROT.1b (2026-07-27), on the DIRECTOR RULING *"I agree we shouldn't cite either
+# regex.json or regex.ebnf"*. The boundary being protected is real and STANDS: a downstream
+# contract must not INSTRUCT a consumer to reach into PGEN-internal build inputs — consumers
+# integrate through `pgen::embedding_api` and the supported `make` target.
+#
+# ⛔ WHY THIS IS NOT A RELAXATION. The previous whole-file assertion could only be satisfied by
+# deleting ~35 occurrences that are HISTORICAL PROVENANCE — "Maintenance Update … the bound is now
+# encoded structurally inside `grammars/regex.ebnf`" — i.e. the record of which grammar rule
+# changed in a released slice. Erasing those to satisfy a check would back-date the maintenance
+# history, which this project refuses. The invariant is about INSTRUCTIONS, not about whether
+# history may name a file, so the assertion is scoped to the section that carries instructions.
+# A citation re-added to the consumer-facing recipe still FAILS — verified by probe.
+assert_markdown_section_not_contains() {
+  local repo_file="$1"
+  local heading_re="$2"
+  local forbidden="$3"
+  local section
+  section="$(awk -v re="$heading_re" '
+    $0 ~ /^## / { insec = ($0 ~ re) ? 1 : 0 }
+    insec { print }
+  ' "$ROOT_DIR/$repo_file" 2>/dev/null)"
+  if [ -z "$section" ]; then
+    fail "section matching /$heading_re/ not found in $repo_file (audit is stale or the section was renamed)"
+    return
+  fi
+  if printf '%s\n' "$section" | grep -F -- "$forbidden" >/dev/null 2>&1; then
+    fail "unexpected content in $repo_file section /$heading_re/: found '$forbidden' — the downstream contract must not instruct consumers to use PGEN-internal build inputs"
+  fi
+}
+
 # Like assert_file_not_contains, but ignores COMMENT lines (`#`-led, leading whitespace allowed).
 # CI-PARITY-GATE-ROT.1 (2026-07-27): needed because "this surface does not INVOKE X" is a claim
 # about executable lines, and the whole-file form was failing on a comment that documents why the
@@ -906,11 +940,16 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     '`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
-  assert_file_not_contains \
+  # CI-PARITY-GATE-ROT.1b (2026-07-27, DIRECTOR RULING: the boundary STANDS). Scoped from
+  # whole-file to the consumer-facing build recipe — see assert_markdown_section_not_contains for
+  # why the whole-file form was unsatisfiable without erasing ~35 historical provenance notes.
+  assert_markdown_section_not_contains \
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    '^## Generated Parser Build Recipe' \
     'generated/regex.json'
-  assert_file_not_contains \
+  assert_markdown_section_not_contains \
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    '^## Generated Parser Build Recipe' \
     'grammars/regex.ebnf'
   assert_file_contains \
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \

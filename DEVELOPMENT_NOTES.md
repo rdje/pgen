@@ -1,5 +1,90 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-27 - PGEN-GENERATED-LINT-CORRECTNESS-0007 / PGEN-CI-PARITY-GATE-ROT-0002 — closing a hole I had measured and then merely filed
+
+**The failure worth recording first.** `GENERATED-LINT-CORRECTNESS.4` measured that the acceptance
+gate was blind to the proof surface — 397 of 521 commits — and then **opened a leaf instead of
+fixing it**. The director's response is the durable part: *"Why did let that slide. You are the
+guarantor of the integrity of the repository."* That is exactly the pattern `DOCTRINE-GAP-OWNERSHIP`
+was opened to stop — recording a gap discharges the honesty obligation while the defect survives —
+and it was committed by the same session that opened that tree. Measuring is not fixing.
+
+**`.5` — the proof surface is part of the code.** `code_changed` had enumerated only parser
+artifacts, so the machinery deciding whether the parser is ever checked was invisible to the gate
+that guards the parser:
+
+```
+commits total .................................. 2620
+bound under the OLD predicate .................. 1104
+bound under the NEW predicate .................. 1501
+NEWLY bound (the closed hole) ...................  397
+```
+
+Exactly the measured hole, no more. The scope is deliberately narrower than "anything under
+`scripts/`" — only the machinery that decides whether other checks run. **Ordering mattered:** `.4`
+had to land first, because widening the predicate without the ops/build-flow diagnosis family would
+have bound 397 commits' worth of change classes to a gate whose signatures could not express their
+evidence — manufacturing waivers wholesale, which is precisely the disease `.6` treats.
+
+**The control arms earned their keep again.** CTRL-3/4/5 (docs / corpus / ordinary tool — the
+over-binding boundary) failed on the first run. The predicate was right; the *harness* was wrong —
+`new_repo` staged its own copy of the enforcer, which now correctly matches `scripts/check_*.sh`,
+so every arm looked like a proof-surface change. Committing the enforcer in the probe repo's base
+commit fixed it. Same lesson as `.3`: write the control arms, and believe them when they fail.
+
+**`.6` — a waiver is a bug report about the gate.** The founding case is `RGX-0090.md:131`, written
+inside a ticked ROOT CAUSE box:
+
+```
+(Waiver note: like RGX-0091 this is a BUILD-FLOW defect - the parse/perf
+ diagnosis-toolbox signatures do not apply; root cause is backed by the
+ recorded scratch reproduction runs above.)
+```
+
+That author was right, and precise, and nothing happened for months. `RGX-0091.md:147` even wrote a
+line headed *"Diagnosis tool signatures:"* citing real `grep -n` output and got no credit. `.4`
+then re-derived the identical gap from scratch. **An author writing a waiver is the gate reporting
+a missing capability** — the highest-signal defect report a gate can receive, because it comes from
+someone who did the work, hit the boundary, and wrote down where the boundary was. Treating it as
+corner-cutting inverts the diagnosis: the author complied, the instrument was incomplete.
+
+Mechanized as `WAIVER-ROUTING`, the 10th enforced doctrine. ⛔ The load-bearing constraint is that
+it **must not punish honesty**: forbidding waiver language would simply delete the signal — authors
+would stop writing the note and the gap would go invisible again, strictly worse than an unread
+note. So a waiver stays legal and only has to name an owner.
+
+**Two boundaries the implementation learned by being used on its own first customers**, either of
+which would have made it actively harmful:
+
+1. **Scope ≠ capability.** The first draft triggered on any *"the gate does not apply"* and the
+   corpus sweep immediately fired on a dozen honest scope statements — *"this slice is pure-docs,
+   so the code-change gate does not apply"*. Those are correct; the gate is behaving as designed.
+   Narrowed to claims that the gate *does* apply but its **signature surface** cannot express the
+   evidence.
+2. **Markdown wraps.** Same-line discharge was unsatisfiable for any wrapped paragraph — it failed
+   on the two real waivers being retro-routed — and would have pushed authors toward *deleting* the
+   waiver to pass. Discharge is checked in a ±6-line window, kept small so a distant leaf id cannot
+   vacuously discharge it.
+
+Corpus after: 6 waiver-shaped lines, 4 routed (was 1). `RGX-0090`/`RGX-0091` annotated in place as
+CLOSED by `.4`, with the retro-fit explicitly marked so the failure stays visible.
+
+**`.1b` — the escalated parity audit, ruled and executed (30/1 → 31/0).** The director ruled the
+downstream boundary STANDS. Both halves were required: the 5 consumer-facing citations came out,
+and the assertion was re-scoped from whole-file to the recipe section — because the whole-file form
+could only be satisfied by deleting ~35 **historical provenance** notes recording which grammar rule
+changed in a released slice, which is back-dating. ⭐ The fifth site turned out to document a
+**removed** mechanism: *"Optional: typed-entry-point fast path"* instructed consumers to regenerate
+with `--enable-parser-hooks` for `parse_regex_typed()`, both retired by `PARSER-NEUTRALITY.1`
+(verified: zero `parse_regex_typed` in `rust/src/`). A downstream contract was teaching a build
+variant that no longer exists — invisible to every gate, found only because the citation ruling sent
+someone to read the section.
+
+The new `assert_markdown_section_not_contains` refuses with an explicit *"section not found"* when
+its target heading is renamed, rather than passing silently over a missing section — the same
+*"a check that cannot run must SAY SO"* principle this family keeps re-deriving, applied to a helper
+written in the same commit.
+
 ## 2026-07-27 - PGEN-CI-PARITY-GATE-ROT-0001 — a fail-fast gate cannot tell you how broken it is
 
 **The census had to come before the adjudication.** `make -C rust ci_workflow_local_gate` runs its

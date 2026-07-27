@@ -7,19 +7,35 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: `.2`** (`.1` mostly done 2026-07-27 session #216 — audit phase **23 PASS / 8 FAIL →
-  30 PASS / 1 FAIL**; the remaining 1 is escalated, see below)
-- ⛔⛔ **DIRECTOR DECISION REQUESTED (raised 2026-07-27, session #216, by `.1`).** One audit is
-  deliberately left failing because resolving it changes a **published downstream promise**, and
-  the leaf's own rule is that guessing *"silently destroys a real check"*:
-  `audit_embedding_api_surface` forbids the regex integration contract from mentioning
-  `generated/regex.json` / `grammars/regex.ebnf` (added `d7f86f37` 2026-03-28, *"Harden regex
-  downstream integration contract"* — the support boundary says consumers integrate via
-  `pgen::embedding_api`, not via PGEN-internal build inputs). A later deliberate campaign
-  (`18dbc598` 2026-04-30, *"… + RGX build recipe"*) **added exactly that**, one day after the gate
-  died — so nothing objected. **Either the boundary stands (remove the recipe's internal-path
-  citations) or the boundary has legitimately changed (retire those two assertions).** Both are
-  defensible; the choice is a product promise, not an engineering detail.
+- **Frontier: `.2`** (`.1` **done** 2026-07-27 session #216 — audit phase **23 PASS / 8 FAIL → 31 PASS /
+  0 FAIL**; the escalated row was ruled on by the director same-session and executed as `.1b`)
+- ✅⛔ **DIRECTOR RULING RECEIVED (2026-07-27, session #216, verbatim):** *"We will republish PGEN
+  regex parser at a later time"* + *"I agree we shouldn't cite either regex.json or regex.ebnf"*
+  ⇒ **THE BOUNDARY STANDS.** `audit_embedding_api_surface` is RIGHT; the repo is wrong. The
+  citations come out. ⛔ The audit is NOT to be retired.
+- ⛔⛔ **BUT THE SCOPE IS NOT WHAT THE ONE FAILING ASSERTION SUGGESTS — MEASURED 2026-07-27 BEFORE
+  ANY EDIT, and this is the whole reason `.1b` is its own leaf rather than a five-minute fix.**
+  `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` is **2,982 lines** and carries
+  **~40** occurrences of the two forbidden tokens, which split into two classes that must NOT be
+  treated the same way:
+
+  | class | where | count | disposition |
+  |---|---|---|---|
+  | **consumer-facing build instructions** | `## Generated Parser Build Recipe (for downstream consumers like RGX)` (`:2426`, `:2431`, `:2520`, `:2541`, `:2554`) | **5** | ⇒ **THIS is what the ruling targets.** Rewrite onto the supported surface (`make -C rust regex_parser` + `pgen::embedding_api`), or move the recipe out of the downstream contract entirely |
+  | **historical provenance** | ~30 `## Maintenance Update …` / `## Release … Highlights` sections, e.g. *"the bound is now encoded structurally inside `grammars/regex.ebnf`"* | **~35** | ⛔ **DO NOT DELETE.** These record WHICH grammar rule changed in a released slice. Removing them destroys the maintenance record and back-dates history — the discipline this project refuses (`LEX-ADJACENCY.1` precedent) |
+
+  ⇒ ⭐ **THE AUDIT'S SHAPE IS WRONG FOR ITS OWN INTENT.** `assert_file_not_contains` is a
+  WHOLE-FILE check, so satisfying it literally would require deleting 35 provenance notes. The
+  boundary the ruling protects is *"do not INSTRUCT a consumer to reach into PGEN-internal build
+  inputs"* — a statement about the **consumer-facing sections**, not about whether history may
+  name a grammar file. Same defect class this leaf just fixed seven times over: **the assertion
+  pins something broader than the invariant it owns.**
+  ⇒ **`.1b` must do BOTH halves, and neither alone is acceptable**: (a) remove/rewrite the 5
+  consumer-facing citations per the ruling, and (b) re-scope the assertion to the consumer-facing
+  region so it keeps its teeth without being unsatisfiable-without-destroying-history.
+  ⚠️ Deliberately NOT started at the end of session #216 — the director called it (*"Better fixing
+  that in a new session, no?"*) after the scope above was measured. **No partial state exists.**
+
 - ⛔⛔ **DIRECTOR-SCHEDULED FOR A FRESH SESSION (2026-07-27, session #215, verbatim: *"Do this
   … at the next fresh session"*)**, after `GENERATED-LINT-CORRECTNESS.4`. The director asked for
   findings 3 and 4 of the `-0004` surfacing report — *"fix these in a sota, signoff and
@@ -107,11 +123,11 @@ actually runs?"* That question is `.2`.
 
 ## Leaves
 
-### `.1` — adjudicate the 8 failing audits (`mostly done` — 7 of 8 resolved, 1 ESCALATED)
+### `.1` — adjudicate the 8 failing audits (`done`)
 
-- **Status: `mostly done`** (2026-07-27, session #216, `PGEN-CI-PARITY-GATE-ROT-0001`).
-  **Audit phase: 23 PASS / 8 FAIL → 30 PASS / 1 FAIL.** The single remaining failure is a
-  published-support-boundary policy question that must NOT be guessed — escalated below.
+- **Status: `done`** (2026-07-27, session #216, `PGEN-CI-PARITY-GATE-ROT-0001` + `-0002`).
+  **Audit phase: 23 PASS / 8 FAIL → 31 PASS / 0 FAIL.** The last row was escalated rather than
+  guessed, the director ruled the same session, and `.1b` executed the ruling.
 - ⛔ Explicitly forbidden and **not done**: no audit was deleted, and none was relaxed to make
   the gate green. Every change is either a *deliberate policy update the audit itself asked
   for* or a *re-pin onto the surface that replaced the retired one*.
@@ -236,4 +252,33 @@ note in this tree's header.**
 | slice | leaf | commit subject |
 |---|---|---|
 | (opened by `PGEN-GENERATED-LINT-CORRECTNESS-0004`) | (tree opened) | the local CI-parity gate has been unable to complete for 1,371 commits — first blocker repaired, 8 independent audits routed here |
+| `PGEN-CI-PARITY-GATE-ROT-0002` | `.1b` | the director ruled the boundary STANDS — the 5 consumer-facing internal-path citations removed, the assertion re-scoped to the recipe section, 31/31 |
 | `PGEN-CI-PARITY-GATE-ROT-0001` | `.1` | 12 stale assertions across 8 audits adjudicated one at a time — 23/8 → 30/1, and fail-fast had hidden a third of them |
+
+### `.1b` — execute the director's ruling on the escalated audit (`done`)
+
+- **Status: `done`** (2026-07-27, session #216, `PGEN-CI-PARITY-GATE-ROT-0002`).
+- **DIRECTOR RULING (verbatim):** *"We will republish PGEN regex parser at a later time"* +
+  *"I agree we shouldn't cite either regex.json or regex.ebnf"* ⇒ **the boundary STANDS**; the
+  audit is right and is NOT retired.
+- **What was done, both halves (neither is sufficient alone):**
+  1. **The 5 consumer-facing citations removed** from `## Generated Parser Build Recipe`: the
+     internal JSON intermediate dropped from the prose, the `$(REGEX_JSON) ← grammars/regex.ebnf`
+     dependency row deleted, the determinism statement re-pinned to "the same PGEN checkout", the
+     troubleshooting row reworded to describe the condition without naming the internal grammar.
+  2. ⭐ **The 5th site turned out to document a REMOVED mechanism.** *"Optional: typed-entry-point
+     fast path"* told consumers to regenerate with `--enable-parser-hooks` for
+     `parse_regex_typed()` — both **retired** by `PARSER-NEUTRALITY.1` (director ruling
+     2026-07-20), as this contract's own Maintenance Update at `:123` states. Verified: zero
+     `parse_regex_typed` in `rust/src/`. Replaced with an explicit *"Removed"* subsection, so the
+     citation goes **and** a consumer stops being told to use a build variant that no longer
+     exists.
+  3. **The assertion re-scoped** whole-file → the recipe section
+     (`assert_markdown_section_not_contains`). ⛔ Not a relaxation: the whole-file form could only
+     be satisfied by deleting ~35 **historical provenance** notes recording which grammar rule
+     changed in a released slice — back-dating the maintenance record.
+- **Verified — RED/GREEN, because a re-scoped assertion is worthless unless it still bites:**
+  **RED-A** a citation re-added to the recipe section ⇒ **FAIL**;
+  **RED-B** the section renamed away ⇒ **FAIL with an explicit "section not found" refusal, not a
+  silent pass** (the *"a check that cannot run must SAY SO"* principle applied to the new helper
+  itself); **GREEN** restored ⇒ **31/31**. 10/10 doctrines PASS.

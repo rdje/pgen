@@ -292,6 +292,7 @@ via [`.githooks/pre-commit`](.githooks/pre-commit) (E3) + CI (E4).
 | `REGEX-SELF-HOSTING` | oracle | `scripts/check_regex_self_hosting.sh` | the regex grammar self-hosts (gen↔parse duality) |
 | `KNOWLEDGE-MAP` | structural | `knowledge-map/scripts/check_knowledge_map.sh` | the derived Knowledge Map is in sync with its fact sources |
 | `DIAG-TOOLBOX-EVIDENCE` | evidence | `scripts/check_diagnosis_evidence.sh` | a code change carries tool-backed WHY+WHERE diagnosis + measured verification in its task leaf (see `TOOLBOX.md`) |
+| `WAIVER-ROUTING` | evidence | `scripts/check_waiver_routing.sh` | a task leaf claiming a gate's SIGNATURE SURFACE cannot express its evidence names the leaf that owns fixing the gate — ⭐ **an author writing a waiver IS the gate reporting a missing capability**, the highest-signal defect report a gate can receive, and `RGX-0090`'s sat unread for months (see `docs/decisions/project_waiver_is_a_gate_bug_report.md`) |
 | `DESIGN-PRIOR-ART` | evidence | `scripts/check_design_prior_art.sh` | a task leaf proposing a NEW annotation/directive surface records a prior-art search over `grammars/ebnf.ebnf` / `docs/decisions/` / `docs/tasks/` / `docs/book/` first (see `docs/decisions/feedback_read_prior_art_before_designing.md`) |
 | `REGEX-ORACLE-ANCHOR-SYNC` | structural | `scripts/check_regex_oracle_anchor_sync.sh` | the live PCRE2-oracle-tuple anchors (contract snapshot + validator chapter + `diagnosing-unknowns.md` + `MEMORY.md`) agree byte-for-byte and satisfy the tracked ratchet bounds (`REGEX-PCRE2-FIDELITY.DOCSYNC.2`) |
 

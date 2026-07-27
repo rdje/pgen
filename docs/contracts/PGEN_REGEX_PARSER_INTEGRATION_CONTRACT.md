@@ -2423,12 +2423,11 @@ The Make dependency graph chains the entire downstream build. From the PGEN repo
 make -C rust SHELL=/bin/bash regex_parser
 ```
 
-This transitively pulls in the bootstrap-mode AST pipeline binary, the bootstrap-safe annotation parsers (`return_annotation_parser` and `semantic_annotation_parser`), the EBNF frontend binary, the JSON intermediate (`generated/regex.json`), and finally `generated/regex_parser.rs`. The Makefile encodes the dependency chain:
+This transitively pulls in the bootstrap-mode AST pipeline binary, the bootstrap-safe annotation parsers (`return_annotation_parser` and `semantic_annotation_parser`), the EBNF frontend binary, the internal grammar-to-parser conversion steps, and finally `generated/regex_parser.rs`. The Makefile encodes the dependency chain:
 
 | Target | Depends on | Output |
 |---|---|---|
 | `regex_parser` | `$(REGEX_JSON) $(RUST_AST_PIPELINE)` | `generated/regex_parser.rs` |
-| `$(REGEX_JSON)` | `grammars/regex.ebnf $(RUST_EBNF_FRONTEND_BIN)` | `generated/regex.json` |
 | `$(RUST_AST_PIPELINE)` | `$(AST_PIPELINE_SOURCES) $(SEMANTIC_ANNOTATION_PARSER) $(RETURN_ANNOTATION_PARSER)` | `rust/target/debug/ast_pipeline` |
 | `$(SEMANTIC_ANNOTATION_PARSER)` | `$(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)` | `generated/semantic_annotation_parser.rs` |
 | `$(RETURN_ANNOTATION_PARSER)` | `$(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)` | `generated/return_annotation_parser.rs` |
@@ -2517,7 +2516,7 @@ make -C rust SHELL=/bin/bash regex_parser \
 diff /tmp/sha1 /tmp/sha2   # must be empty
 ```
 
-Two consecutive regens against the same `grammars/regex.ebnf` and the same PGEN source must produce byte-identical `generated/regex_parser.rs`. The SHA itself shifts whenever the grammar source or the PGEN pipeline source legitimately changes; the contract is determinism, not a fixed SHA.
+Two consecutive regens against the same PGEN checkout must produce byte-identical `generated/regex_parser.rs`. The SHA itself shifts whenever the grammar source or the PGEN pipeline source legitimately changes; the contract is determinism, not a fixed SHA.
 
 ### Pulling a new PGEN
 
@@ -2538,23 +2537,19 @@ If the changes touch the bootstrap chain (return_annotation, semantic_annotation
 | `make regex_parser` errors at the EBNF-to-JSON step (`ast_pipeline: not found`) | the bin hasn't been built yet | use `make regex_parser_bootstrap` instead — it builds `ast_pipeline` first |
 | `regex_parser_bootstrap` fails at the seed step with a Rust compile error mentioning `ebnf_generated_parser` or `EbnfParser` | likely an outdated PGEN checkout where the cfg gating wasn't yet in place | pull PGEN to a commit at or after the contract `1.1.35` cold-clone fix |
 | Two consecutive `make regex_parser_bootstrap` produce different `generated/regex_parser.rs` SHAs | non-determinism bug — please file an issue | report; do NOT ship the unstable parser |
-| Grammar parse error during the EBNF-to-JSON step | a stale `grammars/regex.ebnf` from a partial pull, or a hand-edit drift | `git -C subs/pgen checkout grammars/regex.ebnf`; rerun bootstrap |
+| Grammar parse error during the grammar-conversion step | a partially-synced or hand-edited PGEN checkout | restore the PGEN checkout to a clean state (`git -C subs/pgen checkout -- .`); rerun bootstrap |
 | `make: *** No rule to make target ...` | called from the wrong directory | always use `make -C subs/pgen/rust ...` (or `cd subs/pgen && make -C rust ...`) |
 | Build succeeds but `parser_embedding_api_contract().supports_regex_generated_backend` is `false` at runtime | RGX's own build wasn't rebuilt with `--features generated_parsers` after the bootstrap | rebuild RGX with the feature enabled |
 
-### Optional: typed-entry-point fast path
+### Removed: the typed-entry-point fast path
 
-To get the opt-in `parse_regex_typed()` typed entry point (see release `1.1.30`/`1.1.32` highlights), regenerate with `--enable-parser-hooks`:
-
-```bash
-# Replace step 4 with:
-rust/target/debug/ast_pipeline \
-    --generate-parser --debug --trace --eliminate-left-recursion \
-    --enable-parser-hooks \
-    generated/regex.json -o generated/regex_parser.rs
-```
-
-The default `make regex_parser` target does NOT register the hook, so the default emit doesn't carry the typed methods. The legacy `parse_regex()` API is unchanged either way.
+⛔ **This build variant no longer exists.** The `--enable-parser-hooks` regeneration mode and the
+`parse_regex_typed()` entry points it emitted were REMOVED by direct director ruling
+(`PARSER-NEUTRALITY.1`, 2026-07-20 — see the Maintenance Update above and
+`docs/decisions/feedback_no_parser_hooks_full_neutrality.md`): the AST pipeline carries no
+per-parser extension mechanism. There is one supported build, the one documented above, and one
+supported entry point, `parse_regex()`. Consumers that were regenerating with the hook flag should
+drop it; the default emit is the only emit.
 
 ## Stable Diagnostics Contract
 - Stable diagnostic codes:
