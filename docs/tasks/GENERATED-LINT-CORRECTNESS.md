@@ -661,6 +661,57 @@ and the rule binds only NEW commits — but the number is the honest price, reco
 ### `.4` — the fifth diagnosis family: is a controlled differential a valid ROOT-CAUSE signature? (`todo`)
 
 - **Status: `todo`** — frontier, routed from `.3`.
+- ⛔⛔ **DIRECTOR-SCHEDULED FOR A FRESH SESSION (2026-07-27, session #215, verbatim: *"Do this
+  … at the next fresh session"*).** The director delegated the DECISION itself — *"You know the
+  objective of the project, the north star too, so decide"* — and then scheduled the work for a
+  clean context. **Order to execute in: this leaf first, then `CI-PARITY-GATE-ROT.1`, then
+  `CI-PARITY-GATE-ROT.2`.** Nothing here was started; no partial state exists to reconcile.
+
+#### ⭐ THE CENSUS, REFINED — read this before deciding (measured at `5c5a0ca0`)
+
+The `.3` record's *"30 of 56 leaf files"* is the **file-level** number under the enforcer's
+actual rule (a file passes if **any** one of its ticked ROOT CAUSE boxes carries a signature).
+Censusing **individual boxes** instead gives a sharper and more alarming picture:
+
+| measure | count |
+|---|---|
+| unbacked ROOT CAUSE **boxes** | **302** |
+| distinct files holding ≥1 unbacked box | **49** |
+| files where NO box is backed (what the enforcer sees today) | **30 of 56** |
+
+⚠️ **The distribution is the finding, not the total.** `docs/tasks/RGX-0078.md` alone holds
+**144** of the 302 — and that is the SPEED campaign, whose leaves are supposed to be
+*profiler*-backed by signature group 2 (`self-time` / `call-graph attribution` /
+`flamegraph`). A tree that large failing its own designated group is evidence that the gap is
+**not** merely "one unmodelled family": either the SPEED leaves diagnose by differential rather
+than by profiler, or group 2's tokens do not match how profiler work is actually written up
+here. ⛔ **Do not design the fifth family until that 144 is opened and read** — it is over
+double the sample everything else would be inferred from, and inferring from the other 158
+would repeat this session's own banked failure (designing from a summary instead of the source,
+[[feedback_read_prior_art_before_designing]]).
+Other concentrations: `REGEX-PCRE2-FIDELITY.md` 25, `SV-CORPUS-GRAD.md` 19,
+`VERILOG-2005-PROFILE.md` 11, `PARSE-HARNESS.md` 9, `LANG-CAPABILITY-AUDIT.md` 9.
+
+#### 💡 WORKING HYPOTHESIS (a starting point, explicitly NOT a decision)
+
+The shape that keeps recurring is a **controlled differential**: a precisely named site plus an
+N-arm experiment holding everything else fixed, whose arms produce *different outcomes*. That is
+a genuine causal isolation — arguably stronger than a trace line, which shows correlation.
+
+⇒ candidate definition, and the reason it may be admissible without weakening anything: make
+the fifth group a **CONJUNCTION**, unlike groups 1–4 which are single-token alternations —
+
+1. a **SITE**: a real repo path with a line number (`[\w./-]+\.(rs|ebnf|sh|json):[0-9]+`), **AND**
+2. a **CONTRAST**: a quoted outcome difference between arms (e.g. `ACCEPT→REJECT`, `N → 0`,
+   `diverge=`, a before→after verdict pair).
+
+Requiring **both** is a *stricter* bar than any existing group, so it admits real differentials
+while never degrading to "cite a line number" — the failure mode `.3` refused. ⛔ Still
+forbidden: a bare `file\.rs:[0-9]+` alternation.
+
+**Whoever takes this must RED/GREEN it like `.3` did**: fabricated trust-me prose containing a
+plausible file:line must FAIL, and a sample of the real 302 must PASS. `.3`'s own probes caught
+a real bug in its first implementation — do not trust the regex without the arms.
 - Box-scoping measured that **30 of 56** leaf files carrying a ticked ROOT CAUSE box do not
   have a signature inside that box. Sampling shows a recurring, genuinely-diagnostic shape
   that no group models: a **source citation plus a controlled experiment** — `file.rs:NNN`,

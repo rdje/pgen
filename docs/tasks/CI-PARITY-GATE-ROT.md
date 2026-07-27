@@ -8,6 +8,11 @@
 - Created: `2026-07-27`
 - Owner: repo-local workflow
 - **Frontier: `.1`** (adjudicate the 8 failing audits — audit stale, or repo wrong?)
+- ⛔⛔ **DIRECTOR-SCHEDULED FOR A FRESH SESSION (2026-07-27, session #215, verbatim: *"Do this
+  … at the next fresh session"*)**, after `GENERATED-LINT-CORRECTNESS.4`. The director asked for
+  findings 3 and 4 of the `-0004` surfacing report — *"fix these in a sota, signoff and
+  professional way"* — which are exactly `.1` and `.2` below. Execution order:
+  `GENERATED-LINT-CORRECTNESS.4` → **`.1`** → **`.2`**. Nothing was started; no partial state.
 - Opened by: `GENERATED-LINT-CORRECTNESS.3`, which had to run
   `make -C rust SHELL=/bin/bash ci_workflow_local_gate` in order to register a new surface
   audit, and found the gate dies on its **first** audit. Deliberately NOT absorbed into that
