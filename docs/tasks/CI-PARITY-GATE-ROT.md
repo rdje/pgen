@@ -7,7 +7,8 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- ✅✅ **TREE CLOSED — 2026-07-28, session #220.** Every leaf is `done` and the director's ordered
+- ✅✅ **TREE CLOSED — 2026-07-28, session #220** (re-closed after `.6`, the director-requested
+  adjudication of the four surfaced items). Every leaf is `done` and the director's ordered
   scope is discharged in full: **`.4`** (hosted regeneration step, one home, derived fail-safe
   audit) → **`.5`** (the earned-zero replacement; the flagship aggregate's RED sub-gate) → **the
   `PREPARE` flip** (default `true`, guarded) → **`.2`** (the reachability inventory, 31 orphans
@@ -16,10 +17,15 @@
   finding met on the way — two workflows nobody had measured, two `timeout-minutes` below their own
   measured cost, ten orphaned per-parser book gates, an unsound self-referential guard — was fixed
   **in place**.
-  ⚠️ **The one honest residual, recorded and not called done:** 28 of the 31 dispositions are
-  `accepted-operator-invoked`, i.e. real proof lanes that nothing runs automatically. That is an
-  ACCEPTED RISK the register states in its own text; shrinking it by wiring lanes into aggregates as
-  their cost allows is genuine remaining work, now VISIBLE and ratcheted instead of invisible.
+  ⭐⭐ **`.6` then adjudicated the four items that leaf surfaced, and MEASUREMENT REFUTED ONE OF
+  THEM**: the AUTOMATIC tier over these gate targets is **ZERO** — 14 of 15 workflows are
+  `workflow_dispatch`-only and the one that auto-runs invokes no `make` target — so *"shrink the 28
+  by wiring them in"* would have been theatre, improving a number without improving coverage. The
+  real lever is resuming hosted auto-triggers on a cheap subset, which spends Actions minutes and is
+  therefore ESCALATED as a director call, not quietly taken.
+  ⚠️ **The one honest residual:** those 28 lanes are reached by nothing, so they run only when an
+  operator names them — an ACCEPTED RISK the register states in its own text, now VISIBLE and
+  ratcheted instead of invisible.
   (`.5` **done** 2026-07-28 session #220 — all three `expected at least one …` assertions replaced
   with the earned-zero form; measured: ALL THREE were unsatisfiable, and the sub-gate that made
   `sota_exit_gate` RED now passes end-to-end.)
@@ -285,6 +291,122 @@ note in this tree's header.**
   default back to `false` and requiring the audit to block; `bash -n` clean; `mdbook_docs_gate`
   GREEN; 10/10 doctrines.
 
+### `.6` — the four surfaced items, adjudicated (`done`)
+
+- **Status: `done`** (2026-07-28, session #220, `PGEN-CI-PARITY-GATE-ROT-0011`), on the director's
+  instruction to decide them rather than leave them as findings. Each was PRICED before being
+  decided; two of the four turned out to rest on a premise that measurement corrected.
+
+#### (1) `sota-exit-gate.yml` timeout ⇒ **the platform maximum, 360 — because every lower number is a guess**
+
+`.4` raised it 60 → 300 on 2× the local measurement. That number encodes an estimate of the
+hosted/local slowdown factor, and **that factor is unmeasurable while hosted Actions are paused and
+billable** — so 300 was precision this leaf does not have.
+
+**Decision: 360, the GitHub per-job cap.** It is the only figure here that is not a guess: it is
+what the platform allows. It costs nothing — Actions bill minutes *consumed*, not the budget
+declared — and it strictly dominates 300, which differed from the cap only for runs between 300 and
+360 minutes, i.e. **exactly the band this job might land in** (local measured 143 min).
+
+⛔ **And the decision carries its own trigger condition, so it is closed rather than deferred:** if a
+hosted run ever reaches 360, the answer is NOT a larger number — the cap is the cap. It is that this
+aggregate does not fit one hosted job and must be **split into per-family jobs**. At that point the
+split is justified by a measurement instead of by the speculation it would be today.
+
+#### (2) the 28 `accepted-operator-invoked` lanes ⇒ ⭐⭐ **THE PREMISE WAS WRONG, AND MEASUREMENT SAYS SO**
+
+The finding was framed as *"28 real proof lanes that nothing runs automatically — shrinking that set
+is real work I did not do."* Measuring what actually auto-runs corrects it:
+
+```
+$ for f in .github/workflows/*.yml; do <read the `on:` block>; done
+memory-architecture-gate.yml: workflow_dispatch,push,pull_request
+<the other 14>:               workflow_dispatch
+```
+
+⇒ **14 of the 15 tracked workflows are `workflow_dispatch`-only**, and the one that still auto-runs
+executes `bash scripts/check_*.sh` directly and **no `make` target at all**. So:
+
+> ⭐⭐⭐ **the AUTOMATIC tier over these gate targets is ZERO — not 92, and not "all but 28".**
+> The automatic layer covers the **11 enforced doctrines** and **none of the 123 make-level gate
+> targets.** Every proof lane in this repository — the 92 "reachable" ones exactly as much as the
+> 30 orphans — runs only when a human asks.
+
+⛔ **That kills the proposed remedy.** With the automatic tier at zero, wiring an orphan into an
+aggregate or a paused workflow moves it from ORPHAN to OPERATOR and **makes nothing run**. "Shrink
+the 28 by wiring" would have been theatre — motion that improves a number without improving
+coverage. ⭐ This is the tree's own principle turned on the tree's own instrument: *a check that
+cannot run must SAY SO*, and my first report said "reachable from something that RUNS" about 92
+targets whose invokers are paused.
+
+**What an orphan actually costs, stated narrowly and correctly:** it is unreachable from any *entry
+point* — running `sota_exit_gate`, running `ci_workflow_local_gate`, or dispatching any workflow
+still will not reach it. That is why wiring is worth doing when a lane is cheap (the ten book gates,
+0.3 s each) and worth **not** doing when it is not: bolting an hours-long external-corpus lane onto
+the release aggregate makes the aggregate unrunnable, which *removes* coverage.
+
+⇒ **DECISION: the 28 stay accepted, on the corrected reasoning, and the real lever is ESCALATED.**
+The one change that would move the automatic tier off zero is **resuming hosted auto-triggers for a
+cheap subset**. That spends account Actions minutes, which is precisely the cost decision the
+director made when pausing them (`af85a5fd`, README "Hosted GitHub Actions pause") — so it is a
+director call, not an engineering one, and it is raised as such rather than quietly taken.
+
+**Mechanized, not just written down:** the check now classifies workflow roots as
+`ci-workflow-auto` vs `ci-workflow-manual` by reading each `on:` block, reports the AUTOMATIC and
+OPERATOR tiers separately, and pins the classification with two further ground-truth controls
+(`memory-architecture-gate.yml` must be auto, `sota-exit-gate.yml` must be manual). New probe
+**RED-5**: give a paused workflow a `push:` trigger ⇒ the instrument must declare itself
+MISCALIBRATED rather than silently re-inflate the automatic tier.
+
+#### (3) "an instrument with no ground truth is a confident guess" ⇒ **promoted to a tracked discipline**
+
+Not a decision so much as a durable fact that must survive this session:
+`docs/decisions/feedback_instrument_needs_ground_truth.md`, indexed. It records the six wrong
+answers, the six defects behind them, and the rule they produce — pin known-true facts inside the
+instrument, prefer controls that break in *both* directions, and **refuse rather than report** on
+mismatch. Live reference shape: the control block of `scripts/check_gate_reachability.sh`.
+
+#### (4) "an assertion about a file cannot live inside that file" ⇒ **PRICED, and deliberately NOT mechanized**
+
+The tempting move was an 12th doctrine. `GENERATED-LINT-CORRECTNESS.4`'s rule is to price a
+candidate against the whole corpus first — its own chartered hypothesis, generalized from one clean
+sample, would have admitted 2 of 304 boxes. Priced here:
+
+```
+$ for f in rust/scripts/*.sh scripts/*.sh; do <self-targeting assert_* count>; done
+rust/scripts/ci_workflow_local_gate.sh: 1 self-targeting assertion(s)
+```
+
+**Exactly one site repo-wide**, and it is already written in the sound form. ⇒ **a doctrine for one
+occurrence is over-mechanization; refused.** Recorded instead as
+`docs/decisions/reference_self_referential_assertion_is_unsound.md` (with the mechanical form
+written out, so re-pricing later is cheap) plus the in-place comment at the site.
+
+#### Acceptance checklist (enforced)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — item (2)'s premise located and refuted by reading the trigger
+      block of each tracked workflow: `git ls-files '.github/workflows/*.yml'` = 15, of which 14 are
+      `workflow_dispatch`-only and `memory-architecture-gate.yml` (the sole `push`/`pull_request`
+      one) invokes **no** `make` target ⇒ AUTOMATIC tier = **0** of 123. Item (4)'s premise priced
+      by sweeping every `rust/scripts/*.sh` and `scripts/*.sh` for self-targeting `assert_*` calls
+      ⇒ **1** site. Item (1)'s basis is the unmeasurability of the hosted slowdown while Actions are
+      paused, not a disputed number.
+- [x] **ADDRESSED (verified)** — before→after on the instrument: it reported *"reachable from
+      something that RUNS: 92"* and now reports `AUTOMATIC 0 / OPERATOR 92` with the pause named.
+      `bash scripts/check_gate_reachability.sh` → `OK (123 targets; 92 reachable, 30 orphan +
+      1 policy-only, all dispositioned; 8 ground-truth controls reproduced)` — controls 6 → 8.
+      Probes **9/9** including the new RED-5 (a paused workflow given `push:` ⇒ MISCALIBRATED).
+      `.4`'s probes re-run **13/13** after the timeout change.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11 parsers
+      **byte-identical BY CONSTRUCTION**; no release / schema / ledger / contract movement. All 15
+      workflow YAMLs parse; `bash scripts/check_doctrines.sh` → **ALL 11 enforced doctrines PASS**.
+      ⛔ `rust/Makefile` and `rust/scripts/sota_exit_gate.sh` deliberately untouched: the aggregate
+      run proving `.5` was executing, and editing a Makefile or gate script under a live `make` is
+      a way to invalidate a measurement without noticing.
+- [x] **LOCKSTEP** — `docs/decisions/` (2 new records + `INDEX.md`), the register's
+      `measured_context` / `what_an_orphan_actually_costs` / `honest_limit` fields, `CHANGES.md`,
+      `DEVELOPMENT_NOTES.md`, `MEMORY.md`, and this tree.
+
 ### `.2` — a reachability inventory: which tracked gates does anything actually invoke? (`done`)
 
 - **Status: `done`** (2026-07-28, session #220, `PGEN-CI-PARITY-GATE-ROT-0010`).
@@ -420,6 +542,7 @@ their cost allows is real remaining work**, and it is recorded as such rather th
 
 | slice | leaf | commit subject |
 |---|---|---|
+| `PGEN-CI-PARITY-GATE-ROT-0011` | `.6` | the four surfaced items adjudicated — and measurement refuted the premise of one: the AUTOMATIC tier over these gate targets is ZERO, so "wire the 28" would have been theatre |
 | `PGEN-CI-PARITY-GATE-ROT-0010` | `.2` (TREE CLOSED) | the reachability inventory nobody had — 123 targets, 30 orphans + 1 policy-only, all dispositioned behind a ratchet as the 11th enforced doctrine; ten orphaned book gates wired |
 | `PGEN-CI-PARITY-GATE-ROT-0009` | `.flip` | PGEN_CI_WORKFLOW_LOCAL_PREPARE defaults to `true` now the hosted side genuinely works — and the guard for that default could not be written as a literal inside the file it guards |
 | `PGEN-CI-PARITY-GATE-ROT-0008` | `.5` | the flagship aggregate's RED sub-gate could only pass when SV generation FAILED — all three assertions replaced with "the zero must be EARNED", and all three were unsatisfiable |

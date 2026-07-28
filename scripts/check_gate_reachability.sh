@@ -266,10 +266,37 @@ for tok in re.findall(r"[a-z0-9_]+_gate", read("rust/config/sota_exit_policy.env
     add_root(tok, "sota-policy")
 
 # (R2) a tracked hosted CI workflow.
+# ⭐⭐ A DISPATCH-ONLY WORKFLOW IS NOT AN AUTOMATIC INVOKER, AND CONFLATING THE TWO OVERSTATED THIS
+# INSTRUMENT'S OWN HEADLINE. Hosted Actions have been paused since `af85a5fd` (2026-04-14) to
+# conserve account minutes, so **14 of the 15 tracked workflows are `workflow_dispatch`-only** —
+# they run when a human decides to, exactly like an aggregate. Only `memory-architecture-gate.yml`
+# still carries `push`/`pull_request`. Reporting "reachable from something that RUNS" for a target
+# whose sole invoker is a paused workflow is the same category error this doctrine exists to name:
+# it can run, but nothing makes it. So the trigger set is READ from each workflow and the class is
+# split — `ci-workflow-auto` vs `ci-workflow-manual` — and the report separates what runs
+# CONTINUOUSLY from what runs when someone asks.
+AUTO_TRIGGERS = ("push", "pull_request", "schedule", "merge_group")
+
+def workflow_trigger_class(rel):
+    """Read the `on:` block and decide whether this workflow runs without a human."""
+    body, in_on = [], False
+    for line in read(rel).splitlines():
+        if re.match(r"^on:\s*$", line):
+            in_on = True
+            continue
+        if in_on:
+            if line and not line[0].isspace():
+                break
+            body.append(line)
+    keys = re.findall(r"^\s{2,}([a-z_]+):", "\n".join(body), re.M)
+    return "ci-workflow-auto" if any(k in AUTO_TRIGGERS for k in keys) else "ci-workflow-manual"
+
 for wf in sorted(glob.glob(os.path.join(ROOT, ".github/workflows/*.yml"))):
-    made, _ = invoked_targets(strip_shell_comments(read(os.path.relpath(wf, ROOT))))
+    rel = os.path.relpath(wf, ROOT)
+    cls = workflow_trigger_class(rel)
+    made, _ = invoked_targets(strip_shell_comments(read(rel)))
     for callee in made:
-        add_root(callee, "ci-workflow")
+        add_root(callee, cls)
 
 # (R3) the git hooks + the doctrine enforcer — machine-enforced at commit time.
 for p in sorted(glob.glob(os.path.join(ROOT, ".githooks/*"))) + \
@@ -301,7 +328,17 @@ for r, classes in roots.items():
         for nxt in sorted(edges.get(node, ())):
             stack.append((nxt, cls))
 
-MACHINE = {"aggregate", "sota-policy", "ci-workflow", "git-hook"}
+# ⭐ THREE HONEST TIERS, NOT TWO.
+#   AUTOMATIC — runs without anyone deciding to: the git hooks (every commit) and the one workflow
+#               still on push/pull_request. This is the only tier that holds while nobody is looking.
+#   OPERATOR  — runs when someone invokes an aggregate or dispatches a paused workflow. Legitimate,
+#               and NOT the same thing as automatic.
+#   ORPHAN    — nothing invokes it at all.
+# The ratchet binds the third tier (plus policy-only). The first two are REPORTED so the difference
+# between "covered" and "covered when someone remembers" cannot be read as the same claim.
+AUTOMATIC = {"git-hook", "ci-workflow-auto"}
+OPERATOR = {"aggregate", "sota-policy", "ci-workflow-manual"}
+MACHINE = AUTOMATIC | OPERATOR
 rows = []
 for name in sorted(universe):
     cls = sorted(reach.get(name, ()))
@@ -354,6 +391,18 @@ for target, want, why in CONTROLS:
     got = status_of.get(target, "<not in universe>")
     if got != want:
         control_failures.append(f"  {target}: expected {want}, got {got}\n      known because: {why}")
+# ⭐ AND THE TRIGGER CLASSIFIER GETS ITS OWN CONTROLS. The auto-vs-manual split is what stops this
+# instrument overstating its headline, so a silent regression in it (a stray `on:` parse change, a
+# workflow re-indented) must fail rather than quietly re-inflate the AUTOMATIC tier.
+for _wf, _want in (("memory-architecture-gate.yml", "ci-workflow-auto"),
+                   ("sota-exit-gate.yml", "ci-workflow-manual")):
+    _got = workflow_trigger_class(f".github/workflows/{_wf}")
+    if _got != _want:
+        control_failures.append(
+            f"  .github/workflows/{_wf}: trigger class {_got}, expected {_want}\n"
+            f"      known because: hosted Actions were paused by af85a5fd (2026-04-14), leaving "
+            f"memory-architecture-gate.yml as the only workflow on push/pull_request")
+
 policy_required = re.search(r'PGEN_SOTA_POLICY_REQUIRED_CHECKS="([^"]*)"',
                             read("rust/config/sota_exit_policy.env"))
 if policy_required:
@@ -384,8 +433,22 @@ if MODE == "--report":
     print(f"universe: {len(rows)} targets  "
           f"({sum(1 for r in rows if r['kind']=='gate-named')} *_gate, "
           f"{sum(1 for r in rows if r['kind']=='script-backed')} script-backed)")
-    print(f"reachable from something that RUNS: "
-          f"{sum(1 for r in rows if r['status']=='reachable')}")
+    auto = sum(1 for r in rows if set(r["invokers"]) & AUTOMATIC)
+    oper = sum(1 for r in rows if r["status"] == "reachable" and not (set(r["invokers"]) & AUTOMATIC))
+    print(f"reachable at all: {sum(1 for r in rows if r['status']=='reachable')}")
+    print(f"  ├─ AUTOMATIC (git hook / auto-triggered workflow — holds while nobody looks): {auto}")
+    print(f"  └─ OPERATOR  (an aggregate, or a workflow_dispatch-only workflow): {oper}")
+    if auto == 0:
+        print("     ⚠️⚠️ ZERO targets are automatically invoked. Hosted Actions are PAUSED, so 14 of")
+        print("        the 15 tracked workflows are workflow_dispatch-only, and the one that still")
+        print("        auto-runs (memory-architecture-gate.yml) executes scripts/check_*.sh directly")
+        print("        and no `make` target at all. ⇒ the automatic layer covers the ENFORCED")
+        print("        DOCTRINES and NONE of these gate targets: every proof lane below runs only")
+        print("        when a human asks. Wiring an orphan into an aggregate or a paused workflow")
+        print("        moves it from ORPHAN to OPERATOR — it does not make anything run.")
+    else:
+        print(f"     ⚠️ hosted Actions are PAUSED: most tracked workflows are dispatch-only, so")
+        print(f"        'reachable from a CI workflow' does NOT mean 'runs'.")
     print(f"reachable only from COMMIT.md policy (nothing FAILS if skipped): {len(policy_names)}")
     print(f"ORPHANS (no invoker at all): {len(orphan_names)}")
     print("-" * 78)
@@ -432,7 +495,7 @@ if fails:
 print(f"gate-reachability: OK ({len(rows)} targets; "
       f"{sum(1 for r in rows if r['status']=='reachable')} reachable, "
       f"{len(orphan_names)} orphan + {len(policy_names)} policy-only, all dispositioned; "
-      f"{len(CONTROLS)} ground-truth controls reproduced)")
+      f"{len(CONTROLS) + 2} ground-truth controls reproduced)")
 
 if "--json" in sys.argv:
     out = sys.argv[sys.argv.index("--json") + 1]

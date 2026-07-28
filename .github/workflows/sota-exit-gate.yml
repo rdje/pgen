@@ -7,14 +7,24 @@ jobs:
   sota-exit-gate:
     name: sota-exit-gate
     runs-on: ubuntu-latest
-    # ⭐⭐ CI-PARITY-GATE-ROT.4 — was 60, and that was NEVER survivable. `.3`'s prepared census
+    # ⭐⭐ CI-PARITY-GATE-ROT.4/.6 — was 60, and that was NEVER survivable. `.3`'s prepared census
     # measured this aggregate at 8,587 s (2 h 23 m) on a fast local volume — and that run FAILED
-    # partway, so a green run is longer still. The flagship aggregate has carried a timeout below
-    # a quarter of its own measured cost since hosted triggers were paused, so nothing ever hit it.
-    # ⚠️ HONEST LIMIT: 300 fits under GitHub's 360-minute job cap and is 2× the measured local
-    # cost, but hosted runners are slower and this is the one workflow where that margin may still
-    # not be enough. Recorded rather than papered over — see docs/tasks/CI-PARITY-GATE-ROT.md .4.
-    timeout-minutes: 300
+    # partway, so a green run is longer still. The flagship aggregate carried a timeout below a
+    # QUARTER of its own measured cost from the day hosted triggers were paused, so nothing hit it.
+    #
+    # ⭐ SET TO THE PLATFORM MAXIMUM, DELIBERATELY, AND THE REASONING IS THE POINT.
+    # The hosted/local slowdown factor is UNMEASURABLE while Actions are paused and billable, so any
+    # value between the measured 143 minutes and the 360-minute GitHub job cap encodes a guess about
+    # a number nobody has. 360 is the only figure here that is not a guess: it is what the platform
+    # allows. It costs nothing extra — Actions bill minutes CONSUMED, not the budget declared — and
+    # it strictly dominates the 300 it replaces, which differed from the cap only for runs between
+    # 300 and 360 minutes, i.e. exactly the band this job might land in.
+    #
+    # ⛔ TRIGGER CONDITION, so this is a decision and not an open question: if a hosted run ever
+    # reaches 360 minutes, the answer is NOT a larger number — the cap is the cap. It is that this
+    # aggregate does not fit one hosted job and must be SPLIT into per-family jobs. At that point
+    # the split is justified by a MEASUREMENT rather than by the speculation it would be today.
+    timeout-minutes: 360
 
     steps:
       - name: Checkout

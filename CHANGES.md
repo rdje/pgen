@@ -1,5 +1,57 @@
 # CHANGES.md
 
+## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0011 — the four surfaced items adjudicated, and measurement refuted the premise of one: the AUTOMATIC tier over these gate targets is ZERO
+
+`CI-PARITY-GATE-ROT.6` DONE (director-requested adjudication). Doctrine check + register + 1 workflow
+timeout + 2 decision records + docs + 1 probe arm — **no `grammars/*.ebnf`, no `rust/src/*`, no
+`generated/*`** ⇒ all 11 generated parsers byte-identical BY CONSTRUCTION; no release / schema /
+ledger / contract movement.
+
+- **(1) `sota-exit-gate.yml` timeout ⇒ the PLATFORM MAXIMUM, 360, because every lower number is a
+  guess.** `.4` set 300 as 2× the local measurement, which encodes an estimate of the hosted/local
+  slowdown factor — and that factor is UNMEASURABLE while hosted Actions are paused and billable.
+  360 is the only figure that is not a guess: it is what GitHub allows. It costs nothing (Actions
+  bill minutes CONSUMED, not the budget declared) and strictly dominates 300, which differed from
+  the cap only for runs between 300 and 360 minutes — exactly the band this job might land in.
+  ⛔ With its own trigger condition, so it is closed rather than deferred: if a hosted run ever
+  reaches 360 the answer is NOT a larger number, it is that the aggregate must be SPLIT into
+  per-family jobs — and then the split is justified by a measurement instead of speculation.
+- ⭐⭐⭐ **(2) THE 28 "ACCEPTED" LANES — THE PREMISE WAS WRONG AND MEASUREMENT SAYS SO.** Reading the
+  `on:` block of every tracked workflow: **14 of 15 are `workflow_dispatch`-only**, and the one that
+  still auto-runs (`memory-architecture-gate.yml`) executes `bash scripts/check_*.sh` directly and
+  **no `make` target at all**. ⇒ **the AUTOMATIC tier over these gate targets is ZERO — not 92, and
+  not "all but 28"**: the automatic layer covers the 11 enforced doctrines and NONE of the 123
+  make-level gate targets. Every proof lane here — the 92 "reachable" ones exactly as much as the 30
+  orphans — runs only when a human asks. ⛔ **That kills the proposed remedy**: wiring an orphan into
+  an aggregate or a paused workflow moves it ORPHAN → OPERATOR and makes nothing run, so "shrink the
+  28 by wiring" would have been theatre. ⭐ It is this tree's own principle turned on this tree's own
+  instrument — *a check that cannot run must SAY SO* — and the first report said "reachable from
+  something that RUNS" about 92 targets whose invokers are paused.
+  ⇒ **DECISION: the 28 stay accepted on the corrected reasoning, and the real lever is ESCALATED** —
+  resuming hosted auto-triggers for a cheap subset spends account Actions minutes, which is exactly
+  the cost decision the director made when pausing them, so it is a director call, not an
+  engineering one. **Mechanized, not merely written**: the check now classifies workflow roots
+  `ci-workflow-auto` vs `ci-workflow-manual` from each `on:` block, reports the AUTOMATIC and
+  OPERATOR tiers separately, and pins the classification with two further ground-truth controls;
+  new probe RED-5 gives a paused workflow a `push:` trigger and requires the instrument to declare
+  itself MISCALIBRATED rather than silently re-inflate the automatic tier.
+- **(3) "an instrument with no ground truth is a confident guess" ⇒ promoted to a tracked
+  discipline**: `docs/decisions/feedback_instrument_needs_ground_truth.md` (indexed) — the six wrong
+  answers, the six defects behind them, and the rule: pin known-true facts INSIDE the instrument,
+  prefer controls that break in BOTH directions, and REFUSE rather than report on mismatch.
+- **(4) "an assertion about a file cannot live inside that file" ⇒ PRICED, and deliberately NOT
+  mechanized.** `GENERATED-LINT-CORRECTNESS.4`'s rule is to price a candidate against the whole
+  corpus first; swept across every `rust/scripts/*.sh` and `scripts/*.sh` the class is **exactly one
+  site**, already in the sound form. A doctrine for one occurrence is over-mechanization — refused,
+  and recorded as `docs/decisions/reference_self_referential_assertion_is_unsound.md` with the
+  mechanical form written out so re-pricing later is cheap.
+- **Verified**: `check_gate_reachability` controls 6 → 8, probes **9/9**; `.4` probes re-run
+  **13/13**; all 15 workflow YAMLs parse; **ALL 11 enforced doctrines PASS**. ⛔ `rust/Makefile` and
+  `rust/scripts/sota_exit_gate.sh` deliberately untouched — the aggregate run proving `.5` was
+  executing, and editing a Makefile or gate script under a live `make` is a way to invalidate a
+  measurement without noticing.
+
+
 ## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0010 — the reachability inventory nobody had, and the instrument gave six different confident answers before it was right
 
 `CI-PARITY-GATE-ROT.2` DONE ⇒ **the `CI-PARITY-GATE-ROT` TREE IS CLOSED.** New doctrine check +

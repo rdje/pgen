@@ -2,9 +2,9 @@
   "register": "gate_reachability_register_v0",
   "owner": "CI-PARITY-GATE-ROT.2",
   "what_this_is": "One decision per gate target that NOTHING in the repository invokes. The orphan set itself is DERIVED on every run by scripts/check_gate_reachability.sh; only these dispositions are written down, because a disposition is a human decision nothing can re-derive. An orphan with no entry FAILS the check, and an entry that no longer names an orphan FAILS too, so this list can neither be bypassed nor accumulate dead exemptions.",
-  "honest_limit": "'accepted-operator-invoked' is an ACCEPTED RISK, not a clean bill of health. Nothing fails if such a lane is never run again; what this register buys is that the set is VISIBLE, DECIDED, and cannot grow silently. Shrinking it — by wiring lanes into aggregates as their cost allows — is real remaining work, not a closed question.",
+  "honest_limit": "'accepted-operator-invoked' is an ACCEPTED RISK, not a clean bill of health: these lanes are reached by nothing, so they run only when someone names them. What this register buys is that the set is VISIBLE, DECIDED, and cannot grow silently. ⛔ THE LEVER THAT WOULD ACTUALLY CHANGE THE PICTURE IS NOT MORE WIRING — with the AUTOMATIC tier at zero, wiring moves a target from ORPHAN to OPERATOR and makes nothing run. It is RESUMING HOSTED AUTO-TRIGGERS on a cheap subset, which spends Actions minutes and is therefore a director decision, not an engineering one. Escalated as such; see docs/tasks/CI-PARITY-GATE-ROT.md leaf .2.",
   "dispositions": {
-    "accepted-operator-invoked": "a real proof lane, deliberately not in an aggregate or workflow because of its cost or because it is a campaign/closure instrument rather than a per-commit one",
+    "accepted-operator-invoked": "a real proof lane that no aggregate, workflow or hook reaches, so it runs only when an operator names it. Deliberate: either its cost makes it a campaign/closure instrument rather than a per-commit one, or folding it into the release aggregate would make that aggregate unrunnable.",
     "alias-of-reachable": "a convenience target whose real work is already invoked by a reachable path",
     "not-a-proof-lane": "not a check at all — it asserts nothing, so 'nothing invokes it' is not a proof gap",
     "policy-invoked": "invoked by a prose instruction (COMMIT.md) rather than by anything machine-enforced"
@@ -165,5 +165,7 @@
       "disposition": "accepted-operator-invoked",
       "reason": "VHDL family closure/telemetry/corpus lane, run per VHDL campaign"
     }
-  ]
+  ],
+  "measured_context": "MEASURED 2026-07-28 (session #220): the AUTOMATIC tier over these gate targets is ZERO. Hosted Actions have been paused since af85a5fd (2026-04-14) to conserve account minutes, so 14 of the 15 tracked workflows are workflow_dispatch-only, and the one that still auto-runs (memory-architecture-gate.yml) executes scripts/check_*.sh directly and no `make` target at all. ⇒ the automatic layer covers the 11 ENFORCED DOCTRINES and NONE of the 123 make-level gate targets. Every proof lane in this repository — the 92 'reachable' ones as much as the 30 orphans — runs only when a human asks.",
+  "what_an_orphan_actually_costs": "Given the above, an orphan is NOT distinguished from the rest of the proof surface by 'nobody runs it automatically' — nothing here runs automatically. It is distinguished by being unreachable from any ENTRY POINT: running `sota_exit_gate`, running `ci_workflow_local_gate`, or dispatching any workflow still will not reach it. That is the real, narrower cost, and it is why wiring an orphan into an aggregate is worth doing when the lane is cheap (the ten per-parser book gates, 0.3 s each, were wired for exactly this reason) and worth NOT doing when it is not (bolting an hours-long external-corpus lane onto the release aggregate makes the aggregate unrunnable, which removes coverage rather than adding it)."
 }

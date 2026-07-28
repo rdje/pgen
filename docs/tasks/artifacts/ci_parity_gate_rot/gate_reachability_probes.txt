@@ -8,6 +8,7 @@ CI-PARITY-GATE-ROT.2 — GATE-REACHABILITY probes
 ✓ RED-4  book gates lose their invoker     FAIL
 ✓ CTRL-1 ground-truth controls hold        PASS
 ✓ CTRL-2 broken control => REFUSES         FAIL
+✓ RED-5  a paused workflow gains push      FAIL
 ✓ CTRL-3 unrelated Makefile edit           PASS
 ------------------------------------------------------------------------------
-arms=8  PASS=8  FAIL=0
+arms=9  PASS=9  FAIL=0

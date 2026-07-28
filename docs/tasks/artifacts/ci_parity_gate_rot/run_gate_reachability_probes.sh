@@ -132,6 +132,22 @@ PY
 arm "CTRL-2 broken control => REFUSES" FAIL "MISCALIBRATED"
 restore
 
+# ---------------------------------------------------------------- RED-5: the auto/manual split erodes
+# ⭐ The distinction between "a workflow COULD run this" and "something DOES run this" is what stops
+# the inventory overstating its own headline: with hosted Actions paused, 14 of 15 workflows are
+# workflow_dispatch-only and the AUTOMATIC tier over these gate targets is ZERO. Give a paused
+# workflow a push trigger and the classifier must notice — otherwise a silent re-inflation of that
+# tier would read as coverage nobody has.
+cp "$ROOT/.github/workflows/sota-exit-gate.yml" "$WORK/sota-wf.bak"
+python3 - "$ROOT/.github/workflows/sota-exit-gate.yml" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+open(p, "w").write(s.replace("on:\n  workflow_dispatch:", "on:\n  workflow_dispatch:\n  push:", 1))
+PY
+arm "RED-5  a paused workflow gains push" FAIL "MISCALIBRATED"
+cp "$WORK/sota-wf.bak" "$ROOT/.github/workflows/sota-exit-gate.yml"
+
 # ---------------------------------------------------------------- CTRL-3: unrelated edit, no misfire
 printf '\n# CI-PARITY-GATE-ROT.2 probe: an unrelated comment must not change the verdict\n' \
   >> "$ROOT/$MAKEFILE"
