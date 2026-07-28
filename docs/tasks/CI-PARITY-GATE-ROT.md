@@ -259,6 +259,7 @@ note in this tree's header.**
 
 | slice | leaf | commit subject |
 |---|---|---|
+| `PGEN-CI-PARITY-GATE-ROT-0005` | `.4`/`.5` prep (docs only) | the director work order banked verbatim, `.5` adjudicated (the ASSERTION is the bug, not the budget), and both leaves given a self-contained work list |
 | `PGEN-CI-PARITY-GATE-ROT-0004` | `.3` close-out (+ `.5` opened) | the prepared replay finished 10/1 — and the 1 is `sota_exit_gate` RED on a sub-gate that can only pass when SV generation FAILS |
 | `PGEN-CI-PARITY-GATE-ROT-0003` | `.3` (+ `.4` opened) | the workflow phase runs for the first time in 1,371 commits — 3/8 unprepared, one defect behind all eight, and a mistyped filter had been certifying parity while replaying nothing |
 | (opened by `PGEN-GENERATED-LINT-CORRECTNESS-0004`) | (tree opened) | the local CI-parity gate has been unable to complete for 1,371 commits — first blocker repaired, 8 independent audits routed here |
@@ -502,6 +503,16 @@ visible red.**
 
 ### `.4` — the HOSTED workflows have the same defect, and 14 of 15 never got the fix (`todo`)
 
+- ⛔⛔⛔ **DIRECTOR WORK ORDER (2026-07-28, session #218→#219, verbatim):** *"Please fix these once
+  and for all, so that we can get back to real work … 1. `make -C rust sota_exit_gate` is RED right
+  now — and the sub-gate can only pass when SV generation FAILS (new leaf `.5`) and The hosted
+  workflows have the same defect — 14 of 15 never got the fix (new leaf `.4`) … so that we can set
+  `PGEN_CI_WORKFLOW_LOCAL_PREPARE` back to true again. It is taking way too long. Fix all these
+  issues in a sota, signoff way, so that we can come back to real coding activities!"*
+  ⇒ **ORDERED SCOPE FOR THE NEXT SESSION: `.4` → `.5` → flip the default to `true`, then this tree
+  is CLOSED and the frontier returns to product work.** The director has ruled on the open
+  question `.3` escalated: the flip IS wanted; the condition is simply that `.4` lands first so it
+  is a real green rather than false parity.
 - **Status: `todo`** — opened 2026-07-28 session #218 by `.3`, from evidence gathered while
   root-causing the local gate. ⛔ **Deliberately NOT folded into `.3`**: `.3` owns the local gate,
   this owns the tracked hosted workflow surface, and the two have different verification stories.
@@ -532,6 +543,56 @@ visible red.**
      declares no regeneration step FAILS the audit — otherwise this recurs a fourth time.
 - ⛔ **Do not flip the local default before (1).** A local green over a broken hosted side is false
   parity, which is worse than the visible red the gate reports today.
+
+#### The exact work list, so `.4` needs nothing from the session that found it
+
+**The step to add** — copy VERBATIM from `.github/workflows/generated-clippy-correctness-gate.yml`,
+which already ships it (it is also what `prepare_generated_artifacts` runs in
+`rust/scripts/ci_workflow_local_gate.sh`):
+
+```yaml
+      - name: Regenerate the generated parsers
+        run: |
+          set -euo pipefail
+          make -C rust SHELL=/bin/bash regex_parser_bootstrap
+          make -C rust SHELL=/bin/bash annotation_parsers
+          for g in json regex systemverilog systemverilog_preprocessor vhdl rtl_const_expr rtl_frontend; do
+            make -C rust SHELL=/bin/bash "focus_${g}"
+          done
+```
+
+Measured cost from a bare tracked tree: **258 s** (`.3`'s prepared census).
+
+**Which workflows need it — measured, not guessed** (`.3`'s layer-1 census; the 8 that failed on the
+missing artifacts vs the 3 that never compile the crate):
+
+| workflow file | needs the step? | why |
+|---|---|---|
+| `annotation-contract-gate.yml` | ✅ **yes** | rustc: missing `generated/return_annotation_parser.rs` |
+| `annotation-nonbootstrap-e2e-gate.yml` | ✅ **yes** | missing `generated/return_annotation.json` |
+| `differential-regression-gate.yml` | ✅ **yes** | builds `--features generated_parsers` |
+| `ebnf-frontend-dual-run-diff.yml` | ✅ **yes** | same rustc error |
+| `rtl-frontend-generated-contract-gate.yml` | ✅ **yes** | same, one sub-log deeper |
+| `stimuli-cross-family-platform-gate.yml` | ✅ **yes** | same rustc error |
+| `performance-gate.yml` | ✅ **yes** | same rustc error |
+| `sota-exit-gate.yml` | ✅ **yes** | first failing sub-gate is `annotation_contract_gate` |
+| `branch-protection-contract-gate.yml` | ⛔ **no** | shell + `jq` only |
+| `mdbook-docs-gate.yml` | ⛔ **no** | `mdbook` only |
+| `fixed-point-gate.yml` | ⛔ **no** | builds `ast_pipeline_bootstrap` WITHOUT `--features generated_parsers` |
+| `generated-clippy-correctness-gate.yml` | ✅ **already has it** | added by `GENERATED-LINT-CORRECTNESS.3` |
+| `memory-architecture-gate.yml` | ⛔ **no** | pure shell check; ⚠️ the ONLY workflow still on push/pull_request, so its green says nothing about the rest |
+| `rtl-const-expr-cert-gate.yml` | ❓ **UNMEASURED** | not among the 11 the parity gate replays — check before deciding |
+| `sv-cert-recognized-union-gate.yml` | ❓ **UNMEASURED** | not among the 11 the parity gate replays — check before deciding |
+
+⚠️ **The last two are genuinely unmeasured** — `.3`'s census covers only the 11 workflows
+`ci_workflow_local_gate` replays, and 4 tracked workflows are outside that set. Determine their need
+the same way (does the command compile the crate?) rather than assuming.
+
+⭐ **Give the recipe ONE home.** It is already duplicated between the shipped workflow and
+`prepare_generated_artifacts`; adding it to 8 more files makes 10 copies. Prefer a composite action
+(`.github/actions/regenerate-parsers/action.yml`) or a single `make` target that both the workflows
+and the parity gate call, so the sequence has exactly one definition.
+
 
 ### `.5` — `sota_exit_gate` is RED: a required sub-gate that can only pass when SV generation FAILS (`todo`)
 
@@ -575,18 +636,89 @@ visible red.**
   (`ast_dump_contract_gate`); and now **a check that requires a DEFECT to be present in order to
   pass.** The unifying principle needs its converse stated: *a check must not depend on the thing
   it watches being broken.*
-- **The adjudication this leaf owes (⛔ do not guess — the readings have opposite fixes):**
-  1. **Is the budget the bug?** `requested_total: 1` is what this gate's own failure-context quality
-     state configures. If the intended budget is larger, the gate is mis-wired and the fix is the
-     budget, not the assertion.
-  2. **Is the assertion the bug?** If a clean SV generation run is the expected and desired outcome,
-     then `>= 1 excerpt` is an inverted-vacuity check and must become "if any counterexample exists,
-     its excerpt must be well-formed" — keeping the anti-vacuity intent without requiring a defect.
-  3. Either way, establish **when this last passed** (`git log -S` on the assertion and on the
-     budget) — the ordering will probably show the same shape as `.3`'s: a change that made the
-     system better, landing after the only thing that would have objected stopped running.
+#### ✅ THE ADJUDICATION IS DONE (session #219, diagnosis only — no fix landed yet)
+
+The two readings had opposite fixes, so `.3` refused to guess. **Measurement settles it: reading (2)
+— the assertion is the bug. Reading (1) is REFUTED by the contract's own description field**,
+`rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json`, verbatim:
+
+> *"Focused SystemVerilog parser failure-context contract for lightweight aggregate-report
+> validation with **one-profile, one-sample** closed-loop replay and realistic-corpus disabled."*
+
+with `"sample_count": 1`, `"seed_base": 12001`. ⇒ **the one-sample budget is deliberate, documented,
+and named in the contract's own prose — it is not a mis-wiring.** The gate therefore asks a
+deliberately-one-sample run against a parser that accepts its own generated sample to produce a
+failure, which it cannot.
+
+⭐ **And the assertion and the one-sample contract landed in the SAME commit** —
+`74fc5cb6` *"Add dedicated SV failure-context contract gate"* (2026-03-15), for both
+`git log -S'expected at least one generation failure-context excerpt'` and `git log -S'"sample_count": 1'`.
+The gate was born with this coupling. ⚠️ Whether it ever passed is NOT yet established — the
+plausible story is that SV generation used to produce a counterexample even at one sample and
+stopped doing so as the parser improved, but that is a hypothesis, not a measurement, and the fix
+does not depend on it.
+
+**Scope of the class is bounded — the sweep is done.** `grep -rn 'expected at least one' rust/scripts/*.sh`
+returns **exactly three** hits, all in this one script: generation (`:137`), replay-shadow (`:141`),
+preprocessor (`:171`). There is no fourth instance elsewhere in the gate surface.
+⚠️ Only the **generation** one is measured live; the run died there, so the shadow and preprocessor
+assertions' current state is **UNMEASURED** — the fix must cover all three, and the verification
+must actually reach them.
+
+#### The designed fix — replace *"a failure must exist"* with *"the zero must be EARNED"*
+
+⛔ Do NOT simply delete the assertions: the anti-vacuity intent behind them is real and worth
+keeping. If the triage silently stopped producing excerpts, the whole failure-context surface would
+be dead and nothing else would notice — the gate goes on to publish
+`.sample_previews[0].failure_context_excerpt` as its headline evidence.
+
+The replacement keeps that intent and drops the dependence on a defect. For each of the three
+surfaces:
+
+1. **The surface must have been exercised** — the generation report's `observed` must show
+   `requested_total >= 1` and `attempts_total >= 1`. A run that generated nothing is exactly the
+   vacuity the original assertion was groping for, and this catches it *directly*.
+2. **Zero must be consistent** — `counterexamples == 0` is acceptable **only** when
+   `parser_rejections_total == 0` and `generation_errors_total == 0`. If anything failed and no
+   excerpt was produced, the excerpt machinery IS broken and the gate must still fail.
+3. **A present excerpt must be well-formed** — when counterexamples do exist, require
+   `by_failure_context_excerpt >= 1` and a non-empty `sample_previews[0].failure_context_excerpt`.
+
+⭐ **This is a CORRECTION, not a relaxation, and the leaf must prove it that way**: the new form
+fails in cases the old one could not even see (a vacuous run that generated nothing; an excerpt
+present but empty), and stops failing only in the one case where the old form was wrong — a healthy
+run with nothing to report. The RED arms must include a synthesised `parser_rejections_total > 0`
+with zero excerpts, which must BLOCK.
 - ⚠️ **Scope note.** If (1) turns out to be an SV-family question rather than a proof-surface one,
   re-home this leaf to the owning SV tree; it is filed here because *"a required sub-gate of the
   flagship aggregate has been failing undetected"* is proof-surface integrity, which is this tree.
 - **Evidence:** `docs/tasks/artifacts/ci_parity_gate_rot/workflow_census_prepared.txt` (the
   replay's verdict plus the main-repo comparison and the `observed` block).
+
+#### Reproduce in one command, and where the numbers live
+
+```bash
+scripts/run_with_memory_guard.sh --budget-mb 12288 --timeout-s 7200 -- \
+  make -C rust SHELL=/bin/bash sv_failure_context_contract_gate
+```
+
+232 s, guard `exit=2`, peak 9,870 MB. The three artifacts the assertions read, all under
+`rust/target/sv_failure_context_contract_gate/work/`:
+
+- `sv_parser_aggregate_contract_gate/work/systemverilog_parseability_generation_counterexample_triage.json`
+  → `.by_failure_context_excerpt | length` (the assertion at `:136`)
+- `sv_parser_aggregate_contract_gate/work/systemverilog_closed_loop_parseability_shadow_counterexample_triage.json`
+  → the assertion at `:141`
+- `sv_preprocessor_aggregate_contract_gate/work/systemverilog_preprocessor_parseability_counterexample_triage.json`
+  → the assertion at `:171` (⚠️ never reached; the run dies at `:136`)
+
+and the report that settles whether a zero is EARNED:
+`systemverilog_failure_context_quality_state/work/systemverilog_parseability_generation_report.json`
+→ `.observed`.
+
+⚠️ **Do not stop at the first green.** The run dies at the FIRST of three assertions, so fixing only
+that one will simply reveal the second — the same fail-fast blindness `.1` recorded (*"a fail-fast
+gate cannot tell you how broken it is"*). Fix all three, then require the run to reach the end.
+⛔ And the acceptance for this leaf is **`make -C rust SHELL=/bin/bash sota_exit_gate` green
+end-to-end**, not just this sub-gate — it was RED for the aggregate, and the aggregate is the claim.
+
