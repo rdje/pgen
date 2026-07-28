@@ -1,5 +1,66 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0010 — the reachability inventory nobody had, and the instrument gave six different confident answers before it was right
+
+`CI-PARITY-GATE-ROT.2` DONE ⇒ **the `CI-PARITY-GATE-ROT` TREE IS CLOSED.** New doctrine check +
+registry + register + Makefile wiring + docs + 1 tracked driver + 2 captures — **no
+`grammars/*.ebnf`, no `rust/src/*`, no `generated/*`** ⇒ all 11 generated parsers byte-identical BY
+CONSTRUCTION; no release / schema / ledger / contract movement.
+
+- ⭐⭐⭐ **THE 11th ENFORCED DOCTRINE `GATE-REACHABILITY`**: *a check that nothing INVOKES is
+  indistinguishable from a check that does not exist.* Adopted on evidence, not on principle — this
+  repository found three such gates **by accident, one per session** (`ast_dump_contract_gate` RED
+  for four sessions; `PGEN_CLIPPY_GENERATED_STRICT` set by nothing at all; `ci_workflow_local_gate`
+  unable to complete for 1,371 commits). Priced against the whole corpus first, as
+  `GENERATED-LINT-CORRECTNESS.4` requires: **123 targets, 92 reachable, 30 orphan, 1 policy-only.**
+- ⭐⭐ **THE INSTRUMENT GAVE SIX DIFFERENT CONFIDENT ANSWERS — 97 / 71 / 75 / 93 / 53 / 40 orphans —
+  AND NOT ONE OF THE SIX DEFECTS WAS FOUND BY READING THE CODE.** Every one was caught by requiring
+  the output to reproduce facts the project had already measured: (1) a MENTION counted as an
+  INVOCATION — the parity gate's surface audits READ `ast_dump_contract_gate.sh` and
+  `clippy_on_rust_change.sh`, which reported both reachable, contradicting the measured fact that
+  the first sat RED for four sessions *because nothing runs it*; (2) host syntax around a real
+  command (`run:` in a workflow, a backticked bullet in `COMMIT.md`); (3) make's `@` recipe prefix,
+  which orphaned all twenty of `annotation_contract_gate`'s sub-gates; (4) backslash continuations;
+  (5) a nested `make` inside a runner's argv, which showed `sota_exit_gate` invoking ZERO sub-gates;
+  (6) a prerequisite list held in a make variable. ⇒ **the controls are now part of the check** —
+  six pinned facts plus every SOTA-required check, and on any mismatch it prints **MISCALIBRATED**
+  and exits nonzero instead of reporting its numbers. A wrong reachability report would certify the
+  exact rot the doctrine exists to find.
+- ⭐ **ASK MAKE, DO NOT RE-IMPLEMENT MAKE.** Defect (6) was fixed by exposing a read-only `print-%`
+  target and querying it, rather than reconstructing `$(wildcard)`/`$(patsubst)` in the scanner — a
+  second implementation of a rule is a second thing that can drift from it.
+- ⭐ **THE ONE CLASS THAT WAS WIRED RATHER THAN ACCEPTED, AND IT WAS TEN GATES**: all ten per-parser
+  book gates were orphaned while README carries the standing directive that every PGEN parser ships
+  its own live mdBook. Measured 0.3 s each ⇒ a derived `parser_books_gate` (from
+  `wildcard rust/scripts/*_parser_book_gate.sh`, so an eleventh book is covered automatically) now
+  hangs off `mdbook_docs_gate`, which a tracked workflow, the commit workflow and the parity gate's
+  replay all already invoke. Total addition ~3 s; orphans **40 → 30**. ⛔ Wired as PREREQUISITES, not
+  a shell loop: `for g in …; do $(MAKE) "$$g"; done` runs them correctly but makes the edges
+  INVISIBLE to any static reader — a weaker version of the problem being solved.
+- ⛔ **A RATCHET, NOT A REPORT** (`DOCTRINE-GAP-OWNERSHIP.1`'s lesson): the orphan set is re-derived
+  every run and joined against a tracked register; an untriaged orphan FAILS, and a register entry
+  that no longer names an orphan FAILS too, so the exemption list can neither be bypassed nor
+  accumulate dead weight.
+- ⚠️⚠️ **HONEST LIMIT, IN THE REGISTER'S OWN TEXT**: 28 of the 31 dispositions are
+  `accepted-operator-invoked` — real proof lanes deliberately outside the aggregates because of
+  cost. **Nothing fails if one of them is never run again.** What this buys is that the set is
+  visible, decided and cannot grow silently; shrinking it is genuine remaining work, recorded rather
+  than called done.
+- **Verified**: probes **8/8** — RED-1 a gate target that did not exist when the check was written
+  (the arm proving the set is DERIVED, not a snapshot of the register), RED-2 a deleted disposition,
+  RED-3 a DEAD exemption entry, RED-4 an invoker removed, CTRL-2 giving a pinned-ORPHAN control an
+  invoker ⇒ the check declares itself MISCALIBRATED, CTRL-3 an unrelated edit changes nothing.
+  ⚠️ CTRL-2's first version was WRONG and the check was RIGHT (it stubbed the workflow invocation of
+  `mdbook_docs_gate`, which the parity gate ALSO replays) — this tree's standing lesson again:
+  believe the control arms, and check that the mutation removed the LAST edge.
+  **ALL 11 enforced doctrines PASS** (was 10); `mdbook_docs_gate` GREEN with the ten book gates
+  inside it.
+- ✅✅ **TREE CLOSED**, and discharged WITHOUT opening a single new leaf, per the director's explicit
+  constraint: every finding met on the way — two workflows nobody had measured, two `timeout-minutes`
+  below their own measured cost, ten orphaned book gates, an unsound self-referential guard — was
+  fixed in place.
+
+
 ## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0009 — PGEN_CI_WORKFLOW_LOCAL_PREPARE defaults to true, and the guard for that default could not be written as a literal inside the file it guards
 
 `CI-PARITY-GATE-ROT` step (c) of the director's ordered scope. Gate script + docs + 1 probe arm —

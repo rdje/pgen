@@ -259,6 +259,59 @@ see at all.
 The general rule, alongside the two above: **a check must not depend on the thing
 it watches being broken.**
 
+## A check that nothing invokes does not exist
+
+The third variation, and the one that took longest to admit. Over three sessions
+this repository found three maintained gates that nothing ran — a raw-AST dump
+contract that had been red for four sessions, a strict lint stage whose enabling
+variable was set by no gate and no workflow, and the local workflow-parity gate
+itself. All three were found **by accident**. Finding them by accident is the
+defect; no artifact answered the question *"which tracked gates are reachable
+from something that actually runs?"*
+
+That artifact now exists, and it is enforced:
+
+```bash
+bash scripts/check_gate_reachability.sh --report
+```
+
+It derives the whole picture from the repository on every run — the universe of
+gate targets from `rust/Makefile`, the invocation edges from the Makefile, the
+gate scripts, the tracked workflows, the git hooks and `COMMIT.md`, under a
+command-position rule so that *reading* a gate script (which the parity gate's
+surface audits do) is never mistaken for *running* it. Invocation by prose is
+tracked as its own class: a gate whose only invoker is an instruction in
+`COMMIT.md` is exactly the case worth seeing, because nothing fails if it is
+skipped.
+
+At adoption: 123 targets, 92 reachable, 30 orphaned, 1 policy-only. The first
+thing it surfaced was that **all ten per-parser book gates were orphaned** while
+the project carries a standing directive that every parser ships a live mdBook —
+so they were wired onto `mdbook_docs_gate`, which everything already runs, for
+about three seconds.
+
+The remaining thirty-one carry a recorded disposition in a tracked register, and
+this is a **ratchet rather than a report**: the orphan set is re-derived every
+run, an untriaged orphan fails the check, and a register entry that no longer
+names an orphan fails too, so the exemption list can neither be bypassed nor
+quietly accumulate. Twenty-eight of those dispositions are honest accepted risk —
+real proof lanes deliberately left outside the aggregates because of their cost —
+and the register says so in its own text rather than implying they are covered.
+
+Two things are worth carrying away from building it. First, the scan produced
+**six different confident answers** before it was right, each from a real defect
+(a mention counted as an invocation, a workflow's `run:` prefix, make's `@`,
+backslash continuations, a nested `make` inside a runner's arguments, a
+prerequisite list held in a make variable) — and not one was caught by reading
+the code. Every one was caught by requiring the output to reproduce facts the
+project had already measured. Those facts are now assertions inside the check: if
+it cannot reproduce them it reports **MISCALIBRATED** and refuses, because a
+wrong reachability number would certify the very rot it exists to find.
+
+Second, it asks `make` what a derived prerequisite list contains rather than
+re-implementing `$(wildcard)` and `$(patsubst)`. A second implementation of a
+rule is a second thing that can drift from it.
+
 ## Documentation Governance
 
 The intended split is:

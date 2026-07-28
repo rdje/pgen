@@ -7,9 +7,19 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: `.2`**, and then this tree CLOSES.
-  (the `PREPARE` flip **done** 2026-07-28 session #220 — default is now `true`, guarded by the
-  regeneration audit, 13/13 probes.)
+- ✅✅ **TREE CLOSED — 2026-07-28, session #220.** Every leaf is `done` and the director's ordered
+  scope is discharged in full: **`.4`** (hosted regeneration step, one home, derived fail-safe
+  audit) → **`.5`** (the earned-zero replacement; the flagship aggregate's RED sub-gate) → **the
+  `PREPARE` flip** (default `true`, guarded) → **`.2`** (the reachability inventory, 31 orphans
+  dispositioned behind a ratchet, shipped as the 11th enforced doctrine `GATE-REACHABILITY`).
+  ⛔ **Discharged WITHOUT opening a single new leaf**, per the director's explicit constraint: every
+  finding met on the way — two workflows nobody had measured, two `timeout-minutes` below their own
+  measured cost, ten orphaned per-parser book gates, an unsound self-referential guard — was fixed
+  **in place**.
+  ⚠️ **The one honest residual, recorded and not called done:** 28 of the 31 dispositions are
+  `accepted-operator-invoked`, i.e. real proof lanes that nothing runs automatically. That is an
+  ACCEPTED RISK the register states in its own text; shrinking it by wiring lanes into aggregates as
+  their cost allows is genuine remaining work, now VISIBLE and ratcheted instead of invisible.
   (`.5` **done** 2026-07-28 session #220 — all three `expected at least one …` assertions replaced
   with the earned-zero form; measured: ALL THREE were unsatisfiable, and the sub-gate that made
   `sota_exit_gate` RED now passes end-to-end.)
@@ -275,9 +285,116 @@ note in this tree's header.**
   default back to `false` and requiring the audit to block; `bash -n` clean; `mdbook_docs_gate`
   GREEN; 10/10 doctrines.
 
-### `.2` — a reachability inventory: which tracked gates does anything actually invoke? (`todo`)
+### `.2` — a reachability inventory: which tracked gates does anything actually invoke? (`done`)
 
-- **Status: `todo`**.
+- **Status: `done`** (2026-07-28, session #220, `PGEN-CI-PARITY-GATE-ROT-0010`).
+  **123 targets inventoried: 92 reachable, 30 orphan, 1 policy-only — all 31 dispositioned, behind
+  a ratchet, as the 11th enforced doctrine `GATE-REACHABILITY`.**
+
+#### ⭐⭐ THE INSTRUMENT GAVE SIX DIFFERENT CONFIDENT ANSWERS, AND ONLY GROUND TRUTH CAUGHT IT
+
+This is the headline, because it is the part that would have shipped a lie. Successive versions of
+the reachability scan reported **97, 71, 75, 93, 53 and 40** orphans. Every one of those numbers was
+produced confidently, and **not one of the six defects was found by reading the code** — each was
+caught by requiring the output to reproduce facts this project had already established the expensive
+way:
+
+| # | defect | what it did |
+|---|---|---|
+| 1 | a MENTION counted as an INVOCATION | the parity gate's SURFACE AUDITS read `ast_dump_contract_gate.sh` and `clippy_on_rust_change.sh`; counting that as invocation reported both **reachable** — contradicting the measured fact that `ast_dump_contract_gate` sat RED for four sessions *because nothing runs it* |
+| 2 | host syntax around a real command | in a workflow the line is `run: make …`, in `COMMIT.md` a backticked bullet ⇒ `mdbook_docs_gate` and `branch_protection_contract_gate` came out ORPHAN although a tracked workflow runs each |
+| 3 | make's `@` recipe prefix | `annotation_contract_gate` composes twenty sub-gates as `@$(MAKE) -C …`; missing the prefix orphaned all twenty |
+| 4 | backslash line continuations | a continued `assert_file_contains \` put the SCRIPT PATH in command position on the next line — the source of defect 1's surviving edge |
+| 5 | a nested `make` inside a runner's argv | `sota_exit_gate.sh` calls its sub-gates as `run_check … make -C rust <target>`; once continuations were correctly joined, the command word became `run_check` and the aggregate showed **zero** sub-gates |
+| 6 | a prerequisite list held in a make variable | `parser_books_gate: $(PARSER_BOOK_GATES)` — re-implementing `$(wildcard)`/`$(patsubst)` here would be a second copy of make's semantics, so the check now **asks make** via a read-only `print-%` target |
+
+⇒ **the controls are now part of the check**: six pinned facts plus every check the SOTA policy
+marks REQUIRED must come out reachable, and if they do not the check prints **MISCALIBRATED and
+exits nonzero** instead of reporting its numbers. A reachability report nobody can check is a
+confident guess, and a *wrong* one would certify the exact rot this doctrine exists to find.
+
+#### The design, and why each choice is the non-rotting one
+
+- **The universe is derived two ways and unioned**: a `*_gate` target, or any target whose recipe
+  runs a `rust/scripts/*.sh`. The second arm is what catches lanes that are gates in everything but
+  name — `clippy_on_rust_change` — which a name-only filter would have silently excluded.
+- **The edges are derived** from `rust/Makefile`, `rust/scripts/*.sh`, `.github/workflows/*.yml`,
+  `.githooks/*`, `scripts/check_*.sh` and `COMMIT.md`, under a **command-position** rule: a
+  reference counts only when the thing is being executed.
+- **`COMMIT.md` policy is its own invoker class**, never merged with the machine-enforced ones. A
+  gate whose only invoker is a prose instruction is precisely the class this leaf exists to surface:
+  nothing fails if it is skipped. Exactly one target is in it — `clippy_on_rust_change`, the residual
+  `.2`'s charter already named.
+- ⛔ **A RATCHET, NOT A REPORT.** `DOCTRINE-GAP-OWNERSHIP.1`'s lesson applies directly: a one-shot
+  census is the same disease one level up, because it gets written down and nothing re-applies it.
+  The orphan set is re-derived every run and joined against a tracked register; an **untriaged
+  orphan fails**, and so does a **register entry that no longer names an orphan**, so the exemption
+  list can neither be bypassed nor accumulate dead weight.
+
+#### The one class that was WIRED rather than accepted — and it was ten gates
+
+The inventory's first real output: **all ten per-parser book gates were orphaned**, while `README`
+carries a standing director directive that every PGEN parser ships its own live mdBook. Measured cost
+to run one: **0.3 s**. They are now a derived `parser_books_gate` (from `wildcard
+rust/scripts/*_parser_book_gate.sh`, so an eleventh book is covered without anyone remembering)
+hanging off `mdbook_docs_gate` — which a tracked workflow, the commit workflow and the parity gate's
+replay all already invoke. Total addition: **~3 s**. ⛔ They are PREREQUISITES, not a shell loop:
+a `for g in …; do $(MAKE) "$$g"; done` runs them correctly but makes the edges invisible to any
+static reader, which is a weaker version of the very problem being solved.
+
+#### The 31 dispositions — and the honest limit on 28 of them
+
+`rust/test_data/grammar_quality/gate_reachability_register_v0.json`:
+
+| disposition | n | meaning |
+|---|---|---|
+| `accepted-operator-invoked` | 28 | a real proof lane, deliberately outside an aggregate because of cost or because it is a campaign/closure instrument (regex external-corpus + oracle lanes, SV/VHDL family closure + telemetry lanes, the parse-harness oracles, `bin_build_integrity_gate`, `duality_hunt_gate`, `verilog_2005_conformance_gate`, the AST-shape contracts, `ast_dump_contract_gate`) |
+| `policy-invoked` | 1 | `clippy_on_rust_change` — COMMIT.md step 2 and nothing machine-enforced |
+| `alias-of-reachable` | 1 | `generated_clippy_correctness_policy` — its real work runs on every Rust change as `--policy-only` from a reachable path |
+| `not-a-proof-lane` | 1 | `create-placeholders` — a bootstrap helper that asserts nothing; in the universe only because the universe over-approximates on purpose |
+
+⚠️⚠️ **`accepted-operator-invoked` IS AN ACCEPTED RISK, NOT A CLEAN BILL OF HEALTH, and the register
+says so in its own text.** Nothing fails if one of those 28 is never run again. What this leaf buys
+is that the set is **visible, decided, and cannot grow silently** — which is exactly the gap that let
+three gates rot undetected, one per session. **Shrinking the 28 by wiring lanes into aggregates as
+their cost allows is real remaining work**, and it is recorded as such rather than being called done.
+
+#### Acceptance checklist (enforced)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY nothing had this answer: no artifact in the repository maps
+      gate targets to invokers, so "which gates does anything run?" could only be answered by
+      accident, three times, one per session. WHERE, measured this run:
+      `git ls-files '.github/workflows/*.yml'` = 15 workflow roots, `rust/Makefile` = 123 in-universe
+      targets, of which **30 have no invoker at all** and 1 is invoked only by prose. The six
+      calibration defects were each located by a failing ground-truth control, not by inspection —
+      e.g. `grep -n 'clippy_on_rust_change' rust/scripts/ci_workflow_local_gate.sh` showing the only
+      hits are `assert_tracked` / `assert_file_contains` arguments, i.e. reads, not runs.
+- [x] **ADDRESSED (verified)** — before→after on the orphan set: **40 → 30** by wiring the ten book
+      gates (`make -C rust parser_books_gate` → *"All 10 per-parser book gates passed"*, 1.1 s;
+      `mdbook_docs_gate` end-to-end 2.9 s), and the remaining 31 dispositioned so
+      `bash scripts/check_gate_reachability.sh` → `OK (123 targets; 92 reachable, 30 orphan +
+      1 policy-only, all dispositioned; 6 ground-truth controls reproduced)`. Probes **8/8**,
+      including RED-1 (a gate target that did not exist when the check was written ⇒ blocks — the
+      arm that proves the set is derived, not a snapshot of the register), RED-3 (a dead exemption
+      entry ⇒ blocks) and CTRL-2 (giving a pinned-ORPHAN control an invoker ⇒ the check declares
+      itself **MISCALIBRATED** rather than quietly reporting a new number).
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11 parsers
+      **byte-identical BY CONSTRUCTION**; no release / schema / ledger / contract movement.
+      `bash -n` clean on the new check; `bash scripts/check_doctrines.sh` → **ALL 11 enforced
+      doctrines PASS** (was 10); `make -C rust SHELL=/bin/bash mdbook_docs_gate` GREEN with the ten
+      book gates now inside it. CTRL-3: an unrelated Makefile edit does not change the verdict.
+- [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10 registry row, `scripts/check_doctrines.sh`,
+      `README.md`, `docs/book/src/operations-and-governance.md`, `CHANGES.md`,
+      `DEVELOPMENT_NOTES.md`, `MEMORY.md`, and this tree.
+
+#### Evidence
+
+- `scripts/check_gate_reachability.sh` — the check (also `--report` for the human inventory).
+- `rust/test_data/grammar_quality/gate_reachability_register_v0.json` — the 31 dispositions.
+- `docs/tasks/artifacts/ci_parity_gate_rot/run_gate_reachability_probes.sh` + `…_probes.txt`.
+- `docs/tasks/artifacts/ci_parity_gate_rot/gate_reachability_inventory.txt` — the full inventory.
+
+#### Original charter
 - Build the missing inventory: for every `make` gate target and every tracked
   `.github/workflows/*.yml`, record whether it is reachable from `sota_exit_gate`,
   `ci_workflow_local_gate`, the commit workflow, or a CI workflow — and flag the orphans.
@@ -303,6 +420,7 @@ note in this tree's header.**
 
 | slice | leaf | commit subject |
 |---|---|---|
+| `PGEN-CI-PARITY-GATE-ROT-0010` | `.2` (TREE CLOSED) | the reachability inventory nobody had — 123 targets, 30 orphans + 1 policy-only, all dispositioned behind a ratchet as the 11th enforced doctrine; ten orphaned book gates wired |
 | `PGEN-CI-PARITY-GATE-ROT-0009` | `.flip` | PGEN_CI_WORKFLOW_LOCAL_PREPARE defaults to `true` now the hosted side genuinely works — and the guard for that default could not be written as a literal inside the file it guards |
 | `PGEN-CI-PARITY-GATE-ROT-0008` | `.5` | the flagship aggregate's RED sub-gate could only pass when SV generation FAILED — all three assertions replaced with "the zero must be EARNED", and all three were unsatisfiable |
 | `PGEN-CI-PARITY-GATE-ROT-0007` | `.4` | 11 of 15 hosted workflows needed the regeneration step and 1 had it — one home for the recipe, a derived fail-safe audit, and two timeouts below their own measured cost |

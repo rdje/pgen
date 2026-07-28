@@ -146,6 +146,16 @@ PGEN is a production-focused parser and stimuli generator platform.
 ## Standard Commands
 - General doctrine enforcer (runs every mechanizable doctrine check):
   - `bash scripts/check_doctrines.sh`
+- Gate reachability inventory (which tracked gates does anything actually RUN?):
+  - `bash scripts/check_gate_reachability.sh --report`
+  - the `GATE-REACHABILITY` doctrine: **a check that nothing invokes is indistinguishable from a
+    check that does not exist.** Every gate target must be reachable from an aggregate, a CI
+    workflow or a git hook — or carry a deliberate disposition in
+    `rust/test_data/grammar_quality/gate_reachability_register_v0.json`
+  - it is a **ratchet, not a report**: the orphan set is re-derived on every run, an untriaged
+    orphan fails, and a register entry that no longer names an orphan fails too
+- All per-parser mdBooks in one lane (also run by `mdbook_docs_gate`):
+  - `make -C rust SHELL=/bin/bash parser_books_gate`
 - Memory guard (MANDATORY for heavy/background jobs — HOST-RAM BUDGET DIRECTIVE,
   `docs/decisions/feedback_host_ram_budget_all_jobs.md`):
   - `scripts/run_with_memory_guard.sh [--budget-mb N] [--floor-pct N] [--disk-floor-gb N] [--interval-s N] [--timeout-s N] [--marker FILE] -- <command> [args...]`

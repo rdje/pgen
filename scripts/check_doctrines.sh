@@ -49,6 +49,7 @@ DOCTRINES=(
   "DESIGN-PRIOR-ART|a task leaf proposing a NEW annotation/directive surface records a prior-art search first (docs/decisions/feedback_read_prior_art_before_designing.md)|scripts/check_design_prior_art.sh"
   "WAIVER-ROUTING|a task leaf claiming a gate does not apply names the leaf that owns fixing the gate (an unrouted waiver is a bug report about the gate, left inert)|scripts/check_waiver_routing.sh"
   "DESTRUCTIVE-TARGET-GUARD|destructive make targets refuse without PGEN_CONFIRM_CLEAN=1 + no innocuous alias routes into them (OPS-MEMSAFE.3)|scripts/check_destructive_target_guard.sh"
+  "GATE-REACHABILITY|every tracked gate target is invoked by something that RUNS, or carries a deliberate disposition — a check nothing invokes is indistinguishable from one that does not exist (CI-PARITY-GATE-ROT.2)|scripts/check_gate_reachability.sh"
 )
 
 fail=0

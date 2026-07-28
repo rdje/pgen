@@ -1,0 +1,169 @@
+{
+  "register": "gate_reachability_register_v0",
+  "owner": "CI-PARITY-GATE-ROT.2",
+  "what_this_is": "One decision per gate target that NOTHING in the repository invokes. The orphan set itself is DERIVED on every run by scripts/check_gate_reachability.sh; only these dispositions are written down, because a disposition is a human decision nothing can re-derive. An orphan with no entry FAILS the check, and an entry that no longer names an orphan FAILS too, so this list can neither be bypassed nor accumulate dead exemptions.",
+  "honest_limit": "'accepted-operator-invoked' is an ACCEPTED RISK, not a clean bill of health. Nothing fails if such a lane is never run again; what this register buys is that the set is VISIBLE, DECIDED, and cannot grow silently. Shrinking it — by wiring lanes into aggregates as their cost allows — is real remaining work, not a closed question.",
+  "dispositions": {
+    "accepted-operator-invoked": "a real proof lane, deliberately not in an aggregate or workflow because of its cost or because it is a campaign/closure instrument rather than a per-commit one",
+    "alias-of-reachable": "a convenience target whose real work is already invoked by a reachable path",
+    "not-a-proof-lane": "not a check at all — it asserts nothing, so 'nothing invokes it' is not a proof gap",
+    "policy-invoked": "invoked by a prose instruction (COMMIT.md) rather than by anything machine-enforced"
+  },
+  "entries": [
+    {
+      "target": "ast_dump_contract_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "raw-AST dump contract. ⚠️ THE FOUNDING EXAMPLE OF THIS DOCTRINE: RED for four sessions because nothing ran it. QUANT-PLUS-ITER.4 repaired it and added audit_ast_dump_contract_surface, so its CONTENT is now guarded by the parity gate — but the gate itself is still RUN by nothing."
+    },
+    {
+      "target": "ast_shape_contract_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "typed-AST shape contract, run when a family's AST shape changes"
+    },
+    {
+      "target": "bin_build_integrity_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "README marks it heavy and memory-guarded (it compiles every declared binary in every configuration); deliberately operator-invoked rather than folded into an aggregate"
+    },
+    {
+      "target": "clippy_on_rust_change",
+      "disposition": "policy-invoked",
+      "reason": "invoked by COMMIT.md step 2 on every Rust change and by nothing machine-enforced. Deliberate: it is the developer-loop lint flow, and the correctness floor it holds is separately guarded by generated_clippy_correctness_gate, which a tracked workflow does run."
+    },
+    {
+      "target": "create-placeholders",
+      "disposition": "not-a-proof-lane",
+      "reason": "a build helper that seeds placeholder parser stubs to break the annotation bootstrap cycle; it asserts nothing, so 'nothing invokes it' is not a proof gap. It is in the universe only because the universe over-approximates on purpose (any target running a rust/scripts/*.sh)."
+    },
+    {
+      "target": "duality_hunt_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "README standard command, and a DISCOVERY lane: its output is a novel break signature to route to a leaf, not a pass/fail an aggregate should own"
+    },
+    {
+      "target": "generated_clippy_correctness_policy",
+      "disposition": "alias-of-reachable",
+      "reason": "the cheap no-cargo subset of generated_clippy_correctness_gate, which IS reachable. The subset itself runs on every Rust change as generated_clippy_correctness_gate.sh --policy-only from clippy_on_rust_change.sh (COMMIT.md step 2); this make target is a typing convenience."
+    },
+    {
+      "target": "parse_harness_combinator_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "the interpreter-vs-generated-parser oracle — the decisive instrument for a codegen change (GENERATED-LINT-CORRECTNESS.1/.2 both turned on it); run per codegen change, not per commit"
+    },
+    {
+      "target": "parse_harness_equivalence_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "parse-harness equivalence oracle, run per codegen change"
+    },
+    {
+      "target": "parse_harness_semantic_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "parse-harness semantic oracle, run per codegen change"
+    },
+    {
+      "target": "regex_ast_shape_contract_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "regex typed-AST shape contract, run when the regex AST changes"
+    },
+    {
+      "target": "regex_broader_corpus_proof_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
+    },
+    {
+      "target": "regex_combined_telemetry_contract_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
+    },
+    {
+      "target": "regex_corpus_bundle_contract_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
+    },
+    {
+      "target": "regex_embedded_code_block_contract_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
+    },
+    {
+      "target": "regex_formal_exhaustive_closure_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
+    },
+    {
+      "target": "regex_pcre2_compile_oracle_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
+    },
+    {
+      "target": "regex_pcre2_compile_perf_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
+    },
+    {
+      "target": "regex_pcre2_textsafe_corpus_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
+    },
+    {
+      "target": "regression_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "broad regression lane, operator-invoked"
+    },
+    {
+      "target": "return_annotation_exhaustiveness_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "auto-derived exhaustiveness lane that return_annotation_support_gate already includes"
+    },
+    {
+      "target": "return_annotation_support_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "README names it the formal Done gate for the tracked return-annotation claim; operator-invoked at closure time"
+    },
+    {
+      "target": "sv_combined_telemetry_contract_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
+    },
+    {
+      "target": "sv_external_corpus_triage_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
+    },
+    {
+      "target": "sv_formal_exhaustive_closure_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
+    },
+    {
+      "target": "sv_preprocessor_curated_differential_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
+    },
+    {
+      "target": "sv_preprocessor_template_differential_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
+    },
+    {
+      "target": "verilog_2005_conformance_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "README standard command; the strict verilog_2005 (IEEE 1364-2005) profile conformance lane"
+    },
+    {
+      "target": "vhdl_combined_telemetry_contract_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "VHDL family closure/telemetry/corpus lane, run per VHDL campaign"
+    },
+    {
+      "target": "vhdl_external_corpus_triage_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "VHDL family closure/telemetry/corpus lane, run per VHDL campaign"
+    },
+    {
+      "target": "vhdl_formal_exhaustive_closure_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "VHDL family closure/telemetry/corpus lane, run per VHDL campaign"
+    }
+  ]
+}

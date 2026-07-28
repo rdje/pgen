@@ -1,0 +1,13 @@
+==============================================================================
+CI-PARITY-GATE-ROT.2 — GATE-REACHABILITY probes
+==============================================================================
+✓ GREEN  untouched tree                    PASS
+✓ RED-1  a NEW gate nothing invokes        FAIL
+✓ RED-2  an existing disposition removed   FAIL
+✓ RED-3  a dead exemption entry            FAIL
+✓ RED-4  book gates lose their invoker     FAIL
+✓ CTRL-1 ground-truth controls hold        PASS
+✓ CTRL-2 broken control => REFUSES         FAIL
+✓ CTRL-3 unrelated Makefile edit           PASS
+------------------------------------------------------------------------------
+arms=8  PASS=8  FAIL=0

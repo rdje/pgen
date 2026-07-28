@@ -1,0 +1,138 @@
+==============================================================================
+GATE REACHABILITY INVENTORY (all figures DERIVED this run)
+==============================================================================
+universe: 123 targets  (116 *_gate, 7 script-backed)
+reachable from something that RUNS: 92
+reachable only from COMMIT.md policy (nothing FAILS if skipped): 1
+ORPHANS (no invoker at all): 30
+------------------------------------------------------------------------------
+POLICY-ONLY — each must carry a disposition in rust/test_data/grammar_quality/gate_reachability_register_v0.json:
+  clippy_on_rust_change                        policy-invoked: invoked by COMMIT.md step 2 on every Rust change and by nothing machine-enforced. Deliberate: it is the developer-loop lint flow, and the correctness floor it holds is separately guarded by generated_clippy_correctness_gate, which a tracked workflow does run.
+------------------------------------------------------------------------------
+ORPHAN — each must carry a disposition in rust/test_data/grammar_quality/gate_reachability_register_v0.json:
+  ast_dump_contract_gate                       accepted-operator-invoked: raw-AST dump contract. ⚠️ THE FOUNDING EXAMPLE OF THIS DOCTRINE: RED for four sessions because nothing ran it. QUANT-PLUS-ITER.4 repaired it and added audit_ast_dump_contract_surface, so its CONTENT is now guarded by the parity gate — but the gate itself is still RUN by nothing.
+  ast_shape_contract_gate                      accepted-operator-invoked: typed-AST shape contract, run when a family's AST shape changes
+  bin_build_integrity_gate                     accepted-operator-invoked: README marks it heavy and memory-guarded (it compiles every declared binary in every configuration); deliberately operator-invoked rather than folded into an aggregate
+  create-placeholders                          not-a-proof-lane: a build helper that seeds placeholder parser stubs to break the annotation bootstrap cycle; it asserts nothing, so 'nothing invokes it' is not a proof gap. It is in the universe only because the universe over-approximates on purpose (any target running a rust/scripts/*.sh).
+  duality_hunt_gate                            accepted-operator-invoked: README standard command, and a DISCOVERY lane: its output is a novel break signature to route to a leaf, not a pass/fail an aggregate should own
+  generated_clippy_correctness_policy          alias-of-reachable: the cheap no-cargo subset of generated_clippy_correctness_gate, which IS reachable. The subset itself runs on every Rust change as generated_clippy_correctness_gate.sh --policy-only from clippy_on_rust_change.sh (COMMIT.md step 2); this make target is a typing convenience.
+  parse_harness_combinator_gate                accepted-operator-invoked: the interpreter-vs-generated-parser oracle — the decisive instrument for a codegen change (GENERATED-LINT-CORRECTNESS.1/.2 both turned on it); run per codegen change, not per commit
+  parse_harness_equivalence_gate               accepted-operator-invoked: parse-harness equivalence oracle, run per codegen change
+  parse_harness_semantic_gate                  accepted-operator-invoked: parse-harness semantic oracle, run per codegen change
+  regex_ast_shape_contract_gate                accepted-operator-invoked: regex typed-AST shape contract, run when the regex AST changes
+  regex_broader_corpus_proof_gate              accepted-operator-invoked: regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign
+  regex_combined_telemetry_contract_gate       accepted-operator-invoked: regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign
+  regex_corpus_bundle_contract_gate            accepted-operator-invoked: regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign
+  regex_embedded_code_block_contract_gate      accepted-operator-invoked: regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign
+  regex_formal_exhaustive_closure_gate         accepted-operator-invoked: regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign
+  regex_pcre2_compile_oracle_gate              accepted-operator-invoked: regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign
+  regex_pcre2_compile_perf_gate                accepted-operator-invoked: regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign
+  regex_pcre2_textsafe_corpus_gate             accepted-operator-invoked: regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign
+  regression_gate                              accepted-operator-invoked: broad regression lane, operator-invoked
+  return_annotation_exhaustiveness_gate        accepted-operator-invoked: auto-derived exhaustiveness lane that return_annotation_support_gate already includes
+  return_annotation_support_gate               accepted-operator-invoked: README names it the formal Done gate for the tracked return-annotation claim; operator-invoked at closure time
+  sv_combined_telemetry_contract_gate          accepted-operator-invoked: SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit
+  sv_external_corpus_triage_gate               accepted-operator-invoked: SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit
+  sv_formal_exhaustive_closure_gate            accepted-operator-invoked: SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit
+  sv_preprocessor_curated_differential_gate    accepted-operator-invoked: SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit
+  sv_preprocessor_template_differential_gate   accepted-operator-invoked: SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit
+  verilog_2005_conformance_gate                accepted-operator-invoked: README standard command; the strict verilog_2005 (IEEE 1364-2005) profile conformance lane
+  vhdl_combined_telemetry_contract_gate        accepted-operator-invoked: VHDL family closure/telemetry/corpus lane, run per VHDL campaign
+  vhdl_external_corpus_triage_gate             accepted-operator-invoked: VHDL family closure/telemetry/corpus lane, run per VHDL campaign
+  vhdl_formal_exhaustive_closure_gate          accepted-operator-invoked: VHDL family closure/telemetry/corpus lane, run per VHDL campaign
+------------------------------------------------------------------------------
+REACHABLE (target <- invoker classes):
+  annotation_100_gate                          aggregate,ci-workflow,sota-policy
+  annotation_construct_coverage_gate           aggregate,ci-workflow,sota-policy
+  annotation_contract_gate                     aggregate,ci-workflow,sota-policy
+  annotation_determinism_gate                  aggregate,ci-workflow,sota-policy
+  annotation_differential_parity_gate          aggregate,ci-workflow,sota-policy
+  annotation_nonbootstrap_e2e_gate             aggregate,ci-workflow,sota-policy
+  annotation_robustness_gate                   aggregate,ci-workflow,sota-policy
+  annotation_runtime_intent_gate               aggregate,ci-workflow,sota-policy
+  annotation_shared_contract_gate              aggregate,ci-workflow,sota-policy
+  annotation_stimuli_quality_gate              aggregate,ci-workflow,sota-policy
+  annotation_typed_ast_gate                    aggregate,ci-workflow,sota-policy
+  branch_protection_contract_gate              aggregate,ci-workflow
+  ci_workflow_local_gate                       aggregate
+  differential_regression_gate                 aggregate,ci-workflow,sota-policy
+  ebnf_frontend_dual_run_diff                  aggregate,ci-workflow
+  ebnf_frontend_dual_run_gate                  aggregate,ci-workflow
+  ebnf_frontend_gate                           aggregate,ci-workflow
+  ebnf_frontend_readiness                      aggregate,ci-workflow
+  ebnf_parser_book_gate                        aggregate,ci-workflow,commit-workflow-policy
+  ebnf_stimuli_quality_gate                    aggregate,ci-workflow,sota-policy
+  embedding_api_gate                           aggregate,ci-workflow,sota-policy
+  fixed_point_gate                             aggregate,ci-workflow,sota-policy
+  generated_clippy_correctness_gate            ci-workflow,commit-workflow-policy
+  hdl_frontend_gate                            aggregate,ci-workflow
+  hdl_frontend_readiness                       aggregate,ci-workflow
+  json_parser_book_gate                        aggregate,ci-workflow,commit-workflow-policy
+  mdbook_docs_gate                             aggregate,ci-workflow,commit-workflow-policy
+  nexsim_parser_embedding_contract_gate        aggregate,ci-workflow,sota-policy
+  parser_books_gate                            aggregate,ci-workflow,commit-workflow-policy
+  performance_gate                             aggregate,ci-workflow,sota-policy
+  regex_parser_book_gate                       aggregate,ci-workflow,commit-workflow-policy
+  regex_parser_family_contract_gate            aggregate,ci-workflow
+  regex_parser_family_status_contract_gate     aggregate,ci-workflow
+  regex_parser_family_status_gate              aggregate,ci-workflow
+  regex_parser_integration_contract_gate       aggregate,ci-workflow,sota-policy
+  return_annotation_parser_book_gate           aggregate,ci-workflow,commit-workflow-policy
+  return_ast_roundtrip_gate                    aggregate,ci-workflow,sota-policy
+  return_full_contract_gate                    aggregate,ci-workflow,sota-policy
+  return_parity_gate                           aggregate,ci-workflow,sota-policy
+  return_runtime_semantics_gate                aggregate,ci-workflow,sota-policy
+  rtl_const_expr_cert_gate                     ci-workflow
+  rtl_const_expr_parser_book_gate              aggregate,ci-workflow,commit-workflow-policy
+  rtl_frontend_generated_contract_gate         aggregate,ci-workflow
+  rtl_frontend_parser_book_gate                aggregate,ci-workflow,commit-workflow-policy
+  sc01_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc02_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc03_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc04_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc05_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc06_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc07_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc08_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc09_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc10_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc11_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc12_contract_gate                           aggregate,ci-workflow,sota-policy
+  sc13_contract_gate                           aggregate,ci-workflow,sota-policy
+  semantic_annotation_parser_book_gate         aggregate,ci-workflow,commit-workflow-policy
+  semantic_ast_roundtrip_gate                  aggregate,ci-workflow,sota-policy
+  semantic_differential_regression_gate        aggregate,ci-workflow,sota-policy
+  semantic_full_contract_gate                  aggregate,ci-workflow,sota-policy
+  semantic_runtime_contract_gate               aggregate,ci-workflow,sota-policy
+  semantic_usage_gate                          aggregate,ci-workflow,sota-policy
+  sota_exit_gate                               aggregate,ci-workflow
+  stimuli_cross_family_platform_gate           aggregate,ci-workflow
+  stimuli_module_parity_gate                   aggregate,ci-workflow,sota-policy
+  sv_cert_recognized_union_gate                ci-workflow
+  sv_declared_shadow_promotion_gate            aggregate,ci-workflow
+  sv_failure_context_contract_gate             aggregate,ci-workflow
+  sv_parse_full_ratio_promotion_gate           aggregate,ci-workflow
+  sv_parser_aggregate_contract_gate            aggregate,ci-workflow
+  sv_parser_family_status_contract_gate        aggregate,ci-workflow
+  sv_parser_family_status_gate                 aggregate,ci-workflow
+  sv_preprocessor_aggregate_contract_gate      aggregate,ci-workflow
+  sv_preprocessor_formal_exhaustive_closure_gate aggregate,ci-workflow
+  sv_preprocessor_quality_gate                 aggregate,ci-workflow
+  sv_preprocessor_reachability_closure_gate    aggregate,ci-workflow
+  sv_preprocessor_syntax_closure_gate          aggregate,ci-workflow
+  sv_preprocessor_zero_plausible_gap_proof_gate aggregate,ci-workflow
+  sv_replay_gap_target_triage                  aggregate,ci-workflow
+  sv_roundtrip_contract_gate                   aggregate,ci-workflow
+  sv_semantic_scope_contract_gate              aggregate,ci-workflow
+  sv_stimuli_quality_gate                      aggregate,ci-workflow
+  sv_syntax_closure_gate                       aggregate,ci-workflow
+  systemverilog_parser_book_gate               aggregate,ci-workflow,commit-workflow-policy
+  systemverilog_preprocessor_parser_book_gate  aggregate,ci-workflow,commit-workflow-policy
+  vhdl_parser_book_gate                        aggregate,ci-workflow,commit-workflow-policy
+  vhdl_parser_family_contract_gate             aggregate,ci-workflow
+  vhdl_parser_family_status_contract_gate      aggregate,ci-workflow
+  vhdl_parser_family_status_gate               aggregate,ci-workflow
+  vhdl_stimuli_quality_gate                    aggregate,ci-workflow
+  vhdl_strict_promotion_gate                   aggregate,ci-workflow
+------------------------------------------------------------------------------
+gate-reachability: OK (123 targets; 92 reachable, 30 orphan + 1 policy-only, all dispositioned; 6 ground-truth controls reproduced)

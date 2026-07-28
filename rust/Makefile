@@ -939,8 +939,36 @@ bin_build_integrity_gate:
 	cd $(RUST_DIR) && ./scripts/bin_build_integrity_gate.sh
 	@echo "✅ Binary build-integrity gate passed."
 
+# CI-PARITY-GATE-ROT.2 — the per-parser book gates are DERIVED, not hand-listed. Every
+# `rust/scripts/*_parser_book_gate.sh` becomes a target here, so a book added tomorrow is covered
+# without anyone remembering to add it. The reachability inventory found all ten of them orphaned:
+# nothing ran them, while README carries the standing directive that every PGEN parser ships its own
+# live mdBook. Measured 0.3 s each (they build mdBook only — no cargo, no generated parsers).
+PARSER_BOOK_GATES = $(patsubst $(RUST_DIR)/scripts/%.sh,%,$(wildcard $(RUST_DIR)/scripts/*_parser_book_gate.sh))
+
+# ⛔ The book gates are PREREQUISITES, not a shell loop, and that is deliberate. A
+# `for g in $(PARSER_BOOK_GATES); do $(MAKE) "$$g"; done` recipe runs them correctly but makes the
+# edges INVISIBLE to any static reader — including the reachability inventory this leaf ships, which
+# then still reported all ten orphaned. A gate that is invoked only in a way nothing can see is a
+# weaker version of the very problem `.2` exists to solve.
+.PHONY: parser_books_gate
+parser_books_gate: $(PARSER_BOOK_GATES)
+	@echo "✅ All $(words $(PARSER_BOOK_GATES)) per-parser book gates passed."
+
+# CI-PARITY-GATE-ROT.2 — expose any variable's expanded value so a tool can ask MAKE what a
+# derived list contains instead of re-implementing make's own semantics:
+#   make -C rust --no-print-directory -s print-PARSER_BOOK_GATES
+# Read-only; it echoes and does nothing else.
+print-%:
+	@echo '$($*)'
+
+# ⭐ CI-PARITY-GATE-ROT.2 — `parser_books_gate` hangs off `mdbook_docs_gate` DELIBERATELY rather
+# than getting its own workflow step. The platform book and the ten per-parser books are ONE
+# documentation surface, `mdbook_docs_gate` is already invoked by a tracked workflow, by the commit
+# workflow and by the local parity gate's replay, and the whole addition measures ~3 s. Wiring it
+# this way means the existing invokers cover it with no new plumbing that could itself rot.
 .PHONY: mdbook_docs_gate
-mdbook_docs_gate:
+mdbook_docs_gate: parser_books_gate
 	@echo "📚 Running mdBook docs gate..."
 	cd $(RUST_DIR) && ./scripts/mdbook_docs_gate.sh
 	@echo "✅ mdBook docs gate passed."
