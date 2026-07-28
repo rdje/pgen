@@ -190,9 +190,15 @@ PGEN is a production-focused parser and stimuli generator platform.
     two annotation parsers by literal path with no `has_generated_*` cfg, so their absence is a hard
     rustc error rather than a disabled feature, and **8 of the 11 replays cannot run without them**
     (the 3 that can are `branch-protection-contract-gate`, `mdbook-docs-gate`, `fixed-point-gate`)
-  - set `PGEN_CI_WORKFLOW_LOCAL_PREPARE=1` to replay the repository's own cold-clone bootstrap
-    (`regex_parser_bootstrap` → `annotation_parsers` → the seven `focus_*` targets) inside the export
-    dir before the replays; measured at ≈260 s, after which the full workflow phase runs
+  - `PGEN_CI_WORKFLOW_LOCAL_PREPARE` **defaults to `true`**: the gate replays the repository's own
+    cold-clone bootstrap (`make -C rust regenerate_generated_parsers`) inside the export dir before
+    the replays, measured at ≈236 s, after which the full workflow phase runs. It engages only when
+    the export dir is missing an artifact `rust/src/lib.rs` includes by literal path.
+    Set `PGEN_CI_WORKFLOW_LOCAL_PREPARE=0` to skip it deliberately — worth doing for a narrowed run
+    whose selected replays do not compile the crate (`branch-protection-contract-gate`,
+    `mdbook-docs-gate`, `fixed-point-gate`); the gate then warns instead of preparing
+  - ⛔ this default was `false` until the hosted workflows were fixed: a local green over a broken
+    hosted side is **false parity, worse than the visible red the gate reported**
   - an unknown `PGEN_CI_WORKFLOW_LOCAL_FILTER` entry, or a run that ends up replaying zero workflows,
     is now **refused** — it previously reported `✅ … parity gate passed` having replayed nothing
 - mdBook docs gate:

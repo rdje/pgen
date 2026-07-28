@@ -36,7 +36,21 @@ FILTER_RAW="${PGEN_CI_WORKFLOW_LOCAL_FILTER:-}"
 CARGO_OFFLINE_RAW="${PGEN_CI_WORKFLOW_LOCAL_CARGO_OFFLINE:-true}"
 KEEP_RUNS_RAW="${PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS:-false}"
 KEEP_RUNS_NORMALIZED="$(normalize_bool "$KEEP_RUNS_RAW" "PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS")"
-PREPARE_RAW="${PGEN_CI_WORKFLOW_LOCAL_PREPARE:-false}"
+# ⭐ CI-PARITY-GATE-ROT (director ruling 2026-07-28): DEFAULTS TO `true` SINCE `.4` LANDED.
+#
+# `.3` shipped this knob defaulting to `false` on purpose and said why: defaulting it to `true`
+# then would have made the LOCAL gate green while the HOSTED side stayed broken — 14 of the 15
+# tracked workflows had no regeneration step — and **false parity is worse than the visible red the
+# gate reported.** `.4` removed that condition: 11 of 15 workflows need generated parsers and all 11
+# now regenerate through `.github/actions/regenerate-parsers`, so a local green and a hosted green
+# now mean the same thing. Flipping the default is the last step of the director's ordered scope.
+#
+# Cost when it engages: ~236 s, and ONLY when the export dir is missing an artifact
+# `rust/src/lib.rs` includes by literal path — a run that needs nothing pays nothing
+# (`preflight_generated_artifacts` returns early). Set `PGEN_CI_WORKFLOW_LOCAL_PREPARE=0` to opt out
+# deliberately; the gate then warns loudly instead of preparing, and any replay that compiles the
+# crate fails with the cause attached.
+PREPARE_RAW="${PGEN_CI_WORKFLOW_LOCAL_PREPARE:-true}"
 PREPARE_NORMALIZED="$(normalize_bool "$PREPARE_RAW" "PGEN_CI_WORKFLOW_LOCAL_PREPARE")"
 
 # CI-PARITY-GATE-ROT.3 — the roster of replayable workflow names, and how many actually RAN.
@@ -641,6 +655,33 @@ audit_workflow_regeneration_surface() {
   #     workflows would have made twelve copies whose drift nothing could detect.
   assert_file_contains "rust/scripts/ci_workflow_local_gate.sh" \
     "make -C rust SHELL=/bin/bash \"\$REGENERATION_MAKE_TARGET\""
+
+  # (b2) …and preparation must stay ON BY DEFAULT. ⭐ This exists because the project has already
+  #      watched this exact erosion once: `PGEN_CLIPPY_GENERATED_STRICT` defaulted to `0` and was
+  #      set by no gate, no aggregate and no workflow, so a 291 → 0 correctness win was unguarded
+  #      from the moment it landed (`GENERATED-LINT-CORRECTNESS.3`). A silent flip of this default
+  #      back to `false` restores the state `.3` measured: a workflow phase that looks like it runs
+  #      while eight of eleven replays cannot compile.
+  #
+  # ⚠️⚠️ AND IT IS WRITTEN THIS WAY BECAUSE THE OBVIOUS WAY IS UNSOUND — caught by this leaf's own
+  # probe arms. A `assert_file_not_contains <this file> '<the forbidden literal>'` puts that literal
+  # INTO the file it forbids it from, so the audit trips on its own source (measured: 8 of 12 arms
+  # failed on `found 'PREPARE_RAW=…:-false…'`). The positive form is no better — it would match its
+  # own text and pass vacuously. **An assertion about a file cannot live inside that file as a
+  # literal**; the `PGEN_CLIPPY_GENERATED_STRICT` precedent only works because the asserted file is
+  # a DIFFERENT one. So instead of matching text, extract the declared default and compare the
+  # VALUE. The pattern is anchored at column 0 on `PREPARE_RAW=`, and this comment/extraction line
+  # is indented, so neither can match itself.
+  local prepare_default
+  prepare_default="$(grep -oE '^PREPARE_RAW="\$\{PGEN_CI_WORKFLOW_LOCAL_PREPARE:-[a-z]+' \
+    "$ROOT_DIR/rust/scripts/ci_workflow_local_gate.sh" | sed 's/.*:-//' | head -n 1)"
+  if [[ "$prepare_default" != "true" ]]; then
+    fail "PGEN_CI_WORKFLOW_LOCAL_PREPARE defaults to '${prepare_default:-<unparseable>}', expected 'true'.
+  Since CI-PARITY-GATE-ROT.4 the hosted workflows regenerate generated/ themselves, so the local
+  gate must too or it certifies a parity it is not testing: without preparation, 8 of the 11 replays
+  cannot compile the crate at all. Set the variable to 0 for one run if you need to skip it; do not
+  change the default. (docs/tasks/CI-PARITY-GATE-ROT.md leaves .3 and .4.)"
+  fi
 
   # (c) No workflow may re-inline the recipe. `regex_parser_bootstrap` is its first step and its
   #     unambiguous signature; a copy pasted back into a workflow file is a second home.
@@ -3327,6 +3368,17 @@ preflight_generated_artifacts() {
   fi
 
   if [[ "$PREPARE_NORMALIZED" == "true" ]]; then
+    # ⚠️ AN HONEST COST, STATED RATHER THAN HIDDEN. Since the default flipped to `true`, EVERY run
+    # pays the ~236 s preparation, because the export dir is `git ls-files` output and therefore
+    # always lacks `generated/`. For a full gate run that is exactly right. For a NARROWED run it
+    # can be waste: three replays (`branch-protection-contract-gate`, `mdbook-docs-gate`,
+    # `fixed-point-gate`) never compile the crate and need nothing. The gate cannot decide this for
+    # the operator — the replay roster is only complete once every `run_workflow` call site has been
+    # reached, which is after they have run — so it says so instead of guessing.
+    if [[ -n "$FILTER_RAW" ]]; then
+      note "preflight: filtered run — if your selection does not compile the crate, skip this ~236s"
+      note "preflight: preparation with PGEN_CI_WORKFLOW_LOCAL_PREPARE=0"
+    fi
     prepare_generated_artifacts
     missing=""
     for artifact in $(required_unguarded_generated_artifacts); do

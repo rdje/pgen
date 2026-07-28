@@ -180,6 +180,24 @@ PY
 arm "RED-7  local gate stops delegating" FAIL "$AUDIT" "ci_workflow_local_gate.sh"
 revert "$GATE"
 
+# ---------------------------------------------------------------- RED-9: the PREPARE default erodes
+# ⭐ The precedent this guards against is measured, not hypothetical: `PGEN_CLIPPY_GENERATED_STRICT`
+# defaulted to `0` and was set by nothing, leaving a 291 → 0 correctness win unguarded from the day
+# it landed. ⚠️ The FIRST implementation of this guard was an `assert_file_not_contains` naming the
+# forbidden literal — which put that literal into the very file it forbade it from, and 8 of these
+# 12 arms failed on the audit tripping over its own source. The guard now compares the extracted
+# VALUE instead of matching text.
+python3 - "$ROOT/$GATE" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+open(p, "w").write(s.replace(
+    'PREPARE_RAW="${PGEN_CI_WORKFLOW_LOCAL_PREPARE:-true}"',
+    'PREPARE_RAW="${PGEN_CI_WORKFLOW_LOCAL_PREPARE:-false}"', 1))
+PY
+arm "RED-9  PREPARE default flipped off" FAIL "$AUDIT" "expected 'true'"
+revert "$GATE"
+
 # ---------------------------------------------------------------- RED-8: vacuous roster must REFUSE
 # The corollary this whole tree keeps re-deriving: an audit that inspects NOTHING must say so, not
 # return green. Simulated by untracking every workflow in the temporary index.

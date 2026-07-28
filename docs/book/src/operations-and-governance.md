@@ -140,15 +140,25 @@ replays that pass are exactly the three that never compile the crate.
 
 The remedy is not to copy a developer's `generated/` into the export directory —
 that would make the gate green against artifacts a fresh checkout does not have,
-which is the failure mode the gate exists to detect. Instead:
+which is the failure mode the gate exists to detect. Instead the gate replays the
+repository's own cold-clone bootstrap inside the export directory, which costs
+roughly four minutes (measured 236 s from a bare tracked tree), after which the
+workflow phase runs.
+
+That preparation is now **on by default**. It was deliberately opt-in when it
+first shipped, and the reason is worth keeping: at that point fourteen of the
+fifteen tracked hosted workflows had no regeneration step, so defaulting it on
+would have produced a green local gate standing in for a hosted side that was
+still broken — **false parity, which is worse than the visible red the gate was
+reporting.** Once the hosted workflows were fixed, a local green and a hosted
+green mean the same thing again, and the default flipped. To skip it for one run:
 
 ```bash
-PGEN_CI_WORKFLOW_LOCAL_PREPARE=1 make -C rust SHELL=/bin/bash ci_workflow_local_gate
+PGEN_CI_WORKFLOW_LOCAL_PREPARE=0 make -C rust SHELL=/bin/bash ci_workflow_local_gate
 ```
 
-replays the repository's own cold-clone bootstrap inside the export directory.
-It costs roughly four minutes (measured 236 s from a bare tracked tree), after
-which the workflow phase runs.
+which is worth doing only for a narrowed run whose selected replays do not
+compile the crate; the gate then warns loudly rather than preparing.
 
 ### The regeneration recipe has exactly one home
 

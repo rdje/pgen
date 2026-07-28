@@ -1,5 +1,36 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0009 — PGEN_CI_WORKFLOW_LOCAL_PREPARE defaults to true, and the guard for that default could not be written as a literal inside the file it guards
+
+`CI-PARITY-GATE-ROT` step (c) of the director's ordered scope. Gate script + docs + 1 probe arm —
+**no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`** ⇒ all 11 generated parsers
+byte-identical BY CONSTRUCTION; no release / schema / ledger / contract movement.
+
+- **A one-line change with a three-session prerequisite.** `.3` shipped this knob defaulting to
+  `false` on purpose: at that point 14 of the 15 tracked hosted workflows had no regeneration step,
+  so a `true` default would have produced a green local gate standing in for a hosted side that was
+  still broken — *false parity, worse than the visible red the gate reported.* `.4` removed the
+  condition, so a local green and a hosted green mean the same thing again.
+- **Cost stated, not hidden**: preparation engages whenever the export dir lacks an artifact
+  `rust/src/lib.rs` includes by literal path, which — the export being `git ls-files` output — is
+  always. Measured 236 s. Right for a full run; possible waste for a narrowed one, since three
+  replays never compile the crate. The gate cannot decide that for the operator (the roster is only
+  complete after the replays have run), so with a filter set it prints the opt-out instead of guessing.
+- **The default is guarded**, because this project has watched exactly this erosion before:
+  `PGEN_CLIPPY_GENERATED_STRICT` defaulted to `0` and was set by no gate, no aggregate and no
+  workflow, leaving a 291 → 0 correctness win unguarded from the day it landed.
+- ⚠️⚠️ **AND THE OBVIOUS GUARD IS UNSOUND — caught by this leaf's own probe arms.** The first cut was
+  `assert_file_not_contains <this file> '<the forbidden literal>'`, which puts the forbidden literal
+  INTO the file it forbids it from: **8 of 13 arms failed on the audit tripping over its own
+  source.** The positive form is no better — it would match its own text and pass vacuously. ⇒ **an
+  assertion about a file cannot live inside that file as a literal**; the
+  `PGEN_CLIPPY_GENERATED_STRICT` precedent only works because the file it asserts on is a DIFFERENT
+  one. The guard now extracts the declared default and compares the VALUE, anchored at column 0 so
+  neither it nor its comment can match itself.
+- **Verified**: probes 13/13 with new RED-9 (default flipped back to `false` ⇒ audit blocks);
+  `bash -n` clean; `mdbook_docs_gate` GREEN; 10/10 doctrines.
+
+
 ## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0008 — the flagship aggregate's RED sub-gate could only pass when SystemVerilog generation FAILED
 
 `CI-PARITY-GATE-ROT.5` DONE. One gate script + docs + 1 tracked driver + 2 captures — **no

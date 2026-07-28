@@ -7,7 +7,9 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: the `PREPARE` flip** then **`.2`**, and then this tree CLOSES.
+- **Frontier: `.2`**, and then this tree CLOSES.
+  (the `PREPARE` flip **done** 2026-07-28 session #220 — default is now `true`, guarded by the
+  regeneration audit, 13/13 probes.)
   (`.5` **done** 2026-07-28 session #220 — all three `expected at least one …` assertions replaced
   with the earned-zero form; measured: ALL THREE were unsatisfiable, and the sub-gate that made
   `sota_exit_gate` RED now passes end-to-end.)
@@ -240,6 +242,39 @@ note in this tree's header.**
   of 31 "fail"; and audit names contain digits, so `[a-z_]+` invents `audit_regex_pcre`).
 - `docs/tasks/artifacts/ci_parity_gate_rot/audit_census_{before,after}.txt`.
 
+### `.flip` — `PGEN_CI_WORKFLOW_LOCAL_PREPARE` defaults to `true` (`done`)
+
+- **Status: `done`** (2026-07-28, session #220, `PGEN-CI-PARITY-GATE-ROT-0009`). This is step (c) of
+  the director's ordered scope, and it is a one-line change with a three-session prerequisite.
+- ⭐ **WHY IT COULD NOT BE DONE EARLIER, AND WHY IT CAN BE DONE NOW.** `.3` shipped the knob
+  defaulting to `false` deliberately: at that point **14 of the 15** tracked hosted workflows had no
+  regeneration step, so a `true` default would have produced a green local gate standing in for a
+  hosted side that was still broken — *false parity, worse than the visible red the gate reported.*
+  `.4` removed the condition (11 of 15 need generated parsers; all 11 now regenerate through the
+  composite action), so a local green and a hosted green mean the same thing again.
+- **Cost, stated honestly.** Preparation engages whenever the export dir lacks an artifact
+  `rust/src/lib.rs` includes by literal path — which, since the export is `git ls-files` output, is
+  always. Measured **236 s**. For a full gate run that is exactly right. ⚠️ For a NARROWED run it can
+  be waste: three replays never compile the crate. The gate cannot decide that for the operator (the
+  replay roster is only complete after the replays have run), so with a filter set it now **prints
+  the opt-out** rather than guessing.
+- ⭐ **THE DEFAULT IS GUARDED, because this project has watched exactly this erosion before**:
+  `PGEN_CLIPPY_GENERATED_STRICT` defaulted to `0` and was set by no gate, no aggregate and no
+  workflow, leaving a 291 → 0 correctness win unguarded from the day it landed
+  (`GENERATED-LINT-CORRECTNESS.3`). `audit_workflow_regeneration_surface` now fails if this default
+  is not `true`.
+- ⚠️⚠️ **AND THE OBVIOUS WAY TO WRITE THAT GUARD IS UNSOUND — caught by this leaf's own probe arms.**
+  The first cut was `assert_file_not_contains <this file> '<the forbidden literal>'`, which puts the
+  forbidden literal INTO the file it forbids it from: **8 of 13 arms failed on the audit tripping
+  over its own source.** The positive form is no better — it would match its own text and pass
+  vacuously. ⇒ **an assertion about a file cannot live inside that file as a literal**; the
+  `PGEN_CLIPPY_GENERATED_STRICT` precedent only works because the file it asserts on is a DIFFERENT
+  one. The guard now extracts the declared default and compares the **value**, with the pattern
+  anchored at column 0 so neither the guard nor its comment can match itself.
+- **Verified**: `run_regeneration_surface_probes.sh` **13/13**, with new **RED-9** flipping the
+  default back to `false` and requiring the audit to block; `bash -n` clean; `mdbook_docs_gate`
+  GREEN; 10/10 doctrines.
+
 ### `.2` — a reachability inventory: which tracked gates does anything actually invoke? (`todo`)
 
 - **Status: `todo`**.
@@ -268,6 +303,7 @@ note in this tree's header.**
 
 | slice | leaf | commit subject |
 |---|---|---|
+| `PGEN-CI-PARITY-GATE-ROT-0009` | `.flip` | PGEN_CI_WORKFLOW_LOCAL_PREPARE defaults to `true` now the hosted side genuinely works — and the guard for that default could not be written as a literal inside the file it guards |
 | `PGEN-CI-PARITY-GATE-ROT-0008` | `.5` | the flagship aggregate's RED sub-gate could only pass when SV generation FAILED — all three assertions replaced with "the zero must be EARNED", and all three were unsatisfiable |
 | `PGEN-CI-PARITY-GATE-ROT-0007` | `.4` | 11 of 15 hosted workflows needed the regeneration step and 1 had it — one home for the recipe, a derived fail-safe audit, and two timeouts below their own measured cost |
 | `PGEN-CI-PARITY-GATE-ROT-0005` | `.4`/`.5` prep (docs only) | the director work order banked verbatim, `.5` adjudicated (the ASSERTION is the bug, not the budget), and both leaves given a self-contained work list |

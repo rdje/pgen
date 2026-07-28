@@ -9,9 +9,10 @@ CI-PARITY-GATE-ROT.4 — audit_workflow_regeneration_surface probes
 ✓ RED-5  make target renamed away    FAIL
 ✓ RED-6  NEW tracked workflow, no step FAIL
 ✓ RED-7  local gate stops delegating FAIL
+✓ RED-9  PREPARE default flipped off FAIL
 ✓ RED-8  empty roster must refuse    FAIL
 ✓ CTRL-1 unrelated workflow edit     PASS
 ✓ CTRL-2 pre-existing workflow audit PASS
 ✓ CTRL-3 old-vs-new control audit    identical verdict (rc=0) on HEAD gate and working tree
 ------------------------------------------------------------------------------
-arms=12  PASS=12  FAIL=0
+arms=13  PASS=13  FAIL=0
