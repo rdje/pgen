@@ -299,6 +299,103 @@ note in this tree's header.**
   default back to `false` and requiring the audit to block; `bash -n` clean; `mdbook_docs_gate`
   GREEN; 10/10 doctrines.
 
+### `.8` — make the flow un-rottable: the invariants move to the AUTOMATIC tier (`done`)
+
+- **Status: `done`** (2026-07-29, session #220, `PGEN-CI-PARITY-GATE-ROT-0014`), on the director's
+  instruction: *"put things in place to make sure it does not drift or rot ever again."*
+
+#### ⭐⭐ THE MEASUREMENT THAT MOTIVATED IT IS UNCOMFORTABLE, AND THAT IS WHY IT COUNTS
+
+This campaign repaired the flow and mechanized every repair. Then a census of **where those
+mechanisms live** — using `.2`'s own reachability tiers — returned:
+
+| invariant | lives in | tier |
+|---|---|---|
+| regeneration coverage (`.4`) | `ci_workflow_local_gate` | **OPERATOR** |
+| workflow timeout floor (`.4`/`.6`) | `ci_workflow_local_gate` | **OPERATOR** |
+| one home for the recipe (`.4`) | `ci_workflow_local_gate` | **OPERATOR** |
+| PREPARE stays on (`.flip`) | `ci_workflow_local_gate` | **OPERATOR** |
+| gate reachability (`.2`) | `scripts/check_gate_reachability.sh` | AUTOMATIC |
+
+⇒ **four of the five sat in the tier that only runs when a human asks.** The flow had been fixed
+with checks that could themselves rot — the exact failure this tree exists to end, committed by the
+tree that exists to end it. And the second measurement was worse: of the **23** gate scripts that
+accept artifact hand-offs, **1** verified them.
+
+#### What shipped — the 12th enforced doctrine `FLOW-INTEGRITY`
+
+`scripts/check_flow_integrity.sh`, registered in `scripts/check_doctrines.sh`, run by
+`.githooks/pre-commit` on **every commit**. Deliberately cheap — file reads and greps, no cargo, no
+build, no network — because *a check nobody minds running is a check that keeps running*. Seven
+invariants, **each traced to an incident that actually happened**:
+
+| # | invariant | the incident it replays |
+|---|---|---|
+| 1 | a workflow running a `make -C rust` gate declares the regeneration step — and a measured-exempt one does NOT | 14 of 15 workflows could not build (`.4`) |
+| 2 | any job carrying that step budgets ≥ 30 min | the flagship budgeted 60 min for a 143-min job (`.6`) |
+| 3 | the recipe keeps ONE home; no workflow re-inlines it | it was about to be copy-pasted into ten more files (`.4`) |
+| 4 | the parity gate's preparation stays on by default | the identical default eroded once, unguarded (`GENERATED-LINT-CORRECTNESS.3`) |
+| 5 | no hand-off points at a gate's STANDALONE default dir | a run consumed a three-day-old artifact as current proof (`.7`) |
+| 6 | no assertion requires a defect in order to pass | a required sub-gate passed only when the parser FAILED (`.5`) |
+| 7 | hand-off provenance coverage only improves | 1 of 23 verify; the list may only SHRINK (`.7`) |
+
+⛔ **Derived, not hand-listed.** The workflow roster, the hand-off consumer set and both forbidden
+shapes are re-read every run. Exactly **two** inputs are written down, in
+`rust/test_data/grammar_quality/flow_integrity_register_v0.json`, because they are human DECISIONS
+nothing can re-derive: the measured-exempt workflows, and the not-yet-verifying consumers.
+
+⭐ **ONE SOURCE FOR THE RULES.** `ci_workflow_local_gate`'s `workflow_is_regeneration_exempt` was a
+`case` block — the same knowledge the doctrine needed, in a second place. It now READS the register.
+Two lists that must agree are two lists that can disagree, and `.1` found twelve assertions rotted
+on exactly that shape. **CTRL-1 proves it**: delete an exemption from the register and BOTH readers
+reject, from one edit.
+
+#### ⚠️ RED-7 CAUGHT THE NEW CHECK BEING BLIND TO THE DEFECT IT WAS WRITTEN FOR
+
+The standalone-hand-off pattern was first written as `EXISTING_…="\$\{VAR:-\$RUST_DIR/target/…`,
+which requires the `${VAR:-default}` form — and therefore **missed the bare `="$RUST_DIR/target/…"`
+form, which is FOUR of the eight sites the original incident actually had.** It reported `0 found`
+and read as proof. ⭐ A check written for a defect that cannot see that defect's commonest shape is
+worse than none. Caught only because RED-7 injects the bare form rather than the one the author had
+in mind — the session's recurring lesson, now at its fourth instance: *the arms must break the
+invariant the way reality breaks it, not the way the implementer imagines it.*
+
+#### ⚠️⚠️ HONEST LIMITS, STATED IN THE CHECK'S OWN OUTPUT AND IN THE BOOK
+
+- Invariant 7 is a **ratchet over an accepted risk**: 22 of 23 consumers still do not verify what
+  they are handed. The ratchet stops that number growing and forces it down one gate at a time; it
+  does **not** mean the gap is closed.
+- A pre-commit hook is **bypassable** (`--no-verify`). CI is the un-bypassable layer, and while
+  hosted Actions are paused the honest claim is *"holds at every commit made through the hook"*, not
+  *"no matter what"*. Re-enabling an auto CI job is what would close that — escalated in `.6`.
+
+#### Acceptance checklist (enforced)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the flow could rot again: the invariants protecting it lived
+      in the OPERATOR tier. WHERE, measured: `grep -l` over `rust/scripts/ci_workflow_local_gate.sh`
+      places 4 of 5 there, against `scripts/check_gate_reachability.sh` for the 1 in the AUTOMATIC
+      tier; and `grep -lE 'EXISTING_[A-Z_]+_STATE_DIR='` vs `grep -lE 'require_supplied_state_dir'`
+      over `rust/scripts/*.sh` gives hand-off provenance coverage **1 / 23**.
+- [x] **ADDRESSED (verified)** — before→after: the 4 operator-tier invariants are now enforced by a
+      pre-commit doctrine, and 2 further shapes (standalone hand-offs, requires-a-defect assertions)
+      are held at 0 by ratchet. `bash scripts/check_flow_integrity.sh` →
+      `OK (11 workflow(s) regenerate, 3 measured-exempt, recipe has one home, PREPARE on,
+      0 standalone-default hand-offs, 0 requires-a-defect assertions, provenance ratchet 1/23)`.
+      Probes **13/13**, every RED arm replaying a real incident; RED-7 caught the check's own
+      blindness before it shipped.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11 parsers
+      **byte-identical BY CONSTRUCTION**. `bash -n` clean on both edited scripts; the parity gate's
+      own probes re-run **13/13** after its exemption set moved to the register;
+      `bash scripts/check_doctrines.sh` → **ALL 12 enforced doctrines PASS** (was 11);
+      `mdbook_docs_gate` GREEN. CTRL-2: an unrelated Makefile edit does not trip it.
+- [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10, `scripts/check_doctrines.sh`, a new §8 in
+      `docs/book/src/gate-flow.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, this tree.
+
+#### Evidence
+
+- `scripts/check_flow_integrity.sh` (also `--report`), `rust/test_data/grammar_quality/flow_integrity_register_v0.json`.
+- `docs/tasks/artifacts/ci_parity_gate_rot/run_flow_integrity_probes.sh` + `flow_integrity_probes.txt`.
+
 ### `.7` — ⛔ THE TREE'S CLOSURE WAS PREMATURE: `sota_exit_gate` is STILL RED, one sub-gate further on (`in-progress`)
 
 #### ✅ THE FIX IS IMPLEMENTED AND PROBED (2026-07-29, `PGEN-CI-PARITY-GATE-ROT-0013`); ⏳ the end-to-end re-run is the outstanding acceptance

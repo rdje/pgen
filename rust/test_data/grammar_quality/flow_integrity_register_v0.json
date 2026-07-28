@@ -1,0 +1,41 @@
+{
+  "register": "flow_integrity_register_v0",
+  "owner": "CI-PARITY-GATE-ROT.8",
+  "what_this_is": "The two hand-written inputs the FLOW-INTEGRITY doctrine needs. Everything else it checks is re-derived from the repository on every run. These are here because they are human DECISIONS that nothing can re-derive: which workflows were MEASURED not to need generated parsers, and which hand-off consumers do not yet verify the artifacts they are handed.",
+  "single_source_note": "ci_workflow_local_gate.sh's audit_workflow_regeneration_surface reads regeneration_exempt_workflows from THIS FILE rather than keeping its own copy. Two lists that must agree are two lists that can disagree — CI-PARITY-GATE-ROT.1 found twelve assertions rotted exactly that way.",
+  "regeneration_exempt_workflows": {
+    "_why": "MEASURED to PASS against a tracked-files-only tree (the shape actions/checkout yields) with no generated/ present. Evidence: CI-PARITY-GATE-ROT.3's unprepared census. Exemption is asserted in BOTH directions: an exempt workflow that ACQUIRES the step also fails, because a 236s regeneration bolted onto a 1s shell check is a cost regression.",
+    ".github/workflows/branch-protection-contract-gate.yml": "shell + jq, never invokes cargo (PASS 0s)",
+    ".github/workflows/fixed-point-gate.yml": "builds ast_pipeline_bootstrap WITHOUT --features generated_parsers (PASS 23s)",
+    ".github/workflows/mdbook-docs-gate.yml": "mdbook only (PASS 1s)"
+  },
+  "workflow_regeneration_timeout_floor_minutes": 30,
+  "handoff_provenance_ratchet": {
+    "_why": "A gate that accepts EXISTING_*_STATE_DIR is told 'this artifact exists, do not produce it'. Taking that on trust let a sota_exit_gate run consume a THREE-DAY-OLD artifact as current proof (CI-PARITY-GATE-ROT.7). require_supplied_state_dir makes the hand-off prove its provenance instead. Coverage at adoption: 1 of 23 consumers.",
+    "_rule": "This list may only SHRINK. A NEW hand-off consumer that does not verify FAILS the doctrine; an entry that has started verifying must be REMOVED, so the list cannot hold dead exemptions. It is deliberately NOT a bare count: a count lets one gate regress while another improves.",
+    "unverified_consumers": [
+      "ci_workflow_local_gate",
+      "regex_combined_telemetry_contract_gate",
+      "regex_formal_exhaustive_closure_gate",
+      "regex_parser_family_contract_gate",
+      "regex_parser_family_status_contract_gate",
+      "regex_parser_family_status_gate",
+      "sota_exit_gate",
+      "sv_combined_telemetry_contract_gate",
+      "sv_failure_context_contract_gate",
+      "sv_formal_exhaustive_closure_gate",
+      "sv_parser_aggregate_contract_gate",
+      "sv_parser_family_status_contract_gate",
+      "sv_preprocessor_aggregate_contract_gate",
+      "sv_preprocessor_formal_exhaustive_closure_gate",
+      "sv_preprocessor_reachability_closure_gate",
+      "sv_preprocessor_zero_plausible_gap_proof_gate",
+      "sv_roundtrip_contract_gate",
+      "vhdl_combined_telemetry_contract_gate",
+      "vhdl_formal_exhaustive_closure_gate",
+      "vhdl_parser_family_contract_gate",
+      "vhdl_parser_family_status_contract_gate",
+      "vhdl_parser_family_status_gate"
+    ]
+  }
+}

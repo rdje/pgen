@@ -153,7 +153,7 @@ Two gates check the *proof surface itself* rather than the product:
   `actions/checkout` produces), runs **33 surface audits** over the real
   repository, then **replays the command each tracked workflow runs** inside the
   export. See §3 for why the export is the interesting part.
-- **`scripts/check_doctrines.sh`** — the doctrine enforcer, 11 checks, run by
+- **`scripts/check_doctrines.sh`** — the doctrine enforcer, 12 checks, run by
   `.githooks/pre-commit` on **every commit**. This is the only layer that runs
   without a human deciding to (§6).
 
@@ -444,7 +444,66 @@ it fails on a vacuous run and on a broken capture path, neither of which the
 
 ---
 
-## 8. The contract for a new gate
+## 8. What stops it drifting back
+
+Fixing the flow is not the same as keeping it fixed, and the difference turned out
+to be measurable. After every repair above had been mechanized, a census of *where
+those mechanisms lived* found:
+
+| invariant | lived in | tier |
+|---|---|---|
+| regeneration coverage | `ci_workflow_local_gate` | **OPERATOR** |
+| workflow timeout floor | `ci_workflow_local_gate` | **OPERATOR** |
+| one home for the recipe | `ci_workflow_local_gate` | **OPERATOR** |
+| preparation stays on | `ci_workflow_local_gate` | **OPERATOR** |
+| gate reachability | `scripts/check_gate_reachability.sh` | AUTOMATIC |
+
+**Four of the five sat in the operator tier** — inside a gate that, per §6, nothing
+runs automatically. The flow had been repaired with checks that could themselves
+rot, which is the exact failure the repairs existed to end.
+
+So they moved:
+
+```bash
+bash scripts/check_flow_integrity.sh --report
+```
+
+`FLOW-INTEGRITY` is an enforced doctrine, run by `.githooks/pre-commit` on **every
+commit**. It is deliberately cheap — file reads and greps, no cargo, no build, no
+network — because a check nobody minds running is a check that keeps running. It
+enforces seven invariants, each traced to something that actually happened:
+
+| # | invariant | the incident |
+|---|---|---|
+| 1 | a workflow running a `make -C rust` gate declares the regeneration step — and a measured-exempt one does **not** | 14 of 15 workflows could not build |
+| 2 | any job carrying that step budgets ≥ 30 minutes | the flagship budgeted 60 min for a 143-min job |
+| 3 | the recipe keeps one home; no workflow re-inlines it | it was about to be copy-pasted into ten more files |
+| 4 | the parity gate's preparation stays on by default | the identical default eroded once before, unguarded |
+| 5 | no hand-off points at a gate's standalone default dir | a run consumed a three-day-old artifact as current proof |
+| 6 | no assertion requires a defect in order to pass | a required sub-gate passed only when the parser failed |
+| 7 | hand-off provenance coverage only improves | 1 of 23 consumers verify; the list may only shrink |
+
+Two design choices make it hard to defeat:
+
+**Derived, not hand-listed.** The workflow roster, the hand-off consumer set and
+both forbidden shapes are re-read from the repository every run. Only two inputs
+are written down — the measured-exempt workflows and the not-yet-verifying
+consumers — because those are human decisions nothing can re-derive.
+
+**One source for the rules.** Both readers — the doctrine check and the parity
+gate's audit — read the exemption set from the same
+`flow_integrity_register_v0.json`. Two lists that must agree are two lists that can
+disagree; twelve assertions once rotted on exactly that shape.
+
+> ⚠️ **Honest limits.** Invariant 7 is a ratchet over an accepted risk: 22 of 23
+> hand-off consumers still do not verify what they are handed. The ratchet stops
+> that number growing and forces it down one gate at a time; it does not pretend
+> the gap is closed. And a pre-commit hook is bypassable (`--no-verify`) — CI is
+> the un-bypassable layer, and while hosted Actions are paused (§6) the honest
+> statement is that this holds at every commit made through the hook, not "no
+> matter what".
+
+## 9. The contract for a new gate
 
 A checklist, derived from the failures above.
 
@@ -471,11 +530,12 @@ A checklist, derived from the failures above.
 - [ ] if the workflow that runs it compiles the crate, that workflow declares
       `uses: ./.github/actions/regenerate-parsers` (§3) and budgets at least 30
       minutes;
+- [ ] it satisfies `bash scripts/check_flow_integrity.sh` (§8);
 - [ ] it is exercised by RED / GREEN / CONTROL probe arms, where the RED arms
       break the invariant and the CONTROL arms prove it does not misfire on
       unrelated changes.
 
-**The last one is not optional.** Every defect in §7 was found by a probe arm or a
+**The probe requirement is not optional.** Every defect in §7 was found by a probe arm or a
 control, and several were found in the *fixing* leaf's own work — an audit tripping
 over its own source, a driver measuring a stale copy of the rule it verified, an
 instrument that reported eight RED arms green over a check that evaluated none of

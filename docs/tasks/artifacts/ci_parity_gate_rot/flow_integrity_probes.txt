@@ -1,0 +1,18 @@
+==============================================================================
+CI-PARITY-GATE-ROT.8 — FLOW-INTEGRITY probes (each RED replays a real incident)
+==============================================================================
+✓ GREEN  untouched tree                          PASS
+✓ RED-1  workflow loses its regeneration step    FAIL
+✓ RED-2  exempt workflow acquires the step       FAIL
+✓ RED-3  timeout below the floor                 FAIL
+✓ RED-4  recipe re-inlined in a workflow         FAIL
+✓ RED-5  action stops delegating to the target   FAIL
+✓ RED-6  PREPARE default flipped off             FAIL
+✓ RED-7  hand-off at a standalone default dir    FAIL
+✓ RED-8  requires-a-defect assertion re-added    FAIL
+✓ RED-9  NEW unverified hand-off consumer        FAIL
+✓ RED-10 dead ratchet entry                      FAIL
+✓ CTRL-1 register drives BOTH readers            both readers reject (single source holds)
+✓ CTRL-2 unrelated Makefile edit                 PASS
+------------------------------------------------------------------------------
+arms=13  PASS=13  FAIL=0

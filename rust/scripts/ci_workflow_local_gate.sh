@@ -607,13 +607,26 @@ REGENERATION_MAKE_TARGET="regenerate_generated_parsers"
 # ⛔ `.4`'s scope is explicit that "the 3 that pass must NOT pay for it", so exemption is asserted
 # in BOTH directions: an exempt workflow that acquires the step also fails this audit. A 258 s
 # regeneration bolted onto a 1 s shell check is a real cost regression, not a harmless extra.
+# ⭐⭐ CI-PARITY-GATE-ROT.8 — THE EXEMPTION SET IS READ FROM THE SHARED REGISTER, NOT KEPT HERE.
+# It used to be a `case` block in this file AND the same knowledge in the doctrine check, i.e. two
+# lists that must agree — which is two lists that can disagree. `.1` found twelve assertions rotted
+# on exactly that shape. Both readers now consult
+# `rust/test_data/grammar_quality/flow_integrity_register_v0.json`, so "which workflows are exempt"
+# has one definition and a change to it is visible to both at once.
+# ⛔ REFUSES rather than defaulting to "not exempt" when the register cannot be read: silently
+# treating every workflow as non-exempt would make the audit demand a 236s step of three jobs
+# measured not to need one — a check that cannot read its own input must say so.
+FLOW_INTEGRITY_REGISTER="rust/test_data/grammar_quality/flow_integrity_register_v0.json"
+
 workflow_is_regeneration_exempt() {
-  case "$1" in
-    .github/workflows/branch-protection-contract-gate.yml) return 0 ;;
-    .github/workflows/fixed-point-gate.yml) return 0 ;;
-    .github/workflows/mdbook-docs-gate.yml) return 0 ;;
-    *) return 1 ;;
-  esac
+  local workflow_file="$1"
+  local exempt_list
+  exempt_list="$(jq -er '.regeneration_exempt_workflows | keys[] | select(startswith("_") | not)' \
+    "$ROOT_DIR/$FLOW_INTEGRITY_REGISTER" 2>/dev/null)" || \
+    fail "cannot read the regeneration exemption set from $FLOW_INTEGRITY_REGISTER
+  That register is the single source for which workflows were MEASURED not to need generated
+  parsers. Without it this audit cannot tell an exempt workflow from a missing step."
+  grep -qxF -- "$workflow_file" <<<"$exempt_list"
 }
 
 audit_workflow_regeneration_surface() {

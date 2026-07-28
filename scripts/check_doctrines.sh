@@ -50,6 +50,7 @@ DOCTRINES=(
   "WAIVER-ROUTING|a task leaf claiming a gate does not apply names the leaf that owns fixing the gate (an unrouted waiver is a bug report about the gate, left inert)|scripts/check_waiver_routing.sh"
   "DESTRUCTIVE-TARGET-GUARD|destructive make targets refuse without PGEN_CONFIRM_CLEAN=1 + no innocuous alias routes into them (OPS-MEMSAFE.3)|scripts/check_destructive_target_guard.sh"
   "GATE-REACHABILITY|every tracked gate target is invoked by something that RUNS, or carries a deliberate disposition — a check nothing invokes is indistinguishable from one that does not exist (CI-PARITY-GATE-ROT.2)|scripts/check_gate_reachability.sh"
+  "FLOW-INTEGRITY|the gate flow cannot drift back: workflows that need generated parsers regenerate them and budget for it, the recipe keeps one home, artifact hand-offs never point at a standalone default, no assertion requires a defect to pass, and hand-off provenance coverage only improves (CI-PARITY-GATE-ROT.8)|scripts/check_flow_integrity.sh"
 )
 
 fail=0

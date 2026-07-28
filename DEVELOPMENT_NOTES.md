@@ -1,5 +1,54 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0014 — the flow's invariants move to the AUTOMATIC tier: the 12th enforced doctrine FLOW-INTEGRITY
+
+`CI-PARITY-GATE-ROT.8` DONE, on the director's instruction *"put things in place to make sure it
+does not drift or rot ever again."* New doctrine check + register + registry row + parity-gate
+rewiring + book §8 + 1 tracked driver — **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`**
+⇒ all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- ⭐⭐ **THE MOTIVATING MEASUREMENT IS UNCOMFORTABLE.** This campaign repaired the flow and mechanized
+  every repair — then a census of WHERE those mechanisms live, using `.2`'s own reachability tiers,
+  found **four of the five in the OPERATOR tier**, inside `ci_workflow_local_gate`, which nothing
+  runs automatically. **The flow had been fixed with checks that could themselves rot** — the exact
+  failure this tree exists to end, committed by the tree that exists to end it. Second measurement,
+  worse: of the **23** gate scripts that accept artifact hand-offs, **1** verified them.
+- **SHIPPED: the 12th enforced doctrine `FLOW-INTEGRITY`** (`scripts/check_flow_integrity.sh`,
+  registered in the driver, run by `.githooks/pre-commit` on EVERY commit). Deliberately cheap —
+  file reads and greps, no cargo, no build, no network — because a check nobody minds running is a
+  check that keeps running. Seven invariants, each traced to an incident that actually happened:
+  (1) a workflow running a `make -C rust` gate declares the regeneration step and a measured-exempt
+  one does NOT [14 of 15 could not build]; (2) any job carrying it budgets >= 30 min [the flagship
+  budgeted 60 for a 143-min job]; (3) the recipe keeps ONE home [it was about to be copy-pasted into
+  ten more files]; (4) the parity gate's preparation stays on by default [the identical default
+  eroded once, unguarded]; (5) no hand-off points at a gate's STANDALONE default dir [a run consumed
+  a three-day-old artifact as current proof]; (6) no assertion requires a defect to pass [a required
+  sub-gate passed only when the parser FAILED]; (7) hand-off provenance coverage only improves
+  [1 of 23; the list may only SHRINK].
+- ⛔ **DERIVED, NOT HAND-LISTED**: the workflow roster, the hand-off consumer set and both forbidden
+  shapes are re-read every run. Exactly TWO inputs are written down, because they are human
+  DECISIONS nothing can re-derive: the measured-exempt workflows and the not-yet-verifying consumers.
+- ⭐ **ONE SOURCE FOR THE RULES.** The parity gate's `workflow_is_regeneration_exempt` was a `case`
+  block holding the same knowledge the doctrine needed — a second copy. It now READS the shared
+  register. Two lists that must agree are two lists that can disagree, and `.1` found twelve
+  assertions rotted on exactly that shape. **CTRL-1 proves it**: delete one exemption from the
+  register and BOTH readers reject, from a single edit.
+- ⚠️ **RED-7 CAUGHT THE NEW CHECK BEING BLIND TO THE DEFECT IT WAS WRITTEN FOR.** The
+  standalone-hand-off pattern first required the `${VAR:-default}` form and therefore missed the
+  bare `="$RUST_DIR/target/…"` form — **four of the eight sites the original incident actually
+  had.** It reported `0 found` and read as proof. A check written for a defect that cannot see that
+  defect's commonest shape is worse than none; caught only because the arm injects the bare form
+  rather than the one the author had in mind.
+- ⚠️⚠️ **HONEST LIMITS, in the check's own output and in the book**: invariant 7 is a ratchet over an
+  ACCEPTED RISK — 22 of 23 consumers still do not verify what they are handed, and the ratchet stops
+  that number growing without pretending the gap is closed; and a pre-commit hook is bypassable
+  (`--no-verify`), so while hosted Actions are paused the honest claim is "holds at every commit made
+  through the hook", not "no matter what".
+- **Verified**: probes **13/13**; the parity gate's own probes re-run **13/13** after its exemption
+  set moved to the register; **ALL 12 enforced doctrines PASS** (was 11); `mdbook_docs_gate` GREEN
+  with the new book §8 ("What stops it drifting back").
+
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0013 — the artifact hand-off must prove its provenance, and the gate flow now has a full reference chapter
 
 `CI-PARITY-GATE-ROT.7` implemented + probed (the end-to-end aggregate re-run is still outstanding, so
