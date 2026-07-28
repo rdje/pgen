@@ -513,6 +513,24 @@ visible red.**
   is CLOSED and the frontier returns to product work.** The director has ruled on the open
   question `.3` escalated: the flip IS wanted; the condition is simply that `.4` lands first so it
   is a real green rather than false parity.
+- ⛔⛔⛔ **THE BAR, REAFFIRMED AND WIDENED (director, same exchange, verbatim):** *"You need to
+  resolve all these flow related issue in a clean, sota and signoff, once and for all, so that we
+  can return to doing real coding activities."*
+  ⇒ ⭐ **THIS IS BROADER THAN THE TWO NAMED LEAVES, and the next session must read it that way.**
+  *"All these flow related issues"* + *"once and for all"* means **the `CI-PARITY-GATE-ROT` tree is
+  to be CLOSED**, not advanced: that is `.2` (the gate-reachability inventory, still `todo`) as well
+  as `.4`, `.5`, and the `PREPARE` flip.
+  ⛔ **AND IT CONSTRAINS THE METHOD: do not discharge this leaf by opening more leaves.** Every
+  session in this family has ended by routing a fresh finding onward — `.1`→`.2`, `.3`→`.4`+`.5` —
+  and the director is explicitly calling time on that pattern. A new finding met during this work
+  is to be FIXED inside the tree if it belongs to the flow surface. Only a defect that genuinely
+  belongs to another family (an SV grammar bug, say) may be routed out, and then it must be routed
+  to that family's tree with evidence, not parked as a new leaf here.
+  ⚠️ **Corollary for `.2`:** its charter floats a *"candidate 11th enforced doctrine"*. Closing the
+  tree does NOT require inventing a doctrine — it requires the inventory to exist and the orphans it
+  names to be dispositioned. Mechanising it is a judgement call to make on the evidence, and
+  `GENERATED-LINT-CORRECTNESS.4`'s lesson applies: **price a candidate against the whole corpus
+  before adopting it.**
 - **Status: `todo`** — opened 2026-07-28 session #218 by `.3`, from evidence gathered while
   root-causing the local gate. ⛔ **Deliberately NOT folded into `.3`**: `.3` owns the local gate,
   this owns the tracked hosted workflow surface, and the two have different verification stories.
