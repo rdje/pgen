@@ -1,0 +1,50 @@
+CI-PARITY-GATE-ROT.3 — workflow-phase census, LAYER 1 (UNPREPARED export dir)
+captured: session #218, HEAD 9a9ae0f3
+driver:   docs/tasks/artifacts/ci_parity_gate_rot/run_workflow_census.sh
+guard:    scripts/run_with_memory_guard.sh --budget-mb 12288  ->  exit=0, peak 1000MB, 186s
+note:     absolute checkout paths are rewritten repo-relative (<repo>/) per the docpath policy.
+
+==============================================================================
+VERDICT TABLE
+==============================================================================
+FAIL  annotation-contract-gate                      31s
+FAIL  annotation-nonbootstrap-e2e-gate               0s
+PASS  branch-protection-contract-gate                0s
+FAIL  differential-regression-gate                   1s
+FAIL  ebnf-frontend-dual-run-diff                    2s
+FAIL  rtl-frontend-generated-contract-gate           1s
+FAIL  stimuli-cross-family-platform-gate             1s
+PASS  mdbook-docs-gate                               1s
+PASS  fixed-point-gate                              23s
+FAIL  performance-gate                               1s
+FAIL  sota-exit-gate                                53s
+workflows=11  PASS=3  FAIL=8  SKIP=0
+
+==============================================================================
+FIRST ERROR PER REPLAY (from the gate's own per-workflow logs)
+==============================================================================
+annotation-contract-gate                   error: couldn't read `src/../../generated/return_annotation_parser.rs`: No such file or directory (os error 2)
+annotation-nonbootstrap-e2e-gate           error: missing return annotation JSON at '<repo>/rust/target/ci_workflow_local_gate/run.fhEVni/export/generated/return
+branch-protection-contract-gate            
+differential-regression-gate               error: couldn't read `src/../../generated/return_annotation_parser.rs`: No such file or directory (os error 2)
+ebnf-frontend-dual-run-diff                error: couldn't read `src/../../generated/return_annotation_parser.rs`: No such file or directory (os error 2)
+fixed-point-gate                           
+mdbook-docs-gate                           
+performance-gate                           error: couldn't read `src/../../generated/return_annotation_parser.rs`: No such file or directory (os error 2)
+rtl-frontend-generated-contract-gate       
+sota-exit-gate                             
+stimuli-cross-family-platform-gate         error: couldn't read `src/../../generated/return_annotation_parser.rs`: No such file or directory (os error 2)
+
+==============================================================================
+THE TWO REPLAYS WHOSE FIRST ERROR IS NESTED ONE LOG DEEPER
+(both resolve to the SAME cause — the gate's top-level log only names the sub-log)
+==============================================================================
+rtl-frontend-generated-contract-gate -> error: couldn't read `src/../../generated/return_annotation_parser.rs`: No such file or directory (os error 2)
+sota-exit-gate  first failing sub-gate = annotation_contract_gate -> error: couldn't read `src/../../generated/return_annotation_parser.rs`: No such file or directory (os error 2)
+
+=> 8 of 8 failures share ONE cause: the export dir is 'git ls-files' ONLY, generated/ is
+   untracked since 0ed2b2ad (2026-04-29), and nothing regenerates it. The 3 PASSes are
+   exactly the 3 replays that never need a generated parser:
+     branch-protection-contract-gate  shell + jq only
+     mdbook-docs-gate                 mdbook only
+     fixed-point-gate                 builds ast_pipeline_bootstrap WITHOUT --features generated_parsers

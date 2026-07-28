@@ -171,6 +171,16 @@ PGEN is a production-focused parser and stimuli generator platform.
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - successful runs under `rust/target/ci_workflow_local_gate/run.*` are removed automatically after analysis; failed runs are retained for triage
   - set `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1` when a successful export/log bundle should be preserved deliberately
+  - ⛔ the gate exports `git ls-files` output ONLY, and `generated/` is untracked — so the **workflow
+    replay phase** needs the generated parsers materialised first. `rust/src/lib.rs:72,78` include the
+    two annotation parsers by literal path with no `has_generated_*` cfg, so their absence is a hard
+    rustc error rather than a disabled feature, and **8 of the 11 replays cannot run without them**
+    (the 3 that can are `branch-protection-contract-gate`, `mdbook-docs-gate`, `fixed-point-gate`)
+  - set `PGEN_CI_WORKFLOW_LOCAL_PREPARE=1` to replay the repository's own cold-clone bootstrap
+    (`regex_parser_bootstrap` → `annotation_parsers` → the seven `focus_*` targets) inside the export
+    dir before the replays; measured at ≈260 s, after which the full workflow phase runs
+  - an unknown `PGEN_CI_WORKFLOW_LOCAL_FILTER` entry, or a run that ends up replaying zero workflows,
+    is now **refused** — it previously reported `✅ … parity gate passed` having replayed nothing
 - mdBook docs gate:
   - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
 - Generated-parser clippy correctness gate:

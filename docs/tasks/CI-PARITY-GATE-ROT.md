@@ -7,8 +7,13 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: `.2`** then **`.3`** (`.1` **done** 2026-07-27 session #216 — audit phase **23 PASS / 8 FAIL → 31 PASS /
-  0 FAIL**; the escalated row was ruled on by the director same-session and executed as `.1b`)
+- **Frontier: `.4`** then **`.2`** (`.1` **done** 2026-07-27 session #216 — audit phase **23 PASS / 8 FAIL → 31 PASS /
+  0 FAIL**; the escalated row was ruled on by the director same-session and executed as `.1b`.
+  **`.3` done 2026-07-28 session #218** — the workflow phase was exercised for the first time:
+  **3 PASS / 8 FAIL unprepared**, all eight one defect, and — once the repository's own cold-clone
+  bootstrap runs inside the export dir — **every replay that reached a verdict reached PASS**. `.4` — the same defect in the
+  **hosted** workflow files, 14 of 15 of which never got the fix — is now the tree's largest open
+  item and outranks `.2`, because `.2` is an inventory of a class `.4` is a live instance of.)
 - ✅⛔ **DIRECTOR RULING RECEIVED (2026-07-27, session #216, verbatim):** *"We will republish PGEN
   regex parser at a later time"* + *"I agree we shouldn't cite either regex.json or regex.ebnf"*
   ⇒ **THE BOUNDARY STANDS.** `audit_embedding_api_surface` is RIGHT; the repo is wrong. The
@@ -251,6 +256,7 @@ note in this tree's header.**
 
 | slice | leaf | commit subject |
 |---|---|---|
+| `PGEN-CI-PARITY-GATE-ROT-0003` | `.3` (+ `.4` opened) | the workflow phase runs for the first time in 1,371 commits — 3/8 unprepared, one defect behind all eight, and a mistyped filter had been certifying parity while replaying nothing |
 | (opened by `PGEN-GENERATED-LINT-CORRECTNESS-0004`) | (tree opened) | the local CI-parity gate has been unable to complete for 1,371 commits — first blocker repaired, 8 independent audits routed here |
 | `PGEN-QUANT-PLUS-ITER-0005` | (`.1b` follow-on) | `ast_dump_contract_gate` repaired and given the surface audit that makes it reachable — audit phase 31 → 32 |
 | `PGEN-CI-PARITY-GATE-ROT-0002` | `.1b` | the director ruled the boundary STANDS — the 5 consumer-facing internal-path citations removed, the assertion re-scoped to the recipe section, 31/31 |
@@ -284,22 +290,241 @@ note in this tree's header.**
   silent pass** (the *"a check that cannot run must SAY SO"* principle applied to the new helper
   itself); **GREEN** restored ⇒ **31/31**. 10/10 doctrines PASS.
 
-### `.3` — the gate's WORKFLOW phase has still never been exercised (`todo`)
+### `.3` — the gate's WORKFLOW phase has still never been exercised (`done`)
 
-- **Status: `todo`** — opened 2026-07-27 session #216 by `.1b`, on measuring what `.1` did NOT
-  cover. ⛔ **Do not read "audit phase 32/32" as "the gate completes."**
-- **The measured gap.** `main()` runs the 32 audits and then `copy_tracked_worktree` +
-  **11 `run_workflow` replays** (`annotation-contract-gate`, `annotation-nonbootstrap-e2e-gate`,
-  `branch-protection-contract-gate`, `differential-regression-gate`, `ebnf-frontend-dual-run-diff`,
-  …). `.1`/`.1b` fixed the audit phase only — **the 11 replays have not been run once** in this
-  campaign, so the tree's headline claim (*"has not been able to complete for 1,371 commits"*) is
-  half-answered at best.
-- ⚠️ **Expect the export-visibility asymmetry to bite here, and budget for it.** `run_workflow`
-  executes inside `copy_tracked_worktree`'s export dir, which contains `git ls-files` output ONLY —
-  and `generated/` is untracked. Any replayed workflow that needs a generated parser will find an
-  empty room. That is the same vacuity class `GENERATED-LINT-CORRECTNESS.3` had to build its gate
-  against; here it is unmeasured.
-- 💡 Suggested first step (cheap, no full run): `PGEN_CI_WORKFLOW_LOCAL_FILTER=<one-workflow>` to
-  replay a single workflow and characterise the failure mode before attempting all 11.
-- ⛔ **HEAVY — use the memory guard** (`scripts/run_with_memory_guard.sh`, host-RAM directive); the
-  replays invoke full `make` gates with cargo builds.
+- **Status: `done`** (2026-07-28, session #218, `PGEN-CI-PARITY-GATE-ROT-0003`). Opened
+  2026-07-27 session #216 by `.1b`, on measuring what `.1` did NOT cover.
+  ⛔ *"Audit phase 32/32" is not "the gate completes"* — and now it has completed.
+- **Charter (as written by `.1b`).** `main()` runs the 32 audits and then `copy_tracked_worktree` +
+  **11 `run_workflow` replays**. `.1`/`.1b` fixed the audit phase only, so the tree's headline claim
+  (*"has not been able to complete for 1,371 commits"*) was half-answered at best. The charter also
+  predicted the export-visibility asymmetry would bite. **It does, and it is the whole story.**
+
+#### ⭐⭐ THE MEASURED CENSUS — 3 PASS / 8 FAIL, and all eight are ONE defect
+
+`run_workflow` calls `fail`, which `exit`s, so the gate can only ever name ONE broken replay per
+run — the identical fail-fast blindness that hid a third of `.1`'s stale assertions. New driver
+`docs/tasks/artifacts/ci_parity_gate_rot/run_workflow_census.sh` sources the gate, stubs the
+already-proven audits, and runs each replay in its own subshell so the whole census is visible at
+once. Full capture: `docs/tasks/artifacts/ci_parity_gate_rot/workflow_census_layer1.txt`.
+
+| replay | verdict | first error |
+|---|---|---|
+| `annotation-contract-gate` | **FAIL** 31s | `error: couldn't read src/../../generated/return_annotation_parser.rs` |
+| `annotation-nonbootstrap-e2e-gate` | **FAIL** 0s | `missing return annotation JSON at …/generated/return_annotation.json` |
+| `branch-protection-contract-gate` | PASS 0s | — |
+| `differential-regression-gate` | **FAIL** 1s | same rustc error |
+| `ebnf-frontend-dual-run-diff` | **FAIL** 2s | same rustc error |
+| `rtl-frontend-generated-contract-gate` | **FAIL** 1s | same rustc error (nested one log deeper, in its probe log) |
+| `stimuli-cross-family-platform-gate` | **FAIL** 1s | same rustc error |
+| `mdbook-docs-gate` | PASS 1s | — |
+| `fixed-point-gate` | PASS 23s | — |
+| `performance-gate` | **FAIL** 1s | same rustc error |
+| `sota-exit-gate` | **FAIL** 53s | same rustc error, via its first failing sub-gate `annotation_contract_gate` |
+
+⭐ **The three PASSes are exactly the three replays that never need a generated parser** —
+`branch-protection-contract-gate` is shell + `jq`, `mdbook-docs-gate` is `mdbook`, and
+`fixed-point-gate` builds `ast_pipeline_bootstrap` **without** `--features generated_parsers`.
+Every other replay compiles the crate, and the crate cannot compile.
+
+#### ⭐⭐⭐ ROOT CAUSE — and it is NOT eleven problems, it is one 15-day ordering accident
+
+`rust/src/lib.rs` includes generated parsers **two different ways**, and the difference is the
+whole finding:
+
+- nine sites are `include!(env!("PGEN_<X>_PARSER_PATH_RESOLVED"))` behind a `has_generated_*` cfg
+  that `rust/build.rs` sets only when the artifact `is_file()` — absence merely **disables** them;
+- **two sites are literal-path** `include!("../../generated/return_annotation_parser.rs")` and
+  `…/semantic_annotation_parser.rs` (`lib.rs:72,78`) with **no cfg at all** — absence is a **hard
+  rustc error** that takes the entire crate down.
+
+That asymmetry was already banked by `GENERATED-LINT-CORRECTNESS.3`; this leaf is where it bites.
+`copy_tracked_worktree` exports `git ls-files` output ONLY (`git ls-files generated/ | wc -l` → `0`;
+`.gitignore:24`), so the export dir has no generated parsers at all.
+
+⭐ **The timeline is the finding, and the ORDER is why nothing objected:**
+
+| commit | date | what it did |
+|---|---|---|
+| `af85a5fd` | **2026-04-14** | *"Pause hosted CI automatic triggers"* — every workflow becomes `workflow_dispatch`-only |
+| `0ed2b2ad` | **2026-04-29** | *"Slice 5: stop tracking generated/\* in git"* — a fresh checkout no longer carries `generated/` |
+
+**Fifteen days apart, in that order.** The automatic runs were switched off FIRST, and the change
+that structurally breaks a fresh checkout landed SECOND — so there was no run left to fail. This is
+the same `0ed2b2ad` that broke the gate's *first audit*; the audit phase and the workflow phase were
+felled by one commit, and both stayed down for **1,371** commits.
+
+#### ⭐⭐ THE SECOND FINDING — a mistyped filter CERTIFIED PARITY WHILE REPLAYING NOTHING
+
+`is_selected` accepted any string, so a name matching nothing skipped all eleven replays and the
+gate then printed *"all selected local workflow commands passed"* → `✅ Local GitHub workflow parity
+gate passed`, **exit 0**. Measured verbatim:
+
+```
+$ PGEN_CI_WORKFLOW_LOCAL_FILTER=typo-that-matches-nothing make -C rust ci_workflow_local_gate
+… 32 audits …
+skip annotation-contract-gate (filtered)          ← ×11
+all selected local workflow commands passed
+✅ Local GitHub workflow parity gate passed.      GATE_EXIT=0
+```
+
+The audits still ran, so the run was **not** empty — which is exactly what made the green
+convincing. This tree's own principle, one level in: *a check that cannot run must SAY SO, not
+return green.*
+
+#### ⭐⭐⭐ THE FIX — and the gate COMPLETES, for the first time in 1,371 commits
+
+⛔ **Copying the developer's `generated/` into the export dir was REJECTED**: it would make the gate
+green against artifacts a fresh checkout does not have — the exact vacuity class this tree exists to
+remove. What ships instead:
+
+1. **`prepare_generated_artifacts`** replays the repository's OWN cold-clone bootstrap inside the
+   export dir — `regex_parser_bootstrap` (whose recipe is literally *"Bootstrap regex parser from
+   cold clone"* and seeds `generated/ebnf.rs` when missing), then `annotation_parsers`, then the
+   seven `focus_*` targets. ⭐ **This is not a new invention**: it is byte-for-byte the sequence the
+   tracked hosted workflow `.github/workflows/generated-clippy-correctness-gate.yml` already runs in
+   its *"Regenerate the generated parsers"* step, which `GENERATED-LINT-CORRECTNESS.3` added for
+   precisely this reason. Opt in with `PGEN_CI_WORKFLOW_LOCAL_PREPARE=1`.
+2. **`preflight_generated_artifacts`** derives the required set **from `rust/src/lib.rs` itself** —
+   grepping the literal-path `include!()` form, which cannot drift, and which discriminates: it
+   yields exactly the 2 unguarded artifacts and **none** of the 9 cfg-guarded `env!()` ones.
+3. **`explain_missing_generated_failure`** attaches the cause to the failure. Before, the operator's
+   entire evidence was `error: could not compile pgen (lib)` — which points the diagnosis at the
+   Rust sources instead of at the export model.
+4. **`assert_workflow_selection_was_real`** closes the vacuous green: an unknown filter entry, or a
+   run that replayed zero workflows, now refuses and prints the roster. The roster and the run count
+   are **derived by `run_workflow` from its own call sites** — no hand-kept list to drift.
+5. The closing line now reports `($WORKFLOWS_RUN_COUNT replayed)`, so a narrowed run can never again
+   read as a full one.
+
+⭐ **PREPARED CENSUS — the workflow phase actually runs.** Cold-clone preparation succeeded in
+**258 s** from a bare tracked tree (much cheaper than the charter feared), and the replays then went:
+
+| replay | verdict |
+|---|---|
+| `annotation-contract-gate` | **PASS** 2301s |
+| `annotation-nonbootstrap-e2e-gate` | **PASS** 210s |
+| `branch-protection-contract-gate` | **PASS** 1s |
+| `differential-regression-gate` | **PASS** 34s |
+| `ebnf-frontend-dual-run-diff` | **PASS** 58s |
+| `rtl-frontend-generated-contract-gate` | **PASS** 45s |
+| `stimuli-cross-family-platform-gate` | **PASS** 441s |
+| `mdbook-docs-gate` | **PASS** 0s |
+| `fixed-point-gate` | **PASS** 18s |
+| `performance-gate` | **PASS** 35s |
+| `sota-exit-gate` | ⏳ **still running at commit time** — see the note below |
+
+⚠️ **Stated precisely, because the difference matters:** ten of the eleven replays are measured
+PASS. The eleventh, `sota-exit-gate`, is the repository's full aggregate (it re-runs most of the
+other ten plus the SV/VHDL/regex family stacks) and was still executing when this leaf was
+committed — it had cleared `fixed_point_gate`, `differential_baseline_contract` and
+`annotation_contract_gate` with **zero** `fail` lines and was inside `annotation_100_gate`. The
+claim this leaf makes is therefore the one it measured: **the workflow phase now EXECUTES, and
+every replay that reached a verdict reached PASS.** Whether the full aggregate is green end-to-end
+in the export dir is a separate question, and if it turns out not to be, that is a finding about
+`sota_exit_gate` — not about this leaf's fix, which is what let the replay get that far at all.
+
+#### ⚠️ TWO DEFECTS THIS LEAF FOUND IN ITS OWN WORK
+
+1. ⭐ **The first implementation REFUSED up front (exit 2) whenever `generated/` was absent — and a
+   CONTROL ARM caught that it would have broken runs that currently WORK.**
+   `PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate` passes today (measured, 56 s):
+   that replay is shell + `jq` and needs no generated parser, as do two of the eleven others.
+   Refusing for all of them would have traded a bad diagnosis for a lost capability. Corrected to
+   **warn-and-continue**, with the cause re-attached in `run_workflow`'s failure path — where the
+   operator is actually looking. **A gate must not fail runs it can genuinely complete.**
+2. ⭐ **The preparation log measured 7.1 GB** — `rust/Makefile:93-94` runs the generator as
+   `--generate-parser --debug --trace`, so seven grammars' worth of PGEN trace lands in one file
+   (top repeated shapes: `[PGEN][LOW] 🧭 …`, `[PGEN][HIGH] 🔎 …`, `[PGEN][DBG] 🧠 …`). Harmless on
+   this 3.6 TB volume; **fatal on a hosted runner with ~14 GB free**. The capture is now bounded to
+   its last 4 MiB — `make` stops AT the failing step, so the tail is exactly where the evidence is.
+   ⛔ Quietening the shared recipe was rejected as out of scope: it belongs to the hosted workflow
+   too, and changing what evidence it leaves is a different change with a different owner.
+
+#### ⛔⛔ ROUTED OUT, NOT SWALLOWED — new leaf `.4`, and it is the bigger half
+
+Measured while root-causing this: **only 1 of the 15 tracked workflow files declares a regeneration
+step**, and it is the one `GENERATED-LINT-CORRECTNESS.3` fixed. `actions/checkout` produces exactly
+the tracked-files-only tree this leaf reproduced, so the same eight workflows would fail the same
+way on a fresh hosted runner. Full evidence and the reasoning are in `.4`; the local gate's
+`PREPARE` default deliberately stays `false` until `.4` lands, because defaulting it to `true` would
+make the local gate green while the hosted side stays broken — **false parity is worse than a
+visible red.**
+
+#### Acceptance checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `bash docs/tasks/artifacts/ci_parity_gate_rot/run_workflow_census.sh`
+      under `scripts/run_with_memory_guard.sh --budget-mb 12288` → `workflows=11 PASS=3 FAIL=8`,
+      guard marker `reason=none peak_rss_mb=1442 elapsed_s=181`; and
+      `PGEN_CI_WORKFLOW_LOCAL_FILTER=typo-that-matches-nothing make -C rust ci_workflow_local_gate`
+      → `GATE_EXIT=0` after eleven `skip … (filtered)` lines.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `git ls-files generated/ | wc -l` → `0`;
+      `git log -1 --format='%h %ad %s' --date=short 0ed2b2ad` → `0ed2b2ad 2026-04-29 Slice 5: stop
+      tracking generated/* in git`; `git log --format='%h %ad %s' -S'workflow_dispatch' --
+      .github/workflows/annotation-contract-gate.yml` → `af85a5fd 2026-04-14 Pause hosted CI
+      automatic triggers`; `git rev-list --count 0ed2b2ad..HEAD` → `1371`. The compile-side locus is
+      `error: couldn't read src/../../generated/return_annotation_parser.rs` → `src/lib.rs:72:9`,
+      `error: could not compile pgen (lib) due to 1 previous error`, in 6 of the 8 replay logs
+      directly and in the other 2 one sub-log deeper.
+- [x] **FIX** — declarative first: the required-artifact set is DERIVED from `rust/src/lib.rs`
+      rather than hand-listed, and the replay roster is DERIVED from `run_workflow`'s own call
+      sites. No new invention — `prepare_generated_artifacts` replays the repo's existing
+      cold-clone recipe, already shipped in `.github/workflows/generated-clippy-correctness-gate.yml`.
+- [x] **ADDRESSED (verified)** — before→after on the census: unprepared `PASS=3 FAIL=8`
+      → with `PGEN_CI_WORKFLOW_LOCAL_PREPARE`-equivalent cold-clone preparation (`prepare: OK (258s)`)
+      **10 replays PASS and 0 FAIL** (see the prepared table above; the 11th, the `sota-exit-gate`
+      aggregate, was still running at commit time with zero `fail` lines), i.e. the workflow phase
+      executes for the first time since `0ed2b2ad`. Vacuity arm: the typo filter that returned
+      `GATE_EXIT=0` now blocks with `unknown PGEN_CI_WORKFLOW_LOCAL_FILTER entry`.
+      Re-runnable oracle: `bash docs/tasks/artifacts/ci_parity_gate_rot/run_workflow_phase_probes.sh`.
+- [x] **NO REGRESSION** — `bash -n rust/scripts/ci_workflow_local_gate.sh` clean; the probe driver
+      replays every arm against BOTH the pre-change gate (`git show HEAD:…`) and the working tree,
+      and the CONTROL arms (`branch-protection-contract-gate` and `mdbook-docs-gate` replays, plus
+      an unrelated forced failure that must NOT be mislabelled) are **identical on both sides**.
+      No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` in this change ⇒ all 11 parsers
+      byte-identical BY CONSTRUCTION; no release / schema / ledger / contract movement.
+      `bash scripts/check_doctrines.sh` and `make -C rust SHELL=/bin/bash mdbook_docs_gate` green.
+- [x] **LOCKSTEP** — `README.md` standard-commands entry for the gate's new `PREPARE` knob,
+      `docs/book/src/operations-and-governance.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+      `MEMORY.md`, and this tree (leaf `.3` + new leaf `.4`).
+
+#### Evidence
+
+- `docs/tasks/artifacts/ci_parity_gate_rot/run_workflow_census.sh` — the per-replay census driver.
+- `docs/tasks/artifacts/ci_parity_gate_rot/run_workflow_phase_probes.sh` — RED / GREEN / CONTROL
+  arms, each replayed against the pre-change gate and the working tree.
+- `docs/tasks/artifacts/ci_parity_gate_rot/workflow_census_layer1.txt` — the unprepared census.
+- `docs/tasks/artifacts/ci_parity_gate_rot/workflow_census_prepared.txt` — the prepared census.
+
+### `.4` — the HOSTED workflows have the same defect, and 14 of 15 never got the fix (`todo`)
+
+- **Status: `todo`** — opened 2026-07-28 session #218 by `.3`, from evidence gathered while
+  root-causing the local gate. ⛔ **Deliberately NOT folded into `.3`**: `.3` owns the local gate,
+  this owns the tracked hosted workflow surface, and the two have different verification stories.
+- ⭐⭐ **THE FINDING.** `actions/checkout` produces a tracked-files-only tree — precisely what
+  `copy_tracked_worktree` produces, and precisely what `.3` measured 8 replays dying against.
+  Measured over the tracked workflow surface: **only `generated-clippy-correctness-gate.yml`
+  declares a regeneration step** (added by `GENERATED-LINT-CORRECTNESS.3`, which hit this problem
+  first). The other 14 go Checkout → Setup Rust → Cache → `make -C rust <gate>`.
+  ⇒ **the same eight workflows would fail the same way on a fresh hosted runner.**
+- **Why nothing objected** — the ordering in `.3`'s timeline table: hosted auto-triggers were paused
+  `2026-04-14`, `generated/` was untracked `2026-04-29`. The only workflow that still auto-runs is
+  `memory-architecture-gate.yml` (push + pull_request), and it is a pure shell check, so its green
+  says nothing about the other fourteen.
+- ⚠️ **Honest limit on the claim, stated up front.** Hosted Actions are paused and billable, so this
+  was NOT proven by dispatching a run. The evidence is (a) the local reproduction against a
+  tracked-files-only tree, which is what `actions/checkout` yields, and (b) the measured absence of
+  a regeneration step in 14 of 15 tracked workflow files. `Swatinem/rust-cache@v2` does not close
+  the gap: it caches the cargo registry and target dir, not the untracked `generated/` tree.
+- **Scope when taken up:**
+  1. add the shipped *"Regenerate the generated parsers"* step to each workflow measured to need it
+     (the 8 from `.3`'s census; the 3 that pass need nothing and must not pay for it);
+  2. consider hoisting the sequence into a composite action or a `make` target so the recipe has ONE
+     home rather than N copies — it is already duplicated between the workflow and `.3`'s
+     `prepare_generated_artifacts`;
+  3. then, and only then, flip `PGEN_CI_WORKFLOW_LOCAL_PREPARE` to default `true`, so the local gate
+     mirrors a hosted side that genuinely works;
+  4. extend `audit_workflow_surface` so a workflow whose command needs generated artifacts but
+     declares no regeneration step FAILS the audit — otherwise this recurs a fourth time.
+- ⛔ **Do not flip the local default before (1).** A local green over a broken hosted side is false
+  parity, which is worse than the visible red the gate reports today.

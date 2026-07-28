@@ -1,0 +1,29 @@
+CI-PARITY-GATE-ROT.3 — workflow-phase probe arms (BEFORE=HEAD 9a9ae0f3, AFTER=working tree)
+driver: docs/tasks/artifacts/ci_parity_gate_rot/run_workflow_phase_probes.sh
+
+==============================================================================
+WORKFLOW-PHASE PROBES  (before=HEAD, after=working tree)
+==============================================================================
+ok    RED-1 unknown-filter-name          before pass
+ok    RED-1 unknown-filter-name          after  block + needle present
+  ----
+ok    RED-2 one-real-one-typo            before pass
+ok    RED-2 one-real-one-typo            after  block + needle present
+  ----
+ok    RED-3 missing-generated-explained  before block
+ok    RED-3 missing-generated-explained  after  block + needle present
+  ----
+ok    CTRL-1 shell-only-replay-still-ok  before pass
+ok    CTRL-1 shell-only-replay-still-ok  after  pass  + needle present
+  ----
+ok    CTRL-2 mdbook-replay-still-ok      before pass
+ok    CTRL-2 mdbook-replay-still-ok      after  pass
+  ----
+CTRL-3 unrelated-failure-not-mislabelled
+ok    CTRL-3                             blocked for its OWN reason, unexplained by the new block
+  ----
+GREEN-1 derivation-discriminates
+ok    GREEN-1                            literal=[generated/return_annotation_parser.rs generated/semantic_annotation_parser.rs] cfg-guarded-ignored=9
+  ----
+------------------------------------------------------------------------------
+arms=7  PASS=7  FAIL=0

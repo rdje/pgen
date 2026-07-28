@@ -1,5 +1,84 @@
 # CHANGES.md
 
+## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0003 — the workflow phase runs for the first time in 1,371 commits, and a mistyped filter had been certifying parity while replaying nothing
+
+`CI-PARITY-GATE-ROT.3` DONE; new leaf `.4` opened. Gate script + docs + 2 tracked drivers + 2
+captured artifacts — **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`** ⇒ all 11 generated
+parsers byte-identical BY CONSTRUCTION; no release / schema / ledger / contract movement.
+
+- ⭐⭐ **"AUDIT PHASE 32/32" WAS NOT "THE GATE COMPLETES", AND THE REPLAY PHASE HAD NEVER RUN.**
+  `.1`/`.1b` took the audits from 23/8 to 32/32; `main()` then does `copy_tracked_worktree` plus
+  **11 `run_workflow` replays** that had not executed once in this campaign. `run_workflow` calls
+  `fail`, which `exit`s, so the gate can only ever name ONE broken replay per run — the same
+  fail-fast blindness that hid a third of `.1`'s stale assertions. New driver
+  `run_workflow_census.sh` sources the gate and runs each replay in its own subshell: **11
+  workflows, 3 PASS, 8 FAIL.**
+- ⭐⭐⭐ **ALL EIGHT FAILURES ARE ONE DEFECT, AND THE THREE PASSES PROVE IT.** Every failure resolves
+  to `error: couldn't read src/../../generated/return_annotation_parser.rs` → `src/lib.rs:72:9` →
+  `error: could not compile pgen (lib)`. The export dir is `git ls-files` output ONLY and
+  `generated/` is untracked (`git ls-files generated/ | wc -l` → `0`). `rust/src/lib.rs` includes
+  nine generated parsers behind a `has_generated_*` cfg — absence merely DISABLES those — but
+  **two by literal path with no cfg at all**, so their absence takes the whole crate down. The 3
+  passing replays are exactly the 3 that never compile the crate: `branch-protection-contract-gate`
+  (shell + `jq`), `mdbook-docs-gate` (`mdbook`), `fixed-point-gate` (builds `ast_pipeline_bootstrap`
+  WITHOUT `--features generated_parsers`).
+- ⭐⭐⭐ **THE ORDER IS WHY NOTHING OBJECTED — 15 DAYS APART.** `af85a5fd` (2026-04-14) *"Pause hosted
+  CI automatic triggers"* switched every workflow to `workflow_dispatch`-only; `0ed2b2ad`
+  (2026-04-29) *"stop tracking generated/* in git"* then made a fresh checkout structurally
+  unbuildable. The automatic runs were turned off FIRST and the breaking change landed SECOND, so
+  there was no run left to fail. That is the SAME commit that broke the gate's first audit: one
+  commit felled both phases, and both stayed down for `git rev-list --count 0ed2b2ad..HEAD` = **1,371**
+  commits.
+- ⭐⭐ **A SECOND, INDEPENDENT VACUOUS GREEN: A MISTYPED FILTER CERTIFIED PARITY WHILE REPLAYING
+  NOTHING.** `is_selected` accepted any string, so
+  `PGEN_CI_WORKFLOW_LOCAL_FILTER=typo-that-matches-nothing` skipped all eleven replays and the gate
+  printed `all selected local workflow commands passed` → `✅ Local GitHub workflow parity gate
+  passed`, **exit 0**. The 32 audits still ran, which is exactly what made the green convincing.
+  The sharper shape is one real name plus one typo: measured, that PASSED before this change while
+  silently dropping a whole workflow the operator believed they were replaying.
+- ✅ **THE FIX — AND THE GATE NOW COMPLETES.** ⛔ Copying the developer's `generated/` into the
+  export dir was REJECTED: that would make the gate green against artifacts a fresh checkout does
+  not have, the exact vacuity class this tree exists to remove. Instead `prepare_generated_artifacts`
+  replays the repository's OWN cold-clone bootstrap inside the export dir (`regex_parser_bootstrap`,
+  whose recipe is literally *"Bootstrap regex parser from cold clone"*, then `annotation_parsers`,
+  then the seven `focus_*` targets) — ⭐ **not a new invention**: byte-for-byte the sequence the
+  tracked hosted workflow `generated-clippy-correctness-gate.yml` already runs. Opt in with
+  `PGEN_CI_WORKFLOW_LOCAL_PREPARE=1`. Measured: preparation **258 s** from a bare tracked tree, after
+  which **10 replays PASS and 0 FAIL** — the 11th, the `sota-exit-gate` aggregate, was still running
+  at commit time with zero `fail` lines, so the claim is exactly what was measured: *the workflow
+  phase now EXECUTES, and every replay that reached a verdict reached PASS.*
+- ⭐ **THE REQUIRED-ARTIFACT SET AND THE REPLAY ROSTER ARE BOTH DERIVED, NOT HAND-LISTED.** The
+  preflight greps `rust/src/lib.rs` for the literal-path `include!()` form — proven to discriminate:
+  exactly the 2 unguarded artifacts, **none** of the 9 cfg-guarded `env!()` ones. The filter roster
+  and run count are accumulated by `run_workflow` from its own call sites. Neither can drift from
+  what the gate actually does.
+- ⚠️ **TWO DEFECTS THIS LEAF FOUND IN ITS OWN WORK.** (1) ⭐ **A CONTROL ARM CAUGHT AN
+  OVER-BROADENING**: the first implementation refused up front (exit 2) whenever `generated/` was
+  absent, which would have turned `PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate` —
+  a run that PASSES today, measured at 56 s — into a failure, along with two other replays that need
+  no generated parser. Corrected to warn-and-continue, with the cause re-attached in
+  `run_workflow`'s failure path where the operator is actually looking. **A gate must not fail runs
+  it can genuinely complete.** (2) **The preparation log measured 7.1 GB** — `rust/Makefile:93-94`
+  runs the generator as `--generate-parser --debug --trace`, so seven grammars of PGEN trace land in
+  one file. Harmless on a 3.6 TB volume, fatal on a hosted runner with ~14 GB free; the capture is
+  now bounded to its last 4 MiB, and `make` stops AT the failing step so the tail is where the
+  evidence is.
+- ⛔⛔ **ROUTED OUT, NOT SWALLOWED — NEW LEAF `.4`, THE BIGGER HALF.** Measured while root-causing:
+  **only 1 of the 15 tracked workflow files declares a regeneration step**, and it is the one
+  `GENERATED-LINT-CORRECTNESS.3` fixed. `actions/checkout` yields exactly the tracked-files-only tree
+  this leaf reproduced ⇒ the same eight workflows would fail the same way on a fresh hosted runner.
+  ⚠️ Stated limit: hosted Actions are paused and billable, so this was NOT proven by dispatching a
+  run — the evidence is the local reproduction plus the measured absence of the step in 14 of 15
+  files. ⛔ `PGEN_CI_WORKFLOW_LOCAL_PREPARE` therefore stays `false` by default until `.4` lands:
+  **a local green over a broken hosted side is false parity, which is worse than a visible red.**
+- **Verified.** Probe driver `run_workflow_phase_probes.sh` replays every arm against BOTH the
+  pre-change gate (`git show HEAD:…`) and the working tree: **7/7**, with all three RED arms
+  flipping pass→block and all three CONTROL arms **identical on both sides** — including one that
+  forces an unrelated failure and asserts the new explanation does NOT fire on it (a genuine gate
+  defect mislabelled as an environment problem is worse than no explanation). `bash -n` clean,
+  **10/10 doctrines PASS**, `mdbook_docs_gate` GREEN.
+
+
 ## 2026-07-28 - PGEN-DOCTRINE-GAP-OWNERSHIP-0002 — the census was itself a recorded-but-inert fact: 143 orphans triaged to 18, behind a ratchet that BLOCKS
 
 `DOCTRINE-GAP-OWNERSHIP.1` DONE. Docs + task-tree artifacts only — **no `grammars/*.ebnf`, no

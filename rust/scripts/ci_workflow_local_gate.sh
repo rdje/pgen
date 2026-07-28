@@ -36,6 +36,15 @@ FILTER_RAW="${PGEN_CI_WORKFLOW_LOCAL_FILTER:-}"
 CARGO_OFFLINE_RAW="${PGEN_CI_WORKFLOW_LOCAL_CARGO_OFFLINE:-true}"
 KEEP_RUNS_RAW="${PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS:-false}"
 KEEP_RUNS_NORMALIZED="$(normalize_bool "$KEEP_RUNS_RAW" "PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS")"
+PREPARE_RAW="${PGEN_CI_WORKFLOW_LOCAL_PREPARE:-false}"
+PREPARE_NORMALIZED="$(normalize_bool "$PREPARE_RAW" "PGEN_CI_WORKFLOW_LOCAL_PREPARE")"
+
+# CI-PARITY-GATE-ROT.3 — the roster of replayable workflow names, and how many actually RAN.
+# Both are DERIVED by `run_workflow` from its own call sites; nothing here is a hand-kept list that
+# could drift away from `main()`. They exist so the gate can answer two questions it previously
+# could not: "was that filter name real?" and "did this run replay anything at all?".
+WORKFLOW_ROSTER=""
+WORKFLOWS_RUN_COUNT=0
 
 mkdir -p "$EXPORT_DIR" "$LOG_DIR"
 
@@ -3018,12 +3027,18 @@ run_workflow() {
   local command_line="$4"
   local log_file="$LOG_DIR/${workflow_name}.log"
 
+  # CI-PARITY-GATE-ROT.3 — record the name BEFORE the filter test, so the roster is every workflow
+  # this gate knows how to replay rather than only the selected ones. That is what makes
+  # `assert_workflow_selection_was_real` able to tell a typo from a deliberate narrowing.
+  WORKFLOW_ROSTER="$WORKFLOW_ROSTER $workflow_name"
+
   if ! is_selected "$workflow_name"; then
     note "skip $workflow_name (filtered)"
     return 0
   fi
 
   assert_workflow_command "$workflow_file" "$command_marker"
+  WORKFLOWS_RUN_COUNT=$((WORKFLOWS_RUN_COUNT + 1))
   note "run $workflow_name"
   if (
     cd "$EXPORT_DIR"
@@ -3033,8 +3048,187 @@ run_workflow() {
     note "ok $workflow_name ($log_file)"
   else
     tail -n 120 "$log_file" >&2 || true
+    explain_missing_generated_failure "$log_file"
     fail "workflow local parity failed: $workflow_name (log: $log_file)"
   fi
+}
+
+assert_workflow_selection_was_real() {
+  # CI-PARITY-GATE-ROT.3. ⭐⭐ THIS CLOSES A MEASURED VACUOUS GREEN.
+  #
+  # `is_selected` accepted ANY string, and a name matching nothing simply skipped all eleven
+  # replays — after which `main` printed "all selected local workflow commands passed" and the
+  # Makefile printed "✅ Local GitHub workflow parity gate passed", exit 0. Measured verbatim with
+  # PGEN_CI_WORKFLOW_LOCAL_FILTER=typo-that-matches-nothing: eleven "skip … (filtered)" lines and a
+  # green verdict. A typo in the filter therefore CERTIFIED PARITY WHILE REPLAYING NOTHING.
+  #
+  # That is this tree's own signature defect one level in: *a check that cannot run must SAY SO,
+  # not return green*. The audits still ran, so the run was not entirely empty — which is exactly
+  # what made it convincing, and exactly why the closing message must not speak for a phase that
+  # did not execute.
+  local item matched name
+  local -a filter_items
+
+  if [[ -n "$FILTER_RAW" ]]; then
+    IFS=',' read -r -a filter_items <<<"$FILTER_RAW"
+    for item in "${filter_items[@]}"; do
+      matched=0
+      for name in $WORKFLOW_ROSTER; do
+        if [[ "$name" == "$item" ]]; then
+          matched=1
+          break
+        fi
+      done
+      if [[ "$matched" -eq 0 ]]; then
+        fail "unknown PGEN_CI_WORKFLOW_LOCAL_FILTER entry '$item': no such replayable workflow, so nothing ran for it. Known workflows:$WORKFLOW_ROSTER"
+      fi
+    done
+  fi
+
+  if [[ "$WORKFLOWS_RUN_COUNT" -eq 0 ]]; then
+    fail "workflow phase replayed 0 workflows — refusing to report local parity. Known workflows:$WORKFLOW_ROSTER"
+  fi
+}
+
+required_unguarded_generated_artifacts() {
+  # CI-PARITY-GATE-ROT.3 — DERIVE, do not hand-list.
+  #
+  # `rust/src/lib.rs` includes generated parsers two different ways, and the difference is the
+  # whole story:
+  #   - `include!(env!("PGEN_<X>_PARSER_PATH_RESOLVED"))` sites sit behind a `has_generated_*` cfg
+  #     that `rust/build.rs` sets only when the artifact `is_file()` — absence merely DISABLES them;
+  #   - `include!("../../generated/<x>.rs")` LITERAL-path sites have no such cfg, so absence is a
+  #     hard `error: couldn't read …` and the whole crate fails to compile.
+  # Only the literal form can break the build, and grepping for exactly that form means this check
+  # can never drift away from what `lib.rs` actually does.
+  (cd "$ROOT_DIR" && grep -oE 'include!\("\.\./\.\./generated/[a-z_]+\.rs"\)' rust/src/lib.rs 2>/dev/null) |
+    sed -E 's|.*(generated/[a-z_]+\.rs).*|\1|' | sort -u
+}
+
+prepare_generated_artifacts() {
+  # CI-PARITY-GATE-ROT.3 — materialise `generated/` inside the export dir.
+  #
+  # ⛔ NOT a shortcut and NOT a copy from the developer's tree. This replays the repository's OWN
+  # cold-clone bootstrap recipe — `rust/Makefile`'s `regex_parser_bootstrap` ("Bootstrap regex
+  # parser from cold clone", which seeds `generated/ebnf.rs` when it is missing) followed by the
+  # annotation pair and the per-grammar `focus_*` targets. It is byte-for-byte the sequence the
+  # tracked hosted workflow `.github/workflows/generated-clippy-correctness-gate.yml` already runs
+  # in its "Regenerate the generated parsers" step, which `GENERATED-LINT-CORRECTNESS.3` added for
+  # precisely this reason. `audit_generated_clippy_correctness_surface` pins that step so the two
+  # cannot silently diverge.
+  #
+  # ⛔ Copying the developer's `generated/` into the export dir was REJECTED: it would make this
+  # gate green against artifacts a fresh checkout does not have, which is the vacuity class this
+  # tree exists to remove.
+  # ⚠️ THE LOG IS DELIBERATELY BOUNDED TO ITS TAIL, AND THAT IS A MEASURED DECISION.
+  # `rust/Makefile:93-94` runs the generator as `--generate-parser --debug --trace …`, so the
+  # cold-clone sequence emits PGEN's own `[PGEN][LOW]`/`[HIGH]`/`[DBG]` trace for seven grammars.
+  # Captured in full it measured **7.1 GB** for one preparation — fine on this 3.6 TB volume,
+  # fatal on a hosted runner with ~14 GB free. `make` stops AT the failing step, so the tail is
+  # exactly where a failure's evidence lives; `tail -c` also bounds memory to the window itself.
+  # ⛔ The alternative — quietening the recipe — was rejected as out of scope: that recipe is
+  # SHARED with the tracked hosted workflow, and changing what evidence it leaves is a different
+  # change with a different owner.
+  local log_file="$LOG_DIR/00-prepare-generated.log"
+  local log_tail_bytes=4194304
+  note "preparing generated/ inside the export dir (cold-clone bootstrap; log: $log_file, last ${log_tail_bytes}B)"
+  if (
+    cd "$EXPORT_DIR"
+    export CARGO_NET_OFFLINE="$CARGO_OFFLINE_RAW"
+    set -e
+    make -C rust SHELL=/bin/bash regex_parser_bootstrap
+    make -C rust SHELL=/bin/bash annotation_parsers
+    for grammar in json regex systemverilog systemverilog_preprocessor vhdl rtl_const_expr rtl_frontend; do
+      make -C rust SHELL=/bin/bash "focus_${grammar}"
+    done
+  ) 2>&1 | tail -c "$log_tail_bytes" >"$log_file"; then
+    note "ok prepare generated/ ($log_file)"
+  else
+    tail -n 60 "$log_file" >&2 || true
+    fail "could not prepare generated/ in the export dir (log: $log_file); the workflow phase cannot be replayed against an unprepared tree"
+  fi
+}
+
+preflight_generated_artifacts() {
+  # CI-PARITY-GATE-ROT.3. ⭐⭐ THE MEASURED HEADLINE OF THIS LEAF.
+  #
+  # `copy_tracked_worktree` exports `git ls-files` output ONLY, and `generated/` has been untracked
+  # since `0ed2b2ad` ("Slice 5: stop tracking generated/* in git", 2026-04-29). So the export dir
+  # has no generated parsers at all, and the first replay that compiles the crate dies with
+  #
+  #   error: couldn't read `src/../../generated/return_annotation_parser.rs`: No such file or
+  #   directory (os error 2)  --> src/lib.rs:72:9
+  #
+  # Measured over all eleven replays (`docs/tasks/artifacts/ci_parity_gate_rot/`): 3 PASS / 8 FAIL,
+  # and every one of the eight resolves to that single cause. The three that pass are exactly the
+  # three that never need a generated parser (`branch-protection-contract-gate` is shell+jq,
+  # `mdbook-docs-gate` is mdbook, `fixed-point-gate` builds the bootstrap binary WITHOUT
+  # `--features generated_parsers`).
+  #
+  # ⛔ Without this preflight the operator's evidence is eight identical `could not compile pgen`
+  # cascades, which read as "the Rust code is broken" — the diagnosis is aimed at the wrong thing
+  # entirely. A gate that cannot run must say WHY, and must not fail as though the subject under
+  # test were the broken party.
+  #
+  # ⚠️ WARN-AND-CONTINUE, NOT REFUSE — and that is a CORRECTION, caught by a control arm.
+  # The first cut of this function exited 2 up front. That would have broken a case which
+  # currently WORKS: `PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate` passes today
+  # (measured, 56s), because that replay is shell+jq and needs no generated parser at all. Three of
+  # the eleven replays are in that class. Refusing for all of them would have traded a bad
+  # diagnosis for a lost capability — a gate must not fail runs it can genuinely complete. So the
+  # missing state is announced loudly here, and the CAUSE is re-attached in `run_workflow`'s
+  # failure path, which is where the operator is actually looking when it bites.
+  local missing=""
+  local artifact
+
+  for artifact in $(required_unguarded_generated_artifacts); do
+    if [[ ! -f "$EXPORT_DIR/$artifact" ]]; then
+      missing="$missing $artifact"
+    fi
+  done
+
+  if [[ -z "$missing" ]]; then
+    note "preflight: generated/ artifacts present in the export dir"
+    return 0
+  fi
+
+  if [[ "$PREPARE_NORMALIZED" == "true" ]]; then
+    prepare_generated_artifacts
+    missing=""
+    for artifact in $(required_unguarded_generated_artifacts); do
+      if [[ ! -f "$EXPORT_DIR/$artifact" ]]; then
+        missing="$missing $artifact"
+      fi
+    done
+    if [[ -z "$missing" ]]; then
+      note "preflight: generated/ artifacts present after preparation"
+      return 0
+    fi
+    fail "preparation reported success but these artifacts are still absent from the export dir:$missing"
+  fi
+
+  note "preflight: ⚠️  export dir has NO generated parsers -- missing:$missing"
+  note "preflight: any replay that compiles the crate WILL fail; re-run with PGEN_CI_WORKFLOW_LOCAL_PREPARE=1"
+}
+
+explain_missing_generated_failure() {
+  # CI-PARITY-GATE-ROT.3 — attach the cause to the failure, not to a header the operator scrolled
+  # past twenty audits ago. Only fires when the replay's own log carries the signature, so a
+  # genuine gate failure is never mislabelled as an environment problem.
+  local log_file="$1"
+  grep -qE "couldn't read \`src/\.\./\.\./generated/|missing return annotation JSON at" "$log_file" 2>/dev/null || return 0
+
+  echo "" >&2
+  echo "  ^^^ this is NOT a defect in the Rust sources. The export dir is 'git ls-files' output" >&2
+  echo "      ONLY, and generated/ has been untracked since 0ed2b2ad ('Slice 5: stop tracking" >&2
+  echo "      generated/* in git', 2026-04-29). rust/src/lib.rs includes the two annotation" >&2
+  echo "      parsers by LITERAL path with no has_generated_* cfg, so their absence is a hard" >&2
+  echo "      rustc error rather than a disabled feature." >&2
+  echo "      fix:  re-run with PGEN_CI_WORKFLOW_LOCAL_PREPARE=1 (replays the repository's own" >&2
+  echo "            cold-clone bootstrap inside the export dir before the replays)." >&2
+  echo "      note: 8 of the 11 replayed workflows hit this, and only" >&2
+  echo "            .github/workflows/generated-clippy-correctness-gate.yml declares a" >&2
+  echo "            regeneration step -- see docs/tasks/CI-PARITY-GATE-ROT.md leaves .3 and .4." >&2
 }
 
 main() {
@@ -3043,6 +3237,7 @@ main() {
   note "filter: ${FILTER_RAW:-<all>}"
   note "cargo_offline: $CARGO_OFFLINE_RAW"
   note "keep_success_runs: $KEEP_RUNS_NORMALIZED"
+  note "prepare_generated: $PREPARE_NORMALIZED"
 
   require_tool git
   require_tool cargo
@@ -3084,6 +3279,17 @@ main() {
   audit_generated_clippy_correctness_surface
   audit_ast_dump_contract_surface
   audit_summary_json_emission_surface
+
+  # CI-PARITY-GATE-ROT.3 — the audit phase is now 32/32, but that is NOT "the gate completes".
+  # Everything above reads files; everything below RUNS them, and the export dir has to be able to
+  # build before a single replay is meaningful. Refuse here, once, with the real cause — rather
+  # than eight identical rustc cascades that misdirect the diagnosis onto the Rust sources.
+  # ⚠️ Ordering note: with PGEN_CI_WORKFLOW_LOCAL_PREPARE=1 this runs BEFORE the filter names are
+  # validated (the roster is only complete once every run_workflow call site has been reached), so
+  # a mistyped filter costs one preparation before `assert_workflow_selection_was_real` rejects it.
+  # Deliberate: a second, source-grepped roster would be a parallel mechanism that can drift, and
+  # the default (PREPARE=false) refuses immediately anyway.
+  preflight_generated_artifacts
 
   run_workflow \
     "annotation-contract-gate" \
@@ -3141,7 +3347,8 @@ main() {
     "make -C rust SHELL=/bin/bash sota_exit_gate" \
     "PGEN_STRICT_ANNOTATION_VALIDATION=1 PGEN_SOTA_POLICY_FILE=$EXPORT_DIR/rust/config/sota_exit_policy.env PGEN_SOTA_RUN_EBNF_READINESS=1 PGEN_SOTA_REQUIRE_EBNF_STRICT=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=1 PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT=0 make -C rust SHELL=/bin/bash sota_exit_gate"
 
-  note "all selected local workflow commands passed"
+  assert_workflow_selection_was_real
+  note "all selected local workflow commands passed ($WORKFLOWS_RUN_COUNT replayed)"
 }
 
 main "$@"

@@ -1,0 +1,37 @@
+CI-PARITY-GATE-ROT.3 — workflow-phase census, PREPARED (cold-clone bootstrap in the export dir)
+captured: session #218, HEAD 9a9ae0f3
+driver:   docs/tasks/artifacts/ci_parity_gate_rot/run_workflow_census.sh
+prepare:  make -C rust regex_parser_bootstrap && make -C rust annotation_parsers &&
+          for g in json regex systemverilog systemverilog_preprocessor vhdl rtl_const_expr rtl_frontend;
+          do make -C rust focus_$g; done          # the sequence generated-clippy-correctness-gate.yml ships
+guard:    scripts/run_with_memory_guard.sh --budget-mb 12288
+
+prepare: OK (258s) -- from a BARE tracked-files-only tree, i.e. a cold clone
+
+==============================================================================
+VERDICT TABLE
+==============================================================================
+PASS  annotation-contract-gate                    2301s
+PASS  annotation-nonbootstrap-e2e-gate             210s
+PASS  branch-protection-contract-gate                1s
+PASS  differential-regression-gate                  34s
+PASS  ebnf-frontend-dual-run-diff                   58s
+PASS  rtl-frontend-generated-contract-gate          45s
+PASS  stimuli-cross-family-platform-gate           441s
+PASS  mdbook-docs-gate                               0s
+PASS  fixed-point-gate                              18s
+PASS  performance-gate                              35s
+
+sota-exit-gate  <still running at capture time>
+  sub-gates so far: ok=12  fail=0   (currently: ==> hdl_frontend_gate (required))
+
+==============================================================================
+CONTRAST WITH THE UNPREPARED RUN (workflow_census_layer1.txt)
+==============================================================================
+  unprepared:  PASS=3  FAIL=8   -- all 8 on ONE cause (generated/ absent from the export dir)
+  prepared:    PASS=10 FAIL=0   -- + the sota-exit-gate aggregate still running, 0 fail lines
+
+  The 3 that passed unprepared are the 3 that never compile the crate:
+    branch-protection-contract-gate  shell + jq
+    mdbook-docs-gate                 mdbook
+    fixed-point-gate                 ast_pipeline_bootstrap, WITHOUT --features generated_parsers

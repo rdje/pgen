@@ -108,6 +108,63 @@ This is a heavy gate (one `cargo check` per configuration, and distinct
 feature sets share no build artifacts). It is a maintained gate, not a
 pre-commit hook.
 
+## Workflow Parity (proving the CI commands locally)
+
+While hosted GitHub Actions are paused to conserve account minutes, the lane
+that stands in for them is:
+
+```bash
+make -C rust SHELL=/bin/bash ci_workflow_local_gate
+```
+
+It runs in two phases against an **export directory** built from `git ls-files`
+output — a deliberate simulation of what `actions/checkout` hands a fresh
+runner. The first phase is 32 *audits* (allowlists, contract surfaces, emission
+shapes: everything that can be decided by reading files). The second phase
+*replays* the command each tracked workflow runs.
+
+Two properties of that design are worth stating plainly, because both were
+learned the expensive way.
+
+**An audit phase at 32/32 is not "the gate completes."** The replay phase is
+where files stop being read and start being executed, and for 1,371 commits it
+had never run once. When it was finally exercised, 8 of the 11 replays failed —
+all eight for a single reason. `generated/` is untracked (it is pipeline output,
+regenerated locally), so the export directory contains no generated parsers; and
+`rust/src/lib.rs` includes two of them — the return-annotation and
+semantic-annotation parsers — by *literal path* with no `has_generated_*` cfg
+guard. The other nine sites are cfg-guarded, so their absence merely disables a
+parser. The two unguarded ones take the whole crate down with
+`error: couldn't read src/../../generated/return_annotation_parser.rs`. The three
+replays that pass are exactly the three that never compile the crate.
+
+The remedy is not to copy a developer's `generated/` into the export directory —
+that would make the gate green against artifacts a fresh checkout does not have,
+which is the failure mode the gate exists to detect. Instead:
+
+```bash
+PGEN_CI_WORKFLOW_LOCAL_PREPARE=1 make -C rust SHELL=/bin/bash ci_workflow_local_gate
+```
+
+replays the repository's own cold-clone bootstrap inside the export directory —
+`regex_parser_bootstrap`, then `annotation_parsers`, then the per-grammar
+`focus_*` targets — the same sequence the hosted generated-clippy workflow
+already uses. It costs roughly four minutes, after which the workflow phase runs.
+
+**A filter that matches nothing must not report success.** The gate accepts
+`PGEN_CI_WORKFLOW_LOCAL_FILTER` to narrow the replay set. A mistyped name used to
+skip every replay and then print `✅ Local GitHub workflow parity gate passed`
+with exit 0 — and because the 32 audits *had* run, the green looked earned. An
+unknown filter entry, or any run that ends up replaying zero workflows, is now
+refused with the list of known names, and the closing line reports how many
+workflows were actually replayed.
+
+Both fixes are the same principle this repository keeps re-deriving, applied to
+a shell gate rather than a parser: **a check that cannot run must say so, not
+return green** — and its corollary, that when a check cannot run it must name
+*its own* obstacle rather than failing as though the thing under test were
+broken.
+
 ## Documentation Governance
 
 The intended split is:
