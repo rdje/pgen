@@ -1,0 +1,15 @@
+==============================================================================
+CI-PARITY-GATE-ROT.5 — "the zero must be EARNED" probes
+==============================================================================
+✓ GREEN-1 healthy zero (attempts=1)      PASS
+✓ CTRL-1  same input, OLD assertion      FAIL
+✓ RED-A   vacuous run (attempts=0)       FAIL
+✓ RED-B   rejections, zero excerpts      FAIL
+✓ CTRL-3  RED-B input, OLD assertion (fails for the WRONG reason) FAIL
+✓ RED-C   counterexamples, no excerpt    FAIL
+✓ RED-D   excerpt present but EMPTY      FAIL
+✓ GREEN-2 a real counterexample          PASS
+✓ CTRL-2  real counterexample, OLD assertion PASS
+✓ SWEEP   class closed                   0 surviving "a failure must exist" assertions
+------------------------------------------------------------------------------
+arms=10  PASS=10  FAIL=0

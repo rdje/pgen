@@ -1,5 +1,61 @@
 # CHANGES.md
 
+## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0008 — the flagship aggregate's RED sub-gate could only pass when SystemVerilog generation FAILED
+
+`CI-PARITY-GATE-ROT.5` DONE. One gate script + docs + 1 tracked driver + 2 captures — **no
+`grammars/*.ebnf`, no `rust/src/*`, no `generated/*`** ⇒ all 11 generated parsers byte-identical BY
+CONSTRUCTION; no release / schema / ledger / contract movement. In particular the one-sample
+contract is deliberately UNCHANGED: the adjudication found the budget correct and the assertion wrong.
+
+- ⭐⭐⭐ **A CHECK THAT REQUIRED A DEFECT IN ORDER TO PASS.** `sv_failure_context_contract_gate.sh`
+  asserted `(.by_failure_context_excerpt | length) >= 1` at `:137`, `:141` and `:171`. The contract
+  driving that surface describes itself as *"one-profile, one-sample"* with `"sample_count": 1`, and
+  the surface's own report reads `requested_total: 1, accepted_total: 1, attempts_total: 1,
+  parser_rejections_total: 0` ⇒ **the assertion could only be satisfied if the SV parser REJECTED
+  its own generated sample.** `git log -S` puts the assertion and the one-sample contract in the
+  SAME commit `74fc5cb6` (2026-03-15) — the coupling is original, not drift. That is what made
+  `make -C rust sota_exit_gate`, a README standard command, RED, and nothing noticed because
+  nothing ran the aggregate.
+- ⭐⭐⭐ **ALL THREE ASSERTIONS WERE UNSATISFIABLE, NOT ONE — and the fail-fast run could only ever
+  show the first.** The shadow surface was settled from the preserved state of the run that died
+  (`requested_total: 20, accepted_total: 20, parser_rejections_total: 0`, zero excerpts), without
+  paying for a second run. The preprocessor surface — recorded UNMEASURED by `.5`'s adjudication —
+  is now measured by the completed run: **125 attempts, 0 rejections, 0 excerpts.** Fixing only the
+  reported assertion would have revealed the second, then the third.
+- **THE FIX — "the zero must be EARNED", strictly stronger than what it replaces.** Per surface:
+  (1) it must have been EXERCISED (`attempts_total >= 1`) — a zero from zero attempts is the
+  vacuous green, which the old form could not express; (2) the zero must be CONSISTENT — acceptable
+  only when the surface recorded no rejections and no generation errors, so rejections with no
+  excerpt now means the capture path IS broken; (3) a present excerpt must be WELL-FORMED —
+  counterexamples imply at least one distinct excerpt and a NON-EMPTY preview, because that preview
+  is the gate's published evidence.
+- ⛔ **Deleting the assertions was rejected**: their anti-vacuity intent is real — if the triage
+  silently stopped producing excerpts the whole surface would be dead and nothing else would notice.
+  The intent is kept; only the dependence on a defect is dropped.
+- ⭐ **The numbers are NOT re-derived here.** They come from the owning aggregate gate's own
+  `summary.json`, and the report paths from that gate's own `proof_surfaces` block, so this gate can
+  never judge a different run than the triage it just read. Hand-written paths would have been the
+  duplicated-moving-value shape `.1` found rotting twelve times.
+- ⚠️ **The third surface has a DIFFERENT shape and that is stated, not papered over**: the
+  preprocessor report carries `.summary.{attempts,accepted,rejected,parser_rejections}` and has no
+  `generation_errors` counter, so its rejection term is `parser_rejections` alone. Defaulting an
+  absent field to 0 in silence would have been a small instance of the same vacuity class.
+- ⚠️ **A knock-on the fix itself created, caught before it shipped**: with a legitimate zero there is
+  no `sample_previews[0]`, so the summary-emission lines would have aborted on a null two lines
+  after the assertion passed. They now record `<none: zero counterexamples, earned>`.
+- **Verified — the old form is REPLAYED, not described.** `run_earned_zero_probes.sh` extracts the
+  helper from the LIVE gate and the retired assertion from `git show HEAD:`, so it cannot test a
+  rule the gate does not apply. **10/10.** CTRL-1: the old form FAILS on the same healthy-zero input
+  the new form PASSES. RED-A (`attempts=0`), RED-B (rejections with zero excerpts) and RED-D (excerpt
+  present but EMPTY) are three failures the old form could not see — RED-A, RED-B and GREEN-1 all
+  have excerpt count 0, so the old assertion could not tell a healthy run, a vacuous run and a broken
+  capture path apart. CTRL-2: a real counterexample still passes both forms. SWEEP:
+  `grep -rn 'expected at least one' rust/scripts/*.sh` → 0 survivors.
+- **End-to-end**: the same command that failed at 232 s with `exit=2` now reports
+  `✅ SystemVerilog failure-context contract gate passed`, guard
+  `status=completed reason=none exit=0 peak_rss_mb=10746 elapsed_s=609`.
+
+
 ## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0007 — 11 of 15 hosted workflows needed the regeneration step and exactly 1 had it
 
 `CI-PARITY-GATE-ROT.4` DONE. Makefile target + composite action + 11 workflow files + the parity

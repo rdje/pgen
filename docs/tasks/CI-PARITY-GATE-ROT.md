@@ -7,7 +7,10 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: `.5`** then the `PREPARE` flip then **`.2`**, and then this tree CLOSES.
+- **Frontier: the `PREPARE` flip** then **`.2`**, and then this tree CLOSES.
+  (`.5` **done** 2026-07-28 session #220 — all three `expected at least one …` assertions replaced
+  with the earned-zero form; measured: ALL THREE were unsatisfiable, and the sub-gate that made
+  `sota_exit_gate` RED now passes end-to-end.)
   (`.4` **done** 2026-07-28 session #220 — the hosted surface: **11 of 15** tracked workflows need
   the regeneration step and only **1** declared it; the recipe now has one home
   (`make regenerate_generated_parsers` + the `regenerate-parsers` composite action), a derived
@@ -265,6 +268,7 @@ note in this tree's header.**
 
 | slice | leaf | commit subject |
 |---|---|---|
+| `PGEN-CI-PARITY-GATE-ROT-0008` | `.5` | the flagship aggregate's RED sub-gate could only pass when SV generation FAILED — all three assertions replaced with "the zero must be EARNED", and all three were unsatisfiable |
 | `PGEN-CI-PARITY-GATE-ROT-0007` | `.4` | 11 of 15 hosted workflows needed the regeneration step and 1 had it — one home for the recipe, a derived fail-safe audit, and two timeouts below their own measured cost |
 | `PGEN-CI-PARITY-GATE-ROT-0005` | `.4`/`.5` prep (docs only) | the director work order banked verbatim, `.5` adjudicated (the ASSERTION is the bug, not the budget), and both leaves given a self-contained work list |
 | `PGEN-CI-PARITY-GATE-ROT-0004` | `.3` close-out (+ `.5` opened) | the prepared replay finished 10/1 — and the 1 is `sota_exit_gate` RED on a sub-gate that can only pass when SV generation FAILS |
@@ -655,7 +659,12 @@ must be TRACKED or `copy_tracked_worktree` and `actions/checkout` both produce a
 
 - `docs/tasks/artifacts/ci_parity_gate_rot/run_regeneration_surface_probes.sh` — the 12 arms.
 - `docs/tasks/artifacts/ci_parity_gate_rot/regeneration_surface_probes.txt` — their capture.
-- `docs/tasks/artifacts/ci_parity_gate_rot/unmeasured_workflow_census.txt` — the two measurements.
+- `docs/tasks/artifacts/ci_parity_gate_rot/unmeasured_workflow_census.txt` — the two measurements,
+  plus a **post-commit confirmation** appended in the same session: re-run in the SAME export tree
+  once `regenerate_generated_parsers` had prepared it, both newly-wired gates go **FAIL (5 s, no
+  `generated/`) → PASS** (`rtl_const_expr_cert_gate` 393 s peak 10,402 MB;
+  `sv_cert_recognized_union_gate` 558 s peak 5,892 MB), and both fit their declared timeouts under
+  the stated rule. That is the end-to-end proof for exactly the two workflows nobody had measured.
 
 ---
 
@@ -770,7 +779,7 @@ the same way (does the command compile the crate?) rather than assuming.
 and the parity gate call, so the sequence has exactly one definition.
 
 
-### `.5` — `sota_exit_gate` is RED: a required sub-gate that can only pass when SV generation FAILS (`todo`)
+### `.5` — `sota_exit_gate` is RED: a required sub-gate that can only pass when SV generation FAILS (`done`)
 
 - **Status: `todo`** — opened 2026-07-28 session #218 by `.3`, which surfaced it by being the first
   thing in 1,371 commits actually to run the aggregate. ⛔ Deliberately NOT absorbed into `.3`:
@@ -812,7 +821,143 @@ and the parity gate call, so the sequence has exactly one definition.
   (`ast_dump_contract_gate`); and now **a check that requires a DEFECT to be present in order to
   pass.** The unifying principle needs its converse stated: *a check must not depend on the thing
   it watches being broken.*
-#### ✅ THE ADJUDICATION IS DONE (session #219, diagnosis only — no fix landed yet)
+#### ✅ EXECUTED (session #220, `PGEN-CI-PARITY-GATE-ROT-0008`) — all three assertions replaced
+
+**Status: `done`.** The adjudication below (#219) was correct and is now implemented.
+
+⭐⭐ **THE SHADOW ASSERTION WAS ALSO UNSATISFIABLE, AND THE PRESERVED RUN PROVED IT WITHOUT A
+RE-RUN.** `.5` flagged the shadow and preprocessor assertions as UNMEASURED because the gate dies at
+the first. But the run that died left its state dir intact, and the shadow surface's own report is
+in it:
+
+```
+$ jq '.observed' …/systemverilog_closed_loop_parseability_shadow_report.json
+{ "requested_total": 20, "attempts_total": 20, "accepted_total": 20, "rejected_total": 0,
+  "parser_rejections_total": 0, "generation_errors_total": 0, "acceptance_rate_percent": 100.00 }
+$ jq '.total_counterexamples, (.by_failure_context_excerpt|length)' …_shadow_counterexample_triage.json
+0
+0
+```
+
+⇒ **20 samples, all accepted, zero rejections, zero excerpts — assertion 2 would have failed
+identically.** That is the fail-fast blindness `.1` recorded ("a fail-fast gate cannot tell you how
+broken it is") answered without paying for a second run. The **preprocessor** surface was never
+produced by that run and was NOT inferred — the end-to-end run below measures it.
+
+⭐⭐⭐ **AND IT CONFIRMS THE WORST CASE: ALL THREE ASSERTIONS WERE UNSATISFIABLE, NOT ONE.** The
+completed run reports every surface earning its zero:
+
+```
+    generation:    0 counterexamples, EARNED (attempts=1,   rejections=0)
+    replay-shadow: 0 counterexamples, EARNED (attempts=20,  rejections=0)
+    preprocessor:  0 counterexamples, EARNED (attempts=125, rejections=0)
+✅ SystemVerilog failure-context contract gate passed.
+guard: status=completed reason=none exit=0 peak_rss_mb=10746 elapsed_s=609
+```
+
+⇒ the preprocessor surface attempts **125** samples and the preprocessor accepts all of them, so its
+assertion demanded a failure just as impossible as the first two. **Fixing only the reported one
+would have revealed the second, then the third** — exactly the fail-fast trap `.5`'s charter warned
+about. The class of three is closed together, and the run reaches the end.
+
+#### What shipped
+
+A single helper, `assert_failure_context_zero_is_earned`, applied to all three surfaces. Per surface
+it requires:
+
+1. **the surface was EXERCISED** — `attempts_total >= 1`. A zero counterexample count from zero
+   attempts is the vacuous green this tree exists to remove, and the old assertion could not express
+   it at all.
+2. **the zero is CONSISTENT** — `total_counterexamples == 0` is acceptable **only** when the surface
+   recorded no rejections and no generation errors. If anything failed and no excerpt appeared, the
+   capture path IS broken, which is the real defect the old assertion was groping for.
+3. **a present excerpt is WELL-FORMED** — counterexamples ⇒ at least one distinct context excerpt
+   **and** a non-empty `.sample_previews[0].failure_context_excerpt`, because that value is what the
+   gate publishes as its headline evidence. An empty string there is a silent evidence hole.
+
+⭐ **THE NUMBERS ARE NOT RE-DERIVED — that would have been the same defect one level down.** The
+counts come from the owning aggregate gate's own `summary.json`, and the report paths from that
+gate's own `proof_surfaces` block, so this gate can never judge a different run than the triage it
+just read. Hand-writing the paths here is precisely the duplicated-moving-value shape `.1` found
+rotting twelve times.
+
+⚠️ **THE THIRD SURFACE HAS A DIFFERENT SHAPE AND THAT IS STATED, NOT PAPERED OVER.** The preprocessor
+parseability report carries `.summary.{attempts,accepted,rejected,parser_rejections}` and has **no**
+`generation_errors` counter, so its rejection term is `parser_rejections` alone — read from the
+preprocessor aggregate's own `metrics`. Defaulting an absent field to `0` and saying nothing would
+have been a small instance of exactly the vacuity class.
+
+⚠️ **A KNOCK-ON THE FIX ITSELF CREATED, AND CAUGHT BEFORE IT SHIPPED.** With a legitimate zero there
+is no `sample_previews[0]`, so the gate's own summary-emission lines (`extract_json_string … | jq -er
+… | strings`) would abort on the null — a green assertion followed by a crash two lines later. They
+now record `<none: zero counterexamples, earned>`, which says WHY the field is empty rather than
+leaving a bare `""` a reader would have to interpret.
+
+#### ⭐ PROVED A CORRECTION, NOT A RELAXATION — and the old form is replayed, not described
+
+`docs/tasks/artifacts/ci_parity_gate_rot/run_earned_zero_probes.sh`, **10/10**. The driver extracts
+the helper **from the live gate file** and the old assertion **from `git show HEAD:`**, so it cannot
+end up testing a rule the gate does not apply — `GENERATED-LINT-CORRECTNESS.4` found a probe driver
+that had hand-copied its rule and was measuring a stale one.
+
+| arm | fixture | old form | new form | what it proves |
+|---|---|---|---|---|
+| GREEN-1 / CTRL-1 | healthy zero, `attempts=1`, `rejections=0` | **FAIL** | **PASS** | the fix: it stops failing when the system works |
+| RED-A | `attempts=0` (vacuous run) | FAIL (wrong reason) | **FAIL** — *"never exercised"* | ⭐ strictly stronger |
+| RED-B / CTRL-3 | `rejections=4`, zero excerpts | FAIL (wrong reason) | **FAIL** — *"left no excerpt"* | ⭐ strictly stronger |
+| RED-C | counterexamples, no excerpt | FAIL | **FAIL** | still bites |
+| RED-D | excerpt present but EMPTY preview | **PASS** | **FAIL** | ⭐ strictly stronger |
+| GREEN-2 / CTRL-2 | a real counterexample | PASS | **PASS** | not weakened where the old form was right |
+| SWEEP | `grep -rn 'expected at least one' rust/scripts/*.sh` | — | **0 survivors** | the class is closed |
+
+⭐⭐ **THE DECISIVE ROW IS THE PAIR RED-A / RED-B / GREEN-1.** All three fixtures have
+`by_failure_context_excerpt | length == 0`. The old assertion reads only that number, so it **cannot
+tell a healthy run, a vacuous run, and a broken capture path apart** — it fails all three
+identically. Separating them is the whole content of the change.
+
+#### Acceptance checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `make -C rust SHELL=/bin/bash sv_failure_context_contract_gate` under
+      the memory guard: `error: expected at least one generation failure-context excerpt`, guard
+      `exit=2 reason=none peak_rss_mb=9870 elapsed_s=232` (main repo, `.3` measured it identically in
+      the export dir).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `rust/scripts/sv_failure_context_contract_gate.sh:137`
+      (generation), `:141` (replay-shadow), `:171` (preprocessor) — the complete class, established
+      by sweep, not assumed. WHY: each demanded `(.by_failure_context_excerpt | length) >= 1` while
+      the contract driving the surface is documented *"one-profile, one-sample"* with
+      `"sample_count": 1`, and the surface's own report reads
+      `requested_total: 1, accepted_total: 1, attempts_total: 1, parser_rejections_total: 0` ⇒ **the
+      assertion could only be satisfied if the SV parser rejected its own generated sample.**
+      Provenance: `git log -S'expected at least one generation failure-context excerpt'` and
+      `git log -S'"sample_count": 1'` both land on `74fc5cb6` (2026-03-15) — assertion and
+      one-sample contract shipped in the SAME commit, so the coupling is original, not drift.
+- [x] **ADDRESSED (verified)** — before→after replayed against the real old form, not described:
+      probes **10/10**, with CTRL-1 showing the retired assertion FAILS on the same healthy-zero
+      input the new form PASSES, and RED-A/RED-B/RED-D showing three failures the old form could not
+      see. End-to-end, same command that failed, state dir wiped first:
+      `make -C rust SHELL=/bin/bash sv_failure_context_contract_gate` goes
+      `exit=2 … error: expected at least one generation failure-context excerpt` (232 s) →
+      `✅ … passed`, guard `status=completed reason=none exit=0 peak_rss_mb=10746 elapsed_s=609`,
+      with all three surfaces reporting `EARNED` and the preprocessor one measured for the first
+      time (125 attempts, 0 rejections). ⏳ The aggregate `make -C rust SHELL=/bin/bash
+      sota_exit_gate` — the acceptance this leaf is ultimately about — is running at commit time and
+      its verdict is recorded in `sota_exit_gate_after.txt`; the sub-gate that made it RED is the
+      one fixed and re-proved here.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11 parsers
+      **byte-identical BY CONSTRUCTION**; no release / schema / ledger / contract movement — in
+      particular the one-sample contract `systemverilog_failure_context_v0_contract.json` is
+      deliberately **unchanged**, because the adjudication found the budget correct and the assertion
+      wrong. `bash -n` clean. GREEN-2/CTRL-2 prove the counterexample path still passes both forms.
+- [x] **LOCKSTEP** — `docs/book/src/operations-and-governance.md`, `CHANGES.md`,
+      `DEVELOPMENT_NOTES.md`, `MEMORY.md`, and this tree.
+
+#### Evidence
+
+- `docs/tasks/artifacts/ci_parity_gate_rot/run_earned_zero_probes.sh` — the 10 arms.
+- `docs/tasks/artifacts/ci_parity_gate_rot/earned_zero_probes.txt` — their capture.
+- `docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_after.txt` — the end-to-end aggregate run.
+
+#### ✅ THE ADJUDICATION (session #219, diagnosis only — implemented above)
 
 The two readings had opposite fixes, so `.3` refused to guess. **Measurement settles it: reading (2)
 — the assertion is the bug. Reading (1) is REFUTED by the contract's own description field**,

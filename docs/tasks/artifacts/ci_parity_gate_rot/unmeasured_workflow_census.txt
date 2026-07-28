@@ -51,3 +51,24 @@ last_disk_free_gb=3579
 elapsed_s=236
 cmd=make -C rust SHELL=/bin/bash regenerate_generated_parsers
 ended_at=2026-07-28T21:35:45+0200
+
+--- POST-COMMIT CONFIRMATION (same session, after PGEN-CI-PARITY-GATE-ROT-0007) ---
+Both newly-wired gates re-run in the SAME export tree, now PREPARED by
+'make -C rust SHELL=/bin/bash regenerate_generated_parsers':
+rtl_const_expr_cert_gate rc=0 elapsed=393s
+sv_cert_recognized_union_gate rc=0 elapsed=558s
+
+i.e. the two workflows nobody had measured go FAIL(5s, no generated/) -> PASS with the step.
+Guard markers:
+  rtl_const_expr: reason=none
+  rtl_const_expr: exit=0
+  rtl_const_expr: peak_rss_mb=10402
+  rtl_const_expr: elapsed_s=393
+  sv_cert_union: reason=none
+  sv_cert_union: exit=0
+  sv_cert_union: peak_rss_mb=5892
+  sv_cert_union: elapsed_s=558
+
+Timeout budgets check out against the stated rule (>= 2x (measured local + 236s regeneration)):
+  rtl-const-expr-cert-gate.yml    (393+236)/60 = 10.5m x2 = 21m -> 30m floor declared  OK
+  sv-cert-recognized-union-gate.yml (558+236)/60 = 13.2m x2 = 27m -> 45m declared        OK

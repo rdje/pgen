@@ -202,6 +202,53 @@ return green** — and its corollary, that when a check cannot run it must name
 *its own* obstacle rather than failing as though the thing under test were
 broken.
 
+## A check must not require a defect in order to pass
+
+The first end-to-end run of the workflow-replay phase turned up a fourth
+variation on that theme, and it is the converse of the others. Running
+`make -C rust SHELL=/bin/bash sota_exit_gate` — the repository's flagship
+aggregate and a `README` standard command — cleared nineteen required sub-gates
+and then died in `sv_failure_context_contract_gate` on
+
+```
+error: expected at least one generation failure-context excerpt
+```
+
+The counterexample pipeline was not broken. It was correctly reporting zero. The
+contract driving that surface describes itself as *one-profile, one-sample* and
+sets `"sample_count": 1`; the surface's own report read `requested_total: 1`,
+`accepted_total: 1`, `parser_rejections_total: 0`. One sample was requested and
+the SystemVerilog parser accepted it on the first attempt, so there was genuinely
+no failure to excerpt — and the gate demanded one. **It could only pass if the
+parser rejected its own generated sample: it passed when the system was broken
+and failed when it worked.** The assertion and the one-sample contract had
+shipped in the same commit, so the coupling was original rather than drift.
+
+Deleting the assertion was the wrong fix, because its intent was real: if the
+triage silently stopped producing excerpts, the whole failure-context surface
+would be dead and nothing else would notice — the gate publishes an excerpt as
+its headline evidence. So the intent is kept and only the dependence on a defect
+is dropped. A zero is now accepted only when it is **earned**:
+
+1. the surface was actually **exercised** (`attempts_total >= 1`) — a zero from
+   zero attempts is the vacuous green, and the old form could not express it;
+2. the zero is **consistent** — no counterexamples is acceptable only when the
+   surface recorded no rejections and no generation errors. Rejections with no
+   excerpt means the capture path itself is broken;
+3. a present excerpt is **well-formed** — counterexamples imply at least one
+   distinct context excerpt and a non-empty preview.
+
+This is a correction, not a relaxation, and the distinction is worth stating
+precisely: a healthy run, a run that attempted nothing, and a run whose capture
+path is broken all produce the same excerpt count of zero. The old assertion read
+only that number, so it failed all three identically and could distinguish none
+of them. The new one separates them — it stops failing in the single case where
+the old form was wrong, and starts failing in two cases the old form could not
+see at all.
+
+The general rule, alongside the two above: **a check must not depend on the thing
+it watches being broken.**
+
 ## Documentation Governance
 
 The intended split is:

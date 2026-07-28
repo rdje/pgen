@@ -1,0 +1,41 @@
+CI-PARITY-GATE-ROT.5 — sv_failure_context_contract_gate END-TO-END after the earned-zero fix
+======================================================================================
+
+BEFORE (session #218/#219, measured in BOTH the export dir and the main repo):
+  ==> sv_failure_context_contract_gate (required)
+      systemverilog_failure_context_aggregate_contract_gate   ok
+  error: expected at least one generation failure-context excerpt
+  guard: exit=2 reason=none peak_rss_mb=9870 elapsed_s=232
+
+AFTER (session #220, same command, main repo, state dir wiped first):
+    generation: 0 counterexamples, EARNED (attempts=1, rejections=0)
+    replay-shadow: 0 counterexamples, EARNED (attempts=20, rejections=0)
+    preprocessor: 0 counterexamples, EARNED (attempts=125, rejections=0)
+
+systemverilog_generation_failure_context_excerpts: 0
+systemverilog_shadow_failure_context_excerpts: 0
+systemverilog_generation_failure_context_example: <none: zero counterexamples, earned>
+systemverilog_shadow_failure_context_example: <none: zero counterexamples, earned>
+systemverilog_preprocessor_failure_context_excerpts: 0
+systemverilog_preprocessor_failure_context_example: <none: zero counterexamples, earned>
+
+memory-guard: completed exit=0 peak_tree_rss=10746MB elapsed=609s; marker: rust/target/ci_parity_gate_rot_probe/guard_svfc.marker
+✅ SystemVerilog failure-context contract gate passed.
+
+status=completed
+reason=none
+exit=0
+budget_mb=12288
+floor_pct=10
+disk_floor_gb=8
+timeout_s=3600
+peak_rss_mb=10746
+last_free_pct=69
+last_disk_free_gb=3572
+elapsed_s=609
+cmd=make -C rust SHELL=/bin/bash sv_failure_context_contract_gate
+ended_at=2026-07-28T22:03:31+0200
+
+⭐ ALL THREE surfaces earned their zero — so ALL THREE retired assertions were unsatisfiable,
+   not just the one the fail-fast run reached. The preprocessor surface (125 attempts, 0
+   rejections) was recorded UNMEASURED by .5's adjudication and is now measured.
