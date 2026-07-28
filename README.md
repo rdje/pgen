@@ -81,6 +81,10 @@ PGEN is a production-focused parser and stimuli generator platform.
 > ⛔ **Before debugging ANY issue** (an `UNKNOWN`, a rejected parse, a hang, a reach gap, a "why isn't this witnessed"), read **`TOOLBOX.md`** and run the debug tools FIRST — never eyeball a grammar or guess a root cause. This is a standing director directive **and it is mechanically ENFORCED**: a code change cannot land without tool-backed WHY+WHERE diagnosis + measured before→after verification in its owning task leaf (`scripts/check_doctrines.sh` via `.githooks/pre-commit`; see `DOCTRINE_ENFORCEMENT.md`).
 1. `README.md` (this file)
 2. `docs/book/` (`mdBook` live mastery surface)
+   - ⭐ **`docs/book/src/gate-flow.md` — "The Gate Flow — Reference"**: the anatomy of a gate,
+     the four layers, inputs/outputs, the artifact hand-off protocol, who invokes what, the five
+     ways this flow has failed, and the contract a new gate must satisfy. Read it before adding or
+     changing a gate.
 3. `TOOLBOX.md` (the diagnostic & debug toolbox — when/how for every debug tool; READ BEFORE debugging)
 4. `QUICKSTART_AI_ONBOARDING.md`
 5. `PGEN_USER_GUIDE.md`

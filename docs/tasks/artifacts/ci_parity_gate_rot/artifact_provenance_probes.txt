@@ -1,0 +1,8 @@
+=== CI-PARITY-GATE-ROT.7 — artifact provenance probes ===
+✓ RED-1 absent dir refused               FAIL
+✓ RED-2 STALE artifact refused           FAIL
+✓ GREEN-1 in-run artifact accepted       PASS
+✓ CTRL-1 no epoch => stale accepted      PASS
+✓ RED-3 empty summary refused            FAIL
+---
+arms=5 PASS=5 FAIL=0

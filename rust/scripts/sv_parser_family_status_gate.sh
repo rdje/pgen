@@ -56,6 +56,82 @@ require_nonempty_file() {
     fi
 }
 
+# ⭐⭐⭐ CI-PARITY-GATE-ROT.7 — AN ARTIFACT HAND-OFF MUST PROVE ITS PROVENANCE, OR REFUSE.
+#
+# Every `EXISTING_*_STATE_DIR` below is a caller saying *"this artifact already exists, do not
+# produce it yourself"*. Taking that on trust produced two failures in one `sota_exit_gate` run:
+#
+#   ⛔ THE LOUD ONE. `sota_exit_gate.sh` pointed four of these at each gate's STANDALONE default dir
+#      (`rust/target/<gate>/`), which exists only if somebody once ran that gate BY HAND. On a clean
+#      tree the value is non-empty but the directory is absent, so this script skipped the `else`
+#      branch that would have PRODUCED the artifact and then died asserting on a file nothing wrote.
+#      A default that turns "not supplied" into "supplied but nonexistent" disables the very
+#      machinery that would have made it real.
+#
+#   ⚠️⚠️ THE SILENT ONE, AND IT IS THE DANGEROUS HALF. One of the four DID exist —
+#      `rust/target/sv_syntax_closure_gate/summary.txt`, dated 2026-07-26 00:36, THREE DAYS OLD — and
+#      was consumed as current proof by a run started 2026-07-28. A machine that had run all four by
+#      hand at some point would have produced a FULLY GREEN release gate built on evidence of
+#      unknown vintage: the flagship aggregate certifying today's tree with last week's proof. That
+#      is a fifth shape for this family — *a check that reuses evidence it did not produce, without
+#      checking whether it still applies* — and unlike the other four it leaves no red to notice.
+#
+# So a supplied hand-off is now VERIFIED, not trusted:
+#   (a) the directory and its `summary.txt` must exist and be non-empty — refuse naming the caller's
+#       variable, instead of dying later on a confusing downstream assertion;
+#   (b) when the caller declares a run epoch (`PGEN_GATE_ARTIFACT_MIN_EPOCH`), the artifact must be
+#       AT LEAST THAT NEW. Artifacts produced earlier in the same run pass; a pre-run leftover is
+#       refused. ⛔ Deliberately opt-in on the caller's side: a standalone operator run has no such
+#       reference point, and inventing one would refuse legitimate reuse. What is NOT optional is
+#       that the aggregate declares it — `audit_sota_artifact_provenance_surface` pins that.
+require_supplied_state_dir() {
+    local label="$1" dir="$2" caller_var="$3"
+    local summary="$dir/summary.txt"
+
+    if [[ ! -d "$dir" ]]; then
+        echo "error: ${label}: caller set ${caller_var} to '${dir}', which does not exist." >&2
+        echo "       A hand-off must name an artifact that EXISTS. Pass an empty value to have this" >&2
+        echo "       gate produce it, or point at a directory produced by this run." >&2
+        echo "       (docs/tasks/CI-PARITY-GATE-ROT.md leaf .7)" >&2
+        exit 1
+    fi
+    require_nonempty_file "$summary"
+
+    local min_epoch="${PGEN_GATE_ARTIFACT_MIN_EPOCH:-}"
+    [[ -n "$min_epoch" ]] || return 0
+
+    # ⚠️ `stat` IS NOT PORTABLE, AND GUESSING WHICH ONE IS PRESENT IS HOW THIS GUARD FIRST BROKE.
+    # BSD stat spells mtime `-f %m`; GNU coreutils spells it `-c %Y` and reads `-f` as "file SYSTEM
+    # information" — which SUCCEEDS at printing six lines of block counts. This repository's macOS
+    # host has GNU stat on PATH, so a BSD-first chain did not fall through: it captured that
+    # multi-line block as the "timestamp" and compared it numerically. Caught by this leaf's own
+    # probes (RED-2 and GREEN-1 both failed with `File: unbound variable`).
+    # ⛔ So the fix is NOT to reorder the chain — a reordered guess is still a guess. Try both and
+    # VALIDATE the result: accept only a bare integer, and refuse if neither variant yields one. A
+    # provenance check that cannot establish provenance must say so, never wave the artifact through.
+    local artifact_epoch=""
+    for _stat_expr in "-c %Y" "-f %m"; do
+        # shellcheck disable=SC2086
+        artifact_epoch="$(stat $_stat_expr "$summary" 2>/dev/null | head -n 1 | tr -d '[:space:]')"
+        [[ "$artifact_epoch" =~ ^[0-9]+$ ]] && break
+        artifact_epoch=""
+    done
+    if [[ -z "$artifact_epoch" ]]; then
+        echo "error: ${label}: cannot read the modification time of '${summary}', so its provenance" >&2
+        echo "       cannot be established. A reuse that cannot be verified must refuse." >&2
+        exit 1
+    fi
+    if [[ "$artifact_epoch" -lt "$min_epoch" ]]; then
+        echo "error: ${label}: STALE artifact refused." >&2
+        echo "       ${summary}" >&2
+        echo "       was last written $(( (min_epoch - artifact_epoch) / 60 )) minute(s) BEFORE this run began." >&2
+        echo "       ${caller_var} points at a leftover from an earlier run, not at evidence this run" >&2
+        echo "       produced. Consuming it would certify today's tree with an older proof." >&2
+        echo "       (docs/tasks/CI-PARITY-GATE-ROT.md leaf .7)" >&2
+        exit 1
+    fi
+}
+
 summary_value_from_txt() {
     local key="$1"
     local path="$2"
@@ -125,6 +201,21 @@ require_file "$SV_PREPROCESSOR_REACHABILITY_GATE"
 require_file "$SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_GATE"
 require_file "$SV_SEMANTIC_SCOPE_CONTRACT_GATE"
 require_file "$SV_FORMAL_EXHAUSTIVE_CLOSURE_GATE"
+# CI-PARITY-GATE-ROT.7 — verify every supplied hand-off up front, in ONE place, before any stage
+# runs. Doing it here rather than at each use site means a caller cannot supply a bad value that
+# only bites twenty minutes later, and a NEW hand-off added below cannot forget the check.
+[[ -z "${EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR}" ]] || require_supplied_state_dir "sv_syntax_closure" "${EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR"
+[[ -z "${EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR}" ]] || require_supplied_state_dir "sv_preprocessor_syntax_closure" "${EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR"
+[[ -z "${EXISTING_SV_PARSER_AGGREGATE_STATE_DIR}" ]] || require_supplied_state_dir "sv_parser_aggregate" "${EXISTING_SV_PARSER_AGGREGATE_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR"
+[[ -z "${EXISTING_SV_STIMULI_QUALITY_STATE_DIR}" ]] || require_supplied_state_dir "sv_stimuli_quality" "${EXISTING_SV_STIMULI_QUALITY_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR"
+[[ -z "${EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR}" ]] || require_supplied_state_dir "sv_preprocessor_aggregate" "${EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR"
+[[ -z "${EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR}" ]] || require_supplied_state_dir "sv_preprocessor_reachability" "${EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR"
+[[ -z "${EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR}" ]] || require_supplied_state_dir "sv_preprocessor_formal_exhaustive_closure" "${EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR"
+[[ -z "${EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR}" ]] || require_supplied_state_dir "sv_preprocessor_quality" "${EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR"
+[[ -z "${EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR}" ]] || require_supplied_state_dir "sv_semantic_scope_contract" "${EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR"
+[[ -z "${EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR}" ]] || require_supplied_state_dir "sv_formal_exhaustive_closure" "${EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR"
+[[ -z "${EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR}" ]] || require_supplied_state_dir "sv_external_corpus_triage" "${EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR}" "PGEN_SV_FAMILY_STATUS_EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR"
+
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"

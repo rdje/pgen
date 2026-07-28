@@ -299,9 +299,61 @@ note in this tree's header.**
   default back to `false` and requiring the audit to block; `bash -n` clean; `mdbook_docs_gate`
   GREEN; 10/10 doctrines.
 
-### `.7` — ⛔ THE TREE'S CLOSURE WAS PREMATURE: `sota_exit_gate` is STILL RED, one sub-gate further on (`todo`)
+### `.7` — ⛔ THE TREE'S CLOSURE WAS PREMATURE: `sota_exit_gate` is STILL RED, one sub-gate further on (`in-progress`)
 
-- **Status: `todo`** — opened 2026-07-28 session #220 by the aggregate run that `.5` had declared
+#### ✅ THE FIX IS IMPLEMENTED AND PROBED (2026-07-29, `PGEN-CI-PARITY-GATE-ROT-0013`); ⏳ the end-to-end re-run is the outstanding acceptance
+
+**The class is bounded and was swept before fixing** — `grep -rnE 'EXISTING_[A-Z_]*STATE_DIR="…target/'`
+over every `rust/scripts/*.sh` returns **8 sites in ONE file**: 4 distinct variables × the required
+and informational branches of `sota_exit_gate.sh`. ⭐ **And the correct form is already used ~30
+times in that same file** for the VHDL / regex / EBNF families (`"${PGEN_SOTA_EXISTING_…:-}"`), so
+the SV family-status block was the sole outlier, not a house style.
+
+**Half 1 — stop asserting existence the aggregate never established.** Measured first: the aggregate
+runs **zero** of the four as its own stage (`grep -c 'run_check "<gate>"'` → 0 for all four), so it
+had no in-run artifact to point at — which is *why* it pointed at standalone dirs. The four now pass
+the empty value, i.e. *"not supplied"*, and `sv_parser_family_status_gate` produces them through the
+`else` branch it already has and that the aggregate was suppressing. Three `PGEN_SOTA_EXISTING_*`
+pass-throughs were added so an operator can still supply them deliberately. **8 → 0** bad hand-offs.
+
+**Half 2 — a hand-off must prove its provenance, or refuse.** New
+`require_supplied_state_dir` in `sv_parser_family_status_gate.sh`, applied to **all 11** of its
+hand-offs in one place before any stage runs (so a hand-off added later cannot forget it):
+
+1. absent directory or empty `summary.txt` ⇒ **refuse up front, naming the caller's variable**,
+   instead of dying twenty minutes later on a downstream assertion;
+2. when the caller declares `PGEN_GATE_ARTIFACT_MIN_EPOCH`, the artifact must be at least that new ⇒
+   **in-run reuse passes, a pre-run leftover is refused.** `sota_exit_gate.sh` exports that epoch
+   once at run start — exported, not passed per call, so new hand-offs inherit it.
+
+⛔ The epoch is deliberately opt-in on the caller's side: a standalone operator run has no such
+reference point and inventing one would refuse legitimate reuse. What is *not* optional is that the
+aggregate declares it.
+
+⚠️⚠️ **THE PROBES CAUGHT A REAL PORTABILITY DEFECT IN THE GUARD'S FIRST CUT — and it is the same
+"measuring the wrong thing" class this session keeps producing.** Reading an mtime is not portable:
+BSD `stat` spells it `-f %m`; GNU coreutils spells it `-c %Y` and reads `-f` as *file system
+information*, which **succeeds** at printing six lines of block counts. This host has GNU `stat`, so
+the BSD-first chain never fell through — it captured that block as the "timestamp" and compared it
+numerically (`RED-2` and `GREEN-1` both died on `File: unbound variable`). ⛔ Reordering the chain
+would have been another guess; the fix tries both and **validates the result is a bare integer**,
+refusing when neither yields one. *A provenance check that cannot establish provenance must say so.*
+
+**Probes 5/5** (`run_artifact_provenance_probes.sh`, helper extracted from the LIVE gate so it
+cannot test a rule the gate does not apply): RED-1 absent ⇒ refuse; ⭐ **RED-2 an artifact stamped
+`2026-07-26 00:36` — the real mtime of the leftover the aggregate consumed — ⇒ refuse**; GREEN-1 an
+in-run artifact ⇒ accept; CTRL-1 no epoch declared ⇒ today's behaviour preserved; RED-3 empty
+summary ⇒ refuse.
+
+⏳ **OUTSTANDING — this leaf is NOT done:** `make -C rust SHELL=/bin/bash sota_exit_gate` end-to-end.
+The fix makes the aggregate run four sub-gates it previously suppressed, so the aggregate's cost
+will rise from the measured 4,249 s by an amount **not yet priced**. Until that run reaches the end,
+the tree stays open. ⛔ Do not close it on the sub-gate evidence alone — that is precisely the error
+this leaf exists to correct.
+
+---
+
+- **Status: `in-progress`** — opened 2026-07-28 session #220 by the aggregate run that `.5` had declared
   its own acceptance and that was still executing when the tree was closed.
 - ⛔⛔ **THE HONEST CORRECTION, STATED FIRST.** `.5`'s acceptance was written as *"`make -C rust
   SHELL=/bin/bash sota_exit_gate` green end-to-end, not just this sub-gate — it was RED for the

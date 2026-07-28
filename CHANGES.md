@@ -1,5 +1,54 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0013 — the artifact hand-off must prove its provenance, and the gate flow now has a full reference chapter
+
+`CI-PARITY-GATE-ROT.7` implemented + probed (the end-to-end aggregate re-run is still outstanding, so
+the leaf and the tree stay OPEN). 2 gate scripts + a new book chapter + docs + 1 tracked driver —
+**no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`** ⇒ all 11 generated parsers byte-identical
+BY CONSTRUCTION; no release / schema / ledger / contract movement.
+
+- **THE CLASS WAS SWEPT BEFORE FIXING, AND IT IS BOUNDED**: 8 sites in ONE file — 4 variables × the
+  required and informational branches of `sota_exit_gate.sh`. ⭐ The CORRECT form is already used
+  ~30× in that same file for the VHDL / regex / EBNF families, so the SV family-status block was the
+  sole outlier rather than a house style.
+- **HALF 1 — stop asserting existence the aggregate never established.** Measured first: the
+  aggregate runs ZERO of the four as its own stage, so it had no in-run artifact to point at — which
+  is *why* it pointed at each gate's standalone default dir. The four now pass the empty value
+  ("not supplied"), so `sv_parser_family_status_gate` produces them through the `else` branch it
+  already has and the aggregate was suppressing. **8 → 0** bad hand-offs.
+- **HALF 2 — a hand-off proves its provenance or refuses.** New `require_supplied_state_dir`, applied
+  to all 11 hand-offs in one place before any stage runs: an absent directory or empty summary is
+  refused UP FRONT naming the caller's variable; and when the caller declares
+  `PGEN_GATE_ARTIFACT_MIN_EPOCH`, the artifact must be at least that new — in-run reuse passes, a
+  pre-run leftover is refused. `sota_exit_gate.sh` exports that epoch once at run start, so a
+  hand-off added later inherits the guarantee without anyone wiring it.
+- ⚠️⚠️ **THE PROBES CAUGHT A REAL PORTABILITY DEFECT IN THE GUARD'S FIRST CUT.** Reading an mtime is
+  not portable: BSD `stat` spells it `-f %m`; GNU coreutils spells it `-c %Y` and reads `-f` as
+  *file system information*, which SUCCEEDS at printing six lines of block counts. This host has GNU
+  `stat`, so a BSD-first chain never fell through — it captured that block as the "timestamp"
+  (RED-2 and GREEN-1 both died on `File: unbound variable`). Reordering would have been another
+  guess; the fix tries both and VALIDATES the result is a bare integer, refusing when neither
+  yields one. *A provenance check that cannot establish provenance must say so.*
+- **Probes 5/5**, helper extracted from the LIVE gate so it cannot test a rule the gate does not
+  apply. ⭐ RED-2 hands it an artifact stamped `2026-07-26 00:36` — the real mtime of the leftover
+  the aggregate consumed as current proof — and requires refusal.
+- ⭐⭐ **NEW BOOK CHAPTER — `docs/book/src/gate-flow.md`, "The Gate Flow — Reference"**, on the
+  director's instruction that the flow have its own full chapter. Covers: the anatomy of a gate
+  (make target → script → state dir, with the measured convention counts across all 91 scripts, the
+  0/1/2 exit-code semantics and the `summary.json` interface); the four layers (leaf gates, family
+  aggregates, the flagship `sota_exit_gate` with its required/informational policy, and the two
+  meta-gates); inputs (tracked contracts/policy/corpora, and the untracked `generated/` tree with
+  the exact `lib.rs` asymmetry that makes 11 of 15 workflows depend on it); outputs and their
+  retention/bounding conventions; **the artifact hand-off protocol** with its three legitimate
+  shapes, the one that is always wrong, and the provenance rule; invocation and the three
+  reachability tiers (**AUTOMATIC = 0** and what follows from it); a catalogue of the five ways this
+  flow has actually failed, each with its rule; and a contract checklist for a new gate.
+- ⏳ **OUTSTANDING**: `make -C rust SHELL=/bin/bash sota_exit_gate` end-to-end. The fix makes the
+  aggregate run four sub-gates it previously suppressed, so its cost will rise from the measured
+  4,249 s by an amount not yet priced. The tree stays OPEN until that run reaches the end — closing
+  on sub-gate evidence alone is precisely the error `.7` exists to correct.
+
+
 ## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0012 — the tree's closure was PREMATURE: sota_exit_gate is still RED one sub-gate further on, and it had been consuming a three-day-old artifact as current proof
 
 `CI-PARITY-GATE-ROT` **REOPENED at new leaf `.7`** (diagnosis only — no code touched, no partial

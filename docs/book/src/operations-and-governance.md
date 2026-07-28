@@ -108,6 +108,12 @@ This is a heavy gate (one `cargo check` per configuration, and distinct
 feature sets share no build artifacts). It is a maintained gate, not a
 pre-commit hook.
 
+> **See also: [The Gate Flow — Reference](gate-flow.md).** This chapter tells the
+> story of how the proof surface broke and what was learned. That one is the
+> reference: the anatomy of a gate, the four layers they compose into, what flows
+> in and out, the artifact hand-off protocol, who invokes what, and the contract a
+> new gate must satisfy.
+
 ## Workflow Parity (proving the CI commands locally)
 
 While hosted GitHub Actions are paused to conserve account minutes, the lane

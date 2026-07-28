@@ -31,5 +31,6 @@
 - [Lexical Annotations — the 4th Pillar](lexical-annotations.md)
 - [Academic Foundations](academic-foundations.md)
 - [Quality and Closure Model](quality-and-closure-model.md)
+- [The Gate Flow — Reference](gate-flow.md)
 - [Operations and Governance](operations-and-governance.md)
 - [Source Map](source-map.md)
