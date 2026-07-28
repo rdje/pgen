@@ -22,14 +22,36 @@ PASS  mdbook-docs-gate                               0s
 PASS  fixed-point-gate                              18s
 PASS  performance-gate                              35s
 
-sota-exit-gate  <still running at capture time>
-  sub-gates so far: ok=12  fail=0   (currently: ==> hdl_frontend_gate (required))
+FAIL  sota-exit-gate                              8587s
+
+  final: workflows=11  PASS=10  FAIL=1
+  guard: exit=0  peak_tree_rss=11006MB  elapsed=12056s   (budget 12288MB -- 90% used, not raised)
+
+  The ONE failure is NOT about this leaf's fix -- the fix is what let the replay run for
+  2h23m and clear 19 required sub-gates before hitting it:
+
+    ==> sv_failure_context_contract_gate (required)
+        systemverilog_failure_context_aggregate_contract_gate  ok
+        error: expected at least one generation failure-context excerpt
+
+  MEASURED NOT EXPORT-SPECIFIC. The same gate run directly in the MAIN repo fails
+  identically in 232s (guard exit=2, peak 9870MB):
+    total_counterexamples = 0 , by_failure_context_excerpt length = 0   -- both trees
+
+  And the counterexample pipeline is NOT broken -- it correctly reports zero:
+    systemverilog_parseability_generation_report.json .observed =
+      requested_total 1 , accepted_total 1 , rejected_total 0 , attempts_total 1 ,
+      parser_rejections_total 0 , generation_errors_total 0 , acceptance_rate_percent 100.00
+  => under the budget this gate itself configures, ONE sample is requested and the parser
+     accepts it first try, so there is no failure to excerpt -- and the assertion demands one.
+
+  Routed to CI-PARITY-GATE-ROT.5.
 
 ==============================================================================
 CONTRAST WITH THE UNPREPARED RUN (workflow_census_layer1.txt)
 ==============================================================================
   unprepared:  PASS=3  FAIL=8   -- all 8 on ONE cause (generated/ absent from the export dir)
-  prepared:    PASS=10 FAIL=0   -- + the sota-exit-gate aggregate still running, 0 fail lines
+  prepared:    PASS=10 FAIL=1   -- the 1 is a PRE-EXISTING sota_exit_gate defect this replay surfaced
 
   The 3 that passed unprepared are the 3 that never compile the crate:
     branch-protection-contract-gate  shell + jq

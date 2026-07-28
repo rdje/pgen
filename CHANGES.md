@@ -71,6 +71,27 @@ parsers byte-identical BY CONSTRUCTION; no release / schema / ledger / contract 
   run — the evidence is the local reproduction plus the measured absence of the step in 14 of 15
   files. ⛔ `PGEN_CI_WORKFLOW_LOCAL_PREPARE` therefore stays `false` by default until `.4` lands:
   **a local green over a broken hosted side is false parity, which is worse than a visible red.**
+- ⭐⭐⭐ **AND RUNNING THE AGGREGATE FOR THE FIRST TIME SURFACED A SEPARATE, LIVE DEFECT ⇒ NEW LEAF
+  `.5`: `make -C rust sota_exit_gate` — the repository's flagship aggregate and a `README.md`
+  Standard Command — IS RED.** The prepared replay ran it for **2 h 23 m**, cleared **19** required
+  sub-gates, and died in `sv_failure_context_contract_gate` on `error: expected at least one
+  generation failure-context excerpt`. Final census: `workflows=11 PASS=10 FAIL=1`, guard
+  `exit=0 peak_tree_rss=11006MB elapsed=12056s`. ⭐ **Measured NOT export-specific** — the same gate
+  run directly in the main repo fails identically in **232 s** (`exit=2`, peak 9,870 MB), both trees
+  reporting `total_counterexamples = 0`. ⭐⭐⭐ **AND THE COUNTEREXAMPLE PIPELINE IS NOT BROKEN — IT
+  IS CORRECTLY REPORTING ZERO**, which was the whole risk (`.1`'s *"is the AUDIT stale or is the
+  REPO wrong?"*, two readings with OPPOSITE remedies): the generation report's `observed` block
+  reads `requested_total 1, accepted_total 1, rejected_total 0, attempts_total 1,
+  parser_rejections_total 0, acceptance_rate_percent 100.00` ⇒ **one sample was requested and the
+  generated SV parser accepted it first try, so there is genuinely no failure to excerpt** — and
+  `sv_failure_context_contract_gate.sh:136` demands at least one. ⇒ **under the budget this gate
+  itself configures, the assertion can only be satisfied if the SV parser REJECTS its own generated
+  sample: it passes when the system is broken and fails when it works.** ⭐ **A FOURTH SHAPE for
+  this family** — cannot-run-and-returns-green (`.3`'s filter), cannot-see-and-returns-green
+  (`GENERATED-LINT-CORRECTNESS.3`), nothing-invokes-it (`ast_dump_contract_gate`), and now
+  **requires-a-defect-to-pass** ⇒ the converse the principle needed: *a check must not depend on the
+  thing it watches being broken.* ⛔ `.5` must adjudicate WHICH is the bug (the 1-sample budget, or
+  the inverted assertion) — the two have opposite fixes, so it is routed, not guessed.
 - **Verified.** Probe driver `run_workflow_phase_probes.sh` replays every arm against BOTH the
   pre-change gate (`git show HEAD:…`) and the working tree: **7/7**, with all three RED arms
   flipping pass→block and all three CONTROL arms **identical on both sides** — including one that

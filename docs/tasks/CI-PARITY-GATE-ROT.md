@@ -13,7 +13,10 @@
   **3 PASS / 8 FAIL unprepared**, all eight one defect, and — once the repository's own cold-clone
   bootstrap runs inside the export dir — **every replay that reached a verdict reached PASS**. `.4` — the same defect in the
   **hosted** workflow files, 14 of 15 of which never got the fix — is now the tree's largest open
-  item and outranks `.2`, because `.2` is an inventory of a class `.4` is a live instance of.)
+  item and outranks `.2`, because `.2` is an inventory of a class `.4` is a live instance of.
+  ⭐ **`.3` also surfaced `.5`**: running the aggregate for the first time showed
+  `make -C rust sota_exit_gate` is RED on a required sub-gate that can only pass when SV
+  generation FAILS — measured in the main repo too, so not an artefact of the export dir.)
 - ✅⛔ **DIRECTOR RULING RECEIVED (2026-07-27, session #216, verbatim):** *"We will republish PGEN
   regex parser at a later time"* + *"I agree we shouldn't cite either regex.json or regex.ebnf"*
   ⇒ **THE BOUNDARY STANDS.** `audit_embedding_api_surface` is RIGHT; the repo is wrong. The
@@ -256,6 +259,7 @@ note in this tree's header.**
 
 | slice | leaf | commit subject |
 |---|---|---|
+| `PGEN-CI-PARITY-GATE-ROT-0004` | `.3` close-out (+ `.5` opened) | the prepared replay finished 10/1 — and the 1 is `sota_exit_gate` RED on a sub-gate that can only pass when SV generation FAILS |
 | `PGEN-CI-PARITY-GATE-ROT-0003` | `.3` (+ `.4` opened) | the workflow phase runs for the first time in 1,371 commits — 3/8 unprepared, one defect behind all eight, and a mistyped filter had been certifying parity while replaying nothing |
 | (opened by `PGEN-GENERATED-LINT-CORRECTNESS-0004`) | (tree opened) | the local CI-parity gate has been unable to complete for 1,371 commits — first blocker repaired, 8 independent audits routed here |
 | `PGEN-QUANT-PLUS-ITER-0005` | (`.1b` follow-on) | `ast_dump_contract_gate` repaired and given the surface audit that makes it reachable — audit phase 31 → 32 |
@@ -412,17 +416,17 @@ remove. What ships instead:
 | `mdbook-docs-gate` | **PASS** 0s |
 | `fixed-point-gate` | **PASS** 18s |
 | `performance-gate` | **PASS** 35s |
-| `sota-exit-gate` | ⏳ **still running at commit time** — see the note below |
+| `sota-exit-gate` | **FAIL** 8587s — ⭐ a **pre-existing** defect this replay surfaced, routed to `.5` |
 
-⚠️ **Stated precisely, because the difference matters:** ten of the eleven replays are measured
-PASS. The eleventh, `sota-exit-gate`, is the repository's full aggregate (it re-runs most of the
-other ten plus the SV/VHDL/regex family stacks) and was still executing when this leaf was
-committed — it had cleared `fixed_point_gate`, `differential_baseline_contract` and
-`annotation_contract_gate` with **zero** `fail` lines and was inside `annotation_100_gate`. The
-claim this leaf makes is therefore the one it measured: **the workflow phase now EXECUTES, and
-every replay that reached a verdict reached PASS.** Whether the full aggregate is green end-to-end
-in the export dir is a separate question, and if it turns out not to be, that is a finding about
-`sota_exit_gate` — not about this leaf's fix, which is what let the replay get that far at all.
+**Final: `workflows=11 PASS=10 FAIL=1`**, guard `exit=0 peak_tree_rss=11006MB elapsed=12056s`
+(against a 12,288 MB budget — 90% used, and deliberately NOT raised, per `OPS-MEMSAFE`'s ruling
+that a budget below the OS-kill point buys a deterministic exit 97).
+
+⭐ **The one failure is not about this fix — the fix is what let the replay run for 2 h 23 m and
+clear 19 required sub-gates before reaching it.** It dies in `sv_failure_context_contract_gate` on
+`error: expected at least one generation failure-context excerpt`, and that is **measured NOT
+export-specific**: the same gate run directly in the main repo fails identically in 232 s. Routed
+to `.5` rather than absorbed here — it is a defect in `sota_exit_gate`, not in the parity gate.
 
 #### ⚠️ TWO DEFECTS THIS LEAF FOUND IN ITS OWN WORK
 
@@ -528,3 +532,61 @@ visible red.**
      declares no regeneration step FAILS the audit — otherwise this recurs a fourth time.
 - ⛔ **Do not flip the local default before (1).** A local green over a broken hosted side is false
   parity, which is worse than the visible red the gate reports today.
+
+### `.5` — `sota_exit_gate` is RED: a required sub-gate that can only pass when SV generation FAILS (`todo`)
+
+- **Status: `todo`** — opened 2026-07-28 session #218 by `.3`, which surfaced it by being the first
+  thing in 1,371 commits actually to run the aggregate. ⛔ Deliberately NOT absorbed into `.3`:
+  `.3` owns the parity gate, and the parity gate is **right** here — it is faithfully reporting a
+  defect that lives in `sota_exit_gate`.
+- ⭐⭐ **THE HEADLINE.** `make -C rust SHELL=/bin/bash sota_exit_gate` — the repository's flagship
+  aggregate and a `README.md` Standard Command — **cannot complete.** It clears 19 required
+  sub-gates and then dies in `sv_failure_context_contract_gate`:
+
+  ```
+  ==> sv_failure_context_contract_gate (required)
+      systemverilog_failure_context_aggregate_contract_gate   ok
+  error: expected at least one generation failure-context excerpt
+  ```
+
+- ⭐ **NOT export-specific — measured on both sides.** Run directly in the main repo
+  (`scripts/run_with_memory_guard.sh --budget-mb 12288 -- make -C rust sv_failure_context_contract_gate`)
+  it fails identically: guard `exit=2`, `peak_tree_rss=9870MB`, **232 s**. Both trees report
+  `total_counterexamples = 0` and `by_failure_context_excerpt | length = 0`.
+- ⭐⭐⭐ **AND THE COUNTEREXAMPLE PIPELINE IS NOT BROKEN — IT IS CORRECTLY REPORTING ZERO.** That
+  distinction was the whole risk here (`.1`'s question: *is the AUDIT stale, or is the REPO
+  wrong?*), and the two readings have **opposite** remedies. It is settled by
+  `systemverilog_parseability_generation_report.json`:
+
+  ```json
+  "observed": { "requested_total": 1, "accepted_total": 1, "rejected_total": 0,
+                "attempts_total": 1, "parser_rejections_total": 0,
+                "generation_errors_total": 0, "acceptance_rate_percent": 100.00 }
+  ```
+
+  **One sample was requested, and the generated SV parser accepted it on the first attempt.** There
+  is genuinely no failure to excerpt. `sv_failure_context_contract_gate.sh:136` then requires
+  `>= 1`, so ⇒ **under the budget this gate itself configures, the assertion can only be satisfied
+  if the SV parser REJECTS its own generated sample.** It passes when the system is broken and
+  fails when it works.
+- ⭐ **A FOURTH SHAPE FOR THIS FAMILY.** The tree has now found: a check that *cannot run* and
+  returns green (the filter vacuity, `.3`); a check that *cannot see* and returns green (the
+  generated-clippy vacuity, `GENERATED-LINT-CORRECTNESS.3`); a check that *nothing invokes*
+  (`ast_dump_contract_gate`); and now **a check that requires a DEFECT to be present in order to
+  pass.** The unifying principle needs its converse stated: *a check must not depend on the thing
+  it watches being broken.*
+- **The adjudication this leaf owes (⛔ do not guess — the readings have opposite fixes):**
+  1. **Is the budget the bug?** `requested_total: 1` is what this gate's own failure-context quality
+     state configures. If the intended budget is larger, the gate is mis-wired and the fix is the
+     budget, not the assertion.
+  2. **Is the assertion the bug?** If a clean SV generation run is the expected and desired outcome,
+     then `>= 1 excerpt` is an inverted-vacuity check and must become "if any counterexample exists,
+     its excerpt must be well-formed" — keeping the anti-vacuity intent without requiring a defect.
+  3. Either way, establish **when this last passed** (`git log -S` on the assertion and on the
+     budget) — the ordering will probably show the same shape as `.3`'s: a change that made the
+     system better, landing after the only thing that would have objected stopped running.
+- ⚠️ **Scope note.** If (1) turns out to be an SV-family question rather than a proof-surface one,
+  re-home this leaf to the owning SV tree; it is filed here because *"a required sub-gate of the
+  flagship aggregate has been failing undetected"* is proof-surface integrity, which is this tree.
+- **Evidence:** `docs/tasks/artifacts/ci_parity_gate_rot/workflow_census_prepared.txt` (the
+  replay's verdict plus the main-repo comparison and the `observed` block).

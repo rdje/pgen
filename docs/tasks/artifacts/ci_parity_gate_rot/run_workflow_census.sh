@@ -55,6 +55,15 @@ trap 'rm -f "$ROOT/$PROBE"' EXIT
 . "$ROOT/$PROBE"
 set +e
 
+# ⛔ THIRD REPRODUCTION TRAP, and this one was found by the repo being DIRTY afterwards.
+# `bash` keeps ONE EXIT trap per shell, and the gate installs its own on line 67
+# (`trap cleanup_run_dir_on_exit EXIT`). Sourcing it therefore SILENTLY REPLACES the driver's
+# `rm -f "$PROBE"` trap, and the stripped copy survives in `rust/scripts/` — untracked cruft in a
+# TRACKED directory, i.e. an instrument that leaves the working tree unclean every time it runs.
+# `.1`'s run_audit_census.sh has the identical latent bug for the identical reason. Re-install a
+# trap that does BOTH, in that order, so the probe is removed whatever the gate's own cleanup does.
+trap 'rm -f "$ROOT/$PROBE"; cleanup_run_dir_on_exit' EXIT
+
 # Keep the gate's own replay body; only its fatality is removed.
 eval "$(declare -f run_workflow | sed '1s/^run_workflow/orig_run_workflow/')"
 
@@ -78,11 +87,22 @@ CENSUS_ROWS=()
 run_workflow() {
   local workflow_name="$1"
   local started elapsed rc out
+
+  # ⛔ FOURTH TRAP, and the gate's OWN new check is what exposed it.
+  # `orig_run_workflow` maintains `WORKFLOW_ROSTER` / `WORKFLOWS_RUN_COUNT` so the gate can refuse a
+  # run that replayed nothing — but this driver calls it inside `$( ( … ) )`, and a SUBSHELL cannot
+  # write its parent's variables. The very isolation that lets the census survive a failing replay
+  # discards the bookkeeping, so `assert_workflow_selection_was_real` saw 0 and failed the driver.
+  # Mirrored HERE, in the parent, rather than stubbing the assertion out: the census should be
+  # subject to the same "did anything actually run?" check as the gate it measures.
+  WORKFLOW_ROSTER="$WORKFLOW_ROSTER $workflow_name"
+
   if ! is_selected "$workflow_name"; then
     CENSUS_SKIP=$((CENSUS_SKIP + 1))
     CENSUS_ROWS+=("SKIP  $workflow_name")
     return 0
   fi
+  WORKFLOWS_RUN_COUNT=$((WORKFLOWS_RUN_COUNT + 1))
   started=$SECONDS
   out=$( (set +e; orig_run_workflow "$@") 2>&1 ); rc=$?
   elapsed=$((SECONDS - started))
