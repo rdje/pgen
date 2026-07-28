@@ -481,6 +481,7 @@ help:
 	@echo "  rebuild      - Clean and rebuild everything"
 	@echo ""
 	@echo "🛠️  Utility targets:"
+	@echo "  regenerate_generated_parsers - Cold-clone regeneration of every generated/ artifact (the SINGLE home of that recipe; used by .github/actions/regenerate-parsers and by ci_workflow_local_gate)"
 	@echo "  clean        - Remove generated files"
 	@echo "  clean-all    - Remove all build artifacts"
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
@@ -872,6 +873,41 @@ semantic_parser: semantic_annotation_parser
 # NON-destructive per-parser flows; the full clean+rebuild semantic
 # remains available explicitly as `return_semantic_parsers`.
 annotation_parsers: return_annotation_parser semantic_annotation_parser
+
+# CI-PARITY-GATE-ROT.4 — THE SINGLE HOME OF THE COLD-CLONE REGENERATION RECIPE.
+#
+# `generated/` is untracked (repository policy, `0ed2b2ad` 2026-04-29), so a fresh
+# checkout — `actions/checkout` on a hosted runner, or the local parity gate's
+# `copy_tracked_worktree` export, which are the SAME tracked-files-only shape — has no
+# generated parsers at all. `rust/src/lib.rs` includes the two annotation parsers by
+# LITERAL path with no `has_generated_*` cfg, so under `--features generated_parsers`
+# their absence is a hard rustc error that takes the whole crate down rather than a
+# disabled feature. Measured: 11 of the 15 tracked workflows cannot run without this.
+#
+# ⛔ This target exists so that sequence has EXACTLY ONE definition. Before it, the
+# recipe was written out twice (in `.github/workflows/generated-clippy-correctness-gate.yml`
+# and in `prepare_generated_artifacts` inside `rust/scripts/ci_workflow_local_gate.sh`),
+# and wiring the other ten workflows would have made twelve copies of a sequence whose
+# drift nothing could detect. Every consumer now calls this target:
+#   - `.github/actions/regenerate-parsers/action.yml` (the composite action the hosted
+#     workflows use), and
+#   - `prepare_generated_artifacts` in the local workflow-parity gate.
+# `audit_workflow_regeneration_surface` in that gate asserts the wiring still holds.
+#
+# Measured cost from a bare tracked tree: ~258 s (CI-PARITY-GATE-ROT.3 prepared census).
+# ⚠️ Verbose by construction: `RUST_GENERATOR` runs `--debug --trace`, so a full capture of
+# this sequence measured 7.1 GB. Bound the log when you capture it.
+GENERATED_PARSER_FAMILIES = json regex systemverilog systemverilog_preprocessor vhdl rtl_const_expr rtl_frontend
+
+.PHONY: regenerate_generated_parsers
+regenerate_generated_parsers:
+	@echo "🌱 Regenerating generated/ from a cold clone (CI-PARITY-GATE-ROT.4)..."
+	$(MAKE) regex_parser_bootstrap
+	$(MAKE) annotation_parsers
+	@set -e; for grammar in $(GENERATED_PARSER_FAMILIES); do \
+		$(MAKE) "focus_$$grammar"; \
+	done
+	@echo "✅ generated/ regenerated: annotation pair + $(words $(GENERATED_PARSER_FAMILIES)) grammar families."
 
 .PHONY: regex_tests
 regex_tests: regex_parser

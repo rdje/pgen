@@ -571,6 +571,140 @@ audit_workflow_surface() {
   done
 }
 
+# CI-PARITY-GATE-ROT.4 — the composite action every hosted workflow that compiles the crate must
+# reference, and the make target that is the single definition of the sequence it runs.
+REGENERATION_ACTION_PATH=".github/actions/regenerate-parsers/action.yml"
+REGENERATION_ACTION_REF="uses: ./.github/actions/regenerate-parsers"
+REGENERATION_MAKE_TARGET="regenerate_generated_parsers"
+
+# ⭐ THE EXEMPTION SET — SMALL, EXPLICIT, AND EACH ENTRY MEASURED, NEVER ASSUMED.
+# A workflow lands here only because a run against a tracked-files-only tree — the exact shape
+# `actions/checkout` and `copy_tracked_worktree` both produce — was observed to PASS without any
+# generated artifact. Everything else defaults to REQUIRING the step, which is the safe direction:
+# a workflow added tomorrow fails this audit until someone either wires the step or measures it
+# into this list. `.3`'s unprepared census (`docs/tasks/artifacts/ci_parity_gate_rot/`) is the
+# evidence for all three.
+#
+#   branch-protection-contract-gate  PASS 0s   — shell + jq, never invokes cargo
+#   fixed-point-gate                 PASS 23s  — builds ast_pipeline_bootstrap WITHOUT
+#                                                --features generated_parsers
+#   mdbook-docs-gate                 PASS 1s   — mdbook only
+#
+# ⛔ `.4`'s scope is explicit that "the 3 that pass must NOT pay for it", so exemption is asserted
+# in BOTH directions: an exempt workflow that acquires the step also fails this audit. A 258 s
+# regeneration bolted onto a 1 s shell check is a real cost regression, not a harmless extra.
+workflow_is_regeneration_exempt() {
+  case "$1" in
+    .github/workflows/branch-protection-contract-gate.yml) return 0 ;;
+    .github/workflows/fixed-point-gate.yml) return 0 ;;
+    .github/workflows/mdbook-docs-gate.yml) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+audit_workflow_regeneration_surface() {
+  # CI-PARITY-GATE-ROT.4.
+  #
+  # ⭐⭐ THE DEFECT THIS EXISTS TO STOP RECURRING A FOURTH TIME. `generated/` is untracked
+  # (`0ed2b2ad`, 2026-04-29), `actions/checkout` yields a tracked-files-only tree, and
+  # `rust/src/lib.rs:72,78` include the annotation parsers by LITERAL path with no
+  # `has_generated_*` cfg — so under `--features generated_parsers` their absence is a hard rustc
+  # error that takes the whole crate down. Measured by `.3` against that same tree shape: 8 of the
+  # 11 replayed workflow commands died on exactly this; measured by `.4`: 11 of the 15 tracked
+  # workflows need the step, and before `.4` only ONE declared it.
+  #
+  # ⭐ THE ROSTER IS DERIVED, NOT HAND-LISTED — and that is the direct fix for how the last two
+  # stayed unmeasured. `.3`'s census could only see the 11 workflows the parity gate replays, so
+  # `rtl-const-expr-cert-gate` and `sv-cert-recognized-union-gate` sat outside every instrument
+  # until `.4` measured them (both FAIL: `No rule to make target '../generated/ebnf.rs'`). This
+  # audit walks `git ls-files .github/workflows`, so a workflow cannot be outside it.
+  #
+  # ⭐ AND THE PREDICATE IS FAIL-SAFE: needing the step is the DEFAULT, established by running a
+  # `make -C rust` gate at all; not needing it requires a measured entry in the exemption set
+  # above. The opposite polarity — a hand-list of workflows that need it — is the duplicated-
+  # moving-metadata shape that rotted twelve assertions in `.1`.
+  local workflow_file
+  local needs_step=0
+  local exempt=0
+  note "auditing hosted-workflow regeneration surface"
+
+  # (a) ONE HOME, asserted at both ends: the action must exist and must delegate to the make
+  #     target, and the make target must exist. Neither may hold the sequence alone.
+  assert_tracked "$REGENERATION_ACTION_PATH"
+  assert_file_contains "$REGENERATION_ACTION_PATH" \
+    "make -C rust SHELL=/bin/bash $REGENERATION_MAKE_TARGET"
+  assert_file_contains "rust/Makefile" "$REGENERATION_MAKE_TARGET:"
+  assert_file_contains "rust/Makefile" "GENERATED_PARSER_FAMILIES ="
+
+  # (b) The local parity gate must call the SAME target, so its preparation and the hosted side
+  #     cannot diverge. Before `.4` the sequence was written out twice and wiring ten more
+  #     workflows would have made twelve copies whose drift nothing could detect.
+  assert_file_contains "rust/scripts/ci_workflow_local_gate.sh" \
+    "make -C rust SHELL=/bin/bash \"\$REGENERATION_MAKE_TARGET\""
+
+  # (c) No workflow may re-inline the recipe. `regex_parser_bootstrap` is its first step and its
+  #     unambiguous signature; a copy pasted back into a workflow file is a second home.
+  for workflow_file in $(cd "$ROOT_DIR" && git ls-files '.github/workflows/*.yml'); do
+    assert_workflow_not_contains "$workflow_file" "regex_parser_bootstrap"
+  done
+
+  # (d) The derived roster: every tracked workflow that runs a `make -C rust` gate declares the
+  #     step, and every measured-exempt one does not.
+  for workflow_file in $(cd "$ROOT_DIR" && git ls-files '.github/workflows/*.yml'); do
+    if workflow_is_regeneration_exempt "$workflow_file"; then
+      exempt=$((exempt + 1))
+      assert_workflow_not_contains "$workflow_file" "$REGENERATION_ACTION_REF"
+      continue
+    fi
+    grep -F -- "make -C rust" "$ROOT_DIR/$workflow_file" >/dev/null 2>&1 || continue
+    needs_step=$((needs_step + 1))
+    grep -F -- "$REGENERATION_ACTION_REF" "$ROOT_DIR/$workflow_file" >/dev/null 2>&1 || \
+      fail "workflow $workflow_file runs a 'make -C rust' gate but declares no regeneration step.
+  generated/ is untracked, so actions/checkout gives this job a tree with no generated parsers and
+  any command that compiles the crate with --features generated_parsers dies on
+    error: couldn't read \`src/../../generated/return_annotation_parser.rs\`
+  fix:  add this step before the gate step —
+          - name: Regenerate the generated parsers
+            $REGENERATION_ACTION_REF
+  or, if this workflow genuinely needs no generated artifact, MEASURE that against a
+  tracked-files-only tree and add it to workflow_is_regeneration_exempt with the measurement.
+  (See docs/tasks/CI-PARITY-GATE-ROT.md leaf .4.)"
+
+    # (e) A regeneration budget that does not fit the job's timeout is a workflow that cannot
+    #     complete — the same class this tree keeps finding, one layer out. The step alone
+    #     measured 258 s locally, from a WARM cargo registry, on a 3.6 TB volume; a hosted runner
+    #     starts cold and is slower. 30 minutes is the floor for any job that carries it.
+    #     ⚠️ This is a FLOOR, not a per-gate cost model: pinning each workflow's measured runtime
+    #     here would be exactly the moving-value duplication `.1` found rotting twelve times.
+    assert_workflow_timeout_at_least "$workflow_file" 30
+  done
+
+  note "regeneration surface: $needs_step workflow(s) require the step, $exempt measured-exempt"
+  if [ "$needs_step" -lt 1 ]; then
+    fail "audit_workflow_regeneration_surface matched no workflows at all — the roster derivation
+  is broken (it walks 'git ls-files .github/workflows/*.yml'). A surface audit that inspects
+  nothing must refuse, not pass: that vacuous-green shape is what this tree exists to remove."
+  fi
+}
+
+# assert_workflow_timeout_at_least <workflow_file> <minutes>
+# CI-PARITY-GATE-ROT.4. A missing `timeout-minutes` is also a failure: GitHub's default is 360
+# minutes, so omitting it is not "unbounded is fine", it is "nobody priced this job".
+assert_workflow_timeout_at_least() {
+  local workflow_file="$1"
+  local want="$2"
+  local got
+  got="$(grep -Eo '^[[:space:]]*timeout-minutes:[[:space:]]*[0-9]+' "$ROOT_DIR/$workflow_file" 2>/dev/null |
+    grep -Eo '[0-9]+$' | head -n 1)"
+  [ -n "$got" ] || \
+    fail "workflow $workflow_file declares the regeneration step but no timeout-minutes; price the job"
+  if [ "$got" -lt "$want" ]; then
+    fail "workflow $workflow_file budgets timeout-minutes: $got, below the $want-minute floor for a
+  job that regenerates generated/ first (the regeneration alone measured 258 s locally, warm, on a
+  fast volume; hosted runners start cold). Raise it or the job cannot complete."
+  fi
+}
+
 audit_ebnf_frontend_conversion_surface() {
   local repo_file
   note "auditing ebnf_to_json conversion surface"
@@ -3111,11 +3245,15 @@ prepare_generated_artifacts() {
   # ⛔ NOT a shortcut and NOT a copy from the developer's tree. This replays the repository's OWN
   # cold-clone bootstrap recipe — `rust/Makefile`'s `regex_parser_bootstrap` ("Bootstrap regex
   # parser from cold clone", which seeds `generated/ebnf.rs` when it is missing) followed by the
-  # annotation pair and the per-grammar `focus_*` targets. It is byte-for-byte the sequence the
-  # tracked hosted workflow `.github/workflows/generated-clippy-correctness-gate.yml` already runs
-  # in its "Regenerate the generated parsers" step, which `GENERATED-LINT-CORRECTNESS.3` added for
-  # precisely this reason. `audit_generated_clippy_correctness_surface` pins that step so the two
-  # cannot silently diverge.
+  # annotation pair and the per-grammar `focus_*` targets.
+  #
+  # ⭐ CI-PARITY-GATE-ROT.4 — IT NO LONGER SPELLS THAT SEQUENCE OUT. It calls
+  # `rust/Makefile`'s `regenerate_generated_parsers`, which is now the ONE definition of the
+  # recipe; the hosted side reaches the same target through the composite action
+  # `.github/actions/regenerate-parsers`. Before `.4` the sequence was written out twice (here and
+  # in `generated-clippy-correctness-gate.yml`) and wiring the ten further workflows that need it
+  # would have produced twelve copies whose drift nothing could detect.
+  # `audit_workflow_regeneration_surface` asserts both ends of that wiring.
   #
   # ⛔ Copying the developer's `generated/` into the export dir was REJECTED: it would make this
   # gate green against artifacts a fresh checkout does not have, which is the vacuity class this
@@ -3136,11 +3274,7 @@ prepare_generated_artifacts() {
     cd "$EXPORT_DIR"
     export CARGO_NET_OFFLINE="$CARGO_OFFLINE_RAW"
     set -e
-    make -C rust SHELL=/bin/bash regex_parser_bootstrap
-    make -C rust SHELL=/bin/bash annotation_parsers
-    for grammar in json regex systemverilog systemverilog_preprocessor vhdl rtl_const_expr rtl_frontend; do
-      make -C rust SHELL=/bin/bash "focus_${grammar}"
-    done
+    make -C rust SHELL=/bin/bash "$REGENERATION_MAKE_TARGET"
   ) 2>&1 | tail -c "$log_tail_bytes" >"$log_file"; then
     note "ok prepare generated/ ($log_file)"
   else
@@ -3256,6 +3390,7 @@ main() {
   audit_docs_book_surface
   audit_active_docs_rehome_paths
   audit_workflow_surface
+  audit_workflow_regeneration_surface
   audit_ebnf_frontend_conversion_surface
   audit_embedding_api_surface
   audit_rtl_frontend_generated_contract_surface

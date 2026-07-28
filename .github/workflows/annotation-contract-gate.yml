@@ -7,7 +7,10 @@ jobs:
   annotation-contract-gate:
     name: annotation-contract-gate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # CI-PARITY-GATE-ROT.4 — was 30, which this job cannot fit. `.3`'s prepared census measured
+    # the `annotation_contract_gate` replay at 2,301 s (38 min) on a fast local volume, before the
+    # ~258 s regeneration step below. 30 minutes was a budget the gate could only ever exceed.
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -30,6 +33,12 @@ jobs:
             sudo apt-get install -y jq
             jq --version
           fi
+
+      # generated/ is untracked, so actions/checkout yields a tree with no generated
+      # parsers and this job's gate cannot compile the crate. Recipe: rust/Makefile's
+      # regenerate_generated_parsers (CI-PARITY-GATE-ROT.4).
+      - name: Regenerate the generated parsers
+        uses: ./.github/actions/regenerate-parsers
 
       - name: Run annotation normative contract gate
         run: make -C rust SHELL=/bin/bash annotation_contract_gate

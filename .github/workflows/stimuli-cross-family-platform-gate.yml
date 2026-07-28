@@ -21,6 +21,12 @@ jobs:
         with:
           workspaces: rust
 
+      # generated/ is untracked, so actions/checkout yields a tree with no generated
+      # parsers and this job's gate cannot compile the crate. Recipe: rust/Makefile's
+      # regenerate_generated_parsers (CI-PARITY-GATE-ROT.4).
+      - name: Regenerate the generated parsers
+        uses: ./.github/actions/regenerate-parsers
+
       - name: Run bounded cross-family stimuli platform gate
         run: make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate
 

@@ -7,7 +7,13 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: `.4`** then **`.2`** (`.1` **done** 2026-07-27 session #216 — audit phase **23 PASS / 8 FAIL → 31 PASS /
+- **Frontier: `.5`** then the `PREPARE` flip then **`.2`**, and then this tree CLOSES.
+  (`.4` **done** 2026-07-28 session #220 — the hosted surface: **11 of 15** tracked workflows need
+  the regeneration step and only **1** declared it; the recipe now has one home
+  (`make regenerate_generated_parsers` + the `regenerate-parsers` composite action), a derived
+  fail-safe audit holds it, and two workflows were found declaring timeouts below their own
+  measured cost.
+  `.1` **done** 2026-07-27 session #216 — audit phase **23 PASS / 8 FAIL → 31 PASS /
   0 FAIL**; the escalated row was ruled on by the director same-session and executed as `.1b`.
   **`.3` done 2026-07-28 session #218** — the workflow phase was exercised for the first time:
   **3 PASS / 8 FAIL unprepared**, all eight one defect, and — once the repository's own cold-clone
@@ -259,6 +265,7 @@ note in this tree's header.**
 
 | slice | leaf | commit subject |
 |---|---|---|
+| `PGEN-CI-PARITY-GATE-ROT-0007` | `.4` | 11 of 15 hosted workflows needed the regeneration step and 1 had it — one home for the recipe, a derived fail-safe audit, and two timeouts below their own measured cost |
 | `PGEN-CI-PARITY-GATE-ROT-0005` | `.4`/`.5` prep (docs only) | the director work order banked verbatim, `.5` adjudicated (the ASSERTION is the bug, not the budget), and both leaves given a self-contained work list |
 | `PGEN-CI-PARITY-GATE-ROT-0004` | `.3` close-out (+ `.5` opened) | the prepared replay finished 10/1 — and the 1 is `sota_exit_gate` RED on a sub-gate that can only pass when SV generation FAILS |
 | `PGEN-CI-PARITY-GATE-ROT-0003` | `.3` (+ `.4` opened) | the workflow phase runs for the first time in 1,371 commits — 3/8 unprepared, one defect behind all eight, and a mistyped filter had been certifying parity while replaying nothing |
@@ -501,7 +508,158 @@ visible red.**
 - `docs/tasks/artifacts/ci_parity_gate_rot/workflow_census_layer1.txt` — the unprepared census.
 - `docs/tasks/artifacts/ci_parity_gate_rot/workflow_census_prepared.txt` — the prepared census.
 
-### `.4` — the HOSTED workflows have the same defect, and 14 of 15 never got the fix (`todo`)
+### `.4` — the HOSTED workflows have the same defect, and 14 of 15 never got the fix (`done`)
+
+- **Status: `done`** (2026-07-28, session #220, `PGEN-CI-PARITY-GATE-ROT-0007`).
+  **11 of the 15 tracked workflows need the regeneration step; before this leaf exactly ONE
+  declared it. All eleven now do, through a single shared definition.**
+
+#### ⭐⭐ THE TWO UNMEASURED WORKFLOWS ARE MEASURED, AND BOTH NEED THE STEP
+
+`.3`'s census could only see the 11 workflows the parity gate replays, so `rtl-const-expr-cert-gate`
+and `sv-cert-recognized-union-gate` sat outside every instrument. Measured here against a
+tracked-files-only export (`git ls-files` copy — the exact shape `actions/checkout` yields), each
+under `scripts/run_with_memory_guard.sh --budget-mb 12288`:
+
+```
+$ make -C rust SHELL=/bin/bash rtl_const_expr_cert_gate
+==> ensure_generated_rtl_const_expr_artifacts
+make[1]: *** No rule to make target `../generated/ebnf.rs', needed by
+         `target/ebnf_frontend_build/debug/ast_pipeline'.  Stop.
+guard: exit=2 reason=none elapsed_s=5
+
+$ make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate
+==> ensure_generated_systemverilog_parser
+make[1]: *** No rule to make target `../generated/ebnf.rs', needed by
+         `target/ebnf_frontend_build/debug/ast_pipeline'.  Stop.
+guard: exit=2 reason=none elapsed_s=5
+```
+
+⭐ **Both fail EARLIER than `.3`'s eight** — not at the rustc include, but at `make` itself: nothing
+in the Makefile can produce `generated/ebnf.rs`, because only `regex_parser_bootstrap` seeds it.
+Both scripts then go on to `cargo build --features "generated_parsers ebnf_dual_run" --bin
+ast_pipeline` (`rtl_const_expr_cert_gate.sh:181`, `sv_cert_recognized_union_gate.sh:179`), so they
+would have hit the annotation-parser include too. ⇒ **the count is 11 of 15, not 8 of 15.**
+
+| verdict | workflows |
+|---|---|
+| **need the step** (11) | annotation-contract, annotation-nonbootstrap-e2e, differential-regression, ebnf-frontend-dual-run-diff, generated-clippy-correctness *(already had it)*, performance, rtl-const-expr-cert, rtl-frontend-generated-contract, sota-exit, stimuli-cross-family-platform, sv-cert-recognized-union |
+| **measured-exempt** (3) | branch-protection-contract (shell+jq, PASS 0s), fixed-point (bootstrap binary WITHOUT `--features generated_parsers`, PASS 23s), mdbook-docs (mdbook only, PASS 1s) |
+| **outside the predicate** (1) | memory-architecture — runs `bash scripts/check_*.sh` only, never `make -C rust`, so it needs no exemption entry at all |
+
+#### ⭐ ONE HOME — AND IT IS TWO ARTIFACTS BECAUSE A STEP AND A RECIPE ARE DIFFERENT THINGS
+
+Adding the eight-line recipe to ten more files would have made **twelve copies** of a sequence whose
+drift nothing could detect. It now has exactly one definition, split by what can consume it:
+
+- **the RECIPE** → `rust/Makefile`'s new `regenerate_generated_parsers` target (with
+  `GENERATED_PARSER_FAMILIES` as the derived family list). This is the only place the sequence is
+  written. `prepare_generated_artifacts` in `rust/scripts/ci_workflow_local_gate.sh` no longer
+  spells it out — it calls this target, so the local gate and the hosted side cannot diverge.
+- **the STEP** → `.github/actions/regenerate-parsers/action.yml`, a composite action that runs that
+  target. A composite action cannot be called from a shell gate and a `make` target cannot carry a
+  step name, comment, or `uses:` — so each owns exactly the half the other cannot.
+
+⭐ **Verified end-to-end, not asserted**: `make -C rust SHELL=/bin/bash regenerate_generated_parsers`
+run in the bare tracked export produced all ten artifacts plus the `ebnf.rs` seed —
+guard marker `status=completed reason=none exit=0 peak_rss_mb=4266 elapsed_s=236`.
+
+#### ⭐⭐ A SECOND HOSTED-SIDE DEFECT THE SAME MEASUREMENT EXPOSED — TIMEOUTS BELOW MEASURED COST
+
+Pricing the step against each job's declared budget showed two workflows that **could never have
+completed even before this leaf**, using `.3`'s own prepared-census timings:
+
+| workflow | measured replay (`.3`) | declared `timeout-minutes` | now |
+|---|---|---|---|
+| `sota-exit-gate` | **8,587 s = 2 h 23 m** (and that run FAILED partway, so a green run is longer) | **60** | **300** |
+| `annotation-contract-gate` | **2,301 s = 38 m** | **30** | **90** |
+| `rtl-frontend-generated-contract-gate` | 45 s | 20 | 30 (the floor) |
+
+⭐ **The flagship aggregate has carried a timeout below a quarter of its own measured cost** ever
+since hosted triggers were paused — invisible for the same reason everything else in this tree was:
+nothing ran it. Fixed in place per the director's constraint, not routed onward.
+⚠️ **Honest limit, recorded rather than papered over:** hosted runners are slower than this volume
+and hosted Actions are paused/billable, so 300 minutes is 2× the *local* measurement, not a hosted
+one, and it is the one job where that margin may still not be enough. GitHub's job cap is 360.
+
+#### The audit that stops this recurring a fourth time
+
+New `audit_workflow_regeneration_surface` (parity audit phase **32 → 33**). Four properties, each
+chosen against a failure this tree already recorded:
+
+1. **The roster is DERIVED** — `git ls-files '.github/workflows/*.yml'`, not a hand-list. This is the
+   direct fix for how the last two workflows stayed unmeasured: a hand-list cannot see a file
+   nobody added to it.
+2. **The polarity is FAIL-SAFE** — running a `make -C rust` gate means the step is REQUIRED by
+   default; not needing it requires a measured entry in `workflow_is_regeneration_exempt`. The
+   opposite polarity (list the ones that need it) is the moving-value duplication that rotted
+   twelve assertions in `.1`.
+3. **Exemption is asserted in BOTH directions** — `.4`'s scope says *"the 3 that pass must not pay
+   for it"*, so an exempt workflow that acquires the step also fails. A 236 s regeneration bolted
+   onto a 1 s shell check is a real cost regression.
+4. **It refuses when it inspects nothing** — an empty roster is a `fail`, not a pass. That is this
+   tree's own principle applied to the new audit itself.
+
+Plus a **30-minute floor** on any job carrying the step (the step alone measured 236–258 s locally,
+warm, on a fast volume; a hosted runner starts cold). ⛔ Deliberately a FLOOR and not a per-gate cost
+table: pinning each workflow's measured runtime in the audit would be exactly the duplicated-moving-
+value shape `.1` found rotting.
+
+#### ⚠️ THE PROBE ARMS CAUGHT A DEFECT IN THIS LEAF'S OWN WORK — AND IT IS THE "RIGHT REASON" CLASS
+
+First run of `run_regeneration_surface_probes.sh`: **10 of 12 arms failed**, and every RED arm was
+reaching `FAIL` — the verdict it wanted. It was failing for the WRONG REASON: the new
+`.github/actions/regenerate-parsers/action.yml` was untracked, so `assert_tracked` fired first and
+every arm died on `required tracked file missing from git index` before touching the invariant it
+was testing. Had the driver only compared PASS/FAIL, it would have reported **8 RED arms green over
+an audit that never evaluated a single one of them.**
+
+⭐ It was caught only because each arm also asserts a **substring of the message it expects**
+(`declares no regeneration step`, `below the 30-minute floor`, `matched no workflows at all`, …).
+This is `DOCTRINE-GAP-OWNERSHIP.1`'s lesson holding a second time: *a probe that passes for the
+wrong reason is worse than no probe.* Also a genuine finding in its own right — the composite action
+must be TRACKED or `copy_tracked_worktree` and `actions/checkout` both produce a tree where the
+`uses:` reference dangles.
+
+#### Acceptance checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the two previously-unmeasured workflows run against a tracked-only
+      export: both `exit=2` in 5 s with `make[1]: *** No rule to make target '../generated/ebnf.rs'`,
+      guard markers `reason=none`. Export built with `git ls-files` (5,159 files, no `generated/`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `generated/` is untracked, so `actions/checkout` yields a
+      tracked-files-only tree; `git ls-files generated/ | wc -l` → `0`. WHERE: `rust/Makefile` has no
+      rule producing `generated/ebnf.rs` (only `regex_parser_bootstrap` seeds it), and
+      `rust/src/lib.rs:72,78` include the annotation parsers by literal path under
+      `#[cfg(feature = "generated_parsers")]`, so under that feature their absence is a hard rustc
+      error. Measured per-workflow, not inferred: guard markers `reason=none exit=2 elapsed_s=5` for
+      both, and `git ls-files '.github/workflows/*.yml'` → 15 files of which only one declared a
+      regeneration step. Timeline unchanged from `.3`: `git rev-list --count 0ed2b2ad..HEAD` → 1371.
+- [x] **ADDRESSED (verified)** — before→after on the audit and on the recipe. BEFORE: 1 of 15
+      workflows declared the step. AFTER: `regeneration surface: 11 workflow(s) require the step,
+      3 measured-exempt`, all 11 wired through one action. The recipe itself verified end-to-end
+      from a bare tracked tree — `regenerate_generated_parsers` guard marker
+      `status=completed reason=none exit=0 peak_rss_mb=4266 elapsed_s=236`, 10 artifacts emitted.
+      Probe arms **12/12** (`run_regeneration_surface_probes.sh`), including RED-6 (a workflow file
+      that did not exist when the audit was written) and RED-8 (empty roster ⇒ refusal).
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` in this change ⇒
+      all 11 parsers **byte-identical BY CONSTRUCTION**; no release / schema / ledger / contract
+      movement. `bash -n rust/scripts/ci_workflow_local_gate.sh` clean; all 15 workflow YAMLs plus
+      the new action parse; `make -C rust branch_protection_contract_gate` GREEN (the required-check
+      contract still matches the workflow surface). CONTROL arms: an unrelated workflow edit does
+      NOT trip the new audit, the pre-existing `audit_workflow_surface` still passes, and it returns
+      the **identical verdict against HEAD's gate and the working tree** — no over-binding.
+- [x] **LOCKSTEP** — `README.md`, `docs/book/src/operations-and-governance.md`, `CHANGES.md`,
+      `DEVELOPMENT_NOTES.md`, `MEMORY.md`, and this tree.
+
+#### Evidence
+
+- `docs/tasks/artifacts/ci_parity_gate_rot/run_regeneration_surface_probes.sh` — the 12 arms.
+- `docs/tasks/artifacts/ci_parity_gate_rot/regeneration_surface_probes.txt` — their capture.
+- `docs/tasks/artifacts/ci_parity_gate_rot/unmeasured_workflow_census.txt` — the two measurements.
+
+---
+
+#### Original charter (kept verbatim — the work list `.4` was handed)
 
 - ⛔⛔⛔ **DIRECTOR WORK ORDER (2026-07-28, session #218→#219, verbatim):** *"Please fix these once
   and for all, so that we can get back to real work … 1. `make -C rust sota_exit_gate` is RED right

@@ -119,14 +119,14 @@ make -C rust SHELL=/bin/bash ci_workflow_local_gate
 
 It runs in two phases against an **export directory** built from `git ls-files`
 output — a deliberate simulation of what `actions/checkout` hands a fresh
-runner. The first phase is 32 *audits* (allowlists, contract surfaces, emission
+runner. The first phase is 33 *audits* (allowlists, contract surfaces, emission
 shapes: everything that can be decided by reading files). The second phase
 *replays* the command each tracked workflow runs.
 
 Two properties of that design are worth stating plainly, because both were
 learned the expensive way.
 
-**An audit phase at 32/32 is not "the gate completes."** The replay phase is
+**An audit phase at 33/33 is not "the gate completes."** The replay phase is
 where files stop being read and start being executed, and for 1,371 commits it
 had never run once. When it was finally exercised, 8 of the 11 replays failed —
 all eight for a single reason. `generated/` is untracked (it is pipeline output,
@@ -146,10 +146,47 @@ which is the failure mode the gate exists to detect. Instead:
 PGEN_CI_WORKFLOW_LOCAL_PREPARE=1 make -C rust SHELL=/bin/bash ci_workflow_local_gate
 ```
 
-replays the repository's own cold-clone bootstrap inside the export directory —
-`regex_parser_bootstrap`, then `annotation_parsers`, then the per-grammar
-`focus_*` targets — the same sequence the hosted generated-clippy workflow
-already uses. It costs roughly four minutes, after which the workflow phase runs.
+replays the repository's own cold-clone bootstrap inside the export directory.
+It costs roughly four minutes (measured 236 s from a bare tracked tree), after
+which the workflow phase runs.
+
+### The regeneration recipe has exactly one home
+
+That bootstrap sequence — `regex_parser_bootstrap`, then `annotation_parsers`,
+then the per-grammar `focus_*` targets — is written down in exactly one place:
+
+```bash
+make -C rust SHELL=/bin/bash regenerate_generated_parsers
+```
+
+Everything that needs it calls that target. The local parity gate's preparation
+step calls it directly; the hosted workflows reach it through the composite
+action `.github/actions/regenerate-parsers`, which exists so the *step* (its
+name, its comment, its `uses:` reference) also has a single definition. A make
+target cannot carry a workflow step, and a composite action cannot be invoked
+from a shell gate, so each owns the half the other cannot.
+
+This mattered because the same tracked-files-only shape that breaks the local
+export is exactly what `actions/checkout` hands a hosted runner — and **11 of
+the 15 tracked workflows need generated parsers, while only one declared a
+regeneration step.** Wiring the other ten by copy-paste would have produced
+twelve copies of a sequence whose drift nothing could detect.
+
+Three workflows are *measured* not to need it and deliberately do not pay the
+four minutes: `branch-protection-contract-gate` (shell and `jq`),
+`fixed-point-gate` (builds the bootstrap binary without
+`--features generated_parsers`) and `mdbook-docs-gate` (mdBook only). A fourth,
+`memory-architecture-gate`, runs no `make -C rust` command at all.
+
+`audit_workflow_regeneration_surface` holds that arrangement in place, and its
+polarity is the point: the roster is derived from `git ls-files`, and *needing*
+the step is the default. A workflow added tomorrow that runs a `make -C rust`
+gate fails the audit until someone either wires the step or measures it into the
+exemption list — the safe direction. Exemption is checked in both directions too,
+so an exempt workflow cannot quietly acquire a four-minute step it does not need.
+Any job carrying the step must also budget at least 30 minutes; pricing that
+floor is what revealed that `sota-exit-gate` had been declaring a 60-minute
+timeout for a job measured at 2 h 23 m.
 
 **A filter that matches nothing must not report success.** The gate accepts
 `PGEN_CI_WORKFLOW_LOCAL_FILTER` to narrow the replay set. A mistyped name used to

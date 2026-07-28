@@ -1,5 +1,59 @@
 # CHANGES.md
 
+## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0007 — 11 of 15 hosted workflows needed the regeneration step and exactly 1 had it
+
+`CI-PARITY-GATE-ROT.4` DONE. Makefile target + composite action + 11 workflow files + the parity
+gate + docs + 1 tracked driver + 2 captures — **no `grammars/*.ebnf`, no `rust/src/*`, no
+`generated/*`** ⇒ all 11 generated parsers byte-identical BY CONSTRUCTION; no release / schema /
+ledger / contract movement.
+
+- ⭐⭐ **THE TWO WORKFLOWS `.3` COULD NOT SEE ARE MEASURED, AND BOTH NEED THE STEP.** `.3`'s census
+  covered only the 11 workflows the parity gate replays, leaving `rtl-const-expr-cert-gate` and
+  `sv-cert-recognized-union-gate` outside every instrument. Run against a tracked-files-only export
+  (`git ls-files` copy, 5,159 files, no `generated/` — the exact shape `actions/checkout` yields),
+  both fail in 5 s with `make[1]: *** No rule to make target '../generated/ebnf.rs'`, guard markers
+  `reason=none exit=2`. They fail EARLIER than `.3`'s eight — at `make`, not at rustc — because only
+  `regex_parser_bootstrap` can seed that file. ⇒ **the count is 11 of 15, not 8 of 15**, and before
+  this leaf exactly one workflow declared a regeneration step.
+- ⭐ **THE RECIPE NOW HAS ONE HOME, AND IT IS TWO ARTIFACTS BECAUSE A STEP AND A RECIPE DIFFER.**
+  Copy-pasting the eight-line sequence into ten more files would have made twelve copies whose drift
+  nothing could detect. The RECIPE lives once, in `rust/Makefile`'s new
+  `regenerate_generated_parsers`; the STEP lives once, in the composite action
+  `.github/actions/regenerate-parsers`. `prepare_generated_artifacts` in the local parity gate no
+  longer spells the sequence out — it calls the same target, so local and hosted cannot diverge.
+  Verified end-to-end from the bare tracked tree: guard marker
+  `status=completed reason=none exit=0 peak_rss_mb=4266 elapsed_s=236`, all ten artifacts emitted.
+- ⭐⭐ **A SECOND HOSTED-SIDE DEFECT FELL OUT OF PRICING THE STEP — TIMEOUTS BELOW MEASURED COST.**
+  `sota-exit-gate.yml` budgeted `timeout-minutes: 60` for an aggregate `.3` measured at **8,587 s
+  (2 h 23 m)** — and that run FAILED partway, so a green run is longer. `annotation-contract-gate.yml`
+  budgeted 30 for a replay measured at 2,301 s (38 m). The flagship aggregate has carried a timeout
+  below a quarter of its own measured cost ever since hosted triggers were paused, invisible for the
+  same reason as everything else in this tree: nothing ran it. Now 300 / 90, with
+  `rtl-frontend-generated-contract-gate` raised 20 → 30 to meet the floor.
+  ⚠️ Honest limit: 300 is 2× the LOCAL measurement, not a hosted one, and is the one job where the
+  margin may still not suffice (GitHub's cap is 360).
+- ⭐ **THE NEW AUDIT'S POLARITY IS THE POINT** (`audit_workflow_regeneration_surface`; parity audit
+  phase **32 → 33**). The roster is DERIVED from `git ls-files '.github/workflows/*.yml'` — the direct
+  fix for how two workflows stayed unmeasured, since a hand-list cannot see a file nobody added to
+  it. Needing the step is the DEFAULT, established by running a `make -C rust` gate at all; not
+  needing it requires a MEASURED entry in the exemption set. Exemption is asserted in BOTH directions
+  (`.4`'s scope: *"the 3 that pass must not pay for it"*), a 30-minute floor applies to any job
+  carrying the step, and an empty roster REFUSES rather than passing — this tree's own principle
+  applied to the new audit itself.
+- ⚠️ **THE PROBE ARMS CAUGHT A DEFECT IN THIS LEAF'S OWN WORK, AND IT IS THE "RIGHT REASON" CLASS.**
+  First run: 10 of 12 arms failed, yet every RED arm was reaching the `FAIL` verdict it wanted — for
+  the WRONG REASON. The new `action.yml` was untracked, so `assert_tracked` fired first and no arm
+  ever reached the invariant it was testing. A driver comparing only PASS/FAIL would have reported
+  8 RED arms green over an audit that evaluated none of them. Caught only because each arm also
+  asserts a substring of the message it expects. *A probe that passes for the wrong reason is worse
+  than no probe.* Final: **12/12**, including RED-6 (a workflow file that did not exist when the
+  audit was written — the arm that proves the roster is derived) and RED-8 (empty roster ⇒ refusal).
+- **Verified**: probes 12/12; `bash -n rust/scripts/ci_workflow_local_gate.sh` clean; all 15 workflow
+  YAMLs + the new action parse; `make -C rust branch_protection_contract_gate` GREEN; CONTROL arms
+  show an unrelated workflow edit does not trip the new audit and `audit_workflow_surface` returns
+  the identical verdict against HEAD's gate and the working tree (no over-binding).
+
+
 ## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0003 — the workflow phase runs for the first time in 1,371 commits, and a mistyped filter had been certifying parity while replaying nothing
 
 `CI-PARITY-GATE-ROT.3` DONE; new leaf `.4` opened. Gate script + docs + 2 tracked drivers + 2

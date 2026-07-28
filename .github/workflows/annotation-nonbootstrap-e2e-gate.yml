@@ -31,6 +31,12 @@ jobs:
             jq --version
           fi
 
+      # generated/ is untracked, so actions/checkout yields a tree with no generated
+      # parsers and this job's gate cannot compile the crate. Recipe: rust/Makefile's
+      # regenerate_generated_parsers (CI-PARITY-GATE-ROT.4).
+      - name: Regenerate the generated parsers
+        uses: ./.github/actions/regenerate-parsers
+
       - name: Run non-bootstrap annotation end-to-end gate
         env:
           PGEN_STRICT_ANNOTATION_VALIDATION: "1"

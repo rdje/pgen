@@ -16,6 +16,21 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # CI-PARITY-GATE-ROT.4 — added with the regeneration step below, not decoratively: this job
+      # previously died in 5 s at `No rule to make target '../generated/ebnf.rs'` and never reached
+      # a cargo build at all. Now that it genuinely compiles the crate twice (regeneration, then the
+      # gate), it needs the same cache every other crate-building workflow here already had.
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      # generated/ is untracked, so actions/checkout yields a tree with no generated
+      # parsers and this job's gate cannot compile the crate. Recipe: rust/Makefile's
+      # regenerate_generated_parsers (CI-PARITY-GATE-ROT.4).
+      - name: Regenerate the generated parsers
+        uses: ./.github/actions/regenerate-parsers
+
       - name: Run SV recognized certificate-coverage union gate
         run: make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate
 

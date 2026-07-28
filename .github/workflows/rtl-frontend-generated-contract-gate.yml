@@ -7,7 +7,9 @@ jobs:
   rtl-frontend-generated-contract-gate:
     name: rtl-frontend-generated-contract-gate
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # CI-PARITY-GATE-ROT.4 — raised to the 30-minute floor every job carrying the regeneration
+    # step must clear (the step alone measured 258 s locally, warm; a hosted runner starts cold).
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -20,6 +22,12 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
+
+      # generated/ is untracked, so actions/checkout yields a tree with no generated
+      # parsers and this job's gate cannot compile the crate. Recipe: rust/Makefile's
+      # regenerate_generated_parsers (CI-PARITY-GATE-ROT.4).
+      - name: Regenerate the generated parsers
+        uses: ./.github/actions/regenerate-parsers
 
       - name: Run rtl_frontend generated contract gate
         run: make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate

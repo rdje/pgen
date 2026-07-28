@@ -38,14 +38,11 @@ jobs:
 
       # generated/ is untracked; seed the ebnf bootstrap then emit every parser the contract
       # marks required. Without this the gate refuses (which is correct, but proves nothing).
+      # CI-PARITY-GATE-ROT.4 — this used to inline the sequence; ten more workflows now need
+      # the same step, so the recipe was hoisted to rust/Makefile's regenerate_generated_parsers
+      # and the step to the composite action below. One definition each, no copies.
       - name: Regenerate the generated parsers
-        run: |
-          set -euo pipefail
-          make -C rust SHELL=/bin/bash regex_parser_bootstrap
-          make -C rust SHELL=/bin/bash annotation_parsers
-          for g in json regex systemverilog systemverilog_preprocessor vhdl rtl_const_expr rtl_frontend; do
-            make -C rust SHELL=/bin/bash "focus_${g}"
-          done
+        uses: ./.github/actions/regenerate-parsers
 
       - name: Run generated-parser clippy correctness gate
         run: make -C rust SHELL=/bin/bash generated_clippy_correctness_gate

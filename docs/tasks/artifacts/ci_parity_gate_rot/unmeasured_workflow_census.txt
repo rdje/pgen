@@ -1,0 +1,53 @@
+CI-PARITY-GATE-ROT.4 — the two workflows .3 could not measure
+======================================================================
+Method: tracked-files-only export (git ls-files copy; 5159 files, no generated/),
+        the exact shape actions/checkout and copy_tracked_worktree both produce.
+        Each run under scripts/run_with_memory_guard.sh --budget-mb 12288.
+
+--- make -C rust SHELL=/bin/bash rtl_const_expr_cert_gate ---
+cd . && ./scripts/rtl_const_expr_cert_gate.sh
+==> ensure_generated_rtl_const_expr_artifacts
+error: stage 'ensure_generated_rtl_const_expr_artifacts' failed (log: /Volumes/SSD/Documents/github/pgen/rust/target/ci_parity_gate_rot_probe/export/rust/target/rtl_const_expr_cert_gate/logs/ensure_generated_rtl_const_expr_artifacts.log)
+make[1]: *** No rule to make target `../generated/ebnf.rs', needed by `target/ebnf_frontend_build/debug/ast_pipeline'.  Stop.
+make: *** [rtl_const_expr_cert_gate] Error 1
+memory-guard: completed exit=2 peak_tree_rss=0MB elapsed=5s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/ci_parity_gate_rot_probe/guard_rtlce.marker
+
+reason=none
+exit=2
+peak_rss_mb=0
+elapsed_s=5
+
+--- make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate ---
+cd . && ./scripts/sv_cert_recognized_union_gate.sh
+==> ensure_generated_systemverilog_parser
+error: stage 'ensure_generated_systemverilog_parser' failed (log: /Volumes/SSD/Documents/github/pgen/rust/target/ci_parity_gate_rot_probe/export/rust/target/sv_cert_recognized_union_gate/logs/ensure_generated_systemverilog_parser.log)
+make[1]: *** No rule to make target `../generated/ebnf.rs', needed by `target/ebnf_frontend_build/debug/ast_pipeline'.  Stop.
+make: *** [sv_cert_recognized_union_gate] Error 1
+memory-guard: completed exit=2 peak_tree_rss=0MB elapsed=5s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/ci_parity_gate_rot_probe/guard_svunion.marker
+
+reason=none
+exit=2
+peak_rss_mb=0
+elapsed_s=5
+
+--- VERDICT: both FAIL without generated/ => both need the regeneration step ---
+
+--- the recipe itself, verified end-to-end from that same bare tree ---
+make -C rust SHELL=/bin/bash regenerate_generated_parsers
+
+✅ generated/ regenerated: annotation pair + 7 grammar families.
+memory-guard: completed exit=0 peak_tree_rss=4266MB elapsed=236s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/ci_parity_gate_rot_probe/guard_prepare.marker
+
+status=completed
+reason=none
+exit=0
+budget_mb=12288
+floor_pct=10
+disk_floor_gb=8
+timeout_s=3600
+peak_rss_mb=4266
+last_free_pct=76
+last_disk_free_gb=3579
+elapsed_s=236
+cmd=make -C rust SHELL=/bin/bash regenerate_generated_parsers
+ended_at=2026-07-28T21:35:45+0200

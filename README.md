@@ -162,9 +162,23 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash sota_exit_gate`
 - Branch-protection contract gate:
   - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+- Cold-clone regeneration of `generated/` (the single home of that recipe):
+  - `make -C rust SHELL=/bin/bash regenerate_generated_parsers`
+  - seeds `generated/ebnf.rs`, emits the annotation pair, then the seven grammar families —
+    measured **236 s** from a bare tracked tree
+  - `generated/` is untracked, so any checkout that has not run this cannot compile the crate with
+    `--features generated_parsers`: `rust/src/lib.rs:72,78` include the two annotation parsers by
+    literal path with no `has_generated_*` cfg, so their absence is a hard rustc error
+  - the hosted workflows reach it through the composite action `.github/actions/regenerate-parsers`,
+    and the local parity gate through `PGEN_CI_WORKFLOW_LOCAL_PREPARE`; both call this one target
 - Hosted GitHub Actions pause:
   - hosted workflows are temporarily manual-only (`workflow_dispatch`) to conserve account Actions minutes
   - routine proof should use the local `make -C rust ...` gates until hosted auto-runs are re-enabled
+  - **11 of the 15** tracked workflows regenerate `generated/` first (the 3 that provably do not need
+    it — `branch-protection-contract-gate`, `fixed-point-gate`, `mdbook-docs-gate` — deliberately do
+    not pay for it, and `memory-architecture-gate` runs no `make -C rust` at all);
+    `ci_workflow_local_gate`'s `audit_workflow_regeneration_surface` fails a workflow that runs a
+    `make -C rust` gate without declaring the step
 - Local workflow parity gate:
   - `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - focused replay example:
