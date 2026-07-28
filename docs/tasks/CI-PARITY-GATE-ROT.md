@@ -7,8 +7,16 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- ✅✅ **TREE CLOSED — 2026-07-28, session #220** (re-closed after `.6`, the director-requested
-  adjudication of the four surfaced items). Every leaf is `done` and the director's ordered
+- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`.** The tree was closed on `.5`'s stated
+  acceptance (*"`sota_exit_gate` green end-to-end … the aggregate is the claim"*) while that
+  aggregate run was still executing. It finished `exit=2`: `.5`'s own sub-gate now **passes** inside
+  the aggregate, and the run then died two sub-gates later on a DIFFERENT, pre-existing defect —
+  the aggregate asserting that four upstream artifacts already exist at their standalone default
+  paths, which disables the branch that would produce them. ⚠️ And the one such path that DID exist
+  here was **three days old**, so the aggregate consumed stale evidence as current proof. Details
+  and the measured staleness table in `.7`. **Committing `.5` with the run in flight was correct;
+  declaring the TREE closed on an unfinished acceptance run was not.**
+- ✅ **The director's ordered scope is otherwise discharged** — every leaf is `done` and the ordered
   scope is discharged in full: **`.4`** (hosted regeneration step, one home, derived fail-safe
   audit) → **`.5`** (the earned-zero replacement; the flagship aggregate's RED sub-gate) → **the
   `PREPARE` flip** (default `true`, guarded) → **`.2`** (the reachability inventory, 31 orphans
@@ -290,6 +298,96 @@ note in this tree's header.**
 - **Verified**: `run_regeneration_surface_probes.sh` **13/13**, with new **RED-9** flipping the
   default back to `false` and requiring the audit to block; `bash -n` clean; `mdbook_docs_gate`
   GREEN; 10/10 doctrines.
+
+### `.7` — ⛔ THE TREE'S CLOSURE WAS PREMATURE: `sota_exit_gate` is STILL RED, one sub-gate further on (`todo`)
+
+- **Status: `todo`** — opened 2026-07-28 session #220 by the aggregate run that `.5` had declared
+  its own acceptance and that was still executing when the tree was closed.
+- ⛔⛔ **THE HONEST CORRECTION, STATED FIRST.** `.5`'s acceptance was written as *"`make -C rust
+  SHELL=/bin/bash sota_exit_gate` green end-to-end, not just this sub-gate — it was RED for the
+  aggregate, and the aggregate is the claim."* **That criterion is NOT met**, and the tree was
+  closed before its verdict landed. The closure is therefore **withdrawn until this leaf lands**.
+  Committing `.5` with the run in flight was correct (the sub-gate fix is independently proven);
+  declaring the TREE closed on an unfinished acceptance run was not.
+
+#### What the run did prove — `.5`'s fix works inside the aggregate
+
+```
+==> sv_failure_context_contract_gate (required)
+    ok
+```
+
+19+ required sub-gates cleared, **including the one that made the aggregate RED before `.5`**. The
+earned-zero replacement holds end-to-end in its real caller. Then:
+
+```
+==> sv_parser_family_status_gate (required)          fail
+==> sv_parser_family_status_contract_gate (required) fail
+guard: status=completed reason=none exit=2 peak_rss_mb=10257 elapsed_s=4249
+```
+
+⭐ **This is the fail-fast pattern this tree has now recorded four times** (`.1`: twelve stale
+assertions revealed one per run; `.3`: one broken replay per run; `.5`: three unsatisfiable
+assertions, one reachable per run). **Fixing the first blocker reveals the next.** It is a
+DIFFERENT, pre-existing defect — not a regression from `.5`.
+
+#### ⭐⭐ ROOT CAUSE — and the visible failure is the *less* dangerous half
+
+`rust/scripts/sota_exit_gate.sh:1682-1690` (and the identical informational branch at `1696-1704`)
+tells `sv_parser_family_status_gate` that four upstream artifacts **already exist**, by pointing each
+`PGEN_SV_FAMILY_STATUS_EXISTING_*_STATE_DIR` at that gate's **standalone default** state dir:
+
+```
+PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_syntax_closure_gate"
+PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_preprocessor_syntax_closure_gate"
+PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${…:-$RUST_DIR/target/sv_preprocessor_formal_exhaustive_closure_gate}"
+PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="$RUST_DIR/target/sv_semantic_scope_contract_gate"
+```
+
+Those directories exist **only if someone previously ran those gates by hand**. `sv_parser_family_
+status_gate.sh:141-210` branches on exactly these variables: a NON-EMPTY value makes it **skip its
+own `else` branch — the one that would PRODUCE the artifact** — and then assert on a file nothing
+created. ⇒ **a fallback that turns "not supplied" into "supplied but nonexistent", disabling the
+machinery that would have produced the real thing.**
+
+**Measured on this machine, and the second row is the finding:**
+
+| standalone state dir | present? | consequence |
+|---|---|---|
+| `sv_syntax_closure_gate` | **EXISTS**, `summary.txt` dated **2026-07-26 00:36** | ⚠️⚠️ **today's "fresh" aggregate run consumed a THREE-DAY-OLD manual artifact as current proof** |
+| `sv_preprocessor_syntax_closure_gate` | ABSENT | the run dies |
+| `sv_semantic_scope_contract_gate` | ABSENT | the run dies |
+| `sv_preprocessor_formal_exhaustive_closure_gate` | ABSENT | the run dies |
+
+⭐⭐⭐ **THE ABSENT ONES FAIL LOUDLY; THE PRESENT ONE PASSES SILENTLY ON STALE EVIDENCE.** A machine
+that had run all four by hand at some point would get a **fully green `sota_exit_gate` built on
+artifacts of unknown vintage** — the release gate certifying today's tree with last week's proof.
+That is a **fifth shape** for this family, and the worst of them so far: *a check that reuses
+evidence it did not produce, without checking whether it still applies.*
+
+⚠️ **A hosted runner has none of the four**, so on CI this is a hard failure, not a silent pass —
+which is the same asymmetry `.3` found (the local developer tree hides what a fresh checkout
+exposes), pointing the opposite way this time.
+
+#### Scope when taken up
+
+1. Stop asserting existence the aggregate has not established: pass EMPTY for the four, so
+   `sv_parser_family_status_gate` runs each sub-gate into its own `$WORK_DIR` — the branch it
+   already has and that the aggregate is currently disabling. Price the added runtime first; it is
+   four more sub-gate runs inside an aggregate already measured at 4,249 s here.
+2. ⭐ **Whatever the fix, an EXISTING-artifact hand-off must be REFUSED when the artifact is absent
+   or older than the run that is consuming it** — a reuse that cannot verify provenance must say so
+   rather than proceed. The stale-consumption path must become impossible, not merely unlikely.
+3. Sweep the class: `grep -n 'EXISTING_.*STATE_DIR=' rust/scripts/sota_exit_gate.sh` — the four here
+   were found only because the run died at the fourth. Assume more.
+4. Re-run `make -C rust SHELL=/bin/bash sota_exit_gate` end-to-end and require it to reach the end.
+
+⛔ **This is flow-surface, so it belongs here and is NOT routed out**: it is the aggregate's own
+stage wiring in `rust/scripts/sota_exit_gate.sh`, not an SV grammar or parser defect. Every sub-gate
+named above is doing exactly what it was told.
+
+- **Evidence:** `docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_after.txt` (the verdict, the
+  guard marker, the root-cause citations and the measured staleness table).
 
 ### `.6` — the four surfaced items, adjudicated (`done`)
 

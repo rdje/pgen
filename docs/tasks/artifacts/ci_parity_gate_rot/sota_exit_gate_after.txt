@@ -1,0 +1,62 @@
+CI-PARITY-GATE-ROT.5 acceptance — sota_exit_gate END-TO-END: **NOT MET**
+======================================================================
+
+Command: scripts/run_with_memory_guard.sh --budget-mb 12288 --timeout-s 14400 -- \
+           make -C rust SHELL=/bin/bash sota_exit_gate      (main repo, 2026-07-28)
+
+status=completed
+reason=none
+exit=2
+budget_mb=12288
+floor_pct=10
+disk_floor_gb=8
+timeout_s=14400
+peak_rss_mb=10257
+last_free_pct=71
+last_disk_free_gb=3533
+elapsed_s=4249
+cmd=make -C rust SHELL=/bin/bash sota_exit_gate
+ended_at=2026-07-28T23:14:41+0200
+
+--- what the run proved (the .5 fix works INSIDE the aggregate) ---
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_parser_aggregate_contract_gate.log)
+==> sv_failure_context_contract_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_failure_context_contract_gate.log)
+
+19+ required sub-gates cleared, including the one that made the aggregate RED before .5.
+
+--- what it then hit (a DIFFERENT, pre-existing defect) ---
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_roundtrip_contract_gate.log)
+==> sv_parser_family_status_gate (required)
+    fail (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_parser_family_status_gate.log)
+==> sv_parser_family_status_contract_gate (required)
+    fail (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_parser_family_status_contract_gate.log)
+jq: error: Could not open file /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_parser_family_status_contract_gate/summary.json: No such file or directory
+make: *** [sota_exit_gate] Error 2
+
+--- ROOT CAUSE (rust/scripts/sota_exit_gate.sh:1682-1690, 1696-1704) ---
+The aggregate tells sv_parser_family_status_gate that four upstream artifacts ALREADY EXIST,
+by pointing PGEN_SV_FAMILY_STATUS_EXISTING_*_STATE_DIR at each gate's STANDALONE default dir:
+
+  1682:                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_syntax_closure_gate" \
+  1683:                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_preprocessor_syntax_closure_gate" \
+  1688:                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-$RUST_DIR/target/sv_preprocessor_formal_exhaustive_closure_gate}" \
+  1690:                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="$RUST_DIR/target/sv_semantic_scope_contract_gate" \
+  1696:                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_syntax_closure_gate" \
+  1697:                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_preprocessor_syntax_closure_gate" \
+  1702:                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-$RUST_DIR/target/sv_preprocessor_formal_exhaustive_closure_gate}" \
+  1704:                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="$RUST_DIR/target/sv_semantic_scope_contract_gate" \
+
+Those directories exist ONLY if someone previously ran those gates BY HAND. A non-empty value
+makes sv_parser_family_status_gate SKIP its own 'else' branch — the one that would produce the
+artifact — and then assert on a file nothing created.
+
+--- MEASURED on this machine, and the second half is the dangerous half ---
+  sv_syntax_closure_gate                         EXISTS  summary.txt: Jul 26 00:36
+  sv_preprocessor_syntax_closure_gate            ABSENT  => the run dies here
+  sv_semantic_scope_contract_gate                ABSENT  => the run dies here
+  sv_preprocessor_formal_exhaustive_closure_gate ABSENT  => the run dies here
+
+  3 absent => visible failure. 1 PRESENT and THREE DAYS OLD (2026-07-26 00:36) => today's
+  'fresh' aggregate run consumed a stale manual artifact as current proof. That is a vacuous
+  green of exactly the class this tree exists to remove, and it is invisible when it happens.

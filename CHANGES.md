@@ -1,5 +1,48 @@
 # CHANGES.md
 
+## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0012 — the tree's closure was PREMATURE: sota_exit_gate is still RED one sub-gate further on, and it had been consuming a three-day-old artifact as current proof
+
+`CI-PARITY-GATE-ROT` **REOPENED at new leaf `.7`** (diagnosis only — no code touched, no partial
+state). Docs + 1 evidence capture — **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`** ⇒ all
+11 generated parsers byte-identical BY CONSTRUCTION.
+
+- ⛔⛔ **THE HONEST CORRECTION.** `.5`'s acceptance was written as *"`make -C rust
+  SHELL=/bin/bash sota_exit_gate` green end-to-end, not just this sub-gate — the aggregate is the
+  claim."* The tree was declared CLOSED while that acceptance run was still executing. It finished
+  `exit=2` (guard `reason=none peak_rss_mb=10257 elapsed_s=4249`). **Committing `.5` with the run in
+  flight was correct — the sub-gate fix is independently proven. Declaring the TREE closed on an
+  unfinished acceptance run was not.** The closure is withdrawn until `.7` lands.
+- ✅ **What the run DID prove**: `sv_failure_context_contract_gate (required) ok` — `.5`'s
+  earned-zero replacement holds end-to-end inside its real caller, and 19+ required sub-gates
+  cleared, including the one that made the aggregate RED before `.5`.
+- ⭐ **Then it died two sub-gates later, on a DIFFERENT pre-existing defect** —
+  `sv_parser_family_status_gate` and `sv_parser_family_status_contract_gate`. Fail-fast for the
+  FOURTH time in this tree: fixing the first blocker reveals the next.
+- ⭐⭐ **ROOT CAUSE** (`rust/scripts/sota_exit_gate.sh:1682-1690`, and the identical informational
+  branch at `:1696-1704`): the aggregate tells `sv_parser_family_status_gate` that four upstream
+  artifacts ALREADY EXIST, by pointing each `PGEN_SV_FAMILY_STATUS_EXISTING_*_STATE_DIR` at that
+  gate's **standalone default** state dir — a directory that exists only if someone previously ran
+  that gate BY HAND. `sv_parser_family_status_gate.sh:141-210` branches on exactly these variables:
+  a NON-EMPTY value makes it skip its own `else` branch — **the one that would PRODUCE the
+  artifact** — and then assert on a file nothing created. A fallback that turns "not supplied" into
+  "supplied but nonexistent", disabling the machinery that would have produced the real thing.
+- ⭐⭐⭐ **AND THE VISIBLE FAILURE IS THE LESS DANGEROUS HALF.** Three of the four directories are
+  ABSENT, so the run dies loudly. The fourth, `rust/target/sv_syntax_closure_gate/summary.txt`,
+  **EXISTED and was dated 2026-07-26 00:36 — three days old** — so today's "fresh" aggregate run
+  consumed a stale manual artifact as current proof. A machine that had run all four by hand at some
+  point would get a **fully GREEN `sota_exit_gate` built on evidence of unknown vintage**: the
+  release gate certifying today's tree with last week's proof. ⇒ **a FIFTH shape for this family:
+  *a check that reuses evidence it did not produce, without checking whether it still applies.***
+- ⚠️ A hosted runner has none of the four ⇒ hard failure there, silent staleness here — the same
+  local-tree-hides-what-a-fresh-checkout-exposes asymmetry `.3` found, pointing the other way.
+- ⛔ **FLOW-SURFACE, so it stays in this tree and is NOT routed out**: it is the aggregate's own
+  stage wiring, not an SV grammar or parser defect. Every sub-gate named is doing what it was told.
+- **`.7` scope**: pass EMPTY for the four so the sub-gate produces them itself (price the added
+  runtime first); make an EXISTING-artifact hand-off REFUSE when the artifact is absent or older
+  than the consuming run; sweep `grep -n 'EXISTING_.*STATE_DIR=' rust/scripts/sota_exit_gate.sh` for
+  more (these four were found only because the run died at the fourth); re-run end-to-end.
+
+
 ## 2026-07-28 - PGEN-CI-PARITY-GATE-ROT-0011 — the four surfaced items adjudicated, and measurement refuted the premise of one: the AUTOMATIC tier over these gate targets is ZERO
 
 `CI-PARITY-GATE-ROT.6` DONE (director-requested adjudication). Doctrine check + register + 1 workflow
