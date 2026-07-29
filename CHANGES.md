@@ -1,5 +1,46 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0016 — leaf DONE-BAR.5e: the silent-success gate now BINDS a family's tier
+
+Gate scripts + shared helper + contract-gate rosters + probe arms + docs — no `grammars/*.ebnf`, no
+`rust/src/*`, no `generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- DEFECT, measured before any code: `.5c` shipped the silent-success sentinel gate and hung it off
+  `sota_exit_gate`, but its verdict entered **0 of the 4** family-status computations
+  (`grep -c silent_success` over the three status gates and the shared helper → 0/0/0/0; the gate's
+  only consumers repo-wide were `rust/Makefile:1042,1043,1045` and the `:1055` prerequisite edge).
+  => a placeholder becoming reachable in `vhdl` would have failed the aggregate while the `vhdl` row
+  kept **all 12** of its criteria green. A gate that binds no tier can go red while every tracker row
+  stays green.
+- FIX: new criterion `no_reachable_silent_success` in all four family computations, via one new
+  shared-helper function `family_reachable_silent_success` (criteria totals regex 10→11, sv 9→10,
+  svpp 14→15, vhdl 12→13). Four design calls, each against a failure this repo has already paid for:
+  each status gate **PRODUCES its own sweep** into its own state dir rather than reading an ambient
+  artifact (CI-PARITY-GATE-ROT.7 consumed a three-day-old summary as current proof, so no
+  `EXISTING_*_STATE_DIR` seam is offered at all); the sweep is cached per **PROCESS**, never per
+  directory; codegen placeholders are attributed by **exact filename**, so `systemverilog` is never
+  demoted for `systemverilog_preprocessor`'s violation; the gate's exit 2 (REFUSE/MISCALIBRATED) makes
+  the criterion unjudgeable while its exit 1 stays a real per-family VERDICT.
+- ALSO: the three DONE-BAR criteria (`external_corpus_conformance_pass`, `ledger_open_entries_zero`,
+  `no_reachable_silent_success`) are now **PINNED** in the matching
+  `*_parser_family_status_contract_gate`. Until now they were computed by the producer and required by
+  nothing, so deleting one would have left its contract sibling green over a quietly narrower bar.
+- VERIFIED: probes **52/52** (`run_family_status_bar_probes.sh`, +23 arms) — including a reached
+  sentinel counted AND named, exact-filename attribution both ways, five distinct REFUSAL arms, the
+  per-process cache proved by a stub gate counting invocations (exactly 1 across two families), and a
+  RED arm proving the new pin binds (deleting one pinned criterion with all arithmetic invariants kept
+  satisfiable makes the contract gate exit 1). All three contract gates pass on the fresh artifacts;
+  `check_gate_reachability` OK (124 targets) and `audit_done_bar` exit 0, both unchanged.
+- COST: **+26 s** per status gate (~+78 s across three, against a ~5 h aggregate). This CORRECTS
+  `.5c`'s published "~40 s"; the figure was cross-checked when the probe driver's 1 m 20.9 s total
+  failed to match 3 × 40 s, and it reconciles exactly (sweep dirs created 27 s and 26 s apart).
+- NO TRACKER MOVEMENT: all four families sweep clean (9 families, 225 samples, calibration 3/3,
+  0 sentinels reached), so every computed status and every tracker row is unchanged.
+- ROUTED OUT with the reproduction: proving the pin load-bearing required making a contract gate's
+  schema assertion fail, which nobody had done — it fails with **exit 1 and a 0-byte log** (a
+  monolithic `jq -e … >/dev/null` under `set -e`, no guard, no message). Priced at **4 sites** and
+  filed as `CI-PARITY-GATE-ROT.17`; deliberately not fixed here.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0015 — leaf DONE-BAR.5c follow-up: the sentinel gate had an ambient-build dependency
 
 Gate helper + contract + probe arm — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11

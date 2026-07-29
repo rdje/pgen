@@ -865,6 +865,34 @@ driver meta-check (`<meta:mirror>`), which went RED on the untouched tree before
 
 ---
 
+### `.17` — a schema assertion that FAILS SILENTLY: exit 1, zero bytes of output (`todo`)
+
+- **Status: `todo`** — routed in 2026-07-30 by `DONE-BAR.5e`, WITH the reproduction, not as a
+  suspicion. ⛔ Deliberately not fixed there: the honest fix is a decomposition across 4 sites, and
+  that leaf's scope was one criterion.
+- **MEASURED (the repro, re-runnable):** take any green family-status artifact, delete ONE pinned
+  criterion from `.families[0].criteria` and decrement `closure_criteria_total_count` +
+  `closure_criteria_satisfied_count` to keep every arithmetic invariant satisfiable, then run the
+  matching contract gate against it. Verdict: **`exit=1`, and `wc -c` on the combined stdout+stderr
+  log reads `0`.**
+- **ROOT CAUSE (WHY + WHERE):** `vhdl_parser_family_status_contract_gate.sh:184`,
+  `regex_…:191`, `sv_…:239` — each ends a ~60-line monolithic `jq -e '<conjunction>'` with
+  `… >/dev/null` under `set -euo pipefail`, with **no `||` guard and no message**. `jq -e` exits 1 on
+  a false result, its output is discarded by the redirect, and `set -e` kills the script. So the gate
+  reports *that* the schema is wrong and never *which* conjunct — of roughly 20 anded clauses.
+- ⭐ **THIS IS THE `.14` FAMILY, ONE LAYER FURTHER IN.** `.14` fixed a consumer that read an unwritten
+  `summary.json` and buried the real cause; `.2a` made a misaligned status gate emit its summary
+  BEFORE exiting. This is the same lesson unlearned in the CONTRACT sibling: **a check that fails must
+  say what failed.** A 5-hour aggregate that dies here hands the triager `exit 1` and an empty file.
+- **CLASS PRICED: 4 sites, not 3** — `grep -rlE "^\s+' \".*\" >/dev/null\s*$" rust/scripts/*.sh` also
+  names **`regex_broader_corpus_proof_gate.sh`**. (⚠️ the first count said 3: the three contract gates
+  were the ones in hand, and the sweep had not been run. Corrected forward.)
+- **Scope when taken up:** keep the assertion, lose the silence — evaluate the conjuncts as NAMED
+  entries (an object of `{clause: bool}` filtered to the false ones, or a `first(… | select(not))`)
+  and print the failing clause names before exiting 1. ⛔ In ONE shared helper across the 4 sites, per
+  `.10`'s lesson. A RED arm is already written for it: the mutation above must fail with the missing
+  criterion NAMED, not merely fail.
+
 ### `.16` — the staged-scope doctrines evaluate nothing on a hosted push (`todo`)
 
 - **Status: `todo`** — opened 2026-07-29 by `.15`, which measured the residual rather than leaving it

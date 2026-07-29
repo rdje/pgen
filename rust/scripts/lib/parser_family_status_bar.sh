@@ -17,6 +17,10 @@
 #   - `markdown_table_status_for_row` — the live-tracker row reader, previously copy-pasted
 #                                      byte-identically into all three gates (the `.10` duplication
 #                                      lesson): this file is now its single home.
+# Later leaves added two more consumer-facing leg-2 criteria through the same single home:
+#   - `family_open_ledger_entries`      — `.5b`: zero OPEN released-parser bug-ledger entries;
+#   - `family_reachable_silent_success` — `.5e`: no REACHABLE silent-success path (the binding half
+#                                        of `.5c`'s gate, which until then bound no tier at all).
 #
 # QUALIFIER RULE (never defaulted — DONE-BAR: "the comfortable label is the one that closes the
 # row"): derived from the register's `language_owner`, exactly as `DONE-BAR.1`'s audit derives it:
@@ -275,6 +279,136 @@ PY
     if [[ ! "$DONE_BAR_LEDGER_OPEN_COUNT" =~ ^[0-9]+$ ]]; then
         echo "error: ledger open-entries derivation returned a non-numeric count '$DONE_BAR_LEDGER_OPEN_COUNT' (DONE-BAR.5b)" >&2
         exit 2
+    fi
+    return 0
+}
+
+# family_reachable_silent_success FAMILY STATE_DIR
+#
+# The `.5e` criterion — the BINDING half of `.5c`. A SILENT SUCCESS is a parse that returns Ok with
+# ZERO diagnostics while handing the consumer a PLACEHOLDER node, so every "did it parse?" criterion
+# in this file is green on it BY CONSTRUCTION. `.5c` shipped the instrument
+# (rust/scripts/silent_success_sentinel_gate.sh) and hung it off sota_exit_gate, but MEASURED
+# 2026-07-29 nothing read its verdict into a family's tier: all three status gates plus this library
+# contained 0 references to it, and its only consumers repo-wide were a make target and one aggregate
+# prerequisite edge. A sentinel becoming reachable in vhdl would therefore fail the aggregate while
+# leaving the vhdl row's every criterion green. Sets:
+#   DONE_BAR_SENTINEL_SAMPLES             samples swept for FAMILY;
+#   DONE_BAR_SENTINEL_REACHED_SAMPLES     swept samples that REACHED at least one sentinel;
+#   DONE_BAR_SENTINEL_REACHED_TOTAL       sentinels reached across those samples;
+#   DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS  codegen placeholders present in generated/<FAMILY>_parser.rs;
+#   DONE_BAR_SENTINEL_DETAIL              one human-readable line, carrying the honest bound.
+# The caller's criterion is met iff REACHED_SAMPLES == 0 AND CODEGEN_VIOLATIONS == 0.
+#
+# ⭐ IT PRODUCES ITS OWN EVIDENCE rather than consuming an ambient artifact — the same shape
+# family_done_bar_leg3 uses for check_gate_reachability.sh. CI-PARITY-GATE-ROT.7 measured the
+# alternative: a consumer pointed at a sub-gate's STANDALONE default state dir consumed a
+# three-day-old summary as CURRENT proof. No EXISTING_*_STATE_DIR seam is offered, so that hand-off
+# cannot be built by accident (FLOW-INTEGRITY invariant 5).
+#
+# ⭐ The run is cached PER PROCESS (a shell global), because this gate computes two families and the
+# sweep costs ~40 s — but NEVER per directory: a cache keyed on "the artifact is already there" is
+# exactly how stale evidence gets reused.
+#
+# REFUSAL POLARITY (exit 2): the gate REFUSING or MISCALIBRATING, an unreadable artifact, FAMILY
+# absent from the swept roster, a family row the sweep could not measure, or a family swept with ZERO
+# samples. ⛔ A family silently dropped from the contract roster must NEVER read as "0 sentinels
+# reached". The gate's own exit 1 (a sentinel WAS reached somewhere) is NOT a refusal: the artifact is
+# valid and its per-family rows are precisely what this criterion needs.
+#
+# Seam: PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON supplies an artifact instead of running the gate.
+DONE_BAR_SENTINEL_CACHED_JSON=""
+
+family_reachable_silent_success() {
+    local family="$1"
+    local state_dir="$2"
+    local summary_json="${PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON:-}"
+
+    DONE_BAR_SENTINEL_SAMPLES=""
+    DONE_BAR_SENTINEL_REACHED_SAMPLES=""
+    DONE_BAR_SENTINEL_REACHED_TOTAL=""
+    DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS=""
+    DONE_BAR_SENTINEL_DETAIL=""
+
+    if [[ -z "$summary_json" ]]; then
+        if [[ -n "$DONE_BAR_SENTINEL_CACHED_JSON" ]]; then
+            summary_json="$DONE_BAR_SENTINEL_CACHED_JSON"
+        else
+            local gate_state="$state_dir/silent_success_sentinel_gate"
+            local gate_log="$state_dir/silent_success_sentinel_gate.log"
+            rm -rf "$gate_state"
+            mkdir -p "$gate_state"
+            local rc=0
+            env PGEN_SILENT_SUCCESS_STATE_DIR="$gate_state" \
+                bash "$PGEN_FAMILY_STATUS_BAR_LIB_ROOT/rust/scripts/silent_success_sentinel_gate.sh" \
+                >"$gate_log" 2>&1 || rc=$?
+            # 0 = every arm clean; 1 = a sentinel was REACHED somewhere (a real verdict this
+            # criterion reads PER FAMILY). Anything else is REFUSE/MISCALIBRATED — unjudgeable.
+            if (( rc != 0 && rc != 1 )); then
+                echo "error: silent_success_sentinel_gate exited $rc (REFUSE/MISCALIBRATED), so the" >&2
+                echo "       no_reachable_silent_success criterion cannot be judged (log: $gate_log)." >&2
+                echo "       A check that cannot run must SAY SO, not return green (DONE-BAR.5e)." >&2
+                exit 2
+            fi
+            summary_json="$gate_state/summary.json"
+            DONE_BAR_SENTINEL_CACHED_JSON="$summary_json"
+        fi
+    fi
+
+    if [[ ! -s "$summary_json" ]]; then
+        echo "error: silent-success sentinel artifact '$summary_json' is missing or empty; the" >&2
+        echo "       no_reachable_silent_success criterion cannot be judged (DONE-BAR.5e)" >&2
+        exit 2
+    fi
+
+    local derived
+    if ! derived="$(jq -r --arg f "$family" '
+        if (.report | type) != "object" then
+          "REFUSE|the artifact carries no sweep report (status=\(.status // "<unknown>")) — a refusal or miscalibration summary cannot answer a per-family question"
+        else
+          [.report.families[]? | select(.grammar == $f)] as $rows
+          | if ($rows | length) == 0 then
+              "REFUSE|family \($f) is ABSENT from the silent-success contract roster, so no verdict exists for it; a missing family must never read as 0 sentinels reached"
+            elif (($rows[0].status // "") != "OK") then
+              "REFUSE|the sweep could not measure family \($f) (row status=\($rows[0].status // "<none>"))"
+            elif (($rows[0].samples // 0) < 1) then
+              "REFUSE|family \($f) was swept with ZERO samples; a green zero over an empty sweep is never a pass"
+            else
+              ([.report.static.codegen_placeholder_violations // {} | to_entries[] | .value | to_entries[] | select(.key == ($f + "_parser.rs")) | .value] | add // 0) as $cg
+              | "OK|\($rows[0].samples)|\($rows[0].sentinel_samples // 0)|\([$rows[0].sentinel_totals // {} | to_entries[] | .value] | add // 0)|\($cg)"
+            end
+        end' "$summary_json")"; then
+        echo "error: could not read the silent-success sentinel artifact '$summary_json' (DONE-BAR.5e)" >&2
+        exit 2
+    fi
+    if [[ -z "$derived" ]]; then
+        echo "error: the silent-success derivation yielded nothing for family '$family'" >&2
+        echo "       ('$summary_json', DONE-BAR.5e). A criterion that cannot see must refuse." >&2
+        exit 2
+    fi
+    if [[ "$derived" == REFUSE\|* ]]; then
+        echo "error: ${derived#REFUSE|} ('$summary_json', DONE-BAR.5e)." >&2
+        echo "       A criterion that cannot see must refuse, not return green." >&2
+        exit 2
+    fi
+
+    DONE_BAR_SENTINEL_SAMPLES="$(cut -d'|' -f2 <<<"$derived")"
+    DONE_BAR_SENTINEL_REACHED_SAMPLES="$(cut -d'|' -f3 <<<"$derived")"
+    DONE_BAR_SENTINEL_REACHED_TOTAL="$(cut -d'|' -f4 <<<"$derived")"
+    DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS="$(cut -d'|' -f5 <<<"$derived")"
+    local n
+    for n in "$DONE_BAR_SENTINEL_SAMPLES" "$DONE_BAR_SENTINEL_REACHED_SAMPLES" \
+             "$DONE_BAR_SENTINEL_REACHED_TOTAL" "$DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS"; do
+        if [[ ! "$n" =~ ^[0-9]+$ ]]; then
+            echo "error: the silent-success derivation returned a non-numeric field '$n' (DONE-BAR.5e)" >&2
+            exit 2
+        fi
+    done
+
+    if [[ "$DONE_BAR_SENTINEL_REACHED_SAMPLES" == "0" && "$DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS" == "0" ]]; then
+        DONE_BAR_SENTINEL_DETAIL="no sentinel was reached by the ${DONE_BAR_SENTINEL_SAMPLES} validated stimuli samples swept for this family, and generated/${family}_parser.rs carries no codegen placeholder — honest bound: this proves NOT REACHED at the contract's pinned seed, NOT unreachability (reachability is entry-relative)"
+    else
+        DONE_BAR_SENTINEL_DETAIL="a silent-success path is REACHABLE on this family's own proof surface: ${DONE_BAR_SENTINEL_REACHED_SAMPLES} of ${DONE_BAR_SENTINEL_SAMPLES} swept samples were handed ${DONE_BAR_SENTINEL_REACHED_TOTAL} placeholder sentinel(s) INSIDE A SUCCESSFUL PARSE, and generated/${family}_parser.rs carries ${DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS} codegen placeholder(s) — every 'did it parse?' criterion here is green on exactly this defect"
     fi
     return 0
 }

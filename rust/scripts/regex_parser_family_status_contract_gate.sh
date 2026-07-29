@@ -117,7 +117,11 @@ family_status_summary_txt="$family_status_state_dir/summary.txt"
 require_nonempty_file "$family_status_summary_json"
 require_nonempty_file "$family_status_summary_txt"
 
-expected_criteria='["family_contract_green","frontend_overall_pass","dual_run_overall_pass","dual_run_raw_ast_missing_on_rust_zero","stimuli_status_pass","stimuli_parseability_parser_rejections_zero","stimuli_final_target_debt_zero","formal_exhaustive_closure_surface_green"]'
+# DONE-BAR.5e: the three DONE-BAR criteria are PINNED here too. Until this leaf they were computed
+# by the status gate and required by nothing, so removing one would have left this contract gate
+# green over a narrower bar — the same "a check that cannot see it returns green" shape the DONE-BAR
+# tree keeps finding. Priced at 3 sites (leg 3 `.2a`, the ledger `.5b`, the sentinel `.5e`).
+expected_criteria='["family_contract_green","frontend_overall_pass","dual_run_overall_pass","dual_run_raw_ast_missing_on_rust_zero","stimuli_status_pass","stimuli_parseability_parser_rejections_zero","stimuli_final_target_debt_zero","formal_exhaustive_closure_surface_green","external_corpus_conformance_pass","ledger_open_entries_zero","no_reachable_silent_success"]'
 expected_metrics='["frontend_overall","dual_run_overall","dual_run_raw_ast_status","dual_run_raw_ast_missing_on_perl_count","dual_run_raw_ast_missing_on_rust_count","dual_run_rust_rule_count","stimuli_parseability_required","stimuli_parseability_attempts_total","stimuli_parseability_accepted_total","stimuli_parseability_rejected_total","stimuli_parseability_parser_rejections_total","stimuli_parseability_acceptance_rate_percent","stimuli_initial_targets","stimuli_resolved_targets","stimuli_final_targets","stimuli_target_attempts","stimuli_stage0_successes","stimuli_stage3_successes","stimuli_status","family_contract_gate","family_contract_gate_version","family_contract_generated_at_utc","formal_exhaustive_closure_gate","formal_exhaustive_closure_gate_version","formal_exhaustive_closure_generated_at_utc","formal_exhaustive_closure_primary_unmet_closure_criterion","formal_exhaustive_closure_unmet_closure_criteria_count"]'
 expected_proof_surfaces='["family_contract_state_dir","family_contract_summary_txt","family_contract_summary_json","formal_exhaustive_closure_state_dir","formal_exhaustive_closure_summary_txt","formal_exhaustive_closure_summary_json"]'
 

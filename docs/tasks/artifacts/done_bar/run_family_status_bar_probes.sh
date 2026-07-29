@@ -200,6 +200,145 @@ printf '# a ledger with no vocabulary\n| `X-1` | `fakefam` | `Reported` |\n' >"$
 out="$(PGEN_FAMILY_STATUS_LEDGER="$WORK/ledger_no_vocab.md" run_ledger fakefam)"; rc=$?
 arm "RED-L2 no State Meanings: REFUSE" 2 "state vocabulary cannot be derived" "$rc" "$out"
 
+# --- CTRL-S / RED-S: the .5e silent-success criterion (family_reachable_silent_success) -----------
+#
+# Driven through PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON so each arm costs milliseconds instead of
+# a ~40 s sweep. The PRODUCE-IT-YOURSELF path (no seam) is exercised for real by the gate replays
+# below, which is where it has to hold.
+run_sentinel() {
+    bash -c '
+        set -euo pipefail
+        source "'"$LIB"'"
+        family_reachable_silent_success "'"$1"'" "'"$WORK"'"
+        echo "samples=$DONE_BAR_SENTINEL_SAMPLES reached=$DONE_BAR_SENTINEL_REACHED_SAMPLES sentinels=$DONE_BAR_SENTINEL_REACHED_TOTAL codegen=$DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS"
+        echo "detail=$DONE_BAR_SENTINEL_DETAIL"
+    ' 2>&1
+}
+# mk_sentinel — a synthetic sentinel artifact. $1 = jq expression applied to a clean 2-family base.
+mk_sentinel() {
+    jq -n '{
+        gate: "silent_success_sentinel_gate", status: "pass", exit: 0,
+        report: {
+          static: {status: "OK", parsers_scanned: 11, codegen_placeholder_violations: {},
+                   runtime_fallback_arms_present: {"<invalid_sequence_access>": 3016}},
+          families: [
+            {grammar: "vhdl", status: "OK", samples: 25, parsed_ok: 25, sentinel_totals: {}, sentinel_samples: 0},
+            {grammar: "systemverilog", status: "OK", samples: 25, parsed_ok: 25, sentinel_totals: {}, sentinel_samples: 0},
+            {grammar: "systemverilog_preprocessor", status: "OK", samples: 25, parsed_ok: 25, sentinel_totals: {}, sentinel_samples: 0}
+          ]
+        }}' | jq "$1"
+}
+
+# CTRL-S1 — the REAL shipped artifact, if this machine has one: the criterion must reproduce the
+# gate's own published per-family numbers. Ground truth for the derivation itself.
+real_sentinel="$ROOT/rust/target/silent_success_sentinel_gate/summary.json"
+if [[ -s "$real_sentinel" ]] && [[ "$(jq -r '.report | type' "$real_sentinel")" == "object" ]]; then
+    want="samples=$(jq -r '[.report.families[]|select(.grammar=="vhdl")][0].samples' "$real_sentinel") reached=$(jq -r '[.report.families[]|select(.grammar=="vhdl")][0].sentinel_samples' "$real_sentinel")"
+    out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$real_sentinel" run_sentinel vhdl)"; rc=$?
+    arm "CTRL-S1 real artifact: vhdl numbers reproduce" 0 "$want" "$rc" "$out"
+else
+    echo "   ⚠️  CTRL-S1 skipped: no shipped silent_success_sentinel_gate/summary.json on this machine"
+fi
+
+# RED-S1 — a REACHED sentinel must be counted AND named. This is the arm that matters: it is the
+# whole point of the criterion, and a 0 here would mean the tier can never fall for this defect.
+mk_sentinel '.report.families[0].sentinel_samples = 2
+             | .report.families[0].sentinel_totals = {"<invalid_sequence_access>": 3}' >"$WORK/sentinel_reached.json"
+out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$WORK/sentinel_reached.json" run_sentinel vhdl)"; rc=$?
+arm "RED-S1 reached sentinel counted" 0 "samples=25 reached=2 sentinels=3 codegen=0" "$rc" "$out"
+arm "RED-S1 reached sentinel NAMED in the detail" 0 "REACHABLE on this family's own proof surface" 0 "$out"
+
+# CTRL-S2 — THE ATTRIBUTION ARM. A codegen placeholder in systemverilog_preprocessor_parser.rs must
+# be charged to svpp and NOT to systemverilog: a substring match would hand it to both, demoting a
+# family for another family's defect.
+mk_sentinel '.report.static.codegen_placeholder_violations = {"<array_access>": {"systemverilog_preprocessor_parser.rs": 4}}' \
+    >"$WORK/sentinel_codegen.json"
+out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$WORK/sentinel_codegen.json" run_sentinel systemverilog_preprocessor)"; rc=$?
+arm "CTRL-S2a codegen violation charged to svpp" 0 "reached=0 sentinels=0 codegen=4" "$rc" "$out"
+out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$WORK/sentinel_codegen.json" run_sentinel systemverilog)"; rc=$?
+arm "CTRL-S2b sv NOT charged for svpp's violation" 0 "reached=0 sentinels=0 codegen=0" "$rc" "$out"
+
+# RED-S2 — a family ABSENT from the swept roster REFUSES. Dropping vhdl from the sentinel contract
+# must never read as "0 sentinels reached" — the vacuity trap, one level up.
+mk_sentinel 'del(.report.families[0])' >"$WORK/sentinel_no_family.json"
+out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$WORK/sentinel_no_family.json" run_sentinel vhdl)"; rc=$?
+arm "RED-S2 family absent from roster: REFUSE" 2 "ABSENT from the silent-success contract roster" "$rc" "$out"
+
+# RED-S3 — a REFUSAL/MISCALIBRATION summary carries no report and cannot answer a per-family question.
+jq -n '{gate:"silent_success_sentinel_gate",status:"miscalibrated",exit:2}' >"$WORK/sentinel_refuse.json"
+out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$WORK/sentinel_refuse.json" run_sentinel vhdl)"; rc=$?
+arm "RED-S3 miscalibrated artifact: REFUSE" 2 "carries no sweep report" "$rc" "$out"
+
+# RED-S4 — a family row the sweep itself could not measure.
+mk_sentinel '.report.families[0].status = "REFUSE_ZERO_SAMPLES"' >"$WORK/sentinel_row_refuse.json"
+out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$WORK/sentinel_row_refuse.json" run_sentinel vhdl)"; rc=$?
+arm "RED-S4 unmeasured family row: REFUSE" 2 "could not measure family vhdl" "$rc" "$out"
+
+# RED-S5 — a green ZERO over ZERO samples is never a pass.
+mk_sentinel '.report.families[0].samples = 0' >"$WORK/sentinel_zero_samples.json"
+out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$WORK/sentinel_zero_samples.json" run_sentinel vhdl)"; rc=$?
+arm "RED-S5 zero samples swept: REFUSE" 2 "swept with ZERO samples" "$rc" "$out"
+
+# RED-S6 — a missing artifact refuses rather than scoring the comfortable answer.
+out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$WORK/does_not_exist.json" run_sentinel vhdl)"; rc=$?
+arm "RED-S6 missing artifact: REFUSE" 2 "missing or empty" "$rc" "$out"
+
+# CTRL-S3 — the honest bound must travel with the clean verdict, not be implied away.
+mk_sentinel '.' >"$WORK/sentinel_clean.json"
+out="$(PGEN_FAMILY_STATUS_SENTINEL_SUMMARY_JSON="$WORK/sentinel_clean.json" run_sentinel vhdl)"; rc=$?
+arm "CTRL-S3 clean verdict carries the honest bound" 0 "NOT unreachability" "$rc" "$out"
+
+# CTRL-S4 / RED-S7 — the PRODUCE-IT-YOURSELF path, driven through a FAKE ROOT whose sentinel gate is
+# a STUB that records every invocation. The lib derives its root from ${BASH_SOURCE[0]} (correct —
+# the repo-root relative-path policy), so a fake root is the only way to observe the invocation
+# count without a 40 s real sweep. CTRL-S4 is the CACHE arm: the sv gate computes TWO families and
+# must sweep ONCE, or the aggregate pays for the same evidence twice.
+FAKE="$WORK/fake_root"
+mkdir -p "$FAKE/rust/scripts/lib"
+cp "$LIB" "$FAKE/rust/scripts/lib/parser_family_status_bar.sh"
+mk_stub_gate() { # mk_stub_gate EXIT_CODE — writes a stub that logs each run and exits EXIT_CODE
+    cat >"$FAKE/rust/scripts/silent_success_sentinel_gate.sh" <<STUB
+#!/usr/bin/env bash
+# stub sentinel gate: records the invocation, emits a well-formed artifact, exits $1
+echo run >>"$FAKE/invocations.txt"
+mkdir -p "\$PGEN_SILENT_SUCCESS_STATE_DIR"
+cat >"\$PGEN_SILENT_SUCCESS_STATE_DIR/summary.json" <<'JSON'
+$(cat "$WORK/sentinel_clean.json")
+JSON
+exit $1
+STUB
+}
+two_families() {
+    bash -c '
+        set -euo pipefail
+        source "'"$FAKE"'/rust/scripts/lib/parser_family_status_bar.sh"
+        family_reachable_silent_success "systemverilog" "'"$WORK"'/twofam"
+        echo "first=$DONE_BAR_SENTINEL_SAMPLES"
+        family_reachable_silent_success "systemverilog_preprocessor" "'"$WORK"'/twofam"
+        echo "second=$DONE_BAR_SENTINEL_SAMPLES"
+    ' 2>&1
+}
+mkdir -p "$WORK/twofam"
+: >"$FAKE/invocations.txt"
+mk_stub_gate 0
+out="$(two_families)"; rc=$?
+arm "CTRL-S4a two families, both answered" 0 "first=25" "$rc" "$out"
+arm "CTRL-S4b ONE sweep for both (per-process cache)" 0 "1" 0 "$(wc -l <"$FAKE/invocations.txt" | tr -d ' ')"
+
+# RED-S7 — the gate REFUSING (exit 2) makes the criterion unjudgeable ⇒ the status gate REFUSES too.
+# ⛔ Deliberately distinguished from exit 1 (RED-S8): exit 1 is a real VERDICT this criterion reads
+# per family, so a defect in one family must not make another family unjudgeable.
+: >"$FAKE/invocations.txt"
+mk_stub_gate 2
+out="$(two_families)"; rc=$?
+arm "RED-S7 gate REFUSES => criterion REFUSES" 2 "REFUSE/MISCALIBRATED" "$rc" "$out"
+
+# RED-S8 — the gate's exit 1 is a VERDICT, not a refusal: the per-family rows are still read.
+: >"$FAKE/invocations.txt"
+mk_stub_gate 1
+out="$(two_families)"; rc=$?
+arm "RED-S8 gate exit 1 is a verdict, still judged" 0 "second=25" "$rc" "$out"
+
 echo
 echo "2. GATE REPLAYS against the aggregate run-3 artifacts (the measured AFTER of .2a)"
 echo
@@ -226,10 +365,24 @@ for d in \
         missing=$((missing + 1))
     fi
 done
+# DONE-BAR.5e: the replays now RUN the silent-success sweep (the produce-it-yourself path), which
+# needs the two debug binaries and the untracked generated/ tree. Say so and skip rather than
+# reporting a red the machine caused.
+for b in "$ROOT/rust/target/debug/ast_pipeline" "$ROOT/rust/target/debug/parseability_probe"; do
+    if [[ ! -x "$b" ]]; then
+        echo "   ⚠️  replay input missing: $b (needed by the .5e sentinel sweep)"
+        missing=$((missing + 1))
+    fi
+done
+if ! compgen -G "$ROOT/generated/*.rs" >/dev/null; then
+    echo "   ⚠️  replay input missing: generated/*.rs (needed by the .5e sentinel sweep)"
+    missing=$((missing + 1))
+fi
 if [[ "$missing" -gt 0 ]]; then
-    echo "   ⚠️  SKIPPING the gate replays: $missing run-3 artifact(s) unavailable on this machine."
-    echo "      The helper arms above still verify the .2a logic; re-run after an aggregate run."
+    echo "   ⚠️  SKIPPING the gate replays: $missing run-3 artifact(s)/input(s) unavailable on this machine."
+    echo "      The helper arms above still verify the .2a/.5b/.5e logic; re-run after an aggregate run."
 else
+    echo "   (each replay runs a real ~40 s silent-success sweep — the .5e produce-it-yourself path)"
     # regex — legacy ladder computes In Progress (leg-1 debt); the cap does not apply below Done.
     # Post-.2b the tracker row says In Progress too, so the gate ALIGNS and passes.
     rgx_state="$WORK/replay/regex_parser_family_status_gate"
@@ -253,6 +406,9 @@ else
     arm "REPLAY vhdl: json computed_status states the truth" 0 "Provisional (corpus pending)" 0 "$(jq -r '.families[0].computed_status' "$vhdl_state/summary.json" 2>/dev/null)"
     arm "REPLAY vhdl: alignment_ok recorded true" 0 "true" 0 "$(jq -r '.families[0].tracker_alignment_ok' "$vhdl_state/summary.json" 2>/dev/null)"
     arm "REPLAY vhdl: ledger criterion recorded (0 open)" 0 "vhdl_ledger_open_entries_zero: true" 0 "$(cat "$vhdl_state/summary.txt" 2>/dev/null)"
+    arm "REPLAY vhdl: .5e criterion recorded (self-produced)" 0 "vhdl_no_reachable_silent_success: true" 0 "$(cat "$vhdl_state/summary.txt" 2>/dev/null)"
+    arm "REPLAY vhdl: .5e evidence is FRESH, not ambient" 0 "true" 0 "$([[ -s "$vhdl_state/silent_success_sentinel_gate/summary.json" ]] && echo true)"
+    arm "REPLAY vhdl: criteria total moved 12 -> 13" 0 "13" 0 "$(jq -r '.families[0].closure_criteria_total_count' "$vhdl_state/summary.json" 2>/dev/null)"
 
     # sv — two families: systemverilog stays Mostly Done (the cap only affects Done);
     # systemverilog_preprocessor computes Provisional and the post-.2b tracker row agrees.
@@ -273,6 +429,13 @@ else
     arm "REPLAY sv: sv family stays Mostly Done, aligned" 0 "systemverilog_status: Mostly Done" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
     arm "REPLAY sv: svpp computed Provisional recorded" 0 "systemverilog_preprocessor_status: Provisional (corpus pending)" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
     arm "REPLAY sv: ledger criterion recorded (0 open)" 0 "systemverilog_preprocessor_ledger_open_entries_zero: true" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
+    arm "REPLAY sv: .5e criterion recorded for sv" 0 "systemverilog_no_reachable_silent_success: true" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
+    arm "REPLAY sv: .5e criterion recorded for svpp" 0 "systemverilog_preprocessor_no_reachable_silent_success: true" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
+    # The cache itself is proved decisively by CTRL-S4b above (a stub gate counting invocations);
+    # here we only confirm the real gate produced its own evidence inside this run's state dir.
+    arm "REPLAY sv: .5e evidence is FRESH, not ambient" 0 "true" 0 "$([[ -s "$sv_state/silent_success_sentinel_gate/summary.json" ]] && echo true)"
+    arm "REPLAY regex: criteria total moved 10 -> 11" 0 "11" 0 "$(jq -r '.families[0].closure_criteria_total_count' "$rgx_state/summary.json" 2>/dev/null)"
+    arm "REPLAY sv: criteria totals moved 9 -> 10 / 14 -> 15" 0 "10 15" 0 "$(jq -r '[.families[].closure_criteria_total_count] | join(" ")' "$sv_state/summary.json" 2>/dev/null)"
 fi
 
 echo

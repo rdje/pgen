@@ -556,7 +556,21 @@ if [[ "$sv_ledger_open_entry_count" == "0" ]]; then
     sv_ledger_open_entries_zero=true
 fi
 
-sv_closure_criteria_total_count=9
+# DONE-BAR.5e: no REACHABLE silent-success path for this family. The sweep runs ONCE per process and
+# is reused for the second family below — the helper caches in a shell global, never on disk.
+family_reachable_silent_success "systemverilog" "$STATE_DIR"
+sv_silent_success_samples_swept="$DONE_BAR_SENTINEL_SAMPLES"
+sv_silent_success_reached_samples="$DONE_BAR_SENTINEL_REACHED_SAMPLES"
+sv_silent_success_reached_sentinels="$DONE_BAR_SENTINEL_REACHED_TOTAL"
+sv_silent_success_codegen_placeholder_violations="$DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS"
+sv_silent_success_detail="$DONE_BAR_SENTINEL_DETAIL"
+sv_no_reachable_silent_success=false
+if [[ "$sv_silent_success_reached_samples" == "0" \
+   && "$sv_silent_success_codegen_placeholder_violations" == "0" ]]; then
+    sv_no_reachable_silent_success=true
+fi
+
+sv_closure_criteria_total_count=10
 sv_closure_criteria_satisfied_count=0
 if [[ "$sv_syntax_closure_gate_green" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
@@ -583,6 +597,9 @@ if [[ "$sv_external_corpus_conformance_pass" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
 fi
 if [[ "$sv_ledger_open_entries_zero" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$sv_no_reachable_silent_success" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
 fi
 
@@ -629,8 +646,16 @@ if [[ "$sv_ledger_open_entries_zero" != true ]]; then
         --arg detail "ledger_open_entry_count=${sv_ledger_open_entry_count} > 0 (${sv_ledger_open_entry_ids})" \
         '{criterion:"ledger_open_entries_zero",evidence_key:"ledger_open_entry_count",observed:$observed,expected:"0",detail:$detail}')")
 fi
+if [[ "$sv_no_reachable_silent_success" != true ]]; then
+    # detail == the unmet string, per this gate's contract sibling.
+    sv_unmet+=("silent_success_reached_samples=${sv_silent_success_reached_samples} codegen_placeholder_violations=${sv_silent_success_codegen_placeholder_violations} > 0")
+    sv_unmet_details+=("$(jq -cn \
+        --arg observed "reached_samples=${sv_silent_success_reached_samples} codegen_placeholder_violations=${sv_silent_success_codegen_placeholder_violations}" \
+        --arg detail "silent_success_reached_samples=${sv_silent_success_reached_samples} codegen_placeholder_violations=${sv_silent_success_codegen_placeholder_violations} > 0" \
+        '{criterion:"no_reachable_silent_success",evidence_key:"silent_success_reached_samples",observed:$observed,expected:"0 reached sentinels and 0 codegen placeholders",detail:$detail}')")
+fi
 
-if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true && "$sv_semantic_scope_contract_green" == true && "$sv_formal_exhaustive_closure_surface_green" == true && "$sv_ledger_open_entries_zero" == true ]]; then
+if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true && "$sv_semantic_scope_contract_green" == true && "$sv_formal_exhaustive_closure_surface_green" == true && "$sv_ledger_open_entries_zero" == true && "$sv_no_reachable_silent_success" == true ]]; then
     sv_status="Done"
 else
     sv_status="Mostly Done"
@@ -699,7 +724,21 @@ if [[ "$svpp_ledger_open_entry_count" == "0" ]]; then
     svpp_ledger_open_entries_zero=true
 fi
 
-svpp_closure_criteria_total_count=14
+# DONE-BAR.5e: the silent-success criterion for the second family this gate computes. The sweep was
+# already run for `systemverilog` above, so this call is answered from the per-process cache.
+family_reachable_silent_success "systemverilog_preprocessor" "$STATE_DIR"
+svpp_silent_success_samples_swept="$DONE_BAR_SENTINEL_SAMPLES"
+svpp_silent_success_reached_samples="$DONE_BAR_SENTINEL_REACHED_SAMPLES"
+svpp_silent_success_reached_sentinels="$DONE_BAR_SENTINEL_REACHED_TOTAL"
+svpp_silent_success_codegen_placeholder_violations="$DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS"
+svpp_silent_success_detail="$DONE_BAR_SENTINEL_DETAIL"
+svpp_no_reachable_silent_success=false
+if [[ "$svpp_silent_success_reached_samples" == "0" \
+   && "$svpp_silent_success_codegen_placeholder_violations" == "0" ]]; then
+    svpp_no_reachable_silent_success=true
+fi
+
+svpp_closure_criteria_total_count=15
 svpp_closure_criteria_satisfied_count=0
 if [[ "$svpp_syntax_closure_gate_green" == true ]]; then
     ((svpp_closure_criteria_satisfied_count += 1))
@@ -741,6 +780,9 @@ if [[ "$svpp_external_corpus_conformance_pass" == true ]]; then
     ((svpp_closure_criteria_satisfied_count += 1))
 fi
 if [[ "$svpp_ledger_open_entries_zero" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_no_reachable_silent_success" == true ]]; then
     ((svpp_closure_criteria_satisfied_count += 1))
 fi
 
@@ -802,6 +844,14 @@ if [[ "$svpp_ledger_open_entries_zero" != true ]]; then
         --arg detail "ledger_open_entry_count=${svpp_ledger_open_entry_count} > 0 (${svpp_ledger_open_entry_ids})" \
         '{criterion:"ledger_open_entries_zero",evidence_key:"ledger_open_entry_count",observed:$observed,expected:"0",detail:$detail}')")
 fi
+if [[ "$svpp_no_reachable_silent_success" != true ]]; then
+    # detail == the unmet string, per this gate's contract sibling.
+    svpp_unmet+=("silent_success_reached_samples=${svpp_silent_success_reached_samples} codegen_placeholder_violations=${svpp_silent_success_codegen_placeholder_violations} > 0")
+    svpp_unmet_details+=("$(jq -cn \
+        --arg observed "reached_samples=${svpp_silent_success_reached_samples} codegen_placeholder_violations=${svpp_silent_success_codegen_placeholder_violations}" \
+        --arg detail "silent_success_reached_samples=${svpp_silent_success_reached_samples} codegen_placeholder_violations=${svpp_silent_success_codegen_placeholder_violations} > 0" \
+        '{criterion:"no_reachable_silent_success",evidence_key:"silent_success_reached_samples",observed:$observed,expected:"0 reached sentinels and 0 codegen placeholders",detail:$detail}')")
+fi
 
 if [[ "$svpp_syntax_closure_gate_green" == true \
    && "$svpp_parser_rejections_zero" == true \
@@ -813,7 +863,8 @@ if [[ "$svpp_syntax_closure_gate_green" == true \
    && "$svpp_stage3_branches_full" == true \
    && "$svpp_stage4_branches_full" == true \
    && "$svpp_formal_exhaustive_closure_surface_green" == true \
-   && "$svpp_ledger_open_entries_zero" == true ]]; then
+   && "$svpp_ledger_open_entries_zero" == true \
+   && "$svpp_no_reachable_silent_success" == true ]]; then
     svpp_status="Done"
 else
     svpp_status="Mostly Done"
@@ -962,6 +1013,12 @@ jq -n \
     --argjson sv_ledger_open_entries_zero "$sv_ledger_open_entries_zero" \
     --argjson sv_ledger_open_entry_count "$sv_ledger_open_entry_count" \
     --arg sv_ledger_open_entry_ids "$sv_ledger_open_entry_ids" \
+    --argjson sv_no_reachable_silent_success "$sv_no_reachable_silent_success" \
+    --argjson sv_silent_success_samples_swept "$sv_silent_success_samples_swept" \
+    --argjson sv_silent_success_reached_samples "$sv_silent_success_reached_samples" \
+    --argjson sv_silent_success_reached_sentinels "$sv_silent_success_reached_sentinels" \
+    --argjson sv_silent_success_codegen_placeholder_violations "$sv_silent_success_codegen_placeholder_violations" \
+    --arg sv_silent_success_detail "$sv_silent_success_detail" \
     --arg sv_done_bar_leg3_qualifier "$sv_done_bar_leg3_qualifier" \
     --arg sv_done_bar_leg3_surface_gate "$sv_done_bar_leg3_surface_gate" \
     --arg sv_done_bar_leg3_detail "$sv_done_bar_leg3_detail" \
@@ -969,6 +1026,12 @@ jq -n \
     --argjson svpp_ledger_open_entries_zero "$svpp_ledger_open_entries_zero" \
     --argjson svpp_ledger_open_entry_count "$svpp_ledger_open_entry_count" \
     --arg svpp_ledger_open_entry_ids "$svpp_ledger_open_entry_ids" \
+    --argjson svpp_no_reachable_silent_success "$svpp_no_reachable_silent_success" \
+    --argjson svpp_silent_success_samples_swept "$svpp_silent_success_samples_swept" \
+    --argjson svpp_silent_success_reached_samples "$svpp_silent_success_reached_samples" \
+    --argjson svpp_silent_success_reached_sentinels "$svpp_silent_success_reached_sentinels" \
+    --argjson svpp_silent_success_codegen_placeholder_violations "$svpp_silent_success_codegen_placeholder_violations" \
+    --arg svpp_silent_success_detail "$svpp_silent_success_detail" \
     --arg svpp_done_bar_leg3_qualifier "$svpp_done_bar_leg3_qualifier" \
     --arg svpp_done_bar_leg3_surface_gate "$svpp_done_bar_leg3_surface_gate" \
     --arg svpp_done_bar_leg3_detail "$svpp_done_bar_leg3_detail" \
@@ -1019,11 +1082,17 @@ jq -n \
             semantic_scope_contract_green: $sv_semantic_scope_contract_green,
             formal_exhaustive_closure_surface_green: $sv_formal_exhaustive_closure_surface_green,
             external_corpus_conformance_pass: $sv_external_corpus_conformance_pass,
-            ledger_open_entries_zero: $sv_ledger_open_entries_zero
+            ledger_open_entries_zero: $sv_ledger_open_entries_zero,
+            no_reachable_silent_success: $sv_no_reachable_silent_success
           },
           metrics: {
             ledger_open_entry_count: $sv_ledger_open_entry_count,
             ledger_open_entry_ids: $sv_ledger_open_entry_ids,
+            silent_success_samples_swept: $sv_silent_success_samples_swept,
+            silent_success_reached_samples: $sv_silent_success_reached_samples,
+            silent_success_reached_sentinels: $sv_silent_success_reached_sentinels,
+            silent_success_codegen_placeholder_violations: $sv_silent_success_codegen_placeholder_violations,
+            silent_success_detail: $sv_silent_success_detail,
             done_bar_leg3_qualifier: $sv_done_bar_leg3_qualifier,
             done_bar_leg3_surface_gate: $sv_done_bar_leg3_surface_gate,
             done_bar_leg3_detail: $sv_done_bar_leg3_detail,
@@ -1087,11 +1156,17 @@ jq -n \
             reachability_stage4_branches_full: $svpp_stage4_branches_full,
             formal_exhaustive_closure_surface_green: $svpp_formal_exhaustive_closure_surface_green,
             external_corpus_conformance_pass: $svpp_external_corpus_conformance_pass,
-            ledger_open_entries_zero: $svpp_ledger_open_entries_zero
+            ledger_open_entries_zero: $svpp_ledger_open_entries_zero,
+            no_reachable_silent_success: $svpp_no_reachable_silent_success
           },
           metrics: {
             ledger_open_entry_count: $svpp_ledger_open_entry_count,
             ledger_open_entry_ids: $svpp_ledger_open_entry_ids,
+            silent_success_samples_swept: $svpp_silent_success_samples_swept,
+            silent_success_reached_samples: $svpp_silent_success_reached_samples,
+            silent_success_reached_sentinels: $svpp_silent_success_reached_sentinels,
+            silent_success_codegen_placeholder_violations: $svpp_silent_success_codegen_placeholder_violations,
+            silent_success_detail: $svpp_silent_success_detail,
             done_bar_leg3_qualifier: $svpp_done_bar_leg3_qualifier,
             done_bar_leg3_surface_gate: $svpp_done_bar_leg3_surface_gate,
             done_bar_leg3_detail: $svpp_done_bar_leg3_detail,
@@ -1167,6 +1242,12 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_ledger_open_entries_zero: $sv_ledger_open_entries_zero"
     echo "systemverilog_ledger_open_entry_count: $sv_ledger_open_entry_count"
     echo "systemverilog_ledger_open_entry_ids: $sv_ledger_open_entry_ids"
+    echo "systemverilog_no_reachable_silent_success: $sv_no_reachable_silent_success"
+    echo "systemverilog_silent_success_samples_swept: $sv_silent_success_samples_swept"
+    echo "systemverilog_silent_success_reached_samples: $sv_silent_success_reached_samples"
+    echo "systemverilog_silent_success_reached_sentinels: $sv_silent_success_reached_sentinels"
+    echo "systemverilog_silent_success_codegen_placeholder_violations: $sv_silent_success_codegen_placeholder_violations"
+    echo "systemverilog_silent_success_detail: $sv_silent_success_detail"
     echo "systemverilog_done_bar_leg3_qualifier: $sv_done_bar_leg3_qualifier"
     echo "systemverilog_done_bar_leg3_surface_gate: $sv_done_bar_leg3_surface_gate"
     echo "systemverilog_done_bar_leg3_detail: $sv_done_bar_leg3_detail"
@@ -1211,6 +1292,12 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_preprocessor_ledger_open_entries_zero: $svpp_ledger_open_entries_zero"
     echo "systemverilog_preprocessor_ledger_open_entry_count: $svpp_ledger_open_entry_count"
     echo "systemverilog_preprocessor_ledger_open_entry_ids: $svpp_ledger_open_entry_ids"
+    echo "systemverilog_preprocessor_no_reachable_silent_success: $svpp_no_reachable_silent_success"
+    echo "systemverilog_preprocessor_silent_success_samples_swept: $svpp_silent_success_samples_swept"
+    echo "systemverilog_preprocessor_silent_success_reached_samples: $svpp_silent_success_reached_samples"
+    echo "systemverilog_preprocessor_silent_success_reached_sentinels: $svpp_silent_success_reached_sentinels"
+    echo "systemverilog_preprocessor_silent_success_codegen_placeholder_violations: $svpp_silent_success_codegen_placeholder_violations"
+    echo "systemverilog_preprocessor_silent_success_detail: $svpp_silent_success_detail"
     echo "systemverilog_preprocessor_done_bar_leg3_qualifier: $svpp_done_bar_leg3_qualifier"
     echo "systemverilog_preprocessor_done_bar_leg3_surface_gate: $svpp_done_bar_leg3_surface_gate"
     echo "systemverilog_preprocessor_done_bar_leg3_detail: $svpp_done_bar_leg3_detail"

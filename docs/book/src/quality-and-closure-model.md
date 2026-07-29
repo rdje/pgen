@@ -277,6 +277,19 @@ one shared helper (`rust/scripts/lib/parser_family_status_bar.sh`):
   known, still-open downstream defect means the family's proof surface missed something a consumer
   hit. This is deliberately a *tier* criterion, not a pre-commit check: a genuinely open entry is a
   legitimate repository state that must block the family's claim, not unrelated commits.
+- Since `DONE-BAR.5e` they also carry **`no_reachable_silent_success`**, which binds the
+  silent-success sentinel gate described below to the family's tier. Until that leaf the gate ran and
+  bound *nothing*: a placeholder becoming reachable in VHDL would have failed the aggregate while the
+  VHDL row kept every one of its criteria green. The criterion is met only when the family's own
+  sweep reached **zero** sentinels *and* `generated/<family>_parser.rs` carries **zero** codegen
+  placeholders (attributed by exact filename, so one family is never demoted for another's defect).
+  ⭐ The status gate **runs the sentinel gate itself**, into its own state dir, rather than reading
+  whatever artifact happens to be lying around — this repository has already had a "fresh" aggregate
+  run consume a three-day-old summary as current proof. The sweep is cached per *process* (so the SV
+  gate, which computes two families, pays for it once) and never per directory.
+- All three criteria above are now **pinned in the matching `*_parser_family_status_contract_gate`**.
+  They previously existed only in the producing gate, so deleting one would have left its contract
+  sibling green over a quietly narrower bar.
 - On a tracker misalignment the gate now **states what it computed** — the full
   `summary.txt`/`summary.json` pair, including the computed status, the leg-3 verdict, and the
   qualifier — and *then* exits nonzero. A gate that died before writing its verdict used to leave
@@ -321,6 +334,12 @@ gate prints `MISCALIBRATED` and refuses.
 at the pinned seed"* — **not** unreachability. Reachability is entry-relative, which is exactly what
 the calibration arm demonstrates: the same rule is clean canonically and corrupt in isolation. The
 gate prints this bound in its own output rather than letting a green imply more than it earned.
+
+⭐ **And it binds a tier.** Existing was not enough: a gate whose verdict enters no status
+computation can go red while every tracker row stays green. Since `DONE-BAR.5e` the four
+family-status computations carry `no_reachable_silent_success` (see above), so a reachable
+silent success now **demotes the family**, with the reached sample count and the honest bound
+recorded in the gate's `summary.json`.
 
 ## A Check That Cannot Be Run Reports Nothing
 

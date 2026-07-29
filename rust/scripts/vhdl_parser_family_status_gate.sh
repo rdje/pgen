@@ -319,7 +319,22 @@ if [[ "$vhdl_ledger_open_entry_count" == "0" ]]; then
     vhdl_ledger_open_entries_zero=true
 fi
 
-vhdl_closure_criteria_total_count=12
+# DONE-BAR.5e: no REACHABLE silent-success path — a parse returning Ok with ZERO diagnostics while
+# handing back a placeholder node is invisible to every "did it parse?" criterion above, so the
+# .5c sentinel gate's verdict has to enter the tier computation itself.
+family_reachable_silent_success "vhdl" "$STATE_DIR"
+vhdl_silent_success_samples_swept="$DONE_BAR_SENTINEL_SAMPLES"
+vhdl_silent_success_reached_samples="$DONE_BAR_SENTINEL_REACHED_SAMPLES"
+vhdl_silent_success_reached_sentinels="$DONE_BAR_SENTINEL_REACHED_TOTAL"
+vhdl_silent_success_codegen_placeholder_violations="$DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS"
+vhdl_silent_success_detail="$DONE_BAR_SENTINEL_DETAIL"
+vhdl_no_reachable_silent_success=false
+if [[ "$vhdl_silent_success_reached_samples" == "0" \
+   && "$vhdl_silent_success_codegen_placeholder_violations" == "0" ]]; then
+    vhdl_no_reachable_silent_success=true
+fi
+
+vhdl_closure_criteria_total_count=13
 vhdl_closure_criteria_satisfied_count=0
 for criterion in \
     "$vhdl_family_contract_green" \
@@ -333,7 +348,8 @@ for criterion in \
     "$vhdl_strict_promotion_primary_blocker_none" \
     "$vhdl_formal_exhaustive_closure_surface_green" \
     "$vhdl_external_corpus_conformance_pass" \
-    "$vhdl_ledger_open_entries_zero"; do
+    "$vhdl_ledger_open_entries_zero" \
+    "$vhdl_no_reachable_silent_success"; do
     if [[ "$criterion" == true ]]; then
         ((vhdl_closure_criteria_satisfied_count += 1))
     fi
@@ -392,6 +408,13 @@ if [[ "$vhdl_ledger_open_entries_zero" != true ]]; then
         --arg detail "the released-parser bug ledger carries ${vhdl_ledger_open_entry_count} OPEN entr(y/ies) naming this family (${vhdl_ledger_open_entry_ids}) — a known, still-open downstream defect means the family's proof surface missed something a consumer hit" \
         '{criterion:"ledger_open_entries_zero",evidence_key:"ledger_open_entry_count",observed:$observed,expected:"0",detail:$detail}')")
 fi
+if [[ "$vhdl_no_reachable_silent_success" != true ]]; then
+    vhdl_unmet+=("silent_success_reached_samples=${vhdl_silent_success_reached_samples} codegen_placeholder_violations=${vhdl_silent_success_codegen_placeholder_violations} > 0")
+    vhdl_unmet_details+=("$(jq -cn \
+        --arg observed "reached_samples=${vhdl_silent_success_reached_samples} codegen_placeholder_violations=${vhdl_silent_success_codegen_placeholder_violations}" \
+        --arg detail "$vhdl_silent_success_detail" \
+        '{criterion:"no_reachable_silent_success",evidence_key:"silent_success_reached_samples",observed:$observed,expected:"0 reached sentinels and 0 codegen placeholders",detail:$detail}')")
+fi
 
 vhdl_status="Not Started"
 if [[ "$vhdl_family_contract_green" == true ]]; then
@@ -406,7 +429,8 @@ if [[ "$vhdl_family_contract_green" == true \
    && "$vhdl_strict_promotion_recommendation_green" == true \
    && "$vhdl_strict_promotion_eligible_for_required_strict_mode" == true \
    && "$vhdl_strict_promotion_primary_blocker_none" == true \
-   && "$vhdl_ledger_open_entries_zero" == true ]]; then
+   && "$vhdl_ledger_open_entries_zero" == true \
+   && "$vhdl_no_reachable_silent_success" == true ]]; then
     vhdl_status="Mostly Done"
 fi
 if [[ "$vhdl_status" == "Mostly Done" && "$vhdl_formal_exhaustive_closure_surface_green" == true ]]; then
@@ -469,6 +493,12 @@ vhdl_unmet_details_json="$(printf '%s\n' "${vhdl_unmet_details[@]:-}" | jq -R . 
     echo "vhdl_ledger_open_entries_zero: $vhdl_ledger_open_entries_zero"
     echo "vhdl_ledger_open_entry_count: $vhdl_ledger_open_entry_count"
     echo "vhdl_ledger_open_entry_ids: $vhdl_ledger_open_entry_ids"
+    echo "vhdl_no_reachable_silent_success: $vhdl_no_reachable_silent_success"
+    echo "vhdl_silent_success_samples_swept: $vhdl_silent_success_samples_swept"
+    echo "vhdl_silent_success_reached_samples: $vhdl_silent_success_reached_samples"
+    echo "vhdl_silent_success_reached_sentinels: $vhdl_silent_success_reached_sentinels"
+    echo "vhdl_silent_success_codegen_placeholder_violations: $vhdl_silent_success_codegen_placeholder_violations"
+    echo "vhdl_silent_success_detail: $vhdl_silent_success_detail"
     echo "vhdl_done_bar_leg3_qualifier: $vhdl_done_bar_leg3_qualifier"
     echo "vhdl_done_bar_leg3_surface_gate: $vhdl_done_bar_leg3_surface_gate"
     echo "vhdl_done_bar_leg3_detail: $vhdl_done_bar_leg3_detail"
@@ -537,6 +567,12 @@ jq -n \
     --argjson vhdl_ledger_open_entries_zero "$vhdl_ledger_open_entries_zero" \
     --argjson vhdl_ledger_open_entry_count "$vhdl_ledger_open_entry_count" \
     --arg vhdl_ledger_open_entry_ids "$vhdl_ledger_open_entry_ids" \
+    --argjson vhdl_no_reachable_silent_success "$vhdl_no_reachable_silent_success" \
+    --argjson vhdl_silent_success_samples_swept "$vhdl_silent_success_samples_swept" \
+    --argjson vhdl_silent_success_reached_samples "$vhdl_silent_success_reached_samples" \
+    --argjson vhdl_silent_success_reached_sentinels "$vhdl_silent_success_reached_sentinels" \
+    --argjson vhdl_silent_success_codegen_placeholder_violations "$vhdl_silent_success_codegen_placeholder_violations" \
+    --arg vhdl_silent_success_detail "$vhdl_silent_success_detail" \
     --arg vhdl_done_bar_leg3_qualifier "$vhdl_done_bar_leg3_qualifier" \
     --arg vhdl_done_bar_leg3_surface_gate "$vhdl_done_bar_leg3_surface_gate" \
     --arg vhdl_done_bar_leg3_detail "$vhdl_done_bar_leg3_detail" \
@@ -604,11 +640,17 @@ jq -n \
             strict_promotion_primary_blocker_none: $vhdl_strict_promotion_primary_blocker_none,
             formal_exhaustive_closure_surface_green: $vhdl_formal_exhaustive_closure_surface_green,
             external_corpus_conformance_pass: $vhdl_external_corpus_conformance_pass,
-            ledger_open_entries_zero: $vhdl_ledger_open_entries_zero
+            ledger_open_entries_zero: $vhdl_ledger_open_entries_zero,
+            no_reachable_silent_success: $vhdl_no_reachable_silent_success
           },
           metrics: {
             ledger_open_entry_count: $vhdl_ledger_open_entry_count,
             ledger_open_entry_ids: $vhdl_ledger_open_entry_ids,
+            silent_success_samples_swept: $vhdl_silent_success_samples_swept,
+            silent_success_reached_samples: $vhdl_silent_success_reached_samples,
+            silent_success_reached_sentinels: $vhdl_silent_success_reached_sentinels,
+            silent_success_codegen_placeholder_violations: $vhdl_silent_success_codegen_placeholder_violations,
+            silent_success_detail: $vhdl_silent_success_detail,
             done_bar_leg3_qualifier: $vhdl_done_bar_leg3_qualifier,
             done_bar_leg3_surface_gate: $vhdl_done_bar_leg3_surface_gate,
             done_bar_leg3_detail: $vhdl_done_bar_leg3_detail,

@@ -210,6 +210,10 @@ PGEN is a production-focused parser and stimuli generator platform.
     or calibration drifts. **A skip is never a pass.**
   - ⚠️ honest bound, printed in its own output: it proves *"not reached by 25 validated samples at the
     pinned seed"*, **not** unreachability — reachability is entry-relative
+  - ⭐ **it BINDS a tier, not merely exists** (`DONE-BAR.5e`): `no_reachable_silent_success` is a
+    criterion in all four family-status computations, so a reachable silent success now DEMOTES the
+    family. Each status gate RUNS the sweep itself into its own state dir (never an ambient
+    artifact), cached per process, and REFUSES when the sweep cannot be judged
 - All per-parser mdBooks in one lane (also run by `mdbook_docs_gate`):
   - `make -C rust SHELL=/bin/bash parser_books_gate`
 - Memory guard (MANDATORY for heavy/background jobs — HOST-RAM BUDGET DIRECTIVE,

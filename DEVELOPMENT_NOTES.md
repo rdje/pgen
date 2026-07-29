@@ -1,5 +1,41 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0016 — existing is not binding: a gate whose verdict enters no tier
+
+`DONE-BAR.5e`. Gate scripts + shared helper + contract-gate rosters + probe arms.
+
+- ROOT CAUSE (ops/build-flow): `.5c` built the only instrument that can see a silent success — a parse
+  returning `Ok` with zero diagnostics while handing back a placeholder — and wired it as a
+  `sota_exit_gate` prerequisite. But **no family-status computation read it**: 0 references across the
+  three status gates and the shared helper. The gate could therefore go red while all four tracker rows
+  stayed green on every criterion. Same shape as `.5b`'s ledger finding: *the fact was true and
+  unguarded at the tier level.*
+- THE FOUR DESIGN CALLS, each recorded because the obvious alternative has already failed here:
+  1. PRODUCE the evidence, never consume an ambient artifact. `CI-PARITY-GATE-ROT.7` measured a
+     "fresh" aggregate run consuming a three-day-old `summary.txt` as current proof, so the helper runs
+     the gate into the CALLER's state dir — the same shape `family_done_bar_leg3` uses for
+     `check_gate_reachability.sh` — and **no `EXISTING_*_STATE_DIR` seam is added**, because an unused
+     hand-off seam is an invitation to the `FLOW-INTEGRITY` (5) violation.
+  2. Cache per PROCESS (a shell global), never per directory: the SV gate computes two families and
+     must sweep once, but a cache keyed on "the artifact is already there" is exactly how stale
+     evidence gets reused. Proved by a stub gate that counts its own invocations.
+  3. The gate's exit 1 is a VERDICT, not a refusal — a reached sentinel in `regex` must not make `vhdl`
+     unjudgeable. Only exit 2 (REFUSE/MISCALIBRATED) is unjudgeable, and then the status gate refuses.
+  4. Attribute codegen placeholders by EXACT filename (`<family>_parser.rs`): a substring match would
+     charge `systemverilog_preprocessor`'s violations to `systemverilog` as well.
+- REFUSAL POLARITY: a family ABSENT from the sentinel contract's roster REFUSES. Dropping `vhdl` from
+  that roster must never read as "0 sentinels reached" — the vacuity trap this instrument exists to
+  escape, one level up.
+- MEASUREMENT DISCIPLINE, worth keeping: the probe driver's total wall clock (1 m 20.9 s) did not match
+  three 40 s sweeps, so the cost was re-derived instead of assumed. One sweep is **26.0 s**; the sweep
+  dirs were created 27 s and 26 s apart; 3 × 26 = 78 s of the 81 s. `.5c`'s "~40 s" is corrected. Each
+  artifact independently reports 9 families / 225 samples / calibration 3/3, so nothing was skipped.
+- TWO OF MY OWN NUMBERS CORRECTED FORWARD: the new-arm count (13 → **23**; 52 total, not 42) and the
+  sweep cost. Both were prose estimates that did not survive being re-run — the recurring lesson.
+- ROUTED, NOT FIXED: making the contract gate's schema assertion fail (required to prove the new pin
+  binds) exposed that it fails with **exit 1 and 0 bytes of output** — `jq -e '<~20 anded clauses>'
+  … >/dev/null` under `set -euo pipefail`, no guard, no message. `CI-PARITY-GATE-ROT.17`, 4 sites.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0015 — a gate can be broken by another gate's side effect on a shared binary
 
 `DONE-BAR.5c` follow-up. Gate helper + contract + probe arm.

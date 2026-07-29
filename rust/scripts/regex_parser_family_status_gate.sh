@@ -336,7 +336,22 @@ if [[ "$regex_ledger_open_entry_count" == "0" ]]; then
     regex_ledger_open_entries_zero=true
 fi
 
-regex_closure_criteria_total_count=10
+# DONE-BAR.5e: no REACHABLE silent-success path — a parse returning Ok with ZERO diagnostics while
+# handing back a placeholder node is invisible to every "did it parse?" criterion above, so the
+# .5c sentinel gate's verdict has to enter the tier computation itself.
+family_reachable_silent_success "regex" "$STATE_DIR"
+regex_silent_success_samples_swept="$DONE_BAR_SENTINEL_SAMPLES"
+regex_silent_success_reached_samples="$DONE_BAR_SENTINEL_REACHED_SAMPLES"
+regex_silent_success_reached_sentinels="$DONE_BAR_SENTINEL_REACHED_TOTAL"
+regex_silent_success_codegen_placeholder_violations="$DONE_BAR_SENTINEL_CODEGEN_VIOLATIONS"
+regex_silent_success_detail="$DONE_BAR_SENTINEL_DETAIL"
+regex_no_reachable_silent_success=false
+if [[ "$regex_silent_success_reached_samples" == "0" \
+   && "$regex_silent_success_codegen_placeholder_violations" == "0" ]]; then
+    regex_no_reachable_silent_success=true
+fi
+
+regex_closure_criteria_total_count=11
 regex_closure_criteria_satisfied_count=0
 for criterion in \
     "$regex_family_contract_green" \
@@ -348,7 +363,8 @@ for criterion in \
     "$regex_stimuli_final_target_debt_zero" \
     "$regex_formal_exhaustive_closure_surface_green" \
     "$regex_external_corpus_conformance_pass" \
-    "$regex_ledger_open_entries_zero"; do
+    "$regex_ledger_open_entries_zero" \
+    "$regex_no_reachable_silent_success"; do
     if [[ "$criterion" == true ]]; then
         ((regex_closure_criteria_satisfied_count += 1))
     fi
@@ -399,6 +415,13 @@ if [[ "$regex_ledger_open_entries_zero" != true ]]; then
         --arg detail "the released-parser bug ledger carries ${regex_ledger_open_entry_count} OPEN entr(y/ies) naming this family (${regex_ledger_open_entry_ids}) — a known, still-open downstream defect means the family's proof surface missed something a consumer hit" \
         '{criterion:"ledger_open_entries_zero",evidence_key:"ledger_open_entry_count",observed:$observed,expected:"0",detail:$detail}')")
 fi
+if [[ "$regex_no_reachable_silent_success" != true ]]; then
+    regex_unmet+=("silent_success_reached_samples=${regex_silent_success_reached_samples} codegen_placeholder_violations=${regex_silent_success_codegen_placeholder_violations} > 0")
+    regex_unmet_details+=("$(jq -cn \
+        --arg observed "reached_samples=${regex_silent_success_reached_samples} codegen_placeholder_violations=${regex_silent_success_codegen_placeholder_violations}" \
+        --arg detail "$regex_silent_success_detail" \
+        '{criterion:"no_reachable_silent_success",evidence_key:"silent_success_reached_samples",observed:$observed,expected:"0 reached sentinels and 0 codegen placeholders",detail:$detail}')")
+fi
 
 regex_status="Not Started"
 if [[ "$regex_family_contract_green" == true ]]; then
@@ -411,7 +434,8 @@ if [[ "$regex_family_contract_green" == true \
    && "$regex_stimuli_status_pass" == true \
    && "$regex_stimuli_parseability_parser_rejections_zero" == true \
    && "$regex_stimuli_final_target_debt_zero" == true \
-   && "$regex_ledger_open_entries_zero" == true ]]; then
+   && "$regex_ledger_open_entries_zero" == true \
+   && "$regex_no_reachable_silent_success" == true ]]; then
     regex_status="Mostly Done"
 fi
 if [[ "$regex_status" == "Mostly Done" && "$regex_formal_exhaustive_closure_surface_green" == true ]]; then
@@ -476,6 +500,12 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "regex_ledger_open_entries_zero: $regex_ledger_open_entries_zero"
     echo "regex_ledger_open_entry_count: $regex_ledger_open_entry_count"
     echo "regex_ledger_open_entry_ids: $regex_ledger_open_entry_ids"
+    echo "regex_no_reachable_silent_success: $regex_no_reachable_silent_success"
+    echo "regex_silent_success_samples_swept: $regex_silent_success_samples_swept"
+    echo "regex_silent_success_reached_samples: $regex_silent_success_reached_samples"
+    echo "regex_silent_success_reached_sentinels: $regex_silent_success_reached_sentinels"
+    echo "regex_silent_success_codegen_placeholder_violations: $regex_silent_success_codegen_placeholder_violations"
+    echo "regex_silent_success_detail: $regex_silent_success_detail"
     echo "regex_done_bar_leg3_qualifier: $regex_done_bar_leg3_qualifier"
     echo "regex_done_bar_leg3_surface_gate: $regex_done_bar_leg3_surface_gate"
     echo "regex_done_bar_leg3_detail: $regex_done_bar_leg3_detail"
@@ -549,6 +579,12 @@ jq -n \
     --argjson regex_ledger_open_entries_zero "$regex_ledger_open_entries_zero" \
     --argjson regex_ledger_open_entry_count "$regex_ledger_open_entry_count" \
     --arg regex_ledger_open_entry_ids "$regex_ledger_open_entry_ids" \
+    --argjson regex_no_reachable_silent_success "$regex_no_reachable_silent_success" \
+    --argjson regex_silent_success_samples_swept "$regex_silent_success_samples_swept" \
+    --argjson regex_silent_success_reached_samples "$regex_silent_success_reached_samples" \
+    --argjson regex_silent_success_reached_sentinels "$regex_silent_success_reached_sentinels" \
+    --argjson regex_silent_success_codegen_placeholder_violations "$regex_silent_success_codegen_placeholder_violations" \
+    --arg regex_silent_success_detail "$regex_silent_success_detail" \
     --arg regex_done_bar_leg3_qualifier "$regex_done_bar_leg3_qualifier" \
     --arg regex_done_bar_leg3_surface_gate "$regex_done_bar_leg3_surface_gate" \
     --arg regex_done_bar_leg3_detail "$regex_done_bar_leg3_detail" \
@@ -619,11 +655,17 @@ jq -n \
             stimuli_final_target_debt_zero: $regex_stimuli_final_target_debt_zero,
             formal_exhaustive_closure_surface_green: $regex_formal_exhaustive_closure_surface_green,
             external_corpus_conformance_pass: $regex_external_corpus_conformance_pass,
-            ledger_open_entries_zero: $regex_ledger_open_entries_zero
+            ledger_open_entries_zero: $regex_ledger_open_entries_zero,
+            no_reachable_silent_success: $regex_no_reachable_silent_success
           },
             metrics: {
             ledger_open_entry_count: $regex_ledger_open_entry_count,
             ledger_open_entry_ids: $regex_ledger_open_entry_ids,
+            silent_success_samples_swept: $regex_silent_success_samples_swept,
+            silent_success_reached_samples: $regex_silent_success_reached_samples,
+            silent_success_reached_sentinels: $regex_silent_success_reached_sentinels,
+            silent_success_codegen_placeholder_violations: $regex_silent_success_codegen_placeholder_violations,
+            silent_success_detail: $regex_silent_success_detail,
             done_bar_leg3_qualifier: $regex_done_bar_leg3_qualifier,
             done_bar_leg3_surface_gate: $regex_done_bar_leg3_surface_gate,
             done_bar_leg3_detail: $regex_done_bar_leg3_detail,

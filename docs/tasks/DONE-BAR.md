@@ -836,8 +836,151 @@ told apart from invalid input**, and all three would have shipped as defects.
   3. `.5b` — **zero open ledger entries** naming the family — ✅ **DONE** (see below);
   4. `.5d` — **documented acceptance boundary** where a consumer looks (`todo`; overlaps `.6`'s
      per-contract bar-state disclosure — adjudicate the split when `.5d` opens).
+  5. `.5e` — **`.5c`'s BINDING half**: the sentinel gate must bind a family's TIER, not merely exist
+     — ✅ **DONE** (see below). A gate whose verdict enters no status computation is a gate that can
+     go red while every tracker row stays green.
 - ⭐ Once these exist they are ordinary leg-2 gates. That is the point: **the bar stays three legs and
   stays fully mechanizable**, which is what *"the flow shall guarantee this 100%"* demands.
+
+#### `.5e` — the sentinel gate BINDS a tier (`done`, 2026-07-30 session #226, `PGEN-DONE-BAR-0016`)
+
+- **Charter (written by `.5c`'s own frontier note):** *"wire a `no_reachable_silent_success` criterion
+  into the four family-status computations (the `.5b` shape), so the gate does not merely exist but
+  BINDS a family's tier."*
+- ⛔⛔ **THE MEASURED GAP — `.5c` SHIPPED AN INSTRUMENT NOTHING CONSULTS WHEN DECIDING A TIER.** The
+  gate is green, reachable, and wired as a `sota_exit_gate` prerequisite, yet **all four family
+  computations carry 0 references to it** (`rust/scripts/{regex,sv,vhdl}_parser_family_status_gate.sh`
+  and `rust/scripts/lib/parser_family_status_bar.sh` → `grep -c silent_success` = **0/0/0/0**), and its
+  only consumers repo-wide are **a `make` target and one aggregate prerequisite edge**
+  (`rust/Makefile:1042,1043,1045,1055`). ⇒ if a sentinel became reachable in `vhdl` tomorrow, the
+  aggregate would fail — and the `vhdl` row would still read `Provisional (corpus pending)` with
+  **every one of its 12 criteria green**, because none of them can see a placeholder inside a
+  successful parse. **This is exactly `.5b`'s shape**: *the fact is true and unguarded at the tier
+  level.*
+- **DESIGN — four decisions, each one recorded because the obvious alternative has already failed
+  here:**
+  1. ⭐ **PRODUCE the evidence, never consume an ambient artifact.** `CI-PARITY-GATE-ROT.7` measured
+     the alternative end to end: a consumer was pointed at a sub-gate's STANDALONE default state dir
+     and a **three-day-old** `summary.txt` was consumed as CURRENT proof by a "fresh" run. So the
+     helper RUNS `silent_success_sentinel_gate.sh` into `STATE_DIR/silent_success_sentinel_gate` —
+     the identical shape `family_done_bar_leg3` already uses for `check_gate_reachability.sh`. ⛔ **No
+     `EXISTING_*_STATE_DIR` seam is added and the aggregate is deliberately NOT rewired**: an unused
+     hand-off seam is an invitation to the `FLOW-INTEGRITY` (5) violation.
+  2. ⭐ **Cache PER PROCESS, never per directory.** The sv gate computes TWO families, so the sweep
+     must not run twice — but a cache keyed on *"the file is already there"* is precisely how stale
+     evidence gets reused. The cache is a shell global, so it cannot outlive the run that produced it.
+  3. ⭐ **The gate's exit 1 is a VERDICT, not a refusal.** Exit 1 means a sentinel was reached
+     *somewhere*; the artifact is valid and its per-family rows are exactly what this criterion needs
+     (so a defect in `regex` must not make `vhdl` unjudgeable). Only exit 2 — REFUSE / MISCALIBRATED —
+     is unjudgeable, and then the status gate REFUSES too.
+  4. ⭐ **Attribute the STATIC arm per family, not repo-wide.** A codegen placeholder is reported as
+     `{literal: {artifact: count}}`, so the criterion reads `generated/<family>_parser.rs` by **exact
+     filename** — `systemverilog` must not inherit `systemverilog_preprocessor`'s violations, which a
+     substring match would hand it.
+- ⛔ **REFUSAL POLARITY (exit 2), and the arm that matters:** a family **absent from the swept
+  roster** REFUSES. Removing `vhdl` from the sentinel contract must never make its criterion read
+  *"0 sentinels reached"* — that is the vacuity trap this very instrument was built to escape, one
+  level up.
+- **SCOPE NOTE (deliberate, recorded):** the gates' prose `DONE_RULE` strings are **not** extended to
+  narrate this criterion or `.5b`'s. Per-family prose disclosure is `.6`'s work; the machine-readable
+  `criteria` map plus the `unmet_closure_criteria_details[]` entry are this leaf's disclosure surface.
+
+##### MEASURED RESULT
+
+- **All four families bind clean and NO tracker row moved**, which is the expected outcome and was
+  stated as a prediction before it was run: each status gate produced its own sweep — **9 families,
+  225 samples, calibration 3/3, 0 sentinels reached** — and the criterion reads `true` for regex, sv,
+  svpp and vhdl. Criteria totals moved **regex 10→11, sv 9→10, svpp 14→15, vhdl 12→13**; all three
+  replays stay **green and tracker-aligned** (`regex` `In Progress`, `vhdl` + `svpp`
+  `Provisional (corpus pending)`, `systemverilog` `Mostly Done`).
+- **COST, MEASURED — and it CORRECTS `.5c`'s published figure**: one full sweep is **26.0 s**
+  (`time bash rust/scripts/silent_success_sentinel_gate.sh`), not the *"~40 s"* `.5c` recorded ⇒ the
+  delta is **+26 s per status gate, ≈ +78 s across the three**, against a ~5 h aggregate. ⭐ **The
+  number was cross-checked rather than taken on trust**: the probe driver's total wall clock was
+  **1 m 20.9 s** while three 40 s sweeps alone would have been ~120 s — a discrepancy worth stopping
+  on. It reconciles exactly: the three sweep dirs were created **27 s and 26 s apart**, 3 × 26 = 78 s,
+  and the 32 helper arms are milliseconds. Nothing was skipped (each artifact independently reports
+  its own 9 families / 225 samples / 3-of-3 calibration).
+- ⚠️ **MY OWN PREDICTED ARM COUNT WAS WRONG AND IS CORRECTED FORWARD, NOT BACK-DATED**: this leaf's
+  first draft said *"+13 arms … expect 29 + 13 = 42"*. The real total is **52** — the new arms are
+  **23** (15 helper + 8 replay), not 13; I under-counted my own additions. 6th instance in this tree's
+  history of a plausible figure surviving until someone re-ran it, this time my own.
+
+##### ⛔ A DEFECT FOUND BY THIS LEAF'S OWN RED ARM, ROUTED NOT FIXED — `CI-PARITY-GATE-ROT.17`
+
+Proving the new pin is load-bearing meant making a contract gate's schema assertion FAIL — which
+nobody had ever done. It fails with **`exit=1` and a `0`-byte log**: `…:184`/`:191`/`:239` end a
+~60-line monolithic `jq -e '<conjunction>' … >/dev/null` under `set -euo pipefail` with no `||` guard
+and no message, so the gate reports *that* the schema is wrong and never *which* of ~20 conjuncts.
+⭐ Same family as `.14` (a consumer burying the real cause) and `.2a` (emit the summary BEFORE
+exiting), one layer further in: **a check that fails must say what failed.** Class priced at **4
+sites** (`regex_broader_corpus_proof_gate.sh` is the fourth — the first count of 3 was the gates in
+hand, before the sweep was run). ⛔ Deliberately NOT fixed here: the honest fix is a decomposition in
+one shared helper across 4 sites, and this leaf's scope was one criterion.
+
+##### ROUTING EVIDENCE (for the `CI-PARITY-GATE-ROT.17` routing above)
+
+1. **Does the finding reproduce OUTSIDE the family it is being routed to?** ⭐ **YES — and that is the
+   whole basis of the routing.** The silent-assertion shape was found in the **vhdl** contract gate, so
+   the tempting (and wrong) reading is *"a vhdl-family defect"*. Swept:
+   `grep -rlE "^\s+' \".*\" >/dev/null\s*$" rust/scripts/*.sh` → **4 files across three families plus a
+   non-family gate** — `vhdl_…`, `regex_…`, `sv_parser_family_status_contract_gate.sh` **and
+   `regex_broader_corpus_proof_gate.sh`**. A defect present in every family's gate is nobody's family
+   defect; it is a shared shell idiom on the PROOF SURFACE, which is precisely what
+   `CI-PARITY-GATE-ROT` owns.
+2. **What was MEASURED to place it there, not what makes it plausible?** The reproduction, not the
+   reading: a green artifact with ONE pinned criterion deleted (and both count fields decremented so
+   every arithmetic invariant stays satisfiable) drives the gate to **`exit=1` with `wc -c` = `0`** on
+   its combined stdout+stderr. The mechanism was then read at the named lines
+   (`…:184`/`:191`/`:239` — `jq -e '<conjunction>' … >/dev/null` under `set -euo pipefail`, no `||`,
+   no message), so the WHY and the WHERE are both from tools rather than inference.
+3. **What would have to be true for the routing to be WRONG, and was it checked?** It would have to be
+   **specific to one family's gate** (⇒ a family tree owns it) or **caused by this leaf's own edit**
+   (⇒ mine to fix here). Both checked and both false: the class is 4 sites, and `git diff` shows this
+   leaf touched only the `expected_criteria` literal in those files — the unguarded `jq -e … >/dev/null`
+   line is untouched and pre-dates it. ⚠️ **Honest limit:** the sweep matched one *specific* textual
+   shape (a heredoc-style assertion closing with `' "$file" >/dev/null`). A gate expressing the same
+   silent-assertion idiom differently would not have been counted, so **4 is a floor, not a census** —
+   `.17` should re-derive it rather than inherit the number.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — measured before any code: `grep -c silent_success` over the three
+  `*_parser_family_status_gate.sh` **and** the shared helper → **0 / 0 / 0 / 0**; the sentinel gate's
+  only consumers repo-wide are `rust/Makefile:1042,1043,1045` (the target) and `:1055` (the
+  `sota_exit_gate` prerequisite edge). ⇒ the instrument ran and bound nothing.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. WHY: a silent success returns `Ok` with
+  zero diagnostics, so every "did it parse?" criterion in a family computation is green on it BY
+  CONSTRUCTION; `.5c` built the detector but its verdict entered no tier, so a reachable sentinel
+  would fail the aggregate while the family's row kept every criterion green. WHERE: the four criteria
+  sets in `rust/scripts/{regex,sv,vhdl}_parser_family_status_gate.sh` and the shared home
+  `rust/scripts/lib/parser_family_status_bar.sh`. Tool-backed: `bash -n ` clean on all 8 edited shell
+  surfaces; `git ls-files`-derived consumer census as above; `jq` over the gate's own
+  `summary.json` confirms the per-family rows the criterion reads.
+- [x] **FIX** — declarative-tier: one shared-helper function + criterion wiring + summary/JSON metrics
+  + three pinned contract-gate rosters. **No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`.**
+- [x] **ADDRESSED (verified)** — before: no family computation could disagree with its row over a
+  placeholder handed back inside a successful parse. After, by re-runnable oracle
+  `bash docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh` → **52/52** (was 29/29):
+  `CTRL-S1` reproduces the shipped artifact's own vhdl numbers; **`RED-S1`** proves a reached sentinel
+  is counted AND named (`reached=2 sentinels=3`); **`CTRL-S2a/b`** prove exact-filename attribution
+  (svpp charged 4, `systemverilog` charged 0 for the same violation — a substring match would have
+  demoted both); `RED-S2`..`RED-S6` all REFUSE (absent from roster / no report / unmeasured row / zero
+  samples / missing artifact); **`CTRL-S4b`** is the cache arm — a stub gate counting invocations reads
+  exactly **1** across two families; `RED-S7`/`RED-S8` separate REFUSE (exit 2) from VERDICT (exit 1).
+  Plus a RED arm for the pinning itself: deleting one pinned criterion with every arithmetic invariant
+  kept satisfiable makes the contract gate **exit 1** — the pin binds, it is not decorative.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒ **all 11
+  generated parsers byte-identical BY CONSTRUCTION**; all three
+  `*_parser_family_status_contract_gate` pass against the fresh artifacts (exit 0/0/0) on the extended
+  roster; `bash scripts/check_gate_reachability.sh --report` → **OK (124 targets; 93 reachable,
+  30 orphan + 1 policy-only, all dispositioned; 8 ground-truth controls reproduced)** — unchanged;
+  `bash scripts/audit_done_bar.sh` exit 0, unchanged; `bash scripts/check_doctrines.sh` ALL 14 PASS.
+  No release / schema / ledger / contract movement, and **no tracker row moved**.
+- [x] **LOCKSTEP** — this tree, `docs/tasks/CI-PARITY-GATE-ROT.md` (the routed silent-assertion
+  defect, new `.17`), book `quality-and-closure-model.md` (status-gate + sentinel sections),
+  `README.md` standard commands, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
+  `docs/TASK_TREE.md`.
 
 #### `.5c` — the silent-success sentinel gate (`done`, 2026-07-29 session #225, `PGEN-DONE-BAR-0014`)
 
@@ -1065,7 +1208,15 @@ told apart from invalid input**, and all three would have shipped as defects.
 ## Current Frontier
 
 **`.5d`** — the documented acceptance boundary where a consumer looks (adjudicate its overlap with
-`.6` when opened). ✅ **`.5c` DONE** (`PGEN-DONE-BAR-0014`): the silent-success sentinel gate ships
+`.6` when opened). ✅ **`.5e` DONE** (`PGEN-DONE-BAR-0016`): `.5c`'s sentinel gate now **BINDS a
+tier** — `no_reachable_silent_success` is a criterion in all four family computations (totals regex
+10→11, sv 9→10, svpp 14→15, vhdl 12→13), each status gate PRODUCES its own sweep rather than reading
+an ambient artifact (the `.7` stale-evidence lesson), the sweep is cached per PROCESS not per
+directory, and the three DONE-BAR criteria are now PINNED in the contract gates — they were computed
+by the producer and required by nothing. Probes **52/52**; measured **+26 s** per status gate; **no
+tracker row moved** (all four families sweep clean). ⛔ Its RED arm exposed a contract-gate schema
+assertion that fails with **exit 1 and a 0-byte log**, priced at 4 sites and routed to
+`CI-PARITY-GATE-ROT.17`. ✅ **`.5c` DONE** (`PGEN-DONE-BAR-0014`): the silent-success sentinel gate ships
 with a STATIC arm (codegen placeholders absent from all 11 artifacts) and a DYNAMIC arm (no sentinel
 REACHED on any family's own stimuli surface), calibrated against three pinned ground-truth facts so a
 clean sweep cannot be confused with a blind detector. ⛔ Its charter's own inventory would have
@@ -1139,6 +1290,21 @@ closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
 
 ## Commit Log
 
+- `PGEN-DONE-BAR-0016` (2026-07-30, session #226, leaf `.5e` done) — `.5c`'s silent-success sentinel
+  gate now **BINDS a family's tier** instead of merely existing. Measured first: the gate's verdict
+  entered **0 of 4** family computations (`grep -c silent_success` → 0/0/0/0) and its only consumers
+  were a make target and one aggregate prerequisite edge ⇒ a reachable placeholder would fail the
+  aggregate while the family's row stayed green on every criterion. New shared-helper criterion
+  `no_reachable_silent_success` (totals regex 10→11, sv 9→10, svpp 14→15, vhdl 12→13); each status
+  gate **produces its own sweep** (the `.7` stale-evidence lesson) cached per PROCESS not per
+  directory; codegen violations attributed by **exact filename** so one family is never demoted for
+  another's; REFUSES when the sweep cannot be judged, while the gate's own exit 1 stays a VERDICT.
+  Also **pinned the three DONE-BAR criteria** in the contract gates — they were computed by the
+  producer and required by nothing. Probes **52/52**, contract gates 0/0/0, reachability + audit
+  unchanged, **+26 s** per status gate (correcting `.5c`'s ~40 s), **no tracker row moved**.
+  ⛔ Routed out: the contract gates' schema assertion fails with **exit 1 and a 0-byte log**
+  (4 sites) → `CI-PARITY-GATE-ROT.17`. ⚠️ Two of my own numbers corrected forward: the arm count
+  (13 → **23** new, 52 total) and the sweep cost.
 - `PGEN-DONE-BAR-0013` (2026-07-29, session #224, leaf `.5b` done) — `ledger_open_entries_zero` is
   now a criterion in all four family-status computations (regex 10, sv 9, svpp 14, vhdl 12
   criteria), derived from the ledger's OWN State Meanings vocabulary via the shared helper
