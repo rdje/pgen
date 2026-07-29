@@ -293,7 +293,7 @@ actionable count is plausibly 10–25, not 140. ⛔ **Do not open 140 leaves.**
 |---|---|---|
 | 1 | `rust/src/ast_pipeline/return_annotation_handler.rs:370` | `/* TODO: Implement spread for: … */` |
 | 2 | `rust/src/ast_pipeline/unified_return_ast.rs:1872` | `ParseContent::Terminal("<property_access>")` |
-| 3 | `rust/src/ast_pipeline/unified_return_ast.rs:1883` | `ParseContent::Terminal("<array_access>")` |
+| 3 | `rust/src/ast_pipeline/unified_return_ast.rs:1883` | `ParseContent::Terminal("<array_access>"` — ⛔ **UNCLOSED, see the routed finding below** |
 | 4 | `rust/src/ast_pipeline/unified_return_ast.rs:1903` | `ParseContent::Terminal("<last_extraction>")` (`ExtractionTarget::Last`) |
 | 5 | `rust/src/ast_pipeline/unified_semantic_ast.rs:301` | transform expressions parsed as RAW STRINGS via `trimmed.contains("::parse::<")` — function calls / type parameters unmodelled |
 
@@ -314,6 +314,20 @@ actionable count is plausibly 10–25, not 140. ⛔ **Do not open 140 leaves.**
 - **The likely fix tier is declarative, not engine**: refuse at grammar-load with an actionable
   message naming the unsupported construct (the `QUANT-PLUS-ITER.2` step-C precedent), rather
   than implementing four half-features. ⚠️ Decide that in the leaf, after pricing.
+- ⛔⛔ **ROUTED IN 2026-07-29 (session #225) from `DONE-BAR.5c` — SITE 3 IS WORSE THAN THIS TABLE
+  RECORDED: IT EMITS SYNTACTICALLY INVALID RUST.** Measured while building the silent-success sentinel
+  gate: `:1883`'s format string ends `...ParseContent::Terminal(\"<array_access>\"` — **the closing
+  paren is missing**, while its two siblings `:1872` (`<property_access>`) and `:1903`
+  (`<last_extraction>`) are balanced. ⇒ that path does not merely hand back a placeholder that
+  *compiles*; it returns `Ok(...)` carrying **un-compilable source**, still with **zero diagnostics**.
+  ⭐ **ROUTING EVIDENCE (does it reproduce outside the family it is sent to?):** the defect is in the
+  EMITTER, not in any grammar — it is reachable from any grammar whose return annotation takes an
+  array access on this legacy `generate_code` lane, and **0 shipped artifacts carry it today**
+  (`grep -rlF '<array_access>' generated/` → 0), so it is LATENT exactly like the rest of this table.
+  It is therefore the same defect class, same owner, and needs no new leaf — but the severity note
+  belongs here so whoever fixes `.3` does not "fix" a placeholder and leave a syntax error behind.
+  ⚠️ **`.3`'s bound is unchanged and still correct** (no shipped parser is affected); what changed is
+  what the fix must produce.
 - **Companion, already dispositioned as `BOUNDARY`**: `docs/return_annotation_parser_book/src/operators.md:116`
   (*"Known limitations of spread forms"*) is the honest USER-FACING half of the same gap. The book
   is not wrong; the codegen is silent.

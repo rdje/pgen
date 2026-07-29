@@ -1039,8 +1039,20 @@ clippy_on_rust_change:
 	cd $(RUST_DIR) && ./scripts/clippy_on_rust_change.sh
 	@echo "✅ clippy_on_rust_change completed."
 
+.PHONY: silent_success_sentinel_gate
+silent_success_sentinel_gate:
+	@echo "🕵️  Running silent-success sentinel gate..."
+	cd $(RUST_DIR) && ./scripts/silent_success_sentinel_gate.sh
+	@echo "✅ silent-success sentinel gate passed."
+
+# ⭐ DONE-BAR.5c — `silent_success_sentinel_gate` hangs off `sota_exit_gate` as a
+# PREREQUISITE, not as a line inside the aggregate's shell script, so the edge is
+# VISIBLE to any static reader (the CI-PARITY-GATE-ROT.2 lesson: a `for … $(MAKE)`
+# loop makes the edges invisible to `check_gate_reachability.sh`). It is measured at
+# ~40 s against a 5 h aggregate, so it costs nothing meaningful and runs FIRST —
+# a silent-success path invalidates every "did it parse?" verdict downstream.
 .PHONY: sota_exit_gate
-sota_exit_gate:
+sota_exit_gate: silent_success_sentinel_gate
 	@echo "🏁 Running SOTA exit aggregate gate..."
 	cd $(RUST_DIR) && ./scripts/sota_exit_gate.sh
 	@echo "✅ SOTA exit aggregate gate passed."

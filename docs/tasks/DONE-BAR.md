@@ -825,15 +825,122 @@ told apart from invalid input**, and all three would have shipped as defects.
   *A disclosure nobody checks is a claim, not a disclosure.*
 - **Four gates that did not exist** (measured: no gate referenced the ledger or the user guide),
   now SPLIT into sub-leaves:
-  1. `.5c` — **no reachable silent-success path** for the family — 6 sentinel emission sites measured
-     (`<property_access>` / `<array_access>` / `<last_extraction>`), where a parse returns `Ok` with
-     zero diagnostics and a placeholder node ⇒ green gates, garbage handed to the consumer (`todo`);
+  1. `.5c` — **no reachable silent-success path** for the family — ✅ **DONE** (see below).
+     ⛔ **The inventory recorded here was wrong in TWO ways and the leaf corrects both**: it is
+     **5** codegen sites, not 6; and those three literals
+     (`<property_access>`/`<array_access>`/`<last_extraction>`) occur **0 times in every shipped
+     artifact**, so a gate built to this bullet would have been **VACUOUSLY GREEN**. The shipped
+     surface is the RUNTIME half — **3,702 arms in 10 of 11 artifacts**, with a ledgered
+     consumer-visible corruption history;
   2. `.5a` — **published version currency** — ✅ **DONE** (see below);
   3. `.5b` — **zero open ledger entries** naming the family — ✅ **DONE** (see below);
   4. `.5d` — **documented acceptance boundary** where a consumer looks (`todo`; overlaps `.6`'s
      per-contract bar-state disclosure — adjudicate the split when `.5d` opens).
 - ⭐ Once these exist they are ordinary leg-2 gates. That is the point: **the bar stays three legs and
   stays fully mechanizable**, which is what *"the flow shall guarantee this 100%"* demands.
+
+#### `.5c` — the silent-success sentinel gate (`done`, 2026-07-29 session #225, `PGEN-DONE-BAR-0014`)
+
+- ⛔⛔ **THE CHARTER'S OWN INVENTORY WOULD HAVE SHIPPED A VACUOUSLY GREEN GATE — MEASURED FIRST,
+  WHICH IS THE ONLY REASON IT WAS CAUGHT.** `.5` chartered this leaf against the CODEGEN half of the
+  sentinel family (`<property_access>` / `<array_access>` / `<last_extraction>`). Those literals occur
+  **0 times across all 11 shipped `generated/*.rs` artifacts** (`grep -coF`, re-measured 2026-07-29).
+  ⇒ a gate asserting only their absence **passes today over an untouched tree and can never fail** —
+  the exact trap `GENERATED-LINT-CORRECTNESS.3` named (*"a generated-code gate that lints nothing and
+  exits 0"*). The charter's PURPOSE (*"no reachable silent-success path for the family"*) governs; its
+  inventory does not.
+- ⭐⭐ **THE SHIPPED SENTINEL SURFACE IS A DIFFERENT, LARGER FAMILY — the RUNTIME half:**
+  **3,702 fallback arms across 10 of the 11 shipped artifacts** (`<invalid_sequence_access>` **3,016**
+  in 10, `<invalid_extraction_base>` **343** in 5, `<not_quantified>` **343** in 5; only
+  `scratch_parser.rs` is clean). This class is **not hypothetical**: it has a proven consumer-visible
+  corruption history — 9 reachable-corrupt SV sites fixed by `SV-AST-SHAPE-FIDELITY`, ledgered
+  `SV-0014`..`SV-0020`, `SVPP-0001`, `RTL-FE-0002`, `VHDL-0001`, `RTL-CE-0001`.
+- ⭐ **SITE COUNT CORRECTED: 5, not 6.** `.5`'s bullet and `MEMORY.md` both said *"6 sentinel emission
+  sites"*; `DOCTRINE-GAP-OWNERSHIP.3`'s table lists **5**, and re-measurement confirms 5
+  (`unified_return_ast.rs:1872/1883/1903`, `return_annotation_handler.rs:370`,
+  `unified_semantic_ast.rs:301`). Corrected forward, not back-dated.
+- ⛔ **A NEW DEFECT FOUND WHILE READING THE SITES, ROUTED NOT FIXED** — see `DOCTRINE-GAP-OWNERSHIP.3`:
+  `unified_return_ast.rs:1883` emits `ParseContent::Terminal("<array_access>"` — **an unclosed call**,
+  while its two siblings at `:1872`/`:1903` are balanced. That path returns `Ok(...)` carrying
+  **syntactically invalid Rust**, which is strictly worse than the silent placeholder `.3` catalogued
+  (a placeholder at least compiles). ⛔ Deliberately NOT fixed here: it is a `rust/src/*` change owned
+  by another tree's leaf, and the code-change doctrine requires the owning leaf first.
+- **SHIPPED — `rust/scripts/silent_success_sentinel_gate.sh`** + helper
+  `rust/scripts/lib/silent_success_sentinel_sweep.py` + contract
+  `rust/test_data/grammar_quality/silent_success_sentinel_contract_v0.json`, **two arms**:
+  - **STATIC** — the codegen placeholders must stay ABSENT from every shipped artifact (locks a
+    currently-true fact so it cannot drift in);
+  - **DYNAMIC** — each family's own stimuli proof surface is generated under
+    `--validate-parseability`, parsed and AST-dumped; **any sentinel actually REACHED fails**, naming
+    the family, the sample index and the input.
+- ⭐⭐ **CALIBRATION IS PART OF THE CHECK, because a detector with no POSITIVE control cannot tell a
+  clean sweep from a blind one — a zero reads as a pass either way.** Three pinned ground-truth facts
+  must reproduce or the gate prints `MISCALIBRATED` and exits 2 **without offering a sweep verdict**:
+  `CAL-1` the fixed `SVPP-0001` ledger repro reads **0**; ⭐ `CAL-2` **the arm that matters** — the
+  `SV-AST-SHAPE-FIDELITY.2.4` LATENT site reads **1** under `--entry-rule constraint_primary_sv_2017`
+  isolation; `CAL-3` that same site reads **0** from the canonical entry (pinning the LATENT
+  classification itself — a nonzero there means a latent site became reachable).
+- ⚠️ **HONEST BOUND, printed in the gate's own output rather than implied away:** the dynamic arm
+  proves *"NOT REACHED by 25 validated samples at the pinned seed"*, which is **NOT a proof of
+  unreachability**. Reachability is entry-relative — that is precisely what `CAL-2` demonstrates.
+- ⚠️ **THE INSTRUMENT'S OWN FIRST CUT WAS WRONG TWICE, both caught by requiring it to reproduce known
+  facts** (recorded, not hidden): (1) the artifact roster globbed `*_parser.rs` and therefore **silently
+  skipped `generated/ebnf.rs`** — a shipped parser without that suffix — under-reporting
+  `<invalid_sequence_access>` as **2,893 vs the ground-truth 3,016** (exactly its 123 arms); the roster
+  is now DERIVED from every `generated/*.rs`. (2) A faithfulness oracle read the generator's
+  `sample_successes` as a PARSE count and raised a **false** `EXTRACTOR_SUSPECT` on
+  `semantic_annotation`; measurement showed that field counts **GENERATION attempts** (27/27 generated
+  vs `--validate-parseability`'s *"accepted 25/25 … 2 rejected over 27 attempts"*). ⇒ generation now
+  runs under `--validate-parseability`, which makes *"every emitted sample must parse here"* SOUND.
+- ⚠️ **A THIRD near-miss worth recording: `rtl_const_expr` generated ZERO samples** at the default
+  window on seeds 0/7/42 via BOTH the `.ebnf` and raw-AST-JSON paths. That is **not a new defect** —
+  `PARSE-HARNESS.5.5` already characterised its ~16-level precedence cascade (fails ≤28, hangs ≥40)
+  and recorded the tuned window **`--max-depth 32`**, which reproduces 25/25 at 95.8% rule coverage.
+  The window is now contract-declared and load-bearing: without it that family **REFUSES** rather than
+  reporting a green zero.
+- **MEASURED RESULT TODAY:** all **9** families sweep clean — 25 samples each, all validated-accepted,
+  all parsed, **0 sentinels reached**; static arm **0** codegen-placeholder violations over **11**
+  artifacts. Gate ~**40 s**, peak **870 MB**.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — measured before any code: the three charter sentinels occur **0** times
+  in `generated/` (so the chartered gate is vacuous), while the runtime half ships **3,702** arms; and
+  **no gate anywhere read a parse dump for a sentinel** (`grep -rln` over `rust/scripts/`, `scripts/`,
+  `.github/workflows/`, both Makefiles → the sole hit is a comment in
+  `sv_failure_context_contract_gate.sh:265`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. WHY: a silent success returns `Ok` with
+  zero diagnostics, so **every "did it parse?" gate is green by construction** and no acceptance test
+  can see it; WHERE: the class is emitted at `ast_return_transform.rs:193/438` (the positional-model
+  fallthrough — sentinel requires a positional `$N`, N≥2, over a too-short `Sequence`) and reaches
+  consumers through `generated/*.rs`. Tool-backed: `parseability_probe --parse-dump-ast-pretty`
+  reproduces the LATENT site at **1** sentinel under `--entry-rule` isolation and **0** canonically —
+  the discrimination that proves the detector works. `bash -n` clean on both new shell surfaces;
+  `python3 -c ast.parse` clean on the helper.
+- [x] **FIX** — declarative-tier: one gate script + one Python sweep helper + one tracked contract +
+  one Makefile target/edge. **No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`.**
+- [x] **ADDRESSED (verified)** — before: no instrument could distinguish a clean parse from one
+  handing back a placeholder. After, by re-runnable oracle
+  `bash docs/tasks/artifacts/done_bar/run_silent_success_sentinel_probes.sh` → **8/8**:
+  **CTRL-1** proves the positive control reads 1 (a 0 there means the detector is BLIND and every
+  clean sweep is worthless); **CTRL-2** proves the artifact roster is DERIVED (11 scanned == 11 on
+  disk — the arm that would have caught the `ebnf.rs` miss); **RED-1** a codegen placeholder in an
+  artifact ⇒ FAIL(1); **RED-2** a REACHED sentinel ⇒ FAIL(1) naming family + sample; **RED-3**
+  calibration drift ⇒ `MISCALIBRATED`(2) with no verdict; **RED-4** absent artifacts ⇒ REFUSE(2), never
+  a green over an empty room; **RED-5** a family yielding no samples ⇒ REFUSE(2), never a green zero.
+  ⚠️ **Two arms failed on their first run and BOTH were the PROBE's fault, not the gate's** — RED-2 left
+  calibration facts in (calibration fires first, by design) and RED-4 assumed `cd` moves the gate's
+  root (it derives it from `BASH_SOURCE`, correctly, per the repo-root relative-path policy); a
+  `make_fake_root` helper fixes the latter properly.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒ **all 11
+  generated parsers byte-identical BY CONSTRUCTION**; `bash scripts/check_doctrines.sh` → **ALL 14
+  PASS**; `bash scripts/check_gate_reachability.sh --report` → **OK (124 targets; 93 reachable,
+  30 orphan + 1 policy-only, all dispositioned; 8 ground-truth controls reproduced)** — the new gate is
+  reachable, not an orphan; `bash scripts/audit_done_bar.sh` unchanged. No release / schema / ledger /
+  contract movement.
+- [x] **LOCKSTEP** — this tree, `docs/tasks/DOCTRINE-GAP-OWNERSHIP.md` (the routed `<array_access>`
+  defect), book `quality-and-closure-model.md`, `README.md` standard commands, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
 #### `.5b` — zero open ledger entries, as a status-gate criterion (`done`, 2026-07-29 session #224, `PGEN-DONE-BAR-0013`)
 
@@ -941,9 +1048,17 @@ told apart from invalid input**, and all three would have shipped as defects.
 
 ## Current Frontier
 
-**`.5c`** — the silent-success sentinel gate (6 measured sentinel emission sites where a parse
-returns `Ok` with zero diagnostics and a placeholder node — `DOCTRINE-GAP-OWNERSHIP.3` owns the
-site inventory). ✅ `.5a` DONE (`PGEN-DONE-BAR-0012`): the guide's published identity/status drift
+**`.5d`** — the documented acceptance boundary where a consumer looks (adjudicate its overlap with
+`.6` when opened). ✅ **`.5c` DONE** (`PGEN-DONE-BAR-0014`): the silent-success sentinel gate ships
+with a STATIC arm (codegen placeholders absent from all 11 artifacts) and a DYNAMIC arm (no sentinel
+REACHED on any family's own stimuli surface), calibrated against three pinned ground-truth facts so a
+clean sweep cannot be confused with a blind detector. ⛔ Its charter's own inventory would have
+produced a **vacuously green** gate — the three chartered literals occur 0 times in every shipped
+artifact, while the RUNTIME half ships **3,702** arms; both corrections are recorded in the leaf, and
+a newly-found unbalanced-emission defect is routed to `DOCTRINE-GAP-OWNERSHIP.3`. 🔜 Next in this
+tree: wire a `no_reachable_silent_success` criterion into the four family-status computations (the
+`.5b` shape), so the gate does not merely exist but BINDS a family's tier.
+✅ `.5a` DONE (`PGEN-DONE-BAR-0012`): the guide's published identity/status drift
 FIXED and GATED by the 14th doctrine `PUBLISHED-VERSION-CURRENCY`. ✅ `.5b` DONE
 (`PGEN-DONE-BAR-0013`): `ledger_open_entries_zero` is now a criterion in all four family-status
 computations (an open downstream defect demotes the family's tier; deliberately NOT a pre-commit

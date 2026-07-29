@@ -1,5 +1,45 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0014 — leaf DONE-BAR.5c: the gate for the defect every "did it parse?" check is blind to
+
+New gate + helper + contract + Makefile edge — no `grammars/*.ebnf`, no `rust/src/*`, no
+`generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION. No tracker row moves.
+
+- New gate `rust/scripts/silent_success_sentinel_gate.sh` (+ sweep helper
+  `rust/scripts/lib/silent_success_sentinel_sweep.py`, contract
+  `rust/test_data/grammar_quality/silent_success_sentinel_contract_v0.json`). A *silent success* is a
+  parse returning `Ok` with ZERO diagnostics while handing back a PLACEHOLDER node — invisible to
+  acceptance testing BY CONSTRUCTION, because the parse succeeded.
+- Two arms: STATIC (codegen placeholders `<property_access>`/`<array_access>`/`<last_extraction>`
+  absent from all 11 shipped artifacts) and DYNAMIC (each family's own `--validate-parseability`
+  stimuli surface generated, parsed, AST-dumped; any sentinel REACHED fails, naming family + sample).
+- ⛔ THE CHARTER'S INVENTORY WOULD HAVE SHIPPED A VACUOUSLY GREEN GATE: those three literals occur
+  **0 times** across all 11 artifacts, so a gate asserting only their absence passes over an untouched
+  tree and can never fail. The SHIPPED surface is the RUNTIME half — **3,702 arms in 10 of 11
+  artifacts** (`<invalid_sequence_access>` 3,016 / `<invalid_extraction_base>` 343 /
+  `<not_quantified>` 343), a class with a ledgered consumer-visible corruption history
+  (`SV-0014`..`SV-0020`, `SVPP-0001`, `RTL-FE-0002`, `VHDL-0001`, `RTL-CE-0001`).
+- ⭐ CALIBRATION IS PART OF THE CHECK — a detector with no POSITIVE control cannot tell a clean sweep
+  from a blind one. Three pinned facts must reproduce or the gate prints `MISCALIBRATED` and exits 2
+  with NO verdict: `CAL-1` fixed `SVPP-0001` repro = 0, `CAL-2` a known-LATENT site = **1** under
+  `--entry-rule constraint_primary_sv_2017`, `CAL-3` that same site = 0 canonically.
+- REFUSES (exit 2) on absent `generated/`, a family yielding no samples, an extractor shortfall, or
+  calibration drift. A skip is never a pass.
+- Site count corrected **6 → 5**; `rtl_const_expr`'s tuned generation window (`--max-depth 32`,
+  per `PARSE-HARNESS.5.5`) is contract-declared and load-bearing — without it that family REFUSES
+  rather than reporting a green zero.
+- ⛔ ROUTED to `DOCTRINE-GAP-OWNERSHIP.3`: `unified_return_ast.rs:1883` emits
+  `ParseContent::Terminal("<array_access>"` — **unclosed**, while its two siblings are balanced ⇒ that
+  path returns `Ok(...)` carrying syntactically INVALID Rust. Not fixed here (other tree owns it).
+- Wired as a `sota_exit_gate` PREREQUISITE (visible edge, ~40 s against a 5 h aggregate).
+- Verified: probes **8/8**; gate green (11 artifacts, 9 families × 25 samples, 0 sentinels reached);
+  `check_doctrines.sh` ALL 14 PASS; `check_gate_reachability.sh` OK (124 targets, 93 reachable,
+  8 controls reproduced).
+- ⚠️ Two defects in the instrument's own first cut, both caught by requiring it to reproduce known
+  facts: a `*_parser.rs` glob silently skipped `generated/ebnf.rs` (2,893 vs ground-truth 3,016 — the
+  roster is now DERIVED from every `generated/*.rs`), and a faithfulness oracle misread
+  `sample_successes` (a GENERATION count) as a parse count, raising a false alarm.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0013 — leaf DONE-BAR.5b: an open downstream defect now demotes a family's tier
 
 Status gates + shared helper — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11

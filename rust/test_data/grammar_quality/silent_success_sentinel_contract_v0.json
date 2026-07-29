@@ -1,0 +1,99 @@
+{
+  "contract": "silent_success_sentinel_contract",
+  "version": "0.1.0",
+  "owner": "DONE-BAR.5c",
+  "what_this_is": "The SILENT-SUCCESS SENTINEL contract. A silent success is a parse that returns Ok with ZERO diagnostics while handing the consumer a PLACEHOLDER node instead of the shape the grammar's return annotation promised. Every 'did it parse?' gate is green on such a parse, which is precisely why a separate instrument is needed: the defect is invisible to acceptance testing by construction.",
+
+  "why_the_charter_inventory_was_not_enough": [
+    "DONE-BAR.5c was chartered against the CODEGEN half of the sentinel family (<property_access> / <array_access> / <last_extraction>). MEASURED 2026-07-29: those literals occur 0 times across all 11 shipped generated parsers.",
+    "A gate asserting only their absence therefore passes today over an untouched tree and can NEVER fail -- the vacuity trap GENERATED-LINT-CORRECTNESS.3 named ('a generated-code gate that lints nothing and exits 0').",
+    "The SHIPPED sentinel surface is the RUNTIME half: 3702 fallback arms across 10 of the 11 shipped .rs artifacts (<invalid_sequence_access> 3016 in 10, <invalid_extraction_base> 343 in 5, <not_quantified> 343 in 5; only scratch_parser.rs is clean), a class with a PROVEN consumer-visible corruption history (ledger SV-0014..SV-0020, SVPP-0001, RTL-FE-0002, VHDL-0001, RTL-CE-0001; 9 reachable-corrupt SV sites fixed by SV-AST-SHAPE-FIDELITY).",
+    "⚠️ THE ARTIFACT ROSTER IS DERIVED FROM every generated/*.rs, NOT from a `*_parser.rs` suffix: generated/ebnf.rs is a shipped parser WITHOUT that suffix, and the suffix glob silently skipped its 123 <invalid_sequence_access> arms on this gate's own first run (reported 2893, ground truth 3016).",
+    "So the gate carries BOTH arms: a STATIC arm locking the codegen sentinels at absent, and a DYNAMIC arm that parses each family's own stimuli proof surface and fails on any sentinel actually reached."
+  ],
+
+  "honest_limit": "The dynamic arm proves 'NOT REACHED by <sample_count> validated stimuli samples at the pinned seed', which is NOT a proof of unreachability. Reachability is entry-relative: SV-AST-SHAPE-FIDELITY.2.4 classified 7 sites as LATENT -- they DO emit a sentinel under --entry-rule isolation while being PEG-shadowed from the canonical entry. The gate states this bound in its own output rather than implying a stronger claim.",
+
+  "sentinel_roster": {
+    "codegen_placeholder": {
+      "expectation": "absent_from_shipped_artifacts",
+      "detail": "Emitted by codegen paths that cannot honour the construct they were handed and return Ok(...) anyway. DOCTRINE-GAP-OWNERSHIP.3 owns the site inventory (5 sites; the '6' recorded in DONE-BAR.5's bullet and MEMORY.md is a miscount, corrected 2026-07-29).",
+      "literals": ["<property_access>", "<array_access>", "<last_extraction>"]
+    },
+    "runtime_fallback": {
+      "expectation": "present_in_artifacts_but_not_reached",
+      "detail": "Emitted INTO the generated parser as the fallthrough arm of a positional-model match. Reaching one means the consumer received a placeholder inside a successful parse.",
+      "literals": [
+        "<invalid_sequence_access>",
+        "<invalid_extraction_base>",
+        "<not_quantified>",
+        "<invalid_array_access>",
+        "<invalid_positional_ref>",
+        "<no_last_element>",
+        "<invalid_capture_ref>"
+      ]
+    }
+  },
+
+  "sweep": {
+    "sample_count": 25,
+    "seed": 0,
+    "generation_mode": "--generate-stimuli-module --validate-parseability",
+    "why_module_carrier": "The --generate-stimuli TEXT form joins samples with newlines and samples THEMSELVES contain newlines (measured: vhdl 3 samples over 158 lines), so it cannot be split correctly. The stimuli MODULE escapes them inside Rust string literals and is the only unambiguous carrier.",
+    "why_validate_parseability": "It retries until every EMITTED sample is parser-ACCEPTED, which makes the faithfulness oracle 'every extracted sample must parse here' SOUND. Without it the module legitimately contains parser-rejected samples (measured: semantic_annotation, 2 rejected over 27 attempts) and a shortfall could not distinguish a duality break from an extractor bug."
+  },
+
+  "families": [
+    { "grammar": "json",                       "ebnf": "grammars/json.ebnf" },
+    { "grammar": "regex",                      "ebnf": "grammars/regex.ebnf" },
+    { "grammar": "rtl_const_expr",             "ebnf": "grammars/rtl_const_expr.ebnf", "max_depth": 32,
+      "max_depth_reason": "Its ~16-level precedence cascade FAILS at the default depth 24 ('depth exceeded while expanding primary_expr', reproduced at seeds 0/7/42 on both the .ebnf and raw-AST-JSON paths) and HANGS at >=40. 32 is the tuned window recorded by PARSE-HARNESS.5.5. A family whose window is wrong yields ZERO samples, so this value is load-bearing: without it the gate would REFUSE for this family rather than report a green zero." },
+    { "grammar": "rtl_frontend",               "ebnf": "grammars/rtl_frontend.ebnf" },
+    { "grammar": "systemverilog_preprocessor", "ebnf": "grammars/systemverilog_preprocessor.ebnf" },
+    { "grammar": "vhdl",                       "ebnf": "grammars/vhdl.ebnf" },
+    { "grammar": "return_annotation",          "ebnf": "grammars/return_annotation.ebnf" },
+    { "grammar": "semantic_annotation",        "ebnf": "grammars/semantic_annotation.ebnf" },
+    { "grammar": "systemverilog",              "ebnf": "grammars/systemverilog.ebnf", "profile": "sv_2017" }
+  ],
+
+  "calibration": {
+    "what_this_is": "GROUND TRUTH the instrument must reproduce before any verdict is offered. A detector with no positive control cannot tell a clean sweep from a blind one -- a zero would read as a pass either way. On mismatch the gate prints MISCALIBRATED and exits nonzero WITHOUT reporting a sweep result (the check_gate_reachability.sh precedent).",
+    "facts": [
+      {
+        "id": "CAL-1-fixed-is-clean",
+        "grammar": "systemverilog_preprocessor",
+        "input": "`ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n",
+        "expected_sentinels": 0,
+        "why": "The SVPP-0001 ledger repro. Released FIXED at 1.0.2, so a NONZERO count here means the fix regressed or the detector is misreading."
+      },
+      {
+        "id": "CAL-2-latent-is-visible",
+        "grammar": "systemverilog",
+        "profile": "sv_2017",
+        "entry_rule": "constraint_primary_sv_2017",
+        "input": "this.x",
+        "expected_sentinels": 1,
+        "why": "THE ARM THAT MATTERS. SV-AST-SHAPE-FIDELITY.2.4 classified this site LATENT: it DOES emit one sentinel under --entry-rule isolation. If this arm reads 0 the detector is BLIND and every clean sweep is worthless."
+      },
+      {
+        "id": "CAL-3-latent-is-shadowed",
+        "grammar": "systemverilog",
+        "profile": "sv_2017",
+        "input": "class C; rand int x; constraint cc { this.x < 5; } endclass\n",
+        "expected_sentinels": 0,
+        "why": "The same site from the CANONICAL entry, where the general SV expression grammar PEG-shadows it. Pins the LATENT classification itself: were this to become nonzero, a latent site had become reachable and the family's tier must fall."
+      }
+    ]
+  },
+
+  "refusals": {
+    "what_this_is": "Conditions under which the gate exits 2 (REFUSE) rather than 0. A skip is never a pass.",
+    "conditions": [
+      "generated/ artifacts absent -- generated/ is UNTRACKED, so a clean checkout would sweep nothing and a naive gate would exit 0 over an empty room",
+      "a required binary (ast_pipeline / parseability_probe) missing",
+      "a family in the roster generating ZERO samples (a wrong or absent generation window)",
+      "extracted sample count disagreeing with the module's own declared count",
+      "any calibration fact failing to reproduce (MISCALIBRATED)"
+    ]
+  }
+}

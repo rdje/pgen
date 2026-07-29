@@ -287,6 +287,41 @@ the reverse.** Editing the tracker first would have manufactured disagreements w
 that could not even express the honest status (measured: an honest demotion turned 3 of 3
 family-status gates red, two of which passed at the time).
 
+### Silent success: the defect every "did it parse?" gate is blind to
+
+A parse can return `Ok` with **zero diagnostics** and still hand the consumer a **placeholder**
+instead of the shape the return annotation promised — a `"<invalid_sequence_access>"` string where
+an object should be. Acceptance testing cannot see this **by construction**: the parse *succeeded*,
+so every gate that asks "did it parse?" is green. This is not hypothetical — nine such
+consumer-visible corruptions were found and fixed in SystemVerilog alone, and they are ledgered
+(`SV-0014`..`SV-0020`, `SVPP-0001`, `RTL-FE-0002`, `VHDL-0001`, `RTL-CE-0001`).
+
+`make -C rust SHELL=/bin/bash silent_success_sentinel_gate` is the instrument for it, with two arms:
+
+- **STATIC** — the *codegen* placeholders (`<property_access>`, `<array_access>`,
+  `<last_extraction>`), emitted where codegen cannot honour a construct and returns success anyway,
+  must be **absent** from every shipped artifact. They are absent today; the arm locks that.
+- **DYNAMIC** — each family's own stimuli surface is generated under `--validate-parseability`,
+  parsed and AST-dumped. **Any sentinel actually reached fails**, naming the family, the sample and
+  the input.
+
+⛔ **The static arm alone would be vacuous, and that is the instructive part.** The three codegen
+literals occur **0 times** across all 11 shipped artifacts, so a gate asserting only their absence
+passes over an untouched tree and can *never* fail. The sentinels that actually ship are the
+**runtime** fallbacks — **3,702 arms across 10 of the 11 artifacts**. A gate must be built against
+the surface that exists, not the surface a charter named.
+
+⭐ **Calibration is part of the check.** A detector with no *positive* control cannot distinguish a
+clean sweep from a blind one — a zero reads as a pass either way. Three pinned facts must reproduce
+before any verdict is offered: a fixed ledger repro reads 0, a known-latent site reads **1** under
+`--entry-rule` isolation, and that same site reads 0 from the canonical entry. If they do not, the
+gate prints `MISCALIBRATED` and refuses.
+
+⚠️ **What it does and does not prove.** The dynamic arm proves *"not reached by 25 validated samples
+at the pinned seed"* — **not** unreachability. Reachability is entry-relative, which is exactly what
+the calibration arm demonstrates: the same rule is clean canonically and corrupt in isolation. The
+gate prints this bound in its own output rather than letting a green imply more than it earned.
+
 ## A Check That Cannot Be Run Reports Nothing
 
 A recurring failure mode in this project is worth naming explicitly, because it produces

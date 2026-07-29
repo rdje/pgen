@@ -191,6 +191,25 @@ PGEN is a production-focused parser and stimuli generator platform.
   - it AUDITS; it never demotes a tracker row (that is `DONE-BAR.2`). Exit 1 means at least one
     `Done` row does not meet the bar; exit 3 means a ground-truth control did not reproduce and no
     verdict is being offered
+- Silent-success sentinel gate (can a parse hand back a placeholder inside a SUCCESSFUL parse?):
+  - `make -C rust SHELL=/bin/bash silent_success_sentinel_gate`
+  - a silent success returns `Ok` with **zero diagnostics** and a placeholder node, so **every
+    "did it parse?" gate is green on it by construction** — this is the instrument that can see it
+  - two arms: **STATIC** (the codegen placeholders `<property_access>`/`<array_access>`/
+    `<last_extraction>` stay ABSENT from all 11 shipped artifacts) and **DYNAMIC** (no sentinel is
+    REACHED on any family's own `--validate-parseability` stimuli surface)
+  - ⛔ the static arm alone would be **vacuous** — those three literals occur 0 times today, while the
+    RUNTIME sentinel half ships **3,702** arms across 10 of 11 artifacts, a class with a ledgered
+    consumer-visible corruption history (`SV-0014`..`SV-0020`, `SVPP-0001`, `RTL-FE-0002`,
+    `VHDL-0001`, `RTL-CE-0001`)
+  - ⭐ **calibration is part of the check**: three pinned ground-truth facts (a fixed ledger repro at
+    0, a known-LATENT site at 1 under `--entry-rule` isolation, that same site at 0 canonically) must
+    reproduce or the gate prints `MISCALIBRATED` and refuses — *a detector with no positive control
+    cannot tell a clean sweep from a blind one*
+  - ⛔ REFUSES (exit 2) rather than passing when `generated/` is absent, a family yields no samples,
+    or calibration drifts. **A skip is never a pass.**
+  - ⚠️ honest bound, printed in its own output: it proves *"not reached by 25 validated samples at the
+    pinned seed"*, **not** unreachability — reachability is entry-relative
 - All per-parser mdBooks in one lane (also run by `mdbook_docs_gate`):
   - `make -C rust SHELL=/bin/bash parser_books_gate`
 - Memory guard (MANDATORY for heavy/background jobs — HOST-RAM BUDGET DIRECTIVE,

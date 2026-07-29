@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0014 — build the gate against the surface that EXISTS, not the one the charter named
+
+`DONE-BAR.5c`. New gate + helper + contract + Makefile edge — no `grammars/*.ebnf`, no `rust/src/*`,
+no `generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- **The lesson worth keeping.** The leaf was chartered against three sentinel literals. Measuring them
+  first — before writing a line of gate — showed they occur **0 times** in every shipped artifact. A
+  gate built to that charter would have passed forever without ever being able to fail: the
+  `GENERATED-LINT-CORRECTNESS.3` vacuity trap, arrived at from a different direction (there the gate
+  linted an empty room; here it would lint for a literal nothing emits). ⇒ **a charter names a
+  purpose; only measurement names the surface.** The purpose ("no reachable silent-success path")
+  governed, and the surface turned out to be the RUNTIME sentinel half — 3,702 arms in 10 of 11
+  artifacts, with a ledgered corruption history.
+- **Calibration had to be part of the check, not a one-time sanity run.** The dynamic arm reports a
+  count; a count of 0 from a *blind* detector is indistinguishable from 0 from a *clean* tree. So the
+  gate refuses to offer a verdict until it reproduces three pinned facts — critically `CAL-2`, a
+  known-LATENT SV site that must read exactly **1** under `--entry-rule` isolation. This is the
+  `feedback_instrument_needs_ground_truth` discipline applied at construction time rather than after
+  a wrong answer.
+- **Two defects in my own instrument, both found the same way — by requiring it to reproduce a number
+  I already knew.** (1) The artifact roster globbed `*_parser.rs`, which silently skipped
+  `generated/ebnf.rs` (a shipped parser without that suffix) and under-reported
+  `<invalid_sequence_access>` as 2,893 against a ground truth of 3,016 — exactly its 123 arms. The
+  roster is now DERIVED from every `generated/*.rs`. **A suffix glob is a hand-list in disguise.**
+  (2) A faithfulness oracle read the generator's `sample_successes` as a PARSE count and raised a
+  false `EXTRACTOR_SUSPECT`; it counts GENERATION attempts (27/27 generated vs
+  `--validate-parseability`'s "accepted 25/25 … 2 rejected over 27 attempts"). Fix: generate under
+  `--validate-parseability`, which makes "every emitted sample must parse here" *sound*.
+- **A near-miss that measurement prevented from becoming a false finding.** `rtl_const_expr` generated
+  ZERO samples at the default window on seeds 0/7/42 via both input paths — which reads like a broken
+  family and a failed leg 1. It is neither: `PARSE-HARNESS.5.5` already characterised its ~16-level
+  precedence cascade (fails ≤28, hangs ≥40) and recorded the tuned window `--max-depth 32`, which
+  reproduces 25/25 at 95.8% rule coverage. Checking prior art before reporting is what kept a known,
+  documented limitation from being re-filed as a new defect — and the window is now contract-declared,
+  so a family with the wrong one REFUSES rather than reporting a green zero.
+- **Sample carriers are not interchangeable.** The `--generate-stimuli` TEXT form joins samples with
+  newlines while samples *themselves* contain newlines (measured: vhdl, 3 samples across 158 lines),
+  so it cannot be split correctly. The stimuli MODULE escapes them inside Rust string literals. That
+  in turn needs a real Rust-literal decoder: Python's `ast.literal_eval` rejects Rust's `\u{HEX}`
+  form (measured on 2 of 25 regex samples), and mis-decoded bytes would surface as an "unparseable
+  sample" rather than as an extractor bug — a blindness trap.
+- **Both probe failures on the first run were the PROBE's fault, not the gate's**, which is worth
+  recording because the instinct is to suspect the new code: RED-2 left calibration facts in (the gate
+  runs calibration first, by design), and RED-4 assumed `cd` moves the gate's root — it derives it
+  from `BASH_SOURCE`, correctly, per the repo-root relative-path policy, so the arm was measuring the
+  live tree. Fixed with a `make_fake_root` helper.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0013 — an open defect blocks the claim, not the commits
 
 `DONE-BAR.5b`. Status gates + shared helper — no `grammars/*.ebnf`, no `rust/src/*`, no
