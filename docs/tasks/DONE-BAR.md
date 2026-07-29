@@ -836,6 +836,8 @@ told apart from invalid input**, and all three would have shipped as defects.
   3. `.5b` — **zero open ledger entries** naming the family — ✅ **DONE** (see below);
   4. `.5d` — **documented acceptance boundary** where a consumer looks (`todo`; overlaps `.6`'s
      per-contract bar-state disclosure — adjudicate the split when `.5d` opens).
+  6. `.5f` — **evidence custody**: the probe driver's replay arms are anchored to a 198 GB untracked
+     scratch dir holding 1.4 MB of actual evidence (`todo`; see below).
   5. `.5e` — **`.5c`'s BINDING half**: the sentinel gate must bind a family's TIER, not merely exist
      — ✅ **DONE** (see below). A gate whose verdict enters no status computation is a gate that can
      go red while every tracker row stays green.
@@ -981,6 +983,32 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
   defect, new `.17`), book `quality-and-closure-model.md` (status-gate + sentinel sections),
   `README.md` standard commands, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
   `docs/TASK_TREE.md`.
+
+#### `.5f` — the probe driver's replay arms are anchored to a 198 GB untracked scratch dir (`todo`)
+
+- **Status: `todo`** — measured 2026-07-30 session #226 while pre-flighting
+  `CI-PARITY-GATE-ROT.7`'s acceptance run, and recorded rather than mentioned in passing.
+- **MEASURED:** `du -sh rust/target/sota_exit_gate/work` → **198 G**, holding **40** `summary.*` pairs
+  (91 files, **1.4 M** of actual evidence). The tracked driver
+  `docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh` reads **14** of those sub-dirs by
+  literal path for its replay arms.
+- ⛔ **THE PROBLEM IS TWO-SIDED, which is why it is a leaf and not a cleanup chore:**
+  1. **The evidence is not durable.** A `cargo clean`, an ordinary artifact sweep, or the next
+     aggregate run overwrites/removes it, and the replay arms then SKIP. This is exactly the custody
+     failure `OPS-MEMSAFE.3` already fixed once for the perf probes — *durable evidence does not live
+     under `rust/target/`* — and the lesson has not been applied to this driver.
+  2. **The 198 G cannot be reclaimed safely today.** Deleting it degrades a tracked oracle, so the
+     honest disposition is *keep* — meaning **198 G is pinned by 1.4 M of evidence**, a 140,000×
+     custody overhead.
+- **Scope when taken up:** teach the driver a snapshot fallback (prefer the live run dir, else a
+  small committed-or-cached snapshot of just the `summary.*` pairs), then the bulk becomes safely
+  disposable. A 1.4 M snapshot already exists at `rust/target/done_bar_5e/run3_snapshot/` (taken this
+  session as insurance before run 4 would have overwritten the originals) and is the shape to
+  generalize. ⚠️ Do NOT simply commit the snapshot without pricing it — 1.4 M of gate output in git is
+  a decision, not a detail.
+- ⭐ **Consequence for `CI-PARITY-GATE-ROT.7`:** whoever launches acceptance run 4 should snapshot the
+  summary pairs FIRST (one command, 1.4 M), because run 4 overwrites the run-3 artifacts the `.5e`
+  replays depend on.
 
 #### `.5c` — the silent-success sentinel gate (`done`, 2026-07-29 session #225, `PGEN-DONE-BAR-0014`)
 
@@ -1208,7 +1236,7 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
 ## Current Frontier
 
 **`.5d`** — the documented acceptance boundary where a consumer looks (adjudicate its overlap with
-`.6` when opened). ✅ **`.5e` DONE** (`PGEN-DONE-BAR-0016`): `.5c`'s sentinel gate now **BINDS a
+`.6` when opened), with **`.5f`** (evidence custody — 198 GB pinned by 1.4 MB) newly opened. ✅ **`.5e` DONE** (`PGEN-DONE-BAR-0016`): `.5c`'s sentinel gate now **BINDS a
 tier** — `no_reachable_silent_success` is a criterion in all four family computations (totals regex
 10→11, sv 9→10, svpp 14→15, vhdl 12→13), each status gate PRODUCES its own sweep rather than reading
 an ambient artifact (the `.7` stale-evidence lesson), the sweep is cached per PROCESS not per
