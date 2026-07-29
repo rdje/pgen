@@ -836,8 +836,9 @@ told apart from invalid input**, and all three would have shipped as defects.
   3. `.5b` — **zero open ledger entries** naming the family — ✅ **DONE** (see below);
   4. `.5d` — **documented acceptance boundary** where a consumer looks (`todo`; overlaps `.6`'s
      per-contract bar-state disclosure — adjudicate the split when `.5d` opens).
-  6. `.5f` — **evidence custody**: the probe driver's replay arms are anchored to a 198 GB untracked
-     scratch dir holding 1.4 MB of actual evidence (`todo`; see below).
+  6. `.5f` — **158 GB of unread backtrack-trace logs, plus a 1.4 MB evidence-custody gap**: the
+     aggregate's scratch tree is 198 GB, ~158 GB of it trace logs nothing reads, written because a
+     promotion gate leaves tracing ON by default (`todo`; see below).
   5. `.5e` — **`.5c`'s BINDING half**: the sentinel gate must bind a family's TIER, not merely exist
      — ✅ **DONE** (see below). A gate whose verdict enters no status computation is a gate that can
      go red while every tracker row stays green.
@@ -992,14 +993,61 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
   (91 files, **1.4 M** of actual evidence). The tracked driver
   `docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh` reads **14** of those sub-dirs by
   literal path for its replay arms.
-- ⛔ **THE PROBLEM IS TWO-SIDED, which is why it is a leaf and not a cleanup chore:**
-  1. **The evidence is not durable.** A `cargo clean`, an ordinary artifact sweep, or the next
-     aggregate run overwrites/removes it, and the replay arms then SKIP. This is exactly the custody
-     failure `OPS-MEMSAFE.3` already fixed once for the perf probes — *durable evidence does not live
-     under `rust/target/`* — and the lesson has not been applied to this driver.
-  2. **The 198 G cannot be reclaimed safely today.** Deleting it degrades a tracked oracle, so the
-     honest disposition is *keep* — meaning **198 G is pinned by 1.4 M of evidence**, a 140,000×
-     custody overhead.
+- ⛔⛔ **ROOT-CAUSED 2026-07-30 ON THE DIRECTOR'S QUESTION (*"Why so big?"* / *"what's in those log
+  files?"*) — AND IT CORRECTS THIS LEAF'S OWN FIRST FRAMING.** The size is **not** evidence. It is
+  **8 trace logs of ~20 G each ≈ 158 G** (`du` per sub-dir: `sv_parse_full_ratio_promotion_gate`
+  **154 G**, `sv_stimuli_quality_gate` **35 G**, `sv_declared_shadow_promotion_gate` **8.9 G**; every
+  other sub-dir ≤ 494 M), named
+  `work/trial_{0..3}/logs/profile_{2017,2023}_closed_loop_replay_parseability_shadow.log`.
+- **WHAT IS IN THEM — one line shape, ~50 million times per log** (20 G ÷ 398 B/line; a
+  prefix-normalised census over the first 200 M shows **577,974 of 582,168 lines** are this shape):
+  ```
+  [PGEN][LOW] 🧭 [/Volumes/SSD/…/trial_0/work/systemverilog_parser.rs:7] [<pgen::ast_pipeline::VerbosityLogger as pgen::ast_pipeline::Logger>::log_error]   📍 /Volumes/SSD/…/trial_0/work/systemverilog_parser.rs:7
+  ```
+  i.e. **398 bytes to record "the parser backtracked at generated-parser line 7"**.
+- **WHY (two compounding causes, both measured):**
+  1. **Tracing is ON BY DEFAULT for a production gate stage.**
+     `rust/scripts/sv_stimuli_quality_gate.sh:49` —
+     `REPLAY_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-low}"`. Per
+     `TOOLBOX.md` §2.1, `low` is the 🧭 **errors/backtracks** level — the highest-frequency event class
+     that exists in a PEG engine. The toolbox's own warning (*"full trace on a real input is hundreds
+     of MB — almost always scope it with `--trace-rules`"*) is aimed at interactive debugging; here it
+     is the unscoped default of an 8-replay promotion gate.
+  2. ⭐ **73% of every line is ONE repeated absolute path.** The 145-byte build path appears **twice**
+     per line (290 of 398 bytes) ⇒ roughly **115 G of the 158 G is the same path string written ~400
+     million times.** Note the generator's own trace line uses a RELATIVE path
+     (`src/ast_pipeline/stimuli_generator.rs:5962`) while the GENERATED parser's lines carry the
+     absolute one — so this also brushes the repo-root-relative-path policy, not just disk.
+- ✅ **NOTHING READS THEM — verified, which is what makes the disposition safe:**
+  `grep -rn 'closed_loop_replay_parseability_shadow' rust/scripts/*.sh scripts/*.sh | grep -iE '\.log|logs/'`
+  → **zero hits**. The stage's CONSUMED artifact is the structured
+  `--parseability-report-json` report, and `sv_stimuli_quality_gate.sh:2226` `require_nonempty_file`s
+  the **JSON**, not the log. The `.5e` probe driver references `sv_parse_full_ratio_promotion_gate`
+  **0** times. ⛔ Checked deliberately because `CI-PARITY-GATE-ROT.11` warns that 14 gates scrape prose
+  log lines for values — this log is not one of them.
+- ⛔ **THE CUSTODY PROBLEM IS REAL BUT MUCH SMALLER THAN FIRST STATED.** This leaf originally recorded
+  *"198 G pinned by 1.4 M of evidence … cannot be reclaimed safely"*. **Corrected:** ~158 G is
+  unread trace output and IS safely reclaimable; only the **1.4 M** of `summary.*` pairs is evidence a
+  tracked oracle depends on, and only THAT carries the `OPS-MEMSAFE.3` custody lesson (*durable
+  evidence does not live under `rust/target/`*) — a `cargo clean`, a sweep, or the next aggregate run
+  removes it and the `.5e` replay arms then SKIP.
+- **SCOPE, in the order that pays:**
+  1. ⭐ **Default the replay trace to `none`** and keep the env override for triage — one line, and it
+     removes ~158 G **and** the per-event formatting cost from every aggregate run. ⛔ **DESIGN TENSION
+     TO SETTLE FIRST, not a one-liner by fiat:** the trace presumably exists so a FAILING replay can be
+     triaged, so switching it off wholesale trades disk for diagnosability. Preferred shape: off by
+     default + **re-run the failing case with tracing on**, or a bounded ring buffer (a `head`-style cap
+     is wrong — the failure is at the TAIL).
+  2. ⚠️ **Suspected but NOT measured: this may be a material slice of the aggregate's ~5 h.** Writing
+     158 G plus formatting ~400 M trace events is not free. **Do not quote a number until it is
+     measured** — A/B one `sv_stimuli_quality_gate` run at `low` vs `none`. If it is minutes, this also
+     belongs to the SPEED doctrine, not just hygiene.
+  3. Then the 1.4 M custody fallback for the driver (below).
+- 🅿️ **RECLAIM AWAITING DIRECTOR AUTHORIZATION (2026-07-30).** The surgical command is
+  `find rust/target/sota_exit_gate/work -type f -name 'profile_*_closed_loop_replay_parseability_shadow.log' -size +1G -delete`
+  — 8 files, ~158 G, keeping every `summary.*`, every structured report and every smaller log. Proposed
+  and **declined by the harness guard** because the director had asked *why*, not *delete*; recorded
+  here rather than retried, since a multi-GB irreversible sweep is the director's call.
 - **Scope when taken up:** teach the driver a snapshot fallback (prefer the live run dir, else a
   small committed-or-cached snapshot of just the `summary.*` pairs), then the bulk becomes safely
   disposable. A 1.4 M snapshot already exists at `rust/target/done_bar_5e/run3_snapshot/` (taken this
@@ -1236,7 +1284,7 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
 ## Current Frontier
 
 **`.5d`** — the documented acceptance boundary where a consumer looks (adjudicate its overlap with
-`.6` when opened), with **`.5f`** (evidence custody — 198 GB pinned by 1.4 MB) newly opened. ✅ **`.5e` DONE** (`PGEN-DONE-BAR-0016`): `.5c`'s sentinel gate now **BINDS a
+`.6` when opened), with **`.5f`** newly opened and ROOT-CAUSED (198 GB of aggregate scratch = ~158 GB of unread backtrack traces from a gate that leaves tracing ON by default, 73% of each line a repeated absolute path; only 1.4 MB is evidence an oracle needs — my first framing of this leaf is corrected inside it). ✅ **`.5e` DONE** (`PGEN-DONE-BAR-0016`): `.5c`'s sentinel gate now **BINDS a
 tier** — `no_reachable_silent_success` is a criterion in all four family computations (totals regex
 10→11, sv 9→10, svpp 14→15, vhdl 12→13), each status gate PRODUCES its own sweep rather than reading
 an ambient artifact (the `.7` stale-evidence lesson), the sweep is cached per PROCESS not per
