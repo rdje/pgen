@@ -67,3 +67,6 @@
 [submodule "stimuli/sv/subs/opentitan"]
 	path = stimuli/sv/subs/opentitan
 	url = https://github.com/lowRISC/opentitan
+[submodule "stimuli/generators/anvil"]
+	path = stimuli/generators/anvil
+	url = https://github.com/rdje/anvil

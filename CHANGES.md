@@ -1,5 +1,39 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0008 — ANVIL wired in, and it found a real rtl_frontend gap on first contact
+
+`DONE-BAR.3a`. New submodule `stimuli/generators/anvil` (pinned `ecda0e78`) + tracked probe + README
++ tree. No `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no `generated/*` => all 11
+generated parsers byte-identical BY CONSTRUCTION. No tracker row moves.
+
+- **Placement:** `stimuli/generators/anvil`, deliberately NOT `stimuli/*/subs/` — all 23 submodules
+  there are vendored *corpora*; ANVIL is a *generator*, and filing it among them would invite the
+  same category error this tree keeps finding.
+- **First contact:** frontend lane **10/10 parse** with **10 distinct structural shapes / 10 seeds**;
+  DUT lane **0/5** at default knobs, **2/5** with the case-family knobs zeroed.
+- ⭐ **ANVIL found a REAL, previously-unknown gap immediately:** `case`/`endcase` have **0
+  occurrences** in `grammars/rtl_frontend.ebnf`; a `case` inside `always_comb` is rejected by
+  `rtl_frontend` and **accepted** by the full-LRM `systemverilog` parser. One DUT artifact uses
+  `case` 25 times. That is stronger than the calibration control demanded (which was merely to
+  reproduce the already-known `**` gap) — a corpus that only reproduces known bugs adds nothing.
+- ⛔ **The first knob turn is the circularity trap, live.** Zeroing `case_mux_prob` et al. moves the
+  DUT lane 0/5 → 2/5. That must NOT be how the corpus is configured: `case` is core synthesizable
+  RTL, and silencing the generator to raise the pass rate would hide a real gap behind a green
+  number. A knob may be zeroed only where the construct is outside `rtl_frontend`'s **declared**
+  subset — never because zeroing it makes the parser pass.
+- ⚠️ **Three process failures recorded, not hidden.** I measured before reading ANVIL's docs (the
+  director said so twice); I hand-wrote a partial `--config` instead of the documented
+  dump→edit→replay flow, ANVIL emitted **0 bytes**, and my checker **scored five empty files as
+  PASS** — a vacuous green in my own probe, in the session whose subject is vacuous greens, caught
+  only because the loop printed byte counts. The probe now refuses to score any artifact under 100
+  bytes. A third suspicion (that the frontend lane was one template) was refuted by a digit-stripped
+  shape hash.
+- **What reading the docs changed:** ANVIL exposes **91 knobs** and gates capabilities rules-first —
+  `--sv-version <2012|2017|2023>` is a valid-by-construction gate that **down-gates**, and block
+  knobs are gated at construction time rather than generate-then-filter. Scoping output to a declared
+  subset is therefore a first-class supported operation, which removes the need for the
+  "partition a superset corpus" plan.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0006 — rtl_frontend met a real design file for the first time: 2 of 20
 
 Director question: *"is `rtl_frontend` sufficiently tested? Is it ok to release it as is?"*. New

@@ -1,0 +1,52 @@
+==============================================================================
+ANVIL x rtl_frontend — FIRST CONTACT
+==============================================================================
+anvil binary : /Volumes/SSD/Documents/github/anvil/target/release/anvil (sibling checkout at the IDENTICAL pinned revision)
+pinned rev   : ecda0e7
+
+1. LANE SWEEP (rtl_frontend parsing ANVIL output)
+   frontend   PASS=10  FAIL=0   over 10 seeds   distinct structural shapes: 10/10
+   dut        PASS=0   FAIL=5   over 5 seeds   distinct structural shapes: 5/5
+
+2. WHAT THE DUT LANE USES (construct census over one artifact)
+       958 assign
+       928 wire
+       133 logic
+        76 always_comb
+        25 case
+         1 always_ff
+
+3. MINIMAL REPROS, each with the cross-parser control
+   rtl_frontend ✅  systemverilog ✅   wire decl + assign
+   rtl_frontend ✅  systemverilog ✅   always_comb
+   rtl_frontend ⛔  systemverilog ✅   case inside always_comb
+
+   grammar support (occurrences in grammars/rtl_frontend.ebnf):
+     case         0
+     endcase      0
+     always_comb  4
+     always_ff    3
+     assign       1
+     wire         2
+     generate     2
+
+4. VERDICT
+
+   ⭐ ANVIL FOUND A REAL GAP ON FIRST CONTACT. `case`/`endcase` have ZERO occurrences in
+     grammars/rtl_frontend.ebnf; rtl_frontend rejects a `case` inside `always_comb` while the
+     full-LRM `systemverilog` parser ACCEPTS the same input => valid, unambiguously synthesizable
+     SV that rtl_frontend cannot parse. One DUT artifact uses `case` 25 times.
+
+   ⭐ That is STRONGER than the calibration control originally demanded. The bar was "reproduce the
+     known `**` gap"; ANVIL instead surfaced a gap that was NOT already known. A corpus that only
+     reproduces known bugs adds nothing.
+
+   ⚠️ THE PASS RATE IS NOT THE HEADLINE, IN EITHER DIRECTION:
+     - the frontend lane's 10/10 is NOT weak evidence -- 10 seeds gave 10 distinct structural
+       shapes, so it is not one template with randomised constants (a suspicion this probe raised
+       and then refuted);
+     - the DUT lane's 0/5 is NOT five defects -- all five stop at the same byte, and the module
+       HEADER parses. It is one systematic body-construct gap, counted five times.
+
+   ⛔ STILL UNMEASURED: which of rtl_frontend's claimed constructs ANVIL actually exercises. A
+     generator's coverage is its own model's coverage, and that has not been characterised.

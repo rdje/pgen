@@ -509,6 +509,86 @@ table rendered three blank columns, not because the logic was re-read. ⇒ the p
 
 ### `.3` — close the external-corpus gap (`todo`)
 
+#### `.3a` — wire ANVIL as the independent generator for `rtl_frontend` / `rtl_const_expr` (`in progress`)
+
+- **Director instruction (2026-07-29):** *"we can use ANVIL"* + *"you will need to create a git
+  submodule for it. Here is the github link https://github.com/rdje/anvil"*.
+- **Why it qualifies** (full assessment: [[feedback_no_corpus_means_raise_coverage]]): ANVIL is a
+  random by-construction generator of **synthesizable** SystemVerilog whose validity model is
+  **architecturally independent of any grammar** — its book chapter *"Why Not a Grammar?"* records
+  that an annotated-EBNF walk was considered and **rejected** for circuit-cone recursion ⇒ it cannot
+  inherit `grammars/rtl_frontend.ebnf`'s blind spots. It is anchored to Yosys/Verilator/Icarus/slang,
+  ships **expected-facts answer-key manifests**, and is **byte-reproducible per `(seed, knobs)`** so a
+  vendored snapshot is re-derivable rather than an opaque blob. Its own `CODEBASE_ANALYSIS.md:243`
+  states Phases 7-9 were delivered for *"the user's `rtl_const_expr` / `rtl_frontend` style request"*
+  (`anvil --artifact <dut|microdesign|frontend>`).
+- **Placement decision:** `stimuli/generators/anvil`. ⛔ **NOT** `stimuli/sv/subs/` — all 23 existing
+  submodules there are **vendored corpora**, and ANVIL is a **generator**. Filing a generator among
+  the corpora would invite exactly the category error this tree keeps finding (a triage sample read as
+  a corpus proof). A separate `generators/` bucket makes the distinction self-documenting, and it is
+  language-agnostic because ANVIL's lanes serve two PGEN families.
+- ⛔ **SEQUENCED BEHIND A CALIBRATION CONTROL, NOT AHEAD OF IT.** Before ANVIL backs any leg-3 claim
+  it must **reproduce the `**` gap already measured** (0 occurrences in the grammar;
+  `logic [7:0] ram [2**8-1:0];` rejected here, accepted by the full-LRM parser). *A corpus that cannot
+  find a bug we know is there cannot certify the absence of bugs* —
+  [[feedback_instrument_needs_ground_truth]] applied to a corpus instead of an instrument.
+- ⛔ **AND IT DOES NOT SATISFY LEG 3 AS THE BAR IS WORDED** (*"officially-recognized third-party
+  corpus"*): ANVIL is not third-party. Either the bar is amended deliberately by the director, or what
+  ANVIL closes is named as something else. **It must not be quietly reinterpreted** — silent
+  relabelling is the failure this tree exists to stop.
+#### `.3a` FIRST-CONTACT RESULTS (2026-07-29, `PGEN-DONE-BAR-0008`)
+
+Submodule added at **`stimuli/generators/anvil`**, pinned **`ecda0e78`**. ⛔ **Placed in a new
+`generators/` bucket, NOT `stimuli/*/subs/`** — all 23 existing submodules there are *vendored
+corpora*; ANVIL is a *generator*, and filing it among the corpora would invite the exact category
+error this tree keeps finding (a triage sample read as a corpus proof).
+
+| lane | rtl_frontend result | structural diversity |
+|---|---|---|
+| `--artifact frontend` (built FOR this) | **10 / 10 parse** | **10 distinct shapes / 10 seeds** |
+| `--artifact dut` (the rich lane), default knobs | **0 / 5** | 5 / 5 |
+| `--artifact dut`, case-family knobs at 0 | **2 / 5** | — |
+
+⭐⭐ **ANVIL FOUND A REAL GAP ON FIRST CONTACT — and it is the second confirmed `rtl_frontend` gap.**
+`case`/`endcase` have **0 occurrences** in `grammars/rtl_frontend.ebnf`; a `case` inside
+`always_comb` is REJECTED by `rtl_frontend` and **ACCEPTED by the full-LRM `systemverilog` parser`**
+⇒ valid, unambiguously synthesizable SV the parser cannot read. One DUT artifact uses `case` **25
+times**. ⭐ This is **stronger than the calibration control demanded**: the bar was *"reproduce the
+known `**` gap"*, and ANVIL instead surfaced one that was **not already known**. A corpus that only
+reproduces known bugs adds nothing.
+
+⛔⛔ **AND THE FIRST KNOB TURN IS THE CIRCULARITY TRAP, LIVE.** Zeroing `case_mux_prob` /
+`casez_mux_prob` / `priority_encoder_prob` moves the DUT lane 0/5 → 2/5. **That must NOT be how the
+corpus is configured.** `case` is core synthesizable RTL; silencing the generator to raise the pass
+rate would hide a real gap behind a green number. ⇒ **the rule for knob selection: a knob may be
+zeroed only where the construct is outside `rtl_frontend`'s DECLARED subset — never because zeroing
+it makes the parser pass.** That distinction is the whole of ANVIL's value and it needs a mechanical
+guard, not a promise.
+
+⚠️⚠️ **THREE PROCESS FAILURES IN THIS SLICE, RECORDED BECAUSE THEY ARE THE LESSON.** (1) I ran ANVIL
+with default knobs and drew a conclusion about the DUT lane **before reading its documentation** —
+the director had to say so twice. (2) I hand-wrote a partial `--config` JSON instead of the
+documented *dump → edit → replay* flow; ANVIL emitted **0 bytes**, and my checker scored **five empty
+files as PASS**. ⭐ **A vacuous green, in my own probe, in the very session whose subject is vacuous
+greens** — caught only because the loop printed byte counts. The probe now refuses to score a file
+under 100 bytes. (3) I suspected the frontend lane was one template with randomised constants; the
+digit-stripped shape hash **refuted** it (10/10 distinct). ⇒ **read the tool's docs before measuring
+it, and never let a checker score an artifact it has not confirmed is non-empty.**
+
+⭐ **WHAT READING THE DOCS CHANGED.** ANVIL exposes **91 knobs**, and its capability gating is
+rules-first by architecture: `--sv-version <2012|2017|2023>` is a *valid-by-construction capability
+gate* that **down-gates** (targeting a lower standard, the emitter never emits a newer construct),
+and every block knob is gated at construction time rather than generate-then-filter. ⇒ **scoping
+ANVIL's output to a declared subset is a first-class supported operation, not a hack** — which is
+what makes the case-(b) "partition" idea unnecessary here: ANVIL can be *told* to stay in the subset
+at generation time. The book also ships a recipe for exactly this use — *"I want to test my parser
+only, not synthesis"* (crank structural diversity: `--max-depth 8 --max-width 64 --count 1000`).
+
+- **Steps:** (1) add the submodule ← *this slice*; (2) run the calibration control; (3) measure which
+  `rtl_frontend` constructs ANVIL actually emits (currently **unmeasured**); (4) build the guarded
+  consumption lane — with circularity as a **mechanically guarded** non-goal, since tuning ANVIL to
+  emit only what PGEN accepts would destroy the independence silently.
+
 #### ⭐⭐⭐ `rtl_frontend` MEASURED AGAINST REAL RTL FOR THE FIRST TIME (2026-07-29, director question, `PGEN-DONE-BAR-0006`)
 
 The director asked the right question, and it is not the one this leaf was framed around:
