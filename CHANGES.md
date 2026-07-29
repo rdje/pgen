@@ -1,5 +1,35 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0004 — `Provisional` splits into `(ceiling)` and `(corpus pending)`, and `ceiling` is made hard to claim
+
+Director-approved discrimination. Docs only — **no `grammars/*.ebnf`, no `rust/src/*`, no
+`rust/scripts/*`, no `generated/*`** ⇒ all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- ⭐ **`Provisional` is now ALWAYS QUALIFIED** — a bare `Provisional` is incomplete, because
+  *"finished"* vs *"not finished yet"* is the single most decision-relevant fact a consumer reads:
+  - **`Provisional (ceiling)`** — leg 3 unreachable **by construction**; the language is PGEN's own.
+    A **FINISHED** row; holding it is success, not debt. Expected: `return_annotation`,
+    `semantic_annotation`, `ebnf`.
+  - **`Provisional (corpus pending)`** — a recognized corpus **exists in the world**; wiring it is
+    outstanding. An **UNFINISHED** row.
+- ⛔⛔ **`ceiling` IS DELIBERATELY HARD TO CLAIM, because the gradient runs the wrong way.**
+  `(ceiling)` is the label that CLOSES a row, so without a rule every awkward family drifts into it.
+  The rule: the language must be defined **by PGEN itself**, with no external standards body and no
+  widely-recognized reference implementation. ⛔ ***"We could not find a corpus" is NEVER a
+  ceiling*** — absence of search is not absence of existence. Exactly three families are expected to
+  qualify; a fourth claim is suspicious until it names the standard that does not exist.
+- ⭐ **Mechanizable, and routed to `.4`**: a `(ceiling)` row must name a PGEN-authored
+  `grammars/*.ebnf` and carry a justification entry in a tracked register — the
+  `gate_reachability_register_v0.json` shape, where an untriaged claim FAILS rather than being
+  reported.
+- **Vocabulary landed in all four governing surfaces** (`LIVE_ACHIEVEMENT_STATUS.md` Status Rules,
+  `COMMIT.md`, `DONE-BAR.md`, the decision record), verified by sweep.
+- ⚠️ **Handoff hygiene**: the superseded "four legs" wording was purged (3 mentions), and the two
+  sentences reading *"the bar is an invariant the flow enforces"* were re-tensed to **"shall
+  become"** with an explicit *"it is NOT enforced today"* — so a fresh session cannot mistake the
+  requirement for the current state.
+
+
 ## 2026-07-29 - PGEN-DONE-BAR-0003 — `Provisional` becomes a SHIPPING tier, and disclosure integrity is promoted to a prerequisite
 
 `DONE-BAR` refined on a director directive; `.6` opened; `.5` promoted; the tracker's status

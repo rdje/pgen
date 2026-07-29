@@ -39,7 +39,7 @@ matters, and it closes a loophole the three-leg list would otherwise have left o
 
 > *"So the flow shall guarantee this 100%"*
 
-⇒ the bar is an **invariant the flow enforces**, not a checklist someone remembers. A `Done` row
+⇒ the bar SHALL BECOME an **invariant the flow enforces**, not a checklist someone remembers. ⚠️ **It is NOT enforced today** — see the measured blocker immediately below; a fresh session must not read this as a description of the current state. A `Done` row
 that does not meet the legs must be impossible to hold, because a gate fails while it is held.
 ⛔ **The flow cannot deliver that today, measured:** `sota_exit_gate` has never completed green, the
 AUTOMATIC tier over all 123 gate targets is **zero**, and the family status gates are reachable only
@@ -64,9 +64,16 @@ lane no contributor controls* — anything less is stated, never quietly claimed
   (`PGEN_USER_GUIDE.md` publishes regex `1.1.29`/`1.1.31` against the contract's `1.1.104`/`1.1.106`,
   with no gate reading either document). ⇒ the consumer-facing gates are a **prerequisite** for
   shipping `Provisional`, not a deferred nicety. *A disclosure nobody checks is a claim.*
-- ⭐ **Some families are permanently `Provisional`, and that is correct**: `return_annotation`,
-  `semantic_annotation` and `ebnf` describe **PGEN's own languages**, so no third-party corpus exists
-  by construction. Saying so beats carrying a never-closing TODO.
+- ⭐ **`Provisional` is always QUALIFIED** (director-approved 2026-07-29), because *"finished"* and
+  *"not finished yet"* are the most decision-relevant fact a consumer reads:
+  - **`Provisional (ceiling)`** — leg 3 unreachable **by construction** (the language is PGEN's own).
+    A **FINISHED** row: `return_annotation`, `semantic_annotation`, `ebnf`. Holding it is success.
+  - **`Provisional (corpus pending)`** — a recognized corpus **exists in the world**; wiring it is
+    outstanding. An **UNFINISHED** row.
+  - ⛔⛔ **`ceiling` is deliberately hard to claim** — it is the label that closes a row, so the
+    gradient pushes everything toward it. It requires that the language be defined **by PGEN itself**,
+    with no external standard or widely-recognized reference implementation. ***"We could not find a
+    corpus" is NEVER a ceiling*** — absence of search is not absence of existence.
 
 ## What triggered it
 
@@ -122,7 +129,7 @@ gates and absorbed into leg 2**. The bar stays THREE legs, all measurable, all g
 ## How it is applied
 
 - Every `Done` row in `LIVE_ACHIEVEMENT_STATUS.md`'s parser-family tables is audited against the
-  four legs, and the audit is re-runnable rather than one-shot — a one-shot census is the same
+  three legs, and the audit is re-runnable rather than one-shot — a one-shot census is the same
   disease one level up ([[feedback_instrument_needs_ground_truth]] and
   `DOCTRINE-GAP-OWNERSHIP.1`'s ratchet lesson).
 - Owned by the `DONE-BAR` task tree.

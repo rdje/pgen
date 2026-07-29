@@ -33,8 +33,8 @@ Rows that do not meet all three are **demoted**, visibly, with the unmet leg nam
 
 > *"So the flow shall guarantee this 100%"*
 
-⇒ **the bar is not a checklist someone remembers to apply; it is an invariant the flow enforces.** A
-`Done` row that does not meet all four legs must be **impossible to hold**, because a gate fails
+⇒ **the bar shall not be a checklist someone remembers to apply; it SHALL BECOME an invariant the flow enforces.** ⚠️ **It is NOT enforced today** — the measured blocker is the next paragraph. A
+`Done` row that does not meet all three legs must be **impossible to hold**, because a gate fails
 while it is held. This reorders the tree: `.4` (enforcement) is not the tidy-up at the end, it is the
 point, and `.1`-`.3` are what make enforcement possible.
 
@@ -138,11 +138,28 @@ promoted on legs 1-3 alone while `.5` is open — a row that clears 1-3 is marke
 Leg 3 requires an *officially-recognized third-party* corpus. That is available only where the
 language is externally standardized:
 
-| family | language owned by | leg 3 reachable? | ceiling |
+| family | language owned by | leg 3 reachable? | attainable tier |
 |---|---|---|---|
-| `systemverilog`, `systemverilog_preprocessor`, `vhdl`, `regex`, `json`, `verilog_2005` | **IEEE / PCRE2 / ECMA / JSONTestSuite** — external standards | ✅ yes, a corpus exists in the world | `Done` |
-| `return_annotation`, `semantic_annotation`, `ebnf` | ⭐ **PGEN itself** | ⛔ **no — by construction**: there is no third-party corpus for PGEN's own annotation/meta languages | **`Provisional` is the honest ceiling** |
+| `systemverilog`, `systemverilog_preprocessor`, `vhdl`, `regex`, `json`, `verilog_2005` | **IEEE / PCRE2 / ECMA / JSONTestSuite** — external standards | ✅ yes, a corpus exists in the world | `Done` (today: `Provisional (corpus pending)`) |
+| `return_annotation`, `semantic_annotation`, `ebnf` | ⭐ **PGEN itself** | ⛔ **no — by construction** | ⭐ **`Provisional (ceiling)` — a FINISHED row** |
 | `rtl_frontend`, `rtl_const_expr` | a *subset* PGEN defines of SystemVerilog | ⚠️ partially — SV corpora exist but exercise far more than the subset | to be adjudicated in `.3` |
+
+### ⛔⛔ `ceiling` IS DELIBERATELY HARD TO CLAIM — the gradient runs the wrong way
+
+`(ceiling)` says *finished*; `(corpus pending)` says *you still owe work*. **The comfortable label is
+the one that closes the row**, so without a rule every awkward family drifts into `ceiling`. The rule:
+
+- `ceiling` requires the language be **defined by PGEN itself** — no external standards body, no
+  widely-recognized reference implementation defines it.
+- ⛔ ***"We could not find a corpus" is NEVER a ceiling.*** Absence of search is not absence of
+  existence. If an external standard defines the language, the row is `(corpus pending)` — however
+  long it stays there, and however unlikely the corpus looks.
+- ⇒ **exactly three families are expected to qualify**, all three because PGEN authored their
+  language. A fourth claim should be treated as suspicious until it names the standard that does not
+  exist.
+- ⭐ **Mechanizable, and it should be** (`.4`): a `(ceiling)` row must name a `grammars/*.ebnf` PGEN
+  authored and carry a justification entry in a tracked register — the `gate_reachability_register_v0.json`
+  shape, where an untriaged claim FAILS rather than being reported.
 
 ⇒ **three families are permanently `Provisional` and that is CORRECT, not a failure.** Recording this
 stops them being re-litigated every audit, and stops the tracker looking like it carries three
@@ -247,7 +264,7 @@ actual per-family open-defect counts rather than leaving it as an impression.
 
 - **Status: `todo`** — the tree's **highest-value leaf** per the director's *"the flow shall guarantee
   this 100%"*; sequenced after `.1`/`.2` only because enforcement needs the audit's shape first.
-- **Requirement:** a `Done` row that does not meet all four legs makes a gate FAIL. Not a report, not
+- **Requirement:** a `Done` row that does not meet all three legs makes a gate FAIL. Not a report, not
   a warning — the `GATE-REACHABILITY` / `FLOW-INTEGRITY` ratchet shape, which this repo has now
   shipped twice and which is the worked template.
 - ⛔ **Prerequisites, measured and named above, not discovered later:** `CI-PARITY-GATE-ROT.7` (the
@@ -281,8 +298,10 @@ actual per-family open-defect counts rather than leaving it as an impression.
 - **Requirement:** every family's downstream integration contract (`docs/contracts/PGEN_*_PARSER_INTEGRATION_CONTRACT.md`,
   9 of them) and its per-parser mdBook state, in a fixed place: the family's tier (`Done` /
   `Provisional` / lower), which legs are met, **what is therefore unproven**, and — for `Provisional` —
-  whether leg 3 is unmet or **unreachable by construction** (a PGEN-owned language has no third-party
-  corpus, and saying so is more useful than an open TODO).
+  **which qualifier applies** — `(ceiling)` = finished, leg 3 unreachable by construction; `(corpus pending)` =
+  a recognized corpus exists and wiring it is outstanding. ⭐ A consumer reading a contract must be able to
+  tell *"this is as good as it gets"* from *"this is not finished yet"* — that distinction is the single
+  most decision-relevant fact on the page, and an unqualified `Provisional` withholds it.
 - ⭐ Machine-readable too, not only prose: the family status gates already compute a status string, so
   the tier and its evidence should be emitted in their `summary.json` for a downstream to check
   mechanically rather than parse marketing text.
