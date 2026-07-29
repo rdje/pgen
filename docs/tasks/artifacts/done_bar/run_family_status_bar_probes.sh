@@ -164,6 +164,42 @@ arm "CTRL-8d Mostly Done passes through" 0 "Mostly Done" "$rc" "$out"
 out="$(ladder false "" "Done")"; rc=$?
 arm "CTRL-8e call-order guard: no qualifier => REFUSE" 2 "called before family_done_bar_leg3" "$rc" "$out"
 
+# --- CTRL-9 / RED-L: the .5b ledger criterion (family_open_ledger_entries) ----------------------
+run_ledger() {
+    bash -c '
+        set -euo pipefail
+        source "'"$LIB"'"
+        family_open_ledger_entries "'"$1"'"
+        echo "rows=$DONE_BAR_LEDGER_ROWS open=$DONE_BAR_LEDGER_OPEN_COUNT ids=$DONE_BAR_LEDGER_OPEN_IDS"
+    ' 2>&1
+}
+out="$(run_ledger vhdl)"; rc=$?
+arm "CTRL-9 real ledger: vhdl 2 rows, 0 open" 0 "rows=2 open=0 ids=-" "$rc" "$out"
+
+# a synthetic ledger with one OPEN row for fakefam — the criterion must count and NAME it
+cat >"$WORK/ledger_open.md" <<'EOF'
+# synthetic ledger fixture
+## State Meanings
+- `Reported`
+  - received
+- `Released`
+  - closed out
+- `Rejected`
+  - closed out
+## Rows
+| ID | family | a | b | c | d | State | e | f | notes |
+|---|---|---|---|---|---|---|---|---|---|
+| `FAKE-0001` | `fakefam` / `fake_default` | `1.0` | `1.0` | `X` | `2026-01-01` | `Reported` | `-` | `-` | an open one |
+| `FAKE-0002` | `fakefam` / `fake_default` | `1.0` | `1.0` | `X` | `2026-01-01` | `Released` | `-` | `-` | a closed one |
+EOF
+out="$(PGEN_FAMILY_STATUS_LEDGER="$WORK/ledger_open.md" run_ledger fakefam)"; rc=$?
+arm "RED-L1 open ledger row counted and NAMED" 0 "rows=2 open=1 ids=FAKE-0001" "$rc" "$out"
+
+# a ledger with no State Meanings section — classification against a guessed vocabulary REFUSES
+printf '# a ledger with no vocabulary\n| `X-1` | `fakefam` | `Reported` |\n' >"$WORK/ledger_no_vocab.md"
+out="$(PGEN_FAMILY_STATUS_LEDGER="$WORK/ledger_no_vocab.md" run_ledger fakefam)"; rc=$?
+arm "RED-L2 no State Meanings: REFUSE" 2 "state vocabulary cannot be derived" "$rc" "$out"
+
 echo
 echo "2. GATE REPLAYS against the aggregate run-3 artifacts (the measured AFTER of .2a)"
 echo
@@ -216,6 +252,7 @@ else
     arm "REPLAY vhdl: computed Provisional recorded" 0 "vhdl_status: Provisional (corpus pending)" 0 "$(cat "$vhdl_state/summary.txt" 2>/dev/null)"
     arm "REPLAY vhdl: json computed_status states the truth" 0 "Provisional (corpus pending)" 0 "$(jq -r '.families[0].computed_status' "$vhdl_state/summary.json" 2>/dev/null)"
     arm "REPLAY vhdl: alignment_ok recorded true" 0 "true" 0 "$(jq -r '.families[0].tracker_alignment_ok' "$vhdl_state/summary.json" 2>/dev/null)"
+    arm "REPLAY vhdl: ledger criterion recorded (0 open)" 0 "vhdl_ledger_open_entries_zero: true" 0 "$(cat "$vhdl_state/summary.txt" 2>/dev/null)"
 
     # sv — two families: systemverilog stays Mostly Done (the cap only affects Done);
     # systemverilog_preprocessor computes Provisional and the post-.2b tracker row agrees.
@@ -235,6 +272,7 @@ else
     arm "REPLAY sv: ALIGNED on both families, gate passes" 0 "✅ SV parser-family status gate passed." "$rc" "$out"
     arm "REPLAY sv: sv family stays Mostly Done, aligned" 0 "systemverilog_status: Mostly Done" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
     arm "REPLAY sv: svpp computed Provisional recorded" 0 "systemverilog_preprocessor_status: Provisional (corpus pending)" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
+    arm "REPLAY sv: ledger criterion recorded (0 open)" 0 "systemverilog_preprocessor_ledger_open_entries_zero: true" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
 fi
 
 echo

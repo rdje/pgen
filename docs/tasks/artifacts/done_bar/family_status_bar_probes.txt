@@ -18,6 +18,9 @@ FAMILY-STATUS DONE-BAR PROBES — the .2a helper + the re-taught gates
    ✅ CTRL-8c Done+met => Done                             rc=0, matched Done
    ✅ CTRL-8d Mostly Done passes through                   rc=0, matched Mostly\ Done
    ✅ CTRL-8e call-order guard: no qualifier => REFUSE     rc=2, matched called\ before\ family_done_bar_leg3
+   ✅ CTRL-9 real ledger: vhdl 2 rows, 0 open              rc=0, matched rows=2\ open=0\ ids=-
+   ✅ RED-L1 open ledger row counted and NAMED             rc=0, matched rows=2\ open=1\ ids=FAKE-0001
+   ✅ RED-L2 no State Meanings: REFUSE                     rc=2, matched state\ vocabulary\ cannot\ be\ derived
 
 2. GATE REPLAYS against the aggregate run-3 artifacts (the measured AFTER of .2a)
 
@@ -28,10 +31,12 @@ FAMILY-STATUS DONE-BAR PROBES — the .2a helper + the re-taught gates
    ✅ REPLAY vhdl: computed Provisional recorded           rc=0, matched vhdl_status:\ Provisional\ \(corpus\ pending\)
    ✅ REPLAY vhdl: json computed_status states the truth   rc=0, matched Provisional\ \(corpus\ pending\)
    ✅ REPLAY vhdl: alignment_ok recorded true              rc=0, matched true
+   ✅ REPLAY vhdl: ledger criterion recorded (0 open)      rc=0, matched vhdl_ledger_open_entries_zero:\ true
    ✅ REPLAY sv: ALIGNED on both families, gate passes     rc=0, matched ✅\ SV\ parser-family\ status\ gate\ passed.
    ✅ REPLAY sv: sv family stays Mostly Done, aligned      rc=0, matched systemverilog_status:\ Mostly\ Done
    ✅ REPLAY sv: svpp computed Provisional recorded        rc=0, matched systemverilog_preprocessor_status:\ Provisional\ \(corpus\ pending\)
+   ✅ REPLAY sv: ledger criterion recorded (0 open)        rc=0, matched systemverilog_preprocessor_ledger_open_entries_zero:\ true
 
 ==============================================================================
-VERDICT: 24 arm(s) passed, 0 failed
+VERDICT: 29 arm(s) passed, 0 failed
 ==============================================================================

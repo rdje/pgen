@@ -1,5 +1,25 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0013 — leaf DONE-BAR.5b: an open downstream defect now demotes a family's tier
+
+Status gates + shared helper — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11
+generated parsers byte-identical BY CONSTRUCTION. No tracker row moves (0 open entries today).
+
+- New shared-helper function `family_open_ledger_entries` (rust/scripts/lib/parser_family_status_bar.sh):
+  derives the state vocabulary from the ledger's OWN "## State Meanings" section
+  (`Released`/`Rejected` closed — exactly the `.1` census model), counts open rows per family with
+  their ids, REFUSES (exit 2) on a missing/vocabulary-less ledger. Seam: PGEN_FAMILY_STATUS_LEDGER.
+- Criterion `ledger_open_entries_zero` + `ledger_open_entry_count`/`_ids` metrics wired into all
+  four family computations (regex 9->10, sv 8->9, svpp 13->14, vhdl 11->12 criteria), joined to
+  each ladder's core conjunction — an open entry demotes below `Provisional` (leg 2 reading
+  honestly). DESIGN DECISION recorded: a TIER criterion, not a pre-commit doctrine — a genuinely
+  open entry must block the family's claim, not unrelated commits.
+- Verification: probes 29/29 (CTRL-9 pins the real derivation vhdl rows=2 open=0; RED-L1 proves an
+  injected open row is counted AND NAMED; RED-L2 proves a vocabulary-less ledger refuses; replay
+  arms prove statuses UNCHANGED and gates still green-aligned); all three status-contract gates
+  pass the extended schema; audit exit 0 unchanged; .1 arms 12/12; ALL 14 doctrines PASS.
+- Book: quality-and-closure-model.md status-gates section gains the ledger-criterion paragraph.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0012 — leaf DONE-BAR.5a: the published-state drift is fixed AND gated
 
 Guide + new doctrine check — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11

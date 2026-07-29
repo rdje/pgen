@@ -271,6 +271,12 @@ one shared helper (`rust/scripts/lib/parser_family_status_bar.sh`):
 - Consequently **`Done` is unreachable while leg 3 is unmet**: a family whose own closure criteria
   all hold computes `Provisional (…)`, never `Done`. The cap only applies at the top — statuses
   below `Done` pass through unchanged.
+- They also carry the first consumer-facing disclosure criterion, **`ledger_open_entries_zero`**:
+  the released-parser bug ledger is read against its **own** "State Meanings" vocabulary
+  (`Released`/`Rejected` are closed), and an OPEN entry naming the family demotes its tier — a
+  known, still-open downstream defect means the family's proof surface missed something a consumer
+  hit. This is deliberately a *tier* criterion, not a pre-commit check: a genuinely open entry is a
+  legitimate repository state that must block the family's claim, not unrelated commits.
 - On a tracker misalignment the gate now **states what it computed** — the full
   `summary.txt`/`summary.json` pair, including the computed status, the leg-3 verdict, and the
   qualifier — and *then* exits nonzero. A gate that died before writing its verdict used to leave

@@ -8,7 +8,7 @@
 - Created: `2026-07-29`
 - Owner: repo-local workflow
 - Director directive: [[feedback_done_bar_is_first_tier_only]]
-- Frontier: **`.5b`** (the zero-open-ledger gate — `.5` SPLIT into `.5a`-`.5d`; `.5a` published-version-currency DONE 2026-07-29 `PGEN-DONE-BAR-0012`, now the 14th enforced doctrine) — `.2b` DONE 2026-07-29 (`PGEN-DONE-BAR-0011`); `.2a` DONE 2026-07-29 (`PGEN-DONE-BAR-0010`); `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`); `.3a` (ANVIL) remains `in progress`
+- Frontier: **`.5c`** (the silent-success sentinel gate — the last unbuilt `.5` gate before `.5d`/`.6`) — `.5b` DONE 2026-07-29 (`PGEN-DONE-BAR-0013`, the ledger criterion in the status gates); `.5a` DONE 2026-07-29 (`PGEN-DONE-BAR-0012`, the 14th enforced doctrine); `.2a`+`.2b` DONE 2026-07-29 (`PGEN-DONE-BAR-0010`/`-0011`); `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`); `.3a` (ANVIL) remains `in progress`
 
 ## Goal
 
@@ -829,12 +829,53 @@ told apart from invalid input**, and all three would have shipped as defects.
      (`<property_access>` / `<array_access>` / `<last_extraction>`), where a parse returns `Ok` with
      zero diagnostics and a placeholder node ⇒ green gates, garbage handed to the consumer (`todo`);
   2. `.5a` — **published version currency** — ✅ **DONE** (see below);
-  3. `.5b` — **zero open ledger entries** naming the family — the fact is TRUE today (168 rows, 0
-     open, measured by `.1`) and unguarded (`todo`);
+  3. `.5b` — **zero open ledger entries** naming the family — ✅ **DONE** (see below);
   4. `.5d` — **documented acceptance boundary** where a consumer looks (`todo`; overlaps `.6`'s
      per-contract bar-state disclosure — adjudicate the split when `.5d` opens).
 - ⭐ Once these exist they are ordinary leg-2 gates. That is the point: **the bar stays three legs and
   stays fully mechanizable**, which is what *"the flow shall guarantee this 100%"* demands.
+
+#### `.5b` — zero open ledger entries, as a status-gate criterion (`done`, 2026-07-29 session #224, `PGEN-DONE-BAR-0013`)
+
+- ⭐ **DESIGN DECISION, recorded:** this is NOT a pre-commit doctrine. A genuinely open ledger entry
+  is a legitimate repository state (a downstream found a defect; it stays open until released) — a
+  doctrine failing every commit while a real bug is open would block unrelated work. What an open
+  entry must block is the FAMILY'S TIER: it is a leg-2-class fact (*a known, still-open downstream
+  defect means the family's proof surface missed something a consumer hit*). ⇒ implemented as
+  criterion **`ledger_open_entries_zero`** in the family-status gates, via the shared helper.
+- **Helper:** `family_open_ledger_entries` in `rust/scripts/lib/parser_family_status_bar.sh` —
+  derives the state vocabulary from the ledger's OWN "State Meanings" section (`Released`/`Rejected`
+  closed, exactly as `.1`'s census established), counts open rows per family, REFUSES (exit 2) when
+  the ledger or its vocabulary cannot be read. Seam: `PGEN_FAMILY_STATUS_LEDGER`.
+- **Wiring:** criterion + count/ids metrics in all four family computations (regex 9→10, sv 8→9,
+  svpp 13→14, vhdl 11→12), joined to each ladder's core (`Mostly Done`/`Done`) conjunction — an
+  open entry demotes below `Provisional`, which is leg 2 reading honestly. Measured TODAY: regex
+  114 rows / vhdl 2 / systemverilog 44 / svpp 4 attributed, **0 open each** ⇒ every computed status
+  UNCHANGED and all replays stay green-aligned (verified — no tracker movement in this slice).
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `.1`'s census (`run_ledger_open_census.sh`): 168 rows, 0 open — *"the
+  fact is true and unguarded — nothing reads that file"*; measured: no gate referenced the ledger.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family: `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+  was read by ZERO gate scripts (`git ls-files` + the `.1` audit's derived gate universe); the
+  status gates' criteria sets simply had no ledger fact. `bash -n` clean on all edited scripts.
+- [x] **FIX** — declarative-tier: one helper function + criterion wiring; no grammar, no
+  `rust/src/*`, no `generated/*`.
+- [x] **ADDRESSED (verified)** — before: no instrument could ever disagree with a family's row over
+  an open ledger entry. After, by re-runnable oracle `bash docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh`
+  → **29/29**: CTRL-9 pins the real ledger derivation (`vhdl rows=2 open=0`); **RED-L1** proves an
+  injected OPEN row is counted AND NAMED (`open=1 ids=FAKE-0001`); **RED-L2** proves a ledger
+  without a State Meanings section REFUSES rather than classifying against a guessed vocabulary;
+  the replay arms prove the criterion is recorded in every family's summary with statuses
+  UNCHANGED and gates still ✅ green-aligned.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒ all 11
+  generated parsers byte-identical BY CONSTRUCTION; all three `*_parser_family_status_contract_gate.sh`
+  ✅ pass the extended schema; `bash scripts/audit_done_bar.sh` exit 0 unchanged; `.1` arms 12/12;
+  `bash scripts/check_doctrines.sh` ALL 14 PASS.
+- [x] **LOCKSTEP** — book (`quality-and-closure-model.md` status-gates section), this tree, tracker
+  note (no row moves), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`. No release / schema /
+  ledger / contract movement: the ledger is READ, not changed.
 
 #### `.5a` — published version currency (`done`, 2026-07-29 session #224, `PGEN-DONE-BAR-0012`)
 
@@ -900,13 +941,14 @@ told apart from invalid input**, and all three would have shipped as defects.
 
 ## Current Frontier
 
-**`.5b`** — the zero-open-ledger gate (`.5` SPLIT into `.5a`-`.5d`). ✅ `.5a` is DONE
-(`PGEN-DONE-BAR-0012`): the guide's published regex identity + status drift is FIXED
-(`1.1.106`/`1.1.109`, `In Progress`) and GATED by the 14th enforced doctrine
-`PUBLISHED-VERSION-CURRENCY` at every commit. Remaining in `.5`: **`.5b`** — the ledger's
-0-open-entries fact is TRUE and unguarded (168 rows, 0 open, measured by `.1`; nothing reads the
-file); **`.5c`** — the 6 silent-success sentinel sites; **`.5d`** — the documented acceptance
-boundary (adjudicate its overlap with `.6` when opened). `.3a` (ANVIL for `rtl_frontend`)
+**`.5c`** — the silent-success sentinel gate (6 measured sentinel emission sites where a parse
+returns `Ok` with zero diagnostics and a placeholder node — `DOCTRINE-GAP-OWNERSHIP.3` owns the
+site inventory). ✅ `.5a` DONE (`PGEN-DONE-BAR-0012`): the guide's published identity/status drift
+FIXED and GATED by the 14th doctrine `PUBLISHED-VERSION-CURRENCY`. ✅ `.5b` DONE
+(`PGEN-DONE-BAR-0013`): `ledger_open_entries_zero` is now a criterion in all four family-status
+computations (an open downstream defect demotes the family's tier; deliberately NOT a pre-commit
+doctrine, since a genuinely open entry must block the TIER, not unrelated commits). Remaining:
+**`.5d`** — the documented acceptance boundary (adjudicate its overlap with `.6` when opened). `.3a` (ANVIL for `rtl_frontend`)
 continues in parallel; `.4` (the enforcement ratchet) stays blocked on `CI-PARITY-GATE-ROT.7` +
 the hosted auto-trigger call. ⭐ Near-term GOAL unchanged: **every family to at least
 `Provisional`** — `regex` needs its leg-1 debt re-closed (`REGEX-PCRE2-FIDELITY.ROUTED-IN-2`),
@@ -966,6 +1008,14 @@ closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
 
 ## Commit Log
 
+- `PGEN-DONE-BAR-0013` (2026-07-29, session #224, leaf `.5b` done) — `ledger_open_entries_zero` is
+  now a criterion in all four family-status computations (regex 10, sv 9, svpp 14, vhdl 12
+  criteria), derived from the ledger's OWN State Meanings vocabulary via the shared helper
+  (`family_open_ledger_entries`; REFUSES without a vocabulary). Deliberately a TIER gate, not a
+  pre-commit doctrine. Measured today: 0 open for every family ⇒ statuses unchanged, replays stay
+  green-aligned. Probes 29/29 (RED-L1: an injected open row is counted and NAMED; RED-L2: a
+  vocabulary-less ledger refuses); all three contract gates pass the extended schema. Frontier →
+  `.5c`.
 - `PGEN-DONE-BAR-0012` (2026-07-29, session #224, leaf `.5a` done) — the published-state drift is
   FIXED and GATED in one slice: the guide's regex Public contract identity moved `1.1.29`/`1.1.31`
   → `1.1.106`/`1.1.109` and its published family status moved `Done` → `In Progress` (the `.2b`

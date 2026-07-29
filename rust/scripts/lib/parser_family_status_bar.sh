@@ -196,6 +196,89 @@ family_done_bar_leg3() {
     return 0
 }
 
+# family_open_ledger_entries FAMILY
+#
+# The `.5b` consumer-facing criterion: how many OPEN released-parser bug-ledger entries name
+# FAMILY? A known defect a downstream reported, still open, means the family's proof surface
+# missed something a consumer hit — leg 2 of the DONE-BAR bar cannot read green over it. Sets:
+#   DONE_BAR_LEDGER_OPEN_COUNT   integer;
+#   DONE_BAR_LEDGER_OPEN_IDS     comma-separated ledger ids, or "-" when none;
+#   DONE_BAR_LEDGER_ROWS         total ledger rows attributed to FAMILY (context).
+#
+# The state vocabulary is DERIVED from the ledger's own "State Meanings" section (a state added
+# there tomorrow is picked up rather than silently falling through); `Released` / `Rejected` are
+# the closed states, exactly as the DONE-BAR.1 census (run_ledger_open_census.sh) established.
+# REFUSES (exit 2) when the ledger or its State Meanings section cannot be read — a classification
+# against a guessed vocabulary would be this script's opinion, not the ledger's.
+#
+# Seam: PGEN_FAMILY_STATUS_LEDGER overrides the ledger path (probe driver).
+family_open_ledger_entries() {
+    local family="$1"
+    local ledger="${PGEN_FAMILY_STATUS_LEDGER:-$PGEN_FAMILY_STATUS_BAR_LIB_ROOT/docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md}"
+
+    DONE_BAR_LEDGER_OPEN_COUNT=""
+    DONE_BAR_LEDGER_OPEN_IDS=""
+    DONE_BAR_LEDGER_ROWS=""
+
+    if [[ ! -s "$ledger" ]]; then
+        echo "error: released-parser bug ledger '$ledger' is missing or empty; the open-entries criterion cannot be judged (DONE-BAR.5b)" >&2
+        exit 2
+    fi
+    local derived
+    if ! derived="$(python3 - "$ledger" "$family" <<'PY'
+import re, sys
+
+path, family = sys.argv[1], sys.argv[2]
+text = open(path, encoding="utf-8").read()
+
+if "## State Meanings" not in text:
+    print("REFUSE|the ledger has no '## State Meanings' section, so the state vocabulary cannot be derived")
+    raise SystemExit(0)
+sec = text.split("## State Meanings", 1)[1].split("## ", 1)[0]
+states = re.findall(r"^- `([^`]+)`", sec, re.MULTILINE)
+if not states:
+    print("REFUSE|the ledger's State Meanings section yielded ZERO states — an empty vocabulary classifies nothing")
+    raise SystemExit(0)
+CLOSED = {"Released", "Rejected"}
+
+rows = 0
+open_ids = []
+for line in text.splitlines():
+    if not line.startswith("| `"):
+        continue
+    cells = [c.strip().strip("`") for c in line.split("|")]
+    if len(cells) < 9:
+        continue
+    state = next((c for c in cells if c in states), None)
+    if state is None:
+        continue
+    row_family = cells[2].split("/")[0].strip().strip("`")
+    if row_family != family:
+        continue
+    rows += 1
+    if state not in CLOSED:
+        open_ids.append(cells[1])
+
+print(f"OK|{rows}|{len(open_ids)}|{','.join(open_ids) or '-'}")
+PY
+    )"; then
+        echo "error: the ledger open-entries derivation failed for family '$family' (DONE-BAR.5b)" >&2
+        exit 2
+    fi
+    if [[ "$derived" == REFUSE\|* ]]; then
+        echo "error: ${derived#REFUSE|} ('$ledger', DONE-BAR.5b). A criterion that cannot see must refuse, not return green." >&2
+        exit 2
+    fi
+    DONE_BAR_LEDGER_ROWS="$(cut -d'|' -f2 <<<"$derived")"
+    DONE_BAR_LEDGER_OPEN_COUNT="$(cut -d'|' -f3 <<<"$derived")"
+    DONE_BAR_LEDGER_OPEN_IDS="$(cut -d'|' -f4 <<<"$derived")"
+    if [[ ! "$DONE_BAR_LEDGER_OPEN_COUNT" =~ ^[0-9]+$ ]]; then
+        echo "error: ledger open-entries derivation returned a non-numeric count '$DONE_BAR_LEDGER_OPEN_COUNT' (DONE-BAR.5b)" >&2
+        exit 2
+    fi
+    return 0
+}
+
 # family_apply_done_bar_status LEGACY_STATUS
 #
 # The DONE-BAR cap over the legacy ladder: echoes the final computed status. `Done` is unreachable

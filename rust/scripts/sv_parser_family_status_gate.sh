@@ -547,7 +547,16 @@ sv_done_bar_leg3_qualifier="$DONE_BAR_PROVISIONAL_QUALIFIER"
 sv_done_bar_leg3_surface_gate="$DONE_BAR_LEG3_SURFACE_GATE"
 sv_done_bar_leg3_detail="$DONE_BAR_LEG3_DETAIL"
 
-sv_closure_criteria_total_count=8
+# DONE-BAR.5b: zero OPEN released-parser bug-ledger entries naming the family.
+family_open_ledger_entries "systemverilog"
+sv_ledger_open_entry_count="$DONE_BAR_LEDGER_OPEN_COUNT"
+sv_ledger_open_entry_ids="$DONE_BAR_LEDGER_OPEN_IDS"
+sv_ledger_open_entries_zero=false
+if [[ "$sv_ledger_open_entry_count" == "0" ]]; then
+    sv_ledger_open_entries_zero=true
+fi
+
+sv_closure_criteria_total_count=9
 sv_closure_criteria_satisfied_count=0
 if [[ "$sv_syntax_closure_gate_green" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
@@ -571,6 +580,9 @@ if [[ "$sv_formal_exhaustive_closure_surface_green" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
 fi
 if [[ "$sv_external_corpus_conformance_pass" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$sv_ledger_open_entries_zero" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
 fi
 
@@ -609,8 +621,16 @@ if [[ "$sv_external_corpus_conformance_pass" != true ]]; then
         --arg detail "external_corpus_conformance_pass=false (leg3_surface=${sv_done_bar_leg3_surface_gate})" \
         '{criterion:"external_corpus_conformance_pass",evidence_key:"done_bar_leg3_surface",observed:$observed,expected:"an external-corpus conformance surface asserted as a pass, external-backed, and actually invoked",detail:$detail}')")
 fi
+if [[ "$sv_ledger_open_entries_zero" != true ]]; then
+    # detail == the unmet string, per this gate's contract sibling.
+    sv_unmet+=("ledger_open_entry_count=${sv_ledger_open_entry_count} > 0 (${sv_ledger_open_entry_ids})")
+    sv_unmet_details+=("$(jq -cn \
+        --arg observed "$sv_ledger_open_entry_count" \
+        --arg detail "ledger_open_entry_count=${sv_ledger_open_entry_count} > 0 (${sv_ledger_open_entry_ids})" \
+        '{criterion:"ledger_open_entries_zero",evidence_key:"ledger_open_entry_count",observed:$observed,expected:"0",detail:$detail}')")
+fi
 
-if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true && "$sv_semantic_scope_contract_green" == true && "$sv_formal_exhaustive_closure_surface_green" == true ]]; then
+if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true && "$sv_semantic_scope_contract_green" == true && "$sv_formal_exhaustive_closure_surface_green" == true && "$sv_ledger_open_entries_zero" == true ]]; then
     sv_status="Done"
 else
     sv_status="Mostly Done"
@@ -670,7 +690,16 @@ svpp_done_bar_leg3_qualifier="$DONE_BAR_PROVISIONAL_QUALIFIER"
 svpp_done_bar_leg3_surface_gate="$DONE_BAR_LEG3_SURFACE_GATE"
 svpp_done_bar_leg3_detail="$DONE_BAR_LEG3_DETAIL"
 
-svpp_closure_criteria_total_count=13
+# DONE-BAR.5b: the ledger criterion for the second family this gate computes.
+family_open_ledger_entries "systemverilog_preprocessor"
+svpp_ledger_open_entry_count="$DONE_BAR_LEDGER_OPEN_COUNT"
+svpp_ledger_open_entry_ids="$DONE_BAR_LEDGER_OPEN_IDS"
+svpp_ledger_open_entries_zero=false
+if [[ "$svpp_ledger_open_entry_count" == "0" ]]; then
+    svpp_ledger_open_entries_zero=true
+fi
+
+svpp_closure_criteria_total_count=14
 svpp_closure_criteria_satisfied_count=0
 if [[ "$svpp_syntax_closure_gate_green" == true ]]; then
     ((svpp_closure_criteria_satisfied_count += 1))
@@ -709,6 +738,9 @@ if [[ "$svpp_formal_exhaustive_closure_surface_green" == true ]]; then
     ((svpp_closure_criteria_satisfied_count += 1))
 fi
 if [[ "$svpp_external_corpus_conformance_pass" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_ledger_open_entries_zero" == true ]]; then
     ((svpp_closure_criteria_satisfied_count += 1))
 fi
 
@@ -762,6 +794,14 @@ if [[ "$svpp_external_corpus_conformance_pass" != true ]]; then
         --arg detail "external_corpus_conformance_pass=false (leg3_surface=${svpp_done_bar_leg3_surface_gate})" \
         '{criterion:"external_corpus_conformance_pass",evidence_key:"done_bar_leg3_surface",observed:$observed,expected:"an external-corpus conformance surface asserted as a pass, external-backed, and actually invoked",detail:$detail}')")
 fi
+if [[ "$svpp_ledger_open_entries_zero" != true ]]; then
+    # detail == the unmet string, per this gate's contract sibling.
+    svpp_unmet+=("ledger_open_entry_count=${svpp_ledger_open_entry_count} > 0 (${svpp_ledger_open_entry_ids})")
+    svpp_unmet_details+=("$(jq -cn \
+        --arg observed "$svpp_ledger_open_entry_count" \
+        --arg detail "ledger_open_entry_count=${svpp_ledger_open_entry_count} > 0 (${svpp_ledger_open_entry_ids})" \
+        '{criterion:"ledger_open_entries_zero",evidence_key:"ledger_open_entry_count",observed:$observed,expected:"0",detail:$detail}')")
+fi
 
 if [[ "$svpp_syntax_closure_gate_green" == true \
    && "$svpp_parser_rejections_zero" == true \
@@ -772,7 +812,8 @@ if [[ "$svpp_syntax_closure_gate_green" == true \
    && "$svpp_stage4_rules_full" == true \
    && "$svpp_stage3_branches_full" == true \
    && "$svpp_stage4_branches_full" == true \
-   && "$svpp_formal_exhaustive_closure_surface_green" == true ]]; then
+   && "$svpp_formal_exhaustive_closure_surface_green" == true \
+   && "$svpp_ledger_open_entries_zero" == true ]]; then
     svpp_status="Done"
 else
     svpp_status="Mostly Done"
@@ -918,10 +959,16 @@ jq -n \
     --arg status_rule_done "$DONE_RULE" \
     --arg status_rule_provisional "$PROVISIONAL_RULE" \
     --argjson sv_external_corpus_conformance_pass "$sv_external_corpus_conformance_pass" \
+    --argjson sv_ledger_open_entries_zero "$sv_ledger_open_entries_zero" \
+    --argjson sv_ledger_open_entry_count "$sv_ledger_open_entry_count" \
+    --arg sv_ledger_open_entry_ids "$sv_ledger_open_entry_ids" \
     --arg sv_done_bar_leg3_qualifier "$sv_done_bar_leg3_qualifier" \
     --arg sv_done_bar_leg3_surface_gate "$sv_done_bar_leg3_surface_gate" \
     --arg sv_done_bar_leg3_detail "$sv_done_bar_leg3_detail" \
     --argjson svpp_external_corpus_conformance_pass "$svpp_external_corpus_conformance_pass" \
+    --argjson svpp_ledger_open_entries_zero "$svpp_ledger_open_entries_zero" \
+    --argjson svpp_ledger_open_entry_count "$svpp_ledger_open_entry_count" \
+    --arg svpp_ledger_open_entry_ids "$svpp_ledger_open_entry_ids" \
     --arg svpp_done_bar_leg3_qualifier "$svpp_done_bar_leg3_qualifier" \
     --arg svpp_done_bar_leg3_surface_gate "$svpp_done_bar_leg3_surface_gate" \
     --arg svpp_done_bar_leg3_detail "$svpp_done_bar_leg3_detail" \
@@ -971,9 +1018,12 @@ jq -n \
             focused_replay_target_debt_zero: $sv_focused_replay_target_debt_zero,
             semantic_scope_contract_green: $sv_semantic_scope_contract_green,
             formal_exhaustive_closure_surface_green: $sv_formal_exhaustive_closure_surface_green,
-            external_corpus_conformance_pass: $sv_external_corpus_conformance_pass
+            external_corpus_conformance_pass: $sv_external_corpus_conformance_pass,
+            ledger_open_entries_zero: $sv_ledger_open_entries_zero
           },
           metrics: {
+            ledger_open_entry_count: $sv_ledger_open_entry_count,
+            ledger_open_entry_ids: $sv_ledger_open_entry_ids,
             done_bar_leg3_qualifier: $sv_done_bar_leg3_qualifier,
             done_bar_leg3_surface_gate: $sv_done_bar_leg3_surface_gate,
             done_bar_leg3_detail: $sv_done_bar_leg3_detail,
@@ -1036,9 +1086,12 @@ jq -n \
             reachability_stage3_branches_full: $svpp_stage3_branches_full,
             reachability_stage4_branches_full: $svpp_stage4_branches_full,
             formal_exhaustive_closure_surface_green: $svpp_formal_exhaustive_closure_surface_green,
-            external_corpus_conformance_pass: $svpp_external_corpus_conformance_pass
+            external_corpus_conformance_pass: $svpp_external_corpus_conformance_pass,
+            ledger_open_entries_zero: $svpp_ledger_open_entries_zero
           },
           metrics: {
+            ledger_open_entry_count: $svpp_ledger_open_entry_count,
+            ledger_open_entry_ids: $svpp_ledger_open_entry_ids,
             done_bar_leg3_qualifier: $svpp_done_bar_leg3_qualifier,
             done_bar_leg3_surface_gate: $svpp_done_bar_leg3_surface_gate,
             done_bar_leg3_detail: $svpp_done_bar_leg3_detail,
@@ -1111,6 +1164,9 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_replay_gap_target_primary_rule: $sv_replay_gap_target_primary_rule"
     echo "systemverilog_formal_exhaustive_closure_surface_green: $sv_formal_exhaustive_closure_surface_green"
     echo "systemverilog_external_corpus_conformance_pass: $sv_external_corpus_conformance_pass"
+    echo "systemverilog_ledger_open_entries_zero: $sv_ledger_open_entries_zero"
+    echo "systemverilog_ledger_open_entry_count: $sv_ledger_open_entry_count"
+    echo "systemverilog_ledger_open_entry_ids: $sv_ledger_open_entry_ids"
     echo "systemverilog_done_bar_leg3_qualifier: $sv_done_bar_leg3_qualifier"
     echo "systemverilog_done_bar_leg3_surface_gate: $sv_done_bar_leg3_surface_gate"
     echo "systemverilog_done_bar_leg3_detail: $sv_done_bar_leg3_detail"
@@ -1152,6 +1208,9 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_preprocessor_reachability_summary_txt: $sv_preprocessor_reachability_summary_txt"
     echo "systemverilog_preprocessor_formal_exhaustive_closure_surface_green: $svpp_formal_exhaustive_closure_surface_green"
     echo "systemverilog_preprocessor_external_corpus_conformance_pass: $svpp_external_corpus_conformance_pass"
+    echo "systemverilog_preprocessor_ledger_open_entries_zero: $svpp_ledger_open_entries_zero"
+    echo "systemverilog_preprocessor_ledger_open_entry_count: $svpp_ledger_open_entry_count"
+    echo "systemverilog_preprocessor_ledger_open_entry_ids: $svpp_ledger_open_entry_ids"
     echo "systemverilog_preprocessor_done_bar_leg3_qualifier: $svpp_done_bar_leg3_qualifier"
     echo "systemverilog_preprocessor_done_bar_leg3_surface_gate: $svpp_done_bar_leg3_surface_gate"
     echo "systemverilog_preprocessor_done_bar_leg3_detail: $svpp_done_bar_leg3_detail"

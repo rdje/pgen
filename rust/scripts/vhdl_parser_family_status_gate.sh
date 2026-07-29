@@ -310,7 +310,16 @@ vhdl_done_bar_leg3_qualifier="$DONE_BAR_PROVISIONAL_QUALIFIER"
 vhdl_done_bar_leg3_surface_gate="$DONE_BAR_LEG3_SURFACE_GATE"
 vhdl_done_bar_leg3_detail="$DONE_BAR_LEG3_DETAIL"
 
-vhdl_closure_criteria_total_count=11
+# DONE-BAR.5b: zero OPEN released-parser bug-ledger entries naming the family.
+family_open_ledger_entries "vhdl"
+vhdl_ledger_open_entry_count="$DONE_BAR_LEDGER_OPEN_COUNT"
+vhdl_ledger_open_entry_ids="$DONE_BAR_LEDGER_OPEN_IDS"
+vhdl_ledger_open_entries_zero=false
+if [[ "$vhdl_ledger_open_entry_count" == "0" ]]; then
+    vhdl_ledger_open_entries_zero=true
+fi
+
+vhdl_closure_criteria_total_count=12
 vhdl_closure_criteria_satisfied_count=0
 for criterion in \
     "$vhdl_family_contract_green" \
@@ -323,7 +332,8 @@ for criterion in \
     "$vhdl_strict_promotion_eligible_for_required_strict_mode" \
     "$vhdl_strict_promotion_primary_blocker_none" \
     "$vhdl_formal_exhaustive_closure_surface_green" \
-    "$vhdl_external_corpus_conformance_pass"; do
+    "$vhdl_external_corpus_conformance_pass" \
+    "$vhdl_ledger_open_entries_zero"; do
     if [[ "$criterion" == true ]]; then
         ((vhdl_closure_criteria_satisfied_count += 1))
     fi
@@ -375,6 +385,13 @@ if [[ "$vhdl_external_corpus_conformance_pass" != true ]]; then
         --arg detail "$vhdl_done_bar_leg3_detail" \
         '{criterion:"external_corpus_conformance_pass",evidence_key:"done_bar_leg3_surface",observed:$observed,expected:"an external-corpus conformance surface asserted as a pass, external-backed, and actually invoked",detail:$detail}')")
 fi
+if [[ "$vhdl_ledger_open_entries_zero" != true ]]; then
+    vhdl_unmet+=("ledger_open_entry_count=${vhdl_ledger_open_entry_count} > 0 (${vhdl_ledger_open_entry_ids})")
+    vhdl_unmet_details+=("$(jq -cn \
+        --arg observed "$vhdl_ledger_open_entry_count" \
+        --arg detail "the released-parser bug ledger carries ${vhdl_ledger_open_entry_count} OPEN entr(y/ies) naming this family (${vhdl_ledger_open_entry_ids}) — a known, still-open downstream defect means the family's proof surface missed something a consumer hit" \
+        '{criterion:"ledger_open_entries_zero",evidence_key:"ledger_open_entry_count",observed:$observed,expected:"0",detail:$detail}')")
+fi
 
 vhdl_status="Not Started"
 if [[ "$vhdl_family_contract_green" == true ]]; then
@@ -388,7 +405,8 @@ if [[ "$vhdl_family_contract_green" == true \
    && "$vhdl_quality_closed_loop_replay_target_debt_zero" == true \
    && "$vhdl_strict_promotion_recommendation_green" == true \
    && "$vhdl_strict_promotion_eligible_for_required_strict_mode" == true \
-   && "$vhdl_strict_promotion_primary_blocker_none" == true ]]; then
+   && "$vhdl_strict_promotion_primary_blocker_none" == true \
+   && "$vhdl_ledger_open_entries_zero" == true ]]; then
     vhdl_status="Mostly Done"
 fi
 if [[ "$vhdl_status" == "Mostly Done" && "$vhdl_formal_exhaustive_closure_surface_green" == true ]]; then
@@ -448,6 +466,9 @@ vhdl_unmet_details_json="$(printf '%s\n' "${vhdl_unmet_details[@]:-}" | jq -R . 
     echo "vhdl_strict_promotion_primary_blocker_none: $vhdl_strict_promotion_primary_blocker_none"
     echo "vhdl_formal_exhaustive_closure_surface_green: $vhdl_formal_exhaustive_closure_surface_green"
     echo "vhdl_external_corpus_conformance_pass: $vhdl_external_corpus_conformance_pass"
+    echo "vhdl_ledger_open_entries_zero: $vhdl_ledger_open_entries_zero"
+    echo "vhdl_ledger_open_entry_count: $vhdl_ledger_open_entry_count"
+    echo "vhdl_ledger_open_entry_ids: $vhdl_ledger_open_entry_ids"
     echo "vhdl_done_bar_leg3_qualifier: $vhdl_done_bar_leg3_qualifier"
     echo "vhdl_done_bar_leg3_surface_gate: $vhdl_done_bar_leg3_surface_gate"
     echo "vhdl_done_bar_leg3_detail: $vhdl_done_bar_leg3_detail"
@@ -513,6 +534,9 @@ jq -n \
     --argjson vhdl_strict_promotion_primary_blocker_none "$vhdl_strict_promotion_primary_blocker_none" \
     --argjson vhdl_formal_exhaustive_closure_surface_green "$vhdl_formal_exhaustive_closure_surface_green" \
     --argjson vhdl_external_corpus_conformance_pass "$vhdl_external_corpus_conformance_pass" \
+    --argjson vhdl_ledger_open_entries_zero "$vhdl_ledger_open_entries_zero" \
+    --argjson vhdl_ledger_open_entry_count "$vhdl_ledger_open_entry_count" \
+    --arg vhdl_ledger_open_entry_ids "$vhdl_ledger_open_entry_ids" \
     --arg vhdl_done_bar_leg3_qualifier "$vhdl_done_bar_leg3_qualifier" \
     --arg vhdl_done_bar_leg3_surface_gate "$vhdl_done_bar_leg3_surface_gate" \
     --arg vhdl_done_bar_leg3_detail "$vhdl_done_bar_leg3_detail" \
@@ -579,9 +603,12 @@ jq -n \
             strict_promotion_eligible_for_required_strict_mode: $vhdl_strict_promotion_eligible_for_required_strict_mode,
             strict_promotion_primary_blocker_none: $vhdl_strict_promotion_primary_blocker_none,
             formal_exhaustive_closure_surface_green: $vhdl_formal_exhaustive_closure_surface_green,
-            external_corpus_conformance_pass: $vhdl_external_corpus_conformance_pass
+            external_corpus_conformance_pass: $vhdl_external_corpus_conformance_pass,
+            ledger_open_entries_zero: $vhdl_ledger_open_entries_zero
           },
           metrics: {
+            ledger_open_entry_count: $vhdl_ledger_open_entry_count,
+            ledger_open_entry_ids: $vhdl_ledger_open_entry_ids,
             done_bar_leg3_qualifier: $vhdl_done_bar_leg3_qualifier,
             done_bar_leg3_surface_gate: $vhdl_done_bar_leg3_surface_gate,
             done_bar_leg3_detail: $vhdl_done_bar_leg3_detail,

@@ -1,5 +1,25 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0013 — an open defect blocks the claim, not the commits
+
+`DONE-BAR.5b`. Status gates + shared helper — no `grammars/*.ebnf`, no `rust/src/*`, no
+`generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- The design fork worth recording: the `.5` charter lists "zero open ledger entries" among the
+  consumer-facing GATES, and the reflex is another pre-commit doctrine. That would be wrong: an
+  open ledger entry is a legitimate repository state (a downstream found a defect; it stays open
+  until released), and a doctrine failing every commit while a real bug is open blocks unrelated
+  work. What an open entry must block is the FAMILY'S TIER — it is a leg-2-class fact. So it landed
+  as a family-status-gate criterion through the shared helper, where a false value demotes below
+  `Provisional` with the offending ids named in the unmet detail.
+- Derivation notes: the state vocabulary comes from the ledger's own State Meanings section (a
+  state added there tomorrow is picked up); `Released`/`Rejected` are closed per the `.1` census;
+  family attribution is the row's second cell's first token (`` `regex` / `regex_default` `` ->
+  `regex`); an unreadable ledger or empty vocabulary REFUSES (exit 2) — a criterion that cannot
+  see must refuse, not return green.
+- sv-gate detail parity honored again (details[].detail == unmet[] — its contract sibling's unique
+  invariant, learned in `.2b`).
+
 ## 2026-07-29 - PGEN-DONE-BAR-0012 — fix a disclosure and gate it in the same slice, or the clock restarts
 
 `DONE-BAR.5a`. Guide + new doctrine check — no `grammars/*.ebnf`, no `rust/src/*`, no
