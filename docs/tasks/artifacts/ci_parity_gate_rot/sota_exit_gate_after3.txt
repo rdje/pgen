@@ -59,3 +59,101 @@ allow_informational_failures: 1
 ==> fixed_point_gate (required)
     ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/fixed_point_gate.log)
 ==> annotation_contract_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/annotation_contract_gate.log)
+==> annotation_100_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/annotation_100_gate.log)
+==> annotation_nonbootstrap_e2e_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/annotation_nonbootstrap_e2e_gate.log)
+==> ebnf_stimuli_quality_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/ebnf_stimuli_quality_gate.log)
+==> stimuli_module_parity_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/stimuli_module_parity_gate.log)
+==> differential_regression_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/differential_regression_gate.log)
+==> performance_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/performance_gate.log)
+==> embedding_api_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/embedding_api_gate.log)
+==> ebnf_frontend_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/ebnf_frontend_gate.log)
+==> ebnf_frontend_dual_run_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/ebnf_frontend_dual_run_gate.log)
+==> hdl_frontend_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/hdl_frontend_gate.log)
+==> sv_preprocessor_quality_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_preprocessor_quality_gate.log)
+==> sv_preprocessor_aggregate_contract_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_preprocessor_aggregate_contract_gate.log)
+==> sv_preprocessor_reachability_closure_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_preprocessor_reachability_closure_gate.log)
+sv_preprocessor_quality_state_dir: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate
+sv_preprocessor_quality_summary_csv: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate/summary.csv
+sv_preprocessor_quality_differential_report_json: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_differential_report.json
+sv_preprocessor_quality_parseability_mode_effective: enabled
+sv_preprocessor_quality_parseability_attempts_total: 97
+sv_preprocessor_quality_parseability_accepted_total: 97
+sv_preprocessor_quality_parseability_rejected_total: 0
+sv_preprocessor_quality_parseability_acceptance_rate_percent: 100.00
+sv_preprocessor_quality_target_drive_primary_entry_attempts_total: 64
+sv_preprocessor_quality_target_drive_primary_entry_accepted_outputs_total: 64
+sv_preprocessor_quality_target_drive_primary_entry_rejected_outputs_total: 0
+sv_preprocessor_quality_target_drive_alternate_entry_attempts_total: 2
+sv_preprocessor_quality_target_drive_alternate_entry_accepted_outputs_total: 2
+sv_preprocessor_quality_target_drive_alternate_entry_rejected_outputs_total: 0
+sv_preprocessor_quality_parseability_report_json: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parseability_report.json
+sv_preprocessor_quality_diff_mode_effective: unsupported_reference_runner
+sv_preprocessor_quality_diff_mismatch_count: 0
+sv_preprocessor_quality_diff_taxonomy_output_mismatch: 0
+sv_preprocessor_quality_diff_taxonomy_rust_failed_reference_passed: 0
+sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed: 0
+sv_preprocessor_quality_aggregate_contract_summary_txt: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_aggregate_contract_gate/summary.txt
+sv_preprocessor_parseability_report_json: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parseability_report.json
+sv_preprocessor_gap_stage3_json: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_gap_stage3.json
+sv_preprocessor_parseability_attempts_total: 97
+sv_preprocessor_parseability_accepted_total: 97
+sv_preprocessor_parseability_rejected_total: 0
+sv_preprocessor_parseability_parser_rejections_total: 0
+sv_preprocessor_parseability_counterexamples_captured_total: 0
+sv_preprocessor_stage0_target_count: 8
+sv_preprocessor_stage1_target_count: 2
+sv_preprocessor_final_targets: 0
+sv_preprocessor_stage4_target_count: 0
+sv_preprocessor_stage0_covered_reachable_rules: 71/74
+sv_preprocessor_stage1_covered_reachable_rules: 73/74
+sv_preprocessor_covered_reachable_rules: 74/74
+sv_preprocessor_stage4_covered_reachable_rules: 74/74
+sv_preprocessor_stage0_covered_reachable_branches: 0/5
+sv_preprocessor_stage1_covered_reachable_branches: 0/1
+sv_preprocessor_covered_reachable_branches: 0/0
+sv_preprocessor_stage4_covered_reachable_branches: 0/0
+sv_preprocessor_fuzz_replay_accepted_cases: 8
+sv_preprocessor_fuzz_replay_rejected_cases: 0
+sv_preprocessor_fuzz_replay_parseability_counterexamples: 0
+sv_preprocessor_counterexample_triage_json: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_aggregate_contract_gate/work/systemverilog_preprocessor_parseability_counterexample_triage.json
+sv_preprocessor_counterexample_triage_txt: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_aggregate_contract_gate/work/systemverilog_preprocessor_parseability_counterexample_triage.txt
+sv_preprocessor_counterexample_unique_shrunk_samples: 0
+sv_preprocessor_counterexample_primary_stage: <none>
+sv_preprocessor_counterexample_primary_stage_count: 0
+sv_preprocessor_counterexample_primary_shrunk_sample: <none>
+sv_preprocessor_counterexample_primary_shrunk_sample_count: 0
+sv_preprocessor_counterexample_primary_parser_error: <none>
+sv_preprocessor_counterexample_primary_parser_error_count: 0
+sv_preprocessor_counterexample_primary_failure_location: <none>
+sv_preprocessor_counterexample_primary_failure_location_count: 0
+sv_preprocessor_counterexample_primary_failure_line_excerpt_json: "<none>"
+sv_preprocessor_counterexample_primary_failure_line_excerpt_count: 0
+sv_preprocessor_counterexample_primary_failure_context_excerpt_json: "<none>"
+sv_preprocessor_counterexample_primary_failure_context_excerpt_count: 0
+sv_preprocessor_counterexample_unique_failure_locations: 0
+sv_preprocessor_counterexample_unique_failure_line_excerpts: 0
+sv_preprocessor_counterexample_unique_failure_context_excerpts: 0
+sv_preprocessor_reachability_closure_summary_txt: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/sv_preprocessor_reachability_closure_gate/summary.txt
+sv_preprocessor_reachability_stage3_targets: 0
+sv_preprocessor_reachability_stage4_targets: 0
+sv_preprocessor_reachability_stage3_covered_reachable_rules: 74/74
+sv_preprocessor_reachability_stage4_covered_reachable_rules: 74/74
+sv_preprocessor_reachability_stage3_covered_reachable_branches: 0/0
+sv_preprocessor_reachability_stage4_covered_reachable_branches: 0/0
+sv_preprocessor_reachability_parseability_rejected: 0
+sv_preprocessor_reachability_parser_rejections: 0
+==> sv_stimuli_quality_gate (required)

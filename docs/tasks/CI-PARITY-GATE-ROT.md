@@ -7,7 +7,11 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.11`, then `.10`). ✅ **`.9` done 2026-07-29
+- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.11`, then `.10`). ✅ **`.12` done
+  2026-07-29 session #221 — the 13th enforced doctrine `ROUTING-EVIDENCE`**: a leaf routing a finding
+  OUT of its tree must record what it MEASURED, above all whether the finding reproduces outside the
+  family it is being sent to. ⚠️ Its first cut would have PASSED its own founding incident (`-0015`
+  names a FAMILY, never the tree file) — caught because RED-1 replays the real commit. ✅ **`.9` done 2026-07-29
   session #221** — the seventh blocker, and the routing that sent it to the regex family was
   refuted by measurement: the stimuli gates were reading the target-DRIVE summary and discarding
   the witness pass appended after it, so `resolved_targets` was a snapshot taken before the last
@@ -625,6 +629,123 @@ are, at the source and for every grammar.
 - [x] **LOCKSTEP** — `docs/book/src/gate-flow.md` §7 gains the **sixth** failure shape (*a metric
   that stopped meaning its own name*) and its rule; `docs/tasks/REGEX-PCRE2-FIDELITY.md` records the
   refuted routing premise instead of deleting it; `.10` opened for the 3-way duplication.
+
+---
+
+### `.12` — the 13th enforced doctrine `ROUTING-EVIDENCE`: a routing decision must record what it measured (`done`)
+
+- **Status: `done`** (2026-07-29, session #221, `PGEN-CI-PARITY-GATE-ROT-0018`), on the director's
+  question *"do you have clean ways to fix these?"* about the three items `.9` surfaced. This is
+  item 3.
+- **THE INCIDENT IT MECHANIZES.** `-0015` routed the target-accounting blocker to the regex family
+  as *"the regex family's stimuli target-accounting MODEL, not gate wiring"*. It was neither: the
+  defect was in the SHARED closed-loop gate, the `ebnf` row of the same run was wrong the same way,
+  and the regex accounting was never wrong. ⭐ **The deciding evidence — cross-grammar arithmetic
+  over the run's own `summary.csv` — was already on disk when the routing was written.** The
+  misroute cost a session.
+- **THE RULE.** A staged `docs/tasks/*.md` that adds a line routing a finding **out of this tree**
+  must contain a `ROUTING EVIDENCE` section, or the commit is BLOCKED and the line is quoted back.
+  The section's first question is the one the misroute never asked: *does the finding reproduce
+  OUTSIDE the family you are routing it to?*
+- ⭐ **An honest "not checked outside this family" is a LEGAL answer.** The check must not punish
+  candour — same reasoning as `WAIVER-ROUTING`: forbidding the language would delete the signal.
+  What is forbidden is routing *silently*.
+
+#### ⚠️⚠️ THE FIRST CUT WOULD HAVE PASSED ITS OWN FOUNDING INCIDENT
+
+The first implementation required a routing verb **and the destination TREE ID on the same line**.
+Replaying commit `59f810e1` showed `-0015` never names the tree — it says *"BELONGS TO ANOTHER
+FAMILY"* and *"Filed against the regex family"*. **The check was calibrated against a phrasing I
+imagined rather than the one that actually occurred, and it would have shipped green over the very
+commit it exists to prevent.** Caught only because RED-1 replays the real diff instead of a
+paraphrase.
+
+⇒ the predicate was re-keyed onto the **semantics of leaving the tree** (`routed out`, `belongs to
+another family`, `filed against the <x> family`, `route it to that family's tree`), and then
+**calibrated against the whole tracked corpus** rather than against intuition:
+
+| measurement | result |
+|---|---|
+| lines flagged corpus-wide | **11**, across 4 trees |
+| the three real `-0015` routing lines | **all flagged** |
+| intra-tree routings in the corpus (`routed to \`.N\``) | **17** |
+| of those, falsely flagged | **0** |
+
+⚠️ **And two of my own greps disagreed while measuring this** — one case-sensitive, one not,
+reporting 5 lines and 11 lines for "the same" predicate. Settled by running a single predicate
+consistently. *An instrument used twice must be the same instrument.*
+
+#### Probes — 8/8, the founding incident REPLAYED from git
+
+`docs/tasks/artifacts/ci_parity_gate_rot/run_routing_evidence_probes.sh`. It runs entirely inside a
+scratch git repo (it must stage fixtures, and must never touch the real index), and it refuses up
+front if the extracted `-0015` text does not contain the routing statement — so it cannot silently
+test nothing.
+
+- **RED-1** the verbatim `-0015` added lines ⇒ BLOCK. **RED-2** a different phrasing
+  (*"filed against the vhdl family"*) ⇒ BLOCK, proving the rule is not pinned to one incident's words.
+- **GREEN-1** the same text plus a `ROUTING EVIDENCE` section ⇒ pass.
+- **CTRL-1** intra-tree routing ⇒ pass (the measured common case). **CTRL-2** the `ROUTED-IN`
+  receiving side ⇒ pass. **CTRL-3** unstaged, **CTRL-4** empty staged set, **CTRL-5** the same
+  language in a non-task file ⇒ pass.
+
+⚠️⚠️ **A FALSE-POSITIVE CLASS, FOUND BY DOGFOODING IT ON THIS VERY COMMIT.** Verifying the new
+doctrine's PASS was earned rather than vacuous (remove the `ROUTING EVIDENCE` section ⇒ exit 1;
+restore ⇒ exit 0) showed the **5 trigger lines in this leaf are all QUOTATIONS** of the routing
+phrases, not routing decisions. ⇒ **a leaf that merely DISCUSSES routing fires the check** — the
+self-referential shape already recorded as [[reference_self_referential_assertion_is_unsound]], which
+this repo priced at one site and deliberately did not mechanize around. **Accepted on the same
+reasoning and stated in the check's own header**: the discharge is one section, it errs toward asking
+rather than staying silent, and narrowing the predicate to exclude quotation would re-introduce
+precisely the phrasing-guessing that made the first cut miss `-0015`. ⭐ In this leaf's case the
+section was warranted anyway — `.9` really did route a finding back out of this tree.
+
+⚠️ **HONEST LIMIT, in the check's own header:** this verifies the reasoning was **RECORDED**, not
+that the reproduction was attempted or that its conclusion was right. It would have caught `-0015`
+because `-0015` recorded no cross-family check at all — not because it can tell a good check from a
+bad one. That is the bound every evidence-archetype doctrine carries (`DESIGN-PRIOR-ART` states the
+same one).
+
+## ROUTING EVIDENCE
+
+Recorded because `.9` **routed a finding back out of this tree** (the `REGEX-PCRE2-FIDELITY`
+`ROUTED-IN` entry), and this leaf's own doctrine applies to it.
+
+1. **Does the finding reproduce outside the family it was sent to?** **Yes, measured.** The `ebnf`
+   row of the same run reconciles only with the post-witness figure (`55` vs `60`), and the identical
+   stale reader was found in `annotation_stimuli_quality_gate.sh` (measured: `semantic` 169 vs 170)
+   and `sv_preprocessor_quality_gate.sh`. A defect that fires for `ebnf`, the annotation grammars and
+   the SV preprocessor is not a regex-family defect.
+2. **What was measured, not what was plausible?** The five-row reconciliation table in `.9`, the two
+   summary lines of the stage-2 log, and the `git log -S` timeline placing the reader before the pass
+   it must account for.
+3. **What would make the routing wrong, and was it checked?** It would be wrong if the accounting
+   were genuinely regex-specific. Checked and refuted: the defect is in a gate that runs five
+   grammars, and the regex accounting itself was correct all along.
+
+## Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `git show 59f810e1 -- docs/tasks/CI-PARITY-GATE-ROT.md | grep '^+'`
+  yields the routing statement *"ROUTED OUT, WITH EVIDENCE, BECAUSE IT GENUINELY BELONGS TO ANOTHER
+  FAMILY"* with no recorded cross-family check — a routing decision landed on reasoning alone.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: no doctrine covered routing decisions; the enforcer
+  registry `scripts/check_doctrines.sh` listed 12 checks, none of them about routing. WHY:
+  `git log -S'target accounting mismatch'` and the run's own `summary.csv` were both available at
+  routing time, so the failure was not missing evidence but **unrequired** evidence. Confirmed by
+  `bash -n` clean replay: the first cut of the check, run against the real commit, returned exit 0.
+- [x] **FIX** — declarative tier (a repo-root `scripts/check_*.sh` + one registry row; no grammar,
+  no engine, no `rust/scripts/*`). Predicate derived from the corpus, not hand-imagined.
+- [x] **ADDRESSED (verified)** — before→after on the founding incident: the first cut returned
+  **exit 0** (PASS) on the verbatim `-0015` diff; the shipped check returns **exit 1** naming the
+  file and quoting the line. Probes **8/8**.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`, and no
+  `rust/scripts/*` (deliberately: an aggregate run was in flight) ⇒ all 11 generated parsers
+  byte-identical **by construction**; corpus calibration shows **0 false positives** over the 17
+  intra-tree routings; `bash scripts/check_doctrines.sh` → **ALL 13 enforced doctrines PASS**
+  (was 12); `bash -n` clean.
+- [x] **LOCKSTEP** — registered in `scripts/check_doctrines.sh` (so `.githooks/pre-commit` and CI
+  both run it); no live doc pins a doctrine count, so none needed updating — the driver reports the
+  count dynamically, which is why adding a doctrine did not create a stale claim anywhere.
 
 ---
 

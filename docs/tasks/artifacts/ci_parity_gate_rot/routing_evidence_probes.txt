@@ -1,0 +1,11 @@
+=== CI-PARITY-GATE-ROT.12 — ROUTING-EVIDENCE probes ===
+✓ RED-1 the REAL -0015 routing => BLOCK          BLOCK
+✓ GREEN-1 same text + ROUTING EVIDENCE => pass   PASS
+✓ RED-2 different phrasing => BLOCK              BLOCK
+✓ CTRL-1 intra-tree routing => pass              PASS
+✓ CTRL-2 ROUTED-IN receiving side => pass        PASS
+✓ CTRL-3 unstaged routing => pass                PASS
+✓ CTRL-4 empty staged set => pass                PASS
+✓ CTRL-5 routing text outside docs/tasks => pass PASS
+---
+arms=8 PASS=8 FAIL=0

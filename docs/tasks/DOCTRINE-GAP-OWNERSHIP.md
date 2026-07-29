@@ -341,6 +341,48 @@ actionable count is plausibly 10–25, not 140. ⛔ **Do not open 140 leaves.**
   `CI-PARITY-GATE-ROT.1`'s finding that pinning a value designed to change duplicates ownership
   already held by the release-policy gates.
 
+#### ⭐⭐ SCOPE EXTENDED 2026-07-29 (session #221) — a FOURTH stale figure family in the SAME block, and it sharpens the conclusion above
+
+Routed in from `CI-PARITY-GATE-ROT.9`, which arrived at this paragraph from the opposite direction
+(a gate metric, not a doc audit) and landed on the same prose. **Two independent investigations, one
+paragraph.**
+
+`PGEN_USER_GUIDE.md:3816-3830` publishes, under the heading **"Current measured operational
+baseline"**:
+
+| published as current | measured 2026-07-29 |
+|---|---|
+| `initial_targets=804` | **1033** |
+| `resolved_targets=804` | **1002** |
+| `final_targets=0` | **31** |
+| `target_attempts=6526` | 10000 (the family gate's budget) |
+
+⭐⭐⭐ **AND THIS INSTANCE KILLS THE "JUST KEEP IT IN SYNC" FIX OUTRIGHT.** The other three stale
+figures in this block went stale because nobody re-copied them. This one is different: until
+`CI-PARITY-GATE-ROT.9` landed, **the gate itself was publishing the wrong number** — a diligent
+maintainer re-copying from `summary.csv` on any day between 2026-06-02 and 2026-07-29 would have
+copied `723`, or `811`, depending only on the attempt budget that run happened to use. ⇒ *a
+hand-copied measured value cannot be kept correct by diligence, because the source can be wrong and
+the copy has no way to know.*
+
+- ⛔ **Do NOT simply refresh these four numbers to today's values** — that is the treadmill that
+  produced the other three, and `.9` proved the treadmill can hand you a wrong number.
+- ⭐ **Preferred fix, consistent with what this leaf already concluded about the version pair:** stop
+  presenting a moving measured value as a *current* claim. Either (a) name the command and the
+  artifact that produce it (`make -C rust SHELL=/bin/bash regex_parser_family_contract_gate` →
+  `stimuli_regex_*` in its `summary.txt`) and let the reader measure, or (b) if a figure is genuinely
+  useful in prose, stamp it with the date and commit it was measured at, so it can never silently
+  become a false current claim.
+- **Class question this raises, and it is not answered here:** how many other tracked docs publish an
+  un-dated measured figure as current? Not measured — measuring it is part of this leaf's scope when
+  taken up, and the answer decides whether a doctrine check (*"a live doc must not present an
+  un-dated measured metric"*) is worth mechanizing or is over-mechanization for a handful of sites
+  (`GENERATED-LINT-CORRECTNESS.4`'s rule).
+- ⚠️ **The dated 2026-03-28 tracker notes in `LIVE_ACHIEVEMENT_STATUS.md:1504-1508` citing
+  `resolved_targets=355`/`233` are NOT part of this.** They predate the witness pass (2026-06-02) and
+  were correct when written. Rewriting them would be back-dating the record — the discipline this
+  project refuses.
+
 ### `.5` — the `??` coalesce operator is PROMISED IN A PUBLISHED BOOK and owned by nothing (`todo`)
 
 - **Status: `todo`** — opened by `.1` (session #217). Ownership only.
