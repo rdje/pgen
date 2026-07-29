@@ -3476,3 +3476,44 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
   WHITELIST (new leaf `.3.11`). Profile naming resolved to explicit `pcre2` (per `.2`); `\K`-in-lookaround
   (#10) still open. Oracle facts recorded as [[reference_pcre2_unsupported_escape_oracle]]. Frontier →
   `.3.1` IMPLEMENTATION.
+
+### `ROUTED-IN` — `regex_parser_family_contract_gate` is RED: the stimuli target-accounting assertion (`todo`)
+
+- **Status: `todo`** — routed in 2026-07-29 from `CI-PARITY-GATE-ROT.7` with evidence, because it
+  belongs to the regex family and not to the gate-wiring flow: no state dir, no artifact hand-off,
+  no workflow and no `generated/` dependency is involved. Only the regex stimuli target-accounting
+  MODEL is.
+- ⭐ **How it surfaced.** `make -C rust SHELL=/bin/bash sota_exit_gate` had never reached the regex
+  family — five earlier blockers killed it first. With those fixed the aggregate now runs 4 h 59 m,
+  clears 30+ required sub-gates including the entire SV and VHDL blocks, and dies here:
+
+```
+==> regex_parser_family_contract_gate (required)   fail
+error: stimuli regex target accounting mismatch (723 + 31 != 1033)
+```
+
+- **WHERE:** `rust/scripts/regex_parser_family_contract_gate.sh:360` asserts
+  `resolved_targets + final_targets == initial_targets`.
+- **Measured** (`rust/target/sota_exit_gate/work/ebnf_stimuli_quality_gate/summary.csv`, regex row):
+  `initial_targets=1033  resolved_targets=723  final_targets=31  status=pass` — deficit **279**.
+- ⭐⭐ **THE PRODUCER SAYS PASS; THE CONSUMER'S MODEL SAYS MISMATCH.** `ebnf_stimuli_quality_gate`
+  marks that row `pass`. The failure is the consumer assuming the target set is **closed** — that
+  every initial target ends either resolved or still-open. The pipeline runs staged target drives
+  (`stage0`/`stage3`, 5,000 `target_attempts`, 3,549 `stage3_successes`) with a recompute step, so
+  `final_targets` may be a **recomputed** set rather than a subset of `initial_targets`; if so the
+  equality is not an invariant of the pipeline at all.
+- ⚠️ **DELIBERATELY NOT ADJUDICATED — the two readings have OPPOSITE fixes**, and guessing destroys
+  either a real check or a real accounting bug. This is the same fork `CI-PARITY-GATE-ROT.5` faced
+  and refused; that leaf's method is the template — settle it from the CONTRACT'S OWN description of
+  what the numbers mean, and from the code that produces them, before touching either side.
+- **Provenance:** `git log -S'target accounting mismatch'` → `ef15fac2` (2026-03-17) *"Add regex
+  parser-family contract gate"* — the assertion and the gate shipped in the SAME commit, so the
+  coupling is original, not drift.
+- **Class sweep:** `grep -rn 'target accounting mismatch' rust/scripts/*.sh` → **exactly 1 site**.
+  The SV and VHDL family gates make no equivalent assertion, which is itself evidence worth weighing
+  when deciding which side is wrong.
+- ⛔ **Acceptance must be the aggregate, not the sub-gate**: `sota_exit_gate` has revealed six
+  blockers, one per fix, each hidden behind the last, and **no run has ever reached the end** — so
+  fixing this one reveals whatever is behind it rather than turning the aggregate green.
+- **Evidence:** `docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_after2.txt` (guard marker,
+  the failing stage, the measured row, provenance and the class sweep).

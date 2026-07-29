@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0015 — the .7 fix is PROVEN and prices itself (+13,692 s), and the aggregate is still RED six blockers in
+
+`CI-PARITY-GATE-ROT.7` acceptance run 2 consumed; the regex blocker it revealed is ROUTED OUT to the
+regex family with evidence. Docs + 1 evidence capture — **no `grammars/*.ebnf`, no `rust/src/*`, no
+`generated/*`** ⇒ all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- ✅ **THE FIX WORKS.** Run 1 (before `.7`) died at `sv_parser_family_status_gate` after 4,249 s.
+  Run 2 clears it, `sv_parser_family_status_contract_gate`, and the **entire VHDL block**, reaching
+  the regex family: `guard status=completed reason=none exit=2 peak_rss_mb=11208 elapsed_s=17941`
+  (**4 h 59 m**).
+- ⭐ **AND IT PRICES ITSELF: +13,692 s.** Four sub-gates the aggregate previously SUPPRESSED now
+  actually run, plus everything downstream that had never executed. **The aggregate's real cost was
+  always this**; 4,249 s was the cost of dying early. ⇒ the `timeout-minutes: 360` decision taken in
+  `.6` (the platform maximum, because every lower number was a guess) is vindicated: at 4 h 59 m
+  locally, the earlier 300 would have left almost no hosted margin.
+- ⛔ **A SIXTH PRE-EXISTING BLOCKER, NEWLY REACHABLE**: `regex_parser_family_contract_gate` (required)
+  fails on `stimuli regex target accounting mismatch (723 + 31 != 1033)`.
+  `regex_parser_family_contract_gate.sh:360` asserts `resolved + final == initial`; measured
+  `initial_targets=1033 resolved_targets=723 final_targets=31`, deficit 279.
+- ⭐⭐ **THE PRODUCER SAYS PASS; THE CONSUMER'S MODEL SAYS MISMATCH.** `ebnf_stimuli_quality_gate`
+  records `status=pass` for that row. The failure is the consumer assuming the target set is CLOSED
+  — that every initial target ends resolved or still-open — while the pipeline runs staged target
+  drives with a recompute step, so `final_targets` may be a RECOMPUTED set rather than a subset.
+  ⚠️ **Deliberately NOT adjudicated**: the two readings have opposite fixes, and guessing destroys
+  either a real check or a real accounting bug. Same fork `.5` faced and refused.
+- **Provenance**: `git log -S` → `ef15fac2` (2026-03-17), assertion and gate in the SAME commit — an
+  original coupling, not drift. **Class sweep**: exactly 1 site; the SV and VHDL family gates make no
+  equivalent assertion, which is evidence about which side is wrong.
+- ⛔⛔ **ROUTED OUT WITH EVIDENCE, and that is within the director's constraint**: it belongs to the
+  regex family, not the gate-wiring flow — no state dir, no hand-off, no workflow, no `generated/`
+  dependency is involved. Filed into `docs/tasks/REGEX-PCRE2-FIDELITY.md`.
+- ⚠️⚠️ **THE HONEST STATEMENT ABOUT THE AGGREGATE**: `sota_exit_gate` has now revealed **six**
+  blockers, one per fix, each hidden behind the last, and **no run has ever reached the end**.
+  Nobody knows how many remain. The only defensible claim is *"it now clears 30+ required sub-gates
+  including the entire SV and VHDL blocks, and fails in the regex family"* — **not** *"one more fix
+  and it is green."* `.7`'s acceptance is NOT met, and the tree stays OPEN.
+
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0014 — the flow's invariants move to the AUTOMATIC tier: the 12th enforced doctrine FLOW-INTEGRITY
 
 `CI-PARITY-GATE-ROT.8` DONE, on the director's instruction *"put things in place to make sure it

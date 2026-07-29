@@ -442,6 +442,57 @@ cannot test a rule the gate does not apply): RED-1 absent ⇒ refuse; ⭐ **RED-
 in-run artifact ⇒ accept; CTRL-1 no epoch declared ⇒ today's behaviour preserved; RED-3 empty
 summary ⇒ refuse.
 
+#### ✅ THE FIX IS PROVEN, AND IT PRICED ITSELF — but the aggregate is STILL RED, six blockers in
+
+Acceptance run 2, same command, state dir wiped first:
+`guard status=completed reason=none exit=2 peak_rss_mb=11208 elapsed_s=17941` (**4 h 59 m**).
+
+**What the fix proved.** Run 1 died at `sv_parser_family_status_gate` after 4,249 s. Run 2 clears it,
+`sv_parser_family_status_contract_gate`, and the **entire VHDL block**, reaching the regex family.
+⇒ **the `.7` fix works.** And it prices itself: **+13,692 s**, because four sub-gates the aggregate
+previously SUPPRESSED now actually run, plus everything downstream that had never executed. The
+aggregate's real cost was always this; the old 4,249 s was the cost of dying early.
+
+#### ⛔ A SIXTH PRE-EXISTING BLOCKER, NEWLY REACHABLE — AND IT IS NOT FLOW
+
+```
+==> regex_parser_family_contract_gate (required)   fail
+error: stimuli regex target accounting mismatch (723 + 31 != 1033)
+```
+
+`rust/scripts/regex_parser_family_contract_gate.sh:360` asserts
+`resolved_targets + final_targets == initial_targets`. Measured this run:
+`initial_targets=1033 resolved_targets=723 final_targets=31` — deficit **279**.
+
+⭐ **The PRODUCER says pass; the CONSUMER's model says mismatch.** `ebnf_stimuli_quality_gate`
+records `status=pass` for that row. The failure is the consumer assuming the target set is CLOSED —
+that every initial target ends either resolved or still-open. The pipeline runs stages (stage0 /
+stage3, 5,000 `target_attempts`, 3,549 `stage3_successes`) with a recompute step, so `final_targets`
+may be a RECOMPUTED set rather than a subset of `initial_targets`, in which case the equality is not
+an invariant of the pipeline at all. ⚠️ **NOT ADJUDICATED — the two readings have opposite fixes and
+this leaf refuses to guess**, exactly as `.5`'s adjudication refused before it.
+
+**Provenance:** `git log -S'target accounting mismatch'` → `ef15fac2` (2026-03-17) *"Add regex
+parser-family contract gate"* — assertion and gate shipped together, an original coupling like
+`.5`'s, not drift. **Class sweep:** exactly **1** site repo-wide; the SV and VHDL family gates make
+no such assertion, which is itself evidence worth weighing.
+
+⛔⛔ **ROUTED OUT, WITH EVIDENCE, BECAUSE IT GENUINELY BELONGS TO ANOTHER FAMILY.** This is the regex
+family's stimuli target-accounting model, not gate wiring: no state dir, no hand-off, no workflow, no
+`generated/` dependency is involved. The director's constraint is *fix flow-surface findings in
+place, route out only what belongs to another family, and then route it to that family's tree with
+evidence* — this is that case. Filed against the regex family with the full capture in
+`docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_after2.txt`.
+
+#### ⚠️⚠️ THE HONEST STATEMENT ABOUT THE AGGREGATE
+
+`sota_exit_gate` has now revealed **six** blockers, one per fix, each hidden behind the last:
+`.3`'s missing artifacts → `.5`'s three unsatisfiable assertions → `.7`'s four bad hand-offs →
+this. **Nobody knows how many remain**, because no run has ever reached the end. The only honest
+claim is *"it now clears 30+ required sub-gates including the entire SV and VHDL blocks, and fails
+in the regex family"* — not *"one more fix and it is green."* ⇒ this leaf's original acceptance
+(*"green end-to-end"*) is **not** met and is not met by anything landed here.
+
 ⏳ **OUTSTANDING — this leaf is NOT done:** `make -C rust SHELL=/bin/bash sota_exit_gate` end-to-end.
 The fix makes the aggregate run four sub-gates it previously suppressed, so the aggregate's cost
 will rise from the measured 4,249 s by an amount **not yet priced**. Until that run reaches the end,

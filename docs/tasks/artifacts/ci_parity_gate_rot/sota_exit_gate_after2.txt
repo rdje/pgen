@@ -1,0 +1,64 @@
+CI-PARITY-GATE-ROT.7 acceptance — sota_exit_gate END-TO-END, run 2 (WITH the .7 fix)
+===========================================================================
+
+status=completed
+reason=none
+exit=2
+budget_mb=12288
+floor_pct=10
+disk_floor_gb=8
+timeout_s=21600
+peak_rss_mb=11208
+last_free_pct=66
+last_disk_free_gb=3365
+elapsed_s=17941
+cmd=make -C rust SHELL=/bin/bash sota_exit_gate
+ended_at=2026-07-29T06:15:22+0200
+
+--- ✅ WHAT THE FIX PROVED: the SV block now clears completely ---
+==> sv_failure_context_contract_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_failure_context_contract_gate.log)
+==> sv_roundtrip_contract_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_roundtrip_contract_gate.log)
+==> sv_parser_family_status_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_parser_family_status_gate.log)
+==> sv_parser_family_status_contract_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/sv_parser_family_status_contract_gate.log)
+
+  Run 1 (before .7) died HERE at sv_parser_family_status_gate after 4,249 s.
+  Run 2 clears it, the whole VHDL block, and reaches the regex family — 17,941 s (4h59m).
+  ⇒ the fix works, AND it prices itself: +13,692 s, because four sub-gates the aggregate
+    previously SUPPRESSED now actually run, plus everything downstream that had never executed.
+
+--- ⛔ STILL RED: a SIXTH pre-existing blocker, newly reachable ---
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/vhdl_parser_family_status_contract_gate.log)
+==> regex_parser_family_contract_gate (required)
+    fail (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/regex_parser_family_contract_gate.log)
+==> regex_parser_family_status_gate (required)
+    fail (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/regex_parser_family_status_gate.log)
+jq: error: Could not open file /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/regex_parser_family_status_gate/summary.json: No such file or directory
+make: *** [sota_exit_gate] Error 2
+
+--- the failing assertion and its data ---
+  rust/scripts/regex_parser_family_contract_gate.sh:360
+    resolved_targets + final_targets != initial_targets
+  measured this run (rust/target/sota_exit_gate/work/ebnf_stimuli_quality_gate/summary.csv):
+    initial_targets=1033 resolved_targets=723 final_targets=31  status=pass
+    723 + 31 = 754, deficit 279
+
+--- ⭐ THE PRODUCER SAYS PASS; THE CONSUMER'S MODEL SAYS MISMATCH ---
+  ebnf_stimuli_quality_gate records status=pass for that row. The failure is the CONSUMER's
+  assumption that the target set is CLOSED — that every initial target ends either resolved or
+  still-open. The pipeline has stages (stage0/stage3, 5,000 target_attempts, 3,549 stage3
+  successes) and a recompute step, so final_targets may be a RECOMPUTED set rather than a subset
+  of initial_targets. If so the equality is not an invariant of the pipeline at all.
+  ⚠️ NOT ADJUDICATED — the two readings have opposite fixes and this leaf refuses to guess,
+     exactly as .5's adjudication did before it.
+
+--- provenance: original coupling, not drift ---
+  git log -S'target accounting mismatch' -> ef15fac2 2026-03-17 'Add regex parser-family
+  contract gate' — the assertion shipped in the same commit as the gate, like .5's did.
+
+--- class sweep ---
+  grep -rn 'target accounting mismatch' rust/scripts/*.sh -> exactly 1 site (regex only).
+  The SV/VHDL family gates do NOT make this assertion, which is itself evidence worth weighing.
