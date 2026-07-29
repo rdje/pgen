@@ -773,16 +773,82 @@ Recorded because `.9` **routed a finding back out of this tree** (the `REGEX-PCR
   a log to check it is non-empty, or to capture a failure excerpt, is legitimate and not this shape.
   **The triage is the work**: for each site, does it derive a *number or verdict* from prose, and if
   so, is that prose emitted by a pass that something could be appended after?
-- **Scope when taken up:** triage the 17; for each true instance either (a) move the read to the
+#### ✅ TRIAGE DONE (2026-07-29, session #221) — read-only, so it ran while `.7`'s aggregate was in flight
+
+⛔ **THE `17 SCRIPTS` HEADLINE ABOVE IS SUPERSEDED — it was still the wrong instrument.** Two of the
+17 were **false positives** and one script was **missed**:
+
+- `sv_stimuli_quality_gate` matched on `>"$parse_log"` — a **redirect target**, i.e. the script
+  WRITING a log, not reading one.
+- `sv_combined_telemetry_contract_gate` matched because **`systemveriLOG`** contains `log`.
+- `ci_workflow_local_gate` was **missed** entirely.
+
+⇒ corrected, with the three `.9` sites as ground truth (all detected) and the two false positives as
+controls (both excluded): **53 read-sites across 16 scripts.** ⭐ And the SITE count is the useful
+number — the file count hid that two scripts carry 11 sites each and one helper feeds ~40 values.
+
+| class | sites | what it is |
+|---|---|---|
+| **FIXED** | 6 | `.9`'s three scripts, two sites each |
+| **METRIC** | 13 | a NUMBER parsed out of prose and used in a gate decision or published — **the real targets** |
+| **VERDICT** | 23 | `if/elif` chains classifying *why* a trial failed, by grepping an exact error sentence |
+| **DIAGNOSTIC** | 2 | error text echoed for humans |
+| **REVIEW** | 9 | head-excerpts, string extractions, and the aggregate's generic helper |
+
+⭐ **HIGHEST-LEVERAGE SINGLE SITE: `sota_exit_gate.sh:798`**, the generic
+`summary_value_from_log()` (`sed -nE "s/^${key}: (.*)$/\1/p" … | tail -n 1`). One helper, invoked
+**~40 times**, feeding the flagship aggregate's published SV and VHDL closed-loop telemetry. Fixing
+that one site is worth more than the other twelve combined.
+
+#### ⚠️⚠️ A RISK MODEL I ALMOST SHIPPED, AND IT WAS WRONG
+
+Mid-triage the sites sorted cleanly into `head -n 1` (6) vs `tail -n 1` (19), and the tempting
+headline wrote itself: *"`head -n 1` picks the earliest line, so an appended more-final pass loses —
+exactly `.9`'s defect."* ⛔ **It is not.** `git show 59f810e1:rust/scripts/ebnf_stimuli_quality_gate.sh`
+shows the retired reader used **`tail -n 1`**. `.9` was never a selector bug.
+
+**The corrected model has two independent axes:**
+
+1. **PATTERN-SCOPE risk — `.9`'s actual shape.** The pattern names *one pass's sentence*
+   (`Target-driven generation: resolved …`); a newly appended pass emits a *differently worded* line
+   the pattern cannot match, so the reader keeps returning a superseded value. No selector helps —
+   `tail -n 1` over a pattern that never matches the new line is still wrong. **All 53 sites carry
+   this risk**, because every one is anchored to prose written by another program.
+2. **SELECTOR risk — narrower.** Only bites when the *same* pattern matches several lines.
+
+⇒ the mitigation is **not** a selector convention. It is what `.9` actually did: read the terminal
+pass's own line and cross-check it, or better, read a structured artifact instead of prose.
+
+⚠️ Recorded because it is the **fourth** time this session an appealing framing survived until it was
+checked, and the third instrument defect in this leaf's own census. *A taxonomy that sorts the data
+neatly is not thereby true.*
+
+#### The deciding input for the fix, and a first measurement against it
+
+The root-cause fix — *read the structured artifact, not the prose* — is only available where a
+structured carrier exists. **First check says it often does not:** the `CERTIFICATE-COVERAGE:` family
+(4 of the 13 METRIC sites, in `rtl_const_expr_cert_gate`, `sv_cert_recognized_union_gate`,
+`verilog_2005_conformance_gate`) has **no JSON/structured output** alongside the prose headline —
+`--report-certificate-coverage` emits the line and nothing else. ⇒ for those sites the fix is either
+*add a structured output to the tool* (larger, and it changes `rust/src/`) or *apply `.9`'s pattern*
+(require the terminal line, cross-check it). **Per-site, this question decides the fix**, so it is
+the first thing to answer for each of the 13 — not assumed.
+
+- **Scope when taken up:** work the 13 METRIC sites first, `sota_exit_gate.sh:798` first of those;
+  for each true instance either (a) move the read to the
   structured artifact the pipeline already writes (`summary.json`/`coverage*.json`), which is the
   root-cause fix, or (b) apply `.9`'s pattern — require the terminal line and cross-check it against
   the earlier one, so an appended stage tears the check. Then decide whether a doctrine check can
   express *"a metric must not be scraped from prose when a structured artifact carries it"*, and
   price it before mechanizing (`GENERATED-LINT-CORRECTNESS.4`'s rule: do not mechanize for one
   occurrence — here there are provably more than one).
-- ⚠️ **Not started, no partial state.** Opened while `.7`'s acceptance run 3 was in flight, and
-  deliberately NOT begun: editing `rust/scripts/*` under a running aggregate invalidates the
-  measurement without announcing it (`.6`'s rule).
+- ⚠️ **Triage DONE, fixes NOT started.** The triage is read-only, so it ran while `.7`'s acceptance
+  run 3 was in flight. No `rust/scripts/*` was touched — editing those under a running aggregate
+  invalidates the measurement without announcing it (`.6`'s rule).
+- **Instrument:** `docs/tasks/artifacts/ci_parity_gate_rot/run_log_scrape_census.sh` (reproducible,
+  self-calibrating — it asserts the three `.9` sites are present and the two known false positives
+  absent, and prints `MISCALIBRATED` + exits nonzero rather than reporting a smaller, comfortable
+  number). Capture: `log_scrape_census.txt`.
 
 ---
 

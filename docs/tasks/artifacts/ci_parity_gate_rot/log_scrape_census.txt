@@ -1,0 +1,64 @@
+=== CI-PARITY-GATE-ROT.11 — log-scrape census ===
+sites: 53   scripts: 16
+
+--- by script ---
+   11  sv_declared_shadow_promotion_gate.sh
+   11  sv_parse_full_ratio_promotion_gate.sh
+    9  sota_exit_gate.sh
+    4  sv_preprocessor_quality_gate.sh
+    3  sv_cert_recognized_union_gate.sh
+    3  verilog_2005_conformance_gate.sh
+    2  annotation_stimuli_quality_gate.sh
+    2  ebnf_stimuli_quality_gate.sh
+    1  ast_dump_contract_gate.sh
+    1  bin_build_integrity_gate.sh
+    1  ci_workflow_local_gate.sh
+    1  ebnf_frontend_dual_run_diff_gate.sh
+    1  ebnf_frontend_readiness_gate.sh
+    1  regex_broader_corpus_proof_gate.sh
+    1  rtl_const_expr_cert_gate.sh
+    1  vhdl_strict_promotion_gate.sh
+
+--- by class ---
+    6  FIXED
+   13  METRIC
+   23  VERDICT
+    4  DIAGNOSTIC
+    7  REVIEW
+
+--- METRIC sites (the triage targets) ---
+  rtl_const_expr_cert_gate.sh:216
+      cert_line="$(grep -E '^CERTIFICATE-COVERAGE: ' "$cert_log" | head -n 1 || true)"
+  sota_exit_gate.sh:1162
+      sv_preproc_diff_mismatch_count="$(sed -nE 's/^diff_mismatch_count[, ]+([0-9]+)$/\1/p' "$SV_PRE
+  sota_exit_gate.sh:1164
+      sv_preproc_diff_mismatch_count="$(sed -nE 's/^error: strict differential mode detected mismatc
+  sota_exit_gate.sh:1405
+      stimuli_parse_full_ratio="$(sed -nE 's/^parse_full_pass_ratio_percent: ([0-9]+)$/\1/p' "$SV_ST
+  sota_exit_gate.sh:1407
+      stimuli_parse_full_ratio="$(sed -nE 's/^error: strict parse_full pass ratio check failed \(([0
+  sota_exit_gate.sh:1421
+      stimuli_diff_mismatch_count="$(sed -nE 's/^diff_mismatch_count: ([0-9]+)$/\1/p' "$SV_STIMULI_Q
+  sv_cert_recognized_union_gate.sh:208
+      canon_line="$(grep -E '^CERTIFICATE-COVERAGE: ' "$cert_log" | head -n 1 || true)"
+  sv_cert_recognized_union_gate.sh:209
+      union_line="$(grep -E '^CERTIFICATE-COVERAGE-UNION: ' "$cert_log" | head -n 1 || true)"
+  sv_parse_full_ratio_promotion_gate.sh:141
+      ratio="$(sed -nE 's/.*strict parse_full pass ratio check failed \(([0-9]+)% < [0-9]+%\).*/\1/p
+  verilog_2005_conformance_gate.sh:195
+      lint_headline="$(grep -E '^grammar lint: ' "$lint_log" | head -n 1 || true)"
+  verilog_2005_conformance_gate.sh:202
+      lint_orphans_lines="$(grep -c "is present under profile '${lint_orphan_profile}'" "$lint_log" 
+  verilog_2005_conformance_gate.sh:285
+      headline="$(grep -E '^CERTIFICATE-COVERAGE: ' "$cert_log" | head -n 1 || true)"
+  vhdl_strict_promotion_gate.sh:133
+      row="$(sed -nE 's/^parse_full_passes: ([0-9]+)\/([0-9]+)$/\1 \2/p' "$trial_log" | tail -n 1 ||
+
+--- calibration ---
+  ground truth  ebnf_stimuli_quality_gate.sh           present ✓
+  ground truth  annotation_stimuli_quality_gate.sh     present ✓
+  ground truth  sv_preprocessor_quality_gate.sh        present ✓
+  control       sv_combined_telemetry_contract_gate.sh excluded ✓
+  control       sv_stimuli_quality_gate.sh             excluded ✓
+
+calibration OK — the numbers above reproduce every known fact.
