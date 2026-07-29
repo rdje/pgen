@@ -1,0 +1,16 @@
+==============================================================================
+CI-PARITY-GATE-ROT.14 — aggregate failure-path probes
+==============================================================================
+✓ EXTRACT live guard from the gate                     ! -s "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" || ! -s "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON"
+✓ EXTRACT retired guard from HEAD                      ! -f "$SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT"
+✓ RED-1  retired guard on the observed state           reaches jq ⇒ the crash
+✓ GREEN-1 live guard on the observed state             fallback ⇒ jq never reached
+✓ CTRL-1 healthy state identical under both forms      both JQ-READ ⇒ no behaviour change
+✓ CTRL-2 nothing-ran state takes the fallback          MISSING-FALLBACK
+✓ RED-2  half-written pair (empty txt, present json)   MISSING-FALLBACK
+✓ SWEEP  guards testing a different file than they read 0 survivors
+✓ CTRL-4 sweep reproduces the known before-count       6 at HEAD, 0 now
+✓ RED-3  terminal message names the failing checks     enumerates + points at each log
+✓ CTRL-3 live enumerator selects failed REQUIRED rows  b_gate + its log only
+------------------------------------------------------------------------------
+arms=11  PASS=11  FAIL=0

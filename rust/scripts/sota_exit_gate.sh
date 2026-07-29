@@ -1747,7 +1747,10 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                         make -C rust SHELL=/bin/bash sv_parser_family_status_contract_gate
             fi
         fi
-        if [[ ! -f "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" ]]; then
+        # ⛔ Guard BOTH artifacts and require them NON-EMPTY. A sub-gate that dies mid-run leaves a
+        # 0-byte summary.txt behind, so `-f summary.txt` was TRUE while summary.json did not exist —
+        # the else-branch then died in jq, four lines below the real cause (CI-PARITY-GATE-ROT.14).
+        if [[ ! -s "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" || ! -s "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON" ]]; then
             SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<missing>"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="<missing>"
             SV_FAMILY_STATUS_CONTRACT_GATE="<missing>"
@@ -1820,7 +1823,10 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .formal_exhaustive_closure.summary_txt' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
             SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .formal_exhaustive_closure.summary_json' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         fi
-        if [[ ! -f "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
+        # ⛔ Guard BOTH artifacts and require them NON-EMPTY. A sub-gate that dies mid-run leaves a
+        # 0-byte summary.txt behind, so `-f summary.txt` was TRUE while summary.json did not exist —
+        # the else-branch then died in jq, four lines below the real cause (CI-PARITY-GATE-ROT.14).
+        if [[ ! -s "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT" || ! -s "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON" ]]; then
             SV_PARSER_FAMILY_STATUS_SUMMARY_TXT="<missing>"
             SV_PARSER_FAMILY_STATUS_SUMMARY_JSON="<missing>"
             SV_PARSER_FAMILY_STATUS_GATE_NAME="<missing>"
@@ -2728,7 +2734,10 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
     VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT="${VHDL_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.txt"
     VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON="${VHDL_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.json"
 
-    if [[ ! -f "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
+    # ⛔ Guard BOTH artifacts and require them NON-EMPTY. A sub-gate that dies mid-run leaves a
+    # 0-byte summary.txt behind, so `-f summary.txt` was TRUE while summary.json did not exist —
+    # the else-branch then died in jq, four lines below the real cause (CI-PARITY-GATE-ROT.14).
+    if [[ ! -s "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT" || ! -s "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON" ]]; then
         VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT="<missing>"
         VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON="<missing>"
         VHDL_PARSER_FAMILY_STATUS_GATE="<missing>"
@@ -2829,7 +2838,10 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
     VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${VHDL_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
     VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="${VHDL_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.json"
 
-    if [[ ! -f "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" ]]; then
+    # ⛔ Guard BOTH artifacts and require them NON-EMPTY. A sub-gate that dies mid-run leaves a
+    # 0-byte summary.txt behind, so `-f summary.txt` was TRUE while summary.json did not exist —
+    # the else-branch then died in jq, four lines below the real cause (CI-PARITY-GATE-ROT.14).
+    if [[ ! -s "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" || ! -s "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON" ]]; then
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="<missing>"
         VHDL_FAMILY_STATUS_CONTRACT_GATE="<missing>"
@@ -3025,7 +3037,10 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         fi
     fi
 
-    if [[ ! -f "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
+    # ⛔ Guard BOTH artifacts and require them NON-EMPTY. A sub-gate that dies mid-run leaves a
+    # 0-byte summary.txt behind, so `-f summary.txt` was TRUE while summary.json did not exist —
+    # the else-branch then died in jq, four lines below the real cause (CI-PARITY-GATE-ROT.14).
+    if [[ ! -s "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT" || ! -s "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON" ]]; then
         REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT="<missing>"
         REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON="<missing>"
         REGEX_PARSER_FAMILY_STATUS_GATE="<missing>"
@@ -3122,7 +3137,10 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         fi
     fi
 
-    if [[ ! -f "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" ]]; then
+    # ⛔ Guard BOTH artifacts and require them NON-EMPTY. A sub-gate that dies mid-run leaves a
+    # 0-byte summary.txt behind, so `-f summary.txt` was TRUE while summary.json did not exist —
+    # the else-branch then died in jq, four lines below the real cause (CI-PARITY-GATE-ROT.14).
+    if [[ ! -s "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" || ! -s "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON" ]]; then
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<missing>"
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="<missing>"
         REGEX_FAMILY_STATUS_CONTRACT_GATE="<missing>"
@@ -4308,13 +4326,30 @@ jq -n \
 
 cat "$SUMMARY_TXT"
 
+# ⭐ THE LAST THING A TRIAGER READS MUST BE THE REAL CAUSE (CI-PARITY-GATE-ROT.14).
+# This aggregate runs for ~5 hours and its terminal message used to be a COUNT — "3 required
+# check(s) failed" — leaving the reader to hunt the CSV for which. Worse, before the guard fix
+# above, the genuinely last line was a `jq: Could not open file …/summary.json` from four lines
+# below the real failure, which looks exactly like the artifact-hand-off class `.7` fixed and sent
+# one session's diagnosis down the wrong family. Name the checks and their logs, at the end.
+report_failed_checks() {
+    local kind="$1"
+    [[ -f "$SUMMARY_CSV" ]] || return 0
+    awk -F',' -v kind="$kind" '$2 == kind && $3 == "fail" { printf "    - %s\n      log: %s\n", $1, $5 }' \
+        "$SUMMARY_CSV" >&2 || true
+}
+
 if [[ "$required_failures" -ne 0 ]]; then
     echo "❌ SOTA exit gate failed: ${required_failures} required check(s) failed." >&2
+    echo "   The failing required check(s) — read these, not any error printed after them:" >&2
+    report_failed_checks required
     exit 1
 fi
 
 if [[ "$informational_failures" -ne 0 && "$ALLOW_INFORMATIONAL_FAILURES" -eq 0 ]]; then
     echo "❌ SOTA exit gate failed: ${informational_failures} informational check(s) failed while policy disallows informational failures." >&2
+    echo "   The failing informational check(s):" >&2
+    report_failed_checks informational
     exit 1
 fi
 

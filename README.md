@@ -152,11 +152,12 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `bash scripts/check_doctrines.sh`
 - Flow integrity (the gate flow cannot drift back — enforced on every commit):
   - `bash scripts/check_flow_integrity.sh --report`
-  - eight invariants, each traced to a real incident: regeneration coverage, the timeout floor, one
+  - nine invariants, each traced to a real incident: regeneration coverage, the timeout floor, one
     home for the recipe, the parity gate's preparation default, no hand-off pointing at a standalone
     default state dir, no assertion that requires a defect to pass, a ratchet on hand-off
-    provenance coverage, and the doctrine roster keeping an AUTOMATIC lane through the registry
-    driver rather than a re-typed list of enforcer names
+    provenance coverage, the doctrine roster keeping an AUTOMATIC lane through the registry
+    driver rather than a re-typed list of enforcer names, and a guard testing the artifact it
+    actually reads
 - Gate reachability inventory (which tracked gates does anything actually RUN?):
   - `bash scripts/check_gate_reachability.sh --report`
   - the `GATE-REACHABILITY` doctrine: **a check that nothing invokes is indistinguishable from a

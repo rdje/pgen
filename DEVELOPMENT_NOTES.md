@@ -1,5 +1,65 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0023 — the guard tested summary.txt and the else-branch read summary.json
+
+`CI-PARITY-GATE-ROT.14` DONE. `rust/scripts/sota_exit_gate.sh` + `scripts/check_flow_integrity.sh` +
+`scripts/check_doctrines.sh` + `README.md` + `DOCTRINE_ENFORCEMENT.md` + `docs/book/src/gate-flow.md`
++ 1 new tracked driver + 2 captures — **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`**
+⇒ all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+### The defect
+
+```bash
+if [[ ! -f "$X_SUMMARY_TXT" ]]; then            # tests summary.txt, existence only
+    X_SUMMARY_JSON="<missing>"; …
+else
+    X_GATE="$(jq -r '.gate' "$X_SUMMARY_JSON")" # reads summary.json
+fi
+```
+
+Preserved state of the sub-gate that failed acceptance run 3:
+
+```
+rust/target/sota_exit_gate/work/regex_parser_family_status_gate/
+  -rw-r--r--   0  summary.txt      ← -f TRUE ⇒ guard does not fire
+  (no summary.json)                ← jq dies here
+```
+
+A sub-gate that dies mid-run creates its `summary.txt` early and never gets to `summary.json`. The
+correct form (`-s` on both) is already used ~4 lines away at `:1615`, `:1646`, `:2714`, `:2814` —
+these six were the outliers, not a house style.
+
+### The instrument failure worth recording
+
+The first sweep matched the `else` by indentation and returned **5** with full confidence. Shell
+blocks are not indentation-delimited: a nested `if … else … fi` at the same indent re-bound `else_at`
+to the inner block, and the scan then searched the wrong text. The missed site,
+`REGEX_PARSER_FAMILY_STATUS_CONTRACT`, is the sub-gate that runs immediately after the one that
+crashed — so "all 5 fixed" would have produced the same crash one sub-gate later. Fixed by tracking
+nesting depth; the corrected before-count is pinned as CTRL-4.
+
+### Implementation
+
+1. Six guards → `[[ ! -s "$X_SUMMARY_TXT" || ! -s "$X_SUMMARY_JSON" ]]`, each annotated with the
+   incident.
+2. `report_failed_checks()` enumerates failed rows from `$SUMMARY_CSV` with their log paths; both the
+   required and informational failure branches call it. The old terminal message was a bare count
+   after a 5-hour run.
+3. `FLOW-INTEGRITY` invariant (9), scanning `rust/scripts/*.sh` + `scripts/*.sh` by nesting depth.
+   ⚠️ Its first cut used `git ls-files` and was blind to untracked scripts — RED-14 caught it;
+   switched to a filesystem glob, matching invariants (5)/(6)/(7).
+
+### Verification
+
+- Failure-path probes **11/11**, guards extracted from the live gate and the retired form from
+  `git show`. RED-1 retired guard reaches jq; GREEN-1 live guard takes the fallback; CTRL-1 the
+  healthy state is **identical under both forms** (the no-regression proof across 6 sites); CTRL-4
+  the sweep reproduces 6 at the pre-fix revision or reports MISCALIBRATED.
+- Flow-integrity probes **19/19**; invariant (9) alone: 6 findings at `HEAD` → 0 after.
+- All 13 doctrines PASS; `mdbook_docs_gate` green.
+- ⚠️ NOT proven here: the next `sota_exit_gate` run reaching its own verdict. 5 hours; `.7`'s
+  acceptance.
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0022 — the automatic doctrine lane was frozen at a hand-typed list
 
 `CI-PARITY-GATE-ROT.15` DONE, `.16` opened. 1 workflow + `scripts/check_doctrines.sh` +

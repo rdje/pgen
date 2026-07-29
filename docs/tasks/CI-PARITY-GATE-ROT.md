@@ -7,7 +7,17 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.14`, `.11`, `.10`, `.16`).
+- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.11`, `.10`, `.16`).
+  ✅ **`.14` done 2026-07-29 session #222 — and the leaf's FILED SCOPE would have been the WRONG FIX.**
+  It was filed as *"the aggregate still reads that gate's `summary.json`"*; the read **is** guarded —
+  the guard tests a DIFFERENT FILE (`summary.txt`) and tests EXISTENCE where it needs CONTENT, and
+  the failed sub-gate leaves a **0-byte** `summary.txt`. ⛔⛔ **THE CLASS IS 6 SITES AND THE FIRST
+  SWEEP REPORTED 5** — it matched the `else` by INDENTATION, and the site it missed is the sub-gate
+  that runs IMMEDIATELY AFTER the one that crashed run 3 ⇒ *fixing "all 5" would have reproduced the
+  identical crash one sub-gate later.* Now: 6 guards corrected, the terminal message ENUMERATES the
+  failing checks with their logs (it was a bare count after a 5-hour run), and `FLOW-INTEGRITY`
+  invariant **(9)** stops the class returning. ⚠️ End-to-end proof (the next aggregate run reaching
+  its own verdict) is **`.7`'s** acceptance, not this leaf's — stated, not implied.
   ✅ **`.15` done 2026-07-29 session #222 — the doctrine roster went 5/13 → 13/13 on the AUTOMATIC
   lane.** The one auto-running workflow named five enforcers individually instead of invoking the
   registry driver, so 8 of 13 doctrines had no automatic lane and every doctrine registered
@@ -873,18 +883,107 @@ driver meta-check (`<meta:mirror>`), which went RED on the untouched tree before
 - ⚠️ Until then the driver **declares** the vacuity on every empty-index run, so the gap is visible
   rather than hidden behind a green tick.
 
-### `.14` — the aggregate's failure path reports a missing file instead of the real cause (`todo`)
+### `.14` — the aggregate's failure path reported a missing file instead of the real cause (`done`)
 
-- **Status: `todo`** — opened 2026-07-29 by `.13`.
-- **Measured:** on a sub-gate failure, `sota_exit_gate` still reads that gate's `summary.json`, which
-  a gate that exited early never wrote, so the final output is
-  `jq: error: Could not open file …/summary.json: No such file or directory` — **four lines below the
-  real cause**, and it looks exactly like the artifact-hand-off class `.7` fixed.
-- ⭐ A triager who reads the last error first is pointed at the wrong defect family. This tree has
-  already lost a session to one misdirected diagnosis (`-0015`); this one is built into the tool.
-- **Scope when taken up:** on a failed required sub-gate, stop before the summary read and re-print
-  the sub-gate's own error as the terminal message; sweep for other unguarded post-failure artifact
-  reads in `sota_exit_gate.sh`.
+- **Status: `done`** (2026-07-29, session #222, `PGEN-CI-PARITY-GATE-ROT-0023`). Opened by `.13`.
+
+#### ⭐ THE ROOT CAUSE IS SHARPER THAN THE LEAF WAS FILED WITH — AND THE FILED SCOPE WOULD HAVE BEEN THE WRONG FIX
+
+Filed as *"the aggregate still reads that gate's `summary.json`, which a gate that exited early never
+wrote"*, with the scope *"stop before the summary read"*. **The read is already guarded.** The defect
+is that **the guard tests a DIFFERENT FILE from the one it protects, and tests EXISTENCE where it
+needs CONTENT**:
+
+```bash
+if [[ ! -f "$X_SUMMARY_TXT" ]]; then     # ← tests summary.txt, and only that it EXISTS
+    …  <missing> fallback …
+else
+    X_GATE="$(jq -r '.gate' "$X_SUMMARY_JSON")"   # ← reads summary.json
+```
+
+The preserved state directory of the failed sub-gate is the proof — `summary.txt` present at
+**0 bytes**, `summary.json` absent:
+
+```
+rust/target/sota_exit_gate/work/regex_parser_family_status_gate/
+  -rw-r--r--  0  summary.txt        ← `-f` TRUE, so the guard did not fire
+  (no summary.json)                 ← the else-branch then died in jq
+```
+
+⇒ *"stop before the summary read"* would have removed a read that is legitimate whenever the gate
+did complete. The correct fix is the form already used as **house style ~4 lines away in the same
+file** (`test -s "$…/summary.txt" && test -s "$…/summary.json"`, e.g. `:1615`, `:1646`, `:2714`,
+`:2814`): guard **both** artifacts, and require them **non-empty**.
+
+#### ⛔⛔ THE CLASS IS 6 SITES, AND MY OWN SWEEP FIRST REPORTED 5
+
+The instrument matched the `else` by **indentation**. A nested `if … else … fi` at the same indent
+inside the then-block silently re-bound it to the *inner* `else`, so the scan then searched the
+wrong block. It reported **5** with full confidence. ⭐⭐ **The site it missed is
+`REGEX_PARSER_FAMILY_STATUS_CONTRACT` — the sub-gate that runs IMMEDIATELY AFTER the one that
+crashed acceptance run 3** ⇒ *fixing "all 5" would have reproduced the identical crash one sub-gate
+later*, which is the fail-fast pattern this tree has now hit six times, this once caused by the
+instrument rather than the code. **Shell blocks are not indentation-delimited; track nesting depth.**
+Corrected scan: **6 before → 0 after**, and that before-count is now a pinned control arm.
+
+#### THE FIX
+
+1. **All 6 guards** become `[[ ! -s "$X_SUMMARY_TXT" || ! -s "$X_SUMMARY_JSON" ]]`, each carrying the
+   incident in a comment so the next reader does not re-derive it.
+2. **The terminal message names the cause.** The old one was a *count* — `❌ SOTA exit gate failed:
+   3 required check(s) failed.` — leaving a triager to hunt the CSV after a 5-hour run. It now
+   enumerates each failed required check with its log path, under the line *"read these, not any
+   error printed after them"*. The informational branch gets the same treatment.
+3. **It cannot come back:** `FLOW-INTEGRITY` gains invariant **(9)** — a guard must test the artifact
+   it reads — scanning every `rust/scripts/*.sh` and `scripts/*.sh`. Priced first
+   (`GENERATED-LINT-CORRECTNESS.4`'s rule): **6 instances**, well past the one-occurrence threshold
+   `.6` used to *decline* mechanizing, and my own sweep missing one is direct evidence a human
+   reviewer would too.
+
+#### ⚠️ WHAT IS NOT PROVEN HERE
+
+The end-to-end proof is the next `sota_exit_gate` run reaching its own verdict instead of dying in
+`jq` — that is a **5-hour** run and belongs to `.7`'s acceptance, not this leaf. What IS proven is
+the guard behaviour on the exact preserved state, the class sweep at 0 with a reproduced before-count,
+and the enumerator run for real. ⛔ Stated rather than implied, because this tree's founding error was
+calling something closed on an acceptance run that had not finished.
+
+## Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_after3.txt`
+  (acceptance run 3, `elapsed_s=18282`): `fail (…/regex_parser_family_status_gate.log)` followed by
+  `jq: error: Could not open file …/work/regex_parser_family_status_gate/summary.json: No such file
+  or directory` and `make: *** [sota_exit_gate] Error 2` — the real cause two lines above the
+  terminal error.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `rust/scripts/sota_exit_gate.sh` at the 6 guard sites
+  (pre-fix lines `1750`, `1823`, `2731`, `2832`, `3028`, `3125`). WHY: each guards on
+  `[[ ! -f "$X_SUMMARY_TXT" ]]` while its else-branch `jq`-reads `$X_SUMMARY_JSON`; the failed
+  sub-gate's preserved state dir carries a **0-byte** `summary.txt` and **no** `summary.json`, so the
+  guard is FALSE and the else-branch runs. Confirmed by listing the preserved directory, not inferred.
+- [x] **FIX** — declarative tier (1 gate script + 1 doctrine check + doc mirrors; no grammar, no
+  `rust/src/*`, no `generated/*`). Both artifacts guarded, non-emptiness required; the terminal
+  message enumerates the failing checks and their logs; `FLOW-INTEGRITY` invariant (9).
+- [x] **ADDRESSED (verified)** — probes **11/11**
+  (`docs/tasks/artifacts/ci_parity_gate_rot/failure_path_probes.txt`), guards **extracted from the
+  live gate** and the retired form from `git show`, so no arm can test a rule the gate does not
+  apply: RED-1 the retired guard on the observed state reaches `jq` (the crash); GREEN-1 the live
+  guard takes the `<missing>` fallback so `jq` is never reached; RED-2 the inverse half-written pair
+  is also refused; SWEEP 0 survivors. Invariant (9) independently: **6 findings at `HEAD` → 0 after**.
+- [x] **NO REGRESSION** — ⭐ **CTRL-1 is the arm that matters**: on a *healthy* state (both artifacts
+  present and non-empty) the retired and live guards behave **identically** (`JQ-READ` both), so the
+  fix cannot silently change the passing path across 6 sites in a 5-hour aggregate. CTRL-2 the
+  nothing-ran state takes the fallback under both forms — the retired guard was not wrong there,
+  which is exactly why the defect survived. ⭐ **CTRL-4 is ground truth for the instrument itself**:
+  the corrected sweep must report **6** at the pre-fix revision, or it prints MISCALIBRATED rather
+  than a number it cannot back. CTRL-3 runs the real `report_failed_checks` extracted from the gate
+  over a synthetic CSV (failed *required* rows only). Flow-integrity probes **19/19** including
+  RED-14 (the incident, deliberately nested to defeat an indentation-based scanner) and CTRL-5 (the
+  corrected form must PASS — without it the invariant could flag every guard and make its own fix
+  unlandable). ⚠️ **RED-14 caught a real blind spot in invariant (9)'s first cut**: it scanned
+  `git ls-files`, so an untracked script was invisible and it reported 0 as proof — switched to a
+  filesystem glob, matching invariants (5)/(6)/(7). `bash -n` clean; the check does not self-trip.
+- [x] **LOCKSTEP** — `README.md`, `DOCTRINE_ENFORCEMENT.md` §10, `docs/book/src/gate-flow.md`
+  (invariant table row 9), and the driver's registry description all move eight → nine invariants.
 
 ### `.12` — the 13th enforced doctrine `ROUTING-EVIDENCE`: a routing decision must record what it measured (`done`)
 

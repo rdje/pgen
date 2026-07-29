@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0023 — a guard that tested a different file from the one it read
+
+`CI-PARITY-GATE-ROT.14` DONE. 1 gate script + 1 doctrine check + 3 doc mirrors + 1 new tracked
+driver + 2 captures — **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`** ⇒ all 11 generated
+parsers byte-identical BY CONSTRUCTION.
+
+- ⭐ **The root cause is sharper than the leaf was filed with, and the filed scope was the wrong
+  fix.** Filed as *"the aggregate still reads that gate's `summary.json`"* with the scope *"stop
+  before the summary read"* — but the read **is** guarded. The defect is that the guard tests a
+  DIFFERENT file from the one it protects, and tests EXISTENCE where it needs CONTENT:
+  `if [[ ! -f "$X_SUMMARY_TXT" ]]` … `else jq -r '.gate' "$X_SUMMARY_JSON"`. The failed sub-gate's
+  preserved state dir carries a **0-byte** `summary.txt` and **no** `summary.json`, so the guard read
+  FALSE, the else-branch ran, and `jq` died — printing a missing-file error two lines below the real
+  cause after a **5-hour** run. Removing the read would have broken the case where the gate DID
+  complete; the correct form was already house style four lines away in the same file.
+- ⛔⛔ **THE CLASS IS 6 SITES AND THE FIRST SWEEP REPORTED 5.** The instrument matched the `else` by
+  INDENTATION, so a nested `if … else … fi` at the same indent re-bound it to the inner block. ⭐⭐
+  The site it missed is `REGEX_PARSER_FAMILY_STATUS_CONTRACT` — **the sub-gate that runs immediately
+  after the one that crashed acceptance run 3** ⇒ fixing "all 5" would have reproduced the identical
+  crash one sub-gate later. Shell blocks are not indentation-delimited; track nesting depth. The
+  corrected before-count (**6**) is now a pinned control arm.
+- **Fixed in three parts:** all 6 guards require BOTH artifacts non-empty; the terminal message
+  enumerates each failed required check with its log path under *"read these, not any error printed
+  after them"* (it was a bare count); and `FLOW-INTEGRITY` gains invariant **(9)** — a guard must
+  test the artifact it reads — priced first at 6 instances, well past the one-occurrence threshold
+  `.6` used to decline mechanizing.
+- **Probes 11/11 + 19/19.** ⭐ CTRL-1 is the arm that matters: on a healthy state both the retired
+  and live guards behave identically, so the passing path is unchanged across 6 sites in a 5-hour
+  aggregate. ⭐ CTRL-4 is ground truth for the instrument: the sweep must reproduce **6** at the
+  pre-fix revision or report MISCALIBRATED. ⚠️ RED-14 caught a real blind spot in invariant (9)'s
+  first cut — it scanned `git ls-files`, so an untracked script was invisible and it reported 0 as
+  proof; switched to a filesystem glob.
+- ⚠️ **Not proven here, and stated rather than implied:** the end-to-end proof is the next
+  `sota_exit_gate` run reaching its own verdict instead of dying in `jq`. That is a 5-hour run and
+  belongs to `.7`'s acceptance.
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0022 — the doctrine roster went 5/13 → 13/13 on the AUTOMATIC lane
 
 `CI-PARITY-GATE-ROT.15` DONE, `.16` opened. 1 workflow + 2 doctrine checks + 2 doc mirrors + 1 new

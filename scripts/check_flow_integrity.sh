@@ -38,6 +38,8 @@
 #   8. the doctrine roster keeps an AUTOMATIC lane, through the DRIVER — the one auto-running
 #      workflow named 5 enforcers individually, so 8 of 13 doctrines had no automatic lane and a
 #      doctrine added tomorrow silently got none (`.15`)
+#   9. a guard tests the artifact it READS — 6 sites guarded on summary.txt then jq-read
+#      summary.json, so a mid-run death buried the real cause under a missing-file error (`.14`)
 #
 # Usage:
 #   bash scripts/check_flow_integrity.sh            # gate mode
@@ -241,6 +243,53 @@ if not driver_lane:
         f"    fix:  give one cheap workflow `on: push` + `pull_request` and have it run the driver\n"
         f"          (it costs ~2 s: no cargo, no build, no network).")
 
+# --------------------------------------------------------------- (9) a guard must test what it reads
+# ⭐ MEASURED CLASS, 6 SITES IN ONE FILE (`.14`). The aggregate guarded a block with
+# `[[ ! -f "$X_SUMMARY_TXT" ]]` and the else-branch then `jq`-read `$X_SUMMARY_JSON`. A sub-gate that
+# dies mid-run leaves a **0-byte** summary.txt, so the guard was FALSE, the else-branch ran, and jq
+# died on a file nothing had written — printing a MISSING-FILE error four lines below the real
+# cause, which looks exactly like the artifact-hand-off class `.7` fixed and cost this campaign a
+# misdirected diagnosis. The correct form (`-s` on BOTH artifacts) was already house style ~4 lines
+# away in the same file; these were the outliers.
+# ⛔ DEPTH, NOT INDENTATION. The first cut of this scan matched the `else` by indentation and
+# reported 5 of the 6 — a nested `if … else … fi` at the same indent re-bound it to the inner block.
+# The site it missed runs IMMEDIATELY AFTER the one that crashed, so "all 5 fixed" would have
+# reproduced the identical crash one sub-gate later.
+GUARD_RE = re.compile(r'\s*if \[\[ ! -f "\$[A-Z0-9_]+_SUMMARY_TXT" \]\]; then')
+JSON_READ = re.compile(r'jq [^\n]*"\$[A-Z0-9_]+_SUMMARY_JSON"')
+OPENERS = re.compile(r'(if|while|until|for)\b')
+CLOSERS = re.compile(r'(fi|esac|done)\b')
+# ⚠️ FILESYSTEM GLOB, NOT `git ls-files` — matching invariants (5)/(6)/(7) above. RED-14 caught the
+# first cut using the index: a script a developer has written but not yet added was INVISIBLE, and
+# the check reported 0 as proof. Same shape as `.4`, where an untracked `action.yml` made 8 probe
+# arms reach the right verdict for the wrong reason.
+for gate in sorted(glob.glob("rust/scripts/*.sh") + glob.glob("scripts/*.sh")):
+    src = read(gate).splitlines()
+    for i, line in enumerate(src):
+        if not GUARD_RE.match(line):
+            continue
+        depth, j, else_at = 0, i + 1, None
+        while j < len(src):
+            s = src[j].strip()
+            if OPENERS.match(s) or s.startswith("case "):
+                depth += 1
+            elif CLOSERS.match(s):
+                if depth == 0:
+                    break
+                depth -= 1
+            elif s == "else" and depth == 0:
+                else_at = j
+            j += 1
+        if else_at is None or not JSON_READ.search("\n".join(src[else_at:j])):
+            continue
+        bad(f"(9) {gate}:{i+1} guards a block by testing summary.txt, then READS summary.json:\n"
+            f"      {line.strip()}\n"
+            "    The guard tests a DIFFERENT file from the one it protects, and tests EXISTENCE where\n"
+            "    it needs CONTENT. A sub-gate that dies mid-run leaves a 0-byte summary.txt, so this\n"
+            "    is FALSE, the else-branch runs, and jq dies on a file nothing wrote — burying the\n"
+            "    real cause under a missing-file error. Measured 2026-07-29: 6 such sites.\n"
+            '    fix:  if [[ ! -s "$X_SUMMARY_TXT" || ! -s "$X_SUMMARY_JSON" ]]; then')
+
 # --------------------------------------------------------------- report / verdict
 if REPORT:
     print("=" * 78)
@@ -276,5 +325,6 @@ if fails:
 print(f"flow-integrity: OK ({len(need)} workflow(s) regenerate, {len(exempt_seen)} measured-exempt, "
       f"recipe has one home, PREPARE on, 0 standalone-default hand-offs, 0 requires-a-defect "
       f"assertions, provenance ratchet {len(verifying & consumers)}/{len(consumers)}, "
-      f"all {len(enforcers)} doctrines on the automatic lane via the driver)")
+      f"all {len(enforcers)} doctrines on the automatic lane via the driver, "
+      f"0 guards testing an artifact they do not read)")
 PYEOF

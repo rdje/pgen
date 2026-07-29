@@ -505,7 +505,7 @@ bash scripts/check_flow_integrity.sh --report
 `FLOW-INTEGRITY` is an enforced doctrine, run by `.githooks/pre-commit` on **every
 commit**. It is deliberately cheap — file reads and greps, no cargo, no build, no
 network — because a check nobody minds running is a check that keeps running. It
-enforces eight invariants, each traced to something that actually happened:
+enforces nine invariants, each traced to something that actually happened:
 
 | # | invariant | the incident |
 |---|---|---|
@@ -517,6 +517,7 @@ enforces eight invariants, each traced to something that actually happened:
 | 6 | no assertion requires a defect in order to pass | a required sub-gate passed only when the parser failed |
 | 7 | hand-off provenance coverage only improves | 1 of 23 consumers verify; the list may only shrink |
 | 8 | the doctrine roster keeps an automatic lane **through the driver**; no auto-triggered workflow re-types enforcer names | the one auto-running workflow named 5 of 13, so 8 doctrines had no automatic lane and every one added later inherited none |
+| 9 | a guard tests the artifact it actually **reads** | 6 blocks guarded on `summary.txt` then read `summary.json`; a sub-gate dying mid-run left a 0-byte `summary.txt`, so the guard read false and a 5-hour run ended on a missing-file error four lines below the real cause |
 
 Two design choices make it hard to defeat:
 

@@ -199,6 +199,41 @@ PY
 arm "RED-13 commented-out driver is not a lane" FAIL "NO automatically-triggered workflow invokes"
 restore
 
+# ---------------------------------------------------------------- invariant (9), CI-PARITY-GATE-ROT.14
+# RED-14 — the verbatim `.14` incident: a block guarded on summary.txt whose else-branch jq-reads
+# summary.json. The mutation is deliberately placed inside a NESTED if/else at the same indentation,
+# because that nesting is exactly what made this check's own first cut miss 1 of the 6 real sites.
+cat > "$ROOT/rust/scripts/zz_probe_guard_gate.sh" <<'SH'
+#!/usr/bin/env bash
+if [[ "$mode" == "a" ]]; then
+    if [[ ! -f "$ZZ_PROBE_SUMMARY_TXT" ]]; then
+        ZZ_PROBE_GATE="<missing>"
+        if [[ "$inner" == "1" ]]; then
+            ZZ_PROBE_INNER="x"
+        else
+            ZZ_PROBE_INNER="y"
+        fi
+    else
+        ZZ_PROBE_GATE="$(jq -r '.gate' "$ZZ_PROBE_SUMMARY_JSON")"
+    fi
+fi
+SH
+arm "RED-14 guard tests summary.txt but reads .json" FAIL "guards a block by testing summary.txt"
+rm -f "$ROOT/rust/scripts/zz_probe_guard_gate.sh"
+
+# CTRL-5 — the CORRECT form must not trip it. Without this arm the invariant could be satisfied by
+# a check that flags every guard it sees, which would make the fix itself unlandable.
+cat > "$ROOT/rust/scripts/zz_probe_guard_gate.sh" <<'SH'
+#!/usr/bin/env bash
+if [[ ! -s "$ZZ_PROBE_SUMMARY_TXT" || ! -s "$ZZ_PROBE_SUMMARY_JSON" ]]; then
+    ZZ_PROBE_GATE="<missing>"
+else
+    ZZ_PROBE_GATE="$(jq -r '.gate' "$ZZ_PROBE_SUMMARY_JSON")"
+fi
+SH
+arm "CTRL-5 the corrected guard form passes" PASS
+rm -f "$ROOT/rust/scripts/zz_probe_guard_gate.sh"
+
 printf '%s\n' "------------------------------------------------------------------------------"
 printf 'arms=%d  PASS=%d  FAIL=%d\n' "$((pass + fail))" "$pass" "$fail"
 [ "$fail" -eq 0 ]
