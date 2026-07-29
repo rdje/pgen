@@ -1,5 +1,50 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0001 — the `Done` bar becomes SOTA/signoff-level, and the FLOW shall guarantee it 100%
+
+New tree `DONE-BAR` + decision record, on a standing director directive issued in three parts this
+session. Docs only — **no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no `generated/*`**
+⇒ all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- ⭐⭐⭐ **THE DIRECTIVE (verbatim, three parts):** *"I need the highest bar possible for all parsers.
+  do not want compromises, exceptions … I do not 2nd or 3rd tier Done. I want only 1st tier Done."*
+  → *"A Done shall means sota, signoff level Done. it shall me user can now blindly trust the
+  parser."* → *"So the flow shall guarantee this 100%"*.
+- **`Done` now requires all four, currently and simultaneously:** (1) stimuli-generator proof with
+  **zero** residual target debt; (2) **all** gates covering the family green **now** and actually
+  invoked; (3) **all** the external test corpus **passing**; (4) ⭐ the arbiter those three exist to
+  establish — a downstream team could build on it **without re-verifying**.
+- ⛔⛔ **LEGS 1-3 ARE NECESSARY, NOT SUFFICIENT.** A family can pass all three and still fail leg 4
+  (a known open defect, a stale contract, an undocumented boundary, a silent-failure mode). The
+  checklist must never become a way to certify what a careful engineer would not stake work on.
+- ⛔ **What this settles that was soft:** a TRIAGE gate is not a conformance gate; a CHARACTERIZATION
+  is not a corpus pass; **absence** of a corpus is an UNMET leg, not an inapplicable one; `Done` is
+  **not a snapshot** — a family whose target universe grew must re-earn it; and **demotion is the
+  correct action, not a failure**.
+- ⭐ **MEASURED STARTING POINT, recorded as a HYPOTHESIS not a finding** (this session already
+  produced three instrument defects from exactly this kind of shortcut): of the 6 corpus-facing gate
+  targets, **two are TRIAGE** (`sv_external_corpus_triage_gate`, `vhdl_external_corpus_triage_gate`);
+  only `regex` appears to have a genuine external-corpus lane — **and `regex` is the family currently
+  failing its own status gate**. A leg-4 signal is likewise recorded as a hypothesis: 24 occurrences
+  of the token `open` in the released-parser bug ledger, which is a token tally, **not** a count of
+  open defects, and `.1` must resolve it to real per-family numbers.
+- ⛔⛔ **THE FLOW CANNOT GUARANTEE THE BAR TODAY — measured, and now written down rather than
+  discovered later:** `sota_exit_gate` has never completed green (best run: 32 gates, 30 ok, 1 fail,
+  5 h 05 m); the **AUTOMATIC tier over all 123 gate targets is ZERO**; and the family status gates
+  are reachable **only** through that aggregate — which is exactly how `regex` held `Done` for months
+  against a gate that disagreed with it. ⇒ **the guarantee is blocked on `CI-PARITY-GATE-ROT.7` and
+  on the escalated hosted-auto-trigger director call.** Those are this tree's prerequisites, not
+  separate projects.
+- ⚠️ **Honest bound on "100%", stated up front:** a pre-commit hook is bypassable and a local run
+  proves one machine, so the strongest honest guarantee is *enforced at every commit through the hook
+  **AND** re-proved by an automatic lane no contributor controls*. Leg 2 of the bar already says a
+  gate nothing invokes does not count as green — the same standard, applied to the enforcement of the
+  bar itself. Anything less gets stated, never quietly claimed.
+- **Tree shape:** `.1` audit (frontier, read-only, can start now) → `.2` demote with the unmet leg
+  named → `.3` close the external-corpus gap → ⭐ **`.4` THE GUARANTEE**, which is the tree's actual
+  purpose; `.1`-`.3` exist to make it possible.
+
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0020 — acceptance run 3: the best sota_exit_gate run ever, and still RED at blocker #8
 
 `CI-PARITY-GATE-ROT.13` done (diagnosed + routed); `.14` opened. Docs + task trees only — **no
