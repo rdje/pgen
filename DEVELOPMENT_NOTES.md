@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0006 — a rejection is not a defect until a control says the input was valid
+
+`DONE-BAR.3` seeded with measurement. New tracked probe + decision record + tree/changelog — **no
+`grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no `generated/*`** => all 11 generated
+parsers byte-identical BY CONSTRUCTION.
+
+### The method finding
+
+Measuring `rtl_frontend` against real RTL produced **three false findings in a row**, and all three
+came from the same mistake: treating a REJECTION as a DEFECT.
+
+1. *"0 of 20 real files parse"* — an unsorted `find` had sampled a different file set than the
+   sorted one. Sorted: **2 of 20**. A count taken from a non-deterministic sample is not a
+   measurement.
+2. *"a module with no port list is rejected"* — the input was `module top` + `endmodule`, which is
+   **invalid SystemVerilog** (no semicolon). The parser was right and the probe was wrong.
+3. *"unpacked memory arrays are rejected"* — `logic [7:0] ram [255:0];` **parses**. The rejection
+   came from `2**8-1` inside the bound, i.e. the `**` operator.
+
+Each was killed by the same question: **does the full-LRM `systemverilog` parser accept this exact
+input?** If yes, the input is valid SV and `rtl_frontend`'s rejection is a subset boundary — either
+deliberate or a gap. If no, the probe fed it garbage.
+
+⭐ **That cross-parser control is now built into the probe**, and it is the difference between a
+defect report and a guess. For a parser that implements a *subset* of a standardised language, a
+rejection carries no information on its own: the same rejection is correct behaviour for
+non-synthesizable input (`initial`, 0 occurrences in the grammar, deliberately excluded) and a real
+gap for synthesizable input (`**`, 0 occurrences, and the full parser accepts it).
+
+### A fourth mistake, in the prefix-bisect harness
+
+The bisect that "found" finding (2) appended `endmodule` to arbitrary line prefixes — so it
+manufactured inputs that were never valid at any prefix length, and reported the first one as a
+discovery. **A harness that constructs its own test inputs must construct valid ones**, or every
+result it produces is about the harness.
+
+### What was deliberately NOT claimed
+
+The split between deliberate subset boundaries and genuine gaps is **not** established. A rejection
+rate over real files cannot be read as a defect count, and per-file causes were not attributed.
+`DONE-BAR.3` owes that work; it cannot be guessed from 18/20.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0005 — when the bar moves, fix the instruments before the record
 
 `DONE-BAR.2` SPLIT into `.2a` → `.2b`. Tree + 1 tracked driver + 1 capture — **no `grammars/*.ebnf`,

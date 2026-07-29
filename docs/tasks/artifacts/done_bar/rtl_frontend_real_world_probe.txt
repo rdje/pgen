@@ -1,0 +1,65 @@
+==============================================================================
+rtl_frontend vs REAL vendored RTL — the measurement nothing in the flow makes
+==============================================================================
+
+0. THE CURATED PROOF SURFACE (what `Done` currently rests on)
+   samples: 130   total: 35123 bytes   mean: 270 bytes   largest: 687 bytes
+   accepts/rejects: 98 / 32
+   ⇒ every one of these was written by this project. None is a real design file.
+
+1. REAL DESIGN FILES, AS SHIPPED (vendored under stimuli/sv/subs — already in this repo)
+
+   ⛔ Cores-VeeR-EL2/design/dbg/el2_dbg.sv                    47860 bytes
+   ⛔ Cores-VeeR-EL2/design/dec/el2_dec_decode_ctl.sv         74416 bytes
+   ⛔ Cores-VeeR-EL2/design/dec/el2_dec_gpr_ctl.sv             4034 bytes
+   ⛔ Cores-VeeR-EL2/design/dec/el2_dec_ib_ctl.sv              6807 bytes
+   ⛔ Cores-VeeR-EL2/design/dec/el2_dec_pmp_ctl.sv             7875 bytes
+   ⛔ Cores-VeeR-EL2/design/dec/el2_dec_tlu_ctl.sv           168585 bytes
+   ⛔ Cores-VeeR-EL2/design/dec/el2_dec_trigger.sv             1992 bytes
+   ⛔ Cores-VeeR-EL2/design/dec/el2_dec.sv                    22040 bytes
+   ⛔ Cores-VeeR-EL2/design/dmi/dmi_jtag_to_core_sync.v        1967 bytes
+   ✅ Cores-VeeR-EL2/design/dmi/dmi_mux.v                      1640 bytes
+   ✅ Cores-VeeR-EL2/design/dmi/dmi_wrapper.v                  4132 bytes
+   ⛔ Cores-VeeR-EL2/design/dmi/rvjtag_tap.v                   7218 bytes
+   ⛔ Cores-VeeR-EL2/design/el2_dma_ctrl.sv                   37969 bytes
+   ⛔ Cores-VeeR-EL2/design/el2_mem.sv                         8216 bytes
+   ⛔ Cores-VeeR-EL2/design/el2_pic_ctrl.sv                   30195 bytes
+   ⛔ Cores-VeeR-EL2/design/el2_pmp.sv                        13056 bytes
+   ⛔ Cores-VeeR-EL2/design/el2_veer_lockstep.sv              66956 bytes
+   ⛔ Cores-VeeR-EL2/design/el2_veer_wrapper.sv               42085 bytes
+   ⛔ Cores-VeeR-EL2/design/el2_veer.sv                       64185 bytes
+   ⛔ Cores-VeeR-EL2/design/exu/el2_exu_alu_ctl.sv            21421 bytes
+
+   PASS=2  FAIL=18  of 20 real design files
+   ACCEPTED (named, because a rejection rate without the passing set is half a measurement):
+     stimuli/sv/subs/Cores-VeeR-EL2/design/dmi/dmi_mux.v
+     stimuli/sv/subs/Cores-VeeR-EL2/design/dmi/dmi_wrapper.v
+
+2. MINIMAL REPROS (cross-parser control: does the full-LRM `systemverilog` parser accept it?)
+
+   rtl_frontend ✅   systemverilog ✅   params + ANSI ports                baseline
+   rtl_frontend ✅   systemverilog ✅   port width [W-1:0]                 
+   rtl_frontend ✅   systemverilog ✅   port width [W/8-1:0]               
+   rtl_frontend ✅   systemverilog ✅   unpacked memory [255:0]            
+   rtl_frontend ⛔   systemverilog ✅   power operator 2**8                GAP: ** absent from the grammar
+   rtl_frontend ⛔   systemverilog ✅   initial block                      by design: 'initial' is out of subset
+
+   occurrences of '**' in grammars/rtl_frontend.ebnf: 0
+   occurrences of 'initial' in grammars/rtl_frontend.ebnf: 0
+
+3. WHAT THIS DOES AND DOES NOT ESTABLISH
+
+   ESTABLISHED:
+   - 18 of 20 real vendored design files are rejected.
+   - The '**' power operator is absent from the grammar (0 occurrences) and rejected, while the
+     full-LRM parser accepts the same input => a genuine subset gap, not an invalid input.
+   - 'initial' is absent by design (0 occurrences) => rejecting it is CORRECT for a synthesizable
+     subset, and part of the rejection rate above is therefore legitimate.
+
+   NOT ESTABLISHED:
+   - The SPLIT between deliberate subset boundaries and genuine gaps. Per-file root causes are not
+     attributed here, and must not be inferred from the count.
+   ⇒ That split is exactly what DONE-BAR.3 owes, and it cannot be guessed from a rejection rate.
+
+   THE POINT: this measurement had never been made. rtl_frontend holds `Done` on 35 KB of examples
+   this project wrote itself, and the first time it met a real design file was this probe.

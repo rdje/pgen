@@ -509,6 +509,47 @@ table rendered three blank columns, not because the logic was re-read. ⇒ the p
 
 ### `.3` — close the external-corpus gap (`todo`)
 
+#### ⭐⭐⭐ `rtl_frontend` MEASURED AGAINST REAL RTL FOR THE FIRST TIME (2026-07-29, director question, `PGEN-DONE-BAR-0006`)
+
+The director asked the right question, and it is not the one this leaf was framed around:
+*"is `rtl_frontend` sufficiently tested? Is it ok to release it as is?"* — **not** which
+`Provisional` qualifier the taxonomy assigns. Measured
+(`docs/tasks/artifacts/done_bar/run_rtl_frontend_real_world_probe.sh`):
+
+| what | measured |
+|---|---|
+| the proof surface `Done` currently rests on | **130 curated samples, 35,123 bytes total**, mean **270 B**, largest **687 B** — 98 accepts / 32 rejects, **every one authored by this project** |
+| real vendored design files parsed | **2 of 20** (`dmi_mux.v`, `dmi_wrapper.v` — the two smallest, simplest muxes in VeeR-EL2) |
+| a genuine subset gap, with a cross-parser control | **`**` (power operator) has 0 occurrences in `grammars/rtl_frontend.ebnf`**; `logic [7:0] ram [2**8-1:0];` is REJECTED by `rtl_frontend` and **ACCEPTED by the full-LRM `systemverilog` parser** ⇒ valid SV, not invalid input |
+| a CORRECT rejection, not a gap | **`initial` has 0 occurrences** — deliberately out of a *synthesizable* subset ⇒ part of the 18 rejections is legitimate |
+
+⭐⭐ **THE ANSWER TO THE DIRECTOR'S QUESTION: not "it is bad" — "the question had never been asked."**
+No gate points `rtl_frontend` at real RTL; this probe is the first time it met a design file. It
+holds `Done` on 35 KB of examples this project wrote itself, and on first contact with real
+hardware source it parsed the 2 simplest files of 20. ⛔ **Recommendation: it is NOT `Done`, and it
+should NOT be released as `Done`.** It is usable — `Provisional` — provided the published boundary
+says what is actually proven: *validated against 130 curated samples totalling 35 KB; never
+validated against any third-party RTL.*
+
+⭐ **AND THIS SETTLES THE QUALIFIER BY MEASUREMENT, NOT TAXONOMY: `(corpus pending)`, never
+`(ceiling)`.** `ceiling` requires that no corpus exist. **16,388 real SV/V files are already
+vendored in this repository** under `stimuli/sv/subs/` — the corpus was never absent, it was never
+pointed at this parser. *"We could not find a corpus"* was never true here.
+
+⛔⛔ **WHAT IS NOT ESTABLISHED, STATED SO IT IS NOT INFERRED:** the **split** between deliberate
+subset boundaries (`initial`, testbench constructs) and genuine gaps (`**`). A rejection rate cannot
+be read as a defect count. Attributing per-file causes is `.3`'s work and cannot be guessed.
+
+⚠️ **THREE FALSE FINDINGS WERE PRODUCED AND WITHDRAWN WHILE MEASURING THIS — recorded because the
+withdrawals are the method working.** (1) *"0 of 20 parse"* — an unsorted `find` sampled a different
+file set; sorted, it is **2 of 20**. (2) *"a module with no port list is rejected"* — the input
+`module top` + `endmodule` is **invalid SV** (no semicolon); the parser was right. (3) *"unpacked
+memory arrays are rejected"* — `logic [7:0] ram [255:0];` **parses**; the rejection was the `**`
+inside the bound. ⭐ Each was killed by a **cross-parser control** — *does the full-LRM parser accept
+this same input?* — which is now built into the probe. **Without that control a rejection cannot be
+told apart from invalid input**, and all three would have shipped as defects.
+
+
 - **Status: `todo`** — blocked on `.1`'s per-family leg-3 result.
 - Likely the largest body of work in this tree: acquiring/vendoring an officially-recognized corpus
   for families that have none, and promoting `triage`/`characterization` surfaces into asserted
@@ -641,6 +682,16 @@ closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
   doctrine; ⛔ price it against the whole corpus before mechanizing
   (`GENERATED-LINT-CORRECTNESS.4`'s rule — this is the first known occurrence, which is below that
   bar today).
+- `PGEN-DONE-BAR-0006` (2026-07-29, session #223, `.3` seeded with measurement) — on the director's
+  question *"is `rtl_frontend` sufficiently tested? Is it ok to release it as is?"*: pointed it at
+  real vendored RTL for the first time. **2 of 20** real design files parse; its `Done` rests on
+  **130 curated samples totalling 35 KB** that this project authored. `**` is a genuine gap (0
+  occurrences in the grammar, rejected here, accepted by the full-LRM parser); `initial` is absent
+  BY DESIGN. ⇒ recommend NOT `Done`; `Provisional (corpus pending)` — settled by measurement, since
+  **16,388 real SV/V files are already vendored in this repo**, so `(ceiling)` was never available.
+  Three false findings produced and withdrawn en route; the cross-parser control that killed all
+  three is now built into the probe. Also records the append-only git-history directive
+  ([[feedback_git_history_is_append_only]]).
 - `PGEN-DONE-BAR-0005` (2026-07-29, session #223, `.2` SPLIT into `.2a` → `.2b`) — measured, by
   replaying the LIVE alignment logic, that an honest demotion would turn **3 of 3** family-status
   gates RED, two of which pass today: `Provisional` appears in **zero** gate scripts, the gates carry

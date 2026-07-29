@@ -1,5 +1,37 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0006 — rtl_frontend met a real design file for the first time: 2 of 20
+
+Director question: *"is `rtl_frontend` sufficiently tested? Is it ok to release it as is?"*. New
+tracked probe + decision record + tree. **No `grammars/*.ebnf`, no `rust/src/*`, no
+`rust/scripts/*`, no `generated/*`** => all 11 generated parsers byte-identical BY CONSTRUCTION.
+No tracker row moves.
+
+- **The answer is not "it is bad" — it is "the question had never been asked."** No gate points
+  `rtl_frontend` at real RTL. Its `Done` rests on **130 curated samples, 35,123 bytes total** (mean
+  270 B, largest 687 B), every one authored by this project.
+- **On first contact with real hardware source: 2 of 20 vendored design files parse** — the two
+  smallest muxes in VeeR-EL2.
+- **One genuine gap, isolated with a cross-parser control:** `**` has **0 occurrences** in
+  `grammars/rtl_frontend.ebnf`; `logic [7:0] ram [2**8-1:0];` is rejected by `rtl_frontend` and
+  **accepted** by the full-LRM `systemverilog` parser => valid SV, not invalid input.
+- **One CORRECT rejection, not a gap:** `initial` has 0 occurrences — deliberately outside a
+  *synthesizable* subset. Part of the 18 rejections is therefore legitimate, and the split between
+  deliberate boundaries and real gaps is **not** established here.
+- **Recommendation: not `Done`, and not releasable as `Done`.** Usable as `Provisional` provided the
+  published boundary states what is proven. The qualifier is settled by measurement —
+  **`(corpus pending)`, never `(ceiling)`** — because **16,388 real SV/V files are already vendored**
+  under `stimuli/sv/subs/`: the corpus was never absent, it was never pointed at this parser.
+- ⚠️ **Three false findings produced and withdrawn while measuring** (an unsorted `find` giving
+  "0 of 20"; "port-less module rejected" on input that was invalid SV; "unpacked arrays rejected"
+  when the cause was `**`). Each was killed by asking whether the full-LRM parser accepts the same
+  input. That control is now built into the probe — without it, a rejection cannot be told apart
+  from invalid input.
+- **New standing directive recorded:** git history is append-only — never amend, rebase or
+  force-push, including local unpushed commits; corrections are made in a NEW commit
+  (`docs/decisions/feedback_git_history_is_append_only.md`). *"People shall be able to see the whole
+  commit history."*
+
 ## 2026-07-29 - PGEN-DONE-BAR-0005 — demoting the tracker first would make three gates wrong, not right
 
 `DONE-BAR.2` SPLIT into `.2a` → `.2b` on a measurement. Tree + 1 tracked driver + 1 capture —
