@@ -1,5 +1,65 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0016 — the seventh blocker: the gate went RED because the pipeline got BETTER
+
+`CI-PARITY-GATE-ROT.9` DONE; `.10` opened. 4 gate scripts + book §7 + 2 task trees + 1 tracked
+driver — **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`** ⇒ all 11 generated parsers
+byte-identical BY CONSTRUCTION.
+
+- ⛔⛔ **THE ROUTING IN `-0015` WAS WRONG, AND THAT IS THE FIRST FINDING.** The blocker was filed
+  against the regex family as *"the regex stimuli target-accounting MODEL, not gate wiring"*.
+  Measurement refutes both halves: the defect is in the SHARED gate
+  `rust/scripts/ebnf_stimuli_quality_gate.sh`, the same run gets the `ebnf` row wrong too, and the
+  regex accounting was never wrong. **Routed BACK, with the refutation left visible in
+  `docs/tasks/REGEX-PCRE2-FIDELITY.md` rather than deleted.**
+- ⭐⭐⭐ **THE ASSERTION WAS RIGHT ALL ALONG; THE NUMBER HANDED TO IT WAS STALE.** The stage-2 log
+  carries **two** summaries, 279 apart:
+  `Target-driven generation: resolved 723/1033 …` and
+  `Witness pass: resolved 723 -> 1002 of 1033 reachable targets`.
+  `parse_target_summary` greps only the first. `1002 + 31 = 1033` — the equality reconciles **5
+  grammars out of 5** once the right line is read; the retired reader reconciled 3 of 5, and the two
+  it got wrong are exactly the two whose target drive **exhausted its attempt budget**, leaving the
+  witness pass real work to do.
+- ⭐⭐ **THE ORDER IS THE FINDING.** `789beb13` (2026-02-21) wrote the reader; `ef15fac2`
+  (2026-03-17) shipped the equality — both correct then; `be73dabc` (2026-06-02,
+  `SV-EXH-PROOF.7.4.3`) appended the minimal-witness pass and nobody updated the reader.
+  ⇒ **the gate went RED because the pipeline got better**, and stayed RED invisibly for ~2 months
+  because it is reachable only from `sota_exit_gate`, which had never got past the SV block.
+- ⚠️ **TWO SUSPICIONS RAISED AND BOTH REFUTED BY MEASUREMENT, recorded not dropped**: `final_targets`
+  is *not* a recomputed non-subset (`gap3 ⊆ gap1 ⊆ gap0`, 0 foreign ids), and the reachable-branch
+  universe collapsing 837 → 26 does *not* drop targets (recomputing all 1,033 stage-0 targets against
+  each coverage artifact reproduces every published gap report exactly: 1033 / 925 / 31).
+- ⭐ **THE CLASS IS 3 SITES, NOT 1 — the earlier sweep looked for the symptom.** `grep 'target
+  accounting mismatch'` finds the assertion (1 site); `grep 'parse_target_summary'` finds the defect
+  (**3**, previously byte-identical): the `ebnf`, `annotation` and `sv_preprocessor` stimuli gates.
+  All three fixed. The 3-way duplication is routed to `.10`, not accepted silently.
+- **THE FIX, in three halves.** (1) the reader takes the resolved count from the pipeline's
+  **post-witness** self-report, and **refuses** if that line is absent or if its baseline/total
+  disagree with the drive's — so appending a stage tears the check instead of silently shifting a
+  number; ⛔ re-deriving resolved-ness in `jq` was REJECTED, being a second implementation of
+  `evaluate_target_statuses` (`.2`'s *ask make, do not re-implement make*). (2) the accounting
+  invariant moves to the **producer**, covering every grammar instead of `regex` in one family gate.
+  (3) the consumer's strict equality is **not** restored — it is unsound, because stage 3 generates a
+  further sample and a target IT resolves would fail a healthy run — becoming `<=` **plus a progress
+  check the old form could not make**: ⭐ the retired equality **PASSES** `resolved=0,
+  final=initial`, a loop that achieved nothing.
+- ✅ **VERIFIED END-TO-END**: `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate` — the
+  gate that reported the mismatch — `✅ passed`, `resolved_targets: 1002`, `final: 31`,
+  `initial: 1033`, guard `exit=0 peak_tree_rss=8971MB elapsed=543s`.
+- ⭐⭐ **AND THE VERIFICATION RUN FOUND MORE: the retired metric was BUDGET-DEPENDENT NOISE.** This
+  gate uses a 10,000-attempt budget vs the aggregate's 5,000. Drive-only: **723 → 811**.
+  Post-witness: **1002 → 1002**. Doubling the budget moved the published number by 88 and the true
+  one by zero. (It also confirms the defect is not budget-specific: the retired assertion fails at
+  10,000 too, deficit 191.)
+- **Probes 15/15**, before→after **replayed not described** (retired reader from `git show HEAD:`,
+  live reader from the tree, same log ⇒ `723 …` vs `1002 …`). ⚠️ `CTRL-4` records the honest limit:
+  the stale 723 passes the new `<=` check — catching a stale reader is the *reader's* cross-checks'
+  job, at the source and for every grammar. **All 12 doctrines PASS.**
+- ⛔ **This clears the seventh blocker; it does NOT close `.7`.** No `sota_exit_gate` run has ever
+  reached the end. Book §7 gains the **sixth** failure shape: *a metric that stopped meaning its own
+  name*.
+
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0015 — the .7 fix is PROVEN and prices itself (+13,692 s), and the aggregate is still RED six blockers in
 
 `CI-PARITY-GATE-ROT.7` acceptance run 2 consumed; the regex blocker it revealed is ROUTED OUT to the

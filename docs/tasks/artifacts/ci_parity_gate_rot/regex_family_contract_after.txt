@@ -1,0 +1,77 @@
+memory-guard: started pid=32602 pgid=32602 budget=12288MB floor=10% disk_floor=8GB interval=5s timeout=10800s free=73% disk=3365GB cmd: make -C rust SHELL=/bin/bash regex_parser_family_contract_gate
+🧪 Running regex parser-family contract gate...
+cd . && ./scripts/regex_parser_family_contract_gate.sh
+==> ebnf_frontend_gate
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/logs/ebnf_frontend_gate.log)
+==> ebnf_frontend_dual_run_gate
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/logs/ebnf_frontend_dual_run_gate.log)
+==> ebnf_stimuli_quality_gate
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/logs/ebnf_stimuli_quality_gate.log)
+Regex Parser Family Contract Gate Summary
+state_dir: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate
+generated_at_utc: 2026-07-29T06:31:35Z
+summary_json: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/summary.json
+frontend_state_dir: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_frontend_gate
+frontend_summary_txt: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_frontend_gate/summary.txt
+frontend_summary_csv: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_frontend_gate/summary.csv
+frontend_impl: rust
+frontend_regex_frontend_to_json: pass
+frontend_regex_json_to_parser: pass
+frontend_regex_json_to_stimuli: pass
+frontend_regex_overall: pass
+frontend_regex_notes: ok
+dual_run_state_dir: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_frontend_dual_run_gate
+dual_run_summary_txt: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_frontend_dual_run_gate/summary.txt
+dual_run_summary_csv: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_frontend_dual_run_gate/summary.csv
+dual_run_summary_json: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_frontend_dual_run_gate/summary.json
+dual_run_regex_perl_ebnf_to_json: pass
+dual_run_regex_rust_parse: pass
+dual_run_regex_rust_parse_full: pass
+dual_run_regex_perl_rule_count: 251
+dual_run_regex_rust_rule_count: 276
+dual_run_regex_raw_ast_status: perl_under_reports
+dual_run_regex_raw_ast_missing_on_perl_count: 25
+dual_run_regex_raw_ast_missing_on_rust_count: 0
+dual_run_regex_consumed_pct: 100.0
+dual_run_regex_overall: pass
+dual_run_regex_notes: full parse parity; perl raw_ast under-reports 25 unique rule(s)
+stimuli_state_dir: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_stimuli_quality_gate
+stimuli_summary_txt: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_stimuli_quality_gate/summary.txt
+stimuli_summary_csv: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_stimuli_quality_gate/summary.csv
+stimuli_contract_file: /Volumes/SSD/Documents/github/pgen/rust/test_data/grammar_quality/regex_family_stimuli_contract.json
+stimuli_target_max_attempts: 10000
+stimuli_parseability_report_json: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/ebnf_stimuli_quality_gate/work/regex_parseability_report.json
+stimuli_parseability_counterexample_triage_json: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/regex_parseability_counterexample_triage.json
+stimuli_parseability_counterexample_triage_txt: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work/regex_parseability_counterexample_triage.txt
+stimuli_regex_parseability_required: 1
+stimuli_regex_parseability_attempts_total: 7319
+stimuli_regex_parseability_accepted_total: 7250
+stimuli_regex_parseability_rejected_total: 69
+stimuli_regex_parseability_parser_rejections_total: 69
+stimuli_regex_parseability_acceptance_rate_percent: 99.06
+stimuli_regex_parseability_counterexamples_captured_total: 8
+stimuli_regex_parseability_counterexample_unique_shrunk_samples: 4
+stimuli_regex_parseability_counterexample_unique_failure_locations: 8
+stimuli_regex_parseability_counterexample_unique_failure_line_excerpts: 8
+stimuli_regex_parseability_counterexample_unique_failure_context_excerpts: 8
+stimuli_regex_parseability_counterexample_primary_stage: target_drive_output_filter
+stimuli_regex_parseability_counterexample_primary_stage_count: 5
+stimuli_regex_parseability_counterexample_primary_shrunk_sample: \
+stimuli_regex_parseability_counterexample_primary_shrunk_sample_count: 5
+stimuli_regex_parseability_counterexample_primary_parser_error: Parser did not consume full input at position 76
+stimuli_regex_parseability_counterexample_primary_parser_error_count: 2
+stimuli_regex_parseability_counterexample_primary_failure_location: 1:4
+stimuli_regex_parseability_counterexample_primary_failure_location_count: 1
+stimuli_regex_initial_targets: 1033
+stimuli_regex_resolved_targets: 1002
+stimuli_regex_final_targets: 31
+stimuli_regex_target_attempts: 10000
+stimuli_regex_stage0_successes: 14
+stimuli_regex_stage3_successes: 7747
+stimuli_regex_status: pass
+✅ Regex parser-family contract gate passed.
+Logs: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/logs
+Artifacts: /Volumes/SSD/Documents/github/pgen/rust/target/regex_parser_family_contract_gate/work
+✅ Regex parser-family contract gate passed.
+memory-guard: completed exit=0 peak_tree_rss=8971MB elapsed=543s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/generated_logs/memory_guard/guard.32602.marker
+EXIT=0

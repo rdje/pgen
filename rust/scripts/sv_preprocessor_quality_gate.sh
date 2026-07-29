@@ -198,20 +198,70 @@ normalize_text_for_diff_output() {
     tr -s '[:space:]' ' ' <"$source" | sed 's/^ *//; s/ *$//' >"$target"
 }
 
+# CI-PARITY-GATE-ROT.9: the stage-2 invocation runs TWO passes, not one, and this
+# reader must report the state after BOTH.
+#   1. the target DRIVE prints "Target-driven generation: resolved N/M targets in K attempts"
+#   2. the APPENDED minimal-witness pass (SV-EXH-PROOF.7.4.3, `generate_target_witnesses`,
+#      unconditional on the `--target-report-input` path) then resolves more of the SAME
+#      targets and prints "Witness pass: resolved B -> A of M reachable targets"
+# Reading only the drive line yields a snapshot taken BEFORE the witness pass, while
+# `final_targets` is the residual measured after it — two quantities from different points
+# in time. That is how `resolved + final == initial` silently became false on 2026-06-02
+# (measured on the run that surfaced this: regex reported 723, the truth was 1002).
+# `total` and `attempts` still come from the drive line (the attempts ARE the drive's); the
+# resolved count comes from the witness line's post-pass figure. The three cross-checks
+# below make any future re-shaping of the pass structure fail LOUDLY here rather than
+# silently under-report again.
 parse_target_summary() {
     local log_path="$1"
-    local line
-    line="$(grep -E "Target-driven generation: resolved [0-9]+/[0-9]+ targets in [0-9]+ attempts" "$log_path" | tail -n 1 || true)"
-    if [[ -z "$line" ]]; then
+    local drive_line witness_line
+    local drive_resolved drive_total drive_attempts
+    local witness_before witness_after witness_total
+    local drive_re='resolved[[:space:]]+([0-9]+)/([0-9]+)[[:space:]]+targets[[:space:]]+in[[:space:]]+([0-9]+)[[:space:]]+attempts'
+    local witness_re='resolved[[:space:]]+([0-9]+)[[:space:]]+->[[:space:]]+([0-9]+)[[:space:]]+of[[:space:]]+([0-9]+)[[:space:]]+reachable'
+
+    drive_line="$(grep -E "Target-driven generation: resolved [0-9]+/[0-9]+ targets in [0-9]+ attempts" "$log_path" | tail -n 1 || true)"
+    if [[ -z "$drive_line" ]]; then
         echo "error: unable to locate target-driven summary in '$log_path'" >&2
         exit 1
     fi
-    if [[ "$line" =~ resolved[[:space:]]+([0-9]+)/([0-9]+)[[:space:]]+targets[[:space:]]+in[[:space:]]+([0-9]+)[[:space:]]+attempts ]]; then
-        echo "${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}"
-        return
+    if [[ "$drive_line" =~ $drive_re ]]; then
+        drive_resolved="${BASH_REMATCH[1]}"
+        drive_total="${BASH_REMATCH[2]}"
+        drive_attempts="${BASH_REMATCH[3]}"
+    else
+        echo "error: failed to parse target-driven summary line '$drive_line'" >&2
+        exit 1
     fi
-    echo "error: failed to parse target-driven summary line '$line'" >&2
-    exit 1
+
+    witness_line="$(grep -E "Witness pass: resolved [0-9]+ -> [0-9]+ of [0-9]+ reachable targets" "$log_path" | tail -n 1 || true)"
+    if [[ -z "$witness_line" ]]; then
+        echo "error: unable to locate witness-pass summary in '$log_path': the target drive is followed by an appended witness pass whose result must not be discarded, so reporting the pre-witness resolved count is refused" >&2
+        exit 1
+    fi
+    if [[ "$witness_line" =~ $witness_re ]]; then
+        witness_before="${BASH_REMATCH[1]}"
+        witness_after="${BASH_REMATCH[2]}"
+        witness_total="${BASH_REMATCH[3]}"
+    else
+        echo "error: failed to parse witness-pass summary line '$witness_line'" >&2
+        exit 1
+    fi
+
+    if (( witness_before != drive_resolved )); then
+        echo "error: witness-pass baseline ($witness_before) does not match the target-drive resolved count ($drive_resolved) in '$log_path': the two summaries describe different passes" >&2
+        exit 1
+    fi
+    if (( witness_total != drive_total )); then
+        echo "error: witness-pass total ($witness_total) does not match the target-drive total ($drive_total) in '$log_path'" >&2
+        exit 1
+    fi
+    if (( witness_after < witness_before )); then
+        echo "error: witness pass regressed the resolved count ($witness_before -> $witness_after) in '$log_path'; that pass is documented as purely additive" >&2
+        exit 1
+    fi
+
+    echo "$witness_after $drive_total $drive_attempts"
 }
 
 require_tool jq
@@ -623,6 +673,17 @@ else
 fi
 if (( final_targets > initial_targets )); then
     echo "error: final actionable targets regressed ($initial_targets -> $final_targets)" >&2
+    exit 1
+fi
+
+# CI-PARITY-GATE-ROT.9: target-accounting soundness, asserted at the SOURCE rather than only
+# in a downstream contract gate. `resolved_targets` counts targets driven to threshold by the
+# end of stage 2 (drive + witness pass) and `final_targets` counts those still actionable
+# after stage 3; coverage only accumulates, so the two sets are disjoint subsets of the
+# initial set. Deliberately `<=`, not `==`: stage 3 generates a further sample, and a target
+# IT resolves legitimately makes the sum fall short of `initial_targets` on a healthy run.
+if (( resolved_targets + final_targets > initial_targets )); then
+    echo "error: target accounting unsound: resolved ($resolved_targets) + final ($final_targets) exceeds initial ($initial_targets)" >&2
     exit 1
 fi
 

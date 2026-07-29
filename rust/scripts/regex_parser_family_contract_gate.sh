@@ -357,8 +357,23 @@ if (( stimuli_regex_parseability_parser_rejections_total > 0 && stimuli_regex_pa
     echo "error: stimuli regex parseability triage captured no counterexamples despite parser_rejections_total ${stimuli_regex_parseability_parser_rejections_total}" >&2
     exit 1
 fi
-if (( stimuli_regex_resolved_targets + stimuli_regex_final_targets != stimuli_regex_initial_targets )); then
-    echo "error: stimuli regex target accounting mismatch (${stimuli_regex_resolved_targets} + ${stimuli_regex_final_targets} != ${stimuli_regex_initial_targets})" >&2
+# CI-PARITY-GATE-ROT.9: this was a strict `resolved + final == initial`. The equality is a
+# true statement about the pipeline, but it is NOT sound as a gate: stage 3 generates a
+# further sample, and a target IT resolves makes the sum fall short on a perfectly healthy
+# run. It is now split into the two checks it was conflating.
+#
+# (1) SOUNDNESS. The drive-plus-witness resolved set and the still-actionable set are
+#     disjoint subsets of the initial set, so their sizes cannot exceed it. A sum that does
+#     means double-counting or resolution reported for a target that was never in the set.
+if (( stimuli_regex_resolved_targets + stimuli_regex_final_targets > stimuli_regex_initial_targets )); then
+    echo "error: stimuli regex target accounting unsound (${stimuli_regex_resolved_targets} + ${stimuli_regex_final_targets} > ${stimuli_regex_initial_targets})" >&2
+    exit 1
+fi
+# (2) PROGRESS — the check the old equality could not make. `resolved=0, final=initial` is a
+#     closed loop that achieved literally nothing, and the strict equality PASSED it. With
+#     targets to close, the loop must close at least one.
+if (( stimuli_regex_final_targets >= stimuli_regex_initial_targets )); then
+    echo "error: stimuli regex closed loop resolved no targets (final ${stimuli_regex_final_targets} >= initial ${stimuli_regex_initial_targets})" >&2
     exit 1
 fi
 if (( stimuli_regex_stage3_successes < stimuli_regex_stage0_successes )); then

@@ -3477,7 +3477,31 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
   (#10) still open. Oracle facts recorded as [[reference_pcre2_unsupported_escape_oracle]]. Frontier →
   `.3.1` IMPLEMENTATION.
 
-### `ROUTED-IN` — `regex_parser_family_contract_gate` is RED: the stimuli target-accounting assertion (`todo`)
+### `ROUTED-IN` — `regex_parser_family_contract_gate` is RED: the stimuli target-accounting assertion (`closed — routed BACK, premise refuted`)
+
+- **Status: `closed` (2026-07-29, session #221) — NOT because it was fixed here, but because the
+  premise on which it was routed here was REFUTED BY MEASUREMENT.** It is owned and fixed by
+  `CI-PARITY-GATE-ROT.9`. This entry stays, with the refutation visible, rather than being deleted:
+  the mis-route is part of the record.
+- ⛔ **WHY THE ROUTING WAS WRONG.** It was filed as *"the regex family's stimuli target-accounting
+  MODEL, not gate wiring"*. Measurement says the opposite on both halves:
+  - **Not regex.** The defect is in the SHARED closed-loop gate `rust/scripts/ebnf_stimuli_quality_gate.sh`
+    and the same run gets the `ebnf` row wrong too (drive-only `55` vs the true `60`). The identical
+    stale reader sits in `annotation_stimuli_quality_gate.sh` and `sv_preprocessor_quality_gate.sh`.
+  - **Not a model defect.** The regex accounting is CORRECT: the closed loop resolves `1002` of
+    `1033` targets and `31` remain — `1002 + 31 = 1033` exactly. The gate was handed `723`, the
+    count as of the end of the target DRIVE, discarding the appended witness pass
+    (`SV-EXH-PROOF.7.4.3`) that runs after it in the same invocation and resolved the other `279`.
+- ⭐ **The assertion this leaf was opened to adjudicate was RIGHT.** Both readings offered at routing
+  time — *"the consumer assumes the target set is closed"* and *"`final_targets` may be a recomputed
+  non-subset"* — were wrong; the target sets are strictly nested (`gap3 ⊆ gap1 ⊆ gap0`, 0 foreign
+  entries) and nothing is dropped from the gap report. Full evidence, timeline and fix in
+  `docs/tasks/CI-PARITY-GATE-ROT.md` leaf `.9`.
+- ⚠️ **Nothing about `regex.ebnf`, the regex parser or PCRE2 fidelity changed.** This tree's own
+  frontier is unaffected.
+
+<details>
+<summary>Original routing note, kept verbatim for the record</summary>
 
 - **Status: `todo`** — routed in 2026-07-29 from `CI-PARITY-GATE-ROT.7` with evidence, because it
   belongs to the regex family and not to the gate-wiring flow: no state dir, no artifact hand-off,
@@ -3517,3 +3541,5 @@ error: stimuli regex target accounting mismatch (723 + 31 != 1033)
   fixing this one reveals whatever is behind it rather than turning the aggregate green.
 - **Evidence:** `docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_after2.txt` (guard marker,
   the failing stage, the measured row, provenance and the class sweep).
+
+</details>

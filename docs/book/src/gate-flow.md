@@ -389,7 +389,7 @@ the exemption list can neither be bypassed nor quietly accumulate.
 
 ## 7. How this flow has actually failed
 
-Five distinct shapes, all measured, all from real incidents. A new gate should be
+Six distinct shapes, all measured, all from real incidents. A new gate should be
 read against this list.
 
 ### 1. A check that *cannot run* and returns green
@@ -437,10 +437,36 @@ it fails on a vacuous run and on a broken capture path, neither of which the
 
 **Rule:** a hand-off proves its provenance or refuses.
 
-> The unifying principle behind all five: **a gate must report on its subject, and
+### 6. A metric that stopped meaning its own name
+
+The closed-loop stimuli gates report `resolved_targets` by grepping the pipeline's
+`Target-driven generation: resolved N/M targets` line. Correct when written — but
+`SV-EXH-PROOF.7.4.3` later appended a **second pass** to the same invocation, the
+minimal-witness pass, which resolves more of the same targets and reports them on
+its own line. Nothing updated the reader.
+
+So `resolved_targets` became a snapshot taken *before* the last pass, while
+`final_targets` stayed the residual measured *after* it. The downstream assertion
+`resolved + final == initial` — a true statement about the pipeline — went
+permanently false: `723 + 31 != 1033`, when the loop had in fact resolved 1,002.
+
+⭐ **The gate went red because the pipeline got better**, and stayed red invisibly
+for two months because it is reachable only from `sota_exit_gate`, which had never
+got that far.
+
+**Rule:** a metric read out of a log is a **coupling to a pass structure**, and the
+coupling must be checked, not assumed. The reader now requires the final pass's
+line to be present (absent ⇒ refuse — reporting an intermediate figure is worse
+than refusing), and cross-checks that its baseline and total agree with the earlier
+pass, so appending a stage tears the check instead of silently shifting a number.
+And an accounting invariant belongs at the **producer**, where it covers every
+grammar, rather than in one family gate that covers one.
+
+> The unifying principle behind all six: **a gate must report on its subject, and
 > only its subject.** It must not report on its own documentation, its own absence,
-> or somebody else's stale output — and when it cannot report at all, it must say
-> so rather than return green.
+> somebody else's stale output, or a quantity that has quietly stopped being the one
+> its name promises — and when it cannot report at all, it must say so rather than
+> return green.
 
 ---
 

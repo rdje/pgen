@@ -1,0 +1,24 @@
+    retired-reader baseline: 59f810e1
+=== CI-PARITY-GATE-ROT.9 — target-accounting probes ===
+--- (A) the reader: before -> after, replayed ---
+    OLD reader on the regex log: 723 1033 5000
+    NEW reader on the regex log: 1002 1033 5000
+✓ CTRL-0a OLD reader under-reports 723         PASS
+✓ CTRL-0b NEW reader reports 1002              PASS
+✓ CTRL-0c they DISAGREE by the deficit         PASS
+--- (A) the reader: GREEN / CONTROL / RED ---
+✓ GREEN-1 ebnf row post-witness = 60           PASS
+✓ CTRL-1 drive finished => SAME answer         PASS
+✓ RED-1 witness line absent => refuse          FAIL
+✓ RED-2 baseline mismatch => refuse            FAIL
+✓ RED-3 total mismatch => refuse               FAIL
+✓ RED-4 witness regressed => refuse            FAIL
+--- (B) the consumer assertion: the retired equality vs the replacement ---
+✓ CTRL-2 healthy run passes soundness          PASS
+✓ CTRL-3 healthy run passes progress           PASS
+✓ RED-5a zero-progress PASSED the OLD form     PASS
+✓ RED-5b zero-progress FAILS the new form      FAIL
+✓ RED-6 unsound sum still refused              FAIL
+✓ CTRL-4 stale 723 no longer misjudged         PASS
+---
+arms=15 PASS=15 FAIL=0
