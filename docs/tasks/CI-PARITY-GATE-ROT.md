@@ -7,7 +7,7 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.14`, `.11`, `.10`). ⭐⭐ **ACCEPTANCE RUN 3 (2026-07-29): the best run this aggregate has ever had — 5 h 05 m, 32 gates entered, 30 ok — and still RED at blocker #8.** It cleared the ENTIRE SV and VHDL blocks and `regex_parser_family_contract_gate` (⇒ **`.9`'s fix proven in its real caller**, where run 2 died), then failed on `regex_parser_family_status_gate`: *tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'*. ✅ `.9` exonerated (checked first: `resolved_targets` is reporting-only in that gate; `final_targets`=31 before and after). Regex coverage debt ROUTED to `REGEX-PCRE2-FIDELITY` with a recorded cross-family check; the aggregate's misleading failure path kept here as `.14`. See `.13`. ✅ **`.12` done
+- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.15`, `.14`, `.11`, `.10`). ⭐⭐ **ACCEPTANCE RUN 3 (2026-07-29): the best run this aggregate has ever had — 5 h 05 m, 32 gates entered, 30 ok — and still RED at blocker #8.** It cleared the ENTIRE SV and VHDL blocks and `regex_parser_family_contract_gate` (⇒ **`.9`'s fix proven in its real caller**, where run 2 died), then failed on `regex_parser_family_status_gate`: *tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'*. ✅ `.9` exonerated (checked first: `resolved_targets` is reporting-only in that gate; `final_targets`=31 before and after). Regex coverage debt ROUTED to `REGEX-PCRE2-FIDELITY` with a recorded cross-family check; the aggregate's misleading failure path kept here as `.14`. See `.13`. ✅ **`.12` done
   2026-07-29 session #221 — the 13th enforced doctrine `ROUTING-EVIDENCE`**: a leaf routing a finding
   OUT of its tree must record what it MEASURED, above all whether the finding reproduces outside the
   family it is being sent to. ⚠️ Its first cut would have PASSED its own founding incident (`-0015`
@@ -720,6 +720,32 @@ leaf is the first real user of.
    therefore kept HERE as `.14` rather than routed.
 
 ---
+
+### `.15` — the one auto-running workflow invokes 3 of 13 doctrine checks individually, not the driver (`todo`)
+
+- **Status: `todo`** — opened 2026-07-29 session #221 while answering whether the director needed to
+  decide on hosted Actions minutes. **They did not, and this is why.**
+- **MEASURED:** `.github/workflows/memory-architecture-gate.yml` is the **only** workflow that runs on
+  `push` + `pull_request`, and it executes three checks **by name** —
+  `check_memory_architecture.sh`, `check_diagnostics_and_docpaths.sh`, `check_ebnf_source_of_truth.sh` —
+  rather than the registry driver `scripts/check_doctrines.sh`.
+- ⇒ ⭐ **10 of the 13 enforced doctrines have NO automatic lane**, and — the part that matters —
+  **a doctrine added tomorrow silently gets none.** `ROUTING-EVIDENCE`, shipped hours ago, is already
+  in that position. This is precisely the rot `.8` was opened to end: *the flow fixed with checks that
+  could themselves rot*, one level up.
+- **The fix is cheap and needs no director call:** invoke the driver instead of the three names. Same
+  runner, same trigger, no cargo, no build ⇒ no meaningful Actions cost. The driver is the single
+  source of truth for the roster, so a new doctrine inherits the lane by construction — the
+  `.4`/"one home" principle applied to enforcement itself.
+- ⚠️ **Honest limit, to state rather than discover:** the staged-scope doctrines
+  (`TASK-ACCEPTANCE`, `DESIGN-PRIOR-ART`, `WAIVER-ROUTING`, `ROUTING-EVIDENCE`) judge a **staged
+  diff**, and a hosted push has none — they will exit 0 **vacuously** there. That is not a reason to
+  skip this leaf (6 further doctrines do run meaningfully), but the workflow must **say so** rather
+  than let a green tick imply those four were evaluated. *A check that cannot run must say so, not
+  return green* — this tree's founding principle, applied to its own fix.
+- **Relevance to `DONE-BAR.4`:** this is the free half of "the flow shall guarantee the bar" — the
+  bar's bookkeeping enforced automatically. The expensive half (periodically re-proving parsers via
+  the 5 h aggregate) stays a separate, later, director-priced decision.
 
 ### `.14` — the aggregate's failure path reports a missing file instead of the real cause (`todo`)
 
