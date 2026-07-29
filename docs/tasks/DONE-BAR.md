@@ -12,7 +12,7 @@
 
 ## Goal
 
-Every parser family that claims `Done` in `LIVE_ACHIEVEMENT_STATUS.md` meets **all four legs**,
+Every parser family that claims `Done` in `LIVE_ACHIEVEMENT_STATUS.md` meets **all three legs**,
 currently and simultaneously:
 
 1. **stimuli-generator proof** — the family's own generated samples close the loop, zero residual
@@ -22,18 +22,12 @@ currently and simultaneously:
 3. **all the external test corpus** — an officially-recognized third-party corpus, **passing** —
    not triaged, not characterized.
 
-...and the arbiter the three legs exist to establish:
+**The purpose those three serve** — *"sota, signoff level … user can now blindly trust the parser"*
+(director, verbatim) — is not a fourth leg. It is what leg 2 must GROW to cover: the consumer-facing
+checks that no gate performs today (silent-success paths, published-version currency, open ledger
+entries, documented boundaries). See "LEG 4 REFRAMED" below; they are owned by `.5`.
 
-4. **blind-trust worthiness** — *"sota, signoff level … user can now blindly trust the parser"*
-   (director, verbatim). No known open defect against the family, a current published integration
-   contract, documented acceptance boundaries, no known silent-failure mode.
-
-⛔ **Legs 1-3 are NECESSARY, not SUFFICIENT.** A family can pass all three and still fail leg 4, and
-then it is not `Done`. The checklist must never become a way to certify something a careful engineer
-would not stake work on. The operative test: *would I tell a downstream team to build on this parser
-without re-verifying it, and would I be right?*
-
-Rows that do not meet all four are **demoted**, visibly, with the unmet leg named.
+Rows that do not meet all three are **demoted**, visibly, with the unmet leg named.
 
 ## ⭐⭐⭐ THE FLOW SHALL GUARANTEE THIS 100% (director 2026-07-29, verbatim) — this is the tree's GOVERNING requirement
 
@@ -65,6 +59,56 @@ re-proved by an automatic CI lane that no contributor controls.** Leg 2 of the b
 gate nothing invokes does not count as green — the same standard applied to the enforcement of the
 bar itself. Anything less gets *stated*, never quietly claimed as 100%.
 
+## ⭐⭐ LEG 4 REFRAMED (2026-07-29, on the director's challenge *"I don't really understand (4). Why do we need it?"*)
+
+**The challenge was right and the original framing was wrong.** Leg 4 was written as *"a downstream
+team could build on it without re-verifying"* — a **goal statement, not a criterion**. It is
+unmeasurable as phrased, and the director had just required that **the flow guarantee the bar 100%**.
+⛔ An unmeasurable leg cannot be guaranteed by a flow. Those two statements were in conflict, and the
+conflict was mine.
+
+**But the thing it was pointing at is real, and it is MEASURED in this repo.** Legs 1-3 all ask *does
+the parser behave correctly*. They cannot see failures that are invisible to the producer's own tests
+and land on the consumer:
+
+| measured failure class | why legs 1-3 cannot see it | evidence |
+|---|---|---|
+| **silent success** — codegen paths that return `Ok` with **zero diagnostics**, emitting `<property_access>` / `<array_access>` sentinels | the parse SUCCEEDS, so every "did it parse" gate is green while the consumer receives a placeholder node | **6 sentinel emission sites** measured; `DOCTRINE-GAP-OWNERSHIP.3` |
+| **stale published contract** | no gate reads the user-facing docs | `PGEN_USER_GUIDE.md:3808,3810` publishes regex `1.1.29`/`1.1.31` as CURRENT; the contract says `1.1.104`/`1.1.106` — **~75 releases stale**; `DOCTRINE-GAP-OWNERSHIP.4` |
+| **known open defect found downstream** | by definition our gates missed it, which is why it reached the ledger | released-parser bug ledger |
+
+⇒ **measured: NO gate references the released-parser bug ledger or the user guide.** Zero coverage.
+
+### ⭐⭐⭐ THE RESOLUTION — leg 4 is not a fourth kind of proof; it is a LIST OF GATES WE HAVE NOT WRITTEN
+
+Every item above is a concrete, checkable fact about a *consumer-facing* artifact:
+
+1. zero sentinel/silent-success paths reachable for the family;
+2. the published version pair matches the released parser (⇒ a gate that reads the user guide);
+3. zero open ledger entries naming the family;
+4. the family's acceptance boundary is documented where a consumer looks.
+
+**Written as gates, they collapse into leg 2** (*all gates covering the family are green now and
+actually invoked*). ⇒ **the bar is THREE legs, all measurable, all gateable** — which is exactly what
+*"the flow shall guarantee this 100%"* requires, and which the four-leg form could not deliver.
+
+⇒ leg 4 is **retired as a leg** and re-entered as `.5`: *the missing consumer-facing gates*.
+
+### ✅ AND IT IS NOT ON THE CRITICAL PATH — measured, which is why deferring it is safe
+
+| family claiming `Done` | leg 1 | leg 3 (external corpus) |
+|---|---|---|
+| `systemverilog_preprocessor` | — | ⛔ **none** |
+| `return_annotation` | — | ⛔ **none** |
+| `rtl_frontend` | — | ⛔ **none** |
+| `vhdl` | — | ⚠️ triage only |
+| `regex` | ⛔ `final_targets=31` | ✅ 3 gates |
+
+**Every one of the five fails legs 1-3 already.** Nothing reaches the consumer-facing checks. ⇒ they
+can be built **after** legs 1-3 without ever minting a 2nd-tier `Done`, because no row can be
+promoted on legs 1-3 alone while `.5` is open — a row that clears 1-3 is marked
+**`PROVISIONAL — consumer-facing gates unbuilt`**, never `Done`.
+
 ## Non-Goals
 
 - Lowering the bar to fit the current state. The directive is explicit: *"no 2nd or 3rd tier Done."*
@@ -75,11 +119,11 @@ bar itself. Anything less gets *stated*, never quietly claimed as 100%.
 
 ## Acceptance Criteria
 
-- A re-runnable audit reports, per family, the state of each of the four legs, with its own ground
+- A re-runnable audit reports, per family, the state of each of the three legs, with its own ground
   truth so it says `MISCALIBRATED` rather than reporting a comfortable number.
 - Every `Done` row either survives the audit with evidence, or is demoted with the unmet leg named.
 - The bar is **enforced**, not just documented, so a row cannot drift back to `Done` without the
-  four legs — mechanized once the audit's shape is known (⛔ price before mechanizing:
+  three legs — mechanized once the audit's shape is known (⛔ price before mechanizing:
   `GENERATED-LINT-CORRECTNESS.4`'s rule).
 
 ## ⭐ THE MEASURED STARTING POINT (2026-07-29, before any remediation)
@@ -122,7 +166,7 @@ actual per-family open-defect counts rather than leaving it as an impression.
 
 ## Leaves
 
-### `.1` — audit every `Done` claim against the four legs (`todo`)
+### `.1` — audit every `Done` claim against the three legs (`todo`)
 
 - **Status: `todo`** — the tree's frontier. Nothing started; no partial state.
 - **Scope:**
@@ -136,11 +180,9 @@ actual per-family open-defect counts rather than leaving it as an impression.
        actually invokes it (reuse `check_gate_reachability.sh`'s tier model);
      - **leg 3**: whether an officially-recognized external corpus exists, whether it is asserted as
        a **pass** rather than triaged/characterized, and what it currently reports.
-  2b. **leg 4**: per-family open-defect count from the released-parser bug ledger, contract currency,
-      and whether the family's acceptance boundary is documented where a consumer would find it.
   3. Ship it as a **re-runnable, self-calibrating** instrument, with pinned ground-truth facts that
      make it print `MISCALIBRATED` and exit nonzero rather than report a number it cannot back.
-  4. Report, per family, `MEETS BAR` / `DOES NOT MEET BAR (leg N unmet: …)`, with leg 4 judged explicitly rather than inferred from legs 1-3.
+  4. Report, per family, `MEETS BAR` / `DOES NOT MEET BAR (leg N unmet: …)`; a row clearing legs 1-3 while `.5` is open is `PROVISIONAL`, never `Done`.
 - ⛔ **Do NOT demote rows inside `.1`.** Audit first, adjudicate second — this session has twice paid
   for the opposite order. Demotions land in `.2` with the evidence attached.
 - ⚠️ **Expect the audit to fail several rows.** That is the directive working. The instrument must
@@ -174,6 +216,22 @@ actual per-family open-defect counts rather than leaving it as an impression.
   opened to end (*the flow had been fixed with checks that could themselves rot*).
 - ⚠️ State the residual honestly: hook-bypassable + machine-local unless a CI lane re-proves it.
   ⛔ Price before mechanizing (`GENERATED-LINT-CORRECTNESS.4`'s rule).
+
+### `.5` — the missing CONSUMER-FACING gates (what leg 4 became) (`todo`)
+
+- **Status: `todo`** — not on the critical path (measured: all five `Done` families fail legs 1-3
+  first), so it is sequenced after `.1`-`.3` **without being an exemption**: while `.5` is open, a row
+  clearing legs 1-3 is `PROVISIONAL`, never `Done`.
+- **Four gates that do not exist today** (measured: no gate references the ledger or the user guide):
+  1. **no reachable silent-success path** for the family — 6 sentinel emission sites measured
+     (`<property_access>` / `<array_access>` / `<last_extraction>`), where a parse returns `Ok` with
+     zero diagnostics and a placeholder node ⇒ green gates, garbage handed to the consumer;
+  2. **published version currency** — the user-facing docs' version pair must match the released
+     parser (measured drift: guide `1.1.29`/`1.1.31` vs contract `1.1.104`/`1.1.106`);
+  3. **zero open ledger entries** naming the family;
+  4. **documented acceptance boundary** where a consumer looks.
+- ⭐ Once these exist they are ordinary leg-2 gates. That is the point: **the bar stays three legs and
+  stays fully mechanizable**, which is what *"the flow shall guarantee this 100%"* demands.
 
 ## Current Frontier
 

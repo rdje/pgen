@@ -23,11 +23,11 @@ metadata:
 The three legs below are the *mechanism*; **blind trustworthiness is the arbiter.** This ordering
 matters, and it closes a loophole the three-leg list would otherwise have left open:
 
-- ⛔ **Passing the three legs does NOT by itself confer `Done`** if a user still could not blindly
-  trust the parser — e.g. a known open defect against the family in
-  `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`, a stale published integration contract, an
-  undocumented acceptance boundary, or a known silent-failure mode. The checklist must never become
-  a way to certify something a careful engineer would not stake work on.
+- ⛔ **Passing today's three legs does NOT by itself confer `Done`** while the consumer-facing gates
+  are unbuilt — a known open defect, a stale published contract, an undocumented boundary or a
+  silent-failure mode all leave a green parser a consumer would be burned by. Those checks are
+  **gates to write** (`DONE-BAR.5`), not a separate tier of judgement; until they exist, a row
+  clearing the three legs is **`PROVISIONAL`**, never `Done`.
 - ⭐ **The test to apply to any candidate row:** *would I tell a downstream team to build on this
   parser without re-verifying it, and would I be right?* If the honest answer is no, it is not
   `Done`, whatever the gates say.
@@ -73,9 +73,13 @@ the bar itself is being raised and fixed.
    (*"every parser proven by BOTH the stimuli generator AND an officially-recognized external
    corpus"*) without it being enforced.
 
-...and then the arbiter: **4. blind-trust worthiness** — no known open defect against the family,
-a current published contract, documented boundaries, no known silent-failure mode. Legs 1-3 are
-necessary; leg 4 is what they exist to establish, and it can fail on its own.
+⭐ **The "blind trust" purpose is NOT a fourth leg** — that framing was challenged by the director
+(*"I don't really understand (4). Why do we need it?"*) and it was wrong: it stated a GOAL, not a
+criterion, and an unmeasurable leg cannot be guaranteed by a flow. What it pointed at is real and
+measured (silent-success sentinel paths that return `Ok` with zero diagnostics; a user guide
+publishing a ~75-release-stale version pair; open ledger entries; undocumented boundaries — and
+**no gate covers any of it**). Those are concrete consumer-facing checks, so they are **written as
+gates and absorbed into leg 2**. The bar stays THREE legs, all measurable, all gateable.
 
 ## What this SETTLES that was previously soft
 
