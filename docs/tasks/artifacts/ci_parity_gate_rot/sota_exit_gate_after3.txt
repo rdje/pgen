@@ -1,0 +1,61 @@
+memory-guard: started pid=52823 pgid=52823 budget=12288MB floor=10% disk_floor=8GB interval=5s timeout=28800s free=66% disk=3563GB cmd: make -C rust SHELL=/bin/bash sota_exit_gate
+🏁 Running SOTA exit aggregate gate...
+cd . && ./scripts/sota_exit_gate.sh
+==> PGEN SOTA exit gate
+state_dir: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate
+policy_file: /Volumes/SSD/Documents/github/pgen/rust/config/sota_exit_policy.env
+policy_version: 1
+required_checks: differential_baseline_contract fixed_point_gate annotation_contract_gate annotation_100_gate annotation_nonbootstrap_e2e_gate ebnf_stimuli_quality_gate stimuli_module_parity_gate differential_regression_gate performance_gate embedding_api_gate
+run_ebnf_readiness: 1
+require_ebnf_strict: 1
+run_ebnf_dual_run_diff: 1
+require_ebnf_dual_run_strict: 1
+run_hdl_frontend_readiness: 1
+require_hdl_frontend_strict: 1
+run_sv_preprocessor_quality: 1
+require_sv_preprocessor_quality_strict: 1
+run_sv_stimuli_quality: 1
+require_sv_stimuli_quality_strict: 1
+sv_stimuli_enforce_min_parse_full_pass_ratio: 0
+sv_stimuli_min_parse_full_pass_ratio: 100
+run_sv_declared_shadow_promotion: 1
+require_sv_declared_shadow_promotion_strict: 1
+sv_declared_shadow_promotion_trials: 3
+sv_declared_shadow_promotion_count: 6
+sv_declared_shadow_promotion_seed_base: 12001
+sv_declared_shadow_promotion_target_max_attempts: 400
+sv_declared_shadow_promotion_parse_full_mode: auto
+sv_declared_shadow_promotion_min_checked: 2
+sv_declared_shadow_promotion_semantic_closure_mode: 1
+sv_declared_shadow_promotion_stimuli_mode: sv_file
+sv_declared_shadow_promotion_declared_shadow_parseable_only: 1
+run_sv_parse_full_ratio_promotion: 1
+require_sv_parse_full_ratio_promotion_strict: 0
+sv_parse_full_ratio_promotion_target_min_ratio: 100
+sv_parse_full_ratio_promotion_trials: 4
+sv_parse_full_ratio_promotion_count: 8
+sv_parse_full_ratio_promotion_seed_base: 12001
+sv_parse_full_ratio_promotion_seed_stride: 250000
+sv_parse_full_ratio_promotion_parse_full_mode: auto
+sv_parse_full_ratio_promotion_semantic_closure_mode: 0
+sv_parse_full_ratio_promotion_stimuli_mode: sv_file
+run_vhdl_stimuli_quality: 1
+require_vhdl_stimuli_quality_strict: 1
+vhdl_stimuli_quality_target_max_attempts: 5000
+vhdl_stimuli_quality_target_max_attempts_source: policy
+run_vhdl_strict_promotion: 1
+require_vhdl_strict_promotion_strict: 1
+vhdl_strict_promotion_trials: 3
+vhdl_strict_promotion_count: 8
+vhdl_strict_promotion_seed_base: 22001
+vhdl_strict_promotion_seed_stride: 250000
+vhdl_strict_promotion_parse_full_mode: auto
+vhdl_strict_promotion_realistic_corpus_mode: auto
+vhdl_strict_promotion_target_min_ratio: 0
+vhdl_strict_promotion_require_realistic_parity: 1
+allow_informational_failures: 1
+==> differential_baseline_contract (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/differential_baseline_contract.log)
+==> fixed_point_gate (required)
+    ok (/Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/logs/fixed_point_gate.log)
+==> annotation_contract_gate (required)

@@ -7,7 +7,7 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.10`). ✅ **`.9` done 2026-07-29
+- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.11`, then `.10`). ✅ **`.9` done 2026-07-29
   session #221** — the seventh blocker, and the routing that sent it to the regex family was
   refuted by measurement: the stimuli gates were reading the target-DRIVE summary and discarding
   the witness pass appended after it, so `resolved_targets` was a snapshot taken before the last
@@ -625,6 +625,43 @@ are, at the source and for every grammar.
 - [x] **LOCKSTEP** — `docs/book/src/gate-flow.md` §7 gains the **sixth** failure shape (*a metric
   that stopped meaning its own name*) and its rule; `docs/tasks/REGEX-PCRE2-FIDELITY.md` records the
   refuted routing premise instead of deleting it; `.10` opened for the 3-way duplication.
+
+---
+
+### `.11` — the stale-log-metric class: 14 further gates scrape prose log lines for values, and nobody has checked them (`todo`)
+
+- **Status: `todo`** — opened 2026-07-29 session #221 by `.9`, whose defect is an instance of a
+  general shape: **a value scraped out of a human-readable log line is a coupling to a pass
+  structure, and nothing checks that coupling.** `.9` proved that coupling can silently break for
+  two months when an upstream improvement appends a stage.
+- ⚠️⚠️ **THE FIRST CENSUS I RAN WAS WRONG, AND IT WOULD HAVE PRODUCED A CONFIDENT ALL-CLEAR.**
+  Requiring `BASH_REMATCH` alongside a numeric grep returned **3 of 91** — exactly the three `.9`
+  had already fixed — i.e. *"the class is closed, no further exposure."* A second angle over the
+  same corpus (any `grep`/`sed`/`awk` extracting from a `*_log`-named path) returns **17 of 91**,
+  and the three known sites appear in both, so the wider instrument is the calibrated one.
+  ⭐ **The narrow instrument agreed with the answer I wanted and was wrong** — this tree's own
+  lesson ([[feedback_instrument_needs_ground_truth]]) landing on this leaf's own measurement.
+- **Measured candidate set (17):** `ast_dump_contract_gate`, `annotation_stimuli_quality_gate`,
+  `bin_build_integrity_gate`, `ebnf_frontend_readiness_gate`, `ebnf_stimuli_quality_gate`,
+  `ebnf_frontend_dual_run_diff_gate`, `regex_broader_corpus_proof_gate`, `rtl_const_expr_cert_gate`,
+  `sota_exit_gate`, `sv_cert_recognized_union_gate`, `sv_parse_full_ratio_promotion_gate`,
+  `sv_declared_shadow_promotion_gate`, `sv_combined_telemetry_contract_gate`,
+  `sv_preprocessor_quality_gate`, `sv_stimuli_quality_gate`, `verilog_2005_conformance_gate`,
+  `vhdl_strict_promotion_gate`.
+- ⛔ **17 is a CANDIDATE set, not a defect count, and the leaf must not pretend otherwise.** Reading
+  a log to check it is non-empty, or to capture a failure excerpt, is legitimate and not this shape.
+  **The triage is the work**: for each site, does it derive a *number or verdict* from prose, and if
+  so, is that prose emitted by a pass that something could be appended after?
+- **Scope when taken up:** triage the 17; for each true instance either (a) move the read to the
+  structured artifact the pipeline already writes (`summary.json`/`coverage*.json`), which is the
+  root-cause fix, or (b) apply `.9`'s pattern — require the terminal line and cross-check it against
+  the earlier one, so an appended stage tears the check. Then decide whether a doctrine check can
+  express *"a metric must not be scraped from prose when a structured artifact carries it"*, and
+  price it before mechanizing (`GENERATED-LINT-CORRECTNESS.4`'s rule: do not mechanize for one
+  occurrence — here there are provably more than one).
+- ⚠️ **Not started, no partial state.** Opened while `.7`'s acceptance run 3 was in flight, and
+  deliberately NOT begun: editing `rust/scripts/*` under a running aggregate invalidates the
+  measurement without announcing it (`.6`'s rule).
 
 ---
 
