@@ -49,6 +49,25 @@ through that aggregate — which is precisely how `regex` held `Done` against a 
 strongest honest form is *enforced on every commit through the hook AND re-proved by an automatic
 lane no contributor controls* — anything less is stated, never quietly claimed.
 
+## ⭐⭐⭐ `Provisional` SHIPS, AND DISCLOSURE IS LOAD-BEARING (director 2026-07-29, verbatim)
+
+> *"we need to push all the parsers forwards to reach Provisional Done. If we can't find an external
+> corpus for some parsers, they will stay as provisional but this should not prevent them from being
+> used by downstream customers. The customers should know the state of what they are getting, then
+> based on that information, it is up to them to use them or not."*
+
+- **`Provisional`** = legs 1-2 met (stimuli loop closed, zero residual target debt; all covering gates
+  green *now* and actually invoked), leg 3 unmet or unavailable. **It is a SHIPPING tier**: downstream
+  consumers may use it, told exactly what is proven and what is not.
+- **Near-term goal: every family to at least `Provisional`.** Leg 3 promotes `Provisional` → `Done`.
+- ⛔⛔ **This makes accurate published state load-bearing** — and measurably it is not accurate today
+  (`PGEN_USER_GUIDE.md` publishes regex `1.1.29`/`1.1.31` against the contract's `1.1.104`/`1.1.106`,
+  with no gate reading either document). ⇒ the consumer-facing gates are a **prerequisite** for
+  shipping `Provisional`, not a deferred nicety. *A disclosure nobody checks is a claim.*
+- ⭐ **Some families are permanently `Provisional`, and that is correct**: `return_annotation`,
+  `semantic_annotation` and `ebnf` describe **PGEN's own languages**, so no third-party corpus exists
+  by construction. Saying so beats carrying a never-closing TODO.
+
 ## What triggered it
 
 `CI-PARITY-GATE-ROT.13` found the `regex` family asserting `Done` while its own

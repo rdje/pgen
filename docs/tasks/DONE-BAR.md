@@ -27,7 +27,7 @@ currently and simultaneously:
 checks that no gate performs today (silent-success paths, published-version currency, open ledger
 entries, documented boundaries). See "LEG 4 REFRAMED" below; they are owned by `.5`.
 
-Rows that do not meet all three are **demoted**, visibly, with the unmet leg named.
+Rows that do not meet all three are **demoted**, visibly, with the unmet leg named — to `Provisional` when legs 1-2 hold, otherwise lower.
 
 ## ⭐⭐⭐ THE FLOW SHALL GUARANTEE THIS 100% (director 2026-07-29, verbatim) — this is the tree's GOVERNING requirement
 
@@ -108,6 +108,46 @@ actually invoked*). ⇒ **the bar is THREE legs, all measurable, all gateable** 
 can be built **after** legs 1-3 without ever minting a 2nd-tier `Done`, because no row can be
 promoted on legs 1-3 alone while `.5` is open — a row that clears 1-3 is marked
 **`PROVISIONAL — consumer-facing gates unbuilt`**, never `Done`.
+
+## ⭐⭐⭐ `Provisional` IS A SHIPPING TIER, AND DISCLOSURE IS LOAD-BEARING (director 2026-07-29)
+
+> *"It means we need to push all the parsers forwards to reach Provisional Done. If we can't find an
+> external corpus for some parsers, they will stay as provisional but this should not prevent them
+> from being used by downstream customers. The customers should know the state of what they are
+> getting, then based on that information, it is up to them to use them or not."*
+
+**This changes the campaign's shape and one of its conclusions.**
+
+- ⭐ **The near-term goal is not `Done` for everything — it is `Provisional` for EVERYTHING.** Legs 1
+  and 2 (stimuli-generator loop closed with zero residual debt; every covering gate green *now* and
+  actually invoked) are the achievable bar for every family. Leg 3 promotes `Provisional` → `Done`.
+- ⭐ **`Provisional` ships.** It does not block downstream use. The consumer is told exactly what is
+  proven and what is not, and decides.
+- ⛔⛔ **AND THAT MAKES DISCLOSURE LOAD-BEARING, WHICH REVERSES THIS TREE'S EARLIER CONCLUSION.**
+  `.5` (the consumer-facing gates) was recorded as *"safely deferred, not on the critical path"*
+  because no family reached it. **That reasoning does not survive this directive.** If a `Provisional`
+  parser ships and the customer decides from its published state, then the published state being
+  TRUE is the thing the whole arrangement rests on — and it is **measurably not true today**:
+  `PGEN_USER_GUIDE.md:3808,3810` publishes regex `1.1.29`/`1.1.31` against the contract's
+  `1.1.104`/`1.1.106`, ~75 releases stale, with **no gate reading either document**.
+  ⇒ **`.5` is promoted from deferred to a PREREQUISITE for shipping `Provisional` honestly.**
+  *A disclosure nobody checks is a claim, not a disclosure.*
+
+### ⭐⭐ A DISTINCTION THAT MAKES THE MODEL COHERENT: which families CAN reach `Done` at all
+
+Leg 3 requires an *officially-recognized third-party* corpus. That is available only where the
+language is externally standardized:
+
+| family | language owned by | leg 3 reachable? | ceiling |
+|---|---|---|---|
+| `systemverilog`, `systemverilog_preprocessor`, `vhdl`, `regex`, `json`, `verilog_2005` | **IEEE / PCRE2 / ECMA / JSONTestSuite** — external standards | ✅ yes, a corpus exists in the world | `Done` |
+| `return_annotation`, `semantic_annotation`, `ebnf` | ⭐ **PGEN itself** | ⛔ **no — by construction**: there is no third-party corpus for PGEN's own annotation/meta languages | **`Provisional` is the honest ceiling** |
+| `rtl_frontend`, `rtl_const_expr` | a *subset* PGEN defines of SystemVerilog | ⚠️ partially — SV corpora exist but exercise far more than the subset | to be adjudicated in `.3` |
+
+⇒ **three families are permanently `Provisional` and that is CORRECT, not a failure.** Recording this
+stops them being re-litigated every audit, and stops the tracker looking like it carries three
+never-closing rows. ⚠️ It is a first-pass classification from language ownership, to be confirmed in
+`.3` — not a finding.
 
 ## Non-Goals
 
@@ -217,11 +257,13 @@ actual per-family open-defect counts rather than leaving it as an impression.
 - ⚠️ State the residual honestly: hook-bypassable + machine-local unless a CI lane re-proves it.
   ⛔ Price before mechanizing (`GENERATED-LINT-CORRECTNESS.4`'s rule).
 
-### `.5` — the missing CONSUMER-FACING gates (what leg 4 became) (`todo`)
+### `.5` — the missing CONSUMER-FACING gates: disclosure integrity (`todo`) ⭐ PREREQUISITE FOR SHIPPING `Provisional`
 
-- **Status: `todo`** — not on the critical path (measured: all five `Done` families fail legs 1-3
-  first), so it is sequenced after `.1`-`.3` **without being an exemption**: while `.5` is open, a row
-  clearing legs 1-3 is `PROVISIONAL`, never `Done`.
+- **Status: `todo`** — ⛔ **PROMOTED 2026-07-29.** It was recorded as *"safely deferred, not on the
+  critical path"* because no family reached it. **That reasoning does not survive the `Provisional`-ships
+  directive**: if customers decide from published state, the published state must be true, and it is
+  measurably not (guide `1.1.29`/`1.1.31` vs contract `1.1.104`/`1.1.106`, no gate reading either).
+  *A disclosure nobody checks is a claim, not a disclosure.*
 - **Four gates that do not exist today** (measured: no gate references the ledger or the user guide):
   1. **no reachable silent-success path** for the family — 6 sentinel emission sites measured
      (`<property_access>` / `<array_access>` / `<last_extraction>`), where a parse returns `Ok` with
@@ -233,9 +275,22 @@ actual per-family open-defect counts rather than leaving it as an impression.
 - ⭐ Once these exist they are ordinary leg-2 gates. That is the point: **the bar stays three legs and
   stays fully mechanizable**, which is what *"the flow shall guarantee this 100%"* demands.
 
+### `.6` — publish each family's bar state where a consumer looks (`todo`)
+
+- **Status: `todo`** — the disclosure surface the `Provisional`-ships model requires.
+- **Requirement:** every family's downstream integration contract (`docs/contracts/PGEN_*_PARSER_INTEGRATION_CONTRACT.md`,
+  9 of them) and its per-parser mdBook state, in a fixed place: the family's tier (`Done` /
+  `Provisional` / lower), which legs are met, **what is therefore unproven**, and — for `Provisional` —
+  whether leg 3 is unmet or **unreachable by construction** (a PGEN-owned language has no third-party
+  corpus, and saying so is more useful than an open TODO).
+- ⭐ Machine-readable too, not only prose: the family status gates already compute a status string, so
+  the tier and its evidence should be emitted in their `summary.json` for a downstream to check
+  mechanically rather than parse marketing text.
+- ⛔ Gated by `.5`, or the disclosure can go stale exactly like the version pair did.
+
 ## Current Frontier
 
-`.1` — the audit. ⭐ But the tree's PURPOSE is `.4`: the flow guaranteeing the bar. `.1`-`.3` exist to make `.4` possible.
+`.1` — the audit. ⭐ Near-term GOAL: **every family to at least `Provisional`**. The tree's PURPOSE is `.4` (the flow guaranteeing the bar); `.5`/`.6` (disclosure integrity) are prerequisites for shipping `Provisional` honestly.
 
 ## Blockers
 

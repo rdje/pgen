@@ -26,7 +26,7 @@ When the activity is NOT a code change (pure live-docs/contracts/books/tracker/w
   - Must be updated whenever objective, canonical flow, key paths, standard commands, or doc map changes.
 - `LIVE_ACHIEVEMENT_STATUS.md` (tracked)
   - Authoritative live progress tracker.
-  - Must use only `Done`, `Mostly Done`, `In Progress`, and `Not Started`.
+  - Must use only `Done`, `Provisional`, `Mostly Done`, `In Progress`, and `Not Started` (`Provisional` added 2026-07-29 — a shipping tier for a family that meets legs 1-2 of the `Done` bar but not leg 3; see `LIVE_ACHIEVEMENT_STATUS.md` Status Rules).
   - Must be reviewed and updated before every commit whenever actual closure or remaining scope changes.
   - The current live-status snapshot must be summarized in every user-facing completion message produced by the commit workflow.
   - If any live-status row changes, the completion message must also state how the task affected that snapshot.

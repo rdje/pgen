@@ -417,6 +417,7 @@ This file is the authoritative live tracking view for "where we are now".
 ## Status Rules
 - `Done`: the tracked claim is backed by a formally exhaustive, machine-checkable proof surface with no plausible coverage gap remaining for that claim.
 - `Mostly Done`: the core implementation is landed and validated with strong executable evidence, but closure still depends on bounded follow-up work such as auto-derived exhaustiveness, stronger coverage proof, or removal of curated/manual proof gaps.
+- `Provisional`: ⭐ **a SHIPPING tier, not a purgatory** (director 2026-07-29). Legs 1 and 2 of the `Done` bar are met — the stimuli-generator loop closes with **zero** residual target debt, and every gate covering the family is green now and actually invoked — but leg 3 (an officially-recognized external corpus, passing) is unmet or unavailable. **Downstream consumers MAY use a `Provisional` parser**, and its published state must say exactly which legs are met and what is therefore unproven, so the consumer decides on facts. ⛔ Disclosure is not optional: `Provisional` without accurate published state is worse than `In Progress`, because it invites use on a claim nobody checked. See [[feedback_done_bar_is_first_tier_only]] and `docs/tasks/DONE-BAR.md`.
 - `In Progress`: meaningful implementation has started, but core capabilities or validation are still missing.
 - `Not Started`: no meaningful implementation has landed yet.
 

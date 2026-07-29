@@ -1,5 +1,40 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0003 — `Provisional` becomes a SHIPPING tier, and disclosure integrity is promoted to a prerequisite
+
+`DONE-BAR` refined on a director directive; `.6` opened; `.5` promoted; the tracker's status
+vocabulary gains a tier. Docs only — **no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`,
+no `generated/*`** ⇒ all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- ⭐⭐⭐ **DIRECTIVE (verbatim):** *"we need to push all the parsers forwards to reach Provisional Done.
+  If we can't find an external corpus for some parsers, they will stay as provisional but this should
+  not prevent them from being used by downstream customers. The customers should know the state of
+  what they are getting, then based on that information, it is up to them to use them or not."*
+- **`Provisional` = legs 1-2 met, leg 3 unmet or unavailable — and it SHIPS.** Near-term goal is no
+  longer `Done` for everything; it is **`Provisional` for everything**, with leg 3 promoting
+  `Provisional` → `Done`. Added to `LIVE_ACHIEVEMENT_STATUS.md` Status Rules and `COMMIT.md`'s
+  allowed vocabulary.
+- ⛔⛔ **THIS REVERSES A CONCLUSION THIS TREE RECORDED HOURS EARLIER.** `.5` (consumer-facing gates)
+  was filed as *"safely deferred, not on the critical path"* because no family reached it. That
+  reasoning does not survive: if a `Provisional` parser ships and the customer decides from its
+  published state, then **the published state being true is what the whole arrangement rests on** —
+  and it measurably is not (`PGEN_USER_GUIDE.md:3808,3810` publishes regex `1.1.29`/`1.1.31` against
+  the contract's `1.1.104`/`1.1.106`, ~75 releases stale, with **no gate reading either document**).
+  ⇒ `.5` promoted to a **prerequisite**. ⭐ *A disclosure nobody checks is a claim, not a disclosure.*
+- **NEW `.6`** — publish each family's bar state where a consumer looks: the 9 downstream integration
+  contracts and the per-parser mdBooks state the tier, which legs are met, **what is therefore
+  unproven**, and whether leg 3 is unmet or **unreachable by construction**. ⭐ Machine-readable too —
+  the family status gates already compute a status string, so the tier and its evidence belong in
+  their `summary.json`, checkable without parsing prose.
+- ⭐⭐ **A DISTINCTION THAT MAKES THE MODEL COHERENT**: leg 3 needs an *officially-recognized
+  third-party* corpus, which exists only where the language is externally standardized. So
+  `systemverilog`/`vhdl`/`regex`/`json`/`verilog_2005` can reach `Done`, while **`return_annotation`,
+  `semantic_annotation` and `ebnf` describe PGEN's OWN languages and therefore have no third-party
+  corpus BY CONSTRUCTION — `Provisional` is their honest ceiling, permanently, and that is correct
+  rather than a failure.** Recording it stops three rows being re-litigated at every audit.
+  ⚠️ First-pass classification from language ownership; `.3` confirms it.
+
+
 ## 2026-07-29 - PGEN-DONE-BAR-0001 — the `Done` bar becomes SOTA/signoff-level, and the FLOW shall guarantee it 100%
 
 New tree `DONE-BAR` + decision record, on a standing director directive issued in three parts this
