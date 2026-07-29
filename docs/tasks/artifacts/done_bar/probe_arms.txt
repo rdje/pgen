@@ -1,0 +1,16 @@
+==============================================================================
+DONE-BAR.1 probe arms — scripts/audit_done_bar.sh
+==============================================================================
+  ✅ CTRL-1 untouched tree reaches a verdict                    exit=1, message matched
+  ✅ CTRL-2 Mostly Done row is context, not a failure           exit=1, message matched
+  ✅ CTRL-3 non-grammar backtick is not a family                exit=1, message matched
+  ✅ RED-1 unregistered family refuses                          exit=2, message matched
+  ✅ RED-2 empty roster refuses                                 exit=2, message matched
+  ✅ RED-3 broken prefix attribution is MISCALIBRATED           exit=3, message matched
+  ✅ RED-4 status-gate coverage lost is MISCALIBRATED           exit=3, message matched
+  ✅ RED-5 mention-as-invocation is MISCALIBRATED               exit=3, message matched
+  ✅ RED-6 register contradicted by gate set is MISCALIBRATED   exit=3, message matched
+  ✅ CTRL-4a regex failure recovered verbatim                   exit=1, message matched
+  ✅ CTRL-4b vhdl corpus lane is TRIAGE                         exit=1, message matched
+------------------------------------------------------------------------------
+done-bar probes: 11/11 passed

@@ -166,6 +166,22 @@ PGEN is a production-focused parser and stimuli generator platform.
     `rust/test_data/grammar_quality/gate_reachability_register_v0.json`
   - it is a **ratchet, not a report**: the orphan set is re-derived on every run, an untriaged
     orphan fails, and a register entry that no longer names an orphan fails too
+- `Done`-bar audit (does each `Done` row actually meet the three-leg bar?):
+  - `bash scripts/audit_done_bar.sh`
+  - the `DONE-BAR` doctrine: `Done` means **stimuli-generator proof with zero residual target debt**
+    AND **every covering gate green now and actually invoked** AND **all the external test corpus
+    passing** — ⛔ a TRIAGE gate is not a conformance gate, a characterization is not a pass, and the
+    absence of a corpus is an UNMET leg, never an inapplicable one
+  - the family roster is DERIVED (`LIVE_ACHIEVEMENT_STATUS.md` table rows joined against
+    `grammars/*.ebnf`), so a family nobody added to a list cannot hide; a family missing from
+    `rust/test_data/grammar_quality/done_bar_family_register_v0.json` **refuses** rather than being
+    skipped
+  - ⛔ read-only and cheap (no cargo, no make, no network): it never runs a gate, so it can never
+    manufacture the green it audits. **A leg it cannot see is `UNPROVEN`, never `MET`** — and
+    `UNPROVEN` does not satisfy the bar
+  - it AUDITS; it never demotes a tracker row (that is `DONE-BAR.2`). Exit 1 means at least one
+    `Done` row does not meet the bar; exit 3 means a ground-truth control did not reproduce and no
+    verdict is being offered
 - All per-parser mdBooks in one lane (also run by `mdbook_docs_gate`):
   - `make -C rust SHELL=/bin/bash parser_books_gate`
 - Memory guard (MANDATORY for heavy/background jobs — HOST-RAM BUDGET DIRECTIVE,

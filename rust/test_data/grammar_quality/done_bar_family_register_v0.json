@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "description": "Per-family inputs for the DONE-BAR audit (scripts/audit_done_bar.sh). The FAMILY ROSTER itself is NOT listed here -- it is derived from LIVE_ACHIEVEMENT_STATUS.md joined against grammars/*.ebnf, so a family nobody added to a list cannot hide. This register supplies only the two things that cannot be derived from a family's name: (a) the gate-name prefixes its gates actually use (SystemVerilog gates are named sv_*, return-annotation gates return_*), and (b) the repo-relative roots holding an officially-recognized EXTERNAL corpus for the family. A derived family with NO entry here is a REFUSAL, not a skip: the safe polarity is that an unregistered family blocks the audit rather than quietly scoring well. The audit cross-checks every entry -- an empty corpus_roots contradicted by a corpus-facing gate attributed to the family is reported MISCALIBRATED.",
+  "policy": {
+    "corpus_roots": "Repo-relative directories holding a third-party corpus PGEN did not author. An empty list means the family has NO external corpus, which is an UNMET leg 3 -- never an inapplicable one (DONE-BAR: 'absence of a corpus is an UNMET leg not an inapplicable one').",
+    "language_owner": "Who defines the language. 'external-standard' => leg 3 is reachable in principle and the Provisional qualifier is (corpus pending). 'pgen' => leg 3 is unreachable BY CONSTRUCTION and the qualifier is (ceiling), a FINISHED row. 'unadjudicated' => DONE-BAR.3 owes a ruling; the audit prints UNADJUDICATED rather than guessing, because 'we could not find a corpus' is never a ceiling.",
+    "gate_prefixes": "Longest-prefix wins across families, so sv_preprocessor_* attributes to systemverilog_preprocessor and not to systemverilog."
+  },
+  "families": {
+    "systemverilog": {
+      "gate_prefixes": ["systemverilog_", "sv_"],
+      "corpus_roots": ["stimuli/sv/subs", "stimuli/sv/uvm"],
+      "language_owner": "external-standard",
+      "standard": "IEEE 1800 SystemVerilog LRM"
+    },
+    "systemverilog_preprocessor": {
+      "gate_prefixes": ["systemverilog_preprocessor_", "sv_preprocessor_"],
+      "corpus_roots": [],
+      "language_owner": "external-standard",
+      "standard": "IEEE 1800 SystemVerilog LRM, clause 22 (compiler directives)"
+    },
+    "vhdl": {
+      "gate_prefixes": ["vhdl_"],
+      "corpus_roots": ["stimuli/vhdl/subs"],
+      "language_owner": "external-standard",
+      "standard": "IEEE 1076 VHDL LRM"
+    },
+    "regex": {
+      "gate_prefixes": ["regex_"],
+      "corpus_roots": ["regex_corpus_bundle"],
+      "language_owner": "external-standard",
+      "standard": "PCRE2 (recognized reference implementation, vendored under regex_corpus_bundle/third_party/upstream/pcre2)"
+    },
+    "return_annotation": {
+      "gate_prefixes": ["return_annotation_", "return_"],
+      "corpus_roots": [],
+      "language_owner": "pgen",
+      "standard": "none -- the return-annotation language is authored by PGEN in grammars/return_annotation.ebnf"
+    },
+    "rtl_frontend": {
+      "gate_prefixes": ["rtl_frontend_"],
+      "corpus_roots": [],
+      "language_owner": "unadjudicated",
+      "standard": "a synthesizable SUBSET of IEEE 1800 that PGEN itself delimits; SV corpora exist but exercise far more than the subset. DONE-BAR.3 owes the ruling."
+    },
+    "rtl_const_expr": {
+      "gate_prefixes": ["rtl_const_expr_"],
+      "corpus_roots": [],
+      "language_owner": "unadjudicated",
+      "standard": "a constant-expression SUBSET of IEEE 1800 that PGEN itself delimits. DONE-BAR.3 owes the ruling."
+    }
+  }
+}

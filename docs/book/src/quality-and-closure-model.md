@@ -194,6 +194,60 @@ The doctrine is the same across EBNF-based families:
 
 What differs is not the quality bar, but how much of the proof surface has already landed.
 
+## What `Done` Means — The Three-Leg Bar
+
+`Done` in `LIVE_ACHIEVEMENT_STATUS.md` is the strongest claim PGEN makes about a parser family, and
+it is deliberately hard to hold. A family is `Done` only when **all three** of these hold, currently
+and simultaneously:
+
+1. **Stimuli-generator proof** — the family's own generated samples close the loop with **zero**
+   residual actionable-target debt.
+2. **All our gates** — every gate covering the family is green **now**, and is **actually invoked**
+   by something. A gate nothing invokes is indistinguishable from a gate that does not exist.
+3. **All the external test corpus, passing** — an officially-recognized third-party corpus, asserted
+   as a **pass**.
+
+Three exclusions do most of the work, and each exists because the opposite reading had been made
+here at least once:
+
+- ⛔ **A triage gate is not a conformance gate.** Reporting `parse_pass_total == cases_declared`
+  over a hand-picked sample is a curated slice grading itself, not the corpus passing.
+- ⛔ **A characterization is not a pass.** Measuring how a parser behaves against a standard is not
+  the same as meeting it.
+- ⛔ **The absence of a corpus is an UNMET leg, not an inapplicable one.** "We could not find one"
+  is not a proof that none exists.
+
+### `Provisional` is a shipping tier, and it is always qualified
+
+A family that meets legs 1 and 2 but not leg 3 is **`Provisional`** — and `Provisional` **ships**.
+Downstream consumers may use it; what they are owed is an accurate statement of what is proven and
+what is not, so the decision is theirs and it is made on facts. It is always written with one of two
+qualifiers, because bare `Provisional` withholds the most decision-relevant fact on the page:
+
+- **`Provisional (ceiling)`** — a **finished** row. Leg 3 is unreachable *by construction* because
+  the language is PGEN's own (the annotation and meta grammars); there is no third-party corpus and
+  there never will be. Holding this is success, not debt.
+- **`Provisional (corpus pending)`** — an **unfinished** row. The language is externally
+  standardized, so a corpus exists in the world and wiring it is outstanding work.
+
+⛔ `ceiling` is deliberately hard to claim: it is the label that *closes* a row, so without a rule
+every awkward family drifts into it. It requires that **PGEN itself defines the language** — no
+external standards body, no widely-recognized reference implementation.
+
+### Auditing the bar
+
+`bash scripts/audit_done_bar.sh` reports, per family, the state of each leg and a verdict. Its
+design principles are worth knowing before reading its output:
+
+- The **family roster is derived**, not listed — tracker table rows joined against
+  `grammars/*.ebnf` — so a family nobody added to a list cannot hide.
+- It is **read-only**: it never runs a gate, so it cannot manufacture the green it is auditing.
+- **A leg it cannot see is `UNPROVEN`, never `MET`**, and `UNPROVEN` does not satisfy the bar. An
+  artifact older than the inputs it judged is likewise not proof.
+- It carries **ground-truth controls**. If any fails to reproduce it prints `MISCALIBRATED` and
+  offers no verdict at all, because an instrument with no ground truth is a confident guess.
+- It **audits; it never demotes**. Moving a tracker row is a separate, deliberate act.
+
 ## A Check That Cannot Be Run Reports Nothing
 
 A recurring failure mode in this project is worth naming explicitly, because it produces

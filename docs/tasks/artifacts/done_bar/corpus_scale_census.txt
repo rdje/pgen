@@ -1,0 +1,31 @@
+==============================================================================
+EXTERNAL-CORPUS SCALE CENSUS — declared cases vs vendored corpus (derived this run)
+==============================================================================
+
+vhdl
+  manifest              rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json
+  declared cases        8
+  vendored source files 13720   (under stimuli/vhdl/subs)
+  vendored corpora      10, of which the manifest references 5
+  coverage              0.058% of files
+
+systemverilog
+  manifest              rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json
+  declared cases        7
+  vendored source files 16388   (under stimuli/sv/subs stimuli/sv/uvm)
+  vendored corpora      14, of which the manifest references 4
+  coverage              0.043% of files
+
+regex
+  the regex family has no triage manifest; its lanes are priced directly:
+  PCRE2 oracle cases (canonical)   2189
+  PCRE2 answer key (expected)      {"fail":580,"ok":1609}
+  regex_broader_corpus_proof_gate reads  rust/test_data/regex/stress_tests.json (44 cases)
+  ⇒ the lane that RUNS reads a repo-authored fixture; the 2,189-case PCRE2 corpus is
+    read only by gates nothing invokes (see audit_report.txt, regex leg 3).
+
+------------------------------------------------------------------------------
+families claiming `Done` with NO external corpus vendored at all:
+  systemverilog_preprocessor   corpus roots declared in the register: NONE
+  return_annotation            corpus roots declared in the register: NONE
+  rtl_frontend                 corpus roots declared in the register: NONE

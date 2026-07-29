@@ -1,5 +1,68 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0002 — a gate roster is not a proof surface
+
+`DONE-BAR.1` DONE. `scripts/audit_done_bar.sh` +
+`rust/test_data/grammar_quality/done_bar_family_register_v0.json` + `README.md` +
+`docs/book/src/quality-and-closure-model.md` + 3 tracked drivers + 4 captures — **no
+`grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no `generated/*`** ⇒ all 11 generated
+parsers byte-identical BY CONSTRUCTION.
+
+### The generalization
+
+The tree's starting point recorded six "corpus-facing gate targets" and concluded that `regex` — with
+three of them — had a genuine external-corpus lane. It counted **names**. Leg 3 asks three further
+questions that no name answers:
+
+1. **does anything RUN it?** — `regex_pcre2_textsafe_corpus_gate` and
+   `regex_corpus_bundle_contract_gate` are invoked by nothing;
+2. **does it read the EXTERNAL corpus?** — `regex_broader_corpus_proof_gate` runs, and reads a
+   44-case repo-authored fixture;
+3. **is it a conformance gate or a triage sample?** — `vhdl_external_corpus_triage_gate` satisfies a
+   criterion literally named `external_corpus_backed_proof_surface`.
+
+All three regex gates fail at least one. ⇒ **a gate roster is not a proof surface**, and this is the
+same family of error as the three already recorded in this file: a MENTION counted as an INVOCATION,
+a redirect counted as a read, and a gate that could not run reporting green.
+
+### Why the audit refuses instead of estimating
+
+Three refusal modes, each with the safe polarity chosen deliberately:
+
+- **`UNPROVEN` ≠ `MET`.** The audit never runs a gate, so leg 1 and "green NOW" rest on artifacts
+  that may not exist. Where they do not, it prints the command that would produce one — it does not
+  assume the last known answer still holds.
+- **An artifact older than its own inputs is not proof.** Every artifact is compared against the
+  newest mtime among the tracker, the family's grammar, and its gate scripts. This caught the
+  `Done` bar's own inputs: run-3 status artifacts at 09:55/13:46 against a tracker written at 14:49.
+- **An unregistered family blocks; it is never skipped.** A skip would let a brand-new `Done` row
+  score well by being invisible — the polarity must never favour the family being audited.
+
+### Two defects in the instrument's own first cut
+
+Both were found by requiring the output to reproduce facts measured independently, not by reading
+the code:
+
+1. **Name-prefix attribution of family-status gates.** `sv_parser_family_status_gate` matched prefix
+   `sv_` and went to `systemverilog`, leaving `systemverilog_preprocessor` with *no status gate at
+   all* — when the run-3 artifact plainly records `systemverilog_preprocessor_status: Done`, 12/12
+   criteria, `final_targets: 0`. Coverage is now derived from what each gate **EMITS**
+   (`echo "<family>_status:"`); control **C9** pins it, probe **RED-4** proves C9 fires.
+2. **A gate that RAN AND DIED reported as merely `UNPROVEN`.** `regex_parser_family_status_gate`
+   left a **0-byte** `summary.txt` (the `CI-PARITY-GATE-ROT.14` shape) beside a log naming the cause.
+   `UNPROVEN` and `UNMET-with-a-named-cause` are different verdicts and the second is far more
+   useful. Control **C10** is conditional, so a clean `rust/target` cannot fail it.
+
+⭐ One defect moved a verdict in the flattering direction, the other in the harsh direction. **The
+controls are the deliverable, not the number.**
+
+### Known limit, stated not discovered
+
+`scripts/audit_done_bar.sh` is proof-surface machinery that the `TASK-ACCEPTANCE` code-change glob
+(`scripts/check_*.sh`, `rust/scripts/*.sh`) does **not** cover, so its acceptance checklist is
+carried voluntarily. That gap closes when `DONE-BAR.4` registers the enforcement check as
+`scripts/check_done_bar.sh` — at which point the audit becomes a ratchet and the glob picks it up.
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0023 — the guard tested summary.txt and the else-branch read summary.json
 
 `CI-PARITY-GATE-ROT.14` DONE. `rust/scripts/sota_exit_gate.sh` + `scripts/check_flow_integrity.sh` +

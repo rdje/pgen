@@ -1,5 +1,48 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0002 — the `Done`-bar audit exists, and 5 of 5 `Done` rows fail it
+
+`DONE-BAR.1` DONE. New `scripts/audit_done_bar.sh` + register
+`rust/test_data/grammar_quality/done_bar_family_register_v0.json` + 3 tracked drivers and their
+captures under `docs/tasks/artifacts/done_bar/` — **no `grammars/*.ebnf`, no `rust/src/*`, no
+`rust/scripts/*`, no `generated/*`** ⇒ all 11 generated parsers byte-identical BY CONSTRUCTION.
+⛔ **No tracker row moves: demotion is `DONE-BAR.2`, deliberately a separate act.**
+
+- **The verdict.** 7 parser families derived from `LIVE_ACHIEVEMENT_STATUS.md` × `grammars/*.ebnf`;
+  5 claim `Done`; **5 of 5 do not meet the three-leg bar.** Every one fails leg 3.
+- **The tree's own first-pass reading was wrong in `regex`'s favour, and is corrected.** It recorded
+  *"only `regex` has a genuine external-corpus lane"*. Measured:
+  - `regex_pcre2_textsafe_corpus_gate` and `regex_corpus_bundle_contract_gate` read the real PCRE2
+    corpus and are **invoked by nothing** — their only references are `ci_workflow_local_gate.sh`
+    `assert_tracked` lines, i.e. a **mention**, not an invocation;
+  - the regex corpus lane that *does* run, `regex_broader_corpus_proof_gate`, reads
+    `rust/test_data/regex/stress_tests.json` — **44 repo-authored cases**, not an external corpus;
+  - ⇒ regex has **no external-corpus proof in any lane anything runs**, while the **2,189-case**
+    PCRE2 oracle corpus sits vendored and unwired.
+- **`vhdl`'s `Done` rests on a triage sample presented as a corpus proof.**
+  `vhdl_formal_exhaustive_closure_gate.sh:187-211` derives
+  `external_corpus_backed_proof_surface_present` from `vhdl_external_corpus_triage_gate` — and
+  asserts that gate's identity by name. Priced: **8 declared cases / 13,720 vendored `.vhd`,`.vhdl`
+  files = 0.058%**; SystemVerilog **7 / 16,388 = 0.043%**.
+- **Two of the five `Done` families have no family-status gate at all** (`return_annotation`,
+  `rtl_frontend`): nothing computes their status, so no instrument can disagree with their tracker
+  row. `README.md` calls `return_annotation_support_gate` the *"formal `Done` gate"* for that claim
+  while it is an **orphan**.
+- **Legs 1-2 for `vhdl`/`systemverilog`/`systemverilog_preprocessor` read `UNPROVEN`, not `MET`** —
+  their family-status artifacts (09:55, 13:46) predate `LIVE_ACHIEVEMENT_STATUS.md` (14:49 the same
+  day), and those gates assert tracker alignment. An artifact older than the inputs it judged is not
+  proof.
+- **The ledger hypothesis is resolved and refuted:** 168 rows, **0 open**, read against the ledger's
+  own state vocabulary. The *"24 occurrences of `open`"* figure was prose. But nothing reads that
+  file, so the fact is true and unguarded — `DONE-BAR.5`'s third gate, not a leg that passes.
+- **Two defects in the instrument's own first cut, caught by controls and left visible:** attributing
+  family-status gates by NAME prefix left `systemverilog_preprocessor` with no status gate at all
+  (control C9, probe RED-4); and a gate that RAN AND DIED was reported as merely `UNPROVEN` instead
+  of `UNMET` with its cause (control C10).
+- **Validation:** audit exit 1 with 10 ground-truth controls reproduced; probe arms **11/11** (6 RED
+  arms flip to refusal/MISCALIBRATED, 5 CTRL arms hold); `scripts/check_doctrines.sh` **ALL 13
+  PASS**; `mdbook_docs_gate` green.
+
 ## 2026-07-29 - PGEN-REGEX-PCRE2-0051 — the regex `Done` adjudication is settled: scope drift, and the two readings converge
 
 `REGEX-PCRE2-FIDELITY.ROUTED-IN-2` adjudicated; `DONE-BAR.2` seeded with the evidence. Docs only —

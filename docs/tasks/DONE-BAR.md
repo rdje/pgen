@@ -8,7 +8,7 @@
 - Created: `2026-07-29`
 - Owner: repo-local workflow
 - Director directive: [[feedback_done_bar_is_first_tier_only]]
-- Frontier: **`.1`** (the audit)
+- Frontier: **`.2`** (demote the five rows `.1` failed) — `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`)
 
 ## Goal
 
@@ -213,6 +213,22 @@ has already produced three instrument defects from exactly this kind of shortcut
 as a read, `systemveriLOG` matching `log`, and a family grep that assumed the `systemverilog_` prefix
 when the gate is named `sv_`).
 
+### ⛔⛔ ADJUDICATED BY `.1` (2026-07-29) — the hypothesis above was RIGHT about four families and **WRONG about `regex`, in `regex`'s favour**
+
+Left above verbatim; corrected here rather than back-dated.
+
+| hypothesis | `.1`'s measurement | verdict |
+|---|---|---|
+| *"only `regex` has a genuine external-corpus lane"* | its two genuine lanes (`regex_pcre2_textsafe_corpus_gate`, `regex_corpus_bundle_contract_gate`) are invoked by **NOTHING**; the lane that runs, `regex_broader_corpus_proof_gate`, reads `rust/test_data/regex/stress_tests.json` — **44 repo-authored cases** | ⛔ **REFUTED** |
+| *"`vhdl`'s is triage"* | confirmed **and priced**: 8 declared cases against **13,720** vendored files = **0.058%** | ✅ confirmed, now quantified |
+| *"`systemverilog_preprocessor` / `return_annotation` / `rtl_frontend` appear to have no external corpus at all"* | confirmed — zero corpus roots, zero corpus-facing gates for all three | ✅ confirmed |
+| *"the 24 `open` tokens may be open defects"* | **168 ledger rows, 0 open** against the ledger's own state vocabulary | ⛔ REFUTED (as suspected) |
+
+⭐ **THE SHAPE OF THE ERROR IS THE LESSON**: the first-pass reading counted **gate NAMES** — three
+gates with `corpus` in the name, therefore a corpus lane. Leg 3 asks three further questions no name
+answers: *does anything RUN it, does it read the EXTERNAL corpus, and is it a conformance gate or a
+triage sample?* All three regex gates fail at least one. **A gate roster is not a proof surface.**
+
 ### ⚠️ A LEG-4 SIGNAL, RECORDED AS A HYPOTHESIS
 
 `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` contains **24 occurrences of the token `open`**
@@ -223,10 +239,116 @@ actual per-family open-defect counts rather than leaving it as an impression.
 
 ## Leaves
 
-### `.1` — audit every `Done` claim against the three legs (`todo`)
+### `.1` — audit every `Done` claim against the three legs (`done`, 2026-07-29 session #223)
 
-- **Status: `todo`** — the tree's frontier. Nothing started; no partial state.
-- **Scope:**
+- **Status: `done`** — `PGEN-DONE-BAR-0002`. Instrument `scripts/audit_done_bar.sh` + register
+  `rust/test_data/grammar_quality/done_bar_family_register_v0.json` + 3 tracked drivers and their
+  captures under `docs/tasks/artifacts/done_bar/`.
+  ⛔ **No grammar, no `rust/src/*`, no `generated/*`, no `rust/scripts/*` ⇒ all 11 generated parsers
+  BYTE-IDENTICAL BY CONSTRUCTION**; no release / schema / ledger / contract movement.
+
+#### ⭐⭐⭐ THE HEADLINE: **5 of 5 `Done` rows DO NOT MEET THE BAR** — and every one fails all three legs
+
+Derived, not hand-listed: **7** parser families are on the tracker (`LIVE_ACHIEVEMENT_STATUS.md`
+table rows joined against `grammars/*.ebnf`), **5** claim `Done`.
+
+| family | tracker | leg 1 | leg 2 | leg 3 | verdict |
+|---|---|---|---|---|---|
+| `regex` | `Done` | ⛔ UNMET | ⛔ UNMET | ⛔ UNMET | DOES NOT MEET BAR |
+| `vhdl` | `Done` | ⚠️ UNPROVEN | ⚠️ UNPROVEN | ⛔ UNMET | DOES NOT MEET BAR |
+| `systemverilog_preprocessor` | `Done` | ⚠️ UNPROVEN | ⚠️ UNPROVEN | ⛔ UNMET | DOES NOT MEET BAR |
+| `return_annotation` | `Done` | ⚠️ UNPROVEN | ⛔ UNMET | ⛔ UNMET | DOES NOT MEET BAR |
+| `rtl_frontend` | `Done` | ⚠️ UNPROVEN | ⛔ UNMET | ⛔ UNMET | DOES NOT MEET BAR |
+| `systemverilog` | `Mostly Done` | ⚠️ UNPROVEN | ⚠️ UNPROVEN | ⛔ UNMET | *(context — not a `Done` claim)* |
+| `rtl_const_expr` | `Mostly Done` | ⚠️ UNPROVEN | ⛔ UNMET | ⛔ UNMET | *(context — not a `Done` claim)* |
+
+⚠️ **`UNPROVEN` is not a softer `UNMET`; it is the audit refusing to score a leg it cannot see.** It
+does not satisfy the bar. The charter said *"expect the audit to fail several rows — that is the
+directive working"*; it failed all of them, and the reasons are specific, not systemic pessimism.
+
+#### ⭐⭐⭐ FINDING 1 — the tree's own first-pass reading was WRONG **in `regex`'s favour**
+
+The starting-point table recorded `regex` leg 3 as **"✅ 3 gates"**, the one family with a genuine
+external-corpus lane. **Measured, that is refuted:**
+
+- `regex_pcre2_textsafe_corpus_gate` and `regex_corpus_bundle_contract_gate` **read the real PCRE2
+  corpus and are invoked by NOTHING** — orphan `make` targets whose scripts no gate calls. (Their
+  only references are `ci_workflow_local_gate.sh`'s `assert_tracked` lines: a **mention**, not an
+  invocation — the exact defect `CI-PARITY-GATE-ROT.2` had to fix, replayed here as probe RED-5.)
+- The one regex corpus lane that **does** run, `regex_broader_corpus_proof_gate`
+  (`… <- regex_formal_exhaustive_closure_gate <- regex_parser_family_status_gate`), reads
+  **`rust/test_data/regex/stress_tests.json` — 44 repo-authored cases.** It is not an external
+  corpus at all.
+
+⇒ **`regex` has NO external-corpus proof in any lane anything runs**, while the 2,189-case PCRE2
+oracle corpus sits vendored and unwired. The tracker's *"Broader-corpus proof remains green at
+44/44"* reads like external evidence and is not.
+
+#### ⭐⭐⭐ FINDING 2 — `vhdl`'s `Done` rests on a criterion named `external_corpus_backed_proof_surface` that a gate named `_triage_` satisfies, over **0.058%** of the corpus
+
+`vhdl_formal_exhaustive_closure_gate.sh:187-211` sets `external_corpus_backed_proof_surface_present`
+from `vhdl_external_corpus_triage_gate`, and asserts the producing gate's identity is *literally*
+`vhdl_external_corpus_triage_gate`. Priced (`run_corpus_scale_census.sh`):
+
+| family | declared cases | vendored source files | corpora referenced | coverage |
+|---|---|---|---|---|
+| `vhdl` | **8** | **13,720** `.vhd`/`.vhdl` | 5 of 10 | **0.058%** |
+| `systemverilog` | **7** | **16,388** `.sv`/`.svh`/`.v`/`.vh` | 4 of 14 | **0.043%** |
+
+The bar says *ALL the external test corpus, **passing***, and *"a TRIAGE gate is not a conformance
+gate."* `parse_pass_total == cases_declared` is a curated sample reporting itself green.
+
+#### ⭐⭐ FINDING 3 — **2 of the 5 `Done` families have no family-status gate at all**
+
+`return_annotation` and `rtl_frontend` are computed by nothing: no `*_parser_family_status_gate`
+emits a status for them, so **no instrument can ever disagree with their tracker row.** The three
+that do have one (`sv_` covering two families, `vhdl_`, `regex_`) are exactly the three whose rows
+have ever been contested. ⭐ And `README.md` names `return_annotation_support_gate` *"the formal
+`Done` gate for the tracked return-annotation claim"* — **it is an ORPHAN**, invoked by nothing.
+
+#### ⭐⭐ FINDING 4 — the `Done` rows rest on artifacts that PREDATE the tracker they assert alignment with
+
+`sv_parser_family_status_gate` and `vhdl_parser_family_status_gate` both assert
+`tracker_alignment_ok`. Their newest artifacts are from aggregate run 3 at **09:55** and **13:46**;
+`LIVE_ACHIEVEMENT_STATUS.md` was last written at **14:49** the same day. ⇒ the alignment they
+recorded is **no longer proven**, so the audit reports green-NOW as `UNPROVEN`, not `MET`. This is
+`CI-PARITY-GATE-ROT.5`'s stale-artifact class (*a check that reuses evidence it did not produce,
+without checking whether it still applies*) — now measured on the `Done` bar's own inputs, and the
+reason the audit compares every artifact against the newest mtime among the inputs it judged.
+
+#### ✅ FINDING 5 — the ledger hypothesis is RESOLVED and REFUTED: **zero** open entries
+
+The tree recorded *"24 occurrences of the token `open`"* as a hypothesis and required `.1` to resolve
+it to real per-family counts. Read against the ledger's **own** state vocabulary (derived from its
+"State Meanings" section, not a list in the script): **168 rows, 0 open**, across all 7 families.
+The 24 was prose, exactly as suspected. ⛔ **But nothing reads that file**, so the fact is *true and
+unguarded* — it is `.5`'s third gate, not a leg that passes.
+
+#### ⚠️ TWO DEFECTS IN THIS INSTRUMENT'S OWN FIRST CUT — caught by controls, recorded not hidden
+
+1. **Family-status gates were attributed by NAME prefix**, so `sv_parser_family_status_gate` (prefix
+   `sv_`) went to `systemverilog` and **`systemverilog_preprocessor` was reported as having no status
+   gate at all** — worse than it measures, when the run-3 artifact plainly records
+   `systemverilog_preprocessor_status: Done`, 12/12 criteria satisfied, `final_targets: 0`.
+   Attribution is now derived from what each gate **EMITS**; control **C9** pins it and probe
+   **RED-4** proves C9 fires.
+2. **A gate that RAN AND DIED was reported as merely `UNPROVEN`.** `regex_parser_family_status_gate`
+   left a **0-byte** `summary.txt` (the `CI-PARITY-GATE-ROT.14` shape) beside a log naming the real
+   cause. The audit now recovers it — *`error: regex tracker alignment mismatch: computed 'In
+   Progress' but tracker says 'Done'`* — and reports `UNMET` with the cause, not `UNPROVEN`.
+   Control **C10** holds it, conditionally so a clean `rust/target` cannot fail it.
+
+⭐ Both defects moved a verdict in the **flattering** direction for one family and the **harsh**
+direction for another. That is why the controls are the deliverable, not the number.
+
+#### ⛔ WHAT THIS LEAF DELIBERATELY DID NOT DO
+
+- **No row is demoted.** `.2` owns that, with this evidence attached — audit first, adjudicate
+  second, as the charter requires.
+- **No gate was run.** The audit is read-only and cheap (no cargo, no make, no network); it can
+  never manufacture the green it is auditing. Everything it could not see it reports `UNPROVEN`.
+
+- **Scope (as chartered):**
   1. Enumerate every row claiming `Done` in the parser-family tables of
      `LIVE_ACHIEVEMENT_STATUS.md` — **derived from the file**, not hand-listed (a hand-list cannot
      see a row nobody added to it).
@@ -245,9 +367,71 @@ actual per-family open-defect counts rather than leaving it as an impression.
 - ⚠️ **Expect the audit to fail several rows.** That is the directive working. The instrument must
   not be tuned until the answer is comfortable.
 
-### `.2` — demote what does not meet the bar, with the unmet leg named (`todo`)
+#### Acceptance Checklist (enforced)
 
-- **Status: `todo`** — blocked on `.1`.
+- [x] **REPRODUCE / ISSUE** — no instrument existed that could answer *"does this `Done` row meet the
+  bar?"*; the tree's own starting point was recorded as a hypothesis from gate names and directory
+  listings. `bash scripts/audit_done_bar.sh` now answers it: `audit-done-bar: 5 of 5 `Done` rows DO
+  NOT meet the bar` (capture `docs/tasks/artifacts/done_bar/audit_report.txt`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — each unmet leg is located, not asserted. `git ls-files`-derived
+  gate universe via `scripts/check_gate_reachability.sh --json`; `vhdl_formal_exhaustive_closure_gate.sh:187-211`
+  sets `external_corpus_backed_proof_surface_present` from a gate whose identity it asserts is
+  `vhdl_external_corpus_triage_gate`; `rust/test_data/grammar_quality/regex_broader_corpus_v0.json`
+  names `source_file: rust/test_data/regex/stress_tests.json`, `expected_case_count: 44`;
+  `rust/target/sota_exit_gate/logs/regex_parser_family_status_gate.log` carries
+  `error: regex tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'` beside a
+  **0-byte** `summary.txt`.
+- [x] **FIX** — declarative-tier: a read-only audit + a tracked register, no engine or grammar
+  change. The roster is DERIVED (tracker × `grammars/*.ebnf`); the register supplies only what a
+  name cannot (gate prefixes, corpus roots) and an unregistered family REFUSES rather than being
+  skipped.
+- [x] **ADDRESSED (verified)** — before: no instrument, and a first-pass reading that credited
+  `regex` with a working external-corpus lane. After, measured: **7 families derived, 5 `Done`, 5/5
+  do not meet the bar**; `regex` leg 3 refuted (its two external lanes run by nothing, its running
+  lane reads a 44-case repo fixture); `vhdl` corpus coverage **8 cases / 13,720 files = 0.058%**, SV
+  **7 / 16,388 = 0.043%**; ledger open entries **24 (token tally) → 0 (real, over 168 rows)**.
+  Re-runnable oracles: `bash scripts/audit_done_bar.sh` (exit 1),
+  `bash docs/tasks/artifacts/done_bar/run_corpus_scale_census.sh`,
+  `bash docs/tasks/artifacts/done_bar/run_ledger_open_census.sh`.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`, no
+  `rust/scripts/*` ⇒ **all 11 generated parsers byte-identical BY CONSTRUCTION** (the emitting
+  inputs are untouched, so cert seeds 0/7/42, the fully-certified grammars' byte-identity, the
+  external corpus and `ast_shape_contract` cannot move); `bash scripts/check_doctrines.sh` →
+  **ALL 13 enforced doctrines PASS**; probe arms **11/11** with every RED arm flipping and every
+  CTRL arm holding (`docs/tasks/artifacts/done_bar/probe_arms.txt`).
+- [x] **LOCKSTEP** — `README.md` (Standard Commands), `docs/book/src/quality-and-closure-model.md`,
+  `LIVE_ACHIEVEMENT_STATUS.md` (tracker note; ⛔ **no row moves — `.2` owns demotion**), `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`. No release / schema / ledger / contract movement: nothing
+  executable changed.
+
+### `.2` — demote what does not meet the bar, with the unmet leg named (`todo`) ⭐ FRONTIER
+
+- **Status: `todo`** — ✅ **UNBLOCKED: `.1` is done and every row it must act on is measured**
+  (`docs/tasks/artifacts/done_bar/audit_report.txt`). `.2` now has five rows to adjudicate, not one.
+- ⭐⭐ **THE AUDIT CHANGED `.2`'s SHAPE. It was written expecting to move `regex`; it must move all
+  five, and three of them for reasons that were not on the table when this leaf was written:**
+
+  | row | unmet legs | qualifier the audit derives | what `.2` must state |
+  |---|---|---|---|
+  | `regex` | 1, 2, 3 | `Provisional (corpus pending)` | residual target debt 31 ≠ 0 (already adjudicated); **and** no external-corpus lane that anything runs |
+  | `vhdl` | 3 (1-2 UNPROVEN) | `Provisional (corpus pending)` | its corpus proof is a TRIAGE gate over **0.058%** of the vendored corpus |
+  | `systemverilog_preprocessor` | 3 (1-2 UNPROVEN) | `Provisional (corpus pending)` | **no external corpus at all**, though IEEE 1800 cl. 22 defines the language |
+  | `return_annotation` | 2, 3 (1 UNPROVEN) | `Provisional (ceiling)` | leg 3 unreachable by construction — but its named `Done` gate is an **ORPHAN** and nothing computes its status |
+  | `rtl_frontend` | 2, 3 (1 UNPROVEN) | ⛔ **cannot be issued yet** | language ownership is UNADJUDICATED (`.3` owes it); ⛔ `ceiling` may **not** be taken by default |
+
+- ⛔⛔ **`rtl_frontend` BLOCKS ON `.3`, AND THAT IS THE RULE WORKING.** It is a subset PGEN delimits
+  of an IEEE-standardized language. `(ceiling)` would close the row; `(corpus pending)` would keep it
+  open. The tree's own rule — *"the comfortable label is the one that closes the row"*, *"absence of
+  search is not absence of existence"* — forbids defaulting. ⇒ `.2` demotes it off `Done` with the
+  qualifier **withheld and named as owed**, rather than picking the convenient one. Same for
+  `rtl_const_expr` when its row next moves.
+- ⭐ **A SECOND, CHEAPER LEVER FALLS OUT, AND IT IS NOT LEG 3.** `return_annotation` and
+  `rtl_frontend` fail leg 2 because **nothing computes their status** — no `*_parser_family_status_gate`
+  exists for either. That is a missing gate, not a missing corpus: strictly less work than `.3`, and
+  it is what makes their rows *checkable at all*. Recommend `.2` route it to a new leaf rather than
+  leaving it inside the demotion note.
+- Each demoted row states which leg is unmet and what would close it. The dated historical notes are
+  left intact; the **current** row is what moves ([[feedback_done_bar_is_first_tier_only]]).
 - Each demoted row states which leg is unmet and what would close it. The dated historical notes are
   left intact; the **current** row is what moves ([[feedback_done_bar_is_first_tier_only]]).
 - ⭐⭐⭐ **ONE ROW IS ALREADY ADJUDICATED AND WAITING — `regex`** (2026-07-29 session #222,
@@ -326,18 +510,69 @@ actual per-family open-defect counts rather than leaving it as an impression.
 
 ## Current Frontier
 
-`.1` — the audit. ⭐ Near-term GOAL: **every family to at least `Provisional`**. The tree's PURPOSE is `.4` (the flow guaranteeing the bar); `.5`/`.6` (disclosure integrity) are prerequisites for shipping `Provisional` honestly.
+**`.2`** — demote the five rows the audit failed, each with its unmet leg named and its qualifier
+derived (⛔ `rtl_frontend`'s qualifier is WITHHELD pending `.3`). ⭐ Near-term GOAL: **every family to
+at least `Provisional`**. The tree's PURPOSE is `.4` (the flow guaranteeing the bar); `.5`/`.6`
+(disclosure integrity) are prerequisites for shipping `Provisional` honestly.
+
+⭐ **Sequencing, measured and unchanged:** `.2` should land **before** `CI-PARITY-GATE-ROT.7`'s next
+`sota_exit_gate` acceptance run, or that run burns ~5 h to re-confirm a known, routed, unfixed
+blocker (`regex` tracker alignment).
 
 ## Blockers
 
-`.1` is read-only and can start immediately. ⛔ **`.4` — the guarantee itself — is BLOCKED on `CI-PARITY-GATE-ROT.7` (aggregate green) and on the escalated director call about resuming hosted auto-triggers.**
+⛔ **`.4` — the guarantee itself — is BLOCKED on `CI-PARITY-GATE-ROT.7` (aggregate green) and on the
+escalated director call about resuming hosted auto-triggers.**
+⛔ **`.2` is blocked ONLY for `rtl_frontend`'s and `rtl_const_expr`'s qualifier**, which `.3` owes;
+the demotions themselves are not blocked.
 
 ## Verification Log
 
-_(empty — `.1` not started)_
+### `.1` — the audit (2026-07-29, session #223, `PGEN-DONE-BAR-0002`)
+
+| instrument | command | result |
+|---|---|---|
+| the audit | `bash scripts/audit_done_bar.sh` | exit **1** — 7 families derived, 5 `Done`, **5/5 do not meet the bar**; 10 ground-truth controls reproduced |
+| probe arms | `bash docs/tasks/artifacts/done_bar/run_done_bar_probes.sh` | **11/11** — 6 RED arms all flip (refuse / MISCALIBRATED), 5 CTRL arms all hold |
+| corpus scale | `bash docs/tasks/artifacts/done_bar/run_corpus_scale_census.sh` | `vhdl` 8 cases / 13,720 files = **0.058%**; `systemverilog` 7 / 16,388 = **0.043%**; regex PCRE2 **2,189** cases wired to nothing |
+| ledger | `bash docs/tasks/artifacts/done_bar/run_ledger_open_census.sh` | 168 rows, **0 open** (the `24` was a prose token tally — hypothesis REFUTED) |
+| doctrines | `bash scripts/check_doctrines.sh` | **ALL 13 PASS** |
+| byte-identity | *(by construction)* | no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`, no `rust/scripts/*` staged ⇒ all 11 generated parsers unchanged |
+
+**Probe arms, each asserting an exit code AND a substring of the message it expects** (comparing only
+pass/fail was measured to hide arms reaching the right verdict for the wrong reason,
+`CI-PARITY-GATE-ROT.4`):
+
+| arm | injected defect / healthy state | must produce |
+|---|---|---|
+| CTRL-1 | untouched tree | a VERDICT (exit 1), never a refusal |
+| CTRL-2 | a `Mostly Done` row | reported as context, **not** counted as a failing `Done` row |
+| CTRL-3 | a tracker row with a backticked NON-grammar token | roster stays 7 — the `gate-level` trap replayed |
+| CTRL-4a/b | ground truth for the instrument | `regex`'s failure recovered verbatim; `vhdl`'s lane reported TRIAGE |
+| RED-1 | a family on the tracker, absent from the register | **REFUSE** (exit 2) — a skip would let a new `Done` row hide |
+| RED-2 | an empty derived roster | **REFUSE** — not exit 0 (the vacuous-green class) |
+| RED-3 | longest-prefix attribution broken | **MISCALIBRATED** via C4 |
+| RED-4 | status-gate coverage lost (this instrument's own defect) | **MISCALIBRATED** via C9 |
+| RED-5 | a MENTION counted as an INVOCATION | **MISCALIBRATED** via C7 |
+| RED-6 | the register contradicted by the derived gate set | **MISCALIBRATED** — the register is checkable, not trusted |
+
+⚠️ **HONEST LIMITS, stated in the audit's own output rather than discovered later.**
+(1) The audit **never runs a gate**, so leg 1 and "green NOW" rest on whatever artifacts exist on the
+machine; where none exist it prints `UNPROVEN` and the command that would produce one. (2) Its
+"actually invoked" ceiling is **OPERATOR** for every family, because the AUTOMATIC tier over all 123
+`make` gate targets is **zero** — so leg 2 can never read better than *runs when a human asks*.
+(3) `scripts/audit_done_bar.sh` is a proof-surface script that the `TASK-ACCEPTANCE` code-change glob
+(`scripts/check_*.sh`) does **not** cover; the checklist above is carried **voluntarily**. That gap
+closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
 
 ## Commit Log
 
 - `PGEN-DONE-BAR-0001` (2026-07-29, session #221) — tree opened on the director's standing
   directive; decision record `feedback_done_bar_is_first_tier_only.md`; measured starting point
   recorded as a hypothesis, not a finding.
+- `PGEN-DONE-BAR-0002` (2026-07-29, session #223, leaf `.1` done) — the audit exists and **5 of 5
+  `Done` rows fail it**. The tree's own first-pass reading is corrected in `regex`'s disfavour (its
+  external-corpus lanes run by nothing; the lane that runs reads a 44-case repo fixture);
+  `vhdl`'s corpus proof priced at **0.058%** of its vendored corpus; two `Done` families found to
+  have **no family-status gate at all**; the ledger hypothesis resolved to **0** open entries.
+  Two defects in the instrument's own first cut caught by controls and left visible.

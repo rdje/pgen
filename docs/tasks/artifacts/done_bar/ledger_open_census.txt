@@ -1,0 +1,23 @@
+state vocabulary derived from the ledger: 8 states
+  closed: Rejected, Released
+  open:   Reported, Reproduced, Root Caused, Fix In Progress, Fixed Pending Release, Deferred
+
+ledger rows parsed: 168
+bare `open` token tally (the refuted hypothesis): 24
+
+family                            rows  OPEN   open rows
+------------------------------------------------------------------------------
+regex                              114     0   -
+return_annotation                    1     0   -
+rtl_frontend                         2     0   -
+semantic_annotation                  1     0   -
+systemverilog                       44     0   -
+systemverilog_preprocessor           4     0   -
+vhdl                                 2     0   -
+------------------------------------------------------------------------------
+TOTAL                              168     0
+
+⇒ ZERO open ledger entries. The `24 occurrences of open` figure was PROSE, exactly as the
+  tree suspected. Leg 4's third consumer-facing check (`zero open ledger entries naming
+  the family`) is SATISFIED today for every family — but by NO GATE: nothing reads this
+  file, so the fact is true and unguarded. That is DONE-BAR.5's third gate, not a pass.
