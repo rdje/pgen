@@ -984,6 +984,14 @@ calling something closed on an acceptance run that had not finished.
   filesystem glob, matching invariants (5)/(6)/(7). `bash -n` clean; the check does not self-trip.
 - [x] **LOCKSTEP** — `README.md`, `DOCTRINE_ENFORCEMENT.md` §10, `docs/book/src/gate-flow.md`
   (invariant table row 9), and the driver's registry description all move eight → nine invariants.
+- ⚠️ **A POST-COMMIT DEFECT IN THIS LEAF'S OWN DRIVER, FOUND BY RE-RUNNING IT AND RECORDED RATHER
+  THAN QUIETLY PATCHED** (`PGEN-CI-PARITY-GATE-ROT-0024`). `run_failure_path_probes.sh` defaulted its
+  baseline to `HEAD` and passed **11/11** — then reported **10/11** the moment the fix was committed,
+  because `HEAD` had *become* the fixed revision and CTRL-4's *"the sweep must find 6"* no longer
+  held. ⭐ **A probe whose baseline moves with the branch is not a baseline** — and this is the
+  identical trap already fixed in `run_doctrine_lane_census.sh` earlier the same session, not carried
+  across. Both drivers now pin the resolved pre-fix sha (`de94af5e` / `509db717`) and are verified
+  stable across repeated runs.
 
 ### `.12` — the 13th enforced doctrine `ROUTING-EVIDENCE`: a routing decision must record what it measured (`done`)
 

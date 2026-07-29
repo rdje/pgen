@@ -17,7 +17,11 @@
 # Exit 0 always (a census, not a gate — `scripts/check_flow_integrity.sh` invariant (8) is the gate).
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"; cd "$ROOT"
-BEFORE_REV="${1:-HEAD}"
+# ⛔ PIN THE PRE-FIX SHA, NEVER `HEAD` — once the fix is committed, `HEAD` IS the fixed revision and
+# the BEFORE column silently becomes a copy of the AFTER one. `509db717` is the commit this leaf's
+# measurement was taken against. (The sibling failure-path driver defaulted to HEAD and its ground-
+# truth arm failed the moment its own fix landed; same lesson, applied here before it bit.)
+BEFORE_REV="${1:-509db717}"
 
 exec python3 - "$BEFORE_REV" <<'PYEOF'
 import re, subprocess, sys, os

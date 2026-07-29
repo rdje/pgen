@@ -25,7 +25,11 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"; cd "$ROOT"
 
 GATE="rust/scripts/sota_exit_gate.sh"
-BEFORE_REV="${1:-HEAD}"
+# ⛔ PIN THE PRE-FIX SHA, NEVER `HEAD`. The first cut defaulted to HEAD and passed 11/11 — then
+# failed the moment the fix was committed, because HEAD had become the FIXED revision and CTRL-4's
+# "the sweep must find 6" no longer held. A probe whose baseline moves with the branch is not a
+# baseline. (Same trap already fixed in run_doctrine_lane_census.sh; not applied here until it bit.)
+BEFORE_REV="${1:-de94af5e}"
 WORK="rust/target/ci_parity_gate_rot_probe/failure_path"
 rm -rf "$WORK"; mkdir -p "$WORK"
 

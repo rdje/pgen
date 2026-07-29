@@ -1,7 +1,7 @@
 ==============================================================================
 CI-PARITY-GATE-ROT.15 — the doctrine AUTOMATIC lane (every figure derived this run)
 ==============================================================================
---- BEFORE (workflows as of HEAD = 509db717)
+--- BEFORE (workflows as of 509db717 = 509db717)
     tracked workflows                : 15
     auto-triggered (push/PR/schedule): 1  ['memory-architecture-gate.yml']
     registered doctrines             : 13
