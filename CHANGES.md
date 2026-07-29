@@ -1,5 +1,26 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0009 — correction: ANVIL did not misbehave, I discarded its diagnostic
+
+Corrects `PGEN-DONE-BAR-0008` **forward** (history is append-only). Docs only — no
+`grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no `generated/*` => all 11 generated
+parsers byte-identical BY CONSTRUCTION. No tracker row moves.
+
+- `-0008` recorded that a partial `--config` made ANVIL emit 0 bytes. True, and **materially
+  incomplete** — as written it could be read as an ANVIL defect. Re-measured with stderr kept:
+  ANVIL **exits 1** with `Error: missing field 'seed' at line 1 column 42`.
+- ⇒ **The fault was entirely mine.** My invocation used `2>/dev/null` and never checked `$?`, so I
+  discarded the diagnostic and then scored the empty output. ANVIL's documented contract is
+  unambiguous (`--dump-config > knobs.json` then `--config knobs.json` — a full config).
+- ⭐ **The lesson is one level up from "read the docs": I suppressed the channel the answer arrived
+  on.** A probe that redirects stderr to `/dev/null` and ignores the exit code has blinded itself to
+  every diagnostic the tool offers, and will then misattribute its own mistake to the tool. A probe
+  must capture stderr and check the exit code before scoring — and must never report a defect against
+  another project without re-running with diagnostics kept.
+- ✅ **Verified positive, so the record is even-handed:** ANVIL's reproducibility guarantee holds —
+  byte-identical output for the same `(seed, knobs)` across all three lanes (`dut`, `frontend`,
+  `microdesign`), with a control confirming different seeds differ. **No ANVIL defect was found.**
+
 ## 2026-07-29 - PGEN-DONE-BAR-0008 — ANVIL wired in, and it found a real rtl_frontend gap on first contact
 
 `DONE-BAR.3a`. New submodule `stimuli/generators/anvil` (pinned `ecda0e78`) + tracked probe + README

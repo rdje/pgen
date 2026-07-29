@@ -565,6 +565,34 @@ zeroed only where the construct is outside `rtl_frontend`'s DECLARED subset — 
 it makes the parser pass.** That distinction is the whole of ANVIL's value and it needs a mechanical
 guard, not a promise.
 
+#### ⛔ CORRECTION (2026-07-29, `PGEN-DONE-BAR-0009`) — ANVIL DID NOT MISBEHAVE; I DISCARDED ITS DIAGNOSTIC
+
+The note below says a partial `--config` made ANVIL emit **0 bytes**. That is true and **materially
+incomplete**, and as written it could be read as an ANVIL defect. **Re-measured with stderr kept:**
+
+```
+$ anvil --artifact dut --seed 0 --config partial.json
+exit=1
+Error: missing field `seed` at line 1 column 42
+```
+
+⇒ **ANVIL exited 1 and named the exact problem, at the exact column.** My invocation used
+`2>/dev/null` and never checked the exit code, so I threw the diagnostic away and then scored the
+empty output. ⭐ **The fault was 100% mine, and the tool's error handling was exemplary.** The
+documented contract is unambiguous too (`knobs.md` "Knob serialization": `--dump-config > knobs.json`
+then `--config knobs.json`) — a full config, not a partial one.
+
+⭐ **THE REAL LESSON IS ONE LEVEL UP FROM "READ THE DOCS": I SUPPRESSED THE CHANNEL THE ANSWER CAME
+ON.** A probe that redirects stderr to `/dev/null` and ignores `$?` has blinded itself to every
+diagnostic the tool offers, and will then attribute its own mistake to the tool. ⇒ **a probe must
+capture stderr and check the exit code before scoring anything** — and it must never report a defect
+against another project without re-running with diagnostics kept.
+
+✅ **VERIFIED POSITIVE, so the record is even-handed:** ANVIL's non-negotiable reproducibility
+guarantee holds — byte-identical output for the same `(seed, knobs)` across **all three lanes**
+(`dut` 108,771 B, `frontend` 1,148 B, `microdesign` 682 B), with a control confirming different seeds
+genuinely differ. **No ANVIL defect was found in this slice.**
+
 ⚠️⚠️ **THREE PROCESS FAILURES IN THIS SLICE, RECORDED BECAUSE THEY ARE THE LESSON.** (1) I ran ANVIL
 with default knobs and drew a conclusion about the DUT lane **before reading its documentation** —
 the director had to say so twice. (2) I hand-wrote a partial `--config` JSON instead of the
