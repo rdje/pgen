@@ -1,5 +1,26 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0015 — leaf DONE-BAR.5c follow-up: the sentinel gate had an ambient-build dependency
+
+Gate helper + contract + probe arm — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11
+generated parsers byte-identical BY CONSTRUCTION.
+
+- DEFECT (found by running the gate right after `regenerate_generated_parsers`): the sweep fed
+  `grammars/<g>.ebnf` to `ast_pipeline`, which needs `--features ebnf_dual_run`. The standard build —
+  including the one the regeneration target leaves behind — does NOT enable it, so the gate began
+  REFUSING for `semantic_annotation` and `systemverilog`.
+- ⭐ The gate BEHAVED CORRECTLY (it refused rather than reporting an unjustified green), but a
+  `sota_exit_gate` prerequisite that goes red depending on WHICH MAKE TARGET RAN LAST is not usable.
+- FIX: generation reads `generated/<g>.json` (the raw-AST JSON) instead. That artifact is already a
+  hard precondition of this gate, so the ambient-build dependency disappears entirely.
+  `--grammar-profile` still applies (measured: sv_2017 1352 rules vs 1475 unprofiled).
+- New CTRL-3 fails any family whose generation input is not under `generated/`, so it cannot regress.
+- Verified: gate green with the feature-less binary (9 families x 25 samples, 0 sentinels reached);
+  probes 9/9; ALL 14 doctrines PASS.
+- ⭐ Worth naming: the gate's first real-world failure came from ANOTHER gate's side effect on a
+  SHARED BINARY — the artifact hand-off hazard `CI-PARITY-GATE-ROT` catalogues, reached through the
+  build tree rather than a state dir.
+
 ## 2026-07-29 - PGEN-DOCTRINE-GAP-OWNERSHIP-0003 — leaf DOCTRINE-GAP-OWNERSHIP.3a: a codegen arm emitted syntactically invalid Rust
 
 CODE CHANGE (`rust/src/ast_pipeline/unified_return_ast.rs`) — director-ordered on the finding routed

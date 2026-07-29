@@ -192,7 +192,14 @@ class Sweeper:
     def sweep_family(self, fam):
         g = fam["grammar"]
         mod = os.path.join(self.work, f"{g}_stim.rs")
-        cmd = [self.pipeline, os.path.join(self.root, fam["ebnf"]),
+        # Read the raw-AST JSON, NOT the .ebnf: the .ebnf path needs ast_pipeline
+        # built with --features ebnf_dual_run, which the standard build (including
+        # the one `regenerate_generated_parsers` leaves behind) does NOT enable --
+        # so an .ebnf-fed gate REFUSES right after a regeneration. generated/ is
+        # already a hard precondition here, so this removes the ambient-build
+        # dependency entirely.
+        gen_input = fam.get("gen_input") or fam["ebnf"]
+        cmd = [self.pipeline, os.path.join(self.root, gen_input),
                "--generate-stimuli-module",
                "--count", str(self.c["sweep"]["sample_count"]),
                "--seed", str(self.c["sweep"]["seed"]),

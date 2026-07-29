@@ -1,5 +1,30 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0015 — a gate can be broken by another gate's side effect on a shared binary
+
+`DONE-BAR.5c` follow-up. Gate helper + contract + probe arm.
+
+- The silent-success sentinel gate shipped green, and minutes later — after a routine
+  `make -C rust regenerate_generated_parsers` — it started REFUSING. Nothing about the gate or the
+  grammars had changed. What changed was `rust/target/debug/ast_pipeline`: the regeneration target
+  rebuilds it WITHOUT `--features ebnf_dual_run`, and the sweep was feeding it `.ebnf` files, which
+  that feature gates.
+- **The gate was right and still unusable, which is the interesting part.** It refused rather than
+  reporting a green it could not justify — exactly the behaviour it was designed for, and exactly
+  what RED-4/RED-5 lock in. But it is wired as a `sota_exit_gate` prerequisite, and a check whose
+  verdict depends on *which make target ran last* is not a check anyone can rely on.
+- **Fix: read `generated/<g>.json`, not the `.ebnf`.** The raw-AST JSON is already a hard
+  precondition of this gate (it refuses without `generated/`), so consuming it removes the ambient
+  build dependency entirely rather than papering over it with a feature flag or a rebuild step. The
+  profile filter survives the switch — measured, not assumed: sv_2017 yields 1352 rules against 1475
+  unprofiled.
+- **This is the artifact hand-off hazard, reached through a new door.** `CI-PARITY-GATE-ROT` catalogues
+  gates that consume artifacts they did not produce; this is the same failure through the *build tree*
+  instead of a state dir — a shared binary whose feature set is set by whoever built it last. Worth
+  remembering when adding any gate that shells out to `rust/target/debug/*`.
+- CTRL-3 now fails any family whose generation input is not under `generated/`, so the dependency
+  cannot silently return.
+
 ## 2026-07-29 - PGEN-DOCTRINE-GAP-OWNERSHIP-0003 — the compiler cannot check code you emit as a string
 
 `DOCTRINE-GAP-OWNERSHIP.3a`. CODE CHANGE (`rust/src/ast_pipeline/unified_return_ast.rs`), one

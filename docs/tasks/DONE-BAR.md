@@ -902,6 +902,22 @@ told apart from invalid input**, and all three would have shipped as defects.
   all parsed, **0 sentinels reached**; static arm **0** codegen-placeholder violations over **11**
   artifacts. Gate ~**40 s**, peak **870 MB**.
 
+- ⚠️ **FOLLOW-UP FIX SAME SESSION (`PGEN-DONE-BAR-0015`) — the gate had an AMBIENT-BUILD dependency
+  and a regeneration exposed it.** The sweep fed `grammars/<g>.ebnf` to `ast_pipeline`, which requires
+  `--features ebnf_dual_run`; the STANDARD build — including the one
+  `make -C rust regenerate_generated_parsers` leaves behind — does **not** enable it, so minutes after
+  the gate shipped green it began **REFUSING** for `semantic_annotation` and `systemverilog`
+  (*"requires building with --features ebnf_dual_run"*). ⭐ **The gate behaved correctly** — it refused
+  rather than reporting a green it could not justify, which is exactly what it was built to do — but a
+  gate wired as a `sota_exit_gate` prerequisite that goes red depending on **which make target ran
+  last** is not usable. ⇒ generation now reads **`generated/<g>.json`** (the raw-AST JSON), which is
+  already a hard precondition of this gate and carries no feature dependency; `--grammar-profile`
+  still applies (measured: sv_2017 1352 rules vs 1475 unprofiled). New **CTRL-3** fails any family
+  whose generation input is not under `generated/`, so the dependency cannot come back. Probes **9/9**.
+  ⭐ Worth stating plainly: **the gate's first real-world failure was caused by another gate's side
+  effect on a shared binary** — the artifact hand-off hazard `CI-PARITY-GATE-ROT` catalogues, reached
+  through the build tree instead of a state dir.
+
 ##### Acceptance Checklist (enforced)
 
 - [x] **REPRODUCE / ISSUE** — measured before any code: the three charter sentinels occur **0** times

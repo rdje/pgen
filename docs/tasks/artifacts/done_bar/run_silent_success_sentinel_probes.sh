@@ -98,6 +98,21 @@ else
     fail=$((fail + 1))
 fi
 
+# ----------------------------------------------------------------- CTRL-3
+# The generation input must be the raw-AST JSON, never the .ebnf. Feeding the
+# .ebnf needs ast_pipeline built with --features ebnf_dual_run, which the
+# standard build -- including the one `regenerate_generated_parsers` leaves
+# behind -- does NOT enable, so an .ebnf-fed gate REFUSES right after a
+# regeneration. Measured: that is exactly how this gate first broke.
+bad_inputs="$(jq -r '[.families[] | select((.gen_input // .ebnf) | startswith("generated/") | not) | .grammar] | join(",")' "$CONTRACT")"
+if [[ -z "$bad_inputs" ]]; then
+    echo "  ✅ CTRL-3 every family generates from generated/*.json (no ebnf_dual_run dependency)"
+    pass=$((pass + 1))
+else
+    echo "  ❌ CTRL-3 these families would read a .ebnf and REFUSE after a regeneration: $bad_inputs"
+    fail=$((fail + 1))
+fi
+
 # ------------------------------------------------------------------ RED-1
 # A codegen placeholder appearing in a shipped artifact. Injected into a COPY of
 # generated/ inside a fake root, so the real tree is never mutated AND the real

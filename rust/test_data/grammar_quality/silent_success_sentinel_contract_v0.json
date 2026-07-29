@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "owner": "DONE-BAR.5c",
   "what_this_is": "The SILENT-SUCCESS SENTINEL contract. A silent success is a parse that returns Ok with ZERO diagnostics while handing the consumer a PLACEHOLDER node instead of the shape the grammar's return annotation promised. Every 'did it parse?' gate is green on such a parse, which is precisely why a separate instrument is needed: the defect is invisible to acceptance testing by construction.",
-
   "why_the_charter_inventory_was_not_enough": [
     "DONE-BAR.5c was chartered against the CODEGEN half of the sentinel family (<property_access> / <array_access> / <last_extraction>). MEASURED 2026-07-29: those literals occur 0 times across all 11 shipped generated parsers.",
     "A gate asserting only their absence therefore passes today over an untouched tree and can NEVER fail -- the vacuity trap GENERATED-LINT-CORRECTNESS.3 named ('a generated-code gate that lints nothing and exits 0').",
@@ -11,14 +10,16 @@
     "⚠️ THE ARTIFACT ROSTER IS DERIVED FROM every generated/*.rs, NOT from a `*_parser.rs` suffix: generated/ebnf.rs is a shipped parser WITHOUT that suffix, and the suffix glob silently skipped its 123 <invalid_sequence_access> arms on this gate's own first run (reported 2893, ground truth 3016).",
     "So the gate carries BOTH arms: a STATIC arm locking the codegen sentinels at absent, and a DYNAMIC arm that parses each family's own stimuli proof surface and fails on any sentinel actually reached."
   ],
-
   "honest_limit": "The dynamic arm proves 'NOT REACHED by <sample_count> validated stimuli samples at the pinned seed', which is NOT a proof of unreachability. Reachability is entry-relative: SV-AST-SHAPE-FIDELITY.2.4 classified 7 sites as LATENT -- they DO emit a sentinel under --entry-rule isolation while being PEG-shadowed from the canonical entry. The gate states this bound in its own output rather than implying a stronger claim.",
-
   "sentinel_roster": {
     "codegen_placeholder": {
       "expectation": "absent_from_shipped_artifacts",
       "detail": "Emitted by codegen paths that cannot honour the construct they were handed and return Ok(...) anyway. DOCTRINE-GAP-OWNERSHIP.3 owns the site inventory (5 sites; the '6' recorded in DONE-BAR.5's bullet and MEMORY.md is a miscount, corrected 2026-07-29).",
-      "literals": ["<property_access>", "<array_access>", "<last_extraction>"]
+      "literals": [
+        "<property_access>",
+        "<array_access>",
+        "<last_extraction>"
+      ]
     },
     "runtime_fallback": {
       "expectation": "present_in_artifacts_but_not_reached",
@@ -34,28 +35,64 @@
       ]
     }
   },
-
   "sweep": {
     "sample_count": 25,
     "seed": 0,
     "generation_mode": "--generate-stimuli-module --validate-parseability",
     "why_module_carrier": "The --generate-stimuli TEXT form joins samples with newlines and samples THEMSELVES contain newlines (measured: vhdl 3 samples over 158 lines), so it cannot be split correctly. The stimuli MODULE escapes them inside Rust string literals and is the only unambiguous carrier.",
-    "why_validate_parseability": "It retries until every EMITTED sample is parser-ACCEPTED, which makes the faithfulness oracle 'every extracted sample must parse here' SOUND. Without it the module legitimately contains parser-rejected samples (measured: semantic_annotation, 2 rejected over 27 attempts) and a shortfall could not distinguish a duality break from an extractor bug."
+    "why_validate_parseability": "It retries until every EMITTED sample is parser-ACCEPTED, which makes the faithfulness oracle 'every extracted sample must parse here' SOUND. Without it the module legitimately contains parser-rejected samples (measured: semantic_annotation, 2 rejected over 27 attempts) and a shortfall could not distinguish a duality break from an extractor bug.",
+    "generation_input": "generated/<grammar>.json (the raw-AST JSON), NOT grammars/<grammar>.ebnf. MEASURED 2026-07-29: feeding the .ebnf requires ast_pipeline to be built with --features ebnf_dual_run, which the standard build -- including the one `make -C rust regenerate_generated_parsers` leaves behind -- does NOT enable, so the gate REFUSED for semantic_annotation and systemverilog immediately after a regeneration. The JSON is already a hard precondition of this gate (it refuses without generated/), so reading it removes the ambient-build dependency entirely. --grammar-profile still applies (sv_2017: 1352 rules vs 1475 unprofiled)."
   },
-
   "families": [
-    { "grammar": "json",                       "ebnf": "grammars/json.ebnf" },
-    { "grammar": "regex",                      "ebnf": "grammars/regex.ebnf" },
-    { "grammar": "rtl_const_expr",             "ebnf": "grammars/rtl_const_expr.ebnf", "max_depth": 32,
-      "max_depth_reason": "Its ~16-level precedence cascade FAILS at the default depth 24 ('depth exceeded while expanding primary_expr', reproduced at seeds 0/7/42 on both the .ebnf and raw-AST-JSON paths) and HANGS at >=40. 32 is the tuned window recorded by PARSE-HARNESS.5.5. A family whose window is wrong yields ZERO samples, so this value is load-bearing: without it the gate would REFUSE for this family rather than report a green zero." },
-    { "grammar": "rtl_frontend",               "ebnf": "grammars/rtl_frontend.ebnf" },
-    { "grammar": "systemverilog_preprocessor", "ebnf": "grammars/systemverilog_preprocessor.ebnf" },
-    { "grammar": "vhdl",                       "ebnf": "grammars/vhdl.ebnf" },
-    { "grammar": "return_annotation",          "ebnf": "grammars/return_annotation.ebnf" },
-    { "grammar": "semantic_annotation",        "ebnf": "grammars/semantic_annotation.ebnf" },
-    { "grammar": "systemverilog",              "ebnf": "grammars/systemverilog.ebnf", "profile": "sv_2017" }
+    {
+      "grammar": "json",
+      "gen_input": "generated/json.json",
+      "ebnf": "grammars/json.ebnf"
+    },
+    {
+      "grammar": "regex",
+      "gen_input": "generated/regex.json",
+      "ebnf": "grammars/regex.ebnf"
+    },
+    {
+      "grammar": "rtl_const_expr",
+      "gen_input": "generated/rtl_const_expr.json",
+      "ebnf": "grammars/rtl_const_expr.ebnf",
+      "max_depth": 32,
+      "max_depth_reason": "Its ~16-level precedence cascade FAILS at the default depth 24 ('depth exceeded while expanding primary_expr', reproduced at seeds 0/7/42 on both the .ebnf and raw-AST-JSON paths) and HANGS at >=40. 32 is the tuned window recorded by PARSE-HARNESS.5.5. A family whose window is wrong yields ZERO samples, so this value is load-bearing: without it the gate would REFUSE for this family rather than report a green zero."
+    },
+    {
+      "grammar": "rtl_frontend",
+      "gen_input": "generated/rtl_frontend.json",
+      "ebnf": "grammars/rtl_frontend.ebnf"
+    },
+    {
+      "grammar": "systemverilog_preprocessor",
+      "gen_input": "generated/systemverilog_preprocessor.json",
+      "ebnf": "grammars/systemverilog_preprocessor.ebnf"
+    },
+    {
+      "grammar": "vhdl",
+      "gen_input": "generated/vhdl.json",
+      "ebnf": "grammars/vhdl.ebnf"
+    },
+    {
+      "grammar": "return_annotation",
+      "gen_input": "generated/return_annotation.json",
+      "ebnf": "grammars/return_annotation.ebnf"
+    },
+    {
+      "grammar": "semantic_annotation",
+      "gen_input": "generated/semantic_annotation.json",
+      "ebnf": "grammars/semantic_annotation.ebnf"
+    },
+    {
+      "grammar": "systemverilog",
+      "gen_input": "generated/systemverilog.json",
+      "ebnf": "grammars/systemverilog.ebnf",
+      "profile": "sv_2017"
+    }
   ],
-
   "calibration": {
     "what_this_is": "GROUND TRUTH the instrument must reproduce before any verdict is offered. A detector with no positive control cannot tell a clean sweep from a blind one -- a zero would read as a pass either way. On mismatch the gate prints MISCALIBRATED and exits nonzero WITHOUT reporting a sweep result (the check_gate_reachability.sh precedent).",
     "facts": [
@@ -85,7 +122,6 @@
       }
     ]
   },
-
   "refusals": {
     "what_this_is": "Conditions under which the gate exits 2 (REFUSE) rather than 0. A skip is never a pass.",
     "conditions": [
