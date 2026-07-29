@@ -3543,3 +3543,41 @@ error: stimuli regex target accounting mismatch (723 + 31 != 1033)
   the failing stage, the measured row, provenance and the class sweep).
 
 </details>
+
+### `ROUTED-IN-2` — the regex family status gate computes `In Progress` against a `Done` tracker row (`todo`)
+
+- **Status: `todo`** — routed in 2026-07-29 (session #221) from `CI-PARITY-GATE-ROT.13`, **with a
+  recorded cross-family reproduction check** (the `ROUTING-EVIDENCE` doctrine shipped the same
+  session, and this is its first real use — see that leaf's `ROUTING EVIDENCE` section).
+- ⭐ **How it surfaced.** `make -C rust SHELL=/bin/bash sota_exit_gate` acceptance run 3 —
+  **5 h 05 m, 32 gates entered, 30 ok** — cleared the entire SV and VHDL blocks and
+  `regex_parser_family_contract_gate`, then:
+
+```
+==> regex_parser_family_status_gate (required)   fail
+error: regex tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'
+```
+
+- **WHERE:** `rust/scripts/regex_parser_family_status_gate.sh:308` —
+  `regex_stimuli_final_target_debt_zero` requires `final_targets == 0`. **Measured: 31.**
+- ⛔ **NOT caused by the same session's `CI-PARITY-GATE-ROT.9` fix, checked first.** That fix changed
+  `resolved_targets` (723 → 1002), which appears in this gate **only in reporting** (lines 202, 454,
+  519, 588) and in no closure criterion. `final_targets` was **31 before and after**.
+- **The 31 residuals cluster into named regex features**, from `regex_gap_stage3.json`:
+  **backreferences** (`named_backreference`, `numeric_backreference`, `backreference` — 10),
+  **subroutine calls** (`subroutine_call`, `subroutine_target`, `named_subroutine_target`,
+  `returned_capture_subroutine` — 11), **bracket/brace tokens** (`class_bracket_token(_tail)`,
+  `literal_open_brace` — 5). Reasons: **14 `selected_but_failed`, 12 `never_selected`, 5
+  `never_hit`** ⇒ ⭐ the generator *tries* the backreference/subroutine constructs and cannot
+  produce a witness.
+- ⛔⛔ **TWO READINGS, OPPOSITE FIXES — deliberately NOT adjudicated by the routing leaf:**
+  **(a)** genuine coverage debt ⇒ close it, or move the tracker row to `In Progress`;
+  **(b)** scope drift ⇒ `initial_targets` was **355** when regex earned `Done` (tracker note
+  2026-03-28, `final_targets=0`) and is **1033** now, so some residuals may never have been in scope
+  for that claim.
+- **The deciding measurement, not yet taken:** when and why `initial_targets` went **355 → 1033**
+  (one `git log -S` over the grammar / gap-threshold history). Take it before choosing a fix.
+- ⚠️ **A `Done` row is currently asserted against a gate that disagrees with it.** Whatever the
+  adjudication, that gap should not persist silently — it is the tracker-alignment check doing its
+  job, and nothing ran it until this campaign made the aggregate reach it.
+- **Evidence:** `docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_after3.txt`.

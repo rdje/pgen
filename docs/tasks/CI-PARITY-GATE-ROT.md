@@ -7,7 +7,7 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.11`, then `.10`). ✅ **`.12` done
+- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.14`, `.11`, `.10`). ⭐⭐ **ACCEPTANCE RUN 3 (2026-07-29): the best run this aggregate has ever had — 5 h 05 m, 32 gates entered, 30 ok — and still RED at blocker #8.** It cleared the ENTIRE SV and VHDL blocks and `regex_parser_family_contract_gate` (⇒ **`.9`'s fix proven in its real caller**, where run 2 died), then failed on `regex_parser_family_status_gate`: *tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'*. ✅ `.9` exonerated (checked first: `resolved_targets` is reporting-only in that gate; `final_targets`=31 before and after). Regex coverage debt ROUTED to `REGEX-PCRE2-FIDELITY` with a recorded cross-family check; the aggregate's misleading failure path kept here as `.14`. See `.13`. ✅ **`.12` done
   2026-07-29 session #221 — the 13th enforced doctrine `ROUTING-EVIDENCE`**: a leaf routing a finding
   OUT of its tree must record what it MEASURED, above all whether the finding reproduces outside the
   family it is being sent to. ⚠️ Its first cut would have PASSED its own founding incident (`-0015`
@@ -631,6 +631,108 @@ are, at the source and for every grammar.
   refuted routing premise instead of deleting it; `.10` opened for the 3-way duplication.
 
 ---
+
+### `.13` — blocker #8: the aggregate REACHED THE REGEX FAMILY and a `Done` row failed its own gate (`done` — routed)
+
+- **Status: `done`** (2026-07-29, session #221, `PGEN-CI-PARITY-GATE-ROT-0020`) — diagnosed, recorded
+  and routed. The regex debt itself is NOT adjudicated here, deliberately.
+- ⭐⭐ **ACCEPTANCE RUN 3 IS THE BEST RUN THIS AGGREGATE HAS EVER HAD, AND IT IS STILL RED.**
+  `guard status=completed exit=2 peak_tree_rss=10402MB elapsed_s=18282` (**5 h 05 m**).
+  **32 gates entered, 30 ok, 1 fail.** It cleared the entire SV block, the entire VHDL block, and —
+  ⭐ **`regex_parser_family_contract_gate (required) ok`** — so **`.9`'s fix is proven in its real
+  caller**, exactly where run 2 died. It then failed on the very next gate.
+
+```
+==> regex_parser_family_contract_gate (required)   ok      <- .9's fix, proven in the aggregate
+==> regex_parser_family_status_gate  (required)    fail
+error: regex tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'
+```
+
+#### ✅ `.9` IS EXONERATED — checked FIRST, because "my last change broke it" is the hypothesis that must be eliminated before any other
+
+`.9` changed `resolved_targets` (723 → 1002). **`resolved_targets` appears in
+`regex_parser_family_status_gate.sh` at lines 202, 454, 519, 588 — all reporting** (a read, an
+`echo`, a `jq --argjson`, a JSON field). **It is in no closure criterion.** The criterion that failed
+is `regex_stimuli_final_target_debt_zero` (`:308`, `final_targets == 0`), and `final_targets` was
+**31 before `.9` and 31 after** — it is the same 31 recorded in run 2's own evidence
+(`723 + 31 != 1033`). ⇒ pre-existing, and newly reachable only because `.9` cleared the gate in
+front of it. **Fifth instance of this tree's fail-fast pattern: fixing one blocker reveals the next.**
+
+#### The finding — a family marked `Done` whose closure criterion no longer holds
+
+The 31 residual targets are not noise; they cluster into two named regex features:
+
+| cluster | targets | reasons |
+|---|---|---|
+| **backreferences** — `named_backreference`, `numeric_backreference`, `backreference` | 10 | mostly `selected_but_failed` |
+| **subroutine calls** — `subroutine_call`, `subroutine_target`, `named_subroutine_target`, `returned_capture_subroutine` | 11 | `selected_but_failed` / `never_hit` |
+| **bracket/brace tokens** — `class_bracket_token(_tail)`, `literal_open_brace` | 5 | `never_selected`, `no_reach_path` |
+
+Reason totals: **14 `selected_but_failed`, 12 `never_selected`, 5 `never_hit`.**
+⭐ `selected_but_failed` dominating means the generator *tries* these and cannot produce a witness —
+the stimuli generator cannot construct valid backreference/subroutine samples.
+
+⛔⛔ **DELIBERATELY NOT ADJUDICATED, and the two readings have opposite fixes** — `.5`'s refusal is
+the template:
+- **(a) genuine debt:** the regex stimuli generator cannot witness backreferences/subroutines ⇒ the
+  `Done` row is stale and either the debt closes or the row moves to `In Progress`;
+- **(b) scope drift:** `initial_targets` was **355** when regex earned `Done` (tracker note
+  2026-03-28, `final_targets=0`) and is **1033** now — the target universe roughly **tripled**, so
+  some residuals may be constructs that were never in scope for the original claim.
+
+**Deciding evidence not gathered here: when and why `initial_targets` went 355 → 1033.** That is one
+`git log -S` away and belongs with whoever fixes it, not with a guess made now.
+
+#### ⚠️ A SECOND, SEPARABLE DEFECT — the aggregate's FAILURE PATH IS MISLEADING, and that IS flow-surface
+
+When the sub-gate failed, the aggregate did not stop cleanly. It went on to read the summary the
+failed gate never wrote:
+
+```
+error: regex tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'
+jq: error: Could not open file .../work/regex_parser_family_status_gate/summary.json: No such file or directory
+make: *** [sota_exit_gate] Error 2
+```
+
+⇒ **the LAST error a triager sees is a missing file, not the real cause.** That is how a
+tracker-alignment failure gets misdiagnosed as a broken hand-off — and this tree has already spent a
+session on exactly that class of misdirection. The real cause is four lines up. ⛔ Not fixed in this
+leaf (it is a distinct defect in the aggregate's error handling); **routed to `.14`.**
+
+## ROUTING EVIDENCE
+
+For routing the regex debt to `REGEX-PCRE2-FIDELITY`. Required by `.12`'s own doctrine, which this
+leaf is the first real user of.
+
+1. **Does the finding reproduce outside the family it is being routed to?** **No — measured.**
+   `grep -c 'final_target_debt_zero\|final_targets" == "0"'` returns **0** for both
+   `sv_parser_family_status_gate.sh` and `vhdl_parser_family_status_gate.sh`: the criterion does not
+   exist outside regex, and both of those gates passed in this same run. The residuals are named
+   regex constructs (backreferences, subroutine calls) with no analogue elsewhere.
+2. **What was measured, not what is plausible?** The 31 residual targets enumerated from
+   `regex_gap_stage3.json` with their reason and reach classifications; the four
+   `resolved_targets` sites in the status gate, all reporting-only; `final_targets = 31` identical
+   before and after `.9`.
+3. **What would make the routing wrong, and was it checked?** It would be wrong if the failure were
+   gate wiring rather than regex coverage. Checked: the gate computes `In Progress` from a criterion
+   that is *correctly* evaluating real measured data — no hand-off, no state dir, no stale artifact
+   is involved. ⚠️ The **second** defect above (the misleading failure path) **is** wiring, and is
+   therefore kept HERE as `.14` rather than routed.
+
+---
+
+### `.14` — the aggregate's failure path reports a missing file instead of the real cause (`todo`)
+
+- **Status: `todo`** — opened 2026-07-29 by `.13`.
+- **Measured:** on a sub-gate failure, `sota_exit_gate` still reads that gate's `summary.json`, which
+  a gate that exited early never wrote, so the final output is
+  `jq: error: Could not open file …/summary.json: No such file or directory` — **four lines below the
+  real cause**, and it looks exactly like the artifact-hand-off class `.7` fixed.
+- ⭐ A triager who reads the last error first is pointed at the wrong defect family. This tree has
+  already lost a session to one misdirected diagnosis (`-0015`); this one is built into the tool.
+- **Scope when taken up:** on a failed required sub-gate, stop before the summary read and re-print
+  the sub-gate's own error as the terminal message; sweep for other unguarded post-failure artifact
+  reads in `sota_exit_gate.sh`.
 
 ### `.12` — the 13th enforced doctrine `ROUTING-EVIDENCE`: a routing decision must record what it measured (`done`)
 

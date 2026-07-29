@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0020 — acceptance run 3: the best sota_exit_gate run ever, and still RED at blocker #8
+
+`CI-PARITY-GATE-ROT.13` done (diagnosed + routed); `.14` opened. Docs + task trees only — **no
+`grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no `generated/*`** ⇒ all 11 generated
+parsers byte-identical BY CONSTRUCTION.
+
+- ⭐⭐ **THE RUN**: `guard status=completed exit=2 peak_tree_rss=10402MB elapsed_s=18282` (**5 h 05 m**),
+  **32 gates entered, 30 ok, 1 fail**. It cleared the **entire SV block**, the **entire VHDL block**,
+  and ⭐ **`regex_parser_family_contract_gate (required) ok`** — so **`.9`'s fix is proven in its real
+  caller**, exactly where run 2 died. It failed on the very next gate.
+- ⛔ **BLOCKER #8**: `regex_parser_family_status_gate (required) fail` —
+  *"regex tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'"*
+  (`regex_parser_family_status_gate.sh:308`, criterion `final_targets == 0`; measured **31**).
+- ✅ **`.9` EXONERATED, AND THAT WAS CHECKED FIRST** — "my last change broke it" is the hypothesis
+  that must be eliminated before any other. `.9` changed `resolved_targets` (723 → 1002), which
+  appears in that gate **only at :202/:454/:519/:588, all reporting**, and in no closure criterion.
+  `final_targets` was **31 before and after** — the same 31 in run 2's own evidence. Pre-existing,
+  newly reachable. **Fifth instance of this tree's fail-fast pattern.**
+- **The 31 residuals are not noise**: backreferences (10), subroutine calls (11), bracket/brace
+  tokens (5); reasons **14 `selected_but_failed`, 12 `never_selected`, 5 `never_hit`** ⇒ the stimuli
+  generator *tries* the backreference/subroutine constructs and cannot produce a witness.
+- ⛔⛔ **DELIBERATELY NOT ADJUDICATED — opposite fixes.** (a) genuine coverage debt ⇒ close it or move
+  the row to `In Progress`; (b) scope drift ⇒ `initial_targets` was **355** when regex earned `Done`
+  (2026-03-28) and is **1033** now. **The deciding measurement — when and why 355 → 1033 — was NOT
+  taken here** and belongs with the fix, not with a guess. `.5`'s refusal is the template.
+- **ROUTED to `REGEX-PCRE2-FIDELITY` with a recorded cross-family reproduction check** — the first
+  real use of the `ROUTING-EVIDENCE` doctrine shipped hours earlier in `.12`. Measured: the criterion
+  has **0 sites** in the SV and VHDL status gates, both of which passed in the same run; the
+  residuals are named regex constructs with no analogue elsewhere.
+- ⚠️ **A SECOND, SEPARABLE DEFECT, KEPT HERE as `.14` because it IS flow-surface**: after the sub-gate
+  failed, the aggregate still read the `summary.json` that gate never wrote, so the **last error a
+  triager sees is `jq: Could not open file …` — a missing file, four lines below the real cause, and
+  looking exactly like the artifact-hand-off class `.7` fixed.** This tree has already lost a session
+  to one misdirected diagnosis; this one is built into the tool.
+- ⛔ **`.7` REMAINS OPEN.** Its acceptance is the aggregate reaching the end, and it has not.
+
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0016 — the seventh blocker: the gate went RED because the pipeline got BETTER
 
 `CI-PARITY-GATE-ROT.9` DONE; `.10` opened. 4 gate scripts + book §7 + 2 task trees + 1 tracked
