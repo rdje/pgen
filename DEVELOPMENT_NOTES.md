@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0005 — when the bar moves, fix the instruments before the record
+
+`DONE-BAR.2` SPLIT into `.2a` → `.2b`. Tree + 1 tracked driver + 1 capture — **no `grammars/*.ebnf`,
+no `rust/src/*`, no `rust/scripts/*`, no `generated/*`** ⇒ all 11 generated parsers byte-identical
+BY CONSTRUCTION.
+
+### The sequencing trap
+
+`.2` reads as the simplest leaf in the tree: the audit says five rows are wrong, so correct them.
+Measured, that edit turns **3 of 3 family-status gates RED — two of which pass today.** The gates
+implement the OLD bar: `Provisional` appears in **zero** gate scripts repo-wide, they carry no leg-3
+criterion, and each compares tracker-vs-computed by exact string equality then `exit 1`. The status
+an honest demotion must write is a status no gate can compute.
+
+⭐ **The general shape: when a bar is raised, the instruments that compute against it are part of the
+bar.** `regex`'s row was contested because a gate disagreed with the tracker. Here the gates would
+disagree with a *correct* tracker. Both are the same defect — record and instrument out of step —
+and only one of them is fixed by editing the record. Correcting the record first does not remove the
+lie; it moves it into the gates, where it also manufactures red on two families that are fine.
+
+⇒ the order is always: **teach the instrument, then move the record.** The gate states the truth and
+the record agrees with it — never the reverse.
+
+### Two empty strings are not agreement
+
+The probe that established this printed `✅ aligns` for all three rows on its first run. A broken
+field split (`IFS='|'` against a spec whose data contains pipes and backticks) left *both* sides of
+every comparison empty, and `"" == ""` is true. It was caught because the rendered table showed three
+blank columns — not because the logic was re-read.
+
+The fix is not the field split; it is the guard: the probe now **refuses** (`MISCALIBRATED`, exit 3)
+if either side of a comparison is empty, or if it parses a row count other than the 3 it expects.
+Same class as `CI-PARITY-GATE-ROT.3`'s mistyped filter that replayed zero workflows and printed ✅ —
+**an instrument must not be able to reach a verdict from no data.**
+
+### A traceability gap this slice walked into
+
+Commit `94454e30` was labelled `PGEN-DONE-BAR-0002`, an id already spent by `598038a8`. Nothing
+checks slice-id uniqueness: `.githooks/commit-msg` requires an identifier-shaped work-unit id in the
+subject and never asks whether that id is already taken. History was **not** rewritten (COMMIT.md
+forbids destructive git operations without an explicit request, and the correction belongs in the
+record rather than behind it) — the `.1` slice is referred to by its SHA, and this session resumes
+at `0005`. A one-line structural check over `git log` would have blocked it; recorded as a candidate
+doctrine and deliberately **not** mechanized at one known occurrence
+(`GENERATED-LINT-CORRECTNESS.4`'s pricing rule).
+
 ## 2026-07-29 - PGEN-DONE-BAR-0002 — a gate roster is not a proof surface
 
 `DONE-BAR.1` DONE. `scripts/audit_done_bar.sh` +

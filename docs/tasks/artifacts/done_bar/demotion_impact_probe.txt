@@ -1,0 +1,36 @@
+==============================================================================
+DEMOTION IMPACT PROBE — can the family-status gates express an honest demotion?
+==============================================================================
+
+1. STATUS VOCABULARY each family-status gate can compute (derived from the live scripts)
+
+   regex_parser_family_status_gate.sh         Done/In Progress/Mostly Done/Not Started
+   sv_parser_family_status_gate.sh            Done/Mostly Done
+   vhdl_parser_family_status_gate.sh          Done/In Progress/Mostly Done/Not Started
+
+   gate scripts mentioning "Provisional" anywhere: 0
+
+2. REPLAY of the live tracker reader + alignment comparison against a DEMOTED tracker
+
+   family                       gate COMPUTES (run 3)        tracker AFTER demotion       alignment
+   ----------------------------------------------------------------------------------------------------------
+   regex                        In Progress                  Provisional (corpus pending) ⛔ MISMATCH ⇒ gate exit 1
+   vhdl                         Done                         Provisional (corpus pending) ⛔ MISMATCH ⇒ gate exit 1
+   systemverilog_preprocessor   Done                         Provisional (corpus pending) ⛔ MISMATCH ⇒ gate exit 1
+
+3. VERDICT
+
+   ⛔ 3 of 3 family-status gates would FAIL on an honest demotion.
+
+   The gates implement the OLD bar: they compute a status from legs 1-2 only, have no leg-3
+   criterion, and `Provisional` is not in their vocabulary at all. So the demotion `.2` must
+   write is a status no gate can COMPUTE, and every gate compares by exact string equality then
+   exits 1.
+
+   ⇒ Demoting the tracker FIRST does not record the truth; it manufactures RED gates -- including
+     two (`vhdl`, `systemverilog_preprocessor`) that pass today -- and blocks
+     CI-PARITY-GATE-ROT.7 harder than the blocker it was meant to clear.
+
+   ⇒ `.2` SPLITS: teach the gates the `Provisional` vocabulary and a leg-3 criterion FIRST
+     (`.2a`), so a demoted row is what the gate COMPUTES rather than a disagreement with it;
+     then move the rows (`.2b`).

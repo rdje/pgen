@@ -1,5 +1,29 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0005 — demoting the tracker first would make three gates wrong, not right
+
+`DONE-BAR.2` SPLIT into `.2a` → `.2b` on a measurement. Tree + 1 tracked driver + 1 capture —
+**no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no `generated/*`** ⇒ all 11 generated
+parsers byte-identical BY CONSTRUCTION.
+
+- `.2` was chartered as "demote what does not meet the bar". Executed literally — as a tracker edit —
+  it turns **3 of 3 family-status gates RED, two of which pass today** (`vhdl`,
+  `systemverilog_preprocessor`). Measured by replaying the LIVE alignment logic, not by reading it.
+- **Root cause:** the family-status gates implement the OLD bar. Their whole computable vocabulary is
+  `Done`/`Mostly Done`/`In Progress`/`Not Started`; **`Provisional` appears in zero gate scripts
+  repo-wide**; they carry no leg-3 criterion; and each compares tracker-vs-computed by exact string
+  equality then `exit 1`. ⇒ the status an honest demotion must write is a status no gate can compute.
+- **The inversion is the finding.** `regex`'s row was contested because a gate disagreed with it;
+  here the gates would disagree with a **correct** row. The bar moved; the instruments did not.
+  Fixing the tracker without fixing the instruments relocates the lie instead of removing it.
+- ⇒ `.2a` teaches the three gates `Provisional` (+ its two qualifiers) and a leg-3 criterion, in ONE
+  shared helper; `.2b` then moves the rows, so the gate states the truth and the tracker agrees with
+  it rather than the reverse.
+- ⚠️ **The probe's own first cut printed `✅ aligns` for all three rows — from empty strings.** A
+  broken field split left both sides of the comparison empty, and `"" == ""` is true. It now refuses
+  (`MISCALIBRATED`) on an empty side or a row count other than 3. Two empty strings are never
+  evidence of agreement.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0002 — the `Done`-bar audit exists, and 5 of 5 `Done` rows fail it
 
 `DONE-BAR.1` DONE. New `scripts/audit_done_bar.sh` + register

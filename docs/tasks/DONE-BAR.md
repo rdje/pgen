@@ -8,7 +8,7 @@
 - Created: `2026-07-29`
 - Owner: repo-local workflow
 - Director directive: [[feedback_done_bar_is_first_tier_only]]
-- Frontier: **`.2`** (demote the five rows `.1` failed) — `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`)
+- Frontier: **`.2a`** (teach the family-status gates `Provisional` + a leg-3 criterion) — `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`); `.2` SPLIT into `.2a` → `.2b` (`PGEN-DONE-BAR-0005`)
 
 ## Goal
 
@@ -404,10 +404,65 @@ direction for another. That is why the controls are the deliverable, not the num
   `DEVELOPMENT_NOTES.md`, `MEMORY.md`. No release / schema / ledger / contract movement: nothing
   executable changed.
 
-### `.2` — demote what does not meet the bar, with the unmet leg named (`todo`) ⭐ FRONTIER
+### `.2` — demote what does not meet the bar, with the unmet leg named (`todo`, **SPLIT into `.2a` → `.2b`**)
 
 - **Status: `todo`** — ✅ **UNBLOCKED: `.1` is done and every row it must act on is measured**
   (`docs/tasks/artifacts/done_bar/audit_report.txt`). `.2` now has five rows to adjudicate, not one.
+
+#### ⛔⛔ `.2` CANNOT BE A TRACKER EDIT — MEASURED, AND IT REVERSES THE OBVIOUS ORDER (2026-07-29, `PGEN-DONE-BAR-0005`)
+
+`.2` was chartered as *"demote what does not meet the bar"*. Executed literally — as a tracker edit —
+**it turns three family-status gates RED, two of which pass today.** Measured by replaying the LIVE
+alignment logic, not by reading it
+(`docs/tasks/artifacts/done_bar/run_demotion_impact_probe.sh`, capture `demotion_impact_probe.txt`):
+
+| family | the gate COMPUTES | tracker AFTER an honest demotion | alignment |
+|---|---|---|---|
+| `regex` | `In Progress` | `Provisional (corpus pending)` | ⛔ MISMATCH ⇒ `exit 1` |
+| `vhdl` | `Done` | `Provisional (corpus pending)` | ⛔ MISMATCH ⇒ `exit 1` (**passes today**) |
+| `systemverilog_preprocessor` | `Done` | `Provisional (corpus pending)` | ⛔ MISMATCH ⇒ `exit 1` (**passes today**) |
+
+**WHY (root cause, located):** the family-status gates implement the **OLD** bar. Their entire
+computable vocabulary is `Done` / `Mostly Done` / `In Progress` / `Not Started` — derived from the
+live scripts — with **`Provisional` appearing in ZERO gate scripts repo-wide**; they carry no leg-3
+criterion at all; and each compares tracker-vs-computed by **exact string equality** then `exit 1`
+(`regex_parser_family_status_gate.sh:391-399` and its two siblings).
+
+⇒ **The status an honest demotion must write is a status no gate can COMPUTE.** Demoting first does
+not record the truth — it manufactures a disagreement, and blocks `CI-PARITY-GATE-ROT.7` *harder*
+than the blocker `.2` was sequenced to clear.
+
+⭐ **THE INVERSION IS THE FINDING: the tracker is not the thing that is wrong.** `regex`'s row was
+contested because a gate disagreed with it; here **the gates would disagree with a CORRECT row**.
+The bar moved; the instruments that compute against it did not. Fixing the tracker without fixing
+the instruments just relocates the lie.
+
+⚠️ **THE PROBE'S OWN FIRST CUT REPORTED `✅ aligns` FOR ALL THREE ROWS — FROM EMPTY STRINGS.** A
+broken field split left both sides of the comparison empty, and `"" == ""` is `true`, so the probe
+printed the comfortable answer having compared **no data at all**. It was caught because the output
+table rendered three blank columns, not because the logic was re-read. ⇒ the probe now **REFUSES**
+(`MISCALIBRATED`, exit 3) if either side of a comparison is empty or if it parses other than 3 rows.
+**Two empty strings are never evidence of agreement** — the same vacuous-green class as
+`CI-PARITY-GATE-ROT.3`'s mistyped filter that replayed zero workflows and printed ✅.
+
+#### `.2a` — teach the family-status gates the new bar (`todo`) ⭐ FRONTIER
+
+- Add `Provisional` to what a family-status gate can **compute**, with the two qualifiers
+  (`(ceiling)` / `(corpus pending)`) chosen the way `.1`'s register derives them — from language
+  ownership, never defaulted to `ceiling`.
+- Add the **leg-3 criterion** the gates do not have: an external-corpus surface that is asserted as a
+  **pass**, is **external-backed**, and is **actually invoked**. ⛔ Not a fourth status — a criterion,
+  so `Done` becomes unreachable while leg 3 is unmet and `Provisional` becomes the computed answer.
+- ⛔ **Price before mechanizing** (`GENERATED-LINT-CORRECTNESS.4`'s rule) and reuse ONE shared
+  helper across the three gates — `.10`'s lesson about the 3-way `parse_target_summary` duplication
+  applies exactly here, since the alignment reader is already byte-identical in all three.
+- ⚠️ Expect this to make `vhdl` and `systemverilog_preprocessor` compute `Provisional` **before** the
+  tracker moves. That is the correct order: the gate states the truth, then the tracker agrees with
+  it — never the reverse.
+
+#### `.2b` — move the rows (`todo`, blocked on `.2a`)
+
+- Only after `.2a` can a demotion be *recorded* rather than *asserted against the instruments*.
 - ⭐⭐ **THE AUDIT CHANGED `.2`'s SHAPE. It was written expecting to move `regex`; it must move all
   five, and three of them for reasons that were not on the table when this leaf was written:**
 
@@ -510,8 +565,12 @@ direction for another. That is why the controls are the deliverable, not the num
 
 ## Current Frontier
 
-**`.2`** — demote the five rows the audit failed, each with its unmet leg named and its qualifier
-derived (⛔ `rtl_frontend`'s qualifier is WITHHELD pending `.3`). ⭐ Near-term GOAL: **every family to
+**`.2a`** — teach the three family-status gates to COMPUTE `Provisional` and to carry a leg-3
+criterion. ⛔ **`.2b` (moving the rows) is blocked on it**: measured, an honest demotion today turns
+3 of 3 family-status gates RED, two of which pass, because `Provisional` appears in **zero** gate
+scripts and the gates compare tracker-vs-computed by exact string equality. The rows the audit
+failed, with their derived qualifiers (⛔ `rtl_frontend`'s is WITHHELD pending `.3`), are tabulated
+under `.2`. ⭐ Near-term GOAL: **every family to
 at least `Provisional`**. The tree's PURPOSE is `.4` (the flow guaranteeing the bar); `.5`/`.6`
 (disclosure integrity) are prerequisites for shipping `Provisional` honestly.
 
@@ -570,6 +629,25 @@ closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
 - `PGEN-DONE-BAR-0001` (2026-07-29, session #221) — tree opened on the director's standing
   directive; decision record `feedback_done_bar_is_first_tier_only.md`; measured starting point
   recorded as a hypothesis, not a finding.
+- ⚠️ **SLICE-ID COLLISION, CORRECTED FORWARD AND LEFT VISIBLE.** Commit **`94454e30`** (leaf `.1`
+  done, this session) was labelled `PGEN-DONE-BAR-0002` — an id already consumed by **`598038a8`**
+  (session #221, *"leaf DONE-BAR.5 opened"*). History is deliberately **not** rewritten (COMMIT.md
+  forbids destructive git operations without an explicit request, and the correction belongs in the
+  record rather than behind it): **refer to the `.1` slice by its SHA `94454e30`.** This session's
+  subsequent slices resume at `0005`, since `0003`/`0004` were also consumed in session #221.
+  ⇒ **ROUTED: nothing checks slice-id uniqueness.** `.githooks/commit-msg` requires an
+  identifier-shaped work-unit id in the subject and never asks whether that id is already taken —
+  a one-line structural check over `git log` would have blocked this. Recorded as a candidate
+  doctrine; ⛔ price it against the whole corpus before mechanizing
+  (`GENERATED-LINT-CORRECTNESS.4`'s rule — this is the first known occurrence, which is below that
+  bar today).
+- `PGEN-DONE-BAR-0005` (2026-07-29, session #223, `.2` SPLIT into `.2a` → `.2b`) — measured, by
+  replaying the LIVE alignment logic, that an honest demotion would turn **3 of 3** family-status
+  gates RED, two of which pass today: `Provisional` appears in **zero** gate scripts, the gates carry
+  no leg-3 criterion, and each compares tracker-vs-computed by exact string equality then `exit 1`.
+  ⇒ the instruments must learn the new bar BEFORE the tracker states it, or the demotion
+  manufactures a disagreement instead of recording the truth. The probe's own first cut reported
+  `✅ aligns` from empty strings and now refuses on an empty side.
 - `PGEN-DONE-BAR-0002` (2026-07-29, session #223, leaf `.1` done) — the audit exists and **5 of 5
   `Done` rows fail it**. The tree's own first-pass reading is corrected in `regex`'s disfavour (its
   external-corpus lanes run by nothing; the lane that runs reads a 44-case repo fixture);
