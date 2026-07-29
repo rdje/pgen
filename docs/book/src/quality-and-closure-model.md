@@ -248,6 +248,39 @@ design principles are worth knowing before reading its output:
   offers no verdict at all, because an instrument with no ground truth is a confident guess.
 - It **audits; it never demotes**. Moving a tracker row is a separate, deliberate act.
 
+### The family-status gates compute the bar
+
+The audit reports; the **family-status gates enforce**. The three of them
+(`regex_parser_family_status_gate`, `sv_parser_family_status_gate` — which computes both
+SystemVerilog families — and `vhdl_parser_family_status_gate`) compute a status for their family
+and fail if the tracker row disagrees. Since `DONE-BAR.2a` they compute the **new** bar, through
+one shared helper (`rust/scripts/lib/parser_family_status_bar.sh`):
+
+- Their vocabulary includes the qualified **`Provisional`** tier. The qualifier is derived from
+  the language-ownership field of the done-bar register
+  (`rust/test_data/grammar_quality/done_bar_family_register_v0.json`) — `pgen` ⇒ `(ceiling)`,
+  `external-standard` ⇒ `(corpus pending)` — and an `unadjudicated` owner makes the gate **refuse**
+  rather than guess, because the comfortable label is the one that closes a row.
+- They carry the **leg-3 criterion** the old bar lacked: `external_corpus_conformance_pass`. It is
+  met only by a surface declared in the register (`leg3_surface`) that passes all three tests every
+  corpus-named gate measured by `DONE-BAR.1` failed at least one of: it is a **conformance** gate
+  (a `*triage*` name is refused outright), it is **external-backed** (its script reads a declared
+  corpus root), and it is **actually invoked** (reachable per `scripts/check_gate_reachability.sh`)
+  — and its artifact must satisfy the declared pass assertion. While no surface is declared, leg 3
+  is unmet.
+- Consequently **`Done` is unreachable while leg 3 is unmet**: a family whose own closure criteria
+  all hold computes `Provisional (…)`, never `Done`. The cap only applies at the top — statuses
+  below `Done` pass through unchanged.
+- On a tracker misalignment the gate now **states what it computed** — the full
+  `summary.txt`/`summary.json` pair, including the computed status, the leg-3 verdict, and the
+  qualifier — and *then* exits nonzero. A gate that died before writing its verdict used to leave
+  a 0-byte `summary.txt` that had to be forensically recovered from its log.
+
+This ordering is deliberate: **the gate states the truth, then the tracker agrees with it — never
+the reverse.** Editing the tracker first would have manufactured disagreements with instruments
+that could not even express the honest status (measured: an honest demotion turned 3 of 3
+family-status gates red, two of which passed at the time).
+
 ## A Check That Cannot Be Run Reports Nothing
 
 A recurring failure mode in this project is worth naming explicitly, because it produces

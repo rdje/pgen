@@ -156,17 +156,14 @@ top_level_summary_value_from_txt() {
     printf '%s\n' "${line#${key}: }"
 }
 
-markdown_table_status_for_row() {
-    local row_match="$1"
-    local path="$2"
-    local line
-    line="$(grep -F "$row_match" "$path" | head -n 1 || true)"
-    if [[ -z "$line" ]]; then
-        echo "error: missing live-tracker row containing '$row_match' in '$path'" >&2
-        exit 1
-    fi
-    awk -F'|' '{print $3}' <<<"$line" | xargs
-}
+# DONE-BAR.2a: the shared home of the done-bar status logic (leg-3 evaluation, the Provisional
+# cap over the legacy ladder, and the live-tracker row reader the three status gates previously
+# copy-pasted byte-identically). Also defines the DONE/PROVISIONAL rule strings' leg-3 language.
+# shellcheck source=lib/parser_family_status_bar.sh
+source "$RUST_DIR/scripts/lib/parser_family_status_bar.sh"
+
+DONE_RULE="Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim. Done additionally requires leg 3 of the DONE-BAR three-leg bar: an officially-recognized external-corpus conformance surface, asserted as a pass, external-backed, and actually invoked — a TRIAGE gate is not a conformance gate, and the absence of a corpus is an unmet leg, never an inapplicable one."
+PROVISIONAL_RULE="Provisional is the computed status when every family closure criterion holds but leg 3 (external-corpus conformance) is unmet. It is always qualified, derived from language ownership in the done-bar register: (ceiling) when the language is PGEN's own so no third-party corpus can exist — a FINISHED row; (corpus pending) when an external standard defines the language and wiring the corpus is outstanding."
 
 fraction_is_full() {
     local fraction="$1"
@@ -541,7 +538,16 @@ if [[ "$sv_formal_exhaustive_closure_surface_green_raw" == "true" ]]; then
     sv_formal_exhaustive_closure_surface_green=true
 fi
 
-sv_closure_criteria_total_count=7
+# DONE-BAR.2a: leg 3 of the three-leg `Done` bar — evaluated per family from the done-bar
+# register via the shared helper. Snapshot the globals immediately after each call (the helper is
+# per-family stateful, and this gate evaluates TWO families).
+family_done_bar_leg3 "systemverilog" "$STATE_DIR"
+sv_external_corpus_conformance_pass="$DONE_BAR_LEG3_MET"
+sv_done_bar_leg3_qualifier="$DONE_BAR_PROVISIONAL_QUALIFIER"
+sv_done_bar_leg3_surface_gate="$DONE_BAR_LEG3_SURFACE_GATE"
+sv_done_bar_leg3_detail="$DONE_BAR_LEG3_DETAIL"
+
+sv_closure_criteria_total_count=8
 sv_closure_criteria_satisfied_count=0
 if [[ "$sv_syntax_closure_gate_green" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
@@ -562,6 +568,9 @@ if [[ "$sv_semantic_scope_contract_green" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
 fi
 if [[ "$sv_formal_exhaustive_closure_surface_green" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$sv_external_corpus_conformance_pass" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
 fi
 
@@ -591,12 +600,22 @@ if [[ "$sv_formal_exhaustive_closure_surface_green" != true ]]; then
     sv_unmet+=("formal_exhaustive_closure_surface=not_green")
     sv_unmet_details+=("$sv_formal_exhaustive_closure_primary_unmet_detail_json")
 fi
+if [[ "$sv_external_corpus_conformance_pass" != true ]]; then
+    sv_unmet+=("external_corpus_conformance_pass=false (leg3_surface=${sv_done_bar_leg3_surface_gate})")
+    sv_unmet_details+=("$(jq -cn \
+        --arg observed "leg3_surface=${sv_done_bar_leg3_surface_gate}" \
+        --arg detail "$sv_done_bar_leg3_detail" \
+        '{criterion:"external_corpus_conformance_pass",evidence_key:"done_bar_leg3_surface",observed:$observed,expected:"an external-corpus conformance surface asserted as a pass, external-backed, and actually invoked",detail:$detail}')")
+fi
 
 if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true && "$sv_semantic_scope_contract_green" == true && "$sv_formal_exhaustive_closure_surface_green" == true ]]; then
     sv_status="Done"
 else
     sv_status="Mostly Done"
 fi
+# DONE-BAR.2a: `Done` is unreachable while leg 3 is unmet — the computed answer is then the
+# QUALIFIED Provisional tier. Statuses below `Done` pass through unchanged.
+sv_status="$(family_apply_done_bar_status "$sv_status")"
 
 svpp_aggregate_contract_green=true
 svpp_reachability_closure_green=true
@@ -642,7 +661,14 @@ if [[ "$svpp_formal_exhaustive_closure_surface_green_raw" == "true" ]]; then
     svpp_formal_exhaustive_closure_surface_green=true
 fi
 
-svpp_closure_criteria_total_count=12
+# DONE-BAR.2a: leg 3 for the second family this gate computes.
+family_done_bar_leg3 "systemverilog_preprocessor" "$STATE_DIR"
+svpp_external_corpus_conformance_pass="$DONE_BAR_LEG3_MET"
+svpp_done_bar_leg3_qualifier="$DONE_BAR_PROVISIONAL_QUALIFIER"
+svpp_done_bar_leg3_surface_gate="$DONE_BAR_LEG3_SURFACE_GATE"
+svpp_done_bar_leg3_detail="$DONE_BAR_LEG3_DETAIL"
+
+svpp_closure_criteria_total_count=13
 svpp_closure_criteria_satisfied_count=0
 if [[ "$svpp_syntax_closure_gate_green" == true ]]; then
     ((svpp_closure_criteria_satisfied_count += 1))
@@ -678,6 +704,9 @@ if [[ "$svpp_stage4_branches_full" == true ]]; then
     ((svpp_closure_criteria_satisfied_count += 1))
 fi
 if [[ "$svpp_formal_exhaustive_closure_surface_green" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_external_corpus_conformance_pass" == true ]]; then
     ((svpp_closure_criteria_satisfied_count += 1))
 fi
 
@@ -723,6 +752,13 @@ if [[ "$svpp_formal_exhaustive_closure_surface_green" != true ]]; then
     svpp_unmet+=("${svpp_formal_exhaustive_closure_primary_unmet_closure_criterion}")
     svpp_unmet_details+=("{\"criterion\":\"formal_exhaustive_closure_surface_green\",\"evidence_key\":\"${svpp_formal_exhaustive_closure_required_surface_key}\",\"observed\":\"false\",\"expected\":\"true\",\"detail\":\"${svpp_formal_exhaustive_closure_primary_unmet_closure_criterion}\"}")
 fi
+if [[ "$svpp_external_corpus_conformance_pass" != true ]]; then
+    svpp_unmet+=("external_corpus_conformance_pass=false (leg3_surface=${svpp_done_bar_leg3_surface_gate})")
+    svpp_unmet_details+=("$(jq -cn \
+        --arg observed "leg3_surface=${svpp_done_bar_leg3_surface_gate}" \
+        --arg detail "$svpp_done_bar_leg3_detail" \
+        '{criterion:"external_corpus_conformance_pass",evidence_key:"done_bar_leg3_surface",observed:$observed,expected:"an external-corpus conformance surface asserted as a pass, external-backed, and actually invoked",detail:$detail}')")
+fi
 
 if [[ "$svpp_syntax_closure_gate_green" == true \
    && "$svpp_parser_rejections_zero" == true \
@@ -738,21 +774,24 @@ if [[ "$svpp_syntax_closure_gate_green" == true \
 else
     svpp_status="Mostly Done"
 fi
+# DONE-BAR.2a: `Done` is unreachable while leg 3 is unmet — the computed answer is then the
+# QUALIFIED Provisional tier. Statuses below `Done` pass through unchanged.
+svpp_status="$(family_apply_done_bar_status "$svpp_status")"
 
 live_tracker_sv_status="$(markdown_table_status_for_row "| \`systemverilog\` main parser" "$LIVE_TRACKER_FILE")"
 live_tracker_svpp_status="$(markdown_table_status_for_row "| \`systemverilog_preprocessor\` frontend" "$LIVE_TRACKER_FILE")"
 
-if [[ "$live_tracker_sv_status" != "$sv_status" ]]; then
-    echo "error: live tracker systemverilog status mismatch: tracker='$live_tracker_sv_status' computed='$sv_status'" >&2
-    exit 1
-fi
-if [[ "$live_tracker_svpp_status" != "$svpp_status" ]]; then
-    echo "error: live tracker systemverilog_preprocessor status mismatch: tracker='$live_tracker_svpp_status' computed='$svpp_status'" >&2
-    exit 1
-fi
-
+# DONE-BAR.2a: on misalignment the gate STATES what it computed (full summary.json + summary.txt)
+# and THEN fails — no more 0-byte summary.txt (CI-PARITY-GATE-ROT.14). The exit-1 verdicts are
+# unchanged and move below the summary emission.
 sv_tracker_alignment_ok=true
 svpp_tracker_alignment_ok=true
+if [[ "$live_tracker_sv_status" != "$sv_status" ]]; then
+    sv_tracker_alignment_ok=false
+fi
+if [[ "$live_tracker_svpp_status" != "$svpp_status" ]]; then
+    svpp_tracker_alignment_ok=false
+fi
 
 sv_primary_unmet_closure_criterion="<none>"
 if [[ "${#sv_unmet[@]}" -gt 0 ]]; then
@@ -873,6 +912,16 @@ jq -n \
     --argjson svpp_formal_exhaustive_closure_surface_green "$svpp_formal_exhaustive_closure_surface_green" \
     --argjson svpp_unmet "$svpp_unmet_json" \
     --argjson svpp_unmet_details "$svpp_unmet_details_json" \
+    --arg status_rule_done "$DONE_RULE" \
+    --arg status_rule_provisional "$PROVISIONAL_RULE" \
+    --argjson sv_external_corpus_conformance_pass "$sv_external_corpus_conformance_pass" \
+    --arg sv_done_bar_leg3_qualifier "$sv_done_bar_leg3_qualifier" \
+    --arg sv_done_bar_leg3_surface_gate "$sv_done_bar_leg3_surface_gate" \
+    --arg sv_done_bar_leg3_detail "$sv_done_bar_leg3_detail" \
+    --argjson svpp_external_corpus_conformance_pass "$svpp_external_corpus_conformance_pass" \
+    --arg svpp_done_bar_leg3_qualifier "$svpp_done_bar_leg3_qualifier" \
+    --arg svpp_done_bar_leg3_surface_gate "$svpp_done_bar_leg3_surface_gate" \
+    --arg svpp_done_bar_leg3_detail "$svpp_done_bar_leg3_detail" \
     --arg state_dir "$STATE_DIR" \
     --arg summary_txt "$SUMMARY_TXT" \
     --arg summary_json "$SUMMARY_JSON" \
@@ -885,7 +934,8 @@ jq -n \
       summary_txt: $summary_txt,
       summary_json: $summary_json,
       live_tracker_file: $live_tracker_file,
-      status_rule_done: "Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim.",
+      status_rule_done: $status_rule_done,
+      status_rule_provisional: $status_rule_provisional,
       families: [
         {
           family: "systemverilog",
@@ -917,9 +967,13 @@ jq -n \
             replay_shadow_parser_rejections_zero: $sv_shadow_parser_rejections_zero,
             focused_replay_target_debt_zero: $sv_focused_replay_target_debt_zero,
             semantic_scope_contract_green: $sv_semantic_scope_contract_green,
-            formal_exhaustive_closure_surface_green: $sv_formal_exhaustive_closure_surface_green
+            formal_exhaustive_closure_surface_green: $sv_formal_exhaustive_closure_surface_green,
+            external_corpus_conformance_pass: $sv_external_corpus_conformance_pass
           },
           metrics: {
+            done_bar_leg3_qualifier: $sv_done_bar_leg3_qualifier,
+            done_bar_leg3_surface_gate: $sv_done_bar_leg3_surface_gate,
+            done_bar_leg3_detail: $sv_done_bar_leg3_detail,
             syntax_closure_status: $sv_syntax_status,
             syntax_closure_failure_count: ($sv_syntax_failure_count | tonumber),
             syntax_defined_rule_count: ($sv_syntax_defined_rule_count | tonumber),
@@ -978,9 +1032,13 @@ jq -n \
             reachability_stage4_rules_full: $svpp_stage4_rules_full,
             reachability_stage3_branches_full: $svpp_stage3_branches_full,
             reachability_stage4_branches_full: $svpp_stage4_branches_full,
-            formal_exhaustive_closure_surface_green: $svpp_formal_exhaustive_closure_surface_green
+            formal_exhaustive_closure_surface_green: $svpp_formal_exhaustive_closure_surface_green,
+            external_corpus_conformance_pass: $svpp_external_corpus_conformance_pass
           },
           metrics: {
+            done_bar_leg3_qualifier: $svpp_done_bar_leg3_qualifier,
+            done_bar_leg3_surface_gate: $svpp_done_bar_leg3_surface_gate,
+            done_bar_leg3_detail: $svpp_done_bar_leg3_detail,
             syntax_closure_status: $svpp_syntax_status,
             syntax_closure_failure_count: ($svpp_syntax_failure_count | tonumber),
             syntax_defined_rule_count: ($svpp_syntax_defined_rule_count | tonumber),
@@ -1049,6 +1107,10 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_focused_replay_target_count: $sv_focused_replay_target_count"
     echo "systemverilog_replay_gap_target_primary_rule: $sv_replay_gap_target_primary_rule"
     echo "systemverilog_formal_exhaustive_closure_surface_green: $sv_formal_exhaustive_closure_surface_green"
+    echo "systemverilog_external_corpus_conformance_pass: $sv_external_corpus_conformance_pass"
+    echo "systemverilog_done_bar_leg3_qualifier: $sv_done_bar_leg3_qualifier"
+    echo "systemverilog_done_bar_leg3_surface_gate: $sv_done_bar_leg3_surface_gate"
+    echo "systemverilog_done_bar_leg3_detail: $sv_done_bar_leg3_detail"
     echo "systemverilog_formal_exhaustive_closure_gate: $sv_formal_exhaustive_closure_gate_name"
     echo "systemverilog_formal_exhaustive_closure_gate_version: $sv_formal_exhaustive_closure_gate_version"
     echo "systemverilog_formal_exhaustive_closure_generated_at_utc: $sv_formal_exhaustive_closure_generated_at_utc"
@@ -1086,6 +1148,10 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_preprocessor_reachability_state_dir: $sv_preprocessor_reachability_state_dir"
     echo "systemverilog_preprocessor_reachability_summary_txt: $sv_preprocessor_reachability_summary_txt"
     echo "systemverilog_preprocessor_formal_exhaustive_closure_surface_green: $svpp_formal_exhaustive_closure_surface_green"
+    echo "systemverilog_preprocessor_external_corpus_conformance_pass: $svpp_external_corpus_conformance_pass"
+    echo "systemverilog_preprocessor_done_bar_leg3_qualifier: $svpp_done_bar_leg3_qualifier"
+    echo "systemverilog_preprocessor_done_bar_leg3_surface_gate: $svpp_done_bar_leg3_surface_gate"
+    echo "systemverilog_preprocessor_done_bar_leg3_detail: $svpp_done_bar_leg3_detail"
     echo "systemverilog_preprocessor_formal_exhaustive_closure_gate: $svpp_formal_exhaustive_closure_gate_name"
     echo "systemverilog_preprocessor_formal_exhaustive_closure_gate_version: $svpp_formal_exhaustive_closure_gate_version"
     echo "systemverilog_preprocessor_formal_exhaustive_closure_generated_at_utc: $svpp_formal_exhaustive_closure_generated_at_utc"
@@ -1115,6 +1181,17 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
         echo "systemverilog_preprocessor_unmet_closure_criterion[$idx]: ${svpp_unmet[$idx]}"
     done
 } | tee "$SUMMARY_TXT"
+
+# DONE-BAR.2a: the verdicts are unchanged — a tracker misalignment still fails the gate — but only
+# AFTER the full summary pair above states what was computed (no more 0-byte summary.txt).
+if [[ "$sv_tracker_alignment_ok" != true ]]; then
+    echo "error: live tracker systemverilog status mismatch: tracker='$live_tracker_sv_status' computed='$sv_status'" >&2
+    exit 1
+fi
+if [[ "$svpp_tracker_alignment_ok" != true ]]; then
+    echo "error: live tracker systemverilog_preprocessor status mismatch: tracker='$live_tracker_svpp_status' computed='$svpp_status'" >&2
+    exit 1
+fi
 
 echo "✅ SV parser-family status gate passed."
 echo "Logs: $LOG_DIR"

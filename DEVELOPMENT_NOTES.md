@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0010 — teach the instruments the bar BEFORE stating the truth in the tracker
+
+`DONE-BAR.2a`. Shell-only change (three status gates + one new shared lib + one register field) —
+no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11 generated parsers byte-identical
+BY CONSTRUCTION.
+
+### Why the gates changed before the tracker
+
+The demotion-impact probe measured that an honest demotion (tracker edit first) turns 3 of 3
+family-status gates RED — two of which passed at the time — because `Provisional` appeared in zero
+gate scripts and each gate compares tracker-vs-computed by exact string equality then exits 1.
+Fixing the tracker without fixing the instruments relocates the lie. So `.2a` teaches the gates the
+new bar; `.2b` then records what they compute.
+
+### Implementation notes
+
+- **One shared helper** (`rust/scripts/lib/parser_family_status_bar.sh`) rather than three edits in
+  parallel: the alignment reader was already byte-identical in all three gates (the
+  `parse_target_summary` 3-way-duplication lesson). The helper carries three testability seams
+  (register / scripts dir / reachability JSON) so probe arms can mutate ONE input at a time.
+- **Refusal polarity (exit 2)** matches `scripts/audit_done_bar.sh`: an unregistered family, an
+  `unadjudicated` language owner, a `*triage*` leg3 surface, or a surface whose script reads no
+  declared corpus root REFUSES rather than scoring the comfortable answer. An orphan-but-valid
+  surface and a failing artifact are VERDICTS (leg 3 unmet, cause named), not refusals.
+- **The criterion is real, not a hard-coded false**: CTRL-6 proves a fully valid declared surface
+  scores `met=true`, so `Done` stays honestly reachable the moment `DONE-BAR.3` wires a conformance
+  lane and declares it in the register.
+- **The 0-byte-summary fix**: the gates previously exited on misalignment BEFORE writing their
+  summaries (`: >"$SUMMARY_TXT"` at the top left a 0-byte file — exactly the artifact shape
+  `DONE-BAR.1` had to forensically recover for regex via `CI-PARITY-GATE-ROT.14` handling). The
+  alignment verdict is unchanged but now follows the full summary emission, so a misaligned gate
+  STATES what it computed. The audit's conditional C10 control was checked against this: it only
+  fires when NO non-empty summary exists, so the fix cannot trip it.
+- **Consumer surface priced before mechanizing**: the three status CONTRACT gates assert
+  criteria-count/unmet-array/detail-mapping consistency (not pinned totals) — verified holding on
+  every replay summary; the combined-telemetry gates and `sota_exit_gate` copy values in same-run
+  parity; the audit's `STATUS_KEY_RE` (`echo "<fam>_status:"`) derivation is untouched by the new
+  keys (none end in `_status:`).
+
+### Verification
+
+- `bash docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh` => 23/23 (14 helper arms
+  incl. 5 REFUSE/verdict RED arms + 5 ladder arms; 9 replay arms against the aggregate run-3
+  artifacts via the same `EXISTING_*_STATE_DIR` hand-off the aggregate uses).
+- Replay results: vhdl `Done` -> `Provisional (corpus pending)` (exit 1 vs stale tracker, summary
+  emitted); svpp `Done` -> `Provisional (corpus pending)`; sv `Mostly Done` aligned; regex
+  `In Progress` (below the cap — its leg-1 debt is `REGEX-PCRE2-FIDELITY.ROUTED-IN-2`).
+- `bash scripts/audit_done_bar.sh` byte-identical vs tracked capture; `.1` arms 11/11;
+  `bash -n` clean on all five edited/new scripts.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0006 — a rejection is not a defect until a control says the input was valid
 
 `DONE-BAR.3` seeded with measurement. New tracked probe + decision record + tree/changelog — **no

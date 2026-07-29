@@ -423,3 +423,8 @@ docs/verilog/2005/Verilog-LRM-IEEE-1364-2005.pdf
 # stay untracked; their custody = the banked floor numbers in
 # docs/tasks/artifacts/ + rebuild-with-floor-validation.
 preserved_probes/
+
+# DONE-BAR.2a: rust/scripts/lib/ holds TRACKED shell libraries shared by the gate
+# scripts (single-home helpers such as parser_family_status_bar.sh). The generic
+# Python-packaging `lib/` rule above must not swallow them.
+!rust/scripts/lib/

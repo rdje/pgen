@@ -11,6 +11,13 @@
 # ⛔ THE ALIGNMENT LOGIC IS REPLAYED, NOT DESCRIBED. The reader function and the comparison are
 # extracted from the LIVE gate scripts, so this probe cannot test a rule the gates do not apply.
 #
+# ⚠️ SUPERSEDED AS A LIVE INSTRUMENT (2026-07-29, `PGEN-DONE-BAR-0010`): this probe is the
+# `.2`-shaping BEFORE record. Its step-2 "gate COMPUTES (run 3)" column is a SNAPSHOT of aggregate
+# run 3 under the OLD gate logic, and its verdict prose describes the pre-`.2a` gates. `.2a` has
+# since landed exactly what this probe demanded (the gates now compute the qualified `Provisional`
+# and carry a leg-3 criterion — note step 1's own "Provisional anywhere" count moved 0 → 4).
+# The live AFTER instrument is run_family_status_bar_probes.sh.
+#
 #   bash docs/tasks/artifacts/done_bar/run_demotion_impact_probe.sh
 set -uo pipefail
 
@@ -38,13 +45,14 @@ printf '   gate scripts mentioning "Provisional" anywhere: %s\n' \
 echo
 
 # --- 2. Replay the LIVE alignment comparison against a demoted tracker --------------------------
-# markdown_table_status_for_row is byte-identical across the three status gates; extract it from one
-# and drive it with the tracker rows each gate actually matches on.
+# markdown_table_status_for_row was byte-identical across the three status gates until DONE-BAR.2a
+# moved it into its single home, rust/scripts/lib/parser_family_status_bar.sh (sourced by all
+# three); extract it from there and drive it with the tracker rows each gate actually matches on.
 echo "2. REPLAY of the live tracker reader + alignment comparison against a DEMOTED tracker"
 echo
 
 sed -n '/^markdown_table_status_for_row() {/,/^}/p' \
-    "$ROOT/rust/scripts/regex_parser_family_status_gate.sh" >"$WORK/reader.sh"
+    "$ROOT/rust/scripts/lib/parser_family_status_bar.sh" >"$WORK/reader.sh"
 if [[ ! -s "$WORK/reader.sh" ]]; then
     echo "   ⛔ MISCALIBRATED: could not extract markdown_table_status_for_row from the live gate." >&2
     exit 3

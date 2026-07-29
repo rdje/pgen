@@ -8,7 +8,7 @@
 - Created: `2026-07-29`
 - Owner: repo-local workflow
 - Director directive: [[feedback_done_bar_is_first_tier_only]]
-- Frontier: **`.2a`** (teach the family-status gates `Provisional` + a leg-3 criterion) — `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`); `.2` SPLIT into `.2a` → `.2b` (`PGEN-DONE-BAR-0005`)
+- Frontier: **`.2b`** (move the rows — the gates now compute the truth the tracker must state) — `.2a` DONE 2026-07-29 (`PGEN-DONE-BAR-0010`); `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`); `.2` SPLIT into `.2a` → `.2b` (`PGEN-DONE-BAR-0005`)
 
 ## Goal
 
@@ -445,20 +445,84 @@ table rendered three blank columns, not because the logic was re-read. ⇒ the p
 **Two empty strings are never evidence of agreement** — the same vacuous-green class as
 `CI-PARITY-GATE-ROT.3`'s mistyped filter that replayed zero workflows and printed ✅.
 
-#### `.2a` — teach the family-status gates the new bar (`todo`) ⭐ FRONTIER
+#### `.2a` — teach the family-status gates the new bar (`done`, 2026-07-29 session #224, `PGEN-DONE-BAR-0010`)
 
-- Add `Provisional` to what a family-status gate can **compute**, with the two qualifiers
-  (`(ceiling)` / `(corpus pending)`) chosen the way `.1`'s register derives them — from language
-  ownership, never defaulted to `ceiling`.
-- Add the **leg-3 criterion** the gates do not have: an external-corpus surface that is asserted as a
-  **pass**, is **external-backed**, and is **actually invoked**. ⛔ Not a fourth status — a criterion,
-  so `Done` becomes unreachable while leg 3 is unmet and `Provisional` becomes the computed answer.
-- ⛔ **Price before mechanizing** (`GENERATED-LINT-CORRECTNESS.4`'s rule) and reuse ONE shared
-  helper across the three gates — `.10`'s lesson about the 3-way `parse_target_summary` duplication
-  applies exactly here, since the alignment reader is already byte-identical in all three.
-- ⚠️ Expect this to make `vhdl` and `systemverilog_preprocessor` compute `Provisional` **before** the
-  tracker moves. That is the correct order: the gate states the truth, then the tracker agrees with
-  it — never the reverse.
+- **Status: `done`.** Delivered exactly as chartered, via ONE shared helper
+  (`rust/scripts/lib/parser_family_status_bar.sh`, sourced by all three status gates — the `.10`
+  duplication lesson applied: `markdown_table_status_for_row` now has a single home):
+  1. **`Provisional` is computable**, always qualified, with the qualifier derived from the
+     register's `language_owner` exactly as `.1` derives it (`pgen` ⇒ `(ceiling)`,
+     `external-standard` ⇒ `(corpus pending)`); an `unadjudicated` owner (rtl_frontend,
+     rtl_const_expr) makes the helper **REFUSE (exit 2)** rather than guess — probed (RED-2).
+  2. **The leg-3 criterion exists**: `external_corpus_conformance_pass`, added to every family's
+     criteria set (regex 8→9, sv 7→8, svpp 12→13, vhdl 10→11). It is met only by a
+     register-declared `leg3_surface` `{gate, summary_json, pass_query}` passing the three tests
+     `.1` measured every corpus-named gate failing: **conformance not triage** (a `*triage*` name
+     REFUSES — RED-3), **external-backed** (the gate script must read a declared corpus root, else
+     REFUSE — RED-4), **actually invoked** (reachable per `scripts/check_gate_reachability.sh`; an
+     orphan surface leaves leg 3 UNMET with the cause named — CTRL-5). The artifact must satisfy
+     the declared pass assertion (CTRL-7). ⛔ NOT a hard-coded false: a fully valid surface scores
+     `met=true` (CTRL-6), so `Done` stays honestly reachable the moment `.3` wires a lane.
+  3. **`Done` is unreachable while leg 3 is unmet** — the ladder cap (`family_apply_done_bar_status`)
+     turns a would-be `Done` into the qualified `Provisional`; statuses below `Done` pass through.
+  4. **A misaligned gate now STATES its verdict before failing**: the full summary pair
+     (computed status, leg-3 verdict, qualifier, detail) is emitted, THEN `exit 1` — closing this
+     family's own instance of the 0-byte-summary shape (`CI-PARITY-GATE-ROT.14`; the `.1` audit had
+     to recover this very gate's verdict from its log).
+- **Register extension** (`done_bar_family_register_v0.json`): per-family `leg3_surface` (null for
+  all 7 today) + a `policy.leg3_surface` entry documenting the declared shape and the three tests.
+  The `.1` audit is UNAFFECTED — re-run byte-identical vs the tracked capture, probe arms 11/11.
+- **Measured AFTER (replays against the aggregate run-3 artifacts, the same set `.1` audited):**
+
+  | family | run 3 computed (old bar) | now computes | alignment vs tracker |
+  |---|---|---|---|
+  | `vhdl` | `Done` | **`Provisional (corpus pending)`** | ⛔ exit 1 vs `Done` — correct until `.2b` |
+  | `systemverilog_preprocessor` | `Done` | **`Provisional (corpus pending)`** | ⛔ exit 1 vs `Done` — correct until `.2b` |
+  | `systemverilog` | `Mostly Done` | `Mostly Done` (cap only affects `Done`) | ✅ aligned |
+  | `regex` | `In Progress` | `In Progress` (legs 1-2 unmet ⇒ below the cap) | ⛔ exit 1 vs `Done` — the known `.2b` row |
+
+  ⇒ exactly the chartered outcome: *the gate states the truth, then the tracker agrees with it.*
+  ⚠️ The three status gates (and their contract gates) are deliberately RED against today's tracker
+  until `.2b` moves the rows — same-session work, not a parked breakage.
+- **Consumer surface priced before mechanizing:** the status CONTRACT gates assert criteria-count /
+  unmet-array / detail-mapping consistency, not pinned totals — all invariants verified holding on
+  every replay summary (jq consistency probe in the verification log). The combined-telemetry gates
+  and `sota_exit_gate` copy values (same-run parity), so the new status strings propagate. The
+  audit's `STATUS_KEY_RE` derivation and controls C9/C10 verified unaffected.
+- `run_demotion_impact_probe.sh` is marked **superseded as a live instrument** (its step-2 column is
+  the run-3 snapshot under the OLD logic; its own "Provisional anywhere" count moved 0 → 4). The
+  live AFTER instrument is `run_family_status_bar_probes.sh`.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the demotion-impact probe's measurement (capture
+  `docs/tasks/artifacts/done_bar/demotion_impact_probe.txt`): status vocabulary derived from the
+  live scripts = `Done/In Progress/Mostly Done/Not Started` only, `Provisional` in **zero** gate
+  scripts, and an honest demotion ⇒ `⛔ MISMATCH ⇒ gate exit 1` for 3 of 3 rows.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family: the gates compare tracker-vs-computed by
+  exact string equality then exit (`regex_parser_family_status_gate.sh:391-399` pre-change, and the
+  sv/vhdl siblings), with no leg-3 criterion in any gate; verified against the live scripts by the
+  probe's own extraction (`sed -n '/^markdown_table_status_for_row/…'` from the gate, `bash -n`
+  clean on all five edited scripts; `git ls-files`-tracked inputs only).
+- [x] **FIX** — declarative-tier: one shared shell helper + a tracked-register field + three gate
+  rewires; no grammar, no `rust/src/*`, no `generated/*`, no Rust build.
+- [x] **ADDRESSED (verified)** — before: `Provisional` computable by 0 gates, leg-3 criterion in 0
+  gates, misalignment ⇒ 0-byte summary. After, measured by the re-runnable oracle
+  `bash docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh` → **23/23 arms pass**
+  (capture `family_status_bar_probes.txt`): vhdl replay `computed 'Provisional (corpus pending)'
+  but tracker says 'Done'` with `vhdl_status: Provisional (corpus pending)` IN the emitted
+  summary; svpp likewise; sv `Mostly Done` aligned; regex reproduces run-3's `computed 'In
+  Progress'` failure now WITH a non-empty summary pair; CTRL-6 proves `met=true` on a valid
+  declared surface.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒ all 11
+  generated parsers byte-identical BY CONSTRUCTION; `bash scripts/audit_done_bar.sh` re-run
+  **byte-identical** to the tracked capture (`diff` = 0 lines) over the extended register;
+  `.1` probe arms `bash docs/tasks/artifacts/done_bar/run_done_bar_probes.sh` → **11/11**;
+  `bash -n` clean on every edited script; `bash scripts/check_doctrines.sh` → ALL PASS.
+- [x] **LOCKSTEP** — book (`docs/book/src/quality-and-closure-model.md` — "The family-status gates
+  compute the bar"), tracker note (⛔ no row moves — `.2b` owns that), `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`, this tree. No release / schema / ledger / contract movement:
+  no parser behavior changed.
 
 #### `.2b` — move the rows (`todo`, blocked on `.2a`)
 
@@ -714,14 +778,18 @@ told apart from invalid input**, and all three would have shipped as defects.
 
 ## Current Frontier
 
-**`.2a`** — teach the three family-status gates to COMPUTE `Provisional` and to carry a leg-3
-criterion. ⛔ **`.2b` (moving the rows) is blocked on it**: measured, an honest demotion today turns
-3 of 3 family-status gates RED, two of which pass, because `Provisional` appears in **zero** gate
-scripts and the gates compare tracker-vs-computed by exact string equality. The rows the audit
-failed, with their derived qualifiers (⛔ `rtl_frontend`'s is WITHHELD pending `.3`), are tabulated
-under `.2`. ⭐ Near-term GOAL: **every family to
-at least `Provisional`**. The tree's PURPOSE is `.4` (the flow guaranteeing the bar); `.5`/`.6`
-(disclosure integrity) are prerequisites for shipping `Provisional` honestly.
+**`.2b`** — move the rows. ✅ **UNBLOCKED by `.2a` (`PGEN-DONE-BAR-0010`)**: the three family-status
+gates now COMPUTE the qualified `Provisional` and carry the leg-3 criterion, and the replays against
+the run-3 artifacts already state the statuses the tracker must adopt — `vhdl` and
+`systemverilog_preprocessor` ⇒ `Provisional (corpus pending)`, `regex` ⇒ `In Progress` (legs 1-2
+unmet, so it sits BELOW `Provisional` until its 31-target debt closes;
+`REGEX-PCRE2-FIDELITY.ROUTED-IN-2` owns that), `systemverilog` unchanged `Mostly Done`.
+⚠️ The status gates (and their contract gates) are deliberately RED against today's tracker until
+`.2b` lands — the gate states the truth, then the tracker agrees. ⛔ `rtl_frontend` /
+`rtl_const_expr` qualifiers remain WITHHELD pending `.3` (their rows are demoted off `Done` with the
+qualifier named as owed). ⭐ Near-term GOAL: **every family to at least `Provisional`**. The tree's
+PURPOSE is `.4` (the flow guaranteeing the bar); `.5`/`.6` (disclosure integrity) are prerequisites
+for shipping `Provisional` honestly.
 
 ⭐ **Sequencing, measured and unchanged:** `.2` should land **before** `CI-PARITY-GATE-ROT.7`'s next
 `sota_exit_gate` acceptance run, or that run burns ~5 h to re-confirm a known, routed, unfixed
@@ -775,6 +843,16 @@ closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
 
 ## Commit Log
 
+- `PGEN-DONE-BAR-0010` (2026-07-29, session #224, leaf `.2a` done) — the three family-status gates
+  now compute the NEW bar through one shared helper (`rust/scripts/lib/parser_family_status_bar.sh`):
+  qualified `Provisional` in the computable vocabulary (qualifier derived from register language
+  ownership, `unadjudicated` REFUSES), the leg-3 criterion `external_corpus_conformance_pass`
+  (conformance-not-triage / external-backed / actually-invoked, met only by a register-declared
+  surface whose artifact passes), `Done` unreachable while leg 3 is unmet, and misaligned gates now
+  emit their full summary pair BEFORE exiting 1 (the 0-byte-summary fix). Probes 23/23
+  (`run_family_status_bar_probes.sh`); replays: vhdl + svpp now compute `Provisional (corpus
+  pending)` against run-3 artifacts. Audit re-run byte-identical; `.1` arms 11/11. No row moved —
+  `.2b` next.
 - `PGEN-DONE-BAR-0001` (2026-07-29, session #221) — tree opened on the director's standing
   directive; decision record `feedback_done_bar_is_first_tier_only.md`; measured starting point
   recorded as a hypothesis, not a finding.

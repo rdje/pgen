@@ -20,7 +20,14 @@ EXISTING_REGEX_DUAL_RUN_STATE_DIR="${PGEN_REGEX_FAMILY_STATUS_EXISTING_DUAL_RUN_
 EXISTING_REGEX_STIMULI_STATE_DIR="${PGEN_REGEX_FAMILY_STATUS_EXISTING_STIMULI_STATE_DIR:-}"
 EXISTING_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${PGEN_REGEX_FAMILY_STATUS_EXISTING_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-}"
 
-DONE_RULE="Done requires a formally exhaustive, machine-checkable closure surface with no remaining blocking parser rejection debt and no remaining coverage/gap debt for the family claim. Target-drive output-filter parser rejections may be retained as diagnostics when the stimuli surface passes and final target debt is zero."
+DONE_RULE="Done requires a formally exhaustive, machine-checkable closure surface with no remaining blocking parser rejection debt and no remaining coverage/gap debt for the family claim. Target-drive output-filter parser rejections may be retained as diagnostics when the stimuli surface passes and final target debt is zero. Done additionally requires leg 3 of the DONE-BAR three-leg bar: an officially-recognized external-corpus conformance surface, asserted as a pass, external-backed, and actually invoked — a TRIAGE gate is not a conformance gate, and the absence of a corpus is an unmet leg, never an inapplicable one."
+PROVISIONAL_RULE="Provisional is the computed status when every family closure criterion holds but leg 3 (external-corpus conformance) is unmet. It is always qualified, derived from language ownership in the done-bar register: (ceiling) when the language is PGEN's own so no third-party corpus can exist — a FINISHED row; (corpus pending) when an external standard defines the language and wiring the corpus is outstanding."
+
+# DONE-BAR.2a: the shared home of the done-bar status logic (leg-3 evaluation, the Provisional
+# cap over the legacy ladder, and the live-tracker row reader the three status gates previously
+# copy-pasted byte-identically).
+# shellcheck source=lib/parser_family_status_bar.sh
+source "$RUST_DIR/scripts/lib/parser_family_status_bar.sh"
 
 require_tool() {
     local tool="$1"
@@ -68,18 +75,6 @@ top_level_summary_value_from_txt() {
         exit 1
     fi
     printf '%s\n' "${line#${key}: }"
-}
-
-markdown_table_status_for_row() {
-    local row_match="$1"
-    local path="$2"
-    local line
-    line="$(grep -F "$row_match" "$path" | head -n 1 || true)"
-    if [[ -z "$line" ]]; then
-        echo "error: missing live-tracker row containing '$row_match' in '$path'" >&2
-        exit 1
-    fi
-    awk -F'|' '{print $3}' <<<"$line" | xargs
 }
 
 run_logged() {
@@ -323,7 +318,15 @@ if [[ "$regex_stimuli_parseability_parser_rejections_explained" == true ]]; then
     regex_stimuli_parseability_parser_rejections_zero=true
 fi
 
-regex_closure_criteria_total_count=8
+# DONE-BAR.2a: leg 3 of the three-leg `Done` bar — evaluated from the done-bar register via the
+# shared helper. Snapshot the globals immediately (the helper is per-family stateful).
+family_done_bar_leg3 "regex" "$STATE_DIR"
+regex_external_corpus_conformance_pass="$DONE_BAR_LEG3_MET"
+regex_done_bar_leg3_qualifier="$DONE_BAR_PROVISIONAL_QUALIFIER"
+regex_done_bar_leg3_surface_gate="$DONE_BAR_LEG3_SURFACE_GATE"
+regex_done_bar_leg3_detail="$DONE_BAR_LEG3_DETAIL"
+
+regex_closure_criteria_total_count=9
 regex_closure_criteria_satisfied_count=0
 for criterion in \
     "$regex_family_contract_green" \
@@ -333,7 +336,8 @@ for criterion in \
     "$regex_stimuli_status_pass" \
     "$regex_stimuli_parseability_parser_rejections_zero" \
     "$regex_stimuli_final_target_debt_zero" \
-    "$regex_formal_exhaustive_closure_surface_green"; do
+    "$regex_formal_exhaustive_closure_surface_green" \
+    "$regex_external_corpus_conformance_pass"; do
     if [[ "$criterion" == true ]]; then
         ((regex_closure_criteria_satisfied_count += 1))
     fi
@@ -370,6 +374,13 @@ if [[ "$regex_formal_exhaustive_closure_surface_green" != true ]]; then
     regex_unmet+=("$regex_formal_exhaustive_closure_primary_unmet_closure_criterion")
     regex_unmet_details+=("$regex_formal_exhaustive_closure_primary_unmet_detail_json")
 fi
+if [[ "$regex_external_corpus_conformance_pass" != true ]]; then
+    regex_unmet+=("external_corpus_conformance_pass=false (leg3_surface=${regex_done_bar_leg3_surface_gate})")
+    regex_unmet_details+=("$(jq -cn \
+        --arg observed "leg3_surface=${regex_done_bar_leg3_surface_gate}" \
+        --arg detail "$regex_done_bar_leg3_detail" \
+        '{criterion:"external_corpus_conformance_pass",evidence_key:"done_bar_leg3_surface",observed:$observed,expected:"an external-corpus conformance surface asserted as a pass, external-backed, and actually invoked",detail:$detail}')")
+fi
 
 regex_status="Not Started"
 if [[ "$regex_family_contract_green" == true ]]; then
@@ -387,16 +398,20 @@ fi
 if [[ "$regex_status" == "Mostly Done" && "$regex_formal_exhaustive_closure_surface_green" == true ]]; then
     regex_status="Done"
 fi
+# DONE-BAR.2a: `Done` is unreachable while leg 3 is unmet — the computed answer is then the
+# QUALIFIED Provisional tier. Statuses below `Done` pass through unchanged.
+regex_status="$(family_apply_done_bar_status "$regex_status")"
 
 regex_tracker_status="$(markdown_table_status_for_row "| \`regex\` parser family |" "$LIVE_TRACKER_FILE")"
 regex_tracker_alignment_ok=false
 if [[ "$regex_status" == "$regex_tracker_status" ]]; then
     regex_tracker_alignment_ok=true
 fi
-if [[ "$regex_tracker_alignment_ok" != true ]]; then
-    echo "error: regex tracker alignment mismatch: computed '${regex_status}' but tracker says '${regex_tracker_status}'" >&2
-    exit 1
-fi
+# DONE-BAR.2a: on misalignment the gate STATES what it computed (full summary.txt + summary.json)
+# and THEN fails — a gate that dies before writing its verdict leaves the 0-byte summary.txt this
+# repo has already had to forensically recover (CI-PARITY-GATE-ROT.14; the DONE-BAR.1 audit found
+# exactly that shape for this gate). The exit-1 verdict itself is unchanged and moves below the
+# summary emission.
 
 generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 regex_unmet_count="${#regex_unmet[@]}"
@@ -414,6 +429,7 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "summary_json: $SUMMARY_JSON"
     echo "live_tracker_file: $LIVE_TRACKER_FILE"
     echo "status_rule_done: $DONE_RULE"
+    echo "status_rule_provisional: $PROVISIONAL_RULE"
     echo "regex_status: $regex_status"
     echo "regex_tracker_status: $regex_tracker_status"
     echo "regex_tracker_alignment_ok: $regex_tracker_alignment_ok"
@@ -437,6 +453,10 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "regex_stimuli_parseability_parser_rejections_explained: $regex_stimuli_parseability_parser_rejections_explained"
     echo "regex_stimuli_final_target_debt_zero: $regex_stimuli_final_target_debt_zero"
     echo "regex_formal_exhaustive_closure_surface_green: $regex_formal_exhaustive_closure_surface_green"
+    echo "regex_external_corpus_conformance_pass: $regex_external_corpus_conformance_pass"
+    echo "regex_done_bar_leg3_qualifier: $regex_done_bar_leg3_qualifier"
+    echo "regex_done_bar_leg3_surface_gate: $regex_done_bar_leg3_surface_gate"
+    echo "regex_done_bar_leg3_detail: $regex_done_bar_leg3_detail"
     echo "regex_frontend_overall: $regex_frontend_overall"
     echo "regex_dual_run_overall: $regex_dual_run_overall"
     echo "regex_dual_run_raw_ast_status: $regex_dual_run_raw_ast_status"
@@ -482,6 +502,7 @@ jq -n \
     --arg summary_json "$SUMMARY_JSON" \
     --arg live_tracker_file "$LIVE_TRACKER_FILE" \
     --arg status_rule_done "$DONE_RULE" \
+    --arg status_rule_provisional "$PROVISIONAL_RULE" \
     --arg regex_status "$regex_status" \
     --arg regex_tracker_status "$regex_tracker_status" \
     --argjson regex_tracker_alignment_ok "$regex_tracker_alignment_ok" \
@@ -502,6 +523,10 @@ jq -n \
     --argjson regex_stimuli_parseability_parser_rejections_explained "$regex_stimuli_parseability_parser_rejections_explained" \
     --argjson regex_stimuli_final_target_debt_zero "$regex_stimuli_final_target_debt_zero" \
     --argjson regex_formal_exhaustive_closure_surface_green "$regex_formal_exhaustive_closure_surface_green" \
+    --argjson regex_external_corpus_conformance_pass "$regex_external_corpus_conformance_pass" \
+    --arg regex_done_bar_leg3_qualifier "$regex_done_bar_leg3_qualifier" \
+    --arg regex_done_bar_leg3_surface_gate "$regex_done_bar_leg3_surface_gate" \
+    --arg regex_done_bar_leg3_detail "$regex_done_bar_leg3_detail" \
     --arg regex_frontend_overall "$regex_frontend_overall" \
     --arg regex_dual_run_overall "$regex_dual_run_overall" \
     --arg regex_dual_run_raw_ast_status "$regex_dual_run_raw_ast_status" \
@@ -545,6 +570,7 @@ jq -n \
       summary_json: $summary_json,
       live_tracker_file: $live_tracker_file,
       status_rule_done: $status_rule_done,
+      status_rule_provisional: $status_rule_provisional,
       families: [
         {
           family: "regex",
@@ -566,9 +592,13 @@ jq -n \
             stimuli_status_pass: $regex_stimuli_status_pass,
             stimuli_parseability_parser_rejections_zero: $regex_stimuli_parseability_parser_rejections_zero,
             stimuli_final_target_debt_zero: $regex_stimuli_final_target_debt_zero,
-            formal_exhaustive_closure_surface_green: $regex_formal_exhaustive_closure_surface_green
+            formal_exhaustive_closure_surface_green: $regex_formal_exhaustive_closure_surface_green,
+            external_corpus_conformance_pass: $regex_external_corpus_conformance_pass
           },
             metrics: {
+            done_bar_leg3_qualifier: $regex_done_bar_leg3_qualifier,
+            done_bar_leg3_surface_gate: $regex_done_bar_leg3_surface_gate,
+            done_bar_leg3_detail: $regex_done_bar_leg3_detail,
             frontend_overall: $regex_frontend_overall,
             dual_run_overall: $regex_dual_run_overall,
             dual_run_raw_ast_status: $regex_dual_run_raw_ast_status,
@@ -611,5 +641,12 @@ jq -n \
         }
       ]
     }' >"$SUMMARY_JSON"
+
+# DONE-BAR.2a: the verdict is unchanged — a tracker misalignment still fails the gate — but only
+# AFTER the full summary pair above states what was computed (no more 0-byte summary.txt).
+if [[ "$regex_tracker_alignment_ok" != true ]]; then
+    echo "error: regex tracker alignment mismatch: computed '${regex_status}' but tracker says '${regex_tracker_status}'" >&2
+    exit 1
+fi
 
 echo "✅ Regex parser-family status gate passed."

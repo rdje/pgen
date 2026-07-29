@@ -19,7 +19,8 @@ EXISTING_VHDL_QUALITY_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_EXISTING_QUALITY_STAT
 EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_EXISTING_STRICT_PROMOTION_STATE_DIR:-}"
 EXISTING_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_EXISTING_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-}"
 
-DONE_RULE="Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim."
+DONE_RULE="Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim. Done additionally requires leg 3 of the DONE-BAR three-leg bar: an officially-recognized external-corpus conformance surface, asserted as a pass, external-backed, and actually invoked — a TRIAGE gate is not a conformance gate, and the absence of a corpus is an unmet leg, never an inapplicable one."
+PROVISIONAL_RULE="Provisional is the computed status when every family closure criterion holds but leg 3 (external-corpus conformance) is unmet. It is always qualified, derived from language ownership in the done-bar register: (ceiling) when the language is PGEN's own so no third-party corpus can exist — a FINISHED row; (corpus pending) when an external standard defines the language and wiring the corpus is outstanding."
 
 require_tool() {
     local tool="$1"
@@ -69,17 +70,11 @@ top_level_summary_value_from_txt() {
     printf '%s\n' "${line#${key}: }"
 }
 
-markdown_table_status_for_row() {
-    local row_match="$1"
-    local path="$2"
-    local line
-    line="$(grep -F "$row_match" "$path" | head -n 1 || true)"
-    if [[ -z "$line" ]]; then
-        echo "error: missing live-tracker row containing '$row_match' in '$path'" >&2
-        exit 1
-    fi
-    awk -F'|' '{print $3}' <<<"$line" | xargs
-}
+# DONE-BAR.2a: the shared home of the done-bar status logic (leg-3 evaluation, the Provisional
+# cap over the legacy ladder, and the live-tracker row reader the three status gates previously
+# copy-pasted byte-identically).
+# shellcheck source=lib/parser_family_status_bar.sh
+source "$RUST_DIR/scripts/lib/parser_family_status_bar.sh"
 
 run_logged() {
     local label="$1"
@@ -307,7 +302,15 @@ if [[ "$vhdl_strict_promotion_primary_blocker" == "none" ]]; then
     vhdl_strict_promotion_primary_blocker_none=true
 fi
 
-vhdl_closure_criteria_total_count=10
+# DONE-BAR.2a: leg 3 of the three-leg `Done` bar — evaluated from the done-bar register via the
+# shared helper. Snapshot the globals immediately (the helper is per-family stateful).
+family_done_bar_leg3 "vhdl" "$STATE_DIR"
+vhdl_external_corpus_conformance_pass="$DONE_BAR_LEG3_MET"
+vhdl_done_bar_leg3_qualifier="$DONE_BAR_PROVISIONAL_QUALIFIER"
+vhdl_done_bar_leg3_surface_gate="$DONE_BAR_LEG3_SURFACE_GATE"
+vhdl_done_bar_leg3_detail="$DONE_BAR_LEG3_DETAIL"
+
+vhdl_closure_criteria_total_count=11
 vhdl_closure_criteria_satisfied_count=0
 for criterion in \
     "$vhdl_family_contract_green" \
@@ -319,7 +322,8 @@ for criterion in \
     "$vhdl_strict_promotion_recommendation_green" \
     "$vhdl_strict_promotion_eligible_for_required_strict_mode" \
     "$vhdl_strict_promotion_primary_blocker_none" \
-    "$vhdl_formal_exhaustive_closure_surface_green"; do
+    "$vhdl_formal_exhaustive_closure_surface_green" \
+    "$vhdl_external_corpus_conformance_pass"; do
     if [[ "$criterion" == true ]]; then
         ((vhdl_closure_criteria_satisfied_count += 1))
     fi
@@ -364,6 +368,13 @@ if [[ "$vhdl_formal_exhaustive_closure_surface_green" != true ]]; then
     vhdl_unmet+=("formal_exhaustive_closure_surface=not_green")
     vhdl_unmet_details+=("$vhdl_formal_exhaustive_closure_primary_unmet_detail_json")
 fi
+if [[ "$vhdl_external_corpus_conformance_pass" != true ]]; then
+    vhdl_unmet+=("external_corpus_conformance_pass=false (leg3_surface=${vhdl_done_bar_leg3_surface_gate})")
+    vhdl_unmet_details+=("$(jq -cn \
+        --arg observed "leg3_surface=${vhdl_done_bar_leg3_surface_gate}" \
+        --arg detail "$vhdl_done_bar_leg3_detail" \
+        '{criterion:"external_corpus_conformance_pass",evidence_key:"done_bar_leg3_surface",observed:$observed,expected:"an external-corpus conformance surface asserted as a pass, external-backed, and actually invoked",detail:$detail}')")
+fi
 
 vhdl_status="Not Started"
 if [[ "$vhdl_family_contract_green" == true ]]; then
@@ -383,16 +394,18 @@ fi
 if [[ "$vhdl_status" == "Mostly Done" && "$vhdl_formal_exhaustive_closure_surface_green" == true ]]; then
     vhdl_status="Done"
 fi
+# DONE-BAR.2a: `Done` is unreachable while leg 3 is unmet — the computed answer is then the
+# QUALIFIED Provisional tier. Statuses below `Done` pass through unchanged.
+vhdl_status="$(family_apply_done_bar_status "$vhdl_status")"
 
 vhdl_tracker_status="$(markdown_table_status_for_row "| \`vhdl\` parser family |" "$LIVE_TRACKER_FILE")"
 vhdl_tracker_alignment_ok=false
 if [[ "$vhdl_status" == "$vhdl_tracker_status" ]]; then
     vhdl_tracker_alignment_ok=true
 fi
-if [[ "$vhdl_tracker_alignment_ok" != true ]]; then
-    echo "error: VHDL tracker alignment mismatch: computed '${vhdl_status}' but tracker says '${vhdl_tracker_status}'" >&2
-    exit 1
-fi
+# DONE-BAR.2a: on misalignment the gate STATES what it computed (full summary.txt + summary.json)
+# and THEN fails — no more 0-byte summary.txt (CI-PARITY-GATE-ROT.14). The exit-1 verdict itself
+# is unchanged and moves below the summary emission.
 
 generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 vhdl_unmet_count="${#vhdl_unmet[@]}"
@@ -410,6 +423,7 @@ vhdl_unmet_details_json="$(printf '%s\n' "${vhdl_unmet_details[@]:-}" | jq -R . 
     echo "summary_json: $SUMMARY_JSON"
     echo "live_tracker_file: $LIVE_TRACKER_FILE"
     echo "status_rule_done: $DONE_RULE"
+    echo "status_rule_provisional: $PROVISIONAL_RULE"
     echo "vhdl_status: $vhdl_status"
     echo "vhdl_tracker_status: $vhdl_tracker_status"
     echo "vhdl_tracker_alignment_ok: $vhdl_tracker_alignment_ok"
@@ -433,6 +447,10 @@ vhdl_unmet_details_json="$(printf '%s\n' "${vhdl_unmet_details[@]:-}" | jq -R . 
     echo "vhdl_strict_promotion_eligible_for_required_strict_mode: $vhdl_strict_promotion_eligible_for_required_strict_mode"
     echo "vhdl_strict_promotion_primary_blocker_none: $vhdl_strict_promotion_primary_blocker_none"
     echo "vhdl_formal_exhaustive_closure_surface_green: $vhdl_formal_exhaustive_closure_surface_green"
+    echo "vhdl_external_corpus_conformance_pass: $vhdl_external_corpus_conformance_pass"
+    echo "vhdl_done_bar_leg3_qualifier: $vhdl_done_bar_leg3_qualifier"
+    echo "vhdl_done_bar_leg3_surface_gate: $vhdl_done_bar_leg3_surface_gate"
+    echo "vhdl_done_bar_leg3_detail: $vhdl_done_bar_leg3_detail"
     echo "vhdl_quality_closed_loop_initial_status: $vhdl_quality_closed_loop_initial_status"
     echo "vhdl_quality_closed_loop_replay_status: $vhdl_quality_closed_loop_replay_status"
     echo "vhdl_quality_closed_loop_replay_targets: $vhdl_quality_closed_loop_replay_targets"
@@ -473,6 +491,7 @@ jq -n \
     --arg summary_json "$SUMMARY_JSON" \
     --arg live_tracker_file "$LIVE_TRACKER_FILE" \
     --arg status_rule_done "$DONE_RULE" \
+    --arg status_rule_provisional "$PROVISIONAL_RULE" \
     --arg vhdl_status "$vhdl_status" \
     --arg vhdl_tracker_status "$vhdl_tracker_status" \
     --argjson vhdl_tracker_alignment_ok "$vhdl_tracker_alignment_ok" \
@@ -493,6 +512,10 @@ jq -n \
     --argjson vhdl_strict_promotion_eligible_for_required_strict_mode "$vhdl_strict_promotion_eligible_for_required_strict_mode" \
     --argjson vhdl_strict_promotion_primary_blocker_none "$vhdl_strict_promotion_primary_blocker_none" \
     --argjson vhdl_formal_exhaustive_closure_surface_green "$vhdl_formal_exhaustive_closure_surface_green" \
+    --argjson vhdl_external_corpus_conformance_pass "$vhdl_external_corpus_conformance_pass" \
+    --arg vhdl_done_bar_leg3_qualifier "$vhdl_done_bar_leg3_qualifier" \
+    --arg vhdl_done_bar_leg3_surface_gate "$vhdl_done_bar_leg3_surface_gate" \
+    --arg vhdl_done_bar_leg3_detail "$vhdl_done_bar_leg3_detail" \
     --arg vhdl_quality_closed_loop_initial_status "$vhdl_quality_closed_loop_initial_status" \
     --arg vhdl_quality_closed_loop_replay_status "$vhdl_quality_closed_loop_replay_status" \
     --argjson vhdl_quality_closed_loop_replay_targets "$vhdl_quality_closed_loop_replay_targets" \
@@ -531,6 +554,7 @@ jq -n \
       summary_json: $summary_json,
       live_tracker_file: $live_tracker_file,
       status_rule_done: $status_rule_done,
+      status_rule_provisional: $status_rule_provisional,
       families: [
         {
           family: "vhdl",
@@ -554,9 +578,13 @@ jq -n \
             strict_promotion_recommendation_green: $vhdl_strict_promotion_recommendation_green,
             strict_promotion_eligible_for_required_strict_mode: $vhdl_strict_promotion_eligible_for_required_strict_mode,
             strict_promotion_primary_blocker_none: $vhdl_strict_promotion_primary_blocker_none,
-            formal_exhaustive_closure_surface_green: $vhdl_formal_exhaustive_closure_surface_green
+            formal_exhaustive_closure_surface_green: $vhdl_formal_exhaustive_closure_surface_green,
+            external_corpus_conformance_pass: $vhdl_external_corpus_conformance_pass
           },
           metrics: {
+            done_bar_leg3_qualifier: $vhdl_done_bar_leg3_qualifier,
+            done_bar_leg3_surface_gate: $vhdl_done_bar_leg3_surface_gate,
+            done_bar_leg3_detail: $vhdl_done_bar_leg3_detail,
             quality_closed_loop_initial_status: $vhdl_quality_closed_loop_initial_status,
             quality_closed_loop_replay_status: $vhdl_quality_closed_loop_replay_status,
             quality_closed_loop_replay_targets: $vhdl_quality_closed_loop_replay_targets,
@@ -592,5 +620,12 @@ jq -n \
         }
       ]
     }' >"$SUMMARY_JSON"
+
+# DONE-BAR.2a: the verdict is unchanged — a tracker misalignment still fails the gate — but only
+# AFTER the full summary pair above states what was computed (no more 0-byte summary.txt).
+if [[ "$vhdl_tracker_alignment_ok" != true ]]; then
+    echo "error: VHDL tracker alignment mismatch: computed '${vhdl_status}' but tracker says '${vhdl_tracker_status}'" >&2
+    exit 1
+fi
 
 echo "✅ VHDL parser-family status gate passed."

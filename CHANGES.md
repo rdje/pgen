@@ -1,5 +1,45 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0010 — leaf DONE-BAR.2a: the family-status gates now compute the three-leg Done bar
+
+Shell gates + one shared helper + a register field — no `grammars/*.ebnf`, no `rust/src/*`, no
+`generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION. **No tracker row moves
+(that is `.2b`); the status gates are deliberately RED against today's tracker until it does.**
+
+- New single home `rust/scripts/lib/parser_family_status_bar.sh`, sourced by the three
+  `*_parser_family_status_gate.sh` scripts (which also lose their byte-identical copy-pasted
+  `markdown_table_status_for_row`):
+  - `family_done_bar_leg3` — evaluates leg 3 from
+    `rust/test_data/grammar_quality/done_bar_family_register_v0.json`; the `Provisional` qualifier
+    is derived from `language_owner` (`pgen` => `(ceiling)`, `external-standard` =>
+    `(corpus pending)`, `unadjudicated` => REFUSE exit 2 — a status gate may not guess);
+  - a declared `leg3_surface` `{gate, summary_json, pass_query}` must pass the three tests every
+    corpus-named gate measured by `DONE-BAR.1` failed at least one of: conformance-not-triage
+    (`*triage*` name refused), external-backed (script reads a declared corpus root, else refused),
+    actually invoked (`reachable` per `scripts/check_gate_reachability.sh`; an orphan surface is an
+    UNMET leg with the cause named) — plus the artifact must satisfy the declared pass assertion;
+  - `family_apply_done_bar_status` — the cap: a would-be `Done` with leg 3 unmet computes the
+    qualified `Provisional`; statuses below `Done` pass through.
+- The three gates gain the criterion `external_corpus_conformance_pass` (totals: regex 8->9,
+  sv 7->8, svpp 12->13, vhdl 10->11), new summary keys (`*_done_bar_leg3_qualifier` /
+  `_surface_gate` / `_detail`, `status_rule_provisional`), and now **emit the full
+  summary.txt/summary.json pair BEFORE exiting 1 on tracker misalignment** (the
+  `CI-PARITY-GATE-ROT.14` 0-byte-summary fix, measured on this very gate family by `DONE-BAR.1`).
+- Register: per-family `leg3_surface: null` + `policy.leg3_surface` documenting the declared shape.
+- Verification: new probe driver
+  `docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh` => **23/23 arms** (capture
+  `family_status_bar_probes.txt`) — RED arms assert exit code AND message; gate replays against the
+  aggregate run-3 artifacts show `vhdl` and `systemverilog_preprocessor` now computing
+  **`Provisional (corpus pending)`** (both computed `Done` at run 3), `systemverilog` unchanged
+  `Mostly Done` aligned, `regex` reproducing its known `In Progress` misalignment WITH a non-empty
+  summary. Contract-gate consistency invariants verified holding on every replay summary.
+- No regression: `bash scripts/audit_done_bar.sh` re-run **byte-identical** to the tracked capture
+  over the extended register; `.1` probe arms 11/11; `bash -n` clean on all edited scripts;
+  `run_demotion_impact_probe.sh` marked superseded-as-live-instrument (it is the `.2`-shaping
+  BEFORE record; its own "Provisional anywhere" count moved 0 -> 4).
+- Book: `docs/book/src/quality-and-closure-model.md` gains "The family-status gates compute the
+  bar".
+
 ## 2026-07-29 - PGEN-DONE-BAR-0009 — correction: ANVIL did not misbehave, I discarded its diagnostic
 
 Corrects `PGEN-DONE-BAR-0008` **forward** (history is append-only). Docs only — no
