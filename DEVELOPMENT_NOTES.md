@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DOCTRINE-GAP-OWNERSHIP-0003 — the compiler cannot check code you emit as a string
+
+`DOCTRINE-GAP-OWNERSHIP.3a`. CODE CHANGE (`rust/src/ast_pipeline/unified_return_ast.rs`), one
+production character + a regression lock.
+
+- **The defect in one line:** the `ArrayAccess` arm of `generate_code` emitted
+  `ParseContent::Terminal("<array_access>"` — no closing paren — while its two siblings were
+  balanced. It returned `Ok(...)` carrying source that cannot compile, with zero diagnostics.
+- **Why it survived, which is the transferable part.** Two independent blindnesses stacked: the
+  emission is built with `format!`, so it is *data* — every `cargo build` of PGEN type-checks the
+  call and never its content; and the whole `generate_code` path has **zero production callers**
+  (measured: 4 recursive self-calls + 2 `#[cfg(test)]` calls repo-wide), with those two tests
+  covering only `PositionalRef` and `StringLiteral`. ⇒ **a string-emitting dead path with no test is
+  a place no compiler can help you.** That is the same family as this tree's other findings, one
+  level lower: not "a check that cannot run", but "a construct no check can *see*".
+- **The fix is one character; the test is the deliverable.** The new lock parses every arm's output
+  as a real `syn::Expr` and is exhaustive *by compiler enforcement*, not by discipline:
+  `variant_tag`'s `match` has no wildcard arm, so adding a `UnifiedReturnAST` variant breaks the
+  build until someone supplies a sample. A hand-listed test would have rotted exactly the way the
+  original two tests did.
+- ⚠️⚠️ **A MEASUREMENT TRAP I WALKED INTO, worth recording because the naive check looks conclusive.**
+  To prove artifact neutrality I hashed `generated/` before and after — and it *differed*, which
+  reads as "your codegen change moved the artifacts". It had not: the 11 `*.rs` parsers were
+  byte-identical, and the 9 differing `*.json` differed in **exactly one leaf field each**,
+  `.metadata.generated_at`, out of 49,207 compared leaves. **`generated/*.json` embeds a wall-clock
+  stamp and is therefore not byte-reproducible.** ⭐ The sting: the obvious determinism check —
+  regenerate twice, compare — *passed*, because both runs landed in the same second. **A determinism
+  probe run inside its own timestamp granularity proves nothing, and an artifact-identity check over
+  `generated/` must exclude that field or compare `*.rs` only.** No gate hashes those JSONs today
+  (verified), so nothing is currently broken; the note exists so a future one is not flaky from its
+  first run.
+- **What isolated the change in the end** was not an argument but an experiment: regenerate with the
+  fix, `git stash` it out, regenerate again, compare per artifact. 246 s a side. The dead-code
+  argument was almost certainly sufficient — but "almost certainly" is not what the acceptance
+  checklist asks for when `rust/src/*` is staged.
+- ⛔ **Deliberately not widened.** All five paths still return `Ok(...)` with a placeholder and zero
+  diagnostics. Balancing a paren made the emission *compile*; it did not make it *honest*. Whether
+  these paths should refuse at grammar-load or implement the construct is `.3`'s call, and a
+  one-character fix must not quietly settle it.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0014 — build the gate against the surface that EXISTS, not the one the charter named
 
 `DONE-BAR.5c`. New gate + helper + contract + Makefile edge — no `grammars/*.ebnf`, no `rust/src/*`,

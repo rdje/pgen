@@ -1880,7 +1880,7 @@ impl UnifiedReturnAST {
                 let index_code = index.generate_code(captured_vars, indent, logger)?;
                 // For now, this is a placeholder - would need runtime indexing
                 Ok(format!(
-                    "{}// TODO: Array access [{}] on {}\n{}ParseContent::Terminal(\"<array_access>\"",
+                    "{}// TODO: Array access [{}] on {}\n{}ParseContent::Terminal(\"<array_access>\")",
                     indent, index_code, base_code, indent
                 ))
             }
@@ -3019,6 +3019,147 @@ mod tests {
         };
         let code = ast.generate_code(&captured_vars, "", &logger).unwrap();
         assert_eq!(code, "ParseContent::Terminal(r#\"test\"#)");
+    }
+
+    /// Names the variant of `ast`. ⭐ DELIBERATELY carries NO wildcard arm: adding a
+    /// `UnifiedReturnAST` variant makes THIS FILE FAIL TO COMPILE until a sample is
+    /// added to `generate_code_samples` below, so the syntax-validity test can never
+    /// silently stop covering the enum. (`GATE-REACHABILITY`'s "derive the roster,
+    /// never re-type it" discipline, applied to a unit test.)
+    fn variant_tag(ast: &UnifiedReturnAST) -> &'static str {
+        match ast {
+            UnifiedReturnAST::PositionalRef { .. } => "PositionalRef",
+            UnifiedReturnAST::StringLiteral { .. } => "StringLiteral",
+            UnifiedReturnAST::NumberLiteral { .. } => "NumberLiteral",
+            UnifiedReturnAST::BooleanLiteral { .. } => "BooleanLiteral",
+            UnifiedReturnAST::NullLiteral => "NullLiteral",
+            UnifiedReturnAST::Identifier { .. } => "Identifier",
+            UnifiedReturnAST::Object { .. } => "Object",
+            UnifiedReturnAST::Array { .. } => "Array",
+            UnifiedReturnAST::Spread { .. } => "Spread",
+            UnifiedReturnAST::FlattenSpread { .. } => "FlattenSpread",
+            UnifiedReturnAST::PropertyAccess { .. } => "PropertyAccess",
+            UnifiedReturnAST::ArrayAccess { .. } => "ArrayAccess",
+            UnifiedReturnAST::QuantifiedExtraction { .. } => "QuantifiedExtraction",
+            UnifiedReturnAST::Passthrough => "Passthrough",
+            UnifiedReturnAST::MatchedText => "MatchedText",
+        }
+    }
+
+    fn generate_code_samples() -> Vec<UnifiedReturnAST> {
+        let pos1 = || Box::new(UnifiedReturnAST::PositionalRef { index: 1 });
+        vec![
+            UnifiedReturnAST::PositionalRef { index: 1 },
+            UnifiedReturnAST::StringLiteral {
+                value: "test".to_string(),
+            },
+            UnifiedReturnAST::NumberLiteral { value: 4.0 },
+            UnifiedReturnAST::BooleanLiteral { value: true },
+            UnifiedReturnAST::NullLiteral,
+            UnifiedReturnAST::Identifier {
+                name: "some_ident".to_string(),
+            },
+            UnifiedReturnAST::Object {
+                properties: [("kind".to_string(), pos1())].into_iter().collect(),
+            },
+            UnifiedReturnAST::Array {
+                elements: vec![UnifiedReturnAST::PositionalRef { index: 1 }],
+            },
+            UnifiedReturnAST::Spread { base: pos1() },
+            UnifiedReturnAST::FlattenSpread { base: pos1() },
+            UnifiedReturnAST::PropertyAccess {
+                base: pos1(),
+                property: "name".to_string(),
+            },
+            UnifiedReturnAST::ArrayAccess {
+                base: pos1(),
+                index: Box::new(UnifiedReturnAST::NumberLiteral { value: 0.0 }),
+            },
+            UnifiedReturnAST::QuantifiedExtraction {
+                base: pos1(),
+                target: ExtractionTarget::Index(2),
+            },
+            UnifiedReturnAST::QuantifiedExtraction {
+                base: pos1(),
+                target: ExtractionTarget::First,
+            },
+            UnifiedReturnAST::QuantifiedExtraction {
+                base: pos1(),
+                target: ExtractionTarget::Last,
+            },
+            UnifiedReturnAST::Passthrough,
+            UnifiedReturnAST::MatchedText,
+        ]
+    }
+
+    /// `generate_code` emits Rust SOURCE as a `String`, so the compiler cannot check
+    /// it: a malformed emission is just data and every `cargo build` of PGEN stays
+    /// green. This test parses each arm's output as a real `syn::Expr`.
+    ///
+    /// ⛔ REGRESSION LOCK (`DOCTRINE-GAP-OWNERSHIP.3a`, routed in from `DONE-BAR.5c`):
+    /// the `ArrayAccess` arm shipped `ParseContent::Terminal("<array_access>"` — an
+    /// UNCLOSED call — while its `PropertyAccess`/`QuantifiedExtraction::Last`
+    /// siblings were balanced. It survived because this path has ZERO production
+    /// callers and its only two tests covered `PositionalRef` and `StringLiteral`.
+    #[test]
+    fn unified_return_ast_generate_code_emits_syntactically_valid_rust() {
+        let logger = crate::test_runner::NoOpLogger;
+        let captured_vars = vec![
+            "sequence_elements[0]".to_string(),
+            "sequence_elements[1]".to_string(),
+            "sequence_elements[2]".to_string(),
+        ];
+
+        let samples = generate_code_samples();
+        let mut covered: Vec<&'static str> = Vec::new();
+
+        for ast in &samples {
+            let tag = variant_tag(ast);
+            if !covered.contains(&tag) {
+                covered.push(tag);
+            }
+            let code = ast
+                .generate_code(&captured_vars, "", &logger)
+                .unwrap_or_else(|e| panic!("{tag}: generate_code returned Err: {e}"));
+
+            // The emission is only ever spliced in as an expression, so that is
+            // exactly what it must parse as.
+            if let Err(err) = syn::parse_str::<syn::Expr>(&code) {
+                panic!(
+                    "{tag}: generate_code emitted code that is NOT valid Rust ({err}).\n\
+                     Emitted:\n{code}"
+                );
+            }
+        }
+
+        // Every variant `variant_tag` can name must have a sample. `variant_tag`'s
+        // match is wildcard-free, so a NEW variant breaks compilation first; this
+        // assertion catches the other direction — a variant that exists but was
+        // never given a sample here.
+        let all_tags = [
+            "PositionalRef",
+            "StringLiteral",
+            "NumberLiteral",
+            "BooleanLiteral",
+            "NullLiteral",
+            "Identifier",
+            "Object",
+            "Array",
+            "Spread",
+            "FlattenSpread",
+            "PropertyAccess",
+            "ArrayAccess",
+            "QuantifiedExtraction",
+            "Passthrough",
+            "MatchedText",
+        ];
+        for tag in all_tags {
+            assert!(
+                covered.contains(&tag),
+                "no generate_code sample covers variant {tag} — the syntax-validity \
+                 lock would silently skip it"
+            );
+        }
     }
 
     #[test]

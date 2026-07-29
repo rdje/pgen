@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DOCTRINE-GAP-OWNERSHIP-0003 — leaf DOCTRINE-GAP-OWNERSHIP.3a: a codegen arm emitted syntactically invalid Rust
+
+CODE CHANGE (`rust/src/ast_pipeline/unified_return_ast.rs`) — director-ordered on the finding routed
+in from `DONE-BAR.5c`. All 11 generated parsers verified byte-identical BY MEASUREMENT (see below).
+
+- FIX: `unified_return_ast.rs:1883` gains the missing `)`. The `UnifiedReturnAST::ArrayAccess` arm
+  emitted `ParseContent::Terminal("<array_access>"` — an UNCLOSED call — while its siblings `:1872`
+  (`<property_access>`) and `:1903` (`<last_extraction>`) were balanced. That path returned `Ok(...)`
+  carrying source that cannot compile, with zero diagnostics.
+- WHY NOTHING CAUGHT IT: the arm builds Rust with `format!`, so the emission is DATA — `cargo build`
+  checks the call, never its content — and the path has ZERO production callers repo-wide
+  (4 recursive self-calls + 2 `#[cfg(test)]` calls), with those two tests covering only
+  `PositionalRef` and `StringLiteral`. A string-emitting dead path with no test is a blind spot no
+  compiler can cover.
+- REGRESSION LOCK (the larger deliverable): new
+  `unified_return_ast_generate_code_emits_syntactically_valid_rust` parses every arm's emitted code
+  as a real `syn::Expr`, covering all 15 `UnifiedReturnAST` variants + all 3 `ExtractionTarget`s.
+  `variant_tag`'s wildcard-free `match` makes a future variant a COMPILE ERROR until a sample is
+  added, so coverage cannot silently lapse.
+- BEFORE -> AFTER replayed, not described: with the defect restored the test FAILS naming the arm
+  ("ArrayAccess: generate_code emitted code that is NOT valid Rust (cannot parse string into token
+  stream)") and prints the unclosed emission; with the fix it passes.
+- Verified: lib suite 986 passed / 0 failed / 21 ignored; clippy exit 0 with no warning on the added
+  code; ALL 14 doctrines PASS.
+- ARTIFACT NEUTRALITY MEASURED (this edits `rust/src/*`, so "byte-identical by construction" is NOT
+  available): both sides regenerated (246 s each, fix stashed out for the second) — all 11 `*.rs`
+  parsers BYTE-IDENTICAL; the 9 differing `*.json` differ in exactly one leaf field each,
+  `.metadata.generated_at`, across 49,207 compared leaves.
+- ⚠️ INCIDENTAL: `generated/*.json` embeds a wall-clock `metadata.generated_at`, so it is NOT
+  byte-reproducible and any sha-over-`generated/` check reports a spurious difference every run —
+  and two regenerations issued back-to-back land in the same second, so the obvious determinism
+  probe HIDES it. No gate hashes those JSONs today (verified), so nothing is currently wrong; noted
+  in the leaf so a future gate is not flaky from its first run.
+- ⛔ SCOPE: the emitted-code half ONLY. All five paths still return `Ok(...)` with a placeholder and
+  zero diagnostics — `DOCTRINE-GAP-OWNERSHIP.3` stays OPEN and its design call (refuse at
+  grammar-load vs implement the construct) is deliberately not prejudged by a one-character fix.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0014 — leaf DONE-BAR.5c: the gate for the defect every "did it parse?" check is blind to
 
 New gate + helper + contract + Makefile edge — no `grammars/*.ebnf`, no `rust/src/*`, no

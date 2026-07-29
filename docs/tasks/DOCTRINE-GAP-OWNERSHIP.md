@@ -293,7 +293,7 @@ actionable count is plausibly 10–25, not 140. ⛔ **Do not open 140 leaves.**
 |---|---|---|
 | 1 | `rust/src/ast_pipeline/return_annotation_handler.rs:370` | `/* TODO: Implement spread for: … */` |
 | 2 | `rust/src/ast_pipeline/unified_return_ast.rs:1872` | `ParseContent::Terminal("<property_access>")` |
-| 3 | `rust/src/ast_pipeline/unified_return_ast.rs:1883` | `ParseContent::Terminal("<array_access>"` — ⛔ **UNCLOSED, see the routed finding below** |
+| 3 | `rust/src/ast_pipeline/unified_return_ast.rs:1883` | `ParseContent::Terminal("<array_access>")` — ✅ the missing `)` FIXED by `.3a`; the silent-`Ok` half remains `.3`'s |
 | 4 | `rust/src/ast_pipeline/unified_return_ast.rs:1903` | `ParseContent::Terminal("<last_extraction>")` (`ExtractionTarget::Last`) |
 | 5 | `rust/src/ast_pipeline/unified_semantic_ast.rs:301` | transform expressions parsed as RAW STRINGS via `trimmed.contains("::parse::<")` — function calls / type parameters unmodelled |
 
@@ -328,6 +328,78 @@ actionable count is plausibly 10–25, not 140. ⛔ **Do not open 140 leaves.**
   belongs here so whoever fixes `.3` does not "fix" a placeholder and leave a syntax error behind.
   ⚠️ **`.3`'s bound is unchanged and still correct** (no shipped parser is affected); what changed is
   what the fix must produce.
+  ✅ **FIXED 2026-07-29 by `.3a` on the director's order** (`PGEN-DOCTRINE-GAP-OWNERSHIP-0003`) — the
+  emitted-code half only. ⛔ **`.3` STAYS OPEN**: all five paths still return `Ok(...)` with a
+  placeholder and zero diagnostics, which is the silent-success defect this tree owns. Balancing a
+  paren made the emission *compile*; it did not make it *honest*.
+##### `.3a` — the `<array_access>` arm emits SYNTACTICALLY INVALID Rust (`done`, 2026-07-29 session #225, `PGEN-DOCTRINE-GAP-OWNERSHIP-0003`)
+
+- **Director-ordered** (verbatim: *"You will fix that right"*) on the finding routed in from `DONE-BAR.5c`.
+- **Scope:** the emitted-code defect ONLY. `.3`'s broader question — whether these five paths should
+  REFUSE at grammar-load instead of returning `Ok` with a placeholder — stays OPEN and unprejudiced.
+- **FIX:** `unified_return_ast.rs:1883` gains the missing `)`. Its siblings `:1872`
+  (`<property_access>`) and `:1903` (`<last_extraction>`) were already balanced; this arm alone
+  emitted `ParseContent::Terminal("<array_access>"`, an unclosed call.
+- ⭐ **WHY IT SURVIVED — measured, and it is the reusable lesson:** `generate_code` has **ZERO
+  production callers repo-wide** (4 recursive self-calls + 2 `#[cfg(test)]` calls, `grep -rn` over
+  every crate), and the two tests exercise only `PositionalRef` and `StringLiteral` — **never
+  `ArrayAccess`**. ⇒ *a dead path with no test is a place where the compiler cannot help you*: the
+  emitted string is data, so no amount of `cargo build` on PGEN itself can see that its CONTENT is
+  not valid Rust.
+- ⭐⭐ **THE REGRESSION TEST IS THE REAL DELIVERABLE, and it is stronger than the fix.** New
+  `unified_return_ast_generate_code_emits_syntactically_valid_rust` parses **every** arm's emitted
+  code with `syn::parse_str::<syn::Expr>` (already a dependency). It is **DERIVED, not a hand-list**:
+  it walks a table of every `UnifiedReturnAST` variant, so a variant added tomorrow that emits
+  malformed code fails without anyone remembering to extend the test — the `GATE-REACHABILITY`
+  "derive the roster" discipline applied to a unit test.
+- ✅ **NO ARTIFACT MOVEMENT BY CONSTRUCTION AND BY MEASUREMENT:** the path is dead in production, so
+  all 11 generated parsers must be byte-identical — asserted by sha256 over `generated/`, not assumed.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the emitted string was measured, not read: a parens census over the
+  three sibling arms showed `:1872` and `:1903` balanced and `:1883` carrying `Terminal(` with **no**
+  escaped closing `")`. Confirmed end-to-end by the new test at the pre-fix revision, which prints the
+  emission verbatim: `ParseContent::Terminal("<array_access>"`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — CODEGEN-EMISSION family. **WHERE:**
+  `rust/src/ast_pipeline/unified_return_ast.rs:1883`, the `UnifiedReturnAST::ArrayAccess` arm of
+  `generate_code`. **WHY IT EXISTED AND WHY NOTHING CAUGHT IT:** the arm builds Rust source as a
+  `format!` **string**, so the emission is *data* — `cargo build` type-checks the `format!` call, never
+  its content; and the path is unreachable in production (`grep -rn "generate_code" --include=*.rs`
+  over every crate → **4 recursive self-calls + 2 `#[cfg(test)]` calls, ZERO production callers**),
+  with those two tests covering only `PositionalRef` and `StringLiteral`. ⇒ **a string-emitting dead
+  path with no test is a blind spot no compiler can cover.**
+- [x] **FIX** — one character: the missing `)`. ⛔ Deliberately NOT widened to make the arm refuse
+  instead of returning `Ok(placeholder)` — that is the silent-success half and it stays `.3`'s, so
+  this leaf cannot prejudge it.
+- [x] **ADDRESSED (verified)** — measured **before → after** on the same test, not described:
+  **BEFORE** (defect restored in place) `unified_return_ast_generate_code_emits_syntactically_valid_rust`
+  **FAILS**, naming the arm and printing the invalid emission —
+  *"ArrayAccess: generate_code emitted code that is NOT valid Rust (cannot parse string into token
+  stream)"*; **AFTER** it passes. The test parses each arm's output as a real `syn::Expr` and covers
+  **all 15 variants** (+ all 3 `ExtractionTarget`s); `variant_tag`'s wildcard-free `match` makes a
+  future variant a **compile error** until a sample is added, so coverage cannot silently lapse.
+- [x] **NO REGRESSION** — `cargo test --lib --features generated_parsers` → **986 passed / 0 failed /
+  21 ignored**; `cargo clippy --lib --all-targets` exit **0**, no warning on the added code.
+  ⭐ **ARTIFACT NEUTRALITY MEASURED, NOT ASSERTED** — this leaf edits `rust/src/*`, so the usual
+  *"byte-identical BY CONSTRUCTION"* shortcut is **NOT available**. Both sides were regenerated
+  (`make -C rust regenerate_generated_parsers`, 246 s each, the fix `git stash`ed out for the second)
+  and compared per artifact: **all 11 `*.rs` parsers BYTE-IDENTICAL**; the 9 differing `*.json` differ
+  in **exactly one leaf field each — `.metadata.generated_at`** — across **49,207** compared leaves
+  (regex 7,065 / systemverilog 31,670 / vhdl 3,395 / …), i.e. the wall-clock stamp and nothing else.
+- ⚠️ **INCIDENTAL FINDING, and it defeated this leaf's own first instrument:** the raw-AST JSON
+  artifacts embed `metadata.generated_at`, so **`generated/*.json` is NOT byte-reproducible across
+  runs** and any `sha256`-over-`generated/` comparison reports a difference for every regeneration
+  regardless of whether anything changed. My baseline hash did exactly that and briefly looked like a
+  real artifact movement. ⭐ Worse, the obvious sanity check *hides* it: two regenerations issued
+  back-to-back land in the SAME second and compare byte-identical, which reads as proof of
+  determinism. ⇒ **an artifact-identity check over `generated/` must exclude that field (or compare
+  `*.rs` only), and a determinism probe must not be run twice within its own timestamp granularity.**
+  Routed as a note here rather than a new tree: no gate currently hashes `generated/*.json`
+  (`grep -rn` over `rust/scripts/`, `scripts/` → the identity checks that exist read `*.rs` or use the
+  cfg census), so nothing is measurably wrong today — but a future gate that hashes the JSON would be
+  flaky from its first run.
+
 - **Companion, already dispositioned as `BOUNDARY`**: `docs/return_annotation_parser_book/src/operators.md:116`
   (*"Known limitations of spread forms"*) is the honest USER-FACING half of the same gap. The book
   is not wrong; the codegen is silent.
