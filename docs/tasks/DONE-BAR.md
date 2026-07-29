@@ -8,7 +8,7 @@
 - Created: `2026-07-29`
 - Owner: repo-local workflow
 - Director directive: [[feedback_done_bar_is_first_tier_only]]
-- Frontier: **`.2b`** (move the rows — the gates now compute the truth the tracker must state) — `.2a` DONE 2026-07-29 (`PGEN-DONE-BAR-0010`); `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`); `.2` SPLIT into `.2a` → `.2b` (`PGEN-DONE-BAR-0005`)
+- Frontier: **`.5`** (the consumer-facing disclosure gates — the PREREQUISITE for the `Provisional` rows the tracker now carries) — `.2b` DONE 2026-07-29 (`PGEN-DONE-BAR-0011`); `.2a` DONE 2026-07-29 (`PGEN-DONE-BAR-0010`); `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`); `.2` SPLIT into `.2a` → `.2b` (`PGEN-DONE-BAR-0005`); `.3a` (ANVIL) remains `in progress`
 
 ## Goal
 
@@ -524,7 +524,80 @@ table rendered three blank columns, not because the logic was re-read. ⇒ the p
   `DEVELOPMENT_NOTES.md`, `MEMORY.md`, this tree. No release / schema / ledger / contract movement:
   no parser behavior changed.
 
-#### `.2b` — move the rows (`todo`, blocked on `.2a`)
+#### `.2b` — move the rows (`done`, 2026-07-29 session #224, `PGEN-DONE-BAR-0011`)
+
+- **Status: `done`.** All five contested rows moved, and the instruments agree with every one of
+  them — the order `.2a` established (*the gate states the truth, then the tracker agrees*) held:
+
+  | row | was | now | agreed by |
+  |---|---|---|---|
+  | `vhdl` | `Done` | **`Provisional (corpus pending)`** | `vhdl_parser_family_status_gate` ✅ aligned (replay green) |
+  | `systemverilog_preprocessor` | `Done` | **`Provisional (corpus pending)`** | `sv_parser_family_status_gate` ✅ aligned (replay green) |
+  | `regex` | `Done` | **`In Progress`** | `regex_parser_family_status_gate` ✅ aligned (replay green) — BELOW `Provisional` because legs 1-2 are unmet (`final_targets=31`; debt owned by `REGEX-PCRE2-FIDELITY.ROUTED-IN-2`) |
+  | `return_annotation` | `Done` | **`Mostly Done`** | no instrument computes it (that IS its leg-2 failure) — see the adjudication below |
+  | `rtl_frontend` | `Mostly Done` (was `Done`) | **`Mostly Done`** | no instrument computes it; qualifier WITHHELD as owed (`.3`), per the tree's own no-defaulting rule |
+
+- ⭐⭐ **ADJUDICATION RECORDED — the `.2b` charter table's `Provisional (ceiling)` column entry for
+  `return_annotation` is NOT taken, and the reason is the tracker's own vocabulary**: the Status
+  Rules define `Provisional` as *legs 1 and 2 MET*; the audit scored return_annotation's leg 2
+  **UNMET** (nothing computes its status; its README-named formal gate is an ORPHAN). Writing
+  `Provisional (ceiling)` — *a FINISHED row* — over a red leg 2 would be taking exactly "the
+  comfortable label that closes the row". ⇒ `Mostly Done`, with the row stating that once leg 2
+  closes (the gate wired into an invoked lane + a computed status), `Provisional (ceiling)` is its
+  finished state. The charter table's column header says "qualifier the audit derives" — ownership
+  taxonomy, which stands — not "the status `.2b` writes".
+- **Consumer surfaces corrected forward in lockstep** (a stale claim is the exact disclosure rot
+  `.5` exists to gate): `README.md` (return_annotation "formal `Done` gate" prose + the
+  rtl_frontend "LIVE row is `Done`" bullet), `docs/book/src/parser-families.md` (regex "still
+  computes `Done`" bullet + the rtl_frontend closure paragraph).
+- **Instrument updates owned by this leaf, each adjudicated not papered over:**
+  - `scripts/audit_done_bar.sh` **C8** pinned a ground truth this demotion legitimately moved ("at
+    least one `Done` row"). Replaced by C8′ — *every register family derives from the tracker* (the
+    converse of the existing roster⊆register refusal; catches a status-vocabulary change silently
+    dropping rows) — and the zero-`Done` case is now stated EXPLICITLY in the verdict ("VACUOUSLY
+    green … NOT evidence of parser quality"), never a silent pass.
+  - `.1` probe arms: CTRL-1 re-pinned to the vacuous zero-`Done` statement (exit 0); **new CTRL-1b**
+    keeps the old arm's essence — a re-promoted unproven `Done` row still FAILS (`1 of 1`); CTRL-2/3/4
+    exit expectations updated (the substance they pin is unchanged). **12/12 pass.**
+  - `run_demotion_impact_probe.sh` gains a HISTORICAL guard: with the `| Done |` rows gone its
+    mutation targets no longer exist, so it states that the demotion landed and exits 0 instead of
+    MISCALIBRATING for a reason that is the fix working.
+  - `run_family_status_bar_probes.sh` replay arms re-pinned to the ALIGNED steady state (**24/24**);
+    the `.2a`-era transitional capture is preserved at commit `09634838`.
+  - `sv_parser_family_status_gate`'s leg-3 unmet arm now keeps `details[].detail == unmet[]` —
+    its contract sibling asserts that element-wise parity, which regex/vhdl's contracts do not
+    (caught by running all three status-contract gates against the aligned replay summaries).
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — with `.2a` landed and the tracker unmoved, the replays showed the
+  measured misalignment: `computed 'Provisional (corpus pending)' but tracker says 'Done'` (vhdl),
+  the sv sibling for svpp, and regex's standing `computed 'In Progress' but tracker says 'Done'`
+  (`.2a`-era capture, commit `09634838`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family: the five tracker rows asserted statuses
+  their own instruments compute differently (`DONE-BAR.1` audit, exit 1, all five rows) — inputs
+  all `git ls-files`-tracked; `bash -n` clean across every edited script; the sv contract-gate
+  failure was traced with `bash -x` to its `details[].detail == unmet[]` jq assertion, the one
+  consumer invariant the three contracts do not share.
+- [x] **FIX** — declarative-tier: five tracker-row moves with dated demotion statements, two
+  consumer-doc corrections, and the instrument adjudications above. No grammar, no `rust/src/*`,
+  no `generated/*`.
+- [x] **ADDRESSED (verified)** — before: 5 rows contested by their instruments (audit exit 1,
+  5/5). After, measured by re-runnable oracles: `bash docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh`
+  → **24/24** with all three status gates ✅ GREEN AND ALIGNED on the moved rows;
+  `bash scripts/audit_done_bar.sh` → exit **0**, `0 \`Done\` rows are claimed — nothing to judge,
+  VACUOUSLY green` (stated, not silent); all three `*_parser_family_status_contract_gate.sh`
+  replayed against the aligned summaries → ✅ pass.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒ all 11
+  generated parsers byte-identical BY CONSTRUCTION; `.1` probe arms → **12/12** (incl. the new
+  CTRL-1b proving an unproven `Done` claim still fails); demotion probe → HISTORICAL exit 0;
+  `bash scripts/check_doctrines.sh` → ALL 13 PASS; `mdbook_docs_gate` → green.
+- [x] **LOCKSTEP** — tracker rows + tracker note (the snapshot CHANGED — five rows moved),
+  `README.md`, `docs/book/src/parser-families.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+  `MEMORY.md`, this tree, `docs/TASK_TREE.md`. No release / schema / ledger / contract movement:
+  no parser behavior changed.
+
+##### Original charter (kept for the record)
 
 - Only after `.2a` can a demotion be *recorded* rather than *asserted against the instruments*.
 - ⭐⭐ **THE AUDIT CHANGED `.2`'s SHAPE. It was written expecting to move `regex`; it must move all
@@ -778,29 +851,30 @@ told apart from invalid input**, and all three would have shipped as defects.
 
 ## Current Frontier
 
-**`.2b`** — move the rows. ✅ **UNBLOCKED by `.2a` (`PGEN-DONE-BAR-0010`)**: the three family-status
-gates now COMPUTE the qualified `Provisional` and carry the leg-3 criterion, and the replays against
-the run-3 artifacts already state the statuses the tracker must adopt — `vhdl` and
-`systemverilog_preprocessor` ⇒ `Provisional (corpus pending)`, `regex` ⇒ `In Progress` (legs 1-2
-unmet, so it sits BELOW `Provisional` until its 31-target debt closes;
-`REGEX-PCRE2-FIDELITY.ROUTED-IN-2` owns that), `systemverilog` unchanged `Mostly Done`.
-⚠️ The status gates (and their contract gates) are deliberately RED against today's tracker until
-`.2b` lands — the gate states the truth, then the tracker agrees. ⛔ `rtl_frontend` /
-`rtl_const_expr` qualifiers remain WITHHELD pending `.3` (their rows are demoted off `Done` with the
-qualifier named as owed). ⭐ Near-term GOAL: **every family to at least `Provisional`**. The tree's
-PURPOSE is `.4` (the flow guaranteeing the bar); `.5`/`.6` (disclosure integrity) are prerequisites
-for shipping `Provisional` honestly.
+**`.5`** — the consumer-facing disclosure gates. ✅ `.2a`+`.2b` are DONE: the tracker now carries
+two **`Provisional (corpus pending)`** rows (`vhdl`, `systemverilog_preprocessor`) that ship under
+the director's `Provisional`-ships model — which is exactly why `.5` is the frontier: *if customers
+decide from published state, the published state must be true*, and it measurably is not
+(`PGEN_USER_GUIDE.md` publishes regex `1.1.29`/`1.1.31` against the contract's current identity —
+~75 releases stale — with NO gate reading either document, plus the 6 silent-success sentinel
+sites and the unguarded 0-open-entries ledger). `.3a` (ANVIL for `rtl_frontend`) continues in
+parallel; `.4` (the enforcement ratchet) stays blocked on `CI-PARITY-GATE-ROT.7` + the hosted
+auto-trigger call. ⭐ Near-term GOAL unchanged: **every family to at least `Provisional`** —
+`regex` needs its leg-1 debt re-closed (`REGEX-PCRE2-FIDELITY.ROUTED-IN-2`), `return_annotation` /
+`rtl_frontend` need a computed status (the missing-status-gate lever) before they can hold
+`Provisional` honestly.
 
-⭐ **Sequencing, measured and unchanged:** `.2` should land **before** `CI-PARITY-GATE-ROT.7`'s next
-`sota_exit_gate` acceptance run, or that run burns ~5 h to re-confirm a known, routed, unfixed
-blocker (`regex` tracker alignment).
+⭐ **Sequencing note, now discharged:** `.2` landed before `CI-PARITY-GATE-ROT.7`'s next
+`sota_exit_gate` acceptance run — that run will no longer burn ~5 h re-confirming the known regex
+tracker-alignment blocker, because the tracker now states what the gate computes.
 
 ## Blockers
 
 ⛔ **`.4` — the guarantee itself — is BLOCKED on `CI-PARITY-GATE-ROT.7` (aggregate green) and on the
 escalated director call about resuming hosted auto-triggers.**
-⛔ **`.2` is blocked ONLY for `rtl_frontend`'s and `rtl_const_expr`'s qualifier**, which `.3` owes;
-the demotions themselves are not blocked.
+✅ `.2` is fully discharged (`.2a` `PGEN-DONE-BAR-0010`, `.2b` `PGEN-DONE-BAR-0011`); the
+`rtl_frontend` / `rtl_const_expr` **qualifier ruling** remains owed by `.3` (their rows hold
+`Mostly Done` with the qualifier withheld, per the no-defaulting rule).
 
 ## Verification Log
 
@@ -843,6 +917,16 @@ closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
 
 ## Commit Log
 
+- `PGEN-DONE-BAR-0011` (2026-07-29, session #224, leaf `.2b` done) — the five contested rows MOVED,
+  and every instrument agrees: `vhdl` + `systemverilog_preprocessor` → `Provisional (corpus
+  pending)` (their status gates replay GREEN AND ALIGNED), `regex` → `In Progress` (below
+  `Provisional`: legs 1-2 unmet), `return_annotation` → `Mostly Done` (NOT `Provisional (ceiling)`
+  — the Status Rules define `Provisional` as legs 1-2 MET and its leg 2 is red; the ceiling is its
+  finished state once a computed, invoked status lane exists), `rtl_frontend` → `Mostly Done`
+  (qualifier withheld as owed, `.3`). Audit C8 adjudicated (ground truth legitimately moved) →
+  C8′ register⊆roster + an EXPLICIT vacuous zero-`Done` verdict; probes 12/12 (new CTRL-1b: a
+  re-promoted unproven `Done` still fails) + 24/24; all three status-contract gates green on the
+  new schema; README + book corrected forward. Frontier → `.5`.
 - `PGEN-DONE-BAR-0010` (2026-07-29, session #224, leaf `.2a` done) — the three family-status gates
   now compute the NEW bar through one shared helper (`rust/scripts/lib/parser_family_status_bar.sh`):
   qualified `Provisional` in the computable vocabulary (qualifier derived from register language

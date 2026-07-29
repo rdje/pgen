@@ -601,10 +601,12 @@ if [[ "$sv_formal_exhaustive_closure_surface_green" != true ]]; then
     sv_unmet_details+=("$sv_formal_exhaustive_closure_primary_unmet_detail_json")
 fi
 if [[ "$sv_external_corpus_conformance_pass" != true ]]; then
+    # This gate's contract sibling asserts details[].detail == unmet[] element-wise, so the detail
+    # here is the compact unmet string; the full leg-3 explanation is the done_bar_leg3_detail metric.
     sv_unmet+=("external_corpus_conformance_pass=false (leg3_surface=${sv_done_bar_leg3_surface_gate})")
     sv_unmet_details+=("$(jq -cn \
         --arg observed "leg3_surface=${sv_done_bar_leg3_surface_gate}" \
-        --arg detail "$sv_done_bar_leg3_detail" \
+        --arg detail "external_corpus_conformance_pass=false (leg3_surface=${sv_done_bar_leg3_surface_gate})" \
         '{criterion:"external_corpus_conformance_pass",evidence_key:"done_bar_leg3_surface",observed:$observed,expected:"an external-corpus conformance surface asserted as a pass, external-backed, and actually invoked",detail:$detail}')")
 fi
 
@@ -753,10 +755,11 @@ if [[ "$svpp_formal_exhaustive_closure_surface_green" != true ]]; then
     svpp_unmet_details+=("{\"criterion\":\"formal_exhaustive_closure_surface_green\",\"evidence_key\":\"${svpp_formal_exhaustive_closure_required_surface_key}\",\"observed\":\"false\",\"expected\":\"true\",\"detail\":\"${svpp_formal_exhaustive_closure_primary_unmet_closure_criterion}\"}")
 fi
 if [[ "$svpp_external_corpus_conformance_pass" != true ]]; then
+    # detail == the unmet string, per this gate's contract sibling (see the sv arm above).
     svpp_unmet+=("external_corpus_conformance_pass=false (leg3_surface=${svpp_done_bar_leg3_surface_gate})")
     svpp_unmet_details+=("$(jq -cn \
         --arg observed "leg3_surface=${svpp_done_bar_leg3_surface_gate}" \
-        --arg detail "$svpp_done_bar_leg3_detail" \
+        --arg detail "external_corpus_conformance_pass=false (leg3_surface=${svpp_done_bar_leg3_surface_gate})" \
         '{criterion:"external_corpus_conformance_pass",evidence_key:"done_bar_leg3_surface",observed:$observed,expected:"an external-corpus conformance surface asserted as a pass, external-backed, and actually invoked",detail:$detail}')")
 fi
 

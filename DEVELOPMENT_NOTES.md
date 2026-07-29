@@ -1,5 +1,46 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0011 — a demotion is only recorded when zero instruments disagree with it
+
+`DONE-BAR.2b`. Tracker + docs + instrument adjudications — no `grammars/*.ebnf`, no `rust/src/*`,
+no `generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+### The adjudication worth recording
+
+The `.2b` charter table derived `Provisional (ceiling)` for `return_annotation` — and taking it
+would have been wrong. The Status Rules define `Provisional` as *legs 1 and 2 MET*; the audit
+scored return_annotation's leg 2 UNMET (nothing computes its status, its named formal gate is an
+orphan). `Provisional (ceiling)` is "a FINISHED row" — writing it over a red leg 2 is precisely
+"the comfortable label that closes the row" the tree's own rule forbids. The charter column header
+says "qualifier the audit derives" (ownership taxonomy — which stands), not "the status `.2b`
+writes". ⇒ `Mostly Done`, with the finished state named for when leg 2 closes. Same logic holds
+`rtl_frontend` at `Mostly Done` with the qualifier withheld.
+
+### Ground truths that legitimately moved, and how each was handled
+
+- **Audit C8** pinned "at least one `Done` row" — true at `.1`, false after an honest demotion.
+  Retired for C8' (register ⊆ roster: catches a status-vocabulary change silently dropping rows —
+  the converse of the existing roster ⊆ register refusal), and the zero-`Done` case is now an
+  EXPLICIT verdict ("VACUOUSLY green ... NOT evidence of parser quality"), because a green exit
+  with nothing judged is the vacuous-green class this repo fights.
+- **CTRL-1** pinned "5 of 5 fail" — re-pinned to the vacuous verdict, and the old arm's essence is
+  preserved as CTRL-1b: a tracker variant re-promoting `vhdl` to `Done` must FAIL (`1 of 1`),
+  proving the audit still bites on an unproven claim.
+- **The demotion probe** would MISCALIBRATE (its `| Done |` mutation targets are gone) — a failure
+  that IS the fix landing. It now detects the post-`.2b` tracker, states the history, exits 0.
+- **The sv status-contract gate** failed silently (`jq -e` false under `set -e`, traced with
+  `bash -x`): it asserts `details[].detail == unmet[]` element-wise — an invariant the regex/vhdl
+  contracts do not carry. The sv gate's leg-3 arm now keeps that parity (compact string in
+  `detail`; the long explanation lives in the `done_bar_leg3_detail` metric).
+
+### Verification
+
+- `run_family_status_bar_probes.sh` 24/24 — all three status gates GREEN AND ALIGNED on the moved
+  rows (replayed against the aggregate run-3 artifacts).
+- All three `*_parser_family_status_contract_gate.sh` pass against the aligned summaries.
+- `bash scripts/audit_done_bar.sh` exit 0 with the explicit vacuous zero-`Done` verdict;
+  `.1` arms 12/12; demotion probe HISTORICAL exit 0; `bash -n` clean; mdbook gate green.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0010 — teach the instruments the bar BEFORE stating the truth in the tracker
 
 `DONE-BAR.2a`. Shell-only change (three status gates + one new shared lib + one register field) —

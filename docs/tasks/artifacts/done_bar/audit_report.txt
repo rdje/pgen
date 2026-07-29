@@ -8,7 +8,7 @@ DONE-BAR.5 (consumer-facing disclosure gates) is OPEN ⇒ the highest attainable
   `Provisional`; no row may be promoted to `Done` on legs 1-3 alone.
 
 ------------------------------------------------------------------------------
-regex   tracker: Done
+regex   tracker: In Progress   (not a `Done` claim — reported for context)
 ------------------------------------------------------------------------------
   leg 1 stimuli-generator proof      UNMET
       regex_parser_family_status_gate RAN AND FAILED (log rust/target/sota_exit_gate/logs/regex_parser_family_status_gate.log); no summary was written
@@ -34,7 +34,7 @@ regex   tracker: Done
   ⇒ DOES NOT MEET BAR (legs 1, 2, 3 unmet)
 
 ------------------------------------------------------------------------------
-return_annotation   tracker: Done
+return_annotation   tracker: Mostly Done   (not a `Done` claim — reported for context)
 ------------------------------------------------------------------------------
   leg 1 stimuli-generator proof      UNPROVEN
       no *_parser_family_status_gate computes this family's closure at all
@@ -49,7 +49,7 @@ return_annotation   tracker: Done
   ⇒ DOES NOT MEET BAR (legs 1, 2, 3 unmet)
 
 ------------------------------------------------------------------------------
-rtl_frontend   tracker: Done
+rtl_const_expr   tracker: Mostly Done   (not a `Done` claim — reported for context)
 ------------------------------------------------------------------------------
   leg 1 stimuli-generator proof      UNPROVEN
       no *_parser_family_status_gate computes this family's closure at all
@@ -62,42 +62,7 @@ rtl_frontend   tracker: Done
   ⇒ DOES NOT MEET BAR (legs 1, 2, 3 unmet)
 
 ------------------------------------------------------------------------------
-systemverilog_preprocessor   tracker: Done
-------------------------------------------------------------------------------
-  leg 1 stimuli-generator proof      UNPROVEN
-      artifact rust/target/sota_exit_gate/work/sv_parser_family_status_gate/summary.txt (mtime 1785311703, ⚠️ STALE — older than its own inputs)
-      a verdict resting on an artifact older than the inputs it judged is not proof
-  leg 2 gates green + invoked        UNMET
-      9 covering gate targets; 7 run, 2 run by nothing
-        ⛔ invoked by nothing: sv_preprocessor_curated_differential_gate
-        ⛔ invoked by nothing: sv_preprocessor_template_differential_gate
-        sv_parser_family_status_gate computes systemverilog_preprocessor_status = Done (tracker_alignment_ok=true)
-        ⚠️ that answer PREDATES its own inputs ⇒ green-NOW is UNPROVEN, not MET
-        ⚠️ every covering lane is OPERATOR-tier: it runs only when a human asks
-  leg 3 external corpus passing      UNMET
-      NO external corpus is wired, though the language is standardized (IEEE 1800 SystemVerilog LRM, clause 22 (compiler directives))
-      ⇒ qualifier `Provisional (corpus pending)` — absence is an UNMET leg, not an inapplicable one
-  ⇒ DOES NOT MEET BAR (legs 1, 2, 3 unmet)
-
-------------------------------------------------------------------------------
-vhdl   tracker: Done
-------------------------------------------------------------------------------
-  leg 1 stimuli-generator proof      UNPROVEN
-      artifact rust/target/sota_exit_gate/work/vhdl_parser_family_status_gate/summary.txt (mtime 1785325614, ⚠️ STALE — older than its own inputs)
-      a verdict resting on an artifact older than the inputs it judged is not proof
-  leg 2 gates green + invoked        UNMET
-      9 covering gate targets; 8 run, 1 run by nothing
-        ⛔ invoked by nothing: vhdl_combined_telemetry_contract_gate
-        vhdl_parser_family_status_gate computes vhdl_status = Done (tracker_alignment_ok=true)
-        ⚠️ that answer PREDATES its own inputs ⇒ green-NOW is UNPROVEN, not MET
-        ⚠️ every covering lane is OPERATOR-tier: it runs only when a human asks
-  leg 3 external corpus passing      UNMET
-        vhdl_external_corpus_triage_gate: kind=TRIAGE, external=yes (reads stimuli/vhdl/subs via vhdl_external_corpus_triage_v0.json), run by vhdl_external_corpus_triage_gate <- vhdl_formal_exhaustive_closure_gate <- vhdl_parser_family_status_gate
-          ⛔ a TRIAGE gate is not a conformance gate
-  ⇒ DOES NOT MEET BAR (legs 1, 2, 3 unmet)
-
-------------------------------------------------------------------------------
-rtl_const_expr   tracker: Mostly Done   (not a `Done` claim — reported for context)
+rtl_frontend   tracker: Mostly Done   (not a `Done` claim — reported for context)
 ------------------------------------------------------------------------------
   leg 1 stimuli-generator proof      UNPROVEN
       no *_parser_family_status_gate computes this family's closure at all
@@ -126,12 +91,43 @@ systemverilog   tracker: Mostly Done   (not a `Done` claim — reported for cont
           ⛔ a TRIAGE gate is not a conformance gate
   ⇒ DOES NOT MEET BAR (legs 1, 2, 3 unmet)
 
-==============================================================================
-audit-done-bar: 5 of 5 `Done` rows DO NOT meet the bar
-  ⛔ regex: DOES NOT MEET BAR (legs 1, 2, 3 unmet)
-  ⛔ return_annotation: DOES NOT MEET BAR (legs 1, 2, 3 unmet)
-  ⛔ rtl_frontend: DOES NOT MEET BAR (legs 1, 2, 3 unmet)
-  ⛔ systemverilog_preprocessor: DOES NOT MEET BAR (legs 1, 2, 3 unmet)
-  ⛔ vhdl: DOES NOT MEET BAR (legs 1, 2, 3 unmet)
+------------------------------------------------------------------------------
+systemverilog_preprocessor   tracker: Provisional (corpus pending)   (not a `Done` claim — reported for context)
+------------------------------------------------------------------------------
+  leg 1 stimuli-generator proof      UNPROVEN
+      artifact rust/target/sota_exit_gate/work/sv_parser_family_status_gate/summary.txt (mtime 1785311703, ⚠️ STALE — older than its own inputs)
+      a verdict resting on an artifact older than the inputs it judged is not proof
+  leg 2 gates green + invoked        UNMET
+      9 covering gate targets; 7 run, 2 run by nothing
+        ⛔ invoked by nothing: sv_preprocessor_curated_differential_gate
+        ⛔ invoked by nothing: sv_preprocessor_template_differential_gate
+        sv_parser_family_status_gate computes systemverilog_preprocessor_status = Done (tracker_alignment_ok=true)
+        ⚠️ that answer PREDATES its own inputs ⇒ green-NOW is UNPROVEN, not MET
+        ⚠️ every covering lane is OPERATOR-tier: it runs only when a human asks
+  leg 3 external corpus passing      UNMET
+      NO external corpus is wired, though the language is standardized (IEEE 1800 SystemVerilog LRM, clause 22 (compiler directives))
+      ⇒ qualifier `Provisional (corpus pending)` — absence is an UNMET leg, not an inapplicable one
+  ⇒ DOES NOT MEET BAR (legs 1, 2, 3 unmet)
 
-⛔ This audit does NOT demote anything. Demotion is DONE-BAR.2, with this evidence attached.
+------------------------------------------------------------------------------
+vhdl   tracker: Provisional (corpus pending)   (not a `Done` claim — reported for context)
+------------------------------------------------------------------------------
+  leg 1 stimuli-generator proof      UNPROVEN
+      artifact rust/target/sota_exit_gate/work/vhdl_parser_family_status_gate/summary.txt (mtime 1785325614, ⚠️ STALE — older than its own inputs)
+      a verdict resting on an artifact older than the inputs it judged is not proof
+  leg 2 gates green + invoked        UNMET
+      9 covering gate targets; 8 run, 1 run by nothing
+        ⛔ invoked by nothing: vhdl_combined_telemetry_contract_gate
+        vhdl_parser_family_status_gate computes vhdl_status = Done (tracker_alignment_ok=true)
+        ⚠️ that answer PREDATES its own inputs ⇒ green-NOW is UNPROVEN, not MET
+        ⚠️ every covering lane is OPERATOR-tier: it runs only when a human asks
+  leg 3 external corpus passing      UNMET
+        vhdl_external_corpus_triage_gate: kind=TRIAGE, external=yes (reads stimuli/vhdl/subs via vhdl_external_corpus_triage_v0.json), run by vhdl_external_corpus_triage_gate <- vhdl_formal_exhaustive_closure_gate <- vhdl_parser_family_status_gate
+          ⛔ a TRIAGE gate is not a conformance gate
+  ⇒ DOES NOT MEET BAR (legs 1, 2, 3 unmet)
+
+==============================================================================
+audit-done-bar: 0 `Done` rows are claimed — nothing to judge, VACUOUSLY green.
+  This states only that the tracker currently claims no `Done` row; the per-family leg
+  states above remain the substance. A future promotion to `Done` re-enters this
+  audit's scope automatically (the roster is derived, not listed).

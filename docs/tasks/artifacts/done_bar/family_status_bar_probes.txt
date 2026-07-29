@@ -21,16 +21,17 @@ FAMILY-STATUS DONE-BAR PROBES — the .2a helper + the re-taught gates
 
 2. GATE REPLAYS against the aggregate run-3 artifacts (the measured AFTER of .2a)
 
-   ✅ REPLAY regex: exit 1, computed In Progress           rc=1, matched computed\ \'In\ Progress\'\ but\ tracker\ says\ \'Done\'
-   ✅ REPLAY regex: summary.txt EMITTED (no 0-byte)        rc=0, matched regex_status:\ In\ Progress
+   ✅ REPLAY regex: ALIGNED, gate passes                   rc=0, matched ✅\ Regex\ parser-family\ status\ gate\ passed.
+   ✅ REPLAY regex: computed In Progress recorded          rc=0, matched regex_status:\ In\ Progress
    ✅ REPLAY regex: leg-3 criterion recorded               rc=0, matched regex_done_bar_leg3_qualifier:\ \(corpus\ pending\)
-   ✅ REPLAY vhdl: exit 1, computed Provisional            rc=1, matched computed\ \'Provisional\ \(corpus\ pending\)\'\ but\ tracker\ says\ \'Done\'
-   ✅ REPLAY vhdl: summary.txt EMITTED (no 0-byte)         rc=0, matched vhdl_status:\ Provisional\ \(corpus\ pending\)
+   ✅ REPLAY vhdl: ALIGNED on Provisional, gate passes     rc=0, matched ✅\ VHDL\ parser-family\ status\ gate\ passed.
+   ✅ REPLAY vhdl: computed Provisional recorded           rc=0, matched vhdl_status:\ Provisional\ \(corpus\ pending\)
    ✅ REPLAY vhdl: json computed_status states the truth   rc=0, matched Provisional\ \(corpus\ pending\)
-   ✅ REPLAY sv: exit 1, svpp computed Provisional         rc=1, matched computed=\'Provisional\ \(corpus\ pending\)\'
+   ✅ REPLAY vhdl: alignment_ok recorded true              rc=0, matched true
+   ✅ REPLAY sv: ALIGNED on both families, gate passes     rc=0, matched ✅\ SV\ parser-family\ status\ gate\ passed.
    ✅ REPLAY sv: sv family stays Mostly Done, aligned      rc=0, matched systemverilog_status:\ Mostly\ Done
-   ✅ REPLAY sv: summary.txt EMITTED (no 0-byte)           rc=0, matched systemverilog_preprocessor_status:\ Provisional\ \(corpus\ pending\)
+   ✅ REPLAY sv: svpp computed Provisional recorded        rc=0, matched systemverilog_preprocessor_status:\ Provisional\ \(corpus\ pending\)
 
 ==============================================================================
-VERDICT: 23 arm(s) passed, 0 failed
+VERDICT: 24 arm(s) passed, 0 failed
 ==============================================================================

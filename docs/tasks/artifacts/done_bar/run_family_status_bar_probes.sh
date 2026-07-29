@@ -13,12 +13,14 @@
 #
 #   2. GATE REPLAYS — the three live *_parser_family_status_gate.sh scripts replayed against the
 #      aggregate run-3 artifacts (the same artifact set DONE-BAR.1 audited), via the same
-#      EXISTING_*_STATE_DIR hand-off the aggregate itself uses. This is the measured AFTER of the
-#      `.2a` before→after: gates that computed `Done` for vhdl / systemverilog_preprocessor now
-#      compute `Provisional (corpus pending)` and fail alignment against the stale `Done` tracker
-#      rows — WITH a full summary pair emitted before the exit (the 0-byte-summary fix,
-#      CI-PARITY-GATE-ROT.14). The BEFORE is on record in demotion_impact_probe.txt (Provisional in
-#      zero gate scripts; exact-string alignment at regex_parser_family_status_gate.sh:391-399).
+#      EXISTING_*_STATE_DIR hand-off the aggregate itself uses. Post-`.2b` (the rows moved), the
+#      replays assert the ALIGNED steady state: vhdl and systemverilog_preprocessor compute
+#      `Provisional (corpus pending)` and the tracker agrees (exit 0); regex computes `In Progress`
+#      and the tracker agrees; systemverilog stays `Mostly Done`. The `.2a`-era capture
+#      (family_status_bar_probes.txt at `PGEN-DONE-BAR-0010`) preserves the transitional state —
+#      same computed statuses, exit 1 against the then-stale `Done` rows, with the full summary
+#      pair emitted before the exit (the 0-byte-summary fix, CI-PARITY-GATE-ROT.14). The BEFORE of
+#      `.2a` is on record in demotion_impact_probe.txt (Provisional in zero gate scripts).
 #
 #   bash docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh
 set -uo pipefail
@@ -192,30 +194,31 @@ if [[ "$missing" -gt 0 ]]; then
     echo "   ⚠️  SKIPPING the gate replays: $missing run-3 artifact(s) unavailable on this machine."
     echo "      The helper arms above still verify the .2a logic; re-run after an aggregate run."
 else
-    # regex — legacy ladder already computes In Progress (leg-1 debt); the cap does not apply below
-    # Done, so the replay must reproduce run 3's exact alignment failure — now WITH a summary pair.
+    # regex — legacy ladder computes In Progress (leg-1 debt); the cap does not apply below Done.
+    # Post-.2b the tracker row says In Progress too, so the gate ALIGNS and passes.
     rgx_state="$WORK/replay/regex_parser_family_status_gate"
     out="$(PGEN_REGEX_FAMILY_STATUS_STATE_DIR="$rgx_state" \
            PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$SOTA/regex_parser_family_contract_gate" \
            PGEN_REGEX_FAMILY_STATUS_EXISTING_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="$SOTA/regex_parser_family_status_gate/work/regex_formal_exhaustive_closure_gate" \
            bash "$ROOT/rust/scripts/regex_parser_family_status_gate.sh" 2>&1)"; rc=$?
-    arm "REPLAY regex: exit 1, computed In Progress" 1 "computed 'In Progress' but tracker says 'Done'" "$rc" "$out"
-    arm "REPLAY regex: summary.txt EMITTED (no 0-byte)" 0 "regex_status: In Progress" 0 "$(cat "$rgx_state/summary.txt" 2>/dev/null)"
+    arm "REPLAY regex: ALIGNED, gate passes" 0 "✅ Regex parser-family status gate passed." "$rc" "$out"
+    arm "REPLAY regex: computed In Progress recorded" 0 "regex_status: In Progress" 0 "$(cat "$rgx_state/summary.txt" 2>/dev/null)"
     arm "REPLAY regex: leg-3 criterion recorded" 0 "regex_done_bar_leg3_qualifier: (corpus pending)" 0 "$(cat "$rgx_state/summary.txt" 2>/dev/null)"
 
-    # vhdl — THE headline: run 3 computed Done; the re-taught gate computes the qualified
-    # Provisional and states it before failing alignment against the stale tracker row.
+    # vhdl — THE headline row: the gate computes the qualified Provisional and the post-.2b
+    # tracker row agrees, so the gate is GREEN stating the demoted truth.
     vhdl_state="$WORK/replay/vhdl_parser_family_status_gate"
     out="$(PGEN_VHDL_FAMILY_STATUS_STATE_DIR="$vhdl_state" \
            PGEN_VHDL_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$SOTA/vhdl_parser_family_contract_gate" \
            PGEN_VHDL_FAMILY_STATUS_EXISTING_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="$SOTA/vhdl_parser_family_status_gate/work/vhdl_formal_exhaustive_closure_gate" \
            bash "$ROOT/rust/scripts/vhdl_parser_family_status_gate.sh" 2>&1)"; rc=$?
-    arm "REPLAY vhdl: exit 1, computed Provisional" 1 "computed 'Provisional (corpus pending)' but tracker says 'Done'" "$rc" "$out"
-    arm "REPLAY vhdl: summary.txt EMITTED (no 0-byte)" 0 "vhdl_status: Provisional (corpus pending)" 0 "$(cat "$vhdl_state/summary.txt" 2>/dev/null)"
+    arm "REPLAY vhdl: ALIGNED on Provisional, gate passes" 0 "✅ VHDL parser-family status gate passed." "$rc" "$out"
+    arm "REPLAY vhdl: computed Provisional recorded" 0 "vhdl_status: Provisional (corpus pending)" 0 "$(cat "$vhdl_state/summary.txt" 2>/dev/null)"
     arm "REPLAY vhdl: json computed_status states the truth" 0 "Provisional (corpus pending)" 0 "$(jq -r '.families[0].computed_status' "$vhdl_state/summary.json" 2>/dev/null)"
+    arm "REPLAY vhdl: alignment_ok recorded true" 0 "true" 0 "$(jq -r '.families[0].tracker_alignment_ok' "$vhdl_state/summary.json" 2>/dev/null)"
 
-    # sv — two families: systemverilog stays Mostly Done (the cap only affects Done) and aligns;
-    # systemverilog_preprocessor drops Done -> Provisional and fails alignment.
+    # sv — two families: systemverilog stays Mostly Done (the cap only affects Done);
+    # systemverilog_preprocessor computes Provisional and the post-.2b tracker row agrees.
     sv_state="$WORK/replay/sv_parser_family_status_gate"
     out="$(PGEN_SV_FAMILY_STATUS_STATE_DIR="$sv_state" \
            PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="$SOTA/sv_parser_family_status_gate/work/sv_syntax_closure_gate" \
@@ -229,9 +232,9 @@ else
            PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="$SOTA/sv_parser_family_status_gate/work/sv_semantic_scope_contract_gate" \
            PGEN_SV_FAMILY_STATUS_EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="$SOTA/sv_parser_family_status_gate/work/sv_formal_exhaustive_closure_gate" \
            bash "$ROOT/rust/scripts/sv_parser_family_status_gate.sh" 2>&1)"; rc=$?
-    arm "REPLAY sv: exit 1, svpp computed Provisional" 1 "computed='Provisional (corpus pending)'" "$rc" "$out"
+    arm "REPLAY sv: ALIGNED on both families, gate passes" 0 "✅ SV parser-family status gate passed." "$rc" "$out"
     arm "REPLAY sv: sv family stays Mostly Done, aligned" 0 "systemverilog_status: Mostly Done" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
-    arm "REPLAY sv: summary.txt EMITTED (no 0-byte)" 0 "systemverilog_preprocessor_status: Provisional (corpus pending)" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
+    arm "REPLAY sv: svpp computed Provisional recorded" 0 "systemverilog_preprocessor_status: Provisional (corpus pending)" 0 "$(cat "$sv_state/summary.txt" 2>/dev/null)"
 fi
 
 echo

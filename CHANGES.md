@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0011 — leaf DONE-BAR.2b: five rows moved, and every instrument agrees
+
+Tracker + docs + instrument adjudications — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`
+=> all 11 generated parsers byte-identical BY CONSTRUCTION. **The live snapshot CHANGED.**
+
+- Row moves (each with a dated demotion statement naming the unmet leg and what closes it):
+  - `vhdl` and `systemverilog_preprocessor`: `Done` -> **`Provisional (corpus pending)`** — their
+    status gates compute exactly this and replay GREEN AND ALIGNED; the first rows shipped under
+    the `Provisional`-ships model;
+  - `regex`: `Done` -> **`In Progress`** — below `Provisional` because legs 1-2 are unmet
+    (`final_targets=31` against the grown grammar; `REGEX-PCRE2-FIDELITY.ROUTED-IN-2`);
+  - `return_annotation`: `Done` -> **`Mostly Done`** — NOT `Provisional (ceiling)`: the Status
+    Rules define `Provisional` as legs 1-2 MET, and its leg 2 is red (no computed status; its named
+    formal gate is an orphan). The ceiling is its finished state once that closes;
+  - `rtl_frontend`: `Done` -> **`Mostly Done`** — qualifier WITHHELD as owed (`DONE-BAR.3`).
+- Instrument adjudications (each a ground truth that legitimately moved, not papered over):
+  - `scripts/audit_done_bar.sh`: C8 ("at least one Done row") retired -> C8' (register ⊆ roster,
+    catching status-vocabulary drops); the zero-`Done` case now prints an EXPLICIT
+    "VACUOUSLY green ... NOT evidence of parser quality" verdict and exits 0;
+  - `.1` probe arms: CTRL-1 re-pinned to the vacuous verdict; NEW CTRL-1b proves a re-promoted
+    unproven `Done` row still FAILS (`1 of 1`); 12/12 pass;
+  - `run_demotion_impact_probe.sh`: HISTORICAL guard (its mutation targets are gone — the fix
+    landing, not an instrument defect);
+  - `run_family_status_bar_probes.sh`: replay arms re-pinned to the ALIGNED steady state, 24/24;
+    the `.2a`-era transitional capture is preserved at commit 09634838;
+  - `sv_parser_family_status_gate` leg-3 arm: `details[].detail == unmet[]` parity restored — its
+    contract sibling asserts it element-wise (caught by replaying all three status-contract gates
+    against the aligned summaries; all three now pass on the new schema).
+- Consumer surfaces corrected forward: `README.md` (return_annotation "formal Done gate" prose;
+  rtl_frontend "LIVE row is Done" bullet), `docs/book/src/parser-families.md` (regex "still
+  computes Done" bullet; rtl_frontend closure paragraph).
+- Frontier -> `DONE-BAR.5` (disclosure integrity): two rows now ship as `Provisional`, so the
+  published state a customer decides from must be gated true — measured stale today
+  (`PGEN_USER_GUIDE.md` regex `1.1.29`/`1.1.31` vs contract identity `1.1.106`/`1.1.109`, with no
+  gate reading either document).
+
 ## 2026-07-29 - PGEN-DONE-BAR-0010 — leaf DONE-BAR.2a: the family-status gates now compute the three-leg Done bar
 
 Shell gates + one shared helper + a register field — no `grammars/*.ebnf`, no `rust/src/*`, no

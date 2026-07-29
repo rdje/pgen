@@ -24,6 +24,23 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 cd "$ROOT"
 
+# ⛔ HISTORICAL GUARD (DONE-BAR.2b): this probe's step-2 replay mutates the three `| Done |` rows it
+# was written against. Those rows were demoted by `.2b`, so the mutation targets no longer exist —
+# and re-running the BEFORE experiment against the demoted tracker would MISCALIBRATE for a reason
+# that is the fix landing, not an instrument defect. Say so and stop, instead of failing.
+if ! grep -qF '| `vhdl` parser family | Done |' "$ROOT/LIVE_ACHIEVEMENT_STATUS.md"; then
+    echo "=============================================================================="
+    echo "DEMOTION IMPACT PROBE — HISTORICAL (superseded by DONE-BAR.2a/.2b)"
+    echo "=============================================================================="
+    echo
+    echo "The demotion this probe was written to shape has LANDED: the family-status gates were"
+    echo "taught the qualified Provisional vocabulary + the leg-3 criterion first (.2a,"
+    echo "PGEN-DONE-BAR-0010), and the tracker rows then moved (.2b, PGEN-DONE-BAR-0011)."
+    echo "The captured BEFORE record is demotion_impact_probe.txt; the live AFTER instrument is"
+    echo "run_family_status_bar_probes.sh."
+    exit 0
+fi
+
 WORK="$ROOT/rust/target/done_bar_audit/demotion_probe"
 rm -rf "$WORK"; mkdir -p "$WORK"
 

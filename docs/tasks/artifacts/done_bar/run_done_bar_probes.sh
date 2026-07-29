@@ -62,17 +62,34 @@ echo "DONE-BAR.1 probe arms — scripts/audit_done_bar.sh"
 echo "=============================================================================="
 
 # ---------------------------------------------------------------------------
-# CTRL-1 — the untouched tree. This is the arm the whole report rests on: the audit must reach a
-#          VERDICT (exit 1 = rows do not meet the bar), never a refusal and never MISCALIBRATED.
+# CTRL-1 — the untouched tree. Until DONE-BAR.2b this arm pinned "5 of 5 `Done` rows DO NOT meet
+#          the bar" (exit 1). The `.2b` demotion legitimately moved that ground truth: the tracker
+#          now claims ZERO `Done` rows, and the audit must state that VACUOUS green explicitly
+#          (exit 0) rather than pretending to have judged something. CTRL-1b keeps the old arm's
+#          essence alive: a re-promoted `Done` row that does not meet the bar must still FAIL.
 # ---------------------------------------------------------------------------
-arm "CTRL-1 untouched tree reaches a verdict" 1 "5 of 5 \`Done\` rows DO NOT meet the bar" --
+arm "CTRL-1 untouched tree states the vacuous zero-Done green" 0 "0 \`Done\` rows are claimed" --
+
+cp "$TRACKER_SRC" "$WORK/tracker_repromoted.md"
+python3 - "$WORK/tracker_repromoted.md" <<'PY'
+import sys
+p = sys.argv[1]
+t = open(p, encoding="utf-8").read()
+old = "| `vhdl` parser family | Provisional (corpus pending) |"
+if old not in t:
+    raise SystemExit("probe fixture: vhdl Provisional row not found — tracker moved again?")
+t = t.replace(old, "| `vhdl` parser family | Done |", 1)
+open(p, "w", encoding="utf-8").write(t)
+PY
+arm "CTRL-1b a re-promoted unproven Done row still fails" 1 "1 of 1 \`Done\` rows DO NOT meet the bar" \
+    -- "PGEN_DONE_BAR_TRACKER=$WORK/tracker_repromoted.md"
 
 # ---------------------------------------------------------------------------
 # CTRL-2 — FALSE-POSITIVE GUARD. A row that is NOT a `Done` claim must be reported for context and
 #          must NOT be counted as a failing `Done` row. Without this, "everything fails" would be
 #          indistinguishable from an instrument that fails everything.
 # ---------------------------------------------------------------------------
-arm "CTRL-2 Mostly Done row is context, not a failure" 1 "not a \`Done\` claim — reported for context" --
+arm "CTRL-2 Mostly Done row is context, not a failure" 0 "not a \`Done\` claim — reported for context" --
 
 # ---------------------------------------------------------------------------
 # CTRL-3 — the `gate-level` trap, replayed. A tracker row whose Area cell carries a backticked token
@@ -86,7 +103,7 @@ cat >>"$WORK/tracker_backtick_trap.md" <<'EOF'
 |---|---|---|---|
 | `not-a-grammar-at-all` synthetic probe row | Done | probe | probe |
 EOF
-arm "CTRL-3 non-grammar backtick is not a family" 1 "grammars/*.ebnf: 7" \
+arm "CTRL-3 non-grammar backtick is not a family" 0 "grammars/*.ebnf: 7" \
     -- "PGEN_DONE_BAR_TRACKER=$WORK/tracker_backtick_trap.md"
 
 # ---------------------------------------------------------------------------
@@ -167,8 +184,8 @@ arm "RED-6 register contradicted by gate set is MISCALIBRATED" 3 "register says 
 #            (a) regex's status gate RAN and FAILED with a named cause in aggregate run 3;
 #            (b) VHDL's only external-corpus lane is a TRIAGE gate.
 # ---------------------------------------------------------------------------
-arm "CTRL-4a regex failure recovered verbatim" 1 "computed 'In Progress' but tracker says 'Done'" --
-arm "CTRL-4b vhdl corpus lane is TRIAGE" 1 "a TRIAGE gate is not a conformance gate" --
+arm "CTRL-4a regex failure recovered verbatim" 0 "computed 'In Progress' but tracker says 'Done'" --
+arm "CTRL-4b vhdl corpus lane is TRIAGE" 0 "a TRIAGE gate is not a conformance gate" --
 
 echo "------------------------------------------------------------------------------"
 printf 'done-bar probes: %d/%d passed\n' "$pass" "$((pass + fail))"
