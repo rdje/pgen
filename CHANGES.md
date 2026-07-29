@@ -1,5 +1,28 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0012 — leaf DONE-BAR.5a: the published-state drift is fixed AND gated
+
+Guide + new doctrine check — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11
+generated parsers byte-identical BY CONSTRUCTION. No tracker row moves.
+
+- `PGEN_USER_GUIDE.md` regex Public contract identity: `1.1.29`/`1.1.31` -> `1.1.106`/`1.1.109`
+  (the contract's Contract Identity block, the authoritative declaration); published
+  `family status:` `Done` -> `In Progress` (the `.2b` row, demotion dated and explained); the
+  2026-04-era operational numbers marked as the dated historical baseline; the second stale
+  mention (the "hardening slice" alignment) dated as historical.
+- NEW 14th enforced doctrine `PUBLISHED-VERSION-CURRENCY`
+  (`scripts/check_published_version_currency.sh` + registry row + `DOCTRINE_ENFORCEMENT.md` §10
+  mirror): guide identity pair == contract Contract Identity AND guide published status == live
+  tracker row, at EVERY commit via the pre-commit driver (the automatic lane leg 2 demands). An
+  empty extraction fails loudly — two empty strings are never evidence of agreement. Reuses the
+  `.2a` shared tracker-row reader.
+- Probes 5/5 (`run_published_version_currency_probes.sh` + capture): RED-1 replays the historical
+  stale pair verbatim; RED-2 a stale published status; RED-3 empty-extraction refusal; RED-4 the
+  contract advancing alone re-fails. RED-then-GREEN proven on the live tree (the check named all
+  three drift instances BEFORE the guide fix).
+- Book `gate-flow.md` doctrine counts 13 -> 14 (dated statements kept historical).
+- `.5` SPLIT into `.5a`-`.5d`; frontier -> `.5b` (the zero-open-ledger gate).
+
 ## 2026-07-29 - PGEN-DONE-BAR-0011 — leaf DONE-BAR.2b: five rows moved, and every instrument agrees
 
 Tracker + docs + instrument adjudications — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`

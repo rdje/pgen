@@ -60,6 +60,7 @@ DOCTRINES=(
   "DESTRUCTIVE-TARGET-GUARD|destructive make targets refuse without PGEN_CONFIRM_CLEAN=1 + no innocuous alias routes into them (OPS-MEMSAFE.3)|scripts/check_destructive_target_guard.sh"
   "GATE-REACHABILITY|every tracked gate target is invoked by something that RUNS, or carries a deliberate disposition — a check nothing invokes is indistinguishable from one that does not exist (CI-PARITY-GATE-ROT.2)|scripts/check_gate_reachability.sh"
   "FLOW-INTEGRITY|the gate flow cannot drift back: workflows that need generated parsers regenerate them and budget for it, the recipe keeps one home, artifact hand-offs never point at a standalone default, no assertion requires a defect to pass, hand-off provenance coverage only improves (CI-PARITY-GATE-ROT.8), the doctrine roster keeps an AUTOMATIC lane through THIS driver rather than a re-typed list of enforcers (CI-PARITY-GATE-ROT.15), and a guard tests the artifact it actually READS (CI-PARITY-GATE-ROT.14)|scripts/check_flow_integrity.sh"
+  "PUBLISHED-VERSION-CURRENCY|the user guide's published regex identity pair equals the contract's Contract Identity block and its published family status equals the live tracker row — a Provisional/any parser SHIPS on its published state, so the published state must be gate-held true (DONE-BAR.5a; measured ~77 releases stale with no gate reading it)|scripts/check_published_version_currency.sh"
 )
 
 fail=0

@@ -8,7 +8,7 @@
 - Created: `2026-07-29`
 - Owner: repo-local workflow
 - Director directive: [[feedback_done_bar_is_first_tier_only]]
-- Frontier: **`.5`** (the consumer-facing disclosure gates — the PREREQUISITE for the `Provisional` rows the tracker now carries) — `.2b` DONE 2026-07-29 (`PGEN-DONE-BAR-0011`); `.2a` DONE 2026-07-29 (`PGEN-DONE-BAR-0010`); `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`); `.2` SPLIT into `.2a` → `.2b` (`PGEN-DONE-BAR-0005`); `.3a` (ANVIL) remains `in progress`
+- Frontier: **`.5b`** (the zero-open-ledger gate — `.5` SPLIT into `.5a`-`.5d`; `.5a` published-version-currency DONE 2026-07-29 `PGEN-DONE-BAR-0012`, now the 14th enforced doctrine) — `.2b` DONE 2026-07-29 (`PGEN-DONE-BAR-0011`); `.2a` DONE 2026-07-29 (`PGEN-DONE-BAR-0010`); `.1` DONE 2026-07-29 (`PGEN-DONE-BAR-0002`); `.3a` (ANVIL) remains `in progress`
 
 ## Goal
 
@@ -823,16 +823,65 @@ told apart from invalid input**, and all three would have shipped as defects.
   directive**: if customers decide from published state, the published state must be true, and it is
   measurably not (guide `1.1.29`/`1.1.31` vs contract `1.1.104`/`1.1.106`, no gate reading either).
   *A disclosure nobody checks is a claim, not a disclosure.*
-- **Four gates that do not exist today** (measured: no gate references the ledger or the user guide):
-  1. **no reachable silent-success path** for the family — 6 sentinel emission sites measured
+- **Four gates that did not exist** (measured: no gate referenced the ledger or the user guide),
+  now SPLIT into sub-leaves:
+  1. `.5c` — **no reachable silent-success path** for the family — 6 sentinel emission sites measured
      (`<property_access>` / `<array_access>` / `<last_extraction>`), where a parse returns `Ok` with
-     zero diagnostics and a placeholder node ⇒ green gates, garbage handed to the consumer;
-  2. **published version currency** — the user-facing docs' version pair must match the released
-     parser (measured drift: guide `1.1.29`/`1.1.31` vs contract `1.1.104`/`1.1.106`);
-  3. **zero open ledger entries** naming the family;
-  4. **documented acceptance boundary** where a consumer looks.
+     zero diagnostics and a placeholder node ⇒ green gates, garbage handed to the consumer (`todo`);
+  2. `.5a` — **published version currency** — ✅ **DONE** (see below);
+  3. `.5b` — **zero open ledger entries** naming the family — the fact is TRUE today (168 rows, 0
+     open, measured by `.1`) and unguarded (`todo`);
+  4. `.5d` — **documented acceptance boundary** where a consumer looks (`todo`; overlaps `.6`'s
+     per-contract bar-state disclosure — adjudicate the split when `.5d` opens).
 - ⭐ Once these exist they are ordinary leg-2 gates. That is the point: **the bar stays three legs and
   stays fully mechanizable**, which is what *"the flow shall guarantee this 100%"* demands.
+
+#### `.5a` — published version currency (`done`, 2026-07-29 session #224, `PGEN-DONE-BAR-0012`)
+
+- **The disclosure fix AND the gate that makes the fix un-losable, in one slice** (fixing the drift
+  without gating it would just restart the ~77-release clock):
+  - `PGEN_USER_GUIDE.md`'s regex **Public contract identity** block updated `1.1.29`/`1.1.31` →
+    **`1.1.106`/`1.1.109`** (the contract's Contract Identity block, the authoritative declaration —
+    the same source the `PGEN-RGX-0091` embedding-constants gate is specified against); its
+    published **`family status:`** updated `Done` → **`In Progress`** (the `.2b` row) with the
+    demotion dated and explained; the 2026-04-era operational numbers are now MARKED as the dated
+    historical baseline; the second stale mention (the "hardening slice" alignment) is DATED as
+    historical with a pointer to the gated identity block.
+  - NEW doctrine **`PUBLISHED-VERSION-CURRENCY`** (`scripts/check_published_version_currency.sh`,
+    registered in `scripts/check_doctrines.sh` + the `DOCTRINE_ENFORCEMENT.md` §10 mirror ⇒
+    **enforced at EVERY COMMIT via the pre-commit driver — the AUTOMATIC lane leg 2 demands**):
+    guide identity pair == contract Contract Identity, guide published status == live tracker row.
+    An empty extraction FAILS loudly rather than comparing empty strings. Reuses the `.2a` shared
+    tracker-row reader (single home).
+- ⚠️ **Honest scope bound:** this gates the ONE per-family public-identity block the guide carries
+  (regex — measured: the only `Parser Flavor` identity block in the file). If another family gains
+  a published identity block, the check must grow with it; `.6`'s machine-readable per-contract
+  disclosure is the general surface.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the check run BEFORE the fix named all three live drift instances:
+  `publishes parser release '1.1.29' but the contract's Contract Identity declares '1.1.106'`,
+  the `1.1.31` vs `1.1.109` sibling, and `publishes regex family status 'Done' but
+  LIVE_ACHIEVEMENT_STATUS.md says 'In Progress'` (exit 1).
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family: `PGEN_USER_GUIDE.md:3808,3810` (the
+  identity block) and the `family status:` line published state NO gate read (`git ls-files`
+  confirms both documents tracked; `bash -n` clean on the new check + driver); the drift mechanism
+  is the one `DOCTRINE-GAP-OWNERSHIP.4` measured — every release bumped the contract identity and
+  nothing compared the guide against it.
+- [x] **FIX** — declarative-tier: guide content fix + one structural doctrine check + registry row.
+- [x] **ADDRESSED (verified)** — before: check exit 1 naming three drifts. After: `bash
+  scripts/check_published_version_currency.sh` → `OK (guide 1.1.106/1.1.109 == contract identity;
+  published status 'In Progress' == tracker)` exit 0; probe arms `bash
+  docs/tasks/artifacts/done_bar/run_published_version_currency_probes.sh` → **5/5** (RED-1 replays
+  the historical stale pair verbatim; RED-3 proves empty extraction never compares empty strings;
+  RED-4 proves the contract advancing alone re-fails).
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒ all 11
+  generated parsers byte-identical BY CONSTRUCTION; `bash scripts/check_doctrines.sh` → **ALL 14
+  enforced doctrines PASS** (meta-mirror green with the new §10 row).
+- [x] **LOCKSTEP** — `PGEN_USER_GUIDE.md`, `DOCTRINE_ENFORCEMENT.md` §10, this tree, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`. No release / schema / ledger / contract movement: the
+  contract documents are untouched — the GUIDE moved to match them.
 
 ### `.6` — publish each family's bar state where a consumer looks (`todo`)
 
@@ -851,18 +900,18 @@ told apart from invalid input**, and all three would have shipped as defects.
 
 ## Current Frontier
 
-**`.5`** — the consumer-facing disclosure gates. ✅ `.2a`+`.2b` are DONE: the tracker now carries
-two **`Provisional (corpus pending)`** rows (`vhdl`, `systemverilog_preprocessor`) that ship under
-the director's `Provisional`-ships model — which is exactly why `.5` is the frontier: *if customers
-decide from published state, the published state must be true*, and it measurably is not
-(`PGEN_USER_GUIDE.md` publishes regex `1.1.29`/`1.1.31` against the contract's current identity —
-~75 releases stale — with NO gate reading either document, plus the 6 silent-success sentinel
-sites and the unguarded 0-open-entries ledger). `.3a` (ANVIL for `rtl_frontend`) continues in
-parallel; `.4` (the enforcement ratchet) stays blocked on `CI-PARITY-GATE-ROT.7` + the hosted
-auto-trigger call. ⭐ Near-term GOAL unchanged: **every family to at least `Provisional`** —
-`regex` needs its leg-1 debt re-closed (`REGEX-PCRE2-FIDELITY.ROUTED-IN-2`), `return_annotation` /
-`rtl_frontend` need a computed status (the missing-status-gate lever) before they can hold
-`Provisional` honestly.
+**`.5b`** — the zero-open-ledger gate (`.5` SPLIT into `.5a`-`.5d`). ✅ `.5a` is DONE
+(`PGEN-DONE-BAR-0012`): the guide's published regex identity + status drift is FIXED
+(`1.1.106`/`1.1.109`, `In Progress`) and GATED by the 14th enforced doctrine
+`PUBLISHED-VERSION-CURRENCY` at every commit. Remaining in `.5`: **`.5b`** — the ledger's
+0-open-entries fact is TRUE and unguarded (168 rows, 0 open, measured by `.1`; nothing reads the
+file); **`.5c`** — the 6 silent-success sentinel sites; **`.5d`** — the documented acceptance
+boundary (adjudicate its overlap with `.6` when opened). `.3a` (ANVIL for `rtl_frontend`)
+continues in parallel; `.4` (the enforcement ratchet) stays blocked on `CI-PARITY-GATE-ROT.7` +
+the hosted auto-trigger call. ⭐ Near-term GOAL unchanged: **every family to at least
+`Provisional`** — `regex` needs its leg-1 debt re-closed (`REGEX-PCRE2-FIDELITY.ROUTED-IN-2`),
+`return_annotation` / `rtl_frontend` need a computed status (the missing-status-gate lever) before
+they can hold `Provisional` honestly.
 
 ⭐ **Sequencing note, now discharged:** `.2` landed before `CI-PARITY-GATE-ROT.7`'s next
 `sota_exit_gate` acceptance run — that run will no longer burn ~5 h re-confirming the known regex
@@ -917,6 +966,13 @@ closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
 
 ## Commit Log
 
+- `PGEN-DONE-BAR-0012` (2026-07-29, session #224, leaf `.5a` done) — the published-state drift is
+  FIXED and GATED in one slice: the guide's regex Public contract identity moved `1.1.29`/`1.1.31`
+  → `1.1.106`/`1.1.109` and its published family status moved `Done` → `In Progress` (the `.2b`
+  row), and the NEW 14th doctrine `PUBLISHED-VERSION-CURRENCY`
+  (`scripts/check_published_version_currency.sh`, pre-commit AUTOMATIC lane) holds both equal to
+  their authoritative sources forever — an empty extraction fails loudly. Probes 5/5 (RED-1 replays
+  the historical stale pair verbatim). `.5` SPLIT into `.5a`-`.5d`; frontier `.5b`.
 - `PGEN-DONE-BAR-0011` (2026-07-29, session #224, leaf `.2b` done) — the five contested rows MOVED,
   and every instrument agrees: `vhdl` + `systemverilog_preprocessor` → `Provisional (corpus
   pending)` (their status gates replay GREEN AND ALIGNED), `regex` → `In Progress` (below

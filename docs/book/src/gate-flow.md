@@ -369,16 +369,16 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 > this flow.** Hosted Actions are paused to conserve account minutes, so 14 of the
 > 15 tracked workflows are `workflow_dispatch`-only, and the one that still
 > auto-runs (`memory-architecture-gate.yml`) runs the doctrine driver and no `make`
-> target at all. **The automatic layer covers the 13 enforced doctrines and none of
+> target at all. **The automatic layer covers the 14 enforced doctrines and none of
 > the 123 gate targets.** Every proof lane described in this chapter runs only when
 > a human asks — the 92 "reachable" ones exactly as much as the 30 orphans.
 >
 > ⭐ Even that doctrine coverage was partial until 2026-07-29: the workflow named
-> five enforcers **individually**, so 8 of the 13 registered doctrines had no
+> five enforcers **individually**, so 8 of the then-13 registered doctrines had no
 > automatic lane, and a doctrine added afterwards silently got none. It now invokes
 > `scripts/check_doctrines.sh`, so the roster is *inherited* from the registry
 > rather than re-typed — and invariant 8 below fails the build if that regresses.
-> ⚠️ Four of the thirteen judge a **staged diff** and a hosted push has none, so
+> ⚠️ Four of the fourteen judge a **staged diff** and a hosted push has none, so
 > they exit 0 having evaluated nothing; the driver prints a `scope:` note naming
 > them, because a green tick must not imply they were satisfied.
 >

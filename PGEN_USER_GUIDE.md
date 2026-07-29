@@ -3805,17 +3805,30 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.29`
+  - `1.1.106`
 - integration contract version:
-  - `1.1.31`
+  - `1.1.109`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
   - `1`
 
+This published identity pair is held equal to the integration contract's Contract Identity block —
+the authoritative declaration — by `scripts/check_published_version_currency.sh` (the
+`PUBLISHED-VERSION-CURRENCY` doctrine, enforced at every commit), after it was measured ~77
+releases stale with no gate reading it (`DONE-BAR.5a`, 2026-07-29). Per-release shape history:
+the regex parser mdBook changelog index.
+
 Current measured operational baseline:
 - family status:
-  - `Done`
+  - `In Progress`
+  - demoted off `Done` on 2026-07-29 (`DONE-BAR.2b`): the family-status gate computes
+    `In Progress` because the CURRENT stimuli surface records `final_targets=31` against the
+    grown 276-production grammar (closure must be re-earned), and the vendored 2,189-case PCRE2
+    oracle corpus is not yet wired into any invoked conformance lane. The published status line
+    above is held equal to the live tracker row by the same doctrine check.
+  - the operational numbers below are the dated 2026-04-era baseline that backed the earlier
+    claim, retained as history:
 - parser-backed family proof:
   - `parseability_attempts_total=5911`
   - `parseability_accepted_total=5197`
@@ -4195,9 +4208,12 @@ Important interpretation:
   - `parse_expectation_mismatch_total=352`
   - `false_accept_total=307`
   - `false_reject_total=45`
-- the current downstream regex release aligned with that hardening slice is:
+- the downstream regex release aligned with that (2026-04-era) hardening slice was:
   - parser release version `1.1.29`
   - integration contract version `1.1.31`
+  - (a dated historical alignment — the CURRENT public identity lives in the "Regex Parser
+    Flavor" section's Public contract identity block, which is gate-held to the integration
+    contract's Contract Identity)
 - the current improvement came from complementary changes:
   - the generated-host compile-contract layer now compares literal class range endpoints by decoded escape value for bare octal, braced hex, single-byte hex, braced octal, control escapes, and simple escaped literals
   - the grammar and generated-host compile-contract layer now reject plain class `\N`, model single-character quoted class range endpoints, reject shorthand/property class range endpoints, and preserve literal backslashes inside quoted literal bodies

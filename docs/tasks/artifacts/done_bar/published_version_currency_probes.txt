@@ -1,0 +1,10 @@
+==============================================================================
+PUBLISHED-VERSION-CURRENCY probe arms — scripts/check_published_version_currency.sh
+==============================================================================
+  ✅ CTRL-1 untouched tree passes                             exit=0, message matched
+  ✅ RED-1 stale published pair fails, named                  exit=1, message matched
+  ✅ RED-2 stale published status fails, named                exit=1, message matched
+  ✅ RED-3 empty extraction refuses, never vacuous            exit=1, message matched
+  ✅ RED-4 contract advance without guide fails               exit=1, message matched
+------------------------------------------------------------------------------
+published-version-currency probes: 5/5 passed

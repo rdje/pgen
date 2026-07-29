@@ -1,5 +1,26 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-DONE-BAR-0012 — fix a disclosure and gate it in the same slice, or the clock restarts
+
+`DONE-BAR.5a`. Guide + new doctrine check — no `grammars/*.ebnf`, no `rust/src/*`, no
+`generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- The drift was ~77 releases (`1.1.29`/`1.1.31` published vs `1.1.106`/`1.1.109` declared) plus a
+  stale published `family status: Done` against the `.2b` `In Progress` row. Fixing the text
+  without the gate would merely restart the clock — every release bumps the contract identity and
+  nothing compared the guide against it. So the slice ships both: the content fix and
+  `PUBLISHED-VERSION-CURRENCY` (14th doctrine, pre-commit automatic lane).
+- Check design notes: structural archetype (no cargo/make/network); extraction is
+  section-scoped (`### Regex Parser Flavor` / `## Contract Identity`) so an unrelated mention
+  elsewhere cannot satisfy it; empty extraction FAILS (the demotion probe's measured
+  empty==empty defect class); the tracker-row reader is sourced from the `.2a` single home
+  rather than re-implemented; seams (`PGEN_PVC_GUIDE/CONTRACT/TRACKER`) let probes mutate one
+  input at a time. RED-then-GREEN was proven on the live tree: the check named all three drift
+  instances before the guide moved.
+- Honest scope bound recorded in the leaf: the guide carries exactly ONE per-family public
+  identity block today (regex); a future family gaining one must grow the check, and `.6`'s
+  machine-readable per-contract disclosure is the general surface.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0011 — a demotion is only recorded when zero instruments disagree with it
 
 `DONE-BAR.2b`. Tracker + docs + instrument adjudications — no `grammars/*.ebnf`, no `rust/src/*`,
