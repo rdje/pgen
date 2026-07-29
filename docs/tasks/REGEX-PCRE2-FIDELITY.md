@@ -3575,9 +3575,78 @@ error: regex tracker alignment mismatch: computed 'In Progress' but tracker says
   **(b)** scope drift ⇒ `initial_targets` was **355** when regex earned `Done` (tracker note
   2026-03-28, `final_targets=0`) and is **1033** now, so some residuals may never have been in scope
   for that claim.
-- **The deciding measurement, not yet taken:** when and why `initial_targets` went **355 → 1033**
-  (one `git log -S` over the grammar / gap-threshold history). Take it before choosing a fix.
+- ~~**The deciding measurement, not yet taken:**~~ **TAKEN 2026-07-29 session #222
+  (`PGEN-REGEX-PCRE2-0051`) — see the adjudication below.**
 - ⚠️ **A `Done` row is currently asserted against a gate that disagrees with it.** Whatever the
   adjudication, that gap should not persist silently — it is the tracker-alignment check doing its
   job, and nothing ran it until this campaign made the aggregate reach it.
 - **Evidence:** `docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_after3.txt`.
+
+#### ⭐⭐⭐ ADJUDICATED 2026-07-29 (session #222) — READING (b) CONFIRMED, AND THE TWO READINGS CONVERGE ON THE SAME ACTION
+
+The deciding measurement had been recorded as outstanding across two sessions. Taken now, against
+tracked history only (`grammars/regex.ebnf` is tracked; `generated/` is not and was not needed).
+
+**Baseline.** The last `grammars/regex.ebnf` commit at or before the `Done` claim of 2026-03-28 is
+`67c2f089` (*"Fix regex layout-sensitive parseability"*, 2026-03-28).
+
+**Measurement 1 — the grammar tripled.** Productions (`^name =`): **88 at the claim → 276 now,
+`+188` (+214%)**. That alone accounts for `initial_targets` **355 → 1033**: the target universe is
+derived from the grammar, and the grammar is a different, much larger object than the one the claim
+was earned against.
+
+**Measurement 2 — 9 of the 10 named residual rules did not exist at the claim.** Present/absent in
+`git show 67c2f089:grammars/regex.ebnf`:
+
+| rule | at the `Done` claim | introduced |
+|---|---|---|
+| `named_backreference` | ABSENT | `620b3d06` 2026-03-29 |
+| `numeric_backreference` | ABSENT | `9e7ca180` 2026-05-05 |
+| `subroutine_call` | ABSENT | `620b3d06` 2026-03-29 |
+| `subroutine_target` / `named_subroutine_target` | ABSENT | `75422cee` 2026-07-11 |
+| `returned_capture_subroutine` | ABSENT | `ac2acb36` 2026-04-08 |
+| `class_bracket_token(_tail)` | ABSENT | `7ddfd3c2` 2026-07-10 |
+| `literal_open_brace` | ABSENT | `c53be8e0` 2026-07-08 |
+| `backreference` | **PRESENT** | — |
+
+**Measurement 3 — and the one survivor is not a survivor.** `backreference` carried **2 branches**
+at the claim (`"\\" digits` / `"\\k" name_ref`); it now carries **7+** (`numeric_backreference`,
+`numeric_backreference_single`, `named_backreference`, and four `\g` forms). ⭐ **The NAME survived;
+its target set did not.** Targets are branches, not rule names — so no residual in the 31
+corresponds to a target that was in scope when regex earned `Done`.
+
+⇒ ✅ **READING (b), SCOPE DRIFT, IS CONFIRMED. READING (a) IS REFUTED**: the 31 are not a regression
+in previously-proven coverage. They are the un-witnessed tail of PCRE2-fidelity features added over
+the four months *after* the claim — by this tree's own `.3.18`, `.4.11`, `.4.12` leaves among others.
+
+#### ⛔⛔ BUT THE ACTION IS THE SAME AS READING (a)'s — AND THAT IS THE FINDING
+
+The routing leaf framed these as *"two readings, OPPOSITE fixes"*. Measurement shows they **converge**,
+because the standing `DONE-BAR` doctrine — adopted 2026-07-29, i.e. **after** the routing note was
+written — settles exactly this case, verbatim: *"`Done` is NOT a snapshot: a family whose
+grammar/target universe grew must RE-EARN it (*"it was true in March"* is not a defence). Demotion is
+the correct action, not a failure."*
+
+⇒ *"These targets were never in scope for the claim"* is **not a defence of the row; it is the
+definition of a stale claim.** The row was earned against 355 targets and is now asserted over 1,033.
+
+- ⛔ **The demotion is NOT taken here.** `DONE-BAR.1` is explicit — *"Do NOT demote rows inside `.1`.
+  Audit first, adjudicate second… Demotions land in `.2` with the evidence attached."* This leaf owed
+  the **adjudication**; the row movement is `DONE-BAR.2`'s, with this section as its evidence.
+- ⭐ **What this unblocks:** `CI-PARITY-GATE-ROT.7`'s next `sota_exit_gate` acceptance run would
+  otherwise burn **5 hours** to re-confirm a known, unfixed blocker. The gate is **right** and the
+  tracker is **stale**; the aggregate cannot go green until the row moves (or the debt closes), so
+  running it before `DONE-BAR.2` is waste.
+- 🔜 **Residual owned here, not by `DONE-BAR`:** the 31 un-witnessed targets are genuine generator
+  coverage debt for this family (14 `selected_but_failed` ⇒ the generator *tries* backreference and
+  subroutine constructs and cannot produce a witness). Closing them is what would let regex re-earn
+  leg 1. That is regex-family work and stays in this tree.
+
+**ROUTING EVIDENCE (cross-family reproduction check).** The `final_targets == 0` criterion is regex-
+and-family-status specific: `sv_parser_family_status_gate` and `vhdl_parser_family_status_gate` both
+**passed** in the same acceptance run 3, so this is not a shared-gate defect being mis-routed — the
+mistake `.9` made and this doctrine exists to prevent. The instrument used here was **calibrated
+before its numbers were used**: the first production-counter reported **0 productions in the live
+grammar**, which is definitively wrong (it matched `:=` where `grammars/regex.ebnf` uses `=`); it was
+corrected and required to reproduce a known fact (`named_backreference` at `:573`) before any count
+was trusted.

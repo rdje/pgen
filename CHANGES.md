@@ -1,5 +1,43 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-REGEX-PCRE2-0051 — the regex `Done` adjudication is settled: scope drift, and the two readings converge
+
+`REGEX-PCRE2-FIDELITY.ROUTED-IN-2` adjudicated; `DONE-BAR.2` seeded with the evidence. Docs only —
+**no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no `generated/*`** ⇒ all 11 generated
+parsers byte-identical BY CONSTRUCTION.
+
+- **The deciding measurement had sat untaken across two sessions.** Taken against tracked history
+  (baseline `67c2f089`, the last `grammars/regex.ebnf` commit at or before the 2026-03-28 `Done`
+  claim):
+  - the grammar went **88 → 276 productions (+188, +214%)**, which alone explains `initial_targets`
+    **355 → 1033**;
+  - **9 of the 10** named residual rules were **absent** at the claim (introduced `2026-03-29`
+    through `2026-07-11`, several by this tree's own `.3.18` / `.4.11` / `.4.12` leaves);
+  - ⭐ the one that *was* present, `backreference`, went from **2 branches to 7+** — **the name
+    survived, its target set did not.** Targets are branches, not rule names ⇒ **no residual of the
+    31 corresponds to a target that was in scope when regex earned `Done`.**
+- ✅ **Reading (b) scope drift CONFIRMED; reading (a) genuine-regression REFUTED.**
+- ⛔⛔ **But the action is identical to reading (a)'s, and that is the finding.** The routing leaf
+  framed the two as having *"opposite fixes"*. The `DONE-BAR` doctrine — adopted 2026-07-29, i.e.
+  **after** that note was written — settles the case verbatim: *"`Done` is NOT a snapshot: a family
+  whose grammar/target universe grew must RE-EARN it."* ⇒ *"never in scope for the claim"* is not a
+  defence of the row; it is the **definition of a stale claim** (earned over 355, asserted over
+  1,033).
+- ⛔ **The demotion is deliberately not taken here** — `DONE-BAR.1` says audit first, demote in `.2`.
+  Routed to `DONE-BAR.2` with the evidence and the qualifier already determined:
+  **`Provisional (corpus pending)` at best**, never `(ceiling)` — PCRE2 is precisely an external
+  standard with a recognized reference implementation, already vendored in `regex_corpus_bundle/`.
+- ⭐⭐ **Sequencing consequence, measured:** `CI-PARITY-GATE-ROT.7`'s next `sota_exit_gate` run would
+  burn **5 hours** re-confirming this known, unfixed, routed-out blocker. The gate is right and the
+  tracker is stale ⇒ `DONE-BAR.2` should land before that run.
+- ⚠️ **The instrument was miscalibrated on its first run and caught by ground truth**: the production
+  counter reported **0 productions in the live grammar** (it matched `:=`; `regex.ebnf` uses `=`) —
+  definitively wrong, so it was corrected and required to reproduce a known fact before any count
+  was trusted.
+- **Cross-family reproduction check (`ROUTING-EVIDENCE`):** the `final_targets == 0` criterion is
+  family-status specific; `sv_parser_family_status_gate` and `vhdl_parser_family_status_gate` both
+  passed in the same run, so this is not a shared-gate defect being mis-routed.
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0023 — a guard that tested a different file from the one it read
 
 `CI-PARITY-GATE-ROT.14` DONE. 1 gate script + 1 doctrine check + 3 doc mirrors + 1 new tracked

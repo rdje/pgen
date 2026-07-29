@@ -250,6 +250,23 @@ actual per-family open-defect counts rather than leaving it as an impression.
 - **Status: `todo`** — blocked on `.1`.
 - Each demoted row states which leg is unmet and what would close it. The dated historical notes are
   left intact; the **current** row is what moves ([[feedback_done_bar_is_first_tier_only]]).
+- ⭐⭐⭐ **ONE ROW IS ALREADY ADJUDICATED AND WAITING — `regex`** (2026-07-29 session #222,
+  `PGEN-REGEX-PCRE2-0051`; full evidence in `docs/tasks/REGEX-PCRE2-FIDELITY.md` `ROUTED-IN-2`).
+  `regex_parser_family_status_gate` computes `In Progress` against a `Done` tracker row
+  (`final_targets == 0` required, **31** measured). The pending adjudication — genuine coverage debt
+  vs scope drift — is **settled: scope drift, measured**. `grammars/regex.ebnf` went **88 → 276
+  productions (+214%)** since the claim; **9 of the 10** named residual rules did not exist then; and
+  the one that did, `backreference`, went from **2 branches to 7+**, so *no* residual corresponds to
+  a target that was in scope. ⛔⛔ **That does NOT defend the row — it is the definition of a stale
+  claim**, and this tree's own rule decides it: *`Done` is not a snapshot; a grown universe must be
+  re-earned.* The two readings were filed as having *opposite* fixes; they **converge**. ⇒ `regex`
+  moves off `Done` when `.2` runs, unmet **leg 1** (residual target debt 31 ≠ 0), and the row's
+  qualifier is **`Provisional (corpus pending)` at best** — it cannot be `(ceiling)`, since PCRE2 is
+  precisely an external standard with a recognized reference implementation, and
+  `regex_corpus_bundle/` already vendors it.
+- ⭐ **Sequencing consequence, measured:** `CI-PARITY-GATE-ROT.7`'s next `sota_exit_gate` acceptance
+  run would burn **5 hours** to re-confirm this same blocker. The gate is right and the tracker is
+  stale ⇒ **`.2` should land before that run**, or the run is waste.
 
 ### `.3` — close the external-corpus gap (`todo`)
 
