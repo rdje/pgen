@@ -1,0 +1,26 @@
+==============================================================================
+CI-PARITY-GATE-ROT.15 — the doctrine AUTOMATIC lane (every figure derived this run)
+==============================================================================
+--- BEFORE (workflows as of HEAD = 509db717)
+    tracked workflows                : 15
+    auto-triggered (push/PR/schedule): 1  ['memory-architecture-gate.yml']
+    registered doctrines             : 13
+    invoke the DRIVER                : 0  -> roster inherited: False
+    named individually               : 5  ['DIAG-SEVERITY+DOCPATH', 'EBNF-SOURCE-OF-TRUTH', 'KNOWLEDGE-MAP', 'MEMORY-ARCH', 'REGEX-SELF-HOSTING']
+    ⇒ doctrines with an AUTOMATIC lane: 5 of 13
+    ⇒ doctrines with NO lane          : 8  ['TASK-ACCEPTANCE', 'REGEX-ORACLE-ANCHOR-SYNC', 'DESIGN-PRIOR-ART', 'WAIVER-ROUTING', 'ROUTING-EVIDENCE', 'DESTRUCTIVE-TARGET-GUARD', 'GATE-REACHABILITY', 'FLOW-INTEGRITY']
+
+--- AFTER  (working tree)
+    tracked workflows                : 15
+    auto-triggered (push/PR/schedule): 1  ['memory-architecture-gate.yml']
+    registered doctrines             : 13
+    invoke the DRIVER                : 1  -> roster inherited: True
+    named individually               : 0  []
+    ⇒ doctrines with an AUTOMATIC lane: 13 of 13
+    ⇒ doctrines with NO lane          : 0  []
+------------------------------------------------------------------------------
+before -> after : 5/13 -> 13/13 doctrines on the automatic lane
+⚠️  of the 13, 4 are scoped to the STAGED diff and exit 0 vacuously on a
+    hosted push with an empty index: ['TASK-ACCEPTANCE', 'DESIGN-PRIOR-ART', 'WAIVER-ROUTING', 'ROUTING-EVIDENCE']
+    ⇒ 9 run MEANINGFULLY there. The driver now prints this itself, so a
+      green tick cannot imply the staged-scope four were satisfied.

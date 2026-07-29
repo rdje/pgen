@@ -14,5 +14,9 @@ CI-PARITY-GATE-ROT.8 — FLOW-INTEGRITY probes (each RED replays a real incident
 ✓ RED-10 dead ratchet entry                      FAIL
 ✓ CTRL-1 register drives BOTH readers            both readers reject (single source holds)
 ✓ CTRL-2 unrelated Makefile edit                 PASS
+✓ RED-11 auto workflow names an enforcer         FAIL
+✓ RED-12 doctrine roster loses its auto lane     FAIL
+✓ CTRL-3 manual workflow names an enforcer       PASS
+✓ RED-13 commented-out driver is not a lane      FAIL
 ------------------------------------------------------------------------------
-arms=13  PASS=13  FAIL=0
+arms=17  PASS=17  FAIL=0

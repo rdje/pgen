@@ -1,5 +1,52 @@
 # CHANGES.md
 
+## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0022 — the doctrine roster went 5/13 → 13/13 on the AUTOMATIC lane
+
+`CI-PARITY-GATE-ROT.15` DONE, `.16` opened. 1 workflow + 2 doctrine checks + 2 doc mirrors + 1 new
+tracked driver + 2 captures — **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`** ⇒ all 11
+generated parsers byte-identical BY CONSTRUCTION.
+
+- ⭐ **The defect.** `.github/workflows/memory-architecture-gate.yml` is the only one of the 15
+  tracked workflows triggered by anything a human does not press (derived from each `on:` block: 1
+  auto, 14 `workflow_dispatch`-only). At `:26,31,37,42,47` it invoked five registered enforcers **by
+  name** instead of the registry driver `scripts/check_doctrines.sh` ⇒ the automatic lane was frozen
+  at whatever was last typed into that YAML. `ROUTING-EVIDENCE` (registered hours earlier),
+  `FLOW-INTEGRITY` and `GATE-REACHABILITY` — the two anti-rot doctrines this tree itself shipped —
+  all had **no automatic lane at all**.
+- ⛔⛔ **The leaf's own opening numbers were wrong, and re-measuring was the first thing done.** It
+  was filed as *"3 checks by name / 10 doctrines with no lane / 6 further run meaningfully"*;
+  measured **5 / 8 / 4**. The finding survived the correction; the arithmetic did not. The
+  correction is left **visible** rather than back-dated — the fifth instance in two sessions of a
+  plausible figure surviving on a prose reading instead of a re-run.
+- ⭐ **The same disease, one level further up, in the driver's own claim.**
+  `scripts/check_doctrines.sh:33` has always stated that `DOCTRINE_ENFORCEMENT.md` §10 is *"kept in
+  lockstep"* with the registry. **Nothing checked it, and it was false**: 3 registered doctrines had
+  no row (`TASK-ACCEPTANCE`, `ROUTING-EVIDENCE`, `DESTRUCTIVE-TARGET-GUARD`) and 1 row named
+  `DIAG-TOOLBOX-EVIDENCE`, an id the registry no longer carries — 11 rows against 13 entries.
+- **Fixed in three parts, each with ONE home.** (1) the workflow invokes the driver, so the roster is
+  *inherited* from the registry and a doctrine added tomorrow gets the lane by construction —
+  measured **2.4 s**, no cargo, no build, no network, **no director call needed**; (2) the driver
+  itself derives and prints a `scope:` note naming the staged-scope doctrines whenever the index is
+  empty, so a green tick cannot imply they were satisfied; (3) `FLOW-INTEGRITY` gains invariant
+  **(8)** — no auto-triggered workflow may name a registered enforcer, and at least one must invoke
+  the driver — plus a driver `<meta:mirror>` meta-check that went **RED on the untouched tree**.
+- **Measured before→after, replayed not described** (the census reads the BEFORE workflow through
+  `git show HEAD:` and runs the identical derivation on both sides): **5/13 → 13/13** doctrines on
+  the automatic lane, named-individually **5 → 0**, driver invocations **0 → 1**.
+- **Probes 17/17** — the 14 existing arms plus RED-11 (the verbatim incident), RED-12 (the roster
+  losing its auto lane, a *different* defect nothing else would notice), RED-13 (a commented-out
+  driver must read as absent), and ⭐ **CTRL-3**, the false positive that would make invariant (8)
+  unusable: a `workflow_dispatch`-only workflow naming an enforcer must still PASS, since 14 of 15
+  are manual. ⭐ RED-11 was audited for **why** it blocks (by-name arm 1, no-lane arm 0), not merely
+  that it blocks.
+- ⚠️ **Residual stated, not discovered later:** 4 of the 13 judge a staged diff, so they exit 0
+  **vacuously** on a hosted push; **9 run meaningfully**. `.16` owns giving them a PR-diff mode. The
+  automatic tier over the 123 `make` gate targets is still **ZERO** — this moves the doctrine
+  roster, not the proof lanes.
+- ⛔ The workflow was deliberately **not renamed** despite now running the whole roster: the name is
+  referenced in ~15 tracked places including a pinned ground-truth control at
+  `scripts/check_gate_reachability.sh:397`.
+
 ## 2026-07-29 - PGEN-DONE-BAR-0004 — `Provisional` splits into `(ceiling)` and `(corpus pending)`, and `ceiling` is made hard to claim
 
 Director-approved discrimination. Docs only — **no `grammars/*.ebnf`, no `rust/src/*`, no

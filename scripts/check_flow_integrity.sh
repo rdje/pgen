@@ -35,6 +35,9 @@
 #   5. no standalone-default hand-offs — consumed a 3-day-old artifact as current proof (`.7`)
 #   6. no requires-a-defect assertions — a gate that passed only when the parser FAILED (`.5`)
 #   7. hand-off provenance ratchet — coverage may only improve (`.7`)
+#   8. the doctrine roster keeps an AUTOMATIC lane, through the DRIVER — the one auto-running
+#      workflow named 5 enforcers individually, so 8 of 13 doctrines had no automatic lane and a
+#      doctrine added tomorrow silently got none (`.15`)
 #
 # Usage:
 #   bash scripts/check_flow_integrity.sh            # gate mode
@@ -197,6 +200,47 @@ if graduated:
     bad("(7) register entr(ies) that now DO verify — remove them so the ratchet keeps its teeth:\n"
         + "\n".join(f"      - {c}" for c in graduated))
 
+# --------------------------------------------------------------- (8) the doctrine automatic lane
+# ⭐ THE ROSTER MUST BE INHERITED, NOT RE-TYPED. `.15` measured that the ONE workflow still running
+# on push/pull_request executed five registered enforcers BY NAME instead of the registry driver, so
+# 8 of the 13 doctrines had no automatic lane at all — and, the part that matters, a doctrine added
+# tomorrow silently got none (`ROUTING-EVIDENCE`, shipped hours earlier, was already in exactly that
+# position). Naming enforcers freezes the roster at the moment somebody last edited the YAML.
+DRIVER = "scripts/check_doctrines.sh"
+reg_src = read(DRIVER)
+m_reg = re.search(r"(?ms)^DOCTRINES=\(\n(.*?)^\)", reg_src)
+enforcers = ([l.strip().strip('"').split("|")[-1]
+              for l in m_reg.group(1).splitlines() if l.strip().startswith('"')] if m_reg else [])
+if not enforcers:
+    print(f"flow-integrity: could not derive the doctrine roster from {DRIVER} — a check that cannot\n"
+          "  read its subject must refuse, not pass.", file=sys.stderr)
+    sys.exit(1)
+
+def auto_triggered(wf):
+    """True iff the workflow's `on:` block declares a trigger no human has to press."""
+    blk = re.search(r"(?ms)^on:\n(.*?)(?=^\S|\Z)", uncommented(read(wf)))
+    return bool(blk) and bool(re.search(r"^\s{1,4}(push|pull_request|schedule)\s*:", blk.group(1), re.M))
+
+auto_workflows = [wf for wf in workflows if auto_triggered(wf)]
+driver_lane = [wf for wf in auto_workflows if DRIVER in uncommented(read(wf))]
+for wf in auto_workflows:
+    body = uncommented(read(wf))
+    named = sorted({e for e in enforcers if e in body})
+    if named:
+        bad(f"(8) {wf} runs automatically and invokes registered doctrine enforcer(s) BY NAME:\n"
+            + "\n".join(f"      - {n}" for n in named) + "\n"
+            f"    That freezes the automatic lane at whatever was typed into the YAML. Measured\n"
+            f"    2026-07-29: five were named, so 8 of 13 doctrines had NO automatic lane and every\n"
+            f"    doctrine added afterwards inherited none.\n"
+            f"    fix:  run `bash {DRIVER}` — the registry is the single source of the roster, so a\n"
+            f"          new doctrine gets the lane by construction.")
+if not driver_lane:
+    bad(f"(8) NO automatically-triggered workflow invokes {DRIVER}, so the enforced doctrines have no\n"
+        f"    automatic lane — only the local pre-commit hook, which `--no-verify` bypasses. E4 is\n"
+        f"    the un-bypassable backstop by design (DOCTRINE_ENFORCEMENT.md §9).\n"
+        f"    fix:  give one cheap workflow `on: push` + `pull_request` and have it run the driver\n"
+        f"          (it costs ~2 s: no cargo, no build, no network).")
+
 # --------------------------------------------------------------- report / verdict
 if REPORT:
     print("=" * 78)
@@ -211,6 +255,10 @@ if REPORT:
     print(f"hand-off consumers                    : {len(consumers)}")
     print(f"  ├─ verify provenance                : {len(verifying & consumers)}")
     print(f"  └─ registered as not yet verifying  : {len(unverified_registered)}")
+    print(f"registered doctrines                  : {len(enforcers)}")
+    print(f"  ├─ auto-triggered workflows         : {len(auto_workflows)}")
+    print(f"  └─ of those, invoking the driver    : {len(driver_lane)}"
+          f"  {'(the whole roster has a lane)' if driver_lane else '⛔ NONE'}")
     print("-" * 78)
     if unverified_now:
         print("⚠️  ACCEPTED RISK — these are handed artifacts they do not verify. The ratchet stops")
@@ -227,5 +275,6 @@ if fails:
 
 print(f"flow-integrity: OK ({len(need)} workflow(s) regenerate, {len(exempt_seen)} measured-exempt, "
       f"recipe has one home, PREPARE on, 0 standalone-default hand-offs, 0 requires-a-defect "
-      f"assertions, provenance ratchet {len(verifying & consumers)}/{len(consumers)})")
+      f"assertions, provenance ratchet {len(verifying & consumers)}/{len(consumers)}, "
+      f"all {len(enforcers)} doctrines on the automatic lane via the driver)")
 PYEOF

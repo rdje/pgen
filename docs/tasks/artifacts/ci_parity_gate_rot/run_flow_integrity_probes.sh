@@ -26,6 +26,7 @@ rm -rf "$WORK"; mkdir -p "$WORK"
 for f in "$REGISTER" "$PARITY" "$ACTION" rust/Makefile \
          .github/workflows/performance-gate.yml \
          .github/workflows/branch-protection-contract-gate.yml \
+         .github/workflows/memory-architecture-gate.yml \
          rust/scripts/sv_failure_context_contract_gate.sh; do
   mkdir -p "$WORK/$(dirname "$f")"; cp "$ROOT/$f" "$WORK/$f"
 done
@@ -148,6 +149,54 @@ restore
 # is worse than one that stays quiet.
 printf '\n# CI-PARITY-GATE-ROT.8 probe: unrelated comment\n' >> "$ROOT/rust/Makefile"
 arm "CTRL-2 unrelated Makefile edit" PASS
+restore
+
+# ---------------------------------------------------------------- invariant (8), CI-PARITY-GATE-ROT.15
+AUTO_WF=".github/workflows/memory-architecture-gate.yml"
+
+# RED-11 — THE VERBATIM `.15` INCIDENT: the auto workflow names enforcers instead of the driver.
+# This is the exact shape measured on 2026-07-29 — five by name, 8 of 13 doctrines with no
+# automatic lane, and every doctrine registered afterwards inheriting none.
+python3 - "$ROOT/$AUTO_WF" <<'PY'
+import sys; p=sys.argv[1]; s=open(p).read()
+open(p,"w").write(s.replace("run: bash scripts/check_doctrines.sh",
+                            "run: bash scripts/check_memory_architecture.sh",1))
+PY
+arm "RED-11 auto workflow names an enforcer" FAIL "BY NAME"
+restore
+
+# RED-12 — the roster loses its automatic lane entirely: the driver step is still there but the
+# workflow no longer runs on push/pull_request. ⭐ A DIFFERENT DEFECT FROM RED-11 and the one that
+# would otherwise be silent — nothing else in the repo would notice E4 had gone away.
+python3 - "$ROOT/$AUTO_WF" <<'PY'
+import sys; p=sys.argv[1]; s=open(p).read()
+open(p,"w").write(s.replace("on:\n  workflow_dispatch:\n  push:\n  pull_request:\n",
+                            "on:\n  workflow_dispatch:\n",1))
+PY
+arm "RED-12 doctrine roster loses its auto lane" FAIL "NO automatically-triggered workflow invokes"
+restore
+
+# CTRL-3 — ⛔ THE FALSE-POSITIVE THAT WOULD MAKE INVARIANT (8) UNUSABLE. A `workflow_dispatch`-only
+# workflow naming an enforcer is NOT the defect: the rule is about the AUTOMATIC lane, and 14 of the
+# 15 tracked workflows are manual. If this arm fails, the trigger classification is broken and the
+# invariant is blaming files it has no business inspecting.
+printf '      - name: probe\n        run: bash scripts/check_memory_architecture.sh\n' \
+  >> "$ROOT/.github/workflows/performance-gate.yml"
+arm "CTRL-3 manual workflow names an enforcer" PASS
+restore
+
+# RED-13 — the driver invoked only from a COMMENT must not count as a lane. That is the shape a
+# half-finished revert leaves behind, and this repository has twice shipped an audit that fired on
+# its own comment; the converse — a comment read as a live invocation — is the same defect inverted.
+# ⛔ EVERY invocation is commented, not just the first: leaving one live would test nothing.
+python3 - "$ROOT/$AUTO_WF" <<'PY'
+import sys; p=sys.argv[1]
+out=[]
+for l in open(p):
+    out.append(("#" + l) if "scripts/check_doctrines.sh" in l and not l.lstrip().startswith("#") else l)
+open(p,"w").writelines(out)
+PY
+arm "RED-13 commented-out driver is not a lane" FAIL "NO automatically-triggered workflow invokes"
 restore
 
 printf '%s\n' "------------------------------------------------------------------------------"

@@ -7,7 +7,19 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.15`, `.14`, `.11`, `.10`). ⭐⭐ **ACCEPTANCE RUN 3 (2026-07-29): the best run this aggregate has ever had — 5 h 05 m, 32 gates entered, 30 ok — and still RED at blocker #8.** It cleared the ENTIRE SV and VHDL blocks and `regex_parser_family_contract_gate` (⇒ **`.9`'s fix proven in its real caller**, where run 2 died), then failed on `regex_parser_family_status_gate`: *tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'*. ✅ `.9` exonerated (checked first: `resolved_targets` is reporting-only in that gate; `final_targets`=31 before and after). Regex coverage debt ROUTED to `REGEX-PCRE2-FIDELITY` with a recorded cross-family check; the aggregate's misleading failure path kept here as `.14`. See `.13`. ✅ **`.12` done
+- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.14`, `.11`, `.10`, `.16`).
+  ✅ **`.15` done 2026-07-29 session #222 — the doctrine roster went 5/13 → 13/13 on the AUTOMATIC
+  lane.** The one auto-running workflow named five enforcers individually instead of invoking the
+  registry driver, so 8 of 13 doctrines had no automatic lane and every doctrine registered
+  afterwards inherited none. ⛔ **The leaf's own opening numbers were wrong (3 named / 10 unlaned /
+  6 meaningful; measured 5 / 8 / 4) and the correction is left visible** — the finding survived, the
+  arithmetic did not. ⭐ The same disease was then found one level further up, in the driver's own
+  claim: `check_doctrines.sh` has always stated `DOCTRINE_ENFORCEMENT.md` §10 is *"kept in
+  lockstep"* and nothing checked it — 11 mirror rows against 13 registered entries. Both fixed and
+  both mechanized (`FLOW-INTEGRITY` invariant **(8)**; a driver `<meta:mirror>` check that went RED
+  on the untouched tree). ⚠️ Residual stated not discovered: 4 of the 13 judge a staged diff and
+  evaluate NOTHING on a hosted push — the driver now **declares** that rather than passing silently,
+  and `.16` owns closing it. ⭐⭐ **ACCEPTANCE RUN 3 (2026-07-29): the best run this aggregate has ever had — 5 h 05 m, 32 gates entered, 30 ok — and still RED at blocker #8.** It cleared the ENTIRE SV and VHDL blocks and `regex_parser_family_contract_gate` (⇒ **`.9`'s fix proven in its real caller**, where run 2 died), then failed on `regex_parser_family_status_gate`: *tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'*. ✅ `.9` exonerated (checked first: `resolved_targets` is reporting-only in that gate; `final_targets`=31 before and after). Regex coverage debt ROUTED to `REGEX-PCRE2-FIDELITY` with a recorded cross-family check; the aggregate's misleading failure path kept here as `.14`. See `.13`. ✅ **`.12` done
   2026-07-29 session #221 — the 13th enforced doctrine `ROUTING-EVIDENCE`**: a leaf routing a finding
   OUT of its tree must record what it MEASURED, above all whether the finding reproduces outside the
   family it is being sent to. ⚠️ Its first cut would have PASSED its own founding incident (`-0015`
@@ -721,31 +733,145 @@ leaf is the first real user of.
 
 ---
 
-### `.15` — the one auto-running workflow invokes 3 of 13 doctrine checks individually, not the driver (`todo`)
+### `.15` — the one auto-running workflow invoked 5 of 13 doctrine checks individually, not the driver (`done`)
 
-- **Status: `todo`** — opened 2026-07-29 session #221 while answering whether the director needed to
-  decide on hosted Actions minutes. **They did not, and this is why.**
-- **MEASURED:** `.github/workflows/memory-architecture-gate.yml` is the **only** workflow that runs on
-  `push` + `pull_request`, and it executes three checks **by name** —
-  `check_memory_architecture.sh`, `check_diagnostics_and_docpaths.sh`, `check_ebnf_source_of_truth.sh` —
-  rather than the registry driver `scripts/check_doctrines.sh`.
-- ⇒ ⭐ **10 of the 13 enforced doctrines have NO automatic lane**, and — the part that matters —
-  **a doctrine added tomorrow silently gets none.** `ROUTING-EVIDENCE`, shipped hours ago, is already
-  in that position. This is precisely the rot `.8` was opened to end: *the flow fixed with checks that
-  could themselves rot*, one level up.
-- **The fix is cheap and needs no director call:** invoke the driver instead of the three names. Same
-  runner, same trigger, no cargo, no build ⇒ no meaningful Actions cost. The driver is the single
-  source of truth for the roster, so a new doctrine inherits the lane by construction — the
-  `.4`/"one home" principle applied to enforcement itself.
-- ⚠️ **Honest limit, to state rather than discover:** the staged-scope doctrines
-  (`TASK-ACCEPTANCE`, `DESIGN-PRIOR-ART`, `WAIVER-ROUTING`, `ROUTING-EVIDENCE`) judge a **staged
-  diff**, and a hosted push has none — they will exit 0 **vacuously** there. That is not a reason to
-  skip this leaf (6 further doctrines do run meaningfully), but the workflow must **say so** rather
-  than let a green tick imply those four were evaluated. *A check that cannot run must say so, not
-  return green* — this tree's founding principle, applied to its own fix.
-- **Relevance to `DONE-BAR.4`:** this is the free half of "the flow shall guarantee the bar" — the
+- **Status: `done`** (2026-07-29, session #222, `PGEN-CI-PARITY-GATE-ROT-0022`). Opened the previous
+  session while answering whether the director needed to decide on hosted Actions minutes. **They did
+  not, and this is why.**
+
+#### ⛔⛔ THE LEAF'S OWN OPENING NUMBERS WERE WRONG, AND RE-MEASURING WAS THE FIRST THING DONE
+
+This leaf was filed saying the workflow *"executes three checks by name"*, that *"10 of the 13
+enforced doctrines have NO automatic lane"*, and that *"6 further doctrines do run meaningfully"*.
+**All three figures are wrong.** Derived mechanically from
+`.github/workflows/memory-architecture-gate.yml` against the driver's own `DOCTRINES=(…)` array:
+
+| claimed when filed | measured | |
+|---|---|---|
+| 3 checks named | **5** | + `check_regex_self_hosting.sh`, `knowledge-map/scripts/check_knowledge_map.sh` |
+| 10 doctrines with no lane | **8** | `TASK-ACCEPTANCE`, `REGEX-ORACLE-ANCHOR-SYNC`, `DESIGN-PRIOR-ART`, `WAIVER-ROUTING`, `ROUTING-EVIDENCE`, `DESTRUCTIVE-TARGET-GUARD`, `GATE-REACHABILITY`, `FLOW-INTEGRITY` |
+| 6 further run meaningfully | **4** | the other 4 of the 8 are staged-scope |
+
+⭐ The **finding survives the correction intact** — the shape was right, the arithmetic was not — but
+the correction is left visible rather than back-dated, because this is the **fifth** instance in two
+sessions of a plausible figure surviving on a prose reading instead of a re-run
+([[feedback_read_prior_art_before_designing]]: *re-measure before citing*). The leaf was written
+from a reading of the workflow, not from a derivation over it.
+
+#### ROOT CAUSE (WHY + WHERE)
+
+`.github/workflows/memory-architecture-gate.yml` is the **only** one of the 15 tracked workflows
+triggered by anything a human does not press (derived from each `on:` block: 1 auto, 14
+`workflow_dispatch`-only). At `:26,31,37,42,47` it invoked five registered enforcers **by name**
+instead of the registry driver `scripts/check_doctrines.sh`.
+
+⇒ the automatic lane was **frozen at whatever was last typed into that YAML**. `ROUTING-EVIDENCE`,
+registered hours earlier in `.12`, already had no lane; so did `FLOW-INTEGRITY` and
+`GATE-REACHABILITY`, the two anti-rot doctrines this very tree shipped. This is precisely the rot
+`.8` was opened to end — *the flow fixed with checks that could themselves rot* — one level up.
+
+#### ⭐ AND THE SAME DISEASE WAS FOUND ONE LEVEL FURTHER UP, IN THE DRIVER'S OWN CLAIM
+
+`scripts/check_doctrines.sh:33` has always stated that `DOCTRINE_ENFORCEMENT.md` §10 is *"kept in
+lockstep"* with the registry. **Nothing checked it, and it was not true**: 3 registered doctrines had
+no row (`TASK-ACCEPTANCE`, `ROUTING-EVIDENCE`, `DESTRUCTIVE-TARGET-GUARD`) and 1 row named
+`DIAG-TOOLBOX-EVIDENCE`, an id the registry no longer carries — 11 rows against 13 entries. A
+documented promise nobody checks is a claim. Fixed **and** mechanized in the same commit as a
+driver meta-check (`<meta:mirror>`), which went RED on the untouched tree before the rows were added.
+
+#### THE FIX — three parts, each in ONE home
+
+1. **The workflow invokes the driver.** Five named steps → one `bash scripts/check_doctrines.sh`.
+   The registry is the single source of the roster, so a doctrine added tomorrow inherits the lane
+   **by construction** — the `.4` "one home" principle applied to enforcement itself. Cost: **2.4 s**
+   measured, no cargo, no build, no network ⇒ no meaningful Actions cost, and **no director call**.
+2. **The vacuity is declared, by the driver, not the YAML.** The staged-scope doctrines judge a
+   staged diff; a hosted push has an empty index, so they exit 0 having evaluated nothing. The driver
+   now derives that set from each enforcer's own source and prints a `scope:` note naming them
+   whenever the index is empty. ⭐ Putting it in the driver rather than the workflow means the same
+   honesty applies to a bare local run — and a staged-scope doctrine added later is named by
+   construction, the identical inheritance argument.
+3. **It cannot rot back:** `FLOW-INTEGRITY` gains invariant **(8)** — no auto-triggered workflow may
+   name a registered enforcer, and at least one must invoke the driver.
+- ⛔ **The workflow was deliberately NOT renamed** despite now running the whole roster: the name
+  `memory-architecture-gate` is referenced in ~15 tracked places including a **pinned ground-truth
+  control** at `scripts/check_gate_reachability.sh:397`. Perturbing a calibration control for a
+  cosmetic gain is a bad trade; the header comment states what it actually runs.
+- **Relevance to `DONE-BAR.4`:** this is the free half of *"the flow shall guarantee the bar"* — the
   bar's bookkeeping enforced automatically. The expensive half (periodically re-proving parsers via
   the 5 h aggregate) stays a separate, later, director-priced decision.
+
+#### ⚠️ WHAT THIS DOES NOT BUY — stated, not discovered later
+
+- **4 of the 13 still evaluate nothing on a hosted push** (`TASK-ACCEPTANCE`, `DESIGN-PRIOR-ART`,
+  `WAIVER-ROUTING`, `ROUTING-EVIDENCE`). **9 run meaningfully.** Making the staged-scope four read a
+  PR's `base..HEAD` diff is a real capability — routed to `.16`, not smuggled in here.
+- The automatic tier over the **123 `make` gate targets is still ZERO** (`.6`'s measurement stands).
+  This leaf moves the *doctrine* roster, not the proof lanes; the hosted-auto-trigger question
+  remains the director's.
+
+## Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `bash docs/tasks/artifacts/ci_parity_gate_rot/run_doctrine_lane_census.sh`
+  on the untouched tree: `⇒ doctrines with an AUTOMATIC lane: 5 of 13` /
+  `⇒ doctrines with NO lane: 8`. Independently, the new invariant on the untouched tree:
+  `(8) .github/workflows/memory-architecture-gate.yml runs automatically and invokes registered
+  doctrine enforcer(s) BY NAME:` listing all five.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `.github/workflows/memory-architecture-gate.yml:26,31,37,42,47`
+  (five `run: bash scripts/check_*.sh` steps) vs the registry at `scripts/check_doctrines.sh:41-55`.
+  WHY: the roster is enumerated in the consumer instead of inherited from the producer, so it is
+  frozen at edit time. Trigger classification derived from each workflow's `on:` block — **1 of 15**
+  auto-triggered. Second defect, same shape, at `scripts/check_doctrines.sh:33`: a documented
+  lockstep with `DOCTRINE_ENFORCEMENT.md` §10 that nothing checked — measured **11 mirror rows vs 13
+  registered**, 3 missing + 1 stale id.
+- [x] **FIX** — declarative tier (1 workflow + 2 shell checks + 1 doc mirror; no grammar, no
+  `rust/src/*`, no `generated/*`). Driver invoked instead of enumerated; `scope:` note derived and
+  printed by the driver; `FLOW-INTEGRITY` invariant (8); registry↔mirror meta-check.
+- [x] **ADDRESSED (verified)** — before→after **replayed, not described** (the census reads the
+  BEFORE workflow through `git show 509db717:` — the sha is RESOLVED and pinned in the capture, not
+  left as the symbolic `HEAD`, which would silently re-point once this commit lands — and runs the
+  identical derivation on both sides):
+  **5/13 → 13/13** doctrines on the automatic lane; named-individually **5 → 0**; driver invocations
+  **0 → 1**. Driver `exit=0`, `ALL 13 enforced doctrines PASS`, **2.4 s**. The registry↔mirror
+  meta-check went **RED before → GREEN after** on the same tree. Capture:
+  `docs/tasks/artifacts/ci_parity_gate_rot/doctrine_lane_census.txt`.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` in the change set,
+  so all 11 generated parsers are byte-identical **by construction**. Probes **17/17**
+  (`flow_integrity_probes.txt`) — the 14 pre-existing arms unchanged plus **RED-11** (the verbatim
+  incident: an auto workflow naming an enforcer), **RED-12** (the roster losing its auto lane
+  altogether — a *different* defect that nothing else in the repo would notice), **RED-13** (a
+  commented-out driver must read as absent), and ⭐ **CTRL-3**, the false positive that would make
+  invariant (8) unusable: a `workflow_dispatch`-only workflow naming an enforcer must still PASS,
+  since 14 of 15 are manual. ⭐ **RED-11 audited for WHY it blocks**, not just that it blocks — it
+  fires the by-name arm **1** time and the no-lane arm **0** times, so it is not passing incidentally
+  through the other half of the invariant. `scripts/check_gate_reachability.sh` still reproduces its
+  8 ground-truth controls (its pinned `memory-architecture-gate.yml` → `ci-workflow-auto` control is
+  untouched); workflow YAML re-parsed structurally (1 job, 4 steps, triggers
+  `workflow_dispatch`/`push`/`pull_request`).
+- [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10 (3 rows added, 1 id corrected, `FLOW-INTEGRITY`
+  row now 8 invariants), `README.md` (seven → eight invariants), `docs/book/src/gate-flow.md` (the
+  invariant table, the AUTOMATIC-tier note and its stale "11 enforced doctrines"),
+  `docs/book/src/operations-and-governance.md`; `.16` opened for the staged-scope residual.
+
+---
+
+### `.16` — the staged-scope doctrines evaluate nothing on a hosted push (`todo`)
+
+- **Status: `todo`** — opened 2026-07-29 by `.15`, which measured the residual rather than leaving it
+  implied.
+- **MEASURED:** 4 of the 13 registered doctrines (`TASK-ACCEPTANCE`, `DESIGN-PRIOR-ART`,
+  `WAIVER-ROUTING`, `ROUTING-EVIDENCE`) scope themselves to `git diff --cached`. On a hosted push the
+  index is empty, so each exits **0 having evaluated nothing** — verified by running all four against
+  an empty index. Only `check_diagnosis_evidence.sh` says so (`no code change staged`); the other
+  three print nothing at all.
+- ⇒ they bind at **E3 only**, which `--no-verify` bypasses — precisely the leg E4 exists to cover.
+- **Scope when taken up:** give the four a PR-diff mode (`base..HEAD` when
+  `GITHUB_BASE_REF`/`github.event.pull_request.base.sha` is present, staged index otherwise), in ONE
+  shared helper rather than four copies (`.10`'s lesson: `parse_target_summary` rotted in 3 places at
+  once). ⛔ Price it first — a push to a branch with no PR still has no base, so the honest ceiling is
+  *meaningful on pull_request*, not *always*.
+- ⚠️ Until then the driver **declares** the vacuity on every empty-index run, so the gap is visible
+  rather than hidden behind a green tick.
 
 ### `.14` — the aggregate's failure path reports a missing file instead of the real cause (`todo`)
 

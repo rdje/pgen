@@ -1,5 +1,71 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0022 — the automatic doctrine lane was frozen at a hand-typed list
+
+`CI-PARITY-GATE-ROT.15` DONE, `.16` opened. 1 workflow + `scripts/check_doctrines.sh` +
+`scripts/check_flow_integrity.sh` + `DOCTRINE_ENFORCEMENT.md` + `README.md` + 2 book chapters +
+1 new tracked driver + 2 captures — **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`**
+⇒ all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+### The defect
+
+`.github/workflows/memory-architecture-gate.yml` is the only auto-triggered workflow of the 15
+tracked (derived from each `on:` block). It enumerated five registered enforcers:
+
+```
+:26  run: bash scripts/check_memory_architecture.sh
+:31  run: bash scripts/check_diagnostics_and_docpaths.sh
+:37  run: bash scripts/check_ebnf_source_of_truth.sh
+:42  run: bash scripts/check_regex_self_hosting.sh
+:47  run: bash knowledge-map/scripts/check_knowledge_map.sh
+```
+
+The registry at `scripts/check_doctrines.sh:41-55` holds **13**. A consumer that enumerates its
+producer's roster is frozen at edit time, so the eight not on that list — including the two anti-rot
+doctrines this tree shipped (`FLOW-INTEGRITY`, `GATE-REACHABILITY`) and `ROUTING-EVIDENCE`,
+registered hours earlier — had **no automatic lane**, and every doctrine registered afterwards
+would inherit none.
+
+### The correction to the leaf's own numbers
+
+The leaf was filed claiming 3 named checks, 10 unlaned doctrines and 6 further running meaningfully.
+Derived mechanically: **5 named, 8 unlaned, 4 further meaningful**. The shape of the finding held;
+the arithmetic did not. Left visible rather than back-dated.
+
+### A second instance, one level up
+
+`scripts/check_doctrines.sh:33` claimed `DOCTRINE_ENFORCEMENT.md` §10 was *"kept in lockstep"* with
+the registry. Extracting both id sets: **11 mirror rows vs 13 registered** — `TASK-ACCEPTANCE`,
+`ROUTING-EVIDENCE` and `DESTRUCTIVE-TARGET-GUARD` absent; `DIAG-TOOLBOX-EVIDENCE` present but no
+longer registered. A documented promise nobody checks is a claim.
+
+### Implementation
+
+1. **The workflow calls the driver.** Roster inherited from the registry by construction. 2.4 s
+   measured; no cargo, no build, no network.
+2. **The driver declares its own vacuity.** A registered enforcer that greps `--cached` / `--staged`
+   / `diff-index` is scoped to the staged diff; when the index is empty the driver prints a `scope:`
+   note naming exactly those doctrines. Derived from each enforcer's source, so a staged-scope
+   doctrine added later is named by construction. Honest limit recorded in the code: the classifier
+   is a source-level heuristic, and a mislabel costs an inaccurate NAME in an informational note —
+   never a verdict.
+3. **`FLOW-INTEGRITY` invariant (8).** No auto-triggered workflow may name a registered enforcer;
+   at least one must invoke the driver. Both halves derived — trigger class from the `on:` block
+   through the existing `uncommented()` helper, roster from the driver's own array — and the check
+   **refuses** if the roster derivation returns nothing.
+4. **Driver `<meta:mirror>` meta-check.** Registry id set vs `DOCTRINE_ENFORCEMENT.md` §10 rows.
+   The assertion lives in the *other* file deliberately
+   ([[reference_self_referential_assertion_is_unsound]]). It went RED on the untouched tree, which
+   is how the mirror drift was proven rather than asserted.
+
+### Verification
+
+- `run_doctrine_lane_census.sh` (new, tracked): BEFORE replayed via `git show HEAD:` through the
+  identical derivation ⇒ **5/13 → 13/13**, named-individually 5 → 0, driver invocations 0 → 1.
+- Probes **17/17**; RED-11 audited for *why* it blocks (by-name arm 1, no-lane arm 0).
+- `scripts/check_gate_reachability.sh` still reproduces its 8 ground-truth controls; `mdbook_docs_gate`
+  green (10 per-parser books + the platform book); workflow YAML re-parsed structurally.
+
 ## 2026-07-29 - PGEN-CI-PARITY-GATE-ROT-0016 — the seventh blocker: a gate metric that stopped meaning its own name
 
 `CI-PARITY-GATE-ROT.9` DONE, `.10` opened. 4 gate scripts + `docs/book/src/gate-flow.md` §7 + 2 task

@@ -368,11 +368,19 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 > ⚠️ **The automatic tier is zero, and that is the single most important fact about
 > this flow.** Hosted Actions are paused to conserve account minutes, so 14 of the
 > 15 tracked workflows are `workflow_dispatch`-only, and the one that still
-> auto-runs (`memory-architecture-gate.yml`) executes `scripts/check_*.sh` directly
-> and no `make` target at all. **The automatic layer covers the 11 enforced
-> doctrines and none of the 123 gate targets.** Every proof lane described in this
-> chapter runs only when a human asks — the 92 "reachable" ones exactly as much as
-> the 30 orphans.
+> auto-runs (`memory-architecture-gate.yml`) runs the doctrine driver and no `make`
+> target at all. **The automatic layer covers the 13 enforced doctrines and none of
+> the 123 gate targets.** Every proof lane described in this chapter runs only when
+> a human asks — the 92 "reachable" ones exactly as much as the 30 orphans.
+>
+> ⭐ Even that doctrine coverage was partial until 2026-07-29: the workflow named
+> five enforcers **individually**, so 8 of the 13 registered doctrines had no
+> automatic lane, and a doctrine added afterwards silently got none. It now invokes
+> `scripts/check_doctrines.sh`, so the roster is *inherited* from the registry
+> rather than re-typed — and invariant 8 below fails the build if that regresses.
+> ⚠️ Four of the thirteen judge a **staged diff** and a hosted push has none, so
+> they exit 0 having evaluated nothing; the driver prints a `scope:` note naming
+> them, because a green tick must not imply they were satisfied.
 >
 > A direct consequence: **wiring an orphan into an aggregate or a paused workflow
 > moves it from ORPHAN to OPERATOR and makes nothing run.** It is worth doing when
@@ -497,7 +505,7 @@ bash scripts/check_flow_integrity.sh --report
 `FLOW-INTEGRITY` is an enforced doctrine, run by `.githooks/pre-commit` on **every
 commit**. It is deliberately cheap — file reads and greps, no cargo, no build, no
 network — because a check nobody minds running is a check that keeps running. It
-enforces seven invariants, each traced to something that actually happened:
+enforces eight invariants, each traced to something that actually happened:
 
 | # | invariant | the incident |
 |---|---|---|
@@ -508,6 +516,7 @@ enforces seven invariants, each traced to something that actually happened:
 | 5 | no hand-off points at a gate's standalone default dir | a run consumed a three-day-old artifact as current proof |
 | 6 | no assertion requires a defect in order to pass | a required sub-gate passed only when the parser failed |
 | 7 | hand-off provenance coverage only improves | 1 of 23 consumers verify; the list may only shrink |
+| 8 | the doctrine roster keeps an automatic lane **through the driver**; no auto-triggered workflow re-types enforcer names | the one auto-running workflow named 5 of 13, so 8 doctrines had no automatic lane and every one added later inherited none |
 
 Two design choices make it hard to defeat:
 

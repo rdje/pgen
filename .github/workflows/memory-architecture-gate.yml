@@ -1,9 +1,24 @@
 name: memory-architecture-gate
 
-# MEMORY-ARCH E4 (PGEN-MEMORY-ARCH-0005): the un-bypassable backstop for the
-# durable-memory-architecture invariants. Runs the SAME self-check script the local
-# pre-commit hook runs (single source of truth), so a non-compliant branch fails the
-# build and cannot merge — `git commit --no-verify` does not reach CI.
+# E4 — THE AUTOMATIC DOCTRINE LANE (the un-bypassable backstop; DOCTRINE_ENFORCEMENT.md §9).
+#
+# This is the ONLY workflow still triggered by `push` + `pull_request`; the other 14 are
+# `workflow_dispatch`-only to conserve account Actions minutes. It therefore carries the whole
+# automatic tier of doctrine enforcement, and it runs the SAME registry driver the local
+# pre-commit hook runs, so `git commit --no-verify` does not reach CI.
+#
+# ⭐ IT INVOKES THE DRIVER, NEVER INDIVIDUAL ENFORCERS (CI-PARITY-GATE-ROT.15, 2026-07-29).
+# It used to name five of them. MEASURED: that left 8 of the 13 registered doctrines with no
+# automatic lane at all — and, the part that matters, a doctrine added tomorrow silently got
+# none (`ROUTING-EVIDENCE`, registered hours earlier, was already in exactly that position).
+# Naming enforcers freezes the roster at whatever was last typed into this file. The registry
+# is the single source of the roster, so calling the driver makes a new doctrine inherit this
+# lane by construction. `FLOW-INTEGRITY` invariant (8) fails the build if this regresses.
+#
+# ⚠️ The workflow name is historical: it was the MEMORY-ARCH E4 gate and is now the whole
+# doctrine lane. Deliberately NOT renamed — the name is referenced in ~15 tracked places
+# including a pinned ground-truth control in `scripts/check_gate_reachability.sh`, and a
+# cosmetic rename is not worth perturbing a calibration control.
 
 on:
   workflow_dispatch:
@@ -22,33 +37,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run memory-architecture self-check (E2)
-        run: bash scripts/check_memory_architecture.sh
+      - name: Run every enforced doctrine (registry driver — E4)
+        # Single source of truth for the roster. ~2 s: file reads and greps, no cargo, no
+        # build, no network. Exits nonzero on any breach, so a non-compliant branch fails
+        # the build and cannot merge.
+        run: bash scripts/check_doctrines.sh
 
-      - name: Run diagnostics-severity + docpath guards (DIAG-SEVERITY.4 / DOCPATH)
-        # Severity (warning/error/fatal) never gated by verbosity; live docs use
-        # repo-root-relative paths. Same script the local pre-commit hook runs.
-        run: bash scripts/check_diagnostics_and_docpaths.sh
-
-      - name: Run EBNF-single-source-of-truth guard (EBNF-SOURCE-OF-TRUTH.5)
-        # The EBNF (+ its annotations) is the single source of truth for the accepted language;
-        # flag any NEW out-of-band acceptance validator wired into the parser registry. Same script
-        # the local pre-commit hook runs.
-        run: bash scripts/check_ebnf_source_of_truth.sh
-
-      - name: Run regex self-hosting guard (REGEX-SELF-HOSTING.6)
-        # regex.ebnf must stay /.../-free (native terminals only) so the generated regex parser never
-        # invokes Rust's regex engine. Same script the local pre-commit hook runs.
-        run: bash scripts/check_regex_self_hosting.sh
-
-      - name: Validate Knowledge Map facts + assert the map is in sync (KNOWLEDGE-MAP)
-        # Derived question-keyed retrieval index over durable facts (knowledge-map/ bundle).
-        # Same script the local pre-commit hook runs; a stale map or invalid fact fails here.
-        run: bash knowledge-map/scripts/check_knowledge_map.sh
+      - name: State which doctrines could NOT be evaluated here
+        # ⭐ *A check that cannot run must SAY SO, not return green* — this tree's founding
+        # principle, applied to its own lane. Several enforcers judge the STAGED diff; a
+        # hosted push has no index, so they exit 0 having evaluated nothing, and a green tick
+        # would otherwise imply they were satisfied. The driver derives and prints that list
+        # itself (one home) — this step surfaces it in the log even when the gate passes.
+        if: always()
+        run: bash scripts/check_doctrines.sh 2>&1 | sed -n '/^scope:/,$p'
 
       - name: Validate commit subjects carry an identifier-shaped leading token (E3 mirror)
-        # Permissive by design (see scripts/check_memory_architecture.sh notes): pgen
-        # subject styles are varied; this rejects only blank/garbage-led subjects.
+        # Permissive by design (see the notes in the memory-architecture enforcer): pgen
+        # subject styles are varied; this rejects only blank/garbage-led subjects. Not a
+        # registered doctrine — it has no enforcer script, so it lives inline here.
         run: |
           set -euo pipefail
           base="${{ github.event.pull_request.base.sha }}"
