@@ -4,6 +4,15 @@ This project-neutral policy keeps a repository README useful as a stable
 landing page instead of letting it grow into a changelog, roadmap, or
 documentation catalog.
 
+## Storage location
+
+Store the adopting project's canonical copy as the git-tracked
+`<repository-root>/README_POLICY.md`, alongside `README.md`. Keeping the policy
+with the file it governs gives contributors, local hooks, and CI one
+discoverable, versioned source of truth. A user-home, machine-global, or other
+external copy may serve as a reusable template, but it must not replace the
+project-owned repository copy.
+
 ## Content contract
 
 Keep only information a first-time visitor needs:
@@ -53,9 +62,10 @@ each other: neither wrapped prose nor very long lines can bypass the budget.
 
 ## Adoption checklist
 
-1. Remove duplicated status, history, inventories, and deep reference prose.
-2. Verify the retained quick start and links.
-3. Record where each excluded content class belongs.
-4. Set reviewed line and byte caps with modest headroom.
-5. Commit the deterministic check and wire it into pre-commit and CI.
-6. Require an explicit decision before either cap can increase.
+1. Add and commit `<repository-root>/README_POLICY.md` beside `README.md`.
+2. Remove duplicated status, history, inventories, and deep reference prose.
+3. Verify the retained quick start and links.
+4. Record where each excluded content class belongs.
+5. Set reviewed line and byte caps with modest headroom.
+6. Commit the deterministic check and wire it into pre-commit and CI.
+7. Require an explicit decision before either cap can increase.

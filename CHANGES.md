@@ -1,5 +1,35 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-README-POLICY-0003 — leaf README-POLICY.5: the policy ported to the spine repo, which was shipping the same bypass
+
+Policy copy refreshed + tree (`.4` source-drift note, `.5` done, `.7` reverse-flow finding) —
+no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11 generated parsers
+byte-identical BY CONSTRUCTION. The substantive change landed in the SEPARATE `bedrock` repo.
+
+- SCOPE (DIRECT DIRECTOR ORDER): "Please update the bedrock with this new README.md policy
+  whenever you can." Sequenced AFTER `PGEN-README-POLICY-0002` because bedrock is a separate
+  repository and the pivot rule forbids pivoting while this repo is dirty.
+- LANDED IN BEDROCK (`BEDROCK-MAINTENANCE.2.1`, commits e3cb82b + 5f0a7dc): `README_POLICY.md`
+  + a neutralized `check_readme_stability.sh` registered as its 4th doctrine; the layer-A byte
+  cap added to its `check_memory_architecture.sh` AND to `MEMORY_ARCHITECTURE.md` §6/§9/§9.1;
+  both files added to the `update_scaffold.sh` NEUTRAL allow-list; DOCTRINE_VERSION 0.1.0 ->
+  0.2.0. Its gate: 6/6 green.
+- ⛔ THE PORT CONFIRMED THE DIAGNOSIS AT THE SOURCE: bedrock's layer-A check was
+  `lines=$(wc -l < MEMORY.md)` with cap 120 and NO byte bound — looser than the deployment
+  that failed — and its copy of the standard carried the same line-only reference script. Every
+  project adopting bedrock was inheriting the bypass. Control re-run there: bedrock's RETIRED
+  guard returns exit 0 over a 19,304-byte fixture the new one rejects.
+- ⚠️ THE SOURCE POLICY MOVED MID-SESSION and only re-measuring caught it: 2,425 B -> 2,920 B,
+  gaining a `## Storage location` section requiring the canonical copy be the git-tracked
+  `<repository-root>/README_POLICY.md` beside `README.md`, plus a new adoption step 1. PGEN's
+  copy was stale by that section; refreshed here. All three copies now hash 091e6922a97b...
+  A verbatim copy is only verbatim as of a measurement.
+- ⭐ REVERSE-FLOW FINDING routed to `.7`: bedrock's layer-C check already reconciles EVERY
+  decision record against INDEX.md, while PGEN's only asserts the index is non-empty (measured:
+  135 records / 133 rows, doctrine green). bedrock's MAINTAINING.md documents the flow as
+  "PGEN -> generalize -> bedrock"; here the spine was ahead of its own reference deployment.
+  `.7` should ADOPT that implementation rather than design one.
+
 ## 2026-07-30 - PGEN-README-POLICY-0002 — leaves README-POLICY.2 + .4: layer A passed its cap at 138,403 bytes, and the bypass was in the portable standard
 
 1 doctrine enforcer strengthened + the portable standard corrected + 2 new decision records + layer-C

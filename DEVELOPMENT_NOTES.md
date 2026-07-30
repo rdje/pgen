@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-README-POLICY-0003 — porting a policy is how you find out the source of the policy has the defect
+
+`README-POLICY.5`. Policy refresh + tree; the substantive work landed in the separate bedrock repo.
+
+- ⭐⭐ THE PORT WAS THE STRONGEST TEST OF THE DIAGNOSIS, not a formality. `.2` argued that the
+  line-only layer-A cap was a defect in the PORTABLE STANDARD rather than in PGEN's copy. Porting
+  to bedrock proved it: bedrock's `check_memory_architecture.sh:14` was `wc -l` only, cap 120, no
+  byte bound — LOOSER than the 60-line cap that had just been measured failing at 138,403 bytes.
+  A claim about "every adopter" is cheap; opening the adopter and finding it is not.
+- ⭐ NEUTRALIZATION IS A REAL STEP, NOT A RENAME. bedrock's MAINTAINING.md requires a ported
+  improvement read "as if bedrock never knew about PGEN". So the guard cites its evidence as
+  "a real project running this spine" — the 138,403-byte measurement carries the argument without
+  naming a domain. Verified by grep for domain nouns => 0.
+- ⭐ AND THE CAPS DELIBERATELY DIFFER. A template's caps ship to a README that is not the
+  template's own, so fitting them to bedrock's 73-line README would have false-failed consumers on
+  day one; they default to the policy's published example (300/16384) with instructions to tighten
+  after the consumer's own trim. Only the layer-A cap was TIGHTENED (120 -> 50), because the
+  standard itself already said "<= ~50 lines". Copying PGEN's numbers would have been the easy
+  wrong answer.
+- ⚠️ THE SOURCE FILE CHANGED UNDER ME, MID-SESSION. The first copy measured 2,425 B; minutes later
+  the same path measured 2,920 B — the author had added a `## Storage location` section codifying
+  the very placement the director had asked for in words. Caught only because `cmp -s` was re-run
+  instead of assumed. ⇒ "copied verbatim" is a statement about a MOMENT; a live file in another
+  repo is not a constant.
+- ⭐⭐ REVERSE FLOW, which the documented process does not anticipate. bedrock is described as
+  downstream of PGEN ("the reference implementation / proving ground"). But its layer-C check is
+  strictly stronger — it reconciles every record against the index, which is exactly PGEN's routed
+  `.7`. PGEN's `>0` form would have passed forever. ⇒ the transfer loop is BIDIRECTIONAL in fact
+  while being documented as one-way, and `.7` now says ADOPT rather than DESIGN.
+
 ## 2026-07-30 - PGEN-README-POLICY-0002 — my own census said nothing was owned, and the control caught it before the delete
 
 `README-POLICY.2` + `.4`. Enforcer + portable standard + 2 decision records + book chapter + tree.

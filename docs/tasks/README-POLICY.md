@@ -11,12 +11,19 @@
 - Family / slice-id prefix: `PGEN-README-POLICY-<NNNN>`
 - Created: `2026-07-30`
 - Owner: repo-local workflow
-- Source policy: `/Volumes/SSD/Documents/github/fsmgen/README_POLICY.md` — a
-  project-neutral "README Stability Policy". Same volume as this repo, read-only,
-  read once at adoption time; the adopted copy is tracked in-repo at
-  `docs/reference/PGEN_README_STABILITY_POLICY.md` so PGEN never depends on a path
-  outside its own root (CLAUDE.md §12/§13).
-- **Current frontier: `.5`** (`.1`, `.2`, `.4` done; `.3`, `.6`, `.7` routed `todo`).
+- Source policy: a project-neutral "README Stability Policy" authored in a sibling repo on
+  the same volume; read-only, and **copied in** rather than referenced across a boundary, so
+  PGEN never depends on a path outside its own root (CLAUDE.md §12/§13). Two tracked
+  artifacts result, and the distinction is load-bearing:
+  - **`README_POLICY.md`** (repo root) — the **neutral standard**, verbatim, beside the other
+    portable standards (`MEMORY_ARCHITECTURE.md`, `DOCTRINE_ENFORCEMENT.md`, `TOOLBOX.md`).
+    Placed there by director order (`.4`); the policy's own `## Storage location` section now
+    requires exactly this.
+  - **`docs/reference/PGEN_README_STABILITY_POLICY.md`** — PGEN's **instance**: the resolved
+    routing table, the reviewed cap values, the adoption evidence.
+  ⚠️ The source is a *live* file in another repo and it changed mid-session — re-`cmp` before
+  claiming a copy is verbatim (`.4`).
+- **Current frontier: none — tree work is complete for now** (`.1`, `.2`, `.4`, `.5` done; `.3`, `.6`, `.7` routed `todo`, waiting behind product).
 
 ## PRIOR ART (per [[feedback_read_prior_art_before_designing]])
 
@@ -530,10 +537,21 @@ this repo already follows**: the repository root holds the *portable standards*
 each one's PGEN-specific instance. `README_POLICY.md` is a portable standard and belongs
 beside its siblings. **Standard at the root; instance under `docs/`.**
 
-- Copied **verbatim** from the sibling repo that authored it — `cmp -s` reports
-  byte-identical, 2,425 B. Per the data-locality rule it is **copied in, never referenced
-  across a repository boundary** (both repos sit on the same volume, and the source was
-  read-only).
+- Copied **verbatim** from the sibling repo that authored it. Per the data-locality rule it
+  is **copied in, never referenced across a repository boundary** (both repos sit on the same
+  volume, and the source was read-only).
+- ⚠️ **THE SOURCE MOVED MID-SLICE, AND ONLY RE-MEASURING CAUGHT IT.** The first copy was
+  2,425 B; minutes later the same path measured **2,920 B** — the author had added a
+  **`## Storage location`** section and a new adoption step 1, both stating exactly what the
+  director had asked for in words: *"Store the adopting project's canonical copy as the
+  git-tracked `<repository-root>/README_POLICY.md`, alongside `README.md`"*, and *"a
+  user-home, machine-global, or other external copy … must not replace the project-owned
+  repository copy."* ⇒ the placement is now **normative in the policy itself**, not just a
+  preference. The stale copy was refreshed in `PGEN-README-POLICY-0003`.
+  ⭐ **A verbatim copy is only verbatim as of a measurement** — `cmp -s` was re-run rather
+  than assumed, which is the only reason the drift was seen at all. All three copies now hash
+  identically (`091e6922a97b…`), and PGEN satisfies the new clause: tracked, at the repo root,
+  beside `README.md`.
 - `rust/scripts/ci_workflow_local_gate.sh` — `audit_root_markdown_surface` compares the root
   markdown set **verbatim**, so the allowlist gained `README_POLICY.md`.
   ⚠️ **Position was MEASURED, not reasoned**: it sorts **before** `README.md` (exactly as
@@ -546,15 +564,35 @@ beside its siblings. **Standard at the root; instance under `docs/`.**
 
 ---
 
-### `.5` — port the README stability policy to `bedrock` (`todo` — NEXT)
+### `.5` — port the README stability policy to `bedrock` (`done`)
 
-- **Status: `todo`**, opened 2026-07-30 session #230 **BY DIRECT DIRECTOR ORDER**: *"Please
-  update the bedrock with this new README.md policy whenever you can. bedrock repo is
-  located here /Volumes/SSD/Documents/github/bedrock."*
-- ⛔ **Sequencing is not discretionary**: `bedrock` is a **separate repository**, so starting
-  work there is a pivot, and the pivot rule forbids pivoting while this tree's repo is
-  dirty. Hence `.2`/`.4` land and commit first; the director's *"whenever you can"*
-  explicitly permits that ordering.
+- **Status: `done`** (bedrock `BEDROCK-MAINTENANCE.2.1`, commits `e3cb82b` + `5f0a7dc`),
+  opened and closed 2026-07-30 session #230 **BY DIRECT DIRECTOR ORDER**: *"Please update the
+  bedrock with this new README.md policy whenever you can. bedrock repo is located here
+  /Volumes/SSD/Documents/github/bedrock."*
+- ✅ **LANDED IN BEDROCK, under its own discipline** (task-tree leaf first, `make gate`,
+  `COMMIT.md`): `README_POLICY.md` + a neutralized `scripts/check_readme_stability.sh`
+  registered as its **4th doctrine**; the layer-A byte cap added to *its*
+  `check_memory_architecture.sh` **and** to `MEMORY_ARCHITECTURE.md` §6/§9/§9.1; both new
+  files added to the `update_scaffold.sh` NEUTRAL allow-list so existing consumers can pull
+  them; `DOCTRINE_VERSION` **0.1.0 → 0.2.0**; `CHANGELOG.md` noted. Gate **6/6 green**.
+- ⛔ **THE PORT CONFIRMED THE DIAGNOSIS AT THE SOURCE**: bedrock's own layer-A check was
+  `lines=$(wc -l < MEMORY.md)` with a cap of **120** and **no byte bound** — looser than the
+  deployment that failed — and its `MEMORY_ARCHITECTURE.md:129/249/315` carried the same
+  line-only form. ⇒ every project adopting bedrock was inheriting the bypass. The control arm
+  was re-run there too: bedrock's **retired** guard returns exit 0 over a 19,304-byte fixture
+  the new one rejects.
+- ⭐ **CAPS DELIBERATELY DIFFER FROM PGEN'S, and that is a real design point**: a template's
+  caps ship to a README that is *not* bedrock's, so they default to the policy's own published
+  example (300 lines / 16384 bytes) with the policy instructing the consumer to tighten after
+  their own trim. Only the **layer-A** cap was tightened (120 → 50), because the standard
+  already said *"≤ ~50 lines"*.
+- ⭐⭐ **REVERSE-FLOW FINDING, brought back — see `.7`**: bedrock's layer-C check is *stronger*
+  than PGEN's. The documented flow is *"PGEN → generalize → bedrock"*; this went the other way.
+- ⛔ **Sequencing was not discretionary**: `bedrock` is a **separate repository**, so working
+  there is a pivot, and the pivot rule forbids pivoting while this tree's repo is dirty. So
+  `.2`/`.4` landed and committed first (`2db1e18a`), and only then did the port start — the
+  director's *"whenever you can"* explicitly permitted that ordering.
 
 ⭐ **This port carries MORE than the README policy, and that is the whole point.** `bedrock`
 is where the portable spine is maintained ([[project_bedrock_spine_repo]]), and `.2` proved
@@ -568,9 +606,11 @@ port owes **two** things:
    otherwise bedrock keeps handing new projects the bypass PGEN just measured.
 
 Per the porting discipline: strip any domain noun, route through bedrock's own
-`BEDROCK-MAINTENANCE` tree, keep `update_scaffold` neutral, bump `DOCTRINE_VERSION`.
-⚠️ Verify against bedrock's actual tree first — its layout and current `DOCTRINE_VERSION`
-are **unmeasured from here**, and a plausible file name is not a verified destination.
+`BEDROCK-MAINTENANCE` tree, keep `update_scaffold` neutral, bump `DOCTRINE_VERSION` — all
+done, and each step verified against bedrock's **actual** tree rather than assumed. Neutrality
+was measured, not asserted: `grep -ciE 'pgen|grammar|parser|ebnf|systemverilog|regex'` over the
+ported policy → **0**, and the guard cites its evidence as *"a real project running this
+spine"* so the number carries the argument without naming a domain.
 
 ---
 
@@ -634,6 +674,19 @@ check — the fix is a real reconcile (every record has a row, every row a recor
 choosing its failure mode is its own decision, not a drive-by edit. ⚠️ Note the trap: a
 naive reconcile must not be self-referential about `INDEX.md`, per
 `reference_self_referential_assertion_is_unsound.md`.
+
+⭐⭐ **THE IMPLEMENTATION ALREADY EXISTS — IN `bedrock`, AND IT ARRIVED BY THE FLOW RUNNING
+BACKWARDS.** Found while executing `.5`: bedrock's `scripts/check_memory_architecture.sh:23-29`
+already iterates **every** record under `docs/decisions/` and fails unless each is listed in
+`INDEX.md` — the exact record→row direction PGEN is missing. bedrock's `MAINTAINING.md` states
+the flow as *"PGEN → (generalize) → bedrock"* and describes PGEN as *"the reference
+implementation / proving ground"*; here the spine was **ahead of its own reference
+deployment**, and PGEN's `>0` check would have gone on passing indefinitely. ⇒ `.7` should
+**adopt bedrock's implementation** rather than design one, and the tree that owns the
+relationship ([[project_bedrock_spine_repo]]) should record that transfer is **bidirectional**
+— a claim its own porting discipline does not currently make. ⚠️ Honest bound, carried over
+from the bedrock leaf: that check is **one-directional** — it catches a record with no row,
+never a row with no record — so adopting it closes the measured half, not the whole reconcile.
   Deliberately NOT absorbed into `.1` — the fix is one line, but choosing the cap is
   not, and scope creep on a director-scoped ask is its own defect.
 
