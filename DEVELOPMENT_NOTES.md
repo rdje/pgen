@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-README-POLICY-0001 — a guard over an already-clean file proves nothing, and one routing row was named from a chapter title
+
+`README-POLICY.1`. 1 doctrine enforcer + policy doc + README + 3 book chapters + tree + 2 drivers.
+
+- ⭐⭐ THE DESIGN QUESTION THE LEAF REFUSED TO ASSUME — **is a line cap enough?** The repo already had
+  the answer and nobody had read it as an answer. `check_memory_architecture.sh:18-19` has capped
+  layer-A `MEMORY.md` at 60 LINES since the memory architecture was adopted; the file measures
+  **60 lines (passing, exactly at the ceiling) and 149,779 BYTES**. That is 2,496 bytes per line: a
+  document whose own header calls it a *"bounded resume pointer … keep ≤ ~50 lines"* is 150 KB and
+  its guard is green. ⇒ **the line-only shape was available to copy and would have shipped a cap
+  that cannot bind.** The README's own worst offender was the same class from the other direction —
+  4,369 bytes on ONE line, invisible to any line count. Two independent instances, no shared code
+  path ⇒ a defect class in how this repo sizes documents, not a quirk of either file.
+- ⭐⭐⭐ THE LESSON THAT SHAPED THE PROBES: **a size guard over a file you have just trimmed returns 0
+  whether it is working or blind.** GREEN-1 alone would have been theatre. `CTRL-1` therefore
+  replays the REAL pre-trim artifact from git (`git show HEAD:README.md` — 510 lines / 48,811 B,
+  never a synthetic lookalike) and REQUIRES rejection; `CTRL-2` isolates the byte cap by building a
+  22-line / 18,282-byte fixture and asserting a line-only check would PASS it. The second is not a
+  test of the code — it is the *evidence for the design decision*, kept executable so a future
+  session cannot "simplify" the guard back to one cap without a red arm.
+- ⚠️⚠️ **I GOT A ROUTING DESTINATION WRONG AND ONLY VERIFICATION CAUGHT IT.** The routing table sent
+  `Key Project Paths` (43 lines / 11,181 B) to `docs/book/src/source-map.md` — a chapter whose NAME
+  is exactly right and whose CONTENT is a map of book chapters to source *docs*. Measured:
+  `grep -n "grammars/\|rust/src\|generated/" source-map.md` => **0 hits**, and NO book chapter
+  carried a repository path inventory at all. Had the table been trusted, the repo's only path
+  inventory would have been deleted into a chapter that could not receive it. ⇒ **a canonical home
+  named from a plausible chapter title is not a verified destination** — the same "designing from a
+  prose summary instead of the source" shape `DESIGN-PRIOR-ART` exists to stop, arriving through the
+  DELETE direction rather than the invent direction. Rule applied: create the destination, verify it
+  receives the content, *then* remove the source.
+- ⭐ VERIFYING DESTINATIONS PAID A SECOND DIVIDEND: two book chapters asserted `generated/` is
+  version-controlled. `git ls-files generated/` => **0 files**. One of them sat three lines above
+  where this leaf was adding *"`generated/` … not tracked in git"* — shipping without the fix would
+  have published a chapter contradicting itself on the same screen. Neither was in scope; both were
+  false statements about tracked state found by checking a claim, so both were fixed rather than
+  routed.
+- ⚠️ A DEFECT I INTRODUCED INTO MY OWN SCRIPT TWICE, BY DOCUMENTING ITS CORRECTNESS. The driver
+  classifies an enforcer as index-scoped by grepping its **whole source, comments included**. Draft 1
+  of the header explained the check does *not* read the index — naming the flag. Draft 2, documenting
+  draft 1's mistake, quoted the classifier's own regex. Both were reported as *"evaluated NOTHING"*.
+  ⇒ **a script can be mislabelled by describing its own behaviour** when the classifier reads prose
+  as code. Deliberately NOT worked around inside the guard (that would hide the classifier's limit in
+  the one place a future reader would not look); routed to `.3` with the adjudication priced —
+  and `.3` explicitly warns against defaulting to the cheapest option, because an inference that
+  silently mislabels is this repo's own *"a check that cannot see must SAY SO"* one level up.
+- SCOPE HELD: the layer-A byte cap was NOT added opportunistically. The one-line change is trivial;
+  choosing the number is not, and ratifying 149,779 bytes as "bounded" is precisely the *raise the
+  cap to fit the content* move the policy forbids. `.2` owns review -> trim -> cap -> RED probe, and
+  notes the sequencing hazard that `MEMORY.md` is rewritten by every commit workflow.
+
 ## 2026-07-30 - PGEN-CI-PARITY-GATE-ROT-0026 — the fix I set out to make was hardening; RUNNING it found a live defect underneath
 
 `CI-PARITY-GATE-ROT.11` slice 1. 1 gate script + 1 book chapter + README + tree + 1 probe driver.

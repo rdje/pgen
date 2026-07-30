@@ -22,8 +22,16 @@ When the activity is NOT a code change (pure live-docs/contracts/books/tracker/w
 
 ## Files Involved
 - `README.md` (tracked)
-  - Single project entrypoint and navigation hub.
-  - Must be updated whenever objective, canonical flow, key paths, standard commands, or doc map changes.
+  - Single project entrypoint and navigation hub — a **stable landing page**, governed by
+    `docs/reference/PGEN_README_STABILITY_POLICY.md` and mechanically capped by the
+    `README-STABILITY` doctrine (line cap AND byte cap) since 2026-07-30 (`README-POLICY.1`).
+  - Update it only when its purpose, first-use path, top-level architecture, or canonical
+    navigation changes.
+  - ⛔ Ordinary feature work updates the CANONICAL DESTINATION, not the README: gate recipes ->
+    `docs/book/src/gate-flow.md`, operational procedure ->
+    `docs/book/src/operations-and-governance.md`, the repository path inventory ->
+    `docs/book/src/developer-architecture.md`, status -> `LIVE_ACHIEVEMENT_STATUS.md`, history ->
+    `CHANGES.md`. A cap is NEVER raised to land content.
 - `LIVE_ACHIEVEMENT_STATUS.md` (tracked)
   - Authoritative live progress tracker.
   - Must use only `Done`, `Provisional (ceiling)`, `Provisional (corpus pending)`, `Mostly Done`, `In Progress`, and `Not Started` (the `Provisional` pair added 2026-07-29 — a SHIPPING tier for a family meeting legs 1-2 of the `Done` bar but not leg 3; `(ceiling)` = leg 3 unreachable by construction, a FINISHED row; `(corpus pending)` = a recognized corpus exists in the world and wiring it is outstanding. ⛔ Bare `Provisional` is incomplete, and `(ceiling)` requires the language be defined by PGEN itself — "could not find a corpus" is never a ceiling. See `LIVE_ACHIEVEMENT_STATUS.md` Status Rules).
@@ -60,7 +68,7 @@ When the activity is NOT a code change (pure live-docs/contracts/books/tracker/w
 - `questions_keep_untracked.txt` (must remain untracked)
   - User backlog/questions for future UG work.
 - `generated/` artifacts
-  - Repository policy: the `generated/` tree is **not tracked in git** (it is `.gitignore`d) — it is regenerated locally from the grammars + codegen with the per-grammar `make` targets (e.g. `make -C rust focus_<grammar>`). This matches `README.md` (Key Project Paths).
+  - Repository policy: the `generated/` tree is **not tracked in git** (it is `.gitignore`d) — it is regenerated locally from the grammars + codegen with the per-grammar `make` targets (e.g. `make -C rust focus_<grammar>`). This matches `docs/book/src/developer-architecture.md` (Repository Layout), which is where the path inventory lives since `README-POLICY.1`.
   - Because `generated/` is untracked, do **not** stage or commit generated artifacts:
     - never `git add generated/…` — regenerate locally to verify a codegen/grammar change, but the regenerated `generated/*` files are not part of the commit,
     - keep scratch logs and test-only temporary outputs out of `generated/`.

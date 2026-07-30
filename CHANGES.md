@@ -1,5 +1,56 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-README-POLICY-0001 — leaf README-POLICY.1: the README grew to 48,811 bytes with zero instruments watching it
+
+1 new doctrine enforcer + driver registration + mirror + README + 1 new tracked policy doc + 3 book
+chapters + 1 CI allowlist entry + tree + 2 tracked drivers + 2 captures — no `grammars/*.ebnf`, no
+`rust/src/*`, no `generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- SCOPE: adopt a project-neutral README Stability Policy on direct director order, on the ramp-up
+  boundary. Keep `README.md` a stable LANDING PAGE instead of a changelog / roadmap / gate catalogue /
+  documentation inventory.
+- ROOT CAUSE (ops/build-flow, verbatim): `grep -rn "README" scripts/*.sh` => 4 hits, NONE a size
+  check; `grep -rn "line_cap\|byte_cap\|MAX_LINES" scripts/ rust/scripts/` => 0 hits. The only two
+  guards touching the file look elsewhere — `check_diagnostics_and_docpaths.sh:52` audits doc PATHS
+  written inside it, `ci_workflow_local_gate.sh:277` audits which root markdown files EXIST. A README
+  can triple in size with both fully green.
+- MAGNITUDE (census driver, tracked): 510 lines / 48,811 bytes. `Key Project Paths` (43 lines /
+  11,181 B) + `Standard Commands` (197 lines / 15,982 B) = **55.6% of the file**, neither of them
+  landing-page content. `README.md:115` measured **4,369 bytes on ONE line** = 9.0% of the whole
+  file. 6 date-stamped historical annotations.
+- BOTH CAPS, AND WHY: a line cap alone is measurably bypassable **in this repository today** —
+  `check_memory_architecture.sh:18-19` caps layer-A `MEMORY.md` at 60 lines and it PASSES at
+  **60 lines / 149,779 bytes** (2,496 B/line). Routed to `README-POLICY.2`; NOT fixed by ratifying
+  150 KB as "bounded".
+- BEFORE -> AFTER: 510 -> **178** lines, 48,811 -> **8,287** bytes, longest line 4,369 -> **147** B,
+  date-stamped annotations 6 -> **0**, instruments watching README size 0 -> **1**.
+- SHIPPED: `docs/reference/PGEN_README_STABILITY_POLICY.md` (tracked in-repo, not referenced across a
+  volume boundary); `scripts/check_readme_stability.sh` (non-mutating; line cap 220, byte cap 10240,
+  ~24% headroom each; changelog-leakage tripwire; policy-link check; REFUSES exit 2 rather than
+  passing when README or policy is absent); registered as the **15th doctrine** `README-STABILITY`
+  with the `DOCTRINE_ENFORCEMENT.md` §10 mirror row the driver's meta-check enforces => pre-commit
+  (E3) AND CI (E4) automatic tier for free.
+- PROBES 9 pass / 0 fail. `CTRL-1` replays the REAL pre-trim `HEAD:README.md` (510 lines / 48,811 B)
+  and requires REJECTION — without it a clean sweep and a blind detector are indistinguishable.
+  `CTRL-2` shows a line-only check PASSES a 22-line / 18,282-byte fixture that the byte cap rejects,
+  which is what justifies the design over copying the existing line-only shape.
+- ONE ROUTING ROW WAS WRONG WHEN DRAFTED: `Key Project Paths` was routed to
+  `docs/book/src/source-map.md` on the strength of its NAME; measured 0 path hits — that chapter maps
+  book chapters to source docs. NO book chapter carried a path inventory. The destination section was
+  CREATED in `docs/book/src/developer-architecture.md` BEFORE the trim, or 11,181 B would have been
+  deleted into a chapter that could not receive it.
+- TWO FALSE BOOK CLAIMS FIXED EN ROUTE: `developer-architecture.md` ("Generated artifacts are tracked
+  on purpose") and `getting-started.md` ("generated artifacts are version controlled") — measured
+  `git ls-files generated/` => **0 files**. The first sat three lines from the new section stating the
+  opposite.
+- `.3` ROUTED: the driver's vacuity classifier text-matches an enforcer's SOURCE INCLUDING COMMENTS,
+  so a script can be mislabelled "evaluated NOTHING" by documenting that it does not read the index.
+  Tripped twice while writing this leaf. Reporting-only; no verdict affected; verified today it
+  mislabels no other enforcer.
+- VERIFIED: ALL **15** doctrines PASS + `<meta:mirror>` PASS; `mdbook_docs_gate` green (10 per-parser
+  book gates + main book); all 25 README links resolve; docpath doctrine OK; `bash -n` clean on both
+  edited scripts; `docs/reference/` allowlist kept in `sort` order.
+
 ## 2026-07-30 - PGEN-CI-PARITY-GATE-ROT-0026 — leaf CI-PARITY-GATE-ROT.11 slice 1: the flagship aggregate read its SV/VHDL telemetry from prose, and in reuse mode published 22 values as `unknown`
 
 1 gate script + 1 book chapter + README + tree + 1 tracked probe driver + 2 captures — no

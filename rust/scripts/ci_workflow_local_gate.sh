@@ -423,6 +423,10 @@ audit_reference_docs_surface() {
     "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md"
     "docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md"
     "docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md"
+    # README-POLICY.1 (2026-07-30): the adopted README Stability Policy. Tracked in-repo rather
+    # than referenced across a volume boundary (CLAUDE.md §12/§13). ⚠️ ORDER IS LOAD-BEARING —
+    # this list is compared verbatim against `sort` output, and README sorts before RELEASE.
+    "docs/reference/PGEN_README_STABILITY_POLICY.md"
     "docs/reference/PGEN_RELEASE_POLICY.md"
     "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md"
     "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md"

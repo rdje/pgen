@@ -1,0 +1,40 @@
+# README content census — BEFORE (HEAD:README.md)
+
+== census: README.md (HEAD, pre-trim) ==
+total: 510 lines, 48811 bytes
+
+start  lines  bytes     section
+-----  -----  -----     -------
+5      49     3429      Project Objective
+54     26     3130      Canonical Flow
+80     27     1996      Fast Ramp-Up (Read In This Order)
+107    43     11181     Key Project Paths
+150    9      1615      Diagnostic & Debug Toolbox (use FIRST, every time)
+159    197    15982     Standard Commands
+356    16     795       Documentation Book
+372    32     2678      Per-Parser Integration Reference Books
+404    29     1611      Documentation Status
+433    20     1998      Documentation Structure
+453    58     4319      Active Markdown Index
+
+== growth-guard reading ==
+lines=510 bytes=48811
+
+# README content census — AFTER (working tree)
+
+== census: README.md ==
+total: 178 lines, 8287 bytes
+
+start  lines  bytes     section
+-----  -----  -----     -------
+20     25     1347      Scope
+45     6      214       Prerequisites
+51     30     1204      Quick Start
+81     24     1155      Architecture At A Glance
+105    22     815       Running The Gates
+127    19     766       Documentation
+146    20     1035      Read In This Order
+166    13     805       Contributing
+
+== growth-guard reading ==
+lines=178 bytes=8287

@@ -67,6 +67,83 @@ Two consequences worth remembering:
   automatic — verifying and preserving near-linear time under state is an explicit,
   tracked correctness concern (see the parser termination work).
 
+## Repository Layout
+
+The canonical path inventory. This chapter is its **only** home: per the
+[PGEN README Stability Policy](../../reference/PGEN_README_STABILITY_POLICY.md), the
+README carries architecture *at a glance*, and the exhaustive inventory lives here.
+
+All paths are **relative to the repository root** — the root may be moved or relocated
+to another filesystem without affecting the project.
+
+### Grammars and generated output
+
+| Path | What it holds |
+|---|---|
+| `grammars/` | EBNF sources (`*.ebnf`) — the single source of truth for every deliverable parser |
+| `grammars/builtin_return_annotation.ebnf`, `grammars/builtin_semantic_annotation.ebnf` | bootstrap-safe annotation grammar contracts that break the annotation-parser chicken-and-egg cycle |
+| `grammars/scratch/scratch.ebnf` | the **parse-harness scratch slot** — a blessed throwaway probe grammar whose body you overwrite freely to run an arbitrary grammar's input through the whole `parseability_probe` toolbox. See [The Parse Harness](parse-harness.md) |
+| `generated/` | pipeline-output artifacts (parser sources, AST JSON dumps, return-annotation inventories) consumed by compile-time includes. ⛔ **Not tracked in git** — regenerate with `make -C rust SHELL=/bin/bash regenerate_generated_parsers` (see [The Gate Flow](gate-flow.md)) |
+| `rust/target/generated_logs/` | scratch generation/debug logs, kept out of `generated/` |
+
+### Rust surfaces
+
+| Path | What it holds |
+|---|---|
+| `rust/src/` | the Rust AST pipeline, generators, parser registry, embedding API |
+| `rust/build.rs` | compile-time generated-parser include-path resolver; emits *relative* `include!(env!(...))` paths so clean checkouts and relocated worktrees never depend on absolute filesystem paths |
+| `rust/scripts/` | executable quality gates and policy runners |
+| `rust/config/branch_protection_policy.json` | the tracked minimum branch-protection required-check contract |
+| `rust/test_data/grammar_quality/` | gate contracts, corpora, deterministic case manifests |
+| `rust/docs/` | Rust-specific architecture/API/test docs |
+
+### Phase S bootstrap crates
+
+| Path | What it holds |
+|---|---|
+| `rtl_const_expr/` | standalone constant-expression parser/evaluator baseline crate, including dotted and package-qualified (`pkg::NAME`) identifier lookup. Paired with `grammars/rtl_const_expr.ebnf` |
+| `rtl_frontend/` | synthesizable-RTL frontend baseline crate wired to `rtl_const_expr`. Paired with `grammars/rtl_frontend.ebnf` and a curated generated-contract gate |
+
+⭐ The **capability detail** for these two crates — which SystemVerilog constructs are
+covered, which contract version is released, what the curated manifest proves — is
+deliberately not duplicated here. It moves with the code, so it lives with the code's
+own contract: `docs/contracts/` and `docs/rtl_frontend_parser_book/`, with live status
+in `LIVE_ACHIEVEMENT_STATUS.md`.
+
+### External corpora and stimulus sources
+
+| Path | What it holds |
+|---|---|
+| `regex_corpus_bundle/` | PCRE2-first regex corpus acquisition/inventory; immutable upstream snapshots kept separate from normalized corpus/oracle outputs |
+| `json_corpus_bundle/` | the external test-corpus surface for the `json` parser — a vendored JSONTestSuite snapshot plus a reproducible runner and a measured characterization |
+| `stimuli/generators/anvil/` | **ANVIL** (submodule) — a random by-construction generator of synthesizable SystemVerilog, the independent stimulus source for the `rtl_frontend` / `rtl_const_expr` families. Its validity model is architecturally independent of any grammar, and it is byte-reproducible per `(seed, knobs)`. ⛔ Deliberately **not** under `stimuli/*/subs/`: everything there is a vendored *corpus*, and ANVIL is a *generator* |
+
+### Language-reference workspaces
+
+| Path | What it holds |
+|---|---|
+| `docs/systemverilog/2017`, `docs/systemverilog/2023` | SV LRM conversion workspaces |
+| `docs/vhdl/2019` | VHDL LRM conversion workspace |
+| `docs/verilog/2005` | Verilog LRM conversion workspace |
+| `docs/tcl/md/tcl.md` | local Tcl syntax note for the pending SDC/Tcl-shaped PNR lane — reference input only, not a shipped grammar |
+
+The extracted and profiled grammar snapshots those workspaces produce
+(`grammars/systemverilog_2017_lrm_extracted.ebnf`,
+`grammars/systemverilog_2023_lrm_extracted.ebnf`,
+`grammars/verilog_2005_lrm_extracted.ebnf`, and the profiled synthesis artifacts) are
+retained in `grammars/` for regeneration traceability.
+
+### Documentation and tooling
+
+| Path | What it holds |
+|---|---|
+| `docs/book/` | this book — the curated live mastery surface |
+| `docs/contracts/` | downstream parser integration contracts, the issue-reporting protocol, the released-parser bug ledger |
+| `docs/reference/` | normative specs, matrices, closure roadmaps, release and README policy |
+| `docs/tasks/`, `docs/decisions/` | task trees (layer B) and durable decision records (layer C) |
+| `tools/`, `perl/` | conversion/extraction workflows and the legacy EBNF-to-JSON path still used in the hybrid flow |
+| `tests/` | test how-to and test guides |
+
 ## Core Areas
 
 ### Rust AST pipeline
@@ -75,7 +152,17 @@ This is where grammar AST transformation, parser generation, stimuli generation,
 
 ### Generated artifact policy
 
-Generated artifacts are tracked on purpose. That makes clean-checkout validation and reproducible contract work possible.
+⚠️ **Corrected 2026-07-30 (`README-POLICY.1`).** This section previously read
+*"Generated artifacts are tracked on purpose"*. That is false and was measured so:
+`git ls-files generated/` returns **0 files**. `generated/` is **untracked**, and a
+clean checkout must run `make -C rust SHELL=/bin/bash regenerate_generated_parsers`
+before the crate will build with `--features generated_parsers` — `rust/src/lib.rs:72,78`
+include the two annotation parsers by literal path with no `has_generated_*` cfg, so
+their absence is a hard rustc error rather than a disabled feature.
+
+What *is* true, and what the stale sentence was reaching for, is the property below:
+reproducibility does not come from tracking the artifacts, it comes from the generator
+being deterministic.
 
 For that reproducibility to hold, **code generation is deterministic**: regenerating a parser
 from the same grammar source (to the same output path) produces byte-identical output, so the

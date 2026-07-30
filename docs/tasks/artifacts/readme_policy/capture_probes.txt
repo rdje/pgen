@@ -1,0 +1,14 @@
+== README stability probes ==
+  ✓ GREEN-1    exit=0  readme-stability: OK
+  (CTRL-1 fixture: HEAD:README.md = 510 lines, 48811 bytes)
+  ✓ CTRL-1     exit=1  > cap
+  ✓ RED-1      exit=1  lines (> cap
+  (RED-2 fixture: 22 lines — UNDER the 220 line cap — but 18282 bytes)
+  ✓ RED-2      exit=1  bytes (> cap
+  ✓ CTRL-2     line-only check would PASS the RED-2 fixture (22 <= 220) ⇒ byte cap is non-redundant
+  ✓ RED-3      exit=1  date-stamped
+  ✓ RED-4      exit=1  no longer links
+  ✓ REFUSE-1   exit=2  REFUSED
+  ✓ REFUSE-2   exit=2  REFUSED
+
+probes: 9 pass / 0 fail

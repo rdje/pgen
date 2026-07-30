@@ -68,6 +68,50 @@ These files are intentionally operational. They preserve live state, implementat
 
 They are important, but they are not the primary outward-facing documentation surface.
 
+### 4. The README — a landing page, not a layer
+
+`README.md` sits outside the three layers on purpose. It is the **stable landing page**:
+the first thing a visitor reads, and the map to everything above. It is *not* a place
+detail accumulates.
+
+This is a governed contract, not a preference —
+[`docs/reference/PGEN_README_STABILITY_POLICY.md`](../../reference/PGEN_README_STABILITY_POLICY.md),
+adopted 2026-07-30 and enforced by the `README-STABILITY` doctrine
+(`scripts/check_readme_stability.sh`) on every commit and every push.
+
+**Keep in the README:** purpose, audience and top-level scope; prerequisites and one
+minimal verified quick start; stable architecture at a glance; links to canonical
+documentation; license and repository-level notices.
+
+**Route everything else** to the home that owns it — gate recipes to
+[The Gate Flow](gate-flow.md), operational procedure to
+[Operations and Governance](operations-and-governance.md), the path inventory to
+[Developer Architecture](developer-architecture.md), status to
+`LIVE_ACHIEVEMENT_STATUS.md`, history to `CHANGES.md`, rationale to `docs/decisions/`.
+
+Change the README only when its **purpose**, **first-use path**, **top-level
+architecture** or **canonical navigation** changes. Ordinary feature work updates the
+canonical destination instead.
+
+#### Why it is mechanically capped — and why *two* caps
+
+The README reached **510 lines / 48,811 bytes** with nothing watching it, because both
+guards that touched it looked elsewhere: one audits the doc *paths written inside* it,
+the other audits which root markdown files *exist*. A README can triple in size with both
+green. 55.6% of it had become a file inventory plus an operations manual, and one bullet
+was **4,369 bytes on a single line**.
+
+So the doctrine enforces a **line cap and a byte cap together** — they are complements,
+not belt-and-braces. This repository already had the line-only shape in isolation and it
+is measurably bypassed: `scripts/check_memory_architecture.sh` caps layer-A `MEMORY.md`
+at 60 lines, and when this policy was adopted (2026-07-30) that file passed at **60 lines /
+149,779 bytes** — a "bounded resume pointer" that is a ~150 KB document. Neither wrapped prose nor very long lines can be
+allowed to bypass the budget.
+
+⛔ **A cap is never raised to land new content.** Move the detail to its canonical home.
+Raising one requires an explicit reviewed decision recorded in
+`docs/tasks/README-POLICY.md` that the landing-page contract itself expanded.
+
 ## What Belongs In The Book
 
 Anything that an external reader needs in order to genuinely understand or master PGEN should eventually have first-class representation in the book.

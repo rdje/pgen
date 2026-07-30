@@ -23,7 +23,9 @@ make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate
 
 ## What To Expect
 
-- generated artifacts are version controlled,
+- generated artifacts are **not** version controlled — `generated/` is untracked
+  (measured: `git ls-files generated/` → 0 files), so a clean checkout must run
+  `make -C rust SHELL=/bin/bash regenerate_generated_parsers` first,
 - the maintained Rust MSRV is `1.95`,
 - quality gates matter,
 - continuity docs matter,
