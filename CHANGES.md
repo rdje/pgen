@@ -1,5 +1,35 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-README-POLICY-0004 — leaf README-POLICY.7: the layer-C index check was satisfied without binding; ADOPTED the stronger form from the spine repo
+
+1 doctrine enforcer + 1 decision record + mirror + tree + 1 probe driver + 1 capture — no
+`grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11 generated parsers byte-identical
+BY CONSTRUCTION.
+
+- ROOT CAUSE (ops/build-flow): E2.5 asserted only that INDEX.md had MORE THAN ZERO rows while
+  records existed, so it could not see a PARTIAL index. Measured: 135 records / 133 rows,
+  doctrine green, two records invisible to layer C's own index.
+- ⭐ ADOPTED, NOT DESIGNED — AND THE FLOW RAN BACKWARDS. The working implementation already
+  existed in the portable spine repo (bedrock), whose documented transfer direction is one-way
+  (PGEN -> generalize -> bedrock). Generalizing a check is a REWRITE, not a copy, so the neutral
+  version can come out stronger; it did. Director confirmed: transfer runs BOTH WAYS.
+- ⭐⭐ Strengthened twice on adoption, both measured: (1) ROW-ANCHORED — a bare basename match
+  false-passes a record merely MENTIONED in a neighbouring row's prose, and that shape already
+  exists in PGEN's index (project_json_full_standard_proof.md occurs twice); (2) BIDIRECTIONAL —
+  a row naming a deleted record is an index that lies the other way, which the adopted version
+  is honest about not covering. The improved form was sent BACK to bedrock.
+- ⚠️ A TRIGGER WAS PROPOSED AND THEN REJECTED ON MEASUREMENT: "diff the two copies when you
+  port" is noise-dominated — of the 12 files present in both repos, 11 differ by 15-559 lines,
+  because PGEN's copies deliberately carry project evidence and bedrock's are deliberately
+  neutral. A gate that reports hundreds of intended differences teaches authors to waive it.
+  The right trigger compares BEHAVIOUR (run both implementations against one fixture, compare
+  verdicts) and is recorded as unbuilt, not claimed.
+- PROBES 6/0. CTRL-1 executes the RETIRED check from `git show HEAD:` and shows it reporting OK
+  with a record missing from the index. CTRL-2 shows a bare-basename matcher PASSING a record
+  hidden behind a prose mention while the shipped form rejects.
+- VERIFIED: ALL 15 doctrines PASS + <meta:mirror>; 137 records / 137 rows; bash -n clean.
+  No tracker row moved.
+
 ## 2026-07-30 - PGEN-README-POLICY-0003 — leaf README-POLICY.5: the policy ported to the spine repo, which was shipping the same bypass
 
 Policy copy refreshed + tree (`.4` source-drift note, `.5` done, `.7` reverse-flow finding) —

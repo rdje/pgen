@@ -1,0 +1,9 @@
+== layer-C reconcile probes (check_memory_architecture.sh E2.5) ==
+  ✓ GREEN-1    exit=0  memory-arch: OK
+  ✓ RED-1      exit=1  record gamma.md has NO row
+  ✓ RED-2      exit=1  which does not exist
+  ✓ CTRL-1     exit=0  the RETIRED check reports OK with a record missing from the index ⇒ BLIND
+  ✓ CTRL-2     bare-basename matcher PASSES (prose mention) while the row-anchored form REJECTS ⇒ anchoring is load-bearing
+  ✓ CTRL-3     exit=1  INDEX.md
+
+probes: 6 pass / 0 fail

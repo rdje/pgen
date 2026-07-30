@@ -23,7 +23,7 @@
     routing table, the reviewed cap values, the adoption evidence.
   ⚠️ The source is a *live* file in another repo and it changed mid-session — re-`cmp` before
   claiming a copy is verbatim (`.4`).
-- **Current frontier: none — tree work is complete for now** (`.1`, `.2`, `.4`, `.5` done; `.3`, `.6`, `.7` routed `todo`, waiting behind product).
+- **Current frontier: none — tree work is complete for now** (`.1`, `.2`, `.4`, `.5`, `.7` done; `.3`, `.6` routed `todo`, waiting behind product).
 
 ## PRIOR ART (per [[feedback_read_prior_art_before_designing]])
 
@@ -649,10 +649,10 @@ path. That is what makes it a defect class rather than one script's bug.
 
 ---
 
-### `.7` — ROUTED: the layer-C index check is satisfied without binding (`todo`)
+### `.7` — the layer-C index check is satisfied without binding (`done`)
 
-- **Status: `todo`**. Found by `.2`'s census, and it is the **same disease as `.2` itself,
-  one check down in the same file.**
+- **Status: `done`** (`PGEN-README-POLICY-0004`, session #230). Found by `.2`'s census, and it is the
+  **same disease as `.2` itself, one check down in the same file.**
 
 `scripts/check_memory_architecture.sh` E2.5 asserts only that `docs/decisions/INDEX.md`
 lists **more than zero** rows when records exist:
@@ -686,7 +686,59 @@ deployment**, and PGEN's `>0` check would have gone on passing indefinitely. ⇒
 relationship ([[project_bedrock_spine_repo]]) should record that transfer is **bidirectional**
 — a claim its own porting discipline does not currently make. ⚠️ Honest bound, carried over
 from the bedrock leaf: that check is **one-directional** — it catches a record with no row,
-never a row with no record — so adopting it closes the measured half, not the whole reconcile.
+never a row with no record.
+
+#### What shipped — ADOPTED, then strengthened twice
+
+E2.5 is now a real reconcile, and both strengthenings were **measured, not stylistic**:
+
+1. **Row-anchored**, not a bare basename grep. bedrock's form matches the filename *anywhere*
+   in `INDEX.md`, so a record with no row of its own still passes if a neighbouring row's prose
+   names it. ⚠️ That shape is **already present** in PGEN's live index:
+   `project_json_full_standard_proof.md` occurs **twice** (its own row + a cross-reference in
+   another row). No live false-pass today; the hazard is structural and one edit away.
+2. **Bidirectional** — a row naming a record that no longer exists is an index that lies in the
+   other direction. That closes the half bedrock's version is honest about not covering.
+
+⇒ the improved form was then **sent back to bedrock**, so the spine keeps the better one. See
+[[project_bedrock_spine_repo]] — transfer runs both ways, director-confirmed.
+
+#### Probe results — 6 pass / 0 fail
+
+`docs/tasks/artifacts/readme_policy/run_layer_c_reconcile_probes.sh`
+
+| probe | asserts |
+|---|---|
+| `GREEN-1` | a reconciled index passes |
+| `RED-1` | a record with **no row** is rejected |
+| `RED-2` | a row naming a **missing record** is rejected |
+| ⭐ `CTRL-1` | the **retired** check, executed from `git show HEAD:`, reports `memory-arch: OK` with a record missing from the index ⇒ it was genuinely blind |
+| ⭐⭐ `CTRL-2` | a **bare-basename** matcher PASSES a record hidden behind a neighbour's prose mention while the shipped row-anchored form REJECTS ⇒ the anchoring is load-bearing, not stylistic |
+| `CTRL-3` | removing `INDEX.md` still fails ⇒ the harness is not vacuously green |
+
+#### ACCEPTANCE CHECKLIST (enforced by `scripts/check_diagnosis_evidence.sh`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family, real invocations:
+
+  ```
+  $ git show HEAD:scripts/check_memory_architecture.sh | sed -n '/E2.5/,/^fi$/p' | grep idx_rows
+    idx_rows=$(grep -cE '^\| \[' docs/decisions/INDEX.md || true)
+    [ "$idx_rows" -gt 0 ] || note "... INDEX.md lists none (out of sync)"
+  ```
+
+  ⇒ the bound was *"more than zero rows"*, so it could not see a partial index. Measured at
+  the start of `.2`: **135 records / 133 index rows**, doctrine green, two records unindexed.
+- [x] **ADDRESSED (verified)** — `git ls-files docs/decisions/ | wc -l` and the row extractor
+  now agree at **137 / 137**, and the guard REJECTS both failure directions. Proven
+  non-vacuous by re-executing the retired check from `git show HEAD:`, which reports
+  `memory-arch: OK` over a fixture holding an unindexed record (`CTRL-1`). Probes **6/0**.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 15 doctrines PASS** +
+  `<meta:mirror>`; layer A 39/50 lines, 6,267/7,168 bytes; `bash -n` clean on the enforcer and
+  the new probe driver. ⛔ no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒
+  **all 11 generated parsers byte-identical BY CONSTRUCTION.** No tracker row moved.
+- [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10 `MEMORY-ARCH` row,
+  `docs/decisions/project_bedrock_spine_repo.md` (transfer runs both ways), `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
   Deliberately NOT absorbed into `.1` — the fix is one line, but choosing the cap is
   not, and scope creep on a director-scoped ask is its own defect.
 

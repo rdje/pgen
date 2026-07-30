@@ -65,14 +65,54 @@ done
 [ -f docs/TASK_TREE.md ] || note "docs/TASK_TREE.md (layer B index) is missing"
 [ -d docs/tasks ] || note "docs/tasks/ (layer B task-trees) is missing"
 
-# E2.5 — layer C: decisions dir + index present, and the index is not empty while
-# records exist (a cheap in-sync sanity check, not a full reconcile).
+# E2.5 — layer C: decisions dir + index present, and the index RECONCILES with the records.
+#
+# ⛔ WHAT THIS REPLACED, AND WHY (README-POLICY.7): the previous form asserted only that
+# INDEX.md had MORE THAN ZERO rows while records existed. It therefore passed at
+# 135 records / 133 index rows — two records invisible to layer C's own index with the
+# doctrine fully green. That is the same disease as the layer-A line-only cap one check
+# above: a bound satisfied without binding.
+#
+# ⭐ PROVENANCE — ADOPTED, NOT DESIGNED, AND THE FLOW RAN BACKWARDS. The working
+# implementation already existed in the portable spine repo this project extracted its
+# discipline INTO, whose documented transfer direction is one-way (reference deployment ->
+# spine). Generalizing a check is a REWRITE, not a copy, so the neutral version can come out
+# stronger — it did. Found only because a port happened to open that file.
+#
+# ⭐⭐ Two deliberate strengthenings over the adopted version, both measured here:
+#   (1) ROW-ANCHORED, not a bare basename grep. A basename match anywhere in INDEX.md
+#       false-passes a record that is merely MENTIONED in another row's prose. Measured:
+#       `project_json_full_standard_proof.md` already occurs TWICE (its own row + a prose
+#       link in a neighbouring row), so the shape that hides a missing row is present today
+#       even though no record currently exploits it.
+#   (2) BOTH DIRECTIONS. The adopted version is honest that it is one-directional (a record
+#       with no row, never a row with no record). A row pointing at a deleted record is an
+#       index that lies in the other direction, so it is checked too.
+#
+# ⚠️ Not self-referential (reference_self_referential_assertion_is_unsound.md): every
+# assertion here is about a file OTHER than the one the assertion lives in, and INDEX.md is
+# excluded from the record loop. ⚠️ grep reads the FILE directly — never
+# `printf "$var" | grep -q`, which returns failure ON SUCCESS past the pipe buffer under
+# `pipefail` (README-POLICY.6).
 if [ -d docs/decisions ]; then
-  [ -f docs/decisions/INDEX.md ] || note "docs/decisions/INDEX.md (layer C index) is missing"
-  rec_count=$(find docs/decisions -maxdepth 1 -name '*.md' ! -name 'INDEX.md' | wc -l | tr -d ' ')
-  if [ -f docs/decisions/INDEX.md ] && [ "$rec_count" -gt 0 ]; then
-    idx_rows=$(grep -cE '^\| \[' docs/decisions/INDEX.md || true)
-    [ "$idx_rows" -gt 0 ] || note "docs/decisions/ has $rec_count records but INDEX.md lists none (out of sync)"
+  if [ ! -f docs/decisions/INDEX.md ]; then
+    note "docs/decisions/INDEX.md (layer C index) is missing"
+  else
+    # Forward: every record must have its OWN ROW in the index.
+    for f in docs/decisions/*.md; do
+      [ -e "$f" ] || continue
+      b="$(basename "$f")"
+      case "$b" in INDEX.md|TEMPLATE.md) continue ;; esac
+      b_re="$(printf '%s' "$b" | sed 's/\./\\./g')"
+      grep -qE "^\| \[$b_re\]\($b_re\)" docs/decisions/INDEX.md \
+        || note "layer C: record $b has NO row in docs/decisions/INDEX.md (a record nothing indexes is unreachable by topic)"
+    done
+    # Reverse: every indexed row must point at a record that exists.
+    while IFS= read -r row; do
+      [ -n "$row" ] || continue
+      [ -f "docs/decisions/$row" ] \
+        || note "layer C: INDEX.md has a row for $row, which does not exist (the index names a record that is gone)"
+    done < <(sed -nE 's/^\| \[([A-Za-z0-9_.-]+\.md)\]\(\1\).*/\1/p' docs/decisions/INDEX.md)
   fi
 else
   note "docs/decisions/ (layer C) is missing"

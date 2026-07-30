@@ -30,6 +30,18 @@ The spine is what `MEMORY_ARCHITECTURE.md` and `DOCTRINE_ENFORCEMENT.md` each de
 honest, because a second consumer is what proves a standard is portable rather than merely
 described as portable.
 
+## ⭐ The purpose, stated by the director (2026-07-30)
+
+> *"The next projects I will start using bedrock as a template should inherit the best of the
+> best, the best SOTA, best signoff, the best discipline, that we currently have."*
+
+⇒ bedrock is **not an archive of what was extracted once**; it is the seed every future project
+grows from, so the bar for it is *the best PGEN currently has*, continuously. A general
+improvement that lands in PGEN and is not ported is a defect in every project started after it.
+⚠️ **Measured gap at the time of writing: PGEN enforces 15 doctrines, bedrock 4.** Not all 11 are
+portable — several name grammars/parsers by construction — but the portable subset is the
+backlog this record now obliges someone to work.
+
 ## The porting discipline
 
 When a **general** doctrine or structural improvement lands in PGEN, port it to `bedrock`:
@@ -40,6 +52,39 @@ When a **general** doctrine or structural improvement lands in PGEN, port it to 
    same task-tree discipline it ships.
 3. Keep `update_scaffold` **neutral**.
 4. **Bump `DOCTRINE_VERSION`** so consumers can tell what they have.
+
+## ⭐⭐ Transfer runs BOTH WAYS (director-confirmed 2026-07-30: *"Both ways"*)
+
+The spine repo's own `MAINTAINING.md` documents a one-way pipe — *"PGEN → (generalize) →
+bedrock → other projects"*, with PGEN as *"the reference implementation / proving ground"*. That
+is the common case, not the only one, and the process had **no step for the reverse**.
+
+⛔ **Measured counter-example, and it was found by accident.** bedrock's layer-C check already
+reconciled every decision record against `INDEX.md`; PGEN's asserted only that the index had
+*more than zero rows* — and passed at **135 records / 133 rows**, two records invisible to their
+own index with the doctrine green. The stronger implementation sat in the *downstream* repo, and
+PGEN's weaker one would have kept passing indefinitely. It surfaced only because an unrelated
+port happened to open that file.
+
+⭐ **And bedrock can legitimately be ahead by construction**: generalizing a check is a
+**rewrite**, not a copy. Stripping domain assumptions regularly yields a cleaner, stronger
+check. So the distillation step can *improve* the thing — a mechanism, not a fluke, which is why
+it will recur.
+
+⚠️ **The obvious trigger does NOT work, and was rejected on measurement.** "Diff the two copies
+whenever you port" sounds cheap; measured across the 12 files present in both repos, **11
+differ, by 15–559 lines**, because PGEN's copies deliberately carry project-specific evidence
+while bedrock's are deliberately neutral. A raw text diff is noise-dominated and would be
+waived — the gate that teaches you to ignore it. ⇒ the right trigger compares **behaviour, not
+text**: where both repos implement the same invariant, run both against one fixture and compare
+verdicts (the differential-oracle shape PGEN already trusts elsewhere). Tracked as unbuilt work,
+not claimed.
+
+⭐ **Worked example of the loop closing, same session**: bedrock's reconcile was adopted into
+PGEN and *strengthened* on the way in — row-anchored (a bare basename match false-passes a
+record merely mentioned in a neighbouring row's prose; that shape already exists in PGEN's index)
+and bidirectional (a row naming a deleted record is also an index that lies). The improved form
+then went **back** to bedrock. PGEN → bedrock → PGEN, in one sitting.
 
 ## The boundary — both directions
 
