@@ -7,7 +7,15 @@
 - Family / slice-id prefix: `PGEN-CI-PARITY-GATE-ROT-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- ⛔⛔ **CLOSURE WITHDRAWN — `.7` IS OPEN. Frontier: `.7`** (then `.11`, `.10`, `.16`).
+- ✅ **`.7` IS DONE (2026-07-30, `-0024`) — `sota_exit_gate` went GREEN END-TO-END for the first time
+  (32/32 stages, 4 h 39 m).** ✅ **`.11` SLICE 1 DONE (2026-07-30, `-0026`) — the director-greenlit ONE
+  SLICE before product: the flagship aggregate's SV/VHDL stimuli telemetry now reads each stage's
+  STRUCTURED `summary.txt` instead of its prose log, and the change turned out to be a **repair** — in
+  reuse mode the aggregate had been publishing **22 SV telemetry values as `unknown`** while printing
+  `✅ SOTA exit gate passed.`.
+  **Frontier: NONE in this tree — product now** (`LANG-CAPABILITY-AUDIT.4` + the regex leg-1 debt).
+  Remaining flow leaves stay ROUTED behind product: `.11` (11 of 13 METRIC sites), `.18` (new), `.10`,
+  `.16`, `.17`.
   ✅ **`.14` done 2026-07-29 session #222 — and the leaf's FILED SCOPE would have been the WRONG FIX.**
   It was filed as *"the aggregate still reads that gate's `summary.json`"*; the read **is** guarded —
   the guard tests a DIFFERENT FILE (`summary.txt`) and tests EXISTENCE where it needs CONTENT, and
@@ -1138,7 +1146,7 @@ Recorded because `.9` **routed a finding back out of this tree** (the `REGEX-PCR
 
 ---
 
-### `.11` — the stale-log-metric class: 14 further gates scrape prose log lines for values, and nobody has checked them (`todo` — ⭐ DIRECTOR-GREENLIT NEXT, 2026-07-30)
+### `.11` — the stale-log-metric class: 14 further gates scrape prose log lines for values, and nobody has checked them (`in-progress` — ⭐ SLICE 1 DONE 2026-07-30 `PGEN-CI-PARITY-GATE-ROT-0026`; 11 of 13 METRIC sites remain, ROUTED behind product)
 
 #### ⭐⭐ SEQUENCING RULING (director 2026-07-30, session #227) — this leaf is the ONE flow exception before product
 
@@ -1257,13 +1265,231 @@ the first thing to answer for each of the 13 — not assumed.
   express *"a metric must not be scraped from prose when a structured artifact carries it"*, and
   price it before mechanizing (`GENERATED-LINT-CORRECTNESS.4`'s rule: do not mechanize for one
   occurrence — here there are provably more than one).
-- ⚠️ **Triage DONE, fixes NOT started.** The triage is read-only, so it ran while `.7`'s acceptance
-  run 3 was in flight. No `rust/scripts/*` was touched — editing those under a running aggregate
-  invalidates the measurement without announcing it (`.6`'s rule).
 - **Instrument:** `docs/tasks/artifacts/ci_parity_gate_rot/run_log_scrape_census.sh` (reproducible,
   self-calibrating — it asserts the three `.9` sites are present and the two known false positives
   absent, and prints `MISCALIBRATED` + exits nonzero rather than reporting a smaller, comfortable
   number). Capture: `log_scrape_census.txt`.
+- ⛔ **CORRECTION to the triage table above (2026-07-30):** the prose said `DIAGNOSTIC 2 / REVIEW 9`.
+  The instrument and its own tracked capture both say **`DIAGNOSTIC 4 / REVIEW 7`**, and the live
+  re-run is byte-identical to the capture (`diff` exit 0). The prose was the stale surface, not the
+  measurement. Totals (53 sites / 16 scripts / 6 FIXED / 13 METRIC / 23 VERDICT) are unchanged.
+  *When a written number disagrees with the instrument that produced it, the instrument wins.*
+
+---
+
+#### ✅ SLICE 1 DONE (2026-07-30, session #228, `PGEN-CI-PARITY-GATE-ROT-0026`) — and it was a REPAIR, not hardening
+
+**Scope taken:** the leaf's own highest-leverage target — `sota_exit_gate.sh`'s generic
+`summary_value_from_log()` and the SV/VHDL stimuli telemetry it feeds. **CODE:**
+`rust/scripts/sota_exit_gate.sh` only (no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all
+11 parsers byte-identical BY CONSTRUCTION).
+
+##### ⭐⭐ THE MEASUREMENT THAT DECIDED THE FIX — the structured artifact exists for 100% of the sites
+
+The leaf named the deciding question and refused to assume it: *does a structured carrier exist?* For
+the `CERTIFICATE-COVERAGE:` family it does not. **For these sites it does, for every single key:**
+
+| stage | keys the aggregate reads | present in the stage's own `summary.txt` |
+|---|---|---|
+| `sv_stimuli_quality_gate` | 24 via the helper + 2 dedicated METRIC `sed` sites | **26 / 26** |
+| `vhdl_stimuli_quality_gate` | 28 via `summary_value_from_log_or_txt` | **28 / 28** |
+
+⭐ **AND THE LOG-SCRAPING READER WAS THE MINORITY OUTLIER IN ITS OWN FILE.** Measured across
+`sota_exit_gate.sh`: **281** reads already went through `summary_value_from_txt` (structured artifact),
+against **52** that scraped a prose log. The correct pattern was already the house style — and the same
+file already applies it one level up, preferring a stage's `*_REPORT_JSON` over the log for the three
+values that have one. ⇒ *this was not a design question; it was two stages that never got converted.*
+
+##### WHY + WHERE (the fragility, measured on run 4's real artifacts)
+
+Every stimuli gate ends by `cat`-ing its own `summary.txt` (`sv_stimuli_quality_gate.sh:3511`), so the
+stage LOG carries that block **plus every other line the gate printed**. `^key: value$` is therefore
+ambiguous in the log:
+
+```
+SV   : 155 summary keys, 20 of them match MORE THAN ONE line in the stage log, 0 torn
+VHDL :  74 summary keys, 20 of them match MORE THAN ONE line in the stage log, 0 torn
+```
+
+The 20 are the gate's own banner echoes (`state_dir`, `closed_loop_target_max_attempts`,
+`parse_full_mode`, …). `tail -n 1` is correct **only for as long as the summary stays the last thing
+printed** — and `.9` is exactly that coupling breaking: an appended pass emitted a differently-worded
+line, the reader kept returning a superseded value, and the gate published `resolved 723` for a run that
+had resolved `1002`, RED for two months.
+
+##### ⛔⛔ THE LIVE DEFECT — 22 PUBLISHED SV VALUES WERE `unknown`, AND THE AGGREGATE SAID "PASSED"
+
+The fragility above is latent. **Underneath it sat a defect that is live today**, found by running the
+real aggregate rather than by reading it. In **reuse mode**
+(`PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`, a supported and documented mode — `.5c` and the
+README both use it) the aggregate does not re-run the stage; it calls `run_check` with a
+`bash -lc "test -s .../summary.txt"` probe — **and `run_check` redirects that probe's output over
+`logs/sv_stimuli_quality_gate.log`.** The haystack the reader was aimed at becomes:
+
+```
+$ wc -c .../logs/sv_stimuli_quality_gate.log
+33
+$ cat .../logs/sv_stimuli_quality_gate.log
+Bash profile loaded successfully
+```
+
+⇒ **BEFORE: 22 of the SV closed-loop / parseability telemetry values published as `unknown`. AFTER: 0.**
+Both runs exit `0` and print `✅ SOTA exit gate passed.` — the aggregate was reporting a green run whose
+SV telemetry it had silently failed to read, while the reused state dir carried every value
+(`closed_loop_initial_targets_total: 5461`, `closed_loop_parseability_shadow_accepted_total: 9963`,
+`parseability_generation_accepted_total: 16`, …) in the `summary.txt` sitting next to it.
+
+⭐⭐ **THE ASYMMETRY *WAS* THE BUG, and it explains why nobody saw it.** VHDL's retired reader
+(`summary_value_from_log_or_txt`) had the artifact as a **fallback**, so an empty log fell through to it
+and VHDL came out right **by luck**. SV had no fallback at all. Two stages of the same aggregate, the
+same shape of data, one silently wrong. ⇒ *a family whose telemetry is correct by accident is not
+evidence that the reader is correct.*
+
+⚠️ **Run 4 was NOT affected** — its own audit recorded **0** stages taking a `reuse existing state`
+branch, so every value it published was read from a freshly-produced log. Stated so the finding is not
+over-claimed: this corrupted **reuse-mode** runs, not the green end-to-end run `.7` closed on.
+
+##### THE FIX (fix-hierarchy tier: read the structured artifact — the root-cause tier, not a selector tweak)
+
+1. **`summary_value_from_stage key summary_txt log_file`** replaces both log-scraping readers: the
+   stage's `summary.txt` decides, the log is a fallback **only** for the case where the stage died
+   before writing one. 26 SV + 28 VHDL call sites converted.
+2. **`SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT` derived once** — it was previously built inline inside the
+   reuse branch's `test -s` string, i.e. the aggregate already treated that file as the stage's
+   authoritative artifact while reading its telemetry from somewhere else. One home for the path.
+3. **`assert_stage_summary_matches_log`** — a statement-level tripwire, run once per stage, that
+   compares **every** key the artifact carries against the log's last matching line and FAILS naming
+   each offender. Artifact-first alone would have made the drift *harmless but invisible*; this makes it
+   *reported*. Derived from the artifact, not a hand-listed subset, so a key that becomes read later is
+   already covered.
+   ⛔ **It must be called at statement level and the code says so**: `exit` inside a command substitution
+   only leaves the subshell, so this check **cannot** live inside the reader — a per-key `exit 1` in
+   `summary_value_from_stage` would have been swallowed and the variable set to the empty string. That
+   trap was designed around, not discovered afterwards.
+4. **`summary_value_from_log_or_txt` deleted**, not merely left unreferenced: a log-first reader sitting
+   in the file is an invitation to reuse it (`CTRL-5` locks that).
+
+##### Probes — 18/18, with the defect REPLAYED from `git show HEAD:`
+
+`docs/tasks/artifacts/ci_parity_gate_rot/run_stage_telemetry_probes.sh` → capture
+`stage_telemetry_probes.txt`. Both readers are **extracted from the real scripts** (working tree for
+AFTER, `git show HEAD:` for BEFORE) so the probe never tests a hand-copied lookalike, and the fixture is
+a **copy** of run 4's artifacts — the real logs are evidence and a diagnostic re-run must not overwrite
+them (`-0022`'s custody lesson).
+
+| arm | proves |
+|---|---|
+| `CAL 1-4` | the ambiguity is real (**20** multi-match keys per stage) and today's logs are **not** torn — a detector with no positive control cannot tell a clean sweep from a blind one |
+| `BEFORE-1` | the retired reader returns the **appended** value `9703` over the artifact's `5461` — the defect reproduces |
+| `BEFORE-2` | the VHDL reader **had the artifact and still returned the log's** `9703` — log-first precedence was the bug |
+| `AFTER-1` | the shipped reader returns the artifact's `5461`; an appended line cannot corrupt it |
+| `RED-1`/`1b` | the tripwire exits nonzero, **names** the key, and **counts** offenders rather than stopping at the first |
+| `GREEN-1` ×2 | the tripwire passes **silently** on both stages' real run-4 artifacts — without this arm `RED-1` would be satisfied by a check that fails on everything |
+| `CTRL-1` | with no artifact the reader still returns the log value ⇒ **failure-path reads unchanged** |
+| `CTRL-2` | an absent key still returns empty ⇒ the callers' `:-unknown` defaults still fire |
+| `CTRL-3` | with a missing artifact the tripwire is a silent **no-op** ⇒ it cannot turn a dead stage into a misattributed torn-read failure (`.14`'s lesson) |
+| `CTRL-4` | on an undoctored log the reader returns the same value ⇒ not a behaviour change on a healthy run |
+| `CTRL-5`/`6` | the log-first reader is **gone**, and exactly **2** raw-log reads remain (the reader's own fallback + the tripwire's comparison) |
+| `REUSE-1/2/3` | the reuse-mode defect and the SV-vs-VHDL asymmetry, encoded so they cannot silently return |
+| `NOREG` ×2 | all **26** SV and **28** VHDL published values **identical** before→after on run-4 evidence |
+
+⚠️ **MY OWN PROBE FAILED TWICE FIRST, AND BOTH WERE THE PROBE'S FAULT.** (1) `ROOT` resolved three
+levels up from a **four**-level-deep artifacts dir ⇒ it refused claiming `sota_exit_gate.sh` was absent —
+the *same path-depth bug as `-0023`*, and the fix was to read the failure, not to retry it.
+(2) `NOREG` pinned the SV read-key count at the census's **24** and measured **26** ⇒ **the expectation
+was stale, not the code**: this slice also converted the two dedicated METRIC `sed` sites. The count is
+left pinned at 26 so a future edit cannot quietly drop a read site.
+
+##### ✅ VERIFIED IN THE REAL CALLER, not only in isolation
+
+`docs/tasks/artifacts/ci_parity_gate_rot/stage_telemetry_reuse_ab.txt`. The **actual aggregate** was run
+A/B (`HEAD` script vs working tree) under identical narrowed configurations against run 4's state dirs:
+
+- **VHDL-only:** both sides `exit=0`, `✅ SOTA exit gate passed.`, **33** published telemetry lines
+  **byte-identical**, tripwire active and silent.
+- **SV-only:** both sides `exit=0`, `✅ SOTA exit gate passed.`, **41** telemetry lines — **22 flip
+  `unknown` → real**, 0 remain `unknown`.
+
+##### ⛔ SCOPE HELD — 11 of the 13 METRIC sites are deliberately NOT touched
+
+This was **one slice** by director ruling, and the remaining 11 METRIC sites stay open under this leaf:
+`rtl_const_expr_cert_gate:216`, `sv_cert_recognized_union_gate:208`/`:209`,
+`verilog_2005_conformance_gate:195`/`:202`/`:285`, `sv_parse_full_ratio_promotion_gate:141`,
+`vhdl_strict_promotion_gate:133`, and `sota_exit_gate.sh`'s 3 SV-preprocessor `diff_mismatch_count`
+readers. ⚠️ **4 of those are the `CERTIFICATE-COVERAGE:` family with NO structured output at all** —
+already measured in this leaf — so they need `.9`'s pattern (b) or a `rust/src/` change, which is a
+different and larger decision. **A doctrine check for *"do not scrape a metric from prose when a
+structured artifact carries it"* is NOT built**: it would need to know which artifacts carry which keys,
+and pricing that is worth more than guessing at it (`GENERATED-LINT-CORRECTNESS.4`'s rule).
+
+##### ⭐ TWO SEPARABLE FINDINGS ROUTED (not fixed here) — see `.18`
+
+1. ⛔ **`sota_exit_gate.sh` crashes on a toggle combination it advertises** —
+   `SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR` assigned under `RUN_SV_PREPROCESSOR_QUALITY`, echoed
+   under `RUN_SV_STIMULI_QUALITY`. **Reproduces identically on `HEAD`** ⇒ pre-existing.
+2. **`summary_value_from_txt_literal` is dead** — 1 occurrence repo-wide, its own definition.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the real aggregate, narrowed to the SV stimuli stage in reuse mode against
+  run 4's state dir, exits `0` and prints `✅ SOTA exit gate passed.` while publishing **22** SV
+  telemetry values as `unknown`; the reused state dir's `summary.txt` carries all 22
+  (`stage_telemetry_reuse_ab.txt`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `rust/scripts/sota_exit_gate.sh:792` `summary_value_from_log()` read
+  `^key: value$` out of the stage's **prose log** with `tail -n 1`; in reuse mode `run_check` redirects
+  its `test -s` probe over that log, leaving a **33-byte** `Bash profile loaded successfully` as the
+  entire haystack, so every SV read returned empty → `unknown`. VHDL escaped only because its
+  `summary_value_from_log_or_txt` had an artifact **fallback**. Diagnosed by extracting both readers
+  from the real scripts (`git cat-file`/`git show HEAD:`) and replaying them side by side, with
+  `bash -n ` clean on the edited gate; the ambiguity that makes the log the wrong source is measured at
+  **20 of 155** (SV) and **20 of 74** (VHDL) keys matching more than one log line; the guarded
+  reproduction run completed with `reason=none` and its `guard.56861.marker` written.
+- [x] **FIX** — root-cause tier (read the structured artifact, do not tune the selector):
+  `summary_value_from_stage` prefers each stage's own `summary.txt` (26 SV + 28 VHDL sites),
+  `summary_value_from_log_or_txt`'s log-first precedence is deleted, the SV summary path is derived
+  once, and `assert_stage_summary_matches_log` reports drift instead of letting a selector out-vote it.
+- [x] **ADDRESSED (verified)** — re-runnable oracle
+  `bash docs/tasks/artifacts/ci_parity_gate_rot/run_stage_telemetry_probes.sh` → **18 pass / 0 fail**
+  (`BEFORE-1` returns the appended `9703`, `AFTER-1` the true `5461`; `REUSE-1` empty → `REUSE-2` `5461`).
+  End-to-end in the real caller: SV `unknown` count **22 → 0**, both sides `exit=0`.
+- [x] **NO REGRESSION** — the same probe's `NOREG` arms show all **26** SV and **28** VHDL published
+  values identical before→after on run-4 evidence, and the VHDL-only real-caller A/B is
+  **byte-identical** across 33 telemetry lines with the tripwire active. `bash -n` clean;
+  `bash scripts/check_flow_integrity.sh --report` **OK** (11 regenerate, 3 measured-exempt, 0 guards
+  testing an artifact they do not read); `bash scripts/check_doctrines.sh` → **ALL 14 doctrines PASS**;
+  `check_gate_reachability` OK. No `grammars/*.ebnf`, `rust/src/*` or `generated/*` touched ⇒ all 11
+  generated parsers **byte-identical** by construction, so no clippy / cert-coverage surface moves.
+- [x] **LOCKSTEP** — `docs/book/src/gate-flow.md` gains the artifact-vs-prose rule as a further recorded
+  flow failure; `README.md`'s `sota_exit_gate` entry unchanged (no command/flag surface changed);
+  `CHANGES.md` / `DEVELOPMENT_NOTES.md` / `MEMORY.md` updated. `LIVE_ACHIEVEMENT_STATUS.md`
+  **unchanged** — no family row moves.
+
+---
+
+### `.18` — two separable `sota_exit_gate.sh` defects found while working `.11` (`todo`)
+
+- **Status: `todo`** — opened 2026-07-30 session #228 by `.11`, which measured both while verifying in
+  the real caller and deliberately did not widen its slice to them.
+- **(a) A supported toggle combination crashes the aggregate.**
+  `SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR` is assigned inside
+  `if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]` but echoed inside the `RUN_SV_STIMULI_QUALITY`
+  summary block, so `PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0` with
+  `PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1` dies under `set -u`:
+  `line 2253: SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR: unbound variable`.
+  **Reproduces identically on `HEAD` at line 2191** ⇒ pre-existing, not introduced by `.11`.
+  ⚠️ **Why this is ROUTED, not worked** (per
+  `docs/decisions/feedback_flow_findings_are_routed_not_worked.md`): it does not make a verdict
+  untrustworthy and it does not stop the aggregate's real configuration — it makes a *narrowed*
+  configuration unusable, which costs triage convenience. ⭐ It is worth fixing because narrowing is
+  exactly how a 4 h 39 m aggregate gets debugged cheaply, and `.11` had to work around it to verify.
+  **Scope when taken up:** sweep every `*_STAGE_STATE_DIR` / `*_SUMMARY_*` variable for the same
+  set-under-one-toggle / read-under-another split (expect more than one), and decide between
+  initialising them unconditionally and guarding the echo with the toggle that owns them.
+- **(b) `summary_value_from_txt_literal` is dead code.** 1 occurrence repo-wide — its own definition —
+  and 0 call sites. It exists because a value containing regex metacharacters cannot be read by the
+  `sed`-based readers, so deleting it may be discarding a real answer to a real problem; check whether
+  any current read needs it before removing it (`DESIGN-PRIOR-ART` in the direction where it stops you
+  *deleting*, not reinventing).
 
 ---
 

@@ -851,17 +851,67 @@ summary_value_from_txt_literal() {
     awk -v prefix="${key}: " 'index($0, prefix) == 1 { print substr($0, length(prefix) + 1); found = 1 } END { if (!found) exit 0 }' "$txt_file" | tail -n 1 || true
 }
 
-summary_value_from_log_or_txt() {
+# ⭐ CI-PARITY-GATE-ROT.11 — the stage's STRUCTURED summary artifact decides; its prose log is only a
+# fallback for the case where the stage died before writing one.
+#
+# Every stimuli gate ends by `cat`-ing its own `summary.txt`, so the stage LOG carries that block PLUS
+# every other line the gate printed. `^key: value$` is therefore ambiguous in the log — measured on the
+# run-4 artifacts, 20 of 155 SV keys and 20 of 74 VHDL keys match TWICE — and `tail -n 1` is correct
+# only for as long as the summary stays the last thing printed. `.9` is what that coupling looks like
+# when it breaks: an appended pass emitted a differently-worded line, the reader kept returning the
+# superseded value, and the gate published `resolved 723` for a run that had resolved 1002 — RED for
+# two months. Reading the artifact removes the coupling instead of re-tuning the selector.
+#
+# This is the pattern this file already applies to the three values that have a JSON report (the
+# `*_REPORT_JSON` branches below) and the pattern its other 281 reads already use
+# (`summary_value_from_txt`); the two stimuli stages were the outliers.
+summary_value_from_stage() {
     local key="$1"
-    local log_file="$2"
-    local txt_file="$3"
+    local summary_file="$2"
+    local log_file="$3"
     local value
-    value="$(summary_value_from_log "$key" "$log_file")"
+    value="$(summary_value_from_txt "$key" "$summary_file")"
     if [[ -n "$value" ]]; then
         printf '%s\n' "$value"
         return 0
     fi
-    summary_value_from_txt "$key" "$txt_file"
+    summary_value_from_log "$key" "$log_file"
+}
+
+# ⭐ CI-PARITY-GATE-ROT.11 — a torn read is a finding, not something a selector should resolve.
+#
+# `summary_value_from_stage` prefers the artifact, so a drifted log can no longer corrupt a published
+# value — but silently preferring one source would hide the drift itself, which is the part `.9` needed
+# two months to notice. This asserts the two sources agree on EVERY key the artifact carries (derived
+# from the artifact, not a hand-listed subset, so a key that becomes read later is already covered) and
+# names every offender.
+#
+# ⛔ Must be called at STATEMENT level: `exit` inside a command substitution only leaves the subshell,
+# so this check cannot live inside the reader itself.
+assert_stage_summary_matches_log() {
+    local label="$1"
+    local summary_file="$2"
+    local log_file="$3"
+    if [[ ! -f "$summary_file" || ! -f "$log_file" ]]; then
+        return 0
+    fi
+    local torn=0
+    local key summary_value log_value
+    while IFS= read -r key; do
+        summary_value="$(summary_value_from_txt "$key" "$summary_file")"
+        log_value="$(summary_value_from_log "$key" "$log_file")"
+        if [[ -n "$log_value" && "$log_value" != "$summary_value" ]]; then
+            echo "error: ${label} telemetry is torn for '${key}': the summary artifact says '${summary_value}' but the stage log's last matching line says '${log_value}'" >&2
+            torn=$((torn + 1))
+        fi
+    done < <(sed -nE 's/^([a-z0-9_]+): .*$/\1/p' "$summary_file" | sort -u)
+    if [[ "$torn" -gt 0 ]]; then
+        echo "error: ${label}: ${torn} key(s) disagree between the structured summary and the stage log" >&2
+        echo "       summary: ${summary_file}" >&2
+        echo "       log:     ${log_file}" >&2
+        exit 1
+    fi
+    return 0
 }
 
 require_matching_summary_value() {
@@ -1369,6 +1419,7 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     else
         SV_STIMULI_QUALITY_STAGE_STATE_DIR="${STATE_DIR}/work/sv_stimuli_quality_gate"
     fi
+    SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT="${SV_STIMULI_QUALITY_STAGE_STATE_DIR}/summary.txt"
     SV_STIMULI_QUALITY_STAGE_WORK_DIR="${SV_STIMULI_QUALITY_STAGE_STATE_DIR}/work"
     SV_STIMULI_QUALITY_STAGE_PARSE_FULL_QUALITY_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_WORK_DIR}/systemverilog_parse_full_quality_report.json"
     SV_STIMULI_QUALITY_STAGE_DIFF_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_WORK_DIR}/systemverilog_differential_report.json"
@@ -1377,7 +1428,7 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
 
     if [[ -n "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
         run_check "sv_stimuli_quality_gate" "informational" "reuse existing preprocess-first SystemVerilog stimuli quality gate state" \
-            bash -lc "test -s \"$SV_STIMULI_QUALITY_STAGE_STATE_DIR/summary.txt\""
+            bash -lc "test -s \"$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT\""
     elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 ]]; then
         run_check "sv_stimuli_quality_gate" "required" "strict preprocess-first SystemVerilog stimuli quality gate" \
             env \
@@ -1394,18 +1445,27 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
     fi
 
+    assert_stage_summary_matches_log "sv_stimuli_quality_gate" \
+        "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE"
+
     if [[ -f "$SV_STIMULI_QUALITY_STAGE_PARSE_FULL_QUALITY_REPORT_JSON" ]]; then
         stimuli_parse_full_ratio="$(jq -er '.observed.pass_ratio_percent // "unknown"' "$SV_STIMULI_QUALITY_STAGE_PARSE_FULL_QUALITY_REPORT_JSON" 2>/dev/null || echo "unknown")"
         SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON="$SV_STIMULI_QUALITY_STAGE_PARSE_FULL_QUALITY_REPORT_JSON"
         SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT="$stimuli_parse_full_ratio"
     else
         SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON="<missing>"
-        stimuli_parse_full_ratio=""
-        if [[ -f "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" ]]; then
-            stimuli_parse_full_ratio="$(sed -nE 's/^parse_full_pass_ratio_percent: ([0-9]+)$/\1/p' "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
-            if [[ -z "$stimuli_parse_full_ratio" ]]; then
-                stimuli_parse_full_ratio="$(sed -nE 's/^error: strict parse_full pass ratio check failed \(([0-9]+)% < [0-9]+%\)$/\1/p' "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
-            fi
+        # ⭐ CI-PARITY-GATE-ROT.11 — the JSON report is gone, so fall back to the stage's own summary
+        # artifact before its prose log. The numeric shape check is kept from the retired inline `sed`
+        # so a malformed value still falls through to the failure-path sentence below rather than being
+        # published as a ratio.
+        stimuli_parse_full_ratio="$(summary_value_from_stage "parse_full_pass_ratio_percent" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+        if [[ ! "$stimuli_parse_full_ratio" =~ ^[0-9]+$ ]]; then
+            stimuli_parse_full_ratio=""
+        fi
+        if [[ -z "$stimuli_parse_full_ratio" && -f "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" ]]; then
+            # No summary key and no report: the stage died inside the strict check, and the only place
+            # that number survives is the error sentence it exited with.
+            stimuli_parse_full_ratio="$(sed -nE 's/^error: strict parse_full pass ratio check failed \(([0-9]+)% < [0-9]+%\)$/\1/p' "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
         fi
         SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT="${stimuli_parse_full_ratio:-unknown}"
     fi
@@ -1416,9 +1476,11 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         SV_STIMULI_QUALITY_DIFF_MISMATCH_COUNT="$stimuli_diff_mismatch_count"
     else
         SV_STIMULI_QUALITY_DIFF_REPORT_JSON="<missing>"
-        stimuli_diff_mismatch_count=""
-        if [[ -f "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" ]]; then
-            stimuli_diff_mismatch_count="$(sed -nE 's/^diff_mismatch_count: ([0-9]+)$/\1/p' "$SV_STIMULI_QUALITY_STAGE_LOG_FILE" | tail -n 1 || true)"
+        # ⭐ CI-PARITY-GATE-ROT.11 — artifact before prose log; numeric shape check preserved from the
+        # retired inline `sed`.
+        stimuli_diff_mismatch_count="$(summary_value_from_stage "diff_mismatch_count" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+        if [[ ! "$stimuli_diff_mismatch_count" =~ ^[0-9]+$ ]]; then
+            stimuli_diff_mismatch_count=""
         fi
         SV_STIMULI_QUALITY_DIFF_MISMATCH_COUNT="${stimuli_diff_mismatch_count:-unknown}"
     fi
@@ -1442,28 +1504,28 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         fi
     fi
 
-    SV_STIMULI_QUALITY_CLOSED_LOOP_INITIAL_TARGETS_TOTAL="$(summary_value_from_log "closed_loop_initial_targets_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_REPLAY_TARGETS_TOTAL="$(summary_value_from_log "closed_loop_replay_targets_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_INITIAL_TARGETS_TOTAL="$(summary_value_from_stage "closed_loop_initial_targets_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_REPLAY_TARGETS_TOTAL="$(summary_value_from_stage "closed_loop_replay_targets_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
     SV_STIMULI_QUALITY_CLOSED_LOOP_INITIAL_TARGETS_TOTAL="${SV_STIMULI_QUALITY_CLOSED_LOOP_INITIAL_TARGETS_TOTAL:-unknown}"
     SV_STIMULI_QUALITY_CLOSED_LOOP_REPLAY_TARGETS_TOTAL="${SV_STIMULI_QUALITY_CLOSED_LOOP_REPLAY_TARGETS_TOTAL:-unknown}"
 
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ENABLED="$(summary_value_from_log "closed_loop_parseability_shadow_enabled" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_EFFECTIVE="$(summary_value_from_log "closed_loop_parseability_shadow_effective" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REQUESTED_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_requested_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_attempts_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_accepted_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_rejected_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_log "closed_loop_parseability_shadow_acceptance_rate_percent" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_primary_entry_attempts_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_primary_entry_accepted_outputs_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_primary_entry_rejected_outputs_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_alternate_entry_attempts_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_target_timeout_errors_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ENABLED="$(summary_value_from_stage "closed_loop_parseability_shadow_enabled" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_EFFECTIVE="$(summary_value_from_stage "closed_loop_parseability_shadow_effective" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REQUESTED_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_requested_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_attempts_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_accepted_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_rejected_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_stage "closed_loop_parseability_shadow_acceptance_rate_percent" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_primary_entry_attempts_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_primary_entry_accepted_outputs_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_primary_entry_rejected_outputs_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_alternate_entry_attempts_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_target_timeout_errors_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_STATE_DIR}/work/systemverilog_closed_loop_parseability_shadow_report.json"
     if [[ ! -f "$SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON" ]]; then
-        SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="$(summary_value_from_log "closed_loop_parseability_shadow_report_json" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+        SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="$(summary_value_from_stage "closed_loop_parseability_shadow_report_json" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
     fi
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ENABLED="${SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ENABLED:-unknown}"
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_EFFECTIVE="${SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_EFFECTIVE:-unknown}"
@@ -1481,15 +1543,15 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="${SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL:-unknown}"
     SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${SV_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON:-<missing>}"
 
-    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="$(summary_value_from_log "parseability_generation_enabled" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL="$(summary_value_from_log "parseability_generation_requested_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL="$(summary_value_from_log "parseability_generation_attempts_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTED_TOTAL="$(summary_value_from_log "parseability_generation_accepted_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL="$(summary_value_from_log "parseability_generation_rejected_total" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_log "parseability_generation_acceptance_rate_percent" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="$(summary_value_from_stage "parseability_generation_enabled" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL="$(summary_value_from_stage "parseability_generation_requested_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL="$(summary_value_from_stage "parseability_generation_attempts_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTED_TOTAL="$(summary_value_from_stage "parseability_generation_accepted_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL="$(summary_value_from_stage "parseability_generation_rejected_total" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_stage "parseability_generation_acceptance_rate_percent" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
     SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_STATE_DIR}/work/systemverilog_parseability_generation_report.json"
     if [[ ! -f "$SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON" ]]; then
-        SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="$(summary_value_from_log "parseability_generation_report_json" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
+        SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="$(summary_value_from_stage "parseability_generation_report_json" "$SV_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$SV_STIMULI_QUALITY_STAGE_LOG_FILE")"
     fi
     SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="${SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED:-unknown}"
     SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL="${SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL:-unknown}"
@@ -2452,27 +2514,30 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
         fi
     fi
 
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS="$(summary_value_from_log_or_txt "closed_loop_target_max_attempts" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS_SOURCE="$(summary_value_from_log_or_txt "closed_loop_target_max_attempts_source" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_INITIAL_TARGETS="$(summary_value_from_log_or_txt "closed_loop_initial_targets" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_REPLAY_TARGETS="$(summary_value_from_log_or_txt "closed_loop_replay_targets" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ENABLED="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_enabled" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_EFFECTIVE="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_effective" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REQUESTED_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_requested_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_accepted_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_rejected_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_acceptance_rate_percent" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_primary_entry_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_primary_entry_accepted_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_primary_entry_rejected_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_alternate_entry_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_target_timeout_errors_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    assert_stage_summary_matches_log "vhdl_stimuli_quality_gate" \
+        "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE"
+
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS="$(summary_value_from_stage "closed_loop_target_max_attempts" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS_SOURCE="$(summary_value_from_stage "closed_loop_target_max_attempts_source" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_INITIAL_TARGETS="$(summary_value_from_stage "closed_loop_initial_targets" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_REPLAY_TARGETS="$(summary_value_from_stage "closed_loop_replay_targets" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ENABLED="$(summary_value_from_stage "closed_loop_parseability_shadow_enabled" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_EFFECTIVE="$(summary_value_from_stage "closed_loop_parseability_shadow_effective" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REQUESTED_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_requested_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_accepted_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_rejected_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_stage "closed_loop_parseability_shadow_acceptance_rate_percent" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_primary_entry_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_primary_entry_accepted_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_primary_entry_rejected_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_alternate_entry_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="$(summary_value_from_stage "closed_loop_parseability_shadow_target_timeout_errors_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${VHDL_STIMULI_QUALITY_STAGE_STATE_DIR}/work/closed_loop_replay_parseability_shadow_report.json"
     if [[ ! -f "$VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON" ]]; then
-        VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+        VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="$(summary_value_from_stage "closed_loop_parseability_shadow_report_json" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
     fi
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS:-unknown}"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS_SOURCE="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS_SOURCE:-unknown}"
@@ -2494,16 +2559,16 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_TARGET_TIMEOUT_ERRORS_TOTAL:-unknown}"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON:-<missing>}"
 
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="$(summary_value_from_log_or_txt "parseability_generation_enabled" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE="$(summary_value_from_log_or_txt "parseability_generation_effective" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL="$(summary_value_from_log_or_txt "parseability_generation_requested_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL="$(summary_value_from_log_or_txt "parseability_generation_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTED_TOTAL="$(summary_value_from_log_or_txt "parseability_generation_accepted_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL="$(summary_value_from_log_or_txt "parseability_generation_rejected_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_log_or_txt "parseability_generation_acceptance_rate_percent" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="$(summary_value_from_stage "parseability_generation_enabled" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE="$(summary_value_from_stage "parseability_generation_effective" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL="$(summary_value_from_stage "parseability_generation_requested_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL="$(summary_value_from_stage "parseability_generation_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTED_TOTAL="$(summary_value_from_stage "parseability_generation_accepted_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL="$(summary_value_from_stage "parseability_generation_rejected_total" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_stage "parseability_generation_acceptance_rate_percent" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
     VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="${VHDL_STIMULI_QUALITY_STAGE_STATE_DIR}/work/vhdl_parseability_generation_report.json"
     if [[ ! -f "$VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON" ]]; then
-        VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="$(summary_value_from_log_or_txt "parseability_generation_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+        VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="$(summary_value_from_stage "parseability_generation_report_json" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
     fi
     VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="${VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED:-unknown}"
     VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE="${VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE:-unknown}"
@@ -2516,7 +2581,7 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
 
     VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON="${VHDL_STIMULI_QUALITY_STAGE_STATE_DIR}/work/vhdl_realistic_corpus_report.json"
     if [[ ! -f "$VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON" ]]; then
-        VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON="$(summary_value_from_log_or_txt "realistic_corpus_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+        VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON="$(summary_value_from_stage "realistic_corpus_report_json" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
     fi
     VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON="${VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON:-<missing>}"
 fi

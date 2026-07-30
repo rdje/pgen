@@ -1,0 +1,41 @@
+=== calibration ===
+  CAL sv keys matching >1 log line                   20 (expected 20) ✓
+  CAL vhdl keys matching >1 log line                 20 (expected 20) ✓
+  CAL sv torn keys (artifact vs log)                 0 (expected 0) ✓
+  CAL vhdl torn keys (artifact vs log)               0 (expected 0) ✓
+  calibration OK — the ambiguity is real (20 keys per stage) and today's logs are not torn.
+
+=== fixture ===
+  key            : closed_loop_initial_targets_total
+  artifact value : 5461   (the truth: what the stage actually resolved)
+  appended value : 9703   (what a stage appended after the summary would print)
+
+=== BEFORE (the retired readers, extracted from HEAD) ===
+  ✅ BEFORE-1  summary_value_from_log returns the APPENDED value 9703 — the defect reproduces
+  ✅ BEFORE-2  the VHDL reader had the artifact AND still returned the log's 9703 — log-first precedence was the bug
+
+=== AFTER (the shipped reader, extracted from the working tree) ===
+  ✅ AFTER-1   summary_value_from_stage returns the ARTIFACT value 5461 — the appended line cannot corrupt it
+  ✅ RED-1     the tripwire exits 1 and names 'closed_loop_initial_targets_total' — drift is reported, not out-voted
+  ✅ RED-1b    it reports exactly 1 disagreeing key — it counts offenders, it does not stop at the first
+  ✅ GREEN-1   sv_stimuli_quality_gate: the tripwire passes silently on the real run-4 artifacts
+  ✅ GREEN-1   vhdl_stimuli_quality_gate: the tripwire passes silently on the real run-4 artifacts
+
+=== controls — the failure paths must behave exactly as they did before ===
+  ✅ CTRL-1    with no artifact the reader still returns the log value (9703) — failure-path reads unchanged
+  ✅ CTRL-2    an absent key returns empty — the callers' ':-unknown' defaults still apply
+  ✅ CTRL-3    with a missing artifact the tripwire is a silent no-op — it cannot mask a dead stage
+  ✅ CTRL-4    on an undoctored log the reader returns the same 5461 — the fix is not a behaviour change on a healthy run
+  ✅ CTRL-5    summary_value_from_log_or_txt is removed from rust/scripts/sota_exit_gate.sh, not just unreferenced
+  ✅ CTRL-6    exactly 2 raw-log reads remain (the fallback inside the reader + the tripwire's comparison)
+
+=== REUSE mode — the live defect, not a hypothetical one ===
+  ✅ REUSE-1   the retired reader finds nothing in the reuse-branch log ⇒ the aggregate published 'unknown'
+  ✅ REUSE-2   the shipped reader returns 5461 from the reused state dir's own artifact
+  ✅ REUSE-3   the retired VHDL reader survived reuse mode via its artifact fallback — SV had none, hence the asymmetry
+
+=== no-regression — the aggregate must publish the SAME numbers on real evidence ===
+  ✅ NOREG     sv_stimuli_quality_gate: all 26 published values identical before→after on the run-4 artifacts
+  ✅ NOREG     vhdl_stimuli_quality_gate: all 28 published values identical before→after on the run-4 artifacts
+
+=== probes: 18 pass / 0 fail ===

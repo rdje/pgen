@@ -1,0 +1,54 @@
+=== CI-PARITY-GATE-ROT.11 — end-to-end A/B of the REAL aggregate in reuse mode ===
+commit under test : b907f969 (BEFORE = git show HEAD:rust/scripts/sota_exit_gate.sh)
+narrowing         : PGEN_SOTA_RUN_* toggles + PGEN_SOTA_EXISTING_*_STATE_DIR pointed at run 4's work dirs
+
+--- SV-only run: both sides exit 0 and print '✅ SOTA exit gate passed.' ---
+BEFORE exit/terminal: ✅ SOTA exit gate passed.
+AFTER  exit/terminal: ✅ SOTA exit gate passed.
+
+--- the haystack the retired reader was aimed at, in reuse mode ---
+$ wc -c rust/target/ci_parity_11_verify/sstate_before/logs/sv_stimuli_quality_gate.log
+33
+$ cat  (entire contents)
+Bash profile loaded successfully
+  ^ run_check redirects its 'test -s .../summary.txt' reuse probe over the stage log,
+    so the log-scraping reader had a login banner where the telemetry used to be.
+
+--- published SV telemetry: unknown -> real ---
+values published as 'unknown' BEFORE : 22
+values published as 'unknown' AFTER  : 0
+
+3,15c3,15
+< sv_stimuli_quality_closed_loop_initial_targets_total: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_acceptance_rate_percent: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_accepted_total: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_attempts_total: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_attempts_total: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_effective: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_enabled: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_primary_entry_accepted_outputs_total: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_primary_entry_attempts_total: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_primary_entry_rejected_outputs_total: unknown
+< sv_stimuli_quality_closed_loop_parseability_shadow_rejected_total: unknown
+---
+> sv_stimuli_quality_closed_loop_initial_targets_total: 5461
+> sv_stimuli_quality_closed_loop_parseability_shadow_acceptance_rate_percent: 100.00
+> sv_stimuli_quality_closed_loop_parseability_shadow_accepted_total: 9963
+> sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: 0
+> sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_attempts_total: 3
+  ... (22 values in total)
+
+--- VHDL-only run: byte-identical, because its retired reader already had an artifact fallback ---
+BEFORE terminal: ✅ SOTA exit gate passed.
+AFTER  terminal: ✅ SOTA exit gate passed.
+vhdl telemetry lines compared: 33
+diff: NONE — byte-identical
+
+--- pre-existing defect found while narrowing (ROUTED, not fixed here) ---
+with PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 and PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 both sides die identically:
+rust/target/ci_parity_11_verify.head.sh: line 2191: SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR: unbound variable
+rust/scripts/sota_exit_gate.sh: line 2253: SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR: unbound variable
+  ^ SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR is set under RUN_SV_PREPROCESSOR_QUALITY but
+    echoed under RUN_SV_STIMULI_QUALITY ⇒ set -u kills a toggle combination the script advertises.

@@ -397,7 +397,7 @@ the exemption list can neither be bypassed nor quietly accumulate.
 
 ## 7. How this flow has actually failed
 
-Six distinct shapes, all measured, all from real incidents. A new gate should be
+Seven distinct shapes, all measured, all from real incidents. A new gate should be
 read against this list.
 
 ### 1. A check that *cannot run* and returns green
@@ -470,11 +470,44 @@ pass, so appending a stage tears the check instead of silently shifting a number
 And an accounting invariant belongs at the **producer**, where it covers every
 grammar, rather than in one family gate that covers one.
 
-> The unifying principle behind all six: **a gate must report on its subject, and
+### 7. A value read from prose when a structured artifact was sitting next to it
+
+Every stimuli gate ends by `cat`-ing its own `summary.txt`, so its **stage log**
+contains that block *plus every other line the gate printed*. The flagship aggregate
+read the SystemVerilog and VHDL closed-loop telemetry — 52 values — out of that log
+with `sed -nE "s/^${key}: (.*)$/\1/p" | tail -n 1`.
+
+Two things were wrong with that, and only the second one had already broken something:
+
+1. **The log is ambiguous.** Measured on a real run's artifacts, **20 of 155** SV keys
+   and **20 of 74** VHDL keys match more than one line — the gate's own banner echoes
+   the same keys before the summary. `tail -n 1` is right only for as long as the
+   summary stays the last thing printed, which is failure 6 waiting to happen again.
+2. **The log is not always there.** When the aggregate is pointed at an existing stage
+   state dir (`PGEN_SOTA_EXISTING_*_STATE_DIR`) it does not re-run the stage — it runs a
+   `test -s .../summary.txt` probe, and `run_check` redirects that probe's output *over
+   the stage log*. The haystack became a 33-byte `Bash profile loaded successfully`, so
+   **22 SV telemetry values were published as `unknown`** while the aggregate printed
+   `✅ SOTA exit gate passed.` — with every one of those values present in the
+   `summary.txt` right beside it.
+
+⭐ The VHDL reader escaped **by luck**: it tried the log first but had the artifact as a
+fallback, so an empty log fell through to the right answer. Two stages of the same
+aggregate, the same shape of data, one silently wrong — *a family whose telemetry is
+correct by accident is not evidence that the reader is correct.*
+
+**Rule:** **a gate reads the structured artifact its producer wrote, and falls back to
+prose only when that artifact does not exist.** The log is a human surface; the
+`summary.txt`/`summary.json` is the interface (§1, *The summary contract*). And when the
+two disagree, that is a **finding to report**, not something a selector should quietly
+resolve — the aggregate now asserts every key in a stage's artifact against the log and
+fails naming each divergence, so drift becomes visible instead of merely harmless.
+
+> The unifying principle behind all seven: **a gate must report on its subject, and
 > only its subject.** It must not report on its own documentation, its own absence,
-> somebody else's stale output, or a quantity that has quietly stopped being the one
-> its name promises — and when it cannot report at all, it must say so rather than
-> return green.
+> somebody else's stale output, a quantity that has quietly stopped being the one its
+> name promises, or a number scraped out of prose while the producer's own artifact sits
+> unread — and when it cannot report at all, it must say so rather than return green.
 
 ---
 

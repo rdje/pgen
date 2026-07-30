@@ -82,7 +82,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 1. `README.md` (this file)
 2. `docs/book/` (`mdBook` live mastery surface)
    - ⭐ **`docs/book/src/gate-flow.md` — "The Gate Flow — Reference"**: the anatomy of a gate,
-     the four layers, inputs/outputs, the artifact hand-off protocol, who invokes what, the five
+     the four layers, inputs/outputs, the artifact hand-off protocol, who invokes what, the seven
      ways this flow has failed, and the contract a new gate must satisfy. Read it before adding or
      changing a gate.
 3. `TOOLBOX.md` (the diagnostic & debug toolbox — when/how for every debug tool; READ BEFORE debugging)

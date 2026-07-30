@@ -1,5 +1,61 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-CI-PARITY-GATE-ROT-0026 — the fix I set out to make was hardening; RUNNING it found a live defect underneath
+
+`CI-PARITY-GATE-ROT.11` slice 1. 1 gate script + 1 book chapter + README + tree + 1 probe driver.
+
+- ⭐⭐ THE LESSON: **I had a complete, defensible root cause before I ran anything, and it was only half
+  the story.** The static analysis was right — `sota_exit_gate.sh` scraped `^key: value$` out of each
+  stimuli stage's prose LOG with `tail -n 1`, and I could measure exactly why that is fragile (20 of 155
+  SV keys and 20 of 74 VHDL keys match more than one line in the log, so the reader is correct only
+  while the summary stays the last thing printed). On run 4's real artifacts the before→after diff was
+  **zero**: a clean "no regression, latent hazard removed" story, and I could have shipped it there.
+  Then I ran the real aggregate in reuse mode and found **22 published SV telemetry values sitting at
+  `unknown`** — live, today, on a supported mode, under a green `✅ SOTA exit gate passed.`
+  ⇒ *the measurement that proves a change is safe is not the measurement that tells you what it fixes.*
+  A before→after of "no change" over the artifacts of one run is a statement about that run, not about
+  the code path.
+- THE MECHANISM, which no amount of reading the reader would have shown: in reuse mode
+  (`PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`) the aggregate does not re-run the stage — it calls
+  `run_check` with a `bash -lc "test -s .../summary.txt"` probe, and `run_check` REDIRECTS THAT PROBE'S
+  OUTPUT OVER `logs/sv_stimuli_quality_gate.log`. The defect is an interaction between two functions
+  that are each correct: one reads a log, the other overwrites it. It lives in neither.
+- ⭐⭐ THE ASYMMETRY WAS THE TELL, AND I NEARLY FILED IT AS NOISE. The VHDL A/B came back byte-identical
+  while the SV A/B came back with 22 differences, under the same fix. The tempting reading was "SV's
+  fixture is dirtier". The real reading: VHDL's retired reader had the artifact as a **fallback**, so an
+  empty log fell through to the right answer and VHDL was correct **by luck** — SV had no fallback at
+  all. ⇒ *when two supposedly-identical surfaces disagree about a fix, the disagreement is the finding.*
+  A family whose telemetry is correct by accident is not evidence that the reader is correct.
+- WHY the fix is the root-cause tier and not a selector tweak: the deciding question was *does a
+  structured carrier exist?* — and it does, for **26/26** SV and **28/28** VHDL keys. Better still,
+  **281** of `sota_exit_gate.sh`'s own reads already went through `summary_value_from_txt`, against 52
+  that scraped prose, and the same file already prefers a stage's `*_REPORT_JSON` over the log where one
+  exists. There was no design question here — two stages had simply never been converted. ⇒ *before
+  designing a reader, count how the file already reads.*
+- A DESIGN TRAP PAID FOR IN ADVANCE, not discovered afterwards: the natural place for the torn-read
+  check is inside the reader, and it cannot go there. Every call site is `X="$(reader …)"`, and `exit 1`
+  inside a command substitution only leaves the subshell — the parent would have continued with `X`
+  empty, i.e. the check would have converted a loud disagreement into a silent `unknown`, the exact
+  disease. Hence a separate statement-level `assert_stage_summary_matches_log`, with the reason written
+  at the call site.
+- WHY THE TRIPWIRE EXISTS AT ALL, given artifact-first already fixes the values: preferring the artifact
+  makes log drift **harmless**, which is not the same as making it **visible**. `.9` cost two months of
+  invisible red; a silent preference would have made the next instance cost nothing to the numbers and
+  still nothing to notice. The tripwire is derived from the artifact's own key set, so a key that
+  becomes read later is covered without anyone remembering to add it.
+- ⚠️ BOTH OF MY PROBE FAILURES WERE THE PROBE'S FAULT, and the first was a repeat offence: `ROOT`
+  resolved three levels up from a **four**-level-deep artifacts directory, so the probe refused claiming
+  the script under test was absent — byte-for-byte the `-0023` path-depth bug, in the same artifacts
+  directory, one session later. It reproduced every time, which is the opposite of flaky, and reading it
+  took less time than the retry I did not write. The second was a stale expectation (24 read keys vs the
+  26 this slice actually converted) — the code was right and the probe's pin was old; the pin is kept,
+  corrected, so a future edit cannot quietly drop a read site.
+- ⛔ SCOPE HELD DELIBERATELY: 11 of the 13 METRIC sites are untouched and 4 of those have **no structured
+  output at all** (`--report-certificate-coverage` emits only the prose headline), so they need `.9`'s
+  cross-check pattern or a `rust/src/` change — a different and larger decision. No prose-scraping
+  doctrine check was built either: it would need to know which artifacts carry which keys, and pricing
+  that is worth more than a guess at it.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0025 — the right denominator was the push rate, and my cost estimate was off by three orders of magnitude
 
 `DONE-BAR.4a`. 3 workflow files + README + tree.
