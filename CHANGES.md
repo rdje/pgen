@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0022 — handoff: both remaining items carry standing director approval, and two scope numbers of mine were WRONG
+
+Docs + layer-C only — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11
+generated parsers byte-identical BY CONSTRUCTION. No tracker row moved. No code work started:
+the director asked to `/exit` into a fresh session, so this commit makes the handoff complete
+rather than leaving a 35-file deletion half-done.
+
+- ⭐ NEW LAYER-C DIRECTIVE `feedback_routine_decisions_are_not_escalations` — the director,
+  asked to greenlight `.10.3` (a chartered leaf, in an active tree, whose only blocker had just
+  been measured away, implementing a directive they themselves issued in #208): *"What do you
+  want me to answer for [that]? If you need my greenlight, you have it. The only [thing] I am
+  asking is that all your decision be sota, signoff and highly professional and top-notch."*
+  ⇒ escalating routine work is not caution, it is offloading judgement, and it costs a turn to
+  hand back authority already delegated. The record carries a 4-point test for when escalation
+  IS warranted (ambiguity / outward-facing / scope change / a cost only the director can price).
+- `.10.3` — unblocked, APPROVED, and its prep banked so the next session does not re-derive it:
+  const `ast_based_generator.rs:1222` (3 -> 2 members), dispatch arm `:1322` (28 lines), the
+  `native_unresolved_builtins_const_matches_dispatch` both-ways lock, the obsolete rationale at
+  `:1207-1212`, and a `first_set.rs` check. ⭐ THE SHARP ORACLE for its ADDRESSED box: since
+  `.10.2` already proved the fallback unreached (`r = 'a' @@@` flipped ACCEPT->REJECT), removing
+  the allowlist entry must leave `generated/ebnf.rs` BYTE-IDENTICAL — if it moves, `.10.2` is
+  incomplete. Far sharper than "the lint still says 0".
+- ⛔ `.10.7` (delete the Perl tree) — APPROVED (*"go, go, go"*), but I gave the director the
+  number **39** and it is **142** tracked `.pl`/`.pm`. Partitioned honestly: `tools/`(5) +
+  `perl/`(30) ~= 35 IS the approved scope ("the Perl EBNF parser and its library"); `tests/`(71),
+  `legacy/`(2) and `fx/` are separate decisions never put to the director. Also measured: 3
+  referrers actually EXECUTE the deleted files (two `tests/bootstrap_tests/*.sh`,
+  `testing/automated_test_framework.py`) and must be retired first; `PGEN_USER_GUIDE.md` still
+  documents `tools/ebnf_to_json.pl` as a user-facing command.
+- ⭐ `fx/` — the director's instinct is right, the premise is not. Claim: *"fx/ wasn't git tracked
+  and I do not think there is anything in PGEN that uses or references fx/."* Measured: it IS
+  tracked — **267 files**, not gitignored, present since the initial commit `b579dc8a` — while
+  **nothing** in `rust/`, `scripts/` or `.github/` references it. Dead weight, and a stronger
+  removal case than anything else in `.10.7`, but 267 files of a DIFFERENT subsystem => its own
+  one-line director call, with the real numbers on the table.
+
 ## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0021 — leaf LANG-CAPABILITY-AUDIT.10.2 (OPTION B): ebnf.ebnf finally DEFINES semantic_annotation; self-hosting 11/12 -> 12/12 and the dual-run gate goes GREEN
 
 2 grammar files (7 new rules + one corrected header) + book/tracker/driver lockstep. No

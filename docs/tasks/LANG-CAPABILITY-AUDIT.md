@@ -1352,7 +1352,7 @@ the person who specified it.**
   scope by design). That is a legitimate outcome and must be recorded as such — the bound is
   what keeps "any language" honest. The value is in the rows that do NOT.
 
-### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` ✅ / `.10.3` / `.10.4` ✅ / `.10.5` ✅ / `.10.6` ◐)
+### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` ✅ / `.10.3` / `.10.4` ✅ / `.10.5` ✅ / `.10.6` ◐ / `.10.7`)
 
 > **Container as of session #228.** Opened in a fresh session per the director's ruling
 > below. `.10.1` (done) settled the target, audited the whole allowlist, and corrected
@@ -2015,10 +2015,31 @@ because the name is allowlisted — the distinction `.7` could not make.
 
 ### `.10.3` — retire `"semantic_annotation"` from `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (`todo`)
 
-- **Status: `todo`**, ⛔ **blocked on `.10.2` — the order is not negotiable.** Retiring
-  the entry first would leave `ebnf.ebnf` with 3 references the linter now reports as a
-  hard error and codegen compiles into never-matching stubs, breaking the self-hosting
-  meta-parser. Grammar sound first, allowlist retired second.
+- **Status: `todo` — ✅ UNBLOCKED and CARRYING STANDING DIRECTOR APPROVAL (2026-07-31:
+  *"If you need my greenlight, you have it"*). Do NOT re-ask; execute to the SOTA/signoff
+  bar.** See [[feedback_routine_decisions_are_not_escalations]].
+- The former blocker is discharged: it read *"retiring the entry first would leave
+  `ebnf.ebnf` with 3 references the linter reports as a hard error and codegen compiles
+  into never-matching stubs"*. `.10.2` defined the rule, so the references now resolve.
+
+#### Prep already measured (session #228 — start from here, do not re-derive)
+
+| fact | measured |
+|---|---|
+| const site | `ast_based_generator.rs:1222` `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`, **3 members** (`builtin_any_char`, `builtin_ascii_char`, `semantic_annotation`) ⇒ becomes **2** |
+| dispatch arm to delete | `ast_based_generator.rs:1322` — the `@`-to-END-OF-LINE slurp, 28 lines |
+| lock | `native_unresolved_builtins_const_matches_dispatch` pins const↔dispatch **both ways**, so the two move together or the test fails |
+| false rationale to drop | the doc comment at `:1207-1212` still calls it *"the native `@…`-line matcher"* whose consumer *"needs it only because that grammar's `include` is broken"* — both now obsolete |
+| ⚠️ also check | `first_set.rs` carried three arms for the `true`/`false` members `.10.4` removed; confirm `semantic_annotation` has none before assuming a const-only edit |
+
+⭐ **THE ELEGANT VERIFICATION — use it as the ADDRESSED box.** `.10.2` already proved the
+fallback is no longer reached (the probe `r = 'a' @@@` flipped ACCEPT→REJECT). So removing
+the allowlist entry must leave **`generated/ebnf.rs` BYTE-IDENTICAL**. If it changes, the
+fallback was still being hit somewhere and `.10.2` is incomplete — a far sharper oracle
+than "the lint still says 0". Pin input AND output paths (`.10.1`'s trap).
+
+Then re-run the lint and confirm `undefined_references=0` **because the grammar is sound**,
+not because the name is allowlisted — the distinction `.7` could not make.
 
 Then re-run the lint and confirm `undefined_references=0` **because the grammar is
 sound**, not because the name is allowlisted — the distinction `.7` could not make. Drop
@@ -2534,6 +2555,74 @@ deleting 39 tracked files is a separate, hard-to-reverse decision and is not imp
 here a gate promises a comparison it never makes, **and** a guard enforces the survival of
 a component the project's own docs describe as gone. All three were believed — by the
 record, by the director, and by me — until measured.
+
+
+### `.10.7` — delete the retired Perl tree (`todo` — ✅ DIRECTOR-APPROVED, but my scope number was WRONG)
+
+- **Status: `todo`, carrying explicit director approval (2026-07-31): *"you have my
+  approval, go, go, go"*.** ⛔ **That approval was given on a number I got wrong, so the
+  scope is restated here before anyone acts on it.** `.10.6` removed all Perl *usage*; this
+  leaf removes the *files*.
+
+#### ⛔ CORRECTION — I said "39 files". It is 142, and most of them are not what "go" meant
+
+| area | tracked `.pl`/`.pm` | verdict |
+|---|---|---|
+| `tools/` | **5** (`ebnf_to_json.pl`, `generate_parser.pl`, `transform_ast.pl`, `ebnf_generator.pl`, `ebnf_input_generator.pl`) + `tools/generators/perl_parser_gen` | ✅ **IN SCOPE** — this *is* the Perl EBNF frontend |
+| `perl/` | **30** (`AST/Transform.pm`, `LinkedSpec.pm`, the codegen `.pm` family, debug scripts) | ✅ **IN SCOPE** — the library the frontend loaded |
+| `fx/` | **34 `.pl`/`.pm` — but 267 TRACKED FILES in total** | ⛔ **OUT OF SCOPE HERE, and a finding in its own right** — see below |
+| `tests/` | **71** (`run_tests.pl`, generators, `experimental/`) | ⚠️ **ADJACENT, separate call** — Perl, and measured to be invoked by **nothing** tracked in `rust/`, `scripts/` or `.github/`; but it is a test corpus, not the frontend |
+| `legacy/` | **2** | ⚠️ adjacent; explicitly legacy |
+
+⇒ **the approved deletion is `tools/` + `perl/` ≈ 35 files.** The rest are separate
+decisions that were never put to the director, and must not ride along on a "go".
+
+#### ⭐ `fx/` — the director's instinct is right, their premise is not (measured 2026-07-31)
+
+Director: *"`fx/` wasn't git tracked and I do not think there is anything in PGEN that uses
+or references `fx/`."*
+
+| claim | measured |
+|---|---|
+| *"wasn't git tracked"* | ⛔ **FALSE — `git ls-files fx/` returns 267 TRACKED files**, and `git check-ignore` reports it is **not** ignored |
+| *"nothing in PGEN uses or references it"* | ✅ **TRUE** — zero references from `rust/`, `scripts/` or `.github/`; the only tracked mentions are prose in `LIVE_ACHIEVEMENT_STATUS.md`, the SOTA roadmap and `tests/TEST_GUIDE.md` |
+| how it got here | `git log --diff-filter=A` ⇒ **the initial commit `b579dc8a`** — swept in when the repository was created, never deliberately added |
+
+⇒ **`fx/` is 267 tracked files of dead weight that nothing in PGEN consumes.** That makes
+the case for removing it stronger than for anything else in this leaf — but it is a
+*different* subsystem (`fx/bin`, `fx/cgi`, `fx/plugin`, `fx/ruby`, `fx/specs`, Verilog and
+FSM material), it is 267 files rather than the 34 I first reported, and the approval on
+record was given for *"the Perl EBNF parser"*. ⇒ **put it to the director as its own
+one-line decision with these numbers**, then execute. Nothing is lost either way: it is in
+git from the first commit onward.
+
+#### ⚠️ 43 tracked files reference these paths — deletion is not `git rm` alone
+
+Non-doc referrers that would **dangle**, measured:
+`tests/bootstrap_tests/run_bootstrap_tests.sh`, `tests/bootstrap_tests/run_simple_tests.sh`,
+`testing/automated_test_framework.py`, `examples/workflow_examples.py`, `go/ast_pipeline.go`,
+`julia/ast_pipeline.jl`, `zig/src/ast_pipeline.zig` + `zig/src/main.zig`,
+`rust/src/bin/pgen_ast.rs`, `rust/src/ebnf_frontend.rs`, `rust/Makefile`, four
+`rust/scripts/*.sh` (comments only — `.10.6` already cleared their executable lines),
+`PGEN_USER_GUIDE.md`, `tests/*.md`, `test/grammars/*.json`, plus the `fx/`/`legacy/` cluster.
+
+Most are **comments or doc prose** and are free to update. The ones that would genuinely
+**break** are the two `tests/bootstrap_tests/*.sh` harnesses and
+`testing/automated_test_framework.py`, which *execute* `tools/ebnf_to_json.pl` — measured to
+be invoked by no tracked gate, so they are dead harnesses, but they must be retired or
+re-pointed in the same wave rather than left calling a deleted file.
+
+#### Order of work
+
+1. Re-point or retire the three executing referrers (they are the only breakage).
+2. `git rm` `tools/*.pl`, `tools/generators/perl_parser_gen`, and `perl/`.
+3. Sweep the doc/comment referrers (`PGEN_USER_GUIDE.md` still documents
+   `tools/ebnf_to_json.pl --verbosity debug …` as a user-facing command — that one is a
+   published surface and must be corrected, not just deleted around).
+4. Re-run `check_doctrines.sh`, `ebnf_frontend_dual_run_gate`, `ebnf_stimuli_quality_gate`,
+   `mdbook_docs_gate`.
+5. ⭐ Nothing is lost: git history retains every deleted file.
+
 
 ---
 
