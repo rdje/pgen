@@ -1043,11 +1043,28 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
      measured** — A/B one `sv_stimuli_quality_gate` run at `low` vs `none`. If it is minutes, this also
      belongs to the SPEED doctrine, not just hygiene.
   3. Then the 1.4 M custody fallback for the driver (below).
-- 🅿️ **RECLAIM AWAITING DIRECTOR AUTHORIZATION (2026-07-30).** The surgical command is
-  `find rust/target/sota_exit_gate/work -type f -name 'profile_*_closed_loop_replay_parseability_shadow.log' -size +1G -delete`
-  — 8 files, ~158 G, keeping every `summary.*`, every structured report and every smaller log. Proposed
-  and **declined by the harness guard** because the director had asked *why*, not *delete*; recorded
-  here rather than retried, since a multi-GB irreversible sweep is the director's call.
+- ✅ **RECLAIM AUTHORIZED AND EXECUTED (2026-07-30) — 228 G, more than the 158 G first estimated.**
+  The director's ruling was a STANDING one (*"delete reclaimable files on a regular basis"*, recorded as
+  [[feedback_delete_reclaimable_artifacts_regularly]]), so the sweep is now routine rather than
+  per-request. ⭐ **The census widened the class before acting**: the same log name also exists OUTSIDE
+  the aggregate tree (the standalone `rust/target/sv_stimuli_quality_gate/logs/` and the
+  `sv_declared_shadow_promotion_gate` trials) ⇒ **18 files, 228 G**, not the 8 files / 158 G the
+  aggregate-only view showed. *The first number was scoped to where the question was asked, not to
+  where the class lives.*
+
+  | | before | after |
+  |---|---|---|
+  | `/Volumes/SSD` used | 383 G | **156 G** |
+  | `rust/target/sota_exit_gate/work` | 198 G | **2.8 G** |
+  | `summary.*` pairs / shadow JSON reports | 91 / 33 | **91 / 33** (verified intact) |
+
+- ⛔ **DELIBERATELY NOT SWEPT, and that is the discipline the standing authorization does NOT relax:**
+  ~40 G of `regen_*.log` (`generated_lint_correctness/`, `generated_logs/sentinel_probe/`) turned up in
+  the same census and their readers were **never checked** ⇒ left in place. *An unverified file is not
+  a reclaimable file.* Likewise `rust/target/debug/{deps,incremental}` (**64 G** measured) is
+  reclaimable in the safety sense but forces a rebuild, and the debug binaries are hard preconditions
+  of the toolbox and of `silent_success_sentinel_gate` — sweeping them before a 5 h acceptance run
+  trades hours for disk that is no longer scarce.
 - **Scope when taken up:** teach the driver a snapshot fallback (prefer the live run dir, else a
   small committed-or-cached snapshot of just the `summary.*` pairs), then the bulk becomes safely
   disposable. A 1.4 M snapshot already exists at `rust/target/done_bar_5e/run3_snapshot/` (taken this
