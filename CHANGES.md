@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0019 — .10.6: Perl is NOT ditched — it is a REQUIRED stage of the flagship aggregate, pinned in place by a parity gate
+
+Docs + KM only — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11 generated
+parsers byte-identical BY CONSTRUCTION. No tracker row moved.
+
+- DIRECTOR: *"We ditched any Perl EBNF parser long ago"* / *"The Perl EBNF parser has flaws I
+  couldn't fix"* / *"Why do we even need it, we did a whole campaign to get rid of any Perl
+  reference"*. ⛔ MEASURED: the campaign landed everywhere EXCEPT one line, and then a gate froze
+  the remainder in place.
+- ⛔⛔⛔ BLAST RADIUS: `perl tools/ebnf_to_json.pl` executes inside `sota_exit_gate` in **TWO
+  REQUIRED stages** — `sota_exit_gate.sh:1110` `run_check "ebnf_frontend_dual_run_gate" "required"`,
+  and `:33` `POLICY_REQUIRED_CHECKS="… ebnf_stimuli_quality_gate …"`. The 4h39m run recorded as
+  *"green end-to-end for the first time ever"* (CI-PARITY-GATE-ROT.7) ran Perl.
+- WHY IT SURVIVES — three things, none of them a functional need:
+  1. ONE MISSED SITE: `ebnf_stimuli_quality_gate.sh:593` is hard-coded to Perl and bypasses the
+     script's OWN `run_frontend_to_json()` helper, so it fires regardless of `FRONTEND_IMPL` —
+     which already defaults to `rust` (`:18`). `require_file` at `:555` makes the gate REFUSE TO
+     START without the Perl script.
+  2. AN EXPIRED ORACLE: the dual-run gate's Perl arm existed to de-risk the Perl->Rust migration.
+     That migration is complete. It is now blind to 25 of 276 rules on regex.ebnf (the modern
+     `code_*` family) and the gate PASSES that as `perl_under_reports`.
+  3. A GUARD THAT PINS IT: `ci_workflow_local_gate.sh:804` keeps Perl OUT of other files, then
+     `:810-823` `assert_file_contains` REQUIRES it in three scripts — removing the Perl calls
+     FAILS that gate. Its carve-out cites a `README.md` line about `perl/` that no longer exists
+     (trimmed by README-POLICY.1).
+- ⚖️ DIRECTOR ASKED whether the gate should be ditched entirely. ANSWER: half of it. The Perl
+  rule-name diff goes; the generated-`ebnf.rs` `parse_full` arm is the ONLY self-hosting
+  instrument in the repo — it produces the 12/12 number and it is what caught `.10.5`'s false
+  green. Recommendation: RENAME + RE-POINT (drop the Perl arm, retire the misleading "dual run"
+  name, upgrade the surviving arm from verdict-only to a raw-AST differential). Sequencing:
+  both gates are `required` sota stages, so a rename lands in the same wave as the stage list.
+- ⚠️ SELF-CORRECTION: an earlier revision of this leaf and of the KM card called the Perl arm "a
+  frozen legacy reference" on the strength of its MTIME. Running it refuted that — it still
+  parses and agrees exactly with the Rust frontend on ebnf (131/131) and json (9/9). Weak signal,
+  wrong conclusion, corrected in both places.
+
 ## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0018 — leaf .10.6 opened: the "dual run" never diffs the meta-parser's OUTPUT against the frontend's
 
 Docs + KM only — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11 generated

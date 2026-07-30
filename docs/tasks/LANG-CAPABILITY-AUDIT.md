@@ -2281,58 +2281,131 @@ neither.**
 
 ---
 
-### `.10.6` — the "dual run" never diffs the meta-parser's OUTPUT against the frontend's, and that is the instrument the replacement endgame needs (`todo`)
+### `.10.6` — the "dual run" diffs the wrong pair, and a guard PINS the Perl frontend the project believes it retired (`todo`)
 
-- **Status: `todo`**, opened session #228 from a DIRECTOR STATEMENT that measurement did
-  not confirm: *"There is ebnf_dual_* mode, that run both the hand-written Rust EBNF
-  front-end parser and the parser derived from ebnf.ebnf to compare their output live,
-  that is how ebnf.ebnf is tested along the way."* That is the **design intent and the
-  gate's name**. It is not what the code does.
-- **Owning machinery is `GRAMMAR-WELLFORMED`** (H.13/H.14 own the meta-grammar lockstep and
-  `ebnf_frontend_dual_run_gate`). Recorded here because `.10` found it and because it
-  **conditions the `.10.2` A/B/C decision** — it changes what a self-hosting number buys.
+- **Status: `todo`**, opened session #228 from two director statements, both of which
+  measurement partly confirmed and partly refuted. **Owning machinery is the flow/CI gates
+  + `GRAMMAR-WELLFORMED`** (H.13/H.14 own the meta-grammar lockstep); recorded here because
+  `.10` found it and it conditions the `.10.2` decision.
 
-#### The measured three-pair picture
+#### Statement 1 — *"ebnf_dual_* runs both parsers and compares their output live"*
+
+**Right that both run live; wrong that the outputs are compared.** Three pairs run, and
+none of them is frontend-output ↔ meta-parser-output:
 
 | pair | what is compared | where |
 |---|---|---|
 | hand-written frontend ↔ **generated `ebnf.rs`** | **verdict only** (`Ok`/`Err`); **soft** — warns unless `PGEN_EBNF_FRONTEND_REQUIRE_GENERATED_VERIFY=1` | **live, every grammar load** — `ebnf_frontend.rs:65-79` |
-| **Perl** `tools/ebnf_to_json.pl` ↔ hand-written frontend | **rule-NAME sets** — `sorted(set(names))` over `["rule", name]` heads only | `ebnf_frontend_dual_run_diff_gate.sh:224-260` |
-| interpreter ↔ generated `ebnf.rs` | **byte-identical AST** ✅ | `parse_harness_equivalence` (`ebnf` CERTIFIED) |
+| **Perl** `ebnf_to_json.pl` ↔ hand-written frontend | **rule-NAME sets** — `sorted(set(names))` over `["rule", name]` heads; not bodies, not tokens | `ebnf_frontend_dual_run_diff_gate.sh:224-260` |
+| interpreter ↔ generated `ebnf.rs` | byte-identical AST ✅ | `parse_harness_equivalence` (`ebnf` CERTIFIED) |
 
-⇒ **three things run and get compared — and none of the three is "the frontend's output vs
-the meta-parser's output".** The director's reading is right that both parsers run live on
-every grammar load; the gap is that only the **verdict** crosses between them.
+⇒ the raw-AST differential that would prove `ebnf.ebnf` ready to **replace** the
+hand-written frontend — the stated endgame (`README.md:28`, *"handwritten parsers exist
+only as bootstrap scaffolding"*) — **has never been built**. `12/12` says the spec still
+*reads* every grammar we ship; nothing says it reads them the *same way*. The gate's output
+diff is measuring a **migration that is already finished** (Perl → Rust), not the one that
+is live.
 
-#### Why each substitute is weaker than it looks
+#### Statement 2 — *"we ditched any Perl EBNF parser long ago"* ⛔ MEASURED FALSE
 
-- **The live pair is verdict-only and soft.** It answers *"did it parse?"*, never *"did it
-  parse it the same way?"*, and by default a mismatch only warns.
-- **The gate's output diff has the wrong arms and the wrong granularity.** It compares
-  **Perl** against the hand-written Rust frontend — and `tools/ebnf_to_json.pl` has not been
-  touched since the initial commit (`b579dc8a`, 2025-08-30), so it is a frozen legacy
-  reference, not a live second opinion. Worse, it compares `sorted(set(rule_names))`: two
-  frontends could tokenize **every rule body differently** and it would report `parity`.
-- **The AST oracle proves the wrong proposition.** `parse_harness_equivalence` does compare
-  the generated parser's AST byte-for-byte — against the **interpreter running the same
-  grammar**. That proves the two *engines* agree about `ebnf.ebnf`; it cannot notice that
-  `ebnf.ebnf` disagrees with the hand-written frontend.
+⚠️ **Correction to this leaf's own first revision**, which called the Perl arm *"a frozen
+legacy reference, not a live second opinion"* on the strength of its mtime. That was an
+over-claim from a weak signal, and running it refuted it: Perl still parses, and agrees
+**exactly** with the Rust frontend on `ebnf` (131/131) and `json` (9/9).
 
-#### What this leaf should build
+The truth is the opposite of retired — **Perl is mechanically pinned in place**:
 
-A **raw-AST differential**: run the hand-written frontend and the `ebnf.ebnf`-derived
-parser over the same `.ebnf` corpus and diff the **token envelopes**
-(`["rule", …]`, `["semantic_annotation", [name, payload]]`, `["group_open","("]`, …), not
-just the verdict. That is precisely the evidence a replacement needs, and it does not exist
-today. ⚠️ Expect it to be RED at first — `ebnf.ebnf`'s return annotations produce
-`{type: "grammar_file", elements: […]}`-shaped output, while the frontend emits the raw_ast
-token envelope. Closing that shape gap **is** the replacement work, and this instrument is
-what would size it.
+| site | role | measured |
+|---|---|---|
+| `ebnf_stimuli_quality_gate.sh:582` · `ebnf_frontend_readiness_gate.sh:127` | selectable frontend branch | ✅ **already migrated** — `FRONTEND_IMPL="${PGEN_EBNF_FRONTEND_IMPL:-rust}"`, so the **Rust** path is the default and the Perl branch is dead unless someone opts in |
+| ⛔ `ebnf_stimuli_quality_gate.sh:593` (+ `require_file` at `:555`) | **THE ONE MISSED SITE** — hard-coded to Perl, **not** routed through the script's own `run_frontend_to_json()` helper, so it fires whenever `require_ebnf_parseability` is on **regardless of `FRONTEND_IMPL`**; the `require_file` makes the gate **refuse to start** without the Perl script | an invoked target (`make -C rust ebnf_stimuli_quality_gate`) |
+| `ebnf_frontend_dual_run_diff_gate.sh:110,167` | the differential reference arm — an oracle built to de-risk the Perl→Rust migration | that migration is **complete**, so the oracle's purpose has **expired**; it under-reports **25 of 276** rules on `regex.ebnf` and the gate **passes** that as `perl_under_reports` |
+| ⛔⛔ `ci_workflow_local_gate.sh:810-823` | **`assert_file_contains` on all three scripts** | **removing the Perl calls FAILS the gate** — this is what froze the other rows in place |
 
-⭐ **Same family as `.10.5`, one level up: an instrument weaker than its name.** `.10.5`
-found a gate that was green because of a defect; this is a gate whose name promises a
-comparison it never makes. Both were believed, by the record and by the engineer, until
-measured.
+⇒ **the answer to "why do we even need it" is: we do not.** Nothing requires Perl
+functionally. It survives on exactly three things — **one line missed by an otherwise
+complete migration** (`:593`), **one expired migration oracle**, and **one guard that
+asserts its presence**. The director's de-Perl campaign did land; it stopped one line
+short, and then a parity gate cemented the remainder.
+
+⇒ the de-Perl guard `assert_file_not_contains_uncommented "$repo_file" "ebnf_to_json.pl"`
+(`:804`) keeps Perl out of *other* files, while the very next lines **positively require**
+it in these three. **A guard that pins the thing it was built to remove.** Meanwhile the
+book tells users *"No Perl is required"* (`docs/regex_parser_book/src/quickstart.md:28`)
+and the regex contract says it is *"retained but not the recommended path"*.
+
+⚠️ **And the carve-out's own justification is stale**: it cites *"README.md `perl/:
+legacy/frontend EBNF-to-JSON path … still used in hybrid flow`"* — **`README.md` no longer
+mentions Perl at all**, that inventory having been trimmed out by `README-POLICY.1`. The
+pin now rests on a citation to a line that does not exist.
+
+⭐ The 25 rules Perl cannot see in `regex.ebnf` are the **modern** surface — the whole
+`code_*` family (`code_block`, `code_balanced_braces`, `code_string_*`, …) plus
+`any_char`/`digit`/`letter`/`whitespace`/`unicode_char`. So the arm is blind precisely where
+the language has grown since it was written, and the gate is configured to accept that.
+
+#### What this leaf should do — one coherent piece of work
+
+1. **Build the differential that matters**: diff the **token envelopes**
+   (`["rule", …]`, `["semantic_annotation", [name, payload]]`, `["group_open","("]`, …)
+   between the hand-written frontend and the `ebnf.ebnf`-derived parser, not just the
+   verdict. ⚠️ Expect RED on day one — `ebnf.ebnf`'s return annotations emit
+   `{type: "grammar_file", elements: […]}` while the frontend emits the raw_ast token
+   envelope. **Closing that shape gap IS the replacement work**, and this instrument sizes
+   it; today nobody knows how big it is.
+2. **Then retire the Perl arm — it is a 3-step finish, not a campaign.**
+   (a) route `ebnf_stimuli_quality_gate.sh:593` through the script's **own**
+   `run_frontend_to_json()` helper and drop the `require_file` at `:555` — that alone ends
+   the last unconditional Perl execution; (b) re-point
+   `ebnf_frontend_dual_run_diff_gate.sh` at the new frontend↔meta-parser pair, retiring an
+   oracle whose migration finished; (c) invert the `ci_workflow_local_gate.sh:810-823` pins
+   from *"assert Perl is present"* to *"assert Perl is absent"*, so the parity gate enforces
+   the intent instead of the residue. ⚠️ Sequence matters — (c) before (a)/(b) turns the
+   parity gate red.
+3. **Fix the stale citation** in the guard's rationale either way.
+
+#### ⛔⛔⛔ BLAST RADIUS — Perl is a REQUIRED stage of the flagship aggregate
+
+The gates above are not operator-only curiosities. Measured in `sota_exit_gate.sh`:
+
+- `:1110` — `run_check "ebnf_frontend_dual_run_gate" "required" "strict Perl-vs-Rust EBNF dual-run differential"`
+- `:33` — `POLICY_REQUIRED_CHECKS="… ebnf_stimuli_quality_gate …"` (the stage carrying the
+  hard-coded Perl call at `:593`)
+
+⇒ **`perl tools/ebnf_to_json.pl` executes inside `sota_exit_gate`, in TWO required stages.**
+The 4 h 39 m run recorded as *"green end-to-end for the first time ever"*
+(`CI-PARITY-GATE-ROT.7`) ran Perl. A component the director describes as ditched — *"the
+Perl EBNF parser has flaws I couldn't fix"* — is a **required dependency of the
+release-grade proof**.
+
+#### ⚖️ DIRECTOR QUESTION — *"the gate is useless then, so shall be ditched too?"*
+
+**Half of it. Not the whole gate — and the distinction is load-bearing.**
+
+| arm | verdict |
+|---|---|
+| Perl ↔ Rust-frontend **rule-name diff** | ⛔ **Ditch.** Its purpose (de-risking the Perl→Rust migration) expired when the migration finished; it is blind to 25 of 276 rules on `regex.ebnf`; and the gate is configured to *pass* that blindness. |
+| generated `ebnf.rs` **`parse_full` per grammar** | ✅ **Keep — it is the ONLY self-hosting instrument in the repo.** It produces the 12/12 number, and it is what caught `.10.5`'s false green. Delete the gate wholesale and nothing would notice `ebnf.ebnf` drifting away from the language again — which is precisely the six-gap rot the lockstep doctrine was written for. |
+
+⇒ **rename + re-point, don't delete.** Drop the Perl arm, retire the misleading
+*"dual run"* name (the duality it describes has ended), and upgrade the surviving arm from
+*verdict-only* to the raw-AST differential in step 1 — which turns a confusing vestige into
+the instrument the replacement endgame actually needs.
+
+⚠️ **Sequencing constraint:** both gates are `required` stages of `sota_exit_gate`, so a
+rename or removal must land in the same wave as the aggregate's stage list, or the flagship
+breaks.
+
+⭐ **The director's premise is right and the cost is already measurable.** *"It is confusing
+and shall avoid confusion at all cost"* — in this session alone the name caused **me** to
+write a false statement into a Knowledge-Map card (*"a frozen legacy reference"*, refuted by
+simply running it), and it left the tracked record describing a Perl↔Rust duality that no
+longer exists. A name that misdescribes what a gate compares is not cosmetic debt.
+
+⭐ **Same family as `.10.5`, twice over**: `.10.5` found a gate green *because of* a defect;
+here a gate promises a comparison it never makes, **and** a guard enforces the survival of
+a component the project's own docs describe as gone. All three were believed — by the
+record, by the director, and by me — until measured.
 
 ---
 

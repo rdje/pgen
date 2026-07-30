@@ -70,9 +70,17 @@ not exist. Three different pairs run, and each compares something weaker:
 frontend's output, anywhere.** Its AST *is* byte-compared — but against the **interpreter
 running the same grammar**, which proves the two *engines* agree, not that `ebnf.ebnf`
 describes what the frontend accepts. And the only output-level diff in the gate is against
-a **Perl** frontend untouched since the initial commit (2025-08-30) — a frozen legacy
-reference — on rule names alone, so two frontends could tokenize every rule body
-differently and it would still report `parity`.
+the **Perl** frontend, on rule names alone — so two frontends could tokenize every rule
+body differently and it would still report `parity`.
+
+⚠️ **Correction (session #228):** an earlier revision of this card called the Perl arm *"a
+frozen legacy reference"* on the strength of its mtime. **Running it refuted that** — it
+still parses, and agrees exactly with the Rust frontend on `ebnf` (131/131) and `json`
+(9/9); it is blind to **25 of 276** rules on `regex.ebnf` (the modern `code_*` family), and
+the gate *passes* that as `perl_under_reports`. More importantly the opposite of "retired"
+is true: `ci_workflow_local_gate.sh:810-823` **`assert_file_contains`** the Perl invocations
+in three scripts, so removing them FAILS that gate — and `sota_exit_gate` runs two of those
+scripts as **required** stages. Tracked as `LANG-CAPABILITY-AUDIT.10.6`.
 
 **Consequence for the replacement endgame:** the instrument that would prove `ebnf.ebnf`
 ready to replace the hand-written frontend — a raw-AST differential between the two — has
