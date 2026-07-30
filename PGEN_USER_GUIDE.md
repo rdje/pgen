@@ -116,15 +116,16 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin tes
 
 ### EBNF -> JSON
 ```bash
-tools/ebnf_to_json.pl --verbosity debug --pretty grammars/foolang.ebnf -o generated/foolang.json
-```
-
-Rust frontend alternative:
-```bash
 cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- \
   grammars/foolang.ebnf \
   --emit-raw-ast-json generated/foolang.json
 ```
+
+> The Perl frontend that used to be documented here first
+> (`tools/ebnf_to_json.pl … -o generated/foolang.json`) was retired by
+> `LANG-CAPABILITY-AUDIT.10.6` and its files deleted by `.10.7`. The Rust frontend above is
+> the only EBNF -> JSON path; it takes an explicit `--emit-raw-ast-json` output path where the
+> Perl tool also accepted `-o`.
 
 ### JSON -> parser source (Rust AST pipeline)
 ```bash
@@ -2296,7 +2297,8 @@ Tracked baselines:
     - parseability attempts / accepted / rejected totals, rejection breakdown, acceptance rate, and target-closure context
 - `ebnf_stimuli_quality_gate` (local gate target)
   - strict deterministic closed-loop verification for tracked non-annotation EBNFs (separate from annotation loop):
-    - `EBNF -> JSON` frontend success (`ebnf_to_json.pl`),
+    - `EBNF -> JSON` frontend success (the Rust frontend, `ast_pipeline --emit-raw-ast-json`;
+      the Perl `ebnf_to_json.pl` this line used to name was retired by `LANG-CAPABILITY-AUDIT.10.6`),
     - parser generation success,
     - baseline/gap-priority/target-driven/final-gap no-regression checks,
     - contract-driven grammar roster from `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
@@ -2334,14 +2336,19 @@ Tracked baselines:
 - `ebnf_frontend_gate` (local strict target)
   - same checks, but fails on any grammar-flow failure
 - `ebnf_frontend_dual_run_diff` (local report target)
-  - executes Perl-vs-Rust (`generated/ebnf.rs`) frontend differential report for `ebnf/json/regex`
-  - report now also includes Rust raw-AST export comparison against Perl `raw_ast` output:
-    - `raw_ast_status=parity|perl_under_reports|rust_under_reports|divergent`
-    - missing-rule counts on each side
-    - per-grammar `raw_ast_compare_json` artifact
+  - executes the two-arm EBNF differential report for `ebnf/json/regex`:
+    - arm 1 — the hand-written Rust frontend (`ast_pipeline --emit-raw-ast-json`)
+    - arm 2 — the parser GENERATED from `grammars/ebnf.ebnf` (`ebnf_dual_run_diff`), whose
+      verdict IS the self-hosting measurement
+  - ⚠️ the former Perl arm and its `raw_ast_status=parity|perl_under_reports|…` telemetry are
+    GONE (`LANG-CAPABILITY-AUDIT.10.6`): measured, that arm was blind to 25 of `regex.ebnf`'s
+    276 rules and the gate passed it as `perl_under_reports`, and it compared rule-name SETS
+    only. Honest bound, stated rather than implied: removing it left this gate with no
+    OUTPUT-level comparison — building the raw-AST differential is `.10.6` part 2.
 - `ebnf_frontend_dual_run_gate` (local strict target)
   - same dual-run differential checks, but fails on unexpected mismatches/failures
-  - known legacy-Perl subset under-reporting is surfaced as informational telemetry (`perl_under_reports`) instead of being treated as a hard parity failure by itself
+  - the `perl_under_reports` informational-telemetry escape hatch this line used to describe
+    is gone with the Perl arm; the gate now asserts arm 2's self-hosting verdict outright
 - `performance-gate`
   - throughput/latency/failure thresholds
 - `differential-regression-gate`
@@ -2385,13 +2392,16 @@ EBNF frontend readiness commands:
 make -C rust SHELL=/bin/bash ebnf_frontend_readiness
 make -C rust SHELL=/bin/bash ebnf_frontend_gate
 ```
-- Rust frontend path:
+- Rust frontend path (the default — the variable is shown only for explicitness):
 ```bash
 PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness
 PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_gate
 ```
 - Notes:
-  - `PGEN_EBNF_FRONTEND_IMPL=perl` remains the default.
+  - `PGEN_EBNF_FRONTEND_IMPL` defaults to `rust`, and `=perl` now FAILS LOUDLY with the
+    reason rather than selecting a retired frontend (`ebnf_frontend_readiness_gate.sh:20/36`,
+    `ebnf_stimuli_quality_gate.sh:21/41`). The knob is kept precisely so a stale `=perl` in
+    some CI job cannot silently fall back to a default.
   - the Rust path now handles multiline semantic annotation blocks in tracked grammars such as `grammars/regex.ebnf`.
   - readiness output now distinguishes plain frontend viability from parser-backed validation:
     - `parser_registry_support`
@@ -2467,8 +2477,8 @@ make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate
 
 - dual-run report semantics:
   - parser/full-parse parity remains required for all tracked grammars,
-  - the report now also compares Perl `raw_ast` rule-name sets against the Rust frontend `raw_ast` export,
-  - when the Rust rule-name set is a strict superset of the Perl rule-name set, the row is reported as `raw_ast_status=perl_under_reports` with explicit missing-rule counts and artifact paths instead of being silently treated as plain parity.
+  - the arms are the Rust frontend and the generated meta-parser; the Perl `raw_ast` rule-name
+    comparison (and its `perl_under_reports` classification) was retired with the Perl arm.
 
 Aggregate SOTA policy note:
 - dual-run strict mode is required by default in `rust/config/sota_exit_policy.env` (`PGEN_SOTA_POLICY_REQUIRE_EBNF_DUAL_RUN_STRICT=1`).

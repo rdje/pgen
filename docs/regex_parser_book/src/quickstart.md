@@ -25,7 +25,7 @@ make -C subs/pgen/rust SHELL=/bin/bash regex_parser_fresh
 | GNU `make` | any recent |
 | `bash` | any recent |
 
-No Perl is required. Earlier versions of PGEN used `tools/ebnf_to_json.pl` as a bootstrap fallback; the current cold-clone path uses the Rust EBNF frontend exclusively.
+No Perl is required, and none is present. Earlier versions of PGEN shipped `tools/ebnf_to_json.pl` as a bootstrap fallback; it was retired by `LANG-CAPABILITY-AUDIT.10.6` and **deleted** by `.10.7`, so the cold-clone path uses the Rust EBNF frontend exclusively.
 
 ## Verifying the build
 

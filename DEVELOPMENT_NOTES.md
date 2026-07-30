@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0025 — deleting code is easy; the documentation that promises it is where the work is
+
+`LANG-CAPABILITY-AUDIT.10.7` slice 2. The `git rm` took one command. Everything below is what
+surrounded it.
+
+- ⭐⭐ **`.10.6` retired the Perl frontend and corrected almost nothing that DOCUMENTS it, and
+  the worst instance was a downstream CONTRACT.**
+  `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md:2455` still told RGX that *"the Perl-based
+  fallback `tools/ebnf_to_json.pl` **is retained** … Don't reach for it unless you have no
+  Rust toolchain"*. A contract is the one surface where a stale sentence is not a
+  documentation bug but a **broken promise** — and the hedge was itself too kind: that
+  frontend was measured blind to 25 of `regex.ebnf`'s 276 rules. ⇒ **a retirement is not done
+  when the code stops running it; it is done when nothing still promises it.**
+- **The inverted claim is the one to remember.** `PGEN_USER_GUIDE.md` published
+  *"`PGEN_EBNF_FRONTEND_IMPL=perl` remains the default"* while the code says the opposite in
+  two places, deliberately and loudly (`ebnf_frontend_readiness_gate.sh:20/36`,
+  `ebnf_stimuli_quality_gate.sh:21/41` — the knob is *kept* precisely so a stale `=perl` fails
+  instead of silently selecting a default). A doc that is merely out of date misleads; a doc
+  that is **inverted** actively teaches the wrong mental model.
+- **`git rm` is not deletion when `.gitignore` is involved.** After removing all 40 tracked
+  files, `perl/` was still standing with **6 untracked files** — 178 KB of generated Perl
+  parser output hidden by `*_parser.pm` and `perl/*parser.rs`. A tracked-file census cannot
+  see them, so "the tree is deleted" would have been false in a way `git status` could never
+  reveal. ⚠️ And unlike tracked files, **they are not recoverable** — git history does not have
+  them — so their names, sizes and sha256s were recorded before removal, and each was proven
+  unreferenced first. ⇒ **after deleting a directory, `find` it; do not trust `git ls-files`.**
+- ⛔⛔ **The sweep is what found `.10.9`, and that is the real lesson of this slice.** Grepping
+  for dangling references turned up four gate scripts still consuming Perl telemetry the
+  producer no longer emits — including a **numeric floor that now compares against a constant
+  zero**: `(( rust_rule_count < perl_rule_count ))` where `jq` yields the bare word `null`,
+  which bash arithmetic reads as an unset name = 0. The gate does not fail there; it
+  **passes**, forever. Two loud breakages in the same file would have drawn a maintainer to
+  patch exactly those two and ship a green gate with a dead assertion inside it. ⇒ **when a
+  producer's schema changes, sweep every CONSUMER, and check the ones that still pass hardest
+  — a consumer that started passing for a new reason is worse than one that started failing.**
+- **What was deliberately left alone.** The roadmap's `perl tools/ebnf_to_json.pl
+  --validate-only …` lines sit inside a dated `Progress (2026-03-18)` entry. Correcting a
+  historical record to match today would be back-dating; the line stays, because it is a true
+  statement about March.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0024 — an instrument nobody runs does not stay neutral
 
 `LANG-CAPABILITY-AUDIT.10.7` slice 1. Retiring the referrers that *execute* the Perl tree,

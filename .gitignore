@@ -229,7 +229,9 @@ nytprof/
 generated_*.pm
 generated_*.jl
 generated_*.rs
-perl/*parser.rs
+# (`perl/*parser.rs` stood here until LANG-CAPABILITY-AUDIT.10.7 deleted the `perl/` tree;
+#  measured 0 matching files on disk before removing the pattern. `*_parser.pm` below still
+#  matches 2 files under `tests/artifacts/`, so it stays.)
 *_parser.pm
 *_parser.jl
 

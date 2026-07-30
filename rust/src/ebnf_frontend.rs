@@ -270,7 +270,9 @@ fn is_include_directive(line: &str) -> bool {
 // first rule of the next.
 //
 // Semantics follow `docs/EBNF_INCLUDE_SYSTEM.md` and the once-working Perl
-// implementation (`perl/AST/Transform.pm:3234 process_ast_includes`), with two
+// implementation (`perl/AST/Transform.pm:3234 process_ast_includes`) — a path that
+// LANG-CAPABILITY-AUDIT.10.7 DELETED, so the citation now resolves only in git
+// history (`git show <pre-.10.7>:perl/AST/Transform.pm`), not in the tree. Two
 // deliberate corrections, both recorded in the leaf:
 //   * the including file's own directory is ALWAYS on the search path. The Perl
 //     entry point never passed a base directory, so the documented "base

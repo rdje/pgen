@@ -2668,7 +2668,7 @@ a component the project's own docs describe as gone. All three were believed —
 record, by the director, and by me — until measured.
 
 
-### `.10.7` — delete the retired Perl tree (`in-progress` — ✅ SLICE 1 DONE; the deletion is slice 2)
+### `.10.7` — delete the retired Perl tree (`done` — ✅ SLICE 1 + ✅ SLICE 2)
 
 - **Status: `in-progress`, carrying explicit director approval (2026-07-31): *"you have my
   approval, go, go, go"*.** ⛔ **That approval was given on a number I got wrong, so the
@@ -2779,15 +2779,94 @@ exactly as broken as it was. Routed to `.10.8`.
   `docs/TASK_TREE.md`. No book/contract movement — none of the four files is a published
   surface, and `PGEN_USER_GUIDE.md`'s Perl command is slice 2's.
 
-#### What slice 2 still owes
+#### ✅ Slice 2 — the deletion, and the four published surfaces that were still lying
 
-`git rm` the tree, then the doc sweep. Two remaining comments become instructions to run a
-deleted file and must move with it: `rust/scripts/ast_dump_contract_gate.sh:127` (a usage
-example that literally says `perl tools/ebnf_to_json.pl mini.ebnf`) and
-`rust/src/ebnf_frontend.rs:273` (cites `perl/AST/Transform.pm:3234` as the reference
-implementation — after deletion that citation resolves only in git history and must say so).
-`rust/Makefile:787` and `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh:20` are already
-past-tense narrative and are fine.
+**40 tracked files deleted**, exactly the approved scope: `tools/*.pl` (5),
+`tools/generators/perl_parser_gen` (1), `perl/` (34). ⛔ **Plus 6 UNTRACKED leftovers** the
+charter did not know about — `.gitignore`'s `*_parser.pm` and `perl/*parser.rs` patterns had
+been hiding generated Perl parser outputs inside `perl/`, so a `git rm` alone would have left
+the directory standing with 178 KB of orphans in it. They are **not in git history**, so their
+names, sizes and sha256s are recorded before removal in
+`rust/target/lang_cap_audit_10_7/perl_untracked_manifest.txt` and here:
+
+| file | bytes | sha256 (16) |
+|---|---|---|
+| `perl/Ultimate_return_annotation_parser.pm` | 15,100 | `65e4dfbe0de1d3f4` |
+| `perl/generated_parser.rs` | 7,200 | `273380feefbd8696` |
+| `perl/Parser/Ultimate_return_annotation_parser.pm` | 41,486 | `2b860c2a2315f9f5` |
+| `perl/Parser/Development/working_return_annotation_parser.pm` | 5,346 | `79304a473a45d379` |
+| `perl/Parser/Development/new_return_annotation_parser.pm` | 65,182 | `01a12fd6e6359ff1` |
+| `perl/Parser/Development/return_annotation_parser.pm` | 44,256 | `793ad00d642ec648` |
+
+Each was confirmed unreferenced by any tracked file first (the single `grep` hit for
+`generated_parser.rs` is `CHANGES.md` prose about a *log filename string*, not the file).
+
+⭐⭐ **THE SWEEP FOUND FOUR PUBLISHED SURFACES MAKING FALSE PRESENT-TENSE CLAIMS — and the
+worst was a downstream CONTRACT.** `.10.6` retired the frontend but corrected almost none of
+what documents it:
+
+| surface | the claim, verbatim | why it mattered |
+|---|---|---|
+| `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md:2455` | *"The Perl-based fallback `tools/ebnf_to_json.pl` **is retained** … Don't reach for it unless you have no Rust toolchain."* | ⛔ a **published promise to RGX** of a fallback that no longer exists — and one whose "known feature-coverage limitations" were, measured, far worse than the hedge implied (blind to 25 of `regex.ebnf`'s 276 rules) |
+| `PGEN_USER_GUIDE.md:119` | the Perl command was the **first** EBNF→JSON recipe, Rust shown as *"alternative"* | the user-facing quick path was the deleted one |
+| `PGEN_USER_GUIDE.md:2394` | *"`PGEN_EBNF_FRONTEND_IMPL=perl` **remains the default**."* | ⛔ **inverted** — measured, the default is `rust` and `=perl` now fails loudly on purpose (`ebnf_frontend_readiness_gate.sh:20/36`, `ebnf_stimuli_quality_gate.sh:21/41`) |
+| `docs/knowledge/ebnf-self-hosting-what-it-means.md:66` | listed the Perl↔frontend pair as one of three **live** comparisons | a retrieval-indexed knowledge card teaching a retired mechanism |
+
+All four corrected, plus the two dangling code comments
+(`rust/scripts/ast_dump_contract_gate.sh:127`, which told a reader to *run* the deleted file,
+restated against the Rust frontend; `rust/src/ebnf_frontend.rs:273`, whose
+`perl/AST/Transform.pm:3234` provenance citation now says it resolves only in git history),
+three more user-guide gate descriptions, `docs/regex_parser_book/src/quickstart.md`, and the
+vestigial `.gitignore` pattern (`perl/*parser.rs`, measured 0 matches; `*_parser.pm` **kept**,
+it still matches 2 files under `tests/artifacts/`).
+
+⚠️ **Deliberately NOT swept**: `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md:1620-1621`
+carries `perl tools/ebnf_to_json.pl --validate-only …` inside a dated **`Progress
+(2026-03-18)`** entry. That is a historical record of what was run then, and history is not
+rewritten here.
+
+⭐ **This is where `.10.9` was found** — sweeping for dangling references surfaced four gate
+scripts still consuming Perl telemetry the producer no longer emits. See that leaf; it is
+`.10.6`'s residue, it is separable from this deletion, and it is RED right now.
+
+#### Acceptance Checklist (enforced) — SLICE 2, the deletion
+
+- [x] **REPRODUCE / ISSUE** — `git ls-files` counted the approved scope at **40** tracked
+  files (`tools/*.pl` 5 + `tools/generators/perl_parser_gen` 1 + `perl/` 34), against the
+  charter's *"≈35"*; and a `find` over `perl/` after `git rm` showed the directory still
+  standing with **6 untracked files** the tracked census could not see.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the files implement a frontend `.10.6` retired: WHERE,
+  `git grep` over every tracked non-doc file returns **zero** executing references after
+  slice 1, and the only guards naming them are `.10.6`'s INVERTED pins
+  (`ci_workflow_local_gate.sh:810/824/825 assert_file_not_contains_uncommented`), which the
+  deletion makes *more* true, not less. The 6 survivors are hidden by `.gitignore:232-233`
+  (`perl/*parser.rs`, `*_parser.pm`) — generated outputs of the very generator being deleted.
+- [x] **FIX** — `git rm` the 40 tracked files; `rm -rf perl` for the 6 gitignored generated
+  leftovers after recording their manifest; sweep the four false published claims, the two
+  dangling code comments and the dead ignore pattern.
+- [x] **ADDRESSED (verified)** — before → after: tracked Perl-tree files **40 → 0**;
+  `perl/` **exists → absent** (`ls -d perl` → *No such file or directory*);
+  `git grep` for the deleted paths over every tracked file except the history surfaces
+  (`CHANGES.md`/`DEVELOPMENT_NOTES.md`/`LIVE_ACHIEVEMENT_STATUS.md`/`docs/tasks/`/`MEMORY.md`/
+  the built `*-html/`) returns **only past-tense retirement notes and one dated 2026-03-18
+  progress entry** — no instruction to run a deleted file survives.
+- [x] **NO REGRESSION** — `make -C rust ebnf_frontend_dual_run_gate` **GREEN with the Perl
+  tree gone**: `ebnf`/`json`/`regex` all `pass`, self-hosting `consumed_pct`
+  100.00/99.90/100.00, `✅ EBNF frontend dual-run differential gate passed`, `EXIT=0`.
+  `make -C rust ebnf_stimuli_quality_gate` **`✅ … passed`, `EXIT=0`**. This slice touches
+  one `rust/src` file (a comment in `ebnf_frontend.rs`), so it was proven **codegen-inert by
+  the `.10.3` path-pinned oracle**: regenerating the meta-parser afterwards yields
+  `7ce6578f799c36c79343f98c1e441feb70b453eee25be860ae64824f751938e5` for
+  `generated/ebnf.rs` — **the identical hash `.10.3` pinned**, so no generated artifact moved.
+  `bash -n rust/scripts/ast_dump_contract_gate.sh` OK. `scripts/check_doctrines.sh` **ALL 15
+  PASS** against the real staged diff. `mdbook_docs_gate` + `ebnf_parser_book_gate` GREEN.
+- [x] **LOCKSTEP** — ⭐ the **downstream contract**
+  `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` (the retained-fallback promise),
+  `PGEN_USER_GUIDE.md` (6 corrections incl. the inverted default),
+  `docs/knowledge/ebnf-self-hosting-what-it-means.md`,
+  `docs/regex_parser_book/src/quickstart.md`, `.gitignore`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+  No schema/ledger/release movement — nothing generated moved.
 
 #### ⛔ CORRECTION — I said "39 files". It is 142, and most of them are not what "go" meant
 
@@ -2855,6 +2934,75 @@ re-pointed in the same wave rather than left calling a deleted file.
 4. Re-run `check_doctrines.sh`, `ebnf_frontend_dual_run_gate`, `ebnf_stimuli_quality_gate`,
    `mdbook_docs_gate`.
 5. ⭐ Nothing is lost: git history retains every deleted file.
+
+---
+
+### `.10.9` — ⛔⛔ `.10.6` LEFT FOUR GATES READING PERL TELEMETRY THAT NO LONGER EXISTS — the regex family contract gate is RED, and it is a required stage of the flagship aggregate (`todo`)
+
+- **Status: `todo` — ⛔ HIGHEST-PRIORITY item in this tree.** Opened 2026-07-31 session #229 by
+  `.10.7` slice 2, which found it while sweeping for dangling references. ⚠️ **This is
+  `.10.6`'s residue, not `.10.7`'s**: the readers broke the moment the Perl ARM was removed,
+  one commit before any file was deleted. Deleting the files does not make it worse, which is
+  why it is separable — but it must not wait.
+- ⛔ **`make -C rust regex_parser_family_contract_gate` cannot pass**, and
+  `rust/scripts/sota_exit_gate.sh` invokes it ⇒ **the flagship aggregate is RED**. `.7`
+  reported `sota_exit_gate` green end-to-end on 2026-07-30 (32/32 stages, 4 h 39 m); `.10.6`
+  landed immediately after, so that green is the last one this configuration can have
+  produced.
+
+#### WHY + WHERE — measured from the live artifact, three separate breakages in one gate
+
+The dual-run gate's regex entry carries exactly these keys today (read from
+`rust/target/ebnf_frontend_dual_run_gate/summary.json`):
+
+```
+['artifacts','consumed_pct','grammar','input_bytes','notes','overall',
+ 'raw_ast_status','rust_parse','rust_parse_end','rust_parse_full','rust_report','rust_rule_count']
+```
+
+⇒ **no `perl_*` key exists at all**, and `raw_ast_status` is now `exported`. Against that,
+`rust/scripts/regex_parser_family_contract_gate.sh`:
+
+| # | site | what it does | outcome now |
+|---|---|---|---|
+| 1 | `:217` | `assert_equal "dual-run regex perl_ebnf_to_json" "pass" "$…"` | the key is absent ⇒ `jq -r` yields `null` ⇒ **FAILS** (`"pass"` ≠ `"null"`) |
+| 2 | `:222-228` | `case "$raw_ast_status" in parity\|perl_under_reports)` … `*) exit 1` | actual is **`exported`** ⇒ **`exit 1`**, message: *"raw_ast_status must be 'parity' or 'perl_under_reports' but found 'exported'"* |
+| 3 | `:230` | `if (( dual_run_regex_rust_rule_count < dual_run_regex_perl_rule_count ))` | `jq` yields the bare word `null`, which bash arithmetic reads as an **unset name = 0** ⇒ `276 < 0` is false ⇒ **passes VACUOUSLY**. Confirmed directly: `bash -c 'set -euo pipefail; a=276; b=""; if (( a < b )); then echo LT; else echo GE; fi'` → `GE`, `rc=0` |
+
+⭐ **Breakages 1 and 2 are loud; 3 is the dangerous one.** It is a *numeric floor* — "the Rust
+frontend must not report fewer rules than Perl did" — that now compares against a constant
+zero and can never fire again. Fixing 1 and 2 without noticing 3 would restore a green gate
+with a dead assertion inside it, which is the `.10.5` shape exactly.
+
+#### The same telemetry is read in three more places
+
+`git grep` over `rust/scripts/`, all still consuming keys the producer no longer emits:
+
+- `rust/scripts/sota_exit_gate.sh:3048/3050` → publishes `regex_family_dual_run_perl_rule_count`
+  and `…_raw_ast_missing_on_perl_count` in its summary (`:3903/:3905`), pre-seeded `<missing>`
+  at `:3001/:3003` — so the aggregate reports a value for a measurement that no longer exists.
+- `rust/scripts/regex_parser_family_status_gate.sh:185`
+- `rust/scripts/regex_combined_telemetry_contract_gate.sh:232/234`
+
+#### Scope when taken up
+
+Decide what the regex contract should assert now that there is only one frontend arm — that
+is a **design** question and it belongs with `.10.6` part 2 (the raw-AST differential), which
+is the thing that would give the contract a real second arm to compare against. Until then the
+honest minimum is: delete the three Perl assertions rather than weaken them, replace the
+`raw_ast_status` allowlist with the values the producer actually emits, and **state in the gate
+that it has lost its cross-frontend floor** rather than letting `(( … < null ))` imply one is
+still there. ⛔ Do not simply add `exported` to the `case` allowlist and move on — that
+converts a broken gate into a quiet one.
+
+⭐ **ROUTING EVIDENCE — does it reproduce outside the regex family?** Measured: **yes, and it
+is not regex-specific.** The producer dropped the keys for *all three* grammars
+(`ebnf`/`json`/`regex` — the summary artifact shows the same key set for each), and three of
+the four consumers are regex-family scripts only because the regex family is the only one with
+a dual-run contract surface. The defect class is *"a consumer outlived its producer's schema"*,
+i.e. the `CI-PARITY-GATE-ROT.11` stale-metric family, arrived at from the opposite direction —
+there the reader scraped a prose log, here the reader queries a structured key that was
+deleted. Cross-linked accordingly.
 
 ---
 

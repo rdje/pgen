@@ -1,9 +1,0 @@
-@entry: true
-expression_list := expression ( "," expression )*
-number_list := number ( "," number )*
-word_sequence := word ( word )*
-
-expression := identifier | number
-identifier := /[a-zA-Z_]\w*/
-word := /[a-zA-Z]+/
-number := /\d+/

@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0025 — leaf LANG-CAPABILITY-AUDIT.10.7 SLICE 2: the Perl tree is DELETED, and the sweep found a downstream CONTRACT still promising it
+
+40 tracked files deleted (the exact approved scope) + 6 untracked leftovers the charter did
+not know about. `generated/ebnf.rs` is BYTE-IDENTICAL (7ce6578f... — the same hash -0023
+pinned), so no generated artifact moved and no tracker row changed.
+
+- DELETED, measured not quoted: tools/*.pl (5) + tools/generators/perl_parser_gen (1) +
+  perl/ (34 tracked) = 40. The charter said "~35" because it counted only .pl/.pm.
+- ⛔ PLUS 6 UNTRACKED LEFTOVERS a `git rm` alone would have left standing: .gitignore's
+  `*_parser.pm` and `perl/*parser.rs` had been hiding 178 KB of generated Perl parser output
+  INSIDE perl/. They are NOT in git history, so their names/sizes/sha256s are recorded in the
+  leaf and in rust/target/lang_cap_audit_10_7/perl_untracked_manifest.txt before removal, and
+  each was confirmed unreferenced first.
+- ⭐⭐ THE SWEEP FOUND FOUR PUBLISHED SURFACES MAKING FALSE PRESENT-TENSE CLAIMS. .10.6
+  retired the frontend but corrected almost nothing that DOCUMENTS it:
+    docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md:2455
+        "The Perl-based fallback tools/ebnf_to_json.pl IS RETAINED ... Don't reach for it
+         unless you have no Rust toolchain."
+        <- a PUBLISHED PROMISE TO RGX of a fallback that no longer exists, hedged as having
+           "known feature-coverage limitations" that were measured to be far worse than that
+           (blind to 25 of regex.ebnf's 276 rules)
+    PGEN_USER_GUIDE.md:119     the Perl command was the FIRST EBNF->JSON recipe; Rust was
+                               presented as the "alternative"
+    PGEN_USER_GUIDE.md:2394    "PGEN_EBNF_FRONTEND_IMPL=perl remains the default."
+                               <- INVERTED. Measured: default is `rust`, and `=perl` now
+                                  FAILS LOUDLY on purpose (readiness gate :20/:36, stimuli
+                                  gate :21/:41)
+    docs/knowledge/ebnf-self-hosting-what-it-means.md:66
+                               listed the Perl<->frontend pair as one of three LIVE
+                               comparisons -- a retrieval-indexed card teaching a retired
+                               mechanism
+  All four corrected, plus 3 more user-guide gate descriptions, the regex book quickstart,
+  and the two code comments that pointed at deleted files (ast_dump_contract_gate.sh:127 told
+  a reader to RUN the deleted file; ebnf_frontend.rs:273's provenance citation now says it
+  resolves only in git history).
+- DELIBERATELY NOT SWEPT: the roadmap's `perl tools/ebnf_to_json.pl --validate-only` lines sit
+  inside a dated "Progress (2026-03-18)" entry. That is a historical record and history is not
+  rewritten here.
+- ⛔⛔ THE SWEEP IS ALSO HOW `.10.9` WAS FOUND -- see the next entry's headline: four gate
+  scripts still consume Perl telemetry the producer no longer emits, and the regex family
+  contract gate CANNOT PASS. That is .10.6's residue, separable from this deletion, and RED
+  right now. Routed with a full mechanical repro, NOT worked inside this slice.
+- VERIFIED: ebnf_frontend_dual_run_gate GREEN with the tree gone (ebnf/json/regex all pass,
+  consumed 100.00/99.90/100.00, EXIT=0); ebnf_stimuli_quality_gate EXIT=0; the one rust/src
+  edit is a comment and was proven CODEGEN-INERT by the .10.3 path-pinned oracle
+  (generated/ebnf.rs = 7ce6578f..., the identical hash); bash -n OK; 15/15 doctrines against
+  the real staged diff; mdbook_docs_gate + ebnf_parser_book_gate GREEN.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0024 — leaf LANG-CAPABILITY-AUDIT.10.7 SLICE 1: the four referrers that EXECUTE the Perl tree, and a harness that reported success while its own output said every test failed
 
 Slice 1 of the de-Perl deletion: the leaf's own step 1, "re-point or retire the executing

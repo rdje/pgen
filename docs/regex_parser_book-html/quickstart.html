@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-22e5ba99.js";
+            window.path_to_searchindex_js = "searchindex-10339143.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -205,7 +205,7 @@
 </tbody>
 </table>
 </div>
-<p>No Perl is required. Earlier versions of PGEN used <code>tools/ebnf_to_json.pl</code> as a bootstrap fallback; the current cold-clone path uses the Rust EBNF frontend exclusively.</p>
+<p>No Perl is required, and none is present. Earlier versions of PGEN shipped <code>tools/ebnf_to_json.pl</code> as a bootstrap fallback; it was retired by <code>LANG-CAPABILITY-AUDIT.10.6</code> and <strong>deleted</strong> by <code>.10.7</code>, so the cold-clone path uses the Rust EBNF frontend exclusively.</p>
 <h2 id="verifying-the-build"><a class="header" href="#verifying-the-build">Verifying the build</a></h2>
 <pre><code class="language-bash">echo -n 'a*' &gt; /tmp/sample.txt
 cargo run --manifest-path subs/pgen/rust/Cargo.toml \

@@ -63,11 +63,12 @@ not exist. Three different pairs run, and each compares something weaker:
 | pair | what is compared | where |
 |---|---|---|
 | hand-written frontend ↔ **generated `ebnf.rs`** | **verdict only** (`Ok`/`Err`), and **soft** — warns unless `PGEN_EBNF_FRONTEND_REQUIRE_GENERATED_VERIFY=1` | **live, on every grammar load** — `ebnf_frontend.rs:65-79` |
-| **Perl** `tools/ebnf_to_json.pl` ↔ hand-written frontend | **rule-NAME sets** — `sorted(set(names))` over `["rule", name]` heads; **not** bodies, tokens or ASTs | `ebnf_frontend_dual_run_diff_gate.sh:224-260` |
+| ~~**Perl** `tools/ebnf_to_json.pl` ↔ hand-written frontend~~ | ~~**rule-NAME sets** — `sorted(set(names))` over `["rule", name]` heads; **not** bodies, tokens or ASTs~~ ⛔ **RETIRED** by `LANG-CAPABILITY-AUDIT.10.6`, files deleted by `.10.7`: measured, this arm was blind to 25 of `regex.ebnf`'s 276 rules and the gate passed that as `perl_under_reports` | *(gone)* |
 | interpreter ↔ generated `ebnf.rs` | **byte-identical AST** ✅ | `parse_harness_equivalence` (`ebnf` is CERTIFIED) |
 
 ⇒ **The `ebnf.ebnf`-derived parser's OUTPUT is never compared with the hand-written
-frontend's output, anywhere.** Its AST *is* byte-compared — but against the **interpreter
+frontend's output, anywhere** — and retiring the Perl arm did not change that, it only removed
+the *weakest* of the three pairs. Building that raw-AST differential is `.10.6` part 2.** Its AST *is* byte-compared — but against the **interpreter
 running the same grammar**, which proves the two *engines* agree, not that `ebnf.ebnf`
 describes what the frontend accepts. And the only output-level diff in the gate is against
 the **Perl** frontend, on rule names alone — so two frontends could tokenize every rule

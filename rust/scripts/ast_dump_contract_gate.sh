@@ -123,8 +123,12 @@ PARSER_DUMP_DIFF="$WORK_DIR/parser_ast_determinism.diff"
 # in `.2` step C, and this gate has been RED since that commit (`7219547c`). ⭐ Step B's migration
 # could not see these two fixtures because they are NOT `.ebnf` files — they are raw-AST JSON
 # heredocs, and an `.ebnf`-shaped sweep is structurally blind to a grammar expressed as raw AST.
-# The raw-AST encoding of the declaration was MEASURED from the frontend, not guessed:
-#   $ printf '@entry: true\nstart := "a"\n' > mini.ebnf && perl tools/ebnf_to_json.pl mini.ebnf
+# The raw-AST encoding of the declaration was MEASURED from the frontend, not guessed. The
+# command below originally read `perl tools/ebnf_to_json.pl mini.ebnf`; LANG-CAPABILITY-AUDIT
+# .10.6 retired that frontend and .10.7 deleted the file, so it is restated against the Rust
+# frontend, which emits the same raw_ast envelope to an explicit output path:
+#   $ printf '@entry: true\nstart := "a"\n' > mini.ebnf
+#   $ rust/target/debug/ast_pipeline mini.ebnf --emit-raw-ast-json mini.json   # needs ebnf_dual_run
 #   ... "raw_ast":[[["rule","start"],["semantic_annotation",["entry","true"]],["quoted_string","a"]]]
 cat >"$GEN_GRAMMAR_JSON" <<'EOF'
 {

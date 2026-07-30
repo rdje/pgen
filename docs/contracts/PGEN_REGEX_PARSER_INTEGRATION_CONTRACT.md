@@ -2452,7 +2452,7 @@ The chicken-and-egg used to be: building `ast_pipeline` with `--features ebnf_du
 
 Result: `cargo build --features ebnf_dual_run --bin ast_pipeline` succeeds even with no `generated/` files. The Rust EBNF frontend produces `generated/ebnf.json` from `grammars/ebnf.ebnf`, and the same binary then converts JSON → `generated/ebnf.rs`. After that initial seed, the binary is rebuilt (now with the cross-check active) and the normal `regex_parser` chain runs to completion.
 
-The Perl-based fallback `tools/ebnf_to_json.pl` is retained but is **not** the recommended path — it has known feature-coverage limitations that the Rust frontend doesn't share. Don't reach for it unless you have no Rust toolchain.
+⛔ **There is no Perl fallback any more.** This paragraph used to say that `tools/ebnf_to_json.pl` was *retained but not recommended*; `LANG-CAPABILITY-AUDIT.10.6` retired that frontend and `.10.7` deleted the file. The known feature-coverage limitations that made it "not recommended" were measured and were worse than advertised — it was blind to 25 of `grammars/regex.ebnf`'s 276 rules, the whole modern `code_*` family. **The Rust EBNF frontend is the only supported path, and it needs no Perl at all.**
 
 #### Manual decomposition (if you want to debug each step)
 
