@@ -1138,7 +1138,33 @@ Recorded because `.9` **routed a finding back out of this tree** (the `REGEX-PCR
 
 ---
 
-### `.11` — the stale-log-metric class: 14 further gates scrape prose log lines for values, and nobody has checked them (`todo`)
+### `.11` — the stale-log-metric class: 14 further gates scrape prose log lines for values, and nobody has checked them (`todo` — ⭐ DIRECTOR-GREENLIT NEXT, 2026-07-30)
+
+#### ⭐⭐ SEQUENCING RULING (director 2026-07-30, session #227) — this leaf is the ONE flow exception before product
+
+Asked whether the flow was ready to be left alone for parser work, the answer was *"yes, with exactly
+one exception"* — this leaf — and the director greenlit it verbatim:
+*"Ok, greenlight for 'My recommendation: .11 first, one slice, then the parser for good.'"*
+
+⛔ **WHY THIS IS NOT A VIOLATION of the standing discipline adopted the same session**
+(`docs/decisions/feedback_flow_findings_are_routed_not_worked.md`, which routes flow findings by default
+and works them only when they BLOCK). That rule's own criterion is *a verdict cannot be trusted*, and
+that is precisely what this leaf is:
+
+- **13 METRIC sites derive a NUMBER from PROSE**, and **4 of them sit in parser-facing cert gates**
+  (`rtl_const_expr_cert_gate`, `sv_cert_recognized_union_gate`, `verilog_2005_conformance_gate`);
+- **parser and codegen work is exactly what changes log wording** — it is the input this class is
+  fragile to, so the risk is not generic, it is specific to what comes next;
+- and it **has already bitten**: `.9` published `resolved 723` where the pipeline had resolved **1002**,
+  RED for ~2 months, invisible because only the aggregate reached it.
+
+⇒ this is the one remaining open item that can make a **parser gate lie**, which is the worst thing to
+be carrying into a parser campaign. Everything else open in this tree costs triage time, not
+correctness — `.17` fails with a 0-byte log (annoying, not wrong), `.10` is duplication, `.16` is
+vacuous-on-push.
+
+⚠️ **SCOPE IS ONE SLICE, and that is part of the ruling** — not a campaign. Then product, and the
+remaining flow items stay routed behind it.
 
 - **Status: `todo`** — opened 2026-07-29 session #221 by `.9`, whose defect is an instance of a
   general shape: **a value scraped out of a human-readable log line is a coupling to a pass
