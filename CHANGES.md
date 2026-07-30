@@ -1,5 +1,44 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0016 — leaf LANG-CAPABILITY-AUDIT.10.2 put ON HOLD by director order; its premise did not survive measurement
+
+Docs only (task tree + resume pointer) — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`
+=> all 11 generated parsers byte-identical BY CONSTRUCTION. No tracker row moved.
+
+- DIRECTOR CHALLENGE (2026-07-30, session #228), before any code was written: *"postpone .10.2 ...
+  I do not understand why implementing .10.2 would have so much effect of breaking things ...
+  apparently include(semantic_annotation) is not actually needed, because so far it was discarded
+  all along, so why even wanting to reinstate it."* ⇒ **Both challenges are correct.**
+- ⭐ FACT 1 — the include has NEVER once worked, in the entire history of the repo. The deleted
+  line was `include(semantic_annotations)` (PLURAL, a file that never existed); before `.7` the
+  frontend DISCARDED include directives outright, and after `.7` made them real an unresolvable
+  include is a HARD ERROR. It has never contributed a single rule ⇒ "restore the delegation" is
+  not a restoration, it is a design proposal wearing the costume of a repair.
+- ⭐ FACT 2 — NOTHING consumes the meta-parser's annotation AST. All five `EbnfParser` consumers
+  take a VERDICT (`.is_ok()`, `Result<(),String>`, a soft warn-only cross-check, a diagnostic
+  report); the single AST consumer's only caller is the interpreter-vs-generated self-consistency
+  oracle. The REAL EBNF frontend is the hand-written `scan_top_level_rules`. ⇒ structuring the
+  annotation payload inside `ebnf.ebnf` buys no consumer anything; the payload is already parsed
+  correctly by the annotation backend, on a path none of this touches.
+- ⛔ FACT 3 — THE CHARTER'S COST WARNING IS INVERTED. It budgets "release/schema/ledger lockstep"
+  against the `ebnf` parser, which has NO integration contract and NO ast_shape_contract manifest.
+  The contract-bearing parser is `semantic_annotation` — the side the charter called "cheaper to
+  write" — and its manifest pins the very names in the collision set (`boolean_literal` x10,
+  `null_literal` x5, `integer_literal`, `single_quoted_string`).
+- REQUIREMENT RESTATED with the mechanism removed: R1 make `ebnf.ebnf` SOUND so the
+  `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` entry can be retired (the EBNF-SOURCE-OF-TRUTH breach
+  director #208 named); R2 recognize every annotation form tracked grammars use, incl. the
+  multi-line brace payload. Neither needs the include; neither needs the payload STRUCTURED, only
+  DELIMITED.
+- THREE OPTIONS PRICED in the leaf. **B recommended**: define `semantic_annotation` LOCALLY in
+  `ebnf.ebnf` as an opaque-payload delimiter rule — one self-contained rule in a contract-free
+  grammar, no cross-file composition, no collisions, no duplicated payload spec, meets R1+R2.
+  A = the charter as written (11 lexical conflicts + a measurably wrong payload spec to extend).
+  C = do nothing (linter stays blind, self-hosting 11/12, ebnf_frontend_dual_run_gate stays RED).
+- ⏳ AWAITING a director A/B/C decision. `.10.3` stays blocked behind it. The one open technical
+  question (can PGEN's EBNF express an opaque balanced-brace payload?) is recorded as
+  measure-don't-assume, with the scratch slot / interpreter named as the instrument.
+
 ## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0015 — leaf LANG-CAPABILITY-AUDIT.10.5: the meta-parser could not fail, so its 12/12 self-hosting claim meant nothing
 
 2 grammar files, one character each (`single_quoted_string`'s missing closing quote) + 1 probe
