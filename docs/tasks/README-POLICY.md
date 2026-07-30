@@ -16,7 +16,7 @@
   read once at adoption time; the adopted copy is tracked in-repo at
   `docs/reference/PGEN_README_STABILITY_POLICY.md` so PGEN never depends on a path
   outside its own root (CLAUDE.md §12/§13).
-- **Current frontier: `.2`** (`.1` done).
+- **Current frontier: `.5`** (`.1`, `.2`, `.4` done; `.3`, `.6`, `.7` routed `todo`).
 
 ## PRIOR ART (per [[feedback_read_prior_art_before_designing]])
 
@@ -286,9 +286,354 @@ defect, routed to `.3` — deliberately **not** worked around inside the guard.
 
 ---
 
-### `.2` — ⛔ ROUTED FINDING: the layer-A cap is LINE-ONLY, and it is already bypassed (`todo`)
+### `.2` — the layer-A cap is LINE-ONLY, and it is already bypassed (`done`)
 
-- **Status: `todo`**. Found by the `.1` prior-art search, **not** by being told.
+- **Status: `done`** (`PGEN-README-POLICY-0002`, session #230, 2026-07-30). Found by the
+  `.1` prior-art search, **not** by being told. Touches the **proof surface**
+  (`scripts/check_*.sh`, `rust/scripts/*.sh`) ⇒ a CODE change under
+  `check_diagnosis_evidence.sh`'s scoping, so the acceptance checklist below is
+  hard-required and enforced. No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒
+  **all 11 generated parsers byte-identical BY CONSTRUCTION.**
+
+#### ⭐⭐⭐ THE MEASUREMENT THAT SHAPED THE TRIM — the block that says "do not append" held 81.3% of the file
+
+Census driver (tracked, re-runnable, self-calibrating):
+`docs/tasks/artifacts/readme_policy/census_layer_a_ownership.sh`
+
+| block | lines | bytes | share |
+|---|---:|---:|---:|
+| header (the layer-A contract statement) | 7 | 365 | 0.3% |
+| `## How to resume` | 6 | 664 | 0.5% |
+| `## North star` | 12 | 24,911 | 18.0% |
+| **`## Current state (OVERWRITE this block each update — do not append)`** | 35 | **112,463** | **81.3%** |
+
+⭐ **The heading is the finding.** That block carried **18 distinct sessions** (#202 → #229)
+under an instruction to overwrite it. The single largest entry was **18,816 bytes on one
+line**. ⇒ the growth was not "long prose"; it was *history accumulating in the one place
+the architecture says history must never go*.
+
+#### ⛔ THE DECIDING QUESTION THE LEAF REFUSED TO ASSUME — *is this content owned anywhere else?*
+
+`.1`'s most expensive lesson was the routing row it got wrong: `Key Project Paths` was sent
+to `source-map.md` on the strength of that chapter's NAME, and measuring found **0** path
+hits there. ⭐ **A canonical home named from a plausible title is not a verified
+destination.** Layer A is the same shape at 34× the scale, so ownership was **measured per
+entry**, not assumed:
+
+| verdict | entries | basis |
+|---|---:|---|
+| ✅ owned in layer D + B | **20** | every `PGEN-<FAMILY>-<NNNN>` slice id resolves to a commit subject **and** its `docs/tasks/<FAMILY>.md` exists |
+| ⚠️ unanchored → resolved individually | **14** | no slice id; each checked against a named destination (below) |
+| ⛔ **no durable home anywhere** | **2** | **written to `docs/decisions/` BEFORE removal** |
+
+**The 2 with no home — the entire reason the census existed:**
+
+1. **The same-volume storage directive** — a director directive *stated three times,
+   escalating*, whose "durable record" was a **harness-home memory file**, i.e. the exact
+   anti-pattern `MEMORY_ARCHITECTURE.md` §12 names (*"lost on tool switch; untracked"*).
+   Measured: across all tracked markdown the only other mention of `/Volumes/SSD` was a
+   **measurement table row**, not the directive. → `docs/decisions/project_data_locality_same_volume.md`.
+2. **`[[project_bedrock_spine_repo]]` was a DANGLING link** — that string appeared in
+   **exactly one place in the whole repository: `MEMORY.md` itself** (0 hits elsewhere).
+   → `docs/decisions/project_bedrock_spine_repo.md`.
+
+⭐ **A `[[link]]` is a promise, not a proof — a dangling one marks content that is LESS safe
+to prune, not more.**
+
+**Verified destinations for the other 12 unanchored entries** (measured, not named):
+
+| entry | destination | measured |
+|---|---|---|
+| director work order #218→#220 | `docs/tasks/CI-PARITY-GATE-ROT.md` | 4 leaves present; its "next frontier" list was **stale** |
+| `QUANT-PLUS-ITER` + the trace-engine trap | `docs/tasks/QUANT-PLUS-ITER.md` + `TOOLBOX.md` §2.1 | trap landed verbatim, 2 hits |
+| mimalloc landing mechanism | `docs/tasks/RGX-0078.md` | 63 hits |
+| host-RAM directive incl. the 16384 recalibration | `docs/decisions/feedback_host_ram_budget_all_jobs.md` | carries `16384` |
+| speed landed-history deltas | `docs/book/src/speed-journey.md` | 38 delta tokens |
+| no-parser-hooks ruling | `docs/tasks/PARSER-NEUTRALITY.md` + its record | both present |
+| on-disk / build-tree state | `DEVELOPMENT_NOTES.md`, `docs/tasks/OPS-MEMSAFE.md`, `TOOLBOX.md` | 5 / 3 / 1 hits |
+| deferred list | `docs/tasks/REGEX-PCRE2-FIDELITY.md`, `MCP-CONTROL.md`, `STIMULI-SIGNOFF.md` | 9 hits + trees |
+| cert axis / `locked_program` | `LIVE_ACHIEVEMENT_STATUS.md` | 142 hits (the *label* is layer-A shorthand; the content is owned) |
+| push cadence rule | `docs/decisions/feedback_push_pacing.md` | 8 hits on `300` |
+
+⚠️ **ONE ENTRY WAS DELIBERATELY KEPT**: the regex oracle tuple **`2189/1879/262/48`**. The
+`REGEX-ORACLE-ANCHOR-SYNC` doctrine reads `MEMORY.md` as one of four anchors. Its check is
+*"every occurrence (if any)"*, so removing the line would still have **passed** — and that
+is precisely why it stays: dropping it would have silenced an anchor while the gate went on
+reporting green. *A check that can no longer see must not be made to look satisfied.*
+
+⚠️⚠️ **MY OWN INSTRUMENT WAS WRONG TWICE, AND BOTH TIMES A CONTROL CAUGHT IT — not review.**
+
+1. **The census reported `owned-in-git=0` for all 34 entries**, including
+   `PGEN-README-POLICY-0001`, which is the subject of `HEAD`. Root-caused rather than
+   patched: `PIPESTATUS=(141 0)` — `grep -qF` **matched** (0) and exited at line 1 of 2,679,
+   the upstream `printf` still holding ~549 KB against a ~64 KiB pipe buffer took
+   **SIGPIPE (141)**, and `set -o pipefail` promoted 141 to the pipeline's status.
+   ⭐ **The polarity is inverted exactly where it hurts: the earlier the match — i.e. the
+   more recently the slice was committed — the more reliably it is reported NOT owned.**
+   Reproduced **5/5**; a bug that reproduces every time is the opposite of flaky. Fixed the
+   prescribed way (grep a FILE, so there is no upstream writer to kill). ⛔ This class was
+   **already root-caused in this repository** at `scripts/check_diagnosis_evidence.sh:101-109`
+   (`STORE-AWARE-GEN.4b.12`) and fixed *there only* — see the routed leaf `.6`.
+2. **A destination verified as `0 hits` was a false negative from my own grep**: the speed
+   deltas are written with **U+2212 MINUS**, my pattern used ASCII hyphen. Had it been
+   trusted, `docs/book/src/speed-journey.md` would have been declared unable to receive
+   content it already holds 38 times. ⭐ Same shape as `.1`'s `source-map` row, reached from
+   the opposite direction — *the proxy, not the destination, was wrong.*
+
+#### The caps, and why these numbers
+
+Set **after** the trim, per the policy (*"Choose them after a deliberate review and trim"*):
+
+| cap | old | new | measured after trim | headroom |
+|---|---:|---:|---:|---:|
+| lines (`MEMORY_POINTER_LINE_CAP`) | 60 | **50** | 39 | ~28% |
+| bytes (`MEMORY_POINTER_BYTE_CAP`) | *(none)* | **7168** | 5,720 | ~25% |
+
+⭐ The line cap is **lowered**, not raised: `MEMORY_ARCHITECTURE.md` §6 and `MEMORY.md`'s own
+header both said *"≤ ~50 lines"*, so the enforcer's 60 was looser than the rule it policed.
+At 50 lines the byte cap allows ~143 B/line — the shape of an actual pointer file — so the
+two caps bind at the same style of document rather than one shadowing the other.
+
+#### ⭐⭐ THE DEFECT WAS IN THE PORTABLE STANDARD, NOT ONLY IN THIS DEPLOYMENT
+
+`MEMORY_ARCHITECTURE.md` §9's own reference check prescribed
+`CAP="${MEMORY_POINTER_LINE_CAP:-60}"` with no byte bound, and §6 said *"Size cap — keep it
+to roughly one screen"*. ⇒ **every project adopting the standard inherited the same
+bypass.** Fixing only PGEN's copy would have left the defect in the artifact meant to be
+reused. §6, §9 and §9.1 were corrected together.
+
+#### What shipped
+
+1. `MEMORY.md` trimmed to a genuine resume pointer (39 lines / 5,720 bytes).
+2. `scripts/check_memory_architecture.sh` — byte cap beside the line cap (E2.2), line cap
+   60→50, with the measured rationale in-source.
+3. `MEMORY_ARCHITECTURE.md` §6 / §9 / §9.1 — the portable standard now specifies **both**
+   caps and names the measured bypass.
+4. `docs/decisions/project_data_locality_same_volume.md` + `project_bedrock_spine_repo.md`
+   — the two homeless facts, **created before the removal**.
+5. `docs/decisions/INDEX.md` — the 2 new rows **plus 2 pre-existing unindexed records**
+   found by the census (`feedback_stimuli_gen_rejects_valid_blindspot`,
+   `project_json_rfc8259_full_standard_commitment`). Layer C is now **137 records / 137
+   index rows / 0 unindexed**.
+6. `DOCTRINE_ENFORCEMENT.md` §10 + the driver registry descriptions, in lockstep.
+7. `docs/book/src/documentation-model.md` — new *Layer A is capped the same way* section.
+
+#### ACCEPTANCE CHECKLIST (enforced by `scripts/check_diagnosis_evidence.sh`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow diagnosis family, verbatim invocations
+  and their real output. **WHY — the layer-A guard has NEVER had a byte bound**; the
+  pickaxe over *all refs* finds no commit that introduced one:
+
+  ```
+  $ git log --all -S'MEMORY_POINTER_BYTE_CAP' -- scripts/ MEMORY_ARCHITECTURE.md | wc -l
+  0
+  $ git log --all -S'wc -c < MEMORY.md'       -- scripts/ MEMORY_ARCHITECTURE.md | wc -l
+  0
+  ```
+
+  **WHERE — `scripts/check_memory_architecture.sh` E2.2, which measured lines only:**
+
+  ```
+  $ git show HEAD:scripts/check_memory_architecture.sh | sed -n '17,19p'
+  if [ -f MEMORY.md ]; then
+    n=$(wc -l < MEMORY.md)
+    [ "$n" -le "$CAP" ] || note "MEMORY.md is $n lines (> cap $CAP) ..."
+  ```
+
+  **MAGNITUDE — taken from git, not the worktree:**
+
+  ```
+  $ git show HEAD:MEMORY.md | wc -l ; git show HEAD:MEMORY.md | wc -c
+  60
+  138403
+  ```
+
+  60 lines against a 60-line cap = **PASSING**, at 2,306 bytes/line, longest line 18,816 B.
+- [x] **ADDRESSED (verified)** — measured before→after with the same census driver, and the
+  fix proven non-vacuous by **re-executing the retired guard**:
+  `git show HEAD:scripts/check_memory_architecture.sh` run against the **real** pre-trim
+  `MEMORY.md` prints `memory-arch: OK` over 138,403 bytes (probe `CTRL-2`), while the new
+  guard rejects the identical file on bytes (`CTRL-1`). Probes **8 pass / 0 fail**
+  (`run_layer_a_cap_probes.sh`). Layer A: **60→39 lines, 138,403→5,720 bytes.**
+- [x] **NO REGRESSION** — measured with everything staged, so the staged-scope doctrines
+  actually bind rather than passing vacuously:
+  - `bash scripts/check_doctrines.sh` → **ALL 15 doctrines PASS** + `<meta:mirror>` PASS
+    (the mirror proves the registry and `DOCTRINE_ENFORCEMENT.md` §10 did not drift apart
+    while both descriptions were rewritten).
+  - `bash scripts/check_regex_oracle_anchor_sync.sh` → `OK (tuple 2189/1879/262/48
+    consistent across live anchors + tracked bounds)` — the doctrine that reads this very
+    file still agrees after the rewrite.
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate` → exit 0, **10 per-parser book gates +
+    the main book** green.
+  - the root-markdown allowlist audit re-run standalone → PASS with `README_POLICY.md`
+    admitted; `bash -n` clean on all 4 edited/added shell scripts.
+  - layer C reconciled 137/137, **0 unindexed**; every `[[link]]` in the new `MEMORY.md`
+    resolves to an existing record.
+  - ⛔ no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒ **all 11 generated
+    parsers byte-identical BY CONSTRUCTION** (an assertion about the staged set, not a
+    re-measurement). **No tracker row moved.**
+- [x] **LOCKSTEP** — `MEMORY_ARCHITECTURE.md` (the standard itself), `DOCTRINE_ENFORCEMENT.md`
+  §10, the driver registry, `docs/book/src/documentation-model.md`, `docs/decisions/INDEX.md`,
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`.
+
+#### Measured before → after
+
+| | before | after | delta |
+|---|---:|---:|---:|
+| `MEMORY.md` lines | 60 | **39** | −35% |
+| `MEMORY.md` bytes | 138,403 | **5,720** | **−95.9%** |
+| bytes per line | 2,306 | **146** | −94% |
+| longest single line | 18,816 B | **401 B** | −98% |
+| distinct `SESSION #N` entries in layer A | 18 | **0** | — |
+| caps bounding layer A | **1** (lines) | **2** (lines + bytes) | — |
+| layer-C records unindexed | 2 | **0** | — |
+
+#### Probe results — 8 pass / 0 fail
+
+`docs/tasks/artifacts/readme_policy/run_layer_a_cap_probes.sh`
+
+| probe | asserts |
+|---|---|
+| `GREEN-1` | the trimmed live pointer passes |
+| `CTRL-4` | the harness is **not vacuously green** — removing an unrelated doctrine leg still fails, so `GREEN-1` means the guard RAN |
+| ⭐ `CTRL-1` | the **real** pre-trim `HEAD:MEMORY.md` (60 lines / 138,403 B) is REJECTED **on bytes** |
+| ⭐⭐ `CTRL-2` | the **real retired guard**, extracted with `git show HEAD:`, **PASSES that same file** and prints `memory-arch: OK` — the change is proven necessary by execution, not by argument. Asserts the success line, not merely exit 0, because a guard that died early would also be 0 |
+| `RED-1` | the line cap rejects (80 short lines) |
+| ⭐ `RED-2` | the byte cap rejects **10 lines / 12,121 bytes** — the few-lines/enormous-bytes shape |
+| ⭐ `CTRL-3` | a line-only check **PASSES** that same fixture (10 ≤ 50) ⇒ the byte cap is load-bearing, not decorative |
+| `ABSENT-1` | a missing pointer is still reported (the pre-existing leg is intact) |
+
+#### Evidence
+
+- census: `docs/tasks/artifacts/readme_policy/census_layer_a_ownership.sh` (self-calibrating,
+  5/5 arms, **REFUSES** its own output on a calibration miss)
+- probes: `docs/tasks/artifacts/readme_policy/run_layer_a_cap_probes.sh`
+- captures: `docs/tasks/artifacts/readme_policy/capture_layer_a_census.txt`,
+  `capture_layer_a_probes.txt`
+
+---
+
+### `.4` — put the project-NEUTRAL `README_POLICY.md` at the repository root (`done`)
+
+- **Status: `done`** (`PGEN-README-POLICY-0002`, session #230, 2026-07-30, **BY DIRECT
+  DIRECTOR ORDER** mid-session: *"I noticed that you did not copy the policy .md file in PGEN
+  root directory"*, clarified *"I mean README_POLICY.md"*).
+
+`.1` adopted the policy as `docs/reference/PGEN_README_STABILITY_POLICY.md` — PGEN's
+**instance**, carrying the resolved routing table, the chosen caps and the adoption
+evidence. What it did **not** do was keep the project-neutral **standard** itself in the
+tree.
+
+⭐ **The director's placement is the architecturally correct one, and it matches a pattern
+this repo already follows**: the repository root holds the *portable standards*
+(`MEMORY_ARCHITECTURE.md`, `DOCTRINE_ENFORCEMENT.md`, `TOOLBOX.md`), while `docs/` holds
+each one's PGEN-specific instance. `README_POLICY.md` is a portable standard and belongs
+beside its siblings. **Standard at the root; instance under `docs/`.**
+
+- Copied **verbatim** from the sibling repo that authored it — `cmp -s` reports
+  byte-identical, 2,425 B. Per the data-locality rule it is **copied in, never referenced
+  across a repository boundary** (both repos sit on the same volume, and the source was
+  read-only).
+- `rust/scripts/ci_workflow_local_gate.sh` — `audit_root_markdown_surface` compares the root
+  markdown set **verbatim**, so the allowlist gained `README_POLICY.md`.
+  ⚠️ **Position was MEASURED, not reasoned**: it sorts **before** `README.md` (exactly as
+  `MEMORY_ARCHITECTURE.md` sorts before `MEMORY.md`), which ASCII collation would have got
+  backwards. Verified by running the audit's own pipeline, then the audit itself → PASS.
+- `docs/reference/PGEN_README_STABILITY_POLICY.md` now opens by declaring itself the
+  instance and linking the root standard, so neither can be mistaken for the other.
+  ⛔ Keep the root copy neutral: if a PGEN noun would have to appear in it, it belongs in
+  the instance instead.
+
+---
+
+### `.5` — port the README stability policy to `bedrock` (`todo` — NEXT)
+
+- **Status: `todo`**, opened 2026-07-30 session #230 **BY DIRECT DIRECTOR ORDER**: *"Please
+  update the bedrock with this new README.md policy whenever you can. bedrock repo is
+  located here /Volumes/SSD/Documents/github/bedrock."*
+- ⛔ **Sequencing is not discretionary**: `bedrock` is a **separate repository**, so starting
+  work there is a pivot, and the pivot rule forbids pivoting while this tree's repo is
+  dirty. Hence `.2`/`.4` land and commit first; the director's *"whenever you can"*
+  explicitly permits that ordering.
+
+⭐ **This port carries MORE than the README policy, and that is the whole point.** `bedrock`
+is where the portable spine is maintained ([[project_bedrock_spine_repo]]), and `.2` proved
+the spine itself shipped the defect: `MEMORY_ARCHITECTURE.md` §9's reference check
+prescribed a **line-only** cap, so every adopter inherits a bound that does not bind. So the
+port owes **two** things:
+
+1. `README_POLICY.md` — the neutral README stability policy (the root copy, already
+   verbatim-identical to the source, so it ports unchanged).
+2. The **layer-A both-caps correction** to `MEMORY_ARCHITECTURE.md` §6 / §9 / §9.1 —
+   otherwise bedrock keeps handing new projects the bypass PGEN just measured.
+
+Per the porting discipline: strip any domain noun, route through bedrock's own
+`BEDROCK-MAINTENANCE` tree, keep `update_scaffold` neutral, bump `DOCTRINE_VERSION`.
+⚠️ Verify against bedrock's actual tree first — its layout and current `DOCTRINE_VERSION`
+are **unmeasured from here**, and a plausible file name is not a verified destination.
+
+---
+
+### `.6` — ROUTED: `pipefail` + `grep -q` fails OPEN in two doctrine enforcers (`todo`)
+
+- **Status: `todo`**. Found by `.2`'s census tripping the class on itself (above).
+
+Under `set -o pipefail`, `producer | grep -q PATTERN` returns **failure on success** once
+the producer's output exceeds the pipe buffer and the match is early: `grep -q` exits at the
+first match, the producer takes SIGPIPE, and `pipefail` promotes 141. Measured directly:
+`PIPESTATUS=(141 0)`.
+
+⛔ **The repository already root-caused this class and fixed it in exactly one place** —
+`scripts/check_diagnosis_evidence.sh:101-109` documents it verbatim (`STORE-AWARE-GEN.4b.12`,
+*"this race began false-failing once the owning task leaf grew past ~64 KB"*). Two enforcers
+still carry the idiom, with **opposite failure polarities**:
+
+| site | polarity | consequence |
+|---|---|---|
+| `scripts/check_waiver_routing.sh:72` (`printf "$added" \| grep -qE "$WAIVER_RE" \|\| continue`) | ⛔ **fails OPEN** | the file is silently **skipped** ⇒ a newly-added waiver goes unchecked |
+| `scripts/check_waiver_routing.sh:89` (`sed window \| grep -qE "$OWNER_RE"`) | fails CLOSED | a discharged waiver reported undischarged (loud, not silent) |
+| `scripts/check_design_prior_art.sh:55` (`printf "$known_names" \| grep -qx`) | fails OPEN | a known `@name` misreported as novel — small producer, low exposure |
+
+⚠️ **LATENT, NOT LIVE — priced before routing.** Across the last **120** commits the largest
+`$added` for a `docs/tasks/*.md` file is **28,720 bytes**, under half the ~64 KiB threshold;
+**0** commits in the last 40 exceed it. So no verdict is *currently* untrustworthy, which is
+why this is routed rather than worked now per [[feedback_flow_findings_are_routed_not_worked]].
+⛔ But the trend is the wrong way — task leaves only grow — and the fail-open site is the one
+that goes **silent**. The fix is mechanical (give grep a FILE, or `grep -c … >/dev/null`);
+the leaf owes the sweep plus a probe that would catch a regression.
+
+⚠️ **Does it reproduce outside the family?** (`ROUTING-EVIDENCE`) — **YES, measured**: the
+idiom appears in **18** tracked scripts that set `pipefail`, of which **3 are doctrine
+enforcers**; and the class was independently hit by `.2`'s own census with no shared code
+path. That is what makes it a defect class rather than one script's bug.
+
+---
+
+### `.7` — ROUTED: the layer-C index check is satisfied without binding (`todo`)
+
+- **Status: `todo`**. Found by `.2`'s census, and it is the **same disease as `.2` itself,
+  one check down in the same file.**
+
+`scripts/check_memory_architecture.sh` E2.5 asserts only that `docs/decisions/INDEX.md`
+lists **more than zero** rows when records exist:
+
+```sh
+idx_rows=$(grep -cE '^\| \[' docs/decisions/INDEX.md || true)
+[ "$idx_rows" -gt 0 ] || note "... has $rec_count records but INDEX.md lists none (out of sync)"
+```
+
+Measured at the start of `.2`: **135 records / 133 index rows** — two records
+(`feedback_stimuli_gen_rejects_valid_blindspot`, `project_json_rfc8259_full_standard_commitment`)
+were **invisible to layer C's own index while the doctrine reported OK**. Its in-source
+comment is honest about this (*"a cheap in-sync sanity check, not a full reconcile"*), so
+this is an accepted bound rather than a hidden bug — but it is the identical shape the byte
+cap just closed: **a bound satisfied without binding.**
+
+`.2` reconciled the data (137/137, 0 unindexed) but deliberately did **not** change the
+check — the fix is a real reconcile (every record has a row, every row a record), and
+choosing its failure mode is its own decision, not a drive-by edit. ⚠️ Note the trap: a
+naive reconcile must not be self-referential about `INDEX.md`, per
+`reference_self_referential_assertion_is_unsound.md`.
   Deliberately NOT absorbed into `.1` — the fix is one line, but choosing the cap is
   not, and scope creep on a director-scoped ask is its own defect.
 

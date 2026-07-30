@@ -102,15 +102,58 @@ green. 55.6% of it had become a file inventory plus an operations manual, and on
 was **4,369 bytes on a single line**.
 
 So the doctrine enforces a **line cap and a byte cap together** — they are complements,
-not belt-and-braces. This repository already had the line-only shape in isolation and it
-is measurably bypassed: `scripts/check_memory_architecture.sh` caps layer-A `MEMORY.md`
-at 60 lines, and when this policy was adopted (2026-07-30) that file passed at **60 lines /
-149,779 bytes** — a "bounded resume pointer" that is a ~150 KB document. Neither wrapped prose nor very long lines can be
-allowed to bypass the budget.
+not belt-and-braces. Neither wrapped prose nor very long lines can be allowed to bypass
+the budget.
+
+That is not a theoretical argument. This repository already had the line-only shape in
+isolation, and it was measurably not binding: `scripts/check_memory_architecture.sh`
+capped layer-A `MEMORY.md` at 60 lines *only*, and the file sat at **60 lines — passing,
+exactly at the ceiling — and 138,403 bytes**. That is 2,306 bytes per line, with a single
+line of 18,816 bytes: a *"bounded resume pointer"* that was a 138 KB document, green the
+whole time. The same class appeared independently at `README.md:115` with no shared code
+path, which is why this doctrine shipped with both caps on day one.
+
+✅ **That bypass is now closed.** `README-POLICY.2` trimmed layer A to **39 lines /
+5,720 bytes** and gave the `MEMORY-ARCH` doctrine the same two caps — see
+[Layer A is capped the same way](#layer-a-is-capped-the-same-way) below.
 
 ⛔ **A cap is never raised to land new content.** Move the detail to its canonical home.
 Raising one requires an explicit reviewed decision recorded in
 `docs/tasks/README-POLICY.md` that the landing-page contract itself expanded.
+
+#### Layer A is capped the same way
+
+`MEMORY.md` is layer A of the [memory architecture](../../../MEMORY_ARCHITECTURE.md) — the
+**resume pointer**: where we are *now*, the next action, anything in flight. Nothing else.
+Like the README, it is a surface that decays by accretion rather than by error, so it is
+governed the same way and by the same shape of guard.
+
+What went wrong is worth naming precisely, because it is the failure mode to watch for:
+the block headed *"Current state (OVERWRITE this block each update — do not append)"* had
+accumulated **18 distinct sessions** and **81.3%** of the file. The instruction was right
+there in the heading, and the file grew anyway — a rule with no check is a suggestion.
+
+Before pruning anything, an ownership census resolved every entry against a durable layer,
+because *a canonical home named from a plausible title is not a verified destination*:
+
+| what the census found | count |
+|---|---|
+| entries whose slice id resolves to a commit subject (layer D) with the owning tree present (layer B) | 20 |
+| entries with no slice id, resolved individually against a named destination | 14 |
+| entries with **no durable home anywhere** — written to `docs/decisions/` *before* removal | 2 |
+
+Those last two are the reason the census existed: a standing storage directive that lived
+only in overwrite-only layer A plus an untracked harness-home file, and a dangling
+`[[project_bedrock_spine_repo]]` link whose target did not exist. Both are now layer-C
+records. One entry was deliberately **kept** — the regex oracle tuple, because the
+`REGEX-ORACLE-ANCHOR-SYNC` doctrine anchors on it.
+
+⭐ The defect was in the **portable standard**, not only in this deployment:
+`MEMORY_ARCHITECTURE.md` §9's own reference check prescribed the line-only cap, so every
+project adopting it inherited the same bypass. §6, §9 and §9.1 were corrected together, and
+the neutral policy now sits at the repository root as
+[`README_POLICY.md`](../../../README_POLICY.md) beside the other portable standards, with
+this repository's *instance* of it under `docs/reference/`.
 
 ## What Belongs In The Book
 

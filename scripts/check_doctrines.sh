@@ -47,7 +47,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 # asserts every registered enforcer exists + is executable, so a registry entry cannot be a
 # dangling promise).
 DOCTRINES=(
-  "MEMORY-ARCH|durable 4-layer memory architecture invariants (MEMORY_ARCHITECTURE.md §9)|scripts/check_memory_architecture.sh"
+  "MEMORY-ARCH|durable 4-layer memory architecture invariants (MEMORY_ARCHITECTURE.md §9), incl. layer A bounded by BOTH a line cap and a byte cap — the line-only form passed 60 lines / 138,403 bytes (README-POLICY.2)|scripts/check_memory_architecture.sh"
   "DIAG-SEVERITY+DOCPATH|severity never masked by verbosity + repo-root-relative live-doc paths|scripts/check_diagnostics_and_docpaths.sh"
   "EBNF-SOURCE-OF-TRUTH|no new out-of-band acceptance validator wired outside the EBNF|scripts/check_ebnf_source_of_truth.sh"
   "REGEX-SELF-HOSTING|the regex grammar self-hosts (gen<->parse duality holds)|scripts/check_regex_self_hosting.sh"
@@ -61,7 +61,7 @@ DOCTRINES=(
   "GATE-REACHABILITY|every tracked gate target is invoked by something that RUNS, or carries a deliberate disposition — a check nothing invokes is indistinguishable from one that does not exist (CI-PARITY-GATE-ROT.2)|scripts/check_gate_reachability.sh"
   "FLOW-INTEGRITY|the gate flow cannot drift back: workflows that need generated parsers regenerate them and budget for it, the recipe keeps one home, artifact hand-offs never point at a standalone default, no assertion requires a defect to pass, hand-off provenance coverage only improves (CI-PARITY-GATE-ROT.8), the doctrine roster keeps an AUTOMATIC lane through THIS driver rather than a re-typed list of enforcers (CI-PARITY-GATE-ROT.15), and a guard tests the artifact it actually READS (CI-PARITY-GATE-ROT.14)|scripts/check_flow_integrity.sh"
   "PUBLISHED-VERSION-CURRENCY|the user guide's published regex identity pair equals the contract's Contract Identity block and its published family status equals the live tracker row — a Provisional/any parser SHIPS on its published state, so the published state must be gate-held true (DONE-BAR.5a; measured ~77 releases stale with no gate reading it)|scripts/check_published_version_currency.sh"
-  "README-STABILITY|README.md stays a stable LANDING PAGE — both a line cap and a byte cap, because a line cap alone is measurably bypassable (at adoption MEMORY.md passed its 60-line cap carrying 149,779 unbounded bytes) — plus a changelog-leakage tripwire and a link back to the reviewed policy (README-POLICY.1; adopted at 510 lines/48,811 bytes with NO instrument watching size: the two guards that touch README.md audit doc PATHS and the root file SET)|scripts/check_readme_stability.sh"
+  "README-STABILITY|README.md stays a stable LANDING PAGE — both a line cap and a byte cap, because a line cap alone is measurably bypassable — at adoption layer-A MEMORY.md passed its 60-line cap carrying 138,403 unbounded bytes, a bypass since CLOSED by giving MEMORY-ARCH the same two caps (README-POLICY.2) — plus a changelog-leakage tripwire and a link back to the reviewed policy (README-POLICY.1; adopted at 510 lines/48,811 bytes with NO instrument watching size: the two guards that touch README.md audit doc PATHS and the root file SET)|scripts/check_readme_stability.sh"
 )
 
 fail=0

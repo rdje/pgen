@@ -1,0 +1,56 @@
+== layer-A census: MEMORY.md ==
+total: 39 lines, 5720 bytes (146 bytes per line)
+
+== A. block census ==
+start  lines  bytes     share    block
+-----  -----  -----     -----    -----
+12     6      703         12.3%  How to resume
+18     12     2222        38.8%  North star (pointers only — the layer-C record is authoritative, this is not a summary)
+30     10     2049        35.8%  Current state (OVERWRITE this block each update — do not append)
+1      11     746         13.0%  (header — the layer-A contract statement)
+
+== B. "Current state" block — per-entry durable ownership ==
+block heading (verbatim): ## Current state (OVERWRITE this block each update — do not append)
+entries start at line 31
+
+  L31      189B  ✅ owned (1 slice id(s) in git)  latest_commit: `d29c3dd7` — `PGEN-README-POLICY-0001` (l
+  L32      193B  UNANCHORED (no slice id)   active_work_unit: `README-POLICY` → frontier leaf `.2` (
+  L33      397B  UNANCHORED (no slice id)   next_action: land `.2`, then product, for good — `LANG-C
+  L34       35B  UNANCHORED (no slice id)   in_flight_uncommitted: none.
+  L35      277B  UNANCHORED (no slice id)   blockers: none. ⏳ One escalated director call stands ope
+  L36      222B  UNANCHORED (no slice id)   routed, waiting behind product (do NOT pull forward): `CI-
+  L37      172B  UNANCHORED (no slice id)   push: 104 commits ahead of `origin/main`. ⛔ Cadence is 3
+  L38      188B  UNANCHORED (no slice id)   live doctrine anchor (kept here deliberately — `REGEX-OR
+  L39      282B  UNANCHORED (no slice id)   flow health: `sota_exit_gate` went green end-to-end for th
+
+  entries=9  owned-in-git=1  unanchored=8  NOT-in-git=0
+
+  layer-B tree files for the families named in this block:
+    ✅ docs/tasks/README-POLICY.md
+
+== C. north-star [[record]] links → docs/decisions/ (layer C) ==
+    ✅ feedback_correctness_before_speed
+    ✅ feedback_delete_reclaimable_artifacts_regularly
+    ✅ feedback_done_bar_is_first_tier_only
+    ✅ feedback_flow_findings_are_routed_not_worked
+    ✅ feedback_instrument_needs_ground_truth
+    ✅ feedback_push_pacing
+    ✅ feedback_read_prior_art_before_designing
+    ✅ feedback_sv_strict_lrm_compliance_default
+    ✅ project_bedrock_spine_repo
+    ✅ project_capability_growth_is_zero_cost_and_neutral
+    ✅ project_data_locality_same_volume
+    ✅ project_ebnf_is_single_source_of_truth
+    ✅ project_ebnf_steers_the_engine_at_full_granularity
+    ✅ project_horizon_universal_parser
+    ✅ project_rgx_0078_sub_1us_closure_target
+    missing=0
+
+== D. calibration (both polarities — REFUSES on a miss) ==
+    ✅ positive: PGEN-README-POLICY-0001 in git       yes
+    ✅ negative: PGEN-NO-SUCH-FAMILY-9999 in git      no
+    ✅ positive: layer-C record resolves              yes
+    ✅ negative: bogus layer-C record resolves        no
+    ✅ structural: block heading says "do not append" yes
+
+layer-a-census: OK — calibrated 5/5 arms.

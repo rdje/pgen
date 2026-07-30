@@ -288,6 +288,16 @@ audit_root_markdown_surface() {
     "MEMORY.md"
     "PGEN_USER_GUIDE.md"
     "QUICKSTART_AI_ONBOARDING.md"
+    # README-POLICY.4 (2026-07-30, DIRECT DIRECTOR ORDER): the project-NEUTRAL README Stability
+    # Policy, copied verbatim (byte-identical, 2,425 B) from the sibling repo that authored it.
+    # It sits at the root beside the other PORTABLE standards it is a sibling of —
+    # MEMORY_ARCHITECTURE.md, DOCTRINE_ENFORCEMENT.md, TOOLBOX.md — while PGEN's own INSTANCE of
+    # it (routing table, chosen caps, adoption evidence) stays at
+    # docs/reference/PGEN_README_STABILITY_POLICY.md. Standard at the root, instance under docs/.
+    # ⚠️ Ordering is `sort`'s, not ASCII's: this sorts BEFORE README.md, exactly as
+    # MEMORY_ARCHITECTURE.md sorts before MEMORY.md. Verified by running this audit's own
+    # pipeline rather than by reasoning about collation.
+    "README_POLICY.md"
     "README.md"
     "SESSION_BOOTSTRAP.md"
     "TOOLBOX.md"

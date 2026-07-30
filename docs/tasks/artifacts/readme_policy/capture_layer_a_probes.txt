@@ -1,0 +1,13 @@
+== layer-A cap probes (scripts/check_memory_architecture.sh) ==
+  ✓ GREEN-1    exit=0  memory-arch: OK
+  ✓ CTRL-4     exit=1  docs/TASK_TREE.md
+  (real pre-trim fixture: HEAD:MEMORY.md = 60 lines, 138403 bytes, longest line 18816 bytes)
+  ✓ CTRL-1     exit=1  bytes (> cap
+  ✓ CTRL-2     exit=0  the RETIRED guard reports OK over 138403 bytes ⇒ it was BLIND
+  ✓ RED-1      exit=1  lines (> cap
+  (RED-2 fixture: 10 lines — well UNDER the line cap — but 12121 bytes)
+  ✓ RED-2      exit=1  bytes (> cap
+  ✓ CTRL-3     a line-only check PASSES the RED-2 fixture (10 <= 50) ⇒ byte cap non-redundant
+  ✓ ABSENT-1   exit=1  MEMORY.md (layer A resume pointer) is missing
+
+probes: 8 pass / 0 fail

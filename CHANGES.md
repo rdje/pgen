@@ -1,5 +1,57 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-README-POLICY-0002 — leaves README-POLICY.2 + .4: layer A passed its cap at 138,403 bytes, and the bypass was in the portable standard
+
+1 doctrine enforcer strengthened + the portable standard corrected + 2 new decision records + layer-C
+index reconciled + 1 root policy copy + 1 CI allowlist entry + 1 book chapter + driver/mirror lockstep
++ tree + 2 tracked drivers + 2 captures — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` =>
+all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- SCOPE: hold layer-A `MEMORY.md` to the standard `README.md` was put under by `.1` — review and
+  trim first, then choose caps, then wire the byte check beside the line check. Plus, on direct
+  director order mid-session, place the project-NEUTRAL `README_POLICY.md` at the repository root.
+- ROOT CAUSE (ops/build-flow, verbatim): `git log --all -S'MEMORY_POINTER_BYTE_CAP' -- scripts/
+  MEMORY_ARCHITECTURE.md | wc -l` => 0 — layer A has NEVER had a byte bound.
+  `git show HEAD:scripts/check_memory_architecture.sh | sed -n '17,19p'` shows E2.2 measuring
+  `wc -l` only. `git show HEAD:MEMORY.md | wc -l ; | wc -c` => 60 / 138403: PASSING at exactly the
+  60-line cap while carrying 2,306 bytes per line, longest line 18,816 B.
+- ⭐ THE DEFECT WAS IN THE PORTABLE STANDARD, not only this deployment: `MEMORY_ARCHITECTURE.md` §9's
+  own reference check prescribes `CAP="${MEMORY_POINTER_LINE_CAP:-60}"` with no byte bound, so every
+  project adopting the standard inherits a bound that does not bind. §6 / §9 / §9.1 corrected.
+- ⭐ THE SHAPE: the block headed "Current state (OVERWRITE this block each update — do not append)"
+  held 18 distinct sessions and 81.3% of the file. The instruction was in the heading; nothing
+  checked it.
+- ⛔ NOTHING PRUNED ON ASSUMPTION. A self-calibrating ownership census (5/5 arms, both polarities,
+  REFUSES its own output on a miss) resolved 34 entries: 20 owned by a commit subject + an existing
+  tree file, 14 unanchored and resolved individually against measured destinations, and 2 with NO
+  durable home anywhere — a thrice-stated director storage directive living only in an untracked
+  harness-home file, and a DANGLING `[[project_bedrock_spine_repo]]` link (that string appeared in
+  exactly one place in the repository: `MEMORY.md` itself). Both were written to `docs/decisions/`
+  BEFORE removal.
+- ⚠️ ONE ENTRY DELIBERATELY KEPT: the regex oracle tuple `2189/1879/262/48`. `REGEX-ORACLE-ANCHOR-SYNC`
+  reads this file, and its check is "every occurrence (if any)" — so removing it would still have
+  PASSED while silencing one of four anchors.
+- ADDRESSED: 60 -> 39 lines, 138,403 -> 5,720 bytes (-95.9%); 2,306 -> 146 bytes/line; longest line
+  18,816 -> 401 B; 18 session entries -> 0. Caps set AFTER the trim at 50 lines / 7168 bytes with
+  proportional headroom (~28% / ~25%); the LINE cap was LOWERED 60 -> 50 to match the "<= ~50 lines"
+  the standard already stated.
+- NO REGRESSION: ALL 15 doctrines PASS + `<meta:mirror>`; `check_regex_oracle_anchor_sync.sh` OK
+  (tuple consistent across live anchors); `mdbook_docs_gate` exit 0 (10 per-parser books + main);
+  root-markdown audit PASS with `README_POLICY.md` admitted; `bash -n` clean on 4 scripts; layer C
+  reconciled 137 records / 137 index rows / 0 unindexed. No tracker row moved.
+- PROBES 8/0 (`run_layer_a_cap_probes.sh`). CTRL-2 is the arm that matters: the RETIRED guard,
+  re-executed from `git show HEAD:`, prints `memory-arch: OK` over the real 138,403-byte pre-trim
+  file — the fix is proven necessary by execution, not by argument. CTRL-3 shows a line-only check
+  passes a 10-line / 12,121-byte fixture the byte cap rejects.
+- `.4` (DIRECT DIRECTOR ORDER): `README_POLICY.md` copied verbatim (cmp -s byte-identical, 2,425 B)
+  to the repository root, beside the other portable standards it is a sibling of. PGEN's instance
+  stays at `docs/reference/PGEN_README_STABILITY_POLICY.md`. Standard at the root; instance under
+  `docs/`. Allowlist position MEASURED (sorts before `README.md`), not reasoned.
+- ROUTED, not worked: `.6` — `pipefail` + `grep -q` returns failure ON SUCCESS past the pipe buffer;
+  2 doctrine enforcers still carry it, one failing OPEN. Latent, priced: max `$added` over 120
+  commits is 28,720 B vs a ~64 KiB threshold. `.7` — E2.5's layer-C index check passed at 135
+  records / 133 rows, the same "bound satisfied without binding" one check down.
+
 ## 2026-07-30 - PGEN-README-POLICY-0001 — leaf README-POLICY.1: the README grew to 48,811 bytes with zero instruments watching it
 
 1 new doctrine enforcer + driver registration + mirror + README + 1 new tracked policy doc + 3 book

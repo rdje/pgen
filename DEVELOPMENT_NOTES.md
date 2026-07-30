@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-README-POLICY-0002 — my own census said nothing was owned, and the control caught it before the delete
+
+`README-POLICY.2` + `.4`. Enforcer + portable standard + 2 decision records + book chapter + tree.
+
+- ⭐⭐ THE INSTRUMENT WAS WRONG FIRST, AND ITS OWN CALIBRATION ARM CAUGHT IT. The ownership census
+  reported `owned-in-git=0` for all 34 layer-A entries — including `PGEN-README-POLICY-0001`, which
+  is the subject of HEAD. Root-caused instead of patched: `PIPESTATUS=(141 0)`. `grep -qF` MATCHED
+  (status 0) and exited at line 1 of 2,679 subjects; the upstream `printf`, still holding ~549 KB
+  against a ~64 KiB pipe buffer, took SIGPIPE (141); `set -o pipefail` promoted 141 to the pipeline
+  status. ⭐ The polarity is inverted exactly where it hurts: THE EARLIER THE MATCH — i.e. the more
+  recently the slice was committed — THE MORE RELIABLY IT IS REPORTED AS NOT OWNED. Reproduced 5/5;
+  a bug that reproduces every time is the opposite of flaky.
+- ⛔ AND THE REPOSITORY ALREADY KNEW: `scripts/check_diagnosis_evidence.sh:101-109` documents this
+  class verbatim (`STORE-AWARE-GEN.4b.12`) and fixes it — in that one file only. Two enforcers still
+  carry the idiom. Routed as `.6` WITH A PRICE rather than fixed on sight: max `$added` for a staged
+  task file over 120 commits is 28,720 B, under half the threshold, so it is latent, not live.
+- ⚠️ SECOND INSTRUMENT DEFECT, SAME SITTING: a destination verified as "0 hits" was a false negative
+  from my own grep — the speed deltas use U+2212 MINUS, my pattern used ASCII hyphen. Trusting it
+  would have declared `speed-journey.md` unable to receive content it already holds 38 times. Same
+  shape as `.1`'s `source-map` row, from the opposite direction: THE PROXY WAS WRONG, NOT THE
+  DESTINATION. When a proxy disagrees with something already measured, re-measure the proxy.
+- ⭐ WHY A CENSUS AT ALL: `.1` learned that a canonical home named from a plausible chapter TITLE is
+  not a verified destination. Layer A is that risk at 34x scale, so ownership was measured per entry
+  against layer D (commit subjects) and layer B (tree files), with the 14 unanchored entries resolved
+  one at a time. Two had NO home and were written to layer C BEFORE the delete.
+- ⭐ THE KEEP DECISION IS AS IMPORTANT AS THE DELETES: the regex oracle tuple stays in layer A because
+  `REGEX-ORACLE-ANCHOR-SYNC` anchors on it — and its check is "every occurrence (if any)", so removal
+  would have PASSED while quietly reducing four anchors to three. A gate that would still go green is
+  not evidence that removing its input is safe.
+- ⭐⭐ THE CONTROL THAT MAKES THE FIX EARNED: probe CTRL-2 re-executes the RETIRED guard, extracted
+  with `git show HEAD:`, against the REAL pre-trim `MEMORY.md`, and asserts it prints
+  `memory-arch: OK` over 138,403 bytes — asserting the success LINE, not merely exit 0, because a
+  guard that died early would also exit 0. A size guard run over a file you have just trimmed returns
+  0 whether it works or is blind.
+- ⭐ SCOPE DISCIPLINE: the caps were chosen AFTER the trim, and the LINE cap was LOWERED (60 -> 50) to
+  match the "<= ~50 lines" both the standard and the file's own header already stated — the enforcer
+  had been looser than the rule it policed. At 50 lines the byte cap allows ~143 B/line, so the two
+  caps bind on the same shape of document rather than one shadowing the other.
+- `.4`: the director's placement is architecturally right and matches an existing pattern — the root
+  holds PORTABLE STANDARDS (`MEMORY_ARCHITECTURE.md`, `DOCTRINE_ENFORCEMENT.md`, `TOOLBOX.md`), while
+  `docs/` holds each one's PGEN instance. The allowlist position was measured by running the audit's
+  own pipeline: `README_POLICY.md` sorts BEFORE `README.md`, which ASCII collation gets backwards.
+
 ## 2026-07-30 - PGEN-README-POLICY-0001 — a guard over an already-clean file proves nothing, and one routing row was named from a chapter title
 
 `README-POLICY.1`. 1 doctrine enforcer + policy doc + README + 3 book chapters + tree + 2 drivers.

@@ -1,7 +1,15 @@
 # PGEN README Stability Policy
 
-> **Adopted 2026-07-30** by direct director order (session #229) from a
-> project-neutral *README Stability Policy*. Owned by task tree
+> **This is PGEN's INSTANCE of a project-neutral standard.** The standard itself is tracked
+> verbatim at the repository root as [`README_POLICY.md`](../../README_POLICY.md), beside the
+> other portable standards it is a sibling of — `MEMORY_ARCHITECTURE.md`,
+> `DOCTRINE_ENFORCEMENT.md`, `TOOLBOX.md`. **Standard at the root; instance under `docs/`.**
+> This file is what the standard leaves to each project: the resolved routing table, the
+> reviewed cap values, and the adoption evidence. ⛔ Keep the root copy project-neutral — if a
+> PGEN noun would have to appear in it, it belongs here instead.
+>
+> **Adopted 2026-07-30** by direct director order (session #229); the neutral copy was placed at
+> the root by direct director order the following session (`README-POLICY.4`). Owned by task tree
 > [`docs/tasks/README-POLICY.md`](../tasks/README-POLICY.md).
 > Enforced by [`scripts/check_readme_stability.sh`](../../scripts/check_readme_stability.sh),
 > registered as a doctrine in [`scripts/check_doctrines.sh`](../../scripts/check_doctrines.sh)

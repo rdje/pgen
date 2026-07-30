@@ -126,9 +126,26 @@ A resume reads A + one unit of B + a few C records — never a monolith.
 
 `MEMORY.md` becomes **only** layer A. Hard rules:
 
-- **Size cap** — keep it to roughly one screen (≤ ~50 lines). If it exceeds the cap,
-  information is in the wrong layer; move it down to B or C. *(This cap is mechanically
-  enforced — §9.)*
+- **Size cap — a LINE cap *and* a BYTE cap.** Keep it to roughly one screen (≤ ~50 lines)
+  **and** to a few KB. If it exceeds either, information is in the wrong layer; move it
+  down to B or C. *(Both caps are mechanically enforced — §9.)*
+
+  ⛔ **A line cap alone does not bound this file, and the failure is not hypothetical.**
+  Measured in the reference deployment: the resume pointer sat at **60 lines — passing,
+  exactly at its 60-line ceiling — and 138,403 bytes**, i.e. **2,306 bytes per line**, with
+  a single line of 18,816 bytes. A file whose own header called it a *"bounded resume
+  pointer"* was a 138 KB document, and its guard was green the whole time. The two caps are
+  **complements, not redundancy: neither wrapped prose nor very long lines can bypass the
+  budget.** Pick both *after* a deliberate trim, with proportional headroom, so neither is
+  the soft one that absorbs all the growth.
+
+  ⛔ **Never raise a cap to fit the content** — that is the failure restated as a policy.
+  Demote the content instead. A cap increase should require an explicit reviewed decision,
+  recorded in the work-tracking system, that the *layer-A contract itself* changed.
+
+  ⚠️ The symptom to watch for is structural, not numeric: **the "Current state" block
+  accumulating one entry per session**, under a heading that says to overwrite it. In the
+  reference deployment that block held 18 distinct sessions and **81.3%** of the file.
 - **Overwrite, don't append** — it always describes *now*, never the journey.
 - **No history** — that's git (D) and the task-tree logs (B).
 - **Prefer derived over hand-written** — a small script can regenerate the
@@ -246,14 +263,17 @@ have to defeat all four — and CI cannot be bypassed from a clone.
 # scripts/check_memory_architecture.sh — fail nonzero on any memory-architecture breach.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
-CAP="${MEMORY_POINTER_LINE_CAP:-60}"; fail=0
+# BOTH caps are load-bearing: a line cap alone is bypassed by long lines (measured: 60
+# lines / 138,403 bytes, all passing). Choose them after a trim, with proportional headroom.
+CAP="${MEMORY_POINTER_LINE_CAP:-50}"; BYTE_CAP="${MEMORY_POINTER_BYTE_CAP:-7168}"; fail=0
 note(){ printf 'memory-arch: %s\n' "$1" >&2; fail=1; }
 
 [ -f MEMORY_ARCHITECTURE.md ] || note "MEMORY_ARCHITECTURE.md is missing"
 [ -f MEMORY.md ] || note "MEMORY.md (resume pointer) is missing"
 if [ -f MEMORY.md ]; then
-  n=$(wc -l < MEMORY.md)
+  n=$(wc -l < MEMORY.md | tr -d ' '); b=$(wc -c < MEMORY.md | tr -d ' ')
   [ "$n" -le "$CAP" ] || note "MEMORY.md is $n lines (> cap $CAP) — demote content to task-trees/decisions"
+  [ "$b" -le "$BYTE_CAP" ] || note "MEMORY.md is $b bytes (> cap $BYTE_CAP) — long lines bypass the line cap; demote content, do NOT raise the cap"
 fi
 for f in AGENTS.md CLAUDE.md; do
   [ -f "$f" ] || { note "$f bootstrap pointer is missing"; continue; }
