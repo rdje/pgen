@@ -797,37 +797,42 @@ audit_ebnf_frontend_conversion_surface() {
     # and the audit was reporting its own documentation back to it.
     # ⛔ NOT force-greened, and deliberately NOT scoped down to "the Makefile is exempt": the
     # assertion is narrowed to EXECUTABLE lines for every file in the list, so a real invocation
-    # re-added to ANY of them still fails. Comment text stays free to describe history — which
-    # matters here because the Perl path is still live in the hybrid flow
-    # (README.md "perl/: legacy/frontend EBNF-to-JSON path ... still used in hybrid flow"; the
-    # active consumer is rust/scripts/ebnf_stimuli_quality_gate.sh, deliberately not in this list).
+    # re-added to ANY of them still fails. Comment text stays free to describe history.
+    # ⭐ LANG-CAPABILITY-AUDIT.10.6 (2026-07-30) — the carve-out that used to sit here is GONE.
+    # It read: "the Perl path is still live in the hybrid flow (README.md 'perl/: legacy/frontend
+    # EBNF-to-JSON path ... still used in hybrid flow'; the active consumer is
+    # rust/scripts/ebnf_stimuli_quality_gate.sh, deliberately not in this list)". Two things were
+    # wrong with it: README.md has not mentioned Perl since README-POLICY.1 trimmed the path
+    # inventory out, so the pin rested on a citation to a line that does not exist; and the three
+    # carved-out scripts were not merely exempt, they were POSITIVELY ASSERTED to keep calling
+    # Perl (see the inverted block below), which is why a component the project describes as
+    # retired survived as a REQUIRED stage of sota_exit_gate.
     assert_file_not_contains_uncommented "$repo_file" "ebnf_to_json.pl"
   done
 
-  assert_tracked "rust/scripts/ebnf_frontend_dual_run_diff_gate.sh"
-  assert_tracked "rust/scripts/ebnf_frontend_readiness_gate.sh"
-  assert_tracked "rust/scripts/ebnf_stimuli_quality_gate.sh"
+  # ⭐⭐ LANG-CAPABILITY-AUDIT.10.6 — THE PINS ARE INVERTED. These three scripts used to be
+  # `assert_file_contains`'d on their Perl invocations, i.e. removing Perl FAILED this gate.
+  # They are now asserted to be Perl-FREE on executable lines, so the gate enforces the
+  # project's intent instead of the residue it left behind. The de-Perl campaign had in fact
+  # landed everywhere except one hard-coded line in ebnf_stimuli_quality_gate.sh, which
+  # bypassed that script's own run_frontend_to_json() helper.
+  for repo_file in \
+    rust/scripts/ebnf_frontend_dual_run_diff_gate.sh \
+    rust/scripts/ebnf_frontend_readiness_gate.sh \
+    rust/scripts/ebnf_stimuli_quality_gate.sh; do
+    assert_tracked "$repo_file"
+    assert_file_not_contains_uncommented "$repo_file" "ebnf_to_json.pl"
+    assert_file_not_contains_uncommented "$repo_file" "EBNF_TO_JSON"
+  done
 
-  assert_file_contains \
-    "rust/scripts/ebnf_frontend_dual_run_diff_gate.sh" \
-    'perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$GRAMMARS_DIR/ebnf.ebnf" -o "$BOOTSTRAP_EBNF_JSON"'
-  assert_file_contains \
-    "rust/scripts/ebnf_frontend_dual_run_diff_gate.sh" \
-    'if perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$grammar_file" -o "$perl_json"'
-
+  # The retired knob must stay REJECTED rather than silently ignored: a stale
+  # `PGEN_EBNF_FRONTEND_IMPL=perl` in some CI job has to fail loudly, not pick a default.
   assert_file_contains \
     "rust/scripts/ebnf_frontend_readiness_gate.sh" \
-    'if [[ "$FRONTEND_IMPL" == "perl" ]]; then'
-  assert_file_contains \
-    "rust/scripts/ebnf_frontend_readiness_gate.sh" \
-    'perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$grammar_file" -o "$json_out"'
-
+    'if [[ "$FRONTEND_IMPL" != "rust" ]]; then'
   assert_file_contains \
     "rust/scripts/ebnf_stimuli_quality_gate.sh" \
-    'if [[ "$FRONTEND_IMPL" == "perl" || "$require_ebnf_parseability" -eq 1 ]]; then'
-  assert_file_contains \
-    "rust/scripts/ebnf_stimuli_quality_gate.sh" \
-    '"$EBNF_TO_JSON" --pretty --quiet "$EBNF_BOOTSTRAP_GRAMMAR" -o "$EBNF_BOOTSTRAP_JSON"'
+    'if [[ "$FRONTEND_IMPL" != "rust" ]]; then'
 }
 
 audit_embedding_api_surface() {

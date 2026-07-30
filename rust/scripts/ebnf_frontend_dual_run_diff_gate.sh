@@ -15,6 +15,25 @@ SUMMARY_JSON="$STATE_DIR/summary.json"
 STRICT="${PGEN_EBNF_DUAL_RUN_STRICT:-0}"
 GRAMMARS=("ebnf" "json" "regex")
 
+# LANG-CAPABILITY-AUDIT.10.6 — the PERL arm is RETIRED.
+#
+# This gate was born as a Perl->Rust migration oracle: it diffed `tools/ebnf_to_json.pl`
+# against the hand-written Rust frontend. That migration is COMPLETE, and the arm had
+# decayed into a liability — measured, it was blind to 25 of regex.ebnf's 276 rules (the
+# whole modern `code_*` family) and the gate PASSED that as `perl_under_reports`. It also
+# compared `sorted(set(rule_names))` only, so two frontends could tokenize every rule body
+# differently and still report `parity`.
+#
+# The "dual run" is now the duality that actually matters and the name is finally accurate:
+#   arm 1 — the hand-written Rust frontend (`ast_pipeline --emit-raw-ast-json`)
+#   arm 2 — the parser GENERATED from grammars/ebnf.ebnf (`ebnf_dual_run_diff`)
+# Arm 2's verdict is the SELF-HOSTING measurement, and it is what this gate asserts.
+#
+# ⚠️ HONEST BOUND, stated rather than implied: retiring the Perl arm removes this gate's
+# only OUTPUT-level comparison. Arm 1 yields a raw-AST envelope and arm 2 yields a verdict,
+# so they are not directly diffable yet. Building that raw-AST differential — the evidence
+# a frontend REPLACEMENT would need — is the remaining half of LANG-CAPABILITY-AUDIT.10.6.
+
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 RUST_DIFF_BIN="$RUST_DIR/target/debug/ebnf_dual_run_diff"
 BOOTSTRAP_EBNF_JSON="$WORK_DIR/bootstrap_ebnf.json"
@@ -81,20 +100,21 @@ run_logged_or_dump() {
 }
 
 # BIN-BUILD-INTEGRITY.3 — the CANONICAL annotation backend, deliberately.
-# This binary does two jobs below: it generates a parser from the Perl
-# frontend's JSON (which parses `ebnf.ebnf`'s return annotations), and it
-# exports the Rust frontend's raw AST. Since commit 200cae5b an
-# `ebnf_dual_run`-ONLY binary hard-REFUSES the first job, because without
-# `generated_parsers` annotation parsing would silently fall back to the
-# hand-rolled bootstrap subset. Building with BOTH features is the right
-# answer rather than opting into that fallback: this is a differential
-# harness, so the ONE thing it may vary is Perl-frontend vs Rust-frontend —
-# a degradable annotation backend on the Rust arm would be a second,
-# uncontrolled variable, and the fallback's own license only covers
-# artifacts that are re-derived canonically before being trusted, which a
-# standing gate cannot do. It is also the feature set TOOLBOX.md documents
-# for this shared binary path, so running this gate no longer replaces the
-# toolbox's dual-feature `ast_pipeline` with a single-feature one.
+# This binary does three jobs below: it exports the raw AST of `grammars/ebnf.ebnf`
+# (the bootstrap seed), generates a parser from that JSON, and exports each tracked
+# grammar's raw AST. Since commit 200cae5b an `ebnf_dual_run`-ONLY binary hard-REFUSES
+# the generation job, because without `generated_parsers` annotation parsing would
+# silently fall back to the hand-rolled bootstrap subset. Building with BOTH features is
+# the right answer rather than opting into that fallback: this is a differential harness,
+# so the ONE thing it may vary is the arm under test — a degradable annotation backend
+# would be a second, uncontrolled variable, and the fallback's own license only covers
+# artifacts that are re-derived canonically before being trusted, which a standing gate
+# cannot do. It is also the feature set TOOLBOX.md documents for this shared binary path,
+# so running this gate no longer replaces the toolbox's dual-feature `ast_pipeline` with
+# a single-feature one.
+# ⭐ LANG-CAPABILITY-AUDIT.10.6 — building with `ebnf_dual_run` is ALSO what let the Perl
+# bootstrap step retire: this binary can now read `.ebnf` directly, so nothing here needs
+# a second frontend implementation just to get started.
 echo "==> Building ast_pipeline (generated_parsers + ebnf_dual_run path)"
 (cd "$RUST_DIR" && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline >/dev/null)
 
@@ -104,10 +124,15 @@ if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
 fi
 
 echo "==> Regenerating EBNF frontend artifacts for dual-run harness"
+# The binary above is built with BOTH features, so it reads `.ebnf` directly and the Perl
+# bootstrap step is unnecessary. (Even on a cold clone this holds: the generated-parser
+# cross-check is cfg-gated on `has_generated_ebnf_parser`, so `--features ebnf_dual_run`
+# compiles and runs with no `generated/ebnf.rs` present — the same chicken-and-egg breaker
+# `rust/Makefile`'s own `regex_parser_bootstrap` relies on.)
 run_logged_or_dump \
-    "bootstrap Perl ebnf_to_json" \
-    "$LOG_DIR/bootstrap_ebnf_to_json.log" \
-    perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$GRAMMARS_DIR/ebnf.ebnf" -o "$BOOTSTRAP_EBNF_JSON"
+    "bootstrap EBNF raw-AST export (Rust frontend)" \
+    "$LOG_DIR/bootstrap_ebnf_raw_ast.log" \
+    "$AST_PIPELINE_BIN" "$GRAMMARS_DIR/ebnf.ebnf" --emit-raw-ast-json "$BOOTSTRAP_EBNF_JSON"
 run_logged_or_dump \
     "bootstrap EBNF parser generation" \
     "$LOG_DIR/bootstrap_generate_ebnf_parser.log" \
@@ -121,7 +146,7 @@ if [[ ! -x "$RUST_DIFF_BIN" ]]; then
     exit 1
 fi
 
-echo "grammar,perl_ebnf_to_json,rust_parse,rust_parse_full,perl_rule_count,rust_rule_count,raw_ast_status,raw_ast_missing_on_perl_count,raw_ast_missing_on_rust_count,parse_end,input_bytes,consumed_pct,overall,notes" >"$SUMMARY_CSV"
+echo "grammar,rust_parse,rust_parse_full,rust_rule_count,raw_ast_status,parse_end,input_bytes,consumed_pct,overall,notes" >"$SUMMARY_CSV"
 echo "[]" >"$SUMMARY_JSON"
 
 {
@@ -138,38 +163,22 @@ any_internal_errors=0
 
 for grammar in "${GRAMMARS[@]}"; do
     grammar_file="$GRAMMARS_DIR/${grammar}.ebnf"
-    perl_json="$WORK_DIR/${grammar}.perl_raw_ast.json"
     rust_json="$WORK_DIR/${grammar}.rust_parse_report.json"
     rust_raw_ast_json="$WORK_DIR/${grammar}.rust_raw_ast.json"
-    raw_ast_compare_json="$WORK_DIR/${grammar}.raw_ast_compare.json"
     diff_json="$WORK_DIR/${grammar}.dual_run_diff.json"
 
-    perl_log="$LOG_DIR/${grammar}.perl_ebnf_to_json.log"
     rust_log="$LOG_DIR/${grammar}.rust_parse.log"
     rust_raw_ast_log="$LOG_DIR/${grammar}.rust_raw_ast.log"
 
-    perl_status="fail"
     rust_parse="fail"
     rust_parse_full="fail"
-    perl_rule_count="-"
     rust_rule_count="-"
     raw_ast_status="skip"
-    raw_ast_missing_on_perl_count="-"
-    raw_ast_missing_on_rust_count="-"
-    raw_ast_missing_on_perl_names="-"
-    raw_ast_missing_on_rust_names="-"
     parse_end="-"
     input_bytes="-"
     consumed_pct="-"
     overall="fail"
     notes="internal error"
-
-    if perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$grammar_file" -o "$perl_json" >"$perl_log" 2>&1; then
-        perl_status="pass"
-    else
-        notes="perl ebnf_to_json failed (see logs/${grammar}.perl_ebnf_to_json.log)"
-        failures=$((failures + 1))
-    fi
 
     if "$RUST_DIFF_BIN" --input "$grammar_file" --output "$rust_json" >"$rust_log" 2>&1; then
         rust_parse="$(python3 - "$rust_json" <<'PY'
@@ -219,160 +228,80 @@ PY
         failures=$((failures + 1))
     fi
 
+    # Arm 1 - the hand-written Rust frontend's raw-AST envelope. With the Perl arm retired
+    # there is no second envelope to diff against yet, so this records the rule count as an
+    # artifact and asserts only that the export SUCCEEDS. The frontend<->meta-parser envelope
+    # differential is the remaining half of LANG-CAPABILITY-AUDIT.10.6.
     if "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$rust_raw_ast_json" >"$rust_raw_ast_log" 2>&1; then
-        if [[ "$perl_status" == "pass" ]]; then
-            raw_ast_fields="$(python3 - "$perl_json" "$rust_raw_ast_json" "$raw_ast_compare_json" <<'PY'
-import json
-import sys
-
-perl_path, rust_path, out_path = sys.argv[1:]
-
-def rule_names(payload):
-    raw_ast = payload.get("raw_ast", [])
-    if not isinstance(raw_ast, list):
-        raise SystemExit("raw_ast payload is not a list")
-    names = []
-    for rule in raw_ast:
-        if not isinstance(rule, list) or not rule:
-            continue
+        rust_rule_count="$(python3 - "$rust_raw_ast_json" <<'RAWAST'
+import json,sys
+payload = json.load(open(sys.argv[1]))
+names = []
+for rule in payload.get("raw_ast", []):
+    if isinstance(rule, list) and rule:
         head = rule[0]
-        if (
-            isinstance(head, list)
-            and len(head) >= 2
-            and head[0] == "rule"
-            and isinstance(head[1], str)
-        ):
+        if isinstance(head, list) and len(head) >= 2 and head[0] == "rule" and isinstance(head[1], str):
             names.append(head[1])
-    return names
-
-with open(perl_path) as fh:
-    perl_payload = json.load(fh)
-with open(rust_path) as fh:
-    rust_payload = json.load(fh)
-
-perl_names = rule_names(perl_payload)
-rust_names = rule_names(rust_payload)
-perl_unique = sorted(set(perl_names))
-rust_unique = sorted(set(rust_names))
-
-missing_on_perl = [name for name in rust_unique if name not in perl_unique]
-missing_on_rust = [name for name in perl_unique if name not in rust_unique]
-
-if not missing_on_perl and not missing_on_rust:
-    status = "parity"
-elif missing_on_perl and not missing_on_rust:
-    status = "perl_under_reports"
-elif missing_on_rust and not missing_on_perl:
-    status = "rust_under_reports"
-else:
-    status = "divergent"
-
-comparison = {
-    "status": status,
-    "perl_rule_count": len(perl_names),
-    "rust_rule_count": len(rust_names),
-    "perl_unique_rule_count": len(perl_unique),
-    "rust_unique_rule_count": len(rust_unique),
-    "missing_on_perl_count": len(missing_on_perl),
-    "missing_on_perl_names": missing_on_perl,
-    "missing_on_rust_count": len(missing_on_rust),
-    "missing_on_rust_names": missing_on_rust,
-}
-
-with open(out_path, "w") as fh:
-    json.dump(comparison, fh, indent=2, sort_keys=True)
-    fh.write("\n")
-
-print(
-    "\t".join(
-        [
-            str(len(perl_names)),
-            str(len(rust_names)),
-            status,
-            str(len(missing_on_perl)),
-            str(len(missing_on_rust)),
-            "|".join(missing_on_perl) if missing_on_perl else "-",
-            "|".join(missing_on_rust) if missing_on_rust else "-",
-        ]
-    )
-)
-PY
+print(len(names))
+RAWAST
 )"
-            IFS=$'\t' read -r perl_rule_count rust_rule_count raw_ast_status raw_ast_missing_on_perl_count raw_ast_missing_on_rust_count raw_ast_missing_on_perl_names raw_ast_missing_on_rust_names <<<"$raw_ast_fields"
-        fi
+        raw_ast_status="exported"
     else
         notes="rust raw_ast export failed (see logs/${grammar}.rust_raw_ast.log)"
         any_internal_errors=1
         failures=$((failures + 1))
     fi
 
-    if [[ "$perl_status" == "pass" && "$rust_parse" == "pass" && "$rust_parse_full" == "pass" && ( "$raw_ast_status" == "parity" || "$raw_ast_status" == "perl_under_reports" ) ]]; then
+    # The self-hosting assertion: the GENERATED meta-parser must fully consume the grammar,
+    # and the hand-written frontend must export its envelope. (Before .10.6 this also
+    # required Perl parity, and TOLERATED `perl_under_reports` - a pass that accepted the
+    # Perl arm being blind to 25 of regex.ebnf's 276 rules.)
+    if [[ "$rust_parse" == "pass" && "$rust_parse_full" == "pass" && "$raw_ast_status" == "exported" ]]; then
         overall="pass"
-        if [[ "$raw_ast_status" == "perl_under_reports" ]]; then
-            notes="full parse parity; perl raw_ast under-reports ${raw_ast_missing_on_perl_count} unique rule(s)"
-        else
-            notes="full parse parity; raw_ast parity"
-        fi
+        notes="self-hosting: generated parser fully consumed the grammar; frontend envelope exported (${rust_rule_count} rules)"
     else
         if [[ "$notes" == "internal error" ]]; then
-            if [[ "$raw_ast_status" == "rust_under_reports" || "$raw_ast_status" == "divergent" ]]; then
-                notes="unexpected raw_ast divergence (see work/${grammar}.raw_ast_compare.json)"
-            else
-                notes="perl/rust parity mismatch"
-            fi
+            notes="generated meta-parser did not fully consume the grammar"
         fi
         overall="fail"
         failures=$((failures + 1))
     fi
 
-    python3 - "$grammar" "$perl_status" "$rust_parse" "$rust_parse_full" "$overall" "$notes" "$perl_rule_count" "$rust_rule_count" "$raw_ast_status" "$raw_ast_missing_on_perl_count" "$raw_ast_missing_on_rust_count" "$parse_end" "$input_bytes" "$consumed_pct" "$perl_json" "$rust_json" "$rust_raw_ast_json" "$raw_ast_compare_json" "$diff_json" <<'PY'
+    python3 - "$grammar" "$rust_parse" "$rust_parse_full" "$overall" "$notes" "$rust_rule_count" "$raw_ast_status" "$parse_end" "$input_bytes" "$consumed_pct" "$rust_json" "$rust_raw_ast_json" "$diff_json" <<'ENTRY'
 import json,sys,os
 (
-    grammar, perl_status, rust_parse, rust_parse_full, overall, notes,
-    perl_rule_count, rust_rule_count, raw_ast_status,
-    raw_ast_missing_on_perl_count, raw_ast_missing_on_rust_count,
+    grammar, rust_parse, rust_parse_full, overall, notes,
+    rust_rule_count, raw_ast_status,
     parse_end, input_bytes, consumed_pct,
-    perl_json_path, rust_json_path, rust_raw_ast_json_path, raw_ast_compare_json_path, out_path
+    rust_json_path, rust_raw_ast_json_path, out_path
 ) = sys.argv[1:]
 
 payload = {
     "grammar": grammar,
-    "perl_ebnf_to_json": perl_status,
     "rust_parse": rust_parse,
     "rust_parse_full": rust_parse_full,
     "overall": overall,
     "notes": notes,
-    "perl_rule_count": None if perl_rule_count == "-" else int(perl_rule_count),
     "rust_rule_count": None if rust_rule_count == "-" else int(rust_rule_count),
     "raw_ast_status": raw_ast_status,
-    "raw_ast_missing_on_perl_count": None if raw_ast_missing_on_perl_count == "-" else int(raw_ast_missing_on_perl_count),
-    "raw_ast_missing_on_rust_count": None if raw_ast_missing_on_rust_count == "-" else int(raw_ast_missing_on_rust_count),
     "rust_parse_end": None if parse_end == "-" else int(parse_end),
     "input_bytes": None if input_bytes == "-" else int(input_bytes),
     "consumed_pct": None if consumed_pct == "-" else float(consumed_pct),
     "artifacts": {
-        "perl_json": perl_json_path if os.path.exists(perl_json_path) else None,
         "rust_json": rust_json_path if os.path.exists(rust_json_path) else None,
         "rust_raw_ast_json": rust_raw_ast_json_path if os.path.exists(rust_raw_ast_json_path) else None,
-        "raw_ast_compare_json": raw_ast_compare_json_path if os.path.exists(raw_ast_compare_json_path) else None,
     },
 }
 
 if os.path.exists(rust_json_path):
     payload["rust_report"] = json.load(open(rust_json_path))
-if os.path.exists(perl_json_path):
-    payload["perl_report"] = json.load(open(perl_json_path))
-if os.path.exists(raw_ast_compare_json_path):
-    payload["raw_ast_comparison"] = json.load(open(raw_ast_compare_json_path))
-if os.path.exists(rust_raw_ast_json_path):
-    payload["rust_raw_ast_report"] = json.load(open(rust_raw_ast_json_path))
 
 with open(out_path, "w") as fh:
     json.dump(payload, fh, indent=2, sort_keys=True)
     fh.write("\n")
-PY
+ENTRY
 
-    echo "${grammar},${perl_status},${rust_parse},${rust_parse_full},${perl_rule_count},${rust_rule_count},${raw_ast_status},${raw_ast_missing_on_perl_count},${raw_ast_missing_on_rust_count},${parse_end},${input_bytes},${consumed_pct},${overall},${notes}" >>"$SUMMARY_CSV"
+    echo "${grammar},${rust_parse},${rust_parse_full},${rust_rule_count},${raw_ast_status},${parse_end},${input_bytes},${consumed_pct},${overall},${notes}" >>"$SUMMARY_CSV"
 done
 
 python3 - "$WORK_DIR" "$SUMMARY_JSON" <<'PY'

@@ -2281,12 +2281,15 @@ neither.**
 
 ---
 
-### `.10.6` — the "dual run" diffs the wrong pair, and a guard PINS the Perl frontend the project believes it retired (`todo`)
+### `.10.6` — the "dual run" diffs the wrong pair, and a guard PINS the Perl frontend the project believes it retired (`active` — de-Perl ✅ DONE; the envelope differential remains)
 
-- **Status: `todo`**, opened session #228 from two director statements, both of which
-  measurement partly confirmed and partly refuted. **Owning machinery is the flow/CI gates
-  + `GRAMMAR-WELLFORMED`** (H.13/H.14 own the meta-grammar lockstep); recorded here because
-  `.10` found it and it conditions the `.10.2` decision.
+- **Status: `active`.** Opened session #228 from two director statements, both of which
+  measurement partly confirmed and partly refuted. **Part 1 — the de-Perl — is DONE**
+  (`PGEN-LANG-CAPABILITY-AUDIT-0020`), on the director's explicit order: *"Do this first
+  (1) .10.6 finish the de-Perl, then do (2) .10.2 option B"*. **Part 2 — the
+  frontend↔meta-parser envelope differential — remains `todo`.** Owning machinery is the
+  flow/CI gates + `GRAMMAR-WELLFORMED` (H.13/H.14 own the meta-grammar lockstep); recorded
+  here because `.10` found it and it conditions `.10.2`.
 
 #### Statement 1 — *"ebnf_dual_* runs both parsers and compares their output live"*
 
@@ -2401,6 +2404,61 @@ and shall avoid confusion at all cost"* — in this session alone the name cause
 write a false statement into a Knowledge-Map card (*"a frozen legacy reference"*, refuted by
 simply running it), and it left the tracked record describing a Perl↔Rust duality that no
 longer exists. A name that misdescribes what a gate compares is not cosmetic debt.
+
+#### Acceptance Checklist (enforced) — PART 1, the de-Perl
+
+- [x] **REPRODUCE / ISSUE** — `git grep -n ebnf_to_json.pl -- 'rust/scripts/*.sh'` showed the
+  Perl EBNF frontend executing in **three** tracked gate scripts, and
+  `sota_exit_gate.sh:1110` / `:33` ran two of them as **required** stages. `perl
+  tools/ebnf_to_json.pl` on `grammars/regex.ebnf` returned **251** rules against the Rust
+  frontend's **276** — blind to 25, which the gate passed as `perl_under_reports`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — three independent causes, each located:
+  (1) `ebnf_stimuli_quality_gate.sh:593` was **hard-coded** to `"$EBNF_TO_JSON"` and
+  bypassed the `run_frontend_to_json()` helper 10 lines above it, so it ran Perl regardless
+  of `FRONTEND_IMPL` (already defaulting to `rust`) — and the *reason* it needed a second
+  frontend at all was `cargo build --features generated_parsers` **without**
+  `ebnf_dual_run`, leaving the binary unable to read `.ebnf`;
+  (2) `ebnf_frontend_dual_run_diff_gate.sh:110,167` kept Perl as a migration oracle whose
+  migration had completed;
+  (3) `ci_workflow_local_gate.sh:810-823` **`assert_file_contains`**'d the Perl invocations,
+  so removing them FAILED that gate — a guard pinning the thing it was built to remove,
+  justified by a `README.md` citation that `README-POLICY.1` had already deleted.
+- [x] **FIX** — ops/build-flow tier. Build `ast_pipeline` with `--features "generated_parsers
+  ebnf_dual_run"` up front (the cross-check is cfg-gated on `has_generated_ebnf_parser`, so
+  this compiles on a cold clone with no `generated/ebnf.rs` — the breaker the Makefile's own
+  `regex_parser_bootstrap` already relies on), then read `.ebnf` directly. Perl arm deleted;
+  `PGEN_EBNF_FRONTEND_IMPL` now **rejects** `perl` loudly rather than silently defaulting;
+  pins inverted to `assert_file_not_contains_uncommented`.
+- [x] **ADDRESSED (verified)** — measured before → after:
+
+  | measurement | before | after |
+  |---|---|---|
+  | uncommented `ebnf_to_json.pl` / `EBNF_TO_JSON` in the 3 gate scripts | 3 scripts, 6 sites | **0 / 0 in all three** ✅ |
+  | `perl` invocations in `ebnf-frontend-dual-run-diff.yml` / `sota-exit-gate.yml` | 1 each (`Verify Perl runtime` steps) | **0 / 0** ✅ |
+  | `require_tool perl` in `ebnf_stimuli_quality_gate.sh` | present (+ a `perl -e` percentage one-liner) | **removed**; the one-liner is now `awk` ✅ |
+  | `make ebnf_stimuli_quality_gate` | passed **via Perl** | **passed, no Perl** — 5/5 grammars ✅ |
+  | `make ebnf_frontend_readiness` | passed | **passed, no Perl** — 3/3 grammars ✅ |
+  | `make ebnf_frontend_dual_run_gate` | passed, tolerating `perl_under_reports` | **runs with no Perl**; `ebnf` pass, `json` pass, **`regex` FAILS honestly** at 35.55% consumed ⬅ the `.10.5` gap, and exactly what `.10.2` option B closes |
+  | `ci_workflow_local_gate` pins | `assert_file_contains` Perl **present** | `assert_file_not_contains_uncommented` — Perl **absent** ✅ |
+
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` **ALL 15 doctrines PASS**
+  (incl. `GATE-REACHABILITY` and `FLOW-INTEGRITY`, the two that govern gate wiring);
+  `bash -n` clean on all four edited scripts; two gates re-run green end-to-end with Perl
+  gone; **no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` touched ⇒ all 11 generated
+  parsers byte-identical BY CONSTRUCTION**. ⚠️ `ebnf_frontend_dual_run_gate`'s `regex` row is
+  RED — that is `.10.5`'s already-recorded true-red, not a regression introduced here, and
+  `.10.2` option B (measured, exit 0) closes it.
+- [x] **LOCKSTEP** — `rust/Makefile` help text (two targets no longer described as
+  "Perl-vs-Rust"), `sota_exit_gate.sh` stage descriptions ×2, the stale Makefile bootstrap
+  comment (it claimed the seed goes "via the Perl frontend"; the recipe has used the Rust
+  frontend for a long time), `CHANGES.md`, `MEMORY.md`.
+
+#### ⚠️ Deliberately NOT done in part 1 — needs a director call
+
+`tools/*.pl` (5 files) and `perl/` (34 tracked files) still EXIST. All *usage* is gone, but
+deleting 39 tracked files is a separate, hard-to-reverse decision and is not implied by
+"stop using Perl" — git history would retain them either way. ⇒ **raised, not assumed.**
+
 
 ⭐ **Same family as `.10.5`, twice over**: `.10.5` found a gate green *because of* a defect;
 here a gate promises a comparison it never makes, **and** a guard enforces the survival of

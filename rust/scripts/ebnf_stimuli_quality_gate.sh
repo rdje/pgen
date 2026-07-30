@@ -15,10 +15,12 @@ SAMPLE_COUNT="${PGEN_EBNF_STIMULI_QUALITY_COUNT:-12}"
 GAP_THRESHOLD="${PGEN_EBNF_STIMULI_QUALITY_GAP_THRESHOLD:-1}"
 TARGET_MAX_ATTEMPTS="${PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-5000}"
 CONTRACT_FILE="${PGEN_EBNF_STIMULI_QUALITY_CONTRACT:-$RUST_DIR/test_data/grammar_quality/ebnf_stimuli_contract.json}"
+# LANG-CAPABILITY-AUDIT.10.6 — the Perl frontend is RETIRED. `rust` is the only value.
+# The knob is kept (rather than deleted) so an explicit `PGEN_EBNF_FRONTEND_IMPL=perl` in a
+# stale script or CI job fails LOUDLY with the reason, instead of silently doing something else.
 FRONTEND_IMPL="${PGEN_EBNF_FRONTEND_IMPL:-rust}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
-EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 EBNF_BOOTSTRAP_GRAMMAR="$GRAMMARS_DIR/ebnf.ebnf"
 EBNF_BOOTSTRAP_JSON="$WORK_DIR/ebnf_bootstrap.json"
 EBNF_BOOTSTRAP_RS="$WORK_DIR/ebnf_bootstrap.rs"
@@ -35,8 +37,9 @@ if ! [[ "$TARGET_MAX_ATTEMPTS" =~ ^[0-9]+$ ]] || [[ "$TARGET_MAX_ATTEMPTS" -lt 1
     echo "error: PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS must be an integer >= 1" >&2
     exit 2
 fi
-if [[ "$FRONTEND_IMPL" != "perl" && "$FRONTEND_IMPL" != "rust" ]]; then
-    echo "error: PGEN_EBNF_FRONTEND_IMPL must be 'perl' or 'rust'" >&2
+if [[ "$FRONTEND_IMPL" != "rust" ]]; then
+    echo "error: PGEN_EBNF_FRONTEND_IMPL must be 'rust' — the Perl EBNF frontend was retired by" >&2
+    echo "       LANG-CAPABILITY-AUDIT.10.6 (it was blind to 25 of regex.ebnf's 276 rules)." >&2
     exit 2
 fi
 
@@ -488,7 +491,9 @@ closed_loop_for_grammar() {
         parseability_parser_rejections_total=$((stage0_parseability_parser_rejections + stage1_parseability_parser_rejections + stage2_parseability_parser_rejections + stage3_parseability_parser_rejections))
         parseability_generation_errors_total=$((stage0_parseability_generation_errors + stage1_parseability_generation_errors + stage2_parseability_generation_errors + stage3_parseability_generation_errors))
         parseability_empty_generations_total=$((stage0_parseability_empty_generations + stage1_parseability_empty_generations + stage2_parseability_empty_generations + stage3_parseability_empty_generations))
-        parseability_acceptance_rate_total="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$parseability_accepted_total" "$parseability_attempts_total")"
+        # LANG-CAPABILITY-AUDIT.10.6 — was a `perl -e` one-liner; awk is already required by
+        # this script, so replacing it removes the last Perl dependency here entirely.
+        parseability_acceptance_rate_total="$(awk -v a="$parseability_accepted_total" -v n="$parseability_attempts_total" 'BEGIN { if (n == 0) printf "0.00"; else printf "%.2f", (a * 100.0) / n }')"
         jq -n \
             --arg label "$label" \
             --arg grammar_name "$grammar_name" \
@@ -540,7 +545,6 @@ closed_loop_for_grammar() {
 }
 
 require_tool jq
-require_tool perl
 require_tool base64
 require_file "$CONTRACT_FILE"
 
@@ -551,10 +555,6 @@ if [[ "$grammar_count" -lt 1 ]]; then
     echo "error: contract '$CONTRACT_FILE' must contain at least one grammar entry" >&2
     exit 1
 fi
-if [[ "$FRONTEND_IMPL" == "perl" || "$require_ebnf_parseability" -eq 1 ]]; then
-    require_file "$EBNF_TO_JSON"
-fi
-
 echo "==> EBNF stimuli quality gate"
 echo "state_dir: $STATE_DIR"
 echo "contract_file: $CONTRACT_FILE"
@@ -568,8 +568,13 @@ echo "require_ebnf_parseability: $require_ebnf_parseability"
 
 echo "grammar,grammar_name,parseability_required,parseability_attempts_total,parseability_accepted_total,parseability_rejected_total,parseability_parser_rejections_total,parseability_generation_errors_total,parseability_empty_generations_total,parseability_acceptance_rate_percent,parseability_report_json,target_drive_alternate_entry_attempts_total,target_drive_alternate_entry_accepted_outputs_total,target_drive_alternate_entry_rejected_outputs_total,initial_targets,resolved_targets,final_targets,target_attempts,stage0_successes,stage3_successes,status" >"$SUMMARY_CSV"
 
+# LANG-CAPABILITY-AUDIT.10.6 — build with BOTH features up front. This is what retires the
+# Perl bootstrap: with `ebnf_dual_run` the binary reads `.ebnf` directly, so nothing here
+# needs a second frontend implementation. It compiles even on a cold clone with no
+# `generated/ebnf.rs`, because the cross-check is cfg-gated on `has_generated_ebnf_parser`
+# (the same breaker `rust/Makefile`'s `regex_parser_bootstrap` relies on).
 run_logged_rust "build_generated_ast_pipeline" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after build" >&2
@@ -579,18 +584,17 @@ fi
 run_frontend_to_json() {
     local grammar_file="$1"
     local json_out="$2"
-    if [[ "$FRONTEND_IMPL" == "perl" ]]; then
-        "$EBNF_TO_JSON" --pretty --quiet "$grammar_file" -o "$json_out"
-    else
-        "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$json_out"
-    fi
+    "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$json_out"
 }
 
 if [[ "$require_ebnf_parseability" -eq 1 ]]; then
     require_file "$EBNF_BOOTSTRAP_GRAMMAR"
 
+    # LANG-CAPABILITY-AUDIT.10.6 — THE ONE SITE THE DE-PERL CAMPAIGN MISSED. This was
+    # hard-coded to `ebnf_to_json.pl` and bypassed `run_frontend_to_json()` directly above
+    # it, so it ran Perl regardless of FRONTEND_IMPL (which already defaulted to `rust`).
     run_logged "prepare_ebnf_frontend_json_for_parseability" \
-        "$EBNF_TO_JSON" --pretty --quiet "$EBNF_BOOTSTRAP_GRAMMAR" -o "$EBNF_BOOTSTRAP_JSON"
+        "$AST_PIPELINE_BIN" "$EBNF_BOOTSTRAP_GRAMMAR" --emit-raw-ast-json "$EBNF_BOOTSTRAP_JSON"
     require_nonempty_file "$EBNF_BOOTSTRAP_JSON"
 
     run_logged "prepare_ebnf_generated_parser_for_parseability" \

@@ -1107,12 +1107,12 @@ if [[ "$RUN_EBNF_DUAL_RUN_DIFF" -eq 1 ]]; then
     EBNF_DUAL_RUN_SUMMARY_TXT="${EBNF_DUAL_RUN_STAGE_STATE_DIR}/summary.txt"
     EBNF_DUAL_RUN_SUMMARY_JSON="${EBNF_DUAL_RUN_STAGE_STATE_DIR}/summary.json"
     if [[ "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
-        run_check "ebnf_frontend_dual_run_gate" "required" "strict Perl-vs-Rust EBNF dual-run differential" \
+        run_check "ebnf_frontend_dual_run_gate" "required" "strict frontend-vs-generated-parser EBNF dual-run differential (self-hosting)" \
             env \
                 PGEN_EBNF_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
                 make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate
     else
-        run_check "ebnf_frontend_dual_run_diff" "informational" "report-only Perl-vs-Rust EBNF dual-run differential" \
+        run_check "ebnf_frontend_dual_run_diff" "informational" "report-only frontend-vs-generated-parser EBNF dual-run differential" \
             env \
                 PGEN_EBNF_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
                 make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff

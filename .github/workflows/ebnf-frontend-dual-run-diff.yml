@@ -31,8 +31,6 @@ jobs:
             jq --version
           fi
 
-      - name: Verify Perl runtime for Perl-vs-Rust dual-run
-        run: perl -MJSON::PP -e 'print "Perl JSON::PP ok\n";'
 
       # generated/ is untracked, so actions/checkout yields a tree with no generated
       # parsers and this job's gate cannot compile the crate. Recipe: rust/Makefile's

@@ -15,6 +15,8 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 STRICT="${PGEN_EBNF_FRONTEND_STRICT:-0}"
 STIMULI_COUNT="${PGEN_EBNF_FRONTEND_STIMULI_COUNT:-8}"
 STIMULI_SEED="${PGEN_EBNF_FRONTEND_STIMULI_SEED:-1337}"
+# LANG-CAPABILITY-AUDIT.10.6 — the Perl frontend is RETIRED. `rust` is the only value; the
+# knob is kept so a stale `PGEN_EBNF_FRONTEND_IMPL=perl` fails LOUDLY with the reason.
 FRONTEND_IMPL="${PGEN_EBNF_FRONTEND_IMPL:-rust}"
 
 GRAMMARS=("ebnf" "json" "regex")
@@ -30,8 +32,9 @@ if ! [[ "$STIMULI_COUNT" =~ ^[0-9]+$ ]] || [[ "$STIMULI_COUNT" -lt 1 ]]; then
     echo "error: PGEN_EBNF_FRONTEND_STIMULI_COUNT must be an integer >= 1" >&2
     exit 2
 fi
-if [[ "$FRONTEND_IMPL" != "perl" && "$FRONTEND_IMPL" != "rust" ]]; then
-    echo "error: PGEN_EBNF_FRONTEND_IMPL must be 'perl' or 'rust'" >&2
+if [[ "$FRONTEND_IMPL" != "rust" ]]; then
+    echo "error: PGEN_EBNF_FRONTEND_IMPL must be 'rust' — the Perl EBNF frontend was retired by" >&2
+    echo "       LANG-CAPABILITY-AUDIT.10.6 (it was blind to 25 of regex.ebnf's 276 rules)." >&2
     exit 2
 fi
 
@@ -124,11 +127,7 @@ failures=0
 run_frontend_to_json() {
     local grammar_file="$1"
     local json_out="$2"
-    if [[ "$FRONTEND_IMPL" == "perl" ]]; then
-        perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$grammar_file" -o "$json_out"
-    else
-        "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$json_out"
-    fi
+    "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$json_out"
 }
 
 for grammar in "${GRAMMARS[@]}"; do

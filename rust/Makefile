@@ -496,8 +496,8 @@ help:
 	@echo "  sota_release_policy - Show active SOTA release policy file"
 	@echo "  ebnf_frontend_readiness - Report EBNF frontend flow readiness for ebnf/json/regex grammars"
 	@echo "  ebnf_frontend_gate - Strict EBNF frontend gate (fail on any grammar flow failure)"
-	@echo "  ebnf_frontend_dual_run_diff - Report Perl-vs-Rust EBNF frontend differential across ebnf/json/regex"
-	@echo "  ebnf_frontend_dual_run_gate - Strict Perl-vs-Rust EBNF frontend differential gate"
+	@echo "  ebnf_frontend_dual_run_diff - Report frontend-vs-generated-parser EBNF differential across ebnf/json/regex"
+	@echo "  ebnf_frontend_dual_run_gate - Strict frontend-vs-generated-parser EBNF differential gate (self-hosting)"
 	@echo "  hdl_frontend_readiness - Report HDL frontend flow readiness for systemverilog/vhdl grammars"
 	@echo "  hdl_frontend_gate - Strict HDL frontend readiness gate (fails on missing/failing HDL grammar flows)"
 	@echo "  sv_preprocessor_quality_gate - Enforce deterministic closed-loop quality checks for systemverilog_preprocessor grammar"
@@ -779,11 +779,14 @@ focus_systemverilog: $(SYSTEMVERILOG_PARSER)
 # itself via the `ebnf_dual_run` feature) and the rest of the pipeline.
 #
 # Two-step strategy:
-#   1. If `generated/ebnf.rs` is missing, seed it via the Perl frontend
-#      (`tools/ebnf_to_json.pl` -> `generated/ebnf.json`) and the
-#      bootstrap-mode AST pipeline binary (`ast_pipeline_bootstrap`,
-#      built `--no-default-features --features bootstrap` so it does NOT
-#      depend on any `generated/*` files).
+#   1. If `generated/ebnf.rs` is missing, seed it via the RUST frontend
+#      (`ast_pipeline --emit-raw-ast-json` -> `generated/ebnf.json`) and the
+#      bootstrap-mode AST pipeline binary. This works with no `generated/ebnf.rs`
+#      present because the generated-parser cross-check is cfg-gated on
+#      `has_generated_ebnf_parser` — that gate IS the chicken-and-egg breaker.
+#      (This comment used to say "via the Perl frontend (tools/ebnf_to_json.pl)".
+#      The recipe below has used the Rust frontend for a long time; the text was
+#      stale, and LANG-CAPABILITY-AUDIT.10.6 retired the Perl frontend outright.)
 #   2. Run the standard `regex_parser` target, which transitively pulls
 #      in everything else through the normal Make dependency graph.
 #

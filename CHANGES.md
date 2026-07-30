@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0020 — .10.6 part 1: the Perl EBNF frontend is RETIRED, and the guard that pinned it is INVERTED
+
+Ops/build-flow only (4 gate scripts + 2 workflows + Makefile) — no `grammars/*.ebnf`, no
+`rust/src/*`, no `generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- DIRECTOR ORDER: *"Do this first (1) .10.6 finish the de-Perl, then do (2) .10.2 option B"*.
+- THREE ROOT CAUSES, each located and each fixed:
+  1. `ebnf_stimuli_quality_gate.sh:593` was HARD-CODED to Perl and bypassed the
+     `run_frontend_to_json()` helper 10 lines above it — so it ran Perl regardless of
+     FRONTEND_IMPL (already defaulting to `rust`). ⭐ The REASON it needed a second frontend at
+     all: the script built `ast_pipeline` WITHOUT `ebnf_dual_run`, leaving the binary unable to
+     read `.ebnf`. Building with both features up front retires the Perl bootstrap outright —
+     and it works on a cold clone because the cross-check is cfg-gated on
+     `has_generated_ebnf_parser`, the same breaker `regex_parser_bootstrap` already relies on.
+  2. `ebnf_frontend_dual_run_diff_gate.sh` kept Perl as a migration oracle whose migration had
+     COMPLETED — and which was blind to 25 of regex.ebnf's 276 rules, passed as
+     `perl_under_reports`.
+  3. `ci_workflow_local_gate.sh:810-823` `assert_file_contains`'d the Perl invocations, so
+     REMOVING Perl failed that gate. Its carve-out cited a README.md line that README-POLICY.1
+     had already deleted.
+- MEASURED before -> after: uncommented `ebnf_to_json.pl`/`EBNF_TO_JSON` in the 3 gate scripts
+  6 sites -> **0**; `perl` steps in the two workflows 1 each -> **0**; `require_tool perl` and a
+  `perl -e` percentage one-liner -> removed (now `awk`); `make ebnf_stimuli_quality_gate` passes
+  with NO Perl (5/5 grammars); `make ebnf_frontend_readiness` passes with NO Perl (3/3); pins
+  inverted to `assert_file_not_contains_uncommented`; `PGEN_EBNF_FRONTEND_IMPL=perl` now REJECTS
+  loudly instead of silently defaulting.
+- ⭐ THE NAME IS NOW HONEST: with the Perl arm gone, "dual run" finally describes the duality
+  that matters — hand-written frontend vs the parser generated from ebnf.ebnf. Both still run.
+  The stage descriptions and Makefile help no longer say "Perl-vs-Rust".
+- ⚠️ `ebnf_frontend_dual_run_gate`'s `regex` row is RED (35.55% consumed). That is `.10.5`'s
+  already-recorded TRUE red — the multi-line annotation payload — not a regression from this
+  change, and `.10.2` option B (measured, exit 0) closes it. Next task, per the director's order.
+- NO REGRESSION: check_doctrines.sh ALL 15 PASS (incl. GATE-REACHABILITY + FLOW-INTEGRITY);
+  `bash -n` clean on all four edited scripts.
+- ⚠️ NOT DONE, raised not assumed: `tools/*.pl` (5) and `perl/` (34 tracked files) still EXIST.
+  All USAGE is gone; deleting 39 tracked files is a separate hard-to-reverse call.
+
 ## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0019 — .10.6: Perl is NOT ditched — it is a REQUIRED stage of the flagship aggregate, pinned in place by a parity gate
 
 Docs + KM only — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11 generated
