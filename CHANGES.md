@@ -1,5 +1,62 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0024 — leaf LANG-CAPABILITY-AUDIT.10.7 SLICE 1: the four referrers that EXECUTE the Perl tree, and a harness that reported success while its own output said every test failed
+
+Slice 1 of the de-Perl deletion: the leaf's own step 1, "re-point or retire the executing
+referrers (they are the only breakage)". No `rust/src/*`, no grammar, no `generated/*` in the
+diff => all 11 generated parsers byte-identical BY CONSTRUCTION. No tracker row moved. The
+`git rm` of the Perl tree itself is slice 2.
+
+- THE CHARTER NAMED THREE EXECUTING REFERRERS; THERE ARE FOUR. Measured, then adjudicated
+  one at a time:
+    tests/bootstrap_tests/run_bootstrap_tests.sh   RETIRED     (three convictions, below)
+    tests/bootstrap_tests/run_simple_tests.sh      RETIRED     (same family)
+    testing/automated_test_framework.py            RE-POINTED  (ebnf_to_json.pl was the
+                                                   shared EBNF->JSON step for ALL SIX
+                                                   language arms, not a Perl-only detail)
+    examples/workflow_examples.py                  Perl example removed, rest kept
+                                                   <- the one the charter missed
+  MEASURED before -> after: tracked files EXECUTING an in-scope Perl artifact 4 -> 0. Every
+  remaining non-doc mention is a comment.
+- ⭐⭐ WHY TWO WERE RETIRED RATHER THAN RE-POINTED — and this was a CHOICE, not a limitation:
+  the Rust frontend is a measured drop-in for the step that died (`ast_pipeline <fixture>.ebnf
+  --emit-raw-ast-json` rc=0, then `--generate-parser` rc=0, on the fixtures themselves).
+  Re-pointing was rejected because measurement convicted the harness three ways:
+    1. IT REPORTED SUCCESS WHILE ITS OWN OUTPUT SAID EVERY TEST FAILED. Verbatim:
+       `Total tests: 4`, `Passed: 0`, three ❌ lines, then `🎉 ALL TESTS BEHAVED AS EXPECTED!`
+       and exit 0. WHERE: `exit $UNEXPECTED_RESULTS` (:194) gated at :171 reads ONE of three
+       counters -- `❌ UNCLEAR` increments none, `❌ FAILED` increments a counter the verdict
+       never consults (:47/:55).
+    2. It only ever reached 4 of the 15 fixtures -- `set -e` (:6) meeting `run_test`'s
+       `return 1` aborts each category at its first failure (1 of 5, 1 of 4, 1 of 3, 1 of 3).
+    3. It wrote generated artifacts INTO the tracked fixture directories -- `bash -x` caught
+       `-o .../tests/bootstrap_tests/.../*.json`, and one run left 16 .json/_parser.rs/.log
+       files beside the .ebnf fixtures, against the artifact-locality policy. Its sibling had
+       been fixed to use rust/target/; this one never was.
+  => a repaired-but-still-lying instrument is worse than no instrument. Nothing tracked
+  invoked either script -- no gate, no make target, no workflow -- which is the ONLY reason a
+  harness in that state never misled anyone.
+- THE 15 FIXTURES WERE KEPT, with a new `tests/bootstrap_tests/README.md` recording why they
+  have no runner and what a correct one must fix (above all: its exit code must be a function
+  of EVERY failure path it prints). `tests/`(71) is explicitly a separate director call, so
+  deleting a corpus by side effect would exceed the approval on record.
+- ⚠️ A THIRD pre-existing defect, deliberately NOT fixed here: `examples/workflow_examples.py`
+  IS NOT VALID PYTHON and never was in this state -- from line 171 its body is one line of
+  literal \n-escaped text; `py_compile` on `git show HEAD:` fails identically. It bills itself
+  as "both documentation and integration testing" and is neither.
+- NEW LEAF `.10.8` routes both dead harnesses (the runner-less fixture corpus; the two
+  unparseable/unexercised Python harnesses) rather than settling them by side effect. ⭐ The
+  shape worth stating once: all three defects survived because NOTHING RAN THE THING -- an
+  instrument nobody invokes does not stay neutral, it rots, and it rots toward reporting
+  success.
+- ⛔ CORRECTED SCOPE NUMBER FOR SLICE 2: the deletion is 40 files, not the charter's "~35" --
+  tools/*.pl (5) + tools/generators/perl_parser_gen (1) + perl/ (34 tracked, of which 30 are
+  .pl/.pm). The charter counted only the Perl sources; the deletion is the whole directory.
+- VERIFIED: `py_compile` OK on the re-pointed framework; `git ls-files tests/bootstrap_tests`
+  17 -> 16 with all 15 .ebnf fixtures intact; the 16 stray artifacts my own diagnostic run
+  left behind removed and the tree clean; 15/15 doctrines against the real staged diff;
+  mdbook_docs_gate GREEN.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0023 — leaf LANG-CAPABILITY-AUDIT.10.3: the last non-primitive leaves the builtin allowlist, and `generated/ebnf.rs` does not move by a single byte
 
 `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` is **3 -> 2 members**. Every generated artifact is

@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0024 — an instrument nobody runs does not stay neutral
+
+`LANG-CAPABILITY-AUDIT.10.7` slice 1. Retiring the referrers that *execute* the Perl tree,
+before the tree is deleted. The interesting part is not the retirement; it is what running
+those files for the first time in a long while revealed.
+
+- ⭐⭐ **A test harness reported success while its own output said every test failed.**
+  `tests/bootstrap_tests/run_bootstrap_tests.sh` printed `Total tests: 4`, `Passed: 0` and
+  three `❌` lines, then `🎉 ALL TESTS BEHAVED AS EXPECTED!` and exited **0**. The mechanism
+  is worth remembering because it is cheap to reproduce anywhere: **the verdict reads one
+  counter out of three.** `exit $UNEXPECTED_RESULTS` (`:194`, banner gated at `:171`) — while
+  the `❌ UNCLEAR` path increments nothing at all and `❌ FAILED` increments `FAILED_TESTS`
+  (`:47`/`:55`), which the verdict never consults. ⇒ **a script's exit code must be a function
+  of every failure path it is capable of printing.** Anything less is a green that means "the
+  one counter I happened to check was zero".
+- **The same script only ever reached 4 of its 15 fixtures**, and said so nowhere. `set -e`
+  (`:6`) plus a `return 1` from the per-test function aborts each *category* at its first
+  failing case — measured 1 of 5, 1 of 4, 1 of 3, 1 of 3. A partial run that reports as a
+  full one is the silent-truncation shape the repo already fights in its gates; here it was in
+  a test harness, compounding the false green.
+- **And it wrote its generated artifacts into the tracked fixture directories.** `bash -x`
+  caught `-o …/tests/bootstrap_tests/return_annotation/success/….json`; a single run left 16
+  `.json`/`_parser.rs`/`.log` files sitting beside the `.ebnf` fixtures. Its sibling
+  `run_simple_tests.sh` had been fixed to use `$ARTIFACT_ROOT` under `rust/target/` — the fix
+  was made once and never propagated to the twin, which is the duplicated-body rot this repo
+  has hit before at shell-function scale.
+- ⭐ **The unifying cause: nothing invoked either script.** No gate, no `make` target, no
+  workflow — measured over every tracked file; the only referrers are prose. That is *why*
+  all three defects survived, and it is the argument for `GATE-REACHABILITY` stated from the
+  other side: an instrument nobody runs does not sit still and stay correct. It rots, and
+  because failure paths are the least-exercised paths, **it rots in the direction of reporting
+  success.**
+- **So retiring beat re-pointing, and that was a choice rather than a limitation.** The Rust
+  frontend is a measured drop-in for the step that died (`ast_pipeline <fixture>.ebnf
+  --emit-raw-ast-json` → `rc=0`, then `--generate-parser` → `rc=0`, on the very fixtures).
+  Re-pointing was *available* and was rejected: it would have shipped a repaired harness that
+  still lies, which is worse than no harness. The 15 fixtures are kept with a README that
+  records all three defects, so whoever writes the real runner starts from the failure list
+  rather than from the old script.
+- **The opposite call, for the opposite reason.** In `testing/automated_test_framework.py`
+  the Perl binary was *incidental*: `ebnf_to_json.pl` was the shared EBNF→JSON step for **all
+  six** language arms, so deleting it would have broken Python, Rust, Julia, Go and Zig too.
+  That one was re-pointed. ⇒ *the same dependency justifies opposite verdicts depending on
+  whether it is the file's reason to exist or one step inside it.*
+- ⚠️ **A tracked file that bills itself as "documentation and integration testing" does not
+  parse.** `examples/workflow_examples.py` has, from line 171, a body that is one line of
+  literal `\n`-escaped text; `python3 -m py_compile` fails on `git show HEAD:` identically, so
+  this predates the leaf. Recorded and routed (`.10.8`) rather than quietly repaired inside a
+  de-Perl slice.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0023 — one output path, two feature sets, and a proof that had to be earned twice
 
 `LANG-CAPABILITY-AUDIT.10.3`. The code change was a deletion of 30 lines. Everything below is

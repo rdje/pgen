@@ -2668,12 +2668,126 @@ a component the project's own docs describe as gone. All three were believed —
 record, by the director, and by me — until measured.
 
 
-### `.10.7` — delete the retired Perl tree (`todo` — ✅ DIRECTOR-APPROVED, but my scope number was WRONG)
+### `.10.7` — delete the retired Perl tree (`in-progress` — ✅ SLICE 1 DONE; the deletion is slice 2)
 
-- **Status: `todo`, carrying explicit director approval (2026-07-31): *"you have my
+- **Status: `in-progress`, carrying explicit director approval (2026-07-31): *"you have my
   approval, go, go, go"*.** ⛔ **That approval was given on a number I got wrong, so the
   scope is restated here before anyone acts on it.** `.10.6` removed all Perl *usage*; this
   leaf removes the *files*.
+- ✅ **SLICE 1 DONE** (`PGEN-LANG-CAPABILITY-AUDIT-0024`, session #229) — the leaf's own
+  step 1, *"re-point or retire the executing referrers (they are the only breakage)"*.
+  **Measured after: zero tracked files execute an in-scope Perl artifact**; every remaining
+  non-doc mention is a comment. Slice 2 is the `git rm` + the published-doc sweep.
+
+#### ✅ Slice 1 — the four executing referrers, each adjudicated on measurement
+
+The charter named three; there are **four**. Each was measured before deciding, and the two
+verdicts differ for a stated reason.
+
+| referrer | what it ran | verdict |
+|---|---|---|
+| `tests/bootstrap_tests/run_bootstrap_tests.sh` | `tools/ebnf_to_json.pl` | ⛔ **RETIRED** — see the three convictions below |
+| `tests/bootstrap_tests/run_simple_tests.sh` | `tools/ebnf_to_json.pl` | ⛔ **RETIRED** — same family |
+| `testing/automated_test_framework.py` | `transform_ast.pl` + `ebnf_to_json.pl` (the latter shared by **all six** language arms) | ✅ **RE-POINTED** to the Rust frontend |
+| `examples/workflow_examples.py` | `perl tools/transform_ast.pl` | ✅ **Perl example removed**, rest kept |
+
+⭐ **Why two of them were retired rather than re-pointed — the Rust frontend IS a drop-in
+replacement, so this was a choice, not a limitation.** Measured on the fixtures themselves:
+`ast_pipeline <fixture>.ebnf --emit-raw-ast-json out.json` then `--generate-parser` both
+return `rc=0`. Re-pointing was rejected because measurement convicted the harness three ways
+— it would have preserved an instrument that lies:
+
+1. ⛔⛔ **IT REPORTED SUCCESS WHILE ITS OWN OUTPUT SAID EVERY TEST FAILED.** Verbatim from
+   the run: `Total tests: 4`, `Passed: 0`, three `❌` lines — then
+   `🎉 ALL TESTS BEHAVED AS EXPECTED!` and **exit 0**. WHERE: the verdict is
+   `exit $UNEXPECTED_RESULTS` (`run_bootstrap_tests.sh:194`), gated on that one counter
+   (`:171`), while the `❌ UNCLEAR` path increments **nothing** and `❌ FAILED` increments
+   `FAILED_TESTS` (`:47`/`:55`) — a counter the verdict never reads.
+2. ⛔ **It only ever reached 4 of the 15 fixtures.** `set -e` (`:6`) plus `run_test`'s
+   `return 1` aborts each category at its first failing case — measured per category:
+   1 of 5, 1 of 4, 1 of 3, 1 of 3.
+3. ⛔ **It wrote generated artifacts INTO the tracked fixture directories** — `bash -x`
+   caught `-o …/tests/bootstrap_tests/return_annotation/success/….json`, and a single run
+   left **16** `.json`/`_parser.rs`/`.log` files next to the `.ebnf` fixtures, against the
+   repository's artifact-locality policy. Its sibling `run_simple_tests.sh` had been fixed to
+   use `$ARTIFACT_ROOT` under `rust/target/`; this one never was.
+
+⇒ a repaired-but-still-lying instrument is worse than no instrument
+([[feedback_instrument_needs_ground_truth]]). Nothing tracked invoked either script — no
+gate, no `make` target, no workflow (measured: the only referrers are prose) — which is the
+only reason a harness in that state never misled anyone.
+
+**The 15 `.ebnf` fixtures were KEPT.** They are grammar files, unaffected by any of the
+above, and the behaviour they describe is still worth gating; `tests/`(71) is explicitly a
+separate director call, so deleting a corpus by side effect would exceed this approval. They
+carry a new `tests/bootstrap_tests/README.md` recording exactly why they have no runner and
+what a correct one must fix, and the decision is routed to **`.10.8`** rather than settled
+here.
+
+⚠️ **A THIRD pre-existing defect found while working slice 1, and deliberately not fixed
+here**: `examples/workflow_examples.py` **is not valid Python and never was in this state** —
+from line 171 its whole body is one line of literal `\n`-escaped text
+(`python3 -m py_compile` on `git show HEAD:` fails identically, so this is not my edit). The
+Perl-ectomy landed cleanly on it (0 Perl mentions, 18,166 → 14,796 bytes) and the file is
+exactly as broken as it was. Routed to `.10.8`.
+
+#### Acceptance Checklist (enforced) — SLICE 1, the executing referrers
+
+- [x] **REPRODUCE / ISSUE** — four tracked files execute a Perl artifact this leaf deletes.
+  `git grep -nE "tools/(ebnf_to_json|transform_ast|…)\.pl"` over the non-doc surface named
+  exactly four call sites: `tests/bootstrap_tests/run_bootstrap_tests.sh:44`,
+  `run_simple_tests.sh:45`, `testing/automated_test_framework.py:105/431/440/504`,
+  `examples/workflow_examples.py`. Deleting the tree without them leaves four files calling a
+  file that is not there.
+- [x] **ROOT CAUSE (WHY + WHERE)** — two separable causes, both located. **(i)** The two
+  bootstrap harnesses are built entirely around the retired frontend AND are broken
+  independently of it: `bash -x tests/bootstrap_tests/run_bootstrap_tests.sh` traces
+  `+ tools/ebnf_to_json.pl … -o …/tests/bootstrap_tests/return_annotation/success/….json`
+  (artifacts into the tracked fixture tree), the run prints `Total tests: 4 / Passed: 0` with
+  three `❌` lines and still `exit 0`, and WHERE is `:194 exit $UNEXPECTED_RESULTS` gated at
+  `:171` — a verdict that reads one of three counters, with `❌ UNCLEAR` incrementing none and
+  `❌ FAILED` incrementing `FAILED_TESTS` (`:47`/`:55`) which the verdict never consults; the
+  4-of-15 truncation is `set -e` at `:6` meeting `run_test`'s `return 1`. **(ii)** For the two
+  Python harnesses the Perl step is *incidental* — in
+  `testing/automated_test_framework.py` `ebnf_to_json.pl` is the shared EBNF→JSON step for
+  **all six** language arms, so it had to be re-pointed, not removed. `git ls-files` +
+  `git grep -l` over every tracked file proves **no gate, `make` target or workflow invokes
+  any of the four** — the only referrers are prose.
+- [x] **FIX** — declarative/ops tier. Retire the two harnesses (`git rm`); re-point the shared
+  frontend step to `ast_pipeline --emit-raw-ast-json` (an explicit output path, where Perl
+  wrote the envelope to stdout); delete `_execute_perl` and the `'perl'` entries from the
+  executor map, the `--language` choices and both default language lists; remove
+  `example_3_perl_integration` and its summary bullet. Keep the 15 fixtures + a `README.md`
+  that records why they have no runner.
+- [x] **ADDRESSED (verified)** — measured before → after on the census itself: tracked files
+  executing an in-scope Perl artifact **4 → 0**; every remaining non-doc mention is a comment
+  (`git grep` over the whole tree returns 7 hits, all comment lines, two of which slice 2
+  owes). `python3 -m py_compile testing/automated_test_framework.py` **OK**. The replacement
+  frontend step is proven on the real fixtures — `ast_pipeline
+  tests/bootstrap_tests/return_annotation/success/single_scalar.ebnf --emit-raw-ast-json`
+  `rc=0`, then `--generate-parser` `rc=0`. `git ls-files tests/bootstrap_tests` **17 → 16**
+  (2 runners out, 1 README in), all **15** `.ebnf` fixtures intact.
+- [x] **NO REGRESSION** — nothing in `rust/src/*`, no grammar, no `generated/*` in the diff ⇒
+  **all 11 generated parsers byte-identical by construction**; confirmed by
+  `git diff --cached --name-only` showing zero paths under `rust/src/`, `grammars/` or
+  `generated/`. `scripts/check_doctrines.sh` **ALL 15 PASS** against the real staged diff.
+  `make -C rust mdbook_docs_gate` GREEN. The 16 stray artifacts my own diagnostic run left in
+  the fixture tree were removed and `git status` is clean — verified with `git ls-files` plus a
+  `find` sweep for `*.json`/`*.log`/`*_parser.rs` under `tests/bootstrap_tests`.
+- [x] **LOCKSTEP** — new `tests/bootstrap_tests/README.md` (the corpus's own record), new leaf
+  `.10.8` (routing both dead harnesses), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
+  `docs/TASK_TREE.md`. No book/contract movement — none of the four files is a published
+  surface, and `PGEN_USER_GUIDE.md`'s Perl command is slice 2's.
+
+#### What slice 2 still owes
+
+`git rm` the tree, then the doc sweep. Two remaining comments become instructions to run a
+deleted file and must move with it: `rust/scripts/ast_dump_contract_gate.sh:127` (a usage
+example that literally says `perl tools/ebnf_to_json.pl mini.ebnf`) and
+`rust/src/ebnf_frontend.rs:273` (cites `perl/AST/Transform.pm:3234` as the reference
+implementation — after deletion that citation resolves only in git history and must say so).
+`rust/Makefile:787` and `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh:20` are already
+past-tense narrative and are fine.
 
 #### ⛔ CORRECTION — I said "39 files". It is 142, and most of them are not what "go" meant
 
@@ -2725,15 +2839,52 @@ re-pointed in the same wave rather than left calling a deleted file.
 
 #### Order of work
 
-1. Re-point or retire the three executing referrers (they are the only breakage).
-2. `git rm` `tools/*.pl`, `tools/generators/perl_parser_gen`, and `perl/`.
+1. ✅ **DONE (slice 1)** — re-point or retire the executing referrers (they are the only
+   breakage). ⛔ **There were FOUR, not three**: the charter missed
+   `examples/workflow_examples.py`.
+2. `git rm` `tools/*.pl`, `tools/generators/perl_parser_gen`, and `perl/`. ⛔ **Measured
+   count: 40 files, not the charter's "≈35"** — `tools/*.pl` (5) +
+   `tools/generators/perl_parser_gen` (1) + `perl/` (**34** tracked files, of which 30 are
+   `.pl`/`.pm`; the rest are `test.ebnf`, `test_input.txt`,
+   `test_grouped_quantifiers.ebnf`, `json_parser_clean.rs`). The charter's 30 counted only
+   the Perl sources; the deletion is the whole directory.
 3. Sweep the doc/comment referrers (`PGEN_USER_GUIDE.md` still documents
    `tools/ebnf_to_json.pl --verbosity debug …` as a user-facing command — that one is a
-   published surface and must be corrected, not just deleted around).
+   published surface and must be corrected, not just deleted around), plus the two comments
+   named under *"What slice 2 still owes"*.
 4. Re-run `check_doctrines.sh`, `ebnf_frontend_dual_run_gate`, `ebnf_stimuli_quality_gate`,
    `mdbook_docs_gate`.
 5. ⭐ Nothing is lost: git history retains every deleted file.
 
+---
+
+### `.10.8` — two dead harnesses left behind by `.10.7`: decide, don't leave them dangling (`todo`)
+
+- **Status: `todo`** — opened 2026-07-31 session #229 by `.10.7` slice 1, which measured both
+  while retiring the Perl referrers and deliberately did not widen its slice to them.
+- **(a) 15 bootstrap fixtures with no runner.** `tests/bootstrap_tests/` keeps 15 `.ebnf`
+  fixtures encoding accept/reject behaviour for the two annotation surfaces; their two runner
+  scripts were retired (three convictions, recorded in `.10.7`). ⭐ **The Rust frontend is a
+  measured drop-in replacement for the step that died**, so writing a correct runner is cheap
+  — but a correct one must fix all three defects, above all that **its exit code be a function
+  of every failure path it prints**, not of one counter out of three. Decide: gate them, or
+  delete the corpus. ⚠️ Whichever way, `GATE-REACHABILITY` applies — a runner nothing invokes
+  is the same as no runner.
+- **(b) `examples/workflow_examples.py` does not parse.** From line 171 its body is one line
+  of literal `\n`-escaped text; `python3 -m py_compile` fails on it at `HEAD` and has for as
+  long as it has been in this state. It bills itself as *"both documentation and integration
+  testing"* and is neither. Decide: repair the escaping, or delete it. Same question for
+  `testing/automated_test_framework.py` (807 lines, re-pointed by `.10.7` slice 1, invoked by
+  nothing tracked, and needing go/julia/zig toolchains to exercise).
+- ⚠️ **ROUTED, not worked** ([[feedback_flow_findings_are_routed_not_worked]]): neither makes
+  any verdict untrustworthy — nothing tracked invokes either, which is exactly why they rotted
+  unnoticed. They cost credibility, not correctness. Measured to **not** reproduce outside
+  these two files: the census over every tracked non-doc referrer of the Perl tree found no
+  third harness in this state.
+- ⭐ **The general shape, worth stating once**: all three defects — a false green, a 4-of-15
+  sample, and artifacts written into a tracked fixture tree — survived because **nothing ran
+  the thing**. An instrument nobody invokes does not stay neutral; it rots, and it rots in the
+  direction of reporting success.
 
 ---
 

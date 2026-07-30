@@ -78,7 +78,6 @@ class LanguageExecutor:
     def __init__(self, base_dir: Path):
         self.base_dir = base_dir
         self.executors = {
-            'perl': self._execute_perl,
             'python': self._execute_python,
             'rust': self._execute_rust,
             'julia': self._execute_julia,
@@ -92,51 +91,6 @@ class LanguageExecutor:
             raise ValueError(f"Unsupported language: {language}")
         
         return self.executors[language](raw_ast_file, output_dir)
-    
-    def _execute_perl(self, raw_ast_file: str, output_dir: Path) -> Dict:
-        """Execute Perl pipeline"""
-        transformed_file = output_dir / "perl_transformed.json"
-        
-        start_time = time.time()
-        
-        # Run Perl transformation
-        result = subprocess.run([
-            'perl', 
-            str(self.base_dir / 'tools' / 'transform_ast.pl'),
-            raw_ast_file,
-            str(transformed_file)
-        ], capture_output=True, text=True)
-        
-        pipeline_time = time.time() - start_time
-        
-        if result.returncode != 0:
-            return {
-                'pipeline_success': False,
-                'pipeline_time': pipeline_time,
-                'error_message': result.stderr,
-                'generation_success': False,
-                'generation_time': 0.0
-            }
-        
-        # Run data generation
-        gen_start_time = time.time()
-        gen_result = subprocess.run([
-            sys.executable,
-            str(self.base_dir / 'tools' / 'syntactic_data_generator.py'),
-            str(transformed_file),
-            '--count', '5'
-        ], capture_output=True, text=True)
-        
-        generation_time = time.time() - gen_start_time
-        
-        return {
-            'pipeline_success': True,
-            'pipeline_time': pipeline_time,
-            'generation_success': gen_result.returncode == 0,
-            'generation_time': generation_time,
-            'error_message': gen_result.stderr if gen_result.returncode != 0 else None,
-            'output_data': gen_result.stdout
-        }
     
     def _execute_python(self, raw_ast_file: str, output_dir: Path) -> Dict:
         """Execute Python pipeline"""
@@ -426,40 +380,35 @@ class TestFramework:
         try:
             # Generate raw AST for ebnf.ebnf
             raw_ebnf_file = self.temp_dir / "ebnf_raw.json"
+            # LANG-CAPABILITY-AUDIT.10.7: the Rust frontend replaces `perl tools/ebnf_to_json.pl`.
+            # It takes an explicit output path instead of writing the envelope to stdout.
             result = subprocess.run([
-                'perl',
-                str(self.base_dir / 'tools' / 'ebnf_to_json.pl'),
-                str(ebnf_grammar_file)
-            ], stdout=open(raw_ebnf_file, 'w'), stderr=subprocess.PIPE, text=True)
+                str(self.base_dir / 'rust' / 'target' / 'debug' / 'ast_pipeline'),
+                str(ebnf_grammar_file),
+                '--emit-raw-ast-json', str(raw_ebnf_file)
+            ], capture_output=True, text=True)
             
             if result.returncode == 0:
-                # Transform ebnf AST
-                ebnf_transformed_file = self.temp_dir / "ebnf_transformed.json"
-                transform_result = subprocess.run([
-                    'perl',
-                    str(self.base_dir / 'tools' / 'transform_ast.pl'),
-                    str(raw_ebnf_file),
-                    str(ebnf_transformed_file)
-                ], capture_output=True, text=True)
-                
-                if transform_result.returncode == 0:
-                    # Generate synthetic EBNF grammars
-                    for i in range(5):  # Generate 5 synthetic cases
-                        synthetic_ebnf = self.temp_dir / f"synthetic_{i}.ebnf"
-                        gen_result = subprocess.run([
-                            sys.executable,
-                            str(self.base_dir / 'tools' / 'syntactic_data_generator.py'),
-                            str(ebnf_transformed_file),
-                            '--rule', 'grammar',
-                            '--count', '1'
-                        ], stdout=open(synthetic_ebnf, 'w'), stderr=subprocess.PIPE, text=True)
-                        
-                        if gen_result.returncode == 0:
-                            synthetic_cases.append(TestCase(
-                                name=f"synthetic_{i}",
-                                ebnf_file=str(synthetic_ebnf),
-                                expected_rules=5  # Estimate
-                            ))
+                # The Rust frontend already emits the transformed envelope, so the separate
+                # `perl tools/transform_ast.pl` step this flow used to run is gone.
+                ebnf_transformed_file = raw_ebnf_file
+                # Generate synthetic EBNF grammars
+                for i in range(5):  # Generate 5 synthetic cases
+                    synthetic_ebnf = self.temp_dir / f"synthetic_{i}.ebnf"
+                    gen_result = subprocess.run([
+                        sys.executable,
+                        str(self.base_dir / 'tools' / 'syntactic_data_generator.py'),
+                        str(ebnf_transformed_file),
+                        '--rule', 'grammar',
+                        '--count', '1'
+                    ], stdout=open(synthetic_ebnf, 'w'), stderr=subprocess.PIPE, text=True)
+                    
+                    if gen_result.returncode == 0:
+                        synthetic_cases.append(TestCase(
+                            name=f"synthetic_{i}",
+                            ebnf_file=str(synthetic_ebnf),
+                            expected_rules=5  # Estimate
+                        ))
         except Exception as e:
             print(f"Warning: Could not generate synthetic test cases: {e}")
         
@@ -499,11 +448,12 @@ class TestFramework:
         raw_ast_file = self.temp_dir / f"{test_case.test_id}_raw.json"
         
         try:
+            # LANG-CAPABILITY-AUDIT.10.7: Rust frontend, explicit output path (see above).
             result = subprocess.run([
-                'perl',
-                str(self.base_dir / 'tools' / 'ebnf_to_json.pl'),
-                test_case.ebnf_file
-            ], stdout=open(raw_ast_file, 'w'), stderr=subprocess.PIPE, text=True)
+                str(self.base_dir / 'rust' / 'target' / 'debug' / 'ast_pipeline'),
+                test_case.ebnf_file,
+                '--emit-raw-ast-json', str(raw_ast_file)
+            ], capture_output=True, text=True)
             
             if result.returncode == 0:
                 return str(raw_ast_file)
@@ -731,7 +681,7 @@ class TestFramework:
 def main():
     parser = argparse.ArgumentParser(description="Automated Testing Framework for Multi-Language EBNF Parser Generator")
     parser.add_argument('--full-test', action='store_true', help='Run full test suite across all languages')
-    parser.add_argument('--language', choices=['perl', 'python', 'rust', 'julia', 'go', 'zig'], 
+    parser.add_argument('--language', choices=['python', 'rust', 'julia', 'go', 'zig'], 
                        help='Test specific language only')
     parser.add_argument('--grammar', help='Test specific grammar file')
     parser.add_argument('--benchmark', action='store_true', help='Run performance benchmarks')
@@ -762,9 +712,9 @@ def main():
         if args.language:
             languages = [args.language]
         elif args.full_test:
-            languages = ['perl', 'python', 'rust', 'julia', 'go']
+            languages = ['python', 'rust', 'julia', 'go']
         else:
-            languages = ['perl', 'python']  # Default minimal test
+            languages = ['python', 'rust']  # Default minimal test
         
         test_suite = TestSuite(
             languages=languages,
