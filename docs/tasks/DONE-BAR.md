@@ -834,8 +834,15 @@ told apart from invalid input**, and all three would have shipped as defects.
      consumer-visible corruption history;
   2. `.5a` — **published version currency** — ✅ **DONE** (see below);
   3. `.5b` — **zero open ledger entries** naming the family — ✅ **DONE** (see below);
-  4. `.5d` — **documented acceptance boundary** where a consumer looks (`todo`; overlaps `.6`'s
-     per-contract bar-state disclosure — adjudicate the split when `.5d` opens).
+  4. `.5d` — **documented acceptance boundary** where a consumer looks (`in-progress`; ⭐ the
+     `.5d`-vs-`.6` overlap is **ADJUDICATED — the split STANDS**: `.5d` is *"what will it parse and
+     where does it get that wrong?"* (a leg-2 gate criterion, moves with the GRAMMAR) while `.6` is
+     *"how well is that proven?"* (a disclosure task, moves with the EVIDENCE), and they are
+     empirically independent — the census finds the boundary documented by **1 of 9** contracts and
+     that one documents no bar state. MEASURED: 8 of 9 carry `## Scope / Non-Goals`, **1 of 9**
+     documents an acceptance boundary, **0 of 9** have it read by any gate. ⛔ `regex` — the most
+     mature family — is the ONE with no scope section at all. The gate is deliberately deferred
+     behind the in-flight `sota_exit_gate` run — see below).
   6. `.5f` — **158 GB of unread backtrack-trace logs, plus a 1.4 MB evidence-custody gap**: the
      aggregate's scratch tree is 198 GB, ~158 GB of it trace logs nothing reads, written because a
      promotion gate leaves tracing ON by default (`in-progress`; scope items 1+2 ✅ **DONE** —
@@ -1206,6 +1213,108 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
   (their surviving shadow logs are ~1.1 kB), they simply never turned the firehose on to compensate.
   Whatever lands here should serve any long gate stage, not just `sv_stimuli_quality_gate`.
 
+#### `.5d` — the documented acceptance boundary where a consumer looks (`in-progress`)
+
+- **Status: `in-progress`** — opened 2026-07-30 session #227 (`PGEN-DONE-BAR-0021`). **The
+  adjudication `.5` asked for is DONE and the surface is MEASURED**; the gate itself is scoped below
+  and deliberately not built in this slice (reason stated).
+- **Charter, verbatim from this tree's own leg-4 resolution:** *"the family's acceptance boundary is
+  documented where a consumer looks."*
+
+##### ⭐⭐ THE `.5d` vs `.6` ADJUDICATION — they are two DIFFERENT facts that happen to live in one document
+
+`.5` recorded the two leaves as overlapping and told whoever opened `.5d` to settle the split. They do
+not overlap; they answer different consumer questions, and only one of them is a *gate*:
+
+| | `.5d` — acceptance boundary | `.6` — bar state |
+|---|---|---|
+| the consumer's question | **"what will it parse, and where does it get that wrong?"** | **"how well is that proven?"** |
+| the fact | the language surface: supported constructs, over-acceptance, over-rejection | the tier + which of the three legs are met + what is therefore unproven + the `Provisional` qualifier |
+| changes when | the **grammar** changes | the **evidence** changes |
+| kind of work | a **leg-2 GATE criterion** (mechanically checkable per family) | a **disclosure/publishing** task, gated by `.5` |
+
+⭐ They are also **empirically independent, not two names for one thing**: the census below finds the
+boundary documented by **1 of 9** contracts, and that one (`systemverilog`) documents **no** bar state
+— so shipping either leaf would leave the other's fact missing. ⇒ **the split STANDS; `.5d` is not
+absorbed into `.6`, and `.6` is not a superset of `.5d`.**
+
+##### ⭐ THE MEASURED STARTING POINT (2026-07-30) — census `docs/tasks/artifacts/done_bar/run_acceptance_boundary_census.sh`
+
+| family contract | `## Scope / Non-Goals` | boundary disclosure |
+|---|---|---|
+| PNR | 1 | 0 |
+| **REGEX** | **0** | 0 |
+| RETURN_ANNOTATION | 1 | 0 |
+| RTL_CONST_EXPR | 1 | 0 |
+| RTL_FRONTEND | 1 | 0 |
+| SEMANTIC_ANNOTATION | 1 | 0 |
+| **SYSTEMVERILOG** | 1 | **1** |
+| SYSTEMVERILOG_PREPROCESSOR | 1 | 0 |
+| VHDL | 1 | 0 |
+
+- **8 of 9** carry the repo's standard `## Scope / Non-Goals` section; **1 of 9** documents an
+  acceptance boundary (SV's `### Honest boundary (ledgered, each with its own fix leaf)`); **0 of 9**
+  have any of it read by a gate — measured soundly as *zero scripts repo-wide name any
+  boundary/scope heading*. The only contract CONTENT any gate reads is the regex Contract Identity
+  pair (`PUBLISHED-VERSION-CURRENCY`) and the regex oracle-tuple anchors
+  (`REGEX-ORACLE-ANCHOR-SYNC`) — neither is a boundary. ⇒ **`.5d`'s gap is real.**
+- ⛔⛔ **THE FINDING THAT WAS NOT IN THE CHARTER: `regex` — the most mature family in the repo, ~100
+  releases and a 2,189-case corpus — is the ONE contract with NO scope section at all.** Its headings
+  are Purpose / Contract Identity / Current Trust Statement / Companion Documentation / a long
+  chronology of Maintenance Updates and Release Highlights / Supporting Documents / Stable Integration
+  Surface / Build requirements. ⚠️ Its `## Current Trust Statement` is the closest thing and is
+  **deliberately NOT counted as a boundary**: it says the flavor is *"closure-grade and fit for
+  downstream parser consumption"* and that this *"does not automatically cover every regex dialect or
+  every future contract widening"* — that is a **disclaimer about extent**, not a statement of what is
+  accepted or of where acceptance is wrong. ⭐ Note the direction: **the family with the most evidence
+  discloses the least boundary**, which is the opposite of what a reader would assume.
+- ⚠️ **AND SV's ONE DISCLOSURE IS MOSTLY HISTORY, NOT CURRENT STATE:** its `### Honest boundary` list
+  is per-ledger-entry and nearly every entry reads **FIXED** (`SV-0021`..`SV-0034` …). It is an
+  excellent audit trail and it is *not* a current answer to *"what does this parser get wrong today?"*.
+  Its sibling `### Support boundary` is about the **bug-reporting protocol**, not acceptance.
+  ⇒ whoever builds the gate must not treat "SV already has one" as a template without deciding whether
+  the template should be current-state or historical.
+
+##### ⛔⛔ THE TRAP THIS GATE MUST NOT FALL INTO — it is `.5c`'s vacuity trap, one document over
+
+The naive gate is *"assert every family contract has a section named `Scope / Non-Goals`"*. That gate
+would **pass today for 8 of 9 families** and could only ever fail on regex ⇒ it measures **heading
+presence, not disclosure**. A section can exist and say nothing, exactly as `.5c`'s chartered
+literals existed 0 times and would have made its gate vacuously green. ⭐ **A heading is not a
+boundary**, and this census already demonstrated the failure mode twice in one sitting:
+
+1. the first cut counted `^#+ .*(support|boundary|scope|…)` headings and reported **regex 12 /
+   systemverilog 68** — almost all of them `## Release … Highlights` rows;
+2. the second cut split gate references into "existence-only vs content-reading" per line and reported
+   **16/32** — wrong, because `check_published_version_currency.sh` reads the contract through a
+   VARIABLE on a later line, so a per-line "is there an extractor here" test is structurally blind.
+   The split was **dropped, not re-baselined**, and CAL-6 replaced it with a claim that can be
+   defended directly.
+
+⇒ **both crude instruments were caught by cross-checking against a fact already known**, and the
+census now pins **6 calibration facts** and REFUSES (exit 2) rather than reporting numbers if any
+fails to reproduce.
+
+##### Scope when the gate is built (NOT in this slice — reason stated, not implied)
+
+- ⛔ **Why not now:** `sota_exit_gate` acceptance run 4 (`CI-PARITY-GATE-ROT.7`) is IN FLIGHT and reads
+  `rust/scripts/*` and `rust/Makefile` continuously across its ~5 h. A new gate needs a script **and**
+  Makefile wiring (`GATE-REACHABILITY` refuses an unwired target), and editing the Makefile mid-run is
+  the **mixed-vintage hazard** this repo has already paid for — it makes every number the run produces
+  unattributable. The measurement and adjudication are therefore landed now; the gate lands after the
+  run reaches its verdict.
+- The gate must assert something **substantive**, not a heading. Candidate shape, to be adjudicated:
+  the boundary section must NAME the family's open ledger entries (a set the repo already derives, per
+  `.5b`'s `family_open_ledger_entries`) and must not name a **closed** one as open ⇒ the disclosure is
+  then joined to a machine-derived fact and cannot be satisfied by prose alone.
+- ⭐ That candidate has a property worth keeping: today every family has **0 open ledger entries**
+  (`.1`'s census, 168 rows), so a naive "names its open entries" assertion is **vacuously satisfiable**
+  — which is precisely the trap above. The gate must therefore also make the **empty case explicit**
+  (an affirmative *"no open defects known"* disclosure), so a consumer can tell *"nothing is wrong"*
+  from *"nobody wrote anything down"*.
+- The regex scope gap is a **content** fix owed by the regex family, and is routed as such rather than
+  fixed here: adding a section to satisfy a gate that does not exist yet is backwards.
+
 #### `.5c` — the silent-success sentinel gate (`done`, 2026-07-29 session #225, `PGEN-DONE-BAR-0014`)
 
 - ⛔⛔ **THE CHARTER'S OWN INVENTORY WOULD HAVE SHIPPED A VACUOUSLY GREEN GATE — MEASURED FIRST,
@@ -1431,8 +1540,15 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
 
 ## Current Frontier
 
-**`.5d`** — the documented acceptance boundary where a consumer looks (adjudicate its overlap with
-`.6` when opened). ⭐ **`.5f` scope items 1+2 DONE** (`PGEN-DONE-BAR-0020`, session #227): the SV
+**`.5d`'s GATE** — the adjudication and the census are DONE (`PGEN-DONE-BAR-0021`, session #227): the
+`.5d`-vs-`.6` split **STANDS** (boundary = *what will it parse*, moves with the grammar; bar state =
+*how well is that proven*, moves with the evidence), and the surface is measured — **8 of 9** contracts
+carry `## Scope / Non-Goals`, **1 of 9** documents an acceptance boundary, **0 of 9** have it read by
+any gate, and ⛔ **`regex`, the most mature family, is the one with no scope section at all**. The gate
+itself is deliberately deferred behind the in-flight `sota_exit_gate` run (it needs `rust/Makefile`
+wiring, and editing that mid-run is the mixed-vintage hazard), and its central design constraint is
+already named: **a heading is not a boundary** — the naive "assert the section exists" form would pass
+8 of 9 today and is `.5c`'s vacuity trap one document over. ⭐ **`.5f` scope items 1+2 DONE** (`PGEN-DONE-BAR-0020`, session #227): the SV
 replay trace now defaults to **`none`**, and the cost it was paying is MEASURED rather than suspected
 — **84–86% of the stage's wall time and 1.8–1.9 GB of log per invocation, 99.97% of it one repeated
 backtrack line, for a log nothing reads**, with byte-identical stimuli and an identical parseability
@@ -1484,6 +1600,26 @@ escalated director call about resuming hosted auto-triggers.**
 `Mostly Done` with the qualifier withheld, per the no-defaulting rule).
 
 ## Verification Log
+
+### `.5d` — the adjudication + the acceptance-boundary census (2026-07-30, session #227, `PGEN-DONE-BAR-0021`)
+
+| instrument | command | result |
+|---|---|---|
+| the census | `bash docs/tasks/artifacts/done_bar/run_acceptance_boundary_census.sh` | exit **0** — 9 contracts DERIVED from a glob; **8** carry `## Scope / Non-Goals`, **1** documents an acceptance boundary, **0** scripts name any boundary/scope heading; **calibration 6/6** |
+| the missing-scope family | same run, `NO scope section:` line | **REGEX** — asserted as calibration fact CAL-3, so it cannot silently become a different family |
+| the boundary-owning family | same run, CAL-4 + CAL-5 | **SYSTEMVERILOG** only (`### Honest boundary (ledgered, …)`) |
+| gate readers of a boundary | `grep -rlE 'Honest boundary\|Scope / Non-Goals\|Unsupported\|Known limitation' rust/scripts/ scripts/` | **0** — the sound form of the claim, after a per-line "existence vs content" split was measured WRONG and dropped |
+| doctrines | `bash scripts/check_doctrines.sh` | **ALL 14 PASS** |
+| byte-identity | *(by construction)* | docs + one `docs/tasks/artifacts/*.sh` census driver only — no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no `generated/*` ⇒ all 11 generated parsers unchanged |
+
+⚠️ **TWO OF THIS LEAF'S OWN INSTRUMENTS WERE WRONG BEFORE THEY WERE RIGHT, and both are recorded in
+the leaf rather than quietly fixed** — a heading-regex census that counted `## Release … Highlights`
+rows (regex 12 / sv 68) and a per-line reference-mode split (16/32) that could not see an extraction
+performed through a variable. Each was caught by cross-checking against a fact already measured, which
+is why the census now pins 6 calibration facts and REFUSES rather than reporting numbers.
+
+⚠️ **What this leaf does NOT claim:** the gate. Nothing is enforced yet — this is a measured
+adjudication, and `.5d` stays `in-progress` until the gate lands.
 
 ### `.5f` items 1+2 — the replay-trace default (2026-07-30, session #227, `PGEN-DONE-BAR-0020`)
 
@@ -1541,6 +1677,25 @@ closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
 
 ## Commit Log
 
+- `PGEN-DONE-BAR-0021` (2026-07-30, session #227, leaf `.5d` opened + adjudicated; docs + 1 census
+  driver only) — the `.5d`-vs-`.6` overlap `.5` left open is **SETTLED: the split STANDS.** `.5d` is
+  *"what will it parse, and where does it get that wrong?"* — a leg-2 gate criterion that moves with the
+  GRAMMAR; `.6` is *"how well is that proven?"* — a disclosure task that moves with the EVIDENCE. They
+  are empirically independent: the boundary is documented by **1 of 9** contracts and that one documents
+  no bar state, so shipping either would leave the other's fact missing. MEASURED (calibrated census,
+  6/6): **8 of 9** contracts carry `## Scope / Non-Goals`, **1 of 9** (systemverilog) documents an
+  acceptance boundary, **0 of 9** have it read by any gate. ⛔⛔ **NOT IN THE CHARTER: `regex` — the most
+  mature family, ~100 releases and a 2,189-case corpus — is the ONE contract with no scope section at
+  all**, and its `## Current Trust Statement` is a disclaimer about extent, not a boundary ⇒ the family
+  with the most evidence discloses the least boundary. ⚠️ SV's one disclosure is also **mostly history**
+  (nearly every `### Honest boundary` entry reads FIXED), so it is an audit trail rather than a current
+  answer. ⛔ **The gate is deliberately NOT built here**: `sota_exit_gate` run 4 is in flight and reads
+  `rust/scripts/*` + `rust/Makefile` continuously, and a new gate needs Makefile wiring —
+  the mixed-vintage hazard. Its design constraint is named up front: **a heading is not a boundary**;
+  the naive form passes 8 of 9 today and is `.5c`'s vacuity trap one document over. ⚠️ Two of this
+  leaf's own instruments were wrong before they were right (a heading regex that counted release-
+  highlight rows; a per-line reference-mode split blind to extraction via a variable) — both left
+  visible, both caught by cross-checking a known fact.
 - `PGEN-DONE-BAR-0020` (2026-07-30, session #227, leaf `.5f` items 1+2 done; `.5g` opened) — the SV
   closed-loop replay trace defaulted to `low` since 2026-04-21 and was costing **84–86% of the
   stage's wall time** plus **1.8–1.9 GB of log per invocation, 99.97% of it one repeated backtrack

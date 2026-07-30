@@ -1,0 +1,39 @@
+family                         scope_nongoals  boundary_disclosure
+------                          -------------  -------------------
+PNR                                         1                    0
+REGEX                                       0                    0
+RETURN_ANNOTATION                           1                    0
+RTL_CONST_EXPR                              1                    0
+RTL_FRONTEND                                1                    0
+SEMANTIC_ANNOTATION                         1                    0
+SYSTEMVERILOG                               1                    1
+SYSTEMVERILOG_PREPROCESSOR                  1                    0
+VHDL                                        1                    0
+
+contracts: 9 | with a scope section: 8 | with a boundary disclosure: 1
+NO scope section: REGEX
+
+which scripts reference a contract at all (mode NOT inferred — see the note above):
+  rust/scripts/ci_workflow_local_gate.sh                     45 refs
+  rust/scripts/regex_parser_integration_contract_gate.sh     1 refs
+  scripts/check_published_version_currency.sh                1 refs
+  scripts/check_regex_oracle_anchor_sync.sh                  1 refs
+
+the SOUND measurement — does any gate name a boundary/scope SECTION?
+  scripts naming any boundary/scope heading: 0
+  => a contract's acceptance boundary is read by NOTHING; the only contract content any gate
+     reads is the regex Contract Identity pair (PUBLISHED-VERSION-CURRENCY) and the regex
+     oracle-tuple anchors (REGEX-ORACLE-ANCHOR-SYNC) — neither is a boundary.
+
+CALIBRATION — hand-measured 2026-07-30; a miss means the instrument, not the repo, moved:
+  ✅ CAL-1 derived contract count                             9
+  ✅ CAL-2 contracts with a scope section                     8
+  ✅ CAL-3 the one WITHOUT is regex                           REGEX
+  ✅ CAL-4 contracts with a boundary disclosure               1
+  ✅ CAL-5 systemverilog is that one                          1
+  ✅ CAL-6 scripts naming a boundary/scope heading            0
+
+==============================================================================
+VERDICT: 8 of 9 contracts document SCOPE; 1 of 9 documents an ACCEPTANCE BOUNDARY;
+         0 of 9 have that boundary read by any gate. => .5d's gap is real.
+==============================================================================

@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0021 — a heading is not a boundary, and two crude instruments in one sitting
+
+`DONE-BAR.5d`. Docs + one calibrated census driver.
+
+- ⭐ THE LESSON THAT GENERALISES: **`.5c`'s vacuity trap has a documentation twin.** `.5c` caught a gate
+  that would assert the absence of three literals that occur 0 times, so it could never fail. `.5d`'s
+  naive form asserts that each family contract has a section *named* `Scope / Non-Goals` — which 8 of 9
+  already do, so it could only ever fail on one family, and a section can exist and say nothing.
+  **Presence of a heading is not disclosure**, exactly as absence of a literal was not safety. Any
+  disclosure gate must join the prose to a machine-derived fact, or it measures formatting.
+- ⚠️ AND THE FIRST CANDIDATE SUBSTANTIVE FORM CARRIES THE SAME TRAP ONE LEVEL IN: "the boundary section
+  must name the family's open ledger entries" is **vacuously satisfiable today**, because `.1`'s census
+  measured 0 open entries across all 168 ledger rows. So the empty case has to be an affirmative
+  statement (*"no open defects known"*), or a consumer cannot tell *"nothing is wrong"* from *"nobody
+  wrote anything down"*. **Check a new criterion against today's data before adopting it** — the
+  `GENERATED-LINT-CORRECTNESS.4` rule (price the candidate against the whole corpus first).
+- ⚠️⚠️ TWO OF MY OWN INSTRUMENTS PRODUCED CONFIDENT WRONG ANSWERS IN ONE SITTING, and the pattern is
+  identical in both: **a cheap textual proxy standing in for the fact actually wanted.**
+  1. counting `^#+ .*(support|boundary|scope|…)` headings reported regex **12** and systemverilog
+     **68** — almost all of them `## Release … Highlights` rows. Reading the headings killed it.
+  2. splitting gate references into "existence-only vs content-reading" per LINE reported **16/32**.
+     Wrong: `check_published_version_currency.sh` reads the contract's Contract Identity block through
+     a VARIABLE on a later line, so a per-line "is there an extractor here" test is structurally blind.
+     Caught because the split contradicted a fact already in hand (4 referencing files, not 48).
+  The second was **dropped, not re-baselined** — replaced by *"how many scripts name any boundary/scope
+  heading?"* (**0**), which answers the real question and can be checked by eye. ⇒ **when a proxy
+  disagrees with something you already measured, delete the proxy; do not tune it.**
+- The census now pins **6** calibration facts including *which* family is the outlier (CAL-3 = REGEX),
+  so the outlier cannot silently become a different family — the failure mode
+  `check_gate_reachability.sh` was built to refuse.
+- ⭐ A FINDING WORTH ITS OWN LINE: the family with the most evidence discloses the least boundary.
+  regex has ~100 releases, a 2,189-case corpus and three external hardening gates, and it is the sole
+  contract with no scope section. Volume of release notes is not disclosure.
+- ⛔ SCOPE HELD, WITH THE REASON STATED RATHER THAN IMPLIED: the gate was not built because
+  `sota_exit_gate` run 4 was in flight and reads `rust/scripts/*` + `rust/Makefile` continuously. A new
+  gate needs Makefile wiring, and editing the Makefile mid-run is the mixed-vintage hazard this repo
+  already paid for once (the `-0141` incident: a mixed artifact tree makes every downstream number
+  unattributable). Landing measurement now and the gate after the run is the ordering that keeps both
+  results attributable.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0020 — a liveness signal that cost 85% of the stage, and why finding the ORIGINAL INTENT changed the fix
 
 `DONE-BAR.5f` items 1+2. One gate script + book chapter + tracker + 2 tracked drivers.

@@ -3650,3 +3650,43 @@ before its numbers were used**: the first production-counter reported **0 produc
 grammar**, which is definitively wrong (it matched `:=` where `grammars/regex.ebnf` uses `=`); it was
 corrected and required to reproduce a known fact (`named_backreference` at `:573`) before any count
 was trusted.
+
+---
+
+### `ROUTED-IN-3` — the regex integration contract is the ONLY family contract with no scope section (`todo`)
+
+- **Status: `todo`** — routed in 2026-07-30 (session #227) from `DONE-BAR.5d`, with the cross-family
+  reproduction check recorded below as the `ROUTING-EVIDENCE` doctrine requires.
+- **THE MEASUREMENT** (calibrated census
+  `docs/tasks/artifacts/done_bar/run_acceptance_boundary_census.sh`, capture
+  `acceptance_boundary_census.txt`, calibration 6/6): over the **9** downstream integration contracts
+  DERIVED from `docs/contracts/PGEN_*_PARSER_INTEGRATION_CONTRACT.md`, **8** carry the repo's standard
+  `## Scope / Non-Goals` section. **`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` carries
+  none** — pinned as census fact `CAL-3`, so it cannot silently become a different family.
+- ⭐ **ROUTING EVIDENCE — does the finding reproduce OUTSIDE the regex family? NO, and that is exactly
+  why it belongs here.** The check ran across all 9 contracts, not just regex: PNR, RETURN_ANNOTATION,
+  RTL_CONST_EXPR, RTL_FRONTEND, SEMANTIC_ANNOTATION, SYSTEMVERILOG, SYSTEMVERILOG_PREPROCESSOR and
+  VHDL all have the section; regex is the sole outlier. So this is **family content**, not a shared
+  documentation-template defect — the opposite polarity from `ROUTED-IN`'s premise, which was refuted
+  precisely because the defect turned out to be shared.
+- ⚠️ **What was deliberately NOT counted, and why the gap is real rather than a naming difference.**
+  The regex contract's `## Current Trust Statement` is its closest analogue and does not qualify: it
+  states the flavor is *"closure-grade and fit for downstream parser consumption"* and that this
+  *"does not automatically cover every regex dialect or every future contract widening"* — a
+  **disclaimer about extent**, not a statement of what is accepted or of where acceptance is wrong.
+  The contract's other headings are Purpose / Contract Identity / Current Trust Statement / Companion
+  Documentation / a long chronology of Maintenance Updates and Release Highlights / Supporting
+  Documents / Stable Integration Surface / Build requirements.
+- ⭐⭐ **THE UNCOMFORTABLE SHAPE: the family with the MOST evidence discloses the LEAST boundary.**
+  regex has ~100 releases, a 2,189-case PCRE2 corpus and three external hardening gates, and it is the
+  one contract that never tells a consumer what is out of scope. That is the reverse of what a reader
+  would assume from the volume of release notes.
+- **Scope when taken up:** add a `## Scope / Non-Goals` section stating the supported flavor surface
+  and its non-goals (which dialects are NOT covered, what the `pcre2` default does and does not
+  promise), and — separately — decide whether regex should carry an acceptance-boundary disclosure of
+  the kind only `systemverilog` has today.
+- ⛔ **Sequencing, stated so nobody does it backwards:** `DONE-BAR.5d`'s gate does not exist yet.
+  Writing a section to satisfy a gate that has not been designed would fix the *symptom the census
+  measured* rather than the disclosure a consumer needs, and would then constrain the gate's design.
+  Prefer landing this alongside or after `.5d`'s gate adjudication — and note `.5d` already warns that
+  **a heading is not a boundary**, so an empty section would satisfy nothing.

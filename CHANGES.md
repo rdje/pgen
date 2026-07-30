@@ -1,5 +1,48 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0021 — leaf DONE-BAR.5d: the .5d-vs-.6 overlap is adjudicated, and the family with the most evidence discloses the least boundary
+
+Docs + one calibrated census driver — no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no
+`generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- ADJUDICATION (what `.5` asked for): the `.5d`/`.6` split **STANDS**. `.5d` = *"what will it parse,
+  and where does it get that wrong?"* — the language surface, a leg-2 GATE criterion that moves with
+  the grammar. `.6` = *"how well is that proven?"* — the tier, the met legs, the `Provisional`
+  qualifier, a disclosure task that moves with the evidence. They are **empirically independent**: the
+  boundary is documented by 1 of 9 contracts and that one documents no bar state, so shipping either
+  leaf alone leaves the other's fact missing.
+- MEASURED, calibrated census `docs/tasks/artifacts/done_bar/run_acceptance_boundary_census.sh`
+  (roster DERIVED from a glob; 6 pinned calibration facts; REFUSES exit 2 rather than reporting
+  numbers if one fails to reproduce): over 9 downstream integration contracts, **8** carry
+  `## Scope / Non-Goals`, **1** (systemverilog) documents an acceptance boundary, and **0** have any of
+  it read by a gate — measured soundly as *zero scripts repo-wide name any boundary/scope heading*.
+- FINDING NOT IN THE CHARTER: **`regex` is the ONE contract with no scope section at all** — ~100
+  releases, a 2,189-case PCRE2 corpus, three external hardening gates, and no statement of what is out
+  of scope. Its `## Current Trust Statement` is a disclaimer about extent, not a boundary. Routed to
+  `REGEX-PCRE2-FIDELITY` as `ROUTED-IN-3` with the cross-family reproduction check recorded: the
+  finding does **not** reproduce outside regex (the other 8 all carry the section), so it is family
+  content, not a shared template defect.
+- ALSO RECORDED: systemverilog's one disclosure is **mostly history** — nearly every
+  `### Honest boundary` entry reads FIXED — so it is an audit trail, not a current answer to *"what
+  does this parser get wrong today?"*; and its `### Support boundary` sibling is about the
+  bug-reporting protocol, not acceptance.
+- THE GATE IS DELIBERATELY NOT BUILT HERE, reason stated: `sota_exit_gate` acceptance run 4
+  (`CI-PARITY-GATE-ROT.7`) is in flight and reads `rust/scripts/*` and `rust/Makefile` across its ~5 h;
+  a new gate needs Makefile wiring (`GATE-REACHABILITY` refuses an unwired target), and editing that
+  mid-run is the mixed-vintage hazard that makes the run's numbers unattributable.
+- The gate's central design constraint is named up front: **a heading is not a boundary.** The naive
+  "assert the section exists" form would pass 8 of 9 families today and could only ever fail on regex —
+  `.5c`'s vacuity trap one document over. A candidate substantive form (join the disclosure to the
+  machine-derived open-ledger set) is recorded together with its own vacuity risk: every family has 0
+  open entries today, so the empty case must be an affirmative disclosure.
+- TWO OF THIS SLICE'S OWN INSTRUMENTS WERE WRONG BEFORE THEY WERE RIGHT, both left visible: a heading
+  regex that counted `## Release … Highlights` rows (regex 12 / sv 68), and a per-line
+  "existence vs content" reference split (16/32) that could not see an extraction performed through a
+  variable. Each was caught by cross-checking a fact already measured; the second was **dropped rather
+  than re-baselined** and replaced by a claim that can be defended directly.
+- Verified: census exit 0 with calibration **6/6**; `bash scripts/check_doctrines.sh` **ALL 14 PASS**;
+  no tracker row moved.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0020 — leaf DONE-BAR.5f (items 1+2): the replay stage spent 84-86% of its wall time writing a log nothing reads
 
 One gate script + one book chapter + tracker + 2 tracked probe/measurement drivers — no
