@@ -1,0 +1,47 @@
+# LANG-CAPABILITY-AUDIT.10.2 — OPTION B, the candidate fragment.
+#
+# Appended to a COPY of grammars/ebnf.ebnf by run_option_b_probe.sh. Not included by
+# anything; this file is evidence, not a build input.
+#
+# WHY OPAQUE. The meta-grammar's job is to DELIMIT an annotation so `grammar_file` can
+# consume it — not to validate the payload. Nothing reads the meta-parser's AST (every
+# `EbnfParser` consumer takes a verdict), and `ebnf` has neither an integration contract
+# nor an ast_shape_contract manifest, so self-hosting here is a RECOGNITION claim. The
+# payload's real specification lives with the annotation parsers:
+#   - bootstrap: rust/src/ast_pipeline/unified_semantic_ast.rs `parse_bootstrap`, spec'd by
+#     grammars/builtin_semantic_annotation.ebnf — TOTAL, "structured if possible, opaque
+#     otherwise, never reject";
+#   - generated backend: grammars/semantic_annotation.ebnf.
+# Modelling the payload a THIRD time in the meta-grammar is exactly what lets copies
+# diverge — measured: semantic_annotation.ebnf already rejects 9 of the 148 annotation
+# lines tracked grammars ship.
+#
+# Both constructs this needs already exist in the two files it sits between:
+#   - a regex terminal that spans newlines  -> ebnf.ebnf `block_comment_content`,
+#     builtin_semantic_annotation.ebnf `any_text := /(.|\n)*/`
+#   - recursive balanced-brace nesting      -> ebnf.ebnf `grouped_expression` / `object_return`,
+#     builtin_semantic_annotation.ebnf `structured_object`
+
+semantic_annotation := "@" annotation_key ":" annotation_payload
+    -> {type: "semantic_annotation", name: $2, value: $4}
+
+annotation_key := /([a-zA-Z_][a-zA-Z0-9_]*)/
+    -> {type: "annotation_key", name: $1}
+
+# A braced payload may span lines and nest; anything else runs to end of line.
+# Under the default longest_match branch policy a multi-line `{ … }` beats the
+# end-of-line reading, and a single-line braced payload ties and takes the earlier arm.
+annotation_payload := (braced_payload | line_payload)
+    -> $1
+
+braced_payload := "{" brace_body "}"
+    -> {type: "braced_payload", body: $2}
+
+brace_body := (braced_payload | brace_text)*
+    -> [$1*]
+
+brace_text := /([^{}]+)/
+    -> $1
+
+line_payload := /([^\r\n]*)/
+    -> {type: "line_payload", text: $1}

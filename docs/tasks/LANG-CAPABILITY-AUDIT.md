@@ -1774,13 +1774,88 @@ does it correctly, and is the only option that meets both requirements without i
 spec that is already known to be wrong. ⭐ It also matches what the meta-grammar's job
 actually is: *parse grammar FILES*, not validate annotation payloads.
 
-⚠️ **The one open technical question, and how to answer it without guessing.** Can PGEN's
-EBNF express an opaque balanced-brace payload as a single rule? Nesting needs recursion,
-which the engine has, but this must be **measured, not assumed** — the intended instrument
-is the scratch slot (`TOOLBOX.md` 1.3) or the in-process interpreter (1.5), against the
-`multiline_payload` probe in `run_metagrammar_quote_probes.sh` plus the two real blocks at
-`regex.ebnf:1052`/`:1195`. If it turns out inexpressible, that is a genuine capability gap
-and belongs in the matrix (`.3`/`.4`), not in a workaround.
+#### ✅ OPTION B IS MEASURED, NOT PROPOSED — `run_option_b_probe.sh`, exit 0, 0 divergences
+
+⛔ **An earlier revision of this leaf left "can PGEN's EBNF express an opaque balanced-brace
+payload?" as an open question for the director.** That was wrong twice over: the answer was
+already in the repository, and it is the engineer's to obtain. Director, session #228:
+*"you are the elite coder of PGEN … you should be able to respond to your own question.
+Your question sounds as if you are a stranger to PGEN Rust code."* Correct. It is answered
+below, and the method is now a Knowledge-Map card so the next reader does not re-ask it.
+
+**Both constructs already ship — in the two files this rule sits between:**
+
+| construct | already in `ebnf.ebnf` | already in `builtin_semantic_annotation.ebnf` |
+|---|---|---|
+| a regex terminal spanning **newlines** | `block_comment_content := /((?:[^*]\|\*(?!\/))*)/` | `any_text := /(.\|\n)*/` |
+| **recursive balanced-bracket** nesting | `grouped_expression`, `object_return` | `structured_object := "{" … "}"` via `structured_payload` |
+
+⭐ **And the builtin grammar settles the DESIGN, not just the feasibility** (director's
+pointer, session #228 — *"the builtin parsers are to avoid the chicken and egg dilemma"*).
+`rust/src/ast_pipeline/unified_semantic_ast.rs:286` `parse_bootstrap` is **TOTAL**:
+`TransformExpr` if the text carries both `::parse::<` and `>().unwrap_or(`, else
+`Structured` if the structured parser succeeds, else `Raw { content }` — **no error path**.
+PGEN's own annotation contract is therefore *"structured if possible, opaque otherwise,
+never reject"*, and `builtin_semantic_annotation.ebnf` is its written spec. Option B gives
+the meta-grammar the **same** bootstrap-safe shape, sized to what a meta-grammar needs
+(delimit) rather than what a validator needs (structure). ⇒ `.10`'s original instinct —
+*"the meta-grammar has the same chicken-and-egg property the builtin grammars exist to
+break"* — was **right**, even though `.10.1` correctly rejected including that file (its
+entry rule is the payload, and its `raw_payload := any_text` would put an
+always-succeeding alternative in `grammar_file`'s top-level loop).
+
+**Measured end-to-end** — `docs/tasks/artifacts/lang_capability_audit/run_option_b_probe.sh`,
+zero repo edits (the probe is built in an untracked `rust/target/` scratch dir):
+
+| | shipped meta-grammar | option-B probe |
+|---|---|---|
+| rules / lint | 131, all counters 0 | **138, all counters 0** (no shadowing, no always-succeeds, no unreachable, no nullable-repetition) |
+| `parse_semantic_annotation` | **25** lines — the synthesized native `@`-to-EOL fallback | **939** lines — generated from the rule; all 6 helpers emitted |
+| `regex.ebnf` | **REJECT @ byte 55,925** | **ACCEPT** |
+| self-hosting | 11/12 tracked *(14/15 by the driver's wider set)* | **12/12** *(driver: **15/15**)* |
+
+*(The book's denominator is 12 — the tracked grammars, excluding `scratch.ebnf` and the two
+`systemverilog_lrm_profiled_*` intermediates the driver also sweeps. Both numbers describe
+the same result: `regex.ebnf` is the one that flips, and nothing else moves.)*
+
+⇒ **R1 satisfied** — `semantic_annotation` resolves to a real rule, so
+`"semantic_annotation"` can leave `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` and `.10.3` is
+unblocked. **R2 satisfied** — the multi-line payload parses, self-hosting is 12/12 for the
+right reason, and `ebnf_frontend_dual_run_gate` re-greens.
+
+⭐⭐⭐ **AND IT IS FORWARD-COMPATIBLE WITH THE SELF-HOSTING ENDGAME — measured, after the
+director asked whether `generated/ebnf.rs` is meant to REPLACE the hand-written frontend
+(session #228).** It is: `README.md:28` — *"Handwritten parsers exist only as bootstrap
+scaffolding and never count as closure"*. So the question that matters for this leaf is
+whether an opaque payload would have to be undone when that replacement happens. **It
+would not**, because the code being replaced already does exactly this:
+
+```rust
+// rust/src/ebnf_frontend.rs:1410 — the AUTHORITATIVE frontend
+fn parse_semantic_annotation_text(annotation: &str) -> Option<(String, String)> {
+    let content   = trimmed.strip_prefix('@')?.trim();
+    let separator_idx = find_top_level_colon(content)?;   // brace/bracket/paren-depth AND quote aware
+    let name    = content.get(..separator_idx)?.trim();
+    let payload = content.get(separator_idx + 1..)?.trim();   // <- an OPAQUE String
+    Some((name.to_string(), payload.to_string()))
+}
+// …emitted as: ["semantic_annotation", [name, payload]]
+```
+
+⇒ the authoritative frontend **delimits the annotation and passes the payload through
+untouched**, handing it to the annotation backend. Option B models that; option A would
+model something the real frontend does not do. `find_top_level_colon` also confirms the
+right delimiter semantics — depth-aware over `()`/`[]`/`{}` and quote-aware — which is the
+specification the option-B rule should ultimately match if it is ever tightened.
+
+⚠️ **The honest trade, stated rather than sold.** With an opaque payload, `ebnf.ebnf` does
+**not** specify annotation-payload syntax. That is the correct division of labour — the
+payload spec belongs to the annotation parsers, and it is *already* opaque today, just
+hidden inside a codegen allowlist instead of written in the grammar where a reader can see
+it. But it means the self-hosting number stays a **recognition** claim, which is all it has
+ever been (`docs/knowledge/ebnf-self-hosting-what-it-means.md`). If a future requirement
+needs the meta-grammar to validate payload *structure*, that is a new decision, not an
+extension of this one.
 
 ⛔ **Everything below this line is the ORIGINAL charter, retained for provenance. Its
 deliverables 1, 2 and 4 are superseded by the analysis above** — do not execute them

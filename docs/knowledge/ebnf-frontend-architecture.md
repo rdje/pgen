@@ -42,6 +42,18 @@ cross-check** the hand-written output (ebnf_frontend.rs:52-64), and that check i
 *warns* on mismatch, is **skipped** when inline semantic annotations are present, and only hard-errors
 if `PGEN_EBNF_FRONTEND_REQUIRE_GENERATED_VERIFY` is set (off by default — `generated_verify_required`).
 
+⭐ **Stronger than "soft": NO product path reads its AST at all** (consumer census,
+`LANG-CAPABILITY-AUDIT.10.5`). Every consumer takes a **verdict** — `parse_with_ebnf` →
+`.is_ok()` (parser_registry.rs:627), `parse_with_ebnf_detail` → `Result<(),String>` (:633), the
+frontend cross-check → `if let Err(..)` (ebnf_frontend.rs:70), `ebnf_dual_run_diff.rs:157` → a
+diagnostic report. The one AST consumer, `parse_with_ebnf_ast_json` (:648), is called only by
+`parse_harness_equivalence.rs` — the interpreter-vs-generated self-consistency oracle. `ebnf` is
+also the only tracked generated parser with **neither** a `docs/contracts/` integration contract
+**nor** a `rust/test_data/ast_shape_contract/` manifest. ⇒ changing the SHAPE the meta-grammar
+produces moves no published surface; what it must preserve is **recognition**. See
+[[ebnf-self-hosting-what-it-means]] for what the self-hosting number is and is not, and
+[[probe-a-metagrammar-change]] for testing a meta-grammar edit end-to-end without touching the repo.
+
 ## Consequence — extending the EBNF meta-grammar syntax
 To add a new annotation/construct to the `.ebnf` syntax (e.g. a new bracketed annotation), the real
 change is to the **hand-written `ebnf_frontend.rs`** (the tokenizer + the top-level scan) plus

@@ -1,0 +1,54 @@
+===============================================================================
+LANG-CAPABILITY-AUDIT.10.2 — OPTION-B feasibility probe
+===============================================================================
+
+Building the probe meta-grammar = grammars/ebnf.ebnf + the option-B fragment...
+   probe grammar: 813 lines (766 + 47)
+
+R1 — does every reference now resolve, and is the grammar still well-formed?
+   grammar lint: 'ebnf' (138 rules) — left_recursive=5 (informational, handled by PGEN), non_terminating=0 (error), ordered_choice_shadowing=0 (error), always_succeeds_alternatives=0 (note), unreachable_rules=0 (error), undefined_references=0 (error), unbound_fact_kinds=0 (error), nullable_repetition=0 (warning), profile_orphans=0 (error; profiles=[])
+   (baseline for comparison — the SHIPPED meta-grammar:)
+   grammar lint: 'ebnf' (131 rules) — left_recursive=5 (informational, handled by PGEN), non_terminating=0 (error), ordered_choice_shadowing=0 (error), always_succeeds_alternatives=0 (note), unreachable_rules=0 (error), undefined_references=0 (error), unbound_fact_kinds=0 (error), nullable_repetition=0 (warning), profile_orphans=0 (error; profiles=[])
+
+Generating the probe parser (same two steps as the Makefile's one-time seed)...
+   emitted struct: pub struct EbnfParser
+
+R1 (continued) — is `semantic_annotation` a REAL generated rule now, or still the
+native `@`-to-end-of-line fallback codegen synthesizes for an UNRESOLVED reference?
+   shipped  parse_semantic_annotation : 25    lines  (synthesized native fallback)
+   option-B parse_semantic_annotation : 939   lines  (generated from the rule)
+   ✅ parse_annotation_key       emitted
+   ✅ parse_annotation_payload   emitted
+   ✅ parse_braced_payload       emitted
+   ✅ parse_brace_body           emitted
+   ✅ parse_brace_text           emitted
+   ✅ parse_line_payload         emitted
+
+Building ebnf_dual_run_diff against the probe parser...
+
+R2 — the tracked-grammar corpus under the OPTION-B meta-parser
+-------------------------------------------------------------------------------
+   ✅ builtin_return_annotation.ebnf                 ACCEPT
+   ✅ builtin_semantic_annotation.ebnf               ACCEPT
+   ✅ ebnf.ebnf                                      ACCEPT
+   ✅ json.ebnf                                      ACCEPT
+   ✅ regex.ebnf                                     ACCEPT
+   ✅ return_annotation.ebnf                         ACCEPT
+   ✅ rtl_const_expr.ebnf                            ACCEPT
+   ✅ rtl_frontend.ebnf                              ACCEPT
+   ✅ semantic_annotation.ebnf                       ACCEPT
+   ✅ systemverilog_lrm_profiled_generated.ebnf      ACCEPT
+   ✅ systemverilog_lrm_profiled_wrapper.ebnf        ACCEPT
+   ✅ systemverilog_preprocessor.ebnf                ACCEPT
+   ✅ systemverilog.ebnf                             ACCEPT
+   ✅ vhdl.ebnf                                      ACCEPT
+   ✅ scratch.ebnf                                   ACCEPT
+
+   SELF-HOSTING: 15/15   (shipped meta-grammar today: regex.ebnf REJECTs at byte 55,925)
+
+===============================================================================
+RESULT: exit 0, 0 divergences — OPTION B meets R1 and R2.
+===============================================================================
+
+Restoring ebnf_dual_run_diff to the SHIPPED generated/ebnf.rs...
+   ✅ restored

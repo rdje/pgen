@@ -1,5 +1,46 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0017 — option B for .10.2 is MEASURED, not proposed; and three KM cards for what I had to be told
+
+Docs + KM + probe evidence only — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`
+=> all 11 generated parsers byte-identical BY CONSTRUCTION. No tracker row moved.
+
+- ⛔ I HAD LEFT AN OPEN TECHNICAL QUESTION FOR THE DIRECTOR ("can PGEN's EBNF express an opaque
+  balanced-brace payload?"). That was wrong twice: the answer was already in the repository, and
+  obtaining it is the engineer's job. Director: *"you should be able to respond to your own
+  question. Your question sounds as if you are a stranger to PGEN Rust code."* Answered below.
+- ⭐ BOTH CONSTRUCTS ALREADY SHIP, in the two files the rule sits between: a newline-spanning regex
+  terminal (`ebnf.ebnf` block_comment_content; `builtin_semantic_annotation.ebnf`
+  `any_text := /(.|\n)*/`) and recursive balanced-bracket nesting (`grouped_expression` /
+  `object_return`; `structured_object`).
+- ⭐⭐ THE BUILTIN PARSERS SETTLE THE DESIGN, not just feasibility (director pointer). They exist to
+  break the chicken-and-egg, and `unified_semantic_ast.rs:286 parse_bootstrap` is TOTAL —
+  TransformExpr (two markers) / Structured / Raw, no error path. PGEN's annotation contract is
+  "structured if possible, opaque otherwise, never reject". Option B gives the meta-grammar the
+  same bootstrap-safe shape, sized to what a meta-grammar needs (delimit) not what a validator
+  needs (structure).
+- ✅ OPTION B PROVEN END-TO-END, zero repo edits (`run_option_b_probe.sh`, exit 0, 0 divergences):
+  lint clean at 138 rules (all counters 0); `parse_semantic_annotation` 25-line native fallback ->
+  939-line real rule body with all 6 helpers emitted (R1: `.10.3` unblocks); `regex.ebnf`
+  REJECT@55925 -> ACCEPT; **self-hosting 11/12 -> 12/12** (R2), which also re-greens
+  `ebnf_frontend_dual_run_gate`.
+- ⭐⭐⭐ FORWARD-COMPATIBLE WITH THE SELF-HOSTING ENDGAME, measured after the director asked whether
+  the generated parser is meant to REPLACE the hand-written frontend. It is (`README.md:28`,
+  "handwritten parsers exist only as bootstrap scaffolding"). And the code being replaced already
+  does exactly what option B models: `ebnf_frontend.rs:1410 parse_semantic_annotation_text` strips
+  `@`, finds the TOP-LEVEL colon (brace/bracket/paren-depth AND quote aware) and emits
+  `["semantic_annotation", [name, payload]]` with payload an OPAQUE String.
+- 3 NEW KNOWLEDGE-MAP CARDS (checked first that none existed; 32 -> 35 facts, 241 question keys):
+  `bootstrap-builtin-annotation-parsers` (the chicken-and-egg breakers; `builtin_*.ebnf` are
+  INFERRED SPECS of hand-written Rust, NOT generation sources, and NOT equivalent to the full
+  annotation grammars), `ebnf-self-hosting-what-it-means` (a spec-drift alarm and a RECOGNITION
+  claim; the stated endgame is replacement but it is doctrine not a tracked plan, and full
+  retirement is impossible while `generated/` is untracked), `probe-a-metagrammar-change` (how to
+  test an `ebnf.ebnf` edit end-to-end via PGEN_EBNF_PARSER_PATH + the two traps: the grammar
+  FILENAME picks the struct name, and the probe must live on the repo's own volume).
+  `ebnf-frontend-architecture` enriched with the consumer census rather than duplicated.
+- ⏳ STILL AWAITING the director A/B/C decision; no code change made.
+
 ## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0016 — leaf LANG-CAPABILITY-AUDIT.10.2 put ON HOLD by director order; its premise did not survive measurement
 
 Docs only (task tree + resume pointer) — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`
