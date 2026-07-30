@@ -97,14 +97,29 @@ character class.
 
 ## The complete built-in list
 
-The `builtin_any_char` pair are not quite the only names codegen treats as built in. The full list
-is exactly three (`AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`):
+The `builtin_any_char` pair are the *whole* list
+(`AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`) — exactly two names:
 
 | Name | What it is |
 | --- | --- |
 | `builtin_any_char` | the single-UTF-8-character matcher above |
 | `builtin_ascii_char` | the single-ASCII-character matcher above |
-| `semantic_annotation` | an internal `@`-to-end-of-line matcher used by the meta-grammar — **not** a primitive you should reference; write your annotations as annotations |
+
+> **This list used to be longer, and every name that left it was hiding a bug.** Until
+> `LANG-CAPABILITY-AUDIT.10.4` it also carried `true` and `false`, which compiled to matchers that
+> *always succeeded and consumed nothing* — `probe := "T" true "T"` accepted `TT`. Until
+> `LANG-CAPABILITY-AUDIT.10.3` it carried `semantic_annotation`, an `@`-to-end-of-line matcher that
+> existed only because the EBNF meta-grammar referenced that name without defining it; the entry
+> stood in for a broken `include` and, being line-bounded, could not match a multi-line
+> `@dispatch: { … }` payload at all. `grammars/ebnf.ebnf` now defines the rule itself, and all
+> three names are ordinary undefined references — the linter reports them and codegen emits a
+> never-matching stub. If your grammar needs to *parse* annotation lines, define a rule for them,
+> the way the meta-grammar does; if it merely needs to *carry* annotations, see
+> [Semantic annotations](semantic-annotations.md) — those are read by PGEN, not by your parser.
+>
+> The reason this matters to *you*, not just to PGEN's maintainers, is the coupling: the linter's
+> allowlist **is** this list, so anything on it is invisible to `undefined_references`. A short
+> list is a check you can trust.
 
 **Every other undefined name is an error.** A reference to a rule you never defined is reported by
 `--lint-grammar` as `undefined_references=N (error)` naming the exact rule and reference, and

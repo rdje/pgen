@@ -2013,40 +2013,151 @@ be shown to report `undefined_references=0` **because the grammar is sound** rat
 because the name is allowlisted — the distinction `.7` could not make.
 
 
-### `.10.3` — retire `"semantic_annotation"` from `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (`todo`)
+### `.10.3` — retire `"semantic_annotation"` from `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (`done`)
 
-- **Status: `todo` — ✅ UNBLOCKED and CARRYING STANDING DIRECTOR APPROVAL (2026-07-31:
-  *"If you need my greenlight, you have it"*). Do NOT re-ask; execute to the SOTA/signoff
-  bar.** See [[feedback_routine_decisions_are_not_escalations]].
-- The former blocker is discharged: it read *"retiring the entry first would leave
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0023`, session #229, 2026-07-31).
+  **CODE CHANGE** — `ast_based_generator.rs` (const + dispatch arm + oracle test),
+  `first_set.rs` and `grammar_wellformedness.rs` (comment lockstep), 2 book chapters, the
+  `.10.1` audit driver. **Every generated artifact BYTE-IDENTICAL**, so no
+  release/schema/ledger/contract movement. Executed under the standing director approval
+  of 2026-07-31 (*"If you need my greenlight, you have it"*), not re-asked —
+  [[feedback_routine_decisions_are_not_escalations]].
+- The blocker was discharged by `.10.2`: it read *"retiring the entry first would leave
   `ebnf.ebnf` with 3 references the linter reports as a hard error and codegen compiles
   into never-matching stubs"*. `.10.2` defined the rule, so the references now resolve.
 
-#### Prep already measured (session #228 — start from here, do not re-derive)
+#### What landed
 
-| fact | measured |
-|---|---|
-| const site | `ast_based_generator.rs:1222` `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`, **3 members** (`builtin_any_char`, `builtin_ascii_char`, `semantic_annotation`) ⇒ becomes **2** |
-| dispatch arm to delete | `ast_based_generator.rs:1322` — the `@`-to-END-OF-LINE slurp, 28 lines |
-| lock | `native_unresolved_builtins_const_matches_dispatch` pins const↔dispatch **both ways**, so the two move together or the test fails |
-| false rationale to drop | the doc comment at `:1207-1212` still calls it *"the native `@…`-line matcher"* whose consumer *"needs it only because that grammar's `include` is broken"* — both now obsolete |
-| ⚠️ also check | `first_set.rs` carried three arms for the `true`/`false` members `.10.4` removed; confirm `semantic_annotation` has none before assuming a const-only edit |
+The allowlist is **3 → 2 members**, and every one of the three names ever removed from it
+was hiding a defect rather than expressing a primitive:
 
-⭐ **THE ELEGANT VERIFICATION — use it as the ADDRESSED box.** `.10.2` already proved the
-fallback is no longer reached (the probe `r = 'a' @@@` flipped ACCEPT→REJECT). So removing
-the allowlist entry must leave **`generated/ebnf.rs` BYTE-IDENTICAL**. If it changes, the
-fallback was still being hit somewhere and `.10.2` is incomplete — a far sharper oracle
-than "the lint still says 0". Pin input AND output paths (`.10.1`'s trap).
+| member | removed by | what it actually was |
+|---|---|---|
+| `true` / `false` | `.10.4` | unconditional **zero-width** matchers — `"T" true "T"` accepted `TT` |
+| `semantic_annotation` | **`.10.3`** | an `@`-to-END-OF-LINE slurp standing in for `ebnf.ebnf`'s broken `include` — and a *correctness ceiling*, since a line-bounded matcher cannot express `@dispatch: { … }` |
+| `builtin_any_char` / `builtin_ascii_char` | — | ✅ the genuine, `builtin_`-namespaced primitives |
 
-Then re-run the lint and confirm `undefined_references=0` **because the grammar is sound**,
-not because the name is allowlisted — the distinction `.7` could not make.
+Concretely: the const entry (`ast_based_generator.rs:1222`), the 28-line dispatch arm
+(`:1322`), and the false doc-comment rationale all go; the removals are *recorded in place*
+so the next reader learns why each name may not come back. The
+`native_unresolved_builtins_const_matches_dispatch` oracle drops 3 → 2 and its
+absence-pin list grows to all three retired names, each with its own reason string, so
+re-adding one while dropping another cannot slip through on an unchanged length.
 
-Then re-run the lint and confirm `undefined_references=0` **because the grammar is
-sound**, not because the name is allowlisted — the distinction `.7` could not make. Drop
-the false *"used by the annotation grammars"* rationale from the const's doc comment,
-and delete the `"semantic_annotation"` dispatch arm (`ast_based_generator.rs:1315`); the
-`native_unresolved_builtins_const_matches_dispatch` oracle locks const and dispatch in
-both directions, so both move together or the test fails.
+⭐ **`first_set.rs` needed no arm removal** (the `.10.3` prep flagged this as a thing to
+check, correctly): `semantic_annotation` was never in `native_builtin_first_set` because
+its matcher skipped leading layout before requiring `@`, which makes first-byte peeking
+unsound. Its doc bullet now records that the same conclusion holds for a stronger reason —
+the name is an ordinary undefined reference, not a builtin that happens to be unsummarizable.
+
+#### ⭐⭐ THE SHARP ORACLE HELD — `generated/ebnf.rs` is BYTE-IDENTICAL
+
+`.10.2` proved the fallback was no longer *reached*; this leaf proves it was no longer
+*there*. Regenerating the meta-parser before and after the removal:
+
+```
+7ce6578f799c36c79343f98c1e441feb70b453eee25be860ae64824f751938e5  before/generated/ebnf.rs
+7ce6578f799c36c79343f98c1e441feb70b453eee25be860ae64824f751938e5  after/generated/ebnf.rs
+7ce6578f799c36c79343f98c1e441feb70b453eee25be860ae64824f751938e5  generated/ebnf.rs   (the shipped artifact)
+```
+
+Had one byte moved, `.10.2` would have been incomplete — a far sharper signal than *"the
+lint still says 0"*.
+
+⚠️ **`.10.1`'s output-path trap is real and it fired here first.** The generated parser
+**embeds its own `-o` path as a string literal, 3,231 times**
+(`let filename_str = "generated/ebnf.rs";` and its error-reporting siblings), so a naive
+`-o /tmp/probe.rs` regeneration diffs against the shipped artifact in 6,462 lines and
+proves nothing. The protocol that works: run each arm from a scratch working directory
+containing its own `generated/`, with the *identical* relative `-o generated/ebnf.rs`. The
+input JSON path is **not** embedded, so only `-o` needs pinning. A **positive control** ran
+first — the before-arm reproduces the shipped artifact byte-for-byte — so a later match is
+evidence rather than coincidence ([[feedback_instrument_needs_ground_truth]]).
+
+#### The un-masking, measured both directions
+
+The point of the leaf is not the deletion; it is that the check can now see the name:
+
+| probe | before | after |
+|---|---|---|
+| `probe := "C" semantic_annotation "C"` (undefined) | `undefined_references=0` — **invisible** | **`=1`**, and the linter NAMES the rule ✅ |
+| the `.10.1` 4-dangling-reference probe grammar | `=2` | **`=3`** ✅ |
+| `grammars/ebnf.ebnf` (138 rules) | `=0` *(because allowlisted)* | **`=0` — because the grammar is SOUND** ✅ |
+| emitted `parse_semantic_annotation` on a dangling reference | the 28-line `@`-slurp | **the bare `Err(Backtrack)` stub** ✅ |
+| scratch-slot behaviour on `A@name: value` | ACCEPT | **REJECT** ✅ |
+
+That last row is the whole leaf in one line: the third column of the `.7` claim — *"reports
+0 **because the grammar is sound**"* — is finally a statement the instrument can make about
+itself. Every other tracked grammar was swept too: **no tracked grammar has a dangling
+`semantic_annotation`** (only `ebnf.ebnf` and `semantic_annotation.ebnf` name it, and both
+define it), which is why nothing else could move.
+
+#### ⚠️ Two stale artifacts found while working this leaf
+
+1. **`.10.2` left the `.10.1` audit driver RED and did not notice.** Defining
+   `semantic_annotation` in `ebnf.ebnf` made it a 16th name colliding with
+   `semantic_annotation.ebnf` and a 12th genuine conflict, but the driver still declared
+   `15`/`11` — so `run_native_builtin_audit.sh` reported **2 divergences** from
+   `PGEN-LANG-CAPABILITY-AUDIT-0021` until this leaf re-declared them. Both numbers now
+   carry the reason they moved, so the movement reads as the fix it is. ⭐ The general
+   shape: **a leaf that changes a grammar must re-run every declared-verdict driver that
+   measures that grammar**, not only the gates.
+2. `grammar_wellformedness.rs:178` justified its include-handling with *"e.g. ebnf.ebnf's
+   `annotation_list := semantic_annotation+`"* — which was never an include, it was the
+   dangling reference. Re-pointed at the one tracked grammar that genuinely uses
+   `include(...)`, `systemverilog_lrm_profiled_wrapper.ebnf` (measured: 1 of 18).
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the allowlist masks the name. Measured on two one-rule probe
+  grammars through `ast_pipeline --lint-grammar`: `probe := "C" semantic_annotation "C"` →
+  `undefined_references=0 (error)`, while the identical grammar naming a non-member →
+  `undefined_references=1 (error)` with the `[error] … references UNDEFINED rule` line.
+  Same instrument, same shape of grammar, opposite verdicts — the allowlist is the only
+  difference.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `--lint-grammar` consumes
+  `AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`
+  (`grammar_wellformedness.rs:332-343`) as its allowlist, and `"semantic_annotation"` was
+  its third member (`ast_based_generator.rs:1222`), paired with a 28-line native-matcher
+  dispatch arm at `:1322` that slurped `@`→end-of-line. WHERE it was consumed:
+  `--report-certificate-coverage`-style census over `generated/*.rs` shows the emitted
+  `parse_semantic_annotation` came from the grammars' OWN definitions —
+  `grep -c "as_bytes()\[start_pos\] != b'@'" generated/ebnf.rs` → **0**, i.e. the
+  synthesized matcher was present in **no** shipped parser. Dead surface holding a
+  diagnostic hostage.
+- [x] **FIX** — engine tier, deletion only: drop the const member and its dispatch arm; no
+  grammar and no declarative surface moves (`.10.2` had already done the declarative half).
+- [x] **ADDRESSED (verified)** — the un-masking table above, plus the byte-identical
+  oracle. Re-runnable: `bash docs/tasks/artifacts/lang_capability_audit/run_native_builtin_audit.sh`
+  → **`✅ 0 divergences`** across arms A+B, and `PGEN_AUDIT_RUN_SLOT_ARM=1` → **7/7 OK**
+  through the PARSE-HARNESS scratch slot (authoritative by construction), with
+  `A@name: value` flipping **ACCEPT → REJECT**. Capture:
+  `docs/tasks/artifacts/lang_capability_audit/native_builtin_audit.txt`.
+- [x] **NO REGRESSION** — **every generated artifact byte-identical** across a canonical
+  per-family regeneration (`make -C rust focus_{json,regex,systemverilog,systemverilog_preprocessor,vhdl,rtl_const_expr,rtl_frontend}`
+  + `annotation_parsers`, plus the path-pinned `generated/ebnf.rs` arm above): all 11
+  `*_parser.rs` + `ebnf.rs` unchanged; the `*.json` raw-AST envelopes differ only in their
+  `generated_at` stamp, which is not content. Unit oracles green:
+  `native_unresolved_builtins_const_matches_dispatch` (the const↔dispatch lock, now pinned
+  at 2) and the three `detect_undefined_reference_*` tests. `parse_harness_equivalence_gate`
+  **4/4 GREEN** (`certified_grammars_are_byte_identical` + 3 classification tests, 36.4 s).
+  `make -C rust clippy_on_rust_change` **exit 0** (peak 9,243 MB / 201 s): source-strict
+  `clippy_source_all_targets` ok, `generated_clippy_correctness_policy` **10/10 artifacts + 68/68
+  pinned lints still in `clippy::correctness`**, and the deny-by-default
+  `clippy_generated_all_targets` stage **pass**. Independently, every clippy finding in the three
+  edited files (`ast_based_generator.rs` :25/:813/:1300/:3731/:5464/:5597/:5602/:5884/:6218,
+  `grammar_wellformedness.rs:264`, `first_set.rs` none) sits **outside** the edited regions and
+  its construct is present verbatim at `HEAD` — checked, not assumed.
+  `mdbook_docs_gate` (10/10 per-parser books + the live book) and `ebnf_parser_book_gate` both
+  GREEN. `scripts/check_doctrines.sh` **ALL 15 PASS** against the real staged diff, so the four
+  staged-scope doctrines bound rather than passing vacuously.
+- [x] **LOCKSTEP** — `docs/book/src/grammar-wellformedness.md` (the allowlist is two names;
+  the full three-removal account and why `undefined_references=0` now means something
+  different), `docs/ebnf_parser_book/src/terminals.md` (*"The complete built-in list"* —
+  three names → two, with the author-facing reason the list being short is what makes the
+  check trustworthy), the `.10.1` driver + its capture, `CHANGES.md`,
+  `LIVE_ACHIEVEMENT_STATUS.md`, `MEMORY.md`. No contract/manifest movement — nothing
+  generated moved.
 
 ### `.10.4` — `true` / `false`: always-succeeding zero-width builtins nobody uses (`done`)
 

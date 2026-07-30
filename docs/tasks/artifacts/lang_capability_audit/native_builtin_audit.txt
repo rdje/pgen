@@ -1,67 +1,38 @@
+ast_pipeline feature surface: AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true
 
 ===== A1. the allowlist, verbatim from the single source of truth =====
-      pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str] = &[
-          "builtin_any_char",
-          "builtin_ascii_char",
-          "semantic_annotation",
-      ];
-  OK  member count                                   got=3                        [want 3]
+      pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str] =
+          &["builtin_any_char", "builtin_ascii_char"];
+  OK  member count                                   got=2                        [want 2]
 
 ===== A2. tracked-grammar reference census (who names each member as a RULE REFERENCE?) =====
   builtin_any_char       referenced-by: regex.ebnf
   builtin_ascii_char     referenced-by: regex.ebnf
-  semantic_annotation    referenced-by: ebnf.ebnf semantic_annotation.ebnf
 
 ===== A3. generated-parser census (who CONSUMES the synthesized native matcher?) =====
   builtin_any_char       emitted-in: regex_parser.rs
   builtin_ascii_char     emitted-in: regex_parser.rs
-  semantic_annotation    emitted-in: ebnf.rs semantic_annotation_parser.rs
   NOTE: generated/ is gitignored — regenerate with the per-grammar 'make -C rust focus_<g>'
         targets if a row reads (none) unexpectedly.
 
 ===== A3b. cross-check: does the text screen agree with codegen? =====
   OK  builtin_any_char: screen-empty == codegen-empty got=no                       [want no]
   OK  builtin_ascii_char: screen-empty == codegen-empty got=no                       [want no]
-  OK  semantic_annotation: screen-empty == codegen-empty got=no                       [want no]
   (Exact file lists differ by construction: a grammar that DEFINES the rule emits
    parse_<name> from its own definition, not from the native-builtin fallback —
    which is why semantic_annotation.ebnf appears on both sides for its own rule.)
 
 ===== A4. the masking: what the allowlist hides, and what it no longer hides =====
-  OK  undefined_references on 4 dangling refs        got=2                        [want 2]
+  OK  undefined_references on 4 dangling refs        got=3                        [want 3]
   OK  the linter now NAMES 'true'                    got=1                        [want 1]
   OK  the linter now NAMES 'false'                   got=1                        [want 1]
+  OK  the linter now NAMES 'semantic_annotation'     got=1                        [want 1]
   OK  undefined_references on 1 NON-member ref       got=1                        [want 1]
   => the check itself always worked; the ALLOWLIST decided what it could see.
-  => .10.4 gave 'true'/'false' back to it (0 -> 2 on this very grammar).
+  => .10.4 gave 'true'/'false' back to it (0 -> 2 on this very grammar),
+     .10.3 gave 'semantic_annotation' back too (2 -> 3).
 
 ===== A5. emitted matcher shape per member (codegen, not prose) =====
-  --- parse_semantic_annotation
-          pub fn parse_semantic_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
-              let checkpoint = self.position;
-              self.consume_optional_whitespace();
-              let start_pos = self.position;
-              if start_pos >= self.input.len() || self.input.as_bytes()[start_pos] != b'@' {
-                  self.position = checkpoint;
-                  return Err(ParseError::Backtrack {
-                      position: checkpoint,
-                  });
-              }
-              while self.position < self.input.len() {
-                  let b = self.input.as_bytes()[self.position];
-                  if b == b'\n' || b == b'\r' {
-                      break;
-                  }
-                  self.position += 1;
-              }
-              let end_pos = self.position;
-              let matched = &self.input[start_pos..end_pos];
-              Ok(ParseNode {
-                  rule_name: &"semantic_annotation",
-                  content: ParseContent::Terminal(matched),
-                  span: Span::new(start_pos, end_pos),
-              })
-          }
   --- parse_builtin_any_char
           pub fn parse_builtin_any_char(&mut self) -> ParseResult<ParseNode<'input>> {
               let start_pos = self.position;
@@ -93,16 +64,24 @@
                   position: self.position,
               })
           }
+  --- parse_semantic_annotation
+          pub fn parse_semantic_annotation(&mut self) -> ParseResult<ParseNode<'input>> {
+              Err(ParseError::Backtrack {
+                  position: self.position,
+              })
+          }
   OK  parse_true is the Backtrack stub               got=1                        [want 1]
   OK  parse_true never succeeds                      got=0                        [want 0]
   OK  parse_false is the Backtrack stub              got=1                        [want 1]
   OK  parse_false never succeeds                     got=0                        [want 0]
+  OK  parse_semantic_annotation is the Backtrack stub got=1                        [want 1]
+  OK  parse_semantic_annotation never succeeds       got=0                        [want 0]
   OK  parse_builtin_any_char consumes                got=1                        [want 1]
 
-===== B. ebnf.ebnf's delegated 'semantic_annotation': the two include candidates =====
-  OK  collisions: ebnf x semantic_annotation         got=15                       [want 15]
+===== B. why an include() could not have supplied 'semantic_annotation' (the .10.2 record) =====
+  OK  collisions: ebnf x semantic_annotation         got=16                       [want 16]
   OK  collisions: ebnf x builtin_semantic_annotation got=3                        [want 3]
-  full-grammar collisions: binary_literal block_comment boolean_literal decimal_literal double_quoted_string hexadecimal_literal identifier_literal integer_literal line_comment null_literal numeric_literal octal_literal scientific_literal single_quoted_string whitespace 
+  full-grammar collisions: binary_literal block_comment boolean_literal decimal_literal double_quoted_string hexadecimal_literal identifier_literal integer_literal line_comment null_literal numeric_literal octal_literal scientific_literal semantic_annotation single_quoted_string whitespace 
   builtin collisions:      boolean_literal identifier_literal null_literal 
     CONFLICT  binary_literal
     CONFLICT  block_comment
@@ -113,9 +92,10 @@
     CONFLICT  line_comment
     CONFLICT  null_literal
     CONFLICT  octal_literal
+    CONFLICT  semantic_annotation
     CONFLICT  single_quoted_string
     CONFLICT  whitespace
-  OK  collisions that are genuine CONFLICTS          got=11                       [want 11]
+  OK  collisions that are genuine CONFLICTS          got=12                       [want 12]
   OK  collisions that are duplicates                 got=4                        [want 4]
   entry rule, semantic_annotation.ebnf : semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
   entry rule, builtin_...ebnf         : builtin_semantic_annotation := ws* semantic_payload ws*
@@ -125,13 +105,21 @@
   OK  builtin_...ebnf matches the '@'                got=0                        [want 0]
 
 ===== C. BEHAVIOUR through the scratch slot (opt-in: PGEN_AUDIT_RUN_SLOT_ARM=1) =====
-  OK  true no longer matches empty [TT]              got=REJECT                   [want REJECT]
-  OK  true is not a literal [TtrueT]                 got=REJECT                   [want REJECT]
-  OK  false no longer matches empty [FF]             got=REJECT                   [want REJECT]
-  OK  semantic_annotation @-line [A@name: value]     got=ACCEPT                   [want ACCEPT]
-  OK  semantic_annotation needs @ [Aname: value]     got=REJECT                   [want REJECT]
-  OK  builtin_any_char consumes [CzC]                got=ACCEPT                   [want ACCEPT]
-  OK  builtin_any_char not empty [CC]                got=REJECT                   [want REJECT]
+  SKIPPED (set PGEN_AUDIT_RUN_SLOT_ARM=1 to run; it overwrites grammars/scratch/scratch.ebnf
+  and rebuilds parseability_probe, then restores the slot + its artifact on exit).
+  Verdicts recorded by the capture, all 7 OK, 0 divergences
+  (arrow = the pre-fix verdict this replaced):
+    TT             REJECT   <- .10.4: was ACCEPT, 'true' matched EMPTY.  THE FIX.
+    TtrueT         REJECT   <- unchanged; never was a literal matcher
+    FF             REJECT   <- .10.4: was ACCEPT, 'false' matched EMPTY. THE FIX.
+    A@name: value  REJECT   <- .10.3: was ACCEPT, the native @-to-EOL matcher
+                                ran here. Its removal IS the fix; a grammar that
+                                wants annotations must now define the rule.
+    Aname: value   REJECT   <- unchanged, but now for the ordinary reason (the
+                                reference is a never-matching stub), not because
+                                a native matcher demanded the '@'
+    CzC            ACCEPT   <- unchanged; builtin_any_char CONSUMES one char
+    CC             REJECT   <- unchanged; and refuses to match empty
 
 ===== RESULT =====
   ✅ 0 divergences — every declared verdict held.

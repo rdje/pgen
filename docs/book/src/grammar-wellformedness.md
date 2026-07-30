@@ -1437,7 +1437,7 @@ moment it emits a stub. Two deliberate design points: the check runs against the
 grammar (codegen always compiles the *full* grammar — profile selection is a runtime guard — so
 `@profiles`-gated definitions deliberately stripped from a filtered lint view must not read as
 dangling), and the allowlist of intentionally-undefined names is **codegen's own native-builtin
-set** (`builtin_any_char`, `builtin_ascii_char`, `semantic_annotation`), consumed
+set** (`builtin_any_char`, `builtin_ascii_char`), consumed
 from the single `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` constant and locked to the dispatch by an
 oracle test — the linter can never drift from what codegen actually synthesizes.
 
@@ -1445,13 +1445,28 @@ That coupling has a sharp edge worth stating plainly, because it cost a whole le
 (`LANG-CAPABILITY-AUDIT.10.1`): **every name on that list is also removed from this check's sight.**
 Sharing the const is what stops linter and codegen drifting apart, but it means allowlisting a name
 *for codegen* necessarily blinds the diagnostic *to that name* — so `undefined_references=0` says
-"no dangling reference **outside the allowlist**", not "this grammar is sound". `grammars/ebnf.ebnf`
-reports 0 while carrying three live references to a rule nothing defines. The audit that found this
-also found that two members, `true` and `false`, compiled to matchers that always succeeded and
-consumed nothing while being invisible here; both were removed in `LANG-CAPABILITY-AUDIT.10.4`
-(measured on one probe grammar: `undefined_references` 0 → 2, with the linter naming both). The
-list is now three names, and the standing rule is that a name goes on it only when it genuinely is
-a codegen primitive — never to quiet a diagnostic.
+"no dangling reference **outside the allowlist**", not "this grammar is sound". At the time of that
+audit `grammars/ebnf.ebnf` reported 0 while carrying three live references to a rule nothing
+defines.
+
+**All three non-primitives are now gone, and the two statements have converged.** `true` and
+`false` compiled to matchers that always succeeded and consumed nothing while being invisible
+here; both were removed in `LANG-CAPABILITY-AUDIT.10.4` (measured on one probe grammar:
+`undefined_references` 0 → 2, with the linter naming both). `semantic_annotation` was the third:
+it compiled to an `@`-to-end-of-line slurp that existed only to stand in for the meta-grammar's
+broken `include`, and it was a *correctness ceiling* as well as a blind spot — a line-bounded
+matcher cannot express the multi-line `@dispatch: { … }` payload, which is what held self-hosting
+at 11/12 (see the self-hosting section below). `LANG-CAPABILITY-AUDIT.10.2` gave `ebnf.ebnf` its
+own `semantic_annotation` rule and `.10.3` removed the allowlist entry and the synthesized
+matcher, measured on the same probe grammar (`undefined_references` 2 → 3, the linter naming it)
+and — the sharper oracle — leaving `generated/ebnf.rs` **byte-identical**, which is what proves
+the fallback was genuinely unreached rather than merely believed to be.
+
+The list is now **two names**, both `builtin_`-prefixed, and the standing rule is that a name goes
+on it only when it genuinely is a codegen primitive — never to quiet a diagnostic. The payoff is
+that `grammars/ebnf.ebnf` still reports `undefined_references=0`, but now *because the grammar is
+sound* rather than because a name was allowlisted — a distinction the check could not previously
+make about itself.
 
 It *also* observes — but no longer as a *verdict* — an **earlier alternative that always succeeds**.
 In an ordered choice `a | b`, if `a` can never fail (it is `e?`, `e*`, an all-optional sequence, or a

@@ -1204,26 +1204,32 @@ impl AstBasedGenerator {
     ///   grammar-consumable primitives (director 2026-06-07). The `builtin_`
     ///   prefix is load-bearing: it namespaces them so an ordinary grammar rule
     ///   can never shadow one (e.g. `grammars/regex.ebnf`'s own `any_char`).
-    /// - `semantic_annotation` — the native `@…`-line matcher. ⚠️ NOT a
-    ///   primitive: it is a real rule in `grammars/semantic_annotation.ebnf`,
-    ///   and its sole consumer is `grammars/ebnf.ebnf`, which needs it only
-    ///   because that grammar's `include` is broken. Slated for retirement by
-    ///   `LANG-CAPABILITY-AUDIT.10.3`, strictly after `.10.2` repairs the
-    ///   include — retiring it first would break the self-hosting meta-parser.
     ///
-    /// `true` / `false` were removed by `LANG-CAPABILITY-AUDIT.10.4`. They
-    /// synthesized unconditional zero-width matchers — `"T" true "T"` accepted
-    /// `TT` — so a rule reference to either name silently matched EMPTY while
-    /// the linter reported `undefined_references=0`. No tracked grammar
-    /// referenced them; grammars spell those words as quoted terminals
-    /// (`("true" | "false")`), which never touched this path. Do not re-add
-    /// them: un-prefixed names are shadowable by ordinary rules, which is
-    /// exactly what the `builtin_` rule exists to prevent.
-    pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str] = &[
-        "builtin_any_char",
-        "builtin_ascii_char",
-        "semantic_annotation",
-    ];
+    /// Three names have been REMOVED for cause, and none may come back:
+    ///
+    /// - `true` / `false` (`LANG-CAPABILITY-AUDIT.10.4`) synthesized
+    ///   unconditional zero-width matchers — `"T" true "T"` accepted `TT` — so
+    ///   a rule reference to either name silently matched EMPTY while the
+    ///   linter reported `undefined_references=0`. No tracked grammar
+    ///   referenced them; grammars spell those words as quoted terminals
+    ///   (`("true" | "false")`), which never touched this path.
+    /// - `semantic_annotation` (`LANG-CAPABILITY-AUDIT.10.3`) synthesized an
+    ///   `@`-to-END-OF-LINE slurp. It was never a primitive: it names a real
+    ///   rule in `grammars/semantic_annotation.ebnf`, and its only consumer was
+    ///   `grammars/ebnf.ebnf`, which referenced it from three sites while
+    ///   defining it nowhere — a broken `include` typo the allowlist entry hid
+    ///   (`.10.1` Finding 4). `.10.2` made the meta-grammar define the rule
+    ///   itself, so the entry became dead surface: removing it left
+    ///   `generated/ebnf.rs` BYTE-IDENTICAL. It was also a correctness ceiling
+    ///   while it lived — an end-of-line slurp cannot express the multi-line
+    ///   brace payload `@dispatch: { … }`, which is why self-hosting sat at
+    ///   11/12 (`.10.5`).
+    ///
+    /// Do not re-add any of the three: un-prefixed names are shadowable by
+    /// ordinary rules, which is exactly what the `builtin_` rule exists to
+    /// prevent, and each of these hid a defect rather than expressing one.
+    pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS: &'static [&'static str] =
+        &["builtin_any_char", "builtin_ascii_char"];
 
     fn generate_unresolved_reference_methods(
         &self,
@@ -1319,35 +1325,19 @@ impl AstBasedGenerator {
             // succeed, consume nothing, and report a `Terminal("true")` payload the
             // input never contained. Removed with the const entries; a reference to
             // either name is now an ordinary undefined reference the linter reports.
-            "semantic_annotation" => quote! {
-                pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
-                    let checkpoint = self.position;
-                    self.consume_optional_whitespace();
-                    let start_pos = self.position;
-                    if start_pos >= self.input.len() || self.input.as_bytes()[start_pos] != b'@' {
-                        self.position = checkpoint;
-                        return Err(ParseError::Backtrack {
-                            position: checkpoint,
-                        });
-                    }
-
-                    while self.position < self.input.len() {
-                        let b = self.input.as_bytes()[self.position];
-                        if b == b'\n' || b == b'\r' {
-                            break;
-                        }
-                        self.position += 1;
-                    }
-
-                    let end_pos = self.position;
-                    let matched = &self.input[start_pos..end_pos];
-                    Ok(ParseNode {
-                        rule_name: &#rule_name,
-                        content: ParseContent::Terminal(matched),
-                        span: Span::new(start_pos, end_pos),
-                    })
-                }
-            },
+            //
+            // LANG-CAPABILITY-AUDIT.10.3: the `"semantic_annotation"` arm lived here
+            // too and emitted an `@`-to-END-OF-LINE slurp (skip layout, require `@`,
+            // consume to the next `\n`/`\r`). It served exactly one grammar,
+            // `grammars/ebnf.ebnf`, which referenced the name from three sites and
+            // defined it nowhere — so the arm was substituting for a broken
+            // `include`, not providing a primitive, while the shared allowlist also
+            // blinded the linter to the dangling reference. `.10.2` gave the
+            // meta-grammar its own `semantic_annotation` rule (a delimiter with an
+            // opaque, brace-balanced payload — what the end-of-line slurp structurally
+            // could not express), after which this arm was unreachable: deleting it
+            // left `generated/ebnf.rs` byte-identical. A reference to the name is now
+            // an ordinary undefined reference the linter reports.
             // REGEX-SELF-HOSTING.2/.5b: built-in native any-single-character matcher. A grammar that
             // REFERENCES `builtin_any_char` without DEFINING it gets this native matcher instead of the
             // Backtrack stub — consume exactly one Unicode scalar value (advance by its UTF-8 byte
@@ -14794,17 +14784,33 @@ mod semantic_usage_tests {
         // growth/shrink so a dispatch edit forces a conscious update here.
         assert_eq!(
             AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS.len(),
-            3,
+            2,
             "the native-builtin allowlist changed — update the linter docs/book and this count"
         );
-        // LANG-CAPABILITY-AUDIT.10.4: these two are gone for cause (unconditional
-        // zero-width matchers). Pin their ABSENCE, not just the count, so re-adding
-        // one while dropping another cannot slip through on an unchanged length.
-        for removed in ["true", "false"] {
+        // These three are gone for cause. Pin their ABSENCE, not just the count, so
+        // re-adding one while dropping another cannot slip through on an unchanged
+        // length.
+        for (removed, why) in [
+            (
+                "true",
+                "LANG-CAPABILITY-AUDIT.10.4 — it matched EMPTY (unconditional zero-width `Ok`) \
+                 while the linter reported undefined_references=0",
+            ),
+            (
+                "false",
+                "LANG-CAPABILITY-AUDIT.10.4 — it matched EMPTY (unconditional zero-width `Ok`) \
+                 while the linter reported undefined_references=0",
+            ),
+            (
+                "semantic_annotation",
+                "LANG-CAPABILITY-AUDIT.10.3 — an `@`-to-end-of-line slurp standing in for \
+                 grammars/ebnf.ebnf's broken include, which also blinded the linter to three \
+                 dangling references; .10.2 made that grammar define the rule itself",
+            ),
+        ] {
             assert!(
                 !AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS.contains(&removed),
-                "'{removed}' was removed by LANG-CAPABILITY-AUDIT.10.4 because it matched \
-                 EMPTY while the linter reported undefined_references=0 — do not re-add it"
+                "'{removed}' was removed by {why} — do not re-add it"
             );
         }
     }

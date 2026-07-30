@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
-# LANG-CAPABILITY-AUDIT.10.1 / .10.4 — audit every member of
+# LANG-CAPABILITY-AUDIT.10.1 / .10.3 / .10.4 — audit every member of
 # `AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`.
 #
 # The question per member: is it a GENUINE codegen builtin (a deliberately
 # grammar-consumable primitive with a real native matcher), or a SILENCED DEFECT
 # (a name allowlisted so the undefined-reference check stops reporting it)?
 #
-# .10.1 asked it of all five members and convicted two: `true` and `false` compiled
-# to unconditional ZERO-WIDTH matchers, so `"T" true "T"` ACCEPTED `TT`. .10.4
-# removed both. This driver now asserts the POST-FIX truth; the pre-fix capture
-# (the same driver, declaring the defect's verdicts) is preserved in git at commit
-# `c3d9b000`. Re-running it against a tree where the trap came back FAILS loudly.
+# .10.1 asked it of all five members and convicted THREE. `true` and `false` compiled
+# to unconditional ZERO-WIDTH matchers, so `"T" true "T"` ACCEPTED `TT`; .10.4 removed
+# both. `semantic_annotation` compiled to an `@`-to-end-of-line slurp standing in for
+# `grammars/ebnf.ebnf`'s broken `include`; .10.2 gave that grammar its own rule and
+# .10.3 removed the entry. The allowlist is down to the two `builtin_`-prefixed
+# primitives. This driver asserts the POST-FIX truth; the pre-fix capture (the same
+# driver, declaring the defect's verdicts) is preserved in git at commit `c3d9b000`.
+# Re-running it against a tree where any of the three came back FAILS loudly.
 #
 # Re-run:  bash docs/tasks/artifacts/lang_capability_audit/run_native_builtin_audit.sh
 # Capture: docs/tasks/artifacts/lang_capability_audit/native_builtin_audit.txt
@@ -34,12 +37,31 @@ cd "$REPO_ROOT"
 
 PIPELINE="rust/target/debug/ast_pipeline"
 [[ -x "$PIPELINE" ]] || PIPELINE="rust/target/release/ast_pipeline"
+REBUILD="(cd rust && cargo build --features 'generated_parsers ebnf_dual_run' --bin ast_pipeline)"
 if [[ ! -x "$PIPELINE" ]]; then
   echo "FATAL: no ast_pipeline binary; build with" >&2
-  echo "  (cd rust && cargo build --features 'generated_parsers ebnf_dual_run' --bin ast_pipeline)" >&2
+  echo "  $REBUILD" >&2
   exit 2
 fi
 PIPELINE="$REPO_ROOT/$PIPELINE"
+
+# ⛔ FEATURE-SURFACE TRIPWIRE (.10.3). Every lint arm below reads a `.ebnf` DIRECTLY, which
+# needs `--features ebnf_dual_run`. A binary without it does not error usefully — the arms
+# just fail and every declared verdict diverges, which reads as "the fix regressed" when it
+# is really "the binary is wrong". This is the #140-class trap TOOLBOX.md names: `make
+# focus_<g>` and `regex_parser_bootstrap` both rebuild `rust/target/debug/ast_pipeline` at
+# the SAME PATH with a DIFFERENT feature set, so any regeneration run silently disarms this
+# driver. Measured: a canonical `focus_*` sweep left `ebnf_dual_run=false` and turned a
+# 0-divergence capture into 9. REFUSE up front, with the exact rebuild command, rather than
+# report a false regression ([[feedback_instrument_needs_ground_truth]]).
+SURFACE="$("$PIPELINE" --report-feature-surface 2>&1 | head -1)"
+if [[ "$SURFACE" != *"ebnf_dual_run=true"* ]]; then
+  echo "FATAL: $PIPELINE cannot read a .ebnf directly — every lint arm would fail." >&2
+  echo "  reported: $SURFACE" >&2
+  echo "  rebuild:  $REBUILD" >&2
+  exit 2
+fi
+echo "ast_pipeline feature surface: $SURFACE"
 
 GEN="rust/src/ast_pipeline/ast_based_generator.rs"
 WORK="$(mktemp -d)"
@@ -62,9 +84,12 @@ undef_refs() { "$PIPELINE" --lint-grammar "$1" 2>&1 | grep -oE "undefined_refere
 # ---------------------------------------------------------------------------
 hdr "A1. the allowlist, verbatim from the single source of truth"
 sed -n '/pub const NATIVE_UNRESOLVED_REFERENCE_BUILTINS/,/\];/p' "$GEN" | sed 's/^/  /'
-MEMBERS=(builtin_any_char builtin_ascii_char semantic_annotation)
-want "member count" "${#MEMBERS[@]}" "3"
-RETIRED=(true false)   # .10.4 — must NOT be on the list, and must NOT be zero-width
+MEMBERS=(builtin_any_char builtin_ascii_char)
+want "member count" "${#MEMBERS[@]}" "2"
+# Retired for cause — must NOT be on the list, and must NOT synthesize a matcher.
+#   true / false          .10.4 — unconditional zero-width `Ok`
+#   semantic_annotation   .10.3 — an `@`-to-end-of-line slurp covering a broken include
+RETIRED=(true false semantic_annotation)
 
 # ---------------------------------------------------------------------------
 hdr "A2. tracked-grammar reference census (who names each member as a RULE REFERENCE?)"
@@ -129,10 +154,10 @@ probe_false := "F" false "F"
 probe_annot := "A" semantic_annotation
 probe_any := "C" builtin_any_char "C"
 EOF
-# The probe names FOUR undefined rules. Before .10.4 all four were allowlisted and
-# the grammar lint-reported 0. Now only `semantic_annotation` and `builtin_any_char`
-# are, so exactly the two retired names must surface.
-want "undefined_references on 4 dangling refs" "$(undef_refs "$WORK/masked.ebnf")" "2"
+# The probe names FOUR undefined rules. Before .10.4 all four were allowlisted and the
+# grammar lint-reported 0; .10.4 surfaced two, .10.3 a third. Only `builtin_any_char`
+# is still allowlisted, so exactly the three retired names must surface.
+want "undefined_references on 4 dangling refs" "$(undef_refs "$WORK/masked.ebnf")" "3"
 for r in "${RETIRED[@]}"; do
   named="$("$PIPELINE" --lint-grammar "$WORK/masked.ebnf" 2>&1 | grep -c "UNDEFINED rule '$r'")"
   want "the linter now NAMES '$r'" "$named" "1"
@@ -143,13 +168,14 @@ scratch := "T" not_on_the_allowlist "T"
 EOF
 want "undefined_references on 1 NON-member ref" "$(undef_refs "$WORK/unmasked.ebnf")" "1"
 echo "  => the check itself always worked; the ALLOWLIST decided what it could see."
-echo "  => .10.4 gave 'true'/'false' back to it (0 -> 2 on this very grammar)."
+echo "  => .10.4 gave 'true'/'false' back to it (0 -> 2 on this very grammar),"
+echo "     .10.3 gave 'semantic_annotation' back too (2 -> 3)."
 
 # ---------------------------------------------------------------------------
 hdr "A5. emitted matcher shape per member (codegen, not prose)"
 "$PIPELINE" "$WORK/masked.ebnf" --generate-parser --bootstrap-mode \
   --output "$WORK/masked_parser.rs" >/dev/null 2>&1
-for m in semantic_annotation builtin_any_char "${RETIRED[@]}"; do
+for m in builtin_any_char "${RETIRED[@]}"; do
   printf '  --- parse_%s\n' "$m"
   # index(), not a regex: "parse_true(" contains `(`, which is not a valid ERE atom.
   awk -v needle="pub fn parse_${m}(" 'index($0, needle) {p=1} p {print "      "$0} p && /^    }$/ {exit}' \
@@ -168,14 +194,22 @@ aw="$(awk '/pub fn parse_builtin_any_char\(/,/^    }$/' "$WORK/masked_parser.rs"
 want "parse_builtin_any_char consumes" "$aw" "1"
 
 # ---------------------------------------------------------------------------
-hdr "B. ebnf.ebnf's delegated 'semantic_annotation': the two include candidates"
+hdr "B. why an include() could not have supplied 'semantic_annotation' (the .10.2 record)"
+# ⚠️ THESE NUMBERS MOVED WHEN .10.2 LANDED, AND THAT LEAF DID NOT UPDATE THEM — this
+# driver reported 2 divergences from `PGEN-LANG-CAPABILITY-AUDIT-0021` until .10.3
+# re-declared them. The movement is exactly +1 on both counters and it is the OPTION-B
+# FIX ITSELF: `ebnf.ebnf` now DEFINES `semantic_annotation` locally, so that name became
+# a 16th collision with `semantic_annotation.ebnf` and a 12th genuine conflict (the two
+# definitions are deliberately different — a delimiter with an opaque payload here vs.
+# the full payload spec there). The arm's conclusion is unchanged and strengthened: a
+# whole-file include was never viable, which is why option B won.
 rule_names() { grep -oE '^[A-Za-z_][A-Za-z0-9_]*[[:space:]]*:=' "$1" | sed 's/[[:space:]]*:=//' | sort -u; }
 rule_names grammars/ebnf.ebnf > "$WORK/e.txt"
 rule_names grammars/semantic_annotation.ebnf > "$WORK/s.txt"
 rule_names grammars/builtin_semantic_annotation.ebnf > "$WORK/b.txt"
 comm -12 "$WORK/e.txt" "$WORK/s.txt" > "$WORK/coll_full.txt"
 comm -12 "$WORK/e.txt" "$WORK/b.txt" > "$WORK/coll_builtin.txt"
-want "collisions: ebnf x semantic_annotation" "$(wc -l < "$WORK/coll_full.txt" | tr -d ' ')" "15"
+want "collisions: ebnf x semantic_annotation" "$(wc -l < "$WORK/coll_full.txt" | tr -d ' ')" "16"
 want "collisions: ebnf x builtin_semantic_annotation" "$(wc -l < "$WORK/coll_builtin.txt" | tr -d ' ')" "3"
 echo "  full-grammar collisions: $(tr '\n' ' ' < "$WORK/coll_full.txt")"
 echo "  builtin collisions:      $(tr '\n' ' ' < "$WORK/coll_builtin.txt")"
@@ -188,7 +222,7 @@ for r in $(cat "$WORK/coll_full.txt"); do
   b="$(extract grammars/semantic_annotation.ebnf "$r" | grep -v '^[[:space:]]*#' | tr -d ' \t\n')"
   if [[ "$a" == "$b" ]]; then same=$((same+1)); else diff_=$((diff_+1)); printf '    CONFLICT  %s\n' "$r"; fi
 done
-want "collisions that are genuine CONFLICTS" "$diff_" "11"
+want "collisions that are genuine CONFLICTS" "$diff_" "12"
 want "collisions that are duplicates" "$same" "4"
 
 # Shape: which candidate's entry rule actually matches an `@name: value` LINE?
@@ -207,12 +241,16 @@ if [[ "${PGEN_AUDIT_RUN_SLOT_ARM:-0}" != "1" ]]; then
   echo "  SKIPPED (set PGEN_AUDIT_RUN_SLOT_ARM=1 to run; it overwrites grammars/scratch/scratch.ebnf"
   echo "  and rebuilds parseability_probe, then restores the slot + its artifact on exit)."
   echo "  Verdicts recorded by the capture, all 7 OK, 0 divergences"
-  echo "  (arrow = the .10.1 pre-fix verdict this replaced):"
-  echo "    TT             REJECT   <- was ACCEPT: 'true' matched EMPTY.  THE FIX."
+  echo "  (arrow = the pre-fix verdict this replaced):"
+  echo "    TT             REJECT   <- .10.4: was ACCEPT, 'true' matched EMPTY.  THE FIX."
   echo "    TtrueT         REJECT   <- unchanged; never was a literal matcher"
-  echo "    FF             REJECT   <- was ACCEPT: 'false' matched EMPTY. THE FIX."
-  echo "    A@name: value  ACCEPT   <- unchanged; native @-to-EOL matcher still live"
-  echo "    Aname: value   REJECT   <- unchanged; it does require the '@'"
+  echo "    FF             REJECT   <- .10.4: was ACCEPT, 'false' matched EMPTY. THE FIX."
+  echo "    A@name: value  REJECT   <- .10.3: was ACCEPT, the native @-to-EOL matcher"
+  echo "                                ran here. Its removal IS the fix; a grammar that"
+  echo "                                wants annotations must now define the rule."
+  echo "    Aname: value   REJECT   <- unchanged, but now for the ordinary reason (the"
+  echo "                                reference is a never-matching stub), not because"
+  echo "                                a native matcher demanded the '@'"
   echo "    CzC            ACCEPT   <- unchanged; builtin_any_char CONSUMES one char"
   echo "    CC             REJECT   <- unchanged; and refuses to match empty"
 else
@@ -246,7 +284,9 @@ else
     probe "true no longer matches empty" "TT"         REJECT
     probe "true is not a literal"     "TtrueT"        REJECT
     probe "false no longer matches empty" "FF"        REJECT
-    probe "semantic_annotation @-line" "A@name: value" ACCEPT
+    # .10.3: this one flipped ACCEPT -> REJECT for the same reason — the synthesized
+    # matcher is gone, so `probe_annot := "A" semantic_annotation` is a dead production.
+    probe "semantic_annotation @-line" "A@name: value" REJECT
     probe "semantic_annotation needs @" "Aname: value" REJECT
     probe "builtin_any_char consumes"  "CzC"          ACCEPT
     probe "builtin_any_char not empty" "CC"           REJECT

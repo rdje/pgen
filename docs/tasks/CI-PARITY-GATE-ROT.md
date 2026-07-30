@@ -1466,6 +1466,48 @@ and pricing that is worth more than guessing at it (`GENERATED-LINT-CORRECTNESS.
 
 ---
 
+### `.19` — `regenerate_generated_parsers` fails on any WARM tree, in 15 seconds (`todo`)
+
+- **Status: `todo`** — opened 2026-07-31 session #229 by `LANG-CAPABILITY-AUDIT.10.3`, which ran
+  the target for a byte-identity sweep and had to fall back to the per-family `focus_*` path.
+- ⛔ **The target the README's Quick Start tells a fresh clone to run, and the single home of the
+  regeneration recipe (`.4`), does not work on a tree that already has `generated/`.** Measured
+  end-to-end under the memory guard: `exit=2`, `peak_tree_rss=1614MB`, `elapsed=15s`.
+- **WHY + WHERE, mechanically:**
+  1. `regenerate_generated_parsers` (`rust/Makefile:906`) → `regex_parser_bootstrap` (`:818`).
+  2. `generated/ebnf.rs` exists, so the else-branch at `:837` runs a **raw**
+     `cargo build --features ebnf_dual_run --bin ast_pipeline` to check the artifact still
+     compiles. That writes **`rust/target/debug/ast_pipeline`** — the same path as
+     `$(RUST_AST_PIPELINE)` (`:159`), which is defined to be the **`--features
+     generated_parsers`** binary — and refreshes its mtime.
+  3. `$(MAKE) regex_parser` (`:851`) then finds `$(RUST_AST_PIPELINE)` newer than
+     `$(AST_PIPELINE_SOURCES)`, so make declares it up to date and never rebuilds it.
+  4. The generation step runs the wrong-feature binary and REFUSES, correctly and loudly:
+     `REFUSED: semantic annotation '@whitespace_sensitive: true' needs the generated annotation
+     backend, but this binary was built WITHOUT --features generated_parsers`. The refusal is the
+     `RGX-0078.5.i.1.t1` guard doing its job — the defect is upstream of it.
+- **Why a COLD clone escapes it:** with `generated/` empty, `$(RUST_AST_PIPELINE)`'s prerequisites
+  (`$(SEMANTIC_ANNOTATION_PARSER)`, `$(RETURN_ANNOTATION_PARSER)`) are missing, so make *does*
+  rebuild the binary with the right features. ⇒ the flow is only ever exercised in the
+  configuration that hides the bug, which is why it has stood.
+- ⭐ **This is the `#140`-class trap TOOLBOX.md already names — two feature sets, one output
+  path — promoted from a hazard to a broken target.** `parse_harness` defends against it with a
+  pre-flight `--report-feature-surface` probe; the Makefile has no equivalent.
+- ⚠️ **It also leaves damage:** the run got as far as rewriting `generated/regex.json` before
+  refusing, so a failed invocation mutates `generated/` and exits.
+- ⚠️ **ROUTED, not worked** ([[feedback_flow_findings_are_routed_not_worked]]): it does not make
+  any verdict untrustworthy — the per-family `focus_*` targets are canonical and were used
+  instead, with all 11 generated parsers proven byte-identical. It costs the one-command
+  regeneration path, which is a real cost for CI and for downstream consumers like RGX.
+- **Scope when taken up:** give `$(RUST_AST_PIPELINE)` a feature-surface pre-flight (the same
+  `--report-feature-surface` probe, rebuilding when it does not match) rather than trusting mtime;
+  or stop the two feature sets sharing an output path (the dedicated
+  `$(RUST_EBNF_FRONTEND_BIN)` at `:163` already models the separate-`--target-dir` answer). Then
+  add a warm-tree invocation to the automatic tier so the configuration that hides the bug is no
+  longer the only one tested.
+
+---
+
 ### `.18` — two separable `sota_exit_gate.sh` defects found while working `.11` (`todo`)
 
 - **Status: `todo`** — opened 2026-07-30 session #228 by `.11`, which measured both while verifying in

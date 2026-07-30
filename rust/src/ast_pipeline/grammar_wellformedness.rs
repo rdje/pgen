@@ -175,7 +175,11 @@ impl WellformednessIssue {
 /// resolves it elsewhere) — it is treated as a terminating atom (length 1), NOT a dead
 /// end, so a rule that merely references an included rule is never mis-flagged as
 /// non-terminating. Without this, standalone analysis of a grammar with includes
-/// false-positives (e.g. ebnf.ebnf's `annotation_list := semantic_annotation+`).
+/// false-positives — e.g. `grammars/systemverilog_lrm_profiled_wrapper.ebnf`, whose
+/// body is `include("systemverilog_lrm_profiled_generated")`. (The example that used
+/// to stand here — ebnf.ebnf's `annotation_list := semantic_annotation+` — was NOT
+/// one: that reference was dangling, not included, which is exactly the defect
+/// `LANG-CAPABILITY-AUDIT.10.2` fixed by defining the rule locally.)
 fn node_min_terminal_length(
     node: &ASTNode,
     min_len: &HashMap<String, usize>,
@@ -3167,8 +3171,10 @@ mod tests {
     #[test]
     fn detects_undefined_reference_silent_on_native_builtins() {
         // Every codegen-native builtin is allowlisted straight from the codegen const — the
-        // single source of truth — so intentional native references (regex's builtin_any_char,
-        // the annotation grammars' semantic_annotation) never fire the diagnostic.
+        // single source of truth — so intentional native references (regex's
+        // `builtin_any_char` / `builtin_ascii_char`) never fire the diagnostic. The list is
+        // deliberately short: `LANG-CAPABILITY-AUDIT.10.3`/`.10.4` retired the three
+        // non-primitives that were on it, each of which had been hiding a real defect.
         let natives = crate::ast_pipeline::ast_based_generator::AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS;
         let mut elements: Vec<ASTNode> = natives.iter().map(|n| rule_ref(n)).collect();
         elements.push(token("string", "x"));

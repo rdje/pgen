@@ -1,5 +1,75 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0023 — leaf LANG-CAPABILITY-AUDIT.10.3: the last non-primitive leaves the builtin allowlist, and `generated/ebnf.rs` does not move by a single byte
+
+`NATIVE_UNRESOLVED_REFERENCE_BUILTINS` is **3 -> 2 members**. Every generated artifact is
+BYTE-IDENTICAL, so no release/schema/ledger/contract movement and no tracker row moves.
+
+- ⭐ EVERY NAME EVER REMOVED FROM THAT ALLOWLIST WAS HIDING A DEFECT, and the list is now
+  exactly the two `builtin_`-namespaced primitives:
+    true / false          .10.4  unconditional ZERO-WIDTH matchers ("T" true "T" accepted TT)
+    semantic_annotation   .10.3  an @-to-END-OF-LINE slurp standing in for grammars/ebnf.ebnf's
+                                 broken include — and a CORRECTNESS CEILING, since a
+                                 line-bounded matcher cannot express `@dispatch: { ... }`,
+                                 which is exactly what held self-hosting at 11/12 (.10.5)
+  Removed: the const entry (ast_based_generator.rs:1222), its 28-line dispatch arm (:1322), and
+  the false "used by the annotation grammars" rationale. Each removal is now RECORDED IN PLACE
+  with its reason, and the `native_unresolved_builtins_const_matches_dispatch` oracle pins all
+  three absences by name, so re-adding one while dropping another cannot pass on an unchanged
+  length.
+- ⭐⭐ THE SHARP ORACLE HELD — `generated/ebnf.rs` byte-identical before = after = shipped
+  (`7ce6578f799c36c79343f98c1e441feb70b453eee25be860ae64824f751938e5`). `.10.2` proved the
+  fallback was no longer REACHED; this proves it was no longer THERE. One moved byte would have
+  meant `.10.2` was incomplete.
+- ⚠️ `.10.1`'s OUTPUT-PATH TRAP FIRED FIRST, and is now banked with the protocol that works: the
+  generated parser embeds its own `-o` path as a string literal **3,231 times**, so a naive
+  scratch-path regeneration diffs against the shipped artifact in 6,462 lines and proves nothing.
+  Run each arm from its own working dir with the IDENTICAL relative `-o generated/ebnf.rs` (the
+  input JSON path is not embedded), and run the POSITIVE CONTROL first — the before-arm must
+  reproduce the shipped artifact — so a later match is evidence, not coincidence.
+- MEASURED UN-MASKING, both directions:
+    probe `"C" semantic_annotation "C"` (dangling)   undefined_references 0 -> 1, linter NAMES it
+    the .10.1 four-dangling-reference probe grammar  undefined_references 2 -> 3
+    grammars/ebnf.ebnf (138 rules)                   stays 0 — now BECAUSE THE GRAMMAR IS SOUND,
+                                                     the distinction .7 could not make
+    emitted parse_semantic_annotation on a dangling ref   the 28-line slurp -> bare Err(Backtrack)
+    scratch slot on `A@name: value`                  ACCEPT -> REJECT
+  Swept COMPLETE, not sampled: of 18 tracked grammars only ebnf.ebnf and semantic_annotation.ebnf
+  name the rule, and both DEFINE it => nothing else could move.
+- ⚠️ TWO STALE ARTIFACTS FOUND WHILE WORKING THIS LEAF, both fixed here:
+  (1) ⭐ `.10.2` LEFT THE `.10.1` AUDIT DRIVER RED AND DID NOT NOTICE — defining the rule made it
+      a 16th collision with semantic_annotation.ebnf and a 12th genuine conflict, while the driver
+      still declared 15/11, so `run_native_builtin_audit.sh` has reported 2 divergences since
+      `-0021`. Re-declared, with the reason they moved written next to them. GENERAL LESSON: a
+      leaf that changes a grammar must re-run every declared-verdict DRIVER that measures that
+      grammar, not only the gates.
+  (2) `grammar_wellformedness.rs:178` justified its include-handling with "e.g. ebnf.ebnf's
+      `annotation_list := semantic_annotation+`" — which was never an include, it was the dangling
+      reference. Re-pointed at the one tracked grammar that genuinely uses `include(...)`.
+- ⭐ THE DRIVER GAINED THE FEATURE-SURFACE TRIPWIRE IT LACKED. `make focus_*` rebuilds
+  `rust/target/debug/ast_pipeline` with a DIFFERENT feature set at the SAME PATH, so any
+  regeneration silently disarms the driver's `.ebnf`-reading arms — measured: it turned a
+  0-divergence capture into 9, which reads as "the fix regressed". It now probes
+  `--report-feature-surface` and REFUSES with the exact rebuild command.
+- ⚠️ ROUTED OUT (`CI-PARITY-GATE-ROT.19`): `make regenerate_generated_parsers` — the target the
+  README's Quick Start names — FAILS ON ANY WARM TREE in 15 s, for the same one-path/two-feature-
+  sets reason, and mutates `generated/` before refusing. A COLD clone escapes it, which is why it
+  has stood. Worked around canonically via the per-family `focus_*` targets.
+- VERIFIED: all 11 generated *.rs byte-identical across a canonical per-family regeneration;
+  `parse_harness_equivalence_gate` 4/4 GREEN; the const-dispatch oracle + 3
+  `detect_undefined_reference_*` tests green; audit driver `0 divergences` on arms A+B and 7/7
+  through the scratch slot; `clippy_on_rust_change` exit 0 (source-strict ok, 10/10 artifacts +
+  68/68 pinned correctness lints intact, deny-by-default generated stage pass) and every finding
+  in the three edited files sits outside the edited regions, present verbatim at HEAD — checked,
+  not assumed; 15/15 doctrines against the real staged diff; `mdbook_docs_gate` +
+  `ebnf_parser_book_gate` green. `docs/reference/RUST_CODEBASE_ANALYSIS.md` reviewed and NOT
+  changed: no Rust architecture, subsystem boundary or public integration seam moved, and the file
+  does not document the allowlist.
+- LOCKSTEP: `docs/book/src/grammar-wellformedness.md`, `docs/ebnf_parser_book/src/terminals.md`
+  ("The complete built-in list" — three names -> two, with the author-facing reason a SHORT list
+  is what makes `undefined_references` trustworthy), the `.10.1` driver + capture,
+  `LIVE_ACHIEVEMENT_STATUS.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0022 — handoff: both remaining items carry standing director approval, and two scope numbers of mine were WRONG
 
 Docs + layer-C only — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11

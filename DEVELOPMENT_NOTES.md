@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0023 — one output path, two feature sets, and a proof that had to be earned twice
+
+`LANG-CAPABILITY-AUDIT.10.3`. The code change was a deletion of 30 lines. Everything below is
+about what it took to *prove* the deletion was a no-op, and the three things that got in the way.
+
+- **A deletion's proof is stronger than its diff.** The leaf's whole value is the oracle, not the
+  edit: `.10.2` proved codegen's `semantic_annotation` fallback was no longer *reached*; removing
+  it proves it was no longer *there*. `generated/ebnf.rs` came back byte-identical, which is a
+  claim about `.10.2`'s completeness that no amount of re-reading `.10.2` could have produced. ⭐
+  **When retiring dead surface, look for the artifact that must NOT move — it is a sharper
+  instrument than any check that the remaining thing still works.**
+- **The artifact embeds its own output path, 3,231 times.** A generated parser carries
+  `let filename_str = "generated/ebnf.rs";` and thousands of error-reporting siblings, so
+  regenerating to a scratch `-o` diffs against the shipped artifact in 6,462 lines — a wall of
+  noise that looks exactly like a real divergence. The protocol that works: run each arm from its
+  own working directory with the **identical relative `-o`**, and run a **positive control** (the
+  before-arm must reproduce the shipped artifact byte-for-byte) *before* trusting a match. The
+  input JSON path is not embedded, so only `-o` needs pinning. `.10.1` banked this trap as a
+  one-line warning; this is the worked protocol.
+- ⭐⭐ **One binary path, two feature sets — this cost the most time and it is not a hazard, it is
+  a broken target.** `rust/target/debug/ast_pipeline` is `$(RUST_AST_PIPELINE)` (`--features
+  generated_parsers`), but `make focus_*` and `regex_parser_bootstrap` also write it with a
+  *different* feature set. Two consequences, both measured this session:
+  1. Any `.ebnf`-reading instrument silently loses `ebnf_dual_run` after a regeneration. The
+     `.10.1` audit driver went from `0 divergences` to `9` on an unchanged tree — a **false
+     regression report**, the worst failure mode an instrument has. Fixed by giving the driver the
+     same `--report-feature-surface` pre-flight `parse_harness` already uses: **refuse, with the
+     rebuild command, rather than answer** ([[feedback_instrument_needs_ground_truth]]).
+  2. `make regenerate_generated_parsers` — the target the README's Quick Start names, and the
+     single home of the regeneration recipe — **fails on any warm tree in 15 seconds**, because
+     make judges the wrong-feature binary up to date by mtime. A cold clone escapes it (the
+     annotation-parser prerequisites are missing, so make rebuilds), ⇒ **the flow is only ever
+     exercised in the configuration that hides the bug.** Routed to `CI-PARITY-GATE-ROT.19`.
+- ⚠️ **A leaf that changes a grammar must re-run every declared-verdict DRIVER that measures that
+  grammar, not only the gates.** `.10.2` defined `semantic_annotation` in `ebnf.ebnf`, which moved
+  the `.10.1` audit driver's collision counts 15→16 and 11→12; that leaf ran the gates, not the
+  driver, so `run_native_builtin_audit.sh` has reported 2 divergences ever since. A tracked
+  declared-verdict capture is a proof surface with the same rot exposure as a gate, and less
+  protection — nothing runs it automatically. Both numbers now carry the reason they moved, so the
+  movement reads as the fix it is rather than as drift.
+- **A comment can rot into a false example.** `grammar_wellformedness.rs:178` justified its
+  include-handling with *"e.g. ebnf.ebnf's `annotation_list := semantic_annotation+`"* — which was
+  never an include, it was the dangling reference the whole `.10` container exists to repair. The
+  code was right and its stated reason was wrong, which is the same shape as the const's own false
+  rationale this leaf deleted. Re-pointed at the one tracked grammar (1 of 18) that genuinely uses
+  `include(...)`, measured rather than assumed.
+
 ## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0015 — a grammar rule that made the parser unfalsifiable
 
 `LANG-CAPABILITY-AUDIT.10.5`. Two grammar files, one character each. Opened by `.10.2`'s own

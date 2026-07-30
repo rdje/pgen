@@ -468,9 +468,12 @@ fn rule_first_set(
 ///   `LANG-CAPABILITY-AUDIT.10.4` removed them from the const for exactly that reason
 ///   (a rule reference to either silently matched EMPTY). They are ordinary undefined
 ///   references now, so this summary must not resolve them.
-/// - `semantic_annotation` is NOT listed: its native matcher skips leading layout
-///   before requiring `@`, so first-byte peeking at the parse position is unsound —
-///   it stays `unresolved` (the caller's fallback).
+/// - `semantic_annotation` was never listed: while it was on the const its native
+///   matcher skipped leading layout before requiring `@`, so first-byte peeking at the
+///   parse position was unsound and it stayed `unresolved` (the caller's fallback).
+///   `LANG-CAPABILITY-AUDIT.10.3` then removed the const entry and the matcher
+///   outright, so it is an ordinary undefined reference now — same outcome here, for a
+///   stronger reason.
 fn native_builtin_first_set(rule_name: &str) -> Option<FirstSetSummary> {
     match rule_name {
         "builtin_ascii_char" => Some(FirstSetSummary {

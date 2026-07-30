@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3d888d22.js";
+            window.path_to_searchindex_js = "searchindex-cfa4a39d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -260,8 +260,8 @@ control_escape := "c" builtin_any_char -&gt; {type: "escape", kind: "control", c
 <p>This pair plus lookaheads is how a self-hosting grammar expresses “any character except …” without a
 character class.</p>
 <h2 id="the-complete-built-in-list"><a class="header" href="#the-complete-built-in-list">The complete built-in list</a></h2>
-<p>The <code>builtin_any_char</code> pair are not quite the only names codegen treats as built in. The full list
-is exactly three (<code>AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS</code>):</p>
+<p>The <code>builtin_any_char</code> pair are the <em>whole</em> list
+(<code>AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS</code>) — exactly two names:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -270,10 +270,25 @@ is exactly three (<code>AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS<
 <tbody>
 <tr><td><code>builtin_any_char</code></td><td>the single-UTF-8-character matcher above</td></tr>
 <tr><td><code>builtin_ascii_char</code></td><td>the single-ASCII-character matcher above</td></tr>
-<tr><td><code>semantic_annotation</code></td><td>an internal <code>@</code>-to-end-of-line matcher used by the meta-grammar — <strong>not</strong> a primitive you should reference; write your annotations as annotations</td></tr>
 </tbody>
 </table>
 </div>
+<blockquote>
+<p><strong>This list used to be longer, and every name that left it was hiding a bug.</strong> Until
+<code>LANG-CAPABILITY-AUDIT.10.4</code> it also carried <code>true</code> and <code>false</code>, which compiled to matchers that
+<em>always succeeded and consumed nothing</em> — <code>probe := "T" true "T"</code> accepted <code>TT</code>. Until
+<code>LANG-CAPABILITY-AUDIT.10.3</code> it carried <code>semantic_annotation</code>, an <code>@</code>-to-end-of-line matcher that
+existed only because the EBNF meta-grammar referenced that name without defining it; the entry
+stood in for a broken <code>include</code> and, being line-bounded, could not match a multi-line
+<code>@dispatch: { … }</code> payload at all. <code>grammars/ebnf.ebnf</code> now defines the rule itself, and all
+three names are ordinary undefined references — the linter reports them and codegen emits a
+never-matching stub. If your grammar needs to <em>parse</em> annotation lines, define a rule for them,
+the way the meta-grammar does; if it merely needs to <em>carry</em> annotations, see
+<a href="semantic-annotations.html">Semantic annotations</a> — those are read by PGEN, not by your parser.</p>
+<p>The reason this matters to <em>you</em>, not just to PGEN’s maintainers, is the coupling: the linter’s
+allowlist <strong>is</strong> this list, so anything on it is invisible to <code>undefined_references</code>. A short
+list is a check you can trust.</p>
+</blockquote>
 <p><strong>Every other undefined name is an error.</strong> A reference to a rule you never defined is reported by
 <code>--lint-grammar</code> as <code>undefined_references=N (error)</code> naming the exact rule and reference, and
 codegen emits a never-matching stub plus an unconditional warning — so the production dies loudly
