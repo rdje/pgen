@@ -1,5 +1,44 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-CI-PARITY-GATE-ROT-0024 — leaf CI-PARITY-GATE-ROT.7: sota_exit_gate is GREEN END-TO-END for the first time ever
+
+Docs + one captured evidence artifact — no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no
+`generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- `make -C rust SHELL=/bin/bash sota_exit_gate` acceptance run 4 reached the end: `exit=0`,
+  `✅ SOTA exit aggregate gate passed`, guard `status=completed reason=none peak_rss_mb=10422
+  elapsed_s=16759` (4 h 39 m). Across four runs this aggregate had revealed SIX blockers, one per fix,
+  and no run had ever reached the end. Evidence
+  `docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_run4_green.txt`.
+- THE GREEN WAS AUDITED FOR BEING EARNED BEFORE BEING REPORTED, because `allow_informational_failures: 1`
+  is set and a passing aggregate could otherwise hide a permitted failure: **32 of 32** stages ok,
+  31 required + 1 informational with BOTH tiers passing, **0** fail, **0** skipped, and **0** stages
+  taking a `reuse existing … state` branch — so every stage produced its own evidence, which is `.7`'s
+  own fix proven in its real caller rather than in isolation.
+- THERE WAS NO 8th BLOCKER, and that is the finding. Run 3 died on `regex_parser_family_status_gate`'s
+  *tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'*; `DONE-BAR.2b` cleared it
+  by MAKING THE TRACKER TELL THE TRUTH, not by changing a gate. So this run is also the proof that
+  `.13`'s adjudication (the gate was right, the tracker was stale) was correct.
+- HONEST BOUNDS: one machine, one run, and the AUTOMATIC tier over the 123 `make` gate targets is still
+  ZERO — the defensible claim is "green on this machine at this commit", never "green no matter what".
+  It closes `.7` only; `CI-PARITY-GATE-ROT` stays `active` with `.10`/`.11`/`.16`/`.17` `todo`. No
+  tracker row is promoted.
+- CONSEQUENCE: `DONE-BAR.4` (the guarantee) had two blockers; this clears the first, leaving only the
+  escalated director call on resuming hosted auto-triggers => the guarantee is no longer waiting on a
+  broken flow but on a cost decision.
+- A THIRD REGEX CRITERION SURFACED THAT NO RECORD MENTIONS. The family-status gate ran to completion for
+  the first time and published `closure_criteria_satisfied 8 of 11` with three unmet, whose PRIMARY is
+  `stimuli_regex_parseability_parser_rejections_total=40 > 0`. The tracked record documents regex's
+  leg-1 debt as `final_targets=31` only, and a repo-wide grep finds that metric discussed exclusively
+  for the preprocessor (at 3), never for regex => closing the 31 alone would NOT close leg 1. Routed to
+  `REGEX-PCRE2-FIDELITY.ROUTED-IN-4` with the cross-family check recorded and deliberately NOT
+  diagnosed here.
+- Run 4 was deliberately launched AFTER `DONE-BAR.5f`'s trace-default fix, so it is that fix's in-situ
+  proof too: the aggregate's scratch tree finished at **2.8 GB** where run 3 left **198 GB**, the 12
+  replay shadow logs measure 1.1-10.1 kB each against ~20 GB apiece before, the gate's own summary now
+  prints `closed_loop_replay_trace_verbosity: none` with its discoverability note, and the aggregate got
+  CHEAPER (16,759 s vs run 3's 18,282 s) while running strictly more to completion.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0023 — leaf DONE-BAR.1a CORRECTION: a deterministic path bug was misdiagnosed as flakiness, and the probe's fixture was a transient artifact
 
 Probe driver + task tree + README — no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no

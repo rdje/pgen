@@ -1262,7 +1262,81 @@ the first thing to answer for each of the 13 — not assumed.
 
 ---
 
-### `.7` — ⛔ THE TREE'S CLOSURE WAS PREMATURE: `sota_exit_gate` is STILL RED, one sub-gate further on (`in-progress`)
+### `.7` — ✅ `sota_exit_gate` IS GREEN END-TO-END, FOR THE FIRST TIME (`done`, 2026-07-30 session #227, `PGEN-CI-PARITY-GATE-ROT-0024`)
+
+#### ✅ ACCEPTANCE MET — the criterion this leaf refused to weaken is satisfied
+
+`.7`'s stated acceptance was *"`make -C rust SHELL=/bin/bash sota_exit_gate` end-to-end … the
+aggregate is the claim"*, and the leaf explicitly forbade closing on sub-gate evidence. **Acceptance
+run 4 reached the end:**
+
+```
+✅ SOTA exit gate passed.
+✅ SOTA exit aggregate gate passed.
+memory-guard: completed exit=0 peak_tree_rss=10422MB elapsed=16759s
+```
+
+`guard status=completed reason=none exit=0 peak_rss_mb=10422 elapsed_s=16759` (**4 h 39 m**), launched
+2026-07-30 02:42 under `--budget-mb 16384 --timeout-s 25200`. Evidence
+`docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_run4_green.txt`.
+
+⭐⭐ **AND THE GREEN IS EARNED, NOT PERMITTED — checked before it was reported, because
+`allow_informational_failures: 1` is set and a passing aggregate could otherwise be hiding a failure:**
+
+| check | result |
+|---|---|
+| stages entered / ok / fail | **32 / 32 / 0** (the 33rd `==>` is the run's own header line) |
+| required vs informational | **31 required + 1 informational**, and the informational one (`sv_parse_full_ratio_promotion_gate`) also **passed** ⇒ the allowance permitted nothing |
+| stages skipped | **0** |
+| stages taking a `reuse existing … state` branch | **0** ⇒ ⭐ every stage PRODUCED its own evidence — `.7`'s own fix proven in its real caller, not just in isolation |
+| run 3 comparison | 32 entered / **30 ok / 1 fail**, dying at `regex_parser_family_status_gate` |
+
+⇒ the honest claim is no longer *"clears 30+ sub-gates and fails in the regex family"* but **"32 of 32,
+including the entire SV, VHDL and regex blocks, with nothing reused and nothing skipped."**
+
+⛔⛔ **WHY IT WENT GREEN IS NOT "the 8th blocker was fixed" — THERE WAS NO 8th BLOCKER.** Run 3 died on
+`regex_parser_family_status_gate`'s *tracker alignment mismatch: computed 'In Progress' but tracker says
+'Done'*. **`DONE-BAR.2b` moved that tracker row to `In Progress`** (session #224) — i.e. the blocker was
+cleared by *making the tracker tell the truth*, not by changing a gate. ⭐ **The gate was right and the
+tracker was stale, exactly as `.13` adjudicated**, and this run is the proof that the adjudication was
+correct. Run 4 now records `regex_family_status_regex_tracker_alignment_ok: true` with the family
+computing `In Progress` and **3** unmet closure criteria — a family honestly below the bar, which the
+aggregate accepts because the tracker says the same thing.
+
+⚠️ **HONEST BOUNDS, stated rather than implied:**
+
+- **This is ONE machine and ONE run.** The aggregate is reachable only when a human asks — `.6`'s
+  measurement stands: the AUTOMATIC tier over the 123 `make` gate targets is still **ZERO**. So the
+  defensible claim is *"green on this machine at this commit"*, not *"green no matter what"*.
+- **It does NOT close this tree.** `.10`, `.11`, `.16` and `.17` remain `todo`.
+- **It does not promote any tracker row.** Three of the four families with a status gate compute a tier
+  below `Done`, and the aggregate passing is consistent with that by design.
+- ⭐ Sequencing that paid off: run 4 was deliberately launched **after** `DONE-BAR.5f`'s trace-default
+  fix, so it is also the in-situ proof of that change — the aggregate's scratch tree finished at
+  **2.8 GB** where run 3 left **198 GB**, and the 12 replay shadow logs measure **1.1–10.1 kB** each
+  against the ~20 GB apiece they carried before.
+
+#### ⛔ A THIRD REGEX CRITERION SURFACED THAT NO RECORD MENTIONS — routed, not absorbed
+
+With alignment passing, the regex family-status gate ran to completion for the first time and published
+its **full** criteria set: `closure_criteria_satisfied 8 of 11`, **3** unmet —
+
+```
+["stimuli_regex_parseability_parser_rejections_total=40 > 0",
+ "stimuli_regex_final_targets=31 > 0",
+ "external_corpus_conformance_pass=false (leg3_surface=<none>)"]
+```
+
+⭐ The **primary** unmet criterion is `stimuli_parseability_parser_rejections_zero` at **40** — and the
+tracked record (`DONE-BAR`, `REGEX-PCRE2-FIDELITY`, `MEMORY.md`) documents regex's leg-1 debt as
+`final_targets=31` **only**. A repo-wide grep for `parseability_parser_rejections_total` finds it
+discussed exclusively for the **preprocessor** (`SV-EXH-PROOF`, at 3), never for regex. ⇒ **regex's
+leg-1 debt is larger than anything written down, and this is the first run that could see it** — every
+earlier run died before the criteria were computed. Routed to `REGEX-PCRE2-FIDELITY` as `ROUTED-IN-4`.
+
+---
+
+#### (historical) ⛔ THE TREE'S CLOSURE WAS PREMATURE: `sota_exit_gate` is STILL RED, one sub-gate further on
 
 #### ✅ THE FIX IS IMPLEMENTED AND PROBED (2026-07-29, `PGEN-CI-PARITY-GATE-ROT-0013`); ⏳ the end-to-end re-run is the outstanding acceptance
 
@@ -1359,16 +1433,19 @@ claim is *"it now clears 30+ required sub-gates including the entire SV and VHDL
 in the regex family"* — not *"one more fix and it is green."* ⇒ this leaf's original acceptance
 (*"green end-to-end"*) is **not** met and is not met by anything landed here.
 
-⏳ **OUTSTANDING — this leaf is NOT done:** `make -C rust SHELL=/bin/bash sota_exit_gate` end-to-end.
-The fix makes the aggregate run four sub-gates it previously suppressed, so the aggregate's cost
-will rise from the measured 4,249 s by an amount **not yet priced**. Until that run reaches the end,
-the tree stays open. ⛔ Do not close it on the sub-gate evidence alone — that is precisely the error
-this leaf exists to correct.
+✅ **DISCHARGED 2026-07-30 by acceptance run 4** (see the top of this leaf): end-to-end
+`exit=0`, 32 of 32 stages, nothing reused, nothing skipped. ⭐ The cost that was *"not yet priced"* is
+now measured: **16,759 s (4 h 39 m)**, against run 2's 17,941 s and run 3's 18,282 s — so the aggregate
+got **cheaper** while running strictly more to completion, which `DONE-BAR.5f`'s replay-trace fix
+(landed hours before this run) is the leading explanation for and which the next run can isolate.
 
 ---
 
-- **Status: `in-progress`** — opened 2026-07-28 session #220 by the aggregate run that `.5` had declared
-  its own acceptance and that was still executing when the tree was closed.
+- **Status: `done`** (2026-07-30 session #227, `PGEN-CI-PARITY-GATE-ROT-0024`) — opened 2026-07-28
+  session #220 by the aggregate run that `.5` had declared its own acceptance and that was still
+  executing when the tree was closed. **Closed on the criterion it was opened to defend: the aggregate
+  itself, green end-to-end, with the green audited for whether it was earned.** ⛔ The TREE stays
+  `active` — `.10`, `.11`, `.16`, `.17` are still `todo`.
 - ⛔⛔ **THE HONEST CORRECTION, STATED FIRST.** `.5`'s acceptance was written as *"`make -C rust
   SHELL=/bin/bash sota_exit_gate` green end-to-end, not just this sub-gate — it was RED for the
   aggregate, and the aggregate is the claim."* **That criterion is NOT met**, and the tree was

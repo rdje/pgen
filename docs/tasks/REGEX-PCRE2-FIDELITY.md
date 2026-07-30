@@ -3690,3 +3690,51 @@ was trusted.
   measured* rather than the disclosure a consumer needs, and would then constrain the gate's design.
   Prefer landing this alongside or after `.5d`'s gate adjudication — and note `.5d` already warns that
   **a heading is not a boundary**, so an empty section would satisfy nothing.
+
+---
+
+### `ROUTED-IN-4` — regex leg-1 debt is larger than the record says: 40 parser rejections, not just 31 targets (`todo`)
+
+- **Status: `todo`** — routed in 2026-07-30 (session #227) from `CI-PARITY-GATE-ROT.7`, with the
+  cross-family reproduction check recorded below as the `ROUTING-EVIDENCE` doctrine requires.
+- ⭐ **HOW IT SURFACED, and why nobody had seen it:** `sota_exit_gate` acceptance run 4 is the FIRST run
+  ever to reach the end, so it is the first in which `regex_parser_family_status_gate` ran to
+  completion and published its whole criteria set. Every earlier run died at that gate on the tracker
+  alignment mismatch (`.13`), **before** the criteria were computed. `DONE-BAR.2b` cleared the
+  alignment by moving the tracker row to `In Progress`; the criteria then became visible.
+- **THE MEASUREMENT** (`docs/tasks/artifacts/ci_parity_gate_rot/sota_exit_gate_run4_green.txt`;
+  `closure_criteria_satisfied 8 of 11`):
+
+```
+regex_family_status_regex_unmet_closure_criteria_json:
+  ["stimuli_regex_parseability_parser_rejections_total=40 > 0",
+   "stimuli_regex_final_targets=31 > 0",
+   "external_corpus_conformance_pass=false (leg3_surface=<none>)"]
+regex_family_status_regex_primary_unmet_closure_criterion:
+  stimuli_regex_parseability_parser_rejections_total=40 > 0
+```
+
+  The gate's own detail for it: *"The parser-backed regex quality surface still records blocking or
+  unexplained parser rejections, so parser-backed quality remains bounded debt rather than closed
+  proof."*
+- ⛔⛔ **THE POINT: the tracked record documents regex's leg-1 debt as `final_targets=31` ONLY.**
+  `DONE-BAR` (`.1`/`.2b`/`.5d`), this tree's `ROUTED-IN-2`, and `MEMORY.md` all describe the 31
+  un-witnessed targets and say nothing about parser rejections. The gate ranks the **40** rejections
+  ABOVE the 31 targets as its primary unmet criterion. ⇒ **closing the 31 would not close leg 1**, and
+  any plan built on *"regex needs its 31 targets witnessed to reach `Provisional`"* is incomplete.
+- ⭐ **ROUTING EVIDENCE — does the finding reproduce outside the regex family?** A repo-wide
+  `grep -rn 'parseability_parser_rejections_total' docs/tasks/*.md MEMORY.md` returns hits for the
+  **systemverilog_preprocessor** only (`SV-EXH-PROOF`, at **3** rejections, root-caused there to a
+  macro-body/block-comment backtick defect) and **none** for regex. So the *metric* is shared
+  infrastructure and is tracked for another family, while **this family's 40 is undocumented** — the
+  defect is regex-family debt, not a gate-wiring or metric problem, which is why it lands here rather
+  than staying in `CI-PARITY-GATE-ROT`.
+- ⚠️ **NOT YET DIAGNOSED, and deliberately not guessed at:** whether the 40 are (a) genuine
+  generator⊋parser asymmetry like the preprocessor's 3, (b) target-drive output-filter rejections that
+  the gate's own status rule says *may* be retained as diagnostics when `final_targets=0` — note that
+  escape hatch is closed here precisely because `final_targets=31`, or (c) something else. The
+  `SV-EXH-PROOF` precedent shows how to settle it: shrink each rejection to a minimal reproducer before
+  proposing any fix, and ⛔ **never loosen the `==0` precondition.**
+- **Scope when taken up:** extract the 40 rejected samples from the family-status gate's state dir,
+  shrink them, classify (a)/(b)/(c), then fix at the grammar or generator per the classification. This
+  is the second half of what regex needs to re-earn leg 1 alongside `ROUTED-IN-2`'s 31 targets.

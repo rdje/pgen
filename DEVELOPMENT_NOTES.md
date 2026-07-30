@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-CI-PARITY-GATE-ROT-0024 — the aggregate went green, and the first thing to do with a green is to distrust it
+
+`CI-PARITY-GATE-ROT.7`. Docs + one captured evidence artifact.
+
+- ⭐⭐ THE DISCIPLINE THAT MATTERED MOST HERE: a first-ever green on a five-hour aggregate is exactly the
+  result you most want to believe, so it was audited before it was reported. `sota_exit_gate` sets
+  `allow_informational_failures: 1`, which means a passing aggregate CAN be one that permitted a
+  failure. Checked: 32 of 32 stages ok, 31 required + 1 informational with both tiers passing, 0 fail,
+  0 skipped, and — the one that matters most for THIS tree — **0 stages took a `reuse existing … state`
+  branch**, so nothing was judged on evidence it did not produce. That last check is `.7`'s own defect
+  class turned into an acceptance criterion.
+- ⭐⭐ AND THE EXPLANATION IS NOT THE ONE THE TREE WAS EXPECTING. Four runs had produced a blocker each,
+  so the natural reading of a green is "the 8th was fixed". There was no 8th. Run 3 died on regex
+  tracker alignment, and `DONE-BAR.2b` cleared it by moving the tracker row to `In Progress` — i.e.
+  **the blocker was cleared by making the tracker tell the truth, not by changing any gate.** The gate
+  had been right all along, which is what `.13` adjudicated and what this run independently confirms.
+  ⇒ *a red gate is sometimes a correct gate reporting a stale claim, and the fix belongs in the claim.*
+- ⚠️ WHAT A GREEN AGGREGATE DOES NOT MEAN, written down because it is easy to overstate: one machine,
+  one run, invoked by hand. `.6` measured the AUTOMATIC tier over the 123 `make` gate targets at ZERO,
+  and nothing in this run changes that. The tree's own honest bound — *enforced at every commit AND
+  re-proved by an automatic lane no contributor controls* — is still the standard, and the second half
+  is still missing. It also promotes no tracker row: three of the four families with a status gate
+  compute a tier below `Done`, and the aggregate passing is consistent with that BY DESIGN.
+- ⛔ A THIRD REGEX CRITERION SURFACED, and it is a lesson about what "reaching the end" buys you.
+  Because the gate had always died at the alignment check, it had never computed its full criteria set.
+  Run 4 published `8 of 11` satisfied, PRIMARY unmet
+  `stimuli_regex_parseability_parser_rejections_total=40 > 0` — a number appearing NOWHERE in the
+  tracked record, which documents `final_targets=31` alone. ⇒ **a gate that fails fast is a gate whose
+  remaining findings you have never seen**, and the plan built on "witness the 31 targets and regex
+  reaches Provisional" was incomplete. Routed, not diagnosed: the `SV-EXH-PROOF` precedent (shrink each
+  rejection to a minimal reproducer, never loosen the `==0` precondition) is the template.
+- ⭐ SEQUENCING PAID OFF TWICE. `DONE-BAR.5f`'s trace-default fix was landed BEFORE launching run 4 —
+  argued at the time from the leaf's own note that the fix should precede the run. In-situ result: the
+  scratch tree finished at 2.8 GB against run 3's 198 GB, and the aggregate got CHEAPER (16,759 s vs
+  18,282 s) while running strictly MORE work to completion. ⚠️ That last comparison is suggestive, not
+  isolated — run 3 also died early on a different path — so the honest form is *"the aggregate did not
+  get slower and its scratch collapsed by ~70x"*, and a clean A/B would need two full runs.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0023 — I retried a deterministic bug instead of reading it, and my fixture was a transient artifact
 
 `DONE-BAR.1a` correction. Probe driver + tree + README. The `-0022` code fix is unchanged.

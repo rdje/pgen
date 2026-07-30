@@ -1726,7 +1726,11 @@ doctrine, since a genuinely open entry must block the TIER, not unrelated commit
 **`.5d`** — the documented acceptance boundary (adjudicate its overlap with `.6` when opened). `.3a` (ANVIL for `rtl_frontend`)
 continues in parallel; `.4` (the enforcement ratchet) stays blocked on `CI-PARITY-GATE-ROT.7` +
 the hosted auto-trigger call. ⭐ Near-term GOAL unchanged: **every family to at least
-`Provisional`** — `regex` needs its leg-1 debt re-closed (`REGEX-PCRE2-FIDELITY.ROUTED-IN-2`),
+`Provisional`** — `regex` needs its leg-1 debt re-closed — ⛔ **and that debt is LARGER than this tree recorded**: run 4
+published `8 of 11` criteria satisfied with **3** unmet, whose PRIMARY is
+`stimuli_regex_parseability_parser_rejections_total=40 > 0`, a figure appearing nowhere in the tracked
+record (which documents only `final_targets=31`) ⇒ closing the 31 alone would NOT close leg 1
+(`REGEX-PCRE2-FIDELITY.ROUTED-IN-2` + the new `ROUTED-IN-4`),
 `return_annotation` / `rtl_frontend` need a computed status (the missing-status-gate lever) before
 they can hold `Provisional` honestly.
 
@@ -1736,8 +1740,14 @@ tracker-alignment blocker, because the tracker now states what the gate computes
 
 ## Blockers
 
-⛔ **`.4` — the guarantee itself — is BLOCKED on `CI-PARITY-GATE-ROT.7` (aggregate green) and on the
-escalated director call about resuming hosted auto-triggers.**
+✅ **`.4`'s FIRST blocker is CLEARED (2026-07-30): `CI-PARITY-GATE-ROT.7` is DONE — `sota_exit_gate` is
+green end-to-end for the first time** (`exit=0`, 32 of 32 stages, 4 h 39 m, nothing reused or skipped;
+`PGEN-CI-PARITY-GATE-ROT-0024`). ⛔ **`.4` remains BLOCKED on the escalated director call about resuming
+hosted auto-triggers** — and that blocker is now the *only* one, which sharpens rather than weakens it:
+`.6` measured the AUTOMATIC tier over the 123 `make` gate targets at **ZERO**, so a green aggregate on
+one machine at one commit is exactly the *"enforced at every commit AND re-proved by an automatic lane
+no contributor controls"* gap the tree's own honest bound names. ⇒ **the guarantee is no longer waiting
+on a broken flow; it is waiting on a cost decision that is the director's to make.**
 ✅ `.2` is fully discharged (`.2a` `PGEN-DONE-BAR-0010`, `.2b` `PGEN-DONE-BAR-0011`); the
 `rtl_frontend` / `rtl_const_expr` **qualifier ruling** remains owed by `.3` (their rows hold
 `Mostly Done` with the qualifier withheld, per the no-defaulting rule).

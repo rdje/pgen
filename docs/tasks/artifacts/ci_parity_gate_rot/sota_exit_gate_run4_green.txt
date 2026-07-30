@@ -1,0 +1,66 @@
+=========== sota_exit_gate ACCEPTANCE RUN 4 — the first end-to-end GREEN ==========
+captured 2026-07-30T05:29:37Z from rust/target/ci_parity_gate_rot/sota_exit_gate_run4.log
+
+---- guard marker ----
+status=completed
+reason=none
+exit=0
+budget_mb=16384
+floor_pct=10
+disk_floor_gb=8
+timeout_s=25200
+peak_rss_mb=10422
+last_free_pct=63
+last_disk_free_gb=3564
+elapsed_s=16759
+cmd=make -C rust SHELL=/bin/bash sota_exit_gate
+ended_at=2026-07-30T07:22:11+0200
+
+---- stage tally (derived, not transcribed) ----
+stages entered (excl. the header line): 32
+ok:      32
+fail:    0
+required entered:      31
+informational entered: 1
+reuse-branch stages:   0
+
+---- every stage and its verdict ----
+PGEN SOTA exit gate                                            | state_dir: /Volumes/SSD/Documents/github
+differential_baseline_contract (required)                      | ok
+fixed_point_gate (required)                                    | ok
+annotation_contract_gate (required)                            | ok
+annotation_100_gate (required)                                 | ok
+annotation_nonbootstrap_e2e_gate (required)                    | ok
+ebnf_stimuli_quality_gate (required)                           | ok
+stimuli_module_parity_gate (required)                          | ok
+differential_regression_gate (required)                        | ok
+performance_gate (required)                                    | ok
+embedding_api_gate (required)                                  | ok
+ebnf_frontend_gate (required)                                  | ok
+ebnf_frontend_dual_run_gate (required)                         | ok
+hdl_frontend_gate (required)                                   | ok
+sv_preprocessor_quality_gate (required)                        | ok
+sv_preprocessor_aggregate_contract_gate (required)             | ok
+sv_preprocessor_reachability_closure_gate (required)           | ok
+sv_stimuli_quality_gate (required)                             | ok
+sv_parser_aggregate_contract_gate (required)                   | ok
+sv_failure_context_contract_gate (required)                    | ok
+sv_roundtrip_contract_gate (required)                          | ok
+sv_parser_family_status_gate (required)                        | ok
+sv_parser_family_status_contract_gate (required)               | ok
+sv_declared_shadow_promotion_gate (required)                   | ok
+sv_parse_full_ratio_promotion_gate (informational)             | ok
+vhdl_stimuli_quality_gate (required)                           | ok
+vhdl_strict_promotion_gate (required)                          | ok
+vhdl_parser_family_contract_gate (required)                    | ok
+vhdl_parser_family_status_gate (required)                      | ok
+vhdl_parser_family_status_contract_gate (required)             | ok
+regex_parser_family_contract_gate (required)                   | ok
+regex_parser_family_status_gate (required)                     | ok
+regex_parser_family_status_contract_gate (required)            | ok
+
+---- final lines ----
+regex_family_status_contract_regex_formal_exhaustive_closure_summary_json: /Volumes/SSD/Documents/github/pgen/rust/target/sota_exit_gate/work/regex_parser_family_status_gate/work/regex_formal_exhaustive_closure_gate/summary.json
+✅ SOTA exit gate passed.
+✅ SOTA exit aggregate gate passed.
+memory-guard: completed exit=0 peak_tree_rss=10422MB elapsed=16759s; marker: rust/target/ci_parity_gate_rot/guard_run4.marker
