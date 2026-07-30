@@ -1,0 +1,24 @@
+==============================================================================
+DONE-BAR.5f — SV closed-loop replay trace A/B (count=8, sv_2017, seed=700000)
+==============================================================================
+input:  generated/systemverilog.json  (raw-AST JSON — no ebnf_dual_run feature needed)
+binary: AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=false generated_parsers=true
+
+==> arm A: PGEN_TRACE_VERBOSITY=low   (the retired default)
+==> arm B: PGEN_TRACE_VERBOSITY=none  (the shipped default)
+
+arm               elapsed_s          log_bytes      log_lines    noise_lines
+low (before)             35         1892694365        9333543        9331148
+none (after)              5               1082              6              0
+
+trace share of wall time : 85.7% (30s of 35s)
+slowdown factor          : 7.0x
+log-byte ratio           : 1749255x (1.76 GB vs 1082 B)
+noise share of the log   : 99.97% (9331148 of 9333543 lines)
+trace write rate         : 51.6 MB/s, 266604 lines/s
+
+✅ stimuli BYTE-IDENTICAL across the two arms
+✅ parseability report IDENTICAL across the two arms
+
+(arm A's log removed after measurement — it is ~1.9 GB and nothing reads it, which is the finding)
+==============================================================================

@@ -838,7 +838,14 @@ told apart from invalid input**, and all three would have shipped as defects.
      per-contract bar-state disclosure — adjudicate the split when `.5d` opens).
   6. `.5f` — **158 GB of unread backtrack-trace logs, plus a 1.4 MB evidence-custody gap**: the
      aggregate's scratch tree is 198 GB, ~158 GB of it trace logs nothing reads, written because a
-     promotion gate leaves tracing ON by default (`todo`; see below).
+     promotion gate leaves tracing ON by default (`in-progress`; scope items 1+2 ✅ **DONE** —
+     the default is now `none` and the cost is MEASURED at **84–86% of the stage's wall time**, so
+     this turned out to be a SPEED finding and not only a hygiene one; item 3, the custody fallback,
+     stays open — see below).
+  7. `.5g` — **a bounded always-on liveness signal for long gate stages** (`todo`; split out of `.5f`
+     because it is a new mechanism, not a re-pricing). Today the only liveness channel a long stage
+     has is the trace level itself, and prior art was measured ABSENT — no progress flag, no
+     `PGEN_*PROGRESS*` env var, no periodic generator trace line.
   5. `.5e` — **`.5c`'s BINDING half**: the sentinel gate must bind a family's TIER, not merely exist
      — ✅ **DONE** (see below). A gate whose verdict enters no status computation is a gate that can
      go red while every tracker row stays green.
@@ -985,10 +992,13 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
   `README.md` standard commands, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
   `docs/TASK_TREE.md`.
 
-#### `.5f` — the probe driver's replay arms are anchored to a 198 GB untracked scratch dir (`todo`)
+#### `.5f` — the probe driver's replay arms are anchored to a 198 GB untracked scratch dir (`in-progress`)
 
-- **Status: `todo`** — measured 2026-07-30 session #226 while pre-flighting
+- **Status: `in-progress`** — opened 2026-07-30 session #226 while pre-flighting
   `CI-PARITY-GATE-ROT.7`'s acceptance run, and recorded rather than mentioned in passing.
+  **Scope items 1 and 2 are DISCHARGED (2026-07-30 session #227, `PGEN-DONE-BAR-0020`)**; item 3
+  (the 1.4 MB custody fallback for the `.5e` replay driver) remains open, and the bounded
+  always-on liveness signal is split out as **`.5g`**.
 - **MEASURED:** `du -sh rust/target/sota_exit_gate/work` → **198 G**, holding **40** `summary.*` pairs
   (91 files, **1.4 M** of actual evidence). The tracked driver
   `docs/tasks/artifacts/done_bar/run_family_status_bar_probes.sh` reads **14** of those sub-dirs by
@@ -1032,17 +1042,35 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
   evidence does not live under `rust/target/`*) — a `cargo clean`, a sweep, or the next aggregate run
   removes it and the `.5e` replay arms then SKIP.
 - **SCOPE, in the order that pays:**
-  1. ⭐ **Default the replay trace to `none`** and keep the env override for triage — one line, and it
-     removes ~158 G **and** the per-event formatting cost from every aggregate run. ⛔ **DESIGN TENSION
-     TO SETTLE FIRST, not a one-liner by fiat:** the trace presumably exists so a FAILING replay can be
-     triaged, so switching it off wholesale trades disk for diagnosability. Preferred shape: off by
-     default + **re-run the failing case with tracing on**, or a bounded ring buffer (a `head`-style cap
-     is wrong — the failure is at the TAIL).
-  2. ⚠️ **Suspected but NOT measured: this may be a material slice of the aggregate's ~5 h.** Writing
-     158 G plus formatting ~400 M trace events is not free. **Do not quote a number until it is
-     measured** — A/B one `sv_stimuli_quality_gate` run at `low` vs `none`. If it is minutes, this also
-     belongs to the SPEED doctrine, not just hygiene.
-  3. Then the 1.4 M custody fallback for the driver (below).
+  1. ✅ **DONE (`PGEN-DONE-BAR-0020`) — the replay trace now defaults to `none`, with the env override
+     kept for triage.** ⛔ **The design tension was SETTLED BY EVIDENCE, not by fiat, and the evidence
+     changed the shape of the fix:** the trace's purpose is recorded in
+     `LIVE_ACHIEVEMENT_STATUS.md`'s own 2026-04-21 note, verbatim — *"long
+     `profile_2017_closed_loop_replay` runs are now **tail-able by default** instead of leaving empty
+     stage logs unless a developer remembered to opt in manually"* ⇒ the purpose is **LIVENESS**
+     (*is this stage still working or is it hung?*), **not failure triage**. That reframes the call:
+     switching it off wholesale would have silently dropped a real, documented, still-valid operator
+     capability — the exact pattern this repo keeps punishing — so the fix keeps it as an **opt-in
+     the gate itself advertises** rather than a fact buried in a 2026-04 changelog entry.
+  2. ✅ **DONE — MEASURED, and the leaf's own "do not quote a number until it is measured" is honored
+     by a tracked re-runnable driver** (`docs/tasks/artifacts/done_bar/run_replay_trace_cost_ab.sh`,
+     capture `replay_trace_cost_ab.txt`). Per shadow replay (count=8, sv_2017, seed 700000; two runs):
+
+     | arm | wall time | stage log bytes | log lines | backtrack-noise lines |
+     |---|---|---|---|---|
+     | `low` (retired default) | **31–35 s** | 1,892,694,365 (**1.76–1.89 GB**) | 9,333,543 | **9,331,148 = 99.97%** |
+     | `none` (shipped default) | **5 s** | 1,082 | 6 | 0 |
+
+     ⇒ **trace share of wall time 84–86%**, **7.0× slowdown**, **~1.75 million×** the log bytes,
+     written at **~50–60 MB/s / ~270–300k lines/s**. ⭐ **The arms produce BYTE-IDENTICAL stimuli and
+     an IDENTICAL parseability report** — asserted by the driver, which is what upgrades "the trace is
+     expensive" to "the trace is pure overhead". ⇒ **this IS the SPEED doctrine, not only hygiene.**
+     ⚠️ **HONEST BOUND, STATED NOT IMPLIED: the effect on the aggregate's ~5 h is NOT measured here.**
+     What is measured is one invocation; `sv_parse_full_ratio_promotion_gate` and
+     `sv_declared_shadow_promotion_gate` run the stage across trials × 2 profiles at full
+     5,000-attempt scale, so the aggregate effect is plausibly large and deliberately unquoted.
+     `CI-PARITY-GATE-ROT.7`'s next end-to-end run is what prices it in situ.
+  3. 🔜 **STILL OPEN** — the 1.4 MB custody fallback for the `.5e` replay driver (below).
 - ✅ **RECLAIM AUTHORIZED AND EXECUTED (2026-07-30) — 228 G, more than the 158 G first estimated.**
   The director's ruling was a STANDING one (*"delete reclaimable files on a regular basis"*, recorded as
   [[feedback_delete_reclaimable_artifacts_regularly]]), so the sweep is now routine rather than
@@ -1074,6 +1102,109 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
 - ⭐ **Consequence for `CI-PARITY-GATE-ROT.7`:** whoever launches acceptance run 4 should snapshot the
   summary pairs FIRST (one command, 1.4 M), because run 4 overwrites the run-3 artifacts the `.5e`
   replays depend on.
+
+##### What shipped for items 1 + 2 (`PGEN-DONE-BAR-0020`, 2026-07-30 session #227)
+
+- **`rust/scripts/sv_stimuli_quality_gate.sh:49`** — the default moves `low` → `none`, with the
+  measured A/B and the *"do not flip this back without re-running that A/B"* prohibition written at
+  the site, so the next author meets the evidence instead of the bare value.
+- ⭐ **ONE HOME, and it was verified to be one:** six wrapper gates plus the aggregate invoke this
+  script (`sv_parser_aggregate_contract_gate`, `sv_roundtrip_contract_gate`,
+  `sv_failure_context_contract_gate`, `sv_declared_shadow_promotion_gate`,
+  `sv_parse_full_ratio_promotion_gate`, `stimuli_cross_family_platform_gate`, `sota_exit_gate`), and
+  **none of them sets the variable** — so a single-line default change covers the whole class rather
+  than needing seven edits.
+- **The opt-in is now printed where a triager looks**, not only in a code comment: a derived
+  `REPLAY_TRACE_VERBOSITY_NOTE` (ONE home, consumed by both the startup banner and the final
+  summary) emits `closed_loop_replay_trace_verbosity_note:` — naming the env var and its ~50–60 MB/s
+  cost when quiet, and naming how to restore the default when an override is active. ⭐ This is the
+  *"a check that cannot run must SAY SO"* discipline applied to a **capability**: the liveness signal
+  is opt-in rather than silently dropped.
+- ⚠️ **THE RISK THIS CHANGE ITSELF CREATED, CHECKED BEFORE SHIPPING — a new summary key can shadow a
+  scraped one.** `sota_exit_gate.sh:792` scrapes the SV summary by key
+  (`sed -nE "s/^KEY: (.*)$/\1/p" | tail -n 1`) and `regex_parser_family_contract_gate.sh:51` uses an
+  **unanchored** `grep -F "KEY: "`; a key that is a prefix-extension of a scraped key would win the
+  `tail -n 1`. Both real matchers are replayed against a two-line fixture in the probe driver
+  (RED-1 / RED-1b) and both correctly read the value line, because `_note` precedes the colon.
+  Verified separately that **no gate asserts an exact key set or line count** over that summary, and
+  that the note lands only in `summary.txt` (inside the `} >"$SUMMARY_TXT"` block), never in the JSON.
+- ⛔ **A BOUNDED ALWAYS-ON PROGRESS SIGNAL WAS DELIBERATELY *NOT* BUILT HERE — routed to `.5g`.** The
+  obvious candidates (a background heartbeat loop in the gate; a periodic progress line from
+  `ast_pipeline`) are **new mechanisms**: a stray background process inside a 5 h aggregate is an ops
+  hazard this repo has already paid for, and an engine-side progress facility must pass the
+  zero-cost/neutrality acceptance test. Per `DESIGN-PRIOR-ART` a search was run first and found **no
+  existing bounded progress facility** (`--help` carries no `--progress`/`--interval`/heartbeat flag;
+  zero `PGEN_*PROGRESS*` env vars in `rust/src/`; the stimuli generator emits **no** periodic
+  `pgen_trace_*` line at any level) ⇒ the gap is real, and it deserves its own leaf with its own
+  design review, not a drive-by in a hygiene slice.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `du -sh rust/target/sota_exit_gate/work` → **198 G** with **1.4 M** of
+      actual evidence; a surviving log measured at this leaf's own reduced scale
+      (`rust/target/sv_failure_context_contract_gate/.../profile_2017_closed_loop_replay_parseability_shadow.log`)
+      is **59,434,221 bytes / 164,942 lines, of which 163,395 (99.06%) are one repeated 🧭 backtrack
+      line**, and `awk` per 20k-line block shows the noise share uniform (19,506–19,949 per 20,000)
+      rather than confined to a warm-up phase.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family:
+      `grep -n 'REPLAY_TRACE_VERBOSITY' rust/scripts/*.sh` names the single site
+      `rust/scripts/sv_stimuli_quality_gate.sh:49` resolving
+      `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY` to `low` — the 🧭 errors/backtracks level per
+      `TOOLBOX.md` §2.1 — forwarded into the two `run_logged` replay stages at `:2124`/`:2207`, whose
+      only consumer is `run_logged`'s `tail -n 80` on failure (`:699-711`). The same `grep` proves
+      VHDL's gates carry no such default, which is why their surviving shadow logs are **1,101 B** and
+      **1,129 B** against SV's 59 MB — the class is one site, measured, not assumed.
+      `git log -S`-equivalent provenance is the tracked 2026-04-21 note quoted above, which states the
+      liveness intent verbatim. `bash -n` clean on the edited gate.
+- [x] **FIX** — declarative tier: one default value + a derived note string with ONE home; no
+      `rust/src/*`, no grammar, no codegen, no new mechanism.
+- [x] **ADDRESSED (verified)** — before→after **REPLAYED, not described**:
+      `bash docs/tasks/artifacts/done_bar/run_replay_trace_cost_ab.sh` → `low` **35 s /
+      1,892,694,365 B / 9,333,543 lines (9,331,148 noise)** vs `none` **5 s / 1,082 B / 6 lines (0
+      noise)**; *trace share of wall time 85.7%*, *7.0x slowdown*, *1749255x log-byte ratio*, and
+      **`✅ stimuli BYTE-IDENTICAL` + `✅ parseability report IDENTICAL`** across the arms.
+      `bash docs/tasks/artifacts/done_bar/run_replay_trace_default_probes.sh` → **13/13**, including
+      **BEFORE-1**, which extracts the default-resolution block out of `git show HEAD:` and confirms
+      the retired form resolved to `low` with **no** discoverable note.
+- [x] **NO REGRESSION** — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒ **all 11
+      generated parsers byte-identical BY CONSTRUCTION**; the A/B driver additionally proves the
+      judged artifacts (stimuli + parseability report) are byte-identical across the two trace
+      levels, so no gate's verdict can move; `bash scripts/check_doctrines.sh` → **ALL 14 enforced
+      doctrines PASS**; the two summary-scraper matchers replayed against a fixture (RED-1/1b) prove
+      the new key cannot shadow the scraped one; probe arm **RED-2 re-derives** that **0** consumers
+      read the replay stage logs rather than trusting the earlier census.
+- [x] **LOCKSTEP** — `docs/book/src/stimuli-and-quality.md` (the *Replay Progress Tracing* section
+      rewritten with the measured table and the reason the default moved),
+      `LIVE_ACHIEVEMENT_STATUS.md` (new 2026-07-30 note + the 2026-04-21 note marked **SUPERSEDED in
+      place**, its historical text kept), this tree, `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+      `MEMORY.md`. No release / schema / ledger / contract movement: no published parser identity,
+      AST shape or support boundary changed.
+
+#### `.5g` — a bounded always-on liveness signal for long gate stages (`todo`)
+
+- **Status: `todo`** — split out of `.5f` on 2026-07-30 (`PGEN-DONE-BAR-0020`) rather than absorbed,
+  because it is a **new mechanism** and `.5f` was a hygiene/re-pricing slice.
+- **The need is real and documented, not hypothetical.** `LIVE_ACHIEVEMENT_STATUS.md`'s 2026-04-21
+  note records the operator complaint verbatim: a long replay stage leaves an **empty stage log**, so
+  nothing distinguishes a working stage from a hung one. `.5f` re-priced the answer (the trace costs
+  84–86% of the stage's wall time to serve it) but did not replace it: with the default now `none`,
+  first-run liveness is served only by opting back into the firehose.
+- ⭐ **PRIOR ART SEARCHED AND ABSENT** (`.5f`, measured): `ast_pipeline --help` exposes no
+  `--progress` / `--interval` / heartbeat flag; there are **zero** `PGEN_*PROGRESS*` env vars in
+  `rust/src/`; and `rust/src/ast_pipeline/stimuli_generator.rs` emits **no** periodic `pgen_trace_*`
+  line at any verbosity. So today the ONLY liveness channel any long stage has is the trace level.
+- **Scope when taken up — settle the tier first, then build:**
+  1. adjudicate **where** it belongs: a gate-script heartbeat (cheap, but a background process inside
+     a 5 h aggregate is an ops hazard — `OPS-MEMSAFE` territory) versus an engine-side bounded
+     progress line (general, reusable by every family's gates, but must pass the
+     zero-cost/neutrality acceptance test: **non-users pay ZERO**);
+  2. the signal must be **bounded by time, not by event count** — the defect in `low` is that it is
+     event-driven in a PEG engine, where the event rate is ~270–300k/s;
+  3. ⛔ do **not** re-solve it with a log cap: a `head`-style cap loses the tail where a failure lives,
+     and a tail ring buffer still pays the full per-event formatting cost `.5f` measured.
+- ⚠️ **Cross-family, not SV-only:** the VHDL replay gates have the same empty-log-until-done shape
+  (their surviving shadow logs are ~1.1 kB), they simply never turned the firehose on to compensate.
+  Whatever lands here should serve any long gate stage, not just `sv_stimuli_quality_gate`.
 
 #### `.5c` — the silent-success sentinel gate (`done`, 2026-07-29 session #225, `PGEN-DONE-BAR-0014`)
 
@@ -1301,7 +1432,17 @@ one shared helper across 4 sites, and this leaf's scope was one criterion.
 ## Current Frontier
 
 **`.5d`** — the documented acceptance boundary where a consumer looks (adjudicate its overlap with
-`.6` when opened), with **`.5f`** newly opened and ROOT-CAUSED (198 GB of aggregate scratch = ~158 GB of unread backtrack traces from a gate that leaves tracing ON by default, 73% of each line a repeated absolute path; only 1.4 MB is evidence an oracle needs — my first framing of this leaf is corrected inside it). ✅ **`.5e` DONE** (`PGEN-DONE-BAR-0016`): `.5c`'s sentinel gate now **BINDS a
+`.6` when opened). ⭐ **`.5f` scope items 1+2 DONE** (`PGEN-DONE-BAR-0020`, session #227): the SV
+replay trace now defaults to **`none`**, and the cost it was paying is MEASURED rather than suspected
+— **84–86% of the stage's wall time and 1.8–1.9 GB of log per invocation, 99.97% of it one repeated
+backtrack line, for a log nothing reads**, with byte-identical stimuli and an identical parseability
+report across the two arms. ⛔ **The design tension was settled by finding the ORIGINAL INTENT
+(liveness, not triage — the 2026-04-21 tracker note says so verbatim), so the capability is now an
+opt-in the gate itself advertises rather than a silent drop**; the bounded always-on replacement is
+split out as **`.5g`** with prior art measured absent. ⚠️ The aggregate-level saving is deliberately
+UNQUOTED — `CI-PARITY-GATE-ROT.7`'s next end-to-end run prices it in situ, and it should now be run
+AFTER this change, not before. `.5f` item 3 (the 1.4 MB custody fallback for the `.5e` replay driver)
+remains open. ✅ **`.5e` DONE** (`PGEN-DONE-BAR-0016`): `.5c`'s sentinel gate now **BINDS a
 tier** — `no_reachable_silent_success` is a criterion in all four family computations (totals regex
 10→11, sv 9→10, svpp 14→15, vhdl 12→13), each status gate PRODUCES its own sweep rather than reading
 an ambient artifact (the `.7` stale-evidence lesson), the sweep is cached per PROCESS not per
@@ -1344,6 +1485,23 @@ escalated director call about resuming hosted auto-triggers.**
 
 ## Verification Log
 
+### `.5f` items 1+2 — the replay-trace default (2026-07-30, session #227, `PGEN-DONE-BAR-0020`)
+
+| instrument | command | result |
+|---|---|---|
+| the A/B cost driver | `bash docs/tasks/artifacts/done_bar/run_replay_trace_cost_ab.sh` | `low` **35 s / 1,892,694,365 B / 9,333,543 lines (9,331,148 noise)** vs `none` **5 s / 1,082 B / 6 lines**; trace share of wall time **85.7%**, slowdown **7.0x**, byte ratio **1,749,255x**, rate **51.6 MB/s / 266,604 lines/s**; ✅ stimuli BYTE-IDENTICAL, ✅ parseability report IDENTICAL |
+| the A/B, first run (same driver shape) | as above | `low` **31 s / 1,892,694,367 B**, `none` **5 s** ⇒ the reported figure is a **range (31–35 s, 84–86%)**, not a single point |
+| probe arms | `bash docs/tasks/artifacts/done_bar/run_replay_trace_default_probes.sh` | **13/13** — GREEN-1 default→`none` + note names the opt-in and its cost; CTRL-1/2 the override still resolves (`low`, `debug`) and the note flips to "ENABLED by override"; **BEFORE-1** replays `git show HEAD:`'s retired block → `low`, note `<none>`; RED-1/1b both real summary matchers read the value not the note; RED-2 re-derives **0** log consumers; CTRL-3 `bash -n` |
+| class scope | `grep -n 'REPLAY_TRACE_VERBOSITY' rust/scripts/*.sh rust/scripts/lib/*.sh` | **1 site** (`sv_stimuli_quality_gate.sh:49`); VHDL gates carry none, and their surviving shadow logs measure **1,101 B** / **1,129 B** against SV's **59,434,221 B** |
+| callers | `grep -rn 'sv_stimuli_quality_gate' rust/Makefile rust/scripts/*.sh .github/workflows/*.yml` | 6 wrapper gates + `sota_exit_gate`; **none sets the variable** ⇒ one default change covers the class |
+| summary-schema safety | `grep -rn 'wc -l.*summary\|expected_keys\|key_count' rust/scripts/sv_*.sh rust/scripts/sota_exit_gate.sh` | **0 hits** — no gate asserts an exact key set or line count over the SV summary |
+| doctrines | `bash scripts/check_doctrines.sh` | **ALL 14 PASS** |
+| byte-identity | *(by construction)* | no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` staged ⇒ all 11 generated parsers unchanged |
+
+⚠️ **What this log does NOT claim:** the aggregate's ~5 h cost. One invocation was measured; the
+promotion gates run this stage across trials × 2 profiles at 5,000-attempt scale, so the aggregate
+effect is plausibly much larger and is left for `CI-PARITY-GATE-ROT.7`'s next end-to-end run to price.
+
 ### `.1` — the audit (2026-07-29, session #223, `PGEN-DONE-BAR-0002`)
 
 | instrument | command | result |
@@ -1383,6 +1541,23 @@ closes when `.4` registers the enforcement check as `scripts/check_done_bar.sh`.
 
 ## Commit Log
 
+- `PGEN-DONE-BAR-0020` (2026-07-30, session #227, leaf `.5f` items 1+2 done; `.5g` opened) — the SV
+  closed-loop replay trace defaulted to `low` since 2026-04-21 and was costing **84–86% of the
+  stage's wall time** plus **1.8–1.9 GB of log per invocation, 99.97% of it one repeated backtrack
+  line**, for output **nothing reads** — with **byte-identical stimuli and an identical parseability
+  report** at `none`, so it was pure overhead. Default moved to `none` at the one site that all 6
+  wrapper gates and `sota_exit_gate` inherit. ⭐ **The design tension `.5f` flagged was settled by
+  finding the original intent rather than by fiat**: the 2026-04-21 tracker note states the purpose
+  was **liveness** (*"tail-able by default instead of leaving empty stage logs"*), not failure triage
+  ⇒ the capability is kept as an opt-in the gate **advertises in its own banner and summary**, and the
+  bounded always-on replacement is split out as `.5g` with prior art measured **absent** (no progress
+  flag, no `PGEN_*PROGRESS*` env var, no periodic generator trace line). ⚠️ **A risk this change
+  itself created was checked before shipping**: the new summary key could have shadowed a scraped one
+  under `sota_exit_gate`'s `sed`-anchored reader or `regex_parser_family_contract_gate`'s
+  **unanchored** `grep -F`; both real matchers are replayed against a fixture. Probes **13/13** with
+  BEFORE-1 replaying the retired default out of `git show HEAD:`; A/B is a tracked re-runnable driver;
+  **ALL 14 doctrines PASS**; **no tracker row moved**. ⛔ Aggregate-level saving deliberately
+  UNQUOTED — `CI-PARITY-GATE-ROT.7`'s next run prices it, and should now run AFTER this change.
 - `PGEN-DONE-BAR-0016` (2026-07-30, session #226, leaf `.5e` done) — `.5c`'s silent-success sentinel
   gate now **BINDS a family's tier** instead of merely existing. Measured first: the gate's verdict
   entered **0 of 4** family computations (`grep -c silent_success` → 0/0/0/0) and its only consumers

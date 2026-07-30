@@ -1,0 +1,28 @@
+==============================================================================
+DONE-BAR.5f — replay-trace default probe arms (rust/scripts/sv_stimuli_quality_gate.sh)
+==============================================================================
+
+extracted from the LIVE gate:
+  | REPLAY_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-none}"
+  | if [[ "$REPLAY_TRACE_VERBOSITY" == "none" ]]; then
+  |     REPLAY_TRACE_VERBOSITY_NOTE="quiet by default; replay stage logs carry only the stage's own summary lines — set PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY=low for live backtrack progress when triaging a slow or stuck replay (costs ~50-60 MB/s of log)"
+  | else
+  | fi
+
+  ✅ GREEN-1 default (unset override) resolves to               none
+  ✅ GREEN-1 note names the opt-in env var                      contains PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY=low
+  ✅ GREEN-1 note states the cost of turning it on              contains 50-60\ MB/s\ of\ log
+  ✅ CTRL-1 override=low still resolves to                      low
+  ✅ CTRL-1 note says tracing is ENABLED by override            contains ENABLED\ by\ override
+  ✅ CTRL-1 note names how to restore the default               contains unset\ PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY
+  ✅ CTRL-2 override=debug passes through                       debug
+  ✅ BEFORE-1 HEAD's retired default resolved to                low
+  ✅ BEFORE-1 HEAD had no discoverable note                     <none>
+  ✅ RED-1 anchored scraper reads the value, not the note       none
+  ✅ RED-1b grep -F matcher also reads the value line           closed_loop_replay_trace_verbosity: none
+  ✅ RED-2 consumers of the replay stage LOGS (must be 0)       0
+  ✅ CTRL-3 gate passes bash -n                                 ok
+
+==============================================================================
+replay-trace default probes: 13 passed, 0 failed
+==============================================================================

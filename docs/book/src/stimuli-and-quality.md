@@ -123,16 +123,44 @@ So the maintained doctrine is:
 
 ## Replay Progress Tracing
 
-The heavy replay gates are intentionally quiet by default, but the retained SystemVerilog replay lane now has an opt-in progress surface when a closed-loop stage is CPU-hot and needs inspection.
+The heavy replay gates are quiet by default, and the retained SystemVerilog replay lane has an
+**opt-in** progress surface for when a closed-loop stage is CPU-hot and you need to see it move.
 
 - `rust/scripts/sv_stimuli_quality_gate.sh` accepts `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY`
-- the maintained shell-gate default is now `low`
-- that does not make the terminal noisy because `run_logged` still captures replay-stage output into the stage log files
-- direct `ast_pipeline` invocations still keep their own ordinary default trace posture
-- use the environment variable when you want something other than the gate default
-- low trace now also surfaces:
+- the maintained shell-gate default is **`none`** (since `DONE-BAR.5f`, 2026-07-30 — it was `low`
+  from 2026-04-21; see the measurement below for why it moved)
+- set it to `low` when triaging a slow or stuck replay: that is the 🧭 errors/backtracks level, so
+  the stage log becomes a live feed of the parser's backtracking
+- `run_logged` captures replay-stage output into stage log files either way, so the terminal stays
+  quiet regardless of the level
+- direct `ast_pipeline` invocations keep their own ordinary default trace posture
+- at `low` the trace also surfaces:
   - immediate helper-probe activation lines when replay switches away from the primary entry rule
   - helper-probe result lines showing pending-target payoff after each helper attempt
+
+### ⚠️ Why the default is `none` — the cost of a liveness signal, measured
+
+The `low` default was adopted for a real reason: a long replay stage otherwise writes **nothing** to
+its log until it finishes, so an operator cannot tell a working stage from a hung one. But `low` is
+the highest-frequency event class a PEG engine has, and it over-serves that need by about five
+orders of magnitude. Measured A/B on one shadow replay — re-derive it with
+`bash docs/tasks/artifacts/done_bar/run_replay_trace_cost_ab.sh`:
+
+| arm | wall time | stage log | of which backtrack lines |
+|---|---|---|---|
+| `low` (the retired default) | 31–35 s | 1.8–1.9 GB | **99.97%** (9,331,148 of 9,333,543 lines) |
+| `none` (the current default) | **5 s** | ~1.1 kB | 0 |
+
+Both arms produce **byte-identical** stimuli and an **identical** parseability report, so the trace
+is pure overhead: **84–86% of the stage's wall time**, written at ~50–60 MB/s into a log that
+**nothing reads** — the stage's consumed artifact is its `--parseability-report-json`. At full
+aggregate scale that default had accumulated **228 GB** of unread trace output.
+
+The liveness need is not dismissed, only re-priced: it is now an opt-in one env var away, and the
+gate prints that opt-in in its own startup banner and final summary
+(`closed_loop_replay_trace_verbosity_note:`) so a triager meets it at the point of need rather than
+in a changelog. A bounded always-on progress signal that does not cost a firehose is tracked
+separately as `DONE-BAR.5g`.
 
 That trace is meant for honest progress visibility during stubborn replay work, not as a replacement for the gate's final summary artifacts. The practical payoff is simple: if a long `profile_2017_closed_loop_replay` run is still active, the stage log is now tail-able by default instead of staying empty unless someone remembered an extra env override first.
 

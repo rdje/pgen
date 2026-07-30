@@ -46,7 +46,29 @@ PERF_BUDGET_MODE="${PGEN_SV_STIMULI_PERF_BUDGET_MODE:-auto}"
 REALISTIC_CORPUS_MODE="${PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE:-auto}"
 REALISTIC_CORPUS_OVERRIDE="${PGEN_SV_STIMULI_REALISTIC_CORPUS:-}"
 REALISTIC_CORPUS_MAX_CASES="${PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES:-0}"
-REPLAY_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-low}"
+# Replay-stage tracing is OFF by default (DONE-BAR.5f, 2026-07-30). It defaulted to `low`
+# from 2026-04-21 to give long replay stages a tail-able progress signal, but `low` is the
+# 🧭 errors/backtracks level — the highest-frequency event class in a PEG engine.
+# MEASURED A/B, re-derivable by
+# `bash docs/tasks/artifacts/done_bar/run_replay_trace_cost_ab.sh` (count=8, sv_2017,
+# seed 700000; two runs): `low` 31-35 s and 1.8-1.9 GB of log — 99.97% of it (9,331,148 of
+# 9,333,543 lines) one repeated backtrack line, ~50-60 MB/s and ~270-300k lines/s — versus
+# `none` 5 s and ~1.1 kB. The two arms produce BYTE-IDENTICAL stimuli and an IDENTICAL
+# parseability report, so the trace is pure overhead: 84-86% of the stage's wall time, and
+# every one of those bytes is written for a log NOTHING reads (verified: no consumer of
+# these stage logs repo-wide; the consumed artifact is --parseability-report-json).
+# At full aggregate scale the same default produced 228 GB of unread trace output.
+# ⛔ Do NOT flip this back to a tracing level without re-running that A/B: the liveness
+# need it served is real but is over-served by ~5 orders of magnitude, and the loud-progress
+# opt-in below is the supported way to get it back for triage.
+REPLAY_TRACE_VERBOSITY="${PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY:-none}"
+# ONE home for the note both the startup banner and the final summary print, so the
+# opt-in is discoverable where a triager actually looks instead of only in this comment.
+if [[ "$REPLAY_TRACE_VERBOSITY" == "none" ]]; then
+    REPLAY_TRACE_VERBOSITY_NOTE="quiet by default; replay stage logs carry only the stage's own summary lines — set PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY=low for live backtrack progress when triaging a slow or stuck replay (costs ~50-60 MB/s of log)"
+else
+    REPLAY_TRACE_VERBOSITY_NOTE="tracing ENABLED by override — replay stage logs grow at ~50-60 MB/s at 'low'; unset PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY to restore the quiet default"
+fi
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
@@ -1709,6 +1731,7 @@ echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
 echo "closed_loop_target_generation_timeout_ms: $TARGET_GENERATION_TIMEOUT_MS_EFFECTIVE"
 echo "closed_loop_target_helper_timeout_ms: ${TARGET_HELPER_TIMEOUT_MS_OVERRIDE:-1000}"
 echo "closed_loop_replay_trace_verbosity: $REPLAY_TRACE_VERBOSITY"
+echo "closed_loop_replay_trace_verbosity_note: $REPLAY_TRACE_VERBOSITY_NOTE"
 echo "cargo_build_jobs: ${CARGO_BUILD_JOBS_OVERRIDE:-<default>}"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
 echo "closed_loop_require_non_increasing_target_debt: $require_non_increasing_target_debt"
@@ -3336,6 +3359,7 @@ jq -n \
     echo "closed_loop_target_generation_timeout_ms: $TARGET_GENERATION_TIMEOUT_MS_EFFECTIVE"
     echo "closed_loop_target_helper_timeout_ms: ${TARGET_HELPER_TIMEOUT_MS_OVERRIDE:-1000}"
     echo "closed_loop_replay_trace_verbosity: $REPLAY_TRACE_VERBOSITY"
+    echo "closed_loop_replay_trace_verbosity_note: $REPLAY_TRACE_VERBOSITY_NOTE"
     echo "closed_loop_replay_sample_count: $replay_sample_count"
     echo "closed_loop_profiles_passed: $closed_loop_profile_pass_count/$profile_count"
     echo "closed_loop_profiles_skipped: $closed_loop_profile_skip_count/$profile_count"

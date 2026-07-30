@@ -1,5 +1,62 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0020 — a liveness signal that cost 85% of the stage, and why finding the ORIGINAL INTENT changed the fix
+
+`DONE-BAR.5f` items 1+2. One gate script + book chapter + tracker + 2 tracked drivers.
+
+- ROOT CAUSE (ops/build-flow family): `rust/scripts/sv_stimuli_quality_gate.sh:49` defaulted
+  `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY` to `low` and forwarded it into the two `run_logged`
+  closed-loop replay stages (`:2124`, `:2207`). Per `TOOLBOX.md` §2.1, `low` is the 🧭
+  errors/backtracks level, i.e. the single highest-frequency event class in a PEG engine. The measured
+  A/B: **31-35 s and 1.8-1.9 GB of stage log at `low` versus 5 s and ~1.1 kB at `none`**, with
+  **99.97% of the log (9,331,148 of 9,333,543 lines) one repeated backtrack line** written at
+  ~50-60 MB/s. **Byte-identical stimuli and an identical parseability report across the arms.**
+- ⭐ THE TRANSFERABLE LESSON: **a defect priced only in disk was actually a SPEED defect.** The leaf
+  opened as hygiene ("198 GB of scratch") and its own scope item 2 recorded the CPU cost as
+  *suspected but not measured*, with an explicit "do not quote a number until it is measured". The
+  measurement is what reclassified it: 84-86% of the stage's wall time. **A cost you have only
+  measured on one axis is a cost you have not measured.**
+- ⭐⭐ THE SECOND LESSON, and the one that changed the deliverable: **the fix that looked like a
+  one-line flip was one prose search away from silently dropping a real capability.**
+  `LIVE_ACHIEVEMENT_STATUS.md`'s 2026-04-21 note records why tracing was turned on, verbatim — *"long
+  `profile_2017_closed_loop_replay` runs are now tail-able by default instead of leaving empty stage
+  logs unless a developer remembered to opt in manually"*. That is **liveness** (*is this stage still
+  working, or hung?*), not failure triage. Two consequences:
+  1. the honest verdict is *"`low` over-serves a real need by ~5 orders of magnitude"* — a
+     **re-pricing**, not *"the trace is pointless"*;
+  2. the capability must survive as an opt-in the gate **advertises**, because a silently-dropped
+     capability is exactly the pattern this repo keeps paying for. Hence the derived
+     `REPLAY_TRACE_VERBOSITY_NOTE` (one home, printed by both the banner and the summary).
+  This is `DESIGN-PRIOR-ART` paying off in its less obvious direction: usually it stops you
+  *reinventing* something; here it stopped you *deleting* something.
+- ⭐ A NEW SUMMARY KEY IS A SCRAPER RISK, and this repo has a catalogued class for it
+  (`CI-PARITY-GATE-ROT.11`: 14 gates scrape prose log lines). `sota_exit_gate.sh:792` reads the SV
+  summary with `sed -nE "s/^KEY: (.*)$/\1/p" | tail -n 1` and
+  `regex_parser_family_contract_gate.sh:51` with an **unanchored** `grep -F "KEY: "` — so a key that
+  prefix-extends a scraped key would win the `tail -n 1`. Both real matchers are replayed against a
+  fixture in the probe driver; both read the value line, because `_note` precedes the colon. Also
+  verified: no gate asserts an exact key set or line count over that summary, and the note is emitted
+  inside the `} >"$SUMMARY_TXT"` block only, never into the JSON. **Adding an output line to a gate is
+  an interface change; test it against the real readers, not by inspection.**
+- ⚠️ A MEASUREMENT-HYGIENE NOTE ON MY OWN NUMBERS: the first A/B run read 31 s / 1.89 GB and the
+  re-run through the tracked driver read 35 s / 1.76 GB. Neither is wrong; wall-clock and log size
+  vary per run. The recorded figure is therefore a **range (31-35 s, 84-86%)** and the driver is
+  tracked so anyone can re-derive it — rather than a single point that will fail to reproduce and
+  look like a fabrication. The gate's in-code comment was corrected to the range before shipping.
+- ⛔ SCOPE HELD: a bounded always-on progress signal was **not** built here (routed to `.5g`). Prior
+  art measured absent — no `--progress`/`--interval`/heartbeat flag on `ast_pipeline`, zero
+  `PGEN_*PROGRESS*` env vars in `rust/src/`, no periodic `pgen_trace_*` line in the stimuli generator
+  at any level. The two obvious implementations are both real design decisions: a background heartbeat
+  loop is a stray process inside a 5 h aggregate (`OPS-MEMSAFE` territory), and an engine-side
+  facility must pass the zero-cost/neutrality acceptance test (*non-users pay ZERO*). A hygiene slice
+  is the wrong place to decide either.
+- ⛔ AND THE AGGREGATE SAVING IS UNQUOTED ON PURPOSE. What was measured is ONE invocation at count=8.
+  `sv_parse_full_ratio_promotion_gate` and `sv_declared_shadow_promotion_gate` run this stage across
+  trials x 2 profiles at 5,000-attempt scale, so the real aggregate effect is plausibly far larger —
+  which is exactly why it must not be estimated in prose. `CI-PARITY-GATE-ROT.7`'s next end-to-end
+  `sota_exit_gate` run prices it in situ, and should now be launched AFTER this change rather than
+  before it.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0016 — existing is not binding: a gate whose verdict enters no tier
 
 `DONE-BAR.5e`. Gate scripts + shared helper + contract-gate rosters + probe arms.
