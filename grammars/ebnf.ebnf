@@ -237,7 +237,13 @@ quoted_string := (
 double_quoted_string := /"([^"\\]|\\.)*"/
     -> {type: "quoted_string", value: $1, quote_style: "double"}
 
-single_quoted_string := /'([^'\\]|\\.)*/
+# LANG-CAPABILITY-AUDIT.10.5 — the closing `'` was MISSING here, and the defect was not
+# cosmetic: the match ran to the next `'`/`\` ACROSS NEWLINES, so an odd number of single
+# quotes made the meta-parser swallow the rest of the file and report a clean parse.
+# Measured: `r = 'a` (unterminated) ACCEPTED; `r = 'a' THIS IS GARBAGE @@@ !!! (((`
+# ACCEPTED. The `double_quoted_string` twin above always had its closing quote and
+# always rejected the same shapes — which is how the typo was pinned.
+single_quoted_string := /'([^'\\]|\\.)*'/
     -> {type: "quoted_string", value: $1, quote_style: "single"}
 
 # Raw strings (no escape processing): r"literal"

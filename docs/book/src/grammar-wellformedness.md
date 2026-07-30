@@ -1549,14 +1549,30 @@ feature is not "done" until it is also expressed in the meta-grammar.
 
 Self-hosting is measured by the `ebnf_dual_run_diff` tool (the generated EBNF parser run over each
 grammar file) and gated, for the three tracked grammars `ebnf`/`json`/`regex`, by `make -C rust
-ebnf_frontend_dual_run_gate`. As of 2026-06-25 (`GRAMMAR-WELLFORMED.H.14.3`, release `1.0.147`), the
-generated EBNF parser self-parses **all 12 tracked grammars — 12/12**. The final gap was a duplicate
-`->` return-annotation defect in `systemverilog.ebnf` (a single rule may carry only one rule-level
-return annotation), removed in `1.0.147`; that same fix restored the UDP truth-table entry AST shape
-(ledger `SV-0009`). The three raw IEEE-LRM *extraction snapshots*
+ebnf_frontend_dual_run_gate`. The live count is **11 of 12 tracked grammars — 11/12**, with
+`regex.ebnf` the one gap. The three raw IEEE-LRM *extraction snapshots*
 (`systemverilog_2017/2023_lrm_extracted`, `verilog_2005_lrm_extracted`) are traceability artifacts,
 not part of the tracked self-hosting set. The live count and per-gap history are tracked in
 `LIVE_ACHIEVEMENT_STATUS.md` and the `GRAMMAR-WELLFORMED` task tree (`H.13`/`H.14`).
+
+> ⛔ **This number went DOWN, and that is the measurement getting honest rather than a
+> capability being lost.** From 2026-06-25 (`GRAMMAR-WELLFORMED.H.14.3`, release `1.0.147`) this
+> chapter published **12/12**. `LANG-CAPABILITY-AUDIT.10.5` measured that claim and found it
+> false: `grammars/ebnf.ebnf`'s `single_quoted_string` regex opened a `'` and **never closed
+> it**, so a lone quote swallowed input to the next `'`/`\` — across newlines. `regex.ebnf:1048`'s
+> `class_safe_special` is written in **29 single-quoted terminals**, not one of which the broken
+> rule could close, so the parse desynchronized there and ate the two multi-line `@dispatch`/
+> `@dispatch_table` payload blocks 200 lines further down — and the parser reported a clean parse
+> over all 157,319 bytes. The twin rule one line above (`double_quoted_string`) always had its closing
+> quote and always rejected the same shapes — which is how the typo was pinned. With the quote
+> closed, `regex.ebnf` now rejects at byte 55,925 (line 843, the first `@dispatch: {`), naming
+> the real gap: **the meta-grammar cannot express a multi-line annotation payload**, because
+> `ebnf.ebnf` defines no `semantic_annotation` rule at all and codegen substitutes an
+> `@`-to-end-of-line slurp. Restoring that definition is `LANG-CAPABILITY-AUDIT.10.2`, and
+> closing it is what will earn 12/12 back. ⭐ The general lesson, and the reason this is written
+> here rather than buried in a task tree: **a proof surface that cannot fail is not reporting, it
+> is agreeing** — the `regex` row of `ebnf_frontend_dual_run_gate` was green *because of* a
+> defect, and only removing the defect could say so.
 
 ## Extending: adding a new annotation tag-kind
 

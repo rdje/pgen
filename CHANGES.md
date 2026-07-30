@@ -1,5 +1,40 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0015 — leaf LANG-CAPABILITY-AUDIT.10.5: the meta-parser could not fail, so its 12/12 self-hosting claim meant nothing
+
+2 grammar files, one character each (`single_quoted_string`'s missing closing quote) + 1 probe
+driver + 1 capture + book/tracker lockstep. No Rust, no codegen, no engine change.
+
+- ROOT CAUSE (correctness): `grammars/ebnf.ebnf:240` — `single_quoted_string := /'([^'\\]|\\.)*/`
+  opens a `'` and never closes it, so the match runs to the next `'`/`\` ACROSS NEWLINES. The
+  `double_quoted_string` twin one line above (`:237`) always had its closing quote. Byte-identical
+  defect at `grammars/semantic_annotation.ebnf:146`; both fixed, and the bug-class sweep adjudicates
+  every other quote-opening regex terminal in every tracked grammar — exactly TWO instances.
+- ⭐⭐⭐ THE CLAIM IT FALSIFIED: the book published *"the generated EBNF parser self-parses all 12
+  tracked grammars — 12/12"* since 2026-06-25. Measured: `regex.ebnf` "self-parsed" only because
+  `:1048`'s `class_safe_special` is written in 29 SINGLE-quoted terminals, not one of which the
+  broken rule could close — the parse desynchronized there and SWALLOWED the two multi-line
+  `@dispatch`/`@dispatch_table` payload blocks 200 lines further down. With the quote closed, `regex.ebnf` rejects
+  at byte 55,925 (line 843, the first `@dispatch: {`) — the honest verdict. Published count
+  corrected **12/12 -> 11/12**.
+- ⛔ A GATE TURNS RED ON PURPOSE. `ebnf_frontend_dual_run_gate` gates `ebnf`/`json`/`regex` on
+  `parse_full.ok`; the `regex` row was green BECAUSE of the defect and now reports. The
+  `FLOW-INTEGRITY` invariant *"no assertion requires a defect to pass"* exists for this exact
+  shape. The remaining gap is one precisely-located thing — the meta-grammar cannot express a
+  multi-line annotation payload, because `ebnf.ebnf` defines no `semantic_annotation` at all and
+  codegen substitutes an `@`-to-end-of-line slurp — and that is `.10.2`, this container's frontier.
+- ⚠️ A DECLARED VERDICT OF MINE WAS WRONG AND THE INSTRUMENT CAUGHT IT. The first garbage probe
+  (`r = 'a' THIS IS GARBAGE @@@ !!! (((`) still ACCEPTed after the fix — not the quote's fault:
+  `THIS IS GARBAGE` are legal non-terminal references and `@@@ ...` is eaten by a SECOND, separate
+  swallow surface (the native `@`-slurp). Decomposed with the tool; the probe now uses `]]]`, and
+  the native-slurp behaviour is pinned as its own declared-ACCEPT probe so it cannot drift before
+  `.10.3` retires it.
+- ADDRESSED: `run_metagrammar_quote_probes.sh` exit 0, 0 divergences over 10 declared verdicts,
+  with a POSITIVE and a NEGATIVE ground-truth control pinned inside the instrument. `generated/ebnf.rs`
+  `bc9c4750...` -> `6088b8d6...`, both arms generated with input AND output paths pinned (the
+  `.10.1` path-embedding trap); a control reseed from the UNCHANGED grammar reproduced the
+  on-disk artifact byte-for-byte first, so the before->after is not confounded.
+
 ## 2026-07-30 - PGEN-README-POLICY-0004 — leaf README-POLICY.7: the layer-C index check was satisfied without binding; ADOPTED the stronger form from the spine repo
 
 1 doctrine enforcer + 1 decision record + mirror + tree + 1 probe driver + 1 capture — no

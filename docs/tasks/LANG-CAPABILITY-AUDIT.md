@@ -1352,14 +1352,20 @@ the person who specified it.**
   scope by design). That is a legitimate outcome and must be recorded as such — the bound is
   what keeps "any language" honest. The value is in the rows that do NOT.
 
-### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` / `.10.3` / `.10.4` ✅)
+### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` / `.10.3` / `.10.4` ✅ / `.10.5` ✅)
 
-> **Container as of session #213.** Opened in a fresh session per the director's ruling
+> **Container as of session #228.** Opened in a fresh session per the director's ruling
 > below. `.10.1` (done) settled the target, audited the whole allowlist, and corrected
 > `.7`'s record; it also **overturned this charter's recommended target** and found a
 > second defect class the charter did not know about. `.10.4` (done) then removed that
 > second defect — the `true`/`false` zero-width builtins — with all 11 generated parsers
-> byte-identical. **Frontier = `.10.2`.**
+> byte-identical. `.10.5` (done) removed a **third**: the meta-grammar's
+> `single_quoted_string` never closed its quote, so the self-hosting parser swallowed
+> arbitrary text and its published **12/12** was a false green (now an honest **11/12**).
+> **Frontier = `.10.2`**, and `.10.5` sharpened its charter — the ONE remaining
+> self-hosting gap is now precisely located (a multi-line annotation payload, at
+> `regex.ebnf` line 843), and closing it is exactly what defining `semantic_annotation`
+> must achieve.
 > Read `.10.1` before acting on anything in this charter — two of its statements below
 > are annotated as superseded.
 
@@ -1656,6 +1662,58 @@ Recorded because the failure mode reads as a codegen defect and is not one.
 
 - **Status: `todo`**, blocked on nothing; this is `.10`'s frontier. Design + code.
 
+#### ⭐⭐⭐ MEASURED INPUT FROM `.10.5` — read this before designing, it moves the target
+
+`.10.5` was opened by this leaf's own first measurement and closed three questions that
+this charter (written before any of it was measured) could not have known. All three are
+**constraints on the design**, not colour:
+
+**1. The acceptance bar is now exact, and it is ONE construct.** With the meta-grammar's
+swallow removed, the self-hosting corpus reads **11 of 12** and the single gap is
+`regex.ebnf` at byte 55,925 = **line 843, the first `@dispatch: {`**. ⇒ `.10.2` has a
+sharp, re-runnable success criterion it did not have before: *the definition it installs
+for `semantic_annotation` must parse a **multi-line, brace-delimited annotation payload**,
+and doing so returns the published count to 12/12 and re-greens
+`ebnf_frontend_dual_run_gate`.* Run `run_metagrammar_quote_probes.sh` ARM C to re-measure;
+its `multiline_payload` probe is the minimal reproducer.
+
+**2. ⛔ The delegation target CANNOT parse the payload language PGEN actually uses — 9 of
+148.** Measured by feeding every distinct annotation line in every tracked grammar (148
+after dedup) through the shipped `semantic_annotation` parser
+(`parseability_probe --parse semantic_annotation`): **139 ACCEPT, 9 REJECT.** The nine are
+three classes, and two of them ship in grammars that are already fully certified:
+
+| class | example | where it ships |
+|---|---|---|
+| **Rust-code payloads** (4) | `@transform: str::parse::<usize>().unwrap_or(0)` | `return_annotation.ebnf` ×3, `regex.ebnf` ×1 |
+| **expression payloads** (3) | `@generate: "^" if $1 else ""`, `@generate: "ch == '" + escape_char($1) + "'"` | `regex.ebnf` |
+| **multi-line payloads** (2) | `@dispatch_table: {` … `}` | `regex.ebnf` ×2 (`:1052`, `:1195`) — the same construct as (1) |
+
+⇒ **restoring `include(semantic_annotation)` as-is would make the meta-grammar REJECT
+annotation forms that tracked grammars ship today.** The composition problem is therefore
+strictly larger than the 15 name collisions `.10.1` scoped: `annotation_value` must also
+grow a payload form that accepts an opaque balanced-brace / to-end-of-line body, or the
+delegation must be to a *fragment* whose value language is deliberately permissive at the
+top. Adjudicate on measurement — the 148-line corpus is the oracle, and it is cheap to
+re-derive:
+```bash
+grep -hE '^[[:space:]]*@[a-zA-Z_]' grammars/*.ebnf | sed 's/^[[:space:]]*//' | sort -u
+```
+
+**3. There are TWO swallow surfaces, and `.10.2` removes the second one.** Besides the
+quote (fixed), the native `@`-to-end-of-line matcher codegen substitutes for the undefined
+`semantic_annotation` accepts `@@@` as a well-formed inline annotation — measured,
+`r = 'a' @@@` ⇒ ACCEPT. It is pinned as a declared-`ACCEPT` probe
+(`native_slurp_swallows_at_text`) precisely so that when `.10.2` installs a real
+definition, **that probe must flip to `REJECT`** — which is the cleanest single signal
+that the delegation is genuinely doing the work rather than the fallback still being hit.
+⚠️ Update the driver's declared verdict in the same leaf, or the instrument will report a
+divergence for a fix working correctly.
+
+⚠️ **`.10.5` also fixed `grammars/semantic_annotation.ebnf:146`**, so the two files no
+longer disagree about what a single-quoted string is — one collision class fewer to
+adjudicate here.
+
 `ebnf.ebnf` delegates its annotation sub-language by design — it defines no
 `annotation_name`/`annotation_value` and never has. The include was the mechanism.
 Restore it for real:
@@ -1802,6 +1860,223 @@ retirement by `.10.3` — so the gap has no live instance and is recorded rather
 fixed speculatively. **Re-open if a new member is ever proposed.**
 
 
+### `.10.5` — `single_quoted_string` never closed its quote, so the meta-parser's green verdict was a FALSE GREEN (`done`)
+
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0015`, session #228, 2026-07-30).
+  **CODE CHANGE** — two grammar files, one character each. Opened by `.10.2`'s own
+  measurement and it **blocked `.10.2`**: the regression oracle `.10.2` was going to
+  verify against ("the tracked grammars still parse") did not mean what it says while
+  this defect stood.
+
+#### ⭐⭐⭐ THE HEADLINE — an instrument that could not fail
+
+`.10.2` needs one number before it can move: *which tracked grammars does the
+self-hosting meta-parser accept today?* Measured through `ebnf_dual_run_diff` (the tool
+that runs `generated/ebnf.rs` directly, with none of the frontend's soft-skip gating):
+**15 of 18 ACCEPT.** That looked like a healthy baseline. It is not a baseline at all.
+
+```
+grammars/ebnf.ebnf:237  double_quoted_string := /"([^"\\]|\\.)*"/     ← closing quote present
+grammars/ebnf.ebnf:240  single_quoted_string := /'([^'\\]|\\.)*/      ← ⛔ NO CLOSING QUOTE
+```
+
+One character. The rule opens a `'`, consumes everything that is not a quote or a
+backslash — **including newlines** — and then simply ends. So a `'` swallows the rest of
+the file up to the next `'` or `\`, and the meta-parser reports a full, clean parse.
+
+⭐ **The decisive contrast, measured** (`run_metagrammar_quote_probes.sh` ARM B, 10
+declared verdicts, ground truth pinned inside the instrument):
+
+| probe | input | before | what it proves |
+|---|---|---|---|
+| `sq_unterminated` | `r = 'a` | **ACCEPT** ⛔ | an unterminated quote parses clean |
+| `sq_swallows_garbage` | `r = 'a' ]]]` | **ACCEPT** ⛔ | text no EBNF construct can claim is swallowed |
+| `sq_swallows_block` | a `'` before a multi-line annotation | **ACCEPT** ⛔ | the swallow crosses newlines |
+| `dq_unterminated` | `r = "a` | REJECT ✅ | **the twin one line above behaves correctly** |
+
+The negative control is what makes this un-arguable: the double-quoted rule shares every
+code path with the single-quoted one *except the one character*, and it rejects. This is
+a typo, not a design.
+
+#### ⛔ WHY IT MATTERS MORE THAN A TYPO — `regex.ebnf` "passes" for the wrong reason
+
+The meta-grammar genuinely **cannot** parse a multi-line annotation payload — measured in
+isolation, probe `multiline_payload`, `REJECT`:
+
+```ebnf
+@dispatch_table: {          ← the native `@`-to-END-OF-LINE slurp stops here
+    "x": "y"                ← and NOTHING in grammar_file's alternation matches this line
+}
+```
+
+`grammars/regex.ebnf` contains two such blocks (`:1052`, `:1195`) and nevertheless
+reports `parse_full.ok = true` over all 157,319 bytes. Bisected to the minimal trigger:
+
+| probe | preceding rule | verdict |
+|---|---|---|
+| `pF` | `r = "a" \| "b"` | **REJECT** — the honest answer |
+| `pJ` | `r = '"' \| "b"` | **ACCEPT** ⛔ |
+
+`regex.ebnf:1048` is `class_safe_special = '[' | '!' | … | '"' | "'" | …` — **29
+single-quoted terminals**, not one of which the broken rule could close. The parse
+desynchronizes there and the dangling quote eats the annotation block 200 lines later.
+(What the bisect establishes is that a *single-quoted terminal* before the block flips the
+verdict — `r = "a" | "b"` REJECTs, `r = '"' | "b"` ACCEPTs; it does not single out which of
+the 29 desynchronizes first, and nothing depends on that.) ⇒ the
+meta-parser's `ACCEPT` over `regex.ebnf` is **not evidence that it understood those
+bytes** — it is evidence that it stopped looking. A `parse_full.ok = true` produced this
+way cannot be the oracle for `.10.2`, and it had been the oracle for every prior claim
+about the meta-parser's reach.
+
+⇒ Same family as the rest of this container, now for the **fifth** time: `.7`'s
+`undefined_references=0`, `.10`'s allowlist masking, `.10.1`'s `true`/`false` zero-width
+matchers, `.10.4`'s `contains`-assertion test — and now a grammar rule that makes the
+parser itself unfalsifiable. **An instrument that cannot fail is not reporting; it is
+agreeing.**
+
+#### The fix, and the bug-class sweep
+
+Add the closing quote. Both instances, in one leaf — the sweep (ARM A) enumerates every
+quote-opening regex terminal in every tracked PGEN-authored grammar and adjudicates each:
+
+| site | verdict |
+|---|---|
+| `grammars/ebnf.ebnf:240` `single_quoted_string` | ⛔ **DEFECT** — fixed here |
+| `grammars/semantic_annotation.ebnf:146` `single_quoted_string` | ⛔ **DEFECT**, byte-identical twin — fixed here |
+| `ebnf.ebnf:237` / `semantic_annotation.ebnf:143` `double_quoted_string` | ✅ closing quote present |
+| `ebnf.ebnf:244` `raw_quoted_string`, `semantic_annotation.ebnf:149` `raw_string`, `:152` `multiline_string`, `json.ebnf:46` `string` | ✅ closing delimiter present |
+| `builtin_semantic_annotation.ebnf:87/88` `dq_char`/`sq_char` | ✅ N/A — per-CHARACTER rules; the quotes are matched by their wrappers (`sq_string := "'" sq_char* "'"`) |
+| `return_annotation.ebnf:132/133` `string_content_*` | ✅ N/A — content-only rules inside an explicit quoted wrapper |
+| `systemverilog.ebnf:453` `integral_number` | ✅ N/A — the SV sized-literal apostrophe (`8'hFF`), not a delimiter |
+
+**Exactly two instances.** No silent second instance.
+
+⚠️ **The twin is not optional scope.** `.10.2` composes these two files into one grammar;
+fixing one and leaving the other would carry the defect straight into the composition it
+is meant to make sound.
+
+#### ⚠️ What this leaf deliberately does NOT fix — routed, not absorbed
+
+Closing the quote makes the multi-line-annotation gap **visible** rather than swallowed.
+That gap is not this leaf's to close: `ebnf.ebnf` has no definition for
+`semantic_annotation` at all — it is the dangling reference this whole container exists
+to repair, and defining it is **`.10.2`'s** charter. Routed there with the measurement
+attached, and the driver pins the newly-visible verdict (`multiline_payload REJECT`) so
+it cannot regress to a swallow again.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `ebnf_dual_run_diff --input <probe> --output <json>` on
+  `r = 'a` (an unterminated quote) reports `parse_full.ok = true`. Driver ARM B, before
+  arm: the 3 declared-`REJECT` defect probes all measured `ACCEPT`
+  (`sq_unterminated`, `sq_swallows_garbage`, `sq_swallows_block`), while both
+  ground-truth controls read correctly — so the instrument was honest and the grammar
+  was not.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/ebnf.ebnf:240`, the `single_quoted_string`
+  regex terminal `/'([^'\\]|\\.)*/`: the closing `'` is absent, so the match runs to the
+  next `'`/`\` across newlines. Its twin at `grammars/semantic_annotation.ebnf:146` is
+  byte-identical. Located by bisection through `ebnf_dual_run_diff`'s
+  `unconsumed_start`, pinned by the `pF`/`pJ` differential (`r = "a" | "b"` before the
+  block ⇒ `REJECT`; `r = '"' | "b"` before the same block ⇒ `ACCEPT`) and by the correct
+  `double_quoted_string` twin one line above.
+- [x] **FIX** — declarative tier, the top of the fix hierarchy: one character per file,
+  in the grammar. No engine, codegen, or Rust change.
+- [x] **ADDRESSED (verified)** — `run_metagrammar_quote_probes.sh` **exit 0, 0
+  divergences**, 10 declared verdicts, ground truth pinned inside the instrument
+  (`metagrammar_quote_probes.txt`). `generated/ebnf.rs`
+  `bc9c4750…` → `6088b8d6…`; the emitted matcher now carries `'([^'\\]|\\.)*'`.
+
+  | probe | before | after |
+  |---|---|---|
+  | `sq_unterminated` — `r = 'a` | **ACCEPT** ⛔ | **REJECT** ✅ |
+  | `sq_swallows_garbage` — `r = 'a' ]]]` | **ACCEPT** ⛔ | **REJECT** ✅ |
+  | `sq_swallows_block` — odd `'` before a multi-line annotation | **ACCEPT** ⛔ | **REJECT** ✅ |
+  | `quoted_ok` — `r = 'abc'` (POSITIVE control) | ACCEPT | ACCEPT (unchanged) |
+  | `dq_unterminated` — `r = "a` (NEGATIVE control) | REJECT | REJECT (unchanged) |
+  | `sq_in_dq` / `dq_in_sq` — a quote inside the other quote | ACCEPT | ACCEPT (unchanged) |
+  | `single_line_annotation` / `rust_code_annotation` | ACCEPT | ACCEPT (unchanged) |
+
+- [x] **NO REGRESSION** — five independent legs, every one a named re-runnable oracle:
+
+  1. **`make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` GREEN** — 4/4 tests,
+     all **11 CERTIFIED grammars byte-identical** interpreter-vs-generated-parser. This
+     is the certifying oracle for *both* changed grammars: `semantic_annotation` and
+     `ebnf` are both on the CERTIFIED list.
+  2. **9 of 11 generated parsers BYTE-IDENTICAL** across a real regeneration (every
+     grammar source `touch`ed first, so no `make` no-op could fake it — the `.10.4` trap):
+     `json`, `scratch`, `rtl_const_expr`, `rtl_frontend`, `vhdl`,
+     `systemverilog_preprocessor`, `return_annotation`, **`regex`** (the grammar carrying
+     the affected annotations) and **`systemverilog`** (150 MB, regenerated for real).
+     The only two that moved are the two intended: `generated/ebnf.rs`
+     `bc9c4750…`→`6088b8d6…` and `generated/semantic_annotation_parser.rs`
+     `acccd1e7…`→`c5e41a8c…`.
+  3. **The annotation corpus is unmoved: 139/148 ACCEPT in BOTH arms, and the 9-line
+     reject set is `diff`-identical.** `semantic_annotation_parser.rs` is the annotation
+     backend every other grammar's codegen runs on, so this is the leg that matters most.
+     ⭐ It has an analytical companion that explains *why* it could not move: of the 148
+     distinct annotation lines in every tracked grammar, only **2** contain a single quote
+     at all, both with an **even** count, and both are already in the reject set ⇒ no
+     ACCEPTED annotation line exercises `single_quoted_string`.
+  4. **`make -C rust SHELL=/bin/bash generated_clippy_correctness_gate` GREEN** —
+     `GENERATED-CLIPPY-CORRECTNESS: findings: total=0 (expected 0)` across 10 required +
+     1 optional generated artifacts, 68 pinned lints all still in `clippy::correctness`.
+  5. **`bash scripts/check_doctrines.sh` — ALL 15 doctrines PASS**, plus the
+     `<meta:mirror>` check.
+
+  ⛔ **The one thing that DID change is stated as its own finding below rather than
+  buried here** — `ebnf_frontend_dual_run_gate`'s `regex` row. It is a false green
+  removed, not a capability lost, and the loading path does **not** hard-fail: the
+  equivalence-gate run shows the frontend's soft cross-check reporting it exactly as
+  designed — `warning: Rust EBNF generated-parser verification skipped for 'regex':
+  Parser did not consume full input at position 55925`.
+- [x] **LOCKSTEP** — `docs/book/src/grammar-wellformedness.md` (the published
+  self-hosting count corrected 12/12 → 11/12, with the reason, the exact locus, and the
+  general lesson); `LIVE_ACHIEVEMENT_STATUS.md` dated tracker note; `CHANGES.md`;
+  `DEVELOPMENT_NOTES.md`; `MEMORY.md`. No contract/release/schema/ledger movement — the
+  meta-grammar ships no downstream parser contract.
+
+#### ⛔⛔ THE CONSEQUENCE, STATED PLAINLY — a gate turns RED, and it should
+
+`make -C rust ebnf_frontend_dual_run_gate` gates exactly `ebnf`/`json`/`regex` on
+`parse_full.ok`. **`regex` now fails it.** That is not a regression this leaf introduced;
+it is the gate's `regex` row reporting for the first time. The full before→after over the
+tracked corpus (driver ARM C):
+
+| grammar | before | after |
+|---|---|---|
+| `regex.ebnf` | ACCEPT (**false green** — the payload blocks were swallowed) | **REJECT @ byte 55,925 = line 843, the first `@dispatch: {`** |
+| the other 11 tracked grammars | ACCEPT | ACCEPT — **all unchanged** |
+| the 3 IEEE-LRM extraction snapshots | REJECT | REJECT — unchanged (not tracked self-hosting artifacts) |
+
+⇒ published self-hosting **12/12 → 11/12**, and the 12/12 was never true. The single
+remaining gap is one thing, precisely located: the meta-grammar cannot express a
+multi-line annotation payload, because `ebnf.ebnf` defines no `semantic_annotation` and
+codegen substitutes an `@`-to-end-of-line slurp. **That is `.10.2`'s charter**, it is this
+container's declared frontier, and closing it is what earns 12/12 back — honestly this
+time.
+
+⭐ **Why the red is the right outcome rather than something to work around.** The
+`FLOW-INTEGRITY` doctrine already carries the invariant *"no assertion requires a defect
+to pass"*, adopted after a gate was found that passed only when the parser FAILED. This is
+that shape exactly, one layer deeper: the assertion did not require a defect, it was
+*satisfied* by one. Preserving the green would have meant preserving the swallow.
+
+#### ⚠️ A declared verdict of mine was wrong, and the instrument caught it
+
+The first `sq_swallows_garbage` probe was `r = 'a' THIS IS GARBAGE @@@ !!! (((`, declared
+`REJECT`. After the fix it still measured `ACCEPT`, and the fix was not at fault — the
+probe was confounded two ways: `THIS IS GARBAGE` are **legal non-terminal references** in
+EBNF, and `@@@ !!! (((` is eaten by the *native `@`-to-end-of-line slurp*, a second and
+entirely separate swallow surface. Decomposed with the tool: `r = 'a' @@@` ⇒ ACCEPT,
+`r = 'a' !!!` ⇒ REJECT@16, `r = 'a' (((` ⇒ REJECT@8, `r = 'a' ]]]` ⇒ REJECT@8. The probe
+now uses `]]]`, which no EBNF construct can claim, and the native-slurp behaviour is
+**pinned as its own declared-`ACCEPT` probe** (`native_slurp_swallows_at_text`) so that
+defect — owned by `.10.2`/`.10.3` — cannot change silently either. ⇒ banked: **two
+independent swallow surfaces existed, and a probe that does not separate them measures
+neither.**
+
+---
+
 ## Acceptance Criteria (tree)
 
 - A measured, re-runnable expressiveness matrix — not prose.
@@ -1844,3 +2119,15 @@ fixed speculatively. **Re-open if a new member is ever proposed.**
   the fixture, its artifact, **and** the `parseability_probe` binary on every exit path).
 - `docs/tasks/artifacts/lang_capability_audit/native_builtin_audit.txt` — `.10.1`
   capture, all three arms, **exit 0, 0 divergences**.
+- `docs/tasks/artifacts/lang_capability_audit/run_metagrammar_quote_probes.sh` — `.10.5`
+  driver. Three arms: **A** static (both defect sites + the bug-class sweep, with every
+  non-instance adjudicated and its reason written next to it), **B** behaviour (10
+  declared verdicts through the REAL generated meta-parser via `ebnf_dual_run_diff`,
+  regenerating `generated/ebnf.rs` from the current grammar with **input AND output paths
+  pinned**), **C** corpus (the tracked-grammar acceptance map, each `REJECT` mapped to its
+  source line so the report explains itself). ⭐ Ground truth is pinned **inside** the
+  instrument — a POSITIVE control (a legal single-quoted string must still parse) and a
+  NEGATIVE control (the already-correct double-quoted twin must still reject); the script
+  REFUSES rather than reporting a verdict if either moves.
+- `docs/tasks/artifacts/lang_capability_audit/metagrammar_quote_probes.txt` — `.10.5`
+  capture, **exit 0, 0 divergences**.

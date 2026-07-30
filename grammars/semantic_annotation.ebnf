@@ -143,7 +143,11 @@ string_literal := (
 double_quoted_string := /"([^"\\]|\\.)*"/
     -> {type: "string", value: $1, quote_style: "double"}
 
-single_quoted_string := /'([^'\\]|\\.)*/
+# LANG-CAPABILITY-AUDIT.10.5 — the byte-identical twin of the `grammars/ebnf.ebnf:240`
+# defect: the closing `'` was missing, so the match ran across newlines to the next
+# `'`/`\`. Fixed in the same leaf because .10.2 composes these two files, and carrying
+# the defect into that composition would defeat the repair it exists to make.
+single_quoted_string := /'([^'\\]|\\.)*'/
     -> {type: "string", value: $1, quote_style: "single"}
 
 raw_string := /r"([^"]*)"/  

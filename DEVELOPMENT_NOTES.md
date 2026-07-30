@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0015 — a grammar rule that made the parser unfalsifiable
+
+`LANG-CAPABILITY-AUDIT.10.5`. Two grammar files, one character each. Opened by `.10.2`'s own
+measurement and blocking it.
+
+- **How it was found, and why that matters.** `.10.2` needed one number before it could start:
+  which tracked grammars does the self-hosting meta-parser accept? The answer came back 15/18 and
+  looked like a healthy baseline. It was not a baseline at all. `grammars/ebnf.ebnf:240` reads
+  `single_quoted_string := /'([^'\\]|\\.)*/` — the closing `'` is absent, so a lone quote
+  consumes everything that is not a quote or a backslash, INCLUDING NEWLINES, until it finds one.
+  The meta-parser therefore reports a clean full parse over text it never understood.
+- **The pin is the twin, not the reasoning.** `double_quoted_string` sits one line above at `:237`,
+  is otherwise identical, HAS its closing quote, and correctly REJECTS every shape the
+  single-quoted rule accepted (`r = "a` -> REJECT vs `r = 'a` -> ACCEPT). Two rules, one code path,
+  one character of difference, opposite verdicts. That is a typo, not a design, and it is why the
+  diagnosis needed no argument.
+- **The bisection.** `regex.ebnf` parses fully (157,319 bytes) yet an EXCERPT of it does not — the
+  kind of result that is either a tooling artifact or a real defect and must not be waved through.
+  Bisected with `ebnf_dual_run_diff`'s `unconsumed_start` down to a two-line differential:
+  `r = "a" | "b"` before a multi-line annotation block REJECTS (honest); `r = '"' | "b"` before the
+  SAME block ACCEPTS. `regex.ebnf:1048`'s `class_safe_special` is written in 29 single-quoted
+  terminals, not one of which the broken rule could close, so the parse desynchronized there and
+  ate the `@dispatch`/`@dispatch_table` payload blocks 200 lines later.
+- **What the fix reveals.** With the quote closed, `regex.ebnf` rejects at byte 55,925 — line 843,
+  the first `@dispatch: {`. The meta-grammar genuinely cannot express a multi-line annotation
+  payload: `ebnf.ebnf` defines no `semantic_annotation` rule at all (the dangling reference this
+  whole `.10` container exists to repair), so codegen substitutes a native `@`-to-end-of-line
+  slurp that stops at the first newline. Routed to `.10.2`, which owns defining it.
+- **Two swallow surfaces, and a probe that measured neither.** The first garbage probe conflated
+  the quote swallow with the native `@`-slurp and produced a wrong declared verdict that survived
+  the fix. Decomposed: `r = 'a' @@@` ACCEPT (native slurp), `r = 'a' !!!` REJECT@16,
+  `r = 'a' (((` REJECT@8, `r = 'a' ]]]` REJECT@8. Banked as a method lesson — when two independent
+  mechanisms can produce the same symptom, a probe that does not separate them measures neither.
+- **Method: the control came first.** Before any before/after claim, the regeneration procedure was
+  validated by reseeding `generated/ebnf.rs` from the UNCHANGED grammar with input AND output paths
+  pinned; it reproduced the on-disk artifact byte-for-byte (`bc9c4750...`). A first attempt WITHOUT
+  the output path pinned reported a 3,056-hunk diff for a zero-change reseed — the emitted parser
+  embeds its own output path as a logging literal, exactly the trap `.10.1` banked. Without that
+  control the after-arm number would have been unattributable.
+
 ## 2026-07-30 - PGEN-README-POLICY-0003 — porting a policy is how you find out the source of the policy has the defect
 
 `README-POLICY.5`. Policy refresh + tree; the substantive work landed in the separate bedrock repo.
