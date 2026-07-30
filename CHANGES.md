@@ -1,5 +1,49 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0022 — leaf DONE-BAR.1a: the Done-bar audit reported a SUPERSEDED gate failure as a current verdict
+
+`scripts/audit_done_bar.sh` + README + 1 probe driver — no `grammars/*.ebnf`, no `rust/src/*`, no
+`rust/scripts/*`, no `generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- FOUND BY USING THE INSTRUMENT: pulling the live-status snapshot for the `-0021` commit report, the
+  audit printed `regex   tracker: In Progress` and, three lines below,
+  `⛔ … error: regex tracker alignment mismatch: computed 'In Progress' but tracker says 'Done'` — a
+  self-contradiction inside one report.
+- ROOT CAUSE is an ASYMMETRY, not an omission. The audit learns a family-status gate's verdict two
+  ways: the ARTIFACT path (`:427`) applies `mtime < newest_input_mtime(family)` and reports
+  `⚠️ STALE — older than its own inputs`; the FAILED-GATE path (`gate_ran_and_failed`, `:275-289`)
+  returned no vintage at all. The unguarded branch is the one MOST exposed to staleness — a gate that
+  failed wrote no summary, so the only evidence left is a log of arbitrary age. The leg-2 site's own
+  comment already states the rule (*"a tracker edit after the run leaves that alignment unproven even
+  when the recorded answer was `true`"*), which is exactly as true of a recorded FAILURE.
+- MEASURED: the quoted log's mtime is 2026-07-29 13:49 (epoch 1785325790); `DONE-BAR.2b` (`b704e1ab`)
+  moved that tracker row to `In Progress` at 18:37:42 — 4 h 48 m later. The complaint was true when
+  written and false when read.
+- FIX: `gate_ran_and_failed` returns `(rel, error, mtime)`; both call sites apply the artifact path's
+  staleness rule. A stale failure is reported with its vintage, the recorded error is still quoted (it
+  is evidence, just not current), and the verdict becomes UNPROVEN rather than UNMET — downgrading
+  rather than dropping, so the audit's refusal polarity is preserved and no row can be promoted.
+- VERIFIED: probes 9 passed / 0 failed / 3 UNJUDGEABLE. ⭐ CTRL-1 is the arm that matters — with the
+  same log touched NEWER than every input, the verdict flips back to a current `⛔ … RAN AND FAILED`
+  with no staleness claim, so the audit is NOT blind to real current failures. Audit still exits 0,
+  calibration still reproduces, ALL 14 doctrines PASS, no tracker row moved.
+- HONEST BOUND: the 3 BEFORE arms are UNJUDGEABLE because the retired script REFUSED while
+  `sota_exit_gate` run 4 was executing. ⛔ The first cut of that block asserted an ABSENT string and
+  PASSED VACUOUSLY over a 171-byte refusal — an arm reaching the right verdict for the wrong reason.
+  It now demands a real verdict and reports UNJUDGEABLE otherwise, and the driver's final line prints
+  the count. A skip is never a pass.
+- TWO FURTHER FINDINGS ROUTED to the new leaf `.1b`, not fixed here: (1) `README.md`'s claim that the
+  audit is *"read-only and cheap (no cargo, no make, no network)"* is FALSE on the make half — its
+  precondition `check_gate_reachability.sh:222-225` runs `make -C rust print-<var>` with a 30 s
+  timeout, which is why it contends with a running aggregate; README corrected in this commit.
+  (2) that call is wrapped in `except Exception: _var_cache[name] = []`, so a timeout yields an EMPTY
+  make-variable expansion SILENTLY — dropping edges, which is calibration defect (6) from
+  `CI-PARITY-GATE-ROT.2`'s own six-wrong-answers list, i.e. the fix's failure path degrades back into
+  the blindness it was written to cure. Today it surfaced as a loud refusal; if the lost edges touched
+  only already-dispositioned orphans the census would come out quietly different and still exit 0.
+  ⚠️ The timeout as the trigger is an INFERENCE, not a measurement — the failing invocation's log was
+  overwritten by later standalone re-runs before it was read, and `.1b` must capture it first.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0021 — leaf DONE-BAR.5d: the .5d-vs-.6 overlap is adjudicated, and the family with the most evidence discloses the least boundary
 
 Docs + one calibrated census driver — no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no

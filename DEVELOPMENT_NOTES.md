@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0022 — a staleness guard applied to one of two branches, and the branch it skipped was the exposed one
+
+`DONE-BAR.1a`. `scripts/audit_done_bar.sh` + README + 1 probe driver.
+
+- ⭐⭐ THE LESSON THAT GENERALISES: **when a file already contains the rule, check EVERY branch that
+  needs it.** The audit had the staleness concept, the incident it came from (`CI-PARITY-GATE-ROT.5`'s
+  three-day-old artifact) named in its docstring, and the rule correctly applied on the artifact path.
+  It was missing on the failed-gate path — and that is the branch where the only evidence is a log of
+  arbitrary age, because a gate that failed wrote no summary. **The presence of a guard elsewhere in
+  the same file is the strongest signal that the unguarded branch was an oversight, not a decision.**
+- ⭐ SECOND LESSON — a self-contradicting report is a defect report. The audit printed
+  `tracker: In Progress` and a ⛔ quoting `tracker says 'Done'` three lines apart. Nothing failed;
+  exit was 0. **A reader had to notice.** That is the class this repo keeps naming: an instrument that
+  is wrong in a way no assertion covers.
+- ⭐ THE FIX DOWNGRADES RATHER THAN DROPS. A stale failure could have been suppressed entirely; instead
+  the error is still quoted, labelled with its vintage, and the verdict becomes UNPROVEN. Both fail the
+  bar, so nothing is promoted, and the evidence stays visible for whoever re-runs the gate.
+  **Suppressing evidence to fix a presentation bug would have traded one blindness for another.**
+- ⚠️⚠️ THE PROBE'S OWN FIRST CUT PASSED VACUOUSLY, and it is the third instance this session of a
+  cheap check standing in for the real one. `BEFORE-1` asserted that a string was ABSENT from the
+  retired script's output — and the retired script had REFUSED, emitting 171 bytes, so the string was
+  trivially absent and the arm went green over a run that judged nothing. Fixed by requiring the
+  retired script to have produced a real verdict first, and by reporting `UNJUDGEABLE` (counted and
+  printed) instead of pass/fail. ⇒ **an ABSENT-assertion is only meaningful once you have proven the
+  haystack is the haystack you think it is.**
+- ⚠️ A SECOND unscoped-assertion defect in the same driver: `CTRL-1` asserted that
+  `"PREDATES its own inputs"` was absent from the fresh-log run — but that phrase also occurs
+  legitimately on the ARTIFACT branch for other families, so the arm failed for the wrong reason. Fixed
+  by scoping to the failed-gate wording. **An absent-check needs the narrowest string that can only
+  come from the path under test.**
+- ⛔ ROUTED, NOT FIXED (`.1b`): the audit's advertised *"no make"* property is false — its precondition
+  `check_gate_reachability.sh:222-225` runs `make -C rust print-<var>` with a 30 s timeout — and that
+  call swallows any failure into `_var_cache[name] = []`, an EMPTY expansion that drops edges. That is
+  calibration defect (6) from `CI-PARITY-GATE-ROT.2` reappearing through the FAILURE PATH of the fix
+  that closed it. Today it produced a loud refusal; the dangerous case is lost edges touching only
+  already-dispositioned orphans, where the census comes out quietly different and still exits 0.
+  ⚠️ The timeout-as-trigger reading is an INFERENCE: the failing invocation's log was overwritten by my
+  own standalone re-runs before I read it. **Capture the failing artifact BEFORE re-running anything —
+  a diagnostic re-run is a destructive act when the evidence is a fixed-path log.**
+
 ## 2026-07-30 - PGEN-DONE-BAR-0021 — a heading is not a boundary, and two crude instruments in one sitting
 
 `DONE-BAR.5d`. Docs + one calibrated census driver.

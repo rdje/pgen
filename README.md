@@ -185,8 +185,12 @@ PGEN is a production-focused parser and stimuli generator platform.
     `grammars/*.ebnf`), so a family nobody added to a list cannot hide; a family missing from
     `rust/test_data/grammar_quality/done_bar_family_register_v0.json` **refuses** rather than being
     skipped
-  - ⛔ read-only and cheap (no cargo, no make, no network): it never runs a gate, so it can never
-    manufacture the green it audits. **A leg it cannot see is `UNPROVEN`, never `MET`** — and
+  - ⛔ read-only: it never runs a gate, so it can never manufacture the green it audits.
+    ⚠️ **it is NOT `make`-free** (corrected 2026-07-30, `DONE-BAR.1a`): its hard precondition
+    `scripts/check_gate_reachability.sh` shells out to `make -C rust print-<var>` (with a 30 s
+    timeout) to expand make-variable prerequisites, so the audit contends with a concurrently running
+    aggregate and has been measured REFUSING while `sota_exit_gate` was executing. No cargo, no
+    network. **A leg it cannot see is `UNPROVEN`, never `MET`** — and
     `UNPROVEN` does not satisfy the bar
   - it AUDITS; it never demotes a tracker row (that is `DONE-BAR.2`). Exit 1 means at least one
     `Done` row does not meet the bar; exit 3 means a ground-truth control did not reproduce and no

@@ -275,7 +275,17 @@ def find_artifact(gate):
 def gate_ran_and_failed(gate):
     """A gate that RAN and DIED is not the same as a gate that never ran, and the difference is
     decisive: the first is an UNMET leg with a named cause, the second is UNPROVEN. A gate killed
-    mid-run leaves a 0-byte summary.txt (CI-PARITY-GATE-ROT.14) and an `error:` line in its log."""
+    mid-run leaves a 0-byte summary.txt (CI-PARITY-GATE-ROT.14) and an `error:` line in its log.
+
+    Returns (rel_path, error_line, mtime) so the CALLER can apply the same staleness rule the
+    artifact path applies. ⛔ DONE-BAR.1a: this branch used to return no vintage at all, and it is
+    the branch MOST exposed to staleness — a gate that failed wrote no summary, so the only evidence
+    left is a log of arbitrary age. Measured instance: `regex_parser_family_status_gate.log` (mtime
+    2026-07-29 13:49) carried `error: regex tracker alignment mismatch: computed 'In Progress' but
+    tracker says 'Done'`, and `DONE-BAR.2b` moved that tracker row to `In Progress` 4h48m LATER
+    (b704e1ab, 18:37:42) — so the audit printed `tracker: In Progress` and, two lines below, a ⛔
+    quoting an error about the tracker saying `Done`. The complaint was true when written and false
+    when read."""
     candidates = [
         os.path.join(ROOT, "rust", "target", "sota_exit_gate", "logs", f"{gate}.log"),
         os.path.join(ROOT, "rust", "target", gate, "logs", f"{gate}.log"),
@@ -285,8 +295,8 @@ def gate_ran_and_failed(gate):
             continue
         for line in read(path).splitlines():
             if line.startswith("error:"):
-                return os.path.relpath(path, ROOT), line
-    return None, None
+                return os.path.relpath(path, ROOT), line, os.path.getmtime(path)
+    return None, None, None
 
 
 # ---------------------------------------------------------------------------
@@ -414,9 +424,16 @@ def leg1(family, report):
         return UNPROVEN
     art = find_artifact(gate)
     if art is None:
-        log_rel, err = gate_ran_and_failed(gate)
+        log_rel, err, log_mtime = gate_ran_and_failed(gate)
         if err:
-            report.append(f"{gate} RAN AND FAILED (log {log_rel}); no summary was written")
+            # Same rule as the artifact path below: a failure recorded before its own inputs moved
+            # describes a tree that no longer exists, so it cannot stand as a CURRENT verdict.
+            if log_mtime < newest_input_mtime(family):
+                report.append(f"{gate} RAN AND FAILED (log {log_rel}, mtime {int(log_mtime)}, ⚠️ STALE — older than its own inputs)")
+                report.append(f"  the recorded failure was: {err}")
+                report.append("that failure PREDATES its own inputs ⇒ UNPROVEN, not UNMET — re-run the gate")
+                return UNPROVEN
+            report.append(f"{gate} RAN AND FAILED (log {log_rel}, mtime {int(log_mtime)}); no summary was written")
             report.append(f"  {err}")
             return UNMET
         report.append(f"{gate} has produced no non-empty summary.txt on this machine")
@@ -464,9 +481,18 @@ def leg2(family, report):
 
     art = find_artifact(gate)
     if art is None:
-        log_rel, err = gate_ran_and_failed(gate)
-        if err:
-            report.append(f"  ⛔ {gate} RAN AND FAILED (log {log_rel}): {err}")
+        log_rel, err, log_mtime = gate_ran_and_failed(gate)
+        if err and log_mtime < newest_input_mtime(family):
+            # The status gates ASSERT tracker alignment, so a tracker edit after the run leaves that
+            # assertion unproven — which is exactly as true of a recorded FAILURE as of a recorded
+            # pass. Reporting a superseded mismatch as current is how this audit came to print
+            # `tracker: In Progress` above a ⛔ complaining the tracker says `Done` (DONE-BAR.1a).
+            report.append(f"  ⚠️ {gate} RAN AND FAILED (log {log_rel}, mtime {int(log_mtime)}) but that run PREDATES its own inputs")
+            report.append(f"     the recorded failure was: {err}")
+            report.append("     ⇒ green-NOW is UNPROVEN, not UNMET — the failure may already be fixed; re-run the gate")
+            verdict = UNPROVEN
+        elif err:
+            report.append(f"  ⛔ {gate} RAN AND FAILED (log {log_rel}, mtime {int(log_mtime)}): {err}")
             verdict = UNMET
         else:
             report.append(f"  {gate} green-NOW is UNPROVEN — no artifact on this machine")

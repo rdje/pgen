@@ -404,6 +404,123 @@ direction for another. That is why the controls are the deliverable, not the num
   `DEVELOPMENT_NOTES.md`, `MEMORY.md`. No release / schema / ledger / contract movement: nothing
   executable changed.
 
+### `.1a` — the audit reported a SUPERSEDED gate failure as a current verdict (`done`, 2026-07-30 session #227, `PGEN-DONE-BAR-0022`)
+
+- **Found by USING the instrument, not by being told**: while pulling the live-status snapshot for the
+  `.5d` commit report, `bash scripts/audit_done_bar.sh` printed, three lines apart:
+
+```
+regex   tracker: In Progress   (not a `Done` claim — reported for context)
+  ⛔ regex_parser_family_status_gate RAN AND FAILED (log …): error: regex tracker alignment
+     mismatch: computed 'In Progress' but tracker says 'Done'
+```
+
+  ⇒ the audit contradicted itself: it read the tracker as `In Progress` and, immediately below, quoted
+  a gate error complaining the tracker says `Done`.
+
+##### ROOT CAUSE — an asymmetry, not an omission, and the audit's own comment describes it
+
+- `scripts/audit_done_bar.sh` has **two** ways to learn a family-status gate's verdict:
+  - the **artifact** path (`find_artifact` → a `summary.*`), which at `:427` applies
+    `mtime < newest_input_mtime(family)` and reports `⚠️ STALE — older than its own inputs`, with the
+    rationale *"a verdict resting on an artifact older than the inputs it judged is not proof"*;
+  - the **failed-gate** path (`gate_ran_and_failed`, `:275-289`), which read the log's first `error:`
+    line and returned **no vintage at all**.
+- ⭐⭐ **The unguarded branch is the one MOST exposed to staleness**: a gate that failed wrote no
+  summary, so the only evidence left is a log of arbitrary age. And the leg-2 site's own comment
+  already states the governing rule — *"The status gates assert tracker alignment, so a tracker edit
+  after the run leaves that alignment unproven even when the recorded answer was `true`"* — which is
+  **exactly as true of a recorded FAILURE as of a recorded pass**, and was applied to only one of them.
+- **MEASURED instance:** the quoted log's mtime is **2026-07-29 13:49** (epoch `1785325790`);
+  `DONE-BAR.2b` (`b704e1ab`, 2026-07-29 **18:37:42**) moved that tracker row to `In Progress`
+  **4 h 48 m later**. The complaint was TRUE when written and FALSE when read.
+
+##### FIX
+
+`gate_ran_and_failed` now returns `(rel, error, mtime)` and **both** call sites apply the artifact
+path's staleness rule: a failure older than its own inputs is reported WITH its vintage, the recorded
+error is still quoted (it is evidence, just not current), and the verdict becomes **UNPROVEN, not
+UNMET** — *"the failure may already be fixed; re-run the gate"*. ⭐ Downgrading rather than dropping
+keeps the refusal polarity the audit is built on: `UNPROVEN` does not satisfy the bar either, so no row
+can be promoted by this change.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `bash scripts/audit_done_bar.sh` printed `regex   tracker: In Progress`
+      and, 3 lines below, `⛔ … error: regex tracker alignment mismatch: computed 'In Progress' but
+      tracker says 'Done'` — a self-contradiction in one report.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family: `grep -n 'gate_ran_and_failed'
+      scripts/audit_done_bar.sh` → definition `:275` returning a 2-tuple with no mtime, consumed at
+      `:417` (leg 1) and `:467` (leg 2), while the sibling artifact path at `:427` computes
+      `mtime < newest_input_mtime(family)` and reports staleness. Vintage measured with
+      `os.path.getmtime` = `1785325790` (2026-07-29 13:49) against `git log --format=%ad` for
+      `b704e1ab` = 2026-07-29 18:37:42 ⇒ the artifact predates its own input by 4 h 48 m.
+- [x] **FIX** — declarative tier: return the mtime and apply the rule the file already contains at
+      both call sites. No new mechanism, no new dependency.
+- [x] **ADDRESSED (verified)** — before→after **REPLAYED from `git show HEAD:`**, not described.
+      AFTER: leg 1 reads `RAN AND FAILED (log …, mtime 1785325790, ⚠️ STALE — older than its own
+      inputs)` + `that failure PREDATES its own inputs ⇒ UNPROVEN, not UNMET — re-run the gate`; leg 2
+      reads `⚠️ … but that run PREDATES its own inputs` ⇒ `green-NOW is UNPROVEN, not UNMET`.
+      `bash docs/tasks/artifacts/done_bar/run_audit_stale_failure_probes.sh` → **9 passed, 0 failed,
+      3 UNJUDGEABLE** (see the honest bound below).
+- [x] **NO REGRESSION** — ⭐ **CTRL-1 is the arm that matters**: the fix must not make the audit blind
+      to REAL current failures. With the same log touched NEWER than every input, the verdict flips
+      back to `⛔ … RAN AND FAILED` with **no** staleness claim on either leg — so a fresh failure is
+      still UNMET. The audit still exits **0** on the live tree, control calibration still reproduces
+      (no `MISCALIBRATED`), and `:371`'s `gate_ran_and_failed(_g)[1]` index-1 use is unaffected by the
+      3-tuple. No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11 generated parsers
+      byte-identical BY CONSTRUCTION. `bash scripts/check_doctrines.sh` → ALL 14 PASS.
+- [x] **LOCKSTEP** — `README.md` (the audit's advertised properties — corrected, see below), this
+      tree, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`. No release / schema / ledger / contract
+      movement.
+
+##### ⚠️ HONEST BOUND — 3 probe arms are UNJUDGEABLE, and the probe SAYS so rather than passing
+
+The `BEFORE-1` arms replay the retired script from `git show HEAD:`, and that script **REFUSED** three
+times in a row with *"scripts/check_gate_reachability.sh did not succeed"* while `sota_exit_gate` run 4
+was executing. ⛔⛔ **The first cut of that block asserted an ABSENT string and therefore PASSED
+VACUOUSLY over a 171-byte refusal message** — an arm reaching the right verdict for the wrong reason,
+the precise failure `CI-PARITY-GATE-ROT.4` exists to catch. It now requires the retired script to have
+produced a real verdict and reports `UNJUDGEABLE` otherwise, and the driver's final line states the
+count. **A skip is never a pass.** Re-run when no aggregate `make` is executing.
+
+##### ⛔⛔ TWO FURTHER FINDINGS, ROUTED TO `.1b` RATHER THAN FIXED HERE
+
+1. **The audit's advertised "no make" property is FALSE, and that is why it is flaky.** `README.md:188`
+   describes `audit_done_bar.sh` as *"read-only and cheap (no cargo, no make, no network)"*. But its
+   hard precondition `scripts/check_gate_reachability.sh` executes
+   `subprocess.run(["make","-C","rust","--no-print-directory","-s",f"print-{name}"], timeout=30)` at
+   `:222-225` — so the audit **does** invoke `make -C rust`, and it therefore contends with any
+   concurrently running aggregate. ⇒ *the `Done`-bar audit cannot be relied on to produce a verdict
+   while a `make -C rust` gate is running, and its own documentation tells you not to worry about that.*
+2. ⭐⭐ **A LATENT SILENT-DEGRADATION worse than the flakiness**: that call is wrapped in
+   `except Exception: _var_cache[name] = []` (`:227-228`) — a timeout or any failure yields an **EMPTY
+   make-variable expansion, silently**. An empty prereq expansion **drops edges**, which is exactly
+   calibration defect **(6)** from `CI-PARITY-GATE-ROT.2`'s six-wrong-answers list (*"a prereq list in
+   a make variable"*), the one fixed by *"ASK MAKE, DO NOT RE-IMPLEMENT MAKE"*. ⇒ **the fix's failure
+   path degrades back into the blindness it was written to cure.** Today that surfaced as a loud
+   refusal (the ratchet noticed untriaged orphans), but if the lost edges touch only
+   already-dispositioned orphans the census would come out **quietly different and still exit 0** —
+   the reachability instrument's 8 ground-truth controls are the only thing standing between that and
+   a wrong number.
+   ⚠️ **NOT PROVEN, STATED AS AN INFERENCE:** the failing invocation's own log was overwritten by my
+   later standalone re-runs before I read it, so *"the 30 s timeout fired"* is the strong reading, not
+   a measurement. `.1b` must capture the failing invocation before diagnosing.
+
+### `.1b` — the audit's reachability precondition invokes `make` and swallows its failures (`todo`)
+
+- **Status: `todo`** — routed from `.1a` (2026-07-30, `PGEN-DONE-BAR-0022`) with the evidence above.
+- **Scope:** (1) capture the FAILING `check_gate_reachability.sh` invocation before diagnosing (do not
+  re-run standalone first — that overwrites the log, which is how `.1a` lost it); (2) decide whether
+  the `except Exception: []` swallow should REFUSE instead of degrading, per this repo's own rule that
+  *a check that cannot see must say so*; (3) correct `README.md:188`'s *"no make"* claim either by
+  removing the make dependency or by stating it; (4) consider whether the audit should refuse outright
+  while an aggregate is running rather than contend with it.
+- ⭐ **Why this matters more than a flaky script:** every `Done`/`Provisional` adjudication in this
+  tree rests on this audit, and `GATE-REACHABILITY` is one of the 14 enforced doctrines. A silent
+  empty expansion in its edge derivation is a defect in the instrument that decides whether other
+  instruments exist.
+
 ### `.2` — demote what does not meet the bar, with the unmet leg named (`todo`, **SPLIT into `.2a` → `.2b`**)
 
 - **Status: `todo`** — ✅ **UNBLOCKED: `.1` is done and every row it must act on is measured**
