@@ -764,3 +764,59 @@ panic_mode := "panic"
 #
 # This grammar is self-hosting and can parse itself as well as
 # other EBNF grammars with full semantic annotation support.
+
+# =============================================================================
+# SEMANTIC ANNOTATIONS (LANG-CAPABILITY-AUDIT.10.2 — option B)
+# =============================================================================
+#
+# `grammar_file`, `annotation_list` and `inline_semantic_annotation` have referenced
+# `semantic_annotation` since this grammar was written, and NOTHING defined it. The
+# reference survived only because `"semantic_annotation"` is hard-coded into codegen's
+# `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` allowlist, which synthesized an `@`-to-END-OF-LINE
+# slurp AND blinded the undefined-reference linter to the whole class. That is the
+# `EBNF-SOURCE-OF-TRUTH` breach director #208 named. It is now a real rule.
+#
+# ⭐ WHY THE PAYLOAD IS OPAQUE — this is the design, not a shortcut.
+# A meta-grammar's job is to DELIMIT an annotation so `grammar_file` can consume it, not to
+# validate the payload. Three measurements settle it:
+#   1. NOTHING reads this parser's annotation AST. Every consumer of the generated
+#      `EbnfParser` takes a VERDICT; the sole AST consumer is the interpreter-vs-generated
+#      self-consistency oracle. `ebnf` has no integration contract and no ast_shape_contract.
+#   2. The AUTHORITATIVE hand-written frontend already does exactly this:
+#      `ebnf_frontend.rs:1410 parse_semantic_annotation_text` strips `@`, finds the TOP-LEVEL
+#      colon (brace/bracket/paren-depth AND quote aware) and emits
+#      `["semantic_annotation", [name, payload]]` with payload an OPAQUE String. Modelling
+#      the payload here would model something the real frontend does not do.
+#   3. PGEN's actual annotation contract is "structured if possible, opaque otherwise, never
+#      reject" — `unified_semantic_ast.rs:286 parse_bootstrap` is TOTAL, and
+#      `grammars/builtin_semantic_annotation.ebnf` is its written spec. Duplicating the
+#      payload language a THIRD time is what lets copies diverge: measured,
+#      `grammars/semantic_annotation.ebnf` already REJECTS 9 of the 148 annotation lines the
+#      tracked grammars actually ship, the whole `@transform:` family included.
+#
+# ⛔ Do NOT "improve" this into a structured payload without re-reading `.10.2`. Doing so
+# re-imports a divergent spec and buys no consumer anything.
+
+semantic_annotation := "@" annotation_key ":" annotation_payload
+    -> {type: "semantic_annotation", name: $2, value: $4}
+
+annotation_key := /([a-zA-Z_][a-zA-Z0-9_]*)/
+    -> {type: "annotation_key", name: $1}
+
+# A braced payload may span lines and nest; anything else runs to end of line. Under the
+# default `longest_match` branch policy a multi-line `{ … }` beats the end-of-line reading,
+# and a single-line braced payload ties and takes the earlier arm.
+annotation_payload := (braced_payload | line_payload)
+    -> $1
+
+braced_payload := "{" brace_body "}"
+    -> {type: "braced_payload", body: $2}
+
+brace_body := (braced_payload | brace_text)*
+    -> [$1*]
+
+brace_text := /([^{}]+)/
+    -> $1
+
+line_payload := /([^\r\n]*)/
+    -> {type: "line_payload", text: $1}

@@ -63,28 +63,33 @@ grep -rnE "^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*:?:?=\s*/[^/]*\\\\?['\"]" \
   | grep -vE "systemverilog_2017_lrm|systemverilog_2023_lrm|verilog_2005_lrm|lrm_profiled" \
   | sed 's/^/   /'
 echo
-cat <<'ADJUDICATION'
-   Adjudication of every sweep member:
-     ebnf.ebnf:240 single_quoted_string          ⛔ DEFECT  — opens `'`, never closes it
-     semantic_annotation.ebnf:146 single_quoted_string
-                                                 ⛔ DEFECT  — byte-identical twin
-     ebnf.ebnf:237 / semantic_annotation.ebnf:143 double_quoted_string
-                                                 ✅ correct — closing `"` present
-     ebnf.ebnf:244 raw_quoted_string, semantic_annotation.ebnf:149 raw_string
-                                                 ✅ correct — closing `"` present
-     semantic_annotation.ebnf:152 multiline_string ✅ correct — closing `"""` present
-     json.ebnf:46 string                         ✅ correct — closing `"` present
-     builtin_semantic_annotation.ebnf:87/88 dq_char / sq_char
+# ⚠️ The adjudication below DERIVES its line numbers from the tree instead of hard-coding
+# them. The first revision hard-coded them and they went stale within one leaf — .10.5's own
+# comment block shifted every site below it. A citation that drifts is worse than no citation.
+loc() { grep -n "^$2" "$1" | head -1 | cut -d: -f1; }
+cat <<ADJUDICATION
+   Adjudication of every quote-opening regex terminal (line numbers derived, not pinned):
+     ebnf.ebnf:$(loc grammars/ebnf.ebnf 'single_quoted_string := ') single_quoted_string
+                                                 ⛔ WAS THE DEFECT — opened \`'\`, never closed it
+     semantic_annotation.ebnf:$(loc grammars/semantic_annotation.ebnf 'single_quoted_string := ') single_quoted_string
+                                                 ⛔ WAS THE DEFECT — byte-identical twin
+     ebnf.ebnf:$(loc grammars/ebnf.ebnf 'double_quoted_string := ') / semantic_annotation.ebnf:$(loc grammars/semantic_annotation.ebnf 'double_quoted_string := ') double_quoted_string
+                                                 ✅ correct — closing \`"\` present (the CONTROL)
+     ebnf.ebnf:$(loc grammars/ebnf.ebnf 'raw_quoted_string := ') raw_quoted_string, semantic_annotation.ebnf:$(loc grammars/semantic_annotation.ebnf 'raw_string := ') raw_string
+                                                 ✅ correct — closing \`"\` present
+     semantic_annotation.ebnf:$(loc grammars/semantic_annotation.ebnf 'multiline_string := ') multiline_string
+                                                 ✅ correct — closing \`"""\` present
+     json.ebnf:$(loc grammars/json.ebnf 'string := ') string                          ✅ correct — closing \`"\` present
+     builtin_semantic_annotation.ebnf:$(loc grammars/builtin_semantic_annotation.ebnf 'dq_char := ')/$(loc grammars/builtin_semantic_annotation.ebnf 'sq_char := ') dq_char / sq_char
                                                  ✅ N/A — per-CHARACTER rules; the quotes
                                                     are matched by their wrappers
-                                                    (`sq_string := "'" sq_char* "'"`)
-     return_annotation.ebnf:132/133 string_content_double / string_content_single
+                                                    (\`sq_string := "'" sq_char* "'"\`)
+     return_annotation.ebnf:$(loc grammars/return_annotation.ebnf 'string_content_double := ')/$(loc grammars/return_annotation.ebnf 'string_content_single := ') string_content_double / string_content_single
                                                  ✅ N/A — content-only rules; the quotes
                                                     are matched by their wrapper
-                                                    (`string_literal := ('"' … '"' | "'" … "'")`)
-     systemverilog.ebnf:453 integral_number      ✅ N/A — the SV sized-literal apostrophe
-                                                    (`8'hFF`), not a string delimiter
-   ⇒ exactly TWO instances, both fixed by this leaf. No silent second instance.
+     systemverilog.ebnf:$(loc grammars/systemverilog.ebnf 'integral_number := ') integral_number      ✅ N/A — the SV sized-literal apostrophe
+                                                    (\`8'hFF\`), not a string delimiter
+   ⇒ exactly TWO instances, both fixed by .10.5. No silent second instance.
 ADJUDICATION
 echo
 
@@ -167,11 +172,9 @@ probe sq_swallows_garbage REJECT "a closed quote followed by non-EBNF text must 
 r = 'a' ]]]
 esc := /(a)/
 EOF
-probe sq_swallows_block REJECT "an odd \`'\` must not swallow a following multi-line annotation block" <<'EOF'
+probe sq_swallows_block REJECT "an odd \`'\` must not swallow across a NEWLINE" <<'EOF'
 r = '"' | "b"
-@dispatch_table: {
-    "x": "y"
-}
+]]]
 esc := /(a)/
 EOF
 echo
@@ -193,28 +196,29 @@ probe rust_code_annotation ACCEPT "a Rust-code \`@transform\` payload is untouch
 num := /(\d+)/
 EOF
 echo
-echo "   NEWLY VISIBLE — routed, NOT fixed here. Both are the SAME missing definition:"
-echo "   \`ebnf.ebnf\` defines no \`semantic_annotation\`, so codegen substitutes a native"
-echo "   \`@\`-to-END-OF-LINE slurp. That slurp is the SECOND swallow surface, and closing"
-echo "   the quote is what made it visible on its own:"
-probe native_slurp_swallows_at_text ACCEPT "⚠️ the native \`@\`-slurp still eats \`@@@\` as an inline annotation (→ .10.2/.10.3)" <<'EOF'
+echo "   ⭐ CLOSED BY .10.2 — these two probes are the proof that \`semantic_annotation\` is now"
+echo "   a REAL rule rather than codegen's synthesized \`@\`-to-END-OF-LINE fallback. Both were"
+echo "   declared the other way round while the fallback was in force; .10.2 flipped them, and"
+echo "   they are kept as the standing signal that the delegation is doing the work:"
+probe native_slurp_swallows_at_text REJECT "\`@@@\` is no longer a well-formed annotation (the native slurp is GONE)" <<'EOF'
 r = 'a' @@@
 esc := /(a)/
 EOF
-probe multiline_payload REJECT "…and the same missing definition cannot express a multi-line payload (→ .10.2)" <<'EOF'
+probe multiline_payload ACCEPT "a multi-line brace payload now PARSES (the .10.5 self-hosting gap, closed)" <<'EOF'
 @dispatch_table: {
     "x": "y"
 }
 esc := /(a)/
 EOF
 echo
-echo "   ⚠️ THE FIRST PROBE ABOVE IS DECLARED \`ACCEPT\` ON PURPOSE — it is a defect this"
-echo "   leaf does NOT own, pinned so it cannot change silently before .10.3 retires it."
-echo "   It also cost this leaf a wrong declared verdict: the original garbage probe was"
-echo "   \`r = 'a' THIS IS GARBAGE @@@ !!! (((\`, which still ACCEPTed after the fix. The"
-echo "   cause was not the quote — \`THIS IS GARBAGE\` are legal non-terminal references"
-echo "   and \`@@@ …\` is eaten by the native slurp. The probe was confounded; it now uses"
+echo "   ⚠️ TWO PROBES WERE CONFOUNDED ALONG THE WAY, both recorded rather than quietly fixed."
+echo "   (1) The original garbage probe was \`r = 'a' THIS IS GARBAGE @@@ !!! (((\`, which still"
+echo "   ACCEPTed after the .10.5 fix — not the quote's fault: \`THIS IS GARBAGE\` are legal"
+echo "   non-terminal references and \`@@@ …\` was eaten by the native slurp. It now uses"
 echo "   \`]]]\`, which no EBNF construct can claim."
+echo "   (2) \`sq_swallows_block\` used a multi-line annotation block as its non-parsing tail."
+echo "   .10.2 made such a block LEGAL, so the probe could no longer tell a swallow from a"
+echo "   successful parse. It now uses \`]]]\` across a newline, which tests the quote alone."
 echo
 
 # ─────────────────────────────────────────────────────────────────────────────

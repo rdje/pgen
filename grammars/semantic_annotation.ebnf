@@ -1,9 +1,24 @@
-# semantic_annotations.ebnf
+# semantic_annotation.ebnf
 #
 # Comprehensive Semantic Annotation Grammar for EBNF
 # Defines the structure and validation for @annotation: value patterns
 #
-# Usage: include(semantic_annotations) in your language grammars
+# ⛔ LANG-CAPABILITY-AUDIT.10.2 — the header used to read `# semantic_annotations.ebnf`
+# (PLURAL) and `# Usage: include(semantic_annotations) in your language grammars`. Both were
+# wrong and both were load-bearing: `grammars/ebnf.ebnf` carried an
+# `include(semantic_annotations)` copied from this very header, naming a file that has never
+# existed, and `.7` then deleted it as "a stale include naming a file that never existed"
+# rather than as the one-character typo it was. The plural spelling is corrected here so the
+# same bug cannot be copied out of this file again.
+#
+# ⚠️ This grammar is NOT included by `ebnf.ebnf`, and should not be. It is a standalone
+# grammar with its own private lexical layer that DISAGREES with the meta-grammar's on 11
+# rule names (`line_comment` has no `#` here; `boolean_literal` accepts yes/no/on/off/…),
+# and — measured — its `annotation_value` REJECTS 9 of the 148 annotation lines the tracked
+# grammars actually ship, the whole `@transform:` family included. `ebnf.ebnf` defines its
+# own opaque-payload `semantic_annotation` delimiter instead (option B). The authority on
+# what a payload may be is `grammars/builtin_semantic_annotation.ebnf` +
+# `rust/src/ast_pipeline/unified_semantic_ast.rs`.
 #
 # Version: 2.0
 # Author: EBNF Parser Generator System

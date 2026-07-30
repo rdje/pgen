@@ -1352,7 +1352,7 @@ the person who specified it.**
   scope by design). That is a legitimate outcome and must be recorded as such — the bound is
   what keeps "any language" honest. The value is in the rows that do NOT.
 
-### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` / `.10.3` / `.10.4` ✅ / `.10.5` ✅ / `.10.6`)
+### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` ✅ / `.10.3` / `.10.4` ✅ / `.10.5` ✅ / `.10.6` ◐)
 
 > **Container as of session #228.** Opened in a fresh session per the director's ruling
 > below. `.10.1` (done) settled the target, audited the whole allowlist, and corrected
@@ -1362,17 +1362,17 @@ the person who specified it.**
 > byte-identical. `.10.5` (done) removed a **third**: the meta-grammar's
 > `single_quoted_string` never closed its quote, so the self-hosting parser swallowed
 > arbitrary text and its published **12/12** was a false green (now an honest **11/12**).
-> ⛔ **`.10.2` is `on hold` by DIRECT DIRECTOR ORDER (session #228) and its premise did
-> not survive measurement.** The director challenged it before any code was written —
-> *"why even wanting to reinstate it"* — and both challenges hold: the include has **never
-> once worked** in the repo's history, and nothing consumes the meta-parser's annotation
-> AST. The charter's cost warning is also **inverted** (it budgets against `ebnf`, which
-> has no contract; the contract-bearing parser is `semantic_annotation`). Three options
-> are priced in `.10.2`; **B — define `semantic_annotation` locally as a delimiter rule —
-> is recommended** and is strictly smaller than what was chartered. ⏳ **Awaiting a
-> director A/B/C decision; `.10.3` stays blocked behind whichever is chosen.**
-> `.10.5` did sharpen the target either way: the ONE remaining self-hosting gap is
-> precisely located (a multi-line annotation payload, `regex.ebnf` line 843).
+> ✅ **`.10.2` LANDED AS OPTION B** (session #228), after the director challenged the
+> chartered premise before any code was written — *"why even wanting to reinstate it"* —
+> and measurement upheld both challenges: the include had **never once worked** in the
+> repo's history, nothing consumes the meta-parser's annotation AST, and the charter's cost
+> warning was **inverted** (it budgeted against `ebnf`, which has no contract; the
+> contract-bearing parser is `semantic_annotation`). The director then chose B. Result:
+> `ebnf.ebnf` defines `semantic_annotation` itself as an opaque-payload delimiter,
+> **self-hosting is 12/12** and `ebnf_frontend_dual_run_gate` is **GREEN**. **`.10.3` is
+> now unblocked** — the references resolve, so the allowlist entry can be retired.
+> ◐ `.10.6` part 1 (the de-Perl) is DONE; its part 2 — the frontend↔meta-parser envelope
+> differential — remains `todo`.
 > Read `.10.1` before acting on anything in this charter — two of its statements below
 > are annotated as superseded.
 
@@ -1665,16 +1665,20 @@ Recorded because the failure mode reads as a codegen defect and is not one.
 
 ---
 
-### `.10.2` — make `semantic_annotation.ebnf` composable, and restore the delegation (`on hold` — director; ⛔ **PREMISE CHALLENGED AND, ON MEASUREMENT, WRONG**)
+### `.10.2` — define `semantic_annotation` LOCALLY as an opaque-payload delimiter (OPTION B) (`done`)
 
-- **Status: `on hold` by DIRECT DIRECTOR ORDER (2026-07-30, session #228)**, before any
-  code was written: *"postpone `.10.2` for later, because I do not understand why
-  implementing `.10.2` would have so much effect of breaking things. So, let's think it
-  through first. Also, apparently `include(semantic_annotation)` is not actually needed,
-  because so far, it was discarded all along, so why even wanting to reinstate it."*
-- ⇒ **Both challenges are correct.** Measured below. This leaf's charter — *"restore the
-  delegation"* — is a **design proposal wearing the costume of a repair**, and it is the
-  more expensive of the two ways to meet the requirement. Do not implement it as written.
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0021`, session #228). ⛔ **The chartered
+  approach (option A, "restore the delegation") was NOT implemented — its premise did not
+  survive measurement.** The leaf was first put `on hold` by DIRECT DIRECTOR ORDER
+  (2026-07-30): *"postpone `.10.2` for later, because I do not understand why implementing
+  `.10.2` would have so much effect of breaking things … apparently
+  `include(semantic_annotation)` is not actually needed, because so far, it was discarded
+  all along, so why even wanting to reinstate it."* **Both challenges were correct**
+  (measured below). The director then chose **option B**: *"then do (2) .10.2 option B
+  (your recommendation)"*.
+- ⇒ the original charter — *"restore the delegation"* — was a **design proposal wearing the
+  costume of a repair**, and the more expensive of the two ways to meet the requirement.
+  Everything below the options table is retained as the reasoning that settled it.
 
 #### ⭐⭐⭐ ANSWER 1 — "why would this break things?" The composition mechanics
 
@@ -1942,6 +1946,72 @@ Restore it for real:
    move; and nothing consumes its annotation AST (Fact 2). The contract-bearing parser is
    `semantic_annotation`, which this deliverable does not mention. The budget warning
    points at the wrong file.
+
+#### What landed (option B)
+
+`grammars/ebnf.ebnf` gains **7 rules** in a new, heavily-commented section, and
+`grammars/semantic_annotation.ebnf`'s misleading header — `# semantic_annotations.ebnf` and
+`# Usage: include(semantic_annotations)`, **the text the original typo was copied from** — is
+corrected so the same bug cannot be copied out of it again.
+
+```ebnf
+semantic_annotation := "@" annotation_key ":" annotation_payload
+annotation_payload  := (braced_payload | line_payload)   # brace-balanced, may span lines
+braced_payload      := "{" brace_body "}"
+brace_body          := (braced_payload | brace_text)*    # recursion = the nesting
+```
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `ebnf_dual_run_diff --input grammars/regex.ebnf` reported
+  `parse_full.ok=false`, unconsumed at **byte 55,925** (line 843, the first `@dispatch: {`),
+  i.e. **35.55%** of the file consumed; `make -C rust ebnf_frontend_dual_run_gate` RED on its
+  `regex` row; self-hosting **11/12**.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/ebnf.ebnf` referenced `semantic_annotation`
+  from three sites (`grammar_file`, `annotation_list`, `inline_semantic_annotation`) and
+  **defined it nowhere**; codegen's `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` allowlist
+  synthesized an `@`-to-END-OF-LINE matcher, which stops at the first newline and therefore
+  cannot express a multi-line brace payload. Measured directly: the emitted
+  `parse_semantic_annotation` was a **25-line** synthesized fallback, and the isolated
+  `multiline_payload` probe REJECTed.
+- [x] **FIX** — declarative tier, option B: define the rule locally as a **delimiter with an
+  opaque payload**. Option A (restore `include(semantic_annotation)`) was rejected on
+  measurement — see the three facts above.
+- [x] **ADDRESSED (verified)** — measured before → after:
+
+  | measurement | before | after |
+  |---|---|---|
+  | `regex.ebnf` under the meta-parser | **REJECT @ 55,925** (35.55% consumed) | **ACCEPT, 100.00%** ✅ |
+  | self-hosting over the tracked corpus | 11/12 *(driver set 14/15)* | **12/12** *(driver **15/15**)* ✅ |
+  | `make ebnf_frontend_dual_run_gate` | **RED** | **GREEN** — ebnf/json/regex all pass ✅ |
+  | emitted `parse_semantic_annotation` | 25 lines (synthesized fallback) | **939 lines, generated from the rule**; all 6 helpers emitted ✅ |
+  | `--lint-grammar` | 131 rules, all counters 0 | **138 rules, all counters 0** (no shadowing, no always-succeeds, no unreachable, no nullable-repetition) ✅ |
+  | probe `native_slurp_swallows_at_text` (`r = 'a' @@@`) | ACCEPT (the fallback ate it) | **REJECT** ✅ — the single cleanest signal that the real definition, not the fallback, is in force |
+  | probe `multiline_payload` | REJECT | **ACCEPT** ✅ |
+  | the frontend's soft cross-check on `regex.ebnf` | `warning: … verification skipped` | **silent — it now passes** ✅ |
+
+- [x] **NO REGRESSION** — `parse_harness_equivalence_gate` **GREEN 4/4** (`ebnf` is a
+  CERTIFIED grammar and this leaf changed it, so this is the load-bearing oracle);
+  `mdbook_docs_gate` green; `run_metagrammar_quote_probes.sh` **exit 0, 0 divergences** after
+  its two predicted verdict flips; **`json`/`regex`/`return_annotation`/`semantic_annotation`
+  parsers all BYTE-IDENTICAL** across a forced regeneration — the annotation backend did not
+  move (`c5e41a8c…` unchanged), so the other grammars' codegen inputs are identical;
+  `check_doctrines.sh` **ALL 15 PASS**.
+- [x] **LOCKSTEP** — `docs/book/src/grammar-wellformedness.md` (**11/12 → 12/12**, with the
+  full down-then-up account and the reason), the `.10.5` probe driver's declared verdicts
+  (two predicted flips, plus its ARM A line numbers made **derived** after they went stale
+  within one leaf), `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `MEMORY.md`. **No
+  contract/manifest movement** — `ebnf` has neither, which is Fact 3 above.
+
+#### ✅ `.10.3` IS NOW UNBLOCKED
+
+`.10.3`'s stated blocker was *"retiring the entry first would leave `ebnf.ebnf` with 3
+references the linter now reports as a hard error and codegen compiles into never-matching
+stubs"*. That is resolved: the references resolve to a real rule, so
+`"semantic_annotation"` can leave `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` and the linter can
+be shown to report `undefined_references=0` **because the grammar is sound** rather than
+because the name is allowlisted — the distinction `.7` could not make.
+
 
 ### `.10.3` — retire `"semantic_annotation"` from `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (`todo`)
 

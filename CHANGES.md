@@ -1,5 +1,48 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0021 — leaf LANG-CAPABILITY-AUDIT.10.2 (OPTION B): ebnf.ebnf finally DEFINES semantic_annotation; self-hosting 11/12 -> 12/12 and the dual-run gate goes GREEN
+
+2 grammar files (7 new rules + one corrected header) + book/tracker/driver lockstep. No
+`rust/src/*` change. Only `generated/ebnf.rs` moved; every other generated parser is
+BYTE-IDENTICAL (the annotation backend never changed).
+
+- DIRECTOR ORDER, second of two: *"then do (2) .10.2 option B (your recommendation)"*. The
+  CHARTERED approach (option A — restore `include(semantic_annotation)`) was NOT implemented:
+  the director challenged its premise before any code was written and measurement upheld both
+  challenges (the include never once worked; nothing consumes the meta-parser's annotation AST;
+  the charter's cost warning was INVERTED — `ebnf` has no contract, `semantic_annotation` does).
+- ROOT CAUSE (correctness): `grammars/ebnf.ebnf` referenced `semantic_annotation` from three
+  sites and DEFINED IT NOWHERE. Codegen's NATIVE_UNRESOLVED_REFERENCE_BUILTINS allowlist
+  synthesized an `@`-to-END-OF-LINE matcher, which stops at the first newline and therefore
+  cannot express a multi-line brace payload. Measured: the emitted `parse_semantic_annotation`
+  was a **25-line** synthesized fallback.
+- THE FIX — 7 rules, opaque payload by design: `semantic_annotation := "@" annotation_key ":"
+  annotation_payload`, where the payload is a brace-balanced body (may span lines, nests via
+  recursion) or the rest of the line. ⭐ This MIRRORS the authoritative hand-written frontend:
+  `ebnf_frontend.rs:1410 parse_semantic_annotation_text` strips `@`, finds the TOP-LEVEL colon
+  (brace/bracket/paren-depth AND quote aware) and emits `["semantic_annotation",[name,payload]]`
+  with payload an OPAQUE String. Modelling the payload here would model something the real
+  frontend does not do — and would re-import a spec measured to reject 9 of the 148 annotation
+  lines the tracked grammars ship.
+- ADDRESSED, measured before -> after: `regex.ebnf` REJECT @ byte 55,925 (35.55% consumed) ->
+  **ACCEPT 100.00%**; self-hosting **11/12 -> 12/12**; `make ebnf_frontend_dual_run_gate`
+  **RED -> GREEN**; emitted rule **25 -> 939 lines** with all 6 helpers; lint 138 rules, every
+  counter 0; the frontend's soft cross-check on regex.ebnf stops warning.
+- ⭐⭐ THE SINGLE CLEANEST PROOF the delegation is real rather than the fallback still firing:
+  the pinned probe `r = 'a' @@@` flipped ACCEPT -> **REJECT**. Predicted in .10.2's charter
+  before the work, and it reproduced.
+- Also corrected `grammars/semantic_annotation.ebnf`'s misleading header (`# semantic_annotations.ebnf`
+  / `# Usage: include(semantic_annotations)`) — THE TEXT THE ORIGINAL TYPO WAS COPIED FROM.
+- NO REGRESSION: parse_harness_equivalence_gate GREEN 4/4 (`ebnf` is CERTIFIED and this leaf
+  changed it); mdbook_docs_gate green; run_metagrammar_quote_probes.sh exit 0/0 divergences after
+  its two PREDICTED verdict flips; json/regex/return_annotation/semantic_annotation parsers
+  byte-identical; check_doctrines.sh ALL 15 PASS.
+- ⚠️ The quote driver's ARM A line numbers had gone STALE within one leaf (.10.5's own comment
+  block shifted them). They are now DERIVED from the tree instead of hard-coded — a citation that
+  drifts is worse than no citation.
+- ✅ `.10.3` IS NOW UNBLOCKED: the references resolve, so the allowlist entry can be retired and
+  the linter shown to report 0 BECAUSE THE GRAMMAR IS SOUND.
+
 ## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0020 — .10.6 part 1: the Perl EBNF frontend is RETIRED, and the guard that pinned it is INVERTED
 
 Ops/build-flow only (4 gate scripts + 2 workflows + Makefile) — no `grammars/*.ebnf`, no

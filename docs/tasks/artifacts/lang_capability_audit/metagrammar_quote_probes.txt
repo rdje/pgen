@@ -7,8 +7,8 @@ ARM A — static: the defect sites and the bug-class sweep
 The two string rules of the meta-grammar, side by side:
 grammars/ebnf.ebnf:237:double_quoted_string := /"([^"\\]|\\.)*"/
 grammars/ebnf.ebnf:246:single_quoted_string := /'([^'\\]|\\.)*'/
-grammars/semantic_annotation.ebnf:143:double_quoted_string := /"([^"\\]|\\.)*"/
-grammars/semantic_annotation.ebnf:150:single_quoted_string := /'([^'\\]|\\.)*'/
+grammars/semantic_annotation.ebnf:158:double_quoted_string := /"([^"\\]|\\.)*"/
+grammars/semantic_annotation.ebnf:165:single_quoted_string := /'([^'\\]|\\.)*'/
 
 Sweep — every quote-opening regex terminal in a tracked, PGEN-authored grammar.
 (The LRM-extracted intermediates are excluded: they are raw LRM BNF, not PGEN
@@ -21,22 +21,24 @@ Sweep — every quote-opening regex terminal in a tracked, PGEN-authored grammar
    grammars/json.ebnf:46:string := /\s*"[^"]*"\s*/
    grammars/return_annotation.ebnf:132:string_content_double := /[^"]*/
    grammars/return_annotation.ebnf:133:string_content_single := /[^']*/
-   grammars/semantic_annotation.ebnf:143:double_quoted_string := /"([^"\\]|\\.)*"/
-   grammars/semantic_annotation.ebnf:150:single_quoted_string := /'([^'\\]|\\.)*'/
-   grammars/semantic_annotation.ebnf:153:raw_string := /r"([^"]*)"/  
-   grammars/semantic_annotation.ebnf:156:multiline_string := /"""([^"]*(?:"(?!"")[^"]*)*?)"""/
+   grammars/semantic_annotation.ebnf:158:double_quoted_string := /"([^"\\]|\\.)*"/
+   grammars/semantic_annotation.ebnf:165:single_quoted_string := /'([^'\\]|\\.)*'/
+   grammars/semantic_annotation.ebnf:168:raw_string := /r"([^"]*)"/  
+   grammars/semantic_annotation.ebnf:171:multiline_string := /"""([^"]*(?:"(?!"")[^"]*)*?)"""/
    grammars/systemverilog.ebnf:453:integral_number := /([0-9][0-9_]*[ \t]*)?'[sS]?[dDhHoObB][ \t]*[0-9a-fA-FxXzZ?_]+/
 
-   Adjudication of every sweep member:
-     ebnf.ebnf:240 single_quoted_string          ⛔ DEFECT  — opens `'`, never closes it
-     semantic_annotation.ebnf:146 single_quoted_string
-                                                 ⛔ DEFECT  — byte-identical twin
-     ebnf.ebnf:237 / semantic_annotation.ebnf:143 double_quoted_string
+   Adjudication of every quote-opening regex terminal (line numbers derived, not pinned):
+     ebnf.ebnf:246 single_quoted_string
+                                                 ⛔ WAS THE DEFECT — opened `'`, never closed it
+     semantic_annotation.ebnf:165 single_quoted_string
+                                                 ⛔ WAS THE DEFECT — byte-identical twin
+     ebnf.ebnf:237 / semantic_annotation.ebnf:158 double_quoted_string
+                                                 ✅ correct — closing `"` present (the CONTROL)
+     ebnf.ebnf:250 raw_quoted_string, semantic_annotation.ebnf:168 raw_string
                                                  ✅ correct — closing `"` present
-     ebnf.ebnf:244 raw_quoted_string, semantic_annotation.ebnf:149 raw_string
-                                                 ✅ correct — closing `"` present
-     semantic_annotation.ebnf:152 multiline_string ✅ correct — closing `"""` present
-     json.ebnf:46 string                         ✅ correct — closing `"` present
+     semantic_annotation.ebnf:171 multiline_string
+                                                 ✅ correct — closing `"""` present
+     json.ebnf:46 string                          ✅ correct — closing `"` present
      builtin_semantic_annotation.ebnf:87/88 dq_char / sq_char
                                                  ✅ N/A — per-CHARACTER rules; the quotes
                                                     are matched by their wrappers
@@ -44,10 +46,9 @@ Sweep — every quote-opening regex terminal in a tracked, PGEN-authored grammar
      return_annotation.ebnf:132/133 string_content_double / string_content_single
                                                  ✅ N/A — content-only rules; the quotes
                                                     are matched by their wrapper
-                                                    (`string_literal := ('"' … '"' | "'" … "'")`)
      systemverilog.ebnf:453 integral_number      ✅ N/A — the SV sized-literal apostrophe
                                                     (`8'hFF`), not a string delimiter
-   ⇒ exactly TWO instances, both fixed by this leaf. No silent second instance.
+   ⇒ exactly TWO instances, both fixed by .10.5. No silent second instance.
 
 ARM B — behaviour: declared verdicts through the REAL generated meta-parser
 -------------------------------------------------------------------------------
@@ -55,7 +56,7 @@ Ensuring ast_pipeline carries both features (focus_* targets drop ebnf_dual_run)
    AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true
 Regenerating generated/ebnf.rs from the CURRENT grammars/ebnf.ebnf
 (input AND output paths pinned — the .10.1 path-embedding trap)...
-   generated/ebnf.rs sha256: 6088b8d6a7630531bda75f01581b4c9df2828405bf25ed6da80334a9c074f6f3
+   generated/ebnf.rs sha256: 7ce6578f799c36c79343f98c1e441feb70b453eee25be860ae64824f751938e5
 
    CONTROLS (ground truth — a miss means the instrument is lying):
    ✅ quoted_ok          ACCEPT  POSITIVE control: a legal single-quoted string still parses
@@ -64,7 +65,7 @@ Regenerating generated/ebnf.rs from the CURRENT grammars/ebnf.ebnf
    THE DEFECT (these three ACCEPTED before the fix):
    ✅ sq_unterminated    REJECT  an unterminated single quote must not parse
    ✅ sq_swallows_garbage REJECT  a closed quote followed by non-EBNF text must not parse
-   ✅ sq_swallows_block  REJECT  an odd `'` must not swallow a following multi-line annotation block
+   ✅ sq_swallows_block  REJECT  an odd `'` must not swallow across a NEWLINE
 
    UNAFFECTED SURFACE (regression pins):
    ✅ sq_in_dq           ACCEPT  a single quote INSIDE a double-quoted string is untouched
@@ -72,20 +73,21 @@ Regenerating generated/ebnf.rs from the CURRENT grammars/ebnf.ebnf
    ✅ single_line_annotation ACCEPT  a single-line annotation payload is untouched
    ✅ rust_code_annotation ACCEPT  a Rust-code `@transform` payload is untouched
 
-   NEWLY VISIBLE — routed, NOT fixed here. Both are the SAME missing definition:
-   `ebnf.ebnf` defines no `semantic_annotation`, so codegen substitutes a native
-   `@`-to-END-OF-LINE slurp. That slurp is the SECOND swallow surface, and closing
-   the quote is what made it visible on its own:
-   ✅ native_slurp_swallows_at_text ACCEPT  ⚠️ the native `@`-slurp still eats `@@@` as an inline annotation (→ .10.2/.10.3)
-   ✅ multiline_payload  REJECT  …and the same missing definition cannot express a multi-line payload (→ .10.2)
+   ⭐ CLOSED BY .10.2 — these two probes are the proof that `semantic_annotation` is now
+   a REAL rule rather than codegen's synthesized `@`-to-END-OF-LINE fallback. Both were
+   declared the other way round while the fallback was in force; .10.2 flipped them, and
+   they are kept as the standing signal that the delegation is doing the work:
+   ✅ native_slurp_swallows_at_text REJECT  `@@@` is no longer a well-formed annotation (the native slurp is GONE)
+   ✅ multiline_payload  ACCEPT  a multi-line brace payload now PARSES (the .10.5 self-hosting gap, closed)
 
-   ⚠️ THE FIRST PROBE ABOVE IS DECLARED `ACCEPT` ON PURPOSE — it is a defect this
-   leaf does NOT own, pinned so it cannot change silently before .10.3 retires it.
-   It also cost this leaf a wrong declared verdict: the original garbage probe was
-   `r = 'a' THIS IS GARBAGE @@@ !!! (((`, which still ACCEPTed after the fix. The
-   cause was not the quote — `THIS IS GARBAGE` are legal non-terminal references
-   and `@@@ …` is eaten by the native slurp. The probe was confounded; it now uses
+   ⚠️ TWO PROBES WERE CONFOUNDED ALONG THE WAY, both recorded rather than quietly fixed.
+   (1) The original garbage probe was `r = 'a' THIS IS GARBAGE @@@ !!! (((`, which still
+   ACCEPTed after the .10.5 fix — not the quote's fault: `THIS IS GARBAGE` are legal
+   non-terminal references and `@@@ …` was eaten by the native slurp. It now uses
    `]]]`, which no EBNF construct can claim.
+   (2) `sq_swallows_block` used a multi-line annotation block as its non-parsing tail.
+   .10.2 made such a block LEGAL, so the probe could no longer tell a swallow from a
+   successful parse. It now uses `]]]` across a newline, which tests the quote alone.
 
 ARM C — corpus: the tracked-grammar acceptance map (the regression oracle)
 -------------------------------------------------------------------------------
@@ -93,7 +95,7 @@ ARM C — corpus: the tracked-grammar acceptance map (the regression oracle)
    builtin_semantic_annotation.ebnf               ACCEPT
    ebnf.ebnf                                      ACCEPT
    json.ebnf                                      ACCEPT
-   regex.ebnf                                     REJECT @byte 55925 (line 843:     "range": generate_range_check($1.sta)
+   regex.ebnf                                     ACCEPT
    return_annotation.ebnf                         ACCEPT
    rtl_const_expr.ebnf                            ACCEPT
    rtl_frontend.ebnf                              ACCEPT
