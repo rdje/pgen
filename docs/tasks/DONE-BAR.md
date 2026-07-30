@@ -461,8 +461,9 @@ can be promoted by this change.
       AFTER: leg 1 reads `RAN AND FAILED (log …, mtime 1785325790, ⚠️ STALE — older than its own
       inputs)` + `that failure PREDATES its own inputs ⇒ UNPROVEN, not UNMET — re-run the gate`; leg 2
       reads `⚠️ … but that run PREDATES its own inputs` ⇒ `green-NOW is UNPROVEN, not UNMET`.
-      `bash docs/tasks/artifacts/done_bar/run_audit_stale_failure_probes.sh` → **9 passed, 0 failed,
-      3 UNJUDGEABLE** (see the honest bound below).
+      `bash docs/tasks/artifacts/done_bar/run_audit_stale_failure_probes.sh` → **16 passed, 0 failed**
+      after the `-0023` probe rebuild (it read 9/0/3-UNJUDGEABLE at `-0022`, on a driver with two
+      defects of its own — see the correction below).
 - [x] **NO REGRESSION** — ⭐ **CTRL-1 is the arm that matters**: the fix must not make the audit blind
       to REAL current failures. With the same log touched NEWER than every input, the verdict flips
       back to `⛔ … RAN AND FAILED` with **no** staleness claim on either leg — so a fresh failure is
@@ -474,25 +475,46 @@ can be promoted by this change.
       tree, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`. No release / schema / ledger / contract
       movement.
 
-##### ⚠️ HONEST BOUND — 3 probe arms are UNJUDGEABLE, and the probe SAYS so rather than passing
+##### ⛔⛔ CORRECTION (2026-07-30, `PGEN-DONE-BAR-0023`) — MY OWN FIRST WRITE-UP OF THIS LEAF'S PROBE WAS WRONG
 
-The `BEFORE-1` arms replay the retired script from `git show HEAD:`, and that script **REFUSED** three
-times in a row with *"scripts/check_gate_reachability.sh did not succeed"* while `sota_exit_gate` run 4
-was executing. ⛔⛔ **The first cut of that block asserted an ABSENT string and therefore PASSED
-VACUOUSLY over a 171-byte refusal message** — an arm reaching the right verdict for the wrong reason,
-the precise failure `CI-PARITY-GATE-ROT.4` exists to catch. It now requires the retired script to have
-produced a real verdict and reports `UNJUDGEABLE` otherwise, and the driver's final line states the
-count. **A skip is never a pass.** Re-run when no aggregate `make` is executing.
+**What I first recorded here, and what is actually true:**
+
+| first recorded | MEASURED |
+|---|---|
+| the `BEFORE-1` arms were `UNJUDGEABLE` because the retired script *"REFUSED … while `sota_exit_gate` run 4 was executing"* ⇒ **transient contention with a concurrent `make -C rust`** | ⛔ **WRONG.** `audit_done_bar.sh:44` derives `ROOT="$(dirname "${BASH_SOURCE[0]}")/.."` **from its own location**, and the probe ran a COPY from `rust/target/done_bar_audit/stale_failure_probe/` ⇒ `ROOT` resolved to `rust/target/done_bar_audit`, so the reachability precondition could not be found. **Decisive control: the byte-identical retired content run from `scripts/` exits 0, with no aggregate running.** |
+
+⭐ **A DETERMINISTIC PATH BUG WAS MISDIAGNOSED AS FLAKINESS, AND THE "FIX" WAS A 3-RETRY LOOP** — i.e. I
+papered over a reproducible defect by retrying it. The retry loop is **removed**; the retired script is
+now staged inside `scripts/` so its `ROOT` resolves correctly. ⛔ The concurrency claim is **withdrawn**,
+not softened: nothing measured supports it.
+
+⭐ **SECOND PROBE DEFECT, exposed by run 4 itself:** the driver depended on a **REAL** failed-gate log as
+its fixture. Run 4 made that gate PASS, overwriting the log, so the RED arms silently lost the failure
+they existed to detect (4 passed / 5 failed on the next run). ⇒ **a probe whose fixture is a transient
+artifact of the last run is not a probe** — the `.5f` custody lesson, now paid twice. The fixture is
+**SYNTHETIC** and built by the driver (it also moves the real summary aside so the failed-gate branch is
+reachable at all, restoring both from a trap), so the driver is reproducible on any tree.
+
+⛔⛔ **AND THE ORIGINAL DEFECT IN THAT BLOCK STANDS AS RECORDED:** its first cut asserted an ABSENT string
+and therefore **PASSED VACUOUSLY over a 171-byte refusal message** — an arm reaching the right verdict
+for the wrong reason (`CI-PARITY-GATE-ROT.4`). Every arm now requires a real verdict before asserting.
+
+**Probes after the rebuild: 16 passed, 0 failed, 0 unjudgeable** — and `BEFORE-1` now genuinely replays
+the retired form, reproducing the self-contradiction verbatim (`tracker: In Progress` above an error
+claiming the tracker says `Done`), which the earlier vacuous arms never demonstrated.
 
 ##### ⛔⛔ TWO FURTHER FINDINGS, ROUTED TO `.1b` RATHER THAN FIXED HERE
 
-1. **The audit's advertised "no make" property is FALSE, and that is why it is flaky.** `README.md:188`
-   describes `audit_done_bar.sh` as *"read-only and cheap (no cargo, no make, no network)"*. But its
-   hard precondition `scripts/check_gate_reachability.sh` executes
+1. **The audit's advertised "no make" property is FALSE.** `README.md` described `audit_done_bar.sh` as
+   *"read-only and cheap (no cargo, no make, no network)"*. But its hard precondition
+   `scripts/check_gate_reachability.sh` executes
    `subprocess.run(["make","-C","rust","--no-print-directory","-s",f"print-{name}"], timeout=30)` at
-   `:222-225` — so the audit **does** invoke `make -C rust`, and it therefore contends with any
-   concurrently running aggregate. ⇒ *the `Done`-bar audit cannot be relied on to produce a verdict
-   while a `make -C rust` gate is running, and its own documentation tells you not to worry about that.*
+   `:222-225` — so the audit **does** invoke `make -C rust`. Verified at the source, independently of
+   anything else in this leaf; README corrected. ⛔⛔ **CORRECTED 2026-07-30 (`-0023`): the claim first
+   written here — that this is *"why it is flaky"* and that the audit *"cannot be relied on while a
+   `make -C rust` gate is running"* — is WITHDRAWN.** The refusal that motivated it was a path-depth bug
+   in this leaf's own probe (see the correction above), and **no measurement supports a concurrency
+   problem.** What remains is a documentation/behaviour drift, now fixed, plus finding (2).
 2. ⭐⭐ **A LATENT SILENT-DEGRADATION worse than the flakiness**: that call is wrapped in
    `except Exception: _var_cache[name] = []` (`:227-228`) — a timeout or any failure yields an **EMPTY
    make-variable expansion, silently**. An empty prereq expansion **drops edges**, which is exactly
@@ -510,12 +532,16 @@ count. **A skip is never a pass.** Re-run when no aggregate `make` is executing.
 ### `.1b` — the audit's reachability precondition invokes `make` and swallows its failures (`todo`)
 
 - **Status: `todo`** — routed from `.1a` (2026-07-30, `PGEN-DONE-BAR-0022`) with the evidence above.
-- **Scope:** (1) capture the FAILING `check_gate_reachability.sh` invocation before diagnosing (do not
-  re-run standalone first — that overwrites the log, which is how `.1a` lost it); (2) decide whether
-  the `except Exception: []` swallow should REFUSE instead of degrading, per this repo's own rule that
-  *a check that cannot see must say so*; (3) correct `README.md:188`'s *"no make"* claim either by
-  removing the make dependency or by stating it; (4) consider whether the audit should refuse outright
-  while an aggregate is running rather than contend with it.
+- **Scope (narrowed 2026-07-30 by `-0023`, after the concurrency premise was refuted):** decide whether
+  the `except Exception: _var_cache[name] = []` swallow should **REFUSE** instead of degrading to an
+  empty expansion, per this repo's own rule that *a check that cannot see must say so*. ⛔ Two items
+  from the original scope are **retired, not deferred**: *"capture the failing invocation"* (the cause
+  is known — it was a probe path bug, not the make call) and *"consider whether the audit should refuse
+  while an aggregate runs"* (no concurrency problem was ever measured). `README.md`'s *"no make"* claim
+  was corrected in `-0022`/`-0023`.
+- ⭐ **The remaining item is the real one and it is latent, not observed:** no run has yet been seen to
+  hit the timeout. Its danger is that if it ever fires, the census comes out **quietly different** and
+  still exits 0 unless one of the 8 ground-truth controls happens to cover the lost edge.
 - ⭐ **Why this matters more than a flaky script:** every `Done`/`Provisional` adjudication in this
   tree rests on this audit, and `GATE-REACHABILITY` is one of the 14 enforced doctrines. A silent
   empty expansion in its edge derivation is a defect in the instrument that decides whether other

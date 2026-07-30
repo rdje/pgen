@@ -188,9 +188,10 @@ PGEN is a production-focused parser and stimuli generator platform.
   - ⛔ read-only: it never runs a gate, so it can never manufacture the green it audits.
     ⚠️ **it is NOT `make`-free** (corrected 2026-07-30, `DONE-BAR.1a`): its hard precondition
     `scripts/check_gate_reachability.sh` shells out to `make -C rust print-<var>` (with a 30 s
-    timeout) to expand make-variable prerequisites, so the audit contends with a concurrently running
-    aggregate and has been measured REFUSING while `sota_exit_gate` was executing. No cargo, no
-    network. **A leg it cannot see is `UNPROVEN`, never `MET`** — and
+    timeout) to expand make-variable prerequisites. No cargo, no network. ⛔ An earlier version of
+    this note also claimed the audit had been *"measured REFUSING while `sota_exit_gate` was
+    executing"* — **withdrawn (`DONE-BAR.1a`, `-0023`): that refusal was a path-depth bug in a probe,
+    not contention**, and no concurrency problem has been measured. **A leg it cannot see is `UNPROVEN`, never `MET`** — and
     `UNPROVEN` does not satisfy the bar
   - it AUDITS; it never demotes a tracker row (that is `DONE-BAR.2`). Exit 1 means at least one
     `Done` row does not meet the bar; exit 3 means a ground-truth control did not reproduce and no

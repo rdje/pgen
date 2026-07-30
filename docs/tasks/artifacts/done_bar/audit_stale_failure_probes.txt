@@ -1,21 +1,25 @@
 ==============================================================================
 DONE-BAR.1a — the audit's failed-gate branch, staleness-aware
 ==============================================================================
-fixture: rust/target/sota_exit_gate/logs/regex_parser_family_status_gate.log (real mtime epoch 1785325790)
+fixture: synthetic failed-gate log at rust/target/regex_parser_family_status_gate/logs/regex_parser_family_status_gate.log
 
-  ✅ RED-1 stale failure is LABELLED stale                        found PREDATES\ its\ own\ inputs
-  ✅ RED-1 the superseded error is still QUOTED                   found regex\ tracker\ alignment\ mismatch
-  ✅ RED-1 leg 1 downgrades to UNPROVEN                           found UNPROVEN\,\ not\ UNMET
-  ✅ CTRL-1 fresh failure is NOT labelled stale — leg 1         found RAN\ AND\ FAILED\ \(log\ rust/target/sota_exit_gate/logs/regex_parser_family_status_gate.log\,\ mtime
-  ✅ CTRL-1 fresh failure does NOT claim to predate (leg1)        absent that\ failure\ PREDATES\ its\ own\ inputs
-  ✅ CTRL-1 fresh failure does NOT claim to predate (leg2)        absent but\ that\ run\ PREDATES\ its\ own\ inputs
-  ✅ CTRL-1 the error is reported as CURRENT                      found ⛔\ regex_parser_family_status_gate\ RAN\ AND\ FAILED
-  ✅ CTRL-2 audit still exits 0 on the live tree                  found 0
-  ✅ CTRL-2 no MISCALIBRATED refusal                              absent MISCALIBRATED
-  ⚠️  BEFORE-1 UNJUDGEABLE: the retired audit produced no verdict (REFUSED / no leg output)
-      audit-done-bar: REFUSED — scripts/check_gate_reachability.sh did not succeed;
+  ✅ RED-1 stale failure is LABELLED stale                      found ⚠️\ STALE\ —\ older\ than\ its\ own\ inputs
+  ✅ RED-1 the superseded error is still QUOTED                 found regex\ tracker\ alignment\ mismatch
+  ✅ RED-1 leg 1 downgrades to UNPROVEN                         found UNPROVEN\,\ not\ UNMET
+  ✅ RED-1 leg 2 says green-NOW is UNPROVEN                     found but\ that\ run\ PREDATES\ its\ own\ inputs
+  ✅ CTRL-1 the error is reported as CURRENT                    found ⛔\ regex_parser_family_status_gate\ RAN\ AND\ FAILED
+  ✅ CTRL-1 fresh failure is not called stale (leg 1)           absent that\ failure\ PREDATES\ its\ own\ inputs
+  ✅ CTRL-1 fresh failure is not called stale (leg 2)           absent but\ that\ run\ PREDATES\ its\ own\ inputs
+  ✅ CTRL-1 no STALE label on the failed-gate branch            absent ⚠️\ STALE\ —\ older\ than\ its\ own\ inputs
+  ✅ BEFORE-1 retired form quoted the stale error as CURRENT    found ⛔\ regex_parser_family_status_gate\ RAN\ AND\ FAILED
+  ✅ BEFORE-1 retired form reported NO vintage                  absent PREDATES\ its\ own\ inputs\ ⇒\ UNPROVEN\,\ not\ UNMET
+  ✅ BEFORE-1 retired form never labelled it STALE              absent ⚠️\ STALE\ —\ older\ than\ its\ own\ inputs
+  ✅ BEFORE-1 printed tracker as In Progress…                 found tracker:\ In\ Progress
+  ✅ BEFORE-1 …above an error claiming it says 'Done'         found tracker\ says\ \'Done\'
+  ✅ CTRL-2 audit exits 0 on the restored live tree             found 0
+  ✅ CTRL-2 no MISCALIBRATED refusal                            absent MISCALIBRATED
+  ✅ CTRL-2 restored tree shows no stale failure                absent ⚠️\ STALE\ —\ older\ than\ its\ own\ inputs
 
 ==============================================================================
-audit stale-failure probes: 9 passed, 0 failed, 3 UNJUDGEABLE
-⚠️  UNJUDGEABLE arms are NOT passes — re-run when no aggregate make is executing
+audit stale-failure probes: 16 passed, 0 failed
 ==============================================================================

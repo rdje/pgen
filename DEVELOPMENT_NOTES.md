@@ -1,5 +1,34 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0023 — I retried a deterministic bug instead of reading it, and my fixture was a transient artifact
+
+`DONE-BAR.1a` correction. Probe driver + tree + README. The `-0022` code fix is unchanged.
+
+- ⛔⛔ THE CORRECTION: `-0022` published *"the audit REFUSES transiently under a concurrent
+  `make -C rust`"*. It does not. `audit_done_bar.sh:44` resolves `ROOT` from `BASH_SOURCE`, my probe ran
+  a copy two directories deeper, so ROOT pointed at `rust/target/done_bar_audit` and the precondition
+  was unreachable. The same content run from `scripts/` exits 0 with nothing else running.
+- ⭐⭐ THE LESSON, and it is the sharpest one of the session: **I saw a failure three times, called it
+  transient, and added a retry loop.** A bug that reproduces on every attempt is the opposite of flaky —
+  reproducibility is the thing you want, and I treated it as noise. **A retry loop is an admission you
+  have not read the failure.** The tell was available immediately: the refusal message named
+  `check_gate_reachability.sh`, and one `grep` for how the script computes its own root would have
+  ended it.
+- ⭐ SECOND LESSON — **a probe's fixture must not be a by-product of the thing being tested.** The driver
+  keyed its RED arms to a REAL failed-gate log. `sota_exit_gate` run 4 then FIXED that gate, overwriting
+  the log with a success, and the arms that existed to detect a stale failure quietly had nothing to
+  detect. This is the `DONE-BAR.5f` custody lesson (durable evidence does not live under
+  `rust/target/`) arriving from the other direction: not *"my evidence was deleted"* but *"my evidence
+  was made obsolete by success."* The fixture is now synthesised by the driver.
+- ⭐ A THIRD, subtler one: making the failed-gate branch reachable at all required moving the real
+  `summary.*` aside, because that branch only runs when no artifact exists. **A probe for an
+  error path may have to suppress the success path** — and then it owes a trap-based restore, which this
+  driver has.
+- WHAT SURVIVED THE CORRECTION, and why it was worth separating: the two source-level findings hold
+  independently — `check_gate_reachability.sh:222-225` does invoke `make`, and it does swallow failures
+  into an empty expansion. **Withdrawing a wrong causal story does not withdraw the facts it was
+  attached to**, and conflating them would have lost a real latent defect.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0022 — a staleness guard applied to one of two branches, and the branch it skipped was the exposed one
 
 `DONE-BAR.1a`. `scripts/audit_done_bar.sh` + README + 1 probe driver.

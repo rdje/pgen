@@ -1,5 +1,35 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0023 — leaf DONE-BAR.1a CORRECTION: a deterministic path bug was misdiagnosed as flakiness, and the probe's fixture was a transient artifact
+
+Probe driver + task tree + README — no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no
+`generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION. The `-0022` code fix in
+`scripts/audit_done_bar.sh` is UNCHANGED and still verified; this corrects the write-up around it.
+
+- ⛔⛔ WITHDRAWN CLAIM: `-0022` recorded that the audit *"REFUSES transiently while a `make -C rust`
+  aggregate runs concurrently"* and that it *"cannot be relied on to produce a verdict while a
+  `make -C rust` gate is running"*. **Both are wrong.** `audit_done_bar.sh:44` derives
+  `ROOT="$(dirname "${BASH_SOURCE[0]}")/.."` from its OWN location, and the probe ran a copy from
+  `rust/target/done_bar_audit/stale_failure_probe/`, so ROOT resolved to `rust/target/done_bar_audit`
+  and the reachability precondition was unreachable. DECISIVE CONTROL: the byte-identical retired
+  content run from `scripts/` exits 0 with no aggregate running.
+- ⭐ A DETERMINISTIC BUG WAS PAPERED OVER WITH A 3-RETRY LOOP. The loop is removed; the retired script
+  is now staged inside `scripts/` so its ROOT resolves correctly.
+- ⭐ SECOND PROBE DEFECT, exposed by run 4: the driver used a REAL failed-gate log as its fixture, and
+  run 4 made that gate PASS and overwrote it — so the RED arms silently lost the failure they existed
+  to detect (the next run read 4 passed / 5 failed). A probe whose fixture is a transient artifact of
+  the last run is not a probe. The fixture is now SYNTHETIC and built by the driver, which also moves
+  the real summary aside so the failed-gate branch is reachable, restoring both from a trap.
+- Probes: **16 passed, 0 failed, 0 unjudgeable** (was 9/0/3). BEFORE-1 now genuinely replays the
+  retired form and reproduces the self-contradiction verbatim — `tracker: In Progress` above an error
+  claiming the tracker says `Done` — which the earlier vacuous arms never demonstrated.
+- WHAT SURVIVES, verified at source and independent of the above: `check_gate_reachability.sh:222-225`
+  really does run `make -C rust print-<var>` with a 30 s timeout (so the README's *"no make"* claim was
+  genuinely false, and stays corrected), and that call really is wrapped in
+  `except Exception: _var_cache[name] = []`, which degrades to an EMPTY make-variable expansion and
+  drops edges. `.1b` is narrowed to that one latent item; the two items resting on the refuted
+  concurrency premise are RETIRED, not deferred.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0022 — leaf DONE-BAR.1a: the Done-bar audit reported a SUPERSEDED gate failure as a current verdict
 
 `scripts/audit_done_bar.sh` + README + 1 probe driver — no `grammars/*.ebnf`, no `rust/src/*`, no
