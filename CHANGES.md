@@ -1,5 +1,39 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0025 — leaf DONE-BAR.4a: the automatic tier over the make gate targets is off ZERO (director-approved)
+
+3 workflow files + README + tree — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11
+generated parsers byte-identical BY CONSTRUCTION.
+
+- `.4` (the guarantee) named TWO prerequisites and both are now closed: `CI-PARITY-GATE-ROT.7` went
+  green end-to-end, and the escalated hosted-auto-trigger call was RULED ON by the director
+  (2026-07-30): enable the three regeneration-free gates. Executed here.
+- SHIPPED: `push:` on `branch-protection-contract-gate.yml`, `fixed-point-gate.yml`,
+  `mdbook-docs-gate.yml`. Auto-running workflows 1 -> 4. `pull_request:` deliberately OMITTED — this
+  repository has 0 merge commits, so it would fire never, and wiring that makes nothing run is the
+  theatre `.6` rejected; the reason is recorded at each site.
+- TWO OF MY OWN NUMBERS WERE WRONG AND WERE CORRECTED BEFORE SPENDING THE DIRECTOR'S MONEY:
+  (1) "the automatic tier is ZERO" was imprecise — `memory-architecture-gate.yml` already auto-ran AND
+  already invoked the doctrine driver, so all 14 doctrines already had an automatic lane (2 s). What was
+  at zero is the lane over the 123 make GATE TARGETS. (2) "cost is seconds of Actions per push" was
+  WRONG: that was a local measurement with a warm cargo cache and mdbook pre-installed, while on a bare
+  runner two of the three compile — the repo's own budgets are 10/30/15 timeout-minutes, so the honest
+  per-run cost is MINUTES.
+- What makes it cheap is FREQUENCY, and that had to be measured too: 0 merge commits ever, 7 pushes in
+  the repo's whole history, against a 300-commit push cadence => the lane fires a handful of times a
+  year, ~55 Actions-minutes per push event worst case. The right denominator was the push rate, not the
+  commit rate.
+- VIABILITY CHECKED BEFORE ENABLING, because a RED automatic lane is worse than none: all three carry
+  no `gh api`, no secrets and no network, `branch_protection_contract_gate.sh` reaches no network, and
+  both locally-runnable ones PASS right now (`mdbook_docs_gate` ran GREEN earlier the same session).
+- NO REGRESSION: `check_flow_integrity.sh --report` OK with invariant (8) still passing at 4
+  auto-triggered workflows instead of 1; GATE-REACHABILITY PASS; ALL 14 doctrines PASS.
+- HONEST BOUND, sharpened rather than claimed away: the doctrines + 3 cheap gate targets are re-proved
+  server-side at every PUSH, which here is roughly every 300 commits — not every commit — and the other
+  120 gate targets including the 4 h 39 m aggregate remain operator-invoked. The defensible claim is
+  "enforced at every commit by the hook, and re-proved server-side at every push over the doctrines plus
+  3 cheap gate targets", NOT "the flow guarantees the bar 100%".
+
 ## 2026-07-30 - PGEN-DONE-BAR-0024 — leaf DONE-BAR.1b + a standing discipline: a flow finding is ROUTED by default, WORKED only when it blocks
 
 `scripts/check_gate_reachability.sh` + a new decision record + tree/docs — no `grammars/*.ebnf`, no

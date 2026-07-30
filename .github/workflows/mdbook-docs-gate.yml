@@ -2,6 +2,14 @@ name: mdbook-docs-gate
 
 on:
   workflow_dispatch:
+  # AUTOMATIC LANE (DONE-BAR.4, director-approved 2026-07-30 session #227). This is one of the three
+  # gate targets that need NO `generated/` regeneration, so it can run on a bare checkout. Enabled to
+  # move the AUTOMATIC tier over the make gate targets off ZERO — `CI-PARITY-GATE-ROT.6` measured it at
+  # zero and escalated the spend as a director call; this is that call executed on the cheap subset.
+  # ⛔ `pull_request:` is deliberately OMITTED: this repository has **0 merge commits** in its entire
+  # history, so a PR trigger would fire never — and wiring that makes nothing run is the theatre `.6`
+  # rejected. Add it deliberately if the project adopts PRs.
+  push:
 
 jobs:
   mdbook-docs-gate:

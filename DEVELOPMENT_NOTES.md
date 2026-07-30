@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0025 — the right denominator was the push rate, and my cost estimate was off by three orders of magnitude
+
+`DONE-BAR.4a`. 3 workflow files + README + tree.
+
+- ⭐⭐ THE LESSON: **I quoted a hosted cost from a local measurement, and the director was about to spend
+  money on it.** "seconds of Actions per push" came from `mdbook_docs_gate` finishing in 5 s here — with
+  a warm cargo cache and `mdbook` already installed. On a bare runner that workflow runs
+  `cargo install mdbook --locked`. The repo had already written down the truth in its own
+  `timeout-minutes: 10/30/15`, and I had not read it. ⇒ *a local timing is not a CI timing, and the
+  workflow's own budget is the cheapest available estimate of its real cost.*
+- ⭐ AND THE SECOND CORRECTION WENT THE OTHER WAY, which is why both had to be measured: the lane IS
+  cheap, just not for the reason I gave. **0 merge commits in the repo's entire history and 7 pushes
+  total, against a 300-commit push cadence** ⇒ a `push:` trigger here fires a handful of times a YEAR.
+  Worst case ~55 Actions-minutes per push event. *I had been reasoning per-commit; the denominator is
+  the push rate.* Getting this right also settled that `pull_request:` should be omitted — it would fire
+  never, and `.6` already ruled that wiring which makes nothing run is theatre.
+- ⭐ A THIRD correction, smaller but load-bearing for the tracker's honesty: the tree had carried
+  *"the AUTOMATIC tier is ZERO"*. It was zero over the **123 make gate targets** but NOT over the
+  doctrines — `memory-architecture-gate.yml` has auto-run and invoked the driver since
+  `CI-PARITY-GATE-ROT.15`. Same words, two different universes; the narrower claim is the true one.
+- ⭐⭐ VIABILITY BEFORE ENABLEMENT, because **a red automatic lane is worse than no automatic lane**: it
+  trains everyone to ignore the one signal that cannot be bypassed. Checked that all three workflows
+  need no `gh api`, no secrets and no network, and that they pass locally right now, BEFORE adding a
+  trigger. *Enabling a check you have not run is how you buy noise.*
+- ⭐ AND THE ENFORCER CAUGHT ME MID-SLICE, exactly as designed: staging the three `.yml` files without an
+  owning task leaf produced `diag-evidence: ✗ a CODE change is staged but NO owning task-tree leaf is
+  staged` and blocked the commit. That is `TASK-ACCEPTANCE` doing its job on the author who wrote the
+  session's other doctrine work — worth recording, because the value of a gate is exactly that it does
+  not make exceptions for whoever built it.
+
 ## 2026-07-30 - PGEN-DONE-BAR-0024 — an unbounded order cannot be obeyed, and "do not let it slide" never meant "fix it now"
 
 `DONE-BAR.1b` + `docs/decisions/feedback_flow_findings_are_routed_not_worked.md`.

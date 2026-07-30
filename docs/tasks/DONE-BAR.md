@@ -1008,6 +1008,79 @@ told apart from invalid input**, and all three would have shipped as defects.
 - ⚠️ State the residual honestly: hook-bypassable + machine-local unless a CI lane re-proves it.
   ⛔ Price before mechanizing (`GENERATED-LINT-CORRECTNESS.4`'s rule).
 
+#### ✅ `.4a` — BOTH PREREQUISITES ARE NOW DISCHARGED (`done`, 2026-07-30 session #227, `PGEN-DONE-BAR-0025`)
+
+`.4` named two prerequisites and both are closed, so the leaf is unblocked for the first time:
+
+1. ✅ **`CI-PARITY-GATE-ROT.7`** — the aggregate went green end-to-end (`PGEN-CI-PARITY-GATE-ROT-0024`).
+2. ✅ **the escalated hosted-auto-trigger call** — **the director ruled on 2026-07-30: enable the three
+   regeneration-free gates.** Executed here.
+
+##### ⛔⛔ TWO OF MY OWN NUMBERS WERE WRONG AND WERE CORRECTED *BEFORE* SPENDING THE DIRECTOR'S MONEY
+
+- **"the automatic tier is ZERO"** — imprecise as stated. `memory-architecture-gate.yml` already runs on
+  `push`/`pull_request` **and** invokes the doctrine driver since `CI-PARITY-GATE-ROT.15`, so **all 14
+  doctrines already had an automatic lane** (measured: driver runs in **2 s**, no cargo/build/network).
+  What was at zero is the automatic lane over the **123 `make` gate targets** — a narrower and truer
+  claim than the one the tree carried.
+- **"cost is seconds of Actions per push"** — ⛔ **WRONG, and caught before enabling.** That was a LOCAL
+  measurement with a warm cargo cache and `mdbook` already installed. On a bare hosted runner
+  `mdbook-docs-gate` runs `cargo install mdbook --version 0.5.2 --locked` (a compile) and
+  `fixed-point-gate` builds Rust. The repo's own budgets say so: **10 / 30 / 15** `timeout-minutes`.
+  ⇒ the honest per-run cost is **minutes, not seconds**.
+- ⭐ **What makes it cheap anyway is FREQUENCY, not per-run cost, and that had to be measured too:**
+  this repository has **0 merge commits** in its entire history and **7** pushes total, against a
+  director push cadence of **300 commits**. ⇒ the lane fires a handful of times a year, so worst-case
+  ~55 Actions-minutes per push event. *The right denominator was the push rate, not the commit rate.*
+
+##### WHAT SHIPPED
+
+`push:` added to `branch-protection-contract-gate.yml`, `fixed-point-gate.yml`, `mdbook-docs-gate.yml`
+— the three documented as needing **no** `generated/` regeneration, so they run on a bare checkout.
+⛔ **`pull_request:` deliberately OMITTED**: 0 merge commits ever ⇒ it would fire never, and wiring that
+makes nothing run is precisely the theatre `.6` rejected. The reason is written at each site so a future
+session adds it deliberately rather than wondering.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — derived census over `.github/workflows/*.yml` (`awk` on each `on:` block):
+      **1 of 15** workflows auto-ran, and `.6` measured the AUTOMATIC tier over the 123 `make` gate
+      targets at **ZERO** ⇒ every proof lane ran only when a human asked.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family: `grep`/`awk` over the 15 tracked
+      `.github/workflows/*.yml` `on:` blocks shows `workflow_dispatch:`-only on 14 of them, the hosted
+      pause recorded in `README.md`. The blocker was never technical — it was a **billed-action decision
+      reserved to the director** (`.6` escalated it; `MEMORY.md` records *"real-world side effects
+      (push/external/billed) stay director-owned"*).
+- [x] **FIX** — declarative tier: one `push:` trigger on each of the 3 regeneration-free workflows. No
+      script, no Makefile, no new mechanism.
+- [x] **ADDRESSED (verified)** — before→after on the derived census: auto-running workflows
+      **1 → 4** (`memory-architecture-gate` + the 3). ⭐ **Viability checked BEFORE enabling, because a
+      RED automatic lane is worse than none**: all three carry `gh api=0 secrets=0 curl/wget=0` and
+      `branch_protection_contract_gate.sh` reaches no network, so they work on a bare runner; and both
+      locally-runnable ones **PASS right now** (`make -C rust branch_protection_contract_gate` → PASS,
+      `make -C rust fixed_point_gate` → PASS; `mdbook_docs_gate` ran GREEN earlier this session).
+- [x] **NO REGRESSION** — `bash scripts/check_flow_integrity.sh --report` → `flow-integrity: OK (11
+      workflow(s) regenerate, 3 measured-exempt, recipe has one home, PREPARE on, 0 standalone-default
+      hand-offs, 0 requires-a-defect assertions, provenance ratchet 1/23, all 14 doctrines on the
+      automatic lane via the driver, 0 guards testing an artifact they do not read)` — ⭐ invariant **(8)**
+      still passes with **4** auto-triggered workflows instead of 1, and CTRL-3 of its own probe set
+      (*a `workflow_dispatch`-only workflow naming an enforcer must still PASS*) is unaffected.
+      `GATE-REACHABILITY` PASS. No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11
+      generated parsers byte-identical BY CONSTRUCTION.
+- [x] **LOCKSTEP** — `README.md` (the hosted-pause paragraph), this tree, `CHANGES.md`,
+      `DEVELOPMENT_NOTES.md`, `MEMORY.md`. No release / schema / ledger / contract movement.
+
+##### ⚠️ THE HONEST BOUND ON THE GUARANTEE, SHARPENED RATHER THAN CLAIMED AWAY
+
+`.4`'s standard is *"enforced at every commit AND re-proved by an automatic lane no contributor
+controls."* What now holds: the doctrines are re-proved server-side **on every push** (2 s), and three
+gate targets join them. ⛔ What still does not: **a push happens roughly every 300 commits here**, so
+the automatic re-proof is *per push*, not *per commit* — and the other **120** gate targets, including
+the 4 h 39 m aggregate, remain operator-invoked. ⇒ the defensible claim is **"enforced at every commit
+by the hook, and re-proved server-side at every push over the doctrines + 3 cheap gate targets"** — not
+*"the flow guarantees the bar 100%"*. Closing that gap means pricing a periodic (e.g. `schedule:`) lane
+for the heavy aggregate, which is a fresh billed-action decision and stays the director's.
+
 ### `.5` — the missing CONSUMER-FACING gates: disclosure integrity (`todo`) ⭐ PREREQUISITE FOR SHIPPING `Provisional`
 
 - **Status: `todo`** — ⛔ **PROMOTED 2026-07-29.** It was recorded as *"safely deferred, not on the

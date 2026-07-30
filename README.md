@@ -246,8 +246,16 @@ PGEN is a production-focused parser and stimuli generator platform.
     literal path with no `has_generated_*` cfg, so their absence is a hard rustc error
   - the hosted workflows reach it through the composite action `.github/actions/regenerate-parsers`,
     and the local parity gate through `PGEN_CI_WORKFLOW_LOCAL_PREPARE`; both call this one target
-- Hosted GitHub Actions pause:
-  - hosted workflows are temporarily manual-only (`workflow_dispatch`) to conserve account Actions minutes
+- Hosted GitHub Actions pause (⚠️ **partially LIFTED 2026-07-30, `DONE-BAR.4a`**):
+  - **4 of the 15** tracked workflows now run automatically on `push`: `memory-architecture-gate` (which
+    invokes the whole 14-doctrine driver — measured **2 s**, no cargo/build/network) plus the three gate
+    targets that need no `generated/` regeneration — `branch-protection-contract-gate`,
+    `fixed-point-gate`, `mdbook-docs-gate`. Director-approved to move the AUTOMATIC tier over the make
+    gate targets off zero. ⚠️ Honest cost: **minutes, not seconds** per run (two of the three compile;
+    the repo's own budgets are 10/30/15 `timeout-minutes`) — it is cheap only because this repository
+    pushes about every 300 commits. ⛔ `pull_request:` is deliberately omitted: 0 merge commits exist in
+    the history, so it would fire never.
+  - the remaining **11** are still manual-only (`workflow_dispatch`) to conserve account Actions minutes
   - routine proof should use the local `make -C rust ...` gates until hosted auto-runs are re-enabled
   - **11 of the 15** tracked workflows regenerate `generated/` first (the 3 that provably do not need
     it — `branch-protection-contract-gate`, `fixed-point-gate`, `mdbook-docs-gate` — deliberately do
