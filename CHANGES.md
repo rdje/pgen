@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0024 — leaf DONE-BAR.1b + a standing discipline: a flow finding is ROUTED by default, WORKED only when it blocks
+
+`scripts/check_gate_reachability.sh` + a new decision record + tree/docs — no `grammars/*.ebnf`, no
+`rust/src/*`, no `generated/*` => all 11 generated parsers byte-identical BY CONSTRUCTION.
+
+- DIRECTOR CHALLENGE, verbatim: *"it looks like we might spend the rest of the project fighting with
+  these flow issues than actually doing real coding ? Can you fix those flow issues once and for all ?"*
+  + *"WE need to have a clean flow."* + *"It is good that you are uncovering all these issues though."*
+- MEASURED, because the premise deserved a number rather than agreement — commits classified by what
+  they TOUCHED: of the last **60**, **1** touched `grammars/`/`rust/src/`/`generated/` (27 flow, 32
+  docs); of the last 20, 1. The director's impression is the shape of the work.
+- WHY THE PREVIOUS ORDER (session #218, same words) DID NOT HOLD: the flow backlog was self-generating
+  and its size was unknowable — `sota_exit_gate` had never completed, so it revealed one blocker per
+  fix, six in all, and the record said *"nobody knows how many remain."* An unbounded list cannot be
+  finished. `CI-PARITY-GATE-ROT.7` going green turned the remainder FINITE: 7 priced items.
+- NEW STANDING DISCIPLINE `docs/decisions/feedback_flow_findings_are_routed_not_worked.md`: a flow
+  finding is ALWAYS routed to a leaf with its evidence, and WORKED immediately only when it BLOCKS (a
+  gate cannot run, a verdict cannot be trusted, a published claim is false). ⭐ This is NOT a weakening
+  of the no-slide directive — that directive says address it *"now **or later**"*, i.e. it forbids
+  DROPPING, not deferring, and the task-tree IS the "later". We had been reading it as "fix it now".
+- ALSO FIXED, the one item on the session's findings list that was a genuine open flow defect (`.1b`):
+  `check_gate_reachability.sh`'s `expand_make_var` swallowed every failure into an EMPTY make-variable
+  expansion, dropping prerequisite edges and turning reachable targets into orphans.
+- MEASURED BEFORE CHANGING BEHAVIOUR, which is what made refusal safe: `make -C rust
+  print-<not-a-variable>` exits **0** with empty output, so the legitimate "not a variable" case never
+  raises and never returns nonzero => an exception or nonzero exit can ONLY be a real failure and there
+  is no legitimate empty expansion to preserve. Both paths now name the failure and `sys.exit(2)`,
+  reusing the script's own refusal idiom.
+- BEFORE->AFTER REPLAYED under an induced failure (a stub `make` exiting 127), not described: AFTER
+  refuses with exit 2 naming `PARSER_BOOK_GATES`; BEFORE exits **1** reporting `json_parser_book_gate:
+  expected reachable, got ORPHAN` — a WRONG orphan census blaming the repository for what was actually
+  "make could not run", caught only because a ground-truth control happened to cover that variable.
+- GREEN run byte-unchanged: `OK (124 targets; 93 reachable, 30 orphan + 1 policy-only, all
+  dispositioned; 8 ground-truth controls reproduced)`. ALL 14 doctrines PASS (this script is one of
+  them). No tracker row moved.
+
 ## 2026-07-30 - PGEN-CI-PARITY-GATE-ROT-0024 — leaf CI-PARITY-GATE-ROT.7: sota_exit_gate is GREEN END-TO-END for the first time ever
 
 Docs + one captured evidence artifact — no `grammars/*.ebnf`, no `rust/src/*`, no `rust/scripts/*`, no

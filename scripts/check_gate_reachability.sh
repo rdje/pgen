@@ -218,14 +218,39 @@ def expand_make_var(token):
         return None
     name = m.group(1)
     if name not in _var_cache:
+        # ⛔ THIS MUST NOT DEGRADE SILENTLY (`DONE-BAR.1b`). It used to be
+        #     _var_cache[name] = out.stdout.split() if out.returncode == 0 else []
+        #   wrapped in `except Exception: _var_cache[name] = []`, so a timeout, a missing `make`, or a
+        #   real make error all produced an EMPTY expansion — which DROPS the prerequisite edges this
+        #   function exists to supply, and a dropped edge turns a reachable target into an "orphan".
+        #   That is calibration defect (6) from `CI-PARITY-GATE-ROT.2`'s six-wrong-answers list — the
+        #   one fixed by "ASK MAKE, DO NOT RE-IMPLEMENT MAKE" — returning through the FAILURE PATH of
+        #   its own fix. Today it would surface as a loud refusal only by luck: if the lost edges
+        #   happened to touch already-dispositioned orphans, the census would come out quietly
+        #   different and still exit 0, guarded by nothing but whichever ground-truth control noticed.
+        # ⭐ MEASURED before changing the behaviour: `make -C rust print-<not-a-variable>` exits **0**
+        #   with EMPTY stdout, so the legitimate "this token is not a make variable" case never raises
+        #   and never returns nonzero. ⇒ an exception or a nonzero exit can ONLY mean a real failure,
+        #   and there is no legitimate empty expansion to preserve. Refusing costs no false positives.
         try:
             import subprocess
             out = subprocess.run(["make", "-C", "rust", "--no-print-directory", "-s",
                                   f"print-{name}"], cwd=ROOT, capture_output=True, text=True,
                                  timeout=30)
-            _var_cache[name] = out.stdout.split() if out.returncode == 0 else []
-        except Exception:
-            _var_cache[name] = []
+        except Exception as exc:
+            print(f"gate-reachability: cannot expand make variable '{name}' "
+                  f"(`make -C rust print-{name}` failed: {exc!r}). The edge derivation would silently "
+                  f"lose this prerequisite list and report reachable targets as orphans, so no "
+                  f"inventory is offered. A check that cannot see must say so.", file=sys.stderr)
+            sys.exit(2)
+        if out.returncode != 0:
+            print(f"gate-reachability: cannot expand make variable '{name}' "
+                  f"(`make -C rust print-{name}` exited {out.returncode}: "
+                  f"{out.stderr.strip()[:200]!r}). Refusing rather than deriving edges from an empty "
+                  f"expansion — a non-variable exits 0 with empty output, so a nonzero exit is a real "
+                  f"failure.", file=sys.stderr)
+            sys.exit(2)
+        _var_cache[name] = out.stdout.split()
     return _var_cache[name]
 
 for name, blk in targets.items():

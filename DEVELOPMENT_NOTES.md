@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-30 - PGEN-DONE-BAR-0024 — an unbounded order cannot be obeyed, and "do not let it slide" never meant "fix it now"
+
+`DONE-BAR.1b` + `docs/decisions/feedback_flow_findings_are_routed_not_worked.md`.
+
+- ⭐⭐⭐ THE STRUCTURAL LESSON, and it is about how orders interact rather than about any one defect.
+  Two standing directives were in force: *"do not let any issue, even the smallest, slide"* and *"come
+  back to real coding."* Read as "fix every finding immediately", the first makes the second
+  unreachable — and measurement shows exactly that happened: **1 of the last 60 commits touched
+  product.** The resolution was not to overrule either directive but to READ the first one properly:
+  it says *"address it either now **or later**"*. It forbids DROPPING. **The task-tree is the "later."**
+  ⇒ *when two directives seem to conflict, re-read the exact words before proposing a trade-off.*
+- ⭐ WHY THE SAME ORDER FAILED THE FIRST TIME (#218), which is the part worth remembering: the flow
+  backlog was **self-generating with unknowable size** — a fail-fast aggregate that had never completed
+  reveals exactly one blocker per fix, so the list refills as fast as it drains. No amount of
+  discipline finishes that; only completing the aggregate does. ⇒ *before promising to finish a
+  backlog, check whether its size is even observable.*
+- ⭐ ON THE FIX ITSELF — the measurement is what made a REFUSAL safe instead of a false-positive
+  generator. The tempting change (make every failure refuse) is only correct because
+  `make print-<non-variable>` exits **0** with empty output: the benign case is indistinguishable from
+  the failure case at the exit-code level ONLY if you assume it, and one command settled it. Had a
+  non-variable exited nonzero, refusing would have broken every run.
+- ⭐⭐ AND THE RETIRED FORM'S BEHAVIOUR IS THE BEST ARGUMENT FOR THE FIX: under an induced `make`
+  failure it did not refuse, it **reported a wrong orphan census and blamed the repository** —
+  `json_parser_book_gate: expected reachable, got ORPHAN` — for what was actually a broken toolchain.
+  It was caught only because a ground-truth control happened to cover that variable, and the control's
+  own comment had PREDICTED this failure mode. ⇒ *a check that degrades instead of refusing converts a
+  toolchain failure into a false accusation about the code, and its accuracy then depends on luck.*
+- ⚠️ HONEST LIMIT of the new discipline, stated in the record itself: it changes a DEFAULT, and a
+  default is a judgement, not a gate. Nothing mechanically stops a future session spending itself on
+  flow. The tripwire is the commit-classification table — re-run it whenever a session feels
+  flow-heavy, and if PRODUCT is still ~1 in 60 the discipline is not holding.
+
 ## 2026-07-30 - PGEN-CI-PARITY-GATE-ROT-0024 — the aggregate went green, and the first thing to do with a green is to distrust it
 
 `CI-PARITY-GATE-ROT.7`. Docs + one captured evidence artifact.

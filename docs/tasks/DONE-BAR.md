@@ -529,9 +529,58 @@ claiming the tracker says `Done`), which the earlier vacuous arms never demonstr
    later standalone re-runs before I read it, so *"the 30 s timeout fired"* is the strong reading, not
    a measurement. `.1b` must capture the failing invocation before diagnosing.
 
-### `.1b` — the audit's reachability precondition invokes `make` and swallows its failures (`todo`)
+### `.1b` — the audit's reachability precondition swallowed its own make failures (`done`, 2026-07-30 session #227, `PGEN-DONE-BAR-0024`)
 
-- **Status: `todo`** — routed from `.1a` (2026-07-30, `PGEN-DONE-BAR-0022`) with the evidence above.
+- **Status: `done`** (2026-07-30, `PGEN-DONE-BAR-0024`) — routed from `.1a` with the evidence above,
+  and closed in the same session because it is the one item on that findings list that was a genuine
+  open flow defect (`docs/decisions/feedback_flow_findings_are_routed_not_worked.md`).
+
+##### THE FIX — refuse instead of degrading, and the measurement that made it safe
+
+`scripts/check_gate_reachability.sh`'s `expand_make_var` was:
+
+```python
+_var_cache[name] = out.stdout.split() if out.returncode == 0 else []
+except Exception: _var_cache[name] = []
+```
+
+⇒ a timeout, a missing `make`, or a real make error all yielded an **empty expansion**, dropping the
+prerequisite edges the function exists to supply and turning reachable targets into "orphans".
+
+⭐ **MEASURED BEFORE CHANGING THE BEHAVIOUR — this is what made refusal safe rather than a source of
+false positives:** `make -C rust print-<not-a-variable>` exits **0** with empty stdout. So the
+legitimate *"this token is not a make variable"* case **never raises and never returns nonzero** ⇒ an
+exception or a nonzero exit can only mean a real failure, and there is **no legitimate empty expansion
+to preserve.** Both paths now print what failed and `sys.exit(2)`.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `sed -n '215,230p' scripts/check_gate_reachability.sh` at the pre-fix
+      revision shows `except Exception: _var_cache[name] = []` plus the `else []` on a nonzero exit.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family: `scripts/check_gate_reachability.sh:222-229`,
+      `expand_make_var`, reached from `:238` for every make-variable prerequisite. `make -C rust
+      --no-print-directory -s print-NOT_A_VARIABLE_XYZ` → **exit 0, empty output** (so the swallow has no
+      legitimate job); `make -C rust print-RUST_DIR` → `.` (so the success path is real).
+- [x] **FIX** — declarative tier, reusing the script's OWN refusal idiom (`print(...) ; sys.exit(2)`,
+      as at `:414-420`) rather than inventing one.
+- [x] **ADDRESSED (verified)** — before→after **REPLAYED under an induced failure** (a stub `make` on
+      `PATH` that exits 127), not described:
+      **AFTER** → `gate-reachability: cannot expand make variable 'PARSER_BOOK_GATES' (… exited 127 …)
+      Refusing rather than deriving edges from an empty expansion`, **exit 2**, no inventory offered.
+      **BEFORE** (retired form from `git show HEAD:`, same induced failure) → **exit 1** reporting
+      `json_parser_book_gate: expected reachable, got ORPHAN` — ⭐⭐ **a WRONG orphan census blaming the
+      repository for a defect that was actually "make could not run"**. ⭐ And it was caught only because
+      a ground-truth control happened to cover that variable — the control's own text predicted this
+      exact failure (*"if this regresses, the make-variable expansion of PARSER_BOOK_GATES has
+      broken"*), so the old behaviour depended on luck.
+- [x] **NO REGRESSION** — GREEN run byte-unchanged: `gate-reachability: OK (124 targets; 93 reachable,
+      30 orphan + 1 policy-only, all dispositioned; 8 ground-truth controls reproduced)`, exit 0.
+      `bash scripts/check_doctrines.sh` → ALL 14 PASS (this script IS one of the 14). No
+      `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all 11 parsers byte-identical BY
+      CONSTRUCTION.
+- [x] **LOCKSTEP** — this tree, `docs/decisions/feedback_flow_findings_are_routed_not_worked.md` (new),
+      `docs/decisions/INDEX.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`. `README.md` needed no
+      further change — `.1a`/`-0023` already corrected the audit's advertised properties.
 - **Scope (narrowed 2026-07-30 by `-0023`, after the concurrency premise was refuted):** decide whether
   the `except Exception: _var_cache[name] = []` swallow should **REFUSE** instead of degrading to an
   empty expansion, per this repo's own rule that *a check that cannot see must say so*. ⛔ Two items
