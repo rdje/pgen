@@ -54,6 +54,31 @@ to the annotation backend ([[bootstrap-builtin-annotation-parsers]]). So a meta-
 that *delimits* the annotation and leaves the payload opaque models the authoritative code
 faithfully; it is not a shortcut that self-hosting would later have to undo.
 
+## ⛔ What "dual run" actually compares — three pairs, and NOT the one the name suggests
+
+`ebnf_dual_run` / `ebnf_frontend_dual_run_gate` sound like *"run the hand-written frontend
+and the `ebnf.ebnf`-derived parser and diff their output."* Measured, that comparison does
+not exist. Three different pairs run, and each compares something weaker:
+
+| pair | what is compared | where |
+|---|---|---|
+| hand-written frontend ↔ **generated `ebnf.rs`** | **verdict only** (`Ok`/`Err`), and **soft** — warns unless `PGEN_EBNF_FRONTEND_REQUIRE_GENERATED_VERIFY=1` | **live, on every grammar load** — `ebnf_frontend.rs:65-79` |
+| **Perl** `tools/ebnf_to_json.pl` ↔ hand-written frontend | **rule-NAME sets** — `sorted(set(names))` over `["rule", name]` heads; **not** bodies, tokens or ASTs | `ebnf_frontend_dual_run_diff_gate.sh:224-260` |
+| interpreter ↔ generated `ebnf.rs` | **byte-identical AST** ✅ | `parse_harness_equivalence` (`ebnf` is CERTIFIED) |
+
+⇒ **The `ebnf.ebnf`-derived parser's OUTPUT is never compared with the hand-written
+frontend's output, anywhere.** Its AST *is* byte-compared — but against the **interpreter
+running the same grammar**, which proves the two *engines* agree, not that `ebnf.ebnf`
+describes what the frontend accepts. And the only output-level diff in the gate is against
+a **Perl** frontend untouched since the initial commit (2025-08-30) — a frozen legacy
+reference — on rule names alone, so two frontends could tokenize every rule body
+differently and it would still report `parity`.
+
+**Consequence for the replacement endgame:** the instrument that would prove `ebnf.ebnf`
+ready to replace the hand-written frontend — a raw-AST differential between the two — has
+never been built. `12/12` says the spec still *reads* every grammar we ship; it says
+nothing about whether it reads them the *same way*.
+
 ## What the number is worth today
 
 `grammars/ebnf.ebnf` is the **formal declarative specification of PGEN's own input

@@ -1,5 +1,33 @@
 # CHANGES.md
 
+## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0018 — leaf .10.6 opened: the "dual run" never diffs the meta-parser's OUTPUT against the frontend's
+
+Docs + KM only — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` => all 11 generated
+parsers byte-identical BY CONSTRUCTION. No tracker row moved.
+
+- OPENED FROM A DIRECTOR STATEMENT THAT MEASUREMENT DID NOT CONFIRM: *"There is ebnf_dual_* mode,
+  that run both the hand-written Rust EBNF front-end parser and the parser derived from ebnf.ebnf
+  to compare their output live."* That is the design intent and the gate's NAME. It is not what
+  the code does — and the director is right that both parsers DO run live on every grammar load;
+  the gap is that only the VERDICT crosses between them.
+- MEASURED — three pairs run, none of them is "frontend output vs meta-parser output":
+  (1) hand-written frontend <-> generated ebnf.rs: VERDICT ONLY (Ok/Err), SOFT (warns unless
+      PGEN_EBNF_FRONTEND_REQUIRE_GENERATED_VERIFY=1) — live, ebnf_frontend.rs:65-79;
+  (2) Perl tools/ebnf_to_json.pl <-> hand-written frontend: `sorted(set(rule_names))` only —
+      not bodies, not tokens (ebnf_frontend_dual_run_diff_gate.sh:224-260). Two frontends could
+      tokenize every rule body differently and it reports `parity`. The Perl arm has not been
+      touched since the INITIAL COMMIT (b579dc8a, 2025-08-30) — a frozen legacy reference;
+  (3) interpreter <-> generated ebnf.rs: byte-identical AST ✅ — but that proves the two ENGINES
+      agree about ebnf.ebnf, not that ebnf.ebnf agrees with the frontend.
+- ⇒ the raw-AST differential that would prove ebnf.ebnf ready to REPLACE the hand-written frontend
+  (the stated endgame — README.md:28 "handwritten parsers exist only as bootstrap scaffolding")
+  HAS NEVER BEEN BUILT. `12/12` says the spec still READS every grammar we ship; nothing says it
+  reads them the SAME WAY.
+- Owning machinery is GRAMMAR-WELLFORMED (H.13/H.14); recorded under .10 because .10 found it and
+  because it conditions the .10.2 A/B/C decision.
+- ⭐ Same family as .10.5 one level up: an instrument weaker than its name. .10.5 found a gate
+  green BECAUSE of a defect; .10.6 is a gate whose name promises a comparison it never makes.
+
 ## 2026-07-30 - PGEN-LANG-CAPABILITY-AUDIT-0017 — option B for .10.2 is MEASURED, not proposed; and three KM cards for what I had to be told
 
 Docs + KM + probe evidence only — no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`

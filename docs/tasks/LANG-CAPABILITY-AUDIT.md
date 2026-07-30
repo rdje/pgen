@@ -1352,7 +1352,7 @@ the person who specified it.**
   scope by design). That is a legitimate outcome and must be recorded as such — the bound is
   what keeps "any language" honest. The value is in the rows that do NOT.
 
-### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` / `.10.3` / `.10.4` ✅ / `.10.5` ✅)
+### `.10` — re-open `.7`: the `include()` was a TYPO, and the linter was silenced to hide it (`active` — SPLIT into `.10.1` ✅ / `.10.2` / `.10.3` / `.10.4` ✅ / `.10.5` ✅ / `.10.6`)
 
 > **Container as of session #228.** Opened in a fresh session per the director's ruling
 > below. `.10.1` (done) settled the target, audited the whole allowlist, and corrected
@@ -2278,6 +2278,61 @@ now uses `]]]`, which no EBNF construct can claim, and the native-slurp behaviou
 defect — owned by `.10.2`/`.10.3` — cannot change silently either. ⇒ banked: **two
 independent swallow surfaces existed, and a probe that does not separate them measures
 neither.**
+
+---
+
+### `.10.6` — the "dual run" never diffs the meta-parser's OUTPUT against the frontend's, and that is the instrument the replacement endgame needs (`todo`)
+
+- **Status: `todo`**, opened session #228 from a DIRECTOR STATEMENT that measurement did
+  not confirm: *"There is ebnf_dual_* mode, that run both the hand-written Rust EBNF
+  front-end parser and the parser derived from ebnf.ebnf to compare their output live,
+  that is how ebnf.ebnf is tested along the way."* That is the **design intent and the
+  gate's name**. It is not what the code does.
+- **Owning machinery is `GRAMMAR-WELLFORMED`** (H.13/H.14 own the meta-grammar lockstep and
+  `ebnf_frontend_dual_run_gate`). Recorded here because `.10` found it and because it
+  **conditions the `.10.2` A/B/C decision** — it changes what a self-hosting number buys.
+
+#### The measured three-pair picture
+
+| pair | what is compared | where |
+|---|---|---|
+| hand-written frontend ↔ **generated `ebnf.rs`** | **verdict only** (`Ok`/`Err`); **soft** — warns unless `PGEN_EBNF_FRONTEND_REQUIRE_GENERATED_VERIFY=1` | **live, every grammar load** — `ebnf_frontend.rs:65-79` |
+| **Perl** `tools/ebnf_to_json.pl` ↔ hand-written frontend | **rule-NAME sets** — `sorted(set(names))` over `["rule", name]` heads only | `ebnf_frontend_dual_run_diff_gate.sh:224-260` |
+| interpreter ↔ generated `ebnf.rs` | **byte-identical AST** ✅ | `parse_harness_equivalence` (`ebnf` CERTIFIED) |
+
+⇒ **three things run and get compared — and none of the three is "the frontend's output vs
+the meta-parser's output".** The director's reading is right that both parsers run live on
+every grammar load; the gap is that only the **verdict** crosses between them.
+
+#### Why each substitute is weaker than it looks
+
+- **The live pair is verdict-only and soft.** It answers *"did it parse?"*, never *"did it
+  parse it the same way?"*, and by default a mismatch only warns.
+- **The gate's output diff has the wrong arms and the wrong granularity.** It compares
+  **Perl** against the hand-written Rust frontend — and `tools/ebnf_to_json.pl` has not been
+  touched since the initial commit (`b579dc8a`, 2025-08-30), so it is a frozen legacy
+  reference, not a live second opinion. Worse, it compares `sorted(set(rule_names))`: two
+  frontends could tokenize **every rule body differently** and it would report `parity`.
+- **The AST oracle proves the wrong proposition.** `parse_harness_equivalence` does compare
+  the generated parser's AST byte-for-byte — against the **interpreter running the same
+  grammar**. That proves the two *engines* agree about `ebnf.ebnf`; it cannot notice that
+  `ebnf.ebnf` disagrees with the hand-written frontend.
+
+#### What this leaf should build
+
+A **raw-AST differential**: run the hand-written frontend and the `ebnf.ebnf`-derived
+parser over the same `.ebnf` corpus and diff the **token envelopes**
+(`["rule", …]`, `["semantic_annotation", [name, payload]]`, `["group_open","("]`, …), not
+just the verdict. That is precisely the evidence a replacement needs, and it does not exist
+today. ⚠️ Expect it to be RED at first — `ebnf.ebnf`'s return annotations produce
+`{type: "grammar_file", elements: […]}`-shaped output, while the frontend emits the raw_ast
+token envelope. Closing that shape gap **is** the replacement work, and this instrument is
+what would size it.
+
+⭐ **Same family as `.10.5`, one level up: an instrument weaker than its name.** `.10.5`
+found a gate that was green because of a defect; this is a gate whose name promises a
+comparison it never makes. Both were believed, by the record and by the engineer, until
+measured.
 
 ---
 
