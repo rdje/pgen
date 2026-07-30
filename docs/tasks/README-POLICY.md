@@ -635,12 +635,31 @@ still carry the idiom, with **opposite failure polarities**:
 | `scripts/check_design_prior_art.sh:55` (`printf "$known_names" \| grep -qx`) | fails OPEN | a known `@name` misreported as novel — small producer, low exposure |
 
 ⚠️ **LATENT, NOT LIVE — priced before routing.** Across the last **120** commits the largest
-`$added` for a `docs/tasks/*.md` file is **28,720 bytes**, under half the ~64 KiB threshold;
-**0** commits in the last 40 exceed it. So no verdict is *currently* untrustworthy, which is
-why this is routed rather than worked now per [[feedback_flow_findings_are_routed_not_worked]].
-⛔ But the trend is the wrong way — task leaves only grow — and the fail-open site is the one
-that goes **silent**. The fix is mechanical (give grep a FILE, or `grep -c … >/dev/null`);
-the leaf owes the sweep plus a probe that would catch a regression.
+`$added` for a `docs/tasks/*.md` file is **28,720 bytes**; **0** commits in the last 40 exceed
+the threshold. So no verdict is *currently* untrustworthy, which is why this is routed rather
+than worked now per [[feedback_flow_findings_are_routed_not_worked]]. ⛔ But the trend is the
+wrong way — task leaves only grow — and the fail-open site is the one that goes **silent**.
+
+⚠️⚠️ **CORRECTION TO THIS LEAF'S OWN NUMBER — the threshold is NOT a flat ~64 KiB**, as first
+written here. Measured directly on this platform, same producer/consumer as the real site:
+
+```
+  65,606 B  ->  PIPESTATUS=(0 0)     no SIGPIPE — the writer fits in the pipe + grep's read-ahead
+ 131,139 B  ->  PIPESTATUS=(141 0)   SIGPIPE — the fail-open
+```
+
+⇒ the effective bound is pipe capacity **plus whatever the consumer buffers before exiting**, so
+the real headroom is *larger* than this leaf originally claimed and the routing decision is
+**more** clearly right, not less. ⭐ Found because a probe built on the flat-64 KiB assumption
+**failed to reproduce the defect** — the fixture, not the theory, was wrong. *A number quoted
+from a mental model is not a measurement.*
+
+✅ **THE FIXED IMPLEMENTATION NOW EXISTS — ADOPT IT, DO NOT WRITE IT.** `WAIVER-ROUTING` was
+ported to the spine repo (`BEDROCK-MAINTENANCE.2.2`) and the fail-open was **fixed on the way in
+rather than inherited**: both sites write to a file so there is no upstream writer to kill. That
+version carries a `CTRL-1` probe in which the shipped form CATCHES a 343,376-byte staged addition
+while the unfixed pipe form MISSES it (exit 0). ⇒ this leaf is now an **adoption**, the second
+instance of transfer running backwards in one session — see [[project_bedrock_spine_repo]].
 
 ⚠️ **Does it reproduce outside the family?** (`ROUTING-EVIDENCE`) — **YES, measured**: the
 idiom appears in **18** tracked scripts that set `pipefail`, of which **3 are doctrine
