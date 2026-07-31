@@ -2937,6 +2937,190 @@ re-pointed in the same wave rather than left calling a deleted file.
 
 ---
 
+### `.10.10` — delete `fx/`: 267 tracked files nothing in PGEN consumes (`done`)
+
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0026`, session #229, 2026-07-31).
+  **✅ DIRECTOR-APPROVED on the corrected numbers** — the call was escalated by `.10.7`
+  precisely because the approval on record covered *"the Perl EBNF parser"*, and `fx/` is a
+  different subsystem an order of magnitude larger. Director, 2026-07-31, shown the measured
+  figures: *"Go for [it]"*.
+- **Why it was a separate call and not a ride-along on `.10.7`**: the director's premise was
+  *"`fx/` wasn't git tracked"* — measured **false** (267 tracked files, not ignored, present
+  since the initial commit `b579dc8a`, 2025-08-30). Executing a "go" given on a wrong premise
+  would have been the failure mode, not the caution.
+
+#### Measured before deleting — and the `perl/` lesson was applied
+
+`.10.7` slice 2 learned that a tracked-file census is not a directory census: `git rm` left
+`perl/` standing with 6 gitignored generated files inside it. `fx/` was checked the same way
+**before** the deletion, not after:
+
+| measure | `fx/` |
+|---|---|
+| tracked | **267** |
+| files on disk | **267** |
+| untracked | **0** |
+| gitignored | **0** ⇒ no hidden leftovers, unlike `perl/` |
+| bytes | **1,509,317** |
+| executable / config references from anywhere outside `fx/` | **0** |
+
+⇒ `git rm -r fx` is a complete deletion here, verified by `find` afterwards rather than
+assumed.
+
+#### The reference sweep — 8 files mention it, and only ONE was live
+
+`git grep` over every tracked file outside `fx/`:
+
+- **0** hits in any executable or config surface — no `rust/`, no `scripts/`, no `.github/`,
+  no `Makefile`, no `Cargo.toml`. This is what makes it deletable at all.
+- **5 history surfaces** (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `LIVE_ACHIEVEMENT_STATUS.md`,
+  `MEMORY.md`, `docs/tasks/`) — untouched; history is not rewritten.
+- **2 dated progress entries** — `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md:4152` (`2026-02-19`)
+  and `:4205` (`2026-03-19`), and `REPO-HYGIENE.md:74` (a past hygiene sweep, which also names
+  the already-deleted `perl/AST/`). True statements about their dates ⇒ left standing, the
+  same rule `.10.7` applied to the roadmap's Perl commands.
+- ⚠️ **1 genuinely live doc**: `tests/TEST_GUIDE.md`'s *"Directory Structure"* block. ⭐ It was
+  **already wrong before this leaf, in a more interesting way**: it is rooted at **`afx/cursor/`**
+  — a path that does not exist in this repository at all — and it bills `fx/perl/LinkedSpec.pm`
+  as the *"Core parser generator"*, which PGEN has not been for as long as the Rust stack has
+  existed. It documents a **pre-PGEN project layout**, not this one. Corrected rather than
+  merely de-`fx/`'d.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `git ls-files fx/` → **267** tracked files, `git check-ignore`
+  → not ignored, `git log --diff-filter=A` → added by the **initial commit** `b579dc8a`
+  (2025-08-30), i.e. swept in at repository creation rather than deliberately added; and
+  `git grep` over every tracked file outside `fx/` finds **0** executable/config references.
+  1.5 MB of a different subsystem (`fx/bin`, `fx/cgi`, `fx/plugin`, `fx/ruby`, `fx/specs`,
+  Verilog + FSM material) that nothing in PGEN consumes.
+- [x] **ROOT CAUSE (WHY + WHERE)** — not a defect but dead weight, and the WHERE is the point:
+  `git log --diff-filter=A -- fx/` names the **initial commit** as its only addition, so no
+  later change ever adopted it. Confirmed by the reference census above — every surviving
+  mention is prose, and `git ls-files --others [--ignored]` over `fx/` returns **0/0**, so
+  unlike `perl/` there is no gitignored residue to strand.
+- [x] **FIX** — `git rm -r fx` (267 files), plus the one live doc correction.
+- [x] **ADDRESSED (verified)** — before → after: tracked files **267 → 0**; `find fx` →
+  *No such file or directory*; `git grep` for `fx/` outside the history surfaces returns only
+  the two dated progress entries deliberately kept. Repo tracked-file count and working tree
+  shrink by 1,509,317 bytes.
+- [x] **NO REGRESSION** — nothing in `rust/src/`, `grammars/` or `generated/` is in the diff
+  (`git diff --cached --name-only` → 0 such paths) ⇒ **all 11 generated parsers byte-identical
+  by construction**; `fx/` is in no build graph (`git grep` → 0 hits in `Makefile`/`Cargo.toml`/
+  `.github/`), so no gate consumes it. `scripts/check_doctrines.sh` **ALL 15 PASS** against the
+  real staged diff; `mdbook_docs_gate` GREEN.
+- [x] **LOCKSTEP** — `tests/TEST_GUIDE.md` (the stale `afx/cursor/` structure block),
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `MEMORY.md`,
+  `docs/TASK_TREE.md`. No book/contract movement — `fx/` appears in neither.
+- ⭐ **Nothing is lost**: all 267 files remain in git history from `b579dc8a` onward.
+
+---
+
+### `.10.12` — the `DOCPATH` doctrine only sees absolute paths that contain `/pgen/` (`todo`)
+
+- **Status: `todo`** — opened 2026-07-31 session #229 by `.10.10`, which hit 13 checkout-specific
+  absolute paths in a file it was already editing and asked why an enforced doctrine had not
+  caught them.
+- ⭐ **The doctrine is doubly blind, and the PATTERN half is the interesting one.**
+  `scripts/check_diagnostics_and_docpaths.sh:51-53`:
+
+  ```bash
+  absolute="$(git grep -nIE '/Users/[^ )`]*/pgen/' -- \
+    'docs/book/src/**' 'docs/contracts/**' 'PGEN_USER_GUIDE.md' 'README.md' \
+    'docs/tasks/**' 'docs/decisions/**' 'KNOWLEDGE_MAP.md' 'docs/knowledge/**' 'LIVE_ACHIEVEMENT_STATUS.md' …
+  ```
+
+  1. **PATTERN** — the regex requires the absolute path to contain **`/pgen/`**. An absolute
+     home path pointing anywhere *else* is invisible. ⇒ the doctrine catches
+     "your own checkout" and misses every other leaked local path.
+  2. **SCOPE** — the pathspec omits `tests/`, `tools/`, `rust/`, `grammars/`, `scripts/` and
+     the vendor corpora.
+
+- ⭐⭐ **THE DECIDING PROOF — an IN-SCOPE file with violations the pattern cannot see.**
+  `docs/contracts/**` *is* in the pathspec, and
+  `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` carries **3** absolute paths
+  (`:1766`, `:1820`, `:1893` — `/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-00NN.yaml`).
+  Pattern-visible: **0**. The doctrine **passes**. ⇒ this is not a scope oversight that a wider
+  pathspec would fix; the pattern itself under-specifies the rule it enforces. It is also a
+  *published downstream contract* leaking a local home directory.
+
+#### The size of the class, classified honestly — this is NOT a 260-file sweep
+
+`git grep -lIE '/Users/'` over tracked files (excluding built `*-html/`):
+
+| bucket | files | what it is | verdict |
+|---|---|---|---|
+| vendor LRM extraction (`docs/systemverilog/**`, `docs/verilog/**`, `docs/vhdl/**`) | **199** | one provenance line each naming the **source PDF** (`/Users/…/SystemVerilog-LRM-IEEE-1800-2017.pdf`) | ⚠️ **external-input provenance, not a repo-internal path** — CLAUDE.md §12 governs repo-internal paths. Adjudicate deliberately; do NOT bulk-rewrite |
+| append-only history (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/tasks/**`) | ~43 | records of past runs | ⇒ out of scope by the same rule that keeps history intact |
+| **everything else** | **18** | incl. the published contract above, `KNOWLEDGE_MAP.md`, 3 `docs/decisions/`, `grammars/systemverilog*.ebnf`, `rust/src/bin/*.rs`, `rust/scripts/ci_workflow_local_gate.sh`, `tools/` | ⇒ **the real work item** |
+
+⚠️ ⭐ The enforcer **itself** is in that last bucket
+(`scripts/check_diagnostics_and_docpaths.sh` — its own doc comment quotes the pattern), which
+is legitimate but means a naive fix will flag its own source. Handle that deliberately rather
+than by an exclusion added in a hurry.
+
+- ⚠️ **ROUTED, not worked** ([[feedback_flow_findings_are_routed_not_worked]]): no gate is
+  blocked and no verdict is untrustworthy — the paths are cosmetic/portability leaks, not
+  behaviour. But the doctrine currently **certifies** a property it does not check, which is
+  the shape this repo treats most seriously. ⭐ Measured to reproduce **outside** the file that
+  surfaced it (the published contract, 3 hits, in-scope, invisible) ⇒ it is a pattern defect,
+  not a `tests/` defect.
+- **Scope when taken up:** widen the pattern to any `/Users/<user>/` or `/home/<user>/`
+  repo-internal path, decide the vendor-provenance question explicitly (a documented carve-out
+  is fine; silence is not), extend the pathspec, then fix the 18. ⛔ Do not widen the pattern
+  without first adjudicating the 199 — a doctrine that turns red on 199 legitimate provenance
+  lines gets an exclusion bolted on and stops meaning anything.
+- ✅ **Already fixed in passing by `.10.10`:** `tests/TEST_GUIDE.md`'s **13** occurrences of
+  `/Users/richarddje/Downloads/AFX/fsm/afx/cursor/…` — a checkout-specific path into a
+  directory that is not even this repository — now `0`.
+
+---
+
+### `.10.11` — ⛔ `.10.6` deleted `require_tool perl` while 17 gate scripts still EXECUTE Perl (`todo`)
+
+- **Status: `todo`** — opened 2026-07-31 session #229 by the director's question *"why was
+  Perl still used for those parts that are now failing loudly?"*, which turned out to have a
+  third answer nobody had measured.
+- ⭐⭐ **THE FRAMING TO CORRECT FIRST, INCLUDING MINE.** *"The Perl EBNF frontend is retired"*
+  (`.10.6`) is true and precise. *"Perl is gone"* is **false**, and the tracker/commit prose
+  around `.10.6` invites the second reading. Measured: **17 gate scripts still execute the
+  Perl interpreter at ~48 sites**, as a general-purpose shell utility:
+
+  | form | sites | what it does |
+  |---|---|---|
+  | `perl -e` | 24 | percentage arithmetic (`acceptance_rate`), file sizes |
+  | `perl -0777` | 6 | slurp-mode text processing (SV stimuli) |
+  | `perl -MTime::HiRes` | 5 | millisecond timestamps |
+  | `perl -0ne` | 5 | NUL-separated `git ls-files` filtering (`ci_workflow_local_gate`) |
+  | `perl -ne` | 4 | markdown link extraction, keyword counting |
+  | `perl -MJSON::PP` | 4 | **JSON validation**, incl. `sota_exit_gate.sh:989` |
+
+- ⛔ **The defect: `.10.6` removed the preflight that checked for it.** `git log -p 1ea5a87b`
+  shows `-require_tool perl` — deleted as part of *"`require_tool perl` and a `perl -e`
+  one-liner → gone (now `awk`)"*. That was correct for the **frontend** flow, but the check it
+  removed guarded the **interpreter**, which 17 other scripts still need. ⇒ on a host without
+  Perl the flow now fails deep inside a stage with whatever `perl: command not found` does to
+  a `$( )` substitution, instead of up front with a named missing tool. **A dependency that is
+  still real but no longer declared is worse than either extreme.**
+- ⭐ `sota_exit_gate.sh:989` is the sharpest instance: the **`differential_baseline_contract`
+  required stage** validates tracked JSON baselines with `perl -MJSON::PP`. The flagship
+  aggregate has a hard, undeclared Perl dependency inside a *required* check.
+- ⚠️ **ROUTED, not worked** ([[feedback_flow_findings_are_routed_not_worked]]): it does not
+  make any verdict untrustworthy on this host (Perl 5.34.1 is present at `/usr/bin/perl`, and
+  macOS ships it), and every gate currently passes. It is a **portability and
+  honest-declaration** defect, priced. ⭐ It becomes urgent the moment CI moves to an image
+  without Perl — which is exactly the kind of change nobody would think to price against a
+  dependency no file declares.
+- **Scope when taken up:** decide per site between (a) restoring `require_tool perl` with an
+  honest comment naming the 17 consumers, and (b) porting the utility uses off Perl
+  (`-MJSON::PP` → `jq`, already a dependency; `-MTime::HiRes` → `date +%s%3N`/`python3`;
+  the arithmetic → `awk`, the substitution `.10.6` already made once). ⭐ **Prefer (b) where
+  cheap and (a) as the immediate stop-gap** — (a) is one line and restores the loud failure
+  today, (b) removes the dependency. ⛔ Do not do (b) partially and drop (a): a flow that needs
+  Perl in 3 places and declares it in 0 is the same defect at smaller scale.
+
+---
+
 ### `.10.9` — ⛔⛔ `.10.6` LEFT FOUR GATES READING PERL TELEMETRY THAT NO LONGER EXISTS — the regex family contract gate is RED, and it is a required stage of the flagship aggregate (`todo`)
 
 - **Status: `todo` — ⛔ HIGHEST-PRIORITY item in this tree.** Opened 2026-07-31 session #229 by

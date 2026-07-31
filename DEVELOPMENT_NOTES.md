@@ -1,5 +1,38 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0026 — a doctrine that certifies more than it checks
+
+`LANG-CAPABILITY-AUDIT.10.10`. Deleting `fx/` was the easy part; what it exposed was not.
+
+- **The census ran BEFORE the deletion this time, and that is the whole point.** `.10.7` slice
+  2 learned that `git rm` is not deletion when `.gitignore` is involved — `perl/` was left
+  standing with 6 hidden generated files. For `fx/` the four numbers were taken up front:
+  tracked 267 / on disk 267 / untracked 0 / gitignored 0. ⇒ **a lesson is only learned when the
+  next task is done differently, not when it is written down.**
+- ⭐⭐ **`DOCPATH` only sees absolute paths that contain `/pgen/`.** The doctrine is registered,
+  enforced at every commit, and described as *"repo-root-relative live-doc paths"* — but its
+  implementation is `git grep -nIE '/Users/[^ )`]*/pgen/'`. So it catches an absolute path into
+  *your own checkout* and misses an absolute path to anywhere else on your machine. **The
+  deciding proof is not the file that surfaced it**: `docs/contracts/**` is squarely inside the
+  enforcer's pathspec, and the published RGX integration contract carries three
+  `/Users/richarddje/Documents/github/rgx/…` paths that the pattern cannot see. The doctrine
+  passes. ⇒ this is not a scope oversight a wider pathspec would fix — **the pattern
+  under-specifies the rule the doctrine claims to enforce**, which is the more dangerous of the
+  two failure modes because widening scope feels like the fix.
+- **Sizing a finding honestly is part of the finding.** `git grep -lIE '/Users/'` returns ~260
+  tracked files, which reads as a crisis. It is not: **199** are vendor LRM extractions carrying
+  one provenance line each naming the *source PDF* — external input, not a repo-internal path —
+  and ~43 are append-only history. The real work item is **18**. ⭐ Reporting the 260 would have
+  been true and useless; worse, it would have invited a bulk rewrite that destroys provenance.
+  And the note that matters for whoever takes it: **widening the pattern before adjudicating the
+  199 guarantees an exclusion gets bolted on**, after which the doctrine means nothing again.
+- **A document can be wrong in a way that tells you what it is.** `tests/TEST_GUIDE.md` did not
+  merely reference the deleted `fx/perl/LinkedSpec.pm`; its directory tree is rooted at
+  `afx/cursor/`, a path that has never existed in this repository, and it carried 13 hardcoded
+  `/Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests` commands. It is not stale PGEN
+  documentation — **it is another project's documentation that arrived in the initial commit**,
+  exactly like `fx/` itself. Labelled as such rather than patched into looking current.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0025 — deleting code is easy; the documentation that promises it is where the work is
 
 `LANG-CAPABILITY-AUDIT.10.7` slice 2. The `git rm` took one command. Everything below is what

@@ -1,5 +1,0 @@
-htmltable-from-file  {
- 
-	['table', [map {['tr', [map {['td', [$_]]} split /\s+/]]} split /\n/, slurp ($_[0])]]
-
-}

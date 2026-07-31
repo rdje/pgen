@@ -1,5 +1,23 @@
 # LinkedSpec Test Framework Guide
 
+> ⛔ **STATUS (2026-07-31, `LANG-CAPABILITY-AUDIT.10.10`): the parser generator this guide
+> documents NO LONGER EXISTS.** `fx/perl/LinkedSpec.pm` and `fx/perl/LinkedRE.pm` — described
+> below as the *"core parser generator"* and *"regex orchestration"* — were part of the `fx/`
+> tree, 267 tracked files that PGEN never consumed (measured: zero references from `rust/`,
+> `scripts/`, `.github/`, any `Makefile` or any `Cargo.toml`) and that was deleted on director
+> approval. They remain in git history from the initial commit `b579dc8a` onward.
+>
+> ⚠️ **Two things were already wrong here before that deletion, and they say what this document
+> is:** the structure block below is rooted at **`afx/cursor/`**, a path that has never existed
+> in this repository, and it calls `LinkedSpec.pm` the *core parser generator* — which PGEN's
+> has not been for as long as the Rust stack has existed. **This guide documents a pre-PGEN
+> project layout, not this one.**
+>
+> The Perl test harness it drives (`tests/run_tests.pl` and siblings) is still tracked and is
+> covered by a separate, still-open director call on the `tests/` corpus — see
+> `docs/tasks/LANG-CAPABILITY-AUDIT.md` leaves `.10.7` and `.10.8`. Until that is settled,
+> read everything below as **historical**: no gate, `make` target or workflow invokes any of it.
+
 ## Table of Contents
 - [Overview](#overview)
 - [Directory Structure](#directory-structure)
@@ -26,10 +44,10 @@ The LinkedSpec test framework provides comprehensive testing for the parser gene
 ## Directory Structure
 
 ```
-afx/cursor/
-├── fx/perl/LinkedSpec.pm          # Core parser generator
-├── fx/perl/LinkedRE.pm            # Regex orchestration
-├── run_parser.pl                   # Main parser runner
+<repository root>
+├── fx/perl/LinkedSpec.pm          # ⛔ DELETED (.10.10) — was the parser generator
+├── fx/perl/LinkedRE.pm            # ⛔ DELETED (.10.10) — was regex orchestration
+├── legacy/tools/run_parser.pl      # the parser runner (still tracked, under legacy/)
 └── tests/                          # Test infrastructure
     ├── run_tests.pl               # Main test runner
     ├── run_single_test.sh         # Single test runner
@@ -55,7 +73,7 @@ afx/cursor/
 
 ```bash
 # 1. Navigate to test directory
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 
 # 2. Run all tests
 perl run_tests.pl
@@ -70,7 +88,7 @@ cat test_results.log
 
 **Command:**
 ```bash
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 perl generate_test_input.pl specs/valid/basic.spec
 ```
 
@@ -86,7 +104,7 @@ perl generate_test_input.pl specs/valid/basic.spec
 
 **Command:**
 ```bash
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 perl run_tests.pl
 ```
 
@@ -131,7 +149,7 @@ Success rate: 71.4%
 
 **Command:**
 ```bash
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 ./run_single_test.sh specs/valid/basic.spec tests/input/simple.txt
 ```
 
@@ -190,7 +208,7 @@ $VAR1 = [
 
 **Command:**
 ```bash
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 perl generate_test_input.pl -o test_input.txt specs/valid/basic.spec
 perl run_parser.pl specs/valid/basic.spec test_input.txt
 ```
@@ -205,7 +223,7 @@ perl run_parser.pl specs/valid/basic.spec test_input.txt
 
 **Command:**
 ```bash
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor
+cd .        # the repository root
 perl run_parser.pl path/to/spec.spec path/to/input.txt
 ```
 
@@ -378,7 +396,7 @@ Look for these messages in logs:
 ```bash
 # Check current directory
 pwd
-# Should be: /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+# Should be: <repository root>/tests
 
 # Make script executable
 chmod +x run_single_test.sh
@@ -394,7 +412,7 @@ ls -la run_single_test.sh
 **Solution:**
 ```bash
 # Always run from tests directory
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 
 # Use relative paths as shown in examples
 ./run_single_test.sh specs/valid/basic.spec tests/input/simple.txt
@@ -445,7 +463,7 @@ cat test_results.log
 
 ```bash
 # Navigate to test directory
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 
 # Generate test input with hierarchical structures
 perl generate_test_input.pl -n 5 -d 8 specs/valid/basic.spec
@@ -461,7 +479,7 @@ perl run_parser.pl specs/valid/basic.spec generated_input.txt
 
 ```bash
 # Navigate to test directory
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 
 # Enable debugging verbosity
 export DUMP_VERBOSITY=200
@@ -499,7 +517,7 @@ echo "test" > input/my_test.txt
 
 ```bash
 # Set up environment
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 export DUMP_VERBOSITY=200
 
 # Run all tests
@@ -514,7 +532,7 @@ grep -E "(PASS|FAIL)" test_results.log | tail -10
 
 ```bash
 # Run tests and check for failures
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 perl run_tests.pl
 
 # Exit with error if any tests failed
@@ -532,7 +550,7 @@ fi
 
 ```bash
 # Run full test suite
-cd /Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests
+cd tests   # from the repository root
 perl run_tests.pl
 
 # Ensure all tests pass

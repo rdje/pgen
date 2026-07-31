@@ -1,1 +1,0 @@
-_get_parser {use LinkedSpec; LinkedSpec::get_parser($_[-1])}

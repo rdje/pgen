@@ -1,5 +1,47 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0026 — leaf LANG-CAPABILITY-AUDIT.10.10: fx/ is DELETED (267 files, 1.5 MB), on the corrected numbers
+
+Director-approved as its own call. Nothing in rust/src/, grammars/ or generated/ is in the
+diff => all 11 generated parsers byte-identical BY CONSTRUCTION. No tracker row moved.
+
+- WHY IT WAS A SEPARATE CALL: the approval on record covered "the Perl EBNF parser", and the
+  director's premise for fx/ was "it wasn't git tracked" -- measured FALSE (267 tracked files,
+  not ignored, present since the initial commit b579dc8a, 2025-08-30). Executing a "go" given
+  on a wrong premise would have been the failure mode, not the caution.
+- THE perl/ LESSON WAS APPLIED BEFORE, NOT AFTER. .10.7 slice 2 learned that `git rm` is not
+  deletion when .gitignore is involved. fx/ was censused the same way FIRST:
+      tracked 267 | on disk 267 | untracked 0 | gitignored 0 | bytes 1,509,317
+      executable/config references from outside fx/: 0
+  => a clean deletion, verified with `find` afterwards rather than assumed.
+- THE REFERENCE SWEEP -- 8 files mention fx/, only ONE was live:
+    0  executable/config surfaces (no rust/, scripts/, .github/, Makefile, Cargo.toml)
+    5  history surfaces -- untouched, history is not rewritten
+    2  dated progress entries (roadmap 2026-02-19/2026-03-19, REPO-HYGIENE past sweep) -- true
+       statements about their dates, left standing
+    1  ⚠️ genuinely live: tests/TEST_GUIDE.md's "Directory Structure" block
+- ⭐ THAT ONE LIVE DOC WAS ALREADY WRONG, IN A MORE INTERESTING WAY: it is rooted at
+  `afx/cursor/` -- a path that has never existed in this repository -- and bills
+  fx/perl/LinkedSpec.pm as the "Core parser generator", which PGEN's has not been for as long
+  as the Rust stack has existed. It documents a PRE-PGEN project layout. Given a status banner
+  saying so, and its structure block corrected.
+- ⚠️ AND IT CARRIED 13 CHECKOUT-SPECIFIC ABSOLUTE PATHS
+  (/Users/richarddje/Downloads/AFX/fsm/afx/cursor/tests) -- a direct violation of CLAUDE.md §12
+  and COMMIT.md's markdown path policy. Fixed here: 13 -> 0.
+- ⛔ WHICH EXPOSED AN ENFORCER GAP => NEW LEAF .10.12. The DOCPATH doctrine
+  (check_diagnostics_and_docpaths.sh:51-53) greps for '/Users/[^ )`]*/pgen/' -- it only sees
+  absolute paths that CONTAIN /pgen/. DECIDING PROOF: docs/contracts/** IS in its pathspec, and
+  PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md carries 3 absolute paths (:1766/:1820/:1893) that
+  are pattern-invisible -- a PUBLISHED DOWNSTREAM CONTRACT leaking a local home directory while
+  the doctrine passes. Not a scope oversight a wider pathspec would fix; the pattern
+  under-specifies the rule it enforces.
+- The class is sized honestly in the leaf and is NOT a 260-file sweep: 199 vendor LRM files are
+  source-PDF provenance (external input, not repo-internal), ~43 are append-only history, and
+  18 are the real work item.
+- ⭐ Nothing is lost: all 267 fx/ files remain in git history from b579dc8a onward.
+- VERIFIED: tracked fx/ 267 -> 0; `find fx` -> No such file or directory; 15/15 doctrines
+  against the real staged diff; mdbook_docs_gate GREEN.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0025 — leaf LANG-CAPABILITY-AUDIT.10.7 SLICE 2: the Perl tree is DELETED, and the sweep found a downstream CONTRACT still promising it
 
 40 tracked files deleted (the exact approved scope) + 6 untracked leftovers the charter did
