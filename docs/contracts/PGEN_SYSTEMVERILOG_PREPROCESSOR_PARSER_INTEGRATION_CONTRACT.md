@@ -12,8 +12,6 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
   - `5` (first release `1.0.7`; **the `SVPP-0004` macro-default balanced-parentheses correction**, IEEE 1800 §22.5.1-faithful: a macro default argument on the LAST formal — e.g. `` `define M(a=x) y``, legal SV used by the LRM's own examples — previously MIS-PARSED to `formals: []` with the whole `(...)` routed into the macro *body*; it now parses as structured formals-with-default. Paren-bearing defaults also change shape: the former flat `{kind:"lparen"}`/`{kind:"rparen"}` atoms are replaced by one balanced `{kind:"paren_group", atoms:[...]}` atom, with commas inside the group surfacing as `{kind:"comma"}` atoms. See the schema-`5` row and the `GRAMMAR-WELLFORMED.H.9` slice.)
 - Annotation count:
   - `68` (65 `return_object` + 1 `return_array` + 2 `return_scalar`; 31 distinct rules) — `1.0.7` adds `macro_default_paren_group -> {kind: "paren_group", atoms: $2}` plus `macro_default_group_atom` (`-> $1` passthrough + `{kind: "comma"}`), and removes `macro_default_atom`'s former bare `{kind: "lparen"}` / `{kind: "rparen"}` branch annotations.
-- Last updated:
-  - `2026-06-10`
 - Current grammar family label:
   - `systemverilog_preprocessor`
 - Per-family mdBook:

@@ -6,7 +6,6 @@
 - Status: `done`
 - Roadmap lane: `Phase S — rtl_frontend synthesizable-RTL subset: parser-family closure (distinct from the existing RTL-FE-MDBOOK / RTL-FE-CONTRACT-BODY book/contract trees)`
 - Created: `2026-05-31`
-- Last updated: `2026-06-15`
 - Owner: repo-local workflow
 
 ## Goal

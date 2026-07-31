@@ -1,7 +1,5 @@
 # SV Grammar Coverage Matrix (IEEE 1800-2017 Anchored)
 
-Last updated: 2026-02-27
-
 ## Purpose
 Track `grammars/systemverilog.ebnf` coverage against IEEE 1800-2017 Annex-A-aligned syntax anchors, with explicit per-rule status and closure gaps.
 

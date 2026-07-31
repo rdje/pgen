@@ -1,7 +1,5 @@
 # COMMIT.md
 
-Last updated: 2026-05-14
-
 ## Purpose
 Define the exact commit workflow for this project so a new AI instance can apply it consistently without re-reading chat history.
 

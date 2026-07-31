@@ -6,7 +6,6 @@
 - Status: `done` (single leaf `.1` complete `PGEN-VHDL-STRICT-PROMOTION-0001`)
 - Roadmap lane: VHDL family — no-regression-baseline hardening (`LIVE_ACHIEVEMENT_STATUS.md` `vhdl` row = `Done`; roadmap: "Preserve the closed VHDL family/status/aggregate proof stack as a no-regression baseline")
 - Created: `2026-07-01`
-- Last updated: `2026-07-01`
 - Owner: repo-local workflow
 
 ## Goal

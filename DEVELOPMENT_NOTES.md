@@ -1,5 +1,33 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0014 — a dormant instrument must announce its dormancy
+
+Two lessons from `LIVE-MEANS-LIVE.4a`, both general enough to outlive the field it deleted.
+
+**1. When a check's population goes to zero, silence is the failure mode.** After the sweep,
+instrument B measures `0/914 declare, 0 self-refuting`. Printed as an ordinary OK line that is
+*indistinguishable* from an instrument that has silently stopped seeing its subject — a broken
+extractor, a renamed path, a `git ls-files` glob that stopped matching. The enforcer therefore
+branches at `declaring == 0` and reports `DORMANT` with the reason and the tripwire status. The
+honest word is available only because the 9 ground-truth controls still execute on every run: the
+instrument is provably alive with nothing to measure, so "dormant" is a fact about the repository
+rather than a euphemism for "switched off".
+
+**2. `git checkout --` is not a restore in a dirty tree — it is a discard.** While running the
+re-introduction controls I restored a perturbed file with `git checkout -- <file>`. The sweep was
+uncommitted, so the file came back from `HEAD` and the deleted declaration was silently
+**resurrected**; the gate could not notice, because one clean declaration is a legitimate state.
+What caught it was a hash pinned *before* the controls ran. The same mistake then discarded a set of
+register edits. ⇒ perturbation tests in a dirty tree must restore from a working-tree copy, and the
+restoration itself needs a control — [[feedback_instrument_needs_ground_truth]] applied to the test
+harness rather than to the thing under test.
+
+**Why deletion beat correction.** `git log -1 --date=short` answers "when was this last updated"
+correctly by construction, for free, and cannot rot. Measured over the 61 declaring files the
+hand-maintained copy was wrong in 25 and **never once ahead** — a strictly dominated duplicate whose
+only failure direction is to understate how live a document is. Correcting 25 dates is precisely the
+maintenance that produced 25 wrong dates.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0009 — enumeration is what fails; refusal is what holds
 
 Three lessons from `LIVE-MEANS-LIVE.2`, all general enough to outlive the doctrine that produced them.

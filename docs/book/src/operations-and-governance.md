@@ -365,27 +365,61 @@ silently become permanent, and the ceiling is never raised to make a surface gre
 
 ### Instrument B — a document that refutes itself
 
-Many documents declare `Last updated: <date>`. Compare that declaration against the newest date in
-the document's own body. If the body is newer, the file's two halves contradict each other.
+Where a document declares `Last updated: <date>`, compare that declaration against the newest date
+in the document's own body. If the body is newer, the file's two halves contradict each other.
 
 This needs **no baseline and no threshold at all** — no history, no reference snapshot, no chosen
 number. The evidence is entirely inside the file.
 
 It is also the instrument that proves *bounded* and *current* are independent properties: the files
-it catches are all comfortably inside every size bound and correctly routed.
+it caught were all comfortably inside every size bound and correctly routed.
+
+#### Instrument B is now DORMANT, and the check says so out loud
+
+**No file in this repository declares that field any more.** Once B had a population to look at, the
+prior question got asked: what does `git` say? `git log -1 --date=short -- <file>` answers *"when
+was this last updated"* correctly by construction, for free, and it cannot rot. Measured across all
+61 files that carried a hand-maintained declaration:
+
+| declaration vs. `git`'s last-commit date | files |
+|---|---:|
+| equal | 36 (59 %) |
+| ⛔ **older than git — simply wrong** | **25 (41 %)** |
+| newer than git | **0** |
+
+Nothing was ever *ahead*. The field's only failure direction is to **understate** how live a
+document is — on the published integration contracts, the surface where that costs most, **6 of the
+6 that carried it were stale**. A stale date tells an evaluating adopter the project is more
+abandoned than it is, which is worse than saying nothing. So the field was deleted repo-wide rather
+than corrected: correcting 25 dates is the maintenance that produced them in the first place.
+
+⛔ **A dormant instrument must announce its dormancy.** Printing `0/914 declare, 0 self-refuting` as
+an ordinary OK line is indistinguishable from an instrument that has quietly stopped seeing its
+subject — the exact failure this doctrine exists to catch. The check therefore reports
+`instrument B: DORMANT` with the reason, and B stays **fully wired as a re-introduction tripwire**:
+a declaration added tomorrow is checked from its first commit, and the nine ground-truth controls
+still run on every invocation, so the instrument is provably alive with nothing to measure.
+
+The published contracts lost nothing a consumer needs. Each keeps its `## Contract Identity` block —
+`Contract version`, `Parser release version`, the embedding-API baseline and the AST-dump schema
+version — which is the **stronger** signal that sat four lines above the date all along. A date
+cannot answer *"does my integration still hold?"*; a version can.
 
 ### Why the check refuses instead of listing spellings
 
 This instrument measured the same population three times and got three answers — 10, then 16, then
-18 — because the repository writes the declaration four different ways, and each pass knew only some
+18 — because the repository wrote the declaration four different ways, and each pass knew only some
 of them:
 
-| shape | example | where |
+| shape | example | where it was used |
 |---|---|---|
 | `bare` | `Last updated: 2026-05-14` | root docs, `docs/reference/` |
 | `backtick` | `` - Last updated: `2026-05-31` `` | every `docs/tasks/` tree |
 | `continuation` | `- Last updated:` with the date on the **next** line | `docs/contracts/` |
 | `template` | `` - Last updated: `YYYY-MM-DD` `` | the task-tree template — declares nothing |
+
+All four shapes stay pinned even though the field is gone: they are what the re-introduction
+tripwire recognizes, and an unpinned shape is an absent row rather than a reported miss.
 
 Every miss failed **silently in the passing direction**: an unmatched file is not a reported miss,
 it is an absent row, so the instrument under-reports and looks clean doing it. Each correction was

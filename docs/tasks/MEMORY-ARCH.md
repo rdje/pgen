@@ -6,7 +6,6 @@
 - Status: `done` (CLOSED 2026-06-02)
 - Roadmap lane: `Cross-cutting infrastructure — durable, harness-agnostic agent memory + enforcement`
 - Created: `2026-06-02`
-- Last updated: `2026-06-02`
 - Owner: repo-local workflow
 
 ## Goal

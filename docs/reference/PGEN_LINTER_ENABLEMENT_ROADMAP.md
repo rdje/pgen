@@ -1,7 +1,5 @@
 # PGEN Linter Enablement Roadmap (Living)
 
-Last updated: 2026-04-18
-
 ## Mission
 
 Turn PGEN's annotation-capable EBNF pipeline into a trustworthy front-end substrate for serious linters, starting with HDL signoff-oriented consumers and generalizing cleanly to any language for which PGEN has an EBNF plus semantic intent annotations.

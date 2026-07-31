@@ -1188,7 +1188,7 @@ would have ranked worst; its date count says it is healthy. The instrument separ
 *rotted*, which is the actual question. And it does not fire on `CHANGES.md`, because being a log
 is that file's charter — the instrument classifies, the charter says which classification is right.
 
-### `.4` — the `Last updated:` field itself (`split` into `.4a` / `.4b` — ⚖️ **`.4b` ADJUDICATED: both answers are DELETE**, so the rule is uniform)
+### `.4` — the `Last updated:` field itself (`done` — `.4a` ✅ EXECUTED 2026-07-31, `.4b` ⚖️ ADJUDICATED; both answers were DELETE, so the rule was uniform)
 
 ⭐ Opened as *"10 tracked files self-refute their own `Last updated:`"*. The population was corrected twice (10 → 16 → **18**) and then re-framed entirely by a third measurement against `git`: the field is wrong in **25 of 61** files and was never once *ahead*, so the question is not which 18 dates to fix but whether a hand-maintained duplicate of a derivable fact should exist at all. Both correction blocks and the git table are kept below — they are the evidence the split rests on.
 
@@ -1283,7 +1283,7 @@ And on the 18 instrument B flags, git is **≥ the newest content date in 18 of 
 downstream reader holds the `.md` without the repository, so `git` is not available to them. That
 class is split out below rather than decided silently.
 
-### `.4a` — execute the deletion across ALL 61 declaring files (`todo` — ✅ **DIRECTOR GO-AHEAD GRANTED 2026-07-31**; internal AND published, one uniform rule)
+### `.4a` — execute the deletion across ALL 61 declaring files (`done` — 2026-07-31, `PGEN-LIVE-MEANS-LIVE-0014`)
 
 > ✅ **APPROVED, EXPLICITLY, AFTER SEEING THE SCOPE.** Director, 2026-07-31, session #229, in
 > response to a concrete before/after walkthrough of what the sweep touches (*"So want to delete all
@@ -1294,13 +1294,89 @@ class is split out below rather than decided silently.
 > ([[feedback_routine_decisions_are_not_escalations]]). The scope the director approved is exactly
 > the table below; anything wider is a new question.
 
-#### The approved scope, stated so it cannot be misread
+#### ✅ EXECUTED — the approved scope, and what actually landed against it
 
-| | |
-|---|---:|
-| **files deleted** | **0** |
-| lines deleted (`- Last updated: <date>`; **2** lines each for the 6 contracts' continuation form) | **64** |
-| lines **edited, not deleted** — prefix stripped, parenthetical KEPT (the 4 ⚠️ cases) | **4** |
+| | approved | measured at execution |
+|---|---:|---:|
+| **files deleted** | **0** | **0** ✅ |
+| declaration lines deleted (**2** lines each for the 6 contracts' continuation form) | **64** | **64** ✅ |
+| lines **edited, not deleted** — prefix stripped, parenthetical KEPT (the 4 ⚠️ cases) | **4** | **4** ✅ |
+| files touched | — | **62** (61 dated + `TEMPLATE.md`) |
+| doubled blank lines collapsed (formatting residue, reported separately) | — | **13** |
+
+The 13 blank-line collapses are not scope creep and are counted apart from the 64 deliberately: a
+declaration that stood as its own *paragraph* leaves `\n\n\n` behind when the line goes. Only that
+case collapses, and only by one line. Every other deletion was a bullet inside a metadata list,
+where the list simply closes up.
+
+⭐ **The sweep did not re-implement the extractor — it LIFTED the gate's own.**
+`scripts/check_live_document_currency.sh`'s `scan()` was read out of the enforcer and executed, so
+the sweep and the check could not disagree about what counts as a declaration. This matters
+concretely: that extractor is the *fourth* attempt at this population, and the three before it each
+missed a spelling silently. A hand-rolled `grep -v 'Last updated'` would have re-run that entire
+error series, and its misses would again have been absent rows.
+
+#### ⚠️ MY OWN PROCEDURE FAILED ONCE, and a pinned control is the only reason it was caught
+
+While running the re-introduction controls, `git checkout -- docs/tasks/TEMPLATE.md` was used to
+restore the perturbed file. But the sweep was **uncommitted**, so `checkout` restored the file from
+`HEAD` — i.e. it silently **resurrected the deleted declaration** in that file. The gate did not
+notice, because a single clean declaration is a legitimate state.
+
+What caught it was a hash comparison pinned *before* the controls ran, which reported the file was
+not byte-identical to its swept state. ⇒ the fix was to restore from a working-tree copy in `tmp/`
+rather than from `HEAD`, and to re-run the sweep (which is idempotent and found exactly the 1
+resurrected file). ⭐ This is [[feedback_instrument_needs_ground_truth]] paying for itself a fourth
+time inside one tree, and the lesson generalizes past this leaf: **`git checkout --` is not a
+restore in a dirty tree — it is a discard of uncommitted work.** The same mistake then discarded the
+register edits a moment later, which the JSON re-read caught.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — the WHY is that the field is a hand-maintained duplicate of a
+  fact `git` already owns, and the WHERE is all 62 files carrying it. Measured, not asserted, with
+  the ops/build-flow toolbox: `git ls-files -- '*.md'` enumerated the 914-file tracked surface and
+  the gate's lifted extractor classified every one of them, giving **61 declaring + 1 template**;
+  `git log -1 --date=short -- <file>` supplied the non-rotting ground truth per file. Result:
+  **25 of 61 declarations were older than git (41 %), 36 equal, and 0 were EVER ahead** — a
+  strictly dominated field. On the 6 published contracts that carried it the stale rate is
+  **6 of 6 (100 %)**. A repo-wide sweep of `scripts/`, `rust/scripts/`, `.githooks/`, `.github/`
+  and `tools/` for consumers returned **zero** (the `last_updated` hits in `rust/src/test_registry.rs`
+  are an unrelated RFC3339 struct field, checked rather than assumed).
+- [x] **ADDRESSED (verified)** — before→after on the symptom, from the enforcer itself:
+  - before: `instrument B: 61/914 tracked .md declare` … `, 18 self-refuting`
+  - after: `instrument B: DORMANT — 0/914 tracked .md declare` … `Still WIRED as a re-introduction
+    tripwire and its 9 ground-truth controls ran`
+  - The four load-bearing prefix-strips are proven **lossless by reconstruction**: re-attaching the
+    stripped prefix reproduces the original line byte for byte in all 4 files, including
+    `SV-EXH-PROOF.md:9` whose 7 733-byte parenthetical names that tree's FRONTIER.
+  - The tripwire is **proven to fire, not asserted** — 4 live controls, each with its exit code
+    checked: re-introduced self-refuting declaration → **exit 1**; re-introduced *clean* declaration
+    → **exit 0 and dormancy LIFTS** (so the branch is data-driven, not hardcoded); unclassifiable
+    declaration → **exit 2, REFUSED**; re-listing a paid file in the drained debt list → **exit 1**.
+- [x] **NO REGRESSION** — `scripts/check_doctrines.sh`: **all 16 doctrines PASS**.
+  `mdbook_docs_gate` PASS, including all 10 per-parser book gates. The generated artifacts are
+  untouched and **byte-identical**: `git diff --cached --name-only` carries no `grammars/`,
+  `rust/src/`, `generated/` or `rust/test_data/ast_shape_contract/` path, and no generation target
+  was run (deliberately — `CI-PARITY-GATE-ROT.19` has `regenerate_generated_parsers` failing on any
+  warm tree). Instrument A's classification is unmoved: only 3 registered surfaces changed distinct-date
+  count at all (`COMMIT.md` 4→3, the SVPP contract 4→3, the VHDL contract 3→2), every one of them far
+  under the ceiling of 20, and the SV contract holds at 24 so its `out_of_charter` debt correctly stands.
+
+#### ⛔ Two statements in the register were made FALSE by this leaf, and were corrected forward
+
+Not found by a gate — found by asking what this sweep invalidates, which is the question this whole
+tree exists to force:
+
+1. The `out_of_charter` entry for the SV contract said *"instrument B independently flags the same
+   file"*. After `.4a` it does not, because the declaration is gone. Left standing, the register
+   would have kept a **"two independent instruments agree"** claim with only one instrument left —
+   the precise defect class this tree was opened to remove. Reworded to past tense with the
+   correction named.
+2. Its `measured_bytes: 562756` was stale by the 33 bytes the two deleted lines occupied. Re-measured
+   to **562 723** rather than carried forward. Instrument A's `measured_distinct_dates: 24` was
+   re-measured too and is **unchanged** — `2026-07-04` occurs elsewhere in the file — so the entry
+   stays and `.7` still owns it.
 
 Nothing else in any file moves. The contracts keep their entire `## Contract Identity` block —
 `Contract version`, `Parser release version`, the embedding-API baseline, the AST-dump schema
@@ -1310,17 +1386,31 @@ Scope: **all 61** declaring files — `docs/tasks/*.md` trees + `docs/tasks/TEMP
 workflow/continuity docs, `docs/reference/*`, `docs/book/*`, **and the 6 `docs/contracts/*` published
 contracts** (`.4b` ruled these the same way, on the measurement that the date is a weaker duplicate
 of the version identity four lines above it). Evidence: the 25/61 table above, `MEMORY_ARCHITECTURE.md`
-§12, and `.4b`'s three findings. ⛔ **Read `.4b`'s four consequences before starting — item 2 is a
-real sweep trap that would delete a tree's frontier pointer.**
+§12, and `.4b`'s three findings.
 
 ⚠️ **This is a repo-wide convention change and it touches the task-tree TEMPLATE**, so it is a
 `TASKTREE-GOV`-adjacent decision, not a mechanical sweep — split out for that reason rather than
-folded into `.4`. ⛔ Before the sweep, read the two banked sweep traps in
-`LANG-CAPABILITY-AUDIT.10.3` and `CI-PARITY-GATE-ROT.19`.
+folded into `.4`. The two banked sweep traps (`LANG-CAPABILITY-AUDIT.10.3`, `CI-PARITY-GATE-ROT.19`)
+were read first as required and **neither applies**: both govern *generated-artifact* sweeps, and
+this one touches no grammar, no codegen and nothing under `generated/`. `.19` did still bind
+negatively — it is why no regeneration target was invoked to "confirm" artifacts that were never in
+the diff.
 
-Landing it also **drains most of `instrument_b.self_refuting_debt.files`** — a file with no
-declaration cannot self-refute — and the register's two-sided ratchet will then FAIL until each
-drained entry is removed, which is the ratchet working as designed.
+#### ✅ `.4b`'s four consequences — all landed in this commit, none deferred
+
+| # | consequence | what landed |
+|---|---|---|
+| 1 | `docs/TASK_TREE.md` *mandates* the field | `Required Task File Sections` amended: the metadata list no longer names a last-updated date and now states ⛔ why, with the 25-of-61 measurement. `docs/tasks/TEMPLATE.md` lost the line too, so a new tree cannot re-add it by inheritance |
+| 2 | ⚠️ the sweep trap — 4 load-bearing parentheticals | prefix stripped, parenthetical kept, **proven byte-identical by reconstruction** in all 4. `SV-EXH-PROOF.md:9`'s FRONTIER pointer survives intact |
+| 3 | drain `instrument_b.self_refuting_debt.files` in the SAME commit | drained to `[]`. The paid-side ratchet fired on all 18 at once first — the ratchet working, verbatim as `.4b` predicted — and the list is kept as an **empty** structure, not deleted, because an empty two-sided ratchet is the tripwire's other half |
+| 4 | instrument B must SAY it is dormant | the enforcer now branches at `declaring == 0` and prints `instrument B: DORMANT — 0/914 …  Still WIRED as a re-introduction tripwire and its 9 ground-truth controls ran`. Control 2 proves the branch is data-driven: one clean re-introduced declaration and the ordinary counting report returns |
+
+⭐ **Why dormancy had to be spoken rather than merely true.** `0/914 declare, 0 self-refuting`
+printed as a normal OK line is *indistinguishable* from an instrument that has silently stopped
+seeing its subject — which is the exact failure this doctrine was built to catch, now pointed at
+itself. The 9 ground-truth controls still execute on every invocation, so B is provably alive with
+an empty population; that is what makes "dormant" an honest word here rather than a euphemism for
+"switched off".
 
 ### `.4b` — ⚖️ ADJUDICATED (director delegated the call, 2026-07-31): the published contracts DELETE it too
 
@@ -1605,21 +1695,29 @@ Found by `.2` on the doctrine's **first run**, by **both** instruments independe
 
 | instrument | reading on `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` |
 |---|---|
-| **A** (distinct dates vs charter) | **24** — over the `status` ceiling of 20; the file is 562 756 B |
-| **B** (self-refutation) | declares `2026-07-04`, its own newest content date is **2026-07-25** |
+| **A** (distinct dates vs charter) | **24** — over the `status` ceiling of 20; the file is 562 723 B |
+| **B** (self-refutation) | ⚠️ **no longer applies** — it declared `2026-07-04` against its own newest content date of `2026-07-25`, but `.4a` deleted the declaration from this file along with every other |
 
-⭐ Two baseline-free instruments agreeing on one surface is the strongest signal either can give,
+⭐ Two baseline-free instruments agreeing on one surface was the strongest signal either could give,
 and this is the surface class where a stale claim costs the most: a **published downstream
 contract**. `PUBLISHED-VERSION-CURRENCY` already exists because this exact class was measured **~77
 releases stale with no gate reading either document** (`DONE-BAR.5a`) — that guard holds the regex
 identity pair and the family-status row, not the contract's own version history.
 
+⛔ **`.4a` did NOT weaken this leaf, and the distinction matters.** B's agreement is gone because
+its *subject* was deleted repo-wide, not because anything here improved. **A's finding is entirely
+untouched**: the per-release version log is still inside a document chartered as the CURRENT
+contract, still 24 distinct dates over a ceiling of 20 (re-measured after the sweep — `2026-07-04`
+occurs elsewhere in the file, so the count did not move). The 33-byte drop is the two deleted
+declaration lines and nothing else.
+
 ⚠️ It is *registered debt, not a waiver*: `instrument_a.out_of_charter` names this leaf as owner,
 and the entry is **two-sided** — paying the debt without removing the entry fails the doctrine too.
 
 Scope when worked: route the per-release history out of the contract body (the `CHANGES.md` /
-per-family ledger question), then remove both the `out_of_charter` entry and this file's
-`self_refuting_debt` row. ⛔ The ceiling is NEVER raised to make this green.
+per-family ledger question), then remove the `out_of_charter` entry. (The `self_refuting_debt` row
+this leaf also used to carry was drained by `.4a`, along with all 18.) ⛔ The ceiling is NEVER raised
+to make this green.
 
 ## Evidence
 

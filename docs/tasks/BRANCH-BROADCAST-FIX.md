@@ -6,7 +6,7 @@
 - Roadmap lane: cross-cutting engine quality / released-parser bug remediation (parser-agnostic
   annotation-extraction + codegen fidelity)
 - Created: 2026-06-10
-- Last updated: 2026-06-10 (`.5` done — H.10.2.1 re-applied and closed: regex cert-coverage
+- (`.5` done — H.10.2.1 re-applied and closed: regex cert-coverage
   `UNKNOWN 7→5`, `restrict:"D"` live-fire proof of `.3`, A/B byte-identical)
 
 ## Goal

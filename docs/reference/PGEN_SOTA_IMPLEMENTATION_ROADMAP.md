@@ -1,7 +1,5 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-22
-
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
 

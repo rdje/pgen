@@ -1,7 +1,5 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-07-22
-
 ## Recent Architecture Change Note (2026-07-22) — the dedicated 256 MiB parse stack (`SV-CORPUS-GRAD.8c.3`)
 
 **New module `rust/src/dedicated_parse_stack.rs` — big-stack execution for generated-parser

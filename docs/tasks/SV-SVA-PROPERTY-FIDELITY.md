@@ -9,7 +9,6 @@
   SV cert tail (`STORE-AWARE-GEN.4b.15` 9A-ii — the dead `kw_constant_d810ca96` token).
 - Family / slice-id prefix: `PGEN-SV-SVA-PROPERTY-FIDELITY-<NNNN>`
 - Created: `2026-06-24`
-- Last updated: `2026-06-24`
 - Owner: repo-local workflow
 - Origin: tool-proven in `STORE-AWARE-GEN.4b.15` (`PGEN-STORE-AWARE-GEN-0023`) — the
   `systemverilog.ebnf` `property_expr` bounded-property family DROPPED the LRM's disambiguating

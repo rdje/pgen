@@ -6,7 +6,6 @@
 - Status: `done`
 - Roadmap lane: parser-correctness (released-parser defect class)
 - Created: `2026-05-16`
-- Last updated: `2026-05-16`
 - Owner: repo-local workflow
 
 ## Goal

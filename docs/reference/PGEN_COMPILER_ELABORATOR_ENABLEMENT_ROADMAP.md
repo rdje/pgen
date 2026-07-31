@@ -1,7 +1,5 @@
 # PGEN Compiler And Elaborator Enablement Roadmap (Living)
 
-Last updated: 2026-04-18
-
 ## Mission
 
 Make PGEN not only a parser generator, but a front-end workbench that materially accelerates compiler and elaborator creation.

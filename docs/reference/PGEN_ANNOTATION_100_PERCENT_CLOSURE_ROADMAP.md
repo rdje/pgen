@@ -1,7 +1,5 @@
 # PGEN Annotation 100% Closure Roadmap (Living)
 
-Last updated: 2026-02-21
-
 ## Non-Negotiable Contract
 PGEN must support annotation behavior with zero functional gaps against:
 - `grammars/return_annotation.ebnf`

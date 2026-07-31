@@ -1,7 +1,5 @@
 # PGEN Annotation Normative Specification (Living)
 
-Last updated: 2026-03-26
-
 ## Purpose
 This document defines the normative contract for PGEN return and semantic annotations across bootstrap and generated pipelines.
 

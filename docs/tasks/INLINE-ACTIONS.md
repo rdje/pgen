@@ -6,7 +6,6 @@
 - Status: `active`
 - Roadmap lane: cross-cutting engine quality — PGEN semantic-annotation feature-completeness (parser-agnostic)
 - Created: `2026-06-09`
-- Last updated: `2026-06-09`
 - Owner: repo-local workflow
 
 ## Provenance (how this was found)

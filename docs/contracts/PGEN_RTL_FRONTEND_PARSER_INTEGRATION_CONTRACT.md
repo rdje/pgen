@@ -16,8 +16,6 @@ This is the document downstream projects (primarily RTLSyn) embedding the PGEN r
   - `3` (unchanged at `1.0.5`: the `RTL-FE-CLOSURE.10` keyword word-boundary fix is **additive** — keyword-prefixed identifiers (`input_data`, `reg_file`) that were wrongly rejected now parse into the existing `identifier` shape and every `1.0.4`-accepted input is byte-identical — see "Release 1.0.5 / Contract 1.0.5 Highlights"; also unchanged at `1.0.4` for the additive `RTL-FE-CLOSURE.9` bare-ANSI-port acceptance fix — see "Release 1.0.4 / Contract 1.0.4 Highlights"; the schema `3` POST-SV-AUDIT Category-A AST-shape corrections + the `RTL-FE-0002` `event_control_list` inline-alternation fix, the `1.0.2`/schema `2` `RTL-FE-0001`, and the `1.0.1`/schema `1` history are retained below)
 - Annotation inventory:
   - `157` return annotations on `74` distinct rules (156 / 74 through `1.0.3`; the `1.0.4` `RTL-FE-CLOSURE.9` fix added the `port_group` no-type branch annotation; the `1.0.5` `RTL-FE-CLOSURE.10` keyword word-boundary fix kept the count at `157` / `74` — keyword rules carry no return annotation)
-- Last updated:
-  - `2026-06-15`
 - Current grammar family label:
   - `rtl_frontend`
 - Per-family mdBook:

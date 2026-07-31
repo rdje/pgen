@@ -6,7 +6,6 @@
 - Status: `proposed`
 - Roadmap lane: `Phase L — Annotation 100% Closure (return + semantic)`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31`
 - Owner: repo-local workflow
 
 ## Goal

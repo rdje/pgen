@@ -1,7 +1,5 @@
 # PGEN User Guide
 
-Last updated: 2026-04-17
-
 ## Current-State Companion Docs
 - Use `README.md` as the main navigation and command-entry document.
 - Use `docs/book/` as the curated live `mdBook` mastery surface for layered user/developer reading.

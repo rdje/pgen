@@ -1,7 +1,5 @@
 # PGEN Stimuli Module Normative Specification (Living)
 
-Last updated: 2026-04-12
-
 ## Purpose
 This document defines the normative contract for generated Rust stimuli-module artifacts (`generated/<grammar>_stimuli.rs`) and their compatibility with in-memory stimuli generation.
 

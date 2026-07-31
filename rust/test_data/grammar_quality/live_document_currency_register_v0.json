@@ -48,14 +48,16 @@
       "_rule": "A `status` surface OVER the ceiling must appear here with an owner leaf that EXISTS, or the doctrine FAILS. TWO-SIDED at the classification level, not at a churning count: an entry whose surface has come back UNDER the ceiling also FAILS, with 'the debt is paid, remove the entry'. So this list can neither be bypassed nor accumulate dead exemptions, and it does not fire every time somebody adds a dated note.",
       "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md": {
         "measured_distinct_dates": 24,
-        "measured_bytes": 562756,
+        "measured_bytes": 562723,
         "owner_leaf": "LIVE-MEANS-LIVE.7",
-        "_why": "The published SystemVerilog integration contract has accumulated a per-release version log inside a document whose charter is the CURRENT contract. ⭐ Instrument B independently flags the same file (declares 2026-07-04, own content reaches 2026-07-25) — two baseline-free instruments agreeing on one surface, found on the doctrine's first run."
+        "_why": "The published SystemVerilog integration contract has accumulated a per-release version log inside a document whose charter is the CURRENT contract. ⭐ On the doctrine's first run instrument B independently flagged the SAME file (it declared 2026-07-04 while its own content reached 2026-07-25) — two baseline-free instruments agreeing on one surface. ⚠️ CORRECTED FORWARD at LIVE-MEANS-LIVE.4a: that second agreement no longer exists, because .4a deleted the declaration from every file including this one. Instrument A's finding is untouched — the per-release log is still here, 24 distinct dates over a ceiling of 20, and .7 still owns it. Said explicitly rather than left standing, because a register that keeps a now-false 'two instruments agree' claim is the exact defect this tree exists to remove.",
+        "_measured_bytes_note": "562756 B before .4a; the 33-byte drop is the two deleted declaration lines. Re-measured rather than carried forward."
       }
     }
   },
   "instrument_b": {
     "_what": "A self-declared `Last updated:` that DISAGREES with the newest content date in the same file. SELF-REFUTING: the file's own two halves contradict each other, so no external baseline and no threshold are needed at all.",
+    "_status": "DORMANT since LIVE-MEANS-LIVE.4a (2026-07-31) — B's subject no longer exists. 0 of 914 tracked .md files declare the field, because .4a deleted it repo-wide once `git log -1 --date=short` was measured to dominate it strictly: over the 61 files that carried it, 25 declarations were simply wrong and NOT ONE was ever ahead of git. ⛔ The enforcer must SAY 'dormant' rather than print a vacuous pass over an empty set — a check reporting OK on nothing it can see is how an instrument stops being one. B stays fully WIRED as a re-introduction tripwire, and its 9 ground-truth controls still execute on every run, so the instrument is proven live even while its population is empty. Dormancy here is a measured fact about the repository, not decay in the check.",
     "_why_total_classification_rather_than_a_spelling_list": "This instrument has now mis-measured the SAME population THREE times, each miss SILENT IN THE PASSING DIRECTION, each caught only because a prior published number existed to disagree with:\n  .4 measured 10 — knew ONE spelling (bare `Last updated: 2026-05-14`), blind to the ~50 docs/tasks files written ``- Last updated: `2026-05-31` ``, plus one PHANTOM row from prose.\n  .5 corrected to 16 — knew TWO spellings, blind to the docs/contracts CONTINUATION spelling (`- Last updated:` with the date on the NEXT line), 6 files of which 2 self-refute.\n  .2 measures 18 — knows four shapes, excludes fenced code blocks and mid-line prose.\n⛔ Enumerating spellings is what failed twice. The enforcer therefore does NOT count spellings: it requires TOTAL CLASSIFICATION and REFUSES (exit 2) on any anchored `Last updated` line it cannot classify. A fifth spelling appearing tomorrow is a loud refusal, not an absent row.",
     "pinned_shapes": {
       "bare": "Last updated: 2026-05-14            — root docs and docs/reference",
@@ -69,28 +71,10 @@
     },
     "self_refuting_debt": {
       "_rule": "TWO-SIDED, and named rather than counted — a bare count lets one file be fixed while another rots. A file that self-refutes and is NOT listed here FAILS (new rot). A listed file that no longer self-refutes FAILS with 'remove it' (paid debt). ⇒ the list drains and cannot hold dead exemptions.",
-      "_owner": "LIVE-MEANS-LIVE.4 owns draining this list. The honest fix per file is either to update the declaration BECAUSE the content really did move, or to DELETE a self-declaration nothing maintains. ⛔ Never bulk-rewrite the dates — that converts a true statement about rot into a false statement about currency.",
-      "_measured": "18 self-refuting of 61 declaring, 2026-07-31, at commit 3a3d5b2f's parent. 43 declaring files pass, so the instrument is not firing on everything.",
-      "files": [
-        "COMMIT.md",
-        "PGEN_USER_GUIDE.md",
-        "docs/book/src/annotation-system.md",
-        "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md",
-        "docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md",
-        "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md",
-        "docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md",
-        "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md",
-        "docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md",
-        "docs/reference/RUST_CODEBASE_ANALYSIS.md",
-        "docs/tasks/INLINE-ALT-FIX.md",
-        "docs/tasks/OPS-MEMSAFE.md",
-        "docs/tasks/REGEX-PCRE2-FIDELITY.md",
-        "docs/tasks/RGX-0090.md",
-        "docs/tasks/RGX-0091.md",
-        "docs/tasks/STIMULI-SIGNOFF.md",
-        "docs/tasks/SV-EXH-PROOF.md",
-        "docs/tasks/SV-PARSE-STRICT.md"
-      ]
+      "_owner": "LIVE-MEANS-LIVE.4 owned draining this list, and .4a DRAINED IT TO ZERO on 2026-07-31 by deleting the field itself from all 62 files that carried it — not by rewriting 25 wrong dates into right ones, which would have re-armed the same rot.",
+      "_measured": "DRAINED. Before .4a: 18 self-refuting of 61 declaring (2026-07-31, at commit 3a3d5b2f's parent). After .4a: 0 self-refuting of 0 declaring — the population is empty because the field no longer exists anywhere in the tracked tree. The ratchet's paid-side fired on all 18 at once, which is the ratchet working as designed; this list is emptied in the SAME commit as the sweep.",
+      "_why_the_list_is_empty_rather_than_deleted": "An empty two-sided ratchet is not dead weight — it is the tripwire's other half. If a `Last updated:` declaration is re-introduced tomorrow and self-refutes, it is NOT in this list, so the new-rot side FAILS on its first commit rather than after it has rotted. Deleting the structure would remove that. PROVEN, not asserted: .4a ran four live controls — a re-introduced self-refuting declaration exits 1, a re-introduced clean one lifts dormancy and exits 0, an unclassifiable one REFUSES with exit 2, and re-listing a paid file exits 1.",
+      "files": []
     }
   },
   "route_closure": {

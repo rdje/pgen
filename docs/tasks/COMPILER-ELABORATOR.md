@@ -6,7 +6,6 @@
 - Status: `proposed`
 - Roadmap lane: `Phase U — Compiler And Elaborator Workbench (PGEN-as-front-end-substrate for downstream compilers/elaborators)`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31`
 - Owner: repo-local workflow
 
 ## Goal

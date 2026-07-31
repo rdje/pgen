@@ -1,7 +1,5 @@
 # PGEN Semantic Steering Control Matrix (Living)
 
-Last updated: 2026-03-26
-
 ## Intent
 Semantic annotations are a language-level superset. The Rust AST pipeline is an implementation-level subset at any given time.
 

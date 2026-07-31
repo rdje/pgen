@@ -6,7 +6,6 @@
 - Status: `active`
 - Roadmap lane: `Stimuli generator → best-in-class / signoff-grade (user vision 2026-05-31)`
 - Created: `2026-05-31`
-- Last updated: `2026-07-07`
 - Owner: repo-local workflow
 
 ## Goal

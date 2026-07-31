@@ -6,7 +6,6 @@
 - Status: `proposed`
 - Roadmap lane: `Phase S — RTLSyn Parser Stack (PNR family): later auxiliary readers`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31`
 - Owner: repo-local workflow
 
 ## Goal

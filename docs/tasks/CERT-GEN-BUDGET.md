@@ -6,7 +6,6 @@
 - Status: `complete`
 - Roadmap lane: `Stimuli-generator / proof-tooling robustness (certificate-coverage)`
 - Created: `2026-06-14`
-- Last updated: `2026-07-03`
 - Owner: repo-local workflow
 
 ## Goal

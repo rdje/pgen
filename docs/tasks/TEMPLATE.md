@@ -6,7 +6,6 @@
 - Status: `proposed`
 - Roadmap lane: `<roadmap lane name>`
 - Created: `YYYY-MM-DD`
-- Last updated: `YYYY-MM-DD`
 - Owner: repo-local workflow
 
 ## Goal

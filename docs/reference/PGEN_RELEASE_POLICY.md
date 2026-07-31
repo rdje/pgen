@@ -1,7 +1,5 @@
 # PGEN Release Policy (Living)
 
-Last updated: 2026-04-14
-
 ## Purpose
 Define objective, machine-enforced pass criteria for release-grade validation of PGEN.
 

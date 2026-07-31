@@ -9,7 +9,6 @@
   kills. Previously `complete` 2026-07-18 — REOPENED same day for leaf `.2` disk-floor guard after the RGX-0078 `.5.i.15` probe build died on host-disk exhaustion, and CLOSED with T10/T11 + regression green; previously `complete` 2026-07-14 with battery T1–T9; the DIRECTIVES stay binding: heavy jobs run UNDER the guard, disk hygiene is proactive)
 - Roadmap lane: operational continuity / host-resource governance (standing director directive `docs/decisions/feedback_host_ram_budget_all_jobs.md` + the 2026-07-18 disk-hygiene directive `docs/decisions/feedback_disk_hygiene_proactive.md`)
 - Created: `2026-07-14`
-- Last updated: `2026-07-18`
 - Owner: repo-local workflow
 
 ## Goal

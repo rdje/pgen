@@ -8,7 +8,6 @@
   path reference in a live/maintained surface must be repo-root-relative, never a
   checkout-specific absolute path that captures a local home directory
 - Created: `2026-06-07`
-- Last updated: `2026-06-07`
 - Owner: repo-local workflow
 
 ## Goal

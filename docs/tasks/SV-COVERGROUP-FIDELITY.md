@@ -9,7 +9,6 @@
   SV cert tail (`STORE-AWARE-GEN.4b.14` 9C-iii — `repeat_range` / `with_covergroup_expression`).
 - Family / slice-id prefix: `PGEN-SV-COVERGROUP-FIDELITY-<NNNN>`
 - Created: `2026-06-24`
-- Last updated: `2026-06-24`
 - Owner: repo-local workflow
 - Origin: tool-proven in `STORE-AWARE-GEN.4b.14` (`PGEN-STORE-AWARE-GEN-0022`) — the `systemverilog.ebnf`
   covergroup trans/bins syntax DROPPED the LRM's disambiguating brackets/braces, which (a) REJECTS valid

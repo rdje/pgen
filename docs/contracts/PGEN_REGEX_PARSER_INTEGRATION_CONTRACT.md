@@ -14,8 +14,6 @@ This is the document downstream projects such as RGX should read first when deci
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
-- Last updated:
-  - `2026-07-21`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:

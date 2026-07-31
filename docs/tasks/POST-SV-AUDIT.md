@@ -6,7 +6,6 @@
 - Status: `done`
 - Roadmap lane: shape audit (TaskList #49)
 - Created: `2026-05-17`
-- Last updated: `2026-05-17`
 - Owner: repo-local workflow
 
 ## Goal

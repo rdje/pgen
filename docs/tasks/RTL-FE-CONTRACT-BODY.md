@@ -6,7 +6,6 @@
 - Status: `done`
 - Roadmap lane: rtl_frontend deliverables
 - Created: `2026-05-14`
-- Last updated: `2026-05-16`
 - Owner: repo-local workflow
 
 ## Goal

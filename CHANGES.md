@@ -1,5 +1,49 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0014 — leaf LIVE-MEANS-LIVE.4a: the `Last updated:` field is DELETED repo-wide, and instrument B now SAYS it is dormant
+
+Executed the director's go-ahead exactly as approved, then landed all four of `.4b`'s consequences
+in the same commit.
+
+- ✅ **Scope hit precisely**: **0 files deleted**, **64 declaration lines deleted**, **4 lines
+  prefix-stripped with their parenthetical KEPT**, across **62 files** (61 dated + `TEMPLATE.md`).
+  Plus 13 doubled blank lines collapsed — counted and reported apart from the 64, because a
+  declaration that stood as its own paragraph leaves `\n\n\n` behind.
+- ⭐ **The sweep LIFTED the gate's own extractor** out of `scripts/check_live_document_currency.sh`
+  rather than re-implementing it. That population had already been mis-measured three times
+  (10 → 16 → 18, every miss an absent row); a hand-rolled matcher would have re-run the series.
+- ⭐ **ROOT CAUSE, measured not asserted**: `git ls-files` + `git log -1 --date=short` over all 61
+  declaring files — **25 older than git (41 %), 36 equal, 0 EVER ahead**; **6 of 6** published
+  contracts stale. Zero consumers repo-wide outside the enforcer itself. A strictly dominated,
+  unread duplicate of a fact `git` owns.
+- ✅ **The 4 load-bearing prefix-strips are proven LOSSLESS by reconstruction** — re-attaching the
+  stripped prefix reproduces the original line byte for byte, including `SV-EXH-PROOF.md:9` whose
+  7 733-byte parenthetical names that tree's FRONTIER.
+- ✅ **Instrument B is DORMANT and the enforcer SAYS SO** rather than printing a vacuous pass over an
+  empty set — `0/914 declare, 0 self-refuting` as an ordinary OK line is indistinguishable from an
+  instrument that has silently stopped seeing its subject, which is the failure this doctrine
+  exists to catch. B stays wired as a re-introduction tripwire, **PROVEN to fire by 4 live
+  controls**: self-refuting re-introduction → exit 1; clean re-introduction → exit 0 with dormancy
+  LIFTING (so the branch is data-driven); unclassifiable → exit 2 REFUSED; re-listing a paid debt
+  entry → exit 1.
+- ✅ Consequences 1/3: `docs/TASK_TREE.md` + `docs/tasks/TEMPLATE.md` no longer mandate the field;
+  the 18-entry `self_refuting_debt` list is drained to `[]` in this same commit (its paid-side
+  ratchet fired on all 18 first — the ratchet working as designed) and kept as an **empty**
+  structure, since that is the tripwire's other half.
+- ⛔ **Two register statements this leaf made false were corrected forward**: the SV contract's
+  *"instrument B independently flags the same file"* (only one instrument is left) and its stale
+  `measured_bytes` (562 756 → **562 723**). Instrument A's 24 distinct dates re-measured
+  **unchanged**, so `.7`'s debt correctly stands — `.4a` did not weaken it.
+- ⚠️ **A procedure failure of mine, recorded**: `git checkout --` was used to restore a perturbed
+  file during the controls, which in a dirty tree **discarded uncommitted work** and resurrected a
+  deleted declaration. Caught only by a hash pinned before the controls ran. `git checkout --` is
+  not a restore in a dirty tree; it is a discard.
+- **Verification**: `scripts/check_doctrines.sh` **all 16 doctrines PASS**; `mdbook_docs_gate` PASS
+  incl. all 10 per-parser book gates; generated artifacts untouched and byte-identical (no
+  `grammars/`, `rust/src/`, `generated/` or shape-contract path in the diff, and no generation
+  target invoked — `CI-PARITY-GATE-ROT.19` has `regenerate_generated_parsers` broken on warm trees).
+- **Live-status snapshot: UNCHANGED.** No DONE-BAR family row moved; this is a docs/enforcer change.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0013 — leaf LIVE-MEANS-LIVE.4a: the director's GO-AHEAD is recorded durably, so the next session executes without re-asking
 
 Tracking-only. ⭐ **The whole point of this commit**: an approval that lives only in a conversation

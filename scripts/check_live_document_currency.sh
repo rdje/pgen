@@ -403,12 +403,27 @@ for dest in sorted(edges):
 # --------------------------------------------------------------------------- report
 if fail == 0:
     status_surfaces = sum(1 for c, _ in measured.values() if c == "status")
+    # ⛔ B REPORTS DORMANCY RATHER THAN A VACUOUS PASS (LIVE-MEANS-LIVE.4b, consequence 4).
+    # .4a deleted the declaration from every file that carried it, so B's population is now
+    # empty by construction. "0/914 declare, 0 self-refuting" read as an ordinary OK line is
+    # indistinguishable from an instrument that has silently stopped seeing its subject — which
+    # is precisely the failure mode this whole doctrine was built to catch. So say DORMANT, say
+    # WHY, and say the tripwire is still armed. The 9 ground-truth controls above ran before
+    # this line printed, so the instrument is proven live even with nothing to measure.
+    if declaring == 0:
+        b_report = ("instrument B: DORMANT — 0/%d tracked .md declare `Last updated:` (deleted "
+                    "repo-wide by LIVE-MEANS-LIVE.4a; `git log -1 --date=short` is the "
+                    "non-rotting source). Still WIRED as a re-introduction tripwire and its %d "
+                    "ground-truth controls ran"
+                    % (len(md_files), len(CONTROLS)))
+    else:
+        b_report = ("instrument B: %d/%d tracked .md declare `Last updated:`, %d self-refuting, "
+                    "all owned by LIVE-MEANS-LIVE.4"
+                    % (declaring, len(md_files), len(self_refuting)))
     sys.stderr.write(
         "live-doc-currency: OK — %d surfaces chartered (%d `status`, ceiling %d distinct dates); "
-        "instrument B: %d/%d tracked .md declare `Last updated:`, %d self-refuting, all owned by "
-        "LIVE-MEANS-LIVE.4; %d derived route edges, all watched.\n"
-        % (len(measured), status_surfaces, CEILING, declaring, len(md_files),
-           len(self_refuting), len(edges)))
+        "%s; %d derived route edges, all watched.\n"
+        % (len(measured), status_surfaces, CEILING, b_report, len(edges)))
     for dest, srcs in informational:
         sys.stderr.write(
             "                   note: %s names %s, which is not a tracked file (normally prose "

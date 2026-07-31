@@ -6,7 +6,6 @@
 - Status: `proposed`
 - Roadmap lane: `Phase T — Cross-Language Linter Enablement (PGEN-as-substrate for downstream linters)`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31`
 - Owner: repo-local workflow
 
 ## Goal

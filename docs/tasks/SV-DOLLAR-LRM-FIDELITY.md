@@ -9,7 +9,6 @@
   family; sibling of `SV-COVERGROUP-FIDELITY` / `SV-SVA-PROPERTY-FIDELITY` /
   `SV-AST-SHAPE-FIDELITY`)
 - Created: `2026-07-02`
-- Last updated: `2026-07-03`
 - Owner: repo-local workflow
 - Origin: discovered tools-first during `VERILOG-2005-PROFILE.6.4`
   (`PGEN-VERILOG-2005-PROFILE-0017`) — see that tree's "`.6.4` Findings" for the full

@@ -6,7 +6,6 @@
 - Status: `proposed`
 - Roadmap lane: `Phase S — rtl_const_expr baseline evaluator: parser-family closure (distinct from the existing RTL-CE-MDBOOK / RTL-CE-CONTRACT-BODY book/contract trees)`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31`
 - Owner: repo-local workflow
 
 ## Goal

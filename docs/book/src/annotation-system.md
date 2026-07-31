@@ -282,8 +282,6 @@ A companion defect was fixed the same day (`BRANCH-BROADCAST-FIX.3`): a **branch
 
 ## Phase 2: Eliminate Stringification Roundtrips In Return-Annotation Transforms (retargeted)
 
-Last updated: 2026-04-26.
-
 ### Earlier framing was wrong
 
 An earlier framing said return + semantic annotations had drifted to a "post-parse transform" applied by `UnifiedReturnAST::parse_generated_return_annotation` walking a generic `ParseNode` tree at parse time, and that Phase 2 had to "restore inline application." A direct read of the codebase shows that framing is wrong:

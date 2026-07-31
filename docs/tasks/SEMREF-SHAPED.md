@@ -7,7 +7,6 @@
 - Roadmap lane: AST-pipeline / semantic-runtime resolver correctness
   (shared engine; parser-agnostic)
 - Created: `2026-05-18`
-- Last updated: `2026-05-18`
 - Owner: repo-local workflow
 - Priority: user-directed — "Any gap in the expected behavior in the
   way [return & semantic annotations] interact shall be addressed head

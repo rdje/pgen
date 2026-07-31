@@ -6,7 +6,7 @@
 - Status: `done` (all 4 leaves complete 2026-05-31)
 - Roadmap lane: `governance / continuity / doctrine enforcement`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31` (ALL 4 LEAVES DONE — `.1` inventory + `.2` 9 skeletons + `.3` past-change-audit-no-gap + `.4` tri-lock contract documented. TREE COMPLETE; doctrine realized.)
+- (ALL 4 LEAVES DONE — `.1` inventory + `.2` 9 skeletons + `.3` past-change-audit-no-gap + `.4` tri-lock contract documented. TREE COMPLETE; doctrine realized.)
 - Owner: repo-local workflow
 
 ## Goal

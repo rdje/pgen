@@ -16,8 +16,6 @@ This is the document downstream projects (primarily RTLSyn, for deterministic pa
   - `2` (breaking shape correction — see Release 1.0.2 Highlights)
 - Annotation count:
   - `26` (19 `return_object` + 7 `return_scalar`; 18 distinct rules)
-- Last updated:
-  - `2026-05-16`
 - Current grammar family label:
   - `rtl_const_expr`
 - Per-family mdBook:

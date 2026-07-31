@@ -8,7 +8,6 @@
 - Roadmap lane: regex parser quality — PCRE2-faithful-by-default acceptance with an opt-out relaxed mode,
   encoded in the EBNF via semantic annotations (engine = last resort)
 - Created: `2026-06-07`
-- Last updated: `2026-06-07`
 - Owner: repo-local workflow
 - Director directive: [[project_regex_pcre2_faithful_by_default_relaxed_optout]]
 

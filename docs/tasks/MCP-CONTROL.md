@@ -8,7 +8,7 @@
 - Roadmap lane: `Platform expansion — make PGEN agent-controllable (north-star
   trust goal + signoff/breathtaking vision)`
 - Created: `2026-06-14`
-- Last updated: `2026-07-11` (session #90 refinement — LIVE in-flight introspection + stall detection)
+- (session #90 refinement — LIVE in-flight introspection + stall detection)
 - Owner: repo-local workflow
 - Slice ID for this capture: `PGEN-MCP-0001` (pure-docs; no code)
 
