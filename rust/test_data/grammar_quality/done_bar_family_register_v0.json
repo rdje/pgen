@@ -1,14 +1,16 @@
 {
   "version": 1,
-  "description": "Per-family inputs for the DONE-BAR audit (scripts/audit_done_bar.sh). The FAMILY ROSTER itself is NOT listed here -- it is derived from LIVE_ACHIEVEMENT_STATUS.md joined against grammars/*.ebnf, so a family nobody added to a list cannot hide. This register supplies only the two things that cannot be derived from a family's name: (a) the gate-name prefixes its gates actually use (SystemVerilog gates are named sv_*, return-annotation gates return_*), and (b) the repo-relative roots holding an officially-recognized EXTERNAL corpus for the family. A derived family with NO entry here is a REFUSAL, not a skip: the safe polarity is that an unregistered family blocks the audit rather than quietly scoring well. The audit cross-checks every entry -- an empty corpus_roots contradicted by a corpus-facing gate attributed to the family is reported MISCALIBRATED.",
+  "description": "Per-family inputs for the DONE-BAR audit (scripts/audit_done_bar.sh) AND the hand-authored family-status CLAIM the three *_parser_family_status_gate.sh gates check their computed verdict against (LIVE-MEANS-LIVE.1a). This register supplies the things that cannot be derived from a family's name: (a) the gate-name prefixes its gates actually use (SystemVerilog gates are named sv_*, return-annotation gates return_*), (b) the repo-relative roots holding an officially-recognized EXTERNAL corpus for the family, and (c) claimed_status -- what PGEN CLAIMS the family's status is. A derived family with NO entry here is a REFUSAL, not a skip: the safe polarity is that an unregistered family blocks the audit rather than quietly scoring well. The audit cross-checks every entry -- an empty corpus_roots contradicted by a corpus-facing gate attributed to the family is reported MISCALIBRATED.",
   "policy": {
     "corpus_roots": "Repo-relative directories holding a third-party corpus PGEN did not author. An empty list means the family has NO external corpus, which is an UNMET leg 3 -- never an inapplicable one (DONE-BAR: 'absence of a corpus is an UNMET leg not an inapplicable one').",
     "language_owner": "Who defines the language. 'external-standard' => leg 3 is reachable in principle and the Provisional qualifier is (corpus pending). 'pgen' => leg 3 is unreachable BY CONSTRUCTION and the qualifier is (ceiling), a FINISHED row. 'unadjudicated' => DONE-BAR.3 owes a ruling; the audit prints UNADJUDICATED rather than guessing, because 'we could not find a corpus' is never a ceiling.",
     "gate_prefixes": "Longest-prefix wins across families, so sv_preprocessor_* attributes to systemverilog_preprocessor and not to systemverilog.",
-    "leg3_surface": "The family's external-corpus CONFORMANCE surface, consumed by the family-status gates via rust/scripts/lib/parser_family_status_bar.sh (DONE-BAR.2a). null until DONE-BAR.3 wires a lane -- while null, leg 3 is UNMET and the computed status is capped at the qualified Provisional tier. When declared it is {gate, summary_json, pass_query}: gate = the conformance gate's name (NEVER a *triage* gate -- the status gates REFUSE one by name, because a triage gate is not a conformance gate); summary_json = the repo-relative artifact that gate emits; pass_query = a jq boolean expression asserting the artifact records a full pass. The status gates additionally require the gate script to reference one of the family's corpus_roots (external-backed) and the gate to be 'reachable' per scripts/check_gate_reachability.sh (actually invoked) -- the three tests every corpus-named gate measured by DONE-BAR.1 failed at least one of."
+    "leg3_surface": "The family's external-corpus CONFORMANCE surface, consumed by the family-status gates via rust/scripts/lib/parser_family_status_bar.sh (DONE-BAR.2a). null until DONE-BAR.3 wires a lane -- while null, leg 3 is UNMET and the computed status is capped at the qualified Provisional tier. When declared it is {gate, summary_json, pass_query}: gate = the conformance gate's name (NEVER a *triage* gate -- the status gates REFUSE one by name, because a triage gate is not a conformance gate); summary_json = the repo-relative artifact that gate emits; pass_query = a jq boolean expression asserting the artifact records a full pass. The status gates additionally require the gate script to reference one of the family's corpus_roots (external-backed) and the gate to be 'reachable' per scripts/check_gate_reachability.sh (actually invoked) -- the three tests every corpus-named gate measured by DONE-BAR.1 failed at least one of.",
+    "claimed_status": "What PGEN CLAIMS this family's status is -- HAND-AUTHORED, and deliberately NOT derived from any gate. The three family-status gates COMPUTE the true status from proof surfaces and then fail if it differs from this value (*_tracker_alignment_ok). That is a genuine two-arm check ONLY while the two arms are independently produced: generating this field from the gates would make the comparison pass by construction and it could never fail again -- the vacuous-floor failure LANG-CAPABILITY-AUDIT.10.9 had to repair (276 < 0 can never fire). \u26d4 NEVER auto-populate this field. It moved here from LIVE_ACHIEVEMENT_STATUS.md (LIVE-MEANS-LIVE.1a), whose free-form Markdown had accumulated 856 dated changelog entries -- 94.7% of a file named LIVE. A schema-bounded field cannot rot the same way. Permitted values are the DONE-BAR ladder: Done / Provisional (ceiling) / Provisional (corpus pending) / Mostly Done / In Progress / Not Started."
   },
   "families": {
     "systemverilog": {
+      "claimed_status": "Mostly Done",
       "gate_prefixes": [
         "systemverilog_",
         "sv_"
@@ -22,6 +24,7 @@
       "leg3_surface": null
     },
     "systemverilog_preprocessor": {
+      "claimed_status": "Provisional (corpus pending)",
       "gate_prefixes": [
         "systemverilog_preprocessor_",
         "sv_preprocessor_"
@@ -32,6 +35,7 @@
       "leg3_surface": null
     },
     "vhdl": {
+      "claimed_status": "Provisional (corpus pending)",
       "gate_prefixes": [
         "vhdl_"
       ],
@@ -43,6 +47,7 @@
       "leg3_surface": null
     },
     "regex": {
+      "claimed_status": "In Progress",
       "gate_prefixes": [
         "regex_"
       ],
@@ -54,6 +59,7 @@
       "leg3_surface": null
     },
     "return_annotation": {
+      "claimed_status": "Mostly Done",
       "gate_prefixes": [
         "return_annotation_",
         "return_"
@@ -64,6 +70,7 @@
       "leg3_surface": null
     },
     "rtl_frontend": {
+      "claimed_status": "Mostly Done",
       "gate_prefixes": [
         "rtl_frontend_"
       ],
@@ -73,6 +80,7 @@
       "leg3_surface": null
     },
     "rtl_const_expr": {
+      "claimed_status": "Mostly Done",
       "gate_prefixes": [
         "rtl_const_expr_"
       ],

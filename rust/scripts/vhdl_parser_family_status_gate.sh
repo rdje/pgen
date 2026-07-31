@@ -9,7 +9,6 @@ WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_JSON="$STATE_DIR/summary.json"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
-LIVE_TRACKER_FILE="$ROOT_DIR/LIVE_ACHIEVEMENT_STATUS.md"
 
 VHDL_FAMILY_CONTRACT_GATE="$RUST_DIR/scripts/vhdl_parser_family_contract_gate.sh"
 VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GATE="$RUST_DIR/scripts/vhdl_formal_exhaustive_closure_gate.sh"
@@ -75,6 +74,12 @@ top_level_summary_value_from_txt() {
 # copy-pasted byte-identically).
 # shellcheck source=lib/parser_family_status_bar.sh
 source "$RUST_DIR/scripts/lib/parser_family_status_bar.sh"
+
+# LIVE-MEANS-LIVE.1a — the family-status CLAIM moved from LIVE_ACHIEVEMENT_STATUS.md into the
+# DONE-BAR register (see `claimed_status_for_family`). ⚠️ This assignment MUST follow the source
+# above: `done_bar_register_path` is defined by that library, and calling it earlier exits 127.
+LIVE_TRACKER_FILE="$(done_bar_register_path)"
+
 
 run_logged() {
     local label="$1"
@@ -440,7 +445,7 @@ fi
 # QUALIFIED Provisional tier. Statuses below `Done` pass through unchanged.
 vhdl_status="$(family_apply_done_bar_status "$vhdl_status")"
 
-vhdl_tracker_status="$(markdown_table_status_for_row "| \`vhdl\` parser family |" "$LIVE_TRACKER_FILE")"
+vhdl_tracker_status="$(claimed_status_for_family "vhdl")"
 vhdl_tracker_alignment_ok=false
 if [[ "$vhdl_status" == "$vhdl_tracker_status" ]]; then
     vhdl_tracker_alignment_ok=true

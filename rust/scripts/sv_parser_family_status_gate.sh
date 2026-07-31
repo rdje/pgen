@@ -9,7 +9,6 @@ WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_JSON="$STATE_DIR/summary.json"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
-LIVE_TRACKER_FILE="$ROOT_DIR/LIVE_ACHIEVEMENT_STATUS.md"
 
 SV_SYNTAX_CLOSURE_GATE="$RUST_DIR/scripts/sv_syntax_closure_gate.sh"
 SV_PREPROCESSOR_SYNTAX_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_syntax_closure_gate.sh"
@@ -161,6 +160,12 @@ top_level_summary_value_from_txt() {
 # copy-pasted byte-identically). Also defines the DONE/PROVISIONAL rule strings' leg-3 language.
 # shellcheck source=lib/parser_family_status_bar.sh
 source "$RUST_DIR/scripts/lib/parser_family_status_bar.sh"
+
+# LIVE-MEANS-LIVE.1a — the family-status CLAIM moved from LIVE_ACHIEVEMENT_STATUS.md into the
+# DONE-BAR register (see `claimed_status_for_family`). ⚠️ This assignment MUST follow the source
+# above: `done_bar_register_path` is defined by that library, and calling it earlier exits 127.
+LIVE_TRACKER_FILE="$(done_bar_register_path)"
+
 
 DONE_RULE="Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim. Done additionally requires leg 3 of the DONE-BAR three-leg bar: an officially-recognized external-corpus conformance surface, asserted as a pass, external-backed, and actually invoked — a TRIAGE gate is not a conformance gate, and the absence of a corpus is an unmet leg, never an inapplicable one."
 PROVISIONAL_RULE="Provisional is the computed status when every family closure criterion holds but leg 3 (external-corpus conformance) is unmet. It is always qualified, derived from language ownership in the done-bar register: (ceiling) when the language is PGEN's own so no third-party corpus can exist — a FINISHED row; (corpus pending) when an external standard defines the language and wiring the corpus is outstanding."
@@ -873,8 +878,8 @@ fi
 # QUALIFIED Provisional tier. Statuses below `Done` pass through unchanged.
 svpp_status="$(family_apply_done_bar_status "$svpp_status")"
 
-live_tracker_sv_status="$(markdown_table_status_for_row "| \`systemverilog\` main parser" "$LIVE_TRACKER_FILE")"
-live_tracker_svpp_status="$(markdown_table_status_for_row "| \`systemverilog_preprocessor\` frontend" "$LIVE_TRACKER_FILE")"
+live_tracker_sv_status="$(claimed_status_for_family "systemverilog")"
+live_tracker_svpp_status="$(claimed_status_for_family "systemverilog_preprocessor")"
 
 # DONE-BAR.2a: on misalignment the gate STATES what it computed (full summary.json + summary.txt)
 # and THEN fails — no more 0-byte summary.txt (CI-PARITY-GATE-ROT.14). The exit-1 verdicts are

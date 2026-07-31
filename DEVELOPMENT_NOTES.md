@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0002 — a one-word value does not need a 1.5 MB container, and the container is why it rotted
+
+`LIVE-MEANS-LIVE.1a`. The family-status claim is one word per family. It lived in a Markdown table
+cell of a file that had grown to 1,547,057 bytes, 94.7 % of which was 856 dated changelog entries.
+
+- ⭐⭐ **The defect was the FORMAT, not the content.** Every proposal I made before measuring
+  assumed the fix was to clean the file and then guard it. But free-form Markdown with no schema
+  is what *permitted* 856 tracker notes to accrete around a one-word value; a guard would have
+  policed that forever. Moving the value into a registered JSON field removes the possibility
+  instead of monitoring it. **Prefer removing the affordance to adding the alarm.**
+- ⛔ **The migration's real risk was silently killing the check, not losing data.** The value is
+  one arm of a two-arm comparison: the gate computes truth from proof surfaces, the human authors
+  the claim, and a mismatch fails. Re-pointing the reader could easily have produced a check that
+  passes and never fires again — the exact `LANG-CAPABILITY-AUDIT.10.9` vacuous-floor shape. So
+  four negative controls were run before the slice was trusted: mutate the claim (gate `rc=1`,
+  naming both arms), mutate it for regex (currency check `rc=1`), delete the field (refusal),
+  remove the family (refusal). ⭐ **A migrated check is not verified by the migrated check
+  passing.**
+- ⭐ **And that is why the field must never be generated.** The obvious "improvement" — emit
+  `claimed_status` from the gates that already compute it — would make both arms the same arm.
+  The register now says so in its own `policy` block, at the point of use, because the temptation
+  arrives later and from someone who has not read this note.
+- ⛔ **MY OWN CENSUS WAS TOO NARROW, AND IT CHANGED A PRECONDITION.** `.0` reported 3 slice IDs
+  "cited nowhere else" and made rescuing them mandatory before any delete. That census scanned
+  only `CHANGES.md` + `DEVELOPMENT_NOTES.md`. Re-run across every durable layer — including
+  `docs/tasks/`, which is where those three trees actually live — it is **452/452, zero
+  orphans**. The lesson is narrow and reusable: *when a census decides whether deletion is safe,
+  enumerate the destinations from the layer model, not from the two files that came to mind.*
+- ⭐ **A weakness only visible once you try to replace something.** Reading the roster derivation
+  in order to migrate it showed that `tracker rows ∩ grammars/*.ebnf` does NOT deliver the
+  property its own docstring claims ("a family nobody added to a list cannot hide") — a grammar
+  with no tracker row is silently not a family. Nobody was going to find that by reading the
+  docstring; it surfaced because a replacement forced the question "what does this actually
+  guarantee?" Routed to `.1b`, where deriving from the grammars is strictly stronger.
+- ⭐ **The enforcer caught me, in the direction it was built for.** Updating `MEMORY.md` pushed it
+  to 7,267 bytes against a 7,168 cap. The doctrine's rule is "never raise a cap to land content" —
+  so the content was demoted to the task tree and the line stayed. That is the same rule this
+  whole tree exists to apply one file over.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0029 — a verdict is not a weak version of an equivalence claim; it is a different claim
 
 `LANG-CAPABILITY-AUDIT.10.6` part 2. The EBNF frontend dual-run gate had been green at `12/12`

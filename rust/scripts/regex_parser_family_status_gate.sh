@@ -9,7 +9,6 @@ WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_JSON="$STATE_DIR/summary.json"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
-LIVE_TRACKER_FILE="$ROOT_DIR/LIVE_ACHIEVEMENT_STATUS.md"
 
 REGEX_FAMILY_CONTRACT_GATE="$RUST_DIR/scripts/regex_parser_family_contract_gate.sh"
 REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE="$RUST_DIR/scripts/regex_formal_exhaustive_closure_gate.sh"
@@ -28,6 +27,12 @@ PROVISIONAL_RULE="Provisional is the computed status when every family closure c
 # copy-pasted byte-identically).
 # shellcheck source=lib/parser_family_status_bar.sh
 source "$RUST_DIR/scripts/lib/parser_family_status_bar.sh"
+
+# LIVE-MEANS-LIVE.1a — the family-status CLAIM moved from LIVE_ACHIEVEMENT_STATUS.md into the
+# DONE-BAR register (see `claimed_status_for_family`). ⚠️ This assignment MUST follow the source
+# above: `done_bar_register_path` is defined by that library, and calling it earlier exits 127.
+LIVE_TRACKER_FILE="$(done_bar_register_path)"
+
 
 require_tool() {
     local tool="$1"
@@ -449,7 +454,7 @@ fi
 # QUALIFIED Provisional tier. Statuses below `Done` pass through unchanged.
 regex_status="$(family_apply_done_bar_status "$regex_status")"
 
-regex_tracker_status="$(markdown_table_status_for_row "| \`regex\` parser family |" "$LIVE_TRACKER_FILE")"
+regex_tracker_status="$(claimed_status_for_family "regex")"
 regex_tracker_alignment_ok=false
 if [[ "$regex_status" == "$regex_tracker_status" ]]; then
     regex_tracker_alignment_ok=true

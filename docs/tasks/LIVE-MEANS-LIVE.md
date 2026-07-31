@@ -29,19 +29,26 @@ tracker at 2.8 %.**
 
 ### ⭐⭐⭐ The history is a DUPLICATE — this is what makes the purge safe
 
-452 distinct `PGEN-<FAMILY>-<NNNN>` slice IDs are cited by the 856 tracker notes:
+452 distinct `PGEN-<FAMILY>-<NNNN>` slice IDs are cited by the 856 tracker notes. ⚠️ The first
+census below scanned only two files and was **too narrow**; the corrected one is authoritative.
 
-| destination | coverage |
-|---|---|
-| also in `CHANGES.md` | **448 / 452 — 99.1 %** |
-| also in `DEVELOPMENT_NOTES.md` | 390 / 452 — 86.3 % |
-| **in at least one** | **449 / 452 — 99.3 %** |
+| census | scope | reachable without the tracker |
+|---|---|---|
+| ⛔ first (superseded) | `CHANGES.md` + `DEVELOPMENT_NOTES.md` only | 449 / 452 — 99.3 %, apparently **3 orphans** |
+| ✅ **corrected (`.1a`)** | **every durable layer** — the two above plus all of `docs/tasks/` and `docs/decisions/` (1 764 tracked files, 124.2 MB) | **452 / 452 — 100.0 %** |
+| (cross-check) | git commit messages | 428 / 452 — 94.7 % |
 
-⛔ **Exactly 3 are cited NOWHERE ELSE** and must be RESCUED before anything is deleted:
-`PGEN-DEFAULT-PROFILE-0001`, `PGEN-DEFAULT-PROFILE-0002`, `PGEN-REGEX-PCRE2-0030`.
+⛔ **There are ZERO orphans**, and the rescue precondition `.0` imposed is dropped. The three IDs
+the narrow census flagged — `PGEN-DEFAULT-PROFILE-0001`, `PGEN-DEFAULT-PROFILE-0002`,
+`PGEN-REGEX-PCRE2-0030` — are all in `docs/tasks/`, the very trees their tracker notes cite for
+the full analysis.
 
 ⇒ deleting the tracker notes does not destroy history. It removes a **second, diverged copy**
 of a changelog that already exists — and the divergence is exactly what the director caught.
+
+⭐ **The lesson, banked**: when a census decides whether a DELETE is safe, enumerate the
+destinations from the layer model (`MEMORY_ARCHITECTURE.md`'s four layers), not from the two
+files that came to mind.
 
 ### ⛔ WHY IT GREW — the README cap redirected the pressure instead of removing it
 
@@ -97,8 +104,8 @@ task-tree, not a history surface, which is the tree's own point.
 - **The human view lives in the mdBook** — the director's stated only window — and is
   gate-checked against the register.
 - **Nothing is lost**: every durable rule reachable from `docs/decisions/`, every slice record
-  from `CHANGES.md` / `DEVELOPMENT_NOTES.md`, proven by an ID-level census before AND after
-  (452/452, with the 3 orphans rescued first).
+  from `CHANGES.md` / `DEVELOPMENT_NOTES.md` / `docs/tasks/`, proven by an ID-level census before
+  AND after (✅ **452/452 measured in `.1a` — zero orphans**, so no rescue is required).
 - **No dangling references**: all 96 tracked `.md` referrers re-pointed, and every enforcer that
   names the file (`check_published_version_currency.sh`, `audit_done_bar.sh`,
   `check_diagnostics_and_docpaths.sh`, `check_readme_stability.sh`,
@@ -201,7 +208,129 @@ buys a guard; this one removes the thing needing guarding.
 **deep-link into a section or anchor that the purge removes**. A link to the file survives; a
 link to a purged heading does not. Census first, fix or re-point, then purge.
 
-### `.1` — rescue the 3 orphans, then purge the 856 tracker notes (`todo`)
+### `.1a` — migrate the family-status CLAIM into the DONE-BAR register (`done`)
+
+- **Status: `done`** (`PGEN-LIVE-MEANS-LIVE-0002`), on the director's explicit order:
+  *"Ok, go for migrate-and-delete"*. This is the load-bearing half — after it, **no gate reads
+  `LIVE_ACHIEVEMENT_STATUS.md` for a status value**.
+
+#### ⛔ CORRECTION — there are ZERO orphans, not 3. The delete is provably lossless
+
+`.0` reported 3 slice IDs *"cited nowhere else"* and made rescuing them a precondition. ⛔ **That
+was an artifact of a too-narrow census**: it scanned only `CHANGES.md` and
+`DEVELOPMENT_NOTES.md`. Re-run across **every** durable layer (both of those, plus all of
+`docs/tasks/` and `docs/decisions/` — 1 764 tracked files, 124.2 MB):
+
+| census | result |
+|---|---|
+| slice IDs cited by the 856 tracker notes | **452** |
+| reachable from a durable layer **without** the tracker | **452 / 452 — 100.0 %** |
+| also reachable from git commit messages | 428 / 452 — 94.7 % |
+| ⛔ orphaned in BOTH docs and git | **0** |
+
+⇒ **nothing needs rescuing.** The rescue precondition is dropped. `PGEN-DEFAULT-PROFILE-0001`,
+`PGEN-DEFAULT-PROFILE-0002` and `PGEN-REGEX-PCRE2-0030` are all in `docs/tasks/` — the very trees
+their tracker notes cite for the full analysis.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the family-status CLAIM lived in a free-form Markdown table cell of
+  a 1 547 057 B file that was 94.7 % dated changelog, scraped by
+  `markdown_table_status_for_row` via `grep -F` + `awk -F'|' '{print $3}'`. A prose surface with
+  no schema is what let 856 tracker notes accumulate around a value that is one word long.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the claim's *format*, not its content. Located with the
+  ops/build-flow tool `git ls-files`, which enumerates the tracked shell surface so a reader
+  cannot be missed by a path guess:
+
+  ```
+  $ git ls-files -- 'rust/scripts/*.sh' 'scripts/*.sh' | xargs grep -n markdown_table_status_for_row
+  rust/scripts/lib/parser_family_status_bar.sh:44:markdown_table_status_for_row() {
+  rust/scripts/sv_parser_family_status_gate.sh:876:  …"$(markdown_table_status_for_row "| `systemverilog` main parser" "$LIVE_TRACKER_FILE")"
+  rust/scripts/sv_parser_family_status_gate.sh:877:  …"$(markdown_table_status_for_row "| `systemverilog_preprocessor` frontend" …)"
+  rust/scripts/vhdl_parser_family_status_gate.sh:443: …"$(markdown_table_status_for_row "| `vhdl` parser family |" …)"
+  rust/scripts/regex_parser_family_status_gate.sh:452:…"$(markdown_table_status_for_row "| `regex` parser family |" …)"
+  scripts/check_published_version_currency.sh:60:      …"$(markdown_table_status_for_row '| `regex` parser family |' "$TRACKER")"
+  ```
+
+  ⇒ **5 call sites**, all funnelling through the one reader at
+  `rust/scripts/lib/parser_family_status_bar.sh:44`, which does
+  `grep -F "$row_match" "$path" | awk -F'|' '{print $3}'` — it extracts a one-word value from the
+  third pipe-cell of a Markdown row. **WHY that is the root cause**: the value's container is a
+  free-form Markdown file with no schema and no cap, so nothing bounded what else could accrete
+  around it — and 856 dated changelog entries did, reaching 94.7 % of a 1 547 057 B file. The
+  same `git ls-files` census re-run AFTER the fix returns **empty** (exit 1) outside the library,
+  i.e. zero remaining Markdown-cell readers.
+- [x] **FIX** — declarative tier. `claimed_status` added to all 7 families in
+  `rust/test_data/grammar_quality/done_bar_family_register_v0.json`;
+  `markdown_table_status_for_row` replaced by `claimed_status_for_family FAMILY`, which REFUSES
+  (never defaults) on a missing register, a missing family, or an absent/empty `claimed_status`.
+  ⛔ The register's `policy` block records, in the file itself, that this field is hand-authored
+  and **must never be auto-populated** — generating it from the gates would make the comparison
+  pass by construction.
+- [x] **ADDRESSED (verified)** — measured before → after:
+
+  | measurement | before | after |
+  |---|---|---|
+  | gates reading a status value from `LIVE_ACHIEVEMENT_STATUS.md` | 4 (sv ×2, vhdl, regex) + the currency check | **0** ✅ |
+  | the claim's container | a Markdown cell in a 1.55 MB unbounded file | a schema-bounded JSON field ✅ |
+  | `claimed_status_for_family` over all 7 families | n/a | all 7 return their exact tracker value ✅ |
+  | `make vhdl_parser_family_status_gate` | pass | **pass**, `vhdl_tracker_alignment_ok: true`, `live_tracker_file` → the register ✅ |
+  | `scripts/check_published_version_currency.sh` | pass | **pass** — *"published status 'In Progress' == tracker"* ✅ |
+- [x] **THE TWO-ARM CHECK STILL FIRES — proven in both places, not assumed.** This is the whole
+  risk of the migration: a check that silently stopped comparing would be worse than the file it
+  replaced.
+
+  | negative control | result |
+  |---|---|
+  | register claim mutated `Provisional (corpus pending)` → `Done`, gate re-run | **`rc=1`**, `vhdl_tracker_alignment_ok: false`, *"error: VHDL tracker alignment mismatch: computed 'Provisional (corpus pending)' but tracker says 'Done'"* — and it names BOTH arms ✅ |
+  | register claim mutated `In Progress` → `Done`, currency check | **`rc=1`**, naming guide-vs-register ✅ |
+  | `claimed_status` key deleted entirely | **refusal**, *"is the hand-authored arm of the status check and is never defaulted"* ✅ |
+  | family absent from the register | **refusal**, *"must BLOCK the gate, not score well by absence"* ✅ |
+- [x] **NO REGRESSION** — `bash -n` clean on all 5 edited scripts (`parser_family_status_bar.sh`,
+  the three `*_parser_family_status_gate.sh`, `check_published_version_currency.sh`); register is
+  valid JSON with 7 families; **`make regex_parser_family_status_gate` PASS** with
+  `regex_tracker_alignment_ok: true`; no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`
+  touched ⇒ all 11 generated parsers byte-identical BY CONSTRUCTION. ⚠️ The **sv** family-status
+  gate was NOT re-run to completion (it drives the full SV family contract); it uses the identical
+  shared reader, which two gates exercised end-to-end and one in both polarities.
+- [x] **⚠️ A BUG I INTRODUCED, CAUGHT BY RUNNING IT** — the first edit put
+  `LIVE_TRACKER_FILE="$(done_bar_register_path)"` at line 14, **before** the library defining that
+  function is sourced. `make vhdl_parser_family_status_gate` → `command not found`, `Error 127`.
+  It failed loudly rather than silently defaulting, which is the correct polarity; the assignment
+  now sits after the `source` in all three gates with a comment saying why it must.
+- [x] **LOCKSTEP** — the register's `description` + a new `policy.claimed_status` clause,
+  `parser_family_status_bar.sh` header, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
+#### ⚠️ Deliberately NOT done in `.1a` — the file still exists
+
+`audit_done_bar.sh` still derives the family ROSTER from the tracker, so the file cannot be
+deleted yet. That is `.1b`, and it is a strengthening, not a transcription — see below.
+
+### `.1b` — the family ROSTER: derive it from `grammars/*.ebnf`, not from the tracker (`todo`)
+
+⭐ **The current derivation is WEAKER than its own docstring claims.** `audit_done_bar.sh:113-127`
+builds the roster as *tracker rows ∩ `grammars/*.ebnf` basenames*, and the register's description
+says this exists *"so a family nobody added to a list cannot hide"*. ⛔ **Measured, it hides
+exactly one way**: a grammar with **no tracker row** is simply not a family, silently. The
+refusal only fires in the other direction (on the tracker but absent from the register).
+
+⇒ invert it: derive candidates from `grammars/*.ebnf` — the product itself, which cannot lie
+about what exists — and REFUSE on any grammar with neither a register entry nor an explicit
+recorded disposition. That is the `GATE-REACHABILITY` pattern (invoked, or a deliberate
+disposition) applied to families.
+
+⚠️ **Costed honestly**: 17 tracked grammars vs 7 register families, so 10 need an adjudicated
+disposition (`ebnf` is the meta-grammar; `*_lrm_extracted` are inputs, not shipping families;
+`builtin_*` are bootstrap contracts). That adjudication IS the work — it is not a rename.
+
+### `.1c` — the book page, the 96 referrers, and the delete (`todo`)
+
+The human at-a-glance view moves to an mdBook page (gate-checked against the register), all 96
+tracked `.md` referrers are re-pointed, `check_readme_stability.sh:83` stops naming an uncapped
+overflow destination, and `LIVE_ACHIEVEMENT_STATUS.md` is deleted. ✅ The ID census in `.1a`
+already proves the delete is lossless (452/452).
+
+### `.1` — (superseded — split into `.1a` ✅ / `.1b` / `.1c`)
 
 ⛔ **RESCUE BEFORE DELETE, in that order.** `PGEN-DEFAULT-PROFILE-0001`,
 `PGEN-DEFAULT-PROFILE-0002` and `PGEN-REGEX-PCRE2-0030` are cited ONLY in this file; they go to

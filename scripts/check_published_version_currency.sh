@@ -27,7 +27,9 @@ cd "$ROOT"
 
 GUIDE="${PGEN_PVC_GUIDE:-$ROOT/PGEN_USER_GUIDE.md}"
 CONTRACT="${PGEN_PVC_CONTRACT:-$ROOT/docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md}"
-TRACKER="${PGEN_PVC_TRACKER:-$ROOT/LIVE_ACHIEVEMENT_STATUS.md}"
+# LIVE-MEANS-LIVE.1a — the family-status CLAIM moved out of LIVE_ACHIEVEMENT_STATUS.md and into
+# the DONE-BAR register. The seam name is kept so the probe driver keeps working.
+TRACKER="${PGEN_PVC_TRACKER:-$ROOT/rust/test_data/grammar_quality/done_bar_family_register_v0.json}"
 
 fail=0
 note() { printf 'published-version-currency: %s\n' "$1" >&2; fail=1; }
@@ -39,7 +41,7 @@ for f in "$GUIDE" "$CONTRACT" "$TRACKER"; do
 done
 [[ "$fail" -eq 0 ]] || exit 1
 
-# The single home of the tracker-row reader (DONE-BAR.2a).
+# The single home of the family-status claim reader (DONE-BAR.2a, LIVE-MEANS-LIVE.1a).
 # shellcheck source=../rust/scripts/lib/parser_family_status_bar.sh
 source "$ROOT/rust/scripts/lib/parser_family_status_bar.sh"
 
@@ -57,14 +59,14 @@ guide_contract="$(backticked_value_after_key "$GUIDE" "### Regex Parser Flavor" 
 guide_status="$(backticked_value_after_key "$GUIDE" "### Regex Parser Flavor" "- family status:")"
 contract_release="$(backticked_value_after_key "$CONTRACT" "## Contract Identity" "- Parser release version:")"
 contract_version="$(backticked_value_after_key "$CONTRACT" "## Contract Identity" "- Contract version:")"
-tracker_status="$(markdown_table_status_for_row '| `regex` parser family |' "$TRACKER")"
+tracker_status="$(PGEN_FAMILY_STATUS_DONE_BAR_REGISTER="$TRACKER" claimed_status_for_family "regex")"
 
 [[ -n "$guide_release" ]]    || note "could not extract the guide's published parser release version (### Regex Parser Flavor block)"
 [[ -n "$guide_contract" ]]   || note "could not extract the guide's published integration contract version"
 [[ -n "$guide_status" ]]     || note "could not extract the guide's published family status"
 [[ -n "$contract_release" ]] || note "could not extract the contract's Parser release version (## Contract Identity block)"
 [[ -n "$contract_version" ]] || note "could not extract the contract's Contract version"
-[[ -n "$tracker_status" ]]   || note "could not extract the tracker's regex row status"
+[[ -n "$tracker_status" ]]   || note "could not read the regex family's claimed_status from the DONE-BAR register"
 [[ "$fail" -eq 0 ]] || exit 1
 
 if [[ "$guide_release" != "$contract_release" ]]; then
@@ -74,7 +76,7 @@ if [[ "$guide_contract" != "$contract_version" ]]; then
     note "PGEN_USER_GUIDE.md publishes integration contract '$guide_contract' but the contract's Contract Identity declares '$contract_version' — update the guide's Regex Parser Flavor block"
 fi
 if [[ "$guide_status" != "$tracker_status" ]]; then
-    note "PGEN_USER_GUIDE.md publishes regex family status '$guide_status' but LIVE_ACHIEVEMENT_STATUS.md says '$tracker_status' — update the guide's published status"
+    note "PGEN_USER_GUIDE.md publishes regex family status '$guide_status' but the DONE-BAR register's claimed_status for regex is '$tracker_status' — update the guide's published status"
 fi
 
 if [[ "$fail" -eq 0 ]]; then

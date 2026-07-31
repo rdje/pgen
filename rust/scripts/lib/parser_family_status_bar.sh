@@ -41,16 +41,61 @@
 
 PGEN_FAMILY_STATUS_BAR_LIB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
-markdown_table_status_for_row() {
-    local row_match="$1"
-    local path="$2"
-    local line
-    line="$(grep -F "$row_match" "$path" | head -n 1 || true)"
-    if [[ -z "$line" ]]; then
-        echo "error: missing live-tracker row containing '$row_match' in '$path'" >&2
+# claimed_status_for_family FAMILY
+#
+# LIVE-MEANS-LIVE.1a — the hand-authored family-status CLAIM, read from the DONE-BAR register.
+#
+# ⭐ THIS IS ONE ARM OF A TWO-ARM CHECK. The calling gate COMPUTES the family's true status from
+# proof surfaces; this returns what PGEN CLAIMS; the gate fails when they differ. That check is
+# only meaningful while the two arms are INDEPENDENTLY PRODUCED — so `claimed_status` is
+# hand-authored and must never be generated from a gate. Generating it would make the comparison
+# pass by construction and it could never fail again: the vacuous-floor failure
+# LANG-CAPABILITY-AUDIT.10.9 had to repair, and the shape .10.6 part 2 refused to ship.
+#
+# It replaces `markdown_table_status_for_row`, which scraped the third pipe-cell of a Markdown
+# row out of LIVE_ACHIEVEMENT_STATUS.md. That file had grown to 1 547 057 B of which 94.7 % was a
+# dated changelog (LIVE-MEANS-LIVE), and a free-form prose surface with no schema is what let that
+# happen. A registered field cannot accumulate 856 tracker notes.
+#
+# REFUSAL POLARITY, unchanged from the reader it replaces: an absent register, an absent family,
+# or an absent/empty `claimed_status` EXITS rather than returning a comfortable empty string — an
+# unreadable claim must block the gate, never silently compare equal to nothing.
+claimed_status_for_family() {
+    local family="$1"
+    local register
+    register="$(done_bar_register_path)"
+    if [[ ! -f "$register" ]]; then
+        echo "error: DONE-BAR register '$register' is missing; the family-status claim cannot be read" >&2
         exit 1
     fi
-    awk -F'|' '{print $3}' <<<"$line" | xargs
+
+    local status
+    status="$(
+        python3 - "$register" "$family" <<'PY'
+import json, sys
+
+register_path, family = sys.argv[1], sys.argv[2]
+try:
+    families = json.load(open(register_path))["families"]
+except Exception as exc:                       # malformed register => refuse, never default
+    sys.exit("error: DONE-BAR register '%s' is unreadable: %s" % (register_path, exc))
+
+entry = families.get(family)
+if entry is None:
+    sys.exit(
+        "error: family '%s' has no entry in '%s'. A family whose status nothing claims must "
+        "BLOCK the gate, not score well by absence." % (family, register_path))
+
+claimed = entry.get("claimed_status")
+if not isinstance(claimed, str) or not claimed.strip():
+    sys.exit(
+        "error: family '%s' has no 'claimed_status' in '%s'. This field is the hand-authored arm "
+        "of the status check and is never defaulted." % (family, register_path))
+print(claimed.strip())
+PY
+    )" || exit 1
+
+    printf '%s\n' "$status"
 }
 
 done_bar_register_path() {

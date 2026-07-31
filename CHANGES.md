@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0002 — leaf LIVE-MEANS-LIVE.1a: the family-status CLAIM moves out of a 1.55 MB prose file and into the DONE-BAR register
+
+Shell + tracked-contract only: no rust/src/, no grammar, no generated/* => all 11 generated
+parsers byte-identical BY CONSTRUCTION. No tracker row moved — every family's claimed status is
+transcribed verbatim.
+
+- ⭐ **THE CLAIM'S PROBLEM WAS ITS FORMAT, NOT ITS CONTENT.** The hand-authored family status —
+  one word per family — lived in a Markdown table cell of `LIVE_ACHIEVEMENT_STATUS.md`, scraped
+  by `grep -F` + `awk -F'|' '{print $3}'`. That file had reached **1,547,057 B, 94.7 % of it 856
+  dated changelog entries**. A free-form surface with no schema is what let a changelog
+  accumulate around a one-word value. It is now `claimed_status` in
+  `rust/test_data/grammar_quality/done_bar_family_register_v0.json`, for all 7 families.
+- ⛔ **AND THE FIELD MUST NEVER BE GENERATED — the register says so in its own policy block.** The
+  three family-status gates COMPUTE the true status from proof surfaces and fail if it differs
+  from the claim. That is a real two-arm check ONLY while the arms are independently produced;
+  generating `claimed_status` from the gates would make it pass by construction and it could
+  never fail again — the vacuous-floor failure `LANG-CAPABILITY-AUDIT.10.9` had to repair.
+- ✅ **THE CHECK STILL FIRES — PROVEN, NOT ASSUMED**, which was the whole risk of the migration:
+  - claim mutated `Provisional (corpus pending)` → `Done`: gate **`rc=1`**,
+    `vhdl_tracker_alignment_ok: false`, *"computed 'Provisional (corpus pending)' but tracker says
+    'Done'"* — naming BOTH arms;
+  - claim mutated for regex: `check_published_version_currency.sh` **`rc=1`**, naming guide vs register;
+  - `claimed_status` deleted: **refusal** — *"the hand-authored arm … is never defaulted"*;
+  - family absent from the register: **refusal** — *"must BLOCK the gate, not score well by absence"*.
+- ⛔ **CORRECTION TO `.0`: there are ZERO orphaned slice IDs, not 3.** `.0` made rescuing 3 IDs a
+  precondition of the delete; that came from a census scanning only `CHANGES.md` +
+  `DEVELOPMENT_NOTES.md`. Re-run across every durable layer (1,764 tracked files, 124.2 MB
+  including `docs/tasks/` and `docs/decisions/`): **452 / 452 = 100 %** of the slice IDs cited by
+  the 856 tracker notes are reachable WITHOUT the tracker; 0 orphaned in both docs and git. The
+  rescue precondition is dropped and the delete is provably lossless.
+- ⚠️ **A BUG I INTRODUCED, CAUGHT BY RUNNING THE GATE**: the first edit called
+  `done_bar_register_path` at line 14, before the library defining it is sourced —
+  `command not found`, `Error 127`. Loud, not silent, which is the right polarity; the assignment
+  now follows the `source` in all three gates, with a comment saying why.
+- ⛔ **AND A WEAKNESS FOUND IN THE ROSTER DERIVATION, routed to `.1b`**: `audit_done_bar.sh`
+  builds the family roster as *tracker rows ∩ `grammars/*.ebnf`*, and the register's description
+  claims this means *"a family nobody added to a list cannot hide"*. Measured, it hides exactly
+  one way — a grammar with no tracker row is silently not a family. Deriving from
+  `grammars/*.ebnf` instead is strictly stronger (17 grammars vs 7 families ⇒ 10 need an
+  adjudicated disposition, which is the real work).
+- **Verified**: `make vhdl_parser_family_status_gate` PASS with `vhdl_tracker_alignment_ok: true`
+  and `live_tracker_file` pointing at the register; `check_published_version_currency.sh` PASS;
+  `claimed_status_for_family` returns the exact prior value for all 7 families; `bash -n` clean on
+  all 5 edited scripts. **`make regex_parser_family_status_gate` also PASS** with
+  `regex_tracker_alignment_ok: true` and `live_tracker_file` → the register. ⚠️ The **sv**
+  family-status gate was NOT re-run to completion (it drives the full SV family contract); it uses
+  the identical shared reader, which two gates exercised end-to-end and one in both polarities.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0029 — leaf LANG-CAPABILITY-AUDIT.10.6 part 2: the frontend⟷meta-parser ENVELOPE differential is built, and it found two live `ebnf.ebnf` defects on its first run
 
 New Rust module + gate rewiring only: no grammar, no `generated/*`, no engine source in the
