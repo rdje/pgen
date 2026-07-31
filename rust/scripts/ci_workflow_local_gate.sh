@@ -286,15 +286,29 @@ audit_static_include_paths() {
 # ⭐ Recursion was never the difference between the tools: `git grep` walks the whole tree from the
 # root, and the submodule boundary is a DECLARED, OVERRIDABLE default. That is precisely why it is
 # the right instrument for a doctrine — the governed set is a choice a reviewer reads in this line,
-# not an accident of which binary someone reached for. Here the ruling is: submodule content IS in
-# scope, so `--recurse-submodules` is passed explicitly.
+# not an accident of which binary someone reached for.
+#
+# ⛔⛔ SCOPE — DIRECTOR RULING (2026-07-31, superseding a first cut that recursed):
+#   *"ANVIL is a totally different project. A submodule is a way to access its entire codebase
+#    locally. For me submodules shall be treated as READ-ONLY LINKED REPOS."*
+# So `--no-recurse-submodules` is passed EXPLICITLY. This doctrine exists so that PGEN's OWN docs
+# survive the repo being moved to another path or filesystem; a linked project's docs are governed
+# by that project, and PGEN has no standing to judge them. The first cut recursed, went red on
+# `stimuli/generators/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md`, and the only ways to clear it were
+# to edit another repository or to carry a permanent red — both symptoms of a check reaching outside
+# its own project. ⭐ The flag is spelled out rather than left to default, because "which files does
+# this rule govern?" must be answerable by reading this line.
+#
+# ⭐ This is also what makes the audit ENVIRONMENT-INDEPENDENT, which recursing could not: CI checks
+# out no submodules (0 of 15 workflows declare `submodules:`), so a submodule-scoped rule passes in
+# CI and fails locally. Scoped to PGEN's own tracked files, both environments see the same set.
 #
 # REFUSAL POLARITY: `git grep` returns 0 on a match, 1 on no match, and >=2 on an error. Only 1 is a
 # pass. An error REFUSES rather than being read as "clean" — that is defect 3 restated as a rule.
 audit_markdown_repo_relative_paths() {
   note "auditing markdown repo-path policy"
   local hits rc=0
-  hits="$(cd "$ROOT_DIR" && git grep --recurse-submodules -nI -F \
+  hits="$(cd "$ROOT_DIR" && git grep --no-recurse-submodules -nI -F \
     -- '/Users/richarddje/Documents/github/pgen/' -- '*.md' 2>&1)" || rc=$?
   case "$rc" in
     0)

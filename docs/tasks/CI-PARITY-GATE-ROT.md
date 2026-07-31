@@ -2196,22 +2196,46 @@ And on the set that actually matters it is faster, not slower: **0.02 s vs 0.10 
 the presence or absence of `--recurse-submodules`. That fixes all three defects at once — the scope
 disagreement, the environment-dependent verdict, and the silent pass on a missing binary.
 
-##### ✅ IMPLEMENTED — DIRECTOR RULING: *"switch to `git grep` and enable recursivity into submodules by default"* (2026-07-31)
+##### ✅ IMPLEMENTED — DIRECTOR RULING (2026-07-31), in two steps, and the SECOND one is the ruling
 
-⭐ **The scope question is ADJUDICATED, not left open**: submodule content **is** in PGEN's
-markdown repo-path surface, so `--recurse-submodules` is passed explicitly rather than relying on a
-default in either direction.
+**Step 1** — *"switch to `git grep` and enable recursivity into submodules by default."* Implemented,
+and it went red on `stimuli/generators/anvil/…/LOCAL-REFERENCE-CACHE.md`.
 
-**Blast radius, measured before shipping** — recursion adds ~1 108 markdown files (912 → **2 020**)
-across 24 submodules, so the honest question is whether it drags in third-party noise:
+**Step 2 — ⛔ THE SCOPE RULING THAT SUPERSEDES IT:**
+
+> *"ANVIL is a totally different project. A submodule is a way to access its entire codebase locally.
+> For me submodules shall be treated as **READ-ONLY LINKED REPOS**. I am not even sure why you want
+> to change the content of the ANVIL repo."*
+> …and: *"I get that, so **do not use recursivity by default** then."*
+
+⇒ **`--no-recurse-submodules`, passed EXPLICITLY.** This doctrine exists so *PGEN's own* docs survive
+the repo moving to another path or filesystem. A linked project's docs are governed by that project.
+
+⭐⭐ **The red gate was the argument.** With recursion the only two ways to clear it were *edit
+another repository* or *carry a permanent red* — and when a check's only remedies lie outside the
+project, the check has overreached. ⛔ **I proposed the first of those, and that was the error**: I
+treated a foreign repo's file as a defect to be fixed rather than as evidence that PGEN's rule had
+escaped its own boundary. Re-read on its own terms, the ANVIL line is ANVIL's task tree recording
+what ANVIL's owner did locally — a correct entry in someone else's book.
+
+⭐ **And the mechanical case agrees with the principle**, which is the part I had backwards. Recursion
+left defect 2 (the environment-dependent verdict) **open**: CI checks out no submodules, so a
+submodule-scoped rule passes in CI and fails locally, and closing it would have meant cloning 24
+repos including `opentitan`, `verilator`, `ghdl`, `Surelog`. Scoping to PGEN's own tracked files
+**closes defect 2 outright** — both environments see the identical set — and costs nothing.
+⇒ `.20c` is **MOOT and closed** below.
+
+**Blast radius, measured — this is what the rejected recursion WOULD have governed** (~1 108 extra
+markdown files, 912 → **2 020**, across 24 submodules):
 
 | pattern | hits under recursion |
 |---|---|
 | the audit's exact literal | **1** — `stimuli/generators/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md` |
 | broadened to ANY user (`/Users/[^ )`]*/pgen/`), restricted to `stimuli/*` | **1** — the same file |
 
-⇒ the 23 vendored third-party corpora (opentitan, verilator, ghdl, …) are **clean**, so the wider
-scope costs nothing today and the single finding is real.
+⇒ the 23 vendored third-party corpora are clean and ANVIL is the sole hit — but *"it happens to
+find only one thing today"* was never a reason to claim jurisdiction over 1 108 files in 24 foreign
+repositories. ⭐ **The scope question is settled by ownership, not by hit count.**
 
 ###### Acceptance Checklist (enforced)
 
@@ -2238,18 +2262,20 @@ scope costs nothing today and the single finding is real.
 
   | measurement | before (`rg`) | after (`git grep --recurse-submodules`) |
   |---|---|---|
-  | governed set | filesystem minus `.gitignore` — **undeclared** | tracked files + submodule trees — **declared in the flag** ✅ |
+  | governed set | filesystem minus `.gitignore` — **undeclared**, incl. 24 foreign repos | **PGEN's own tracked files**, declared via explicit `--no-recurse-submodules` ✅ |
   | agrees with the doctrine's own enforcer on tool | ⛔ no (`rg` vs `git grep`) | ✅ same tool |
   | tool absent ⇒ | **silent PASS** | impossible — git is a hard dependency, and any error `>=2` REFUSES ✅ |
   | untracked scratch file can fail the gate | yes | **no** — `git grep` reads tracked content ✅ |
   | speed on the tracked set | 0.10 s | **0.02 s** ✅ |
-  | verdict on the real tree | FAIL (unactionable — no file named) | **FAIL, naming file:line and the offending text** ✅ |
+  | verdict on the real tree | FAIL (unactionable — no file named) | **PASS** — PGEN's own docs are clean; a real violation still FAILs naming file:line ✅ |
+  | environment-dependence (defect 2) | open | **CLOSED** — no submodule in scope, so CI and local see the identical set ✅ |
 - [x] **EVERY ARM PROVEN TO FIRE — including two controls that I had to REBUILD because my first
   cut was wrong.** Recorded because the failures were instructive, not incidental:
 
   | control | result |
   |---|---|
-  | `CTRL-A` same audit with `--recurse-submodules` REMOVED | **passes** ⇒ the flag is load-bearing, not decoration ✅ |
+  | `CTRL-A` recursion toggled | flips the verdict ⇒ the scope flag is load-bearing, not decoration ✅ |
+  | `CTRL-B` a submodule path under the SHIPPED scope | **not reached** ⇒ ANVIL is out of scope, as ruled ✅ |
   | `RED-1` absolute path planted in a **tracked** `.md` | **fails**, naming `docs/TASK_TREE_README.md`; file restored byte-identical ✅ |
   | `RED-2` `git grep` forced to error (`GIT_DIR=/nonexistent`) | **REFUSES** — *"the audit could not run, which is NOT a pass"* ✅ |
 
@@ -2265,45 +2291,31 @@ scope costs nothing today and the single finding is real.
 - [x] **LOCKSTEP** — the function's own WHY block (the three defects and the refusal polarity are
   documented at the call site, not only here), this leaf, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
 
-###### ⛔ WHAT THIS DOES **NOT** CLOSE — two residues, both needing a decision that is not mine
+###### ✅ WHAT THIS CLOSES, AND THE ONE THING IT DELIBERATELY DOES NOT
 
-1. **The gate is now legitimately RED**, on `stimuli/generators/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md:45`,
-   which hardcodes a machine-specific home-directory path. ⛔ **The fix belongs in
-   `github.com/rdje/anvil`, not in a PGEN commit** — it is a one-line edit there (replace the
-   absolute prefix with a `<pgen-repo>/…` placeholder), followed by a gitlink bump here. Not done:
-   committing into another repository is outside what this leaf was authorized to do.
-2. **The environment-dependence is NOT fixed by the tool swap.** `actions/checkout` still defaults to
-   `submodules: false` and **0 of 15** workflows override it, so under recursion CI sees an *empty*
-   submodule and passes where local fails. Making the ruling hold in both environments requires
-   `submodules: recursive` in the workflows — which clones all 24 (opentitan, verilator, ghdl, …).
-   That is a real cost decision ⇒ **`.20c`**, below.
+All three defects are closed: scope is **declared** (and correctly bounded to PGEN), the
+environment-dependent verdict is **gone** (nothing in scope differs between CI and local), and the
+silent-pass-on-a-missing-binary is **structurally impossible** (git is a hard dependency, and any
+error `>=2` refuses). The audit **PASSES** on the real tree.
 
-### `.20c` — ROUTED: CI checks out ZERO submodules, so any submodule-scoped rule is local-only (`todo`)
+⛔ **Deliberately not done: nothing was changed in the ANVIL repository, and nothing should be.**
+A submodule is a read-only linked project. ⚠️ Left open on purpose and named here so it is not
+rediscovered as a finding: `stimuli/generators/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md` contains a
+machine-specific path. That is ANVIL's business under ANVIL's own policy — **not a PGEN defect, and
+not a PGEN commit.**
 
-Measured 2026-07-31: 15 workflows use `actions/checkout`, **none** declares `submodules:`. Under the
-`.20a` ruling the markdown repo-path audit governs submodule content, so its verdict differs by
-environment until CI also checks them out. ⚠️ The cost is not small — 24 submodules including
-`opentitan`, `verilator`, `ghdl`, `slang`, `Surelog`. Options to price: `submodules: recursive`
-everywhere (simplest, most expensive), a targeted checkout of `stimuli/generators/anvil` only (cheap,
-covers the one submodule PGEN authors), or accepting the rule as local-only and saying so in the
-audit's own message. ⇒ **a director call, not an engineering default.**
+### `.20c` — CI submodule checkout (`closed — MOOT`, 2026-07-31)
 
-#### `.20b` — a second assertion staled by a landing-page shrink
+Opened when the audit still recursed: CI declares `submodules:` in **0 of 15** workflows, so a
+submodule-scoped rule could never agree between CI and local. Options priced were `submodules:
+recursive` everywhere (clones all 24, incl. `opentitan`/`verilator`/`ghdl`/`Surelog`), a targeted
+`stimuli/generators/anvil` checkout, or accepting the rule as local-only.
 
-`audit_regex_corpus_bundle_surface` and `audit_regex_pcre2_compile_oracle_surface` require two
-literals in `README.md` that `README-POLICY.1` (`d29c3dd7`) **removed** when the README was cut to a
-landing page. `git log -S` names that commit for both. This is the tree's established class (a
-literal pinned against a moving surface — cf. the `1.1.29`/`1.1.31` constants and the 1 371-commit
-`generated/` assertion), so the fix is likely `assert_file_matches` against the *canonical
-destination* the content moved to, not re-pinning README.
-
-⚠️ **Do not stop at the first green** — this gate is fail-fast, so `.20a` currently hides `.20b`,
-which in turn may hide more. The acceptance is the gate reaching the end of its audit phase.
-
-⭐ **Measured alongside, and worth keeping**: of the **89** `assert_file_contains` arms in the four
-audits `LIVE-MEANS-LIVE.1c2` touched, **87 pass** and the only 2 failures are `.20b`'s. So the audit
-phase is *nearly* green and is being held down by a small, bounded set of stale literals — a cheap
-leaf, not a campaign.
+⇒ **None is needed.** The director's read-only-linked-repo ruling removes submodules from the
+doctrine's scope entirely, so there is nothing left to keep in sync. ⭐ **The cheapest fix to a
+parity problem turned out to be shrinking the claim rather than growing the checkout** — worth
+remembering the next time an enforcer's scope and its environment disagree: check whether the scope
+was ever justified before paying to make the environment match it.
 
 ## Evidence
 

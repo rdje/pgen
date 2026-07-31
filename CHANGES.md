@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-CI-PARITY-GATE-ROT-0024 — leaf CI-PARITY-GATE-ROT.20a: submodules are READ-ONLY LINKED REPOS, so the markdown repo-path audit stops recursing into them
+
+DIRECTOR RULING, superseding the previous commit's scope: *"ANVIL is a totally different project. A
+submodule is a way to access its entire codebase locally. For me submodules shall be treated as
+read-only linked repos."* … *"do not use recursivity by default then."* One shell function. No
+`grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all generated parsers byte-identical BY
+CONSTRUCTION.
+
+- ⛔ **`--no-recurse-submodules`, passed EXPLICITLY.** The doctrine exists so *PGEN's own* docs
+  survive the repo being moved to another path or filesystem. A linked project's docs are governed
+  by that project.
+- ⭐⭐ **The red gate was the argument.** With recursion the only two ways to clear it were *edit
+  another repository* or *carry a permanent red*. When a check's only remedies lie outside the
+  project, the check has overreached. ⛔ I proposed the first — treating a foreign repo's file as a
+  defect to fix rather than as evidence that PGEN's rule had escaped its own boundary. Read on its
+  own terms, that ANVIL line is ANVIL's task tree recording what ANVIL's owner did locally: a
+  correct entry in someone else's book.
+- ⭐ **The mechanical case agrees with the principle, and I had it backwards.** Recursion left the
+  environment-dependence OPEN — CI checks out no submodules (0 of 15 workflows), so a
+  submodule-scoped rule passes in CI and fails locally, and closing it meant cloning 24 repos
+  including opentitan/verilator/ghdl/Surelog. Scoping to PGEN's own tracked files **closes it
+  outright** and costs nothing. ⇒ `.20c` is **MOOT and closed**.
+- ⭐ **The banked lesson**: the cheapest fix to a parity problem was *shrinking the claim*, not
+  growing the checkout. When an enforcer's scope and its environment disagree, check whether the
+  scope was ever justified before paying to make the environment match it.
+- ✅ All three original defects closed: scope **declared and correctly bounded**; environment-
+  dependence **gone**; silent-pass-on-a-missing-binary **structurally impossible**. The audit now
+  **PASSES** on the real tree.
+- ✅ Controls re-run under the new scope: `RED-1` (path planted in a tracked PGEN `.md`) still fails
+  and names the file, restored byte-identical; `RED-2` (`git grep` forced to error) still refuses;
+  `CTRL-B` confirms ANVIL is no longer reached. Blast radius recorded for the record — recursion
+  would have governed ~1 108 extra files across 24 foreign repos; **scope is settled by ownership,
+  not by hit count.**
+- ⛔ Nothing was changed in the ANVIL repository, and nothing should be.
+- Oracles: `check_doctrines.sh` **15/15**, `bash -n` clean.
+- Live-status snapshot **unchanged** (still 0 `Done` rows).
+
 ## 2026-07-31 - PGEN-CI-PARITY-GATE-ROT-0023 — leaf CI-PARITY-GATE-ROT.20a: the markdown repo-path audit switches from `rg` to `git grep --recurse-submodules`
 
 DIRECTOR RULING, implemented: *"switch to `git grep` and enable recursivity into submodules by
