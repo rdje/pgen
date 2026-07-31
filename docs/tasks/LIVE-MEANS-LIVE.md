@@ -1188,7 +1188,9 @@ would have ranked worst; its date count says it is healthy. The instrument separ
 *rotted*, which is the actual question. And it does not fire on `CHANGES.md`, because being a log
 is that file's charter — the instrument classifies, the charter says which classification is right.
 
-### `.4` — **18** tracked files SELF-REFUTE their own `Last updated:` (`todo` — population corrected twice; both correction blocks below)
+### `.4` — the `Last updated:` field itself (`split` into `.4a` internal-delete / `.4b` published-contracts director call)
+
+⭐ Opened as *"10 tracked files self-refute their own `Last updated:`"*. The population was corrected twice (10 → 16 → **18**) and then re-framed entirely by a third measurement against `git`: the field is wrong in **25 of 61** files and was never once *ahead*, so the question is not which 18 dates to fix but whether a hand-maintained duplicate of a derivable fact should exist at all. Both correction blocks and the git table are kept below — they are the evidence the split rests on.
 
 Found by ANVIL's second instrument (`.2`) on its first run — no baseline, no threshold:
 
@@ -1244,6 +1246,77 @@ as the record of what each pass could see. The authoritative live list is
 `rust/test_data/grammar_quality/live_document_currency_register_v0.json`, which `.2`'s enforcer holds
 **two-sided**: a new self-refutation FAILS, and a fixed one still listed FAILS with *"remove it"*. ⇒
 `.4` is now a **draining ratchet** rather than a static list that can rot on its own.
+
+#### ⭐⭐⭐ THIRD MEASUREMENT — against `git`, the field has failed in **25 of 61** files, and instrument B sees only 18 of them
+
+Before fixing 18 dates, `.4` asked the prior question the two earlier passes never did: **what does
+the repository's own authoritative record say?** `git log -1 --date=short` is that record — it cannot
+rot, it has no spelling problem, and it is available for every tracked file.
+
+| population of 61 declaring files | measured 2026-07-31 |
+|---|---:|
+| declaration **==** git's last-commit date | 36 (59.0 %) |
+| ⛔ declaration **older** than git — i.e. simply **wrong** | **25 (41.0 %)** |
+| declaration **newer** than git | **0** |
+
+And on the 18 instrument B flags, git is **≥ the newest content date in 18 of 18** (exactly equal in
+10, newer in 8), while the declaration is correct in **0 of 18**.
+
+⇒ Three conclusions, none of them a judgement call:
+
+1. **The field is strictly dominated by `git`.** git is always at least as current, correct by
+   construction, and free. The hand-maintained copy only ever lags — 0 of 61 was ever ahead.
+2. **Instrument B is a LOWER BOUND, not the population.** It finds 18; git finds 25. The 7 it misses
+   are stale declarations whose bodies happen to carry no newer date — e.g. `COMMIT.md`'s sibling
+   `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` (declares 2026-07-21, git says
+   2026-07-31). ⚠️ B is *self-refutation*, which is baseline-free and works on a foreign repo (that
+   is how `.5` ran it on FSMGen's packet); *staleness against git* is a different, stronger question
+   that only works at home. **Both are wanted; neither replaces the other.**
+3. ⛔ **Correcting 25 dates is the fix that produced this.** They were correct once. A hand-maintained
+   duplicate of a derivable fact is named as an anti-pattern by this repository's own standard —
+   `MEMORY_ARCHITECTURE.md` §12: *"❌ Re-narrating git history into prose docs (duplication that goes
+   stale)"* and *"❌ Hand-maintained current-state that drifts from reality (prefer derived)."* ⇒ the
+   evidence `.4` asked for — *"a self-declaration nothing maintains"* — is now **measured, not
+   asserted**, so the pre-authorized fix is **deletion**, not correction.
+
+⚠️ The one class where deletion is NOT obviously right is the **published integration contracts**: a
+downstream reader holds the `.md` without the repository, so `git` is not available to them. That
+class is split out below rather than decided silently.
+
+### `.4a` — delete the hand-maintained `Last updated:` from INTERNAL surfaces (`todo`)
+
+Scope: the ~55 declaring files that are only ever read from inside a clone — `docs/tasks/*.md`
+trees (and `docs/tasks/TEMPLATE.md`, or new trees re-add the field), the root workflow/continuity
+docs, `docs/reference/*`, `docs/book/*`. Evidence for the deletion is the 25/61 table above plus
+`MEMORY_ARCHITECTURE.md` §12.
+
+⚠️ **This is a repo-wide convention change and it touches the task-tree TEMPLATE**, so it is a
+`TASKTREE-GOV`-adjacent decision, not a mechanical sweep — split out for that reason rather than
+folded into `.4`. ⛔ Before the sweep, read the two banked sweep traps in
+`LANG-CAPABILITY-AUDIT.10.3` and `CI-PARITY-GATE-ROT.19`.
+
+Landing it also **drains most of `instrument_b.self_refuting_debt.files`** — a file with no
+declaration cannot self-refute — and the register's two-sided ratchet will then FAIL until each
+drained entry is removed, which is the ratchet working as designed.
+
+### `.4b` — the PUBLISHED contracts: a reader without the repo (⚖️ DIRECTOR CALL — routed, not decided)
+
+`docs/contracts/*` is handed to downstream consumers who do **not** have `git`. For them the
+declaration is the only currency signal there is, so deletion removes information rather than
+duplication. But hand-maintaining it has measurably failed here too — 3 of the 9 integration
+contracts are stale against git, and 2 self-refute.
+
+The three candidate answers, with the objection to each:
+
+| option | objection |
+|---|---|
+| delete, like `.4a` | the downstream reader loses their only currency signal |
+| keep, and gate `declaration == git last-commit date` | fails on every *incidental* edit, which teaches authors to bump the date reflexively — a gate that trains the behaviour it is meant to detect |
+| **derive it at publish time** and gate that the checked-in value matches | needs a generator + a publish step this repo does not have for contracts today |
+
+⇒ Recommendation: the third, because it is the only one where the field is *derived* rather than
+*remembered*, which is the property that failed. ⛔ Not actioned unilaterally — it changes what a
+published contract promises.
 
 ⭐ **WHY the first pass missed them — the anchor, not the rule.** The repo has **two** declaration
 spellings, and `.4` only ever saw one. Root docs write `Last updated: 2026-05-14`; every

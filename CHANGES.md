@@ -1,5 +1,39 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0010 — leaf LIVE-MEANS-LIVE.4: measured against `git`, the `Last updated:` field is wrong in 25 of 61 files — so the fix is deletion, not correction
+
+Tracking-only (task-tree + continuity docs). No `scripts/*`, no `grammars/*.ebnf`, no `rust/src/*`,
+no `generated/*`.
+
+- **The prior question `.4` never asked.** Before correcting 18 dates, ask what the repository's own
+  authoritative record says. `git log -1 --date=short` cannot rot, has no spelling problem, and
+  exists for every tracked file. Measured over all 61 declaring files: **36 (59.0 %) agree with git,
+  25 (41.0 %) are older than git, and ZERO are newer.** On the 18 instrument B flags, git is ≥ the
+  newest content date in **18 of 18**, and the declaration is correct in **0 of 18**.
+- ⇒ **The field is strictly dominated by `git`** — always at least as current, correct by
+  construction, free. The hand-maintained copy only ever lags.
+- ⇒ **Instrument B is a LOWER BOUND, not the population**: it finds 18, git finds 25. The 7 it misses
+  are stale declarations whose bodies happen to carry no newer date. ⚠️ B is *self-refutation*
+  (baseline-free, works on a foreign repo — that is how `.5` ran it on FSMGen's packet); staleness
+  against git is a stronger question that only works at home. Both are wanted; neither replaces the
+  other.
+- ⇒ ⛔ **Correcting 25 dates is the fix that produced this.** They were correct once.
+  `MEMORY_ARCHITECTURE.md` §12 already names the shape: *"❌ Re-narrating git history into prose docs"*
+  and *"❌ Hand-maintained current-state that drifts from reality (prefer derived)"*. The evidence
+  `.4` asked for — *"a self-declaration nothing maintains"* — is now MEASURED, so the pre-authorized
+  fix is DELETION.
+- **`.4` SPLIT accordingly.** `.4a` — delete the field from the ~55 INTERNAL surfaces (task trees +
+  `TEMPLATE.md`, root docs, `docs/reference/`, `docs/book/`); flagged as a repo-wide convention
+  change touching the task-tree template, so `TASKTREE-GOV`-adjacent rather than a mechanical sweep.
+  `.4b` — ⚖️ **DIRECTOR CALL, routed not decided**: `docs/contracts/*` is read by downstream
+  consumers who have no `git`, so deletion removes information rather than duplication; but
+  hand-maintaining it has measurably failed there too (3 of 9 integration contracts stale, 2
+  self-refuting). Three options recorded with the objection to each; the recommendation is to DERIVE
+  the field at publish time, because *derived rather than remembered* is precisely the property that
+  failed.
+- Files: `docs/tasks/LIVE-MEANS-LIVE.md`, `docs/TASK_TREE.md`, `CHANGES.md`, `MEMORY.md`.
+- Live status snapshot UNCHANGED (no parser family affected).
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0009 — leaf LIVE-MEANS-LIVE.2: the `LIVE-DOC-CURRENCY` doctrine — a live document must be currently TRUE, not merely bounded
 
 Ops/build-flow change (a new `scripts/check_*.sh` + its register). No `grammars/*.ebnf`, no
