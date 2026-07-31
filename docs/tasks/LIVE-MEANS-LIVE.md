@@ -1188,7 +1188,7 @@ would have ranked worst; its date count says it is healthy. The instrument separ
 *rotted*, which is the actual question. And it does not fire on `CHANGES.md`, because being a log
 is that file's charter — the instrument classifies, the charter says which classification is right.
 
-### `.4` — the `Last updated:` field itself (`split` into `.4a` internal-delete / `.4b` published-contracts director call)
+### `.4` — the `Last updated:` field itself (`split` into `.4a` / `.4b` — ⚖️ **`.4b` ADJUDICATED: both answers are DELETE**, so the rule is uniform)
 
 ⭐ Opened as *"10 tracked files self-refute their own `Last updated:`"*. The population was corrected twice (10 → 16 → **18**) and then re-framed entirely by a third measurement against `git`: the field is wrong in **25 of 61** files and was never once *ahead*, so the question is not which 18 dates to fix but whether a hand-maintained duplicate of a derivable fact should exist at all. Both correction blocks and the git table are kept below — they are the evidence the split rests on.
 
@@ -1283,12 +1283,14 @@ And on the 18 instrument B flags, git is **≥ the newest content date in 18 of 
 downstream reader holds the `.md` without the repository, so `git` is not available to them. That
 class is split out below rather than decided silently.
 
-### `.4a` — delete the hand-maintained `Last updated:` from INTERNAL surfaces (`todo`)
+### `.4a` — execute the deletion across ALL 61 declaring files (`todo` — ⚖️ unblocked by `.4b`'s ruling; internal AND published, one uniform rule)
 
-Scope: the ~55 declaring files that are only ever read from inside a clone — `docs/tasks/*.md`
-trees (and `docs/tasks/TEMPLATE.md`, or new trees re-add the field), the root workflow/continuity
-docs, `docs/reference/*`, `docs/book/*`. Evidence for the deletion is the 25/61 table above plus
-`MEMORY_ARCHITECTURE.md` §12.
+Scope: **all 61** declaring files — `docs/tasks/*.md` trees + `docs/tasks/TEMPLATE.md`, the root
+workflow/continuity docs, `docs/reference/*`, `docs/book/*`, **and the 6 `docs/contracts/*` published
+contracts** (`.4b` ruled these the same way, on the measurement that the date is a weaker duplicate
+of the version identity four lines above it). Evidence: the 25/61 table above, `MEMORY_ARCHITECTURE.md`
+§12, and `.4b`'s three findings. ⛔ **Read `.4b`'s four consequences before starting — item 2 is a
+real sweep trap that would delete a tree's frontier pointer.**
 
 ⚠️ **This is a repo-wide convention change and it touches the task-tree TEMPLATE**, so it is a
 `TASKTREE-GOV`-adjacent decision, not a mechanical sweep — split out for that reason rather than
@@ -1299,24 +1301,117 @@ Landing it also **drains most of `instrument_b.self_refuting_debt.files`** — a
 declaration cannot self-refute — and the register's two-sided ratchet will then FAIL until each
 drained entry is removed, which is the ratchet working as designed.
 
-### `.4b` — the PUBLISHED contracts: a reader without the repo (⚖️ DIRECTOR CALL — routed, not decided)
+### `.4b` — ⚖️ ADJUDICATED (director delegated the call, 2026-07-31): the published contracts DELETE it too
 
-`docs/contracts/*` is handed to downstream consumers who do **not** have `git`. For them the
-declaration is the only currency signal there is, so deletion removes information rather than
-duplication. But hand-maintaining it has measurably failed here too — 3 of the 9 integration
-contracts are stale against git, and 2 self-refute.
+> *"Take the most sota, signoff decision … You know the project's goals and objectives, so please
+> make the right call."*
 
-The three candidate answers, with the objection to each:
+**RULING: delete. Same answer as `.4a`, so `.4` collapses back into ONE uniform rule with no
+carve-out.** My own prior recommendation — *derive the field at publish time* — is **rejected**, and
+the measurement that killed it is below.
 
-| option | objection |
-|---|---|
-| delete, like `.4a` | the downstream reader loses their only currency signal |
-| keep, and gate `declaration == git last-commit date` | fails on every *incidental* edit, which teaches authors to bump the date reflexively — a gate that trains the behaviour it is meant to detect |
-| **derive it at publish time** and gate that the checked-in value matches | needs a generator + a publish step this repo does not have for contracts today |
+#### The decisive measurement: the date is a weaker duplicate of a signal already 4 lines above it
 
-⇒ Recommendation: the third, because it is the only one where the field is *derived* rather than
-*remembered*, which is the property that failed. ⛔ Not actioned unilaterally — it changes what a
-published contract promises.
+Every contract that carries `Last updated:` carries it **inside a `## Contract Identity` block that
+already declares stronger, actionable, versioned currency**:
+
+```
+## Contract Identity
+- Contract version:                 <-- actionable: a consumer can diff versions
+- Parser release version:
+- Embedding API contract baseline:
+- <family> AST-dump schema version:
+- Last updated:                     <-- the weaker duplicate, 4 lines below
+```
+
+⇒ A date cannot answer the only question an integrator actually asks — *"does my integration still
+hold?"*. A **version** can. The date is redundant against a signal that is present, stronger, and —
+for regex — already gate-held by `PUBLISHED-VERSION-CURRENCY`.
+
+#### Three findings that settle it, none of them a judgement call
+
+1. ⭐ **10 of the 16 published contract documents already ship WITHOUT the field** — including
+   `PGEN_PARSER_INTEGRATION_CONTRACTS.md` (the contract index), the issue-reporting protocol, the
+   released-parser bug ledger, and the return-annotation / semantic-annotation integration
+   contracts. Only **6** carry it. The premise of the whole question — *"the downstream reader's
+   only currency signal"* — is **empirically false**: most consumers have been served without it and
+   no gap has ever been reported.
+2. ⛔ **Its measured failure direction is to UNDERSTATE liveness.** 0 of 61 declarations was ever
+   *ahead* of git; 25 of 61 lag. A contract that says *"last updated 2026-07-04"* when the truth is
+   2026-07-31 tells an evaluating adopter the project is staler than it is. For a surface whose job
+   is to win downstream adoption, a field that systematically makes PGEN look abandoned is **worse
+   than absent** — silence is neutral, a stale date is not.
+3. ⛔ **Nothing reads it.** A repo-wide sweep of `scripts/`, `rust/scripts/`, `.githooks/` and
+   `.github/` finds **zero** consumers other than `.2`'s own enforcer. It is unread duplication.
+
+#### Why "derive it at publish time" is rejected — it is this tree's own founding error, repeated
+
+`.0` adjudicated the parent question and the answer generalizes: **removing the unbounded container
+beats guarding it.** Building a generator + a publish step to keep a *redundant* field true is
+guarding it — new machinery, permanently maintained, so that a weaker duplicate of an adjacent
+signal can stay accurate. That is the same shape as capping `README.md` and routing its overflow
+into an unwatched file: effort spent preserving the thing that should not exist.
+
+⇒ **Removing the redundant field beats deriving it.**
+
+#### ⭐⭐ The general rule this yields — GENERATE FACTS, NEVER GENERATE CLAIMS · and prefer DELETING a duplicated fact to generating it
+
+`COMMIT.md` forbids auto-populating `claimed_status` from a gate: *"generating the claim makes the
+comparison pass by construction."* That rule governs **judgements**, which a gate independently
+recomputes from proof surfaces — it is one arm of a two-arm check.
+
+`Last updated:` is **not a judgement**. It is a *fact* with exactly one source (`git`), and there is
+no second, independent way to derive it — so generating it would destroy no comparison. The two-arm
+principle does not apply, and reaching for it here would have been a category error in the opposite
+direction from the one `.0` corrected.
+
+But the right move for a **derivable fact duplicated in prose** is not to generate it either:
+
+> **Delete the duplicate and point at the source — unless the reader provably cannot reach the
+> source AND no stronger signal is already present.** Both escape clauses failed here: 10 of 16
+> contracts already omit it, and the version identity sits four lines above.
+
+#### ⛔ Consequences that MUST land with the sweep (each is a trap, not a chore)
+
+1. **`docs/TASK_TREE.md` mandates the field** — *Required Task File Sections* → *"Metadata: tree ID,
+   status, roadmap lane, created date, last updated date."* Deleting from trees without amending
+   that line leaves the governance doc requiring what the trees no longer carry.
+   `docs/tasks/TEMPLATE.md` must lose it too, or every new tree re-adds it.
+2. ⚠️ **THE SWEEP TRAP — 4 declarations carry LOAD-BEARING trailing prose** that a line-wise delete
+   would destroy. Measured, and one of them names a tree's **frontier**:
+
+   | file | residue a naive delete would lose |
+   |---|---|
+   | `docs/tasks/SV-EXH-PROOF.md:9` | ``(**`.7` is the FRONTIER — close `focused_replay_target_debt_zero` …)`` |
+   | `docs/tasks/TASKTREE-GOV.md:9` | `(ALL 4 LEAVES DONE — .1 inventory + .2 9 skeletons + …)` |
+   | `docs/tasks/BRANCH-BROADCAST-FIX.md:9` | ``(`.5` done — H.10.2.1 re-applied and closed: regex cert-coverage …)`` |
+   | `docs/tasks/MCP-CONTROL.md:11` | `(session #90 refinement — LIVE in-flight introspection + stall detection)` |
+
+   ⇒ strip the `Last updated: <date>` **prefix** and keep the parenthetical; do not delete the line.
+   `rust/docs/CLI_REFERENCE.md:161` is a fenced sample timestamp and is not a declaration at all.
+3. **Drain `instrument_b.self_refuting_debt.files` in the same commit** — the register's two-sided
+   ratchet FAILS on a paid entry that is still listed, which is the ratchet working.
+4. ⚠️ **Instrument B goes DORMANT at zero declarations, and the enforcer must SAY so** rather than
+   reporting a vacuous pass — the driver already states this principle about its own staged-scope
+   doctrines. B stays wired as a **tripwire**: any declaration added later is checked from its first
+   commit.
+
+### `.8` — the version identity the contracts DO carry is gate-held for ONE family, not nine (`todo`)
+
+Opened by `.4b`'s ruling. Deleting the date makes the `## Contract Identity` version block the
+consumer's currency signal — and `PUBLISHED-VERSION-CURRENCY` currently holds only the **regex**
+identity pair (user guide ↔ contract). The other 8 published contracts declare `Contract version`,
+`Parser release version` and an AST-dump schema version that **no gate compares against the
+repository's actual state**.
+
+⚠️ This is not a regression caused by `.4b` — the gap exists today, and the date never checked
+anything either. It is routed rather than worked ([[feedback_flow_findings_are_routed_not_worked]])
+because it blocks nothing: no verdict becomes untrustworthy, and no published claim becomes false.
+
+⛔ But it is the *load-bearing* half of the ruling: *"the version is the real signal"* is only true
+while the version is true. `DONE-BAR.5a` measured this exact surface **~77 releases stale with no
+gate reading it**, so the prior here is bad. Scope: extend `PUBLISHED-VERSION-CURRENCY` from one
+family to every contract carrying an identity block.
 
 ⭐ **WHY the first pass missed them — the anchor, not the rule.** The repo has **two** declaration
 spellings, and `.4` only ever saw one. Root docs write `Last updated: 2026-05-14`; every

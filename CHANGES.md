@@ -1,5 +1,47 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0011 — leaf LIVE-MEANS-LIVE.4b ADJUDICATED: the published contracts delete `Last updated:` too
+
+Tracking-only (task-tree + continuity docs). Director delegated the call: *"Take the most sota,
+signoff decision … you know the project's goals and objectives, so please make the right call."*
+
+- **RULING: delete.** Same answer as `.4a`, so `.4` collapses into ONE uniform rule with no
+  carve-out. ⛔ My own prior recommendation — *derive the field at publish time* — is **rejected**.
+- **What killed it: the date is a weaker duplicate of a signal four lines above it.** Every contract
+  carrying `Last updated:` carries it inside a `## Contract Identity` block that already declares
+  `Contract version`, `Parser release version`, an embedding-API baseline and an AST-dump schema
+  version. A date cannot answer *"does my integration still hold?"*; a version can.
+- **Three findings, none a judgement call.** (1) **10 of the 16 published contract documents already
+  ship WITHOUT the field** — so the premise *"the downstream reader's only currency signal"* is
+  empirically false, and no gap has ever been reported. (2) Its measured failure direction is to
+  **understate liveness**: 0 of 61 declarations was ever ahead of git, 25 lag — a contract claiming
+  *"last updated 2026-07-04"* when the truth is 2026-07-31 makes a live project look abandoned to an
+  evaluating adopter, which is worse than silence. (3) A sweep of `scripts/`, `rust/scripts/`,
+  `.githooks/`, `.github/` finds **zero** consumers besides `.2`'s own enforcer.
+- **Why "derive at publish time" is rejected — it is this tree's founding error repeated.** `.0`
+  ruled that *removing the unbounded container beats guarding it*. Building a generator plus a
+  publish step so a redundant field can stay accurate IS guarding it. ⇒ removing the redundant field
+  beats deriving it.
+- ⭐⭐ **The general rule banked: GENERATE FACTS, NEVER GENERATE CLAIMS.** `COMMIT.md`'s ban on
+  auto-populating `claimed_status` governs *judgements*, which a gate independently recomputes — one
+  arm of a two-arm check. `Last updated:` is a *fact* with exactly one source, so generating it would
+  destroy no comparison and the two-arm principle does not apply. But the right move for a derivable
+  fact duplicated in prose is not to generate it either: **delete the duplicate and point at the
+  source, unless the reader provably cannot reach the source AND no stronger signal is present.**
+  Both escape clauses failed here.
+- ⚠️ **Four consequences recorded as traps, not chores**, for the `.4a` sweep: `docs/TASK_TREE.md`
+  MANDATES the field in *Required Task File Sections* and must be amended (and `TEMPLATE.md`, or new
+  trees re-add it); **4 declarations carry load-bearing trailing prose — `SV-EXH-PROOF.md:9` names
+  that tree's FRONTIER** — so the sweep must strip the prefix, never delete the line; the register
+  debt list must drain in the same commit or its two-sided ratchet fails; and instrument B goes
+  DORMANT at zero declarations, which the enforcer must SAY rather than pass vacuously.
+- **`.8` opened**: deleting the date makes the version identity the consumer's currency signal, and
+  `PUBLISHED-VERSION-CURRENCY` gate-holds it for **one** family, not nine. Routed, not worked — it
+  blocks nothing and predates this ruling — but it is the load-bearing half, and `DONE-BAR.5a`
+  measured this exact surface ~77 releases stale with no gate reading it.
+- Files: `docs/tasks/LIVE-MEANS-LIVE.md`, `docs/TASK_TREE.md`, `CHANGES.md`, `MEMORY.md`.
+- Live status snapshot UNCHANGED (no parser family affected).
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0010 — leaf LIVE-MEANS-LIVE.4: measured against `git`, the `Last updated:` field is wrong in 25 of 61 files — so the fix is deletion, not correction
 
 Tracking-only (task-tree + continuity docs). No `scripts/*`, no `grammars/*.ebnf`, no `rust/src/*`,
