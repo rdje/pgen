@@ -26,6 +26,6 @@ This book is the **canonical AST reference** for downstream consumers of PGEN's 
 
 ## Status
 
-The PGEN SystemVerilog parser is **closure-grade for the current Nexsim-facing scope** when consumed through the stable `pgen::embedding_api` host surface. See `LIVE_ACHIEVEMENT_STATUS.md` for the live closure status and `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` for the formal trust statement.
+The PGEN SystemVerilog parser is **closure-grade for the current Nexsim-facing scope** when consumed through the stable `pgen::embedding_api` host surface. See `docs/book/src/roadmap-and-live-status.md` for the live closure status and `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` for the formal trust statement.
 
 The systemverilog return-annotation campaign is **mature**: roughly a thousand grammar rules across both `sv_2017`/`sv_2023` profiles now carry stable typed shapes (return + semantic annotations), and the AST-dump schema is at version `10`. The parser is closure-grade for the Nexsim-facing scope and is validated each release by the certificate-coverage, external-corpus (14/14), and AST-shape-contract gates. Remaining work is targeted: closing the last certificate-coverage `UNKNOWN` residuals and correcting any residual AST-shape defects (e.g. the `SV-AST-SHAPE-FIDELITY` inline-alternation-`$N` corruption sweep). Each shape-affecting change gets its own [Schema Versioning](schema-versioning.md) row, a released-parser bug-ledger entry where it is a genuine bug, and an entry in the changelog here.

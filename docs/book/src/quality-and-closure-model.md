@@ -196,7 +196,8 @@ What differs is not the quality bar, but how much of the proof surface has alrea
 
 ## What `Done` Means — The Three-Leg Bar
 
-`Done` in `LIVE_ACHIEVEMENT_STATUS.md` is the strongest claim PGEN makes about a parser family, and
+`Done` — the `claimed_status` a family carries in the done-bar register — is the strongest claim
+PGEN makes about a parser family, and
 it is deliberately hard to hold. A family is `Done` only when **all three** of these hold, currently
 and simultaneously:
 
@@ -486,7 +487,7 @@ confirms each one was compiled into the unit that was linted. A skip is never a 
 
 ## Why Status Labels Stay Conservative
 
-This is why `LIVE_ACHIEVEMENT_STATUS.md` can keep a family at `Mostly Done` even when it already looks strong to a casual reader. The status labels are meant to reflect proof depth, not enthusiasm.
+This is why a family's `claimed_status` can stay at `Mostly Done` even when it already looks strong to a casual reader. The status labels are meant to reflect proof depth, not enthusiasm.
 
 Likewise, a family can remain `Done` while still receiving maintenance releases or syntax widening, as long as the published closure doctrine for that family remains satisfied.
 
@@ -507,6 +508,7 @@ That is the correct lens for:
 ## Primary Source Docs
 
 - `README.md`
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `rust/test_data/grammar_quality/done_bar_family_register_v0.json` (the status claim)
+- `docs/book/src/roadmap-and-live-status.md` (its published view)
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`

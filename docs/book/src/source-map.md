@@ -55,7 +55,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 
 ### Roadmap and live status
 
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/book/src/roadmap-and-live-status.md`
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 - `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
@@ -64,7 +64,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 ### Quality and closure model
 
 - `README.md`
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/book/src/roadmap-and-live-status.md`
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
 
@@ -105,7 +105,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 
 ### Operations and governance
 
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/book/src/roadmap-and-live-status.md`
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
 - `MEMORY.md`

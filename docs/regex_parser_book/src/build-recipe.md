@@ -107,7 +107,7 @@ git -C subs/pgen clean -fdx generated/ rust/target/
 
 ## Determinism
 
-Per the slice-5 (2026-04-29) policy in `LIVE_ACHIEVEMENT_STATUS.md`: regen is deterministic given the same input. Two consecutive `make regex_parser_bootstrap` runs against the same `grammars/regex.ebnf` and the same PGEN source must produce **byte-identical** `generated/regex_parser.rs`. To check:
+Per the Repository Layout policy in `docs/book/src/developer-architecture.md`: regen is deterministic given the same input. Two consecutive `make regex_parser_bootstrap` runs against the same `grammars/regex.ebnf` and the same PGEN source must produce **byte-identical** `generated/regex_parser.rs`. To check:
 
 ```bash
 make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap \

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f8e1b4cd.js";
+            window.path_to_searchindex_js = "searchindex-494f7ac1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b4e659eb.js"></script>
@@ -218,7 +218,7 @@
 <li><strong>Annotation count:</strong> <strong>156 → 157</strong> on the same <strong>74 distinct rules.</strong> The new no-type branch carries its own <code>return_object</code> annotation <code>{direction: $1, data_type: [], packed_range: $2, ports: [$3, $4::3*]}</code>; the typed branch’s annotation re-indexes around the lookahead (<code>data_type: $3</code>, etc.). The AST shape both branches emit is the unchanged <code>{direction, data_type, packed_range, ports}</code> object (bare ports carry <code>data_type: []</code>).</li>
 <li><strong>Accept set:</strong> <strong>expanded</strong> — bare ANSI ports now accepted; typed/ranged/named-type ports unchanged (byte-identical AST). The curated generated-contract manifest gains 3 bare-ANSI-port ACCEPT samples (128 samples / 96 accepts / 32 rejects).</li>
 <li><strong>Certificate coverage:</strong> <code>port_list</code> / <code>port_group</code> / <code>port_item</code> / <code>port_direction</code> / <code>kw_input</code> / <code>kw_output</code> / <code>kw_inout</code> now <strong>witnessed</strong> (were UNKNOWN); rtl_frontend <code>UNKNOWN</code> 71 → 66 (deterministic at seeds 0/7, <code>spf=0</code>).</li>
-<li><strong>Bug ledger:</strong> <strong>none</strong> — rtl_frontend is <code>In Progress</code>, not a released parser (per <code>LIVE_ACHIEVEMENT_STATUS.md</code>).</li>
+<li><strong>Bug ledger:</strong> <strong>none</strong> — rtl_frontend is <code>In Progress</code>, not a released parser (per <code>docs/book/src/roadmap-and-live-status.md</code>).</li>
 <li><strong>Machine-checkable inventory:</strong> <code>generated/rtl_frontend_return_annotations.json</code> (157 entries) and its content-identical embedded mirror <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> (157 entries, <code>port_group</code> now has branch 0 + branch 1).</li>
 <li><strong>Per-rule shapes:</strong> <a href="rules-top-level.html">Top-Level Rules</a> → port family.</li>
 </ul>
@@ -279,7 +279,7 @@
 <li>An entry in this changelog index summarizing the slice.</li>
 <li>A regression-lock test pinning the new typed shape.</li>
 </ol>
-<p>The live-book policy bundles all six in the same commit. Because RTL-FE-Slice-1..7 already typed the full grammar, the realistic future driver of new entries here is bug-ledger-driven shape fixes, annotating the remaining un-annotated rules (terminal/regex leaves like <code>identifier</code>, <code>named_data_type</code>, and the passthrough forms of <code>conditional_expr</code> / <code>unary_expr</code>), and any targeted restructure (for example, a <code>{first, rest}</code> list-flattening slice), not a long rule-by-rule campaign. rtl_frontend’s live-tracker row is now <code>Done</code> (<code>LIVE_ACHIEVEMENT_STATUS.md</code>) — its PGEN per-family closure bar (certificate-coverage <code>fully_certified=true</code>, <code>UNKNOWN=0</code> deterministic at seeds 0/7/42, plus the green generated-contract/elaboration gate) is met as of leaf <code>RTL-FE-CLOSURE.8</code> (2026-06-15); this is a closure-proof / live-status milestone, not a release or schema change. The current grammar covers the synthesizable RTL subset, and the full IEEE 1800 SystemVerilog surface is out of scope — see the <code>systemverilog</code> family for that.</p>
+<p>The live-book policy bundles all six in the same commit. Because RTL-FE-Slice-1..7 already typed the full grammar, the realistic future driver of new entries here is bug-ledger-driven shape fixes, annotating the remaining un-annotated rules (terminal/regex leaves like <code>identifier</code>, <code>named_data_type</code>, and the passthrough forms of <code>conditional_expr</code> / <code>unary_expr</code>), and any targeted restructure (for example, a <code>{first, rest}</code> list-flattening slice), not a long rule-by-rule campaign. rtl_frontend’s live-tracker row is now <code>Done</code> (<code>docs/book/src/roadmap-and-live-status.md</code>) — its PGEN per-family closure bar (certificate-coverage <code>fully_certified=true</code>, <code>UNKNOWN=0</code> deterministic at seeds 0/7/42, plus the green generated-contract/elaboration gate) is met as of leaf <code>RTL-FE-CLOSURE.8</code> (2026-06-15); this is a closure-proof / live-status milestone, not a release or schema change. The current grammar covers the synthesizable RTL subset, and the full IEEE 1800 SystemVerilog surface is out of scope — see the <code>systemverilog</code> family for that.</p>
 
                     </main>
 

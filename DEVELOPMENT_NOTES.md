@@ -1,5 +1,38 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0006 — when the oracle you need is blocked, measure what it would have measured; never quietly claim it
+
+`LIVE-MEANS-LIVE.1c2`. Three things worth keeping.
+
+- ⭐⭐⭐ **A blocked oracle is not a passed oracle, and the substitute must state its own bound.**
+  `ci_workflow_local_gate` owns the four assertion sets this leaf edited, and it cannot complete —
+  for two reasons that predate the leaf. The tempting moves are both wrong: claim it green because
+  the failure "isn't mine", or silence the failing arms. What I did instead was reconstruct the
+  question it answers — evaluate every `assert_file_contains` arm in the four edited functions
+  against the working tree **and** against `HEAD`. That yields the decisive number (**0** arms that
+  passed at `HEAD` and fail now) *and* separates the 2 pre-existing failures from my change
+  automatically. ⚠️ And it is written down as covering the **audit phase only** — a substitute for a
+  blocked oracle, never an equal of it. The driver sources the gate's OWN function bodies rather than
+  restating its rules, so it cannot test a rule the gate does not apply.
+- ⭐⭐ **A doctrine whose two enforcers disagree is not one doctrine.** The markdown repo-path rule is
+  enforced twice: `check_diagnostics_and_docpaths.sh` via `git grep`, and `ci_workflow_local_gate.sh`
+  via `rg`. On the *same tree* they return **OK** and **FAIL**, because `git grep` does not descend
+  into a submodule and `rg` does. Everything this repo has recorded about gate rot so far is *one*
+  enforcer going stale; this is a new shape — neither is stale, they disagree about **scope**. Routed
+  to `CI-PARITY-GATE-ROT.20a` because the answer is a scope ruling, not a string fix, and the
+  offending file belongs to another repository entirely.
+- ⚠️ **Never read a pipeline's exit status from a trailing `echo`.** I ran the gate as
+  `guard … > log; echo "rc=$?"` and the harness dutifully reported success — the `echo`'s. The log
+  said `make: *** Error 1` and `memory-guard: completed exit=2`. I caught it only because I read the
+  log anyway. The lesson is the repo's own, restated: **the artifact is the verdict, not the
+  wrapper's return.** Capture the real code into a named variable before anything else runs.
+- 🗑️ **Deleting a dead instrument is part of the same doctrine as deleting a dead status file.**
+  `run_demotion_impact_probe.sh` was measured doubly dead — its guard exits before reading anything,
+  and `.1a` had already removed the function its replay extracts, so it would `exit 3 MISCALIBRATED`
+  if the guard were lifted. Its captured output is kept; the script is gone. A script that cannot
+  reproduce its own output is prose with a shebang, exactly as a file named LIVE that is 94.7 %
+  changelog is a museum with a misleading name.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0005 — a classification is a measurement, and needs the same evidence bar as the count it replaces
 
 `LIVE-MEANS-LIVE.1c1`. Two things worth keeping from this leaf, and the second is uncomfortable.

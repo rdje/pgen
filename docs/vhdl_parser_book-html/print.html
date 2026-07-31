@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6d41594d.js";
+            window.path_to_searchindex_js = "searchindex-9be387ea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -203,7 +203,7 @@
 <li><strong>Reporting issues</strong>: follow <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code> for the bug-report protocol.</li>
 </ol>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
-<p>The PGEN VHDL parser is <strong>on-demand-only</strong> in the default build (it is not in <code>cargo test --features generated_parsers</code> until activated). The current grammar covers design units (library/use/entity/architecture/package/package body/configuration/context), entity generics/ports, architecture declarations and concurrent statements, process + core sequential statements, and the expression/type/literal baseline. See <code>LIVE_ACHIEVEMENT_STATUS.md</code> for the live closure status and <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
+<p>The PGEN VHDL parser is <strong>on-demand-only</strong> in the default build (it is not in <code>cargo test --features generated_parsers</code> until activated). The current grammar covers design units (library/use/entity/architecture/package/package body/configuration/context), entity generics/ports, architecture declarations and concurrent statements, process + core sequential statements, and the expression/type/literal baseline. See <code>docs/book/src/roadmap-and-live-status.md</code> for the live closure status and <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
 <p>The VHDL return-annotation campaign landed <code>VHDL-Slice-1</code> (110+ rules / 249 annotations) on 2026-05-14 in one comprehensive batch. A follow-up correctness fix (<code>VHDL-0001</code>, parser release <code>1.0.2</code>, AST-dump schema <code>1</code> → <code>2</code>, landed 2026-05-17) lifted the <code>simple_expression</code> / <code>term</code> inline operator alternations into the named <code>adding_operator</code> / <code>multiplying_operator</code> rules (256 annotations / 112 rules). The <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch (AST-dump schema <code>2</code> → <code>3</code>, landed 2026-05-17) corrected 17 separated-list rules from the raw <code>{first, rest}</code> envelope to clean flat arrays, with the inventory <strong>unchanged</strong> at <strong>256 annotations / 112 rules</strong>. The <code>1.0.4</code> <code>VHDL-0002</code> acceptance fix (AST-dump schema unchanged at <code>3</code>, landed 2026-06-10) made based literals (<code>2#1010#</code>, <code>16#FF#</code>) parse for the first time — an engine-side layout-skipper guard, acceptance widening only — see the <a href="#changelog-index">Changelog Index</a> and <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a>. Subsequent shape-affecting slices get their own changelog entries here.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
@@ -1811,7 +1811,7 @@ walk_schema_v3(&amp;root);
 <li>Accepted released-parser bugs are tracked in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code>.</li>
 </ol>
 <h2 id="future-major-version"><a class="header" href="#future-major-version">Future major version</a></h2>
-<p>A future schema milestone will land if and when the VHDL grammar’s remaining un-annotated rules (terminal/regex leaves and a few utility rules) are either annotated or given a deliberate decision to remain raw envelope, and the shape definitions move to a locked tier. The VHDL family is still an <code>In Progress</code> family in the live tracker (<code>LIVE_ACHIEVEMENT_STATUS.md</code>); downstream integrators should treat the embedding surface as real but keep an eye on the live blocker list and the <a href="#changelog-index">Changelog Index</a>.</p>
+<p>A future schema milestone will land if and when the VHDL grammar’s remaining un-annotated rules (terminal/regex leaves and a few utility rules) are either annotated or given a deliberate decision to remain raw envelope, and the shape definitions move to a locked tier. The VHDL family is still an <code>In Progress</code> family in the live tracker (<code>docs/book/src/roadmap-and-live-status.md</code>); downstream integrators should treat the embedding surface as real but keep an eye on the live blocker list and the <a href="#changelog-index">Changelog Index</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
 <p>Terms used throughout this book. Where a term has a normative definition, the integration contract <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> is authoritative; this glossary paraphrases it for quick lookup.</p>

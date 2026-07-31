@@ -12,7 +12,7 @@
 ## How to resume
 - Read `MEMORY_ARCHITECTURE.md` (memory/continuity), `README.md` (project), and `TOOLBOX.md` (debug toolbox — USE FIRST).
 - Work is tracked in task-trees under `docs/tasks/`; index `docs/TASK_TREE.md`; commit per `COMMIT.md`.
-- Durable facts / standing directives / decisions: `docs/decisions/INDEX.md` (137 records — **the authoritative list**). Live status: `LIVE_ACHIEVEMENT_STATUS.md`; changelog: `CHANGES.md`.
+- Durable facts / standing directives / decisions: `docs/decisions/INDEX.md` (137 records — **the authoritative list**). Live status: `docs/book/src/roadmap-and-live-status.md`; changelog: `CHANGES.md`.
 - ⛔ A code change MUST pass the **acceptance checklist** (ROOT CAUSE + ADDRESSED + NO REGRESSION, evidence-backed) in its task leaf — enforced by `scripts/check_doctrines.sh` via `.githooks/pre-commit` (run `git config core.hooksPath .githooks` once per clone).
 
 ## North star (pointers only — the layer-C record is authoritative, this is not a summary)
@@ -28,12 +28,12 @@
 - **Project data stays on the repo's volume** → [[project_data_locality_same_volume]]; reclaim artifacts routinely, proving safety each time → [[feedback_delete_reclaimable_artifacts_regularly]]; the portable spine is a separate repo → [[project_bedrock_spine_repo]].
 
 ## Current state (OVERWRITE this block each update — do not append)
-- **latest_commit**: `PGEN-LIVE-MEANS-LIVE-0005` (leaf `LIVE-MEANS-LIVE.1c1`) — ✅ **the BOOK now publishes the per-family status snapshot** (`docs/book/src/roadmap-and-live-status.md`, 10 families in a `LIVE-STATUS-SNAPSHOT:BEGIN/END` marker pair); `PUBLISHED-VERSION-CURRENCY` holds it to the register family-by-family, BOTH directions (2 comparisons → 11; probes 5/5 → **11/11**). Ladder LINKED to `quality-and-closure-model.md`, never restated. Before this leaf the book explained the rules and published **no status**.
-- **active_work_unit**: `LIVE-MEANS-LIVE` (DIRECT DIRECTOR ORDER — *"Live means live, fullstop"* → *"go for migrate-and-delete"*). ✅ `.0`, `.1a`, `.1b`, `.1c1`, `.3`. ⛔ OPEN: `.1c2` (referrers), `.1c3` (the DELETE), `.2` (REOPENED — ANVIL's 2 instruments, not a byte cap), `.4` (10 files self-refute their `Last updated:`).
-- **next_action**: **`.1c2`** — retire the referrers; the classified census is in the leaf. ⛔ History + `docs/tasks/` + `docs/decisions/` keep their references VERBATIM.
-- ⛔ **`.1c`'s *"blocked by ONE script"* was WRONG — it is TWO**: `ci_workflow_local_gate.sh` was filed path-only on an ASSUMED mechanism; 4 of its 5 sites read tracker PROSE. ⭐ A classification is a measurement, with the same evidence bar as the count it replaces → [[feedback_classify_referents_by_requirement]].
-- ⭐ **452/452** slice IDs cited by the tracker are reachable WITHOUT it ⇒ the delete is lossless; `.0`'s "3 orphans" was a too-narrow census.
-- ⚠️ **A control's ground truth must be TRACKED or CONSTRUCTED** — `CTRL-4a` pinned `rust/target/` state and decayed silently → [[feedback_ground_truth_control_must_not_pin_untracked_state]].
+- **latest_commit**: `PGEN-LIVE-MEANS-LIVE-0006` (leaf `LIVE-MEANS-LIVE.1c2`) — ✅ **every referrer that DEPENDS on the tracker is retired**: 4 live `assert_file_contains` → 0, 33 live `.md` → 3 (all merely *narrating* the deletion), 2 content-reading scripts → 0. ⭐ `check_readme_stability.sh`'s overflow now routes to the **schema-bounded register** — that redirect into an uncapped prose file was the ACTUAL root cause of the rot. `.1c1` before it put the 10-family snapshot in the book under a gate.
+- **active_work_unit**: `LIVE-MEANS-LIVE` (DIRECT DIRECTOR ORDER — *"Live means live, fullstop"* → *"go for migrate-and-delete"*). ✅ `.0`, `.1a`, `.1b`, `.1c1`, `.1c2`, `.3`. ⛔ OPEN: `.1c3` (the DELETE), `.2` (REOPENED — ANVIL's 2 instruments, not a byte cap), `.4` (10 files self-refute their `Last updated:`).
+- **next_action**: **`.1c3`** — delete `LIVE_ACHIEVEMENT_STATUS.md`, **atomically** with the 2 remaining path-only referents (`ci_workflow_local_gate.sh`'s root-md roster is an EXACT-SET check; `check_diagnostics_and_docpaths.sh`'s pathspec), then re-run the 452-ID census + the doctrine enforcer.
+- ⛔ **`ci_workflow_local_gate` CANNOT COMPLETE** (pre-existing, routed → `CI-PARITY-GATE-ROT.20`): its `rg` markdown audit descends into the **`anvil` submodule** while the doctrine's own `git grep` enforcer does not — *one doctrine, two enforcers, opposite verdicts*; plus 2 README literals staled by `README-POLICY.1`. Substitute measured: 89 assertion arms, **87 pass, 0 regressions**.
+- ⚠️ **Never read a pipeline's exit code from a trailing `echo`** — it reported success while the log said `Error 1`.
+- ⭐ **452/452** slice IDs cited by the tracker are reachable WITHOUT it ⇒ the delete is lossless.
 - **in_flight_uncommitted**: none.
 - ⚠️ **two sweep traps banked in `LANG-CAPABILITY-AUDIT.10.3`** (read before any before→after sweep): the embedded `-o` path, and `focus_*` silently changing `ast_pipeline`'s feature set at the same path → also `CI-PARITY-GATE-ROT.19`.
 - **blockers**: none. ⏳ Two escalated **director calls** open: a priced `schedule:` lane for the 4h39m `sota_exit_gate`; and the ANVIL README-policy feedback (measured in `LIVE-MEANS-LIVE`: PGEN clean on 4 of 6, narrower gap on point 2, plus a fifth lesson to send back).

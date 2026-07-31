@@ -38,7 +38,7 @@ This is the document downstream projects (primarily RTLSyn) embedding the PGEN r
   - `rust/build.rs`
   - `PGEN_RTL_FRONTEND_PARSER_PATH`
 - Live closure/status surface:
-  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `docs/book/src/roadmap-and-live-status.md`
 
 ## Stable Integration Surface
 - Grammar family:

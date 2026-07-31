@@ -93,7 +93,7 @@ pos 947, `friscv_pipeline@2017` pos 135), produced by a freshly-built
 probe over the parser generated from `grammars/systemverilog.ebnf`
 via the canonical gate — **not** a probe/build artifact.
 
-The pre-baseline `LIVE_ACHIEVEMENT_STATUS.md` "`systemverilog` main
+The pre-baseline live-tracker "`systemverilog` main
 parser" row stated `parse_pass_total=10`, `parse_fail_total=4`, and
 that `scr1_top_ahb`, `friscv_rv32i_core`, `friscv_pipeline`,
 `scr1_core_top`, `el2_lsu` were "green in both `sv_2017` and

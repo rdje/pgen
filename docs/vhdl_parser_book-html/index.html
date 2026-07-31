@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6d41594d.js";
+            window.path_to_searchindex_js = "searchindex-9be387ea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -205,7 +205,7 @@
 <li><strong>Reporting issues</strong>: follow <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code> for the bug-report protocol.</li>
 </ol>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
-<p>The PGEN VHDL parser is <strong>on-demand-only</strong> in the default build (it is not in <code>cargo test --features generated_parsers</code> until activated). The current grammar covers design units (library/use/entity/architecture/package/package body/configuration/context), entity generics/ports, architecture declarations and concurrent statements, process + core sequential statements, and the expression/type/literal baseline. See <code>LIVE_ACHIEVEMENT_STATUS.md</code> for the live closure status and <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
+<p>The PGEN VHDL parser is <strong>on-demand-only</strong> in the default build (it is not in <code>cargo test --features generated_parsers</code> until activated). The current grammar covers design units (library/use/entity/architecture/package/package body/configuration/context), entity generics/ports, architecture declarations and concurrent statements, process + core sequential statements, and the expression/type/literal baseline. See <code>docs/book/src/roadmap-and-live-status.md</code> for the live closure status and <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
 <p>The VHDL return-annotation campaign landed <code>VHDL-Slice-1</code> (110+ rules / 249 annotations) on 2026-05-14 in one comprehensive batch. A follow-up correctness fix (<code>VHDL-0001</code>, parser release <code>1.0.2</code>, AST-dump schema <code>1</code> → <code>2</code>, landed 2026-05-17) lifted the <code>simple_expression</code> / <code>term</code> inline operator alternations into the named <code>adding_operator</code> / <code>multiplying_operator</code> rules (256 annotations / 112 rules). The <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch (AST-dump schema <code>2</code> → <code>3</code>, landed 2026-05-17) corrected 17 separated-list rules from the raw <code>{first, rest}</code> envelope to clean flat arrays, with the inventory <strong>unchanged</strong> at <strong>256 annotations / 112 rules</strong>. The <code>1.0.4</code> <code>VHDL-0002</code> acceptance fix (AST-dump schema unchanged at <code>3</code>, landed 2026-06-10) made based literals (<code>2#1010#</code>, <code>16#FF#</code>) parse for the first time — an engine-side layout-skipper guard, acceptance widening only — see the <a href="changelog-index.html">Changelog Index</a> and <a href="examples-binary-addition.html">Binary Addition</a>. Subsequent shape-affecting slices get their own changelog entries here.</p>
 
                     </main>

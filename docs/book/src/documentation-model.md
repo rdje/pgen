@@ -60,7 +60,7 @@ The continuity docs exist for internal session recovery and live repo-state cont
 
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/book/src/roadmap-and-live-status.md` (the published family-status view)
 - `MEMORY.md`
 - plus workflow docs such as `COMMIT.md` and `SESSION_BOOTSTRAP.md`
 
@@ -87,7 +87,7 @@ documentation; license and repository-level notices.
 [The Gate Flow](gate-flow.md), operational procedure to
 [Operations and Governance](operations-and-governance.md), the path inventory to
 [Developer Architecture](developer-architecture.md), status to
-`LIVE_ACHIEVEMENT_STATUS.md`, history to `CHANGES.md`, rationale to `docs/decisions/`.
+`rust/test_data/grammar_quality/done_bar_family_register_v0.json`, history to `CHANGES.md`, rationale to `docs/decisions/`.
 
 Change the README only when its **purpose**, **first-use path**, **top-level
 architecture** or **canonical navigation** changes. Ordinary feature work updates the

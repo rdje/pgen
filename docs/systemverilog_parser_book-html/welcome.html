@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dd3b42a4.js";
+            window.path_to_searchindex_js = "searchindex-e5136335.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -205,7 +205,7 @@
 <li><strong>Reporting issues</strong>: follow <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code> for the bug-report protocol; accepted released-parser bugs land in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> under the <code>SV-NNNN</code> ID family.</li>
 </ol>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
-<p>The PGEN SystemVerilog parser is <strong>closure-grade for the current Nexsim-facing scope</strong> when consumed through the stable <code>pgen::embedding_api</code> host surface. See <code>LIVE_ACHIEVEMENT_STATUS.md</code> for the live closure status and <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
+<p>The PGEN SystemVerilog parser is <strong>closure-grade for the current Nexsim-facing scope</strong> when consumed through the stable <code>pgen::embedding_api</code> host surface. See <code>docs/book/src/roadmap-and-live-status.md</code> for the live closure status and <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
 <p>The systemverilog return-annotation campaign is <strong>mature</strong>: roughly a thousand grammar rules across both <code>sv_2017</code>/<code>sv_2023</code> profiles now carry stable typed shapes (return + semantic annotations), and the AST-dump schema is at version <code>10</code>. The parser is closure-grade for the Nexsim-facing scope and is validated each release by the certificate-coverage, external-corpus (14/14), and AST-shape-contract gates. Remaining work is targeted: closing the last certificate-coverage <code>UNKNOWN</code> residuals and correcting any residual AST-shape defects (e.g. the <code>SV-AST-SHAPE-FIDELITY</code> inline-alternation-<code>$N</code> corruption sweep). Each shape-affecting change gets its own <a href="schema-versioning.html">Schema Versioning</a> row, a released-parser bug-ledger entry where it is a genuine bug, and an entry in the changelog here.</p>
 
                     </main>

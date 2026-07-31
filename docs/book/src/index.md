@@ -32,7 +32,7 @@ Some documents are still best treated as internal continuity sources rather than
 
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/book/src/roadmap-and-live-status.md`
 - `MEMORY.md`
 
 Those files remain authoritative for live progress, continuity, and recent implementation waves inside the repository workflow. They are not the primary outward-facing documentation surface; the book is.

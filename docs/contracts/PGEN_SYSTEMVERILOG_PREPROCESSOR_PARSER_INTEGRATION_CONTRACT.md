@@ -920,7 +920,7 @@ Where this prose and the inventory disagree, the inventory wins.
 - Current operational guide:
   - `PGEN_USER_GUIDE.md`
 - Live status surface:
-  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `docs/book/src/roadmap-and-live-status.md`
 
 ## Stable Integration Surface
 - Current downstream-facing contract is narrower than the main SystemVerilog/VHDL/regex host surface.

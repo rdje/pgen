@@ -697,11 +697,160 @@ computed at all, and `DONE-BAR.3` owes the ruling.
   those links still resolve; re-pointing them is `.1c2`, and doing it here would mix building the
   replacement with retiring the original.
 
-### `.1c2` — retire the referrers (`todo`)
+### `.1c2` — retire the referrers (`done`)
 
-The 4 live `assert_file_contains` (dropped — measured redundant above), the 2 path-only referents,
-the hint text at `check_readme_stability.sh:83,112,116`, the inert `run_demotion_impact_probe.sh`,
-the `.claude/settings.json` post-compaction resume list, and the **33** live `.md` surfaces.
+The 4 live `assert_file_contains` (dropped — measured redundant above), the hint text at
+`check_readme_stability.sh:83,112,116`, the dead `run_demotion_impact_probe.sh`, the
+`.claude/settings.json` post-compaction resume list, and the **33** live `.md` surfaces.
+
+⚠️ **The 2 PATH-ONLY referents are deliberately NOT here** — `ci_workflow_local_gate.sh`'s root-md
+roster and `check_diagnostics_and_docpaths.sh`'s pathspec. Measured: the roster is an **exact-set**
+comparison against `git ls-files` (`ci_workflow_local_gate.sh:315-320`), so removing the entry while
+the file is still tracked FAILS the audit. Those two must move **atomically with the delete** ⇒ `.1c3`.
+
+#### ⭐ `run_demotion_impact_probe.sh` is DELETED, and the measurement is why
+
+It was classified in `.1c` as *"the ONE consumer, already inert"*. Measured further, it is **doubly
+dead** — it cannot run even if its guard is removed:
+
+```
+$ git grep -n markdown_table_status_for_row -- 'rust/scripts/**' 'scripts/**'
+rust/scripts/lib/parser_family_status_bar.sh:17:#   - `markdown_table_status_for_row` — …   (comment)
+rust/scripts/lib/parser_family_status_bar.sh:55:# It replaces `markdown_table_status_for_row`, …  (comment)
+$ git grep -ln run_demotion_impact_probe            # invoked by: nothing. 6 prose mentions only.
+```
+
+⇒ (1) its historical guard exits 0 before reading anything; (2) `.1a` **removed the function** its
+step-2 replay extracts, so line 71's `sed -n '/^markdown_table_status_for_row() {/,/^}/p'` yields an
+empty file and it would `exit 3 MISCALIBRATED`; (3) no gate, make target or driver invokes it.
+
+⛔ **Its evidence is NOT lost** — the captured BEFORE record `demotion_impact_probe.txt` (2 124 B)
+holds the full finding (vocabulary table, 3-row replay, verdict) and is **kept**. ⇒ delete the
+script, keep the record: a script that cannot reproduce its own output is not an instrument, it is
+prose with a shebang. That is this tree's own thesis applied to itself.
+
+#### The 3 references that REMAIN, deliberately
+
+| site | why it stays |
+|---|---|
+| `docs/TASK_TREE.md:98` | the director's order quoted **verbatim** — it names the file, that is the quote |
+| `COMMIT.md:37` | records where `claimed_status` came FROM; naming the deleted file is the content |
+| `docs/book/src/roadmap-and-live-status.md:38` | the book explaining *why* the file is gone |
+
+⇒ all three **narrate the deletion**; none depends on the file. History (`CHANGES.md`,
+`DEVELOPMENT_NOTES.md`), `docs/tasks/` (54) and `docs/decisions/` (8) keep their references raw.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — 4 live `assert_file_contains` on tracker prose would go RED the moment
+  `.1c3` deletes the file, and 33 live doc surfaces would carry dangling links. Measured green-now:
+
+  ```
+  $ for s in "$(the 4 asserted strings)"; do grep -qF "$s" LIVE_ACHIEVEMENT_STATUS.md && echo PRESENT; done
+  PRESENT ×4
+  ```
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow tier, located with `git ls-files` + `git grep`
+  rather than a path guess:
+
+  ```
+  $ git ls-files -- '*.sh' | xargs grep -n LIVE_ACHIEVEMENT_STATUS
+  rust/scripts/ci_workflow_local_gate.sh:286,2674,2742,2935,3032   ← 1 roster + 4 assert_file_contains
+  scripts/check_readme_stability.sh:83,112,116                     ← hint / routing text
+  scripts/check_diagnostics_and_docpaths.sh:15,53                  ← pathspec
+  docs/tasks/artifacts/done_bar/run_demotion_impact_probe.sh:31,87 ← content read (dead)
+  … 5 further files: comments only
+  ```
+
+  **WHY**: the tracker accumulated three *different kinds* of dependency behind one filename —
+  content assertions, path-existence entries, and prose — and a `grep -l` renders all three
+  identically. That is precisely how `.1c` sized the work at 1 blocker when it is 2 (see the
+  correction above).
+- [x] **FIX** — declarative first, in dependency order. (a) the 4 redundant assertion arms dropped,
+  each with an in-place comment recording the arm count it left behind; (b)
+  `check_readme_stability.sh`'s overflow routing points at the **schema-bounded register** instead of
+  an uncapped prose file — ⭐ **this is the leaf that closes the actual root cause of the rot**: the
+  README cap redirected pressure into a file with no instrument; (c) the dead probe deleted, its
+  record kept; (d) `.claude/settings.json` and 33 `.md` surfaces re-pointed; (e) the two exact-set
+  referents deferred to `.1c3`.
+- [x] **ADDRESSED (verified)** — measured before → after:
+
+  | measurement | before | after |
+  |---|---|---|
+  | live `assert_file_contains` on tracker prose | **4** | **0** ✅ |
+  | live `.md` surfaces with a tracker reference | **33** | **3**, all narrating the deletion ✅ |
+  | scripts that READ the file's content | 2 | **0** ✅ |
+  | `check_readme_stability.sh` overflow destination | an uncapped 1.55 MB prose file | a **schema-bounded JSON field** ✅ |
+  | `.claude/settings.json` resume list | names the doomed file | names the register + its book view ✅ |
+  | lockstep arms lost per assertion group | — | **1 of 15-37**, ≥3 doc surfaces surviving in each ✅ |
+- [x] **NO REGRESSION** — `bash -n` clean on both edited shell files (⚠️ `shellcheck` is **not
+  installed** — stated, not implied). ⛔ No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`
+  touched ⇒ all generated parsers **byte-identical BY CONSTRUCTION**. The register is untouched, so
+  no status claim moved. Oracles re-run:
+
+  | oracle | result |
+  |---|---|
+  | `bash scripts/check_doctrines.sh` | **ALL 15 doctrines PASS** ✅ |
+  | `scripts/check_readme_stability.sh` | **OK** — README 178/220 lines, 8 313/10 240 bytes (the 3 link re-points kept it under BOTH caps) ✅ |
+  | `scripts/check_diagnostics_and_docpaths.sh` | **OK** ✅ |
+  | `scripts/check_published_version_currency.sh` | **OK** — book snapshot 10/10 == register ✅ |
+  | `make -C rust SHELL=/bin/bash mdbook_docs_gate` | **PASS** (all 10 per-parser books + top level) ✅ |
+  | `make -C rust SHELL=/bin/bash ci_workflow_local_gate` | ⛔ **CANNOT COMPLETE — and it could not before this leaf either.** Not claimed. See the differential below |
+
+  #### ⛔ The gate I most wanted is BLOCKED, so I measured what it would have measured
+
+  `ci_workflow_local_gate` owns the 4 assertion sets this leaf edits, so it is the natural oracle.
+  It **aborts in its audit phase on two PRE-EXISTING defects**, neither caused here:
+
+  | # | blocker | evidence it is pre-existing |
+  |---|---|---|
+  | 1 | *"absolute PGEN checkout path found in markdown docs"* | the hit is `stimuli/generators/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md`, inside the **`anvil` SUBMODULE** (`git submodule status` → `ecda0e78`). `git diff --cached --name-only \| grep -c anvil` = **0** — this leaf's diff does not touch it |
+  | 2 | `README.md` must contain *"`regex_corpus_bundle/`: PCRE2-first …"* | `git log -S` names `README-POLICY.1` (`d29c3dd7`) as the commit that REMOVED the line when the README was cut to a landing page. The assertion was never updated |
+
+  ⭐ Blocker 1 is a **doctrine enforced twice, by two tools that disagree**:
+  `check_diagnostics_and_docpaths.sh` uses `git grep` (submodule-blind ⇒ **OK**), while this gate uses
+  `rg` (descends into the submodule ⇒ **FAIL**). Same rule, same tree, opposite verdicts — so one of
+  them is wrong about scope, and PGEN cannot fix a file it does not own from here.
+
+  ⇒ **Rather than claim a green I do not have, I built the differential the gate would have run.**
+  Every `assert_file_contains` arm in the 4 edited functions, evaluated against the working tree AND
+  against `HEAD` (the state before this leaf):
+
+  | arms in the 4 edited audits | count |
+  |---|---|
+  | total after this leaf | **89** (93 before − the 4 retired tracker arms, exactly) |
+  | PASS now | **87** |
+  | ⛔ fail now but PASSED at `HEAD` ⇒ **caused by this leaf** | **0** ✅ |
+  | ⚠️ fail now AND at `HEAD` ⇒ pre-existing | **2** — both the README arms above |
+
+  ⇒ this leaf removed **exactly** the 4 arms it intended and regressed **nothing**. The driver is
+  `rust/target/ci_audit_subset.sh` (untracked scratch — it sources the gate's own helper and audit
+  function bodies rather than restating them, so it cannot test a rule the gate does not apply).
+  ⚠️ **Honest bound**: this covers the audit phase for the 4 edited functions only, not the gate's
+  replay phase. It is a substitute for a blocked oracle, not an equal of it.
+- [x] **⚠️ A TRAP I WALKED INTO, AND THE REPORTING BUG THAT ALMOST HID IT.** Editing 6 per-parser
+  book `.md` sources changed each book's mdBook **content-hashed search index**
+  (`searchindex-<hash>.js`), and that HTML is **tracked**. So `ci_workflow_local_gate.sh`'s
+  tracked-tree export died on `cp: cannot stat '…/searchindex-10339143.js'` — the tracked name no
+  longer existed on disk. ⛔ **And I nearly missed it**: I had run the gate as
+  `guard … > log; echo "rc=$?"`, so the reported code was `echo`'s, not the gate's — the log said
+  `make: *** Error 1` / `memory-guard: completed exit=2` while the wrapper reported success.
+  ⇒ **never read a pipeline's exit status from a trailing `echo`.** Fixed by co-committing the
+  regenerated HTML (4 renamed search indexes + 116 modified pages), which is this repo's established
+  convention — verified against a prior book-source commit's own file list rather than assumed.
+- [x] **LOCKSTEP** — `COMMIT.md` (the `Files Involved` entry now names the register as the CLAIM and
+  the book page as its gate-held VIEW), `docs/TASK_TREE.md`, `docs/TASK_TREE_README.md`, `README.md`,
+  `SESSION_BOOTSTRAP.md`, `PGEN_USER_GUIDE.md`, `QUICKSTART_AI_ONBOARDING.md`, 11 book chapters, 5
+  integration contracts, 6 per-parser book pages + their tracked HTML, `PGEN_README_STABILITY_POLICY.md`,
+  the roadmap, `RUST_CODEBASE_ANALYSIS.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
+#### ⚠️ Found while sweeping — ROUTED, not worked
+
+`docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md:998` states *"the current measured sidecar now
+computes `regex=Done`"*. The register claims `In Progress` and `DONE-BAR.2b` demoted it on
+2026-07-29. ⇒ a **live false claim** on the roadmap. It blocks no gate and no published contract, so
+per [[feedback_flow_findings_are_routed_not_worked]] it is routed to **`.4`** — whose own table
+already names this roadmap as the worst self-refuting offender (~3.3 months). Only the file
+reference was corrected here; the stale verdict was deliberately left for `.4` to adjudicate.
 
 ### `.1c3` — the delete (`todo`)
 

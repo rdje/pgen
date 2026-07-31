@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0006 — leaf LIVE-MEANS-LIVE.1c2: every referrer that DEPENDS on the tracker is retired; only the three that narrate its deletion remain
+
+Docs + doctrine enforcers + the tracked per-parser book HTML. No `grammars/*.ebnf`, no
+`rust/src/*`, no `generated/*` ⇒ all generated parsers byte-identical BY CONSTRUCTION. The register
+is untouched, so no status claim moved.
+
+- ✅ **4 live `assert_file_contains` on tracker prose → 0.** Each was 1 arm of a 15-37-arm group,
+  and every group keeps at least three other documentation surfaces asserting the same feature —
+  measured by walking each enclosing function, not assumed, before dropping anything.
+- ✅ **33 live `.md` surfaces → 3.** The three that remain all *narrate the deletion*: the director's
+  verbatim quote in `docs/TASK_TREE.md`, `COMMIT.md`'s record of where `claimed_status` came from,
+  and the book chapter explaining why the file is gone. History, `docs/tasks/` and `docs/decisions/`
+  keep their references raw — an append-only surface does not get rewritten.
+- ⭐⭐ **This is the leaf that closes the ACTUAL root cause of the rot.**
+  `check_readme_stability.sh`'s overflow rule routed *"family status / Done-bar claims"* into
+  `LIVE_ACHIEVEMENT_STATUS.md`: README.md was capped on two axes while the file it overflowed INTO
+  had no instrument at all, and it reached 1 547 057 B. Overflow now lands in a **schema-bounded JSON
+  field**, which cannot accumulate a changelog. *Capping a file is only half a fix; the other half is
+  checking where the overflow lands.*
+- ✅ `COMMIT.md`'s `Files Involved` now names the register as the hand-authored CLAIM (with the
+  never-auto-populate rule stated in place) and the book page as its gate-held published VIEW.
+- 🗑️ `run_demotion_impact_probe.sh` **deleted**, its captured record `demotion_impact_probe.txt`
+  kept. Measured **doubly dead**: its historical guard exits 0 before reading anything, `.1a` removed
+  the very function its replay extracts (so it would `exit 3 MISCALIBRATED`), and nothing invokes it.
+  A script that cannot reproduce its own output is not an instrument.
+- ⚠️ **A trap, recorded because it nearly went unnoticed.** Editing 6 per-parser book sources changed
+  each book's content-hashed `searchindex-<hash>.js`, and that HTML is tracked — so
+  `ci_workflow_local_gate`'s tracked-tree export died on a `cp: cannot stat`. I had run the gate as
+  `guard … > log; echo "rc=$?"`, so the reported code was `echo`'s while the log said
+  `make: *** Error 1`. ⇒ **never read a pipeline's exit status from a trailing `echo`.** Resolved by
+  co-committing the regenerated HTML, this repo's established convention.
+- ⚠️ **Routed, not worked**: the roadmap states *"the current measured sidecar now computes
+  `regex=Done`"* while the register claims `In Progress` (demoted 2026-07-29 by `DONE-BAR.2b`) — a
+  live false claim, sent to `.4`, which already names this roadmap its worst offender.
+- ⛔ **`ci_workflow_local_gate` CANNOT COMPLETE, and it could not before this leaf either — not
+  claimed as a pass.** It aborts in its audit phase on two PRE-EXISTING blockers: (a) the markdown
+  repo-path audit uses `rg`, which descends into the `anvil` **submodule**, while the doctrine's own
+  enforcer uses `git grep`, which does not — one doctrine, two enforcers, opposite verdicts, and the
+  offending file belongs to another repository; (b) two `README.md` literals that `README-POLICY.1`
+  removed when the README became a landing page. Both routed to **`CI-PARITY-GATE-ROT.20`**.
+- ✅ **So I measured what that gate would have measured.** Every `assert_file_contains` arm in the 4
+  edited audits, evaluated against the working tree AND against `HEAD`: **89 arms** (93 − the 4
+  retired), **87 pass**, **0 fail that passed at `HEAD`** (⇒ zero regressions from this leaf), 2 fail
+  in both states (⇒ pre-existing, the README pair). Honest bound: audit phase only, not the replay phase.
+- Other oracles: `check_doctrines.sh` 15/15, `check_readme_stability.sh` OK (178/220 lines,
+  8 313/10 240 bytes), docpath OK, currency OK (10/10), `mdbook_docs_gate` PASS.
+- Live-status snapshot **unchanged** (still 0 `Done` rows).
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0005 — leaf LIVE-MEANS-LIVE.1c1: the BOOK now publishes the family status, and a gate holds it to the register
 
 Book + doctrine enforcer + probe driver + task tree. No `grammars/*.ebnf`, no `rust/src/*`, no

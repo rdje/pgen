@@ -885,7 +885,7 @@ wins, and this integration contract wins over the book.
   - `rust/build.rs`
   - `PGEN_VHDL_PARSER_PATH`
 - Live closure/status surface:
-  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `docs/book/src/roadmap-and-live-status.md`
 - Machine-checkable shape inventory:
   - `generated/vhdl_return_annotations.json`
   - `rust/test_data/ast_shape_contract/vhdl_v1.json`
@@ -925,7 +925,7 @@ wins, and this integration contract wins over the book.
 
 ## Scope / Non-Goals
 - The stable downstream contract is the host-oriented embedding API, not internal generated parser modules or internal AST types.
-- `vhdl` is still an `In Progress` family in the live tracker, so downstream integrators should treat the embedding surface as real but still pay attention to the current live blocker list in `LIVE_ACHIEVEMENT_STATUS.md`.
+- `vhdl` is still an `In Progress` family in the live tracker, so downstream integrators should treat the embedding surface as real but still pay attention to the current live blocker list in `docs/book/src/roadmap-and-live-status.md`.
 - When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
 
 ## Companion Documentation — VHDL Parser Integration mdBook

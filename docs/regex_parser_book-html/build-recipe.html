@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-10339143.js";
+            window.path_to_searchindex_js = "searchindex-ed9918d0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2f537e2b.js"></script>
@@ -269,7 +269,7 @@ make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap
 git -C subs/pgen clean -fdx generated/ rust/target/
 </code></pre>
 <h2 id="determinism"><a class="header" href="#determinism">Determinism</a></h2>
-<p>Per the slice-5 (2026-04-29) policy in <code>LIVE_ACHIEVEMENT_STATUS.md</code>: regen is deterministic given the same input. Two consecutive <code>make regex_parser_bootstrap</code> runs against the same <code>grammars/regex.ebnf</code> and the same PGEN source must produce <strong>byte-identical</strong> <code>generated/regex_parser.rs</code>. To check:</p>
+<p>Per the Repository Layout policy in <code>docs/book/src/developer-architecture.md</code>: regen is deterministic given the same input. Two consecutive <code>make regex_parser_bootstrap</code> runs against the same <code>grammars/regex.ebnf</code> and the same PGEN source must produce <strong>byte-identical</strong> <code>generated/regex_parser.rs</code>. To check:</p>
 <pre><code class="language-bash">make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap \
     &amp;&amp; shasum -a 256 subs/pgen/generated/regex_parser.rs &gt; /tmp/sha1
 make -C subs/pgen/rust SHELL=/bin/bash regex_parser_bootstrap \

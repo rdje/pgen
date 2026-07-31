@@ -178,7 +178,7 @@ ls -lah generated/
 - `README.md` - Project objective, canonical flow, and current doc map
 - `PGEN_USER_GUIDE.md` - Operator-facing workflows and supported public surfaces
 - `docs/reference/RUST_CODEBASE_ANALYSIS.md` - Current Rust-first architecture and subsystem map
-- `LIVE_ACHIEVEMENT_STATUS.md` - Current closure truth and remaining gaps
+- `docs/book/src/roadmap-and-live-status.md` - Current closure truth and remaining gaps (claim: `rust/test_data/grammar_quality/done_bar_family_register_v0.json`)
 - `DEVELOPMENT_NOTES.md` - Key technical insights and lessons learned
 
 ## 🔧 Known Issues and Workarounds

@@ -80,7 +80,8 @@ routing_hint() {
                       operational procedure ............. docs/book/src/operations-and-governance.md
                       repository layout / paths ......... docs/book/src/developer-architecture.md
                       per-parser books and their gates .. docs/book/src/parser-families.md
-                      family status / Done-bar claims ... LIVE_ACHIEVEMENT_STATUS.md
+                      family status / Done-bar claims ... rust/test_data/grammar_quality/done_bar_family_register_v0.json
+                        (the CLAIM; its published view is docs/book/src/roadmap-and-live-status.md)
                       release history ................... CHANGES.md
                       design rationale .................. docs/decisions/
                       normative spec / contracts ........ docs/reference/, docs/contracts/
@@ -109,11 +110,17 @@ fi
 # standing in for the real fact: this is NOT a general "is this changelog content?" oracle. It
 # detects exactly ONE measured leakage class — the dated historical annotation. At adoption
 # README.md carried 6 of them ("demoted to Mostly Done on 2026-07-29 (DONE-BAR.2b)", ...), each
-# a CHANGES.md / LIVE_ACHIEVEMENT_STATUS.md row living on the landing page. A date on a landing
-# page is release history; the escape is to move it, not to weaken this check.
+# a CHANGES.md / status-tracker row living on the landing page. A date on a landing page is
+# release history; the escape is to move it, not to weaken this check.
+#
+# ⭐ LIVE-MEANS-LIVE.1c2 — this rule used to route status overflow into LIVE_ACHIEVEMENT_STATUS.md,
+# and that redirect is exactly how the rot happened: README.md was capped on two axes while the file
+# it overflowed INTO had no instrument at all, and it reached 1 547 057 B of which 94.7 % was a dated
+# changelog. Overflow now lands in a SCHEMA-BOUNDED field, which cannot accumulate a changelog.
+# ⇒ capping a file is only half a fix; the other half is checking where the overflow lands.
 dated=$(grep -cE '20[0-9]{2}-[0-9]{2}-[0-9]{2}' "$TARGET" || true)
 if [ "${dated:-0}" -gt 0 ]; then
-  note "$TARGET carries $dated date-stamped line(s) — release history belongs in CHANGES.md and status in LIVE_ACHIEVEMENT_STATUS.md."
+  note "$TARGET carries $dated date-stamped line(s) — release history belongs in CHANGES.md and family status in the DONE-BAR register (rust/test_data/grammar_quality/done_bar_family_register_v0.json)."
   grep -nE '20[0-9]{2}-[0-9]{2}-[0-9]{2}' "$TARGET" | head -5 | sed 's/^/                      /' >&2
 fi
 

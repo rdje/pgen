@@ -11,7 +11,7 @@ completion evidence.
 
 ## What The Task Tree Is For
 
-The roadmap (PGEN's is captured across `README.md`, `LIVE_ACHIEVEMENT_STATUS.md`,
+The roadmap (PGEN's is captured across `README.md`, the live family-status view,
 and the per-parser contracts under `docs/contracts/`) answers:
 
 - What broad lanes exist?
@@ -43,7 +43,7 @@ Project integration files already present in PGEN:
 
 ```text
 README.md
-LIVE_ACHIEVEMENT_STATUS.md
+docs/book/src/roadmap-and-live-status.md
 COMMIT.md
 SESSION_BOOTSTRAP.md
 MEMORY.md
@@ -59,7 +59,7 @@ DEVELOPMENT_NOTES.md
 | `docs/TASK_TREE.md` | Local operating spec, active task-tree index, and PNT selection rules. |
 | `docs/tasks/TEMPLATE.md` | Copyable skeleton for each new top-level task tree. |
 | `docs/tasks/<TREE>.md` | One task tree for one top-level task. |
-| `LIVE_ACHIEVEMENT_STATUS.md` | High-level status board; links active lanes to active task trees. |
+| `docs/book/src/roadmap-and-live-status.md` | High-level status board; links active lanes to active task trees. |
 | `COMMIT.md` | Commit workflow; requires task-file updates and leaf-ID traceability. |
 | `README.md` | Project entry point; links the task-tree docs. |
 | `SESSION_BOOTSTRAP.md` | Session startup ritual; tells agents to read active task trees. |
@@ -115,11 +115,11 @@ continuity, and PNT-style execution.
 7. Update `SESSION_BOOTSTRAP.md` or equivalent:
    - Read `README.md`.
    - Read `COMMIT.md`.
-   - Read `LIVE_ACHIEVEMENT_STATUS.md`.
+   - Read `docs/book/src/roadmap-and-live-status.md`.
    - Read `docs/TASK_TREE.md`.
    - Read active task files listed in `docs/TASK_TREE.md`.
    - Pick work from the current frontier when the user asks for PNT.
-8. Update `LIVE_ACHIEVEMENT_STATUS.md` (or roadmap equivalent):
+8. Update the family-status claim (or roadmap equivalent):
    - Keep roadmap lanes high-level.
    - For each active lane with task-tree-managed work, link the owning task
      file and name the current frontier leaf.
@@ -135,7 +135,7 @@ continuity, and PNT-style execution.
     - `CHANGES.md`: log creation of the workflow and any task-tree status
       transition that changes project state.
     - `DEVELOPMENT_NOTES.md`: record rationale and policy decisions.
-    - `LIVE_ACHIEVEMENT_STATUS.md`: record the latest completed slice.
+    - `docs/book/src/roadmap-and-live-status.md`: record the latest completed slice.
 11. Commit the setup as one documentation/workflow slice.
 
 ## Adapting `docs/TASK_TREE.md`
@@ -206,7 +206,7 @@ wants that extra index.
 - Do not use the roadmap as the detailed task ledger.
 - Do not put broad container tasks in the current frontier.
 - Do not create vague children that cannot be verified.
-- Do not duplicate the whole task tree into `LIVE_ACHIEVEMENT_STATUS.md`.
+- Do not duplicate the whole task tree into `docs/book/src/roadmap-and-live-status.md`.
 - Do not leave completed leaves uncommitted.
 - Do not silently continue when a discovered subtask changes the scope; split
   the node and update the frontier.
@@ -224,7 +224,7 @@ Use this checklist when enabling the workflow in a new project.
 [ ] docs/tasks/<FIRST-TREE>.md exists.
 [ ] docs/TASK_TREE.md lists the first active tree.
 [ ] README.md links docs/TASK_TREE_README.md and docs/TASK_TREE.md.
-[ ] LIVE_ACHIEVEMENT_STATUS.md links active roadmap lane(s) to active task tree(s).
+[ ] The live family-status view links active roadmap lane(s) to active task tree(s).
 [ ] COMMIT.md requires task-file updates and leaf-ID commit traceability.
 [ ] SESSION_BOOTSTRAP.md reads docs/TASK_TREE.md and active task files.
 [ ] Continuity/history docs summarize the setup.

@@ -54,7 +54,7 @@ generic policy's classes resolved against this repository's actual documentation
 | Operational procedure (memory guard, hosted-Actions posture, workflow parity) | `docs/book/src/operations-and-governance.md` |
 | Repository layout / path inventory | `docs/book/src/developer-architecture.md` § Repository Layout |
 | Per-parser book roster and per-book gates | `docs/book/src/parser-families.md` |
-| Family status, `Done`-bar claims, demotions | `LIVE_ACHIEVEMENT_STATUS.md` |
+| Family status, `Done`-bar claims, demotions | `rust/test_data/grammar_quality/done_bar_family_register_v0.json` (the claim); published view `docs/book/src/roadmap-and-live-status.md` |
 | Release history, per-slice change detail | `CHANGES.md`, git history |
 | Design rationale and doctrine argument | `docs/decisions/`, `docs/book/src/quality-and-closure-model.md` |
 | Deep normative specification | `docs/reference/`, `docs/contracts/` |

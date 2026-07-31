@@ -9,7 +9,7 @@ closed-loop replay standing behind every claim.
 - **Audience** — language-tooling engineers who need a parser they can trust where
   parsing correctness materially affects downstream flows.
 - **Status** — active, Rust-first. Live per-family status:
-  [`LIVE_ACHIEVEMENT_STATUS.md`](LIVE_ACHIEVEMENT_STATUS.md).
+  [Roadmap and Live Status](docs/book/src/roadmap-and-live-status.md).
 - **License** — Apache-2.0, see [`LICENSE`](LICENSE).
 
 > 📖 **This README is a landing page, deliberately.** Detail lives in the
@@ -40,7 +40,7 @@ Near-term integration targets: **Nexsim** (SystemVerilog + VHDL), **RGX** (regex
 
 The rationale behind these doctrines is in
 [Quality and Closure Model](docs/book/src/quality-and-closure-model.md); the graded
-per-family bar is in [`LIVE_ACHIEVEMENT_STATUS.md`](LIVE_ACHIEVEMENT_STATUS.md).
+per-family bar is in [Roadmap and Live Status](docs/book/src/roadmap-and-live-status.md).
 
 ## Prerequisites
 
@@ -156,7 +156,7 @@ New here — human or AI agent — follow this path:
 5. [`QUICKSTART_AI_ONBOARDING.md`](QUICKSTART_AI_ONBOARDING.md) and
    [`PGEN_USER_GUIDE.md`](PGEN_USER_GUIDE.md).
 6. [`docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-   and [`LIVE_ACHIEVEMENT_STATUS.md`](LIVE_ACHIEVEMENT_STATUS.md) — direction and status.
+   and [Roadmap and Live Status](docs/book/src/roadmap-and-live-status.md) — direction and status.
 7. [`MEMORY_ARCHITECTURE.md`](MEMORY_ARCHITECTURE.md) and
    [`DOCTRINE_ENFORCEMENT.md`](DOCTRINE_ENFORCEMENT.md) — how continuity and rule
    enforcement work here.

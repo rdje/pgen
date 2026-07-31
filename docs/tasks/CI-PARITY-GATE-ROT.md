@@ -2063,12 +2063,65 @@ their cost allows is real remaining work**, and it is recorded as such rather th
   (a new tracked gate that belongs to no aggregate and no workflow is a commit-time warning),
   so the class closes rather than recurring a fourth time.
 
+### `.20` — ROUTED IN from `LIVE-MEANS-LIVE.1c2`: two fresh `ci_workflow_local_gate` audit-phase blockers (`todo`)
+
+Measured 2026-07-31 at commit `e1c28f38` while `LIVE-MEANS-LIVE.1c2` was editing four of this
+gate's audit functions. The gate **aborts in its audit phase**, so its replay phase is unreachable.
+Both blockers are **pre-existing and independent of that leaf** — routed here rather than worked,
+per [[feedback_flow_findings_are_routed_not_worked]], because they block no *published* claim.
+
+#### ⭐⭐ `.20a` — one doctrine, two enforcers, opposite verdicts (a genuinely new shape for this tree)
+
+| enforcer | tool | verdict on the same tree |
+|---|---|---|
+| `scripts/check_diagnostics_and_docpaths.sh` | `git grep` | **OK** |
+| `rust/scripts/ci_workflow_local_gate.sh` (`audit markdown repo-path policy`, `:2660`) | `rg` | **FAIL** |
+
+The single hit is `stimuli/generators/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md:45`, which carries an
+absolute home-directory checkout path — of the form `/Users/<user>/` … ending in `pgen/`.
+⚠️ **The literal is deliberately NOT reproduced here**: `docs/tasks/**` is itself on the guarded
+surface, so pasting it makes this routing note trip the very doctrine it reports. (Measured — the
+first draft of this paragraph did exactly that and `check_diagnostics_and_docpaths.sh` blocked the
+commit. The guard is correct; it is a nice demonstration that the `git grep` arm does bite where it
+can see.) It lives inside the **`anvil` git submodule**
+(`git submodule status stimuli/generators/anvil` → `ecda0e78`), so:
+
+- `git grep` / `git ls-files` do **not** descend into it ⇒ the doctrine's own enforcer is blind to it;
+- `rg` walks the filesystem ⇒ the parity gate sees it;
+- ⛔ and **PGEN cannot fix it from here** — the file belongs to another repository.
+
+⇒ the open question is *scope*, not the string: **is a submodule's markdown inside PGEN's live-doc
+surface or not?** Both enforcers must then agree. ⭐ This is a new failure shape for this tree:
+`.1`-`.19` are all *one* enforcer that rotted. Here **neither is rotted — they disagree about what
+they govern**, and a doctrine whose two enforcers disagree is not one doctrine.
+
+#### `.20b` — a second assertion staled by a landing-page shrink
+
+`audit_regex_corpus_bundle_surface` and `audit_regex_pcre2_compile_oracle_surface` require two
+literals in `README.md` that `README-POLICY.1` (`d29c3dd7`) **removed** when the README was cut to a
+landing page. `git log -S` names that commit for both. This is the tree's established class (a
+literal pinned against a moving surface — cf. the `1.1.29`/`1.1.31` constants and the 1 371-commit
+`generated/` assertion), so the fix is likely `assert_file_matches` against the *canonical
+destination* the content moved to, not re-pinning README.
+
+⚠️ **Do not stop at the first green** — this gate is fail-fast, so `.20a` currently hides `.20b`,
+which in turn may hide more. The acceptance is the gate reaching the end of its audit phase.
+
+⭐ **Measured alongside, and worth keeping**: of the **89** `assert_file_contains` arms in the four
+audits `LIVE-MEANS-LIVE.1c2` touched, **87 pass** and the only 2 failures are `.20b`'s. So the audit
+phase is *nearly* green and is being held down by a small, bounded set of stale literals — a cheap
+leaf, not a campaign.
+
 ## Evidence
 
 - Measured at commit `730419a2`, session #215. The census was produced by sourcing
   `rust/scripts/ci_workflow_local_gate.sh` with its trailing `main "$@"` stripped and invoking
   each `audit_*` function in its own subshell — 31 functions total, 8 failing after the
   `assert_generated_artifact` repair.
+- `.20` measured 2026-07-31 at commit `e1c28f38` (session #229) by the same technique — sourcing the
+  gate's own helper + audit function bodies rather than restating their rules — plus a
+  working-tree-vs-`HEAD` differential over every `assert_file_contains` arm, which is what separated
+  the 2 pre-existing failures from 0 caused by the leaf that found them.
 - Provenance of the first blocker: `git log -1 --format="%h %ad %s" --date=short 0ed2b2ad` →
   `0ed2b2ad 2026-04-29 Slice 5: stop tracking generated/* in git`;
   `git merge-base --is-ancestor 0ed2b2ad HEAD` → true;

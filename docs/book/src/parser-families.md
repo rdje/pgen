@@ -168,7 +168,7 @@ The handwritten baseline is tightened whenever a divergence is really a parse-bo
 
 For exact current status, always check:
 
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/book/src/roadmap-and-live-status.md`
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ## Future Downstream Parser Requests

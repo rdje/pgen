@@ -10,7 +10,7 @@ The maintained Rust toolchain floor is explicit now: the repo's Cargo packages d
 2. `QUICKSTART_AI_ONBOARDING.md`
 3. `PGEN_USER_GUIDE.md`
 4. `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-5. `LIVE_ACHIEVEMENT_STATUS.md`
+5. `docs/book/src/roadmap-and-live-status.md`
 
 ## First Commands To Know
 

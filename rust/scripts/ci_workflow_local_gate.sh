@@ -2670,9 +2670,9 @@ audit_regex_corpus_bundle_surface() {
   assert_file_contains \
     "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`regex_corpus_bundle/` is the canonical PCRE2-first starter for widening regex evidence'
-  assert_file_contains \
-    "LIVE_ACHIEVEMENT_STATUS.md" \
-    'future regex hardening now also has a maintained external-corpus acquisition lane under `regex_corpus_bundle/`'
+  # LIVE-MEANS-LIVE.1c2: the LIVE_ACHIEVEMENT_STATUS.md arm is RETIRED (the file is deleted by
+  # `.1c3`). It was 1 arm of 21 here; the same feature stays asserted on PGEN_USER_GUIDE.md ×3, the
+  # roadmap, RUST_CODEBASE_ANALYSIS.md and README.md — measured, not assumed, before dropping it.
   assert_file_contains \
     "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '`regex_corpus_bundle/`'
@@ -2738,9 +2738,8 @@ audit_regex_pcre2_compile_oracle_surface() {
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     'the compile-oracle gate is the first external-corpus lane that actually measures expected compile outcomes against PCRE2 source truth'
-  assert_file_contains \
-    "LIVE_ACHIEVEMENT_STATUS.md" \
-    '`make -C rust regex_pcre2_compile_oracle_gate` pairs PCRE2 `testinput2` with `testoutput2`'
+  # LIVE-MEANS-LIVE.1c2: retired tracker arm (1 of 20 here; guide ×2, roadmap,
+  # RUST_CODEBASE_ANALYSIS.md ×2 and README.md still assert this feature).
   assert_file_contains \
     "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`make -C rust regex_pcre2_compile_oracle_gate` consumes the new normalizer `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py`'
@@ -2931,9 +2930,8 @@ audit_sv_formal_exhaustive_closure_surface() {
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     'make -C rust SHELL=/bin/bash sv_formal_exhaustive_closure_gate'
-  assert_file_contains \
-    "LIVE_ACHIEVEMENT_STATUS.md" \
-    '`make -C rust SHELL=/opt/homebrew/bin/bash sv_formal_exhaustive_closure_gate` now computes an explicit external-corpus-backed formal-closure sidecar'
+  # LIVE-MEANS-LIVE.1c2: retired tracker arm (1 of 15 here; guide, roadmap and
+  # RUST_CODEBASE_ANALYSIS.md still assert this feature).
   assert_file_contains \
     "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`sv_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog external-corpus proof surface explicit'
@@ -3028,9 +3026,8 @@ audit_sv_preprocessor_formal_exhaustive_closure_surface() {
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     'make -C rust SHELL=/bin/bash sv_preprocessor_formal_exhaustive_closure_gate'
-  assert_file_contains \
-    "LIVE_ACHIEVEMENT_STATUS.md" \
-    '`make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_formal_exhaustive_closure_gate`'
+  # LIVE-MEANS-LIVE.1c2: retired tracker arm (1 of 37 here; guide, roadmap and
+  # RUST_CODEBASE_ANALYSIS.md still assert this feature).
   assert_file_contains \
     "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`sv_preprocessor_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog-preprocessor grammar-level proof surface explicit'

@@ -74,6 +74,6 @@ The most important repo docs behind this chapter are:
 - `README.md`
 - `PGEN_USER_GUIDE.md`
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/book/src/roadmap-and-live-status.md`
 
 Use the book for the curated story. Use those files for the raw operational truth.

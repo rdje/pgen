@@ -36,7 +36,7 @@ This is the document downstream projects such as Nexsim should read first when d
   - `sv_2023`
   - `verilog_2005` (strict IEEE 1364-2005 subset dialect profile on the same grammar — see § "Dialect Profile — `verilog_2005`")
 - Current live status:
-  - Tracked in `LIVE_ACHIEVEMENT_STATUS.md`
+  - Tracked in `docs/book/src/roadmap-and-live-status.md`
 
 ## Current Trust Statement
 - The PGEN `systemverilog` parser is **closure-grade for the current Nexsim-facing scope** when consumed through the stable `pgen::embedding_api` host surface.
@@ -6314,7 +6314,7 @@ systemverilog_parseable_file := trivia parseable_source_item* trivia
   - `rust/build.rs`
   - `PGEN_SYSTEMVERILOG_PARSER_PATH`
 - Live closure/status surface:
-  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `docs/book/src/roadmap-and-live-status.md`
 - Reference IEEE 1800 LRM corpus (read-only):
   - `docs/systemverilog/2017/` (Annex A formal syntax, plus other annexes)
   - `docs/systemverilog/2023/` (delta + 2023-specific annexes)

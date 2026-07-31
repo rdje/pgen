@@ -1568,7 +1568,7 @@ ebnf_frontend_dual_run_gate`. The live count is **12 of 12 tracked grammars — 
 this time for the right reason. The three raw IEEE-LRM *extraction snapshots*
 (`systemverilog_2017/2023_lrm_extracted`, `verilog_2005_lrm_extracted`) are traceability artifacts,
 not part of the tracked self-hosting set. The live count and per-gap history are tracked in
-`LIVE_ACHIEVEMENT_STATUS.md` and the `GRAMMAR-WELLFORMED` task tree (`H.13`/`H.14`).
+`docs/book/src/roadmap-and-live-status.md` and the `GRAMMAR-WELLFORMED` task tree (`H.13`/`H.14`).
 
 > ⛔ **This number went DOWN before it came back, and both moves were the measurement getting
 > honest.** From 2026-06-25 (`GRAMMAR-WELLFORMED.H.14.3`, release `1.0.147`) this chapter

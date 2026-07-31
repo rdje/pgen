@@ -252,7 +252,7 @@ This is a live document, not an archival write-up. It should be amended whenever
 - This is a source-structure and architecture assessment of the maintained Rust-first platform.
 - It covers the main Rust crate, the generated-parser integration layer, the major Rust-owned binaries, and the Rust-owned gate/build ecosystem around them.
 - It is not a claim that every parser family is closed.
-- It is not a replacement for the live closure tracker in `LIVE_ACHIEVEMENT_STATUS.md`.
+- It is not a replacement for the live closure status in `docs/book/src/roadmap-and-live-status.md`.
 - It should be read alongside the roadmap priority rule:
   - active parser-family closure work is now centered on the remaining main-`systemverilog` debt and still outranks deferred maintainability refactors.
   - tracing is now an explicit repo doctrine for future tools and operational binaries:
@@ -444,7 +444,7 @@ Operational rule:
     - release-support continuity
     - tracking accepted downstream parser bugs through fix and release
     - linking real integration bugs back to proof and regression artifacts
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/book/src/roadmap-and-live-status.md`
   - Use for:
     - current closure/status truth
     - distinguishing architecture work from “family actually closed” claims

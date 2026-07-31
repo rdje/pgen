@@ -30,14 +30,25 @@ When the activity is NOT a code change (pure live-docs/contracts/books/tracker/w
   - ⛔ Ordinary feature work updates the CANONICAL DESTINATION, not the README: gate recipes ->
     `docs/book/src/gate-flow.md`, operational procedure ->
     `docs/book/src/operations-and-governance.md`, the repository path inventory ->
-    `docs/book/src/developer-architecture.md`, status -> `LIVE_ACHIEVEMENT_STATUS.md`, history ->
+    `docs/book/src/developer-architecture.md`, family status -> the DONE-BAR register, history ->
     `CHANGES.md`. A cap is NEVER raised to land content.
-- `LIVE_ACHIEVEMENT_STATUS.md` (tracked)
-  - Authoritative live progress tracker.
-  - Must use only `Done`, `Provisional (ceiling)`, `Provisional (corpus pending)`, `Mostly Done`, `In Progress`, and `Not Started` (the `Provisional` pair added 2026-07-29 — a SHIPPING tier for a family meeting legs 1-2 of the `Done` bar but not leg 3; `(ceiling)` = leg 3 unreachable by construction, a FINISHED row; `(corpus pending)` = a recognized corpus exists in the world and wiring it is outstanding. ⛔ Bare `Provisional` is incomplete, and `(ceiling)` requires the language be defined by PGEN itself — "could not find a corpus" is never a ceiling. See `LIVE_ACHIEVEMENT_STATUS.md` Status Rules).
+- `rust/test_data/grammar_quality/done_bar_family_register_v0.json` (tracked) — **the live status CLAIM**
+  - Each family's `claimed_status` is the authoritative, HAND-AUTHORED live progress claim. It moved
+    here from `LIVE_ACHIEVEMENT_STATUS.md` in `LIVE-MEANS-LIVE.1a`, which was deleted in `.1c3`
+    after reaching 1 547 057 B of which 94.7 % was a dated changelog. A schema-bounded field cannot
+    rot that way; a free-form Markdown file with no cap is what let it.
+  - ⛔ **NEVER auto-populate `claimed_status` from a gate.** It is one arm of a two-arm check — the
+    three `*_parser_family_status_gate.sh` gates COMPUTE the status from proof surfaces and fail on
+    disagreement. Generating the claim makes the comparison pass by construction.
+  - Must use only `Done`, `Provisional (ceiling)`, `Provisional (corpus pending)`, `Mostly Done`, `In Progress`, and `Not Started` (the `Provisional` pair added 2026-07-29 — a SHIPPING tier for a family meeting legs 1-2 of the `Done` bar but not leg 3; `(ceiling)` = leg 3 unreachable by construction, a FINISHED row; `(corpus pending)` = a recognized corpus exists in the world and wiring it is outstanding. ⛔ Bare `Provisional` is incomplete, and `(ceiling)` requires the language be defined by PGEN itself — "could not find a corpus" is never a ceiling. The rules live in `docs/book/src/quality-and-closure-model.md`).
   - Must be reviewed and updated before every commit whenever actual closure or remaining scope changes.
   - The current live-status snapshot must be summarized in every user-facing completion message produced by the commit workflow.
   - If any live-status row changes, the completion message must also state how the task affected that snapshot.
+- `docs/book/src/roadmap-and-live-status.md` (tracked) — **the published VIEW of that claim**
+  - The human at-a-glance per-family table. `scripts/check_published_version_currency.sh`
+    (`PUBLISHED-VERSION-CURRENCY`) holds it equal to the register family-by-family, in BOTH
+    directions, so a status edit that updates only one of the two FAILS the commit.
+  - ⇒ edit the register first, then this table.
 - `git_message_brief.txt` (must remain untracked)
   - Short, concise commit message file.
   - Used with `git commit -F git_message_brief.txt`.
@@ -96,7 +107,7 @@ When the activity is NOT a code change (pure live-docs/contracts/books/tracker/w
      invocation, so it costs nothing.
    - full explicit-deny run (used by the hosted workflow, and available deliberately):
      - `make -C rust SHELL=/bin/bash generated_clippy_correctness_gate`
-3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/reference/RUST_CODEBASE_ANALYSIS.md`, `README.md`, `LIVE_ACHIEVEMENT_STATUS.md`, others touched by task).
+3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/reference/RUST_CODEBASE_ANALYSIS.md`, `README.md`, the DONE-BAR register + its book view, others touched by task).
    - Treat markdown synchronization as systematic, not optional:
      - always review the tracked continuity/workflow markdown surface before commit,
      - always update every relevant tracked `.md` file touched by the task or affected by its workflow/policy/command/documentation impact,
@@ -106,17 +117,17 @@ When the activity is NOT a code change (pure live-docs/contracts/books/tracker/w
      - major subsystem boundaries,
      - public integration surfaces,
      - or the current high-level implementation/risk assessment of the Rust codebase.
-   - `LIVE_ACHIEVEMENT_STATUS.md` review/update is mandatory before each commit whenever the task changes:
+   - `rust/test_data/grammar_quality/done_bar_family_register_v0.json` review/update (and the book view in lockstep) is mandatory before each commit whenever the task changes:
      - what is `Done`,
      - what is `Mostly Done`,
      - what is `In Progress`,
      - what is `Not Started`,
      - or what the next most important remaining gap is.
    - In every commit-workflow completion message:
-     - display the current live-status snapshot from `LIVE_ACHIEVEMENT_STATUS.md`,
+     - display the current live-status snapshot from the DONE-BAR register,
      - make it clear whether the task changed that snapshot or left it unchanged.
    - When any live-status row changes:
-     - update `LIVE_ACHIEVEMENT_STATUS.md` before commit,
+     - update the register and its book view before commit,
      - summarize the changed status snapshot in the user-facing completion message,
      - explicitly state the effect of the completed task on the tracker.
    - When no live-status row changes:

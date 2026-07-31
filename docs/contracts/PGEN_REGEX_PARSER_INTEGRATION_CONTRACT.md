@@ -21,7 +21,7 @@ This is the document downstream projects such as RGX should read first when deci
 - Current stable host profile:
   - `regex_default`
 - Current live status:
-  - `Done` for the currently tracked grammar contract in `LIVE_ACHIEVEMENT_STATUS.md`
+  - `Done` for the currently tracked grammar contract in the done-bar register
 
 ## Current Trust Statement
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
@@ -2283,7 +2283,7 @@ Per the user's pending direction: implement `_meta` Phase 1 (span + rule + branc
 - Canonical released-parser bug ledger:
   - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 - Family proof/status surfaces:
-  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `docs/book/src/roadmap-and-live-status.md`
   - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ## Stable Integration Surface
@@ -2343,7 +2343,7 @@ Per the user's pending direction: implement `_meta` Phase 1 (span + rule + branc
 
 ## Generated Parser Build Recipe (for downstream consumers like RGX)
 
-`generated/*` is intentionally NOT git-tracked (per the policy in `LIVE_ACHIEVEMENT_STATUS.md` 2026-04-29 slice-5 entry). A fresh PGEN clone does NOT have `generated/regex_parser.rs` on disk. Downstream consumers must regenerate the parser before linking against `--features generated_parsers`. The build recipe below is the maintained, owner-supported path.
+`generated/*` is intentionally NOT git-tracked (per the Repository Layout policy in `docs/book/src/developer-architecture.md`). A fresh PGEN clone does NOT have `generated/regex_parser.rs` on disk. Downstream consumers must regenerate the parser before linking against `--features generated_parsers`. The build recipe below is the maintained, owner-supported path.
 
 ### TL;DR — two commands cover everything RGX needs
 

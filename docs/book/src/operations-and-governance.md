@@ -8,7 +8,7 @@ These four files are the live continuity spine:
 
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
-- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/book/src/roadmap-and-live-status.md`
 - `MEMORY.md`
 
 ## Session and Commit Workflow

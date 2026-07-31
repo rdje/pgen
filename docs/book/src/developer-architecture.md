@@ -108,7 +108,7 @@ to another filesystem without affecting the project.
 covered, which contract version is released, what the curated manifest proves — is
 deliberately not duplicated here. It moves with the code, so it lives with the code's
 own contract: `docs/contracts/` and `docs/rtl_frontend_parser_book/`, with live status
-in `LIVE_ACHIEVEMENT_STATUS.md`.
+in `docs/book/src/roadmap-and-live-status.md`.
 
 ### External corpora and stimulus sources
 
@@ -225,7 +225,7 @@ rooted at `<your-home>/.../pgen/grammars/foo.ebnf` is non-portable and breaks on
 clone — write `grammars/foo.ebnf` instead). The
 guarded surfaces are `docs/book/src`, `docs/contracts`, `PGEN_USER_GUIDE.md`, `README.md`,
 `docs/tasks`, `docs/decisions`, `KNOWLEDGE_MAP.md`, `docs/knowledge`, and
-`LIVE_ACHIEVEMENT_STATUS.md`. Append-only history (`CHANGES.md`, `DEVELOPMENT_NOTES.md`) and
+the live book. Append-only history (`CHANGES.md`, `DEVELOPMENT_NOTES.md`) and
 repo-external references (which point outside the repository and have no repo-relative
 form) are deliberately out of scope.
 

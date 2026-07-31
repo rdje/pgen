@@ -104,4 +104,4 @@ If you observe an AST shape that disagrees with this book, the contract, or the 
 
 ## Future major version
 
-A future schema milestone will land if and when the VHDL grammar's remaining un-annotated rules (terminal/regex leaves and a few utility rules) are either annotated or given a deliberate decision to remain raw envelope, and the shape definitions move to a locked tier. The VHDL family is still an `In Progress` family in the live tracker (`LIVE_ACHIEVEMENT_STATUS.md`); downstream integrators should treat the embedding surface as real but keep an eye on the live blocker list and the [Changelog Index](changelog-index.md).
+A future schema milestone will land if and when the VHDL grammar's remaining un-annotated rules (terminal/regex leaves and a few utility rules) are either annotated or given a deliberate decision to remain raw envelope, and the shape definitions move to a locked tier. The VHDL family is still an `In Progress` family in the live tracker (`docs/book/src/roadmap-and-live-status.md`); downstream integrators should treat the embedding surface as real but keep an eye on the live blocker list and the [Changelog Index](changelog-index.md).
