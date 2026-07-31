@@ -1,5 +1,29 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0012 — leaf LIVE-MEANS-LIVE.4b: forward correction — the published contracts are 100 % stale, not "3 of 9"
+
+Tracking-only. ⛔ **`CHANGES.md` is NOT rewritten** — it is a record surface whose job is to be a
+record, which is exactly the distinction `.0` corrected when the append-only rule was misapplied to a
+file named LIVE. The wrong number stands in `PGEN-LIVE-MEANS-LIVE-0010`'s entry above and is
+corrected forward here.
+
+- ⛔ **The wrong claim**: *"3 of 9 integration contracts stale, 2 self-refuting"* (`.4`'s routing note
+  and `-0010`'s changelog entry). It was written from a repo-wide sample, never from an exhaustive
+  pass over the contract class.
+- ✅ **Re-measured exhaustively** over all nine `PGEN_*_PARSER_INTEGRATION_CONTRACT.md`: **3 carry no
+  `Last updated:` field at all** (PNR, return_annotation, semantic_annotation); **6 carry it, and 6 of
+  those 6 — 100 % — are stale against `git`** (regex, rtl_const_expr, rtl_frontend, systemverilog,
+  systemverilog_preprocessor, vhdl). Two of them also self-refute.
+- ⇒ The `.4b` ruling is **unchanged but better supported**: the repo-wide staleness rate is 41 %, and
+  on the *published* contracts — the surface where a stale claim costs the most — it is **100 %**. A
+  field that has never once been correct on the class it matters most for is not a currency signal.
+- ⭐ Third re-measurement in this tree to move a published number, and again it was caught only
+  because a prior number existed to disagree with. First one where the correction made the argument
+  STRONGER rather than merely more accurate — which is why the habit earns its cost even when the
+  conclusion holds.
+- Files: `docs/tasks/LIVE-MEANS-LIVE.md`, `CHANGES.md`, `MEMORY.md`.
+- Live status snapshot UNCHANGED (no parser family affected).
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0011 — leaf LIVE-MEANS-LIVE.4b ADJUDICATED: the published contracts delete `Last updated:` too
 
 Tracking-only (task-tree + continuity docs). Director delegated the call: *"Take the most sota,

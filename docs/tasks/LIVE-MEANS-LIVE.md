@@ -1344,6 +1344,36 @@ for regex — already gate-held by `PUBLISHED-VERSION-CURRENCY`.
 3. ⛔ **Nothing reads it.** A repo-wide sweep of `scripts/`, `rust/scripts/`, `.githooks/` and
    `.github/` finds **zero** consumers other than `.2`'s own enforcer. It is unread duplication.
 
+#### ⛔ CORRECTION to a number this leaf's own routing note published — and it strengthens the ruling
+
+`.4`'s routing note (and `PGEN-LIVE-MEANS-LIVE-0010`'s changelog entry) said *"3 of 9 integration
+contracts stale, 2 self-refuting"*. **The first figure is wrong.** Re-measured exhaustively over all
+nine `PGEN_*_PARSER_INTEGRATION_CONTRACT.md` files:
+
+| contract | declares | git says | verdict |
+|---|---|---|---|
+| `PGEN_PNR_…` | — | 2026-04-10 | **no field** |
+| `PGEN_RETURN_ANNOTATION_…` | — | 2026-06-10 | **no field** |
+| `PGEN_SEMANTIC_ANNOTATION_…` | — | 2026-06-10 | **no field** |
+| `PGEN_REGEX_…` | 2026-07-21 | 2026-07-31 | ⛔ stale |
+| `PGEN_RTL_CONST_EXPR_…` | 2026-05-16 | 2026-07-03 | ⛔ stale |
+| `PGEN_RTL_FRONTEND_…` | 2026-06-15 | 2026-07-31 | ⛔ stale |
+| `PGEN_SYSTEMVERILOG_…` | 2026-07-04 | 2026-07-31 | ⛔ stale **+ self-refutes** |
+| `PGEN_SYSTEMVERILOG_PREPROCESSOR_…` | 2026-06-10 | 2026-07-31 | ⛔ stale |
+| `PGEN_VHDL_…` | 2026-06-10 | 2026-07-31 | ⛔ stale **+ self-refutes** |
+
+⇒ **6 of the 9 carry the field, and 6 of those 6 — 100 % — are stale against git.** Not 3 of 9.
+The repo-wide rate is 41 %; on the *published* contracts, the surface where staleness costs the most,
+it is **100 %**. ⛔ `CHANGES.md` is NOT rewritten — it is a record surface whose job is to be a record,
+which is the distinction `.0` corrected. The correction is carried forward here and in the next
+changelog entry.
+
+⭐ This is the third time in this tree that a re-measurement moved a published number, and the third
+time it was caught only because a prior number existed to disagree with
+([[feedback_instrument_needs_ground_truth]]). It is also the first time the correction made the
+argument *stronger* rather than merely more accurate — which is why the habit is worth its cost even
+when the conclusion does not change.
+
 #### Why "derive it at publish time" is rejected — it is this tree's own founding error, repeated
 
 `.0` adjudicated the parent question and the answer generalizes: **removing the unbounded container
