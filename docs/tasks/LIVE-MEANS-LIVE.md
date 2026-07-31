@@ -514,12 +514,199 @@ now reproduces on a fresh clone. ⇒ routed as [[feedback_ground_truth_control_m
   edit to `claimed_status` — the hand-authored arm deciding whether a published status claim is
   checked — requires no acceptance checklist. Found while confirming this leaf's own obligations.
 
-### `.1c` — the book page, the referrers, and the delete (`todo`)
+### `.1c` — the book page, the referrers, and the delete (SPLIT into `.1c1` / `.1c2` / `.1c3`)
 
 The human at-a-glance view moves to an mdBook page (gate-checked against the register),
 `check_readme_stability.sh:83` stops naming an uncapped overflow destination, and
 `LIVE_ACHIEVEMENT_STATUS.md` is deleted. ✅ The ID census in `.1a` already proves the delete is
 lossless (452/452).
+
+#### ⛔⛔ CORRECTION — *"blocked by ONE script"* was WRONG. Re-measured: **TWO**, and the second is live
+
+The ANVIL re-measurement below applied the right RULE (*classify referents by what they REQUIRE*)
+but assigned `ci_workflow_local_gate.sh` to the **path-only** class on the strength of *"×5
+`assert_tracked`"* — a mechanism it never opened. Measured at commit `f359a59c`, site by site:
+
+```
+$ for n in 286 2674 2742 2935 3032; do sed -n "$((n-2)),$n p" rust/scripts/ci_workflow_local_gate.sh; done
+  L286   -> root-md roster entry .......................... requires PATH ONLY
+  L2674  -> assert_file_contains LIVE_ACHIEVEMENT_STATUS.md  READS CONTENT
+  L2742  -> assert_file_contains LIVE_ACHIEVEMENT_STATUS.md  READS CONTENT
+  L2935  -> assert_file_contains LIVE_ACHIEVEMENT_STATUS.md  READS CONTENT
+  L3032  -> assert_file_contains LIVE_ACHIEVEMENT_STATUS.md  READS CONTENT
+```
+
+⇒ **1 of the 5 is path-only; 4 are `assert_file_contains` on exact tracker PROSE**, and all four
+asserted strings are **PRESENT in the file today**, so they are green now and go **RED on delete**.
+
+| what the referent REQUIRES | `.1c`'s figure | **re-measured** |
+|---|---|---|
+| ⛔ reads the file's CONTENT | 1 (`run_demotion_impact_probe.sh`, inert) | **2** — that probe **plus 4 live assertions in `ci_workflow_local_gate.sh`** |
+| requires only that the PATH exist | 2 | 2 (`ci_workflow_local_gate.sh` root-md roster · `check_diagnostics_and_docpaths.sh` pathspec) |
+| HINT / routing text | 1 | 1 (`check_readme_stability.sh:83,112,116`) |
+| pure COMMENT / provenance | 5 | 5 (unchanged) |
+
+⭐⭐ **The lesson, and it is the THIRD instance of the same error class in this one tree** (`.0`'s
+too-narrow census → `.1c`'s inflated 96 → this). The rule *"classify by requirement"* was correct;
+what failed is that the classification was itself produced by a **convenient query** — one `grep -l`
+per file and an assumed mechanism — instead of by reading the call sites. ⇒ **a classification is a
+measurement and needs the same evidence bar as the count it replaces.** Routed to
+[[feedback_classify_referents_by_requirement]] as a sharpening, not a new record.
+
+#### The four lockstep assertions — measured before deciding what happens to them
+
+Each tracker assertion sits in a *group* asserting one landed feature across many surfaces. Counted
+by walking each enclosing function:
+
+| site | function | arms | tracker arms | surviving DOC arms after the delete |
+|---|---|---|---|---|
+| L2674 | `audit_regex_corpus_bundle_surface` | 21 | 1 | guide ×3, roadmap, `RUST_CODEBASE_ANALYSIS`, `README.md` |
+| L2742 | `audit_regex_pcre2_compile_oracle_surface` | 20 | 1 | guide ×2, roadmap, `RUST_CODEBASE_ANALYSIS` ×2, `README.md` |
+| L2935 | `audit_sv_formal_exhaustive_closure_surface` | 15 | 1 | guide, roadmap, `RUST_CODEBASE_ANALYSIS` |
+| L3032 | `audit_sv_preprocessor_formal_exhaustive_closure_surface` | 37 | 1 | guide, roadmap, `RUST_CODEBASE_ANALYSIS` |
+
+⇒ the tracker is **one arm of 15–37**, and every group keeps **at least three other documentation
+surfaces** asserting the same feature. Dropping the tracker arm therefore retires a *redundant*
+arm, not the proposition — and that is a measurement, which is the bar `.1c` failed to meet above.
+
+#### The `.md` referrer split, by charter
+
+| class | count | disposition |
+|---|---|---|
+| LIVE surfaces (book, contracts, reference, root docs) | **33** | re-point → `.1c2` |
+| append-only history (`CHANGES.md`, `DEVELOPMENT_NOTES.md`) | 2 | ⛔ leave verbatim — a history surface keeps its references raw |
+| work record (`docs/tasks/` 54, `docs/decisions/` 8) | 62 | ⛔ leave verbatim — same reason |
+
+### `.1c1` — the mdBook becomes the human at-a-glance status view, gate-held against the register (`done`)
+
+Build the replacement **before** the delete. `docs/book/src/roadmap-and-live-status.md` gains the
+per-family snapshot table sourced from `done_bar_family_register_v0.json`, and
+`check_published_version_currency.sh` — already the doctrine holding *a published surface's status
+claim == the register* for `PGEN_USER_GUIDE.md` — is extended to hold the book page to the same bar.
+
+⭐ **Prior art, searched before designing** ([[feedback_read_prior_art_before_designing]]): the
+status *rules* (three-leg bar, the qualified `Provisional` tier, the roster derivation) are ALREADY
+in `docs/book/src/quality-and-closure-model.md` §§197-330. The book is missing only the **snapshot**.
+⇒ the page links to that chapter and does **not** restate the ladder — no second copy to drift.
+
+⛔ **This does not collapse the two-arm check.** The gate compares *book text* against
+*`claimed_status`* — a presentation-currency check, the same shape `PUBLISHED-VERSION-CURRENCY`
+already applies to the guide. The independent arms are unchanged: a human authors `claimed_status`,
+the three family-status gates compute truth from proof surfaces.
+
+#### ⭐ What the snapshot table SHOWED once it existed — no family is `Done`, and nothing said so
+
+Rendering all 10 families side by side surfaced a fact no individual row made obvious: **`leg3_surface`
+is `<none>` for every family in the register**, so leg 3 is unmet across the board and `Done` is
+currently unreachable *for the whole product*, not just for the rows that happen to be discussed.
+The retired tracker could not show this — it carried 14 rows across 5 sections, only 4 of them
+parser families, and never listed the other 6. ⇒ recorded here rather than routed: it is `DONE-BAR.3`'s
+existing work (the leg-3 wiring), not a new finding, but the *scope* of it was being under-read.
+
+⚠️ Equally: **3 of 10 families are `language_owner: unadjudicated`** (`rtl_frontend`, `rtl_const_expr`,
+`json`) — each a PGEN-delimited SUBSET of somebody else's standard. A status gate asked to qualify one
+REFUSES rather than guessing. That is one third of the product whose `Provisional` qualifier cannot be
+computed at all, and `DONE-BAR.3` owes the ruling.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the human at-a-glance status view existed **only** inside the file
+  `.1c3` deletes. Measured on the book, before the change:
+
+  ```
+  $ git grep -c 'LIVE_ACHIEVEMENT_STATUS' -- 'docs/book/src/**' | wc -l          # 11 book pages refer to it
+  $ git grep -ln 'claimed_status\|done_bar_family_register' -- 'docs/book/src/**'
+  docs/book/src/quality-and-closure-model.md                                     # 1 page, 1 line (:288)
+  ```
+
+  ⇒ the book explained the status *rules* thoroughly and published **no status**. Deleting the
+  tracker without this leaf would have removed the only at-a-glance view PGEN had.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow tier. Located with `git ls-files` + `git grep`
+  over the tracked enforcer surface, so no reader is missed by a path guess:
+
+  ```
+  $ git ls-files -- 'scripts/*.sh' 'rust/scripts/*.sh' | xargs grep -ln claimed_status_for_family
+  rust/scripts/lib/parser_family_status_bar.sh
+  rust/scripts/regex_parser_family_status_gate.sh
+  rust/scripts/sv_parser_family_status_gate.sh
+  rust/scripts/vhdl_parser_family_status_gate.sh
+  scripts/check_published_version_currency.sh
+  ```
+
+  **WHERE**: `scripts/check_published_version_currency.sh` — the doctrine already holding *a
+  published surface's status claim == the register*, but pointed at exactly **one** surface
+  (`PGEN_USER_GUIDE.md`, one family). **WHY that is the root cause**: the doctrine's own charter is
+  *"a parser SHIPS on its published state, so the published state must be gate-held true"*, and the
+  book is the published state for the reader the project is written for (*"I review the book, not
+  the code"*). The charter covered the book; the implementation did not reach it. So a status table
+  placed in the book would have been **unheld prose** — the same class of container that let
+  `LIVE_ACHIEVEMENT_STATUS.md` rot in the first place. ⇒ the page and its guard land together, in
+  one leaf, deliberately.
+- [x] **FIX** — declarative tier first. (a) `docs/book/src/roadmap-and-live-status.md` rewritten as
+  the snapshot view: all 10 families inside an explicit `LIVE-STATUS-SNAPSHOT:BEGIN/END` marker
+  pair, plus the 7 `grammar_dispositions`, plus *how this page stays true*; (b) the ladder is
+  **linked, not restated** — `quality-and-closure-model.md` §§197-236 already carries it, so no
+  second copy exists to drift ([[feedback_read_prior_art_before_designing]]); (c)
+  `check_published_version_currency.sh` gains a **two-sided** family-by-family comparison against
+  the register plus the `PGEN_PVC_BOOK_PAGE` seam.
+- [x] **ADDRESSED (verified)** — measured before → after:
+
+  | measurement | before | after |
+  |---|---|---|
+  | families whose status the BOOK publishes | **0** | **10** ✅ |
+  | published surfaces held to the register by `PUBLISHED-VERSION-CURRENCY` | 1 (guide, 1 family) | **2** (guide + book, **11 comparisons**) ✅ |
+  | copies of the status ladder in the book | 1 (`quality-and-closure-model.md`) | 1 — unchanged, the new page LINKS it ✅ |
+  | `bash scripts/check_published_version_currency.sh` | `OK` (2 comparisons) | **`OK`** — *"book snapshot 10/10 families == register"* ✅ |
+  | `run_published_version_currency_probes.sh` | **5/5** | **11/11** ✅ |
+- [x] **THE NEW ARM FIRES — proven in every direction, not assumed.** A currency check that cannot
+  fail republishes stale claims with a green tick, which is worse than no check:
+
+  | negative control | result |
+  |---|---|
+  | `RED-5` book publishes a status the register does not claim | **`rc=1`** — *"publishes 'Done' for family 'vhdl' but the register's claimed_status is 'Provisional (corpus pending)'"*, naming BOTH arms ✅ |
+  | `RED-6` a family silently dropped from the table (register→table arm) | **`rc=1`** — *"'json' is in the register but ABSENT from the book snapshot"* ✅ |
+  | `RED-7` a phantom family published (table→register arm) | **`rc=1`** — names `phantom_family` ✅ |
+  | `RED-8` the marker pair removed ⇒ table unlocatable | **REFUSAL** — *"An unlocatable table must fail, never pass by absence"* ✅ |
+  | `RED-9` markers kept, ZERO rows | **REFUSAL** — *"an empty table agrees with everything and proves nothing"* ✅ |
+  | `RED-10` unreadable register | **REFUSAL** — never treats "no claims" as agreement ✅ |
+
+  ⭐ `RED-6` is the arm that matters most and it is the one `.1b` had to add to `audit_done_bar.sh`
+  for the same reason: **without a register→table direction, a snapshot could shrink to one row and
+  still read green.** Both directions were made to fail on purpose before either was trusted.
+- [x] **NO REGRESSION** — `bash -n` clean on both edited shell files (⚠️ `shellcheck` is **not
+  installed** on this machine — stated rather than implied); the 5 pre-existing probe arms still
+  pass unchanged (11/11 includes CTRL-1 + RED-1..4); the register is **not touched**, so no status
+  claim moved and `claimed_status` is byte-identical; `LIVE_ACHIEVEMENT_STATUS.md` is **not touched**
+  either, so the 4 live `assert_file_contains` in `ci_workflow_local_gate.sh` are unaffected by this
+  leaf (they are `.1c2`'s work). Oracles re-run:
+
+  | oracle | result |
+  |---|---|
+  | `bash scripts/check_doctrines.sh` (staged diff in scope) | **ALL 15 doctrines PASS** ✅ |
+  | `bash docs/tasks/artifacts/done_bar/run_published_version_currency_probes.sh` | **11/11, exit 0** ✅ |
+  | `bash scripts/audit_done_bar.sh` | **exit 0**, 10 families, 13 controls ✅ |
+  | `bash docs/tasks/artifacts/done_bar/run_done_bar_probes.sh` | **16/16, exit 0** ✅ |
+  | `make -C rust SHELL=/bin/bash mdbook_docs_gate` | **PASS** ✅ |
+
+  ⛔ No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` touched ⇒ all generated parsers
+  **byte-identical BY CONSTRUCTION**.
+- [x] **LOCKSTEP** — the book page itself, the enforcer's WHY block, the probe driver's WHY block,
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`. ⚠️ **Deliberately NOT here**: the 33 live `.md`
+  surfaces still linking to `LIVE_ACHIEVEMENT_STATUS.md` — including
+  `quality-and-closure-model.md:199,489,510`, which this page now links TO. The file still exists and
+  those links still resolve; re-pointing them is `.1c2`, and doing it here would mix building the
+  replacement with retiring the original.
+
+### `.1c2` — retire the referrers (`todo`)
+
+The 4 live `assert_file_contains` (dropped — measured redundant above), the 2 path-only referents,
+the hint text at `check_readme_stability.sh:83,112,116`, the inert `run_demotion_impact_probe.sh`,
+the `.claude/settings.json` post-compaction resume list, and the **33** live `.md` surfaces.
+
+### `.1c3` — the delete (`todo`)
+
+Delete the file, re-run the 452-ID census, and re-run the full doctrine enforcer + the done-bar
+audit and probe driver to prove nothing went red.
 
 #### ⭐⭐⭐ ANVIL CORRECTION (2026-07-31) — *"reference count is not a dependency measure"*
 

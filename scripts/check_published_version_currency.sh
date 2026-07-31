@@ -13,14 +13,34 @@
 #   1. the user guide's regex published version pair equals the integration contract's
 #      Contract Identity block (the authoritative declaration — the same source the
 #      PGEN-RGX-0091 embedding-constants gate is specified against);
-#   2. the user guide's published `family status:` equals the live tracker's `regex` row.
+#   2. the user guide's published `family status:` equals the register's `regex` claim;
+#   3. LIVE-MEANS-LIVE.1c1 — the BOOK's published per-family snapshot table equals the register's
+#      `claimed_status` for EVERY family, in both directions.
+#
+# WHY THE BOOK IS HELD TO THE SAME BAR (LIVE-MEANS-LIVE.1c1). The director reviews the book, not
+# the code — so the book IS the published state for the reader who matters most, and this doctrine
+# already exists to hold a published state true. When the status claim moved out of
+# LIVE_ACHIEVEMENT_STATUS.md into the register (.1a), the human at-a-glance view moved into
+# docs/book/src/roadmap-and-live-status.md; an unheld copy of a status table is exactly the drift
+# that produced the ~77-release-stale guide block above.
+#
+# ⛔ THIS IS NOT THE TWO-ARM CHECK AND MUST NOT BE MISTAKEN FOR IT. It compares a PRESENTATION
+# against the claim it presents. The independent arms are elsewhere and unchanged: a human authors
+# `claimed_status`, the three *_parser_family_status_gate.sh gates COMPUTE the status from proof
+# surfaces, and they fail on disagreement. Deriving the book table from a GATE would collapse that
+# check; deriving it from the CLAIM — which is what this does — cannot, because the claim is itself
+# hand-authored.
 #
 # REFUSAL POLARITY: an extraction that comes back EMPTY fails loudly rather than comparing empty
 # strings — two empty strings are never evidence of agreement (the demotion probe's own measured
-# first-cut defect, and CI-PARITY-GATE-ROT.3's vacuous-green class).
+# first-cut defect, and CI-PARITY-GATE-ROT.3's vacuous-green class). For the book table this is
+# load-bearing twice over: a MISSING marker pair, a table of ZERO rows, and a family present in the
+# register but ABSENT from the table each FAIL. A snapshot that silently stops listing a family
+# would otherwise publish "no such family" as agreement.
 #
 # TESTABILITY SEAMS (probe driver: docs/tasks/artifacts/done_bar/run_published_version_currency_probes.sh):
-#   PGEN_PVC_GUIDE / PGEN_PVC_CONTRACT / PGEN_PVC_TRACKER — override the three inputs one at a time.
+#   PGEN_PVC_GUIDE / PGEN_PVC_CONTRACT / PGEN_PVC_TRACKER — override the three inputs one at a time;
+#   PGEN_PVC_BOOK_PAGE — override the book snapshot page.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -30,11 +50,12 @@ CONTRACT="${PGEN_PVC_CONTRACT:-$ROOT/docs/contracts/PGEN_REGEX_PARSER_INTEGRATIO
 # LIVE-MEANS-LIVE.1a — the family-status CLAIM moved out of LIVE_ACHIEVEMENT_STATUS.md and into
 # the DONE-BAR register. The seam name is kept so the probe driver keeps working.
 TRACKER="${PGEN_PVC_TRACKER:-$ROOT/rust/test_data/grammar_quality/done_bar_family_register_v0.json}"
+BOOK_PAGE="${PGEN_PVC_BOOK_PAGE:-$ROOT/docs/book/src/roadmap-and-live-status.md}"
 
 fail=0
 note() { printf 'published-version-currency: %s\n' "$1" >&2; fail=1; }
 
-for f in "$GUIDE" "$CONTRACT" "$TRACKER"; do
+for f in "$GUIDE" "$CONTRACT" "$TRACKER" "$BOOK_PAGE"; do
     if [[ ! -s "$f" ]]; then
         note "required input '$f' is missing or empty"
     fi
@@ -79,7 +100,77 @@ if [[ "$guide_status" != "$tracker_status" ]]; then
     note "PGEN_USER_GUIDE.md publishes regex family status '$guide_status' but the DONE-BAR register's claimed_status for regex is '$tracker_status' — update the guide's published status"
 fi
 
+# ---------------------------------------------------------------------------------------------
+# (3) The BOOK's per-family snapshot table == the register's claimed_status, BOTH directions.
+#
+# Both directions matter and they catch different defects: register→table catches a family that
+# quietly stopped being published; table→register catches a published row for a family the register
+# no longer carries. A one-sided check here would be the exact shape .1b had to repair in
+# audit_done_bar.sh, where every guard sat on the arm that could not fail.
+book_report="$(
+    python3 - "$BOOK_PAGE" "$TRACKER" <<'PY'
+import json, re, sys
+
+page_path, register_path = sys.argv[1], sys.argv[2]
+page = open(page_path, encoding="utf-8").read()
+
+BEGIN, END = "LIVE-STATUS-SNAPSHOT:BEGIN", "LIVE-STATUS-SNAPSHOT:END"
+if BEGIN not in page or END not in page:
+    print("REFUSE|%s carries no %s/%s marker pair, so the published snapshot cannot be located. "
+          "An unlocatable table must fail, never pass by absence." % (page_path, BEGIN, END))
+    raise SystemExit(0)
+
+block = page.split(BEGIN, 1)[1].split(END, 1)[0]
+
+# Rows look like:  | `family` | Status | owner | leg-3 |
+published = {}
+for line in block.splitlines():
+    cells = [c.strip() for c in line.split("|")]
+    if len(cells) < 6 or not cells[1].startswith("`"):
+        continue
+    published[cells[1].strip("`")] = cells[2]
+
+if not published:
+    print("REFUSE|the snapshot block in %s yielded ZERO family rows — an empty table agrees with "
+          "everything and proves nothing" % page_path)
+    raise SystemExit(0)
+
+try:
+    families = json.load(open(register_path, encoding="utf-8"))["families"]
+except Exception as exc:
+    print("REFUSE|the done-bar register '%s' is unreadable: %s" % (register_path, exc))
+    raise SystemExit(0)
+
+claims = {name: entry.get("claimed_status") for name, entry in families.items()}
+
+problems = []
+for name in sorted(claims):
+    if name not in published:
+        problems.append("family '%s' is in the register but ABSENT from the book snapshot in %s "
+                        "(claimed_status '%s') — a family that stops being published is a silent "
+                        "disclosure loss" % (name, page_path, claims[name]))
+for name in sorted(published):
+    if name not in claims:
+        problems.append("the book snapshot in %s publishes a row for '%s', which the done-bar "
+                        "register does not carry as a family" % (page_path, name))
+for name in sorted(set(claims) & set(published)):
+    if published[name] != claims[name]:
+        problems.append("the book snapshot publishes '%s' for family '%s' but the register's "
+                        "claimed_status is '%s' — update the register first, then this table"
+                        % (published[name], name, claims[name]))
+
+print("OK|%d" % len(published) if not problems else "FAIL|" + "\n".join(problems))
+PY
+)" || note "the book snapshot comparison failed to run"
+
+case "$book_report" in
+    REFUSE\|*) note "${book_report#REFUSE|}" ;;
+    FAIL\|*)   while IFS= read -r line; do note "$line"; done <<<"${book_report#FAIL|}" ;;
+    OK\|*)     book_rows="${book_report#OK|}" ;;
+    *)         note "the book snapshot comparison produced no verdict — a check that cannot see must refuse, not pass" ;;
+esac
+
 if [[ "$fail" -eq 0 ]]; then
-    echo "published-version-currency: OK (guide ${guide_release}/${guide_contract} == contract identity; published status '${guide_status}' == tracker)"
+    echo "published-version-currency: OK (guide ${guide_release}/${guide_contract} == contract identity; published status '${guide_status}' == tracker; book snapshot ${book_rows}/${book_rows} families == register)"
 fi
 exit "$fail"

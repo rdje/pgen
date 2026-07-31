@@ -1,5 +1,38 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0005 — a classification is a measurement, and needs the same evidence bar as the count it replaces
+
+`LIVE-MEANS-LIVE.1c1`. Two things worth keeping from this leaf, and the second is uncomfortable.
+
+- ⭐⭐⭐ **The right RULE applied to a convenient QUERY is still a wrong number.** ANVIL's correction
+  to this tree was excellent: *"reference count is not a dependency measure — classify referents by
+  what they REQUIRE."* `.1c` adopted it and re-measured 96 referrers down to *"blocked by ONE
+  script"*. Measured properly at this leaf, it is **two**: `ci_workflow_local_gate.sh` was filed
+  under *requires only that the PATH exist, ×5 `assert_tracked`* — but 4 of its 5 references are
+  `assert_file_contains` on exact tracker PROSE, all green today and all going red on delete. The
+  classification was produced by one `grep -l` per file plus an **assumed mechanism**, never by
+  opening the call sites. ⇒ *classifying by requirement only helps if the requirement is read, not
+  inferred.* This is the THIRD instance of one error class in this single tree — `.0`'s too-narrow
+  census, `.1c`'s inflated 96, and now this — and all three share a shape: **the number came from
+  the query that was easy to run.**
+- ⭐⭐ **Building the replacement surface first is what made the defect cheap.** Had `.1c` been
+  worked as one leaf, the delete and the book page and the referrer sweep would have moved together,
+  and 4 assertions failing would have surfaced as a red gate *after* the file was gone — with the
+  asserted strings only recoverable from git. Split three ways, the miscount cost a re-scope and
+  nothing else. The ordering rule generalises: **when retiring a surface, land its replacement and
+  its guard in a leaf that does not touch the original.**
+- ⭐ **A presentation check and a two-arm check are different things and must be said to be.** The
+  new arm compares the book table against `claimed_status`. That is *currency*, not *truth* — and
+  the enforcer's header now says so explicitly, because the failure mode is a future reader
+  concluding the book table is independently verified and relaxing one of the real arms. Deriving a
+  published view from a hand-authored CLAIM cannot collapse the check; deriving it from a GATE would.
+- ⚠️ **The snapshot table is itself an instrument, and it fired on first render.** Ten families side
+  by side made two facts unmissable that no single row carried: `leg3_surface` is `<none>` for
+  **every** family (so `Done` is unreachable product-wide), and 3 of 10 carry
+  `language_owner: unadjudicated` (so their qualifier cannot be computed at all). Neither is new
+  work — both are `DONE-BAR.3` — but both were being read as narrower than they are. **A view that
+  shows the whole set is a measurement, not decoration.**
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0003 — a derivation is only as honest as the side that can fail
 
 `LIVE-MEANS-LIVE.1b`. The done-bar audit's family roster was *tracker rows ∩ grammars*. Both halves

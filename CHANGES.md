@@ -1,5 +1,43 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0005 — leaf LIVE-MEANS-LIVE.1c1: the BOOK now publishes the family status, and a gate holds it to the register
+
+Book + doctrine enforcer + probe driver + task tree. No `grammars/*.ebnf`, no `rust/src/*`, no
+`generated/*` ⇒ all generated parsers byte-identical BY CONSTRUCTION. The register is **not
+touched**, so no status claim moved.
+
+- ⛔ **THE BOOK EXPLAINED THE STATUS RULES AND PUBLISHED NO STATUS.** Measured before the change:
+  11 book pages referred to `LIVE_ACHIEVEMENT_STATUS.md`, and exactly **one line** in the whole
+  book (`quality-and-closure-model.md:288`) mentioned the register that now holds the claim. The
+  at-a-glance view existed only inside the file `.1c3` deletes — so deleting it first would have
+  removed the only per-family snapshot PGEN had.
+- ✅ `docs/book/src/roadmap-and-live-status.md` rewritten as that snapshot: **all 10 families**
+  inside an explicit `LIVE-STATUS-SNAPSHOT:BEGIN/END` marker pair, plus the 7 `grammar_dispositions`
+  and *how this page stays true*. ⭐ The status ladder is **linked, not restated** —
+  `quality-and-closure-model.md` §§197-236 already carries it, so there is no second copy to drift.
+- ✅ `PUBLISHED-VERSION-CURRENCY` extended from 1 published surface to **2**: the doctrine's charter
+  was always *"a parser SHIPS on its published state, so the published state must be gate-held
+  true"*, and the book is the published state for the reader the project is written for. The new arm
+  compares the table against `claimed_status` **family by family, in BOTH directions** — 2
+  comparisons → **11**.
+- ⭐ **What the table showed once it existed:** `leg3_surface` is `<none>` for **every** family, so
+  `Done` is currently unreachable across the whole product, not just on the rows usually discussed;
+  and **3 of 10** families are `language_owner: unadjudicated`, so their `Provisional` qualifier
+  cannot be computed at all. Both are `DONE-BAR.3`'s existing work — but the scope of it was being
+  under-read, and the retired tracker (14 rows, only 4 of them families) could not show it.
+- ✅ Probes **5/5 → 11/11**. `RED-6` is the load-bearing new arm: without a register→table
+  direction the snapshot could shrink to one row and still read green — the same one-sided shape
+  `.1b` had to repair in `audit_done_bar.sh`. `RED-8`/`RED-9` refuse an unlocatable or empty table
+  rather than passing by absence.
+- ⛔ **Corrected a measurement in `.1c` itself**: *"the delete is blocked by ONE script"* was wrong.
+  `ci_workflow_local_gate.sh` was classified path-only on an assumed mechanism; read site by site,
+  **4 of its 5 references are `assert_file_contains` on tracker prose**, all present today and all
+  going red on delete. Re-scoped into `.1c2`.
+- Oracles: `check_doctrines.sh` **15/15**, `mdbook_docs_gate` **PASS**, `audit_done_bar.sh` exit 0,
+  done-bar probes **16/16**, currency probes **11/11**.
+- Live-status snapshot **unchanged** (still 0 `Done` rows) — this commit publishes the existing
+  claim in a second place, it does not move it.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0004 — the confirmatory VHDL oracle deferred by -0003 has landed: PASS
 
 Docs only (task leaf + this file). Records the result of a gate that was still running when

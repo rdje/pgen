@@ -64,6 +64,92 @@ sed -e '/^## Contract Identity/,/^## / s/`1\.1\.106`/`1.1.107`/' \
 arm "RED-4 contract advance without guide fails" 1 "declares '1.1.107'" \
     -- "PGEN_PVC_CONTRACT=$WORK/contract_advanced.md"
 
+# ------------------------------------------------------------------------------------------------
+# LIVE-MEANS-LIVE.1c1 — the BOOK snapshot arm. The at-a-glance family-status view moved into
+# docs/book/src/roadmap-and-live-status.md when LIVE_ACHIEVEMENT_STATUS.md was retired, and an
+# unheld copy of a status table is precisely the drift RED-1/RED-2 above exist to make impossible.
+# Every arm below mutates a COPY via the PGEN_PVC_BOOK_PAGE seam — the tracked page is never touched.
+BOOK="docs/book/src/roadmap-and-live-status.md"
+
+mutate_book() {
+    # mutate_book OUT_NAME MODE [ARG] — build a mutant of the book page under $WORK.
+    python3 - "$ROOT/$BOOK" "$WORK/$1" "$2" "${3:-}" <<'PY'
+import sys
+src, dst, mode, arg = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+text = open(src, encoding="utf-8").read()
+BEGIN, END = "LIVE-STATUS-SNAPSHOT:BEGIN", "LIVE-STATUS-SNAPSHOT:END"
+
+if mode == "drop-markers":
+    text = text.replace(BEGIN, "snapshot-marker-removed").replace(END, "snapshot-marker-removed")
+else:
+    head, rest = text.split(BEGIN, 1)
+    block, tail = rest.split(END, 1)
+    lines = block.splitlines(keepends=True)
+
+    def is_family_row(line, name=None):
+        cells = [c.strip() for c in line.split("|")]
+        if len(cells) < 6 or not cells[1].startswith("`"):
+            return False
+        return name is None or cells[1].strip("`") == name
+
+    if mode == "restate":                        # publish a status the register does not claim
+        out = []
+        for line in lines:
+            if is_family_row(line, arg):
+                cells = line.split("|")
+                cells[2] = " Done "
+                line = "|".join(cells)
+            out.append(line)
+        lines = out
+    elif mode == "drop-row":                     # a family silently stops being published
+        lines = [l for l in lines if not is_family_row(l, arg)]
+    elif mode == "add-row":                      # publish a family the register does not carry
+        lines.append("| `%s` | Done | pgen | *(none declared)* |\n" % arg)
+    elif mode == "empty-table":                  # markers present, zero rows
+        lines = [l for l in lines if not is_family_row(l)]
+    else:
+        raise SystemExit("unknown mutate mode %r" % mode)
+
+    text = head + BEGIN + "".join(lines) + END + tail
+
+open(dst, "w", encoding="utf-8").write(text)
+PY
+}
+
+# RED-5 — the published table claims a status the register does not. This is the whole point of the
+# arm: the book is the director's review surface, so a false row here is a false published claim.
+mutate_book book_restated.md restate vhdl
+arm "RED-5 book restates a status, named both ways" 1 "publishes 'Done' for family 'vhdl'" \
+    -- "PGEN_PVC_BOOK_PAGE=$WORK/book_restated.md"
+
+# RED-6 — register→table direction: a family that quietly stops being published. Without this arm a
+# snapshot could shrink to one row and still read green (the .1b failure shape: the only guard
+# sitting on the side that cannot fail).
+mutate_book book_missing_row.md drop-row json
+arm "RED-6 family dropped from the table fails" 1 "'json' is in the register but ABSENT" \
+    -- "PGEN_PVC_BOOK_PAGE=$WORK/book_missing_row.md"
+
+# RED-7 — table→register direction: a published row for a family the register does not carry.
+mutate_book book_extra_row.md add-row phantom_family
+arm "RED-7 phantom published family fails" 1 "publishes a row for 'phantom_family'" \
+    -- "PGEN_PVC_BOOK_PAGE=$WORK/book_extra_row.md"
+
+# RED-8 — the snapshot cannot be LOCATED. A missing marker pair must refuse; silently finding no
+# table and passing is the vacuous-green class this whole doctrine was written against.
+mutate_book book_no_markers.md drop-markers
+arm "RED-8 missing marker pair refuses" 1 "carries no LIVE-STATUS-SNAPSHOT:BEGIN" \
+    -- "PGEN_PVC_BOOK_PAGE=$WORK/book_no_markers.md"
+
+# RED-9 — markers present, ZERO rows. An empty table agrees with every register and proves nothing.
+mutate_book book_empty_table.md empty-table
+arm "RED-9 empty snapshot table refuses" 1 "yielded ZERO family rows" \
+    -- "PGEN_PVC_BOOK_PAGE=$WORK/book_empty_table.md"
+
+# RED-10 — an unreadable register refuses rather than treating "no claims" as agreement.
+printf 'not json at all\n' >"$WORK/register_broken.json"
+arm "RED-10 unreadable register refuses" 1 "is unreadable" \
+    -- "PGEN_PVC_TRACKER=$WORK/register_broken.json"
+
 echo "------------------------------------------------------------------------------"
 printf 'published-version-currency probes: %d/%d passed\n' "$pass" "$((pass + fail))"
 [[ "$fail" -eq 0 ]] || exit 1
