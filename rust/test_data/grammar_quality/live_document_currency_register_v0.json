@@ -1,0 +1,116 @@
+{
+  "register": "live_document_currency_register_v0",
+  "owner": "LIVE-MEANS-LIVE.2",
+  "what_this_is": "The hand-written inputs the LIVE-DOC-CURRENCY doctrine needs. Everything else it checks is re-derived from the repository on every run. These are here because they are human DECISIONS nothing can re-derive: what KIND of document each watched surface is (its charter), and which surfaces carry declared, owned debt against that charter.",
+  "why_this_doctrine_exists": "LIVE_ACHIEVEMENT_STATUS.md reached 1 547 057 B of which 94.7 % was a dated changelog, while README.md next door was capped on TWO axes. The file the README overflowed INTO had no instrument at all. Capping a file is only half a fix; the other half is checking where the overflow lands. ⛔ And a byte cap is the WRONG half: gate-flow.md is the largest of the three healthy book destinations and the healthiest of them. What was actually wanted is 'has this surface stopped being a status document', which is what instrument A answers.",
+  "instrument_a": {
+    "_what": "Count DISTINCT YYYY-MM-DD dates in a surface, and pair the count with the surface's DECLARED charter. One date = a status view; 175 = a log. The instrument CLASSIFIES; the charter says which classification is permitted — which is what stops it firing on CHANGES.md forever.",
+    "_why_a_charter_and_not_just_a_number": "CHANGES.md scores 175 and is CORRECT: being a log is its charter. Without the pairing the instrument is a false-positive machine on exactly the files that are healthiest.",
+    "status_distinct_date_ceiling": 20,
+    "_ceiling_derivation": "NOT invented. Measured 2026-07-31 over the whole registered set. Highest healthy `status` surface: 12 (KNOWLEDGE_MAP.md, docs/reference/RUST_CODEBASE_ANALYSIS.md, the regex integration contract). Lowest `log`/`index` surface: 47 (docs/decisions/INDEX.md). The ceiling sits inside that empty band at 1.67x the highest healthy observation and 2.35x below the lowest log. ⚠️ HONEST BOUND, stated rather than discovered: `.3` reported a 50x gap, but that compared three book chapters against a 1.5 MB tracker. Once the versioned integration contracts joined the register the band narrowed from ~12x to ~2x, because a versioned contract legitimately accumulates one date per release. A 2x band is a real number chosen by a human — say so; do not call it threshold-free.",
+    "charters": {
+      "status": "a CURRENT-STATE view. Subject to the ceiling above.",
+      "log": "a dated history BY CHARTER. Exempt from the ceiling — accumulating dates is its job.",
+      "index": "one row per record/unit; the date count scales with the ENTRY count by construction, not by rot. Exempt from the ceiling."
+    },
+    "_exemption_is_not_a_clean_bill_of_health": "A `log` or `index` charter exempts a surface from instrument A ONLY. It says nothing about any other axis. Measured example carried deliberately: docs/TASK_TREE.md is correctly chartered `index` (62 dates over 105 tree rows = 0.6/row) and yet carries a SINGLE 64 450-byte table cell — larger than the 38 265-byte record line of the 1.5 MB tracker this doctrine was born from. Instrument A is blind to it. Routed to LIVE-MEANS-LIVE.6, not hidden.",
+    "surfaces": {
+      "README.md": { "charter": "status", "_why": "the landing page; also capped by README-STABILITY on two axes" },
+      "MEMORY.md": { "charter": "status", "_why": "layer A resume pointer — describes NOW by definition" },
+      "COMMIT.md": { "charter": "status", "_why": "the commit workflow as it stands today" },
+      "CHANGES.md": { "charter": "log", "_why": "the changelog. Being a dated history IS its charter — this is the row that proves the instrument classifies rather than merely alarms" },
+      "DEVELOPMENT_NOTES.md": { "charter": "log", "_why": "the engineering-notes history surface, per COMMIT.md 'Files Involved'" },
+      "docs/TASK_TREE.md": { "charter": "index", "_why": "one row per task tree; 62 dates over 105 rows. See _exemption_is_not_a_clean_bill_of_health above" },
+      "docs/decisions/INDEX.md": { "charter": "index", "_why": "one row per dated layer-C record; the count scales with the record count" },
+      "docs/book/src/gate-flow.md": { "charter": "status", "_why": "README-STABILITY overflow destination for gate recipes" },
+      "docs/book/src/operations-and-governance.md": { "charter": "status", "_why": "README-STABILITY overflow destination for operational procedure" },
+      "docs/book/src/developer-architecture.md": { "charter": "status", "_why": "README-STABILITY overflow destination for the repository layout" },
+      "docs/book/src/parser-families.md": { "charter": "status", "_why": "README-STABILITY overflow destination for per-parser books" },
+      "docs/book/src/roadmap-and-live-status.md": { "charter": "status", "_why": "the published VIEW of the DONE-BAR register; a status table by definition" },
+      "docs/book/src/documentation-model.md": { "charter": "status", "_why": "README-STABILITY overflow destination for doc inventories" },
+      "docs/book/src/quality-and-closure-model.md": { "charter": "status", "_why": "named by COMMIT.md as the home of the status-vocabulary rules" },
+      "docs/reference/PGEN_README_STABILITY_POLICY.md": { "charter": "status", "_why": "the reviewed policy behind the README caps" },
+      "docs/reference/RUST_CODEBASE_ANALYSIS.md": { "charter": "status", "_why": "the LIVE Rust architecture assessment, per COMMIT.md" },
+      "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md": { "charter": "status", "_why": "the contract index" },
+      "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md": { "charter": "status", "_why": "the current downstream reporting protocol" },
+      "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md": { "charter": "log", "_why": "a LEDGER of dated bug records — a log by name and by charter" },
+      "docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md": { "charter": "status", "_why": "published downstream contract" },
+      "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md": { "charter": "status", "_why": "published downstream contract" },
+      "docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md": { "charter": "status", "_why": "published downstream contract" },
+      "docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md": { "charter": "status", "_why": "published downstream contract" },
+      "docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md": { "charter": "status", "_why": "published downstream contract" },
+      "docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md": { "charter": "status", "_why": "published downstream contract" },
+      "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md": { "charter": "status", "_why": "published downstream contract" },
+      "docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md": { "charter": "status", "_why": "published downstream contract" },
+      "docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md": { "charter": "status", "_why": "published downstream contract" }
+    },
+    "out_of_charter": {
+      "_rule": "A `status` surface OVER the ceiling must appear here with an owner leaf that EXISTS, or the doctrine FAILS. TWO-SIDED at the classification level, not at a churning count: an entry whose surface has come back UNDER the ceiling also FAILS, with 'the debt is paid, remove the entry'. So this list can neither be bypassed nor accumulate dead exemptions, and it does not fire every time somebody adds a dated note.",
+      "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md": {
+        "measured_distinct_dates": 24,
+        "measured_bytes": 562756,
+        "owner_leaf": "LIVE-MEANS-LIVE.7",
+        "_why": "The published SystemVerilog integration contract has accumulated a per-release version log inside a document whose charter is the CURRENT contract. ⭐ Instrument B independently flags the same file (declares 2026-07-04, own content reaches 2026-07-25) — two baseline-free instruments agreeing on one surface, found on the doctrine's first run."
+      }
+    }
+  },
+  "instrument_b": {
+    "_what": "A self-declared `Last updated:` that DISAGREES with the newest content date in the same file. SELF-REFUTING: the file's own two halves contradict each other, so no external baseline and no threshold are needed at all.",
+    "_why_total_classification_rather_than_a_spelling_list": "This instrument has now mis-measured the SAME population THREE times, each miss SILENT IN THE PASSING DIRECTION, each caught only because a prior published number existed to disagree with:\n  .4 measured 10 — knew ONE spelling (bare `Last updated: 2026-05-14`), blind to the ~50 docs/tasks files written ``- Last updated: `2026-05-31` ``, plus one PHANTOM row from prose.\n  .5 corrected to 16 — knew TWO spellings, blind to the docs/contracts CONTINUATION spelling (`- Last updated:` with the date on the NEXT line), 6 files of which 2 self-refute.\n  .2 measures 18 — knows four shapes, excludes fenced code blocks and mid-line prose.\n⛔ Enumerating spellings is what failed twice. The enforcer therefore does NOT count spellings: it requires TOTAL CLASSIFICATION and REFUSES (exit 2) on any anchored `Last updated` line it cannot classify. A fifth spelling appearing tomorrow is a loud refusal, not an absent row.",
+    "pinned_shapes": {
+      "bare": "Last updated: 2026-05-14            — root docs and docs/reference",
+      "backtick": "- Last updated: `2026-05-31`   — every docs/tasks tree",
+      "continuation": "- Last updated:  with `- `2026-07-21`` on the FOLLOWING line — docs/contracts",
+      "template": "- Last updated: `YYYY-MM-DD`   — docs/tasks/TEMPLATE.md placeholder; declares nothing, so it is excluded rather than treated as a date"
+    },
+    "excluded_by_construction": {
+      "fenced_code": "a declaration inside a ``` / ~~~ block is sample OUTPUT, not a declaration. Measured: rust/docs/CLI_REFERENCE.md:161 `Last updated:          2025-09-26 18:25:21` sits inside a fence.",
+      "mid_line_prose": "an occurrence that is not anchored at line start (after an optional bullet / bold marker) is prose ABOUT the instrument. Measured: 4 such files — CHANGES.md, DEVELOPMENT_NOTES.md, docs/tasks/LIVE-MEANS-LIVE.md and .5's own review artifact all discuss `Last updated:` and would otherwise be counted."
+    },
+    "self_refuting_debt": {
+      "_rule": "TWO-SIDED, and named rather than counted — a bare count lets one file be fixed while another rots. A file that self-refutes and is NOT listed here FAILS (new rot). A listed file that no longer self-refutes FAILS with 'remove it' (paid debt). ⇒ the list drains and cannot hold dead exemptions.",
+      "_owner": "LIVE-MEANS-LIVE.4 owns draining this list. The honest fix per file is either to update the declaration BECAUSE the content really did move, or to DELETE a self-declaration nothing maintains. ⛔ Never bulk-rewrite the dates — that converts a true statement about rot into a false statement about currency.",
+      "_measured": "18 self-refuting of 61 declaring, 2026-07-31, at commit 3a3d5b2f's parent. 43 declaring files pass, so the instrument is not firing on everything.",
+      "files": [
+        "COMMIT.md",
+        "PGEN_USER_GUIDE.md",
+        "docs/book/src/annotation-system.md",
+        "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md",
+        "docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md",
+        "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md",
+        "docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md",
+        "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md",
+        "docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md",
+        "docs/reference/RUST_CODEBASE_ANALYSIS.md",
+        "docs/tasks/INLINE-ALT-FIX.md",
+        "docs/tasks/OPS-MEMSAFE.md",
+        "docs/tasks/REGEX-PCRE2-FIDELITY.md",
+        "docs/tasks/RGX-0090.md",
+        "docs/tasks/RGX-0091.md",
+        "docs/tasks/STIMULI-SIGNOFF.md",
+        "docs/tasks/SV-EXH-PROOF.md",
+        "docs/tasks/SV-PARSE-STRICT.md"
+      ]
+    }
+  },
+  "route_closure": {
+    "_what": "Every `.md` destination a capped enforcer NAMES must be a registered surface above. A guard that names a destination is DEFINING A ROUTE, and an unwatched route is how the rot travelled.",
+    "_why": "The edge that carried the pressure out of README.md was a HINT STRING inside an error message (check_readme_stability.sh:83, retired in .1c2). A hand-authored route registry cannot see such an edge — so the edges are DERIVED from the enforcers' own output text, not typed here.",
+    "derived_edge_sources": [
+      "scripts/check_readme_stability.sh — the routing_hint() heredoc it prints on a cap breach",
+      "COMMIT.md — the '## Files Involved' section, which is the commit workflow's own list of live documents (globs expanded over tracked files)"
+    ],
+    "named_but_not_tracked_is_informational": "A path named by an edge source that is not a tracked file is REPORTED, not failed — it is normally prose about a deleted surface (LIVE_ACHIEVEMENT_STATUS.md is named in COMMIT.md's register bullet precisely to record that it was deleted in .1c3)."
+  },
+  "ground_truth_controls": {
+    "_why": "An instrument with no ground truth is a confident guess, and THIS instrument has been wrong three times. Every run first executes fixtures with known answers and REFUSES (exit 2) rather than publishing a number if any of them misses.",
+    "_what_they_pin": [
+      "positive — a bare declaration with newer content MUST be detected, at the exact declared/newest pair",
+      "negative — a declaration that IS the newest MUST NOT be flagged",
+      "one fixture per pinned shape (bare / backtick / continuation / template) MUST classify to that shape — this is the control .4's correction demanded, generalized from two spellings to all four",
+      "a declaration inside a fenced block MUST be invisible",
+      "a mid-line prose mention MUST be invisible",
+      "an anchored `Last updated` line with no parseable date MUST come back UNCLASSIFIED — proving the refusal path is live rather than merely written"
+    ]
+  }
+}

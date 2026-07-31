@@ -110,8 +110,12 @@ task-tree, not a history surface, which is the tree's own point.
   names the file (`check_published_version_currency.sh`, `audit_done_bar.sh`,
   `check_diagnostics_and_docpaths.sh`, `check_readme_stability.sh`,
   `ci_workflow_local_gate.sh`) reads the register instead.
-- ⭐ **No new enforcer is needed** — `.2` is dropped. Removing the unbounded container beats
-  guarding it.
+- ⛔ ~~**No new enforcer is needed** — `.2` is dropped. Removing the unbounded container beats
+  guarding it.~~ **SUPERSEDED by ANVIL's reopening of `.2`**: deleting the container answers *"is
+  this file too big"*; it does not answer *"has any surface stopped being a status document"*, which
+  is the question that was actually wanted. `LIVE-DOC-CURRENCY` landed 2026-07-31 — two baseline-free
+  instruments plus **route closure over derived edges**, so the criterion is now *every overflow
+  destination is watched*, not *the worst one is gone*.
 
 ## Leaves
 
@@ -978,7 +982,7 @@ the purge and prove **452 / 452** still reachable from a durable layer.
 ⚠️ The purge is not `grep -v 'Tracker note'`: some notes carry a durable rule that layer C does
 not yet record. Each is routed to `docs/decisions/` or confirmed already there before deletion.
 
-### `.2` — the enforcer: NOT a byte cap. ANVIL's two instruments (`todo` — REOPENED and re-specified 2026-07-31)
+### `.2` — the enforcer: NOT a byte cap. ANVIL's two instruments (`done` — `LIVE-DOC-CURRENCY` landed 2026-07-31)
 
 ⛔ **`.0` had dropped this leaf**: migrate-and-delete removes the prose container, so there is
 nothing left to cap. **ANVIL reopened it on a better argument** — the point was never to bound
@@ -1010,6 +1014,146 @@ design work, and it is what stops A from firing on the changelog forever.
 ⭐ **Also close the redirect**: `check_readme_stability.sh:83` should not name an unwatched file as
 an overflow destination. Once instrument A watches every destination, the README rule becomes honest
 — and `.1c`'s delete removes the worst destination outright.
+
+#### ✅ WHAT LANDED — the `LIVE-DOC-CURRENCY` doctrine (2026-07-31)
+
+| artifact | role |
+|---|---|
+| `scripts/check_live_document_currency.sh` | the enforcer (bash shim + embedded `python3`, the `check_flow_integrity.sh` house style) |
+| `rust/test_data/grammar_quality/live_document_currency_register_v0.json` | the ONLY hand-written inputs: each surface's **charter**, and the two debt lists |
+| `scripts/check_doctrines.sh` + `DOCTRINE_ENFORCEMENT.md` §10 | registry line + human mirror (the driver's meta-check holds them equal) |
+
+**Instrument A — charter reconcile.** 28 surfaces, 23 chartered `status` (ceiling **20** distinct
+dates), the rest `log` or `index`. A `log`/`index` charter is exempt from the ceiling but its `_why`
+is **required** — an exemption nobody justified is an exemption nobody reviewed.
+
+⚠️ **The ceiling is a human-chosen number and the leaf says so.** `.3` reported a 50× gap, but that
+compared three book chapters against a 1.5 MB tracker. Re-measured over the *whole* registered set
+the band is [12, 47] — highest healthy `status` surface 12 (`KNOWLEDGE_MAP.md`,
+`RUST_CODEBASE_ANALYSIS.md`, the regex contract), lowest `log`/`index` 47 (`docs/decisions/INDEX.md`)
+— because a **versioned** contract legitimately accumulates one date per release. 20 sits at 1.67×
+above / 2.35× below. ⛔ Calling that "threshold-free" would have been the comfortable claim; it is a
+2× band, not 50×, and the register carries the derivation.
+
+**Instrument B — self-refutation, TOTALLY CLASSIFIED.** ⛔ The check does **not** enumerate
+spellings — enumeration is exactly what failed twice. It requires every anchored `Last updated` line
+to match a pinned shape and **REFUSES (exit 2)** on any it cannot classify, so a fifth spelling is a
+loud refusal rather than an absent row.
+
+**Route closure.** Every `.md` destination a capped enforcer NAMES must be a watched surface, and
+the 27 edges are **DERIVED** — from `check_readme_stability.sh`'s `routing_hint()` heredoc and from
+`COMMIT.md`'s own *Files Involved* list (globs expanded over tracked files). That answers `.5`'s
+third finding: the edge that carried the rot was a **hint string inside an error message**, which no
+hand-authored route registry can see.
+
+#### ⭐⭐⭐ THE THIRD CONSECUTIVE MIS-MEASUREMENT — and why it stops here
+
+| pass | population | knew | missed — always **silently, in the passing direction** |
+|---|---:|---|---|
+| `.4` | **10** | `Last updated: 2026-05-14` | ~50 `docs/tasks/` trees (`` - Last updated: `2026-05-31` ``) + 1 phantom prose row |
+| `.5` | **16** | + the backtick spelling | the `docs/contracts/` **continuation** spelling (`- Last updated:` / date on the NEXT line): 6 files |
+| `.2` | **18** | + continuation + template, fences and mid-line prose excluded | — (refuses instead) |
+
+⭐ The two files `.5` missed are `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` and
+`PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` — **published downstream contracts**, the surface class
+where a stale claim costs the most and where `DONE-BAR.5a` already measured ~77 releases of drift.
+
+⭐⭐ **The banked lesson**: three passes, three numbers, and every correction was possible only
+because a **prior published number** existed to disagree with. An instrument's first output is a
+hypothesis ([[feedback_instrument_needs_ground_truth]]). The structural fix is not a longer spelling
+list — it is **refusing to publish over anything unclassified**, which is the one property a
+spelling list can never have.
+
+#### ⭐ The instrument REFUSED on its own task leaf — and that is how the last false-positive class was found
+
+Writing the ADDRESSED box below meant quoting the enforcer's own OK line. The quotation wrapped, and
+`Last updated:, 18 self-refuting, …` landed at the start of an **indented continuation line** —
+which the first anchor (`^[ \t]*…`) read as a declaration with no parseable date, so the check
+REFUSED on the very leaf documenting it.
+
+⛔ **The cheap fix was to reword the leaf. That was refused**: it leaves the class live for the next
+author, and a gate that authors route around is the failure mode `DOCTRINE_ENFORCEMENT.md` §6.1
+names. The real fix is that **indented text is quoted material, not the document's own declaration**
+— the same reason fenced blocks are excluded. The anchor moved to **column 0** (bare, or behind a
+column-0 bullet), which is what all 61 real declarations measurably are.
+
+Cross-checked rather than assumed: a loose-vs-tight differential over all 913 tracked `.md` files
+reports **exactly one** line that column-0 anchoring drops, and it is the quotation artifact itself.
+Population unchanged at 61 declaring / 18 self-refuting. Pinned by control
+`excluded-indented-quotation`, and both directions re-probed — a **column-0** `Last updated: sometime
+in the spring` still refuses (exit 2), the **indented** form does not (exit 0).
+
+#### Ground truth — 9 controls, run BEFORE any number is published
+
+In-memory fixtures through the **same** extractor the real scan uses (if the two could diverge, the
+controls would prove nothing about the scan): a positive, a negative, one per pinned shape
+(bare / backtick / continuation / template), a fenced-block exclusion (pinned on the real
+`rust/docs/CLI_REFERENCE.md:161` shape), a mid-line-prose exclusion, an indented-quotation exclusion
+(pinned on the shape that fired on this leaf), and one that proves the **refusal path itself is
+live**. Any miss aborts with exit 2. No temp files — nothing is written outside the repository.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `git ls-files -- '*.md'` census (913 tracked files) with the `.4`/`.5`
+      extractors reproduced: the two published numbers (10, 16) disagree with each other and with a
+      third reading, and no enforcer existed to hold any of them. `bash scripts/check_doctrines.sh`
+      listed 15 doctrines, none watching whether a live document is currently *true*.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the `git ls-files -- '*.md'` census names both the mechanism and
+      the location: the repo carries **four** `Last updated` shapes, not two — `bare` 14, `backtick`
+      41, `continuation` 6 (`docs/contracts/`, the shape both prior passes missed), `template` 1 —
+      plus one fenced false positive at `rust/docs/CLI_REFERENCE.md:161` and 4 mid-line prose
+      matches. An extractor requiring a date immediately after the colon skips the continuation
+      shape **as an absent row, not a reported miss**, so it under-reports and looks clean doing it.
+      WHERE the doctrine gap was: `scripts/check_doctrines.sh` had no live-document instrument at
+      all, and `scripts/check_readme_stability.sh`'s `routing_hint()` names destinations nothing
+      watched.
+- [x] **FIX** — declarative-tier: one enforcer + one hand-written register. No engine or grammar
+      change. The register holds only what cannot be re-derived (charters, owned debt); the surface
+      set, the date counts and all 27 route edges are re-derived from the tree on every run.
+- [x] **ADDRESSED (verified)** — before: no instrument, three conflicting populations (10 / 16 / 18)
+      and no way to tell which held. After: `bash scripts/check_live_document_currency.sh` → exit 0,
+      `28 surfaces chartered (23 status, ceiling 20); instrument B: 61/913 tracked .md declare
+      Last updated:, 18 self-refuting, all owned by LIVE-MEANS-LIVE.4; 27 derived route edges, all
+      watched`. **All 12 probes proven to fire in the right direction** before the doctrine was
+      trusted — 7 breaches (exit 1: new rot · paid debt · over-ceiling with no entry · paid
+      `out_of_charter` entry · registered surface absent · charter with empty `_why` · unregistered
+      route destination), 4 refusals (exit 2: a fifth spelling → *"matched NO pinned shape"* ·
+      register missing · `routing_hint()` heredoc unlocatable · a perturbed extractor caught by
+      control `shape-backtick`), and 1 **negative** probe proving the anchor fix holds in the other
+      direction (the indented form of the refusing line → exit 0). `bash -n` clean on the enforcer
+      and on the driver; `shellcheck` is NOT installed on this host, so that arm is unrun rather
+      than claimed.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 16 doctrines PASS** (15
+      pre-existing + the new one), including `<meta:mirror>` confirming
+      `DOCTRINE_ENFORCEMENT.md` §10 lists exactly the 16. Determinism: three consecutive runs are
+      byte-identical (`md5 -q` of the verdict line, 3/3 equal) — no clock, no network, no randomness;
+      every date compared comes out of the tree. Non-mutating: `git status --porcelain` after the 11
+      probes shows only the three intended paths. Submodule-blind by construction
+      (`git ls-files` without `--recurse-submodules`; **1 773** submodule `.md` files deliberately
+      not scanned, per `CI-PARITY-GATE-ROT.20a` — submodules are READ-ONLY LINKED REPOS).
+- [x] **LOCKSTEP** — `scripts/check_doctrines.sh` registry line, `DOCTRINE_ENFORCEMENT.md` §10 row
+      (gate-held equal by the driver's meta-check), the register's own `_why` fields, book chapter
+      *Operations and Governance* → *A live document must be currently TRUE, not merely bounded*,
+      new layer-C record `docs/decisions/feedback_enumerating_instrument_must_refuse.md` + its
+      `INDEX.md` row (`MEMORY-ARCH`'s bidirectional reconcile holds them equal), `docs/TASK_TREE.md`,
+      `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`. `mdbook_docs_gate` GREEN (all 10 per-parser
+      books + the main book).
+
+#### ⚠️ Honest bounds — stated, not discovered later
+
+- The `status` ceiling **is** a human-chosen number (20) in a **2×** band, not the 50× `.3` implied.
+- Instrument A counts dates **including** fenced blocks (it asks *how many dates does this surface
+  carry*, and it reproduces `.3`'s published table); instrument B **excludes** them (it asks whether
+  a declaration contradicts content the file claims currency over). The asymmetry is deliberate.
+- A `log`/`index` charter exempts a surface from instrument A **only**, and that is not a clean bill
+  of health — `docs/TASK_TREE.md` is correctly chartered `index` and still carries a 64 450-byte
+  table cell (`.6`).
+- Route closure derives edges from **two** sources. A capped enforcer added tomorrow with its own
+  routing hint is not covered until it is added to `derived_edge_sources`; there is no automatic
+  discovery of hint blocks.
+- A file whose prose legitimately cites a date newer than its declaration will read as
+  self-refuting. That is literally true of the file and is left as a true positive rather than
+  papered over with a heuristic.
 
 #### (superseded fallback design — kept only to record what was rejected and why)
 
@@ -1044,7 +1188,7 @@ would have ranked worst; its date count says it is healthy. The instrument separ
 *rotted*, which is the actual question. And it does not fire on `CHANGES.md`, because being a log
 is that file's charter — the instrument classifies, the charter says which classification is right.
 
-### `.4` — 10 tracked files SELF-REFUTE their own `Last updated:` (`todo`)
+### `.4` — **18** tracked files SELF-REFUTE their own `Last updated:` (`todo` — population corrected twice; both correction blocks below)
 
 Found by ANVIL's second instrument (`.2`) on its first run — no baseline, no threshold:
 
@@ -1078,6 +1222,28 @@ directions, and both errors come from the extractor, not from the files:
 | ⛔ `CHANGES.md` does **not** declare `Last updated:` at all | its 3 matches are *prose* — L264 describes instrument B itself, L11012/L14479 narrate other files' fields. **The row is phantom**; the `2026-05-25` in it corresponds to no declaration in the file. Its advice ("may simply drop its `Last updated:`") is moot — there is nothing to drop |
 | ⛔ **8 `docs/tasks/` files self-refute and were never listed** | `OPS-MEMSAFE` (2026-07-18→27), `REGEX-PCRE2-FIDELITY` (2026-06-07→07-30), `RGX-0090`/`RGX-0091` (2026-07-21→27), `SV-EXH-PROOF` (2026-05-31→06-10), `SV-PARSE-STRICT` (2026-06-09→06-10), `INLINE-ALT-FIX` (2026-05-16→17), `STIMULI-SIGNOFF` (2026-07-07→08) |
 | ⇒ live population after `.1c3` deleted the tracker | **16** self-refuting of 61 declaring |
+
+#### ⛔ SECOND CORRECTION — re-measured in `.2`: the population is **18**, and the same class of miss caused both
+
+`.2`'s enforcer re-derives the population with an extractor that **refuses rather than skips**. Two
+more files self-refute, and they were invisible to `.5` for the *same* reason `.4`'s 8 were invisible
+to it — an unpinned declaration spelling:
+
+| file | declares | newest content | spelling that hid it |
+|---|---|---|---|
+| `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` | 2026-07-04 | **2026-07-25** | `continuation` — `- Last updated:` with the date on the FOLLOWING line |
+| `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` | 2026-06-10 | **2026-07-22** | `continuation` |
+
+⭐ Both are **published downstream integration contracts** — the surface class where a stale claim is
+most expensive, and the class `DONE-BAR.5a` already caught ~77 releases stale. The other 4 contracts
+using the same spelling are clean (declaration == newest), so the instrument is not firing on a class.
+
+⇒ ⛔ **`.4`'s scope is 18 files, not 10 and not 16**, and its table above is the `.5` snapshot, kept
+as the record of what each pass could see. The authoritative live list is
+`instrument_b.self_refuting_debt.files` in
+`rust/test_data/grammar_quality/live_document_currency_register_v0.json`, which `.2`'s enforcer holds
+**two-sided**: a new self-refutation FAILS, and a fixed one still listed FAILS with *"remove it"*. ⇒
+`.4` is now a **draining ratchet** rather than a static list that can rot on its own.
 
 ⭐ **WHY the first pass missed them — the anchor, not the rule.** The repo has **two** declaration
 spellings, and `.4` only ever saw one. Root docs write `Last updated: 2026-05-14`; every
@@ -1180,6 +1346,61 @@ evidence, and is labelled in the deliverable as a peer caution rather than a fin
 ⇒ Feeds `.2`: instruments A and B are now specified against a second project's architecture, and
 the *"charter pairing is not a refinement, it is what makes the instrument usable"* point (their
 Q19) is the same design constraint `.2` already identified for `CHANGES.md`.
+
+### `.6` — ⛔ `docs/TASK_TREE.md` carries a **64 450-byte table cell**, and instrument A is BLIND to it (`todo`)
+
+Found by `.2` while calibrating instrument A's charter for the task-tree index. The index scores
+**62 distinct dates over 105 tree rows = 0.6 per row**, which is *index-shaped, not rot* — so
+instrument A correctly does NOT fire, and the `index` charter is honest. The rot is on a **different
+axis**:
+
+| measured (2026-07-31) | `docs/TASK_TREE.md` | for comparison |
+|---|---:|---|
+| bytes | **468 401** | `docs/decisions/INDEX.md` 92 082 |
+| lines | 454 | 153 |
+| mean bytes/line | **1 032** | 602 |
+| ⛔ single largest line | **64 450 B** (L108, the `RGX-0078` row) | 2 180 B |
+
+⭐⭐ **The largest single line in the task-tree index is 1.68× the largest line of the 1.5 MB tracker
+this whole tree was opened to delete** (38 265 B, `LIVE_ACHIEVEMENT_STATUS.md` L555). One table cell
+is **13.8 %** of the file. The top five rows are 64 450 / 36 723 / 33 370 / 27 896 / 25 079 B — the
+*Active Task Trees* table has become a place where each tree's changelog lives inside its own cell.
+
+⚠️ **This is the `README-POLICY.2` bypass in a new location**: layer A once passed a 60-line cap
+carrying 138 403 bytes at 2 306 B/line. Same shape, same reason — a line-count instrument cannot see
+it, and here the *date-count* instrument cannot either.
+
+⭐ **The general lesson this leaf exists to bank**: a charter that exempts a surface from one
+instrument must never be read as a clean bill of health. `.2`'s register states that explicitly
+(`_exemption_is_not_a_clean_bill_of_health`) and names this leaf, so the exemption carries its own
+counter-evidence.
+
+Scope when worked: decide whether the index rows keep only *status + frontier + pointer* (the tree
+file already holds the detail), and whether a bytes-per-row instrument belongs beside A and B. ⛔ Do
+NOT bulk-truncate rows — the content is reachable in each tree file, but that must be **proven per
+row** first, exactly as `.1a`'s 452/452 census proved the tracker delete safe.
+
+### `.7` — the published SystemVerilog integration contract has accumulated a version log (`todo`)
+
+Found by `.2` on the doctrine's **first run**, by **both** instruments independently:
+
+| instrument | reading on `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` |
+|---|---|
+| **A** (distinct dates vs charter) | **24** — over the `status` ceiling of 20; the file is 562 756 B |
+| **B** (self-refutation) | declares `2026-07-04`, its own newest content date is **2026-07-25** |
+
+⭐ Two baseline-free instruments agreeing on one surface is the strongest signal either can give,
+and this is the surface class where a stale claim costs the most: a **published downstream
+contract**. `PUBLISHED-VERSION-CURRENCY` already exists because this exact class was measured **~77
+releases stale with no gate reading either document** (`DONE-BAR.5a`) — that guard holds the regex
+identity pair and the family-status row, not the contract's own version history.
+
+⚠️ It is *registered debt, not a waiver*: `instrument_a.out_of_charter` names this leaf as owner,
+and the entry is **two-sided** — paying the debt without removing the entry fails the doctrine too.
+
+Scope when worked: route the per-release history out of the contract body (the `CHANGES.md` /
+per-family ledger question), then remove both the `out_of_charter` entry and this file's
+`self_refuting_debt` row. ⛔ The ceiling is NEVER raised to make this green.
 
 ## Evidence
 

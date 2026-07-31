@@ -1,5 +1,57 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0009 — leaf LIVE-MEANS-LIVE.2: the `LIVE-DOC-CURRENCY` doctrine — a live document must be currently TRUE, not merely bounded
+
+Ops/build-flow change (a new `scripts/check_*.sh` + its register). No `grammars/*.ebnf`, no
+`rust/src/*`, no `generated/*` => all generated parsers byte-identical BY CONSTRUCTION.
+
+- **The doctrine.** `scripts/check_live_document_currency.sh` +
+  `rust/test_data/grammar_quality/live_document_currency_register_v0.json`, registered as
+  `LIVE-DOC-CURRENCY` in `scripts/check_doctrines.sh` and mirrored in `DOCTRINE_ENFORCEMENT.md` §10.
+  The driver now runs **16** doctrines, all PASS.
+- **Instrument A — distinct dates PAIRED WITH A DECLARED CHARTER.** 28 surfaces; 23 `status`
+  (ceiling 20 distinct dates), the rest `log`/`index` and exempt *by charter* with a required
+  `_why`. The instrument classifies; the charter says which classification is permitted — which is
+  what stops it firing on `CHANGES.md` (175 dates, and correct).
+  ⚠️ **The ceiling is a human-chosen number and the leaf says so**: `.3` implied a 50× gap, but that
+  compared three book chapters against a 1.5 MB tracker. Re-measured over the whole registered set
+  the empty band is [12, 47] — a versioned contract legitimately accrues one date per release — so
+  20 sits in a **2×** band, not 50×.
+- **Instrument B — self-refutation, TOTALLY CLASSIFIED.** ⛔ It does **not** enumerate spellings;
+  enumeration is what failed twice. It requires every anchored `Last updated` line to match a pinned
+  shape and **REFUSES (exit 2)** on anything it cannot classify, so a fifth spelling is a loud
+  refusal rather than an absent row.
+- ⛔ **`.4` CORRECTED A SECOND TIME: the population is 18, not 16 and not 10.** The repo writes the
+  declaration **four** ways, not two. `.5` pinned `bare` + `backtick` and was still blind to the
+  `docs/contracts/` **continuation** spelling (`- Last updated:` with the date on the NEXT line) —
+  6 files, **2 of them self-refuting**, and both are **published downstream integration contracts**
+  (SystemVerilog declares 2026-07-04 against its own 2026-07-25; VHDL 2026-06-10 against 2026-07-22).
+  Three passes, three numbers (10 → 16 → 18), every miss silent in the passing direction, every
+  correction possible only because a prior published number existed to disagree with.
+- **Route closure.** 27 destinations, **DERIVED** from `check_readme_stability.sh`'s `routing_hint()`
+  heredoc and from `COMMIT.md`'s own *Files Involved* list — because the edge that carried the rot
+  was a hint string inside an error message, which no hand-authored registry could see.
+- ⭐ **The check REFUSED on its own task leaf.** A wrapped quotation of its OK line put
+  `Last updated:` at the start of an indented continuation line. The cheap fix (reword the leaf) was
+  refused; the anchor moved to **column 0**, which all 61 real declarations measurably are. A
+  loose-vs-tight differential over all 913 tracked `.md` files drops **exactly one** line — the
+  artifact itself. Population unchanged at 61 declaring / 18 self-refuting.
+- **Proof.** 9 ground-truth controls run before any number is published (positive, negative, one per
+  pinned shape, fenced-block and indented-quotation exclusions, and one proving the refusal path is
+  live); **12 probes proven to fire** — 7 breaches, 4 refusals, 1 negative. Determinism: 3/3
+  byte-identical runs. Submodule-blind by construction (1 773 submodule `.md` files deliberately not
+  scanned, per `CI-PARITY-GATE-ROT.20a`).
+- **Two findings opened as leaves rather than worked here.** `.6`: `docs/TASK_TREE.md` carries a
+  **64 450-byte table cell** (1.68× the largest line of the 1.5 MB tracker) which instrument A is
+  structurally blind to — its 62 dates over 105 rows are index-shaped, so the `index` charter is
+  honest and is *not* a clean bill of health. `.7`: the SystemVerilog integration contract is flagged
+  by **both** instruments at once, and is registered as owned, two-sided debt.
+- Files: `scripts/check_live_document_currency.sh` (new),
+  `rust/test_data/grammar_quality/live_document_currency_register_v0.json` (new),
+  `scripts/check_doctrines.sh`, `DOCTRINE_ENFORCEMENT.md`,
+  `docs/book/src/operations-and-governance.md`, `docs/tasks/LIVE-MEANS-LIVE.md`,
+  `docs/TASK_TREE.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0008 — leaf LIVE-MEANS-LIVE.5: the outbound review of FSMGen's live-document size-containment packet, and a correction to `.4`'s own instrument
 
 Director request mid-session: *"could review this document and feedback your honest, no BS

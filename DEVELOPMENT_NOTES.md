@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0009 — enumeration is what fails; refusal is what holds
+
+Three lessons from `LIVE-MEANS-LIVE.2`, all general enough to outlive the doctrine that produced them.
+
+**1. When an instrument has to enumerate the shapes of what it looks for, the list is the defect.**
+The `Last updated:` self-refutation instrument measured one population three times and got 10, then
+16, then 18. Each pass added a spelling it had been blind to: `.4` knew only the bare root-doc form,
+`.5` added the backtick-quoted `docs/tasks/` form, `.2` found the `docs/contracts/` continuation form
+(`- Last updated:` with the date on the following line). Every miss failed **silently in the passing
+direction** — an unmatched file is not a reported miss, it is an absent row, so the instrument
+under-reported and looked clean doing it. A fourth spelling would have produced a fourth number.
+⇒ **the fix is not a longer list, it is refusing to publish over anything unclassified.** The
+enforcer now requires TOTAL CLASSIFICATION of every anchored declaration and exits 2 on any line it
+cannot classify. That is the one property a spelling list can never have, however long it gets.
+
+**2. The two files the second pass missed were the two that mattered most.** They are the published
+SystemVerilog and VHDL integration contracts — the surface class where a stale claim is most
+expensive, and the class where `DONE-BAR.5a` had already measured ~77 releases of undetected drift.
+An under-reporting instrument does not miss randomly; it misses whatever is written in the dialect
+it was not taught, and dialects cluster by directory — which is to say, by surface class. ⇒ **when
+an extractor's coverage is uneven, expect the blind spot to be a whole category, not a scatter.**
+
+**3. A gate that fires on its own documentation has found a real class — do not reword around it.**
+Writing the ADDRESSED box meant quoting the enforcer's own output. The quotation wrapped, putting
+`Last updated:` at the start of an indented continuation line, and the check refused on the very
+leaf documenting it. The cheap fix was to reflow the paragraph. That was refused: it leaves the
+class live for the next author and teaches them to route around the gate — the exact failure mode
+`DOCTRINE_ENFORCEMENT.md` §6.1 warns about, where an author's hand-written waiver sat unread inside
+a ticked box. The real fix is that **indented text is quoted material, not the document's own
+declaration**, the same reason fenced blocks are excluded. Anchoring at column 0 was then verified
+rather than assumed: a loose-vs-tight differential over all 913 tracked `.md` files drops exactly
+one line, and it is the artifact itself.
+
+**And an honest bound recorded on the way in, not after.** `.3` reported a 50× separation between
+status surfaces and logs, and that number invited the claim that instrument A picks no threshold.
+Re-measured over the full registered set — including the versioned integration contracts, which
+legitimately accrue one date per release — the empty band is [12, 47]. The ceiling of 20 sits inside
+a **2×** band, not a 50× one. It is a human-chosen number, the register carries its derivation, and
+calling it threshold-free would have been the comfortable claim rather than the true one.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0008 — read the checker, not the packet; and an instrument that misses silently in the passing direction
 
 Two lessons from `LIVE-MEANS-LIVE.5`, both general enough to outlive the review that produced them.

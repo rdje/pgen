@@ -318,6 +318,110 @@ Second, it asks `make` what a derived prerequisite list contains rather than
 re-implementing `$(wildcard)` and `$(patsubst)`. A second implementation of a
 rule is a second thing that can drift from it.
 
+## A live document must be currently TRUE, not merely bounded
+
+`README.md` is capped on two axes — a line cap *and* a byte cap. That is half a fix. The other
+half is checking **where the overflow lands**, because a cap that redirects content has not removed
+the pressure, it has moved it to whichever neighbouring surface has no instrument.
+
+That is not hypothetical here. The README's own overflow rule named a status file as the
+destination for family-status content. The README stayed inside both caps; the destination reached
+**1 547 057 bytes, of which 94.7 % was a dated changelog**, and nothing watched it at all.
+
+The `LIVE-DOC-CURRENCY` doctrine (`scripts/check_live_document_currency.sh`, run by the doctrine
+enforcer on every commit) closes that with two instruments and a closure rule.
+
+### Why not simply cap every document?
+
+Because *big* and *rotted* are different questions, and a byte cap answers the wrong one.
+`gate-flow.md` is the **largest** of the healthy overflow destinations and also the healthiest. A
+byte cap would rank it worst. The question worth asking is *has this surface stopped being a status
+document*, and size does not answer it.
+
+### Instrument A — distinct dates, paired with a declared charter
+
+Count the distinct `YYYY-MM-DD` dates a surface carries. A status view carries one or two; a log
+carries hundreds. But the count alone is a false-positive machine: `CHANGES.md` scores 175 and is
+**correct**, because being a dated history is its charter.
+
+So each watched surface declares its charter in
+`rust/test_data/grammar_quality/live_document_currency_register_v0.json`:
+
+| charter | meaning | subject to the ceiling? |
+|---|---|---|
+| `status` | a current-state view | **yes** |
+| `log` | a dated history by charter (`CHANGES.md`, the bug ledger) | no — accumulating dates is the job |
+| `index` | one row per record; the count scales with entry count | no |
+
+**The instrument classifies; the charter says which classification is permitted.** A `log` or
+`index` charter needs a written `_why` — an exemption nobody justified is an exemption nobody
+reviewed — and it exempts the surface from *this* instrument only. It is never a clean bill of
+health on every axis.
+
+A `status` surface above the ceiling must be declared as **owned debt** naming a task leaf that
+exists. That entry is a two-sided ratchet: a new breach fails, and a breach that has been *repaired*
+while the entry survives also fails, with *"the debt is paid, remove the entry"*. Debt cannot
+silently become permanent, and the ceiling is never raised to make a surface green.
+
+### Instrument B — a document that refutes itself
+
+Many documents declare `Last updated: <date>`. Compare that declaration against the newest date in
+the document's own body. If the body is newer, the file's two halves contradict each other.
+
+This needs **no baseline and no threshold at all** — no history, no reference snapshot, no chosen
+number. The evidence is entirely inside the file.
+
+It is also the instrument that proves *bounded* and *current* are independent properties: the files
+it catches are all comfortably inside every size bound and correctly routed.
+
+### Why the check refuses instead of listing spellings
+
+This instrument measured the same population three times and got three answers — 10, then 16, then
+18 — because the repository writes the declaration four different ways, and each pass knew only some
+of them:
+
+| shape | example | where |
+|---|---|---|
+| `bare` | `Last updated: 2026-05-14` | root docs, `docs/reference/` |
+| `backtick` | `` - Last updated: `2026-05-31` `` | every `docs/tasks/` tree |
+| `continuation` | `- Last updated:` with the date on the **next** line | `docs/contracts/` |
+| `template` | `` - Last updated: `YYYY-MM-DD` `` | the task-tree template — declares nothing |
+
+Every miss failed **silently in the passing direction**: an unmatched file is not a reported miss,
+it is an absent row, so the instrument under-reports and looks clean doing it. Each correction was
+possible only because a *prior published number* existed to disagree with.
+
+So the check does not enumerate spellings. It requires **total classification** and **refuses**
+(exit 2) on any anchored `Last updated` line it cannot classify. A fifth spelling appearing tomorrow
+is a loud refusal, not an absent row — the one property a longer list can never have.
+
+Two exclusions are pinned by construction, both measured rather than imagined: a declaration inside
+a fenced code block is sample output, and an *indented* one is quoted material. The second was found
+when the check refused on its own task leaf, where a wrapped quotation of its output line put
+`Last updated:` at the start of a continuation line.
+
+### Route closure — a guard that names a destination is defining a route
+
+The edge that carried the pressure out of `README.md` was a **hint string inside an error message**.
+No hand-authored route registry would ever have listed it. So the destinations are **derived** from
+the enforcers' own output text — the routing hint `check_readme_stability.sh` prints on a cap
+breach, and `COMMIT.md`'s own *Files Involved* list — and every derived `.md` destination must be a
+watched surface.
+
+### Ground truth — the check refuses rather than guesses
+
+An instrument with no ground truth is a confident guess, and this one has been wrong three times.
+Every run first executes nine in-memory fixtures with known answers — a positive, a negative, one
+per pinned shape, the two exclusions, and one proving the refusal path itself is live — through the
+**same** extractor the real scan uses. Any miss aborts before a number is published.
+
+```bash
+bash scripts/check_live_document_currency.sh     # or via: bash scripts/check_doctrines.sh
+```
+
+Exit `0` holds; `1` is a breach; `2` is a refusal — the check could not judge, and says so instead
+of returning green.
+
 ## Documentation Governance
 
 The intended split is:
