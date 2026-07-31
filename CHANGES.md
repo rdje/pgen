@@ -1,5 +1,24 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0004 — the confirmatory VHDL oracle deferred by -0003 has landed: PASS
+
+Docs only (task leaf + this file). Records the result of a gate that was still running when
+`PGEN-LIVE-MEANS-LIVE-0003` was committed, so its acceptance box named it verification-pending
+rather than claiming it.
+
+- ✅ **`make -C rust SHELL=/bin/bash vhdl_parser_family_status_gate` → exit 0** (~1 h 5 m). Its
+  `summary.txt` carries `live_tracker_file: …/done_bar_family_register_v0.json`,
+  `vhdl_status: Provisional (corpus pending)`, `vhdl_tracker_alignment_ok: true`.
+- ⭐ `live_tracker_file` resolving to the REGISTER is the load-bearing confirmation: the gate's
+  independent arm computed a status and compared it against the hand-authored claim in its new home
+  end-to-end, and they agreed. The single UNMET criterion
+  (`external_corpus_conformance_pass=false`, `leg3_surface=<none>`) is `DONE-BAR.3`'s open work and
+  is unchanged by `.1b`.
+- ✅ Re-run against that FRESH artifact: `audit_done_bar.sh` still exit 0, probe driver still
+  **16/16**. The staleness path is now exercised in BOTH directions — the artifact is newer than
+  the register, where in `-0003` it was older.
+- ⛔ No claim moved: the live-status snapshot is unchanged by this commit (still 0 `Done` rows).
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0003 — leaf LIVE-MEANS-LIVE.1b: the family roster is derived from the PRODUCT, and it was hiding three shipped parsers
 
 Shell + tracked-contract + docs only: no rust/src/, no grammar, no generated/* => all generated

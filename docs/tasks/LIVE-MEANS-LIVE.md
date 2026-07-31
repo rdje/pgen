@@ -479,11 +479,25 @@ now reproduces on a fresh clone. ⇒ routed as [[feedback_ground_truth_control_m
   | `bash scripts/audit_done_bar.sh` | **exit 0**, 10 families, 13 controls ✅ |
   | `run_done_bar_probes.sh` | **16/16, exit 0** ✅ |
 
-  ⏳ `make -C rust vhdl_parser_family_status_gate` was ALSO launched as the confirmatory end-to-end
-  oracle and is still running at commit time (>1 h; it drives the full VHDL family contract) —
-  **verification-pending, and its result is reported in the next commit** rather than claimed here.
-  It is confirmatory, not load-bearing: it consumes exactly one register value (`vhdl`), which is
-  byte-identical, through the shared reader two other oracles above already exercised.
+  ✅ **CONFIRMATORY ORACLE LANDED** (`PGEN-LIVE-MEANS-LIVE-0004`, ~1 h 5 m — it drives the full VHDL
+  family contract). It was still running when `-0003` was committed and was recorded there as
+  *verification-pending* rather than claimed; **`make -C rust SHELL=/bin/bash
+  vhdl_parser_family_status_gate` → exit 0**, and its `summary.txt` (6 169 B) carries the three
+  lines that matter:
+
+  ```
+  live_tracker_file: …/rust/test_data/grammar_quality/done_bar_family_register_v0.json
+  vhdl_status: Provisional (corpus pending)
+  vhdl_tracker_alignment_ok: true
+  ```
+
+  ⭐ `live_tracker_file` resolving to the **register** is the load-bearing confirmation: the gate's
+  independent arm computed a status and compared it against the hand-authored claim in its new home,
+  end-to-end, and they agreed. The one criterion it reports UNMET —
+  `external_corpus_conformance_pass=false (leg3_surface=<none>)` — is `DONE-BAR.3`'s open work and
+  is **unchanged by this leaf**. ✅ Re-run against that FRESH artifact, `audit_done_bar.sh` still
+  exits 0 and the probe driver is still **16/16**, so the staleness path is exercised in both
+  directions (the artifact is now newer than the register, where before it was older).
   ⛔ No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` touched ⇒ all generated parsers
   **byte-identical BY CONSTRUCTION**.
 - [x] **LOCKSTEP** — register `description` + `policy.grammar_dispositions`, the audit's header
