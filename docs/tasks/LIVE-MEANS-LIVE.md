@@ -1283,7 +1283,28 @@ And on the 18 instrument B flags, git is **≥ the newest content date in 18 of 
 downstream reader holds the `.md` without the repository, so `git` is not available to them. That
 class is split out below rather than decided silently.
 
-### `.4a` — execute the deletion across ALL 61 declaring files (`todo` — ⚖️ unblocked by `.4b`'s ruling; internal AND published, one uniform rule)
+### `.4a` — execute the deletion across ALL 61 declaring files (`todo` — ✅ **DIRECTOR GO-AHEAD GRANTED 2026-07-31**; internal AND published, one uniform rule)
+
+> ✅ **APPROVED, EXPLICITLY, AFTER SEEING THE SCOPE.** Director, 2026-07-31, session #229, in
+> response to a concrete before/after walkthrough of what the sweep touches (*"So want to delete all
+> the files listed above?"* → answered *no files, 64 lines, 4 prefix-strips* → **"ok go-ahead then"**,
+> to be executed after a session `/exit`).
+>
+> ⛔ **DO NOT RE-ASK.** The next session executes this leaf directly
+> ([[feedback_routine_decisions_are_not_escalations]]). The scope the director approved is exactly
+> the table below; anything wider is a new question.
+
+#### The approved scope, stated so it cannot be misread
+
+| | |
+|---|---:|
+| **files deleted** | **0** |
+| lines deleted (`- Last updated: <date>`; **2** lines each for the 6 contracts' continuation form) | **64** |
+| lines **edited, not deleted** — prefix stripped, parenthetical KEPT (the 4 ⚠️ cases) | **4** |
+
+Nothing else in any file moves. The contracts keep their entire `## Contract Identity` block —
+`Contract version`, `Parser release version`, the embedding-API baseline, the AST-dump schema
+version — which is the stronger signal that made the date redundant in the first place.
 
 Scope: **all 61** declaring files — `docs/tasks/*.md` trees + `docs/tasks/TEMPLATE.md`, the root
 workflow/continuity docs, `docs/reference/*`, `docs/book/*`, **and the 6 `docs/contracts/*` published

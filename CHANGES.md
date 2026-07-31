@@ -1,5 +1,29 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0013 — leaf LIVE-MEANS-LIVE.4a: the director's GO-AHEAD is recorded durably, so the next session executes without re-asking
+
+Tracking-only. ⭐ **The whole point of this commit**: an approval that lives only in a conversation
+does not survive `/exit`. `MEMORY_ARCHITECTURE.md`'s prime directive — *nothing important may live
+only in this conversation* — applies to a director decision exactly as it applies to a measurement.
+
+- ✅ **APPROVED, EXPLICITLY, AFTER SEEING THE SCOPE.** The director asked *"So want to delete all the
+  files listed above?"*, was shown a concrete before/after walkthrough (no files deleted; 64 lines
+  deleted; 4 prefix-strips that KEEP their parenthetical), and answered **"ok go-ahead then"** — to
+  be executed after a session `/exit`.
+- ⛔ **The next session executes `.4a` directly and does NOT re-ask**
+  ([[feedback_routine_decisions_are_not_escalations]]). The approved scope is the table now pinned in
+  the leaf; anything wider is a new question.
+- **The approved scope, pinned so it cannot drift**: **0 files deleted** · **64 lines** deleted (the
+  `- Last updated: <date>` line; 2 lines each for the 6 contracts' continuation form) · **4 lines
+  EDITED, not deleted** (prefix stripped, parenthetical kept). Every contract keeps its entire
+  `## Contract Identity` block — `Contract version`, `Parser release version`, embedding-API
+  baseline, AST-dump schema version — which is the stronger signal that made the date redundant.
+- ⚠️ The four consequences from `.4b` remain the execution checklist, and the sharpest is unchanged:
+  `docs/tasks/SV-EXH-PROOF.md:9` names that tree's **FRONTIER** inside the parenthetical a naive
+  line-wise delete would destroy.
+- Files: `docs/tasks/LIVE-MEANS-LIVE.md`, `CHANGES.md`, `MEMORY.md`.
+- Live status snapshot UNCHANGED (no parser family affected).
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0012 — leaf LIVE-MEANS-LIVE.4b: forward correction — the published contracts are 100 % stale, not "3 of 9"
 
 Tracking-only. ⛔ **`CHANGES.md` is NOT rewritten** — it is a record surface whose job is to be a
