@@ -1,5 +1,54 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0159 — leaf SV-EXH-PROOF.7.4.6.8: the literal-0 residual, RE-CLASSIFIED on a deterministic metric
+
+Tools-first investigation, **no code change**. Re-scoped on arrival: `.7.4.6.7` named its successor
+*"make the residual DETERMINISTIC"*, and that mandate had already been discharged **cross-tree** by
+`GRAMMAR-WELLFORMED.B1` (`-0005`). So this leaf asks the question the trustworthy number raises —
+**what is the residual actually made of?**
+
+- ⭐ **The failure class has completely flipped, and nobody had noticed.** Every slice from `.7.4.4`
+  through `.7.4.6.5` fought a `target_timeout` tail that was 91–99 % of the residual. It now measures
+  **`target_timeout=0`** on both profiles, against **exactly 1** recorded failure. The residual is no
+  longer "generation failed" — it is *"a witness WAS generated and the target still was NOT credited"*.
+- ⭐ **The residual is an exact, total, 3-class partition** (2017 / 2023): **A** the `property_expr`
+  cone **40/40**; **B** inner ordered choice under a quantifier **20/23** (⚠️ not homogeneous —
+  17 `never_selected` + 3 `selected_but_failed`); **C** store-gated unsatisfiable **2/2**.
+  40+20+2 = 62 ✅, near-identical across both profiles ⇒ all three are structural, not sampling noise.
+- ⭐ **Class A is ONE defect wearing 40 faces, proven by its complement.** `prop_primary_sv_2017` has
+  30 alternatives; **exactly four** are covered — `#0`/`#1`/`#2`/`#28` — and those are *precisely the
+  four that do not mention `property_expr`*. All 26 that do are residual. Invariant: an alternative is
+  coverable **iff** it does not re-enter the `property_expr` recursion cycle. The other 12 class-A
+  rules were bounded-extracted and every one reaches `property_expr`.
+- ⚠️ **The residual drifted `84 → 127` while this lane was parked, unnoticed** — 52 of the 127 are the
+  SVA property cascade landed 2026-06-25 (`-0133`). **ROOT CAUSE: there is no ratchet.**
+  `closed_loop_replay_targets_total` is initialized, accumulated and **echoed** — verified to appear
+  exactly 3× in the gate and **never compared**; and `focused_replay_target_debt_zero` is a *binary*
+  Done-criterion, not a bound on the value. ⇒ any grammar change may raise it arbitrarily and every
+  gate still passes. Routed to `.7.4.6.10`.
+- ✅ **Determinism independently re-confirmed, more strongly than B1 did it.** The fresh canonical gate
+  (2026-08-01, memory-guarded, exit 0, 33 min, peak RSS 7 025 MB) reproduced **127** (62+65), initial
+  **5461**, the same partition, and a **byte-identical** profile_2017 witness-pass line — across a
+  7-day gap *and* an intervening grammar change (`-0004`, `@entry: true` mandatory). Gate **PASSES** at
+  residual 127, which *is* the finding.
+- ⛔ **Class A's mechanism deliberately left OPEN.** The gate log names a located symptom
+  (`depth exceeded max_depth=40 while expanding rule 'tagged_union_expression_sv_2017'` for four
+  property-statement entries), but the same run reports `depth_exceeded=0` — those failures were
+  absorbed. *Why the witness is not credited to the forced branch* is `.7.4.6.9`'s first job, to be
+  answered with a Protocol D branch-selection trace, **not** by reasoning from the grammar.
+- ⛔ **Corrected a fix direction before writing it down**: class B's obvious remedy — "force enclosing
+  quantifiers" — **already exists** (`forced_quantifier_min`, populated at `:3076`/`:3402`). The leaf
+  now says *do not re-implement it*; the real question is why existing forcing, keyed on **inter-rule
+  hops**, does not reach these **intra-rule** `/q` sites.
+- ⚠️ **A self-correction kept on the record**: an early `awk` extraction bled past
+  `net_declaration_sv_2017` into the `sv_2023` rule, making it look like 3 exact-duplicate dead
+  alternatives had regressed the `.7.4.6.7` de-dup. They had not. Recorded because it is exactly the
+  failure TOOLBOX-FIRST exists to prevent — *do not eyeball a grammar*.
+- Successors opened: `.7.4.6.9` (class A, largest), `.7.4.6.10` (the ratchet), `.7.4.6.11` (classes
+  B + C, cheapest). `.7.4.6.7`'s stale `in_progress` status corrected to `done`.
+- Live status **unchanged**: `systemverilog: Mostly Done` (residual 127 > 0 ⇒
+  `focused_replay_target_debt_zero` stays unmet).
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0014 — leaf LIVE-MEANS-LIVE.4a: the `Last updated:` field is DELETED repo-wide, and instrument B now SAYS it is dormant
 
 Executed the director's go-ahead exactly as approved, then landed all four of `.4b`'s consequences

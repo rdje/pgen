@@ -1421,6 +1421,21 @@ an empty population; that is what makes "dormant" an honest word here rather tha
 carve-out.** My own prior recommendation — *derive the field at publish time* — is **rejected**, and
 the measurement that killed it is below.
 
+#### ⭐ The generalizable rule this leaf produced
+
+> **Generate FACTS, never generate CLAIMS.** For a derivable fact duplicated in prose, **delete the
+> duplicate and point at the source** — unless the reader genuinely cannot reach that source *and*
+> no stronger signal already exists beside it.
+
+This is why "derive the field at publish time" was rejected rather than adopted: auto-populating
+`Last updated:` would have *generated a claim*, manufacturing the appearance of currency on a
+document nobody had re-verified — the same defect as the hand-written field, now harder to detect
+because it would always look fresh. Deleting it and letting `Contract version:` carry the signal
+keeps the document honest by construction.
+
+*(Demoted here from `MEMORY.md` layer A by `SV-EXH-PROOF.7.4.6.8` — it had been recorded ONLY in the
+bounded resume pointer, i.e. one cap-trim away from being lost. This leaf is its durable home.)*
+
 #### The decisive measurement: the date is a weaker duplicate of a signal already 4 lines above it
 
 Every contract that carries `Last updated:` carries it **inside a `## Contract Identity` block that

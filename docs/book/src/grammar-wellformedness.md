@@ -1552,6 +1552,38 @@ place, the static proof (linter) and the constructive proof (generator) can fina
 equal, reproducible footing. The design rationale and ordered build plan live in the
 `GRAMMAR-WELLFORMED` task tree.
 
+### What the deterministic number then revealed
+
+Making the measurement stable was worth doing for its own sake, but the first thing a trustworthy
+number bought was an honest diagnosis. Applying the attribution rule above to SystemVerilog's
+closed-loop residual (`SV-EXH-PROOF.7.4.6.8`) produced three results worth recording, because each
+is the *opposite* of what the campaign had been assuming.
+
+**The failure mode that dominated for months is gone.** Every earlier attempt to drive the residual
+down was fighting generation *timeouts* — 91–99 % of uncovered targets. Under the deterministic
+step budget, together with a backtrack-free witness constructor and an allocation fix, that class
+measures **zero**. What remains is a different thing entirely: a witness *was* generated, without
+error, and the target still was not credited. The work changed shape, so the tools aimed at the old
+shape stopped being the right ones.
+
+**The residual is not a fog — it is three named defects.** The remaining targets partition exactly
+and totally, and near-identically across both LRM profiles, into: the transitive cone of one rule
+(`property_expr`, the SVA property cascade); inner ordered choices sitting under an optional or
+repeat group that never expands; and one store-gated rule whose predicate cannot be satisfied from
+an empty semantic store. That is the attribution rule doing its job — a bounded ticket list, not a
+shrug. Notably the largest class is *one* defect wearing forty faces: in the rule at its centre,
+every alternative that re-enters the recursion cycle is uncovered and every alternative that does
+not is covered, with no exceptions in either direction.
+
+**And a completeness number nobody is allowed to accept can still drift.** The residual rose while
+the lane was parked, because the gate *reports* it and never *compares* it: the count is echoed into
+the summary and comparison stops there, and an uncovered target makes a family "Mostly Done" rather
+than making the gate fail. So a grammar change can add coverage obligations faster than they are
+discharged and every gate still passes. This is the same lesson the project keeps relearning about
+instruments — **an instrument that reports without refusing will eventually report something false**
+— and the fix is the two-sided ratchet PGEN already uses elsewhere: fail above the pinned ceiling
+*and* fail below it, so wins are banked instead of quietly lost.
+
 ### EBNF self-hosting: the meta-grammar models itself
 
 The EBNF *meta-grammar* (`grammars/ebnf.ebnf`) is held to the same gen↔parse duality as every

@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0159 — a completeness metric that nobody may accept can still rot
+
+Three lessons from `SV-EXH-PROOF.7.4.6.8`, each general beyond SystemVerilog.
+
+**1. "Nobody is allowed to accept it" is not the same as "something checks it."** The closed-loop
+residual is the one number standing between the SV main parser and `Done`. It is also completely
+unguarded: `closed_loop_replay_targets_total` appears exactly three times in the gate — set to `0`,
+accumulated, `echo`ed — and is **never compared to anything**. The natural assumption is that the
+Done-criterion covers it; it does not. `focused_replay_target_debt_zero` is *binary* (`count == 0`),
+so at any non-zero residual the family reads "Mostly Done" and every gate passes identically whether
+the number is 84 or 127. It drifted from one to the other over seven weeks with nothing firing. The
+general shape: **a criterion that only distinguishes zero from non-zero cannot detect regression
+within non-zero**, and a metric whose only consumer is a status label is unmonitored in practice
+however important it is on paper.
+
+**2. When the dominant failure class is fixed, the diagnosis goes stale silently.** Slices `.7.4.4`
+through `.7.4.6.5` all fought generation *timeouts* — 91–99 % of the residual, re-measured every
+time. That work succeeded: `target_timeout` is now **0**. But the campaign's mental model, its
+tooling and its next planned lever were all still aimed at timeouts, because a *shrinking* number
+looks like progress toward the same goal rather than evidence the goal changed. The residual now
+fails in a different way entirely — the witness generates cleanly and the target still is not
+credited. **Re-derive the failure distribution before choosing the next lever, not just the total.**
+
+**3. The complement is stronger evidence than the sample.** Class A could have been reported as
+"40 uncovered targets across 12 property/assertion rules" — true, and nearly useless. What makes it
+a *diagnosis* is the negative half: `prop_primary_sv_2017` has 30 alternatives, exactly four are
+covered, and those four are precisely the ones that do not mention `property_expr`. No exceptions in
+either direction. That turns a list into an invariant — *coverable iff it does not re-enter the
+recursion cycle* — which is falsifiable, explains all 40, and tells the fix leaf what to look for.
+When classifying a residual, always check whether the covered set is as clean as the uncovered one.
+
+**Two process notes, both recorded because they nearly became findings.** An early `awk` extraction
+ran past its rule's end into the neighbouring `_sv_2023` rule and produced a convincing false
+positive — three "exact-duplicate dead alternatives", i.e. an apparent regression of the `.7.4.6.7`
+de-dup. It survived only until a bounded re-extraction. This is precisely what TOOLBOX-FIRST exists
+to prevent, and it is worth noting that the false positive was *plausible*: it matched a real defect
+class this repo had genuinely seen before. Separately, the obvious fix for class B — "force the
+enclosing quantifiers" — turned out to be **already implemented** (`forced_quantifier_min`, populated
+from `quantifier_sites_along_path` at `:3076`/`:3402`). Had that gone into the task leaf unchecked, a
+successor would have re-implemented working machinery instead of asking why it does not reach
+intra-rule `/q` sites. **Read the code for the fix you are about to prescribe, not only for the bug.**
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0014 — a dormant instrument must announce its dormancy
 
 Two lessons from `LIVE-MEANS-LIVE.4a`, both general enough to outlive the field it deleted.
