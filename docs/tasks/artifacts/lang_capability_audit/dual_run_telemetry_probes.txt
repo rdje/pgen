@@ -1,0 +1,48 @@
+================================================================================
+LANG-CAPABILITY-AUDIT.10.9 — dual-run telemetry probes
+repo_root:          /Volumes/SSD/Documents/github/pgen
+dual_run_state_dir: /Volumes/SSD/Documents/github/pgen/rust/target/ebnf_frontend_dual_run_gate
+parent_rev:         1362b375
+================================================================================
+
+--- the producer's live schema for the regex entry -----------------------------
+artifacts,consumed_pct,grammar,input_bytes,notes,overall,raw_ast_status,rust_parse,rust_parse_end,rust_parse_full,rust_report,rust_rule_count
+  perl_ebnf_to_json                = null
+  perl_rule_count                  = null
+  raw_ast_missing_on_perl_count    = null
+  raw_ast_missing_on_rust_count    = null
+  raw_ast_status                   = exported
+  rust_rule_count                  = 276
+
+--- ARM A: REPRODUCE — the gate at 1362b375 against the live artifact -------
+    rc=1
+    error: dual-run regex perl_ebnf_to_json mismatch: expected 'pass' but found 'null'
+  ok    A1 parent gate rc                                          rc=1
+  ok    A2 parent gate first error                                 error: dual-run regex perl_ebnf_to_json mismatch: expected 'pass' but found 'null'
+  ok    A3 (( 276 < null )) is vacuously satisfied                 GE
+
+--- ARM B: CONTROLS — does each guard on the CURRENT gate actually fire? --------
+  ok    B1 key DELETED (the .10.6 shape) rc                        rc=5
+  ok    B1 key DELETED (the .10.6 shape) error                     has no key "rust_rule_count"
+  ok    B2 key present but null rc                                 rc=5
+  ok    B2 key present but null error                              key "rust_rule_count" is null
+  ok    B3 raw_ast_status=skip (arm 1 export FAILED) rc            rc=1
+  ok    B3 raw_ast_status=skip (arm 1 export FAILED) error         raw_ast_status mismatch: expected 'exported' but found 'skip'
+  ok    B4 rule count BELOW the ratchet rc                         rc=1
+  ok    B4 rule count BELOW the ratchet error                      rust_rule_count expected >= 276 but found 275
+  ok    B5 POSITIVE control (untouched artifact)                   rc=0
+
+--- ARM C: CHAIN COHERENCE — every downstream read resolves to a producer key ---
+  ok    regex_combined_telemetry_contract_gate.sh <- family-contract: 32 reads, 0 unresolved
+  ok    regex_combined_telemetry_contract_gate.sh <- family-status: 18 reads, 0 unresolved
+  ok    regex_combined_telemetry_contract_gate.sh <- sota_exit_gate: 98 reads, 0 unresolved
+  ok    sota_exit_gate.sh <- family-contract: 32 reads, 0 unresolved
+  ok    sota_exit_gate.sh <- family-status: 23 reads, 0 unresolved
+  ok    regex_parser_family_status_gate.sh <- family-contract: 23 reads, 0 unresolved
+  ok    C-control: an injected unresolvable read IS reported (census can fail)
+  total: 226 producer->consumer reads checked, 0 unresolved
+  ok    C chain coherence census                                   0
+
+================================================================================
+divergences: 0
+✅ every declared verdict observed.

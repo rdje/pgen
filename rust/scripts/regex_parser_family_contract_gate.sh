@@ -16,6 +16,21 @@ STIMULI_GATE="$RUST_DIR/scripts/ebnf_stimuli_quality_gate.sh"
 STIMULI_CONTRACT_FILE="${PGEN_REGEX_FAMILY_CONTRACT_STIMULI_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/regex_family_stimuli_contract.json}"
 STIMULI_TARGET_MAX_ATTEMPTS="${PGEN_REGEX_FAMILY_CONTRACT_STIMULI_TARGET_MAX_ATTEMPTS:-10000}"
 
+# LANG-CAPABILITY-AUDIT.10.9 — the rule-count regression RATCHET that replaced a dead floor.
+#
+# ⛔ THIS IS NOT A CROSS-FRONTEND FLOOR AND MUST NOT BE READ AS ONE. Until `.10.6` this gate
+# asserted `rust_rule_count >= perl_rule_count` — one frontend's rule census bounded by an
+# INDEPENDENT frontend's. The Perl arm is retired, so that second census no longer exists and
+# the comparison is not weakened here, it is GONE. What remains is a one-sided ratchet against
+# a pinned baseline: it still catches the regression the old floor existed to catch (the Rust
+# frontend silently starting to see fewer rules in `grammars/regex.ebnf`), and it cannot
+# degrade the way its predecessor did, because a constant right-hand side cannot go null.
+#
+# Restoring a real second arm is LANG-CAPABILITY-AUDIT.10.6 part 2 (the frontend<->meta-parser
+# raw-AST envelope differential). Raise this pin deliberately when the grammar grows; lower it
+# only with a recorded reason.
+RULE_COUNT_FLOOR="${PGEN_REGEX_FAMILY_CONTRACT_RULE_COUNT_FLOOR:-276}"
+
 EXISTING_FRONTEND_STATE_DIR="${PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR:-}"
 EXISTING_DUAL_RUN_STATE_DIR="${PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR:-}"
 EXISTING_STIMULI_STATE_DIR="${PGEN_REGEX_FAMILY_CONTRACT_EXISTING_STIMULI_STATE_DIR:-}"
@@ -79,6 +94,47 @@ raise SystemExit(f"missing grammar '{grammar}' in csv '{path}'")
 PY
 }
 
+# LANG-CAPABILITY-AUDIT.10.9 — READ A DUAL-RUN KEY OR DIE; NEVER READ ONE AS THE STRING "null".
+#
+# This gate used to consume four Perl-arm keys that `.10.6` removed from the producer. Plain
+# `jq -r '… | .absent_key'` yields the bare word `null` for every one of them, and the three
+# consumption shapes degraded differently: two `assert_equal`s failed loudly (good), one value
+# was published into the summary as `null` (misleading), and the numeric floor
+# `(( rust_rule_count < perl_rule_count ))` read `null` as an unset name — i.e. **0** — so a
+# regression floor passed VACUOUSLY and could never fire again (measured: `a=276; b=""` ⇒ `GE`).
+#
+# The root cause is that the extraction cannot distinguish "the producer measured null" from
+# "the producer no longer emits this key at all". This helper removes that ambiguity at the
+# extraction point: an absent key, a null value, or anything other than exactly one matching
+# entry aborts the gate naming the key — so the next producer schema change is loud everywhere
+# instead of loud in some readers and silent in others.
+dual_run_entry_value() {
+    local path="$1"
+    local grammar="$2"
+    local key="$3"
+    jq -er --arg grammar "$grammar" --arg key "$key" '
+        [.entries[]? | select(.grammar == $grammar)] as $entries
+        | if ($entries | length) != 1 then
+              error("expected exactly 1 \($grammar) entry while reading key \"\($key)\", found \($entries | length)")
+          elif ($entries[0] | has($key) | not) then
+              error("dual-run \($grammar) entry has no key \"\($key)\": the producer schema changed (LANG-CAPABILITY-AUDIT.10.9)")
+          elif $entries[0][$key] == null then
+              error("dual-run \($grammar) key \"\($key)\" is null: the producer no longer measures it (LANG-CAPABILITY-AUDIT.10.9)")
+          else
+              $entries[0][$key] | tostring
+          end
+    ' "$path"
+}
+
+require_int() {
+    local label="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^-?[0-9]+$ ]]; then
+        echo "error: ${label} must be an integer but found '${value}'" >&2
+        exit 1
+    fi
+}
+
 assert_equal() {
     local label="$1"
     local expected="$2"
@@ -121,6 +177,10 @@ require_file "$STIMULI_GATE"
 require_file "$STIMULI_CONTRACT_FILE"
 if ! [[ "$STIMULI_TARGET_MAX_ATTEMPTS" =~ ^[0-9]+$ ]] || [[ "$STIMULI_TARGET_MAX_ATTEMPTS" -lt 1 ]]; then
     echo "error: PGEN_REGEX_FAMILY_CONTRACT_STIMULI_TARGET_MAX_ATTEMPTS must be an integer >= 1" >&2
+    exit 2
+fi
+if ! [[ "$RULE_COUNT_FLOOR" =~ ^[0-9]+$ ]] || [[ "$RULE_COUNT_FLOOR" -lt 1 ]]; then
+    echo "error: PGEN_REGEX_FAMILY_CONTRACT_RULE_COUNT_FLOOR must be an integer >= 1" >&2
     exit 2
 fi
 
@@ -178,17 +238,18 @@ frontend_regex_overall="$(extract_csv_value "$frontend_summary_csv" "regex" "ove
 frontend_regex_notes="$(extract_csv_value "$frontend_summary_csv" "regex" "notes")"
 
 dual_run_strict_mode="$(extract_summary_value "$dual_run_summary_txt" "strict_mode")"
-dual_run_regex_perl_ebnf_to_json="$(jq -r '.entries[] | select(.grammar=="regex") | .perl_ebnf_to_json' "$dual_run_summary_json")"
-dual_run_regex_rust_parse="$(jq -r '.entries[] | select(.grammar=="regex") | .rust_parse' "$dual_run_summary_json")"
-dual_run_regex_rust_parse_full="$(jq -r '.entries[] | select(.grammar=="regex") | .rust_parse_full' "$dual_run_summary_json")"
-dual_run_regex_perl_rule_count="$(jq -r '.entries[] | select(.grammar=="regex") | .perl_rule_count' "$dual_run_summary_json")"
-dual_run_regex_rust_rule_count="$(jq -r '.entries[] | select(.grammar=="regex") | .rust_rule_count' "$dual_run_summary_json")"
-dual_run_regex_raw_ast_status="$(jq -r '.entries[] | select(.grammar=="regex") | .raw_ast_status' "$dual_run_summary_json")"
-dual_run_regex_raw_ast_missing_on_perl_count="$(jq -r '.entries[] | select(.grammar=="regex") | .raw_ast_missing_on_perl_count' "$dual_run_summary_json")"
-dual_run_regex_raw_ast_missing_on_rust_count="$(jq -r '.entries[] | select(.grammar=="regex") | .raw_ast_missing_on_rust_count' "$dual_run_summary_json")"
-dual_run_regex_consumed_pct="$(jq -r '.entries[] | select(.grammar=="regex") | .consumed_pct' "$dual_run_summary_json")"
-dual_run_regex_overall="$(jq -r '.entries[] | select(.grammar=="regex") | .overall' "$dual_run_summary_json")"
-dual_run_regex_notes="$(jq -r '.entries[] | select(.grammar=="regex") | .notes' "$dual_run_summary_json")"
+# LANG-CAPABILITY-AUDIT.10.9 — `perl_ebnf_to_json`, `perl_rule_count`,
+# `raw_ast_missing_on_perl_count` and `raw_ast_missing_on_rust_count` were DELETED here rather
+# than defaulted: `.10.6` retired the Perl arm, so the producer stopped emitting all four and
+# no substitute measurement exists for any of them. Every remaining read goes through
+# `dual_run_entry_value`, which aborts on an absent or null key.
+dual_run_regex_rust_parse="$(dual_run_entry_value "$dual_run_summary_json" "regex" "rust_parse")"
+dual_run_regex_rust_parse_full="$(dual_run_entry_value "$dual_run_summary_json" "regex" "rust_parse_full")"
+dual_run_regex_rust_rule_count="$(dual_run_entry_value "$dual_run_summary_json" "regex" "rust_rule_count")"
+dual_run_regex_raw_ast_status="$(dual_run_entry_value "$dual_run_summary_json" "regex" "raw_ast_status")"
+dual_run_regex_consumed_pct="$(dual_run_entry_value "$dual_run_summary_json" "regex" "consumed_pct")"
+dual_run_regex_overall="$(dual_run_entry_value "$dual_run_summary_json" "regex" "overall")"
+dual_run_regex_notes="$(dual_run_entry_value "$dual_run_summary_json" "regex" "notes")"
 
 stimuli_contract_file="$(extract_summary_value "$stimuli_summary_txt" "contract_file")"
 stimuli_regex_grammar_name="$(extract_csv_value "$stimuli_summary_csv" "regex" "grammar_name")"
@@ -214,23 +275,25 @@ assert_equal "frontend regex json_to_parser" "pass" "$frontend_regex_json_to_par
 assert_equal "frontend regex json_to_stimuli" "pass" "$frontend_regex_json_to_stimuli"
 assert_equal "frontend regex overall" "pass" "$frontend_regex_overall"
 
-assert_equal "dual-run regex perl_ebnf_to_json" "pass" "$dual_run_regex_perl_ebnf_to_json"
 assert_equal "dual-run regex rust_parse" "pass" "$dual_run_regex_rust_parse"
 assert_equal "dual-run regex rust_parse_full" "pass" "$dual_run_regex_rust_parse_full"
 assert_equal "dual-run regex overall" "pass" "$dual_run_regex_overall"
-assert_equal "dual-run regex raw_ast_missing_on_rust_count" "0" "$dual_run_regex_raw_ast_missing_on_rust_count"
-case "$dual_run_regex_raw_ast_status" in
-    parity|perl_under_reports)
-        ;;
-    *)
-        echo "error: dual-run regex raw_ast_status must be 'parity' or 'perl_under_reports' but found '$dual_run_regex_raw_ast_status'" >&2
-        exit 1
-        ;;
-esac
-if (( dual_run_regex_rust_rule_count < dual_run_regex_perl_rule_count )); then
-    echo "error: dual-run regex rust_rule_count ${dual_run_regex_rust_rule_count} is below perl_rule_count ${dual_run_regex_perl_rule_count}" >&2
-    exit 1
-fi
+
+# LANG-CAPABILITY-AUDIT.10.9 — an EXACT match, not the old allowlist with `exported` appended.
+# The producer writes exactly two values for this key: `exported` when the hand-written
+# frontend's raw-AST envelope was produced, and `skip` when that export FAILED. So `exported`
+# is its only success value and an allowlist would only re-admit failure. The retired
+# `parity|perl_under_reports` pair described Perl-vs-Rust agreement, which no longer exists;
+# in particular `perl_under_reports` was a tolerated PASS that accepted the Perl arm being
+# blind to 25 of `regex.ebnf`'s 276 rules.
+assert_equal "dual-run regex raw_ast_status" "exported" "$dual_run_regex_raw_ast_status"
+
+# ⛔ THE CROSS-FRONTEND RULE-COUNT FLOOR IS RETIRED, NOT WEAKENED — see RULE_COUNT_FLOOR above.
+# What follows is a one-sided regression ratchet against a pinned baseline, and the gate says
+# so in its own summary (`dual_run_regex_cross_frontend_floor: retired`) so that no downstream
+# reader can infer a second frontend from the presence of a numeric floor.
+require_int "dual-run regex rust_rule_count" "$dual_run_regex_rust_rule_count"
+assert_int_ge "dual-run regex rust_rule_count" "$dual_run_regex_rust_rule_count" "$RULE_COUNT_FLOOR"
 
 assert_equal "stimuli regex grammar_name" "regex" "$stimuli_regex_grammar_name"
 assert_equal "stimuli regex parseability_required" "1" "$stimuli_regex_parseability_required"
@@ -401,14 +464,12 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "dual_run_summary_txt: $dual_run_summary_txt"
     echo "dual_run_summary_csv: $dual_run_summary_csv"
     echo "dual_run_summary_json: $dual_run_summary_json"
-    echo "dual_run_regex_perl_ebnf_to_json: $dual_run_regex_perl_ebnf_to_json"
     echo "dual_run_regex_rust_parse: $dual_run_regex_rust_parse"
     echo "dual_run_regex_rust_parse_full: $dual_run_regex_rust_parse_full"
-    echo "dual_run_regex_perl_rule_count: $dual_run_regex_perl_rule_count"
     echo "dual_run_regex_rust_rule_count: $dual_run_regex_rust_rule_count"
+    echo "dual_run_regex_rust_rule_count_floor: $RULE_COUNT_FLOOR"
+    echo "dual_run_regex_cross_frontend_floor: retired"
     echo "dual_run_regex_raw_ast_status: $dual_run_regex_raw_ast_status"
-    echo "dual_run_regex_raw_ast_missing_on_perl_count: $dual_run_regex_raw_ast_missing_on_perl_count"
-    echo "dual_run_regex_raw_ast_missing_on_rust_count: $dual_run_regex_raw_ast_missing_on_rust_count"
     echo "dual_run_regex_consumed_pct: $dual_run_regex_consumed_pct"
     echo "dual_run_regex_overall: $dual_run_regex_overall"
     echo "dual_run_regex_notes: $dual_run_regex_notes"
@@ -468,14 +529,12 @@ jq -n \
     --arg dual_run_summary_txt "$dual_run_summary_txt" \
     --arg dual_run_summary_csv "$dual_run_summary_csv" \
     --arg dual_run_summary_json "$dual_run_summary_json" \
-    --arg dual_run_regex_perl_ebnf_to_json "$dual_run_regex_perl_ebnf_to_json" \
     --arg dual_run_regex_rust_parse "$dual_run_regex_rust_parse" \
     --arg dual_run_regex_rust_parse_full "$dual_run_regex_rust_parse_full" \
-    --argjson dual_run_regex_perl_rule_count "$dual_run_regex_perl_rule_count" \
     --argjson dual_run_regex_rust_rule_count "$dual_run_regex_rust_rule_count" \
+    --argjson dual_run_regex_rust_rule_count_floor "$RULE_COUNT_FLOOR" \
+    --arg dual_run_regex_cross_frontend_floor "retired" \
     --arg dual_run_regex_raw_ast_status "$dual_run_regex_raw_ast_status" \
-    --argjson dual_run_regex_raw_ast_missing_on_perl_count "$dual_run_regex_raw_ast_missing_on_perl_count" \
-    --argjson dual_run_regex_raw_ast_missing_on_rust_count "$dual_run_regex_raw_ast_missing_on_rust_count" \
     --argjson dual_run_regex_consumed_pct "$dual_run_regex_consumed_pct" \
     --arg dual_run_regex_overall "$dual_run_regex_overall" \
     --arg dual_run_regex_notes "$dual_run_regex_notes" \
@@ -542,14 +601,12 @@ jq -n \
         frontend_regex_json_to_stimuli: $frontend_regex_json_to_stimuli,
         frontend_regex_overall: $frontend_regex_overall,
         frontend_regex_notes: $frontend_regex_notes,
-        dual_run_regex_perl_ebnf_to_json: $dual_run_regex_perl_ebnf_to_json,
         dual_run_regex_rust_parse: $dual_run_regex_rust_parse,
         dual_run_regex_rust_parse_full: $dual_run_regex_rust_parse_full,
-        dual_run_regex_perl_rule_count: $dual_run_regex_perl_rule_count,
         dual_run_regex_rust_rule_count: $dual_run_regex_rust_rule_count,
+        dual_run_regex_rust_rule_count_floor: $dual_run_regex_rust_rule_count_floor,
+        dual_run_regex_cross_frontend_floor: $dual_run_regex_cross_frontend_floor,
         dual_run_regex_raw_ast_status: $dual_run_regex_raw_ast_status,
-        dual_run_regex_raw_ast_missing_on_perl_count: $dual_run_regex_raw_ast_missing_on_perl_count,
-        dual_run_regex_raw_ast_missing_on_rust_count: $dual_run_regex_raw_ast_missing_on_rust_count,
         dual_run_regex_consumed_pct: $dual_run_regex_consumed_pct,
         dual_run_regex_overall: $dual_run_regex_overall,
         dual_run_regex_notes: $dual_run_regex_notes,

@@ -182,9 +182,13 @@ fi
 regex_frontend_overall="$(summary_value_from_txt "frontend_regex_overall" "$regex_family_contract_summary_txt")"
 regex_dual_run_overall="$(summary_value_from_txt "dual_run_regex_overall" "$regex_family_contract_summary_txt")"
 regex_dual_run_raw_ast_status="$(summary_value_from_txt "dual_run_regex_raw_ast_status" "$regex_family_contract_summary_txt")"
-regex_dual_run_raw_ast_missing_on_perl_count="$(summary_value_from_txt "dual_run_regex_raw_ast_missing_on_perl_count" "$regex_family_contract_summary_txt")"
-regex_dual_run_raw_ast_missing_on_rust_count="$(summary_value_from_txt "dual_run_regex_raw_ast_missing_on_rust_count" "$regex_family_contract_summary_txt")"
+# LANG-CAPABILITY-AUDIT.10.9 — `dual_run_regex_raw_ast_missing_on_{perl,rust}_count` are gone
+# from the producer's summary, because they counted rules one FRONTEND saw and the other did
+# not, and there is only one frontend now. The replacement pair records what the family gate
+# actually asserts today: the exported rule count and the pinned ratchet it must clear.
 regex_dual_run_rust_rule_count="$(summary_value_from_txt "dual_run_regex_rust_rule_count" "$regex_family_contract_summary_txt")"
+regex_dual_run_rust_rule_count_floor="$(summary_value_from_txt "dual_run_regex_rust_rule_count_floor" "$regex_family_contract_summary_txt")"
+regex_dual_run_cross_frontend_floor="$(summary_value_from_txt "dual_run_regex_cross_frontend_floor" "$regex_family_contract_summary_txt")"
 regex_stimuli_parseability_required="$(summary_value_from_txt "stimuli_regex_parseability_required" "$regex_family_contract_summary_txt")"
 regex_stimuli_parseability_attempts_total="$(summary_value_from_txt "stimuli_regex_parseability_attempts_total" "$regex_family_contract_summary_txt")"
 regex_stimuli_parseability_accepted_total="$(summary_value_from_txt "stimuli_regex_parseability_accepted_total" "$regex_family_contract_summary_txt")"
@@ -282,7 +286,7 @@ fi
 regex_family_contract_green=true
 regex_frontend_overall_pass=false
 regex_dual_run_overall_pass=false
-regex_dual_run_raw_ast_missing_on_rust_zero=false
+regex_dual_run_raw_ast_exported=false
 regex_stimuli_status_pass=false
 regex_stimuli_parseability_parser_rejections_zero=false
 regex_stimuli_parseability_parser_rejections_literal_zero=false
@@ -294,8 +298,8 @@ fi
 if [[ "$regex_dual_run_overall" == "pass" ]]; then
     regex_dual_run_overall_pass=true
 fi
-if [[ "$regex_dual_run_raw_ast_missing_on_rust_count" == "0" ]]; then
-    regex_dual_run_raw_ast_missing_on_rust_zero=true
+if [[ "$regex_dual_run_raw_ast_status" == "exported" ]]; then
+    regex_dual_run_raw_ast_exported=true
 fi
 if [[ "$regex_stimuli_status" == "pass" ]]; then
     regex_stimuli_status_pass=true
@@ -357,7 +361,7 @@ for criterion in \
     "$regex_family_contract_green" \
     "$regex_frontend_overall_pass" \
     "$regex_dual_run_overall_pass" \
-    "$regex_dual_run_raw_ast_missing_on_rust_zero" \
+    "$regex_dual_run_raw_ast_exported" \
     "$regex_stimuli_status_pass" \
     "$regex_stimuli_parseability_parser_rejections_zero" \
     "$regex_stimuli_final_target_debt_zero" \
@@ -379,11 +383,11 @@ if [[ "$regex_frontend_overall_pass" != true ]]; then
 fi
 if [[ "$regex_dual_run_overall_pass" != true ]]; then
     regex_unmet+=("dual_run_regex_overall=${regex_dual_run_overall} != pass")
-    regex_unmet_details+=("{\"criterion\":\"dual_run_overall_pass\",\"evidence_key\":\"dual_run_regex_overall\",\"observed\":\"${regex_dual_run_overall}\",\"expected\":\"pass\",\"detail\":\"The regex Rust-vs-Perl dual-run differential surface must stay green before the family can be promoted.\"}")
+    regex_unmet_details+=("{\"criterion\":\"dual_run_overall_pass\",\"evidence_key\":\"dual_run_regex_overall\",\"observed\":\"${regex_dual_run_overall}\",\"expected\":\"pass\",\"detail\":\"The regex dual-run surface must stay green before the family can be promoted. Since LANG-CAPABILITY-AUDIT.10.6 its two arms are the hand-written Rust frontend and the parser GENERATED from grammars/ebnf.ebnf, not Rust-vs-Perl.\"}")
 fi
-if [[ "$regex_dual_run_raw_ast_missing_on_rust_zero" != true ]]; then
-    regex_unmet+=("dual_run_regex_raw_ast_missing_on_rust_count=${regex_dual_run_raw_ast_missing_on_rust_count} > 0")
-    regex_unmet_details+=("{\"criterion\":\"dual_run_raw_ast_missing_on_rust_zero\",\"evidence_key\":\"dual_run_regex_raw_ast_missing_on_rust_count\",\"observed\":\"${regex_dual_run_raw_ast_missing_on_rust_count}\",\"expected\":\"0\",\"detail\":\"The Rust regex raw-AST export must not under-report rules relative to the legacy Perl export.\"}")
+if [[ "$regex_dual_run_raw_ast_exported" != true ]]; then
+    regex_unmet+=("dual_run_regex_raw_ast_status=${regex_dual_run_raw_ast_status} != exported")
+    regex_unmet_details+=("{\"criterion\":\"dual_run_raw_ast_exported\",\"evidence_key\":\"dual_run_regex_raw_ast_status\",\"observed\":\"${regex_dual_run_raw_ast_status}\",\"expected\":\"exported\",\"detail\":\"The hand-written Rust frontend must export its raw-AST envelope for regex.ebnf. LANG-CAPABILITY-AUDIT.10.9 replaced a Perl-relative under-report count here: the cross-frontend comparison that criterion named was retired with the Perl arm, so this asserts the surviving arm succeeded rather than that a deleted arm agreed.\"}")
 fi
 if [[ "$regex_stimuli_status_pass" != true ]]; then
     regex_unmet+=("stimuli_regex_status=${regex_stimuli_status} != pass")
@@ -430,7 +434,7 @@ fi
 if [[ "$regex_family_contract_green" == true \
    && "$regex_frontend_overall_pass" == true \
    && "$regex_dual_run_overall_pass" == true \
-   && "$regex_dual_run_raw_ast_missing_on_rust_zero" == true \
+   && "$regex_dual_run_raw_ast_exported" == true \
    && "$regex_stimuli_status_pass" == true \
    && "$regex_stimuli_parseability_parser_rejections_zero" == true \
    && "$regex_stimuli_final_target_debt_zero" == true \
@@ -489,7 +493,7 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "regex_family_contract_green: $regex_family_contract_green"
     echo "regex_frontend_overall_pass: $regex_frontend_overall_pass"
     echo "regex_dual_run_overall_pass: $regex_dual_run_overall_pass"
-    echo "regex_dual_run_raw_ast_missing_on_rust_zero: $regex_dual_run_raw_ast_missing_on_rust_zero"
+    echo "regex_dual_run_raw_ast_exported: $regex_dual_run_raw_ast_exported"
     echo "regex_stimuli_status_pass: $regex_stimuli_status_pass"
     echo "regex_stimuli_parseability_parser_rejections_zero: $regex_stimuli_parseability_parser_rejections_zero"
     echo "regex_stimuli_parseability_parser_rejections_literal_zero: $regex_stimuli_parseability_parser_rejections_literal_zero"
@@ -512,8 +516,8 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "regex_frontend_overall: $regex_frontend_overall"
     echo "regex_dual_run_overall: $regex_dual_run_overall"
     echo "regex_dual_run_raw_ast_status: $regex_dual_run_raw_ast_status"
-    echo "regex_dual_run_raw_ast_missing_on_perl_count: $regex_dual_run_raw_ast_missing_on_perl_count"
-    echo "regex_dual_run_raw_ast_missing_on_rust_count: $regex_dual_run_raw_ast_missing_on_rust_count"
+    echo "regex_dual_run_rust_rule_count_floor: $regex_dual_run_rust_rule_count_floor"
+    echo "regex_dual_run_cross_frontend_floor: $regex_dual_run_cross_frontend_floor"
     echo "regex_dual_run_rust_rule_count: $regex_dual_run_rust_rule_count"
     echo "regex_stimuli_parseability_required: $regex_stimuli_parseability_required"
     echo "regex_stimuli_parseability_attempts_total: $regex_stimuli_parseability_attempts_total"
@@ -568,7 +572,7 @@ jq -n \
     --argjson regex_family_contract_green "$regex_family_contract_green" \
     --argjson regex_frontend_overall_pass "$regex_frontend_overall_pass" \
     --argjson regex_dual_run_overall_pass "$regex_dual_run_overall_pass" \
-    --argjson regex_dual_run_raw_ast_missing_on_rust_zero "$regex_dual_run_raw_ast_missing_on_rust_zero" \
+    --argjson regex_dual_run_raw_ast_exported "$regex_dual_run_raw_ast_exported" \
     --argjson regex_stimuli_status_pass "$regex_stimuli_status_pass" \
     --argjson regex_stimuli_parseability_parser_rejections_zero "$regex_stimuli_parseability_parser_rejections_zero" \
     --argjson regex_stimuli_parseability_parser_rejections_literal_zero "$regex_stimuli_parseability_parser_rejections_literal_zero" \
@@ -591,8 +595,8 @@ jq -n \
     --arg regex_frontend_overall "$regex_frontend_overall" \
     --arg regex_dual_run_overall "$regex_dual_run_overall" \
     --arg regex_dual_run_raw_ast_status "$regex_dual_run_raw_ast_status" \
-    --argjson regex_dual_run_raw_ast_missing_on_perl_count "$regex_dual_run_raw_ast_missing_on_perl_count" \
-    --argjson regex_dual_run_raw_ast_missing_on_rust_count "$regex_dual_run_raw_ast_missing_on_rust_count" \
+    --argjson regex_dual_run_rust_rule_count_floor "$regex_dual_run_rust_rule_count_floor" \
+    --arg regex_dual_run_cross_frontend_floor "$regex_dual_run_cross_frontend_floor" \
     --argjson regex_dual_run_rust_rule_count "$regex_dual_run_rust_rule_count" \
     --argjson regex_stimuli_parseability_required "$regex_stimuli_parseability_required" \
     --argjson regex_stimuli_parseability_attempts_total "$regex_stimuli_parseability_attempts_total" \
@@ -649,7 +653,7 @@ jq -n \
             family_contract_green: $regex_family_contract_green,
             frontend_overall_pass: $regex_frontend_overall_pass,
             dual_run_overall_pass: $regex_dual_run_overall_pass,
-            dual_run_raw_ast_missing_on_rust_zero: $regex_dual_run_raw_ast_missing_on_rust_zero,
+            dual_run_raw_ast_exported: $regex_dual_run_raw_ast_exported,
             stimuli_status_pass: $regex_stimuli_status_pass,
             stimuli_parseability_parser_rejections_zero: $regex_stimuli_parseability_parser_rejections_zero,
             stimuli_final_target_debt_zero: $regex_stimuli_final_target_debt_zero,
@@ -672,8 +676,8 @@ jq -n \
             frontend_overall: $regex_frontend_overall,
             dual_run_overall: $regex_dual_run_overall,
             dual_run_raw_ast_status: $regex_dual_run_raw_ast_status,
-            dual_run_raw_ast_missing_on_perl_count: $regex_dual_run_raw_ast_missing_on_perl_count,
-            dual_run_raw_ast_missing_on_rust_count: $regex_dual_run_raw_ast_missing_on_rust_count,
+            dual_run_rust_rule_count_floor: $regex_dual_run_rust_rule_count_floor,
+            dual_run_cross_frontend_floor: $regex_dual_run_cross_frontend_floor,
             dual_run_rust_rule_count: $regex_dual_run_rust_rule_count,
             stimuli_parseability_required: $regex_stimuli_parseability_required,
             stimuli_parseability_attempts_total: $regex_stimuli_parseability_attempts_total,

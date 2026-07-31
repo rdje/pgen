@@ -3159,9 +3159,10 @@ there; ⛔ do not resolve them by pasting a 61st copy.
 
 ---
 
-### `.10.9` — ⛔⛔ `.10.6` LEFT FOUR GATES READING PERL TELEMETRY THAT NO LONGER EXISTS — the regex family contract gate is RED, and it is a required stage of the flagship aggregate (`todo`)
+### `.10.9` — ⛔⛔ `.10.6` LEFT FIVE GATES READING PERL TELEMETRY THAT NO LONGER EXISTS — the regex family contract gate is RED, and it is a required stage of the flagship aggregate (`done`)
 
-- **Status: `todo` — ⛔ HIGHEST-PRIORITY item in this tree.** Opened 2026-07-31 session #229 by
+- **Status: `done` (2026-07-31, session #229f).** ⛔ The opening headline said FOUR gates and
+  three breakages; both were low — see the two corrections below. Opened 2026-07-31 session #229 by
   `.10.7` slice 2, which found it while sweeping for dangling references. ⚠️ **This is
   `.10.6`'s residue, not `.10.7`'s**: the readers broke the moment the Perl ARM was removed,
   one commit before any file was deleted. Deleting the files does not make it worse, which is
@@ -3225,6 +3226,100 @@ a dual-run contract surface. The defect class is *"a consumer outlived its produ
 i.e. the `CI-PARITY-GATE-ROT.11` stale-metric family, arrived at from the opposite direction —
 there the reader scraped a prose log, here the reader queries a structured key that was
 deleted. Cross-linked accordingly.
+
+#### ✅ WHAT LANDED — and two corrections to this leaf's own opening numbers
+
+⛔ **CORRECTION 1 — it is FOUR loud breakages in that gate, not three.** The opening table
+missed `:221`, `assert_equal "dual-run regex raw_ast_missing_on_rust_count" "0" "$…"`. That
+key is absent from the producer exactly like the other three, so it too compares `"0"` against
+`"null"` and fails. It was invisible in the reproduction because `:217` fails first and the
+gate exits — a reminder that "the first error a gate prints" is a lower bound on its breakage,
+never the census.
+
+⛔ **CORRECTION 2 — it is FIVE consuming scripts, not four.** The opening census listed
+`regex_parser_family_contract_gate.sh`, `sota_exit_gate.sh`,
+`regex_parser_family_status_gate.sh` and `regex_combined_telemetry_contract_gate.sh`. A
+whole-tree `git grep` also finds **`regex_parser_family_status_contract_gate.sh`**, which pins
+the criterion and metric NAMES as a schema (`expected_criteria` / `expected_metrics`) — so it
+is a consumer of the vocabulary even though it never reads a Perl value. Renaming a criterion
+without it would have left that gate asserting a key nothing emits.
+
+**The root-cause fix, not just the four call sites.** The reason one missing value produced
+three *different* outcomes is that `jq -r '… | .absent_key'` prints the bare word `null` and
+the caller cannot distinguish "measured null" from "no longer emitted". Extraction now goes
+through `dual_run_entry_value`, which aborts on an absent key, a null value, or anything but
+exactly one matching entry — naming the key. That is what makes the *next* schema change loud
+in every consumer rather than loud in some and silent in others.
+
+**What replaced each dead assertion** (deleted, never defaulted):
+
+| was | now |
+|---|---|
+| `perl_ebnf_to_json == "pass"` | *deleted* — no Perl stage exists to report on |
+| `raw_ast_missing_on_rust_count == "0"` | *deleted* — a count relative to a frontend that is gone |
+| `raw_ast_status ∈ {parity, perl_under_reports}` | `assert_equal "exported"` — an **exact** match on the producer's only success value (`skip` = arm-1 export FAILED), not the old allowlist with `exported` appended |
+| `(( rust_rule_count < perl_rule_count ))` | `require_int` + `assert_int_ge … "$RULE_COUNT_FLOOR"` (pinned 276, env-overridable) |
+
+⭐ **The floor is labelled for what it is.** It is a one-sided regression **ratchet**, not a
+cross-implementation check, and the gate publishes `dual_run_regex_cross_frontend_floor:
+retired` into its own summary — carried through the family-status gate and the flagship
+aggregate — so no downstream reader can infer a second frontend from the presence of a numeric
+floor. A constant right-hand side also cannot go null, which is precisely how its predecessor
+died. Restoring a real second arm remains `.10.6` part 2.
+
+**Criterion rename, priced across all five scripts:** `dual_run_raw_ast_missing_on_rust_zero`
+→ `dual_run_raw_ast_exported`. The closure-criteria count is unchanged at **11**, so the
+family-status arithmetic and the status-contract schema pin stay coherent.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the gate at the parent commit, run against the live artifact:
+  `rc=1`, `error: dual-run regex perl_ebnf_to_json mismatch: expected 'pass' but found 'null'`.
+  Pinned as arm A of `run_dual_run_telemetry_probes.sh` (`PARENT_REV=1362b375`), so it keeps
+  reproducing after this fix commits.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow signature (family 5). `bash -n` clean on
+  all five scripts. The mechanism, measured in bash itself:
+  `bash -c 'set -euo pipefail; a=276; b=""; if (( a < b )); then echo LT; else echo GE; fi'`
+  → **`GE`, rc=0** — `(( ))` reads the absent operand as an unset name, i.e. **0**, so the
+  floor at `regex_parser_family_contract_gate.sh:230` compared `276 < 0` and passed vacuously.
+  WHERE: the producer `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh` emits exactly
+  `artifacts,consumed_pct,grammar,input_bytes,notes,overall,raw_ast_status,rust_parse,rust_parse_end,rust_parse_full,rust_report,rust_rule_count`
+  for every one of `ebnf`/`json`/`regex`; all four `perl_*`/`raw_ast_missing_on_*` keys read
+  `null`.
+- [x] **FIX** — declarative tier: no `rust/src/`, no grammar, no `generated/*`. Extraction
+  helper + deletion of the four dead consumers + an exact-match status assert + a pinned
+  ratchet, propagated across five scripts.
+- [x] **ADDRESSED (verified)** — **REJECT → PASS** on the named re-runnable oracle
+  `regex_parser_family_contract_gate.sh`: `rc=1` → `rc=0`, `✅ Regex parser-family contract
+  gate passed`, publishing `dual_run_regex_rust_rule_count: 276`,
+  `dual_run_regex_rust_rule_count_floor: 276`, `dual_run_regex_cross_frontend_floor: retired`,
+  `dual_run_regex_raw_ast_status: exported`.
+- [x] **NO REGRESSION** — the downstream chain re-run on the new schema, each exit 0:
+  `regex_formal_exhaustive_closure_gate` (broader corpus **44/44**),
+  `regex_parser_family_status_gate` (`regex_status: In Progress`, closure criteria
+  **8/11 satisfied, 3 unsatisfied** — unchanged, total still **11**,
+  `regex_dual_run_raw_ast_exported: true`), `regex_parser_family_status_contract_gate`
+  (schema pins accepted). ⭐ The two gates that require a 4 h 39 m `sota_exit_gate` run are
+  covered by a **mechanical producer→consumer census** instead of a claim: **226 reads across
+  6 script→summary edges, 0 unresolved**, and the census carries a ground-truth control (an
+  injected unresolvable read that it MUST report — it does). Guard controls, all firing:
+  key deleted → `rc=5` naming the key; key null → `rc=5`; `raw_ast_status=skip` → `rc=1`;
+  rule count 275 → `rc=1 expected >= 276` (⭐ the direct counter-proof that the ratchet is
+  **not** vacuous, which is exactly what the old floor could no longer do); POSITIVE control
+  untouched → `rc=0`. Driver exit 0, **0 divergences**.
+- [x] **LOCKSTEP** — book `gate-flow.md` §7 gains failure mode **8, "a consumer that outlived
+  its producer's schema"** (the count and the closing principle updated from seven→eight, and
+  the README pointer with it); the roadmap's three present-tense false claims corrected
+  (`:1000`, `:1001`, and `:4660`'s *"`perl_ebnf_to_json` remains reserved for the dual-run
+  differential gate"*, which had been false since `.10.6`); `CHANGES.md`, `MEMORY.md`,
+  `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md` updated.
+
+⚠️ **Honest bound, stated rather than implied.** `regex_combined_telemetry_contract_gate` and
+`sota_exit_gate` are verified by static key-coherence, **not** executed end-to-end here — a
+`sota_exit_gate` run is 4 h 39 m. The census proves every key they read is a key its producer
+emits; it does **not** prove their value-level parity assertions still agree. That re-proof
+rides on the next full aggregate run, and is the same standing gap the open director call on a
+priced `schedule:` lane addresses.
 
 ---
 
@@ -3310,5 +3405,19 @@ deleted. Cross-linked accordingly.
   instrument — a POSITIVE control (a legal single-quoted string must still parse) and a
   NEGATIVE control (the already-correct double-quoted twin must still reject); the script
   REFUSES rather than reporting a verdict if either moves.
+- `docs/tasks/artifacts/lang_capability_audit/run_dual_run_telemetry_probes.sh` — `.10.9`
+  driver. Three arms: **A** reproduce (the gate as it stood at the PINNED parent
+  `1362b375`, run against the live artifact, plus the bash-arithmetic measurement showing
+  `(( 276 < null ))` is vacuously satisfied), **B** controls (one fabricated artifact per
+  guard — key deleted / key null / `raw_ast_status=skip` / rule count below the ratchet —
+  each asserted to FIRE with its exact message, then a POSITIVE control on the untouched
+  artifact), **C** chain coherence (every `KEY` a downstream gate reads out of a producer
+  summary must be a key that producer emits, over 6 script→summary edges). ⭐ Ground truth
+  is pinned **inside** the instrument twice: arm B's positive control, and arm C's injected
+  unresolvable read which the census MUST report — the driver reports a divergence rather
+  than a verdict if either moves. Its own A2 verdict caught a harness bug on first run (the
+  parent gate staged at the wrong depth re-roots its `ROOT_DIR`).
+- `docs/tasks/artifacts/lang_capability_audit/dual_run_telemetry_probes.txt` — `.10.9`
+  capture, all three arms, **exit 0, 0 divergences**, 226 producer→consumer reads checked.
 - `docs/tasks/artifacts/lang_capability_audit/metagrammar_quote_probes.txt` — `.10.5`
   capture, **exit 0, 0 divergences**.

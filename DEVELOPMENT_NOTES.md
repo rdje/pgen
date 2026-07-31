@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0028 — the same missing value broke three ways, and only two of them were visible
+
+`LANG-CAPABILITY-AUDIT.10.9`. The lesson is not that a gate broke. It is that ONE deleted key,
+reaching three different consumption shapes in the same script, produced three different
+outcomes — and the ranking was exactly backwards from how much each one mattered.
+
+| shape | outcome | how bad |
+|---|---|---|
+| `assert_equal "pass" "$…"` | fails loudly | harmless — it tells you |
+| `--argjson … "$…"` into the summary | publishes `null` | misleading — a value for a measurement that no longer exists |
+| `(( rust_rule_count < perl_rule_count ))` | **passes vacuously** | worst — a regression floor that can never fire |
+
+- ⭐⭐ **Bash arithmetic silently reads a non-number as 0.** `(( 276 < null ))` is FALSE, so the
+  floor was satisfied by a missing operand. Anything comparing a value extracted from JSON is
+  one producer change away from this, and it fails in the direction of reporting success.
+- ⭐ **So the fix belongs at the extraction, not the comparison.** `jq -r .absent_key` prints the
+  bare word `null`; the caller cannot distinguish it from data. A helper that REFUSES an absent
+  or null key, naming it, converts the whole class from "loud in some readers, silent in others"
+  into "loud everywhere". The four call-site fixes are the symptom; this is the defect.
+- ⭐ **When a comparison loses its second operand for good, delete it and SAY so.** The
+  temptation is to keep a numeric floor because the code shape survives. The gate now publishes
+  `cross_frontend_floor: retired` alongside the ratchet that replaced it, because a bare numeric
+  floor implies a second implementation that no longer exists. Honest replacement, labelled as a
+  ratchet — not the cross-implementation check it stands in for.
+- ⚠️ **"The first error a gate prints" is a lower bound on its breakage, never the census.** My
+  own leaf recorded three breakages in that gate; there were four. The fourth was invisible
+  because an earlier assertion exits first. Count from a `git grep` over the key names, not from
+  a run.
+- ⭐ **The instrument caught its own bug.** The probe driver's arm-A verdict DIVERGED on first
+  run — the parent gate had been staged at a scratch path two levels too deep, so its own
+  `dirname/../..` re-rooted it at `rust/` and it failed on a missing sub-gate instead of on the
+  telemetry. A declared-verdict harness reports that; a harness that just prints what happened
+  would have recorded the wrong error as the reproduction.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0027 — I reported a regression where there was a long-standing hole
 
 `LANG-CAPABILITY-AUDIT.10.11`. Two lines of shell landed. The reason to write this up is the

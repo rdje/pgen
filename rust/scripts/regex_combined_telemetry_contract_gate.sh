@@ -229,10 +229,13 @@ assert_equal \
 regex_family_frontend_overall="$(extract_summary_value "$regex_family_summary_txt" "frontend_regex_overall")"
 regex_family_dual_run_overall="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_overall")"
 regex_family_dual_run_raw_ast_status="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_raw_ast_status")"
-regex_family_dual_run_perl_rule_count="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_perl_rule_count")"
+# LANG-CAPABILITY-AUDIT.10.9 — `dual_run_regex_perl_rule_count`,
+# `..._raw_ast_missing_on_perl_count` and `..._raw_ast_missing_on_rust_count` were dropped:
+# all three were Perl-relative and the producer stopped emitting them when `.10.6` retired that
+# arm. The aggregate-parity checks below now cover the ratchet that replaced them instead.
 regex_family_dual_run_rust_rule_count="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_rust_rule_count")"
-regex_family_dual_run_raw_ast_missing_on_perl_count="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_raw_ast_missing_on_perl_count")"
-regex_family_dual_run_raw_ast_missing_on_rust_count="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_raw_ast_missing_on_rust_count")"
+regex_family_dual_run_rust_rule_count_floor="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_rust_rule_count_floor")"
+regex_family_dual_run_cross_frontend_floor="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_cross_frontend_floor")"
 regex_family_contract_gate="$(jq -r '.gate' "$regex_family_summary_json")"
 regex_family_contract_gate_version="$(jq -r '.version' "$regex_family_summary_json")"
 regex_family_contract_generated_at_utc="$(jq -r '.generated_at_utc' "$regex_family_summary_json")"
@@ -388,7 +391,7 @@ assert_equal \
 regex_family_status_regex_family_contract_green="$(extract_summary_value "$regex_family_status_summary_txt" "regex_family_contract_green")"
 regex_family_status_regex_frontend_overall_pass="$(extract_summary_value "$regex_family_status_summary_txt" "regex_frontend_overall_pass")"
 regex_family_status_regex_dual_run_overall_pass="$(extract_summary_value "$regex_family_status_summary_txt" "regex_dual_run_overall_pass")"
-regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero="$(extract_summary_value "$regex_family_status_summary_txt" "regex_dual_run_raw_ast_missing_on_rust_zero")"
+regex_family_status_regex_dual_run_raw_ast_exported="$(extract_summary_value "$regex_family_status_summary_txt" "regex_dual_run_raw_ast_exported")"
 regex_family_status_regex_stimuli_status_pass="$(extract_summary_value "$regex_family_status_summary_txt" "regex_stimuli_status_pass")"
 regex_family_status_regex_stimuli_parseability_parser_rejections_zero="$(extract_summary_value "$regex_family_status_summary_txt" "regex_stimuli_parseability_parser_rejections_zero")"
 regex_family_status_regex_stimuli_final_target_debt_zero="$(extract_summary_value "$regex_family_status_summary_txt" "regex_stimuli_final_target_debt_zero")"
@@ -472,21 +475,17 @@ assert_equal \
     "$regex_family_dual_run_raw_ast_status" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_raw_ast_status")"
 assert_equal \
-    "Regex family dual-run perl rule count" \
-    "$regex_family_dual_run_perl_rule_count" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_perl_rule_count")"
-assert_equal \
     "Regex family dual-run rust rule count" \
     "$regex_family_dual_run_rust_rule_count" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_rust_rule_count")"
 assert_equal \
-    "Regex family dual-run raw_ast missing_on_perl count" \
-    "$regex_family_dual_run_raw_ast_missing_on_perl_count" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_raw_ast_missing_on_perl_count")"
+    "Regex family dual-run rust rule count floor" \
+    "$regex_family_dual_run_rust_rule_count_floor" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_rust_rule_count_floor")"
 assert_equal \
-    "Regex family dual-run raw_ast missing_on_rust count" \
-    "$regex_family_dual_run_raw_ast_missing_on_rust_count" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_raw_ast_missing_on_rust_count")"
+    "Regex family dual-run cross-frontend floor" \
+    "$regex_family_dual_run_cross_frontend_floor" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_cross_frontend_floor")"
 assert_equal \
     "Regex family frontend state dir" \
     "$regex_family_frontend_state_dir" \
@@ -762,8 +761,8 @@ assert_equal \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_status_regex_dual_run_overall_pass")"
 assert_equal \
     "Regex family dual-run raw-AST missing on rust zero criterion" \
-    "$regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero")"
+    "$regex_family_status_regex_dual_run_raw_ast_exported" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_status_regex_dual_run_raw_ast_exported")"
 assert_equal \
     "Regex family stimuli status pass criterion" \
     "$regex_family_status_regex_stimuli_status_pass" \
@@ -934,10 +933,9 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_family_frontend_overall: $regex_family_frontend_overall"
     echo "regex_family_dual_run_overall: $regex_family_dual_run_overall"
     echo "regex_family_dual_run_raw_ast_status: $regex_family_dual_run_raw_ast_status"
-    echo "regex_family_dual_run_perl_rule_count: $regex_family_dual_run_perl_rule_count"
     echo "regex_family_dual_run_rust_rule_count: $regex_family_dual_run_rust_rule_count"
-    echo "regex_family_dual_run_raw_ast_missing_on_perl_count: $regex_family_dual_run_raw_ast_missing_on_perl_count"
-    echo "regex_family_dual_run_raw_ast_missing_on_rust_count: $regex_family_dual_run_raw_ast_missing_on_rust_count"
+    echo "regex_family_dual_run_rust_rule_count_floor: $regex_family_dual_run_rust_rule_count_floor"
+    echo "regex_family_dual_run_cross_frontend_floor: $regex_family_dual_run_cross_frontend_floor"
     echo "regex_family_contract_gate: $regex_family_contract_gate"
     echo "regex_family_contract_gate_version: $regex_family_contract_gate_version"
     echo "regex_family_contract_generated_at_utc: $regex_family_contract_generated_at_utc"
@@ -995,7 +993,7 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_family_status_regex_family_contract_green: $regex_family_status_regex_family_contract_green"
     echo "regex_family_status_regex_frontend_overall_pass: $regex_family_status_regex_frontend_overall_pass"
     echo "regex_family_status_regex_dual_run_overall_pass: $regex_family_status_regex_dual_run_overall_pass"
-    echo "regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero: $regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero"
+    echo "regex_family_status_regex_dual_run_raw_ast_exported: $regex_family_status_regex_dual_run_raw_ast_exported"
     echo "regex_family_status_regex_stimuli_status_pass: $regex_family_status_regex_stimuli_status_pass"
     echo "regex_family_status_regex_stimuli_parseability_parser_rejections_zero: $regex_family_status_regex_stimuli_parseability_parser_rejections_zero"
     echo "regex_family_status_regex_stimuli_final_target_debt_zero: $regex_family_status_regex_stimuli_final_target_debt_zero"
@@ -1065,10 +1063,9 @@ jq -n \
     --arg regex_family_frontend_overall "$regex_family_frontend_overall" \
     --arg regex_family_dual_run_overall "$regex_family_dual_run_overall" \
     --arg regex_family_dual_run_raw_ast_status "$regex_family_dual_run_raw_ast_status" \
-    --argjson regex_family_dual_run_perl_rule_count "$regex_family_dual_run_perl_rule_count" \
     --argjson regex_family_dual_run_rust_rule_count "$regex_family_dual_run_rust_rule_count" \
-    --argjson regex_family_dual_run_raw_ast_missing_on_perl_count "$regex_family_dual_run_raw_ast_missing_on_perl_count" \
-    --argjson regex_family_dual_run_raw_ast_missing_on_rust_count "$regex_family_dual_run_raw_ast_missing_on_rust_count" \
+    --argjson regex_family_dual_run_rust_rule_count_floor "$regex_family_dual_run_rust_rule_count_floor" \
+    --arg regex_family_dual_run_cross_frontend_floor "$regex_family_dual_run_cross_frontend_floor" \
     --arg regex_family_contract_gate "$regex_family_contract_gate" \
     --argjson regex_family_contract_gate_version "$regex_family_contract_gate_version" \
     --arg regex_family_contract_generated_at_utc "$regex_family_contract_generated_at_utc" \
@@ -1131,7 +1128,7 @@ jq -n \
     --argjson regex_family_status_regex_family_contract_green "$regex_family_status_regex_family_contract_green" \
     --argjson regex_family_status_regex_frontend_overall_pass "$regex_family_status_regex_frontend_overall_pass" \
     --argjson regex_family_status_regex_dual_run_overall_pass "$regex_family_status_regex_dual_run_overall_pass" \
-    --argjson regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero "$regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero" \
+    --argjson regex_family_status_regex_dual_run_raw_ast_exported "$regex_family_status_regex_dual_run_raw_ast_exported" \
     --argjson regex_family_status_regex_stimuli_status_pass "$regex_family_status_regex_stimuli_status_pass" \
     --argjson regex_family_status_regex_stimuli_parseability_parser_rejections_zero "$regex_family_status_regex_stimuli_parseability_parser_rejections_zero" \
     --argjson regex_family_status_regex_stimuli_final_target_debt_zero "$regex_family_status_regex_stimuli_final_target_debt_zero" \
@@ -1207,10 +1204,9 @@ jq -n \
         frontend_overall: $regex_family_frontend_overall,
         dual_run_overall: $regex_family_dual_run_overall,
         dual_run_raw_ast_status: $regex_family_dual_run_raw_ast_status,
-        dual_run_perl_rule_count: $regex_family_dual_run_perl_rule_count,
         dual_run_rust_rule_count: $regex_family_dual_run_rust_rule_count,
-        dual_run_raw_ast_missing_on_perl_count: $regex_family_dual_run_raw_ast_missing_on_perl_count,
-        dual_run_raw_ast_missing_on_rust_count: $regex_family_dual_run_raw_ast_missing_on_rust_count,
+        dual_run_rust_rule_count_floor: $regex_family_dual_run_rust_rule_count_floor,
+        dual_run_cross_frontend_floor: $regex_family_dual_run_cross_frontend_floor,
         stimuli_status: $regex_family_stimuli_status,
         stimuli_parseability_required: $regex_family_stimuli_parseability_required,
         stimuli_parseability_attempts_total: $regex_family_stimuli_parseability_attempts_total,
@@ -1301,7 +1297,7 @@ jq -n \
             family_contract_green: $regex_family_status_regex_family_contract_green,
             frontend_overall_pass: $regex_family_status_regex_frontend_overall_pass,
             dual_run_overall_pass: $regex_family_status_regex_dual_run_overall_pass,
-            dual_run_raw_ast_missing_on_rust_zero: $regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero,
+            dual_run_raw_ast_exported: $regex_family_status_regex_dual_run_raw_ast_exported,
             stimuli_status_pass: $regex_family_status_regex_stimuli_status_pass,
             stimuli_parseability_parser_rejections_zero: $regex_family_status_regex_stimuli_parseability_parser_rejections_zero,
             stimuli_final_target_debt_zero: $regex_family_status_regex_stimuli_final_target_debt_zero,

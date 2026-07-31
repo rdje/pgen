@@ -1,5 +1,63 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0028 — leaf LANG-CAPABILITY-AUDIT.10.9: the RED in the flagship aggregate is cleared, and the floor that could never fire again is replaced
+
+Shell + docs only: no rust/src/, no grammar, no generated/* in the diff => all 11 generated
+parsers byte-identical BY CONSTRUCTION. No tracker row moved (`regex` stays `In Progress`,
+closure criteria 8/11 — unchanged count and unchanged verdict).
+
+- ⛔ **REPRODUCED FIRST.** The gate as it stood at the parent commit `1362b375`, run against the
+  live dual-run artifact: `rc=1`, `error: dual-run regex perl_ebnf_to_json mismatch: expected
+  'pass' but found 'null'`. `sota_exit_gate` invokes that gate, so the flagship aggregate could
+  not have gone green in this configuration since `.10.6` landed.
+- ⛔⛔ **THE DANGEROUS BREAKAGE WAS THE SILENT ONE.** Of the four sites reading keys the producer
+  had stopped emitting, two failed loudly, one published `null` as if it were a measurement, and
+  the numeric floor `(( rust_rule_count < perl_rule_count ))` **passed vacuously** — bash reads
+  the absent operand as an unset name, i.e. 0, so `276 < 0` is false. Measured directly:
+  `bash -c 'set -euo pipefail; a=276; b=""; if (( a < b )); then echo LT; else echo GE; fi'` →
+  `GE`, rc=0. A regression floor had become a comparison against a constant zero and could never
+  fire again. Fixing the loud two alone would have restored a green gate around a dead assertion.
+- ⛔ **TWO OF THE LEAF'S OWN OPENING NUMBERS WERE LOW, and both are corrected in it.** It is
+  **four** loud breakages in that gate, not three — `:221` asserts
+  `raw_ast_missing_on_rust_count == "0"` against the same absent-key `null`, invisible in the
+  repro only because `:217` exits first. And it is **five** consuming scripts, not four:
+  `regex_parser_family_status_contract_gate.sh` pins the criterion and metric NAMES as a schema,
+  so it consumes the vocabulary even though it never reads a Perl value.
+- ⭐ **THE FIX IS THE EXTRACTION, NOT THE FOUR CALL SITES.** One missing value produced three
+  different outcomes because `jq -r '… | .absent_key'` prints the bare word `null` and the caller
+  cannot tell "measured null" from "no longer emitted". Reads now go through
+  `dual_run_entry_value`, which aborts naming the key on an absent key, a null value, or anything
+  but exactly one matching entry — so the next schema change is loud in EVERY consumer.
+- **Deleted, never defaulted:** `perl_ebnf_to_json`, `perl_rule_count`,
+  `raw_ast_missing_on_perl_count`, `raw_ast_missing_on_rust_count`. The `raw_ast_status`
+  allowlist `parity|perl_under_reports` became an EXACT `assert_equal "exported"` — the
+  producer's only success value, since its other value `skip` means the arm-1 export FAILED. ⛔
+  Not the allowlist with `exported` appended, which would only re-admit failure.
+- ⭐ **THE LOST FLOOR IS LABELLED, NOT QUIETLY REPLACED.** What remains is a one-sided regression
+  ratchet (`RULE_COUNT_FLOOR`, pinned 276, env-overridable) and the gate publishes
+  `dual_run_regex_cross_frontend_floor: retired` into its own summary — carried through the
+  family-status gate and the flagship aggregate — so no reader can infer a second frontend from
+  a bare numeric floor. A constant right-hand side also cannot go null, which is how its
+  predecessor died. A real second arm is still `.10.6` part 2.
+- **Criterion rename across all five scripts:** `dual_run_raw_ast_missing_on_rust_zero` →
+  `dual_run_raw_ast_exported`. Closure-criteria count unchanged at 11.
+- **VERIFIED — REJECT → PASS**, then the chain on the new schema, each exit 0:
+  `regex_parser_family_contract_gate` (`rc=1` → `rc=0`),
+  `regex_formal_exhaustive_closure_gate` (broader corpus 44/44),
+  `regex_parser_family_status_gate` (`In Progress`, 8/11, `raw_ast_exported: true`),
+  `regex_parser_family_status_contract_gate` (schema pins accepted). The two gates needing a
+  4 h 39 m `sota_exit_gate` run are covered by a **mechanical producer→consumer census — 226
+  reads across 6 script→summary edges, 0 unresolved** — carrying its own ground-truth control.
+  All four guard controls FIRE; the positive control still passes; driver exit 0, 0 divergences.
+- **Lockstep:** book `gate-flow.md` §7 gains failure mode **8 — "a consumer that outlived its
+  producer's schema"** (seven→eight, plus the closing principle and the README pointer); the
+  roadmap's three present-tense false claims corrected, including `:4660`'s *"`perl_ebnf_to_json`
+  remains reserved for the dual-run differential gate"*, false since `.10.6`. 15/15 doctrines,
+  `mdbook_docs_gate` GREEN.
+- ⚠️ **Honest bound:** the two aggregate-level gates are verified by static key-coherence, not
+  executed end-to-end. The census proves every key they read exists; it does not prove their
+  value-level parity assertions still agree. That rides on the next full aggregate run.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0027 — leaf LANG-CAPABILITY-AUDIT.10.11: the Perl INTERPRETER is a wanted dependency; 7 gate scripts never declared it (2 fixed, 5 routed)
 
 Shell-only: no rust/src/, no grammar, no generated/* in the diff => all 11 generated parsers

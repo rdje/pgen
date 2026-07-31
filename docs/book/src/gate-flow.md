@@ -397,7 +397,7 @@ the exemption list can neither be bypassed nor quietly accumulate.
 
 ## 7. How this flow has actually failed
 
-Seven distinct shapes, all measured, all from real incidents. A new gate should be
+Eight distinct shapes, all measured, all from real incidents. A new gate should be
 read against this list.
 
 ### 1. A check that *cannot run* and returns green
@@ -503,11 +503,46 @@ two disagree, that is a **finding to report**, not something a selector should q
 resolve — the aggregate now asserts every key in a stage's artifact against the log and
 fails naming each divergence, so drift becomes visible instead of merely harmless.
 
-> The unifying principle behind all seven: **a gate must report on its subject, and
+### 8. A consumer that outlived its producer's schema
+
+`LANG-CAPABILITY-AUDIT.10.6` retired the Perl arm of the EBNF frontend dual-run gate.
+The producer stopped emitting four keys. **Five** gate scripts kept reading them, and
+`jq -r '… | .absent_key'` does not fail — it prints the bare word `null`.
+
+The damage was not uniform, and that is the whole lesson. The same missing value
+reached three different consumption shapes in one script:
+
+| site | shape | outcome |
+|---|---|---|
+| `assert_equal "pass" "$…"` | string compare | **fails loudly** — `"pass"` ≠ `"null"` |
+| `--argjson … "$…"` into the summary | publish | **publishes `null`** — a reported value for a measurement that no longer exists |
+| `(( rust_rule_count < perl_rule_count ))` | bash arithmetic | **passes vacuously** — `(( ))` reads `null` as an unset name, i.e. **0**, so `276 < 0` is false |
+
+⭐ **The third is the dangerous one.** It is a *regression floor* — "the Rust frontend
+must not report fewer rules than Perl did" — and it silently became a comparison against
+a constant zero. It could never fire again. Fixing the loud two without noticing it would
+have restored a green gate with a dead assertion inside it, which is failure 2 all over
+again.
+
+Measured directly: `bash -c 'a=276; b=""; (( a < b )) && echo LT || echo GE'` → `GE`,
+`rc=0`.
+
+**Rule:** **an extraction must distinguish "the producer measured null" from "the producer
+no longer emits this key".** The reader now goes through a helper that refuses an absent
+key, a null value, or anything but exactly one matching entry, naming the key — so the
+next schema change is loud in *every* consumer rather than loud in some and silent in
+others. And when a comparison loses its second operand for good, **delete it and say so**
+(`dual_run_regex_cross_frontend_floor: retired` is published in the summary) rather than
+leaving arithmetic that implies a floor nobody is computing. A one-sided ratchet against a
+pinned baseline is an honest replacement — a constant right-hand side cannot go null —
+but it must not be described as the cross-implementation check it replaced.
+
+> The unifying principle behind all eight: **a gate must report on its subject, and
 > only its subject.** It must not report on its own documentation, its own absence,
 > somebody else's stale output, a quantity that has quietly stopped being the one its
-> name promises, or a number scraped out of prose while the producer's own artifact sits
-> unread — and when it cannot report at all, it must say so rather than return green.
+> name promises, a number scraped out of prose while the producer's own artifact sits
+> unread, or a value its producer stopped measuring — and when it cannot report at all,
+> it must say so rather than return green.
 
 ---
 
