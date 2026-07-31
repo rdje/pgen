@@ -1065,11 +1065,126 @@ Found by ANVIL's second instrument (`.2`) on its first run — no baseline, no t
 ⚠️ **The ROADMAP is the worst offender** — the document the session bootstrap makes mandatory
 reading declares itself 3.3 months staler than its own content. ⛔ Do NOT bulk-rewrite the dates:
 the honest fix per file is either to update the declaration *because the content really did move*,
-or to delete a self-declaration nothing maintains. `CHANGES.md` may simply drop its `Last updated:`
-— an append-only changelog's newest entry IS its date, so the field is a second place to be wrong.
+or to delete a self-declaration nothing maintains.
+
+#### ⛔ CORRECTION — re-measured in `.5`: the population is **16**, not 10, and one row is phantom
+
+Re-run over the whole tracked `.md` surface (`git ls-files -- '*.md'`, submodule-blind by
+construction) while building `.5`'s outbound review. The table above is wrong in **both**
+directions, and both errors come from the extractor, not from the files:
+
+| correction | measured |
+|---|---|
+| ⛔ `CHANGES.md` does **not** declare `Last updated:` at all | its 3 matches are *prose* — L264 describes instrument B itself, L11012/L14479 narrate other files' fields. **The row is phantom**; the `2026-05-25` in it corresponds to no declaration in the file. Its advice ("may simply drop its `Last updated:`") is moot — there is nothing to drop |
+| ⛔ **8 `docs/tasks/` files self-refute and were never listed** | `OPS-MEMSAFE` (2026-07-18→27), `REGEX-PCRE2-FIDELITY` (2026-06-07→07-30), `RGX-0090`/`RGX-0091` (2026-07-21→27), `SV-EXH-PROOF` (2026-05-31→06-10), `SV-PARSE-STRICT` (2026-06-09→06-10), `INLINE-ALT-FIX` (2026-05-16→17), `STIMULI-SIGNOFF` (2026-07-07→08) |
+| ⇒ live population after `.1c3` deleted the tracker | **16** self-refuting of 61 declaring |
+
+⭐ **WHY the first pass missed them — the anchor, not the rule.** The repo has **two** declaration
+spellings, and `.4` only ever saw one. Root docs write `Last updated: 2026-05-14`; every
+`docs/tasks/` tree writes ``- Last updated: `2026-05-31` `` — **backtick-quoted**. An extractor
+requiring a digit after the colon matches the first and silently skips ~50 files of the second.
+⛔ And it fails *silently in the passing direction*: a missed file is not a reported miss, it is an
+absent row, so the instrument under-reports and looks clean doing it.
+
+⭐⭐ **The banked lesson, and it is this tree's own thesis pointed at its own instrument**: the
+disagreement was only visible because a PRIOR measurement existed to disagree with. 10 vs 8 was the
+signal; without `.4`'s number on the page, the corrected extractor's 16 would have been accepted as
+fact on its first run. ⇒ [[feedback_instrument_needs_ground_truth]] — an instrument's first output
+is a hypothesis, and the cheapest ground truth available is *the last time somebody measured it*.
+⇒ **`.2` MUST pin both spellings and carry a control that fails if either stops matching.**
+
+### `.5` — outbound review of FSMGen's *Live-Document Size Containment* external review packet (`done`)
+
+Director request (2026-07-31, mid-session): *"could review this document and feedback your honest,
+no BS opinion?"* — `/Volumes/SSD/Documents/github/fsmgen/docs/LIVE_DOCUMENT_SIZE_CONTAINMENT_EXTERNAL_REVIEW_PACKET.md`
+(1 309 lines / 54 068 B, packet v1, snapshot `7f05b41d`).
+
+⭐ **PGEN is the packet's own case history.** Its §*Origin of the problem* cites *"one measured
+adopter"* whose status file *"reached 1,547,057 bytes, of which 94.7% was dated changelog"* — that
+is byte-for-byte THIS tree's opening measurement of `LIVE_ACHIEVEMENT_STATUS.md`. ⇒ the review is
+not an outside opinion, it is the **downstream report from the adopter the architecture was built
+on**, and its most valuable payload is what happened next: we did not partition that file, we
+**deleted** it (`.1c3`, 467/467 reachable, 0 orphans). That is the packet's own L10 — *"the doctrine
+can bias toward preserving obsolete surfaces"* — confirmed empirically rather than suspected.
+
+**Deliverable**: `docs/tasks/artifacts/live_means_live/fsmgen_live_document_size_containment_review.md`
+(their requested response template; verdict **accept with changes**, 8 findings, 2 blocking-tier).
+
+#### ⭐⭐⭐ The blocking finding — read the CHECKER, not the packet's prose
+
+⛔ The packet's §*Immutable baseline* states the debt algebra as prose. Read as prose it looks
+sound. **Read in the implementation it is a schema defect**, and the defect is already visible in
+their committed data:
+
+```
+$ grep -n 'baseline .* exceeds' live-document-size/scripts/check_live_document_size.pl
+492:  problem("surface $id baseline $baseline_fields[$index] exceeds $budget_fields[$index]")
+494:  problem("surface $id transition baseline plus growth exceeds $budget_fields[$index]")
+```
+
+⇒ `baseline[d] <= budget[d]` is ENFORCED, so a surface already oversized at adoption can be
+admitted as debt **only by setting its budget at or above its sick size**. Measured across all 20
+records of `doctrine/live_document_size/surfaces.jsonl`:
+
+| surface | state | `budgets.lines_each` | `baseline.lines_each` |
+|---|---|---:|---:|
+| `root_documents`, `engineering_rationale` | rollover_debt | **38 000** | 34 509 |
+| `change_history` | rollover_debt | **35 000** | 31 799 |
+| `fact_index` | structural_debt | **20 000** | 15 541 |
+| `active_resume` (no legacy pressure) | normal | **60** | — |
+| `enforced_rules` / `diagnostics` / `rationale` | normal | **300 / 400 / 512** | — |
+
+⇒ **the doctrine that exists to bound live documents ships a registry declaring a 38 000-line
+per-file hard limit** — a 633× spread inside ONE field, with health targets and quarantine ceilings
+indistinguishable to the checker, the reader, and the next adopter who copies the file as a
+template. Their L9 (*"seeing 'under hard limit' must not be read as 'well sized'"*) is a **prose
+bandage on a schema defect**. Recommended fix: split `budget` (reviewed target, may only decrease)
+from `ceiling` (= baseline + allowance, stop-growth), and make `ceiling` a **two-sided ratchet** —
+PGEN's `envelope_divergence_ceiling()` shape, which fails above AND fails below with *"lower the
+ceiling"*, so a legacy allowance cannot become permanent. That also dissolves their open L2/Q10/Q11
+(`hard_pct` loses its job entirely).
+
+#### The second finding — it bounds SIZE and ROUTING, never TRUTH
+
+16 tracked PGEN files (the `.4` correction above) are inside every size bound, correctly routed,
+coverage-complete — and self-refuting. All 13 of the packet's *"safety properties claimed"* hold for
+every one of them. ⇒ *bounded* and *current* are independent, and only the first is mechanized.
+Their L6 (*"semantic quality is not reducible to size"*) does not cover it: **self-refutation is not
+semantic quality** — it needs no baseline, no threshold and no judgment.
+
+#### ⭐ The third — route closure validates the routes you REMEMBERED
+
+The packet records that PGEN's pressure *"had merely moved"* but not the **mechanism**, and the
+mechanism is the finding: the edge that carried the rot was a **hint string inside an error
+message** (`check_readme_stability.sh:83`, retired in `.1c2`). A hand-authored route registry cannot
+see it. ⇒ answers their Q4 (*"can an unbounded sink still hide behind this graph?"*) — **yes, not
+behind it, beside it** — and the fix is to derive candidate edges from the enforcers' own output
+text, since any guard that names a destination is defining a route.
+
+#### Verification (docs-only; no code change ⇒ no acceptance checklist per `COMMIT.md`)
+
+| check | result |
+|---|---|
+| the packet's motivating figure IS ours | 1 547 057 B / 94.7 % — byte-identical to this tree's line 20-22 ✅ |
+| blocking finding read from the IMPLEMENTATION, not the prose | `check_live_document_size.pl:492-495` quoted above ✅ |
+| the 38 000 figure re-derived from their tracked data | all 20 `surfaces.jsonl` records parsed, table above ✅ |
+| ⭐ both PGEN instruments run ON the packet itself (fairness control) | **1 distinct date, no self-refutation** — it practises what it argues, and the review says so ✅ |
+| their 17-row evidence map spot-checked | 5/5 paths resolve ✅ (routed as an observation-tier finding: nothing CHECKS it) |
+| cross-repo access | **read-only**, same volume (`/Volumes/SSD`), no write outside PGEN ✅ |
+
+⚠️ **Honest bound**: the review judges the packet, the checker's debt algebra, and the surface
+registry. It does **not** re-run FSMGen's test suite or exercise the task-tree sealing extension —
+the closing recommendation about that extension is argued from PGEN's own delete-vs-partition
+evidence, and is labelled in the deliverable as a peer caution rather than a finding.
+
+⇒ Feeds `.2`: instruments A and B are now specified against a second project's architecture, and
+the *"charter pairing is not a refinement, it is what makes the instrument usable"* point (their
+Q19) is the same design constraint `.2` already identified for `CHANGES.md`.
 
 ## Evidence
 
 - Census commands are reproducible from the repo root; all figures above are at commit
   `3cb4b95b` and must be RE-MEASURED, not quoted, when `.1` is worked
   ([[feedback_read_prior_art_before_designing]]).
+- `.5`'s figures are at FSMGen snapshot `7f05b41d` and were re-derived from that repository's
+  tracked data, not quoted from its packet — which is how the blocking finding was found at all.

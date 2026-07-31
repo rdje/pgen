@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0008 — read the checker, not the packet; and an instrument that misses silently in the passing direction
+
+Two lessons from `LIVE-MEANS-LIVE.5`, both general enough to outlive the review that produced them.
+
+**1. A prose statement of an algebra and the algebra as implemented are different artifacts.**
+FSMGen's packet states its transition-debt rule as four inequalities in prose. Read as prose they
+are sound and unremarkable. The blocking finding only appears when you read
+`live-document-size/scripts/check_live_document_size.pl:492-495` and then go look at what the
+enforced constraint *did to their committed data*: because `baseline <= budget` is enforced, every
+already-oversized surface had to have its sick measurement written into the `budget` field to be
+admitted as debt at all. Their registry now declares a 38 000-line per-file limit next to 60-line
+siblings, in the same field, with nothing distinguishing a reviewed health target from a quarantine
+ceiling. Nobody chose that; the schema required it. ⇒ **when reviewing a rule, do not stop at the
+rule — run it against the reviewee's own data and look at what it forced them to write.** The
+defect was invisible in the prose and obvious in the JSON.
+
+**2. An instrument that under-reports looks exactly like a clean result.** `.4`'s `Last updated:`
+extractor required a digit immediately after the colon. That matches this repo's root-doc spelling
+(`Last updated: 2026-05-14`) and silently skips its `docs/tasks/` spelling
+(``- Last updated: `2026-05-31` ``, backtick-quoted) — about 50 files. A miss in this direction
+produces **no error, no warning, and no row**: the report simply comes back shorter and cleaner
+than reality. The only reason it was caught is that `.4` had already published a number (10) and
+the corrected extractor said 8 — the *disagreement* was the signal, not either value.
+
+⭐ Generalized and worth carrying: **the cheapest ground truth available to a new instrument is the
+last time somebody measured the same thing.** Not a golden fixture, not a synthetic control — a
+prior published figure. An instrument whose first run agrees with nothing has no ground truth at
+all, and its output is a hypothesis being reported as a fact. This is
+[[feedback_instrument_needs_ground_truth]] applied at the *extraction* layer rather than the
+verdict layer, and it is why `.2` must pin BOTH declaration spellings with a control that fails if
+either stops matching — a spelling that silently stops being found is this same defect, later.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0007 — an EXACT-SET check makes a retirement atomic, and a re-measured census is not ceremony
 
 `LIVE-MEANS-LIVE.1c3`, the leaf that deletes the file the tree is named for.

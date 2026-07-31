@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0008 — leaf LIVE-MEANS-LIVE.5: the outbound review of FSMGen's live-document size-containment packet, and a correction to `.4`'s own instrument
+
+Director request mid-session: *"could review this document and feedback your honest, no BS
+opinion?"* Docs-only; no `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all generated
+parsers byte-identical BY CONSTRUCTION.
+
+- ⭐ **PGEN is the packet's cited case history.** Its §*Origin of the problem* describes *"one
+  measured adopter"* at *"1,547,057 bytes, of which 94.7% was dated changelog"* — byte-for-byte this
+  tree's opening measurement of `LIVE_ACHIEVEMENT_STATUS.md`. The review is therefore the downstream
+  report from the adopter the architecture was built on, and its headline payload is that we
+  **deleted** that file rather than partitioning it (467/467 reachable, 0 orphans) — the packet's own
+  L10 bias-toward-preservation risk, confirmed empirically rather than suspected.
+- ⛔ **Blocking finding, found by reading their CHECKER instead of their prose.**
+  `check_live_document_size.pl:492-495` enforces `baseline <= budget`, so a surface already oversized
+  at adoption is admissible only by writing its sick size into `budget`. Re-derived from all 20 of
+  their tracked `surfaces.jsonl` records: `root_documents` and `engineering_rationale` declare
+  `budgets.lines_each: 38000` while `active_resume` declares `60` — a 633× spread in ONE field, with
+  health targets and quarantine ceilings indistinguishable. Their L9 is a prose bandage on it.
+  Recommended: split `budget` (target, may only decrease) from `ceiling` (stop-growth), and make
+  `ceiling` a two-sided ratchet — PGEN's `envelope_divergence_ceiling()` shape.
+- **Second finding**: the architecture bounds SIZE and ROUTING but never TRUTH — 16 PGEN files
+  satisfy all 13 of its claimed safety properties while self-refuting. **Third**: route closure
+  validates the routes you remembered; PGEN's rot travelled down a **hint string in an error
+  message**, invisible to any hand-authored route registry (answers their Q4).
+- ⭐ **Fairness control**: both instruments were run ON the packet itself — 1 distinct date, no
+  self-refutation. It practises what it argues, and the review says so.
+- ⛔ **`.4` CORRECTED by re-measurement**: the self-refuting population is **16**, not 10.
+  `CHANGES.md` was a **phantom row** (it carries no `Last updated:` declaration at all — its matches
+  are prose), and **8 `docs/tasks/` files were never listed** because the repo has TWO declaration
+  spellings and the first extractor knew only one (root docs write `Last updated: 2026-05-14`; task
+  trees write ``- Last updated: `2026-05-31` `` — backtick-quoted). The miss failed *silently in the
+  passing direction*. Caught only because `.4`'s prior number existed to disagree with ⇒
+  `.2` must pin both spellings and carry a control that fails if either stops matching.
+- Files: `docs/tasks/artifacts/live_means_live/fsmgen_live_document_size_containment_review.md`
+  (new), `docs/tasks/LIVE-MEANS-LIVE.md`, `docs/TASK_TREE.md`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`. Cross-repo access was **read-only, same volume**.
+
 ## 2026-07-31 - PGEN-CI-PARITY-GATE-ROT-0024 — leaf CI-PARITY-GATE-ROT.20a: submodules are READ-ONLY LINKED REPOS, so the markdown repo-path audit stops recursing into them
 
 DIRECTOR RULING, superseding the previous commit's scope: *"ANVIL is a totally different project. A
