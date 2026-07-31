@@ -1,12 +1,13 @@
 {
   "version": 1,
-  "description": "Per-family inputs for the DONE-BAR audit (scripts/audit_done_bar.sh) AND the hand-authored family-status CLAIM the three *_parser_family_status_gate.sh gates check their computed verdict against (LIVE-MEANS-LIVE.1a). This register supplies the things that cannot be derived from a family's name: (a) the gate-name prefixes its gates actually use (SystemVerilog gates are named sv_*, return-annotation gates return_*), (b) the repo-relative roots holding an officially-recognized EXTERNAL corpus for the family, and (c) claimed_status -- what PGEN CLAIMS the family's status is. A derived family with NO entry here is a REFUSAL, not a skip: the safe polarity is that an unregistered family blocks the audit rather than quietly scoring well. The audit cross-checks every entry -- an empty corpus_roots contradicted by a corpus-facing gate attributed to the family is reported MISCALIBRATED.",
+  "description": "Per-family inputs for the DONE-BAR audit (scripts/audit_done_bar.sh) AND the hand-authored family-status CLAIM the three *_parser_family_status_gate.sh gates check their computed verdict against (LIVE-MEANS-LIVE.1a). This register supplies the things that cannot be derived from a family's name: (a) the gate-name prefixes its gates actually use (SystemVerilog gates are named sv_*, return-annotation gates return_*), (b) the repo-relative roots holding an officially-recognized EXTERNAL corpus for the family, and (c) claimed_status -- what PGEN CLAIMS the family's status is. Since LIVE-MEANS-LIVE.1b the audit derives its candidate roster from grammars/*.ebnf -- the product itself, which cannot lie about what exists -- and every tracked grammar must appear in EXACTLY ONE of `families` or `grammar_dispositions`. A grammar in neither is a REFUSAL, not a skip: the safe polarity is that an unadjudicated grammar blocks the audit rather than quietly being invisible. The previous derivation joined against LIVE_ACHIEVEMENT_STATUS.md and hid three shipped parsers with registered generated parsers (ebnf, json, semantic_annotation -- the last with a published integration contract) because none had a tracker row. The audit cross-checks every entry -- an empty corpus_roots contradicted by a corpus-facing gate attributed to the family is reported MISCALIBRATED.",
   "policy": {
     "corpus_roots": "Repo-relative directories holding a third-party corpus PGEN did not author. An empty list means the family has NO external corpus, which is an UNMET leg 3 -- never an inapplicable one (DONE-BAR: 'absence of a corpus is an UNMET leg not an inapplicable one').",
     "language_owner": "Who defines the language. 'external-standard' => leg 3 is reachable in principle and the Provisional qualifier is (corpus pending). 'pgen' => leg 3 is unreachable BY CONSTRUCTION and the qualifier is (ceiling), a FINISHED row. 'unadjudicated' => DONE-BAR.3 owes a ruling; the audit prints UNADJUDICATED rather than guessing, because 'we could not find a corpus' is never a ceiling.",
     "gate_prefixes": "Longest-prefix wins across families, so sv_preprocessor_* attributes to systemverilog_preprocessor and not to systemverilog.",
     "leg3_surface": "The family's external-corpus CONFORMANCE surface, consumed by the family-status gates via rust/scripts/lib/parser_family_status_bar.sh (DONE-BAR.2a). null until DONE-BAR.3 wires a lane -- while null, leg 3 is UNMET and the computed status is capped at the qualified Provisional tier. When declared it is {gate, summary_json, pass_query}: gate = the conformance gate's name (NEVER a *triage* gate -- the status gates REFUSE one by name, because a triage gate is not a conformance gate); summary_json = the repo-relative artifact that gate emits; pass_query = a jq boolean expression asserting the artifact records a full pass. The status gates additionally require the gate script to reference one of the family's corpus_roots (external-backed) and the gate to be 'reachable' per scripts/check_gate_reachability.sh (actually invoked) -- the three tests every corpus-named gate measured by DONE-BAR.1 failed at least one of.",
-    "claimed_status": "What PGEN CLAIMS this family's status is -- HAND-AUTHORED, and deliberately NOT derived from any gate. The three family-status gates COMPUTE the true status from proof surfaces and then fail if it differs from this value (*_tracker_alignment_ok). That is a genuine two-arm check ONLY while the two arms are independently produced: generating this field from the gates would make the comparison pass by construction and it could never fail again -- the vacuous-floor failure LANG-CAPABILITY-AUDIT.10.9 had to repair (276 < 0 can never fire). \u26d4 NEVER auto-populate this field. It moved here from LIVE_ACHIEVEMENT_STATUS.md (LIVE-MEANS-LIVE.1a), whose free-form Markdown had accumulated 856 dated changelog entries -- 94.7% of a file named LIVE. A schema-bounded field cannot rot the same way. Permitted values are the DONE-BAR ladder: Done / Provisional (ceiling) / Provisional (corpus pending) / Mostly Done / In Progress / Not Started."
+    "claimed_status": "What PGEN CLAIMS this family's status is -- HAND-AUTHORED, and deliberately NOT derived from any gate. The three family-status gates COMPUTE the true status from proof surfaces and then fail if it differs from this value (*_tracker_alignment_ok). That is a genuine two-arm check ONLY while the two arms are independently produced: generating this field from the gates would make the comparison pass by construction and it could never fail again -- the vacuous-floor failure LANG-CAPABILITY-AUDIT.10.9 had to repair (276 < 0 can never fire). \u26d4 NEVER auto-populate this field. It moved here from LIVE_ACHIEVEMENT_STATUS.md (LIVE-MEANS-LIVE.1a), whose free-form Markdown had accumulated 856 dated changelog entries -- 94.7% of a file named LIVE. A schema-bounded field cannot rot the same way. Permitted values are the DONE-BAR ladder: Done / Provisional (ceiling) / Provisional (corpus pending) / Mostly Done / In Progress / Not Started.",
+    "grammar_dispositions": "The recorded reason a tracked grammars/*.ebnf file is NOT a parser family. Every tracked grammar must appear in EXACTLY ONE of `families` or `grammar_dispositions`; the audit REFUSES on a grammar in neither, on a grammar in both, and on an entry naming a grammar that does not exist (a two-sided check -- the derivation this replaced could only fail on one arm, which is why it never did). \u2b50 THE ADMISSION TEST IS THE PRODUCT, NOT AN OPINION: a grammar is a family iff rust/src/parser_registry.rs ships a registered generated parser for it. All 12 non-scratch registered parsers are families and no dispositioned grammar has one, so the rule and the data agree with no exceptions. Disposition values: 'bootstrap_contract' = a bootstrap-safe grammar that exists only to break the annotation-parser cycle (README.md), excluded BY NAME from the parse-harness equivalence gate because the oracle is not own-grammar codegen; 'lrm_extraction_input' = machine-extracted standard grammar text consumed as an INPUT to a family, never shipped as a parser; 'lrm_extraction_harness' = an include(...) wrapper over those extractions; 'derived_artifact' = generated FROM other tracked grammars. \u26d4 A disposition is an adjudication with a recorded reason, never a convenience: adding one to silence the refusal for a grammar that DOES ship a registered parser would re-open exactly the hole LIVE-MEANS-LIVE.1b closed."
   },
   "families": {
     "systemverilog": {
@@ -88,6 +89,66 @@
       "language_owner": "unadjudicated",
       "standard": "a constant-expression SUBSET of IEEE 1800 that PGEN itself delimits. DONE-BAR.3 owes the ruling.",
       "leg3_surface": null
+    },
+    "ebnf": {
+      "claimed_status": "In Progress",
+      "gate_prefixes": [
+        "ebnf_"
+      ],
+      "corpus_roots": [],
+      "language_owner": "pgen",
+      "standard": "none -- the EBNF meta-grammar is authored by PGEN in grammars/ebnf.ebnf; it is the grammar-author's INPUT language, and its own parser book is the author's reference",
+      "leg3_surface": null
+    },
+    "json": {
+      "claimed_status": "Mostly Done",
+      "gate_prefixes": [
+        "json_"
+      ],
+      "corpus_roots": [],
+      "language_owner": "unadjudicated",
+      "standard": "a deliberately SIMPLIFIED built-in subset -- the json parser book states plainly it is not a conforming JSON parser, so the ECMA-404/RFC-8259 corpora exercise far more than PGEN's grammar delimits. Same shape as rtl_frontend/rtl_const_expr; DONE-BAR.3 owes the ruling.",
+      "leg3_surface": null
+    },
+    "semantic_annotation": {
+      "claimed_status": "Mostly Done",
+      "gate_prefixes": [
+        "semantic_annotation_"
+      ],
+      "corpus_roots": [],
+      "language_owner": "pgen",
+      "standard": "none -- the semantic-annotation language is authored by PGEN in grammars/semantic_annotation.ebnf",
+      "leg3_surface": null
+    }
+  },
+  "grammar_dispositions": {
+    "builtin_return_annotation": {
+      "disposition": "bootstrap_contract",
+      "reason": "A bootstrap-safe contract grammar that lets the return-annotation parser be generated without depending on itself (README.md 'Architecture At A Glance'). EXCLUDED BY NAME from parse_harness_equivalence_gate because the oracle is not own-grammar codegen. Not a shipping deliverable: it has no registered generated parser of its own to hand downstream."
+    },
+    "builtin_semantic_annotation": {
+      "disposition": "bootstrap_contract",
+      "reason": "The semantic-annotation half of the same bootstrap pair; see builtin_return_annotation."
+    },
+    "systemverilog_2017_lrm_extracted": {
+      "disposition": "lrm_extraction_input",
+      "reason": "Machine-extracted IEEE 1800-2017 LRM grammar text. An INPUT to the systemverilog family's conformance work, not a parser PGEN ships: no registered generated parser exists for it."
+    },
+    "systemverilog_2023_lrm_extracted": {
+      "disposition": "lrm_extraction_input",
+      "reason": "The IEEE 1800-2023 sibling of systemverilog_2017_lrm_extracted."
+    },
+    "verilog_2005_lrm_extracted": {
+      "disposition": "lrm_extraction_input",
+      "reason": "The IEEE 1364-2005 sibling of systemverilog_2017_lrm_extracted, backing the verilog_2005 profile."
+    },
+    "systemverilog_lrm_profiled_generated": {
+      "disposition": "derived_artifact",
+      "reason": "Generated FROM the *_lrm_extracted grammars rather than authored. No registered generated parser; auditing it as a family would audit a derivation of inputs, not a deliverable."
+    },
+    "systemverilog_lrm_profiled_wrapper": {
+      "disposition": "lrm_extraction_harness",
+      "reason": "An include(...) wrapper composing the *_lrm_extracted grammars for profiled analysis. No registered generated parser. Its low envelope-differential agreement is the include asymmetry documented in TOOLBOX.md 1.9 (arm 1 resolves include(...), arm 2 stops at the directive), not a defect rate."
     }
   }
 }

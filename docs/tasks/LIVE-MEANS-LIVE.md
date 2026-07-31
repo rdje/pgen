@@ -306,7 +306,7 @@ their tracker notes cite for the full analysis.
 `audit_done_bar.sh` still derives the family ROSTER from the tracker, so the file cannot be
 deleted yet. That is `.1b`, and it is a strengthening, not a transcription — see below.
 
-### `.1b` — the family ROSTER: derive it from `grammars/*.ebnf`, not from the tracker (`todo`)
+### `.1b` — the family ROSTER: derive it from `grammars/*.ebnf`, not from the tracker (`done`)
 
 ⭐ **The current derivation is WEAKER than its own docstring claims.** `audit_done_bar.sh:113-127`
 builds the roster as *tracker rows ∩ `grammars/*.ebnf` basenames*, and the register's description
@@ -319,16 +319,222 @@ about what exists — and REFUSE on any grammar with neither a register entry no
 recorded disposition. That is the `GATE-REACHABILITY` pattern (invoked, or a deliberate
 disposition) applied to families.
 
-⚠️ **Costed honestly**: 17 tracked grammars vs 7 register families, so 10 need an adjudicated
-disposition (`ebnf` is the meta-grammar; `*_lrm_extracted` are inputs, not shipping families;
-`builtin_*` are bootstrap contracts). That adjudication IS the work — it is not a rename.
+#### ⛔ THE HOLE IS LIVE, NOT HYPOTHETICAL — three shipped parsers were invisible
 
-### `.1c` — the book page, the 96 referrers, and the delete (`todo`)
+The pre-work sketch above guessed the 10 undisposed grammars were all inputs, bootstrap contracts
+and the meta-grammar. ⛔ **Measured, that guess was wrong**, and the correction is the finding:
 
-The human at-a-glance view moves to an mdBook page (gate-checked against the register), all 96
-tracked `.md` referrers are re-pointed, `check_readme_stability.sh:83` stops naming an uncapped
-overflow destination, and `LIVE_ACHIEVEMENT_STATUS.md` is deleted. ✅ The ID census in `.1a`
-already proves the delete is lossless (452/452).
+```
+$ grep -n 'grammar_name: "' rust/src/parser_registry.rs | wc -l      # 13 registered parsers
+$ python3 -c "…set(grammars) - set(register['families'])…"           # 10 invisible grammars
+```
+
+| grammar | registered generated parser? | own gated mdBook? | integration contract? | in the register? |
+|---|---|---|---|---|
+| `semantic_annotation` | ✅ `parser_registry.rs:1571` | ✅ `semantic_annotation_parser_book_gate` | ✅ `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` | ⛔ **NO** |
+| `json` | ✅ `parser_registry.rs:1597` | ✅ `json_parser_book_gate` | — | ⛔ **NO** |
+| `ebnf` | ✅ `parser_registry.rs:1590` | ✅ `ebnf_parser_book_gate` | — | ⛔ **NO** |
+
+⇒ a family with a **published downstream integration contract** was outside the done-bar audit
+entirely, and so were **8 gate targets** (`ebnf_*` ×6, `json_parser_book_gate`,
+`semantic_annotation_parser_book_gate`) — attributed to no family, therefore under no leg-2
+accounting. ⭐ The book already calls these families: *"every PGEN grammar — the **nine**
+parser/annotation families above plus the `ebnf` meta-grammar"*
+(`docs/book/src/parser-families.md`). The register said **seven**. The published surface and the
+audited surface disagreed by three, and nothing could see it — because the roster was joined
+against a tracker none of the three had a row in.
+
+#### The adjudication — 10 families, 7 dispositions
+
+Each disposition is recorded IN the register (`grammar_dispositions`), so it is a schema-bounded
+fact, not a comment. **Admission test, applied uniformly:** does the grammar ship a *registered
+generated parser*? That is the product, and it cannot be argued with.
+
+| grammar | verdict | basis |
+|---|---|---|
+| `semantic_annotation` | **family**, `Mostly Done` | registered parser + published contract + gated book; exact sibling of `return_annotation`, which claims `Mostly Done` on the identical evidence shape (`DONE-BAR.2b`) |
+| `json` | **family**, `Mostly Done` | registered parser + gated book; **measured `fully_certified=true`, `UNKNOWN=0`** (below). A deliberately simplified built-in — but that bounds its *scope*, not its *status* |
+| `ebnf` | **family**, `In Progress` | registered parser + gated book + 6 gates; ⛔ but the `.10.6` envelope differential found **2 live defects that both parse `Ok`**, and only 6 of 14 grammars are envelope-equivalent ⇒ *"core capabilities or validation still missing"*, the Status Rules' own words |
+| `builtin_return_annotation`, `builtin_semantic_annotation` | disposition `bootstrap_contract` | bootstrap-safe contracts that break the annotation-parser cycle (`README.md`); **EXCLUDED by name** from the parse-harness equivalence gate because the oracle is not own-grammar codegen |
+| `systemverilog_2017_lrm_extracted`, `systemverilog_2023_lrm_extracted`, `verilog_2005_lrm_extracted` | disposition `lrm_extraction_input` | no registered parser; machine-extracted LRM grammar text consumed as INPUT |
+| `systemverilog_lrm_profiled_generated` | disposition `derived_artifact` | no registered parser; generated FROM the extractions |
+| `systemverilog_lrm_profiled_wrapper` | disposition `lrm_extraction_harness` | no registered parser; an `include(…)` wrapper over the extractions (its low envelope agreement is the include asymmetry, `TOOLBOX.md` 1.9) |
+
+⭐ The verdict column is not free-form: **`family` ⟺ `rust/src/parser_registry.rs` ships a
+registered generated parser**, with exactly one recorded exception — the two `builtin_*` bootstrap
+contracts, which ARE registered (`:1577`, `:1583`) but only to break the annotation-parser cycle,
+and which `parse_harness_equivalence_gate` already EXCLUDES BY NAME for that same reason. So:
+12 non-`scratch` registered parsers − 2 bootstrap contracts = **10 families**, and the 5 grammars
+with no registered parser are the other 5 dispositions. ⚠️ My first pass wrote *"no dispositioned
+grammar has a registered parser"* — **that was wrong**, the `builtin_*` pair does; the rule needs
+its stated exception to be true, and control `C8a` encodes the exception rather than hiding it.
+Because the rule is pinned against the Rust registry — a tracked source the register cannot edit —
+the roster is checkable rather than curated.
+
+#### ⛔ Why the claims are hand-authored, and what they are NOT
+
+`claimed_status` is the independent arm of the two-arm check (`.1a`). These three families had
+**never carried a claim anywhere** — not in the tracker, not in the register — so there was no
+prior human claim to migrate; I authored them against the published Status Rules vocabulary and
+recorded the basis above. ⛔ **Not derived from any gate**, and no family-status gate computes
+any of the three, so nothing here can pass by construction.
+
+#### ⚠️ A SECOND defect, found by running the harness — and it was RED BEFORE I touched anything
+
+`docs/tasks/artifacts/done_bar/run_done_bar_probes.sh` exited **1 (11/12)** at commit `ce1df2b0`,
+before any edit of mine. Root-caused rather than assumed:
+
+```
+$ wc -c rust/target/regex_parser_family_status_gate/summary.txt      # 7377  (non-empty)
+$ grep -c '^error:' rust/target/sota_exit_gate/logs/regex_parser_family_status_gate.log
+0
+```
+
+`CTRL-4a` pins the substring `computed 'In Progress' but tracker says 'Done'`, recoverable only
+via `gate_ran_and_failed()` — a path taken only when `find_artifact()` finds **no** summary. The
+regex gate has since been re-run and PASSED, so it now has a 7 377-byte summary and a log with
+**zero** `error:` lines. The pinned state is unreachable.
+
+⭐⭐ **The general lesson, banked — a ground-truth control pinned to UNTRACKED state decays
+silently.** `CTRL-4a`'s ground truth lived in `rust/target/`, which is regenerable build output:
+the arm was green only until someone re-ran the gate, and then it went red for a reason having
+nothing to do with the instrument it guards. Its sibling `CTRL-4b` pins a fact derived from
+*tracked script text* and is still green. ⇒ **a control must either pin a tracked fact or
+CONSTRUCT the state it observes.** Fixed the second way: a new `PGEN_DONE_BAR_TARGET_DIR` seam
+lets the arm build the exact 0-byte-summary + error-log shape `DONE-BAR.1a` was written for, so it
+now reproduces on a fresh clone. ⇒ routed as [[feedback_ground_truth_control_must_not_pin_untracked_state]].
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `bash scripts/audit_done_bar.sh` reported `families derived from
+  LIVE_ACHIEVEMENT_STATUS.md x grammars/*.ebnf: 7` and exit 0, while 17 grammars are tracked and 12
+  non-`scratch` generated parsers are registered. Independently, the negative-control driver
+  `bash docs/tasks/artifacts/done_bar/run_done_bar_probes.sh` exited **1 — 11/12**, `CTRL-4a` red.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow tier. Located with `git ls-files` + the tracked
+  registry, so no reader is missed by a path guess:
+
+  ```
+  $ git ls-files -- 'grammars/*.ebnf' | wc -l                              # 17
+  $ grep -c 'grammar_name: "' rust/src/parser_registry.rs                  # 13 (incl. scratch)
+  $ python3 -c "print(sorted(set(grammars) - set(register['families'])))"  # 10 invisible
+      builtin_return_annotation builtin_semantic_annotation ebnf json
+      semantic_annotation systemverilog_2017_lrm_extracted
+      systemverilog_2023_lrm_extracted systemverilog_lrm_profiled_generated
+      systemverilog_lrm_profiled_wrapper verilog_2005_lrm_extracted
+  ```
+
+  **WHERE**: `scripts/audit_done_bar.sh:114-131` — `for line in read(TRACKER).splitlines()` builds
+  the roster from tracker rows and intersects with `GRAMMARS`. **WHY that is the root cause**: the
+  join's LEFT side is the tracker, so a grammar absent from it contributes nothing and the loop
+  simply never sees it. The refusal at `:136-143` fires only on the converse (on the tracker,
+  absent from the register), and control `C8` pins only `register ⊆ roster` — so **every check
+  guarding this derivation was on the arm that could not fail**. Second defect located the same
+  way: `wc -c` = 7 377 on the regex summary + `grep -c '^error:'` = 0 on its log makes `CTRL-4a`'s
+  pinned string unreachable through `gate_ran_and_failed()` (`:275-299`, reached only when
+  `find_artifact()` returns `None`).
+- [x] **FIX** — declarative tier first, code second. (a) The register gains 3 families and a
+  `grammar_dispositions` block naming all 7 non-families with a reason; (b) the roster is derived
+  from `grammars/*.ebnf` and REFUSES on an undisposed grammar, on a grammar claimed BOTH ways, and
+  on a family or disposition naming a grammar that does not exist — a two-sided check, where the
+  old one had a single fallible side; (c) `TRACKER` is deleted from the audit entirely (the claim
+  now comes from `claimed_status`), including as a staleness input; (d) two testability seams
+  (`PGEN_DONE_BAR_GRAMMARS_DIR`, `PGEN_DONE_BAR_TARGET_DIR`) so the new controls are provable
+  without mutating the tracked tree.
+- [x] **ADDRESSED (verified)** — measured before → after:
+
+  | measurement | before | after |
+  |---|---|---|
+  | roster derivation | tracker rows ∩ grammars | **`grammars/*.ebnf`, the product itself** ✅ |
+  | tracked grammars with NO adjudicated disposition | **10** | **0** ✅ |
+  | audited families | 7 | **10** ✅ |
+  | gate targets attributed to a family | 59 / 124 | **67 / 124** ✅ (+8: `ebnf_*` ×6, `json_*`, `semantic_annotation_*`) |
+  | families with a published integration contract but no register entry | **1** (`semantic_annotation`) | **0** ✅ |
+  | reads of `LIVE_ACHIEVEMENT_STATUS.md` by `audit_done_bar.sh` | 2 (roster, staleness) | **0** ✅ |
+  | `bash scripts/audit_done_bar.sh` | exit 0, 10 controls | **exit 0, 12 controls** ✅ |
+  | `run_done_bar_probes.sh` | **exit 1 — 11/12** | **exit 0 — 15/15** ✅ |
+- [x] **THE NEW REFUSAL FIRES — proven, not assumed.** A derivation that cannot refuse is the
+  vacuous floor `LANG-CAPABILITY-AUDIT.10.9` had to repair, so each arm was made to fail on purpose:
+
+  | negative control | result |
+  |---|---|
+  | `RED-1` a grammar in NEITHER `families` NOR `grammar_dispositions` | **`rc=2`** — *"no register entry and no recorded disposition"*, naming the grammar ✅ |
+  | `RED-1b` a grammar claimed in BOTH at once | **`rc=2`** — contradiction refusal ✅ |
+  | `RED-1c` a disposition naming a grammar that does not exist | **`rc=2`** — stale-entry refusal (the converse arm) ✅ |
+  | `RED-2` no `grammars/*.ebnf` at all | **`rc=2`** — an empty roster is a refusal, never a pass ✅ |
+  | `CTRL-3` a dispositioned grammar is NOT admitted as a family | **exit 0, roster stays 10** ✅ |
+  | `CTRL-1b` a claim re-promoted to `Done` in the REGISTER still fails the bar | **`rc=1`** ✅ |
+  | `C11`/`C12` (new controls) mutated | **`rc=3` MISCALIBRATED**, each naming its own control ✅ |
+- [x] **NO REGRESSION** — `bash -n` clean on both edited shell files (⚠️ `shellcheck` is **not
+  installed** on this machine — stated rather than implied); register is valid JSON and
+  **10 families + 7 dispositions = 17 = the tracked grammar count exactly**; the 7 pre-existing
+  families are **byte-identical** (`json.load` equality against `git show HEAD:…`), so no prior
+  claim moved. Oracles re-run:
+
+  | oracle | result |
+  |---|---|
+  | `bash scripts/check_doctrines.sh` (staged diff in scope) | **ALL 15 doctrines PASS** ✅ |
+  | `scripts/check_published_version_currency.sh` | **PASS** — *"published status 'In Progress' == tracker"*, and it reaches the register through the same shared library ✅ |
+  | `claimed_status_for_family` over **all 10** families | every one returns its exact claim; an unknown family still **refuses** (`rc=1`, *"must BLOCK the gate, not score well by absence"*) ✅ |
+  | `scripts/check_memory_architecture.sh` | **OK** (layer A re-trimmed to 7 064 B rather than raising the cap when it hit 7 200 B) ✅ |
+  | `bash scripts/audit_done_bar.sh` | **exit 0**, 10 families, 13 controls ✅ |
+  | `run_done_bar_probes.sh` | **16/16, exit 0** ✅ |
+
+  ⏳ `make -C rust vhdl_parser_family_status_gate` was ALSO launched as the confirmatory end-to-end
+  oracle and is still running at commit time (>1 h; it drives the full VHDL family contract) —
+  **verification-pending, and its result is reported in the next commit** rather than claimed here.
+  It is confirmatory, not load-bearing: it consumes exactly one register value (`vhdl`), which is
+  byte-identical, through the shared reader two other oracles above already exercised.
+  ⛔ No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` touched ⇒ all generated parsers
+  **byte-identical BY CONSTRUCTION**.
+- [x] **LOCKSTEP** — register `description` + `policy.grammar_dispositions`, the audit's header
+  comment, the probe driver's WHY block, `docs/book/src/quality-and-closure-model.md`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
+#### ⚠️ Deliberately NOT done in `.1b` — routed, not worked
+
+- **`.1d`** (new) — 65 of 124 gate targets are attributed to no family at all. Most are legitimately
+  cross-family (`mdbook_docs_gate`, `sota_exit_gate`, `clippy_on_rust_change`), but that is a
+  *claim*, not a measurement, and leg 2 is only as strong as the attribution. Census owed.
+- **`.1e`** (new) — `scripts/check_diagnosis_evidence.sh:73-76` does not count
+  `scripts/audit_done_bar.sh` or `rust/test_data/grammar_quality/*.json` as a code change, so an
+  edit to `claimed_status` — the hand-authored arm deciding whether a published status claim is
+  checked — requires no acceptance checklist. Found while confirming this leaf's own obligations.
+
+### `.1c` — the book page, the referrers, and the delete (`todo`)
+
+The human at-a-glance view moves to an mdBook page (gate-checked against the register),
+`check_readme_stability.sh:83` stops naming an uncapped overflow destination, and
+`LIVE_ACHIEVEMENT_STATUS.md` is deleted. ✅ The ID census in `.1a` already proves the delete is
+lossless (452/452).
+
+#### ⭐⭐⭐ ANVIL CORRECTION (2026-07-31) — *"reference count is not a dependency measure"*
+
+> *"Reference count is not a dependency measure. It inflates with hint text and with append-only
+> history that must keep its references raw. Classify referents by what they REQUIRE."*
+
+⛔ **This leaf's own "96 `.md` referrers must be re-pointed" was that inflated measure**, and it was
+sized as if all 96 were blockers. Re-measured by REQUIREMENT, over the shell surface
+(`git ls-files -- '*.sh' | xargs grep -ln`), **after** `.1b` landed:
+
+| what the referent REQUIRES | count | files |
+|---|---|---|
+| ⛔ **reads the file's CONTENT** | **1** | `docs/tasks/artifacts/done_bar/run_demotion_impact_probe.sh` (greps a table row, copies the file) |
+| requires only that the PATH EXIST | 2 | `ci_workflow_local_gate.sh` (×5 `assert_tracked`), `check_diagnostics_and_docpaths.sh` (a doc-path glob) |
+| names it in a HINT / routing message | 1 | `check_readme_stability.sh:83,112,116` |
+| pure COMMENT / prose provenance | 5 | `parser_family_status_bar.sh`, the 3 `*_parser_family_status_gate.sh`, `check_published_version_currency.sh`, and `audit_done_bar.sh` itself |
+
+⇒ **the delete is blocked by ONE script, not ninety-six**, and it is a probe artifact rather than a
+gate. ⚠️ ANVIL named `audit_done_bar.sh` as that one consumer — true when they wrote it, and `.1b`
+has since removed it: the audit now reads the tracker for **nothing**. The remaining consumer is
+`run_demotion_impact_probe.sh`, and it is **already inert** — its precondition greps for
+`` | `vhdl` parser family | Done | `` while the row has read `Provisional (corpus pending)` since
+`DONE-BAR.2b`, so it refuses before reading anything.
+
+⭐ **The banked lesson**: *count what a referent REQUIRES, not how many referents there are.* A
+grep -l is an upper bound made of comments, hint strings and append-only history that must keep its
+references verbatim. This is the same error class as `.0`'s too-narrow census — a number produced
+by the convenient query rather than the right one — and it inflated a cost estimate by ~96×.
+⇒ [[feedback_classify_referents_by_requirement]].
 
 ### `.1` — (superseded — split into `.1a` ✅ / `.1b` / `.1c`)
 
@@ -340,34 +546,95 @@ the purge and prove **452 / 452** still reachable from a durable layer.
 ⚠️ The purge is not `grep -v 'Tracker note'`: some notes carry a durable rule that layer C does
 not yet record. Each is routed to `docs/decisions/` or confirmed already there before deletion.
 
-### `.2` — the enforcer: `LIVE-STATUS-CURRENCY` (`superseded by .0` — only needed if the CHEAP path is chosen)
+### `.2` — the enforcer: NOT a byte cap. ANVIL's two instruments (`todo` — REOPENED and re-specified 2026-07-31)
 
-⛔ **`.0`'s revised answer makes this leaf conditional.** If the file is migrated and deleted,
-there is no prose surface left to cap and this leaf is dropped entirely — you cannot leak a
-changelog into a schema-bounded JSON field. Kept here, unworked, only as the fallback if the
-director picks the cheaper purge-and-cap path.
+⛔ **`.0` had dropped this leaf**: migrate-and-delete removes the prose container, so there is
+nothing left to cap. **ANVIL reopened it on a better argument** — the point was never to bound
+`LIVE_ACHIEVEMENT_STATUS.md`, it was to detect *any* surface that stops being a status document:
 
-#### (fallback design, if kept)
+> *"A byte cap would have told you the file was big. Either of these tells you it stopped being a
+> status document — which is the thing you actually wanted to know."*
+
+#### ⭐⭐⭐ The two instruments — cheap, derivable, and needing NO baseline
+
+| # | instrument | what it separates | measured first run |
+|---|---|---|---|
+| **A** | **count DISTINCT dates inside a surface** | one date = a status view · 108 = a log. Separates the mixed category **without anyone choosing a number** | `.3`'s table — the three book destinations score 1/1/2, the tracker 108. A clean 50× gap, no threshold picked |
+| **B** | **a self-declared `Last updated:` that disagrees with the file's newest content date** | SELF-REFUTING: the file's own two halves contradict each other, so no external baseline is needed at all | **10 files** caught on the first run (`.4`), 5 clean — including the ROADMAP at ~3.3 months of self-declared drift |
+
+⭐ **Why these beat the byte cap I had designed.** The `.2` fallback below proposed a line cap AND a
+byte cap AND a hand-written `Tracker note` / `HISTORICAL` keyword tripwire. Every one of those needs
+a number or a word-list chosen by a human, and the keyword arm is the same *keyword classifier*
+shape this tree already recorded as FAILED (see "A measurement of mine that FAILED" above — a
+classifier with no ground truth is a guess). Instruments A and B choose nothing: A reads a gap that
+is 50× wide, B compares the file against **itself**. ⛔ And a byte cap is actively misleading here —
+`gate-flow.md` is the biggest of the three book destinations and the healthiest.
+
+⚠️ **Charter, not defect.** `CHANGES.md` scores 175 on instrument A and is CORRECT: being a log is
+its charter. So the enforcer must pair each surface with its declared kind — instrument A
+classifies, the charter says which classification is permitted. That pairing is the leaf's real
+design work, and it is what stops A from firing on the changelog forever.
+
+⭐ **Also close the redirect**: `check_readme_stability.sh:83` should not name an unwatched file as
+an overflow destination. Once instrument A watches every destination, the README rule becomes honest
+— and `.1c`'s delete removes the worst destination outright.
+
+#### (superseded fallback design — kept only to record what was rejected and why)
 
 Mirror `README-STABILITY` onto this file — a line cap AND a byte cap (a line cap alone is
 measurably bypassable: `README-POLICY.2` recorded layer A passing a 60-line cap while carrying
-138 403 bytes), plus a **changelog-leakage tripwire** that fails on a dated `Tracker note`
-entry, on `HISTORICAL` / `superseded` markers, and on prose that reports a *landed slice* rather
-than a *current state*.
+138 403 bytes), plus a **changelog-leakage tripwire** on dated `Tracker note` entries and
+`HISTORICAL` / `superseded` markers. ⛔ **Rejected**: three human-chosen numbers and a keyword
+list, to answer a question two baseline-free instruments answer better.
 
-⚠️ **Sequencing**: `.2` lands AFTER `.1`, with the caps set at the achieved post-purge size.
-Landing the enforcer first would fail every commit against a 1.5 MB file.
-
-⭐ **Also close the redirect**: `check_readme_stability.sh:83` should not name an uncapped file
-as an overflow destination. Once `.2` exists it is capped, and the README rule becomes honest.
-
-### `.3` — audit the OTHER overflow destinations named by capped enforcers (`todo`)
+### `.3` — audit the OTHER overflow destinations named by capped enforcers (`done` — measured, all three clean)
 
 `README-STABILITY` routes overflow to four places (`docs/book/src/gate-flow.md`,
 `docs/book/src/operations-and-governance.md`, `docs/book/src/developer-architecture.md`,
 `LIVE_ACHIEVEMENT_STATUS.md`). One of them was measured at 1.5 MB with no instrument. **Measure
 the other three before assuming they are fine** — the failure mode is structural, not specific
 to this file.
+
+#### ✅ MEASURED (2026-07-31), using ANVIL's date-count instrument (`.2` below)
+
+| surface | distinct dates | bytes | reading |
+|---|---|---|---|
+| `docs/book/src/gate-flow.md` | **2** | 34 343 | status/reference doc — clean |
+| `docs/book/src/operations-and-governance.md` | **1** | 17 915 | clean |
+| `docs/book/src/developer-architecture.md` | **1** | 16 471 | clean |
+| `README.md` | **0** | 8 286 | landing page — clean |
+| ⛔ `LIVE_ACHIEVEMENT_STATUS.md` | **108** | 1 563 641 | a log |
+| (charter check) `CHANGES.md` | 175 | 5 726 849 | a log **BY CHARTER** — correctly classified, not a defect |
+
+⇒ **the other three destinations are fine, and this is now a measurement rather than an assumption.**
+⭐ Note what a BYTE cap would have said: `gate-flow.md` is the LARGEST of the three at 34 KB and
+would have ranked worst; its date count says it is healthy. The instrument separates *big* from
+*rotted*, which is the actual question. And it does not fire on `CHANGES.md`, because being a log
+is that file's charter — the instrument classifies, the charter says which classification is right.
+
+### `.4` — 10 tracked files SELF-REFUTE their own `Last updated:` (`todo`)
+
+Found by ANVIL's second instrument (`.2`) on its first run — no baseline, no threshold:
+
+| file | declares | newest content date | drift |
+|---|---|---|---|
+| `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` | 2026-04-22 | 2026-07-31 | **~3.3 months** |
+| `PGEN_USER_GUIDE.md` | 2026-04-17 | 2026-07-29 | ~3.4 months |
+| `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` | 2026-03-26 | 2026-07-09 | ~3.5 months |
+| `CHANGES.md` | 2026-05-25 | 2026-07-31 | ~2.2 months |
+| `COMMIT.md` | 2026-05-14 | 2026-07-30 | ~2.5 months |
+| `LIVE_ACHIEVEMENT_STATUS.md` | 2026-06-02 | 2026-07-31 | ~2 months |
+| `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md` | 2026-04-18 | 2026-06-21 | ~2.1 months |
+| `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md` | 2026-04-12 | 2026-05-18 | ~1.2 months |
+| `docs/book/src/annotation-system.md` | 2026-04-26 | 2026-06-10 | ~1.5 months |
+| `docs/reference/RUST_CODEBASE_ANALYSIS.md` | 2026-07-22 | 2026-07-27 | 5 days |
+
+5 files pass (declaration == newest content), so the instrument is not firing on everything.
+⚠️ **The ROADMAP is the worst offender** — the document the session bootstrap makes mandatory
+reading declares itself 3.3 months staler than its own content. ⛔ Do NOT bulk-rewrite the dates:
+the honest fix per file is either to update the declaration *because the content really did move*,
+or to delete a self-declaration nothing maintains. `CHANGES.md` may simply drop its `Last updated:`
+— an append-only changelog's newest entry IS its date, so the field is a second place to be wrong.
 
 ## Evidence
 

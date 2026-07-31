@@ -239,14 +239,41 @@ external standards body, no widely-recognized reference implementation.
 `bash scripts/audit_done_bar.sh` reports, per family, the state of each leg and a verdict. Its
 design principles are worth knowing before reading its output:
 
-- The **family roster is derived**, not listed — tracker table rows joined against
-  `grammars/*.ebnf` — so a family nobody added to a list cannot hide.
+- The **family roster is derived from the product**, not listed. The candidate set is
+  `grammars/*.ebnf` — the thing PGEN actually ships, which cannot lie about what exists — and every
+  tracked grammar must then be adjudicated **exactly once**, as either a parser family or a recorded
+  non-family (`grammar_dispositions` in the done-bar register). A grammar in neither **blocks the
+  audit**; so does a grammar claimed both ways, and so does an entry naming a grammar that no longer
+  exists. That two-sided shape is the point — see *Why the roster is derived this way round* below.
+- The **admission rule is pinned to an independent source**: a grammar is a family iff
+  `rust/src/parser_registry.rs` ships a registered generated parser for it, the one exception being
+  the two `builtin_*` bootstrap contracts, which exist only to break the annotation-parser cycle
+  (and which the parse-harness equivalence gate already excludes by name). So the register cannot
+  quietly re-classify a shipping parser as a non-family — that is `MISCALIBRATED`, not a judgement
+  call.
 - It is **read-only**: it never runs a gate, so it cannot manufacture the green it is auditing.
 - **A leg it cannot see is `UNPROVEN`, never `MET`**, and `UNPROVEN` does not satisfy the bar. An
   artifact older than the inputs it judged is likewise not proof.
 - It carries **ground-truth controls**. If any fails to reproduce it prints `MISCALIBRATED` and
   offers no verdict at all, because an instrument with no ground truth is a confident guess.
-- It **audits; it never demotes**. Moving a tracker row is a separate, deliberate act.
+- It **audits; it never demotes**. Moving a status claim is a separate, deliberate act.
+
+#### Why the roster is derived this way round
+
+The roster used to be *tracker rows ∩ `grammars/*.ebnf`*. That reads like a derivation, and it is —
+but its **left** side was a prose file, so a grammar with no tracker row contributed nothing and the
+derivation never saw it. The only refusal fired on the converse arm (on the tracker, absent from the
+register), which means **every check guarding the roster sat on the side that could not fail**.
+
+Measured, it hid three shipped parsers — `ebnf`, `json` and `semantic_annotation`, the last with a
+published downstream integration contract under `docs/contracts/` — together with the eight gate
+targets attributed to them. The book has described **nine** parser/annotation families plus the
+`ebnf` meta-grammar for some time; the register said **seven**. The published surface and the
+audited surface disagreed by three, and nothing in the repository could notice.
+
+The lesson generalises past this audit: **a derivation is only as honest as the side that can
+fail.** When a check joins two sources, ask which one is authoritative about *existence* — and
+derive from that one.
 
 ### The family-status gates compute the bar
 

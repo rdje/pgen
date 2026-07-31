@@ -29,8 +29,17 @@ WORK="$ROOT/rust/target/done_bar_audit/probes"
 rm -rf "$WORK"
 mkdir -p "$WORK"
 
-TRACKER_SRC="$ROOT/LIVE_ACHIEVEMENT_STATUS.md"
 REGISTER_SRC="$ROOT/rust/test_data/grammar_quality/done_bar_family_register_v0.json"
+GRAMMARS_SRC="$ROOT/grammars"
+
+# A grammars/ mirror the RED/CTRL roster arms mutate. Symlinks, so adding or removing one candidate
+# costs nothing and the tracked tree is never touched.
+mirror_grammars() {   # mirror_grammars <dest>
+    local dest="$1"
+    rm -rf "$dest"; mkdir -p "$dest"
+    local f
+    for f in "$GRAMMARS_SRC"/*.ebnf; do ln -s "$f" "$dest/$(basename "$f")"; done
+}
 
 pass=0
 fail=0
@@ -63,26 +72,24 @@ echo "==========================================================================
 
 # ---------------------------------------------------------------------------
 # CTRL-1 — the untouched tree. Until DONE-BAR.2b this arm pinned "5 of 5 `Done` rows DO NOT meet
-#          the bar" (exit 1). The `.2b` demotion legitimately moved that ground truth: the tracker
+#          the bar" (exit 1). The `.2b` demotion legitimately moved that ground truth: the register
 #          now claims ZERO `Done` rows, and the audit must state that VACUOUS green explicitly
 #          (exit 0) rather than pretending to have judged something. CTRL-1b keeps the old arm's
 #          essence alive: a re-promoted `Done` row that does not meet the bar must still FAIL.
 # ---------------------------------------------------------------------------
 arm "CTRL-1 untouched tree states the vacuous zero-Done green" 0 "0 \`Done\` rows are claimed" --
 
-cp "$TRACKER_SRC" "$WORK/tracker_repromoted.md"
-python3 - "$WORK/tracker_repromoted.md" <<'PY'
-import sys
-p = sys.argv[1]
-t = open(p, encoding="utf-8").read()
-old = "| `vhdl` parser family | Provisional (corpus pending) |"
-if old not in t:
-    raise SystemExit("probe fixture: vhdl Provisional row not found — tracker moved again?")
-t = t.replace(old, "| `vhdl` parser family | Done |", 1)
-open(p, "w", encoding="utf-8").write(t)
+# The claim now lives in the REGISTER (LIVE-MEANS-LIVE.1a), so the re-promotion is a register edit.
+python3 - "$REGISTER_SRC" "$WORK/register_repromoted.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+if d["families"]["vhdl"]["claimed_status"] != "Provisional (corpus pending)":
+    raise SystemExit("probe fixture: vhdl claim is not `Provisional (corpus pending)` — register moved?")
+d["families"]["vhdl"]["claimed_status"] = "Done"
+json.dump(d, open(sys.argv[2], "w"), indent=2)
 PY
-arm "CTRL-1b a re-promoted unproven Done row still fails" 1 "1 of 1 \`Done\` rows DO NOT meet the bar" \
-    -- "PGEN_DONE_BAR_TRACKER=$WORK/tracker_repromoted.md"
+arm "CTRL-1b a re-promoted unproven Done claim still fails" 1 "1 of 1 \`Done\` rows DO NOT meet the bar" \
+    -- "PGEN_DONE_BAR_REGISTER=$WORK/register_repromoted.json"
 
 # ---------------------------------------------------------------------------
 # CTRL-2 — FALSE-POSITIVE GUARD. A row that is NOT a `Done` claim must be reported for context and
@@ -92,43 +99,89 @@ arm "CTRL-1b a re-promoted unproven Done row still fails" 1 "1 of 1 \`Done\` row
 arm "CTRL-2 Mostly Done row is context, not a failure" 0 "not a \`Done\` claim — reported for context" --
 
 # ---------------------------------------------------------------------------
-# CTRL-3 — the `gate-level` trap, replayed. A tracker row whose Area cell carries a backticked token
-#          that is NOT a tracked grammar must not become a family. A naive "has a backtick" reader
-#          admits "Later auxiliary readers (`gate-level` netlist reader…)" and reports 8 families.
+# CTRL-3 — FALSE-POSITIVE GUARD for the NEW refusal (LIVE-MEANS-LIVE.1b). The roster now derives
+#          from grammars/*.ebnf, so every tracked grammar must be adjudicated — and 7 of the 17 are
+#          adjudicated as NON-families (bootstrap contracts, LRM extraction inputs, derived
+#          artifacts). Those must stay out of the roster. Without this arm, "refuse on anything
+#          unadjudicated" could not be distinguished from "admit everything".
 # ---------------------------------------------------------------------------
-cp "$TRACKER_SRC" "$WORK/tracker_backtick_trap.md"
-cat >>"$WORK/tracker_backtick_trap.md" <<'EOF'
-
-| Area | Status | Evidence | Left To Close |
-|---|---|---|---|
-| `not-a-grammar-at-all` synthetic probe row | Done | probe | probe |
-EOF
-arm "CTRL-3 non-grammar backtick is not a family" 0 "grammars/*.ebnf: 7" \
-    -- "PGEN_DONE_BAR_TRACKER=$WORK/tracker_backtick_trap.md"
+arm "CTRL-3 dispositioned grammars are not admitted as families" 0 \
+    "17 tracked grammars = 10 families + 7 recorded non-families" --
 
 # ---------------------------------------------------------------------------
-# RED-1 — a family on the tracker with NO register entry must REFUSE (exit 2). The safe polarity:
-#         an unregistered family blocks the audit rather than being silently skipped, because a skip
-#         would let a brand-new `Done` row score well by being invisible.
+# RED-1 — ⭐ THE ARM `.1b` EXISTS FOR. A tracked grammar adjudicated NEITHER as a family NOR with a
+#         recorded disposition must REFUSE (exit 2). Under the OLD tracker-joined derivation this
+#         grammar would simply not have been a family — silently, exit 0 — which is how `ebnf`,
+#         `json` and `semantic_annotation` stayed invisible while shipping registered parsers.
 # ---------------------------------------------------------------------------
-cp "$TRACKER_SRC" "$WORK/tracker_unregistered.md"
-cat >>"$WORK/tracker_unregistered.md" <<'EOF'
+mirror_grammars "$WORK/grammars_undisposed"
+printf 'probe_undisposed := "x"\n' >"$WORK/grammars_undisposed/probe_undisposed.ebnf"
+arm "RED-1 a grammar with no entry and no disposition refuses" 2 \
+    "no register entry and no recorded disposition" \
+    -- "PGEN_DONE_BAR_GRAMMARS_DIR=$WORK/grammars_undisposed"
 
-| Area | Status | Evidence | Left To Close |
-|---|---|---|---|
-| `json` parser family (synthetic probe row) | Done | probe | probe |
-EOF
-arm "RED-1 unregistered family refuses" 2 "absent from" \
-    -- "PGEN_DONE_BAR_TRACKER=$WORK/tracker_unregistered.md"
+# RED-1b — the contradiction arm: a grammar claimed BOTH as a family and as a non-family. A register
+#          that says both cannot be audited, and picking one silently would be the audit choosing
+#          the answer.
+python3 - "$REGISTER_SRC" "$WORK/register_both_ways.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d["grammar_dispositions"]["json"] = {"disposition": "derived_artifact", "reason": "probe contradiction"}
+json.dump(d, open(sys.argv[2], "w"), indent=2)
+PY
+arm "RED-1b a grammar adjudicated BOTH ways refuses" 2 "appear in BOTH" \
+    -- "PGEN_DONE_BAR_REGISTER=$WORK/register_both_ways.json"
+
+# RED-1c — the CONVERSE arm, and the reason the check is two-sided: an entry naming a grammar that
+#          does not exist is a STALE adjudication describing a tree that is gone. Without this, the
+#          register could quietly keep covering a deleted grammar forever.
+python3 - "$REGISTER_SRC" "$WORK/register_stale_entry.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d["grammar_dispositions"]["grammar_that_was_deleted"] = {"disposition": "derived_artifact", "reason": "probe stale"}
+json.dump(d, open(sys.argv[2], "w"), indent=2)
+PY
+arm "RED-1c a stale entry naming no grammar refuses" 2 "name no tracked grammars/*.ebnf file" \
+    -- "PGEN_DONE_BAR_REGISTER=$WORK/register_stale_entry.json"
+
+# RED-1d — the claim is never DEFAULTED. A family whose `claimed_status` is absent must refuse, not
+#          be audited against nothing. Mirrors the same refusal `claimed_status_for_family` makes in
+#          rust/scripts/lib/parser_family_status_bar.sh (LIVE-MEANS-LIVE.1a).
+python3 - "$REGISTER_SRC" "$WORK/register_no_claim.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+del d["families"]["vhdl"]["claimed_status"]
+json.dump(d, open(sys.argv[2], "w"), indent=2)
+PY
+arm "RED-1d a family with no claimed_status refuses" 2 "is never defaulted" \
+    -- "PGEN_DONE_BAR_REGISTER=$WORK/register_no_claim.json"
 
 # ---------------------------------------------------------------------------
 # RED-2 — an EMPTY derived roster must REFUSE, never exit 0. A derivation that finds nothing and
 #         reports success is the vacuous green this repository has shipped before
 #         (CI-PARITY-GATE-ROT.3: a mistyped filter replayed zero workflows and printed ✅).
 # ---------------------------------------------------------------------------
-printf '# Live Achievement Status\n\nNo tables here.\n' >"$WORK/tracker_empty.md"
-arm "RED-2 empty roster refuses" 2 "derived zero parser families" \
-    -- "PGEN_DONE_BAR_TRACKER=$WORK/tracker_empty.md"
+mkdir -p "$WORK/grammars_empty"
+arm "RED-2 empty roster refuses" 2 "no grammars/*.ebnf found" \
+    -- "PGEN_DONE_BAR_GRAMMARS_DIR=$WORK/grammars_empty"
+
+# ---------------------------------------------------------------------------
+# RED-2b — ⭐ THE ADMISSION RULE (control C8). The convenient way to silence RED-1 is to give a real
+#          shipping parser a disposition instead of a register entry. C8 pins the rule against
+#          rust/src/parser_registry.rs — an INDEPENDENT tracked source the register cannot edit —
+#          so demoting a family that ships a registered generated parser is MISCALIBRATED, not a
+#          quiet re-classification.
+# ---------------------------------------------------------------------------
+python3 - "$REGISTER_SRC" "$WORK/register_family_demoted.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+del d["families"]["json"]          # json ships a registered generated parser
+d["grammar_dispositions"]["json"] = {"disposition": "derived_artifact", "reason": "probe demotion"}
+json.dump(d, open(sys.argv[2], "w"), indent=2)
+PY
+arm "RED-2b demoting a registered parser to a disposition is MISCALIBRATED" 3 \
+    "C8a every registered parser is a family" \
+    -- "PGEN_DONE_BAR_REGISTER=$WORK/register_family_demoted.json"
 
 # ---------------------------------------------------------------------------
 # RED-3 — break longest-prefix attribution: drop the `sv_preprocessor_` prefix so `sv_` wins and the
@@ -179,12 +232,38 @@ arm "RED-6 register contradicted by gate set is MISCALIBRATED" 3 "register says 
     -- "PGEN_DONE_BAR_REGISTER=$WORK/register_vhdl_no_corpus.json"
 
 # ---------------------------------------------------------------------------
-# CTRL-4 — GROUND TRUTH FOR THE INSTRUMENT ITSELF. The two facts below were measured independently
-#          of this script and must be reproduced verbatim, or the report is not evidence:
-#            (a) regex's status gate RAN and FAILED with a named cause in aggregate run 3;
-#            (b) VHDL's only external-corpus lane is a TRIAGE gate.
+# CTRL-4 — GROUND TRUTH FOR THE INSTRUMENT ITSELF: facts measured independently of this script that
+#          must be reproduced, or the report is not evidence.
+#
+# ⚠️⚠️ CTRL-4a WAS REWRITTEN BY LIVE-MEANS-LIVE.1b, AND WHY IS THE LESSON. It used to pin a failure
+#      recorded in rust/target/ during aggregate run 3 — `computed 'In Progress' but tracker says
+#      'Done'` — and it was found RED at commit ce1df2b0, for a reason having nothing to do with
+#      the instrument it guards:
+#
+#        $ wc -c rust/target/regex_parser_family_status_gate/summary.txt          # 7377 (non-empty)
+#        $ grep -c '^error:' rust/target/sota_exit_gate/logs/regex_…_gate.log     # 0
+#
+#      The gate had since been re-run and PASSED, so `find_artifact()` now finds a summary and the
+#      `gate_ran_and_failed()` recovery path — the only place that string can come from — is never
+#      taken. ⇒ **A GROUND-TRUTH CONTROL PINNED TO UNTRACKED STATE DECAYS SILENTLY.** rust/target/
+#      is regenerable build output; the arm was green only until someone re-ran that gate. Its
+#      sibling CTRL-4b pins a fact derived from TRACKED script text and is still green.
+#
+#      The rule this bought: **a control must pin a TRACKED fact, or CONSTRUCT the state it
+#      observes.** CTRL-4a now constructs it — a synthetic target dir with exactly the shape
+#      DONE-BAR.1a was written for (a 0-byte summary.txt beside a log naming the real cause), so it
+#      reproduces on a fresh clone with an empty rust/target/ and can never decay again.
 # ---------------------------------------------------------------------------
-arm "CTRL-4a regex failure recovered verbatim" 0 "computed 'In Progress' but tracker says 'Done'" --
+FAKE_TARGET="$WORK/target_gate_ran_and_failed"
+mkdir -p "$FAKE_TARGET/sota_exit_gate/logs" "$FAKE_TARGET/regex_parser_family_status_gate"
+: >"$FAKE_TARGET/regex_parser_family_status_gate/summary.txt"        # 0 bytes = died mid-run
+cat >"$FAKE_TARGET/sota_exit_gate/logs/regex_parser_family_status_gate.log" <<'EOF'
+regex_parser_family_status_gate: starting
+error: regex tracker alignment mismatch: computed 'In Progress' but register says 'Done'
+EOF
+arm "CTRL-4a a gate that RAN AND DIED is recovered from its log" 0 \
+    "computed 'In Progress' but register says 'Done'" \
+    -- "PGEN_DONE_BAR_TARGET_DIR=$FAKE_TARGET"
 arm "CTRL-4b vhdl corpus lane is TRIAGE" 0 "a TRIAGE gate is not a conformance gate" --
 
 echo "------------------------------------------------------------------------------"

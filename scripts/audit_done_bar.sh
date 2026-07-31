@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# audit_done_bar.sh — audit every `Done` claim in LIVE_ACHIEVEMENT_STATUS.md against the three-leg
-# `Done` bar (task-tree leaf `DONE-BAR.1`; standing director directive
-# docs/decisions/feedback_done_bar_is_first_tier_only.md).
+# audit_done_bar.sh — audit every `Done` CLAIM against the three-leg `Done` bar (task-tree leaf
+# `DONE-BAR.1`; standing director directive docs/decisions/feedback_done_bar_is_first_tier_only.md).
+#
+# The claim is the register's hand-authored `claimed_status` (moved out of LIVE_ACHIEVEMENT_STATUS.md
+# by LIVE-MEANS-LIVE.1a), and the family ROSTER is derived from grammars/*.ebnf (`.1b`) — so this
+# script no longer reads that tracker at all. See §1 for why the roster is derived that way round.
 #
 # THE BAR (docs/tasks/DONE-BAR.md):
 #   leg 1  stimuli-generator proof — the family's own generated samples close the loop with ZERO
@@ -37,7 +40,9 @@
 # EXIT CODES
 #   0  every `Done` row meets the bar
 #   1  at least one `Done` row does not meet the bar (the expected state while DONE-BAR is open)
-#   2  refusal — the audit could not be performed (missing register entry, unreadable input)
+#   2  refusal — the audit could not be performed: a tracked grammar adjudicated NEITHER as a family
+#      NOR with a recorded disposition, one adjudicated BOTH ways, a register entry naming a grammar
+#      that does not exist, a family with no `claimed_status`, or an unreadable input
 #   3  MISCALIBRATED — a ground-truth control did not reproduce
 set -euo pipefail
 
@@ -75,9 +80,18 @@ CONTRACT_DIR = os.path.join(ROOT, "rust", "test_data", "grammar_quality")
 # (docs/tasks/artifacts/done_bar/run_done_bar_probes.sh) can mutate ONE input at a time and prove
 # each ground-truth control actually fires. An instrument whose controls have never been seen to
 # FAIL is an instrument with untested controls.
-TRACKER = os.environ.get("PGEN_DONE_BAR_TRACKER") or os.path.join(ROOT, "LIVE_ACHIEVEMENT_STATUS.md")
+#
+# ⛔ LIVE_ACHIEVEMENT_STATUS.md is deliberately ABSENT from this list. The family-status CLAIM moved
+# into the register's `claimed_status` field (LIVE-MEANS-LIVE.1a) and the family ROSTER is now
+# derived from grammars/*.ebnf (`.1b`), so this audit reads the tracker for nothing at all.
 REGISTER = os.environ.get("PGEN_DONE_BAR_REGISTER") or os.path.join(CONTRACT_DIR, "done_bar_family_register_v0.json")
 SCRIPTS_DIR = os.environ.get("PGEN_DONE_BAR_SCRIPTS_DIR") or os.path.join(ROOT, "rust", "scripts")
+GRAMMARS_DIR = os.environ.get("PGEN_DONE_BAR_GRAMMARS_DIR") or os.path.join(ROOT, "grammars")
+# The build-output root holding gate artifacts + logs. A seam because a ground-truth control that
+# pins UNTRACKED state decays silently: CTRL-4a pinned a failure recorded in rust/target/ and went
+# red the moment that gate was re-run and passed (`.1b`). A control must pin a TRACKED fact or
+# CONSTRUCT the state it observes; this seam is what lets it construct.
+TARGET_DIR = os.environ.get("PGEN_DONE_BAR_TARGET_DIR") or os.path.join(ROOT, "rust", "target")
 
 failures = []          # rows that do not meet the bar
 miscalibrations = []   # controls that did not reproduce
@@ -94,53 +108,83 @@ def read(path):
 
 
 # ---------------------------------------------------------------------------
-# 1. The family roster — DERIVED, never hand-listed
+# 1. The family roster — DERIVED FROM THE PRODUCT, never hand-listed
 # ---------------------------------------------------------------------------
-# A tracker table row names a parser FAMILY iff the first backticked token in its Area cell is the
-# basename of a tracked grammars/*.ebnf. That join is what makes the roster derived: a family added
-# to the tracker tomorrow is picked up, and a row like "Later auxiliary readers (`gate-level` netlist
-# reader…)" — whose first backticked token is NOT a grammar — is correctly not a family.
+# ⭐ The candidate set is `grammars/*.ebnf` — the product itself, which cannot lie about what
+# exists. Every tracked grammar must then be adjudicated EXACTLY ONCE, as either a parser family
+# (`families`) or a recorded non-family (`grammar_dispositions`). This is the GATE-REACHABILITY
+# pattern — invoked, or a deliberate disposition — applied to families.
+#
+# ⛔ WHY IT IS THIS WAY ROUND (LIVE-MEANS-LIVE.1b). The roster used to be
+# `LIVE_ACHIEVEMENT_STATUS.md rows ∩ grammars/*.ebnf`, whose LEFT side was the tracker: a grammar
+# with no tracker row contributed nothing and the derivation never saw it. The only refusal fired on
+# the converse arm (on the tracker, absent from the register), so every check guarding the roster
+# was on the side that could not fail. Measured, it hid THREE shipped parsers with registered
+# generated parsers — `ebnf`, `json` and `semantic_annotation`, the last with a published downstream
+# integration contract — plus the 8 gate targets attributed to them. Deriving from the grammars
+# makes the check two-sided, which is the whole point: it can now fail.
 GRAMMARS = {
     os.path.basename(p)[: -len(".ebnf")]
-    for p in os.listdir(os.path.join(ROOT, "grammars"))
+    for p in os.listdir(GRAMMARS_DIR)
     if p.endswith(".ebnf")
 }
 if not GRAMMARS:
-    refuse("no grammars/*.ebnf found; the family roster cannot be derived")
+    refuse("no grammars/*.ebnf found — an empty roster is a refusal, not a pass")
 
-STATUSES = {"Done", "Mostly Done", "In Progress", "Not Started"}
+_register_doc = json.loads(read(REGISTER))
+register = _register_doc["families"]
+dispositions = _register_doc.get("grammar_dispositions", {})
 
-families = {}   # name -> {"status": ..., "area": ...}
-for line in read(TRACKER).splitlines():
-    if not line.startswith("|"):
-        continue
-    cells = [c.strip() for c in line.split("|")]
-    if len(cells) < 4:
-        continue
-    area, status = cells[1], cells[2]
-    # `Provisional (…)` carries a qualifier, so match on the leading word set rather than equality.
-    base_status = status.split("(")[0].strip()
-    if base_status not in STATUSES and base_status != "Provisional":
-        continue
-    m = re.search(r"`([^`]+)`", area)
-    if not m or m.group(1) not in GRAMMARS:
-        continue
-    name = m.group(1)
-    if name not in families:      # first row wins; a duplicate would be a tracker defect
-        families[name] = {"status": status, "area": area}
+# Arm 1 — a grammar adjudicated BOTH ways. Checked first: it makes the two arms below ambiguous.
+_both = sorted(set(register) & set(dispositions))
+if _both:
+    refuse(
+        f"grammar(s) {', '.join(_both)} appear in BOTH `families` and `grammar_dispositions` of "
+        f"rust/test_data/grammar_quality/done_bar_family_register_v0.json. A grammar is a family "
+        f"or it is not; a contradictory register cannot be audited."
+    )
+
+# Arm 2 — THE NEW REFUSAL. A tracked grammar adjudicated NEITHER way blocks the audit. A skip here
+# is exactly the silence this derivation replaced: it would let a shipped parser stay invisible.
+_undisposed = sorted(g for g in GRAMMARS if g not in register and g not in dispositions)
+if _undisposed:
+    refuse(
+        f"tracked grammar(s) {', '.join(_undisposed)} have no register entry and no recorded "
+        f"disposition in rust/test_data/grammar_quality/done_bar_family_register_v0.json. Add a "
+        f"`families` entry (if the grammar ships a registered generated parser) or a "
+        f"`grammar_dispositions` entry with a reason. An unadjudicated grammar BLOCKS the audit "
+        f"rather than being skipped, because a skip is how a shipped parser scores well by being "
+        f"invisible."
+    )
+
+# Arm 3 — the converse. An entry naming a grammar that does not exist is a STALE adjudication: the
+# grammar was deleted or renamed and the register still claims to cover it. Without this, the
+# register could drift into describing a tree that no longer exists — the same staleness class
+# CI-PARITY-GATE-ROT.5 measured on gate artifacts.
+_stale = sorted((set(register) | set(dispositions)) - GRAMMARS)
+if _stale:
+    refuse(
+        f"register entr(y|ies) {', '.join(_stale)} name no tracked grammars/*.ebnf file. A stale "
+        f"adjudication describes a tree that no longer exists; remove it or restore the grammar."
+    )
+
+# The roster is the adjudicated families, and their status is the HAND-AUTHORED claim the register
+# carries (`claimed_status`, moved here from the tracker by LIVE-MEANS-LIVE.1a). ⛔ It is never
+# defaulted: a family whose claim is missing or empty blocks the audit, because a family with no
+# claim would otherwise be audited against nothing and pass.
+families = {}   # name -> {"status": ...}
+for name in sorted(register):
+    claim = register[name].get("claimed_status")
+    if not claim or not str(claim).strip():
+        refuse(
+            f"family '{name}' carries no `claimed_status` in the register. That field is the "
+            f"HAND-AUTHORED arm of the status check and is never defaulted — a missing claim is a "
+            f"refusal, not a family with no opinion."
+        )
+    families[name] = {"status": str(claim).strip()}
 
 if not families:
-    refuse("derived zero parser families from the tracker — an empty roster is a refusal, not a pass")
-
-register = json.loads(read(REGISTER))["families"]
-for name in sorted(families):
-    if name not in register:
-        refuse(
-            f"family '{name}' is on the tracker but absent from "
-            f"rust/test_data/grammar_quality/done_bar_family_register_v0.json. "
-            f"An unregistered family BLOCKS the audit rather than being skipped, because a skip "
-            f"would let a new `Done` row score well by being invisible."
-        )
+    refuse("derived zero parser families — an empty roster is a refusal, not a pass")
 
 # ---------------------------------------------------------------------------
 # 2. Gate universe, make-target reachability, and script-level reachability
@@ -253,8 +297,8 @@ def status_gate_for(family):
 
 
 ARTIFACT_ROOTS = [
-    os.path.join(ROOT, "rust", "target"),
-    os.path.join(ROOT, "rust", "target", "sota_exit_gate", "work"),
+    TARGET_DIR,
+    os.path.join(TARGET_DIR, "sota_exit_gate", "work"),
 ]
 
 
@@ -287,8 +331,8 @@ def gate_ran_and_failed(gate):
     quoting an error about the tracker saying `Done`. The complaint was true when written and false
     when read."""
     candidates = [
-        os.path.join(ROOT, "rust", "target", "sota_exit_gate", "logs", f"{gate}.log"),
-        os.path.join(ROOT, "rust", "target", gate, "logs", f"{gate}.log"),
+        os.path.join(TARGET_DIR, "sota_exit_gate", "logs", f"{gate}.log"),
+        os.path.join(TARGET_DIR, gate, "logs", f"{gate}.log"),
     ]
     for path in candidates:
         if not os.path.isfile(path):
@@ -303,19 +347,34 @@ def gate_ran_and_failed(gate):
 # 3. GROUND-TRUTH CONTROLS — facts already measured independently by this repository.
 #    If any fails to reproduce, the instrument reports MISCALIBRATED instead of a number.
 # ---------------------------------------------------------------------------
+CONTROL_COUNT = 0
+
+
 def control(label, got, want):
+    """Assert a ground truth this repository measured independently of this script.
+
+    ⚠️ The count is DERIVED from the calls, not typed into the report. The header used to carry the
+    literal `10`, which is a second place to forget: adding a control without touching the string
+    would have under-reported the instrument's own calibration."""
+    global CONTROL_COUNT
+    CONTROL_COUNT += 1
     if got != want:
         miscalibrations.append(f"{label}: derived {got!r}, ground truth {want!r}")
 
 
-# C1 — a family that is NOT `Done` must resolve as such. Proves the status reader is reading the
-#      row rather than defaulting to something comfortable.
-control("C1 systemverilog tracker status",
+# C1 — a family that is NOT `Done` must resolve as such. Proves the claim reader is reading the
+#      register field rather than defaulting to something comfortable. (Reads `claimed_status`
+#      since LIVE-MEANS-LIVE.1a; the value itself is unchanged from the tracker row it replaced.)
+control("C1 systemverilog claimed status",
         families.get("systemverilog", {}).get("status"), "Mostly Done")
 
-# C2 — the "Later auxiliary readers (`gate-level` netlist reader…)" row must NOT be admitted.
-#      Proves the grammar-membership join, not merely "has a backtick", is what admits a family.
-control("C2 gate-level admitted as a family", "gate-level" in families, False)
+# C2 — a grammar carrying an explicit non-family DISPOSITION must NOT be admitted as a family.
+#      The disposition arm is what keeps the new refusal satisfiable rather than punitive, so it is
+#      also what would silently swallow a real family if it ever leaked into the roster.
+control("C2 dispositioned grammar admitted as a family",
+        bool(set(dispositions) & set(families)), False)
+control("C2b builtin bootstrap contract is dispositioned, not a family",
+        dispositions.get("builtin_return_annotation", {}).get("disposition"), "bootstrap_contract")
 
 # C3 — systemverilog and systemverilog_preprocessor are DISTINCT families.
 control("C3 both SV families derived",
@@ -345,15 +404,35 @@ control("C6 vhdl_external_corpus_triage_gate runs",
 control("C7 regex_corpus_bundle_contract_gate runs",
         runs("regex_corpus_bundle_contract_gate"), False)
 
-# C8 — every register family is on the derived roster. The original C8 ("at least one row claims
-#      `Done`") pinned a ground truth `DONE-BAR.2b` legitimately moved: the demotion took the
-#      tracker to ZERO `Done` rows, which is the directive working, not a parse defect. Its
-#      anti-vacuous purpose is kept twice over: the report now states the zero-`Done` case
-#      explicitly (never a silent pass), and THIS control catches the failure C8 was really
-#      guarding against — a status-vocabulary change silently dropping rows from the roster
-#      (roster ⊆ register is already enforced by the per-family refusal; this is the converse).
-control("C8 register families all derived from the tracker",
-        sorted(set(register) - set(families)), [])
+# C8 — ⭐ THE ADMISSION RULE, PINNED AGAINST A DIFFERENT TRACKED SOURCE. C8 has now been rewritten
+#      twice, and both rewrites were forced by the roster derivation changing under it:
+#        - the original ("at least one row claims `Done`") was legitimately moved by DONE-BAR.2b,
+#          whose demotion took the tracker to ZERO `Done` rows;
+#        - its successor ("register families all derived from the tracker") became VACUOUS the
+#          moment LIVE-MEANS-LIVE.1b made the roster register-derived — `families` is now BUILT
+#          from `register`, so `register - families` is empty by construction and could never fire.
+#          A control that cannot fail is the vacuous floor LANG-CAPABILITY-AUDIT.10.9 had to
+#          repair; it is replaced rather than reworded.
+#      What actually needs guarding is the ADMISSION RULE — which grammars are families — because
+#      that is now a hand-maintained adjudication. So pin it against rust/src/parser_registry.rs,
+#      an INDEPENDENT tracked source the register cannot edit: a grammar is a family iff PGEN ships
+#      a registered generated parser for it, the sole exception being the two bootstrap contracts,
+#      which are registered only to break the annotation-parser cycle and are EXCLUDED BY NAME from
+#      parse_harness_equivalence_gate. Adding a disposition for a grammar that really does ship a
+#      parser — the convenient way to silence the new refusal — fires this control.
+REGISTRY_SRC = os.path.join(ROOT, "rust", "src", "parser_registry.rs")
+registered = set()
+if os.path.isfile(REGISTRY_SRC):
+    registered = set(re.findall(r'grammar_name:\s*"([a-z0-9_]+)"', read(REGISTRY_SRC))) & GRAMMARS
+control("C8 registry is readable at all", bool(registered), True)
+
+BOOTSTRAP = {"builtin_return_annotation", "builtin_semantic_annotation"}
+# Arm A — a grammar shipping a registered parser is a family, unless it is a bootstrap contract.
+control("C8a every registered parser is a family (bootstrap contracts excepted)",
+        sorted(g for g in registered - BOOTSTRAP if g not in families), [])
+# Arm B — and the converse, or arm A would pass a register that calls everything a family.
+control("C8b no family lacks a registered generated parser",
+        sorted(g for g in families if g not in registered), [])
 
 # C9 — ONE status gate computes TWO families. This arm caught a real defect in this instrument's own
 #      first cut: attributing status gates by NAME prefix left systemverilog_preprocessor with no
@@ -367,9 +446,14 @@ control("C9 sv_parser_family_status_gate covers both SV families",
 #       rust/target does not fail it: IF the aggregate left a log for a status gate whose summary is
 #       empty or absent, that log's `error:` line must be recovered. Aggregate run 3 (2026-07-29)
 #       left exactly this shape for regex — a 0-byte summary.txt beside a log naming the real cause.
+#       ⚠️ The log path MUST come from TARGET_DIR, like every other artifact lookup. Hardcoding
+#       ROOT/rust/target here made C10 read the REAL tree while find_artifact/gate_ran_and_failed
+#       read the seam, so any probe pointing at a synthetic target dir fired C10 for every OTHER
+#       status gate — a control failing on a tree it was not looking at. Caught by running the probe
+#       driver (`.1b`), not by review.
 for _g in sorted(status_gate_families):
     if find_artifact(_g) is None and gate_ran_and_failed(_g)[1] is None:
-        _log = os.path.join(ROOT, "rust", "target", "sota_exit_gate", "logs", f"{_g}.log")
+        _log = os.path.join(TARGET_DIR, "sota_exit_gate", "logs", f"{_g}.log")
         if os.path.isfile(_log) and os.path.getsize(_log) > 0:
             control(f"C10 {_g} failure recovered from its log", False, True)
 
@@ -390,8 +474,13 @@ if miscalibrations:
 def newest_input_mtime(family):
     """The newest mtime among the inputs a family's verdict depends on. An artifact older than its
     own inputs is STALE — it judged a tree that no longer exists. This is the measured failure from
-    CI-PARITY-GATE-ROT.5, where a three-day-old hand-run artifact was consumed as current proof."""
-    candidates = [TRACKER]
+    CI-PARITY-GATE-ROT.5, where a three-day-old hand-run artifact was consumed as current proof.
+
+    The REGISTER is an input because the status gates assert alignment against its `claimed_status`
+    (LIVE-MEANS-LIVE.1a), so an artifact older than the register asserted alignment with a claim
+    that may since have changed. It replaces LIVE_ACHIEVEMENT_STATUS.md here for exactly that
+    reason — the claim moved, so the staleness input moved with it."""
+    candidates = [REGISTER]
     grammar = os.path.join(ROOT, "grammars", f"{family}.ebnf")
     if os.path.isfile(grammar):
         candidates.append(grammar)
@@ -614,9 +703,10 @@ leaf5_open = bool(re.search(r"^### `\.5`.*\(`todo`\)", read(TREE), re.MULTILINE)
 print("=" * 78)
 print("DONE-BAR AUDIT — every `Done` claim against the three legs (all figures DERIVED this run)")
 print("=" * 78)
-print(f"families derived from LIVE_ACHIEVEMENT_STATUS.md x grammars/*.ebnf: {len(families)}")
+print(f"families derived from grammars/*.ebnf x the DONE-BAR register: {len(families)} "
+      f"({len(GRAMMARS)} tracked grammars = {len(families)} families + {len(dispositions)} recorded non-families)")
 print(f"gate universe (via scripts/check_gate_reachability.sh): {len(rows)} targets")
-print("ground-truth controls reproduced: 10")
+print(f"ground-truth controls reproduced: {CONTROL_COUNT}")
 if leaf5_open:
     print("DONE-BAR.5 (consumer-facing disclosure gates) is OPEN ⇒ the highest attainable tier is")
     print("  `Provisional`; no row may be promoted to `Done` on legs 1-3 alone.")
@@ -627,7 +717,7 @@ for name in sorted(families, key=lambda n: (families[n]["status"] != "Done", n))
     info = families[name]
     judged = info["status"] == "Done"
     print("-" * 78)
-    print(f"{name}   tracker: {info['status']}" + ("" if judged else "   (not a `Done` claim — reported for context)"))
+    print(f"{name}   claimed: {info['status']}" + ("" if judged else "   (not a `Done` claim — reported for context)"))
     print("-" * 78)
 
     r1, r2, r3 = [], [], []
@@ -651,7 +741,7 @@ for name in sorted(families, key=lambda n: (families[n]["status"] != "Done", n))
     if judged and unmet:
         failures.append((name, verdict))
     json_rows.append({
-        "family": name, "tracker_status": info["status"], "judged": judged,
+        "family": name, "claimed_status": info["status"], "judged": judged,
         "leg1": v1, "leg2": v2, "leg3": v3, "verdict": verdict,
     })
 

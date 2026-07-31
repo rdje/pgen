@@ -1,5 +1,65 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0003 — leaf LIVE-MEANS-LIVE.1b: the family roster is derived from the PRODUCT, and it was hiding three shipped parsers
+
+Shell + tracked-contract + docs only: no rust/src/, no grammar, no generated/* => all generated
+parsers byte-identical BY CONSTRUCTION. No pre-existing family's claimed status changed — all 7
+prior `claimed_status` values are byte-identical.
+
+- ⛔ **THE DERIVATION COULD ONLY FAIL ON THE ARM THAT NEVER FAILED.** `audit_done_bar.sh` built its
+  family roster as *`LIVE_ACHIEVEMENT_STATUS.md` rows ∩ `grammars/*.ebnf`*. That reads like a
+  derivation, and is one — but its LEFT side was the tracker, so a grammar with no tracker row
+  contributed nothing and the loop never saw it. The refusal fired only on the converse (on the
+  tracker, absent from the register), and control `C8` pinned only `register ⊆ roster`. Every guard
+  sat on the side that could not fail.
+- ⭐⭐⭐ **MEASURED, IT HID THREE SHIPPED PARSERS**: `semantic_annotation` (registered generated
+  parser + gated mdBook + a **published downstream integration contract** under `docs/contracts/`),
+  `json` (registered parser, gated book, measured `fully_certified=true` / `UNKNOWN=0`), and `ebnf`
+  (registered parser, gated book, **6 gate targets**). None had a tracker row, so none was a family
+  — silently, exit 0. The book has said *"nine parser/annotation families plus the `ebnf`
+  meta-grammar"* for some time; the register said **seven**. The published and audited surfaces
+  disagreed by three and nothing could notice.
+- ✅ **THE FIX INVERTS THE JOIN AND MAKES IT TWO-SIDED.** Candidates now come from `grammars/*.ebnf`
+  — the product itself — and every tracked grammar must be adjudicated EXACTLY ONCE, as a family or
+  with a recorded `grammar_dispositions` reason. The audit REFUSES on a grammar in neither, on a
+  grammar claimed both ways, and on an entry naming a grammar that does not exist.
+- ⭐ **The admission rule is pinned to an INDEPENDENT tracked source** — `rust/src/parser_registry.rs`.
+  A grammar is a family iff it ships a registered generated parser, the sole exception being the two
+  `builtin_*` bootstrap contracts (registered only to break the annotation cycle, and already
+  excluded by name from `parse_harness_equivalence_gate`). 12 registered − 2 bootstrap = **10
+  families**; the 5 grammars with no registered parser are the other 5 dispositions. Demoting a real
+  family to a disposition — the convenient way to silence the new refusal — is `MISCALIBRATED`.
+- ⛔ **`claimed_status` for the three new families is HAND-AUTHORED** against the published Status
+  Rules, with the basis recorded per family: `semantic_annotation` `Mostly Done` (identical evidence
+  shape to its sibling `return_annotation`), `json` `Mostly Done` (`fully_certified=true`), `ebnf`
+  `In Progress` (the `.10.6` envelope differential found **two live defects that both parse `Ok`**,
+  and only 6 of 14 grammars are envelope-equivalent). No gate computes any of the three, so nothing
+  here can pass by construction.
+- ⚠️ **A SECOND DEFECT, RED BEFORE I TOUCHED ANYTHING**: `run_done_bar_probes.sh` exited **1 —
+  11/12** at `ce1df2b0`. `CTRL-4a` pinned an `error:` line recorded in `rust/target/` — UNTRACKED
+  build output — and the gate had since been re-run and PASSED (`wc -c summary.txt` = 7377,
+  `grep -c '^error:'` = 0), making the pinned state unreachable. **A ground-truth control pinned to
+  untracked state decays silently**; its sibling `CTRL-4b`, pinned to tracked script text, is still
+  green. Rebuilt to CONSTRUCT the state it observes via a new `PGEN_DONE_BAR_TARGET_DIR` seam, so it
+  reproduces on a fresh clone.
+- ⚠️ **A BUG I INTRODUCED, CAUGHT BY RUNNING THE DRIVER, NOT BY REVIEW**: control `C10` kept a
+  hardcoded `rust/target/` path while the artifact lookups honoured the new seam, so any probe using
+  a synthetic target dir fired `C10` for every OTHER status gate — a control failing on a tree it
+  was not looking at. Seam consistency is part of the fix.
+- ⭐⭐ **ANVIL CORRECTION, recorded and acted on**: *"reference count is not a dependency measure."*
+  The delete cost recorded as **96 referrers** is, classified by REQUIREMENT, **one** script that
+  reads the content — and that one is already inert. Two of ANVIL's instruments replaced this tree's
+  planned byte cap: counting DISTINCT DATES in a surface (1/1/2 for the three book overflow
+  destinations vs **108** for the tracker — no threshold chosen) and a self-declared `Last updated:`
+  disagreeing with the file's newest content (**10 self-refuting files** found on the first run,
+  including the ROADMAP at ~3.3 months of drift). Both are baseline-free; a byte cap would have
+  ranked the healthiest book page worst.
+- ✅ Verification: audit **7 → 10 families**, controls **10 → 13**, exit 0; gate targets attributed
+  to a family **59 → 67 / 124**; tracked grammars with no adjudicated disposition **10 → 0**; reads
+  of `LIVE_ACHIEVEMENT_STATUS.md` by the audit **2 → 0**; probe driver **11/12 exit 1 → 16/16 exit
+  0** with 6 new negative-control arms all proven to fire; `scripts/check_doctrines.sh` ALL 15 PASS;
+  `check_published_version_currency.sh` PASS; `vhdl_parser_family_status_gate` PASS.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0002 — leaf LIVE-MEANS-LIVE.1a: the family-status CLAIM moves out of a 1.55 MB prose file and into the DONE-BAR register
 
 Shell + tracked-contract only: no rust/src/, no grammar, no generated/* => all 11 generated

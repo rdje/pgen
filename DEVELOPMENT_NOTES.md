@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0003 — a derivation is only as honest as the side that can fail
+
+`LIVE-MEANS-LIVE.1b`. The done-bar audit's family roster was *tracker rows ∩ grammars*. Both halves
+are real, the join is genuine, and it still could not see three shipped parsers.
+
+- ⭐⭐⭐ **The diagnostic question is: which side of the join is authoritative about EXISTENCE?**
+  `grammars/*.ebnf` is — it is the product. The tracker is a prose file someone maintains. Joining
+  *from* the maintained side means anything nobody remembered to write down is not merely
+  unaudited, it is invisible, and the audit exits 0. Deriving from the product makes the check
+  two-sided: it can now refuse. **A check that has never been able to fail has not been passing.**
+- ⭐ **Refuse-on-unadjudicated needs an escape hatch, or it is punitive rather than sound.** Seven
+  of the seventeen grammars genuinely are not families (bootstrap contracts, LRM extraction inputs,
+  a derived artifact, an include-wrapper). The `grammar_dispositions` block is that hatch — but a
+  hatch is exactly where the next defect hides, so the admission rule is pinned against
+  `rust/src/parser_registry.rs`, a source the register cannot edit. Giving a real shipping parser a
+  disposition is `MISCALIBRATED`, not a judgement call. **Pair every escape hatch with a control on
+  an independent source.**
+- ⚠️ **My first statement of the rule was wrong and the data caught it.** I wrote *"no dispositioned
+  grammar has a registered parser"* — the two `builtin_*` bootstrap contracts do (`parser_registry.rs`
+  `:1577`, `:1583`). A rule needs its stated exception to be TRUE; control `C8a` encodes the
+  exception explicitly rather than hiding it in prose.
+- ⭐⭐ **Where a control's ground truth LIVES decides whether it decays.** `CTRL-4a` pinned a fact in
+  `rust/target/` and went red because someone re-ran an unrelated gate; `CTRL-4b` pins tracked script
+  text and is untouched. The tell is one question: *could this go red without the instrument
+  changing?* If yes, the ground truth is in the wrong place — pin a tracked fact, or give the
+  instrument a seam and CONSTRUCT the state. ⛔ Never relax the assertion to match the current tree;
+  that turns a control into a mirror of what it judges.
+- ⭐⭐ **ANVIL: classify referents by what they REQUIRE, not how many there are.** `grep -l` inflates
+  with append-only history, routing hints and migration comments — all of which must keep their
+  references verbatim, so none can ever block. 96 → 1, and the 1 is already inert. This is the same
+  shape as `.0`'s 3-orphans-vs-452/452 error, in the opposite direction: a confident number from the
+  convenient query rather than the right one. **State what a number counts, and check it is the
+  quantity the decision turns on.**
+- ⭐⭐ **A baseline-free instrument beats a chosen threshold.** The planned enforcer was a line cap +
+  byte cap + keyword tripwire — three human-chosen numbers and a word list, and the keyword arm is
+  the same classifier shape this tree already recorded as FAILED. ANVIL's two need no baseline:
+  distinct-date-count separates 1/1/2 from 108 with a 50× gap nobody picked, and a self-declared
+  `Last updated:` is checked against the file ITSELF. A byte cap would have called the healthiest
+  book page the worst one.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0002 — a one-word value does not need a 1.5 MB container, and the container is why it rotted
 
 `LIVE-MEANS-LIVE.1a`. The family-status claim is one word per family. It lived in a Markdown table
