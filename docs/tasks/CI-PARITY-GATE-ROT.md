@@ -2151,6 +2151,51 @@ paths (or simply switch to `git grep`, which already implements the correct scop
 doctrine's own enforcer). Either way the two arms then agree **in both environments**, which is the
 acceptance test — not just "the gate goes green locally".
 
+##### ⭐⭐⭐ A THIRD defect in the same 4-line function: **`rg` missing ⇒ the audit silently PASSES**
+
+Found on the director's follow-up *"why aren't you using `rg` for everything?"*. The call site is:
+
+```bash
+audit_markdown_repo_relative_paths() {
+  note "auditing markdown repo-path policy"
+  if (cd "$ROOT_DIR" && rg -n --glob '*.md' '<abs-path>' . >/dev/null 2>&1); then
+    fail "absolute PGEN checkout path found in markdown docs; use relative repo paths"
+  fi
+}
+```
+
+`rg` is **not** a git dependency — it is an optional third-party binary — and `grep -c 'command -v rg'`
+over the gate returns **0**: its presence is never checked. So when `rg` is absent the subshell exits
+non-zero, the `if` is false, and the audit **reports success without having searched anything**.
+Reproduced with a PATH shim returning 127: *"audit PASSES ✅ …even though rg never ran"*.
+
+⛔ That is the **vacuous-green** class this tree exists to eliminate (`.3`), reached here through a
+tool dependency rather than a bad assertion. ⭐ `git grep` **cannot** have this failure mode: git is
+already a hard dependency of every gate in the repo, so the tool's absence is not a silent state.
+
+##### ⭐⭐ Why `git grep` is the right instrument — recursion was never the difference
+
+The director's second question — *"but `git grep` knows how to work recursively, right?"* — is the
+one that settles the ruling. **Yes.** Measured: it walks 912 tracked `.md` across 117 directories
+from the root, and the submodule boundary is a **declared, overridable default**, not a depth limit:
+
+```
+$ git grep -l '<pattern>' -- '*.md'                        # submodules excluded  (the default)
+$ git grep --recurse-submodules -l '<pattern>' -- '*.md'   # …/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md
+```
+
+⇒ **`git grep` can express BOTH scopes explicitly; `rg` can express only one, implicitly.** For a
+*doctrine enforcer* that is decisive: the governed set becomes a choice a reviewer can read in the
+source, instead of an accident of which binary was reached for. It also gives three things `rg`
+structurally cannot — searching any tree-ish (`git grep <pat> <commit>`), searching the **index**
+(`--cached`, i.e. exactly what is being committed, which is what a pre-commit hook should test), and
+immunity to untracked-file false positives (a developer's scratch note cannot fail the gate).
+And on the set that actually matters it is faster, not slower: **0.02 s vs 0.10 s** (best of 3).
+
+⇒ **Revised ruling: replace `rg` with `git grep` here**, and state the submodule scope explicitly by
+the presence or absence of `--recurse-submodules`. That fixes all three defects at once — the scope
+disagreement, the environment-dependent verdict, and the silent pass on a missing binary.
+
 #### `.20b` — a second assertion staled by a landing-page shrink
 
 `audit_regex_corpus_bundle_surface` and `audit_regex_pcre2_compile_oracle_surface` require two
