@@ -3076,48 +3076,86 @@ than by an exclusion added in a hurry.
 
 ---
 
-### `.10.11` — ⛔ `.10.6` deleted `require_tool perl` while 17 gate scripts still EXECUTE Perl (`todo`)
+### `.10.11` — the Perl INTERPRETER is a wanted dependency that 7 gate scripts never declared (`done` — director-ruled; 2 fixed, 5 routed)
 
-- **Status: `todo`** — opened 2026-07-31 session #229 by the director's question *"why was
-  Perl still used for those parts that are now failing loudly?"*, which turned out to have a
-  third answer nobody had measured.
-- ⭐⭐ **THE FRAMING TO CORRECT FIRST, INCLUDING MINE.** *"The Perl EBNF frontend is retired"*
-  (`.10.6`) is true and precise. *"Perl is gone"* is **false**, and the tracker/commit prose
-  around `.10.6` invites the second reading. Measured: **17 gate scripts still execute the
-  Perl interpreter at ~48 sites**, as a general-purpose shell utility:
+- **Status: `done`** (`PGEN-LANG-CAPABILITY-AUDIT-0027`, session #229, 2026-07-31). Opened by
+  the director's question *"why was Perl still used for those parts that are now failing
+  loudly?"*, then **settled by their ruling the same session**.
+- ⭐⭐ **DIRECTOR RULING, verbatim (2026-07-31): *"About the perl interpreter being called, I
+  think we can leave it there. I was referring to removing references, uses to and of the Perl
+  EBNF frontend, not the shell script calling the perl interpreter. So we can reinstate, if
+  that's still possible use of the Perl interpreter. I just do not want the Perl EBNF
+  frontend."*** ⇒ the scope of `.10.6`/`.10.7` was always **the EBNF frontend**, never Perl the
+  language. The interpreter **stays**, and the fix is to **DECLARE** it, not to port away from
+  it. Option (b) of this leaf's original scope (porting `-MJSON::PP` → `jq`, `-MTime::HiRes` →
+  `date`, arithmetic → `awk`) is **REJECTED by ruling**, not deferred.
 
-  | form | sites | what it does |
-  |---|---|---|
-  | `perl -e` | 24 | percentage arithmetic (`acceptance_rate`), file sizes |
-  | `perl -0777` | 6 | slurp-mode text processing (SV stimuli) |
-  | `perl -MTime::HiRes` | 5 | millisecond timestamps |
-  | `perl -0ne` | 5 | NUL-separated `git ls-files` filtering (`ci_workflow_local_gate`) |
-  | `perl -ne` | 4 | markdown link extraction, keyword counting |
-  | `perl -MJSON::PP` | 4 | **JSON validation**, incl. `sota_exit_gate.sh:989` |
+#### ⛔ TWO CORRECTIONS TO MY OWN OPENING NUMBERS — both were wrong, and measurably
 
-- ⛔ **The defect: `.10.6` removed the preflight that checked for it.** `git log -p 1ea5a87b`
-  shows `-require_tool perl` — deleted as part of *"`require_tool perl` and a `perl -e`
-  one-liner → gone (now `awk`)"*. That was correct for the **frontend** flow, but the check it
-  removed guarded the **interpreter**, which 17 other scripts still need. ⇒ on a host without
-  Perl the flow now fails deep inside a stage with whatever `perl: command not found` does to
-  a `$( )` substitution, instead of up front with a named missing tool. **A dependency that is
-  still real but no longer declared is worse than either extreme.**
-- ⭐ `sota_exit_gate.sh:989` is the sharpest instance: the **`differential_baseline_contract`
-  required stage** validates tracked JSON baselines with `perl -MJSON::PP`. The flagship
-  aggregate has a hard, undeclared Perl dependency inside a *required* check.
-- ⚠️ **ROUTED, not worked** ([[feedback_flow_findings_are_routed_not_worked]]): it does not
-  make any verdict untrustworthy on this host (Perl 5.34.1 is present at `/usr/bin/perl`, and
-  macOS ships it), and every gate currently passes. It is a **portability and
-  honest-declaration** defect, priced. ⭐ It becomes urgent the moment CI moves to an image
-  without Perl — which is exactly the kind of change nobody would think to price against a
-  dependency no file declares.
-- **Scope when taken up:** decide per site between (a) restoring `require_tool perl` with an
-  honest comment naming the 17 consumers, and (b) porting the utility uses off Perl
-  (`-MJSON::PP` → `jq`, already a dependency; `-MTime::HiRes` → `date +%s%3N`/`python3`;
-  the arithmetic → `awk`, the substitution `.10.6` already made once). ⭐ **Prefer (b) where
-  cheap and (a) as the immediate stop-gap** — (a) is one line and restores the loud failure
-  today, (b) removes the dependency. ⛔ Do not do (b) partially and drop (a): a flow that needs
-  Perl in 3 places and declares it in 0 is the same defect at smaller scale.
+This leaf was opened on a count I did not verify carefully enough. Corrected before acting:
+
+| my claim | measured | why I was wrong |
+|---|---|---|
+| *"17 gate scripts execute Perl"* | **16** | `ebnf_stimuli_quality_gate.sh`'s only hit is a **comment** (`# … was a perl -e one-liner; awk is …`). Excluding comment lines is the whole difference. |
+| *"~48 sites"* | **47** | same cause |
+| *"`.10.6` deleted `require_tool perl` ⇒ the flow now needs Perl without declaring it"* | ⛔ **the attribution is FALSE** | `.10.6` removed that line from **exactly one** script — `ebnf_stimuli_quality_gate.sh` — and in the *same* commit ported that script's only `perl -e` to `awk`. **So that removal was correct**: the script genuinely stopped needing Perl. `git log -S"require_tool perl"` over `sota_exit_gate.sh` and `hdl_frontend_readiness_gate.sh` returns **empty** ⇒ they **never** declared it. The gap is **PRE-EXISTING**, not `.10.6`'s doing. |
+
+⇒ I reported a regression where there was a long-standing hole. The hole is real; the blame was not.
+
+#### The measured state, and what "declared" splits into
+
+16 scripts, 47 real (non-comment) execution sites — `perl -e` arithmetic and file sizes,
+`-MJSON::PP` JSON validation, `-MTime::HiRes` millisecond clocks, `-0777` slurp-mode text
+processing, `-0ne` NUL-separated `git ls-files` filtering:
+
+| class | scripts | verdict |
+|---|---|---|
+| declares `require_tool perl` | **9** | ✅ already correct |
+| **has a preflight, but skips perl** | **2** — `sota_exit_gate.sh`, `hdl_frontend_readiness_gate.sh` | ⛔ the sharpest case: the mechanism is right there and the tool is not in it ⇒ **FIXED HERE** |
+| **has no preflight at all** | **5** — `branch_protection_contract_gate.sh`, `fixed_point_bootstrap_gate.sh`, `sv_declared_shadow_promotion_gate.sh`, `sv_parse_full_ratio_promotion_gate.sh`, `vhdl_strict_promotion_gate.sh` | ⚠️ **ROUTED** — see below |
+
+⭐ `sota_exit_gate.sh` is the one that matters most: it runs `perl -MJSON::PP` inside the
+**required** `differential_baseline_contract` stage (`:989`) and already required `jq` two lines
+away. A host without Perl failed deep inside that stage rather than at the preflight, by name.
+
+#### ⚠️ Why the remaining 5 are ROUTED and not fixed here
+
+They have no `require_tool()` at all, so declaring the dependency means **introducing the
+function** — and `git grep -c "^require_tool() {"` finds **60 existing copies** of the identical
+6-line body across `rust/scripts/`. Adding 5 more is a direct, knowing contribution to the
+duplicated-shell-helper problem that **`CI-PARITY-GATE-ROT.10`** already owns and explicitly
+prices as *"introducing a shared-library convention across 91 scripts, which must be decided on
+its own, not smuggled in behind a blocker fix"*. ⇒ the 5 belong with that decision. Cross-linked
+there; ⛔ do not resolve them by pasting a 61st copy.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `git grep -lE "(^|[^a-zA-Z_])perl[[:space:]]+-"` over
+  `rust/scripts/*.sh` + `scripts/*.sh`, with comment lines excluded, gives **16 scripts / 47
+  execution sites**; cross-tabulating against `grep -cE "^[[:space:]]*require_tool[[:space:]]+perl"`
+  shows **7 of 16 never declare the dependency**, including the flagship aggregate.
+- [x] **ROOT CAUSE (WHY + WHERE)** — not a regression: `git log --oneline -S"require_tool perl" --
+  rust/scripts/sota_exit_gate.sh rust/scripts/hdl_frontend_readiness_gate.sh` returns **no
+  commits**, so neither ever declared it. WHERE the mechanism exists but is incomplete:
+  `sota_exit_gate.sh:843` and `hdl_frontend_readiness_gate.sh:96` each call `require_tool jq`
+  and stop, while `sota_exit_gate.sh:989` executes `perl -MJSON::PP` in a required stage.
+- [x] **FIX** — declarative, 2 lines of code plus the reason: `require_tool perl` added at both
+  preflight sites, each annotated with the director's frontend-vs-interpreter distinction so the
+  next de-Perl sweep does not delete it again.
+- [x] **ADDRESSED (verified)** — scripts that execute Perl without declaring it: **7 → 5**, and
+  both fixed scripts are the ones that had the mechanism already. The preflight is proven to
+  work in **both directions** on the real function body (`feedback_instrument_needs_ground_truth`):
+  positive control `require_tool perl` → passes silently on this host (`/usr/bin/perl`, 5.34.1);
+  negative control `require_tool definitely_not_a_tool` → `error: required tool
+  'definitely_not_a_tool' is not available in PATH` + `exit 1`. `bash -n` clean on both files.
+- [x] **NO REGRESSION** — shell-only, no `rust/src/`, no grammar, no `generated/*` in the diff ⇒
+  **all 11 generated parsers byte-identical by construction**. `bash -n` on both edited scripts.
+  `scripts/check_doctrines.sh` **ALL 15 PASS** against the real staged diff — including
+  `FLOW-INTEGRITY`, which is the doctrine that owns gate-flow invariants.
+- [x] **LOCKSTEP** — this leaf (incl. the two self-corrections), the `CI-PARITY-GATE-ROT.10`
+  cross-link, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `MEMORY.md`,
+  `docs/TASK_TREE.md`. No book/contract movement — no published surface documents the
+  interpreter dependency either way, which is itself the point of declaring it in the preflight.
 
 ---
 

@@ -1,5 +1,52 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0027 — leaf LANG-CAPABILITY-AUDIT.10.11: the Perl INTERPRETER is a wanted dependency; 7 gate scripts never declared it (2 fixed, 5 routed)
+
+Shell-only: no rust/src/, no grammar, no generated/* in the diff => all 11 generated parsers
+byte-identical BY CONSTRUCTION. No tracker row moved.
+
+- ⭐⭐ DIRECTOR RULING (2026-07-31), verbatim: "About the perl interpreter being called, I think
+  we can leave it there. I was referring to removing references, uses to and of the Perl EBNF
+  frontend, not the shell script calling the perl interpreter. So we can reinstate, if that's
+  still possible use of the Perl interpreter. I just do not want the Perl EBNF frontend."
+  => the scope of .10.6/.10.7 was always THE EBNF FRONTEND, never Perl the language. The
+  interpreter STAYS and the fix is to DECLARE it. Porting the utility uses off Perl
+  (-MJSON::PP -> jq, -MTime::HiRes -> date, arithmetic -> awk) is REJECTED BY RULING, not
+  deferred.
+- ⛔ TWO CORRECTIONS TO MY OWN OPENING NUMBERS, both measured:
+    "17 gate scripts execute Perl"  ->  16   (ebnf_stimuli_quality_gate.sh's only hit is a
+                                              COMMENT; excluding comment lines is the difference)
+    "~48 sites"                     ->  47
+    "`.10.6` deleted require_tool perl => the flow now needs Perl without declaring it"
+                                    ->  THE ATTRIBUTION IS FALSE. .10.6 removed that line from
+                                        EXACTLY ONE script -- ebnf_stimuli_quality_gate.sh --
+                                        and in the SAME commit ported that script's only
+                                        `perl -e` to awk, so the removal was CORRECT.
+                                        `git log -S"require_tool perl"` over sota_exit_gate.sh
+                                        and hdl_frontend_readiness_gate.sh returns EMPTY: they
+                                        NEVER declared it. The hole is PRE-EXISTING.
+  I reported a regression where there was a long-standing hole. The hole is real; the blame
+  was not.
+- MEASURED STATE: 16 scripts, 47 real execution sites. 9 declare `require_tool perl`; 2 have a
+  preflight but skip perl; 5 have no preflight at all.
+- FIXED (the 2 that already had the mechanism):
+    sota_exit_gate.sh:843          <- runs `perl -MJSON::PP` in the REQUIRED
+                                      differential_baseline_contract stage (:989) while
+                                      requiring `jq` two lines away
+    hdl_frontend_readiness_gate.sh:96
+  Both annotated with the frontend-vs-interpreter distinction so a future de-Perl sweep does
+  not delete them again.
+- ROUTED (the 5 with no preflight) -> CI-PARITY-GATE-ROT.10: declaring the dependency there
+  means INTRODUCING require_tool(), and `git grep -c '^require_tool() {'` already finds 60
+  identical 6-line copies across rust/scripts/. Pasting a 61st is a knowing contribution to the
+  duplicated-shell-helper problem that leaf already owns and explicitly prices. ⭐ That leaf's
+  decision is no longer only about parse_target_summary -- it now gates a second, unrelated
+  repair.
+- VERIFIED with BOTH controls on the real function body: `require_tool perl` passes silently
+  (/usr/bin/perl 5.34.1); `require_tool definitely_not_a_tool` -> "error: required tool ... is
+  not available in PATH" + exit 1. bash -n clean on both files. 15/15 doctrines against the
+  real staged diff.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0026 — leaf LANG-CAPABILITY-AUDIT.10.10: fx/ is DELETED (267 files, 1.5 MB), on the corrected numbers
 
 Director-approved as its own call. Nothing in rust/src/, grammars/ or generated/ is in the

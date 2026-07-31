@@ -1549,6 +1549,7 @@ and pricing that is worth more than guessing at it (`GENERATED-LINT-CORRECTNESS.
   (measured: 0 of 91 scripts source one), so hoisting this function means introducing that
   convention, which is a structural change to 91 scripts' house style and must be priced and
   decided on its own, not smuggled in behind a blocker fix.
+- ⭐ **CROSS-LINK (2026-07-31, `LANG-CAPABILITY-AUDIT.10.11`): this decision now BLOCKS a small, otherwise-trivial fix, which is useful pricing information.** Five gate scripts execute the Perl interpreter without declaring it (`branch_protection_contract_gate.sh`, `fixed_point_bootstrap_gate.sh`, `sv_declared_shadow_promotion_gate.sh`, `sv_parse_full_ratio_promotion_gate.sh`, `vhdl_strict_promotion_gate.sh`) and have **no** `require_tool()` at all — so declaring it means introducing the function, and `git grep -c '^require_tool() {'` already finds **60 identical 6-line copies** across `rust/scripts/`. `.10.11` fixed the two scripts that already had the mechanism and deliberately refused to paste a 61st copy into the other five. ⇒ **the shared-helper question is no longer only about `parse_target_summary`** — it is now the gate on a second, unrelated repair. Whichever way it is decided, those five come with it.
 - **Scope when taken up:** price a `rust/scripts/lib/` (or equivalent) shared-helper convention
   against the 91-script surface; if adopted, hoist this function first and add a doctrine check that
   a duplicated helper body cannot re-appear. If rejected, record why, and add a cheap check that the

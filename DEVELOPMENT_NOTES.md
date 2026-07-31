@@ -1,5 +1,46 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0027 — I reported a regression where there was a long-standing hole
+
+`LANG-CAPABILITY-AUDIT.10.11`. Two lines of shell landed. The reason to write this up is the
+two corrections that came first.
+
+- ⭐⭐ **"Retire Perl" was never the scope — "retire the Perl EBNF FRONTEND" was.** The director's
+  ruling made the distinction explicit: the interpreter, used as a shell utility across 16 gate
+  scripts, is wanted and stays; only the frontend was unwanted. ⇒ the fix flipped from *port the
+  utility uses away from Perl* to *declare the dependency honestly*, which is one line per site.
+  **A finding's remedy is not derivable from the finding alone** — the same measurement supported
+  two opposite plans, and only the intent behind the original scope picked between them.
+- ⛔ **I blamed `.10.6` and the attribution was false.** I reported *"`.10.6` deleted
+  `require_tool perl` while 17 scripts still execute Perl"*. Measured: `.10.6` removed that line
+  from **exactly one** script, `ebnf_stimuli_quality_gate.sh`, and in the **same commit** ported
+  that script's only `perl -e` to `awk` — so the removal was **correct**. And
+  `git log -S"require_tool perl"` over `sota_exit_gate.sh` / `hdl_frontend_readiness_gate.sh`
+  returns **no commits at all**: they never declared it, ever. ⇒ **a real defect plus a plausible
+  recent commit is not causation.** The `-S` pickaxe answers "did this commit touch this string"
+  in one command, and I reached for it only after asserting the opposite.
+- ⛔ **And my count was inflated because I grepped comments.** *"17 scripts / ~48 sites"* is
+  **16 / 47**: `ebnf_stimuli_quality_gate.sh`'s only match is the comment `.10.6` left behind
+  explaining that it had *removed* the `perl -e`. ⇒ **a census that counts comments will always
+  over-report a retirement, because retirements leave comments behind by design.** Filter
+  `^\s*#` before reporting a number about code.
+- **What the honest state turned out to be**: 9 of 16 scripts declare `require_tool perl`
+  correctly; **2** have the preflight mechanism and simply skip perl; **5** have no preflight at
+  all. Only the middle class was fixed here — `sota_exit_gate.sh`, which runs `perl -MJSON::PP`
+  inside a *required* stage while requiring `jq` two lines above it, and
+  `hdl_frontend_readiness_gate.sh`.
+- ⭐ **The other 5 were refused on purpose, and the refusal is the useful output.** Declaring the
+  dependency there means introducing `require_tool()`, and there are already **60 identical
+  copies** of that 6-line body across `rust/scripts/`. Pasting a 61st would be a knowing
+  contribution to the duplicated-helper problem `CI-PARITY-GATE-ROT.10` already owns and
+  explicitly prices as a 91-script structural decision. So the five were cross-linked *into* that
+  leaf instead — which upgrades its pricing: **it is no longer only about `parse_target_summary`;
+  it now gates a second, unrelated repair.** A blocked trivial fix is evidence about the blocker.
+- **Both controls, on the real function body, before claiming the fix works**: `require_tool perl`
+  → silent pass (`/usr/bin/perl`, 5.34.1); `require_tool definitely_not_a_tool` → `error:
+  required tool '…' is not available in PATH`, `exit 1`. A preflight that cannot be shown to
+  fail is not a preflight.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0026 — a doctrine that certifies more than it checks
 
 `LANG-CAPABILITY-AUDIT.10.10`. Deleting `fx/` was the easy part; what it exposed was not.

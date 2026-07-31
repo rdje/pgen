@@ -841,6 +841,12 @@ csv_to_json_rows() {
 }
 
 require_tool jq
+# LANG-CAPABILITY-AUDIT.10.11 (director ruling 2026-07-31): the Perl EBNF FRONTEND is retired
+# (.10.6/.10.7) and must not come back, but the Perl INTERPRETER is a wanted dependency of this
+# flow and stays. This gate runs `perl -MJSON::PP` in the REQUIRED `differential_baseline_contract`
+# stage, and never declared it — so a host without Perl failed deep inside that stage instead of
+# here, by name. Declaring it is the whole fix; nothing is ported away.
+require_tool perl
 
 summary_value_from_txt_literal() {
     local key="$1"

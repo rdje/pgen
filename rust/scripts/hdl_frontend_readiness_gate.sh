@@ -94,6 +94,10 @@ parseability_build_env_for_grammar() {
 }
 
 require_tool jq
+# LANG-CAPABILITY-AUDIT.10.11: this gate computes its acceptance rate with `perl -e` and never
+# declared the dependency. The Perl EBNF frontend is retired; the Perl INTERPRETER is wanted
+# (director ruling 2026-07-31) — so it is DECLARED here rather than ported away.
+require_tool perl
 
 echo "==> Building ast_pipeline and parseability_probe binaries"
 build_frontend_binaries
