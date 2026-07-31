@@ -2196,6 +2196,98 @@ And on the set that actually matters it is faster, not slower: **0.02 s vs 0.10 
 the presence or absence of `--recurse-submodules`. That fixes all three defects at once — the scope
 disagreement, the environment-dependent verdict, and the silent pass on a missing binary.
 
+##### ✅ IMPLEMENTED — DIRECTOR RULING: *"switch to `git grep` and enable recursivity into submodules by default"* (2026-07-31)
+
+⭐ **The scope question is ADJUDICATED, not left open**: submodule content **is** in PGEN's
+markdown repo-path surface, so `--recurse-submodules` is passed explicitly rather than relying on a
+default in either direction.
+
+**Blast radius, measured before shipping** — recursion adds ~1 108 markdown files (912 → **2 020**)
+across 24 submodules, so the honest question is whether it drags in third-party noise:
+
+| pattern | hits under recursion |
+|---|---|
+| the audit's exact literal | **1** — `stimuli/generators/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md` |
+| broadened to ANY user (`/Users/[^ )`]*/pgen/`), restricted to `stimuli/*` | **1** — the same file |
+
+⇒ the 23 vendored third-party corpora (opentitan, verilator, ghdl, …) are **clean**, so the wider
+scope costs nothing today and the single finding is real.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `make -C rust SHELL=/bin/bash ci_workflow_local_gate` aborted in its
+  audit phase: `error: absolute PGEN checkout path found in markdown docs`, from a 4-line function
+  carrying three defects (scope, environment-dependence, silent-pass-on-missing-`rg`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow tier,
+  `rust/scripts/ci_workflow_local_gate.sh:269-274`. Located with `git ls-files` + `git grep` + a
+  `command -v` census, and the silent-pass arm reproduced with a PATH shim:
+
+  ```
+  $ grep -c 'command -v rg' rust/scripts/ci_workflow_local_gate.sh          # 0 — never checked
+  $ PATH=<shim returning 127> …  if rg …; then fail; fi
+    -> audit PASSES ✅  ...even though rg never ran
+  ```
+
+  **WHY**: the call site treats *any* non-zero from `rg` as "clean", but non-zero conflates *no
+  match* (1) with *the tool did not run* (127). A search tool that is absent therefore certifies the
+  thing it never looked at.
+- [x] **FIX** — `git grep --recurse-submodules -nI -F`, with a **three-way** exit contract replacing
+  the boolean: `0` = violation ⇒ `fail` (and the offending lines are printed), `1` = the only passing
+  outcome, `>=2` = the audit could not run ⇒ `fail` with the exit code named.
+- [x] **ADDRESSED (verified)** — measured before → after:
+
+  | measurement | before (`rg`) | after (`git grep --recurse-submodules`) |
+  |---|---|---|
+  | governed set | filesystem minus `.gitignore` — **undeclared** | tracked files + submodule trees — **declared in the flag** ✅ |
+  | agrees with the doctrine's own enforcer on tool | ⛔ no (`rg` vs `git grep`) | ✅ same tool |
+  | tool absent ⇒ | **silent PASS** | impossible — git is a hard dependency, and any error `>=2` REFUSES ✅ |
+  | untracked scratch file can fail the gate | yes | **no** — `git grep` reads tracked content ✅ |
+  | speed on the tracked set | 0.10 s | **0.02 s** ✅ |
+  | verdict on the real tree | FAIL (unactionable — no file named) | **FAIL, naming file:line and the offending text** ✅ |
+- [x] **EVERY ARM PROVEN TO FIRE — including two controls that I had to REBUILD because my first
+  cut was wrong.** Recorded because the failures were instructive, not incidental:
+
+  | control | result |
+  |---|---|
+  | `CTRL-A` same audit with `--recurse-submodules` REMOVED | **passes** ⇒ the flag is load-bearing, not decoration ✅ |
+  | `RED-1` absolute path planted in a **tracked** `.md` | **fails**, naming `docs/TASK_TREE_README.md`; file restored byte-identical ✅ |
+  | `RED-2` `git grep` forced to error (`GIT_DIR=/nonexistent`) | **REFUSES** — *"the audit could not run, which is NOT a pass"* ✅ |
+
+  ⚠️ **`RED-1` first failed, and the reason is the fix's own selling point**: I planted into an
+  **untracked** file, which `git grep` correctly does not see. ⚠️ **`RED-2` first failed** because I
+  pointed `ROOT_DIR` at `rust/target/notagitrepo` — still *inside* the repo, so `git grep` worked
+  fine. Both controls were broken, not the code. ⇒ *a control that fails must itself be
+  root-caused before the code is blamed* — the same discipline `.1c2` applied to a blocked oracle.
+- [x] **NO REGRESSION** — `bash -n` clean (⚠️ `shellcheck` **not installed** — stated, not implied).
+  ⛔ No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all generated parsers byte-identical
+  BY CONSTRUCTION. `bash scripts/check_doctrines.sh` → **ALL 15 PASS**. `audit_root_markdown_surface`
+  still PASS. No other audit function touched.
+- [x] **LOCKSTEP** — the function's own WHY block (the three defects and the refusal polarity are
+  documented at the call site, not only here), this leaf, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
+
+###### ⛔ WHAT THIS DOES **NOT** CLOSE — two residues, both needing a decision that is not mine
+
+1. **The gate is now legitimately RED**, on `stimuli/generators/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md:45`,
+   which hardcodes a machine-specific home-directory path. ⛔ **The fix belongs in
+   `github.com/rdje/anvil`, not in a PGEN commit** — it is a one-line edit there (replace the
+   absolute prefix with a `<pgen-repo>/…` placeholder), followed by a gitlink bump here. Not done:
+   committing into another repository is outside what this leaf was authorized to do.
+2. **The environment-dependence is NOT fixed by the tool swap.** `actions/checkout` still defaults to
+   `submodules: false` and **0 of 15** workflows override it, so under recursion CI sees an *empty*
+   submodule and passes where local fails. Making the ruling hold in both environments requires
+   `submodules: recursive` in the workflows — which clones all 24 (opentitan, verilator, ghdl, …).
+   That is a real cost decision ⇒ **`.20c`**, below.
+
+### `.20c` — ROUTED: CI checks out ZERO submodules, so any submodule-scoped rule is local-only (`todo`)
+
+Measured 2026-07-31: 15 workflows use `actions/checkout`, **none** declares `submodules:`. Under the
+`.20a` ruling the markdown repo-path audit governs submodule content, so its verdict differs by
+environment until CI also checks them out. ⚠️ The cost is not small — 24 submodules including
+`opentitan`, `verilator`, `ghdl`, `slang`, `Surelog`. Options to price: `submodules: recursive`
+everywhere (simplest, most expensive), a targeted checkout of `stimuli/generators/anvil` only (cheap,
+covers the one submodule PGEN authors), or accepting the rule as local-only and saying so in the
+audit's own message. ⇒ **a director call, not an engineering default.**
+
 #### `.20b` — a second assertion staled by a landing-page shrink
 
 `audit_regex_corpus_bundle_surface` and `audit_regex_pcre2_compile_oracle_surface` require two

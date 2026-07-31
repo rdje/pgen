@@ -1,5 +1,43 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-CI-PARITY-GATE-ROT-0023 — leaf CI-PARITY-GATE-ROT.20a: the markdown repo-path audit switches from `rg` to `git grep --recurse-submodules`
+
+DIRECTOR RULING, implemented: *"switch to `git grep` and enable recursivity into submodules by
+default."* One shell function. No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all
+generated parsers byte-identical BY CONSTRUCTION.
+
+- ⛔ **The 4-line function carried THREE defects.** (1) SCOPE, undeclared — `rg` walks the filesystem
+  minus `.gitignore`, silently claiming 1 113 markdown files across 24 vendored repos PGEN does not
+  author, while the same doctrine's own enforcer used `git grep` and saw 912. (2)
+  ENVIRONMENT-DEPENDENT VERDICT — CI checks out no submodules, so the path that fails locally is
+  simply absent there. (3) **SILENT PASS ON A MISSING BINARY** — `rg` is not a git dependency, its
+  presence was never checked (`command -v rg` → 0 occurrences), and the call site was
+  `if rg …; then fail; fi`, so an absent `rg` exited 127, the `if` went false, and the audit reported
+  success **without searching anything**. Reproduced with a PATH shim.
+- ⭐ **Recursion was never the difference between the tools.** `git grep` walks the whole tree from
+  the root, and the submodule boundary is a DECLARED, OVERRIDABLE default — proven:
+  `git grep --recurse-submodules` finds the exact file the `rg` arm tripped on. That is why it is the
+  right instrument for a doctrine: the governed set is a choice a reviewer reads in the source, not
+  an accident of which binary someone reached for.
+- ✅ The boolean `if` is replaced by a **three-way exit contract**: `0` = violation ⇒ fail, printing
+  file:line and the offending text; `1` = the only passing outcome; `>=2` = the audit could not run
+  ⇒ fail with the exit code named. Defect 3 restated as a rule.
+- ✅ **Blast radius measured before shipping**: recursion adds ~1 108 files (912 → 2 020), and even
+  under a broadened any-user pattern the only hit across all 24 submodules is the one anvil file. The
+  23 third-party corpora are clean, so the wider scope costs nothing today.
+- ✅ Controls: `CTRL-A` (flag removed ⇒ passes, so `--recurse-submodules` is load-bearing), `RED-1`
+  (planted path in a **tracked** `.md` ⇒ fails and names it; file restored byte-identical), `RED-2`
+  (`git grep` forced to error ⇒ **refuses**, never reads as clean). ⚠️ RED-1 and RED-2 both FAILED on
+  their first cut — because the *controls* were wrong (an untracked plant, and a "non-git" dir that
+  was inside the repo), not the code. Root-caused rather than blamed on the fix.
+- ⛔ **This does NOT make the gate green, and that is correct.** It now fails honestly and actionably
+  on `stimuli/generators/anvil/docs/tasks/LOCAL-REFERENCE-CACHE.md:45`. That fix belongs in
+  `github.com/rdje/anvil`, not in a PGEN commit. And the environment-dependence survives the tool
+  swap: 0 of 15 workflows declare `submodules:`, so CI still sees an empty submodule ⇒ routed to
+  **`.20c`** as a priced director call.
+- Oracles: `check_doctrines.sh` **15/15**, `bash -n` clean, `audit_root_markdown_surface` still PASS.
+- Live-status snapshot **unchanged** (still 0 `Done` rows).
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0007 — leaf LIVE-MEANS-LIVE.1c3: LIVE_ACHIEVEMENT_STATUS.md is DELETED
 
 Two shell edits + the delete. No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all

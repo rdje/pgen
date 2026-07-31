@@ -266,11 +266,47 @@ audit_static_include_paths() {
   assert_generated_artifact "generated/semantic_annotation_parser.rs"
 }
 
+# CI-PARITY-GATE-ROT.20a — DIRECTOR RULING (2026-07-31): use `git grep`, and recurse into
+# submodules BY DEFAULT. This replaced an `rg` call that carried three distinct defects at once:
+#
+#   1. SCOPE, undeclared. `rg` walks the filesystem minus .gitignore. A submodule's files are not
+#      ignored, so it silently claimed jurisdiction over 1,113 markdown files (55% of everything it
+#      walked) across 24 vendored repositories PGEN does not author — while the SAME doctrine's own
+#      enforcer, scripts/check_diagnostics_and_docpaths.sh, uses `git grep` and saw 912. One rule,
+#      two tools, opposite verdicts on the same tree.
+#   2. ENVIRONMENT-DEPENDENT VERDICT. `actions/checkout` defaults to `submodules: false` and none of
+#      the 15 workflows overrides it, so a submodule path that FAILS locally is simply absent in CI.
+#      A parity gate whose audit cannot fail in CI and cannot pass locally is a parity break inside
+#      the parity instrument. (⚠️ NOT fully closed by this change — see the note below.)
+#   3. SILENT PASS ON A MISSING BINARY. `rg` is not a git dependency and its presence was never
+#      checked; the call site was `if rg …; then fail; fi`, so an absent `rg` exited 127, the `if`
+#      went false, and the audit reported success WITHOUT SEARCHING ANYTHING. Reproduced with a PATH
+#      shim. `git grep` cannot fail this way — git is already a hard dependency of every gate here.
+#
+# ⭐ Recursion was never the difference between the tools: `git grep` walks the whole tree from the
+# root, and the submodule boundary is a DECLARED, OVERRIDABLE default. That is precisely why it is
+# the right instrument for a doctrine — the governed set is a choice a reviewer reads in this line,
+# not an accident of which binary someone reached for. Here the ruling is: submodule content IS in
+# scope, so `--recurse-submodules` is passed explicitly.
+#
+# REFUSAL POLARITY: `git grep` returns 0 on a match, 1 on no match, and >=2 on an error. Only 1 is a
+# pass. An error REFUSES rather than being read as "clean" — that is defect 3 restated as a rule.
 audit_markdown_repo_relative_paths() {
   note "auditing markdown repo-path policy"
-  if (cd "$ROOT_DIR" && rg -n --glob '*.md' '/Users/richarddje/Documents/github/pgen/' . >/dev/null 2>&1); then
-    fail "absolute PGEN checkout path found in markdown docs; use relative repo paths"
-  fi
+  local hits rc=0
+  hits="$(cd "$ROOT_DIR" && git grep --recurse-submodules -nI -F \
+    -- '/Users/richarddje/Documents/github/pgen/' -- '*.md' 2>&1)" || rc=$?
+  case "$rc" in
+    0)
+      printf '%s\n' "$hits" | head -20 >&2
+      fail "absolute PGEN checkout path found in markdown docs; use relative repo paths"
+      ;;
+    1) : ;;   # no match — the only passing outcome
+    *)
+      printf '%s\n' "$hits" | head -20 >&2
+      fail "git grep failed (exit $rc) while auditing markdown repo-paths; the audit could not run, which is NOT a pass"
+      ;;
+  esac
 }
 
 audit_root_markdown_surface() {
