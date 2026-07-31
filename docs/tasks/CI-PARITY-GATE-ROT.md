@@ -2095,6 +2095,62 @@ surface or not?** Both enforcers must then agree. ⭐ This is a new failure shap
 `.1`-`.19` are all *one* enforcer that rotted. Here **neither is rotted — they disagree about what
 they govern**, and a doctrine whose two enforcers disagree is not one doctrine.
 
+##### ⭐⭐⭐ SHARPENED (2026-07-31, on the director's question *"Is ANVIL a git submodule of PGEN?"*)
+
+It is — **fully registered**, and the answer makes this defect worse than "a scope disagreement":
+
+```
+$ git ls-files -s stimuli/generators/anvil          # 160000 ecda0e78…  (gitlink)
+$ git config -f .gitmodules --get submodule.stimuli/generators/anvil.url
+https://github.com/rdje/anvil
+$ git ls-files -s | awk '$1=="160000"' | wc -l      # 24 submodules total
+```
+
+⚠️ ANVIL is 1 of **24**, and the only one that is not a third-party corpus — the other 23 live under
+`stimuli/{sv,vhdl}/subs/` and are vendored upstreams (opentitan, verilator, ghdl, …). ANVIL is under
+`stimuli/generators/` and is **the director's own repository**. So *"PGEN cannot fix it from here"* is
+a **git-boundary** statement, not an ownership one: the fix is available, it just does not belong in a
+PGEN commit.
+
+**What the two arms actually govern, measured:**
+
+| surface | markdown files |
+|---|---|
+| `git grep` — PGEN-tracked `.md` | **912** |
+| `rg` over the tree | **2 014** — **2.2×** |
+| …of which inside vendored submodules | **1 113 (55 %)** |
+
+⇒ the `rg` arm silently claims jurisdiction over **1 113 files in 24 repositories PGEN does not
+author**. That is not a defensible reading of *"every repo-INTERNAL path in a LIVE/maintained doc
+surface"*; it is a glob that outgrew its charter.
+
+**⛔ And the decisive fact — the verdict is ENVIRONMENT-DEPENDENT, which is this tree's exact axis:**
+
+```
+$ grep -rl 'actions/checkout' .github/workflows/*.yml | wc -l     # 15 workflows
+$ grep -rn -A4 'actions/checkout' .github/workflows/*.yml | grep -c submodules
+0
+```
+
+`actions/checkout` defaults to `submodules: false`, and **not one of the 15 workflows overrides it**.
+So:
+
+| environment | `stimuli/generators/anvil` | audit verdict |
+|---|---|---|
+| local clone with submodules updated | populated | ⛔ **FAIL** |
+| CI (hosted) | **empty** | ✅ **PASS** |
+
+⭐⭐ **`ci_workflow_local_gate.sh` is the CI-PARITY gate** — its entire purpose is *"run locally what
+CI runs"*. It contains an audit that **cannot fail in CI and cannot pass locally**. That is a parity
+break inside the parity instrument itself, and it is strictly worse than the scope disagreement first
+recorded above: the guard is not merely governing the wrong set, it is governing a set whose
+membership depends on whether someone ran `git submodule update`.
+
+⇒ **the ruling this leaf owes is now narrow and obvious**: the `rg` audit must exclude submodule
+paths (or simply switch to `git grep`, which already implements the correct scope and is the
+doctrine's own enforcer). Either way the two arms then agree **in both environments**, which is the
+acceptance test — not just "the gate goes green locally".
+
 #### `.20b` — a second assertion staled by a landing-page shrink
 
 `audit_regex_corpus_bundle_surface` and `audit_regex_pcre2_compile_oracle_surface` require two
