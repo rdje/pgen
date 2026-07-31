@@ -2483,15 +2483,16 @@ neither.**
 
 ---
 
-### `.10.6` — the "dual run" diffs the wrong pair, and a guard PINS the Perl frontend the project believes it retired (`active` — de-Perl ✅ DONE; the envelope differential remains)
+### `.10.6` — the "dual run" diffs the wrong pair, and a guard PINS the Perl frontend the project believes it retired (`done` — ✅ PART 1 de-Perl, ✅ PART 2 envelope differential)
 
-- **Status: `active`.** Opened session #228 from two director statements, both of which
+- **Status: `done`.** Opened session #228 from two director statements, both of which
   measurement partly confirmed and partly refuted. **Part 1 — the de-Perl — is DONE**
   (`PGEN-LANG-CAPABILITY-AUDIT-0020`), on the director's explicit order: *"Do this first
   (1) .10.6 finish the de-Perl, then do (2) .10.2 option B"*. **Part 2 — the
-  frontend↔meta-parser envelope differential — remains `todo`.** Owning machinery is the
-  flow/CI gates + `GRAMMAR-WELLFORMED` (H.13/H.14 own the meta-grammar lockstep); recorded
-  here because `.10` found it and it conditions `.10.2`.
+  frontend↔meta-parser envelope differential — is DONE** (`PGEN-LANG-CAPABILITY-AUDIT-0029`),
+  and it found two live `ebnf.ebnf` defects on its first run, routed to `.10.13` / `.10.14`.
+  Owning machinery is the flow/CI gates + `GRAMMAR-WELLFORMED` (H.13/H.14 own the meta-grammar
+  lockstep); recorded here because `.10` found it and it conditions `.10.2`.
 
 #### Statement 1 — *"ebnf_dual_* runs both parsers and compares their output live"*
 
@@ -2666,6 +2667,243 @@ deleting 39 tracked files is a separate, hard-to-reverse decision and is not imp
 here a gate promises a comparison it never makes, **and** a guard enforces the survival of
 a component the project's own docs describe as gone. All three were believed — by the
 record, by the director, and by me — until measured.
+
+#### ✅ PART 2 — the envelope differential, and what it found on its first run
+
+`pgen::ebnf_envelope_differential` (new module, 10 unit tests) projects arm 2's typed AST into
+arm 1's `raw_ast` token vocabulary and diffs them token by token. Both arms run **in one
+process** (`ebnf_dual_run_diff --envelope-differential`), so the two sides can never be
+compared across stale artifacts.
+
+⭐⭐⭐ **THE HEADLINE — the gap is SMALL, and six grammars are already exactly equivalent.**
+The leaf predicted *"expect RED on day one"* and *"today nobody knows how big it is"*. It is
+now measured, at **34 014 compared token positions across 14 grammars** (1 933 divergences in total, of which 1 399 are the one include-asymmetry grammar):
+
+| result | grammars |
+|---|---|
+| ✅ **ENVELOPE-EQUIVALENT — 0 divergences** | `builtin_return_annotation` (159 tok), `builtin_semantic_annotation` (167), **`ebnf` (913)**, `rtl_const_expr` (242), `rtl_frontend` (1355), `vhdl` (1693) |
+| 96–99 % agreement, divergences located | `json` 97.06 %, `semantic_annotation` 99.50 %, `return_annotation` 96.89 %, `regex` 98.86 %, `systemverilog` 98.92 %, `systemverilog_lrm_profiled_generated` 96.47 %, `systemverilog_preprocessor` 96.26 % |
+| not comparable — arms describe different rule sets | `systemverilog_lrm_profiled_wrapper` (arm 1 RESOLVES `include(…)` and splices 1398 rules; arm 2 stops at the directive) |
+
+⭐ **`grammars/ebnf.ebnf` itself is envelope-equivalent over all 913 tokens.** The meta-grammar
+is self-hosting at OUTPUT level, not merely at verdict level. That is a materially stronger
+statement than the `12/12` this gate used to make, and nothing in the repo could make it before.
+
+#### ⛔⛔ TWO LIVE `ebnf.ebnf` DEFECTS, found by the instrument on its first run
+
+Both are invisible to every existing instrument, because both parse **`Ok`**. Routed, not
+worked ([[feedback_flow_findings_are_routed_not_worked]]) — neither blocks a gate, and both are
+`grammars/*.ebnf` changes whose blast radius is the whole seed chain. → **`.10.13`**, **`.10.14`**.
+
+#### Acceptance Checklist (enforced) — PART 2, the envelope differential
+
+- [x] **REPRODUCE / ISSUE** — the gate compared a *verdict*, never an *output*. Measured with
+  the two arms side by side on `grammars/json.ebnf`: arm 1
+  (`ast_pipeline --emit-raw-ast-json`) emits a flat token envelope
+  `[["rule","json"],["rule_reference","value"],…]`; arm 2 (`ebnf_dual_run_diff --emit-ast-json`,
+  new flag) emits `{type:"grammar_file", elements:[…]}`. **Nothing in the repo compared them**,
+  so `12/12` said the meta-parser *reads* every grammar and nothing said it reads them the
+  *same way*.
+- [x] **ROOT CAUSE (WHY + WHERE)** — for each of the two defects the instrument found, with a
+  minimal repro:
+
+  **(1) `.10.13` — `regex_flags` matches ACROSS trivia and eats the next token's leading
+  characters.** `grammars/ebnf.ebnf:254-260`:
+  `regex_pattern := "/" regex_content "/" regex_flags?` with `regex_flags := /([gimsuyx]*)/`.
+  Minimal repro `a := /x/ <ident> /y/`, run through the generated meta-parser — the verdict is
+  `Ok` in every row:
+
+  | source identifier | leading char ∈ `[gimsuyx]` | meta-parser's `non_terminal` name | chars eaten |
+  |---|---|---|---|
+  | `zebra` | no | `zebra` | 0 ✅ |
+  | `alpha` | no | `alpha` | 0 ✅ |
+  | `gamma` | **yes** | `amma` | 1 ⛔ |
+  | `members` | **yes** | `embers` | 1 ⛔ |
+  | `xylophone` | **yes, twice** | `lophone` | **2** ⛔ |
+
+  `xylophone` losing exactly two characters is the decisive evidence: it is the greedy
+  `[gimsuyx]*` run, consumed after trivia-skipping put the cursor on the identifier. ⚠️ A
+  SECOND defect sits on the same two lines — the return annotation is
+  `{type: "regex", pattern: $2, flags: $3}`, but `$3` is the closing `"/"` literal and the flags
+  are `$4`. Census confirms it: **all 186 `regex` nodes across the tracked grammars carry
+  `flags: "/"`.**
+
+  **(2) `.10.14` — a leading `@annotation` binds to the PREVIOUS rule.** Minimal repro, verdict
+  `Ok`:
+
+  ```
+  first := "a"
+
+  @transform: some_fn()
+  second := "b"
+  ```
+
+  Arm 1 attaches `@transform` to `second`. Arm 2 gives `second.annotations == []` and puts the
+  annotation inside **`first`'s expression** as a trailing sequence element. WHERE:
+  `grammars/ebnf.ebnf:139` `sequence := sequence_element+` with `:143-147`
+  `sequence_element := (inline_semantic_annotation | quantified_element | primary_element)` and
+  `:155` `inline_semantic_annotation := semantic_annotation` — the greedy `+` with the inline
+  annotation as its FIRST alternative lets a rule's expression run past the blank line and
+  swallow the next rule's annotation, so `grammar_rule := annotation_list? rule_definition`
+  never gets it. Measured blast radius: **47 rebound annotations** across the tracked grammars,
+  including `@transform` on `positive_integer`/`float`/`integer` in `return_annotation.ebnf` and
+  `@branch_policy: priority_first` in the SystemVerilog profile grammars.
+- [x] **FIX** — instrument tier (no grammar or engine change; `grammars/*` and `generated/*`
+  untouched). New `pgen::ebnf_envelope_differential`: an explicit, auditable projection from
+  arm 2's node types onto arm 1's 14 envelope kinds, plus a differ that classifies every token
+  position as match / payload-not-comparable / payload-divergence / kind-divergence. Two
+  normalizations are declared rather than assumed — arm 2's quoted literals are decoded
+  **through arm 1's own `decode_quoted_literal_body`** (one implementation of the escape rules,
+  not two), and a semantic annotation's opaque payload is compared modulo its `{ … }` delimiter
+  and the whitespace immediately inside it. Everything unmapped is **counted and named**, and
+  defeats equivalence rather than being dropped.
+- [x] **GROUND TRUTH — the instrument refuses rather than guesses**
+  ([[feedback_instrument_needs_ground_truth]]). Both controls run against the LIVE arms before
+  any report is emitted, and a miss aborts:
+  - **positive** — a synthetic grammar exercising every projected construct must project to an
+    exactly-identical envelope. Measured **27 token positions, 0 divergences**. A miss means the
+    PROJECTION is broken and every number is meaningless.
+  - **negative** — one token of arm 1's envelope is mutated; the differ must report **exactly
+    one** divergence at **exactly** that rule/token index. Measured: **1**. A clean verdict
+    there means the DIFFER is blind and its parity claims are worthless.
+- [x] **ADDRESSED (verified)** — measured before → after:
+
+  | measurement | before | after |
+  |---|---|---|
+  | what the gate compares between the arms | **verdict only** (`Ok`/`Err`) | **34 014 token positions** across 14 grammars ✅ |
+  | grammars covered by the gate | 3 (`ebnf`, `json`, `regex`) | **14** — every tracked grammar arm 1 accepts ✅ |
+  | grammars provably ENVELOPE-EQUIVALENT | **unknown — nothing measured it** | **6**, incl. `ebnf.ebnf` itself at 913/913 ✅ |
+  | live `ebnf.ebnf` defects the flow could see | 0 | **2**, each with a minimal repro + file:line ✅ |
+  | `make ebnf_frontend_dual_run_gate` (strict) | passed on 3 grammars, verdict only | **passed on 14 with the envelope ratchet** ✅ |
+  | instrument ground-truth controls | none | positive **27/27**, negative **1/1**, both refusing on a miss ✅ |
+- [x] **NO REGRESSION** — `cargo test --features ebnf_dual_run --lib ebnf_envelope_differential`
+  **10/10 pass** (including two regression pins for projection bugs found and fixed during
+  construction — see below); `rustfmt --check` clean and `cargo clippy` clean on both new/edited
+  Rust files; `bash -n` clean on the gate script; `PGEN_EBNF_DUAL_RUN_STRICT=1` gate **green
+  end-to-end on all 14 grammars**; **no `grammars/*.ebnf`, no `generated/*`, no engine source
+  touched ⇒ all 11 generated parsers byte-identical BY CONSTRUCTION**.
+- [x] **THE RATCHET IS TWO-SIDED, AND I PROVED IT FIRES** — `.10.9` had to replace a floor that
+  could never fire again, so this one was tested in **both** directions before it was trusted,
+  not merely written:
+
+  | experiment | result |
+  |---|---|
+  | ceiling lowered below the measured count (simulated regression) | `overall=fail`, *"envelope divergences REGRESSED: 38 > ceiling 10"*, **strict-mode exit 1** ✅ |
+  | ceiling raised above the measured count (unlocked-in gain) | `overall=fail`, *"envelope divergences IMPROVED to 38 (ceiling 99) — lower the ceiling"*, **exit 1** ✅ |
+  | ceilings at the measured values | gate **green** ✅ |
+
+  ⇒ a ceiling cannot be satisfied vacuously, and a gain cannot be left unlocked. A grammar with
+  no declared ceiling fails too (`*) echo -1`).
+- [x] **LOCKSTEP** — `rust/Makefile` help text for both targets (no longer "across ebnf/json/regex"),
+  the gate script's header block, `docs/book/src/gate-flow.md`, `TOOLBOX.md`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
+#### ⚠️ TWO PROJECTION BUGS I FOUND IN MY OWN INSTRUMENT — reported, not quietly fixed
+
+The first sweep reported ~100 more divergences than were real. Both causes were **mine**, and
+both are now pinned by a regression test so they cannot come back:
+
+1. **Synthesized `|` separators.** I emitted the alternation separator *between* alternatives.
+   Arm 2 stores a per-branch return annotation (`a := x -> $1 | y -> $2`) at the **head of the
+   next alternative, ahead of the `|`** — so every such rule was one token out of step.
+   Measured effect of the fix: `vhdl` **37 divergences → 0** (and it is now envelope-equivalent),
+   `rtl_frontend` **31 → 0**, `systemverilog` 92.27 % → 98.63 %. The separator is now projected
+   where arm 2 actually carries it.
+2. **Braced annotation payloads.** Arm 1 keeps the `{ … }`; arm 2 hands back the interior. Raw
+   comparison reported a representational difference as a divergence — `regex` **32 payload
+   divergences → 0**, `systemverilog` 41 → 1.
+
+⭐ **The lesson is the leaf's own**: an instrument's first RED is as likely to be the instrument
+as the subject. The two ground-truth controls are what make that distinguishable — and the
+positive control is exactly the thing that would have caught bug 1 had it existed first.
+
+#### ⚠️ HONEST BOUNDS, stated rather than implied
+
+- **Return-annotation payloads are compared by KIND only.** Arm 1 carries the raw source text;
+  arm 2 carries it already parsed. Recovering the text would need a pretty-printer — a new
+  trusted surface whose own bugs would surface as false divergences. The report counts these
+  under `payload_not_comparable` (never folded silently into either column), and
+  `agreement_ratio` counts them as agreement **on the kind, which is all that was checked**.
+- **Arm 2 is known-blind to `[> … ]` lexical annotations** — it reads all 12 in
+  `systemverilog_preprocessor.ebnf` as character classes. Pre-existing and already documented in
+  `ebnf_frontend.rs`; the instrument now *measures* it under `unmapped_arm2_constructs`.
+- **Arm 1's inline / rule-level annotation distinction is not represented by arm 2** (12
+  occurrences, `systemverilog` only), so those report as kind divergences.
+- **`systemverilog_lrm_profiled_wrapper`'s 1.69 % is not a defect rate.** Arm 1 resolves the
+  include and describes 1401 rules; arm 2 describes 3. The report says so on its own via
+  `unresolved_include_directives`.
+- **Not re-run end-to-end**: `sota_exit_gate` runs this gate as a `required` stage. The stage
+  itself was run strict-green here, but the 4 h 39 m aggregate was not re-run.
+
+#### ⚠️ ROUTED, not worked — a published tracker cell still quotes the deleted Perl telemetry
+
+`LIVE_ACHIEVEMENT_STATUS.md`'s `regex` row states *"The latest fresh validated family summary
+records … dual-run overall `pass` with `raw_ast_status=perl_under_reports`,
+`perl_rule_count=104`, `rust_rule_count=194`, `raw_ast_missing_on_perl_count=90`"*. Those four
+keys were **deleted** by `.10.9`; no gate emits them, and `rust_rule_count` for `regex` is now
+**276**, not 194. The sentence reads as current and is not.
+
+⚠️ **Deliberately NOT rewritten here.** The cell sits inside a block explicitly prefixed
+*"Historical record of the landed proof follows"*, and `.10.7`/`.10.10` both established the
+standing rule that **history surfaces are not rewritten** — a dated true-at-the-time statement
+stands. Whether *this* cell is history (it is prefixed as such) or a live claim (it is phrased
+as *"the latest fresh validated summary"*) is a **judgement about the published surface, not an
+engineering call**, so it is surfaced rather than assumed. ⇒ **director call.** If it should be
+corrected, the numbers to replace it with are now measurable in one command
+(`make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`), which was not true before this
+leaf.
+
+⭐ Note the connection: `.10.9` recorded that it *"deliberately left the regex contract with only
+a one-sided rule-count ratchet"* because the second arm did not exist. **It exists now** — the
+envelope differential is that arm, and `regex` measures 98.86 % over 3 338 token positions. Whether
+to wire it into `regex_parser_family_contract_gate` is a separate, priced decision and is NOT
+assumed here.
+
+
+### `.10.13` — `regex_flags` matches across trivia and EATS the next token's leading characters (`todo`)
+
+- **Status: `todo`** — opened 2026-07-31 by `.10.6` part 2, which found it on the envelope
+  differential's first run. ⛔ **Every affected parse returns `Ok`**, so no verdict-level
+  instrument can see it; it took an output-level differential.
+- **WHY + WHERE**: `grammars/ebnf.ebnf:254-260`. `regex_flags := /([gimsuyx]*)/` is reached
+  after trivia-skipping, so following a regex terminal it consumes the leading `[gimsuyx]` run
+  of the next identifier. Full repro table in `.10.6` part 2's checklist — `xylophone` →
+  `lophone` (two characters) is the decisive row.
+- **Second defect, same two lines**: `-> {type: "regex", pattern: $2, flags: $3}` — `$3` is the
+  closing `"/"` literal; the flags are `$4`. Census: **all 186 `regex` nodes** across the
+  tracked grammars carry `flags: "/"`, so no grammar has ever had its regex flags read
+  correctly by the meta-parser.
+- **Measured blast radius**: 8 divergences the differential can currently see
+  (`json` ×2, `semantic_annotation` ×6) plus an unknown share of the divergences that sit behind
+  an earlier kind-divergence in the larger grammars.
+- ⛔ **Consequence if `ebnf.ebnf` replaced the hand-written frontend today**: rule references
+  would silently resolve to names that do not exist (`members` → `embers`), and regex flags
+  would be `"/"` everywhere.
+- **When taken up**: the fix is a `grammars/ebnf.ebnf` change, so it regenerates
+  `generated/ebnf.rs` and the whole seed chain — that is why it is a leaf of its own and not an
+  aside in `.10.6`. Lower `json` and `semantic_annotation` in
+  `envelope_divergence_ceiling()` as it lands; the gate FAILS if a gain is left unlocked.
+
+### `.10.14` — a leading `@annotation` binds to the PREVIOUS rule, not the one it precedes (`todo`)
+
+- **Status: `todo`** — opened 2026-07-31 by `.10.6` part 2. ⛔ Also parses `Ok`.
+- **WHY + WHERE**: `grammars/ebnf.ebnf:139` `sequence := sequence_element+`, `:143-147`
+  `sequence_element := (inline_semantic_annotation | quantified_element | primary_element)`,
+  `:155` `inline_semantic_annotation := semantic_annotation`. The greedy `+` with the inline
+  annotation as its FIRST alternative lets a rule's expression run past the blank line and
+  swallow the following rule's leading `@annotation`, so
+  `grammar_rule := annotation_list? rule_definition` never receives it. Minimal repro in
+  `.10.6` part 2's checklist.
+- **Measured blast radius**: **47 rebound annotations** across the tracked grammars — including
+  `@transform` on `positive_integer` / `float` / `integer` in `grammars/return_annotation.ebnf`
+  and `@branch_policy: priority_first` in the SystemVerilog profile grammars. Annotation COUNTS
+  match in both arms (verified per grammar), so nothing is lost — everything is **misrouted**,
+  which is worse, because a lost annotation is a loud failure and a misrouted one is silent.
+- ⛔ **Consequence if `ebnf.ebnf` replaced the hand-written frontend today**: every semantic
+  annotation written on its own line above a rule would steer the WRONG rule.
+- **When taken up**: needs a boundary the expression cannot cross — the same class of fix as an
+  anchored rule terminator. ⚠️ Prove the repair against the differential, not against a parse
+  verdict: the defect is `Ok` on both sides today.
 
 
 ### `.10.7` — delete the retired Perl tree (`done` — ✅ SLICE 1 + ✅ SLICE 2)

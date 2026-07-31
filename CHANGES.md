@@ -1,5 +1,71 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0029 — leaf LANG-CAPABILITY-AUDIT.10.6 part 2: the frontend⟷meta-parser ENVELOPE differential is built, and it found two live `ebnf.ebnf` defects on its first run
+
+New Rust module + gate rewiring only: no grammar, no `generated/*`, no engine source in the
+diff => all 11 generated parsers byte-identical BY CONSTRUCTION. No tracker row moved.
+
+- ⭐⭐⭐ **THE GAP IS NOW MEASURED, AND IT IS SMALL.** PGEN's stated endgame is that
+  `grammars/ebnf.ebnf` REPLACES the hand-written EBNF frontend, and until now nothing compared
+  what the two arms PRODUCE — only whether both said `Ok`. `pgen::ebnf_envelope_differential`
+  projects the generated meta-parser's typed AST into the hand-written frontend's `raw_ast`
+  token vocabulary and diffs them token by token: **34 014 compared token positions across 14
+  grammars**, and **six grammars are ENVELOPE-EQUIVALENT with zero divergences** —
+  `builtin_return_annotation`, `builtin_semantic_annotation`, **`ebnf` itself (913/913)**,
+  `rtl_const_expr`, `rtl_frontend`, `vhdl`. The meta-grammar is self-hosting at OUTPUT level,
+  not merely at verdict level; nothing in the repo could say that before.
+- ⛔⛔ **TWO LIVE `ebnf.ebnf` DEFECTS, both of which parse `Ok`** — which is exactly why no
+  existing instrument could see them. Routed to `.10.13` / `.10.14`, not worked here (both are
+  `grammars/*.ebnf` changes that regenerate the whole seed chain).
+  - **`.10.13`** — `regex_flags := /([gimsuyx]*)/` (`grammars/ebnf.ebnf:254-260`) matches ACROSS
+    trivia and eats the leading `[gimsuyx]` run of the next token. Minimal repro
+    `a := /x/ <ident> /y/`: `zebra`→`zebra` ✅, `gamma`→`amma`, `members`→`embers`,
+    **`xylophone`→`lophone` (two characters)** — the decisive row. A second defect on the same
+    two lines: `flags: $3` names the closing `"/"` literal instead of `$4`, and a census confirms
+    **all 186 `regex` nodes** in the tracked grammars carry `flags: "/"`.
+  - **`.10.14`** — a leading `@annotation` binds to the PREVIOUS rule. Minimal repro: with
+    `first := "a"` then a blank line then `@transform: some_fn()` then `second := "b"`, arm 2
+    gives `second.annotations == []` and buries the annotation in `first`'s expression.
+    `grammars/ebnf.ebnf:139/:143-147/:155` — the greedy `sequence_element+` with
+    `inline_semantic_annotation` as its FIRST alternative. **47 rebound annotations** measured
+    across the tracked grammars, including `@transform` on `positive_integer`/`float`/`integer`.
+    Counts match in both arms, so nothing is lost — everything is MISROUTED, which is worse,
+    because a lost annotation fails loudly and a misrouted one does not.
+- ✅ **THE INSTRUMENT REFUSES RATHER THAN GUESSES.** Per the standing decision that an
+  instrument with no ground truth is a confident guess, it carries BOTH controls and aborts on
+  either miss, against the live arms, before any report is emitted: a **positive** control (a
+  synthetic grammar that must project identically — measured 27/27 positions, 0 divergences; a
+  miss means the PROJECTION is broken) and a **negative** control (a planted mutation the differ
+  must catch exactly once at exactly that index — measured 1; a clean verdict means the DIFFER
+  is blind).
+- ⚠️ **TWO PROJECTION BUGS WERE MINE, AND ARE REPORTED, NOT QUIETLY FIXED.** The first sweep
+  over-reported by ~100 divergences. (1) I synthesized the `|` separator *between* alternatives,
+  but arm 2 stores a per-branch return annotation at the head of the NEXT alternative ahead of
+  the `|`, so every such rule was one token out of step — fixing it took `vhdl` **37 → 0**
+  divergences (now envelope-equivalent) and `rtl_frontend` **31 → 0**. (2) Braced annotation
+  payloads: arm 1 keeps the `{ … }`, arm 2 returns the interior — `regex` **32 → 0** payload
+  divergences. Both are now pinned by regression tests. ⭐ An instrument's first RED is as likely
+  to be the instrument as the subject, and the controls are what make that distinguishable.
+- ✅ **THE RATCHET IS TWO-SIDED AND WAS PROVEN TO FIRE, in both directions, before being
+  trusted** — `.10.9` had to replace a floor that could never fire again, so this one was tested
+  rather than merely written. Ceiling below the measured count → `fail`, *"divergences REGRESSED:
+  38 > ceiling 10"*, strict exit 1. Ceiling above it → `fail`, *"IMPROVED to 38 (ceiling 99) —
+  lower the ceiling"*, exit 1. At the measured values → green. A grammar with no declared ceiling
+  fails too.
+- **Gate coverage widened 3 → 14 grammars** (`ebnf_frontend_dual_run_gate`), measured safe first:
+  all 14 already passed the verdict assertions, and the whole 14-grammar differential costs 3.8 s.
+- ⚠️ **HONEST BOUNDS, stated in the report itself.** Return-annotation payloads are compared by
+  KIND only (arm 1 has source text, arm 2 has a tree; recovering the text needs a pretty-printer
+  whose own bugs would read as findings) and are counted under their own
+  `payload_not_comparable` field. Arm 2 is known-blind to `[> … ]` lexical annotations (all 12 in
+  `systemverilog_preprocessor`, read as character classes). `systemverilog_lrm_profiled_wrapper`'s
+  1.69 % is NOT a defect rate — arm 1 resolves the include and describes 1401 rules while arm 2
+  describes 3, and the report says so via `unresolved_include_directives`.
+- **Verified**: `cargo test --lib ebnf_envelope_differential` 10/10; `rustfmt --check` + `clippy`
+  clean on both Rust files; `bash -n` clean; `PGEN_EBNF_DUAL_RUN_STRICT=1` gate green end-to-end
+  on all 14. ⚠️ `sota_exit_gate` runs this gate as a `required` stage; the stage was re-run
+  strict-green, the 4 h 39 m aggregate was not.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0028 — leaf LANG-CAPABILITY-AUDIT.10.9: the RED in the flagship aggregate is cleared, and the floor that could never fire again is replaced
 
 Shell + docs only: no rust/src/, no grammar, no generated/* in the diff => all 11 generated

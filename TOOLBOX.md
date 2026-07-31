@@ -114,6 +114,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"Is the interpreter byte-identical to the generated parser? which input diverges?"** | [1.6 the differential-equivalence gate](#16-the-differential-equivalence-gate--is-the-interpreter-byte-identical-to-the-generated-parser) |
 | **"Is the interpreter byte-identical PER COMBINATOR (on a synthetic grammar, in isolation)?"** | [1.7 the structural combinator suite](#17-the-structural-combinator-suite--is-the-interpreter-byte-identical-per-combinator) |
 | **"Is the interpreter byte-identical on the SEMANTIC-DIRECTIVE surface (`@predicate`/`@emit_fact`/scope/rollback/memo×store)?"** | [1.8 the semantic-directive orchestration suite](#18-the-semantic-directive-orchestration-suite--is-the-interpreter-byte-identical-on-the-store-gated-surface) |
+| **"Can `grammars/ebnf.ebnf` REPLACE the hand-written frontend? Does the meta-parser read this grammar the SAME WAY?"** | [1.9 the envelope differential](#19-the-frontendmeta-parser-envelope-differential--does-ebnfebnf-read-a-grammar-the-same-way-the-hand-written-frontend-does) — ⛔ a parse verdict cannot answer this; it found two live `ebnf.ebnf` defects that both parse `Ok` |
 | "A `@predicate` rejected valid input — which one, why?" | [2.4 predicate self-explaining trace](#24-predicate-self-explaining-trace) |
 | "The parse is slow / stuck — which rules dominate?" | [3.1 `--dump-rule-call-counts`](#31---dump-rule-call-counts) |
 | "I need to watch the parser step by step" | [2.1 trace verbosity](#21-trace-verbosity) + [2.2 `--trace-rules`](#22---trace-rules) |
@@ -265,6 +266,31 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
     parse_harness_semantic_suite::measurement::measure_semantic_suite -- --ignored --nocapture
   ```
 - **OUTPUT:** 2 gate tests pass (`every_semantic_construct_is_byte_identical` — 36/36 CLEAN; `semantic_construct_coverage_is_complete`). Deterministic by construction (fixed grammars × curated inputs). Honest bounds (§21.3): bootstrap facts + real library I/O are registry-owned (out of harness scope); no coverage lane. Full map: book chapter *The Parse Harness* → *The semantic-directive orchestration suite* + `docs/tasks/PARSE-HARNESS.md` §21.
+
+### 1.9 The frontend⟷meta-parser ENVELOPE differential — does `ebnf.ebnf` read a grammar the SAME WAY the hand-written frontend does?
+- **WHAT:** `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate` (module `rust/src/ebnf_envelope_differential.rs`, driver `ebnf_dual_run_diff --envelope-differential`) — the OUTPUT-level comparison between the two EBNF frontends. **Arm 1** is the hand-written Rust frontend (`pgen::ebnf_frontend`), which emits the flat `raw_ast` token envelope; **arm 2** is the parser GENERATED from `grammars/ebnf.ebnf`, whose return annotations shape a tree. The module projects arm 2 into arm 1's 14-kind envelope vocabulary and diffs them **token by token**, classifying every position as match / payload-not-comparable / payload-divergence / kind-divergence. Both arms run in ONE process from one input read, so the two sides can never be compared across stale artifacts. LANG-CAPABILITY-AUDIT.10.6 part 2.
+- **WHEN:** ⛔ whenever the question is *"can `ebnf.ebnf` REPLACE the hand-written frontend?"*, or *"does the meta-parser understand this construct the way the frontend does?"*. **A parse verdict cannot answer either** — that is the whole point of this instrument. Reach for it after ANY `grammars/ebnf.ebnf` change; after any `ebnf_frontend.rs` change; and when a grammar behaves differently depending on which frontend read it. Also the right tool to SIZE a meta-grammar defect before fixing it: it names the rule, the token index and both arms' values.
+- **HOW:**
+  ```bash
+  make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate      # strict, all 14 grammars, with the ratchet
+  make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff      # report-only
+
+  # one grammar, straight to the located divergence list:
+  cd rust && cargo build --features ebnf_dual_run --bin ebnf_dual_run_diff
+  ./target/debug/ebnf_dual_run_diff --input ../grammars/<g>.ebnf \
+      --output /tmp/report.json --envelope-differential /tmp/envelope.json
+  python3 -c "import json;d=json.load(open('/tmp/envelope.json'))['envelope_differential'];
+  print(d['is_envelope_equivalent'], d['tokens_compared'], d['divergence_total']);
+  [print(x) for x in d['divergences'][:10]]"
+
+  # arm 2's raw typed AST, when you need to see the shape yourself:
+  ./target/debug/ebnf_dual_run_diff --input ../grammars/<g>.ebnf \
+      --output /tmp/r.json --emit-ast-json /tmp/arm2.json
+  ```
+- **OUTPUT:** a per-grammar report — `is_envelope_equivalent` (the frontend-REPLACEMENT verdict), `tokens_compared`, `token_matches`, `payload_not_comparable`, `payload_divergences`, `kind_divergences`, `tokens_unverified`, `divergence_total`, `unmapped_arm2_constructs`, `unresolved_include_directives`, and a located `divergences` list (rule name + token index + both arms' tokens, capped at 40 with the uncapped total alongside). Measured at the time of writing: **34 014 token positions across 14 grammars**, with **6 ENVELOPE-EQUIVALENT** — `builtin_return_annotation`, `builtin_semantic_annotation`, **`ebnf` itself (913/913)**, `rtl_const_expr`, `rtl_frontend`, `vhdl`.
+- ⭐ **GROUND TRUTH — it refuses rather than guesses.** Every run first executes a **positive** control (a synthetic grammar that must project identically — 27/27 positions) and a **negative** control (a planted mutation the differ must catch exactly once, at exactly that index). A positive miss means the PROJECTION is broken; a negative miss means the DIFFER is blind. Either aborts before a number is published.
+- ⚠️ **HONEST BOUNDS, carried in the report itself:** return-annotation payloads are compared by KIND only (arm 1 has raw source text, arm 2 has a parsed tree; recovering the text would need a pretty-printer whose own bugs would read as findings) and are counted under `payload_not_comparable`; arm 2 is known-blind to `[> … ]` lexical annotations; `systemverilog_lrm_profiled_wrapper`'s low agreement is the include asymmetry (arm 1 resolves `include(…)`, arm 2 stops at the directive), flagged by `unresolved_include_directives`, not a defect rate. A token after a rule's first KIND divergence is counted `tokens_unverified` — never as agreement, never as disagreement.
+- **The gate carries a two-sided per-grammar ratchet** (`envelope_divergence_ceiling()` in the gate script): a count above the ceiling fails as a regression, a count *below* it fails too with "lower the ceiling", and a grammar with no declared ceiling fails. Both directions were proven to fire before the ratchet was trusted. Full map: `docs/tasks/LANG-CAPABILITY-AUDIT.md` `.10.6` + book *The Gate Flow* §7.9.
 
 ---
 

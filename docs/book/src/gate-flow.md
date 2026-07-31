@@ -537,12 +537,42 @@ leaving arithmetic that implies a floor nobody is computing. A one-sided ratchet
 pinned baseline is an honest replacement — a constant right-hand side cannot go null —
 but it must not be described as the cross-implementation check it replaced.
 
-> The unifying principle behind all eight: **a gate must report on its subject, and
-> only its subject.** It must not report on its own documentation, its own absence,
-> somebody else's stale output, a quantity that has quietly stopped being the one its
-> name promises, a number scraped out of prose while the producer's own artifact sits
-> unread, or a value its producer stopped measuring — and when it cannot report at all,
-> it must say so rather than return green.
+### 9. A check that compares a *verdict* where the claim is about *output*
+
+For most of its life the EBNF frontend dual-run gate asserted that the parser generated
+from `grammars/ebnf.ebnf` **accepted** each tracked grammar — `12/12`, and green. The claim
+the project actually needs is stronger: that generated parser is meant to *replace* the
+hand-written frontend, and a replacement must produce the **same output**, not merely
+agree that the input is well-formed.
+
+The distinction is not academic. `LANG-CAPABILITY-AUDIT.10.6` part 2 built the missing
+output-level differential (`pgen::ebnf_envelope_differential`, §*Where the pieces live*) and
+it found two live `grammars/ebnf.ebnf` defects **on its first run** — both of which parse
+`Ok`, which is exactly why a decade of verdict-level green never saw them:
+
+| defect | what a verdict-level gate saw | what the envelope differential saw |
+|---|---|---|
+| `regex_flags := /([gimsuyx]*)/` matches across trivia | `Ok` | `a := /x/ members /y/` resolves the reference to **`embers`**; `xylophone` loses **two** characters |
+| a leading `@annotation` binds to the previous rule | `Ok` | **47** annotations across the tracked grammars steer the WRONG rule |
+
+⭐ **The rule:** when a gate's *purpose* is a claim about equivalence, an accept/reject
+comparison is not a weak version of that claim — it is a **different claim**, and passing it
+says nothing about the one you meant. Ask what a green run would let you *do*: if the answer
+is "replace one implementation with the other", the gate has to compare what they produce.
+
+⚠️ The corollary is that the new instrument's own first RED is as likely to be the
+instrument as the subject — which is why it carries a **positive and a negative control**
+and refuses to publish if either misses (§*The contract for a new gate*). Two of the first
+sweep's ~100 divergences were the projection's own bugs, and the positive control is
+precisely what distinguishes those from findings.
+
+> The unifying principle behind all nine: **a gate must report on its subject, and
+> only its subject** — and it must report on *the claim being made*, not a cheaper claim
+> nearby. It must not report on its own documentation, its own absence, somebody else's
+> stale output, a quantity that has quietly stopped being the one its name promises, a
+> number scraped out of prose while the producer's own artifact sits unread, or a value its
+> producer stopped measuring — and when it cannot report at all, it must say so rather than
+> return green.
 
 ---
 
@@ -660,3 +690,4 @@ them. A gate without adversarial arms is a claim, not a proof.
 | doctrine enforcer | `scripts/check_doctrines.sh` + `scripts/check_*.sh` |
 | reachability register | `rust/test_data/grammar_quality/gate_reachability_register_v0.json` |
 | the incident record | `docs/tasks/CI-PARITY-GATE-ROT.md` |
+| the frontend⟷meta-parser envelope differential (§7.9) | `rust/src/ebnf_envelope_differential.rs`, driven by `ebnf_dual_run_diff --envelope-differential` |

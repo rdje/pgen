@@ -1,5 +1,56 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0029 — a verdict is not a weak version of an equivalence claim; it is a different claim
+
+`LANG-CAPABILITY-AUDIT.10.6` part 2. The EBNF frontend dual-run gate had been green at `12/12`
+for a long time, and what it asserted was that the parser generated from `grammars/ebnf.ebnf`
+**accepts** each tracked grammar. The claim the project actually needs is that the generated
+parser can **replace** the hand-written frontend — and that is a claim about OUTPUT.
+
+Building the output-level differential took one session. It found two live `ebnf.ebnf` defects
+**on its first run**, both of which parse `Ok`:
+
+| defect | verdict-level gate | envelope differential |
+|---|---|---|
+| `regex_flags := /([gimsuyx]*)/` matches across trivia | `Ok` ✅ | `a := /x/ members /y/` names the reference **`embers`**; `xylophone` loses **two** characters |
+| a leading `@annotation` binds to the previous rule | `Ok` ✅ | **47** annotations across the tracked grammars steer the WRONG rule |
+
+- ⭐⭐ **The general test: ask what a green run would let you DO.** If the answer is "swap one
+  implementation for the other", then accept/reject is not a cheap approximation of the proof —
+  it is silent about the thing you meant. `12/12` was true the whole time and never once
+  supported the sentence it was quoted for.
+- ⭐ **The misroute is worse than the loss.** For `.10.14` the annotation COUNTS match in both
+  arms — nothing is dropped. Every one of the 47 is attached to the wrong rule. A dropped
+  annotation would eventually fail loudly; a misrouted one steers a different rule forever.
+- ⭐⭐ **An instrument's first RED is as likely to be the instrument as the subject.** The first
+  sweep over-reported by ~100 divergences, and both causes were mine: I synthesized the `|`
+  separator *between* alternatives, but arm 2 stores a per-branch return annotation at the head
+  of the NEXT alternative, ahead of the `|`. Fixing it took `vhdl` from 37 divergences to **0**
+  — it is now envelope-equivalent. Had I trusted the first number, I would have filed 37
+  fabricated `vhdl` findings and a real one would have been buried among them.
+- ⇒ **which is what the two controls are FOR, and why they must be inside the instrument.** The
+  positive control (a synthetic grammar that must project identically) is precisely what
+  separates "my projection is wrong" from "the subject is wrong". The negative control (a
+  planted mutation the differ must catch exactly once, at exactly that index) is what stops a
+  blind differ certifying parity. Both run against the live arms before any number is
+  published, and either miss aborts. Per [[feedback_instrument_needs_ground_truth]] — and this
+  session is the concrete case that shows the positive control is not ceremony.
+- ⭐ **Reuse the subject's own code for a normalization, never re-implement it.** Arm 2's quoted
+  literals are decoded by calling arm 1's `decode_quoted_literal_body`, not by a second copy of
+  the escape rules. Two implementations of one rule is how a differential starts reporting its
+  own drift as a finding.
+- ⭐ **State the incomparable parts, do not silently bucket them.** Return-annotation payloads
+  cannot be compared (arm 1 has source text, arm 2 has a tree) — so they get their own
+  `payload_not_comparable` counter rather than being folded into either column. Likewise a token
+  after a rule's first KIND divergence is `tokens_unverified`: counting it as disagreement
+  inflates the gap, counting it as agreement hides it, and it is neither.
+- ⭐ **A ratchet is not trustworthy because you wrote it; it is trustworthy because you made it
+  fire.** `.10.9` had to replace a floor that could never fire again, so this one was tested in
+  BOTH directions before being trusted: a ceiling below the measured count fails as a
+  regression, a ceiling above it fails with "lower the ceiling", and an undeclared grammar
+  fails. Writing the two-sided check is 10 lines; proving it fires is the part that makes it a
+  proof.
+
 ## 2026-07-31 - PGEN-LANG-CAPABILITY-AUDIT-0028 — the same missing value broke three ways, and only two of them were visible
 
 `LANG-CAPABILITY-AUDIT.10.9`. The lesson is not that a gate broke. It is that ONE deleted key,

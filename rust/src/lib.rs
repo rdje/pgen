@@ -13,6 +13,13 @@ pub mod auto_return_annotation_shape_gate;
 pub mod dedicated_parse_stack;
 #[cfg(feature = "ebnf_dual_run")]
 pub mod ebnf_frontend;
+/// LANG-CAPABILITY-AUDIT.10.6 part 2 — the frontend⟷meta-parser raw-AST envelope differential:
+/// project the parser GENERATED from `grammars/ebnf.ebnf` into the hand-written frontend's
+/// `raw_ast` token vocabulary and diff them, so the frontend-REPLACEMENT gap is measured rather
+/// than assumed from a parse verdict. Carries its own positive and negative controls. See the
+/// module docs.
+#[cfg(feature = "ebnf_dual_run")]
+pub mod ebnf_envelope_differential;
 pub mod embedding_api;
 /// PARSE-HARNESS.3 — the compile-and-run harness (approach 2): run the REAL codegen + runtime on an
 /// ARBITRARY grammar via a throwaway external crate, authoritative by construction. See the module docs.

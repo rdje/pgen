@@ -1201,7 +1201,14 @@ fn parse_quoted_literal(input: &str, start: usize) -> Option<(String, usize)> {
     None
 }
 
-fn decode_quoted_literal_body(body: &str) -> String {
+/// Decode an EBNF quoted-literal body — the escape rules the `raw_ast` envelope's
+/// `quoted_string` payloads are already in.
+///
+/// `pub(crate)` for LANG-CAPABILITY-AUDIT.10.6 part 2: the envelope differential must normalize
+/// arm 2's still-escaped literals into arm 1's decoded form, and it calls THIS decoder rather
+/// than carrying a second copy of the rules — two implementations of one rule is exactly how a
+/// differential starts reporting its own drift as a finding.
+pub(crate) fn decode_quoted_literal_body(body: &str) -> String {
     let mut output = String::with_capacity(body.len());
     let mut chars = body.chars();
     while let Some(ch) = chars.next() {

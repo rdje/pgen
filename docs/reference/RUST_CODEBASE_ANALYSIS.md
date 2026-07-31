@@ -626,10 +626,28 @@ Assessment:
 ### 5. Grammar-Specific Subsystems
 Primary files:
 - `rust/src/ebnf_frontend.rs`
+- `rust/src/ebnf_envelope_differential.rs`
 - `rust/src/sv_preprocessor.rs`
 
 Role:
 - `ebnf_frontend.rs` provides a Rust-native `.ebnf -> raw_ast` frontend path.
+- `ebnf_envelope_differential.rs` (new, `LANG-CAPABILITY-AUDIT.10.6` part 2) measures how far
+  that hand-written frontend is from being REPLACEABLE by the parser generated from
+  `grammars/ebnf.ebnf` — PGEN's stated endgame. It projects the generated meta-parser's typed
+  AST into the frontend's `raw_ast` token vocabulary and diffs them token by token, which is a
+  strictly stronger question than the parse verdict every prior instrument compared. Feature-gated
+  on `ebnf_dual_run`, driven by `ebnf_dual_run_diff --envelope-differential`, consumed by
+  `ebnf_frontend_dual_run_gate` under a two-sided per-grammar ratchet.
+  - **Architectural significance**: this is the first OUTPUT-level comparison between PGEN's two
+    EBNF frontends, and it made the self-hosting claim concrete — 6 of 14 grammars are
+    envelope-equivalent, `grammars/ebnf.ebnf` itself at 913/913 tokens. It also found two live
+    meta-grammar defects that every existing instrument passed, because both parse `Ok`
+    (`.10.13`, `.10.14`).
+  - **Trust model**: the module carries its own positive and negative ground-truth controls and
+    refuses to publish a report if either misses — the projection is a new trusted surface, and
+    an unvalidated projection would report its own bugs as findings (two did, during
+    construction). Its declared normalizations reuse `ebnf_frontend`'s own
+    `decode_quoted_literal_body` rather than re-implementing the escape rules.
 - `sv_preprocessor.rs` implements a policyful SystemVerilog preprocessing stage with:
   - macro handling
   - include resolution

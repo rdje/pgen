@@ -13,7 +13,87 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 SUMMARY_JSON="$STATE_DIR/summary.json"
 
 STRICT="${PGEN_EBNF_DUAL_RUN_STRICT:-0}"
-GRAMMARS=("ebnf" "json" "regex")
+
+# LANG-CAPABILITY-AUDIT.10.6 part 2 — widened from ("ebnf" "json" "regex") to every tracked
+# grammar the generated meta-parser fully consumes. Measured before widening: all 14 already
+# passed the verdict assertions this gate has always made, and the whole 14-grammar envelope
+# differential costs 3.8 s. Covering 3 of 14 was leaving measurement on the table.
+# ⚠️ The three `*_lrm_extracted` grammars are deliberately absent: the hand-written frontend
+# (arm 1) rejects them, so there is no pair to diff.
+GRAMMARS=(
+    "builtin_return_annotation"
+    "builtin_semantic_annotation"
+    "ebnf"
+    "json"
+    "regex"
+    "return_annotation"
+    "rtl_const_expr"
+    "rtl_frontend"
+    "semantic_annotation"
+    "systemverilog"
+    "systemverilog_lrm_profiled_generated"
+    "systemverilog_lrm_profiled_wrapper"
+    "systemverilog_preprocessor"
+    "vhdl"
+)
+
+# LANG-CAPABILITY-AUDIT.10.6 part 2 — the ENVELOPE RATCHET.
+#
+# The differential's first run found real, located divergences between the hand-written
+# frontend and the parser generated from `grammars/ebnf.ebnf`. They are defects in
+# `ebnf.ebnf`, they are ROUTED to their own leaves, and they are NOT this gate's to fix — but
+# they must not be allowed to grow, and the six grammars that ARE envelope-equivalent must not
+# be allowed to lose it.
+#
+# So each grammar carries a labelled ceiling instead of a blanket pass. A count ABOVE the
+# ceiling fails the gate; a count BELOW it fails too, with a message to lower the ceiling —
+# a floor that can only be met and never tightened is the exact failure `.10.9` had to
+# replace, and it is not being reintroduced here.
+#
+# ⛔ A ceiling is LOWERED as the owning leaf lands its fix. It is never RAISED to land a change.
+envelope_divergence_ceiling() {
+    case "$1" in
+        # ✅ ENVELOPE-EQUIVALENT — the meta-parser reproduces the hand-written frontend's
+        # envelope exactly. `ebnf` itself is in this set: the meta-grammar is self-hosting at
+        # OUTPUT level, not merely at verdict level.
+        builtin_return_annotation) echo 0 ;;
+        builtin_semantic_annotation) echo 0 ;;
+        ebnf) echo 0 ;;
+        rtl_const_expr) echo 0 ;;
+        rtl_frontend) echo 0 ;;
+        vhdl) echo 0 ;;
+        # LANG-CAPABILITY-AUDIT.10.13 — `regex_flags := /([gimsuyx]*)/` matches ACROSS trivia
+        # and eats the leading `[gimsuyx]` run of the next token (`members` → `embers`).
+        json) echo 2 ;;
+        semantic_annotation) echo 6 ;;
+        # .10.13 plus LANG-CAPABILITY-AUDIT.10.14 — a leading `@annotation` binds to the
+        # PREVIOUS rule's expression instead of the rule it precedes.
+        return_annotation) echo 6 ;;
+        regex) echo 38 ;;
+        systemverilog) echo 150 ;;
+        systemverilog_lrm_profiled_generated) echo 317 ;;
+        # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
+        # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation
+        # distinction, which arm 2 does not represent.
+        systemverilog_preprocessor) echo 15 ;;
+        # ⚠️ NOT a defect count — arm 1 RESOLVES `include(…)` and splices in 1398 rules while
+        # arm 2 stops at the directive, so the two arms describe different rule sets. This is
+        # the one grammar where the token counts cannot be read as parity, and the report's
+        # `unresolved_include_directives` field says so on its own.
+        systemverilog_lrm_profiled_wrapper) echo 1399 ;;
+        *) echo -1 ;;
+    esac
+}
+
+# Arm-2 constructs the projection has no mapping for. Same ratchet discipline: a NEW unmapped
+# construct is a blind spot in the measurement itself, so it must fail rather than pass quietly.
+envelope_unmapped_ceiling() {
+    case "$1" in
+        # The 12 `[> …]` lexical annotations arm 2 reads as character classes.
+        systemverilog_preprocessor) echo 12 ;;
+        *) echo 0 ;;
+    esac
+}
 
 # LANG-CAPABILITY-AUDIT.10.6 — the PERL arm is RETIRED.
 #
@@ -29,10 +109,19 @@ GRAMMARS=("ebnf" "json" "regex")
 #   arm 2 — the parser GENERATED from grammars/ebnf.ebnf (`ebnf_dual_run_diff`)
 # Arm 2's verdict is the SELF-HOSTING measurement, and it is what this gate asserts.
 #
-# ⚠️ HONEST BOUND, stated rather than implied: retiring the Perl arm removes this gate's
-# only OUTPUT-level comparison. Arm 1 yields a raw-AST envelope and arm 2 yields a verdict,
-# so they are not directly diffable yet. Building that raw-AST differential — the evidence
-# a frontend REPLACEMENT would need — is the remaining half of LANG-CAPABILITY-AUDIT.10.6.
+# ⭐ LANG-CAPABILITY-AUDIT.10.6 PART 2 — the OUTPUT-level comparison is now BUILT.
+#
+# Retiring the Perl arm had left this gate with only a verdict: arm 1 yields a raw-AST
+# envelope and arm 2 yielded `Ok`/`Err`, so nothing compared what the two arms actually
+# PRODUCE. `pgen::ebnf_envelope_differential` closes that: it projects arm 2's typed AST into
+# arm 1's `raw_ast` token vocabulary and diffs them token by token, in ONE process that runs
+# both arms (so the two sides can never be compared across stale artifacts). Every run also
+# executes the differential's positive AND negative ground-truth controls first and REFUSES
+# to report if either misses.
+#
+# The `envelope_*` columns below are that measurement. `envelope_equiv` is the real
+# frontend-REPLACEMENT verdict — a verdict-level pass says the meta-parser READS a grammar;
+# only envelope equivalence says it reads it the SAME WAY.
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 RUST_DIFF_BIN="$RUST_DIR/target/debug/ebnf_dual_run_diff"
@@ -146,7 +235,7 @@ if [[ ! -x "$RUST_DIFF_BIN" ]]; then
     exit 1
 fi
 
-echo "grammar,rust_parse,rust_parse_full,rust_rule_count,raw_ast_status,parse_end,input_bytes,consumed_pct,overall,notes" >"$SUMMARY_CSV"
+echo "grammar,rust_parse,rust_parse_full,rust_rule_count,raw_ast_status,parse_end,input_bytes,consumed_pct,envelope_tokens,envelope_agree_pct,envelope_div,envelope_ceiling,envelope_equiv,overall,notes" >"$SUMMARY_CSV"
 echo "[]" >"$SUMMARY_JSON"
 
 {
@@ -165,6 +254,7 @@ for grammar in "${GRAMMARS[@]}"; do
     grammar_file="$GRAMMARS_DIR/${grammar}.ebnf"
     rust_json="$WORK_DIR/${grammar}.rust_parse_report.json"
     rust_raw_ast_json="$WORK_DIR/${grammar}.rust_raw_ast.json"
+    envelope_json="$WORK_DIR/${grammar}.envelope_differential.json"
     diff_json="$WORK_DIR/${grammar}.dual_run_diff.json"
 
     rust_log="$LOG_DIR/${grammar}.rust_parse.log"
@@ -177,10 +267,21 @@ for grammar in "${GRAMMARS[@]}"; do
     parse_end="-"
     input_bytes="-"
     consumed_pct="-"
+    envelope_tokens="-"
+    envelope_agree_pct="-"
+    envelope_div="-"
+    envelope_equiv="-"
+    envelope_ceiling="$(envelope_divergence_ceiling "$grammar")"
+    unmapped_ceiling="$(envelope_unmapped_ceiling "$grammar")"
     overall="fail"
     notes="internal error"
 
-    if "$RUST_DIFF_BIN" --input "$grammar_file" --output "$rust_json" >"$rust_log" 2>&1; then
+    # ⭐ The envelope differential runs in the SAME invocation as the parse report, so both arms
+    # come from one process and one input read. `--envelope-differential` exits non-zero if
+    # either ground-truth control fails, which is why a control miss aborts the grammar rather
+    # than producing an unvalidated number.
+    if "$RUST_DIFF_BIN" --input "$grammar_file" --output "$rust_json" \
+        --envelope-differential "$envelope_json" >"$rust_log" 2>&1; then
         rust_parse="$(python3 - "$rust_json" <<'PY'
 import json,sys
 path=sys.argv[1]
@@ -228,6 +329,72 @@ PY
         failures=$((failures + 1))
     fi
 
+    # ⭐ LANG-CAPABILITY-AUDIT.10.6 part 2 — the frontend⟷meta-parser ENVELOPE differential.
+    # This is the arm-vs-arm OUTPUT comparison the gate never had; everything above it is a
+    # verdict. `envelope_equiv` is the frontend-REPLACEMENT verdict.
+    if [[ -f "$envelope_json" ]]; then
+        envelope_summary="$(python3 - "$envelope_json" "$envelope_ceiling" "$unmapped_ceiling" <<'ENVELOPE'
+import json, sys
+
+report = json.load(open(sys.argv[1]))["envelope_differential"]
+divergence_ceiling, unmapped_ceiling = int(sys.argv[2]), int(sys.argv[3])
+
+compared = report["tokens_compared"]
+# A not-comparable payload agrees on everything that WAS checked — its kind — so it counts as
+# agreement here. The count travels in the report under its own name, so the bound stays visible.
+agreed = report["token_matches"] + report["payload_not_comparable"]
+percent = (100.0 * agreed / compared) if compared else 0.0
+divergences = report["divergence_total"]
+unmapped = sum(report["unmapped_arm2_constructs"].values())
+
+problems = []
+if divergence_ceiling < 0:
+    problems.append("no envelope ceiling is declared for this grammar")
+elif divergences > divergence_ceiling:
+    problems.append(
+        "envelope divergences REGRESSED: %d > ceiling %d" % (divergences, divergence_ceiling)
+    )
+elif divergences < divergence_ceiling:
+    problems.append(
+        "envelope divergences IMPROVED to %d (ceiling %d) - lower the ceiling in "
+        "envelope_divergence_ceiling() so the gain is locked in"
+        % (divergences, divergence_ceiling)
+    )
+if unmapped > unmapped_ceiling:
+    problems.append(
+        "the projection met %d arm-2 construct(s) it cannot map (ceiling %d): %s - the "
+        "measurement itself has a new blind spot"
+        % (unmapped, unmapped_ceiling,
+           " ".join(sorted(report["unmapped_arm2_constructs"])))
+    )
+elif unmapped < unmapped_ceiling:
+    problems.append(
+        "unmapped arm-2 constructs IMPROVED to %d (ceiling %d) - lower the ceiling in "
+        "envelope_unmapped_ceiling()" % (unmapped, unmapped_ceiling)
+    )
+
+# `,` is the summary file's separator, so it may never appear in a field.
+print("%d|%.2f|%d|%s|%s" % (
+    compared,
+    percent,
+    divergences,
+    "yes" if report["is_envelope_equivalent"] else "no",
+    "; ".join(problems).replace(",", ";"),
+))
+ENVELOPE
+)"
+        IFS='|' read -r envelope_tokens envelope_agree_pct envelope_div envelope_equiv \
+            envelope_problems <<<"$envelope_summary"
+        if [[ -n "$envelope_problems" ]]; then
+            notes="envelope ratchet: ${envelope_problems}"
+            failures=$((failures + 1))
+        fi
+    else
+        notes="envelope differential produced no report (see logs/${grammar}.rust_parse.log)"
+        any_internal_errors=1
+        failures=$((failures + 1))
+    fi
+
     # Arm 1 - the hand-written Rust frontend's raw-AST envelope. With the Perl arm retired
     # there is no second envelope to diff against yet, so this records the rule count as an
     # artifact and asserts only that the export SUCCEEDS. The frontend<->meta-parser envelope
@@ -253,27 +420,39 @@ RAWAST
     fi
 
     # The self-hosting assertion: the GENERATED meta-parser must fully consume the grammar,
-    # and the hand-written frontend must export its envelope. (Before .10.6 this also
-    # required Perl parity, and TOLERATED `perl_under_reports` - a pass that accepted the
-    # Perl arm being blind to 25 of regex.ebnf's 276 rules.)
-    if [[ "$rust_parse" == "pass" && "$rust_parse_full" == "pass" && "$raw_ast_status" == "exported" ]]; then
+    # the hand-written frontend must export its envelope, and — since
+    # LANG-CAPABILITY-AUDIT.10.6 part 2 — the two arms' ENVELOPES must diff within this
+    # grammar's declared ceiling. (Before .10.6 this also required Perl parity, and TOLERATED
+    # `perl_under_reports` - a pass that accepted the Perl arm being blind to 25 of
+    # regex.ebnf's 276 rules.)
+    if [[ "$rust_parse" == "pass" && "$rust_parse_full" == "pass" \
+        && "$raw_ast_status" == "exported" && "$notes" != "envelope ratchet: "* ]]; then
         overall="pass"
-        notes="self-hosting: generated parser fully consumed the grammar; frontend envelope exported (${rust_rule_count} rules)"
+        if [[ "$envelope_equiv" == "yes" ]]; then
+            # ⚠️ No commas in a note: this file is comma-separated and `column -s,` renders it.
+            notes="ENVELOPE-EQUIVALENT - ${envelope_tokens} tokens / 0 divergences; the meta-parser reproduces the hand-written frontend exactly (${rust_rule_count} rules)"
+        else
+            notes="self-hosting verdict pass; envelope ${envelope_agree_pct}% over ${envelope_tokens} tokens; ${envelope_div} divergence(s) at the declared ceiling ${envelope_ceiling} (${rust_rule_count} rules)"
+        fi
     else
         if [[ "$notes" == "internal error" ]]; then
             notes="generated meta-parser did not fully consume the grammar"
         fi
         overall="fail"
-        failures=$((failures + 1))
+        # An envelope-ratchet failure has already been counted where it was detected; counting
+        # it again here would double-report one problem.
+        if [[ "$notes" != "envelope ratchet: "* ]]; then
+            failures=$((failures + 1))
+        fi
     fi
 
-    python3 - "$grammar" "$rust_parse" "$rust_parse_full" "$overall" "$notes" "$rust_rule_count" "$raw_ast_status" "$parse_end" "$input_bytes" "$consumed_pct" "$rust_json" "$rust_raw_ast_json" "$diff_json" <<'ENTRY'
+    python3 - "$grammar" "$rust_parse" "$rust_parse_full" "$overall" "$notes" "$rust_rule_count" "$raw_ast_status" "$parse_end" "$input_bytes" "$consumed_pct" "$rust_json" "$rust_raw_ast_json" "$envelope_json" "$envelope_ceiling" "$diff_json" <<'ENTRY'
 import json,sys,os
 (
     grammar, rust_parse, rust_parse_full, overall, notes,
     rust_rule_count, raw_ast_status,
     parse_end, input_bytes, consumed_pct,
-    rust_json_path, rust_raw_ast_json_path, out_path
+    rust_json_path, rust_raw_ast_json_path, envelope_json_path, envelope_ceiling, out_path
 ) = sys.argv[1:]
 
 payload = {
@@ -287,11 +466,19 @@ payload = {
     "rust_parse_end": None if parse_end == "-" else int(parse_end),
     "input_bytes": None if input_bytes == "-" else int(input_bytes),
     "consumed_pct": None if consumed_pct == "-" else float(consumed_pct),
+    "envelope_divergence_ceiling": int(envelope_ceiling),
     "artifacts": {
         "rust_json": rust_json_path if os.path.exists(rust_json_path) else None,
         "rust_raw_ast_json": rust_raw_ast_json_path if os.path.exists(rust_raw_ast_json_path) else None,
+        "envelope_differential_json": envelope_json_path if os.path.exists(envelope_json_path) else None,
     },
 }
+
+# LANG-CAPABILITY-AUDIT.10.6 part 2 - carry the FULL envelope differential, divergence list and
+# ground-truth verdicts included, so a failing run is diagnosable straight from the artifact
+# instead of needing the gate re-run by hand.
+if os.path.exists(envelope_json_path):
+    payload["envelope_differential"] = json.load(open(envelope_json_path))
 
 if os.path.exists(rust_json_path):
     payload["rust_report"] = json.load(open(rust_json_path))
@@ -301,7 +488,7 @@ with open(out_path, "w") as fh:
     fh.write("\n")
 ENTRY
 
-    echo "${grammar},${rust_parse},${rust_parse_full},${rust_rule_count},${raw_ast_status},${parse_end},${input_bytes},${consumed_pct},${overall},${notes}" >>"$SUMMARY_CSV"
+    echo "${grammar},${rust_parse},${rust_parse_full},${rust_rule_count},${raw_ast_status},${parse_end},${input_bytes},${consumed_pct},${envelope_tokens},${envelope_agree_pct},${envelope_div},${envelope_ceiling},${envelope_equiv},${overall},${notes}" >>"$SUMMARY_CSV"
 done
 
 python3 - "$WORK_DIR" "$SUMMARY_JSON" <<'PY'
