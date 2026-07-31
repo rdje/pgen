@@ -852,10 +852,92 @@ per [[feedback_flow_findings_are_routed_not_worked]] it is routed to **`.4`** �
 already names this roadmap as the worst self-refuting offender (~3.3 months). Only the file
 reference was corrected here; the stale verdict was deliberately left for `.4` to adjudicate.
 
-### `.1c3` — the delete (`todo`)
+### `.1c3` — the delete (`done`)
 
-Delete the file, re-run the 452-ID census, and re-run the full doctrine enforcer + the done-bar
-audit and probe driver to prove nothing went red.
+**`LIVE_ACHIEVEMENT_STATUS.md` is deleted.** Final measurement, taken the moment before:
+**1 563 641 B / 1 684 lines / 856 `Tracker note (` entries.**
+
+#### ⭐ The census was RE-MEASURED, not quoted — and the number had moved
+
+`.1a` measured 452 slice IDs. Re-run at this leaf: **467**. The tracker kept accruing citations
+between `.1a` and here, so quoting the old figure would have certified a delete against a
+15-ID-smaller file than the one actually being removed. This is
+[[feedback_read_prior_art_before_designing]] doing real work rather than ceremony.
+
+| census | before the delete | after the delete |
+|---|---|---|
+| distinct `PGEN-<FAMILY>-<NNNN>` IDs the file cited | **467** | 467 (read from `git show HEAD:…`) |
+| reachable from a durable layer WITHOUT it | **467 / 467 — 100.0 %** | **467 / 467 — 100.0 %** ✅ |
+| ⛔ orphaned | **0** | **0** ✅ |
+| (cross-check) also in git commit messages | 443 / 467 | — |
+
+⇒ **nothing was lost.** 1 765 durable-layer files / 124.3 MB scanned, with the tracker excluded.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — a 1 563 641 B file, 94.7 % dated changelog, named LIVE. `.1a`/`.1b`
+  removed every gate read, `.1c1` built the replacement, `.1c2` retired every dependent referrer;
+  what remained was the file itself and **2 path-only referents that could not move before it**.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow tier. The two referents are not
+  content readers, they are **existence** assertions, and one of them is an EXACT-SET comparison:
+
+  ```
+  $ awk 'NR>=310 && NR<=322' rust/scripts/ci_workflow_local_gate.sh
+      actual_snapshot="$(printf '%s\n' "${actual_root_md[@]}")"     # <- git ls-files, root *.md
+      if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
+        fail "root markdown allowlist drift detected; …"
+  ```
+
+  **WHY that forces atomicity**: the roster is compared *verbatim* against `git ls-files`. Removing
+  the entry while the file is tracked leaves `expected` one element short ⇒ FAIL; deleting the file
+  while the entry stands leaves `actual` one short ⇒ FAIL. **Only the simultaneous change passes** —
+  so `.1c2` deliberately left both behind rather than splitting them from the delete.
+- [x] **FIX** — one commit: `git rm LIVE_ACHIEVEMENT_STATUS.md`, the roster entry removed (with an
+  in-place comment recording *why* it had to move in this same commit), and the file dropped from
+  `check_diagnostics_and_docpaths.sh`'s guarded pathspec.
+- [x] **ADDRESSED (verified)** — measured before → after:
+
+  | measurement | before | after |
+  |---|---|---|
+  | `LIVE_ACHIEVEMENT_STATUS.md` | 1 563 641 B / 1 684 lines / 856 tracker notes | **deleted** ✅ |
+  | slice IDs reachable from a durable layer | 467/467 | **467/467** ✅ |
+  | scripts that READ the path | 0 | **0** ✅ |
+  | tracked references to the path | 14 files | 14 files — **every one a comment, docstring or JSON prose**, verified line by line ✅ |
+  | `audit_root_markdown_surface` (exact-set) | PASS | **PASS** ✅ |
+- [x] **THE ATOMICITY WAS REQUIRED — proven, not asserted.** A claim that two edits *had* to land
+  together is worth nothing unless the alternative is shown to fail:
+
+  | control | result |
+  |---|---|
+  | file deleted **and** roster entry removed (what shipped) | **PASS** — *"the exact-set roster matches `git ls-files`"* ✅ |
+  | file deleted, roster entry KEPT (the split-commit alternative) | ⛔ **`fail`** — *"root markdown allowlist drift detected"* ✅ |
+
+  ⇒ had `.1c2` retired this referent with the others, it would have shipped a red gate.
+- [x] **NO REGRESSION** — `bash -n` clean on both edited shell files (⚠️ `shellcheck` **not
+  installed** — stated, not implied). ⛔ No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*`
+  touched ⇒ all generated parsers **byte-identical BY CONSTRUCTION**. The register is untouched, so
+  no status claim moved. Oracles re-run **after** the delete:
+
+  | oracle | result |
+  |---|---|
+  | `bash scripts/check_doctrines.sh` | **ALL 15 doctrines PASS** ✅ |
+  | `scripts/check_diagnostics_and_docpaths.sh` (its own surface list changed) | **OK** ✅ |
+  | `scripts/check_published_version_currency.sh` | **OK** — book snapshot 10/10 == register ✅ |
+  | `scripts/check_readme_stability.sh` | **OK** — 178/220 lines, 8 313/10 240 bytes ✅ |
+  | `bash scripts/audit_done_bar.sh` | **exit 0** ✅ |
+  | `run_done_bar_probes.sh` | **16/16** ✅ |
+  | `run_published_version_currency_probes.sh` | **11/11** ✅ |
+  | `make -C rust SHELL=/bin/bash mdbook_docs_gate` | **PASS**, and this time it left the tree clean ✅ |
+  | `audit_root_markdown_surface` + its negative control | **PASS / correctly FAILS** ✅ |
+
+  ⚠️ `ci_workflow_local_gate` end-to-end is still blocked by the two PRE-EXISTING defects routed to
+  `CI-PARITY-GATE-ROT.20` — **unchanged by this leaf, and still not claimed.**
+- [x] **LOCKSTEP** — `ci_workflow_local_gate.sh` roster comment, `check_diagnostics_and_docpaths.sh`
+  header, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+
+⭐ **The tree's thesis, closed:** the file is not purged, it is **gone**, and what replaced it cannot
+rot the same way — a schema-bounded JSON field for the claim, a gate-held book table for the view,
+and an overflow rule that no longer points at an uncapped prose file.
 
 #### ⭐⭐⭐ ANVIL CORRECTION (2026-07-31) — *"reference count is not a dependency measure"*
 

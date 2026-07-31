@@ -1,5 +1,36 @@
 # CHANGES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0007 — leaf LIVE-MEANS-LIVE.1c3: LIVE_ACHIEVEMENT_STATUS.md is DELETED
+
+Two shell edits + the delete. No `grammars/*.ebnf`, no `rust/src/*`, no `generated/*` ⇒ all
+generated parsers byte-identical BY CONSTRUCTION. The register is untouched, so no status claim
+moved — this commit removes a container, not a claim.
+
+- 🗑️ **`LIVE_ACHIEVEMENT_STATUS.md` deleted.** Final measurement, taken the moment before:
+  **1 563 641 B / 1 684 lines / 856 `Tracker note (` entries.** The director's order —
+  *"Live means live, fullstop"* → *"go for migrate-and-delete"* — is executed.
+- ⭐ **The losslessness census was RE-MEASURED, and the number had moved: 452 → 467.** The tracker
+  kept accruing citations after `.1a` measured it, so quoting the old figure would have certified
+  the delete against a smaller file than the one actually removed. **467/467 slice IDs remain
+  reachable** from a durable layer with the tracker excluded (1 765 files / 124.3 MB scanned) — both
+  before and after. **Zero orphans.**
+- ⭐⭐ **The two remaining referents had to move in THIS commit, and that was proven rather than
+  asserted.** `ci_workflow_local_gate.sh`'s root-markdown roster is an EXACT-SET comparison against
+  `git ls-files`: remove the entry early and `expected` is one short; delete the file late and
+  `actual` is one short. Both directions FAIL. Negative control run: with the entry kept, the audit
+  reports *"root markdown allowlist drift detected"*; with both moved together it PASSES. Had `.1c2`
+  retired this referent alongside the others, it would have shipped a red gate.
+- ✅ Every one of the 14 tracked files still containing the string was checked line by line: all are
+  comments, a Python docstring, or JSON prose describing the migration. **Zero scripts read the path.**
+- Oracles after the delete: `check_doctrines.sh` **15/15**, docpath OK, currency OK (10/10),
+  readme-stability OK, `audit_done_bar.sh` exit 0, done-bar probes **16/16**, currency probes
+  **11/11**, `mdbook_docs_gate` PASS, `audit_root_markdown_surface` PASS + its negative control
+  correctly FAILS.
+- ⚠️ `ci_workflow_local_gate` end-to-end remains blocked by the two PRE-EXISTING defects routed to
+  `CI-PARITY-GATE-ROT.20` — unchanged by this leaf, and still not claimed as a pass.
+- Live-status snapshot **unchanged** (still 0 `Done` rows). It is now published at
+  `docs/book/src/roadmap-and-live-status.md`, gate-held equal to the register.
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0006 — leaf LIVE-MEANS-LIVE.1c2: every referrer that DEPENDS on the tracker is retired; only the three that narrate its deletion remain
 
 Docs + doctrine enforcers + the tracked per-parser book HTML. No `grammars/*.ebnf`, no

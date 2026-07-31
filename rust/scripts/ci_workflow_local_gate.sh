@@ -283,7 +283,14 @@ audit_root_markdown_surface() {
     "DOCTRINE_ENFORCEMENT.md"
     "GEMINI.md"
     "KNOWLEDGE_MAP.md"
-    "LIVE_ACHIEVEMENT_STATUS.md"
+    # LIVE-MEANS-LIVE.1c3 (2026-07-31): LIVE_ACHIEVEMENT_STATUS.md is DELETED. Its one load-bearing
+    # value — the hand-authored family-status claim — moved to `claimed_status` in
+    # rust/test_data/grammar_quality/done_bar_family_register_v0.json (.1a), and its human view to
+    # docs/book/src/roadmap-and-live-status.md under a gate (.1c1). The file was 1,547,057 B of which
+    # 94.7 % was 856 dated tracker notes; all 467 slice IDs it cited were re-measured as 467/467
+    # reachable from a durable layer without it, so the delete is provably lossless.
+    # ⚠️ This roster is an EXACT-SET comparison against `git ls-files`, so this entry had to be
+    # removed in the SAME commit as the file — earlier and the audit fails, later and it also fails.
     "MEMORY_ARCHITECTURE.md"
     "MEMORY.md"
     "PGEN_USER_GUIDE.md"

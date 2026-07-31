@@ -12,7 +12,9 @@
 #       repo-root-RELATIVE, never a checkout-specific absolute path capturing a local home
 #       dir. Surfaces: docs/book/src, docs/contracts, PGEN_USER_GUIDE.md, README.md,
 #       docs/tasks, docs/decisions, KNOWLEDGE_MAP.md, docs/knowledge,
-#       LIVE_ACHIEVEMENT_STATUS.md. Append-only history (CHANGES.md/DEVELOPMENT_NOTES.md)
+#       (LIVE_ACHIEVEMENT_STATUS.md was on this list until LIVE-MEANS-LIVE.1c3 deleted the file;
+#       its successor surfaces docs/book/src/** and docs/tasks/** are already covered above.)
+#       Append-only history (CHANGES.md/DEVELOPMENT_NOTES.md)
 #       and repo-EXTERNAL paths (point outside the repo; no repo-relative form) are out of
 #       scope. (PGEN-DOCPATH-0001 seeded book+contracts+guide+README; PGEN-DOCPATH-0002 /
 #       leaf DOCPATH.1 extended the guarded surface set to the rest of the live docs.)
@@ -50,7 +52,7 @@ fi
 # history (CHANGES.md/DEVELOPMENT_NOTES.md) are deliberately out of scope.
 absolute="$(git grep -nIE '/Users/[^ )`]*/pgen/' -- \
   'docs/book/src/**' 'docs/contracts/**' 'PGEN_USER_GUIDE.md' 'README.md' \
-  'docs/tasks/**' 'docs/decisions/**' 'KNOWLEDGE_MAP.md' 'docs/knowledge/**' 'LIVE_ACHIEVEMENT_STATUS.md' \
+  'docs/tasks/**' 'docs/decisions/**' 'KNOWLEDGE_MAP.md' 'docs/knowledge/**' \
   2>/dev/null || true)"
 if [ -n "$absolute" ]; then
   echo "docpath: FAIL — a LIVE doc carries a repo-internal ABSOLUTE path; make it repo-root-relative:" >&2

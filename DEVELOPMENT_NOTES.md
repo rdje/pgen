@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0007 — an EXACT-SET check makes a retirement atomic, and a re-measured census is not ceremony
+
+`LIVE-MEANS-LIVE.1c3`, the leaf that deletes the file the tree is named for.
+
+- ⭐⭐⭐ **Re-measuring the census changed the answer: 452 → 467.** `.1a` established losslessness at
+  452 slice IDs. Between then and the delete the tracker kept accruing citations, so the file
+  actually removed was **15 IDs larger** than the one certified. Quoting would have been *nearly*
+  right, which for a delete is the worst kind of wrong. ⇒ [[feedback_read_prior_art_before_designing]]
+  is not a politeness rule about citing sources; it is about the source having **moved**. The
+  discipline pays exactly when the gap is small enough that nobody would have noticed.
+- ⭐⭐ **An exact-set comparison converts an ordinary reference into an atomicity constraint, and it
+  is invisible from a `grep`.** `ci_workflow_local_gate.sh`'s root-markdown roster is compared
+  verbatim against `git ls-files`. That means the reference cannot be retired *before* the delete
+  (expected one short) or *after* it (actual one short) — only *with* it. A `grep -l` shows this
+  identically to a comment mentioning the same filename. ⇒ **when planning a retirement, the
+  question is not "who references this" but "who would BREAK, and in which direction".** This is the
+  same lesson `.1c`'s 96→1→2 correction taught, arriving from the opposite side: there the mechanism
+  was stronger than assumed, here it is *differently shaped* than assumed.
+- ⭐ **I proved the atomicity instead of asserting it.** It would have been easy to write "these had
+  to land together" and move on. Running the split-commit alternative and watching it emit
+  *"root markdown allowlist drift detected"* costs one minute and turns a design claim into a
+  measurement. The repo's own rule — *a box is EARNED, not ticked* — applies to reasoning about
+  sequencing just as much as to test results.
+- ⭐ **What replaced the file cannot rot the same way, and that is the actual deliverable.** Purging
+  856 tracker notes would have reset a clock. What shipped instead: the claim in a **schema-bounded
+  JSON field**, its human view in a **gate-held** book table, and — the piece that closes the causal
+  loop — `check_readme_stability.sh` no longer routing overflow into an uncapped prose file. The
+  original defect was never "this file is big"; it was "a cap that redirects content has moved the
+  problem to whichever neighbouring surface has no instrument."
+
 ## 2026-07-31 - PGEN-LIVE-MEANS-LIVE-0006 — when the oracle you need is blocked, measure what it would have measured; never quietly claim it
 
 `LIVE-MEANS-LIVE.1c2`. Three things worth keeping.
