@@ -1,5 +1,37 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0166 — leaf SV-EXH-PROOF.7.4.6.9: class A is a GENERATOR failure, not a parser one — the leaf's own premise is DISPROVEN
+
+Docs-only. `.7.4.6.9` was written to open with a parser-side branch-selection trace. The measured
+data says that instrument would have been pointed at the wrong subsystem entirely.
+
+- ⛔ **THE PREMISE IS DISPROVEN.** The leaf describes class A as *"witness generated, target not
+  credited"*. The reason code says the opposite: **81 of 83** residual targets are
+  `selected_but_failed`, which per `stimuli_generator.rs:2686-2693` means `selected_hits > 0 &&
+  success_hits == 0` — and those counters are the **stimuli generator's**, not the parser's
+  (`record_branch_selected` fires at the top of the generator's ordered-choice attempt loop,
+  `:10302`; `record_branch_success` only where a body actually generates). ⇒ **no witness is ever
+  produced**. It is a generation failure.
+- ⇒ **Two of the leaf's three candidates are in the wrong subsystem.** "PEG ordered-choice
+  shadowing" and "the post-transform parser never selects that branch index" are both statements
+  about the *parser*. Only candidate (iii), generator-side depth/recursion exhaustion, survives —
+  and it is **not yet the answer either**, because `.7.4.6.8` measured `depth_exceeded=0` on the
+  same run. The open question is now sharply posed instead of plausibly answered.
+- ⭐ **An exact structural partition, from data rather than reading.** `prop_primary` has 30
+  alternatives; the residual indices are **byte-identical in both LRM profiles**: `{3..27, 29}`.
+  The four covered branches (`#0 sequence_expr`, `#1 strong`, `#2 weak`, `#28 property_instance`)
+  are precisely the ones that never re-enter `property_expr`; all 26 residual branches do — the
+  only indirect one, `#10 kw_case`, reaches it via `property_case_item`, which is itself residual.
+  **A branch is covered iff its generation need not produce a `property_expr`.**
+- ⭐ **Class A is ONE cone of 79, not 79 defects** — and not the 40 the leaf claims (that was a
+  stale per-profile figure from before class B was eliminated). Every one of the 27 non-`prop_primary`
+  targets was checked branch-by-branch and is a *container* whose body is an assertion entry
+  (`assertion_item_declaration#0`, `clocking_item#2`, `statement_item#19`, …). A fix that makes
+  `property_expr` generable should move ~79 targets at once; one that moves a few is the wrong fix.
+
+The residual ratchet from `-0165` made this diagnosis cheap: the per-target manifest it emits is
+where the reason histogram and the exact branch-index sets came from — no gate run required.
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0165 — leaf SV-EXH-PROOF.7.4.6.10: the SV closed-loop residual is RATCHETED — the 44 targets `.7.4.6.11` won are now banked
 
 `.7.4.6.11` won 44 coverage targets and **nothing protected them**. The residual

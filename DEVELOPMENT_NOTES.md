@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0166 — read the instrument's own definition before you read its output
+
+Three lessons from `SV-EXH-PROOF.7.4.6.9`'s WHY+WHERE, each general beyond SystemVerilog.
+
+**1. A reason code is an API, and paraphrasing it is how a campaign points its tools at the wrong
+subsystem.** Class A had been carried for three slices as *"witness generated, target not
+credited"* — a phrase that sounds like a faithful gloss of `selected_but_failed` and is not one.
+The code is defined at `stimuli_generator.rs:2686-2693` as `selected_hits > 0 && success_hits == 0`,
+and both counters are written by the **stimuli generator's** ordered-choice loop, not the parser.
+Read that way it means *the generator tried to emit this branch and could not* — no witness exists
+at all. The paraphrase had already produced a plan: the leaf's step 1 was a parser-side branch-
+selection trace, which would have measured a subsystem that is not where the defect lives. ⇒ **when
+a diagnosis rests on a status value, open the code that assigns it before designing around it.**
+
+**2. "Which cases are NOT failing" is often the sharper question.** The residual list is 26 of 30
+branches — a big, shapeless-looking blob. The *covered* set is four items, and four items can be
+read exhaustively. Those four turned out to be exactly the branches that never re-enter
+`property_expr`, which converts a 26-item symptom into a one-sentence hypothesis with zero
+exceptions in either direction. **Partition on the complement when the failing set is large and the
+passing set is small**; the passing set is where the discriminating variable is legible.
+
+**3. The instrument built one slice ago paid for itself immediately.** Every number above — the
+reason histogram, the exact branch-index sets, the byte-identical agreement across both LRM
+profiles — came from `closed_loop_replay_targets.json`, the per-target manifest that `-0165` added
+because a *previous* slice had to infer a moved target's identity from an aggregate count. It cost
+~15 lines and turned this diagnosis from a 31-minute gate run into a `jq` query. **When a slice
+routes "we could not see X" to a later leaf, emitting X is usually cheaper than the workaround it
+replaces.**
+
+**Corollary on counting.** The leaf said class A was 40; it is 79. The 40 was a *per-profile* figure
+recorded before class B was eliminated, and it survived into a Goal statement as if it were a total.
+Numbers copied forward across slices decay silently — **re-derive the count from the current
+artifact whenever it is about to size a decision.**
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0165 — a ratchet inherits every weakness of the metric it guards
 
 Four lessons from `SV-EXH-PROOF.7.4.6.10`, each general beyond SystemVerilog.
