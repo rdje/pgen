@@ -1,5 +1,30 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-LESSON-RETRIEVAL-0003 — a gate nobody has watched FAIL is decoration
+
+Two lessons from `LESSON-RETRIEVAL.4`.
+
+**1. The false-positive controls are the ones that decide whether a gate survives.** It is easy to
+prove a new gate blocks the bad case — stage the omission, watch `exit 1`. The cases that determine
+whether the gate is still enabled in a month are the ones where it must stay *silent*: editing an
+existing lesson entry, and a commit that never touches the file at all. Both are pinned as explicit
+probe cases. A gate that fires on ordinary work gets waived, and a waived gate is worse than no gate
+because it still reports green. ⇒ **when adding an enforcer, spend as much proof on what it must NOT
+block as on what it must.**
+
+**2. Enforce a DECISION, not an outcome.** The obvious design — "a new lesson must be promoted" —
+would have been wrong and quickly hated: most lessons are per-slice history that *should* stay in the
+chronological file. Demanding promotion would push noise into the retrieval surface, which is the
+failure mode of the thing being fixed. Demanding that the author *decide*, with `promotion: declined
+(<reason>)` as a first-class pass, costs one line and preserves judgement. ⇒ **when a rule has a
+legitimate "no" answer, gate the decision rather than the answer.**
+
+**Corollary on honest limits.** The check verifies a decision was recorded, not that it was correct;
+`declined (n/a)` passes. That limit is written into the script's own header rather than left for a
+reader to discover — the same discipline `check_design_prior_art.sh` states about verifying a search
+was *recorded*, not *thorough*. **An evidence check that hides its own bound is making a stronger
+claim than it can support.**
+
 ## 2026-08-01 - PGEN-LESSON-RETRIEVAL-0001 — writing a lesson down is not the same as being able to find it
 
 Three lessons from `LESSON-RETRIEVAL.1`. ⭐ This entry is itself the exhibit: it is lesson #1 593 in a

@@ -4,7 +4,36 @@ description: "STANDING DIRECTIVE (director, 2026-08-01): the director steers OBJ
 metadata:
   node_type: memory
   type: feedback
+id: feedback-answer-your-own-technical-questions
+title: The director steers OBJECTIVES — technical questions AND execution sequencing are the engineer's to answer
+date: 2026-08-01
+answers:
+  - "should I ask the director which of two approved lanes to do first"
+  - "is choosing the order of work a director call"
+  - "when is escalating to the director appropriate"
+  - "what counts as an objective/scope question versus a task"
+  - "I have a deep technical question — do I ask or answer it myself"
+  - "must I be able to disprove my own claims"
+reverify: sed -n '/SEQUENCING IS EXECUTION/,/^$/p' docs/decisions/feedback_answer_your_own_technical_questions.md
 ---
+
+**⭐ SEQUENCING IS EXECUTION, NOT OBJECTIVE-SETTING (director, 2026-08-01, sharpening this same
+record the day it was written).** Having approved two lanes, the engineer asked which to run first.
+The director's answer:
+
+> *"Regardless of the order the sweep and `SV-EXH-PROOF.7.4.6.9` or vice-versa I am fine with it.
+> Honestly, there was no reason to ask me this question. You could have sequenced them your way."*
+
+⇒ Once scope is set, **ORDERING the approved work is the engineer's call** — it is not a scope
+question merely because it concerns two lanes. Escalate only when the answer would CHANGE WHAT gets
+built (objective, priority, scope, cost the director is paying), never when it only changes WHEN.
+A menu offered where a decision was owed is the [[feedback_pinpoint_real_blocker_not_menu]] failure
+wearing a scheduling costume.
+
+⛔ **Corollary on vocabulary:** the same message asked *"what's the sweep about"* — the escalation
+used an internal shorthand the director had never been given. If a question is worth asking at all,
+it must be self-contained; if it needs a glossary, it was probably not a director question.
+
 
 **STANDING DIRECTIVE (director, 2026-08-01):** *"That is a very technical question that as a
 director I can't answer, in all honesty. … you are the elite, expert coder, programmer with a deep

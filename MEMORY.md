@@ -12,7 +12,7 @@
 ## How to resume
 - Read `MEMORY_ARCHITECTURE.md` (memory/continuity), `README.md` (project), and `TOOLBOX.md` (debug toolbox — USE FIRST).
 - Work is tracked in task-trees under `docs/tasks/`; index `docs/TASK_TREE.md`; commit per `COMMIT.md`.
-- Durable facts / standing directives / decisions: `docs/decisions/INDEX.md` (137 records — **the authoritative list**). Live status: `docs/book/src/roadmap-and-live-status.md`; changelog: `CHANGES.md`.
+- Durable facts / standing directives / decisions: `docs/decisions/INDEX.md` (142 records — **the authoritative list**). Live status: `docs/book/src/roadmap-and-live-status.md`; changelog: `CHANGES.md`.
 - ⛔ A code change MUST pass the **acceptance checklist** (ROOT CAUSE + ADDRESSED + NO REGRESSION, evidence-backed) in its task leaf — enforced by `scripts/check_doctrines.sh` via `.githooks/pre-commit` (run `git config core.hooksPath .githooks` once per clone).
 
 ## North star (pointers only — the layer-C record is authoritative, this is not a summary)
@@ -28,7 +28,7 @@
 - **Project data stays on the repo's volume** → [[project_data_locality_same_volume]]; reclaim artifacts routinely, proving safety each time → [[feedback_delete_reclaimable_artifacts_regularly]]; the portable spine is a separate repo → [[project_bedrock_spine_repo]].
 
 ## Current state (OVERWRITE this block each update — do not append)
-- **latest_commit**: `PGEN-LESSON-RETRIEVAL-0001` — ⭐ lessons are **stored** (slice task-trees, with context) but not **retrievable**: 1592 `DEVELOPMENT_NOTES` lessons sit outside the KM scan dirs; 142 decisions sit inside one but **0** carry `answers:`. KM **35→37**. Prior: `-0166` (`.7.4.6.9`) — ⛔ premise **DISPROVEN**: class A is a **GENERATOR** failure, not "witness not credited". `-0165` (`.7.4.6.10`) — ⭐ **RESIDUAL RATCHETED** `42`/`41`.
+- **latest_commit**: `PGEN-LESSON-RETRIEVAL-0003` — ⭐ **LESSON LEAK CLOSED**: `LESSON-PROMOTION` = doctrine **#17**; a new `DEVELOPMENT_NOTES` lesson must be promoted or explicitly declined (7/7 probes). KM **35→49**. ⛔ `.3` sweep 11/142 (~74 need front-matter at line 1). Prior: `-0166` (`.7.4.6.9`) — ⛔ premise **DISPROVEN**: class A is a **GENERATOR** failure, not "witness not credited". `-0165` (`.7.4.6.10`) — ⭐ **RESIDUAL RATCHETED** `42`/`41`.
 - **active_work_unit**: **`SV-EXH-PROOF.7`** — ✅ **DIRECTOR-CHOSEN LANE, 2026-07-31** (*"-> SV-EXH-PROOF.7"*), after pausing the live-docs axis (*"we are spending way too much time on these live-docs size, we need to pause and switch back to feature related work"*) → [[feedback_prefer_feature_work_over_governance_lanes]]. ⛔ `LIVE-MEANS-LIVE` stays `active` with `.6` `.7` `.8` open but **PARKED, not abandoned** — do NOT pull them forward.
 - **next_action**: **`.7.4.6.9`** — ⛔ do NOT run its Goal's Protocol D step (parser-side; wrong subsystem). Class A is **ONE CONE of 79**: a `prop_primary` branch is covered **iff** it need not generate a `property_expr` (exact, both profiles). Next = a GENERATOR-side trace of why an attempted branch emits nothing while `depth_exceeded=0`. `.7.4.6.12` (class C, 4) stays **PARKED ON VALUE**. SV gate ~31 min.
 - ⭐ **residual = 83, DETERMINISTIC, RATCHETED** — moving it EITHER way fails the gate (wins must be banked). **A** cone **79** · **B** **0 ✅** · **C** **4**. ⛔ When `.7.4.6.9` lands, **LOWER the pins** (`closed_loop.replay_target_ceilings`) — the gate FAILS until you do, by design.
@@ -38,6 +38,6 @@
 - ⚠️ **sweep traps**: `LANG-CAPABILITY-AUDIT.10.3` + `CI-PARITY-GATE-ROT.19` (generated-artifact sweeps); `.4b` item 2 (markdown sweeps).
 - **blockers**: none. ⏳ Three **director calls** open (⛔ all OBJECTIVE/SCOPE — never escalate a technical one → [[feedback_answer_your_own_technical_questions]]): `LESSON-RETRIEVAL.2` back-fill scope; a priced `schedule:` lane for `sota_exit_gate`; the ANVIL README-policy feedback.
 - **routed, waiting behind product** (do NOT pull forward): `LANG-CAPABILITY-AUDIT.10.12`/`.10.8`/`.10.13`/`.10.14`/`.3c`, `CI-PARITY-GATE-ROT.10`/`.11` remainder/`.16`/`.17`/`.18`, `OPS-MEMSAFE.4` (⭐ 3 markers routed in at `-0165`), `DOCTRINE-GAP-OWNERSHIP.3`, `DONE-BAR.5d` gate/`.5f`.3/`.5g`, `README-POLICY.3`/`.6`.
-- **push**: 141 commits ahead of `origin/main` (as of this commit). ⛔ Cadence is **300 unpushed OR an explicit exceptional order** — never ask or suggest below 300 → [[feedback_push_pacing]].
+- **push**: 144 commits ahead of `origin/main` (as of this commit). ⛔ Cadence is **300 unpushed OR an explicit exceptional order** — never ask or suggest below 300 → [[feedback_push_pacing]].
 - **live doctrine anchor** (kept here deliberately — `REGEX-ORACLE-ANCHOR-SYNC` checks every occurrence in this file against the contract): regex oracle real tuple **`2189/1879/262/48`**.
-- **flow health**: `sota_exit_gate` last green at `CI-PARITY-GATE-ROT.7` (32/32, 4h39m); UNBLOCKED since `.10.9` but not re-proven end-to-end. Automatic CI tier = the **16** doctrines per push + 3 cheap gate targets; the other 120 `make` targets are operator-invoked.
+- **flow health**: `sota_exit_gate` last green at `CI-PARITY-GATE-ROT.7` (32/32, 4h39m); UNBLOCKED since `.10.9` but not re-proven end-to-end. Automatic CI tier = the **17** doctrines per push + 3 cheap gate targets; the other 120 `make` targets are operator-invoked.

@@ -1,5 +1,29 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-LESSON-RETRIEVAL-0003 — leaf LESSON-RETRIEVAL.4: the leak is CLOSED — `LESSON-PROMOTION` is the 17th enforced doctrine
+
+A lesson written to `DEVELOPMENT_NOTES.md` can no longer be silently dropped. The mechanism to make
+one retrievable existed, was wired, and was skipped **1 592 times** — because nothing ever asked.
+
+- ⭐ **The gate demands a DECISION, not a promotion.** A commit staging a new dated lesson heading
+  must also stage either a promotion (a `docs/knowledge/` card, or `answers:` on a `docs/decisions/`
+  record) or an explicit `promotion: declined (<reason>)` in its task leaf. **Declining is a
+  first-class outcome** — most lessons are per-slice history and belong exactly where they are.
+- ✅ **A doctrine check, not a `COMMIT.md` reminder** — the director's call, for the reason the
+  measurement gives: a reminder had already lost 1 592 times.
+- ⭐ **BOTH DIRECTIONS PROVEN END-TO-END on the real script**, driving it against a scratch git repo
+  with genuine staged index states so `git diff --cached` is actually exercised — **6/6**:
+  blocked-with-no-decision `exit 1`; both promotion paths `exit 0`; the decline token `exit 0`; and
+  **two false-positive controls** — editing an existing entry, and a commit that never touches
+  `DEVELOPMENT_NOTES.md` — both `exit 0`. A gate that fired on those would be waived within a week.
+- ✅ Ground truth also sits *inside* the instrument: 7 pinned controls run through the shipping
+  decision function on every invocation, exit 2 on a miss.
+- ⚠️ **Honest limit, in the script's own header rather than hidden:** it verifies a decision was
+  *recorded*, not that it was *correct*. A lazy `declined (n/a)` passes. What becomes impossible is
+  the silent omission — the measured failure.
+
+`meta:mirror` now reports *"exactly the 17 registered doctrines"*; all 17 pass.
+
 ## 2026-08-01 - PGEN-LESSON-RETRIEVAL-0001 — lessons were STORED but not RETRIEVABLE; the Knowledge Map gains its first two promotions
 
 Opened by director directive while reviewing `-0166`: are these conclusions *"stored, saved,

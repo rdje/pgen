@@ -123,7 +123,18 @@ is not yet a fact — it is a hypothesis.
   Commit: `pending`
 
 - ID: `LESSON-RETRIEVAL.4`
-  Status: `pending` — ✅ **DIRECTOR DECIDED 2026-08-01: build the DOCTRINE CHECK** (`scripts/check_lesson_promotion.sh`, wired through `check_doctrines.sh` into the pre-commit hook + CI), not a `COMMIT.md` reminder. Rule: a staged dated `DEVELOPMENT_NOTES.md` entry requires either a `docs/knowledge/` change or an explicit decline token in the owning task leaf.
+  Status: `done` (`PGEN-LESSON-RETRIEVAL-0003`) — ⭐ **THE LEAK IS CLOSED.** `LESSON-PROMOTION` is the repo's **17th** enforced doctrine; both directions proven on the real script.
+  Verification: `done -- scripts/check_lesson_promotion.sh, registered in scripts/check_doctrines.sh and mirrored into DOCTRINE_ENFORCEMENT.md §10 (meta:mirror now reports "exactly the 17 registered doctrines"); ALL 17 PASS.
+  ⭐ BOTH DIRECTIONS PROVEN END-TO-END, not asserted: docs/tasks/artifacts/lesson_retrieval/run_lesson_promotion_probes.sh drives the REAL shipping script against a scratch git repo with genuine staged index states (so `git diff --cached` is actually exercised), 6/6 PASS --
+  * blocked_no_decision exit 1 -- a new dated lesson with neither promotion nor decline is BLOCKED;
+  * promoted_knowledge exit 0 -- a docs/knowledge/ card satisfies it;
+  * promoted_decision exit 0 -- `answers:` added to a docs/decisions/ record satisfies it;
+  * declined_token exit 0 -- an explicit `promotion: declined (<reason>)` in a task leaf satisfies it;
+  * ⭐ edit_not_new_lesson exit 0 and unrelated_commit exit 0 -- the TWO FALSE-POSITIVE CONTROLS. Editing an existing entry is not a new lesson, and a commit that never touches DEVELOPMENT_NOTES.md is untouched. A gate that fires on those would be waived within a week.
+  GROUND TRUTH IS ALSO INSIDE THE INSTRUMENT: lesson_promotion_self_check drives 7 pinned cases through the shipping decision function on EVERY invocation and exits 2 on a miss ([[feedback_instrument_needs_ground_truth]]).
+  ⚠️ HONEST LIMIT, stated in the script's own header rather than hidden: this verifies a DECISION WAS RECORDED, not that it was correct -- a lazy `promotion: declined (n/a)` passes. What becomes impossible is the SILENT omission, which is the measured failure (1592 times).`
+  Commit: `PGEN-LESSON-RETRIEVAL-0003`
+  Decision_note: `✅ **DIRECTOR DECIDED 2026-08-01: build the DOCTRINE CHECK** (`scripts/check_lesson_promotion.sh`, wired through `check_doctrines.sh` into the pre-commit hook + CI), not a `COMMIT.md` reminder. Rule: a staged dated `DEVELOPMENT_NOTES.md` entry requires either a `docs/knowledge/` change or an explicit decline token in the owning task leaf.
   Goal: `ENFORCE THE PROMOTION STEP so it cannot be silently skipped -- the actual root cause, since the mechanism has existed and been ignored for 1 592 entries. Candidate designs to PRICE, not to assume: (a) a doctrine check that a commit adding a DEVELOPMENT_NOTES "## <date> - <slice>" entry also touches docs/knowledge/ OR records an explicit decline token in the task leaf; (b) a COMMIT.md workflow step; (c) a periodic drift report counting unpromoted general lessons. ⛔ (b) alone is a reminder, not an enforcer -- and this repo has measured that reminders lose: the toolbox directive needed a git-level hook before it held (DOCTRINE_ENFORCEMENT.md). Prefer (a).`
   Acceptance: `pending`
   Verification: `pending`
@@ -163,7 +174,7 @@ citation rank — the tail is mostly single-citation records where a thin `answe
 | --- | --- | --- | --- |
 | 1 | `LESSON-RETRIEVAL.2` | `pending` | ⏳ blocked on the director's scope call (A / B / C) — the only open question in this tree |
 | 2 | `LESSON-RETRIEVAL.3` | `pending` | cheapest large win: 142 already-curated records sit in a scan dir and just need `answers:` |
-| 3 | `LESSON-RETRIEVAL.4` | `pending` | the root-cause fix — without it, this tree's own lesson is forgotten the same way |
+| — | `LESSON-RETRIEVAL.4` | `done` | ⭐ the root-cause fix LANDED — `LESSON-PROMOTION` is doctrine #17, 6/6 probe cases green |
 | — | `LESSON-RETRIEVAL.1` | `done` | gap measured, mechanism proven on two real lessons |
 
 ## Acceptance Checklist (enforced) — leaf `.1`
@@ -194,6 +205,58 @@ citation rank — the tail is mostly single-citation records where a thin `answe
   gate touched.
 - [x] **LOCKSTEP** — this tree + `docs/TASK_TREE.md` index row + `KNOWLEDGE_MAP.md` (regenerated) +
   `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
+
+## Acceptance Checklist (enforced) — leaf `.4` lesson-promotion gate
+
+- [x] **REPRODUCE / ISSUE** — `grep -c '^## 2026' DEVELOPMENT_NOTES.md` → **1592** dated lesson
+  entries in a file that is not a Knowledge Map scan dir, beside
+  `grep -l '^answers:' docs/decisions/*.md | wc -l` → **0** of 142 records in a dir that IS scanned.
+  The promotion mechanism was wired and skipped every time, silently.
+- [x] **ROOT CAUSE (WHY + WHERE)** — **ops/build-flow family** (a shell/enforcer defect: no rustc
+  error and no parse to trace). Census by `git ls-files 'docs/decisions/*.md' | wc -l` → **142**
+  tracked records against `git ls-files 'docs/knowledge/*.md' | wc -l` → **35**, with
+  `git ls-files | grep -c '^DEVELOPMENT_NOTES.md'` → 1 file holding 1592 dated entries and **not**
+  listed in `knowledge-map/scripts/knowledge_map.conf`'s `KM_SCAN_DIRS`. `bash -n` on the enforcer
+  roster confirms the registry in `scripts/check_doctrines.sh` had **no** entry covering promotion.
+  WHERE: `knowledge-map/scripts/check_knowledge_map.sh` asserts only *"the committed map equals a
+  fresh regeneration"* — in sync with its SOURCES, never that a lesson REACHED a source. So the
+  omission was invisible in the PASSING direction — the same shape as the closed-loop residual being
+  `echo`ed but never compared (`SV-EXH-PROOF.7.4.6.10`), one layer up.
+- [x] **FIX** — fix-hierarchy tier: **ops/enforcer, evidence archetype**. New
+  `scripts/check_lesson_promotion.sh`, registered in `scripts/check_doctrines.sh` and mirrored into
+  `DOCTRINE_ENFORCEMENT.md` §10. It gates the **decision**, not the outcome: a promotion (a
+  `docs/knowledge/` card, or `answers:` on a decision record) OR an explicit
+  `promotion: declined (…)` both pass.
+- [x] **ADDRESSED (verified)** — named re-runnable oracle:
+  `bash docs/tasks/artifacts/lesson_retrieval/run_lesson_promotion_probes.sh` drives the REAL script
+  against a scratch git repo with genuine staged index states, **7/7 PASS**: `blocked_no_decision`
+  exit 1; `promoted_knowledge` / `promoted_decision` / `declined_token` exit 0;
+  ⭐ `documentation_mention` exit 1; and the two false-positive controls `edit_not_new_lesson` /
+  `unrelated_commit` exit 0. Plus 7 in-script controls that exit 2 on a miss, every invocation.
+  Before→after: a lesson could be dropped silently; it now cannot.
+- [x] **NO REGRESSION** — `scripts/check_doctrines.sh` **ALL 17 PASS**, `<meta:mirror>` reports
+  *"exactly the 17 registered doctrines"* (registry and human mirror agree), `bash -n` clean on both
+  new scripts, and `shellcheck`-class review of the quoting defect is pinned by the
+  `documentation_mention` probe case. The generated parsers for the six fully-certified grammars are
+  **byte-identical**: `git diff --cached --name-only` lists only `docs/`, `scripts/`,
+  `DOCTRINE_ENFORCEMENT.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md` and
+  `KNOWLEDGE_MAP.md` — **zero** paths under `rust/src/`, `grammars/` or `generated/`, so no codegen
+  ran and no parser artifact could move. The two false-positive probe controls prove ordinary
+  commits are untouched.
+- [x] **LOCKSTEP** — this tree + `DOCTRINE_ENFORCEMENT.md` §10 + `scripts/check_doctrines.sh`
+  registry + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
+
+⛔ **TWO DEFECTS IN THIS GATE, FOUND AND FIXED BEFORE IT LANDED — recorded rather than quietly
+patched.** Both were caught by running it for real rather than by reading it:
+1. **The gate was satisfied by its own documentation.** Its first live run PASSED on this very leaf,
+   because the leaf *mentions* `promotion: declined (<reason>)` while explaining the gate. A mention
+   is not a decision. Fixed by requiring a non-empty reason and rejecting the literal placeholder;
+   pinned forever as the `documentation_mention` probe case.
+2. **The probe case for (1) initially passed while testing nothing** — its prose contains backticks,
+   and inside a nested `bash -c "…"` those became command substitution, so the token was never
+   written and the case passed on an empty file. Fixed by staging through a shell function with a
+   `grep -q` setup assertion that REFUSES if the fixture was not written as intended. ⇒ **a probe
+   needs its own ground truth; "the case passed" is not evidence that the case ran.**
 
 ## Decisions
 
