@@ -166,6 +166,30 @@ section below is written on its merits, because the placement question is real.
    181 have not been re-read one by one to confirm none is a disguised changelog. `.1` must do that
    census before the tree's independence is treated as settled.
 
+### `.2` — route class 1 out: the append-only `> **Status:**` blob (`todo`, PRIORITY-FIRST when this lane is unparked)
+
+- ⭐ **DIRECTOR-DELEGATED DECISION, taken 2026-08-01** (*"the decision is your to make, you have see
+  the problem, it is not urgent … task-tree own that HTML book's blob issue and continue on
+  SV-EXH-PROOF-7.4.6.12"*). **The decision: do NOT interleave it with product work — but when this
+  lane is unparked, `.2` goes FIRST, before `.1`.** That inverts the usual measure-then-act order
+  deliberately, and the reason is that `.2` needs no rule: a per-slice changelog does not belong in
+  a reference chapter **at any threshold**, so nothing `.1` decides can change `.2`'s verdict.
+  Waiting for `.1` would hold the single largest win hostage to a policy question it does not
+  depend on.
+- **Scope:** the `> **Status:**` line in `docs/systemverilog_parser_book/src/rules-top-level.md`
+  (19 146 chars, SV-Slice-1 → SV-Slice-59) moves to that book's changelog page; the chapter keeps a
+  one-line pointer. ⛔ **ROUTED, NEVER DELETED** — the slice history is real content and the book's
+  changelog page is its home, exactly as `README-POLICY.1` routed rather than trimmed.
+- **Then close the loop so it cannot re-accumulate:** the same edit must make the *next* slice's
+  author write to the changelog page instead of the chapter, or the line simply regrows. That is
+  the `LIVE-MEANS-LIVE.2` unwatched-overflow lesson and it is the only part of `.2` that needs care.
+- **Expected effect, to be re-measured not assumed:** worst rendered `<p>` on that page
+  **19 146 → ~311** (the next-longest paragraph already in the file). The repo-wide worst then
+  becomes the main book's 7 118, which is class 2 and belongs to `.1`.
+- ⚠️ **Sweep first:** `.2` must check the other 10 books for the same append-only shape before
+  declaring class 1 closed — one confirmed member is not a census (see ROUTING EVIDENCE §3, the
+  condition that would make this tree's independence wrong and has not yet been checked).
+
 ## Acceptance Criteria (tree)
 
 `the shape rule is chosen from the measured distribution with the flagged population published;
@@ -190,3 +214,4 @@ is a re-verifiable claim to promote.)
 | slice | leaf | commit subject |
 |---|---|---|
 | `PGEN-BOOK-PARAGRAPH-SHAPE-0001` | (tree opened) | the book's walls of text are written, not stitched — 167 rendered paragraphs ≥1200 chars, worst 19 146, and the worst is an append-only changelog on one line |
+| `PGEN-BOOK-PARAGRAPH-SHAPE-0002` | `.2` (opened) | the director-delegated decision, taken: `.2` goes FIRST when unparked — a per-slice changelog does not belong in a reference chapter at any threshold, so it does not depend on `.1`'s rule |
