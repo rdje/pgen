@@ -9,8 +9,11 @@
 - Family / slice-id prefix: `PGEN-GENERATED-LINT-CORRECTNESS-<NNNN>`
 - Created: `2026-07-27`
 - Owner: repo-local workflow
-- **Frontier: (none — tree COMPLETE)** — `.1`–`.6` all `done` (2026-07-27, sessions #214–#216).
-  `.5` + `.6` closed by `PGEN-GENERATED-LINT-CORRECTNESS-0007` on direct director order.
+- **Frontier: `.7`** (opened 2026-08-01 — a SIXTH diagnosis family for the generator/coverage
+  diagnostics, **director-approved CONDITIONALLY**: *"if you find a misbehavior in the enforcer"*.
+  Measure first; `.4` refuted its own chartered family by pricing it, and a refusal is a valid
+  outcome here too). `.1`–`.6` all `done` (2026-07-27, sessions #214–#216); `.5` + `.6` closed by
+  `PGEN-GENERATED-LINT-CORRECTNESS-0007` on direct director order.
 - Opened by: `LANG-CAPABILITY-AUDIT.10.4`, whose commit-workflow clippy run surfaced it.
   Deliberately NOT absorbed into that leaf — it is a separate defect class with a
   different owner (codegen emission shape, not the builtin allowlist).
@@ -997,6 +1000,89 @@ controls. **When the thing you changed is used by other checks, re-run all of th
   - `docs/tasks/artifacts/generated_lint_correctness/verification_capture.txt` — the full
     ADDRESSED + NO-REGRESSION verification log, including the mechanical proof that the
     `ast_dump_contract_gate` failure found during verification predates this leaf.
+
+### `.7` — a SIXTH diagnosis family for the generator/coverage diagnostics? (`pending` — DIRECTOR-APPROVED, CONDITIONALLY)
+
+- **Status: `pending`** (opened 2026-08-01, `PGEN-GENERATED-LINT-CORRECTNESS-0008`, docs-only —
+  nothing investigated yet, no partial state to reconcile). Opened by
+  `SV-EXH-PROOF.7.4.6.9`'s `ROUTED_FINDING_2026-08-01`, whose ROOT-CAUSE box could not be backed by
+  any of the five existing families.
+
+#### ⛔ THE DIRECTOR'S APPROVAL, VERBATIM AND CONDITIONAL (2026-08-01)
+
+> *"Fix the enforcer carefully because of \[the routed finding] **if you find a misbehavior in the
+> enforcer**. You have my approval, but as always be careful, sota, signoff decision and be highly
+> professional."*
+
+⭐ **THE APPROVAL IS TO FIX A MISBEHAVIOUR — IT IS NOT A MANDATE TO ADD A FAMILY.** "If you find"
+is the whole instruction. Establishing whether a misbehaviour exists is this leaf's work; a family
+added without one is a gate widened to let content through, which is the same move as raising a cap
+to land content ([[feedback_done_bar_is_first_tier_only]]'s sibling principle, and the reason
+`MEMORY.md`/`README.md` carry two caps each).
+
+#### THE OBSERVATION THAT OPENED IT
+
+`scripts/check_diagnosis_evidence.sh` accepts five ROOT-CAUSE families (`DIAGNOSIS_SIG`). Every
+correctness token in it names a PARSER-side instrument (cert-coverage, `[plannable-probe]`,
+predicate-rejection trace, `furthest_position=`, `--lint-grammar`, the rule-counter dumps). The
+instrument that diagnosed all 79 targets of the SV class-A residual — the per-branch
+`failure_reasons` record, which `TOOLBOX.md` §6.1 calls *"the FIRST thing to read on any 'why is
+this coverage target still residual' question"* — matches **none** of them, and neither does the
+normalized gen-AST (`--dump-gen-ast`) the static depth instruments consume.
+
+#### ⛔⛔ PRIOR ART THAT MUST BE READ BEFORE ANY DESIGN — `.4` REFUTED ITS OWN CHARTERED FAMILY
+
+`.4` was chartered to add a fifth family and **decided against it**, by PRICING the candidate
+against the corpus instead of adopting it: the chartered shape admitted **2 of 304 (0.7%)** boxes,
+and the real gap turned out to be **94% PLACEMENT** (the leaf had tool evidence, just not inside the
+ticked bullet) — *"no regex can fix a placement gap"*. It also caught itself designing from *"the
+cleanest example"* rather than the corpus, the exact failure
+[[feedback_read_prior_art_before_designing]] names. ⇒ **The same pricing is mandatory here, and a
+REFUSAL is an equally valid outcome of this leaf.**
+
+#### THE PRICING ALREADY DONE (initial, and it points AWAY from a new family)
+
+`grep -rlE "failure_reasons|top_failure_reasons" docs/tasks/*.md` returns **one** file
+(`SV-EXH-PROOF.md`) against **403** ticked ROOT-CAUSE boxes repo-wide. On `.4`'s own standard that
+is one data point, not corpus pressure — which is precisely why `SV-EXH-PROOF.7.4.6.9` did **not**
+touch the enforcer and cited only evidence it genuinely produced.
+
+#### WHAT THIS LEAF MUST DO (measure first — TOOLBOX-FIRST, anti-spin)
+
+1. **Build the census instrument, with ground truth.** Reproduce the enforcer's OWN logic
+   (`box_body` + `box_matches`, box-scoped) over every ticked ROOT-CAUSE box in `docs/tasks/*.md`
+   and report, per box, whether its own body matches `DIAGNOSIS_SIG`. ⛔ Pin a positive and a
+   negative control inside it and REFUSE on a miss ([[feedback_instrument_needs_ground_truth]]);
+   `.4`'s numbers exist to cross-check against.
+2. **Classify the misses the way `.4` did** — `OUT-OF-BOX` (evidence exists elsewhere in the leaf)
+   vs `NO-EVIDENCE` vs *genuinely inexpressible* (the defect class has no token in any family).
+   Only the third category can justify a sixth family, and only if it is a POPULATION.
+3. **Hunt for STRUCTURAL misbehaviour independently of the family question** — this is where a
+   real "misbehavior" is most likely to be, and it is what the director's condition points at.
+   Candidates to test, each RED/GREEN, none assumed:
+   - the `unchecked()` path is **not** box-scoped the way `checked()` is: it scans every staged
+     task file, so an unticked ROOT-CAUSE box in an UNRELATED leaf of the same tree may block a
+     legitimate commit. `.3` closed cross-file leakage in the POSITIVE direction only — the
+     negative direction was never re-examined.
+   - `box_body` exits on any line starting with `#`, so a fenced code block containing a shell
+     comment or a Markdown heading truncates the body early and can hide a real signature.
+   - token width: `\botool\b` and `flamegraph` can match ordinary prose; `clippy::[a-z_]{3,}`
+     matches a lint named in passing.
+4. **Then decide**, and record the decision either way with its numbers. A refusal is a result.
+
+#### Acceptance
+
+`a census instrument with BOTH controls firing; the candidate PRICED against the whole corpus (not
+a sample) with the OUT-OF-BOX / NO-EVIDENCE / inexpressible split published; every structural
+candidate in (3) either REPRODUCED with a RED probe or DISPROVEN on evidence; if a change lands, the
+enforcer's own RED/GREEN pair proven to fire in BOTH directions before it is trusted
+([[feedback_instrument_needs_ground_truth]]) and no previously-passing leaf silently starts failing;
+if no change lands, the refusal recorded with the numbers that justify it.`
+
+⛔ **Scope guard:** this leaf may change `scripts/check_diagnosis_evidence.sh` — the proof surface,
+so it is a CODE change and needs its own acceptance checklist, satisfiable via the **ops/build-flow**
+family (`bash -n`, `make -n`, `git log -S`, `shellcheck`). It may **not** re-tick or re-word any
+existing leaf's boxes to make them pass.
 
 ## Commit log
 
