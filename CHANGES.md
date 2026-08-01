@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-GENERATED-LINT-CORRECTNESS-0009 — leaves GENERATED-LINT-CORRECTNESS.7 + .8: the sixth diagnosis family is REFUSED at 0%, and box-scoping turns out to have been VACUOUS
+
+The director's approval was conditional — *"if you find a misbehavior in the enforcer"*. Measuring
+first answered both halves: no sixth family, and a real misbehaviour that had made the previous
+hardening ineffective for every mature task tree.
+
+- ⛔ **NO sixth signature family. Priced at 0 of 307 unbacked boxes (0%)**, and 1 or 3 under the
+  widest plausible generator/coverage vocabulary — *below* the 2 of 304 (0.7%) at which `.4`
+  refused its own chartered family. The corpus shape is unchanged and sharper: **412** ticked
+  ROOT CAUSE boxes, 307 unbacked, **299 (97%) OUT-OF-BOX** vs **8 (2%) NO-EVIDENCE**. A placement
+  gap, and no token set closes a placement gap. The refusal is the result.
+- ⭐⭐ **The real misbehaviour: `.3` scoped the SIGNATURE to its box but never scoped the BOX to
+  the change.** `box_matches` returned true for **any** ticked box in **any** staged task file, so
+  a tree already holding one compliant leaf supplied the checklist for every later leaf, free and
+  forever. Reproduced with three RED probes — a new leaf with no checklist inheriting a finished
+  leaf's boxes (same file), an unrelated co-staged file supplying them, and the three boxes split
+  across two files — **all three PASSED the pre-fix gate**.
+- ⭐ **33 tracked task files carried that standing free pass**, and — verified, not inferred — this
+  leaf's own commit would have satisfied box 1 on four of its own tree's historical boxes without
+  writing a single line of checklist.
+- **Replayed over 400 commits: 138 code-change commits pass today, 7 pass ONLY by borrowing.** All
+  7 were read individually: 5 whose own NO REGRESSION box carries no gate signature, 2 that wrote
+  no qualifying box at all. Every one is a genuine instance of the defect ⇒ **0 false positives**.
+- **The rule that shipped:** a satisfying box must sit in a leaf section (headings ≤ 3, so a
+  `#### Acceptance Checklist` belongs to its `###` leaf) that the staged change **touches**, and
+  all three must be met within **one** file. Deliberately permissive inside a leaf — a follow-up
+  commit editing the same leaf keeps its checklist, and a deletion-only edit still counts.
+- ⚠️ **The first implementation was itself vacuous against the most common edit in the repo.**
+  Appending a new leaf begins with the blank separator line that syntactically belongs to the
+  PREVIOUS section, so a checklist-free new leaf still "touched" the finished leaf above it.
+  Trailing blank lines are now trimmed off a section; **RED-H1 caught it**, not review.
+- **Probes 9/9 after vs 6/9 before**, with every GREEN and CONTROL arm byte-identical on both
+  sides (the non-weakening proof). `.3`'s 6-arm driver re-runs **6/6**, `.4`'s 13-arm **13/13**,
+  all **17** enforced doctrines PASS.
+- ⭐ **The census instrument had no ground truth and had published `.4`'s headline numbers.** It
+  now runs four pinned controls on every invocation and **REFUSES with exit 2** on a miss. They
+  earned their keep immediately: they caught a bug in the fixture itself, and both fire on
+  mutation (`3 2` and `3 3` against the pinned `3 1`).
+- ⛔ **Routed, not fixed → `.8`:** `NOREGRESS_SIG` repeats group 2's wrong-vocabulary defect — it
+  names only parser-side gates, leaving **120 of 416 (29%)** NO REGRESSION boxes unbacked. That
+  gap is *why* the borrow hole went unnoticed: it was silently absorbing it.
+
+Files: `scripts/check_diagnosis_evidence.sh`, `docs/tasks/GENERATED-LINT-CORRECTNESS.md`,
+`docs/tasks/artifacts/generated_lint_correctness/run_diag_evidence_leaf_scope_probes.sh` (new),
+`docs/tasks/artifacts/generated_lint_correctness/run_root_cause_box_census.sh`,
+`docs/decisions/project_acceptance_box_must_be_written_by_the_change.md` (new) + `INDEX.md`,
+`TOOLBOX.md`, `DOCTRINE_ENFORCEMENT.md`, `docs/book/src/quality-and-closure-model.md`.
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0169 — leaf SV-EXH-PROOF.7.4.6.9: class A is CLOSED — the SV closed-loop residual falls 83 → 4, and the fix made the run FASTER
 
 The witness pass gets the per-target depth budget the certificate-coverage witness pass has had

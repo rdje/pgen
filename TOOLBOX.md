@@ -66,6 +66,16 @@ passing this checklist, plus the tree's own Acceptance Criteria.
 not count. Pick the signature family that matches YOUR defect; there are **five**, and a defect that
 fits none of them is a signal worth raising, not a reason to waive:
 
+⭐⭐ **AND THE BOX MUST BE ONE THIS CHANGE WROTE** (leaf-scoped since `GENERATED-LINT-CORRECTNESS.7`).
+A satisfying box must sit inside a **leaf section** (bounded by headings of level ≤ 3, so a
+`#### Acceptance Checklist` block belongs to its `###` leaf) that your staged change **touches**,
+and all three required boxes must be met within **one** file. ⛔ Box-scoping alone was *vacuous*:
+`box_matches` accepted **any** ticked box in **any** staged task file, so a tree already holding one
+compliant leaf supplied the checklist for every later leaf — measured, **33 tracked task files
+carried that standing free pass**, and 7 of the last 138 code-change commits passed only by
+borrowing. It is deliberately permissive *inside* a leaf: a follow-up commit editing any part of the
+same leaf keeps its checklist, and a deletion-only edit still counts as touching it.
+
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
 | 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast` |

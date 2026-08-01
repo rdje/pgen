@@ -157,38 +157,119 @@ box_body() {
   ' "$2"
 }
 
-# box_matches <state> <box-keyword-regex> [<required-signature-regex>]
-# True iff SOME staged task file has a box in <state> whose HEADER LINE matches the keyword and
-# whose own BODY matches the signature (when one is required) — both in the SAME box.
+# ⭐⭐ THE BOX MUST BE ONE THIS COMMIT ACTUALLY WROTE (GENERATED-LINT-CORRECTNESS.7, 2026-08-01).
+#
+# `.3` scoped the SIGNATURE to its own box, but never scoped the BOX to the change. The check
+# still passed when ANY ticked box in ANY staged task file satisfied a requirement — so for every
+# tree that already holds one compliant leaf, box-scoping was VACUOUS: a new leaf could carry no
+# checklist at all and inherit a finished leaf's boxes.
+#
+# MEASURED, not inferred (probes H1/H2 in run_diag_evidence_leaf_scope_probes.sh):
+#   H1  a new leaf with NO checklist, in the same file as one old completed leaf ....... PASSED
+#   H2  the owning leaf in file B, the only backed boxes in an unrelated co-staged A ... PASSED
+#   33 of the tracked task files carry >=1 backed ROOT CAUSE box, i.e. a free pass; and
+#   THIS leaf's own commit would have passed box 1 on four historical boxes (.2/.3/.4/.5)
+#   without writing a single line of checklist.
+# Replayed over the last 400 commits: 138 code-change commits pass today, and **7 of them pass
+# ONLY by borrowing** — 5 whose own NO REGRESSION box carries no gate signature and 2 that wrote
+# no qualifying box at all. Under the rule below those 7 fail and the other 131 are untouched, so
+# the strengthening has **0 false positives** on the measured corpus.
+#
+# THE RULE. A box may satisfy a requirement only if it sits inside a LEAF SECTION (bounded by
+# markdown headings of level <= 3, so a `#### Acceptance Checklist` block belongs to its `###`
+# leaf) that the staged change TOUCHES, and all three requirements must be met within ONE file.
+# That is deliberately permissive INSIDE a leaf — a follow-up commit editing any part of the same
+# leaf keeps its checklist — while closing the cross-leaf and cross-file borrow.
+# ⚠️ Honest bound: the enforcer cannot know which leaf OWNS a change. "Written by this commit" is
+# a proxy, not a proof; editing inside an unrelated leaf's own checklist section still satisfies it.
+
+# added_ranges <file> — line ranges in the NEW file that the staged change adds or modifies.
+# A pure-deletion hunk yields the insertion point, so deleting inside a leaf still counts as
+# touching it (otherwise a docs-trimming commit would be blocked for the wrong reason).
+added_ranges() {
+  { if [ -n "${PGEN_DIAG_EVIDENCE_RANGE:-}" ]; then
+      git diff -U0 "$PGEN_DIAG_EVIDENCE_RANGE" -- "$1"
+    else
+      git diff --cached -U0 -- "$1"
+    fi; } 2>/dev/null | awk '
+    /^@@/ { if (match($0, /\+[0-9]+(,[0-9]+)?/)) {
+              s = substr($0, RSTART + 1, RLENGTH - 1); n = split(s, a, ",")
+              st = a[1] + 0; ln = (n > 1 ? a[2] + 0 : 1)
+              if (ln > 0) print st, st + ln - 1
+              else { p = (st < 1 ? 1 : st); print p, p } } }'
+}
+
+# box_matches_in_file <file> <state> <box-keyword-regex> <required-signature-regex> <require-touched>
+# True iff THIS file has a box in <state> whose HEADER LINE matches the keyword, whose own BODY
+# matches the signature (when one is given), and — when <require-touched> is 1 — whose enclosing
+# leaf section is touched by the staged change.
+#
+# The three stages are separable ON PURPOSE: the caller probes present / signature-backed /
+# change-owned independently so a breach is reported at the stage it actually failed, instead of
+# a ticked-but-untouched box being misreported as "MISSING".
 #
 # The keyword is matched against the header line only, using the same proven regex the pre-
 # box-scoping version used. Matching it against the body too would let a box that merely MENTIONS
-# "root cause" in its prose stand in for the real ROOT CAUSE box (found by this leaf's own RED-2
+# "root cause" in its prose stand in for the real ROOT CAUSE box (found by `.3`'s own RED-2
 # probe, which the first implementation of this function failed).
-box_matches() {
-  local state="$1" kw="$2" sig="${3:-}" f ln hdr_re
+box_matches_in_file() {
+  local f="$1" state="$2" kw="$3" sig="${4:-}" want_touch="${5:-0}" ln hdr_re rf
+  [ -f "$f" ] || return 1
   if [ "$state" = "x" ]; then
     hdr_re="^[[:space:]]*[-*][[:space:]]*\[[xX]\][[:space:]].*($kw)"
   else
     hdr_re="^[[:space:]]*[-*][[:space:]]*\[[[:space:]]\][[:space:]].*($kw)"
   fi
-  for f in "${staged_tasks[@]}"; do
-    [ -f "$f" ] || continue
-    grep -nEi -- "$hdr_re" "$f" >"$WORK/hdr.txt" 2>/dev/null || continue
-    [ -s "$WORK/hdr.txt" ] || continue
-    [ -z "$sig" ] && return 0
-    while IFS= read -r ln; do
-      [ -n "$ln" ] || continue
+  grep -nEi -- "$hdr_re" "$f" >"$WORK/hdr.txt" 2>/dev/null || return 1
+  [ -s "$WORK/hdr.txt" ] || return 1
+  # An UNTICKED box blocks wherever it is: it says the step is unfinished, and that verdict must
+  # not depend on whether this commit happened to edit that part of the file.
+  if [ "$state" != "x" ]; then return 0; fi
+  rf="$WORK/ranges.${f//\//_}"
+  [ -f "$rf" ] || added_ranges "$f" >"$rf"
+  while IFS= read -r ln; do
+    [ -n "$ln" ] || continue
+    if [ -n "$sig" ]; then
       box_body "$ln" "$f" >"$WORK/body.txt" 2>/dev/null || continue
-      if grep -Eiq -- "$sig" "$WORK/body.txt"; then return 0; fi
-    done < <(cut -d: -f1 "$WORK/hdr.txt")
-  done
+      grep -Eiq -- "$sig" "$WORK/body.txt" || continue
+    fi
+    [ "$want_touch" -eq 1 ] || return 0
+    section_touched "$f" "$ln" "$rf" && return 0
+  done < <(cut -d: -f1 "$WORK/hdr.txt")
   return 1
 }
 
-# A checked / unchecked checklist box mentioning a category keyword.
-checked()   { box_matches x   "$1" "${2:-}"; }
-unchecked() { box_matches ' ' "$1"; }
+# section_touched <file> <box-line> <ranges-file> — is the box's enclosing leaf section (headings
+# of level <= 3) intersected by any added/modified range?
+#
+# ⚠️ TRAILING BLANK LINES ARE TRIMMED OFF THE SECTION, and that is load-bearing, not tidiness.
+# A new leaf is APPENDED, and an append begins with the blank separator line that syntactically
+# still belongs to the PREVIOUS section — so without the trim, writing a brand-new leaf with no
+# checklist at all "touches" the finished leaf above it and inherits its boxes. That is precisely
+# the borrow this fix exists to stop, and the probe RED-H1 caught the rule being vacuous against
+# the most common edit in the repository.
+section_touched() {
+  awk -v box="$2" -v rf="$3" '
+    { L[NR] = $0; if ($0 ~ /^#{1,3}[ \t]/) H[++hn] = NR }
+    END {
+      s = 1; e = NR
+      for (k = 1; k <= hn; k++) { if (H[k] <= box) s = H[k]; else { e = H[k] - 1; break } }
+      while (e > s && L[e] ~ /^[ \t]*$/) e--
+      while ((getline line < rf) > 0) {
+        split(line, r, " ")
+        if (r[1] + 0 <= e && r[2] + 0 >= s) exit 0
+      }
+      exit 1
+    }' "$1"
+}
+
+# A checked / unchecked checklist box mentioning a category keyword, anywhere in the staged set.
+# `unchecked` stays deliberately file-wide and section-blind — see box_matches_in_file.
+unchecked() {
+  local f
+  for f in "${staged_tasks[@]}"; do box_matches_in_file "$f" ' ' "$1" && return 0; done
+  return 1
+}
 
 # Evidence signatures that must BACK the ticked boxes.
 # The first group is the CORRECTNESS-defect diagnosis toolbox (cert/probe/trace/reach/lint — "why
@@ -244,25 +325,67 @@ NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corp
 
 fails=()
 
-# Required box 1 — ROOT CAUSE (WHY + WHERE) ticked + a diagnosis tool signature IN THAT BOX.
 ROOT_KW='root cause|why ?\+ ?where|\bwhy\b'
-if   unchecked "$ROOT_KW"; then fails+=("ROOT CAUSE box is present but UNTICKED ([ ]) — the cause is not yet established.")
-elif ! checked "$ROOT_KW"; then fails+=("ROOT CAUSE (WHY+WHERE) box is MISSING/unticked from the acceptance checklist.")
-elif ! checked "$ROOT_KW" "$DIAGNOSIS_SIG"; then
+ADDR_KW='addressed|verified|resolved|before.{0,5}after|reject.{0,6}pass'
+NOREG_KW='no.?regress|regression'
+
+# Per requirement, three escalating facts across the staged task files, so a breach can be
+# reported at the precise stage it failed rather than as one opaque "checklist incomplete":
+#   present — a ticked box with that keyword exists
+#   sig     — ... and the required signature sits inside that box's own bullet   (`.3`)
+#   own     — ... and that box's leaf section is one this change touched         (`.7`)
+declare -A present=() sig_ok=() own=()
+declare -A file_all=()
+for req in ROOT ADDR NOREG; do present[$req]=0; sig_ok[$req]=0; own[$req]=0; done
+
+for f in "${staged_tasks[@]}"; do
+  n_full=0
+  for req in ROOT ADDR NOREG; do
+    case "$req" in
+      ROOT)  kw="$ROOT_KW";  s="$DIAGNOSIS_SIG" ;;
+      ADDR)  kw="$ADDR_KW";  s="" ;;
+      NOREG) kw="$NOREG_KW"; s="$NOREGRESS_SIG" ;;
+    esac
+    box_matches_in_file "$f" x "$kw" ""   0 && present[$req]=1
+    box_matches_in_file "$f" x "$kw" "$s" 0 || continue
+    sig_ok[$req]=1
+    box_matches_in_file "$f" x "$kw" "$s" 1 || continue
+    own[$req]=1; n_full=$((n_full + 1))
+  done
+  [ "$n_full" -eq 3 ] && file_all["$f"]=1
+done
+
+# An UNTICKED required box blocks outright, wherever it sits — the step is unfinished.
+if   unchecked "$ROOT_KW";  then fails+=("ROOT CAUSE box is present but UNTICKED ([ ]) — the cause is not yet established.")
+elif [ "${present[ROOT]}" -eq 0 ]; then fails+=("ROOT CAUSE (WHY+WHERE) box is MISSING/unticked from the acceptance checklist.")
+elif [ "${sig_ok[ROOT]}" -eq 0 ]; then
   fails+=("ROOT CAUSE box is ticked but the diagnosis-tool signature is NOT INSIDE THAT BOX (cert/probe/trace/furthest_position; profiler self-time/flamegraph//usr/bin/sample/otool; rustc error[EXXXX]; a codegen-emission signature such as clippy::<lint>; or an ops/build-flow signature such as git ls-files / make -n / E2BIG). A token elsewhere in the file — or in a co-staged tree file — no longer counts.")
 fi
 
-# Required box 2 — ADDRESSED (verified) ticked.
-if   unchecked 'addressed|verified|resolved|before.{0,5}after|reject.{0,6}pass'; then fails+=("ADDRESSED/VERIFIED box is present but UNTICKED — the fix is not yet confirmed to resolve the issue.")
-elif ! checked 'addressed|verified|resolved|before.{0,5}after|reject.{0,6}pass'; then fails+=("ADDRESSED (verified the issue is resolved) box is MISSING/unticked.")
+if   unchecked "$ADDR_KW"; then fails+=("ADDRESSED/VERIFIED box is present but UNTICKED — the fix is not yet confirmed to resolve the issue.")
+elif [ "${present[ADDR]}" -eq 0 ]; then fails+=("ADDRESSED (verified the issue is resolved) box is MISSING/unticked.")
 fi
 
-# Required box 3 — NO REGRESSION ticked + a global-gate signature IN THAT BOX.
-NOREG_KW='no.?regress|regression'
 if   unchecked "$NOREG_KW"; then fails+=("NO REGRESSION box is present but UNTICKED — regressions are not yet cleared.")
-elif ! checked "$NOREG_KW"; then fails+=("NO REGRESSION box is MISSING/unticked from the acceptance checklist.")
-elif ! checked "$NOREG_KW" "$NOREGRESS_SIG"; then
+elif [ "${present[NOREG]}" -eq 0 ]; then fails+=("NO REGRESSION box is MISSING/unticked from the acceptance checklist.")
+elif [ "${sig_ok[NOREG]}" -eq 0 ]; then
   fails+=("NO REGRESSION box is ticked but the global-gate signature is NOT INSIDE THAT BOX (seeds 0/7/42, byte-identical, external corpus, shape-contract, spf=0, fully_certified, clippy). A token elsewhere in the file — or in a co-staged tree file — no longer counts.")
+fi
+
+# `.7` — the box must be one THIS change wrote, and all three must live in ONE leaf's file.
+if [ "${#fails[@]}" -eq 0 ]; then
+  for req in ROOT ADDR NOREG; do
+    [ "${own[$req]}" -eq 1 ] && continue
+    case "$req" in
+      ROOT)  label="ROOT CAUSE" ;;
+      ADDR)  label="ADDRESSED" ;;
+      NOREG) label="NO REGRESSION" ;;
+    esac
+    fails+=("$label box is ticked and backed, but it belongs to a LEAF THIS CHANGE DID NOT TOUCH — an already-finished leaf cannot supply the checklist for new work. Write the box in the leaf that owns this change.")
+  done
+  if [ "${#fails[@]}" -eq 0 ] && [ "${#file_all[@]}" -eq 0 ]; then
+    fails+=("the three required boxes are satisfied only ACROSS DIFFERENT task files — one owning leaf must carry ROOT CAUSE + ADDRESSED + NO REGRESSION together.")
+  fi
 fi
 
 if [ "${#fails[@]}" -gt 0 ]; then

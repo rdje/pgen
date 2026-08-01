@@ -1001,12 +1001,169 @@ controls. **When the thing you changed is used by other checks, re-run all of th
     ADDRESSED + NO-REGRESSION verification log, including the mechanical proof that the
     `ast_dump_contract_gate` failure found during verification predates this leaf.
 
-### `.7` — a SIXTH diagnosis family for the generator/coverage diagnostics? (`pending` — DIRECTOR-APPROVED, CONDITIONALLY)
+### `.7` — the sixth family is REFUSED at 0%, and the REAL misbehaviour is that box-scoping was VACUOUS (`done`)
 
-- **Status: `pending`** (opened 2026-08-01, `PGEN-GENERATED-LINT-CORRECTNESS-0008`, docs-only —
-  nothing investigated yet, no partial state to reconcile). Opened by
-  `SV-EXH-PROOF.7.4.6.9`'s `ROUTED_FINDING_2026-08-01`, whose ROOT-CAUSE box could not be backed by
-  any of the five existing families.
+- **Status: `done`** (2026-08-01, `PGEN-GENERATED-LINT-CORRECTNESS-0009`, CODE — the enforcer).
+  Opened by `SV-EXH-PROOF.7.4.6.9`'s `ROUTED_FINDING_2026-08-01`, whose ROOT-CAUSE box could not
+  be backed by any of the five existing families.
+
+#### ⛔⛔ THE TWO ANSWERS
+
+**(1) NO sixth family. Priced at 0 % of the corpus** — below `.4`'s own refused 2/304.
+
+| candidate sixth family | newly admits |
+|---|---|
+| `failure_reasons` / `top_failure_reasons` / `reachable_branch_debt` / `branch_groups` | **0 of 307 (0 %)** |
+| + `--dump-gen-ast`, `--gap-report-*`, `--report-k-path-coverage`, `depth_exceeded`, … | 1 of 307 (0 %) |
+| widest plausible generator/coverage vocabulary | 3 of 307 (0 %) |
+
+The corpus shape `.4` found is unchanged and sharper: **412** ticked ROOT CAUSE boxes, 307
+unbacked, of which **299 (97 %) are OUT-OF-BOX** and only **8 (2 %) NO-EVIDENCE**. A placement
+gap, and no token set closes a placement gap. ⇒ **the refusal IS the result**, exactly as `.4`'s
+was, and the director's *"if you find a misbehavior"* condition is what made refusing available.
+
+**(2) ⭐⭐ A REAL misbehaviour, and it makes `.3`'s hardening vacuous.** `.3` scoped the SIGNATURE
+to its own box but never scoped the BOX to the change: `box_matches` returned true when **any**
+ticked box in **any** staged task file satisfied a requirement. So a tree already holding one
+compliant leaf supplies the checklist for every later leaf, forever, free.
+
+| probe | pre-`.7` | post-`.7` |
+|---|---|---|
+| **H1** new leaf, NO checklist, same file as one old completed leaf | **PASSED** | BLOCKED |
+| **H2** owning leaf in file B, backed boxes only in unrelated co-staged A | **PASSED** | BLOCKED |
+| **H3** the three boxes satisfied only across two files | **PASSED** | BLOCKED |
+
+**33 tracked task files carry ≥1 backed ROOT CAUSE box** = a standing free pass. ⭐ And in the
+sharpest available statement of it — the `.4` precedent, verified not inferred — **this leaf's own
+commit would have satisfied box 1 on four historical boxes (`.2`/`.3`/`.4`/`.5`) without writing a
+single line of checklist.**
+
+#### THE RULE THAT SHIPPED, AND WHY IT IS NOT PUNITIVE
+
+A box may satisfy a requirement only if it sits in a **leaf section** (headings of level ≤ 3, so a
+`#### Acceptance Checklist` block belongs to its `###` leaf) that the staged change **touches**,
+and all three must be met within **one** file. Deliberately permissive *inside* a leaf: a
+follow-up commit editing any part of the same leaf keeps its checklist (GREEN-2), and a
+deletion-only edit still counts (GREEN-3) — otherwise ordinary multi-commit leaves would be forced
+to waive, which is how a gate teaches authors to bypass it (`.4`/`.6`).
+
+⚠️ **Trailing blank lines are trimmed off a section, and that is load-bearing.** A new leaf is
+APPENDED, and an append begins with the blank separator line that syntactically still belongs to
+the PREVIOUS section — so without the trim, writing a brand-new leaf with no checklist "touches"
+the finished leaf above it and inherits its boxes. The first implementation had exactly that hole
+and **RED-H1 caught the rule being vacuous against the most common edit in the repository.**
+
+#### THE STRUCTURAL CANDIDATES — each RED-probed or DISPROVEN, none assumed
+
+| candidate (from the charter) | verdict |
+|---|---|
+| `unchecked()` not box-scoped ⇒ an unrelated leaf's unticked box blocks a legitimate commit | **DISPROVEN, population 0** — no tracked task file carries an unticked ROOT-CAUSE box. Fails *closed*, so left alone deliberately; an unticked box must block wherever it sits. |
+| `box_body` exits on `^#` ⇒ a fenced block hides a real signature | **DISPROVEN, 0 boxes** repo-wide (measured against a fence-aware body rule). |
+| token width (`\botool\b`, `flamegraph`, `clippy::[a-z_]{3,}`) | `ROOT_KW`'s bare `\bwhy\b` over-matches **4** headers — all `**FIX**`/`**LOCKSTEP**`/`**REPRODUCE**` boxes — but **none carries a signature**, so none can satisfy the gate today. A latent fails-open widening; **routed, not fixed.** |
+| *(found here, not chartered)* the satisfying box need not belong to the change | **REPRODUCED — H1/H2/H3. This is the misbehaviour.** |
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `run_diag_evidence_leaf_scope_probes.sh` against the pre-`.7`
+      enforcer: **6 passed, 3 failed** — RED-H1/H2/H3 each print
+      `diag-evidence: OK (task leaf passes the acceptance checklist…)` and `exit=0` on a leaf that
+      wrote no checklist at all.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow signature (family 5).
+      **WHERE:** `scripts/check_diagnosis_evidence.sh`, `box_matches()` — it loops
+      `for f in "${staged_tasks[@]}"` and `return 0`s on the first file with a qualifying box, so
+      the box is never tied to the change. **WHY it went unseen:** `.3` closed signature→box
+      co-location and its record claims cross-FILE leakage was closed with it; a whole borrowed
+      **box** still crossed files freely. Measured with `git log`-driven replay —
+      `git rev-list -400 HEAD` + `git diff-tree --no-commit-id -r -p -U0` per commit —
+      **138 code-change commits pass today and 7 pass ONLY by borrowing**; and
+      `git ls-files 'docs/tasks/*.md'` shows **33 files** carrying a standing free pass.
+- [x] **FIX** — declarative/ops tier: one script. `added_ranges` (parses `-U0` hunk headers, and
+      maps a pure-deletion hunk to its insertion point) + `section_touched` (headings ≤ 3, with
+      the trailing-blank trim) + `box_matches` → `box_matches_in_file` with **separable**
+      present / signature-backed / change-owned stages so a breach is reported at the stage it
+      failed. No grammar, no `rust/src/`, no `generated/*`.
+- [x] **ADDRESSED (verified)** — before → after on the same 9 arms, produced not asserted via
+      `PGEN_DIAG_CHECK_OVERRIDE`: **BEFORE 6/9 (RED-H1/H2/H3 all pass the gate) → AFTER 9/9.**
+      Blast radius re-measured on the shipped rule: of the 138 passing code-change commits in the
+      last 400, **7 newly fail — and all 7 were read individually and are genuine instances of the
+      defect** (5 whose own NO REGRESSION box carries no gate signature, 2 that wrote no
+      qualifying box at all) ⇒ **0 false positives**.
+- [x] **NO REGRESSION** — GREEN-1/2/3 and CTRL-1/2/3 are **byte-identical before and after** (the
+      non-weakening proof); `.3`'s driver re-runs **6/6** and `.4`'s **13/13**; all **17** enforced
+      doctrines PASS; `bash -n` clean on both changed scripts. No `grammars/*.ebnf`, no
+      `rust/src/*`, no `generated/*` touched ⇒ all 11 parsers **byte-identical BY CONSTRUCTION**,
+      and no release / schema / ledger / contract movement. Census re-runs with its new controls
+      green at **413/106/307** — the pre-change reading was 412/105/307, and the `+1 box / +1
+      backed / unbacked unchanged` delta is exactly this leaf's own ROOT CAUSE box entering the
+      corpus, which is the arithmetic the controls exist to make checkable rather than assumed.
+- [x] **LOCKSTEP** — `TOOLBOX.md` (the box-scoping paragraph now states the leaf-scoping rule),
+      `DOCTRINE_ENFORCEMENT.md` §6.1 leg 2 + the `TASK-ACCEPTANCE` row, the book chapter
+      *Quality and Closure Model*, `docs/decisions/project_acceptance_box_must_be_written_by_the_change.md`
+      + `INDEX.md` (143/143), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
+#### ⭐⭐ THE FIX IS PROVEN BINDING ON THIS COMMIT — not just on synthetic probes
+
+`.4` established the discipline of testing a doctrine change against **its own commit** rather than
+only against fixtures. Run here on the real staged set, with `.7`'s own checklist temporarily
+removed while `.1`–`.6` kept their ticked, backed boxes:
+
+```
+- ROOT CAUSE box is ticked and backed, but it belongs to a LEAF THIS CHANGE DID NOT TOUCH —
+  an already-finished leaf cannot supply the checklist for new work.
+- ADDRESSED box is ticked and backed, but it belongs to a LEAF THIS CHANGE DID NOT TOUCH …
+- NO REGRESSION box is ticked and backed, but it belongs to a LEAF THIS CHANGE DID NOT TOUCH …
+   exit=1
+```
+
+Under the pre-`.7` enforcer that identical state returns
+`diag-evidence: OK (task leaf passes the acceptance checklist…)`. ⇒ the commit that closes the
+borrow hole is itself held by the rule it adds, and would have been exempt from it an hour earlier.
+
+#### ⭐ The census instrument had NO ground truth — and it published `.4`'s headline numbers
+
+`run_root_cause_box_census.sh` sourced `DIAGNOSIS_SIG` live from the enforcer (so it could not
+measure a *different rule*) but had nothing pinning its own **box arithmetic**. `.4` published
+304/288/16 from it; `.7` measures 412/299/8 — a corpus that genuinely grew, but **nothing in the
+tool could have distinguished growth from a silent regression.** It now runs four pinned controls
+on every invocation — POS-1 signature inside the box, NEG-1 signature only elsewhere in the file,
+NEG-2 keyword in the body but not the header (`.3`'s RED-2, a bug that was once real), NEG-3
+signature past a `#` heading — and **REFUSES with exit 2** on a miss rather than printing a
+plausible number ([[feedback_instrument_needs_ground_truth]]).
+
+⭐ The controls earned their keep twice before any number here was trusted: they **caught a bug in
+the fixture itself** (NEG-2's header accidentally carried the keyword), and both fire on mutation
+— deleting the `^#` body terminator gives `3 2`, replacing `box_body` with a whole-file read gives
+`3 3`, against the pinned `3 1`.
+
+#### Evidence
+
+- `docs/tasks/artifacts/generated_lint_correctness/run_diag_evidence_leaf_scope_probes.sh` —
+  9 arms (3 RED / 3 GREEN / 3 CONTROL) with the `PGEN_DIAG_CHECK_OVERRIDE` before→after replay.
+- `docs/tasks/artifacts/generated_lint_correctness/run_root_cause_box_census.sh` — the census,
+  now with `ground_truth_controls()` run before any mode emits a number.
+- `docs/decisions/project_acceptance_box_must_be_written_by_the_change.md` — the doctrine record.
+
+#### ⛔ ROUTED, NOT FIXED → new leaf `.8`
+
+`NOREGRESS_SIG` carries the **identical wrong-vocabulary defect group 2 had** and `.4` corrected:
+it names only parser-side global gates (`seeds 0/7/42`, `byte-identical`, `external corpus`,
+`shape-contract`, `spf=0`, `fully_certified`, `clippy`), so an ops/build-flow change has no
+natural no-regression token. **120 of 416 (29 %)** NO REGRESSION boxes are unbacked, and 5 of the
+7 commits this leaf newly blocks are exactly that shape. ⭐ **That gap is *why* the borrow hole
+went unnoticed — the hole was silently absorbing it.** Not fixed here: it needs `.4`'s pricing
+discipline against the whole corpus before any token is adopted, and per `DOCTRINE-GAP-OWNERSHIP`
+it is its own leaf. An honest idiom exists meanwhile (*"no grammar/rust/generated touched ⇒ all 11
+parsers byte-identical BY CONSTRUCTION"*, which `.4` itself used), so closing the borrow does
+**not** force a waiver.
+
+#### 🗄️ THE CHARTER AS WRITTEN — SUPERSEDED BY THE TWO ANSWERS ABOVE, kept verbatim
+
+⛔ Preserved rather than deleted, on this project's own discipline that a superseded conclusion
+stays visible instead of being back-dated (the `.4` precedent). Everything below is what this leaf
+was chartered to do. ⭐ Its own instruction — *"a REFUSAL is an equally valid outcome of this
+leaf"* — is what the measurement returned for the family question; and its structural-candidate
+list is what led to the misbehaviour that WAS found, though to none of the three it named.
+
 
 #### ⛔ THE DIRECTOR'S APPROVAL, VERBATIM AND CONDITIONAL (2026-08-01)
 
@@ -1084,6 +1241,29 @@ so it is a CODE change and needs its own acceptance checklist, satisfiable via t
 family (`bash -n`, `make -n`, `git log -S`, `shellcheck`). It may **not** re-tick or re-word any
 existing leaf's boxes to make them pass.
 
+
+### `.8` — `NOREGRESS_SIG` names only parser-side gates: 120 of 416 boxes unbacked (`pending`)
+
+- **Status: `pending`** (routed in from `.7`, 2026-08-01, nothing started — no partial state).
+- **The finding, measured in `.7`:** 416 ticked NO REGRESSION boxes repo-wide, **296 backed / 120
+  unbacked (29 %)**. The unbacked population is dominated by ops/build-flow and gate/docs slices
+  whose honest no-regression evidence is *"probes N/N"*, *"both failure directions falsified"*,
+  *"`bash -n` clean"*, *"the pass path is untouched"* — none of which `NOREGRESS_SIG` names. This
+  is the **identical shape** as group 2's wrong-vocabulary defect that `.4` corrected for
+  ROOT CAUSE, now on the NO-REGRESSION axis.
+- ⛔ **Do NOT adopt a token before pricing it against the whole corpus.** `.4` refused its own
+  chartered family at 2/304 by doing exactly that; `.7` refused a sixth at 0/307. A shallow probe
+  already shows the tempting tokens are weak or wrong: `untouched` matches 36 — but that is
+  *prose*, and admitting it is the *"verified by grep"* degradation `.4` explicitly refused.
+- **Why it is not urgent:** an honest idiom exists today — *"no grammar/rust/generated touched ⇒
+  all 11 parsers byte-identical BY CONSTRUCTION"* — which `.4` itself used, so no author is forced
+  to waive. The gap costs expressiveness, not compliance.
+- **Acceptance:** the candidate priced against all 416 boxes with the OUT-OF-BOX / NO-EVIDENCE
+  split published; RED arms proving no prose-only form is admitted; the census instrument extended
+  to the NO-REGRESSION axis **with its own ground-truth controls**; a refusal recorded with its
+  numbers if that is the answer.
+
+
 ## Commit log
 
 | slice | leaf | commit subject |
@@ -1093,3 +1273,5 @@ existing leaf's boxes to make them pass.
 | `PGEN-GENERATED-LINT-CORRECTNESS-0003` | `.2` | the sweep closes the class — associativity / negative-case / terminal-layout folded too (9,679 → 0, another 9.0 MB), and `@associativity` gets its first oracle |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0007` | `.5` + `.6` | the acceptance gate now sees the proof surface (397 blind commits closed), and a waiver is mechanized as the bug report about the gate that it is |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0006` | `.4` | the chartered fifth family is REFUTED at 2 of 304 — the gap is 94% placement, group 2 named the wrong profilers, and the real fifth family (ops/build-flow) was requested by the corpus itself in an unread waiver note |
+| `PGEN-GENERATED-LINT-CORRECTNESS-0008` | `.7` (opened) | the sixth diagnosis family is CHARTERED, not granted — the director's approval is conditional and the pricing already points AWAY |
+| `PGEN-GENERATED-LINT-CORRECTNESS-0009` | `.7` + `.8` | the sixth family is REFUSED at 0 of 307 — and the real misbehaviour is that box-scoping was VACUOUS: any ticked box in any staged task file satisfied the checklist, so 33 trees carried a standing free pass |

@@ -163,9 +163,21 @@ in increasing strength:
    about that; it is necessary, not sufficient.
 2. **Evidence-shape:** the box co-occurs with a string only the real tools emit (a cert header, a
    probe verdict, a trace rejection). Raises the cost of faking, does not eliminate it. The string
-   must sit **inside that box's own bullet** (box-scoped since `GENERATED-LINT-CORRECTNESS.3`), and
-   it must belong to one of **five** diagnosis families — correctness, performance, build-integrity,
-   codegen-emission, ops/build-flow — enumerated with their verbatim tokens in `TOOLBOX.md`.
+   must sit **inside that box's own bullet** (box-scoped since `GENERATED-LINT-CORRECTNESS.3`), the
+   box must sit in a **leaf section the change actually touches** (leaf-scoped since
+   `GENERATED-LINT-CORRECTNESS.7`), and it must belong to one of **five** diagnosis families —
+   correctness, performance, build-integrity, codegen-emission, ops/build-flow — enumerated with
+   their verbatim tokens in `TOOLBOX.md`.
+   ⛔⛔ **Box-scoping without leaf-scoping is VACUOUS, and it was — for every mature tree in this
+   repository.** `.3` tied the signature to its box but never tied the box to the change, so `any`
+   ticked box in `any` staged task file satisfied a requirement: a new leaf could carry no checklist
+   at all and inherit a finished leaf's. Measured at `.7` — **33 tracked task files held that
+   standing free pass**, 7 of the last 138 code-change commits passed *only* by borrowing, and the
+   leaf that fixed it would itself have passed box 1 on four of its own tree's historical boxes.
+   ⚠️ The first implementation of the fix was *also* vacuous against the most common edit in the
+   repo — appending a new leaf begins with the blank separator line that still belongs to the
+   PREVIOUS section — and only a RED probe caught it. See
+   `docs/decisions/project_acceptance_box_must_be_written_by_the_change.md`.
    ⚠️ **A signature family that does not match the real corpus is a gate that teaches authors to
    waive it.** Measured in `GENERATED-LINT-CORRECTNESS.4`: the performance family named a generic
    Rust vocabulary this repo does not use and backed **2** boxes repo-wide, while an author had
@@ -291,7 +303,7 @@ via [`.githooks/pre-commit`](.githooks/pre-commit) (E3) + CI (E4).
 | `EBNF-SOURCE-OF-TRUTH` | structural | `scripts/check_ebnf_source_of_truth.sh` | no new out-of-band acceptance validator wired outside the EBNF |
 | `REGEX-SELF-HOSTING` | oracle | `scripts/check_regex_self_hosting.sh` | the regex grammar self-hosts (gen↔parse duality) |
 | `KNOWLEDGE-MAP` | structural | `knowledge-map/scripts/check_knowledge_map.sh` | the derived Knowledge Map is in sync with its fact sources |
-| `TASK-ACCEPTANCE` | evidence | `scripts/check_diagnosis_evidence.sh` | a code change carries tool-backed WHY+WHERE diagnosis + measured verification in its task leaf (see `TOOLBOX.md`) |
+| `TASK-ACCEPTANCE` | evidence | `scripts/check_diagnosis_evidence.sh` | a code change carries tool-backed WHY+WHERE diagnosis + measured verification in its task leaf (see `TOOLBOX.md`). ⭐⭐ **The box must be one THIS change wrote** (`GENERATED-LINT-CORRECTNESS.7`): a satisfying box must sit in a leaf section (headings ≤ 3) the staged change TOUCHES, and all three requirements must be met within ONE file. Until `.7`, box-scoping was **vacuous for every mature tree** — `box_matches` accepted any ticked box in any staged task file, so **33 tracked task files carried a standing free pass** and **7 of the last 138 code-change commits passed ONLY by borrowing** (5 whose own NO REGRESSION box carried no gate signature, 2 with no qualifying box at all); all 7 were read individually and are genuine, so the strengthening has **0 false positives**. ⛔ The same leaf **REFUSED a sixth signature family** at **0–3 of 307 (0 %)** — below `.4`'s refused 2/304 — because the gap is **97 % PLACEMENT** (299 OUT-OF-BOX vs 8 NO-EVIDENCE) and no token set closes a placement gap. ⚠️ Its first implementation was itself vacuous against appending a new leaf (the blank separator line belongs to the *previous* section) and only a RED probe caught it; probes **9/9 after vs 6/9 before**, with every GREEN/CONTROL arm byte-identical on both sides. Routed → `.8`: `NOREGRESS_SIG` repeats group 2's wrong-vocabulary defect (**120 of 416, 29 %** unbacked) |
 | `WAIVER-ROUTING` | evidence | `scripts/check_waiver_routing.sh` | a task leaf claiming a gate's SIGNATURE SURFACE cannot express its evidence names the leaf that owns fixing the gate — ⭐ **an author writing a waiver IS the gate reporting a missing capability**, the highest-signal defect report a gate can receive, and `RGX-0090`'s sat unread for months (see `docs/decisions/project_waiver_is_a_gate_bug_report.md`) |
 | `LESSON-PROMOTION` | evidence | `scripts/check_lesson_promotion.sh` | a commit adding a dated lesson entry to `DEVELOPMENT_NOTES.md` must ALSO stage a promotion (a `docs/knowledge/` card, or `answers:` on a `docs/decisions/` record) OR an explicit `promotion: declined (<reason>)` in its task leaf. Declining is a first-class outcome — the gate demands a DECISION, not a promotion. Measured provenance: 1592 lesson entries accumulated in a file that is not a Knowledge Map scan dir, and 0 of 142 decision records carried `answers:`; the mechanism was wired and skipped silently every time because `KNOWLEDGE-MAP` verifies the map is in sync with its SOURCES and never that a lesson REACHED a source (`LESSON-RETRIEVAL.4`, director call 2026-08-01 — a doctrine check, explicitly NOT a `COMMIT.md` reminder, because a reminder had already lost 1592 times) |
 | `DESIGN-PRIOR-ART` | evidence | `scripts/check_design_prior_art.sh` | a task leaf proposing a NEW annotation/directive surface records a prior-art search over `grammars/ebnf.ebnf` / `docs/decisions/` / `docs/tasks/` / `docs/book/` first (see `docs/decisions/feedback_read_prior_art_before_designing.md`) |

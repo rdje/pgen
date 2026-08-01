@@ -153,6 +153,21 @@ backing signature has to sit **inside that box's own bullet**, so a token
 elsewhere in the leaf, or in an unrelated co-staged tree file, does not
 count.
 
+It must also be a box **this change actually wrote**: the satisfying box
+has to sit inside a leaf section that the staged change touches, and all
+three requirements must be met within one file. That second rule sounds
+redundant and is not. Scoping the signature to its box, without also
+scoping the box to the change, left the check accepting *any* ticked box
+in *any* staged task file — so a task tree that already held one
+compliant leaf supplied the checklist for every later leaf, indefinitely
+and for free. Measured before the fix: **33 tracked task files carried
+that standing free pass**, and 7 of the last 138 code-change commits
+passed only by borrowing a box from a leaf they never touched. The rule
+stays deliberately permissive *inside* a leaf — a follow-up commit
+editing any part of the same leaf keeps its checklist, and a
+deletion-only edit still counts — because a gate that blocks ordinary
+multi-commit work teaches authors to bypass it.
+
 Which tool output counts depends on what kind of defect it is, and PGEN
 recognizes **five** families, because the right instrument differs:
 

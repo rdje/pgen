@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-GENERATED-LINT-CORRECTNESS-0009 — a hardening that is scoped to the wrong axis is not a weak gate, it is no gate
+
+Three notes from `GENERATED-LINT-CORRECTNESS.7`.
+
+**1. "Box-scoped" was true and useless.** `.3` proved the signature sits inside the ticked box, and
+its record says cross-file leakage was closed. Both claims are accurate about *signatures*. Neither
+is about *boxes* — and the requirement is satisfied by a box, so the check kept accepting any ticked
+box in any staged task file. The measured consequence is not marginal: 33 task files carried a
+standing free pass and the fixing leaf would itself have passed on its own tree's history. ⇒ **when
+a check hardens one axis of a rule, ask what the OTHER axis of the same rule still admits.** A
+correct proof about a component is not a proof about the composition.
+
+**2. The fix's own first implementation was vacuous, and only a RED arm said so.** The rule "the
+box must be in a section this change touched" is right. Its first encoding was defeated by the most
+ordinary edit in the repository — appending a new leaf, whose leading blank separator line
+syntactically belongs to the *previous* section. Reading the code would not have caught it; the
+probe that constructed the realistic edit did. ⇒ **a RED arm must reproduce the ORDINARY case, not
+just the adversarial one.** The adversarial arms (H2, H3) passed from the first attempt; the mundane
+one did not.
+
+**3. A gate's vocabulary gap can hide a gate's soundness hole.** Five of the seven commits this
+change newly blocks fail on NO REGRESSION, because `NOREGRESS_SIG` names only parser-side gates and
+those were ops/build-flow changes. Those authors had written honest no-regression evidence; the gate
+could not read it, and the borrow hole quietly absorbed the mismatch. ⇒ **an expressiveness gap and
+a soundness hole can be load-bearing for each other**, so closing one without measuring the other
+either blocks legitimate work or leaves the hole propped up. Routed to `.8` rather than guessed at.
+
+promotion: promoted — `docs/decisions/project_acceptance_box_must_be_written_by_the_change.md`
+carries `answers:` for the retrievable layer.
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0169 — prior art is a starting point, not a template; and a "cost" can be a saving
 
 Three notes from landing the `SV-EXH-PROOF.7.4.6.9` fix.

@@ -76,6 +76,71 @@ box_body() {
 }
 
 # ---------------------------------------------------------------------------------------------
+# GROUND-TRUTH CONTROLS (GENERATED-LINT-CORRECTNESS.7) — run before ANY number is published.
+#
+# ⛔ An instrument with no ground truth is a confident guess. `.4` published 304/288/16 from this
+# script with nothing pinning its box arithmetic, and `.7` then measured 412/299/8 — a corpus that
+# had genuinely grown, but nothing in the tool could have told the two causes apart. These
+# controls fix the four decisions the census makes, so a silent regression in any of them ABORTS
+# with exit 2 rather than printing a plausible number.
+#
+# The controls are deliberately the four rules that were each, at some point, wrong in the real
+# enforcer or in a probe of it:
+#   POS-1  a signature INSIDE the ticked box            -> BACKED       (the basic rule)
+#   NEG-1  a signature only ELSEWHERE in the file       -> UNBACKED     (`.3` box-scoping)
+#   NEG-2  the keyword only in the BODY, not the header -> NOT A BOX    (`.3` RED-2, a real bug)
+#   NEG-3  a signature after a `#` heading              -> UNBACKED     (the body-extent rule)
+# An UNTICKED box is counted by neither arm; NEG-4 pins that too.
+# ---------------------------------------------------------------------------------------------
+count_file() {  # count_file <file> <sig> -> "<boxes> <backed>"
+  local f="$1" s="$2" ln b=0 k=0
+  while IFS= read -r ln; do
+    [ -n "$ln" ] || continue
+    b=$((b + 1))
+    box_body "$ln" "$f" > "$WORK/ctl_body.txt"
+    grep -Eiq -- "$s" "$WORK/ctl_body.txt" && k=$((k + 1))
+  done < <(grep -nEi -- "$HDR_RE" "$f" 2>/dev/null | cut -d: -f1)
+  printf '%d %d' "$b" "$k"
+}
+
+ground_truth_controls() {
+  local fx="$WORK/control_fixture.md" got want
+  cat > "$fx" <<'CTLEOF'
+# CONTROL FIXTURE
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — POS-1: diagnosed with `--report-certificate-coverage`,
+      UNKNOWN=3 and the [plannable-probe] verdict named the rule.
+- [x] **ROOT CAUSE (WHY + WHERE)** — NEG-1: prose only; no tool output in this bullet.
+- [x] **ADDRESSED (verified)** — NEG-2: quotes `--trace-rules` and names the
+      root cause in prose, but its HEADER carries no ROOT CAUSE keyword, so it is not a
+      ROOT CAUSE box and must be counted by neither arm.
+- [ ] **ROOT CAUSE (WHY + WHERE)** — NEG-4: unticked, must be invisible to both arms.
+
+Out-of-box narrative for NEG-1: `--report-certificate-coverage` UNKNOWN=0, furthest_position=0.
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — NEG-3: the evidence sits past a heading.
+
+# A HEADING ENDS THE BOX
+
+`--report-certificate-coverage` UNKNOWN=0 — must NOT back NEG-3.
+CTLEOF
+  # 3 ticked ROOT CAUSE boxes (POS-1, NEG-1, NEG-3); NEG-2 is not one; NEG-4 is unticked.
+  got="$(count_file "$fx" "$DIAGNOSIS_SIG")"; want="3 1"
+  if [ "$got" != "$want" ]; then
+    printf 'census: ✗ GROUND-TRUTH CONTROL FAILED — boxes/backed = "%s", expected "%s".\n' "$got" "$want" >&2
+    printf '  The census box arithmetic no longer reproduces its pinned fixture; REFUSING to\n' >&2
+    printf '  publish a number. Fix the instrument (or the enforcer it sources) before trusting it.\n' >&2
+    exit 2
+  fi
+  # The placement arm must see NEG-1/NEG-3 as OUT-OF-BOX, since the FILE does carry a signature.
+  grep -Eiq -- "$DIAGNOSIS_SIG" "$fx" || {
+    printf 'census: ✗ GROUND-TRUTH CONTROL FAILED — the fixture file carries no signature at all,\n' >&2
+    printf '  so the OUT-OF-BOX / NO-EVIDENCE split cannot be exercised. REFUSING.\n' >&2
+    exit 2
+  }
+}
+
+# ---------------------------------------------------------------------------------------------
 # CLASSIFY buckets. Each entry: "name|what it means|regex".
 # ⚠️ These are DESCRIPTIVE probes over the existing corpus, NOT a proposed gate. Their job is to
 # answer "what do the unbacked boxes actually contain?" before any signature is designed —
@@ -108,6 +173,10 @@ while [ "$#" -gt 0 ]; do
     *) echo "census: ✗ unknown argument: $1" >&2; exit 1 ;;
   esac
 done
+
+# ⛔ Controls first, every invocation, in every mode — a number this script prints is only worth
+# reading if the arithmetic behind it just reproduced its pinned fixture.
+ground_truth_controls
 
 case "$MODE" in
   census|classify|dump-bucket|placement) mapfile -t FILES < <(git ls-files 'docs/tasks/*.md' | sort) ;;
