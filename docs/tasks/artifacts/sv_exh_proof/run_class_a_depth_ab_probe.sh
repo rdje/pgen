@@ -15,9 +15,21 @@
 #                           reproduce the pinned residual (42 for profile_2017) and a
 #                           witness-pass line identical to the gate's own log.  If arm A
 #                           does not reproduce, arm B measures nothing.
-#   ARM B  --max-depth 30   witness budget 60 >= the predicted 48-54.  If the depth model
-#                           is right the class-A residual collapses; if it does not, the
-#                           model is refuted.
+#                           MEASURED 2026-08-01: rc=0, 612 s, residual_targets=42.
+#   ARM B  --max-depth 30   witness budget 60 >= the predicted 48-54.
+#
+# ⛔ COST WARNING, MEASURED — DO NOT BUDGET ARM B LIKE ARM A.  At --max-depth 30 the run
+#    had not finished even its FIRST phase (target-drive) after 2389 s, versus 612 s for
+#    all three phases at depth 20 — >= 3.9x and unfinished; it was killed on the guard's
+#    3000 s wall clock with zero output (peak RSS 149 MB, so this is compute, not memory).
+#    Budget >= 2 h for any raised-depth arm, or do not run one.
+#
+# ⛔ AND PREFER THE SAME-DEPTH FORM.  A raised --max-depth is GLOBAL: it moves the diverse
+#    and target-drive passes too, so a residual delta from it cannot be attributed to the
+#    witness budget alone.  To measure a WITNESS-PASS change (e.g. SV-EXH-PROOF.7.4.6.9's
+#    per-target depth budget), run BOTH arms at the gate's own depth —
+#        bash …/run_class_a_depth_ab_probe.sh 2017 20 20
+#    — before and after the code change.  That is the unconfounded single-variable A/B.
 #
 # Requires a prior `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` run, whose work
 # directory supplies the normalized grammar and the initial target report.  Every path is

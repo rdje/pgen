@@ -1,5 +1,30 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0168 — leaf SV-EXH-PROOF.7.4.6.9: the depth A/B's treatment arm is a NULL RESULT, and that is itself the measurement
+
+`-0167` committed with arm B of the engine-level A/B still in flight. It was killed on the
+guard's wall clock with **zero output**. Recorded as a null result rather than dropped.
+
+- ⛔ **Arm B (`--max-depth 30`) never finished its FIRST phase.** 2389 s elapsed without even
+  the target-drive summary line, against **612 s for all three phases** at depth 20 — **≥ 3.9×
+  and unfinished** (`exit=99 reason=timeout peak_rss_mb=149`, so compute, not memory).
+- ⭐ **The null result confirms the one claim that mattered.** The Knowledge Map recorded on
+  2026-06-03, without a number, that a global `--max-depth` raise *"blows up `property_expr` and
+  reshapes the diverse pass"*. Now quantified: **+10 depth is not merely wrong in principle, it
+  is not runnable.**
+- ⛔ **Arm B is NOT re-run** — decided on the numbers, not escalated. It is **confounded by
+  construction** (`--max-depth` is global, so a residual delta could never be attributed to the
+  witness budget), and **redundant with the fix's own verification**: the fix touches only the
+  witness pass, so measuring it on this same standalone arm *is* the clean single-variable A/B.
+  The pinned BEFORE already exists — arm A, residual **42**, reproducing the gate byte-for-byte.
+- ⚠️ Stated plainly in the leaf rather than smoothed over: this leaf's A/B is **half-complete —
+  one control, no treatment arm.** The diagnosis does not rest on it (direct per-branch failure
+  record + 79/79 and 104/104 controls), and the leaf says what would have falsified it.
+- ✅ The probe script now carries the **measured** cost warning and directs future runners to the
+  unconfounded same-depth form (`… 2017 20 20`, before/after a witness-pass change).
+
+Docs-only slice — no code, grammar, generated, schema or ledger change. Live status unchanged.
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0167 — leaf SV-EXH-PROOF.7.4.6.9: class A is a DEPTH-BUDGET failure, 79/79, and the answer was already on disk
 
 The SV closed-loop residual's largest class is diagnosed **exactly**, both LRM profiles, with no
