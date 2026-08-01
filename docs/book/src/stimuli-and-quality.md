@@ -98,6 +98,96 @@ doctrine generalizes: when a family is a closed no-regression baseline, prefer
 ratcheting its promotion floor up to the *measured, sustained* minimum (with a
 small margin) over leaving a permissive `0` that proves nothing about the ratio.
 
+## The Closed-Loop Residual Ratchet
+
+The promotion floor above guards a *ratio*. The **closed-loop residual** —
+`closed_loop_replay_targets_total`, the coverage targets the replay stage still
+cannot witness — is guarded by its own two-sided ratchet in the SystemVerilog
+stimuli quality gate.
+
+It exists because of a measured failure. The residual was *echoed* into
+`summary.txt` and never compared, so the gate passed at **any** residual. Over
+roughly seven weeks it drifted from `84` to `127` with every gate run green, and
+nobody was told. A number that is reported but never compared is not a gate.
+
+The ratchet is declared in the contract, per profile:
+
+```json
+"closed_loop": {
+  "replay_target_ceilings": {
+    "enforce": true,
+    "measured_configuration": "stimuli_mode=sv_file sample_count=8 seed_base=12001 …",
+    "profiles": { "2017": 42, "2023": 41 }
+  }
+}
+```
+
+and it has **four** outcomes, not two:
+
+| residual vs. pin | outcome | why |
+|---|---|---|
+| above the pin | **FAIL** — regression | targets that were witnessed no longer are |
+| below the pin | **FAIL** — "lower the ceiling" | the win must be *banked*, not silently lost |
+| equal to the pin | pass | the only quiet outcome |
+| profile not pinned | **FAIL** | an unpinned profile is a blind spot, not a pass |
+
+The "below the pin also fails" side is the point. A ceiling that can only be met
+and never tightened lets a hard-won improvement evaporate on the next change
+without anyone noticing — the same class of silence the ratchet was built to
+end. ⛔ **A ceiling is *lowered* as a coverage leaf lands. It is never raised to
+land a change.**
+
+### Why it is scoped to a configuration
+
+A residual is only meaningful at the configuration it was measured at: the
+sample count, the seeds, the profile list, the entry rule and depth/repeat caps,
+and the target-attempt budget all feed the two generation passes that produce
+the replay gap report. Other gates drive this same gate at their own counts and
+seeds (`sv_parse_full_ratio_promotion_gate`,
+`sv_declared_shadow_promotion_gate`), so the ratchet distinguishes two kinds of
+divergence rather than treating them alike:
+
+- **an environment override** moved the run off the pinned configuration → the
+  ratchet **skips**, and says so in `summary.txt`
+  (`closed_loop_replay_target_ceiling_status: skip` plus the reason). Those
+  gates keep measuring what they measure.
+- **the contract's own configuration** no longer matches the pinned one → the
+  gate **refuses** (exit 2) in about a second, before any generation. Skipping
+  here would let a one-line contract edit disarm the ratchet — exactly the
+  silence that produced the `84 → 127` drift.
+
+The grammar is deliberately *not* part of that configuration: a grammar change
+moving the residual is precisely what the ratchet exists to catch.
+
+### The residual manifest
+
+Alongside `summary.txt` the gate now writes
+`closed_loop_replay_targets.json` — the per-profile target *list* behind the
+aggregate count, with each target's `id`, `reason`, `rule_name`, `node_path` and
+`depends_on`. Saving that file before a change makes the next delta a list diff
+instead of an inference: an earlier slice had to *infer* the identity of one
+moved target from an aggregate count and a 2017/2023 asymmetry, because only the
+summary had been kept.
+
+### The ratchet proves itself
+
+Every gate run first drives the ratchet's comparison through eight pinned
+controls — the positive control and all three negatives — and **refuses (exit 2)
+on a miss**, before any expensive work starts. An instrument with no ground
+truth is a confident guess, and this one guards a ~29-minute measurement.
+
+End-to-end ground truth, driving the real gate with only the pinned number
+planted, is re-runnable:
+
+```bash
+bash docs/tasks/artifacts/sv_exh_proof/run_replay_target_ratchet_probes.sh
+```
+
+It pins six cases — contract drift refuses, an unpinned profile fails, the
+residual *at* the pin passes quietly, a residual above the pin fails as a
+regression, a residual below it fails until banked, and an environment override
+skips rather than fails.
+
 ## Probe-Only Steering
 
 When a family is down to a stubborn replay frontier, PGEN now distinguishes between two kinds of literal steering:

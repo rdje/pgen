@@ -3499,6 +3499,17 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`
   - `closed_loop.replay_sample_count` (current default `8`)
   - `closed_loop.require_non_increasing_target_debt`
+  - `closed_loop.replay_target_ceilings` — the two-sided per-profile residual ratchet on
+    `closed_loop_replay_targets_total`:
+    - `enforce` (bool), `measured_configuration` (string), `profiles` (per-LRM-profile pin)
+    - above the pin FAILS as a regression; below it FAILS until the pin is lowered (so a win is
+      banked); an unpinned profile FAILS.
+    - scoped to the configuration it was measured at: an environment override skips the ratchet
+      (and says so in `summary.txt`), while a contract edit that moves the configuration without
+      re-pinning REFUSES with exit `2`.
+    - summary keys: `closed_loop_replay_target_ceiling_status` / `_note` / `_configuration` /
+      `_profiles_checked`, plus the per-profile target list at
+      `<state_dir>/closed_loop_replay_targets.json`.
 - failure replay + shrinking controls (from `systemverilog_core_v0_contract.json`):
   - `failure_replay.enabled`
   - `failure_replay.shrink_semantic_failures`

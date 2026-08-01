@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0165 — a ratchet inherits every weakness of the metric it guards
+
+Four lessons from `SV-EXH-PROOF.7.4.6.10`, each general beyond SystemVerilog.
+
+**1. Scoping a pinned number to its measurement configuration is not optional — and getting it wrong
+breaks other people's gates silently.** The obvious implementation is "pin the residual in the
+contract, compare it, fail on mismatch." That would have been wrong in a way no test in this repository
+would have caught: two *other* gates (`sv_parse_full_ratio_promotion_gate`,
+`sv_declared_shadow_promotion_gate`) drive this gate against the **default** contract while overriding
+the sample count and seed base — and they record the gate's exit code as **data** in a readiness
+report. A pin measured at one configuration would have failed every one of their trials and corrupted
+two readiness verdicts, while looking locally correct. ⇒ **before pinning a measurement, enumerate who
+else runs the thing that produces it, and at what settings.** A `grep` for the script's own name found
+them in seconds; assuming "the canonical run is the only run" would not have.
+
+**2. The obvious fix for lesson 1 reintroduces the original defect one level up.** Once the ratchet
+skips when the configuration differs, a one-line contract edit — `sample_count: 8` → `16` — silently
+disarms it. That is *exactly* the failure being fixed: a number that stops being compared, with nothing
+saying so. The resolution is to refuse to treat the two divergences alike: an **environment** override
+is a legitimate different-question run → skip; the **contract's own** configuration moving without a
+re-pin is a disarmed instrument → refuse, exit 2, in about a second. **Whenever a guard has an escape
+hatch, ask which agent can take that hatch and whether they meant to.**
+
+**3. Ground truth belongs *inside* the instrument, not only in the probe that was run once.** The
+project's standing rule is that an enumerating instrument must refuse rather than under-report. Its
+practical form here: the ratchet drives eight pinned controls — the positive control *and* all three
+negatives — through its own comparison at **every** gate start, and exits 2 on a miss, before any
+generation. A probe run once proves the code was right that day; controls inside the instrument prove
+it on the run that matters. The cost is microseconds against a ~29-minute measurement. **A control that
+only ever ran in a probe is documentation, not ground truth.**
+
+**4. A two-sided ratchet needs its positive control most.** It is easy to prove a ratchet *fails* —
+plant a bad number three ways and watch three failures. The case that actually gets missed is the
+quiet one: at the pinned value the gate must pass, and pass **for the right reason**. So the positive
+control asserts not just exit 0 but `closed_loop_replay_target_ceiling_profiles_checked: 1/1` — a
+ratchet that skipped every profile also exits 0, and would otherwise be indistinguishable from one that
+checked them. **"It passed" is not evidence unless you also measure that it looked.**
+
+**Corollary on cost.** Both directions were proven end-to-end without a single canonical run. The pins
+came from the previous run's per-profile gap reports still on disk (re-read, not quoted from a note),
+and the six probe cases run the real gate at a deliberately tiny but *real* configuration — one profile,
+count 1, replay count 1 — where the whole matrix costs minutes instead of hours. **When a proof needs
+the real code path but not the real scale, shrink the configuration, not the code path.**
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0161 — an absence leaves no trace, so classify by failure SHAPE
 
 Three lessons from `SV-EXH-PROOF.7.4.6.11`, each general beyond SystemVerilog.

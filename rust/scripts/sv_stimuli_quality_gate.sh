@@ -167,6 +167,57 @@ enforce_threshold_le() {
     fi
 }
 
+# ⭐ SV-EXH-PROOF.7.4.6.10 — THE CLOSED-LOOP RESIDUAL RATCHET.
+#
+# `closed_loop_replay_targets_total` is the closed-loop residual: the coverage targets the
+# replay stage still cannot witness. Until this leaf it was ECHOED into the summary and NEVER
+# COMPARED, so the gate PASSED at any residual — which is how it drifted 84 -> 127 over ~7
+# weeks with every gate green (`SV-EXH-PROOF.7.4.6.8` finding 2), and why the 44 targets
+# `.7.4.6.11` won were protected by nothing at all.
+#
+# The ratchet is TWO-SIDED, in the style proven by `LANG-CAPABILITY-AUDIT.10.6`'s
+# `envelope_divergence_ceiling`: ABOVE the pinned ceiling is a regression; BELOW it is a win
+# that must be BANKED by lowering the pin; an UNPINNED profile is a blind spot. A ceiling that
+# can only be met and never tightened is the exact failure `.10.9` had to replace, and it is
+# not being reintroduced here.
+#
+# ⛔ A ceiling is LOWERED as a coverage leaf lands. It is never RAISED to land a change.
+replay_target_ceiling_verdict() {
+    local measured="$1"
+    local pinned="$2"
+    if [[ -z "$pinned" ]]; then
+        printf 'unpinned\n'
+    elif (( measured > pinned )); then
+        printf 'regressed\n'
+    elif (( measured < pinned )); then
+        printf 'improved\n'
+    else
+        printf 'ok\n'
+    fi
+}
+
+# GROUND TRUTH FOR THE RATCHET, run on every gate start rather than once in a throwaway probe:
+# an instrument with no ground truth is a confident guess, and this one guards a ~29-minute
+# measurement. All four verdicts are pinned — the positive control AND the three negatives —
+# and a miss REFUSES (exit 2) before any expensive work begins, because a ratchet that has
+# stopped discriminating is worse than no ratchet: it reports "banked" while banking nothing.
+replay_target_ceiling_self_check() {
+    local case_spec case_measured case_pinned case_expected got
+    local failures=0
+    for case_spec in "42:42:ok" "43:42:regressed" "41:42:improved" "0:0:ok" "1:0:regressed" "0:1:improved" "42::unpinned" "0::unpinned"; do
+        IFS=':' read -r case_measured case_pinned case_expected <<<"$case_spec"
+        got="$(replay_target_ceiling_verdict "$case_measured" "$case_pinned")"
+        if [[ "$got" != "$case_expected" ]]; then
+            echo "error: replay-target ratchet control MISSED: measured=${case_measured} pinned='${case_pinned}' expected=${case_expected} got=${got}" >&2
+            failures=$((failures + 1))
+        fi
+    done
+    if (( failures > 0 )); then
+        echo "error: the closed-loop residual ratchet does not discriminate (${failures} control(s) missed); refusing to run a gate whose ratchet is unproven" >&2
+        exit 2
+    fi
+}
+
 canonicalize_json() {
     local source="$1"
     local target="$2"
@@ -1364,6 +1415,12 @@ closed_loop_enabled="$(jq -er 'if (.closed_loop.enabled // true) then 1 else 0 e
 gap_report_threshold="$(jq -er '(.closed_loop.gap_report_threshold // 1) | numbers' "$CONTRACT_FILE")"
 target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
 require_non_increasing_target_debt="$(jq -er 'if (.closed_loop.require_non_increasing_target_debt // true) then 1 else 0 end' "$CONTRACT_FILE")"
+# The residual ratchet is contract-declared. Its absence is a SKIP, not a pass — every other
+# caller of this gate brings its own contract (`PGEN_SV_STIMULI_QUALITY_CONTRACT`), and pinning
+# a number they never measured would only make them fail.
+replay_target_ceilings_declared="$(jq -er 'if ((.closed_loop.replay_target_ceilings // null) | type) == "object" then 1 else 0 end' "$CONTRACT_FILE")"
+replay_target_ceilings_enforce="$(jq -er 'if (.closed_loop.replay_target_ceilings.enforce // false) then 1 else 0 end' "$CONTRACT_FILE")"
+replay_target_ceilings_pinned_configuration="$(jq -r '(.closed_loop.replay_target_ceilings.measured_configuration // "")' "$CONTRACT_FILE")"
 parseability_shadow_contract_enabled="$(jq -er 'if (.closed_loop.parseability_shadow_enabled // false) then 1 else 0 end' "$CONTRACT_FILE")"
 failure_replay_enabled="$(jq -er 'if (.failure_replay.enabled // true) then 1 else 0 end' "$CONTRACT_FILE")"
 shrink_semantic_failures="$(jq -er 'if (.failure_replay.shrink_semantic_failures // true) then 1 else 0 end' "$CONTRACT_FILE")"
@@ -1703,6 +1760,81 @@ if [[ "${#run_profiles[@]}" -eq 0 ]]; then
     exit 2
 fi
 
+# The ratchet's controls run before ANY expensive work, so a ratchet that has stopped
+# discriminating costs seconds to discover instead of a full gate run.
+replay_target_ceiling_self_check
+
+# ⭐ The pinned residual is only meaningful AT THE CONFIGURATION IT WAS MEASURED AT. Every input
+# in the string below feeds the two `ast_pipeline --generate-stimuli` invocations that produce
+# the replay gap report — the initial stage (`--count $sample_count --seed $profile_seed_base`)
+# and the replay stage (`--count $replay_sample_count --seed $closed_loop_replay_seed
+# --target-report-input` the initial stage's gap JSON) — so changing any of them moves the
+# residual legitimately. `run_profiles` is in the list because the per-profile seed is
+# `seed_base + profile_idx * 1000000`: running one profile alone changes ITS seed, hence its
+# residual.
+# ⛔ The GRAMMAR is deliberately NOT in this list. A grammar change moving the residual is
+# exactly what the ratchet exists to catch.
+# ⚠️ `PGEN_SV_STIMULI_QUALITY_REPLAY_TRACE_VERBOSITY` is absent by MEASUREMENT, not assumption:
+# `DONE-BAR.5f`'s A/B proved the `low` and `none` arms produce byte-identical stimuli and an
+# identical parseability report, so triage tracing must not silently disarm the ratchet.
+replay_target_ceiling_configuration_string() {
+    printf 'stimuli_mode=%s sample_count=%s seed_base=%s run_profiles=%s replay_sample_count=%s entry_rule=%s max_depth=%s max_repeat=%s recovery_stimuli_mode=%s gap_report_threshold=%s target_max_attempts=%s target_generation_timeout_ms=%s target_helper_timeout_ms=%s pending_frontier_extra_stagnation=%s\n' \
+        "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}" "${14}"
+}
+
+closed_loop_replay_target_ceiling_configuration="$(replay_target_ceiling_configuration_string \
+    "$stimuli_mode" "$sample_count" "$seed_base" "$(IFS=,; echo "${run_profiles[*]}")" \
+    "$replay_sample_count" "$mode_entry_rule" "$mode_max_depth" "$mode_max_repeat" \
+    "$mode_recovery_stimuli_mode" "$gap_report_threshold" "$target_max_attempts" \
+    "${TARGET_GENERATION_TIMEOUT_MS_EFFECTIVE:-default}" "${TARGET_HELPER_TIMEOUT_MS_OVERRIDE:-default}" \
+    "${PENDING_FRONTIER_EXTRA_STAGNATION_OVERRIDE:-default}")"
+
+# ⭐ THE SAME STRING, BUILT FROM THE CONTRACT ALONE — every environment override ignored. The two
+# strings answer two different questions, and conflating them would leave the ratchet with the
+# very hole it exists to close:
+#   * effective ≠ contract-only  → an env override (the promotion gates run this gate at their
+#     own counts and seeds). The pinned residual genuinely does not apply, so SKIP.
+#   * contract-only ≠ pinned     → someone edited the contract's own closed-loop configuration
+#     and did not re-measure. Skipping there would DISARM the ratchet exactly the way the
+#     residual drifted 84 -> 127 unnoticed, so this FAILS instead ([[feedback_enumerating_instrument_must_refuse]]).
+contract_stimuli_mode="$default_stimuli_mode"
+contract_entry_rule="$(jq -er --arg mode "$contract_stimuli_mode" '(.stimuli_modes.profiles[$mode].entry_rule // (if ($mode == "sv_snippet" or $mode == "sv_pp_snippet") then "source_item" else "systemverilog_file" end)) | strings' "$CONTRACT_FILE")"
+contract_max_depth="$(jq -er --arg mode "$contract_stimuli_mode" '(.stimuli_modes.profiles[$mode].max_depth // 24) | numbers' "$CONTRACT_FILE")"
+contract_max_repeat="$(jq -er --arg mode "$contract_stimuli_mode" '(.stimuli_modes.profiles[$mode].max_repeat // 4) | numbers' "$CONTRACT_FILE")"
+contract_recovery_stimuli_mode="$(jq -er --arg mode "$contract_stimuli_mode" '(.stimuli_modes.profiles[$mode].recovery_stimuli_mode // "baseline") | strings' "$CONTRACT_FILE")"
+contract_replay_sample_count="$(jq -er --argjson fallback "$default_sample_count" '(.closed_loop.replay_sample_count // $fallback) | numbers' "$CONTRACT_FILE")"
+contract_target_max_attempts="$(jq -er '(.closed_loop.target_max_attempts // 5000) | numbers' "$CONTRACT_FILE")"
+closed_loop_replay_target_ceiling_contract_configuration="$(replay_target_ceiling_configuration_string \
+    "$contract_stimuli_mode" "$default_sample_count" "$default_seed_base" "$required_lrm_profiles_csv" \
+    "$contract_replay_sample_count" "$contract_entry_rule" "$contract_max_depth" "$contract_max_repeat" \
+    "$contract_recovery_stimuli_mode" "$gap_report_threshold" "$contract_target_max_attempts" \
+    "$TARGET_GENERATION_TIMEOUT_MS_DEFAULT" "default" "default")"
+
+if [[ "$replay_target_ceilings_declared" -eq 1 && "$replay_target_ceilings_enforce" -eq 1 \
+      && "$closed_loop_replay_target_ceiling_contract_configuration" != "$replay_target_ceilings_pinned_configuration" ]]; then
+    echo "error: the contract's own closed-loop configuration no longer matches the one the residual ceilings were measured at, so the pinned ceilings describe a run that no longer exists" >&2
+    echo "  pinned:   [${replay_target_ceilings_pinned_configuration}]" >&2
+    echo "  contract: [${closed_loop_replay_target_ceiling_contract_configuration}]" >&2
+    echo "note: re-measure the residual at the new configuration and re-pin closed_loop.replay_target_ceilings (both measured_configuration and profiles) in ${CONTRACT_FILE}" >&2
+    exit 2
+fi
+
+closed_loop_replay_target_ceiling_status="skip"
+if [[ "$replay_target_ceilings_declared" -ne 1 ]]; then
+    closed_loop_replay_target_ceiling_note="not declared by this contract (closed_loop.replay_target_ceilings)"
+elif [[ "$replay_target_ceilings_enforce" -ne 1 ]]; then
+    closed_loop_replay_target_ceiling_note="declared but switched off by this contract (enforce=false)"
+elif [[ "$closed_loop_effective_enabled" -ne 1 ]]; then
+    closed_loop_replay_target_ceiling_note="the closed loop does not run in this configuration, so there is no residual to ratchet"
+elif [[ "$closed_loop_replay_target_ceiling_configuration" != "$replay_target_ceilings_pinned_configuration" ]]; then
+    closed_loop_replay_target_ceiling_note="environment overrides moved the run off the pinned configuration, so the pinned residual does not apply -- pinned: [${replay_target_ceilings_pinned_configuration}] effective: [${closed_loop_replay_target_ceiling_configuration}]"
+else
+    closed_loop_replay_target_ceiling_status="enforced"
+    closed_loop_replay_target_ceiling_note="two-sided: above the pin FAILS as a regression, below it FAILS until the pin is lowered, an unpinned profile FAILS"
+fi
+closed_loop_replay_target_ceiling_profiles_checked=0
+declare -a closed_loop_replay_target_ceiling_problems=()
+
 echo "==> SystemVerilog stimuli quality gate"
 echo "state_dir: $STATE_DIR"
 echo "contract_file: $CONTRACT_FILE"
@@ -1735,6 +1867,9 @@ echo "closed_loop_replay_trace_verbosity_note: $REPLAY_TRACE_VERBOSITY_NOTE"
 echo "cargo_build_jobs: ${CARGO_BUILD_JOBS_OVERRIDE:-<default>}"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
 echo "closed_loop_require_non_increasing_target_debt: $require_non_increasing_target_debt"
+echo "closed_loop_replay_target_ceiling_status: $closed_loop_replay_target_ceiling_status"
+echo "closed_loop_replay_target_ceiling_note: $closed_loop_replay_target_ceiling_note"
+echo "closed_loop_replay_target_ceiling_configuration: $closed_loop_replay_target_ceiling_configuration"
 echo "closed_loop_parseability_shadow_contract_enabled: $parseability_shadow_contract_enabled"
 echo "failure_replay_enabled: $failure_replay_enabled"
 echo "failure_replay_shrink_semantic_failures: $shrink_semantic_failures"
@@ -2047,6 +2182,14 @@ closed_loop_parseability_shadow_report_json="$WORK_DIR/${grammar_name}_closed_lo
 closed_loop_parseability_shadow_profiles_jsonl="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_profiles.jsonl"
 closed_loop_parseability_shadow_counterexamples_jsonl="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_counterexamples.jsonl"
 parseability_generation_counterexamples_jsonl="$WORK_DIR/${grammar_name}_parseability_generation_counterexamples.jsonl"
+# ⭐ The residual MANIFEST — the per-profile target LIST behind the aggregate count, promoted to
+# a first-class artifact next to `summary.txt`. `SV-EXH-PROOF.7.4.6.11` had to INFER the identity
+# of one moved target from an aggregate count and a 2017/2023 asymmetry, because only the summary
+# had been kept; it routed "preserve the per-profile gap JSONs so the next delta is list-diffable"
+# to this leaf. Saving this file alongside `summary.txt` before a change makes the next delta a
+# list diff instead of an inference.
+closed_loop_replay_targets_manifest_jsonl="$WORK_DIR/${grammar_name}_closed_loop_replay_targets.jsonl"
+closed_loop_replay_targets_manifest_json="$STATE_DIR/closed_loop_replay_targets.json"
 closed_loop_parseability_shadow_primary_entry_attempts_total=0
 closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=0
 closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=0
@@ -2061,6 +2204,7 @@ fi
 : >"$closed_loop_parseability_shadow_profiles_jsonl"
 : >"$closed_loop_parseability_shadow_counterexamples_jsonl"
 : >"$parseability_generation_counterexamples_jsonl"
+: >"$closed_loop_replay_targets_manifest_jsonl"
 profile_count="${#run_profiles[@]}"
 total_samples=$((sample_count * profile_count))
 
@@ -2172,6 +2316,50 @@ for profile_idx in "${!run_profiles[@]}"; do
         replay_target_count="$(jq -er '(.targets // []) | length | numbers' "$closed_loop_replay_gap_json")"
         closed_loop_replay_targets_total=$((closed_loop_replay_targets_total + replay_target_count))
         profile_closed_loop_replay_status="pass"
+
+        # ⭐ THE RESIDUAL RATCHET fires HERE, where the per-profile count is already in hand and
+        # the profile key is in scope — so an unpinned profile fails BY CONSTRUCTION rather than
+        # by a later lookup that could quietly find nothing. The bare `echo` in the summary block
+        # is the SYMPTOM `.7.4.6.8` named (echoed, never compared), not the place to fix it.
+        # Verdicts are COLLECTED rather than exited on: at ~29 minutes a run, failing fast on the
+        # first profile would cost one full run per profile to bank a win that moved both.
+        profile_replay_target_ceiling=""
+        profile_replay_target_verdict="skip"
+        if [[ "$closed_loop_replay_target_ceiling_status" == "enforced" ]]; then
+            profile_replay_target_ceiling="$(jq -r --arg profile "$lrm_profile" '((.closed_loop.replay_target_ceilings.profiles[$profile]) // null) | if type == "number" then tostring else "" end' "$CONTRACT_FILE")"
+            profile_replay_target_verdict="$(replay_target_ceiling_verdict "$replay_target_count" "$profile_replay_target_ceiling")"
+            closed_loop_replay_target_ceiling_profiles_checked=$((closed_loop_replay_target_ceiling_profiles_checked + 1))
+            case "$profile_replay_target_verdict" in
+                ok) ;;
+                unpinned)
+                    closed_loop_replay_target_ceiling_problems+=("profile '${lrm_profile}' has NO pinned closed-loop residual ceiling (measured ${replay_target_count}) -- pin it under closed_loop.replay_target_ceilings.profiles in ${CONTRACT_FILE}")
+                    ;;
+                regressed)
+                    closed_loop_replay_target_ceiling_problems+=("profile '${lrm_profile}' closed-loop residual REGRESSED: ${replay_target_count} > pinned ceiling ${profile_replay_target_ceiling} -- coverage targets that were witnessed no longer are")
+                    ;;
+                improved)
+                    closed_loop_replay_target_ceiling_problems+=("profile '${lrm_profile}' closed-loop residual IMPROVED to ${replay_target_count} (pinned ceiling ${profile_replay_target_ceiling}) -- lower the ceiling in ${CONTRACT_FILE} so the gain is banked")
+                    ;;
+                *)
+                    echo "error: replay-target ratchet produced an unknown verdict '${profile_replay_target_verdict}' for profile '${lrm_profile}'" >&2
+                    exit 2
+                    ;;
+            esac
+        fi
+
+        jq -n \
+            --arg profile "$lrm_profile" \
+            --argjson count "$replay_target_count" \
+            --arg ceiling "$profile_replay_target_ceiling" \
+            --arg verdict "$profile_replay_target_verdict" \
+            --slurpfile gap "$closed_loop_replay_gap_json" \
+            '{
+                profile: $profile,
+                residual_count: $count,
+                pinned_ceiling: (if $ceiling == "" then null else ($ceiling | tonumber) end),
+                verdict: $verdict,
+                targets: ($gap[0].targets // [] | map({id, reason, rule_name, node_path, branch_index, depends_on}) | sort_by(.id))
+            }' >>"$closed_loop_replay_targets_manifest_jsonl"
 
         closed_loop_initial_preprocessed="$WORK_DIR/profile_${profile_key}_initial.preprocessed.sv"
         closed_loop_initial_diagnostics="$WORK_DIR/profile_${profile_key}_initial.diagnostics.json"
@@ -2557,6 +2745,41 @@ for profile_idx in "${!run_profiles[@]}"; do
         echo "${lrm_profile},${idx},${seed},${profile_closed_loop_initial_status},${profile_closed_loop_replay_status},pass,${parseability_attempts},${parseability_accepted},${parseability_rejected},${parseability_parser_rejections},${parseability_generation_errors},${parseability_empty_generations},${parseability_acceptance_rate_percent},pass,${semantic_status},${parse_status},${warning_count},${error_count},pass,$(csv_sanitize "$final_note")" >>"$SUMMARY_CSV"
     done
 done
+
+# The residual manifest is written whether or not the ratchet is enforced — its value is being
+# on disk BEFORE the change that moves the number, and a skipped ratchet does not make the list
+# less worth diffing.
+jq -n \
+    --arg grammar_name "$grammar_name" \
+    --arg configuration "$closed_loop_replay_target_ceiling_configuration" \
+    --arg ceiling_status "$closed_loop_replay_target_ceiling_status" \
+    --argjson residual_total "$closed_loop_replay_targets_total" \
+    --slurpfile profiles "$closed_loop_replay_targets_manifest_jsonl" \
+    '{
+        grammar_name: $grammar_name,
+        configuration: $configuration,
+        ceiling_status: $ceiling_status,
+        residual_total: $residual_total,
+        profiles: $profiles
+    }' >"$closed_loop_replay_targets_manifest_json"
+
+if [[ "$closed_loop_replay_target_ceiling_status" == "enforced" ]]; then
+    # A ratchet that observed fewer profiles than ran has a blind spot; reporting that as a pass
+    # is the enumerating-instrument defect this whole leaf exists to remove.
+    if (( closed_loop_replay_target_ceiling_profiles_checked != profile_count )); then
+        echo "error: the closed-loop residual ratchet is ENFORCED but observed ${closed_loop_replay_target_ceiling_profiles_checked} of ${profile_count} profile(s) -- a ratchet that silently skips a profile is a blind spot, not a pass" >&2
+        exit 1
+    fi
+    if (( ${#closed_loop_replay_target_ceiling_problems[@]} > 0 )); then
+        echo "error: closed-loop residual ratchet FAILED (${#closed_loop_replay_target_ceiling_problems[@]} problem(s)):" >&2
+        for ceiling_problem in "${closed_loop_replay_target_ceiling_problems[@]}"; do
+            echo "  - ${ceiling_problem}" >&2
+        done
+        echo "note: the ratchet is TWO-SIDED by design -- a residual BELOW the pin fails too, so a win is banked instead of silently lost. Per-target lists: ${closed_loop_replay_targets_manifest_json}" >&2
+        echo "note: ⛔ a ceiling is LOWERED as a coverage leaf lands; it is never RAISED to land a change." >&2
+        exit 1
+    fi
+fi
 
 if [[ -s "$declared_shadow_cases_jsonl" ]]; then
     declared_shadow_cases_json="$(jq -s '.' "$declared_shadow_cases_jsonl")"
@@ -3366,6 +3589,11 @@ jq -n \
     echo "closed_loop_initial_replay_determinism_passes: $closed_loop_initial_replay_determinism_pass_count/$profile_count"
     echo "closed_loop_initial_targets_total: $closed_loop_initial_targets_total"
     echo "closed_loop_replay_targets_total: $closed_loop_replay_targets_total"
+    echo "closed_loop_replay_target_ceiling_status: $closed_loop_replay_target_ceiling_status"
+    echo "closed_loop_replay_target_ceiling_note: $closed_loop_replay_target_ceiling_note"
+    echo "closed_loop_replay_target_ceiling_configuration: $closed_loop_replay_target_ceiling_configuration"
+    echo "closed_loop_replay_target_ceiling_profiles_checked: $closed_loop_replay_target_ceiling_profiles_checked/$profile_count"
+    echo "closed_loop_replay_targets_manifest: $closed_loop_replay_targets_manifest_json"
     echo "closed_loop_initial_preprocess_warnings_total: $closed_loop_initial_preprocess_warnings_total"
     echo "closed_loop_initial_preprocess_errors_total: $closed_loop_initial_preprocess_errors_total"
     echo "closed_loop_replay_preprocess_warnings_total: $closed_loop_replay_preprocess_warnings_total"

@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0165 — leaf SV-EXH-PROOF.7.4.6.10: the SV closed-loop residual is RATCHETED — the 44 targets `.7.4.6.11` won are now banked
+
+`.7.4.6.11` won 44 coverage targets and **nothing protected them**. The residual
+(`closed_loop_replay_targets_total`) was *echoed* into `summary.txt` and never compared, so the gate
+passed at any value — which is how it drifted **84 → 127 over ~7 weeks with every gate green**, and
+nobody was told. This slice makes that number a gate.
+
+- ⭐ **TWO-SIDED, per profile, pinned at the measured value** (`2017: 42`, `2023: 41`). Above the pin
+  FAILS as a regression. **Below the pin FAILS too**, with *"lower the ceiling"* — a ceiling that can
+  only be met and never tightened lets a hard-won improvement evaporate silently, which is the same
+  class of silence the ratchet exists to end. An unpinned profile FAILS: a blind spot is not a pass.
+- ⭐ **The pins were re-measured, not quoted.** They come from the post-fix canonical run's own
+  per-profile gap reports still on disk (`42 + 41 = 83`), so the ratchet was pinned with **zero**
+  additional 29-minute gate runs. The metric is deterministic, so the pins carry no tolerance.
+- ✅ **Scoped to the configuration it was measured at — and the two kinds of divergence are NOT
+  treated alike.** An *environment* override (the promotion gates run this gate at their own counts
+  and seeds) **skips** the ratchet and says so in the summary. A *contract* edit that moves the
+  configuration without re-pinning **REFUSES with exit 2 in ~1 s**, before any generation — skipping
+  there would let a one-line edit disarm the ratchet, which is exactly the original failure.
+  The grammar is deliberately outside that scope: a grammar change moving the residual is what the
+  ratchet is *for*.
+- ⭐ **The ratchet proves itself on every run.** Eight pinned controls — the positive control and all
+  three negatives — drive the real comparison at gate start and **refuse (exit 2) on a miss**, before
+  any expensive work. An instrument with no ground truth is a confident guess, and this one guards a
+  ~29-minute measurement.
+- ✅ **Both directions proven END-TO-END, through the real call site**, by
+  `docs/tasks/artifacts/sv_exh_proof/run_replay_target_ratchet_probes.sh` — six cases driving the real
+  gate with only the pinned *number* planted: contract drift refuses, unpinned fails, the residual **at**
+  the pin passes quietly, above fails as a regression, below fails until banked, an env override skips.
+- 📌 **The per-target list is now a first-class artifact** (`closed_loop_replay_targets.json`, next to
+  `summary.txt`). `.7.4.6.11` had to *infer* which target moved from an aggregate count and a
+  2017/2023 asymmetry because only the summary was kept; the next delta is a list diff.
+
+Live status **unchanged**: SV main parser stays `Mostly Done` — the ratchet banks the residual, it does
+not lower it.
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0161 — leaf SV-EXH-PROOF.7.4.6.11: class B is ELIMINATED — the SV closed-loop residual falls 127 → 83
 
 The first coverage win of the literal-0 endgame since the failure class flipped. `.7.4.6.8` partitioned

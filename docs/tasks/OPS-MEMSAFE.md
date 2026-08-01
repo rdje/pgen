@@ -229,6 +229,34 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
   still ~61% consumed.) Re-discovering it and attaching a wrong remedy is a RE-MEASURE
   failure of `docs/decisions/feedback_read_prior_art_before_designing.md`.
 
+- 📌 **ROUTED IN 2026-08-01 (`SV-EXH-PROOF.7.4.6.10`) — three fresh markers, and they support
+  question 3 (*reduce the peak*) over any budget change.** Recorded here rather than worked; the
+  SV leaf needed a probe to run, not a guard fix.
+
+| marker | command | budget_mb | peak_rss_mb | util | reason | exit |
+|---|---|---|---|---|---|---|
+| `guard.45571` | ratchet probe ×6, **default cargo jobs** | 12288 | 12,415 | 101% | `rss-budget` | 97 |
+| `guard.36810` | ratchet probe ×6, **`CARGO_BUILD_JOBS=2`** | 16384 | 11,921 | 73% | `completed` | 0 |
+| `guard.7211` | canonical `make sv_stimuli_quality_gate` | 12288 | **11,330** | **92%** | `completed` | 0 |
+
+  - **The breaching stage is named, and it is the BUILD**: the killed case log ends at
+    `build_ast_pipeline_for_sv_generation`, not at generation or the closed loop. Same conclusion
+    as this leaf's own §3 (*"the drivers are known: the `--test` lib link and the
+    `target/debug/ast_pipeline` rustc invocation"*) — re-measured on a different workload.
+  - ⭐ **Capping cargo parallelism moved the peak 12,415 → 11,921 MB on the same work.** The gate
+    already exposes the lever (`PGEN_SV_STIMULI_CARGO_BUILD_JOBS`,
+    `sv_stimuli_quality_gate.sh:25`/`:804`); it just was not being used. That is a *cheap,
+    existing* peak-reduction knob for §3 to price against the harder options.
+  - ⚠️ **The budget raise to 16384 in that probe was BELT-AND-BRACES, not the remedy**, and this
+    leaf's own warning applies: raising the budget makes the guard less protective. The measurement
+    says so too — with `jobs=2` the run peaked at 11,921 MB, so 12288 would also have held, at only
+    3% headroom. The peak-reduction lever is what did the work.
+  - ⚠️ **The documented 12288 HOLDS for the canonical SV gate — twice — but the margin is thin.**
+    10,401 MB (`SV-EXH-PROOF.7.4.6.11`) and now 11,330 MB, i.e. **92% of budget**, for ONE stage of
+    the ~32-stage `sota_exit_gate` that `README.md` prescribes 12288 for. No defect to route: the
+    documented budget did not breach on either sample. But 8% headroom on the SV stage is a number
+    §2 (*the budget doctrine on this host*) should decide against deliberately rather than inherit.
+
 ### The real questions this leaf owns
 
 1. **Make the guard SEE spikes, or say it cannot.** `--interval-s` defaults to 5 s and a

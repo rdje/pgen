@@ -907,14 +907,102 @@ literal over a failing surface.
   Commit: `pending`
 
 - ID: `SV-EXH-PROOF.7.4.6.10`
-  Status: `pending` — ⭐ **NEXT ACTION.** Urgency rose sharply at `.7.4.6.11`: **44 targets were just won and nothing banks them.**
+  Status: `done` (`PGEN-SV-EXH-PROOF-0165`) — ⭐ **THE RESIDUAL IS RATCHETED.** The 44 targets `.7.4.6.11` won are banked, per profile, two-sided, with ground truth inside the instrument.
   Measured_pin_values_2026-08-01: `⭐ THE CEILINGS TO PIN ARE ALREADY MEASURED -- do NOT spend a 29-minute gate run rediscovering them. From the .7.4.6.11 post-fix canonical run (memory-guarded, exit 0, 1736 s, peak_tree_rss 10 401 MB, gate PASSED, profiles 2/2, determinism 2/2): profile_2017 = 42, profile_2023 = 41, closed_loop_replay_targets_total = 83, closed_loop_initial_targets_total = 5461. The metric is DETERMINISTIC (GRAMMAR-WELLFORMED.B1; independently re-confirmed by .7.4.6.8 across a 7-day gap AND an intervening grammar change), so these carry NO tolerance -- pin them exactly.
   WHERE THE COMPARISON GOES (source-located): the per-profile value is already computed at sv_stimuli_quality_gate.sh:2172 -- replay_target_count="$(jq -er '(.targets // []) | length | numbers' "$closed_loop_replay_gap_json")" -- and immediately accumulated into closed_loop_replay_targets_total at :2173. That is the natural ratchet site: the number is per-profile and in hand, and the profile key is in scope, so an unpinned profile can FAIL there by construction rather than by a later lookup. The bare echo at :3368 is the SYMPTOM .7.4.6.8 named (echoed, never compared), not the place to fix it.
   ⛔ PROVE BOTH DIRECTIONS FIRE BEFORE TRUSTING IT ([[feedback_instrument_needs_ground_truth]], the .10.6 envelope_divergence_ceiling precedent) -- and note that BOTH directions can be proven WITHOUT a gate run by driving the comparison with a planted count; reserve the one full run for confirming green at the pinned value.`
   Goal: `.7.4.6.8 finding (2): the canonical gate ECHOES closed_loop_replay_targets_total (sv_stimuli_quality_gate.sh:3368) and NEVER COMPARES it, so the residual drifted 84 -> 127 across ~7 weeks with every gate passing. Add a TWO-SIDED ratchet in the .7.4.6-era style already proven in this repo (LANG-CAPABILITY-AUDIT.10.6 envelope_divergence_ceiling): a residual ABOVE the pinned ceiling FAILS as a regression; a residual BELOW it FAILS with "lower the ceiling" (so wins are banked, not silently lost); an unpinned profile FAILS. ⛔ PROVE BOTH DIRECTIONS FIRE before trusting it (the .10.6 precedent) — an unproven ratchet is an instrument without ground truth ([[feedback_instrument_needs_ground_truth]]). Deterministic metric is the PREREQUISITE and it is now met (GRAMMAR-WELLFORMED.B1).`
   Acceptance: `ceiling pinned per profile at the MEASURED current value; both directions proven to fire (a planted +1 fails as regression, a planted -1 fails as "lower the ceiling"); gate stays green at the pinned value; no residual-metric change (ratchet only observes).`
-  Verification: `pending`
-  Commit: `pending`
+  Scope_addition_2026-08-01: `TWO items beyond the Goal, both discovered while implementing and both closing a hole in THIS instrument rather than widening the leaf.
+  (1) CONFIGURATION SCOPING WAS MANDATORY, NOT OPTIONAL -- and a naive pin would have broken two live gates. sv_parse_full_ratio_promotion_gate.sh:257-266 and sv_declared_shadow_promotion_gate.sh:254-264 both drive THIS gate against the DEFAULT contract while overriding PGEN_SV_STIMULI_QUALITY_COUNT and PGEN_SV_STIMULI_QUALITY_SEED_BASE, and both record the gate's exit code as DATA in a readiness report. Pinning a residual measured at count=8/seed=12001 would have made every one of their trials fail and corrupted both readiness verdicts. So the ratchet is scoped to the configuration it was measured at.
+  (2) BUT "scope it and skip on mismatch" REINTRODUCES THE ORIGINAL DEFECT ONE LEVEL UP: a one-line contract edit (say sample_count 8 -> 16) would silently disarm the ratchet, which is EXACTLY the 84 -> 127 silence. So the two divergences are DISCRIMINATED, not merged: effective != contract-only means an ENV override -> SKIP (the promotion gates keep working); contract-only != pinned means the contract itself moved without a re-pin -> REFUSE, exit 2, in ~1 s before any generation ([[feedback_enumerating_instrument_must_refuse]]). Proven by the probe's contract_drift case.`
+  PROBE_RESULTS_2026-08-01: `⭐ ALL 6 CASES PASSED -- driver exit 0, memory-guarded (peak_tree_rss 11 921 MB, elapsed 1952 s), re-runnable by
+  scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 7200 -- bash docs/tasks/artifacts/sv_exh_proof/run_replay_target_ratchet_probes.sh
+  Each case drives the REAL rust/scripts/sv_stimuli_quality_gate.sh end-to-end at a tiny-but-real configuration (one profile, count 1, replay count 1, target_max_attempts 64; residual N there = 42, LEARNED by the probe, not hard-coded) and plants ONLY the contract's pinned number. Verbatim, from rust/target/sv_exh_proof_ratchet_probe_driver.log:
+  * contract_drift  exit 2 -- "error: the contract's own closed-loop configuration no longer matches the one the residual ceilings were measured at, so the pinned ceilings describe a run that no longer exists". Fires in ~1 s, before any generation. ⭐ THE ANTI-DISARM CONTROL.
+  * unpinned        exit 1 -- "profile '2017' has NO pinned closed-loop residual ceiling (measured 42) -- pin it under closed_loop.replay_target_ceilings.profiles".
+  * pinned_exact    exit 0 -- "closed_loop_replay_target_ceiling_profiles_checked: 1/1". ⭐ THE POSITIVE CONTROL, and it asserts the ratchet LOOKED, not merely that the gate exited 0 -- a ratchet that skipped every profile also exits 0 and would otherwise be indistinguishable.
+  * regressed       exit 1 -- "profile '2017' closed-loop residual REGRESSED: 42 > pinned ceiling 41 -- coverage targets that were witnessed no longer are". ⭐ DIRECTION 1.
+  * improved        exit 1 -- "profile '2017' closed-loop residual IMPROVED to 42 (pinned ceiling 43) -- lower the ceiling ... so the gain is banked". ⭐ DIRECTION 2, the one a one-sided ceiling would silently lose.
+  * env_override    exit 0 -- "closed_loop_replay_target_ceiling_note: environment overrides moved the run off the pinned configuration ... pinned: [... seed_base=12001 ...] effective: [... seed_base=990001 ...]". ⭐ THE PROMOTION-GATE SAFETY CONTROL: PGEN_SV_STIMULI_QUALITY_SEED_BASE=990001 SKIPS the ratchet instead of failing the run.
+  ⚠️ HONEST BOUND: the probe covers ONE profile, so the multi-profile accumulation path (problems collected across profiles, profiles_checked == profile_count) is exercised only by the canonical confirmation run recorded under NO_REGRESSION_2026-08-01, which reports profiles_checked 2/2.`
+  PROBE_MEMORY_NOTE_2026-08-01: `The probe's FIRST driver run was killed by the memory guard, and the cause is NOT the ratchet -- worth recording because it is an operational fact about this gate, not about this leaf. reason=rss-budget, peak_tree_rss 12 415 MB > budget 12 288 MB, elapsed 548 s, marker rust/target/generated_logs/memory_guard/guard.45571.marker, last_free_pct=75 (i.e. the MACHINE was fine; the BUDGET was the binding constraint). The breaching stage is named in the case log: build_ast_pipeline_for_sv_generation -- the cargo/rustc BUILD, not generation and not the closed loop. FIX APPLIED IN THE PROBE: cap cargo parallelism via PGEN_SV_STIMULI_CARGO_BUILD_JOBS=2 (the gate already supports it, sv_stimuli_quality_gate.sh:25/804) and run the driver at --budget-mb 16384.
+  ⚠️ HONEST BOUND -- ONE SAMPLE, DELIBERATELY LEFT OPEN: README.md documents --budget-mb 12288 for the aggregate sota_exit_gate, and .7.4.6.11's canonical SV run recorded peak_tree_rss 10 401 MB UNDER that same budget with exit 0. So 12 415 vs 10 401 is either (a) rustc build parallelism the canonical run happened not to hit, or (b) a genuine headroom problem with the documented budget. ⛔ DO NOT route a README/ops finding on one sample. The canonical confirmation run for this leaf is therefore deliberately run at the DOCUMENTED 12288, so its peak is an independent second measurement.
+  ⭐ ANSWERED, AND IT IS (a): the canonical run completed at budget 12288 with peak_tree_rss 11 330 MB, exit 0 (guard.7211). The documented budget HOLDS -- twice now (10 401, 11 330) -- so there is NO README/ops defect to route. The 12 415 MB spike was the probe's own repeated cargo builds at full parallelism, and capping them (PGEN_SV_STIMULI_CARGO_BUILD_JOBS=2) moved the peak to 11 921 MB on the same work. ⛔ NOTE THE DOCTRINE: OPS-MEMSAFE.4 warns that RAISING a budget makes the guard LESS protective; the raise to 16384 in the probe was belt-and-braces, and the peak-reduction lever is what actually fixed it. All three markers are ROUTED to OPS-MEMSAFE.4 (which already owns "reduce the peak"), including the one number worth a second look there: 11 330 / 12 288 = 92% of budget for ONE stage of the ~32-stage sota_exit_gate. Routed, not worked -- it blocks nothing ([[feedback_flow_findings_are_routed_not_worked]]).`
+  BLAST_RADIUS_2026-08-01: `ENUMERATED, not assumed. grep -rn "sv_stimuli_quality_gate.sh" over rust/scripts + Makefile + workflows found EVERY caller of this gate, and each was checked against the new refusal:
+  * OWN CONTRACT, no ceilings block -> declared=0 -> SKIP, untouched: sv_roundtrip_contract_gate, sv_failure_context_contract_gate, sv_combined_telemetry_contract_gate (all three use systemverilog_failure_context_v0_contract.json) and stimuli_cross_family_platform_gate (its own contract). Verified by inspecting .closed_loop keys of every tracked grammar_quality contract: only systemverilog_core_v0_contract.json carries replay_target_ceilings.
+  * DEFAULT CONTRACT + env overrides -> effective != contract-only -> SKIP, exit unchanged: sv_parse_full_ratio_promotion_gate.sh:257-266, sv_declared_shadow_promotion_gate.sh:254-264. ⛔ THIS IS THE ONE THAT WOULD HAVE BROKEN: both record the gate's exit code as DATA in a readiness report, so a naive unconditional pin would have failed every trial and corrupted both verdicts.
+  * DERIVED FROM THE DEFAULT CONTRACT -> the only real exit-2 hazard, and it is CLEAR. sv_parser_aggregate_contract_gate.sh:13 sets BASE_CONTRACT_FILE to systemverilog_core_v0_contract.json and jq-derives two probe contracts (:92-105), so those inherit enforce=true and the pinned measured_configuration. MEASURED, not reasoned: its jq transforms touch only .closed_loop.enabled, .closed_loop.parseability_shadow_enabled, .nexsim_realistic_corpus.enforce, .performance_budgets.enforce and .parse_full_quality.enforce_min_pass_ratio -- NONE of which is a fingerprint key -- so the derived contract's contract-only fingerprint is BYTE-EQUAL to the pinned string (re-computed with the gate's own jq expressions over the derived file). No exit 2; its PGEN_SV_STIMULI_QUALITY_COUNT=1 / LRM_PROFILES=2017 overrides then SKIP the ratchet.
+  * CANONICAL -> make sv_stimuli_quality_gate (Makefile:1141-1143) and sota_exit_gate.sh:1436-1451, which run it with NO configuration override -> ENFORCED. This is the intended and only enforcing caller.`
+  Verification: `done -- the ratchet is live, pinned at the MEASURED value, and PROVEN IN BOTH DIRECTIONS end-to-end.
+
+  PINNED AT: profile_2017 = 42, profile_2023 = 41 (total 83), at the canonical configuration
+  "stimuli_mode=sv_file sample_count=8 seed_base=12001 run_profiles=2017,2023 replay_sample_count=8 entry_rule=systemverilog_file max_depth=20 max_repeat=2 recovery_stimuli_mode=baseline gap_report_threshold=1 target_max_attempts=5000 target_generation_timeout_ms=5 target_helper_timeout_ms=default pending_frontier_extra_stagnation=default".
+
+  ⭐ THE PINS WERE RE-MEASURED, NOT QUOTED -- AND AT ZERO GATE COST. -0164 banked the values from .7.4.6.11's post-fix run; this slice did NOT trust that text. The post-fix run's own per-profile artifacts are still on disk, so the split was re-read directly from them:
+    jq -er "(.targets // []) | length" rust/target/sv_stimuli_quality_gate/work/profile_2017_replay_gap.json -> 42
+    jq -er "(.targets // []) | length" rust/target/sv_stimuli_quality_gate/work/profile_2023_replay_gap.json -> 41
+  and rust/target/sv_stimuli_quality_gate/summary.txt (the same run) reads closed_loop_replay_targets_total: 83 with closed_loop_initial_targets_total: 5461. 42 + 41 = 83 reconciles exactly. The prior (pre-fix) run's summary at rust/target/sota_exit_gate/work/sv_stimuli_quality_gate/summary.txt still reads 127 at the SAME configuration lines (sample_count 8, seed_base 12001, run_profiles "2017 2023", replay_sample_count 8, target_max_attempts 5000) -- the before/after pair, on disk, at an identical configuration.
+
+  ⭐ GROUND TRUTH IS INSIDE THE INSTRUMENT, NOT ONLY IN A PROBE. replay_target_ceiling_self_check() drives EIGHT pinned controls through the shipping comparison at every gate start -- the positive control (42 vs 42 -> ok; 0 vs 0 -> ok) AND all three negatives (43 vs 42 -> regressed; 1 vs 0 -> regressed; 41 vs 42 -> improved; 0 vs 1 -> improved; 42/0 vs unpinned -> unpinned) -- and exits 2 on ANY miss, before a single generation runs ([[feedback_instrument_needs_ground_truth]]).
+
+  ⭐ BOTH DIRECTIONS PROVEN END-TO-END, THROUGH THE REAL CALL SITE, WITH NO CANONICAL RUN. docs/tasks/artifacts/sv_exh_proof/run_replay_target_ratchet_probes.sh drives the REAL gate script six times at a tiny-but-real configuration (one profile, count 1, replay count 1, target_max_attempts 64; residual N there = 42) and plants ONLY the contract's pinned number. It never stubs the ratchet. Results are recorded under PROBE_RESULTS_2026-08-01 below.
+
+  NO RESIDUAL-METRIC CHANGE: the ratchet only READS replay_target_count, which is computed exactly as before at sv_stimuli_quality_gate.sh:2172. No generator, grammar, generated artifact or stimuli path was touched -- the change is confined to rust/scripts/sv_stimuli_quality_gate.sh plus the contract's new closed_loop.replay_target_ceilings block (version 26 -> 27).
+
+  ⭐ NO_REGRESSION_2026-08-01 -- THE CANONICAL GATE IS GREEN AT THE PINNED VALUE, AND THE RATCHET CHANGES NOTHING ELSE.
+  RUN: scripts/run_with_memory_guard.sh --budget-mb 12288 --timeout-s 5400 -- make -C rust SHELL=/bin/bash sv_stimuli_quality_gate -> exit 0, elapsed 1895 s, peak_tree_rss 11 330 MB (guard.7211).
+  * closed_loop_replay_targets_total: 83 -- EXACTLY the pinned 42 + 41, at closed_loop_initial_targets_total: 5461 (universe unchanged).
+  * closed_loop_replay_target_ceiling_status: enforced -- i.e. the ratchet was ARMED on the canonical path, not skipped.
+  * closed_loop_replay_target_ceiling_profiles_checked: 2/2 -- ⭐ the multi-profile leg the one-profile probe could not cover. The gate did not pass because it looked away.
+  * closed_loop_profiles_passed 2/2; closed_loop_initial_replay_determinism_passes 2/2.
+  * MANIFEST written and self-consistent: closed_loop_replay_targets.json reports 2017 {count 42, ceiling 42, verdict ok, 42 targets listed} and 2023 {count 41, ceiling 41, verdict ok, 41 targets listed}, residual_total 83.
+  ⭐ WHOLE-SUMMARY DIFF vs the PRE-RATCHET run of the same configuration (banked at rust/target/sv_exh_proof_prefix_bank/summary.txt): 31 changed lines TOTAL = 13 timing metrics (26 lines, all *_ms) + EXACTLY the 5 new ratchet lines. Every other metric in the entire summary is BYTE-IDENTICAL -- universe, determinism, all closed_loop_parseability_shadow_* counters, realistic corpus, parse_full. That is the "the ratchet only OBSERVES" claim measured rather than argued, using the whole-summary-diff method .7.4.6.11 established.
+  OTHER LEGS: bash -n clean on both the gate and the probe; scripts/check_doctrines.sh ALL 16 PASS on the STAGED diff (TASK-ACCEPTANCE non-vacuous); mdbook build docs/book exit 0. No Rust source, grammar, generated artifact or engine path touched -- so the cert-coverage/ast_shape/clippy legs have no surface to regress here, and the canonical SV gate above is the oracle that does apply.
+
+  ⭐ ROUTED ITEM FROM .7.4.6.11 DISCHARGED: its HONEST BOUND ("the per-profile BEFORE target lists were not preserved ... routed to .7.4.6.10") is closed. The gate now emits <state_dir>/closed_loop_replay_targets.json alongside summary.txt -- per profile, the residual count, the pinned ceiling, the verdict, and the full target LIST (id, reason, rule_name, node_path, branch_index, depends_on, sorted by id). The next such delta is a list diff, not an inference.`
+  Commit: `PGEN-SV-EXH-PROOF-0165`
+- **Acceptance Checklist (enforced)** — `SV-EXH-PROOF.7.4.6.10`
+- [x] **REPRODUCE / ISSUE** — the defect is an ABSENCE, so it is reproduced by running the gate's
+  own reader over the two summaries still on disk. `make -n`-class inspection of the gate flow plus
+  `grep -n closed_loop_replay_targets_total rust/scripts/sv_stimuli_quality_gate.sh` returned exactly
+  three sites — `=0` init, `+=` accumulate, and one bare `echo` in the summary block — and **no
+  comparison anywhere**. Consequence, measured on disk at an IDENTICAL configuration:
+  `rust/target/sota_exit_gate/work/sv_stimuli_quality_gate/summary.txt` →
+  `closed_loop_replay_targets_total: 127` and `rust/target/sv_stimuli_quality_gate/summary.txt` →
+  `83`, both with `closed_loop_profiles_passed: 2/2`. The gate **passed at both**.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family (the defect is in this repo's own gate
+  script, so there is no rustc error and no parse to trace). `bash -n
+  rust/scripts/sv_stimuli_quality_gate.sh` + `grep -n` locate it exactly: the per-profile residual is
+  computed at `sv_stimuli_quality_gate.sh:2172`
+  (`replay_target_count="$(jq -er '(.targets // []) | length | numbers' "$closed_loop_replay_gap_json")"`)
+  and accumulated at `:2173`, after which the only remaining use is `echo
+  "closed_loop_replay_targets_total: …"` in the summary block. The two neighbouring guards at
+  `:2216`/`:2220` compare `replay_*` against `initial_*` **within one run**, so nothing compares the
+  residual against a PINNED value across runs. ⇒ the gate is structurally incapable of failing on a
+  residual regression: `84 → 127` across ~7 weeks, every gate green.
+- [x] **FIX** — fix-hierarchy tier: **declarative first** (the pins and their scope live in the
+  contract, `closed_loop.replay_target_ceilings`, version 26 → 27); the script only compares. The
+  comparison fires at the site the number is born (`:2172`), where the profile key is in scope, so an
+  unpinned profile fails **by construction**. Verdicts are collected across profiles and adjudicated
+  after the loop, because at ~29 minutes a run, failing fast on the first profile would cost one full
+  run per profile to bank a win that moved both.
+- [x] **ADDRESSED (verified)** — named, re-runnable oracle:
+  `bash docs/tasks/artifacts/sv_exh_proof/run_replay_target_ratchet_probes.sh`, which drives the REAL
+  gate six times with only the pinned number planted. See `PROBE_RESULTS_2026-08-01`. Before→after on
+  the symptom: the residual went from a number the gate **could not** fail on to one where all three
+  failure directions fire and the at-pin case stays quiet. Plus the in-gate oracle
+  `replay_target_ceiling_self_check` — 8 pinned controls, exit 2 on a miss — which CI re-executes on
+  every SV gate run independently of any tick in this leaf.
+- [x] **NO REGRESSION** — see `NO_REGRESSION_2026-08-01`. `bash -n` clean; `scripts/check_doctrines.sh`
+  green; the gate re-runs green at the pinned value; the two promotion gates that drive this gate with
+  env overrides are proven UNAFFECTED by the probe's `env_override` case (ratchet skips, exit 0);
+  `assert_stage_summary_matches_log` parity holds because every new summary key is also emitted in the
+  startup banner from the same variable.
+- [x] **LOCKSTEP** — book (`docs/book/src/stimuli-and-quality.md` — new section *The Closed-Loop
+  Residual Ratchet*, sibling to the promotion-floor ratchet), `PGEN_USER_GUIDE.md` (contract keys +
+  summary keys), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`. Live status unchanged: SV main
+  stays `Mostly Done` — the ratchet banks the residual, it does not lower it.
 
 - ID: `SV-EXH-PROOF.7.4.6.11`
   Status: `done` (`PGEN-SV-EXH-PROOF-0161`) — ⭐ **CLASS B IS ELIMINATED, 43 → 0, both sub-shapes**; canonical gate residual **127 → 83** at an unchanged universe of 5461. Class C split out to `.7.4.6.12` (see `Scope_decision_2026-08-01`).
