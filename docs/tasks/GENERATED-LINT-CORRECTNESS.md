@@ -1264,6 +1264,66 @@ existing leaf's boxes to make them pass.
   numbers if that is the answer.
 
 
+### `.9` — `ROOT_KW`'s bare `\bwhy\b` is a fails-open widening: narrow it (`pending` — DECIDED, priced, not yet implemented)
+
+- **Status: `pending`** (opened 2026-08-01 by `.7`, which found it and deliberately did NOT fix it
+  in-leaf to keep that leaf's blast radius controlled). **The director delegated the call**
+  (*"Please decide yourself … provided you strictly stick to sota, signoff and highly
+  professional"*), and the decision taken is **FIX IT** — the pricing below is why.
+
+#### THE DEFECT
+
+`ROOT_KW='root cause|why ?\+ ?where|\bwhy\b'`. The third alternative matches the bare WORD, so a
+box that is not a ROOT CAUSE box at all can satisfy the ROOT CAUSE requirement. Measured: **4**
+ticked headers match via bare `\bwhy\b` only, and every one is a `**FIX**` / `**LOCKSTEP**` /
+`**REPRODUCE**` box (e.g. `- [x] **FIX** — … Why no lower tier: …`).
+
+⛔ **This is FAILS-OPEN, and on the director's own named step.** A `**FIX**` box routinely quotes a
+command, so a leaf carrying no ROOT CAUSE box at all can pass box 1 on its FIX box. That is
+categorically different from the two candidates `.7` DISPROVED (`unchecked` cross-leaf blocking and
+`box_body` `^#` truncation), which both fail *closed*. `.7`'s leaf-scoping narrows the exposure — the
+box must now be one the change wrote — but does not remove it.
+
+#### THE PRICING — a NARROWING, so the bar is "does it break anything", measured at zero
+
+Candidate `ROOT_KW='root cause|why ?[-+/&] ?where'` (drops the bare word; still accepts the
+template spelling and the obvious `/`, `-`, `&` connectors), priced against every ticked ROOT CAUSE
+box in `docs/tasks/`:
+
+| measure | result |
+|---|---|
+| boxes dropped by the candidate | **4** |
+| of which **BACKED** (i.e. would break a currently-passing leaf) | **0** |
+| files losing their last backed ROOT CAUSE box | **0** |
+| unticked headers (the false-BLOCK surface) — current → candidate | **0 → 0** |
+
+⇒ zero cost in both directions. 408 of the 412 ticked headers already match `root cause`, and 400
+match `why + where`, because `TOOLBOX.md`'s template spells it `**ROOT CAUSE (WHY + WHERE)**`.
+
+⚠️ **Note the asymmetry in the standard, deliberately.** `.4` and `.7` refused *widenings* (2/304 and
+0/307) because a widening needs corpus PRESSURE to justify. This is a *narrowing* that closes a
+soundness hole, so the question is not "is there a population demanding it" but "does it break
+anything" — and the answer is measured, not argued.
+
+#### WHAT IS LEFT TO DO (nothing measured is missing; this is implementation only)
+
+1. Change `ROOT_KW` in `scripts/check_diagnosis_evidence.sh` to the candidate above.
+2. RED/GREEN probes proving BOTH directions before trusting it (`.3`'s standing rule): a `**FIX**`
+   box whose header says *"why"* and whose body quotes `--trace-rules`, with no ROOT CAUSE box,
+   must **BLOCK** (it PASSES today); a real `**ROOT CAUSE (WHY + WHERE)**` box must still ALLOW.
+3. Re-run `.3` (6), `.4` (13) and `.7` (9) drivers; census controls; all 17 doctrines.
+4. Expect the census to read **408** ticked ROOT CAUSE boxes, not 412 — that delta IS the fix, and
+   the census ground-truth controls must stay green across it.
+5. ⛔ Mind `run_root_cause_box_census.sh`: it sources `ROOT_KW` live from the enforcer, so it
+   follows automatically — **do not hand-copy the regex** (`.4` fixed exactly that duplication bug
+   in `.3`'s probe driver).
+
+#### Acceptance
+
+`the candidate priced against the whole corpus with the 0-backed-boxes-dropped result reproduced;
+a RED arm proving a FIX-box-with-"why" no longer satisfies box 1, and a GREEN arm proving the
+template spelling still does; no previously-passing leaf newly failing; all 17 doctrines PASS.`
+
 ## Commit log
 
 | slice | leaf | commit subject |
@@ -1275,3 +1335,4 @@ existing leaf's boxes to make them pass.
 | `PGEN-GENERATED-LINT-CORRECTNESS-0006` | `.4` | the chartered fifth family is REFUTED at 2 of 304 — the gap is 94% placement, group 2 named the wrong profilers, and the real fifth family (ops/build-flow) was requested by the corpus itself in an unread waiver note |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0008` | `.7` (opened) | the sixth diagnosis family is CHARTERED, not granted — the director's approval is conditional and the pricing already points AWAY |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0009` | `.7` + `.8` | the sixth family is REFUSED at 0 of 307 — and the real misbehaviour is that box-scoping was VACUOUS: any ticked box in any staged task file satisfied the checklist, so 33 trees carried a standing free pass |
+| `PGEN-GENERATED-LINT-CORRECTNESS-0010` | `.9` (opened) | the bare `\bwhy\b` over-match is a FAILS-OPEN widening on the named step — decided (director-delegated) and priced at 0 backed boxes dropped, implementation pending |
