@@ -91,11 +91,19 @@ and **RED-H1 caught the rule being vacuous against the most common edit in the r
    unfinished, and that verdict must not depend on whether the commit happened to edit that part
    of the file. Its cross-leaf false-block hazard was measured at **population 0** (no tracked
    task file carries an unticked ROOT-CAUSE box) and deliberately left alone.
-3. Two further candidate misbehaviours were **disproven on evidence, not assumed away**: the
+3. One further candidate misbehaviour was **disproven on evidence, not assumed away**: the
    `box_body` `^#` terminator hiding a signature inside a fenced block (**0 boxes** affected
-   repo-wide) and `ROOT_KW`'s bare `\bwhy\b` over-match (**4** headers, all `**FIX**` /
-   `**LOCKSTEP**` / `**REPRODUCE**` boxes, **none carrying a signature**, so none can satisfy the
-   gate today — a latent fails-open widening, routed rather than fixed).
+   repo-wide). A second — `ROOT_KW`'s bare `\bwhy\b` over-match (**4** headers, all `**FIX**` /
+   `**LOCKSTEP**` / `**REPRODUCE**` boxes, **none carrying a signature**) — was recorded here as a
+   latent fails-open widening and routed rather than fixed. ⭐ **It has since been FIXED**
+   (`GENERATED-LINT-CORRECTNESS.9`, `-0011`: `ROOT_KW='root cause|why ?[-+/&] ?where'`, priced at
+   4 boxes dropped / **0 backed** / 0 files losing their last backed box). ⚠️ **And the reason it
+   should not have been left latent is worth keeping**: *"none carries a signature today"* is a
+   fact about the corpus at one instant, not about the rule — the reach is one `**FIX**` box
+   quoting one command away. ⭐ A probe then found the **same alternative failing CLOSED too**: an
+   *unticked* `**FIX**` box writing the word "why" tripped bound 2's `unchecked` and blocked a leaf
+   whose real boxes were all ticked and backed. Bound 2's "population 0" measurement was true and
+   did not cover that shape.
 4. **Routed, not fixed → `GENERATED-LINT-CORRECTNESS.8`:** `NOREGRESS_SIG` has the same
    wrong-vocabulary defect group 2 had. It names only parser-side global gates, so an
    ops/build-flow change has no natural no-regression token and **120 of 416 (29 %)** NO

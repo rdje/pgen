@@ -1,5 +1,46 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-GENERATED-LINT-CORRECTNESS-0011 — leaf GENERATED-LINT-CORRECTNESS.9: `ROOT_KW` narrowed — and the same alternative was ALSO failing CLOSED
+
+`.7` found the bare `\bwhy\b` over-match, priced it as harmless *today*, and routed it. `-0010`
+took the director-delegated decision to fix it anyway. This lands it — and the probes found a
+second defect the corpus pricing was structurally unable to see.
+
+- ⛔ **The fails-OPEN half, as charted.** `ROOT_KW`'s third alternative matched the bare WORD, so a
+  `**FIX**` box writing *"Why no lower tier: …"* and quoting a command satisfied the ROOT CAUSE
+  requirement in a leaf carrying **no ROOT CAUSE box at all** — on one of the director's four named
+  steps. Reproduced end-to-end: probe RED-W1 exits **0** under `HEAD`'s enforcer.
+- ⭐⭐ **The fails-CLOSED half, found by a probe and not by the pricing.** `unchecked()` blocks on an
+  UNTICKED box matching the keyword wherever it sits, so an unticked `**FIX**` box writing "why" —
+  the everyday *"- [ ] **FIX** — not yet chosen. Why the engine tier is likely: …"* — **BLOCKED a
+  leaf whose ROOT CAUSE / ADDRESSED / NO REGRESSION boxes were all ticked and backed.** That is the
+  gate punishing honest in-progress work, the exact failure `.4` and `.6` were about. One narrowing
+  closes both polarities.
+- ⭐ **The lesson worth more than the regex.** The corpus pricing measured the unticked surface at
+  **0 → 0** and the over-matched headers as *"none carries a signature"* — both true, and both facts
+  about the corpus **at one instant**, not about the rule. The fails-open reach was one `**FIX**`
+  box quoting one command away; the fails-closed one needed no corpus change at all.
+- **The change:** `ROOT_KW='root cause|why ?[-+/&] ?where'` — the bare word dropped, the connector
+  widened so the template spelling `**ROOT CAUSE (WHY + WHERE)**` and the hand-written `/`, `-`,
+  `&` variants all survive.
+- **Priced as a NARROWING, so the bar is "does it break anything":** 4 boxes drop, **0 of them
+  BACKED**, **0** files lose their last backed box. Census **413 → 409** ticked, BACKED **106 →
+  106** unchanged, unticked false-block surface **0 → 0**.
+- **Probes 10/10** post-fix. Before→after replay under `PGEN_DIAG_CHECK_OVERRIDE` against `HEAD`'s
+  enforcer: **8 passed / 2 failed**, and the 2 are exactly the RED arms (RED-W1 `exit=0`, RED-W2
+  `exit=1`) — every GREEN and CONTROL arm byte-identical on both sides, the non-weakening proof.
+- **No regression:** `.3` **6/6**, `.4` **13/13**, `.7` **9/9**; census ground-truth controls stayed
+  green across the change (exit 0, and it refuses with exit 2 on a miss); all **17** doctrines PASS.
+  No `rust/src/*`, no grammar, no `generated/*` in the diff ⇒ all 11 parsers byte-identical by
+  construction.
+
+Files: `scripts/check_diagnosis_evidence.sh`,
+`docs/tasks/artifacts/generated_lint_correctness/run_diag_evidence_root_kw_probes.sh` (new),
+`docs/tasks/GENERATED-LINT-CORRECTNESS.md`, `docs/TASK_TREE.md`, `TOOLBOX.md`,
+`docs/book/src/quality-and-closure-model.md`,
+`docs/decisions/project_acceptance_box_must_be_written_by_the_change.md` + `INDEX.md`,
+`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
 ## 2026-08-01 - PGEN-GENERATED-LINT-CORRECTNESS-0009 — leaves GENERATED-LINT-CORRECTNESS.7 + .8: the sixth diagnosis family is REFUSED at 0%, and box-scoping turns out to have been VACUOUS
 
 The director's approval was conditional — *"if you find a misbehavior in the enforcer"*. Measuring

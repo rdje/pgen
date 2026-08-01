@@ -168,6 +168,20 @@ editing any part of the same leaf keeps its checklist, and a
 deletion-only edit still counts — because a gate that blocks ordinary
 multi-commit work teaches authors to bypass it.
 
+The box also has to *be* the box it claims to be. The ROOT CAUSE
+requirement is recognized by the header reading `root cause`, or `why`
+joined to `where` — deliberately **not** the bare word *"why"*. That
+alternative used to be accepted and it failed open on one of the four
+named steps: a `**FIX**` box writing *"Why no lower tier: …"* and quoting
+a command satisfied the ROOT CAUSE requirement in a leaf that carried no
+ROOT CAUSE box at all. Narrowing it cost nothing measurable — four
+headers stopped matching, none of them backed by tool output — and it
+turned out the same alternative was failing *closed* as well, blocking
+leaves whose real checklist was complete but which happened to hold an
+unticked `**FIX**` box mentioning "why". The general lesson is worth more
+than the regex: *"nothing in the corpus exploits this today"* is a fact
+about the corpus at one instant, not a property of the rule.
+
 Which tool output counts depends on what kind of defect it is, and PGEN
 recognizes **five** families, because the right instrument differs:
 

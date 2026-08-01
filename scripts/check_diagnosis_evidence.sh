@@ -325,7 +325,21 @@ NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corp
 
 fails=()
 
-ROOT_KW='root cause|why ?\+ ?where|\bwhy\b'
+# ⭐ ROOT_KW NARROWED (GENERATED-LINT-CORRECTNESS.9, 2026-08-01). It used to carry a third
+# alternative `\bwhy\b` matching the BARE WORD, and that alternative was FAILS-OPEN on one of the
+# director's own named steps: a `**FIX**` box routinely writes prose such as "Why no lower tier: …"
+# and routinely quotes a command, so a leaf carrying NO ROOT CAUSE box at all could satisfy the
+# ROOT CAUSE requirement on its FIX box. That is categorically worse than the two candidates `.7`
+# disproved (cross-leaf `unchecked` blocking and `box_body` `^#` truncation), which both fail CLOSED.
+# The same alternative had a fails-CLOSED twin: an UNTICKED `**FIX**` box mentioning "why" tripped
+# `unchecked()` and blocked a leaf whose real checklist was complete.
+# ⛔ PRICED BEFORE ADOPTING, as a NARROWING — so the bar is "does it break anything", not `.4`/`.7`'s
+# "is there corpus pressure" (which is the bar a WIDENING must clear). Measured over every ticked
+# ROOT CAUSE box in docs/tasks/: 4 boxes drop, 0 of them BACKED, 0 files lose their last backed box,
+# and the unticked false-block surface stays 0 -> 0. The connector class `[-+/&]` keeps the
+# template spelling `**ROOT CAUSE (WHY + WHERE)**` plus the obvious hand-written variants.
+# Probes: docs/tasks/artifacts/generated_lint_correctness/run_diag_evidence_root_kw_probes.sh.
+ROOT_KW='root cause|why ?[-+/&] ?where'
 ADDR_KW='addressed|verified|resolved|before.{0,5}after|reject.{0,6}pass'
 NOREG_KW='no.?regress|regression'
 

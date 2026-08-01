@@ -1059,7 +1059,7 @@ and **RED-H1 caught the rule being vacuous against the most common edit in the r
 |---|---|
 | `unchecked()` not box-scoped ⇒ an unrelated leaf's unticked box blocks a legitimate commit | **DISPROVEN, population 0** — no tracked task file carries an unticked ROOT-CAUSE box. Fails *closed*, so left alone deliberately; an unticked box must block wherever it sits. |
 | `box_body` exits on `^#` ⇒ a fenced block hides a real signature | **DISPROVEN, 0 boxes** repo-wide (measured against a fence-aware body rule). |
-| token width (`\botool\b`, `flamegraph`, `clippy::[a-z_]{3,}`) | `ROOT_KW`'s bare `\bwhy\b` over-matches **4** headers — all `**FIX**`/`**LOCKSTEP**`/`**REPRODUCE**` boxes — but **none carries a signature**, so none can satisfy the gate today. A latent fails-open widening; **routed, not fixed.** |
+| token width (`\botool\b`, `flamegraph`, `clippy::[a-z_]{3,}`) | `ROOT_KW`'s bare `\bwhy\b` over-matches **4** headers — all `**FIX**`/`**LOCKSTEP**`/`**REPRODUCE**` boxes — but **none carries a signature**, so none can satisfy the gate today. A latent fails-open widening; **routed, not fixed** → ⭐ **FIXED in `.9`** (`-0011`), where a probe found the same alternative *also* failed CLOSED. ⚠️ Note what "none carries a signature today" was worth: it is a fact about the corpus at one instant, not about the rule — the reach is one `**FIX**` box quoting one command away, and RED-W1 demonstrates it. |
 | *(found here, not chartered)* the satisfying box need not belong to the change | **REPRODUCED — H1/H2/H3. This is the misbehaviour.** |
 
 #### Acceptance Checklist (enforced)
@@ -1264,12 +1264,13 @@ existing leaf's boxes to make them pass.
   numbers if that is the answer.
 
 
-### `.9` — `ROOT_KW`'s bare `\bwhy\b` is a fails-open widening: narrow it (`pending` — DECIDED, priced, not yet implemented)
+### `.9` — `ROOT_KW`'s bare `\bwhy\b` is a fails-open widening: narrow it (`done`)
 
-- **Status: `pending`** (opened 2026-08-01 by `.7`, which found it and deliberately did NOT fix it
-  in-leaf to keep that leaf's blast radius controlled). **The director delegated the call**
-  (*"Please decide yourself … provided you strictly stick to sota, signoff and highly
-  professional"*), and the decision taken is **FIX IT** — the pricing below is why.
+- **Status: `done`** (`PGEN-GENERATED-LINT-CORRECTNESS-0011`, 2026-08-01; opened 2026-08-01 by
+  `.7`, which found it and deliberately did NOT fix it in-leaf to keep that leaf's blast radius
+  controlled). **The director delegated the call** (*"Please decide yourself … provided you
+  strictly stick to sota, signoff and highly professional"*), and the decision taken is **FIX IT**
+  — the pricing below is why.
 
 #### THE DEFECT
 
@@ -1324,6 +1325,72 @@ anything" — and the answer is measured, not argued.
 a RED arm proving a FIX-box-with-"why" no longer satisfies box 1, and a GREEN arm proving the
 template spelling still does; no previously-passing leaf newly failing; all 17 doctrines PASS.`
 
+#### ⭐⭐ WHAT SHIPPED — AND THE SECOND DEFECT THE SAME ALTERNATIVE CARRIED
+
+`ROOT_KW='root cause|why ?[-+/&] ?where'` (`scripts/check_diagnosis_evidence.sh:342`), with the
+pricing and both failure polarities recorded in the enforcer's own comment block so the next reader
+finds the WHY at the line, not in a tree file.
+
+⭐ **The pricing predicted one defect; the probes found a second, of the OPPOSITE polarity, in the
+same alternative — and it is the more common one in practice.** `unchecked()` blocks on an UNTICKED
+box matching the keyword *wherever it sits*, so an unticked `**FIX**` box writing the word "why" —
+the everyday shape *"- [ ] **FIX** — not yet chosen. Why the engine tier is likely: …"* — blocked a
+leaf whose ROOT CAUSE / ADDRESSED / NO REGRESSION boxes were all present, ticked and backed. That is
+a **false BLOCK**, and it is exactly the "a gate that punishes honest in-progress work teaches
+authors to bypass it" failure `.4` and `.6` were about. The corpus pricing could not have found it:
+it measured the unticked surface at **0 → 0**, i.e. *no leaf is carrying that shape right now* —
+which says nothing about the shape being unreachable. **One narrowing closes both polarities**, and
+the RED-W2 arm is what turned a latent hazard into a measured one.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — census of every ticked ROOT CAUSE header in `docs/tasks/`, using the
+  enforcer's own live `ROOT_KW`: **413** match today, **409** match the candidate ⇒ the 4 predicted
+  boxes, and all 4 are `**FIX**` / `**LOCKSTEP**` / `**REPRODUCE**` headers
+  (`BRANCH-PREDICATE-LOCALITY.md:197`, `CI-PARITY-GATE-ROT.md:2359`, `LIVE-MEANS-LIVE.md:697`,
+  `GRAMMAR-WELLFORMED.md:2359`). The fails-open reach is reproduced end-to-end by probe RED-W1.
+- [x] **ROOT CAUSE (WHY + WHERE)** — **WHERE:** `git log -S'\bwhy\b' -- scripts/check_diagnosis_evidence.sh`
+  names `25b45177` (`PGEN-DIAG-TOOLBOX-0003`) as the commit that introduced the bare-word
+  alternative, still live at `scripts/check_diagnosis_evidence.sh` `ROOT_KW`. **WHY:** the
+  alternative matches a WORD, not a step name, and the enforcer only ever tests the *header line*
+  against it (`box_matches_in_file`), so header text authors write for other reasons decides which
+  box is the ROOT CAUSE box. Confirmed by running the enforcer itself under
+  `PGEN_DIAG_CHECK_OVERRIDE` against `git show HEAD:scripts/check_diagnosis_evidence.sh`: probe
+  RED-W1 — a leaf with **no ROOT CAUSE box at all**, only a `**FIX**` box saying "Why no lower
+  tier" and quoting a tool — exits **0** there, i.e. the gate passes it.
+- [x] **FIX** — declarative tier (the enforcer's own keyword table; no control flow touched): drop
+  the `\bwhy\b` alternative, keep `root cause` and widen the connector to `[-+/&]` so the template
+  spelling and the hand-written `/`, `-`, `&` variants all survive. Why no lower tier: the defect
+  IS the keyword, so there is nothing below it to change.
+- [x] **ADDRESSED (verified)** — re-runnable oracle
+  `docs/tasks/artifacts/generated_lint_correctness/run_diag_evidence_root_kw_probes.sh`: **10/10
+  PASS** post-fix. Before→after replay against `HEAD`'s enforcer via `PGEN_DIAG_CHECK_OVERRIDE`:
+  **8 passed / 2 failed**, and the 2 are exactly the RED arms — RED-W1 `exit=0` (fails-OPEN: the
+  no-ROOT-CAUSE leaf passed) and RED-W2 `exit=1` (fails-CLOSED: the complete backed leaf was
+  blocked). Both flip; **every GREEN and CTRL arm is byte-identical on both sides**, which is the
+  non-weakening proof. Census re-run: **413 → 409** ticked boxes, the predicted −4.
+- [x] **NO REGRESSION** — BACKED count **106 → 106** across the census, so **0 backed boxes were
+  dropped** and **0 files lost their last backed box**; unticked false-block surface **0 → 0**;
+  census ground-truth controls POS-1/NEG-1/NEG-2/NEG-3/NEG-4 stayed green across the change (it
+  exits 0, and REFUSES with exit 2 on a miss). Prior probe drivers unchanged: `.3` **6/6**, `.4`
+  **13/13**, `.7` **9/9**. All **17** doctrines PASS. No `rust/src/*`, no grammar and no
+  `generated/*` in the diff ⇒ all 11 generated parsers are **byte-identical** by construction.
+- [x] **LOCKSTEP** — the enforcer's own comment block (both polarities + the pricing), `TOOLBOX.md`
+  (the box must be a real ROOT CAUSE box), the book's *Quality and Closure Model*, the `.7` decision
+  record and `docs/decisions/INDEX.md` (the honest bound recorded there as "disproven / latent" is
+  now FIXED, and it acquired a second polarity), `docs/TASK_TREE.md`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
+#### Evidence
+
+- `scripts/check_diagnosis_evidence.sh` — `ROOT_KW` narrowed + the rationale block.
+- `docs/tasks/artifacts/generated_lint_correctness/run_diag_evidence_root_kw_probes.sh` — the 10
+  RED/GREEN/CONTROL arms, `bash -n` clean, replayable against any enforcer revision via
+  `PGEN_DIAG_CHECK_OVERRIDE`.
+- `docs/tasks/artifacts/generated_lint_correctness/run_root_cause_box_census.sh` — unchanged; it
+  sources `ROOT_KW` live from the enforcer, so it followed the narrowing automatically (`.4` fixed
+  exactly that duplication bug in `.3`'s probe driver, and the rule held here).
+
 ## Commit log
 
 | slice | leaf | commit subject |
@@ -1336,3 +1403,4 @@ template spelling still does; no previously-passing leaf newly failing; all 17 d
 | `PGEN-GENERATED-LINT-CORRECTNESS-0008` | `.7` (opened) | the sixth diagnosis family is CHARTERED, not granted — the director's approval is conditional and the pricing already points AWAY |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0009` | `.7` + `.8` | the sixth family is REFUSED at 0 of 307 — and the real misbehaviour is that box-scoping was VACUOUS: any ticked box in any staged task file satisfied the checklist, so 33 trees carried a standing free pass |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0010` | `.9` (opened) | the bare `\bwhy\b` over-match is a FAILS-OPEN widening on the named step — decided (director-delegated) and priced at 0 backed boxes dropped, implementation pending |
+| `PGEN-GENERATED-LINT-CORRECTNESS-0011` | `.9` | `ROOT_KW` narrowed — and the same alternative was ALSO failing CLOSED: an unticked `**FIX**` box saying "why" blocked a complete, backed leaf |

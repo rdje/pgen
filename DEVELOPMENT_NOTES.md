@@ -1,5 +1,28 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-GENERATED-LINT-CORRECTNESS-0011 — a census prices a change; only a probe closes a soundness question
+
+Two notes from `GENERATED-LINT-CORRECTNESS.9`. PROMOTED to the retrievable layer as
+`docs/knowledge/absence-in-the-corpus-is-not-a-property-of-the-rule.md`.
+
+**1. "Nothing exploits this today" is a fact about the corpus at one instant, not a property of the
+rule.** `.7` censused `ROOT_KW`'s bare `\bwhy\b` over-match at 4 headers, *none carrying a
+signature*, and routed it as latent. Both words in that verdict were doing more work than the
+measurement supported: a `**FIX**` box routinely quotes a command, so the distance between "no leaf
+exploits it" and "a leaf with **no ROOT CAUSE box at all** passes box 1" was one ordinary sentence.
+The census could tell us the cost of fixing it; it could never tell us the reach of leaving it. ⇒
+**when routing a hole as latent, state its REACH, not its current population** — and if the reach is
+one sentence, it is a fix, not a routing.
+
+**2. The same alternative was failing in BOTH directions, and only one direction was chartered.**
+`unchecked()` blocks on an unticked box matching the keyword wherever it sits, so
+`- [ ] **FIX** — not yet chosen. Why the engine tier is likely: …` **blocked a leaf whose ROOT
+CAUSE / ADDRESSED / NO REGRESSION boxes were all ticked and backed** — the gate punishing honest
+in-progress work, which is the failure `.4` and `.6` exist to prevent. The corpus pricing had
+measured that surface at 0 → 0 and was *correct*; the shape is simply absent today. The RED arm that
+constructed it took four lines. ⇒ **a keyword consumed at two call sites fails in two ways; probe
+both polarities before pricing either.**
+
 ## 2026-08-01 - PGEN-GENERATED-LINT-CORRECTNESS-0009 — a hardening that is scoped to the wrong axis is not a weak gate, it is no gate
 
 Three notes from `GENERATED-LINT-CORRECTNESS.7`.

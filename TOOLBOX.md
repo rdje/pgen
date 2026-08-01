@@ -55,6 +55,13 @@ commit** (`scripts/check_diagnosis_evidence.sh`, run by the doctrine enforcer). 
 - [ ] **LOCKSTEP** — <book / contract / ledger / schema updated, or N/A + reason>
 ```
 
+⭐ **AND THE ROOT CAUSE BOX MUST ACTUALLY BE A ROOT CAUSE BOX** (`GENERATED-LINT-CORRECTNESS.9`).
+The keyword matches `root cause` or `why <connector> where` — **not the bare word "why"**. It used
+to, and that was FAILS-OPEN on a named step: a `**FIX**` box writing *"Why no lower tier: …"* and
+quoting a command satisfied box 1 in a leaf carrying no ROOT CAUSE box at all. The same alternative
+also failed CLOSED, blocking a complete leaf that happened to hold an *unticked* `**FIX**` box
+mentioning "why". Write the template header and neither happens.
+
 **Hard-gated (required, must be ticked + evidence-backed): ROOT CAUSE, ADDRESSED, NO REGRESSION** —
 these are the director's named steps (analyse → root cause → addressed → no regression). REPRODUCE /
 FIX / LOCKSTEP are part of the template and good practice, but not hard-blocked, to avoid
