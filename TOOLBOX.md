@@ -123,6 +123,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"WHY is this rule UNKNOWN / not witnessed?"** | [4.3 `PGEN_CERT_COVERAGE_DEBUG_PROBES`](#43-pgen_cert_coverage_debug_probes) → [the 3-step protocol](#protocol-a-diagnose-an-unknown-3-steps) |
 | "Which path did the witness planner take?" | [4.4 `PGEN_REACH_PATH_DUMP`](#44-pgen_reach_path_dump) |
 | "Which residual `UNKNOWN`s are profile-excluded by construction?" | [4.6 `PGEN_CERT_RESIDUAL_CLASSIFICATION`](#46-pgen_cert_residual_classification) |
+| **"WHY is this closed-loop coverage target still residual?" — ⛔ the pass-summary counters are TARGET-scoped and read 0 while branches die** | [6.1 `failure_reasons`](#61-failure_reasons--why-a-residual-coverage-target-survived-already-written-no-re-run) — the per-branch record every gate run already wrote |
 | "Is my grammar well-formed (LR / shadowing / non-terminating)?" | [5.1 `--lint-grammar`](#51---lint-grammar) |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
@@ -506,6 +507,39 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - `--report-k-path-coverage K` — k-path (Havrikov-Zeller) coverage report at depth K (use 2–3); read-only.
 - `--gap-report-json FILE` / `--gap-report-text FILE` (+ `--gap-report-threshold`) — emit the coverage-gap / unreachable-rule-debt report consumed downstream.
 - `--target-report-input FILE` — load a prior gap report and apply its targets as generation priorities (the witness/closed-loop replay surface).
+
+### 6.1 `failure_reasons` — WHY a residual coverage target survived (already written, no re-run)
+
+- **WHAT:** the per-branch failure record. `record_branch_failure`
+  (`stimuli_generator.rs:460`, called from every OR-failure path — `:10461`, `:10557`, `:10577`)
+  stores the error string for each `(rule::node_path, branch_index)`. It is published twice by any
+  run that already emits reports: as `top_failure_reasons` in the gap report (rendered
+  `failure_reasons=[reason (count), …]`, ⚠️ **truncated to the top 3**) and **untruncated** in the
+  coverage artifact as `branch_groups["<rule>::<path>"].failure_reasons`.
+- **WHEN:** ⛔ **the FIRST thing to read on any "why is this coverage target still residual"
+  question** — before designing a new probe, and before trusting the pass summary. The witness
+  pass's `depth_exceeded=…, target_timeout=…, helper_timeout=…` counters are **target-scoped**: they
+  move only when a *whole target* errors. A forced branch that fails is rescued by
+  `generate_or`'s sibling fallback, the rule returns `Ok`, and every counter stays **0**. Measured
+  signature of that trap: *42 targets unresolved against exactly 1 recorded failure*
+  (`SV-EXH-PROOF.7.4.6.9` — the whole 79-branch class was then explained from disk, in minutes).
+- **HOW:**
+  ```bash
+  python3 - <<'EOF'
+  import json
+  report = json.load(open('rust/target/sv_stimuli_quality_gate/work/profile_2017_replay_gap.json'))
+  for debt in report['reachable_branch_debt']:
+      print(debt['branch_id'], debt['selected_hits'], debt['success_hits'])
+      for reason in debt['top_failure_reasons']:
+          print('   %6d  %s' % (reason['count'], reason['reason']))
+  EOF
+  ```
+- **READING:** sum each row's reason counts and compare against `selected_hits` — equal means the
+  top-3 cut hides nothing. Each reason names the PASS that produced it via its own budget:
+  `budget=<N>ms` on a helper probe is the target-drive helper timeout, and the witness pass runs at
+  **2× the configured `--max-depth`**, so `max_depth=40` under `--max-depth 20` is unambiguously the
+  witness pass's single attempt. See the KM cards
+  `branch-failure-reasons-are-the-witness-why` and `coverage-gap-reason-codes-are-generator-verdicts`.
 
 ---
 

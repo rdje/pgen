@@ -1,5 +1,45 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0167 — leaf SV-EXH-PROOF.7.4.6.9: class A is a DEPTH-BUDGET failure, 79/79, and the answer was already on disk
+
+The SV closed-loop residual's largest class is diagnosed **exactly**, both LRM profiles, with no
+new generation run — from an instrument this repository has shipped for months and nobody read.
+
+- ⭐ **79/79 explained, `BUDGET=79`, `STRUCTURAL=0`.** Every class-A branch has a derivation that
+  fits the *existing* budget. The witness pass runs at `--max-depth 20 × 2 = 40`; the derivation
+  `construct_mode` actually commits to is **48–54** deep; the shallowest that exists is **18–36**.
+  The budget sits **between** them. Purdom SHORT ordering minimizes *terminal count*, not *depth*,
+  and `construct_mode` then `truncate(1)`s the attempt order — so it commits to a min-token
+  derivation that descends the property-operator ladder and the expression precedence cascade
+  8–14 levels past the budget.
+- ⛔ **This leaf's own prior conclusion is DISPROVEN, on the record.** `-0166` wrote *"naive
+  max_depth exhaustion is NOT what is stopping generation"* on the strength of `depth_exceeded=0`.
+  It **is** depth. The zero is a **counter-scope artifact**: the witness pass classifies only
+  whole-target outcomes, and `generate_or`'s reach-forcing arm keeps every sibling as a fallback —
+  so the forced branch depth-fails, a sibling succeeds, the rule returns `Ok`, and no counter ticks.
+  That also resolves `.7.4.6.8`'s standing paradox, *42 unresolved against exactly 1 recorded failure*.
+- ⭐ **The WHY was published all along** — `record_branch_failure` writes a per-branch reason on
+  every OR-failure path, surfaced as `failure_reasons=[…]` in the gap report and untruncated in the
+  coverage artifact. **37 of 41** residual rows carried exactly one
+  `depth exceeded max_depth=40 …` — one per branch, the witness pass's single attempt.
+- ⚠️ **And the Knowledge Map had said "depth-budget exhaustion" since 2026-06-03**
+  (`sv-residual-depth-budget-cause`) — it was not consulted. `LESSON-RETRIEVAL`'s thesis,
+  demonstrated against the very next leaf.
+- ⭐ **The fix is prior art in the same source file.** `min_full_derivation_depth_of_node`
+  (`RTL-FE-CLOSURE.5.2`) computes the missing number, and its doc comment describes this defect
+  verbatim. The **cert-coverage** witness pass consumes it as `reach_prefix + min_subtree[target]`;
+  the **stimuli closed-loop** witness pass still multiplies by a flat 2. Two witness passes, one
+  capability — the asymmetry class `.7.4.6.11` closed one level down. Sized in the leaf's
+  `FIX_PLAN_2026-08-01` as additive-only wiring.
+- ✅ **Ground truth inside every instrument, and it REFUSED TWICE before being trusted** — both
+  refusals were real defects, and the first is what forced the Purdom-vs-shallow distinction that
+  turned out to *be* the mechanism. Controls: 4/4 + 26/26 per-rule, 79/79 + 104/104 population-wide;
+  the 8 search-rescued branches are printed by name, never excluded.
+- ✅ Three re-runnable instruments tracked under `docs/tasks/artifacts/sv_exh_proof/`; they read the
+  artifacts an ordinary gate run already leaves on disk, so re-deriving costs seconds.
+
+Docs-only slice — no code, grammar, generated, schema or ledger change. Live status unchanged.
+
 ## 2026-08-01 - PGEN-LESSON-RETRIEVAL-0003 — leaf LESSON-RETRIEVAL.4: the leak is CLOSED — `LESSON-PROMOTION` is the 17th enforced doctrine
 
 A lesson written to `DEVELOPMENT_NOTES.md` can no longer be silently dropped. The mechanism to make

@@ -188,6 +188,55 @@ residual *at* the pin passes quietly, a residual above the pin fails as a
 regression, a residual below it fails until banked, and an environment override
 skips rather than fails.
 
+### Reading WHY a residual target survived — `failure_reasons`
+
+The residual manifest and the summary tell you *which* targets survived and *how
+many*. Neither tells you **why**, and the pass-level summary line can be actively
+misleading about it:
+
+```
+Witness pass: resolved 872 -> 2651 of 2693 reachable targets (+1779 via 924 witnesses;
+  failures depth_exceeded=0, rule_visit_limit=0, target_timeout=0, helper_timeout=0,
+  other=1, no_entry=0; construct_fell_back_to_search=12)
+```
+
+Every counter on that line is **target-scoped**: it moves only when a whole
+target's generation returns an error. A target whose *forced branch* fails is not
+an error at that scope — the reach plan puts the forced branch first but keeps
+its siblings as fallbacks, so a sibling succeeds, the rule returns `Ok`, and the
+target is quietly left uncredited. Hence the shape above: **42 targets
+unresolved against exactly one recorded failure.**
+
+The per-branch record is where the answer lives, and every gate run already
+writes it in two places:
+
+| surface | field | note |
+|---|---|---|
+| gap report (`--gap-report-json` / `-text`) | `top_failure_reasons`, printed as `failure_reasons=[reason (count), …]` | **truncated to the top 3** |
+| coverage artifact (`--coverage-output`) | `branch_groups["<rule>::<path>"].failure_reasons` | untruncated, one map per branch index |
+
+```bash
+python3 - <<'EOF'
+import json
+report = json.load(open('rust/target/sv_stimuli_quality_gate/work/profile_2017_replay_gap.json'))
+for debt in report['reachable_branch_debt']:
+    print(debt['branch_id'], debt['selected_hits'], debt['success_hits'])
+    for reason in debt['top_failure_reasons']:
+        print('   %6d  %s' % (reason['count'], reason['reason']))
+EOF
+```
+
+Compare each row's reason counts against its `selected_hits`: when they sum to
+the same number, the top-3 cut is hiding nothing. The reasons also identify
+*which pass* failed, because each pass carries its own budget in the message —
+the target-drive helper probe prints its `budget=…ms`, and the witness pass runs
+at twice the configured `--max-depth`, so `max_depth=40` under a `--max-depth 20`
+run is unambiguously the witness pass.
+
+This is the surface that diagnosed the whole SystemVerilog class-A residual
+without a single new gate run; the method and the trap are in the KM card
+`branch-failure-reasons-are-the-witness-why` (`docs/knowledge/`).
+
 ## Probe-Only Steering
 
 When a family is down to a stubborn replay frontier, PGEN now distinguishes between two kinds of literal steering:

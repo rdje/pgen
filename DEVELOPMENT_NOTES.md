@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0167 — a zero counter is not evidence of absence; check what the counter is SCOPED to
+
+Three lessons from `SV-EXH-PROOF.7.4.6.9`.
+
+**1. Before concluding a failure mode is absent because its counter is zero, find out what event the
+counter counts.** The witness pass printed `depth_exceeded=0` and the leaf wrote down, in a durable
+field, that *"naive max_depth exhaustion is NOT what is stopping generation."* Depth exhaustion was
+in fact the entire mechanism, for all 79 residual branches. The counter is incremented only when a
+**whole target's** generation returns `Err`; the failing branch was inside an ordered choice whose
+sibling fallback then succeeded, so the target returned `Ok` and nothing ticked. The tell was
+already visible and already strange — *42 unresolved against exactly 1 recorded failure* — and it
+was written down as a paradox rather than chased. ⇒ **an aggregate answers "how many", never "why",
+and a zero only means "no event at THIS scope".** Promoted:
+[[branch-failure-reasons-are-the-witness-why]].
+
+**2. The instrument that answered it had been shipping for months.** `record_branch_failure` stores
+a per-branch reason string on every OR-failure path, and the gap report renders it as
+`failure_reasons=[…]`. Reading the file the canonical run had already written explained the whole
+class in minutes. Worse, the 2026-06-03 Knowledge-Map card `sv-residual-depth-budget-cause` had
+named depth-budget exhaustion as the cause from the start, and was not consulted — while
+`LESSON-RETRIEVAL` was, that same day, landing a doctrine about exactly this. ⇒ **before designing a
+new measurement, spend one minute asking what the existing run already recorded** — and search the
+retrieval layer the project built for the purpose.
+
+**3. A control that misses is a finding, not a nuisance — twice over.** The static depth model
+refused to publish twice. The first refusal (26 negative-control misses: residual branches needing
+only 30–32 against a budget of 40) is what forced the distinction between the *shallowest* derivation
+and the one `construct_mode` actually commits to — and that distinction turned out to **be** the
+mechanism. The second (`property_case_item#1`, covered yet predicted to fail) exposed that the model
+describes construct mode, not the search fallback; the control was re-stated against what the model
+truly claims, and the 8 search-rescued branches are now printed by name. Both times, weakening the
+control to make it pass would have destroyed the finding. ⇒ **when a ground-truth control misses,
+the first hypothesis is that the instrument is telling you something true that your model does not
+yet contain.**
+
+**Corollary that keeps recurring.** The fix, once the mechanism was pinned, needed no design: the
+depth analogue of the Purdom table (`min_full_derivation_depth_of_node`, `RTL-FE-CLOSURE.5.2`)
+already exists in the same file, with a doc comment describing this exact defect — wired into the
+*cert-coverage* witness pass and not into the *stimuli closed-loop* one. That is the third time this
+family has found **two passes with one capability** (`.7.4.6.11` for quantifier forcing, `.7.4.6.12`
+predicted it for class C). ⇒ **when a subsystem has two passes doing the same job, diff their
+capabilities before writing anything.**
+
 ## 2026-08-01 - PGEN-LESSON-RETRIEVAL-0003 — a gate nobody has watched FAIL is decoration
 
 Two lessons from `LESSON-RETRIEVAL.4`.
