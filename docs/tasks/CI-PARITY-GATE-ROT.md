@@ -1466,6 +1466,74 @@ and pricing that is worth more than guessing at it (`GENERATED-LINT-CORRECTNESS.
 
 ---
 
+### `.21` — ROUTED IN from `SV-EXH-PROOF.7.4.6.11`: the `--lib` suite is RED on HEAD in **both** feature configurations, and no gate reads it (`todo`)
+
+- **Status: `todo`** — opened 2026-08-01 session #230. **Routed, not worked** (it blocks nothing:
+  it is stable, pre-existing, and orthogonal to the leaf that found it) per
+  [[feedback_flow_findings_are_routed_not_worked]]. ⛔ Do **not** pull it ahead of product work.
+- **Measured on HEAD, twice, with a `git stash` baseline** (the `SV-EXH-PROOF.8` precedent — the
+  stash is what makes "pre-existing" a measurement rather than a claim):
+
+  | suite | baseline (stashed) | with the `.7.4.6.11` change | verdict |
+  |---|---|---|---|
+  | `cargo test --lib` (no features) | **883 passed / 9 failed** | 885 / **9** | identical failure set |
+  | `cargo test --features generated_parsers --lib` | **985 passed / 1 failed** | 987 / **1** | identical failure set |
+
+  The `+2` in each case is exactly the two tests `.7.4.6.11` adds. ⇒ **all 10 failures pre-date it.**
+
+#### The two distinct classes (they are NOT one defect)
+
+**Class 1 — 8 tests the loud-refusal guard made unconditionally red in the no-features build.**
+All 8 die on the same message: `REFUSED: return annotation '…' needs the generated annotation
+backend, but this binary was built WITHOUT --features generated_parsers`. They are
+`ast_pipeline::tests::` — `transform_from_raw_ast_preserves_return_and_semantic_annotations`,
+`…_preserves_branch_semantic_annotations`, `…_preserves_mid_sequence_semantic_annotations`,
+`…_promotes_transform_semantic_payload`, `inner_group_remap_patterns_a_through_d_stay_green`,
+`mixed_and_trailing_group_annotation_disambiguation_is_unchanged`,
+`whole_body_group_per_branch_annotations_keep_their_branches`,
+`whole_body_group_trailing_annotation_broadcasts_to_every_runtime_branch`.
+The guard was introduced by `RGX-0078.5.i.1.t2` (`200cae5b`, `PGEN-RGX-0078-0079`), whose own
+verification records **`lib 941/0`** — i.e. green *as measured there*. So either the measurement was
+taken in a feature-on configuration only, or these 8 have gone red since. **Establish which before
+choosing a fix** — the two answers imply opposite remedies (feature-gate the tests, vs. the guard is
+over-broad). Candidate fix if it is the former: `#[cfg(feature = "generated_parsers")]`, matching what
+`.7.4.6.11` had to do to its own real-SV test for exactly this reason.
+
+**Class 2 — 1 test red in BOTH configurations**:
+`ast_pipeline::ast_based_generator::semantic_usage_tests::unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`,
+failing its `expected semantic_annotation fallback to detect '@' directives` assertion. Owned by
+`LANG-CAPABILITY-AUDIT.10.4`, which introduced it green. Reproduces feature-on *and* feature-off, so
+it is **not** a feature-gating artifact — a genuinely different defect from class 1.
+
+#### ROUTING EVIDENCE
+
+- **Does the finding reproduce outside the family it is being sent to?** **Yes — that is precisely why
+  it comes here.** Class 1 is an `ast_pipeline` annotation-transform surface and class 2 an
+  `ast_based_generator` codegen surface; neither is SystemVerilog, and the leaf that found them
+  (`SV-EXH-PROOF.7.4.6.11`) touched only `stimuli_generator.rs`. Both reproduce with that leaf's change
+  stashed. It is therefore not an SV-family defect and does not belong in `SV-EXH-PROOF`.
+- **Why THIS tree.** The defect is not that 10 tests fail — it is that they have been failing while
+  every gate is green, which is this tree's subject (`.2`: *a check that nothing INVOKES is
+  indistinguishable from a check that does not exist*). ⭐ **`--lib` is read by no gate in the
+  registry.** `SV-EXH-PROOF.3.3.5` last recorded the full workspace at **759/0** (dual-feature 788/0);
+  it is now 987/1 feature-on and 885/9 feature-off, and nothing fired in between. That is the same
+  ratchet-shaped gap `GATE-REACHABILITY` exists for, one level down: the *gates* are now reachable, the
+  *test suite* is not.
+- **Not worked here, deliberately.** Fixing it inside `.7.4.6.11` would have co-mingled an unrelated
+  repair with a measured before→after, and the stash baseline is exactly what let that leaf claim
+  NO REGRESSION honestly instead of inheriting someone else's red.
+
+#### Acceptance (when this leaf is picked up)
+
+Establish class 1's history first (was `941/0` feature-on-only, or did the 8 regress?) — **evidence
+before remedy**; then fix both classes; then close the reachability gap that let it happen: a
+`--lib` suite in *both* feature configurations must be read by something that RUNS, with a
+two-sided ratchet on the failure count so neither a new red test nor a *paid* one still listed can
+pass silently (the `.10.6` `envelope_divergence_ceiling` shape). ⛔ Prove both directions fire before
+trusting the ratchet ([[feedback_instrument_needs_ground_truth]]).
+
+---
+
 ### `.19` — `regenerate_generated_parsers` fails on any WARM tree, in 15 seconds (`todo`)
 
 - **Status: `todo`** — opened 2026-07-31 session #229 by `LANG-CAPABILITY-AUDIT.10.3`, which ran
