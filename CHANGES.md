@@ -1,5 +1,40 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-LESSON-RETRIEVAL-0001 — lessons were STORED but not RETRIEVABLE; the Knowledge Map gains its first two promotions
+
+Opened by director directive while reviewing `-0166`: are these conclusions *"stored, saved,
+accessible somewhere (book? task-tree? KM?)"* — and *"you made a lot of those conclusions, these are
+lesson-learned material."*
+
+- ⭐ **STORAGE WAS NEVER THE PROBLEM.** The conclusions ARE in their slice task-trees, with full
+  context: the `-0166` finding carries **785 words** of pinned evidence in its own leaf field. That is
+  the correct layer-B home and it is working.
+- ⛔ **RETRIEVAL was the gap, and it is measured, not estimated:**
+
+  | surface | count | question-retrievable? |
+  |---|---:|---|
+  | `DEVELOPMENT_NOTES.md` dated lessons | **1 592** | ❌ 62 191 lines, and the file is **not a KM scan dir** |
+  | `docs/decisions/` records | **142** | ❌ **0** carry `answers:` |
+  | `docs/knowledge/` cards | **35** | ✅ the only indexed surface |
+
+- ⭐ **The retrieval surface is not broken — almost nothing was routed into it.** `KNOWLEDGE_MAP.md`
+  is auto-derived from `KM_SCAN_DIRS = docs/knowledge docs/decisions`, where *a fact is any `.md`
+  whose front-matter has a non-empty `answers:` list*. `DEVELOPMENT_NOTES.md` is outside those dirs
+  entirely; `docs/decisions/` is inside one but no record opts in. And **no gate notices**:
+  `KNOWLEDGE-MAP` checks the map is in sync with its sources, never that a lesson *reached* a source.
+- ✅ **Mechanism proven end-to-end on this session's own lessons, not asserted.** Two new fact cards —
+  *coverage-gap reason codes are generator verdicts* and *the closed-loop residual ratchet* — each with
+  `answers:` and a `reverify:` command that was **executed and reproduces its claim**. Map regenerated
+  by its own generator: **35 → 37 facts, 241 → 254 question keys**;
+  `check_knowledge_map.sh` OK; all 16 doctrines pass.
+- 📌 **A promotion criterion is proposed, not imposed**: durable · general · re-verifiable ·
+  question-shaped. A lesson failing *durable* stays in its task leaf — the `property_expr` partition
+  that started this becomes false the moment `.7.4.6.9` lands, so what got promoted is the durable
+  mechanism underneath it, not the measurement.
+- ⏳ **Back-fill scope is a director call** (`.2`): forward-only, top-N sweep, or full audit of 1 592.
+  `.3` (give the 142 decisions `answers:`) is the cheapest large win. `.4` owns the root cause —
+  enforcing the promotion step, since a reminder has already lost 1 592 times.
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0166 — leaf SV-EXH-PROOF.7.4.6.9: class A is a GENERATOR failure, not a parser one — the leaf's own premise is DISPROVEN
 
 Docs-only. `.7.4.6.9` was written to open with a parser-side branch-selection trace. The measured

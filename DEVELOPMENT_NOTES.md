@@ -1,5 +1,41 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-LESSON-RETRIEVAL-0001 — writing a lesson down is not the same as being able to find it
+
+Three lessons from `LESSON-RETRIEVAL.1`. ⭐ This entry is itself the exhibit: it is lesson #1 593 in a
+62 191-line file that no index reads — which is exactly the defect it describes.
+
+**1. "Is it saved?" and "can it be found?" are different questions, and the first one passing hides
+the second one failing.** Every sharp conclusion this campaign produced *was* saved — in its slice
+task-tree, with the evidence beside it. The director's instinct was right on both counts: they were in
+the task-tree, and they were still not *accessible*. A durable store with no index is a filing cabinet
+with the labels facing the wall. ⇒ **when auditing whether knowledge survives, ask the retrieval
+question separately from the storage question**; they have different failure modes and different
+fixes, and passing the first feels like passing both.
+
+**2. The infrastructure existed, was wired, was gate-enforced — and was empty.** `docs/decisions/` has
+sat inside the Knowledge Map's scan dirs the whole time. All 142 records are curated, durable, exactly
+the layer-C authority the map wants. **Zero** carry `answers:`, so zero are indexed. Nothing was
+broken; the opt-in step simply never happened, 142 times. ⇒ **a mechanism with an opt-in step and no
+enforcement is, in practice, a mechanism that is off.** Before building retrieval infrastructure,
+check whether the existing infrastructure is merely unpopulated — the fix is then routing, not
+architecture.
+
+**3. A gate can be green on exactly the wrong invariant.** `KNOWLEDGE-MAP` passes on every commit. It
+checks that the derived map equals a fresh regeneration of its sources — a genuinely good property
+(drift becomes impossible). It has never once asked whether a *lesson reached a source*. So the
+instrument reported health across 1 592 unpromoted lessons, truthfully, about a different question
+than the one anyone cared about. ⇒ **when a gate is green while the thing it nominally protects is
+failing, read its assertion literally.** This is the same shape as the closed-loop residual being
+`echo`ed but never compared (`SV-EXH-PROOF.7.4.6.10`) — reported ≠ checked — one layer up.
+
+**Corollary on what NOT to promote.** The conclusion that triggered this — *"a `prop_primary` branch
+is covered iff its generation need not produce a `property_expr`"* — is deliberately **not** promoted.
+It is a measurement of a current defect and becomes false the moment `.7.4.6.9` lands; promoting it
+would install a future lie in the retrieval surface. What was promoted is the durable mechanism it
+exposed (reason codes are generator verdicts). **Perishable findings belong in the leaf that owns
+them; only the mechanism underneath survives promotion.**
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0166 — read the instrument's own definition before you read its output
 
 Three lessons from `SV-EXH-PROOF.7.4.6.9`'s WHY+WHERE, each general beyond SystemVerilog.
