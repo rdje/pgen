@@ -1,7 +1,3 @@
-<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
-     (~/.claude/projects/.../memory/feedback_ast_pipeline_parser_agnostic.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
-     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
-
 ---
 name: feedback-ast-pipeline-parser-agnostic
 description: Any AST-pipeline / semantic-annotation-runtime change MUST be parser-agnostic and general-purpose. Parser-specific concepts (e.g. regex capture-groups) stay in the .ebnf grammar; new steering primitives must benefit ANY parser.
@@ -9,8 +5,20 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: 8c2d85c8-f843-4500-981d-c2bbf763bdc7
+id: feedback-ast-pipeline-parser-agnostic
+title: Every AST-pipeline / semantic-runtime change must be PARSER-AGNOSTIC — parser-specific concepts live in the .ebnf
+date: 2026-05-20
+answers:
+  - "can I add a regex-specific or SV-specific feature to the engine"
+  - "where does a parser-specific concept belong"
+  - "what makes an engine change acceptable here"
+  - "why must a new steering primitive benefit every parser"
+reverify: grep -rn 'matches!(rule_name' rust/src/ast_pipeline/*.rs | head -5   # expect none
 ---
 
+<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
+     (~/.claude/projects/.../memory/feedback_ast_pipeline_parser_agnostic.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
+     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
 **⛔ STANDING, ABSOLUTE — reaffirmed emphatically (director, 2026-06-04):**
 "all engine code change shall be parser-agnostic, no compromise here, no
 exception, and that's really, really non-negotiable. Any infringement to this

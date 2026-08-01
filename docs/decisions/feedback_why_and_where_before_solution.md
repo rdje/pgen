@@ -1,7 +1,3 @@
-<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
-     (~/.claude/projects/.../memory/feedback_why_and_where_before_solution.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
-     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
-
 ---
 name: feedback-why-and-where-before-solution
 description: "STANDING DISCIPLINE (user-set 2026-05-25, in this same session as `.b.6.2.35.1` / `.b.6.2.36.1` / `.b.6.2.36.2`): for ANY issue or unexpected behavior, we MUST know EXACTLY why it happens AND inside which function/rule it happened. Without that pair of facts (the WHY and the WHO), we cannot devise a stable solution. If the current tooling can't surface both, BUILD the tool first."
@@ -9,8 +5,20 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: 8c2d85c8-f843-4500-981d-c2bbf763bdc7
+id: feedback-why-and-where-before-solution
+title: Know the WHY and the WHERE before designing any fix — if the tooling cannot show both, BUILD the tool
+date: 2026-05-25
+answers:
+  - "how much do I need to understand before proposing a fix"
+  - "what are the two facts required before a solution is designed"
+  - "the existing tools cannot show me the root cause — what now"
+  - "why is my proposed fix being rejected as premature"
+reverify: grep -n 'ROOT CAUSE (WHY + WHERE)' TOOLBOX.md | head -3
 ---
 
+<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
+     (~/.claude/projects/.../memory/feedback_why_and_where_before_solution.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
+     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
 **STANDING DISCIPLINE (user, 2026-05-25):** For any issue or unexpected behavior, we need to know EXACTLY **why** it happens and **inside which function/rule** it happened. Without such information we cannot devise a stable solution. If the current tooling can't produce both data points concretely, the next slice is a TOOL-BUILD slice — not a speculative fix attempt.
 
 **Why:** speculation-based fixes have repeatedly led to disproven hypotheses (Slice-67's C3-B was built on a mis-framed persistence story; Slice-68's Architecture B was disproven on the corpus 10/4/2 → 0/4/12). Each speculation cost a full slice, an investigation, and (in Slice-68's case) a revert. The cost of building a TOOL to answer "why + where" concretely is much lower than the cost of one wrong-direction fix slice.

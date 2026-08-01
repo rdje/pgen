@@ -184,6 +184,49 @@ measured deterministically (`--count 200 --seed 0`, identical across two runs):
   *metric attribution* (cert-coverage) was wrong. The two issues were conflated; this slice disentangles
   them. (Same mis-attribution mode — regex parse-path conflation — that the BE-ALERT discipline targets.)
 
+## 📌 ROUTED IN 2026-08-01 (`LESSON-RETRIEVAL.3`, `PGEN-LESSON-RETRIEVAL-0002`) — the doctrine has TWO named breach shapes and only ONE is mechanized
+
+⭐ **Found by a `reverify:` command, not by an audit.** Promoting
+`project_ebnf_is_single_source_of_truth` into the Knowledge Map required authoring a runnable
+`reverify:`; the obvious one — `grep -rn 'matches!(rule_name' rust/src/ast_pipeline/*.rs`, expected to
+return nothing — **fired on live code the moment it was run**. The card's re-verification is therefore
+already acting as the tripwire the doctrine lacked.
+
+**The decision record names two breach shapes.** Verbatim: an out-of-band acceptance validator, AND
+*"a hard-coded rule-NAME `matches!` arm ... this doctrine's breach in its commonest disguise"*.
+`scripts/check_ebnf_source_of_truth.sh` mechanizes **only the first** — its own header says it flags
+*"any `*_validation` module referenced from the parser registry's parse paths"*, and it is deliberately
+scoped to *"the unambiguous anti-pattern"*. So the shape the record calls **the commonest** has no
+enforcer at all, and the gate is green while instances exist.
+
+**TWO CONFIRMED live instances in SHARED CODEGEN** (`rust/src/ast_pipeline/ast_based_generator.rs`),
+both read in context, neither in a test module:
+
+| site | code | why it breaches |
+|---|---|---|
+| `:5713` | `let skip_leading_whitespace = !matches!(rule_name, "string_content_double" \| "string_content_single");` | those two rules belong to **`grammars/return_annotation.ebnf`** alone (`grep -rln` over `grammars/*.ebnf` returns exactly that file), so the shared generator carries a special case for one grammar's rule names |
+| `:9855-9860` | `effective_regex_pattern(...)`: `if self.grammar_name == "semantic_annotation" && rule_name == "identifier_literal" && grammar_pattern == "([a-zA-Z_][a-zA-Z0-9_]*)" { "…(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)*…" }` | ⛔ **the more serious of the two — codegen OVERRIDES the pattern the EBNF declares.** Reading `semantic_annotation.ebnf` no longer tells you what the parser accepts, which is the doctrine's whole claim |
+
+⚠️ **HONEST BOUND — this is NOT a complete census, and one grep is itself an enumerating instrument**
+([[feedback_enumerating_instrument_must_refuse]]). A four-spelling sweep
+(`matches!(rule_name`, `rule_name == "`, `rule_name.as_str() == "`, `rule_name != "`) over
+`rust/src/ast_pipeline/*.rs` + `rust/src/*.rs` returns **26** sites. The two above were adjudicated by
+reading them; the other 24 were **not**, and most look legitimate on inspection — the hand-written
+**bootstrap** annotation parsers (`unified_return_ast.rs`, `unified_semantic_ast.rs`) are parsers *for*
+one specific grammar by construction (README: the annotation parsers bootstrap themselves out of a
+cycle), several are test assertions, and engine-builtin names such as `epsilon` are not grammar rule
+names at all. ⛔ Do NOT quote "26 breaches"; the measured claim is **2 adjudicated, 24 unadjudicated,
+and no enforcer for the class**.
+
+**What this leaf should own (not started, not blocking):** (a) adjudicate the remaining 24 with a
+stated legitimacy criterion — bootstrap parser / test / engine builtin vs. shared engine-codegen;
+(b) decide whether the two confirmed sites move INTO the EBNF (a lexical/`@generate` annotation for
+the whitespace case; the real pattern written into `semantic_annotation.ebnf` for the override case)
+or are recorded as justified exemptions; (c) extend `check_ebnf_source_of_truth.sh` to the second
+breach shape, since the record names it and nothing enforces it. ⛔ (c) needs (a) first — an enforcer
+built before the legitimacy criterion exists would fail on the bootstrap parsers and be waived
+immediately, which is how a gate becomes decoration.
+
 ## Current Frontier
 
 - `.3` FIX regex (EBNF-SOT, CONSUMER path) — the remaining substantive leaf. (See below.)

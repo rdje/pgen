@@ -1,7 +1,3 @@
-<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
-     (~/.claude/projects/.../memory/feedback_no_workarounds_fix_hierarchy.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
-     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
-
 ---
 name: feedback_no_workarounds_fix_hierarchy
 description: "STANDING DISCIPLINE — never use workarounds/bandaids when fixing; follow a strict fix hierarchy starting with semantic annotations, ending with parser-agnostic engine extensions; never compromise / no-signoff solutions"
@@ -9,8 +5,20 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: 8c2d85c8-f843-4500-981d-c2bbf763bdc7
+id: feedback-no-workarounds-fix-hierarchy
+title: No workarounds — follow the fix hierarchy: semantic annotations > grammar > parser-agnostic engine extension
+date: 2026-05-21
+answers:
+  - "what is the fix hierarchy in this repo"
+  - "should I fix this in the grammar or in the engine"
+  - "is a bandaid or special-case acceptable to unblock a gate"
+  - "what tier should my fix declare"
+reverify: grep -n 'fix-hierarchy tier' TOOLBOX.md | head -5
 ---
 
+<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
+     (~/.claude/projects/.../memory/feedback_no_workarounds_fix_hierarchy.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
+     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
 **Hard prohibition (user, 2026-05-23, emphatic):** never use workarounds, quick-and-dirty fixes, or bandaids. They are anti-signoff. Avoid like the plague.
 
 **The fix hierarchy — in strict order, try each before the next:**

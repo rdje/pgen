@@ -6,6 +6,15 @@ metadata:
   type: feedback
   director_directive: true
   created: 2026-06-22
+id: feedback-systematically-use-debug-toolbox
+title: Reach for the FULL debug toolbox systematically and FIRST — it is mechanically enforced, not advisory
+date: 2026-06-22
+answers:
+  - "what is the UNKNOWN protocol"
+  - "which tool do I run first for a rejected parse or a reach gap"
+  - "is the toolbox-first rule enforced or just recommended"
+  - "where is the complete tool catalog"
+reverify: grep -c '^### ' TOOLBOX.md; grep -n 'UNKNOWN protocol' TOOLBOX.md | head -2
 ---
 
 **Director directive (2026-06-22), emphatic.** "I really don't understand why you do not

@@ -1,7 +1,3 @@
-<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
-     (~/.claude/projects/.../memory/feedback_no_codebase_change_without_tool_backed_facts.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
-     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
-
 ---
 name: feedback-no-codebase-change-without-tool-backed-facts
 description: NEVER change the codebase on a hypothesis; every code change must be backed by a fact gathered from the toolbox FIRST — guessing caused a real regression
@@ -9,8 +5,21 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: 5737d722-67a3-4fc9-8c42-f79e2ff1db07
+id: feedback-no-codebase-change-without-tool-backed-facts
+title: Never change the codebase on a hypothesis — every code change is backed by a tool-gathered fact FIRST
+date: 2026-05-24
+answers:
+  - "can I make a small code change on a hypothesis to see if it helps"
+  - "what evidence does a code change need before it can be committed here"
+  - "why was my change blocked by the pre-commit hook"
+  - "what is a tool-backed fact / WHY+WHERE evidence"
+  - "is 'verified by grep' acceptable evidence for a fix"
+reverify: bash scripts/check_diagnosis_evidence.sh 2>&1 | tail -3
 ---
 
+<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
+     (~/.claude/projects/.../memory/feedback_no_codebase_change_without_tool_backed_facts.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
+     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
 STANDING DISCIPLINE (user 2026-06-01, emphatic, repeated 4×, after I caused a real regression): **Do NOT make wild guesses and then change the codebase based on them. Every claim AND every code change must be backed by a FACT that was gathered using the toolbox FIRST.** Wild-guess-driven changes are dangerous — they create regressions.
 
 **The cautionary exemplar (SV-EXH-PROOF.7.2.10/.7.2.11):** I diagnosed the 888-residual as "quantifier gap + head-of-line blocking" from reading code (plausible), wrote two fixes, unit-tested them (each passed its own narrow test), committed, and only THEN measured the real corpus effect — it was a REGRESSION (replay_target_count 888 → 1717, resolved halved). Then I "analyzed" the regression with a narrative ("diversity collapse, deeper samples time out") that was **partly provably false** — I compared `.7.2.12`'s timeouts (1837) against `.7.2.6`'s 784 instead of `.7.2.8`'s 2721, so my "timeouts went up" claim was backwards (they went DOWN). I asserted mechanism without measuring it.

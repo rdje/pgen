@@ -6,6 +6,15 @@ metadata:
   type: feedback
   director_directive: true
   created: 2026-06-07
+id: feedback-be-alert-root-cause-fishy-immediately
+title: A fishy or foundational result is root-caused IMMEDIATELY — never classify-and-route it as 'structural, follow-up'
+date: 2026-06-07
+answers:
+  - "a result looks surprising or foundational — do I flag it or keep going"
+  - "can I route a suspicious finding as structural follow-up"
+  - "who is responsible for noticing an abnormal result"
+  - "the generator emitted output its own parser rejects — is that normal"
+reverify: grep -n 'fishy' CLAUDE.md docs/decisions/feedback_be_alert_root_cause_fishy_immediately.md | head -4
 ---
 
 **Director directive (2026-06-07), emphatic.** "I am surprised you do not take on yourself to understand

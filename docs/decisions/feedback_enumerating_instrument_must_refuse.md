@@ -4,6 +4,17 @@ description: DISCIPLINE (2026-07-31, session #229, LIVE-MEANS-LIVE.2) — when a
 metadata:
   node_type: memory
   type: feedback
+id: feedback-enumerating-instrument-must-refuse
+title: An instrument that ENUMERATES the shapes it looks for is silent in the passing direction — require total classification and REFUSE
+date: 2026-07-31
+answers:
+  - "my checker keeps finding more of the same thing each pass — is the checker wrong?"
+  - "how do I know a scanner is not under-reporting"
+  - "why is a longer list of patterns the wrong fix for a missed case"
+  - "what does total classification mean for a checker"
+  - "an instrument found 10, then 16, then 18 — which number is right?"
+  - "should a check fail on input it does not recognise"
+reverify: bash scripts/check_live_document_currency.sh 2>&1 | tail -3   # instrument B reports its ground-truth controls and REFUSES on any unclassified declaration spelling rather than enumerating spellings
 ---
 
 **The founding case.** `LIVE-MEANS-LIVE`'s instrument B asks a simple question: does a document's

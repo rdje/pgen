@@ -1,7 +1,3 @@
-<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
-     (~/.claude/projects/.../memory/feedback_always_signoff_decisions.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
-     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
-
 ---
 name: feedback_always_signoff_decisions
 description: "STANDING, emphatic (user 2026-05-31, after a scare): ALWAYS take signoff-level decisions — never guess code, never over-claim; when tooling is degraded or a result can't be verified, the signoff decision is to STOP + checkpoint, not proceed."
@@ -9,8 +5,19 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: 5737d722-67a3-4fc9-8c42-f79e2ff1db07
+id: feedback-always-signoff-decisions
+title: Always take SIGNOFF-level decisions — when a result cannot be verified, STOP and checkpoint rather than proceed
+date: 2026-05-31
+answers:
+  - "what do I do when the tooling is degraded or a result cannot be verified"
+  - "is it acceptable to proceed on an unverified result to keep moving"
+  - "what does signoff-level mean for a decision here"
+reverify: grep -n 'A box is EARNED, not ticked' TOOLBOX.md
 ---
 
+<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
+     (~/.claude/projects/.../memory/feedback_always_signoff_decisions.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
+     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
 User, 2026-05-31 (emphatic, repeated — triggered by my careless phrase "writing generator code … by guessing", which alarmed them that I might have guessed code; I had NOT — git proved zero `.rs`/generator changes): **"Always, always take signoff decisions, always."**
 
 **Why:** signoff-level quality is non-negotiable (README CODE QUALITY mandate). Guessing at code — especially `stimuli_generator.rs` / engine / grammar — would risk the hard-won 14/14 SV corpus and the parser's correctness, and violates the project's deepest disciplines. Over-claiming a result (e.g. saying a gate is "green / exit 0" from an incomplete log read) is the same class of failure: asserting beyond what a tool actually showed. The `.5.2.5` slice did exactly that (claimed family-status "exit 0 / closed" when the gate had failed its final live-tracker check); `.6` corrected it transparently.

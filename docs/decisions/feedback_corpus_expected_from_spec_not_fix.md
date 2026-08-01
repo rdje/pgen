@@ -1,7 +1,3 @@
-<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
-     (~/.claude/projects/.../memory/feedback_corpus_expected_from_spec_not_fix.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
-     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
-
 ---
 name: feedback-corpus-expected-from-spec-not-fix
 description: When building your own verification corpus/probe, derive each expected value from the authoritative spec — never from what your fix is intended to do. Otherwise the corpus rubber-stamps your bug (false pass), and only a separate no-regression gate catches it.
@@ -9,8 +5,20 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: 8c2d85c8-f843-4500-981d-c2bbf763bdc7
+id: feedback-corpus-expected-from-spec-not-fix
+title: Derive every expected value from the SPEC, never from what your fix is meant to do — else the corpus rubber-stamps the bug
+date: 2026-06-05
+answers:
+  - "where do the expected values in my verification corpus come from"
+  - "why did my corpus pass while the bug was still present"
+  - "how do I avoid a false pass when writing a probe"
+  - "is it ok to record current behaviour as the expected baseline"
+reverify: grep -n 'spec' docs/decisions/feedback_corpus_expected_from_spec_not_fix.md | head -4
 ---
 
+<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
+     (~/.claude/projects/.../memory/feedback_corpus_expected_from_spec_not_fix.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
+     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
 **Lesson (RGX-0084, 2026-05-18):** I built a `\NN` family probe whose
 expected column I derived from *my fix's intended behavior* (gate
 every numeric backref on group count). PCRE2's actual rule is

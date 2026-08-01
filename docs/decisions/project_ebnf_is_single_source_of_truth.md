@@ -7,6 +7,16 @@ metadata:
   director_directive: true
   created: 2026-06-07
   owning_tree: EBNF-SOURCE-OF-TRUTH
+id: project-ebnf-is-single-source-of-truth
+title: The EBNF is the SINGLE SOURCE OF TRUTH — an out-of-band validator or a hard-coded rule name is a defect
+date: 2026-06-07
+answers:
+  - "where do I add a new acceptance constraint for a parser"
+  - "can I add a post-parse validator to reject something the grammar accepts"
+  - "why does the stimuli generator emit strings the parser rejects"
+  - "can I add a runtime flag or engine table for a dialect option"
+  - "is a hard-coded rule name in engine logic allowed"
+reverify: bash scripts/check_ebnf_source_of_truth.sh 2>&1 | tail -3
 ---
 
 **THE RULE (binding).** The EBNF — together with its `@predicate` / `@generate` / `@semantic`

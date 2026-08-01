@@ -107,8 +107,9 @@ is not yet a fact — it is a hypothesis.
   Commit: `PGEN-LESSON-RETRIEVAL-0001`
 
 - ID: `LESSON-RETRIEVAL.2`
-  Status: `pending` — ⏳ **DIRECTOR CALL ON SCOPE** (an objective/scope question, not a technical one,
-  so it is correctly escalated per [[feedback_answer_your_own_technical_questions]]).
+  Status: `pending` — ✅ **SCOPE DECIDED BY DIRECTOR 2026-08-01: "Decisions + top-N sweep."** Do `.3`
+  in full (all 142 decisions), plus the ~40-60 `DEVELOPMENT_NOTES` entries that state a general,
+  evidence-backed rule. ⛔ NOT the full 1 592-entry audit.
   Goal: `BACK-FILL the existing corpus. The inventory is 1 592 dated DEVELOPMENT_NOTES entries + 142 decision records. Three sizings, each honest about cost: (A) FORWARD-ONLY -- promote from here on, back-fill nothing; cheapest, but ~1 700 existing items stay unreachable. (B) TOP-N SWEEP -- back-fill the highest-value N (e.g. the ~40-60 entries that state a GENERAL rule and already carry evidence), one slice per batch. (C) FULL AUDIT -- read all 1 592 and adjudicate each; large, and most will correctly decline. ⛔ Do NOT start a sweep before the director sizes it: (C) is a multi-session lane and would pull hard against the standing "prefer feature work over governance lanes" directive.`
   Acceptance: `pending the scope call`
   Verification: `pending`
@@ -122,11 +123,39 @@ is not yet a fact — it is a hypothesis.
   Commit: `pending`
 
 - ID: `LESSON-RETRIEVAL.4`
-  Status: `pending`
+  Status: `pending` — ✅ **DIRECTOR DECIDED 2026-08-01: build the DOCTRINE CHECK** (`scripts/check_lesson_promotion.sh`, wired through `check_doctrines.sh` into the pre-commit hook + CI), not a `COMMIT.md` reminder. Rule: a staged dated `DEVELOPMENT_NOTES.md` entry requires either a `docs/knowledge/` change or an explicit decline token in the owning task leaf.
   Goal: `ENFORCE THE PROMOTION STEP so it cannot be silently skipped -- the actual root cause, since the mechanism has existed and been ignored for 1 592 entries. Candidate designs to PRICE, not to assume: (a) a doctrine check that a commit adding a DEVELOPMENT_NOTES "## <date> - <slice>" entry also touches docs/knowledge/ OR records an explicit decline token in the task leaf; (b) a COMMIT.md workflow step; (c) a periodic drift report counting unpromoted general lessons. ⛔ (b) alone is a reminder, not an enforcer -- and this repo has measured that reminders lose: the toolbox directive needed a git-level hook before it held (DOCTRINE_ENFORCEMENT.md). Prefer (a).`
   Acceptance: `pending`
   Verification: `pending`
   Commit: `pending`
+
+## Leaf `.3` progress — 2026-08-01 (`PGEN-LESSON-RETRIEVAL-0002`), 11 of 142 promoted
+
+⛔ **THE "VERIFY FIRST" CLAUSE PAID OFF TWICE — neither obstacle was guessable from the plan.**
+
+1. **A decision needs FIVE new fields, not one.** `check_knowledge_map.sh` requires `id`, `title`,
+   `date` and at least one of `evidence`/`reverify` on anything carrying `answers:`. Decision records
+   have `name` / `description` / `metadata` — none of those four. Adding `answers:` alone would have
+   turned all 142 into *validation failures*, not facts.
+2. ⭐ **81 of 142 records are KM-INVISIBLE BY CONSTRUCTION.** The KM's parser only opens front matter
+   when `---` is on **line 1** (`NR==1` in `check_knowledge_map.sh`'s awk). 81 records begin with
+   something else — 54 with the 2026-06-02 migration provenance comment, the rest with a heading. For
+   those, `answers:` could never have worked at any point. Fix is mechanical and lossless: move the
+   front matter to line 1 and keep the provenance comment verbatim immediately below it.
+
+**Done this slice:** the 10 most-cited records (ranked by `[[wikilink]]` citations across `docs/`,
+`MEMORY.md`, `CHANGES.md` — top of the distribution at 127, 126, 90, 88, 79, 66, 61, 60, 53, 47)
+plus the pilot. 7 of the 11 also needed normalizing. **KM 35 → 48 facts, 241 → 301 question keys**;
+`check_knowledge_map.sh` OK; all 16 doctrines PASS.
+
+⭐ **A promoted card's `reverify:` immediately earned its keep** — see the finding routed to
+`EBNF-SOURCE-OF-TRUTH.md` this same slice: writing a runnable re-verification for
+`project_ebnf_is_single_source_of_truth` surfaced two live shared-codegen breaches of that very
+doctrine, one of which overrides a grammar's declared regex pattern. **A `reverify:` is not
+documentation; it is a tripwire that runs.** That is the strongest argument yet for finishing `.3`.
+
+**Remaining for `.3`:** 131 records, of which ~74 still need the line-1 normalization. Batch them by
+citation rank — the tail is mostly single-citation records where a thin `answers:` list is honest.
 
 ## Current Frontier
 

@@ -1,15 +1,23 @@
-<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
-     (~/.claude/projects/.../memory/feedback_tools_first_no_guessing.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
-     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
-
 ---
 name: feedback_tools_first_no_guessing
 description: User-set discipline (2026-05-24, emphatic) — given the toolbox pgen now has (furthest_position, predicate self-explaining trace, --trace-rules, --dump-rule-call-counts, fact-store-interaction trace), we should NEVER guess at fixes. Every fix proposal should be backed by a tool that SHOWED the root cause directly. If the existing tool doesn't show it, BUILD the tool that does — don't speculate.
 metadata:
   type: feedback
   originSessionId: 8c2d85c8-f843-4500-981d-c2bbf763bdc7
+id: feedback-tools-first-no-guessing
+title: TOOLS FIRST, never guess — every fix proposal is backed by a tool that SHOWED the root cause
+date: 2026-05-24
+answers:
+  - "what should I do first when a parse is rejected or a target is not witnessed"
+  - "which debug tools exist in this repo"
+  - "is it acceptable to eyeball the grammar to find a root cause"
+  - "what do I do if no existing tool surfaces the problem"
+reverify: sed -n '/## Quick chooser/,/^---$/p' TOOLBOX.md | head -25
 ---
 
+<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
+     (~/.claude/projects/.../memory/feedback_tools_first_no_guessing.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
+     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
 **User-set discipline (2026-05-24):** "Given all the new tools we landed and are going to land, we should[n't] guess a fix anymore, I mean normally."
 
 Triggered when I applied a fix (Slice-64: has_fact gate on provisional), it didn't help (uvm_pkg regressed), and I started SPECULATING about why (cross-file refs, then type parameters). The user called this out:
