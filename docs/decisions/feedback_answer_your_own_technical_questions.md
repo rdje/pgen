@@ -1,0 +1,70 @@
+---
+name: feedback-answer-your-own-technical-questions
+description: "STANDING DIRECTIVE (director, 2026-08-01): the director steers OBJECTIVES — north star, features, priorities, scope. Deep technical questions are NOT theirs to answer and must not be escalated: the engineer has the roadmap, the codebase and the toolbox, so a technical question is a task, not a blocker. Corollary, stated by the director in the same breath: any claim you make, you must be able to challenge and PROVE OR DISPROVE yourself — an untested claim recorded as fact is the defect."
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+**STANDING DIRECTIVE (director, 2026-08-01):** *"That is a very technical question that as a
+director I can't answer, in all honesty. … you are the elite, expert coder, programmer with a deep
+knowledge of PGEN roadmap, objectives and codebase, meaning you have all you need to precisely
+answer your own questions. Also whenever you make a claim on something you should be able to
+challenge yourself and be able to prove or disprove your claim. … As a director I can provide
+guidance on objectives, north star, new features, I mean everything but deep and technical
+questions."*
+
+## The division of labour
+
+| The director owns | The engineer owns |
+|---|---|
+| objectives, north star, scope | **every technical question, without exception** |
+| which lane to work (`-> SV-EXH-PROOF.7`) | how to work it, what to build, which mechanism |
+| whether a capability is wanted at all | whether a fix is sound, sized, monotone, worth it |
+| priced trade-offs stated in *their* terms (time, money, risk to a shipped claim) | trade-offs stated in engine terms — those are not a director question wearing a costume |
+
+**Why:** escalating a technical question to someone without the codebase in their head does not
+transfer the decision — it *stalls* it, and it hands back a question dressed as a choice. The
+director cannot adjudicate "witness-entry policy vs prelude wiring"; asking them to costs a round
+trip and returns nothing. Worse, it disguises unfinished engineering as governance: the honest
+description of "should we do X or Y?" was almost always **"I have not measured X or Y yet."**
+
+## The trigger that produced this record
+
+`SV-EXH-PROOF.7.4.6.12` escalated: *"is the class-C fix worth it now, or does it park behind class
+A?"* — framed as a director call because the fix was *"a slice-sized design that re-prices the
+witness budget."* Both halves were wrong, and **both were mine to settle**:
+
+- The sizing was **asserted, never tested.** One command disproved it: SV certificate-coverage
+  already reports `UNKNOWN=0 fully_certified=true`, i.e. a *sibling witness pass already witnesses
+  the exact rule* by entering high and steering down. Nothing to design; the cost is already paid by
+  a pass that runs today. A positive/negative parser control then confirmed it is a real witness and
+  not one of the 17 unreachability proofs.
+- The priority question was **arithmetic, not judgement**: 4 targets vs 79, with 44 freshly-won
+  targets protected by no ratchet. That ordering needs no director.
+
+⭐ The sharpest part: that same leaf had *just* caught its own Goal hypothesis by testing it — and
+then recorded a fresh untested claim one field below. **The discipline is not a step you perform
+once per leaf; it applies to every claim you write down, including the ones inside a correction.**
+
+## How to apply
+
+1. **Never escalate a question you can measure.** Before writing "director call", ask: *is there a
+   command that settles this?* If yes, that is not a director call — it is the next thing to run.
+   Escalate only genuine objective/scope/priority-of-outcome questions.
+2. **Every recorded claim must name how it was checked.** A sentence stating cost, soundness,
+   reachability or blast radius is a *hypothesis* until a tool says otherwise. Prefer a sibling
+   surface that already exercises the mechanism — the cheapest disproof is usually "something in
+   this repo already does this."
+3. **Prefer disproof.** Try to refute your own claim first; an unrefuted claim that survived a real
+   attempt is worth far more than one that was never attacked. Positive **and** negative controls
+   where a gate is involved → [[feedback_instrument_needs_ground_truth]].
+4. **State the decision and the reason, then act.** "Parked behind class A: 4 targets vs 79, and the
+   44 just won are unratcheted" is a decision. "Your call?" on the same facts is an abdication.
+5. **When you do surface something**, surface *findings and decisions taken* — things that change
+   the director's picture — not questions whose answers live in the source tree.
+
+Companions: [[feedback_why_and_where_before_solution]] (know WHY+WHERE before designing),
+[[feedback_no_codebase_change_without_tool_backed_facts]], [[feedback_instrument_needs_ground_truth]],
+[[feedback_read_prior_art_before_designing]] (the sibling surface that already does it),
+[[feedback_prefer_feature_work_over_governance_lanes]] (the director DOES own lane choice).
