@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0161 — leaf SV-EXH-PROOF.7.4.6.11: class B is ELIMINATED — the SV closed-loop residual falls 127 → 83
+
+The first coverage win of the literal-0 endgame since the failure class flipped. `.7.4.6.8` partitioned
+the residual into three structural classes; `-0160` pinned class B's cause in source; this slice lands
+the fix and measures it.
+
+- ⭐ **CLASS B: 43 → 0 — the whole class, in both LRM profiles.** Zero `/q` targets remain. The
+  canonical gate residual falls **127 → 83** while the target *universe* stays **5 461, unchanged** —
+  coverage won, not targets removed from the denominator.
+- ⭐ **The root cause was an ASYMMETRY between two sibling installers, and the source said so.**
+  A reach plan can target a *rule* or a *branch*. `GRAMMAR-WELLFORMED.H.7.2` gave quantifier forcing to
+  the RULE installer only; the BRANCH installer built its plan from ordered-choice directives alone, so
+  its `forced_quantifier_min` map was always empty — and the field's own doc-comment stated exactly that
+  (*"EMPTY for every pre-H.7.2 caller"*). A branch inside `( … )?` is therefore unreachable under
+  minimal generation: the group renders **zero** times, the inner choice is never entered, and the
+  witness is produced but cannot credit the target.
+- ✅ **The fix restores the symmetry; it does not add a mechanism.** Both installers now share one body,
+  and the crossed quantifier sites come from the **same walk** that builds the ordered-choice
+  directives, so the two can never describe different paths. Opt-in per caller.
+- ✅ **MONOTONE, measured rather than argued.** The primary/diverse target-drive pass deliberately does
+  *not* opt in. Proof: a whole-summary diff shows the **only** non-timing line that changed in the entire
+  gate summary is the residual — universe, determinism passes, all shadow counters (9 963
+  requested/attempted/accepted, 0 rejected), corpus 730/730 and `parse_full_failures=0` are byte-identical.
+- ⭐ **Sub-shape B2 was covered too — and the caution that said it might not be was right to exist.**
+  The pinned diagnosis explicitly warned that the 3 `selected_but_failed` `/q` targets had a *different*
+  mechanism and told the fix leaf to re-measure rather than assume. Measurement retires the warning: all
+  three closed. Conservative diagnosis, then measurement — not optimism.
+- ⚠️ **The residual moved by 44, not 43 — and that extra 1 is explained, not banked.** One class-A
+  target (`property_actual_arg#0`, profile_2023 only) closed as a bystander of the richer witness
+  samples. Class C is unchanged at 4 — an untouched control confirming the delta is attributable.
+  `127 − 83 = 44 = 43 (B) + 1 (A)` reconciles exactly, with no unexplained movement in either direction.
+- 📌 **Class C split to `.7.4.6.12`** rather than co-landed, so the class-B before→after stayed
+  attributable — and its first question is the *same shape* this slice just answered: the branch
+  installer does not attach a semantic prelude either. Verify before changing.
+
+Live status **unchanged**: SV main parser stays `Mostly Done` — the residual is 83, not 0.
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0159 — leaf SV-EXH-PROOF.7.4.6.8: the literal-0 residual, RE-CLASSIFIED on a deterministic metric
 
 Tools-first investigation, **no code change**. Re-scoped on arrival: `.7.4.6.7` named its successor

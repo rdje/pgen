@@ -2937,13 +2937,70 @@ impl<'a> StimuliGenerator<'a> {
         target_branch_index: usize,
         bypass_fuel: u32,
     ) -> bool {
-        match self.compute_reach_path(
+        self.set_reach_plan_mode(
+            entry_rule,
+            target_rule,
+            target_node_path,
+            target_branch_index,
+            bypass_fuel,
+            false,
+        )
+    }
+
+    /// SV-EXH-PROOF.7.4.6.11: as `set_reach_plan`, but ALSO forces every `?`/`*` quantifier
+    /// the reach path crosses to expand at least once — the capability
+    /// GRAMMAR-WELLFORMED.H.7.2 gave the RULE-target installer
+    /// (`set_reach_plan_for_rule` → `install_reach_plan_from_hops`) and that the BRANCH-target
+    /// installer was never given. The asymmetry IS the pinned class-B root cause: a branch
+    /// whose `node_path` crosses a `/q` sits inside an optional group, `construct_mode`
+    /// renders that group ZERO times, so the inner choice is never entered and the target
+    /// reports `never_selected` (the `.7.4.6.8` class-B residual, 17 of 20 targets).
+    ///
+    /// ⛔ Deliberately a SEPARATE entry point rather than a change to `set_reach_plan`:
+    /// the other non-test caller of `set_reach_plan` is `try_install_reach_plan_for_status`,
+    /// the PRIMARY/diverse target-drive pass, whose output must stay byte-identical for the
+    /// monotonicity guarantee every prior `.7.4.6.x` slice relied on. Only the witness pass
+    /// (`generate_target_witnesses`) opts in.
+    pub fn set_reach_plan_forcing_quantifiers(
+        &mut self,
+        entry_rule: &str,
+        target_rule: &str,
+        target_node_path: &str,
+        target_branch_index: usize,
+        bypass_fuel: u32,
+    ) -> bool {
+        self.set_reach_plan_mode(
+            entry_rule,
+            target_rule,
+            target_node_path,
+            target_branch_index,
+            bypass_fuel,
+            true,
+        )
+    }
+
+    /// SV-EXH-PROOF.7.4.6.11: the shared body of the two branch-target installers.
+    /// `force_quantifiers` selects whether the plan also carries `forced_quantifier_min`
+    /// entries for the quantifier sites the reach path crosses. With `false` the map stays
+    /// empty, so `generate_quantified`'s non-empty-map gate short-circuits and generation is
+    /// byte-identical to pre-`.7.4.6.11` behavior. GENERAL/parser-agnostic — the sites are
+    /// derived from `node_path` structure alone, no grammar identifiers.
+    fn set_reach_plan_mode(
+        &mut self,
+        entry_rule: &str,
+        target_rule: &str,
+        target_node_path: &str,
+        target_branch_index: usize,
+        bypass_fuel: u32,
+        force_quantifiers: bool,
+    ) -> bool {
+        match self.compute_reach_path_with_quantifier_sites(
             entry_rule,
             target_rule,
             target_node_path,
             target_branch_index,
         ) {
-            Some(chain) => {
+            Some((chain, quantifier_sites)) => {
                 let mut plan = ActiveReachPlan::from_directives(&chain, bypass_fuel);
                 // SV-EXH-PROOF.7.2.3: snapshot the target site's existing coverage
                 // so reach_target_outcome reports only THIS plan's delta.
@@ -2951,6 +3008,13 @@ impl<'a> StimuliGenerator<'a> {
                     self.branch_selected_hits(&plan.target_group_key, plan.target_branch_index);
                 plan.baseline_success_hits =
                     self.branch_success_hits(&plan.target_group_key, plan.target_branch_index);
+                if force_quantifiers {
+                    // The SAME keying and the SAME forced minimum the rule-target installer
+                    // uses (`install_reach_plan_from_hops`), so the two paths cannot drift.
+                    for site in quantifier_sites {
+                        plan.forced_quantifier_min.insert(site, 1);
+                    }
+                }
                 self.reach_plan = Some(plan);
                 true
             }
@@ -5464,12 +5528,18 @@ impl<'a> StimuliGenerator<'a> {
             }
 
             // For a branch target, force that branch within its rule.
+            // SV-EXH-PROOF.7.4.6.11: ... AND force every `?`/`*` quantifier the path to that
+            // branch crosses. Without it, a branch nested inside an optional group is
+            // unreachable under the `construct_mode` generation two lines below (which
+            // renders a `?` ZERO times), so the witness is generated but never credits the
+            // target — `never_selected`, the class-B residual. The forcing is witness-pass
+            // only; the primary target-drive pass keeps calling `set_reach_plan`.
             let mut plan_installed = false;
             if status.target_type == StimuliCoverageTargetType::Branch {
                 if let (Some(node_path), Some(branch_index)) =
                     (status.node_path.as_ref(), status.branch_index)
                 {
-                    plan_installed = self.set_reach_plan(
+                    plan_installed = self.set_reach_plan_forcing_quantifiers(
                         &entry_rule,
                         &entry_rule,
                         node_path,
@@ -8616,6 +8686,28 @@ impl<'a> StimuliGenerator<'a> {
         target_node_path: &str,
         target_branch_index: usize,
     ) -> Option<Vec<ReachDirective>> {
+        self.compute_reach_path_with_quantifier_sites(
+            entry_rule,
+            target_rule,
+            target_node_path,
+            target_branch_index,
+        )
+        .map(|(chain, _quantifier_sites)| chain)
+    }
+
+    /// SV-EXH-PROOF.7.4.6.11: `compute_reach_path` plus the `?`/`*` quantifier sites the
+    /// path crosses, in the `(rule_name, Quantified-node-path)` keying
+    /// `generate_quantified` looks up. Both are derived from the SAME walk, so the OR
+    /// directives and the quantifier sites can never describe different paths. Callers that
+    /// do not force quantifiers (the primary/diverse pass) simply drop the second element,
+    /// which is exactly what `compute_reach_path` does — so their behavior is unchanged.
+    fn compute_reach_path_with_quantifier_sites(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+        target_node_path: &str,
+        target_branch_index: usize,
+    ) -> Option<(Vec<ReachDirective>, Vec<(String, String)>)> {
         // Validate the target OR node + branch index up front.
         let alternatives = self.or_alternatives_for_group_path(target_rule, target_node_path)?;
         if target_branch_index >= alternatives.len() {
@@ -8626,8 +8718,10 @@ impl<'a> StimuliGenerator<'a> {
         // the hop's reference-site path.
         let hops = self.reach_hops(entry_rule, target_rule)?;
         let mut chain: Vec<ReachDirective> = Vec::new();
+        let mut quantifier_sites: Vec<(String, String)> = Vec::new();
         for (hop_rule, hop_site_path) in &hops {
             chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
+            quantifier_sites.extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
         }
 
         // Navigate WITHIN the target rule: if the target OR node is nested under
@@ -8636,6 +8730,12 @@ impl<'a> StimuliGenerator<'a> {
         // target rule). directives_along_path emits one directive per `o{i}`
         // segment crossed on the way to the target OR node.
         chain.extend(Self::directives_along_path(target_rule, target_node_path));
+        // SV-EXH-PROOF.7.4.6.11: the INTRA-rule half — the class-B targets all sit at a `/q`
+        // inside their own rule's body, which no hop path can ever contain.
+        quantifier_sites.extend(Self::quantifier_sites_along_path(
+            target_rule,
+            target_node_path,
+        ));
 
         // Finally force the target branch at the target OR node itself.
         chain.push(ReachDirective {
@@ -8644,7 +8744,7 @@ impl<'a> StimuliGenerator<'a> {
             branch_index: target_branch_index,
         });
 
-        Some(chain)
+        Some((chain, quantifier_sites))
     }
 
     /// SV-EXH-PROOF.7.2.19 (PGEN-SV-EXH-PROOF-0134, ANALYSIS ONLY — no generation
@@ -25059,6 +25159,172 @@ mod tests {
             generator.reach_target_outcome(),
             Some(ReachOutcome::NotReached),
             "a plan installed but not yet exercised must report NotReached"
+        );
+    }
+
+    // ---- SV-EXH-PROOF.7.4.6.11: class B — an inner choice under a quantifier ----
+
+    /// The class-B shape in miniature: `lvalue := ( "h" | "p" )? "id"`, the shape every one
+    /// of the 17 `never_selected` class-B residual targets has (e.g. real SV
+    /// `nonrange_variable_lvalue := ( implicit_class_handle dot | package_scope | class_scope )?
+    /// hierarchical_variable_identifier nonrange_select`, target `@root/s0/q`).
+    fn class_b_quantified_choice_grammar() -> HashMap<String, ASTNode> {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "lvalue".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Quantified {
+                        element: Box::new(ASTNode::Or {
+                            alternatives: vec![
+                                token("quoted_string", "h"),
+                                token("quoted_string", "p"),
+                            ],
+                        }),
+                        quantifier: "?".to_string(),
+                    },
+                    token("quoted_string", "id"),
+                ],
+            },
+        );
+        grammar_tree
+    }
+
+    #[test]
+    fn witness_branch_plan_forces_the_intra_rule_quantifier_it_crosses() {
+        // SV-EXH-PROOF.7.4.6.11 (class B). The witness pass installs a BRANCH-target plan
+        // with `entry_rule == target_rule` (a target's own rule is its witness entry) and
+        // then generates under `construct_mode`, which renders a `?` as ZERO repetitions.
+        // The target Or sits INSIDE that `?` (`node_path` crosses `/q`), so unless the plan
+        // forces the enclosing `Quantified` to expand, the Or is never entered and the
+        // branch reports `never_selected` — the pinned class-B root cause.
+        let grammar_tree = class_b_quantified_choice_grammar();
+        let rule_order = vec!["lvalue".to_string()];
+
+        let mut witness = simple_generator(&grammar_tree, &rule_order, 7);
+        assert!(
+            witness.set_reach_plan_forcing_quantifiers("lvalue", "lvalue", "root/s0/q", 1, 16),
+            "the class-B target must have a reach path (it is inside its own rule's body)"
+        );
+        assert_eq!(
+            witness
+                .reach_plan
+                .as_ref()
+                .expect("plan installed")
+                .forced_quantifier_min
+                .get(&("lvalue".to_string(), "root/s0".to_string()))
+                .copied(),
+            Some(1),
+            "the enclosing Quantified node's OWN path (the prefix before the `/q` segment, \
+             i.e. what `generate_quantified` receives) must be forced to expand at least once"
+        );
+
+        witness.construct_mode = true;
+        let sample = witness
+            .generate_from_entry("lvalue")
+            .expect("construct-mode generation under the witness plan must succeed");
+        witness.construct_mode = false;
+
+        assert_eq!(
+            witness.reach_target_outcome(),
+            Some(ReachOutcome::Reached),
+            "the quantifier-forced witness must actually credit the target branch; sample={:?}",
+            sample
+        );
+        assert_eq!(
+            sample, "pid",
+            "the forced `?` must expand once and select alternative #1 (`p`), then the \
+             mandatory tail — got {:?}",
+            sample
+        );
+    }
+
+    #[test]
+    fn primary_branch_plan_still_leaves_quantifiers_unforced() {
+        // SV-EXH-PROOF.7.4.6.11 MONOTONICITY GUARD. `set_reach_plan` has a second, non-witness
+        // caller — `try_install_reach_plan_for_status`, the PRIMARY/diverse target-drive pass.
+        // Forcing quantifiers there would change that pass's output and break the
+        // byte-identical-diverse-pass guarantee every prior `.7.4.6.x` slice relied on, so the
+        // new capability is scoped to the witness installer and this pins that scoping.
+        let grammar_tree = class_b_quantified_choice_grammar();
+        let rule_order = vec!["lvalue".to_string()];
+
+        let mut primary = simple_generator(&grammar_tree, &rule_order, 7);
+        assert!(primary.set_reach_plan("lvalue", "lvalue", "root/s0/q", 1, 16));
+        assert!(
+            primary
+                .reach_plan
+                .as_ref()
+                .expect("plan installed")
+                .forced_quantifier_min
+                .is_empty(),
+            "the primary/diverse installer must leave `forced_quantifier_min` EMPTY, so \
+             `generate_quantified`'s non-empty-map gate keeps that pass byte-identical"
+        );
+
+        // And the two installers must agree on everything EXCEPT quantifier forcing.
+        let mut witness = simple_generator(&grammar_tree, &rule_order, 7);
+        assert!(witness.set_reach_plan_forcing_quantifiers("lvalue", "lvalue", "root/s0/q", 1, 16));
+        let (p, w) = (
+            primary.reach_plan.as_ref().expect("primary plan"),
+            witness.reach_plan.as_ref().expect("witness plan"),
+        );
+        assert_eq!(p.directives, w.directives, "same forced OR directives");
+        assert_eq!(p.target_group_key, w.target_group_key, "same target identity");
+        assert_eq!(p.target_branch_index, w.target_branch_index, "same target branch");
+    }
+
+    // Dual-feature: `ebnf_dual_run` for the `.ebnf` frontend, `generated_parsers` for the
+    // annotation backend `systemverilog.ebnf`'s `@profile_alias` requires (the bootstrap
+    // surface REFUSES it rather than risk the RGX-0078.5.i.1.t1 re-interpretation drift).
+    #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
+    #[test]
+    fn witness_branch_plan_forces_quantifier_on_real_systemverilog_class_b_target() {
+        // SV-EXH-PROOF.7.4.6.11: the same assertion against the REAL grammar and a REAL
+        // residual target from the `.7.4.6.8` class-B list — `nonrange_variable_lvalue`
+        // branches #0/#1/#2 at `@root/s0/q`. Guards the fix against a grammar restructure
+        // that would move the site (the synthetic test above cannot see that).
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../grammars/systemverilog.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path).expect("parse systemverilog.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform_from_raw_ast");
+        let mut generator = StimuliGenerator::new(
+            "systemverilog".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(0),
+                ..StimuliConfig::default()
+            },
+        );
+
+        let (rule, node_path) = ("nonrange_variable_lvalue", "root/s0/q");
+        assert!(
+            generator.set_reach_plan_forcing_quantifiers(rule, rule, node_path, 1, 16),
+            "the real class-B target {rule}@{node_path}#1 must still resolve to a reach path"
+        );
+        assert_eq!(
+            generator
+                .reach_plan
+                .as_ref()
+                .expect("plan installed")
+                .forced_quantifier_min
+                .get(&(rule.to_string(), "root/s0".to_string()))
+                .copied(),
+            Some(1),
+            "the `( implicit_class_handle dot | package_scope | class_scope )?` group at \
+             root/s0 must be forced to expand — that expansion is the whole class-B fix"
         );
     }
 

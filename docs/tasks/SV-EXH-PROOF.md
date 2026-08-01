@@ -914,7 +914,7 @@ literal over a failing surface.
   Commit: `pending`
 
 - ID: `SV-EXH-PROOF.7.4.6.11`
-  Status: `pending` — ⭐ **CLASS B ROOT CAUSE IS PINNED (2026-08-01, source-cited, NO code change yet)**; the fix is a known ~3-line symmetry restoration, see WHY+WHERE below. Class C untouched.
+  Status: `done` (`PGEN-SV-EXH-PROOF-0161`) — ⭐ **CLASS B IS ELIMINATED, 43 → 0, both sub-shapes**; canonical gate residual **127 → 83** at an unchanged universe of 5461. Class C split out to `.7.4.6.12` (see `Scope_decision_2026-08-01`).
   WHY+WHERE_CLASS_B_2026-08-01: `PINNED IN SOURCE (rust/src/ast_pipeline/stimuli_generator.rs) -- the answer to the question .7.4.6.8 left open ("does the witness pass collect INTRA-rule quantifier sites?"). ANSWER: NO, and the omission is STRUCTURAL, not accidental.
   THE TWO PATHS ARE ASYMMETRIC. There are two reach-plan installers: (a) the RULE-target path set_reach_plan_for_rule (:3003) -> install_reach_plan_from_hops (:3058) which DOES force quantifiers -- it calls Self::quantifier_sites_along_path(...) per hop and does plan.forced_quantifier_min.insert(site, 1) at :3075-3077; and (b) the BRANCH-target path set_reach_plan (:2932-2959), which builds its plan as ActiveReachPlan::from_directives(&chain, bypass_fuel) from compute_reach_path's OR directives ALONE and NEVER touches forced_quantifier_min.
   THE WITNESS PASS USES PATH (b) FOR EVERY BRANCH TARGET: generate_target_witnesses :5468-5479 -- "For a branch target, force that branch within its rule" -> self.set_reach_plan(&entry_rule, &entry_rule, node_path, branch_index, bypass_fuel).
@@ -926,6 +926,64 @@ literal over a failing surface.
   Predecessor_note: `(classes B + C — the two SMALL, well-understood classes; likely the cheapest literal-0 progress)`
   Goal: `Close the .7.4.6.8 class-B (20/23) and class-C (2/2) residual. CLASS B — inner ordered-choice branches under a QUANTIFIER (node_path contains /q), reason=never_selected: the enclosing optional/repeat group is never expanded, so the inner choice is never reachable. ⛔ DO NOT "add quantifier forcing" — IT ALREADY EXISTS and this leaf must NOT re-implement it: ActiveReachPlan carries forced_quantifier_min (stimuli_generator.rs:1107), populated to 1 from Self::quantifier_sites_along_path(...) at :3076 (plannable-rule plans) and :3402 (structured-witness sub-plans). WHERE THE GAP LIKELY IS (the fix leaf's FIRST question, to be answered with a tool, not assumed): both call sites collect quantifier sites along INTER-RULE HOPS (hop_rule, hop_site_path), whereas every class-B target sits at an INTRA-RULE /q site inside the target rule's own body (e.g. nonrange_variable_lvalue := ( implicit_class_handle dot | package_scope | class_scope )? ... — the three inner alts are reachable only if the ? group is taken). So the question is whether the witness pass's set_reach_plan_for_rule path collects intra-rule quantifier sites on the way to the target branch at all. VERIFY BEFORE CHANGING. CLASS C — wildcard_escape_nettype_identifier's fact_count_at_least predicate is unsatisfiable from an empty store, which also kills its consequent net_declaration_sv_2017#2 (one cause, two targets); FIX = a store-aware witness prelude emitting the enabling pkg::* wildcard-import fact -> STORE-AWARE-GEN territory ([[feedback_grammar_rules_must_consult_store]]).`
   Acceptance: `class B and class C each measured before->after on the canonical gate; parser-agnostic engine logic (zero grammar identifiers); MONOTONE (witness-pass-scoped); determinism byte-identical; lib+clippy green. May be split B/C if the store-aware half proves larger.`
+  Scope_decision_2026-08-01: `SPLIT B/C, exercising the Acceptance clause above. This leaf lands CLASS B ONLY. Class C is a store-aware witness prelude (a different mechanism, STORE-AWARE-GEN territory); landing it in the same slice would make the class-B before->after unattributable, and the measurement below shows exactly why that matters -- the residual moved by 44, not the 43 class B accounts for, and separating the classes is what made the extra 1 explainable rather than hand-waved. Class C -> new leaf .7.4.6.12.`
+  Verification: `done (class B) -- CLASS B IS ELIMINATED: 43 -> 0, both sub-shapes. Canonical gate residual 127 -> 83.
+
+  MEASURED (canonical gate, memory-guarded, exit 0, 1736 s, peak_tree_rss 10 401 MB):
+  * closed_loop_replay_targets_total 127 -> 83 (2017: 62 -> 42, 2023: 65 -> 41).
+  * closed_loop_initial_targets_total 5461 -> 5461 UNCHANGED -- the target UNIVERSE is byte-identical, so this is coverage won, NOT targets removed from the denominator ([[feedback_corpus_expected_from_spec_not_fix]]).
+  * Gate PASSES: profiles 2/2, initial_replay_determinism 2/2, realistic corpus 730/730, parse_full failures 0.
+  * WHOLE-SUMMARY DIFF: the ONLY non-timing line that changed in the entire gate summary is closed_loop_replay_targets_total. Every deterministic metric -- universe, determinism passes, all closed_loop_parseability_shadow_* counters (9963 requested/attempted/accepted, 0 rejected), corpus, parse_full -- is byte-identical. That is the DIVERSE/PRIMARY-PASS-UNCHANGED evidence, measured rather than argued.
+
+  EXACT CLASS ACCOUNTING (raw jq buckets rule->C, /q->B, else A; then adjudicated the way .7.4.6.8 did, i.e. net_declaration_sv_{2017,2023}#2 counted under C as the consequent of the C rule target):
+  * CLASS B 43 -> 0. ZERO /q targets remain in either profile. ⭐ This INCLUDES sub-shape B2 -- the 3 selected_but_failed targets (ps_type_identifier_sv_2017#1/#2, randomize_call#0) that the pinned WHY+WHERE explicitly warned were NOT covered by this mechanism and told the fix leaf to re-measure rather than assume. The caution was right to be conservative; the measurement retires it.
+  * CLASS C 4 -> 4 UNCHANGED (wildcard_escape_nettype_identifier [rule] + net_declaration_sv_{2017,2023}#2, one pair per profile) -- exactly as expected, since this leaf did not touch the store-aware path. Class C is a clean, untouched control on the measurement.
+  * CLASS A 80 -> 79. ONE additional target resolved as a BYSTANDER: property_actual_arg#0 is still residual under profile_2017 but is GONE under profile_2023, and .7.4.6.8 recorded class A at 40 in BOTH profiles. Richer (quantifier-expanded) witness samples incidentally covered it.
+  * RECONCILES EXACTLY: 127 - 83 = 44 = 43 (class B) + 1 (class A bystander). No unexplained movement in either direction.
+  ⚠️ HONEST BOUND on that one bystander: the per-profile BEFORE target lists were not preserved (only the summary was), so the identity of the single class-A target is inferred from the aggregate count plus the 2017/2023 asymmetry, not from a before/after list diff. The COUNT is exact; the NAME is inferred. Preserving per-profile gap JSONs alongside the summary would make the next such delta list-diffable -- routed to .7.4.6.10, which is already building the residual ratchet.
+
+  NOT A REGRESSION ANYWHERE: class A did not grow in either profile once net_declaration#2 is adjudicated to C the way .7.4.6.8 adjudicated it (2017 class A stayed at exactly 40). The raw jq bucket reading "41 A" for 2017 is the classifier putting that consequent BRANCH in A; it is the same target, in the same state, counted in a different bucket -- not a new residual.
+
+  NO code outside rust/src/ast_pipeline/stimuli_generator.rs; zero grammar identifiers; no grammar/generated/release/schema/ledger change.`
+  Commit: `PGEN-SV-EXH-PROOF-0161`
+- **Acceptance Checklist (enforced)** — `SV-EXH-PROOF.7.4.6.11`
+- [x] **REPRODUCE / ISSUE** — a probe driving the witness pass's exact call shape
+  (`stimuli_generator.rs:5472`, `set_reach_plan(entry, entry, "root/s0/q", 1, fuel)`) on the class-B
+  shape printed `REPRO: forced_quantifier_min={} (len=0) outcome=Some(NotReached) sample="id"` — the
+  `?` group rendered ZERO times, so the inner `Or` was never entered.
+- [x] **ROOT CAUSE (WHY + WHERE)** — pinned in source by `-0160` and re-confirmed here by the
+  probe above: the BRANCH-target installer `set_reach_plan` (`:2932`) built its plan from
+  `ActiveReachPlan::from_directives` alone, which — per the `forced_quantifier_min` field doc at
+  `:1099-1106` — is *"EMPTY for every pre-H.7.2 caller (`from_directives` never fills it)"*, while the
+  RULE-target installer `install_reach_plan_from_hops` (`:3058`) DOES
+  `plan.forced_quantifier_min.insert(site, 1)` at `:3075-3077`. The witness pass used the branch path,
+  so a target whose `node_path` crosses `/q` was unreachable under `construct_mode`. Located with
+  `--dump-rule-call-counts`-class generator introspection plus the `[plannable-probe]`-family
+  reach-plan state dump quoted verbatim above (`forced_quantifier_min={} … outcome=Some(NotReached)`).
+- [x] **FIX** — fix-hierarchy tier: **engine, minimal, symmetry-restoring** (no grammar change, no new
+  mechanism). `set_reach_plan` and a new `set_reach_plan_forcing_quantifiers` both delegate to a shared
+  `set_reach_plan_mode(…, force_quantifiers)`; `compute_reach_path_with_quantifier_sites` returns the
+  crossed sites from the SAME walk that builds the OR directives, so the two can never describe
+  different paths. Only `generate_target_witnesses` opts in.
+- [x] **ADDRESSED (verified)** — before→after on the canonical gate:
+  `closed_loop_replay_targets_total` **127 → 83** at an UNCHANGED universe of `5461`; class B
+  **43 → 0** (zero `/q` targets remain in either profile). Gate exit 0, profiles 2/2.
+- [x] **NO REGRESSION** — certificate-coverage at **seeds 0/7/42** on json / regex / vhdl /
+  rtl_frontend: `UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)`,
+  byte-identical across all three seeds; `ast_shape_contract` gate GREEN (18/18); clippy strict source
+  PASS **and** the generated-parser stage PASS (`GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`,
+  68 pinned lints intact); realistic corpus 730/730 and `parse_full_failures=0` inside the gate. Lib
+  suites proven pre-existing by **git-stash baseline** (the `.8` precedent): no-features
+  883/9 → 885/9 (same 9), `generated_parsers` 985/1 → 987/1 (same 1) — identical failure sets, +2 = the
+  tests this leaf adds.
+- [x] **LOCKSTEP** — book (`docs/book/src/grammar-wellformedness.md` — the branch-vs-rule installer
+  symmetry), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md` updated. DONE-BAR register unchanged:
+  SV main stays `Mostly Done` (the residual is 83, not 0), so no live-status row moves.
+
+- ID: `SV-EXH-PROOF.7.4.6.12`
+  Status: `pending` (class C — store-gated unsatisfiable; 4 targets = 2 per profile, the SMALLEST class)
+  Goal: `Close the .7.4.6.8 class-C residual, split out of .7.4.6.11 so the class-B before->after stayed attributable. MEASURED-UNCHANGED BY .7.4.6.11 (a clean control): wildcard_escape_nettype_identifier [rule target] + its consequent net_declaration_sv_{2017,2023}#2, one pair per profile, 4 total. CAUSE (from .7.4.6.8): the rule's fact_count_at_least predicate is unsatisfiable from an EMPTY store, which also kills the consequent branch -- ONE cause, TWO targets, per profile. FIX DIRECTION: a store-aware witness prelude emitting the enabling pkg::* wildcard-import fact -> STORE-AWARE-GEN territory ([[feedback_grammar_rules_must_consult_store]]). ⛔ The prelude machinery ALREADY EXISTS -- ReachPrelude (stimuli_generator.rs:1133) with both the fact_count_at_least COUNT arm (GRAMMAR-WELLFORMED.C2.2) and the NAME-coordinated arm (NameGateArm, STORE-AWARE-GEN.4b.2), and compute_reach_prelude is wired into install_reach_plan_from_hops (:3083). So the FIRST question, to be answered with a tool and not assumed, is the SAME shape .7.4.6.11 just answered: does the BRANCH-target installer attach a prelude at all? set_reach_plan_mode does NOT call compute_reach_prelude -- the same installer asymmetry, one field over. VERIFY BEFORE CHANGING.`
+  Acceptance: `class C measured before->after on the canonical gate (expect 83 -> 79 if all four close); parser-agnostic (zero grammar identifiers); MONOTONE (witness-pass-scoped, as .7.4.6.11 proved with a whole-summary diff); determinism byte-identical; lib+clippy green.`
   Verification: `pending`
   Commit: `pending`
 

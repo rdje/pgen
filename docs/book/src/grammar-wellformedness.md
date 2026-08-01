@@ -779,6 +779,41 @@ stays deterministic). Rules with **no path** in the rule-reference graph are fla
 candidates for linter adjudication, and any rules beyond the pass's global attempt cap are reported as
 left unattempted — never silently dropped.
 
+#### The same capability, for *branch* targets — and the asymmetry that hid for a year
+
+A reach plan can target two different things: a **rule** (witness this `UNKNOWN` rule) or a **branch**
+(cover this ordered-choice alternative). Quantifier forcing was built for the rule-target installer and
+given only to it. The branch-target installer built its plan from the ordered-choice directives alone,
+so its `forced_quantifier_min` map was always empty — and the field's own doc-comment said so, in the
+source, the whole time: *"EMPTY for every pre-H.7.2 caller."*
+
+That asymmetry is invisible until a target sits **inside** an optional group:
+
+```ebnf
+nonrange_variable_lvalue :=
+    ( implicit_class_handle dot | package_scope | class_scope )?   ← the target is one of these three
+    hierarchical_variable_identifier nonrange_select
+```
+
+Minimal (`construct_mode`) generation renders the `?` **zero** times, so the inner choice is never
+entered and every one of its alternatives reports `never_selected` — a witness *is* produced, it just
+cannot possibly credit the target. In the SystemVerilog closed loop this was **43 of a 127-target
+residual**, across two LRM profiles, and it looked like a generation-difficulty problem for several
+slices because the count alone does not say *which way* a target failed.
+
+The fix restores the symmetry rather than adding a mechanism: both installers now share one body, and
+the crossed quantifier sites are derived from the **same walk** that builds the ordered-choice
+directives, so the two can never describe different paths. The forcing is **opt-in per caller** — the
+witness pass takes it; the primary/diverse target-drive pass does not, because its output must stay
+byte-identical for the campaign's monotonicity guarantee. Measured effect: the residual fell
+**127 → 83** with the target *universe* unchanged at 5,461 (coverage won, not denominator shrunk), and
+the only non-timing line that moved in the entire gate summary was the residual itself.
+
+**The transferable lesson:** when one capability is added to one of two sibling code paths, the gap is
+not a bug you can see — it is an *absence*, and absences do not appear in traces. What surfaced this one
+was classifying a residual by **failure shape** (`never_selected` vs `selected_but_failed` vs timeout)
+instead of tracking its total. The shape named the mechanism; the mechanism named the missing line.
+
 The first run of this pass moved the per-grammar `UNKNOWN` backlog substantially in one step — regex
 98→19, VHDL 69→31, rtl_frontend 133→75, SystemVerilog 1134→738 — with every grammar's
 `sample_parse_failures` untouched. It also demonstrated the duality working as designed in a second way:

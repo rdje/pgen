@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0161 — an absence leaves no trace, so classify by failure SHAPE
+
+Three lessons from `SV-EXH-PROOF.7.4.6.11`, each general beyond SystemVerilog.
+
+**1. A capability given to one of two sibling code paths is an absence, and absences do not appear in
+traces.** Quantifier forcing was added to the *rule*-target reach-plan installer and never to the
+*branch*-target one. Nothing was broken, nothing threw, no trace line was missing — the branch installer
+simply built a plan with an empty `forced_quantifier_min` map and generated a perfectly valid witness
+that could not credit its target. Every debugging instrument this repository has is oriented toward
+*what happened*; this defect is defined entirely by *what never happened*. The thing that finally
+surfaced it was not a better trace, it was **classifying the residual by failure shape**
+(`never_selected` vs `selected_but_failed` vs timeout) instead of tracking the total. The shape named
+the mechanism, and the mechanism named the missing line. **When a number stops moving, partition it
+before you optimise it.**
+
+**2. The source had already confessed — in a doc-comment, in the field the defect lives in.** The
+`forced_quantifier_min` field is documented as *"EMPTY for every pre-H.7.2 caller (`from_directives`
+never fills it)"*, and `set_reach_plan` is precisely such a caller. That sentence was written *by the
+author of the fix that created the asymmetry*, as an accurate statement of scope, and it sat there
+while three slices hunted the residual elsewhere. A scope note is only a warning if someone is reading
+that file for that reason. ⇒ when you deliberately give a new capability to **one** of several paths,
+the durable artifact is not a doc-comment on the field — it is a **named leaf for the paths you skipped**,
+so the omission is on a work surface rather than in prose only the next reader of that struct will see.
+
+**3. A conservative diagnosis that turns out pessimistic is a success, not a miss.** The pinned root
+cause explicitly warned that sub-shape B2 — the 3 `selected_but_failed` targets — had a *different*
+mechanism and instructed the fix leaf to **re-measure rather than assume coverage**. Measurement showed
+the fix closed all three. The temptation is to read that as over-caution; it is the opposite. The
+warning cost one line of prose and one measurement, and the alternative posture — assuming the fix
+generalises — is exactly how a residual gets declared closed while three targets quietly survive.
+**Claim the class you measured, warn about the one you did not, then measure it.**
+
+**Corollary on attribution.** The residual moved by 44 while class B accounted for 43. That single
+extra target is the kind of discrepancy it is very easy to bank as "even better than expected." It was
+instead reconciled: one class-A target closed as a bystander of the richer witness samples, class C
+stayed at 4 as an untouched control, and `127 − 83 = 43 + 1` balanced exactly. **Splitting class C out
+of this slice is what made the arithmetic checkable** — had both classes landed together, the delta
+would have been a single unattributable number. An unexplained *improvement* is still an unexplained
+measurement.
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0159 — a completeness metric that nobody may accept can still rot
 
 Three lessons from `SV-EXH-PROOF.7.4.6.8`, each general beyond SystemVerilog.
