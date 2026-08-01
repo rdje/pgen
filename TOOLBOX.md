@@ -537,8 +537,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **READING:** sum each row's reason counts and compare against `selected_hits` — equal means the
   top-3 cut hides nothing. Each reason names the PASS that produced it via its own budget:
   `budget=<N>ms` on a helper probe is the target-drive helper timeout, and the witness pass runs at
-  **2× the configured `--max-depth`**, so `max_depth=40` under `--max-depth 20` is unambiguously the
-  witness pass's single attempt. See the KM cards
+  **≥ 2× the configured `--max-depth`** — since `SV-EXH-PROOF.7.4.6.9` its budget is PER TARGET,
+  `2 × --max-depth` (the reach prefix) **plus that target's own minimal derivation depth** (the
+  targeted ALTERNATIVE's, for a branch target). So under `--max-depth 20` a witness-pass attempt
+  records `max_depth=40` only when the target's addend is 0, and `max_depth=40+k` otherwise; what
+  identifies the pass is the value being at or above `2 × --max-depth` and OFF the `+4` slack ladder
+  (`20, 24, 28, …`, which belongs to the target-drive/diverse retry). See the KM cards
   `branch-failure-reasons-are-the-witness-why` and `coverage-gap-reason-codes-are-generator-verdicts`.
 
 ---

@@ -1,5 +1,45 @@
 # CHANGES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0169 — leaf SV-EXH-PROOF.7.4.6.9: class A is CLOSED — the SV closed-loop residual falls 83 → 4, and the fix made the run FASTER
+
+The witness pass gets the per-target depth budget the certificate-coverage witness pass has had
+since `RTL-FE-CLOSURE.5.2`. Two witness passes, one capability — the asymmetry class `.7.4.6.11`
+closed one level down.
+
+- ⭐⭐ **Residual `83 → 4`, both LRM profiles, on the canonical gate: `2017: 42 → 2`,
+  `2023: 41 → 2`.** All 79 class-A targets are resolved. The 4 survivors are the class-C
+  store-gated pair per profile, owned by `.7.4.6.12` and untouched by design.
+- ⭐ **The symptom itself is gone, not just the count.** Before: 41 residual branch-debt rows,
+  **37 carrying a `Stimuli generation depth exceeded max_depth=40 …` entry**. After: 1 row, **0**
+  carrying any such entry — and its reason is a different mechanism (`STORE-AWARE-GEN: rule
+  'wildcard_escape_nettype_identifier' fact_count_at_least predicate unsatisfiable`).
+- ⭐ **It got FASTER, which reverses the FIX_PLAN's own prediction.** Same-depth A/B, same seed:
+  **612 s → 571 s**. The pass previously *paid* the deep descent, failed on depth, and re-ran the
+  whole target through the search fallback; `construct_fell_back_to_search` **12 → 1** is that
+  waste disappearing. Recorded as a reversed expectation rather than smoothed over.
+- **The `.5.2` formula could NOT be reused verbatim, and the correction is real.** It reads
+  `min_derivation_depths[RULE]` — the depth of the rule's *shallowest* alternative, precisely the
+  alternative a residual **branch** target is not. It clears **37/40**, under-budgeting three
+  container rules with a shallow minimum and a deep residual branch. Scoping the addend to the
+  **targeted alternative** clears **40/40**, and that is what shipped — byte-for-byte the formula
+  the preview instrument had measured.
+- **Additive by construction, not by argument:** both addends are `>= 0`, so a budget can only
+  grow; no target that witnessed before can stop witnessing. Nothing outside this pass reads the
+  per-target budget, so the diverse pass stays byte-identical and the run stays deterministic
+  (the A/B's two identical arms agreed exactly: 2 and 2).
+- ⛔ **The two-sided residual ratchet was LOWERED, as its design requires** —
+  `closed_loop.replay_target_ceilings.profiles` `2017: 42 → 2`, `2023: 41 → 2`. A win that is not
+  banked fails the gate.
+- ⚠️ **A diagnostic reading rule changed, so three surfaces were corrected in lockstep.**
+  `TOOLBOX.md` §6.1 and the book both said *"the witness pass runs at 2× `--max-depth`, so
+  `max_depth=40` under `--max-depth 20` is unambiguously the witness pass"*. It now runs at **≥**
+  that, per target. Both are corrected, plus a new book section and the KM card
+  `sv-residual-depth-budget-cause`.
+
+One source file (`rust/src/ast_pipeline/stimuli_generator.rs`) + one contract number pair. No
+grammar, generated-artifact, release, schema or ledger change. Live status unchanged — SV main
+stays `Mostly Done` (the residual is 4, not 0).
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0168 — leaf SV-EXH-PROOF.7.4.6.9: the depth A/B's treatment arm is a NULL RESULT, and that is itself the measurement
 
 `-0167` committed with arm B of the engine-level A/B still in flight. It was killed on the

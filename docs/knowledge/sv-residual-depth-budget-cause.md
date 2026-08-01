@@ -9,11 +9,13 @@ answers:
   - "why can't deeply-nested SV rules be generated from the top entry"
   - "why does the witness pass die on depth when a shallower derivation exists"
   - "what is Purdom min-terminal-length ordering and why can it pick a too-deep derivation"
+  - "how does the closed-loop witness pass size its depth budget"
+  - "why is the witness budget branch-scoped and not rule-scoped"
 tags: [stimuli, systemverilog, coverage, root-cause]
 date: 2026-08-01
 status: current
-evidence: rust/src/ast_pipeline/stimuli_generator.rs (depth gate :9491, rule body descends at :9740, rule_reference descends at :11347, witness-pass flat `original * 2` budget :5477, Purdom ordering + construct_mode's `truncate(1)` :10054-10089, min_terminal_length_of_node :7639, min_full_derivation_depth_of_node :7714, the per-target budget that consumes it :4973-4985); docs/tasks/SV-EXH-PROOF.md leaves .7.4.3a (PGEN-SV-EXH-PROOF-0140) and .7.4.6.9 (WHY_WHERE_CLASS_A_DEPTH_2026-08-01)
-reverify: "grep -n 'depth > self.config.max_depth\\|saturating_mul(2)\\|ordered.truncate(1)' rust/src/ast_pipeline/stimuli_generator.rs; python3 docs/tasks/artifacts/sv_exh_proof/class_a_residual_depth_population.py"
+evidence: rust/src/ast_pipeline/stimuli_generator.rs (depth gate at the `depth > self.config.max_depth` guard, rule body and rule_reference each descending one level, Purdom ordering + `construct_mode`'s `ordered.truncate(1)`, `min_terminal_length_of_node`, `min_full_derivation_depth_of_node`, the cert-coverage per-target budget that consumes it, and — since `.7.4.6.9` — `witness_target_depth_budget`, the closed-loop pass's own branch-scoped budget); docs/tasks/SV-EXH-PROOF.md leaves .7.4.3a (PGEN-SV-EXH-PROOF-0140) and .7.4.6.9 (WHY_WHERE_CLASS_A_DEPTH_2026-08-01 + FIX_PLAN_2026-08-01)
+reverify: "grep -n 'fn witness_target_depth_budget' -A 30 rust/src/ast_pipeline/stimuli_generator.rs | grep -n 'Branch\\|min_full_derivation_depth_of_node\\|reach_prefix_budget'; python3 docs/tasks/artifacts/sv_exh_proof/class_a_fix_budget_preview.py | tail -2"
 ---
 
 The SV closed-loop generator's residual (`replay_target_count`, best observed **888**
@@ -62,12 +64,37 @@ uncredited — see [[branch-failure-reasons-are-the-witness-why]] for why every 
 still reads 0.
 
 ⛔ **The 2026-06-03 fix direction above stands and is now quantified.** A global `max_depth` raise is
-still the wrong lever (it reshapes the diverse pass and inflates every sample); the right one is a
-**per-target** budget — and it already exists in this file. `min_full_derivation_depth_of_node`
-(:7714, `RTL-FE-CLOSURE.5.2`) computes exactly the missing number, and the cert-coverage
-plannable-rule witness pass consumes it at :4973-4985 as `reach_prefix + min_subtree[target]`. The
-STIMULI closed-loop witness pass never got it and still multiplies by a flat 2. Two witness passes,
-one capability — the same asymmetry class `.7.4.6.11` closed one level down.
+still the wrong lever — measured: raising `--max-depth` 20 → 30 made the run **≥ 3.9× slower and it
+did not finish its first phase in 40 minutes**, because the knob is GLOBAL and reshapes the diverse
+and target-drive passes too. The right lever is a **per-target** budget, and it already existed in
+this file. `min_full_derivation_depth_of_node` (:7714, `RTL-FE-CLOSURE.5.2`) computes exactly the
+missing number, and the cert-coverage plannable-rule witness pass consumes it as
+`reach_prefix + min_subtree[target]`. The STIMULI closed-loop witness pass never got it and
+multiplied by a flat 2. Two witness passes, one capability — the same asymmetry class `.7.4.6.11`
+closed one level down.
+
+## LANDED 2026-08-01 (`SV-EXH-PROOF.7.4.6.9`, `PGEN-SV-EXH-PROOF-0169`) — with ONE correction
+
+`generate_target_witnesses` now sizes its budget per target (`witness_target_depth_budget`), and the
+`.5.2` formula could **not** be reused verbatim: it reads `min_derivation_depths[RULE]`, which is the
+depth of the rule's *shallowest* alternative — precisely the alternative a residual **branch** target
+is not. It clears only **37/40**, under-budgeting three container rules with a shallow minimum and a
+deep residual branch. Scoping the addend to the **targeted alternative** clears **40/40**:
+
+```text
+budget(branch target) = 2 × max_depth  +  min_full_derivation_depth_of_node(alternative) + 1
+budget(rule   target) = 2 × max_depth  +  min_derivation_depths[rule]          # the .5.2 form
+```
+
+Both addends are `>= 0`, so the budget only ever GROWS ⇒ additive by construction, never by argument.
+Measured on the unconfounded same-depth A/B (`run_class_a_depth_ab_probe.sh 2017 20 20`, before/after
+one witness-pass change): **profile_2017 residual 42 → 2, exactly the 40 class-A targets resolved,
+zero new residual targets** — and *faster*, 612 s → 571 s, because the pass now succeeds instead of
+exhausting its budget and falling back to search (`construct_fell_back_to_search` 12 → 1). The two
+survivors are the class-C store-gated pair owned by `.7.4.6.12`, untouched by design.
+
+⚠️ Reading a `max_depth=` value now: the witness pass runs at **≥** `2 × --max-depth`, not exactly it
+— see [[branch-failure-reasons-are-the-witness-why]] and `TOOLBOX.md` §6.1.
 
 Re-derive the numbers at any time, with ground-truth controls, from artifacts an ordinary gate run
 already leaves on disk:

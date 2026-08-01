@@ -117,7 +117,7 @@ The ratchet is declared in the contract, per profile:
   "replay_target_ceilings": {
     "enforce": true,
     "measured_configuration": "stimuli_mode=sv_file sample_count=8 seed_base=12001 …",
-    "profiles": { "2017": 42, "2023": 41 }
+    "profiles": { "2017": 2, "2023": 2 }
   }
 }
 ```
@@ -230,8 +230,14 @@ Compare each row's reason counts against its `selected_hits`: when they sum to
 the same number, the top-3 cut is hiding nothing. The reasons also identify
 *which pass* failed, because each pass carries its own budget in the message —
 the target-drive helper probe prints its `budget=…ms`, and the witness pass runs
-at twice the configured `--max-depth`, so `max_depth=40` under a `--max-depth 20`
-run is unambiguously the witness pass.
+at **at least** twice the configured `--max-depth`. Its budget is *per target*:
+twice `--max-depth` as the reach-prefix allowance, plus that target's own minimal
+derivation depth (see [The closed-loop witness pass's per-target depth
+budget](grammar-wellformedness.md#the-closed-loop-witness-passs-per-target-depth-budget)).
+So under a `--max-depth 20` run a witness-pass attempt records `max_depth=40` when
+the target's addend is zero and `max_depth=40+k` otherwise; what identifies the
+pass is a value at or above twice `--max-depth` that is *not* on the `+4`
+slack ladder (`20, 24, 28, …`) the diverse and target-drive passes climb.
 
 This is the surface that diagnosed the whole SystemVerilog class-A residual
 without a single new gate run; the method and the trap are in the KM card

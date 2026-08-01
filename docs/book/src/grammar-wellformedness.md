@@ -944,6 +944,51 @@ and grammars already certified clean never run the pass. On `rtl_frontend` it mo
 was *additive* — its own self-recursive expression rules now reach plainer branches, witnessing three more
 rules (`UNKNOWN` 619 → 616) with none lost.
 
+#### The closed-loop witness pass's per-target depth budget
+
+The two witness passes described so far are *different code*: the certificate-coverage pass witnesses
+**rules**, the closed-loop stimuli pass witnesses the **coverage targets** a replay run still owes. The
+per-target depth budget above was built for the first and given only to it. The second kept multiplying
+the configured `--max-depth` by a flat two — and that single missing capability was, measurably, the
+entire surviving SystemVerilog class-A residual.
+
+The failure is not "the target is too deep". Three numbers, measured over every residual branch in both
+LRM profiles, say where the budget actually sits:
+
+| number | what it is | on the residual |
+|---|---|---:|
+| the witness budget | the gate's `--max-depth 20`, flatly doubled | **40** |
+| the committed derivation | what minimal (`construct_mode`) generation actually builds | **42 – 54** |
+| the shallowest derivation | the shortest one that exists at all | **18 – 36** |
+
+**The budget sits between them.** Minimal generation orders each ordered choice by minimum *terminal
+length* (Purdom SHORT) and then commits to that one alternative with no fallback inside the committed
+path — and minimum terminal *length* is not minimum *depth*. The shortest-in-tokens derivation of a
+SystemVerilog `property_expr` descends the property-operator ladder and then the expression precedence
+cascade, 8–14 levels past a budget a shallower derivation would have fitted inside. The forced branch
+then dies on depth, a shallow sibling rescues the enclosing rule, the rule returns success, and the
+target is silently left uncredited — which is why every pass-level counter reported zero failures while
+the per-branch record (see [Reading the residual](stimuli-and-quality.md)) carried one `depth exceeded`
+entry per residual branch.
+
+So the closed-loop pass now sizes each target the same way — with one correction that matters. The
+certificate-coverage formula is `reach prefix + the minimal derivation depth of the target RULE`, and a
+rule's minimal depth is the depth of its *shallowest alternative* — precisely the alternative a residual
+**branch** target is not. Applied verbatim it under-budgets a container rule with a shallow minimum and a
+deep residual branch. The closed-loop pass therefore scopes the addend to the **targeted alternative**:
+`2 × --max-depth` (the reach-prefix allowance) plus the minimal derivation depth of that branch's own
+subtree, falling back to the rule-scoped form for a rule target or an unresolvable branch. Measured over
+the SystemVerilog class-A targets, the rule-scoped formula clears 37 of 40 and the branch-scoped one
+clears 40 of 40.
+
+Both addends are non-negative, so every budget only ever **grows** relative to the flat one: a target that
+witnessed before witnesses identically now, which makes the change additive by construction rather than by
+argument. Nothing outside this pass reads the per-target budget, so the diverse pass stays byte-identical
+and the run stays deterministic. And a global `--max-depth` raise remains the *wrong* lever, now with a
+number attached: raising it from 20 to 30 made the run at least 3.9× slower and it did not finish its
+first phase in 40 minutes, because the raise is global — it reshapes the diverse and target-drive passes
+too.
+
 ### Reaching store-gated rules: the semantic-prelude reach
 
 One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule

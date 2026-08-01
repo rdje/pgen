@@ -5446,8 +5446,10 @@ impl<'a> StimuliGenerator<'a> {
     /// target-drive pass (already complete), so the combined residual can only SHRINK
     /// (monotone). Re-evaluates after each witness (greedy set-cover: a target covered "on
     /// the way" by a prior witness is skipped). The witness pass runs under a temporary
-    /// depth/visit slack (×2) so even deeper rules complete; the per-witness timeout makes
-    /// pathologically-recursive rules fail (counted) rather than hang. Failures are
+    /// visit slack (×2) and a PER-TARGET depth budget (`original × 2` reach prefix plus the
+    /// target's own minimal derivation depth — `SV-EXH-PROOF.7.4.6.9`, see
+    /// `witness_target_depth_budget`) so even deeper targets complete; the per-witness timeout
+    /// makes pathologically-recursive rules fail (counted) rather than hang. Failures are
     /// classified by reason (DIAG-SEVERITY) so any tail's cause is visible.
     /// GRAMMAR-WELLFORMED.G.3.2: the reachability WITNESS certificates captured by the most recent
     /// `generate_target_witnesses` pass — one per resolved reachable target. Each is verified by
@@ -5474,9 +5476,19 @@ impl<'a> StimuliGenerator<'a> {
         // diverse pass (separate invocation). The per-witness timeout bounds the cost.
         let original_max_depth = self.config.max_depth;
         let original_max_rule_visits = self.config.max_rule_visits;
-        self.config.max_depth = original_max_depth.saturating_mul(2);
+        // SV-EXH-PROOF.7.4.6.9 (PGEN-SV-EXH-PROOF-0169): `original × 2` is now the REACH-PREFIX
+        // allowance ONLY — the per-target budget computed inside the loop adds the target's own
+        // minimal derivation depth on top, exactly as the cert-coverage plannable witness pass
+        // has done since RTL-FE-CLOSURE.5.2 (:4973-4985). It remains the value in force OUTSIDE
+        // the per-target loop, so everything that is not a per-target generation attempt keeps
+        // the prior behaviour byte-for-byte.
+        let reach_prefix_budget = original_max_depth.saturating_mul(2);
+        self.config.max_depth = reach_prefix_budget;
         self.config.max_rule_visits = original_max_rule_visits.saturating_mul(2);
-        let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
+        // Computed ONCE for the pass (a monotone fixpoint over the whole tree, PURE analysis,
+        // never on the hot generation path) and read per target below — the same call the
+        // plannable pass makes at :4973.
+        let min_derivation_depths = self.compute_min_full_derivation_depths();
 
         // SV-EXH-PROOF.7.4.4 (PGEN-SV-EXH-PROOF-0143): enable Purdom shortest-derivation
         // ordering for the witness pass only. `generate_or` reads `witness_mode` +
@@ -5526,6 +5538,29 @@ impl<'a> StimuliGenerator<'a> {
                 no_entry_rule = no_entry_rule.saturating_add(1);
                 continue;
             }
+
+            // SV-EXH-PROOF.7.4.6.9 (PGEN-SV-EXH-PROOF-0169): PER-TARGET depth budget, replacing
+            // the flat `original × 2` this pass used since `.7.4.3`. ROOT CAUSE (measured, 79/79
+            // of the class-A residual, both profiles, zero exceptions): the flat budget sits
+            // BETWEEN the shallowest derivation of a deep target (18-36) and the one
+            // `construct_mode` actually commits to (42-54). Purdom SHORT minimises TERMINALS,
+            // not LEVELS, and `construct_mode` truncates the attempt order to one alternative,
+            // so the committed derivation descends the property-operator ladder and then the
+            // expression precedence cascade — 8-14 levels past a budget a shallower derivation
+            // would have fitted inside. The forced branch then aborts depth-exceeded, a shallow
+            // sibling rescues the rule via `generate_or`'s fallback, the rule returns `Ok`, and
+            // the target is silently left uncredited (which is why every pass-level counter read
+            // 0 while the per-branch `failure_reasons` recorded `max_depth=40` on 37 of the 41
+            // residual rows).
+            // ADDITIVE-ONLY BY CONSTRUCTION: `min_full_derivation_depth_of_node` is `>= 0`, so
+            // every budget only ever GROWS relative to the flat `reach_prefix_budget` — a target
+            // that witnesses today witnesses identically tomorrow. Non-witness surfaces never
+            // enter this function, so the diverse pass stays byte-identical and determinism is
+            // untouched. GENERAL/parser-agnostic: it reads derivation structure only.
+            let budget =
+                self.witness_target_depth_budget(&status, reach_prefix_budget, &min_derivation_depths);
+            self.config.max_depth = budget;
+            let bypass_fuel = budget.saturating_add(1) as u32;
 
             // For a branch target, force that branch within its rule.
             // SV-EXH-PROOF.7.4.6.11: ... AND force every `?`/`*` quantifier the path to that
@@ -7942,6 +7977,61 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         depths
+    }
+
+    /// SV-EXH-PROOF.7.4.6.9 (PGEN-SV-EXH-PROOF-0169): the closed-loop witness pass's PER-TARGET
+    /// depth budget — `reach_prefix + the TARGET'S OWN minimal derivation depth`.
+    ///
+    /// `RTL-FE-CLOSURE.5.2` gave the CERT-COVERAGE plannable witness pass exactly this shape
+    /// (`:4973-4985`), but its targets are RULES, so it reads `min_derivation_depths[rule]`. The
+    /// closed-loop pass's targets are mostly BRANCHES, and a rule-scoped depth is the depth of
+    /// that rule's SHALLOWEST alternative — which is precisely the alternative a residual branch
+    /// target is NOT. Measured over the 40 `profile_2017` class-A targets: the rule-scoped
+    /// formula verbatim clears 37/40 and under-budgets three CONTAINER rules whose minimum is
+    /// shallow (`checker_or_generate_item_declaration` and
+    /// `package_or_generate_item_declaration_sv_2017` need 54 and would get 47;
+    /// `statement_item_sv_2017` needs 52 and would get 50), while scoping the depth to the
+    /// TARGETED ALTERNATIVE clears 40/40 with margins of 5-38
+    /// (`docs/tasks/artifacts/sv_exh_proof/class_a_fix_budget_preview.py`).
+    ///
+    /// So a BRANCH target is budgeted by `min_full_derivation_depth_of_node(alternative)` at its
+    /// own `Or` site, `+ 1` for that `Or`'s own level (the same level
+    /// `min_full_derivation_depth_of_node` charges an `Or` node) — mirroring the preview
+    /// instrument exactly, so the landed budget is the one that was measured. A RULE target — or
+    /// a branch whose alternative cannot be located or whose depth the fixpoint never resolved
+    /// (a non-terminating alternative) — falls back to the `.5.2` rule-scoped formula.
+    ///
+    /// The result only ever GROWS the flat `reach_prefix` budget (both addends are `>= 0`), so
+    /// the pass stays monotone: no target that witnesses under the flat budget can stop
+    /// witnessing under this one. PURE analysis over derivation structure; no grammar
+    /// identifiers, GENERAL/parser-agnostic.
+    fn witness_target_depth_budget(
+        &self,
+        status: &TargetCoverageStatus,
+        reach_prefix_budget: usize,
+        min_derivation_depths: &HashMap<String, usize>,
+    ) -> usize {
+        if status.target_type == StimuliCoverageTargetType::Branch {
+            if let (Some(node_path), Some(branch_index)) =
+                (status.node_path.as_deref(), status.branch_index)
+            {
+                let branch_depth = self
+                    .or_alternatives_for_group_path(status.rule_name.as_str(), node_path)
+                    .and_then(|alternatives| alternatives.get(branch_index))
+                    .and_then(|alternative| {
+                        Self::min_full_derivation_depth_of_node(alternative, min_derivation_depths)
+                    });
+                if let Some(branch_depth) = branch_depth {
+                    return reach_prefix_budget.saturating_add(branch_depth.saturating_add(1));
+                }
+            }
+        }
+        reach_prefix_budget.saturating_add(
+            min_derivation_depths
+                .get(status.rule_name.as_str())
+                .copied()
+                .unwrap_or(0),
+        )
     }
 
     /// RTL-FE-CLOSURE.5.5 (PGEN-RTL-FE-CLOSURE-0012): the deepest minimal-derivation depth of
@@ -22782,6 +22872,105 @@ mod tests {
             "Or picks the shallowest branch: choice={} top={}",
             depths["choice"],
             depths["top"]
+        );
+    }
+
+    #[test]
+    fn witness_target_depth_budget_is_branch_scoped_not_rule_scoped() {
+        // SV-EXH-PROOF.7.4.6.9: the closed-loop witness pass budgets a BRANCH target by THAT
+        // BRANCH'S own minimal derivation depth, not by its rule's. The `.5.2` rule-scoped
+        // formula reads the rule's SHALLOWEST alternative — precisely the alternative a
+        // residual branch target is not — which is why it under-budgets a CONTAINER rule with
+        // a shallow minimum and a deep residual branch (measured: three of the 40 class-A
+        // targets need 52-54 and would get 47-50). This is that shape in miniature:
+        // `container := leaf | top`, where `top` descends a mandatory rule chain.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("leaf".to_string(), token("quoted_string", "x"));
+        grammar_tree.insert("mid".to_string(), token("rule_reference", "leaf"));
+        grammar_tree.insert("top".to_string(), token("rule_reference", "mid"));
+        grammar_tree.insert(
+            "container".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "leaf"),
+                    token("rule_reference", "top"),
+                ],
+            },
+        );
+        let rule_order = vec![
+            "leaf".to_string(),
+            "mid".to_string(),
+            "top".to_string(),
+            "container".to_string(),
+        ];
+        let generator = simple_generator(&grammar_tree, &rule_order, 1);
+        let depths = generator.compute_min_full_derivation_depths();
+        let reach_prefix = 40usize;
+
+        let status = |target_type, node_path: Option<&str>, branch_index| TargetCoverageStatus {
+            id: "t".to_string(),
+            target_type,
+            rule_name: "container".to_string(),
+            node_path: node_path.map(str::to_string),
+            branch_index,
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 0,
+            reason: String::new(),
+            depends_on: Vec::new(),
+        };
+
+        let rule_budget = generator.witness_target_depth_budget(
+            &status(StimuliCoverageTargetType::Rule, None, None),
+            reach_prefix,
+            &depths,
+        );
+        let shallow_branch_budget = generator.witness_target_depth_budget(
+            &status(StimuliCoverageTargetType::Branch, Some("root"), Some(0)),
+            reach_prefix,
+            &depths,
+        );
+        let deep_branch_budget = generator.witness_target_depth_budget(
+            &status(StimuliCoverageTargetType::Branch, Some("root"), Some(1)),
+            reach_prefix,
+            &depths,
+        );
+
+        // The defect, and the fix: the DEEP branch gets strictly more budget than the
+        // rule-scoped formula would have given it.
+        assert!(
+            deep_branch_budget > rule_budget,
+            "deep branch must out-budget the rule-scoped formula: deep={} rule={}",
+            deep_branch_budget,
+            rule_budget
+        );
+        // …and it is exactly the branch's own subtree depth plus the `Or` site's own level.
+        assert_eq!(
+            deep_branch_budget,
+            reach_prefix + depths["top"] + 1 + 1,
+            "deep branch budget = reach_prefix + depth(top-reference) + Or level"
+        );
+        // MONOTONE: no target is ever budgeted BELOW the flat `reach_prefix` the pass used
+        // before this slice, so a target that witnessed then still witnesses now.
+        for budget in [rule_budget, shallow_branch_budget, deep_branch_budget] {
+            assert!(
+                budget >= reach_prefix,
+                "per-target budget must never fall below the flat reach prefix: {} < {}",
+                budget,
+                reach_prefix
+            );
+        }
+        // A branch whose alternative cannot be located falls back to the rule-scoped formula
+        // rather than losing the addend entirely.
+        assert_eq!(
+            generator.witness_target_depth_budget(
+                &status(StimuliCoverageTargetType::Branch, Some("root/s9"), Some(1)),
+                reach_prefix,
+                &depths,
+            ),
+            rule_budget,
+            "an unresolvable branch path falls back to the rule-scoped budget"
         );
     }
 

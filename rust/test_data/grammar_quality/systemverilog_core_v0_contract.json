@@ -93,8 +93,8 @@
       "enforce": true,
       "measured_configuration": "stimuli_mode=sv_file sample_count=8 seed_base=12001 run_profiles=2017,2023 replay_sample_count=8 entry_rule=systemverilog_file max_depth=20 max_repeat=2 recovery_stimuli_mode=baseline gap_report_threshold=1 target_max_attempts=5000 target_generation_timeout_ms=5 target_helper_timeout_ms=default pending_frontier_extra_stagnation=default",
       "profiles": {
-        "2017": 42,
-        "2023": 41
+        "2017": 2,
+        "2023": 2
       }
     },
     "parseability_shadow_enabled": true

@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-01 - PGEN-SV-EXH-PROOF-0169 — prior art is a starting point, not a template; and a "cost" can be a saving
+
+Three notes from landing the `SV-EXH-PROOF.7.4.6.9` fix.
+
+**1. Reusing prior art still requires checking what it was scoped to.** The fix was sized as "give
+this pass the budget the other pass already has", and the other pass's formula is
+`reach_prefix + min_derivation_depth[RULE]`. Applied verbatim it clears only **37 of 40** targets.
+The reason is not a rounding miss: a rule's minimal derivation depth is the depth of its
+*shallowest alternative*, because the cert-coverage pass's targets are **rules**. This pass's
+targets are mostly **branches**, and a residual branch is by definition not the shallow one — so a
+container rule with a shallow minimum and a deep residual branch is under-budgeted. Scoping the
+addend to the **targeted alternative** clears **40/40**. ⇒ **when you inherit a formula, re-derive
+what its inputs mean in the new context.** The de-risking step that caught this was cheap and
+static — an instrument that computed the *proposed* budget against the *required* depth for every
+target, before a line of Rust was written ([[feedback_read_prior_art_before_designing]]).
+
+**2. A predicted cost was measured and turned out to be a saving — worth recording because the
+intuition was backwards.** The plan flagged "a deeper budget makes each witness a larger
+generation, so re-price the two-tier witness budget". Measured: **612 s → 571 s**. The old pass was
+not avoiding deep work; it was *doing* the deep work, hitting the budget, erroring, and then
+re-running the whole target through the search fallback. `construct_fell_back_to_search` **12 → 1**
+is that duplicated work disappearing. ⇒ **a budget that is too small can cost more than one that is
+big enough**, because the failure path is not free.
+
+**3. Landing a fix can invalidate a diagnostic reading rule — check the docs that teach people to
+read the symptom.** `TOOLBOX.md` and the book both taught: *"the witness pass runs at 2×
+`--max-depth`, so `max_depth=40` under a `--max-depth 20` run is unambiguously the witness pass."*
+That sentence was true, load-bearing (it is how this very class was diagnosed), and is now false —
+the budget is per target and `>= 2×`. Nothing would have failed if it had been left stale; the next
+person reading a `failure_reasons` row would simply have mis-attributed the pass. ⇒ **lockstep is
+not only about behaviour that changed, but about every published rule for interpreting it.**
+
 ## 2026-08-01 - PGEN-SV-EXH-PROOF-0167 — a zero counter is not evidence of absence; check what the counter is SCOPED to
 
 Three lessons from `SV-EXH-PROOF.7.4.6.9`.

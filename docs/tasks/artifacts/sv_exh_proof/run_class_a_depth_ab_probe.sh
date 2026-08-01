@@ -12,11 +12,22 @@
 # `closed_loop_replay_target_ceiling_configuration` summary line), then varies ONE knob.
 #
 #   ARM A  --max-depth 20   the gate's configuration -> the POSITIVE CONTROL.  It must
-#                           reproduce the pinned residual (42 for profile_2017) and a
-#                           witness-pass line identical to the gate's own log.  If arm A
-#                           does not reproduce, arm B measures nothing.
+#                           reproduce the pinned residual (42 for profile_2017 BEFORE
+#                           SV-EXH-PROOF.7.4.6.9) and a witness-pass line identical to the
+#                           gate's own log.  If arm A does not reproduce, arm B measures
+#                           nothing.
 #                           MEASURED 2026-08-01: rc=0, 612 s, residual_targets=42.
 #   ARM B  --max-depth 30   witness budget 60 >= the predicted 48-54.
+#
+# ⭐ THE FIX'S OWN A/B, MEASURED 2026-08-01 (SV-EXH-PROOF.7.4.6.9, PGEN-SV-EXH-PROOF-0169).
+#    Run in the SAME-DEPTH form (`… 2017 20 20`) before/after the per-target witness depth
+#    budget, i.e. the unconfounded single-variable A/B this script recommends below:
+#        BEFORE  rc=0, 612 s, residual_targets=42, construct_fell_back_to_search=12
+#        AFTER   rc=0, 571 s, residual_targets= 2, construct_fell_back_to_search=1
+#    -> exactly the 40 class-A targets resolved, ZERO new residual targets, and FASTER (the
+#    pass now succeeds instead of exhausting its budget and falling back to search).  Both
+#    arms of the after-run agreed exactly (2 and 2), which is the determinism check.  The 2
+#    survivors are the class-C store-gated pair owned by .7.4.6.12.
 #
 # ⛔ COST WARNING, MEASURED — DO NOT BUDGET ARM B LIKE ARM A.  At --max-depth 30 the run
 #    had not finished even its FIRST phase (target-drive) after 2389 s, versus 612 s for
