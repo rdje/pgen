@@ -85,16 +85,23 @@ const MAX_UNCOVERED_REACH_RETRIES: usize = 4096;
 /// current budget*, not on the configured one.
 const TARGET_BRANCH_DEPTH_RETRY_SLACK: usize = 4;
 
-// SV-EXH-PROOF.7.4.6.13: ⛔ THE DEPTH-SLACK RETRY HAS NO RUNAWAY BACKSTOP, AND THAT IS THE
-// DEFECT — its sibling in this very `Err` arm (`should_reach_retry_uncovered_recursive`) has been
-// bounded by `MAX_UNCOVERED_REACH_RETRIES` since GRAMMAR-WELLFORMED.H.4.2; this one is bounded by
-// nothing, so a branch that can never succeed is retried without limit and drags the cumulative
-// `+4` depth ladder up behind it. The backstop is MEASURED and ready (see the leaf), but it is
-// NOT landed here: capping it makes the target-drive pass strictly better, and that improvement
-// resolves `wildcard_escape_nettype_identifier` early enough that `.7.4.6.12`'s raised witness
-// entry never fires — re-opening the store-entry-blocked BRANCH target it was closing
-// transitively (`sv_2017` residual `0 -> 1`, which the two-sided ratchet rightly fails).
-// ⇒ the backstop is BLOCKED on `.7.4.6.14`, which owns the branch-target half of the raise.
+// SV-EXH-PROOF.7.4.6.13: ⛔ TWO DEFECTS SHARE THIS RETRY, AND THEY DO NOT SHARE A FIX.
+//
+// (i) COST — it has NO RUNAWAY BACKSTOP. Its sibling in this very `Err` arm
+//     (`should_reach_retry_uncovered_recursive`) has been bounded by `MAX_UNCOVERED_REACH_RETRIES`
+//     since GRAMMAR-WELLFORMED.H.4.2; this one is bounded by nothing, so a branch that can never
+//     succeed is retried without limit — one measured at 726 836 retries. A per-branch backstop at
+//     4096 cuts retry work 6.5x/7.2x. It is MEASURED and ready but NOT landed here: capping makes
+//     the target-drive pass strictly better, which resolves `wildcard_escape_nettype_identifier`
+//     early enough that `.7.4.6.12`'s raised witness entry never fires — re-opening the
+//     store-entry-blocked BRANCH target it was closing transitively (`sv_2017` residual `0 -> 1`,
+//     which the two-sided ratchet rightly fails). ⇒ BLOCKED on `.7.4.6.14`.
+//
+// (ii) PREDICTABILITY — `--max-depth` does not bound the descent, because the slack below is added
+//     to the LIVE `config.max_depth` rather than to the configured one, so nesting makes it
+//     cumulative (`20, 24, … 448`). ⛔ THE BACKSTOP DOES NOT FIX THIS: measured under the cap the
+//     ladder is essentially invariant (`448 -> 444`, `676 -> 672`). It needs its own bound.
+//
 // Everything below this point is READ-ONLY census: it prices the retry, it never gates it.
 
 /// DIAG-SEVERITY.3.1 (PGEN-DIAG-SEVERITY-0004): the canonical, drift-proof enumeration of

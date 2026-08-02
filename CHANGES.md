@@ -2,13 +2,19 @@
 
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0172 — leaf SV-EXH-PROOF.7.4.6.13: the depth-slack retry's real defect is a MISSING RUNAWAY BACKSTOP, one branch spent 726 836 retries, and the measured fix is BLOCKED by the leaf it just gave a subject to
 
-The `+4` arithmetic was never the defect. `generate_or`'s `Err` arm holds **two** retries:
-`should_reach_retry_uncovered_recursive` has been bounded by `MAX_UNCOVERED_REACH_RETRIES = 4096`
-since `GRAMMAR-WELLFORMED.H.4.2`; `target_branch_depth_retry_slack`, in the same `match` arm, is
-bounded by **nothing**. A branch that can never succeed is therefore retried without limit — and
-because each retry adds its slack to the *live* `max_depth`, the runaway drags the `20, 24, … 448`
-ladder up behind it. The ladder is the symptom. This is the third one-capability-two-sites instance
-in this sub-tree, after `.7.4.6.11` (quantifier forcing) and `.7.4.6.12` (witness entry).
+`generate_or`'s `Err` arm holds **two** retries: `should_reach_retry_uncovered_recursive` has been
+bounded by `MAX_UNCOVERED_REACH_RETRIES = 4096` since `GRAMMAR-WELLFORMED.H.4.2`;
+`target_branch_depth_retry_slack`, in the same `match` arm, is bounded by **nothing**, so a branch
+that can never succeed is retried without limit. Third one-capability-two-sites instance in this
+sub-tree, after `.7.4.6.11` (quantifier forcing) and `.7.4.6.12` (witness entry).
+
+⛔ **Corrected in-slice, on the capped arms' own artifacts:** this leaf holds **two** defects, not
+one. The missing backstop is the **cost** defect. The **predictability** defect — `--max-depth` not
+bounding the descent, because the slack is added to the *live* budget — is NOT fixed by it: under
+the cap the ladder is essentially invariant (`448 → 444`, `676 → 672`), and recorded depth failures
+do not even move in one direction (`sv_2017` `5.46 M → 4.05 M`, `sv_2023` `7.35 M → 8.35 M`, up).
+The first framing — that the runaway "drags the ladder up behind it" — is disproven and recorded
+rather than quietly rewritten. The leaf's Goal asks for the predictability bound; it stays open.
 
 - ⭐ **TOOL-BUILT, because no existing surface could answer the question.** The per-branch
   `failure_reasons` census (`TOOLBOX` 6.1) records the ladder's *failures*; nothing recorded whether

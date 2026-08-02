@@ -32,9 +32,19 @@ entered inside another retry's subtree inflates an already inflated budget, and 
 `20, 24, 28, …`. On SystemVerilog it climbs to `448` (`sv_2017`) and `676` (`sv_2023`). `ebnf` and
 `semantic_annotation` climb the same ladder three rungs deep, so this is shared generator behaviour.
 
-⭐ **The ladder is the symptom; the missing backstop is the cause.** A branch that can never succeed
-is retried without limit, and each of those retries drags the depth budget up behind it. Measured:
-one `sv_2017` branch spent **726 836** retries — 37 % of the whole run's.
+⛔ **These are TWO defects sharing one mechanism, and they do not share a fix.** Keep them apart:
+
+| defect | what it is | what fixes it |
+|---|---|---|
+| **cost / runaway** | the retry is unbounded per branch — one `sv_2017` branch spent **726 836** retries, 37 % of the whole run's | a per-branch backstop (below) |
+| **predictability** | `--max-depth` does not bound the descent, because the slack is added to the **live** budget | its own bound — slack relative to the *configured* depth, or a nesting cap |
+
+⛔ **A per-branch backstop does NOT bound the ladder.** Measured under the cap, the ladder is
+essentially invariant: `448 → 444` (`sv_2017`) and `676 → 672` (`sv_2023`). Recorded depth failures
+do not even move in one direction — `sv_2017` falls `5 460 052 → 4 050 966` while `sv_2023` *rises*
+`7 346 200 → 8 352 431`, because the freed budget buys more exploration (the same reason its
+successes go `147 → 398`). Fixing the runaway and making `--max-depth` mean what it says are
+separate changes with separate evidence.
 
 ## Reading the census
 
