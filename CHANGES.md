@@ -1,5 +1,38 @@
 # CHANGES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0177 — leaf SV-EXH-PROOF.7.4.6.13 (docs-only): the predictability Goal's leading candidate is MEASURED AND REFUTED — the cumulative depth escalation is LOAD-BEARING
+
+Defect (ii) of this leaf asks that `--max-depth` bound the descent. The obvious fix, and the one the
+Goal names first, is to compute the retry's `+4` from the ORIGINAL configured depth rather than from
+the LIVE one. It was implemented, A/B-ed on the canonical closed-loop replay stage for both LRM
+profiles, and **reverted** — the code is not in the tree.
+
+- **IT FIXES THE SYMPTOM EXACTLY AS DESIGNED.** Nesting levels `106 -> 8` (`sv_2017`) and
+  `163 -> 8` (`sv_2023`); the ladder collapses to a flat `configured + 4` = 24. `--max-depth 20`
+  finally means depth 24.
+- ⛔ **AND IT IS UNSHIPPABLE.** Retry successes `252 -> 11` and `398 -> 19`; target-drive resolved
+  `880 -> 205` and `1673 -> 271`; `covered_rules` `1337 -> 1327` and `1356 -> 1352`;
+  `covered_branches` `1451 -> 1444` and `1490 -> 1484`; **residual `0 -> 17` and `0 -> 10`**. The
+  witness pass compensates hard (`+2488` via 1118 witnesses, up from `+1813` via 902) and still
+  cannot close it.
+- ⇒ **THE FINDING, AND IT REFRAMES THE DEFECT:** ~10 rules and ~7 branches per profile are covered
+  ONLY because a retry nested inside another retry inherits the inflated budget. The escalation is
+  not sloppy accounting that happens to be harmless — it is the de-facto mechanism by which deep
+  targets get depth at all. Removing it without replacing it removes coverage.
+- ⭐ **AND THE GOAL'S TWO CANDIDATES ARE ONE LEVER**, which it did not notice: a "nesting cap N" and
+  a "budget ceiling C" are the same knob, because the ladder rung IS the nesting level
+  (`C = configured + 4N`). Priced off the landed census, any cap that bounds something worth
+  bounding costs 40-87 % of retry successes; the cheapest FREE cap is `N=99` — ceiling 416, still
+  21x the configured depth.
+- ⇒ **NEXT CANDIDATE, a different shape:** make the depth grant EXPLICIT rather than accidental.
+  The witness pass already computes a per-target budget (`witness_target_depth_budget` —
+  reach-prefix plus the target's own minimal derivation depth, additive by construction). Give the
+  diverse/target-drive retry the same, and the descent becomes bounded *and* predictable *and*
+  explainable, instead of bounded-but-blind.
+
+Docs-only: no code, grammar, generated-artifact, schema or contract change. The refuted arm's
+artifacts are preserved under `rust/target/sv_exh_proof_7_4_6_14/arm_f_flat_slack/`.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0176 — leaf SV-EXH-PROOF.7.4.6.13: the per-branch runaway backstop LANDS (defect (i) COST); the replay stage is 1.7x faster and `sv_2023` resolves 2.9x more targets
 
 `-0172` priced this bound and deliberately withheld it: capping the depth-slack retry makes the

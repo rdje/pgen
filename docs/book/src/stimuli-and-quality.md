@@ -311,8 +311,18 @@ firing.
 ⛔ **What the backstop does *not* fix:** the escalation described above. Under the cap the ladder is
 essentially unchanged — `448 → 444` and `676 → 672` — because bounding *how many* retries a branch
 gets says nothing about *how deep* each one goes. `--max-depth` still does not bound the descent.
-That needs its own bound (slack relative to the configured depth, or a cap on nesting), and it is
-open.
+
+And the obvious remedy is measured and refuted. Computing the slack from the **configured** depth
+rather than the live one collapses the ladder exactly as designed (`106 → 8` nesting levels, a flat
+`configured + 4`) — and takes coverage with it: `covered_rules` `1337 → 1327`, `covered_branches`
+`1451 → 1444`, closed-loop residual `0 → 17` on `sv_2017` and `0 → 10` on `sv_2023`. Roughly ten
+rules and seven branches per profile are covered *only* because a retry nested inside another
+retry inherits the inflated budget. A "nesting cap" is not a second option: the ladder rung *is* the
+nesting level, so a cap `N` and a ceiling `configured + 4N` are the same knob.
+
+⇒ the escalation is **load-bearing**, and the shape that can replace it is an *explicit* per-target
+depth grant — the reach-prefix-plus-minimal-derivation budget the closed-loop witness pass already
+computes — rather than any cap. That work is open.
 
 Not every reason is a budget. A row reading
 `STORE-AWARE-GEN: rule '…' fact_count_at_least predicate unsatisfiable (zero

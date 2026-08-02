@@ -11,6 +11,8 @@ answers:
   - "why did capping a retry make the target-drive pass better and the residual worse"
   - "what does branch_retry_max much greater than success_ordinal_max mean"
   - "what is TARGET_BRANCH_DEPTH_RETRY_CAP and what does it fix"
+  - "why can't I just compute the retry slack from the configured max_depth"
+  - "is a nesting cap different from a budget ceiling for the depth-slack retry"
 tags: [stimuli, coverage, generator, retry, budget, instrumentation, systemverilog, root-cause]
 date: 2026-08-02
 status: current
@@ -38,7 +40,7 @@ entered inside another retry's subtree inflates an already inflated budget, and 
 | defect | what it is | what fixes it |
 |---|---|---|
 | **cost / runaway** | the retry was unbounded per branch — one `sv_2017` branch spent **726 836** retries, 37 % of the whole run's | ✅ FIXED — the per-branch backstop `TARGET_BRANCH_DEPTH_RETRY_CAP = 4096` (below) |
-| **predictability** | `--max-depth` does not bound the descent, because the slack is added to the **live** budget | ⛔ STILL OPEN — needs its own bound: slack relative to the *configured* depth, or a nesting cap |
+| **predictability** | `--max-depth` does not bound the descent, because the slack is added to the **live** budget | ⛔ STILL OPEN — and the obvious bounds are REFUTED (below). Needs an EXPLICIT per-target depth grant, not a cap |
 
 ⛔ **A per-branch backstop does NOT bound the ladder.** Measured under the cap, the ladder is
 essentially invariant: `448 → 444` (`sv_2017`) and `676 → 672` (`sv_2023`). Recorded depth failures
@@ -102,6 +104,33 @@ was built for exactly this, and is what let the bound land with the residual sti
 ⇒ **when coverage is reached transitively, an improvement anywhere upstream can remove the
 transitivity.** A residual of 0 that depends on one pass failing at exactly the right place is a
 coupling worth writing down before something legitimate disturbs it.
+
+## ⛔ The escalation is LOAD-BEARING — do not simply bound it
+
+Computing the slack from the **configured** depth instead of the live one is the obvious fix, and it
+works exactly as designed: nesting levels `106 → 8` and `163 → 8`, the ladder collapses to a flat
+`configured + 4`. It is also unshippable. Measured on both LRM profiles:
+
+| | `sv_2017` | `sv_2023` |
+|---|---|---|
+| retry successes | 252 → 11 | 398 → 19 |
+| target-drive resolved | 880 → 205 | 1673 → 271 |
+| `covered_rules` | 1337 → 1327 | 1356 → 1352 |
+| `covered_branches` | 1451 → 1444 | 1490 → 1484 |
+| closed-loop residual | 0 → **17** | 0 → **10** |
+
+⇒ roughly **10 rules and 7 branches per profile are covered only because a retry nested inside
+another retry inherits the inflated budget**. The escalation is the de-facto mechanism by which deep
+targets get depth at all; remove it without replacing it and the coverage goes with it.
+
+⭐ **And the two "alternative" candidates are one knob.** A nesting cap `N` and a budget ceiling `C`
+are identical, because the ladder rung IS the nesting level: `C = configured + 4N`. Priced off the
+census, any cap that bounds something worth bounding costs 40–87 % of retry successes; the cheapest
+free cap is `N = 99` — ceiling 416, still 21x the configured depth.
+
+⇒ the shape that can work is an **explicit** per-target depth grant (what the closed-loop witness
+pass already computes: reach-prefix plus the target's own minimal derivation depth), so depth is
+granted by a computed budget rather than inherited from whichever retry encloses you.
 
 ## Instrument discipline
 

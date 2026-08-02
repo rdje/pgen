@@ -1,5 +1,29 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0177 — the sloppy mechanism was the load-bearing one; and two "alternative" candidates can be one knob
+
+**Before removing an accident, measure what depends on it.** The cumulative depth escalation reads
+like a bug in every way that matters — `--max-depth 20` running at 448, a budget inflated by
+whichever retry happens to enclose you. Fixing it exactly as specified collapsed the ladder as
+designed and cost ~10 rules and ~7 branches of coverage per profile. Nothing declared that
+dependency; it existed because the escalation was the only thing granting deep targets depth. An
+accident that has been in place long enough acquires clients.
+
+**Two candidates that sound different can be the same knob.** The leaf's Goal offered "slack
+relative to the configured depth" and "a nesting cap" as alternatives. They are the same lever:
+the ladder rung IS the nesting level, so a nesting cap `N` and a budget ceiling `configured + 4N`
+are identical. Recognising that turned a two-branch design question into one number to price — and
+the pricing said no bound on the slack is shippable, in either spelling.
+
+**Price statically, decide dynamically.** The census gave a static price for every candidate cap
+(successes lost at levels above it). The A/B lost 96 % of retry successes and only 7-17 targets, so
+the static number is an upper bound on the damage, not a prediction. Useful for ordering candidates;
+never sufficient for landing one.
+
+**A refutation is a result — record it with its numbers and revert the code.** The arm is preserved
+on disk, the leaf carries the table, and the next candidate is named. That is worth more than the
+change would have been.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0176 — a bound is only landable when the thing it perturbs can stand on its own; and "reproduces the priced arm byte-for-byte" is a cheap, strong check
 
 **The blocked fix was never wrong — its blocker was somewhere else entirely.** The backstop was
