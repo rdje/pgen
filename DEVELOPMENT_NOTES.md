@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0170 — a scope that is safe for RANKING is not safe for DECIDING; and a corroborating instrument must mirror SEMANTICS, not vocabulary
+
+Three notes from `SV-EXH-PROOF.7.4.6.12`, the slice that took the SystemVerilog closed-loop residual
+to literal zero. PROMOTED to the retrievable layer as
+`docs/knowledge/witness-entry-policy-store-gated-targets.md`.
+
+**1. The same map, the same walk — and reusing it would have been a defect, because the CONSEQUENCE
+changed.** The reach-BFS already had exactly the predicate this slice needed: "is this rule
+mandatorily store-gated on a kind not available here?" It counts **every** fact query, `lacks_fact`
+included, entirely on purpose — its only effect is to *prefer* one carrier over another, so
+over-counting costs nothing. This slice's verdict decides whether to **replace** a target's whole
+generation strategy. Under that consequence the same over-count raises the entry for targets that
+witness perfectly well today, because an empty store *satisfies* a `lacks_fact` gate. ⇒ **before
+reusing a predicate, re-derive its safe scope from what your caller DOES with the answer, not from
+what the predicate is named.** The two scopes now sit in one enum with the distinction written down,
+and the unit test asserts *both* — the negative gate must be seen by one scope and not the other, so
+the difference cannot rot into "they're the same thing".
+
+**2. The corroborating instrument was WRONG on its first run, and it agreed with the engine anyway.**
+To avoid the engine being the only thing asserting its own verdict, the diagnosis was re-derived in
+Python off the gate's own normalized grammar. Version 1 asked "does any rule in the closure carry an
+unsatisfiable gate?" — and it *agreed* with the engine on the target rule, which is exactly how a
+broken instrument earns trust. It disagreed on a neighbouring rule (`net_declaration_sv_2017`, which
+the engine correctly calls **not** blocked because its first alternative is a plain `wire a;`), and
+only that disagreement exposed that it was answering a different question: whole-closure *existence*
+instead of MANDATORY *descent*. ⇒ **a second implementation corroborates nothing until one of its
+controls is a case where the naive reading and the real one DISAGREE.** That case is now a permanent
+control in the script, which refuses (exit 2) rather than publishing when a control misses.
+
+**3. "One cause, two targets" was in the artifact before the fix — and it is also the honest bound.**
+The gap report recorded `depends_on: ["wildcard_escape_nettype_identifier"]` on the branch target all
+along, so closing the rule closed the branch: `store_entry_raises=1` resolved **two** targets per
+profile. That transitive close is real, but it depends on the gated rule having exactly ONE reference
+site. So the branch-only shape is not "absent", it is **one reference site away**
+([[absence-in-the-corpus-is-not-a-property-of-the-rule]]) — recorded as a reach and routed to
+`.7.4.6.14`, and deliberately not implemented, because with the residual at 0 there is no subject to
+measure it against and unmeasurable capability is exactly what this project refuses to land.
+
 ## 2026-08-01 - PGEN-GENERATED-LINT-CORRECTNESS-0011 — a census prices a change; only a probe closes a soundness question
 
 Two notes from `GENERATED-LINT-CORRECTNESS.9`. PROMOTED to the retrievable layer as

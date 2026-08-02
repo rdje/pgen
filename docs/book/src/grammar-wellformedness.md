@@ -989,6 +989,62 @@ number attached: raising it from 20 to 30 made the run at least 3.9× slower and
 first phase in 40 minutes, because the raise is global — it reshapes the diverse and target-drive passes
 too.
 
+#### The closed-loop witness pass's raised entry for store-gated targets
+
+Rooting each witness at the target's **own rule** is what makes the closed-loop pass work: the whole
+depth budget goes to the target's subtree instead of being spent descending to it. For every target
+whose acceptance depends only on *structure*, that policy is strictly better than starting from the
+grammar entry. For one shape it is structurally fatal.
+
+A rule can be gated by a **positive semantic-store predicate** — it is parser-accepted only if some
+fact was emitted *earlier in the same sample*. If the only rule that emits that fact lives **above**
+the target, then a witness rooted at the target starts from an **empty store**, the generation-side
+store-aware prune refuses the rule, and the target reports `never_hit`. This is not a budget failure
+and no budget can fix it: at every depth and every seed, the sample the policy can build is a sample
+the predicate must reject. Nor can the semantic prelude help, because a prelude hosts its extra
+producer iterations at an on-path quantifier site *earlier in the sample* — and when the entry **is**
+the gated rule, there is no earlier.
+
+The blocker is therefore the **entry policy**, and the sound policy already exists one pass over: the
+certificate-coverage plannable pass generates from the grammar entry and steers *down* via reach hops,
+quantifier forcing and exactly that producer prelude. So the closed-loop pass now uses it too — for
+these targets only. A target is **store-entry-blocked** when its mandatory rendering forces a positive
+store gate whose fact-kind no rule in the target rule's own reachable closure can emit; such a target
+is generated from the run's entry rule with a rule-reach plan installed, and every other target keeps
+the own-rule entry byte-for-byte.
+
+Three scoping decisions carry the weight, and each has a failure it prevents:
+
+- **Positive gates only.** A `lacks_fact` gate is *satisfied* by the empty store a standalone witness
+  starts with. Counting it — as the reach-BFS edge-deprioritization deliberately does, because there
+  over-counting only re-ranks two ways of generating the same thing — would raise the entry for
+  targets that witness perfectly well today.
+- **Mandatory descent, not "a gate exists below here".** An ordered choice offering an ungated
+  alternative is an escape the generator simply takes. A whole-closure scan calls the SystemVerilog
+  net-declaration rule blocked; the mandatory walk correctly does not, because its first alternative
+  is a plain `wire a;`.
+- **Closure-relative, not absolute.** The same gate on the same rule is *not* blocking when a producer
+  for its fact-kind lives inside the target's own subtree — the witness can then emit the fact itself.
+
+The verdict is an over-approximation of what the subtree can emit (it ignores render order), which
+biases it toward *not* raising: a missed raise leaves prior behaviour untouched, a spurious one would
+replace a working generation. Measured on SystemVerilog, exactly **one** target in the whole run takes
+the raised entry, and the witness pass reports it on its own summary line as `store_entry_raises=`.
+
+One witness can settle more than one target, and here it does. The gated rule is referenced from
+exactly one place — the net-declaration alternative that is *also* a residual coverage target — so the
+raised-entry witness necessarily selects and succeeds that branch on its way to the rule. The gap
+report had already recorded the dependency (`depends_on`), and closing the cause closed both effects:
+per LRM profile, `rule::wildcard_escape_nettype_identifier` (`never_hit`) and
+`branch::net_declaration_sv_…::root#2` (`selected_but_failed`) resolved together.
+
+Measured on the gate's own closed-loop replay stage, single-variable (same depth, same seed, one code
+change): residual **2 → 0** on both LRM profiles, each profile's two arms agreeing exactly.
+List-diffed on `sv_2017`: **2 resolved, 0 new**, with `covered_rules` 1336 → 1337 and
+`covered_branches` 1450 → 1451 and the unreachable debt unchanged — exactly the pair, nothing else
+moved. The run also got marginally *faster* (447 s vs 455 s), because a target that can never succeed
+had been paying a full construct attempt and then a full search fallback before giving up.
+
 ### Reaching store-gated rules: the semantic-prelude reach
 
 One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule

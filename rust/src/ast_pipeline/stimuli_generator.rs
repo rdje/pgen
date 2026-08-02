@@ -664,6 +664,23 @@ pub struct ReachDirective {
     pub branch_index: usize,
 }
 
+/// SV-EXH-PROOF.7.4.6.12: which store gates a MANDATORY-descent walk (`mandatory_reach_gate` /
+/// `mandatory_node_gated`) counts as blocking. The two scopes read different maps, and the
+/// distinction is load-bearing, not cosmetic.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StoreGateScope {
+    /// GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: every kind-first fact-query predicate, POSITIVE OR
+    /// NEGATIVE (`reach_gate_kinds`). Correct for the reach-BFS edge *deprioritization*, whose
+    /// only effect is to prefer another carrier — over-counting there costs nothing.
+    AnyQuery,
+    /// POSITIVE gates only — `fact_count_at_least` (`gen_count_kinds`) and the name-matching
+    /// `has_fact` / `fact_attribute_equals` (`gen_name_gate`). ⛔ A `lacks_fact` /
+    /// `lacks_fact_attribute_equals` gate is SATISFIED by an empty store, so counting it would
+    /// declare a perfectly witnessable target unwitnessable. Required by any verdict that CHANGES
+    /// what is generated rather than merely ranking two ways of generating it.
+    PositiveOnly,
+}
+
 /// SV-EXH-PROOF.7.2.1: where a rule reference occurs inside another rule's body,
 /// using the same `node_path` encoding as `collect_branch_groups`. Internal
 /// helper for the rule-reference-graph BFS in `compute_reach_path`.
@@ -964,12 +981,19 @@ pub struct WitnessSummary {
     /// uncovered.
     #[serde(default)]
     pub unresolved_after_samples: Vec<String>,
+    /// SV-EXH-PROOF.7.4.6.12: how many targets were generated from the RAISED witness entry
+    /// because their own-rule entry is store-entry-blocked (see
+    /// `witness_target_is_store_entry_blocked`). `0` for every grammar with no positive store
+    /// gate, so the class-C population is REPORTED rather than inferred. `#[serde(default)]`
+    /// keeps older JSON loadable.
+    #[serde(default)]
+    pub store_entry_raises: usize,
 }
 
 impl WitnessSummary {
     pub fn summary_line(&self) -> String {
         format!(
-            "Witness pass: resolved {} -> {} of {} reachable targets (+{} via {} witnesses; failures depth_exceeded={}, rule_visit_limit={}, target_timeout={}, helper_timeout={}, other={}, no_entry={}; construct_fell_back_to_search={})",
+            "Witness pass: resolved {} -> {} of {} reachable targets (+{} via {} witnesses; failures depth_exceeded={}, rule_visit_limit={}, target_timeout={}, helper_timeout={}, other={}, no_entry={}; construct_fell_back_to_search={}; store_entry_raises={})",
             self.resolved_before,
             self.resolved_after,
             self.total_targets,
@@ -981,7 +1005,8 @@ impl WitnessSummary {
             self.helper_timeout_failures,
             self.other_failures,
             self.no_entry_rule,
-            self.construct_attempt_failures
+            self.construct_attempt_failures,
+            self.store_entry_raises
         )
     }
 }
@@ -3874,7 +3899,12 @@ impl<'a> StimuliGenerator<'a> {
                         continue;
                     }
                     let mut visited: HashSet<String> = HashSet::new();
-                    if self.mandatory_node_gated(element, available, &mut visited) {
+                    if self.mandatory_node_gated(
+                        element,
+                        available,
+                        &mut visited,
+                        StoreGateScope::AnyQuery,
+                    ) {
                         return true;
                     }
                 }
@@ -4190,7 +4220,12 @@ impl<'a> StimuliGenerator<'a> {
                 // `list_of_param_assignments` / `if_generate_construct` false arms.
                 let empty: HashSet<String> = HashSet::new();
                 let mut visited: HashSet<String> = HashSet::new();
-                if !self.mandatory_reach_gate(rule, &empty, &mut visited) {
+                if !self.mandatory_reach_gate(
+                    rule,
+                    &empty,
+                    &mut visited,
+                    StoreGateScope::AnyQuery,
+                ) {
                     return None;
                 }
                 self.gate_in_mandatory_prefix_rule(rule, 0)
@@ -4295,7 +4330,7 @@ impl<'a> StimuliGenerator<'a> {
     fn node_render_store_gated(&self, node: &ASTNode) -> bool {
         let available: HashSet<String> = HashSet::new();
         let mut visited: HashSet<String> = HashSet::new();
-        self.mandatory_node_gated(node, &available, &mut visited)
+        self.mandatory_node_gated(node, &available, &mut visited, StoreGateScope::AnyQuery)
     }
 
     /// GRAMMAR-WELLFORMED.C2.2: phase-1 scoped prune bypass — while a plannable plan
@@ -5461,12 +5496,19 @@ impl<'a> StimuliGenerator<'a> {
     pub fn generate_target_witnesses(
         &mut self,
         targets: &[StimuliCoverageTarget],
+        entry_rule: Option<&str>,
     ) -> Result<(Vec<String>, WitnessSummary)> {
         let applicable: Vec<StimuliCoverageTarget> = targets
             .iter()
             .filter(|t| t.reachable)
             .cloned()
             .collect();
+        // SV-EXH-PROOF.7.4.6.12: the RUN's entry rule — the same entry the target report's
+        // reachability universe is defined against — used ONLY as the raised entry for a
+        // store-entry-blocked target (see `witness_target_is_store_entry_blocked`). `None`
+        // resolves to the canonical entry (`rule_order[0]`); an unresolvable entry leaves the
+        // raise unavailable and every target keeps the own-rule entry, i.e. prior behaviour.
+        let raised_entry_rule = self.resolve_entry_rule(entry_rule).ok();
         let total_targets = applicable.len();
         let resolved_before =
             total_targets.saturating_sub(self.evaluate_target_statuses(&applicable).len());
@@ -5524,6 +5566,11 @@ impl<'a> StimuliGenerator<'a> {
         // SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): construct-vs-search attribution + timeout sampling.
         let mut construct_attempt_failures = 0usize;
         let mut timeout_failure_samples: Vec<String> = Vec::new();
+        // SV-EXH-PROOF.7.4.6.12: how many targets took the RAISED witness entry. Zero for every
+        // grammar with no positive store gate, and zero for every target this pass already
+        // witnessed — so a non-zero count is exactly the class-C population, visible in the
+        // summary line rather than inferred.
+        let mut store_entry_raises = 0usize;
 
         loop {
             let pending = self.evaluate_target_statuses(&applicable);
@@ -5533,7 +5580,7 @@ impl<'a> StimuliGenerator<'a> {
             attempted.insert(status.id.clone());
 
             // Witness entry = the target's OWN rule → its subtree gets the full budget.
-            let entry_rule = status.rule_name.clone();
+            let mut entry_rule = status.rule_name.clone();
             if !self.grammar_tree.contains_key(entry_rule.as_str()) {
                 no_entry_rule = no_entry_rule.saturating_add(1);
                 continue;
@@ -5562,14 +5609,54 @@ impl<'a> StimuliGenerator<'a> {
             self.config.max_depth = budget;
             let bypass_fuel = budget.saturating_add(1) as u32;
 
+            // SV-EXH-PROOF.7.4.6.12 (PGEN-SV-EXH-PROOF-0170): RAISED WITNESS ENTRY for a
+            // STORE-ENTRY-BLOCKED target — the class-C residual. Rooting the witness at the
+            // target's OWN rule is strictly better for every non-store-gated target (the whole
+            // budget goes to the target's subtree), but it is structurally FATAL for a target
+            // whose mandatory positive store gate consults a fact-kind only an ANCESTOR can emit:
+            // the store is empty, the generation-side prune rejects, and no budget and no prelude
+            // can help, because with entry == the gated rule there is no "earlier in the sample"
+            // for a prelude to occupy. So for exactly those targets, generate from the RUN's entry
+            // instead and let the reach plan steer back down — the entry policy the cert-coverage
+            // plannable pass has always used, and which already witnesses this very rule routinely
+            // (`set_reach_plan_for_rule` installs the hops, the quantifier forcing AND the
+            // `compute_reach_prelude` producer prelude that renders the enabling declaration
+            // upstream). Prior art, not a new surface ([[feedback_read_prior_art_before_designing]]).
+            // ⛔ STRICTLY OPT-IN AND FAIL-SAFE: the raise applies only when the blocked verdict is
+            // true AND a raised entry resolved AND it differs from the target's own rule AND the
+            // plan installs; any miss falls through to the unchanged own-rule path below. The
+            // budget is unchanged — `reach_prefix_budget` is precisely the entry→target prefix
+            // allowance the raised entry now uses, which is what it was sized for upstream.
+            let mut plan_installed = false;
+            if status.target_type == StimuliCoverageTargetType::Rule
+                && self.witness_target_is_store_entry_blocked(&status)
+            {
+                if let Some(raised) = raised_entry_rule.as_deref() {
+                    if raised != status.rule_name
+                        && self.set_reach_plan_for_rule(raised, &status.rule_name, bypass_fuel)
+                    {
+                        entry_rule = raised.to_string();
+                        plan_installed = true;
+                        store_entry_raises = store_entry_raises.saturating_add(1);
+                        self.trace(
+                            TraceLevel::Debug,
+                            format_args!(
+                                "SV-EXH-PROOF.7.4.6.12 raised witness entry: target='{}' own_rule='{}' raised_entry='{}' budget={}",
+                                status.id, status.rule_name, raised, budget
+                            ),
+                        );
+                    }
+                }
+            }
+
             // For a branch target, force that branch within its rule.
             // SV-EXH-PROOF.7.4.6.11: ... AND force every `?`/`*` quantifier the path to that
             // branch crosses. Without it, a branch nested inside an optional group is
             // unreachable under the `construct_mode` generation two lines below (which
             // renders a `?` ZERO times), so the witness is generated but never credits the
             // target — `never_selected`, the class-B residual. The forcing is witness-pass
-            // only; the primary target-drive pass keeps calling `set_reach_plan`.
-            let mut plan_installed = false;
+            // only; the primary target-drive pass keeps calling `set_reach_plan`. Unreachable
+            // under a raised entry — the raise is RULE-target-only (see above).
             if status.target_type == StimuliCoverageTargetType::Branch {
                 if let (Some(node_path), Some(branch_index)) =
                     (status.node_path.as_ref(), status.branch_index)
@@ -5738,6 +5825,7 @@ impl<'a> StimuliGenerator<'a> {
                 construct_attempt_failures,
                 timeout_failure_samples,
                 unresolved_after_samples,
+                store_entry_raises,
             },
         ))
     }
@@ -8034,6 +8122,126 @@ impl<'a> StimuliGenerator<'a> {
         )
     }
 
+    /// SV-EXH-PROOF.7.4.6.12: the fact-KINDS that any rule in `entry_rule`'s own reachable closure
+    /// can `@emit_fact` — i.e. every kind a witness generated FROM `entry_rule` could possibly
+    /// register in the semantic store before a gate inside that same subtree is evaluated.
+    ///
+    /// Deliberately an OVER-approximation: it ignores render ORDER and optionality, so a kind that
+    /// is merely *hard* to emit inside the subtree still counts as available. That biases the only
+    /// consumer (`witness_target_is_store_entry_blocked`) toward NOT raising the entry, which is
+    /// the safe direction — a missed raise leaves today's behaviour untouched, while a spurious one
+    /// would replace a working own-rule generation.
+    ///
+    /// Cycle-safe (each rule enqueued once) and deterministic (a set whose only use is a membership
+    /// test). Empty for a grammar with no `@emit_fact` annotations. GENERAL/parser-agnostic.
+    fn emittable_kinds_within_closure(&self, entry_rule: &str) -> HashSet<String> {
+        use std::collections::VecDeque;
+        let mut kinds: HashSet<String> = HashSet::new();
+        let mut visited: HashSet<String> = HashSet::new();
+        let mut queue: VecDeque<String> = VecDeque::new();
+        visited.insert(entry_rule.to_string());
+        queue.push_back(entry_rule.to_string());
+        while let Some(rule) = queue.pop_front() {
+            if let Some(specs) = self.gen_emit_facts.get(rule.as_str()) {
+                for spec in specs {
+                    kinds.insert(spec.kind.clone());
+                }
+            }
+            let Some(rule_node) = self.grammar_tree.get(rule.as_str()) else {
+                continue;
+            };
+            let mut sites: Vec<RuleReferenceSite> = Vec::new();
+            Self::collect_rule_reference_sites(rule_node, "root", &mut sites);
+            for site in sites {
+                if self.grammar_tree.contains_key(site.referenced_rule.as_str())
+                    && visited.insert(site.referenced_rule.clone())
+                {
+                    queue.push_back(site.referenced_rule);
+                }
+            }
+        }
+        kinds
+    }
+
+    /// SV-EXH-PROOF.7.4.6.12: is this witness target STRUCTURALLY unwitnessable from its OWN rule
+    /// because a MANDATORY POSITIVE store gate consults a fact-kind no rule in that rule's own
+    /// closure can emit?
+    ///
+    /// This is the class-C residual's measured shape. `wildcard_escape_nettype_identifier` carries
+    /// `fact_count_at_least(wildcard_import_open, 1)` and its whole body is one identifier; the only
+    /// rule emitting that kind (`package_import_item`'s `pkg::*` alternative) sits strictly ABOVE
+    /// it, so a witness rooted at the target's own rule renders a bare identifier against an EMPTY
+    /// store and the generation-side prune rejects it at ANY budget and ANY seed —
+    /// `STORE-AWARE-GEN: … fact_count_at_least predicate unsatisfiable (zero source facts)`. No
+    /// depth budget and no prelude can fix that, because with entry == the gated rule there is no
+    /// "earlier in the sample" for a prelude to occupy. The blocker is the WITNESS-ENTRY POLICY.
+    ///
+    /// ⛔ POSITIVE gates only (`StoreGateScope::PositiveOnly`): a `lacks_fact` gate is SATISFIED by
+    /// the empty store a standalone witness starts with, so counting it would raise the entry for
+    /// targets that witness perfectly well today.
+    ///
+    /// The gate must also be MANDATORY (an ordered choice with an ungated alternative is an escape
+    /// the generator simply takes) and the emitters are judged CLOSURE-relative (an in-subtree
+    /// producer makes the same gate satisfiable) — see `target_forces_positive_store_gate` for the
+    /// branch handling. PURE analysis; no grammar identifiers.
+    fn witness_target_is_store_entry_blocked(&self, status: &TargetCoverageStatus) -> bool {
+        // Inert by construction for a grammar with no positive store gate at all.
+        if self.gen_count_kinds.is_empty() && self.gen_name_gate.is_empty() {
+            return false;
+        }
+        // Cheap pre-filter against an EMPTY store: does this target's mandatory rendering force a
+        // positive gate AT ALL? Only then is the closure BFS worth running. SOUND as a filter
+        // because the walk is ANTI-monotone in `available` and `∅` is its minimum: a target the
+        // full test would call blocked can never be dropped here. This keeps the per-target cost of
+        // the common (ungated) case a short mandatory-descent walk rather than a whole-closure BFS.
+        let empty: HashSet<String> = HashSet::new();
+        if !self.target_forces_positive_store_gate(status, &empty) {
+            return false;
+        }
+        let available = self.emittable_kinds_within_closure(status.rule_name.as_str());
+        self.target_forces_positive_store_gate(status, &available)
+    }
+
+    /// SV-EXH-PROOF.7.4.6.12: does this target's MANDATORY rendering force a POSITIVE store gate
+    /// consulting a kind not in `available`? A BRANCH target is judged on its TARGETED ALTERNATIVE
+    /// first — the rule's own root `Or` almost always offers an ungated escape, which is exactly
+    /// why a whole-rule walk cannot see a gate only the forced branch reaches — then on the whole
+    /// rule, so a gate that is mandatory regardless of branch is still caught.
+    fn target_forces_positive_store_gate(
+        &self,
+        status: &TargetCoverageStatus,
+        available: &HashSet<String>,
+    ) -> bool {
+        if status.target_type == StimuliCoverageTargetType::Branch {
+            if let (Some(node_path), Some(branch_index)) =
+                (status.node_path.as_deref(), status.branch_index)
+            {
+                let alternative_blocked = self
+                    .or_alternatives_for_group_path(status.rule_name.as_str(), node_path)
+                    .and_then(|alternatives| alternatives.get(branch_index))
+                    .is_some_and(|alternative| {
+                        let mut visited: HashSet<String> = HashSet::new();
+                        self.mandatory_node_gated(
+                            alternative,
+                            available,
+                            &mut visited,
+                            StoreGateScope::PositiveOnly,
+                        )
+                    });
+                if alternative_blocked {
+                    return true;
+                }
+            }
+        }
+        let mut visited: HashSet<String> = HashSet::new();
+        self.mandatory_reach_gate(
+            status.rule_name.as_str(),
+            available,
+            &mut visited,
+            StoreGateScope::PositiveOnly,
+        )
+    }
+
     /// RTL-FE-CLOSURE.5.5 (PGEN-RTL-FE-CLOSURE-0012): the deepest minimal-derivation depth of
     /// any MANDATORY OFF-PATH SIBLING the forced minimal witness construct must ALSO derive on
     /// its way from `entry_rule` to `target_rule`.
@@ -8515,31 +8723,62 @@ impl<'a> StimuliGenerator<'a> {
     /// force evaluating a store-gate that consults a fact-kind NOT in `available`? See `reach_hops`.
     fn edge_is_store_gated(&self, referenced_rule: &str, available: &HashSet<String>) -> bool {
         let mut visited: HashSet<String> = HashSet::new();
-        self.mandatory_reach_gate(referenced_rule, available, &mut visited)
+        self.mandatory_reach_gate(
+            referenced_rule,
+            available,
+            &mut visited,
+            StoreGateScope::AnyQuery,
+        )
+    }
+
+    /// SV-EXH-PROOF.7.4.6.12: does `rule` carry a store gate, in `scope`, that consults a fact-kind
+    /// NOT in `available`? The two scopes read DIFFERENT maps on purpose — see `StoreGateScope`.
+    fn rule_gate_is_unsatisfiable(
+        &self,
+        rule: &str,
+        available: &HashSet<String>,
+        scope: StoreGateScope,
+    ) -> bool {
+        match scope {
+            StoreGateScope::AnyQuery => self
+                .reach_gate_kinds
+                .get(rule)
+                .is_some_and(|kinds| kinds.iter().any(|kind| !available.contains(kind))),
+            StoreGateScope::PositiveOnly => {
+                self.gen_count_kinds
+                    .get(rule)
+                    .is_some_and(|kinds| kinds.iter().any(|kind| !available.contains(kind)))
+                    || self
+                        .gen_name_gate
+                        .get(rule)
+                        .is_some_and(|gate| !available.contains(&gate.kind))
+            }
+        }
     }
 
     /// GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: `true` iff `rule` is mandatorily store-gated on a kind not in
     /// `available` — its own gate is unsatisfiable on the path, OR its mandatory subtree forces such a
     /// gate. Cycle-guarded, transitive, profile-aware (operates on the active grammar_tree). The
     /// structural recursion lives in `mandatory_node_gated`. General/parser-agnostic.
+    /// SV-EXH-PROOF.7.4.6.12: `scope` selects WHICH gates count. The original caller passes
+    /// `AnyQuery` and is byte-identical; the witness pass's entry-raise verdict passes
+    /// `PositiveOnly`, because a `lacks_fact` gate is SATISFIED by an empty store.
     fn mandatory_reach_gate(
         &self,
         rule: &str,
         available: &HashSet<String>,
         visited: &mut HashSet<String>,
+        scope: StoreGateScope,
     ) -> bool {
         if !visited.insert(rule.to_string()) {
             return false; // cycle: no NEW unsatisfiable gate is introduced below an in-progress rule
         }
-        let own_gated = self
-            .reach_gate_kinds
-            .get(rule)
-            .is_some_and(|kinds| kinds.iter().any(|k| !available.contains(k)));
+        let own_gated = self.rule_gate_is_unsatisfiable(rule, available, scope);
         let result = if own_gated {
             true
         } else {
             match self.grammar_tree.get(rule) {
-                Some(node) => self.mandatory_node_gated(node, available, visited),
+                Some(node) => self.mandatory_node_gated(node, available, visited, scope),
                 None => false,
             }
         };
@@ -8559,6 +8798,7 @@ impl<'a> StimuliGenerator<'a> {
         node: &ASTNode,
         available: &HashSet<String>,
         visited: &mut HashSet<String>,
+        scope: StoreGateScope,
     ) -> bool {
         match node {
             ASTNode::Or { alternatives } => {
@@ -8566,7 +8806,7 @@ impl<'a> StimuliGenerator<'a> {
                     return false;
                 }
                 for alt in alternatives {
-                    if !self.mandatory_node_gated(alt, available, visited) {
+                    if !self.mandatory_node_gated(alt, available, visited, scope) {
                         return false;
                     }
                 }
@@ -8574,7 +8814,7 @@ impl<'a> StimuliGenerator<'a> {
             }
             ASTNode::Sequence { elements } => {
                 for element in elements {
-                    if self.mandatory_node_gated(element, available, visited) {
+                    if self.mandatory_node_gated(element, available, visited, scope) {
                         return true;
                     }
                 }
@@ -8585,18 +8825,20 @@ impl<'a> StimuliGenerator<'a> {
                 quantifier,
             } => {
                 if super::parse_quantifier_bounds(quantifier).is_some_and(|(min, _)| min >= 1) {
-                    self.mandatory_node_gated(element, available, visited)
+                    self.mandatory_node_gated(element, available, visited, scope)
                 } else {
                     false
                 }
             }
             ASTNode::Lookahead { .. } => false,
             ASTNode::Atom { value } => match value {
-                ASTValue::Node(inner) => self.mandatory_node_gated(inner, available, visited),
+                ASTValue::Node(inner) => {
+                    self.mandatory_node_gated(inner, available, visited, scope)
+                }
                 ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
                     Some(("rule_reference", name)) => {
                         if self.grammar_tree.contains_key(name) {
-                            self.mandatory_reach_gate(name, available, visited)
+                            self.mandatory_reach_gate(name, available, visited, scope)
                         } else {
                             true
                         }
@@ -21860,7 +22102,7 @@ mod tests {
         let before = generator.evaluate_target_statuses(&report.targets).len();
 
         let (witnesses, summary) = generator
-            .generate_target_witnesses(&report.targets)
+            .generate_target_witnesses(&report.targets, None)
             .expect("witness pass");
 
         assert!(
@@ -22872,6 +23114,151 @@ mod tests {
             "Or picks the shallowest branch: choice={} top={}",
             depths["choice"],
             depths["top"]
+        );
+    }
+
+    #[test]
+    fn witness_store_entry_blocked_verdict_is_closure_branch_and_polarity_scoped() {
+        // SV-EXH-PROOF.7.4.6.12: the witness pass raises its entry for a target whose MANDATORY
+        // POSITIVE store gate consults a kind no rule in the target's OWN closure can emit. This
+        // pins all four claims the verdict rests on, each with its own negative control, on a
+        // synthetic grammar (no grammar identifiers, no SystemVerilog dependency):
+        //     producer   := "p"                     @emit_fact { kind: k }
+        //     gated      := "g"                     @predicate fact_count_at_least(k, 1)
+        //     plain      := "x"
+        //     carrier    := plain | gated           (branch 0 is a clean escape)
+        //     self_fed   := producer gated          (the emitter is INSIDE the closure)
+        //     negated    := "n"                     a NEGATIVE gate only
+        let mut g = HashMap::new();
+        g.insert("producer".to_string(), token("quoted_string", "p"));
+        g.insert("gated".to_string(), token("quoted_string", "g"));
+        g.insert("plain".to_string(), token("quoted_string", "x"));
+        g.insert(
+            "carrier".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("plain"), rule_ref("gated")],
+            },
+        );
+        g.insert(
+            "self_fed".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("producer"), rule_ref("gated")],
+            },
+        );
+        g.insert("negated".to_string(), token("quoted_string", "n"));
+        let order: Vec<String> = vec![
+            "producer".to_string(),
+            "gated".to_string(),
+            "plain".to_string(),
+            "carrier".to_string(),
+            "self_fed".to_string(),
+            "negated".to_string(),
+        ];
+        let mut generator = simple_generator(&g, &order, 1);
+        generator
+            .gen_count_kinds
+            .insert("gated".to_string(), vec!["k".to_string()]);
+        generator.gen_emit_facts.insert(
+            "producer".to_string(),
+            vec![SemanticFactSpec {
+                kind: "k".to_string(),
+                name: SemanticRuntimeValue::RuleReference("body".to_string()),
+                attributes: vec![],
+            }],
+        );
+        // `negated` is store-gated ONLY negatively — visible to the reach-BFS gate map, absent
+        // from both positive maps, exactly as `compute_reach_gate_kinds` vs `compute_name_gates`
+        // classify a `lacks_fact` predicate.
+        generator
+            .reach_gate_kinds
+            .insert("negated".to_string(), vec!["k".to_string()]);
+
+        let status = |rule: &str, target_type, node_path: Option<&str>, branch_index| {
+            TargetCoverageStatus {
+                id: format!("t::{}", rule),
+                target_type,
+                rule_name: rule.to_string(),
+                node_path: node_path.map(str::to_string),
+                branch_index,
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 1,
+                priority_score: 0,
+                reason: String::new(),
+                depends_on: Vec::new(),
+            }
+        };
+
+        // (1) THE DEFECT: a rule whose whole body is gated on a kind nothing in its own closure
+        //     emits is unwitnessable from its own entry at ANY budget — raise the entry.
+        assert!(
+            generator.witness_target_is_store_entry_blocked(&status(
+                "gated",
+                StimuliCoverageTargetType::Rule,
+                None,
+                None
+            )),
+            "a rule gated on a kind its own closure cannot emit is store-entry-blocked"
+        );
+        // (2) CLOSURE CONTROL: the SAME gate, but with the emitter inside the target's closure, is
+        //     NOT blocked — so the verdict is genuinely about the closure, not about the gate.
+        assert!(
+            !generator.witness_target_is_store_entry_blocked(&status(
+                "self_fed",
+                StimuliCoverageTargetType::Rule,
+                None,
+                None
+            )),
+            "an in-closure emitter makes the same gate satisfiable — no raise"
+        );
+        // (3) MANDATORY CONTROL: a rule whose root `Or` offers an ungated escape is not blocked,
+        //     because the generator can simply take the escape.
+        assert!(
+            !generator.witness_target_is_store_entry_blocked(&status(
+                "carrier",
+                StimuliCoverageTargetType::Rule,
+                None,
+                None
+            )),
+            "an ungated escape alternative means the rule is not mandatorily gated"
+        );
+        // (4) BRANCH SCOPING: the gate that the whole-rule walk in (3) could not see IS seen once
+        //     the target names the alternative — and only for that alternative.
+        assert!(
+            generator.witness_target_is_store_entry_blocked(&status(
+                "carrier",
+                StimuliCoverageTargetType::Branch,
+                Some("root"),
+                Some(1)
+            )),
+            "a branch target is judged on its TARGETED alternative, which is gated"
+        );
+        assert!(
+            !generator.witness_target_is_store_entry_blocked(&status(
+                "carrier",
+                StimuliCoverageTargetType::Branch,
+                Some("root"),
+                Some(0)
+            )),
+            "the sibling escape alternative is not blocked"
+        );
+        // (5) POLARITY: a NEGATIVE gate is satisfied by the empty store a standalone witness starts
+        //     with, so it must never trigger a raise — while the reach-BFS scope, which counts every
+        //     fact query, does see it. Both scopes asserted, so the distinction cannot rot silently.
+        let empty: HashSet<String> = HashSet::new();
+        let mut visited: HashSet<String> = HashSet::new();
+        assert!(
+            generator.mandatory_reach_gate("negated", &empty, &mut visited, StoreGateScope::AnyQuery),
+            "control: the reach-BFS scope counts a negative gate"
+        );
+        assert!(
+            !generator.witness_target_is_store_entry_blocked(&status(
+                "negated",
+                StimuliCoverageTargetType::Rule,
+                None,
+                None
+            )),
+            "a lacks_fact-only gate must NOT raise the entry — the empty store satisfies it"
         );
     }
 

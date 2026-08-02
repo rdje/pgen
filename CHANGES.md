@@ -1,5 +1,59 @@
 # CHANGES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0170 — leaf SV-EXH-PROOF.7.4.6.12: the witness pass RAISES its entry for a store-gated target — the SV closed-loop residual is LITERAL ZERO
+
+Class C was the last residual class, and the last 4 targets of a campaign that started at 127. It
+was never a budget problem, so no budget could close it.
+
+- ⭐⭐ **THE RESIDUAL IS 0.** `closed_loop_replay_targets_total` **4 → 0** (`2017: 2 → 0`,
+  `2023: 2 → 0`). The two-sided ratchet in `systemverilog_core_v0_contract.json`
+  `closed_loop.replay_target_ceilings` was lowered in lockstep to `2017: 0` / `2023: 0` — an unbanked
+  win fails the gate by design.
+- ⛔ **The root cause was the WITNESS-ENTRY POLICY, not the budget.** The closed-loop pass roots each
+  witness at the target's OWN rule, which is strictly better for every structurally-gated target. For
+  a rule whose mandatory **positive** store gate consults a fact only an ANCESTOR emits, it is fatal:
+  the store is empty, the generation-side prune refuses
+  (`STORE-AWARE-GEN: rule '…' fact_count_at_least predicate unsatisfiable (zero source facts)`), and
+  the target reports `never_hit` **at every depth and every seed**. A semantic prelude cannot help
+  either — a prelude hosts its producer iterations *earlier in the sample*, and when the entry IS the
+  gated rule there is no earlier.
+- **The change:** for exactly those targets — and only those — generate from the run's entry rule
+  with `set_reach_plan_for_rule` installed, which brings the hops, the quantifier forcing and the
+  producer prelude the certificate-coverage pass has always used. Prior art, not a new surface. Every
+  other target keeps the own-rule entry byte-for-byte; `generate_target_witnesses` now reports
+  `store_entry_raises=` on its summary line, and on SystemVerilog it is **1**.
+- ⭐ **One raise resolved TWO targets**, because the gated rule has exactly one reference site — the
+  net-declaration alternative that was the other residual target. The gap report had already recorded
+  the dependency (`depends_on`); closing the cause closed both effects.
+- **Three scoping rules carry the safety, each with a named failure and a unit-test negative
+  control:** POSITIVE gates only (a `lacks_fact` gate is *satisfied* by an empty store — the reach-BFS
+  counts it on purpose because there over-counting only re-ranks); MANDATORY descent rather than "a
+  gate exists below here" (an ordered choice with an ungated alternative is an escape); and
+  CLOSURE-relative rather than absolute (an in-subtree producer makes the same gate satisfiable).
+- **Measured single-variable** on the gate's own closed-loop replay stage, same depth, same seed, one
+  code change: `profile_2017` **2 → 0** with both arms agreeing before (2/2) and after (0/0);
+  `profile_2023` **2 → 0**. List-diffed: **2 resolved, 0 new**; `covered_rules` 1336 → 1337,
+  `covered_branches` 1450 → 1451, unreachable debt unchanged at 15/78, `sample_errors` 71 → 69. The
+  run got marginally **faster** (455 s → 447 s) — an always-failing target had been paying a full
+  construct attempt *and* a full search fallback before giving up.
+- **Confirmed on the real parser, with both controls.** The last line of the AFTER stimuli file is the
+  raised-entry witness `import\foo ::*;package\foo ;\foo \foo ;endpackage` → `parse_full passed`; the
+  same sample with only the wildcard import removed → `parse_full rejected … furthest_position=17`,
+  i.e. it dies exactly at the escaped net-type identifier. The gate is live and the prelude is what
+  makes the witness legal.
+- ⚠️ **Honest bound, routed to `SV-EXH-PROOF.7.4.6.14`:** the raise is RULE-target-only. A
+  store-entry-blocked BRANCH target whose gated rule is not itself residual is **one reference site
+  away** from today's grammar, and is not handled. Deliberately not implemented: with the residual at
+  0 there is no subject to measure it against.
+- Docs in lockstep: a new book section (*The closed-loop witness pass's raised entry for store-gated
+  targets*, anchor verified by building the book), the residual-reading chapter's summary-line example
+  and its new `STORE-AWARE-GEN` reason class, the KM card
+  `witness-entry-policy-store-gated-targets`, and a new tracked instrument
+  `docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py` that re-derives the blocked
+  verdict independently and REFUSES (exit 2) unless three ground-truth controls reproduce first.
+  ⭐ Its own first version was wrong and agreed with the engine anyway — the control that caught it is
+  now permanent.
+
 ## 2026-08-01 - PGEN-GENERATED-LINT-CORRECTNESS-0011 — leaf GENERATED-LINT-CORRECTNESS.9: `ROOT_KW` narrowed — and the same alternative was ALSO failing CLOSED
 
 `.7` found the bare `\bwhy\b` over-match, priced it as harmless *today*, and routed it. `-0010`

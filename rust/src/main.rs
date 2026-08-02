@@ -1701,8 +1701,14 @@ fn pipeline_main() -> Result<()> {
             // .7.4.3a depth-budget fix). Purely additive: only adds coverage into the
             // same generator, so the residual the gap report below measures can only
             // shrink (monotone). The diverse pass (separate invocation) is untouched.
-            let (witness_samples, witness_summary) =
-                generator.generate_target_witnesses(&target_report.targets)?;
+            // SV-EXH-PROOF.7.4.6.12: the run's entry rule is passed so a STORE-ENTRY-BLOCKED
+            // target can be witnessed from it (the raised entry) instead of from its own rule,
+            // whose empty store makes a mandatory positive store gate unsatisfiable at any budget.
+            let (witness_samples, witness_summary) = generator
+                .generate_target_witnesses(
+                    &target_report.targets,
+                    Some(resolved_entry_rule.as_str()),
+                )?;
             println!("{}", witness_summary.summary_line());
             // SV-EXH-PROOF.7.4.4.1 (TOOL-BUILD, WHY+WHERE): surface a bounded sample of
             // the "other"-class witness failures so the residual tail's cause is visible

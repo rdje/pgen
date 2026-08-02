@@ -197,7 +197,7 @@ misleading about it:
 ```
 Witness pass: resolved 872 -> 2651 of 2693 reachable targets (+1779 via 924 witnesses;
   failures depth_exceeded=0, rule_visit_limit=0, target_timeout=0, helper_timeout=0,
-  other=1, no_entry=0; construct_fell_back_to_search=12)
+  other=1, no_entry=0; construct_fell_back_to_search=12; store_entry_raises=0)
 ```
 
 Every counter on that line is **target-scoped**: it moves only when a whole
@@ -242,6 +242,16 @@ slack ladder (`20, 24, 28, …`) the diverse and target-drive passes climb.
 This is the surface that diagnosed the whole SystemVerilog class-A residual
 without a single new gate run; the method and the trap are in the KM card
 `branch-failure-reasons-are-the-witness-why` (`docs/knowledge/`).
+
+Not every reason is a budget. A row reading
+`STORE-AWARE-GEN: rule '…' fact_count_at_least predicate unsatisfiable (zero
+source facts)` is the *other* class: the witness could not be built at all,
+because the rule's positive store gate needs a fact that only a rule **above** it
+emits — so no depth would have helped. That is the store-entry-blocked shape, and
+the pass now answers it by raising the witness entry (see [The closed-loop witness
+pass's raised entry for store-gated
+targets](grammar-wellformedness.md#the-closed-loop-witness-passs-raised-entry-for-store-gated-targets));
+`store_entry_raises=` on the summary line counts how many targets took it.
 
 ## Probe-Only Steering
 
