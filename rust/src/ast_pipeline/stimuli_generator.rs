@@ -85,24 +85,31 @@ const MAX_UNCOVERED_REACH_RETRIES: usize = 4096;
 /// current budget*, not on the configured one.
 const TARGET_BRANCH_DEPTH_RETRY_SLACK: usize = 4;
 
+/// SV-EXH-PROOF.7.4.6.13: the per-branch RUNAWAY BACKSTOP for that same retry — the bound its
+/// sibling in the same `Err` arm has carried since GRAMMAR-WELLFORMED.H.4.2
+/// (`MAX_UNCOVERED_REACH_RETRIES`) and this one never had. Read off the MEASURED success-ordinal
+/// distribution, not curve-fitted: at `4096` the retry keeps `252/255` (`sv_2017`) and `147/147`
+/// (`sv_2023`) of its successes while cutting retry work `6.5x`/`7.2x`. The magnitude equals the
+/// sibling's deliberately — two retries in one `match` arm should not carry bounds that disagree.
+const TARGET_BRANCH_DEPTH_RETRY_CAP: u64 = 4096;
+
 // SV-EXH-PROOF.7.4.6.13: ⛔ TWO DEFECTS SHARE THIS RETRY, AND THEY DO NOT SHARE A FIX.
 //
-// (i) COST — it has NO RUNAWAY BACKSTOP. Its sibling in this very `Err` arm
+// (i) COST — it had NO RUNAWAY BACKSTOP. Its sibling in this very `Err` arm
 //     (`should_reach_retry_uncovered_recursive`) has been bounded by `MAX_UNCOVERED_REACH_RETRIES`
-//     since GRAMMAR-WELLFORMED.H.4.2; this one is bounded by nothing, so a branch that can never
-//     succeed is retried without limit — one measured at 726 836 retries. A per-branch backstop at
-//     4096 cuts retry work 6.5x/7.2x. It is MEASURED and ready but NOT landed here: capping makes
-//     the target-drive pass strictly better, which resolves `wildcard_escape_nettype_identifier`
-//     early enough that `.7.4.6.12`'s raised witness entry never fires — re-opening the
-//     store-entry-blocked BRANCH target it was closing transitively (`sv_2017` residual `0 -> 1`,
-//     which the two-sided ratchet rightly fails). ⇒ BLOCKED on `.7.4.6.14`.
+//     since GRAMMAR-WELLFORMED.H.4.2; this one was bounded by nothing, so a branch that can never
+//     succeed was retried without limit — one measured at 726 836 retries. ✅ FIXED by
+//     `TARGET_BRANCH_DEPTH_RETRY_CAP` (below), landed once `.7.4.6.14` removed its one blocker:
+//     retry attempts `1 964 056 -> 302 526` (`sv_2017`) and `2 959 658 -> 408 247` (`sv_2023`).
 //
 // (ii) PREDICTABILITY — `--max-depth` does not bound the descent, because the slack below is added
 //     to the LIVE `config.max_depth` rather than to the configured one, so nesting makes it
-//     cumulative (`20, 24, … 448`). ⛔ THE BACKSTOP DOES NOT FIX THIS: measured under the cap the
-//     ladder is essentially invariant (`448 -> 444`, `676 -> 672`). It needs its own bound.
+//     cumulative (`20, 24, … 448`). ⛔ STILL OPEN, AND THE BACKSTOP DOES NOT FIX IT: measured under
+//     the cap the ladder is essentially invariant (`448 -> 444`, `676 -> 672`). It needs its own
+//     bound — slack relative to the ORIGINAL configured depth, or a nesting cap. ⇒ do NOT read the
+//     backstop's landing as closing `.7.4.6.13`; its Goal is this defect.
 //
-// Everything below this point is READ-ONLY census: it prices the retry, it never gates it.
+// Everything below this point except that one bound is READ-ONLY census: it prices the retry.
 
 /// DIAG-SEVERITY.3.1 (PGEN-DIAG-SEVERITY-0004): the canonical, drift-proof enumeration of
 /// stimuli generation-failure reasons — the single source of truth for "classify errors
@@ -1692,8 +1699,9 @@ pub struct StimuliGenerator<'a> {
     /// `DepthSlackRetryCensus`). Never consulted by a generation decision.
     depth_slack_retry_census: DepthSlackRetryCensus,
     /// SV-EXH-PROOF.7.4.6.13: depth-slack retries already spent on each targeted branch, keyed
-    /// `"<group_key>#<branch_index>"`. Read-only census today; it is also the counter the
-    /// per-branch runaway backstop will consult once `.7.4.6.14` unblocks it.
+    /// `"<group_key>#<branch_index>"`. Both the census's per-branch tally AND the counter the
+    /// per-branch runaway backstop (`TARGET_BRANCH_DEPTH_RETRY_CAP`) reads — one number, so the
+    /// bound and the measurement that priced it can never describe different populations.
     depth_slack_retries_by_branch: HashMap<String, u64>,
     /// STIMULI-SIGNOFF.2.2 (PGEN-STIMULI-SIGNOFF-0003): k-path coverage NUMERATOR recorder.
     /// `None` = OFF (default → zero overhead, generation byte-identical → monotone). When
@@ -12808,10 +12816,27 @@ impl<'a> StimuliGenerator<'a> {
         if self.target_drive_validation_active {
             return None;
         }
-        // SV-EXH-PROOF.7.4.6.13: the per-branch runaway backstop belongs HERE, and is measured
-        // and ready — but it stays out until `.7.4.6.14` lands (see the note on
-        // `depth_slack_retries_by_branch`). Deliberately not wired: a bound whose landing would
-        // regress a ratcheted-zero residual is not a fix yet.
+        // SV-EXH-PROOF.7.4.6.13: the per-branch RUNAWAY BACKSTOP. Unbounded, this retry spent
+        // 726 836 attempts on a single `sv_2017` branch that never succeeded, and `sv_2023` spent
+        // 99.5 % of its retry work on nesting levels that never succeeded at all. The counter is
+        // the census's own per-branch tally (`record_depth_slack_retry_attempt` increments it for
+        // exactly the retries this predicate admits), so the bound reads "this branch has already
+        // had `TARGET_BRANCH_DEPTH_RETRY_CAP` retries" — per BRANCH, never global, so a productive
+        // branch is never starved by a runaway sibling.
+        // ⛔ It could not land with `.7.4.6.13`'s own instrument: bounding the retry makes the
+        // target-drive pass strictly better, which resolved `wildcard_escape_nettype_identifier`
+        // early enough that `.7.4.6.12`'s RULE-only raise stopped firing and the branch target it
+        // had been closing transitively re-opened (`sv_2017` residual `0 -> 1`). `.7.4.6.14` gave
+        // the raise its branch half, so that target now closes on its own and the bound is free.
+        if self
+            .depth_slack_retries_by_branch
+            .get(&Self::depth_slack_retry_branch_key(group_key, branch_idx))
+            .copied()
+            .unwrap_or(0)
+            >= TARGET_BRANCH_DEPTH_RETRY_CAP
+        {
+            return None;
+        }
         if !Self::is_depth_exhaustion_error(err) {
             return None;
         }
@@ -21350,6 +21375,67 @@ mod tests {
         assert!(
             line.contains("success_ordinal_max=1") && line.contains("branch_retry_max="),
             "summary line must carry the two numbers that price a per-branch backstop: {line}"
+        );
+    }
+
+    #[test]
+    fn depth_slack_retry_backstop_refuses_a_branch_that_has_spent_its_budget() {
+        // SV-EXH-PROOF.7.4.6.13: the BOUND's positive control, deliberately on the very scenario
+        // the census's positive control uses — so the pair differs in exactly one thing, the
+        // branch's already-spent retry count. Pre-charged to the cap, the retry that provably
+        // resolves this target above must not fire at all.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "long_branch"),
+                    token("quoted_string", "S"),
+                ],
+            },
+        );
+        grammar_tree.insert("long_branch".to_string(), token("rule_reference", "helper"));
+        grammar_tree.insert("helper".to_string(), token("rule_reference", "leaf"));
+        grammar_tree.insert("leaf".to_string(), token("quoted_string", "L"));
+        let rule_order = vec![
+            "start".to_string(),
+            "long_branch".to_string(),
+            "helper".to_string(),
+            "leaf".to_string(),
+        ];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 2501);
+        generator.config.max_depth = 3;
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+
+        // The ONE variable: this branch has already spent its whole retry budget.
+        generator.depth_slack_retries_by_branch.insert(
+            StimuliGenerator::depth_slack_retry_branch_key("start::root", 0),
+            TARGET_BRANCH_DEPTH_RETRY_CAP,
+        );
+
+        let (_samples, summary) = generator
+            .generate_until_targets(Some("start"), &report.targets, 400)
+            .expect("target-driven generation should succeed");
+
+        assert!(
+            summary
+                .unresolved_targets
+                .iter()
+                .any(|status| status.id == "branch::start::root#0"),
+            "with the backstop reached, the depth-blocked branch must stay unresolved — the same \
+             target the un-charged run retires"
+        );
+        assert_eq!(
+            generator
+                .coverage_metrics()
+                .branch_groups
+                .get("start::root")
+                .and_then(|group| group.success_counts.first().copied()),
+            Some(0),
+            "no depth-slack retry may run for a branch that has spent its budget"
         );
     }
 

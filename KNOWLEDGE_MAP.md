@@ -3,7 +3,7 @@
 > **AUTO-GENERATED — DO NOT EDIT.** Regenerate with `knowledge-map/scripts/gen_knowledge_map.sh`.
 > Source of truth = YAML front-matter in: `docs/knowledge docs/decisions`. Edit the fact files, never this map.
 > A fact is any `.md` whose front-matter has a non-empty `answers:` list.
-> **54** facts · **346** question keys.
+> **54** facts · **347** question keys.
 
 ## Questions → fact
 
@@ -218,6 +218,7 @@
 - "what is PGEN with respect to PEG and Packrat" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
 - "what is PGEN-RGX-0078 / the regex parser slowness follow-up" -> [rgx-0078-regex-slowness-followup](docs/knowledge/rgx-0078-regex-slowness-followup.md) · 2026-06-03 · reverify: `cat the RGX issue yaml; run the pgen_iteration_flow harness (PCRE2-relative bench)`
 - "what is Purdom min-terminal-length ordering and why can it pick a too-deep derivation" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-08-01 · reverify: `grep -n 'fn witness_target_depth_budget' -A 30 rust/src/ast_pipeline/stimuli_generator.rs | grep -n 'Branch\\|min_full_derivation_depth_of_node\\|reach_prefix_budget'; python3 docs/tasks/artifacts/sv_exh_proof/class_a_fix_budget_preview.py | tail -2`
+- "what is TARGET_BRANCH_DEPTH_RETRY_CAP and what does it fix" -> [depth-slack-retry-needs-a-runaway-backstop](docs/knowledge/depth-slack-retry-needs-a-runaway-backstop.md) · 2026-08-02 · reverify: `cargo test --features 'generated_parsers ebnf_dual_run' --lib depth_slack; grep 'Depth-slack retry census:' rust/target/sv_stimuli_quality_gate/logs/profile_2017_closed_loop_replay.log`
 - "what is [> ...] / [>! ...] in a pgen grammar" -> [lexical-follow-restrictions](docs/knowledge/lexical-follow-restrictions.md) · 2026-06-08 · reverify: `grep -n 'parse_lexical_annotation_line\\|lexical_follow_restrictions' rust/src/ebnf_frontend.rs rust/src/ast_pipeline/mod.rs; grep -n 'fn apply_lexical_follow_restriction' rust/src/ast_pipeline/stimuli_generator.rs`
 - "what is a certifying linter or certificate" -> [grammar-linter-trustworthiness](docs/knowledge/grammar-linter-trustworthiness.md) · 2026-06-06 · reverify: `grep -n 'verify_unreachability_certificate\\|UnreachabilityCertificate\\|EarlierArmAlwaysSucceeds' rust/src/ast_pipeline/grammar_wellformedness.rs`
 - "what is a store-entry-blocked witness target" -> [witness-entry-policy-store-gated-targets](docs/knowledge/witness-entry-policy-store-gated-targets.md) · 2026-08-02 · reverify: `python3 docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py; cargo test --features 'generated_parsers ebnf_dual_run' --lib witness_store_entry_blocked raised_branch_plan plain_branch_installer`
@@ -458,9 +459,9 @@ _Coverage-gap reason codes are STIMULI-GENERATOR verdicts, not parser verdicts_
 ### depth-slack-retry-needs-a-runaway-backstop
 _A generation retry with no runaway backstop — why `--max-depth 20` runs at depth 448, and how to price the bound_
 
-- **answers:** why does a failure reason say max_depth=448 when I passed --max-depth 20 | why is the stimuli generator's depth budget cumulative under nesting | does the generator's depth escalation ever actually produce coverage | what is the Depth-slack retry census line in a closed-loop replay log | how do I choose a cap for a generation retry without curve-fitting | how do I tell a runaway retry from a productive one | why did capping a retry make the target-drive pass better and the residual worse | what does branch_retry_max much greater than success_ordinal_max mean
+- **answers:** why does a failure reason say max_depth=448 when I passed --max-depth 20 | why is the stimuli generator's depth budget cumulative under nesting | does the generator's depth escalation ever actually produce coverage | what is the Depth-slack retry census line in a closed-loop replay log | how do I choose a cap for a generation retry without curve-fitting | how do I tell a runaway retry from a productive one | why did capping a retry make the target-drive pass better and the residual worse | what does branch_retry_max much greater than success_ordinal_max mean | what is TARGET_BRANCH_DEPTH_RETRY_CAP and what does it fix
 - **date:** 2026-08-02 · **status:** current
-- **evidence:** `rust/src/ast_pipeline/stimuli_generator.rs (`target_branch_depth_retry_slack`, `should_reach_retry_uncovered_recursive`, `MAX_UNCOVERED_REACH_RETRIES`, `DepthSlackRetryCensus`, `depth_slack_retries_by_branch`); docs/tasks/SV-EXH-PROOF.md leaf .7.4.6.13 (FIX_PRICED_AND_BLOCKED_2026-08-02); TOOLBOX.md 6.2; docs/book/src/stimuli-and-quality.md "`--max-depth` is not the depth the generator runs at`
+- **evidence:** `rust/src/ast_pipeline/stimuli_generator.rs (`target_branch_depth_retry_slack`, `should_reach_retry_uncovered_recursive`, `MAX_UNCOVERED_REACH_RETRIES`, `DepthSlackRetryCensus`, `depth_slack_retries_by_branch`); docs/tasks/SV-EXH-PROOF.md leaf .7.4.6.13 (FIX_PRICED_AND_BLOCKED_2026-08-02, BACKSTOP_LANDED_2026-08-02); TOOLBOX.md 6.2; docs/book/src/stimuli-and-quality.md "`--max-depth` is not the depth the generator runs at`
 - **reverify:** `cargo test --features 'generated_parsers ebnf_dual_run' --lib depth_slack; grep 'Depth-slack retry census:' rust/target/sv_stimuli_quality_gate/logs/profile_2017_closed_loop_replay.log`
 - **source:** [`docs/knowledge/depth-slack-retry-needs-a-runaway-backstop.md`](docs/knowledge/depth-slack-retry-needs-a-runaway-backstop.md)
 

@@ -10,10 +10,11 @@ answers:
   - "how do I tell a runaway retry from a productive one"
   - "why did capping a retry make the target-drive pass better and the residual worse"
   - "what does branch_retry_max much greater than success_ordinal_max mean"
+  - "what is TARGET_BRANCH_DEPTH_RETRY_CAP and what does it fix"
 tags: [stimuli, coverage, generator, retry, budget, instrumentation, systemverilog, root-cause]
 date: 2026-08-02
 status: current
-evidence: rust/src/ast_pipeline/stimuli_generator.rs (`target_branch_depth_retry_slack`, `should_reach_retry_uncovered_recursive`, `MAX_UNCOVERED_REACH_RETRIES`, `DepthSlackRetryCensus`, `depth_slack_retries_by_branch`); docs/tasks/SV-EXH-PROOF.md leaf .7.4.6.13 (FIX_PRICED_AND_BLOCKED_2026-08-02); TOOLBOX.md 6.2; docs/book/src/stimuli-and-quality.md "`--max-depth` is not the depth the generator runs at"
+evidence: rust/src/ast_pipeline/stimuli_generator.rs (`target_branch_depth_retry_slack`, `should_reach_retry_uncovered_recursive`, `MAX_UNCOVERED_REACH_RETRIES`, `DepthSlackRetryCensus`, `depth_slack_retries_by_branch`); docs/tasks/SV-EXH-PROOF.md leaf .7.4.6.13 (FIX_PRICED_AND_BLOCKED_2026-08-02, BACKSTOP_LANDED_2026-08-02); TOOLBOX.md 6.2; docs/book/src/stimuli-and-quality.md "`--max-depth` is not the depth the generator runs at"
 reverify: "cargo test --features 'generated_parsers ebnf_dual_run' --lib depth_slack; grep 'Depth-slack retry census:' rust/target/sv_stimuli_quality_gate/logs/profile_2017_closed_loop_replay.log"
 ---
 
@@ -36,8 +37,8 @@ entered inside another retry's subtree inflates an already inflated budget, and 
 
 | defect | what it is | what fixes it |
 |---|---|---|
-| **cost / runaway** | the retry is unbounded per branch — one `sv_2017` branch spent **726 836** retries, 37 % of the whole run's | a per-branch backstop (below) |
-| **predictability** | `--max-depth` does not bound the descent, because the slack is added to the **live** budget | its own bound — slack relative to the *configured* depth, or a nesting cap |
+| **cost / runaway** | the retry was unbounded per branch — one `sv_2017` branch spent **726 836** retries, 37 % of the whole run's | ✅ FIXED — the per-branch backstop `TARGET_BRANCH_DEPTH_RETRY_CAP = 4096` (below) |
+| **predictability** | `--max-depth` does not bound the descent, because the slack is added to the **live** budget | ⛔ STILL OPEN — needs its own bound: slack relative to the *configured* depth, or a nesting cap |
 
 ⛔ **A per-branch backstop does NOT bound the ladder.** Measured under the cap, the ladder is
 essentially invariant: `448 → 444` (`sv_2017`) and `676 → 672` (`sv_2023`). Recorded depth failures
@@ -75,6 +76,19 @@ SystemVerilog `sv_2023` replay found **more** successes (`147 → 398`) and near
 target-drive resolution (`568 → 1673`), because the budget stopped being burned on one branch.
 Always A/B the residual; never infer it from the histogram.
 
+**LANDED, and here is the whole price.** `TARGET_BRANCH_DEPTH_RETRY_CAP = 4096`, consulted against
+the census's own per-branch tally so the bound and its pricing cannot describe different
+populations. Measured before → after on the closed-loop replay stage, both LRM profiles:
+
+| | `sv_2017` | `sv_2023` |
+|---|---|---|
+| retry attempts | 1 964 056 → **302 526** (6.5x) | 2 959 658 → **408 247** (7.2x) |
+| retry successes | 255 → 252 | 147 → **398** |
+| `branch_retry_max` | 726 836 → **4 096** | 280 916 → **4 096** |
+| target-drive resolved | 872 → 880 | 568 → **1 673** |
+| stage elapsed | 458 s → **267 s** | 569 s → **437 s** |
+| residual | 0 → 0 | 0 → 0 |
+
 ## The trap: making one pass better can uncover another pass's hidden dependency
 
 Bounding the retry improved `sv_2017`'s target-drive pass (`872 → 880` resolved) — and that
@@ -82,7 +96,8 @@ improvement **raised** the residual `0 → 1`. The chain: the extra resolutions 
 `wildcard_escape_nettype_identifier`, so that rule was no longer a residual RULE target when the
 witness pass ran; the raised-witness-entry mechanism fires for RULE targets only
 (`store_entry_raises 1 → 0`); and the store-entry-blocked BRANCH target it had been closing
-*transitively* went uncovered. See [[witness-entry-policy-store-gated-targets]].
+*transitively* went uncovered. See [[witness-entry-policy-store-gated-targets]] — whose BRANCH half
+was built for exactly this, and is what let the bound land with the residual still at `0`.
 
 ⇒ **when coverage is reached transitively, an improvement anywhere upstream can remove the
 transitivity.** A residual of 0 that depends on one pass failing at exactly the right place is a

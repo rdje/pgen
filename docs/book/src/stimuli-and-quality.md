@@ -280,6 +280,40 @@ The line is printed only when the retry fired, so a grammar that never escalates
 byte-identical log — which also means a census line is evidence the retry ran, not evidence the
 instrument is compiled in.
 
+#### The per-branch runaway backstop
+
+That distribution is what the retry's bound is read off. The retry's sibling in the very same
+error arm has been capped since it was written; this one was capped by nothing, which is how a
+single branch reached `726 836` attempts. It now carries a **per-branch** cap of `4096` —
+per branch, never global, so a productive branch is never starved by a runaway sibling — counted on
+the same tally the census reports, so the bound and the measurement that priced it cannot describe
+different populations. `4096` retains `252/255` (`sv_2017`) and `147/147` (`sv_2023`) of the
+measured successes, and equals the sibling's bound deliberately: two retries in one arm should not
+carry bounds that disagree.
+
+Measured on SystemVerilog's closed-loop replay stage, both LRM profiles:
+
+| | `sv_2017` | `sv_2023` |
+|---|---|---|
+| retry attempts | 1 964 056 → **302 526** | 2 959 658 → **408 247** |
+| retry successes | 255 → 252 | 147 → **398** |
+| `branch_retry_max` | 726 836 → **4 096** | 280 916 → **4 096** |
+| target-drive resolved | 872 → 880 | 568 → **1 673** |
+| stage elapsed | 458 s → **267 s** | 569 s → **437 s** |
+| closed-loop residual | 0 → 0 | 0 → 0 |
+
+`sv_2023` resolves nearly **three times** as many targets in its target-drive pass, because the
+budget stops being spent on branches that cannot succeed. And note the residual row: this bound
+could not land until the closed-loop witness pass could close a store-gated *branch* target on its
+own, because a strictly better target-drive pass was what stopped the older rule-only raise from
+firing.
+
+⛔ **What the backstop does *not* fix:** the escalation described above. Under the cap the ladder is
+essentially unchanged — `448 → 444` and `676 → 672` — because bounding *how many* retries a branch
+gets says nothing about *how deep* each one goes. `--max-depth` still does not bound the descent.
+That needs its own bound (slack relative to the configured depth, or a cap on nesting), and it is
+open.
+
 Not every reason is a budget. A row reading
 `STORE-AWARE-GEN: rule '…' fact_count_at_least predicate unsatisfiable (zero
 source facts)` is the *other* class: the witness could not be built at all,

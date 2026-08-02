@@ -1373,7 +1373,18 @@ literal over a failing surface.
   unreachable regardless of this number. Checked rather than assumed.
 
 - ID: `SV-EXH-PROOF.7.4.6.13`
-  Status: `in_progress` (`PGEN-SV-EXH-PROOF-0172` — the retry is now INSTRUMENTED and the fix is PRICED; the fix itself is **BLOCKED on `.7.4.6.14`**, measured, not assumed) — ⚠️ a **predictability/cost** finding, not a correctness one.
+  Status: `in_progress` (`PGEN-SV-EXH-PROOF-0176` — ⭐ **DEFECT (i) COST IS FIXED AND LANDED**; ⛔ **DEFECT (ii) PREDICTABILITY — THIS LEAF'S GOAL — REMAINS OPEN**) — ⚠️ a **predictability/cost** finding, not a correctness one.
+  BACKSTOP_LANDED_2026-08-02 (`PGEN-SV-EXH-PROOF-0176`): `The per-branch runaway backstop (TARGET_BRANCH_DEPTH_RETRY_CAP = 4096, one const + one guard in target_branch_depth_retry_slack) is IN. Its one blocker was removed by .7.4.6.14, which closed branch::net_declaration_sv_2017::root#2 under the cap itself -- so the residual stays 0/0 and the two-sided ratchet holds unchanged. MEASURED before -> after, both profiles, on the canonical replay stage (before = rust/target/sv_exh_proof_7_4_6_14/arm_d_head_fix/, after = .../arm_e_landed_cap/):
+  | metric | sv_2017 | sv_2023 |
+  | retry attempts | 1 964 056 -> 302 526 (6.5x) | 2 959 658 -> 408 247 (7.2x) |
+  | retry successes | 255 -> 252 | 147 -> 398 |
+  | branch_retry_max | 726 836 -> 4 096 | 280 916 -> 4 096 |
+  | deepest paying level | 89 -> 89 | 24 -> 99 |
+  | target-drive resolved | 872 -> 880 | 568 -> 1673 |
+  | stage elapsed | 458 s -> 267 s | 569 s -> 437 s |
+  | RESIDUAL | 0 -> 0 | 0 -> 0 |
+  ⭐ The stage is 1.7x/1.3x FASTER and sv_2023 resolves nearly 3x as many targets in its target-drive pass, because the budget stops being burned on branches that can never succeed. ⭐ AND THE LANDED BUILD REPRODUCES THE PRICED ARM EXACTLY: arm E (committed .7.4.6.14 + this const) is BYTE-IDENTICAL (cmp) to arm C (the same cap measured before .7.4.6.14 was committed) on stimuli.sv / gap.json / gap.txt for BOTH profiles -- so the number this leaf landed on is the number it priced, not a re-derivation.
+  ⛔ AND THE GOAL IS STILL OPEN, RE-MEASURED ON THIS VERY PAIR RATHER THAN QUOTED FROM -0174: the max_depth ladder is essentially invariant under the bound -- sv_2017 448 -> 444 (108 -> 107 distinct values, 22.4x -> 22.2x the configured --max-depth 20), sv_2023 676 -> 672 (165 -> 164, 33.8x -> 33.6x). --max-depth still does not bound the descent. That is defect (ii), it needs its own bound (slack relative to the ORIGINAL configured depth, or a nesting cap), and it is what this leaf's Goal asks for.`
   ⭐⭐ **THE FIX IS FOUND, PRICED, AND DELIBERATELY NOT LANDED — read `FIX_PRICED_AND_BLOCKED_2026-08-02` first.** The defect is not the `+4` arithmetic: it is that this retry has **no runaway backstop** while its sibling in the same `Err` arm has had one since `GRAMMAR-WELLFORMED.H.4.2`. One `sv_2017` branch was measured at **726 836** retries. A per-branch backstop at `4096` cuts retry work **6.5x/7.2x** and nearly **triples** the `sv_2023` target-drive pass (`568 → 1673` resolved) — but it moves the `sv_2017` residual **`0 → 1`**, because making target-drive better resolves `wildcard_escape_nettype_identifier` early enough that `.7.4.6.12`'s raised witness entry never fires. ⇒ `.7.4.6.14` is no longer parked for want of a subject; it **is** the subject, and it gates this leaf. ⭐ It **reproduces on HEAD after both witness-pass fixes**, `2023` is worse than the published `2017` figure (ladder to **676**, 33.8× the configured depth), and it is **GENERAL** — `ebnf` and `semantic_annotation` carry the same cumulative `+4` ladder. ⛔ Read `ROUTING_DECISION_2026-08-02` (it stays here, inverting this tree's own re-home criterion, and says why) and `RISK_THE_FIX_MUST_CLEAR_2026-08-02` (the bar moved: the SV residual is now **0** behind a two-sided ratchet, so bounding the slack can only move it UP) **before** touching the Goal.
   Goal: `The +4 depth-slack retry is CUMULATIVE UNDER NESTING, so --max-depth does not bound what it appears to bound. generate_or's depth-slack retry captures original_max_depth = self.config.max_depth (stimuli_generator.rs:10421) -- the CURRENT value, which an OUTER retry may already have inflated -- then sets it to +4 and recurses. Nested retries therefore stack: 20 -> 24 -> 28 -> ... Decide whether that is intended, and if not, bound it (candidates: slack relative to the ORIGINAL configured max_depth rather than the current one; or a per-descent retry-count cap like MAX_UNCOVERED_REACH_RETRIES already used by the sibling constructive-reach retry).`
   Acceptance: `a decision recorded either way; if bounded, before->after on the canonical SV gate showing the residual and the determinism surface UNCHANGED (this is a cost/predictability change, and it must not move a single coverage number) plus a measured generation-time delta; lib+clippy green.`
@@ -1493,6 +1504,58 @@ literal over a failing surface.
   `docs/book/src/stimuli-and-quality.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
   `docs/TASK_TREE.md`, and `.7.4.6.14`'s status (it now has a subject and gates this leaf).
   No grammar / generated-parser / schema / contract / ledger change → those are N/A by construction.
+
+- **Acceptance Checklist (enforced)** — `SV-EXH-PROOF.7.4.6.13` (`PGEN-SV-EXH-PROOF-0176`, the
+  BACKSTOP the census above priced — defect (i) only; defect (ii), this leaf's Goal, stays open)
+- [x] **REPRODUCE / ISSUE** — the runaway reproduces on the committed HEAD, and the number is the
+  census's own: `Depth-slack retry census: nesting_levels=107 attempts=1964056 successes=255
+  deepest_paying_level=89 branches_retried=443 branch_retry_max=726836 success_ordinal_max=103829`
+  (`sv_2017`, `guard.51327.marker` `exit=0 elapsed=458s`) and `… nesting_levels=164 attempts=2959658
+  successes=147 deepest_paying_level=24 branches_retried=259 branch_retry_max=280916
+  success_ordinal_max=63` (`sv_2023`, `elapsed=569s`). ONE branch takes 726 836 of `sv_2017`'s
+  1.96 M retries.
+- [x] **ROOT CAUSE (WHY + WHERE)** — unchanged from the box above and re-verified at the source:
+  `generate_or`'s `Err` arm (`stimuli_generator.rs`) holds two retries;
+  `should_reach_retry_uncovered_recursive` is bounded by `MAX_UNCOVERED_REACH_RETRIES = 4096`
+  (`GRAMMAR-WELLFORMED.H.4.2`) and `target_branch_depth_retry_slack`, in the same `match` arm, by
+  nothing — so a branch that can never succeed is retried without limit. The per-branch
+  `failure_reasons` census (TOOLBOX 6.1) localises the tail to **7–9 branch groups**, and the
+  `--trace-rules`-adjacent `Depth-slack retry census:` line (this leaf's own instrument, proven
+  inert against the canonical gate) prices it per NESTING LEVEL and per branch ORDINAL.
+- [x] **FIX** — fix-hierarchy tier: **engine, one const + one guard, no new surface**.
+  `TARGET_BRANCH_DEPTH_RETRY_CAP = 4096` consulted in `target_branch_depth_retry_slack` against the
+  census's own per-branch tally (`depth_slack_retries_by_branch`) — ONE number, so the bound and the
+  measurement that priced it cannot describe different populations. Per BRANCH, never global, so a
+  productive branch is never starved by a runaway sibling. The magnitude equals the sibling
+  backstop's deliberately: two retries in one `match` arm should not carry bounds that disagree, and
+  `4096` is read off the measured success-ordinal distribution (it keeps `252/255` and `147/147`),
+  not curve-fitted.
+- [x] **ADDRESSED (verified)** — before→after on the canonical replay stage, both profiles
+  (`arm_d_head_fix` → `arm_e_landed_cap`): retry attempts **1 964 056 → 302 526** (`6.5x`) and
+  **2 959 658 → 408 247** (`7.2x`); `branch_retry_max` **726 836 → 4 096** and **280 916 → 4 096`**;
+  target-drive resolved **872 → 880** and **568 → 1673** (`2.9x`); stage elapsed **458 s → 267 s**
+  and **569 s → 437 s**. ⭐ **RESIDUAL UNCHANGED at `0` / `0`** — the whole reason this was blocked —
+  because `.7.4.6.14` closed `branch::net_declaration_sv_2017::root#2` under this very cap. And the
+  landed build reproduces the priced arm EXACTLY: arm E is **byte-identical** (`cmp`) to arm C on
+  `stimuli.sv`/`gap.json`/`gap.txt` for both profiles. Bound's own POSITIVE control:
+  `depth_slack_retry_backstop_refuses_a_branch_that_has_spent_its_budget` — the same scenario as the
+  census's positive control, differing in exactly one variable (the branch pre-charged to the cap),
+  and the target that the un-charged run retires stays unresolved.
+- [x] **NO REGRESSION** — certificate coverage at **seeds 0/7/42** on json / regex / vhdl /
+  rtl_frontend: 12/12 `UNKNOWN=0 fully_certified=true (sample_parse_failures=0,
+  proof_reverify_failures=0)`, **byte-identical across seeds** and identical to the `-0170`/`-0175`
+  baseline (json 9/9, regex 269, vhdl 216/216, rtl_frontend 169). `ast_shape_contract_gate` GREEN
+  (**18 passed, 0 failed**); `clippy_on_rust_change` **rc=0** (source ok, generated stage `pass`, 68
+  pinned lints intact). Lib suites: `891/9 → 892/9` (no-features) and `993/1 → 994/1`
+  (`generated_parsers`) — exactly `+1` for the one new test, identical failure counts. Two-sided
+  ratchet untouched at `2017: 0`/`2023: 0`, and the residual measured on both sides of the change
+  is `0`, so neither direction of the pin moves.
+- [x] **LOCKSTEP** — `docs/book/src/stimuli-and-quality.md` (the bound, its price and what it does
+  NOT fix), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`, KM card
+  `docs/knowledge/depth-slack-retry-needs-a-runaway-backstop.md`. ⛔ The leaf stays `in_progress`:
+  its Goal is defect (ii), PREDICTABILITY, which this change does **not** fix — re-measured on this
+  exact pair, the ladder is invariant (`448 → 444`, `676 → 672`). No grammar / generated-parser /
+  schema / contract / ledger change → N/A by construction.
 
 - ID: `SV-EXH-PROOF.7.4.6.14`
   Status: `done` (`PGEN-SV-EXH-PROOF-0175`, 2026-08-02) — ⭐⭐ **THE BRANCH HALF IS LANDED AND `.7.4.6.13` IS UNBLOCKED.** Measured on the four-arm matrix: the cap re-opens `branch::net_declaration_sv_2017::root#2` (`1`) and this fix closes it (`0`), while HEAD is coverage-identical with 14/13 fewer witnesses. ⛔ Read `BLAST_RADIUS_2026-08-02` — the raise turned out to fire for **15**/**14** branch targets, not one, so the whole-summary monotonicity diff is the safety argument, not a formality. Two of the three ingredients the Goal asked for were already built (`-0173`); the real work was the prelude and its branch-scoped gate discovery.
@@ -1638,7 +1701,7 @@ For the cumulative-`+4`-depth-slack finding raised by `.7.4.6.9` and routed to t
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| **1** | `SV-EXH-PROOF.7.4.6.13` | `in_progress` (`-0172` instrument + pricing; ⭐ **UNBLOCKED by `-0175`**) | The depth-slack retry's real defect is a **missing runaway backstop**, not the `+4` arithmetic: its sibling in the same `Err` arm has had one since `GRAMMAR-WELLFORMED.H.4.2`, this one has none, and **one `sv_2017` branch was measured at 726 836 retries**. The cap is priced off the measured success ORDINALS (not curve-fitted): at `4096` it keeps `252/255` + `147/147` successes, cuts retry work `6.5x`/`7.2x`, and nearly **triples** `sv_2023` target-drive resolution (`568 → 1673`). Its one blocker — `sv_2017` residual `0 → 1` — is GONE: `.7.4.6.14` closed that target, measured under the cap itself (arm C: `1 → 0`, both profiles fully resolved). ⛔ The leaf's Goal is the OTHER defect (predictability: `--max-depth` does not bound the descent), which the cap does **not** fix — landing the backstop must not be read as closing it. |
+| **1** | `SV-EXH-PROOF.7.4.6.13` | `in_progress` (`-0176` — ⭐ defect (i) COST **LANDED**; ⛔ defect (ii) PREDICTABILITY, the Goal, **OPEN**) | The depth-slack retry's real defect is a **missing runaway backstop**, not the `+4` arithmetic: its sibling in the same `Err` arm has had one since `GRAMMAR-WELLFORMED.H.4.2`, this one has none, and **one `sv_2017` branch was measured at 726 836 retries**. The cap is priced off the measured success ORDINALS (not curve-fitted): at `4096` it keeps `252/255` + `147/147` successes, cuts retry work `6.5x`/`7.2x`, and nearly **triples** `sv_2023` target-drive resolution (`568 → 1673`). Its one blocker — `sv_2017` residual `0 → 1` — was removed by `.7.4.6.14`, and the bound is now IN (`-0176`): attempts `6.5x`/`7.2x` down, `branch_retry_max 726 836 → 4 096`, `sv_2023` target-drive `568 → 1 673`, stage `458 → 267 s`/`569 → 437 s`, **residual still `0`/`0`**, and the landed build is byte-identical to the priced arm. ⛔ **The Goal is the OTHER defect** — predictability: `--max-depth` does not bound the descent, and re-measured on the landed pair the ladder is invariant (`448 → 444`, `676 → 672`). That is what remains. |
 | — | `SV-EXH-PROOF.7.4.6.14` | `done` (`-0175`, 2026-08-02) | ⭐⭐ **THE BRANCH HALF OF THE RAISED WITNESS ENTRY — `.7.4.6.13` IS UNBLOCKED.** `.7.4.6.12`'s raise fired for RULE targets only; a store-entry-blocked BRANCH target was closed only TRANSITIVELY, on two coincidences of today's grammar. `.7.4.6.13`'s backstop removes one of them and the target re-opens — which is what finally gave this leaf a measurable subject. Two of the three ingredients were already built (`-0173`); the real work was the **prelude** the branch installer never carried, plus **branch-scoped gate discovery** (a forced alternative has no ungated escape, so the mandatory descent starts at the alternative node). Four-arm matrix: residual A `0/0`, B(cap) `1/0`, C(cap+fix) `0/0`, D(HEAD+fix) `0/0`; HEAD coverage-identical with 14/13 fewer witnesses. ⛔ 15/14 branch targets take the new raise — the monotonicity diff is the safety argument. |
 | — | `SV-EXH-PROOF.7.4.6.12` | `done` (`-0170`, 2026-08-02) | ⭐⭐⭐ **CLASS C CLOSED — THE SV CLOSED-LOOP RESIDUAL IS LITERAL ZERO (`2 → 0` per profile, from 127 at the start of the campaign).** The witness pass now raises its entry for a **store-entry-blocked** target — a mandatory POSITIVE store gate consulting a fact-kind no rule in the target's own closure can emit, which no depth budget and no prelude could ever satisfy from the target's own rule. Reuses `set_reach_plan_for_rule` (hops + quantifier forcing + producer prelude), the entry policy the cert-coverage pass has always used. List-diffed **2 resolved / 0 new**, `covered_rules` 1336 → 1337, `covered_branches` 1450 → 1451, unreachable debt unchanged, and marginally FASTER (455 s → 447 s). Confirmed on the real parser with a positive **and** a negative control. Ratchet lowered in lockstep (`2017: 0`/`2023: 0`). |
 | — | `SV-EXH-PROOF.7.4.6.9` | `done` (`-0169`, 2026-08-01) | ⭐⭐ **CLASS A CLOSED — residual `83 → 4` (`2017: 42 → 2`, `2023: 41 → 2`), and the run got FASTER (612 s → 571 s).** The closed-loop witness pass gained the per-target depth budget the cert-coverage pass has had since `RTL-FE-CLOSURE.5.2` — **branch-scoped**, because the rule-scoped `.5.2` formula verbatim clears only 37/40 (a rule's minimal depth is its *shallowest* alternative, which a residual branch is precisely not). Additive by construction: both addends are `>= 0`, so a budget can only grow. Unconfounded same-depth A/B, list-diffed: **40 resolved, 0 new**; the `max_depth=40` depth-exhaustion signature went **37 rows → 0**. Two-sided ratchet lowered in lockstep (`2017: 2`/`2023: 2`, `profiles_checked 2/2`). |

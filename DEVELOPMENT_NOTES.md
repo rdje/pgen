@@ -1,5 +1,25 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0176 — a bound is only landable when the thing it perturbs can stand on its own; and "reproduces the priced arm byte-for-byte" is a cheap, strong check
+
+**The blocked fix was never wrong — its blocker was somewhere else entirely.** The backstop was
+correct, measured and ready four commits ago. What stopped it was that a *different* pass was
+closing a target transitively, on a coincidence the backstop happened to disturb. The fix for a
+blocked improvement is often not in the improvement: it is in removing the fragile coupling that
+makes the improvement look harmful.
+
+**Re-run the priced arm after landing, and `cmp` it.** The A/B that justified this bound was taken
+with an uncommitted tree. Rebuilding from the committed source and re-running produced
+byte-identical `stimuli.sv`/`gap.json`/`gap.txt` on both profiles — two commands that convert "the
+number I priced" into "the number I shipped". Without it, every figure in the leaf would rest on a
+tree state that no longer exists.
+
+**Do not let a landing be read as closing the Goal.** This leaf holds two defects; the bound fixes
+the cheaper one. The ladder was re-measured on the very pair the bound was landed on (`448 → 444`,
+`676 → 672`) rather than quoted from the earlier correction, so the open half is documented with
+evidence from the same run that closed the other half. A leaf whose Goal is still open says so in
+its status, not only in its prose.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0175 — a capability that is "already correct for branches" can still be one field short; and a pure improvement can take coverage away
 
 **A verdict being branch-aware does not make the ACTION branch-aware.** `.7.4.6.12` shipped a
