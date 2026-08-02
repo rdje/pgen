@@ -1495,7 +1495,7 @@ literal over a failing surface.
   No grammar / generated-parser / schema / contract / ledger change → those are N/A by construction.
 
 - ID: `SV-EXH-PROOF.7.4.6.14`
-  Status: `pending` (`PGEN-SV-EXH-PROOF-0172` — ⭐⭐ **UNPARKED: THE SUBJECT EXISTS AND THIS LEAF NOW GATES `.7.4.6.13`**) — it was parked for exactly one reason, "it needs a measurable subject first", and `.7.4.6.13`'s A/B produced one **in the shipped grammar, in the shipped profile**.
+  Status: `done` (`PGEN-SV-EXH-PROOF-0175`, 2026-08-02) — ⭐⭐ **THE BRANCH HALF IS LANDED AND `.7.4.6.13` IS UNBLOCKED.** Measured on the four-arm matrix: the cap re-opens `branch::net_declaration_sv_2017::root#2` (`1`) and this fix closes it (`0`), while HEAD is coverage-identical with 14/13 fewer witnesses. ⛔ Read `BLAST_RADIUS_2026-08-02` — the raise turned out to fire for **15**/**14** branch targets, not one, so the whole-summary monotonicity diff is the safety argument, not a formality. Two of the three ingredients the Goal asked for were already built (`-0173`); the real work was the prelude and its branch-scoped gate discovery.
   SUBJECT_FOUND_2026-08-02 (`PGEN-SV-EXH-PROOF-0172`): `⛔ THIS IS NO LONGER A CAPABILITY GAP WITH NO HOST -- IT IS A BLOCKER. .7.4.6.13's measured per-branch backstop (cap 4096) makes the target-drive pass STRICTLY BETTER (sv_2017 872 -> 880 resolved, sv_2023 568 -> 1673), and among the extra sv_2017 resolutions is wildcard_escape_nettype_identifier itself. That rule is then no longer a residual RULE target when the witness pass runs, so .7.4.6.12's raise never fires (store_entry_raises 1 -> 0), and the store-entry-blocked BRANCH target branch::net_declaration_sv_2017::root#2 -- which the raise had been closing TRANSITIVELY -- goes uncovered: its branch success_counts[2] 1 -> 0 while selected_counts[2] 3 -> 12 (selected four times as often, succeeding never), reason selected_but_failed, sv_2017 residual 0 -> 1.
   ⇒ acceptance clause (a) is SATISFIED, and by the strongest possible witness: not "a second grammar/profile", but the SAME grammar and profile, under a legitimate generator improvement. REACH_NOT_POPULATION_2026-08-02 said the gap was "ONE reference site away from the shipped grammar"; it turned out to be one GENERATOR IMPROVEMENT away. The prediction was right and its estimate of the distance was conservative.
   ⚠️ THE SUBJECT IS PERISHABLE -- IT EXISTS ONLY WHILE THE CAPPED VARIANT IS REPRODUCIBLE. The capped arm's artifacts are preserved at rust/target/sv_exh_proof_7_4_6_13/capped_4096/ (both profiles: stimuli, coverage, gap JSON/text, logs), and the reinstatement is one const + one guard on top of what -0172 already ships (depth_slack_retries_by_branch, depth_slack_retry_branch_key and the census are all landed and inert). ⛔ Do NOT let it rot: with .7.4.6.13's fix blocked behind it, this leaf is now the frontier.
@@ -1512,8 +1512,92 @@ literal over a failing surface.
   ⇒ SIZE: two edits (a witness-scoped prelude leg on set_reach_plan_mode; a branch-scoped descent start on the two prelude builders) plus a call-site widening. ⛔ MONOTONICITY IS THE CONSTRAINT, NOT THE SIZE: set_reach_plan is the PRIMARY target-drive pass and its output must stay byte-identical, so the prelude leg must be a separate opt-in exactly as .7.4.6.11 split set_reach_plan_forcing_quantifiers out rather than changing set_reach_plan.`
   Acceptance: `⛔ IT NEEDS A MEASURABLE SUBJECT FIRST -- that is the whole reason it was not landed with .7.4.6.12. ⭐ SATISFIED 2026-08-02 by -0172; see SUBJECT_FOUND_2026-08-02. The measurement must be taken UNDER THE CAP (the preserved capped arm), because at HEAD the target is closed transitively and no change is observable. Either (a) a second grammar/profile that genuinely exhibits a store-entry-blocked branch target with no rule-target twin (search the other families before assuming SV is the only host), or (b) a synthetic scratch-slot / unit-level subject that reproduces it end-to-end. Then: the target closes, before->after measured, MONOTONE (whole-summary diff, 0 new), determinism, lib+clippy green, zero grammar identifiers. If neither subject can be constructed, RECORD THAT and close the leaf as not-reproducible rather than landing unverifiable capability.`
   REACH_NOT_POPULATION_2026-08-02: `⛔ Stated as a REACH, per [[absence-in-the-corpus-is-not-a-property-of-the-rule]] -- "nothing exploits this today" prices a corpus, not a rule. The uncovered shape is a store-entry-blocked BRANCH target whose gated rule is NOT itself residual, i.e. the gated rule is covered by the diverse or target-drive pass, or is referenced from a SECOND site so that witnessing it does not imply selecting this branch. In today's SV grammar wildcard_escape_nettype_identifier has exactly ONE reference site (systemverilog.ebnf:3496 / :3507, one per profile), which is what makes the transitive closure work. ⇒ the gap is ONE reference site away from the shipped grammar, not a hypothetical. It blocks nothing today (the residual is 0), so it is parked per [[feedback_flow_findings_are_routed_not_worked]], not worked.`
-  Verification: `pending`
-  Commit: `pending`
+  BLAST_RADIUS_2026-08-02 (`PGEN-SV-EXH-PROOF-0175`, measured, NOT predicted): `⭐ THE RAISE IS NOT A ONE-TARGET CAPABILITY, AND THAT IS THE ONE NUMBER THIS LEAF DID NOT SEE COMING. store_entry_raises goes 1 -> 15 (sv_2017) and 1 -> 14 (sv_2023) at HEAD: fifteen and fourteen BRANCH targets carry the same store-entry-blocked verdict, and until this leaf every one of them was being witnessed by the own-rule path. ⛔ SO THE MONOTONICITY EVIDENCE IS NOT A FORMALITY HERE -- it is the whole safety argument, and it is measured rather than argued: whole-summary diff vs the unchanged HEAD arm shows covered_rules, covered_branches, reachable/unreachable rule AND branch debt lists BYTE-EQUAL on BOTH profiles, residual 0 both sides. What moves is only the sample count (sv_2017 5922 -> 5908 attempts, 922 -> 908 witnesses; sv_2023 6071 -> 6058, 1071 -> 1058), i.e. the raised whole-file witnesses settle MORE targets each, so the greedy set-cover needs fewer of them. ⇒ same coverage, 14 (resp. 13) fewer samples. Recorded because "the verdict was already branch-aware" made the raise LOOK like a one-target change, and the counter says otherwise.`
+  Verification: `⭐ FOUR-ARM MATRIX on the canonical closed-loop replay stage (docs/tasks/artifacts/sv_exh_proof/run_closed_loop_replay_stage.sh, the pinned gate configuration), single-variable, both LRM profiles. A = HEAD/no-fix (the -0172 final_instrument arm), B = cap/no-fix, C = cap+fix, D = HEAD+fix. B was RE-DERIVED this slice rather than taken on trust and came out BYTE-IDENTICAL (cmp) to the preserved capped_4096 stimuli/gap.json/gap.txt -- so the oracle the whole leaf rests on is reproduced, not remembered. RESIDUAL: A 0/0, B 1/0, C 0/0, D 0/0 -- i.e. the fix closes exactly the target the cap re-opens (B -> C, sv_2017 1 -> 0) and changes nothing at HEAD (A -> D). DETERMINISM under the fix, measured not assumed: arm D's sv_2017 run was REPEATED end to end and both runs are BYTE-IDENTICAL (cmp) on stimuli.sv, gap.json and gap.txt, same witness summary line, 458 s vs 453 s. ⚠️ HONEST NOTE ON THE ARTIFACT SET: profile_*_replay_coverage.json is NOT byte-stable across processes -- its rule_success_hits is a HashMap serialized in iteration order (content-equal, order-random). The three artifacts the residual ratchet reads (stimuli.sv / gap.json / gap.txt) ARE byte-stable, which is what -0172's byte-identity claim was scoped to; checked rather than assumed after cmp flagged it.`
+  Commit: `PGEN-SV-EXH-PROOF-0175`
+
+- **Acceptance Checklist (enforced)** — `SV-EXH-PROOF.7.4.6.14` (`PGEN-SV-EXH-PROOF-0175`)
+- [x] **REPRODUCE / ISSUE** — the subject reproduces, and the reproduction is byte-exact. Re-derived
+  arm B (the cap reinstated on HEAD, nothing else) and got `profile_2017_replay_{stimuli.sv,gap.json,
+  gap.txt}` **byte-identical (`cmp`)** to the preserved `-0172` capped arm, with the same witness
+  summary line `… store_entry_raises=0` and the same single residual row
+  `branch::net_declaration_sv_2017::root#2  reason=selected_but_failed  deficit=1`. Elapsed 256 s,
+  `guard.29675.marker` `exit=0 peak_tree_rss=132MB`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the BRANCH-target reach plan carries **no semantic prelude**,
+  so a raised branch witness steers correctly and still renders the gated rule against an empty
+  store. **WHERE**, in three source facts read before any code was written (`-0173`): (1) the
+  verdict `target_forces_positive_store_gate` is ALREADY branch-aware — it judges the targeted
+  alternative first — so nothing was missing there; (2) `set_reach_plan_forcing_quantifiers` has
+  ALWAYS taken independent `entry_rule`/`target_rule`, so the raise is a call-site widening, not a
+  new installer; (3) `set_reach_plan_mode` never sets `plan.prelude` while the rule path
+  (`install_reach_plan_from_hops`) calls `compute_reach_prelude` — and even once wired,
+  `compute_count_prelude`'s discovery would find nothing, because its fallback
+  `count_gate_via_mandatory_descent(target_rule, 0)` stops at `net_declaration_sv_2017`'s root `Or`,
+  whose first alternative is the ungated `wire a;`. **WHY, proven on the real parser rather than
+  argued** (`parseability_probe --parse systemverilog … --profile sv_2017`): the witness the fix
+  produces, `import\foo ::*;package\foo ;\foo \foo ;endpackage`, gives `parse_full passed for
+  grammar 'systemverilog'`; the byte-identical sample with only the leading import removed gives
+  `Parser did not consume full input at position 0 [furthest_position=17, …]` — position 17 is the
+  escaped net-type identifier, so it is the *upstream declaration* that the branch needs, exactly as
+  for the rule half. And the sample is **absent from arm B's stimuli** (`grep -c` → 0) and present
+  in arm C's at line 15664 — the prelude is what puts it there.
+- [x] **FIX** — fix-hierarchy tier: **engine, minimal, capability-symmetry-restoring** (no grammar
+  change, no new annotation surface, zero grammar identifiers outside the one real-grammar test).
+  Three edits: (a) `generate_target_witnesses`'s raise arm drops its `Rule`-only guard and, for a
+  branch target, records the raised entry for the branch arm to install; (b) new opt-in
+  `set_reach_plan_forcing_quantifiers_with_prelude` — a separate entry point exactly as `.7.4.6.11`
+  split `set_reach_plan_forcing_quantifiers` out of `set_reach_plan`, so the primary target-drive
+  pass and the ordinary branch-witness path stay byte-identical; (c) branch-scoped gate discovery
+  (`count_gate_via_targeted_alternative`, `name_gate_via_targeted_alternative`), tried **last** in
+  both prelude builders so every gate the existing legs find is found identically. The name-gate leg
+  keeps `.4b.7`'s "only when the render is unavoidably store-gated" guard, applied to the
+  alternative node — without it a prelude could be armed on an alternative that renders fine from an
+  empty store and BREAK a working witness. `compute_reach_path_with_quantifier_sites` now also
+  returns its hop chain, so the prelude is built from the very path the plan steers instead of a
+  second BFS. Fail-safe throughout: any miss falls back to the unchanged own-rule install.
+- [x] **ADDRESSED (verified)** — before→after on the ONLY configuration where it is observable
+  (arm B → arm C, the cap in place): `sv_2017` residual **1 → 0**, `sv_2023` **0 → 0**, both profiles
+  `resolved … of … reachable targets` complete (2693/2693 and 2768/2768) and
+  `depth_exceeded=0 rule_visit_limit=0 target_timeout=0 helper_timeout=0 other=0`. Whole-summary
+  diff B → C on `sv_2017`: `covered_branches` **1450 → 1451**, `reachable_branch_debt` **1 → 0**,
+  and every other figure plus all four debt lists equal to the unchanged HEAD arm — **1 resolved,
+  0 new**. Ground truth under the fix, not just a count: 4 new unit tests — a POSITIVE control (a
+  synthetic store-entry-blocked branch arms the prelude on the gate inside its targeted alternative,
+  at the on-path quantifier site, `iterations=1`), NEGATIVE control 1 (the plain branch installer
+  still carries no prelude — the scoping), NEGATIVE control 2 (the sibling UNGATED alternative of
+  the same OR arms nothing — the discovery does not over-reach), and a REAL-grammar pin that the
+  subject's prelude arms on `wildcard_escape_nettype_identifier`. DETERMINISM under the fix:
+  arm D's `sv_2017` run repeated end to end, **byte-identical** on all three ratchet-read artifacts
+  (453 s vs 458 s).
+- [x] **NO REGRESSION** — certificate coverage at **seeds 0/7/42** on json / regex / vhdl /
+  rtl_frontend: 12/12 runs `CERTIFICATE-COVERAGE: … UNKNOWN=0 fully_certified=true
+  (sample_parse_failures=0, proof_reverify_failures=0)`, **byte-identical across the three seeds**
+  and identical to the `-0170` baseline (json 9/9, regex 269 = 9 proof + 260 witness, vhdl 216/216,
+  rtl_frontend 169 = 1 proof + 168 witness). `ast_shape_contract_gate` GREEN (**18 passed, 0
+  failed**). `clippy_on_rust_change` **rc=0** — source stage ok AND the generated-parser stage
+  `pass`, `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS` with all **68** pinned lints still in
+  `clippy::correctness`. Lib suites against a baseline **measured decisively, not remembered**: the
+  changed file was `git checkout`-ed and both suites re-run on clean HEAD → no-features **888/9**,
+  `generated_parsers` **990/1**, dual-feature **1043/1**; with the change → **891/9**, **993/1**,
+  i.e. exactly `+3` passing in each single-feature config (the 4th test is dual-feature-gated) and
+  **identical failure counts**, the residual failures being the same pre-existing ones in modules
+  this diff does not touch. ⭐ And the strongest signal for a change that alters GENERATED STIMULI:
+  the HEAD arm A → D whole-summary diff is coverage-EQUAL on both profiles with all four debt lists
+  byte-equal (see `BLAST_RADIUS_2026-08-02`) — 15 and 14 branch targets take the new raise and not
+  one target is lost. ⚠️ Stated rather than implied: the 14-case external SV corpus was **not**
+  re-run. This change is confined to stimuli GENERATION and cannot alter parsing; the samples it
+  emits were nonetheless replayed through the real parser by the replay stage itself
+  (`sample_errors` 69/66 unchanged on both profiles).
+- [x] **LOCKSTEP** — book: new subsection *Raising the entry for a store-gated BRANCH target* in
+  `docs/book/src/grammar-wellformedness.md`, plus the `store_entry_raises=` sentence in
+  `docs/book/src/stimuli-and-quality.md` now pointing at it. KM card
+  `docs/knowledge/witness-entry-policy-store-gated-targets.md` extended with the branch half + the
+  three new question keys, map regenerated (`knowledge-map: OK (facts valid, ids unique, map in
+  sync)`, 54 facts / 346 question keys). `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
+  `docs/TASK_TREE.md` (frontier → `.7.4.6.13`). ⛔ Ratchet **deliberately unchanged** at
+  `2017: 0`/`2023: 0` — the residual does not move at HEAD, and the two-sided pin would fail if it
+  did. `docs/reference/RUST_CODEBASE_ANALYSIS.md` **not** updated, checked rather than skipped: it
+  describes no witness-pass or reach-plan seam, and this change moves no subsystem boundary.
 
 - ID: `SV-EXH-PROOF.8`
   Status: `done`
@@ -1554,8 +1638,8 @@ For the cumulative-`+4`-depth-slack finding raised by `.7.4.6.9` and routed to t
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| **1** | `SV-EXH-PROOF.7.4.6.14` | `pending` (`-0172` — ⭐⭐ **UNPARKED, and it now GATES `.7.4.6.13`**) | The BRANCH-target half of the raised witness entry. It was parked for exactly one reason — no measurable subject — and `.7.4.6.13`'s A/B produced one **in the shipped grammar and profile**: under the measured backstop, target-drive resolves `wildcard_escape_nettype_identifier` early, `.7.4.6.12`'s raise stops firing (`store_entry_raises 1 → 0`), and `branch::net_declaration_sv_2017::root#2` re-opens (`sv_2017` residual `0 → 1`). ⛔ The subject is **perishable** — it exists only while the capped arm (`rust/target/sv_exh_proof_7_4_6_13/capped_4096/`) is reproducible, and that arm is also the only oracle in which this leaf's own fix has a measurable before→after. |
-| **2** | `SV-EXH-PROOF.7.4.6.13` | `in_progress` (`-0172` — instrument LANDED, fix PRICED, **blocked on `.14`**) | The depth-slack retry's real defect is a **missing runaway backstop**, not the `+4` arithmetic: its sibling in the same `Err` arm has had one since `GRAMMAR-WELLFORMED.H.4.2`, this one has none, and **one `sv_2017` branch was measured at 726 836 retries**. The new read-only census prices the cap off the measured success ORDINALS (not curve-fitted): at `4096` it keeps `252/255` + `147/147` successes, cuts retry work `6.5x`/`7.2x`, and nearly **triples** `sv_2023` target-drive resolution (`568 → 1673`) — but moves `sv_2017` residual `0 → 1` via `.14`'s shape. Instrument proven inert (both profiles byte-identical to the canonical gate). |
+| **1** | `SV-EXH-PROOF.7.4.6.13` | `in_progress` (`-0172` instrument + pricing; ⭐ **UNBLOCKED by `-0175`**) | The depth-slack retry's real defect is a **missing runaway backstop**, not the `+4` arithmetic: its sibling in the same `Err` arm has had one since `GRAMMAR-WELLFORMED.H.4.2`, this one has none, and **one `sv_2017` branch was measured at 726 836 retries**. The cap is priced off the measured success ORDINALS (not curve-fitted): at `4096` it keeps `252/255` + `147/147` successes, cuts retry work `6.5x`/`7.2x`, and nearly **triples** `sv_2023` target-drive resolution (`568 → 1673`). Its one blocker — `sv_2017` residual `0 → 1` — is GONE: `.7.4.6.14` closed that target, measured under the cap itself (arm C: `1 → 0`, both profiles fully resolved). ⛔ The leaf's Goal is the OTHER defect (predictability: `--max-depth` does not bound the descent), which the cap does **not** fix — landing the backstop must not be read as closing it. |
+| — | `SV-EXH-PROOF.7.4.6.14` | `done` (`-0175`, 2026-08-02) | ⭐⭐ **THE BRANCH HALF OF THE RAISED WITNESS ENTRY — `.7.4.6.13` IS UNBLOCKED.** `.7.4.6.12`'s raise fired for RULE targets only; a store-entry-blocked BRANCH target was closed only TRANSITIVELY, on two coincidences of today's grammar. `.7.4.6.13`'s backstop removes one of them and the target re-opens — which is what finally gave this leaf a measurable subject. Two of the three ingredients were already built (`-0173`); the real work was the **prelude** the branch installer never carried, plus **branch-scoped gate discovery** (a forced alternative has no ungated escape, so the mandatory descent starts at the alternative node). Four-arm matrix: residual A `0/0`, B(cap) `1/0`, C(cap+fix) `0/0`, D(HEAD+fix) `0/0`; HEAD coverage-identical with 14/13 fewer witnesses. ⛔ 15/14 branch targets take the new raise — the monotonicity diff is the safety argument. |
 | — | `SV-EXH-PROOF.7.4.6.12` | `done` (`-0170`, 2026-08-02) | ⭐⭐⭐ **CLASS C CLOSED — THE SV CLOSED-LOOP RESIDUAL IS LITERAL ZERO (`2 → 0` per profile, from 127 at the start of the campaign).** The witness pass now raises its entry for a **store-entry-blocked** target — a mandatory POSITIVE store gate consulting a fact-kind no rule in the target's own closure can emit, which no depth budget and no prelude could ever satisfy from the target's own rule. Reuses `set_reach_plan_for_rule` (hops + quantifier forcing + producer prelude), the entry policy the cert-coverage pass has always used. List-diffed **2 resolved / 0 new**, `covered_rules` 1336 → 1337, `covered_branches` 1450 → 1451, unreachable debt unchanged, and marginally FASTER (455 s → 447 s). Confirmed on the real parser with a positive **and** a negative control. Ratchet lowered in lockstep (`2017: 0`/`2023: 0`). |
 | — | `SV-EXH-PROOF.7.4.6.9` | `done` (`-0169`, 2026-08-01) | ⭐⭐ **CLASS A CLOSED — residual `83 → 4` (`2017: 42 → 2`, `2023: 41 → 2`), and the run got FASTER (612 s → 571 s).** The closed-loop witness pass gained the per-target depth budget the cert-coverage pass has had since `RTL-FE-CLOSURE.5.2` — **branch-scoped**, because the rule-scoped `.5.2` formula verbatim clears only 37/40 (a rule's minimal depth is its *shallowest* alternative, which a residual branch is precisely not). Additive by construction: both addends are `>= 0`, so a budget can only grow. Unconfounded same-depth A/B, list-diffed: **40 resolved, 0 new**; the `max_depth=40` depth-exhaustion signature went **37 rows → 0**. Two-sided ratchet lowered in lockstep (`2017: 2`/`2023: 2`, `profiles_checked 2/2`). |
 | — | `SV-EXH-PROOF.3.3.5` | `done` (`-0155`, 2026-06-10) | **The 2 pre-existing auto-gate failures FIXED — FULL WORKSPACE `cargo test --features generated_parsers` is GREEN (759/0; dual-feature 788/0).** Root cause = the GATE's matcher (neither inventory nor emission): `run_inventory_wide_auto_gate` keyed its discriminator map on the `type:` literal alone, so the 32 regex `type:"atom"` / 10 rtl_const_expr `type:"binop_chain"` entries collided and the last-alphabetical entry won (`subroutine_call/1` / `shift_expr/0`) → healthy nodes false-failed against the wrong entry's keys. Fix: group same-`type` descriptors + match on the FULL string-literal tuple; unmatched tuples now an explicit drift failure (detection sharpened). All 9 integration auto-gates PASS (was 7/2); +1 module unit test locking the collision class. Test-oracle fix only — no grammar/inventory/parser change. |

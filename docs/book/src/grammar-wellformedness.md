@@ -1045,6 +1045,50 @@ List-diffed on `sv_2017`: **2 resolved, 0 new**, with `covered_rules` 1336 → 1
 moved. The run also got marginally *faster* (447 s vs 455 s), because a target that can never succeed
 had been paying a full construct attempt and then a full search fallback before giving up.
 
+#### Raising the entry for a store-gated BRANCH target
+
+The paragraph above closes a **branch** target as a side effect: the raise fired for the gated
+*rule*, and because that rule is referenced from exactly one place, the witness selected the branch
+on its way past. Both of those are coincidences of today's grammar, and the second one is not even
+required — remove either and the branch is uncovered again with the rule still closed.
+
+That is not hypothetical. Bounding the generator's depth-slack retry (see
+[Stimuli and Quality](stimuli-and-quality.md)) makes the *target-drive* pass strictly better, so it
+resolves the gated rule early; the rule is then no longer a residual target when the witness pass
+runs, the raise never fires, and the branch reopens as `selected_but_failed`. A pure improvement
+elsewhere in the generator took a covered target away.
+
+So the raise applies to **branch** targets on the same verdict, with one addition that is the real
+work. A branch plan already accepted an entry rule distinct from its target rule, and the blocked
+verdict was already branch-aware — it judges the *targeted alternative* first. What was missing is
+the **semantic prelude**: the rule-target installer attaches one, the branch-target installer never
+did, so a raised branch witness would steer down correctly and still render the gated rule against
+an empty store. Attaching it needs the prelude's gate discovery to be branch-aware too, for a
+structural reason worth stating:
+
+> A mandatory descent refuses an ordered choice that has an ungated escape — correctly, because the
+> generator would simply take the escape and need no prelude. But a plan that **forces one
+> alternative** has removed the escape. For that plan, the targeted alternative's mandatory render
+> *is* the whole render, so discovery starts at the alternative node rather than at the rule.
+
+Both the count-gate and the name-gate prelude builders gained that start, tried **last** so every
+gate the existing legs already find is found identically, and the name-gate one keeps the same
+"only when the render is unavoidably store-gated" guard that stops a prelude being armed on an
+alternative which parses perfectly well from an empty store. The prelude-bearing branch installer is
+a separate entry point that only the raised-entry arm calls — the plain branch installer, used by
+every other target, is untouched.
+
+Measured on the same replay stage. In the bounded-retry configuration — the only one where this is
+observable, because at the default the branch is still closed transitively — `sv_2017` residual
+**1 → 0** and the re-opened `branch::net_declaration_sv_2017::root#2` closes. The witness the fix
+produces is `import\foo ::*;package\foo ;\foo \foo ;endpackage`: the real parser accepts it
+(`parse_full passed`) and rejects the byte-identical sample with only the import removed
+(`furthest_position=17`, the escaped net-type identifier) — so the prelude is doing the work the
+gate needs, not merely appearing. At the default configuration the change is coverage-neutral and
+slightly cheaper: identical `covered_rules`/`covered_branches` and identical debt lists on both
+profiles, with **14 fewer witnesses** needed on `sv_2017` and 13 fewer on `sv_2023`, because a
+raised-entry witness is a whole-file sample that settles more targets at once.
+
 ### Reaching store-gated rules: the semantic-prelude reach
 
 One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule

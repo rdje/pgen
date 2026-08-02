@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0175 — a capability that is "already correct for branches" can still be one field short; and a pure improvement can take coverage away
+
+**A verdict being branch-aware does not make the ACTION branch-aware.** `.7.4.6.12` shipped a
+store-entry-blocked verdict that judges a branch target on its targeted alternative, and a branch
+installer that has always accepted an entry rule distinct from its target rule. Both facts made the
+branch half look like a call-site widening. It was not: the branch installer never set
+`plan.prelude`, so the raise alone would have produced a witness that steers to the right place and
+still renders the gated rule against an empty store. Read the ACTION path, not just the predicate.
+
+**The escape that makes a mandatory descent correct is exactly what a forced plan removes.** Gate
+discovery refuses an ordered choice with an ungated alternative — right, because the generator would
+take the escape and need no prelude. But a plan that FORCES one alternative has deleted that escape;
+for that plan the alternative's mandatory render is the whole render. The same walk, started one
+node lower, answers the question the plan is actually asking. Generalisable: whenever an analysis is
+consumed by something that CONSTRAINS generation, re-ask whether the analysis should be scoped to
+the constraint.
+
+**A pure improvement elsewhere can subtract coverage, and only a two-sided ratchet catches it.**
+Bounding a runaway retry made the target-drive pass strictly better, which resolved a gated rule
+earlier, which stopped a witness-pass raise from firing, which lost a branch target that had been
+covered transitively. Nothing regressed in the improvement's own terms. The chain is four links long
+and every one of them is a local improvement.
+
+**And the safety argument was in the number nobody asked for.** The raise looked like a one-target
+capability; `store_entry_raises` came back **15** and **14**. Fifteen and fourteen branch targets
+carried the same blocked verdict and had been witnessed by the own-rule path all along, so
+"monotone, 0 new" stopped being a formality and became the whole case for landing. When a counter
+exists, read it before concluding the blast radius — the counter was already on the summary line.
+
+**Measure the baseline, do not remember it.** The lib-suite prediction from the previous leaf's
+recorded numbers was wrong by one, because two intervening slices had added tests. `git checkout`-ing
+the single changed file and re-running both suites took two minutes and turned "+3, probably" into
+`888/9 → 891/9` and `990/1 → 993/1`, exactly `+3` with identical failure counts.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0172 — a retry without a backstop is a defect even while it works; and "no measurable subject" is a statement about today's configuration, not about the code
 
 Three notes from `SV-EXH-PROOF.7.4.6.13`, the slice that instrumented `generate_or`'s depth-slack

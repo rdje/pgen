@@ -11,11 +11,14 @@ answers:
   - "why must a store-gate blocking verdict count only POSITIVE gates"
   - "why is a mandatory-descent walk not the same as does a gate exist below here"
   - "how did the SystemVerilog closed-loop class-C residual close"
+  - "why is the raised witness entry not RULE-target-only"
+  - "why must a branch-target reach plan carry a semantic prelude"
+  - "why does prelude gate discovery start at the targeted alternative instead of the rule"
 tags: [stimuli, coverage, semantic-store, witness, systemverilog, root-cause]
 date: 2026-08-02
 status: current
-evidence: rust/src/ast_pipeline/stimuli_generator.rs (`witness_target_is_store_entry_blocked`, `target_forces_positive_store_gate`, `emittable_kinds_within_closure`, `StoreGateScope`, and the raised-entry arm inside `generate_target_witnesses`); docs/tasks/SV-EXH-PROOF.md leaf .7.4.6.12 (WHY+WHERE_CLASS_C_2026-08-01, SIZING_CORRECTION_2026-08-01, FIX_LANDED_2026-08-02); docs/book/src/grammar-wellformedness.md "The closed-loop witness pass's raised entry for store-gated targets"
-reverify: "python3 docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py; cargo test --features 'generated_parsers ebnf_dual_run' --lib witness_store_entry_blocked"
+evidence: rust/src/ast_pipeline/stimuli_generator.rs (`witness_target_is_store_entry_blocked`, `target_forces_positive_store_gate`, `emittable_kinds_within_closure`, `StoreGateScope`, the raised-entry arm inside `generate_target_witnesses`, and the branch half `set_reach_plan_forcing_quantifiers_with_prelude` / `count_gate_via_targeted_alternative` / `name_gate_via_targeted_alternative`); docs/tasks/SV-EXH-PROOF.md leaves .7.4.6.12 (WHY+WHERE_CLASS_C_2026-08-01, SIZING_CORRECTION_2026-08-01, FIX_LANDED_2026-08-02) and .7.4.6.14 (the branch half); docs/book/src/grammar-wellformedness.md "The closed-loop witness pass's raised entry for store-gated targets"
+reverify: "python3 docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py; cargo test --features 'generated_parsers ebnf_dual_run' --lib witness_store_entry_blocked raised_branch_plan plain_branch_installer"
 ---
 
 **Two witness passes, two entry policies — and one of them is fatal for a store-gated target.**
@@ -55,6 +58,25 @@ A **BRANCH** target is judged on its *targeted alternative* first: the rule's ow
 always offers an ungated escape, which is exactly why a whole-rule walk cannot see a gate only the
 forced branch reaches.
 
+⭐ **And the raise applies to branch targets too — the prelude is what had to be built.** The
+verdict was branch-aware from day one and the branch installer already accepted an entry rule
+distinct from its target rule, so the raise itself was a call-site widening. The missing piece was
+the **semantic prelude**: the rule installer attaches one, the branch installer never did, so a
+raised branch witness steers down correctly and still renders the gated rule against an empty
+store. Attaching it required the prelude's gate discovery to be branch-scoped for a structural
+reason worth remembering:
+
+> a mandatory descent refuses an `Or` with an ungated escape — correctly, the generator would just
+> take the escape. But a plan that **forces one alternative** has removed the escape, so for that
+> plan the targeted alternative's mandatory render IS the whole render. Discovery starts at the
+> alternative node, not at the rule.
+
+Both prelude builders (count-gate and name-gate) gained that start, tried **last** so every gate the
+existing legs find is found identically; the name-gate one keeps the `.4b.7` "only when the render
+is unavoidably store-gated" guard so a prelude is never armed on an alternative that parses fine
+from an empty store. The prelude-bearing installer is a separate entry point only the raised arm
+calls.
+
 ⭐ **One cause, two targets.** SV's gated rule is referenced from exactly one place — the
 net-declaration alternative that is *also* a residual target — so the raised-entry witness selects
 and succeeds that branch on its way. The gap report had already recorded it (`depends_on`), and
@@ -64,6 +86,18 @@ on `sv_2017`, **2 resolved / 0 new**, `covered_rules` 1336 → 1337, `covered_br
 unreachable debt unchanged, and marginally FASTER (447 s vs 455 s) — an always-failing target had been
 paying a full construct attempt plus a full search fallback before giving up. Exactly **one** target
 in the run takes the raised entry (`store_entry_raises=1`).
+
+⛔ **BUT THAT TRANSITIVE CLOSE IS A COINCIDENCE OF THE GRAMMAR, AND A GENERATOR IMPROVEMENT BROKE
+IT.** Bounding the depth-slack retry ([[depth-slack-retry-needs-a-runaway-backstop]]) makes the
+target-drive pass resolve the gated RULE early; the rule is then not a residual rule target when the
+witness pass runs, the rule raise never fires (`store_entry_raises 1 → 0`), and the branch reopens
+as `selected_but_failed` — `sv_2017` residual `0 → 1`. That is what forced the branch half. With it,
+the same bounded configuration goes residual **1 → 0**; at the default configuration the change is
+coverage-neutral (identical `covered_rules`/`covered_branches` and identical debt lists on both
+profiles) and needs **14 fewer witnesses** on `sv_2017`, 13 fewer on `sv_2023`, because a raised
+whole-file witness settles more targets at once. The mechanism is checked on the real parser, not
+inferred: the produced witness `import\foo ::*;package\foo ;\foo \foo ;endpackage` gives
+`parse_full passed`, and the same sample with only the import removed gives `furthest_position=17`.
 
 See also [[sv-residual-depth-budget-cause]] (the other residual class — where a budget *was* the
 cause), [[branch-failure-reasons-are-the-witness-why]] (how to read which class you are in), and

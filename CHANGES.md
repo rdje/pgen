@@ -1,5 +1,52 @@
 # CHANGES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0175 — leaf SV-EXH-PROOF.7.4.6.14: the raised witness entry gains its BRANCH half, and `.7.4.6.13` is unblocked
+
+`.7.4.6.12` gave the closed-loop witness pass a RAISED ENTRY for a store-entry-blocked target, but
+only for RULE targets. A store-entry-blocked BRANCH target was closed only **transitively** — its
+blocking rule happened to be a residual rule target, and happened to be referenced from exactly one
+site, so the raised rule witness selected the branch on its way past. Both are coincidences of
+today's grammar. `.7.4.6.13`'s measured depth-slack backstop removes the first one (it resolves the
+gated rule early in the target-drive pass), the rule raise stops firing, and
+`branch::net_declaration_sv_2017::root#2` re-opens as `selected_but_failed` — a pure generator
+improvement taking a covered target away. That is the subject this leaf was parked for.
+
+- ⭐ **THE PRIOR-ART READ (`-0173`) WAS RIGHT AND IT CHANGED THE SHAPE OF THE WORK.** Two of the
+  three ingredients the Goal named were already built: the blocked VERDICT
+  (`target_forces_positive_store_gate`) has always judged a branch target on its *targeted
+  alternative* first, and `set_reach_plan_forcing_quantifiers` has always taken independent
+  `entry_rule`/`target_rule` — so the raise is a call-site widening, not a new installer.
+- ⛔ **THE REAL WORK WAS THE PRELUDE, AND ITS DISCOVERY HAD TO BECOME BRANCH-SCOPED.** The
+  branch installer never set `plan.prelude`, so a raised branch witness would steer down correctly
+  and still render the gated rule against an empty store. And wiring it alone would find nothing:
+  a mandatory descent refuses an `Or` with an ungated escape — correctly, the generator would just
+  take the escape — but a plan that FORCES one alternative has removed the escape, so for that plan
+  the alternative's mandatory render *is* the whole render. Discovery now starts at the alternative
+  node, in both prelude builders, tried **last** so every gate the existing legs find is found
+  identically.
+- **Scoped, as `.7.4.6.11` scoped its own capability:** the prelude-bearing installer
+  (`set_reach_plan_forcing_quantifiers_with_prelude`) is a separate entry point that only the
+  raised arm calls. The primary target-drive pass and the ordinary branch-witness path are
+  untouched. Any miss falls back to the unchanged own-rule install.
+- **MEASURED, four arms on the canonical closed-loop replay stage** (A = HEAD, B = cap, C = cap+fix,
+  D = HEAD+fix), both LRM profiles. Arm B was re-derived rather than trusted and came out
+  **byte-identical** to the preserved `-0172` capped artifacts. RESIDUAL A `0/0` · B **`1/0`** ·
+  C **`0/0`** · D `0/0`. Whole-summary diff B → C: `covered_branches` 1450 → 1451,
+  `reachable_branch_debt` 1 → 0, everything else equal — **1 resolved, 0 new**.
+- ⭐ **THE ONE NUMBER THAT WAS NOT PREDICTED:** `store_entry_raises` goes `1 → 15` (`sv_2017`) and
+  `1 → 14` (`sv_2023`). Fifteen and fourteen branch targets carry the same blocked verdict and were
+  all being witnessed by the own-rule path until now, so the monotonicity evidence is the safety
+  argument rather than a formality: A → D is coverage-EQUAL on both profiles with all four debt
+  lists byte-equal, and the only movement is **fewer samples** (922 → 908 witnesses on `sv_2017`,
+  1071 → 1058 on `sv_2023`) because a raised whole-file witness settles more targets at once.
+- **The mechanism is checked on the real parser, not inferred.** The witness the fix produces,
+  `import\foo ::*;package\foo ;\foo \foo ;endpackage`, gives `parse_full passed`; the
+  byte-identical sample with only the import removed gives `furthest_position=17` — the escaped
+  net-type identifier. It is absent from arm B's stimuli and present in arm C's.
+- **Ground truth in the unit suite** ([[feedback_instrument_needs_ground_truth]]): a POSITIVE
+  control, TWO negative controls (the plain installer still arms nothing; the sibling *ungated*
+  alternative of the same OR arms nothing), and a real-grammar pin on the actual subject.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0172 — leaf SV-EXH-PROOF.7.4.6.13: the depth-slack retry's real defect is a MISSING RUNAWAY BACKSTOP, one branch spent 726 836 retries, and the measured fix is BLOCKED by the leaf it just gave a subject to
 
 `generate_or`'s `Err` arm holds **two** retries: `should_reach_retry_uncovered_recursive` has been

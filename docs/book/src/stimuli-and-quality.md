@@ -288,7 +288,9 @@ emits — so no depth would have helped. That is the store-entry-blocked shape, 
 the pass now answers it by raising the witness entry (see [The closed-loop witness
 pass's raised entry for store-gated
 targets](grammar-wellformedness.md#the-closed-loop-witness-passs-raised-entry-for-store-gated-targets));
-`store_entry_raises=` on the summary line counts how many targets took it.
+`store_entry_raises=` on the summary line counts how many targets took it — rule and branch targets
+alike, since [the branch half](grammar-wellformedness.md#raising-the-entry-for-a-store-gated-branch-target)
+made the two one policy.
 
 ## Probe-Only Steering
 

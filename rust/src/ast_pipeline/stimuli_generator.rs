@@ -1011,6 +1011,8 @@ pub struct WitnessSummary {
     /// `witness_target_is_store_entry_blocked`). `0` for every grammar with no positive store
     /// gate, so the class-C population is REPORTED rather than inferred. `#[serde(default)]`
     /// keeps older JSON loadable.
+    /// SV-EXH-PROOF.7.4.6.14: counts RULE and BRANCH raises alike — the two arms are one policy,
+    /// so splitting the counter would make the class-C population read low for a branch-only run.
     #[serde(default)]
     pub store_entry_raises: usize,
 }
@@ -3107,6 +3109,7 @@ impl<'a> StimuliGenerator<'a> {
             target_branch_index,
             bypass_fuel,
             false,
+            false,
         )
     }
 
@@ -3139,15 +3142,53 @@ impl<'a> StimuliGenerator<'a> {
             target_branch_index,
             bypass_fuel,
             true,
+            false,
         )
     }
 
-    /// SV-EXH-PROOF.7.4.6.11: the shared body of the two branch-target installers.
+    /// SV-EXH-PROOF.7.4.6.14: as `set_reach_plan_forcing_quantifiers`, but the plan ALSO carries
+    /// the semantic PRELUDE the rule-target installer has carried since
+    /// `GRAMMAR-WELLFORMED.C2.2` (`install_reach_plan_from_hops` → `compute_reach_prelude`) and
+    /// that the branch-target installer never had. Without it, a branch target whose targeted
+    /// alternative is behind a mandatory POSITIVE store gate steers correctly and still fails:
+    /// `construct_mode` renders the minimal derivation and never spontaneously emits the enabling
+    /// declaration upstream, so the generation-side prune rejects at any budget and any seed.
+    ///
+    /// ⛔ A SEPARATE ENTRY POINT, exactly as `.7.4.6.11` split `set_reach_plan_forcing_quantifiers`
+    /// out of `set_reach_plan` rather than changing it: `set_reach_plan` is the PRIMARY target-drive
+    /// pass, whose output must stay byte-identical for the monotonicity guarantee every prior
+    /// `.7.4.6.x` slice relied on, and the plain forcing installer is the witness pass's default for
+    /// every branch target. Only the RAISED-ENTRY arm of `generate_target_witnesses` opts in —
+    /// i.e. only for a target the store-entry-blocked verdict has already judged unwitnessable from
+    /// its own rule.
+    pub fn set_reach_plan_forcing_quantifiers_with_prelude(
+        &mut self,
+        entry_rule: &str,
+        target_rule: &str,
+        target_node_path: &str,
+        target_branch_index: usize,
+        bypass_fuel: u32,
+    ) -> bool {
+        self.set_reach_plan_mode(
+            entry_rule,
+            target_rule,
+            target_node_path,
+            target_branch_index,
+            bypass_fuel,
+            true,
+            true,
+        )
+    }
+
+    /// SV-EXH-PROOF.7.4.6.11: the shared body of the branch-target installers.
     /// `force_quantifiers` selects whether the plan also carries `forced_quantifier_min`
     /// entries for the quantifier sites the reach path crosses. With `false` the map stays
     /// empty, so `generate_quantified`'s non-empty-map gate short-circuits and generation is
     /// byte-identical to pre-`.7.4.6.11` behavior. GENERAL/parser-agnostic — the sites are
     /// derived from `node_path` structure alone, no grammar identifiers.
+    /// SV-EXH-PROOF.7.4.6.14: `with_prelude` selects whether the plan also carries the semantic
+    /// prelude spec. With `false` (both pre-`.7.4.6.14` callers) `plan.prelude` stays `None`,
+    /// which is the field's default — so generation is byte-identical for them.
     fn set_reach_plan_mode(
         &mut self,
         entry_rule: &str,
@@ -3156,6 +3197,7 @@ impl<'a> StimuliGenerator<'a> {
         target_branch_index: usize,
         bypass_fuel: u32,
         force_quantifiers: bool,
+        with_prelude: bool,
     ) -> bool {
         match self.compute_reach_path_with_quantifier_sites(
             entry_rule,
@@ -3163,7 +3205,7 @@ impl<'a> StimuliGenerator<'a> {
             target_node_path,
             target_branch_index,
         ) {
-            Some((chain, quantifier_sites)) => {
+            Some((chain, quantifier_sites, hops)) => {
                 let mut plan = ActiveReachPlan::from_directives(&chain, bypass_fuel);
                 // SV-EXH-PROOF.7.2.3: snapshot the target site's existing coverage
                 // so reach_target_outcome reports only THIS plan's delta.
@@ -3174,9 +3216,23 @@ impl<'a> StimuliGenerator<'a> {
                 if force_quantifiers {
                     // The SAME keying and the SAME forced minimum the rule-target installer
                     // uses (`install_reach_plan_from_hops`), so the two paths cannot drift.
-                    for site in quantifier_sites {
-                        plan.forced_quantifier_min.insert(site, 1);
+                    for site in &quantifier_sites {
+                        plan.forced_quantifier_min.insert(site.clone(), 1);
                     }
+                }
+                if with_prelude {
+                    // SV-EXH-PROOF.7.4.6.14: the SAME builder, the SAME hops and the SAME
+                    // quantifier sites the rule-target installer feeds it — the only difference is
+                    // the BRANCH SCOPE, which lets gate discovery start from the targeted
+                    // alternative instead of the whole rule (whose root `Or` normally offers an
+                    // ungated escape that stops the mandatory descent).
+                    plan.prelude = self.compute_reach_prelude(
+                        &hops,
+                        target_rule,
+                        &quantifier_sites,
+                        bypass_fuel,
+                        Some((target_node_path, target_branch_index)),
+                    );
                 }
                 self.reach_plan = Some(plan);
                 true
@@ -3307,7 +3363,7 @@ impl<'a> StimuliGenerator<'a> {
         // the path — every grammar without `fact_count_at_least` predicates short-
         // circuits on the empty `gen_count_kinds` map, so this is a no-op there.
         plan.prelude =
-            self.compute_reach_prelude(hops, target_rule, &quantifier_sites, bypass_fuel);
+            self.compute_reach_prelude(hops, target_rule, &quantifier_sites, bypass_fuel, None);
         self.reach_plan = Some(plan);
     }
 
@@ -3330,15 +3386,35 @@ impl<'a> StimuliGenerator<'a> {
     /// the name prelude is the SV generalization. Either ingredient missing ⇒ `None` ⇒ the plan
     /// behaves exactly pre-prelude. Both maps are empty for predicate-free grammars, so this is a
     /// no-op there (byte-identical generation). Parser-agnostic; keyed only on annotations.
+    /// SV-EXH-PROOF.7.4.6.14: `target_branch` is the BRANCH SCOPE — `Some((node_path, index))`
+    /// when the plan targets one alternative of an OR node rather than the whole rule. Gate
+    /// discovery then gets one extra, LAST-tried leg that starts its mandatory descent at that
+    /// alternative (see `count_gate_via_targeted_alternative` / `name_gate_via_targeted_alternative`).
+    /// `None` — every pre-`.7.4.6.14` caller — leaves discovery byte-identical.
     fn compute_reach_prelude(
         &self,
         hops: &[(String, String)],
         target_rule: &str,
         quantifier_sites: &[(String, String)],
         bypass_fuel: u32,
+        target_branch: Option<(&str, usize)>,
     ) -> Option<ReachPrelude> {
-        self.compute_count_prelude(hops, target_rule, quantifier_sites, bypass_fuel)
-            .or_else(|| self.compute_name_prelude(hops, target_rule, quantifier_sites, bypass_fuel))
+        self.compute_count_prelude(
+            hops,
+            target_rule,
+            quantifier_sites,
+            bypass_fuel,
+            target_branch,
+        )
+        .or_else(|| {
+            self.compute_name_prelude(
+                hops,
+                target_rule,
+                quantifier_sites,
+                bypass_fuel,
+                target_branch,
+            )
+        })
     }
 
     fn compute_count_prelude(
@@ -3347,6 +3423,7 @@ impl<'a> StimuliGenerator<'a> {
         target_rule: &str,
         quantifier_sites: &[(String, String)],
         bypass_fuel: u32,
+        target_branch: Option<(&str, usize)>,
     ) -> Option<ReachPrelude> {
         if self.gen_count_kinds.is_empty() {
             return None;
@@ -3362,7 +3439,10 @@ impl<'a> StimuliGenerator<'a> {
             .chain(std::iter::once(target_rule))
             .find(|rule| self.gen_count_kinds.contains_key(*rule))
             .map(str::to_string)
-            .or_else(|| self.count_gate_via_mandatory_descent(target_rule, 0))?;
+            .or_else(|| self.count_gate_via_mandatory_descent(target_rule, 0))
+            // SV-EXH-PROOF.7.4.6.14: tried LAST, so every gate the two prior legs already find is
+            // found identically — the new leg fires only where they both return `None`.
+            .or_else(|| self.count_gate_via_targeted_alternative(target_rule, target_branch))?;
         let gated_rule = gated_rule.as_str();
         let kind = self.gen_count_kinds.get(gated_rule)?.first()?;
         let mut producers: Vec<&str> = self
@@ -3457,6 +3537,29 @@ impl<'a> StimuliGenerator<'a> {
         self.count_gate_in_mandatory_node(node, depth)
     }
 
+    /// SV-EXH-PROOF.7.4.6.14: the BRANCH-SCOPED start for the same mandatory descent. A branch
+    /// target's rule-level descent is almost always dead on arrival — `count_gate_in_mandatory_node`
+    /// refuses an `Or` with any ungated escape (correctly: the generator would simply take the
+    /// escape), and a rule whose root `Or` has an ungated alternative is the normal shape. But a
+    /// plan that FORCES one alternative has removed the escape: for that plan the targeted
+    /// alternative's mandatory render is the whole render. So descend from the alternative NODE.
+    ///
+    /// This is the same branch-first scoping `target_forces_positive_store_gate` already applies to
+    /// the store-entry-blocked VERDICT — the verdict and the prelude now judge the same node, which
+    /// is what makes "blocked ⇒ a prelude exists" coherent for a branch target. `None` for a rule
+    /// target, an invalid path or an out-of-range index. PURE analysis; no grammar identifiers.
+    fn count_gate_via_targeted_alternative(
+        &self,
+        target_rule: &str,
+        target_branch: Option<(&str, usize)>,
+    ) -> Option<String> {
+        let (node_path, branch_index) = target_branch?;
+        let alternative = self
+            .or_alternatives_for_group_path(target_rule, node_path)?
+            .get(branch_index)?;
+        self.count_gate_in_mandatory_node(alternative, 0)
+    }
+
     /// STIMULI-SIGNOFF.13.4: the structural walk behind `count_gate_via_mandatory_descent`.
     fn count_gate_in_mandatory_node(&self, node: &ASTNode, depth: usize) -> Option<String> {
         match node {
@@ -3539,6 +3642,7 @@ impl<'a> StimuliGenerator<'a> {
         target_rule: &str,
         quantifier_sites: &[(String, String)],
         bypass_fuel: u32,
+        target_branch: Option<(&str, usize)>,
     ) -> Option<ReachPrelude> {
         if self.gen_name_gate.is_empty() {
             return None;
@@ -3569,7 +3673,11 @@ impl<'a> StimuliGenerator<'a> {
             // source-type sibling) gets no prelude from them, so the forced witness renders the
             // undeclared name and rejects. Discover the gate on a mandatory off-path sibling along the
             // reach path. Tried last, so every already-armed target is byte-identical.
-            .or_else(|| self.name_gate_via_offpath_sibling(hops))?;
+            .or_else(|| self.name_gate_via_offpath_sibling(hops))
+            // SV-EXH-PROOF.7.4.6.14: the BRANCH-SCOPED leg, tried LAST so the three proven legs
+            // above keep finding exactly what they found before (see
+            // `name_gate_via_targeted_alternative`).
+            .or_else(|| self.name_gate_via_targeted_alternative(target_rule, target_branch))?;
         let kind = gate.kind.as_str();
         // STRUCTURED-WITNESS-SYNTH.3 (f1): the (b1) producer-admission relaxation, SCOPED to the
         // structured-witness pass (`structured_witness_mode`). The strict filter admits only a
@@ -4368,6 +4476,33 @@ impl<'a> StimuliGenerator<'a> {
                 }
                 self.gate_in_mandatory_prefix_rule(rule, 0)
             })?;
+        self.gen_name_gate
+            .get_key_value(&gated_rule)
+            .map(|(key, gate)| (key.clone(), gate))
+    }
+
+    /// SV-EXH-PROOF.7.4.6.14: the BRANCH-SCOPED analogue of `name_gate_via_mandatory_prefix` — the
+    /// name-gate half of `count_gate_via_targeted_alternative`, and it carries the SAME safety gate
+    /// the `.4b.7` broadened leg carries, applied to the alternative NODE rather than to the rule:
+    /// arm only when EVERY way to render the targeted alternative must cross a store gate. Without
+    /// that check a prelude could be armed on an alternative that renders perfectly well against an
+    /// empty store, which BREAKS an otherwise-fine witness (the `.4b.7` `data_type` lesson).
+    /// `None` for a rule target or an escapable alternative. PURE analysis; no grammar identifiers.
+    fn name_gate_via_targeted_alternative(
+        &self,
+        target_rule: &str,
+        target_branch: Option<(&str, usize)>,
+    ) -> Option<(String, &NameGate)> {
+        let (node_path, branch_index) = target_branch?;
+        let alternative = self
+            .or_alternatives_for_group_path(target_rule, node_path)?
+            .get(branch_index)?;
+        let empty: HashSet<String> = HashSet::new();
+        let mut visited: HashSet<String> = HashSet::new();
+        if !self.mandatory_node_gated(alternative, &empty, &mut visited, StoreGateScope::AnyQuery) {
+            return None;
+        }
+        let gated_rule = self.gate_in_mandatory_prefix_node(alternative, 0)?;
         self.gen_name_gate
             .get_key_value(&gated_rule)
             .map(|(key, gate)| (key.clone(), gate))
@@ -5765,24 +5900,43 @@ impl<'a> StimuliGenerator<'a> {
             // plan installs; any miss falls through to the unchanged own-rule path below. The
             // budget is unchanged — `reach_prefix_budget` is precisely the entry→target prefix
             // allowance the raised entry now uses, which is what it was sized for upstream.
+            // SV-EXH-PROOF.7.4.6.14: the raise is no longer RULE-target-only. A store-entry-blocked
+            // BRANCH target was closed until now only TRANSITIVELY — when its blocking rule happened
+            // to be a residual RULE target AND was referenced from exactly one site, so the raised
+            // rule witness selected the branch on its way past. Remove either coincidence and the
+            // branch goes uncovered; `.7.4.6.13`'s backstop removes the first (it resolves the rule
+            // early in the target-drive pass, so the rule is no longer residual) and the branch
+            // re-opens. A branch target cannot be installed here, though: the plan must also force
+            // the branch and its quantifiers, which is the arm below. So this arm only DECIDES the
+            // raise; the branch arm performs it.
             let mut plan_installed = false;
-            if status.target_type == StimuliCoverageTargetType::Rule
-                && self.witness_target_is_store_entry_blocked(&status)
-            {
+            let mut raised_entry_for_branch: Option<String> = None;
+            if self.witness_target_is_store_entry_blocked(&status) {
                 if let Some(raised) = raised_entry_rule.as_deref() {
-                    if raised != status.rule_name
-                        && self.set_reach_plan_for_rule(raised, &status.rule_name, bypass_fuel)
-                    {
-                        entry_rule = raised.to_string();
-                        plan_installed = true;
-                        store_entry_raises = store_entry_raises.saturating_add(1);
-                        self.trace(
-                            TraceLevel::Debug,
-                            format_args!(
-                                "SV-EXH-PROOF.7.4.6.12 raised witness entry: target='{}' own_rule='{}' raised_entry='{}' budget={}",
-                                status.id, status.rule_name, raised, budget
-                            ),
-                        );
+                    if raised != status.rule_name {
+                        match status.target_type {
+                            StimuliCoverageTargetType::Rule => {
+                                if self.set_reach_plan_for_rule(
+                                    raised,
+                                    &status.rule_name,
+                                    bypass_fuel,
+                                ) {
+                                    entry_rule = raised.to_string();
+                                    plan_installed = true;
+                                    store_entry_raises = store_entry_raises.saturating_add(1);
+                                    self.trace(
+                                        TraceLevel::Debug,
+                                        format_args!(
+                                            "SV-EXH-PROOF.7.4.6.12 raised witness entry: target='{}' own_rule='{}' raised_entry='{}' budget={}",
+                                            status.id, status.rule_name, raised, budget
+                                        ),
+                                    );
+                                }
+                            }
+                            StimuliCoverageTargetType::Branch => {
+                                raised_entry_for_branch = Some(raised.to_string());
+                            }
+                        }
                     }
                 }
             }
@@ -5793,19 +5947,49 @@ impl<'a> StimuliGenerator<'a> {
             // unreachable under the `construct_mode` generation two lines below (which
             // renders a `?` ZERO times), so the witness is generated but never credits the
             // target — `never_selected`, the class-B residual. The forcing is witness-pass
-            // only; the primary target-drive pass keeps calling `set_reach_plan`. Unreachable
-            // under a raised entry — the raise is RULE-target-only (see above).
+            // only; the primary target-drive pass keeps calling `set_reach_plan`.
+            // SV-EXH-PROOF.7.4.6.14: and when the arm above raised the entry for this branch, the
+            // plan is installed from that raised entry WITH the semantic prelude — the entry policy
+            // and the prelude are one indivisible capability here, because a raised entry alone
+            // steers the sample down to the branch and still renders it against an empty store.
+            // ⛔ FAIL-SAFE: any miss (no reach path from the raised entry, an invalid OR site) falls
+            // back to the unchanged own-rule install, so a target that witnesses today still does.
             if status.target_type == StimuliCoverageTargetType::Branch {
                 if let (Some(node_path), Some(branch_index)) =
                     (status.node_path.as_ref(), status.branch_index)
                 {
-                    plan_installed = self.set_reach_plan_forcing_quantifiers(
-                        &entry_rule,
-                        &entry_rule,
-                        node_path,
-                        branch_index,
-                        bypass_fuel,
-                    );
+                    let raised_install = raised_entry_for_branch.as_deref().is_some_and(|raised| {
+                        self.set_reach_plan_forcing_quantifiers_with_prelude(
+                            raised,
+                            &status.rule_name,
+                            node_path,
+                            branch_index,
+                            bypass_fuel,
+                        )
+                    });
+                    if raised_install {
+                        let raised = raised_entry_for_branch
+                            .as_deref()
+                            .expect("a raised install implies a raised entry");
+                        self.trace(
+                            TraceLevel::Debug,
+                            format_args!(
+                                "SV-EXH-PROOF.7.4.6.14 raised witness entry (branch): target='{}' own_rule='{}' node_path='{}' branch={} raised_entry='{}' budget={}",
+                                status.id, status.rule_name, node_path, branch_index, raised, budget
+                            ),
+                        );
+                        entry_rule = raised.to_string();
+                        store_entry_raises = store_entry_raises.saturating_add(1);
+                        plan_installed = true;
+                    } else {
+                        plan_installed = self.set_reach_plan_forcing_quantifiers(
+                            &entry_rule,
+                            &entry_rule,
+                            node_path,
+                            branch_index,
+                            bypass_fuel,
+                        );
+                    }
                 }
             }
 
@@ -9162,22 +9346,30 @@ impl<'a> StimuliGenerator<'a> {
             target_node_path,
             target_branch_index,
         )
-        .map(|(chain, _quantifier_sites)| chain)
+        .map(|(chain, _quantifier_sites, _hops)| chain)
     }
 
     /// SV-EXH-PROOF.7.4.6.11: `compute_reach_path` plus the `?`/`*` quantifier sites the
     /// path crosses, in the `(rule_name, Quantified-node-path)` keying
     /// `generate_quantified` looks up. Both are derived from the SAME walk, so the OR
     /// directives and the quantifier sites can never describe different paths. Callers that
-    /// do not force quantifiers (the primary/diverse pass) simply drop the second element,
+    /// do not force quantifiers (the primary/diverse pass) simply drop the extra elements,
     /// which is exactly what `compute_reach_path` does — so their behavior is unchanged.
+    /// SV-EXH-PROOF.7.4.6.14: the third element is the cross-rule HOP chain the first two were
+    /// derived from — returned rather than recomputed so a prelude built by the caller describes
+    /// the very path the plan steers (the same invariant that keeps `chain` and
+    /// `quantifier_sites` in step), and so the BFS runs once.
     fn compute_reach_path_with_quantifier_sites(
         &self,
         entry_rule: &str,
         target_rule: &str,
         target_node_path: &str,
         target_branch_index: usize,
-    ) -> Option<(Vec<ReachDirective>, Vec<(String, String)>)> {
+    ) -> Option<(
+        Vec<ReachDirective>,
+        Vec<(String, String)>,
+        Vec<(String, String)>,
+    )> {
         // Validate the target OR node + branch index up front.
         let alternatives = self.or_alternatives_for_group_path(target_rule, target_node_path)?;
         if target_branch_index >= alternatives.len() {
@@ -9214,7 +9406,7 @@ impl<'a> StimuliGenerator<'a> {
             branch_index: target_branch_index,
         });
 
-        Some((chain, quantifier_sites))
+        Some((chain, quantifier_sites, hops))
     }
 
     /// SV-EXH-PROOF.7.2.19 (PGEN-SV-EXH-PROOF-0134, ANALYSIS ONLY — no generation
@@ -26127,6 +26319,143 @@ mod tests {
         assert_eq!(p.target_branch_index, w.target_branch_index, "same target branch");
     }
 
+    /// SV-EXH-PROOF.7.4.6.14: the store-entry-blocked BRANCH shape in miniature — the real
+    /// `net_declaration_sv_2017` cohort with every SystemVerilog identifier removed:
+    ///   `unit     := ( item )*`     the repetition the reach path crosses, and the prelude's host
+    ///   `item     := import_item | net_decl`
+    ///   `import_item := "imp"`      emits the gated kind (the producer, upstream of the target)
+    ///   `net_decl := "wire" | escape_id`   ← branch #1 is the store-entry-blocked alternative
+    ///   `escape_id := "x"`          carries `fact_count_at_least(open, 1)`
+    /// Branch #0 is the UNGATED escape whose presence is exactly why a whole-rule mandatory
+    /// descent finds no gate for this target — the defect this leaf fixes. The target sits
+    /// INSIDE the repetition, mirroring `systemverilog_file`'s `description*`: that is what puts
+    /// a quantifier site on the reach path for the prelude to host its producer iteration at.
+    fn store_entry_blocked_branch_grammar() -> (HashMap<String, ASTNode>, Vec<String>, Annotations)
+    {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "unit".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("item")),
+                quantifier: "*".to_string(),
+            },
+        );
+        grammar_tree.insert(
+            "item".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("import_item"), rule_ref("net_decl")],
+            },
+        );
+        grammar_tree.insert("import_item".to_string(), token("quoted_string", "imp"));
+        grammar_tree.insert(
+            "net_decl".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "wire"), rule_ref("escape_id")],
+            },
+        );
+        grammar_tree.insert("escape_id".to_string(), token("quoted_string", "x"));
+        let rule_order = vec![
+            "unit".to_string(),
+            "item".to_string(),
+            "import_item".to_string(),
+            "net_decl".to_string(),
+            "escape_id".to_string(),
+        ];
+        let annotations = gen_store_annotations(&[
+            gen_store_annotation("import_item", "gen_emit_fact", "{ kind: open, name: $1 }"),
+            gen_store_annotation(
+                "escape_id",
+                "gen_predicate",
+                "{ name: fact_count_at_least, args: [open, 1], phase: post }",
+            ),
+        ]);
+        (grammar_tree, rule_order, annotations)
+    }
+
+    #[test]
+    fn raised_branch_plan_arms_the_prelude_its_targeted_alternative_needs() {
+        // SV-EXH-PROOF.7.4.6.14 POSITIVE CONTROL. The targeted alternative's mandatory render
+        // crosses a positive count gate whose only producer sits UPSTREAM of the target rule, so
+        // a witness rooted at `net_decl` can never satisfy it. Raised to the run entry, the plan
+        // must carry the producer prelude — that is the whole capability.
+        let (grammar_tree, rule_order, annotations) = store_entry_blocked_branch_grammar();
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), 7);
+
+        assert!(
+            generator.set_reach_plan_forcing_quantifiers_with_prelude(
+                "unit", "net_decl", "root", 1, 16
+            ),
+            "the raised-entry branch plan must install (unit reaches net_decl)"
+        );
+        let prelude = generator
+            .reach_plan
+            .as_ref()
+            .expect("plan installed")
+            .prelude
+            .as_ref()
+            .expect("the raised branch plan must carry a prelude");
+        assert_eq!(
+            prelude.gated_rule, "escape_id",
+            "the prelude must arm on the gate inside the TARGETED ALTERNATIVE"
+        );
+        assert_eq!(
+            prelude.site,
+            ("unit".to_string(), "root".to_string()),
+            "and host the producer at the on-path quantifier site upstream of the target"
+        );
+        assert_eq!(
+            prelude.iterations, 1,
+            "a LITERAL-threshold count gate arms immediately (nothing to capture)"
+        );
+    }
+
+    #[test]
+    fn plain_branch_installer_still_carries_no_prelude() {
+        // SV-EXH-PROOF.7.4.6.14 NEGATIVE CONTROL 1 — SCOPING. The prelude is an opt-in leg. The
+        // installer every other branch target uses must be unchanged, or the witness pass's
+        // branch arm stops being byte-identical for the ~1450 targets that never needed a raise.
+        let (grammar_tree, rule_order, annotations) = store_entry_blocked_branch_grammar();
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), 7);
+
+        assert!(generator.set_reach_plan_forcing_quantifiers("unit", "net_decl", "root", 1, 16));
+        assert!(
+            generator
+                .reach_plan
+                .as_ref()
+                .expect("plan installed")
+                .prelude
+                .is_none(),
+            "the pre-`.7.4.6.14` branch installer must leave `prelude` None"
+        );
+    }
+
+    #[test]
+    fn raised_branch_plan_does_not_arm_a_prelude_for_an_ungated_alternative() {
+        // SV-EXH-PROOF.7.4.6.14 NEGATIVE CONTROL 2 — DISCOVERY. Branch #0 (`"wire"`) renders
+        // perfectly well against an empty store. Arming a prelude there would inject a
+        // declaration into a witness that never needed one — the `.4b.7` over-arming lesson. The
+        // branch-scoped descent must find NOTHING for it, in the same grammar where it finds the
+        // gate for branch #1.
+        let (grammar_tree, rule_order, annotations) = store_entry_blocked_branch_grammar();
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), 7);
+
+        assert!(generator.set_reach_plan_forcing_quantifiers_with_prelude(
+            "unit", "net_decl", "root", 0, 16
+        ));
+        assert!(
+            generator
+                .reach_plan
+                .as_ref()
+                .expect("plan installed")
+                .prelude
+                .is_none(),
+            "an alternative with no store gate must arm no prelude"
+        );
+    }
+
     // Dual-feature: `ebnf_dual_run` for the `.ebnf` frontend, `generated_parsers` for the
     // annotation backend `systemverilog.ebnf`'s `@profile_alias` requires (the bootstrap
     // surface REFUSES it rather than risk the RGX-0078.5.i.1.t1 re-interpretation drift).
@@ -26178,6 +26507,67 @@ mod tests {
             Some(1),
             "the `( implicit_class_handle dot | package_scope | class_scope )?` group at \
              root/s0 must be forced to expand — that expansion is the whole class-B fix"
+        );
+    }
+
+    #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
+    #[test]
+    fn raised_branch_plan_arms_the_prelude_on_the_real_systemverilog_subject() {
+        // SV-EXH-PROOF.7.4.6.14: the same assertion against the REAL grammar and the REAL target
+        // that re-opens under `.7.4.6.13`'s backstop — `branch::net_declaration_sv_2017::root#2`,
+        // the `wildcard_escape_nettype_identifier` alternative. The synthetic controls above pin
+        // the mechanism; this pins the SUBJECT, so a grammar restructure that moves the gate out
+        // of that alternative fails here rather than silently in a 10-minute gate stage.
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../grammars/systemverilog.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path).expect("parse systemverilog.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, annotations) =
+            RustASTPipeline::new(PipelineConfig::default())
+                .transform_from_raw_ast(&raw_ast)
+                .expect("transform_from_raw_ast");
+        let mut generator = StimuliGenerator::new(
+            "systemverilog".to_string(),
+            &grammar_tree,
+            &rule_order,
+            annotations.as_ref(),
+            StimuliConfig {
+                seed: Some(0),
+                ..StimuliConfig::default()
+            },
+        );
+
+        let (entry, rule, node_path, branch_index) =
+            ("systemverilog_file", "net_declaration_sv_2017", "root", 2);
+        assert!(
+            generator.set_reach_plan_forcing_quantifiers_with_prelude(
+                entry,
+                rule,
+                node_path,
+                branch_index,
+                64,
+            ),
+            "the raised-entry plan for {rule}@{node_path}#{branch_index} must install"
+        );
+        let prelude = generator
+            .reach_plan
+            .as_ref()
+            .expect("plan installed")
+            .prelude
+            .as_ref()
+            .expect("the raised branch plan must carry a prelude for the real subject");
+        assert_eq!(
+            prelude.gated_rule, "wildcard_escape_nettype_identifier",
+            "the prelude must arm on the `fact_count_at_least(wildcard_import_open, 1)` gate \
+             inside the TARGETED alternative — the whole-rule descent cannot see it, because \
+             `net_declaration_sv_2017`'s root Or leads with the ungated `wire a;` alternative"
         );
     }
 
