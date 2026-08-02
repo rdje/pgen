@@ -243,6 +243,43 @@ This is the surface that diagnosed the whole SystemVerilog class-A residual
 without a single new gate run; the method and the trap are in the KM card
 `branch-failure-reasons-are-the-witness-why` (`docs/knowledge/`).
 
+### `--max-depth` is not the depth the generator runs at
+
+A reader who sets `--max-depth 20` and then finds `max_depth=448` in a failure reason has not
+found a bug in the report. `generate_or` gives a *targeted, never-covered, depth-blocked* branch
+one more attempt with a little extra slack, and it computes that slack from the **live**
+`config.max_depth` rather than from the configured one. So a retry entered inside another retry's
+subtree inflates an already inflated budget, and the escalation is cumulative: `20, 24, 28, …`.
+On SystemVerilog it climbs to `448` (`sv_2017`) and `676` (`sv_2023`) — 22x and 34x the configured
+depth. `ebnf` and `semantic_annotation` climb the same ladder, three rungs deep; this is shared
+generator behaviour, not a SystemVerilog quirk.
+
+The ladder's *failures* are visible in `failure_reasons` above. Whether its rungs ever **pay** is a
+different question, and every closed-loop replay run now answers it on one line:
+
+```bash
+grep "Depth-slack retry census:" rust/target/sv_stimuli_quality_gate/logs/profile_2017_closed_loop_replay.log
+# Depth-slack retry census: nesting_levels=107 attempts=1964056 successes=255
+#   deepest_paying_level=89 branches_retried=443 branch_retry_max=726836
+#   success_ordinal_max=103829 [successes/attempts@max_budget] L1:35/855@24 …
+#   [success_ordinal:count] 1:144 2:24 3:5 …
+```
+
+Read it in three places:
+
+- **`deepest_paying_level` against `nesting_levels`** — where the successes stop, versus how far the
+  ladder climbed. `sv_2023` measured `24` against `164`: **99.5 % of its retry work returned zero
+  successes.**
+- **`branch_retry_max` against `success_ordinal_max`** — the runaway signature. On `sv_2017` one
+  single branch spent `726 836` retries, 37 % of the whole run's, while the deepest *paying* retry
+  of any branch was its `103 829`th.
+- **the `success_ordinal` histogram** — what a per-branch cap would actually cost, read off the
+  distribution instead of guessed. `144` of `255` successes land on a branch's *first* retry.
+
+The line is printed only when the retry fired, so a grammar that never escalates keeps a
+byte-identical log — which also means a census line is evidence the retry ran, not evidence the
+instrument is compiled in.
+
 Not every reason is a budget. A row reading
 `STORE-AWARE-GEN: rule '…' fact_count_at_least predicate unsatisfiable (zero
 source facts)` is the *other* class: the witness could not be built at all,

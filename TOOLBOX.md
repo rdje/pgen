@@ -141,6 +141,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Which path did the witness planner take?" | [4.4 `PGEN_REACH_PATH_DUMP`](#44-pgen_reach_path_dump) |
 | "Which residual `UNKNOWN`s are profile-excluded by construction?" | [4.6 `PGEN_CERT_RESIDUAL_CLASSIFICATION`](#46-pgen_cert_residual_classification) |
 | **"WHY is this closed-loop coverage target still residual?" — ⛔ the pass-summary counters are TARGET-scoped and read 0 while branches die** | [6.1 `failure_reasons`](#61-failure_reasons--why-a-residual-coverage-target-survived-already-written-no-re-run) — the per-branch record every gate run already wrote |
+| **"`--max-depth` is 20 — why does the log say `max_depth=448`? and does that escalation ever PAY?"** | [6.2 depth-slack retry census](#62-depth-slack-retry-census--does-the-generators-depth-escalation-ever-pay) — the retry adds slack to the LIVE budget, so nesting is cumulative; the census prices each rung |
 | "Is my grammar well-formed (LR / shadowing / non-terminating)?" | [5.1 `--lint-grammar`](#51---lint-grammar) |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
@@ -561,6 +562,43 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   identifies the pass is the value being at or above `2 × --max-depth` and OFF the `+4` slack ladder
   (`20, 24, 28, …`, which belongs to the target-drive/diverse retry). See the KM cards
   `branch-failure-reasons-are-the-witness-why` and `coverage-gap-reason-codes-are-generator-verdicts`.
+
+### 6.2 `Depth-slack retry census` — does the generator's depth ESCALATION ever pay?
+
+- **WHAT:** one stdout line from any `--target-report-input` (closed-loop replay) run, pricing
+  `generate_or`'s depth-slack retry (`target_branch_depth_retry_slack`). Per NESTING LEVEL:
+  `successes/attempts@max_budget`. Per BRANCH: `branch_retry_max` (the most retries any single
+  targeted branch spent) and the `success_ordinal:count` histogram — *at which of a branch's
+  retries a success actually landed*. Read-only; it never changes a generation decision.
+- **WHEN:** ⛔ the FIRST thing to read before bounding, tuning or trusting any generation retry —
+  and the answer to *"`--max-depth` is 20, so why does `failure_reasons` say `max_depth=448`?"*.
+  The retry adds its slack to the **live** `config.max_depth`, so nesting makes it CUMULATIVE and
+  `--max-depth` bounds only the outermost descent. 6.1's `failure_reasons` shows that ladder's
+  FAILURES; only this census shows whether the escalated rungs BUY anything.
+- **HOW:** it is already in every closed-loop replay log — no flag, no re-run:
+  ```bash
+  grep "Depth-slack retry census:" rust/target/sv_stimuli_quality_gate/logs/profile_2017_closed_loop_replay.log
+  ```
+- **OUTPUT (measured, `systemverilog` at `--max-depth 20`):**
+  ```
+  Depth-slack retry census: nesting_levels=107 attempts=1964056 successes=255
+    deepest_paying_level=89 branches_retried=443 branch_retry_max=726836
+    success_ordinal_max=103829 [successes/attempts@max_budget] L1:35/855@24 L2:40/554@28 …
+    [success_ordinal:count] 1:144 2:24 3:5 …
+  ```
+- **READING:** `attempts` ≫ `successes` is normal; the number that matters is where the successes
+  STOP. `sv_2023` measured `deepest_paying_level=24` against 164 levels climbed — **99.5 % of its
+  retry work returned zero successes**. `branch_retry_max` ≫ `success_ordinal_max` is the runaway
+  signature (`726 836` vs `103 829` on `sv_2017`; one branch took 37 % of the whole run's retries).
+- ⭐ **GROUND TRUTH — it is silent when the retry never fires.** A grammar with no targeted,
+  depth-blocked branch prints NOTHING (pinned by
+  `depth_slack_retry_census_is_silent_when_the_retry_never_fires`), so a census line in a log is
+  evidence the retry ran — not evidence it was compiled in. The positive control lives in
+  `target_driven_generation_retries_target_branch_with_depth_slack`.
+- ⚠️ **HONEST BOUND:** a cap read off this histogram prices *the run you measured*. Capping changes
+  generation downstream, so the after-run finds different successes — `SV-EXH-PROOF.7.4.6.13`
+  measured `sv_2023` successes go **147 → 398** under a cap. Always A/B the residual, never infer it.
+  Full map: `docs/tasks/SV-EXH-PROOF.md` `.7.4.6.13` + book *Stimuli and Quality*.
 
 ---
 

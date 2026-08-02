@@ -79,6 +79,24 @@ const RULE_VISIT_LIMIT_ERROR_PREFIX: &str = "Stimuli generation exceeded max_rul
 // — so a real run uses a handful; this cap only bounds a pathological grammar far above any real one.
 const MAX_UNCOVERED_REACH_RETRIES: usize = 4096;
 
+/// SV-EXH-PROOF.7.4.6.13: the slack `target_branch_depth_retry_slack` grants a targeted,
+/// never-covered branch whose only failure was depth exhaustion. Named because the retry that
+/// consumes it saves the **live** `config.max_depth`, so the value is an *increment on the
+/// current budget*, not on the configured one.
+const TARGET_BRANCH_DEPTH_RETRY_SLACK: usize = 4;
+
+// SV-EXH-PROOF.7.4.6.13: ⛔ THE DEPTH-SLACK RETRY HAS NO RUNAWAY BACKSTOP, AND THAT IS THE
+// DEFECT — its sibling in this very `Err` arm (`should_reach_retry_uncovered_recursive`) has been
+// bounded by `MAX_UNCOVERED_REACH_RETRIES` since GRAMMAR-WELLFORMED.H.4.2; this one is bounded by
+// nothing, so a branch that can never succeed is retried without limit and drags the cumulative
+// `+4` depth ladder up behind it. The backstop is MEASURED and ready (see the leaf), but it is
+// NOT landed here: capping it makes the target-drive pass strictly better, and that improvement
+// resolves `wildcard_escape_nettype_identifier` early enough that `.7.4.6.12`'s raised witness
+// entry never fires — re-opening the store-entry-blocked BRANCH target it was closing
+// transitively (`sv_2017` residual `0 -> 1`, which the two-sided ratchet rightly fails).
+// ⇒ the backstop is BLOCKED on `.7.4.6.14`, which owns the branch-target half of the raise.
+// Everything below this point is READ-ONLY census: it prices the retry, it never gates it.
+
 /// DIAG-SEVERITY.3.1 (PGEN-DIAG-SEVERITY-0004): the canonical, drift-proof enumeration of
 /// stimuli generation-failure reasons — the single source of truth for "classify errors
 /// by reason" (director ask). `classify_generation_error` is the one place that maps an
@@ -1064,6 +1082,104 @@ struct TargetProbeHistory {
     best_resolved_delta: u64,
 }
 
+/// SV-EXH-PROOF.7.4.6.13: one nesting level of the `generate_or` depth-slack retry, as
+/// observed. `attempts` counts retries entered at this level; `successes` counts those that
+/// returned `Ok`. A level whose `successes` is 0 across a whole run bought nothing at that
+/// run's cost — which is the number that prices the nesting cap, instead of assuming it.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DepthSlackRetryLevelCensus {
+    pub attempts: u64,
+    pub successes: u64,
+    /// The largest `max_depth` any retry at this level ran with — the ladder rung, measured.
+    pub max_budget: usize,
+}
+
+/// SV-EXH-PROOF.7.4.6.13: the whole-run census of the depth-slack retry, indexed by nesting
+/// level (`levels[i]` = level `i + 1`).
+///
+/// ⭐ WHY IT EXISTS: `target_branch_depth_retry_slack` grants `+4` on the **live**
+/// `config.max_depth`, so a retry entered inside another retry's subtree inflates an already
+/// inflated budget and the escalation is CUMULATIVE — measured on SystemVerilog as the exact
+/// arithmetic ladder `20, 24, 28, … 448` (`sv_2017`) and `… 676` (`sv_2023`), i.e. `--max-depth`
+/// bounds only the OUTERMOST descent. The per-branch `failure_reasons` already expose the
+/// ladder's FAILURES; only this census exposes whether the escalated rungs ever *pay*.
+/// Read-only: no generation decision consults it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DepthSlackRetryCensus {
+    pub levels: Vec<DepthSlackRetryLevelCensus>,
+    /// PER-BRANCH retry ORDINAL at which a depth-slack retry finally returned `Ok`, counted
+    /// as `ordinal -> successes`. This is the number that PRICES a per-branch backstop: a cap
+    /// at or above the largest observed ordinal cannot cost a single success this run bought.
+    pub success_ordinals: BTreeMap<u64, u64>,
+    /// The largest per-branch retry count any single targeted branch reached — the runaway
+    /// scale, which the ladder's deep tail turns out to be made of.
+    pub branch_retry_max: u64,
+    /// Distinct targeted branches that entered the retry at least once (the denominator that
+    /// keeps `branch_retry_max` from reading as "every branch does this").
+    pub branches_retried: usize,
+}
+
+impl DepthSlackRetryCensus {
+    pub fn is_empty(&self) -> bool {
+        self.levels.is_empty()
+    }
+
+    pub fn deepest_paying_level(&self) -> Option<usize> {
+        self.levels
+            .iter()
+            .rposition(|level| level.successes > 0)
+            .map(|index| index + 1)
+    }
+
+    /// One line, emitted only when the retry actually fired, so every grammar that never
+    /// escalates keeps a byte-identical log.
+    pub fn summary_line(&self) -> Option<String> {
+        if self.is_empty() {
+            return None;
+        }
+        let attempts: u64 = self.levels.iter().map(|level| level.attempts).sum();
+        let successes: u64 = self.levels.iter().map(|level| level.successes).sum();
+        let deepest_paying = self
+            .deepest_paying_level()
+            .map(|level| level.to_string())
+            .unwrap_or_else(|| "none".to_string());
+        let per_level = self
+            .levels
+            .iter()
+            .enumerate()
+            .map(|(index, level)| {
+                format!(
+                    "L{}:{}/{}@{}",
+                    index + 1,
+                    level.successes,
+                    level.attempts,
+                    level.max_budget
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(" ");
+        let success_ordinal_max = self.success_ordinals.keys().next_back().copied().unwrap_or(0);
+        let ordinals = self
+            .success_ordinals
+            .iter()
+            .map(|(ordinal, count)| format!("{ordinal}:{count}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        Some(format!(
+            "Depth-slack retry census: nesting_levels={} attempts={} successes={} deepest_paying_level={} branches_retried={} branch_retry_max={} success_ordinal_max={} [successes/attempts@max_budget] {} [success_ordinal:count] {}",
+            self.levels.len(),
+            attempts,
+            successes,
+            deepest_paying,
+            self.branches_retried,
+            self.branch_retry_max,
+            success_ordinal_max,
+            per_level,
+            ordinals
+        ))
+    }
+}
+
 impl TargetDriveSummary {
     pub fn summary_line(&self) -> String {
         format!(
@@ -1558,6 +1674,18 @@ pub struct StimuliGenerator<'a> {
     /// by `MAX_UNCOVERED_REACH_RETRIES`; observability + runaway backstop. Always 0 unless
     /// `config.reach_uncovered_recursive_branches` is set (the cert-coverage witness pass).
     reach_retry_count: usize,
+    /// SV-EXH-PROOF.7.4.6.13: live NESTING level of the `generate_or` depth-slack retry
+    /// (`target_branch_depth_retry_slack`); 0 = not inside one. Needed because the retry saves
+    /// the LIVE `config.max_depth` before adding its slack, so a retry entered from inside
+    /// another retry's subtree escalates an already-escalated budget.
+    depth_slack_retry_nesting: usize,
+    /// SV-EXH-PROOF.7.4.6.13: read-only per-level census of that retry (see
+    /// `DepthSlackRetryCensus`). Never consulted by a generation decision.
+    depth_slack_retry_census: DepthSlackRetryCensus,
+    /// SV-EXH-PROOF.7.4.6.13: depth-slack retries already spent on each targeted branch, keyed
+    /// `"<group_key>#<branch_index>"`. Read-only census today; it is also the counter the
+    /// per-branch runaway backstop will consult once `.7.4.6.14` unblocks it.
+    depth_slack_retries_by_branch: HashMap<String, u64>,
     /// STIMULI-SIGNOFF.2.2 (PGEN-STIMULI-SIGNOFF-0003): k-path coverage NUMERATOR recorder.
     /// `None` = OFF (default → zero overhead, generation byte-identical → monotone). When
     /// `Some((k, set))`, every `generate_rule` entry records the last-k window of the live
@@ -1889,6 +2017,9 @@ impl<'a> StimuliGenerator<'a> {
             witness_min_terminal_lengths: None,
             construct_mode: false,
             reach_retry_count: 0,
+            depth_slack_retry_nesting: 0,
+            depth_slack_retry_census: DepthSlackRetryCensus::default(),
+            depth_slack_retries_by_branch: HashMap::new(),
             k_path_recording: None,
             branch_selection_log: None,
             learned_branch_distributions: None,
@@ -10753,6 +10884,16 @@ impl<'a> StimuliGenerator<'a> {
                         let original_max_depth = self.config.max_depth;
                         self.config.max_depth =
                             original_max_depth.saturating_add(depth_retry_slack);
+                        // SV-EXH-PROOF.7.4.6.13: census this rung BEFORE recursing, so a retry
+                        // that never returns to record itself is still counted.
+                        self.depth_slack_retry_nesting += 1;
+                        let retry_level = self.depth_slack_retry_nesting;
+                        let retry_ordinal = self.record_depth_slack_retry_attempt(
+                            retry_level,
+                            self.config.max_depth,
+                            &group_key,
+                            selected_global,
+                        );
                         let retry_result = self.generate_node(
                             &selected_node,
                             current_rule,
@@ -10760,7 +10901,11 @@ impl<'a> StimuliGenerator<'a> {
                             call_stack,
                             &alt_path,
                         );
+                        self.depth_slack_retry_nesting -= 1;
                         self.config.max_depth = original_max_depth;
+                        if retry_result.is_ok() {
+                            self.record_depth_slack_retry_success(retry_level, retry_ordinal);
+                        }
 
                         match retry_result {
                             Ok(output) => {
@@ -12401,6 +12546,60 @@ impl<'a> StimuliGenerator<'a> {
         penalty.max(1)
     }
 
+    /// SV-EXH-PROOF.7.4.6.13: the backstop key — one targeted branch of one branch group.
+    fn depth_slack_retry_branch_key(group_key: &str, branch_idx: usize) -> String {
+        format!("{group_key}#{branch_idx}")
+    }
+
+    /// SV-EXH-PROOF.7.4.6.13: charge one depth-slack retry to `level` (nesting) and to its
+    /// branch (the backstop counter), returning the branch's retry ORDINAL — the `k` in
+    /// "this branch's k-th retry", which `record_depth_slack_retry_success` then prices.
+    fn record_depth_slack_retry_attempt(
+        &mut self,
+        level: usize,
+        budget: usize,
+        group_key: &str,
+        branch_idx: usize,
+    ) -> u64 {
+        if self.depth_slack_retry_census.levels.len() < level {
+            self.depth_slack_retry_census
+                .levels
+                .resize(level, DepthSlackRetryLevelCensus::default());
+        }
+        let slot = &mut self.depth_slack_retry_census.levels[level - 1];
+        slot.attempts = slot.attempts.saturating_add(1);
+        slot.max_budget = slot.max_budget.max(budget);
+
+        let entry = self
+            .depth_slack_retries_by_branch
+            .entry(Self::depth_slack_retry_branch_key(group_key, branch_idx))
+            .or_insert(0);
+        *entry = entry.saturating_add(1);
+        let ordinal = *entry;
+        let census = &mut self.depth_slack_retry_census;
+        census.branch_retry_max = census.branch_retry_max.max(ordinal);
+        census.branches_retried = self.depth_slack_retries_by_branch.len();
+        ordinal
+    }
+
+    /// SV-EXH-PROOF.7.4.6.13: the paired success record; `level` always has a slot because
+    /// `record_depth_slack_retry_attempt` ran first for the same retry.
+    fn record_depth_slack_retry_success(&mut self, level: usize, branch_ordinal: u64) {
+        if let Some(slot) = self.depth_slack_retry_census.levels.get_mut(level - 1) {
+            slot.successes = slot.successes.saturating_add(1);
+        }
+        *self
+            .depth_slack_retry_census
+            .success_ordinals
+            .entry(branch_ordinal)
+            .or_insert(0) += 1;
+    }
+
+    /// SV-EXH-PROOF.7.4.6.13: the whole-run depth-slack retry census (read-only).
+    pub fn depth_slack_retry_census(&self) -> &DepthSlackRetryCensus {
+        &self.depth_slack_retry_census
+    }
+
     fn target_branch_depth_retry_slack(
         &self,
         group_key: &str,
@@ -12410,6 +12609,10 @@ impl<'a> StimuliGenerator<'a> {
         if self.target_drive_validation_active {
             return None;
         }
+        // SV-EXH-PROOF.7.4.6.13: the per-branch runaway backstop belongs HERE, and is measured
+        // and ready — but it stays out until `.7.4.6.14` lands (see the note on
+        // `depth_slack_retries_by_branch`). Deliberately not wired: a bound whose landing would
+        // regress a ratcheted-zero residual is not a fix yet.
         if !Self::is_depth_exhaustion_error(err) {
             return None;
         }
@@ -12419,7 +12622,7 @@ impl<'a> StimuliGenerator<'a> {
         if self.branch_success_hits(group_key, branch_idx) > 0 {
             return None;
         }
-        Some(4)
+        Some(TARGET_BRANCH_DEPTH_RETRY_SLACK)
     }
 
     /// GRAMMAR-WELLFORMED.H.4.2: should the clean diverse pass retry this just-failed branch with a
@@ -20915,6 +21118,73 @@ mod tests {
         assert!(
             group.success_counts.first().copied().unwrap_or(0) > 0,
             "targeted start branch should record at least one success after depth-slack retry"
+        );
+
+        // SV-EXH-PROOF.7.4.6.13: the census must have SEEN the retry that resolved the target —
+        // an instrument that reports nothing on the one scenario written to exercise the
+        // mechanism is indistinguishable from an instrument that is not wired.
+        let census = generator.depth_slack_retry_census();
+        assert!(
+            !census.is_empty(),
+            "the depth-slack retry census must record the retry this scenario provably performed"
+        );
+        assert_eq!(
+            census.deepest_paying_level(),
+            Some(1),
+            "this scenario's retry succeeds at the OUTERMOST nesting level, so nothing deeper \
+             may be credited"
+        );
+        assert!(
+            census.branch_retry_max >= 1 && census.branches_retried >= 1,
+            "per-branch accounting must charge the retry to its branch (max={}, branches={})",
+            census.branch_retry_max,
+            census.branches_retried
+        );
+        assert_eq!(
+            census.success_ordinals.keys().copied().collect::<Vec<_>>(),
+            vec![1],
+            "the success lands on this branch's FIRST retry, so ordinal 1 is the only key"
+        );
+        let line = census
+            .summary_line()
+            .expect("a non-empty census must render a summary line");
+        assert!(
+            line.contains("success_ordinal_max=1") && line.contains("branch_retry_max="),
+            "summary line must carry the two numbers that price a per-branch backstop: {line}"
+        );
+    }
+
+    #[test]
+    fn depth_slack_retry_census_is_silent_when_the_retry_never_fires() {
+        // SV-EXH-PROOF.7.4.6.13: the NEGATIVE control for the instrument above. A grammar with
+        // no targeted, depth-blocked branch must leave the census empty and print nothing — so a
+        // census line in a real log is evidence the retry fired, not evidence it was compiled in.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 2501);
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+        generator
+            .generate_until_targets(Some("start"), &report.targets, 50)
+            .expect("target-driven generation should succeed");
+
+        let census = generator.depth_slack_retry_census();
+        assert!(
+            census.is_empty(),
+            "no branch here is depth-blocked, so no depth-slack retry may be censused"
+        );
+        assert!(
+            census.summary_line().is_none(),
+            "an empty census must print NOTHING, keeping every non-escalating grammar's log \
+             byte-identical"
         );
     }
 

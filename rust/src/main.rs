@@ -1710,6 +1710,13 @@ fn pipeline_main() -> Result<()> {
                     Some(resolved_entry_rule.as_str()),
                 )?;
             println!("{}", witness_summary.summary_line());
+            // SV-EXH-PROOF.7.4.6.13 (TOOL-BUILD, WHY+WHERE): price the `generate_or` depth-slack
+            // retry per NESTING level, over the whole run (diverse + target-drive + witness
+            // passes all share this generator). Printed only when the retry actually fired, so a
+            // grammar that never escalates keeps a byte-identical log.
+            if let Some(census_line) = generator.depth_slack_retry_census().summary_line() {
+                println!("{census_line}");
+            }
             // SV-EXH-PROOF.7.4.4.1 (TOOL-BUILD, WHY+WHERE): surface a bounded sample of
             // the "other"-class witness failures so the residual tail's cause is visible
             // on tangible proof (not guessed). Printed at default verbosity; bounded in

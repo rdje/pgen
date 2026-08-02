@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0172 — a retry without a backstop is a defect even while it works; and "no measurable subject" is a statement about today's configuration, not about the code
+
+Three notes from `SV-EXH-PROOF.7.4.6.13`, the slice that instrumented `generate_or`'s depth-slack
+retry and then declined to bound it.
+
+**1. Two retries, one `match` arm, one backstop — the asymmetry was the defect, and the ladder was
+only the symptom.** For four leaves this finding was framed as *"the `+4` slack is cumulative, so
+`--max-depth` does not bound what it appears to bound"*, and every proposed fix was a way to bound
+the slack. Reading the two retries side by side reframes it in one line: the constructive-reach
+retry has been bounded by `MAX_UNCOVERED_REACH_RETRIES` since `GRAMMAR-WELLFORMED.H.4.2`, complete
+with a doc comment explaining why a retry needs a runaway bound; the depth-slack retry, written in
+the same `Err` arm, has none. The measurement then made the framing unarguable: one branch spent
+**726 836** retries. ⇒ **when a finding has been restated three times without a fix, check whether
+its sibling already solved it** — the third instance of that shape in this sub-tree, after
+`.7.4.6.11` and `.7.4.6.12`. A retry that is *working* can still be missing its bound; "it produces
+coverage" is not evidence that it terminates.
+
+**2. Pricing an escalation needs the SUCCESS side, and the existing surface only had the FAILURE
+side.** The per-branch `failure_reasons` census had been the tree's workhorse for four leaves, and it
+records only failures. Every cap proposal was therefore an argument about numbers nobody had. The
+instrument that settles it is small — attempts and successes per nesting level, plus the per-branch
+retry **ordinal** at which each success landed — and it converts "pick a cap" from a judgement call
+into a table lookup: `4096` retains `252/255` and `147/147`. ⇒ **before tuning a mechanism, check
+whether your instrument can even see the thing you are trading away.** A cap chosen from failure
+data alone would have been a guess wearing a measurement's clothes.
+
+**3. "It has no measurable subject" expires, and the thing that expires it can be your own
+improvement.** `.7.4.6.14` was parked — correctly — because the residual was 0 and its capability had
+nothing to demonstrate on. The backstop then made the target-drive pass *better* (`sv_2023`
+`568 → 1673` resolved), and that improvement resolved the one rule whose residual status was keeping
+`.7.4.6.12`'s raise alive — re-opening the branch target the raise had been closing transitively.
+⇒ **a capability parked for want of a subject should record the exact configuration in which its
+subject would appear**, because the next legitimate change may create it. `.7.4.6.14` had already
+written that reach down ("one reference site away"); it turned out to be one *generator improvement*
+away, in the same grammar and the same profile. It cost nothing to notice, because the prediction
+was on the record. ⛔ And the subject is now perishable: it exists only while the capped arm is
+reproducible, so that arm is preserved and named in the leaf rather than left to be rediscovered.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0170 — a scope that is safe for RANKING is not safe for DECIDING; and a corroborating instrument must mirror SEMANTICS, not vocabulary
 
 Three notes from `SV-EXH-PROOF.7.4.6.12`, the slice that took the SystemVerilog closed-loop residual

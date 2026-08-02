@@ -1,5 +1,50 @@
 # CHANGES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0172 — leaf SV-EXH-PROOF.7.4.6.13: the depth-slack retry's real defect is a MISSING RUNAWAY BACKSTOP, one branch spent 726 836 retries, and the measured fix is BLOCKED by the leaf it just gave a subject to
+
+The `+4` arithmetic was never the defect. `generate_or`'s `Err` arm holds **two** retries:
+`should_reach_retry_uncovered_recursive` has been bounded by `MAX_UNCOVERED_REACH_RETRIES = 4096`
+since `GRAMMAR-WELLFORMED.H.4.2`; `target_branch_depth_retry_slack`, in the same `match` arm, is
+bounded by **nothing**. A branch that can never succeed is therefore retried without limit — and
+because each retry adds its slack to the *live* `max_depth`, the runaway drags the `20, 24, … 448`
+ladder up behind it. The ladder is the symptom. This is the third one-capability-two-sites instance
+in this sub-tree, after `.7.4.6.11` (quantifier forcing) and `.7.4.6.12` (witness entry).
+
+- ⭐ **TOOL-BUILT, because no existing surface could answer the question.** The per-branch
+  `failure_reasons` census (`TOOLBOX` 6.1) records the ladder's *failures*; nothing recorded whether
+  the escalated rungs ever **pay**. New read-only `DepthSlackRetryCensus`: per nesting level
+  attempts/successes/max-budget, and per branch the retry **ordinal** at which each success landed.
+  One `Depth-slack retry census:` line, printed only when the retry fired.
+- ⭐ **Measured, canonical configuration, `--max-depth 20`.** `sv_2017`: 107 levels to budget 448,
+  **1 964 056 attempts for 255 successes**, `branch_retry_max=726 836`, `success_ordinal_max=103 829`
+  — one branch took 37 % of the entire run's retries. `sv_2023`: 164 levels to 676, **2 959 658
+  attempts for 147 successes**, deepest *paying* level **24** — **99.5 % of its retry work returns
+  zero successes**. The `failure_reasons` per-rung view localises the tail to 7–9 branch groups, two
+  of which carry ~144 000 failures per rung for ~15 consecutive rungs.
+- ⭐ **The cap is read off the distribution, not curve-fitted.** Priced against the measured success
+  ordinals: `64` keeps 214/255 + 147/147; `1024` keeps 245/255; **`4096` keeps 252/255 + 147/147** —
+  and is the magnitude its sibling backstop already uses.
+- ⛔⛔ **The A/B at 4096 wins big and still fails the gate.** Retry work `6.5x`/`7.2x` lower;
+  `branch_retry_max` `726 836 → 4 096`; `sv_2023` target-drive resolution nearly **tripled**
+  (`568 → 1673`) and its successes `147 → 398`. But `sv_2017`'s residual moves **`0 → 1`**, and the
+  ratchet is two-sided — so the fix is **not landed**.
+- ⭐⭐ **The re-opened target is `.7.4.6.12`'s own honest bound firing, and it unparks `.7.4.6.14`.**
+  Chain, each link measured: the cap makes target-drive better (`872 → 880`); among the extra
+  resolutions is `wildcard_escape_nettype_identifier`; that rule is then no longer a residual RULE
+  target, so `store_entry_raises` goes `1 → 0`; and `branch::net_declaration_sv_2017::root#2` — which
+  the raise had been closing *transitively* — goes uncovered (`success_counts[2] 1 → 0` while
+  `selected_counts[2] 3 → 12`). `.7.4.6.14` was parked for want of a measurable subject; it now has
+  one in the shipped grammar and profile, and it **gates** `.7.4.6.13`.
+- **The instrument is provably inert.** Both profiles' `replay_{stimuli.sv,gap.json,gap.txt}` are
+  byte-identical (`cmp`) to the canonical gate's artifacts, residual reproduces at `2017: 0`/
+  `2023: 0`, and the coverage JSON is normalized-equal. Positive **and** negative unit controls: the
+  census must record the one retry the existing depth-slack scenario performs, and must print
+  nothing when no branch is depth-blocked.
+- ⚠️ **Found in passing, routed not worked:** `--coverage-output` is byte-nondeterministic across
+  processes — `branch_groups` is serialized in `HashMap` iteration order. Semantically identical
+  every run; the gate already normalizes before comparing, so nothing is broken today. Same class as
+  the `PARSE-HARNESS.5.3` `UnifiedReturnAST::Object` fix.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0171 — leaf SV-EXH-PROOF.7.4.6.13: the cumulative `+4` depth-slack is GENERAL, `2023` is worse than published, and the fix's bar just got harder (docs-only)
 
 The leaf demanded a RUN, not more reading. Four measurements, all off artifacts an ordinary gate
