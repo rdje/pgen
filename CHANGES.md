@@ -1,5 +1,36 @@
 # CHANGES.md
 
+## 2026-08-02 - PGEN-SV-EXH-PROOF-0171 — leaf SV-EXH-PROOF.7.4.6.13: the cumulative `+4` depth-slack is GENERAL, `2023` is worse than published, and the fix's bar just got harder (docs-only)
+
+The leaf demanded a RUN, not more reading. Four measurements, all off artifacts an ordinary gate
+run already left behind — no gate re-run.
+
+- **It still reproduces on HEAD, after both witness-pass fixes.** The fresh post-`-0170`
+  `profile_2017_replay_coverage.json` carries the same perfect ladder `20, 24, … 448` (distinct step
+  set `{4}`), and its top three counts — `336:460 452`, `340:446 111`, `352:435 526` — are
+  byte-for-byte the ones `-0167` recorded. So neither the per-target witness budget nor the raised
+  witness entry touched this mechanism.
+- ⭐ **`2023` was never censused, and it is worse.** 165 distinct values climbing to **676** — 33.8×
+  the configured `--max-depth 20`, against 22.4× for `2017` — with **98 %** of its 7 474 622 recorded
+  failures in the escalated regime above 44. The published "chained ~107 deep" figure was the
+  *smaller* of the two profiles.
+- ⭐⭐ **The cross-family check the tree owed is done, and the answer is YES.** `ebnf` and
+  `semantic_annotation` both carry `24, 28, 32, 36` — base + 4 + 8 + 12, three chained escalations,
+  which a non-cumulative retry could never produce. `json` / `regex` / `return_annotation` /
+  `builtin_*` show base only, so they are silent rather than contradicting.
+- ⛔ **Routing decision: it STAYS in this tree, inverting the tree's own re-home criterion** — stated
+  rather than silently done. That criterion optimises for where the defect lives and ignores where
+  the *verification* lives: no other family's gate carries a residual RATCHET that would catch a
+  coverage regression. The generality is not discarded, it becomes an acceptance obligation — a bound
+  on the shared `generate_or` must show the ebnf and annotation gates green too.
+- ⚠️⚠️ **The bar moved the hard way while the leaf was parked.** When this was raised the SV residual
+  was 4; `-0170` took it to **0** behind a two-sided ratchet. The ~12.7 M deep attempts this leaf
+  proposes to bound are, on the evidence available, part of how that zero is reached — so bounding
+  them can only move the residual UP, and the fix must now prove it does not re-open a closed gate.
+- ⚠️ **Instrument honesty:** the first census returned *"NO max_depth failures at all"* on both
+  profiles — structurally wrong, because `failure_reasons` is a LIST indexed by branch, not a map.
+  Caught by inspecting the artifact's real shape before believing a suspiciously clean zero.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0170 — leaf SV-EXH-PROOF.7.4.6.12: the witness pass RAISES its entry for a store-gated target — the SV closed-loop residual is LITERAL ZERO
 
 Class C was the last residual class, and the last 4 targets of a campaign that started at 127. It
