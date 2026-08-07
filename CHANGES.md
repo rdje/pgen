@@ -1,5 +1,37 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0179 — leaf SV-EXH-PROOF.7.4.6.15: the raised witness entry is monotone BY CONSTRUCTION, and the verdict it replaced was wrong 15 times in 16
+
+The closed-loop witness pass now attempts each target's **own rule first** and installs the raised
+entry only when that attempt left the target **uncovered**. Until now the store-entry-blocked
+*verdict* replaced the own-rule arm outright, which put the whole monotonicity guarantee on that
+verdict being accurate — a verdict its own design note describes as a deliberate over-approximation.
+
+- **The leaf's hypothetical was the live case.** `store_entry_raises` **16 → 1** (`sv_2017`) and
+  **11 → 1** (`sv_2023`) with the ordering as the only change ⇒ 25 of 27 raises had been rerouting
+  targets that witness perfectly well from their own rule. The survivors are the genuine
+  store-entry-blocked targets, so the real grammar is both the positive and the negative control.
+- **Coverage is untouched:** residual `0`/`0`, `covered_rules` 1337/1356 and `covered_branches`
+  1451/1490 identical, all four debt lists `0 resolved / 0 new` on both profiles.
+- **Priced, and not as designed:** the extra own-rule attempts were expected to be wasted work, but
+  `sample_errors` is **unchanged** (50/97) — every one succeeds. The run pays `+14`/`+6` witnesses
+  (the raised whole-file samples had been settling neighbours for free); elapsed `256 → 258 s` and
+  `444 → 436 s`.
+- **The gate is coverage, not error.** A forced branch whose gated content prunes lets a sibling
+  rescue the rule, so the own-rule attempt returns `Ok` with the branch uncredited — an
+  error-keyed reading would have stranded exactly the class `.7.4.6.14` closed.
+- **Ground truth in both directions:** a new unit control is RED on HEAD (raise fires, witness
+  `["ut"]` — rooted at the raised entry) and GREEN on the fix (no raise, witness `["t"]`), built on
+  a real in-code over-approximation (`mandatory_node_gated` calls the builtin `epsilon` gated); its
+  complement proves the genuine block still raises on both sides.
+- **Two findings raised and routed, not folded in:** `.7.4.6.17` (tighten the verdict — now
+  cost-only, with the SV population still to be NAMED by a per-target census) and `.7.4.6.18`
+  (price a sixth *artifact-determinism* diagnosis family; `.7.4.6.16`'s root cause fits none of the
+  five, so it will land under a waiver this leaf owns).
+
+New tracked instrument: `docs/tasks/artifacts/sv_exh_proof/whole_summary_diff.py` — the
+summary + four-debt-list comparison every A/B in this sub-tree had been re-typing.
+
 ## 2026-08-07 - PGEN-SV-EXH-PROOF-0178 (docs-only) — the two findings `-0175`/`-0177` only MEASURED now have designed fixes and owning leaves
 
 Director asked whether the three surfaced findings had signoff-level FIXES. Two did not — they were

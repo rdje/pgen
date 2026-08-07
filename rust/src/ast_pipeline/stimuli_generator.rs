@@ -1045,6 +1045,19 @@ impl WitnessSummary {
     }
 }
 
+/// SV-EXH-PROOF.7.4.6.15: the outcome of ONE witness-generation attempt for ONE target.
+///
+/// The witness pass now makes up to TWO attempts per target (own-rule entry, then — only if the
+/// first left the target uncovered — the raised entry), so the per-attempt facts the summary
+/// counters are computed from have to survive the attempt that produced them.
+struct WitnessAttempt {
+    result: Result<String>,
+    /// The bounded `construct_mode` attempt dead-ended and the `.7.4.5` search ran instead.
+    construct_failed: bool,
+    /// `classify_generation_error` of the construction dead-end, or `"none"`.
+    construct_reason: String,
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct TargetDriveValidationSummary {
     pub validated_outputs: usize,
@@ -5774,6 +5787,45 @@ impl<'a> StimuliGenerator<'a> {
         &self.witness_certificates
     }
 
+    /// SV-EXH-PROOF.7.4.6.15: ONE witness-generation attempt for a target, from `entry_rule`.
+    ///
+    /// The body is verbatim the sequence `generate_target_witnesses` ran inline until `.7.4.6.15`:
+    /// try derivation CONSTRUCTION first (bounded — `.7.4.6.3`), fall back to the `.7.4.5`
+    /// search-with-budget on a dead-end, then clear any reach plan the caller installed so the
+    /// NEXT attempt starts from a clean plan. Extracting it is what lets the pass order two
+    /// attempts against one target without the two arms drifting apart.
+    fn attempt_target_witness(
+        &mut self,
+        entry_rule: &str,
+        timeout: Option<GenerationTimeoutBudget>,
+        plan_installed: bool,
+    ) -> WitnessAttempt {
+        self.construct_mode = true;
+        let construct_result = self.generate_from_entry_with_optional_timeout(entry_rule, timeout);
+        self.construct_mode = false;
+        let construct_failed = construct_result.is_err();
+        // SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): capture WHY construction dead-ended (depth /
+        // visit-limit / timeout / other) — the min-terminal-length-guided path can be short
+        // in terminals yet too DEEP to complete within max_depth.
+        let construct_reason: String = match &construct_result {
+            Ok(_) => "none".to_string(),
+            Err(e) => format!("{:?}", Self::classify_generation_error(e)),
+        };
+        let result = match construct_result {
+            Ok(sample) => Ok(sample),
+            // SV-EXH-PROOF.7.4.6.4: construction dead-ended for this target → search.
+            Err(_) => self.generate_from_entry_with_optional_timeout(entry_rule, timeout),
+        };
+        if plan_installed {
+            self.clear_reach_plan();
+        }
+        WitnessAttempt {
+            result,
+            construct_failed,
+            construct_reason,
+        }
+    }
+
     pub fn generate_target_witnesses(
         &mut self,
         targets: &[StimuliCoverageTarget],
@@ -5861,8 +5913,7 @@ impl<'a> StimuliGenerator<'a> {
             attempted.insert(status.id.clone());
 
             // Witness entry = the target's OWN rule → its subtree gets the full budget.
-            let mut entry_rule = status.rule_name.clone();
-            if !self.grammar_tree.contains_key(entry_rule.as_str()) {
+            if !self.grammar_tree.contains_key(status.rule_name.as_str()) {
                 no_entry_rule = no_entry_rule.saturating_add(1);
                 continue;
             }
@@ -5890,6 +5941,55 @@ impl<'a> StimuliGenerator<'a> {
             self.config.max_depth = budget;
             let bypass_fuel = budget.saturating_add(1) as u32;
 
+            // SV-EXH-PROOF.7.4.5: the witness pass uses its OWN budget (max(primary, floor)),
+            // not the tiny 5 ms primary target-drive guard it used to reuse here.
+            let timeout = self.witness_generation_timeout();
+            // Every sample any attempt on this target produced, recorded together below so the
+            // ordering of the two arms never changes what a successful arm contributes.
+            let mut produced: Vec<String> = Vec::new();
+
+            // ── ARM 1: the target's OWN rule ────────────────────────────────────────────────
+            // SV-EXH-PROOF.7.4.6.15: EVERY target takes this arm first, including a
+            // store-entry-blocked one. Until `.7.4.6.15` the store-entry-blocked verdict
+            // REPLACED this arm outright, which made the raise's monotonicity a property of the
+            // verdict's accuracy on THIS grammar rather than of the design: `.7.4.6.12` chose to
+            // over-approximate the verdict deliberately, so on a grammar where it fires
+            // spuriously a raise would silently displace a witness the own-rule entry would have
+            // produced, and nothing would catch it but a residual regression. Attempting the
+            // own-rule entry first makes the guarantee STRUCTURAL — a target that witnesses from
+            // its own rule keeps witnessing from its own rule, whatever the verdict says.
+            //
+            // For a branch target, force that branch within its rule.
+            // SV-EXH-PROOF.7.4.6.11: ... AND force every `?`/`*` quantifier the path to that
+            // branch crosses. Without it, a branch nested inside an optional group is
+            // unreachable under the `construct_mode` generation below (which renders a `?` ZERO
+            // times), so the witness is generated but never credits the target —
+            // `never_selected`, the class-B residual. The forcing is witness-pass only; the
+            // primary target-drive pass keeps calling `set_reach_plan`.
+            let own_rule_entry = status.rule_name.clone();
+            let mut own_plan_installed = false;
+            if status.target_type == StimuliCoverageTargetType::Branch {
+                if let (Some(node_path), Some(branch_index)) =
+                    (status.node_path.as_ref(), status.branch_index)
+                {
+                    own_plan_installed = self.set_reach_plan_forcing_quantifiers(
+                        &own_rule_entry,
+                        &own_rule_entry,
+                        node_path,
+                        branch_index,
+                        bypass_fuel,
+                    );
+                }
+            }
+            let mut attempt = self.attempt_target_witness(&own_rule_entry, timeout, own_plan_installed);
+            if attempt.construct_failed {
+                construct_attempt_failures = construct_attempt_failures.saturating_add(1);
+            }
+            if let Ok(sample) = attempt.result.as_ref() {
+                produced.push(sample.clone());
+            }
+
+            // ── ARM 2: the RAISED entry — only when ARM 1 left the target UNCOVERED ─────────
             // SV-EXH-PROOF.7.4.6.12 (PGEN-SV-EXH-PROOF-0170): RAISED WITNESS ENTRY for a
             // STORE-ENTRY-BLOCKED target — the class-C residual. Rooting the witness at the
             // target's OWN rule is strictly better for every non-store-gated target (the whole
@@ -5903,148 +6003,101 @@ impl<'a> StimuliGenerator<'a> {
             // (`set_reach_plan_for_rule` installs the hops, the quantifier forcing AND the
             // `compute_reach_prelude` producer prelude that renders the enabling declaration
             // upstream). Prior art, not a new surface ([[feedback_read_prior_art_before_designing]]).
-            // ⛔ STRICTLY OPT-IN AND FAIL-SAFE: the raise applies only when the blocked verdict is
-            // true AND a raised entry resolved AND it differs from the target's own rule AND the
-            // plan installs; any miss falls through to the unchanged own-rule path below. The
-            // budget is unchanged — `reach_prefix_budget` is precisely the entry→target prefix
-            // allowance the raised entry now uses, which is what it was sized for upstream.
-            // SV-EXH-PROOF.7.4.6.14: the raise is no longer RULE-target-only. A store-entry-blocked
-            // BRANCH target was closed until now only TRANSITIVELY — when its blocking rule happened
-            // to be a residual RULE target AND was referenced from exactly one site, so the raised
-            // rule witness selected the branch on its way past. Remove either coincidence and the
-            // branch goes uncovered; `.7.4.6.13`'s backstop removes the first (it resolves the rule
-            // early in the target-drive pass, so the rule is no longer residual) and the branch
-            // re-opens. A branch target cannot be installed here, though: the plan must also force
-            // the branch and its quantifiers, which is the arm below. So this arm only DECIDES the
-            // raise; the branch arm performs it.
-            let mut plan_installed = false;
-            let mut raised_entry_for_branch: Option<String> = None;
-            if self.witness_target_is_store_entry_blocked(&status) {
+            // ⛔ STRICTLY OPT-IN AND FAIL-SAFE: the raise applies only when ARM 1 did not resolve
+            // the target AND the blocked verdict is true AND a raised entry resolved AND it
+            // differs from the target's own rule AND the plan installs; any miss leaves ARM 1's
+            // outcome standing. The budget is unchanged — `reach_prefix_budget` is precisely the
+            // entry→target prefix allowance the raised entry uses, which is what it was sized for.
+            // SV-EXH-PROOF.7.4.6.14: the raise is not RULE-target-only. A store-entry-blocked
+            // BRANCH target was closed until `.7.4.6.14` only TRANSITIVELY — when its blocking rule
+            // happened to be a residual RULE target AND was referenced from exactly one site, so the
+            // raised rule witness selected the branch on its way past. Remove either coincidence and
+            // the branch goes uncovered; `.7.4.6.13`'s backstop removes the first (it resolves the
+            // rule early in the target-drive pass, so the rule is no longer residual) and the branch
+            // re-opens. A branch target needs the plan to force the branch and its quantifiers too,
+            // so the two target types install different plans — but from the same raised entry, and
+            // with the same prelude obligation.
+            // SV-EXH-PROOF.7.4.6.15: the gate is `witness_target_is_resolved`, NOT
+            // `attempt.result.is_err()`. A forced branch whose gated content prunes lets
+            // `generate_or`'s sibling fallback rescue the rule, so ARM 1 returns `Ok` while the
+            // branch stays uncredited (`selected_but_failed`); keying on the error would strand
+            // exactly the branch class `.7.4.6.14` exists to close.
+            if !self.witness_target_is_resolved(&status)
+                && self.witness_target_is_store_entry_blocked(&status)
+            {
                 if let Some(raised) = raised_entry_rule.as_deref() {
                     if raised != status.rule_name {
-                        match status.target_type {
+                        let raised_plan_installed = match status.target_type {
                             StimuliCoverageTargetType::Rule => {
-                                if self.set_reach_plan_for_rule(
-                                    raised,
-                                    &status.rule_name,
-                                    bypass_fuel,
-                                ) {
-                                    entry_rule = raised.to_string();
-                                    plan_installed = true;
-                                    store_entry_raises = store_entry_raises.saturating_add(1);
-                                    self.trace(
-                                        TraceLevel::Debug,
-                                        format_args!(
-                                            "SV-EXH-PROOF.7.4.6.12 raised witness entry: target='{}' own_rule='{}' raised_entry='{}' budget={}",
-                                            status.id, status.rule_name, raised, budget
-                                        ),
-                                    );
-                                }
+                                self.set_reach_plan_for_rule(raised, &status.rule_name, bypass_fuel)
                             }
                             StimuliCoverageTargetType::Branch => {
-                                raised_entry_for_branch = Some(raised.to_string());
+                                match (status.node_path.as_ref(), status.branch_index) {
+                                    (Some(node_path), Some(branch_index)) => self
+                                        .set_reach_plan_forcing_quantifiers_with_prelude(
+                                            raised,
+                                            &status.rule_name,
+                                            node_path,
+                                            branch_index,
+                                            bypass_fuel,
+                                        ),
+                                    _ => false,
+                                }
                             }
+                        };
+                        if raised_plan_installed {
+                            store_entry_raises = store_entry_raises.saturating_add(1);
+                            self.trace(
+                                TraceLevel::Debug,
+                                format_args!(
+                                    "SV-EXH-PROOF.7.4.6.15 raised witness entry (after an unresolved own-rule attempt): target='{}' own_rule='{}' type={:?} node_path={:?} branch={:?} raised_entry='{}' budget={}",
+                                    status.id,
+                                    status.rule_name,
+                                    status.target_type,
+                                    status.node_path,
+                                    status.branch_index,
+                                    raised,
+                                    budget
+                                ),
+                            );
+                            let raised_attempt =
+                                self.attempt_target_witness(raised, timeout, true);
+                            if raised_attempt.construct_failed {
+                                construct_attempt_failures =
+                                    construct_attempt_failures.saturating_add(1);
+                            }
+                            if let Ok(sample) = raised_attempt.result.as_ref() {
+                                produced.push(sample.clone());
+                            }
+                            // The raised arm ran, so IT decides this target's failure
+                            // classification — the own-rule arm is now a priced first probe, not
+                            // the pass's verdict on the target.
+                            attempt = raised_attempt;
                         }
                     }
                 }
             }
 
-            // For a branch target, force that branch within its rule.
-            // SV-EXH-PROOF.7.4.6.11: ... AND force every `?`/`*` quantifier the path to that
-            // branch crosses. Without it, a branch nested inside an optional group is
-            // unreachable under the `construct_mode` generation two lines below (which
-            // renders a `?` ZERO times), so the witness is generated but never credits the
-            // target — `never_selected`, the class-B residual. The forcing is witness-pass
-            // only; the primary target-drive pass keeps calling `set_reach_plan`.
-            // SV-EXH-PROOF.7.4.6.14: and when the arm above raised the entry for this branch, the
-            // plan is installed from that raised entry WITH the semantic prelude — the entry policy
-            // and the prelude are one indivisible capability here, because a raised entry alone
-            // steers the sample down to the branch and still renders it against an empty store.
-            // ⛔ FAIL-SAFE: any miss (no reach path from the raised entry, an invalid OR site) falls
-            // back to the unchanged own-rule install, so a target that witnesses today still does.
-            if status.target_type == StimuliCoverageTargetType::Branch {
-                if let (Some(node_path), Some(branch_index)) =
-                    (status.node_path.as_ref(), status.branch_index)
-                {
-                    let raised_install = raised_entry_for_branch.as_deref().is_some_and(|raised| {
-                        self.set_reach_plan_forcing_quantifiers_with_prelude(
-                            raised,
-                            &status.rule_name,
-                            node_path,
-                            branch_index,
-                            bypass_fuel,
-                        )
-                    });
-                    if raised_install {
-                        let raised = raised_entry_for_branch
-                            .as_deref()
-                            .expect("a raised install implies a raised entry");
-                        self.trace(
-                            TraceLevel::Debug,
-                            format_args!(
-                                "SV-EXH-PROOF.7.4.6.14 raised witness entry (branch): target='{}' own_rule='{}' node_path='{}' branch={} raised_entry='{}' budget={}",
-                                status.id, status.rule_name, node_path, branch_index, raised, budget
-                            ),
-                        );
-                        entry_rule = raised.to_string();
-                        store_entry_raises = store_entry_raises.saturating_add(1);
-                        plan_installed = true;
-                    } else {
-                        plan_installed = self.set_reach_plan_forcing_quantifiers(
-                            &entry_rule,
-                            &entry_rule,
-                            node_path,
-                            branch_index,
-                            bypass_fuel,
-                        );
-                    }
-                }
+            for sample in produced {
+                // GRAMMAR-WELLFORMED.G.3.2: record the constructive reachability witness for
+                // this target (its id + the witness input) — verified later by replaying
+                // `input` through the real parser (`verify_reachability_witness`).
+                self.witness_certificates.push(
+                    super::grammar_wellformedness::ReachabilityWitness {
+                        fragment: status.id.clone(),
+                        input: sample.clone(),
+                    },
+                );
+                outputs.push(sample);
+                witnesses_generated = witnesses_generated.saturating_add(1);
             }
-
-            // SV-EXH-PROOF.7.4.5: the witness pass uses its OWN budget (max(primary, floor)),
-            // not the tiny 5 ms primary target-drive guard it used to reuse here.
-            let timeout = self.witness_generation_timeout();
-            // SV-EXH-PROOF.7.4.6.3: try derivation CONSTRUCTION first — bounded (O(tree-size),
-            // no search/timeout). The reach plan set above still forces a branch target's
-            // branch; construct_mode min-lengths every other choice. If the committed shortest
-            // path dead-ends, fall back to the .7.4.5 search-with-budget.
-            self.construct_mode = true;
-            let construct_result =
-                self.generate_from_entry_with_optional_timeout(&entry_rule, timeout);
-            self.construct_mode = false;
-            let construct_result_was_err = construct_result.is_err();
-            // SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): capture WHY construction dead-ended (depth /
-            // visit-limit / timeout / other) — the min-terminal-length-guided path can be short
-            // in terminals yet too DEEP to complete within max_depth.
-            let construct_err_reason: String = match &construct_result {
-                Ok(_) => "none".to_string(),
-                Err(e) => format!("{:?}", Self::classify_generation_error(e)),
-            };
-            let result = match construct_result {
-                Ok(sample) => Ok(sample),
-                Err(_) => {
-                    // SV-EXH-PROOF.7.4.6.4: construction dead-ended for this target → search.
-                    construct_attempt_failures = construct_attempt_failures.saturating_add(1);
-                    self.generate_from_entry_with_optional_timeout(&entry_rule, timeout)
-                }
-            };
-            if plan_installed {
-                self.clear_reach_plan();
-            }
+            let WitnessAttempt {
+                result,
+                construct_failed: construct_result_was_err,
+                construct_reason: construct_err_reason,
+            } = attempt;
             match result {
-                Ok(sample) => {
-                    // GRAMMAR-WELLFORMED.G.3.2: record the constructive reachability witness for
-                    // this target (its id + the witness input) — verified later by replaying
-                    // `input` through the real parser (`verify_reachability_witness`).
-                    self.witness_certificates.push(
-                        super::grammar_wellformedness::ReachabilityWitness {
-                            fragment: status.id.clone(),
-                            input: sample.clone(),
-                        },
-                    );
-                    outputs.push(sample);
-                    witnesses_generated = witnesses_generated.saturating_add(1);
-                }
+                Ok(_) => {}
                 Err(error) => match Self::classify_generation_error(&error) {
                     GenerationErrorReason::DepthExceeded => {
                         depth_exceeded_failures = depth_exceeded_failures.saturating_add(1);
@@ -7240,24 +7293,61 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn current_target_successes(&self, target: &StimuliCoverageTarget) -> u64 {
-        match target.target_type {
+        self.target_successes_for(
+            &target.target_type,
+            target.rule_name.as_str(),
+            target.node_path.as_deref(),
+            target.branch_index,
+        )
+    }
+
+    /// The coverage debt already paid for one target, addressed by its FIELDS rather than by a
+    /// `StimuliCoverageTarget`. Extracted by `SV-EXH-PROOF.7.4.6.15` so the identical question can
+    /// be asked of a `TargetCoverageStatus` (`witness_target_is_resolved`) without duplicating the
+    /// rule-vs-branch accounting, which is the one place a divergence would be invisible: the two
+    /// callers would silently disagree about whether a target is covered.
+    fn target_successes_for(
+        &self,
+        target_type: &StimuliCoverageTargetType,
+        rule_name: &str,
+        node_path: Option<&str>,
+        branch_index: Option<usize>,
+    ) -> u64 {
+        match target_type {
             StimuliCoverageTargetType::Rule => self
                 .coverage
                 .rule_success_hits
-                .get(target.rule_name.as_str())
+                .get(rule_name)
                 .copied()
                 .unwrap_or(0),
             StimuliCoverageTargetType::Branch => {
-                let Some(node_path) = target.node_path.as_ref() else {
+                let Some(node_path) = node_path else {
                     return 0;
                 };
-                let Some(branch_index) = target.branch_index else {
+                let Some(branch_index) = branch_index else {
                     return 0;
                 };
-                let group_key = Self::branch_group_key(target.rule_name.as_str(), node_path);
+                let group_key = Self::branch_group_key(rule_name, node_path);
                 self.branch_success_hits(&group_key, branch_index)
             }
         }
+    }
+
+    /// SV-EXH-PROOF.7.4.6.15: is this target's coverage debt paid RIGHT NOW?
+    ///
+    /// The same question `evaluate_target_statuses` answers for the whole target set, asked for ONE
+    /// status so the witness pass can ask it BETWEEN two attempts on the same target. It reads
+    /// `self.coverage`, which every generation attempt updates as it runs, so it is also true for
+    /// the class that never errors: a generation that returned `Ok` while a `generate_or` sibling
+    /// fallback rescued the rule and left the forced branch uncredited (`selected_but_failed`).
+    /// That is why the attempt-ordered raise below keys on THIS and not on `result.is_err()`.
+    fn witness_target_is_resolved(&self, status: &TargetCoverageStatus) -> bool {
+        self.target_successes_for(
+            &status.target_type,
+            status.rule_name.as_str(),
+            status.node_path.as_deref(),
+            status.branch_index,
+        ) >= status.required_successes
     }
 
     fn rule_target_deficit(&self, rule_name: &str) -> u64 {
@@ -26539,6 +26629,184 @@ mod tests {
                 .prelude
                 .is_none(),
             "an alternative with no store gate must arm no prelude"
+        );
+    }
+
+    /// SV-EXH-PROOF.7.4.6.15: a grammar carrying a target the store-entry-blocked verdict calls
+    /// BLOCKED **while its own rule witnesses it perfectly well** — the configuration on which the
+    /// pre-`.7.4.6.15` order silently replaced a working witness.
+    ///
+    /// The false positive is REAL and in-code, not a stub: `mandatory_node_gated`'s rule-reference
+    /// arm answers `true` for any reference it cannot resolve in `grammar_tree`, and the builtin
+    /// `epsilon` is exactly such a reference — `generate_rule` expands it to the empty string
+    /// without consulting the store. So `soft_target := "t" epsilon` reads as *"mandatorily
+    /// gated"* to the verdict and renders as `"t"` to the generator.
+    ///
+    ///   `unit        := "u" ( item )*`
+    ///   `item        := producer | soft_target | gated_leaf`
+    ///   `producer    := "p"`            emits the gated kind, ABOVE `soft_target`'s closure
+    ///   `soft_target := "t" epsilon`    ← the spuriously-blocked target
+    ///   `gated_leaf  := "x"`            carries the only real gate, so the verdict machinery is live
+    ///
+    /// `gated_leaf` matters: `witness_target_is_store_entry_blocked` is inert by construction on a
+    /// grammar with no positive store gate at all, so without it the control would pass vacuously.
+    /// `unit`'s mandatory `"u"` prefix matters too: without it a raised witness can render exactly
+    /// one `soft_target` and come out as the string `"t"` — indistinguishable from the own-rule
+    /// witness — so the control would rest on the raise COUNTER alone. With it, the two entries are
+    /// told apart by the witness text as well.
+    fn spuriously_store_entry_blocked_grammar(
+    ) -> (HashMap<String, ASTNode>, Vec<String>, Annotations) {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "unit".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "u"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("item")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "item".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    rule_ref("producer"),
+                    rule_ref("soft_target"),
+                    rule_ref("gated_leaf"),
+                ],
+            },
+        );
+        grammar_tree.insert("producer".to_string(), token("quoted_string", "p"));
+        grammar_tree.insert(
+            "soft_target".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "t"), rule_ref("epsilon")],
+            },
+        );
+        grammar_tree.insert("gated_leaf".to_string(), token("quoted_string", "x"));
+        let rule_order = vec![
+            "unit".to_string(),
+            "item".to_string(),
+            "producer".to_string(),
+            "soft_target".to_string(),
+            "gated_leaf".to_string(),
+        ];
+        let annotations = gen_store_annotations(&[
+            gen_store_annotation("producer", "gen_emit_fact", "{ kind: open, name: $1 }"),
+            gen_store_annotation(
+                "gated_leaf",
+                "gen_predicate",
+                "{ name: fact_count_at_least, args: [open, 1], phase: post }",
+            ),
+        ]);
+        (grammar_tree, rule_order, annotations)
+    }
+
+    #[test]
+    fn spurious_store_entry_block_keeps_its_own_rule_witness() {
+        // SV-EXH-PROOF.7.4.6.15 — THE CONTROL THIS LEAF EXISTS FOR. `.7.4.6.12` decided the raise
+        // from the store-entry-blocked VERDICT alone and then generated ONLY from the raised entry,
+        // so a target the verdict calls blocked lost its own-rule witness whether or not that
+        // witness worked. `-0175` measured that as harmless on SystemVerilog — a property of THIS
+        // grammar's verdict accuracy, not of the design. Here the verdict is WRONG and the
+        // difference is observable: the own-rule attempt must run FIRST, succeed, and leave the
+        // raise unfired.
+        let (grammar_tree, rule_order, annotations) = spuriously_store_entry_blocked_grammar();
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), 7);
+
+        let report = generator
+            .generate_gap_report(Some("unit"), 1)
+            .expect("gap report");
+        // Scoped to the ONE target under test: `gated_leaf` is GENUINELY store-entry-blocked in
+        // this same grammar and correctly takes the raise, so a pass-wide `store_entry_raises`
+        // could never attribute a raise to `soft_target`.
+        let targets: Vec<StimuliCoverageTarget> = report
+            .targets
+            .iter()
+            .filter(|t| t.id == "rule::soft_target")
+            .cloned()
+            .collect();
+        assert_eq!(
+            targets.len(),
+            1,
+            "`soft_target` must be an uncovered reachable target"
+        );
+        let status = generator
+            .evaluate_target_statuses(&targets)
+            .into_iter()
+            .next()
+            .expect("`soft_target` must be an uncovered reachable target");
+
+        // PRECONDITION 1 — the verdict really does mis-fire here. ⛔ If this assert ever fails the
+        // verdict was tightened (e.g. `epsilon` taught to resolve); re-base the control on another
+        // over-approximation rather than deleting it — the ORDERING is what is under test.
+        assert!(
+            generator.witness_target_is_store_entry_blocked(&status),
+            "the control needs the verdict to call `soft_target` store-entry-blocked"
+        );
+        // PRECONDITION 2 — and every other condition the pre-`.7.4.6.15` raise needed is met, so
+        // the old order WOULD have rerouted this target. That is what makes this a RED control and
+        // not a tautology.
+        assert!(
+            generator.set_reach_plan_for_rule("unit", "soft_target", 16),
+            "the raised-entry plan installs, so the old order would have taken it"
+        );
+        generator.clear_reach_plan();
+
+        let (witnesses, summary) = generator
+            .generate_target_witnesses(&targets, Some("unit"))
+            .expect("witness pass");
+
+        assert_eq!(
+            summary.store_entry_raises, 0,
+            "the own-rule attempt resolved the target, so the raise must never fire: {:?}",
+            summary
+        );
+        assert!(
+            generator.witness_target_is_resolved(&status),
+            "and the target must be covered: {:?}",
+            summary
+        );
+        // And the witness is the OWN-RULE rendering, not a raised one: `soft_target` alone renders
+        // exactly `t`, while anything rooted at `unit` must carry `unit`'s mandatory `u` prefix.
+        assert!(
+            witnesses.iter().any(|w| w == "t"),
+            "the witness must be the own-rule rendering `t`, got {:?}",
+            witnesses
+        );
+        assert!(
+            !witnesses.iter().any(|w| w.starts_with('u')),
+            "no witness may be rooted at the RAISED entry `unit`, got {:?}",
+            witnesses
+        );
+    }
+
+    #[test]
+    fn genuine_store_entry_block_still_raises_after_the_own_rule_attempt_fails() {
+        // SV-EXH-PROOF.7.4.6.15 — THE COMPLEMENT. Ordering the attempts must not cost `.7.4.6.14`
+        // its capability: on the genuinely-blocked branch shape the own-rule attempt returns `Ok`
+        // (a `generate_or` sibling rescues the rule) while leaving the FORCED branch uncredited, so
+        // the raise must still fire. This is why the gate is `witness_target_is_resolved` and not
+        // `result.is_err()` — the error-keyed reading would strand exactly this class.
+        let (grammar_tree, rule_order, annotations) = store_entry_blocked_branch_grammar();
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), 7);
+
+        let report = generator
+            .generate_gap_report(Some("unit"), 1)
+            .expect("gap report");
+        let (_witnesses, summary) = generator
+            .generate_target_witnesses(&report.targets, Some("unit"))
+            .expect("witness pass");
+
+        assert!(
+            summary.store_entry_raises >= 1,
+            "a genuinely store-entry-blocked target must still take the raise: {:?}",
+            summary
         );
     }
 

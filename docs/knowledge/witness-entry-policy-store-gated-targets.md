@@ -14,11 +14,14 @@ answers:
   - "why is the raised witness entry not RULE-target-only"
   - "why must a branch-target reach plan carry a semantic prelude"
   - "why does prelude gate discovery start at the targeted alternative instead of the rule"
+  - "why does the witness pass try the target's own rule before raising the entry"
+  - "why did store_entry_raises drop from 16 to 1 without any coverage change"
+  - "why can a coverage-equal A/B not tell you whether a reroute was necessary"
 tags: [stimuli, coverage, semantic-store, witness, systemverilog, root-cause]
-date: 2026-08-02
+date: 2026-08-08
 status: current
-evidence: rust/src/ast_pipeline/stimuli_generator.rs (`witness_target_is_store_entry_blocked`, `target_forces_positive_store_gate`, `emittable_kinds_within_closure`, `StoreGateScope`, the raised-entry arm inside `generate_target_witnesses`, and the branch half `set_reach_plan_forcing_quantifiers_with_prelude` / `count_gate_via_targeted_alternative` / `name_gate_via_targeted_alternative`); docs/tasks/SV-EXH-PROOF.md leaves .7.4.6.12 (WHY+WHERE_CLASS_C_2026-08-01, SIZING_CORRECTION_2026-08-01, FIX_LANDED_2026-08-02) and .7.4.6.14 (the branch half); docs/book/src/grammar-wellformedness.md "The closed-loop witness pass's raised entry for store-gated targets"
-reverify: "python3 docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py; cargo test --features 'generated_parsers ebnf_dual_run' --lib witness_store_entry_blocked raised_branch_plan plain_branch_installer"
+evidence: rust/src/ast_pipeline/stimuli_generator.rs (`witness_target_is_store_entry_blocked`, `target_forces_positive_store_gate`, `emittable_kinds_within_closure`, `StoreGateScope`, the attempt-ordered arms inside `generate_target_witnesses` — `attempt_target_witness` / `witness_target_is_resolved`, and the branch half `set_reach_plan_forcing_quantifiers_with_prelude` / `count_gate_via_targeted_alternative` / `name_gate_via_targeted_alternative`); docs/tasks/SV-EXH-PROOF.md leaves .7.4.6.12 (WHY+WHERE_CLASS_C_2026-08-01, SIZING_CORRECTION_2026-08-01, FIX_LANDED_2026-08-02), .7.4.6.14 (the branch half) and .7.4.6.15 (the attempt order — MEASURED_PREMISE_2026-08-08, EPSILON_VECTOR_2026-08-08; the verdict's own over-approximation is routed to .7.4.6.17); docs/book/src/grammar-wellformedness.md "The closed-loop witness pass's raised entry for store-gated targets"
+reverify: "python3 docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py; cargo test --features 'generated_parsers ebnf_dual_run' --lib store_entry; cargo test --features 'generated_parsers ebnf_dual_run' --lib raised_branch_plan"
 ---
 
 **Two witness passes, two entry policies — and one of them is fatal for a store-gated target.**
@@ -98,6 +101,36 @@ profiles) and needs **14 fewer witnesses** on `sv_2017`, 13 fewer on `sv_2023`, 
 whole-file witness settles more targets at once. The mechanism is checked on the real parser, not
 inferred: the produced witness `import\foo ::*;package\foo ;\foo \foo ;endpackage` gives
 `parse_full passed`, and the same sample with only the import removed gives `furthest_position=17`.
+
+⭐⭐ **THE ORDER OF THE TWO ATTEMPTS IS THE GUARANTEE — AND THE VERDICT WAS WRONG 15 TIMES IN 16.**
+Both raises above decided from the verdict ALONE and then generated only from the raised entry, so a
+target that would have witnessed fine from its own rule was rerouted whether or not it needed to be.
+The pass now attempts the **own rule first** for every target and installs the raised entry only when
+that attempt left the target **uncovered** — so a spurious verdict can no longer replace a working
+witness, on any grammar. ⛔ The gate is *"is it covered now"*, **not** `result.is_err()`: a forced
+branch whose gated content prunes lets a sibling rescue the rule, so the attempt returns `Ok` with
+the branch uncredited, and an error-keyed reading would strand exactly the branch class above.
+
+Measured single-variable on the replay stage: `store_entry_raises` **16 → 1** (`sv_2017`) and
+**11 → 1** (`sv_2023`), residual `0`/`0`, every coverage figure identical, all four debt lists
+`0 resolved / 0 new`. ⇒ **25 of the 27 raises were unnecessary**, and the survivors are the genuine
+class-C targets. Price: `sample_errors` UNCHANGED (50/97 — every extra attempt succeeds, contra the
+design's "wasted work" prediction), `+14`/`+6` witnesses, elapsed `256 → 258 s` and `444 → 436 s`.
+
+⛔⛔ **THE DURABLE LESSON, AND IT IS NOT ABOUT THIS PASS.** The earlier verdict-first measurement
+diffed HEAD against the fix and found coverage-EQUAL with byte-equal debt lists, concluding *"15 and
+14 targets take the raise and not one target is lost"*. True, and the wrong question. Replacing a
+working witness with another working witness moves **no** coverage number, so the metric being green
+could not distinguish *"the reroute was necessary"* from *"the reroute was harmless"* — only the
+ATTEMPT ORDER can, because the necessary ones are exactly the ones that still raise. **A mechanism
+whose failure mode is invisible to the metric you gate on is not validated by that metric being
+green** — [[feedback_instrument_needs_ground_truth]] restated for a policy rather than an instrument.
+
+⚠️ The verdict itself is a KNOWN-DEFECTIVE surface now, tracked separately and cost-only. One vector
+is proven in code: `mandatory_node_gated` answers `true` for any rule reference absent from
+`grammar_tree`, and the BUILTIN `epsilon` is exactly that — while `generate_rule` renders it as the
+empty string with no store consulted. Which SV targets the 25 are is **not** yet measured; naming
+them needs a per-target verdict census.
 
 See also [[sv-residual-depth-budget-cause]] (the other residual class — where a budget *was* the
 cause), [[branch-failure-reasons-are-the-witness-why]] (how to read which class you are in), and

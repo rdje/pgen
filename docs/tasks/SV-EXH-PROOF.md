@@ -1673,14 +1673,100 @@ literal over a failing surface.
   describes no witness-pass or reach-plan seam, and this change moves no subsystem boundary.
 
 - ID: `SV-EXH-PROOF.7.4.6.15`
-  Status: `pending` (`PGEN-SV-EXH-PROOF-0178`, raised by the director asking whether `-0175`'s BLAST_RADIUS finding had a signoff FIX rather than only a measurement — it did not, and this leaf is the answer)
+  Status: `done` (`PGEN-SV-EXH-PROOF-0179`, 2026-08-08) — ⭐⭐ **THE GUARANTEE IS STRUCTURAL NOW, AND THE PREMISE TURNED OUT TO BE A LIVE DEFECT ON THE REAL GRAMMAR.** The leaf was written against a HYPOTHETICAL (*"on a grammar where the verdict over-approximates…"*). Measured on the canonical replay stage, SystemVerilog IS that grammar: `store_entry_raises` **`16 → 1`** on `sv_2017` and **`11 → 1`** on `sv_2023` — **15 of 16 and 10 of 11 raises were replacing a witness the target's own rule produces perfectly well**, and coverage is IDENTICAL either way (`covered_rules`/`covered_branches` unchanged, all four debt lists `0 resolved / 0 new`, residual `0`/`0`). ⛔ Read `MEASURED_PREMISE_2026-08-08` — `-0175`'s BLAST_RADIUS *"15/14 take the raise and not one target is lost"* was correct and blind: losing nothing is not the same as needing the reroute. The verdict's own over-approximation is routed to `.7.4.6.17`.
   Goal: `Make the raised witness entry's monotonicity STRUCTURAL rather than MEASURED. Today generate_target_witnesses decides the raise from the store-entry-blocked VERDICT alone and then generates ONLY from the raised entry, so a target that would have witnessed perfectly well from its own rule is silently rerouted. -0175 measured that this is harmless on SV (15/14 raises, all four debt lists byte-equal, 14/13 fewer witnesses) -- but that is a property of THIS grammar's verdict accuracy, not of the design. On a grammar where the verdict over-approximates, a spurious raise REPLACES a working generation and nothing catches it except a residual regression. ⛔ That is precisely the failure .7.4.6.12's own design note said the over-approximation bias was chosen to avoid, so the guarantee should not rest on the bias being right.`
   DESIGN_2026-08-07 (worked out before the session ended; implement, do not re-derive): `ATTEMPT-ORDERED RAISE. Try the OWN-RULE entry FIRST, exactly as today's non-blocked targets do; install the raised entry (with prelude) only when that attempt FAILS. Then: (a) every target that witnesses from its own rule today witnesses identically tomorrow, with the SAME RNG draws -- monotone BY CONSTRUCTION on every grammar, not by measurement on one; (b) the only behaviour that changes is for targets whose own-rule attempt fails, which is strictly more coverage, never less; (c) the raise stops being able to replace a working witness at all, so .7.4.6.12's over-approximation bias becomes a cost knob instead of a correctness assumption.
   ⛔ PRICE IT, do not assume it is free: the verdict says these targets are STRUCTURALLY unwitnessable from their own rule, so for a CORRECT verdict every first attempt is provably wasted work -- 15 (sv_2017) / 14 (sv_2023) extra failing generations per run. Measure the stage elapsed and the witness count; if the cost is material, the fallback is to keep the verdict-first order but add an explicit escape hatch, NOT to leave the guarantee unmeasured.
   ⛔ ACCEPTANCE: residual stays 0/0 on both profiles; whole-summary diff vs HEAD shows 0 new; and -- the point of the leaf -- a UNIT control proving the ordering: a synthetic target that IS store-entry-blocked by the verdict but DOES witness from its own rule must keep its own-rule witness (today it would be rerouted). That control is what converts the claim from measured to structural.`
-  Acceptance: `pending`
-  Verification: `pending`
-  Commit: `pending`
+  MEASURED_PREMISE_2026-08-08 -- ⛔ THE HYPOTHETICAL IS A LIVE DEFECT, ON THE FLAGSHIP GRAMMAR, AT 94%: `The Goal is written conditionally -- "on a grammar where the verdict over-approximates, a spurious raise REPLACES a working generation". The A/B answers the condition: SystemVerilog IS that grammar. store_entry_raises falls 16 -> 1 (sv_2017) and 11 -> 1 (sv_2023) with the ONLY change being that the own-rule entry is attempted first, so 15 of 16 and 10 of 11 raises were rerouting a target whose own rule witnesses it perfectly well. The single survivor per profile is the genuine class-C target .7.4.6.12/.14 built the raise for -- so the REAL grammar is simultaneously the positive control (the genuine block still raises) and the negative one (every spurious block no longer does).
+
+  ⭐ WHY -0175 COULD NOT SEE IT, AND WHY THAT IS THE DURABLE LESSON. -0175's BLAST_RADIUS diffed the HEAD arm against the fixed arm and found coverage-EQUAL with all four debt lists byte-equal, and concluded "15 and 14 branch targets take the new raise and not one target is lost". Every word of that is TRUE and it is the wrong question. A raise that replaces a working witness with another working witness loses nothing MEASURABLE -- the whole-file raised sample even settles more targets at once, which is why HEAD needs 14 FEWER witnesses on sv_2017. Coverage equality cannot distinguish "the reroute was necessary" from "the reroute was harmless", and only the ATTEMPT ORDER can: run the own-rule arm first and the necessary ones are exactly the ones that still raise. ⇒ [[feedback_instrument_needs_ground_truth]] restated for a policy rather than an instrument -- a mechanism whose failure mode is INVISIBLE to the metric you gate on is not validated by that metric being green.
+
+  ⛔ AND THE VERDICT ITSELF IS NOW A KNOWN-DEFECTIVE SURFACE, ROUTED NOT WORKED. This leaf does NOT tighten witness_target_is_store_entry_blocked, deliberately: its whole thesis is that the guarantee must not depend on the verdict being right, and it now holds whatever the verdict says. The over-approximation is real work with its own subject (15+10 named targets to characterise, plus the epsilon vector below) and gets its own leaf .7.4.6.17 per [[feedback_flow_findings_are_routed_not_worked]]; it BLOCKS nothing, since the ordering already makes every spurious verdict cost-only.`
+  EPSILON_VECTOR_2026-08-08 (found while building the unit control; the control is BUILT ON it) -- A CONCRETE, IN-CODE FALSE POSITIVE OF THE VERDICT: `mandatory_node_gated's rule-reference arm answers TRUE for any reference it cannot resolve in grammar_tree ("} else { true }", stimuli_generator.rs), and the BUILTIN `epsilon` is exactly such a reference -- generate_rule short-circuits it to the empty string before any store is consulted. So a rule whose mandatory sequence contains an `epsilon` reference reads as "mandatorily store-gated" to the verdict while rendering unconditionally to the generator. That is what makes spurious_store_entry_block_keeps_its_own_rule_witness a REAL control rather than a stub, and it is one named mechanism for .7.4.6.17 to start from. ⚠️ It is NOT asserted to be the SV cause: SV's 15+10 are unnamed here (naming them needs a per-target verdict census .7.4.6.17 owns), and the epsilon arm is one vector, not necessarily theirs. ⛔ If .7.4.6.17 fixes this arm, the control's PRECONDITION 1 assert fails LOUDLY by design -- re-base it on another over-approximation, do not delete it; the ORDERING is what is under test.`
+  Acceptance: `MET on every clause. (1) residual stays 0/0 -- sv_2017 0 -> 0, sv_2023 0 -> 0. (2) whole-summary diff vs HEAD shows 0 new -- both profiles, all four debt lists 0 resolved / 0 new, and every coverage figure identical (sv_2017 covered_rules 1337 / covered_branches 1451; sv_2023 1356 / 1490). (3) the UNIT control exists and is proven in BOTH directions (RED on HEAD, GREEN on the fix). PRICED as the leaf demanded, and the price is not what the design predicted: the design expected "15/14 extra failing generations per run", but sample_errors is UNCHANGED (50 / 97) -- every extra own-rule attempt SUCCEEDS. The real cost is +14 / +6 witnesses (902 -> 916, 653 -> 659), because the raised whole-file samples HEAD used were settling neighbouring targets for free; stage elapsed 256 -> 258 s (+0.8%) and 444 -> 436 s (-1.8%), i.e. inside run-to-run noise in both directions. No escape hatch needed.`
+  Verification: `done -- see the Acceptance Checklist below (PGEN-SV-EXH-PROOF-0179). Arms preserved at rust/target/sv_exh_proof_7_4_6_15/{arm_a_head,arm_b_fix}/ (both profiles: stimuli, coverage, gap JSON/text, logs) with timings.txt, fix.patch and the HEAD/after sources beside them; the A/B driver is rust/target/sv_exh_proof_7_4_6_15/run_ab.sh and the comparison is the new tracked docs/tasks/artifacts/sv_exh_proof/whole_summary_diff.py.`
+  Commit: `PGEN-SV-EXH-PROOF-0179`
+
+- **Acceptance Checklist (enforced)** — `SV-EXH-PROOF.7.4.6.15` (`PGEN-SV-EXH-PROOF-0179`)
+- [x] **REPRODUCE / ISSUE** — the issue is a DESIGN property, so it is reproduced as a differential
+  rather than as a symptom: on the canonical closed-loop replay stage at HEAD the witness pass
+  reports `… construct_fell_back_to_search=0; store_entry_raises=16` (`sv_2017`) and `=11`
+  (`sv_2023`) — 27 targets whose own-rule entry was never attempted at all, because the
+  store-entry-blocked verdict replaced the arm outright.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `generate_target_witnesses`
+  (`rust/src/ast_pipeline/stimuli_generator.rs`) decided the raise from
+  `witness_target_is_store_entry_blocked(&status)` ALONE and then set `entry_rule` to the raised
+  entry *before* any generation ran, so the own-rule arm was unreachable for a blocked target.
+  WHY the verdict cannot carry that weight: it is a deliberate OVER-approximation — its own doc
+  comment says the bias exists so that "a missed raise leaves today's behaviour untouched, while a
+  spurious one would replace a working own-rule generation" — and `mandatory_node_gated`'s
+  rule-reference arm returns `true` for any reference it cannot resolve in `grammar_tree`, which
+  the BUILTIN `epsilon` satisfies while `generate_rule` renders it as the empty string with no
+  store consulted. Proven by CONSTRUCTION, in both directions, on the pre-fix binary: the control
+  grammar's `soft_target := "t" epsilon` is called blocked by the verdict and, at HEAD, yields
+  `store_entry_raises: 1` and the witness `["ut"]` — rooted at the RAISED entry `unit`, not at the
+  target's own rule, whose rendering is `"t"`. ⭐ And the same defect is LIVE ON THE REAL GRAMMAR at
+  **15 of 16** / **10 of 11** (`MEASURED_PREMISE_2026-08-08`); it was invisible to `-0175`'s
+  coverage-equality diff because replacing a working witness with another working witness moves no
+  coverage number. Determinism of the diagnosis: both arms re-run from fixed seeds
+  (`--seed 712001` / `1712001`) via `docs/tasks/artifacts/sv_exh_proof/run_closed_loop_replay_stage.sh`.
+- [x] **FIX** — fix-hierarchy tier: **engine, minimal, ordering-only** (no grammar change, no new
+  annotation surface, no change to the verdict, no change to either reach-plan installer). Three
+  edits, all in `generate_target_witnesses`' per-target body: (a) the construct→search→clear-plan
+  sequence is extracted verbatim into `attempt_target_witness` returning a `WitnessAttempt`, so the
+  pass can run it twice against one target without the two arms drifting; (b) ARM 1 is now the
+  own-rule entry for EVERY target — byte-identical to what a non-blocked target already did,
+  including `.7.4.6.11`'s branch quantifier forcing; (c) ARM 2 (the raised entry, rule or branch,
+  with `.7.4.6.14`'s prelude) runs only when ARM 1 left the target UNCOVERED. ⭐ The gate is the new
+  `witness_target_is_resolved`, NOT `result.is_err()`: a forced branch whose gated content prunes
+  lets a `generate_or` sibling rescue the rule, so ARM 1 returns `Ok` with the branch uncredited
+  (`selected_but_failed`) — the error-keyed reading would have stranded exactly the class
+  `.7.4.6.14` exists to close. `current_target_successes` was refactored to a field-addressed
+  `target_successes_for` so both callers ask the coverage question through one implementation.
+- [x] **ADDRESSED (verified)** — before→after, single-variable (the ONLY difference between arms is
+  this file), both profiles, on the gate's own replay stage. `store_entry_raises` **16 → 1**
+  (`sv_2017`) and **11 → 1** (`sv_2023`); residual **0 → 0** on both; every coverage figure
+  identical (`covered_rules` 1337/1356, `covered_branches` 1451/1490) and all four debt lists
+  **0 resolved / 0 new** via `whole_summary_diff.py`; `sample_errors` **unchanged** (50 / 97) so
+  every extra own-rule attempt succeeded; witnesses 902 → 916 and 653 → 659; elapsed 256 → 258 s and
+  444 → **436** s. Ground truth for the ORDERING itself, not just the counts: the new unit control
+  `spurious_store_entry_block_keeps_its_own_rule_witness` is proven **RED on HEAD** (`store_entry_raises: 1`,
+  witness `["ut"]`) and **GREEN on the fix** (`store_entry_raises: 0`, witness `["t"]`, and no
+  witness rooted at the raised entry), with two preconditions asserted first so it can never pass
+  vacuously — the verdict really does mis-fire, and the raised plan really does install. Its
+  complement `genuine_store_entry_block_still_raises_after_the_own_rule_attempt_fails` passes on
+  BOTH sides, so `.7.4.6.14`'s capability is preserved rather than assumed.
+- [x] **NO REGRESSION** — certificate coverage at **seeds 0/7/42** on json / regex / vhdl /
+  rtl_frontend: 12/12 runs `CERTIFICATE-COVERAGE: … UNKNOWN=0 fully_certified=true
+  (sample_parse_failures=0, proof_reverify_failures=0)`, **byte-identical across the three seeds**
+  and equal to the `-0175` baseline (json 9/9, regex 269 = 9 proof + 260 witness, vhdl 216/216,
+  rtl_frontend 169 = 1 proof + 168 witness). `ast_shape_contract_gate` GREEN (**18 passed, 0
+  failed**). `clippy_on_rust_change` **rc=0** — strict source lint clean AND the generated-parser
+  stage `pass` with `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS` (all **68** pinned lints
+  still members of `clippy::correctness`). Dual-feature lib suite **1050 passed / 1 failed** against
+  a baseline MEASURED THIS SLICE rather than remembered (`git checkout HEAD -- stimuli_generator.rs`,
+  re-run, restore → **1048 passed / 1 failed**): exactly `+2` passing — the two new controls — with
+  the failure count **identical**. The one residual failure is
+  `ast_based_generator::semantic_usage_tests::unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`,
+  pre-existing and in a module this diff does not touch. (⚠️ `-0175` recorded 1043/1; the baseline
+  moved with `-0176`, which is exactly why it was re-measured instead of quoted.)
+  ⭐ The strongest signal for a change that alters GENERATED STIMULI is the A/B itself: 27
+  targets change which entry they are witnessed from and the whole-summary diff is coverage-EQUAL on
+  both profiles with all four debt lists byte-equal. ⚠️ Stated rather than implied: the 14-case
+  external SV corpus was **not** re-run — this change is confined to stimuli GENERATION and cannot
+  alter parsing, and the samples it emits were replayed through the real parser by the replay stage
+  itself (`sample_errors` unchanged at 50 / 97 on the two profiles).
+- [x] **LOCKSTEP** — book: `docs/book/src/grammar-wellformedness.md` gains *The attempt order is the
+  guarantee* under the raised-entry sections, and `docs/book/src/stimuli-and-quality.md`'s
+  `store_entry_raises=` sentence now states what the counter means AFTER the ordering change. KM
+  card `docs/knowledge/witness-entry-policy-store-gated-targets.md` extended with the ordering + the
+  measured 15/16 · 10/11, plus three new question keys; map regenerated. New tracked instrument
+  `docs/tasks/artifacts/sv_exh_proof/whole_summary_diff.py`. `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md` (frontier row + the new `.7.4.6.17`).
+  ⛔ Ratchet **deliberately unchanged** at `2017: 0`/`2023: 0` — the residual does not move and the
+  two-sided pin would fail if it did. `docs/reference/RUST_CODEBASE_ANALYSIS.md` **not** updated,
+  checked rather than skipped: this moves no subsystem boundary and adds no public seam.
 
 - ID: `SV-EXH-PROOF.7.4.6.16`
   Status: `pending` (`PGEN-SV-EXH-PROOF-0178`)
@@ -1688,6 +1774,26 @@ literal over a failing surface.
   PRIOR_ART_2026-08-07 (searched before designing — [[feedback_read_prior_art_before_designing]]): `⭐ THE MECHANISM ALREADY EXISTS IN THIS REPO AND IS EXACTLY RIGHT: unified_return_ast.rs::serialize_properties_sorted -- a #[serde(serialize_with = ...)] that collects the HashMap into a BTreeMap of REFERENCES and calls serializer.collect_map. It was added for the same class of defect (the interpreter's typed AST diverged from the generated parser byte-for-byte on map order) and its doc comment already records the reasoning. Clone that shape; do NOT invent a second idiom.
   ⛔ AND DO NOT SWITCH THE FIELDS TO BTreeMap IN MEMORY. rule_success_hits / branch_groups are read on the hot generation path (branch_selected_hits, branch_success_hits, record_branch_success per OR decision); BTreeMap would trade log-n lookups for a serialization property, which is the trade [[project_capability_growth_is_zero_cost_and_neutral]] forbids -- the capability must cost non-users ZERO. A serialize-side sort costs exactly one sorted collect per artifact WRITE (a handful per run) and nothing on the hot path.`
   Acceptance: `The same binary, same inputs, twice ⇒ profile_*_replay_coverage.json byte-identical (cmp) on BOTH profiles, joining the three artifacts that already are. Deserialization unchanged (a JSON object into a HashMap is order-insensitive, so every existing reader — the census scripts, the gate — is unaffected). Zero hot-path change: no field type changes. Verify the WHOLE closed-loop stage is otherwise byte-identical to HEAD (stimuli.sv / gap.json / gap.txt), i.e. the fix is provably serialization-only.`
+  REPRODUCED_2026-08-08 (cheaply, off the SV stage — `regex`, seconds not minutes): `Three runs of the SAME binary on the SAME inputs (ast_pipeline grammars/regex.ebnf --generate-stimuli --count 40 --seed 0 --coverage-output …) give three files of IDENTICAL SIZE (77 227 B) that cmp reports as differing at "char 210, line 10". Canonical-load comparison proves it is ORDER, not content: json.load equality True; rule_success_hits same key SET True / same key ORDER False (269 keys); branch_groups same SET True / same ORDER False (143 keys); sorted-canonical sha256 equal. On this grammar only 2 failure_reasons inner maps carry >1 key and neither happened to diverge — they are HashMap<String,u64> all the same and carry the identical latent defect, so all THREE sites get the serializer.`
+  EVIDENCE_SURFACE_GAP_2026-08-08 -- ⛔ WAIVER NOTE, ROUTED: `this defect fits NONE of the five TASK-ACCEPTANCE diagnosis families and the diagnosis-tool signatures do not apply -- there is no parse to trace (the parser is uninvolved), no run to sample (it is not slow), no error[EXXXX] (it compiles), no clippy::<lint> over generated code (nothing is generated), and it is not a shell/make/errno defect in the repo's own scripts. The instruments that actually localise it are `cmp` plus a canonical-load comparison, and neither is in any family's token list. Per TOOLBOX.md that is "a signal worth raising, not a reason to waive" -- so it is raised and OWNED by `SV-EXH-PROOF.7.4.6.18`, which prices an artifact-determinism family against the whole docs/tasks corpus exactly as GENERATED-LINT-CORRECTNESS.4 and .7 require of any widening (.7 REFUSED its candidate at 0-3 of 307, so the answer may well be "no family, fix the placement" -- pricing is the deliverable, not adoption).`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.7.4.6.17`
+  Status: `pending` (`PGEN-SV-EXH-PROOF-0179`, raised by `.7.4.6.15`'s A/B and opened as a SIBLING leaf in this tree — deliberately not worked inside `.7.4.6.15`; see ROUTING EVIDENCE §2)
+  Goal: `Tighten witness_target_is_store_entry_blocked, whose over-approximation is no longer hypothetical: .7.4.6.15 MEASURED it firing spuriously on 15 of 16 (sv_2017) and 10 of 11 (sv_2023) real targets -- every one of which witnesses perfectly well from its own rule. .7.4.6.15 made that COST-ONLY rather than incorrect (the own-rule arm now runs first, so a spurious verdict can never replace a working witness), which is exactly why this is routed and not blocking. What remains is real: 25 targets per run pay a needless verdict evaluation plus a raised-plan install, and a verdict that is wrong 94% of the time is a poor foundation for anything built on it later.`
+  Prerequisites: `NONE -- .7.4.6.15 is landed and this is strictly additive.`
+  Design sketch (do NOT re-derive the starting point): `TWO known inputs. (1) A NAMED VECTOR, already proven in code: mandatory_node_gated's rule-reference arm answers TRUE for any reference absent from grammar_tree, and the BUILTIN `epsilon` is such a reference while generate_rule renders it as the empty string with no store consulted (EPSILON_VECTOR_2026-08-08 in .7.4.6.15). Resolving builtins before the conservative fallback is the obvious first candidate -- MEASURE it, do not assume it is the SV cause. (2) The SV population is UNNAMED and naming it is step one: build a per-target verdict census over the real grammar (in-process, no generation -- load the gen-AST, build the generator, evaluate witness_target_is_store_entry_blocked over the initial gap report's targets) so the 16/11 blocked sets are listed by name, then subtract the one genuine class-C target per profile. That list IS the specification.`
+  Acceptance: `store_entry_raises at HEAD-equivalent configuration falls toward the genuine population (1 per profile) WITHOUT the ordering being what suppresses it -- i.e. measured on the verdict directly via the census, not only through the pass. Residual stays 0/0 and the whole-summary diff stays 0 new on both profiles. ⛔ And .7.4.6.15's control must be RE-BASED, not deleted, if the epsilon arm is the thing fixed: its PRECONDITION 1 assert is designed to fail loudly in exactly that case, and the ORDERING it guards is a separate guarantee that must keep its test.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.7.4.6.18`
+  Status: `pending` (`PGEN-SV-EXH-PROOF-0179`, opened to OWN the waiver `.7.4.6.16` records — a waiver is a bug report about the gate, never inert; see ROUTING EVIDENCE §2)
+  Goal: `Price a SIXTH task-acceptance diagnosis family -- ARTIFACT DETERMINISM -- against the whole docs/tasks corpus, and adopt it only if the corpus earns it. The trigger is .7.4.6.16 (EVIDENCE_SURFACE_GAP_2026-08-08): a defect whose whole nature is "the same binary on the same inputs writes different bytes" has no parse to trace, no run to sample, no rustc error, no generated-code lint and no shell/make/errno locus, so its ROOT CAUSE box cannot cite any of the five families -- while the instruments that DO localise it (cmp, a canonical-load comparison, a repeat-run diff) appear in none of them.`
+  Prerequisites: `NONE. ⛔ GOVERNANCE LANE — parked behind product work per [[feedback_prefer_feature_work_over_governance_lanes]]; it blocks nothing, because .7.4.6.16 lands under a routed waiver naming this leaf.`
+  Design sketch: `⛔ PRICE BEFORE ADOPTING, and price it as a WIDENING (the bar .4 and .7 set: corpus pressure, not plausibility). Measure over every ticked ROOT CAUSE box in docs/tasks/: how many carry NO family token today, and how many of those a candidate token set (cmp / diff / sha256sum|shasum / "byte-identical" / assert_same_json) would back. ⚠️ .7 measured its own candidate at 0-3 of 307 and REFUSED it, because the real gap was 97% PLACEMENT (299 OUT-OF-BOX vs 8 NO-EVIDENCE) and no token set closes a placement gap. Expect the same answer here unless the corpus says otherwise; "refused, with the number" is a complete and successful outcome for this leaf. ⚠️ And `byte-identical` is ALREADY a NOREGRESS_SIG token, so adding it to DIAGNOSIS_SIG needs its own justification rather than being waved through.`
+  Acceptance: `A measured number over the whole corpus for the candidate set, a decision (adopt / refuse) argued from that number, and -- if adopted -- the check-script change plus RED/GREEN probes in the GENERATED-LINT-CORRECTNESS probe style. If refused, .7.4.6.16's waiver stays as the durable record of the boundary, which is the outcome the WAIVER-ROUTING doctrine exists to produce.`
   Verification: `pending`
   Commit: `pending`
 
@@ -1699,6 +1805,8 @@ literal over a failing surface.
   Commit: `PGEN-SV-EXH-PROOF-0154`
 
 ## ROUTING EVIDENCE
+
+### §1 — the cumulative `+4` depth slack (`.7.4.6.9` → `.7.4.6.13`)
 
 For the cumulative-`+4`-depth-slack finding raised by `.7.4.6.9` and routed to the NEW in-tree leaf
 `.7.4.6.13` (`PGEN-SV-EXH-PROOF-0167`).
@@ -1726,13 +1834,55 @@ For the cumulative-`+4`-depth-slack finding raised by `.7.4.6.9` and routed to t
    It would also be wrong to route it as *blocking*: it neither stops a gate running nor falsifies a
    published claim, so it is parked per [[feedback_flow_findings_are_routed_not_worked]].
 
+### §2 — the two findings `.7.4.6.15` raised (`→ .7.4.6.17`, `→ .7.4.6.18`)
+
+Both stay **inside this tree as sibling leaves**; neither is being sent to another family. The
+routing question they answer is therefore *"why not fix it inside `.7.4.6.15`?"*, and the same three
+questions apply.
+
+1. **Does the finding reproduce outside the family it is being placed in?** ⭐ **YES for
+   `.7.4.6.17`, and that is an argument FOR keeping it here, not against.**
+   `witness_target_is_store_entry_blocked` and `mandatory_node_gated` carry no grammar identifier and
+   run for every grammar with a positive store gate, so the over-approximation is generator-wide. It
+   is homed here on the ground `.7.4.6.13` set as this tree's precedent: **this tree is where it was
+   measured and owns the only artifact that exhibits it** (the SV replay stage is what produced
+   `16 → 1` / `11 → 1`). The `epsilon` vector is likewise general — a codegen builtin, not an SV
+   construct. For `.7.4.6.18` the question differs in kind: it is a defect in the **doctrine
+   enforcer's own signature surface**, which is repo-wide by definition. It is opened here only
+   because `.7.4.6.16` is the leaf that hit the boundary and `WAIVER-ROUTING` requires the waiver to
+   name an owner — not because the gap is a SystemVerilog gap.
+2. **What was MEASURED, not what is plausible?** For `.7.4.6.17`: `store_entry_raises` **16 → 1**
+   (`sv_2017`) and **11 → 1** (`sv_2023`) on the canonical replay stage, single-variable, with every
+   coverage figure and all four debt lists unchanged — so the 25 suppressed raises were provably
+   unnecessary, not merely harmless. Plus one vector proven in code in both directions
+   (`EPSILON_VECTOR_2026-08-08`). ⚠️ **NOT measured, and stated rather than implied:** *which* SV
+   targets the 25 are. Naming them needs a per-target verdict census, which is `.7.4.6.17`'s own
+   first step — the `epsilon` arm is explicitly **not** asserted to be their cause. For `.7.4.6.18`:
+   the five families were checked one by one against this defect class and each excluded for a named
+   reason (`EVIDENCE_SURFACE_GAP_2026-08-08`); the corpus number that decides adoption is
+   deliberately **not yet measured**, because measuring it IS the leaf.
+3. **What would have to be true for the routing to be WRONG, and was it checked?** `.7.4.6.17` would
+   be wrongly separated if the over-approximation still caused a *correctness* defect after
+   `.7.4.6.15`. **Checked, and it does not:** with the own-rule arm attempted first a spurious
+   verdict can no longer replace a working witness, so the residual is `0`/`0` and every debt list is
+   unchanged **with the verdict left exactly as it was**. What remains is cost and foundation
+   quality — routed work by [[feedback_flow_findings_are_routed_not_worked]], and, being an issue
+   RAISED, scheduled rather than optional ([[feedback_every_finding_must_be_fixed_not_logged]]).
+   `.7.4.6.18` would be wrongly separated if the missing family BLOCKED `.7.4.6.16` from landing. It
+   does not: a routed waiver is the mechanism the doctrine itself prescribes for this case, so the
+   fix lands and the boundary is recorded rather than erased. ⛔ It would also be wrong to *silently
+   widen* the family instead — `GENERATED-LINT-CORRECTNESS.7` refused its own candidate at 0–3 of
+   307, so an unpriced widening is the failure mode here, not the fix.
+
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | **1** | `SV-EXH-PROOF.7.4.6.13` | `in_progress` (`-0176` — ⭐ defect (i) COST **LANDED**; ⛔ defect (ii) PREDICTABILITY, the Goal, **OPEN**) | The depth-slack retry's real defect is a **missing runaway backstop**, not the `+4` arithmetic: its sibling in the same `Err` arm has had one since `GRAMMAR-WELLFORMED.H.4.2`, this one has none, and **one `sv_2017` branch was measured at 726 836 retries**. The cap is priced off the measured success ORDINALS (not curve-fitted): at `4096` it keeps `252/255` + `147/147` successes, cuts retry work `6.5x`/`7.2x`, and nearly **triples** `sv_2023` target-drive resolution (`568 → 1673`). Its one blocker — `sv_2017` residual `0 → 1` — was removed by `.7.4.6.14`, and the bound is now IN (`-0176`): attempts `6.5x`/`7.2x` down, `branch_retry_max 726 836 → 4 096`, `sv_2023` target-drive `568 → 1 673`, stage `458 → 267 s`/`569 → 437 s`, **residual still `0`/`0`**, and the landed build is byte-identical to the priced arm. ⛔ **The Goal is the OTHER defect** — predictability: `--max-depth` does not bound the descent, and re-measured on the landed pair the ladder is invariant (`448 → 444`, `676 → 672`). ⛔⛔ Its leading candidate is now **REFUTED BY MEASUREMENT** (`-0177`): computing the slack from the configured depth collapses the ladder exactly as designed (106 → 8 levels) and blows the residual to **17**/**10**, because the cumulative escalation is **load-bearing** for ~10 rules and ~7 branches per profile. The next candidate is a different shape — an EXPLICIT per-target depth grant, as the witness pass already computes. |
-| **2** | `SV-EXH-PROOF.7.4.6.15` | `pending` (`-0178`) | ⛔ **`-0175`'s raise is monotone by MEASUREMENT, not by construction.** It decides from the store-entry-blocked verdict alone and then generates ONLY from the raised entry, so on a grammar where the verdict over-approximates a spurious raise REPLACES a working witness and nothing catches it but a residual regression. Fix is designed and recorded in the leaf (`DESIGN_2026-08-07`): try the own-rule entry FIRST, raise only on failure — then every target that witnesses today witnesses identically, on every grammar. Needs a unit control (a verdict-blocked target that DOES witness own-rule must keep its own-rule witness) and a price for 15/14 extra failing attempts. |
-| **3** | `SV-EXH-PROOF.7.4.6.16` | `pending` (`-0178`) | `profile_*_replay_coverage.json` is the ONE closed-loop artifact that is not byte-reproducible — three `HashMap`s serialized in per-process order, so `cmp` reports noise. Prior art found and recorded: clone `unified_return_ast.rs::serialize_properties_sorted` (`#[serde(serialize_with)]` → `BTreeMap` of references → `collect_map`). ⛔ Do NOT switch the fields to `BTreeMap` in memory — they are hot-path reads. Cheap, and it removes a permanent tax on every A/B this sub-tree runs. |
+| **2** | `SV-EXH-PROOF.7.4.6.16` | `pending` (`-0178`) | `profile_*_replay_coverage.json` is the ONE closed-loop artifact that is not byte-reproducible — three `HashMap`s serialized in per-process order, so `cmp` reports noise. REPRODUCED cheaply off the SV stage (`regex`, seconds): three runs, identical 77 227 B, `cmp` differs at char 210, canonical load equal, `rule_success_hits` 269 keys / `branch_groups` 143 keys same SET different ORDER. Prior art found and recorded: clone `unified_return_ast.rs::serialize_properties_sorted`. ⛔ Do NOT switch the fields to `BTreeMap` in memory — they are hot-path reads. ⚠️ Its ROOT CAUSE box fits **none** of the five diagnosis families; it lands under a routed waiver owned by `.7.4.6.18`. |
+| **3** | `SV-EXH-PROOF.7.4.6.17` | `pending` (`-0179`) | ⛔⛔ **The store-entry-blocked verdict is WRONG 94% of the time on the real grammar** — `.7.4.6.15` measured `store_entry_raises` `16 → 1` (`sv_2017`) and `11 → 1` (`sv_2023`) with the ONLY change being that the own-rule entry is attempted first. `.7.4.6.15` made that cost-only rather than incorrect, so this is routed, not blocking. Two inputs are already in hand: one named in-code vector (`mandatory_node_gated` calls the BUILTIN `epsilon` gated) and the instruction to build a per-target verdict census so the 25 targets are NAMED before anything is tightened. |
+| **4** | `SV-EXH-PROOF.7.4.6.18` | `pending` (`-0179`, ⛔ GOVERNANCE — parked behind product) | Price a SIXTH task-acceptance diagnosis family (**artifact determinism**) against the whole `docs/tasks/` corpus, and adopt ONLY if the corpus earns it. Trigger: `.7.4.6.16`'s defect — *the same binary on the same inputs writes different bytes* — has no parse to trace, no run to sample, no `error[EXXXX]`, no generated-code lint and no shell/make/errno locus, while the instruments that DO localise it (`cmp`, a canonical-load diff) are in no family's token list. ⚠️ `GENERATED-LINT-CORRECTNESS.7` refused its own candidate at 0–3 of 307 because the real gap was 97% PLACEMENT; "refused, with the number" is a complete outcome here. |
+| — | `SV-EXH-PROOF.7.4.6.15` | `done` (`-0179`, 2026-08-08) | ⭐⭐ **THE RAISE CAN NO LONGER REPLACE A WORKING WITNESS — AND ON SV IT HAD BEEN DOING SO 15 TIMES IN 16.** The witness pass now attempts the target's OWN rule first and installs the raised entry only when that attempt left the target UNCOVERED (keyed on coverage, not on `Err` — a rescued sibling returns `Ok` with the forced branch uncredited). Measured single-variable on the canonical replay stage: `store_entry_raises` **16 → 1** / **11 → 1**, residual **0/0**, every coverage figure identical and all four debt lists **0 resolved / 0 new**; `sample_errors` UNCHANGED (50/97), so the design note's predicted "wasted failing attempts" are in fact all successes. Price: +14/+6 witnesses, elapsed 256→258 s and 444→**436** s. Unit control proven RED on HEAD (raise fires, witness `["ut"]`) and GREEN on the fix (no raise, witness `["t"]`), with the genuine block still raising on both sides. ⛔ The verdict's own over-approximation is routed to `.7.4.6.17`. |
 | — | `SV-EXH-PROOF.7.4.6.14` | `done` (`-0175`, 2026-08-02) | ⭐⭐ **THE BRANCH HALF OF THE RAISED WITNESS ENTRY — `.7.4.6.13` IS UNBLOCKED.** `.7.4.6.12`'s raise fired for RULE targets only; a store-entry-blocked BRANCH target was closed only TRANSITIVELY, on two coincidences of today's grammar. `.7.4.6.13`'s backstop removes one of them and the target re-opens — which is what finally gave this leaf a measurable subject. Two of the three ingredients were already built (`-0173`); the real work was the **prelude** the branch installer never carried, plus **branch-scoped gate discovery** (a forced alternative has no ungated escape, so the mandatory descent starts at the alternative node). Four-arm matrix: residual A `0/0`, B(cap) `1/0`, C(cap+fix) `0/0`, D(HEAD+fix) `0/0`; HEAD coverage-identical with 14/13 fewer witnesses. ⛔ 15/14 branch targets take the new raise — the monotonicity diff is the safety argument. |
 | — | `SV-EXH-PROOF.7.4.6.12` | `done` (`-0170`, 2026-08-02) | ⭐⭐⭐ **CLASS C CLOSED — THE SV CLOSED-LOOP RESIDUAL IS LITERAL ZERO (`2 → 0` per profile, from 127 at the start of the campaign).** The witness pass now raises its entry for a **store-entry-blocked** target — a mandatory POSITIVE store gate consulting a fact-kind no rule in the target's own closure can emit, which no depth budget and no prelude could ever satisfy from the target's own rule. Reuses `set_reach_plan_for_rule` (hops + quantifier forcing + producer prelude), the entry policy the cert-coverage pass has always used. List-diffed **2 resolved / 0 new**, `covered_rules` 1336 → 1337, `covered_branches` 1450 → 1451, unreachable debt unchanged, and marginally FASTER (455 s → 447 s). Confirmed on the real parser with a positive **and** a negative control. Ratchet lowered in lockstep (`2017: 0`/`2023: 0`). |
 | — | `SV-EXH-PROOF.7.4.6.9` | `done` (`-0169`, 2026-08-01) | ⭐⭐ **CLASS A CLOSED — residual `83 → 4` (`2017: 42 → 2`, `2023: 41 → 2`), and the run got FASTER (612 s → 571 s).** The closed-loop witness pass gained the per-target depth budget the cert-coverage pass has had since `RTL-FE-CLOSURE.5.2` — **branch-scoped**, because the rule-scoped `.5.2` formula verbatim clears only 37/40 (a rule's minimal depth is its *shallowest* alternative, which a residual branch is precisely not). Additive by construction: both addends are `>= 0`, so a budget can only grow. Unconfounded same-depth A/B, list-diffed: **40 resolved, 0 new**; the `max_depth=40` depth-exhaustion signature went **37 rows → 0**. Two-sided ratchet lowered in lockstep (`2017: 2`/`2023: 2`, `profiles_checked 2/2`). |

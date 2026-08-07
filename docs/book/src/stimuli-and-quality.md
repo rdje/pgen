@@ -336,6 +336,13 @@ targets](grammar-wellformedness.md#the-closed-loop-witness-passs-raised-entry-fo
 alike, since [the branch half](grammar-wellformedness.md#raising-the-entry-for-a-store-gated-branch-target)
 made the two one policy.
 
+⭐ Read that counter with [the attempt
+order](grammar-wellformedness.md#the-attempt-order-is-the-guarantee) in mind, because it changed
+meaning. It no longer counts *targets the verdict called blocked*; it counts targets that were
+**attempted from their own rule first and still came back uncovered** — the genuinely blocked ones.
+That is why the number fell from `16` to `1` on `sv_2017` and from `11` to `1` on `sv_2023` with no
+coverage change at all: the difference is the raises that were never needed.
+
 ## Probe-Only Steering
 
 When a family is down to a stubborn replay frontier, PGEN now distinguishes between two kinds of literal steering:

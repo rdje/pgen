@@ -1089,6 +1089,47 @@ slightly cheaper: identical `covered_rules`/`covered_branches` and identical deb
 profiles, with **14 fewer witnesses** needed on `sv_2017` and 13 fewer on `sv_2023`, because a
 raised-entry witness is a whole-file sample that settles more targets at once.
 
+#### The attempt order is the guarantee
+
+Both paragraphs above decide the raise from the **verdict alone**. That verdict is a deliberate
+over-approximation — its own design note says the bias exists so that a *missed* raise leaves
+behaviour untouched, while a *spurious* one would replace a working generation. Deciding from it and
+then generating **only** from the raised entry puts the whole guarantee on the bias being right.
+
+So the pass no longer does that. Every target — blocked or not — is attempted from its **own rule
+first**, exactly as an unblocked target always was; the raised entry is installed only when that
+attempt leaves the target **uncovered**. Three things follow, and the third is why this is worth a
+section:
+
+- a target that witnesses from its own rule keeps witnessing from its own rule, on **any** grammar,
+  whatever the verdict says — the property is structural rather than measured;
+- the only behaviour that can change is for targets whose own-rule attempt did not cover them, which
+  is strictly more coverage, never less;
+- the verdict's over-approximation becomes a **cost** knob instead of a correctness assumption.
+
+The gate is *"is the target covered now"*, **not** *"did generation return an error"*. A forced
+branch whose gated content prunes lets a sibling rescue the rule, so the attempt returns `Ok` with
+the branch still uncredited — keying on the error would strand exactly the branch class the previous
+section exists to close.
+
+⭐ **And the hypothetical turned out to be the live case.** On the same replay stage, ordering the
+attempts drops `store_entry_raises` from **16 to 1** on `sv_2017` and from **11 to 1** on `sv_2023`,
+with residual `0`/`0`, every coverage figure identical and all four debt lists unchanged. That is
+**15 of 16** and **10 of 11** raises that had been rerouting a target which witnesses perfectly well
+from its own rule; the single survivor per profile is the genuine store-entry-blocked target the
+raise was built for. The earlier measurement — *"15 and 14 targets take the raise and not one target
+is lost"* — was true and could not see this, because replacing a working witness with another
+working witness moves no coverage number. **A mechanism whose failure mode is invisible to the
+metric you gate on is not validated by that metric being green.** Tightening the verdict itself is
+tracked separately; it is now a cost question, not a correctness one.
+
+The cost was measured rather than assumed, and it is not what the design predicted. The extra
+own-rule attempts were expected to be provably wasted work for a correct verdict — instead
+`sample_errors` is **unchanged** (50 and 97), so every one of them succeeds. What the run pays is
+`+14` and `+6` witnesses, because the raised whole-file samples had been settling neighbouring
+targets for free; stage elapsed moves `256 → 258 s` and `444 → 436 s`, inside run-to-run noise in
+both directions.
+
 ### Reaching store-gated rules: the semantic-prelude reach
 
 One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule

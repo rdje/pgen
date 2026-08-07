@@ -1,5 +1,38 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0179 — a mechanism whose failure mode is invisible to your metric is not validated by that metric being green
+
+**The measurement that clears a change can be structurally unable to see the defect.** `-0175`
+diffed the two arms and found coverage-EQUAL with all four debt lists byte-equal, concluding "15 and
+14 targets take the new raise and not one target is lost". Every word true. But a raise that replaces
+a working witness with *another* working witness moves no coverage number — the raised whole-file
+sample even settles neighbours, so it looks slightly *better*. Coverage equality cannot distinguish
+"the reroute was necessary" from "the reroute was harmless", and the only experiment that can is
+changing the ORDER: attempt the own rule first, and the necessary reroutes are exactly the ones that
+still happen. Ordered, `store_entry_raises` fell 16→1 and 11→1. **25 of 27 were unnecessary, and the
+green gate could never have told us.** Before trusting a gate to clear a mechanism, ask what that
+mechanism failing would look like in the gate's numbers — if the answer is "nothing", the gate is
+not evidence about it.
+
+**"Nothing was lost" and "it was needed" are different claims, and only the first was measured.**
+Worth saying plainly, because the first is the natural thing to check and it feels sufficient.
+
+**Write a control so that a future fix breaks it LOUDLY.** The new unit control depends on the
+verdict mis-firing (via the builtin `epsilon`, which `mandatory_node_gated` calls gated and
+`generate_rule` renders as the empty string). The leaf that tightens the verdict will therefore
+break it — so the control asserts its own precondition first, with a comment saying *re-base me, do
+not delete me*. A control that silently becomes vacuous is worse than one that fails.
+
+**A priced cost can be wrong in the cheap direction too.** The design predicted the extra own-rule
+attempts would be provably wasted work for a correct verdict. `sample_errors` came back UNCHANGED —
+every extra attempt succeeded, because the verdict was wrong about them. The real cost sat somewhere
+else entirely (+14/+6 witnesses, from losing the raised samples' free neighbour coverage). Measure
+the price you predicted *and* the totals around it; the prediction being wrong is itself a finding.
+
+**Re-measure the baseline, do not quote the last leaf's.** `-0175` recorded the dual-feature lib
+suite at 1043/1; `-0176` landed code after it, and HEAD measured **1048/1** this slice. Quoting the
+remembered number would have claimed `+7` passing from two new tests.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0177 — the sloppy mechanism was the load-bearing one; and two "alternative" candidates can be one knob
 
 **Before removing an accident, measure what depends on it.** The cumulative depth escalation reads
