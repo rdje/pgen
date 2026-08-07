@@ -1,5 +1,31 @@
 # CHANGES.md
 
+## 2026-08-07 - PGEN-SV-EXH-PROOF-0178 (docs-only) — the two findings `-0175`/`-0177` only MEASURED now have designed fixes and owning leaves
+
+Director asked whether the three surfaced findings had signoff-level FIXES. Two did not — they were
+a measurement and a note — so they are now leaves with the design worked out and recorded, rather
+than observations that would have to be re-derived.
+
+- **`SV-EXH-PROOF.7.4.6.15`** — `-0175`'s raise is monotone **by measurement, not by construction**.
+  It decides from the store-entry-blocked verdict alone and then generates ONLY from the raised
+  entry, so on a grammar where the verdict over-approximates a spurious raise REPLACES a working
+  witness, caught by nothing but a residual regression. ⇒ **attempt-ordered raise**: own-rule entry
+  FIRST, raise only on failure. Every target that witnesses today then witnesses identically, with
+  the same RNG draws, on every grammar; the only change is strictly-more coverage for targets whose
+  own-rule attempt fails. Needs a unit control (a verdict-blocked target that DOES witness own-rule
+  must keep its own-rule witness) and a price for the 15/14 extra failing attempts.
+- **`SV-EXH-PROOF.7.4.6.16`** — `profile_*_replay_coverage.json` is the ONE closed-loop artifact
+  that is not byte-reproducible (three `HashMap`s serialized in per-process order), which taxes
+  every `cmp`-based A/B this sub-tree runs. **Prior art found rather than a second idiom invented:**
+  clone `unified_return_ast.rs::serialize_properties_sorted` — a `#[serde(serialize_with)]` that
+  collects into a `BTreeMap` of references. ⛔ And explicitly NOT a `BTreeMap` field type: those maps
+  are hot-path reads, and trading log-n lookups for a serialization property is the trade
+  `project_capability_growth_is_zero_cost_and_neutral` forbids.
+- **`.7.4.6.13` defect (ii)** stays the frontier and stays open: candidate (a) is refuted (`-0177`),
+  and the successor — an EXPLICIT per-target depth grant — is named, not yet designed.
+
+Docs-only: no code, grammar, generated-artifact, schema or contract change.
+
 ## 2026-08-02 - PGEN-SV-EXH-PROOF-0177 — leaf SV-EXH-PROOF.7.4.6.13 (docs-only): the predictability Goal's leading candidate is MEASURED AND REFUTED — the cumulative depth escalation is LOAD-BEARING
 
 Defect (ii) of this leaf asks that `--max-depth` bound the descent. The obvious fix, and the one the
