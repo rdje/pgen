@@ -1,5 +1,33 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0180 — leaf SV-EXH-PROOF.7.4.6.16: the last non-reproducible closed-loop artifact is byte-reproducible
+
+`profile_*_replay_coverage.json` was the ONE closed-loop artifact a `cmp`-based A/B could not use.
+Its content was always deterministic; its *writer* was not — three std `HashMap` fields
+(`rule_success_hits`, `branch_groups`, per-branch `failure_reasons`) reached the derived `Serialize`
+and each process emitted its own key order.
+
+- **Reproduced cheaply, off the SV stage:** three `regex` runs, identical **77 227 B**, `cmp` splits
+  at *"char 210, line 10"*; canonical load equal; 269 / 143 keys, same set, different order.
+- **Fix:** `#[serde(serialize_with = …)]` on the three fields, collecting into a `BTreeMap` of
+  references — the idiom already used by `unified_return_ast::serialize_properties_sorted`, reused
+  rather than reinvented. ⛔ Field types stay `HashMap`: two of them are read once per OR decision
+  on the hot generation path, and a `BTreeMap` would buy a serialization property with log-n
+  lookups on every sample.
+- **Verified on the real subject:** the SV closed-loop replay stage run twice with the same binary,
+  both profiles ⇒ **all four artifacts byte-identical**, coverage included.
+- **Provably serialization-only:** against the `-0179` arm, `stimuli.sv` / `gap.json` / `gap.txt` are
+  **byte-identical** on both profiles and the coverage artifact is content-equal at the identical
+  byte length (2 708 906 and 8 147 080).
+- **Ground truth:** a new unit oracle builds the same entries under opposite insertion orders and
+  asserts byte-equality **and** sorted keys at all three sites — proven RED with the serializers
+  detached and GREEN with them.
+- Deserialization untouched; all nine gate scripts and the census scripts read the artifact through
+  order-insensitive `jq`, and no gate pins its size or hash.
+
+⚠️ Landed under an explicit, routed `PGEN_DIAG_EVIDENCE_WAIVER`: this defect class fits none of the
+five `TASK-ACCEPTANCE` diagnosis families, and the gap is owned by the new `SV-EXH-PROOF.7.4.6.18`.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0179 — leaf SV-EXH-PROOF.7.4.6.15: the raised witness entry is monotone BY CONSTRUCTION, and the verdict it replaced was wrong 15 times in 16
 
 The closed-loop witness pass now attempts each target's **own rule first** and installs the raised

@@ -265,6 +265,56 @@ impl Default for StimuliConfig {
     }
 }
 
+/// SV-EXH-PROOF.7.4.6.16: serialize a string-keyed [`HashMap`] in SORTED KEY ORDER.
+///
+/// A std `HashMap` iterates in a per-instance order, so the coverage artifact
+/// (`profile_*_replay_coverage.json`) came out byte-DIFFERENT from run to run while being
+/// content-IDENTICAL — measured as three same-size files (77 227 B on `regex`) that `cmp` splits at
+/// "char 210, line 10", with `json.load` equality `True` and every key set equal. That made it the
+/// ONE closed-loop artifact a `cmp`-based A/B could not use, so every determinism check in this
+/// sub-tree had to canonicalize it first and reason around the difference.
+///
+/// ⛔ The fields stay `HashMap` **in memory**. `rule_success_hits` and `branch_groups` are read on
+/// the hot generation path (`branch_selected_hits` / `branch_success_hits` / `record_branch_success`
+/// per OR decision); switching them to `BTreeMap` would trade log-n lookups for a *serialization*
+/// property, which is exactly the trade `project_capability_growth_is_zero_cost_and_neutral`
+/// forbids. A serialize-side sort costs one sorted collect per artifact WRITE — a handful per run —
+/// and nothing at all on the hot path.
+///
+/// Key ORDER carries no semantics: these maps are only ever deserialized back into a `HashMap`, so
+/// every existing reader (the census scripts, the gate's `assert_same_json`) is unaffected.
+/// The shape is cloned deliberately from `unified_return_ast::serialize_properties_sorted`, which
+/// solved the same class of defect for the typed-AST blob — one idiom, not two
+/// ([[feedback_read_prior_art_before_designing]]).
+fn serialize_string_map_sorted<S, V>(
+    map: &HashMap<String, V>,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    V: Serialize,
+{
+    let sorted: std::collections::BTreeMap<&String, &V> = map.iter().collect();
+    serializer.collect_map(sorted)
+}
+
+/// SV-EXH-PROOF.7.4.6.16: the `Vec<HashMap<…>>` form of [`serialize_string_map_sorted`], for the
+/// per-branch `failure_reasons`. The Vec's own order is positional (index = branch index) and is
+/// already deterministic; only each element map needs canonicalizing.
+fn serialize_string_maps_sorted<S, V>(
+    maps: &[HashMap<String, V>],
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    V: Serialize,
+{
+    serializer.collect_seq(
+        maps.iter()
+            .map(|map| map.iter().collect::<std::collections::BTreeMap<&String, &V>>()),
+    )
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BranchCoverageGroup {
     pub rule_name: String,
@@ -272,7 +322,7 @@ pub struct BranchCoverageGroup {
     pub total_branches: usize,
     pub selected_counts: Vec<u64>,
     pub success_counts: Vec<u64>,
-    #[serde(default)]
+    #[serde(default, serialize_with = "serialize_string_maps_sorted")]
     pub failure_reasons: Vec<HashMap<String, u64>>,
 }
 
@@ -291,7 +341,9 @@ pub struct StimuliCoverageMetrics {
     pub sample_attempts: u64,
     pub sample_successes: u64,
     pub sample_errors: u64,
+    #[serde(serialize_with = "serialize_string_map_sorted")]
     pub rule_success_hits: HashMap<String, u64>,
+    #[serde(serialize_with = "serialize_string_map_sorted")]
     pub branch_groups: HashMap<String, BranchCoverageGroup>,
 }
 
@@ -20933,6 +20985,92 @@ mod tests {
         assert_eq!(coverage.total_branches, 2);
         assert_eq!(coverage.covered_rules(), 1);
         assert!(coverage.covered_branches() >= 1);
+    }
+
+    #[test]
+    fn coverage_metrics_serialize_with_sorted_map_keys_and_round_trip() {
+        // SV-EXH-PROOF.7.4.6.16. The artifact must be BYTE-reproducible, which for a std `HashMap`
+        // means the serializer — not the field type — imposes the order. Two independently built
+        // maps carrying the same entries in opposite INSERTION order must serialize identically.
+        //
+        // ⛔ GROUND TRUTH, so the test cannot pass vacuously: it also asserts the keys come out in
+        // SORTED order. Equality alone would be satisfied by two maps that merely happened to
+        // iterate the same way, which is exactly the accident this fix removes.
+        let keys = ["zeta", "alpha", "mid", "beta", "yankee", "charlie", "delta", "echo"];
+        let build = |order: &dyn Fn(&mut Vec<&str>)| {
+            let mut names: Vec<&str> = keys.to_vec();
+            order(&mut names);
+            let mut rule_success_hits = HashMap::new();
+            let mut branch_groups = HashMap::new();
+            for name in names.iter() {
+                // ⛔ The value is a function of the NAME, never of the insertion position —
+                // otherwise reversing the order would change the DATA and the test would be
+                // comparing two different documents instead of two orderings of one.
+                let value = name.len() as u64;
+                rule_success_hits.insert((*name).to_string(), value);
+                let mut failure_reasons: HashMap<String, u64> = HashMap::new();
+                for reason in &keys {
+                    failure_reasons.insert(format!("reason_{reason}"), reason.len() as u64);
+                }
+                branch_groups.insert(
+                    format!("{name}::root"),
+                    BranchCoverageGroup {
+                        rule_name: (*name).to_string(),
+                        node_path: "root".to_string(),
+                        total_branches: 1,
+                        selected_counts: vec![1],
+                        success_counts: vec![1],
+                        failure_reasons: vec![failure_reasons],
+                    },
+                );
+            }
+            StimuliCoverageMetrics::new("g".to_string(), names.len(), rule_success_hits, branch_groups)
+        };
+        let forward = build(&|_names| {});
+        let reversed = build(&|names| names.reverse());
+
+        let a = serde_json::to_string_pretty(&forward).expect("serialize forward");
+        let b = serde_json::to_string_pretty(&reversed).expect("serialize reversed");
+        assert_eq!(a, b, "opposite insertion orders must serialize byte-identically");
+
+        let value: serde_json::Value = serde_json::from_str(&a).expect("valid JSON");
+        let observed: Vec<&str> = value["rule_success_hits"]
+            .as_object()
+            .expect("rule_success_hits object")
+            .keys()
+            .map(|k| k.as_str())
+            .collect();
+        let mut expected: Vec<&str> = keys.to_vec();
+        expected.sort_unstable();
+        assert_eq!(observed, expected, "rule_success_hits keys must be SORTED");
+        let group_keys: Vec<&str> = value["branch_groups"]
+            .as_object()
+            .expect("branch_groups object")
+            .keys()
+            .map(|k| k.as_str())
+            .collect();
+        let mut sorted_group_keys = group_keys.clone();
+        sorted_group_keys.sort_unstable();
+        assert_eq!(group_keys, sorted_group_keys, "branch_groups keys must be SORTED");
+        let probe_group = "alpha::root";
+        let reason_keys: Vec<&str> = value["branch_groups"][probe_group]["failure_reasons"][0]
+            .as_object()
+            .expect("failure_reasons object")
+            .keys()
+            .map(|k| k.as_str())
+            .collect();
+        let mut sorted_reason_keys = reason_keys.clone();
+        sorted_reason_keys.sort_unstable();
+        assert_eq!(
+            reason_keys, sorted_reason_keys,
+            "per-branch failure_reasons keys must be SORTED"
+        );
+
+        // Deserialization is untouched — a JSON object into a `HashMap` is order-insensitive, so
+        // every existing reader (the census scripts, the gate) sees exactly what it saw before.
+        let restored: StimuliCoverageMetrics = serde_json::from_str(&a).expect("round-trip");
+        assert_eq!(restored.rule_success_hits, forward.rule_success_hits);
+        assert_eq!(restored.branch_groups.len(), forward.branch_groups.len());
     }
 
     #[test]

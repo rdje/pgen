@@ -1,5 +1,34 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0180 — reproduce a determinism defect on the CHEAPEST grammar that exhibits it, and price the fix where it belongs
+
+**A determinism defect does not need its expensive subject to be diagnosed.** The non-reproducible
+artifact belonged to a 4–7-minute SystemVerilog replay stage. Reproducing it on `regex` instead took
+seconds and gave a *sharper* diagnosis, because a 269-key map is small enough to compare key-by-key.
+The expensive subject was then used only where it was actually needed: proving the fix on the real
+artifact. Look for the smallest grammar that exhibits the mechanism before spending a stage run.
+
+**"Content-equal, bytes-unequal" is the whole root cause, and it has an opposite twin.** A
+*generation* non-determinism and a *serialization* non-determinism present identically at `cmp` and
+have opposite fixes. What separates them is one measurement: canonical-load equality plus the fact
+that every OTHER artifact of the same run is already byte-stable. Do that comparison before
+touching anything — it is the difference between fixing a writer and hunting a phantom in the RNG.
+
+**Fix the SERIALIZER, never the field type.** The obvious fix is to make the maps `BTreeMap`s. Two
+of the three are read once per OR decision on the hot generation path, so that would buy a
+serialization property with log-n lookups on every generated sample — a cost paid by everyone,
+forever, for a property only the artifact writer needs. `#[serde(serialize_with)]` costs one sorted
+collect per artifact *write*.
+
+**Search for the idiom before inventing one.** The repo already had exactly this serializer, added
+for the typed-AST blob's identical defect, with its reasoning in the doc comment. Cloning its shape
+kept one idiom in the codebase instead of two that will drift.
+
+**A control whose values move with its ordering is not a control.** The first version of the oracle
+keyed each map's VALUES on insertion index, so reversing the insertion order changed the data — it
+was comparing two different documents and would have failed for a reason that had nothing to do with
+key order. The RED/GREEN probe caught it. Derive test data from the KEY, never from the position.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0179 — a mechanism whose failure mode is invisible to your metric is not validated by that metric being green
 
 **The measurement that clears a change can be structurally unable to see the defect.** `-0175`

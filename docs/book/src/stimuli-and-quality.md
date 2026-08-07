@@ -98,6 +98,35 @@ doctrine generalizes: when a family is a closed no-regression baseline, prefer
 ratcheting its promotion floor up to the *measured, sustained* minimum (with a
 small margin) over leaving a permissive `0` that proves nothing about the ratio.
 
+## All Four Closed-Loop Artifacts Are Byte-Reproducible
+
+The replay stage writes four artifacts — `stimuli.sv`, `gap.json`, `gap.txt` and
+`coverage.json`. Three of them were byte-reproducible from the start; the coverage
+artifact was not, and the reason is worth writing down because it is a general trap.
+
+Its content was always deterministic. What varied was the **writer**: three of its
+fields are std `HashMap`s (`rule_success_hits`, `branch_groups`, and each branch's
+`failure_reasons`), and a std `HashMap` iterates in a per-instance order, so every
+process serialized the same data in a different key order. Two runs produced files of
+identical size whose bytes differed a few lines in — content-equal under a canonical
+load, unequal under `cmp`. The practical cost was that the cheapest determinism check
+the project has could not be used on it: every A/B had to canonicalize first and reason
+around the difference.
+
+The fix is a `#[serde(serialize_with = …)]` on each of the three fields that collects
+into a `BTreeMap` of references before emitting — the same idiom already used for the
+typed-AST `wrapper_specs` blob, deliberately reused rather than reinvented.
+
+⛔ **The field types stay `HashMap`.** `rule_success_hits` and `branch_groups` are read
+on the hot generation path, once per OR decision; making them `BTreeMap`s would buy a
+serialization property with log-n lookups on every generated sample. A capability must
+cost its non-users nothing, and a serialize-side sort costs one collect per artifact
+*write* — a handful per run — and nothing at all during generation.
+
+Deserialization is unchanged: a JSON object read back into a `HashMap` is
+order-insensitive, so every reader — the gates' `jq` queries, the census scripts — sees
+exactly what it saw before.
+
 ## The Closed-Loop Residual Ratchet
 
 The promotion floor above guards a *ratio*. The **closed-loop residual** —

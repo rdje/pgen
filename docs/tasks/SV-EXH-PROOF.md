@@ -1769,15 +1769,108 @@ literal over a failing surface.
   checked rather than skipped: this moves no subsystem boundary and adds no public seam.
 
 - ID: `SV-EXH-PROOF.7.4.6.16`
-  Status: `pending` (`PGEN-SV-EXH-PROOF-0178`)
+  Status: `done` (`PGEN-SV-EXH-PROOF-0180`, 2026-08-08) — ⭐ **THE LAST NON-REPRODUCIBLE CLOSED-LOOP ARTIFACT IS BYTE-REPRODUCIBLE.** Three `#[serde(serialize_with)]` attributes, no field type changed, no hot-path read touched. Same binary + same inputs, twice, both profiles ⇒ `profile_*_replay_coverage.json` **byte-identical (`cmp`)**, joining `stimuli.sv` / `gap.json` / `gap.txt`. Provably serialization-ONLY: against the immediately-preceding `-0179` arm the other three artifacts are **byte-identical** and the coverage artifact is content-equal at the **same byte length**. ⛔ Lands under a ROUTED waiver — its root cause fits none of the five diagnosis families (`EVIDENCE_SURFACE_GAP_2026-08-08`, owned by `.7.4.6.18`).
   Goal: `Make profile_*_replay_coverage.json BYTE-REPRODUCIBLE. It is the ONE closed-loop artifact that is not: -0175 ran the same binary on the same inputs twice and cmp flagged a difference that was pure noise -- StimuliCoverageMetrics serializes three HashMaps (rule_success_hits, branch_groups, and the per-branch failure_reasons Vec<HashMap>) in per-process iteration order, so the content is equal and the bytes are not. Every A/B in this sub-tree used cmp on the other three artifacts and had to reason around this one; that is a permanent tax on the cheapest determinism check the project has.`
   PRIOR_ART_2026-08-07 (searched before designing — [[feedback_read_prior_art_before_designing]]): `⭐ THE MECHANISM ALREADY EXISTS IN THIS REPO AND IS EXACTLY RIGHT: unified_return_ast.rs::serialize_properties_sorted -- a #[serde(serialize_with = ...)] that collects the HashMap into a BTreeMap of REFERENCES and calls serializer.collect_map. It was added for the same class of defect (the interpreter's typed AST diverged from the generated parser byte-for-byte on map order) and its doc comment already records the reasoning. Clone that shape; do NOT invent a second idiom.
   ⛔ AND DO NOT SWITCH THE FIELDS TO BTreeMap IN MEMORY. rule_success_hits / branch_groups are read on the hot generation path (branch_selected_hits, branch_success_hits, record_branch_success per OR decision); BTreeMap would trade log-n lookups for a serialization property, which is the trade [[project_capability_growth_is_zero_cost_and_neutral]] forbids -- the capability must cost non-users ZERO. A serialize-side sort costs exactly one sorted collect per artifact WRITE (a handful per run) and nothing on the hot path.`
   Acceptance: `The same binary, same inputs, twice ⇒ profile_*_replay_coverage.json byte-identical (cmp) on BOTH profiles, joining the three artifacts that already are. Deserialization unchanged (a JSON object into a HashMap is order-insensitive, so every existing reader — the census scripts, the gate — is unaffected). Zero hot-path change: no field type changes. Verify the WHOLE closed-loop stage is otherwise byte-identical to HEAD (stimuli.sv / gap.json / gap.txt), i.e. the fix is provably serialization-only.`
   REPRODUCED_2026-08-08 (cheaply, off the SV stage — `regex`, seconds not minutes): `Three runs of the SAME binary on the SAME inputs (ast_pipeline grammars/regex.ebnf --generate-stimuli --count 40 --seed 0 --coverage-output …) give three files of IDENTICAL SIZE (77 227 B) that cmp reports as differing at "char 210, line 10". Canonical-load comparison proves it is ORDER, not content: json.load equality True; rule_success_hits same key SET True / same key ORDER False (269 keys); branch_groups same SET True / same ORDER False (143 keys); sorted-canonical sha256 equal. On this grammar only 2 failure_reasons inner maps carry >1 key and neither happened to diverge — they are HashMap<String,u64> all the same and carry the identical latent defect, so all THREE sites get the serializer.`
   EVIDENCE_SURFACE_GAP_2026-08-08 -- ⛔ WAIVER NOTE, ROUTED: `this defect fits NONE of the five TASK-ACCEPTANCE diagnosis families and the diagnosis-tool signatures do not apply -- there is no parse to trace (the parser is uninvolved), no run to sample (it is not slow), no error[EXXXX] (it compiles), no clippy::<lint> over generated code (nothing is generated), and it is not a shell/make/errno defect in the repo's own scripts. The instruments that actually localise it are `cmp` plus a canonical-load comparison, and neither is in any family's token list. Per TOOLBOX.md that is "a signal worth raising, not a reason to waive" -- so it is raised and OWNED by `SV-EXH-PROOF.7.4.6.18`, which prices an artifact-determinism family against the whole docs/tasks corpus exactly as GENERATED-LINT-CORRECTNESS.4 and .7 require of any widening (.7 REFUSED its candidate at 0-3 of 307, so the answer may well be "no family, fix the placement" -- pricing is the deliverable, not adoption).`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — see the Acceptance Checklist below (PGEN-SV-EXH-PROOF-0180). Artifacts: rust/target/sv_exh_proof_7_4_6_16/{repro (pre-fix regex reproducer), after (post-fix regex reproducer), run1, run2 (the SV closed-loop stage twice, both profiles)}, driver rust/target/sv_exh_proof_7_4_6_16/run_determinism.sh.`
+  Commit: `PGEN-SV-EXH-PROOF-0180`
+
+- **Acceptance Checklist (enforced)** — `SV-EXH-PROOF.7.4.6.16` (`PGEN-SV-EXH-PROOF-0180`)
+- [x] **REPRODUCE / ISSUE** — three runs of the SAME binary on the SAME inputs
+  (`ast_pipeline grammars/regex.ebnf --generate-stimuli --count 40 --seed 0 --coverage-output …`)
+  produce three files of IDENTICAL SIZE (**77 227 B**) that `cmp` splits at **"char 210, line 10"**.
+  Chosen off the SV stage deliberately: `regex` reproduces it in seconds, so the diagnosis costs no
+  replay-stage run.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: **serialization order, not content.** Canonical-load
+  comparison of the two diverging files gives `json.load` equality **True**, `rule_success_hits`
+  same key SET **True** / same key ORDER **False** (**269** keys), `branch_groups` same SET **True**
+  / same ORDER **False** (**143** keys), and equal sorted-canonical `sha256` — so the generator is
+  deterministic and only the writer is not. That distinction is the whole root cause: a *generation*
+  non-determinism and a *serialization* non-determinism have opposite fixes, and every other artifact
+  of the same run (`stimuli.sv`, `gap.json`, `gap.txt`) is already byte-stable, which is what rules
+  the generator out. WHERE: three std `HashMap` fields reached by the derived `Serialize` in
+  `rust/src/ast_pipeline/stimuli_generator.rs` — `StimuliCoverageMetrics::rule_success_hits`,
+  `StimuliCoverageMetrics::branch_groups`, and `BranchCoverageGroup::failure_reasons`
+  (`Vec<HashMap<String, u64>>`); a std `HashMap` iterates in a per-instance order, so each process
+  picks its own. ⚠️ On `regex` only **2** `failure_reasons` inner maps carry >1 key and neither
+  happened to diverge in the sample — they are the same type and carry the identical latent defect,
+  so all three sites are fixed rather than the two that were caught.
+  ⛔ **WAIVER NOTE — the diagnosis-tool signatures do not apply to this defect class, and the gap is
+  OWNED by `SV-EXH-PROOF.7.4.6.18`** (`EVIDENCE_SURFACE_GAP_2026-08-08`): there is no parse to trace,
+  no run to sample, no `error[EXXXX]`, no generated-code lint and no shell/make/errno locus, while
+  the instruments that actually localise it (`cmp`, a canonical-load comparison) are in no family's
+  token list. Raised rather than waived silently, per `TOOLBOX.md`; commit taken with an explicit
+  `PGEN_DIAG_EVIDENCE_WAIVER`, which is loud by design and re-checked in CI.
+- [x] **FIX** — fix-hierarchy tier: **shared serialization primitive**, the lowest tier that can fix
+  it. Two `serialize_with` helpers (`serialize_string_map_sorted` for a `HashMap<String, V>`,
+  `serialize_string_maps_sorted` for the `Vec<HashMap<String, V>>` form) collect into a `BTreeMap` of
+  REFERENCES and `collect_map`/`collect_seq`. Cloned deliberately from the existing
+  `unified_return_ast::serialize_properties_sorted`, which solved the same class for the typed-AST
+  blob — one idiom in the repo, not two ([[feedback_read_prior_art_before_designing]]).
+  ⛔ **The field types stay `HashMap`.** `rule_success_hits`/`branch_groups` are read on the hot
+  generation path (`branch_selected_hits` / `branch_success_hits` / `record_branch_success`, per OR
+  decision); a `BTreeMap` field would trade log-n lookups for a serialization property — the trade
+  [[project_capability_growth_is_zero_cost_and_neutral]] forbids. The sort costs one collect per
+  artifact WRITE (a handful per run) and nothing on the hot path.
+- [x] **ADDRESSED (verified)** — before→after on the symptom, plus the real subject.
+  **Reproducer:** pre-fix `cmp` → `differ: char 210, line 10`; post-fix three runs → coverage, gap
+  and stimuli all **IDENTICAL** across all three pairings, with the post-fix document content-EQUAL
+  to the pre-fix one at the SAME 77 227 bytes (so nothing but order moved).
+  **SV closed-loop stage, both profiles, twice with the same binary:** `profile_*_replay_coverage.json`
+  **byte-identical (`cmp`)** between the two runs — the acceptance clause. **Serialization-only,
+  proven against the immediately-preceding `-0179` arm:** `profile_*_replay_stimuli.sv`,
+  `gap.json` and `gap.txt` are **byte-identical**, and the coverage artifact is content-equal
+  (`json.load` `==` → `True`) at the identical byte length (2 708 906 on `sv_2017`).
+  **Ground truth, so the claim is not one measurement:** a new unit oracle
+  `coverage_metrics_serialize_with_sorted_map_keys_and_round_trip` builds the same entries under
+  OPPOSITE insertion orders and asserts byte-identical output **and** that the keys come out SORTED
+  at all three sites — equality alone would be satisfied by two maps that merely happened to iterate
+  alike. Proven **RED** with the three `serialize_with` attributes detached (`assertion left == right
+  failed: opposite insertion orders must serialize byte-identically`) and **GREEN** with them.
+- [x] **NO REGRESSION** — deserialization is untouched (a JSON object into a `HashMap` is
+  order-insensitive) and the oracle round-trips the document back to an equal `rule_success_hits`.
+  Every consumer was checked rather than assumed: all nine gate scripts plus the census scripts read
+  the artifact through `jq` object iteration (`.branch_groups[]?.success_counts[]?`) or keyed lookup
+  (`.branch_groups["include_path::root"]`), both order-insensitive, and no gate pins a size or hash
+  of it. `assert_same_json` canonicalizes before comparing, so it is unaffected in either direction.
+  Certificate coverage at **seeds 0/7/42** on json / regex / vhdl / rtl_frontend: 12/12
+  `CERTIFICATE-COVERAGE: … UNKNOWN=0 fully_certified=true (sample_parse_failures=0,
+  proof_reverify_failures=0)`, **byte-identical across the three seeds**. `ast_shape_contract_gate`
+  GREEN (**18 passed, 0 failed**). `clippy_on_rust_change` **rc=0** with the generated stage `pass`
+  and all **68** pinned lints still in `clippy::correctness`. Dual-feature lib suite **1051 passed /
+  1 failed** — exactly `+1` on the `-0179` baseline of 1050/1 (the new oracle), same single
+  pre-existing failure in a module this diff does not touch. ⭐ And the strongest signal is the
+  subject itself: the whole SV closed-loop stage is byte-identical to `-0179` apart from the
+  artifact this leaf set out to canonicalize.
+- [x] **LOCKSTEP** — book: `docs/book/src/stimuli-and-quality.md` gains *All Four Closed-Loop
+  Artifacts Are Byte-Reproducible* (what varied, why the field types stayed `HashMap`, and that
+  readers are unaffected). KM card **PROMOTED** rather than declined:
+  `docs/knowledge/deterministic-artifacts-sort-at-the-serializer.md` (7 question keys + a runnable
+  `reverify:`), map regenerated — 55 facts / 359 question keys. ⚠️ The first draft DECLINED the
+  promotion on the ground that the idiom was already recorded on
+  `unified_return_ast::serialize_properties_sorted`'s doc comment; `LESSON-PROMOTION` blocked it and
+  was RIGHT — a doc comment on one call site is not the retrievable layer, and the card carries three
+  facts that comment does not (the content-equal/bytes-unequal discriminator, the cheapest-grammar
+  rule, and the values-must-not-move-with-order control hazard). `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md` (frontier). No contract, schema, ratchet or
+  published-status change: the artifact's CONTENT is unchanged.
+
+  ⛔⛔ **GATE-INTEGRITY FINDING RAISED BY THIS COMMIT, ROUTED TO `GENERATED-LINT-CORRECTNESS.10`.**
+  This leaf's ROOT CAUSE box carries **no** `DIAGNOSIS_SIG` token (it cannot — that is the
+  `.7.4.6.18` gap), and `TASK-ACCEPTANCE` **passed anyway**. Root-caused rather than accepted:
+  `.7`'s leaf-scoping bounds a "leaf section" by markdown headings of level ≤ 3, but this tree — like
+  most — writes its leaves as `- ID:` LIST ITEMS under a single `## Task Tree` heading, so every leaf
+  in this file from line 54 to the next `##` shares ONE section, and any staged edit inside it lets a
+  box from ANY other leaf satisfy the requirement. Measured over the corpus: **66 of 158** tracked
+  task files use `- ID:` bullet leaves and **65 of those have more than one leaf sharing a single
+  heading section**. ⭐ WHY IT WAS NEVER CAUGHT: `GENERATED-LINT-CORRECTNESS.md` itself uses `###`
+  leaf headings, so `.7` was validated on a file whose format its rule happens to fit. ⇒ this commit
+  is taken with an explicit `PGEN_DIAG_EVIDENCE_WAIVER` **even though the gate passes**, so the
+  record is that the box was NOT earned rather than silently free-riding on a borrowed one.
 
 - ID: `SV-EXH-PROOF.7.4.6.17`
   Status: `pending` (`PGEN-SV-EXH-PROOF-0179`, raised by `.7.4.6.15`'s A/B and opened as a SIBLING leaf in this tree — deliberately not worked inside `.7.4.6.15`; see ROUTING EVIDENCE §2)
@@ -1874,14 +1967,46 @@ questions apply.
    widen* the family instead — `GENERATED-LINT-CORRECTNESS.7` refused its own candidate at 0–3 of
    307, so an unpriced widening is the failure mode here, not the fix.
 
+### §3 — the gate-integrity finding `.7.4.6.16` raised (routed OUT to `GENERATED-LINT-CORRECTNESS.10`)
+
+Unlike §2 this one **leaves this tree**, so the three questions are load-bearing.
+
+1. **Does the finding reproduce outside the family it is being routed to?** ⭐ **It reproduces
+   almost everywhere, which is precisely why it belongs to the enforcer's own tree and not here.**
+   The defect is in `scripts/check_diagnosis_evidence.sh`'s `section_touched`, which bounds a "leaf
+   section" by markdown headings of level ≤ 3 — correct only for a tree whose leaves ARE `###`
+   headings. Measured over the whole corpus, not over this family: **66 of 158** tracked
+   `docs/tasks/*.md` files write leaves as `- ID:` list items, and **65 of those 66** have more than
+   one leaf sharing a single heading section. `SV-EXH-PROOF.md` is one instance of 65, so homing it
+   here would be homing a repo-wide enforcer defect in the family that happened to notice it.
+   `GENERATED-LINT-CORRECTNESS` owns `TASK-ACCEPTANCE`'s hardening (`.3` box-scoping, `.4` the fifth
+   family, `.7` leaf-scoping, `.9` `ROOT_KW`), and this is the direct continuation of `.7`.
+2. **What was MEASURED, not what is plausible?** The corpus counts above, and a live demonstration:
+   this leaf's own ROOT CAUSE box was checked programmatically against the enforcer's verbatim
+   `DIAGNOSIS_SIG` regex and matched **NONE** of it, while `check_doctrines.sh` reported
+   `✓ PASS TASK-ACCEPTANCE`. The section bounding was then read directly out of the enforcer source
+   and confirmed against this file's heading map (`## Task Tree` at line 54, next `##` at ~1883).
+   ⭐ Also measured, and it is the root cause of the miss: `GENERATED-LINT-CORRECTNESS.md` — the file
+   `.7` was written in and probed against — uses `###` leaf headings, so the rule was validated on a
+   document whose format it fits.
+3. **What would have to be true for the routing to be WRONG, and was it checked?** It would be wrong
+   if this were a peculiarity of `SV-EXH-PROOF.md`'s formatting rather than a general one — then
+   fixing this tree's layout would be the correct response and the enforcer would be innocent.
+   **Checked, and it is not:** 65 files share the shape, and the enforcer's rule (not the documents)
+   is what assumes a format. It would also be wrong to route it as NON-blocking if it falsified a
+   published claim. ⚠️ It does weaken one: `DOCTRINE_ENFORCEMENT.md` §10 and `TOOLBOX.md` both state
+   the box must be one *this change wrote*, which is currently untrue for two thirds of the corpus.
+   That text is corrected by `GENERATED-LINT-CORRECTNESS.10` together with the fix, deliberately in
+   one place rather than edited here into disagreement with the enforcer it describes.
+
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | **1** | `SV-EXH-PROOF.7.4.6.13` | `in_progress` (`-0176` — ⭐ defect (i) COST **LANDED**; ⛔ defect (ii) PREDICTABILITY, the Goal, **OPEN**) | The depth-slack retry's real defect is a **missing runaway backstop**, not the `+4` arithmetic: its sibling in the same `Err` arm has had one since `GRAMMAR-WELLFORMED.H.4.2`, this one has none, and **one `sv_2017` branch was measured at 726 836 retries**. The cap is priced off the measured success ORDINALS (not curve-fitted): at `4096` it keeps `252/255` + `147/147` successes, cuts retry work `6.5x`/`7.2x`, and nearly **triples** `sv_2023` target-drive resolution (`568 → 1673`). Its one blocker — `sv_2017` residual `0 → 1` — was removed by `.7.4.6.14`, and the bound is now IN (`-0176`): attempts `6.5x`/`7.2x` down, `branch_retry_max 726 836 → 4 096`, `sv_2023` target-drive `568 → 1 673`, stage `458 → 267 s`/`569 → 437 s`, **residual still `0`/`0`**, and the landed build is byte-identical to the priced arm. ⛔ **The Goal is the OTHER defect** — predictability: `--max-depth` does not bound the descent, and re-measured on the landed pair the ladder is invariant (`448 → 444`, `676 → 672`). ⛔⛔ Its leading candidate is now **REFUTED BY MEASUREMENT** (`-0177`): computing the slack from the configured depth collapses the ladder exactly as designed (106 → 8 levels) and blows the residual to **17**/**10**, because the cumulative escalation is **load-bearing** for ~10 rules and ~7 branches per profile. The next candidate is a different shape — an EXPLICIT per-target depth grant, as the witness pass already computes. |
-| **2** | `SV-EXH-PROOF.7.4.6.16` | `pending` (`-0178`) | `profile_*_replay_coverage.json` is the ONE closed-loop artifact that is not byte-reproducible — three `HashMap`s serialized in per-process order, so `cmp` reports noise. REPRODUCED cheaply off the SV stage (`regex`, seconds): three runs, identical 77 227 B, `cmp` differs at char 210, canonical load equal, `rule_success_hits` 269 keys / `branch_groups` 143 keys same SET different ORDER. Prior art found and recorded: clone `unified_return_ast.rs::serialize_properties_sorted`. ⛔ Do NOT switch the fields to `BTreeMap` in memory — they are hot-path reads. ⚠️ Its ROOT CAUSE box fits **none** of the five diagnosis families; it lands under a routed waiver owned by `.7.4.6.18`. |
-| **3** | `SV-EXH-PROOF.7.4.6.17` | `pending` (`-0179`) | ⛔⛔ **The store-entry-blocked verdict is WRONG 94% of the time on the real grammar** — `.7.4.6.15` measured `store_entry_raises` `16 → 1` (`sv_2017`) and `11 → 1` (`sv_2023`) with the ONLY change being that the own-rule entry is attempted first. `.7.4.6.15` made that cost-only rather than incorrect, so this is routed, not blocking. Two inputs are already in hand: one named in-code vector (`mandatory_node_gated` calls the BUILTIN `epsilon` gated) and the instruction to build a per-target verdict census so the 25 targets are NAMED before anything is tightened. |
-| **4** | `SV-EXH-PROOF.7.4.6.18` | `pending` (`-0179`, ⛔ GOVERNANCE — parked behind product) | Price a SIXTH task-acceptance diagnosis family (**artifact determinism**) against the whole `docs/tasks/` corpus, and adopt ONLY if the corpus earns it. Trigger: `.7.4.6.16`'s defect — *the same binary on the same inputs writes different bytes* — has no parse to trace, no run to sample, no `error[EXXXX]`, no generated-code lint and no shell/make/errno locus, while the instruments that DO localise it (`cmp`, a canonical-load diff) are in no family's token list. ⚠️ `GENERATED-LINT-CORRECTNESS.7` refused its own candidate at 0–3 of 307 because the real gap was 97% PLACEMENT; "refused, with the number" is a complete outcome here. |
+| **2** | `SV-EXH-PROOF.7.4.6.17` | `pending` (`-0179`) | ⛔⛔ **The store-entry-blocked verdict is WRONG 94% of the time on the real grammar** — `.7.4.6.15` measured `store_entry_raises` `16 → 1` (`sv_2017`) and `11 → 1` (`sv_2023`) with the ONLY change being that the own-rule entry is attempted first. `.7.4.6.15` made that cost-only rather than incorrect, so this is routed, not blocking. Two inputs already in hand: one named in-code vector (`mandatory_node_gated` calls the BUILTIN `epsilon` gated) and the instruction to build a per-target verdict census so the 25 targets are NAMED first. |
+| **3** | `SV-EXH-PROOF.7.4.6.18` | `pending` (`-0179`, ⛔ GOVERNANCE — parked behind product) | Price a SIXTH task-acceptance diagnosis family (**artifact determinism**) against the whole `docs/tasks/` corpus, and adopt ONLY if the corpus earns it. Trigger: `.7.4.6.16`'s defect — *the same binary on the same inputs writes different bytes* — has no parse to trace, no run to sample, no `error[EXXXX]`, no generated-code lint and no shell/make/errno locus, while the instruments that DO localise it (`cmp`, a canonical-load diff) are in no family's token list. ⚠️ `GENERATED-LINT-CORRECTNESS.7` refused its own candidate at 0–3 of 307 because the real gap was 97% PLACEMENT; "refused, with the number" is a complete outcome here. |
+| — | `SV-EXH-PROOF.7.4.6.16` | `done` (`-0180`, 2026-08-08) | ⭐ **ALL FOUR CLOSED-LOOP ARTIFACTS ARE BYTE-REPRODUCIBLE.** Three `#[serde(serialize_with)]` sorted emitters on the coverage artifact's std `HashMap` fields — no field type changed, no hot-path read touched. Same binary + same inputs, twice, both profiles ⇒ all four artifacts byte-identical; serialization-ONLY, since `stimuli.sv`/`gap.json`/`gap.txt` are byte-identical to the `-0179` arm and coverage is content-equal at the same byte length. Unit oracle RED (serializers detached) / GREEN. ⚠️ Landed under a ROUTED `PGEN_DIAG_EVIDENCE_WAIVER` owned by `.7.4.6.18`. |
 | — | `SV-EXH-PROOF.7.4.6.15` | `done` (`-0179`, 2026-08-08) | ⭐⭐ **THE RAISE CAN NO LONGER REPLACE A WORKING WITNESS — AND ON SV IT HAD BEEN DOING SO 15 TIMES IN 16.** The witness pass now attempts the target's OWN rule first and installs the raised entry only when that attempt left the target UNCOVERED (keyed on coverage, not on `Err` — a rescued sibling returns `Ok` with the forced branch uncredited). Measured single-variable on the canonical replay stage: `store_entry_raises` **16 → 1** / **11 → 1**, residual **0/0**, every coverage figure identical and all four debt lists **0 resolved / 0 new**; `sample_errors` UNCHANGED (50/97), so the design note's predicted "wasted failing attempts" are in fact all successes. Price: +14/+6 witnesses, elapsed 256→258 s and 444→**436** s. Unit control proven RED on HEAD (raise fires, witness `["ut"]`) and GREEN on the fix (no raise, witness `["t"]`), with the genuine block still raising on both sides. ⛔ The verdict's own over-approximation is routed to `.7.4.6.17`. |
 | — | `SV-EXH-PROOF.7.4.6.14` | `done` (`-0175`, 2026-08-02) | ⭐⭐ **THE BRANCH HALF OF THE RAISED WITNESS ENTRY — `.7.4.6.13` IS UNBLOCKED.** `.7.4.6.12`'s raise fired for RULE targets only; a store-entry-blocked BRANCH target was closed only TRANSITIVELY, on two coincidences of today's grammar. `.7.4.6.13`'s backstop removes one of them and the target re-opens — which is what finally gave this leaf a measurable subject. Two of the three ingredients were already built (`-0173`); the real work was the **prelude** the branch installer never carried, plus **branch-scoped gate discovery** (a forced alternative has no ungated escape, so the mandatory descent starts at the alternative node). Four-arm matrix: residual A `0/0`, B(cap) `1/0`, C(cap+fix) `0/0`, D(HEAD+fix) `0/0`; HEAD coverage-identical with 14/13 fewer witnesses. ⛔ 15/14 branch targets take the new raise — the monotonicity diff is the safety argument. |
 | — | `SV-EXH-PROOF.7.4.6.12` | `done` (`-0170`, 2026-08-02) | ⭐⭐⭐ **CLASS C CLOSED — THE SV CLOSED-LOOP RESIDUAL IS LITERAL ZERO (`2 → 0` per profile, from 127 at the start of the campaign).** The witness pass now raises its entry for a **store-entry-blocked** target — a mandatory POSITIVE store gate consulting a fact-kind no rule in the target's own closure can emit, which no depth budget and no prelude could ever satisfy from the target's own rule. Reuses `set_reach_plan_for_rule` (hops + quantifier forcing + producer prelude), the entry policy the cert-coverage pass has always used. List-diffed **2 resolved / 0 new**, `covered_rules` 1336 → 1337, `covered_branches` 1450 → 1451, unreachable debt unchanged, and marginally FASTER (455 s → 447 s). Confirmed on the real parser with a positive **and** a negative control. Ratchet lowered in lockstep (`2017: 0`/`2023: 0`). |

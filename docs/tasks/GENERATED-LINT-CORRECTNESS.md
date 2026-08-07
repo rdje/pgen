@@ -1391,6 +1391,50 @@ the RED-W2 arm is what turned a latent hazard into a measured one.
   sources `ROOT_KW` live from the enforcer, so it followed the narrowing automatically (`.4` fixed
   exactly that duplication bug in `.3`'s probe driver, and the rule held here).
 
+### `.10` — leaf-scoping is VACUOUS for the LIST-ITEM tree format (65 of 66 such files) (`pending`)
+
+- **Status:** `pending` (opened 2026-08-08 by `PGEN-SV-EXH-PROOF-0180`, which hit it live).
+- **Raised by:** `SV-EXH-PROOF.7.4.6.16`. That leaf's ROOT CAUSE box carries **no** `DIAGNOSIS_SIG`
+  token at all — deliberately, because its defect class fits none of the five families
+  (`SV-EXH-PROOF.7.4.6.18` owns that gap) — and `TASK-ACCEPTANCE` **passed the commit anyway**.
+
+- **WHY + WHERE (measured, not inferred).** `.7` closed the cross-leaf borrow by requiring a
+  satisfying box to sit in a leaf section the staged change TOUCHES, and `section_touched`
+  (`scripts/check_diagnosis_evidence.sh`) bounds that section by **markdown headings of level ≤ 3**.
+  That is correct only for a tree whose leaves ARE `###` headings. Most trees are not: they write
+  leaves as `- ID: \`TREE.x.y\`` LIST ITEMS under a single `## Task Tree` heading, so every leaf in
+  the file shares ONE section and any staged edit inside it lets a box from ANY other leaf satisfy
+  the requirement. On `docs/tasks/SV-EXH-PROOF.md` that section spans line 54 to line ~1882 and
+  contains dozens of leaves.
+
+- **Corpus measurement:** **66 of 158** tracked `docs/tasks/*.md` files use `- ID:` bullet leaves,
+  and **65 of those 66** have more than one leaf sharing a single heading section. So the free pass
+  `.7` measured at 33 files and believed it had closed is **still open for 65** — a strictly larger
+  population than the one that motivated the fix.
+
+- ⭐ **WHY IT SURVIVED `.7`'s RED probes.** `GENERATED-LINT-CORRECTNESS.md` — the file `.7` was
+  written in, probed against, and measured on — uses `###` leaf headings. The rule was validated on
+  a document whose FORMAT it happens to fit. `.7`'s own honest-bound note ("the enforcer cannot know
+  which leaf OWNS a change; 'written by this commit' is a proxy") anticipated a weaker version of
+  this and still under-stated it: for two thirds of the corpus the proxy is not weak, it is absent.
+
+- **Design direction (do not re-derive):** `section_touched` needs a leaf delimiter that matches the
+  real corpus, i.e. a boundary set of *(headings ≤ 3) ∪ (lines matching the leaf-item pattern
+  `^- ID: `)*, so a bullet leaf bounds its own section exactly as a `###` leaf does. ⛔ PRICE IT
+  FIRST, as `.4`/`.7`/`.9` all required: replay the last ~400 code-change commits and report how
+  many pass today and would fail under the tightening, reading each one individually before calling
+  it a false positive — `.7` did exactly this and found 7 borrowers with 0 false positives.
+  ⚠️ Expect this to be a much larger tightening than `.7` was; if the count is high, the answer may
+  be a staged adoption rather than a flip.
+
+- **Acceptance:** the corpus number, before→after; RED/GREEN probes in the
+  `docs/tasks/artifacts/generated_lint_correctness/` driver style covering BOTH tree formats (a
+  bullet-leaf borrow must fail, a bullet-leaf own-box must pass, and the `###` behaviour must be
+  byte-unchanged); and the honest-bound note in `.7` corrected rather than left standing.
+
+- **Verification:** `pending`.
+- **Commit:** `pending`.
+
 ## Commit log
 
 | slice | leaf | commit subject |
