@@ -23,7 +23,7 @@
 - **SV is 100% LRM-compliant by default** — over-acceptance is a defect, tolerance is additive and future → [[feedback_sv_strict_lrm_compliance_default]].
 - **The EBNF is the sole source of truth** and steers the engine at the author's granularity → [[project_ebnf_is_single_source_of_truth]], [[project_ebnf_steers_the_engine_at_full_granularity]].
 - **Prove no existing surface covers it before designing one**, and RE-MEASURE engine behaviour rather than quoting a doc → [[feedback_read_prior_art_before_designing]] (mechanized: `DESIGN-PRIOR-ART`).
-- **Flow findings are ROUTED to a leaf by default; worked only when they block** (a gate cannot run / a verdict cannot be trusted / a published claim is false) → [[feedback_flow_findings_are_routed_not_worked]].
+- **EVERY issue raised must be FIXED** — routing decides WHEN, never WHETHER; a design is a schedule, not the deliverable → [[feedback_every_finding_must_be_fixed_not_logged]]; worked NOW only when it BLOCKS → [[feedback_flow_findings_are_routed_not_worked]].
 - **An instrument with no ground truth is a confident guess** — pin both a positive and a negative control inside it and REFUSE on a miss → [[feedback_instrument_needs_ground_truth]].
 - **Project data stays on the repo's volume** → [[project_data_locality_same_volume]]; reclaim artifacts routinely, proving safety each time → [[feedback_delete_reclaimable_artifacts_regularly]]; the portable spine is a separate repo → [[project_bedrock_spine_repo]].
 
@@ -34,9 +34,9 @@
 - ⭐ **residual = 0, DETERMINISTIC, RATCHETED at `2017: 0`/`2023: 0`** (**A ✅ · B ✅ · C ✅**) — two-sided, so moving it EITHER way fails the gate.
 - ⛔ **`ci_workflow_local_gate` CANNOT COMPLETE** (pre-existing; full diagnosis in `CI-PARITY-GATE-ROT.20`).
 - **in_flight_uncommitted**: none.
-- ⚠️ **sweep traps**: `LANG-CAPABILITY-AUDIT.10.3` + `CI-PARITY-GATE-ROT.19` (generated-artifact sweeps); `.4b` item 2 (markdown sweeps).
-- **blockers**: none. ⏳ Three **director calls** open (⛔ all OBJECTIVE/SCOPE — never escalate a technical one → [[feedback_answer_your_own_technical_questions]]): `LESSON-RETRIEVAL.2` back-fill scope; a priced `schedule:` lane for `sota_exit_gate`; the ANVIL README-policy feedback.
+- ⚠️ **sweep traps** (read the leaves before any sweep): `LANG-CAPABILITY-AUDIT.10.3`, `CI-PARITY-GATE-ROT.19`, `.4b` item 2.
+- **blockers**: none. ⏳ Three **director calls** open (⛔ all OBJECTIVE/SCOPE — never escalate a technical one → [[feedback_answer_your_own_technical_questions]]): `LESSON-RETRIEVAL.2` scope; a priced `schedule:` lane for `sota_exit_gate`; the ANVIL README-policy feedback.
 - **routed, waiting behind product** (do NOT pull forward): `GENERATED-LINT-CORRECTNESS.8` (`NOREGRESS_SIG` repeats group 2's wrong-vocabulary defect, **120/416 (29%)** unbacked; price the REACH, not only the population), `LANG-CAPABILITY-AUDIT.10.12`/`.10.8`/`.10.13`/`.10.14`/`.3c`, `CI-PARITY-GATE-ROT.10`/`.11` remainder/`.16`/`.17`/`.18`, `OPS-MEMSAFE.4`, `DOCTRINE-GAP-OWNERSHIP.3`, `DONE-BAR.5d` gate/`.5f`.3/`.5g`, `README-POLICY.3`/`.6`, `BOOK-PARAGRAPH-SHAPE` (**`.2` runs BEFORE `.1`**).
 - **push**: 174 commits ahead of `origin/main`. ⛔ Cadence is **300 unpushed OR an explicit exceptional order** — never ask or suggest below 300 → [[feedback_push_pacing]].
-- **live doctrine anchor** (kept here deliberately — `REGEX-ORACLE-ANCHOR-SYNC` checks every occurrence in this file against the contract): regex oracle real tuple **`2189/1879/262/48`**.
+- **live doctrine anchor** (kept here deliberately — `REGEX-ORACLE-ANCHOR-SYNC` checks it against the contract): regex oracle real tuple **`2189/1879/262/48`**.
 - **flow health**: `sota_exit_gate` last green at `CI-PARITY-GATE-ROT.7` (32/32, 4h39m); UNBLOCKED since `.10.9` but not re-proven end-to-end. Automatic CI tier = the **17** doctrines per push + 3 cheap gate targets; the other 120 `make` targets are operator-invoked.
