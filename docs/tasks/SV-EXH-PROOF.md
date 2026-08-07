@@ -1873,13 +1873,81 @@ literal over a failing surface.
   record is that the box was NOT earned rather than silently free-riding on a borrowed one.
 
 - ID: `SV-EXH-PROOF.7.4.6.17`
-  Status: `pending` (`PGEN-SV-EXH-PROOF-0179`, raised by `.7.4.6.15`'s A/B and opened as a SIBLING leaf in this tree — deliberately not worked inside `.7.4.6.15`; see ROUTING EVIDENCE §2)
+  Status: `in_progress` (`PGEN-SV-EXH-PROOF-0181`, 2026-08-08 — ⭐ **STEP 1 LANDED: the population is NAMED, and it has one shape.** The census instrument is in and reconciles exactly against two numbers `-0179` measured independently. ⛔⛔ **ALL 27 blocked targets on both profiles are BRANCH targets — not one RULE target** ⇒ the over-approximation lives ENTIRELY in the branch arm of `target_forces_positive_store_gate`, which halves the search space before a line of the fix is written. The WHY is the remaining work; read `CENSUS_2026-08-08` and start from the `net_declaration_sv_2017::root#1` vs `root#2` pair.)
   Goal: `Tighten witness_target_is_store_entry_blocked, whose over-approximation is no longer hypothetical: .7.4.6.15 MEASURED it firing spuriously on 15 of 16 (sv_2017) and 10 of 11 (sv_2023) real targets -- every one of which witnesses perfectly well from its own rule. .7.4.6.15 made that COST-ONLY rather than incorrect (the own-rule arm now runs first, so a spurious verdict can never replace a working witness), which is exactly why this is routed and not blocking. What remains is real: 25 targets per run pay a needless verdict evaluation plus a raised-plan install, and a verdict that is wrong 94% of the time is a poor foundation for anything built on it later.`
   Prerequisites: `NONE -- .7.4.6.15 is landed and this is strictly additive.`
   Design sketch (do NOT re-derive the starting point): `TWO known inputs. (1) A NAMED VECTOR, already proven in code: mandatory_node_gated's rule-reference arm answers TRUE for any reference absent from grammar_tree, and the BUILTIN `epsilon` is such a reference while generate_rule renders it as the empty string with no store consulted (EPSILON_VECTOR_2026-08-08 in .7.4.6.15). Resolving builtins before the conservative fallback is the obvious first candidate -- MEASURE it, do not assume it is the SV cause. (2) The SV population is UNNAMED and naming it is step one: build a per-target verdict census over the real grammar (in-process, no generation -- load the gen-AST, build the generator, evaluate witness_target_is_store_entry_blocked over the initial gap report's targets) so the 16/11 blocked sets are listed by name, then subtract the one genuine class-C target per profile. That list IS the specification.`
   Acceptance: `store_entry_raises at HEAD-equivalent configuration falls toward the genuine population (1 per profile) WITHOUT the ordering being what suppresses it -- i.e. measured on the verdict directly via the census, not only through the pass. Residual stays 0/0 and the whole-summary diff stays 0 new on both profiles. ⛔ And .7.4.6.15's control must be RE-BASED, not deleted, if the epsilon arm is the thing fixed: its PRECONDITION 1 assert is designed to fail loudly in exactly that case, and the ORDERING it guards is a separate guarantee that must keep its test.`
-  Verification: `pending`
-  Commit: `pending`
+  CENSUS_2026-08-08 (`PGEN-SV-EXH-PROOF-0181`, STEP 1 — the population is NAMED) -- ⛔⛔ EVERY BLOCKED TARGET IS A **BRANCH** TARGET, ON BOTH PROFILES: `The instrument is PGEN_WITNESS_BLOCKED_VERDICT_CENSUS=1 on any --target-report-input run: one line per store-entry-blocked target, classified SPURIOUS (the verdict called it structurally unwitnessable from its own rule, and its own rule witnessed it) or GENUINE (it did not).
+
+  ⭐ WHY IT IS MEASURED IN THE PASS AND NOT RE-DERIVED STATICALLY: a harness that re-evaluated witness_target_is_store_entry_blocked over the target list would report the VERDICT and nothing else. What makes a raise spurious is that the own-rule attempt SUCCEEDS ANYWAY -- knowable only after that attempt has run. The census pairs the two facts at the one point in the program where both are in hand.
+
+  ⭐ GROUND TRUTH -- it reproduces two numbers the project already measured, independently, before its list is trusted ([[feedback_instrument_needs_ground_truth]]): its GENUINE count equals the pass summary's own store_entry_raises (1 per profile), and its TOTAL equals the pre-.7.4.6.15 raise count -0179 measured (16 / 11). Both reconcile EXACTLY: sv_2017 16 = 15 SPURIOUS + 1 GENUINE, sv_2023 11 = 10 + 1. Its two classifications also rest on predicates that each already carry RED/GREEN unit controls (spurious_store_entry_block_keeps_its_own_rule_witness, genuine_store_entry_block_still_raises_after_the_own_rule_attempt_fails).
+
+  ⛔⛔ THE FINDING THAT NARROWS THE FIX: 16/16 and 11/11 of the blocked targets are type=Branch. ZERO rule targets. So target_forces_positive_store_gate's RULE arm is not implicated at all on this grammar, and the whole over-approximation lives in the BRANCH arm -- the one that judges the TARGETED ALTERNATIVE via mandatory_node_gated before falling back to the whole rule. Nine distinct rules carry a spurious branch on sv_2017: base_class_type_head, block_data_type, class_scope_type_head, class_scoped_call_prefix_head, class_type_head, interface_class_type_head, net_declaration_sv_2017, ps_covergroup_identifier, ps_or_hierarchical_property_identifier.
+
+  ⭐⭐ AND THERE IS A CONTROLLED PAIR TO START FROM, IN ONE RULE: branch::net_declaration_sv_2017::root#1 is SPURIOUS while branch::net_declaration_sv_2017::root#2 is GENUINE (identically on sv_2023). Same rule, adjacent alternatives, opposite verdicts-vs-outcome -- whatever separates them IS the mechanism, and it can be interrogated without any whole-grammar sweep.
+
+  ⚠️ HONEST BOUND, stated rather than implied: every row records own_rule_attempt=ok, INCLUDING the GENUINE one. A generation that returns Ok while leaving the forced branch uncredited is exactly the selected_but_failed class, which is why .7.4.6.15 keys its arm-2 gate on COVERAGE and not on Err -- and why "the attempt errored" is NOT available as a discriminator here. The classification is coverage-based for the same reason.
+
+  ⚠️ NOT MEASURED YET, and NOT assumed: WHY the verdict fires for the 25. The epsilon vector named in .7.4.6.15's EPSILON_VECTOR_2026-08-08 is one in-code over-approximation, proven in a synthetic grammar; it is NOT asserted to be this population's cause. Establishing that is STEP 2 and starts at the controlled pair above.`
+  Verification: `STEP 1 done (PGEN-SV-EXH-PROOF-0181) — see the Acceptance Checklist below. Census logs + artifacts preserved at rust/target/sv_exh_proof_7_4_6_17/{census_2017.log, census_2023.log, census/}, driver rust/target/sv_exh_proof_7_4_6_17/run_census.sh. STEP 2 (the WHY) and STEP 3 (the fix) are pending.`
+  Commit: `PGEN-SV-EXH-PROOF-0181 (step 1 of 3)`
+
+- **Acceptance Checklist (enforced)** — `SV-EXH-PROOF.7.4.6.17` step 1 (`PGEN-SV-EXH-PROOF-0181`, a TOOL-BUILD slice in the `.7.4.6.4` mould: build the instrument, publish the measurement, fix nothing)
+- [x] **REPRODUCE / ISSUE** — `.7.4.6.15` measured the defect pass-wide but named no target:
+  `store_entry_raises` `16 → 1` (`sv_2017`) and `11 → 1` (`sv_2023`) once the own-rule arm runs
+  first, i.e. the verdict over-approximates for ~94 % of the targets it fires for. A verdict cannot
+  be tightened against a count.
+- [x] **ROOT CAUSE (WHY + WHERE)** — this slice establishes WHERE, and deliberately stops there.
+  WHERE, decisively: **every one of the 27 blocked targets on both profiles is a `type=Branch`
+  target — zero rule targets** — so `target_forces_positive_store_gate`'s rule arm is not implicated
+  on this grammar and the whole over-approximation is in the BRANCH arm (the one judging the
+  targeted alternative via `mandatory_node_gated`). The instrument that establishes it is the new
+  `PGEN_WITNESS_BLOCKED_VERDICT_CENSUS=1`, whose output line is
+  `[blocked-verdict-census] target='…' rule='…' type=Branch … own_rule_attempt=ok
+  own_rule_resolved=true classification=SPURIOUS`, and whose numbers reconcile exactly against two
+  independently-measured figures (see ADDRESSED). ⚠️ WHY the verdict fires is **explicitly not
+  claimed here** — that is step 2, and the leaf records the controlled pair
+  (`net_declaration_sv_2017::root#1` SPURIOUS vs `root#2` GENUINE) to start it from.
+  ⛔ **WAIVER NOTE — the same gap as `.7.4.6.16`, same owner `SV-EXH-PROOF.7.4.6.18`**: this slice
+  BUILDS a diagnostic rather than fixing a parse, so no parse trace, profile, `error[EXXXX]` or
+  generated-code lint applies to it; the signature families do not model a TOOL-BUILD slice. Recorded
+  loudly, not waived silently.
+- [x] **ADDRESSED (verified)** — the instrument answers the question it was built for, and is
+  ground-truthed before its list is trusted: **`sv_2017` 16 = 15 SPURIOUS + 1 GENUINE** and
+  **`sv_2023` 11 = 10 + 1**, where the GENUINE count equals the pass summary's own
+  `store_entry_raises=1` on each profile and the TOTAL equals the pre-`.7.4.6.15` raise count
+  `-0179` measured (16 / 11). Two independent reconciliations, both exact, on both profiles. The
+  27 targets are now listed by name in `CENSUS_2026-08-08`.
+- [x] **NO REGRESSION** — the census is read-only and opt-in: unset, it costs one `env::var_os` per
+  witness target and emits nothing, and nothing downstream consumes the line. Proven rather than
+  argued, and in the STRONGER direction than planned — the census runs were made with the variable
+  **ENABLED**, and all **8** artifacts (4 × 2 profiles) came out **byte-identical (`cmp`)** to the
+  `-0180` stage run, so the instrument perturbs generation neither when off nor when on.
+  (It also independently re-confirms `.7.4.6.16`: that is a third run of the coverage artifact
+  agreeing byte-for-byte with the first two.) Certificate coverage at **seeds 0/7/42** on
+  json / regex / vhdl / rtl_frontend: 12/12 `UNKNOWN=0 fully_certified=true
+  (sample_parse_failures=0, proof_reverify_failures=0)`. `ast_shape_contract_gate` GREEN (18/18).
+  `clippy_on_rust_change` rc=0 with the generated stage `pass`. Dual-feature lib suite unchanged
+  against the `-0180` baseline of 1051/1.
+- [x] **LOCKSTEP** — `TOOLBOX.md` §6.3 + the quick-chooser row for the new census;
+  `docs/book/src/stimuli-and-quality.md` records the measured population shape. `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+  KM card **PROMOTED**: `docs/knowledge/measure-a-policy-where-its-outcome-is.md` (6 question keys
+  + a runnable `reverify:`), map regenerated. ⚠️ The first draft DECLINED it as "already carried by
+  [[witness-entry-policy-store-gated-targets]]"; `LESSON-PROMOTION` blocked that and was right —
+  that card records what the SV witness policy does, while these are method facts (a count is not a
+  specification; put the instrument where the outcome is; reconcile before trusting a list) that
+  are reusable far outside this family.
+  ⚠️ **Enforcer usability note, routed to `LESSON-RETRIEVAL.5`:** `check_lesson_promotion.sh`
+  matches `promotion: declined (<reason>)` on a SINGLE line, so a decline written in wrapped
+  markdown prose cannot satisfy it — it bit twice in this session. `WAIVER-ROUTING` already solved
+  the identical hazard with a ±6-line window and recorded WHY ("markdown prose WRAPS... a strict
+  same-line rule is unsatisfiable for any wrapped paragraph and would push authors toward deleting
+  the note"). ⛔ Both times the block was CORRECT on the merits — a real promotion was owed — so
+  this is a usability defect, not a false positive, and must not be used to argue the gate is
+  too strict.
 
 - ID: `SV-EXH-PROOF.7.4.6.18`
   Status: `pending` (`PGEN-SV-EXH-PROOF-0179`, opened to OWN the waiver `.7.4.6.16` records — a waiver is a bug report about the gate, never inert; see ROUTING EVIDENCE §2)

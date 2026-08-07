@@ -372,6 +372,25 @@ meaning. It no longer counts *targets the verdict called blocked*; it counts tar
 That is why the number fell from `16` to `1` on `sv_2017` and from `11` to `1` on `sv_2023` with no
 coverage change at all: the difference is the raises that were never needed.
 
+Which raises those were is no longer a matter of inference. Setting
+`PGEN_WITNESS_BLOCKED_VERDICT_CENSUS=1` on any closed-loop replay run emits one line per
+store-entry-blocked target, classified **SPURIOUS** (the verdict called it structurally
+unwitnessable from its own rule, and its own rule witnessed it) or **GENUINE**. The census
+reconciles against two numbers measured independently of it — its GENUINE count equals the pass
+summary's own `store_entry_raises`, and its total equals the pre-ordering raise count — and both
+reconcile exactly, `16 = 15 + 1` and `11 = 10 + 1`.
+
+Its first result narrowed the remaining work sharply: **every** blocked target on both profiles is a
+*branch* target, not one rule target, so the over-approximation lives entirely in the branch arm of
+the blocked verdict. One rule even supplies a controlled pair — `net_declaration_sv_2017` branch `#1`
+is spurious while branch `#2` is genuine — so the mechanism can be interrogated without a
+whole-grammar sweep.
+
+⚠️ Read `own_rule_attempt=ok` carefully: it does *not* mean the target was covered. A forced branch
+whose gated content prunes lets a sibling rescue the rule, so the attempt returns `Ok` with the
+branch uncredited. The discriminator is coverage, which is exactly why the attempt-ordered raise
+keys on coverage too.
+
 ## Probe-Only Steering
 
 When a family is down to a stubborn replay frontier, PGEN now distinguishes between two kinds of literal steering:

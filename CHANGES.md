@@ -1,5 +1,32 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0181 — leaf SV-EXH-PROOF.7.4.6.17 step 1 (TOOL-BUILD): the over-approximating verdict's population is NAMED, and every one of them is a BRANCH target
+
+`-0179` measured that the store-entry-blocked verdict fires spuriously for ~94 % of the targets it
+fires for (`store_entry_raises` `16 → 1` / `11 → 1`). That is a count, and a verdict cannot be
+tightened against a count. This slice builds the instrument that names them and stops there.
+
+- **New diagnostic** `PGEN_WITNESS_BLOCKED_VERDICT_CENSUS=1` — one line per store-entry-blocked
+  witness target, classified **SPURIOUS** (the verdict called it structurally unwitnessable from its
+  own rule, and its own rule witnessed it) or **GENUINE**. ⭐ Measured *inside the witness pass* on
+  purpose: a harness re-deriving the verdict statically would report the verdict and nothing else,
+  because "was the raise necessary" is only knowable after the own-rule attempt has run.
+- **Ground truth before the list is trusted:** the GENUINE count must equal the pass summary's own
+  `store_entry_raises`, and the total must equal the pre-`.7.4.6.15` raise count. Both reconcile
+  exactly — `sv_2017` **16 = 15 + 1**, `sv_2023` **11 = 10 + 1**.
+- ⛔⛔ **The finding: all 27 blocked targets on both profiles are `type=Branch`. Zero rule targets.**
+  So the over-approximation is entirely in the branch arm of `target_forces_positive_store_gate`,
+  which halves the search space before a line of the fix is written. Nine rules carry a spurious
+  branch on `sv_2017`, and `net_declaration_sv_2017` supplies a controlled pair — branch `#1`
+  SPURIOUS, branch `#2` GENUINE — to start step 2 from.
+- **Zero perturbation, proven in the stronger direction:** the census runs were made with the
+  variable ENABLED and all 8 artifacts (4 × 2 profiles) came out byte-identical to the `-0180` run.
+  That also independently re-confirms `.7.4.6.16` — a third run of the coverage artifact agreeing
+  byte-for-byte with the first two.
+- ⚠️ WHY the verdict fires is deliberately **not** claimed here; the `epsilon` vector from `.7.4.6.15`
+  is one proven in-code over-approximation and is explicitly not asserted to be this population's
+  cause. Steps 2 (the WHY) and 3 (the fix) stay open on the leaf.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0180 — leaf SV-EXH-PROOF.7.4.6.16: the last non-reproducible closed-loop artifact is byte-reproducible
 
 `profile_*_replay_coverage.json` was the ONE closed-loop artifact a `cmp`-based A/B could not use.

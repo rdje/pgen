@@ -140,6 +140,16 @@ is not yet a fact — it is a hypothesis.
   Verification: `pending`
   Commit: `pending`
 
+- ID: `LESSON-RETRIEVAL.5`
+  Status: `pending` (opened 2026-08-08 by `PGEN-SV-EXH-PROOF-0181`, which hit it twice in one session)
+  Goal: `Give the DECLINE token the same wrapped-prose tolerance WAIVER-ROUTING already has. check_lesson_promotion.sh matches `promotion: declined (<reason>)` with a single-line grep (`grep -E "${DECLINE_TOKEN} \(..*\)"`), so a decline written as ordinary wrapped markdown -- opening paren on one line, closing paren three lines later -- does NOT satisfy it. That is the IDENTICAL hazard check_waiver_routing.sh diagnosed and solved with a +/-6-line window, and its source comment already records why: "Markdown prose WRAPS ... A strict same-line rule is unsatisfiable for any wrapped paragraph and would push authors toward deleting the waiver instead of owning it -- the exact outcome this doctrine exists to prevent." The same argument applies verbatim to a decline: the doctrine wants a DECISION recorded, and an author who cannot express one in normal prose will reformat until the grep is happy or stop writing declines.`
+  Prerequisites: `NONE.`
+  Design sketch (do NOT re-derive): `Reuse check_waiver_routing.sh's proven shape -- locate the trigger line, then search a small window around it for the discharge -- rather than inventing a second mechanism. Here the trigger is `promotion: declined` and the discharge is a non-placeholder reason, so the window search is for a closing paren plus non-empty content within N lines. ⛔ KEEP THE PLACEHOLDER REJECTION: `.4` deliberately refuses the literal `promotion: declined (<reason>)`, because its own first real-world run passed on a leaf that merely DOCUMENTED the token in prose about the gate. A window must not reopen that.`
+  Acceptance: `A wrapped multi-line decline with a real reason SATISFIES the gate; the literal `(<reason>)` placeholder still FAILS; a decline in an UNRELATED file still fails; and all 6 existing arms of docs/tasks/artifacts/lesson_retrieval/run_lesson_promotion_probes.sh stay green. Add a 7th arm for the wrapped case -- RED before the change, GREEN after.`
+  Evidence: `Both encounters were in PGEN-SV-EXH-PROOF-0180 and -0181, and ⛔ IN BOTH THE BLOCK WAS CORRECT ON THE MERITS -- a real KM card was owed each time and was written (deterministic-artifacts-sort-at-the-serializer, measure-a-policy-where-its-outcome-is). So this is a USABILITY defect in how a decline is expressed, NOT evidence the gate is too strict, and it must not be used to argue for weakening it.`
+  Verification: `pending`
+  Commit: `pending`
+
 ## Leaf `.3` progress — 2026-08-01 (`PGEN-LESSON-RETRIEVAL-0002`), 11 of 142 promoted
 
 ⛔ **THE "VERIFY FIRST" CLAUSE PAID OFF TWICE — neither obstacle was guessable from the plan.**

@@ -142,6 +142,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Which residual `UNKNOWN`s are profile-excluded by construction?" | [4.6 `PGEN_CERT_RESIDUAL_CLASSIFICATION`](#46-pgen_cert_residual_classification) |
 | **"WHY is this closed-loop coverage target still residual?" — ⛔ the pass-summary counters are TARGET-scoped and read 0 while branches die** | [6.1 `failure_reasons`](#61-failure_reasons--why-a-residual-coverage-target-survived-already-written-no-re-run) — the per-branch record every gate run already wrote |
 | **"`--max-depth` is 20 — why does the log say `max_depth=448`? and does that escalation ever PAY?"** | [6.2 depth-slack retry census](#62-depth-slack-retry-census--does-the-generators-depth-escalation-ever-pay) — the retry adds slack to the LIVE budget, so nesting is cumulative; the census prices each rung |
+| **"`store_entry_raises=N` — but how many of those raises were actually NEEDED?"** | [6.3 blocked-verdict census](#63-store-entry-blocked-verdict-census--is-a-witness-entry-raise-actually-needed-or-is-the-verdict-over-approximating) — names each blocked target SPURIOUS vs GENUINE; measured 15 of 16 spurious on `sv_2017` |
 | "Is my grammar well-formed (LR / shadowing / non-terminating)?" | [5.1 `--lint-grammar`](#51---lint-grammar) |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
@@ -599,6 +600,43 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   generation downstream, so the after-run finds different successes — `SV-EXH-PROOF.7.4.6.13`
   measured `sv_2023` successes go **147 → 398** under a cap. Always A/B the residual, never infer it.
   Full map: `docs/tasks/SV-EXH-PROOF.md` `.7.4.6.13` + book *Stimuli and Quality*.
+
+### 6.3 `Store-entry-blocked verdict census` — is a witness-entry RAISE actually NEEDED, or is the verdict over-approximating?
+
+- **WHAT:** one stdout line per **store-entry-blocked** witness target, classifying it `SPURIOUS`
+  (the verdict called the target structurally unwitnessable from its own rule, and its own rule
+  witnessed it anyway) or `GENUINE` (it did not). Read-only, opt-in, and it perturbs nothing —
+  measured byte-identical artifacts with it ON.
+- **WHEN:** ⛔ before tightening, trusting or extending `witness_target_is_store_entry_blocked` — and
+  the answer to *"`store_entry_raises` says N, but how many of those raises were NEEDED?"* The pass
+  summary counts raises; only this names them and says which were unnecessary.
+  ⭐ **The general lesson it encodes:** a policy's over-approximation is measurable only where the
+  policy's decision AND its outcome are both in hand. A harness that re-evaluated the verdict
+  statically would report the verdict and nothing else — "was the raise necessary" is knowable only
+  after the own-rule attempt has run, which is why this lives inside the witness pass.
+- **HOW:**
+  ```bash
+  PGEN_WITNESS_BLOCKED_VERDICT_CENSUS=1 bash docs/tasks/artifacts/sv_exh_proof/run_closed_loop_replay_stage.sh 2017 /path/to/out
+  grep -c 'classification=SPURIOUS' /path/to/log ; grep -c 'classification=GENUINE' /path/to/log
+  ```
+- **OUTPUT:**
+  ```
+  [blocked-verdict-census] target='branch::net_declaration_sv_2017::root#1' rule='net_declaration_sv_2017'
+    type=Branch node_path=Some("root") branch=Some(1) verdict=blocked own_rule_attempt=ok
+    own_rule_resolved=true classification=SPURIOUS
+  ```
+- **READING:** `own_rule_attempt=ok` does **not** mean the target was covered — a forced branch whose
+  gated content prunes lets a `generate_or` sibling rescue the rule, so the attempt returns `Ok` with
+  the branch uncredited (`selected_but_failed`). The discriminator is `own_rule_resolved`, which is
+  coverage-based; `attempt=ok` appears on GENUINE rows too.
+- ⭐ **GROUND TRUTH — it reconciles against two independently-measured numbers before its list is
+  trusted:** its `GENUINE` count must equal the pass summary's own `store_entry_raises`, and its
+  TOTAL must equal the pre-`SV-EXH-PROOF.7.4.6.15` raise count. Measured: `sv_2017` **16 = 15 + 1**,
+  `sv_2023` **11 = 10 + 1**, both exact, `store_entry_raises=1` on each. A census that fails to
+  reconcile is reporting a broken instrument, not a finding.
+- **Measured at the time of writing:** **every** blocked target on both profiles is a `type=Branch`
+  target — zero rule targets — so the over-approximation lives entirely in the BRANCH arm of
+  `target_forces_positive_store_gate`. Full map: `docs/tasks/SV-EXH-PROOF.md` `.7.4.6.17`.
 
 ---
 

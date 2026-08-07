@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0181 — a count is not a specification; and measure a policy where its OUTCOME is, not where its decision is
+
+**"The verdict is wrong 94 % of the time" is not something you can fix.** `-0179` produced a real,
+decisive number and no actionable target. The instinct is to go straight at the predicate; the
+useful move was to spend one slice turning the count into a NAMED list first. The list immediately
+did work the count could not: every one of the 27 targets is a *branch* target, so half the
+predicate is exonerated before any fix is designed, and one rule turned out to carry both a spurious
+and a genuine branch — a controlled pair that makes step 2 a two-case comparison instead of a sweep.
+
+**Measure a policy where its outcome is in hand, not where its decision is.** The obvious harness
+was a standalone probe re-evaluating the verdict over the target list. It would have been wrong —
+not buggy, just unable to answer the question. "Was this raise NECESSARY" is not a property of the
+verdict at all; it is a property of what the own-rule attempt did afterwards. So the instrument
+belongs at the one point in the program where the decision and its outcome coexist. When an
+instrument feels awkward to place, check whether the fact you want actually exists where you are
+putting it.
+
+**Reconcile a new instrument against numbers you already have, before trusting its list.** The
+census had two independent obligations: its GENUINE count had to equal the pass's own
+`store_entry_raises`, and its total had to equal a raise count measured two slices earlier by a
+different mechanism. Both reconciled exactly on both profiles. A census that does not reconcile is
+reporting a broken instrument, not a finding — and there is no way to tell the difference from the
+list alone.
+
+**Claim the measurement you made, not the one you planned.** The no-regression box was drafted as
+"with the variable unset the artifacts are byte-identical". That had not been run. What HAD been run
+was stronger — the census runs themselves, with the variable ENABLED, byte-identical on all 8
+artifacts — so the box was corrected to say that instead. Drafting a claim ahead of its evidence is
+how an unearned box gets written; re-read every box against what is actually on disk.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0180 — reproduce a determinism defect on the CHEAPEST grammar that exhibits it, and price the fix where it belongs
 
 **A determinism defect does not need its expensive subject to be diagnosed.** The non-reproducible

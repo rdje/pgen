@@ -6041,6 +6041,41 @@ impl<'a> StimuliGenerator<'a> {
                 produced.push(sample.clone());
             }
 
+            // SV-EXH-PROOF.7.4.6.17 (TOOL-BUILD, WHY+WHERE before any fix to the verdict): the
+            // store-entry-blocked VERDICT-vs-OUTCOME census. `.7.4.6.15` measured, pass-wide, that
+            // `store_entry_raises` falls 16 -> 1 (`sv_2017`) and 11 -> 1 (`sv_2023`) once the
+            // own-rule arm runs first — i.e. the verdict over-approximates on ~94 % of the targets
+            // it fires for. That number names no target, and a verdict cannot be tightened against
+            // a count.
+            //
+            // ⭐ IT IS DELIBERATELY MEASURED HERE, NOT RE-DERIVED STATICALLY. A separate harness
+            // that re-evaluated `witness_target_is_store_entry_blocked` over the target list would
+            // report the verdict and nothing else; what makes a raise SPURIOUS is that the own-rule
+            // attempt SUCCEEDS ANYWAY, which is only knowable after that attempt has run. So the
+            // census pairs the two facts at the one point in the program where both are in hand.
+            //
+            // Read-only and opt-in: unset, this is one `env::var_os` per target and no behaviour
+            // change at all — the emitted line is a diagnostic, and nothing downstream consumes it.
+            if std::env::var_os("PGEN_WITNESS_BLOCKED_VERDICT_CENSUS").is_some() {
+                let blocked = self.witness_target_is_store_entry_blocked(&status);
+                let resolved = self.witness_target_is_resolved(&status);
+                if blocked {
+                    println!(
+                        "[blocked-verdict-census] target='{}' rule='{}' type={:?} node_path={:?} branch={:?} verdict=blocked own_rule_attempt={} own_rule_resolved={} classification={}",
+                        status.id,
+                        status.rule_name,
+                        status.target_type,
+                        status.node_path,
+                        status.branch_index,
+                        if attempt.result.is_ok() { "ok" } else { "err" },
+                        resolved,
+                        // SPURIOUS = the verdict said this target is structurally unwitnessable
+                        // from its own rule, and its own rule witnessed it. GENUINE = it did not.
+                        if resolved { "SPURIOUS" } else { "GENUINE" }
+                    );
+                }
+            }
+
             // ── ARM 2: the RAISED entry — only when ARM 1 left the target UNCOVERED ─────────
             // SV-EXH-PROOF.7.4.6.12 (PGEN-SV-EXH-PROOF-0170): RAISED WITNESS ENTRY for a
             // STORE-ENTRY-BLOCKED target — the class-C residual. Rooting the witness at the
