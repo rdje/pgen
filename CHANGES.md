@@ -1,5 +1,32 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0182 — leaf SV-EXH-PROOF.7.4.6.17 step 2 (docs-only): the over-approximation is the QUESTION the verdict asks, and the gate CLASS separates the population 16 of 16
+
+Derived with zero stage runs, from the gen-AST plus the census rows `-0181` already put on disk.
+
+- **The split is perfect.** Classifying each census row by the predicate class its targeted
+  alternative mandatorily reaches: **GENUINE 1/1 is `fact_count_at_least`** (a COUNT gate);
+  **SPURIOUS 15/15 are `fact_attribute_equals` (12) or `has_fact` (3)** — NAME gates, not one count
+  gate among them.
+- **One rule carries the whole story.** `net_declaration_sv_2017` branch `#2` leads with
+  `wildcard_escape_nettype_identifier` (`fact_count_at_least`) — GENUINE; branch `#1` leads with
+  `checked_nettype_identifier` (`fact_attribute_equals`) — SPURIOUS. Identical bodies, adjacent
+  alternatives, opposite outcomes, and the only difference is the gate class.
+- **Mechanism, not correlation:** a NAME gate is satisfiable from the target's own rule because the
+  generator BOOTSTRAPS the declaring fact inside the same sample — `compute_name_gate_prelude`
+  deliberately prefers a self-bootstrapping host branch, a capability that is built and pinned
+  (`store_aware_gen_prefers_self_bootstrapping_host_branch`). A COUNT gate whose producer sits
+  strictly above cannot be, which is `.7.4.6.12`'s original argument and stays correct for counts.
+- ⇒ **The defect is the question.** `witness_target_is_store_entry_blocked` asks only "can any rule
+  in the closure EMIT this kind" — right for a count gate, and simply not the criterion for a name
+  gate, whose satisfiability turns on bootstrappability. Sound on one class, over-approximating on
+  the other: exactly the measured 1-vs-15.
+- ⛔ **The leading suspect is RETIRED.** `.7.4.6.15`'s `epsilon` vector is a real in-code
+  over-approximation and is **not** this population's cause — no target involves an unresolvable
+  reference. Recorded because the obvious step-2 move was to fix `epsilon` and declare victory.
+
+Step 3 (the fix) is the only remaining work, with its candidate and its risk recorded on the leaf.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0181 — leaf SV-EXH-PROOF.7.4.6.17 step 1 (TOOL-BUILD): the over-approximating verdict's population is NAMED, and every one of them is a BRANCH target
 
 `-0179` measured that the store-entry-blocked verdict fires spuriously for ~94 % of the targets it
