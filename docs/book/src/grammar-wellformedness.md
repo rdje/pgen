@@ -1675,6 +1675,65 @@ negative, and vice versa — so `.9` closes gaps surfaced by both.
 Graduation (`SV-CORPUS-GRAD.5`) requires **both** zero unexplained divergences *and* 100% measured
 coverage of the parseable surface (uncovered rules driven to a corpus case or an N/A-with-cause).
 
+### The adjudication manifest — what is allowed to count as a defect signal
+
+A raw corpus failure is not a parser bug. Roughly half of a vendored suite is *supposed* to fail:
+intentionally-invalid negative tests, fragments that only compile as part of a multi-file unit, and
+files whose text is not parser input at all until a preprocessing stage has run. The
+**adjudication manifest** (`stimuli/sv/adjudicate_external_corpus.py` → the tracked
+`stimuli/sv/characterization/adjudication_manifest.tsv`) is what separates those from the defect
+signal, one row per file, deterministic and diffable.
+
+Each row carries an **expected verdict** derived *only* from suite metadata, upstream driver
+conventions, or an LRM-grounded pinned ruling — **never from what the parser currently does**. That
+direction is the whole point: an expectation read off the parser can only ever confirm it.
+
+| expected verdict | meaning |
+|---|---|
+| `must_accept` | valid at parse level (a file that should fail *later* — elaboration, lint — still parses) |
+| `must_reject` | invalid at parse or lexical level |
+| `chained_only` | adjudicable only with include/library chaining |
+| `out_of_scope_with_cause` | owned by another lane, which the row names |
+
+Comparing expectation against the observed verdict yields the **adjudication class**. Only two of
+them are defect signal — `divergence:unexplained_rejects_valid` and
+`divergence:unexplained_accepts_invalid` — and their sum is the graduation bar. Everything else is
+either a match, a lane deferral, or a **named** explanation: `explained_svpp_include`,
+`explained_svpp_macro_use`, `explained_svpp_conditional`, `explained_svpp_protected_envelope`,
+`explained_timeout`.
+
+⭐ **An allowlist that conflates two spec categories converts a preprocessing dependency into a
+parser defect — silently, and in the direction that makes the parser look worse.** The dependency
+detector decides "does this file need the preprocessor?" by walking its `` ` ``-prefixed names and
+reporting macro expansion for any name that is *not* a known compiler directive. Its allowlist held
+`` `__FILE__ `` and `` `__LINE__ ``. But IEEE 1800-2017 separates exactly what the allowlist merged:
+a **compiler directive** steers the compilation and leaves the surrounding text parseable as
+written, whereas §22.13 defines those two names as predefined text **macros** that *expand* —
+"`__FILE__ expands to the name of the current input file, in the form of a string literal" — so
+`$display(`__FILE__);` is not parseable text until expansion happens. 33 files whose only
+preprocessing dependency was one of them were therefore counted as parser defects
+(`SV-CORPUS-GRAD.3.13`; a second, rarer case joined them — IEEE 1800-2017 §34's protected
+envelopes, whose `key_block`/`data_block` payload is encoded bytes the decrypting tool replaces
+with source text before compilation, now the `explained_svpp_protected_envelope` class).
+
+Two rules keep that correction from becoming the thing it looks like — *lowering the bar by
+relabelling*:
+
+- **The criterion must be spec-derived and mechanical**, never per-row judgement. Here it is one
+  clause cite and one constant. A reclassification argued case-by-case would corrupt the bar it is
+  measured against, and the same leaf's four-verdict split shows why the discipline pays: of the 37
+  rows in that ch22 family, 27 were the macro correction, **8 were a genuine grammar gap left in the
+  bar** (in-scope compiler directives, which the SV grammar accepts only at file top level), and 2
+  were the §34 case. A wholesale "it's all directives" relabel would have hidden a real defect.
+- **It is reported as an adjudication correction, never as burn-down yield.** The tree states the
+  before→after in both directions and separately from any grammar work.
+
+⚠️ And an explained label is a statement about the *input*, not a clean bill of health for the
+parser: it says this file is not honest parser input. Of the 33 rows above, 29 were stuck exactly at
+the macro; the other 4 used one elsewhere in the file and had stopped at an unrelated construct. A
+correct relabel still buries those stuck points, so they are re-routed as crafted minimal cases
+where the construct — not the vendored file — is the unit.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

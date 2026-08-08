@@ -1,5 +1,50 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0031 — leaf SV-CORPUS-GRAD.3.13: the ch22 family took THREE verdicts — 27 §22.13 MACRO rows corrected, 8 routed as a REAL grammar gap, 2 found to be §34 protected envelopes
+
+- **The adjudicator was counting a preprocessing dependency as a parser defect.**
+  `stimuli/sv/adjudicate_external_corpus.py`'s `KNOWN_DIRECTIVES` allowlist — the set that
+  decides "this `` ` ``-name is a directive, not a macro expansion" — held `__FILE__` and
+  `__LINE__`. IEEE 1800-2017 separates exactly what that merged: a compiler directive steers
+  the compilation and leaves the surrounding text parseable, whereas §22.13 defines those two
+  as predefined text MACROS that *expand* ("`__FILE__ expands to the name of the current input
+  file, in the form of a string literal"). So `$display(`__FILE__);` is not parseable text
+  until expansion — and 33 such files were sitting in the graduation bar as parser defects.
+- ⭐ **The family was SPLIT before a single row was moved, and it took three verdicts, not
+  two.** Of the 37 backtick-stuck rows (the banked diagnosis said 34; it summed four of six
+  clusters — corrected, not absorbed): **27** are the §22.13 macro correction; **8** are a
+  REAL grammar gap that stays in the bar and is routed to the new leaf `.3.14`; **2** are
+  IEEE 1800-2017 §34 protected envelopes whose `key_block` payload is encoded bytes.
+- ⛔ **The gap half was decided by MEASUREMENT, not by reading the files.** A strip probe
+  blanks every backtick-led line — exactly the text a `compiler_directive` alternative
+  swallows — and re-parses: 8 of 10 then PASS (bounded real gap), while 2 still reject at
+  their base64 payload. A wholesale "it's all directives" relabel would have hidden 8 real
+  defects; a blanket `` `pragma protect `` rule would have hidden 2 (ispras `34.03.01_01.sv`
+  is `enctype="raw"` — plain text — and correctly stays defect signal).
+- **The routed gap is already root-caused** (`.3.14`): placement, not spelling.
+  `` `default_nettype none `` *before* `module m;` PASSES with `{"kind":"compiler_directive"}`
+  in the AST; the same text *inside* the module rejects at `furthest_position=9`.
+  `grammars/systemverilog.ebnf:257` defines `compiler_directive` and `:241` offers it as an
+  alternative of **`source_text_item` only** — no in-scope item list can reach it.
+- **Measured, both directions, separately from any grammar work.** Ground-truth control
+  first: the pre-edit rebuild reproduced the tracked manifest byte-identically, so every moved
+  row is attributable to the edit. `sv_2017` unexplained **393 → 360** (rejects-valid 372 →
+  339, accepts-invalid 21 unchanged); `verilog_2005` **76 → 75**; match and deferred
+  unchanged. 42 rows changed class (33 out of `unexplained`, 9 relabelled inside `explained`).
+  **This is an ADJUDICATION CORRECTION, never burn-down yield.**
+- ⚠️ **The honest cost is recorded rather than netted out.** Of the 33 rows leaving
+  `unexplained`, 29 were stuck exactly at the macro/envelope token; the other **4** use one
+  elsewhere in the file and had stopped at an unrelated construct (`br_gh782b.v`,
+  `sv_type_identifier_package_name.v`, `t_randomize_within_func.v`, `t_vams_basic.v`). The
+  label is correct — those files genuinely need expansion — but it buries a real stuck point,
+  so the four are routed to `.9` as crafted minimal cases.
+- New adjudication class `divergence:explained_svpp_protected_envelope` (§34.5
+  `key_block`/`data_block`/`digest_block`, tested strongest-first). Book: *Grammar
+  Well-formedness* gains **The adjudication manifest — what is allowed to count as a defect
+  signal**, the first book coverage of the manifest, its expected-verdict taxonomy and the
+  two rules that keep a reclassification from becoming bar-lowering. Zero Rust, EBNF,
+  generator or generated-artifact bytes changed.
+
 ## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0029 — leaf SV-CORPUS-GRAD.3.12: a RECURSION-GUARD rejection was cached in a recursion-BLIND memo, refusing legal parses — corpus 9 694 → 9 712 with ZERO pass→fail
 
 - **The next `.3.x` leaf was cut expecting a missing Annex-A alternative and found an ENGINE

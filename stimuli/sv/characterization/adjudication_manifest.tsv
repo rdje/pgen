@@ -2638,7 +2638,7 @@ ispras-sv-tests	ieee-1800-2012/22/22.06_01.sv	fail	must_accept	divergence:explai
 ispras-sv-tests	ieee-1800-2012/22/22.06_02.sv	fail	must_accept	divergence:explained_svpp_conditional	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/22/22.06_03.sv	fail	must_accept	divergence:explained_svpp_conditional	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/22/22.07_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/22/22.13_01.sv	fail	must_accept	divergence:explained_svpp_conditional	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/22/22.13_01.sv	fail	must_accept	divergence:explained_svpp_macro_use	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_02.sv	fail	must_reject	match	pinned .8b.2: 'reg [63:0] logic;' - 'logic' is reserved both under the `begin_keywords "1800-2005" set (22.14) and under bare sv_2017 lexing; parse level either way
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2837,7 +2837,7 @@ ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	fail	must_accept	divergence:une
 ispras-sv-tests	ieee-1800-2012/33/33.06_01.v	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.06_01_adder.v	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/34/34.03.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/34/34.03.01_02.sv	fail	must_accept	divergence:explained_svpp_macro_use	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/34/34.03.01_02.sv	fail	must_accept	divergence:explained_svpp_protected_envelope	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/35/35.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/35/35.05.04_01.sv	pass	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/35/35.05.06.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -3324,7 +3324,7 @@ iverilog	ivtest/ivltests/br_gh129.v	pass	must_accept	match	ivtest: regress-sv.li
 iverilog	ivtest/ivltests/br_gh13.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh130a.v	pass	must_accept	match	ivtest CE pinned .8b.3: enum value/compatibility semantics (implicit casts to enum, duplicate or X/size-mismatched enum constants, $time as an enum value) - 6.19.x prose value rules; declarations and assignments are ordinary BNF
 iverilog	ivtest/ivltests/br_gh130b.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/br_gh1321.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) br_gh1321.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/br_gh1321.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) br_gh1321.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/br_gh1323_lib.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/br_gh1323_top.v	fail	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
 iverilog	ivtest/ivltests/br_gh1384.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) br_gh1384.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
@@ -3490,7 +3490,7 @@ iverilog	ivtest/ivltests/br_gh72b_fail.v	fail	must_accept	divergence:explained_s
 iverilog	ivtest/ivltests/br_gh732.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh756.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br_gh782a.v	fail	must_accept	divergence:explained_svpp_include	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/br_gh782b.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/br_gh782b.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/br_gh782c.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh782d.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/br_gh782e.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -3878,7 +3878,7 @@ iverilog	ivtest/ivltests/fdisplay_fail_fd.v	pass	out_of_scope_with_cause:v2005_p
 iverilog	ivtest/ivltests/fdisplay_fail_mcd.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/ff_dual_enable.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/fileio.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
-iverilog	ivtest/ivltests/fileline.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/fileline.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/fileline2.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/final.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/final2.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
@@ -5474,7 +5474,7 @@ iverilog	ivtest/ivltests/sv_assign_pattern_op.v	fail	must_accept	divergence:expl
 iverilog	ivtest/ivltests/sv_assign_pattern_part.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_automatic_2state.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sv_automatic_2state.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_bad_member_lval_proc_fail.v	pass	must_accept	match	ivtest CE pinned .8b.3: member select on a type without that member - member resolution semantics; hierarchical/member lvalues are A.8.5 BNF
-iverilog	ivtest/ivltests/sv_block_prefix_label.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_block_prefix_label.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_block_prefix_label.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_block_prefix_label.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_block_prefix_name_diff_fail.v	pass	must_accept	match	ivtest CE pinned .8b.3: statement label combined with a block name - statement ::= [block_identifier :] statement_item and the seq/par block's own [: block_identifier] are independent BNF optionals; the one-or-the-other rule is 9.3.5 prose
 iverilog	ivtest/ivltests/sv_block_prefix_name_same_fail.v	pass	must_accept	match	ivtest CE pinned .8b.3: statement label combined with a block name - statement ::= [block_identifier :] statement_item and the seq/par block's own [: block_identifier] are independent BNF optionals; the one-or-the-other rule is 9.3.5 prose
 iverilog	ivtest/ivltests/sv_byte_array_string1.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_byte_array_string1.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
@@ -5688,7 +5688,7 @@ iverilog	ivtest/ivltests/sv_foreach7.v	pass	must_accept	match	ivtest: regress-sv
 iverilog	ivtest/ivltests/sv_foreach8.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_foreach9.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sv_foreach9.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_foreach_fail1.v	pass	must_accept	match	ivtest CE pinned .8b.3: foreach loop-variable count exceeding the array dimensions - 12.7.3 semantics; foreach is ordinary BNF
-iverilog	ivtest/ivltests/sv_fork_prefix_label.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_fork_prefix_label.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_fork_prefix_label.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_fork_prefix_label.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_fork_prefix_name_diff_fail.v	pass	must_accept	match	ivtest CE pinned .8b.3: statement label combined with a block name - statement ::= [block_identifier :] statement_item and the seq/par block's own [: block_identifier] are independent BNF optionals; the one-or-the-other rule is 9.3.5 prose
 iverilog	ivtest/ivltests/sv_fork_prefix_name_same_fail.v	pass	must_accept	match	ivtest CE pinned .8b.3: statement label combined with a block name - statement ::= [block_identifier :] statement_item and the seq/par block's own [: block_identifier] are independent BNF optionals; the one-or-the-other rule is 9.3.5 prose
 iverilog	ivtest/ivltests/sv_immediate_assert.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
@@ -5905,25 +5905,25 @@ iverilog	ivtest/ivltests/sv_queue_oob_real.v	pass	must_accept	match	ivtest: regr
 iverilog	ivtest/ivltests/sv_queue_oob_string.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_oob_vec2.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_oob_vec4.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/sv_queue_parray.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/sv_queue_parray_bounded.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sv_queue_parray.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sv_queue_parray_bounded.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_parray_fail.v	pass	must_accept	match	ivtest: CE but golden sv_queue_parray_fail.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/sv_queue_product.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_queue_product.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_product_with.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_queue_product_with.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_queue_real.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/sv_queue_real_bounded.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sv_queue_real.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sv_queue_real_bounded.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_real_fail.v	pass	must_accept	match	ivtest: CE but golden sv_queue_real_fail.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/sv_queue_reverse.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_queue_reverse.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_sort.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_queue_sort.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_queue_string.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/sv_queue_string_bounded.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sv_queue_string.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sv_queue_string_bounded.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_string_fail.v	pass	must_accept	match	ivtest: CE but golden sv_queue_string_fail.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/sv_queue_sum.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_queue_sum.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_sum_with.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_queue_sum_with.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_unique.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_queue_unique.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_unique_with.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_queue_unique_with.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_queue_vec.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/sv_queue_vec_bounded.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sv_queue_vec.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sv_queue_vec_bounded.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_vec_fail.v	pass	must_accept	match	ivtest: CE but golden sv_queue_vec_fail.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/sv_root_class.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_root_func.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
@@ -5968,21 +5968,21 @@ iverilog	ivtest/ivltests/sv_type_identifier_assert_item_label.v	pass	must_accept
 iverilog	ivtest/ivltests/sv_type_identifier_assert_label.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sv_type_identifier_assert_label.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_attribute_name.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sv_type_identifier_attribute_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_attribute_target.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_attribute_target.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_block_label_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_block_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_block_prefix_label_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_block_prefix_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_block_label_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_block_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_block_prefix_label_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_block_prefix_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_config_name.v	pass	out_of_scope_with_cause:verilog_ams_lane	deferred:verilog_ams_lane	ivtest: vvp_tests descriptor runs under -gverilog-ams - Verilog-AMS surface, outside the IEEE 1800 scope (VERILOG-AMS tree parked)
 iverilog	ivtest/ivltests/sv_type_identifier_discipline_name.v	fail	out_of_scope_with_cause:verilog_ams_lane	deferred:verilog_ams_lane	ivtest: vvp_tests descriptor runs under -gverilog-ams - Verilog-AMS surface, outside the IEEE 1800 scope (VERILOG-AMS tree parked)
 iverilog	ivtest/ivltests/sv_type_identifier_discipline_nature_ref.v	fail	out_of_scope_with_cause:verilog_ams_lane	deferred:verilog_ams_lane	ivtest: vvp_tests descriptor runs under -gverilog-ams - Verilog-AMS surface, outside the IEEE 1800 scope (VERILOG-AMS tree parked)
 iverilog	ivtest/ivltests/sv_type_identifier_enum_item_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_enum_item_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_event_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_event_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_for_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_for_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_event_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_event_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_for_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_for_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_foreach_array_name.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sv_type_identifier_foreach_array_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_foreach_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_foreach_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_fork_label_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_fork_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_fork_prefix_label_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_fork_prefix_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_foreach_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_foreach_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_fork_label_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_fork_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_fork_prefix_label_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_fork_prefix_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_function_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_function_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_generate_label_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_generate_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_genvar_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_genvar_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_generate_label_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_generate_label_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_genvar_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_genvar_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_modport_name.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sv_type_identifier_modport_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_modport_named_port.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sv_type_identifier_modport_named_port.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_module_name.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) sv_type_identifier_module_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
@@ -5993,8 +5993,8 @@ iverilog	ivtest/ivltests/sv_type_identifier_named_port_connection.v	fail	must_ac
 iverilog	ivtest/ivltests/sv_type_identifier_named_task_argument.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_named_task_argument.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_nature_name.v	fail	out_of_scope_with_cause:verilog_ams_lane	deferred:verilog_ams_lane	ivtest: vvp_tests descriptor runs under -gverilog-ams - Verilog-AMS surface, outside the IEEE 1800 scope (VERILOG-AMS tree parked)
 iverilog	ivtest/ivltests/sv_type_identifier_net_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_net_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_package_item.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_package_item.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/sv_type_identifier_package_name.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vvp_tests descriptor(s) sv_type_identifier_package_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_package_item.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_package_item.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
+iverilog	ivtest/ivltests/sv_type_identifier_package_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_package_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_parameter_decl_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_parameter_decl_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_parameter_port_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_parameter_port_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_type_identifier_parameter_type_decl_name.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_type_identifier_parameter_type_decl_name.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
@@ -11281,7 +11281,7 @@ sv-tests	tests/chapter-5/5.6.3--system-functions.sv	pass	must_accept	match	sv-te
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-celldefine.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug-line.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
-sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-default-nettype.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-define.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-include.sv	pass	must_accept	match	sv-tests: positive test
@@ -12065,7 +12065,7 @@ sv2v	test/core/interface_typeof.sv	pass	must_accept	match	sv2v: conversion-input
 sv2v	test/core/interface_typeof.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/interface_unbound.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/interface_unbound.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/jump.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/jump.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/jump.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/kwargs.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/kwargs.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -13867,7 +13867,7 @@ verilator	test_regress/t/t_dpi_arg_output_unpack.v	fail	must_accept	divergence:e
 verilator	test_regress/t/t_dpi_argtype_bad.v	pass	must_accept	match	verilator: driver t_dpi_argtype_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_dpi_binary.v	pass	must_accept	match	verilator: driver t_dpi_binary.py expects success
 verilator	test_regress/t/t_dpi_class_param.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_class_param.py expects success
-verilator	test_regress/t/t_dpi_context.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_dpi_context.py expects success
+verilator	test_regress/t/t_dpi_context.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_context.py expects success
 verilator	test_regress/t/t_dpi_display.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_display.py expects success
 verilator	test_regress/t/t_dpi_display_bad.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_display_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_dpi_dup_bad.v	pass	must_accept	match	verilator: driver t_dpi_dup_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -13895,8 +13895,8 @@ verilator	test_regress/t/t_dpi_openfirst.v	fail	must_accept	divergence:explained
 verilator	test_regress/t/t_dpi_qw.v	pass	must_accept	match	verilator: driver t_dpi_qw.py expects success
 verilator	test_regress/t/t_dpi_result_type.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_result_type.py expects success
 verilator	test_regress/t/t_dpi_result_type_bad.v	pass	must_accept	match	verilator: driver t_dpi_result_type_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_dpi_shortcircuit.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_dpi_shortcircuit.py expects success
-verilator	test_regress/t/t_dpi_shortcircuit2.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_dpi_shortcircuit2.py expects success
+verilator	test_regress/t/t_dpi_shortcircuit.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_shortcircuit.py expects success
+verilator	test_regress/t/t_dpi_shortcircuit2.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_shortcircuit2.py expects success
 verilator	test_regress/t/t_dpi_string.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_dpi_string.py expects success
 verilator	test_regress/t/t_dpi_sys.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_sys.py expects success
 verilator	test_regress/t/t_dpi_threads.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_threads.py expects success
@@ -14771,8 +14771,8 @@ verilator	test_regress/t/t_lint_pinmissing_bad.v	pass	must_accept	match	verilato
 verilator	test_regress/t/t_lint_pinnotfound.v	pass	must_accept	match	verilator: driver t_lint_pinnotfound.py expects success
 verilator	test_regress/t/t_lint_pinnotfound_bad.v	pass	must_accept	match	verilator: driver t_lint_pinnotfound_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_pkg_colon_bad.v	fail	must_reject	match	verilator: driver t_lint_pkg_colon_bad.py fails=True and golden .out reports a syntax error
-verilator	test_regress/t/t_lint_pragma_protected.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_pragma_protected.py expects success
-verilator	test_regress/t/t_lint_pragma_protected_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_pragma_protected_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_lint_pragma_protected.v	fail	must_accept	divergence:explained_svpp_protected_envelope	verilator: driver t_lint_pragma_protected.py expects success
+verilator	test_regress/t/t_lint_pragma_protected_bad.v	fail	must_accept	divergence:explained_svpp_protected_envelope	verilator: driver t_lint_pragma_protected_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_procassinit_bad.v	pass	must_accept	match	verilator: driver t_lint_procassinit_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_range_negative_bad.v	pass	must_accept	match	verilator: driver t_lint_range_negative_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_realcvt_bad.v	pass	must_accept	match	verilator: driver t_lint_realcvt_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14939,7 +14939,7 @@ verilator	test_regress/t/t_math_swap.v	fail	must_accept	divergence:explained_svp
 verilator	test_regress/t/t_math_synmul.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_synmul.py expects success
 verilator	test_regress/t/t_math_synmul_mul.v	pass	chained_only	deferred:chained_only	verilator: no same-stem driver and never a top_filename - include/companion fragment
 verilator	test_regress/t/t_math_tri.v	pass	must_accept	match	verilator: driver t_math_tri.py expects success
-verilator	test_regress/t/t_math_trig.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_math_trig.py expects success
+verilator	test_regress/t/t_math_trig.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_trig.py expects success
 verilator	test_regress/t/t_math_vgen.v	pass	must_accept	match	verilator: driver t_math_vgen.py expects success
 verilator	test_regress/t/t_math_vliw.v	pass	must_accept	match	verilator: driver t_math_vliw.py expects success
 verilator	test_regress/t/t_math_wallace.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_wallace.py expects success
@@ -15078,7 +15078,7 @@ verilator	test_regress/t/t_opt_lift_expr.v	fail	must_accept	divergence:explained
 verilator	test_regress/t/t_opt_localize_deep.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_opt_localize_deep.py expects success
 verilator	test_regress/t/t_opt_localize_max_size.v	pass	must_accept	match	verilator: driver t_opt_localize_max_size.py expects success
 verilator	test_regress/t/t_opt_merge_cond.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_opt_merge_cond.py expects success
-verilator	test_regress/t/t_opt_merge_cond_blowup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_opt_merge_cond_blowup.py expects success
+verilator	test_regress/t/t_opt_merge_cond_blowup.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_opt_merge_cond_blowup.py expects success
 verilator	test_regress/t/t_opt_merge_cond_bug_3409.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_opt_merge_cond_bug_3409.py expects success
 verilator	test_regress/t/t_opt_merge_cond_motion_branch.v	pass	must_accept	match	verilator: driver t_opt_merge_cond_motion_branch.py expects success
 verilator	test_regress/t/t_opt_merge_cond_no_extend.v	pass	must_accept	match	verilator: driver t_opt_merge_cond_no_extend.py expects success
@@ -15313,7 +15313,7 @@ verilator	test_regress/t/t_pp_recursedef_bad.v	fail	out_of_scope_with_cause	defe
 verilator	test_regress/t/t_pp_resetall_bad.v	fail	out_of_scope_with_cause	deferred:svpp_owned	verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance
 verilator	test_regress/t/t_pp_underline_bad.v	pass	out_of_scope_with_cause	deferred:svpp_owned	verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance
 verilator	test_regress/t/t_premit_rw.v	pass	must_accept	match	verilator: driver t_premit_rw.py expects success
-verilator	test_regress/t/t_preproc.v	fail	must_accept	divergence:explained_svpp_include	verilator: driver t_preproc.py expects success
+verilator	test_regress/t/t_preproc.v	fail	must_accept	divergence:explained_svpp_protected_envelope	verilator: driver t_preproc.py expects success
 verilator	test_regress/t/t_preproc_cmtend_bad.v	pass	out_of_scope_with_cause	deferred:svpp_owned	verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance
 verilator	test_regress/t/t_preproc_debugi.v	pass	out_of_scope_with_cause	deferred:svpp_owned	verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance
 verilator	test_regress/t/t_preproc_def09.v	fail	out_of_scope_with_cause	deferred:svpp_owned	verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance
@@ -15402,13 +15402,13 @@ verilator	test_regress/t/t_property_s_eventually_unsup.v	pass	must_accept	match	
 verilator	test_regress/t/t_property_sexpr.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_sexpr.py expects success
 verilator	test_regress/t/t_property_sexpr2_bad.v	pass	must_accept	match	verilator: driver t_property_sexpr2_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property_sexpr_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_sexpr_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_property_sexpr_cov.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_property_sexpr_cov.py expects success
+verilator	test_regress/t/t_property_sexpr_cov.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_sexpr_cov.py expects success
 verilator	test_regress/t/t_property_sexpr_disable.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_sexpr_disable.py expects success
 verilator	test_regress/t/t_property_sexpr_disable_sampled.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_sexpr_disable_sampled.py expects success
 verilator	test_regress/t/t_property_sexpr_multi.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_sexpr_multi.py expects success
 verilator	test_regress/t/t_property_sexpr_range_delay.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_sexpr_range_delay.py expects success
 verilator	test_regress/t/t_property_sexpr_range_delay_bad.v	pass	must_accept	match	verilator: driver t_property_sexpr_range_delay_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_property_sexpr_unsup.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_property_sexpr_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_property_sexpr_unsup.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_sexpr_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property_until.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_until.py expects success
 verilator	test_regress/t/t_property_until_implication.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_until_implication.py expects success
@@ -15545,7 +15545,7 @@ verilator	test_regress/t/t_randomize_unpacked_wide.v	pass	must_accept	match	veri
 verilator	test_regress/t/t_randomize_with_constraint.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_with_constraint.py expects success
 verilator	test_regress/t/t_randomize_with_idlist_bad.v	pass	must_accept	match	verilator: driver t_randomize_with_idlist_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randomize_with_idlist_method_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_with_idlist_method_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_randomize_within_func.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_within_func.py expects success
+verilator	test_regress/t/t_randomize_within_func.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_within_func.py expects success
 verilator	test_regress/t/t_randsequence.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randsequence.py expects success
 verilator	test_regress/t/t_randsequence_bad.v	pass	must_accept	match	verilator: driver t_randsequence_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randsequence_func.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randsequence_func.py expects success
@@ -15727,7 +15727,7 @@ verilator	test_regress/t/t_std_waiver.v	pass	must_accept	match	verilator: driver
 verilator	test_regress/t/t_std_waiver_no.v	pass	must_accept	match	verilator: driver t_std_waiver_no.py expects success
 verilator	test_regress/t/t_stmt_incr_unsup.v	pass	must_accept	match	verilator: driver t_stmt_incr_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_stop_bad.v	pass	must_accept	match	verilator: driver t_stop_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_stop_winos_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_stop_winos_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_stop_winos_bad.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_stop_winos_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_stream.v	pass	must_accept	match	verilator: driver t_stream.py expects success
 verilator	test_regress/t/t_stream2.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_stream2.py expects success
 verilator	test_regress/t/t_stream3.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_stream3.py expects success
@@ -16056,7 +16056,7 @@ verilator	test_regress/t/t_tri_struct.v	pass	must_accept	match	verilator: driver
 verilator	test_regress/t/t_tri_struct_packed.v	pass	must_accept	match	verilator: driver t_tri_struct_packed.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_tri_top_en_out.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_tri_top_en_out.py expects success
 verilator	test_regress/t/t_tri_top_en_out_bad.v	pass	must_accept	match	verilator: driver t_tri_top_en_out_bad.py expects success
-verilator	test_regress/t/t_tri_unconn.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_tri_unconn.py expects success
+verilator	test_regress/t/t_tri_unconn.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_tri_unconn.py expects success
 verilator	test_regress/t/t_tri_various.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_tri_various.py expects success
 verilator	test_regress/t/t_type.v	pass	must_accept	match	verilator: driver t_type.py expects success
 verilator	test_regress/t/t_type_array.v	pass	must_accept	match	verilator: driver t_type_array.py expects success
@@ -16167,7 +16167,7 @@ verilator	test_regress/t/t_uvm_return_type2.v	pass	must_accept	match	verilator: 
 verilator	test_regress/t/t_uvm_return_type3.v	pass	must_accept	match	verilator: driver t_uvm_return_type3.py expects success
 verilator	test_regress/t/t_uvm_static_func1.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_uvm_static_func1.py expects success
 verilator	test_regress/t/t_uvm_typeof_type.v	pass	must_accept	match	verilator: driver t_uvm_typeof_type.py expects success
-verilator	test_regress/t/t_vams_basic.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_vams_basic.py expects success
+verilator	test_regress/t/t_vams_basic.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_vams_basic.py expects success
 verilator	test_regress/t/t_vams_kwd_bad.v	fail	must_reject	match	verilator: driver t_vams_kwd_bad.py fails=True and golden .out reports a syntax error
 verilator	test_regress/t/t_vams_wreal.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_vams_wreal.py expects success
 verilator	test_regress/t/t_var_assign_landr.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_var_assign_landr.py expects success

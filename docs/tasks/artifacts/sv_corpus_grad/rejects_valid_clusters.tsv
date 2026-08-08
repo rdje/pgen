@@ -99,40 +99,16 @@ ispras-sv-tests	ieee-1800-2012/33/33.04.03_06.sv	337	392	# ( )	instance top.a1 u
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_07.sv	411	466	# ( .	instance top.a1 use #(.WIDTH(48));
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	497	551	# ( .	instance top.t use #(.WIDTH(48));
 ispras-sv-tests	ieee-1800-2012/34/34.03.01_01.sv	140	180	` ID ID	`pragma protect encoding=(enctype="raw")
-iverilog	ivtest/ivltests/br_gh1321.v	0	193	` ID ,	$display("FAILED(%0d). Expected 1, got %b", `__LINE__, a);
 iverilog	ivtest/ivltests/br_gh553.v	37	62	; integer ID	dut inst[4];
-iverilog	ivtest/ivltests/br_gh782b.v	64	63	NUM / *	/* comment */ 1          /* comment */ // comment
 iverilog	ivtest/ivltests/display_bug.v	0	110	] ID ;	word [2] array;      // word[0:1] exposes the bug as well
-iverilog	ivtest/ivltests/fileline.v	123	170	` ID )	$display(`__FILE__);
 iverilog	ivtest/ivltests/module_output_port_sv_var2.v	211	235	ID ; output	output reg a;
 iverilog	ivtest/ivltests/pr3366217d.v	0	465	- NUM ]	enum {ndef[-1]} ndef1;
 iverilog	ivtest/ivltests/pr3515542.v	0	53	NUM ; ID	a = 15'1;
 iverilog	ivtest/ivltests/program5b.v	108	210	ID ( ID	test dut(foo);
 iverilog	ivtest/ivltests/sf1289.v	188	270	; end endmodule	foreach (a[i]) ;
-iverilog	ivtest/ivltests/sv_block_prefix_label.v	52	384	` ID )	`__LINE__);
 iverilog	ivtest/ivltests/sv_class_new_typed_fail4.v	116	207	new ; /	c = T::new; // This should fail, T is not a class
-iverilog	ivtest/ivltests/sv_fork_prefix_label.v	60	560	` ID )	`__LINE__);
 iverilog	ivtest/ivltests/sv_queue3.v	873	1027	} ; if	words = {};
-iverilog	ivtest/ivltests/sv_queue_parray.v	0	946	` ID ,	check_size(0, `__FILE__, `__LINE__);
-iverilog	ivtest/ivltests/sv_queue_parray_bounded.v	0	859	` ID ,	check_size(0, `__FILE__, `__LINE__);
-iverilog	ivtest/ivltests/sv_queue_real.v	0	908	` ID ,	check_size(0, `__FILE__, `__LINE__);
-iverilog	ivtest/ivltests/sv_queue_real_bounded.v	0	819	` ID ,	check_size(0, `__FILE__, `__LINE__);
-iverilog	ivtest/ivltests/sv_queue_string.v	0	924	` ID ,	check_size(0, `__FILE__, `__LINE__);
-iverilog	ivtest/ivltests/sv_queue_string_bounded.v	0	835	` ID ,	check_size(0, `__FILE__, `__LINE__);
-iverilog	ivtest/ivltests/sv_queue_vec.v	0	914	` ID ,	check_size(0, `__FILE__, `__LINE__);
-iverilog	ivtest/ivltests/sv_queue_vec_bounded.v	0	814	` ID ,	check_size(0, `__FILE__, `__LINE__);
 iverilog	ivtest/ivltests/sv_type_identifier_attribute_target.v	207	205	ID ( ID	$attribute(ATTR_TYPE, "test", "true")
-iverilog	ivtest/ivltests/sv_type_identifier_block_label_name.v	81	318	` ID )	$display("FAILED(%0d). block labels did not hide typedefs", `__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_block_prefix_label_name.v	91	333	` ID )	`__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_event_name.v	80	293	` ID )	$display("FAILED(%0d). Event T was not triggered", `__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_for_name.v	87	482	` ID )	$display("FAILED(%0d). for loop variable did not hide typedef", `__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_foreach_name.v	106	433	` ID )	$display("FAILED(%0d). foreach indices did not hide typedefs", `__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_fork_label_name.v	86	321	` ID )	$display("FAILED(%0d). fork label did not hide typedef", `__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_fork_prefix_label_name.v	79	320	` ID )	`__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_generate_label_name.v	89	310	` ID )	$display("FAILED(%0d). generate labels did not hide typedefs", `__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_genvar_name.v	83	406	` ID )	$display("FAILED(%0d). genvar name did not hide typedef", `__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_package_item.v	243	477	` ID )	$display("FAILED(%0d). Imported type mismatch", `__LINE__);
-iverilog	ivtest/ivltests/sv_type_identifier_package_name.v	171	247	ID != =	if (T::VALUE !== 23) begin
 iverilog	ivtest/ivltests/sv_type_identifier_udp_ansi_name.v	187	245	NUM : NUM	00 : 0;
 iverilog	ivtest/ivltests/sv_type_identifier_udp_name.v	183	267	NUM : ?	00 : ? : 0;
 iverilog	ivtest/ivltests/sv_void_cast_fail3.v	62	103	+ NUM )	void'(1+2);
@@ -146,7 +122,6 @@ sv-tests	tests/chapter-18/18.5.4--distribution_0.sv	314	367	: = NUM	constraint c
 sv-tests	tests/chapter-18/18.5.4--distribution_2.sv	419	473	: = NUM	constraint c { b dist {3 := 0, 10 := 5}; }
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	387	413	; / /	reg logic; // OK: "logic" is not a keyword in 1364-2001
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug-line.sv	321	341	` ID NUM	`line 1 "5.6.4--compiler-directives-debug-line.sv" 1
-sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug.sv	327	382	` ID ,	initial $display("At %s @ %d\n", `__FILE__, `__LINE__);
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-pragma.sv	317	329	` ID ID	`pragma protect
 sv-tests	tests/chapter-5/5.9-string-broken-line.sv	329	373	" ID \	$display("broken \
 sv-tests	tests/chapter-6/6.23--type_op_compare.sv	316	412	) type (	case (type(T))
@@ -170,7 +145,6 @@ sv2v	test/core/inside_expr.sv	0	872	: ID localparam	begin : patterns
 sv2v	test/core/interface_array.sv	2548	2985	. ID )	ModuleASet #(1, 1, 0) xs(intfX[2:0].ModportB);
 sv2v	test/core/interface_generate.sv	0	173	( ID [	modport client_mp (output .client_req(req[i]));
 sv2v	test/core/interface_input_type.sv	92	118	ID , input	input intf i,
-sv2v	test/core/jump.sv	0	110	` ID )	$display("UNREACHABLE ", `__LINE__);
 sv2v	test/core/logic_tf.sv	0	308	: ID logic	begin : A
 sv2v	test/core/multipack_struct_cast.sv	0	56	] [ NUM	logic [2][3] x;
 sv2v	test/core/nest_order.sv	18	34	' ( ID	localparam Y = 5'(Z);
@@ -290,8 +264,6 @@ verilator	test_regress/t/t_lint_implicit_def_bad.v	203	340	` ID ID	`default_nett
 verilator	test_regress/t/t_lint_implicit_func_bad.v	203	263	` ID wire	`default_nettype wire
 verilator	test_regress/t/t_lint_implicit_type_bad.v	237	320	` ID wire	`default_nettype wire
 verilator	test_regress/t/t_lint_notredop_bad.v	196	278	| ID ;	assign y[0] = !|v;
-verilator	test_regress/t/t_lint_pragma_protected.v	255	286	` ID ID	`pragma protect begin_protected
-verilator	test_regress/t/t_lint_pragma_protected_bad.v	203	278	` ID ID	`pragma protect begin_protected
 verilator	test_regress/t/t_lint_vcmarker_bad.v	203	212	<< << <<	<<<<<<< HEAD  // Intentional test: This conflict marker should be here
 verilator	test_regress/t/t_lparam_assign_iface_typedef2.v	333	407	. ID ;	localparam type p0_t = if0.rq_t;
 verilator	test_regress/t/t_lparam_assign_iface_typedef4.v	333	407	. ID [	localparam type p0_t = if0.rq_t[1:0];
@@ -304,7 +276,6 @@ verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mpkg5.v	574	754	. 
 verilator	test_regress/t/t_math_pow6.v	203	556	= NUM '	output [3:0] i65 = 65'd3 ** a; // IWI
 verilator	test_regress/t/t_mem_multi_ref_bad.v	203	513	[ NUM ]	dim2[0+:1][1] = 0;  // Bad: Range on non-bits
 verilator	test_regress/t/t_mem_slice_bad.v	203	979	= ( ID	assign active_command3[1:0][2:0][3:0] = (use_AnB) ?  command_A3[1:0][2:0][3:0] : command_B3[1:0][1:0][3:0];
-verilator	test_regress/t/t_opt_merge_cond_blowup.v	199	1301	` ID ,	$write("%%Error: %s:%0d: cyc=%0d i=%0d a[i]='h%x b[i]='h%x\n", `__FILE__, `__LINE__, cyc,
 verilator	test_regress/t/t_param.v	203	337	) ; integer	mreal #1.2 mr ();
 verilator	test_regress/t/t_param_implicit_bad.v	283	297	[ NUM :	module sub1 #([7:0] PAR1 = 1);  // <--- Error: requires 'parameter'
 verilator	test_regress/t/t_param_no_parentheses.v	299	379	) ; ID	m1 #PAR m1();
@@ -340,7 +311,6 @@ verilator	test_regress/t/t_randomize_method_constraints.v	288	380	|| ID inside	c
 verilator	test_regress/t/t_randomize_rand_mode_bad.v	354	460	; ID (	p.m_pack[0].rand_mode(0);
 verilator	test_regress/t/t_randomize_rand_mode_unsup.v	304	391	; ID .	p.m_dyn_arr[0].rand_mode(0);
 verilator	test_regress/t/t_randomize_with_idlist_method_bad.v	200	322	{ ID >	total = q.sum() with (item) { item > 0; };
-verilator	test_regress/t/t_randomize_within_func.v	226	361	; ID (	a = randomize(m_2) with {m_2 > 2 && m_2 < 5;};
 verilator	test_regress/t/t_recursive_typedef_bad.v	383	422	, parameter type	parameter type A = B,
 verilator	test_regress/t/t_resize_lvalue.v	1213	1721	; if (	m_env.r_reg_model.p_s[p].n_doorbell.read(status, rdata, 0);
 verilator	test_regress/t/t_setuphold.v	197	1237	: NUM :	$setuphold (posedge clk, negedge d, 0:0:0, 0:0:0);
@@ -349,13 +319,11 @@ verilator	test_regress/t/t_split_var_3_wreal.v	237	370	; ID ID	wreal vout[0:1]  
 verilator	test_regress/t/t_std_randomize_static_member.v	563	1019	== NUM )	} == 0)
 verilator	test_regress/t/t_std_randomize_unsup_unq_arr.v	197	287	) || ID	if (!bit'(std::randomize(x) with {unique {x};}) || x[0] == x[1]) $stop;
 verilator	test_regress/t/t_std_randomize_with.v	381	646	!= NUM )	} != 1)
-verilator	test_regress/t/t_stop_winos_bad.v	260	300	` ID ;	localparam string FILENAME = `__FILE__;
 verilator	test_regress/t/t_string_sel.v	380	651	[ NUM ]	if (get_str()[1] != "a") $stop;
 verilator	test_regress/t/t_struct_type_bad.v	203	266	ID ; /	i badi;  // Bad
 verilator	test_regress/t/t_timescale_udp.v	510	605	? ; ID	?     :  ?;
 verilator	test_regress/t/t_tri_clocking.v	203	245	tri0 ID ;	tri0 cyc;
 verilator	test_regress/t/t_tri_gen.v	653	676	tri1 ID )	inout tri1 z
-verilator	test_regress/t/t_tri_unconn.v	203	453	` ID )	t_tri0 tri0a (.line(`__LINE__), .expval(1'b0)); // Pin missing
 verilator	test_regress/t/t_type_compare.v	266	830	== type (	if (type(real) == type(logic[12:0])) $stop;
 verilator	test_regress/t/t_type_compare_bad.v	203	325	) NUM :	case (type(real))
 verilator	test_regress/t/t_type_expression_compare.v	217	338	!= type (	if (type(value1) != type(value2)) $stop;
@@ -370,7 +338,6 @@ verilator	test_regress/t/t_udp_sequential.v	200	400	NUM ) NUM	(10) 1 : ? : 1 ;
 verilator	test_regress/t/t_udp_sequential_x.v	757	827	NUM ) :	(01) : ? : 0;
 verilator	test_regress/t/t_udp_tableeof_bad.v	203	237	tri ID ;	tri  a_bad;
 verilator	test_regress/t/t_union_soft.v	203	226	{ bit [	union soft {
-verilator	test_regress/t/t_vams_basic.v	231	483	; assign ID	wreal wr;
 verilator	test_regress/t/t_var_dotted_dup_bad.v	203	248	ID ( .	eh2_ram dccm_bank (.*);
 verilator	test_regress/t/t_var_dup_bad.v	728	794	; endmodule module	output bad_reout_port;
 verilator	test_regress/t/t_var_ref_static.v	277	357	ID ) ;	function void crs(const ref static i);

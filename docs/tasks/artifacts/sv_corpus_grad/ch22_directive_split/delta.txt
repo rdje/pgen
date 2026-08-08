@@ -1,0 +1,92 @@
+===== lane sv_2017: rows before=16336 after=16336 keys_equal=True
+rows whose ADJUDICATION changed: 42
+rows whose OTHER columns changed: 0
+Counter({('divergence:unexplained_rejects_valid', 'divergence:explained_svpp_macro_use'): 31, ('divergence:explained_svpp_conditional', 'divergence:explained_svpp_macro_use'): 7, ('divergence:unexplained_rejects_valid', 'divergence:explained_svpp_protected_envelope'): 2, ('divergence:explained_svpp_macro_use', 'divergence:explained_svpp_protected_envelope'): 1, ('divergence:explained_svpp_include', 'divergence:explained_svpp_protected_envelope'): 1})
+   ispras-sv-tests  ieee-1800-2012/22/22.13_01.sv                                            divergence:explained_svpp_conditional -> divergence:explained_svpp_macro_use
+   ispras-sv-tests  ieee-1800-2012/34/34.03.01_02.sv                                         divergence:explained_svpp_macro_use -> divergence:explained_svpp_protected_envelope
+   iverilog         ivtest/ivltests/br_gh1321.v                                              divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/br_gh782b.v                                              divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/fileline.v                                               divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_block_prefix_label.v                                  divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_fork_prefix_label.v                                   divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_queue_parray.v                                        divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_queue_parray_bounded.v                                divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_queue_real.v                                          divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_queue_real_bounded.v                                  divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_queue_string.v                                        divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_queue_string_bounded.v                                divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_queue_vec.v                                           divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_queue_vec_bounded.v                                   divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_block_label_name.v                    divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_block_prefix_label_name.v             divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_event_name.v                          divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_for_name.v                            divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_foreach_name.v                        divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_fork_label_name.v                     divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_fork_prefix_label_name.v              divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_generate_label_name.v                 divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_genvar_name.v                         divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_package_item.v                        divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   iverilog         ivtest/ivltests/sv_type_identifier_package_name.v                        divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   sv-tests         tests/chapter-5/5.6.4--compiler-directives-debug.sv                      divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   sv2v             test/core/jump.sv                                                        divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_dpi_context.v                                           divergence:explained_svpp_conditional -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_dpi_shortcircuit.v                                      divergence:explained_svpp_conditional -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_dpi_shortcircuit2.v                                     divergence:explained_svpp_conditional -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_lint_pragma_protected.v                                 divergence:unexplained_rejects_valid -> divergence:explained_svpp_protected_envelope
+   verilator        test_regress/t/t_lint_pragma_protected_bad.v                             divergence:unexplained_rejects_valid -> divergence:explained_svpp_protected_envelope
+   verilator        test_regress/t/t_math_trig.v                                             divergence:explained_svpp_conditional -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_opt_merge_cond_blowup.v                                 divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_preproc.v                                               divergence:explained_svpp_include -> divergence:explained_svpp_protected_envelope
+   verilator        test_regress/t/t_property_sexpr_cov.v                                    divergence:explained_svpp_conditional -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_property_sexpr_unsup.v                                  divergence:explained_svpp_conditional -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_randomize_within_func.v                                 divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_stop_winos_bad.v                                        divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_tri_unconn.v                                            divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+   verilator        test_regress/t/t_vams_basic.v                                            divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+===== lane v2005: rows before=2459 after=2459 keys_equal=True
+rows whose ADJUDICATION changed: 1
+rows whose OTHER columns changed: 0
+Counter({('divergence:unexplained_rejects_valid', 'divergence:explained_svpp_macro_use'): 1})
+   sv2v             test/lex/line.v                                                          divergence:unexplained_rejects_valid -> divergence:explained_svpp_macro_use
+
+===== the 33 rows leaving `unexplained` - stuck point of each (from the .3.12 cluster map)
+  AT-DEP  iverilog         ivtest/ivltests/br_gh1321.v                                        sig=` ID ,       | $display("FAILED(%0d). Expected 1, got %b", `__LINE__, a);
+  ELSEWHERE iverilog         ivtest/ivltests/br_gh782b.v                                        sig=NUM / *      | /* comment */ 1          /* comment */ // comment
+  AT-DEP  iverilog         ivtest/ivltests/fileline.v                                         sig=` ID )       | $display(`__FILE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_block_prefix_label.v                            sig=` ID )       | `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_fork_prefix_label.v                             sig=` ID )       | `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_queue_parray.v                                  sig=` ID ,       | check_size(0, `__FILE__, `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_queue_parray_bounded.v                          sig=` ID ,       | check_size(0, `__FILE__, `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_queue_real.v                                    sig=` ID ,       | check_size(0, `__FILE__, `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_queue_real_bounded.v                            sig=` ID ,       | check_size(0, `__FILE__, `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_queue_string.v                                  sig=` ID ,       | check_size(0, `__FILE__, `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_queue_string_bounded.v                          sig=` ID ,       | check_size(0, `__FILE__, `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_queue_vec.v                                     sig=` ID ,       | check_size(0, `__FILE__, `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_queue_vec_bounded.v                             sig=` ID ,       | check_size(0, `__FILE__, `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_block_label_name.v              sig=` ID )       | $display("FAILED(%0d). block labels did not hide typedefs", `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_block_prefix_label_name.v       sig=` ID )       | `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_event_name.v                    sig=` ID )       | $display("FAILED(%0d). Event T was not triggered", `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_for_name.v                      sig=` ID )       | $display("FAILED(%0d). for loop variable did not hide typedef", `__LINE__)
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_foreach_name.v                  sig=` ID )       | $display("FAILED(%0d). foreach indices did not hide typedefs", `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_fork_label_name.v               sig=` ID )       | $display("FAILED(%0d). fork label did not hide typedef", `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_fork_prefix_label_name.v        sig=` ID )       | `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_generate_label_name.v           sig=` ID )       | $display("FAILED(%0d). generate labels did not hide typedefs", `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_genvar_name.v                   sig=` ID )       | $display("FAILED(%0d). genvar name did not hide typedef", `__LINE__);
+  AT-DEP  iverilog         ivtest/ivltests/sv_type_identifier_package_item.v                  sig=` ID )       | $display("FAILED(%0d). Imported type mismatch", `__LINE__);
+  ELSEWHERE iverilog         ivtest/ivltests/sv_type_identifier_package_name.v                  sig=ID != =      | if (T::VALUE !== 23) begin
+  AT-DEP  sv-tests         tests/chapter-5/5.6.4--compiler-directives-debug.sv                sig=` ID ,       | initial $display("At %s @ %d\n", `__FILE__, `__LINE__);
+  AT-DEP  sv2v             test/core/jump.sv                                                  sig=` ID )       | $display("UNREACHABLE ", `__LINE__);
+  AT-DEP  verilator        test_regress/t/t_lint_pragma_protected.v                           sig=` ID ID      | `pragma protect begin_protected
+  AT-DEP  verilator        test_regress/t/t_lint_pragma_protected_bad.v                       sig=` ID ID      | `pragma protect begin_protected
+  AT-DEP  verilator        test_regress/t/t_opt_merge_cond_blowup.v                           sig=` ID ,       | $write("%%Error: %s:%0d: cyc=%0d i=%0d a[i]='h%x b[i]='h%x\n", `__FILE__, 
+  ELSEWHERE verilator        test_regress/t/t_randomize_within_func.v                           sig=; ID (       | a = randomize(m_2) with {m_2 > 2 && m_2 < 5;};
+  AT-DEP  verilator        test_regress/t/t_stop_winos_bad.v                                  sig=` ID ;       | localparam string FILENAME = `__FILE__;
+  AT-DEP  verilator        test_regress/t/t_tri_unconn.v                                      sig=` ID )       | t_tri0 tri0a (.line(`__LINE__), .expval(1'b0)); // Pin missing
+  ELSEWHERE verilator        test_regress/t/t_vams_basic.v                                      sig=; assign ID  | wreal wr;
+
+===== 4 row(s) whose STUCK POINT IS ELSEWHERE - the reclassification hides an independent stuck point; recorded, not discarded:
+  iverilog         ivtest/ivltests/br_gh782b.v                                        sig=NUM / *      | /* comment */ 1          /* comment */ // comment
+  iverilog         ivtest/ivltests/sv_type_identifier_package_name.v                  sig=ID != =      | if (T::VALUE !== 23) begin
+  verilator        test_regress/t/t_randomize_within_func.v                           sig=; ID (       | a = randomize(m_2) with {m_2 > 2 && m_2 < 5;};
+  verilator        test_regress/t/t_vams_basic.v                                      sig=; assign ID  | wreal wr;

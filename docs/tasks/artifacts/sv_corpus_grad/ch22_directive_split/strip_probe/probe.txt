@@ -1,0 +1,10 @@
+PASS   `default_nettype  verilator        test_regress/t/t_lint_implicit_def_bad.v  
+PASS   `default_nettype  verilator        test_regress/t/t_lint_implicit_func_bad.v  
+PASS   `default_nettype  verilator        test_regress/t/t_lint_implicit_type_bad.v  
+REJECT `pragma           verilator        test_regress/t/t_lint_pragma_protected.v   did not consume full input at position 255 [furthest_position=429, +174 bytes d
+REJECT `pragma           verilator        test_regress/t/t_lint_pragma_protected_bad.v   did not consume full input at position 203 [furthest_position=695, +492 bytes d
+PASS   `pragma           sv-tests         tests/chapter-5/5.6.4--compiler-directives-pragma.sv  
+PASS   `pragma           ispras-sv-tests  ieee-1800-2012/34/34.03.01_01.sv  
+PASS   `line             sv-tests         tests/chapter-5/5.6.4--compiler-directives-debug-line.sv  
+PASS   `undef            sv-tests         tests/generic/class/class_test_48.sv  
+PASS   `timescale        sv2v             test/core/time.sv  

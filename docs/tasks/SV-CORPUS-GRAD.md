@@ -2582,9 +2582,12 @@ artifact.
     `KNOWLEDGE_MAP` + the new card; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`;
     `docs/TASK_TREE.md`; `.11c` opened for the routed finding.
 
-#### `.3.13` — the ch22 "compiler directives" family is an ADJUDICATOR defect, not a parser one: `__FILE__`/`__LINE__` are predefined text MACROS sitting in the known-DIRECTIVES allowlist (read-only diagnosis banked; fix leaf not yet cut)
+#### `.3.13` — the ch22 "compiler directives" family is an ADJUDICATOR defect, not a parser one: `__FILE__`/`__LINE__` are predefined text MACROS sitting in the known-DIRECTIVES allowlist (⭐ and the family took THREE verdicts: 27 macro rows corrected, 8 routed to `.3.14` as a real grammar gap, 2 found to be §34 protected envelopes)
 
-- **Status: `todo`** — diagnosis complete and tool-pinned (session #215, 2026-08-08),
+- **Status: `done`** (2026-08-08, session #216 — see the EXECUTION block below; the
+  diagnosis banked below is session #215's and is preserved verbatim, including the
+  **34** it recorded, which the execution re-measured to **37**).
+- Diagnosis complete and tool-pinned (session #215, 2026-08-08),
   cut from the post-`.3.12` **372-row** map where this is the largest NAMED family
   (**34 rows**: iverilog 22 / verilator 7 / sv-tests 3 / ispras 1 / sv2v 1; clusters
   `` ` ID ) `` 15, `` ` ID , `` 11, `` ` ID ID `` 6).
@@ -2626,6 +2629,131 @@ artifact.
   fix the allowlist for the macro subset (spec-derived, one constant) → measure the
   reclassification separately from any grammar work → re-baseline with the split
   stated in both directions.
+
+##### `.3.13` EXECUTION — `done` (2026-08-08, session #216, `PGEN-SV-CORPUS-GRAD-0031`)
+
+Full record + every measurement:
+`docs/tasks/artifacts/sv_corpus_grad/ch22_directive_split/README.md`.
+
+- ⭐ **The family took THREE verdicts, not two — the "do not reclassify wholesale"
+  warning was right and then some.** Split by directive name over the re-measured
+  **37** backtick-stuck rows (the banked 34 summed four of the six clusters; the
+  correction is recorded, not absorbed):
+  - **27 rows = §22.13 predefined text MACROS** (`` `__LINE__ `` 15, `` `__FILE__ ``
+    12) — the adjudicator hole. **Fixed here.**
+  - **8 rows = IN-SCOPE COMPILER DIRECTIVES** (`` `default_nettype `` 3,
+    `` `pragma `` 2, `` `line `` 1, `` `undef `` 1, `` `timescale `` 1) — a REAL
+    grammar gap, left as defect signal and **routed to `.3.14`**.
+  - **2 rows = §34 PROTECTED ENVELOPES** — a third class nobody predicted, found by
+    measurement rather than by reading.
+- ⛔ **The trap was avoided by MEASURING the "is this a directive gap?" question
+  instead of adjudicating it from the file text.** `strip_probe/` blanks every
+  backtick-led line (exactly the text a `compiler_directive` alternative swallows)
+  and re-parses: **8 of 10** then PASS ⇒ bounded real gap; **2 still REJECT**, both
+  stopping at their base64 `key_block` payload, not at a directive. Had those 2 been
+  reclassified with the other 8 the bar would have absorbed a §34 dependency as a
+  grammar defect — or, with a blanket `` `pragma protect `` rule, 2 genuine defect
+  rows would have been silently explained away (ispras `34.03.01_01.sv` is
+  `enctype="raw"` — plain text — and correctly stays in the gap half).
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `parseability_probe --parse systemverilog
+    …/repro/C_predefined_macro.sv --profile sv_2017` → `Error: parse_full rejected …
+    [furthest_position=27]` on `initial $display(`__FILE__);`, while the manifest row
+    for `iverilog/ivtest/ivltests/fileline.v` read
+    `must_accept / divergence:unexplained_rejects_valid` — i.e. counted against the
+    graduation bar as a parser defect.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — the family is TWO defects, and the toolbox is what
+    separated them. **Half A (this leaf's):** WHY —
+    `stimuli/sv/adjudicate_external_corpus.py` `KNOWN_DIRECTIVES` held
+    `"__FILE__", "__LINE__"`, so `preproc_dependency()` — which returns `macro_use` only
+    for `` ` ``-names *outside* that set — reported NO dependency for a file whose sole
+    dependency is a §22.13 macro, and the row fell through to `unexplained`. WHERE — that
+    constant, consumed by the `TICK_RE` walk in `preproc_dependency()`; the LRM separates
+    exactly what it conflated, §22.13 verbatim: *"`__FILE__ expands to the name of the
+    current input file, in the form of a string literal"*
+    (`docs/systemverilog/2017/md/section-22-compiler-directives.md:823`). Evidence the
+    mechanism is otherwise sound rather than missing: 1 074 `explained_svpp_macro_use`
+    rows already existed. **Half B (routed to `.3.14`):** the discriminator is PLACEMENT,
+    proven with two probe runs on the same directive text —
+    `parseability_probe --parse-dump-ast-pretty systemverilog …/repro/A_directive_top_level.sv`
+    ACCEPTS and its AST carries `{"kind":"compiler_directive"}`, while the identical
+    directive one line lower (`…/repro/B_directive_in_scope.sv`, inside the module)
+    rejects with `furthest_position=9` (`D_timescale_in_scope.sv` 9,
+    `E_undef_in_class.sv` 8). Grammar text does not change with placement, so the WHERE is
+    the reachability of the rule, not its body: `grammars/systemverilog.ebnf:257` defines
+    `compiler_directive` and `:241` offers it as an alternative of `source_text_item` only.
+  - [x] **FIX** — declarative tier, two spec-derived edits in one script:
+    (1) `__FILE__`/`__LINE__` removed from `KNOWN_DIRECTIVES` (§22.13); (2) a new
+    strongest-first `protected_envelope` dependency keyed on §34.5's
+    `key_block`/`data_block`/`digest_block` pragma expressions, yielding
+    `divergence:explained_svpp_protected_envelope`. No parser, grammar, generator or
+    generated artifact touched.
+  - [x] **ADDRESSED (verified)** — ground-truth control FIRST: the pre-edit rebuild
+    reproduced the tracked manifest **byte-identically** (`cmp`), so every moved row is
+    attributable to the edit. After: `sv_2017` unexplained **393 → 360** (rejects-valid
+    372 → 339, accepts-invalid 21 unchanged), explained 1 430 → 1 463, **match and
+    deferred unchanged**; `verilog_2005` unexplained **76 → 75**. 42 rows changed class,
+    all enumerated in `delta.txt`. Re-cut cluster map: 339 rows / 200 signatures, and
+    the backtick population is now **exactly the 8 routed rows** — the split is visible
+    in the worklist itself.
+  - [x] **NO REGRESSION** — manifest deterministic (`cmp` ×2 byte-identical, both
+    lanes); `bash scripts/check_doctrines.sh` green; no parser surface exists to
+    regress (zero Rust/EBNF/generated bytes changed, `git diff --stat` confirms), so
+    the cert/AST/corpus batteries are inert by construction rather than by assertion.
+  - [x] **LOCKSTEP** — book (*Grammar Well-formedness* → the adjudication-manifest
+    section, new), `CHANGES.md`, `MEMORY.md`, `docs/TASK_TREE.md`, the tracked
+    manifests/summaries, the re-cut cluster artifacts, and `.3.14` cut.
+- ⚠️ **THE HONEST COST, stated because an explained label is not a clean bill of
+  health.** Of the 33 rows that left `unexplained`, **29 were stuck exactly at the
+  macro/envelope token**; the other **4** use `` `__FILE__ ``/`` `__LINE__ ``
+  elsewhere in the file and were stuck at an unrelated construct
+  (`br_gh782b.v` comment/number · `sv_type_identifier_package_name.v` `T::VALUE !==` ·
+  `t_randomize_within_func.v` `randomize(…) with {…}` · `t_vams_basic.v` `wreal`).
+  The label is correct — those files genuinely need expansion — but it hides a real
+  stuck point, so the four are ROUTED to `.9` as **crafted minimal cases** (the
+  construct is the unit, not the vendored file), never dropped.
+
+#### `.3.14` — in-scope compiler directives REJECT: `compiler_directive` is an alternative of `source_text_item` and of nothing else (IEEE 1800-2017 clause 22 — the F5 family's parser half, routed by `.3.13`)
+
+- **Status: `todo`** — cut 2026-08-08 (session #216) from `.3.13`'s split, with the
+  root cause already tool-pinned and the fix scope already measured. **8 rows**:
+  verilator `t_lint_implicit_{def,func,type}_bad.v` (`` `default_nettype ``),
+  sv-tests `5.6.4--compiler-directives-pragma.sv` + ispras
+  `ieee-1800-2012/34/34.03.01_01.sv` (`` `pragma ``), sv-tests
+  `5.6.4--compiler-directives-debug-line.sv` (`` `line ``), sv-tests
+  `class_test_48.sv` (`` `undef ``), sv2v `test/core/time.sv` (`` `timescale ``).
+- **ROOT CAUSE (WHY + WHERE), already measured — do not re-derive it.** The
+  discriminator is placement, not spelling: `` `default_nettype none `` **before**
+  `module m;` PASSES and its AST carries `{"kind":"compiler_directive"}`; the *same
+  text* inside the module REJECTS at `furthest_position=9`
+  (`artifacts/sv_corpus_grad/ch22_directive_split/repro/`). WHERE:
+  `grammars/systemverilog.ebnf:257` defines `compiler_directive := trivia
+  /`[^\r\n]*/` and `:241` offers it as an alternative of **`source_text_item` only**;
+  no in-scope item list can reach it, and `:229` carries the same alternative
+  commented out in `parseable_source_item`.
+- **SCOPE IS MEASURED, not estimated:** blanking every backtick-led line makes **8 of
+  the 8** parse (`strip_probe/probe.txt`) ⇒ directive tolerance at the in-scope item
+  lists is *sufficient* for the whole routed population, and nothing else is needed.
+- ⛔ **THE ADJUDICATION QUESTION THIS LEAF MUST SETTLE FIRST, because it decides
+  whether the fix is legal at all.** Clause 22's syntax boxes are each marked *"not in
+  Annex A"* — directives are not part of the parser's BNF surface — yet §22.8 says
+  `` `default_nettype `` *"can be used only outside design elements"* and §22.3 makes
+  an in-design-element `` `resetall `` *"illegal"*. So there are two coherent readings,
+  and the repo has already banked one: the `.8c.2` pin for ivtest `no_timescale_in_module`
+  rules an in-module-body `` `timescale `` **must_accept** — *"directive placement is
+  unrestricted … the parser must tolerate it"* — and the `.8b.2` pin for ispras
+  `22.14.01_04.sv` reasons *"under the directive-aware reading (the F5
+  in-scope-directives family)"*. ⇒ the standing law is TOLERATE, and a placement
+  "shall" in a not-in-Annex-A clause is preprocessor-stage, exactly as the
+  `svpp_owned_v2005` pins already treat directive-grammar and directive-value errors.
+  Confirm that reading holds against `feedback_sv_strict_lrm_compliance_default`
+  (over-acceptance is a defect) **before** widening acceptance, and record the ruling —
+  it governs every future directive row.
+- **Sequencing:** confirm the adjudication ruling above → decide the fix tier
+  (declarative reuse of the existing `compiler_directive` rule at the in-scope item
+  lists vs. a narrower carrier; ⛔ prove no existing surface already covers it per
+  `DESIGN-PRIOR-ART`) → measure the profile-byte-invariance of the SV ASTs → the full
+  heavy battery per the tree ground rules → re-baseline the corpus.
 
 ### `.4` — Full-design corpora chaining
 

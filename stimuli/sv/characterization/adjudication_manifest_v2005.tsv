@@ -2410,7 +2410,7 @@ sv2v	test/core/wire_reg.v	pass	must_accept	match	sv2v: committed conversion GOLD
 sv2v	test/define/main.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/lex/begin_keywords.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/lex/block_comment.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
-sv2v	test/lex/line.v	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
+sv2v	test/lex/line.v	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/lex/macro.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/lex/macro_arg_comment.v	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/lex/macro_arg_invoke.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)

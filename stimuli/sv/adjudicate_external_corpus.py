@@ -31,8 +31,12 @@ Adjudication classes:
   match                                  observed == expected
   divergence:unexplained_rejects_valid   expected accept, parser rejected  <- defect signal
   divergence:unexplained_accepts_invalid expected reject, parser accepted  <- defect signal
+  divergence:explained_svpp_protected_envelope
+                                         ... file carries a §34 protected envelope
+                                             whose key/data block is encoded text
   divergence:explained_svpp_include      expected accept, rejected, file needs `include
-  divergence:explained_svpp_macro_use    ... file expands non-standard macros
+  divergence:explained_svpp_macro_use    ... file expands macros (user-defined, or the
+                                             §22.13 predefined `__FILE__/`__LINE__)
   divergence:explained_svpp_conditional  ... file relies on `ifdef conditionals
   divergence:explained_timeout           the tracked pathological-input population
   deferred:<cause>                       chained_only / out_of_scope rows (no verdict here)
@@ -98,18 +102,41 @@ EXTRA_PINNED = {
 
 VERIBLE_SYNTAX_MODE_RE = re.compile(r"//\s*verilog_syntax\s*:")
 
-# Standard preprocessor/compiler directives that are NOT user-macro expansion.
+# Standard preprocessor/compiler DIRECTIVES that are NOT text expansion: each one
+# steers the compilation (IEEE 1800-2017 clause 22) and leaves the surrounding
+# source text parseable exactly as written.
+#
+# ⛔ `__FILE__ / `__LINE__ ARE NOT IN THIS SET, and their removal is leaf .3.13's
+# whole correction. Clause 22 separates two things this allowlist used to conflate:
+# a compiler directive steers the compiler, whereas §22.13 defines `__FILE__ and
+# `__LINE__ as predefined text MACROS that EXPAND - "`__FILE__ expands to the name
+# of the current input file, in the form of a string literal" / "`__LINE__ expands
+# to the current input line number, in the form of a simple decimal number"
+# (verbatim). The expression around such a name is not parseable until expansion,
+# so a file using one carries a genuine preprocessing dependency exactly like a
+# user macro - which is what preproc_dependency() must report.
 KNOWN_DIRECTIVES = {
     "define", "include", "ifdef", "ifndef", "else", "elsif", "endif", "undef",
     "undefineall", "timescale", "default_nettype", "celldefine", "endcelldefine",
     "resetall", "line", "pragma", "begin_keywords", "end_keywords",
-    "unconnected_drive", "nounconnected_drive", "__FILE__", "__LINE__",
+    "unconnected_drive", "nounconnected_drive",
 }
 
 META_RE = re.compile(r"^:([a-z_]+):\s*(.*)$")
 TICK_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_$]*)")
 INCLUDE_RE = re.compile(r"^\s*`include", re.MULTILINE)
 COND_RE = re.compile(r"^\s*`(ifdef|ifndef|elsif)\b", re.MULTILINE)
+# IEEE 1800-2017 §34.5: "The data_block and key_block pragma expressions introduce
+# the encrypted data or keys" - the lines that FOLLOW such a pragma inside a
+# `begin_protected`-`end_protected` envelope are encoded bytes, not source text, and
+# §34.3 has the decrypting tool replace "each decryption envelope with the decrypted
+# source text from the data_block" before compilation. So a file carrying one is
+# opaque to a parser until that stage runs - a preprocessing dependency of the same
+# kind as `include, and strictly stronger (it hides arbitrary text, including the
+# other dependency markers), which is why preproc_dependency() tests it first.
+# `digest_block joins them: §34.5 encodes it identically.
+PROTECTED_ENVELOPE_RE = re.compile(
+    r"`pragma\s+protect\b[^\r\n]*\b(?:key_block|data_block|digest_block)\b")
 FAILS_TRUE_RE = re.compile(r"fails\s*=\s*(True|test\.vlt_all)\b")
 TOP_FILENAME_RE = re.compile(r"top_filename\s*=\s*[\"']([^\"']+)[\"']")
 SYNTAX_ERR_RE = re.compile(r"syntax error", re.IGNORECASE)
@@ -144,6 +171,8 @@ def strip_comments_and_strings(text: str) -> str:
 def preproc_dependency(raw_text: str):
     """Return the strongest svpp dependency flag for a file, or ''."""
     text = strip_comments_and_strings(raw_text)
+    if PROTECTED_ENVELOPE_RE.search(text):
+        return "protected_envelope"
     if INCLUDE_RE.search(text):
         return "include"
     for name in TICK_RE.findall(text):
