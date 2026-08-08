@@ -1,5 +1,52 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0004 — leaf CORPUS-GRAD-ALL.2.1: VHDL axis 2 RE-MEASURED on HEAD (71 s), and 9 689 raw fails become a RANKED, grammar-verified defect-class worklist
+
+- ⭐ **Re-measured, not quoted** ([[project_all_parsers_fully_pass_stimuli_and_external_corpora]]:
+  "the first honest act is to re-measure them rather than to quote them"): `13 720` files ·
+  `pass 4 031` · `fail 9 689` · `timeout 0` · `crash 0` · **29.4 %** — byte-for-byte the
+  `2026-07-22` number, all ten per-sub-corpus rows identical. So the standing figure was stale
+  *by construction* while happening to remain true (the `SV-EXH-PROOF.7.4.6.19` shape).
+- ⭐⭐ **The re-measure costs 71 seconds** (peak RSS 270 MB). A 71-second measurement had gone 17
+  days without a re-run because nothing asked it to — which makes "a gate, not a habit" the
+  obvious remedy for clause 4 of that record.
+- **The deliverable is the worklist:** `docs/tasks/artifacts/corpus_grad_all/vhdl_fail_clusters.md`
+  — 9 689 rows → **861** ranked stuck-point classes (26 s), each with a resolving path and its
+  stuck line. Top classes, each confirmed against `grammars/vhdl.ebnf` rather than inferred:
+  `wait until/on` **387** (the rule has only the `for` timeout clause); scalar-range + physical
+  `units` types **357** (`type_definition` has 3 of the LRM's classes); waveform `after` **256**
+  (`after` appears NOWHERE in the grammar); `file of` **219**; `attribute` **174**; `access`
+  **149**; `shared variable` **86**; general object `alias` **71** (only the VHDL-2019
+  `'converse` form exists).
+- ⇒ **The honest headline is not "the VHDL parser has bugs".** The grammar is an explicit SEED
+  SUBSET — 546 lines / 216 rules, its own header saying *"Initial VHDL seed grammar"* — so `.2` is
+  a grammar-GROWTH campaign whose ORDER is now measured instead of guessed.
+- **Instrument parameterized, not forked.** `stimuli/sv/cluster_rejects_valid.py` already had the
+  whole engine and was family-neutral apart from its keyword set, so it gained a `FAMILIES` profile
+  table (keywords + multi-char operators + case-folding), a `--results` raw-fail input lane for a
+  family with no adjudication yet, and `--grammar`/`--profile`/`--family`. VHDL needs case-folding:
+  without it `ENTITY`/`Entity`/`entity` are three clusters and none shows its true size. SV
+  defaults untouched ⇒ the SV invocation is byte-identical.
+- ⭐ **Two defects in the INSTRUMENT were found and fixed before its output was trusted:** (1) the
+  example line could name a different construct than the signature — `furthest_position` often
+  lands on trailing whitespace and the tokenizer skips newlines, so the first token came from the
+  NEXT line (measured: cluster `alias ID :` illustrated by a `constant` declaration); the excerpt
+  is now anchored to the first token the signature consumed. (2) the raw-fail lane printed a
+  doubled, non-resolving example path. An instrument whose illustration contradicts its own key is
+  a confident guess ([[feedback_instrument_needs_ground_truth]]).
+- **`stimuli/run_external_corpus.sh` column 3 is now repo-root-relative**, so the artifact is
+  portable and diffable; verified backward-compatible first (both consumers split on the
+  `/subs/<suite>/` infix, which a relative path still contains), and the clusterer now REFUSES an
+  absolute row with the regeneration command instead of failing to resolve it.
+- **Tracked vs not, stated:** the ranked worklist `.md` is tracked; `results.tsv` (1.09 MB) and the
+  per-row clusters `.tsv` (1.29 MB) are not — `.gitignore:412` excludes the raw dumps under a
+  reviewed `EXTERNAL-CORPUS.3.1` policy, an argument now STRONGER than when written (71 s,
+  portable paths). Reversing a reviewed ignore policy is not a side effect of a measurement slice.
+- **Verification:** 17/17 doctrines PASS; `bash -n` + `ast.parse` clean; zero Rust / grammar /
+  generated change ⇒ clippy and the cert oracles untouched by construction. LIVE tracker
+  **unchanged** — `vhdl` stays `Provisional (corpus pending)`; this slice measures and ranks, it
+  fixes no grammar.
+
 ## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0003 — leaf CORPUS-GRAD-ALL.2.0: the `furthest_position` diagnostic was SV-ONLY while the toolbox called it "always on" — now every family names the DEEP locus
 
 - ⭐⭐ **A catalog claim was false, and it was gating the cross-family corpus program.** `TOOLBOX.md`

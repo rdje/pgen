@@ -69,10 +69,24 @@ mkdir -p "$OUTDIR"
 
 export PROBE GRAMMAR TIMEOUT_S
 
-# Parse a single file; emit "<subcorpus>\t<status>\t<path>".
+# Parse a single file; emit "<subcorpus>\t<status>\t<repo-root-relative path>".
+#
+# CORPUS-GRAD-ALL.2.1 — column 3 is REPO-ROOT-RELATIVE, never absolute. An absolute path bakes
+# the checkout root into the artifact, which made the tracked VHDL characterization report
+# unreproducible: every one of its 13 720 rows pointed at a DIFFERENT clone (a home-directory copy
+# on another volume), so the report could be neither re-run nor diffed against a later one, and it
+# breached both the repo-root-relative-paths rule and the same-volume data-locality policy. A
+# relative column makes the artifact portable and diffable, which is the precondition for TRACKING
+# it — an untracked measurement is the staleness defect class
+# (project_all_parsers_fully_pass_stimuli_and_external_corpora clause 4).
+#
+# Backward-compatible with the consumers BY CONSTRUCTION: both `adjudicate_external_corpus.py` and
+# the stuck-point clusterer key on the `/subs/<suite>/` (or `/stimuli/sv/uvm/`) INFIX and split
+# there, which a relative path still contains — verified before changing this.
 parse_one() {
-  local f="$1" sub rc status
+  local f="$1" sub rc status rel
   sub="$(printf '%s' "$f" | sed -E 's#.*/subs/([^/]+)/.*#\1#; s#.*/stimuli/sv/uvm/.*#uvm-core#')"
+  rel="${f#"$ROOT"/}"
   # shellcheck disable=SC2086
   timeout "$TIMEOUT_S" "$PROBE" --parse "$GRAMMAR" "$f" $PROFILE_ARGS >/dev/null 2>&1
   rc=$?
@@ -82,9 +96,10 @@ parse_one() {
                                               # overflow abort) is NOT a
                                               # graceful reject - own status
   else status=fail; fi
-  printf '%s\t%s\t%s\n' "$sub" "$status" "$f"
+  printf '%s\t%s\t%s\n' "$sub" "$status" "$rel"
 }
 export -f parse_one
+export ROOT
 
 if [ "$FAM" = sv2005 ]; then
   [ -f "$LANE_LIST" ] || { echo "lane list not found: $LANE_LIST (run the adjudicator first)" >&2; exit 4; }

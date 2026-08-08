@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0004 — a stale number that turns out to be TRUE is still a broken process; and fix the instrument before you believe its ranking
+
+**The re-measure came back identical, and that is the least interesting thing about it.** 29.4 %,
+all ten sub-corpus rows unchanged. The tempting reading is "no harm done". The correct reading is
+that the process had no way to know: the report cited a raw input that git did not track, and every
+row of that input pointed at a checkout on another volume, so the number could be neither re-run nor
+diffed. Correctness was luck. What converts luck into a property is that the run now takes **71
+seconds** from portable paths — at that price, freshness stops being a discipline problem and becomes
+a gate someone simply has not written yet.
+
+**Cheapness is itself the argument.** The July decision to leave the raw dump untracked
+("regenerable") was reasonable then and is *more* reasonable now, which is why this slice did not
+quietly reverse it. The thing worth noticing is the inversion: when a measurement is expensive you
+argue about storing its output; when it is 71 seconds you argue about *scheduling* it. Re-pricing the
+measurement changed which remedy is correct, and that is worth more than the number it produced.
+
+**An instrument gets audited before its ranking is believed.** The clusterer's output looked
+authoritative — 861 ranked classes, counts, example lines — and two of its illustrations contradicted
+their own keys: cluster `alias ID :` shown with `constant USER_RIGHT : integer := 1 ;`, `shared
+variable ID` shown with a `subtype`. Root cause: `furthest_position` frequently lands on trailing
+whitespace, the tokenizer skips newlines, so the signature's first token came from the *next* line
+while the excerpt was read at the raw byte. Nobody would have caught that from the counts, and the
+counts were fine — it was the human-readable half that lied, which is exactly the half a leaf gets
+cut from. ⇒ when an instrument reports both a KEY and an ILLUSTRATION, check that they name the same
+thing before ranking anything by the key.
+
+**Case sensitivity is a clustering property, not a lexing detail.** VHDL is case-insensitive, so
+`ENTITY`, `Entity` and `entity` are one keyword — but a signature builder that does not fold case
+turns them into three classes, each looking a third as important as the real one. A tool ported to a
+new language inherits that language's identity rules, not just its keyword list. That is why the
+family profile carries keywords, multi-char operators AND a fold-case flag rather than a keyword set
+alone.
+
+**Parameterize the tool you already have; the alternative is the bug you just fixed.** The engine —
+probe, read the deep locus, tokenize three tokens, rank by member count — was entirely family-neutral;
+only two tables and a flag were not. Forking it for VHDL would have reproduced, in the triage tool,
+precisely the copied-block failure the previous slice removed from the diagnostic it depends on. The
+cost of doing it properly was a dict entry and an input mode.
+
+**And the measured answer reframes the campaign.** 29.4 % invites "the VHDL parser has bugs". The
+keyword census says otherwise: `kw_until`, `kw_on`, `kw_after`, `kw_access`, `kw_attribute`,
+`kw_units`, `kw_shared` are all **zero** occurrences in a 546-line, 216-rule grammar whose own header
+calls itself a seed. Those are not defects, they are absent language. Naming that correctly changes
+the work from debugging to grammar growth — and the ranked classes give the order, which is the one
+thing a subset grammar's author cannot guess.
+
 ## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0003 — a copied code block cannot generalize; and an instrument that over-claims is worse than one that is missing
 
 **The gap hid behind its own documentation.** Nothing in the repository said "SV only". `TOOLBOX.md`

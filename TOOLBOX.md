@@ -410,12 +410,34 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   the failing design unit. Measured on one OSVVM file: surface `1651` = `package … is` (names nothing)
   vs `furthest_position=3852` = `AxiBus : view … of … ;`, the actual unsupported VHDL-2019 construct —
   **+2 201 bytes, 58 source lines.** Stuck-point CLUSTERING of a corpus population
-  (`stimuli/sv/cluster_rejects_valid.py`) keys on this bracket, so without it a 9 689-file rejection
-  population collapses into two useless clusters. It is now ONE shared helper
+  (`stimuli/sv/cluster_rejects_valid.py` — **family-neutral despite its `sv/` home**, see below)
+  keys on this bracket, so without it a 9 689-file rejection population collapses into two useless
+  clusters. It is now ONE shared helper
   (`augment_error_with_furthest_position`) called by all 12, so a new family inherits it by
   construction. **Honest exclusion, by design:** `builtin_semantic_annotation` parses via the
   bootstrap `UnifiedSemanticAST::parse_bootstrap` and owns no parser object, so it has no furthest
   position to report.
+- **THE CONSUMER — rank a corpus rejection population into defect classes (ANY family).**
+  `stimuli/sv/cluster_rejects_valid.py` probes each rejecting file, reads `furthest_position`, and
+  clusters by a normalized 3-token signature at that locus. Family-parameterized since
+  `CORPUS-GRAD-ALL.2.1` (a `FAMILIES` table of keywords + multi-char operators + case-folding; add a
+  family by adding an entry, never by copying the file). It still lives under `stimuli/sv/` because
+  historical task leaves cite that path.
+  ```bash
+  # raw-fail lane (a family with no adjudication manifest yet), profile-less grammar:
+  python3 stimuli/sv/cluster_rejects_valid.py --results stimuli/vhdl/characterization/results.tsv \
+      --grammar vhdl --jobs 8 \
+      --out docs/tasks/artifacts/corpus_grad_all/vhdl_fail_clusters.tsv \
+      --summary docs/tasks/artifacts/corpus_grad_all/vhdl_fail_clusters.md
+  # → rows: 9689  clusters: 861   (26 s; the ranked worklist leaves are cut from)
+  # adjudicated lane (SV): defaults read the manifest and cluster only unexplained_rejects_valid
+  ```
+  ⚠️ The **raw-fail** lane SIZES a candidate class; it does not adjudicate one. Some corpus files are
+  intentionally invalid, so a fail can be the correct outcome — expected verdicts come from the LRM /
+  suite metadata, never from what the parser does today. ⛔ VHDL requires case-folding (it is a
+  case-insensitive language); without it `ENTITY`/`entity` are separate clusters and neither shows
+  its size. Feed it with `stimuli/run_external_corpus.sh <fam>` (VHDL: 13 720 files in **71 s**),
+  whose column 3 is repo-root-relative — the clusterer REFUSES an absolute row.
 - **A rejection SIGNATURE is decoration-independent.** `normalize_rejection_signature` (the
   duality-hunt / STIMULI-SIGNOFF clustering key) strips the ` [furthest_position=…]` bracket before
   collapsing digit runs: a signature names the failure CLASS, and after digit normalization the

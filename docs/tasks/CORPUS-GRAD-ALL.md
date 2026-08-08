@@ -190,6 +190,73 @@ the `(corpus pending)` clause the register already admits. The 29.4% below is li
    part of what the director decision must settle. That gap is stated rather than assumed away.
    ⛔ No deletion, move, or inspection of the other checkout was performed.
 
+### `.2.1` — RE-MEASURE VHDL axis 2 on HEAD, and turn 9 689 raw fails into a RANKED defect-class worklist
+
+- **Status: `done`** (`PGEN-CORPUS-GRAD-ALL-0004`, session #213, 2026-08-08).
+- **The re-measure: HEAD is byte-for-byte the July number, and that is a finding either way.**
+  `13 720` files · `pass 4 031` · `fail 9 689` · `timeout 0` · `crash 0` · **29.4 %**, and every one
+  of the ten per-sub-corpus rows is identical to the `2026-07-22` report. So the standing number was
+  stale *by construction* (unre-runnable, unre-run) while happening to remain true — the same shape
+  as `SV-EXH-PROOF.7.4.6.19`'s replay universe. ⭐ **The re-measure took 71 seconds** (peak RSS
+  270 MB). A 71-second measurement had gone 17 days and an unknown number of grammar commits
+  without a re-run, because nothing asked it to — which is the mechanizable core of clause 4 of
+  [[project_all_parsers_fully_pass_stimuli_and_external_corpora]], and it is now cheap enough that a
+  gate is clearly the right remedy (routed there by the record, not assumed here).
+- **The worklist (the deliverable):** `docs/tasks/artifacts/corpus_grad_all/vhdl_fail_clusters.md` —
+  9 689 rows → **861** distinct 3-token stuck signatures, ranked, each with a resolving example path
+  and its stuck source line. Produced in 26 s. Top classes with their grammar-verified cause:
+
+  | rows | signature | example stuck line | grammar reality (`grammars/vhdl.ebnf`, 546 lines / 216 rules) |
+  |---|---|---|---|
+  | 387 | `until ID =` | `wait until nReset = '1' ;` | `wait_statement := kw_wait (kw_for expression)? semi` — the LRM §10.2 **sensitivity (`on`) and condition (`until`) clauses do not exist**; only the `for` timeout does |
+  | 357 | `range NUM to` | `type FREQ is range 0 to integer'high units` | `type_definition` has 3 of the LRM's classes (enumeration / array / record); **no scalar range, no physical type** — `kw_units` count 0 |
+  | 256 | `after NUM ID` | `Clk <= not Clk after 10 ns ;` | **`after` appears nowhere in the grammar** — the LRM §10.5.2.1 waveform element's `after` time expression is unimplemented |
+  | 219 | `file of ID` | `type T_PICFILE is file of character;` | no file type definition in `type_definition` |
+  | 174 | `attribute ID :` | `attribute KEEP : boolean;` | **`kw_attribute` count 0** — no attribute declaration or specification |
+  | 149 | `access ID ;` | `type CALL_PATH_VECTOR_PTR is access CALL_PATH_VECTOR ;` | **`kw_access` count 0** — no access type definition |
+  | 86 | `shared variable ID` | `shared variable OperationFifo : … ;` | **`kw_shared` count 0** |
+  | 71 | `alias ID :` | `alias Last : std_logic is ResultParam(0) ;` | `alias_declaration` accepts ONLY the VHDL-2019 `X is Y'converse` mode-view form — the general object alias is absent |
+
+  ⇒ the honest headline is not "the VHDL parser has bugs" but **the VHDL grammar is an explicit
+  SEED SUBSET** (its own header says so: *"Initial VHDL seed grammar focused on executable frontend
+  readiness"*), and `.2` is a grammar-GROWTH campaign whose order is now measured rather than guessed.
+- **Instrument work (why not a new tool):** `stimuli/sv/cluster_rejects_valid.py` already implements
+  the whole engine and is family-neutral apart from its keyword set, so it was **parameterized, not
+  forked** — practising the lesson `.2.0` recorded. Added: a `FAMILIES` profile table (keywords +
+  multi-char operators + case-folding), a `--results` raw-fail input lane for a family with no
+  adjudication yet, and `--grammar`/`--profile`/`--family`. VHDL needs case-folding: it is a
+  case-insensitive language, so without it `ENTITY`/`Entity`/`entity` are three clusters and none
+  shows its true size. SV defaults are untouched, so the SV invocation is byte-identical.
+- ⭐ **Two DEFECTS IN THE INSTRUMENT were found and fixed before its output was trusted** — an
+  instrument whose illustration contradicts its own key is a confident guess
+  ([[feedback_instrument_needs_ground_truth]]):
+  1. **the example line could name a different construct than the signature.**
+     `furthest_position` often lands on trailing whitespace/newline; the tokenizer skips newlines and
+     took its first token from the NEXT line, while the excerpt was read at the raw byte. Measured:
+     cluster `alias ID :` was illustrated by `constant USER_RIGHT : integer := 1 ;` and `shared
+     variable ID` by a `subtype` declaration. `signature_at` now also returns the offset of the first
+     token it consumed, and the excerpt is anchored there — after the fix those two clusters show
+     `alias Last : std_logic is …` and `shared variable OperationFifo : …`.
+  2. **the example path was a nonsense doubled path** in the raw-results lane
+     (`Compliance-Tests/stimuli/vhdl/subs/Compliance-Tests/…`), because `rel` is already
+     repo-root-relative there and the suite was prefixed anyway. Now one path that resolves.
+- **`stimuli/run_external_corpus.sh` column 3 is now REPO-ROOT-RELATIVE.** Verified
+  backward-compatible before changing it: both consumers key on the `/subs/<suite>/` infix and split
+  there, which a relative path still contains. The clusterer additionally **REFUSES** an absolute row
+  with the regeneration command rather than silently failing to resolve it.
+- **Tracked vs not, stated (no silent caps):** the ranked worklist `.md` is tracked. The per-row
+  `vhdl_fail_clusters.tsv` (1.29 MB) and `results.tsv` (1.09 MB) are NOT: `.gitignore:412` excludes
+  the raw dumps under a reviewed `EXTERNAL-CORPUS.3.1` policy ("regenerable; track
+  characterization.md only"), and that policy is *stronger* now than when it was written, since the
+  run is 71 s from portable paths. ⛔ Reversing a reviewed ignore policy is not a side effect of a
+  measurement slice. Regenerate with the two commands in this leaf.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — the standing 29.4 % could not be re-run: `git ls-files stimuli/vhdl/characterization/` lists only `characterization.md`, and `cut -f3 stimuli/vhdl/characterization/results.tsv | head -1` showed every row rooted at a foreign checkout.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `git ls-files stimuli/vhdl/characterization/` (one file, no raw results) + the absolute column-3 emitted by `parse_one` in `stimuli/run_external_corpus.sh`, which printed `"$f"` (the absolute find result) instead of a `$ROOT`-relative path. WHY the worklist could not be built regardless: `grep -c 'furthest_position' stimuli/sv/cluster_rejects_valid.py` shows the clusterer keys on the deep locus via `furthest_position=`, which no VHDL rejection carried until `.2.0`; the surface position for `vhdl_file := design_unit*` is always the failing design unit's first byte, so all 9 689 rows would have collapsed into two classes.
+  - [x] **ADDRESSED (verified)** — re-measure on HEAD: `13720 parsed — pass=4031 fail=9689 timeout=0 crash=0 (29.4% pass)` in 71 s, `results.tsv` column 3 now `stimuli/vhdl/subs/…`; clustering: `rows: 9689  clusters: 861` in 26 s, with the 8 classes above each confirmed against `grammars/vhdl.ebnf` by keyword-count (`kw_until`/`kw_on`/`kw_after`/`kw_access`/`kw_attribute`/`kw_units`/`kw_shared` all **0**). Instrument fixes verified before→after on the two named clusters.
+  - [x] **NO REGRESSION** — SV lane defaults unchanged (`--grammar systemverilog --profile sv_2017`, `SV_KEYWORDS`, `SV_OPERATORS`, the manifest input path), so the SV invocation is byte-identical; no SV artifact regenerated in this slice. `bash -n stimuli/run_external_corpus.sh` and `python3 -c "ast.parse(...)"` clean; `scripts/check_doctrines.sh` GREEN (17/17); zero Rust, zero grammar, zero generated change ⇒ clippy and the cert/`shape-contract` oracles are untouched by construction.
+  - [x] **LOCKSTEP** — tree + `docs/TASK_TREE.md` frontier + `TOOLBOX.md` (the clusterer documented as family-neutral, with the VHDL invocation) + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md`. LIVE-status register unchanged: `vhdl` stays `Provisional (corpus pending)` — this slice measures and ranks, it fixes no grammar.
+
 ### `.3` — Per-family graduation-gate wiring (code; per-family leaves)
 
 - **Status: `todo`** — each family's `Done` computation gains its
