@@ -391,6 +391,8 @@ fn interpret_parse_gen_ast_core(
         furthest_position: 0,
         depth: 0,
         max_depth: 2000,
+        // SV-CORPUS-GRAD.3.12 — see the field's doc comment.
+        recursion_block_events: 0,
         semantic_state,
         compiled_sem,
         memo: rustc_hash::FxHashMap::default(),
@@ -733,6 +735,20 @@ struct Interp<'g, 'i> {
     furthest_position: usize,
     depth: usize,
     max_depth: usize,
+    /// SV-CORPUS-GRAD.3.12 — RECURSION-TAINT COUNTER, the interpreter's form of the generated
+    /// parser's `recursion_block_floor`. Monotone count of recursion-ceiling rejections taken
+    /// during this parse. Such a rejection is a fact about how deep the live rule stack happens to
+    /// be, NOT about `(rule, position)` — so a body that hit one must not be filed under the memo's
+    /// `(rule, position)` key and replayed from a shallower stack. `memoized_call` snapshots this
+    /// before a body and refuses to cache the attempt if it moved.
+    ///
+    /// A COUNTER here, a frame FLOOR there, and both are exact: the generated parsers block on
+    /// `check_cycle_id`, whose verdict names one blocking frame, so a block owned by the memoized
+    /// rule's own subtree is harmless and must not be treated as taint. The interpreter has no
+    /// cycle guard at all — the depth ceiling is its whole runtime-cycle-breaking path — and that
+    /// ceiling is a statement about the WHOLE stack, i.e. always caller-dependent. Its floor would
+    /// therefore be 0 at every site, which is what "any hit taints" already means.
+    recursion_block_events: u64,
     /// Reused VERBATIM (Section A): speculation snapshots/restores it, faithfully. Populated by the
     /// `.6.2` semantic-directive orchestration mirror (`with_rule_transaction` + the branch machinery);
     /// for a grammar with no semantic directives it stays empty, so it never perturbs the typed AST.
@@ -854,6 +870,9 @@ impl<'g, 'i> Interp<'g, 'i> {
         self.depth += 1;
         if self.depth > self.max_depth {
             self.depth -= 1;
+            // SV-CORPUS-GRAD.3.12 — mark the enclosing bodies RECURSION-TAINTED so none of them is
+            // memoized: this rejection is stack-depth-dependent, and the memo key is not.
+            self.recursion_block_events += 1;
             return Err(ParseError::RecursionDepthExceeded {
                 position: self.position,
                 depth: self.depth,
@@ -1130,10 +1149,21 @@ impl<'g, 'i> Interp<'g, 'i> {
         }
         let memo_entry_checkpoint = self.semantic_state.checkpoint();
         let memo_taint_snapshot = self.semantic_state.predicate_evaluations();
+        // SV-CORPUS-GRAD.3.12 — RECURSION-TAINT snapshot (mirror of the generated template).
+        let memo_recursion_snapshot = self.recursion_block_events;
         let memo_selection_start = self.selection_log_len();
         let result = f(self);
         let memo_store_tainted =
             self.semantic_state.predicate_evaluations() != memo_taint_snapshot;
+        // SV-CORPUS-GRAD.3.12 — a body that hit the recursion ceiling produced a stack-dependent
+        // outcome; caching that FAILURE under the stack-blind key replays a refusal in a context
+        // that would have parsed. Failures only, mirroring the generated template: a cached
+        // SUCCESS is a derivation that really was found, and replaying it is how a cyclic
+        // construct parses at all (measured on the generated side: refusing it regressed 4 corpus
+        // files pass→fail).
+        if result.is_err() && self.recursion_block_events != memo_recursion_snapshot {
+            return result;
+        }
         match &result {
             Ok((node, raw_semantic_content)) => {
                 let semantic_delta = self

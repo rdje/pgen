@@ -524,7 +524,7 @@ gate uses does not apply because these grammars are synthetic and never register
 Because the corpus is a *fixed curated input set* (not the seeded stimuli generator), the differential is
 `synthetic grammar × curated input` with no randomness — deterministic by construction.
 
-The 27 isolating cases cover the whole structural surface:
+The 28 isolating cases cover the whole structural surface:
 
 | Combinator | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -541,6 +541,7 @@ The 27 isolating cases cover the whole structural surface:
 | **atom** — terminal / regex-token | `"hello"` / `/[0-9]+/` | exact literal / anchored pattern match |
 | **rule reference** | `start := a b` | dispatch to referenced rules |
 | **left recursion** (LR-eliminated) | `expr := wrapper \| term`, `wrapper := expr "+" term` | the wrapper form is rewritten to `base (suffix)*` |
+| **memo × runtime cycle-breaking** | `start := call \| cast`, `call := recv \| fn`, `recv := cast`, `cast := call "'" …` on `"f(x)'(x)"` | an INDIRECT cycle the LR eliminator does not rewrite, so `cast` is reached at position 0 once from *inside* the cycle (guard-blocked) and once from outside it (legal 8-byte match). A memo that files the blocked attempt under the stack-blind `(rule, position)` key replays it and the tournament never sees the longer alternative — the `SV-CORPUS-GRAD.3.12` defect, pinned |
 | **layout — insensitive default** | `start := "a" "b"` (no directive) | layout is auto-skipped: `"a b"`, `" ab"`, `"ab "` all **accept** |
 | **layout — `@whitespace_sensitive: true`** | same grammar + the directive | every space is literal: only `"ab"` accepts (the `regex.ebnf` policy) — since `WS-DIRECTIVE.2` |
 | **layout — `{ regex_tokens: true }`** | `start := "k" /[a-z]+/` + the granular directive | only regex tokens are sensitive: `"k x"` rejects, `" kx"` / `"kx "` accept (the svpp policy) |
@@ -735,13 +736,15 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, `return_annotation` since `.5.3`, and
   `rtl_const_expr` since `.5.5` — via a curated corpus for that un-generatable grammar); the DEFERRED
   ratchet is now empty. The combinator-complete corpus has now also landed in full: the **structural**
-  half (`.6.1`, *The structural combinator suite* above — 27 isolating grammars: 16 at landing, plus the
+  half (`.6.1`, *The structural combinator suite* above — 28 isolating grammars: 16 at landing, plus the
   four bounded-quantifier cases added when `BOUNDED-QUANT.1` closed that half-wire, the three
   layout-policy cases added when `WS-DIRECTIVE.2` made whitespace-sensitivity a declarable,
   synthetic-grammar-expressible capability, the two default-profile cases added when
   `DEFAULT-PROFILE.2` did the same for the unspecified-profile resolution, and the two
   profile-alias cases added when `PROFILE-ALIAS.2` did the same for request-spelling resolution —
-  the pair that also taught the oracle + suite to drive a *requested profile* end-to-end) and the
+  the pair that also taught the oracle + suite to drive a *requested profile* end-to-end, and the
+  memo × runtime-cycle-breaking case added by `SV-CORPUS-GRAD.3.12`, whose defect no shipped-grammar
+  corpus had surfaced) and the
   **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
   29 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
   findings-driven re-anchors and the STIMULI-SIGNOFF.13.2 SC-08 value-guard mirror pins), which also

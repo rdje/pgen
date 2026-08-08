@@ -1,0 +1,49 @@
+# SV axis-2 per-file transition census
+
+before : rust/target/sv_axis2_baseline/results.pre_3_12.tsv  (16336 rows)
+after  : stimuli/sv/characterization/results.tsv  (16336 rows)
+common : 16336   only-before: 0   only-after: 0
+
+pass count : 9694 -> 9712  (delta +18)
+
+## Transition matrix (common files only)
+
+| before | after | files |
+|---|---|---|
+| pass | pass | 9694 |
+| fail | fail | 6620 |
+| fail | pass | 18 |   <-- CHANGED
+| timeout | timeout | 4 |
+
+## Per sub-corpus changed transitions
+
+| sub-corpus | transition | files |
+|---|---|---|
+| Surelog | fail -> pass | 4 |
+| black-parrot | fail -> pass | 1 |
+| ispras-sv-tests | fail -> pass | 1 |
+| opentitan | fail -> pass | 7 |
+| sv2v | fail -> pass | 3 |
+| verilator | fail -> pass | 2 |
+
+## fail -> pass  (18 files)
+
+  [Surelog] stimuli/sv/subs/Surelog/tests/BlackParrotComplex/dut.sv
+  [Surelog] stimuli/sv/subs/Surelog/tests/BlackParrotParam/dut.sv
+  [Surelog] stimuli/sv/subs/Surelog/tests/BlackParrotSkipParam/dut.sv
+  [Surelog] stimuli/sv/subs/Surelog/tests/ConcatOrder/dut.sv
+  [black-parrot] stimuli/sv/subs/black-parrot/bp_be/src/include/bp_be_dcache_pkgdef.svh
+  [ispras-sv-tests] stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/11/11.13_02.sv
+  [opentitan] stimuli/sv/subs/opentitan/hw/ip/kmac/rtl/sha3_pkg.sv
+  [opentitan] stimuli/sv/subs/opentitan/hw/ip/prim/fpv/tb/prim_fifo_sync_tb.sv
+  [opentitan] stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/debug_rom/debug_rom.sv
+  [opentitan] stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/debug_rom/debug_rom_one_scratch.sv
+  [opentitan] stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/src/dm_csrs.sv
+  [opentitan] stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/src/dm_mem.sv
+  [opentitan] stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/src/dmi_jtag.sv
+  [sv2v] stimuli/sv/subs/sv2v/test/core/package_function_cast.sv
+  [sv2v] stimuli/sv/subs/sv2v/test/core/part_select_bits.sv
+  [sv2v] stimuli/sv/subs/sv2v/test/core/size_cast.sv
+  [verilator] stimuli/sv/subs/verilator/test_regress/t/t_cover_expr.v
+  [verilator] stimuli/sv/subs/verilator/test_regress/t/t_wide_temp_while_cond.v
+

@@ -165,12 +165,12 @@ Surelog	tests/BitsStructMember/dut.sv	pass	must_accept	match	Surelog: golden log
 Surelog	tests/BlackBePipeInt/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackBePipeInt.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackBox/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log BlackBox.log, BlackBoxInst.log, BlackBoxInstTop.log, BlackBoxMod.log, BlackBoxSubMod.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackConst/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log BlackConst.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/BlackParrotComplex/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackParrotComplex.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/BlackParrotComplex/dut.sv	pass	must_accept	match	Surelog: golden log BlackParrotComplex.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackParrotConf/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackParrotConf.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackParrotExpon/dut.sv	pass	chained_only	deferred:chained_only	Surelog: no per-test .sl driver unit owns this file's directory - unkeyed (chain-level only)
 Surelog	tests/BlackParrotMuteErrors/dut.sv	pass	must_accept	match	Surelog: golden log BlackParrotMuteErrors.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/BlackParrotParam/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackParrotParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/BlackParrotSkipParam/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackParrotSkipParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/BlackParrotParam/dut.sv	pass	must_accept	match	Surelog: golden log BlackParrotParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/BlackParrotSkipParam/dut.sv	pass	must_accept	match	Surelog: golden log BlackParrotSkipParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackParrotStructParam/dut.sv	pass	must_accept	match	Surelog: golden log BlackParrotStructParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackboxMissingDef/dut.sv	pass	must_accept	match	Surelog: golden log BlackboxMissingDef.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlockingAssignRewrite/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log BlockingAssignRewrite.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -224,7 +224,7 @@ Surelog	tests/ComplexHierPath/dut.sv	pass	must_accept	match	Surelog: golden log 
 Surelog	tests/ComplexParamOverload/dut.sv	pass	must_accept	match	Surelog: golden log ComplexParamOverload.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ComplexParamOverload2/dut.sv	pass	must_accept	match	Surelog: golden log ComplexParamOverload2.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ComplexVarSelect/dut.sv	pass	must_accept	match	Surelog: golden log ComplexVarSelect.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/ConcatOrder/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log ConcatOrder.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/ConcatOrder/dut.sv	pass	must_accept	match	Surelog: golden log ConcatOrder.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ConcatRadix/dut.sv	pass	must_accept	match	Surelog: golden log ConcatRadix.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ConcatVal/dut.sv	pass	must_accept	match	Surelog: golden log ConcatVal.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ConcatWidth/dut.sv	pass	must_accept	match	Surelog: golden log ConcatWidth.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -931,7 +931,7 @@ Surelog	tests/WireUnpacked/dut.sv	pass	must_accept	match	Surelog: golden log Wir
 Surelog	tests/XValue/dut.sv	pass	must_accept	match	Surelog: golden log XValue.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 black-parrot	bp_be/src/include/bp_be_ctl_pkgdef.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_be/src/include/bp_be_dcache_defines.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-black-parrot	bp_be/src/include/bp_be_dcache_pkgdef.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+black-parrot	bp_be/src/include/bp_be_dcache_pkgdef.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_be/src/include/bp_be_defines.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_be/src/include/bp_be_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_be/src/v/bp_be_calculator/bp_be_calculator_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -2245,7 +2245,7 @@ ispras-sv-tests	ieee-1800-2012/11/11.09_02.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/11/11.10.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.10_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.13_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/11/11.13_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/11/11.13_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.13_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.13_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.13_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -7604,7 +7604,7 @@ opentitan	hw/ip/kmac/rtl/kmac_reg_pkg.sv	pass	chained_only	deferred:chained_only
 opentitan	hw/ip/kmac/rtl/kmac_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/rtl/kmac_staterd.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/rtl/sha3.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/kmac/rtl/sha3_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/kmac/rtl/sha3_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/kmac/rtl/sha3pad.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/lc_ctrl/dv/cov/lc_ctrl_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/lc_ctrl/dv/cov/lc_ctrl_fsm_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -7855,7 +7855,7 @@ opentitan	hw/ip/prim/fpv/tb/prim_esc_rxtx_bind_fpv.sv	pass	chained_only	deferred
 opentitan	hw/ip/prim/fpv/tb/prim_esc_rxtx_tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/fpv/tb/prim_fifo_async_sram_adapter_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/fpv/tb/prim_fifo_sync_bind_fpv.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/ip/prim/fpv/tb/prim_fifo_sync_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/ip/prim/fpv/tb/prim_fifo_sync_tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/fpv/tb/prim_keccak_tb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/fpv/tb/prim_lfsr_tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/ip/prim/fpv/tb/prim_packer_tb.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10595,17 +10595,17 @@ opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_test.sv
 opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_test_lib.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_test_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/user_extension/user_extension.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/debug_rom/debug_rom.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/debug_rom/debug_rom_one_scratch.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/src/dm_csrs.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/src/dm_mem.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/debug_rom/debug_rom.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/debug_rom/debug_rom_one_scratch.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/src/dm_csrs.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/src/dm_mem.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dm_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dm_sba.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dm_top.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_bscane_tap.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_cdc.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_intf.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_jtag.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_jtag.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_jtag_tap.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_test.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/sva/dm_csrs_sva.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -12156,7 +12156,7 @@ sv2v	test/core/package_export_nothing.sv	pass	must_accept	match	sv2v: conversion
 sv2v	test/core/package_export_nothing.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/package_export_wildcard.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/package_export_wildcard.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/package_function_cast.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/package_function_cast.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/package_function_cast.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/package_global.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/package_global.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -12224,7 +12224,7 @@ sv2v	test/core/paramtype_struct_default.sv	pass	must_accept	match	sv2v: conversi
 sv2v	test/core/paramtype_struct_default.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/part_select.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/part_select.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/part_select_bits.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/part_select_bits.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/part_select_bits.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/pattern.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/pattern.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -12250,7 +12250,7 @@ sv2v	test/core/simple_loop_jump.sv	pass	must_accept	match	sv2v: conversion-input
 sv2v	test/core/simple_loop_jump.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/simplify_func.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/simplify_func.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/size_cast.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/size_cast.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/size_cast.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/stream.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/stream.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -13671,7 +13671,7 @@ verilator	test_regress/t/t_constraint_unsup_unq_arr.v	pass	must_accept	match	ver
 verilator	test_regress/t/t_coroutine_lambda.v	pass	must_accept	match	verilator: driver t_coroutine_lambda.py expects success
 verilator	test_regress/t/t_cover_assert.v	pass	must_accept	match	verilator: driver t_cover_assert.py expects success
 verilator	test_regress/t/t_cover_const_compare.v	pass	must_accept	match	verilator: driver t_cover_const_compare.py expects success
-verilator	test_regress/t/t_cover_expr.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_cover_expr.py expects success
+verilator	test_regress/t/t_cover_expr.v	pass	must_accept	match	verilator: driver t_cover_expr.py expects success
 verilator	test_regress/t/t_cover_expr_array_class.v	pass	must_accept	match	verilator: driver t_cover_expr_array_class.py expects success
 verilator	test_regress/t/t_cover_expr_associative_array_class.v	pass	must_accept	match	verilator: driver t_cover_expr_associative_array_class.py expects success
 verilator	test_regress/t/t_cover_expr_dyn_array_class.v	pass	must_accept	match	verilator: driver t_cover_expr_dyn_array_class.py expects success
@@ -16301,7 +16301,7 @@ verilator	test_regress/t/t_waiveroutput_roundtrip.v	pass	must_accept	match	veril
 verilator	test_regress/t/t_while_cond_is_stmt.v	pass	must_accept	match	verilator: driver t_while_cond_is_stmt.py expects success
 verilator	test_regress/t/t_while_finish.v	pass	must_accept	match	verilator: driver t_while_finish.py expects success
 verilator	test_regress/t/t_while_timing_control.v	pass	must_accept	match	verilator: driver t_while_timing_control.py expects success
-verilator	test_regress/t/t_wide_temp_while_cond.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_wide_temp_while_cond.py expects success
+verilator	test_regress/t/t_wide_temp_while_cond.v	pass	must_accept	match	verilator: driver t_wide_temp_while_cond.py expects success
 verilator	test_regress/t/t_wire_beh1364_bad.v	pass	must_accept	match	verilator: driver t_wire_beh1364_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_wire_beh1800_bad.v	pass	must_accept	match	verilator: driver t_wire_beh1800_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_wire_behp1364_bad.v	pass	must_accept	match	verilator: driver t_wire_behp1364_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid

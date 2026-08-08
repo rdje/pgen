@@ -928,6 +928,34 @@ impl AstBasedGenerator {
                 // pure-structural set above stays payload-free.
                 memo_fail_tainted: rustc_hash::FxHashMap<(RuleId, usize), u64>,
                 recursion_guard: RecursionGuard,
+                // SV-CORPUS-GRAD.3.12 — RECURSION-TAINT FLOOR. The shallowest
+                // parse-stack frame index that caused a cycle-guard REJECTION
+                // (`Infinite` / `LeftRecursive` / over-depth
+                // `MutualRecursive`) inside the body currently being
+                // memoized; `usize::MAX` = none. Maintained on BOTH graphs.
+                //
+                // A guard rejection is a fact about the live PARSE STACK, not
+                // about `(rule, position)`, so an outcome computed under one is
+                // not keyed by the memo key. But only the frames OUTSIDE the
+                // memoized rule's own subtree make it so: a block whose
+                // blocking frame is that rule itself, or one of its own
+                // descendants, is re-created identically by every replay of
+                // that body. `memoized_call` (and the fused thin memo) reset
+                // this to `usize::MAX` around a body and taint the entry only
+                // when the resulting floor is shallower than the rule's own
+                // frame — then restore the parent's floor min'd with it, so
+                // taint propagates up exactly as far as the ancestor that owns
+                // the blocking frame and stops there.
+                //
+                // ⛔ The blunt form (any block anywhere in the subtree taints)
+                // was implemented and MEASURED first: it is sound, but on SV it
+                // took `t_math_synmul_mul.v` from under a 60 s budget to over
+                // 120 s, because in a deeply mutually-recursive grammar almost
+                // every expression body has SOME block in its subtree. This is
+                // the same trap MEMO-STORE-SOUNDNESS.2 hit on the store axis
+                // (taint-EXCLUSION measured 117× on SV); there the cure was
+                // epoch validation, here it is frame scoping.
+                recursion_block_floor: usize,
                 grammar_profile: Option<String>,
                 recovery_events: Vec<RecoveryEvent>,
                 recovery_counts: HashMap<String, usize>,
@@ -1562,6 +1590,8 @@ impl AstBasedGenerator {
                         Default::default(),
                     ),
                     recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
+                    // SV-CORPUS-GRAD.3.12 — see the field's doc comment.
+                    recursion_block_floor: usize::MAX,
                     #grammar_profile_init
                     recovery_events: Vec::new(),
                     recovery_counts: HashMap::new(),
@@ -3870,6 +3900,10 @@ impl AstBasedGenerator {
 
                 match cycle_type {
                     CycleType::Infinite => {
+                        // SV-CORPUS-GRAD.3.12 — record the BLOCKING FRAME, so
+                        // only the bodies whose outcome genuinely depends on a
+                        // frame outside themselves are kept out of the memo.
+                        self.note_recursion_block(self.recursion_guard.last_block_frame);
                         if self.trace_enabled() {
                             self.logger.log_error(#filename, self.position as u32, &format!("💥 Infinite recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
@@ -3879,6 +3913,8 @@ impl AstBasedGenerator {
                         });
                     }
                     CycleType::LeftRecursive => {
+                        // SV-CORPUS-GRAD.3.12 — see above.
+                        self.note_recursion_block(self.recursion_guard.last_block_frame);
                         if self.trace_enabled() {
                             self.logger.log_error(#filename, self.position as u32, &format!("🔄 Left recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
@@ -3888,6 +3924,10 @@ impl AstBasedGenerator {
                         });
                     }
                     CycleType::MutualRecursive { depth, ref rules } if depth >= #recursion_guard_max_depth => {
+                        // SV-CORPUS-GRAD.3.12 — the depth ceiling is a fact
+                        // about the WHOLE stack, not about one frame, so it
+                        // taints every enclosing body: floor 0.
+                        self.note_recursion_block(0);
                         if self.trace_enabled() {
                             self.logger.log_error(#filename, self.position as u32, &format!("🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})", #rule_name, position, depth));
                         }
@@ -8888,6 +8928,18 @@ impl AstBasedGenerator {
 
             #inlined_frame_call_helper
 
+            /// SV-CORPUS-GRAD.3.12 — lower the RECURSION-TAINT FLOOR to
+            /// `frame_index` (the parse-stack index of the frame that just
+            /// caused a cycle-guard rejection; `0` for the whole-stack depth
+            /// ceiling). Called only from a guard arm that is already
+            /// returning an error, so the accepting path never executes it.
+            #[inline]
+            fn note_recursion_block(&mut self, frame_index: usize) {
+                if frame_index < self.recursion_block_floor {
+                    self.recursion_block_floor = frame_index;
+                }
+            }
+
             fn memoized_call<F>(
                 &mut self,
                 rule_id: RuleId,
@@ -9038,9 +9090,72 @@ impl AstBasedGenerator {
                 // INSIDE the body and taint it — correct, they steer which
                 // branch's content wins.
                 let memo_taint_snapshot = self.semantic_runtime_state.predicate_evaluations();
+                // SV-CORPUS-GRAD.3.12 — RECURSION-TAINT scope. This rule's own
+                // frame is already pushed (`enter_id` runs before the rule
+                // transaction), so `entry_depth - 1` IS its index.
+                let memo_recursion_saved_floor = self.recursion_block_floor;
+                self.recursion_block_floor = usize::MAX;
+                let memo_recursion_entry_depth = self.recursion_guard.rule_id_stack.len();
                 let result = f(self);
                 let memo_store_tainted =
                     self.semantic_runtime_state.predicate_evaluations() != memo_taint_snapshot;
+                // SV-CORPUS-GRAD.3.12 — the body was blocked by a frame
+                // OUTSIDE itself, so its outcome depended on which rules its
+                // CALLER had on the stack — state the memo key
+                // `(rule_id, position)` does not carry. Replaying it from a
+                // different stack refuses a parse the guard would have
+                // allowed: measured on SV, `$clog2(P)'(P)` — `cast` fails once
+                // under `call_primary`'s own frame, that failure is cached,
+                // and `primary`'s later `cast` branch (no `call_primary` on
+                // the stack) replays it, so a 13-char LRM-legal cast loses a
+                // `longest_match` tournament to a 9-char call. The same input
+                // parses via `--entry-rule cast`, which proves the rule is
+                // innocent and the CACHE is the defect. Both polarities are
+                // unsound to replay: a cached FAILURE refuses a legal parse,
+                // and a cached SUCCESS can be the SHORTER derivation left over
+                // once the guard pruned the longer one. So such an attempt is
+                // not cached at all — the honest re-parse is deterministic and
+                // reproduces the correct outcome for its own stack.
+                // A block at index >= `entry_depth - 1` is this rule's own
+                // frame or a descendant's, which every replay re-creates, so it
+                // is NOT taint. The floor is then handed up min'd with the
+                // caller's, and the same test at each level stops the
+                // propagation exactly at the ancestor that owns the frame.
+                // ⛔ Deliberately NOT epoch-validated like the store taint:
+                // there is no monotone "recursion epoch" — the guard's verdict
+                // is a function of the live stack, not summarizable in a
+                // scalar.
+                //
+                // ⭐⭐ FAILURES ONLY, and this asymmetry is MEASURED, not
+                // assumed — it is the exact opposite of the store axis, for a
+                // principled reason. The semantic store changes what the
+                // CORRECT answer IS, so a stale success there is genuinely
+                // wrong (MEMO-STORE-SOUNDNESS.1 measured a stale success flip
+                // both the verdict and the tree). A cycle guard changes only
+                // what the SEARCH can REACH: the language is unaffected, so a
+                // cached success is a derivation that really was found and
+                // replaying it in a deeper context returns a real parse tree —
+                // it is over-permissive with respect to the guard and exactly
+                // right with respect to the grammar. That replay is in fact
+                // LOAD-BEARING: it is how this engine gets indirect
+                // left-recursive constructs to parse at all. Refusing it was
+                // implemented and measured — **4 corpus files regressed
+                // pass→fail** (ispras `16.14.06.01_03`/`_05`, opentitan
+                // `dm_sba.sv`, verilator `t_reloop_local.v`), every one of them
+                // a cast used inside an index in a cyclic expression context
+                // (`foo[const'(i)]`, `shuffle[ctr+Word'(i)]`,
+                // `be_mask[int'({…}) +: 2]`), where the guard blocks the fresh
+                // re-derivation the cache used to supply. So a tainted SUCCESS
+                // stays cached and only a tainted FAILURE is refused — which
+                // is precisely the defect being fixed, since a guard rejection
+                // says "the search stopped", never "no derivation exists".
+                let memo_recursion_floor = self.recursion_block_floor;
+                self.recursion_block_floor = memo_recursion_saved_floor.min(memo_recursion_floor);
+                if result.is_err()
+                    && memo_recursion_floor < memo_recursion_entry_depth.saturating_sub(1)
+                {
+                    return result;
+                }
 
                 if let Ok((node, raw_semantic_content)) = &result {
                     let semantic_delta = self

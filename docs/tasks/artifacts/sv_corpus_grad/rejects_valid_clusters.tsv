@@ -6,18 +6,14 @@ Surelog	tests/AssumeProp/dut.sv	0	191	" ID ID	$fatal(1, "slv_aw_select_i is %d: 
 Surelog	tests/BadScope/dut.sv	105	217	ID ; logic	priv_lvl_e mpp;
 Surelog	tests/BitSelectHier/dut.sv	0	769	ID ( ID	extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);
 Surelog	tests/BlackBePipeInt/dut.sv	5582	27558	' ( '	localparam host_base_addr_gp         = (dev_id_width_gp+dev_addr_width_gp)'('h0010_0000);
-Surelog	tests/BlackParrotComplex/dut.sv	2	1755	+ ( (	localparam output_dirs_sparse_lp = (($bits(routing_matrix_p[0][i]) < 65) ? 1'b0 : ('X)) + ((((routing_matrix_p[0][i])>>(
-Surelog	tests/BlackParrotConf/dut.sv	1	16114	; parameter ID	parameter bp_page_offset_width_gp = ( ((bp_page_size_in_bytes_gp)==1) ? 1 : $clog2((bp_page_size_in_bytes_gp)));
-Surelog	tests/BlackParrotParam/dut.sv	1	16114	; parameter ID	parameter bp_page_offset_width_gp = ( ((bp_page_size_in_bytes_gp)==1) ? 1 : $clog2((bp_page_size_in_bytes_gp)));
-Surelog	tests/BlackParrotSkipParam/dut.sv	1	108	, parameter ID	, parameter reset_val_p=0
+Surelog	tests/BlackParrotConf/dut.sv	51531	81820	ID ; ID	bp_bedrock_cmd_type_e         lce_cmd;
 Surelog	tests/CastShift/dut.sv	0	277	| ( NUM	| (0                 <<  5)
 Surelog	tests/Checker/dut.sv	0	354	ID = ID	coverage_level clevel = cover_all // This argument should be bound to an
 Surelog	tests/CheckerInst/dut.sv	0	303	@ ( ID	@($global_clock) a[*1:$] ##1 b);
 Surelog	tests/ClassExtendParam/dut.sv	0	71	, type ID	virtual class uvm_sequence #(type REQ = uvm_sequence_item,
 Surelog	tests/ClassMemberFunc/dut.sv	0	183	( ) ;	function void uvm_sequencer_base::start_phase_sequence();
 Surelog	tests/ClassTypeParamAlias/dut.sv	2	145	, ID =	parameter type CT1 = Ctype1, CT2 = Ctype2;
-Surelog	tests/ClogCast/dut.sv	4	1130	' ( ID	if (addr_q < $clog2(RomSize)'(RomSize)) begin
-Surelog	tests/ConcatOrder/dut.sv	0	123	; typedef struct	localparam lg_max_cfgs = ( ((max_cfgs)==1) ? 1 : $clog2((max_cfgs)));
+Surelog	tests/ClogCast/dut.sv	4	1709	' ( ID	if ($clog2(RomSize)'(RomSize) == 5'd19) begin : gen_cast
 Surelog	tests/ContAssign/dut.sv	0	26	ID [ NUM	wire intf intf2  [2];
 Surelog	tests/Covergroup/dut.sv	0	414	} endgroup covergroup	}
 Surelog	tests/CrossFunc/dut.sv	0	112	function ID ID	function CrossQueueType myFunc1(int f_lim);
@@ -68,7 +64,6 @@ ispras-sv-tests	ieee-1800-2012/07/07.10.04_02.sv	169	236	] ; /	q = q[2:$]; // a 
 ispras-sv-tests	ieee-1800-2012/08/08.26.04_01.sv	127	274	: ID /	endclass : ClassB
 ispras-sv-tests	ieee-1800-2012/11/11.04.02_01.sv	160	230	= ID -	j = i++ + (i = i - 1);
 ispras-sv-tests	ieee-1800-2012/11/11.04.14.04_01.sv	212	1042	] ; /	stream = stream[$bits(p_recv) / 8 : $]; // remove packet
-ispras-sv-tests	ieee-1800-2012/11/11.13_02.sv	105	167	' ( ID	let mult(x, y) = ($bits(x) + $bits(y))'(x * y);
 ispras-sv-tests	ieee-1800-2012/11/11.13_08.sv	105	185	@ ( posedge	let p2(x) = $past(x, , , @(posedge clock));
 ispras-sv-tests	ieee-1800-2012/12/12.06.01_05.sv	188	606	. ID )	tagged Jmp (tagged JmpU .a) : pc = pc + a;
 ispras-sv-tests	ieee-1800-2012/12/12.06.01_06.sv	188	628	. ID )	tagged Jmp (tagged JmpU .a) : pc = pc + a;
@@ -179,10 +174,7 @@ sv2v	test/core/jump.sv	0	110	` ID )	$display("UNREACHABLE ", `__LINE__);
 sv2v	test/core/logic_tf.sv	0	308	: ID logic	begin : A
 sv2v	test/core/multipack_struct_cast.sv	0	56	] [ NUM	logic [2][3] x;
 sv2v	test/core/nest_order.sv	18	34	' ( ID	localparam Y = 5'(Z);
-sv2v	test/core/package_function_cast.sv	0	186	' ( NUM	r[p+:2] = $bits(r[p+:2])'(1'sb1);
-sv2v	test/core/part_select_bits.sv	0	286	' ( ID	arr[i * B +: B] = $bits(arr[i * B +: B])'(i);
 sv2v	test/core/port_default.sv	0	185	= ID (	input wire integer x = F(P); // defining a default here is non-standard
-sv2v	test/core/size_cast.sv	0	266	' ( '	bar = $bits(bar)'('1);
 sv2v	test/core/struct_param.sv	449	522	] ID ;	logic [2] b;
 sv2v	test/core/struct_unit_array.sv	0	175	] ID =	S [WIDTH] s = '{
 sv2v	test/core/time.sv	57	70	` ID NUM	`timescale 1ns / 10ps
@@ -242,7 +234,6 @@ verilator	test_regress/t/t_constraint_dist_randc_bad.v	203	263	: = NUM	constrain
 verilator	test_regress/t/t_constraint_json_only.v	203	547	[ NUM :	length dist { [0:1], [2:5] :/ 2, 6 := 6, 7 := 10, 1};
 verilator	test_regress/t/t_constraint_operators.v	203	1423	~ ID ==	constraint unary { !(-~c == 'h22); }
 verilator	test_regress/t/t_constraint_unsat.v	200	495	) begin /	if (!randomize() with { addr == a; data == d; }) begin
-verilator	test_regress/t/t_cover_expr.v	238	2526	' ( ID	if ((cyc[3+32'(t1&&t2)+:2] == cyc[5+32'(t3||t4)+:2]) || cyc[31]) $write("");
 verilator	test_regress/t/t_cover_fsm_sel_assign.v	197	634	ID ; begin	logic [D-1:0][W-1:0] s;
 verilator	test_regress/t/t_covergroup_autobins_bad.v	306	471	; } endgroup	bins auto[size_var];
 verilator	test_regress/t/t_covergroup_cross_opt_unsup.v	260	511	} ID :	}
@@ -383,4 +374,3 @@ verilator	test_regress/t/t_vams_basic.v	231	483	; assign ID	wreal wr;
 verilator	test_regress/t/t_var_dotted_dup_bad.v	203	248	ID ( .	eh2_ram dccm_bank (.*);
 verilator	test_regress/t/t_var_dup_bad.v	728	794	; endmodule module	output bad_reout_port;
 verilator	test_regress/t/t_var_ref_static.v	277	357	ID ) ;	function void crs(const ref static i);
-verilator	test_regress/t/t_wide_temp_while_cond.v	260	542	' ( ID	while (|((val[ 7'(one >> identity(32)) +: 96] << n) >> n)) begin

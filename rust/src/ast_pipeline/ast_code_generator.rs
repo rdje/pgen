@@ -165,6 +165,13 @@ impl AstCodeGenerator {
                 position: usize,
                 memo: HashMap<(RuleId, usize), MemoEntry<'input>>,
                 recursion_guard: RecursionGuard,
+                // SV-CORPUS-GRAD.3.12 — RECURSION-TAINT COUNTER, mirrored from the
+                // main emitter so no emitter in the repository carries the
+                // known-unsound "cache a stack-dependent outcome under a
+                // stack-blind key" pattern. Monotone count of cycle-guard
+                // rejections; `memoized_call` refuses to cache a body that
+                // moved it.
+                recursion_block_events: u64,
                 debug_mode: bool,
                 debug_output: Vec<String>,
             }
@@ -223,12 +230,16 @@ impl AstCodeGenerator {
 
                 match cycle_type {
                     CycleType::Infinite => {
+                        // SV-CORPUS-GRAD.3.12 — recursion taint (see the field).
+                        self.recursion_block_events += 1;
                         return Err(ParseError::InvalidSyntax {
                             message: "Infinite recursion detected",
                             position,
                         });
                     }
                     CycleType::LeftRecursive => {
+                        // SV-CORPUS-GRAD.3.12 — recursion taint (see the field).
+                        self.recursion_block_events += 1;
                         return Err(ParseError::InvalidSyntax {
                             message: "Left recursion detected",
                             position,
@@ -604,13 +615,17 @@ impl AstCodeGenerator {
                     return entry.result.clone();
                 }
 
+                // SV-CORPUS-GRAD.3.12 — see `recursion_block_events`.
+                let recursion_snapshot = self.recursion_block_events;
                 let result = parser(self);
                 let end_pos = self.position;
 
-                self.memo.insert(key, MemoEntry {
-                    result: result.clone(),
-                    end_pos,
-                });
+                if result.is_ok() || self.recursion_block_events == recursion_snapshot {
+                    self.memo.insert(key, MemoEntry {
+                        result: result.clone(),
+                        end_pos,
+                    });
+                }
 
                 result
             }

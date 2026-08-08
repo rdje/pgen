@@ -15,35 +15,35 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `fb236a2db21fd6b1a72f9c606861841b652526cef947ac340140e387009d0f8d` |
+| parse binary | `rust/target/release/parseability_probe` | `a61c29e5eba2ee4e7d897f746eecd49df1936c7c50d06527f172e27ba7e4371e` |
 | grammar | `grammars/systemverilog.ebnf` | `2439cb18a98560ae83fe09e5c572cadd03445d089798131c53b4ea22092786b0` |
-| generated parser | `generated/systemverilog_parser.rs` | `786e49aac9db80bf03cfdab97f698a679b65684d743edb793266f70a33e138c3` |
+| generated parser | `generated/systemverilog_parser.rs` | `24ae8a3d9534e0a0ab4d903ef3c757c4e98d04b6aa432686d1ae2daddde2ba24` |
 
-Measured at `HEAD` = `df180942+dirty` (2026-08-08).
+Measured at `HEAD` = `09576657+dirty` (2026-08-08).
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9694 | 6638 | 4 | 0 | 59.3% |
+| 16336 | 9712 | 6620 | 4 | 0 | 59.5% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
-| black-parrot | 205 | 16 | 189 | 0 | 0 | 7.8% |
+| black-parrot | 205 | 17 | 188 | 0 | 0 | 8.3% |
 | Cores-VeeR-EL2 | 102 | 18 | 84 | 0 | 0 | 17.6% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
-| ispras-sv-tests | 1266 | 1075 | 191 | 0 | 0 | 84.9% |
+| ispras-sv-tests | 1266 | 1076 | 190 | 0 | 0 | 85.0% |
 | iverilog | 3799 | 3229 | 570 | 0 | 0 | 85.0% |
-| opentitan | 3983 | 782 | 3197 | 4 | 0 | 19.6% |
+| opentitan | 3983 | 789 | 3190 | 4 | 0 | 19.8% |
 | scr1 | 50 | 7 | 43 | 0 | 0 | 14.0% |
 | slang | 92 | 71 | 21 | 0 | 0 | 77.2% |
-| Surelog | 828 | 686 | 142 | 0 | 0 | 82.9% |
+| Surelog | 828 | 690 | 138 | 0 | 0 | 83.3% |
 | sv-tests | 1028 | 850 | 178 | 0 | 0 | 82.7% |
-| sv2v | 953 | 721 | 232 | 0 | 0 | 75.7% |
+| sv2v | 953 | 724 | 229 | 0 | 0 | 76.0% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
 | verible | 152 | 121 | 31 | 0 | 0 | 79.6% |
-| verilator | 3263 | 2067 | 1196 | 0 | 0 | 63.3% |
+| verilator | 3263 | 2069 | 1194 | 0 | 0 | 63.4% |
 
 _Raw per-file results: `stimuli/sv/characterization/results.tsv`._

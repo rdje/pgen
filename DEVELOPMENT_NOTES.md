@@ -1,5 +1,74 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0029 — the same invariant, violated a second time, with the same wrong first cure
+
+The SV corpus burn-down's next leaf was cut expecting a missing Annex-A alternative and found an
+engine soundness defect instead: `casting_type ::= … | constant_primary` is present and correct, the
+`cast` rule parses `$clog2(P)'(P)` fine under `--entry-rule cast`, and the whole-file parse still
+rejects it. **A rule that parses standalone and fails as a branch of its own parent cannot be a
+grammar defect — grammar text does not change with the caller.** That single observation is what
+turned a two-hour grammar hunt into a ten-minute engine diagnosis, and it is worth carrying: when
+`--entry-rule R` accepts and `--entry-rule <parent-of-R>` rejects the same bytes, stop reading the
+EBNF.
+
+⭐ **The mechanism generalises past this defect: a cache keyed `K` may only hold outcomes that are a
+function of `K`.** PGEN's packrat memo is keyed `(rule_id, position)`. The cycle guard's rejection is
+a fact about the live parse stack, so an outcome produced under one is not keyed by the memo key —
+and filing it there replays a refusal in a context where the guard would never have fired. This is
+the SECOND axis to violate that invariant; `MEMO-STORE-SOUNDNESS` F1 was the first (the semantic
+store). Same shape, same blast radius, found months apart. The durable takeaway is the standing
+question, not the two instances: whenever you add state a rule body can read or that can make it
+fail, ask *is this in the memo key?* — and answer it in the same commit.
+
+⛔ **And then the same wrong cure was available again, and taken.** "Don't cache tainted entries" is
+obvious and sound, and it has now been measured unshippable on BOTH axes: 117× on the store axis
+(`scr1_core_top` 1 484 ms → 173 580 ms), and here a file that passes inside a 60 s budget ran past
+300 s. The reason is identical both times — **entry counts are not attempt counts**; in a deeply
+mutually-recursive grammar almost every body transitively touches the tainted state, so a
+subtree-wide exclusion deletes the packrat protection exactly where it is holding PEG backtracking
+down. The sibling leaf says this in as many words and it still had to be re-learned by running it,
+which is the honest reason it is written here as a lesson rather than as a footnote.
+
+⭐ **The cure that works is to scope the taint, and the scoping is different per axis because the
+state is shaped differently.** The store has a monotone write epoch, so a tainted entry can be
+STAMPED and VALIDATED. The recursion guard has no epoch — its verdict is a function of the live
+stack, which no scalar summarizes — so the lever is the other one: a block whose blocking frame is
+the memoized rule itself or one of its own descendants is re-created identically by every replay and
+is harmless; only a block owned by a STRICT ANCESTOR makes the outcome caller-dependent. Both guard
+scans already return on the first (shallowest) match, so the blocking frame's index *is* the floor,
+and the whole fix is a floor scope per memo body plus `floor < entry_depth - 1`. Generalisable form:
+**when you cannot summarise the context, find the sub-part of it the cached value actually
+depends on.**
+
+⛔⛔ **And then symmetry with the sibling axis was ASSUMED, and the corpus refuted that too.** The
+store axis had found its success side unsound as a separate probe, so this fix was written to refuse
+both polarities "because that history was on record". Four corpus files regressed **pass→fail**, all
+of them a cast inside an index in a cyclic expression context. Asking what each cached value actually
+ASSERTS explains why, and the two axes turn out to be opposites: a cached FAILURE under a guard says
+*"the search stopped here"*, never *"no derivation exists"* — unsound to replay. A cached SUCCESS
+says *"this derivation exists, and was found"*, which stays true from any stack. **The store changes
+what the CORRECT ANSWER IS; a guard changes only what the SEARCH CAN REACH.** So the store axis must
+validate its successes and this one must PRESERVE them, and the shipped gate is failures-only.
+⭐ The general form is worth more than the fix: *before reusing a soundness argument from a
+neighbouring axis, ask what the condition actually establishes about the cached value.* Two
+consecutive refutations in one leaf — the blunt scope, then the assumed symmetry — both from the same
+16 336-file measurement, and neither reachable by reasoning.
+
+⭐⭐ **The measurement also exposed an engine property nobody had written down: on cyclic rules the
+packrat memo is part of the ACCEPTANCE SEMANTICS, not just the cost model.** The success replay is
+what lets an indirect left-recursive construct parse at all — the guard refuses to re-derive it, and
+the cache supplies the derivation found before the guard applied. Two consequences: acceptance on
+such rules is **evaluation-order-dependent** (which context reaches `(rule, position)` first decides
+it — the deeper reason this defect existed), and every *"dropping a cache cannot change a correct
+parse"* argument in this repository holds only for **acyclic** rules, including the one the P1b
+memo-elision increment leaned on. Routed as `SV-CORPUS-GRAD.11c` rather than absorbed.
+
+⭐ **A guard that fires correctly can still cause a wrong answer.** Every cycle-guard rejection in
+this defect was right — the parse would not have terminated otherwise. The defect lived entirely in
+what was done with the rejection afterwards. When a guard meets a cache, audit the cache.
+
+Promotion: `docs/knowledge/a-memo-key-must-name-every-context-the-outcome-depends-on.md`.
+
 ## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0028 — the third consumer of one convention, and why the failure landing LAST is the expensive part
 
 Three scripts read column 3 of `results.tsv`. `CORPUS-GRAD-ALL.2.1` made that column

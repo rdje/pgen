@@ -16,11 +16,25 @@ This is the document downstream projects such as Nexsim should read first when d
 > consumers: corpus wall-clock measured ≈ +15% on the uvm_pkg case (soundness-driven cache
 > validation); tracked optimization headroom is `docs/tasks/MEMO-STORE-SOUNDNESS.md` leaf `.3`.
 
+
+> **Current-state note (2026-08-08, `SV-CORPUS-GRAD.3.12` — engine-level, release `1.0.177`, ledger
+> `SV-0047`):** the same packrat memo was also **recursion-blind**. A parse outcome produced under a
+> cycle-guard rejection depends on which rules were on the live PARSE STACK, which the memo key
+> `(rule_id, position)` does not carry — so such a FAILURE could be replayed from a stack where the
+> guard would never have fired, refusing legal input. Measured on SV: `$clog2(P)'(P)` (an IEEE
+> 1800-2017 A.8.4-legal size cast) rejected, while the SAME parser parsed the SAME bytes under
+> `--entry-rule cast`. A recursion-tainted failure is no longer cached. ⚠️ Unlike the store fix above
+> this one **does change verdicts**, in the permissive direction only — corpus pass 9 694 → 9 712
+> with **0 pass→fail** over 16 336 files and 0 over the 2 459-file `verilog_2005` lane — hence the
+> release bump. Schema stays `19` (no emitted kind added, renamed or removed). ⭐ A cached SUCCESS is
+> deliberately still replayed: a guard limits the SEARCH, not the LANGUAGE, and on cyclic rules that
+> replay is what makes indirect left recursion parse at all (`docs/tasks/SV-CORPUS-GRAD.md` `.11c`).
+
 ## Contract Identity
 - Contract version:
-  - `1.0.176`
+  - `1.0.177`
 - Parser release version:
-  - `1.0.176`
+  - `1.0.177`
 - Embedding API contract baseline:
   - `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)

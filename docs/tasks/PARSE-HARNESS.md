@@ -1274,6 +1274,17 @@ handled (stack overflow → large-stack worker; no-memo slowness → bounded cor
 > delegates to it, and the suite grew four `quant_bounded_*` isolating cases (16 → **20**, all CLEAN).
 > The 16/16 numbers below are the honest historical record of `.6.1`'s landing.
 
+> ⚠️ LIVE-SPEC NOTE (2026-08-08, session #215): the suite gained a 28th case,
+> `recursion_guarded_memo_isolation`, from **`SV-CORPUS-GRAD.3.12`** — the packrat memo × RUNTIME
+> CYCLE-BREAKING composition. ⭐ Worth recording as a coverage lesson for this tree specifically:
+> that defect is a *structural* one, it lives in the engine both implementations share, and **no
+> shipped-grammar corpus surfaced it** — the `.5` end-to-end gate was green on all 11 certified
+> grammars throughout. It took an SV corpus burn-down leaf to find it, and it took a synthetic
+> isolating grammar to pin it. The honest reading is that per-combinator coverage was incomplete in a
+> dimension the enumeration did not name: the suite listed the CONSTRUCTS the interpreter dispatches,
+> not the ENGINE MECHANISMS (memo, guard, speculation) those constructs run on top of, nor the
+> compositions between them.
+
 > Session #46, `PGEN-PARSE-HARNESS-0014`. A CODE change (adds `rust/src/parse_harness_combinator_suite.rs`,
 > wires `rust/src/lib.rs`, adds the `parse_harness_combinator_gate` Makefile target). Capability build:
 > "ROOT CAUSE" = the coverage gap that end-to-end `.5` equivalence leaves (only the shipped grammars'

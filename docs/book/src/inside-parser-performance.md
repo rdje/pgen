@@ -812,8 +812,8 @@ falsifiable ≈−6–18% ceiling *before* any emission code. The change itself 
 emitted helper: the inlined frame runs the rule body directly instead of through the memoized
 dispatch, shedding the three-way cache probe on every inlined entry and the success-path insert
 (a node clone plus semantic-delta and coverage extraction) on every inlined success. Dropping a
-cache can never change a correct parse — the packrat memo is a pure, taint-gated cache whose own
-soundness contract guarantees replay and re-execution agree — and the identity was verified by
+cache can never change a correct parse — a cache miss re-executes, and re-execution is the
+definition of the right answer — and the identity was verified by
 measurement anyway: all eight typed-AST dumps and the certification pins at three seeds are
 byte-identical, and the per-rule *committed* counts are unchanged on every pattern (the coverage
 system already counted replayed children under P1a, so live re-execution produces the identical
@@ -1294,6 +1294,43 @@ every entry against a global "store unchanged" check, and the alternated benchma
 promptly *regressed* the two fact-writing patterns (+3% and +15%) because every capture
 fact evicted the whole spine's entries — the per-entry classes recovered them to 9% and
 6% wins, a controlled A/B in which only the validity rule changed.
+
+A **fourth class, orthogonal to those three, joined both memos in `SV-CORPUS-GRAD.3.12`:
+recursion-tainted.** The store is not the only context a `(rule, position)` key omits — so
+is the parse stack itself. A body whose subtree hit a cycle-guard rejection produced an
+outcome that depended on which rules its *caller* had in flight, and replaying that from a
+different stack refuses parses the guard would have allowed. It was found on
+SystemVerilog: `$clog2(P)'(P)` is a legal size cast, `cast` parses it standing alone, and
+the whole-file parse rejected it because `cast` had failed once inside `call_primary`'s own
+frame, been cached, and been replayed as a cached failure when `primary` later reached its
+own `cast` branch — so a `longest_match` tournament picked a 9-byte call over a 13-byte
+cast it never ran. Here too the naive rule was tried and measured away: tainting a body for
+*any* block in its subtree is sound but took a corpus file that passes inside a 60 s budget
+past 300 s, the same "entry counts are not attempt counts" trap the store axis hit at 117×.
+The shipped rule scopes the taint instead. A block whose blocking frame is the memoized rule
+itself, or one of its own descendants, is re-created identically by every replay and is
+harmless; only a block owned by a strict ANCESTOR is taint. Both guard scans already return
+on their first (shallowest) match, so that frame's index is exactly the floor a body needs,
+and handing the floor up min'd with the caller's makes the taint stop at the ancestor that
+owns the frame. Unlike the store class this one is refused rather than validated — there is
+no monotone recursion epoch to stamp — and, unlike the store class, it is refused on **one
+polarity only**.
+
+That asymmetry is the most interesting thing the leaf found, and it was measured rather than
+reasoned: refusing tainted successes too, by analogy with the store axis, regressed four
+corpus files from pass to fail, every one a cast used inside an index in a cyclic expression
+context. Ask what each cached value actually asserts and the analogy breaks. A cached failure
+under a guard says *the search stopped here*, never *no derivation exists* — replaying that
+from a different stack refuses legal input. A cached success says *this derivation exists,
+and was found*, which remains true from any stack. The store changes what the correct answer
+IS; a guard changes only what the search can REACH. ⭐ And on a cyclic rule that success
+replay is not merely harmless but load-bearing: it is how the engine parses indirect
+left-recursive constructs at all, since the guard will not let them be re-derived. Which
+means the memo is part of the acceptance semantics there, not just the cost model — so
+acceptance on such rules is evaluation-order-dependent, and the *"dropping a cache cannot
+change a correct parse"* argument used for the memo-eliding increment earlier in this chapter
+is sound for acyclic rules, which is exactly the population that increment covers, and must
+not be reused outside it.
 
 Which graph runs is decided once, at parse start. A parse with no diagnostic consumer
 takes the fused graph. The moment anything asks to observe — certificate coverage, a

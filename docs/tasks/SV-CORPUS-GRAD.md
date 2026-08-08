@@ -2257,6 +2257,331 @@ plus the re-runnable drivers `run_matrix.sh`, `run_generator_probes.sh`,
   `global_measurement.txt`, where `--dump-rule-entry-counts-json` shows
   `time_literal` entered **28,643** times on the very file `.3.10` reasoned about.
 
+#### `.3.12` — a RECURSION-GUARD rejection is cached in a recursion-BLIND memo, so a legal parse is refused (the packrat × cycle-guard composition gap; ⭐ the exact sibling of `MEMO-STORE-SOUNDNESS` F1, on the OTHER context axis)
+
+- **Status: `in progress`** (session #215, 2026-08-08). Cut from the HEAD-vintage
+  382-row cluster map (`.10`) — entered as the *size/type cast* family (12 rows,
+  clusters `' ( ID` 7 + `' ( '` 2 + …) and root-caused to an **engine-tier
+  soundness defect that is not cast-specific and not SV-specific**.
+- **Why this leaf and not a grammar leaf:** the fix hierarchy (declarative >
+  grammar > engine) is a preference for the LOWEST tier that reaches the root
+  cause. Measured below, the grammar is already LRM-faithful on the construct
+  that fails — `casting_type ::= … | constant_primary` is present, and the rule
+  parses the input CORRECTLY in isolation. No grammar edit can reach the cause.
+
+**REPRODUCE — the minimal input, and the pair that isolates it.**
+
+```
+module m;
+  localparam int P = 8;
+  logic [7:0] x;
+  initial x = $clog2(P)'(P);     # REJECT  (furthest_position=74)
+endmodule
+```
+
+| input (same skeleton) | verdict |
+|---|---|
+| `4'(P);` — literal casting_type | **PASS** |
+| `(P)'(P);` — parenthesised `constant_primary` | **PASS** |
+| `(P+1)'(P);` — parenthesised expression | **PASS** |
+| `P'(P);` — `ps_parameter_identifier` | **PASS** |
+| `$clog2(P)'(P);` — `system_tf_call` casting_type | **REJECT** |
+| `$bits(P)'(P);` | **REJECT** |
+| `f(P)'(P);` — plain `tf_call` casting_type | **REJECT** |
+
+⇒ the failing class is exactly *casting_type = a CALL* (IEEE 1800-2017 A.8.4
+`casting_type ::= … | constant_primary`, A.8.4 `constant_primary ::= … |
+constant_function_call`, A.8.2 `constant_function_call ::= function_subroutine_call`
+⊇ `system_tf_call` / `tf_call`). All three spellings are LRM-legal.
+
+⭐ **AND THE RULE ITSELF IS INNOCENT — proven, not argued.** Driving the SAME
+input through the SAME parser with `--entry-rule` (TOOLBOX 1.2, entry-relative
+AST dump) parses it:
+
+```
+parseability_probe --parse-dump-ast-pretty systemverilog cast_only.txt out.json \
+    --profile sv_2017 --entry-rule cast          # "$clog2(P)'(P)"  -> parse_full passed
+parseability_probe … --entry-rule casting_type   # "$clog2(P)"      -> parse_full passed
+parseability_probe … --entry-rule primary        # "$clog2(P)'(P)"  -> REJECT, stops at 9
+```
+
+`primary` stops at **9** — the length of `$clog2(P)` — i.e. it selected the
+`call_primary` branch and never took the 13-char `cast` branch, under a
+`branch_policy=longest_match` tournament that must prefer the longer match.
+
+**ROOT CAUSE (WHY + WHERE) — the trace names the mechanism.**
+
+`PGEN_TRACE_VERBOSITY=debug … --entry-rule primary --trace-rules primary_sv_2017,cast`
+(⚠️ per TOOLBOX 2.2 the PARENT is traced, not only the suspect):
+
+```
+🚪 Entering branch 8/14 for rule 'method_call_receiver_sv_2017' at position 0
+💾 Memo miss for rule 110 at position 0 - computing fresh result        # 110 = cast
+💾 Memo miss for rule 111 at position 0 - computing fresh result        # 111 = casting_type
+💥 Infinite recursion detected in rule 'call_primary' at position 0
+❌ Exiting rule 'constant_function_call' with error: Backtrack { position: 0 }
+💥 Infinite recursion detected in rule 'casting_type' at position 0
+❌ Exiting rule 'constant_cast' with error: InvalidSyntax { message: "Infinite recursion detected" }
+❌ Exiting rule 'constant_primary_sv_2017' with error: Backtrack { position: 0 }
+💾 Memoized failed result for rule 111 at position 0
+💾 Memoized failed result for rule 110 at position 0                    # ← the poisoning
+…
+🚪 Entering branch 9/15 for rule 'primary_sv_2017' at position 0        # 9/15 = the `cast` branch
+💾 Memo hit for rule 110 at position 0 - cached failure                 # ← replayed out of context
+❌ Exiting rule 'cast' with error: Backtrack { position: 0 }
+🏁 Rule 'primary_sv_2017' selected branch 2/15 consuming 9 chars (branch_policy=longest_match)
+```
+
+- **WHY.** The FIRST attempt of `cast` at position 0 happens *inside*
+  `call_primary`'s own frame (`call_primary → method_call → method_call_receiver
+  → cast`). From there the chain `cast → casting_type → constant_primary →
+  constant_function_call → call_primary` re-enters `call_primary` at the SAME
+  position, so `RecursionGuard::check_cycle_id` correctly returns
+  `CycleType::Infinite` and the attempt fails. **That failure is a fact about the
+  PARSE STACK, not about `(rule, position)`** — yet `memoized_call` files it in
+  `memo_fail`, whose key is `(rule_id, position)` and nothing else. When
+  `primary_sv_2017` later reaches its own `cast` branch at position 0 — with
+  `call_primary` no longer on the stack, where the guard would NOT fire — the
+  store-blind cache replays the stale failure and the legal 13-char cast is never
+  attempted.
+- **WHERE.** `rust/src/ast_pipeline/ast_based_generator.rs` — the cycle guard
+  emitted at `:3869` (`check_cycle_id` → three blocking arms) and the split memo
+  at `:8891` (`memoized_call`: `memo_fail` / `memo_fail_tainted` / `memo`).
+  Mirrored on the fused bare path in
+  `rust/src/ast_pipeline/ast_based_generator/cascade.rs:629` (guard) + its thin
+  memo below it, and in the interpreter
+  `rust/src/parse_harness_interpreter.rs:1088` (`memoized_call`) whose
+  `parse_rule` depth ceiling (`:854`) is the same context-dependent shape.
+  ⇒ measured: **both graphs reject identically** (bare `--parse`, and the
+  protocol graph forced via `--dump-rule-entry-counts-json`), so the
+  observability twin is intact and BOTH memos carry the defect.
+- ⭐ **THIS IS `MEMO-STORE-SOUNDNESS` F1, ON A SECOND CONTEXT AXIS.** That tree
+  closed *"the failure cache is store-blind"* with taint + epoch validation. The
+  memo is also **recursion-blind**: an outcome produced under a cycle-guard
+  rejection is not a function of `(rule, position)` either. The two defects have
+  the same shape, the same blast radius (every generated parser), and the same
+  cure family — which is why the fix below is deliberately modelled on it rather
+  than invented.
+
+**FIX — tier: ENGINE (codegen template + the shared `RecursionGuard`). Two
+candidate scopes were implemented; the first was REJECTED BY MEASUREMENT.**
+
+⛔ **CANDIDATE 1 — "any cycle-guard rejection anywhere in the body taints it"
+(a monotone counter). Implemented, regenerated, measured, and REJECTED.** It is
+sound and it fixed the defect (all 8 reproducer rows PASS), but it is not
+shippable: on `verilator/test_regress/t/t_math_synmul_mul.v` — a file the `.10`
+baseline PASSES inside a 60 s budget on the release probe — the parse ran
+**past 300 s** (`timeout 300` → `rc=143`, wall 3 m 51 s). Cause: in a deeply
+mutually-recursive grammar almost every expression body has SOME block
+somewhere in its subtree, so a subtree-wide taint deletes most of the packrat
+protection. ⭐ **This is the same trap `MEMO-STORE-SOUNDNESS.2` hit on the store
+axis** — its exclusion thesis measured **117×** on SV and was replaced by
+epoch *validation*. Recorded here because the identical mistake was available
+again and only a measurement caught it: the leaf that closed the store axis
+says so in as many words, and it still had to be re-learned by running it.
+
+✅ **CANDIDATE 2 — FRAME-SCOPED taint (landed).** The insight the counter form
+misses: a guard rejection is context-dependent only with respect to frames
+**outside the memoized rule's own subtree**. A block whose blocking frame is
+that rule itself, or one of its own descendants, is re-created identically by
+every replay of that body and is therefore harmless.
+
+- `RecursionGuard` gains `last_block_frame` — the stack index of the frame that
+  caused the verdict, written only on the two already-failing return paths of
+  `check_cycle` / `check_cycle_id`. Both scans return on the FIRST (oldest,
+  shallowest) match, so the index is exactly the floor a caller needs. The hot
+  `CycleType::None` fall-through writes nothing.
+- The parser gains `recursion_block_floor: usize` (`usize::MAX` = none). Each
+  guard arm lowers it: `Infinite` / `LeftRecursive` to the blocking frame's
+  index, the over-depth `MutualRecursive` arm to **0** — that ceiling is a fact
+  about the WHOLE stack, so it taints unconditionally.
+- `memoized_call` and the fused thin memo open a scope around the body (save the
+  caller's floor, reset to `usize::MAX`, note `entry_depth`), and on exit hand
+  the floor up min'd with the caller's. The entry is tainted — and a tainted
+  **FAILURE** is therefore not cached (see `2a` below for why successes are) —
+  iff `floor < entry_depth - 1`, i.e. the block came
+  from a strict ancestor. Because each level re-applies the same test against its
+  own depth, taint propagates up **exactly as far as the ancestor that owns the
+  blocking frame, and stops there**.
+- ⛔ Deliberately NOT epoch-validated like the store taint: there is no monotone
+  "recursion epoch" to compare against — the guard's verdict is a function of the
+  live stack, which no scalar summarizes.
+
+⛔⛔ **CANDIDATE 2a — "refuse BOTH polarities" — WAS ALSO MEASURED AND REJECTED, and
+this is the leaf's most valuable finding.** Symmetry with the store axis was assumed,
+implemented, and the corpus refuted it: **4 files regressed pass→fail** —
+`ispras-sv-tests/ieee-1800-2012/16/16.14.06.01_03.sv` and `_05.sv`,
+`opentitan/hw/vendor/pulp_riscv_dbg/src/dm_sba.sv`,
+`verilator/test_regress/t/t_reloop_local.v` — every one of them a CAST used inside an
+INDEX in a cyclic expression context:
+
+```
+a5: assert property (foo[const'(i)] && bar[i]);          # ispras  (minimal: e3.sv, furthest=76)
+assert property (@(posedge clk) shuffle[ctr+Word'(i)] == i);   # verilator
+be_mask[int'({be_idx[$high(be_idx):1], 1'b0}) +: 2] = '1;      # opentitan
+```
+
+Trace on the minimal case names the mechanism exactly as before —
+`💥 Infinite recursion detected in rule 'call_primary' at position 62` and
+`… 'casting_type' at position 73` — but with the OPPOSITE consequence: here the cached
+**success** was what made the parse work. Fresh re-derivation at that position, with
+`call_primary` on the stack, is blocked by the guard, so the parse that the cache used
+to supply is simply lost.
+
+⭐ **THE ASYMMETRY IS PRINCIPLED, NOT A PATCH — and it is the opposite of the store
+axis's.** The semantic store changes what the CORRECT ANSWER IS, so a stale success
+there is genuinely wrong (`MEMO-STORE-SOUNDNESS.1` measured one flipping both the verdict
+AND the tree). A cycle guard changes only what the SEARCH CAN REACH — the language is
+untouched. So:
+
+| | cached FAILURE | cached SUCCESS |
+|---|---|---|
+| what it asserts | "no derivation from here" | "this derivation exists, and was found" |
+| what the guard actually established | only that *the search stopped* | nothing — the derivation is real |
+| replay in a different stack | **unsound** → refuses legal input (the bug) | over-permissive w.r.t. the GUARD, exactly right w.r.t. the GRAMMAR |
+| verdict | **refuse to cache** | **keep caching** |
+
+⇒ **the shipped gate is FAILURES ONLY.** And the success-side replay is not merely
+tolerable, it is **LOAD-BEARING**: it is how this engine parses indirect
+left-recursive constructs at all. That is worth stating plainly because it is a
+property of the engine nobody had written down — *the packrat memo is not only a cache
+here; on cyclic rules it is part of the acceptance semantics.* Whether such a construct
+parses depends on which context evaluated it first, which is also the deeper reason the
+original defect existed. Routed as a standing finding, not silently absorbed → `.11c`.
+
+**Mirrored at every memo site, so the two graphs and the oracle cannot drift:**
+`ast_based_generator.rs` (protocol memo) · `ast_based_generator/cascade.rs`
+(the fused bare graph's thin memo — the DEFAULT path for a plain `--parse`, and
+measured to carry the defect identically) · `parse_harness_interpreter.rs` (the
+differential oracle). ⚠️ The interpreter keeps a **counter** rather than a floor,
+and that is exact rather than sloppy: it has no cycle guard at all — its depth
+ceiling is its whole runtime-cycle-breaking path — and a depth ceiling is a
+whole-stack fact, so its floor would be 0 at every site, which is what "any hit
+taints" already means.
+
+**Regression pin (durable, in a gate that RUNS):** a new isolating case
+`recursion_guarded_memo_isolation` in the `.6.1` structural combinator suite
+(`make -C rust parse_harness_combinator_gate`), on a 6-rule synthetic grammar
+that reaches `cast` at position 0 once from inside the cycle and once from
+outside it. It is a differential AND an anchor case, so it fails on both a
+divergence and a wrong absolute verdict. ⛔ Deliberately NOT a bare `#[test]`:
+`cargo test --lib` is RED on HEAD and no gate reads it
+(`CI-PARITY-GATE-ROT.21`), so a pin placed there would be unreachable — the
+`GATE-REACHABILITY` principle applied before the fact instead of after.
+
+**MEASUREMENT (candidate 3, the shipped gate).**
+
+*The construct matrix — same skeleton, `initial x = <expr>;`, `--profile sv_2017`:*
+
+| casting_type | before | after |
+|---|---|---|
+| `4'(P)` literal · `(P)'(P)` paren · `(P+1)'(P)` expr · `P'(P)` param | PASS | PASS (unchanged) |
+| `$clog2(P)'(P)` · `$clog2(8)'(3)` · `$bits(P)'(P)` — `system_tf_call` | **REJECT** | **PASS** |
+| `f(P)'(P)` — a plain user `tf_call` | REJECT | REJECT ⚠️ see the honest bound |
+
+*The corpus, 16 336 files, release probe at 60 s (`analyze_transitions.py`, the `.10` instrument
+with its positive + negative controls):*
+
+| | before | after |
+|---|---|---|
+| pass | 9 694 | **9 712 (+18)** |
+| **pass → fail** | — | **0** |
+| **pass → timeout / crash** | — | **0** |
+| timeout | 4 | 4 (the same `.11a` xbar files) |
+| unexplained divergences | 403 | **393** |
+| — rejects-valid | 382 | **372 (−10)** |
+| — accepts-invalid | 21 | **21 (unchanged)** |
+
+Every changed row is `fail → pass`, spread across **six independent sub-corpora** — opentitan 7,
+Surelog 4, sv2v 3, verilator 2, black-parrot 1, ispras 1 — which is what distinguishes an engine fix
+from a fixture accident.
+
+*The `verilog_2005` lane, re-run rather than inferred (the engine change is profile-blind, so it had
+to be):* 2 459 files → **2 180 pass / 279 fail / 0 timeout**, per-file transitions **ZERO**.
+
+*Performance, the axis that killed candidate 1:* `t_math_synmul_mul.v` — **2.59 s, accepted**
+(candidate 1: killed at `timeout 300`). The corpus wall-clock stays in the same band as the `.10`
+baseline's 116 s.
+
+⚠️⚠️ **HONEST BOUND, stated because it is a real limit and not a rounding error: `f(P)'(P)` does NOT
+heal, and it healed under candidate 2.** A cast whose `casting_type` is a plain user `tf_call` still
+rejects; the `system_tf_call` spellings (`$clog2`, `$bits`) — the ones the corpus actually contains —
+do heal. The mechanism is the flip side of the success-caching decision: a recursion-tainted SUCCESS
+is now replayed, and on that input the replayed derivation wins a tournament the fresh one would
+have lost. ⛔ It is **not a regression** — `f(P)'(P)` rejects on the pre-`.3.12` baseline too — it is
+an un-healed member of the same class, and the corpus contains zero instances of it. The design that
+would close it *and* keep the 4 files is the **validated** form (store each tainted entry's blocked
+queries and re-run `check_cycle_id` at replay, instead of the current refuse-failures/keep-successes
+approximation). That is strictly more machinery for a case with no corpus population, so it is
+routed to `.11c` with the seeded-left-recursion work rather than built here.
+
+⭐ **What the three candidates cost, kept as the leaf's real product.** Candidate 1 was refuted on
+PERFORMANCE, candidate 2 on CORRECTNESS, and both refutations came from the same 16 336-file
+measurement; neither was reachable by reasoning, and candidate 2's error was specifically *reusing a
+neighbouring axis's soundness argument without asking what its condition establishes*. The two
+generalisations are promoted to
+`docs/knowledge/a-memo-key-must-name-every-context-the-outcome-depends-on.md`.
+
+⚠️ **Two honest scope bounds on the regeneration, neither introduced here.**
+`generated/ebnf.rs` is a BOOTSTRAP seed that `regenerate_generated_parsers` only
+produces when it is ABSENT (it covers "the annotation pair + 7 grammar families"),
+so the `ebnf` registered parser still carries the pre-fix memo; that is the
+repository's standing bootstrap posture — the seed was already 9 days behind other
+codegen work before this leaf — not a regression created by it. Same for
+`generated/scratch_parser.rs`, which `focus_scratch` owns. Both inherit the fix the
+next time they are produced; the fix itself is in the shared codegen, not in any
+artifact.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `parseability_probe --parse systemverilog cast_b.sv
+    --profile sv_2017` → `Parser did not consume full input at position 0
+    [furthest_position=96]` on `initial x = $clog2(P)'(P);`, an IEEE 1800-2017
+    A.8.4-legal size cast; `$bits(P)'(P)` and `f(P)'(P)` reject identically while
+    `4'(P)` / `(P)'(P)` / `(P+1)'(P)` / `P'(P)` all pass.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `PGEN_TRACE_VERBOSITY=debug …
+    --entry-rule primary --trace-rules primary_sv_2017,cast` prints, in order:
+    `💥 Infinite recursion detected in rule 'call_primary' at position 0` →
+    `💾 Memoized failed result for rule 110 at position 0` →
+    `🚪 Entering branch 9/15 for rule 'primary_sv_2017' at position 0` →
+    `💾 Memo hit for rule 110 at position 0 - cached failure` →
+    `🏁 Rule 'primary_sv_2017' selected branch 2/15 consuming 9 chars
+    (branch_policy=longest_match)`. WHERE: the guard at
+    `ast_based_generator.rs:3869` (mirrored `cascade.rs:629`) and the split memo at
+    `ast_based_generator.rs:8891` — a stack-dependent verdict filed under the
+    stack-blind key `(rule_id, position)`. The rule is exonerated by the SAME parser
+    on the SAME bytes: `--entry-rule cast` → `parse_full passed`.
+  - [x] **FIX** — tier: ENGINE (no lower tier can see it — the grammar is already
+    LRM-faithful and `cast` parses the input standalone). `RecursionGuard::last_block_frame`
+    + a per-body `recursion_block_floor` scope; a recursion-tainted FAILURE caused by a
+    STRICT ANCESTOR frame is not cached. Two earlier scopes measured and rejected (above).
+  - [x] **ADDRESSED (verified)** — oracle: `stimuli/run_external_corpus.sh sv 60 8 0`
+    under the memory guard with `PGEN_PARSE_PROBE_BIN=rust/target/release/parseability_probe`,
+    joined by `analyze_transitions.py` (which carries a positive identity-self-join control
+    and a planted-flip negative control). **corpus pass 9 694 → 9 712 (+18)**, unexplained
+    `403 → 393`, rejects-valid `382 → 372`; the 3 `system_tf_call` matrix rows flip
+    REJECT→PASS; `t_math_synmul_mul.v` 300 s+ → **2.59 s**.
+  - [x] **NO REGRESSION** — per-FILE census over all 16 336 rows: **0 pass→fail,
+    0 pass→timeout, 0 pass→crash**; accepts-invalid **21 identical**; `verilog_2005`
+    lane re-run 2 180/279/0 with **ZERO** transitions of 2 459. ⭐ **CROSS-FAMILY, because the fix is
+    in SHARED codegen and SV being clean does not prove VHDL is:** the VHDL corpus re-run —
+    **13 720 files, 4 335 pass / 9 385 fail / 0 timeout, ZERO per-file transitions.**
+    Re-runnable oracles, all
+    green: `CERTIFICATE-COVERAGE: … total=1352 proof=17 witness=1335 UNKNOWN=0
+    fully_certified=true (sample_parse_failures=0)` **identical at seeds 0, 7 and 42**;
+    `ast_shape_contract_gate` **18/18**; `parse_harness_combinator_gate` **28/28 CLEAN**
+    (incl. the new pin); `parse_harness_equivalence_gate` **4/4** (the interpreter stays
+    byte-identical to all 11 certified generated parsers, which is what proves the
+    interpreter mirror did not drift); `parse_harness_semantic_gate` **36/36 CLEAN**.
+  - [x] **LOCKSTEP** — release `1.0.176 → 1.0.177` (schema **19 UNCHANGED**, proven by
+    the shape gate rather than argued) + contract Current-state note; ledger row
+    `SV-0047`; SV book changelog; `TOOLBOX.md` 27→28 cases; the parse-harness book
+    chapter + `PARSE-HARNESS.md` §20 LIVE-SPEC note; *Inside Parser Performance* gains the
+    fourth taint class AND has its "replay and re-execution agree" premise CORRECTED —
+    that claim was false on this axis, and the P1b conclusion it supported survives for a
+    different reason (a cache miss re-executes), which the chapter now states;
+    `KNOWLEDGE_MAP` + the new card; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`;
+    `docs/TASK_TREE.md`; `.11c` opened for the routed finding.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so
@@ -3313,6 +3638,70 @@ why the doctrine says re-measure rather than reason.
   Same root cause family as `.10`'s blocker (a path convention encoded in two
   places), dormant because all 174 uvm rows adjudicate `deferred:*`. It will wake up
   the moment `.4` chaining promotes any uvm row into the defect population.
+- **`.11c` — ⭐ the packrat memo is part of the ACCEPTANCE SEMANTICS on cyclic rules,
+  and nothing says so** (routed out of `.3.12`, 2026-08-08). Measured there: whether an
+  indirect left-recursive construct parses depends on the memo replaying a success the
+  cycle guard would refuse to re-derive — remove that replay and 4 corpus files stop
+  parsing. Two consequences nobody has priced. **(a)** Acceptance is
+  EVALUATION-ORDER-DEPENDENT on such rules: the same construct parses or not according to
+  which context reached that `(rule, position)` first, which is the deeper reason `.3.12`'s
+  defect existed at all rather than a separate curiosity. **(b)** Every "dropping a cache
+  cannot change a correct parse" argument in this repository is therefore true only of
+  ACYCLIC rules — including the one `RGX-0078.5.i.4` (P1b memo elision) leaned on, which
+  is why the performance chapter's wording was corrected in the same commit. ⛔ Not a
+  defect report: the current behaviour is the useful one and `.3.12` preserves it
+  deliberately. It is a **missing invariant** — the engine should state, and gate, what
+  its memo guarantees on a cyclic rule. Natural home for the fix is a Warth-style seeded
+  left-recursion treatment (grow-the-seed), which would make the acceptance
+  order-INdependent by construction rather than by cache luck; that is a design leaf, and
+  it belongs to the engine, not to this corpus tree.
+
+## ROUTING EVIDENCE (`.3.12` → `.11c`, and the `.11a`/`.11b` pair from `.10`)
+
+⛔ Required by the `ROUTING-EVIDENCE` doctrine: *a routing is a claim about WHERE a defect lives, and
+the deciding evidence is usually already on disk.*
+
+### `.11c` — the memo is part of the acceptance semantics on cyclic rules
+
+1. **Does it reproduce OUTSIDE the family it is routed to? — YES, MEASURED, and that is precisely
+   why it is routed to the ENGINE rather than to any grammar family.** Three independent
+   measurements, none of them SystemVerilog:
+   - the isolating case `recursion_guarded_memo_isolation` reproduces the whole mechanism on a
+     **6-rule SYNTHETIC grammar** with no SV in it, through the compile-and-run oracle AND the
+     interpreter (`parse_harness_combinator_gate`, 28/28);
+   - the code changed is `ast_based_generator.rs` + `ast_based_generator/cascade.rs` +
+     `RecursionGuard` in `mod.rs` — **shared codegen and shared runtime**, compiled into every
+     generated parser, so no grammar can opt out;
+   - the **VHDL** corpus was re-run for exactly this reason (13 720 files, **0 transitions**), and
+     the equivalence gate re-certified **all 11** grammars, confirming the behaviour is uniform
+     rather than SV-shaped.
+2. **What was MEASURED to place it there, not what makes it plausible?** That refusing to replay a
+   recursion-tainted SUCCESS costs **4 corpus files pass→fail** — i.e. the replay is load-bearing for
+   acceptance, not merely a cache hit. That is an observation about the ENGINE's acceptance
+   semantics on cyclic rules; it was obtained by A/B-ing two engine builds over the same 16 336-file
+   corpus, not inferred from the SV grammar.
+3. **What would have to be true for the routing to be WRONG, and was it checked?** It would be wrong
+   if the behaviour were an artifact of `systemverilog.ebnf`'s particular cycle (`cast → casting_type
+   → constant_primary → constant_function_call → call_primary`) rather than of the engine. Checked
+   and refuted: the synthetic grammar has none of those rules and exhibits the identical
+   order-dependence, and the interpreter — a second implementation with **no cycle guard at all**,
+   only a depth ceiling — shows the same class through its own mechanism. ⚠️ **Honest limit:** the
+   *quantitative* claim ("how much acceptance depends on evaluation order") is measured only on SV
+   and on the synthetic case. No other family's cyclic surface has been swept for order-dependent
+   acceptance, and `.11c` should start by doing that rather than by assuming SV is representative.
+
+### `.11a` / `.11b` (routed by `.10`, evidence recorded here for completeness)
+
+- **`.11a`** (four opentitan crossbars over a 60 s budget) is routed INSIDE this tree, not out — it
+  is an SV-corpus performance row with a tool-pinned locus (`--dump-rule-call-counts` on
+  `xbar_peri.sv`). It was **re-measured under `.3.12`**: still exactly 4 timeout rows, the same
+  files, unchanged by the memo fix — so it is not a memo-caching defect wearing a performance mask,
+  which is the reading that would have made this routing wrong.
+- **`.11b`** (`cluster_rejects_valid.py` rebuilding `uvm-core` paths under `subs/`) is a
+  repo-script path-convention defect, also routed inside this tree. It reproduces outside SV **by
+  construction** — the same normalizer defect class was already measured in
+  `adjudicate_external_corpus.py` (`.10`) and `corpus_rule_coverage.py` (`.7c`) — which is why it is
+  filed as a convention defect with three known consumers rather than as an SV-corpus bug.
 
 ## Corpus-sufficiency assessment (banked 2026-07-22, session #191 — the no-BS baseline behind the mandate)
 

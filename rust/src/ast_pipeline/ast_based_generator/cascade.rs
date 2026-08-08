@@ -628,18 +628,27 @@ impl AstBasedGenerator {
                     let position = parser.position;
                     match parser.recursion_guard.check_cycle_id(Self::#rule_const, position) {
                         CycleType::Infinite => {
+                            // SV-CORPUS-GRAD.3.12 — recursion taint, mirrored
+                            // one-for-one from the protocol guard so the two
+                            // graphs cache exactly the same set of bodies.
+                            parser.note_recursion_block(parser.recursion_guard.last_block_frame);
                             return Err(CascadeControlError::InvalidSyntax {
                                 message: "Infinite recursion detected",
                                 position,
                             });
                         }
                         CycleType::LeftRecursive => {
+                            // SV-CORPUS-GRAD.3.12 — see above.
+                            parser.note_recursion_block(parser.recursion_guard.last_block_frame);
                             return Err(CascadeControlError::InvalidSyntax {
                                 message: "Left recursion detected",
                                 position,
                             });
                         }
                         CycleType::MutualRecursive { depth, .. } if depth >= #recursion_guard_max_depth => {
+                            // SV-CORPUS-GRAD.3.12 — the depth ceiling is a fact
+                            // about the WHOLE stack: floor 0.
+                            parser.note_recursion_block(0);
                             return Err(CascadeControlError::RecursionDepthExceeded {
                                 position,
                                 depth,
@@ -699,22 +708,54 @@ impl AstBasedGenerator {
                     // through RULE_NAMES, so the 24-byte name frame is not
                     // maintained here.
                     parser.recursion_guard.enter_id_bare(Self::#rule_const, position);
+                    // SV-CORPUS-GRAD.3.12 — RECURSION-TAINT scope, the thin
+                    // memo's mirror of the protocol memo's gate. Opened AFTER
+                    // the bare frame is pushed, so `entry_depth - 1` is this
+                    // rule's own index exactly as on the protocol path.
+                    let __pgen_thin_saved_floor = parser.recursion_block_floor;
+                    parser.recursion_block_floor = usize::MAX;
+                    let __pgen_thin_entry_depth = parser.recursion_guard.rule_id_stack.len();
                     let __pgen_thin_result: CascadeResult<()> =
                         (|parser: &mut Self| -> CascadeResult<()> {
                             #parse_logic
                             Ok(())
                         })(parser);
                     parser.recursion_guard.exit_bare();
+                    // SV-CORPUS-GRAD.3.12 — close the taint scope and hand the
+                    // floor up min'd with the caller's (see the protocol memo).
+                    let __pgen_thin_recursion_floor = parser.recursion_block_floor;
+                    parser.recursion_block_floor =
+                        __pgen_thin_saved_floor.min(__pgen_thin_recursion_floor);
                     // Classify the body per the taint classes: a store-MUTATING
                     // body is never cached (segment replay would skip its
                     // effects); a store-READ body is cached with the
                     // unchanged-epoch stamp; a PURE body is cached
                     // unconditionally (the protocol's untainted license).
+                    // SV-CORPUS-GRAD.3.12 adds a fourth, ORTHOGONAL class:
+                    // RECURSION-TAINTED FAILURE — a cycle-guard rejection
+                    // caused by a frame OUTSIDE this rule's own subtree — is
+                    // never cached, for the same reason the protocol memo
+                    // refuses it: the outcome is keyed by the live parse
+                    // stack, which the `(row, position)` slot does not carry.
+                    // A block owned by this rule or one of its descendants is
+                    // re-created by every replay and is NOT taint, which is
+                    // what the `floor < entry_depth - 1` test says; and a
+                    // tainted SUCCESS stays cached, because a guard limits the
+                    // SEARCH rather than the LANGUAGE (measured: refusing it
+                    // regressed 4 corpus files pass→fail). Kept as a separate
+                    // condition rather than folded into the stamp: the stamp
+                    // is a *validatable* store epoch pair, and there is no
+                    // recursion equivalent to validate against.
                     let __pgen_thin_mutated =
                         parser.semantic_runtime_state.write_epoch() != __pgen_thin_epoch
                             || parser.semantic_runtime_state.deferred_obligation_count()
                                 != __pgen_thin_deferred;
-                    if !__pgen_thin_mutated {
+                    // FAILURES ONLY — see the protocol memo's gate for the
+                    // measured reason the success side must keep replaying.
+                    let __pgen_thin_recursion_tainted = __pgen_thin_result.is_err()
+                        && __pgen_thin_recursion_floor
+                            < __pgen_thin_entry_depth.saturating_sub(1);
+                    if !__pgen_thin_mutated && !__pgen_thin_recursion_tainted {
                         let __pgen_thin_stamp =
                             if parser.semantic_runtime_state.predicate_evaluations()
                                 == __pgen_thin_preds

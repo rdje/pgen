@@ -1775,6 +1775,19 @@ pub struct RecursionGuard {
     pub rule_id_stack: Vec<(RuleId, usize)>,
     pub max_depth: usize,
     pub cycle_cache: HashMap<(String, usize), CycleType>,
+    /// SV-CORPUS-GRAD.3.12 — the STACK INDEX of the frame that caused the most recent blocking
+    /// cycle verdict (`Infinite` / `LeftRecursive`); `usize::MAX` when the last check did not
+    /// block. Written only on the already-failing paths of [`Self::check_cycle`] /
+    /// [`Self::check_cycle_id`], so the hot `CycleType::None` return is untouched.
+    ///
+    /// Why an index rather than a flag: a guard rejection is a fact about the live parse stack, so
+    /// an outcome computed under one is not a function of the memo key `(rule, position)`. But it
+    /// is only the frames OUTSIDE the memoized rule's own subtree that make it so — a block whose
+    /// blocking frame is the memoized rule itself, or one of its own descendants, is re-created
+    /// identically by every replay of that body and is therefore harmless. Both scans return on
+    /// the FIRST (oldest, shallowest) match, so this index is exactly the floor a caller needs to
+    /// compare against its own frame depth. See `memoized_call`'s taint gate.
+    pub last_block_frame: usize,
 }
 
 impl RecursionGuard {
@@ -1784,6 +1797,7 @@ impl RecursionGuard {
             rule_id_stack: Vec::new(),
             max_depth,
             cycle_cache: HashMap::new(),
+            last_block_frame: usize::MAX,
         }
     }
 
@@ -1791,11 +1805,13 @@ impl RecursionGuard {
     /// by the bootstrap (`ast_code_generator`) emitter and any caller without a
     /// `RuleId`.
     pub fn check_cycle(&mut self, rule_name: &'static str, position: usize) -> CycleType {
-        for (r, p) in self.parse_stack.iter() {
+        for (index, (r, p)) in self.parse_stack.iter().enumerate() {
             if *r == rule_name && *p == position {
+                self.last_block_frame = index;
                 return CycleType::Infinite;
             }
             if *r == rule_name && *p > position {
+                self.last_block_frame = index;
                 return CycleType::LeftRecursive;
             }
         }
@@ -1830,11 +1846,16 @@ impl RecursionGuard {
     /// `depth` alone, and generated bare paths reconstruct complete names
     /// from `rule_id_stack` through their own `RULE_NAMES` table instead.
     pub fn check_cycle_id(&mut self, rule_id: RuleId, position: usize) -> CycleType {
-        for (rid, p) in self.rule_id_stack.iter() {
+        for (index, (rid, p)) in self.rule_id_stack.iter().enumerate() {
             if *rid == rule_id && *p == position {
+                // SV-CORPUS-GRAD.3.12 — record the BLOCKING FRAME's index (see the field). One
+                // store on a path that is already returning an error; the `None` fall-through
+                // below — the hot case — writes nothing.
+                self.last_block_frame = index;
                 return CycleType::Infinite;
             }
             if *rid == rule_id && *p > position {
+                self.last_block_frame = index;
                 return CycleType::LeftRecursive;
             }
         }

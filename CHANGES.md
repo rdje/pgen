@@ -1,5 +1,58 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0029 — leaf SV-CORPUS-GRAD.3.12: a RECURSION-GUARD rejection was cached in a recursion-BLIND memo, refusing legal parses — corpus 9 694 → 9 712 with ZERO pass→fail
+
+- **The next `.3.x` leaf was cut expecting a missing Annex-A alternative and found an ENGINE
+  soundness defect.** `casting_type ::= … | constant_primary` is present and LRM-faithful, and
+  `--entry-rule cast` parses `$clog2(P)'(P)` — yet the whole-file parse rejected it. ⭐ *A rule
+  that parses standalone and fails as a branch of its own parent cannot be a grammar defect;
+  grammar text does not change with the caller.*
+- **Root cause (traced, not inferred).** `cast` is first attempted INSIDE `call_primary`'s own
+  frame, where `cast → casting_type → constant_primary → constant_function_call → call_primary`
+  re-enters `call_primary` at the same position; the cycle guard correctly rejects. That rejection
+  is a fact about the PARSE STACK, but `memo_fail` is keyed `(rule_id, position)` and nothing else,
+  so when `primary` later reaches its own `cast` branch — `call_primary` no longer on the stack —
+  the stale failure replays and a `longest_match` tournament picks a 9-byte call over the 13-byte
+  cast it never ran. ⭐ **The exact sibling of `MEMO-STORE-SOUNDNESS` F1, on a second context
+  axis**: that tree closed "the failure cache is store-blind"; the same cache is also
+  recursion-blind.
+- **Fix (engine tier — codegen template + the shared `RecursionGuard`), mirrored at all four memo
+  sites** (protocol memo, the fused graph's thin memo, the interpreter oracle, the bootstrap
+  emitter): the guard records its BLOCKING FRAME's stack index, each memoized body opens a floor
+  scope, and a **recursion-tainted FAILURE** — one caused by a frame outside the rule's own subtree
+  — is refused. Taint propagates up exactly as far as the ancestor owning the frame and stops.
+- ⛔ **TWO candidate designs were implemented, measured, and REJECTED before this one.**
+  **(1) Subtree-wide taint** is sound and fixed every reproducer, but took a corpus file that
+  passes inside a 60 s budget **past 300 s** — the same "entry counts are not attempt counts" trap
+  the store axis hit at 117×. **(2) Frame-scoped but refusing BOTH polarities** regressed **4 files
+  pass→fail** (ispras `16.14.06.01_03`/`_05`, opentitan `dm_sba.sv`, verilator `t_reloop_local.v`),
+  all a cast inside an index in a cyclic expression context.
+- ⭐⭐ **The asymmetry that (2) exposed is the leaf's most valuable output, and it is the OPPOSITE of
+  the store axis.** A cached FAILURE under a guard asserts *"the search stopped here"*, never *"no
+  derivation exists"* — unsound to replay. A cached SUCCESS asserts *"this derivation exists, and
+  was found"*, which stays true from any stack. **The store changes what the correct answer IS; a
+  guard changes only what the search can REACH.** So the store axis validates its successes and
+  this one preserves them — the shipped gate is FAILURES ONLY.
+- ⭐ **And that success replay is LOAD-BEARING: on cyclic rules the packrat memo is part of the
+  ACCEPTANCE SEMANTICS, not the cost model.** It is how indirect left-recursive constructs parse at
+  all. Consequences routed to `.11c`: acceptance on such rules is evaluation-order-dependent, and
+  every *"dropping a cache cannot change a correct parse"* argument in the repo holds only for
+  ACYCLIC rules — the performance chapter's wording is corrected in this commit.
+- **MEASURED. Main `sv_2017` corpus, 16 336 files, release probe at 60 s: pass 9 694 → 9 712 (+18),
+  and the per-FILE census reports 0 pass→fail, 0 pass→timeout, 0 pass→crash.** The 18 heals span
+  SIX independent sub-corpora (opentitan 7 / Surelog 4 / sv2v 3 / verilator 2 / black-parrot 1 /
+  ispras 1). Unexplained divergences **403 → 393**; rejects-valid **382 → 372**; accepts-invalid
+  **21 unchanged**. `verilog_2005` lane re-run (the change is profile-blind): 2 180/279/0, **zero
+  transitions**. `t_math_synmul_mul.v` back to **2.59 s**.
+- ⚠️ **Honest bound:** `f(P)'(P)` — a cast whose casting type is a plain user `tf_call` — does NOT
+  heal (the `$clog2`/`$bits` spellings the corpus contains do). It rejects on the pre-fix baseline
+  too, so it is an un-healed class member rather than a regression, with zero corpus instances;
+  closing it needs the validated form, routed to `.11c`.
+- New durable pin: `recursion_guarded_memo_isolation`, the 28th case in the structural combinator
+  suite — deliberately placed in a gate that RUNS rather than a bare `#[test]`, since
+  `cargo test --lib` is RED on HEAD and nothing reads it (`CI-PARITY-GATE-ROT.21`).
+- LIVE tracker unchanged.
+
 ## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0028 — leaf SV-CORPUS-GRAD.7c: the COVERAGE axis re-measured at HEAD — 91.1 % → 92.3 %, and the `.9` worklist re-cut 120 → 104 with ZERO new gaps
 
 - **The graduation bar has TWO halves and `.10` only refreshed one.** Applying `.10`'s new

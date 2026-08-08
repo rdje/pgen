@@ -133,6 +133,13 @@ pub enum Combinator {
     /// Left recursion in the wrapper/indirect form PGEN structurally eliminates
     /// (`expr := wrapper | term`, `wrapper := expr "+" term`), rewritten to `base (suffix)*`.
     LeftRecursion,
+    /// SV-CORPUS-GRAD.3.12 — the packrat memo × RUNTIME CYCLE-BREAKING composition. A cycle-guard
+    /// rejection is a fact about the live parse stack, not about `(rule, position)`, so a body that
+    /// hit one must not be filed under the memo's stack-blind key: replaying it from a *different*
+    /// stack refuses a parse the guard would have allowed. The isolating grammar reaches the same
+    /// rule twice at the same position — once from INSIDE the cycle (blocked) and once from outside
+    /// it (legal) — so a memo that caches the blocked attempt loses the second, longer match.
+    RecursionGuardedMemoIsolation,
     /// The DEFAULT layout policy (no `@whitespace_sensitive:` directive): layout is auto-skipped
     /// before terminals and after the entry rule (WS-DIRECTIVE.2 contrast case).
     LayoutInsensitiveDefault,
@@ -185,6 +192,7 @@ impl Combinator {
         Combinator::AtomRegexToken,
         Combinator::RuleReference,
         Combinator::LeftRecursion,
+        Combinator::RecursionGuardedMemoIsolation,
         Combinator::LayoutInsensitiveDefault,
         Combinator::LayoutWhitespaceSensitiveFull,
         Combinator::LayoutWhitespaceSensitiveRegexTokens,
@@ -469,6 +477,36 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         entry_rule: Some("expr"),
         requested_profile: None,
         note: "the wrapper/indirect LR form is structurally eliminated to `base (suffix)*`",
+    },
+    // ── The packrat memo × runtime cycle-breaking composition (SV-CORPUS-GRAD.3.12) ─────────────────
+    CombinatorCase {
+        name: "recursion_guarded_memo_isolation",
+        combinator: Combinator::RecursionGuardedMemoIsolation,
+        // The isolating shape of the SV defect, minimised. `cast -> call -> recv -> cast` is an
+        // INDIRECT left-recursive cycle, so it is NOT the wrapper form `detect_left_recursive_chain_plan`
+        // structurally eliminates (`recv`'s body is a bare ref to `cast`, not `call <rest>`); it is left
+        // to RUNTIME cycle-breaking, which is the point.
+        //
+        // On "f(x)'(x)" the rule `cast` is reached at position 0 TWICE:
+        //   1. from inside the cycle — `start` -> `call` -> `recv` -> `cast` -> `call` re-enters `call`
+        //      at position 0, the guard rejects, and `cast` fails. That failure is a fact about the
+        //      live parse stack.
+        //   2. from outside it — `start`'s own second alternative, with `call` no longer on the stack,
+        //      where `cast` legitimately matches all 8 bytes.
+        // A memo that files attempt 1 — a FAILURE — under the stack-blind key `(cast, 0)` replays it at
+        // attempt 2, so `start`'s longest_match tournament never sees the 8-byte alternative and keeps
+        // the 4-byte `call` — leaving "'(x)" unconsumed and REJECTING valid input. Both implementations
+        // carry a runtime cycle-breaking path (the generated parser's `check_cycle_id`, the
+        // interpreter's depth ceiling), so the case is discriminating on BOTH sides and its fix is a
+        // shared one. ⭐ Note the polarity: the fix refuses to cache tainted FAILURES only. Refusing
+        // tainted successes as well was measured to regress 4 SV corpus files pass→fail, because on a
+        // cyclic rule the success replay is what lets an indirect left-recursive construct parse at
+        // all — a guard limits the SEARCH, not the LANGUAGE.
+        grammar_body: "@entry: true\nstart := call | cast\ncall := recv | fn\nrecv := cast\ncast := call \"'\" \"(\" \"x\" \")\"\nfn := \"f\" \"(\" \"x\" \")\"\n",
+        inputs: &[("f(x)'(x)", true), ("f(x)", true), ("f(x)'(y)", false), ("g(x)", false)],
+        entry_rule: None,
+        requested_profile: None,
+        note: "a cycle-guard rejection must not be memoized under the stack-blind (rule, position) key",
     },
     // ── Layout policy — the grammar-level `@whitespace_sensitive:` directive (WS-DIRECTIVE.2) ──────
     CombinatorCase {
