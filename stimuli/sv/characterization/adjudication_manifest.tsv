@@ -9301,7 +9301,7 @@ opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_jtag_breakout.sv	pass	c
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_jtag_buf.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_strap_sampling.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_wkup.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/dv/cov/pwrmgr_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9898,7 +9898,7 @@ opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_jtag_breakout.sv	pass	cha
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_jtag_buf.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_strap_sampling.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_wkup.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/dv/cov/pwrmgr_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10231,7 +10231,7 @@ opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_jtag_breakout.sv	
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_jtag_buf.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_strap_sampling.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_wkup.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/dv/cov/pwrmgr_cov_bind.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10618,7 +10618,7 @@ opentitan	hw/vendor/pulp_riscv_dbg/tb/dp_ram.sv	pass	chained_only	deferred:chain
 opentitan	hw/vendor/pulp_riscv_dbg/tb/jtag_dmi/jtag_intf.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/jtag_dmi/jtag_test.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/jtag_dmi/tb_jtag_dmi.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/vendor/pulp_riscv_dbg/tb/mm_ram.sv	timeout	chained_only	divergence:explained_timeout	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/vendor/pulp_riscv_dbg/tb/mm_ram.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/tb_test_env.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/tb_top.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/vendor/pulp_riscv_dbg/tb/tb_top_verilator.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -14937,7 +14937,7 @@ verilator	test_regress/t/t_math_svl.v	pass	must_accept	match	verilator: driver t
 verilator	test_regress/t/t_math_svl2.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_math_svl2.py expects success
 verilator	test_regress/t/t_math_swap.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_swap.py expects success
 verilator	test_regress/t/t_math_synmul.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_math_synmul.py expects success
-verilator	test_regress/t/t_math_synmul_mul.v	timeout	chained_only	divergence:explained_timeout	verilator: no same-stem driver and never a top_filename - include/companion fragment
+verilator	test_regress/t/t_math_synmul_mul.v	pass	chained_only	deferred:chained_only	verilator: no same-stem driver and never a top_filename - include/companion fragment
 verilator	test_regress/t/t_math_tri.v	pass	must_accept	match	verilator: driver t_math_tri.py expects success
 verilator	test_regress/t/t_math_trig.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_math_trig.py expects success
 verilator	test_regress/t/t_math_vgen.v	pass	must_accept	match	verilator: driver t_math_vgen.py expects success

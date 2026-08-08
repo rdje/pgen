@@ -1,0 +1,34 @@
+# SV axis-2 per-file transition census
+
+before : rust/target/sv_axis2_baseline/results.before.tsv  (16336 rows)
+after  : rust/target/sv_axis2_baseline/results.head_t60_debug.tsv  (16336 rows)
+common : 16336   only-before: 0   only-after: 0
+
+pass count : 9693 -> 9694  (delta +1)
+
+## Transition matrix (common files only)
+
+| before | after | files |
+|---|---|---|
+| pass | pass | 9693 |
+| fail | fail | 6634 |
+| timeout | timeout | 6 |
+| timeout | fail | 2 |   <-- CHANGED
+| timeout | pass | 1 |   <-- CHANGED
+
+## Per sub-corpus changed transitions
+
+| sub-corpus | transition | files |
+|---|---|---|
+| opentitan | timeout -> fail | 2 |
+| verilator | timeout -> pass | 1 |
+
+## timeout -> fail  (2 files)
+
+  [opentitan] stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv
+  [opentitan] stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_top.sv
+
+## timeout -> pass  (1 files)
+
+  [verilator] stimuli/sv/subs/verilator/test_regress/t/t_math_synmul_mul.v
+

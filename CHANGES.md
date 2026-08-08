@@ -1,5 +1,63 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0027 — leaf SV-CORPUS-GRAD.10: the axis-2 number is RE-MEASURED on HEAD and it SURVIVES — 16 336 files, zero pass→fail, zero fail→pass
+
+- **The FRESHNESS AUDIT's mandated first act, executed.** The tracked SV corpus report
+  (`59.3 %`) was committed 2026-07-25 while `grammars/systemverilog.ebnf` last changed
+  2026-07-26, so it provably could not describe HEAD. Re-measured: **the verdict set is
+  IDENTICAL** — 9 693 pass→pass, 6 632 fail→fail, **0 pass→fail, 0 fail→pass**. The grammar
+  commit that made the report stale-by-provenance changed **no SV verdict at all**. Stale by
+  provenance, correct by content — and only a re-measure could tell those apart.
+- **Instrument proven fresh BEFORE any number was trusted:** `focus_systemverilog`
+  regenerates `generated/systemverilog_parser.rs` **byte-identically** (`786e49aa…`).
+- ⛔ **The re-adjudication was BLOCKED by a live defect, fixed here.**
+  `adjudicate_external_corpus.py:1947` split column 3 on `"/stimuli/sv/uvm/"` — a marker whose
+  **leading slash** no repo-root-relative row can contain — so the first `uvm-core` row aborted
+  the run (`unrecognized results path shape`). `git log -S` dates both sides: marker written
+  `95368e5c` (2026-07-22, absolute-path era), runner made relative `db5a640e` (2026-08-08).
+  ⭐ The break sits under a comment claiming it cannot happen: compatibility was **verified on
+  the `/subs/<suite>/` arm and generalized to an arm where it was never true**. Fixed with a
+  leading-slash-free `UVM_FOLD_MARKER`; the comment corrected in place.
+- **Three runs isolate every variable, and only the timeout column ever moves** — debug/20 s
+  (9 timeouts), debug/60 s (6), release/60 s (4) — with the pass/fail sets **identical
+  throughout**. ⇒ **a timeout is a statement about the instrument, never about the parser.**
+  The tracked artifact is now the release/60 s run.
+- **Burn-down baseline CONFIRMED at HEAD: `unexplained = 403`** (rejects-valid **382** +
+  accepts-invalid **21**), reproduced in all three runs; both generators re-proven
+  deterministic (`cmp` ×2). The `verilog_2005` lane re-measured too — 2 459 files, 2 180/279,
+  **0 changed rows**, manifest and summary byte-identical to the tracked copies.
+- ⭐ **A loose end `.3.9` could only label is now root-caused:** its "+1 proven jitter" is
+  `verilator/t_math_synmul_mul.v`, a parse that straddles a 20 s budget and passes
+  deterministically at 60 s. That is why the tracked report read 9 693 while `.3.9` measured
+  9 694 — different budgets, never a conflict.
+- ⚠️ **Two stale artifacts found and repaired:** the tracked cluster map was still at its
+  **273-row** pre-ADD-v1 vintage (population has been 382 since `.3.9`) — regenerated to 382
+  rows / 211 signatures; and `.3`'s umbrella population line still read 406 — corrected to 382.
+- **DURABLE FIX FOR THE DEFECT CLASS:** every characterization report now carries an
+  **Instrument identity** table — sha256 of the parse binary, the grammar and the generated
+  parser, plus the measuring `HEAD` — so "is this number still mine?" is one command instead of
+  git-date archaeology. Family-generic (VHDL and the `sv2005` lane inherit it). Published as
+  **failure shape 10** in the book's gate-flow catalogue.
+- **ROUTED to new leaf `.11`:** (a) four opentitan autogen-crossbar files exceed 60 s even on
+  release — two are **261** and 321 lines, i.e. super-linear backtracking, locus tool-pinned
+  (`streaming_concatenation` 407 352 / `attribute_instance` 394 824 / `system_tf_call` 394 128
+  calls); (b) `cluster_rejects_valid.py` rebuilds `uvm-core` paths under `subs/` — same
+  two-places-encode-one-convention root cause, dormant only because all 174 uvm rows defer.
+- ⛔ **AND THE COMMIT WAS BLOCKED BY A DOCTRINE FALSE POSITIVE, fixed here as `DESIGN-PRIOR-ART.2`.**
+  `check_design_prior_art.sh` scans `^docs/tasks/.*\.md$`, which also matches
+  `docs/tasks/artifacts/**` — machine-GENERATED evidence, not task leaves. The regenerated
+  cluster report quotes corpus source verbatim, so the verible fixture line `` `@x[y];` `` read
+  as a proposed directive `@x`. ⭐ `.1` had predicted *"false positives are structurally
+  unlikely"* — true of the TOKEN TEST it reasoned about, and the FP came from the **file
+  selection** instead. The FP was also unfixable as prescribed: its only remedy is a
+  `PRIOR ART` section in the offending file, which the next regeneration deletes. Fixed by
+  excluding the artifacts subtree; REACH proven unchanged by two controls (a staged leaf
+  proposing `@totally_novel_directive` still exits 1; the same file under `artifacts/` exits 0).
+- **Lesson PROMOTED to the retrievable layer** (not declined):
+  `docs/knowledge/a-measurement-that-cannot-name-its-instrument-cannot-be-checked-for-staleness.md`,
+  with a runnable `reverify:` that re-hashes the grammar against the report's own identity block.
+- LIVE tracker unchanged (no family status moved); no grammar, codegen or generated change.
+
 ## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0008 (docs-only) — the off-volume-checkout director call is ANSWERED, and a read-only pre-deletion audit proves the future deletion is safe
 
 - **Director disposition (2026-08-08):** `$HOME/Documents/github/pgen` — and in fact the whole

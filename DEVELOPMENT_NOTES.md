@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0027 — "verified before changing this" was true of one arm and written about two
+
+The runner's own comment says the consumers key on *"the `/subs/<suite>/` (or `/stimuli/sv/uvm/`)
+INFIX … which a relative path still contains — verified before changing this."* Half of that is a
+measurement and half is an inference, and the sentence does not distinguish them.
+`stimuli/sv/subs/verilator/x` really does still contain `/subs/verilator/`; nothing
+repo-root-relative contains `/stimuli/…`. **The check was run on the arm that was easy to reach and
+its result was generalized to the arm that was not** — and because the SV corpus had not been re-run
+since, the break sat there for exactly as long as it took someone to re-run it.
+
+⛔ **The lesson is not "test both arms". It is that a compatibility claim names a SET, and the
+evidence has to cover the set.** A shared infix is compatible only with a spelling that has it, so
+the honest form of that comment would have been *"verified for the `subs` arm; the uvm arm's marker
+carries a leading slash and does not survive"* — which is a sentence nobody writes, because writing
+it forces the fix. When a comment asserts compatibility across N shapes, either enumerate the N
+verdicts or delete the claim.
+
+⭐ **A per-COUNT comparison would have declared this re-measure a non-event; the per-FILE census is
+what made it a result.** The headline moved from 9 693 to 9 694 — a delta of one, which nets a heal
+against a regression and says nothing (cf. `a-rising-pass-rate-is-not-evidence-of-correctness`). The
+census says something much stronger and much more useful: **every one of 9 693 passing files still
+passes and every one of 6 632 failing files still fails**. "The number is unchanged" and "no file
+changed verdict" look alike on a summary line and are entirely different claims — and only the
+second one licenses continuing the campaign from the existing worklist.
+
+⭐⭐ **Ranking the runs by what each one can rule out beat running the "right" one.** Three runs, each
+isolating one variable: debug/20 s reproduces the baseline's *conditions* (so a difference would be
+the parser); debug/60 s removes the budget (so a difference would be the budget); release/60 s
+removes the build (so a difference would be the build). The pass/fail sets were identical in all
+three and only `timeout` moved — 9 → 6 → 4. That is what upgrades "a timeout is probably an
+instrument artifact" from a plausible remark to a measured fact, and it retro-explains `.3.9`'s
+unexplained "+1 proven jitter" as a file straddling a 20 s budget.
+
+**And the instrument itself got controls before it was believed.** The transition census carries a
+positive control (identity self-join → 0 changes, and its pass count reproduces the tracked 9 693,
+which incidentally proves the preserved baseline IS the artifact behind the tracked report) and a
+negative control (one planted flip → caught exactly once, at exactly that file). Both ran before any
+transition number was quoted — the cheap habit that separates "my diff found nothing" from "there is
+nothing to find".
+
 ## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0007 — the same trap twice in one rule, because I guarded the level I was thinking about instead of every level where the competition exists
 
 **I wrote the guard, explained the guard in a comment, and then missed the guard one level up.** The

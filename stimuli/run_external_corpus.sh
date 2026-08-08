@@ -118,6 +118,30 @@ echo "external-corpus[$FAM]: parsing ${#FILES[@]} files (timeout=${TIMEOUT_S}s, 
 
 printf '%s\0' "${FILES[@]}" | xargs -0 -P "$JOBS" -I{} bash -c 'parse_one "$@"' _ {} >> "$RESULTS"
 
+# ---- instrument identity (SV-CORPUS-GRAD.10) ----
+#
+# ⛔ A characterization report that does not name WHICH parser produced it cannot be checked
+# for staleness. The axis-2 FRESHNESS AUDIT (2026-08-08) had to prove the tracked SV report
+# stale by comparing the GIT COMMIT DATES of two OTHER files, because the report itself said
+# only "against `parseability_probe`" — not which build, not which grammar, not which HEAD.
+# Content hashes make the artifact self-dating: a later reader re-hashes the same three
+# inputs and knows in ONE command whether the number still describes their tree. This closes
+# the staleness defect class named by project_all_parsers_fully_pass_stimuli_and_external_corpora
+# ("the first honest act is to re-measure them rather than to quote them") at the source, so
+# the next reader does not have to reconstruct vintage from unrelated commit dates.
+sha256_of() {
+  [ -f "$1" ] || { printf '(absent)'; return; }
+  if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1" | cut -d' ' -f1
+  elif command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1
+  else printf '(no sha256 tool)'; fi
+}
+
+GRAMMAR_FILE="$ROOT/grammars/$GRAMMAR.ebnf"
+GEN_PARSER="$ROOT/generated/${GRAMMAR}_parser.rs"
+HEAD_ID="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || printf 'unknown')"
+HEAD_DATE="$(git -C "$ROOT" log -1 --date=short --format=%ad 2>/dev/null || printf 'unknown')"
+if [ -n "$(git -C "$ROOT" status --porcelain 2>/dev/null)" ]; then HEAD_ID="$HEAD_ID+dirty"; fi
+
 # ---- aggregate ----
 TOTAL=$(wc -l < "$RESULTS" | tr -d ' ')
 PASS=$(awk -F'\t' '$2=="pass"' "$RESULTS" | wc -l | tr -d ' ')
@@ -136,6 +160,19 @@ PCT=$(awk -v p="$PASS" -v t="$TOTAL" 'BEGIN{ if(t>0) printf "%.1f", 100*p/t; els
   echo "> INTENTIONALLY invalid (GHDL \`gna\` regressions, VESTS \`non_compliant/\`, sv-tests"
   echo "> \`:should_fail_because:\`), so a parse-FAIL is frequently the CORRECT outcome — not a"
   echo "> parser bug. Expected-vs-actual adjudication per sub-corpus is the follow-up slice."
+  echo
+  echo "## Instrument identity (what produced this number)"
+  echo
+  echo "> Re-hash these three inputs; if any hash differs from the row below, **this report no"
+  echo "> longer describes your tree** and the honest act is to re-measure, not to quote."
+  echo
+  echo "| input | repo-root-relative path | sha256 |"
+  echo "|---|---|---|"
+  echo "| parse binary | \`${PROBE#"$ROOT/"}\` | \`$(sha256_of "$PROBE")\` |"
+  echo "| grammar | \`${GRAMMAR_FILE#"$ROOT/"}\` | \`$(sha256_of "$GRAMMAR_FILE")\` |"
+  echo "| generated parser | \`${GEN_PARSER#"$ROOT/"}\` | \`$(sha256_of "$GEN_PARSER")\` |"
+  echo
+  echo "Measured at \`HEAD\` = \`$HEAD_ID\` ($HEAD_DATE)."
   echo
   echo "## Totals"
   echo

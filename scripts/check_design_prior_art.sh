@@ -25,9 +25,20 @@ cd "$ROOT" || exit 1
 
 REGISTRY="rust/src/ast_pipeline/semantic_directive_registry.rs"
 
-# Staged task-tree files only. No staged set (e.g. a manual run) => nothing to judge.
+# Staged task LEAF files only. No staged set (e.g. a manual run) => nothing to judge.
+#
+# ⛔ `docs/tasks/artifacts/**` is EXCLUDED (DESIGN-PRIOR-ART.2). That subtree holds
+# machine-GENERATED evidence — cluster reports, sweeps, probe dumps — not task leaves,
+# and a design proposal by definition lives in a leaf. Scanning it produced a measured
+# false positive: `rejects_valid_clusters.md` quotes corpus source lines verbatim, and
+# the verible fixture line `@x[y];` reads as a proposed directive `@x`. That FP is also
+# unfixable in the intended way — the only remedy the check offers is adding a
+# `PRIOR ART` section to the file, which the next regeneration would delete — so the
+# gate would have failed permanently on a regenerated artifact. Coverage is unchanged:
+# leaves are exactly where a proposal can be made.
 staged="$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null \
-          | grep -E '^docs/tasks/.*\.md$' || true)"
+          | grep -E '^docs/tasks/.*\.md$' \
+          | grep -vE '^docs/tasks/artifacts/' || true)"
 [ -n "$staged" ] || exit 0
 
 # A directive name already known to the project: present in the registry or in any

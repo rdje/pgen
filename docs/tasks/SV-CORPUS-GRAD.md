@@ -64,6 +64,14 @@ a suspicion — it is a date comparison. Per
 re-measure them rather than to quote them"), **the campaign's first act is a re-measure**, and the
 `403` unexplained-divergence adjudication inherits the same defect.
 
+> ✅ **ANSWERED by leaf `.10` (same day): the re-measure was run and the number SURVIVED it.** All
+> 16 336 files were re-parsed on HEAD — **zero pass→fail and zero fail→pass** against this report,
+> so `59.3 %` and `unexplained = 403` are correct at HEAD; the grammar commit that made this report
+> stale-by-provenance changed no SV verdict. ⛔ **That does not retire the audit's rule** — the
+> report was unquotable *when written*, and only a measurement could distinguish "stale and wrong"
+> from "stale and right". The reports are now **self-dating** (an Instrument-identity hash table),
+> so the next reader answers this in one command instead of a date archaeology. See `.10`.
+
 Two further defects in the artifact itself, both already solved for VHDL by
 `CORPUS-GRAD-ALL.2.1` and inherited here for free:
 1. `results.tsv` is **untracked** (`.gitignore:412`) and **overwritten in place** by the runner —
@@ -268,8 +276,11 @@ coverage.
   progress; the family map REFRESHED to v3 over the current 426-row population
   that leaf — see `.3.7`). Burn-down continued: **`.3.7`** (drive/charge strength
   keywords §28.11/A.8.6, done, 426→406, CROSS-PROFILE + the largest v2005 heal
-  116→62). **Current rejects-valid baseline after `.3.7`: 406** (accepts-invalid
-  21; v2005 62).
+  116→62). Rejects-valid baseline after `.3.7`: 406 (accepts-invalid 21; v2005 62),
+  then **406 → 383 → 382** across `.3.8`/`.3.9`. ⛔ **CURRENT, RE-MEASURED ON HEAD by
+  `.10` (2026-08-08): rejects-valid 382 + accepts-invalid 21 = `unexplained` 403**,
+  reproduced identically under three different instrument settings. This line had
+  read `406` since `.3.7` while the later leaves moved it — corrected by `.10`.
 
 #### `.3.0` — Stuck-point clustering over the rejects-valid population (read-only diagnosis)
 
@@ -2986,6 +2997,219 @@ plus the re-runnable drivers `run_matrix.sh`, `run_generator_probes.sh`,
   cited (externally-grounded, never generator-derived — external means
   externally authored). Loop until 100% of the parseable surface is
   exercised or N/A-with-cause. Feeds `.5`'s widened criterion.
+
+### `.10` — the axis-2 RE-MEASURE at HEAD (the FRESHNESS AUDIT's mandated first act) + the self-dating report
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0027`, session #214, 2026-08-08) — the leaf the
+  **AXIS-2 FRESHNESS AUDIT** (tree preamble, session #213) ordered: the tracked
+  `59.3 %` over 16 336 files was committed **2026-07-25** and
+  `grammars/systemverilog.ebnf` last changed **2026-07-26**, so the number
+  provably cannot describe HEAD. Nothing in this campaign may be quoted until it
+  is re-measured ([[project_all_parsers_fully_pass_stimuli_and_external_corpora]]:
+  *"the first honest act is to re-measure them rather than to quote them"*).
+- **Scope (deliberately narrow — this is a MEASUREMENT leaf, not a fix leaf):**
+  (1) prove the INSTRUMENT is HEAD-vintage before trusting any number it emits;
+  (2) re-run `stimuli/run_external_corpus.sh sv` and bank the per-file
+  transitions against the preserved baseline; (3) re-adjudicate and re-cluster so
+  `.3`'s burn-down worklist is defect signal at HEAD rather than at a July
+  vintage; (4) close the staleness defect CLASS at its source so the audit never
+  has to be reconstructed from unrelated commit dates again.
+- ⛔ **Ground rule inherited from the tree:** characterize FIRST, fix SECOND. Any
+  defect this leaf surfaces is ROUTED to a `.3.x` burn-down leaf, never worked
+  here — and a rising pass count is NOT by itself evidence of correctness
+  ([[a-rising-pass-rate-is-not-evidence-of-correctness]]).
+
+**STEP 1 — INSTRUMENT FRESHNESS (done; the number's precondition).**
+
+| question | method | verdict |
+|---|---|---|
+| is `generated/systemverilog_parser.rs` what HEAD's grammar + HEAD's codegen emit? | regenerate under the guard (`focus_systemverilog`, exit 0, 71 s, peak RSS 1 949 MB) and `shasum -a 256` both artifacts against the pre-run copies | **BYTE-IDENTICAL** — `786e49aa…` parser, `ab9acf62…` annotations. The artifact was already fresh; the STALE thing is the report, exactly as the audit said |
+| was the tracked report's binary the debug or the release probe? | the report records only the basename `parseability_probe` | ⛔ **UNANSWERABLE from the artifact** — which is itself the defect this leaf closes (see the report change below) |
+
+**THE DURABLE FIX FOR THE DEFECT CLASS (code, `stimuli/run_external_corpus.sh`):**
+the report now carries an **Instrument identity** table — the sha256 of the parse
+binary, of the grammar, and of the generated parser, plus the measuring `HEAD`
+(with a `+dirty` marker). Re-hashing three files now answers *"is this number
+still mine?"* in one command; before, staleness could only be inferred by
+comparing the git commit dates of two OTHER files. Family-generic (paths derived
+from `$GRAMMAR`), so VHDL and the `sv2005` lane inherit it for free.
+
+**STEP 2 — ⛔ THE BLOCKER: THE RE-ADJUDICATION DIED ON ITS FIRST `uvm-core` ROW.**
+
+```
+$ python3 stimuli/sv/adjudicate_external_corpus.py
+unrecognized results path shape: 'stimuli/sv/uvm/uvm-core-2020.3.1/compat/uvm_compat_macros.svh'
+```
+
+- **ROOT CAUSE (WHY + WHERE):** `adjudicate_external_corpus.py:1947` splits column 3
+  on the literal `"/stimuli/sv/uvm/"` — **with a leading slash**, which a
+  repo-root-relative row (`stimuli/sv/uvm/…`) cannot contain. Both sides dated by
+  `git log -S`: the marker was written **2026-07-22** (`95368e5c`, leaf `.8a`), when
+  the runner still emitted ABSOLUTE paths; the runner went repo-root-relative
+  **2026-08-08** (`db5a640e`, `CORPUS-GRAD-ALL.2.1`) — and this leaf is the first
+  SV re-run since, so the break had never been executed.
+- ⭐ **The break sits directly under a comment claiming it cannot happen.**
+  `run_external_corpus.sh:83` states the consumers key on *"the `/subs/<suite>/`
+  (or `/stimuli/sv/uvm/`) INFIX … which a relative path still contains — verified
+  before changing this."* That is true of the FIRST arm and false of the SECOND:
+  `stimuli/sv/subs/verilator/x` does still contain `/subs/verilator/`, but nothing
+  relative contains `/stimuli/…`. **The claim was verified on one arm and
+  generalized to both** — a shared infix is compatible only with a spelling that
+  has it. The comment is corrected in place.
+- **FIX (minimal, one tier — the marker, not the caller):** the infix becomes the
+  module constant `UVM_FOLD_MARKER = "stimuli/sv/uvm/"`, leading-slash-free, so it
+  matches an absolute row AND a relative one. The `/subs/{suite}/` arm is left
+  untouched: it is demonstrably correct for both spellings, and dropping its
+  leading slash would widen it for no gain.
+
+**STEP 3 — THE RE-MEASURE. Three runs, because each one exposed the next variable.**
+
+| run | probe | budget | files | pass | fail | timeout | rate |
+|---|---|---|---|---|---|---|---|
+| baseline (tracked, 2026-07-25) | unrecorded | 20 s | 16 336 | 9 693 | 6 634 | 9 | 59.3 % |
+| A — like-for-like at HEAD | `target/debug` | 20 s | 16 336 | 9 693 | 6 632 | 11 | 59.3 % |
+| B — honest budget | `target/debug` | 60 s | 16 336 | **9 694** | 6 636 | 6 | **59.3 %** |
+| **C — TRACKED** | `target/release` | 60 s | 16 336 | **9 694** | 6 638 | 4 | **59.3 %** |
+
+⭐ **THE HEADLINE, and it is a per-FILE claim rather than a count claim:** across
+**16 336** files the HEAD verdict set is **IDENTICAL** to the 2026-07-25 baseline —
+**9 693 pass→pass, 6 632 fail→fail, ZERO pass→fail, ZERO fail→pass.** Every
+difference in both runs is confined to the timeout column. ⇒ the grammar commit
+that made the tracked report *provably stale by provenance* (`7219547c`,
+`@entry: true` mandatory) changed **no SV corpus verdict at all**. The report was
+stale in the sense that mattered procedurally and sound in the sense that mattered
+numerically — and only a re-measure could tell those two apart, which is exactly
+why the doctrine says re-measure rather than reason.
+
+- **Run A's 2 `fail → timeout` rows are an INSTRUMENT ARTIFACT, individually
+  re-verified rather than assumed:** both opentitan
+  `alert_handler_reg_top.sv` (22 322 / 19 466 lines) complete **rc=1 (a genuine
+  `fail`) in 17.56 s and 15.69 s** when run alone — they sit just under a 20 s
+  budget and crossed it under 8-way load. Their true HEAD verdict is `fail`, as in
+  the baseline.
+- ⭐ **Run B ROOT-CAUSES A LOOSE END `.3.9` COULD ONLY LABEL.** `.3.9` recorded its
+  corpus move as *"9,692→9,694 (+1 attributable, +1 proven jitter)"*. The jitter row
+  is `verilator/test_regress/t/t_math_synmul_mul.v`, and it is not jitter: it is a
+  parse that straddles a 20 s budget, so it PASSES deterministically at 60 s. That
+  is why the tracked report reads 9 693 while `.3.9` measured 9 694 — the two
+  numbers were never in conflict, they were taken at different budgets. Run B
+  reproduces `.3.9` exactly.
+- ⭐ **RUN C SETTLES THE QUESTION THE BASELINE COULD NOT EVEN BE ASKED: does the
+  BUILD change the verdict? Measured, no.** Debug vs release over the same 16 336
+  files at the same budget: **9 694 pass identical, 6 636 fail identical, ZERO
+  pass↔fail divergence.** The only column that moves is `timeout` (6 → 4: the
+  42 192-line `pinmux_reg_top.sv` and the 571-line `mm_ram.sv` resolve to `fail`
+  once the binary is fast enough to finish). ⇒ **a `timeout` is a statement about
+  the instrument, never about the parser** — which is precisely why the tracked
+  artifact should be produced by the fastest honest instrument, and why the report
+  now names its binary by hash.
+- **⇒ run C is the tracked artifact** (release probe, 60 s: the fewest
+  instrument-induced rows of the three). Runs A and B are banked alongside it at
+  `rust/target/sv_axis2_baseline/` so the comparison chain is reproducible. Note
+  this makes the tracked artifact NOT reproducible by the runner's bare default,
+  which takes `rust/target/debug/parseability_probe` — hence
+  `PGEN_PARSE_PROBE_BIN=rust/target/release/parseability_probe` is the recipe, and
+  the binary's sha256 is in the report so the difference can never be silent again.
+
+**STEP 4 — RE-ADJUDICATION AND RE-CLUSTERING AT HEAD.**
+
+- **The burn-down baseline is CONFIRMED, not merely re-stated: `unexplained = 403`
+  (rejects-valid **382** + accepts-invalid **21**)**, match 5 727, explained 1 430,
+  deferred 8 776 — and it read **403 in all three runs**, so it is stable against
+  both the budget and the build. The only manifest rows that differ from the tracked
+  copy are the timeout resolutions leaving `divergence:explained_timeout` for their
+  real classes (3 rows at run B, 5 at run C). Determinism of BOTH generators
+  re-proven byte-for-byte (`cmp` ×2 on the manifest, `cmp` ×2 on the clusters).
+- **The `verilog_2005` lane was stale too and is now re-measured** (`results_v2005.tsv`
+  dated 2026-07-26): 2 459 files → **2 180 pass / 279 fail / 0 timeout (88.7 %)**,
+  per-file transitions **ZERO changed**, and `adjudication_manifest_v2005.tsv` +
+  `adjudication_summary_v2005.md` come back **BYTE-IDENTICAL** to the tracked
+  copies (unexplained 76). Two lanes re-measured, neither moved.
+- ⚠️ **The tracked cluster artifact was 109 rows behind and nobody could see it.**
+  `rejects_valid_clusters.{tsv,md}` was still at its **273-row** pre-ADD-v1 vintage
+  while the population has been 382 since `.3.9`; regenerated here to **382 rows /
+  211 signatures**. (The `_v2`/`_v3` snapshots `.3.2`/`.3.7` cut were refreshed; the
+  unsuffixed artifact the tooling actually writes was not.)
+
+**ROUTED — found here, worked elsewhere (characterize first, fix second):**
+
+1. ⚠️ **Four opentitan files exceed a 60 s budget even on the RELEASE binary, and
+   they are one coherent family: the autogen crossbars** — `xbar_main.sv` (2 332 /
+   1 340 lines) and `xbar_peri.sv` (**261** / **321** lines). A 261-line file that
+   cannot be parsed in 60 s is super-linear backtracking, not input size. TOOLBOX
+   §3.1 names the locus rather than guessing it: on `xbar_peri.sv`,
+   `streaming_concatenation` **407 352** calls, `attribute_instance` **394 824**,
+   `system_tf_call` **394 128**, `hierarchical_identifier` **329 017** — the
+   `primary` alternative cascade. Routed to `SV-CORPUS-GRAD.11` (opened below).
+2. ⚠️ **`cluster_rejects_valid.py` carries the SAME latent path defect**, in a
+   different shape: its `--manifest` mode rebuilds each file as
+   `subs_root / suite / relpath`, which is wrong for `uvm-core` (it lives at
+   `stimuli/sv/uvm/`, not under `subs/`). Dormant only because all 174 uvm rows
+   adjudicate `deferred:*` and never enter the cluster population. Routed to
+   `SV-CORPUS-GRAD.11`.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — the tracked `59.3 %` report was committed 2026-07-25
+    and `grammars/systemverilog.ebnf` last changed 2026-07-26 (`git log -1
+    --date=short` on each), so it provably could not describe HEAD; and
+    `adjudicate_external_corpus.py` then aborted with `unrecognized results path
+    shape: 'stimuli/sv/uvm/…'`, blocking the re-adjudication outright.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `adjudicate_external_corpus.py:1947` splits on
+    `"/stimuli/sv/uvm/"`, a marker whose leading slash no repo-root-relative row can
+    contain. Both sides dated with `git log -S`: marker written `95368e5c`
+    (2026-07-22, absolute-path era), runner made relative `db5a640e` (2026-08-08) —
+    this leaf is the first SV re-run across that boundary. The
+    "verified before changing this" comment held for the `/subs/<suite>/` arm only.
+  - [x] **FIX** — tier: repo-script, minimal. `UVM_FOLD_MARKER = "stimuli/sv/uvm/"`
+    (leading-slash-free, matches both spellings); the over-general comment in
+    `run_external_corpus.sh` corrected in place; `bash -n stimuli/run_external_corpus.sh`
+    clean and `python3 -c "import ast; ast.parse(...)"` clean on the adjudicator.
+  - [x] **ADDRESSED (verified)** — the adjudicator completes both lanes
+    (`match=5727 unexplained=403 explained=1432 deferred=8774`; v2005
+    `match=2179 unexplained=76`), was byte-identical across two consecutive runs
+    (`cmp` ×2), and all four corpus runs completed under the guard at exit 0 with a
+    banked marker (`guard.73455.marker` 299 s / `guard.76052.marker` 344 s /
+    `guard.98561.marker` 116 s / `guard.23950.marker` 36 s; peak tree RSS 2 730 /
+    4 809 / 7 341 / 851 MB, all inside the 16 384 MB budget).
+  - [x] **NO REGRESSION** — per-FILE transition census over all 16 336 rows:
+    **0 pass→fail, 0 pass→timeout, 0 pass→crash, 0 fail→pass** — held in every
+    comparison run (A and B and C vs the baseline, and C vs B, i.e. across the
+    budget AND across the build); v2005 lane **0** changed rows of 2 459 and its
+    manifest+summary byte-identical to the tracked copies; `unexplained` 403
+    unchanged in both count and composition (382 + 21) in all three runs;
+    the census instrument itself carries a **positive control** (identity self-join
+    → 0 changes, pass count reproducing the tracked 9 693) and a **negative
+    control** (one planted flip → caught exactly once, at exactly that file). No
+    grammar, codegen or generated artifact touched — `focus_systemverilog`
+    regenerates `generated/systemverilog_parser.rs` **byte-identically**
+    (`786e49aa…`).
+  - [x] **LOCKSTEP** — characterization reports (both lanes) + adjudication manifest
+    and summary + cluster artifacts regenerated; tree `.3` umbrella population
+    corrected 406 → 382; `.11` opened for the two routed findings;
+    TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES + the book's corpus chapter this
+    commit.
+
+### `.11` — the two defects `.10` ROUTED (opened 2026-08-08, session #214)
+
+- **Status: `todo`.** Both were found by `.10` and both are outside a measurement
+  leaf's mandate; neither blocks the axis-2 campaign.
+- **`.11a` — the four opentitan autogen-crossbar parses that exceed 60 s on the
+  release binary** (`top_{darjeeling,earlgrey}/ip/xbar_{main,peri}`). Two are 261
+  and 321 lines, so this is super-linear backtracking, not input size. Tool-pinned
+  locus already banked by `.10` (`--dump-rule-call-counts` on `xbar_peri.sv`:
+  `streaming_concatenation` 407 352 / `attribute_instance` 394 824 /
+  `system_tf_call` 394 128 calls). Fix hierarchy applies as usual; the SPEED
+  signature family (TOOLBOX group 2) governs its acceptance evidence.
+  ⛔ These four are also a standing tripwire for this campaign: they are the only
+  rows whose adjudication class depends on the runner's timeout argument and on
+  which binary ran, so a future slowdown would read as a corpus regression that is
+  really a budget effect. `.10` measured that dependence explicitly — 9 timeouts at
+  debug/20 s, 6 at debug/60 s, 4 at release/60 s, with the pass/fail sets identical
+  throughout.
+- **`.11b` — `cluster_rejects_valid.py` rebuilds `uvm-core` paths under `subs/`.**
+  Same root cause family as `.10`'s blocker (a path convention encoded in two
+  places), dormant because all 174 uvm rows adjudicate `deferred:*`. It will wake up
+  the moment `.4` chaining promotes any uvm row into the defect population.
 
 ## Corpus-sufficiency assessment (banked 2026-07-22, session #191 — the no-BS baseline behind the mandate)
 

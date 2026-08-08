@@ -54,6 +54,10 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+# The path infix identifying the uvm-core fold in a results.tsv row (leaf .8). No leading
+# slash: it must match an absolute row and a repo-root-relative one alike (see main()).
+UVM_FOLD_MARKER = "stimuli/sv/uvm/"
+
 # --- pinned per-file rulings (LRM-grounded; sv-tests files whose headers lack a
 # `:type:` stage list so the stage of the intended failure must be adjudicated
 # from the stated reason). Reasons quoted from the files' :should_fail_because:.
@@ -1942,11 +1946,20 @@ def main():
         if not line.strip():
             continue
         suite, observed, path = line.split("\t")
+        # ⛔ Both markers must be LEADING-SLASH-FREE so they match column 3 in BOTH
+        # spellings: the absolute paths older artifacts carry AND the repo-root-relative
+        # ones the runner has emitted since CORPUS-GRAD-ALL.2.1. The uvm marker used to be
+        # written "/stimuli/sv/uvm/", which a relative row ("stimuli/sv/uvm/…") cannot
+        # contain, so re-adjudicating a post-.2.1 run died on its first uvm-core row
+        # (`unrecognized results path shape`) — measured in SV-CORPUS-GRAD.10. The
+        # "backward-compatible by construction" claim in run_external_corpus.sh held for
+        # the `/subs/<suite>/` arm (a relative row still contains it) and was never true
+        # for this one; a shared infix is only compatible with a spelling that has it.
         if f"/subs/{suite}/" in path:
             rel = path.split(f"/subs/{suite}/", 1)[1]
-        elif "/stimuli/sv/uvm/" in path:
+        elif UVM_FOLD_MARKER in path:
             # the uvm-core fold (leaf .8): plain tracked files, not a submodule
-            rel = path.split("/stimuli/sv/uvm/", 1)[1]
+            rel = path.split(UVM_FOLD_MARKER, 1)[1]
         else:
             raise SystemExit(f"unrecognized results path shape: {path!r}")
         rows.append((suite, rel, observed))

@@ -72,6 +72,43 @@ enforced — it is a suggestion."*
     decision record added and indexed; `LEX-ADJACENCY.1` retro-fitted with the
     `PRIOR ART` section it should have had.
 
+### `.2` — the check scanned GENERATED artifacts, and `.1`'s "false positives are structurally unlikely" was refuted by one
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0027`, session #214, 2026-08-08 — found by
+  `SV-CORPUS-GRAD.10`, fixed in its commit because it **blocked** it).
+- ⭐ **`.1` predicted this could not happen:** *"It is precise (a token either exists in
+  the registry/grammars or it does not), so false positives are structurally unlikely."*
+  The prediction was about the TOKEN TEST, which is indeed precise; the false positive
+  came from the **file selection**, which nobody had reason to doubt. Worth keeping as a
+  named example: a soundness claim inherits the weakest stage of the pipeline, not the
+  stage it was reasoned about.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `bash scripts/check_design_prior_art.sh` on the staged
+    `SV-CORPUS-GRAD.10` commit: `✗ FAIL … rejects_valid_clusters.md proposes a NEW
+    annotation surface with no recorded prior-art search / novel directive name(s): x`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — the staged-file filter at
+    `scripts/check_design_prior_art.sh:30` selects `^docs/tasks/.*\.md$`, which also
+    matches `docs/tasks/artifacts/**` — **machine-GENERATED evidence, not task leaves**.
+    `rejects_valid_clusters.md` quotes corpus source verbatim, so the verible fixture line
+    `` `@x[y];` `` (`event_control.sv`) parses as a proposed directive `@x`. ⛔ The FP is
+    also **unfixable in the way the check itself prescribes**: its only remedy is adding a
+    `PRIOR ART` section to the offending file, and the next regeneration deletes it — so
+    the gate would fail permanently on a regenerated artifact.
+  - [x] **FIX** — one `grep -vE '^docs/tasks/artifacts/'` in the staged-file filter, with
+    the rationale in-script. Tier: doctrine/process; no engine, grammar or codegen change.
+    `bash -n scripts/check_design_prior_art.sh` clean.
+  - [x] **ADDRESSED (verified)** — exit `1` → exit `0` on the real staged commit; and the
+    gate's REACH is proven unchanged by two purpose-built controls: a staged **leaf**
+    proposing `@totally_novel_directive` still **exits 1** naming the token (RED control),
+    while the *same file* moved under `docs/tasks/artifacts/` **exits 0** (scope control).
+    Both probes removed; `git status` clean of them.
+  - [x] **NO REGRESSION** — coverage is unchanged by construction: a design proposal lives
+    in a task LEAF, which is exactly what still gets scanned. All 17 doctrines re-run
+    PASS on the staged diff. No `grammars/`, `rust/`, generated artifact or contract
+    touched; zero build or parse cost.
+  - [x] **LOCKSTEP** — `.1`'s false-positive claim annotated above rather than silently
+    superseded; tree/CHANGES/DEVELOPMENT_NOTES this commit.
+
 ## Acceptance Criteria (tree)
 
 - A design leaf proposing a new annotation/directive cannot land without a recorded
