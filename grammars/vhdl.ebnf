@@ -312,8 +312,37 @@ actual_parameter_part := lparen actual_parameter_element (comma actual_parameter
                      -> [$2, $3::2*]
 actual_parameter_element := association_element  -> {kind: "association",     body: $1}
                           | range_expression      -> {kind: "range_expression", body: $1}
-signal_assignment_rhs := expression (kw_when expression kw_else expression (kw_when expression kw_else expression)*)?
+# CORPUS-GRAD-ALL.2.3 — LRM IEEE 1076 §10.5.2.1, the WAVEFORM production:
+#   waveform         ::= waveform_element { , waveform_element } | unaffected
+#   waveform_element ::= value_expression [ after time_expression ] | null [ after time_expression ]
+# The RHS was a bare `expression`, so `after` appeared NOWHERE in the grammar and every
+# `Clk <= not Clk after 10 ns ;` rejected — 362 census rows across all `after` signatures
+# (docs/tasks/artifacts/corpus_grad_all/vhdl_fail_clusters.md).
+# `unaffected` measures 0 rows today; it is implemented anyway because it is the OTHER HALF of the
+# `waveform` production, and a rule named `waveform` that silently omits half of its LRM definition
+# is exactly the quiet subsetting this campaign exists to remove.
+# ⛔ `delay_mechanism` (`transport` / `[reject t] inertial`, 8 measured rows) is a DIFFERENT
+# production — it belongs to the assignment statement, not to `waveform` — and gets its own leaf.
+signal_assignment_rhs := waveform (kw_when expression kw_else waveform (kw_when expression kw_else waveform)*)?
                       -> {value: $1, conditional: $2}
+# ⛔ `kw_unaffected` FIRST, for the SAME reason the `null` branch below is first, and this is the
+# SECOND instance of the trap in one rule: with the element list first, `expression -> primary ->
+# selected_name` matches the reserved word `unaffected` as a NAME, so the reserved-word branch is
+# DEAD. Measured before the reorder — `s <= unaffected;` parsed, but `--parse-dump-ast-pretty`
+# realized it as `{kind: "function_call", name: "unaffected"}`, i.e. accepted for the wrong reason.
+# A pass/reject check cannot see this class of defect; only the AST shape can.
+# ⇒ RULE OF THUMB: wherever a reserved-word branch competes with a permissive `expression` branch,
+# the reserved word goes FIRST — at EVERY level where the competition exists, not just the innermost.
+waveform := kw_unaffected                                 -> {kind: "unaffected"}
+          | waveform_element (comma waveform_element)*     -> {kind: "elements", elements: [$1, $2::2*]}
+# ⛔ THE `null` BRANCH MUST COME FIRST. `identifier` does not exclude VHDL reserved words (the
+# over-acceptance class routed out of `.2.2`), so `expression -> primary -> selected_name` WOULD
+# match `null` as a plain name and the reserved-word branch would be DEAD — which certificate
+# coverage would then report as an unwitnessed rule, breaking `fully_certified`. Ordering it first
+# also matches the LRM, where `null` here is the null waveform, not a name. `kw_null` is `\b`-guarded,
+# so an identifier such as `nullify` is unaffected.
+waveform_element := kw_null (kw_after expression)?       -> {kind: "null",  after: $2}
+                  | expression (kw_after expression)?     -> {kind: "value", value: $1, after: $2}
 
 if_statement := kw_if expression kw_then sequential_statement* (kw_elsif expression kw_then sequential_statement*)* (kw_else sequential_statement*)? kw_end kw_if semi
              -> {condition: $2, then_body: $4, elsif_branches: $5, else_body: $6}
@@ -557,6 +586,8 @@ kw_exit := trivia /(?i:exit)\b/
 kw_wait := trivia /(?i:wait)\b/
 kw_on := trivia /(?i:on)\b/
 kw_until := trivia /(?i:until)\b/
+kw_after := trivia /(?i:after)\b/
+kw_unaffected := trivia /(?i:unaffected)\b/
 kw_assert := trivia /(?i:assert)\b/
 kw_report := trivia /(?i:report)\b/
 kw_severity := trivia /(?i:severity)\b/

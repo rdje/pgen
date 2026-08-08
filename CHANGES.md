@@ -1,5 +1,37 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0007 — leaf CORPUS-GRAD-ALL.2.3: the signal-assignment RHS becomes a real WAVEFORM (LRM §10.5.2.1) — corpus 29.8 % → 31.6 %, and a SECOND dead branch only the AST shape could see
+
+- **The gap:** `signal_assignment_rhs` was a bare `expression`, so **`after` appeared nowhere in the
+  grammar** and comma-separated waveform elements did not exist. Every
+  `Clk <= not Clk after 10 ns ;` rejected — **362 census rows** across all `after` signatures.
+- **Scope set BY MEASUREMENT and stated:** `unaffected` measures 0 rows and is implemented anyway
+  (it is the other half of the same `waveform` production, and a rule that silently omits half its
+  LRM definition is the quiet subsetting this campaign exists to remove); `delay_mechanism`
+  (`transport` / `[reject t] inertial`) measures 8 rows and is deliberately deferred — a different
+  production, its own leaf.
+- ⭐⭐ **A SECOND DEAD BRANCH, invisible to REJECT→PASS.** The first ordering put the element list
+  before `kw_unaffected`, and because `identifier` does not exclude reserved words,
+  `expression → primary → selected_name` matched `unaffected` as a NAME — so the reserved-word branch
+  never fired. `s <= unaffected;` PASSED both before and after the change, for the wrong reason both
+  times. Only `--parse-dump-ast-pretty` could tell them apart: `{kind: "function_call", name:
+  "unaffected"}` → `{kind: "unaffected"}`, with `function_call` gone from the AST entirely.
+  `--lint-grammar` reported `ordered_choice_shadowing=0` before AND after, so it did not flag it.
+- ⇒ **Generalized and written into the grammar:** wherever a reserved-word branch competes with a
+  permissive `expression` branch, the reserved word goes FIRST — at EVERY level where the competition
+  exists. This leaf guarded `waveform_element` (`null`) and still missed `waveform` (`unaffected`)
+  one level up. Second occurrence in two leaves of the over-acceptance class routed out of `.2.2`.
+- **Verified on five axes:** REJECT→PASS on 3 reproducers with the negative (`s <= '1' after;`)
+  staying REJECT; the SHAPE change above; the census class **362 → 29**; ⭐ the residual 29 being
+  almost entirely `transport`, i.e. **the deferred scope boundary made visible in the data**; and the
+  corpus aggregate **4 082 → 4 335 pass (29.8 % → 31.6 %)** — the largest single-leaf movement of the
+  campaign, 13 720 files in 71 s.
+- **No regression:** cert coverage seeds 0/7/42 `total=225 witness=225 UNKNOWN=0
+  fully_certified=true spf=0` — all 4 new rules witnessed, which independently confirms neither
+  reserved-word branch is dead; `clippy_on_rust_change` exit 0; `ast_shape_contract` 18/18 after
+  regenerating the pinned inventory (+4 annotations, 0 removed, 0 changed); 17/17 doctrines.
+- LIVE tracker **unchanged**: `vhdl` stays `Provisional (corpus pending)`.
+
 ## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0006 — leaf CORPUS-GRAD-ALL.2.2: the VHDL `wait` statement grows its missing two clauses (LRM §10.2) — and a RISING PASS COUNT turns out to be the least trustworthy signal in the set
 
 - **The gap:** `wait_statement := kw_wait (kw_for expression)? semi` implemented the **timeout

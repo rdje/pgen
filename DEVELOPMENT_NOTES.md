@@ -1,5 +1,40 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0007 — the same trap twice in one rule, because I guarded the level I was thinking about instead of every level where the competition exists
+
+**I wrote the guard, explained the guard in a comment, and then missed the guard one level up.** The
+`waveform_element` rule orders its `null` branch first, with a comment saying exactly why: reserved
+words are matchable as identifiers here, so a reserved-word branch placed second is dead. The
+enclosing `waveform` rule has the identical competition — `unaffected` versus an element list that
+begins with `expression` — and I ordered it the wrong way. Knowing a rule is not the same as applying
+it at every site; the correction is to state the rule *positionally* ("at every level where the
+competition exists") rather than as a fact about one rule, which is how it is now written into the
+grammar.
+
+⛔ **The defect was invisible to the check I would normally trust most.** `s <= unaffected;` parsed
+before the fix and after it. REJECT→PASS, the reproducer harness, the corpus pass count — none could
+separate "accepted correctly" from "accepted as a function call named `unaffected`". Only
+`--parse-dump-ast-pretty` could, because the difference was entirely in the SHAPE. For a project
+whose product is an AST, that is the obvious lesson stated too weakly: **when a change is about which
+branch wins, the verdict is not evidence — dump the tree.**
+
+**Certificate coverage is a second, independent detector of the same class, and it is cheap.** A dead
+branch means its rule is never exercised, so `UNKNOWN` rises and `fully_certified` drops. That makes
+`total=225 witness=225 UNKNOWN=0` do double duty here: it is the no-regression number *and* the proof
+that neither reserved-word branch is shadowed. Worth reaching for deliberately on any ordering change,
+not just reading as a formality.
+
+⭐ **A deferred scope is a claim; the residual is where it gets audited.** This leaf declared
+`delay_mechanism` out of scope on a measured 8 rows. After the fix, 29 `after` rows survive and
+essentially all are `transport …` — the deferral, visible in the data rather than asserted in prose.
+Checking that the residual matches the stated boundary is the cheapest available test of whether a
+scope decision was honest, and it also names the next leaf for free.
+
+**And the campaign's shape is becoming legible.** Three grammar leaves in, the pattern is: a measured
+class, a small LRM-faithful production, a large corpus movement (+253 files here), and a residual that
+points at the next class. The 29.4 % starting point was never a quality verdict on the parser — it was
+a measure of how much of VHDL the seed grammar had not yet been asked to describe.
+
 ## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0006 — the metric that moved in the right direction was the one that was wrong; and a name collision is invisible precisely because the merge is a legitimate feature
 
 **Rank your checks by what they can and cannot see, before you trust the green ones.** This slice

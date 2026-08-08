@@ -1614,6 +1614,30 @@
     "branch_index": 0,
     "normalized_text": "{sensitivity: $2, condition: $3, timeout: $4}",
     "rule": "wait_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"unaffected\"}",
+    "rule": "waveform"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"elements\", elements: [$1, $2::2*]}",
+    "rule": "waveform"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"null\", after: $2}",
+    "rule": "waveform_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"value\", value: $1, after: $2}",
+    "rule": "waveform_element"
    }
   ]
  }

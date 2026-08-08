@@ -341,6 +341,68 @@ the `(corpus pending)` clause the register already admits. The 29.4% below is li
    depend on the leak. That is the measurement the owning leaf must open with, and it is stated
    rather than guessed at here.
 
+### `.2.3` — the signal-assignment RHS becomes a WAVEFORM (LRM §10.5.2.1) — worklist class, 362 rows
+
+- **Status: `done`** (`PGEN-CORPUS-GRAD-ALL-0007`, session #213, 2026-08-08). **The single largest
+  win of the campaign so far: corpus pass 4 082 → 4 335 (29.8 % → 31.6 %).**
+- **The LRM shape vs what the grammar had:**
+  ```
+  waveform         ::= waveform_element { , waveform_element } | unaffected
+  waveform_element ::= value_expression [ after time_expression ] | null [ after time_expression ]
+  ```
+  `signal_assignment_rhs` was a bare `expression`, so **`after` appeared nowhere in the grammar**
+  and neither did comma-separated waveform elements. Scale measured across ALL `after` signatures,
+  not just the top one: **362 rows** (`awk` over `vhdl_fail_clusters.tsv`).
+- **Scope decided BY MEASUREMENT, then stated:** `unaffected` measures **0** rows and is implemented
+  anyway, because it is the other half of the same `waveform` production and a rule that silently
+  omits half its LRM definition is the quiet subsetting this campaign exists to remove.
+  `delay_mechanism` (`transport` / `[reject t] inertial`) measures **8** rows and is deliberately
+  NOT in scope — it belongs to the assignment statement, not to `waveform`, so it gets its own leaf.
+- ⛔ **The `null` branch is ordered FIRST, and that ordering is load-bearing.** Because `identifier`
+  does not exclude VHDL reserved words (the class routed out of `.2.2`), `expression → primary →
+  selected_name` would match `null` as a plain name, leaving the reserved-word branch DEAD — which
+  certificate coverage would then report as an unwitnessed rule, breaking `fully_certified`. So the
+  routed-but-unfixed over-acceptance class has a *design consequence here*, not merely a note.
+- **Closing checks from `.2.2` applied up front, not after the fact:** the four new names were
+  confirmed free before defining them, and the rule count moved **221 → 225** for exactly 4 added
+  definitions, with `grep -oE '^[a-z_]+ :=' | sort | uniq -d` empty.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — six reproducers under `rust/target/vhdl_wave_probe/` (repo-volume scratch). With the pre-change parser: `after_simple` (`Clk <= not Clk after 10 ns;`) REJECT, `waveform_multi` (`s <= '0', '1' after 5 ns, '0' after 10 ns;`) REJECT, `null_wave` (`s <= null after 5 ns;`) REJECT, `plain_assign` PASS, `neg_after_bare` (`s <= '1' after;`) REJECT (must STAY rejected). ⚠️ `unaffected` PASSED before the fix — but only via the reserved-word leak, parsing as a plain identifier, i.e. accepted for the wrong reason.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `grammars/vhdl.ebnf` `signal_assignment_rhs`, defined as `expression (kw_when …)?`; `grep -c "^kw_after :=" grammars/vhdl.ebnf` = **0**, so the `after` keyword had no token rule at all. WHY, tool-backed: all three rejects report a surface position of `26` (the architecture body start — uninformative) while `furthest_position` lands exactly on the offending statement — `after_simple` `[furthest_position=109, +83 bytes deeper than surface position]` → line 6 `Clk <= not Clk after 10 ns;`; `waveform_multi` `furthest_position=103` → line 6 `s <= '0', '1' after 5 ns, '0' after 10 ns;`; `null_wave` `furthest_position=104` → line 6 `s <= null after 5 ns;`. Three constructs, one production.
+  - [x] **FIX** — fix-hierarchy tier **grammar** (missing language; no engine or directive change). `signal_assignment_rhs` now takes `waveform` on every arm including the conditional `else` arms; added `waveform`, `waveform_element` and the `kw_after` / `kw_unaffected` tokens. `--lint-grammar` after: **225 rules**, `non_terminating=0 ordered_choice_shadowing=0 unreachable_rules=0 undefined_references=0 nullable_repetition=0`.
+
+- ⭐⭐ **A SECOND DEAD BRANCH, AND ONLY THE AST SHAPE COULD SEE IT.** The first version ordered
+  `waveform := waveform_element (comma …)* | kw_unaffected`. Because `identifier` does not exclude
+  reserved words, `expression → primary → selected_name` matched `unaffected` as a NAME, so the
+  `kw_unaffected` branch never fired. ⛔ **`s <= unaffected;` PASSED both before and after the change
+  — for the wrong reason both times** — so REJECT→PASS could not distinguish them;
+  `--parse-dump-ast-pretty` realized `{kind: "function_call", name: "unaffected"}` where the LRM
+  requires the null-ish waveform. After reordering `kw_unaffected` first the same input realizes
+  `{kind: "unaffected"}` and `function_call` is **absent from the AST entirely**.
+  - `--lint-grammar` reported `ordered_choice_shadowing=0` **both before and after** the reorder, so
+    it did not flag the dead branch. Stated as measured, not as a defect claim: the check plausibly
+    models syntactic prefix shadowing rather than overlap reached through a chain of rules.
+  - ⇒ **the generalized rule, now written into the grammar:** wherever a reserved-word branch
+    competes with a permissive `expression` branch, the reserved word goes FIRST — **at every level
+    where the competition exists**, not just the innermost. This leaf had the guard on
+    `waveform_element` (`null`) and still missed it one level up on `waveform` (`unaffected`).
+  - This is a *design consequence* of the over-acceptance class routed out of `.2.2`, and the second
+    time it has bitten in two leaves — evidence that the routed leaf is worth prioritizing.
+
+  - [x] **ADDRESSED (verified)** — five axes:
+    1. **REJECT→PASS**: `after_simple`, `waveform_multi`, `null_wave` REJECT→PASS; `plain_assign` PASS→PASS; `neg_after_bare` (`s <= '1' after;`) REJECT→REJECT (the incomplete clause stays refused).
+    2. **SHAPE, not just verdict**: `s <= unaffected;` moves from `{kind: "function_call", name: "unaffected"}` to `{kind: "unaffected"}`, with `function_call` absent from the AST — the only axis on which this change is visible at all.
+    3. **The class is gone from the census**: all `after` signatures **362 → 29** (`after NUM ID` 265→0, `after ID ;` 38→0, `after ID /` 10→0, `after ID *` 9→0, `after ID ,` 6→0).
+    4. ⭐ **The residual CONFIRMS the declared scope boundary**: of the 29 remaining `after` rows, essentially all are `transport` (`S1 <= transport '1' after 5 ns;`) — i.e. the `delay_mechanism` production this leaf explicitly deferred. The scope statement is not a promise, it is visible in the data.
+    5. **Corpus aggregate: pass 4 082 → 4 335** (fail 9 638 → 9 385; 29.8 % → **31.6 %**), 13 720 files in 71 s — the largest single-leaf movement of the campaign. Files that moved deeper land on the already-ranked next classes (`for ID :` 338→359, `( ID )` 169→177).
+  - [x] **NO REGRESSION** — certificate coverage `vhdl` at **seeds 0/7/42**: `total=225 proof=0 witness=225 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)`; all 4 added rules witnessed — which is also the independent confirmation that neither reserved-word branch is dead, since a dead branch's rule would show up unwitnessed. `make clippy_on_rust_change` **exit 0**. `ast_shape_contract` **18 passed / 0 failed** after regenerating the pinned inventory (+4 annotations, 0 removed, 0 changed). `scripts/check_doctrines.sh` GREEN (17/17). Only `grammars/vhdl.ebnf` changed; no other grammar touched.
+  - [x] **LOCKSTEP** — tree + `docs/TASK_TREE.md` + regenerated worklist artifacts + `stimuli/vhdl/characterization/characterization.md` + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md` + the pinned `rust/test_data/ast_shape_contract/vhdl_v1.json`. LIVE-status register **unchanged**: `vhdl` stays `Provisional (corpus pending)` — 31.6 % is not a status change ([[feedback_done_bar_is_first_tier_only]]).
+
+- ⚠️ **NEXT MICRO-CLASS, named by this leaf's own residual:** `delay_mechanism` — `transport` /
+  `[reject time_expression] inertial` (LRM §10.5.2.1), ~25 rows and rising as files move deeper.
+  Small and self-contained; a natural `.2.4` companion to this one.
+
 ### `.3` — Per-family graduation-gate wiring (code; per-family leaves)
 
 - **Status: `todo`** — each family's `Done` computation gains its

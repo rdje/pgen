@@ -10,6 +10,10 @@ answers:
   - "how do I detect an accidental duplicate rule name in a large EBNF grammar"
   - "I fixed a 387-row defect class but only 51 more files pass — did the fix fail"
   - "where do I get negative test cases for a parser without writing fixtures"
+  - "my new alternative never fires even though the input parses — why is the branch dead"
+  - "a reserved word is being matched as an identifier and my keyword branch is unreachable"
+  - "the input passed before and after my change — how do I tell if it passed for the right reason"
+  - "did my scope deferral hold, or did I quietly leave part of the production out"
 tags: [grammar, over-acceptance, corpus, verification, vhdl, lrm, burn-down, instrument-honesty]
 date: 2026-08-08
 status: current
@@ -67,6 +71,35 @@ detector of "something merged that shouldn't have".
 GREW (`for ID :` 110 → 338, `downto NUM =>` 67 → 101): that turns "only +51" from an apparent
 shortfall into a measured explanation. A burn-down leaf reporting only its own class's collapse is
 reporting half the result.
+
+⛔ **A DEAD BRANCH passes every verdict-shaped check, because the input still parses — just via the
+wrong branch.** If a grammar lets reserved words be matched as identifiers, then a permissive
+`expression` alternative placed BEFORE a reserved-word alternative makes the reserved-word branch
+unreachable. Measured twice in two consecutive leaves of one campaign:
+
+| input | before | after | what a verdict check saw |
+|---|---|---|---|
+| `s <= unaffected;` | `{kind: "function_call", name: "unaffected"}` | `{kind: "unaffected"}` | **PASS both times** |
+
+⇒ **when a change is about WHICH BRANCH WINS, the verdict is not evidence — dump the tree**
+(`--parse-dump-ast-pretty`). And state the rule positionally, because knowing it is not the same as
+applying it: **a reserved-word branch goes first at EVERY level where it competes with a permissive
+branch**, not just the innermost one. The leaf that recorded this rule in a comment on its inner rule
+still got the ordering wrong on the enclosing rule.
+
+⭐ **Certificate coverage is a second, independent detector of exactly this class — use it
+deliberately on any ordering change.** A dead branch is a rule that is never exercised, so `UNKNOWN`
+rises and `fully_certified` drops. `total=N witness=N UNKNOWN=0` is therefore doing double duty: the
+no-regression number *and* proof that no branch is shadowed. ⚠️ Do not expect the linter to cover it:
+`--lint-grammar` reported `ordered_choice_shadowing=0` both before and after the reorder above
+(plausibly it models syntactic prefix shadowing, not overlap reached through a chain of rules).
+
+⭐ **A deferred scope is a claim; the RESIDUAL is where it gets audited.** A leaf that declares part
+of a production out of scope should check, after the fix, that what survives is the deferred part.
+Measured: after implementing the waveform production but deferring `delay_mechanism`, 29 of 362
+`after` rows survived and essentially all were `transport …` — the deferral made visible in the data
+instead of asserted in prose. It is the cheapest test of whether a scope decision was honest, and it
+names the next leaf for free.
 
 See also [[audit-a-reports-key-against-its-own-illustration]] (audit the instrument before ranking
 work from it) and [[feedback_done_bar_is_first_tier_only]] (a pass-rate movement is not a status
