@@ -1015,10 +1015,12 @@ the own-rule entry byte-for-byte.
 
 Three scoping decisions carry the weight, and each has a failure it prevents:
 
-- **Positive gates only.** A `lacks_fact` gate is *satisfied* by the empty store a standalone witness
-  starts with. Counting it — as the reach-BFS edge-deprioritization deliberately does, because there
-  over-counting only re-ranks two ways of generating the same thing — would raise the entry for
-  targets that witness perfectly well today.
+- **Gates the generator actually prunes on.** A `lacks_fact` gate is *satisfied* by the empty store a
+  standalone witness starts with. Counting it — as the reach-BFS edge-deprioritization deliberately
+  does, because there over-counting only re-ranks two ways of generating the same thing — would raise
+  the entry for targets that witness perfectly well today. ⛔ This scoping was first written as
+  *"positive gates only"*, and that was one criterion short; see [What the verdict must actually ask
+  about](#what-the-verdict-must-actually-ask-about-pruning-not-polarity).
 - **Mandatory descent, not "a gate exists below here".** An ordered choice offering an ungated
   alternative is an escape the generator simply takes. A whole-closure scan calls the SystemVerilog
   net-declaration rule blocked; the mandatory walk correctly does not, because its first alternative
@@ -1129,6 +1131,51 @@ own-rule attempts were expected to be provably wasted work for a correct verdict
 `+14` and `+6` witnesses, because the raised whole-file samples had been settling neighbouring
 targets for free; stage elapsed moves `256 → 258 s` and `444 → 436 s`, inside run-to-run noise in
 both directions.
+
+#### What the verdict must actually ask about: pruning, not polarity
+
+The section above leaves the verdict wrong 15 times in 16 and merely harmless. Fixing it turned out
+not to need a cleverer walk — it needed a different **question**.
+
+Naming the 25 spurious targets (the census, [Stimuli and Quality](stimuli-and-quality.md)) showed
+they are separated perfectly by the **class of gate** the targeted alternative mandatorily reaches:
+
+| class | predicate | census verdict |
+|---|---|---|
+| **count** | `fact_count_at_least` | 1 of 1 **genuine** |
+| **name** | `has_fact`, `fact_attribute_equals` | 15 of 15 (`sv_2017`) and 10 of 10 (`sv_2023`) **spurious** |
+
+One rule carries both, adjacent, with identical bodies: `net_declaration_sv_2017` branch `#2` leads
+with a count-gated identifier and is genuine; branch `#1` leads with a name-gated one and is not.
+
+The mechanism is a property of the generator that can be checked rather than argued: **there is
+exactly one generation-side store prune, and it is count-only.** A rule whose `fact_count_at_least`
+gate cannot be satisfied is refused before it renders (`STORE-AWARE-GEN: … predicate unsatisfiable
+(zero source facts)`). A **name** gate has no analogue anywhere — it is consulted only when planning
+a prelude, when replaying a declared name into a gated consumer, and when repairing a colliding free
+name; never to refuse a render. So a name-gated rule renders a fresh identifier against an empty
+store and its target is credited.
+
+⇒ The verdict claims *"this target cannot be generated from its own rule."* Only the prune can make
+that true, so the walk's scope is now exactly the map the prune reads — the count gates. Polarity was
+the right *first* criterion (a negative gate is satisfied by an empty store) and one criterion short:
+a positive gate that never prunes cannot block generation either.
+
+Measured single-variable on the replay stage, census enabled on both arms: the blocked population
+falls **16 → 1** on `sv_2017` and **11 → 1** on `sv_2023`, spurious **15 → 0** and **10 → 0**, the
+genuine target unchanged on each — and `store_entry_raises` stays `1`/`1`, residual stays `0`/`0`,
+and all **eight** stage artifacts are **byte-identical**.
+
+⭐ That byte-neutrality was *predicted before it was measured*, which is what makes it evidence. The
+raised arm is guarded `!covered && blocked`, and `&&` short-circuits — so for a spurious target,
+covered by its own rule by definition, the verdict was never consulted at run time even before the
+change. Ordering the attempts had already turned a correctness assumption into a cost knob; this
+turns the knob to zero.
+
+⚠️ What the narrowing gives up, stated rather than implied: the incidental benefit a raise might have
+brought a name-gated target that the own-rule attempt left uncovered for some *other* reason. No such
+target exists on either SystemVerilog profile, and a missed raise now costs coverage only where the
+own-rule attempt also failed — but on another grammar one could exist.
 
 ### Reaching store-gated rules: the semantic-prelude reach
 

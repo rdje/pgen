@@ -17,11 +17,14 @@ answers:
   - "why does the witness pass try the target's own rule before raising the entry"
   - "why did store_entry_raises drop from 16 to 1 without any coverage change"
   - "why can a coverage-equal A/B not tell you whether a reroute was necessary"
+  - "why does a name-matching store gate NOT block a witness while a count gate does"
+  - "which store gates may a blocking verdict count — positive ones or pruning ones"
+  - "where is the generation-side store prune and what map does it read"
 tags: [stimuli, coverage, semantic-store, witness, systemverilog, root-cause]
 date: 2026-08-08
 status: current
-evidence: rust/src/ast_pipeline/stimuli_generator.rs (`witness_target_is_store_entry_blocked`, `target_forces_positive_store_gate`, `emittable_kinds_within_closure`, `StoreGateScope`, the attempt-ordered arms inside `generate_target_witnesses` — `attempt_target_witness` / `witness_target_is_resolved`, and the branch half `set_reach_plan_forcing_quantifiers_with_prelude` / `count_gate_via_targeted_alternative` / `name_gate_via_targeted_alternative`); docs/tasks/SV-EXH-PROOF.md leaves .7.4.6.12 (WHY+WHERE_CLASS_C_2026-08-01, SIZING_CORRECTION_2026-08-01, FIX_LANDED_2026-08-02), .7.4.6.14 (the branch half) and .7.4.6.15 (the attempt order — MEASURED_PREMISE_2026-08-08, EPSILON_VECTOR_2026-08-08; the verdict's own over-approximation is routed to .7.4.6.17); docs/book/src/grammar-wellformedness.md "The closed-loop witness pass's raised entry for store-gated targets"
-reverify: "python3 docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py; cargo test --features 'generated_parsers ebnf_dual_run' --lib store_entry; cargo test --features 'generated_parsers ebnf_dual_run' --lib raised_branch_plan"
+evidence: rust/src/ast_pipeline/stimuli_generator.rs (`witness_target_is_store_entry_blocked`, `target_forces_positive_store_gate`, `emittable_kinds_within_closure`, `StoreGateScope::GenerationPruned`, `gen_count_predicate_satisfiable`, the attempt-ordered arms inside `generate_target_witnesses` — `attempt_target_witness` / `witness_target_is_resolved`, and the branch half `set_reach_plan_forcing_quantifiers_with_prelude` / `count_gate_via_targeted_alternative` / `name_gate_via_targeted_alternative`); docs/tasks/SV-EXH-PROOF.md leaves .7.4.6.12 (WHY+WHERE_CLASS_C_2026-08-01, SIZING_CORRECTION_2026-08-01, FIX_LANDED_2026-08-02), .7.4.6.14 (the branch half) and .7.4.6.15 (the attempt order — MEASURED_PREMISE_2026-08-08, EPSILON_VECTOR_2026-08-08) and .7.4.6.17 (CENSUS_2026-08-08 / WHY_2026-08-08 / FIX_2026-08-08 — the verdict narrowed to the pruning gates); docs/book/src/grammar-wellformedness.md "The closed-loop witness pass's raised entry for store-gated targets"
+reverify: "python3 docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py; cargo test --features 'generated_parsers ebnf_dual_run' --lib store_entry; cargo test --features 'generated_parsers ebnf_dual_run' --lib name_gated_target_witnesses; cargo test --features 'generated_parsers ebnf_dual_run' --lib raised_branch_plan"
 ---
 
 **Two witness passes, two entry policies — and one of them is fatal for a store-gated target.**
@@ -53,7 +56,7 @@ byte-for-byte.
 
 | rule | what it prevents |
 |---|---|
-| **POSITIVE gates only** (`fact_count_at_least`, `has_fact`, `fact_attribute_equals`) | a `lacks_fact` gate is *satisfied* by an empty store — counting it would raise the entry for targets that witness fine today. The reach-BFS edge deprioritization counts every fact query on purpose, because there over-counting only re-ranks two ways of generating the same thing; a verdict that CHANGES what is generated cannot borrow that scope |
+| **Gates GENERATION PRUNES ON** (`fact_count_at_least` — `StoreGateScope::GenerationPruned`) | a `lacks_fact` gate is *satisfied* by an empty store — counting it would raise the entry for targets that witness fine today. The reach-BFS edge deprioritization counts every fact query on purpose, because there over-counting only re-ranks two ways of generating the same thing; a verdict that CHANGES what is generated cannot borrow that scope. ⛔ This began as **POSITIVE gates only**, which was one criterion short — see the pruning-not-polarity section below |
 | **MANDATORY descent**, not "a gate exists below here" | an ordered choice with an ungated alternative is an escape the generator simply takes. A whole-closure scan calls SV's `net_declaration_sv_2017` blocked; the mandatory walk correctly does not (its first alternative is a plain `wire a;`) |
 | **CLOSURE-relative**, not absolute | the same gate on the same rule is not blocking when a producer for its kind lives inside the target's own subtree — the witness emits the fact itself |
 
@@ -126,11 +129,42 @@ ATTEMPT ORDER can, because the necessary ones are exactly the ones that still ra
 whose failure mode is invisible to the metric you gate on is not validated by that metric being
 green** — [[feedback_instrument_needs_ground_truth]] restated for a policy rather than an instrument.
 
-⚠️ The verdict itself is a KNOWN-DEFECTIVE surface now, tracked separately and cost-only. One vector
-is proven in code: `mandatory_node_gated` answers `true` for any rule reference absent from
-`grammar_tree`, and the BUILTIN `epsilon` is exactly that — while `generate_rule` renders it as the
-empty string with no store consulted. Which SV targets the 25 are is **not** yet measured; naming
-them needs a per-target verdict census.
+⭐⭐ **AND THE VERDICT IS NOW RIGHT 1 FOR 1 — IT HAD BEEN ASKING ABOUT POLARITY, NOT PRUNING.**
+Naming the 25 (a per-target census — [[measure-a-policy-where-its-outcome-is]]) showed the population
+splits **perfectly by gate CLASS**: the one genuine target per profile is a `fact_count_at_least`
+**count** gate; all 15 (`sv_2017`) and 10 (`sv_2023`) spurious ones are `has_fact` /
+`fact_attribute_equals` **name** gates. One rule carries both, adjacent, with identical bodies.
+
+⛔ **The mechanism is a checkable property of the generator, not a story: there is exactly ONE
+generation-side store prune and it is count-only.** `generate_rule` refuses a rule on
+`!gen_count_predicate_satisfiable(rule)` (which reads `gen_count_kinds`) with
+`STORE-AWARE-GEN: … fact_count_at_least predicate unsatisfiable (zero source facts)`. `gen_name_gate`
+has **no analogue anywhere** — it is read only when planning a prelude, replaying a declared name
+into a gated consumer, and repairing a colliding free name; never to refuse a render. So a
+name-gated rule renders a fresh identifier against an empty store and its target is credited.
+
+⇒ Since the verdict claims *"this target cannot be GENERATED from its own rule"*, and only the prune
+can make that true, its scope is now exactly the map the prune reads. Measured single-variable:
+blocked population **16 → 1** and **11 → 1**, spurious **15 → 0** and **10 → 0**,
+`store_entry_raises` unchanged at `1`/`1`, residual `0`/`0`, and all **8** stage artifacts
+**byte-identical**.
+
+⭐ **The byte-neutrality was PREDICTED before it was measured, which is what makes it evidence.** The
+raised arm is guarded `!covered && blocked` and `&&` short-circuits, so for a spurious target —
+covered by its own rule by definition — the verdict was never consulted at run time even before the
+fix. Ordering the attempts turned a correctness assumption into a cost knob; this turns the knob to
+zero. ⚠️ What it gives up: the incidental benefit a raise might have brought a name-gated target the
+own-rule attempt left uncovered for some *other* reason. None exists on either SV profile.
+
+⛔ **A generalisable trap, worth more than this pass:** *"count every gate of the safe polarity"* felt
+like the conservative choice and was not. Conservative means *"over-approximate the thing the
+consumer actually acts on"* — here the generation prune — and a criterion that over-approximates a
+DIFFERENT axis is just wrong in a direction nobody checks. The `epsilon` vector (`mandatory_node_gated`
+answers `true` for any rule reference absent from `grammar_tree`, while `generate_rule` renders the
+builtin as the empty string) is a REAL second over-approximation on the same predicate and was the
+obvious suspect — it is **not** this population's cause, and not one of the 27 targets involves an
+unresolvable reference. It remains a genuine defect and the basis of the ordering control's
+precondition.
 
 See also [[sv-residual-depth-budget-cause]] (the other residual class — where a budget *was* the
 cause), [[branch-failure-reasons-are-the-witness-why]] (how to read which class you are in), and

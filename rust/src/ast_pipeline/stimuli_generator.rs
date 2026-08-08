@@ -757,12 +757,25 @@ enum StoreGateScope {
     /// NEGATIVE (`reach_gate_kinds`). Correct for the reach-BFS edge *deprioritization*, whose
     /// only effect is to prefer another carrier — over-counting there costs nothing.
     AnyQuery,
-    /// POSITIVE gates only — `fact_count_at_least` (`gen_count_kinds`) and the name-matching
-    /// `has_fact` / `fact_attribute_equals` (`gen_name_gate`). ⛔ A `lacks_fact` /
-    /// `lacks_fact_attribute_equals` gate is SATISFIED by an empty store, so counting it would
-    /// declare a perfectly witnessable target unwitnessable. Required by any verdict that CHANGES
-    /// what is generated rather than merely ranking two ways of generating it.
-    PositiveOnly,
+    /// SV-EXH-PROOF.7.4.6.17: the gates GENERATION ITSELF REFUSES ON — exactly `gen_count_kinds`,
+    /// the map `gen_count_predicate_satisfiable` reads for the one generation-side store prune
+    /// there is (`generate_rule`: *"fact_count_at_least predicate unsatisfiable (zero source
+    /// facts)"*). Required by any verdict that claims a target cannot be GENERATED from a given
+    /// entry, rather than merely ranking two ways of generating it.
+    ///
+    /// ⛔ It is NOT "every positive gate", and that correction is measured, not stylistic. The
+    /// `.7.4.6.12` scope also counted the name-matching `has_fact` / `fact_attribute_equals` gates
+    /// (`gen_name_gate`) — but a name gate has NO generation-side prune anywhere: a name-gated rule
+    /// renders a fresh identifier against an empty store and its target is credited, and the gate
+    /// only ever shapes a prelude (`compute_name_prelude`) or a replayed name
+    /// (`reach_prelude_replay_text`). Counting it declared 15 of 16 (`sv_2017`) and 10 of 11
+    /// (`sv_2023`) real targets structurally unwitnessable while their own rule witnessed every
+    /// one of them (`.7.4.6.17` census; the split by gate class was 16/16 exact).
+    ///
+    /// ⛔ A `lacks_fact` / `lacks_fact_attribute_equals` gate stays excluded for the ORIGINAL
+    /// `.7.4.6.12` reason as well: it is SATISFIED by an empty store, so counting it would declare
+    /// a perfectly witnessable target unwitnessable.
+    GenerationPruned,
 }
 
 /// SV-EXH-PROOF.7.2.1: where a rule reference occurs inside another rule's body,
@@ -8683,17 +8696,36 @@ impl<'a> StimuliGenerator<'a> {
     /// depth budget and no prelude can fix that, because with entry == the gated rule there is no
     /// "earlier in the sample" for a prelude to occupy. The blocker is the WITNESS-ENTRY POLICY.
     ///
-    /// ⛔ POSITIVE gates only (`StoreGateScope::PositiveOnly`): a `lacks_fact` gate is SATISFIED by
-    /// the empty store a standalone witness starts with, so counting it would raise the entry for
-    /// targets that witness perfectly well today.
+    /// ⛔ GENERATION-PRUNED gates only (`StoreGateScope::GenerationPruned`) — the gates the
+    /// generator itself refuses on, i.e. exactly `gen_count_kinds`. Two exclusions, each for its
+    /// own measured reason:
+    ///   * a `lacks_fact` gate is SATISFIED by the empty store a standalone witness starts with
+    ///     (`.7.4.6.12`), so counting it would raise the entry for targets that witness today;
+    ///   * a NAME gate (`has_fact` / `fact_attribute_equals`, `gen_name_gate`) never prunes
+    ///     generation at all (`.7.4.6.17`) — there is no name-gate analogue of the count prune, so
+    ///     a name-gated rule renders a fresh identifier against an empty store and its target is
+    ///     credited. Counting it was this verdict's whole over-approximation: measured on the real
+    ///     grammar, 15 of 16 (`sv_2017`) and 10 of 11 (`sv_2023`) blocked targets were name-gated
+    ///     and every one of them was witnessed by its own rule, while the single COUNT-gated target
+    ///     per profile was the only genuine one. See `StoreGateScope::GenerationPruned`.
+    ///
+    /// ⚠️ HONEST BOUND, stated not implied: a name gate can still make a generated sample fail the
+    /// PARSER re-check (an undeclared name). That is a different failure than the one this verdict
+    /// models — the raise is gated on `witness_target_is_resolved`, which is generation-side
+    /// coverage — so a name gate cannot reach the condition the raise repairs. What the narrowing
+    /// gives up is the incidental benefit a raise might have brought a name-gated target that ARM 1
+    /// left uncovered for some OTHER reason; on both SV profiles no such target exists (the census
+    /// is 16/16 and 11/11 accounted for), and the closed-loop artifacts are byte-identical.
     ///
     /// The gate must also be MANDATORY (an ordered choice with an ungated alternative is an escape
     /// the generator simply takes) and the emitters are judged CLOSURE-relative (an in-subtree
     /// producer makes the same gate satisfiable) — see `target_forces_positive_store_gate` for the
     /// branch handling. PURE analysis; no grammar identifiers.
     fn witness_target_is_store_entry_blocked(&self, status: &TargetCoverageStatus) -> bool {
-        // Inert by construction for a grammar with no positive store gate at all.
-        if self.gen_count_kinds.is_empty() && self.gen_name_gate.is_empty() {
+        // Inert by construction for a grammar the generation-side store prune can never fire on
+        // (SV-EXH-PROOF.7.4.6.17: `gen_name_gate` no longer keeps this alive — a name-gate-only
+        // grammar now short-circuits here instead of walking a verdict that cannot be true).
+        if self.gen_count_kinds.is_empty() {
             return false;
         }
         // Cheap pre-filter against an EMPTY store: does this target's mandatory rendering force a
@@ -8732,7 +8764,7 @@ impl<'a> StimuliGenerator<'a> {
                             alternative,
                             available,
                             &mut visited,
-                            StoreGateScope::PositiveOnly,
+                            StoreGateScope::GenerationPruned,
                         )
                     });
                 if alternative_blocked {
@@ -8745,7 +8777,7 @@ impl<'a> StimuliGenerator<'a> {
             status.rule_name.as_str(),
             available,
             &mut visited,
-            StoreGateScope::PositiveOnly,
+            StoreGateScope::GenerationPruned,
         )
     }
 
@@ -9251,15 +9283,13 @@ impl<'a> StimuliGenerator<'a> {
                 .reach_gate_kinds
                 .get(rule)
                 .is_some_and(|kinds| kinds.iter().any(|kind| !available.contains(kind))),
-            StoreGateScope::PositiveOnly => {
-                self.gen_count_kinds
-                    .get(rule)
-                    .is_some_and(|kinds| kinds.iter().any(|kind| !available.contains(kind)))
-                    || self
-                        .gen_name_gate
-                        .get(rule)
-                        .is_some_and(|gate| !available.contains(&gate.kind))
-            }
+            // SV-EXH-PROOF.7.4.6.17: `gen_count_kinds` ALONE — the exact map the generation-side
+            // prune consults (`gen_count_predicate_satisfiable`). `gen_name_gate` is deliberately
+            // NOT read here; see `StoreGateScope::GenerationPruned`.
+            StoreGateScope::GenerationPruned => self
+                .gen_count_kinds
+                .get(rule)
+                .is_some_and(|kinds| kinds.iter().any(|kind| !available.contains(kind))),
         }
     }
 
@@ -9269,7 +9299,8 @@ impl<'a> StimuliGenerator<'a> {
     /// structural recursion lives in `mandatory_node_gated`. General/parser-agnostic.
     /// SV-EXH-PROOF.7.4.6.12: `scope` selects WHICH gates count. The original caller passes
     /// `AnyQuery` and is byte-identical; the witness pass's entry-raise verdict passes
-    /// `PositiveOnly`, because a `lacks_fact` gate is SATISFIED by an empty store.
+    /// `GenerationPruned` (SV-EXH-PROOF.7.4.6.17 — the gates generation actually refuses on),
+    /// because a `lacks_fact` gate is SATISFIED by an empty store and a NAME gate never prunes.
     fn mandatory_reach_gate(
         &self,
         rule: &str,
@@ -24077,6 +24108,223 @@ mod tests {
                 None
             )),
             "a lacks_fact-only gate must NOT raise the entry — the empty store satisfies it"
+        );
+    }
+
+    /// SV-EXH-PROOF.7.4.6.17: a grammar carrying the two gate CLASSES side by side, in the SAME
+    /// closure shape — each gated leaf queries a kind only a producer ABOVE it emits — so the only
+    /// thing that can separate their verdicts is the gate class itself.
+    ///
+    ///   `unit           := "u" ( item )*`
+    ///   `item           := name_producer | count_producer | name_gated | count_gated`
+    ///   `name_producer  := "np"`   `@emit_fact { kind: nk, … }`
+    ///   `count_producer := "cp"`   `@emit_fact { kind: ck, … }`
+    ///   `name_gated     := "ng"`   `@predicate has_fact(nk, $body)`            ← NAME gate
+    ///   `count_gated    := "cg"`   `@predicate fact_count_at_least(ck, 1)`     ← COUNT gate
+    ///
+    /// Both leaves are mandatorily positively gated on a kind their own closure cannot emit, so the
+    /// `.7.4.6.12` `PositiveOnly` scope called BOTH store-entry-blocked. Only one of them is.
+    fn two_gate_class_grammar() -> (HashMap<String, ASTNode>, Vec<String>, Annotations) {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "unit".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "u"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("item")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "item".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    rule_ref("name_producer"),
+                    rule_ref("count_producer"),
+                    rule_ref("name_gated"),
+                    rule_ref("count_gated"),
+                ],
+            },
+        );
+        grammar_tree.insert("name_producer".to_string(), token("quoted_string", "np"));
+        grammar_tree.insert("count_producer".to_string(), token("quoted_string", "cp"));
+        grammar_tree.insert("name_gated".to_string(), token("quoted_string", "ng"));
+        grammar_tree.insert("count_gated".to_string(), token("quoted_string", "cg"));
+        let rule_order = vec![
+            "unit".to_string(),
+            "item".to_string(),
+            "name_producer".to_string(),
+            "count_producer".to_string(),
+            "name_gated".to_string(),
+            "count_gated".to_string(),
+        ];
+        // RUNTIME `@emit_fact` / `@predicate` directives (not the `@gen_*` duals): a
+        // `@gen_predicate has_fact` compiles to a store VALUE DRAW and registers its kind into
+        // `gen_count_kinds`, i.e. it DOES prune generation — using it here would erase the very
+        // distinction under test. The runtime form is also the shape SystemVerilog actually uses.
+        let annotations = gen_store_annotations(&[
+            gen_store_annotation("name_producer", "emit_fact", "{ kind: nk, name: $body }"),
+            gen_store_annotation("count_producer", "emit_fact", "{ kind: ck, name: $body }"),
+            gen_store_annotation(
+                "name_gated",
+                "predicate",
+                "{ name: has_fact, args: [nk, $body], phase: post }",
+            ),
+            gen_store_annotation(
+                "count_gated",
+                "predicate",
+                "{ name: fact_count_at_least, args: [ck, 1], phase: post }",
+            ),
+        ]);
+        (grammar_tree, rule_order, annotations)
+    }
+
+    #[test]
+    fn store_entry_blocked_verdict_counts_only_generation_pruned_gates() {
+        // SV-EXH-PROOF.7.4.6.17 — THE LEAF'S CONTROL. `.7.4.6.12` scoped the verdict to every
+        // POSITIVE gate, which reads as the conservative choice and is not: a NAME gate has no
+        // generation-side prune at all (the only one is `gen_count_predicate_satisfiable`, which
+        // reads `gen_count_kinds`), so a name-gated rule renders a fresh identifier against an
+        // empty store and its target is credited. Measured on the real grammar, that mis-scoping
+        // was the WHOLE over-approximation: 15 of 16 (`sv_2017`) and 10 of 11 (`sv_2023`) blocked
+        // targets were name-gated and every one witnessed from its own rule, while the single
+        // count-gated target per profile was the only genuine block.
+        let (grammar_tree, rule_order, annotations) = two_gate_class_grammar();
+        let generator = generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), 7);
+
+        // ── VACUITY GUARDS: the two gates are real, and BOTH sit outside their own closure ──────
+        // Without these the test could pass on a grammar where neither gate was ever built.
+        assert!(
+            generator.gen_name_gate.contains_key("name_gated"),
+            "the NAME gate must be built from the annotations: {:?}",
+            generator.gen_name_gate.keys().collect::<Vec<_>>()
+        );
+        assert!(
+            generator.gen_count_kinds.contains_key("count_gated"),
+            "the COUNT gate must be built from the annotations: {:?}",
+            generator.gen_count_kinds.keys().collect::<Vec<_>>()
+        );
+        assert!(
+            !generator
+                .emittable_kinds_within_closure("name_gated")
+                .contains("nk")
+                && !generator
+                    .emittable_kinds_within_closure("count_gated")
+                    .contains("ck"),
+            "neither gated leaf may emit its own gated kind — otherwise the closure test, not the \
+             gate class, would be what separates them"
+        );
+        let from_entry = generator.emittable_kinds_within_closure("unit");
+        assert!(
+            from_entry.contains("nk") && from_entry.contains("ck"),
+            "both producers must sit ABOVE the leaves, inside the RAISED entry's closure: {:?}",
+            from_entry
+        );
+
+        let status = |rule: &str| TargetCoverageStatus {
+            id: format!("rule::{}", rule),
+            target_type: StimuliCoverageTargetType::Rule,
+            rule_name: rule.to_string(),
+            node_path: None,
+            branch_index: None,
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 0,
+            reason: String::new(),
+            depends_on: Vec::new(),
+        };
+
+        // ── THE FIX: the NAME gate no longer blocks; the COUNT gate still does ─────────────────
+        assert!(
+            !generator.witness_target_is_store_entry_blocked(&status("name_gated")),
+            "a NAME gate never prunes generation, so it can never make a target unwitnessable \
+             from its own rule — this assert is RED before the .7.4.6.17 narrowing"
+        );
+        assert!(
+            generator.witness_target_is_store_entry_blocked(&status("count_gated")),
+            "the COUNT gate is the one the generator really does refuse on — narrowing the scope \
+             must not cost `.7.4.6.12` its subject"
+        );
+    }
+
+    #[test]
+    fn name_gated_target_witnesses_from_its_own_rule_while_the_count_gated_one_needs_the_raise() {
+        // SV-EXH-PROOF.7.4.6.17 — THE GROUND TRUTH BEHIND THE VERDICT ([[feedback_instrument_needs_ground_truth]]).
+        // The assert above states what the predicate now answers; this one MEASURES the generator,
+        // so the narrowing rests on observed behaviour rather than on its own new definition. Two
+        // single-target witness passes over the SAME grammar, one per gate class:
+        //   * NAME  — the own-rule attempt succeeds, the target is covered, NO raise fires, and the
+        //             witness is literally the own-rule rendering (`ng`, never `u`-rooted);
+        //   * COUNT — the own-rule attempt is pruned (`fact_count_at_least … zero source facts`),
+        //             so the raise fires exactly once.
+        // ⚠️ HONEST: this test is GREEN on both sides of the narrowing, deliberately — it measures
+        // the GENERATOR, not the predicate, and the two are supposed to agree only after the fix.
+        // Its being green BEFORE is itself the finding: ARM 2 is short-circuited by
+        // `witness_target_is_resolved`, so a spurious verdict was already unreachable at run time,
+        // which is exactly why the narrowing is predicted to be OUTPUT-NEUTRAL on the real gate.
+        // The RED control for the verdict itself is the assert in the sibling test above.
+        let (grammar_tree, rule_order, annotations) = two_gate_class_grammar();
+
+        let pass = |target_id: &str| {
+            let mut generator =
+                generator_with_annotations(&grammar_tree, &rule_order, Some(&annotations), 7);
+            let report = generator
+                .generate_gap_report(Some("unit"), 1)
+                .expect("gap report");
+            let targets: Vec<StimuliCoverageTarget> = report
+                .targets
+                .iter()
+                .filter(|t| t.id == target_id)
+                .cloned()
+                .collect();
+            assert_eq!(
+                targets.len(),
+                1,
+                "`{}` must be an uncovered reachable target",
+                target_id
+            );
+            let status = generator
+                .evaluate_target_statuses(&targets)
+                .into_iter()
+                .next()
+                .expect("an uncovered target has a status");
+            let (witnesses, summary) = generator
+                .generate_target_witnesses(&targets, Some("unit"))
+                .expect("witness pass");
+            let resolved = generator.witness_target_is_resolved(&status);
+            (witnesses, summary, resolved)
+        };
+
+        let (name_witnesses, name_summary, name_resolved) = pass("rule::name_gated");
+        assert!(
+            name_resolved,
+            "the NAME-gated target must be covered by its own rule: {:?}",
+            name_summary
+        );
+        assert_eq!(
+            name_summary.store_entry_raises, 0,
+            "no raise may fire for a gate the generator never refuses on: {:?}",
+            name_summary
+        );
+        // `name_gated` alone renders exactly `ng`; anything rooted at the raised entry `unit`
+        // must carry `unit`'s mandatory `u` prefix, so the two entries are told apart by TEXT and
+        // not by the counter alone.
+        assert!(
+            name_witnesses.iter().any(|w| w == "ng")
+                && !name_witnesses.iter().any(|w| w.starts_with('u')),
+            "the NAME-gated witness must be the own-rule rendering `ng`, got {:?}",
+            name_witnesses
+        );
+
+        let (_, count_summary, _) = pass("rule::count_gated");
+        assert_eq!(
+            count_summary.store_entry_raises, 1,
+            "the COUNT-gated target's own rule IS pruned, so it must still take the raise: {:?}",
+            count_summary
         );
     }
 

@@ -391,6 +391,17 @@ whose gated content prunes lets a sibling rescue the rule, so the attempt return
 branch uncredited. The discriminator is coverage, which is exactly why the attempt-ordered raise
 keys on coverage too.
 
+⭐ **And the census then closed the question it opened.** Classifying its rows by the *class* of gate
+the targeted alternative reaches splits the population perfectly: the one genuine target per profile
+is a `fact_count_at_least` **count** gate, and every spurious one is a `has_fact` /
+`fact_attribute_equals` **name** gate — 16 of 16 and 11 of 11. The reason is a checkable property of
+the generator rather than a plausible story: **the only generation-side store prune there is reads
+the count gates**, so a name-gated rule renders a fresh identifier against an empty store and is
+credited. Scoping the blocked verdict to exactly that map takes the census to **1 and 1**, spurious
+to **zero**, with `store_entry_raises`, the residual and all eight stage artifacts unchanged
+byte-for-byte. Full account: [What the verdict must actually ask
+about](grammar-wellformedness.md#what-the-verdict-must-actually-ask-about-pruning-not-polarity).
+
 ## Probe-Only Steering
 
 When a family is down to a stubborn replay frontier, PGEN now distinguishes between two kinds of literal steering:

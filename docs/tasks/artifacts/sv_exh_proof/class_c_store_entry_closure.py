@@ -20,9 +20,14 @@ Two halves, both mirroring the engine:
     propagates, lookaheads render nothing.  ⛔ A whole-closure "does any gate exist below here"
     scan is NOT the same question and gets `net_declaration_sv_2017` wrong: its gated rules all
     sit behind ungated escapes.  That miscalibration is what the escape control below catches.
-  * POSITIVE polarity only (`StoreGateScope::PositiveOnly`) — `has_fact` /
-    `fact_attribute_equals` / `fact_count_at_least`.  A `lacks_fact` gate is SATISFIED by an
-    empty store, so counting it would declare a witnessable target unwitnessable.
+  * GENERATION-PRUNED gates only (`StoreGateScope::GenerationPruned`) — `fact_count_at_least`
+    ALONE.  A `lacks_fact` gate is SATISFIED by an empty store, so counting it would declare a
+    witnessable target unwitnessable (the original `.7.4.6.12` reason).  ⛔ And since
+    `SV-EXH-PROOF.7.4.6.17` the NAME gates (`has_fact` / `fact_attribute_equals`) are excluded
+    too: they have NO generation-side prune, so a name-gated rule renders a fresh identifier
+    against an empty store and its target is credited.  Counting them was the verdict's whole
+    over-approximation — 15 of 16 (`sv_2017`) and 10 of 11 (`sv_2023`) blocked targets, every one
+    witnessed by its own rule.  Control 4 below is what holds this mirror to the engine's scope.
 
 ⭐ GROUND TRUTH — it refuses rather than guesses.  Before publishing any verdict it runs THREE
 controls: a rule the project has already measured as blocked, a rule whose closure is full of
@@ -41,6 +46,11 @@ MEASURED 2026-08-02 (PGEN-SV-EXH-PROOF-0170), the gate's profile-2017 normalized
   net_declaration_sv_2017               (rule)                     => not blocked (escapes)
   net_declaration_sv_2017#2             (the wildcard-escape alt)  => BLOCKED
   the sole emitter of `wildcard_import_open` is `package_import_item`, in NEITHER closure.
+
+RE-MEASURED 2026-08-08 (PGEN-SV-EXH-PROOF-0183, `.7.4.6.17` step 3), same grammar:
+  net_declaration_sv_2017#1             (the NAME-gated alt)       => not blocked
+  …which the pre-`.7.4.6.17` vocabulary called BLOCKED.  Same rule, adjacent alternative,
+  identical body — the gate CLASS is the only difference, and it is the whole mechanism.
 """
 
 from __future__ import annotations
@@ -56,14 +66,20 @@ GEN_AST = os.path.join(
     ROOT, "rust", "target", "sv_stimuli_quality_gate", "work", "systemverilog_gen_ast.json"
 )
 
-# The POSITIVE store-gate primitives — the engine's `StoreGateScope::PositiveOnly` vocabulary.
-POSITIVE_GATES = {"has_fact", "fact_attribute_equals", "fact_count_at_least"}
+# The GENERATION-PRUNED store-gate primitives — the engine's `StoreGateScope::GenerationPruned`
+# vocabulary (SV-EXH-PROOF.7.4.6.17).  It is deliberately NOT "every positive gate": see the
+# module docstring, and control 4 below, which is RED against the pre-`.7.4.6.17` set.
+GENERATION_PRUNED_GATES = {"fact_count_at_least"}
 
 # (target, expected blocked) — see the module docstring for why each is trustworthy.
 CONTROLS = (
     ("wildcard_escape_nettype_identifier", True),  # the measured class-C rule
     ("net_declaration_sv_2017", False),  # gated rules, all behind escapes
-    ("net_declaration_sv_2017#2", True),  # …and the one alternative that is not
+    ("net_declaration_sv_2017#2", True),  # …and the COUNT-gated alternative that is not
+    # SV-EXH-PROOF.7.4.6.17: the adjacent NAME-gated alternative of the SAME rule. `True` under
+    # the pre-`.7.4.6.17` vocabulary, `False` now — so this control alone refuses a mirror that
+    # has drifted back to scoping on polarity instead of on what generation prunes.
+    ("net_declaration_sv_2017#1", False),
 )
 
 DEFAULT_TARGETS = [
@@ -182,7 +198,7 @@ def positive_gate_kinds(annotations) -> collections.defaultdict:
             value = entry.get("ast", {}).get("Structured", {}).get("value", {})
             props = {p["key"]: p["value"] for p in value.get("Object", [])}
             name = props.get("name", {})
-            if (name.get("Identifier") or name.get("String")) not in POSITIVE_GATES:
+            if (name.get("Identifier") or name.get("String")) not in GENERATION_PRUNED_GATES:
                 continue
             args = props.get("args", {}).get("Array", [])
             if args:
@@ -199,7 +215,7 @@ def positive_gate_kinds(annotations) -> collections.defaultdict:
 
 
 class Walker:
-    """Mirrors `mandatory_reach_gate` / `mandatory_node_gated` at `StoreGateScope::PositiveOnly`."""
+    """Mirrors `mandatory_reach_gate` / `mandatory_node_gated` at `StoreGateScope::GenerationPruned`."""
 
     def __init__(self, tree, gates, available):
         self.tree = tree

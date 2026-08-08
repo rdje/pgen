@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0183 — "conservative" means over-approximating the axis the CONSUMER acts on; over-approximate a different axis and you are simply wrong in a direction nobody checks
+
+**The defect was a criterion that felt safe.** A verdict deciding whether a witness target can be
+GENERATED from its own rule was scoped to *every POSITIVE store gate* — reasoned from the fact that a
+NEGATIVE gate is satisfied by an empty store, which is true and is not the whole test. The consumer
+of that verdict is the generator, and the generator refuses a render on exactly one thing: the
+count-gate prune. A positive gate that never prunes cannot block generation, so counting it
+over-approximates an axis the consumer does not act on. Measured: the verdict was right 1 time in 16.
+
+**The check that would have caught it is one question:** *what, concretely, makes the thing this
+predicate claims become true?* Then scope the predicate to that mechanism's own input — here,
+literally the map the prune reads. A predicate scoped to a mechanism cannot drift from it; a
+predicate scoped to a plausible property of the mechanism can, silently, forever.
+
+**Predict the measurement before you run it — a coverage-neutral result is only evidence if you
+said so first.** The raised arm is guarded `!covered && blocked`, and `&&` short-circuits, so a
+spurious verdict was already unreachable at run time. That made "all eight artifacts byte-identical"
+a *prediction* rather than a shrug: had anything moved, the model of the code would have been wrong.
+Stating the expected outcome first is what converts a null result from weak into strong.
+
+**And go and look for the second implementation you already have.** A cross-language mirror of this
+verdict had existed since `.7.4.6.12` as a probe. It would have silently drifted out of agreement
+with the engine; narrowing it in lockstep cost minutes, and it earned its keep immediately — its new
+ground-truth control REFUSES under the old vocabulary, so the mirror now holds the engine's scope
+rather than merely having once agreed with it.
+
+⚠️ **The obvious suspect was real and was not the cause.** A genuinely broken arm of the same
+predicate (an unresolved rule reference reading as "gated", the `epsilon` vector) was named, in
+code, before this slice started. Fixing it would have felt like progress and moved nothing: not one
+of the 27 targets involves an unresolvable reference. Measure which defect your population actually
+has before fixing the defect you can already see.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0181 — a count is not a specification; and measure a policy where its OUTCOME is, not where its decision is
 
 **"The verdict is wrong 94 % of the time" is not something you can fix.** `-0179` produced a real,

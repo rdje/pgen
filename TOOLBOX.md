@@ -635,8 +635,19 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `sv_2023` **11 = 10 + 1**, both exact, `store_entry_raises=1` on each. A census that fails to
   reconcile is reporting a broken instrument, not a finding.
 - **Measured at the time of writing:** **every** blocked target on both profiles is a `type=Branch`
-  target — zero rule targets — so the over-approximation lives entirely in the BRANCH arm of
-  `target_forces_positive_store_gate`. Full map: `docs/tasks/SV-EXH-PROOF.md` `.7.4.6.17`.
+  target — zero rule targets — so the over-approximation lived entirely in the BRANCH arm of
+  `target_forces_positive_store_gate`.
+- ⭐ **AND THE CENSUS HAS SINCE ANSWERED ITS OWN QUESTION — read this before treating a `SPURIOUS`
+  row as normal.** Classified by GATE CLASS the split was perfect: the genuine target is a
+  `fact_count_at_least` COUNT gate, every spurious one a `has_fact`/`fact_attribute_equals` NAME
+  gate. Root cause: **the generator has exactly one store prune and it is count-only**
+  (`gen_count_predicate_satisfiable`), so a name gate can never make a target unwitnessable at
+  generation time. The verdict is now scoped to that map (`StoreGateScope::GenerationPruned`), and
+  the census reads **`sv_2017` 1 = 0 SPURIOUS + 1 GENUINE**, **`sv_2023` 1 = 0 + 1**, with the stage
+  artifacts byte-identical. ⇒ **a `SPURIOUS` row today is a REGRESSION signal, not background
+  noise.** The cross-language mirror `docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py`
+  re-derives the same verdict and REFUSES (exit 2) if it drifts back to scoping on polarity.
+  Full map: `docs/tasks/SV-EXH-PROOF.md` `.7.4.6.17`.
 
 ---
 

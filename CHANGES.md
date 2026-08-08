@@ -1,5 +1,45 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0183 — leaf SV-EXH-PROOF.7.4.6.17 step 3 (the FIX, leaf CLOSED): the blocked verdict was asking about POLARITY where its claim turns on PRUNING — now right 1 for 1, output byte-identical
+
+- **Root cause, sharper than step 2's and mechanically checkable.** `witness_target_is_store_entry_blocked`
+  claims a target *cannot be GENERATED from its own rule*. The only thing in the generator that can
+  make that true is the generation-side store prune — `generate_rule`'s
+  `!gen_count_predicate_satisfiable(rule)` guard (`STORE-AWARE-GEN: … fact_count_at_least predicate
+  unsatisfiable (zero source facts)`), which reads `gen_count_kinds`. **There is no name-gate
+  analogue anywhere**: `gen_name_gate` is consulted only by the prelude planners, the armed-prelude
+  name replay and the free-name collision repair, never to refuse a render. So a name-gated rule
+  renders a fresh identifier against an empty store and its target is credited.
+- **The fix is one scope.** `StoreGateScope::PositiveOnly` → `GenerationPruned`, reading
+  `gen_count_kinds` alone — the same map the prune reads, so verdict and behaviour can no longer
+  disagree. `.7.4.6.12`'s polarity criterion was right and one criterion short: a positive gate that
+  never prunes cannot block generation either.
+- **Measured single-variable on the canonical replay stage, census enabled on both arms:**
+  blocked-verdict census **16 → 1** (`sv_2017`) and **11 → 1** (`sv_2023`), **SPURIOUS 15 → 0** and
+  **10 → 0**, GENUINE `1 → 1` and the same target on each. `store_entry_raises` unchanged at `1`/`1`
+  ⇒ the verdict's accuracy went **1-of-16 → 1-of-1** with the raise population identical.
+- **No regression:** residual `0`/`0`; all **8** stage artifacts **byte-identical** (`cmp`);
+  whole-summary diff — 16/16 counters equal, all four debt lists **0 resolved / 0 new**, both
+  profiles. Cert coverage at seeds 0/7/42 on json/regex/vhdl/rtl_frontend **12/12**
+  `UNKNOWN=0 fully_certified=true`; `ast_shape_contract_gate` GREEN (18/18);
+  `clippy_on_rust_change` rc=0; dual-feature lib 1053/1 (baseline 1051/1 + 2 new tests).
+- ⭐ **The byte-neutrality was PREDICTED before it was measured.** The raised arm is guarded
+  `!covered && blocked` and `&&` short-circuits, so a spurious verdict was already unreachable at
+  run time — `.7.4.6.15`'s ordering had turned it into a pure cost knob, and this turns the knob to
+  zero. That is why a coverage-neutral result is evidence here rather than an absence of one.
+- ⭐ **Three independent proofs, one of them in another language.** A RED unit control
+  (`store_entry_blocked_verdict_counts_only_generation_pruned_gates` fails on the pre-fix scope); a
+  generator MEASUREMENT (a name-gated target covered from its own rule with `store_entry_raises=0`
+  while its count-gated twin in the same grammar still raises); and the cross-language mirror
+  `class_c_store_entry_closure.py`, narrowed in lockstep and given a 4th ground-truth control that
+  REFUSES (exit 2) if the scope drifts back to polarity.
+- ⛔ **Honest bound:** the narrowing gives up the incidental benefit a raise might have brought a
+  name-gated target its own-rule attempt left uncovered for some *other* reason. No such target
+  exists on either SV profile; on another grammar one could.
+- ⛔ **Step 2's bootstrapping story survives as the CONSEQUENCE, not the cause** — and the design
+  sketch's warning ("do NOT assume name gates are always bootstrappable") is discharged rather than
+  assumed: the narrowing does not depend on bootstrappability at all.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0182 — leaf SV-EXH-PROOF.7.4.6.17 step 2 (docs-only): the over-approximation is the QUESTION the verdict asks, and the gate CLASS separates the population 16 of 16
 
 Derived with zero stage runs, from the gen-AST plus the census rows `-0181` already put on disk.
