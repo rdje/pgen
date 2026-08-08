@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0185 — when no formula can work, stop looking for a formula; and a bound is free far more often than a static pricing predicts
+
+**The bracket was the answer, not a dead end.** Two measured refutations in opposite directions —
+configured-relative slack bounds and costs coverage, live-relative grants cost nothing and bound
+nothing — proved that no slack *formula* could be both. The instinct after that is to look for a
+cleverer formula. The correct move was to notice that every candidate had the same shape: *compute a
+budget*. A ceiling does not compute a budget. It refuses a rung. Once the shape changed, the
+problem was over in one constant and one guard.
+
+**The base of a bound must be an input that cannot move.** `configured_max_depth`, captured at
+construction, versus `config.max_depth`, which every rung mutates in place. That single choice is
+the difference between this fix and `-0184`'s refuted candidate, which read the live field and
+produced a ceiling *above* the ladder it meant to bound. The unit control drives the bound across
+the entire measured ladder (levels 0..106) and asserts it does not move — a property test for the
+exact mistake the previous slice made, so the codebase cannot make it twice.
+
+**A refusal returns budget; it does not only destroy work.** The static pricing predicted the
+ceiling would refuse `3 814`/`33 424` retries and cost nothing. Measured, it refused `2 429`/`1 116`
+and *gained* successes (`252 → 390`, `398 → 426`), because budget not spent on a branch that cannot
+succeed is spent by the passes that can — `sv_2017`'s target-drive pass resolved 74 % more targets.
+This is the **third** time on this defect that a static curve disagreed with the measured arm in
+both directions. The durable rule: a static pricing is a *candidate generator*; only the A/B is a
+verdict. It is cheap to hold both and expensive to confuse them.
+
+**Bound the thing that has no bound, and check its siblings.** The two retries in this one `Err` arm
+now carry three bounds between them, all read off measurements: the sibling's retry count
+(`MAX_UNCOVERED_REACH_RETRIES`), this one's per-branch count (`TARGET_BRANCH_DEPTH_RETRY_CAP`), and
+now its *depth* (`DEPTH_SLACK_RETRY_CEILING_MULTIPLE`). Counting retries and bounding how deep each
+goes are different questions, and the first bound answered only one of them — which is why landing
+the backstop at `-0176` did not move the ladder at all (`448 → 444`).
+
+**A comparison instrument needs an existence check, not just a diff.** The cross-grammar inertness
+sweep reported `rtl_const_expr` diverging on all three seeds. It was `cmp` on two files that neither
+arm ever wrote — the grammar fails outright at the default depth, pre-existing and already
+documented, and its depth-slack retry never fires. Absence read as divergence. Every A-vs-B
+comparison now carries an A-vs-A determinism control *and* a "did this produce output" refusal;
+without both, the two failure modes are indistinguishable and the confident-looking answer is wrong.
+
+**Say what is true, not what sounds finished.** `--max-depth` still does not literally bound the
+descent — that was measured and rejected at a cost of residual `0 → 17`/`0 → 10`. The claim that
+holds is narrower and worth stating exactly: the descent is bounded at 21× the configured depth, by
+a named constant rather than by how deeply a retry happens to nest, and it is overridable per run.
+A leaf closed on the honest statement is closed; one closed on the flattering statement reopens.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0184 — a bound computed from where you ARE cannot bound how far you GO; and two refutations that bracket a problem are worth more than either alone
 
 **The candidate looked obviously right and is obviously wrong once you write down what it reads.**

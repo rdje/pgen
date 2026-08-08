@@ -1,5 +1,49 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0185 — leaf SV-EXH-PROOF.7.4.6.13 defect (ii), THE FIX (leaf CLOSED): the DECLARED CEILING bounds the depth ladder at ZERO coverage and ZERO residual cost
+
+- **The fix.** `DEPTH_SLACK_RETRY_CEILING_MULTIPLE = 21` — the depth-slack retry's escalated budget
+  may never exceed 21× the **configured** `--max-depth`. One constant, one guard, and the base it
+  multiplies (`configured_max_depth`, captured at construction). `PGEN_DEPTH_SLACK_CEILING_MULTIPLE`
+  overrides it per run (`0` disables), which is what makes the bound *declared* rather than merely
+  present.
+- ⭐ **It is not a formula — it refuses a rung.** `-0177` and `-0184` bracketed the problem:
+  configured-relative slack bounds the descent and costs residual `0 → 17`/`0 → 10`; live-relative
+  grants cost nothing and bound nothing. No slack *formula* can be both. A ceiling does not compute
+  a budget at all.
+- ⭐ **`21` is read off the census, not chosen.** At nesting level `L` the rung's budget is exactly
+  `configured + 4L` — verified at every one of the 269 measured levels — so a budget ceiling and a
+  nesting cap are the same knob. `21` is the tightest multiple refusing zero measured successes on
+  both profiles (`20` costs 9 of `sv_2023`'s 398); the deepest rung that ever *pays* is 18.8x/20.8x.
+  New instrument: `docs/tasks/artifacts/sv_exh_proof/depth_slack_ceiling_pricing.py`.
+- **Measured A/B, canonical replay stage, two arms from one binary:** nesting levels `106 → 100` and
+  `163 → 100`; max ladder budget `444 → 420` and `672 → 420` (= `21 × 20` to the unit);
+  `covered_rules` and `covered_branches` **unchanged** on both profiles; **closed-loop residual
+  `0 → 0`**; `sv_2023` stage elapsed `428 s → 253 s`.
+- ⛔ **Static pricing was wrong in BOTH directions a third time.** Predicted `3 814`/`33 424`
+  refusals and no gain; measured `2 429`/`1 116` refusals and successes **up** (`252 → 390`,
+  `398 → 426`) — budget not spent on a branch that cannot succeed is returned to the passes that
+  can, so `sv_2017`'s target-drive pass resolves 74 % more targets and `sv_2023`'s 40 target-drive
+  `depth_exceeded_errors` fall to 0. Honest cost: `sv_2017` retry attempts rise 5.2 %, at flat
+  wall-clock.
+- **Ground truth on three levels:** unit (the bound driven across the whole measured ladder must not
+  move; `0` must *disable*, not bound-at-zero; a two-arm end-to-end control where the refusal is
+  *attributed*, not merely observed); whole-run (the `disabled` arm is **8/8 byte-identical** to the
+  `-0184` arm, so every difference is the ceiling's); cross-grammar (ON vs OFF over 8 grammars ×
+  seeds 0/7/42 = **24/24 byte-identical**, each with its own determinism control).
+- ⚠️ **One instrument defect caught by its own control and recorded, not quietly fixed:** the first
+  cross-grammar sweep read `rtl_const_expr` as diverging; it was `cmp` on two files neither arm ever
+  wrote (the grammar fails at the default depth — pre-existing, documented — and its retry never
+  fires). The sweep now REFUSES a no-output arm. A comparison instrument without a "did this produce
+  output" control reports absence as divergence.
+- ⚠️ **Honest bound:** `--max-depth` still does not *literally* bound the descent, and making it
+  literal was measured and rejected. What holds is the declared statement: bounded at 21× the
+  configured depth, by a named constant, overridable per run.
+- **Verification:** cert coverage seeds 0/7/42 on json/regex/vhdl/rtl_frontend **12/12**
+  `UNKNOWN=0 fully_certified=true`; `ast_shape_contract_gate` GREEN 18/18;
+  `clippy_on_rust_change` rc=0; `mdbook_docs_gate` rc=0; dual-feature lib suite 1056 passed / 1
+  failed (same pre-existing codegen unresolved-reference failure).
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0184 — leaf SV-EXH-PROOF.7.4.6.13 defect (ii), TOOL-BUILD: the EXPLICIT per-target depth grant is MEASURED and REFUTED — the two candidates now BRACKET the problem
 
 - **The instrument.** The depth-slack retry census (TOOLBOX 6.2) gained an `explicit-grant:` arm: at

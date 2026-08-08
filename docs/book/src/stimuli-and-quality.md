@@ -274,36 +274,49 @@ without a single new gate run; the method and the trap are in the KM card
 
 ### `--max-depth` is not the depth the generator runs at
 
-A reader who sets `--max-depth 20` and then finds `max_depth=448` in a failure reason has not
+A reader who sets `--max-depth 20` and then finds `max_depth=420` in a failure reason has not
 found a bug in the report. `generate_or` gives a *targeted, never-covered, depth-blocked* branch
 one more attempt with a little extra slack, and it computes that slack from the **live**
 `config.max_depth` rather than from the configured one. So a retry entered inside another retry's
 subtree inflates an already inflated budget, and the escalation is cumulative: `20, 24, 28, …`.
-On SystemVerilog it climbs to `448` (`sv_2017`) and `676` (`sv_2023`) — 22x and 34x the configured
-depth. `ebnf` and `semantic_annotation` climb the same ladder, three rungs deep; this is shared
+`ebnf` and `semantic_annotation` climb the same ladder, three rungs deep; this is shared
 generator behaviour, not a SystemVerilog quirk.
+
+Unbounded, it climbed to `448` (`sv_2017`) and `676` (`sv_2023`) — 22x and 34x the configured depth.
+It is now bounded by a **declared ceiling** at 21x, so both profiles stop at `420`; how that number
+was arrived at, and why it is a ceiling rather than a better slack formula, is
+[below](#the-declared-ceiling).
 
 The ladder's *failures* are visible in `failure_reasons` above. Whether its rungs ever **pay** is a
 different question, and every closed-loop replay run now answers it on one line:
 
 ```bash
 grep "Depth-slack retry census:" rust/target/sv_stimuli_quality_gate/logs/profile_2017_closed_loop_replay.log
-# Depth-slack retry census: nesting_levels=107 attempts=1964056 successes=255
-#   deepest_paying_level=89 branches_retried=443 branch_retry_max=726836
-#   success_ordinal_max=103829 [successes/attempts@max_budget] L1:35/855@24 …
-#   [success_ordinal:count] 1:144 2:24 3:5 …
+# Depth-slack retry census: nesting_levels=100 attempts=318117 successes=390
+#   deepest_paying_level=89 branches_retried=578 branch_retry_max=4096
+#   success_ordinal_max=3886 [successes/attempts@max_budget] L1:33/602@24 …
+#   [success_ordinal:count] 1:145 2:22 3:7 …
+#   | explicit-grant: max_explicit_budget=463 vs max_granted_budget=444 …
+#   | declared-ceiling: ceiling_budget=420 refusals=2429
 ```
 
-Read it in three places:
+Read it in five places — the last two are the bounds this line's own history produced, and the
+figures quoted against each are the *pre-bound* measurements that motivated them:
 
 - **`deepest_paying_level` against `nesting_levels`** — where the successes stop, versus how far the
-  ladder climbed. `sv_2023` measured `24` against `164`: **99.5 % of its retry work returned zero
-  successes.**
-- **`branch_retry_max` against `success_ordinal_max`** — the runaway signature. On `sv_2017` one
-  single branch spent `726 836` retries, 37 % of the whole run's, while the deepest *paying* retry
-  of any branch was its `103 829`th.
+  ladder climbed. Before either bound, `sv_2023` measured `24` against `164`: **99.5 % of its retry
+  work returned zero successes.**
+- **`branch_retry_max` against `success_ordinal_max`** — the runaway signature. Unbounded, one single
+  `sv_2017` branch spent `726 836` retries, 37 % of the whole run's, while the deepest *paying*
+  retry of any branch was its `103 829`th. It reads `4096` above because that runaway is now capped.
 - **the `success_ordinal` histogram** — what a per-branch cap would actually cost, read off the
-  distribution instead of guessed. `144` of `255` successes land on a branch's *first* retry.
+  distribution instead of guessed. `144` of `255` successes landed on a branch's *first* retry.
+- **`explicit-grant: max_explicit_budget` against `max_granted_budget`** — what a
+  derivation-justified budget would have granted at each rung. ⛔ Do not assume it is the tighter
+  one; measured on SV it is the **looser** one (`463 > 444`, `695 > 672`), for the reason below.
+- **`declared-ceiling: ceiling_budget` and `refusals`** — the bound this artifact was produced
+  under, and how often it actually fired. `refusals=0` means a ceiling in force that never bound;
+  `ceiling_budget=disabled` means none was in force at all.
 
 The line is printed only when the retry fired, so a grammar that never escalates keeps a
 byte-identical log — which also means a census line is evidence the retry ran, not evidence the
@@ -370,10 +383,67 @@ bounded only by the already-escalated budget, so **a budget computed from where 
 is inherits the very ladder it was meant to bound.**
 
 ⇒ the two candidates **bracket** the problem — configured-relative bounds the descent and costs
-coverage; live-relative costs nothing and bounds nothing — so no slack *formula* can be both. What
-remains is not a formula but a **declared ceiling**: a hard cap at a stated multiple of the
-configured depth, priced off those measured maxima, which makes the descent bounded *and declared*
-without pretending `--max-depth` is the bound. That work is open.
+coverage; live-relative costs nothing and bounds nothing — so no slack *formula* can be both.
+
+#### The declared ceiling
+
+What remains is not a formula at all. A formula computes a budget; the fix **refuses a rung**. The
+escalated budget may never exceed a stated multiple of the **configured** `--max-depth`:
+
+```rust
+const DEPTH_SLACK_RETRY_CEILING_MULTIPLE: usize = 21;   // × the configured --max-depth
+```
+
+The multiple is read off the census rather than chosen. At nesting level `L` the rung's budget is
+exactly `configured + 4L` — verified at every one of the 269 measured levels — so **a budget ceiling
+and a nesting cap are the same knob**, and the per-level table already prices every candidate.
+`21` is the *tightest* multiple that refuses zero measured successes on both profiles (`20` already
+costs 9 of `sv_2023`'s 398), while the deepest rung that ever *pays* is `18.8x` / `20.8x`. Price a
+multiple for your own grammar with
+`docs/tasks/artifacts/sv_exh_proof/depth_slack_ceiling_pricing.py`, and override the shipped one per
+run with `PGEN_DEPTH_SLACK_CEILING_MULTIPLE` — that override is what makes the bound *declared*
+rather than merely present. `0` disables it.
+
+The base is the **configured** depth, never the live one. That single choice is the whole fix: the
+live field already carries every rung the ladder has climbed, which is exactly how the
+explicit-grant candidate ended up with a ceiling *above* the ladder it was meant to bound.
+
+Measured on the closed-loop replay stage, two arms from one binary:
+
+| | `sv_2017` | `sv_2023` |
+|---|---|---|
+| nesting levels | 106 → **100** | 163 → **100** |
+| max ladder budget | 444 → **420** | 672 → **420** |
+| …as a multiple of `--max-depth 20` | 22.2x → **21.0x** | 33.6x → **21.0x** |
+| ceiling refusals | 0 → 2 429 | 0 → 1 116 |
+| retry attempts | 302 526 → 318 117 | 408 247 → **324 673** |
+| retry successes | 252 → **390** | 398 → **426** |
+| target-drive resolved | 880 → **1 529** | 1 673 → **1 692** |
+| `covered_rules` | 1337/1352 → 1337/1352 | 1356/1371 → 1356/1371 |
+| `covered_branches` | 1451/1540 → 1451/1540 | 1490/1575 → 1490/1575 |
+| stage elapsed | 252 s → 251 s | 428 s → **253 s** |
+| closed-loop residual | 0 → **0** | 0 → **0** |
+
+Both profiles land on exactly `100` levels, and `20 + 4 × 100 = 420` is the declared ceiling to the
+unit. Coverage does not move — neither `covered_rules` nor `covered_branches`, on either profile —
+so the bound is **free**, which is precisely what the bracket said no *formula* could be.
+
+⭐ **And the successes went up, which is the part worth understanding.** A static reading of the
+census predicted the ceiling would refuse `3 814` / `33 424` retries and cost nothing; it refused
+`2 429` / `1 116` and *gained* successes (`252 → 390`, `398 → 426`). A rung refused is budget not
+spent on a branch that cannot succeed — it is returned to the passes that can, which is why
+`sv_2017`'s target-drive pass resolves **74 % more targets** and `sv_2023`'s 40 target-drive
+`depth_exceeded_errors` fall to zero. Honest cost, in the other direction: `sv_2017`'s retry
+*attempts* rise 5.2 %, at flat wall-clock. This is the third time on this defect that a static
+pricing disagreed with the measured arm in **both** directions; treat the curve as a candidate
+generator and the A/B as the verdict.
+
+⚠️ **What is now true, stated precisely.** `--max-depth` still does not *literally* bound the
+descent, and making it literal was measured and rejected — it costs residual `0 → 17` / `0 → 10`,
+because the cumulative escalation is load-bearing for roughly ten rules and seven branches per
+profile. What holds instead is the weaker, declared statement: the descent is bounded at 21× the
+configured depth, that factor is a named constant rather than an emergent property of how deeply the
+retry happens to nest, and it is overridable per run.
 
 Not every reason is a budget. A row reading
 `STORE-AWARE-GEN: rule '…' fact_count_at_least predicate unsatisfiable (zero

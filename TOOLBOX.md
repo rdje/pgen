@@ -582,10 +582,13 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
 - **OUTPUT (measured, `systemverilog` at `--max-depth 20`):**
   ```
-  Depth-slack retry census: nesting_levels=107 attempts=1964056 successes=255
-    deepest_paying_level=89 branches_retried=443 branch_retry_max=726836
-    success_ordinal_max=103829 [successes/attempts@max_budget] L1:35/855@24 L2:40/554@28 …
-    [success_ordinal:count] 1:144 2:24 3:5 …
+  Depth-slack retry census: nesting_levels=100 attempts=318117 successes=390
+    deepest_paying_level=89 branches_retried=578 branch_retry_max=4096
+    success_ordinal_max=3886 [successes/attempts@max_budget] L1:33/602@24 L2:42/488@28 …
+    [success_ordinal:count] 1:145 2:22 3:7 …
+    | explicit-grant: max_explicit_budget=463 vs max_granted_budget=444 covers_successes=233/252
+      at_least_as_generous=302507/302526 success_shortfall_max=1
+    | declared-ceiling: ceiling_budget=420 refusals=2429
   ```
 - **READING:** `attempts` ≫ `successes` is normal; the number that matters is where the successes
   STOP. `sv_2023` measured `deepest_paying_level=24` against 164 levels climbed — **99.5 % of its
@@ -604,14 +607,34 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   only sufficiency claim the instrument makes: a success with `explicit >= granted` would certainly
   still have been bought; a shorter one is recorded under `success_shortfall_max` as **UNKNOWN**
   (the generator need not take a minimal derivation), never as a loss.
+- ⭐ **THE `declared-ceiling:` ARM — the bound the artifact was produced under, and how often it
+  fired** (`SV-EXH-PROOF.7.4.6.13`, the leaf's closing fix). The line ends
+  `declared-ceiling: ceiling_budget=420 refusals=2429`. The escalated budget may never exceed
+  `DEPTH_SLACK_RETRY_CEILING_MULTIPLE` (**21**) × the **configured** `--max-depth`, so a reader
+  never has to infer the bound from the ladder's shape, and `ceiling_budget=disabled` (via
+  `PGEN_DEPTH_SLACK_CEILING_MULTIPLE=0`) is distinguishable from a ceiling that is in force and
+  simply never bound (`refusals=0`).
+  ⛔ **This is the bound `--max-depth` itself was never going to be.** Making `--max-depth` literal
+  was measured and REJECTED: it costs residual `0 → 17` / `0 → 10`, because the cumulative
+  escalation is load-bearing. Landing the ceiling instead took the ladder `444 → 420` / `672 → 420`
+  (both profiles to exactly `nesting_levels=100`) at **zero** coverage and **zero** residual cost.
+  Price a multiple for your own grammar off any census line with
+  `python3 docs/tasks/artifacts/sv_exh_proof/depth_slack_ceiling_pricing.py <stage.log>` — it
+  verifies the `configured + 4L` rung identity at every level and REFUSES a non-arithmetic ladder
+  rather than pricing one.
 - ⭐ **GROUND TRUTH — it is silent when the retry never fires.** A grammar with no targeted,
   depth-blocked branch prints NOTHING (pinned by
   `depth_slack_retry_census_is_silent_when_the_retry_never_fires`), so a census line in a log is
   evidence the retry ran — not evidence it was compiled in. The positive control lives in
-  `target_driven_generation_retries_target_branch_with_depth_slack`.
-- ⚠️ **HONEST BOUND:** a cap read off this histogram prices *the run you measured*. Capping changes
-  generation downstream, so the after-run finds different successes — `SV-EXH-PROOF.7.4.6.13`
-  measured `sv_2023` successes go **147 → 398** under a cap. Always A/B the residual, never infer it.
+  `target_driven_generation_retries_target_branch_with_depth_slack`; the ceiling's own pair is
+  `depth_slack_retry_ceiling_is_a_multiple_of_the_configured_depth_not_the_live_one` and
+  `depth_slack_retry_ceiling_refuses_the_rung_that_would_climb_past_it`.
+- ⚠️ **HONEST BOUND:** a cap or ceiling read off this histogram prices *the run you measured*.
+  Capping changes generation downstream, so the after-run finds different successes —
+  `SV-EXH-PROOF.7.4.6.13` measured `sv_2023` successes go **147 → 398** under a cap, and the
+  declared ceiling's static pricing was wrong in **both** directions a third time (predicted
+  `3 814`/`33 424` refusals and no gain; measured `2 429`/`1 116` and successes **up**
+  `252 → 390` / `398 → 426`). Always A/B the residual, never infer it.
   Full map: `docs/tasks/SV-EXH-PROOF.md` `.7.4.6.13` + book *Stimuli and Quality*.
 
 ### 6.3 `Store-entry-blocked verdict census` — is a witness-entry RAISE actually NEEDED, or is the verdict over-approximating?

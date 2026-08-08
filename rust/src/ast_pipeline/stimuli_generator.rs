@@ -93,6 +93,39 @@ const TARGET_BRANCH_DEPTH_RETRY_SLACK: usize = 4;
 /// sibling's deliberately — two retries in one `match` arm should not carry bounds that disagree.
 const TARGET_BRANCH_DEPTH_RETRY_CAP: u64 = 4096;
 
+/// SV-EXH-PROOF.7.4.6.13 defect (ii): the DECLARED CEILING on the depth-slack ladder — the
+/// escalated budget may never exceed `DEPTH_SLACK_RETRY_CEILING_MULTIPLE ×` the **configured**
+/// `--max-depth` (`configured_max_depth`, captured at construction and never mutated).
+///
+/// ⭐ WHY A CEILING AND NOT A FORMULA. Both slack FORMULAS were implemented and measured, and
+/// they bracket the problem from opposite sides — so no formula can be both safe and bounding:
+/// * CONFIGURED-relative slack (`-0177`) bounds the descent exactly as designed (nesting
+///   `106 -> 8`) and costs residual `0 -> 17` / `0 -> 10`, because the cumulative escalation is
+///   load-bearing for ~10 rules and ~7 branches per profile.
+/// * LIVE-relative explicit grants (`-0184`, `depth + min_full_derivation_depth`) cost
+///   essentially nothing and bound nothing — their own maxima (`463`/`695`) EXCEED the ladder's
+///   (`444`/`672`), because `depth` IS the live descent position and so inherits the ladder.
+///
+/// ⭐ WHY `21`, MEASURED NOT CHOSEN. Read off the `-0184` census's per-level table, where the
+/// rung budget is exactly `configured + TARGET_BRANCH_DEPTH_RETRY_SLACK × level`, so a budget
+/// ceiling and a nesting cap are the same knob. `21` is the TIGHTEST multiple that refuses zero
+/// measured successes on BOTH profiles — `20` already costs 9 of `sv_2023`'s 398 — while the
+/// deepest rung that ever PAYS is `18.8×` (`sv_2017`, budget 376) / `20.8×` (`sv_2023`, 416):
+/// everything above is pure cost, `1.26 %` / `8.19 %` of all retry work.
+const DEPTH_SLACK_RETRY_CEILING_MULTIPLE: usize = 21;
+
+/// SV-EXH-PROOF.7.4.6.13 defect (ii): the ceiling is DECLARED, so it is also OVERRIDABLE — a
+/// grammar that genuinely needs a deeper ladder raises it explicitly instead of inheriting one
+/// silently, which is the whole difference between this fix and the defect. `0` disables the
+/// ceiling entirely and restores the pre-ceiling (unbounded) behaviour — the "before" arm of the
+/// A/B, from the same binary.
+fn depth_slack_retry_ceiling_multiple() -> usize {
+    std::env::var("PGEN_DEPTH_SLACK_CEILING_MULTIPLE")
+        .ok()
+        .and_then(|value| value.trim().parse::<usize>().ok())
+        .unwrap_or(DEPTH_SLACK_RETRY_CEILING_MULTIPLE)
+}
+
 // SV-EXH-PROOF.7.4.6.13: ⛔ TWO DEFECTS SHARE THIS RETRY, AND THEY DO NOT SHARE A FIX.
 //
 // (i) COST — it had NO RUNAWAY BACKSTOP. Its sibling in this very `Err` arm
@@ -102,14 +135,15 @@ const TARGET_BRANCH_DEPTH_RETRY_CAP: u64 = 4096;
 //     `TARGET_BRANCH_DEPTH_RETRY_CAP` (below), landed once `.7.4.6.14` removed its one blocker:
 //     retry attempts `1 964 056 -> 302 526` (`sv_2017`) and `2 959 658 -> 408 247` (`sv_2023`).
 //
-// (ii) PREDICTABILITY — `--max-depth` does not bound the descent, because the slack below is added
-//     to the LIVE `config.max_depth` rather than to the configured one, so nesting makes it
-//     cumulative (`20, 24, … 448`). ⛔ STILL OPEN, AND THE BACKSTOP DOES NOT FIX IT: measured under
-//     the cap the ladder is essentially invariant (`448 -> 444`, `676 -> 672`). It needs its own
-//     bound — slack relative to the ORIGINAL configured depth, or a nesting cap. ⇒ do NOT read the
-//     backstop's landing as closing `.7.4.6.13`; its Goal is this defect.
+// (ii) PREDICTABILITY — `--max-depth` did not bound the descent, because the slack below is added
+//     to the LIVE `config.max_depth` rather than to the configured one, so nesting made it
+//     cumulative (`20, 24, … 448`). The backstop does NOT fix it: measured under the cap the
+//     ladder is essentially invariant (`448 -> 444`, `676 -> 672`). ✅ FIXED by
+//     `DEPTH_SLACK_RETRY_CEILING_MULTIPLE` — a DECLARED ceiling at a stated multiple of the
+//     CONFIGURED depth, after both slack FORMULAS were measured and refuted from opposite sides
+//     (see that constant). `--max-depth` now bounds the descent within one declared factor.
 //
-// Everything below this point except that one bound is READ-ONLY census: it prices the retry.
+// Everything below this point except those two bounds is READ-ONLY census: it prices the retry.
 
 /// DIAG-SEVERITY.3.1 (PGEN-DIAG-SEVERITY-0004): the canonical, drift-proof enumeration of
 /// stimuli generation-failure reasons — the single source of truth for "classify errors
@@ -1228,6 +1262,16 @@ pub struct DepthSlackRetryCensus {
     /// cumulative one, over retries that SUCCEEDED (`granted - explicit`, 0 when never short).
     /// `0` means the explicit grant would have covered every success this run bought.
     pub explicit_success_shortfall_max: usize,
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): the DECLARED CEILING in force this run
+    /// (`DEPTH_SLACK_RETRY_CEILING_MULTIPLE × configured --max-depth`), or `0` when disabled.
+    /// Published so an artifact carries the bound it was produced under, rather than leaving a
+    /// reader to infer it from the ladder's shape.
+    pub ceiling_budget: usize,
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): depth-slack retries the ceiling REFUSED. This is the
+    /// number that separates "the ceiling is in force and binding" from "in force and inert" —
+    /// a byte-identical A/B arm with `ceiling_refusals=0` proves the ceiling never fired, and a
+    /// non-zero count on an arm whose residual is unchanged is the fix doing its job.
+    pub ceiling_refusals: u64,
 }
 
 impl DepthSlackRetryCensus {
@@ -1303,8 +1347,17 @@ impl DepthSlackRetryCensus {
             .iter()
             .map(|level| level.explicit_at_least_as_generous)
             .sum();
+        // SV-EXH-PROOF.7.4.6.13 defect (ii): the DECLARED-CEILING arm. `ceiling_budget` is the
+        // bound this artifact was produced under (`0` = disabled), and `refusals` is how often it
+        // actually bound — so a reader never has to infer the bound from the ladder's shape, and
+        // an inert ceiling is distinguishable from an absent one.
+        let ceiling = if self.ceiling_budget == 0 {
+            "disabled".to_string()
+        } else {
+            self.ceiling_budget.to_string()
+        };
         Some(format!(
-            "Depth-slack retry census: nesting_levels={} attempts={} successes={} deepest_paying_level={} branches_retried={} branch_retry_max={} success_ordinal_max={} [successes/attempts@max_budget] {} [success_ordinal:count] {} | explicit-grant: max_explicit_budget={} vs max_granted_budget={} covers_successes={}/{} at_least_as_generous={}/{} success_shortfall_max={}",
+            "Depth-slack retry census: nesting_levels={} attempts={} successes={} deepest_paying_level={} branches_retried={} branch_retry_max={} success_ordinal_max={} [successes/attempts@max_budget] {} [success_ordinal:count] {} | explicit-grant: max_explicit_budget={} vs max_granted_budget={} covers_successes={}/{} at_least_as_generous={}/{} success_shortfall_max={} | declared-ceiling: ceiling_budget={} refusals={}",
             self.levels.len(),
             attempts,
             successes,
@@ -1320,7 +1373,9 @@ impl DepthSlackRetryCensus {
             successes,
             explicit_generous,
             attempts,
-            self.explicit_success_shortfall_max
+            self.explicit_success_shortfall_max,
+            ceiling,
+            self.ceiling_refusals
         ))
     }
 }
@@ -1824,6 +1879,20 @@ pub struct StimuliGenerator<'a> {
     /// the LIVE `config.max_depth` before adding its slack, so a retry entered from inside
     /// another retry's subtree escalates an already-escalated budget.
     depth_slack_retry_nesting: usize,
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): the CONFIGURED `--max-depth`, captured once at
+    /// construction and never mutated — the base the DECLARED CEILING
+    /// (`DEPTH_SLACK_RETRY_CEILING_MULTIPLE`) is a multiple of. It cannot be read off
+    /// `config.max_depth` at the retry site: that field is the LIVE budget, which every
+    /// depth-slack rung and every witness-target budget mutates in place and restores. Reading
+    /// the live value is precisely the mistake that makes the ladder cumulative.
+    configured_max_depth: usize,
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): the declared-ceiling MULTIPLE in force for this
+    /// generator (`DEPTH_SLACK_RETRY_CEILING_MULTIPLE`, or the
+    /// `PGEN_DEPTH_SLACK_CEILING_MULTIPLE` override; `0` = ceiling disabled). Resolved ONCE at
+    /// construction rather than per retry — the retry site is a hot path taking millions of
+    /// decisions, and a per-generator value is also what makes the bound testable without
+    /// mutating process environment (which no test in this repository does).
+    depth_slack_ceiling_multiple: usize,
     /// SV-EXH-PROOF.7.4.6.13: read-only per-level census of that retry (see
     /// `DepthSlackRetryCensus`). Never consulted by a generation decision.
     depth_slack_retry_census: DepthSlackRetryCensus,
@@ -2159,6 +2228,9 @@ impl<'a> StimuliGenerator<'a> {
             rule_success_hits,
             branch_groups,
         );
+        // SV-EXH-PROOF.7.4.6.13 defect (ii): read the configured depth before `config` is moved
+        // into the generator, where every later read is of the LIVE (mutated) value.
+        let config_max_depth = config.max_depth;
 
         Self {
             grammar_name,
@@ -2176,6 +2248,10 @@ impl<'a> StimuliGenerator<'a> {
             construct_mode: false,
             reach_retry_count: 0,
             depth_slack_retry_nesting: 0,
+            // SV-EXH-PROOF.7.4.6.13 defect (ii): capture the CONFIGURED depth before any pass
+            // can mutate the live one — this is the base the declared ceiling multiplies.
+            configured_max_depth: config_max_depth,
+            depth_slack_ceiling_multiple: depth_slack_retry_ceiling_multiple(),
             depth_slack_retry_census: DepthSlackRetryCensus::default(),
             depth_slack_retries_by_branch: HashMap::new(),
             depth_slack_min_derivation_depths: None,
@@ -13164,8 +13240,26 @@ impl<'a> StimuliGenerator<'a> {
         &self.depth_slack_retry_census
     }
 
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): the DECLARED CEILING — the budget this retry would run
+    /// with, capped at `DEPTH_SLACK_RETRY_CEILING_MULTIPLE ×` the CONFIGURED depth. `None` when
+    /// the ceiling is disabled (multiple `0`), which is the pre-ceiling behaviour exactly.
+    ///
+    /// ⭐ The base is `configured_max_depth`, NOT `config.max_depth`. That is the entire fix: the
+    /// live field already carries every rung the ladder has climbed, so a bound computed from it
+    /// would inherit the escalation it exists to stop — the measured failure of the explicit-grant
+    /// candidate (`-0184`), whose maxima came out ABOVE the ladder's own.
+    fn depth_slack_retry_ceiling(&self) -> Option<usize> {
+        if self.depth_slack_ceiling_multiple == 0 {
+            return None;
+        }
+        Some(
+            self.configured_max_depth
+                .saturating_mul(self.depth_slack_ceiling_multiple),
+        )
+    }
+
     fn target_branch_depth_retry_slack(
-        &self,
+        &mut self,
         group_key: &str,
         branch_idx: usize,
         err: &anyhow::Error,
@@ -13202,6 +13296,32 @@ impl<'a> StimuliGenerator<'a> {
         }
         if self.branch_success_hits(group_key, branch_idx) > 0 {
             return None;
+        }
+        // SV-EXH-PROOF.7.4.6.13 defect (ii): the DECLARED CEILING. Refuse the rung whose budget
+        // would climb past a stated multiple of the CONFIGURED `--max-depth`, so the descent is
+        // bounded by something the operator set rather than by how deeply the retry happens to
+        // nest.
+        //
+        // ⭐ LAST among the gates deliberately. Every earlier gate rejects for a reason that is
+        // not the ceiling's (validation pass, spent branch budget, a non-depth failure, an
+        // already-covered branch), so counting refusals here — and only here — makes
+        // `ceiling_refusals` exactly "retries this run would otherwise have made", the same
+        // population `attempts` counts. Any earlier placement would fold other gates' rejections
+        // into the ceiling's number and make the A/B uninterpretable.
+        if let Some(ceiling) = self.depth_slack_retry_ceiling() {
+            self.depth_slack_retry_census.ceiling_budget = ceiling;
+            if self
+                .config
+                .max_depth
+                .saturating_add(TARGET_BRANCH_DEPTH_RETRY_SLACK)
+                > ceiling
+            {
+                self.depth_slack_retry_census.ceiling_refusals = self
+                    .depth_slack_retry_census
+                    .ceiling_refusals
+                    .saturating_add(1);
+                return None;
+            }
         }
         Some(TARGET_BRANCH_DEPTH_RETRY_SLACK)
     }
@@ -21956,6 +22076,151 @@ mod tests {
                 .and_then(|group| group.success_counts.first().copied()),
             Some(0),
             "no depth-slack retry may run for a branch that has spent its budget"
+        );
+    }
+
+    #[test]
+    fn depth_slack_retry_ceiling_is_a_multiple_of_the_configured_depth_not_the_live_one() {
+        // SV-EXH-PROOF.7.4.6.13 defect (ii) — the FIX's defining property, pinned directly.
+        //
+        // The refuted candidate (`-0184`) computed its budget from the LIVE descent position and
+        // so inherited the very ladder it was meant to bound (its maxima came out ABOVE the
+        // ladder's own). This asserts the ceiling does NOT: driven across the entire measured
+        // `sv_2017` ladder (`20, 24, … 444`) the bound must not move by one level.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "S"));
+        let rule_order = vec!["start".to_string()];
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 2501);
+        generator.configured_max_depth = 20;
+        generator.depth_slack_ceiling_multiple = DEPTH_SLACK_RETRY_CEILING_MULTIPLE;
+
+        // POSITIVE: the ceiling is `21 × 20` at every rung the ladder actually climbed.
+        for level in 0..=106 {
+            generator.config.max_depth = 20 + TARGET_BRANCH_DEPTH_RETRY_SLACK * level;
+            assert_eq!(
+                generator.depth_slack_retry_ceiling(),
+                Some(420),
+                "the ceiling must be a multiple of the CONFIGURED depth — unmoved at live \
+                 budget {} (nesting level {level})",
+                generator.config.max_depth
+            );
+        }
+
+        // NEGATIVE: multiple `0` disables the ceiling outright — the pre-ceiling behaviour, which
+        // is what the A/B's "before" arm runs. A `Some(0)` here would silently refuse EVERY retry
+        // instead of allowing every one, i.e. the exact opposite of what "disabled" must mean.
+        generator.depth_slack_ceiling_multiple = 0;
+        for level in [0usize, 1, 53, 106] {
+            generator.config.max_depth = 20 + TARGET_BRANCH_DEPTH_RETRY_SLACK * level;
+            assert_eq!(
+                generator.depth_slack_retry_ceiling(),
+                None,
+                "a `0` multiple must DISABLE the ceiling, never bound it at zero"
+            );
+        }
+    }
+
+    #[test]
+    fn depth_slack_retry_ceiling_refuses_the_rung_that_would_climb_past_it() {
+        // SV-EXH-PROOF.7.4.6.13 defect (ii) — GROUND TRUTH for the declared ceiling
+        // ([[feedback_instrument_needs_ground_truth]]): two end-to-end arms on the very scenario
+        // the backstop's control uses, differing in EXACTLY ONE variable — the ceiling multiple.
+        //
+        // POSITIVE (ceiling binds): a `1×` ceiling forbids any escalation at all, so the retry
+        // that provably retires this target must not fire, and the refusal must be ATTRIBUTED to
+        // the ceiling (`ceiling_refusals > 0`) rather than merely observed.
+        // NEGATIVE (ceiling inert): at the shipped `21×` the same run retires the same target and
+        // refuses nothing — without which "unresolved" would not be evidence about the ceiling.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "long_branch"),
+                    token("quoted_string", "S"),
+                ],
+            },
+        );
+        grammar_tree.insert("long_branch".to_string(), token("rule_reference", "helper"));
+        grammar_tree.insert("helper".to_string(), token("rule_reference", "leaf"));
+        grammar_tree.insert("leaf".to_string(), token("quoted_string", "L"));
+        let rule_order = vec![
+            "start".to_string(),
+            "long_branch".to_string(),
+            "helper".to_string(),
+            "leaf".to_string(),
+        ];
+
+        // `multiple` is the ONE variable; everything else is identical between the two arms.
+        let run = |multiple: usize| {
+            let mut generator = simple_generator(&grammar_tree, &rule_order, 2501);
+            generator.config.max_depth = 3;
+            generator.configured_max_depth = 3;
+            generator.depth_slack_ceiling_multiple = multiple;
+            let report = generator
+                .generate_gap_report(Some("start"), 1)
+                .expect("gap report generation should succeed");
+            let (_samples, summary) = generator
+                .generate_until_targets(Some("start"), &report.targets, 400)
+                .expect("target-driven generation should succeed");
+            let unresolved = summary
+                .unresolved_targets
+                .iter()
+                .any(|status| status.id == "branch::start::root#0");
+            let successes = generator
+                .coverage_metrics()
+                .branch_groups
+                .get("start::root")
+                .and_then(|group| group.success_counts.first().copied());
+            let census = generator.depth_slack_retry_census().clone();
+            (unresolved, successes, census)
+        };
+
+        // POSITIVE: ceiling `1 × 3 = 3`, while the rung would need `3 + 4 = 7`.
+        let (bound_unresolved, bound_successes, bound_census) = run(1);
+        assert!(
+            bound_unresolved,
+            "under a binding ceiling the depth-blocked branch must stay unresolved — the same \
+             target the unbounded run retires"
+        );
+        assert_eq!(
+            bound_successes,
+            Some(0),
+            "no depth-slack retry may run once the rung would climb past the declared ceiling"
+        );
+        assert!(
+            bound_census.ceiling_refusals > 0,
+            "the refusal must be ATTRIBUTED to the ceiling, not merely observed: {bound_census:?}"
+        );
+        assert_eq!(
+            bound_census.ceiling_budget, 3,
+            "the census must publish the bound the artifact was produced under: {bound_census:?}"
+        );
+
+        // NEGATIVE: the shipped `21 × 3 = 63` ceiling cannot bind at a rung needing `7`.
+        let (inert_unresolved, inert_successes, inert_census) =
+            run(DEPTH_SLACK_RETRY_CEILING_MULTIPLE);
+        assert!(
+            !inert_unresolved,
+            "with the ceiling out of reach the retry must still retire the target — otherwise the \
+             positive arm's `unresolved` proves nothing about the ceiling"
+        );
+        assert_eq!(
+            inert_successes,
+            Some(1),
+            "the unbounded-by-the-ceiling arm is the control: this branch does get its witness"
+        );
+        assert_eq!(
+            inert_census.ceiling_refusals, 0,
+            "an out-of-reach ceiling must refuse nothing: {inert_census:?}"
+        );
+        assert!(
+            inert_census
+                .summary_line()
+                .is_some_and(|line| line.contains("declared-ceiling: ceiling_budget=63 refusals=0")),
+            "the summary line must publish an INERT ceiling too, so 'in force and never fired' is \
+             distinguishable from 'absent': {:?}",
+            inert_census.summary_line()
         );
     }
 

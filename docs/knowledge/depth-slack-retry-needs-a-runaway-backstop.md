@@ -154,11 +154,30 @@ rule has this property; it is not a defect of this particular formula.
 
 ⇒ **The two candidates BRACKET the problem, and no slack FORMULA can be both.** Configured-relative
 bounds the descent exactly as designed and costs residual `0 → 17` / `0 → 10`; live-relative costs
-essentially nothing and bounds nothing. What is left is not a formula but a **declared ceiling** — a
-hard cap at a stated multiple of the configured depth, chosen off the measured maxima (463/695
-against `--max-depth 20`, i.e. 23.2x/34.8x) — which makes the descent bounded *and declared* without
-pretending `--max-depth` is the bound. ⚠️ Price it before adopting it: the static pricing here was an
-upper bound on damage and the A/B disagreed with it in both directions.
+essentially nothing and bounds nothing.
+
+## The answer: a declared ceiling, not a formula (LANDED)
+
+What was left is not a formula at all. A formula computes a budget; the fix **refuses a rung**.
+`DEPTH_SLACK_RETRY_CEILING_MULTIPLE = 21` caps the escalated budget at 21× the **configured**
+`--max-depth` (`PGEN_DEPTH_SLACK_CEILING_MULTIPLE` overrides it; `0` disables). The multiple is read
+off the census, not chosen: at nesting level `L` the rung's budget is exactly `configured + 4L` —
+verified at every measured level — so **a ceiling and a nesting cap are the same knob**, and `21` is
+the tightest multiple costing zero measured successes on both profiles (`20` costs 9 of `sv_2023`'s
+398).
+
+Measured: ladder `444 → 420` and `672 → 420`, both profiles landing on exactly `nesting_levels=100`;
+`covered_rules` and `covered_branches` **unchanged**; closed-loop residual **`0 → 0`**. The bound is
+free — which is what the bracket said no *formula* could be.
+
+⭐ **The base must be the CONFIGURED depth.** That one choice is the fix. The live field already
+carries every rung the ladder has climbed, which is exactly how the explicit-grant candidate ended
+up with a ceiling *above* the ladder it meant to bound.
+
+⚠️ **Static pricing was wrong in BOTH directions a third time** — predicted `3 814`/`33 424`
+refusals and no gain; measured `2 429`/`1 116` refusals and successes **up** (`252 → 390`,
+`398 → 426`), because budget not spent on a branch that cannot succeed is returned to the passes
+that can. Treat the curve as a candidate generator and the A/B as the verdict, always.
 
 ## Instrument discipline
 
@@ -172,3 +191,16 @@ rung the instrument cannot describe at all. A census line in a log is
 therefore evidence the retry **ran**, not evidence the instrument is compiled in. Whole-run control:
 with the instrument compiled in, the replay stage's `stimuli`/`gap.json`/`gap.txt` stay byte-identical
 to the canonical gate's own artifacts.
+
+The ceiling added a third pair — the bound is driven across the whole measured ladder (levels
+0..106) and must not move, and a `0` multiple must *disable* it rather than bound it at zero — plus
+a two-arm end-to-end control differing in exactly one variable, where the refusal must be
+**attributed** (`ceiling_refusals > 0`), not merely observed.
+
+⛔ **And one lesson paid for in the ceiling's own cross-grammar sweep: a comparison instrument
+without a "did this produce output" control reports ABSENCE as DIVERGENCE.** That sweep first read
+`rtl_const_expr` as diverging on all three seeds. It was `cmp` on two files neither arm ever wrote —
+the grammar fails outright at the default depth (`Stimuli generation depth exceeded max_depth=24`,
+pre-existing and documented), and its depth-slack retry never fires at all, so the ceiling provably
+cannot reach it. The sweep now REFUSES a no-output arm. Pair every A-vs-B comparison with an A-vs-A
+determinism control and an existence check, or the two failure modes are indistinguishable.
