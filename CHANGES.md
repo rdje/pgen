@@ -1,5 +1,39 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0032 — leaf SV-CORPUS-GRAD.3.14a: the routed 8 are not uniform either — clause 22, read directive by directive, says TOLERATE 5 and KEEP REJECTING 3
+
+- **The ruling `.3.13` handed over was "the standing law is TOLERATE". Reading the clause text
+  refuted it in part.** `` `line `` §22.12 says verbatim *"The directive can be specified
+  anywhere within the SystemVerilog source description"*, and §22.5.2 / §22.7 / §22.11 place no
+  placement restriction on `` `undef `` / `` `timescale `` / `` `pragma `` — 5 rows are legal
+  in-scope directives the parser must tolerate. But §22.8 says `` `default_nettype `` *"can be
+  used only outside design elements"*, and §22.3 makes an in-design-element `` `resetall ``
+  illegal — 3 rows the parser is **RIGHT** to reject today.
+- ⛔ **The convenient reading would have been a regression dressed as a burn-down.** A blanket
+  "directives are the preprocessor's business, tolerate them everywhere" clears all 8 rows in
+  one edit *and widens acceptance into two constructs the LRM explicitly forbids*, against the
+  standing doctrine that over-acceptance is a defect and tolerance is additive.
+- **Why the not-in-Annex-A objection does not carry.** A PLACEMENT rule cannot be checked by any
+  stage that has already consumed the directive — deciding "was this inside a design element"
+  needs design-element boundaries, i.e. a parse. The SV parser is the only stage that sees raw
+  text *and* structure, so it is the only stage that can enforce §22.8/§22.3 at all. The banked
+  `.8c.2` / `.8b.2` TOLERATE pins stay consistent: both concern directives whose clauses impose
+  no restriction.
+- ⇒ **Standing rule for every future directive row:** tolerate a compiler directive wherever the
+  LRM does not restrict its placement, and keep rejecting it exactly where a clause-22
+  restriction says it may not appear. Not "directives are trivia", not "directives are Annex A".
+- The 3 `` `default_nettype `` rows re-adjudicate to **pinned `must_reject` on §22.8 verbatim**,
+  overriding the `VerilatorIndex` heuristic — upstream *tool* testimony ranks below the spec,
+  and the pin tables are the existing mechanism for exactly that.
+- **DESIGN-PRIOR-ART, both candidate surfaces probed:** the `trivia` rule is **REFUSED** — a
+  directive arm there would make `source_text_item`'s `compiler_directive` alternative
+  engine-shadowed-dead and silently delete its `{kind:"compiler_directive"}` AST node from every
+  currently passing file (the grammar's own `comment_only_source_region` precedent, documented
+  in-file); `source_text_item:241` already *is* the tolerance, merely unreachable in scope. The
+  carrier for `.3.14b` is therefore a bounded set of in-scope item-list alternatives reusing the
+  existing rule, with the honest bound stated: between items, not between two tokens of one
+  statement. Read-only leaf — zero code, grammar or artifact bytes changed.
+
 ## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0031 — leaf SV-CORPUS-GRAD.3.13: the ch22 family took THREE verdicts — 27 §22.13 MACRO rows corrected, 8 routed as a REAL grammar gap, 2 found to be §34 protected envelopes
 
 - **The adjudicator was counting a preprocessing dependency as a parser defect.**

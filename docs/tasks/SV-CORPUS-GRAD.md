@@ -2715,8 +2715,10 @@ Full record + every measurement:
 
 #### `.3.14` — in-scope compiler directives REJECT: `compiler_directive` is an alternative of `source_text_item` and of nothing else (IEEE 1800-2017 clause 22 — the F5 family's parser half, routed by `.3.13`)
 
-- **Status: `todo`** — cut 2026-08-08 (session #216) from `.3.13`'s split, with the
-  root cause already tool-pinned and the fix scope already measured. **8 rows**:
+- **Status: `in_progress`** — cut 2026-08-08 (session #216) from `.3.13`'s split, with
+  the root cause already tool-pinned and the fix scope already measured; split into
+  **`.3.14a`** (the adjudication ruling — `done`) and **`.3.14b`** (the grammar change —
+  `todo`). **8 rows**:
   verilator `t_lint_implicit_{def,func,type}_bad.v` (`` `default_nettype ``),
   sv-tests `5.6.4--compiler-directives-pragma.sv` + ispras
   `ieee-1800-2012/34/34.03.01_01.sv` (`` `pragma ``), sv-tests
@@ -2754,6 +2756,79 @@ Full record + every measurement:
   lists vs. a narrower carrier; ⛔ prove no existing surface already covers it per
   `DESIGN-PRIOR-ART`) → measure the profile-byte-invariance of the SV ASTs → the full
   heavy battery per the tree ground rules → re-baseline the corpus.
+
+##### `.3.14a` — the ADJUDICATION RULING (read-only; the leaf's mandated first act) — `done` (2026-08-08, session #216, `PGEN-SV-CORPUS-GRAD-0032`)
+
+⭐⭐ **THE ROUTED 8 ARE NOT UNIFORM EITHER — the ruling this leaf was cut to confirm is
+REFUTED IN PART BY THE CLAUSE TEXT.** `.3.13` handed over "the standing law is TOLERATE";
+reading clause 22 directive by directive says **tolerate 5, and keep rejecting 3**. Each
+row's clause was read in full (`docs/systemverilog/2017/md/section-22-compiler-directives.md`),
+not sampled:
+
+| directive | § | what the clause says about PLACEMENT | rows | ruling |
+|---|---|---|---|---|
+| `` `line `` | 22.12 | **"The directive can be specified anywhere within the SystemVerilog source description"** (verbatim) | 1 | **TOLERATE** — in-scope use is expressly legal |
+| `` `undef `` | 22.5.2 | no placement restriction stated | 1 | **TOLERATE** |
+| `` `timescale `` | 22.7 | no restriction; it governs "the design elements that follow this directive" | 1 | **TOLERATE** |
+| `` `pragma `` | 22.11 | no restriction; "alters interpretation of the SystemVerilog source" | 2 | **TOLERATE** |
+| `` `default_nettype `` | 22.8 | **"It can be used only outside design elements"** (verbatim) | 3 | **KEEP REJECTING** |
+| (`` `resetall ``, not in this population) | 22.3 | **"It shall be illegal for the `resetall directive to be specified within a design element"** | 0 | same class as `` `default_nettype `` |
+
+- ⛔ **The convenient reading was the wrong one, and it would have been a REGRESSION dressed
+  as a burn-down.** A blanket "directives are the preprocessor's business, tolerate them
+  everywhere" clears all 8 rows in one edit — and *widens* acceptance into two constructs the
+  LRM explicitly forbids, against the standing doctrine that over-acceptance is a defect and
+  tolerance is additive ([[feedback_sv_strict_lrm_compliance_default]]). Today's parser
+  already refuses in-scope `` `default_nettype `` and is **RIGHT** to; the fix must not
+  un-fix that.
+- **Why the not-in-Annex-A objection does not carry here.** Every clause-22 syntax box is
+  marked *"not in Annex A"*, and the repo's `svpp_owned_v2005` pins do route directive
+  *grammar* and directive *value* errors to the preprocessor lane. But a PLACEMENT rule is
+  not checkable by any stage that has already consumed the directive: deciding "was this
+  inside a design element" requires design-element boundaries, i.e. a parse. PGEN's SV parser
+  is the only stage that sees raw text *and* structure, so it is the only stage that can
+  enforce §22.8/§22.3 at all — and it already does. The banked `.8c.2`
+  (`no_timescale_in_module` → "the parser must tolerate it") and `.8b.2`
+  (`22.14.01_04.sv` → "the directive-aware reading") pins are consistent with this: both
+  concern directives their clauses place NO restriction on.
+- ⇒ **THE STANDING RULE for every future directive row, in one line:** *tolerate a compiler
+  directive wherever the LRM does not restrict its placement, and keep rejecting it exactly
+  where a clause-22 restriction says it may not appear.* Not "directives are trivia", and not
+  "directives are Annex A".
+- **Consequence for the 3 `` `default_nettype `` rows** (verilator `t_lint_implicit_*_bad.v`):
+  their expected verdict is re-adjudicated to **`must_reject`, pinned on §22.8 verbatim**, so
+  the observed reject becomes a `match` — the parser is claimed CORRECT, with a cite, rather
+  than the rows being quietly deferred. ⚠️ This overrides the `VerilatorIndex` heuristic
+  (driver `fails=True` + no "syntax error" in the golden ⇒ `must_accept`), which is upstream
+  *tool* testimony; the corpus doctrine ranks the SPEC above the tool, and the pin tables
+  (`ISPRAS_NEGATIVE_PINNED`, `IVTEST_CE_STAGE_PINNED`, …) are the existing mechanism for
+  exactly that. Verilator tolerating it is a real-world datum, not a conformance argument.
+- **DESIGN-PRIOR-ART — the two surfaces that could already cover this, both probed:**
+  (1) **the `trivia` rule** (`grammars/systemverilog.ebnf:533`,
+  `trivia := (line_comment | block_comment)*`) — adding a directive arm would tolerate
+  directives *everywhere* at zero grammar cost, and is **REFUSED**: the generated layout
+  skipper consumes trivia before any branch is tried, so the existing
+  `source_text_item` → `compiler_directive` alternative would go **ENGINE-SHADOWED-DEAD** and
+  its `{kind:"compiler_directive"}` AST node would silently disappear from every currently
+  passing file — the exact `comment_only_source_region` mechanism already documented in this
+  grammar at `:260`-`:271`, and an AST break for downstream. (2) **`source_text_item:241`
+  itself** — the tolerance exists but is reachable only at file top level, which is the
+  defect. ⇒ no existing surface covers it; the carrier is a bounded set of in-scope item-list
+  alternatives reusing the existing `compiler_directive` rule.
+- **Honest bound to carry into `.3.14b`:** item-list alternatives tolerate a directive
+  *between items*, not between two tokens of one statement. That is what the measured
+  population needs (all 8 rows parse once directive LINES are removed at item positions —
+  `strip_probe/probe.txt`), and the residue is a stated bound, not a silent cap.
+
+##### `.3.14b` — the grammar change (in-scope directive tolerance, minus the §22.8/§22.3 restricted pair)
+
+- **Status: `todo`** — designed by `.3.14a`, not yet implemented. Carrier: reuse
+  `compiler_directive` (`grammars/systemverilog.ebnf:257`) as an alternative of the in-scope
+  item lists the population needs (module body, class body), in a form that **excludes**
+  `` `default_nettype `` and `` `resetall `` so §22.8/§22.3 stay enforced. Owes: the
+  profile-byte-invariance measurement of the `sv_2017`/`sv_2023` ASTs, the pinned
+  `must_reject` rulings for the 3 verilator rows, and the full heavy battery per the tree
+  ground rules before the corpus is re-baselined.
 
 ### `.4` — Full-design corpora chaining
 
