@@ -591,6 +591,19 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   STOP. `sv_2023` measured `deepest_paying_level=24` against 164 levels climbed — **99.5 % of its
   retry work returned zero successes**. `branch_retry_max` ≫ `success_ordinal_max` is the runaway
   signature (`726 836` vs `103 829` on `sv_2017`; one branch took 37 % of the whole run's retries).
+- ⭐ **THE `explicit-grant:` ARM — what a DERIVATION-JUSTIFIED budget would have given at every rung**
+  (`SV-EXH-PROOF.7.4.6.13`). The line's tail reads
+  `explicit-grant: max_explicit_budget=463 vs max_granted_budget=444 covers_successes=233/252
+  at_least_as_generous=302507/302526 success_shortfall_max=1`, where the explicit budget is
+  `depth + min_full_derivation_depth(TARGETED ALTERNATIVE)` — the same quantity the closed-loop
+  witness pass grants a witness target, evaluated at the rung the retry is standing on.
+  ⛔ **Read `max_explicit_budget` against `max_granted_budget` FIRST, and do not assume the explicit
+  grant is the tighter one — measured on SV it is the LOOSER one** (`463 > 444` on `sv_2017`,
+  `695 > 672` on `sv_2023`), because the grant is `depth + need` and `depth` is the LIVE descent
+  position, so it inherits the very ladder it looks like it would bound. `covers_successes` is the
+  only sufficiency claim the instrument makes: a success with `explicit >= granted` would certainly
+  still have been bought; a shorter one is recorded under `success_shortfall_max` as **UNKNOWN**
+  (the generator need not take a minimal derivation), never as a loss.
 - ⭐ **GROUND TRUTH — it is silent when the retry never fires.** A grammar with no targeted,
   depth-blocked branch prints NOTHING (pinned by
   `depth_slack_retry_census_is_silent_when_the_retry_never_fires`), so a census line in a log is

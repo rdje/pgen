@@ -349,9 +349,31 @@ rules and seven branches per profile are covered *only* because a retry nested i
 retry inherits the inflated budget. A "nesting cap" is not a second option: the ladder rung *is* the
 nesting level, so a cap `N` and a ceiling `configured + 4N` are the same knob.
 
-⇒ the escalation is **load-bearing**, and the shape that can replace it is an *explicit* per-target
-depth grant — the reach-prefix-plus-minimal-derivation budget the closed-loop witness pass already
-computes — rather than any cap. That work is open.
+⇒ the escalation is **load-bearing**.
+
+The obvious replacement was an *explicit* per-target grant — `depth + the targeted alternative's own
+minimal derivation depth`, the budget the closed-loop witness pass already computes for a witness
+target — and it has now been censused at every rung the ladder climbs rather than reasoned about:
+
+| | `sv_2017` | `sv_2023` |
+|---|---|---|
+| max **explicit** budget | **463** | **695** |
+| max **granted** (ladder) budget | 444 | 672 |
+| retries where explicit ≥ granted | 99.994 % | 99.994 % |
+| successes it provably still buys | 233/252 | 374/398 |
+| largest shortfall on a success | 1 | 1 |
+
+It is **safe** — essentially never less generous, at most one level short on a success — and it is
+**not a bound**: its ceiling is *higher* than the ladder's on both profiles. The reason generalises
+well past this retry: the grant is `depth + need`, and `depth` is the **live descent position**,
+bounded only by the already-escalated budget, so **a budget computed from where the descent currently
+is inherits the very ladder it was meant to bound.**
+
+⇒ the two candidates **bracket** the problem — configured-relative bounds the descent and costs
+coverage; live-relative costs nothing and bounds nothing — so no slack *formula* can be both. What
+remains is not a formula but a **declared ceiling**: a hard cap at a stated multiple of the
+configured depth, priced off those measured maxima, which makes the descent bounded *and declared*
+without pretending `--max-depth` is the bound. That work is open.
 
 Not every reason is a budget. A row reading
 `STORE-AWARE-GEN: rule '…' fact_count_at_least predicate unsatisfiable (zero

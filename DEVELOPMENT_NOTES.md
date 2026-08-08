@@ -1,5 +1,36 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0184 — a bound computed from where you ARE cannot bound how far you GO; and two refutations that bracket a problem are worth more than either alone
+
+**The candidate looked obviously right and is obviously wrong once you write down what it reads.**
+Replacing an accidental `live + 4` budget with an explicit `depth + minimal-derivation-need` grant
+sounds like replacing an inherited number with a computed one. It is not: `depth` is the live
+descent position, which is bounded only by the already-escalated budget. The "computed" budget is
+computed *from the thing it was supposed to bound*. Measured, its ceiling came out HIGHER than the
+ladder's on both profiles — 463 vs 444 and 695 vs 672.
+
+**The general check: for any proposed bound, ask which of its inputs are themselves bounded.** An
+input that grows with the quantity you are bounding makes the rule a re-description, not a bound.
+That question takes one minute and would have retired this candidate before the instrument was built
+— though building it was still right, because "refuted with a number on both profiles" is a durable
+result and "it looked wrong to me" is not.
+
+**Two refutations in opposite directions are a bracket, and a bracket is a design result.** One
+candidate bounded the descent and cost coverage; the other cost nothing and bounded nothing. Neither
+alone says much; together they say *no rule of this shape can do it*, which eliminates the whole
+formula family and points at the only remaining shape — a declared ceiling. Record both failures
+with their numbers rather than only the surviving idea; the eliminated space is the deliverable.
+
+**Make the instrument REFUSE on the case it cannot describe.** The explicit grant is undefined for an
+alternative with no resolvable minimal derivation. Returning `0` there would have been counted as
+"at least as generous as the cumulative grant" — a confident, wrong, invisible vote in favour of the
+candidate under test. Returning `None` costs one `Option` and makes the instrument unable to flatter
+its own hypothesis.
+
+**And correct the recommendation you are refuting, in place.** This card's own knowledge card and
+the book both ended by recommending the candidate this slice killed. Adding a new paragraph
+elsewhere would have left a live instruction to go and build the refuted thing.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0183 — "conservative" means over-approximating the axis the CONSUMER acts on; over-approximate a different axis and you are simply wrong in a direction nobody checks
 
 **The defect was a criterion that felt safe.** A verdict deciding whether a witness target can be

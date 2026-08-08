@@ -1186,6 +1186,19 @@ pub struct DepthSlackRetryLevelCensus {
     pub successes: u64,
     /// The largest `max_depth` any retry at this level ran with — the ladder rung, measured.
     pub max_budget: usize,
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): the largest EXPLICIT, derivation-justified budget any
+    /// retry at this level would have been granted — `depth + min_full_derivation_depth(targeted
+    /// alternative)`. Compare against `max_budget` to see what the cumulative ladder is buying
+    /// over what the derivation actually needs.
+    pub max_explicit_budget: usize,
+    /// Retries at this level whose EXPLICIT budget is at least the cumulative one it actually
+    /// ran with (`explicit >= granted`) — i.e. rungs where the explicit grant is provably no
+    /// less generous.
+    pub explicit_at_least_as_generous: u64,
+    /// …and the same restricted to retries that SUCCEEDED. This is the decisive number: a
+    /// success with `explicit >= granted` would certainly still have succeeded under the
+    /// explicit grant; a success with `explicit < granted` is UNKNOWN without an A/B.
+    pub explicit_covers_success: u64,
 }
 
 /// SV-EXH-PROOF.7.4.6.13: the whole-run census of the depth-slack retry, indexed by nesting
@@ -1211,6 +1224,10 @@ pub struct DepthSlackRetryCensus {
     /// Distinct targeted branches that entered the retry at least once (the denominator that
     /// keeps `branch_retry_max` from reading as "every branch does this").
     pub branches_retried: usize,
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): the largest SHORTFALL of the explicit grant against the
+    /// cumulative one, over retries that SUCCEEDED (`granted - explicit`, 0 when never short).
+    /// `0` means the explicit grant would have covered every success this run bought.
+    pub explicit_success_shortfall_max: usize,
 }
 
 impl DepthSlackRetryCensus {
@@ -1259,8 +1276,35 @@ impl DepthSlackRetryCensus {
             .map(|(ordinal, count)| format!("{ordinal}:{count}"))
             .collect::<Vec<_>>()
             .join(" ");
+        // SV-EXH-PROOF.7.4.6.13 defect (ii): the EXPLICIT-GRANT arm. `max_explicit` is the
+        // deepest budget a derivation-justified grant would ever have handed out — compare it to
+        // the ladder's own `max_budget` to see the escalation's true excess. `covers` counts the
+        // successes the explicit grant provably still buys; `shortfall_max` is the largest amount
+        // by which it falls short on a success, and `0` there means it costs this run nothing.
+        let max_explicit = self
+            .levels
+            .iter()
+            .map(|level| level.max_explicit_budget)
+            .max()
+            .unwrap_or(0);
+        let max_granted = self
+            .levels
+            .iter()
+            .map(|level| level.max_budget)
+            .max()
+            .unwrap_or(0);
+        let explicit_covers: u64 = self
+            .levels
+            .iter()
+            .map(|level| level.explicit_covers_success)
+            .sum();
+        let explicit_generous: u64 = self
+            .levels
+            .iter()
+            .map(|level| level.explicit_at_least_as_generous)
+            .sum();
         Some(format!(
-            "Depth-slack retry census: nesting_levels={} attempts={} successes={} deepest_paying_level={} branches_retried={} branch_retry_max={} success_ordinal_max={} [successes/attempts@max_budget] {} [success_ordinal:count] {}",
+            "Depth-slack retry census: nesting_levels={} attempts={} successes={} deepest_paying_level={} branches_retried={} branch_retry_max={} success_ordinal_max={} [successes/attempts@max_budget] {} [success_ordinal:count] {} | explicit-grant: max_explicit_budget={} vs max_granted_budget={} covers_successes={}/{} at_least_as_generous={}/{} success_shortfall_max={}",
             self.levels.len(),
             attempts,
             successes,
@@ -1269,7 +1313,14 @@ impl DepthSlackRetryCensus {
             self.branch_retry_max,
             success_ordinal_max,
             per_level,
-            ordinals
+            ordinals,
+            max_explicit,
+            max_granted,
+            explicit_covers,
+            successes,
+            explicit_generous,
+            attempts,
+            self.explicit_success_shortfall_max
         ))
     }
 }
@@ -1781,6 +1832,18 @@ pub struct StimuliGenerator<'a> {
     /// per-branch runaway backstop (`TARGET_BRANCH_DEPTH_RETRY_CAP`) reads — one number, so the
     /// bound and the measurement that priced it can never describe different populations.
     depth_slack_retries_by_branch: HashMap<String, u64>,
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): the minimal-derivation-depth fixpoint, computed at
+    /// most ONCE per generator and only when a depth-slack retry actually fires. It is the same
+    /// `compute_min_full_derivation_depths` table the witness pass's per-target budget uses; the
+    /// cache exists because the retry site is on a hot path (millions of retries) while the table
+    /// is a whole-tree fixpoint. `None` until the first retry — a grammar that never escalates
+    /// never pays for it.
+    depth_slack_min_derivation_depths: Option<HashMap<String, usize>>,
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): per targeted branch (`"<group_key>#<branch_index>"`),
+    /// the minimal derivation depth of that ALTERNATIVE — memoized because a few hundred distinct
+    /// branches account for millions of retries, which is what keeps the explicit-grant census
+    /// affordable enough to be always-on like the rest of this census.
+    depth_slack_branch_derivation_need: HashMap<String, Option<usize>>,
     /// STIMULI-SIGNOFF.2.2 (PGEN-STIMULI-SIGNOFF-0003): k-path coverage NUMERATOR recorder.
     /// `None` = OFF (default → zero overhead, generation byte-identical → monotone). When
     /// `Some((k, set))`, every `generate_rule` entry records the last-k window of the live
@@ -2115,6 +2178,8 @@ impl<'a> StimuliGenerator<'a> {
             depth_slack_retry_nesting: 0,
             depth_slack_retry_census: DepthSlackRetryCensus::default(),
             depth_slack_retries_by_branch: HashMap::new(),
+            depth_slack_min_derivation_depths: None,
+            depth_slack_branch_derivation_need: HashMap::new(),
             k_path_recording: None,
             branch_selection_log: None,
             learned_branch_distributions: None,
@@ -11303,9 +11368,20 @@ impl<'a> StimuliGenerator<'a> {
                         // that never returns to record itself is still counted.
                         self.depth_slack_retry_nesting += 1;
                         let retry_level = self.depth_slack_retry_nesting;
+                        // SV-EXH-PROOF.7.4.6.13 defect (ii): price the EXPLICIT, derivation-
+                        // justified grant this rung would get instead of the cumulative one.
+                        // Read-only — it is recorded, never applied.
+                        let retry_budget = self.config.max_depth;
+                        let explicit_budget = self.depth_slack_explicit_budget(
+                            &group_key,
+                            selected_global,
+                            &selected_node,
+                            depth,
+                        );
                         let retry_ordinal = self.record_depth_slack_retry_attempt(
                             retry_level,
-                            self.config.max_depth,
+                            retry_budget,
+                            explicit_budget,
                             &group_key,
                             selected_global,
                         );
@@ -11319,7 +11395,12 @@ impl<'a> StimuliGenerator<'a> {
                         self.depth_slack_retry_nesting -= 1;
                         self.config.max_depth = original_max_depth;
                         if retry_result.is_ok() {
-                            self.record_depth_slack_retry_success(retry_level, retry_ordinal);
+                            self.record_depth_slack_retry_success(
+                                retry_level,
+                                retry_ordinal,
+                                retry_budget,
+                                explicit_budget,
+                            );
                         }
 
                         match retry_result {
@@ -12969,10 +13050,46 @@ impl<'a> StimuliGenerator<'a> {
     /// SV-EXH-PROOF.7.4.6.13: charge one depth-slack retry to `level` (nesting) and to its
     /// branch (the backstop counter), returning the branch's retry ORDINAL — the `k` in
     /// "this branch's k-th retry", which `record_depth_slack_retry_success` then prices.
+    /// SV-EXH-PROOF.7.4.6.13 defect (ii): the EXPLICIT, derivation-justified budget this retry
+    /// would be granted instead of the cumulative `live + 4` — `depth + minimal derivation depth
+    /// of the TARGETED ALTERNATIVE`, i.e. exactly enough to finish the shortest completion of the
+    /// branch from where the descent already is. This is the same quantity
+    /// `witness_target_depth_budget` (`.7.4.6.9`) grants a witness target, applied to the rung the
+    /// retry is actually standing on rather than to whatever budget happens to enclose it.
+    ///
+    /// `None` when the alternative has no resolvable minimal derivation (a non-terminating or
+    /// missing-reference branch), which the census counts as "the explicit grant cannot describe
+    /// this rung" rather than silently scoring it as covered.
+    ///
+    /// Memoized per branch key: a few hundred distinct branches account for millions of retries.
+    /// PURE analysis — no RNG, no generation decision reads it.
+    fn depth_slack_explicit_budget(
+        &mut self,
+        group_key: &str,
+        branch_idx: usize,
+        branch_node: &ASTNode,
+        depth: usize,
+    ) -> Option<usize> {
+        let key = Self::depth_slack_retry_branch_key(group_key, branch_idx);
+        if let Some(cached) = self.depth_slack_branch_derivation_need.get(&key) {
+            return cached.map(|need| depth.saturating_add(need));
+        }
+        if self.depth_slack_min_derivation_depths.is_none() {
+            self.depth_slack_min_derivation_depths = Some(self.compute_min_full_derivation_depths());
+        }
+        let need = self
+            .depth_slack_min_derivation_depths
+            .as_ref()
+            .and_then(|depths| Self::min_full_derivation_depth_of_node(branch_node, depths));
+        self.depth_slack_branch_derivation_need.insert(key, need);
+        need.map(|need| depth.saturating_add(need))
+    }
+
     fn record_depth_slack_retry_attempt(
         &mut self,
         level: usize,
         budget: usize,
+        explicit_budget: Option<usize>,
         group_key: &str,
         branch_idx: usize,
     ) -> u64 {
@@ -12984,6 +13101,16 @@ impl<'a> StimuliGenerator<'a> {
         let slot = &mut self.depth_slack_retry_census.levels[level - 1];
         slot.attempts = slot.attempts.saturating_add(1);
         slot.max_budget = slot.max_budget.max(budget);
+        // SV-EXH-PROOF.7.4.6.13 defect (ii): the explicit-grant arm. An unresolvable derivation
+        // contributes NOTHING (not a zero), so the census can never read as "the explicit grant
+        // covers this" on a rung it cannot describe.
+        if let Some(explicit) = explicit_budget {
+            slot.max_explicit_budget = slot.max_explicit_budget.max(explicit);
+            if explicit >= budget {
+                slot.explicit_at_least_as_generous =
+                    slot.explicit_at_least_as_generous.saturating_add(1);
+            }
+        }
 
         let entry = self
             .depth_slack_retries_by_branch
@@ -12999,9 +13126,31 @@ impl<'a> StimuliGenerator<'a> {
 
     /// SV-EXH-PROOF.7.4.6.13: the paired success record; `level` always has a slot because
     /// `record_depth_slack_retry_attempt` ran first for the same retry.
-    fn record_depth_slack_retry_success(&mut self, level: usize, branch_ordinal: u64) {
+    fn record_depth_slack_retry_success(
+        &mut self,
+        level: usize,
+        branch_ordinal: u64,
+        budget: usize,
+        explicit_budget: Option<usize>,
+    ) {
         if let Some(slot) = self.depth_slack_retry_census.levels.get_mut(level - 1) {
             slot.successes = slot.successes.saturating_add(1);
+            // SV-EXH-PROOF.7.4.6.13 defect (ii): THE decisive number. `explicit >= granted` means
+            // this success would certainly still have been bought by the explicit grant; a shorter
+            // explicit budget is UNKNOWN (the generator does not have to take a minimal
+            // derivation), so it is recorded as a SHORTFALL rather than as a loss — the honest
+            // reading is "an A/B is needed", not "this success is gone".
+            if let Some(explicit) = explicit_budget {
+                if explicit >= budget {
+                    slot.explicit_covers_success = slot.explicit_covers_success.saturating_add(1);
+                } else {
+                    let shortfall = budget.saturating_sub(explicit);
+                    self.depth_slack_retry_census.explicit_success_shortfall_max = self
+                        .depth_slack_retry_census
+                        .explicit_success_shortfall_max
+                        .max(shortfall);
+                }
+            }
         }
         *self
             .depth_slack_retry_census
@@ -21669,6 +21818,83 @@ mod tests {
         assert!(
             line.contains("success_ordinal_max=1") && line.contains("branch_retry_max="),
             "summary line must carry the two numbers that price a per-branch backstop: {line}"
+        );
+        // SV-EXH-PROOF.7.4.6.13 defect (ii): the EXPLICIT-GRANT arm must be wired on the very
+        // scenario that provably performs a retry — an arm that reports nothing here would be
+        // indistinguishable from an arm that is not computed at all, which is exactly the failure
+        // the census's own charter names.
+        let level = census.levels.first().copied().expect("level 1 exists");
+        assert!(
+            level.max_explicit_budget > 0,
+            "the derivation-justified budget must be computable on this scenario: {level:?}"
+        );
+        assert_eq!(
+            level.explicit_covers_success + u64::from(census.explicit_success_shortfall_max > 0),
+            level.successes,
+            "every success must be classified exactly once — covered, or a recorded shortfall: \
+             {level:?} shortfall_max={}",
+            census.explicit_success_shortfall_max
+        );
+        assert!(
+            line.contains("explicit-grant:") && line.contains("max_explicit_budget="),
+            "summary line must publish the explicit-grant comparison: {line}"
+        );
+    }
+
+    #[test]
+    fn depth_slack_explicit_budget_is_depth_plus_the_branch_minimal_derivation_or_refuses() {
+        // SV-EXH-PROOF.7.4.6.13 defect (ii) — GROUND TRUTH for the new census arm
+        // ([[feedback_instrument_needs_ground_truth]]), a positive and a negative pinned together.
+        //
+        // POSITIVE: the explicit grant is `depth + min_full_derivation_depth(alternative)` — the
+        // same quantity `witness_target_depth_budget` grants a witness target, evaluated at the
+        // rung the retry is standing on. Asserted against the fixpoint table itself, so a change
+        // to either side cannot drift the other silently.
+        //
+        // NEGATIVE: an alternative with NO resolvable minimal derivation must yield `None`, not a
+        // zero. A zero would be scored by `record_depth_slack_retry_attempt` as "the explicit
+        // grant is at least as generous" on a rung the instrument cannot describe at all — the
+        // exact shape of a confidently-wrong measurement.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("long_branch"), rule_ref("nowhere")],
+            },
+        );
+        grammar_tree.insert("long_branch".to_string(), rule_ref("helper"));
+        grammar_tree.insert("helper".to_string(), rule_ref("leaf"));
+        grammar_tree.insert("leaf".to_string(), token("quoted_string", "L"));
+        let rule_order = vec![
+            "start".to_string(),
+            "long_branch".to_string(),
+            "helper".to_string(),
+            "leaf".to_string(),
+        ];
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 2501);
+
+        let depths = generator.compute_min_full_derivation_depths();
+        let expected_need =
+            StimuliGenerator::min_full_derivation_depth_of_node(&rule_ref("long_branch"), &depths)
+                .expect("the derivable alternative has a minimal derivation depth");
+
+        for depth in [0usize, 7, 41] {
+            assert_eq!(
+                generator.depth_slack_explicit_budget("start::root", 0, &rule_ref("long_branch"), depth),
+                Some(depth + expected_need),
+                "POSITIVE: the grant is the CURRENT depth plus the branch's own minimal derivation"
+            );
+        }
+        assert_eq!(
+            generator.depth_slack_explicit_budget("start::root", 1, &rule_ref("nowhere"), 7),
+            None,
+            "NEGATIVE: an alternative with no resolvable derivation must REFUSE, never score 0"
+        );
+        // …and the refusal must survive the memo, since the memo is what makes the arm affordable.
+        assert_eq!(
+            generator.depth_slack_explicit_budget("start::root", 1, &rule_ref("nowhere"), 99),
+            None,
+            "the memoized refusal must stay a refusal on the next retry of the same branch"
         );
     }
 

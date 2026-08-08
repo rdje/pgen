@@ -1459,6 +1459,73 @@ literal over a failing surface.
   Commit: `PGEN-SV-EXH-PROOF-0171 (measurement + routing decision, docs-only). Raised: -0167.` — then
   `PGEN-SV-EXH-PROOF-0172` (the TOOL-BUILD + the pricing + the A/B + the blocking dependency).
 
+  EXPLICIT_GRANT_MEASURED_AND_REFUTED_2026-08-08 (`PGEN-SV-EXH-PROOF-0184`, TOOL-BUILD + the measurement) -- ⛔⛔ **THE SECOND CANDIDATE IS REFUTED TOO, AND FOR THE OPPOSITE REASON — WHICH IS WHAT MAKES THE PAIR DECISIVE**: `The leaf's own next candidate was "make the depth GRANT EXPLICIT instead of accidental -- a budget COMPUTED from the target's minimal derivation rather than inherited from whatever retry encloses it", i.e. the quantity witness_target_depth_budget (.7.4.6.9) grants a witness target. It is now MEASURED at every rung the ladder climbs, instead of being reasoned about.
+
+  THE INSTRUMENT (read-only, always-on like the rest of this census, provably inert): at each depth-slack retry the census now also computes the EXPLICIT grant that rung would receive -- `depth + min_full_derivation_depth(TARGETED ALTERNATIVE)` -- and records, per nesting level, the max explicit budget, how many retries it is at least as generous as the cumulative one on, and how many SUCCESSES it provably still buys (`explicit >= granted`). A success with a SHORTER explicit budget is recorded as a SHORTFALL, never as a loss: the generator need not take a minimal derivation, so that case is honestly UNKNOWN without an A/B. Memoized per branch key (a few hundred branches carry ~300k-400k retries), so the arm is affordable at always-on.
+
+  MEASURED, canonical replay stage, both profiles (`rust/target/sv_exh_proof_7_4_6_13_explicit/`):
+
+  | metric | sv_2017 | sv_2023 |
+  | --- | --- | --- |
+  | max EXPLICIT budget | **463** | **695** |
+  | max GRANTED (ladder) budget | 444 | 672 |
+  | retries where explicit >= granted | 302 507 / 302 526 (**99.994 %**) | 408 223 / 408 247 (**99.994 %**) |
+  | successes the explicit grant provably still buys | 233 / 252 | 374 / 398 |
+  | largest shortfall on a success | **1** | **1** |
+
+  ⇒ TWO FINDINGS, and the second one kills the candidate.
+  (a) THE EXPLICIT GRANT IS SAFE. It is at least as generous as the cumulative one on **99.994 %** of retries on BOTH profiles, and where it is short on a success it is short by exactly **one level** (19 of 252 / 24 of 398). Nothing here suggests it would cost coverage.
+  (b) ⛔ **IT IS NOT A BOUND — ITS MAXIMUM IS HIGHER THAN THE LADDER'S** (463 > 444, 695 > 672). It does not bound the descent; it re-describes it, slightly more generously. So it delivers "explainable" and does NOT deliver the Goal, which is that `--max-depth` should bound what it appears to bound.
+
+  ⭐⭐ THE STRUCTURAL REASON, which the numbers force and which generalises past this retry: **the explicit grant is `depth + need`, and `depth` IS the live descent position -- bounded only by the already-escalated budget. A budget computed from where the descent currently IS inherits the very ladder it was meant to bound.** That is not a property of this formula; it is a property of every live-relative rule.
+
+  ⇒ THE TWO CANDIDATES NOW BRACKET THE PROBLEM, and the bracket is the deliverable of this slice:
+  * CONFIGURED-relative (`-0177`): bounds the descent exactly as designed (106 -> 8 levels) and costs residual **0 -> 17** / **0 -> 10**, because the cumulative escalation is load-bearing for ~10 rules and ~7 branches per profile.
+  * LIVE-relative (this slice): costs essentially nothing and bounds nothing.
+  ⇒ **no slack FORMULA can be both.** The remaining shape is not a formula at all but a DECLARED CEILING -- a hard cap at a stated multiple of the configured depth, chosen off this census's measured maxima (463/695 against `--max-depth 20`, i.e. 23.2x/34.8x) -- which makes the descent bounded and declared without pretending `--max-depth` is the bound. ⚠️ PRICE IT, do not assume it: the static pricing in FIX_PRICED_AND_BLOCKED_2026-08-02 was an upper bound on damage and the A/B disagreed with it in both directions.
+
+  ⭐ GROUND TRUTH BEFORE ANY OF THESE NUMBERS WERE BELIEVED ([[feedback_instrument_needs_ground_truth]]): a POSITIVE control pinning the grant to exactly `depth + min_full_derivation_depth(alternative)` at three different depths against the fixpoint table itself, and a NEGATIVE control that an alternative with NO resolvable derivation REFUSES (`None`) rather than scoring `0` -- a zero would have been counted as "the explicit grant is at least as generous" on a rung the instrument cannot describe, which is the exact shape of a confidently-wrong measurement. The refusal is asserted to survive the memo. The existing positive control also now asserts the new arm is non-vacuous and that every success is classified exactly once.
+
+  ⭐ AND IT IS PROVABLY READ-ONLY, not argued: with the arm compiled in, all **8** stage artifacts are **byte-identical (`cmp`)** to the `-0183` arm, residual `0`/`0` on both profiles.`
+
+- **Acceptance Checklist (enforced)** — `SV-EXH-PROOF.7.4.6.13` (`PGEN-SV-EXH-PROOF-0184`, the EXPLICIT-GRANT census — a TOOL-BUILD + measurement slice that REFUTES the leaf's own next candidate and fixes nothing)
+- [x] **REPRODUCE / ISSUE** — defect (ii) is open and its leading candidate was unmeasured. The
+  ladder still stands on HEAD after the landed backstop: `Depth-slack retry census: nesting_levels=106
+  … max_budget 444` (`sv_2017`) and `nesting_levels=163 … 672` (`sv_2023`) against `--max-depth 20`,
+  i.e. **22.2x / 33.6x**. The census priced the ladder's rungs but could not say what an EXPLICIT,
+  derivation-justified grant would have given at any of them — the gap this slice closes.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `generate_or`'s depth-slack retry arm
+  (`rust/src/ast_pipeline/stimuli_generator.rs`), which sets `config.max_depth = <live> + 4`. WHY the
+  candidate fails: the explicit grant is `depth + min_full_derivation_depth(alternative)` and `depth`
+  is the **live descent position**, itself bounded only by the already-escalated budget — so a
+  budget computed from where the descent currently IS inherits the ladder it was meant to bound.
+  Measured rather than argued: `max_explicit_budget=463 vs max_granted_budget=444` (`sv_2017`) and
+  `695 vs 672` (`sv_2023`) — the explicit grant's ceiling is **higher** than the ladder's on both
+  profiles. Together with `-0177`'s configured-relative arm (bounds the ladder `106→8` levels, costs
+  residual `0→17`/`0→10`) the two candidates BRACKET the problem, which is the finding.
+  ⛔ **WAIVER NOTE, ROUTED — the FOURTH leaf to hit this surface, owner `SV-EXH-PROOF.7.4.6.18`**:
+  this slice builds a read-only census over the generator's own budget accounting, so there is no
+  parse to trace, no run to sample, no `error[EXXXX]` and no generated-code lint; the instrument that
+  localises it is the `Depth-slack retry census:` line the slice itself adds to. Recorded loudly.
+- [x] **ADDRESSED (verified)** — the question the slice was built to answer is answered, on both
+  profiles, with the honest UNKNOWN kept separate from the measurement: the explicit grant is at
+  least as generous on **302 507/302 526** and **408 223/408 247** retries (99.994 % each), provably
+  buys **233/252** and **374/398** of the successes, and its largest shortfall on any success is
+  **1** level. ⇒ SAFE but NOT a bound. The candidate is refuted with a number rather than parked.
+- [x] **NO REGRESSION** — the arm is read-only and proven so: with it compiled in, all **8** stage
+  artifacts are **byte-identical** (`cmp`) to the `-0183` arm and the residual is `0`/`0` on both
+  profiles. Certificate coverage at **seeds 0/7/42** on json / regex / vhdl / rtl_frontend: **12/12**
+  `UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)`.
+  `ast_shape_contract_gate` GREEN (18/18). `clippy_on_rust_change` rc=0 with the generated stage
+  `pass`. Dual-feature lib suite **1054/1** — the `-0183` state of 1053/1 plus this slice's one new
+  control, same single pre-existing failure.
+- [x] **LOCKSTEP** — `TOOLBOX.md` §6.2 (the census line now carries the explicit-grant arm),
+  `docs/book/src/stimuli-and-quality.md`, KM card
+  `docs/knowledge/depth-slack-retry-needs-a-runaway-backstop.md` — ⛔ **which this slice REFUTES**:
+  it closed by recommending the explicit per-target grant as "the shape that can work", and that
+  recommendation is now corrected in place rather than left to be followed. `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`. Live-status register unchanged.
+
 - **Acceptance Checklist (enforced)** — `SV-EXH-PROOF.7.4.6.13` (`PGEN-SV-EXH-PROOF-0172`, the
   READ-ONLY census; the backstop it prices is withheld and owned by the same leaf's next slice)
 - [x] **REPRODUCE / ISSUE** — the escalation reproduces on HEAD and its payoff was **unmeasurable**.
@@ -2171,7 +2238,7 @@ Unlike §2 this one **leaves this tree**, so the three questions are load-bearin
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| **1** | `SV-EXH-PROOF.7.4.6.13` | `in_progress` (`-0176` — ⭐ defect (i) COST **LANDED**; ⛔ defect (ii) PREDICTABILITY, the Goal, **OPEN**) | The depth-slack retry's real defect is a **missing runaway backstop**, not the `+4` arithmetic: its sibling in the same `Err` arm has had one since `GRAMMAR-WELLFORMED.H.4.2`, this one has none, and **one `sv_2017` branch was measured at 726 836 retries**. The cap is priced off the measured success ORDINALS (not curve-fitted): at `4096` it keeps `252/255` + `147/147` successes, cuts retry work `6.5x`/`7.2x`, and nearly **triples** `sv_2023` target-drive resolution (`568 → 1673`). Its one blocker — `sv_2017` residual `0 → 1` — was removed by `.7.4.6.14`, and the bound is now IN (`-0176`): attempts `6.5x`/`7.2x` down, `branch_retry_max 726 836 → 4 096`, `sv_2023` target-drive `568 → 1 673`, stage `458 → 267 s`/`569 → 437 s`, **residual still `0`/`0`**, and the landed build is byte-identical to the priced arm. ⛔ **The Goal is the OTHER defect** — predictability: `--max-depth` does not bound the descent, and re-measured on the landed pair the ladder is invariant (`448 → 444`, `676 → 672`). ⛔⛔ Its leading candidate is now **REFUTED BY MEASUREMENT** (`-0177`): computing the slack from the configured depth collapses the ladder exactly as designed (106 → 8 levels) and blows the residual to **17**/**10**, because the cumulative escalation is **load-bearing** for ~10 rules and ~7 branches per profile. The next candidate is a different shape — an EXPLICIT per-target depth grant, as the witness pass already computes. |
+| **1** | `SV-EXH-PROOF.7.4.6.13` | `in_progress` (`-0184` — ⭐ defect (i) COST **LANDED**; ⛔ defect (ii) PREDICTABILITY, the Goal, **OPEN — and now BRACKETED**) | The depth-slack retry's real defect is a **missing runaway backstop**, not the `+4` arithmetic: its sibling in the same `Err` arm has had one since `GRAMMAR-WELLFORMED.H.4.2`, this one has none, and **one `sv_2017` branch was measured at 726 836 retries**. The cap is priced off the measured success ORDINALS (not curve-fitted): at `4096` it keeps `252/255` + `147/147` successes, cuts retry work `6.5x`/`7.2x`, and nearly **triples** `sv_2023` target-drive resolution (`568 → 1673`). Its one blocker — `sv_2017` residual `0 → 1` — was removed by `.7.4.6.14`, and the bound is now IN (`-0176`): attempts `6.5x`/`7.2x` down, `branch_retry_max 726 836 → 4 096`, `sv_2023` target-drive `568 → 1 673`, stage `458 → 267 s`/`569 → 437 s`, **residual still `0`/`0`**, and the landed build is byte-identical to the priced arm. ⛔ **The Goal is the OTHER defect** — predictability: `--max-depth` does not bound the descent, and re-measured on the landed pair the ladder is invariant (`448 → 444`, `676 → 672`). ⛔⛔ Its leading candidate is now **REFUTED BY MEASUREMENT** (`-0177`): computing the slack from the configured depth collapses the ladder exactly as designed (106 → 8 levels) and blows the residual to **17**/**10**, because the cumulative escalation is **load-bearing** for ~10 rules and ~7 branches per profile. ⛔⛔ **AND SO IS THE SECOND CANDIDATE** (`-0184`): the EXPLICIT per-target depth grant is censused at every rung and comes out **SAFE BUT NOT A BOUND** — at least as generous as the ladder on **99.994 %** of retries on both profiles (worst shortfall on a success: **1** level), yet its ceiling is HIGHER than the ladder's (`463 > 444`, `695 > 672`), because `depth + need` reads the LIVE descent position and therefore inherits the ladder it was meant to bound. ⇒ the two candidates **BRACKET** the problem — configured-relative bounds and costs coverage, live-relative costs nothing and bounds nothing — so **no slack FORMULA can be both**. The only shape left is a **DECLARED CEILING** at a stated multiple of the configured depth, priced off those maxima. ⚠️ Price it; the static pricing has disagreed with the A/B in both directions before. |
 | — | `SV-EXH-PROOF.7.4.6.17` | `done` (`-0183`, 2026-08-08) | ⭐⭐ **THE BLOCKED VERDICT IS NOW RIGHT 1 FOR 1 — AND THE STAGE OUTPUT DID NOT MOVE A BYTE.** It had been asking about POLARITY where the thing it claims turns on PRUNING: the generator has exactly ONE generation-side store prune and it is count-only (`gen_count_predicate_satisfiable` ← `gen_count_kinds`), so a NAME gate — which nothing anywhere prunes on — can never make a target unwitnessable from its own rule. Scoped to that map (`StoreGateScope::GenerationPruned`): census **16 → 1** / **11 → 1**, SPURIOUS **15 → 0** / **10 → 0**, GENUINE and `store_entry_raises` unchanged at `1`/`1`, residual `0`/`0`, all 8 artifacts byte-identical, debt lists 0 new. Byte-neutrality was PREDICTED from the `&&` short-circuit before being measured. Three independent proofs (RED unit control, generator measurement, a cross-language mirror with a new refusing control). Steps 1→2→3 = `-0181`/`-0182`/`-0183`. |
 | **2** | `SV-EXH-PROOF.7.4.6.18` | `pending` (`-0179`, ⛔ GOVERNANCE — parked behind product) | Price a SIXTH task-acceptance diagnosis family (**artifact determinism**) against the whole `docs/tasks/` corpus, and adopt ONLY if the corpus earns it. Trigger: `.7.4.6.16`'s defect — *the same binary on the same inputs writes different bytes* — has no parse to trace, no run to sample, no `error[EXXXX]`, no generated-code lint and no shell/make/errno locus, while the instruments that DO localise it (`cmp`, a canonical-load diff) are in no family's token list. ⚠️ `GENERATED-LINT-CORRECTNESS.7` refused its own candidate at 0–3 of 307 because the real gap was 97% PLACEMENT; "refused, with the number" is a complete outcome here. |
 | — | `SV-EXH-PROOF.7.4.6.16` | `done` (`-0180`, 2026-08-08) | ⭐ **ALL FOUR CLOSED-LOOP ARTIFACTS ARE BYTE-REPRODUCIBLE.** Three `#[serde(serialize_with)]` sorted emitters on the coverage artifact's std `HashMap` fields — no field type changed, no hot-path read touched. Same binary + same inputs, twice, both profiles ⇒ all four artifacts byte-identical; serialization-ONLY, since `stimuli.sv`/`gap.json`/`gap.txt` are byte-identical to the `-0179` arm and coverage is content-equal at the same byte length. Unit oracle RED (serializers detached) / GREEN. ⚠️ Landed under a ROUTED `PGEN_DIAG_EVIDENCE_WAIVER` owned by `.7.4.6.18`. |

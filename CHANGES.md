@@ -1,5 +1,37 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0184 — leaf SV-EXH-PROOF.7.4.6.13 defect (ii), TOOL-BUILD: the EXPLICIT per-target depth grant is MEASURED and REFUTED — the two candidates now BRACKET the problem
+
+- **The instrument.** The depth-slack retry census (TOOLBOX 6.2) gained an `explicit-grant:` arm: at
+  every rung the ladder climbs it now also computes the DERIVATION-JUSTIFIED budget that rung would
+  receive — `depth + min_full_derivation_depth(targeted alternative)`, the quantity the closed-loop
+  witness pass grants a witness target — and records the max, how often it is at least as generous
+  as the cumulative grant, and how many SUCCESSES it provably still buys. Read-only, always-on,
+  memoized per branch key so it is affordable at ~300–400k retries.
+- **Measured, both profiles:** max explicit `463` vs max granted `444` (`sv_2017`) and `695` vs `672`
+  (`sv_2023`); at least as generous on **99.994 %** of retries on each; provably buys `233/252` and
+  `374/398` successes; largest shortfall on any success **1** level.
+- ⇒ **SAFE but NOT A BOUND.** Its ceiling is *higher* than the ladder's on both profiles, so it does
+  not bound the descent — it re-describes it, slightly more generously.
+- ⭐⭐ **The structural reason, which generalises past this retry:** the grant is `depth + need`, and
+  `depth` is the LIVE descent position, bounded only by the already-escalated budget. **A budget
+  computed from where the descent currently IS inherits the very ladder it was meant to bound.**
+- ⇒ **The two candidates BRACKET the problem:** configured-relative (`-0177`) bounds the ladder
+  `106 → 8` levels and costs residual `0 → 17` / `0 → 10`; live-relative costs essentially nothing
+  and bounds nothing. **No slack FORMULA can be both.** What remains is a DECLARED CEILING at a
+  stated multiple of the configured depth, priced off these maxima (23.2x / 34.8x of `--max-depth 20`).
+- **Ground truth before any number was believed:** the grant is pinned to `depth + minimal derivation
+  depth` at three depths against the fixpoint table itself, and an alternative with no resolvable
+  derivation must REFUSE rather than score `0` — a zero would have counted as "at least as generous"
+  on a rung the instrument cannot describe. The refusal is asserted to survive the memo.
+- **Read-only, proven:** with the arm compiled in, all 8 stage artifacts are byte-identical (`cmp`)
+  to the `-0183` arm; residual `0`/`0`. Cert coverage seeds 0/7/42 12/12; `ast_shape_contract_gate`
+  GREEN; `clippy_on_rust_change` rc=0; dual-feature lib 1054/1.
+- ⛔ **Lockstep correction, not just an addition:** the KM card
+  `depth-slack-retry-needs-a-runaway-backstop` and the book both CLOSED by recommending this exact
+  candidate as "the shape that can work". Both are corrected in place, so the refuted recommendation
+  cannot be picked up and followed.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0183 — leaf SV-EXH-PROOF.7.4.6.17 step 3 (the FIX, leaf CLOSED): the blocked verdict was asking about POLARITY where its claim turns on PRUNING — now right 1 for 1, output byte-identical
 
 - **Root cause, sharper than step 2's and mechanically checkable.** `witness_target_is_store_entry_blocked`

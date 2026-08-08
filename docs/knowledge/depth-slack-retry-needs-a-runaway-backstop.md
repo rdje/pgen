@@ -13,10 +13,13 @@ answers:
   - "what is TARGET_BRANCH_DEPTH_RETRY_CAP and what does it fix"
   - "why can't I just compute the retry slack from the configured max_depth"
   - "is a nesting cap different from a budget ceiling for the depth-slack retry"
+  - "why doesn't an explicit per-target depth grant bound the generator's descent"
+  - "can a budget computed from the current descent depth bound that descent"
+  - "how do I tell whether a retry budget rule will cost me coverage before landing it"
 tags: [stimuli, coverage, generator, retry, budget, instrumentation, systemverilog, root-cause]
-date: 2026-08-02
+date: 2026-08-08
 status: current
-evidence: rust/src/ast_pipeline/stimuli_generator.rs (`target_branch_depth_retry_slack`, `should_reach_retry_uncovered_recursive`, `MAX_UNCOVERED_REACH_RETRIES`, `DepthSlackRetryCensus`, `depth_slack_retries_by_branch`); docs/tasks/SV-EXH-PROOF.md leaf .7.4.6.13 (FIX_PRICED_AND_BLOCKED_2026-08-02, BACKSTOP_LANDED_2026-08-02); TOOLBOX.md 6.2; docs/book/src/stimuli-and-quality.md "`--max-depth` is not the depth the generator runs at"
+evidence: rust/src/ast_pipeline/stimuli_generator.rs (`target_branch_depth_retry_slack`, `should_reach_retry_uncovered_recursive`, `MAX_UNCOVERED_REACH_RETRIES`, `DepthSlackRetryCensus`, `depth_slack_retries_by_branch`); docs/tasks/SV-EXH-PROOF.md leaf .7.4.6.13 (FIX_PRICED_AND_BLOCKED_2026-08-02, BACKSTOP_LANDED_2026-08-02, EXPLICIT_GRANT_MEASURED_AND_REFUTED_2026-08-08); TOOLBOX.md 6.2; docs/book/src/stimuli-and-quality.md "`--max-depth` is not the depth the generator runs at"
 reverify: "cargo test --features 'generated_parsers ebnf_dual_run' --lib depth_slack; grep 'Depth-slack retry census:' rust/target/sv_stimuli_quality_gate/logs/profile_2017_closed_loop_replay.log"
 ---
 
@@ -128,15 +131,44 @@ are identical, because the ladder rung IS the nesting level: `C = configured + 4
 census, any cap that bounds something worth bounding costs 40–87 % of retry successes; the cheapest
 free cap is `N = 99` — ceiling 416, still 21x the configured depth.
 
-⇒ the shape that can work is an **explicit** per-target depth grant (what the closed-loop witness
-pass already computes: reach-prefix plus the target's own minimal derivation depth), so depth is
-granted by a computed budget rather than inherited from whichever retry encloses you.
+⛔⛔ **AND THE "EXPLICIT PER-TARGET GRANT" THAT THIS CARD USED TO RECOMMEND IS ALSO REFUTED — BY
+MEASUREMENT, IN THE OPPOSITE DIRECTION.** The shape looked right: grant `depth + minimal derivation
+depth of the targeted alternative` (what the closed-loop witness pass computes for a witness target)
+instead of inheriting whatever budget encloses you. Censused at every rung the ladder climbs:
+
+| | `sv_2017` | `sv_2023` |
+|---|---|---|
+| max EXPLICIT budget | **463** | **695** |
+| max GRANTED (ladder) budget | 444 | 672 |
+| retries where explicit ≥ granted | 99.994 % | 99.994 % |
+| successes it provably still buys | 233/252 | 374/398 |
+| largest shortfall on a success | 1 | 1 |
+
+It is **safe** — essentially never less generous, and at most one level short on a success. It is
+**not a bound**: its ceiling is *higher* than the ladder's on both profiles.
+
+⭐⭐ **The structural reason generalises far past this retry: the grant is `depth + need`, and `depth`
+is the LIVE descent position, bounded only by the already-escalated budget. A budget computed from
+where the descent currently IS inherits the very ladder it was meant to bound.** Every live-relative
+rule has this property; it is not a defect of this particular formula.
+
+⇒ **The two candidates BRACKET the problem, and no slack FORMULA can be both.** Configured-relative
+bounds the descent exactly as designed and costs residual `0 → 17` / `0 → 10`; live-relative costs
+essentially nothing and bounds nothing. What is left is not a formula but a **declared ceiling** — a
+hard cap at a stated multiple of the configured depth, chosen off the measured maxima (463/695
+against `--max-depth 20`, i.e. 23.2x/34.8x) — which makes the descent bounded *and declared* without
+pretending `--max-depth` is the bound. ⚠️ Price it before adopting it: the static pricing here was an
+upper bound on damage and the A/B disagreed with it in both directions.
 
 ## Instrument discipline
 
 The census is read-only and carries both controls: a positive one (the existing depth-slack unit
 scenario must census exactly one level-1, ordinal-1 success) and a negative one (a grammar with no
-depth-blocked targeted branch must census nothing and print nothing). A census line in a log is
+depth-blocked targeted branch must census nothing and print nothing). The explicit-grant arm added
+its own pair: the grant is pinned to `depth + minimal derivation depth` at three depths against the
+fixpoint table itself, and an alternative with no resolvable derivation must **REFUSE** rather than
+score `0` — a zero would have been counted as *"the explicit grant is at least as generous"* on a
+rung the instrument cannot describe at all. A census line in a log is
 therefore evidence the retry **ran**, not evidence the instrument is compiled in. Whole-run control:
 with the instrument compiled in, the replay stage's `stimuli`/`gap.json`/`gap.txt` stay byte-identical
 to the canonical gate's own artifacts.
