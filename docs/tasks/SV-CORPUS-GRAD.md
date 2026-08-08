@@ -46,6 +46,37 @@ capture. The acquisition + first characterization were **done 2026-06-17** by
   corpora read low (friscv 7% / scr1 14% / VeeR 16.7%) because the bulk runner
   parses files in ISOLATION without the preprocessing/include chaining the
   curated 14/14 triage gate does perform.
+### ⛔ AXIS-2 FRESHNESS AUDIT — measured 2026-08-08 (session #213), READ BEFORE QUOTING ANY NUMBER
+
+The `5128 / 58.0%` figure above is **pre-ADD-v1 narrative** and must not be cited as current;
+`.8`'s vendoring grew the universe. Measured on HEAD this session:
+
+| fact | value | how it was obtained |
+|---|---|---|
+| corpus universe | **16 336** files | `find stimuli/sv/subs stimuli/sv/uvm -type f \( -name '*.sv' -o -name '*.svh' -o -name '*.v' \) \| wc -l` |
+| tracked report says | `9 693 pass / 6 634 fail / 9 timeout / **59.3 %**` | `stimuli/sv/characterization/characterization.md` |
+| that report was committed | **2026-07-25** (`350b96de`) | `git log -1 --date=short -- …/characterization.md` |
+| `grammars/systemverilog.ebnf` last changed | **2026-07-26** (`7219547c`) | `git log -1 --date=short -- grammars/systemverilog.ebnf` |
+
+⛔ **The measurement PREDATES a grammar commit, so it provably cannot describe HEAD.** This is not
+a suspicion — it is a date comparison. Per
+[[project_all_parsers_fully_pass_stimuli_and_external_corpora]] ("the first honest act is to
+re-measure them rather than to quote them"), **the campaign's first act is a re-measure**, and the
+`403` unexplained-divergence adjudication inherits the same defect.
+
+Two further defects in the artifact itself, both already solved for VHDL by
+`CORPUS-GRAD-ALL.2.1` and inherited here for free:
+1. `results.tsv` is **untracked** (`.gitignore:412`) and **overwritten in place** by the runner —
+   ⚠️ preserve it BEFORE re-running or the comparison baseline is destroyed (the trap is recorded
+   in `DEVELOPMENT_NOTES.md`; this session preserved it to `rust/target/sv_axis2_baseline/`).
+2. Its column 3 carries **absolute paths**, so it is unreproducible from another checkout.
+   `stimuli/run_external_corpus.sh` already emits repo-root-relative paths since
+   `CORPUS-GRAD-ALL.2.1`, so the next run fixes this automatically — no code change needed here.
+
+Per-file counts by sub-corpus on HEAD (the burn-down denominators): opentitan 3 983, iverilog
+3 799, verilator 3 263, ispras-sv-tests 1 266, sv-tests 1 028, sv2v 953, Surelog 828, friscv 441,
+black-parrot 205, uvm-core 174, verible 152, Cores-VeeR-EL2 102, slang 92, scr1 50.
+
 - **Canonical repo/roster reference**:
   `docs/decisions/reference_sv_external_corpus_and_oracle_repos.md`
   (+ KM card) — the recognized corpus/oracle list (director 2026-06-09).
