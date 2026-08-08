@@ -1559,9 +1559,11 @@ literal over a failing surface.
 - [x] **NO REGRESSION** — cert coverage at **seeds 0/7/42** on json / regex / vhdl / rtl_frontend:
   **12/12** `UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)`.
   The generator change is proven INERT everywhere but SV, by direct byte comparison rather than
-  argument: ceiling ON vs OFF across 8 grammars × seeds 0/7/42 = **24/24 byte-identical**, each with
-  its own determinism control, and 3 `rtl_const_expr` cells **REFUSED** (pre-existing
-  `depth exceeded max_depth=24`, retry never fires) rather than silently scored. Refactor-inertness
+  argument — re-runnable oracle `bash docs/tasks/artifacts/sv_exh_proof/ceiling_inertness_sweep.sh`
+  → `identical=24 diverged=0 non_deterministic=0 refused_no_output=3`: ceiling ON vs OFF across 8
+  grammars × seeds 0/7/42 = **24/24 byte-identical**, each with its own OFF-vs-OFF determinism
+  control, and 3 `rtl_const_expr` cells **REFUSED** (pre-existing `depth exceeded max_depth=24`,
+  retry never fires) rather than silently scored. Refactor-inertness
   control: the `disabled` arm is **8/8 byte-identical (`cmp`)** to the preserved `-0184` arm.
   `ast_shape_contract_gate` GREEN (18/18). `clippy_on_rust_change` rc=0 with the generated stage
   `pass`. Dual-feature lib suite **1056 passed / 1 failed** — exactly the `-0184` state of 1054/1
