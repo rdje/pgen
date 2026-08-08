@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-EXH-PROOF-0187 — leaf SV-EXH-PROOF.7.4.6.19 (docs/tooling): the LITERAL-0 umbrella is ADJUDICATED CLOSED against a canonical gate on HEAD — and "stale measurement" is promoted to a defect class
+
+- ⭐⭐⭐ **`SV-EXH-PROOF.7.4.6.6` — the literal-0 umbrella — is MET and CLOSED**, adjudicated clause
+  by clause against its own Acceptance string rather than left `in_progress` by inertia while its
+  own metric read zero.
+- **The instrument is the one the Goal named.** `.7.4.6.6`'s `97` came from the CANONICAL
+  `sv_stimuli_quality_gate`; every `0/0` since `-0170` had been measured on the standalone replay
+  stage. Re-run on HEAD under the memory guard: **exit 0, 1111 s, peak RSS 9381 MB**,
+  `closed_loop_replay_targets_total: 0`, ceiling `enforced`, `profiles_checked 2/2`,
+  determinism `2/2`, parseability shadow `9963/9963`, `parse_full` failures `0`.
+- ⭐ **The anti-metric-gaming clause is discharged by MEASUREMENT, not assurance.**
+  `closed_loop_initial_targets_total` stays `5461`, and both per-profile initial-gap universes are
+  **byte-identical** to the preserved `-0170` baseline (`2693` / `2768` target ids, set-equal) ⇒
+  the residual reached zero by **winning coverage**, with the denominator provably untouched.
+- **Two of the umbrella's own claims are corrected on the record**, per this tree's standing
+  precedent: class A is a **DEPTH** defect (`purdom_depth` 42-54 vs budget 40), not the "timeouts"
+  the Goal names; and the Goal's "TWO distinct causes" were **THREE** — `.7.4.6.8` found a
+  store-gated class C the Goal never mentions.
+- **New instrument:** `docs/tasks/artifacts/sv_exh_proof/replay_universe_staleness_diff.py` —
+  compares a frozen replay universe against a freshly generated one at three separating levels
+  (bytes / target-id set / summary counters), so a serialization-ordering change cannot be misread
+  as a moved universe. Carries positive + negative controls and **refuses (exit 2)** on a miss.
+- ⛔ **`lib` is NOT claimed green.** `1002 passed / 1 failed`; the failure is the already-routed
+  `CI-PARITY-GATE-ROT.21` class-(2) test (`unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`),
+  re-confirmed pre-existing — this change contains zero Rust. `clippy` source-clean.
+- ⛔⛔ **ROUTED — STALENESS IS A DEFECT CLASS.** The stage probe replays a frozen universe and
+  *enforces nothing*; measured LIVE across all ten intervening generator commits this time, but
+  nothing would have said otherwise. With the SV corpus adjudication stale since `2026-07-25`
+  (`results.tsv` untracked) and the `--lib` suite RED because no gate reads it, that is three
+  independent instances in one session → new layer-C directive
+  `project_all_parsers_fully_pass_stimuli_and_external_corpora`.
+- **Book lockstep:** `stimuli-and-quality.md`'s ratchet example still showed `{2017: 2, 2023: 2}`
+  while the live contract pins `{0, 0}` — corrected, with the two-sided consequence of a literal-zero
+  pin spelled out.
+- Docs/tooling only: no grammar, no `rust/src`, no generated artifact, no gate, no release bump.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0185 — leaf SV-EXH-PROOF.7.4.6.13 defect (ii), THE FIX (leaf CLOSED): the DECLARED CEILING bounds the depth ladder at ZERO coverage and ZERO residual cost
 
 - **The fix.** `DEPTH_SLACK_RETRY_CEILING_MULTIPLE = 21` — the depth-slack retry's escalated budget

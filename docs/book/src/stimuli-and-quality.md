@@ -146,10 +146,16 @@ The ratchet is declared in the contract, per profile:
   "replay_target_ceilings": {
     "enforce": true,
     "measured_configuration": "stimuli_mode=sv_file sample_count=8 seed_base=12001 …",
-    "profiles": { "2017": 2, "2023": 2 }
+    "profiles": { "2017": 0, "2023": 0 }
   }
 }
 ```
+
+Those pins are **literal zero** on both profiles — every coverage target the replay
+stage enumerates is witnessed. Getting there took the whole `SV-EXH-PROOF.7.4.6.x`
+campaign (`127 → 83 → 4 → 0`), and because the ratchet is two-sided, zero is now the
+*only* passing value: a single target that stops being witnessed fails the gate, and
+there is no room left below to bank.
 
 and it has **four** outcomes, not two:
 
