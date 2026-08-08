@@ -78,11 +78,18 @@ frontier, never as a silent exemption.
   Commit: `PGEN-LIVE-DOC-CONTAINMENT-0001`
 
 - ID: `LIVE-DOC-CONTAINMENT.2`
-  Status: `pending` (frontier — ⛔ runs BEFORE the corpus program, per the director's sequencing correction)
+  Status: `done` (`PGEN-LIVE-DOC-CONTAINMENT-0003`, 2026-08-08) — ⭐ headroom **88 B → 1 078 B** by removing scaling terms, not prose; and the demotion exposed a wrong frontier in another tree that layer A had been patching.
   Goal: `PHASE 1 — stabilize the resume pointer by removing SCALING TERMS, not prose. Three measured targets in MEMORY.md: (a) the push counter, a derivable-exact field that is wrong BY CONSTRUCTION (measured 185 stored vs 187 actual; recording "N ahead" requires a commit, making it N+1) -- DELETE, leave the derivation in place per docs/DERIVED_STATE_CONTAINMENT.md R3/R5; (b) the latest_commit narrative, 401 B duplicating CHANGES.md and the owning leaf -- reduce to a derivation + the leaf id; (c) the "routed, waiting behind product" roster, 499 B = 7% of the file and GROWING PER ROUTED FINDING (this session added to it) -- demote to a pointer at its canonical home docs/TASK_TREE.md + each tree's own frontier.`
   Acceptance: `every removed field replaced BY ITS DERIVATION so no resume question loses its answer (R5); before→after bytes MEASURED; the cap NOT raised; a fresh-session resume walked end-to-end to prove the pointer still routes correctly.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — ⭐ 7 080 B -> 6 090 B (44 -> 38 lines), headroom 88 B -> 1 078 B, a 12x improvement, and the cap was NOT touched. Contrast with the compression-only repair this tree was opened over: that bought 465 B by rewording; removing the SCALING TERMS bought 990 B more and stopped the growth.
+  WHAT WENT, BY CLASS (docs/DERIVED_STATE_CONTAINMENT.md §2):
+  * (a) DERIVABLE-EXACT, DELETED + derivation left in place per R3/R5 — the push counter (stored 185; `git rev-list --count origin/main..HEAD` said 187 when the slice opened and 189 by the time it landed, i.e. it drifted twice DURING its own repair, which is the by-construction class demonstrating itself) and the latest_commit narrative (401 B duplicating CHANGES.md + the owning leaf).
+  * (a) DERIVABLE PROJECTION, DEMOTED — the "routed, waiting behind product" roster, 499 B = 7 % of the file, growing per routed finding. Canonical home docs/TASK_TREE.md; membership PROVEN recoverable before deletion (every routed tree present, every leaf in its own tree file) rather than assumed.
+  * (b) PINNED-WITH-VERIFIER, KEPT and now labelled as such — the regex oracle tuple, legal precisely because REGEX-ORACLE-ANCHOR-SYNC fails on drift. It is the worked example of why (b) is not (a).
+  * (c) NON-DERIVABLE, KEPT — active work unit, next action, blockers, standing tripwires.
+  R5 DEMONSTRATED LIVE, not asserted: `git log -1 --oneline` -> the commit, `git rev-list --count origin/main..HEAD` -> 189, docs/TASK_TREE.md -> 116 tree rows. Every question the deleted fields answered is still answerable, with a value that is correct at the moment it is asked.
+  ⭐⭐ AND THE DEMOTION FOUND A LATENT DEFECT — which is the argument for demotion, not merely a bonus. The roster carried "BOOK-PARAGRAPH-SHAPE (`.2` runs BEFORE `.1`)". Checking that it was recoverable before deleting it (the doctrine's "prove what will be retained") showed its tree encodes the order in its leaf headings (`.1` = "ROUTED — do not pull ahead of product", `.2` = "PRIORITY-FIRST when this lane is unparked") while that tree's own Status field read "frontier `.1`" — a CONTRADICTION the bounded resume pointer had been silently compensating for. ⇒ a layer-A roster was patching a wrong canonical source, and every reader who trusted the tree got the wrong frontier. FIXED AT THE SOURCE (BOOK-PARAGRAPH-SHAPE.md frontier `.1` -> `.2`, with the correction recorded there), so no surface has to carry the patch. This is the general lesson: a duplicated projection does not just cost bytes — it HIDES divergence in the thing it duplicates.`
+  Commit: `PGEN-LIVE-DOC-CONTAINMENT-0003`
 
 - ID: `LIVE-DOC-CONTAINMENT.3`
   Status: `pending`

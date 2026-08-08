@@ -15,7 +15,13 @@
 ## Metadata
 
 - Tree ID: `BOOK-PARAGRAPH-SHAPE`
-- Status: `active` (opened 2026-08-01, session #231, by direct director report) — **frontier `.1`**
+- Status: `active` (opened 2026-08-01, session #231, by direct director report) — **frontier `.2`**
+  (⚠️ **CORRECTED 2026-08-08 by `LIVE-DOC-CONTAINMENT.2`**: this field read `.1`, contradicting the
+  tree's own leaf headings — `.1` is *"ROUTED — do not pull ahead of product"* while `.2` is
+  *"PRIORITY-FIRST when this lane is unparked"*. The layer-A pointer had been carrying a
+  compensating note, *"`BOOK-PARAGRAPH-SHAPE` (`.2` runs BEFORE `.1`)"*, i.e. a bounded resume
+  pointer was patching a wrong canonical source. Demoting that roster surfaced the contradiction;
+  the fix belongs HERE, in the source, so no other surface has to carry the correction.)
 - Family / slice-id prefix: `PGEN-BOOK-PARAGRAPH-SHAPE-<NNNN>`
 - Created: `2026-08-01`
 - Owner: repo-local docs workflow
