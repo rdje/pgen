@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0006 — the metric that moved in the right direction was the one that was wrong; and a name collision is invisible precisely because the merge is a legitimate feature
+
+**Rank your checks by what they can and cannot see, before you trust the green ones.** This slice
+had four cheap signals and they were unanimous: four reproducers flipped REJECT→PASS, the linter
+reported zero errors, certificate coverage stayed `fully_certified` with every branch witnessed, and
+the corpus pass count went UP. The change was still wrong. Each signal was answering a question that
+the defect did not touch — "does the new syntax parse", "is the grammar well-formed", "is every
+branch reachable", "does more input parse" — and none was answering "does this rule accept ONLY what
+the LRM allows". The one instrument that could see it was the shape-contract crosscheck, and only
+because it compares two independent derivations of the same fact and they disagreed.
+
+⛔ **A rising pass-rate is not evidence of correctness, and this slice priced it exactly.** The buggy
+grammar scored 4 086 corpus passes; the correct grammar scores 4 082. Four files "improved" by being
+accepted when they should have been rejected. On a campaign whose headline metric IS a pass count,
+that is the failure mode to design against — which is why the negative axis (VESTS
+`non_compliant/analyzer_failure/` files that must REJECT) belongs inside the same leaf as the
+positive one, not in a follow-up.
+
+**The collision was invisible because the merge is a FEATURE.** Repeating a rule header within one
+file merges the clauses into alternatives — deliberately, documented, and made deliberately legal
+when cross-file collisions were turned into hard errors. So there was nothing to warn about: the
+frontend could not distinguish my accident from the idiom it is required to support. The lesson is
+not "the tool should error"; it is that in a 546-line grammar the *author* has no cheap way to know a
+name is taken, and the check that costs nothing — grep the rule name before defining it — is the one
+that would have saved the cycle. `grep -oE '^[a-z_]+ :=' file | sort | uniq -d` over the whole
+grammar is now the closing check, and it reads empty.
+
+⭐ **The arithmetic fingerprint was on screen and I read past it.** Five definitions were added and
+the linter reported the rule count going 216 → 220. A merge is exactly the discrepancy that
+arithmetic detects, and it was visible a full verification cycle before the gate caught the same
+thing the expensive way. When a change adds N named things, check that the count moved by N — it is
+free, and it is the earliest possible detector of a silent merge.
+
+**Burn-down does not look like the class size, and saying so up front keeps the number honest.**
+Killing a 387-row class bought 51 fully-passing files. That is not a shortfall: a file fails at its
+FIRST gap, so the other ~330 moved DEEPER to their next one. The way to prove that rather than assert
+it is to re-cluster and show WHERE they went — `for ID :` 110 → 338, `downto NUM =>` 67 → 101. A
+burn-down leaf that reports only its own class's collapse is reporting half the result.
+
+**The corpus can adjudicate its own negative axis if you read its directory names.** The three
+`wait`-clause rows that survived are all under `vests/vhdl-93/billowitch/non_compliant/analyzer_failure/`,
+and all three are clauses in the wrong LRM order (`wait for 60 ns on i;`). The parser refuses them
+because the three-optional sequence encodes the LRM's fixed clause order. That is a correctness
+result obtained for free from the corpus's own answer key — worth looking for before writing bespoke
+negative fixtures.
+
 ## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0004 — a stale number that turns out to be TRUE is still a broken process; and fix the instrument before you believe its ranking
 
 **The re-measure came back identical, and that is the least interesting thing about it.** 29.4 %,

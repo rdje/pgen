@@ -333,7 +333,39 @@ loop_statement := kw_while expression kw_loop sequential_statement* kw_end kw_lo
 
 exit_statement := kw_exit (kw_when expression | identifier (kw_when expression)?)? semi
                -> {condition_or_label: $2}
-wait_statement := kw_wait (kw_for expression)? semi
+# CORPUS-GRAD-ALL.2.2 — LRM IEEE 1076 §10.2, all three optional clauses:
+#   wait_statement ::= [label:] wait [sensitivity_clause] [condition_clause] [timeout_clause] ;
+# The rule previously carried ONLY the timeout clause `(kw_for expression)?`, so every
+# `wait on …` / `wait until …` rejected — the largest NAMED class in the VHDL external-corpus
+# stuck-point census (387 rows, docs/tasks/artifacts/corpus_grad_all/vhdl_fail_clusters.md).
+# The clause order is fixed by the LRM and each clause is independently optional, which is
+# exactly a three-optional sequence — no choice ordering is involved.
+# ⛔ The `[label:]` prefix the LRM also allows is a SEPARATE class (statement labels apply to
+# every sequential statement, not just `wait`) and is deliberately out of this leaf's scope.
+wait_statement := kw_wait wait_sensitivity_clause? condition_clause? timeout_clause? semi
+               -> {sensitivity: $2, condition: $3, timeout: $4}
+# ⛔ NAMED `wait_sensitivity_clause`, NOT `sensitivity_clause` — that name is ALREADY TAKEN by the
+# process form (`( a, b )`, line ~276). Repeating a rule header WITHIN one file is a DELIBERATE,
+# documented PGEN idiom: the clauses merge into ALTERNATIVES of one rule (`LANG-CAPABILITY-AUDIT.9`,
+# which made only CROSS-FILE collisions a hard error, precisely to keep this idiom legal). So the
+# frontend behaved exactly as designed — the hazard is the AUTHOR's, because in a 546-line grammar an
+# accidental collision is indistinguishable from an intended extra alternative.
+# Measured when this leaf first used the colliding name: the emitted inventory showed
+# `sensitivity_clause` carrying TWO branches (`{list: $2}` at 0, `[$2, $3::2*]` at 1) that no single
+# grammar site declares; `--lint-grammar` reported 0 errors (correctly — the merge is legal); and the
+# rule count read 216 -> 220 for FIVE added definitions, the arithmetic fingerprint of the merge.
+# The consequence would have been OVER-ACCEPTANCE IN BOTH DIRECTIONS — `wait (a, b);` AND
+# `process on a, b` — i.e. two LRM violations from one name clash. Caught by the
+# `ast_shape_contract` crosscheck, whose two inventory paths disagreed on the branch index.
+# The two forms share `sensitivity_list`, so the list itself keeps ONE definition.
+# ⚠️ Bound, shared with the process form and NOT introduced here: `sensitivity_list` is built from
+# `selected_name`, so an INDEXED signal name in a sensitivity list (`wait on sig(3);`) is still
+# unsupported. Stated rather than silently differing from the LRM.
+wait_sensitivity_clause := kw_on sensitivity_list
+                        -> {list: $2}
+condition_clause := kw_until expression
+                 -> {condition: $2}
+timeout_clause := kw_for expression
                -> {timeout: $2}
 assert_statement := kw_assert expression (kw_report expression)? (kw_severity expression)? semi
                  -> {condition: $2, report: $3, severity: $4}
@@ -523,6 +555,8 @@ kw_for := trivia /(?i:for)\b/
 kw_while := trivia /(?i:while)\b/
 kw_exit := trivia /(?i:exit)\b/
 kw_wait := trivia /(?i:wait)\b/
+kw_on := trivia /(?i:on)\b/
+kw_until := trivia /(?i:until)\b/
 kw_assert := trivia /(?i:assert)\b/
 kw_report := trivia /(?i:report)\b/
 kw_severity := trivia /(?i:severity)\b/

@@ -59,7 +59,7 @@
  "declared_annotation_inventory": {
   "pipeline_inventory_artifact": "generated/vhdl_return_annotations.json",
   "optional_grammar_json_crosscheck": "generated/vhdl.json",
-  "extracted_at": "2026-05-17",
+  "extracted_at": "2026-08-08",
   "annotations": [
    {
     "annotation_type": "return_object",
@@ -384,6 +384,12 @@
     "branch_index": 6,
     "normalized_text": "{kind: \"semi\"}",
     "rule": "concurrent_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{condition: $2}",
+    "rule": "condition_clause"
    },
    {
     "annotation_type": "return_object",
@@ -1504,6 +1510,12 @@
    {
     "annotation_type": "return_object",
     "branch_index": 0,
+    "normalized_text": "{timeout: $2}",
+    "rule": "timeout_clause"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
     "normalized_text": "{name: $2, definition: $4}",
     "rule": "type_declaration"
    },
@@ -1594,7 +1606,13 @@
    {
     "annotation_type": "return_object",
     "branch_index": 0,
-    "normalized_text": "{timeout: $2}",
+    "normalized_text": "{list: $2}",
+    "rule": "wait_sensitivity_clause"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{sensitivity: $2, condition: $3, timeout: $4}",
     "rule": "wait_statement"
    }
   ]

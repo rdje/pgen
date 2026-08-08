@@ -12,21 +12,21 @@ Per-file parse via `parseability_probe --parse vhdl <file> `, timeout 20s, 8-way
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 13720 | 4031 | 9689 | 0 | 0 | 29.4% |
+| 13720 | 4082 | 9638 | 0 | 0 | 29.8% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | Compliance-Tests | 78 | 28 | 50 | 0 | 0 | 35.9% |
-| ghdl | 9758 | 3118 | 6640 | 0 | 0 | 32.0% |
+| ghdl | 9758 | 3149 | 6609 | 0 | 0 | 32.3% |
 | Interfaces | 30 | 11 | 19 | 0 | 0 | 36.7% |
 | neorv32 | 69 | 51 | 18 | 0 | 0 | 73.9% |
-| nvc | 2074 | 533 | 1541 | 0 | 0 | 25.7% |
+| nvc | 2074 | 548 | 1526 | 0 | 0 | 26.4% |
 | OsvvmLibraries | 715 | 61 | 654 | 0 | 0 | 8.5% |
 | PoC | 371 | 84 | 287 | 0 | 0 | 22.6% |
 | Rudi-RV32I | 29 | 16 | 13 | 0 | 0 | 55.2% |
-| UVVM | 302 | 50 | 252 | 0 | 0 | 16.6% |
-| vunit | 294 | 79 | 215 | 0 | 0 | 26.9% |
+| UVVM | 302 | 51 | 251 | 0 | 0 | 16.9% |
+| vunit | 294 | 83 | 211 | 0 | 0 | 28.2% |
 
 _Raw per-file results: `stimuli/vhdl/characterization/results.tsv`._

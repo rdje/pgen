@@ -1,5 +1,50 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0006 — leaf CORPUS-GRAD-ALL.2.2: the VHDL `wait` statement grows its missing two clauses (LRM §10.2) — and a RISING PASS COUNT turns out to be the least trustworthy signal in the set
+
+- **The gap:** `wait_statement := kw_wait (kw_for expression)? semi` implemented the **timeout
+  clause only**, so every `wait on …` / `wait until …` rejected — the largest NAMED class in the
+  VHDL stuck-point census (387 rows). `kw_on` and `kw_until` had no token rule at all.
+- **The fix** is a three-optional sequence (`wait_sensitivity_clause? condition_clause?
+  timeout_clause?`), because the LRM fixes the clause ORDER and makes each clause independently
+  optional. The `[label:]` prefix is deliberately left out — labels apply to every sequential
+  statement, so folding them in would have made this a second, unmeasured change.
+- ⭐⭐ **THE FIRST VERSION WAS WRONG AND EVERY CHEAP CHECK PASSED IT.** It named the new rule
+  `sensitivity_clause` — already owned by the **process** statement 70 lines earlier. Repeating a
+  rule header within one file is a DELIBERATE PGEN idiom (`LANG-CAPABILITY-AUDIT.9` made only
+  CROSS-FILE collisions a hard error, to keep it legal), so the clause merged in as a second
+  ALTERNATIVE. The frontend behaved as designed; the hazard is the author's.
+  - It would have shipped **over-acceptance in BOTH directions** — `wait (a, b);` AND
+    `process on a, b` — two LRM violations from one name clash.
+  - **Did not catch it:** the 4 reproducers (all flipped REJECT→PASS), `--lint-grammar` (0 errors,
+    correctly), certificate coverage (`fully_certified`, every branch witnessed — the merged branch
+    was witnessed *because it was real*).
+  - **Caught it:** `ast_shape_contract`'s declared-annotation crosscheck — the pipeline-emit path
+    said `sensitivity_clause` branch **1**, the raw_ast walk said branch **0**.
+  - The arithmetic fingerprint was visible and read past: **216 → 220** rules for **five** added
+    definitions. After the rename: **221**, and a duplicate-name census over the grammar is empty.
+- ⛔⛔ **AND THE PASS COUNT LIED IN THE REASSURING DIRECTION:** the buggy merged grammar scored
+  **4 086** corpus passes; the correct one scores **4 082**. Those 4 extra passes were WRONG passes.
+  *A rising pass-rate is not evidence of correctness.*
+- **Verified on four axes:** (1) reproducers REJECT→PASS; (2) the census class `until ID =` goes
+  **387 → 0** and every sibling `until*`/`on*` class collapses with it (~464 → 3 rows);
+  (3) corpus **4 031 → 4 082** pass (29.4 % → 29.8 %, 13 720 files in 71 s); (4) the NEGATIVE axis —
+  the 3 residual rows are VESTS `non_compliant/analyzer_failure/` files with clauses in the WRONG
+  LRM order (`wait for 60 ns on i;`), which the sequence correctly REFUSES, confirmed by the
+  corpus's own answer-key directory naming.
+- ⚠️ **+51 passes against a 387-row class is the EXPECTED shape, not a shortfall** — a file fails at
+  its FIRST gap, so most of those files now fail DEEPER. Proven rather than asserted: the classes
+  that GREW are downstream (`for ID :` 110 → **338**, `downto NUM =>` 67 → 101, `alias ID :` 71 → 83).
+- **No regression:** cert coverage at seeds 0/7/42 `total=221 witness=221 UNKNOWN=0
+  fully_certified=true spf=0` (all 5 new rules witnessed ⇒ generator⟷parser duality holds on the new
+  language); `clippy_on_rust_change` exit 0; `ast_shape_contract` 18/18 after regenerating the pinned
+  inventory (+3 annotations, 1 changed, 0 removed); 17/17 doctrines.
+- ⚠️ **ROUTED:** `identifier` in `grammars/vhdl.ebnf` does not exclude VHDL reserved words, so
+  `wait (clk);` parses whole-file as `{kind: "procedure_call"}`. Systemic pre-existing
+  over-acceptance — and it means some corpus passes may pass for the wrong reason. Own leaf, with
+  routing evidence recorded.
+- LIVE tracker **unchanged**: `vhdl` stays `Provisional (corpus pending)`.
+
 ## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0004 — leaf CORPUS-GRAD-ALL.2.1: VHDL axis 2 RE-MEASURED on HEAD (71 s), and 9 689 raw fails become a RANKED, grammar-verified defect-class worklist
 
 - ⭐ **Re-measured, not quoted** ([[project_all_parsers_fully_pass_stimuli_and_external_corpora]]:

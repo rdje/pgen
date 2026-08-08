@@ -257,6 +257,90 @@ the `(corpus pending)` clause the register already admits. The 29.4% below is li
   - [x] **NO REGRESSION** — SV lane defaults unchanged (`--grammar systemverilog --profile sv_2017`, `SV_KEYWORDS`, `SV_OPERATORS`, the manifest input path), so the SV invocation is byte-identical; no SV artifact regenerated in this slice. `bash -n stimuli/run_external_corpus.sh` and `python3 -c "ast.parse(...)"` clean; `scripts/check_doctrines.sh` GREEN (17/17); zero Rust, zero grammar, zero generated change ⇒ clippy and the cert/`shape-contract` oracles are untouched by construction.
   - [x] **LOCKSTEP** — tree + `docs/TASK_TREE.md` frontier + `TOOLBOX.md` (the clusterer documented as family-neutral, with the VHDL invocation) + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md`. LIVE-status register unchanged: `vhdl` stays `Provisional (corpus pending)` — this slice measures and ranks, it fixes no grammar.
 
+### `.2.2` — the `wait` statement grows its missing two clauses (LRM §10.2) — worklist class #1 by name, 387 rows
+
+- **Status: `done`** (`PGEN-CORPUS-GRAD-ALL-0006`, session #213, 2026-08-08).
+- **The LRM shape vs what the grammar had:**
+  ```
+  wait_statement ::= [label:] wait [ on sensitivity_list ] [ until condition ] [ for time_expression ] ;
+  ```
+  `grammars/vhdl.ebnf` carried `wait_statement := kw_wait (kw_for expression)? semi` — the **timeout
+  clause only**. So every `wait on …` and `wait until …` in the corpus rejected, and `wait until` is
+  the single most common *named* stuck signature in the census (387 rows).
+- **The fix is a three-optional sequence**, because the LRM fixes the clause order and makes each
+  clause independently optional — no choice ordering is involved, so no branch-policy question
+  arises. `sensitivity_clause` reuses `target` (which already models `rec.field` / `sig(3)`), since
+  an LRM `signal_name` in a sensitivity list may be selected or indexed.
+- ⛔ **Deliberately OUT of scope:** the `[label:]` prefix. Labels apply to *every* sequential
+  statement, not just `wait`, so folding them in here would silently make this leaf a second,
+  unmeasured change. It stays a separate class.
+- **`.2.0` paid off immediately on this leaf's own reproducers:** all three rejecting files report
+  surface position `26` — the start of the architecture body, which names nothing — while
+  `furthest_position` lands exactly on the offending statement (`111` → line 6
+  `wait until nReset = '1';`, `128` → line 7 `wait on clk;`).
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — four reproducers under `rust/target/vhdl_wait_probe/` (repo-volume scratch per the data-locality policy). With the pre-change parser: `wait_on.vhd` REJECT, `wait_until.vhd` REJECT, `wait_all_clauses.vhd` REJECT, `wait_for_only.vhd` PASS — i.e. exactly the one clause the rule implemented passed. Corpus scale: 387 rows on signature `until ID =`, example `wait until nReset = '1' ;`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `grammars/vhdl.ebnf` `wait_statement`, whose whole optional part was `(kw_for expression)?`; `grep -cE "^kw_(until|on) :="` returned **0** for both, so the two clause keywords had no token rule at all. WHY, tool-backed rather than read off the grammar: `./rust/target/debug/parseability_probe --parse vhdl rust/target/vhdl_wait_probe/wait_until.vhd` → `Parser did not consume full input at position 26 [furthest_position=111, +85 bytes deeper than surface position]`, and byte 111 is line 6, `wait until nReset = '1';` — the deep locus names the exact construct while the surface position names the enclosing architecture. Confirmed independently on `wait_on.vhd` (`furthest_position=128` → line 7 `wait on clk;`).
+  - [x] **FIX** — fix-hierarchy tier **grammar** (the declarative tier does not apply: this is missing language, not a directive or engine behaviour; no engine change is involved). Added `wait_sensitivity_clause` / `condition_clause` / `timeout_clause` plus the `kw_on` / `kw_until` tokens, and recomposed `wait_statement` as `kw_wait wait_sensitivity_clause? condition_clause? timeout_clause? semi`. `ast_pipeline --lint-grammar` after the change: **221 rules**, `non_terminating=0 ordered_choice_shadowing=0 unreachable_rules=0 undefined_references=0 nullable_repetition=0` — all clean.
+
+- ⭐⭐ **THE FIRST VERSION OF THIS FIX WAS WRONG, AND THE CHEAP CHECKS ALL PASSED IT.** It named the
+  new rule `sensitivity_clause` — a name the **process** statement already owns 70 lines earlier
+  (`( a, b )`). Repeating a rule header within one file is a DELIBERATE PGEN idiom: the clauses merge
+  into ALTERNATIVES of one rule (`LANG-CAPABILITY-AUDIT.9` made only CROSS-FILE collisions a hard
+  error, precisely to keep the within-file idiom legal). ⇒ **the frontend behaved exactly as
+  designed; the hazard is the author's**, because in a 546-line grammar an accidental collision is
+  indistinguishable from an intended extra alternative.
+  - **What it would have shipped:** over-acceptance in BOTH directions — `wait (a, b);` accepted as a
+    wait statement AND `process on a, b` accepted as a process header — two LRM violations from one
+    name clash, in a repo whose doctrine treats over-acceptance as a defect
+    ([[feedback_sv_strict_lrm_compliance_default]]).
+  - **What did NOT catch it:** the four reproducers (all flipped REJECT→PASS), `--lint-grammar`
+    (0 errors — correctly, the merge is legal), and certificate coverage (`fully_certified`, every
+    branch witnessed — the merged branch was witnessed *because it was real*).
+  - **What DID catch it:** `ast_shape_contract`'s declared-annotation crosscheck, where PGEN's two
+    inventory paths disagreed — the pipeline-emit artifact reported `sensitivity_clause` branch **1**,
+    the frontend-JSON raw_ast walk reported branch **0**. The emitted inventory then showed one rule
+    carrying two branches (`{list: $2}` and `[$2, $3::2*]`) that no single grammar site declares.
+  - ⭐ **The arithmetic fingerprint was visible earlier and was read past:** rule count went
+    **216 → 220** for **five** added definitions. After the rename it reads **221**, and
+    `grep -oE '^[a-z_]+ :=' grammars/vhdl.ebnf | sort | uniq -d` is **empty** — no other collision in
+    the grammar.
+  - ⛔ **And the pass count LIED in the reassuring direction:** the buggy merged grammar scored
+    **4 086** corpus passes, the correct one **4 082**. Those 4 extra passes were WRONG passes. *A
+    rising pass-rate is not evidence of correctness* — which is exactly why the negative axis below
+    is part of this leaf and not an afterthought.
+
+  - [x] **ADDRESSED (verified)** — four axes, all measured:
+    1. **REJECT→PASS** on the reproducers: `wait_on` / `wait_until` / `wait_all_clauses` REJECT→PASS, `wait_for_only` PASS→PASS (unchanged).
+    2. **The class is GONE from the census, not merely smaller.** Re-clustered the fresh results: the target signature `until ID =` goes **387 → 0**, and *every* `until*`/`on*` class collapses with it (`until ID (` 31→0, `on ID (` 5→0, `until ( ID` 8→1, `on ID ;` 16→2) — ~464 → 3 rows total.
+    3. **Corpus aggregate: pass 4 031 → 4 082** (fail 9 689 → 9 638; 29.4 % → 29.8 %), 13 720 files in 71 s. ⚠️ Stated honestly: **+51 passes against a 387-row class is the EXPECTED burn-down shape**, not a shortfall — a file fails at its FIRST gap, so most of those 387 files now fail DEEPER at their next one. Proven, not asserted: the classes that GREW are downstream constructs — `for ID :` 110→**338** (+228), `downto NUM =>` 67→101, `alias ID :` 71→83.
+    4. **The NEGATIVE axis is right too.** The 3 residual `wait`-clause rows are all VESTS `vhdl-93/billowitch/non_compliant/analyzer_failure/` files — `wait until (j = 1) on i;`, `wait for 60 ns on i;`, `wait for 60 ns until (k = 1);` — i.e. clauses in the WRONG LRM order, which the three-optional sequence correctly REFUSES. The corpus's own answer-key directory naming confirms these rejections independently. Rule-isolated with `--entry-rule wait_statement` (⚠️ which also routes to the protocol graph — TOOLBOX 2.1): `wait (clk);` REJECTs at position 5 (`No match for regex pattern ';'`), while `wait on clk;` / `wait until c = 1;` / `wait;` PASS — so the merge-induced over-acceptance is provably gone. Whole-file `wait (clk);` still parses, but `--parse-dump-ast-pretty` shows it realizing as `{kind: "procedure_call"}`, i.e. the PRE-EXISTING "`identifier` does not exclude VHDL reserved words" class — routed below, not introduced here.
+  - [x] **NO REGRESSION** — certificate coverage `vhdl` at **seeds 0/7/42**: `total=221 proof=0 witness=221 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)` — every one of the 5 added rules is WITNESSED, and `spf=0` holds, so generator⟷parser duality is intact on the new language. `make clippy_on_rust_change` **exit 0** (strict source lint + the generated-parser `clippy::correctness` stage at 0 findings, peak RSS 8.5 GB). `ast_shape_contract` gate **18 passed / 0 failed** after regenerating the pinned inventory. `scripts/check_doctrines.sh` GREEN (17/17). Other grammars untouched: only `grammars/vhdl.ebnf` changed, and the regenerated artifacts are `vhdl_*` plus the bootstrap annotation pair that `focus_vhdl` always rebuilds.
+  - [x] **LOCKSTEP** — tree + `docs/TASK_TREE.md` frontier + the regenerated worklist artifacts (`vhdl_fail_clusters.md`/`.tsv`) + `stimuli/vhdl/characterization/characterization.md` + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md` + the pinned `rust/test_data/ast_shape_contract/vhdl_v1.json`. LIVE-status register **unchanged**: `vhdl` stays `Provisional (corpus pending)` — 29.8 % is not a status change, and `Done` is first-tier only ([[feedback_done_bar_is_first_tier_only]]).
+
+- ⚠️ **ROUTED OUT of this leaf (measured here, owned elsewhere):** `identifier := trivia /[A-Za-z][A-Za-z0-9_]*/` in `grammars/vhdl.ebnf` does **not exclude VHDL reserved words**, so a reserved word is parseable as a plain identifier — measured: `wait (clk);` parses whole-file as `{kind: "procedure_call"}` with `wait` as the procedure name. That is a systemic OVER-ACCEPTANCE class, and it also means some corpus "passes" may pass for the wrong reason, which bears directly on how axis-2 numbers should be read. Pre-existing, not introduced or worsened here; needs its own leaf with an LRM reserved-word list.
+
+### ROUTING EVIDENCE (for the reserved-word over-acceptance routed out of `.2.2`)
+
+1. **Does it reproduce OUTSIDE the class it is routed away from?** Yes, and that is the point: it is
+   independent of `wait`. `identifier` is referenced by `selected_name`, `identifier_list`,
+   `procedure_call_statement` and ~40 other rules, so ANY reserved word can stand in for an
+   identifier anywhere the grammar expects one. Fixing it inside a `wait` leaf would have addressed
+   one symptom of a grammar-wide rule.
+2. **What was MEASURED to place it there, not what makes it plausible?**
+   `parseability_probe --parse-dump-ast-pretty vhdl …/neg_wait_paren.vhd` realizes the construct as
+   `{kind: "procedure_call"}` — so the acceptance is `procedure_call_statement` matching `wait` via
+   `identifier`, NOT `wait_statement` being permissive; and `--entry-rule wait_statement` on the same
+   text REJECTs, which separates the two candidate causes decisively.
+3. **What would make this routing WRONG, and was it checked?** It would be wrong if `wait_statement`
+   itself were the acceptor (then it IS this leaf's defect) — checked by the entry-rule isolation
+   above, it is not. It would also be wrong if the reserved-word leak were introduced by this change
+   — checked: `identifier` is untouched by this leaf, and the accepting rule
+   (`procedure_call_statement`) predates it. ⛔ NOT checked: how many of the 4 082 corpus passes
+   depend on the leak. That is the measurement the owning leaf must open with, and it is stated
+   rather than guessed at here.
+
 ### `.3` — Per-family graduation-gate wiring (code; per-family leaves)
 
 - **Status: `todo`** — each family's `Done` computation gains its
