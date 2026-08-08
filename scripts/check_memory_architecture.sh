@@ -118,5 +118,62 @@ else
   note "docs/decisions/ (layer C) is missing"
 fi
 
+# E2.6 — DERIVED-STATE CONTAINMENT on layer A (docs/DERIVED_STATE_CONTAINMENT.md R1/R3).
+#
+# ⛔ THE DEFECT THIS EXISTS FOR, MEASURED (LIVE-DOC-CONTAINMENT.2, 2026-08-08): layer A carried
+# `**push**: 185 ahead`. `git rev-list --count origin/main..HEAD` said 187 when the repair began
+# and 189 when it landed — it drifted TWICE during its own repair. That field is not merely
+# drift-PRONE, it is wrong BY CONSTRUCTION: recording "N ahead" requires a commit, which makes it
+# N+1. FOUR commits' subject lines were that counter. No cadence or reminder can fix arithmetic;
+# only deletion can, so this check enforces the deletion rather than trusting the discipline.
+#
+# ⭐ DECLARED, NEVER INFERRED (§6): the pattern list is explicit and reviewable. A heuristic that
+# tried to guess which prose is a commit count would fail OPEN — silently, in the passing
+# direction — which is the failure mode every other bound in this file was written to escape.
+#
+# ⭐ R3/R5: the fix is never "delete the field". It is "replace the field with its DERIVATION", so
+# a reader still gets the answer — and gets one that is correct at the moment they ask.
+DERIVED_STATE_SURFACES="${DERIVED_STATE_SURFACES:-MEMORY.md}"
+derived_state_patterns=(
+  # (1) field-name form: a layer-A bullet whose KEY names a git-owned quantity.
+  '^[[:space:]]*[-*][[:space:]]*\*\*(push|unpushed|commits_ahead|commits_behind|latest_commit|current_commit|head_commit)\*\*'
+  # (2) value form: a stored commit DISTANCE, caught even if the field is renamed.
+  '[0-9]+[[:space:]]+(commits?[[:space:]]+)?(ahead|behind)([[:space:]]|[.,;)]|$)'
+)
+derived_state_hits_in_file(){ # $1=file -> prints matching "pattern|line" pairs
+  local f="$1" p
+  for p in "${derived_state_patterns[@]}"; do
+    grep -nE "$p" "$f" 2>/dev/null | while IFS= read -r l; do printf '%s\n' "$l"; done
+  done
+}
+derived_state_hits_in_text(){ # $1=text -> 0 if any pattern matches (herestring: no SIGPIPE, cf. README-POLICY.6)
+  local s="$1" p
+  for p in "${derived_state_patterns[@]}"; do
+    grep -qE "$p" <<< "$s" && return 0
+  done
+  return 1
+}
+
+# GROUND TRUTH FIRST — an instrument with no ground truth is a confident guess, and this one is
+# cheap enough to prove on every run rather than once in a throwaway probe.
+ds_ctrl_ok=1
+# POSITIVE control: a compliant pointer (derivation, not value) must NOT match.
+derived_state_hits_in_text '- **active_work_unit**: `SOME-TREE` -> frontier `.2`
+> unpushed count is DERIVED: `git rev-list --count origin/main..HEAD`' && ds_ctrl_ok=0
+# NEGATIVE controls: both the real pre-fix shapes MUST match.
+derived_state_hits_in_text '- **push**: 185 ahead - RE-DERIVE, never increment.' || ds_ctrl_ok=0
+derived_state_hits_in_text '- **unpushed_commits**: the tree is 42 commits ahead of origin.' || ds_ctrl_ok=0
+if [ "$ds_ctrl_ok" -ne 1 ]; then
+  note "derived-state controls MISSED (positive matched, or a negative did not) — the scanner is broken; refusing to publish a verdict on it"
+else
+  for surface in $DERIVED_STATE_SURFACES; do
+    [ -f "$surface" ] || continue
+    while IFS= read -r hit; do
+      [ -n "$hit" ] || continue
+      note "derived-state: $surface:${hit%%:*} stores a field git owns EXACTLY — \"$(printf '%s' "${hit#*:}" | cut -c1-72)\". Delete it and leave the DERIVATION in its place (docs/DERIVED_STATE_CONTAINMENT.md R1/R3). Do NOT schedule periodic correction: writing the value invalidates it."
+    done < <(derived_state_hits_in_file "$surface" | sort -t: -k1,1n -u)
+  done
+fi
+
 if [ "$fail" -eq 0 ]; then echo "memory-arch: OK"; fi
 exit $fail
