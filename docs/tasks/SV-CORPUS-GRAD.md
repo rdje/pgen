@@ -2280,13 +2280,15 @@ plus the re-runnable drivers `run_matrix.sh`, `run_generator_probes.sh`,
 
 - **Status: `done`** (mandated by
   [[project_sv_corpus_100pct_lrm_coverage_mandate]]) — `.7a` (the rule-coverage
-  instrument + the FIRST measured number, 91.1% / 120 gaps) **done**; `.7b`
+  instrument + the FIRST measured number, 91.1% / 120 gaps) **done**; ⛔ **both
+  instruments RE-MEASURED at HEAD by `.7c` (2026-08-08) — quote `.7c`'s
+  92.3 % / 104 gaps, never `.7a`'s original figure**; `.7b`
   (clause matrix from the keyed suites + negatives-density report) **done**
   (`PGEN-SV-CORPUS-GRAD-0016`, session #197). Both coverage lenses now stand:
   the authoritative rule-participation % (`.7a`) and the LRM-structure clause
   matrix + negatives density (`.7b`). The measured worklists feed `.9`.
 
-#### `.7a` — The rule-coverage instrument: measured coverage = 91.1% (120 gaps)
+#### `.7a` — The rule-coverage instrument: measured coverage = 91.1% (120 gaps) ⛔ SUPERSEDED by `.7c` (HEAD: **92.3 % / 104 gaps**)
 
 - **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0008`, session #192, 2026-07-22).
 - **The instrument (two parser-agnostic surfaces, both deterministic):**
@@ -2411,6 +2413,102 @@ plus the re-runnable drivers `run_matrix.sh`, `run_generator_probes.sh`,
   - [x] **LOCKSTEP** — TOOLBOX §5.4 companion + index row, grammar-
     wellformedness book companion paragraph, tree + TASK_TREE index +
     MEMORY/CHANGES/DEVELOPMENT_NOTES/LIVE this commit.
+
+#### `.7c` — the COVERAGE axis re-measured at HEAD (the other half of the graduation bar, stale on both sides of its fraction)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0028`, session #214, 2026-08-08, immediately after
+  `.10`). Same defect class `.10` closed for the divergence axis, now applied to
+  the coverage axis — because graduation needs BOTH
+  ([[project_sv_corpus_100pct_lrm_coverage_mandate]]: zero unexplained divergences
+  **AND** 100 % measured coverage).
+- ⭐ **This leaf was found by APPLYING `.10`'s new instrument-identity check to the
+  neighbouring artifacts, and it is stale on BOTH sides of the fraction** — not a
+  suspicion, a measurement:
+
+  | quantity | `rule_coverage_sv_2017.md` (2026-07-22) | HEAD today | how re-measured |
+  |---|---|---|---|
+  | rules in the grammar | 1 466 | **1 475** | `ast_pipeline grammars/systemverilog.ebnf --dump-rule-profiles` |
+  | satisfiable under `sv_2017` (the DENOMINATOR) | 1 343 | **1 352** | same |
+  | accepted corpus files (the NUMERATOR base) | 9 360 | **9 694** | `.10`'s tracked run |
+
+  ⇒ the published **`1 223/1 343 = 91.1 %` / 120 gaps cannot be quoted**, and the
+  9 rules added since (the `.3.8`/`.3.9`/`.3.10` cascades) are by construction absent
+  from the gap list.
+- ⛔ **Why this is load-bearing rather than tidy-up:** leaf `.9` — the loop that
+  drives coverage to 100 % — burns its worklist directly from `.7a`'s **120 uncovered
+  rules**. A stale gap list means working rules that may already be covered while
+  missing rules that are not. No gate reads either artifact, so the staleness was
+  entirely silent — the same class as the divergence axis, found the same way.
+
+**⛔ A THIRD CONSUMER OF THE SAME PATH CONVENTION, and this one killed the run.**
+`corpus_rule_coverage.py:266` called `Path(p).relative_to(ROOT)` on a results.tsv
+column-3 value, which raises `ValueError: 'stimuli/sv/subs/Surelog/…/dut.sv' is not in
+the subpath of '/Volumes/SSD/…/pgen'` now that the column is repo-root-relative
+(`CORPUS-GRAD-ALL.2.1`). ⭐ It failed **at the report stage, after all 9 694 files had
+been probed** — 167 s of work discarded at the last step. That makes three consumers of
+one convention change (`adjudicate_external_corpus.py` in `.10`, this, and the routed
+`.11b`), so the fix here is a **single `repo_relative()` normalizer** accepting both
+spellings forever, rather than a third per-call-site patch. Unit-checked on all three
+shapes (relative in / absolute-in-this-checkout / absolute-elsewhere).
+
+**THE RE-MEASURED COVERAGE PICTURE (guarded, exit 0, 171 s, peak RSS 6 753 MB):**
+
+| | `.7a` (2026-07-22) | HEAD | |
+|---|---|---|---|
+| covered / satisfiable under `sv_2017` | 1 223 / 1 343 | **1 248 / 1 352** | |
+| **measured coverage** | 91.1 % | **92.3 %** | +1.2 pt |
+| **uncovered rules = the `.9` worklist** | 120 | **104** | **−16** |
+| files contributing testimony | 9 360 | 9 693 | |
+| instrumentation-timeout exclusions | 1 (`ExponTimeIfElseGen`) | **0** | the named exclusion cleared itself |
+
+⭐ **16 gaps CLOSED, and ZERO new gaps** — and the closed set is not a mystery, it is
+this campaign's own burn-down showing up in the coverage lens: `drive_strength`,
+`strength`, `pullup_strength`, `pulldown_strength`, `kw_supply_*`, `kw_highz_*`,
+`kw_pull_*` (that is `.3.7` exactly), `seq_or_tail`, `cover_sequence_statement`,
+`kw_first_match_*`, `kw_sync_reject_on_*`, `property_lvar_port_direction` (the
+`.3.3`/`.3.8` SVA cascades), plus `extern_tf_declaration`, `kw_forkjoin_*` and two
+`kw_token_*`. **0 new gaps** also settles the denominator question: all 9 rules added to
+the grammar since are already exercised, so the worklist shrank without hidden growth.
+
+**Clause axis (`.7b` instrument, re-run):** the structural headline is UNCHANGED — 2 529
+keyed cases over 852 1800-family + 184 1364-2005 clauses, **0 parse-bearing chapter
+gaps**, 9 keyed negatives, unkeyed negatives `sv_2017` 149 / `verilog_2005` 33 — and
+`clause_coverage.md` is byte-identical. Only the per-clause TSV moved (66 rows), all in
+the **1364-2005** lane's observed pass/fail split: the tracked report is dated
+2026-07-23 and reads its v2005 verdicts from a lane that was itself measured
+2026-07-26. ⇒ a report was consuming verdicts older than its own source — the exact
+staleness class, one level down, now current.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — `python3 stimuli/sv/corpus_rule_coverage.py` aborts with
+    `ValueError: 'stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv' is not in the
+    subpath of '/Volumes/SSD/Documents/github/pgen'` (guard marker `guard.90274.marker`,
+    exit 1 at 167 s), so the coverage axis could not be re-measured at all; and the
+    tracked `91.1 %` was measurably stale on both sides (denominator 1 343 → 1 352 via
+    `--dump-rule-profiles`; numerator base 9 360 → 9 694 accepted files).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `stimuli/sv/corpus_rule_coverage.py:266` (and
+    `:261`) apply `Path(p).relative_to(ROOT)` to results.tsv column 3, which is
+    repo-root-relative since `CORPUS-GRAD-ALL.2.1` (`db5a640e`, `git log -S`) and
+    therefore not under ROOT as an absolute path. Third consumer of that one convention;
+    the failure lands at report-emit time, after the whole measurement has been paid for.
+  - [x] **FIX** — one `repo_relative()` helper normalizing both spellings at a single
+    site, replacing 2 call sites; rationale in-script naming all three consumers. Tier:
+    repo-script. `ast.parse` clean; helper unit-checked on relative / absolute-in-repo /
+    absolute-foreign inputs.
+  - [x] **ADDRESSED (verified)** — the run completes (guard `guard.3788.marker`, exit 0,
+    171 s, peak 6 753 MB): `coverage[sv_2017]: 1248/1352 = 92.3% (104 gaps, 123
+    na_profile, 9693 files, 0 timeout-excluded, 1 disagreements)`; the clause instrument
+    completes with its headline reproduced exactly (2 529 / 852 / 184 / 0 chapter gaps /
+    9 keyed negatives).
+  - [x] **NO REGRESSION** — the gap set is a strict SUBSET of the previous one: **16
+    closed, 0 new** (set difference on the per-rule TSVs), so nothing regressed into the
+    worklist; `na_profile` 123 unchanged; `clause_coverage.md` byte-identical; no
+    grammar, codegen, generated artifact or parser surface touched — the only code change
+    is a report-path formatter, and the 1 `disagreements` row is the pre-existing
+    `ExponTimeIfElseGen` lane, now surfacing there instead of as a timeout.
+  - [x] **LOCKSTEP** — both coverage reports + per-rule/per-clause TSVs regenerated;
+    `.9`'s worklist re-cut to 104; `.7`/`.7a` headline annotated as superseded;
+    tree/TASK_TREE/MEMORY/CHANGES/DEVELOPMENT_NOTES this commit.
 
 ### `.8` — ADD-v1 corpus vendoring (the director-ordered acquisition)
 
@@ -2991,7 +3089,12 @@ plus the re-runnable drivers `run_matrix.sh`, `run_generator_probes.sh`,
 
 ### `.9` — Gap-driven acquisition/crafting loop to 100%
 
-- **Status: `todo`** — every `.7`-reported uncovered rule/clause gets a
+- **Status: `todo`** — ⭐ **worklist RE-CUT at HEAD by `.7c`: 104 uncovered rules**
+  (was 120; 16 closed by this campaign's own `.3.x` burn-down, 0 new). The
+  per-rule list is `stimuli/sv/characterization/rule_coverage_sv_2017.tsv`
+  (`status == GAP`); the clause-axis gaps are the per-chapter NEGATIVES density in
+  `clause_coverage.md`, which remains the sharpest structural gap. Every
+  `.7`-reported uncovered rule/clause gets a
   corpus case: sourced from the ADD tiers, or crafted directly from the
   in-repo LRM markdown (`docs/systemverilog/2017`/`2023`) with the clause
   cited (externally-grounded, never generator-derived — external means

@@ -1,5 +1,32 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0028 — leaf SV-CORPUS-GRAD.7c: the COVERAGE axis re-measured at HEAD — 91.1 % → 92.3 %, and the `.9` worklist re-cut 120 → 104 with ZERO new gaps
+
+- **The graduation bar has TWO halves and `.10` only refreshed one.** Applying `.10`'s new
+  instrument-identity check to the neighbouring coverage artifacts MEASURED their staleness
+  instead of suspecting it: denominator 1 343 → **1 352** satisfiable `sv_2017` rules,
+  numerator base 9 360 → **9 694** accepted files. The published `91.1 %` was stale on BOTH
+  sides of its fraction.
+- ⛔ **A THIRD consumer of the `CORPUS-GRAD-ALL.2.1` relative-path convention, and this one
+  killed the run.** `corpus_rule_coverage.py:266` calls `Path(p).relative_to(ROOT)` on a
+  results.tsv column-3 value that is no longer absolute → `ValueError`. ⭐ It fails at
+  **report-emit time, after all 9 694 files have been probed** — 167 s of work discarded at the
+  last step. Fixed with a single `repo_relative()` normalizer accepting both spellings forever,
+  rather than a third per-call-site patch; unit-checked on all three path shapes.
+- **Re-measured (guarded, exit 0, 171 s): `1 248/1 352 = 92.3 %`, `.9` worklist 120 → 104 —
+  16 gaps CLOSED, ZERO new.** The 16 are this campaign's own burn-down surfacing in the
+  coverage lens: `drive_strength`/`strength`/`pull*_strength`/`kw_supply|highz|pull_*` (`.3.7`),
+  `seq_or_tail`/`cover_sequence_statement`/`kw_first_match`/`property_lvar_port_direction`
+  (the `.3.3`/`.3.8` SVA cascades), plus `extern_tf_declaration`/`kw_forkjoin`/2×`kw_token`.
+  **0 new gaps** also settles the denominator question: all 9 rules added since are exercised.
+- The named `ExponTimeIfElseGen` instrumentation-timeout exclusion cleared itself (1 → 0).
+- **Clause axis re-run: headline UNCHANGED** (2 529 keyed cases, 852 + 184 clauses, 0
+  parse-bearing chapter gaps, 9 keyed negatives) and `clause_coverage.md` byte-identical — but
+  66 per-clause TSV rows moved, all in the 1364-2005 lane: **the 2026-07-23 report was
+  consuming v2005 verdicts older than its own source.** Same staleness class, one level down.
+- LIVE tracker unchanged; no grammar, codegen or generated change (the only code edit is a
+  report-path formatter).
+
 ## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0027 — leaf SV-CORPUS-GRAD.10: the axis-2 number is RE-MEASURED on HEAD and it SURVIVES — 16 336 files, zero pass→fail, zero fail→pass
 
 - **The FRESHNESS AUDIT's mandated first act, executed.** The tracked SV corpus report

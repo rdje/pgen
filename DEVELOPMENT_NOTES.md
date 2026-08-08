@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0028 — the third consumer of one convention, and why the failure landing LAST is the expensive part
+
+Three scripts read column 3 of `results.tsv`. `CORPUS-GRAD-ALL.2.1` made that column
+repo-root-relative and verified one consumer; `.10` found the second (dead on its first uvm row),
+and this leaf found the third. What makes this one instructive is not that it broke — it is
+**where** it broke: `Path(p).relative_to(ROOT)` sits in the REPORT-EMIT stage, so the run probed
+all 9 694 corpus files, spent 167 s, and then threw away every result at the last statement.
+
+⭐ **Order your failure modes by how much work precedes them.** A convention check costs the same
+whether it runs first or last; paying for it last costs a full measurement. The generalizable form:
+*validate the shape of your inputs before doing the expensive thing with them* — and when a script
+consumes an external convention, normalize it **once at ingestion** rather than at each use site.
+That is why the fix here is a single `repo_relative()` helper and not a third `if path.is_absolute()`
+sprinkled where the traceback pointed.
+
+⛔ **And the deeper one: "verified before changing this" scaled to N=1 and was written about N=3.**
+`.10` already recorded that the compatibility claim covered the `/subs/<suite>/` arm and was
+generalized to the uvm arm. This leaf shows the same claim was also generalized to two consumers
+nobody had enumerated. A convention change should begin by listing its consumers —
+`grep -rn results.tsv` takes seconds and would have named all three — because the claim being made
+is about a SET, and the evidence has to cover the set.
+
+⭐ **The re-measure's most useful output was the ZERO, not the improvement.** Coverage rose
+91.1 % → 92.3 % and the worklist shrank 120 → 104, which is pleasant and nearly meaningless on its
+own. The load-bearing number is **0 new gaps**: it proves the 9 rules added to the grammar since the
+stale measurement are all already exercised, so the worklist shrank without hidden growth
+underneath. A shrinking list and a shrinking-plus-churning list look identical on a count, and only
+the set difference tells them apart — the same lesson the per-FILE corpus census taught one leaf
+earlier, in a different lens.
+
 ## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0027 — "verified before changing this" was true of one arm and written about two
 
 The runner's own comment says the consumers key on *"the `/subs/<suite>/` (or `/stimuli/sv/uvm/`)

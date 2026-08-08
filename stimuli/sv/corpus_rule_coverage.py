@@ -47,6 +47,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent  # repo root
 
 
+def repo_relative(p) -> str:
+    """The repo-root-relative spelling of a results.tsv path, whatever it arrived as.
+
+    ⛔ Column 3 of results.tsv has been repo-root-relative since CORPUS-GRAD-ALL.2.1;
+    before that it was ABSOLUTE. A bare `Path(p).relative_to(ROOT)` therefore raises
+    `ValueError: … is not in the subpath of …` on every current artifact — measured in
+    SV-CORPUS-GRAD.7c, where it killed the run at the report stage AFTER all 9 694 files
+    had been probed. This is the THIRD consumer of that column found to assume the old
+    spelling (adjudicate_external_corpus.py in .10, cluster_rejects_valid.py routed as
+    .11b), so the convention is normalized here at ONE site rather than patched per
+    call-site, and both spellings are accepted forever.
+    """
+    path = Path(p)
+    if not path.is_absolute():
+        return str(path)
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def probe_committed_rules(probe: str, grammar: str, profile: str, path: str,
                           timeout_s: int):
     """Run one coverage-instrumented parse.
@@ -258,12 +279,12 @@ def main():
                   "inputs — measured on Surelog `ExponTimeIfElseGen`). Their "
                   "testimony is EXCLUDED, named here:", ""]
         for p in timeouts:
-            lines.append(f"- `{Path(p).relative_to(ROOT)}`")
+            lines.append(f"- `{repo_relative(p)}`")
     if disagreements:
         lines += ["", f"⚠️ results.tsv pass rows the instrumented run did NOT accept "
                   f"({len(disagreements)} — investigate before trusting the union):"]
         for p in disagreements[:20]:
-            lines.append(f"- `{Path(p).relative_to(ROOT)}`")
+            lines.append(f"- `{repo_relative(p)}`")
     lines.append("")
     md_path.write_text("\n".join(lines), encoding="utf-8")
 
