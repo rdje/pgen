@@ -157,6 +157,18 @@ it is the evidence a registry would need.
   Sections renumbered 4→5 … 9→10, the one cross-reference in `.3`'s Goal updated in lockstep, and a
   matching anti-pattern added. 209 → 248 lines.
 
+- `2026-08-08` — `.1` FORWARD-READINESS AUDIT (`-0005`), run because the director asked whether the
+  standard could be forwarded NOW. Neutrality VERIFIED by measurement, not assertion: zero project
+  names, zero repo-specific identifiers/paths/`[[wiki-links]]`, both worked-evidence blocks labelled
+  *"evidence about one project, not portable policy"*, neighbouring doctrines named generically.
+  ⛔ BUT THE AUDIT FOUND A REAL DEFECT: §4's corollary cited a *"pre-deletion recoverability check
+  (§6)"* — and NEITHER §6 nor §7 defined one. Adoption step 4 covered R5 (the reader keeps the
+  answer); nothing covered *prove it is recoverable AND check the source for the divergence the
+  duplicate was hiding*. A dangling forward reference to a step the document never wrote down —
+  in the very document that had just been amended to make that step the point. FIXED by adding
+  the step (new §7·4, steps renumbered 4→5…6→7) rather than by softening the reference, and the
+  citation repaired to `§7 step 4`. ⇒ forwardable.
+
 ## Commit Log
 
 - `PGEN-LIVE-DOC-CONTAINMENT-0001` — `.1` adoption + the portable derived-state standard + tree opened.

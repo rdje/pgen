@@ -130,7 +130,7 @@ entry is why nobody had noticed. The repair belongs in the source, not in the su
 ⇒ **Corollary, and it is a working instruction:** when you demote a duplicated projection, EXPECT
 a defect in what it duplicated, and look for one deliberately. Do not treat finding one as a
 lucky side effect — treat *not* looking as an incomplete migration. The pre-deletion recoverability
-check (§6, and the size-containment doctrine's *"if the project cannot prove what will be retained,
+check (§7 step 4, and the size-containment doctrine's *"if the project cannot prove what will be retained,
 stop before deletion"*) is exactly where it surfaces, because it is the first time in the
 duplicate's life that anyone compares it against its source on purpose.
 
@@ -193,10 +193,15 @@ unconstrained here and governed by review instead.
    describes current state.
 3. **Classify every field** into (a), (b), (c). Publish the classification; it is the artifact
    that survives, more than the check.
-4. **Delete (a), register a verifier for (b), leave (c).** Replace each deleted field with its
+4. **Before deleting anything, prove it is recoverable — and check its source for the divergence
+   the duplicate may have been hiding (§4).** Two different protections: recoverability protects
+   the *reader*, the divergence check protects the *record*. Skipping the second produces a
+   migration that is finished and wrong. Budget for finding something here; that is the normal
+   outcome, not the lucky one.
+5. **Delete (a), register a verifier for (b), leave (c).** Replace each deleted field with its
    derivation in place (R5).
-5. **Wire the check into the unconditional gate** — commit hook and CI — with its controls.
-6. **Re-measure the surface.** The freed space is the point; report it.
+6. **Wire the check into the unconditional gate** — commit hook and CI — with its controls.
+7. **Re-measure the surface.** The freed space is the point; report it.
 
 ---
 
