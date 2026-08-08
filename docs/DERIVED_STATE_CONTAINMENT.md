@@ -98,7 +98,45 @@ The warning is the bug report.
 
 ---
 
-## 4. The rule (normative)
+## 4. The second failure: a duplicate does not merely cost bytes — it HIDES divergence in its source
+
+The size argument for deleting a derivable field is the obvious one, and the weaker one.
+
+The stronger one is a **visibility** argument. A hand-maintained copy is, in practice, *read
+instead of* its source — that is why it was created. So when copy and source disagree, the copy
+keeps the reader correct and the **source rots unobserved**. The duplicate does not merely risk
+being wrong; while it is right, it actively **conceals** the original going wrong. A project can
+therefore hold a correct summary over a defective canonical record for as long as nobody reads
+the record directly.
+
+This inverts the usual intuition. A stale duplicate is a self-announcing bug: someone eventually
+notices the mismatch. An *accurate* duplicate over a defective source is silent, and stays silent
+exactly as long as the duplicate is maintained well.
+
+### Worked evidence (evidence about one project, not portable policy)
+
+While demoting a curated cross-tree roster out of a bounded pointer, the authoring project ran
+this standard's own pre-deletion step — prove the content is recoverable before removing it. One
+roster entry read *"`.2` runs BEFORE `.1`"* for a work tree. Checking it:
+
+- the tree **did** encode that order, in its leaf headings — `.1` marked *"ROUTED — do not pull
+  ahead of product"*, `.2` marked *"PRIORITY-FIRST when this lane is unparked"*;
+- and the same tree's own `Status` field read **"frontier `.1`"** — the opposite.
+
+The bounded pointer had been silently compensating for a wrong canonical source. Every reader who
+consulted the tree *itself* — the authoritative record — got the wrong frontier, and the roster
+entry is why nobody had noticed. The repair belongs in the source, not in the summary.
+
+⇒ **Corollary, and it is a working instruction:** when you demote a duplicated projection, EXPECT
+a defect in what it duplicated, and look for one deliberately. Do not treat finding one as a
+lucky side effect — treat *not* looking as an incomplete migration. The pre-deletion recoverability
+check (§6, and the size-containment doctrine's *"if the project cannot prove what will be retained,
+stop before deletion"*) is exactly where it surfaces, because it is the first time in the
+duplicate's life that anyone compares it against its source on purpose.
+
+---
+
+## 5. The rule (normative)
 
 > **R1.** A maintained document MUST NOT contain a derivable-exact field as hand-written content.
 >
@@ -120,7 +158,7 @@ a correct one.
 
 ---
 
-## 5. The check contract
+## 6. The check contract
 
 An implementation is conforming if it fails on all of:
 
@@ -147,7 +185,7 @@ unconstrained here and governed by review instead.
 
 ---
 
-## 6. Adoption
+## 7. Adoption
 
 1. **Own it under a task/work unit first**, with the measurement that motivated it. Adopting an
    enforcement rule without a measured local instance produces ceremony.
@@ -162,7 +200,7 @@ unconstrained here and governed by review instead.
 
 ---
 
-## 7. Relationship to the two neighbouring doctrines
+## 8. Relationship to the two neighbouring doctrines
 
 - **Memory architecture** — supplies the layer model and the bounded pointer. This standard
   enforces its §6 "prefer derived" advice and closes its §12 anti-pattern.
@@ -179,7 +217,7 @@ cheap first move *before* a size-containment migration, not a refinement after o
 
 ---
 
-## 8. Anti-patterns
+## 9. Anti-patterns
 
 - ❌ Storing a value and adding a comment telling readers not to trust it.
 - ❌ Scheduling periodic correction of a field that writing invalidates.
@@ -188,12 +226,13 @@ cheap first move *before* a size-containment migration, not a refinement after o
 - ❌ Declaring a verifier in a registry that the gate never runs.
 - ❌ Inferring derivable fields by heuristic instead of a declared list.
 - ❌ Deleting the field without leaving the derivation, so the reader loses the answer.
+- ❌ Migrating a duplicate away without checking its source for the divergence it was hiding (§4).
 - ❌ Treating this as licence to delete judgement, rationale, or next actions — class (c) is the
   content a bounded pointer exists to carry.
 
 ---
 
-## 9. Completion test
+## 10. Completion test
 
 The adoption is complete when: every governed surface's fields are classified and published; no
 derivable-exact field remains as stored content; every pinned duplicate has an executed verifier
