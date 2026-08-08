@@ -2582,6 +2582,51 @@ artifact.
     `KNOWLEDGE_MAP` + the new card; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`;
     `docs/TASK_TREE.md`; `.11c` opened for the routed finding.
 
+#### `.3.13` — the ch22 "compiler directives" family is an ADJUDICATOR defect, not a parser one: `__FILE__`/`__LINE__` are predefined text MACROS sitting in the known-DIRECTIVES allowlist (read-only diagnosis banked; fix leaf not yet cut)
+
+- **Status: `todo`** — diagnosis complete and tool-pinned (session #215, 2026-08-08),
+  cut from the post-`.3.12` **372-row** map where this is the largest NAMED family
+  (**34 rows**: iverilog 22 / verilator 7 / sv-tests 3 / ispras 1 / sv2v 1; clusters
+  `` ` ID ) `` 15, `` ` ID , `` 11, `` ` ID ID `` 6).
+- **REPRODUCE.** `iverilog/ivtest/ivltests/fileline.v` is nine lines whose whole point
+  is `$display(`__FILE__);`, and its own header quotes the clause: *"P1800/D8 22.13 —
+  `__FILE__ expands to the name of the current input file, in the form of a string
+  literal."* The parser rejects it; the manifest row reads
+  `must_accept / divergence:unexplained_rejects_valid`, basis *"compiles under the
+  iverilog SV dialect, parse-level valid"* — which is true **after preprocessing**.
+- **ROOT CAUSE (WHY + WHERE).** `stimuli/sv/adjudicate_external_corpus.py:106` —
+  `KNOWN_DIRECTIVES` contains `"__FILE__", "__LINE__"`. `preproc_dependency()`
+  (`:149`) walks every `` ` ``-prefixed name and returns `macro_use` **only for names
+  NOT in that set**, so a file whose sole preprocessing dependency is a predefined
+  text macro is judged to have none and falls through to `unexplained`. ⭐ The set
+  conflates two things the LRM separates: a **compiler directive**
+  (`` `timescale ``, `` `default_nettype ``…) steers the preprocessor and leaves the
+  surrounding text parseable, whereas a **predefined text macro** (IEEE 1800-2017
+  §22.13) *expands to a value* and the expression around it is not parseable until it
+  does. Evidence that the mechanism is otherwise sound and this is a hole in it, not a
+  missing feature: the manifest already carries **1 074**
+  `divergence:explained_svpp_macro_use` rows — the detector works, these two names
+  are simply on the wrong side of its allowlist.
+- ⛔ **THE TRAP THIS LEAF MUST NOT FALL INTO, stated before any work starts.**
+  Reclassifying rows lowers `unexplained` **without fixing a parser defect**, which is
+  the precise shape of gaming the tree forbids
+  ([[feedback_corpus_expected_from_spec_not_fix]]). It is legitimate here ONLY because
+  the criterion is spec-derived and mechanical — §22.13 defines these as macros that
+  expand — and it must be reported as an **adjudication correction**, never as
+  burn-down yield. The `.5` graduation bar counts unexplained divergences, so a
+  reclassification that is not spec-derived would corrupt the bar itself.
+- ⚠️ **AND THE FAMILY IS NOT HOMOGENEOUS — do not reclassify it wholesale.** The
+  `` ` ID ID `` cluster is `` `pragma protect encoding=(enctype="raw") ``
+  (ispras `34.03.01_01.sv`). `pragma` IS a genuine compiler directive with a NORMATIVE
+  parse surface in IEEE 1800-2017 §22.11 (`pragma_expression`, `pragma_value` — Annex
+  A.1.2 `pragma_directive`), so those rows are a candidate **real grammar gap**, the
+  opposite verdict from the `__FILE__` rows. The leaf's first act is therefore to SPLIT
+  the 34 by directive name with an LRM cite each, not to move them.
+- **Sequencing when cut:** split by directive name → per-name LRM adjudication →
+  fix the allowlist for the macro subset (spec-derived, one constant) → measure the
+  reclassification separately from any grammar work → re-baseline with the split
+  stated in both directions.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so
