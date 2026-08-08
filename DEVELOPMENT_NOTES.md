@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0003 — a copied code block cannot generalize; and an instrument that over-claims is worse than one that is missing
+
+**The gap hid behind its own documentation.** Nothing in the repository said "SV only". `TOOLBOX.md`
+§3.2 said the opposite — *always on*, *every parse-failure error* — and it had said so for long
+enough that no one re-measured. So the honest first act on any inherited instrument is the one this
+leaf performed: run it on a family it was never proven on and read the output, rather than reading
+the catalog entry. Two greps settled it in under a minute; the claim had stood for months.
+
+**Why the diagnostic never spread is a shape problem, not an oversight.** The augmentation entered
+as an eleven-line `map_err` block inline in the SystemVerilog detail path. Someone later needed it
+for `scratch` and copied it. That is the entire history. A copied block has no single site to extend,
+so the tenth family that needed it was exactly as far away as the third; whereas the moment it is a
+named function, every future family gets it for free and the decision "should this path report the
+deep locus?" stops being a decision at all. The fix is smaller than the bug report: extract, then
+call it twelve times.
+
+**Flat item-list entries are where a shallow position is worst — and that is most corpus work.**
+`vhdl_file := design_unit*` cannot fail *inside* anything. When an item does not parse the quantifier
+simply stops, so the reported byte is where that item BEGAN. Every VHDL corpus rejection therefore
+pointed at `package … is` or `architecture … of … is`. That is not a weak signal, it is a constant:
+it carries the same information for all 9 689 failures, which is none. The measured pair on one
+OSVVM file — surface 1651 (`package Axi4ComponentPkg is`) vs furthest 3852 (`AxiBus : view
+Axi4ManagerView of Axi4RecType ;`, a VHDL-2019 mode view indication with no rule) — is 58 source
+lines apart, and only the second one names a defect a leaf can be cut from.
+
+**The leverage is in clustering, and clustering needs a KEY.** `stimuli/sv/cluster_rejects_valid.py`
+already turns a rejection population into a ranked defect-class worklist, and it is family-agnostic
+apart from its keyword set — it keys on `furthest_position`, treating the bracket as optional. So the
+VHDL campaign's triage tool was not missing; it was inert, because its input signal did not exist for
+VHDL. Checking prior art before building (`DESIGN-PRIOR-ART`) changed this slice from "write a VHDL
+clusterer" to "supply the byte the existing clusterer already reads" — a strictly smaller change with
+a strictly larger reach, since it lit up nine other families at the same time.
+
+**A signature must be independent of decoration, and that insight avoided a rebaseline.** Appending
+the bracket would have broken the pinned `Parser did not consume full input at position #` signatures
+in the duality-hunt contract — the usual response being "rebaseline the contract". But a rejection
+signature names a failure CLASS, and once digit runs collapse to `#` the whole bracket is a constant
+suffix that discriminates nothing. Stripping it in `normalize_rejection_signature` therefore costs
+zero dedup precision and makes signatures stable across the rollout, so a proof surface did not have
+to move for a purely cosmetic reason. ⛔ The general lesson: when a diagnostic change threatens a
+pinned contract, ask whether the contract's KEY should have been ignoring that field all along.
+Rebaselining would have hidden the question.
+
+**Where the augmentation stops is stated, not silent.** `builtin_semantic_annotation` runs the
+bootstrap `UnifiedSemanticAST::parse_bootstrap` and owns no parser object, so it has no furthest
+position; and the regex path augments the parse error only, because the PCRE2 compile-contract error
+that follows is an oracle disagreement and decorating it with a byte offset would invent a locus it
+does not have. Both are written where the code is, so the next reader does not have to re-derive the
+boundary — which is the failure mode this whole leaf exists to correct.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0185 — when no formula can work, stop looking for a formula; and a bound is free far more often than a static pricing predicts
 
 **The bracket was the answer, not a dead end.** Two measured refutations in opposite directions —

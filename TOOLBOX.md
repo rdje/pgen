@@ -390,7 +390,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
 - **OUTPUT:** a live table of rule → call count, exclusion applied before the top-N so noise (`trivia`…) doesn't eat slots.
 
-### 3.2 Furthest-position error diagnostic (always on)
+### 3.2 Furthest-position error diagnostic (always on, EVERY family)
 - **WHAT:** every parse-failure error is augmented with `furthest_position` — the deepest byte any branch reached (even backtracked), which is where the real defect lives (the surface position is often megabytes shallower).
 - **WHEN:** any "did not consume full input at position N" — map `furthest_position` to a line instead of bisecting.
 - **HOW:**
@@ -399,6 +399,29 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   # → Parser did not consume full input at position 113637 [furthest_position=643297, +529660 bytes deeper]
   F=643297; L=$(head -c "$F" f.sv | wc -l); sed -n "$((L-3)),$((L+3))p" f.sv
   ```
+- ⭐ **"ALWAYS ON" IS TRUE SINCE `CORPUS-GRAD-ALL.2.0` — AND WAS FALSE WHEN THIS SECTION FIRST CLAIMED IT.**
+  The augmentation was born as an inline `map_err` block in the SystemVerilog detail path
+  (`SV-EXH-PROOF.3.3.4.b.6.2.25`) and hand-copied ONCE to `scratch`. Because it was a copied code
+  block and not a shared function, it reached **2 of the 12** own-parser detail paths in
+  `rust/src/parser_registry.rs` — not even uniformly within SV, since the `--library-in-dir` variant
+  lacked it — while this catalog described it as universal. ⛔ **The cost was not theoretical:** on a
+  flat item-list entry (`vhdl_file := design_unit*`, `json_file`, `grammar_file`, …) the surface
+  position is only where the item list gave up, so every VHDL corpus rejection reported the START of
+  the failing design unit. Measured on one OSVVM file: surface `1651` = `package … is` (names nothing)
+  vs `furthest_position=3852` = `AxiBus : view … of … ;`, the actual unsupported VHDL-2019 construct —
+  **+2 201 bytes, 58 source lines.** Stuck-point CLUSTERING of a corpus population
+  (`stimuli/sv/cluster_rejects_valid.py`) keys on this bracket, so without it a 9 689-file rejection
+  population collapses into two useless clusters. It is now ONE shared helper
+  (`augment_error_with_furthest_position`) called by all 12, so a new family inherits it by
+  construction. **Honest exclusion, by design:** `builtin_semantic_annotation` parses via the
+  bootstrap `UnifiedSemanticAST::parse_bootstrap` and owns no parser object, so it has no furthest
+  position to report.
+- **A rejection SIGNATURE is decoration-independent.** `normalize_rejection_signature` (the
+  duality-hunt / STIMULI-SIGNOFF clustering key) strips the ` [furthest_position=…]` bracket before
+  collapsing digit runs: a signature names the failure CLASS, and after digit normalization the
+  bracket is a constant suffix with zero discriminating power. That is why rolling the augmentation
+  out to 12 families needed **no rebaseline** of the pinned signatures in
+  `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json`.
 
 ### 3.3 `PGEN_REPORT_MEMO_STATS`
 - **WHAT:** print packrat memo hit/miss statistics. **WHEN:** perf triage of a slow parse. **HOW:** `PGEN_REPORT_MEMO_STATS=1 ./rust/target/release/parseability_probe --parse <g> f.sv`.

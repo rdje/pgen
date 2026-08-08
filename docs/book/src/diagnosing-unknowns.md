@@ -21,7 +21,7 @@ the generation-input / memo observability.
 
 | I want to know… | Tool | One-liner |
 |---|---|---|
-| Does a file parse? Where does it fail? | `parseability_probe --parse` | `parseability_probe --parse <g> f --profile P` (error carries `furthest_position`) |
+| Does a file parse? Where does it fail? | `parseability_probe --parse` | `parseability_probe --parse <g> f --profile P` (every family's error carries `furthest_position` — the deep locus, not the shallow one; see [the chapter](parseability-probe-debug.md#furthest-position-error-diagnostic)) |
 | What AST did the parse produce? | `--parse-dump-ast-pretty` | `parseability_probe --parse-dump-ast-pretty <g> f out.json --profile P` |
 | Which rules dominate a slow/stuck parse? | `--dump-rule-call-counts` | `parseability_probe --parse <g> f --dump-rule-call-counts 20` |
 | Why did a `@predicate` reject a branch? | semantic trace | `PGEN_TRACE_VERBOSITY=debug parseability_probe --parse <g> f --trace-rules <rule>` |

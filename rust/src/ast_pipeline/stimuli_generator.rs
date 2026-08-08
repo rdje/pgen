@@ -8112,7 +8112,20 @@ impl<'a> StimuliGenerator<'a> {
 
     /// STIMULI-SIGNOFF.4.4: collapse every digit run in an oracle rejection message to `#`, so
     /// rejection signatures dedup across byte positions / line numbers / counts. Pure.
+    ///
+    /// ⭐ CORPUS-GRAD-ALL.2.0 — the ` [furthest_position=…]` DIAGNOSTIC DECORATION is stripped first.
+    /// A rejection signature names the failure CLASS; how deep a backtracked branch happened to
+    /// reach is a per-input measurement, and once digit runs collapse to `#` the whole bracket is a
+    /// CONSTANT suffix carrying zero discriminating power. Stripping it therefore costs no dedup
+    /// precision and buys decoration-independence: the augmentation went from 2 of 12 detail parse
+    /// paths to all 12 in `.2.0`, and every pinned signature in
+    /// `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json` stayed byte-identical
+    /// across that rollout instead of needing a rebaseline for a purely cosmetic reason.
     pub fn normalize_rejection_signature(error: &str) -> String {
+        let error = match error.find(" [furthest_position=") {
+            Some(at) => &error[..at],
+            None => error,
+        };
         let mut normalized = String::with_capacity(error.len());
         let mut in_digit_run = false;
         for ch in error.chars() {
@@ -28852,11 +28865,22 @@ mod tests {
 
     #[test]
     fn rejection_signature_normalization_is_digit_blind() {
+        // CORPUS-GRAD-ALL.2.0: the furthest-position decoration is stripped, not normalized — the
+        // signature must name the failure CLASS and be identical whether or not the diagnostic
+        // augmentation is present, so the pinned duality-hunt signatures survived rolling the
+        // augmentation out from 2 detail parse paths to all 12.
         assert_eq!(
             StimuliGenerator::normalize_rejection_signature(
-                "Parser did not consume full input at position 12345 [furthest_position=99]"
+                "Parser did not consume full input at position 12345 \
+                 [furthest_position=99, +0 bytes deeper than surface position]"
             ),
-            "Parser did not consume full input at position # [furthest_position=#]"
+            "Parser did not consume full input at position #"
+        );
+        assert_eq!(
+            StimuliGenerator::normalize_rejection_signature(
+                "Parser did not consume full input at position 12345"
+            ),
+            "Parser did not consume full input at position #"
         );
         assert_eq!(
             StimuliGenerator::normalize_rejection_signature("no digits here"),

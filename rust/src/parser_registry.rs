@@ -530,7 +530,7 @@ fn parse_with_return_annotation_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
         Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
-    with_rule_entry_count_dump!(
+    let result = with_rule_entry_count_dump!(
         "return_annotation",
         parser,
         Return_annotationParser,
@@ -538,7 +538,8 @@ fn parse_with_return_annotation_detail(sample: &str) -> Result<(), String> {
             .parse_full_return_annotation()
             .map(|_| ())
             .map_err(|err| err.to_string())
-    )
+    );
+    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
 fn parse_with_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
@@ -562,7 +563,7 @@ fn parse_with_semantic_annotation_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
         Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
-    with_rule_entry_count_dump!(
+    let result = with_rule_entry_count_dump!(
         "semantic_annotation",
         parser,
         Semantic_annotationParser,
@@ -570,7 +571,8 @@ fn parse_with_semantic_annotation_detail(sample: &str) -> Result<(), String> {
             .parse_full_semantic_annotation()
             .map(|_| ())
             .map_err(|err| err.to_string())
-    )
+    );
+    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
 fn parse_with_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
@@ -631,7 +633,7 @@ fn parse_with_ebnf(sample: &str) -> bool {
 fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
-    with_rule_entry_count_dump!(
+    let result = with_rule_entry_count_dump!(
         "ebnf",
         parser,
         EbnfParser,
@@ -639,7 +641,8 @@ fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
             .parse_full_grammar_file()
             .map(|_| ())
             .map_err(|err| err.to_string())
-    )
+    );
+    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
 #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
@@ -663,7 +666,7 @@ fn parse_with_json(sample: &str) -> bool {
 fn parse_with_json_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
-    with_rule_entry_count_dump!(
+    let result = with_rule_entry_count_dump!(
         "json",
         parser,
         JsonParser,
@@ -671,7 +674,8 @@ fn parse_with_json_detail(sample: &str) -> Result<(), String> {
             .parse_full_json()
             .map(|_| ())
             .map_err(|err| err.to_string())
-    )
+    );
+    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
 #[cfg(has_generated_json_parser)]
@@ -757,10 +761,15 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
         if entry_dump.is_some() {
             let _ = parser.rule_call_counts();
         }
+        // CORPUS-GRAD-ALL.2.0: augment the PARSE error only, BEFORE the `and_then`. The PCRE2
+        // compile-contract error that follows is an oracle disagreement, not a parse position —
+        // decorating it with a byte offset would invent a locus it does not have.
         let outcome = parser
             .parse_full_regex()
             .map(|_| ())
-            .map_err(|err| err.to_string())
+            .map_err(|err| {
+                augment_error_with_furthest_position(err.to_string(), parser.furthest_position())
+            })
             .and_then(|()| validate_regex_compile_contract(&owned_sample).map_err(|err| err.message));
         if let Some(path) = entry_dump {
             dump_rule_entry_counts_json(
@@ -872,7 +881,7 @@ fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
         RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
-    with_rule_entry_count_dump!(
+    let result = with_rule_entry_count_dump!(
         "rtl_const_expr",
         parser,
         RtlConstExprParser,
@@ -880,7 +889,8 @@ fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
             .parse_full_rtl_const_expr()
             .map(|_| ())
             .map_err(|err| err.to_string())
-    )
+    );
+    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
 #[cfg(has_generated_rtl_const_expr_parser)]
@@ -931,7 +941,7 @@ fn parse_with_rtl_frontend(sample: &str) -> bool {
 fn parse_with_rtl_frontend_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
-    with_rule_entry_count_dump!(
+    let result = with_rule_entry_count_dump!(
         "rtl_frontend",
         parser,
         RtlFrontendParser,
@@ -939,7 +949,8 @@ fn parse_with_rtl_frontend_detail(sample: &str) -> Result<(), String> {
             .parse_full_rtl_frontend_file()
             .map(|_| ())
             .map_err(|err| err.to_string())
-    )
+    );
+    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
 #[cfg(has_generated_rtl_frontend_parser)]
@@ -1141,23 +1152,35 @@ fn parse_with_systemverilog_detail_profile_entry(
             None => parser.parse_full_systemverilog_file().map(|_| ()),
         }
     );
-    // SV-EXH-PROOF.3.3.4.b.6.2.25 — on failure, augment the error with the
-    // furthest byte the parser reached on any branch (even backtracked
-    // branches). The surface `position` in the error message is the
-    // outermost failing rule's start — often megabytes shallower than
-    // the actual defective construct. furthest_position pinpoints the
-    // real defect locus in one diagnostic run.
-    result.map_err(|err| {
-        let furthest = parser.furthest_position();
-        let err_str = err.to_string();
-        let surface = extract_position_from_message(&err_str);
-        format!(
-            "{} [furthest_position={}, +{} bytes deeper than surface position]",
-            err_str,
-            furthest,
-            furthest.saturating_sub(surface),
-        )
-    })
+    result.map_err(|err| augment_error_with_furthest_position(err.to_string(), parser.furthest_position()))
+}
+
+/// SV-EXH-PROOF.3.3.4.b.6.2.25 — on failure, augment a parse error with the furthest byte the
+/// parser reached on ANY branch, including backtracked ones. The surface `position` in the error
+/// is the outermost failing rule's START — for a flat item-list entry (`vhdl_file := design_unit*`,
+/// `json_file`, `grammar_file`, …) that is the beginning of the failing item, often thousands of
+/// bytes shallower than the construct that actually has no rule. `furthest_position` pinpoints the
+/// real defect locus in ONE diagnostic run, which is what makes stuck-point CLUSTERING of a corpus
+/// rejection population possible at all (`stimuli/sv/cluster_rejects_valid.py` keys on it).
+///
+/// ⭐ CORPUS-GRAD-ALL.2.0 — this is a SHARED HELPER, deliberately, and that is the whole fix. It was
+/// born as an inline `map_err` block in the SV detail path and hand-copied ONCE to `scratch`;
+/// because it was a copied block rather than a function, the other **10** detail paths over
+/// generated parsers never got it, and `TOOLBOX.md` §3.2 meanwhile called the diagnostic
+/// "always on". Every `parse_with_<family>_detail` now routes its error through here, so a new
+/// family inherits the diagnostic by construction instead of by remembering to copy 11 lines.
+///
+/// Honest exclusion: `parse_with_builtin_semantic_annotation_detail` runs the bootstrap
+/// `UnifiedSemanticAST::parse_bootstrap` and owns no parser object, so it has no furthest position
+/// to report — stated here rather than left as a silent hole.
+fn augment_error_with_furthest_position(err: String, furthest: usize) -> String {
+    let surface = extract_position_from_message(&err);
+    format!(
+        "{} [furthest_position={}, +{} bytes deeper than surface position]",
+        err,
+        furthest,
+        furthest.saturating_sub(surface),
+    )
 }
 
 /// SV-EXH-PROOF.3.3.4.b.6.2.25 — extract the surface position from a
@@ -1198,10 +1221,14 @@ fn parse_with_systemverilog_detail_profile_with_library(
     parser.set_library_out_dir(library_options.out_dir.clone());
     preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
     let _dashboard = maybe_spawn_call_count_dashboard(&parser);
-    parser
+    // CORPUS-GRAD-ALL.2.0: the library-directory variant is a SV detail path too, and it was the
+    // one place the gap was not even uniform WITHIN SystemVerilog — a `--library-in-dir` run got no
+    // deep locus while the plain run did.
+    let result = parser
         .parse_full_systemverilog_file()
         .map(|_| ())
-        .map_err(|err| err.to_string())
+        .map_err(|err| err.to_string());
+    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
 // SV-EXH-PROOF.3.3.4.b.6.2.37.2 — H2 auto-load hook for the SV stdlib.
@@ -1322,7 +1349,7 @@ fn parse_with_systemverilog_preprocessor_detail(sample: &str) -> Result<(), Stri
         sample,
         &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
     );
-    with_rule_entry_count_dump!(
+    let result = with_rule_entry_count_dump!(
         "systemverilog_preprocessor",
         parser,
         SystemverilogPreprocessorParser,
@@ -1330,7 +1357,8 @@ fn parse_with_systemverilog_preprocessor_detail(sample: &str) -> Result<(), Stri
             .parse_full_systemverilog_preprocessor_file()
             .map(|_| ())
             .map_err(|err| err.to_string())
-    )
+    );
+    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
 /// GRAMMAR-WELLFORMED.H.5.1 — `ParseDetailFn`-shaped adapter (`fn(&str, Option<&str>) -> Result<(),
@@ -1398,7 +1426,7 @@ fn parse_with_vhdl(sample: &str) -> bool {
 fn parse_with_vhdl_detail(sample: &str) -> Result<(), String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
-    with_rule_entry_count_dump!(
+    let result = with_rule_entry_count_dump!(
         "vhdl",
         parser,
         VhdlParser,
@@ -1406,7 +1434,8 @@ fn parse_with_vhdl_detail(sample: &str) -> Result<(), String> {
             .parse_full_vhdl_file()
             .map(|_| ())
             .map_err(|err| err.to_string())
-    )
+    );
+    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
 #[cfg(has_generated_vhdl_parser)]
@@ -1497,17 +1526,7 @@ fn parse_with_scratch_detail_entry(sample: &str, entry: Option<&str>) -> Result<
             None => parser.parse_full().map(|_| ()),
         }
     );
-    result.map_err(|err| {
-        let furthest = parser.furthest_position();
-        let err_str = err.to_string();
-        let surface = extract_position_from_message(&err_str);
-        format!(
-            "{} [furthest_position={}, +{} bytes deeper than surface position]",
-            err_str,
-            furthest,
-            furthest.saturating_sub(surface),
-        )
-    })
+    result.map_err(|err| augment_error_with_furthest_position(err.to_string(), parser.furthest_position()))
 }
 
 /// PARSE-HARNESS.2 — parse `sample` through the scratch parser and return `(parsed_ok,

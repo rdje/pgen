@@ -412,6 +412,45 @@ head -c "$FURTHEST" file.sv | wc -l
 sed -n '19880,19895p' file.sv
 ```
 
+### Every family carries it — and the story of why that sentence had to be earned
+
+The diagnostic is on for **every registered grammar**: SystemVerilog, the SystemVerilog
+preprocessor, VHDL, regex, JSON, EBNF, both `rtl_*` subsets, both annotation DSLs, and the
+`scratch` slot. One shared helper in `rust/src/parser_registry.rs` decorates the error on all
+twelve own-parser detail paths, so a grammar family added tomorrow inherits it without anyone
+remembering to wire it.
+
+That was not always true, and the gap is instructive. The augmentation began life as an inline
+block inside the SystemVerilog path and was hand-copied once to `scratch`. A copied block cannot
+generalize, so ten families kept reporting only the shallow surface position — while the
+documentation described the diagnostic as universal.
+
+The damage lands hardest on grammars whose entry rule is a flat item list. `vhdl_file :=
+design_unit*` cannot fail "inside" anything: when an item does not parse, the quantifier simply
+stops, and the reported position is the byte where that item *began*. Measured on one OSVVM
+source file:
+
+| | byte | source | what it tells you |
+|---|---|---|---|
+| surface position | 1651 | `package Axi4ComponentPkg is` | nothing — just where the item list stopped |
+| `furthest_position` | 3852 | `AxiBus : view Axi4ManagerView of Axi4RecType ;` | the VHDL-2019 mode view indication the grammar has no rule for |
+
+2 201 bytes and 58 source lines apart, on a single file. Multiplied across a corpus the difference
+is categorical rather than incremental: stuck-point *clustering* of a rejection population keys on
+this byte offset, so with only the surface position a 9 689-file VHDL rejection population collapses
+into two meaningless buckets (`package … is` and `architecture … of … is`), and with it the same
+population sorts into ranked, nameable defect classes.
+
+**One honest exclusion:** `builtin_semantic_annotation` is parsed by the bootstrap
+`UnifiedSemanticAST::parse_bootstrap` rather than a generated parser, so it owns no parser object
+and has no furthest position to report.
+
+**Rejection signatures ignore the decoration.** The clustering key used by the duality-break hunter
+(`normalize_rejection_signature`) strips the ` [furthest_position=…]` bracket before collapsing digit
+runs to `#`. A signature is meant to name a failure *class*, and once digits are normalized the
+bracket is a constant suffix that discriminates nothing — so stripping it costs no precision and
+makes signatures stable whether or not the diagnostic is present.
+
 ### When this matters most
 
 For PEG grammars, "did not consume full input at position N" can be deeply misleading. Without furthest-position, finding the real bug typically requires ~10-15 bisection iterations on the failing input. With it, the right line is one diagnostic run away.

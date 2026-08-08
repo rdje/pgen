@@ -1,5 +1,44 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0003 — leaf CORPUS-GRAD-ALL.2.0: the `furthest_position` diagnostic was SV-ONLY while the toolbox called it "always on" — now every family names the DEEP locus
+
+- ⭐⭐ **A catalog claim was false, and it was gating the cross-family corpus program.** `TOOLBOX.md`
+  §3.2 is titled *"Furthest-position error diagnostic (always on)"* and states that **every**
+  parse-failure error carries `furthest_position`. Measured: **2 of the 12** own-parser detail parse
+  paths in `rust/src/parser_registry.rs` (`grep -n 'furthest_position()'` → lines 1151, 1501 — SV and
+  `scratch`), and not even uniform within SV, since the `--library-in-dir` variant lacked it.
+- **WHY it never spread:** the augmentation was born as an inline `map_err` block
+  (`SV-EXH-PROOF.3.3.4.b.6.2.25`) and hand-copied ONCE. A copied block cannot generalize; a shared
+  function can. It is now one helper, `augment_error_with_furthest_position`, called by all 12 — so a
+  family added tomorrow inherits the diagnostic by construction rather than by remembering.
+- ⛔ **The cost was concrete, not stylistic.** On a flat item-list entry (`vhdl_file := design_unit*`)
+  the surface position is only where the quantifier stopped — the START of the failing design unit.
+  Measured on `stimuli/vhdl/subs/OsvvmLibraries/AXI4/Axi4/src/Axi4ComponentPkg.vhd`: surface `1651`
+  = `package Axi4ComponentPkg is` (names nothing) vs `furthest_position=3852` = `AxiBus : view
+  Axi4ManagerView of Axi4RecType ;` — the **VHDL-2019 mode view indication** the grammar has no rule
+  for. **+2 201 bytes, 58 source lines**, one run, one file.
+- ⭐ **It is the enabling signal for the VHDL campaign, not a nicety.** `stimuli/sv/cluster_rejects_valid.py`
+  clusters a rejection population by stuck-point signature read out of `furthest_position`. Without
+  the bracket, VHDL's 9 689 raw fails cluster into two useless buckets (`package … is`,
+  `architecture … of … is`); with it they sort into ranked, nameable defect classes. Prior art was
+  checked before building anything (`DESIGN-PRIOR-ART`): the clusterer already existed and is
+  family-agnostic — what was missing was its INPUT.
+- **Cross-family verified**, every one deeper than the surface: `json` 0→13 (the trailing comma —
+  the surface said byte 0), `svpp` 0→6, `rtl_frontend` 0→9, `return_annotation` 0→11,
+  `semantic_annotation` 12→14, `ebnf` 12→13, `regex` 1→4, `rtl_const_expr` 2→3, `vhdl` 1651→3852.
+- **Honest exclusion, stated in the code:** `builtin_semantic_annotation` parses through the
+  bootstrap `UnifiedSemanticAST::parse_bootstrap` and owns no parser object, so it has no furthest
+  position to report.
+- **No contract rebaseline was needed, by design.** `normalize_rejection_signature` now strips the
+  ` [furthest_position=…]` decoration before collapsing digit runs: a signature names the failure
+  CLASS, and after digit normalization the bracket is a constant suffix discriminating nothing. So
+  the pinned signatures in `rust/test_data/grammar_quality/duality_hunt_gate_contract_v0.json` stayed
+  byte-identical across a 2→12 rollout. The regex path augments the PARSE error only — the PCRE2
+  compile-contract error that follows is an oracle disagreement with no byte locus to name.
+- **Verification:** 5 targeted unit tests GREEN (`rejection_signature_normalization_is_digit_blind`
+  + the 4 `parse_error`/position tests in `ast_pipeline`); `scripts/check_doctrines.sh` GREEN;
+  `clippy_on_rust_change` clean. LIVE status tracker **unchanged** — no family's closure claim moves.
+
 ## 2026-08-08 - PGEN-SV-EXH-PROOF-0187 — leaf SV-EXH-PROOF.7.4.6.19 (docs/tooling): the LITERAL-0 umbrella is ADJUDICATED CLOSED against a canonical gate on HEAD — and "stale measurement" is promoted to a defect class
 
 - ⭐⭐⭐ **`SV-EXH-PROOF.7.4.6.6` — the literal-0 umbrella — is MET and CLOSED**, adjudicated clause
