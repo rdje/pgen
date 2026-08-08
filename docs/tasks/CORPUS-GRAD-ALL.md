@@ -160,7 +160,29 @@ the `(corpus pending)` clause the register already admits. The 29.4% below is li
 - **Method:** re-measure → cluster with `stimuli/sv/cluster_rejects_valid.py`'s stuck-point keying
   (family-agnostic apart from its keyword set) → rank classes → one leaf per class, expected
   verdicts derived from the LRM / suite metadata only ([[feedback_corpus_expected_from_spec_not_fix]]).
-- ⚠️ **ROUTED OUT of this leaf (found while scoping it; director call needed, so NOT acted on):**
+- ✅ **DIRECTOR CALL ANSWERED (2026-08-08) — no longer open.** Verbatim: *"I plan to delete
+  `$HOME/Documents/github/pgen` at a later time. not now. I will in fact delete the whole
+  `$HOME/Documents/github/`, but not now."* ⇒ the off-volume checkout is **director-owned and
+  scheduled for deletion at their discretion**; PGEN work must neither act on it nor re-raise it.
+  The repo is already independent of it: `stimuli/run_external_corpus.sh` emits repo-root-relative
+  paths since `.2.1`, so no PGEN artifact points there any more.
+  - **Read-only pre-deletion safety audit (2026-08-08), so the future deletion is a known-safe
+    operation rather than a leap:** all 10 sibling git repos under `$HOME/Documents/github/` carry
+    **0 unpushed commits** and **0 stashes**, and every entry there also exists under
+    `/Volumes/SSD/Documents/github/` (`comm -23` of the two listings is empty). Six checkouts are
+    simply BEHIND their SSD twins. The only uncommitted content anywhere is `anvil` `.DS_Store`,
+    `specforge` `.claude/settings.json`, and — in the old `pgen` copy — two SUBMODULE POINTER
+    drifts (`stimuli/sv/subs/opentitan`, `stimuli/vhdl/subs/ghdl`). ⇒ **nothing of value is unique
+    to that tree.** Re-run before deleting if much time passes; the audit is seconds.
+  - ⚠️ One forward note, not a blocker: `rust/scripts/ci_workflow_local_gate.sh` (its
+    `audit_markdown_repo_relative_paths` function) greps tracked markdown for the old
+    home-directory checkout path as a literal SEARCH TERM. That is a POLICY check looking FOR the
+    path, not a dependency ON it, so it keeps working after the deletion — verified by reading the
+    call site rather than inferring from the grep match. (The path is not quoted here: this file is
+    a live doc, and that same policy forbids it — the check flagged this very sentence on first
+    write, which is a fair demonstration that it works.)
+- ⚠️ **ORIGINAL ROUTING RECORD (superseded by the director call above; kept because the evidence is
+  what justified escalating rather than acting):**
   a second checkout of this repository exists in the user's home directory on the BOOT volume — a
   real directory, not a symlink, on a different `df` filesystem from the repo's own volume, last
   touched 2026-07-25 — which is where the stale `results.tsv` paths point. Under

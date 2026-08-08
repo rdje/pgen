@@ -1,5 +1,24 @@
 # CHANGES.md
 
+## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0008 (docs-only) — the off-volume-checkout director call is ANSWERED, and a read-only pre-deletion audit proves the future deletion is safe
+
+- **Director disposition (2026-08-08):** `$HOME/Documents/github/pgen` — and in fact the whole
+  `$HOME/Documents/github/` — will be deleted **at the director's discretion, later**. PGEN work
+  neither acts on it nor re-raises it. The routed finding from `CORPUS-GRAD-ALL.2` is CLOSED.
+- **PGEN is already independent of that tree:** `stimuli/run_external_corpus.sh` has emitted
+  repo-root-relative paths since `.2.1`, so no PGEN artifact points there any more.
+- **Read-only safety audit banked so the deletion is known-safe rather than a leap:** all 10 sibling
+  git repos under `$HOME/Documents/github/` carry **0 unpushed commits** and **0 stashes**; every
+  entry there also exists under `/Volumes/SSD/Documents/github/` (`comm -23` of the listings is
+  empty); six checkouts are simply BEHIND their SSD twins. The only uncommitted content anywhere is
+  `anvil` `.DS_Store`, `specforge` `.claude/settings.json`, and two SUBMODULE POINTER drifts in the
+  old `pgen` copy. ⇒ **nothing of value is unique to that tree.**
+- ⚠️ Checked and cleared rather than assumed: `rust/scripts/ci_workflow_local_gate.sh`
+  (`audit_markdown_repo_relative_paths`) carries the old home-directory checkout path as the SEARCH
+  TERM of a markdown path-policy audit — a check FOR the path, not a dependency ON it — so it
+  survives the deletion.
+- LIVE tracker unchanged; no code, grammar or generated change.
+
 ## 2026-08-08 - PGEN-CORPUS-GRAD-ALL-0007 — leaf CORPUS-GRAD-ALL.2.3: the signal-assignment RHS becomes a real WAVEFORM (LRM §10.5.2.1) — corpus 29.8 % → 31.6 %, and a SECOND dead branch only the AST shape could see
 
 - **The gap:** `signal_assignment_rhs` was a bare `expression`, so **`after` appeared nowhere in the
