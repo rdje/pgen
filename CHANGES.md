@@ -1,5 +1,37 @@
 # CHANGES.md
 
+## 2026-08-09 - PGEN-MEMORY-ARCH-0007 — leaf MEMORY-ARCH.6 DONE: layer-A headroom restored 99.8 % → 69.2 % full by DEMOTION, cap unchanged (continuity plumbing; ZERO parser bytes)
+
+- **THE TRIGGER:** `MEMORY.md` measured **7 156 of a 7 168-byte cap — 12 bytes spare** — while
+  passing. A routine `next_action` rewrite is 300-500 bytes, so the next leaf would have been
+  blocked at `.githooks/pre-commit`. ⛔ That is the worst possible moment to decide cap policy: the
+  work is already done and the one-line fix that unblocks you is exactly the one
+  `MEMORY_ARCHITECTURE.md` §6 names as *the failure restated as a policy*.
+- **THE FIX IS A DEMOTION, AND THE CAP IS UNCHANGED.** Two blocks moved to layer C — the North-star
+  curated-constraints block (**2 273 B**) → `docs/decisions/project_north_star.md`, and the
+  standing-tripwires line (**985 B**, one line) → `docs/decisions/project_standing_tripwires.md`.
+  Together 45 % of the cap, both carrying append-once/supersede lifecycles inside an OVERWRITE-only
+  layer — the layer mismatch `MEMORY_ARCHITECTURE.md` §3 is built to prevent.
+  Result: **7 156 → 4 961 bytes** (spare **12 → 2 207**), **38 → 29** of 50 lines.
+- ⛔ **NO POINTER LOST — MEASURED, not asserted.** Prose review cannot catch a dropped link, so the
+  check extracts every identifier from the pre-change file and asserts each is still reachable from
+  {new file} ∪ {both records}: **19/19 wiki-links and 23/23 leaf ids, 0 lost.**
+- ⭐ **THE DEMOTION BEATS THE STATE IT REPLACED.** Both blocks now carry `answers:` front-matter and
+  are in the Knowledge Map (**74 → 77 facts, 510 → 534 question keys**), so they are retrievable BY
+  QUESTION for the first time — in layer A they were reachable only by reading layer A. Demoting is
+  not a consolation prize for content that would not fit.
+- **SECOND FINDING, worth more than the byte count: a two-axis cap had silently become one-axis.**
+  The file sat at **38 of 50 lines** — the LINE cap had no prospect of ever firing, because growth
+  was arriving as longer lines rather than more of them. The two caps exist precisely so that
+  neither wrapped prose nor very long lines can bypass the budget; once one axis goes slack the
+  design degrades to the single-axis form it was created to replace. The same question is now worth
+  asking of `README-STABILITY`, which uses the identical two-cap design.
+- **LOCKSTEP:** `docs/decisions/INDEX.md` gains both rows (the index↔record sync check enforces it
+  in both directions); `KNOWLEDGE_MAP.md` regenerated; a knowledge card promoted
+  ([[a-cap-with-no-headroom-is-a-cap-about-to-be-raised]]); `docs/TASK_TREE.md` +
+  `docs/tasks/MEMORY-ARCH.md` (tree re-opened and closed the same day). No book/contract/ledger/
+  schema/release/register change — this is continuity plumbing, no parser or user-visible surface.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0045 — leaf SV-CORPUS-GRAD.3.24 DONE: the sizing question is answered, the filename hypothesis is refuted, and the defect was in the stage HEURISTIC (adjudicator+docs; ZERO parser bytes)
 
 - **THE ANSWER, AND IT IS THE OPPOSITE OF THE LEAF'S PREMISE.** Of the remaining

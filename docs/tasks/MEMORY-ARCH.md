@@ -3,8 +3,8 @@
 ## Metadata
 
 - Tree ID: `MEMORY-ARCH`
-- Status: `active` (adoption CLOSED 2026-06-02; **RE-OPENED 2026-08-09** for `.6` — the layer-A
-  byte cap is at 99.2 % and the doctrine forbids raising it)
+- Status: `done` (adoption CLOSED 2026-06-02; re-opened 2026-08-09 for `.6`, closed same day —
+  layer-A headroom restored 99.2 % → 69.2 % full by DEMOTION, cap unchanged)
 - Roadmap lane: `Cross-cutting infrastructure — durable, harness-agnostic agent memory + enforcement`
 - Created: `2026-06-02`
 - Owner: repo-local workflow
@@ -73,12 +73,37 @@ sits in `~/.claude` and would not survive a machine loss or harness switch.
   Children: `MEMORY-ARCH.1 .. .5` (adoption, done) + `.6` (standing headroom, open)
 
 - ID: `MEMORY-ARCH.6`
-  Status: `todo` (opened 2026-08-09 from `SV-CORPUS-GRAD.3.23` / `PGEN-SV-CORPUS-GRAD-0044`)
+  Status: `done` (`PGEN-MEMORY-ARCH-0007`, opened AND closed 2026-08-09; routed from `SV-CORPUS-GRAD.3.23`)
   Goal: `Restore working HEADROOM under the layer-A BYTE cap by DEMOTING content to layers B/C — never by raising the cap.`
   Context: `MEASURED at that commit: MEMORY.md = 7 114 of 7 168 bytes = 99.2 % full, 54 bytes spare, on 38 of 50 permitted lines. So the LINE cap is not the binding constraint and never will be — the file is bound entirely on bytes, exactly the asymmetry MEMORY_ARCHITECTURE.md §6 warns about ("neither cap may be the soft one that absorbs all the growth"). The routine next_action rewrite that every leaf performs is ~300-500 bytes; it therefore has roughly a 1-in-1 chance of BLOCKING THE NEXT COMMIT at the pre-commit hook, and the tempting fix at that moment — under commit pressure, with the work already done — is the one thing the doctrine names as the failure restated as a policy: raise the cap. This leaf exists so that decision is made calmly, in advance, and as a demotion.`
   Acceptance: `MEMORY.md back under ~85 % of the byte cap (>= ~1 000 bytes spare) with NO cap change and NO pointer lost: every demoted fact reachable from what remains, via docs/tasks/ (B) or docs/decisions/ (C). Candidates, largest-first and all measurable with `awk '{print length, NR}' MEMORY.md | sort -rn | head`: the standing-tripwires line (7 tripwires inlined, each already owned by a named leaf that could carry it), the North-star block (11 pointer lines whose targets are authoritative layer-C records), and the flow-health line. ⛔ The DERIVED-state banner and the DERIVED fields it protects are NOT candidates — they are what stops the file re-accreting.`
-  Verification: `todo`
-  Commit: `todo`
+  Verification: `done — DEMOTED, cap UNCHANGED at 7 168 bytes. MEMORY.md 7 156 -> 4 961 bytes (99.8 % -> 69.2 % full; spare 12 -> 2 207 bytes) and 38 -> 29 of 50 lines. Two layer-C records created and INDEXED: docs/decisions/project_north_star.md (the 2 273-byte curated-constraints block) and docs/decisions/project_standing_tripwires.md (the 985-byte, 8-entry trap list). NO POINTER LOST, and that is MEASURED rather than asserted: a diff of the pre-change MEMORY.md against {new MEMORY.md + both records} finds 19/19 wiki-links and 23/23 leaf ids still reachable, 0 lost. scripts/check_memory_architecture.sh green (index<->record sync included); all 17 doctrines PASS. BY-PRODUCT, and the better half of the leaf: both blocks are now RETRIEVABLE BY QUESTION for the first time -- they carry answers: front-matter and are in the Knowledge Map (74 -> 76 facts), whereas in layer A they were reachable only by reading layer A. A demotion that also makes the content findable is strictly better than the state it replaced, which is why the doctrine says demote rather than raise.`
+  Commit: `done — PGEN-MEMORY-ARCH-0007`
+
+#### Acceptance Checklist (enforced)
+
+- [ ] **REPRODUCE / ISSUE** — `wc -c MEMORY.md` = **7 156** against a 7 168-byte cap: **12 bytes**
+      spare on 38 of 50 permitted lines. A routine `next_action` rewrite is 300-500 bytes, so the
+      next leaf would have been blocked at `.githooks/pre-commit`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `MEMORY.md` lines 18-28 (the North-star block,
+      **2 273 B**) and line 36 (the standing-tripwires line, **985 B**) — measured with
+      `awk '{printf "%5d L%d\n", length, NR}' MEMORY.md | sort -rn`, which shows one line at 985 B
+      and the layer-A cap being spent on 3 258 B (45 %) of content whose lifecycle is layer C's
+      (`MEMORY_ARCHITECTURE.md` §3: append-once / supersede), not layer A's (overwrite-each-update).
+      WHY the LINE cap never fires: at 38/50 lines and 4 961 B the file is bound ENTIRELY on bytes,
+      so a two-axis cap had silently become one-axis — the soft-axis asymmetry §6 warns about.
+- [x] **ADDRESSED (verified)** — `bash scripts/check_memory_architecture.sh` → `memory-arch: OK`
+      with the cap UNCHANGED; `wc -c MEMORY.md` **7 156 → 4 961** (spare **12 → 2 207**), `wc -l`
+      **38 → 29**. Acceptance bar was ≥ ~1 000 B spare; delivered 2 207.
+- [x] **NO REGRESSION** — no pointer lost, MEASURED not asserted: diffing the pre-change file
+      against {new file + both new records} leaves **19/19 wiki-links and 23/23 leaf ids**
+      reachable, **0 lost**. Index↔record sync green (the check fails on an unindexed record and on
+      an index row with no record). `bash scripts/check_doctrines.sh` → **ALL 17 PASS**. ZERO parser
+      bytes.
+- [x] **LOCKSTEP** — `docs/decisions/INDEX.md` gains both rows; `KNOWLEDGE_MAP.md` regenerated;
+      `docs/TASK_TREE.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md` updated. Book/contract/ledger/
+      schema/register: **N/A — no user-visible or parser surface changed** (this is continuity
+      plumbing).
 
 - ID: `MEMORY-ARCH.1`
   Status: `done` (`PGEN-MEMORY-ARCH-0002`, 2026-06-02)

@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-MEMORY-ARCH-0007 — the cap was green, and that was the problem
+
+`MEMORY.md` passed its byte cap on every commit for weeks. It passed at 7 156 of 7 168 bytes, which
+is to say it passed with **twelve bytes to spare**, on a file whose every routine update rewrites a
+300-500 byte line. The gate was working exactly as designed and telling us nothing.
+
+**A cap answers "am I compliant?" — binary, and lagging. The question that predicts the next failure
+is "how much room is left?"** Nothing in the repo asked it, because compliance checks are naturally
+written as assertions rather than as measurements, and an assertion has no gradient. The failure
+this would have produced is worth naming precisely, because it is a *process* failure rather than a
+technical one: the block lands at `git commit`, with finished work in the tree, and the one-line fix
+that unblocks you is `BYTE_CAP=8192`. `MEMORY_ARCHITECTURE.md` §6 already forbids that in as many
+words — *"never raise a cap to fit the content; that is the failure restated as a policy"* — but a
+rule competing against finished work at the moment of commit is not in a fair fight. The cheap
+defence is to keep enough headroom that the question never comes up under pressure.
+
+⛔ **The finding under the finding: a two-axis cap had silently become one-axis.** The file has both
+a 50-line cap and a 7 168-byte cap, and the two exist for a documented reason — the reference
+deployment once measured **60 lines (passing, exactly at its ceiling) and 138 403 bytes**, i.e. a
+line cap alone is bypassed by long lines. But this file sat at **38 of 50 lines**. The line cap had
+no realistic prospect of ever firing; all the growth was arriving as longer lines. So the design had
+degraded, with no signal at all, into precisely the single-axis form it was built to replace.
+
+> **A multi-axis limit binds only on its tightest axis. If one axis has not moved in months, it is
+> decoration — and the invariant you believe you have is the one the tight axis happens to give.**
+
+That question is now worth asking of every other capped surface here; `README-STABILITY` uses the
+identical two-cap design.
+
+**On demotion, one thing worth recording because the instinct runs the other way.** Demotion feels
+like eviction — content that did not make the cut. It is not: content is demoted because its
+*lifecycle* is wrong for the layer, not because it is unimportant. The two blocks moved here — a
+curated constraints list and a standing-traps list — are among the most load-bearing text in the
+repository. Both have append-once/supersede lifecycles, and both were sitting in a layer whose
+contract is *overwrite every update*. Moving them to addressable records made them **retrievable by
+question for the first time**: inside the resume pointer they were reachable only by reading the
+resume pointer, which is precisely the monolith problem the four-layer split exists to solve. The
+demoted state is strictly better than the state it replaced, and that is the usual case, not a lucky
+one.
+
+**And prove the move lost nothing, mechanically.** The real risk in any demotion is a dropped
+pointer, and prose review will not catch one — the file still reads fine with a link missing. Two
+minutes of scripting extracts every wiki-link and leaf id from the pre-change file (out of `git
+show`, so no copy is needed) and asserts each is still reachable from the new file plus the
+destination records: 19/19 and 23/23, zero lost. **"I think I kept everything" and "19/19" are
+different kinds of claim**, and only one of them survives being wrong.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0045 — the question was worth asking mainly because the answer was no
 
 `.3.24` existed to size a suspicion: that a material share of the SV burn-down was mis-adjudicated
