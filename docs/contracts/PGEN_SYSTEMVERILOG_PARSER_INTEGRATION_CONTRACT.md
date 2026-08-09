@@ -82,11 +82,40 @@ This is the document downstream projects such as Nexsim should read first when d
 > of which exist in IEEE 1364-2005 — pre-existing for four forms, extended to five here, with a
 > measured blast radius of **0 corpus rows**.
 
+> **Current-state note (2026-08-09, `SV-CORPUS-GRAD.3.20` — GRAMMAR-level, release `1.0.181`,
+> ledger `SV-0051`, SCHEMA UNCHANGED at `20`):** the residual flagged one paragraph above is now
+> **CLOSED**. Parameter override in a config `use` clause is a SystemVerilog addition — IEEE
+> 1364-2005 declares exactly **one** `use_clause` production, `use [library_identifier.]
+> cell_identifier[:config]` (Annex A A.1.5, restated in 13.3), and the string `use #(` occurs
+> **zero** times in the 2005 text — but `use_clause` carried no `@profiles` gate, so all five
+> override spellings were accepted under `--profile verilog_2005`. The four override alternatives
+> now live in a `@profiles: ["sv_2017", "sv_2023"]` sibling `use_clause_param_override_sv_only`
+> that `use_clause` references first (the `GRAMMAR-WELLFORMED.G.4.8` specific-before-general
+> ordering is preserved by the reference position, not relaxed).
+> ⚠️ **What a consumer sees — SV consumers see NOTHING.** This is a `verilog_2005`-only
+> tightening. Under `sv_2017` / `sv_2023` the emitted AST is **byte-identical**: a bare
+> rule-reference alternative carrying no return annotation adds no wrapper node, measured as
+> `cmp`-identical ASTs on **15/15** accepting repro cases and confirmed independently by the
+> `use_clause_hash_named_override` shape lock staying `aligned` with an unchanged observed
+> `content_kind`. Under `verilog_2005`, nine previously-accepted spellings (`use .W(8)`,
+> `use .W(8), .D(16)`, `use adder .W(8)`, `use rtlLib.adder .W(8)` and the five `use #( … )` forms)
+> now REJECT; the three legal 1364-2005 spellings and every neighbouring surface are unmoved.
+> **Schema stays `20`**, measured on the byte-identical ASTs above rather than argued.
+> **Corpus proof:** both lanes **byte-inert** — 16 336 sv_2017 files and 2 459 v2005 files, pass
+> 9 734 / 2 181 unchanged, **zero** per-file transitions of any kind, and both adjudication
+> manifests `cmp`-clean, i.e. **0 rows changed adjudication class anywhere**. Predicted before the
+> run and then confirmed: **0 of the 2 459 v2005-lane files contain the token `config` at all**, and
+> `use_clause` is reachable only through `config_rule_statement` inside a `config_declaration`.
+> ⚠️ `defined_rule_count` **1477 → 1478**, so `sv_cert_recognized_union_gate` was re-baselined
+> **in the same commit** (total/witness +1, all-positive: proof, canonical UNKNOWN 11 and union
+> UNKNOWN 0 unchanged), while `verilog_2005_conformance_gate` needed **no** re-baseline — its cert
+> census is 1122/329/779/14, unchanged, because the new rule is gated out of that profile.
+
 ## Contract Identity
 - Contract version:
-  - `1.0.180`
+  - `1.0.181`
 - Parser release version:
-  - `1.0.180`
+  - `1.0.181`
 - Embedding API contract baseline:
   - `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e74828a6.js";
+            window.path_to_searchindex_js = "searchindex-e041ec36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -699,14 +699,39 @@ with no surrounding punctuation nodes.</p>
 <p><strong>Schema is unchanged at <code>20</code>.</strong> This construct was 100 % unparseable before <code>1.0.180</code>, so no shape
 a consumer had ever seen could move — verified by dumping the AST of every already-parsing form of
 the clause on both parsers and confirming all ten are byte-identical.</p>
-<h3 id="bound-worth-knowing-1"><a class="header" href="#bound-worth-knowing-1">Bound worth knowing</a></h3>
-<p><code>use_clause</code> carries no profile gate, so the parameter-override forms are currently reachable under
-<code>--profile verilog_2005</code> as well. IEEE 1364-2005 has exactly one <code>use_clause</code> alternative —
-<code>use [library_identifier.]cell_identifier[:config]</code> — with no parameter override at all, so that is
-an over-acceptance under the Verilog-2005 profile. It predates this release for the brace-less forms
-and is extended to the braced one here; it is tracked in <code>docs/tasks/SV-CORPUS-GRAD.md</code> <code>.3.20</code> and
-being fixed next. No file in PGEN’s Verilog-2005 corpus lane contains a config <code>use</code> clause of any
-spelling, so nothing measured depends on it today.</p>
+<h3 id="which-profiles-accept-the-overrides"><a class="header" href="#which-profiles-accept-the-overrides">Which profiles accept the overrides</a></h3>
+<p><em>Parser release <code>1.0.181</code> (<code>SV-CORPUS-GRAD.3.20</code>, ledger <code>SV-0051</code>). Schema stays <code>20</code>.</em></p>
+<p><strong>Parameter override in a config <code>use</code> clause is SystemVerilog-only.</strong> IEEE 1364-2005 declares
+exactly one <code>use_clause</code> alternative — <code>use [library_identifier.]cell_identifier[:config]</code> (Annex A
+A.1.5, restated in 13.3) — with no parameter override in any spelling, and the string <code>use #(</code> occurs
+nowhere in the 2005 text. Since <code>1.0.181</code> the parser matches that:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>spelling</th><th><code>sv_2017</code> / <code>sv_2023</code></th><th><code>verilog_2005</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>use adder;</code> · <code>use rtlLib.adder;</code> · <code>use rtlLib.adder:config;</code></td><td>accept</td><td><strong>accept</strong></td></tr>
+<tr><td><code>use .W(8);</code> · <code>use .W(8), .D(16);</code></td><td>accept</td><td><strong>reject</strong></td></tr>
+<tr><td><code>use adder .W(8);</code> · <code>use rtlLib.adder .W(8);</code></td><td>accept</td><td><strong>reject</strong></td></tr>
+<tr><td><code>use #(.W(8));</code> · <code>use #();</code></td><td>accept</td><td><strong>reject</strong></td></tr>
+<tr><td><code>use #(32);</code> (positional — 33.4.3 forbids it)</td><td>reject</td><td>reject</td></tr>
+</tbody>
+</table>
+</div>
+<p>⛔ <strong>This restricts the config <code>use</code> clause only.</strong> An ordinary module instantiation’s parameter
+value assignment — <code>adder #(8, 16) a1();</code>, <code>adder #(.W(8)) a2();</code> — is legal Verilog-2001/2005 and
+still accepts under every profile. The two surfaces look alike and are governed by different
+productions.</p>
+<p><strong>Mechanically</strong>, the four override alternatives live in a <code>@profiles: ["sv_2017", "sv_2023"]</code>
+sibling rule, <code>use_clause_param_override_sv_only</code>, referenced as <code>use_clause</code>’s first alternative.
+<code>@profiles</code> is a rule-level directive, so gating a subset of a rule’s alternatives always takes this
+shape; the house pattern is <code>always_keyword</code> / <code>always_keyword_sv_only</code>.</p>
+<p><strong>No consumer-visible shape change.</strong> Under <code>sv_2017</code>/<code>sv_2023</code> the AST is byte-identical across the
+split — a bare rule-reference alternative carrying no return annotation adds no wrapper node — so
+existing <code>inst_use</code> / <code>cell_use</code> readers are unaffected. Under <code>verilog_2005</code> the affected spellings
+no longer parse at all, so there is no shape to read. If a tool was relying on the old behaviour, it
+was requesting <code>verilog_2005</code> while parsing SystemVerilog; request <code>sv_2017</code> or <code>sv_2023</code> instead.</p>
 <h2 id="directives-inside-module-and-class-bodies"><a class="header" href="#directives-inside-module-and-class-bodies">Directives Inside Module and Class Bodies</a></h2>
 <p><em>Parser release <code>1.0.178</code> (<code>SV-CORPUS-GRAD.3.14b</code>, ledger <code>SV-0048</code>). Schema stays <code>19</code>.</em></p>
 <p>Before <code>1.0.178</code> a compiler directive was tolerated <strong>only at file top level</strong>. The rule

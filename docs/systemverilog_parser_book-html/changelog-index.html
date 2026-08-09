@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e74828a6.js";
+            window.path_to_searchindex_js = "searchindex-e041ec36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,61 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10181--contract-10181--sv-corpus-grad320-pgen-sv-corpus-grad-0039-2026-08-09-ledger-sv-0051-released-verilog_2005-was-accepting-five-config-use-clause-forms-ieee-1364-2005-has-no-production-for-grammar-verilog_2005-only-schema-unchanged-at-20"><a class="header" href="#10181--contract-10181--sv-corpus-grad320-pgen-sv-corpus-grad-0039-2026-08-09-ledger-sv-0051-released-verilog_2005-was-accepting-five-config-use-clause-forms-ieee-1364-2005-has-no-production-for-grammar-verilog_2005-only-schema-unchanged-at-20">1.0.181 / Contract 1.0.181 — SV-CORPUS-GRAD.3.20 (<code>PGEN-SV-CORPUS-GRAD-0039</code>, 2026-08-09), ledger <code>SV-0051</code> (<code>Released</code>): <strong><code>verilog_2005</code> WAS ACCEPTING FIVE CONFIG <code>use</code>-CLAUSE FORMS IEEE 1364-2005 HAS NO PRODUCTION FOR (GRAMMAR; <code>verilog_2005</code> ONLY; SCHEMA UNCHANGED at 20)</strong></a></h3>
+<p><strong>What changed.</strong> The four SystemVerilog-only parameter-override alternatives of <code>use_clause</code>
+(<code>grammars/systemverilog.ebnf:6039</code>) moved into a <code>@profiles: ["sv_2017", "sv_2023"]</code> sibling,
+<code>use_clause_param_override_sv_only</code>, which <code>use_clause</code> references as its first alternative. Under
+<code>verilog_2005</code> the sibling is gated out of the tree, leaving the single production IEEE 1364-2005
+actually declares.</p>
+<p><strong>Why.</strong> IEEE 1364-2005 gives <code>use_clause</code> exactly one alternative —
+<code>use [library_identifier.]cell_identifier[:config]</code> (Annex A A.1.5, restated in 13.3) — and the
+string <code>use #(</code> occurs <strong>zero</strong> times anywhere in the 2005 text. But <code>use_clause</code> carried no
+<code>@profiles</code> directive at all, so <code>ast_pipeline --dump-rule-profiles</code> reported it
+<code>satisfiable_under [sv_2017, sv_2023, verilog_2005]</code> and every override spelling was accepted under
+the strict profile. Over-acceptance is a defect here, not a tolerance.</p>
+<p>⭐ <strong>A third defect class, distinct from the two that precede it in this ledger.</strong> <code>SV-0044</code>/<code>SV-0049</code>
+were <em>dropped delimiters</em> — the LRM was right and PGEN mis-read it. <code>SV-0050</code> was a
+<em>self-contradicting standard</em> — Annex A and clause 33.4.3 of IEEE 1800 disagree. This one is neither:
+PGEN read IEEE <strong>1800</strong> correctly and simply never asked which <strong>edition</strong> the construct belongs to.
+An Annex-A-versus-grammar sweep of 1800 cannot find it, because 1800 is not the oracle for what
+1364-2005 permits.</p>
+<p><strong>Empirical pre/post</strong> (the same 17-case matrix, now carrying a per-profile expectation column):</p>
+<pre><code class="language-text">                                    sv_2017 / sv_2023        verilog_2005
+                                    before   after           before   after
+use rtlLib.adder:config;            ACCEPT   ACCEPT          ACCEPT   ACCEPT   (1364-2005 legal)
+use .W(8);                          ACCEPT   ACCEPT          ACCEPT   REJECT   &lt;- tightened
+use rtlLib.adder .W(8);             ACCEPT   ACCEPT          ACCEPT   REJECT   &lt;- tightened
+use #(.WIDTH(32));                  ACCEPT   ACCEPT          ACCEPT   REJECT   &lt;- tightened
+use #(32);                          REJECT   REJECT          REJECT   REJECT   (33.4.3 forbids)
+adder #(8, 16) a1();                ACCEPT   ACCEPT          ACCEPT   ACCEPT   (ordinary instance)
+
+cases differing from the LRM expectation: sv_2017 0 -&gt; 0, sv_2023 0 -&gt; 0, verilog_2005 9 -&gt; 0
+</code></pre>
+<p>⛔ <code>adder #(8, 16) a1();</code> is the control that keeps this honest: an ordinary module instantiation’s
+<code>#( … )</code> parameter value assignment is legal Verilog-2001/2005 and must not move. Only the <em>config</em>
+<code>use</code> clause is restricted.</p>
+<p><strong>What a consumer sees.</strong> Under <code>sv_2017</code> / <code>sv_2023</code>, <strong>nothing</strong> — the emitted AST is byte-identical.
+A bare rule-reference alternative carrying no return annotation adds no wrapper node, which is
+measured (<code>cmp</code>-identical on 15/15 accepting repro cases) rather than assumed, and confirmed
+independently by the <code>use_clause_hash_named_override</code> shape lock whose observed <code>content_kind</code> did
+not move. Under <code>verilog_2005</code>, a tool that was relying on PGEN to accept SystemVerilog parameter
+overrides while requesting the 1364-2005 profile should request <code>sv_2017</code>/<code>sv_2023</code> — which is what
+it was in fact parsing.</p>
+<p><strong>Schema version:</strong> stays at <strong><code>20</code></strong>. See <em>Schema Versioning</em> for why a restructuring is not
+automatically a bump.</p>
+<p><strong>Corpus proof:</strong> <strong>both lanes byte-inert</strong> — 16 336 <code>sv_2017</code> files (pass 9 734 → 9 734) and 2 459
+<code>verilog_2005</code> files (pass 2 181 → 2 181), <strong>zero per-file transitions of any kind in either lane</strong>,
+both adjudication manifests <code>cmp</code>-clean, therefore <strong>0 rows changed adjudication class anywhere</strong>.
+That was predicted before the run from the grammar’s own reachability — <code>use_clause</code> is reachable
+only through <code>config_rule_statement</code> inside a <code>config_declaration</code>, and <strong>0 of the 2 459 v2005-lane
+files contain the token <code>config</code></strong> — and then confirmed. ⚠️ A tightening that moves nothing and a fix
+that silently did nothing look identical in a corpus census, which is why the repro matrix (where the
+v2005 arm moves 9 → 0) is the instrument that proves the change landed.</p>
+<p>⚠️ <code>defined_rule_count</code> <strong>1477 → 1478</strong>, so <code>sv_cert_recognized_union_gate</code> was re-baselined <strong>in the
+same commit</strong> (+1 total, +1 both witness columns; proof 6, canonical UNKNOWN 11 and union UNKNOWN 0
+all unchanged — fully positive), while <code>verilog_2005_conformance_gate</code> needed <strong>no</strong> re-baseline: its
+cert census is 1122/329/779/14, unchanged, because the new rule is gated out of that profile. That
+<code>+1 / +0</code> asymmetry was predicted in the task leaf and is the fingerprint that attributes the move.</p>
 <h3 id="10180--contract-10180--sv-corpus-grad319-pgen-sv-corpus-grad-0037-2026-08-09-ledger-sv-0050-released-the-config-use-clause-could-not-consume-a---and-the-reason-is-that-ieee-1800-contradicts-itself-grammar-all-profiles-schema-unchanged-at-20"><a class="header" href="#10180--contract-10180--sv-corpus-grad319-pgen-sv-corpus-grad-0037-2026-08-09-ledger-sv-0050-released-the-config-use-clause-could-not-consume-a---and-the-reason-is-that-ieee-1800-contradicts-itself-grammar-all-profiles-schema-unchanged-at-20">1.0.180 / Contract 1.0.180 — SV-CORPUS-GRAD.3.19 (<code>PGEN-SV-CORPUS-GRAD-0037</code>, 2026-08-09), ledger <code>SV-0050</code> (<code>Released</code>): <strong>THE CONFIG <code>use</code> CLAUSE COULD NOT CONSUME A <code>#</code> — AND THE REASON IS THAT IEEE 1800 CONTRADICTS ITSELF (GRAMMAR; all profiles; SCHEMA UNCHANGED at 20)</strong></a></h3>
 <p><strong>What changed.</strong> <code>use_clause</code> (<code>grammars/systemverilog.ebnf:6039</code>) gained a fifth alternative,
 <code>use #( named_parameter_assignment {, …} )[: config]</code>, so a configuration can override parameters

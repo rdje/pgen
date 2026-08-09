@@ -1,5 +1,69 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0039 — the artifact that recorded the bug and called it green
+
+`.3.20`'s subject — gate four SystemVerilog-only alternatives out of the `verilog_2005` profile — is
+a small, well-specified grammar edit whose plan had been written a leaf earlier. It went exactly as
+planned. The part worth writing down is where the bug had been sitting.
+
+**The over-acceptance was already on disk, in a passing artifact.** `.3.19` ran its 17-case repro
+matrix under `--profile verilog_2005` and committed the output. That file shows nine spellings IEEE
+1364-2005 has no production for, each with `verdict ACCEPT`, each with `want ACCEPT`, under a footer
+reading **`cases differing from the post-fix expectation: 0`**. It is a green report of a red state.
+
+**The mechanism is one sentence of code and one sentence of comment.** `matrix.py` carried a single
+expectation column and judged only when the requested profile was `sv_2017`:
+
+```python
+if args.profile == "sv_2017" and verdict != expected:
+```
+
+with a comment saying the plainest possible version of the problem — *"`want` is the post-fix
+expectation under sv_2017 only; other profiles print it for reference without judging."* The author
+knew. It was written down. And then the column was printed next to nine wrong verdicts and read as
+agreement.
+
+**⛔ An instrument that prints a column it does not judge is worse than one that prints nothing**,
+because the unjudged column is indistinguishable from a judged one at a glance, and the footer
+summarises as though it covered everything shown. The failure was caught by a human noticing that
+the v2005 run looked odd — which is precisely the labour the instrument exists to remove.
+
+The repair is small and it is the reusable part: expectations are per `(case, profile)`, **every**
+profile is judged, and an unrecognized profile is a **REFUSAL**, not an unjudged run. Then — and
+this is the step that turns a claim into evidence — the FIXED matrix was run against the UNCHANGED
+pre-fix parser, which was still on disk because the release build had not finished yet. Same binary,
+same inputs, **9 cases differing** where it had said 0. The reproducer for this leaf is the old
+parser measured by the new instrument.
+
+**A second thing worth keeping: the leaf's plan contradicted itself, and only the measurement
+noticed.** One bullet said *"BOTH CERT CONTRACTS MUST BE RE-BASELINED IN THE SAME COMMIT"*; the
+bullet immediately above said the union contract needs one and `verilog_2005_conformance_gate`
+*"should **not**"*. Both were written the same day, by the same leaf, about the same edit. The
+`--dump-rule-profiles` census settled it in seconds (`sv_2017`/`sv_2023` +1, `verilog_2005` +0), and
+the two gates then confirmed it independently. ⭐ A plan that disagrees with itself is a plan whose
+numbers were never measured; the response is to run the instrument, not to pick the bullet you
+prefer. It is recorded here rather than quietly resolved because the *contradiction itself* was the
+useful signal.
+
+**And a genuinely reusable fact about PGEN's emission fell out.** `@profiles` is a rule-level
+directive, so gating a subset of a rule's alternatives forces a sibling split — a restructuring, and
+restructurings are the classic silent schema bump. This one is not: **a bare rule-reference
+alternative carrying no return annotation is AST-transparent, adding no wrapper node.** Measured on
+15/15 accepting repro cases (`cmp`-identical) and confirmed by a shape lock that `.3.19` had placed
+one leaf in advance, writing *"`.3.20` is about to SPLIT this rule … this sample is what makes that
+restructuring gate-visible instead of silent."* That is what a shape lock is for, and it is the
+cheapest way to make "did the tree move?" a question with an answer instead of an argument.
+
+**Finally, the thing that would have been easy to skip.** The corpus came back with zero transitions
+in both lanes — which is also exactly what a fix that did nothing at all produces. So the zero was
+derived *before* the run, from the grammar's own reachability (`use_clause` is reachable only through
+`config_rule_statement` inside a `config_declaration`; **0 of the 2 459 v2005-lane files contain the
+token `config`**), by a script that REFUSES rather than reporting a number if that premise stops
+holding. Its refusal path is not decorative: it fired during authoring, because the grammar spells
+the keyword rule `kw_config_dfba7aad` and the check looked for `kw_config`. A guard that fires for a
+bookkeeping reason is one edit from a guard that never fires, so positive, negative and
+planted-mutation controls are now permanent inside it.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0037 — the source of truth can lose language without telling you, and every instrument we own says it didn't
 
 `.3.19`'s actual subject — a config `use` clause that could not consume a `#` — is a clean, small

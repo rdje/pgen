@@ -1,0 +1,53 @@
+# SV-CORPUS-GRAD.3.20 — AST byte-identity across the use_clause sibling split.
+# ./rust/target/release/parseability_probe --parse-dump-ast systemverilog <case>.sv <out.json> --profile P
+#
+# THE QUESTION THIS ANSWERS: @profiles is a RULE-level directive, so the tightening had to
+# SPLIT use_clause into a sibling. A restructuring is exactly the kind of change that adds a
+# wrapper node and moves the wire shape -- which would be a SCHEMA BUMP, not a free tightening.
+# .3.19's own shape-lock comment said this leaf 'is what makes that restructuring gate-visible
+# instead of silent'. So it is measured, not argued.
+
+## sv_2017 — every accepting repro case, pre vs post (cmp)
+  identical  a1_use_cell                      2394 bytes
+  identical  a2_use_lib_cell                  2426 bytes
+  identical  a3_use_lib_cell_config           2456 bytes
+  identical  a4_use_named_only                2645 bytes
+  identical  a5_use_named_multi               2947 bytes
+  identical  a6_use_cell_named                2662 bytes
+  identical  a7_use_lib_cell_named            2697 bytes
+  identical  c1_default_liblist               2342 bytes
+  identical  c2_cell_use_config               2447 bytes
+  identical  c3_module_param_inst             3233 bytes
+  identical  h1_hash_named                    2674 bytes
+  identical  h2_hash_named_hier               2951 bytes
+  identical  h3_hash_empty                    2414 bytes
+  identical  h4_hash_named_default            2449 bytes
+  identical  h5_hash_named_multi              2783 bytes
+  => identical=15  differing=0
+
+## verilog_2005 — the 6 spellings that stay legal are identical; the 9 over-accepted ones are GONE
+  identical     a1_use_cell
+  identical     a2_use_lib_cell
+  identical     a3_use_lib_cell_config
+  now REJECTED  a4_use_named_only
+  now REJECTED  a5_use_named_multi
+  now REJECTED  a6_use_cell_named
+  now REJECTED  a7_use_lib_cell_named
+  identical     c1_default_liblist
+  identical     c2_cell_use_config
+  identical     c3_module_param_inst
+  now REJECTED  h1_hash_named
+  now REJECTED  h2_hash_named_hier
+  now REJECTED  h3_hash_empty
+  now REJECTED  h4_hash_named_default
+  now REJECTED  h5_hash_named_multi
+
+## Independent second instrument: the ast_shape_contract regression lock
+  rust/src/ast_shape_contract.rs:639 fails the gate when the OBSERVED content_kind of a
+  sample's live parse differs from the manifest's current_content_kind. The
+  'use_clause_hash_named_override' sample (input `use #(.P(1))`, rule_under_test use_clause,
+  current_content_kind "sequence") was added by .3.19 for precisely this restructuring, and
+  ast_shape_contract_gate is GREEN -> the observed kind did not move either.
+
+=> SCHEMA STAYS AT 20. A bare rule-reference alternative carrying no return annotation is
+   AST-transparent: it adds no wrapper node.

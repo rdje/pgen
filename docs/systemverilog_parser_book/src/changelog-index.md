@@ -19,6 +19,73 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.181 / Contract 1.0.181 — SV-CORPUS-GRAD.3.20 (`PGEN-SV-CORPUS-GRAD-0039`, 2026-08-09), ledger `SV-0051` (`Released`): **`verilog_2005` WAS ACCEPTING FIVE CONFIG `use`-CLAUSE FORMS IEEE 1364-2005 HAS NO PRODUCTION FOR (GRAMMAR; `verilog_2005` ONLY; SCHEMA UNCHANGED at 20)**
+
+**What changed.** The four SystemVerilog-only parameter-override alternatives of `use_clause`
+(`grammars/systemverilog.ebnf:6039`) moved into a `@profiles: ["sv_2017", "sv_2023"]` sibling,
+`use_clause_param_override_sv_only`, which `use_clause` references as its first alternative. Under
+`verilog_2005` the sibling is gated out of the tree, leaving the single production IEEE 1364-2005
+actually declares.
+
+**Why.** IEEE 1364-2005 gives `use_clause` exactly one alternative —
+`use [library_identifier.]cell_identifier[:config]` (Annex A A.1.5, restated in 13.3) — and the
+string `use #(` occurs **zero** times anywhere in the 2005 text. But `use_clause` carried no
+`@profiles` directive at all, so `ast_pipeline --dump-rule-profiles` reported it
+`satisfiable_under [sv_2017, sv_2023, verilog_2005]` and every override spelling was accepted under
+the strict profile. Over-acceptance is a defect here, not a tolerance.
+
+⭐ **A third defect class, distinct from the two that precede it in this ledger.** `SV-0044`/`SV-0049`
+were *dropped delimiters* — the LRM was right and PGEN mis-read it. `SV-0050` was a
+*self-contradicting standard* — Annex A and clause 33.4.3 of IEEE 1800 disagree. This one is neither:
+PGEN read IEEE **1800** correctly and simply never asked which **edition** the construct belongs to.
+An Annex-A-versus-grammar sweep of 1800 cannot find it, because 1800 is not the oracle for what
+1364-2005 permits.
+
+**Empirical pre/post** (the same 17-case matrix, now carrying a per-profile expectation column):
+
+```text
+                                    sv_2017 / sv_2023        verilog_2005
+                                    before   after           before   after
+use rtlLib.adder:config;            ACCEPT   ACCEPT          ACCEPT   ACCEPT   (1364-2005 legal)
+use .W(8);                          ACCEPT   ACCEPT          ACCEPT   REJECT   <- tightened
+use rtlLib.adder .W(8);             ACCEPT   ACCEPT          ACCEPT   REJECT   <- tightened
+use #(.WIDTH(32));                  ACCEPT   ACCEPT          ACCEPT   REJECT   <- tightened
+use #(32);                          REJECT   REJECT          REJECT   REJECT   (33.4.3 forbids)
+adder #(8, 16) a1();                ACCEPT   ACCEPT          ACCEPT   ACCEPT   (ordinary instance)
+
+cases differing from the LRM expectation: sv_2017 0 -> 0, sv_2023 0 -> 0, verilog_2005 9 -> 0
+```
+
+⛔ `adder #(8, 16) a1();` is the control that keeps this honest: an ordinary module instantiation's
+`#( … )` parameter value assignment is legal Verilog-2001/2005 and must not move. Only the *config*
+`use` clause is restricted.
+
+**What a consumer sees.** Under `sv_2017` / `sv_2023`, **nothing** — the emitted AST is byte-identical.
+A bare rule-reference alternative carrying no return annotation adds no wrapper node, which is
+measured (`cmp`-identical on 15/15 accepting repro cases) rather than assumed, and confirmed
+independently by the `use_clause_hash_named_override` shape lock whose observed `content_kind` did
+not move. Under `verilog_2005`, a tool that was relying on PGEN to accept SystemVerilog parameter
+overrides while requesting the 1364-2005 profile should request `sv_2017`/`sv_2023` — which is what
+it was in fact parsing.
+
+**Schema version:** stays at **`20`**. See *Schema Versioning* for why a restructuring is not
+automatically a bump.
+
+**Corpus proof:** **both lanes byte-inert** — 16 336 `sv_2017` files (pass 9 734 → 9 734) and 2 459
+`verilog_2005` files (pass 2 181 → 2 181), **zero per-file transitions of any kind in either lane**,
+both adjudication manifests `cmp`-clean, therefore **0 rows changed adjudication class anywhere**.
+That was predicted before the run from the grammar's own reachability — `use_clause` is reachable
+only through `config_rule_statement` inside a `config_declaration`, and **0 of the 2 459 v2005-lane
+files contain the token `config`** — and then confirmed. ⚠️ A tightening that moves nothing and a fix
+that silently did nothing look identical in a corpus census, which is why the repro matrix (where the
+v2005 arm moves 9 → 0) is the instrument that proves the change landed.
+
+⚠️ `defined_rule_count` **1477 → 1478**, so `sv_cert_recognized_union_gate` was re-baselined **in the
+same commit** (+1 total, +1 both witness columns; proof 6, canonical UNKNOWN 11 and union UNKNOWN 0
+all unchanged — fully positive), while `verilog_2005_conformance_gate` needed **no** re-baseline: its
+cert census is 1122/329/779/14, unchanged, because the new rule is gated out of that profile. That
+`+1 / +0` asymmetry was predicted in the task leaf and is the fingerprint that attributes the move.
+
 ### 1.0.180 / Contract 1.0.180 — SV-CORPUS-GRAD.3.19 (`PGEN-SV-CORPUS-GRAD-0037`, 2026-08-09), ledger `SV-0050` (`Released`): **THE CONFIG `use` CLAUSE COULD NOT CONSUME A `#` — AND THE REASON IS THAT IEEE 1800 CONTRADICTS ITSELF (GRAMMAR; all profiles; SCHEMA UNCHANGED at 20)**
 
 **What changed.** `use_clause` (`grammars/systemverilog.ebnf:6039`) gained a fifth alternative,

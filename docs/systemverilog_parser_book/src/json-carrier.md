@@ -540,15 +540,38 @@ with no surrounding punctuation nodes.
 a consumer had ever seen could move — verified by dumping the AST of every already-parsing form of
 the clause on both parsers and confirming all ten are byte-identical.
 
-### Bound worth knowing
+### Which profiles accept the overrides
 
-`use_clause` carries no profile gate, so the parameter-override forms are currently reachable under
-`--profile verilog_2005` as well. IEEE 1364-2005 has exactly one `use_clause` alternative —
-`use [library_identifier.]cell_identifier[:config]` — with no parameter override at all, so that is
-an over-acceptance under the Verilog-2005 profile. It predates this release for the brace-less forms
-and is extended to the braced one here; it is tracked in `docs/tasks/SV-CORPUS-GRAD.md` `.3.20` and
-being fixed next. No file in PGEN's Verilog-2005 corpus lane contains a config `use` clause of any
-spelling, so nothing measured depends on it today.
+*Parser release `1.0.181` (`SV-CORPUS-GRAD.3.20`, ledger `SV-0051`). Schema stays `20`.*
+
+**Parameter override in a config `use` clause is SystemVerilog-only.** IEEE 1364-2005 declares
+exactly one `use_clause` alternative — `use [library_identifier.]cell_identifier[:config]` (Annex A
+A.1.5, restated in 13.3) — with no parameter override in any spelling, and the string `use #(` occurs
+nowhere in the 2005 text. Since `1.0.181` the parser matches that:
+
+| spelling | `sv_2017` / `sv_2023` | `verilog_2005` |
+|---|---|---|
+| `use adder;` · `use rtlLib.adder;` · `use rtlLib.adder:config;` | accept | **accept** |
+| `use .W(8);` · `use .W(8), .D(16);` | accept | **reject** |
+| `use adder .W(8);` · `use rtlLib.adder .W(8);` | accept | **reject** |
+| `use #(.W(8));` · `use #();` | accept | **reject** |
+| `use #(32);` (positional — 33.4.3 forbids it) | reject | reject |
+
+⛔ **This restricts the config `use` clause only.** An ordinary module instantiation's parameter
+value assignment — `adder #(8, 16) a1();`, `adder #(.W(8)) a2();` — is legal Verilog-2001/2005 and
+still accepts under every profile. The two surfaces look alike and are governed by different
+productions.
+
+**Mechanically**, the four override alternatives live in a `@profiles: ["sv_2017", "sv_2023"]`
+sibling rule, `use_clause_param_override_sv_only`, referenced as `use_clause`'s first alternative.
+`@profiles` is a rule-level directive, so gating a subset of a rule's alternatives always takes this
+shape; the house pattern is `always_keyword` / `always_keyword_sv_only`.
+
+**No consumer-visible shape change.** Under `sv_2017`/`sv_2023` the AST is byte-identical across the
+split — a bare rule-reference alternative carrying no return annotation adds no wrapper node — so
+existing `inst_use` / `cell_use` readers are unaffected. Under `verilog_2005` the affected spellings
+no longer parse at all, so there is no shape to read. If a tool was relying on the old behaviour, it
+was requesting `verilog_2005` while parsing SystemVerilog; request `sv_2017` or `sv_2023` instead.
 
 ## Directives Inside Module and Class Bodies
 

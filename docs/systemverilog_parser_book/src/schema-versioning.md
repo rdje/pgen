@@ -70,8 +70,21 @@ This determinism is a **hard guarantee** of the schema. Any non-determinism is a
 > clause parameter-override spelling) deliberately does NOT bump it**, and that is
 > measured rather than assumed: the construct was 100 % unparseable before, so no
 > shape a consumer had ever seen could move, and the ASTs of all ten already-parsing
-> forms of the clause are byte-identical across the fix. A release with no row in the
-> table below is a release that kept the schema.
+> forms of the clause are byte-identical across the fix.
+> **Release `1.0.181` (`SV-CORPUS-GRAD.3.20`, ledger `SV-0051` — gating those
+> parameter overrides out of `verilog_2005`) does NOT bump it either, and this one
+> is the more interesting non-bump**: `@profiles` is a RULE-level directive, so the
+> tightening had to SPLIT `use_clause` into a sibling
+> `use_clause_param_override_sv_only`, and a restructuring is exactly the change that
+> normally reshapes a tree. It did not — a bare rule-reference alternative carrying no
+> return annotation is AST-transparent, adding no wrapper node. Measured two
+> independent ways: `cmp`-identical ASTs on **15/15** accepting repro cases under
+> `sv_2017`, and the `use_clause_hash_named_override` shape lock's observed
+> `content_kind` unchanged (the lock is compared against a live parse on every gate
+> run, so it is an oracle, not a note). ⭐ The lesson generalizes: **"I restructured
+> the grammar" is not by itself a schema bump, and "I only added a rule" is not by
+> itself a non-bump — the AST is the arbiter, and it is cheap to ask.**
+> A release with no row in the table below is a release that kept the schema.
 > Pin the integer from the contract; the historical
 > `1.x.0` rows and the schema-`2` row are retained as history.
 >

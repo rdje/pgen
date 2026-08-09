@@ -1,0 +1,14 @@
+## ground-truth controls: positive OK, negative OK, planted-mutation OK
+
+## reachability of `use_clause`, re-derived from the grammar
+  rules referencing `use_clause`           : ['config_rule_statement']
+  rules referencing `config_rule_statement`: ['config_declaration']
+  => a file with no `config` token cannot reach `use_clause`. Premise holds.
+
+## verilog_2005 lane scan
+  lane files                       : 2459  (unreadable: 0)
+  containing the token `use`       : 55
+  containing the token `config`    : 0
+
+=> MAXIMUM corpus rows this tightening can move in the verilog_2005 lane: 0
+   (the `use` count is deliberately printed alongside: it is large and IRRELEVANT — `use` outside a `config` block is prose, a comment or an identifier.)

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e74828a6.js";
+            window.path_to_searchindex_js = "searchindex-e041ec36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -242,8 +242,21 @@ schema-<code>20</code> <code>dist</code> constraint operator (<code>1.0.179</cod
 clause parameter-override spelling) deliberately does NOT bump it</strong>, and that is
 measured rather than assumed: the construct was 100 % unparseable before, so no
 shape a consumer had ever seen could move, and the ASTs of all ten already-parsing
-forms of the clause are byte-identical across the fix. A release with no row in the
-table below is a release that kept the schema.
+forms of the clause are byte-identical across the fix.
+<strong>Release <code>1.0.181</code> (<code>SV-CORPUS-GRAD.3.20</code>, ledger <code>SV-0051</code> — gating those
+parameter overrides out of <code>verilog_2005</code>) does NOT bump it either, and this one
+is the more interesting non-bump</strong>: <code>@profiles</code> is a RULE-level directive, so the
+tightening had to SPLIT <code>use_clause</code> into a sibling
+<code>use_clause_param_override_sv_only</code>, and a restructuring is exactly the change that
+normally reshapes a tree. It did not — a bare rule-reference alternative carrying no
+return annotation is AST-transparent, adding no wrapper node. Measured two
+independent ways: <code>cmp</code>-identical ASTs on <strong>15/15</strong> accepting repro cases under
+<code>sv_2017</code>, and the <code>use_clause_hash_named_override</code> shape lock’s observed
+<code>content_kind</code> unchanged (the lock is compared against a live parse on every gate
+run, so it is an oracle, not a note). ⭐ The lesson generalizes: <strong>“I restructured
+the grammar” is not by itself a schema bump, and “I only added a rule” is not by
+itself a non-bump — the AST is the arbiter, and it is cheap to ask.</strong>
+A release with no row in the table below is a release that kept the schema.
 Pin the integer from the contract; the historical
 <code>1.x.0</code> rows and the schema-<code>2</code> row are retained as history.</p>
 <p>⛔ <strong>This prose is a convenience, not the source of truth — and it has already

@@ -2430,6 +2430,67 @@ was ever justified before paying to make the environment match it.
 - ⇒ **the fix must be the class-wide one (a), not a per-gate patch.** A contract-vs-census
   consistency check is cheap and local; two instances in one commit is enough evidence that
   hand-remembering to re-baseline does not hold.
+- ✅ **`SV-CORPUS-GRAD.3.20` (2026-08-09, release `1.0.181`) is the first leaf to run the drill
+  deliberately, and it worked** — the census move was PREDICTED in the leaf before the edit
+  (`1477→1478`, `sv_2017`/`sv_2023` +1, `verilog_2005` +0), measured with `--dump-rule-profiles`
+  *before* either gate was run, and the union contract re-baselined **in the same commit** while
+  the v2005 contract was correctly left alone (its cert census `1122/329/779/14` came back
+  unchanged). ⚠️ That is evidence the *procedure* works when followed, **not** evidence the gap is
+  closed: it was closed by an author who had read this leaf. The class-wide check (a) is still
+  the fix.
+
+### `.23` — ROUTED IN from `SV-CORPUS-GRAD.3.20`: `clippy_on_rust_change` is structurally blind to a pure-grammar change, because the artifact it lints is gitignored (`todo`)
+
+- **Status: `todo`** (opened 2026-08-09). Routed, not worked — it does not block the SV release
+  lane ([[feedback_flow_findings_are_routed_not_worked]]), and the leaf that found it worked
+  around it explicitly. But it is the same shape as every other entry in this tree: a check that
+  silently does not run.
+- **WHAT HAPPENED, measured.** `SV-CORPUS-GRAD.3.20` edited only `grammars/systemverilog.ebnf`,
+  regenerated `generated/systemverilog_parser.rs` (131 MB of Rust), and then ran the mandatory
+  `COMMIT.md` step 2:
+
+  ```text
+  $ make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change
+  No Rust/generated Rust changes detected; skipping clippy flow.
+  ✅ clippy_on_rust_change completed.
+  ```
+
+  It exits **0** and prints a **✅**. The generated parser had just been rewritten in full.
+- **ROOT CAUSE (WHY + WHERE).** `rust/scripts/clippy_on_rust_change.sh:46-66` derives its trigger
+  set from git:
+
+  ```bash
+  git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard
+  ```
+
+  and tests each path against a glob list that *does* include `generated/*.rs`. But `generated/`
+  is `.gitignore`d by repository policy (`COMMIT.md`: *"the `generated/` tree is not tracked in
+  git"*), so `--exclude-standard` removes it from the untracked listing and `git diff` never sees
+  it either. **The one path class the glob was written to catch is the one class git cannot
+  report.** A grammar-only change therefore never triggers the flow.
+- **WHY IT WAS NEVER NOTICED.** Every prior grammar leaf in this campaign also touched a tracked
+  Rust file — typically `rust/src/ast_shape_contract.rs` (to add a shape sample) or a
+  `rust/test_data/.../*.json` manifest — and `rust/*.rs` matched, so the flow ran for an
+  incidental reason. `.3.20` is the first leaf whose only code change is the grammar plus a
+  contract JSON that is **not** in the glob list, so it is the first to expose the gap.
+- **WORKAROUND USED** (so the leaf's NO-REGRESSION box is honest): `PGEN_CLIPPY_FORCE=1`, which
+  ran all three stages GREEN — `clippy_source_all_targets`, the STRICT
+  `clippy_generated_all_targets`, and `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`.
+- **CANDIDATE FIXES** (adjudicate before implementing; do not assume the first is right):
+  1. add `grammars/*.ebnf` to the trigger glob — cheap, and correct in the sense that a grammar
+     edit *is* a codegen change; risks running a multi-minute clippy pass on a docs-only grammar
+     comment edit;
+  2. trigger on the generated artifacts' **mtime/content hash** versus a recorded stamp, so the
+     flow keys on "the artifact this lints actually changed" rather than on git's view of it —
+     this is the variant that matches the check's own intent;
+  3. make the flow REFUSE (nonzero) rather than print ✅ when it can find no evidence either way,
+     per the `LIVE-DOC-CURRENCY` precedent that an unmeasurable population must not report as a
+     pass.
+- ⭐ **The general lesson, and why it belongs in this tree:** `GATE-REACHABILITY` asks whether
+  anything *invokes* a gate. This is the adjacent failure — the gate is invoked, exits 0, prints
+  a tick, and **checked nothing**. A skip that is indistinguishable from a pass is worse than an
+  orphan gate, because it manufactures evidence. Worth asking whether any other
+  `*_on_*_change.sh`-style conditional flow keys on git for an artifact git cannot see.
 
 ## Evidence
 

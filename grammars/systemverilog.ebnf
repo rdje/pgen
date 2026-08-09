@@ -6029,14 +6029,26 @@ unpacked_dimension := lbrack constant_range rbrack         -> {kind: "range",   
 unsized_dimension := lbrack rbrack
                   -> {kind: "unsized"}
 
+# SV-CORPUS-GRAD.3.20 — PARAMETER OVERRIDE IN A CONFIG `use` CLAUSE IS SYSTEMVERILOG-ONLY.
+# IEEE 1364-2005 declares exactly ONE use_clause production —
+# `use [library_identifier.]cell_identifier[:config]` (Annex A A.1.5 :119, repeated at 13.3 :271) —
+# and the string `use #(` does not occur anywhere in the 2005 text. All four override alternatives
+# below are IEEE 1800 additions, so they are gated out of `verilog_2005` on the sibling rule
+# ([[feedback_sv_strict_lrm_compliance_default]]: over-acceptance is a defect, not a tolerance).
+# `@profiles` is a RULE-level directive, hence the sibling split rather than a per-alternative gate;
+# house pattern: `always_keyword` / `always_keyword_sv_only` (:646).
+#
 # GRAMMAR-WELLFORMED.G.4.8 — the named_parameter-bearing alternatives MUST precede the simple
 # `use [lib.]cell [: config]` form, else PEG ordered choice commits the simple alt to `use lib.cell`
-# and strands a trailing `.param()` (the cert-coverage witness-parseability residual). The first
+# and strands a trailing `.param()` (the cert-coverage witness-parseability residual). ⛔ That
+# ordering is preserved by REFERENCING THE SIBLING FIRST in `use_clause` below — moving the
+# alternatives into their own rule does not relax the constraint, it relocates it. The first
 # alternative is the explicit no-lib `use cell .param()` form so it is matched before the simple alt
 # can greedily read `cell .param` as `lib.cell`. The `-> {library,name,config}` return annotation stays
-# on the (now-last) simple alt. LRM §A.1.5: `[lib.]` is optional — this is a PEG specific-before-general
-# reorder, not a semantic change.
-use_clause := @probe_sample: "use top .P(1)" kw_use_04489a12 cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
+# on the simple alt, whose `$N` indices are per-alternative and therefore unchanged by the split.
+# LRM §A.1.5: `[lib.]` is optional — this is a PEG specific-before-general reorder, not a semantic change.
+@profiles: ["sv_2017", "sv_2023"]
+use_clause_param_override_sv_only := @probe_sample: "use top .P(1)" kw_use_04489a12 cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
             | @probe_sample: "use l.top .P(1)" kw_use_04489a12 ( library_identifier dot )? cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
             | @probe_sample: "use .P(1)" kw_use_04489a12 named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
             # SV-CORPUS-GRAD.3.19 — the `#( … )` override spelling. IEEE 1800 CONTRADICTS ITSELF here,
@@ -6056,6 +6068,8 @@ use_clause := @probe_sample: "use top .P(1)" kw_use_04489a12 cell_identifier nam
             # rule and silently discards every following alternative — measured here, no error, no lint,
             # no census move (SV-CORPUS-GRAD.3.19 → routed to EBNF-FRONTEND-SILENT-TRUNCATION).
             | @probe_sample: "use #(.P(1))" kw_use_04489a12 hash lparen ( named_parameter_assignment ( comma named_parameter_assignment )* )? rparen ( colon kw_config_dfba7aad )?
+
+use_clause := use_clause_param_override_sv_only
             | @probe_sample: "use top" kw_use_04489a12 ( library_identifier dot )? cell_identifier ( colon kw_config_dfba7aad )?
            -> {library: $2, name: $3, config: $4}
 

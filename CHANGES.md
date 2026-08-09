@@ -1,5 +1,80 @@
 # CHANGES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0039 — leaf SV-CORPUS-GRAD.3.20: `verilog_2005` was accepting five config `use`-clause forms IEEE 1364-2005 has no production for (grammar; release 1.0.181, schema UNCHANGED at 20, ledger SV-0051)
+
+- **A THIRD defect class, distinct from the two that precede it in this series.** `SV-0044`/`SV-0049`
+  were dropped delimiters — the LRM was right and PGEN mis-read it. `SV-0050` was a
+  self-contradicting standard — IEEE 1800's Annex A and its clause 33.4.3 disagree. This one is
+  neither: PGEN read IEEE **1800** correctly and never asked which **edition** the construct belongs
+  to. IEEE 1364-2005 declares exactly ONE `use_clause` production —
+  `use [library_identifier.]cell_identifier[:config]` (Annex A A.1.5 `:119`, restated at 13.3
+  `:271`) — and `use #(` occurs **zero** times in the whole 2005 text. An Annex-A-versus-grammar
+  sweep of 1800 is structurally blind to this, because 1800 is not the oracle for what 1364-2005
+  permits.
+- **ROOT CAUSE:** `use_clause` (`grammars/systemverilog.ebnf:6039`) carried no `@profiles` directive
+  at all, so `--dump-rule-profiles` reported it `satisfiable_under [sv_2017, sv_2023,
+  verilog_2005]` and every SystemVerilog-only override spelling was accepted under the strict
+  profile — four forms since the parser existed, five since `1.0.180`.
+- **FIX (pure grammar, zero new tokens):** the four override alternatives move verbatim and in order
+  into `@profiles: ["sv_2017", "sv_2023"] use_clause_param_override_sv_only`, referenced FIRST by
+  `use_clause`. `@profiles` is rule-level, so a sibling split is the declarative idiom; house
+  pattern `always_keyword`/`always_keyword_sv_only`.
+- ⛔⛔ **THE FINDING THAT MATTERS IS NOT THE FIX — `.3.19` HAD ALREADY MEASURED THIS AND ITS OWN
+  ARTIFACT REPORTED IT GREEN.** `after_v2005.txt` shows all nine over-acceptances with a `want`
+  column reading `ACCEPT` and a footer saying *"cases differing from the post-fix expectation: 0"*.
+  `matrix.py` carried ONE expectation column — `sv_2017`'s — and its own comment said the other
+  profiles were printed *"for reference without judging"*. The over-acceptance was caught by a human
+  reading a column the tool declined to check. `matrix.py` now carries a per-profile expectation,
+  judges **every** profile, and REFUSES an undeclared one (proven: `--profile pcre2` exits 1).
+  Re-running the FIXED matrix against the UNCHANGED pre-fix parser is what produced the reproducer:
+  **9 cases differing, from the same binary that had reported 0.**
+- **ADDRESSED:** repro matrix under `verilog_2005` **9 differing → 0**; `sv_2017` and `sv_2023`
+  hold at **0 → 0**. The load-bearing rows are the ones that did NOT move — the three legal
+  1364-2005 spellings, the `cell_clause` control, and above all an ordinary module instantiation
+  `adder #(8, 16) a1();`, which is legal Verilog-2001/2005 and would have been collateral damage
+  from any fix reaching for the shared `parameter_value_assignment` surface.
+- **NO REGRESSION — both corpus lanes BYTE-INERT.** 16 336 sv_2017 files (pass 9 734 → 9 734) and
+  2 459 v2005 files (pass 2 181 → 2 181), **0 per-file transitions of any kind in either lane**,
+  both adjudication manifests `cmp`-clean ⇒ **0 rows changed adjudication class anywhere**;
+  `unexplained_rejects_valid` — the control that matters for a TIGHTENING — 296/54 with 0 new by set
+  difference.
+- ⭐ **AND THAT ZERO WAS PREDICTED FROM THE GRAMMAR, NOT OBSERVED AFTERWARDS.** A tightening that
+  correctly moves nothing and a fix that silently did nothing are indistinguishable in a corpus
+  census, so `v2005_blast_radius.py` re-derives the reachability premise from the grammar text
+  (`use_clause` ← `config_rule_statement` ← `config_declaration`, which opens with `config`) and
+  scans the lane: **0 of 2 459 files contain the token `config` at all**. It REFUSES rather than
+  reporting a number if that premise stops holding, and carries positive / negative / planted
+  controls — its refusal path is not hypothetical, it fired during authoring.
+- ⭐ **SCHEMA STAYS 20, and this non-bump had to be MEASURED.** `.3.19` could argue its non-bump
+  from first principles (100 % unparseable ⇒ no witnessed shape can move); this leaf restructures a
+  rule that parses today. Two independent instruments: **15/15** accepting repro ASTs `cmp`-identical
+  under `sv_2017`, and the `use_clause_hash_named_override` shape lock — compared against a LIVE
+  parse every gate run — unmoved. ⇒ **a bare rule-reference alternative carrying no return
+  annotation is AST-transparent.** `.3.19` had placed that lock one leaf in advance for exactly
+  this restructuring.
+- **CENSUS PREDICTION HELD DIGIT FOR DIGIT:** `defined_rule_count` 1477 → 1478, `sv_2017`
+  1354 → 1355, `sv_2023` 1373 → 1374, `verilog_2005` 1122 → **1122 unchanged**, 0 rules changing
+  their satisfiable-profile set. ⇒ `sv_cert_recognized_union_gate` re-baselined **in the same
+  commit** (+1 total and +1 both witness columns, all-positive: proof 6, canonical UNKNOWN 11 and
+  union UNKNOWN 0 unchanged) and `verilog_2005_conformance_gate` correctly NOT (cert census
+  `1122/329/779/14` unchanged). First deliberate run of the `CI-PARITY-GATE-ROT.22` drill.
+  ⚠️ The leaf's own plan contradicted itself on this — one bullet said both contracts must be
+  re-baselined, the next said only one — and the measurement settled it. Recorded rather than
+  quietly resolved.
+- ⚠️ **ROUTED — `CI-PARITY-GATE-ROT.23`: `clippy_on_rust_change` is structurally blind to a
+  pure-grammar change.** It prints `No Rust/generated Rust changes detected` and a ✅ after 131 MB
+  of generated parser was rewritten, because its trigger set comes from `git diff` /
+  `git ls-files --others --exclude-standard` and `generated/` is gitignored — the one path class its
+  glob was written to catch is the one class git cannot report. Prior grammar leaves ran it only
+  because they incidentally also touched a tracked `rust/*.rs`. Worked around with
+  `PGEN_CLIPPY_FORCE=1` (GREEN incl. the STRICT generated stage). A skip indistinguishable from a
+  pass is worse than an orphan gate.
+- **GATES:** 17/17 doctrines; `sv_syntax_closure_gate` (`defined_rule_count` 1478,
+  `unreachable_rules: 0`, `unresolved_rule_reference_count: 0`); `sv_cert_recognized_union_gate`
+  (after re-baseline, `unmet_criteria_count: 0`, seeds 0/7/42); `verilog_2005_conformance_gate`
+  (no re-baseline, corpus 240 checks / 0 mismatches, orphans 0); `ast_shape_contract_gate` 18/18;
+  clippy source + STRICT generated + correctness-roster policy; SV book.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0037 — leaf SV-CORPUS-GRAD.3.19: the config `use` clause could not consume a `#`, because IEEE 1800 contradicts itself (grammar; release 1.0.180, schema UNCHANGED at 20, ledger SV-0050)
 
 - **A NEW defect class — the contradiction is inside the STANDARD, not in PGEN's reading of it.**

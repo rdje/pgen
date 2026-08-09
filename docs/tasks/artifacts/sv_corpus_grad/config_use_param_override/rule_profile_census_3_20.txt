@@ -1,0 +1,22 @@
+# SV-CORPUS-GRAD.3.20 — per-profile rule census, PRE vs POST the grammar edit.
+# ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --dump-rule-profiles <out.json>
+# (pre grammar = git show HEAD:grammars/systemverilog.ebnf, dumped from a copy named
+#  systemverilog.ebnf so the grammar NAME is identical on both arms)
+#
+# WHY THIS RUNS BEFORE THE GATES (the CI-PARITY-GATE-ROT.22 tripwire): .3.14b moved this
+# census and re-baselined neither cert contract, shipping both RED for a whole release.
+# The leaf PREDICTED this move in advance -- 1477->1478, sv_2017/sv_2023 +1, verilog_2005
+# +0 -- so the census is a FALSIFIABLE check on the fix, not a post-hoc reading.
+
+rule_count pre/post: 1477 1478
+rules added: ['use_clause_param_override_sv_only']  removed: []
+rules whose satisfiable-profile set CHANGED: 0
+pre  {'sv_2017': 1354, 'sv_2023': 1373, 'verilog_2005': 1122}
+post {'sv_2017': 1355, 'sv_2023': 1374, 'verilog_2005': 1122}
+PREDICTED post {'sv_2017': 1355, 'sv_2023': 1374, 'verilog_2005': 1122}  -> MATCH
+
+use_clause                        -> {'declared_profiles': None, 'satisfiable_under': ['sv_2017', 'sv_2023', 'verilog_2005']}
+use_clause_param_override_sv_only -> {'declared_profiles': ['sv_2017', 'sv_2023'], 'satisfiable_under': ['sv_2017', 'sv_2023']}
+
+=> sv_cert_recognized_union_gate MUST be re-baselined (+1); verilog_2005_conformance_gate
+   must NOT be (+0). Both were then run and confirmed exactly that.

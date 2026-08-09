@@ -3817,10 +3817,12 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
 
 ##### `.3.20` — the config `use_clause` parameter-override alternatives are not profile-gated, so `verilog_2005` accepts four (now five) forms IEEE 1364-2005 has no production for (routed by `.3.19`, 2026-08-09)
 
-- **Status: `todo` — the NEXT leaf in this lane**, not parked. It is a STRICTNESS
-  (tightening) fix under [[feedback_sv_strict_lrm_compliance_default]], so it carries a
-  regression risk the widening leaves do not: the per-FILE pass-set diff (the `.3.4` LAW) is
-  the primary safety instrument, and any `pass → fail` halts the leaf.
+- **Status: `done` (2026-08-09, `PGEN-SV-CORPUS-GRAD-0039`, release `1.0.181`, schema **20
+  UNCHANGED**, ledger `SV-0051`, parser yield 0 corpus rows BY CONSTRUCTION and that is the
+  point).** It is a STRICTNESS (tightening) fix under
+  [[feedback_sv_strict_lrm_compliance_default]], so it carries a regression risk the widening
+  leaves do not: the per-FILE pass-set diff (the `.3.4` LAW) is the primary safety instrument,
+  and any `pass → fail` halts the leaf. **Measured: 0 transitions of any kind, in either lane.**
 - **ISSUE (already measured by `.3.19`, evidence banked at
   `docs/tasks/artifacts/sv_corpus_grad/config_use_param_override/after_v2005.txt`):** under
   `--profile verilog_2005` the parser accepts `use .W(8)`, `use .W(8), .D(16)`,
@@ -3882,6 +3884,181 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   to assume — a tightening that moves nothing is also what a fix that silently did nothing
   looks like, so the leaf must show the repro matrix flipping `a4`–`a7`/`h1`–`h5` to REJECT
   under `verilog_2005` while holding them ACCEPT under `sv_2017`.
+
+**WORKED 2026-08-09 — what the plan above got right, and the one thing it got wrong:**
+
+- ⭐⭐ **THE REAL FINDING IS NOT THE FIX, IT IS THAT THE V2005 ARM OF THE MATRIX HAD NO ORACLE.**
+  `.3.19` ran its 17-case matrix under `verilog_2005` and banked the output as
+  `after_v2005.txt` — 17 rows, every `want` column reading `ACCEPT`, and a footer saying
+  **"cases differing from the post-fix expectation: 0"**. That file records nine
+  over-acceptances and calls them green. The cause is in `matrix.py`: it carried ONE
+  expectation column, `sv_2017`'s, and its own code said so —
+  *"`want` is the post-fix expectation under sv_2017 only; other profiles print it for
+  reference without judging"*. An instrument that prints a column it does not judge is a
+  confident guess with a header ([[feedback_instrument_needs_ground_truth]]).
+  ⛔ The over-acceptance was found by a HUMAN reading a column the tool declined to check —
+  which is exactly the failure mode the tool exists to remove. `.3.20` therefore fixes the
+  instrument first: `CASES` now carries a per-profile expectation `(sv, v2005)`, **every**
+  profile is judged, and an unrecognized profile is a **REFUSAL** (proven: `--profile pcre2`
+  exits 1 with `REFUSE: no per-case expectation declared`) rather than an unjudged run.
+  Re-running the FIXED matrix against the UNCHANGED pre-fix parser is what produced
+  `before_3_20_v2005.txt`: **9 cases differing**, from the same binary that had reported 0.
+- **ROOT CAUSE (WHY + WHERE), re-measured on this leaf rather than inherited:**
+  `./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --dump-rule-profiles` reports
+  `use_clause -> {'declared_profiles': None, 'satisfiable_under': ['sv_2017', 'sv_2023',
+  'verilog_2005']}`. The rule carries no `@profiles` directive at all, so four
+  SystemVerilog-only alternatives sit in a profile-universal rule
+  (`rule_profile_census_3_20.txt`).
+- **FIX — tier 1, pure grammar, exactly the shape settled in advance.** `@profiles` is a
+  RULE-level directive, so the four override alternatives moved verbatim and IN ORDER into
+  `@profiles: ["sv_2017", "sv_2023"] use_clause_param_override_sv_only`, and `use_clause`
+  became `use_clause_param_override_sv_only | <the single 1364-2005 form>`. House pattern:
+  `always_keyword` / `always_keyword_sv_only` (`:646`). Zero new tokens.
+- **ALL THREE ADVANCE-DECLARED TRAPS CLEARED, VERIFIED AT IR LEVEL, NOT BY READING THE FILE**
+  (`ir_split_verification_3_20.txt`, from `--dump-gen-ast` on both grammars):
+  1. **Sibling referenced FIRST** — `use_clause` alternative 0 is the bare
+     `rule_reference use_clause_param_override_sv_only`, so `GRAMMAR-WELLFORMED.G.4.8`'s
+     specific-before-general ordering is *relocated*, not relaxed.
+  2. **`$N` indices unshifted** — `branch_return_annotations['use_clause']` goes
+     `[null,null,null,null,{library: $2, name: $3, config: $4}]` →
+     `[null,{library: $2, name: $3, config: $4}]`: the object moved with its own arm.
+  3. **The moved comment block did not truncate the new rule** —
+     `use_clause_param_override_sv_only` has **4** alternatives, and the whole-grammar IR diff
+     shows **exactly one rule added, one rule's body changed, `rule_order` otherwise
+     identical**, with annotation deltas confined to those two rules. This leaf moves a comment
+     block into a new rule body, i.e. straight into the `EBNF-FRONTEND-SILENT-TRUNCATION` trap
+     `.3.19` paid for; the IR is the only instrument that can see it.
+- ⭐ **THE CENSUS PREDICTION WAS FALSIFIABLE AND IT HELD, DIGIT FOR DIGIT.** Predicted before
+  the edit: `defined_rule_count` 1477 → 1478, `sv_2017` 1354 → 1355, `sv_2023` 1373 → 1374,
+  `verilog_2005` 1122 → **1122 unchanged**. Measured: exactly that, with **0** rules changing
+  their satisfiable-profile set. ⇒ `sv_cert_recognized_union_gate` needs a re-baseline and
+  `verilog_2005_conformance_gate` does not.
+- ⚠️ **THIS LEAF'S OWN PLAN CONTRADICTED ITSELF ABOUT THAT, AND THE MEASUREMENT SETTLED IT.**
+  One bullet above says *"BOTH CERT CONTRACTS MUST BE RE-BASELINED"*; the bullet before it says
+  the union contract *"needs a re-baseline and `verilog_2005_conformance_gate` should **not**"*.
+  Both were written the same day. The `+1 / +0` census is the arbiter: the union contract moved
+  and was re-baselined **in the same commit**; the v2005 contract was left alone and its gate
+  came back GREEN with the cert census `1122/329/779/14` **unchanged**. Recording this rather
+  than quietly picking one: a plan that disagrees with itself is a plan whose numbers were
+  never measured, and the only safe response is to run the instrument.
+- **The re-baseline is the gate's OWN output, not a hand-computed prediction.** The gate was run
+  BEFORE the contract was touched and named all 12 unmet criteria itself — 4 per seed × 3 seeds,
+  identical deltas: `canonical total 1355 (expected 1354)`, `canonical witness 1338 (expected
+  1337)`, `union total 1355 (expected 1354)`, `union witness 1349 (expected 1348)`. Accounting
+  fully positive: `expected_proof` 6, `expected_canonical_unknown` 11, `expected_union_unknown`
+  0 and `expected_union_residual_rules` `[]` all UNCHANGED — the new rule is WITNESSED.
+- ⭐ **SCHEMA STAYS AT 20 — and this non-bump is the one that had to be measured.** `.3.19`
+  could argue its non-bump from first principles (the construct was 100 % unparseable, so no
+  witnessed shape could move). This leaf cannot: it RESTRUCTURES a rule that parses today. Two
+  independent instruments say the AST does not move: **15/15** accepting repro cases `cmp`-identical
+  under `sv_2017` (and the 6 still-legal ones identical under `verilog_2005`), and the
+  `use_clause_hash_named_override` shape lock — whose observed `content_kind` is compared against
+  a LIVE parse on every gate run (`ast_shape_contract.rs:639`) — unmoved. ⇒ **a bare
+  rule-reference alternative carrying no return annotation is AST-transparent.** That is a
+  reusable fact about PGEN's emission, not a fact about `use_clause`
+  (`ast_identity_3_20.txt`). ⛔ `.3.19` added that sample writing *"`.3.20` is about to SPLIT
+  this rule … this sample is what makes that restructuring gate-visible instead of silent"* —
+  the lock was placed one leaf in advance and it did its job.
+- **ADDRESSED (verified) — the repro matrix moves in exactly one profile:**
+
+  | profile | before | after |
+  |---|---|---|
+  | `verilog_2005` | **9** cases differ from the LRM expectation | **0** |
+  | `sv_2017` | 0 | 0 |
+  | `sv_2023` | 0 | 0 |
+
+  The nine are `a4`–`a7` (the four named-override forms, over-accepted since the parser existed)
+  and `h1`–`h5` (the `#( … )` forms, over-accepted since `.3.19`). ⭐ The load-bearing rows are the
+  ones that did **not** move: `a1`–`a3` (the legal 1364-2005 spellings), `c2` (a `cell_clause`
+  `use`), and above all **`c3` — an ordinary module instantiation `adder #(8, 16) a1();`**, which
+  is legal Verilog-2001/2005 and would have been collateral damage from any fix that reached for
+  the shared `parameter_value_assignment` surface instead of the config-local one.
+- **NO REGRESSION — the `.3.4` LAW, per-FILE, in BOTH lanes** (`transitions_3_20_sv2017.txt`,
+  `transitions_3_20_v2005.txt`, `adjudication_setdiff_3_20.txt`):
+  - **sv_2017: 16 336 files, `pass→pass` 9 734, `fail→fail` 6 598, `timeout→timeout` 4 —
+    ZERO transitions of any kind.** v2005: **2 459 files, `pass→pass` 2 181, `fail→fail` 278 —
+    ZERO transitions.** Key sets identical on both sides of both lanes.
+  - **Both adjudication manifests `cmp`-CLEAN** ⇒ **0 rows changed adjudication class anywhere**,
+    in either lane. `unexplained_rejects_valid` — ⛔ **the control that matters for a TIGHTENING**,
+    since taking language away is what turns a correctly-accepted file into a wrongly-rejected
+    one — is 296 (sv_2017) / 54 (v2005) with **0 new** by set difference. `unexplained_accepts_invalid`
+    likewise 21 / 14, 0 new.
+  - The raw `results*.tsv` differ from their baselines only in parallel-job ROW ORDER; sorted, they
+    are byte-identical. Stated rather than hidden, because "the file changed" would otherwise read
+    as a finding.
+- ⭐ **AND THE ZERO WAS PREDICTED FROM THE GRAMMAR, NOT OBSERVED AFTERWARDS** — which is the only
+  way to tell a tightening that correctly moves nothing from a fix that silently did nothing.
+  `v2005_blast_radius.py` re-derives the reachability premise from the grammar text itself
+  (`use_clause` ← `config_rule_statement` ← `config_declaration`, which opens with the `config`
+  keyword) and then scans the lane: **0 of 2 459 files contain the token `config` at all** — so
+  the maximum reachable blast radius is literally zero. ⛔ It **REFUSES** rather than reporting a
+  number if that premise stops holding, and carries three ground-truth controls (positive,
+  negative, and a planted `use_clause` reference the derivation must catch). Its refusal path
+  is not hypothetical: it fired during authoring, because the grammar spells the keyword rule
+  `kw_config_dfba7aad` and the check looked for `kw_config`. A guard that fires for a
+  bookkeeping reason is one edit away from a guard that never fires, so the controls are now
+  permanent.
+- ⚠️ **INSTRUMENT GAP FOUND AND ROUTED — `clippy_on_rust_change` is structurally blind to a
+  pure-grammar change.** Its trigger set is derived from `git diff` / `git ls-files --others`
+  and includes `generated/*.rs` — but `generated/` is `.gitignore`d, so a regenerated parser is
+  invisible to it. A leaf that edits only `grammars/*.ebnf` therefore gets *"No Rust/generated
+  Rust changes detected; skipping clippy flow"* even though it just rewrote 131 MB of the very
+  artifact the flow exists to lint. Worked around here with `PGEN_CLIPPY_FORCE=1` (GREEN: source
+  strict + the STRICT generated stage + the correctness-roster policy check); ⛔ **it did not
+  block this leaf and the lane lock is the SV release, so it is ROUTED, not worked** →
+  `CI-PARITY-GATE-ROT.23` ([[feedback_flow_findings_are_routed_not_worked]],
+  [[feedback_every_finding_must_be_fixed_not_logged]]).
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the FIXED matrix run against the UNCHANGED pre-fix parser
+  (`before_3_20_v2005.txt`): under `--profile verilog_2005`, `a4`–`a7` and `h1`–`h5` all report
+  `ACCEPT` against `want REJECT`, footer **"cases differing from the post-fix expectation: 9"**,
+  while `before_3_20_sv2017.txt` / `before_3_20_sv2023.txt` report **0**. Minimal reproducer:
+  `./rust/target/release/parseability_probe --parse systemverilog repro/a4_use_named_only.sv
+  --profile verilog_2005` → `parse_full passed` (wrong; IEEE 1364-2005 Annex A A.1.5 `:119` has
+  one `use_clause` alternative and zero occurrences of `use #(`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf
+  --dump-rule-profiles` reports `use_clause -> {'declared_profiles': None, 'satisfiable_under':
+  ['sv_2017', 'sv_2023', 'verilog_2005']}` (`rule_profile_census_3_20.txt`): the rule at
+  `grammars/systemverilog.ebnf:6039` carries no `@profiles` directive, so four SystemVerilog-only
+  alternatives are satisfiable under the strict profile. `--lint-grammar` is clean before and
+  after (`profile_orphans=0`), which is exactly why nothing was reporting it.
+- [x] **FIX** — tier 1, pure grammar, zero new tokens: the four override alternatives move verbatim
+  and in order into `@profiles: ["sv_2017", "sv_2023"] use_clause_param_override_sv_only`
+  (`grammars/systemverilog.ebnf:6049`), referenced FIRST by `use_clause`. Why no lower tier: the
+  `@profiles` directive is rule-level, so a per-alternative gate is not expressible declaratively;
+  the sibling split IS the declarative idiom (`always_keyword_sv_only`, `:646`).
+- [x] **ADDRESSED (verified)** — repro matrix under `verilog_2005` **9 cases differing → 0**, with
+  `sv_2017` and `sv_2023` holding at **0 → 0**; nine spellings flip ACCEPT→REJECT and the six legal
+  ones plus all three controls hold. Oracles, each re-runnable and deterministic:
+  `matrix.py --profile {sv_2017,sv_2023,verilog_2005}` (release probe);
+  `ast_pipeline --dump-rule-profiles` (census `1477→1478`, `sv_2017 1354→1355`, `sv_2023
+  1373→1374`, `verilog_2005 1122→1122`, exactly as predicted);
+  `ast_pipeline --generate-parser --dump-gen-ast` (IR: one rule added, one body changed,
+  `rule_order` otherwise identical, sibling has its 4 alternatives).
+- [x] **NO REGRESSION** — per-file census **0 transitions of ANY kind** across 16 336 sv_2017 files
+  and 2 459 v2005 files (identical key sets); both adjudication manifests **`cmp`-clean**, so 0 rows
+  changed adjudication class and `unexplained_rejects_valid` (the tightening control) is 296/54 with
+  **0 new** by set difference; ASTs **byte-identical 15/15** under `sv_2017`;
+  `sv_syntax_closure_gate` GREEN (`defined_rule_count: 1478`, `unreachable_rules: 0`,
+  `unresolved_rule_reference_count: 0`); `sv_cert_recognized_union_gate` GREEN after an in-commit
+  re-baseline (canonical UNKNOWN 11, union UNKNOWN 0, witness 1349, residual `[]`, seeds 0/7/42,
+  `unmet_criteria_count: 0`); `verilog_2005_conformance_gate` GREEN with **NO** re-baseline
+  (`CERTIFICATE-COVERAGE: … total=1122 proof=329 witness=779 UNKNOWN=14 … sample_parse_failures=0,
+  proof_reverify_failures=0`, corpus 240 checks / 0 mismatches, `lint_profile_orphans: 0`, seeds
+  0/7/42); `ast_shape_contract_gate` GREEN (18/18, `use_clause_hash_named_override` observed
+  `content_kind` unmoved); `clippy_on_rust_change` GREEN under `PGEN_CLIPPY_FORCE=1` incl. the
+  STRICT generated stage and `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`;
+  `bash scripts/check_doctrines.sh` 17/17.
+- [x] **LOCKSTEP** — ledger `SV-0051`; contract `1.0.181` (schema **20, deliberately unchanged**,
+  with a measured justification and a current-state note closing `.3.19`'s flagged residual);
+  `sv_cert_recognized_union_gate` contract re-baselined with an attributing note in the SAME commit
+  (`CI-PARITY-GATE-ROT.22`); SV book `changelog-index.md`, `json-carrier.md` (the section's
+  "Bound worth knowing" replaced by a per-profile acceptance table) and `schema-versioning.md`;
+  `matrix.py` upgraded to a per-profile oracle; new artifacts
+  `analyze_adjudication_setdiff.py`, `v2005_blast_radius.py`; `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`; new leaf `CI-PARITY-GATE-ROT.23`.
 
 ##### `.3.21` — `classify_rejects_valid_families.py` defaults to the RETIRED `_v2` artifacts, so the obvious invocation silently reads a July input and leaves the live report stale (routed by `.3.19`, 2026-08-09)
 

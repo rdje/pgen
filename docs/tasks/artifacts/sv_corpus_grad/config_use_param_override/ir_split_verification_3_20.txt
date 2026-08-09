@@ -1,0 +1,40 @@
+# SV-CORPUS-GRAD.3.20 — IR-LEVEL verification of the use_clause sibling split.
+# ./rust/target/debug/ast_pipeline <grammar> --generate-parser --dump-gen-ast <out.json>
+#   --eliminate-left-recursion --output <parser.rs>
+#
+# WHY THIS EXISTS: .3.19 measured that a COLUMN-0 comment line inside a rule body silently
+# ENDS the rule and discards every following alternative -- with --lint-grammar clean,
+# defined_rule_count unchanged and --dump-rule-profiles byte-identical. No count-based
+# instrument can see it (no rule is added or removed; only the INSIDE of one rule shrinks),
+# so the alternative COUNT and the annotation PLACEMENT are read straight out of the IR.
+# This leaf moves a comment block into a new rule body, so it is exposed to exactly that trap.
+
+## Whole-grammar IR diff (every rule body compared)
+  rules pre/post : 1477 -> 1478
+  added          : ['use_clause_param_override_sv_only']
+  removed        : []
+  body-changed   : ['use_clause']
+  rule_order identical once the one added rule is removed: True
+
+## Annotation diff (which rules' annotations moved)
+  branch_mid_sequence_semantic_annotations      differing rules = []
+  branch_return_annotations                     differing rules = ['use_clause']
+  branch_semantic_annotations                   differing rules = ['use_clause', 'use_clause_param_override_sv_only']
+  lexical_follow_restrictions                   differing rules = []
+  pre_lr_elim_branch_return_annotations         differing rules = ['use_clause']
+  semantic_annotations                          differing rules = ['use_clause_param_override_sv_only']
+
+## TRAP 1 — the sibling must be referenced FIRST (GRAMMAR-WELLFORMED.G.4.8).
+  use_clause alternatives: 2
+  alternative 0 is the bare sibling reference: True
+  alternative 0 = {"Atom": {"value": {"Token": [{"String": "rule_reference"}, {"String": "use_clause_param_override_sv_only"}]}}}
+
+## TRAP 2 — the return annotation stays on the SIMPLE alt with UNSHIFTED $N indices.
+  branch_return_annotations['use_clause'] = [null, {library: $2, name: $3, config: $4}]
+  pre  = [null, null, null, null, {library: $2, name: $3, config: $4}]  (5 alts)
+  post = [null, {library: $2, name: $3, config: $4}]                     (2 alts)
+  -> the object simply moved with its own arm; the indices did not shift.
+
+## TRAP 3 — the moved comment block did not truncate the new rule.
+  use_clause_param_override_sv_only alternatives: 4 (want 4)
+  rule-level @profiles: ['["sv_2017", "sv_2023"]']

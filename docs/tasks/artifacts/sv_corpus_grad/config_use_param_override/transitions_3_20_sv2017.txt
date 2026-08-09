@@ -1,0 +1,22 @@
+# SV axis-2 per-file transition census
+
+before : rust/target/sv_axis2_baseline/results.pre_3_20.tsv  (16336 rows)
+after  : stimuli/sv/characterization/results.tsv  (16336 rows)
+common : 16336   only-before: 0   only-after: 0
+
+pass count : 9734 -> 9734  (delta +0)
+
+## Transition matrix (common files only)
+
+| before | after | files |
+|---|---|---|
+| pass | pass | 9734 |
+| fail | fail | 6598 |
+| timeout | timeout | 4 |
+
+## Per sub-corpus changed transitions
+
+| sub-corpus | transition | files |
+|---|---|---|
+| _(none)_ | | |
+
