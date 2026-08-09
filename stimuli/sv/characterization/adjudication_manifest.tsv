@@ -697,8 +697,8 @@ Surelog	tests/PoundDelay/dut.sv	pass	must_accept	match	Surelog: golden log Pound
 Surelog	tests/PoundDelayTask/dut.sv	pass	must_accept	match	Surelog: golden log PoundDelayTask.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PoundParam/dut.v	fail	must_accept	divergence:explained_svpp_conditional	Surelog: golden log PoundParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PpLppdr/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log PpLppdr.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/PragmaProtect/pp.top.sv	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
-Surelog	tests/PragmaProtect/svpp_all/top.sv	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
+Surelog	tests/PragmaProtect/pp.top.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
+Surelog	tests/PragmaProtect/svpp_all/top.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/PragmaProtect/top.sv	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/PreProcDefine/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log PreProcDefine.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PreProcMacro/dut.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	Surelog: golden log PreProcMacro.log reports [SNT:] syntax errors - upstream keys this single-source unit parse-level invalid - but macro/conditional-dependent: the reject expectation is only meaningful post-preprocessing (svpp lane)
@@ -2836,7 +2836,7 @@ ispras-sv-tests	ieee-1800-2012/33/33.04.03_07.sv	fail	must_accept	divergence:une
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.06_01.v	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.06_01_adder.v	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/34/34.03.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/34/34.03.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/34/34.03.01_02.sv	fail	must_accept	divergence:explained_svpp_protected_envelope	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/35/35.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/35/35.05.04_01.sv	pass	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
@@ -4229,7 +4229,7 @@ iverilog	ivtest/ivltests/net_darray_fail.v	fail	must_reject	match	ivtest CE pinn
 iverilog	ivtest/ivltests/net_queue_fail.v	fail	must_reject	match	ivtest CE pinned .8b.3: net declaration dimensions - A.2.4 net_decl_assignment admits only unpacked_dimension ([constant_range] | [constant_expression]); '[]' is unsized_dimension (not admitted) and '$' is not a constant_primary, so 'wire x[];' / 'wire x[$];' match no production
 iverilog	ivtest/ivltests/net_string_fail.v	pass	must_accept	match	ivtest CE pinned .8b.3: net of class/string type - A.2.1.3 net_declaration admits any data_type; the 4-state-integral-only net rule is 6.7.1 prose (the .8b.2 ispras 06.07.01_02 mirror)
 iverilog	ivtest/ivltests/no_if_statement.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/no_timescale_in_module.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/no_timescale_in_module.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/non-polymorphic-abs.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is not encoded in the descriptor)
 iverilog	ivtest/ivltests/not_a_latch1.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/not_a_latch2.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
@@ -11280,12 +11280,12 @@ sv-tests	tests/chapter-5/5.6.1--nonescaped-access.sv	pass	must_accept	match	sv-t
 sv-tests	tests/chapter-5/5.6.3--system-functions.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-celldefine.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug-line.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug-line.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-default-nettype.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-define.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-include.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-5/5.6.4--compiler-directives-pragma.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-pragma.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-preprocessor-macro_0.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane)
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-preprocessor-macro_1.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv-tests: positive test
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-resetall.sv	pass	must_accept	match	sv-tests: positive test
@@ -11611,7 +11611,7 @@ sv-tests	tests/generic/class/class_test_28.sv	pass	must_accept	match	sv-tests: p
 sv-tests	tests/generic/class/class_test_29.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_30.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_4.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/generic/class/class_test_48.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/generic/class/class_test_48.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_49.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_51.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/generic/class/class_test_52.sv	pass	must_accept	match	sv-tests: positive test
@@ -12327,7 +12327,7 @@ sv2v	test/core/tf_typedef.sv	pass	must_accept	match	sv2v: conversion-input .sv (
 sv2v	test/core/tf_typedef.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/tf_unpacked_input.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/tf_unpacked_input.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/time.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/time.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/time.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/top_tf.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/top_tf.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -14719,10 +14719,10 @@ verilator	test_regress/t/t_lint_iface_topmodule3.v	pass	must_accept	match	verila
 verilator	test_regress/t/t_lint_iface_topmodule_bad.v	pass	must_accept	match	verilator: driver t_lint_iface_topmodule_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_ifdepth_bad.v	pass	must_accept	match	verilator: driver t_lint_ifdepth_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_implicit.v	pass	must_accept	match	verilator: driver t_lint_implicit.py expects success
-verilator	test_regress/t/t_lint_implicit_def_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_implicit_def_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_lint_implicit_func_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_implicit_func_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_lint_implicit_def_bad.v	fail	must_reject	match	pinned .3.14a: `default_nettype none/wire inside module t (lines 17, 20) - IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE design elements; spec outranks the verilator driver heuristic
+verilator	test_regress/t/t_lint_implicit_func_bad.v	fail	must_reject	match	pinned .3.14a: `default_nettype wire inside module t (line 11) - IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE design elements; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_lint_implicit_port.v	pass	must_accept	match	verilator: driver t_lint_implicit_port.py expects success
-verilator	test_regress/t/t_lint_implicit_type_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_implicit_type_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_lint_implicit_type_bad.v	fail	must_reject	match	pinned .3.14a: `default_nettype wire inside module t (line 14) - IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE design elements; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_lint_implicitstatic_bad.v	pass	must_accept	match	verilator: driver t_lint_implicitstatic_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_import_name2_bad.v	pass	must_accept	match	verilator: driver t_lint_import_name2_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_import_name_bad.v	pass	must_accept	match	verilator: driver t_lint_import_name_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid

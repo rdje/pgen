@@ -15,24 +15,24 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `780b9f06fe076b54724f7c5aeaf232a910d4224d2e8de5fb780bbef32860aecb` |
-| grammar | `grammars/systemverilog.ebnf` | `77a55719dc77831c0242195408ae2d3cfcf1bfeaf44ab42952fbc46036c355ef` |
-| generated parser | `generated/systemverilog_parser.rs` | `6bf175d27b02dcf09e67a1b4f9bf04c2c90005f3287031fc2f3721f92669537b` |
+| parse binary | `rust/target/release/parseability_probe` | `a61c29e5eba2ee4e7d897f746eecd49df1936c7c50d06527f172e27ba7e4371e` |
+| grammar | `grammars/systemverilog.ebnf` | `2439cb18a98560ae83fe09e5c572cadd03445d089798131c53b4ea22092786b0` |
+| generated parser | `generated/systemverilog_parser.rs` | `24ae8a3d9534e0a0ab4d903ef3c757c4e98d04b6aa432686d1ae2daddde2ba24` |
 
-Measured at `HEAD` = `b5187e04+dirty` (2026-08-08).
+Measured at `HEAD` = `09576657+dirty` (2026-08-08).
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 2459 | 2181 | 278 | 0 | 0 | 88.7% |
+| 2459 | 2180 | 279 | 0 | 0 | 88.7% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | ispras-sv-tests | 356 | 316 | 40 | 0 | 0 | 88.8% |
-| iverilog | 1762 | 1584 | 178 | 0 | 0 | 89.9% |
+| iverilog | 1762 | 1583 | 179 | 0 | 0 | 89.8% |
 | sv2v | 341 | 281 | 60 | 0 | 0 | 82.4% |
 
 _Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv`._

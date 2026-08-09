@@ -1,0 +1,53 @@
+=== CONTROLS (the harness refuses to continue if either misses) ===
+positive control  "module m; endmodule"      -> PASS (must be PASS)
+negative control  "module m; endmodul"       -> REJECT (must be REJECT)
+
+=== A. TOLERATED in a MODULE body — expect PASS ===
+ok    `celldefine                              sv_2017      expect=PASS   got=PASS
+ok    `endcelldefine                           sv_2017      expect=PASS   got=PASS
+ok    `timescale                               sv_2017      expect=PASS   got=PASS
+ok    `pragma                                  sv_2017      expect=PASS   got=PASS
+ok    `line                                    sv_2017      expect=PASS   got=PASS
+ok    `undef                                   sv_2017      expect=PASS   got=PASS
+ok    `undefineall (SV)                        sv_2017      expect=PASS   got=PASS
+
+=== B. TOLERATED in a CLASS body — expect PASS ===
+ok    `undef in class                          sv_2017      expect=PASS   got=PASS
+ok    `pragma in class                         sv_2017      expect=PASS   got=PASS
+
+=== C. PLACEMENT-RESTRICTED in a module body — expect REJECT (LRM forbids) ===
+ok    `resetall  (22.3/19.6)                   sv_2017      expect=REJECT got=REJECT
+ok    `default_nettype (22.8/19.2)             sv_2017      expect=REJECT got=REJECT
+ok    `unconnected_drive (22.9/19.9)           sv_2017      expect=REJECT got=REJECT
+ok    `nounconnected_drive (22.9)              sv_2017      expect=REJECT got=REJECT
+ok    `begin_keywords (22.14/19.11)            sv_2017      expect=REJECT got=REJECT
+ok    `end_keywords (22.14/19.11)              sv_2017      expect=REJECT got=REJECT
+
+=== D. TEXT-HIDING / TEXT-REWRITING in a module body — expect REJECT ===
+ok    `include                                 sv_2017      expect=REJECT got=REJECT
+ok    `define                                  sv_2017      expect=REJECT got=REJECT
+ok    `ifdef                                   sv_2017      expect=REJECT got=REJECT
+ok    `ifndef                                  sv_2017      expect=REJECT got=REJECT
+ok    `else                                    sv_2017      expect=REJECT got=REJECT
+ok    `elsif                                   sv_2017      expect=REJECT got=REJECT
+ok    `endif                                   sv_2017      expect=REJECT got=REJECT
+
+=== E. NOT DIRECTIVES — unexpanded MACRO uses stay REJECT (no over-acceptance) ===
+ok    user macro in module                     sv_2017      expect=REJECT got=REJECT
+ok    uvm macro in class                       sv_2017      expect=REJECT got=REJECT
+ok    `__FILE__ (22.13)                        sv_2017      expect=REJECT got=REJECT
+ok    `__LINE__ (22.13)                        sv_2017      expect=REJECT got=REJECT
+ok    name-prefix guard                        sv_2017      expect=REJECT got=REJECT
+ok    name-prefix guard 2                      sv_2017      expect=REJECT got=REJECT
+
+=== F. TOP LEVEL is UNCHANGED (source_text_item already tolerated these) ===
+ok    `timescale top-level                     sv_2017      expect=PASS   got=PASS
+ok    `default_nettype top-level               sv_2017      expect=PASS   got=PASS
+
+=== G. PROFILE GATING ===
+ok    `timescale in module (v2005)             verilog_2005 expect=PASS   got=PASS
+ok    `undefineall in module (v2005)           verilog_2005 expect=REJECT got=REJECT
+ok    `timescale in module (2023)              sv_2023      expect=PASS   got=PASS
+ok    `undefineall in module (2023)            sv_2023      expect=PASS   got=PASS
+
+MATRIX: all rows match expectation (0 misses)

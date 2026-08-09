@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0033 — the fix that measured as a no-op, and the two clauses nobody had read
+
+Three things in this slice are worth carrying past it, and none of them is the grammar edit.
+
+⛔ **"Regeneration succeeded" is not "the edit landed."** The new alternative was added to two
+rules, `focus_systemverilog` exited 0, the release probe rebuilt, and the measured behaviour was
+**byte-for-byte what it had been before** — all 8 target files still rejecting. Nothing anywhere
+reported a problem. The rule was in the generated parser with 65 name references and **no caller**;
+`cascade_match_non_port_module_item` carried **8 alternatives, not 9**. Root cause: a `#` comment at
+COLUMN 0 inside an alternation list terminates the rule, and every `|` arm below it is dropped
+silently. The same comment indented to the continuation column is absorbed — measured both ways, on
+arms in the same grammar. ⭐ **The generalisable part is the direction of the failure: it fails in
+the ACCEPTING direction.** A dropped arm only narrows the accepted language, so no pass-rate, corpus
+delta, AST-shape gate or unrelated test can see it. The only symptom is "my change did nothing",
+which reads exactly like a wrong hypothesis about the grammar and sends you back to re-read EBNF you
+already wrote correctly. The cheap discriminator is a REACHABILITY grep for a *caller*
+(`parse_<rule>()`), not for the rule NAME — the definition and the dispatch table always mention the
+name, so a nonzero name count proves nothing. Promoted: `docs/decisions/project_grammar_edit_must_be_proven_reachable_in_generated_parser.md`.
+
+⭐⭐ **A ruling derived from the population is not a ruling derived from the spec, and this slice
+caught the SECOND generation of that mistake.** `.3.13` routed 8 rows with "the standing law is
+TOLERATE". `.3.14a` refuted it by reading clause 22 directive by directive — tolerate 5, keep
+rejecting 3 — and produced a ruling table. `.3.14b` then refuted `.3.14a`'s table, because that
+table had enumerated only the six directive names the routed population happened to contain. Reading
+IEEE 1800-2017 clause 22 **and** IEEE 1364-2005 clause 19 end to end surfaced two further
+placement-restricted families — `` `unconnected_drive ``/`` `nounconnected_drive `` (§22.9/§19.9)
+and `` `begin_keywords ``/`` `end_keywords `` (§22.14/§19.11) — neither of which appears anywhere in
+the corpus, and both of which a population-derived whitelist would have tolerated. **The corpus tells
+you which rows exist; only the clause tells you which rows are LEGAL.** Deriving a rule from the
+sample is how a burn-down quietly becomes an over-acceptance regression, inside the very leaf cut to
+prevent that.
+
+⚠️ **The control harness passed vacuously on its first run, and the tell was a contradiction, not a
+suspicious number.** `printf '%s'` writes a literal `\n`; every case collapsed to one line, every
+case rejected, and the whole `expect=REJECT` half of the matrix reported `ok` while measuring
+nothing. Nothing about the output looked wrong — a wall of `ok` is what a passing matrix looks like.
+It was caught only because a known-good reproducer had already been measured to PASS and the matrix
+said its construct REJECTed. The shipped harness now pins a positive AND a negative control and
+REFUSES to print a matrix if either misses ([[feedback_instrument_needs_ground_truth]]). The
+sharper lesson: **the "expect failure" half of any matrix is where vacuity hides**, because the
+degenerate instrument and the correct instrument agree there.
+
 ## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0029 — the same invariant, violated a second time, with the same wrong first cure
 
 The SV corpus burn-down's next leaf was cut expecting a missing Annex-A alternative and found an

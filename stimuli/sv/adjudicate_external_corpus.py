@@ -204,6 +204,45 @@ def expect_sv_tests(relpath: str, text: str):
     return ("must_accept", "sv-tests: positive test")
 
 
+# SV-CORPUS-GRAD.3.14a/.3.14b — the SPEC outranks the TOOL.
+#
+# `VerilatorIndex.expect()` below derives its answer key from verilator's own driver
+# conventions: `fails=True` + no "syntax error" in the golden `.out` => the syntax is
+# valid => `must_accept`. That heuristic is upstream TOOL testimony, and for these three
+# files it is wrong as a CONFORMANCE statement: each places `` `default_nettype `` INSIDE
+# a module body, which both normative clauses forbid outright —
+#
+#   "It can be used only outside design elements."
+#     — IEEE 1800-2017 §22.8  (docs/systemverilog/2017/md/section-22-compiler-directives.md)
+#   "It can be used only outside of module definitions."
+#     — IEEE 1364-2005 §19.2  (docs/verilog/2005/md/section-19-compiler-directives.md)
+#
+# Verilator TOLERATING the construct is a real-world datum, not a conformance argument.
+# The corpus doctrine ranks the LRM above the tool, and these pin tables
+# (`ISPRAS_NEGATIVE_PINNED`, `IVTEST_CE_STAGE_PINNED`, …) are the standing mechanism for
+# exactly that. Pinning them `must_reject` makes today's REJECT a `match` — the parser is
+# claimed CORRECT WITH A CITE rather than the rows being quietly deferred.
+#
+# ⛔ These three are the reason `.3.14b`'s grammar fix is a NAME WHITELIST and not a
+# blanket directive-tolerance rule: a blanket rule would have made them PASS, converting
+# a correct reject into an over-acceptance defect
+# (feedback_sv_strict_lrm_compliance_default).
+VERILATOR_PINNED = {
+    "test_regress/t/t_lint_implicit_def_bad.v": ("must_reject",
+        "pinned .3.14a: `default_nettype none/wire inside module t (lines 17, 20) - "
+        "IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE design "
+        "elements; spec outranks the verilator driver heuristic"),
+    "test_regress/t/t_lint_implicit_func_bad.v": ("must_reject",
+        "pinned .3.14a: `default_nettype wire inside module t (line 11) - "
+        "IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE design "
+        "elements; spec outranks the verilator driver heuristic"),
+    "test_regress/t/t_lint_implicit_type_bad.v": ("must_reject",
+        "pinned .3.14a: `default_nettype wire inside module t (line 14) - "
+        "IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE design "
+        "elements; spec outranks the verilator driver heuristic"),
+}
+
+
 class VerilatorIndex:
     """Answer key from t/*.py driver conventions + t/*.out goldens."""
 
@@ -229,6 +268,11 @@ class VerilatorIndex:
 
     def expect(self, relpath: str):
         # relpath is relative to the verilator submodule root.
+        # SV-CORPUS-GRAD.3.14a: the LRM pins run FIRST - they override the driver
+        # heuristic below, which is tool testimony rather than a conformance claim.
+        pinned = VERILATOR_PINNED.get(relpath.replace("\\", "/"))
+        if pinned:
+            return pinned
         parts = Path(relpath).parts
         if len(parts) != 3 or parts[0] != "test_regress" or parts[1] != "t":
             return ("chained_only",

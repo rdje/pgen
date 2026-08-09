@@ -14,6 +14,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `source_text_item` (7 branches) | per-branch `{kind: "<name>", body: $1}` (or `{kind: "semi"}` for branch 6) | Typed object with `kind` discriminator: `"description"`, `"local_parameter_declaration"`, `"parameter_declaration"`, `"package_import_declaration"`, `"timeunits_declaration"`, `"compiler_directive"`, `"semi"`. The `body` field carries the matched sub-rule's raw envelope OR a typed sub-rule shape if that sub-rule is itself annotated. For `kind: "description"`, body is now itself typed (per SV-Slice-4). The `semi` branch carries no `body` since it's just a stray `;`. Trailing `semi` dropped in branches 1 and 2 (annotation references `$1` only). **The former 8th branch `comment_only_source_region` was removed (GRAMMAR-WELLFORMED.H.12.5.3): it was engine-shadowed-dead — the layout skipper consumes comments as leading trivia before this rule's branch is tried, so a comment-only region is always absorbed as layout and the `comment_only_source_region` kind was never emitted in any AST (a comment-only file parses to an empty `source_text`). Removing it is accept-identical — no schema/release bump — and narrows the declared union to the kinds that can actually occur. |
 | `description` (8 branches) | per-branch `{kind: "<name>", body: $1}` for single-element branches; `{kind: "<name>", attributes: $1, body: $2}` for multi-element branches with `attribute_instance*` prefix | Typed object with `kind` discriminator: `"module_declaration"`, `"udp_declaration"`, `"interface_declaration"`, `"program_declaration"`, `"package_declaration"`, `"package_item"`, `"bind_directive"`, `"config_declaration"`. The `attributes` field (only on `package_item` / `bind_directive` branches) carries the leading `attribute_instance*` iteration. The `body` field carries the matched sub-rule's raw envelope (per-rule typing of `module_declaration`, etc. is a follow-up slice). |
 | `compiler_directive` | `-> $2` (transparent passthrough of regex capture) | Clean JSON string carrying the matched directive text (backtick + directive name + arguments, e.g. `"`define FOO bar"`). Drops the leading `trivia` slot. When `source_text_item.kind == "compiler_directive"`, the body is now a directly-usable string. |
+| `in_scope_compiler_directive` / `in_scope_compiler_directive_sv_only` | `-> $2` (same transparent passthrough) | **New in parser release `1.0.178`.** Same clean-string body as `compiler_directive`, but reachable at *item* positions inside a module or class body, where `non_port_module_item` and `class_item` wrap it as `{kind: "compiler_directive", body: "<directive line>"}` — **byte-identical to the top-level node**, which is why schema stays `19`. Only the container is new. `_sv_only` carries `` `undefineall `` alone and is gated to `sv_2017`/`sv_2023` (that directive is absent from IEEE 1364-2005 clause 19). ⚠️ A consumer that exhaustively matches module-item or class-item kinds must add a `compiler_directive` arm. See [Directives Inside Module and Class Bodies](#directives-inside-module-and-class-bodies). |
 | `attribute_instance` | `-> [$2, $3::2*]` | Flat array `[<attr_spec shape>, <attr_spec shape>, ...]`. Drops the `attr_open` (`(*`) and `attr_close` (`*)`) delimiters and the comma separators between attr_specs. Slice 58 audit replaced the prior `{first, rest}` shape with the flat extraction-spread form per `grammars/return_annotation.ebnf` line 158's self-application. |
 | `module_declaration_sv_2017` (5 branches) | per-branch typed shapes, see contract section "Release 1.0.6 / Contract 1.0.6 Highlights" for the full annotation source | Typed object with `kind` discriminator: `"ansi"` / `"nonansi"` / `"wildcard"` / `"extern_nonansi"` / `"extern_ansi"`. Single-form branches expose `header / timeunits / items / end_label`. The wildcard branch additionally exposes `attributes / keyword / lifetime / name`. Extern branches expose only `header`. |
 | `module_declaration_sv_2023` (5 branches) | per-branch typed shapes (same kind set as sv_2017) | Identical kind discriminator and field names as sv_2017. Wildcard branch's positional indices shift due to `dot star` (2 tokens) vs `dot_star` (1 token); user-visible AST is identical to sv_2017. |
@@ -404,3 +405,119 @@ The annotation column shows the EBNF `-> ...` clause from `grammars/systemverilo
 - `"text"` — string literal.
 
 See `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` for the full annotation-language grammar.
+
+## Directives Inside Module and Class Bodies
+
+*Parser release `1.0.178` (`SV-CORPUS-GRAD.3.14b`, ledger `SV-0048`). Schema stays `19`.*
+
+Before `1.0.178` a compiler directive was tolerated **only at file top level**. The rule
+`compiler_directive` was an alternative of `source_text_item` and of nothing else, so the
+identical text one line lower rejected:
+
+```systemverilog
+`timescale 1ns / 1ps        // parsed
+module m;
+endmodule
+```
+
+```systemverilog
+module m;
+  `timescale 1ns / 1ps      // REJECTED before 1.0.178
+endmodule
+```
+
+A legally-placed directive now parses at **module-body** and **class-body item positions**,
+and appears in the item array as an ordinary typed item:
+
+```systemverilog
+module m;
+  `timescale 1ns / 1ps
+  wire w;
+endmodule
+```
+
+```json
+"items": [
+  { "kind": "compiler_directive", "body": "`timescale 1ns / 1ps" },
+  { "kind": "module_or_generate", "body": { "...": "the wire declaration" } }
+]
+```
+
+The class-body form is identical in shape:
+
+```systemverilog
+class c;
+  `undef EVIL_MACRO
+  int x;
+endclass
+```
+
+```json
+"items": [
+  { "kind": "compiler_directive", "body": "`undef EVIL_MACRO" },
+  { "kind": "sv_2017", "body": { "...": "the int property" } }
+]
+```
+
+⚠️ **Consumer impact.** `non_port_module_item` and `class_item` can now yield the kind
+`compiler_directive`, which previously appeared only under `source_text`. A consumer that
+matches those item kinds exhaustively must add the arm. The node itself is byte-identical to
+the top-level one — same `kind`, same string `body` — so no schema change is involved; only
+the container is new.
+
+### Which directives are tolerated — and which are still rejected
+
+The set is a **whitelist derived from IEEE 1800-2017 clause 22 and IEEE 1364-2005 clause 19
+read in full**, not blanket tolerance of any backtick line. The two standards agree name for
+name; only `` `undefineall `` is SystemVerilog-only.
+
+| tolerated in-scope | clause | why |
+|---|---|---|
+| `` `celldefine `` `` `endcelldefine `` | §22.10 / §19.1 | "may appear anywhere in the source description" |
+| `` `undef `` | §22.5.2 / §19.3.2 | no placement restriction stated |
+| `` `undefineall `` | §22.5.3 (SV only) | "may appear anywhere in the source description" |
+| `` `timescale `` | §22.7 / §19.8 | no placement restriction stated |
+| `` `pragma `` | §22.11 / §19.10 | no placement restriction stated |
+| `` `line `` | §22.12 / §19.7 | "can be specified anywhere within the … source description" |
+
+Everything else still rejects inside a design element, deliberately, and that half is as much
+part of the contract as the acceptances:
+
+| still rejected in-scope | clause | why |
+|---|---|---|
+| `` `resetall `` | §22.3 / §19.6 | "It shall be illegal … within a design element" |
+| `` `default_nettype `` | §22.8 / §19.2 | "can be used only outside design elements" |
+| `` `unconnected_drive `` `` `nounconnected_drive `` | §22.9 / §19.9 | "shall be specified outside the design element declarations" |
+| `` `begin_keywords `` `` `end_keywords `` | §22.14 / §19.11 | "can only be specified outside a design element" |
+| `` `include `` `` `define `` `` `ifdef `` `` `ifndef `` `` `else `` `` `elsif `` `` `endif `` | §22.4–§22.6 / §19.3–§19.5 | these **hide or rewrite** the text that follows, so the file is a preprocessing dependency rather than complete parser input |
+| `` `__FILE__ `` `` `__LINE__ `` and any user macro | §22.13 | these are predefined/user **text macros**, not directives — see below |
+
+```systemverilog
+module m;
+  `default_nettype none     // still REJECTED — LRM permits it only outside design elements
+endmodule
+
+module m;
+  `MY_MACRO(x)              // still REJECTED — an unexpanded macro use, not a directive
+endmodule
+```
+
+⭐ **Why the macro case matters.** `` `MY_MACRO(x) `` at an item position expands to real
+module items. A blanket "tolerate any backtick line" rule would swallow the line, silently
+drop everything the macro expands to, and report a **pass** for a file the parser never
+actually understood. Rejecting it keeps an unexpanded file honestly distinguishable from a
+complete one. Directive names are matched with a trailing word boundary, so
+`` `timescale_like_macro `` and `` `undef_not_a_directive `` are macros, not directives.
+
+### Bounds worth knowing
+
+- Tolerance is at **item positions** — between items, never between two tokens of one
+  statement. `always @(posedge clk) `timescale …` does not parse.
+- Hosts are **module bodies and class bodies**. Generate, interface, program, package and
+  checker bodies still reject a legally-placed directive
+  (`docs/tasks/SV-CORPUS-GRAD.md` `.3.14d`).
+- `` `pragma `` is tolerated as a **line**; its structured §22.11 content is not parsed and its
+  effect is not modelled. A `` `pragma protect `` encrypted envelope (§34) still rejects,
+  correctly — it stops at the base64 payload, not at the directive.
+- Top-level behaviour is unchanged: directives above/below a design element parsed before and
+  parse identically now.

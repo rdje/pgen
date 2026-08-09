@@ -257,6 +257,92 @@ source_text_item := description                       -> {kind: "description", b
 compiler_directive := trivia /`[^\r\n]*/
                    -> $2
 
+# SV-CORPUS-GRAD.3.14b — IN-SCOPE compiler directives.
+#
+# `compiler_directive` above is an alternative of `source_text_item` and of NOTHING
+# ELSE, so a directive is tolerated only at file top level. The same text one line
+# lower — inside a module or class body — REJECTS. That asymmetry is the F5 defect
+# routed by `.3.13`: `` `default_nettype none `` before `module m;` PASSES and yields
+# a `{kind:"compiler_directive"}` node; inside the module it rejects at
+# `furthest_position=9` (measured, `artifacts/sv_corpus_grad/ch22_directive_split/repro/`).
+#
+# ⛔ THE FIX IS A WHITELIST, NOT `compiler_directive` ITSELF, and the two reasons are
+# both defect classes this repo has already paid for:
+#
+#   (a) PLACEMENT IS NOT UNIFORM ACROSS CLAUSE 22. Read directive by directive, the
+#       clause forbids FOUR names inside a design element, and reusing the blanket
+#       `` `[^\r\n]* `` rule would have widened acceptance into every one of them —
+#       an over-acceptance REGRESSION dressed as a burn-down
+#       (feedback_sv_strict_lrm_compliance_default: over-acceptance is a defect,
+#       tolerance is additive). The parser already refuses all four and is RIGHT to.
+#   (b) A BACKTICK LINE IS NOT NECESSARILY A DIRECTIVE. `` `MY_MACRO(x) `` at an item
+#       position is a §22.13-class text-macro use — an unexpanded PREPROCESSING
+#       DEPENDENCY, not honest parser input. A blanket rule swallows the line, drops
+#       the items the macro expands to, and turns a correct reject into a silent pass.
+#       This is the same conflation `.3.13` found in the adjudicator's directive
+#       allowlist (`__FILE__`/`__LINE__` are §22.13 MACROS, not directives).
+#
+# THE RULE, in one line: tolerate a compiler directive wherever the LRM does not
+# restrict its placement AND the directive neither hides nor rewrites the source text
+# that follows it. Every name below was read in full in BOTH normative clauses —
+# IEEE 1800-2017 clause 22 (`docs/systemverilog/2017/md/section-22-compiler-directives.md`)
+# and IEEE 1364-2005 clause 19 (`docs/verilog/2005/md/section-19-compiler-directives.md`)
+# — which agree name for name:
+#
+#   TOLERATED (no placement restriction; leaves the following text intact)
+#     `celldefine / `endcelldefine  §22.10 / §19.1   "may appear anywhere in the source description"
+#     `undef                        §22.5.2 / §19.3.2  no placement restriction stated
+#     `undefineall                  §22.5.3            "may appear anywhere in the source description"  (SV-ONLY — absent from 1364-2005)
+#     `timescale                    §22.7  / §19.8    no placement restriction stated
+#     `pragma                       §22.11 / §19.10   no placement restriction stated
+#     `line                         §22.12 / §19.7    "can be specified anywhere within the … source description"
+#
+#   KEPT REJECTING — PLACEMENT-RESTRICTED (the parser is the only stage that can
+#   enforce these: deciding "was this inside a design element" needs design-element
+#   boundaries, i.e. a parse, so it is NOT preprocessor-stage business)
+#     `resetall                     §22.3  / §19.6    "illegal … within a design element"
+#     `default_nettype              §22.8  / §19.2    "can be used only outside design elements"
+#     `unconnected_drive
+#     `nounconnected_drive          §22.9  / §19.9    "shall be specified outside the design element declarations"
+#     `begin_keywords
+#     `end_keywords                 §22.14 / §19.11   "can only be specified outside a design element"
+#
+#   KEPT REJECTING — TEXT-HIDING / TEXT-REWRITING (the file is not honest parser
+#   input; the adjudicator already routes these to `explained_svpp_*`). `` `define ``
+#   additionally continues across lines with a trailing `\`, so a single-line carrier
+#   would MIS-CONSUME it.
+#     `include                      §22.4  / §19.5
+#     `define                       §22.5.1 / §19.3.1
+#     `ifdef `ifndef `else `elsif `endif   §22.6 / §19.4
+#
+#   NOT DIRECTIVES AT ALL — §22.13 predefined text MACROS (the `.3.13` ruling)
+#     `__FILE__  `__LINE__
+#
+# ⚠️ `unconnected_drive`/`nounconnected_drive` (§22.9) and `begin_keywords`/
+# `end_keywords` (§22.14) are restricted by clause text that the `.3.14a` ruling table
+# did not cover — that table enumerated only the routed population's six names. Reading
+# the clause end to end, not sampling it, is what kept them out of the whitelist.
+#
+# Structural note on why this cannot shadow anything: the arms below are the LAST
+# alternative of each host rule and every one starts with a backtick, which no other
+# alternative of `non_port_module_item` or `class_item` can begin with. Under PEG
+# ordered choice a new final alternative fires only where the rule previously FAILED,
+# so no currently-accepted input changes shape — the AST-byte-invariance measurement in
+# the `.3.14b` leaf confirms this rather than assuming it.
+#
+# ⚠️ HONEST BOUND (stated, not silently capped): an item-list alternative tolerates a
+# directive BETWEEN items, never between two tokens of one statement, and the hosts are
+# the module body and the class body — the two the measured population needs. Generate/
+# interface/program/package/checker bodies are the stated residue, routed in `.3.14b`.
+
+@profiles: ["sv_2017", "sv_2023"]
+in_scope_compiler_directive_sv_only := trivia /`undefineall\b[^\r\n]*/
+                                    -> $2
+
+in_scope_compiler_directive := in_scope_compiler_directive_sv_only
+                             | trivia /`(?:endcelldefine|celldefine|timescale|pragma|line|undef)\b[^\r\n]*/
+                                    -> $2
+
 # GRAMMAR-WELLFORMED.H.12.5.3: the former `comment_only_source_region`
 # rule (and its `source_text_item` branch above) was ENGINE-SHADOWED-DEAD.
 # The generated layout skipper consumes comments (and whitespace) as
@@ -1089,9 +1175,15 @@ class_item_sv_2023 := attribute_instance* class_property              -> {kind: 
                     | parameter_declaration semi                      -> {kind: "parameter",        body: $1}
                     | semi                                            -> {kind: "semi"}
 
+# SV-CORPUS-GRAD.3.14b — the LAST alternative below is the class-body host of the
+# in-scope directive whitelist (see `in_scope_compiler_directive`), last on purpose as in
+# `non_port_module_item`. ⛔ Do NOT insert a `#` comment between the arms: it terminates
+# the rule and silently drops every arm beneath it.
 @profiles: ["sv_2017", "sv_2023"]
 class_item := class_item_sv_2017 -> {kind: "sv_2017", body: $1}
             | class_item_sv_2023 -> {kind: "sv_2023", body: $1}
+            | in_scope_compiler_directive
+                                 -> {kind: "compiler_directive", body: $1}
 
 class_item_qualifier := kw_static_a381562a    -> {kind: "static"}
                       | kw_protected_964cab4b -> {kind: "protected"}
@@ -3678,6 +3770,15 @@ non_port_interface_item := generate_region
                         | timeunits_declaration
                                -> {kind: "timeunits_declaration", body: $1}
 
+# ⛔ NOTE FOR EDITORS: a `#` comment INSIDE an alternation list TERMINATES the rule —
+# every `|` arm below such a comment is silently dropped from the generated parser (the
+# `.3.14b` first attempt lost its arm exactly this way; caught because
+# `cascade_match_non_port_module_item` carried 8 alternatives, not 9). Keep commentary
+# above the rule.
+#
+# SV-CORPUS-GRAD.3.14b — the LAST alternative below is the module-body host of the
+# in-scope directive whitelist (see `in_scope_compiler_directive`). Last on purpose: it
+# fires only where `non_port_module_item` previously failed outright.
 non_port_module_item := generate_region
                             -> {kind: "generate_region",       body: $1}
                      | module_or_generate_item
@@ -3694,6 +3795,8 @@ non_port_module_item := generate_region
                             -> {kind: "interface_declaration", body: $1}
                      | timeunits_declaration
                             -> {kind: "timeunits_declaration", body: $1}
+                     | in_scope_compiler_directive
+                            -> {kind: "compiler_directive",    body: $1}
 
 non_port_program_item := attribute_instance* continuous_assign
                              -> {kind: "continuous_assign",                attributes: $1, body: $2}

@@ -1,5 +1,72 @@
 # CHANGES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0033 — leaf SV-CORPUS-GRAD.3.14b: in-scope compiler directives now parse, via a NAME WHITELIST — release `1.0.178`, ledger `SV-0048`, schema `19` unchanged
+
+- **The defect, in one line of movement.** `compiler_directive` was an alternative of
+  `source_text_item` and of **nothing else**, so a directive was tolerated only at file top
+  level. `` `timescale 1ns / 1ps `` above `module m;` PASSES and emits
+  `{"kind":"compiler_directive"}`; the same text one line inside the module rejected at
+  `furthest_position=9`. Two new rules (`in_scope_compiler_directive`,
+  `in_scope_compiler_directive_sv_only`) are hosted as the LAST alternative of
+  `non_port_module_item` and `class_item`.
+- ⭐⭐ **`.3.14a`'s ruling table was ALSO incomplete, and reading the clause end to end is what
+  caught it.** That table enumerated only the six directive names the routed population happened
+  to contain. IEEE 1800-2017 clause 22 and IEEE 1364-2005 clause 19, read in full, carry **two
+  further placement-restricted families**: `` `unconnected_drive ``/`` `nounconnected_drive ``
+  (*"shall be specified outside the design element declarations"*, §22.9/§19.9) and
+  `` `begin_keywords ``/`` `end_keywords `` (*"can only be specified outside a design element"*,
+  §22.14/§19.11). Deriving the whitelist from the table instead of the clause would have
+  tolerated four LRM-forbidden constructs — inside the very leaf cut to prevent that mistake.
+  **Sampling a clause is not reading it.**
+- **TOLERATED** (no placement restriction, and the following text is untouched):
+  `` `celldefine `` `` `endcelldefine `` `` `undef `` `` `timescale `` `` `pragma `` `` `line ``,
+  plus `` `undefineall `` gated to `sv_2017`/`sv_2023` (0 hits in 1364-2005 clause 19).
+  **KEPT REJECTING:** the six placement-restricted names; the seven text-hiding ones
+  (`` `include ``, `` `define ``, `` `ifdef `` `` `ifndef `` `` `else `` `` `elsif `` `` `endif ``),
+  whose files are preprocessing-dependent rather than honest parser input; and unexpanded MACRO
+  uses — a blanket rule would swallow `` `MY_MACRO(x) `` at an item position, drop the items it
+  expands to, and turn a correct reject into a silent pass.
+- ⛔⛔ **The first landing silently did nothing, and the TOOLBOX — not inspection — found it.**
+  After a full regenerate + release rebuild all 8 rows still rejected; the new rule was in
+  `generated/systemverilog_parser.rs` (65 references) with **no caller**, and
+  `cascade_match_non_port_module_item` carried **8 alternatives, not 9**. Root cause: **a `#`
+  comment at COLUMN 0 inside an alternation list terminates the rule, and every `|` arm below it
+  is dropped with no diagnostic**; the same comment indented to the continuation column is
+  absorbed (verified both ways). Repo-wide audit — 17 grammars, 8 comment-above-arm sites, all 8
+  indented and verified live, **0 column-0 occurrences** — so nothing shipped is damaged. The
+  hazard fails in the ACCEPTING direction, which no pass-rate reveals → routed `.3.14c`.
+- **Measured, both lanes.** `sv_2017` corpus pass **9 712 → 9 720 (+8)**, `verilog_2005`
+  **2 180 → 2 181 (+1)**; the only per-file transition anywhere is `fail → pass` (**0 pass→fail,
+  0 pass→timeout, 0 pass→crash**). ⛔ **accepts-invalid UNCHANGED in both lanes (21 / 14)** — the
+  over-acceptance control, and the number that would have moved had the whitelist been wrong.
+  Unexplained `360 → 352` and `75 → 74`.
+- ⛔ **Attribution: the two halves are NOT both yield.** Running the adjudicator alone against
+  the UNCHANGED baseline moves `sv_2017` unexplained **360 → 357 (−3)** with the parse verdict
+  `fail → fail` — an **ADJUDICATION CORRECTION** (the 3 verilator §22.8 rows pinned `must_reject`
+  on the clause, spec outranking the verilator driver heuristic). The grammar then moves
+  **357 → 352 (−5)** — the real yield.
+- ⭐ **Three heals the routing did not predict**, all in DEFERRED lanes so they move no bar:
+  Surelog `PragmaProtect/pp.top.sv` + `svpp_all/top.sv`, and iverilog `no_timescale_in_module.v`
+  — the file `.8c.2` pinned `must_accept` on the reading *"the parser must tolerate it"*, now
+  vindicated by the parser rather than by argument.
+- **AST invariance proven exhaustively without the pre-change binary:** the delta adds one
+  production emitting one node shape, so an AST can only differ by containing it; over all 287
+  previously-passing files carrying a whitelisted directive token, 287/287 dumped, 595 top-level
+  nodes on the unchanged path, **0** in-scope nodes. Schema stays `19` — the in-scope node is
+  byte-identical to the top-level one.
+- ⚠️ **The control matrix's first version was VACUOUS and is kept as a lesson:** `printf '%s'`
+  wrote a literal `\n`, collapsing every case to one line, so the entire `expect=REJECT` half
+  "passed" measuring nothing. The shipped harness (33 rows, 0 misses) pins a positive AND a
+  negative control and REFUSES to report on a miss.
+- ⚠️ **Honest bounds:** tolerance is at ITEM positions, never between two tokens of one
+  statement; hosts are module and class bodies only (generate/interface/program/package/checker
+  bodies routed `.3.14d`); the 2 §34 protected-envelope rows still reject and correctly so; and
+  `` `pragma `` is tolerated as a LINE, not parsed as a structured §22.11 pragma.
+- Oracles green: `parse_harness_equivalence_gate` **4/4** (the interpreter stays byte-identical
+  to all 11 certified generated parsers), `systemverilog_parser_book_gate` PASS,
+  `check_doctrines.sh` **17/17**. Artifacts:
+  `docs/tasks/artifacts/sv_corpus_grad/ch22_directive_fix/`.
+
 ## 2026-08-08 - PGEN-SV-CORPUS-GRAD-0032 — leaf SV-CORPUS-GRAD.3.14a: the routed 8 are not uniform either — clause 22, read directive by directive, says TOLERATE 5 and KEEP REJECTING 3
 
 - **The ruling `.3.13` handed over was "the standing law is TOLERATE". Reading the clause text

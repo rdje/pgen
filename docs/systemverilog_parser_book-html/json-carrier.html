@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-33711e26.js";
+            window.path_to_searchindex_js = "searchindex-2700e971.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -198,6 +198,7 @@
 <tr><td><code>source_text_item</code> (7 branches)</td><td>per-branch <code>{kind: "&lt;name&gt;", body: $1}</code> (or <code>{kind: "semi"}</code> for branch 6)</td><td>Typed object with <code>kind</code> discriminator: <code>"description"</code>, <code>"local_parameter_declaration"</code>, <code>"parameter_declaration"</code>, <code>"package_import_declaration"</code>, <code>"timeunits_declaration"</code>, <code>"compiler_directive"</code>, <code>"semi"</code>. The <code>body</code> field carries the matched sub-rule’s raw envelope OR a typed sub-rule shape if that sub-rule is itself annotated. For <code>kind: "description"</code>, body is now itself typed (per SV-Slice-4). The <code>semi</code> branch carries no <code>body</code> since it’s just a stray <code>;</code>. Trailing <code>semi</code> dropped in branches 1 and 2 (annotation references <code>$1</code> only). **The former 8th branch <code>comment_only_source_region</code> was removed (GRAMMAR-WELLFORMED.H.12.5.3): it was engine-shadowed-dead — the layout skipper consumes comments as leading trivia before this rule’s branch is tried, so a comment-only region is always absorbed as layout and the <code>comment_only_source_region</code> kind was never emitted in any AST (a comment-only file parses to an empty <code>source_text</code>). Removing it is accept-identical — no schema/release bump — and narrows the declared union to the kinds that can actually occur.</td></tr>
 <tr><td><code>description</code> (8 branches)</td><td>per-branch <code>{kind: "&lt;name&gt;", body: $1}</code> for single-element branches; <code>{kind: "&lt;name&gt;", attributes: $1, body: $2}</code> for multi-element branches with <code>attribute_instance*</code> prefix</td><td>Typed object with <code>kind</code> discriminator: <code>"module_declaration"</code>, <code>"udp_declaration"</code>, <code>"interface_declaration"</code>, <code>"program_declaration"</code>, <code>"package_declaration"</code>, <code>"package_item"</code>, <code>"bind_directive"</code>, <code>"config_declaration"</code>. The <code>attributes</code> field (only on <code>package_item</code> / <code>bind_directive</code> branches) carries the leading <code>attribute_instance*</code> iteration. The <code>body</code> field carries the matched sub-rule’s raw envelope (per-rule typing of <code>module_declaration</code>, etc. is a follow-up slice).</td></tr>
 <tr><td><code>compiler_directive</code></td><td><code>-&gt; $2</code> (transparent passthrough of regex capture)</td><td>Clean JSON string carrying the matched directive text (backtick + directive name + arguments, e.g. <code>"</code>define FOO bar“<code>). Drops the leading </code>trivia<code>slot. When</code>source_text_item.kind == “compiler_directive”`, the body is now a directly-usable string.</td></tr>
+<tr><td><code>in_scope_compiler_directive</code> / <code>in_scope_compiler_directive_sv_only</code></td><td><code>-&gt; $2</code> (same transparent passthrough)</td><td><strong>New in parser release <code>1.0.178</code>.</strong> Same clean-string body as <code>compiler_directive</code>, but reachable at <em>item</em> positions inside a module or class body, where <code>non_port_module_item</code> and <code>class_item</code> wrap it as <code>{kind: "compiler_directive", body: "&lt;directive line&gt;"}</code> — <strong>byte-identical to the top-level node</strong>, which is why schema stays <code>19</code>. Only the container is new. <code>_sv_only</code> carries <code>`undefineall</code> alone and is gated to <code>sv_2017</code>/<code>sv_2023</code> (that directive is absent from IEEE 1364-2005 clause 19). ⚠️ A consumer that exhaustively matches module-item or class-item kinds must add a <code>compiler_directive</code> arm. See <a href="#directives-inside-module-and-class-bodies">Directives Inside Module and Class Bodies</a>.</td></tr>
 <tr><td><code>attribute_instance</code></td><td><code>-&gt; [$2, $3::2*]</code></td><td>Flat array <code>[&lt;attr_spec shape&gt;, &lt;attr_spec shape&gt;, ...]</code>. Drops the <code>attr_open</code> (<code>(*</code>) and <code>attr_close</code> (<code>*)</code>) delimiters and the comma separators between attr_specs. Slice 58 audit replaced the prior <code>{first, rest}</code> shape with the flat extraction-spread form per <code>grammars/return_annotation.ebnf</code> line 158’s self-application.</td></tr>
 <tr><td><code>module_declaration_sv_2017</code> (5 branches)</td><td>per-branch typed shapes, see contract section “Release 1.0.6 / Contract 1.0.6 Highlights” for the full annotation source</td><td>Typed object with <code>kind</code> discriminator: <code>"ansi"</code> / <code>"nonansi"</code> / <code>"wildcard"</code> / <code>"extern_nonansi"</code> / <code>"extern_ansi"</code>. Single-form branches expose <code>header / timeunits / items / end_label</code>. The wildcard branch additionally exposes <code>attributes / keyword / lifetime / name</code>. Extern branches expose only <code>header</code>.</td></tr>
 <tr><td><code>module_declaration_sv_2023</code> (5 branches)</td><td>per-branch typed shapes (same kind set as sv_2017)</td><td>Identical kind discriminator and field names as sv_2017. Wildcard branch’s positional indices shift due to <code>dot star</code> (2 tokens) vs <code>dot_star</code> (1 token); user-visible AST is identical to sv_2017.</td></tr>
@@ -590,6 +591,110 @@
 <li><code>"text"</code> — string literal.</li>
 </ul>
 <p>See <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code> for the full annotation-language grammar.</p>
+<h2 id="directives-inside-module-and-class-bodies"><a class="header" href="#directives-inside-module-and-class-bodies">Directives Inside Module and Class Bodies</a></h2>
+<p><em>Parser release <code>1.0.178</code> (<code>SV-CORPUS-GRAD.3.14b</code>, ledger <code>SV-0048</code>). Schema stays <code>19</code>.</em></p>
+<p>Before <code>1.0.178</code> a compiler directive was tolerated <strong>only at file top level</strong>. The rule
+<code>compiler_directive</code> was an alternative of <code>source_text_item</code> and of nothing else, so the
+identical text one line lower rejected:</p>
+<pre><code class="language-systemverilog">`timescale 1ns / 1ps        // parsed
+module m;
+endmodule
+</code></pre>
+<pre><code class="language-systemverilog">module m;
+  `timescale 1ns / 1ps      // REJECTED before 1.0.178
+endmodule
+</code></pre>
+<p>A legally-placed directive now parses at <strong>module-body</strong> and <strong>class-body item positions</strong>,
+and appears in the item array as an ordinary typed item:</p>
+<pre><code class="language-systemverilog">module m;
+  `timescale 1ns / 1ps
+  wire w;
+endmodule
+</code></pre>
+<pre><code class="language-json">"items": [
+  { "kind": "compiler_directive", "body": "`timescale 1ns / 1ps" },
+  { "kind": "module_or_generate", "body": { "...": "the wire declaration" } }
+]
+</code></pre>
+<p>The class-body form is identical in shape:</p>
+<pre><code class="language-systemverilog">class c;
+  `undef EVIL_MACRO
+  int x;
+endclass
+</code></pre>
+<pre><code class="language-json">"items": [
+  { "kind": "compiler_directive", "body": "`undef EVIL_MACRO" },
+  { "kind": "sv_2017", "body": { "...": "the int property" } }
+]
+</code></pre>
+<p>⚠️ <strong>Consumer impact.</strong> <code>non_port_module_item</code> and <code>class_item</code> can now yield the kind
+<code>compiler_directive</code>, which previously appeared only under <code>source_text</code>. A consumer that
+matches those item kinds exhaustively must add the arm. The node itself is byte-identical to
+the top-level one — same <code>kind</code>, same string <code>body</code> — so no schema change is involved; only
+the container is new.</p>
+<h3 id="which-directives-are-tolerated--and-which-are-still-rejected"><a class="header" href="#which-directives-are-tolerated--and-which-are-still-rejected">Which directives are tolerated — and which are still rejected</a></h3>
+<p>The set is a <strong>whitelist derived from IEEE 1800-2017 clause 22 and IEEE 1364-2005 clause 19
+read in full</strong>, not blanket tolerance of any backtick line. The two standards agree name for
+name; only <code>`undefineall</code> is SystemVerilog-only.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>tolerated in-scope</th><th>clause</th><th>why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>`celldefine</code> <code>`endcelldefine</code></td><td>§22.10 / §19.1</td><td>“may appear anywhere in the source description”</td></tr>
+<tr><td><code>`undef</code></td><td>§22.5.2 / §19.3.2</td><td>no placement restriction stated</td></tr>
+<tr><td><code>`undefineall</code></td><td>§22.5.3 (SV only)</td><td>“may appear anywhere in the source description”</td></tr>
+<tr><td><code>`timescale</code></td><td>§22.7 / §19.8</td><td>no placement restriction stated</td></tr>
+<tr><td><code>`pragma</code></td><td>§22.11 / §19.10</td><td>no placement restriction stated</td></tr>
+<tr><td><code>`line</code></td><td>§22.12 / §19.7</td><td>“can be specified anywhere within the … source description”</td></tr>
+</tbody>
+</table>
+</div>
+<p>Everything else still rejects inside a design element, deliberately, and that half is as much
+part of the contract as the acceptances:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>still rejected in-scope</th><th>clause</th><th>why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>`resetall</code></td><td>§22.3 / §19.6</td><td>“It shall be illegal … within a design element”</td></tr>
+<tr><td><code>`default_nettype</code></td><td>§22.8 / §19.2</td><td>“can be used only outside design elements”</td></tr>
+<tr><td><code>`unconnected_drive</code> <code>`nounconnected_drive</code></td><td>§22.9 / §19.9</td><td>“shall be specified outside the design element declarations”</td></tr>
+<tr><td><code>`begin_keywords</code> <code>`end_keywords</code></td><td>§22.14 / §19.11</td><td>“can only be specified outside a design element”</td></tr>
+<tr><td><code>`include</code> <code>`define</code> <code>`ifdef</code> <code>`ifndef</code> <code>`else</code> <code>`elsif</code> <code>`endif</code></td><td>§22.4–§22.6 / §19.3–§19.5</td><td>these <strong>hide or rewrite</strong> the text that follows, so the file is a preprocessing dependency rather than complete parser input</td></tr>
+<tr><td><code>`__FILE__</code> <code>`__LINE__</code> and any user macro</td><td>§22.13</td><td>these are predefined/user <strong>text macros</strong>, not directives — see below</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-systemverilog">module m;
+  `default_nettype none     // still REJECTED — LRM permits it only outside design elements
+endmodule
+
+module m;
+  `MY_MACRO(x)              // still REJECTED — an unexpanded macro use, not a directive
+endmodule
+</code></pre>
+<p>⭐ <strong>Why the macro case matters.</strong> <code>`MY_MACRO(x)</code> at an item position expands to real
+module items. A blanket “tolerate any backtick line” rule would swallow the line, silently
+drop everything the macro expands to, and report a <strong>pass</strong> for a file the parser never
+actually understood. Rejecting it keeps an unexpanded file honestly distinguishable from a
+complete one. Directive names are matched with a trailing word boundary, so
+<code>`timescale_like_macro</code> and <code>`undef_not_a_directive</code> are macros, not directives.</p>
+<h3 id="bounds-worth-knowing"><a class="header" href="#bounds-worth-knowing">Bounds worth knowing</a></h3>
+<ul>
+<li>Tolerance is at <strong>item positions</strong> — between items, never between two tokens of one
+statement. <code>always @(posedge clk) </code>timescale …` does not parse.</li>
+<li>Hosts are <strong>module bodies and class bodies</strong>. Generate, interface, program, package and
+checker bodies still reject a legally-placed directive
+(<code>docs/tasks/SV-CORPUS-GRAD.md</code> <code>.3.14d</code>).</li>
+<li><code>`pragma</code> is tolerated as a <strong>line</strong>; its structured §22.11 content is not parsed and its
+effect is not modelled. A <code>`pragma protect</code> encrypted envelope (§34) still rejects,
+correctly — it stops at the base64 payload, not at the directive.</li>
+<li>Top-level behaviour is unchanged: directives above/below a design element parsed before and
+parse identically now.</li>
+</ul>
 
                     </main>
 

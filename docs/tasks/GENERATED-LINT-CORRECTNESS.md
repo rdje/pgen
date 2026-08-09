@@ -1435,6 +1435,37 @@ the RED-W2 arm is what turned a latent hazard into a measured one.
 - **Verification:** `pending`.
 - **Commit:** `pending`.
 
+### `.11` — ⛔ `clippy_on_rust_change` CANNOT FIRE on a grammar-only commit, which is exactly when new generated code appears (`todo`, routed by `SV-CORPUS-GRAD.3.14b` 2026-08-09)
+
+- **Status: `todo`** — parked, not worked: this is a governance/gate finding and it does **not**
+  block the SV release lane ([[feedback_flow_findings_are_routed_not_worked]],
+  [[feedback_prefer_feature_work_over_governance_lanes]]). Recorded now so it is never re-found.
+- **ROUTING EVIDENCE — measured at `HEAD`, not inferred, and it reproduces OUTSIDE the SV family
+  because the mechanism is family-agnostic.** `rust/scripts/clippy_on_rust_change.sh` decides
+  whether to run by scanning
+  `git diff --name-only` ∪ `git diff --cached --name-only` ∪ `git ls-files --others --exclude-standard`
+  for a path matching `generated/*.rs` (among others). But `generated/` is **gitignored**
+  (`.gitignore:24`), so `--exclude-standard` filters it out and the tracked-diff sources never
+  contained it. ⇒ the union can never hold a `generated/*.rs` entry.
+- **Measured on this very commit:** `SV-CORPUS-GRAD.3.14b` changed `grammars/systemverilog.ebnf`,
+  regenerated a **131 MB** `generated/systemverilog_parser.rs` containing brand-new emitted code,
+  and the flow printed *"No Rust/generated Rust changes detected; skipping clippy flow."*
+  The union's `generated/*.rs` count was **0** (`git check-ignore -v` confirms the ignore rule).
+- ⛔ **Why this matters more than it looks:** the skipped stage is the one holding the
+  generated-parser correctness floor at 0 (the `.1`/`.2` work that folded 291 + 9 679 errors),
+  and the commit class it cannot see — *grammar-only* — is precisely the class that EMITS new
+  generated code. A Rust-source commit still triggers it, so the gap is silent and partial: it
+  looks live because it fires often.
+- **Owed:** make the trigger a fact about the ARTIFACT rather than about the git index — e.g. add
+  `grammars/*.ebnf` (and the codegen inputs) to the trigger set, or hash the generated tree
+  against a stored digest. Whichever is chosen must be proven by a control that a grammar-only
+  edit now runs the flow. Until then the honest posture is what `.3.14b` did: invoke
+  `rust/scripts/clippy_on_rust_change.sh --force` explicitly on any grammar-only commit.
+- **Cross-check owed at fix time:** the same ignored-path blindness may affect any other gate that
+  enumerates changed paths from the git index; `GATE-REACHABILITY` proves a gate is *invoked*, not
+  that its own trigger can *fire*.
+
+
 ## Commit log
 
 | slice | leaf | commit subject |

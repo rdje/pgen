@@ -2715,10 +2715,15 @@ Full record + every measurement:
 
 #### `.3.14` — in-scope compiler directives REJECT: `compiler_directive` is an alternative of `source_text_item` and of nothing else (IEEE 1800-2017 clause 22 — the F5 family's parser half, routed by `.3.13`)
 
-- **Status: `in_progress`** — cut 2026-08-08 (session #216) from `.3.13`'s split, with
-  the root cause already tool-pinned and the fix scope already measured; split into
-  **`.3.14a`** (the adjudication ruling — `done`) and **`.3.14b`** (the grammar change —
-  `todo`). **8 rows**:
+- **Status: `done`** (2026-08-09, session #217, `PGEN-SV-CORPUS-GRAD-0033`) — cut 2026-08-08
+  (session #216) from `.3.13`'s split, with the root cause already tool-pinned and the fix
+  scope already measured; split into **`.3.14a`** (the adjudication ruling — `done`) and
+  **`.3.14b`** (the grammar change — `done`). ⭐ The delivered split is exactly the ruling:
+  **5 rows flip REJECT→PASS, 3 stay REJECT and are pinned `must_reject` on §22.8**;
+  `sv_2017` unexplained `360 → 352` (−3 adjudication correction, **−5 real yield**),
+  `verilog_2005` `75 → 74`, **0 pass→fail in either lane**, accepts-invalid unchanged in
+  both. Two findings routed OUT: **`.3.14c`** (a column-0 `#` comment silently drops
+  alternation arms) and **`.3.14d`** (the remaining item-list hosts). **8 rows**:
   verilator `t_lint_implicit_{def,func,type}_bad.v` (`` `default_nettype ``),
   sv-tests `5.6.4--compiler-directives-pragma.sv` + ispras
   `ieee-1800-2012/34/34.03.01_01.sv` (`` `pragma ``), sv-tests
@@ -2820,15 +2825,169 @@ not sampled:
   population needs (all 8 rows parse once directive LINES are removed at item positions —
   `strip_probe/probe.txt`), and the residue is a stated bound, not a silent cap.
 
-##### `.3.14b` — the grammar change (in-scope directive tolerance, minus the §22.8/§22.3 restricted pair)
+##### `.3.14b` — the grammar change (in-scope directive tolerance, minus the placement-restricted names) — `done` (2026-08-09, session #217, `PGEN-SV-CORPUS-GRAD-0033`)
 
-- **Status: `todo`** — designed by `.3.14a`, not yet implemented. Carrier: reuse
-  `compiler_directive` (`grammars/systemverilog.ebnf:257`) as an alternative of the in-scope
-  item lists the population needs (module body, class body), in a form that **excludes**
-  `` `default_nettype `` and `` `resetall `` so §22.8/§22.3 stay enforced. Owes: the
-  profile-byte-invariance measurement of the `sv_2017`/`sv_2023` ASTs, the pinned
-  `must_reject` rulings for the 3 verilator rows, and the full heavy battery per the tree
-  ground rules before the corpus is re-baselined.
+⭐⭐ **`.3.14a`'s RULING TABLE WAS ALSO INCOMPLETE, AND READING THE CLAUSE END TO END IS WHAT
+CAUGHT IT.** `.3.14a` enumerated only the six directive names the routed population happened
+to contain. IEEE 1800-2017 clause 22 and IEEE 1364-2005 clause 19, read in full, carry **two
+further placement-restricted families that table never mentions**:
+
+| directive | 1800-2017 | 1364-2005 | verbatim |
+|---|---|---|---|
+| `` `unconnected_drive `` / `` `nounconnected_drive `` | §22.9 | §19.9 | "These directives **shall be specified outside the design element declarations**." |
+| `` `begin_keywords `` / `` `end_keywords `` | §22.14 | §19.11 | "can **only be specified outside a design element**" |
+
+Deriving the whitelist from `.3.14a`'s table instead of from the clause would have tolerated
+those four in-scope — an over-acceptance regression against
+[[feedback_sv_strict_lrm_compliance_default]], inside the very leaf cut to prevent that
+mistake. **Sampling a clause is not reading it.** (`` `celldefine ``/`` `endcelldefine `` read
+the other way on the same evidence — §22.10/§19.1 "may appear anywhere in the source
+description" — and stayed TOLERATED.) The two LRMs agree name for name; `` `undefineall ``
+is the sole SV-only name (0 hits in 1364-2005 clause 19).
+
+- **THE SHIPPED RULE, one line:** *tolerate a compiler directive wherever the LRM does not
+  restrict its placement AND the directive neither hides nor rewrites the source text that
+  follows it.*
+  - **TOLERATED** — `` `celldefine `` `` `endcelldefine `` `` `undef `` `` `timescale ``
+    `` `pragma `` `` `line `` (+ `` `undefineall ``, `sv_2017`/`sv_2023` only).
+  - **KEPT REJECTING (placement)** — `` `resetall `` `` `default_nettype ``
+    `` `unconnected_drive `` `` `nounconnected_drive `` `` `begin_keywords `` `` `end_keywords ``.
+  - **KEPT REJECTING (text-hiding)** — `` `include `` `` `define `` `` `ifdef `` `` `ifndef ``
+    `` `else `` `` `elsif `` `` `endif ``; the file is not honest parser input and is already
+    routed to `explained_svpp_*`. `` `define `` also continues across lines with a trailing
+    `\`, so a single-line carrier would MIS-CONSUME it.
+  - **NOT DIRECTIVES** — `` `__FILE__ `` `` `__LINE__ `` (§22.13 MACROS, the `.3.13` ruling).
+- ⛔ **Carrier is a NAME WHITELIST, not the blanket `compiler_directive` rule**, for two
+  independent reasons: (1) placement is not uniform across clause 22 (above); (2) a backtick
+  line is not necessarily a directive — `` `MY_MACRO(x) `` at an item position is an
+  unexpanded §22.13-class MACRO use, and a blanket rule would swallow the line, drop the items
+  the macro expands to, and turn a correct reject into a silent pass. New rules
+  `in_scope_compiler_directive` + `in_scope_compiler_directive_sv_only`
+  (`grammars/systemverilog.ebnf`), hosted as the LAST alternative of `non_port_module_item`
+  (module bodies) and `class_item` (class bodies). `DESIGN-PRIOR-ART` discharged by `.3.14a`.
+- ⛔⛔ **THE FIRST LANDING SILENTLY DID NOTHING, AND THE TOOLBOX — NOT INSPECTION — FOUND IT.**
+  After a full regenerate + rebuild, all 8 rows still rejected. The new rule was present in
+  `generated/systemverilog_parser.rs` (65 references) but had **NO CALLER**, and
+  `cascade_match_non_port_module_item` carried **8 alternatives, not 9**. **Root cause: a `#`
+  comment at COLUMN 0 inside an alternation list TERMINATES the rule, and every `|` arm below
+  it is dropped from the generated parser with no diagnostic.** Discriminating pair, measured
+  both ways: column-0 comment ⇒ arm DROPPED (the first attempt); comment INDENTED to the
+  continuation column ⇒ arm LIVE (`net_declaration_sv_2017:3585`'s `checked_nettype_identifier`,
+  `wildcard_escape_nettype_identifier`, `interconnect_net_declaration_sv_only` all verified
+  present). **Repo-wide audit, 17 grammars: 8 comment-above-arm sites, all 8 INDENTED and
+  verified live; COLUMN-0 occurrences 0** ⇒ nothing shipped is damaged. The hazard is
+  unguarded and fails in the ACCEPTING direction (a dropped arm only narrows the language),
+  which no pass-rate reveals → routed to **`.3.14c`**.
+- **Verification:** artifacts + every number in
+  `docs/tasks/artifacts/sv_corpus_grad/ch22_directive_fix/` (instrument sha256 triple,
+  `matrix.sh`/`matrix_result.txt`, `ast_invariance_check.py`, `repro/`, `before/`, `after/`,
+  `delta.txt`). Re-runnable oracles, all green at `HEAD`:
+  `check_doctrines.sh` **17/17**; `parse_harness_equivalence_gate` **4/4** ⭐ (the interpreter
+  stays byte-identical to all 11 certified generated parsers — the independent proof that the
+  MODIFIED SV parser did not drift from its oracle, since a grammar edit is exactly what could
+  break that mirror); `ast_shape_contract_gate` **18/18** (the schema-19 claim held by a gate,
+  not argued); `parse_harness_combinator_gate` **31/31 CLEAN**;
+  `parse_harness_semantic_gate` **36/36 CLEAN**; `sv_semantic_scope_contract_gate` PASS;
+  `systemverilog_parser_book_gate` PASS; `mdbook_docs_gate` PASS (10/10 per-parser books).
+  Corpus runs guarded (`--budget-mb 12288`, peaks 7 852 MB / 116 s and 127 MB / 10 s); battery
+  guarded (peak 11 709 MB / 1 007 s).
+- ⛔ **A THIRD finding, routed OUT — `clippy_on_rust_change` CANNOT FIRE on a grammar-only
+  commit.** Running it here printed *"No Rust/generated Rust changes detected; skipping clippy
+  flow"* **after** this leaf had regenerated a 131 MB `generated/systemverilog_parser.rs` full of
+  new emitted code. Measured cause: the script triggers on a `generated/*.rs` path in
+  `git diff` ∪ `git diff --cached` ∪ `git ls-files --others --exclude-standard`, but `generated/`
+  is gitignored (`.gitignore:24`) so `--exclude-standard` filters it out — the union's
+  `generated/*.rs` count is **0**, by construction, forever. The skipped stage is the one holding
+  the generated-parser correctness floor at 0, and the commit class it cannot see is exactly the
+  class that emits new generated code. Family-agnostic, so it is NOT an SV defect → routed to
+  **`GENERATED-LINT-CORRECTNESS.11`** (parked: governance, does not block the SV release lane).
+  This leaf's own posture is the honest one until it is fixed: the flow was invoked with
+  `--force` and is green.
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — re-measured at `HEAD` before any edit: all 8 routed rows
+    REJECT (`before_8rows.txt`); `` `timescale `` in a module body rejects at
+    `furthest_position=9` while the same text above the module PASSES.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `compiler_directive`
+    (`grammars/systemverilog.ebnf`) was an alternative of `source_text_item` and of NOTHING
+    ELSE, so no in-scope item list could reach it (tool-pinned by `.3.13`, re-confirmed here).
+    Plus the second, self-inflicted root cause above (column-0 comment ⇒ silently dropped
+    arm), pinned by generated-code inspection after the toolbox showed the rule had no caller.
+  - [x] **FIX** — the whitelist rules + their two host alternatives; `VERILATOR_PINNED` in
+    `stimuli/sv/adjudicate_external_corpus.py` pinning the 3 §22.8 rows `must_reject` on the
+    LRM cite (spec outranks the verilator driver heuristic, which is tool testimony).
+  - [x] **ADDRESSED (verified)** — the designed split lands EXACTLY: the 5 TOLERATE rows flip
+    REJECT→PASS, the 3 §22.8 rows stay REJECT. Control matrix **33 rows / 0 misses**, covering
+    every tolerated name in module AND class bodies, all six placement-restricted names, all
+    seven text-hiding names, user/UVM/`__FILE__`/`__LINE__` macro uses, unchanged top-level
+    behaviour, the `\b` name-prefix guard, and profile gating (`` `undefineall `` accepted
+    under `sv_2017`/`sv_2023`, REJECTED under `verilog_2005`). ⚠️ The FIRST version of that
+    harness was VACUOUS — `printf '%s'` wrote a literal `\n`, collapsing every case to one
+    line so the whole `expect=REJECT` half "passed" measuring nothing; the shipped harness
+    pins a positive AND a negative control and REFUSES to report on a miss
+    ([[feedback_instrument_needs_ground_truth]]). Corpus `sv_2017` pass **9 712 → 9 720 (+8)**;
+    `verilog_2005` pass **2 180 → 2 181 (+1)**.
+  - [x] **NO REGRESSION** — per-FILE census, BOTH lanes: the ONLY transition anywhere is
+    `fail → pass` (**0 pass→fail, 0 pass→timeout, 0 pass→crash** over 16 336 + 2 459 rows).
+    ⛔ **The over-acceptance control is `accepts-invalid`, and it is UNCHANGED in both lanes:
+    21 → 21 (`sv_2017`) and 14 → 14 (`verilog_2005`)** — that is the number that would have
+    moved had the whitelist been wrong. **AST invariance measured EXHAUSTIVELY without the
+    pre-change binary**: the delta adds one production emitting one node shape, so an AST can
+    only differ by containing it; over **all 287** previously-passing files that contain a
+    whitelisted directive token at line start (the only files whose AST could move), 287/287
+    dumped, 595 top-level directive nodes on the pre-existing path, **0 in-scope (new-arm)
+    nodes**, controls pinned. Adjudicator determinism `cmp`-proven byte-identical.
+  - [x] **ATTRIBUTION (⛔ the two halves are NOT both yield)** — measured separately by running
+    the adjudicator alone against the UNCHANGED baseline `results.tsv`: the `VERILATOR_PINNED`
+    pins move `sv_2017` unexplained **360 → 357 (−3)** with the parse verdict `fail → fail`
+    — an **ADJUDICATION CORRECTION**, never burn-down; the grammar change then moves
+    **357 → 352 (−5)** — **REAL YIELD**. The pin-only run touched exactly those 3 rows and
+    left the `verilog_2005` arm byte-identical. `verilog_2005` unexplained **75 → 74**.
+    ⭐ Three further `fail → pass` heals were NOT predicted by the routing (Surelog
+    `PragmaProtect/pp.top.sv`, `PragmaProtect/svpp_all/top.sv`, iverilog
+    `no_timescale_in_module.v`); all three sit in DEFERRED lanes, so they are pass-rate, not
+    bar movement. `no_timescale_in_module.v` is the file `.8c.2` pinned `must_accept` on the
+    reading *"the parser must tolerate it"* — that banked pin is now **vindicated by the
+    parser**, and it is the +1 in the v2005 lane.
+  - [x] **LOCKSTEP** — release `1.0.177 → 1.0.178` (schema **19 UNCHANGED** — the in-scope node
+    is byte-identical to the top-level one, `{"body": …, "kind": "compiler_directive"}`, so no
+    emitted kind is added, renamed or removed) + contract Current-state note; ledger row
+    `SV-0048`; SV book changelog; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`;
+    `docs/TASK_TREE.md`; `.3.14c` (the column-0-comment arm-drop hazard) and `.3.14d` (the
+    remaining item-list hosts) opened for the routed findings.
+- **⚠️ HONEST BOUNDS (stated, not silently capped)**
+  1. **Item positions only** — an item-list alternative tolerates a directive *between items*,
+     never between two tokens of one statement. That is what the measured population needs
+     (`ch22_directive_split/strip_probe/probe.txt`); a directive mid-statement still rejects.
+  2. **Two hosts, not all** — module bodies and class bodies. Generate / interface / program /
+     package / checker bodies are the stated residue → **`.3.14d`**.
+  3. **The 2 §34 protected-envelope rows still reject** and correctly so — they stop at their
+     base64 payload, not at a directive (`.3.13` reclassified them already).
+  4. **`` `pragma `` is tolerated as a LINE**, not parsed as a structured §22.11 pragma; its
+     effect is not modelled, only its presence stops being a parse error.
+
+##### `.3.14c` — ⛔ a COLUMN-0 `#` comment inside an alternation list silently DROPS every arm below it (routed by `.3.14b`, 2026-08-09)
+
+- **Status: `todo`** — no lint, no gate, no diagnostic. Measured discriminating pair in
+  `.3.14b`: a comment at column 0 between two `|` arms terminates the rule and the arms below
+  vanish from the generated parser; the same comment INDENTED to the continuation column is
+  absorbed and the arms survive. **Repo-wide audit at the time of routing: 17 grammars, 8
+  comment-above-arm sites, all 8 indented and verified LIVE, 0 column-0 occurrences** — so this
+  is a latent hazard, NOT current damage.
+- **Why it must be fixed rather than remembered:** it fails in the ACCEPTING direction — a
+  dropped arm only narrows the accepted language, so no pass-rate, corpus delta or AST-shape
+  gate can reveal it; it cost this leaf one full regenerate + release-rebuild cycle before the
+  toolbox pinned it. Owed: either a frontend diagnostic (a `|` continuation after a rule the
+  parser considers ended) or a `check_doctrines.sh` lint on the textual pattern, plus a
+  decision on whether column-0 termination is the INTENDED frontend semantics at all.
+
+##### `.3.14d` — the remaining in-scope item-list hosts (routed by `.3.14b`, 2026-08-09)
+
+- **Status: `todo`** — `.3.14b` hosts `in_scope_compiler_directive` at `non_port_module_item`
+  and `class_item`, the two hosts the measured population needs. Generate, interface, program,
+  package and checker bodies still reject a legally-placed directive. Zero corpus rows demand
+  it today (measured: the routed 8 are fully covered by the two hosts), so this is
+  under-acceptance with no current witness — worked as **crafted minimal cases** in the `.9`
+  gap loop, where the construct, not a vendored file, is the unit.
 
 ### `.4` — Full-design corpora chaining
 

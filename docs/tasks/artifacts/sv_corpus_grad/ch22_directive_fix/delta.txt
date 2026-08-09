@@ -1,0 +1,44 @@
+SV-CORPUS-GRAD.3.14b — every row that moved (sv_2017 bulk + verilog_2005 lane)
+==============================================================================
+
+## lane sv_2017
+manifest rows before=16337 after=16337 same-universe=True
+parse rows    before=16336 after=16336 same-universe=True
+PER-FILE PARSE TRANSITIONS: {('fail', 'pass'): 8}
+VERDICT-CLASS TRANSITIONS:
+    8  divergence:unexplained_rejects_valid -> match
+    2  deferred:chained_only -> deferred:chained_only
+    1  deferred:v2005_profile_lane -> deferred:v2005_profile_lane
+CHANGED ROWS (11):
+  Surelog/tests/PragmaProtect/pp.top.sv
+      parse fail->pass  expected chained_only->chained_only  class deferred:chained_only -> deferred:chained_only
+  Surelog/tests/PragmaProtect/svpp_all/top.sv
+      parse fail->pass  expected chained_only->chained_only  class deferred:chained_only -> deferred:chained_only
+  ispras-sv-tests/ieee-1800-2012/34/34.03.01_01.sv
+      parse fail->pass  expected must_accept->must_accept  class divergence:unexplained_rejects_valid -> match
+  iverilog/ivtest/ivltests/no_timescale_in_module.v
+      parse fail->pass  expected out_of_scope_with_cause:v2005_profile_lane->out_of_scope_with_cause:v2005_profile_lane  class deferred:v2005_profile_lane -> deferred:v2005_profile_lane
+  sv-tests/tests/chapter-5/5.6.4--compiler-directives-debug-line.sv
+      parse fail->pass  expected must_accept->must_accept  class divergence:unexplained_rejects_valid -> match
+  sv-tests/tests/chapter-5/5.6.4--compiler-directives-pragma.sv
+      parse fail->pass  expected must_accept->must_accept  class divergence:unexplained_rejects_valid -> match
+  sv-tests/tests/generic/class/class_test_48.sv
+      parse fail->pass  expected must_accept->must_accept  class divergence:unexplained_rejects_valid -> match
+  sv2v/test/core/time.sv
+      parse fail->pass  expected must_accept->must_accept  class divergence:unexplained_rejects_valid -> match
+  verilator/test_regress/t/t_lint_implicit_def_bad.v
+      parse fail->fail  expected must_accept->must_reject  class divergence:unexplained_rejects_valid -> match
+  verilator/test_regress/t/t_lint_implicit_func_bad.v
+      parse fail->fail  expected must_accept->must_reject  class divergence:unexplained_rejects_valid -> match
+  verilator/test_regress/t/t_lint_implicit_type_bad.v
+      parse fail->fail  expected must_accept->must_reject  class divergence:unexplained_rejects_valid -> match
+
+## lane verilog_2005
+manifest rows before=2460 after=2460 same-universe=True
+parse rows    before=2459 after=2459 same-universe=True
+PER-FILE PARSE TRANSITIONS: {('fail', 'pass'): 1}
+VERDICT-CLASS TRANSITIONS:
+    1  divergence:unexplained_rejects_valid -> match
+CHANGED ROWS (1):
+  iverilog/ivtest/ivltests/no_timescale_in_module.v
+      parse fail->pass  expected must_accept->must_accept  class divergence:unexplained_rejects_valid -> match
