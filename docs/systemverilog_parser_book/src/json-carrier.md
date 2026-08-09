@@ -15,6 +15,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `description` (8 branches) | per-branch `{kind: "<name>", body: $1}` for single-element branches; `{kind: "<name>", attributes: $1, body: $2}` for multi-element branches with `attribute_instance*` prefix | Typed object with `kind` discriminator: `"module_declaration"`, `"udp_declaration"`, `"interface_declaration"`, `"program_declaration"`, `"package_declaration"`, `"package_item"`, `"bind_directive"`, `"config_declaration"`. The `attributes` field (only on `package_item` / `bind_directive` branches) carries the leading `attribute_instance*` iteration. The `body` field carries the matched sub-rule's raw envelope (per-rule typing of `module_declaration`, etc. is a follow-up slice). |
 | `compiler_directive` | `-> $2` (transparent passthrough of regex capture) | Clean JSON string carrying the matched directive text (backtick + directive name + arguments, e.g. `"`define FOO bar"`). Drops the leading `trivia` slot. When `source_text_item.kind == "compiler_directive"`, the body is now a directly-usable string. |
 | `in_scope_compiler_directive` / `in_scope_compiler_directive_sv_only` | `-> $2` (same transparent passthrough) | **New in parser release `1.0.178`.** Same clean-string body as `compiler_directive`, but reachable at *item* positions inside a module or class body, where `non_port_module_item` and `class_item` wrap it as `{kind: "compiler_directive", body: "<directive line>"}` — **byte-identical to the top-level node**, which is why schema stays `19`. Only the container is new. `_sv_only` carries `` `undefineall `` alone and is gated to `sv_2017`/`sv_2023` (that directive is absent from IEEE 1364-2005 clause 19). ⚠️ A consumer that exhaustively matches module-item or class-item kinds must add a `compiler_directive` arm. See [Directives Inside Module and Class Bodies](#directives-inside-module-and-class-bodies). |
+| `expression_or_dist` | `-> {expr: $1, dist: $2}` (the dist group is `kw_dist lbrace dist_list rbrace`) | **Shape changed in parser release `1.0.179` (schema `19` → `20`).** `{"expr": <expression-shape>, "dist": []}` when there is no `dist` clause; otherwise `dist` is the **four**-element array `[[trivia,"dist"], {kind:"lbrace"}, <dist_list>, {kind:"rbrace"}]` — the literal IEEE braces are nodes. Before `1.0.179` it was a two-element array and the item list was mis-parsed; see [The `dist` Constraint Operator](#the-dist-constraint-operator). |
 | `attribute_instance` | `-> [$2, $3::2*]` | Flat array `[<attr_spec shape>, <attr_spec shape>, ...]`. Drops the `attr_open` (`(*`) and `attr_close` (`*)`) delimiters and the comma separators between attr_specs. Slice 58 audit replaced the prior `{first, rest}` shape with the flat extraction-spread form per `grammars/return_annotation.ebnf` line 158's self-application. |
 | `module_declaration_sv_2017` (5 branches) | per-branch typed shapes, see contract section "Release 1.0.6 / Contract 1.0.6 Highlights" for the full annotation source | Typed object with `kind` discriminator: `"ansi"` / `"nonansi"` / `"wildcard"` / `"extern_nonansi"` / `"extern_ansi"`. Single-form branches expose `header / timeunits / items / end_label`. The wildcard branch additionally exposes `attributes / keyword / lifetime / name`. Extern branches expose only `header`. |
 | `module_declaration_sv_2023` (5 branches) | per-branch typed shapes (same kind set as sv_2017) | Identical kind discriminator and field names as sv_2017. Wildcard branch's positional indices shift due to `dot star` (2 tokens) vs `dot_star` (1 token); user-visible AST is identical to sv_2017. |
@@ -405,6 +406,61 @@ The annotation column shows the EBNF `-> ...` clause from `grammars/systemverilo
 - `"text"` — string literal.
 
 See `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` for the full annotation-language grammar.
+
+## The `dist` Constraint Operator
+
+*Parser release `1.0.179` (`SV-CORPUS-GRAD.3.18`, ledger `SV-0049`). **Schema `19` → `20`.***
+
+IEEE 1800-2017 A.2.10 defines the distribution operand as:
+
+```
+expression_or_dist ::= expression [ dist { dist_list } ]
+dist_list          ::= dist_item { , dist_item }
+dist_item          ::= value_range [ dist_weight ]
+dist_weight        ::= := expression | :/ expression
+```
+
+⛔ **The `{ }` on the first line are literal SystemVerilog braces; the `{ }` on the second line are
+BNF repetition.** Two lines apart, same characters, opposite meanings. Before `1.0.179` the grammar
+read the first pair as repetition too, and the consequences were not limited to a rejection.
+
+| you write | before `1.0.179` | from `1.0.179` |
+|---|---|---|
+| `x dist {100 := 1, 200 := 2}` | **rejected** at the `:=` | parses |
+| `x dist { [100:102] :/ 1, 200 := 2}` | **rejected** at the `[` | parses |
+| `soft x dist {5, 8};` | parses — but as **one** item whose value is the concatenation `{5, 8}` | parses as the **two** items the LRM defines |
+| `x dist 100 := 1;` (no braces) | **accepted** — no such production exists | correctly rejected |
+
+The third row is the one to read twice. It parsed, so no pass/fail check anywhere reported it; the
+only visible symptom was in the emitted tree, where the dist item's value carried
+`"kind": "concat"` instead of the individual values.
+
+### Migration
+
+For any input that already parsed, the `dist` slot grew from two elements to four:
+
+```jsonc
+// before 1.0.179 — `soft x dist {5, 8};`
+"dist": [ ["…","dist"], [ [ /* ONE item, value = concat of 5 and 8 */ ] ] ]
+
+// from 1.0.179
+"dist": [ ["…","dist"], {"kind":"lbrace"}, [ /* item 5 */, /* item 8 */ ], {"kind":"rbrace"} ]
+```
+
+- A consumer that indexed `dist[1]` to reach the list must now read `dist[2]`.
+- A consumer that read a single item whose value was a concatenation must now read the individual
+  `dist_item`s.
+
+The pre-`1.0.179` shape was a bug, not a stable schema — it could not represent a weighted
+distribution at all.
+
+### Bound worth knowing
+
+`dist_weight` is modelled as the two tokens `:` `=` (and `:` `/`) rather than a fused `:=` / `:/`,
+so interior white space — `x dist {100 : = 1}` — is currently tolerated where the LRM's operator
+spelling arguably forbids it. That is a **strictness** question in the same family as the
+`time_literal` white-space item, tracked separately in `docs/tasks/SV-CORPUS-GRAD.md`; it is not
+introduced by this release and no corpus file depends on it.
 
 ## Directives Inside Module and Class Bodies
 

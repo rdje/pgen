@@ -1,12 +1,12 @@
 # rejects-valid construct families (SV-CORPUS-GRAD.3.2)
 
-310 `divergence:unexplained_rejects_valid` rows classified into 8 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
+304 `divergence:unexplained_rejects_valid` rows classified into 8 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
 
 | # | family | rows | suite split |
 |---|---|---|---|
 | 1 | OTHER (per-row triage) | 226 | verilator:95, Surelog:41, ispras-sv-tests:30, sv2v:24, iverilog:13, sv-tests:12, verible:10, slang:1 |
 | 2 | interface/modport (ch25) | 24 | verilator:11, ispras-sv-tests:7, sv-tests:3, sv2v:2, verible:1 |
-| 3 | constraint/randomize (ch18) | 22 | verilator:18, ispras-sv-tests:2, sv-tests:2 |
+| 3 | constraint/randomize (ch18) | 16 | verilator:15, ispras-sv-tests:1 |
 | 4 | SVA implication/property (ch16) | 11 | ispras-sv-tests:5, verilator:4, Surelog:2 |
 | 5 | enum base range (ch6) | 9 | verilator:8, sv2v:1 |
 | 6 | foreach/array (ch7) | 9 | verilator:5, Surelog:2, iverilog:1, verible:1 |
@@ -28,10 +28,10 @@
 - `ispras-sv-tests`: `instance top.a1 use #(.W(top.S));`  (ieee-1800-2012/33/33.04.03_03.sv)
 
 ### constraint/randomize (ch18)
-- `ispras-sv-tests`: `x dist {100 := 1, 200 := 2, 300 := 5};`  (ieee-1800-2012/18/18.05.04_01.sv)
 - `ispras-sv-tests`: `success = std::randomize(a, b) with {b - a > length;};`  (ieee-1800-2012/18/18.12.01_01.sv)
-- `sv-tests`: `constraint c { b dist {3 := 1, 10 := 2}; }`  (tests/chapter-18/18.5.4--distribution_0.sv)
-- `sv-tests`: `constraint c { b dist {3 := 0, 10 := 5}; }`  (tests/chapter-18/18.5.4--distribution_2.sv)
+- `verilator`: `constraint unary { !(-~c == 'h22); }`  (test_regress/t/t_constraint_operators.v)
+- `verilator`: `if (!randomize() with { addr == a; data == d; }) begin`  (test_regress/t/t_constraint_unsat.v)
+- `verilator`: `typedef union soft packed {`  (test_regress/t/t_export_packed_struct.v)
 
 ### SVA implication/property (ch16)
 - `Surelog`: `@($global_clock) a[*1:$] ##1 b);`  (tests/CheckerInst/dut.sv)

@@ -2385,6 +2385,52 @@ parity problem turned out to be shrinking the claim rather than growing the chec
 remembering the next time an enforcer's scope and its environment disagree: check whether the scope
 was ever justified before paying to make the environment match it.
 
+### `.22` — ROUTED IN from `SV-CORPUS-GRAD.3.18`: a census-moving grammar change left `sv_cert_recognized_union_gate` RED for a whole release, and nothing said so (`todo`)
+
+- **Status: `todo`** (opened 2026-08-09, session #219). Routed, not worked — it does not block
+  the SV release lane, but it prices what a green commit means.
+- **WHAT HAPPENED, measured.** `SV-CORPUS-GRAD.3.14b` (commit `3e316e3c`, release `1.0.178`)
+  added two grammar rules — `in_scope_compiler_directive` (satisfiable under all three profiles)
+  and `in_scope_compiler_directive_sv_only` (declared `sv_2017`+`sv_2023`) — and did **not**
+  re-baseline `rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`,
+  whose `expected_total` had been `1352` since `SV-CORPUS-GRAD.3.9` (commit `6a2c088a`). The
+  gate therefore failed with `canonical total=1354 (expected 1352)` at all three seeds — and
+  that state **shipped**, surviving an entire release until the next leaf happened to run the
+  gate.
+- **ATTRIBUTION IS MEASURED, NOT INFERRED** (this matters, because the natural and wrong reading
+  is that the leaf which *found* the red caused it): `ast_pipeline --dump-rule-profiles` on the
+  pre-fix and post-fix `SV-CORPUS-GRAD.3.18` grammars gives an **identical** per-profile census
+  — `sv_2017` 1354 → 1354, `sv_2023` 1373 → 1373, `verilog_2005` 1122 → 1122 — with **zero**
+  rules changing their satisfiable-profile set. And `git show 6a2c088a:grammars/systemverilog.ebnf`
+  contains **neither** new rule. `1352 + 2 = 1354` is then arithmetic over provenance.
+- ⭐ **THE ROOT CAUSE IS COVERAGE, NOT CARELESSNESS.** This gate is **operator-invoked**: the
+  automatic per-push tier is the 17 doctrines plus three cheap gate targets, and the other ~120
+  `make` targets run only when a human runs them. So a census-moving grammar edit can land, pass
+  everything automatic, and leave a proof gate red with **no signal of any kind** until the next
+  operator happens to invoke it. The gate did its job perfectly the moment it was run; the defect
+  is that nothing runs it.
+- **Owed:** decide the cheapest sufficient signal. Candidates, in rising cost: (a) a doctrine
+  check that fails the commit when `grammars/*.ebnf` changes the rule census without touching the
+  matching `*_cert_*_contract.json` — cheap, purely local, needs no cert run; (b) promote the
+  census comparison (not the full cert run) into the automatic tier; (c) promote the whole gate,
+  which is ~13 minutes and almost certainly too expensive per push.
+- ⭐⭐ **IT WAS TWO GATES, NOT ONE — the class prediction was CONFIRMED in the same session, and
+  the split is the corroboration.** The paragraph above originally ended "check the sibling
+  contracts first… assume the class, not the instance"; running the rest of the batch did exactly
+  that, and `verilog_2005_conformance_gate` was **also red** on the same commit —
+  `cert total=1122 (expected 1121)`, `cert proof=329 (expected 328)`. **`+1` there against `+2`
+  in the union contract, and that asymmetry is the fingerprint:** `.3.14b` added two rules, but
+  only `in_scope_compiler_directive` (`declared_profiles: null`) is satisfiable under
+  `verilog_2005` — its twin `in_scope_compiler_directive_sv_only` is `@profiles`-gated to
+  `sv_2017`+`sv_2023`. Two contracts, two different deltas, one cause, both predicted by the
+  rule-profile dump before either gate was re-run. Both re-baselined by `SV-CORPUS-GRAD.3.18`
+  with attributing notes; the behavioural half of the v2005 gate was GREEN throughout (corpus
+  matrix 240 file × profile checks, 0 mismatches, `profile_orphans 0`), so nothing about the
+  *language* had regressed — only the recorded census.
+- ⇒ **the fix must be the class-wide one (a), not a per-gate patch.** A contract-vs-census
+  consistency check is cheap and local; two instances in one commit is enough evidence that
+  hand-remembering to re-baseline does not hold.
+
 ## Evidence
 
 - Measured at commit `730419a2`, session #215. The census was produced by sourcing

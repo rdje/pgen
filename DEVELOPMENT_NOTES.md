@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0036 — a construct can be broken in a direction no pass-rate can see
+
+`.3.18` fixed one dropped delimiter in `expression_or_dist`, and the interesting part is not the six
+corpus rows it healed. It is that the SAME defect also made `soft x dist {5, 8};` **parse**, with the
+LRM's two distribution items collapsed into one whose value was the concatenation expression
+`{5, 8}`. Every oracle this repo runs against that file — the corpus pass count, the adjudication
+manifest, the triage gate — reported it healthy, because all of them ask *did it parse*. The wrong
+tree was visible only in `--parse-dump-ast-pretty`, and only if you knew to look.
+
+**Why it stayed invisible for the parser's whole life.** The AST shape contract is the surface that
+would have caught it, and `dist` was in none of its 31 locked samples. So the rule had no shape
+lock, and the one class of defect a shape lock exists to catch is exactly the one that leaves the
+exit code at 0. The lesson generalizes past `dist`: **a construct with no shape sample is only
+checked for parseability, never for correctness**, and the repo's own pass/fail instruments cannot
+tell those apart. When a burn-down leaf touches a rule with no sample, adding one is not optional
+polish — it is the only thing that makes the fix verifiable in the direction that matters.
+
+**The diagnostic that made the difference** was a matrix that dumps a shape, not one that returns an
+exit code (`docs/tasks/artifacts/sv_corpus_grad/dist_list_braces/matrix.py --check-d4-shape`). Its
+first cut used a depth-first search for the discriminating `"kind"` and reported `number` — the
+LRM-correct answer — on the corrupted tree, because `"kind": "concat"` sits in the same dict as the
+`body` list whose operands each carry `"kind": "number"`. A depth-first walk descends into `body`
+first. The instrument was rewritten breadth-first so the shallowest match wins. ⛔ Worth stating
+plainly: the wrong version of this check did not fail loudly, it **agreed with the fix** — an
+instrument that confirms whatever you hoped is worse than no instrument
+([[feedback_instrument_needs_ground_truth]]).
+
+**And the new lock was proven live rather than assumed.** After adding the
+`expression_or_dist_braced_list` sample, its expected-keys list was deliberately broken; the gate
+failed with `missing required key 'THIS_KEY_DOES_NOT_EXIST'`, and only then was it restored. A
+green gate that has never been shown to go red is a claim, not a proof.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0035 — generalizing an instrument re-proves the leaf that built it
 
 `.3.16` needed the same whole-population sweep as `.3.15` over a different stuck token. The cheap

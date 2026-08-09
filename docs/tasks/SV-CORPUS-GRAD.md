@@ -3189,6 +3189,287 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   defect. ⚠️ Cross-family by construction: any grammar's file reader has this property, so
   check `vhdl`/`regex` before assuming it is SV's.
 
+##### `.3.18` — `expression_or_dist` renders the LRM's LITERAL `{ dist_list }` braces as EBNF repetition, so the whole `dist` constraint operator is wrong THREE ways at once (IEEE 1800-2017 A.2.10 / §18.5.4 — ⭐ the SEVENTH instance of the documented dropped-delimiter class, and the THIRD in Annex A subclause A.2.10 alone)
+
+- **Status: `done`** (2026-08-09, session #219, `PGEN-SV-CORPUS-GRAD-0036`; release
+  `1.0.178` → **`1.0.179`**, schema **`19` → `20`**, ledger **`SV-0049`**) — a REAL parser
+  defect with parser bytes and **parser yield 6**, cut after two consecutive zero-yield
+  adjudication leaves (`.3.15`, `.3.16`).
+- **PICK (measured, from the STUCK POSITION over the LIVE worklist — not from the family
+  bucketer, per `MEMORY.md`'s standing warning that `OTHER` at 226/310 is burned past
+  usefulness).** Cluster **#14 `: = NUM` (4 rows)** in the HEAD
+  `rejects_valid_clusters.md` is a *token-level tell*: the 3-token stuck window shows `:`
+  and `=` as SEPARATE tokens, i.e. the parse died on the `:=` of a `dist` weight. Widening
+  from the cluster to the construct with the tracked positional scan
+  (`keyed_dist_rows.py`, `keyed_rows_before.txt`) gives the real extent: **6 / 310 rows are
+  blocked INSIDE a `dist { … }`**, across 3 suites (verilator 3, sv-tests 2,
+  ispras-sv-tests 1). ⛔ The coarse bucketer files these under
+  `constraint/randomize (ch18)` mixed with `randomize()…with{}` method chains — a
+  heterogeneous 22-row bucket `.3.8` explicitly declined for that reason; the positional
+  scan is what separates the two mechanisms.
+- **REPRODUCE (tool-pinned, `dist_list_braces/before.txt`)** — 8 cases under
+  `--profile sv_2017`, every `d*` copied VERBATIM from the LRM's own normative text.
+  ⭐ **The defect is THREE-sided, which a pass/fail probe alone cannot show:**
+
+  | case | construct | LRM source | verdict | furthest |
+  |---|---|---|---|---|
+  | `d1_dist_weighted` | `x dist {100 := 1, 200 := 2, 300 := 5}` | §18.5.4 :503 | **REJECT** | 52 |
+  | `d2_dist_range_eq` | `x dist { [100:102] := 1, … }` | §18.5.4 :518 | **REJECT** | 49 |
+  | `d3_dist_range_prop` | `x dist { [100:102] :/ 1, … }` | §18.5.4 :520 | **REJECT** | 49 |
+  | `d4_dist_unweighted_soft` | `soft x dist {5, 8};` | §18.5.11 :1406 | ⚠️ **ACCEPT — MIS-PARSED** | — |
+  | `d5_dist_in_property` | `(a dist {1 := 1, 0 := 3}) \|-> b` | A.2.10 | **REJECT** | 72 |
+  | `c1_constraint_no_dist` | `x > 100; x < 300;` | control | ACCEPT | — |
+  | `c2_concat_expression` | `q = {4'd5, 4'd8};` | control | ACCEPT | — |
+  | `n1_dist_no_braces_ILLEGAL` | `x dist 100 := 1;` | A.2.10 — **no such production** | ⚠️ **ACCEPT** | — |
+
+  1. **Under-acceptance** — `d1`/`d2`/`d3`/`d5`: every weighted or ranged distribution the
+     LRM writes is unparseable, in constraint AND assertion contexts.
+  2. ⭐ **Silent MIS-PARSE** — `d4` *parses*, so no pass-rate anywhere reports it, but the
+     emitted AST gives the dist item's value `{"kind": "concat"}`: the LRM's **two** items
+     `5` and `8` are handed to the consumer as **one** item whose value is the
+     concatenation expression `{5, 8}`. A wrong tree is worse than a rejection — the
+     downstream (Nexsim) has no way to notice. `matrix.py --check-d4-shape` names the kind.
+  3. **Over-acceptance** — `n1`: the brace-less `x dist 100 := 1;` has no production in
+     A.2.10 at all and is accepted, which is a defect under
+     [[feedback_sv_strict_lrm_compliance_default]].
+- **LRM GROUND TRUTH (verified verbatim in the in-repo LRM text BEFORE any edit).** A.2.10,
+  quoted identically at three places
+  (`docs/systemverilog/2017/txt/section-18-constrained-random-value-generation.txt:372`,
+  `:487`, and `section-15-…:1297`):
+
+  ```
+  expression_or_dist ::= expression [ dist { dist_list } ]
+  dist_list ::= dist_item { , dist_item }
+  dist_item ::= value_range [ dist_weight ]
+  dist_weight ::= := expression | :/ expression
+  ```
+
+  ⭐ **The two `{ }` uses sit two lines apart and mean opposite things** — in `dist_list`
+  they ARE repetition metasyntax; in `expression_or_dist` they are LITERAL SystemVerilog
+  braces. The LRM settles it in its own normative prose and examples, so this is
+  adjudicable rather than a judgement call: `:503` `x dist {100 := 1, 200 := 2, 300 := 5}`,
+  `:518` `x dist { [100:102] := 1, … }`, `:520` `x dist { [100:102] :/ 1, … }`, `:1393`
+  `constraint B2 { disable soft x; soft x dist {5, 8};}`, `:1406`
+  `constraint B3 { soft x dist {5, 8}; }` — and the prose at `:497` calls the operand
+  *"a comma-separated list of integral expressions and ranges"*, which is the braced list,
+  not a repetition of lists.
+- **ROOT CAUSE (WHY + WHERE) — grammar source, `grammars/systemverilog.ebnf`:**
+  - **WHERE:** `expression_or_dist:2344`.
+
+    ```
+    expression_or_dist := @probe_sample: "1" expression ( kw_dist_02450072 dist_list* )?
+                       -> {expr: $1, dist: $2}
+    ```
+
+  - **WHY:** the LRM's literal `{ dist_list }` was rendered as PGEN's `dist_list*`
+    **zero-or-more metasyntax**, so the rule matches `dist` followed by a *brace-less*
+    repetition of dist lists. Nothing in the rule can consume a literal `{`. What the
+    corpus then sees is not a clean rejection but the three verdicts above, because
+    `dist_item → value_range → expression` can itself start with `{` as a
+    **concatenation**: for `{5, 8}` that speculative path SUCCEEDS (one item, wrong tree —
+    `d4`), for `{3 := 1}` it dies at the `:=` (`d1`, and this is precisely the `: = NUM`
+    cluster signature), and for `{[100:102] …}` it dies at the `[` (`d2`/`d3`). One dropped
+    delimiter, three symptoms — which is why the cluster map scattered them.
+  - **TRACE (the WHY, `dist_list_braces/trace_d1_before.txt`)** —
+    `PGEN_TRACE_VERBOSITY=debug … --trace-rules expression_or_dist,dist_list,dist_item,dist_item_sv_2017,dist_weight`
+    on the 4-line minimal repro (`repro/min_dist.sv`). The whole dist-family trace is seven
+    lines and they all name the same byte:
+
+    ```
+    🚪 Entering branch 1/2 for rule 'dist_item' at position 46
+    ❌ Branch 1/2 for rule 'dist_item' failed at position 46
+    🚪 Entering branch 2/2 for rule 'dist_item' at position 46
+    ❌ Branch 2/2 for rule 'dist_item' failed at position 46
+    ❌ Exiting rule 'dist_item_sv_2017' with error: Backtrack { position: 46 }
+    ❌ Exiting rule 'dist_item'        with error: Backtrack { position: 46 }
+    ❌ Exiting rule 'dist_list'        with error: Backtrack { position: 46 }
+    ```
+
+    Position 46 **is the `{`** — the parser attempts a `dist_item` ON the brace and both of
+    its branches fail there, so no production consumes it. `dist_weight` is never entered at
+    all. `furthest_position=49` is the `:=` three bytes later, reached only by the
+    speculative concatenation path described above.
+- ⭐⭐ **THE CLASS FINDING, and it is the actionable part.** This is the **seventh** logged
+  instance of the ledger's "dropped-delimiter class" (literal LRM delimiters read as BNF
+  metasyntax) — after `stream_concatenation` (`SV-0002`), `trans_range_list`,
+  `boolean_abbrev`, the six bounded-property operators, `value_range`, and
+  `cycle_delay_range` (`.3.8`, `SV-0044`). ⛔ **Three of those seven — `boolean_abbrev`,
+  `cycle_delay_range` and now `expression_or_dist` — live in Annex A subclause A.2.10.**
+  `.3.8` already recorded the identical complaint ("a fix landed in that very subclause and
+  did not sweep its immediate neighbours") and its own PICK notes even name
+  `dist { [0:1], [2:5] :/ 2 }` as a residual it was setting aside. It was set aside for two
+  weeks and then found again, reactively, by a different cluster. ⇒ this leaf is direct
+  evidence that the reactive one-construct-at-a-time posture does not converge, and that
+  the exhaustive Annex-A bracket/brace sweep owned by the director-gated
+  `LRM-GRAMMAR-FIDELITY` tree is the only thing that closes the class. Routed, not worked
+  ([[feedback_flow_findings_are_routed_not_worked]]) — see the routing note at landing.
+- **FIX (hierarchy level 1 — pure grammar, existing tokens only):** restore the LRM's
+  literal braces at `expression_or_dist:2344` —
+  `( kw_dist_02450072 lbrace dist_list rbrace )?`. `lbrace`/`rbrace` already exist
+  (`:6884`/`:6920`) and `dist_list` is unchanged, so **zero new rules and zero new tokens**
+  ⇒ `defined_rule_count` expected UNCHANGED. The `*` also retires: `dist_list` already
+  carries its own `( comma dist_item )*`, so the repetition was doubly wrong.
+- **ADDRESSED (verified) — the repro matrix flips on all three axes at once
+  (`dist_list_braces/after.txt`):**
+
+  | case | before | after |
+  |---|---|---|
+  | `d1` / `d2` / `d3` / `d5` | REJECT (52 / 49 / 49 / 72) | **ACCEPT** |
+  | `d4` (AST kind of the dist item's value) | ACCEPT, `"kind": "concat"` ⚠️ | ACCEPT, **`"kind": "number"`** |
+  | `n1` (LRM-illegal, brace-less) | ACCEPT ⚠️ | **REJECT** (furthest 47) |
+  | `c1` / `c2` (controls) | ACCEPT | ACCEPT |
+
+- ⭐ **SCHEMA `19` → `20` — MEASURED, not assumed, and it is the one thing about this leaf
+  that reaches consumers.** `.3.8`'s "the construct was 100 % unparseable ⇒ no witnessed
+  wire shape can move ⇒ schema unchanged" reasoning does **not** transfer here, because the
+  `d4` shape *did* parse. Dumping the same file on both parsers:
+
+  ```
+  BEFORE  dist: [ [trivia,"dist"], [ [ <one dist_item: {5,8} as a concatenation> ] ] ]   # 2 elements
+  AFTER   dist: [ [trivia,"dist"], {kind:"lbrace"}, [ <item 5>, <item 8> ], {kind:"rbrace"} ]  # 4 elements
+  ```
+
+  Two consumer-visible changes: the `dist` array grows from **2 to 4** elements (the literal
+  braces are now nodes), and the item list flattens from one mis-parsed item to the LRM's
+  **two**. Per `docs/systemverilog_parser_book/src/schema-versioning.md` ("an existing return
+  annotation is restructured" / "a grammar rule changes shape in a way that's user-visible"),
+  that is a bump. ⛔ The `ast_shape_contract_gate` could NOT have caught this — **0 of its 31
+  locked samples contain a `dist`** (checked before the edit), so the bump is an author
+  ruling backed by a dump, and a `dist` sample is added to the contract by this leaf so the
+  next change to this rule is gate-visible.
+- **ADDRESSED — measured GLOBALLY, both lanes** (evidence
+  `dist_list_braces/{transitions_sv2017.txt,transitions_v2005.txt}`; baselines preserved to
+  `rust/target/sv_axis2_baseline/*.pre_3_18.*` **before** the run, per the tree's standing
+  overwrite trap):
+  - **MAIN `sv_2017` lane, 16 336 files — pass 9 720 → 9 726 (+6)**, fail 6 612 → 6 606,
+    timeout 4 (unchanged), crash 0.
+  - **Adjudication: `unexplained_rejects_valid` 310 → 304 (−6)**, `match` 5 766 → 5 772.
+  - **V2005 lane BYTE-INERT:** 2 459 files, pass 2 181 / fail 278 / timeout 0 — **zero
+    per-file transitions**, and `adjudication_manifest_v2005.tsv` is **BYTE-IDENTICAL**
+    (`cmp` clean). Constraints and SVA are unreachable under IEEE 1364-2005, and this is
+    now MEASURED rather than assumed.
+- **NO REGRESSION — the `.3.4` LAW, per-FILE, plus set differences rather than net counts:**
+  - **Transition matrix: `pass→pass` 9 720, `fail→pass` 6, `timeout→timeout` 4.
+    ZERO `pass→fail`, ZERO `pass→timeout`, ZERO `pass→crash`** — and no jitter row to
+    explain away this time.
+  - **ZERO NEW `unexplained_rejects_valid`** — by set difference over the 16 336-row
+    manifest, not by net count (310 → 304 = 6 healed, 0 added).
+  - ⛔ **`unexplained_accepts_invalid` is the control that matters, and its SET is
+    BYTE-IDENTICAL (21 → 21).** This leaf deliberately *tightens* the language (`n1`), so a
+    silent widening elsewhere is the failure mode; the set comparison is what rules it out.
+  - **The ONLY adjudication transition anywhere in the manifest is 6 ×
+    `unexplained_rejects_valid → match`.** Nothing else moved class in either lane.
+  - **TARGETING — proven, not asserted:** the 6 flipped files are **set-equal** to the 6
+    rows `keyed_dist_rows.py` keyed BEFORE the edit. **flipped-but-not-keyed = 0** and
+    **keyed-but-not-flipped = 0** (the check is a set comparison in the leaf's own evidence
+    bundle). Contrast `.3.8`, where 1 keyed row of 24 did not flip and had to be
+    root-caused; here the fix is exactly as wide as the diagnosis said.
+  - ⭐ **`verilator/t_constraint_dist_randc_bad.v` flipping to PASS is CORRECT, not
+    over-acceptance** — the `_bad` in its name is a SEMANTIC error, and §18.5.4's own
+    "Limitations" say so: *"A dist operation shall not be applied to randc variables."*
+    That is an elaboration rule, not a syntax rule, so a conforming parser must parse the
+    file and let elaboration reject it. Checked rather than assumed, because a `_bad`
+    fixture flipping to pass is exactly the shape a real over-acceptance would have.
+- ⭐ **INDEPENDENT RE-PROOF FROM THE RE-CUT WORKLIST** (the `.3.16` discipline — a second
+  instrument, not written to confirm this fix, agreeing with it). Re-running the tracked
+  `cluster_rejects_valid.py` + `classify_rejects_valid_families.py` against the new manifest:
+  **304 rows / 184 signatures** (was 310 / 185), the `: = NUM` cluster that *surfaced* this
+  leaf is **gone entirely** (4 → 0, the signature no longer exists), and
+  `constraint/randomize (ch18)` drops **22 → 16**, with the sv-tests contribution to that
+  family going to **0**. The signature count falling by exactly 1 is the tell that a whole
+  stuck-point shape was retired rather than a few rows shuffled.
+- ⛔⛔ **TWO PROOF GATES WERE ALREADY RED ON HEAD, AND THIS LEAF IS NOT THE CAUSE — measured.**
+  `sv_cert_recognized_union_gate` failed `canonical total=1354 (expected 1352)` and
+  `verilog_2005_conformance_gate` failed `cert total=1122 (expected 1121)`. Attribution was
+  established with the toolbox before either contract was touched:
+  `ast_pipeline --dump-rule-profiles` on the **pre-fix** and **post-fix** grammars gives an
+  **identical** per-profile census (`sv_2017` 1354 → 1354, `sv_2023` 1373 → 1373,
+  `verilog_2005` 1122 → 1122) with **zero** rules changing their satisfiable-profile set ⇒ this
+  leaf's grammar edit contributes exactly **0**. The arrears belong to **`.3.14b`**
+  (commit `3e316e3c`, release `1.0.178`), which added `in_scope_compiler_directive` +
+  `in_scope_compiler_directive_sv_only` and re-baselined neither contract;
+  `git show 6a2c088a:grammars/systemverilog.ebnf` (the `.3.9` commit that last set 1352/1121)
+  contains neither rule. ⭐ **The asymmetry is the fingerprint:** `+2` in the sv_2017 union
+  contract but `+1` in the v2005 one, because only `in_scope_compiler_directive` is satisfiable
+  under `verilog_2005` — its twin is `@profiles`-gated. Both re-baselined here with attributing
+  notes; the accounting is **fully positive** in both (proof/UNKNOWN/residual-set unchanged, the
+  deltas land in `witness` and `proof` respectively), and the v2005 gate's **behavioural** half
+  was green throughout (corpus matrix 240 × 0 mismatches, `profile_orphans 0`). Root cause —
+  these gates are **operator-invoked, not in the automatic per-push tier**, so a census-moving
+  grammar change leaves them red with no signal until someone runs them — routed to
+  **`CI-PARITY-GATE-ROT.22`**. ⚠️ Recorded plainly because the tempting move was to fold a silent
+  re-baseline into this commit and let the leaf read as if both gates had always been green.
+- **GATES (green at landing):** `ast_shape_contract_gate` PASS — and **proven non-vacuous**:
+  the new sample is listed in the run (`expression_or_dist_braced_list (rule=expression_or_dist)
+  … structural_ok=true`), and breaking its expected-keys list on purpose made the gate FAIL with
+  `missing required key 'THIS_KEY_DOES_NOT_EXIST'` before it was restored. A green gate never
+  shown to go red is a claim, not a proof. `sv_syntax_closure_gate` PASS with
+  **`defined_rule_count` 1477 UNCHANGED** and `unreachable_rules: 0` — as designed, since the
+  grammar diff replaces one rule line with one rule line and adds no rules or tokens.
+  `sv_cert_recognized_union_gate` PASS **after the re-baseline** — canonical UNKNOWN **11**,
+  union UNKNOWN **0**, `union_residual_rules []`, `unmet_criteria_count 0`, deterministic across
+  seeds 0/7/42. `verilog_2005_conformance_gate` PASS **after the re-baseline** — lint
+  `orphans=0`, corpus **240 checks / 0 mismatches**, 2 alias checks, cert deterministic across
+  seeds 0/7/42. `sv_external_corpus_triage_gate` PASS. `systemverilog_parser_book_gate` PASS
+  (the new `json-carrier.md` section and the rebuilt `schema-versioning.md` table both render).
+  `clippy_on_rust_change` PASS including the STRICT generated-parser stage.
+  `check_published_version_currency.sh` OK. `bash scripts/check_doctrines.sh` **17/17**.
+- **ROUTED OUT (never dropped — routing decides WHEN, not WHETHER,
+  [[feedback_every_finding_must_be_fixed_not_logged]]):**
+  1. **`LRM-GRAMMAR-FIDELITY`** — the exhaustive Annex-A bracket/brace sweep. This leaf is the
+     seventh instance of the class and the third in A.2.10; `.3.8` raised exactly this and its
+     own PICK notes named `dist { … }` as a residual, which was then rediscovered two weeks
+     later by an unrelated cluster. The reactive posture is measurably not converging.
+  2. **`SV-AST-SHAPE-FIDELITY.4`** — shape-locked share of the annotated SV surface measured at
+     **2.09 %** (30 of 1 055 annotated rules). The `d4` mis-parse is the existence proof that
+     nothing else in the repo asks whether the emitted tree is *right*.
+  3. **`SV-AST-SHAPE-FIDELITY.5`** — the SV book's schema timeline had rotted for a **second**
+     time (prose said `16`, contract said `19`, rows 17/18/19 absent for three releases). Fixed
+     here; routed there because a surface backfilled twice by hand needs a currency gate.
+- ⚠️ **HONEST BOUNDS (stated, not silently capped)**
+  1. **`dist_weight` still admits white space the LRM's operator spelling arguably forbids** —
+     it is modelled as the two tokens `colon assign` / `colon slash` (`:6164`/`:6174`), so
+     `x dist {100 : = 1}` is tolerated. Same family as `.3.11`'s `time_literal` item, which is
+     parked on a director scope call; **not introduced here**, and no corpus row depends on it.
+     Deliberately out of scope rather than quietly folded in.
+  2. **`.9` still owns the crafted cases.** The six healed rows stop being *blocked at the
+     `dist`*; whether the rest of each file is LRM-clean is a different question their verdicts
+     cannot answer.
+  3. **The `dist` annotation is left as `{expr: $1, dist: $2}`** — faithful and minimal. A
+     cleaner carrier that exposed the `dist_list` directly (dropping the brace tokens) would be
+     a second schema change on the same field in the same release, so it is not folded in.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `furthest_position=49` on the 4-line
+  `dist_list_braces/repro/min_dist.sv`; the full 8-case matrix in `before.txt` shows 4 LRM-legal
+  forms REJECT (52/49/49/72), the LRM-illegal `n1` wrongly ACCEPT, and `d4` ACCEPT with the
+  wrong AST kind; 6 corpus rows keyed by `keyed_dist_rows.py`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `expression_or_dist:2344` renders A.2.10's LITERAL
+  `{ dist_list }` as the EBNF repetition `dist_list*`. `--trace-rules
+  expression_or_dist,dist_list,dist_item,dist_item_sv_2017,dist_weight` at
+  `PGEN_TRACE_VERBOSITY=debug` shows both `dist_item` branches entered and failed **at position
+  46, which is the `{`**, `dist_list` backtracking from the same byte, and `dist_weight` never
+  entered (`trace_d1_before.txt`). LRM verified verbatim in-repo at
+  `section-18-…:372/:487` + `section-15-…:1297`, with the literal-brace reading settled by the
+  normative examples at `:503/:518/:520/:1393/:1406`.
+- [x] **FIX** — tier 1, pure grammar: `( kw_dist_02450072 lbrace dist_list rbrace )?`
+  (`grammars/systemverilog.ebnf:2344`). Existing tokens only; zero new rules or tokens.
+- [x] **ADDRESSED (verified)** — repro matrix 4 REJECT→ACCEPT, `d4` AST kind `concat`→`number`,
+  `n1` ACCEPT→REJECT, controls held; corpus pass **9 720 → 9 726 (+6)**, unexplained
+  rejects-valid **310 → 304**. Oracles: `stimuli/run_external_corpus.sh sv 60 8 0` +
+  `stimuli/sv/adjudicate_external_corpus.py` + `matrix.py`.
+- [x] **NO REGRESSION** — per-file census **0 pass→fail / 0 pass→timeout / 0 pass→crash** over
+  16 336 files; **ZERO new** rejects-valid by set difference; `unexplained_accepts_invalid` set
+  **BYTE-IDENTICAL** (21); v2005 manifest `cmp`-clean with zero transitions; flipped set
+  **set-equal** to the keyed set; `ast_shape_contract_gate` GREEN (negative-control-proven);
+  `sv_syntax_closure_gate` GREEN with census 1477 unchanged.
+- [x] **LOCKSTEP** — ledger `SV-0049`; contract `1.0.179` + schema `19`→`20`; SV book
+  `changelog-index.md`, `json-carrier.md` (new "The `dist` Constraint Operator" section) and
+  `schema-versioning.md` (row 20 **plus the reconstructed 17/18/19**); the new shape sample;
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`; `SV-AST-SHAPE-FIDELITY`
+  `.4`/`.5` opened.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

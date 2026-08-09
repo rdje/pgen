@@ -8,17 +8,17 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | Surelog | 828 | 557 | 49 | 22 | 200 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
-| ispras-sv-tests | 1266 | 758 | 46 | 16 | 446 |
+| ispras-sv-tests | 1266 | 759 | 45 | 16 | 446 |
 | iverilog | 3799 | 1017 | 19 | 232 | 2531 |
 | opentitan | 3983 | 0 | 0 | 4 | 3979 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 54 | 1 | 15 | 22 |
-| sv-tests | 1028 | 789 | 17 | 121 | 101 |
+| sv-tests | 1028 | 791 | 15 | 121 | 101 |
 | sv2v | 953 | 461 | 38 | 80 | 374 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 112 | 12 | 6 | 22 |
-| verilator | 3263 | 2018 | 149 | 967 | 129 |
-| **total** | **16336** | **5766** | **331** | **1463** | **8776** |
+| verilator | 3263 | 2021 | 146 | 967 | 129 |
+| **total** | **16336** | **5772** | **325** | **1463** | **8776** |
 
 ## Verdict-class detail
 
@@ -37,8 +37,8 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | divergence:explained_svpp_protected_envelope | 4 |
 | divergence:explained_timeout | 4 |
 | divergence:unexplained_accepts_invalid | 21 |
-| divergence:unexplained_rejects_valid | 310 |
-| match | 5766 |
+| divergence:unexplained_rejects_valid | 304 |
+| match | 5772 |
 
-**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**331**: rejects-valid 310, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
+**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**325**: rejects-valid 304, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
 

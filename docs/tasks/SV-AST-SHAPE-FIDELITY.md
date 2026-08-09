@@ -776,6 +776,63 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   the `1.0.151`/`1.0.152` `changelog-index.md` entries here too, alongside the
   `schema-versioning.md` `1.0.148`–`1.0.151` rows, so both SV-book timelines are row-complete.
 
+### `.4` — ⭐ the AST-shape contract locks **2.09 %** (22 / 1 055) of the annotated surface, so 98 % of the parser is checked for *parseability* and never for *correctness* (routed in by `SV-CORPUS-GRAD.3.18`, 2026-08-09)
+
+- **Status: `todo`** (routed, not worked — the SV release lane is locked to
+  `SV-CORPUS-GRAD`; this does not block it, but it prices what "verified" means for Nexsim).
+- **The motivating defect, measured.** `SV-CORPUS-GRAD.3.18` found that
+  `soft x dist {5, 8};` had **parsed with the wrong tree for the entire life of the parser** —
+  the LRM's two distribution items collapsed into one whose value was the concatenation
+  `{5, 8}`. Every oracle this repo runs said green, because every one of them asks *did it
+  parse*: the corpus pass count, the adjudication manifest, the triage gate, the syntax-closure
+  gate. The only surface that could have caught it is this contract, and `dist` was in none of
+  its samples.
+- **THE NUMBER (measured at HEAD, 2026-08-09):**
+
+  | quantity | value |
+  |---|---|
+  | return-annotation entries in `generated/systemverilog_return_annotations.json` | **2 284** |
+  | distinct SV rules carrying a return annotation | **1 055** |
+  | distinct rules named by an `ast_shape_contract` sample | **30** (32 samples) |
+  | …of those, rules that carry a return annotation | **22** (the other 8 are un-annotated named lifts) |
+  | **shape-locked share of the annotated surface (22 / 1 055)** | **2.09 %** |
+
+  ⛔ **This is deliberately NOT stated as "97.9 % of the contract is missing".** The contract was
+  built as a *regression lock for known corruption sites* (`SV-0014`…`SV-0020`), and for that
+  purpose 30 targeted samples are the right design, not a shortfall. The honest finding is
+  narrower and worse: **there is no instrument anywhere in the repo that asks "is the emitted
+  tree RIGHT?" for the other 1 033 rules** — only whether they parse. `dist` is the existence
+  proof that the difference is not theoretical.
+- **Owed:** decide what the correctness surface for AST shape should be — candidates include
+  (a) a generated sample per annotated rule seeded from each rule's `@probe_sample`, checked
+  for *structure* rather than pinned bytes, (b) a coverage ratchet that refuses to fall, (c) a
+  rule that any burn-down leaf touching an unsampled rule must add a sample (the cheap,
+  immediately-adoptable half — `.3.18` did exactly this by hand). ⚠️ Cost and value both need
+  measuring before choosing; a 1 055-sample manifest that nobody can review would be its own
+  defect.
+
+### `.5` — the SV book's schema timeline has now rotted TWICE, so the fix is a currency GATE, not a third manual backfill (routed in by `SV-CORPUS-GRAD.3.18`, 2026-08-09)
+
+- **Status: `todo`** (routed).
+- **What happened, twice.** `.3` above backfilled `schema-versioning.md` rows
+  `1.0.148`–`1.0.151` and corrected a stale intro (`now 3` → `now 7`) because the book timeline
+  had fallen behind the contract. On 2026-08-09 `SV-CORPUS-GRAD.3.18` found the *same file* in
+  the *same state* again: the prose read *"is now `16`"* while the contract carried `19`, and
+  the table skipped schemas **17, 18 and 19** — three releases, roughly three weeks. Rows
+  reconstructed there from the contract + ledger, and the prose now names the contract as the
+  tie-breaker.
+- ⭐ **The transferable point: a surface that has been manually backfilled twice will be
+  backfilled a third time.** `PUBLISHED-VERSION-CURRENCY` already holds the DONE-BAR register
+  equal to its book view in both directions and fails the commit on drift — it passed green
+  throughout this rot because it does not read this file. The mechanism exists; only its
+  coverage is missing.
+- **Owed:** extend the currency check (or add a sibling) so the SV book's
+  `schema-versioning.md` newest row and its prose value must equal
+  `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` § "SystemVerilog AST-dump
+  schema version", and the `changelog-index.md` newest release must equal the contract version.
+  ⚠️ Check the other eight per-parser books for the same gap before assuming it is SV's — the
+  drift is a property of the *pattern*, not of this family.
+
 ## Decisions
 
 - 2026-07-01: The corruption class is the same one the released-parser bug ledger reserves

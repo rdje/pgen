@@ -1,0 +1,12 @@
+controls OK: +d1_dist_weighted@53, -c2_concat_expression@48
+sweeping 310 unexplained_rejects_valid rows from stimuli/sv/characterization/adjudication_manifest.tsv
+blocked inside `dist { … }`: 6 / 310 (profile sv_2017)
+  ispras-sv-tests	ieee-1800-2012/18/18.05.04_01.sv	furthest=288
+  sv-tests	tests/chapter-18/18.5.4--distribution_0.sv	furthest=367
+  sv-tests	tests/chapter-18/18.5.4--distribution_2.sv	furthest=473
+  verilator	test_regress/t/t_constraint_dist_randc_bad.v	furthest=263
+  verilator	test_regress/t/t_constraint_json_only.v	furthest=547
+  verilator	test_regress/t/t_randomize.v	furthest=506
+
+non-integer probe results: 1
+  sv2v	test/lex/latin1.sv	unparseable

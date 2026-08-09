@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `780b9f06fe076b54724f7c5aeaf232a910d4224d2e8de5fb780bbef32860aecb` |
-| grammar | `grammars/systemverilog.ebnf` | `77a55719dc77831c0242195408ae2d3cfcf1bfeaf44ab42952fbc46036c355ef` |
-| generated parser | `generated/systemverilog_parser.rs` | `6bf175d27b02dcf09e67a1b4f9bf04c2c90005f3287031fc2f3721f92669537b` |
+| parse binary | `rust/target/release/parseability_probe` | `7f61304ed2808b3a6cde72a1c8c10b453644581903e107686fa4864f1f0c65bc` |
+| grammar | `grammars/systemverilog.ebnf` | `e17bdb330aba7410af7379b202a1653ac21fb2891ceb6219c99c55a5ab74af13` |
+| generated parser | `generated/systemverilog_parser.rs` | `1493249c32e6e2014ab7bac75a109cd4f985b5c8a0f50d111ea5ffd970584e74` |
 
-Measured at `HEAD` = `b5187e04+dirty` (2026-08-08).
+Measured at `HEAD` = `d328171c+dirty` (2026-08-09).
 
 ## Totals
 

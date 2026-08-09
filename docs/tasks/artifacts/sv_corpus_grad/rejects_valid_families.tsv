@@ -72,7 +72,6 @@ SVA implication/property (ch16)	ispras-sv-tests	ieee-1800-2012/16/16.09.11_01.sv
 OTHER (per-row triage)	ispras-sv-tests	ieee-1800-2012/16/16.14.07_01.sv	= ID )	rst = $inferred_disable);
 OTHER (per-row triage)	ispras-sv-tests	ieee-1800-2012/17/17.09_01.sv	ID = ID	coverage_level clevel = cover_all // This argument should be bound to an
 OTHER (per-row triage)	ispras-sv-tests	ieee-1800-2012/17/17.09_02.sv	ID = ID	coverage_level clevel = cover_all // This argument should be bound to an
-constraint/randomize (ch18)	ispras-sv-tests	ieee-1800-2012/18/18.05.04_01.sv	: = NUM	x dist {100 := 1, 200 := 2, 300 := 5};
 constraint/randomize (ch18)	ispras-sv-tests	ieee-1800-2012/18/18.12.01_01.sv	ID = std	success = std::randomize(a, b) with {b - a > length;};
 SVA implication/property (ch16)	ispras-sv-tests	ieee-1800-2012/19/19.06.01.01_01.sv	[ NUM :	bins c1 = !binsof(a) intersect {[100:200]}; // 4 cross products
 coverage bins/cross (ch19)	ispras-sv-tests	ieee-1800-2012/19/19.06.01.02_01.sv	with ( ID	bins apple = X with (a + b < 257) matches 127;
@@ -112,8 +111,6 @@ OTHER (per-row triage)	slang	tests/regression/all.sv	. ID )	if (instr matches (t
 OTHER (per-row triage)	sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr-sim.sv	ID ( "	$display(":assert: (%d == %d)", b, (e+c+2));
 OTHER (per-row triage)	sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr.sv	module	endmodule
 OTHER (per-row triage)	sv-tests	tests/chapter-18/18.12.1--adding-constraints-to-scope-variables_0.sv	return ID ;	return success;
-constraint/randomize (ch18)	sv-tests	tests/chapter-18/18.5.4--distribution_0.sv	: = NUM	constraint c { b dist {3 := 1, 10 := 2}; }
-constraint/randomize (ch18)	sv-tests	tests/chapter-18/18.5.4--distribution_2.sv	: = NUM	constraint c { b dist {3 := 0, 10 := 5}; }
 OTHER (per-row triage)	sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	; / /	reg logic; // OK: "logic" is not a keyword in 1364-2001
 OTHER (per-row triage)	sv-tests	tests/chapter-5/5.9-string-broken-line.sv	" ID \	$display("broken \
 OTHER (per-row triage)	sv-tests	tests/chapter-6/6.23--type_op_compare.sv	) type (	case (type(T))
@@ -185,8 +182,6 @@ OTHER (per-row triage)	verilator	test_regress/t/t_clk_concat6.v	; logic [	input 
 OTHER (per-row triage)	verilator	test_regress/t/t_comb_do_not_convert_to.v	; reg ID	input clk;
 interface/modport (ch25)	verilator	test_regress/t/t_config_param.v	# ( .	instance t.u_1a use #(.P1(), .P2("override.u_a.p2"));
 OTHER (per-row triage)	verilator	test_regress/t/t_config_rules.v	# ( )	instance t.m32 use #();
-constraint/randomize (ch18)	verilator	test_regress/t/t_constraint_dist_randc_bad.v	: = NUM	constraint c_bad { rc dist {3 := 0, 10 := 5}; }  // Bad, no dist on randc
-constraint/randomize (ch18)	verilator	test_regress/t/t_constraint_json_only.v	[ NUM :	length dist { [0:1], [2:5] :/ 2, 6 := 6, 7 := 10, 1};
 constraint/randomize (ch18)	verilator	test_regress/t/t_constraint_operators.v	~ ID ==	constraint unary { !(-~c == 'h22); }
 constraint/randomize (ch18)	verilator	test_regress/t/t_constraint_unsat.v	) begin /	if (!randomize() with { addr == a; data == d; }) begin
 OTHER (per-row triage)	verilator	test_regress/t/t_cover_fsm_sel_assign.v	ID ; begin	logic [D-1:0][W-1:0] s;
@@ -266,7 +261,6 @@ SVA implication/property (ch16)	verilator	test_regress/t/t_property_unsup.v	ID e
 interface/modport (ch25)	verilator	test_regress/t/t_queue_back.v	- NUM ]	q = q[0:$-1];  // void'(q.pop_back()) or q.delete(q.size-1)
 OTHER (per-row triage)	verilator	test_regress/t/t_queue_empty_bad.v	} + NUM	i = {} + 1;
 OTHER (per-row triage)	verilator	test_regress/t/t_queue_empty_pin.v	} ) ;	task tsk(int q[] = {});
-constraint/randomize (ch18)	verilator	test_regress/t/t_randomize.v	[ NUM :	length dist { [0:1], [2:5] :/ 2, 6 := 6, 7 := 10, 1};
 constraint/randomize (ch18)	verilator	test_regress/t/t_randomize_arraysel_membersel.v	with { ID	if (std::randomize(example.member[1]) with {example.member[1] inside {[0 : 3]};} == 0) $stop;
 constraint/randomize (ch18)	verilator	test_regress/t/t_randomize_complex_arrays.v	with { ID	if (cl_inst[1].sc_inst.sc_inst1.sc_inst2[1].randomize() with {field inside {1, 2, 3};} == 0) begin
 constraint/randomize (ch18)	verilator	test_regress/t/t_randomize_complex_associative_arrays.v	with { ID	if (cl_inst["val1"].sc_inst.sc_inst1.sc_inst2[1].randomize() with {

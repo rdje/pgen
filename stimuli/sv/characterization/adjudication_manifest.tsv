@@ -2498,7 +2498,7 @@ ispras-sv-tests	ieee-1800-2012/18/18.04_01.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/18/18.05.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.05.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.05.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/18/18.05.04_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/18/18.05.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.05.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.05.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.05.06_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -11054,9 +11054,9 @@ sv-tests	tests/chapter-18/18.5.2--pure-constraint_2.sv	pass	must_accept	match	sv
 sv-tests	tests/chapter-18/18.5.2--pure-constraint_3.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-18/18.5.3--set-membership_0.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-18/18.5.3--set-membership_1.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
-sv-tests	tests/chapter-18/18.5.4--distribution_0.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-18/18.5.4--distribution_0.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-18/18.5.4--distribution_1.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
-sv-tests	tests/chapter-18/18.5.4--distribution_2.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
+sv-tests	tests/chapter-18/18.5.4--distribution_2.sv	pass	must_accept	match	sv-tests: :should_fail_because: at post-parse stage(s) (elaboration simulation) - syntax itself is valid
 sv-tests	tests/chapter-18/18.5.5--uniqueness-constraints_0.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-18/18.5.5--uniqueness-constraints_1.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
 sv-tests	tests/chapter-18/18.5.6--implication_0.sv	pass	must_accept	match	sv-tests: positive test
@@ -13612,7 +13612,7 @@ verilator	test_regress/t/t_constraint_countbits_unsup.v	pass	must_accept	match	v
 verilator	test_regress/t/t_constraint_countones.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_countones.py expects success
 verilator	test_regress/t/t_constraint_disable_soft_bad.v	fail	must_reject	match	verilator: driver t_constraint_disable_soft_bad.py fails=True and golden .out reports a syntax error
 verilator	test_regress/t/t_constraint_dist.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_dist.py expects success
-verilator	test_regress/t/t_constraint_dist_randc_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_constraint_dist_randc_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_constraint_dist_randc_bad.v	pass	must_accept	match	verilator: driver t_constraint_dist_randc_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_constraint_dist_weight.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_dist_weight.py expects success
 verilator	test_regress/t/t_constraint_dyn_array_reduction.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_dyn_array_reduction.py expects success
 verilator	test_regress/t/t_constraint_dyn_queue_basic.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_dyn_queue_basic.py expects success
@@ -13639,7 +13639,7 @@ verilator	test_regress/t/t_constraint_implication_set.v	fail	must_accept	diverge
 verilator	test_regress/t/t_constraint_inheritance.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_inheritance.py expects success
 verilator	test_regress/t/t_constraint_inheritance_with.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_inheritance_with.py expects success
 verilator	test_regress/t/t_constraint_inside_typedef_array.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_inside_typedef_array.py expects success
-verilator	test_regress/t/t_constraint_json_only.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_constraint_json_only.py expects success
+verilator	test_regress/t/t_constraint_json_only.v	pass	must_accept	match	verilator: driver t_constraint_json_only.py expects success
 verilator	test_regress/t/t_constraint_method_bad.v	pass	must_accept	match	verilator: driver t_constraint_method_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_constraint_mode.v	pass	must_accept	match	verilator: driver t_constraint_mode.py expects success
 verilator	test_regress/t/t_constraint_mode_bad.v	pass	must_accept	match	verilator: driver t_constraint_mode_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -15462,7 +15462,7 @@ verilator	test_regress/t/t_randc_wide_constraint.v	fail	must_accept	divergence:e
 verilator	test_regress/t/t_randcase.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randcase.py expects success
 verilator	test_regress/t/t_randcase_bad.v	pass	must_accept	match	verilator: driver t_randcase_bad.py expects success
 verilator	test_regress/t/t_randcase_fork.v	pass	must_accept	match	verilator: driver t_randcase_fork.py expects success
-verilator	test_regress/t/t_randomize.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize.py expects success
+verilator	test_regress/t/t_randomize.v	pass	must_accept	match	verilator: driver t_randomize.py expects success
 verilator	test_regress/t/t_randomize_array.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_array.py expects success
 verilator	test_regress/t/t_randomize_array_elem_with.v	pass	must_accept	match	verilator: driver t_randomize_array_elem_with.py expects success
 verilator	test_regress/t/t_randomize_arraysel_membersel.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_arraysel_membersel.py expects success

@@ -1195,6 +1195,22 @@ mod tests {
                 "rooted_tf_call_sv_only" => parser
                     .parse_rooted_tf_call_sv_only()
                     .map_err(|err| err.to_string()),
+                // SV-CORPUS-GRAD.3.18 (ledger SV-0049): lock the `dist` operand shape.
+                // `expression_or_dist` rendered IEEE 1800-2017 A.2.10's LITERAL
+                // `dist { dist_list }` braces as the EBNF repetition `dist_list*`, so
+                // the whole distribution operator was wrong three ways: every weighted
+                // or ranged form REJECTED, the brace-less `x dist 100 := 1;` (no such
+                // production) ACCEPTED, and — the reason this lock exists — the
+                // unweighted `x dist {5, 8}` PARSED with the LRM's TWO items collapsed
+                // into ONE whose value was the concatenation expression `{5, 8}`. That
+                // last one is invisible to every pass/fail oracle in the repo: only the
+                // emitted shape shows it. Nothing locked this rule before (0 of the
+                // then-31 samples contained a `dist`), which is why a silent mis-parse
+                // survived. The `expected_json_object_keys_present` {expr, dist} pair
+                // plus the two-item list is what a revert would trip.
+                "expression_or_dist" => parser
+                    .parse_expression_or_dist()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

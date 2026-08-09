@@ -1,0 +1,13 @@
+# PGEN_TRACE_VERBOSITY=debug parseability_probe --parse systemverilog repro/min_dist.sv \
+#   --profile sv_2017 --trace-rules expression_or_dist,dist_list,dist_item,dist_item_sv_2017,dist_weight
+# (filtered to the dist-family lines; the full trace is hundreds of MB — TOOLBOX 2.2)
+
+Error: parse_full rejected sample for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/dist_list_braces/repro/min_dist.sv': Parser did not consume full input at position 0 [furthest_position=49, +49 bytes deeper than surface position]
+
+❌ Branch 1/2 for rule 'dist_item' failed at position 46
+❌ Branch 2/2 for rule 'dist_item' failed at position 46
+🚪 Entering branch 1/2 for rule 'dist_item' at position 46
+🚪 Entering branch 2/2 for rule 'dist_item' at position 46
+❌ Exiting rule 'dist_item_sv_2017' with error: Backtrack { position: 46 } - backtracked to 46
+❌ Exiting rule 'dist_item' with error: Backtrack { position: 46 } - backtracked to 46
+❌ Exiting rule 'dist_list' with error: Backtrack { position: 46 } - backtracked to 46

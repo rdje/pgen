@@ -2341,7 +2341,15 @@ expression_or_cond_pattern := inside_expression -> {kind: "inside",       body: 
                             | expression_base   -> {kind: "expression",   body: $1}
                             | cond_pattern      -> {kind: "cond_pattern", body: $1}
 
-expression_or_dist := @probe_sample: "1" expression ( kw_dist_02450072 dist_list* )?
+# IEEE 1800-2017 A.2.10: `expression_or_dist ::= expression [ dist { dist_list } ]`.
+# ⛔ The `{ }` around `dist_list` are LITERAL SystemVerilog braces, not BNF repetition —
+# two lines above them, `dist_list ::= dist_item { , dist_item }` uses the SAME characters
+# as repetition metasyntax, and that collision is what the earlier `dist_list*` rendering
+# fell into (SV-CORPUS-GRAD.3.18, the seventh instance of the dropped-delimiter class and
+# the third in A.2.10 alone). The LRM settles it in its own prose and examples: §18.5.4
+# writes `x dist {100 := 1, 200 := 2, 300 := 5}` and §18.5.11 `soft x dist {5, 8};`.
+# The `*` retires with it — `dist_list` already carries its own `( comma dist_item )*`.
+expression_or_dist := @probe_sample: "1" expression ( kw_dist_02450072 lbrace dist_list rbrace )?
                    -> {expr: $1, dist: $2}
 
 @profiles: ["sv_2017"]

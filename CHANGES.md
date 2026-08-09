@@ -1,5 +1,37 @@
 # CHANGES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0036 — leaf SV-CORPUS-GRAD.3.18: the `dist` constraint operator was wrong THREE ways at once (grammar; release 1.0.179, schema 19 -> 20, ledger SV-0049)
+
+- **One dropped delimiter, three symptoms.** `expression_or_dist` (`grammars/systemverilog.ebnf:2344`)
+  rendered IEEE 1800-2017 A.2.10's `expression_or_dist ::= expression [ dist { dist_list } ]` as
+  `( kw_dist dist_list* )?` — the LITERAL SystemVerilog braces read as EBNF zero-or-more
+  metasyntax. The trap sits two lines away in the LRM itself: `dist_list ::= dist_item
+  { , dist_item }` uses the same characters AS repetition.
+- The three symptoms scattered across three different stuck-point clusters because
+  `dist_item -> value_range -> expression` can itself start with `{`, as a CONCATENATION:
+  1. **under-acceptance** — `x dist {100 := 1, 200 := 2}` died at the `:=` (the `: = NUM` cluster
+     signature that surfaced the leaf), `x dist { [100:102] :/ 1 }` at the `[`;
+  2. **silent MIS-PARSE** — `soft x dist {5, 8};` PARSED, but the LRM's two items collapsed into
+     one whose value was the concatenation `{5, 8}` (`"kind": "concat"` in the dump). No pass/fail
+     oracle in the repo could see it, and no shape sample covered the rule (0 of the then-31);
+  3. **over-acceptance** — the brace-less `x dist 100 := 1;`, which has no production in A.2.10,
+     was accepted.
+- **Fix:** restore the literal braces — `( kw_dist lbrace dist_list rbrace )?`. Pure grammar,
+  existing tokens, zero new rules; the `*` retires because `dist_list` already carries its own
+  `( comma dist_item )*`.
+- **Measured, both lanes:** external corpus 16,336 files, pass **9,720 -> 9,726 (+6)** with
+  **0 pass->fail / 0 pass->timeout / 0 pass->crash**; unexplained rejects-valid **310 -> 304** with
+  **ZERO new** by set difference; `unexplained_accepts_invalid` set **BYTE-IDENTICAL** (21); the 6
+  flipped files **set-equal** to the 6 keyed before the edit (flipped-but-not-keyed = 0); the
+  2,459-file `verilog_2005` lane byte-inert (zero transitions, manifest `cmp`-clean).
+- **Schema 19 -> 20** — the `dist` slot goes from a 2-element to a 4-element array and the item list
+  flattens to the LRM's real items. Unlike the same-class `SV-0044` fix, the construct was NOT
+  100% unparseable, so a real emitted shape is replaced and the bump is mandatory.
+- **Book drift found and closed while landing:** `docs/systemverilog_parser_book/src/schema-versioning.md`
+  still said the schema "is now 16" and its table skipped 17/18/19 — three releases behind the
+  contract. Rows reconstructed from the contract + ledger, and the prose now names the contract as
+  the tie-breaker.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0035 — leaf SV-CORPUS-GRAD.3.16: `inside` is legal in an expression and illegal in a CONSTANT expression (adjudicator + docs, ZERO parser bytes)
 
 - **The parser is correct on both rows.** IEEE 1800-2017 A.8.3 gives

@@ -1,0 +1,12 @@
+# dist-list repro matrix — profile verilog_2005
+case                         verdict  furthest  LRM
+d1_dist_weighted             REJECT   0         §18.5.4 :503
+d2_dist_range_eq             REJECT   0         §18.5.4 :518
+d3_dist_range_prop           REJECT   0         §18.5.4 :520
+d4_dist_unweighted_soft      REJECT   0         §18.5.11 :1406
+d5_dist_in_property          REJECT   19        A.2.10 expression_or_dist
+c1_constraint_no_dist        REJECT   0         control — no dist
+c2_concat_expression         REJECT   23        control — real concatenation
+n1_dist_no_braces_ILLEGAL    REJECT   0         A.2.10 — NO such production
+
+d4 dist-item value kind: None   (per LRM)

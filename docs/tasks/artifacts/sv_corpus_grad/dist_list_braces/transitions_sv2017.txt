@@ -1,0 +1,34 @@
+# SV axis-2 per-file transition census
+
+before : rust/target/sv_axis2_baseline/results.pre_3_18.tsv  (16336 rows)
+after  : stimuli/sv/characterization/results.tsv  (16336 rows)
+common : 16336   only-before: 0   only-after: 0
+
+pass count : 9720 -> 9726  (delta +6)
+
+## Transition matrix (common files only)
+
+| before | after | files |
+|---|---|---|
+| pass | pass | 9720 |
+| fail | fail | 6606 |
+| fail | pass | 6 |   <-- CHANGED
+| timeout | timeout | 4 |
+
+## Per sub-corpus changed transitions
+
+| sub-corpus | transition | files |
+|---|---|---|
+| ispras-sv-tests | fail -> pass | 1 |
+| sv-tests | fail -> pass | 2 |
+| verilator | fail -> pass | 3 |
+
+## fail -> pass  (6 files)
+
+  [ispras-sv-tests] stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/18/18.05.04_01.sv
+  [sv-tests] stimuli/sv/subs/sv-tests/tests/chapter-18/18.5.4--distribution_0.sv
+  [sv-tests] stimuli/sv/subs/sv-tests/tests/chapter-18/18.5.4--distribution_2.sv
+  [verilator] stimuli/sv/subs/verilator/test_regress/t/t_constraint_dist_randc_bad.v
+  [verilator] stimuli/sv/subs/verilator/test_regress/t/t_constraint_json_only.v
+  [verilator] stimuli/sv/subs/verilator/test_regress/t/t_randomize.v
+
