@@ -1,5 +1,56 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0044 — the control that proves a checker can still say NO
+
+`.3.23` was, on paper, the easiest kind of leaf: the diagnosis was banked, the population was
+sized at 9, and the work was "add nine dictionary entries". The thing worth writing down is that
+the nine entries were never the risk.
+
+**The risk was that the verification would pass no matter what.** The leaf's own warning is that a
+file can reject for more than one reason, so pinning it on the enum ground could mask a second,
+real defect behind a correct-looking pin. The obvious way to check that is to run the probe on
+each file and confirm it rejects "at the enum". Written naively, that check is a tautology: you
+already know all nine reject — that is why they were in `unexplained_rejects_valid` — so any
+predicate loose enough to match a stuck point *somewhere near* an enum returns 9/9 and tells you
+nothing. **A checker whose only observed outcome is PASS has not been tested; it has been run.**
+
+So the instrument was built with a *planted-failure* control: take the tracked reproducer, inject
+a syntax error **before** the enum, and require the checker to classify it EARLIER. That single
+control is the whole difference between a justification and a formality. It is the only leg that
+exercises the refusing branch, and it is the branch the entire per-file argument rests on. The
+positive control (the unmodified reproducer classifies AT-ENUM) proves the anchor logic works; the
+second negative (a legal `enum logic [2:0]` yields zero matches) proves the construct detector is
+not matching every enum in sight. Only the planted one proves the instrument can still say NO.
+
+⛔ **The generalization: when a check's expected verdict is the same for every input you have, the
+control must be MANUFACTURED.** The repo already learned this in the envelope differential
+(`LANG-CAPABILITY-AUDIT.10.6`), which plants a mutation the differ must catch exactly once. The
+same shape applies to any per-row justification pass, and it costs about fifteen lines.
+
+**A second, quieter lesson: a diagnosis instrument needs a resolved state.** `sweep.py` ended with
+an unconditional print — *"every one of them is expected `must_accept`, which is the
+mis-adjudication"* — perfectly true when it was written. Re-run after the fix, it reported 0
+actionable rows and then asserted the mis-adjudication anyway. Nothing consumed that line, so
+nothing broke; but the artifact it writes is tracked, and a tracked artifact that states a stale
+finding as a live one is exactly how a repository accumulates confident wrong facts. **If an
+instrument can only narrate the problem, its output expires the moment the problem is fixed.**
+
+**And a third, which cost the most time in a change with no parser bytes: `.3.24`'s "71" could not
+be reproduced on the first two tries.** `_bad` as a *stem suffix* yields 64; `_bad` anywhere in the
+basename yields 71. Both readings are defensible from the leaf's prose ("a `_bad` basename"). The
+number was correct — the predicate behind it simply was not written down anywhere, so re-deriving
+it was guesswork with a 1-in-2 chance of silently measuring a different class. It is now pinned in
+code behind a control that refuses unless it still reproduces the recorded split. ⛔ **A tracked
+number whose predicate lives only in prose is not a measurement — it is a claim with a plausible
+provenance**, and the cost of that is paid by whoever next has to update it.
+
+**Its baseline default was the last trap.** The obvious default for "the pre-change vintage" is
+`HEAD` — correct while the change is unstaged, and silently *inverted* the moment it commits, at
+which point the control compares the new state against itself and passes forever. Defaults that
+are correct only during the window in which you write them are the `.3.21` class exactly. The
+baseline is therefore searched for by content: the newest tracked vintage that reproduces the
+recorded number, named in the output, or a refusal.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0040 — the guard you are about to write is the one most likely to be wrong
 
 `.3.21` was supposed to be five minutes of tidying: point three argparse defaults at the live

@@ -19,7 +19,13 @@ Doctrine (corpus-expected-from-SPEC, never from the fix):
 
 Expected-verdict taxonomy (leaf .1 design):
   must_accept              valid SV at parse level (post-parse should-fails included)
-  must_reject              parse/lexical-level intentional invalidity
+  must_reject              the text has no derivation in the LRM's grammar (Annex A /
+                           the clause-5 lexical rules). Covers BOTH the suite's own
+                           intentional invalidity AND text a vendor tolerates that the
+                           standard cannot derive - the pin tables below carry ~30 of the
+                           latter (leaves .3.14a/.3.15/.3.16/.3.23), where the spec
+                           outranks the upstream tool. "Intentional" is the common case,
+                           never the test: the test is the missing derivation.
   chained_only             adjudicable only with include/library chaining (leaf .4)
   out_of_scope_with_cause  owned by another lane (cause named, e.g. svpp).
                            May carry a deferral slug suffix after ':'
@@ -282,6 +288,84 @@ EXTRA_PINNED = {
         "IEEE 1800-2017 A.2.3 param_assignment takes a constant_param_expression, and "
         "A.8.3 constant_expression has no inside alternative (inside_expression is an "
         "alternative of expression only); spec outranks the verilator driver heuristic"),
+
+    # ---- SV-CORPUS-GRAD.3.23 -- `enum [N:M] { … }`: a packed dimension with NO base type. ----
+    #
+    # ⛔ THE PARSER IS CORRECT ON ALL 9 AND THE MANIFEST WAS WRONG. IEEE 1800-2017 A.2.2.1:
+    #
+    #   enum_base_type ::= integer_atom_type [ signing ]
+    #                    | integer_vector_type [ signing ] [ packed_dimension ]
+    #                    | type_identifier [ packed_dimension ]
+    #     -- mirrored by grammars/systemverilog.ebnf's enum_base_type
+    #
+    # A `packed_dimension` is reachable ONLY behind a type, so a bare `enum [2:0] {…}` has no
+    # derivation. Clause 6.19 says the same thing in prose, independently: "In the absence of
+    # a data type declaration, the default data type shall be int. Any other data type used
+    # with enumerated types shall require an explicit data type declaration." A `[2:0]`
+    # dimension IS another data type (a 3-bit vector, not int), so it REQUIRES the explicit
+    # declaration it is missing -- and every dimension-bearing 6.19 example writes one
+    # (`enum bit [1:0] {IDLE, …}`). Measured, not recalled: the 1800-2017 and 1800-2023 texts
+    # contain ZERO literal base-less `enum [` occurrences.
+    #
+    # ⭐ The BOUNDARY IS PRECISE, not a hole in enum support (matrix in
+    # docs/tasks/artifacts/sv_corpus_grad/enum_base_range/sweep.txt): `enum {…}`,
+    # `enum int {…}`, `enum logic [2:0] {…}`, `enum bit signed [2:0] {…}` and
+    # `enum my_t [2:0] {…}` ALL parse. Exactly one shape rejects, and it is exactly the one
+    # Annex A cannot derive.
+    #
+    # ⛔ WHY must_reject AND NOT a `vendor_extension` DEFERRAL. `out_of_scope_with_cause`
+    # means "owned by ANOTHER LANE" and its rows adjudicate to `deferred:` -- no verdict, no
+    # claim. There is no vendor-dialect lane to own these, so a deferral would remove the
+    # rows from the proof surface while asserting nothing. `must_reject` makes today's REJECT
+    # a `match`: the parser is claimed CORRECT WITH A CITE, and CI re-verifies it. Same
+    # ruling, same reasoning and the same class as .3.14a/.3.15/.3.16 -- spec outranks tool.
+    #
+    # ⛔ PER-FILE, NOT BY FAMILY MEMBERSHIP. A file can reject for more than one reason, and
+    # pinning it on the enum ground would then MASK that other defect. Each of the 9 is
+    # proven stuck INSIDE its first base-less enum header and nowhere earlier, by
+    # verify_pins.py (same artifact dir; controls: a positive reproducer, a planted
+    # earlier-error negative, and a legal typed-base negative -- it REFUSES on a miss).
+    # Honest bound carried by that instrument: a pinned row can no longer testify about
+    # anything AFTER its enum header. Inherent (the text is LRM-underivable, so the file can
+    # never be must_accept), but a real loss of reach rather than a free win.
+    ("sv2v", "test/core/enum_scope.sv"): (
+        "must_reject", "pinned .3.23: `enum [5:0] {` at line 37 - a packed dimension with "
+        "no base type; IEEE 1800-2017 A.2.2.1 admits packed_dimension only behind an "
+        "integer_vector_type or a type_identifier, and 6.19 requires an explicit data type "
+        "declaration for any non-int enum base"),
+    ("verilator", "test_regress/t/t_cast.v"): (
+        "must_reject", "pinned .3.23: `enum [15:0] {` at line 27 - base-less packed "
+        "dimension, no A.2.2.1 derivation (6.19 requires the explicit declaration); spec "
+        "outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_debug_emitv.v"): (
+        "must_reject", "pinned .3.23: `enum [2:0] {` at line 57 - base-less packed "
+        "dimension, no A.2.2.1 derivation (6.19 requires the explicit declaration); spec "
+        "outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_enum.v"): (
+        "must_reject", "pinned .3.23: `enum [2:0] {` at line 39 - base-less packed "
+        "dimension, no A.2.2.1 derivation (6.19 requires the explicit declaration); spec "
+        "outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_enum_bad_value.v"): (
+        "must_reject", "pinned .3.23: `enum [2:0] {` at line 12 - base-less packed "
+        "dimension, no A.2.2.1 derivation. ⚠️ The file's own `_bad` label names an "
+        "out-of-range enum VALUE (an elaboration error) - a DIFFERENT defect from the one "
+        "the parser hits; the name is not the oracle here"),
+    ("verilator", "test_regress/t/t_enum_bad_wrap.v"): (
+        "must_reject", "pinned .3.23: `enum [1:0] {` at line 9 - base-less packed "
+        "dimension, no A.2.2.1 derivation. ⚠️ Same as t_enum_bad_value.v: the `_bad` label "
+        "names a value-wrap elaboration error, not this syntax"),
+    ("verilator", "test_regress/t/t_enum_const_methods.v"): (
+        "must_reject", "pinned .3.23: `enum [1:0] {` at line 9 - base-less packed "
+        "dimension, no A.2.2.1 derivation (6.19 requires the explicit declaration); spec "
+        "outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_enum_type_methods_bad.v"): (
+        "must_reject", "pinned .3.23: `enum [3:0] {` at line 14 - base-less packed "
+        "dimension, no A.2.2.1 derivation; the `_bad` label names a post-parse method-call "
+        "error, so this reject is on the syntax ground stated here"),
+    ("verilator", "test_regress/t/t_enum_type_nomethod_bad.v"): (
+        "must_reject", "pinned .3.23: `enum [3:0] {` at line 8 - base-less packed "
+        "dimension, no A.2.2.1 derivation; the `_bad` label names a post-parse method-call "
+        "error, so this reject is on the syntax ground stated here"),
 }
 
 VERIBLE_SYNTAX_MODE_RE = re.compile(r"//\s*verilog_syntax\s*:")

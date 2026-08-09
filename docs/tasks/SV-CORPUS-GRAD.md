@@ -4225,14 +4225,15 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   that fail to decode as UTF-8, so the leaf is sized before it is scoped. One visible row is
   the witness, not the construct (`.3.16`'s lesson).
 
-##### `.3.23` — the `enum [N:M] { … }` family is an ADJUDICATOR hole, not a parser gap: PGEN is RIGHT to reject all 9 rows (diagnosed 2026-08-09, execution pending)
+##### `.3.23` — the `enum [N:M] { … }` family is an ADJUDICATOR hole, not a parser gap: PGEN is RIGHT to reject all 9 rows (diagnosed 2026-08-09, **DONE** 2026-08-09)
 
-- **Status: `todo` — DIAGNOSIS COMPLETE AND BANKED; the remaining work is the adjudicator
-  edit.** ⛔ **ZERO parser bytes. Do NOT "fix" the grammar here** — accepting this construct
-  would be an over-acceptance defect ([[feedback_sv_strict_lrm_compliance_default]]). Same
-  class as `.3.15`/`.3.16`/`.3.34`. Evidence:
-  `docs/tasks/artifacts/sv_corpus_grad/enum_base_range/` (`sweep.py`, re-runnable, +
-  `sweep.txt`, + the six-case reproducer).
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0044`) — all 9 pinned `must_reject`, LRM-grounded
+  and per-file justified; **ZERO parser bytes**, and the construct is still REJECTED.
+  ⛔ Accepting it would have been an over-acceptance defect
+  ([[feedback_sv_strict_lrm_compliance_default]]). Same class as `.3.15`/`.3.16`. Evidence in
+  `docs/tasks/artifacts/sv_corpus_grad/enum_base_range/`: `sweep.py` (re-runnable) with the
+  before/after pair `sweep.txt` → `sweep_after.txt`, the six-case reproducer, and
+  `verify_pins.py` → `verify_pins.txt` (the per-file justification, with controls).
 - **HOW IT WAS PICKED — and why the frontier's "NOT the bucketer, use a token-level tell"
   rule earned its keep twice over.** The coarse family bucketer files this under
   *"enum base range (ch6)", 9 rows*. The stuck-signature clusters split the SAME construct
@@ -4271,22 +4272,99 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   against the cluster table's `furthest_position`, so none is being reclassified on a
   coincidence of containing the token elsewhere. Eight are `verilator/test_regress`, one is
   `sv2v/test/core` — a vendor-extension cluster, which is what the evidence predicts.
-- **PLANNED FIX — adjudicator only:** pin these 9 in
-  `stimuli/sv/adjudicate_external_corpus.py` as `must_reject` (LRM-grounded), or as an
-  `out_of_scope_with_cause:vendor_extension` deferral if the reviewer prefers to keep
-  "must_reject" for intentional-invalidity rather than dialect divergence. ⛔ Decide that on
-  the taxonomy's own definitions, not on which number looks better; both remove the rows from
-  the defect signal, and only one of them is honest about *why*.
-- ⛔ **PER-FILE JUSTIFICATION IS MANDATORY, and this is the trap.** A file can reject for more
+- **FIX AS LANDED — adjudicator only:** all 9 pinned `must_reject` in `EXTRA_PINNED`
+  (`stimuli/sv/adjudicate_external_corpus.py`), each basis naming the construct, its line, and
+  the A.2.2.1 + 6.19 ground.
+- ⭐ **THE OPEN CHOICE, DECIDED: `must_reject`, NOT an `out_of_scope_with_cause:vendor_extension`
+  deferral — and decided on the taxonomy's definitions, as the diagnosis demanded.**
+  `out_of_scope_with_cause` means *owned by ANOTHER LANE*, and its rows adjudicate to
+  `deferred:` — no verdict, no claim. There is no vendor-dialect lane to own these, so the
+  deferral would have removed the rows from the proof surface while asserting nothing.
+  `must_reject` turns today's REJECT into a `match`: the parser is claimed **correct with a
+  cite**, and CI re-verifies that claim on every run. It is the strictly stronger of the two,
+  and it is the ruling `.3.14a`/`.3.15`/`.3.16` already made on the same spec-outranks-tool
+  shape.
+  - ⛔ **The taxonomy's own docstring was the obstacle, and it was WRONG, so it was fixed in
+    the same edit.** It read `must_reject = parse/lexical-level intentional invalidity` —
+    but ~30 existing pins are text a *vendor tolerates* and the standard cannot derive, which
+    is not "intentional" by any reading. The operative test has always been **the missing
+    derivation**, never the upstream author's intent; the docstring now says so. A definition
+    that contradicts 30 uses of itself is a hole waiting to be argued from.
+- ⛔ **PER-FILE JUSTIFICATION WAS MANDATORY, and this is the trap.** A file can reject for more
   than one reason. Reclassifying its expected verdict on the enum ground would then MASK a
-  second, real defect behind a correct-looking pin. Each of the 9 must be shown to reject at
-  the `enum [` **and nowhere earlier** — the `furthest_position` check above is that proof and
-  must be re-run against the pinned set, not assumed from this note.
-- **EXPECTED EFFECT:** `unexplained_rejects_valid` **296 → 287**, with 0 rows moving in any
-  other direction and zero parser bytes. ⚠️ That is a *drop in the defect signal achieved by
-  correcting an expectation* — legitimate here because the LRM is the oracle, but it is
-  exactly the shape of [[a-rising-pass-rate-is-not-evidence-of-correctness]] and must be
-  presented as an adjudication correction, never as parser progress.
+  second, real defect behind a correct-looking pin. **`verify_pins.py` is the instrument
+  built for it** (`verify_pins.txt`): per row it locates every base-less `enum […] {` header
+  in BYTES with comments/strings blanked, runs the real release probe, and requires
+  `furthest_position` to land **inside the first such header** — REFUSING the pin on ACCEPT,
+  on stuck-EARLIER, or on stuck-LATER. Measured: **9/9 AT-ENUM**, every stuck point exactly
+  one byte before the `{`.
+  - ⭐ **It refuses rather than guesses** ([[feedback_instrument_needs_ground_truth]]): a
+    POSITIVE control (the tracked reproducer must classify AT-ENUM), a NEGATIVE control (the
+    same reproducer with a syntax error *planted before* the enum must classify EARLIER — the
+    leg that proves the differ can actually see the masking case, rather than rubber-stamping
+    every row), and a second NEGATIVE (a legal `enum logic [2:0]` must yield ZERO construct
+    matches). All three pass; a miss aborts before any row verdict is printed.
+- ⚠️ **HONEST BOUND, carried in the instrument itself:** a pinned row can no longer testify
+  about anything AFTER its enum header. That is inherent — the text is LRM-underivable, so the
+  file can never be `must_accept` — but it is a real loss of corpus reach, not a free win.
+- **MEASURED EFFECT (matches the prediction exactly):** `unexplained_rejects_valid`
+  **296 → 287**, `match` **5780 → 5789**, and a full manifest diff shows **18 changed lines =
+  the 9 rows and nothing else** — no other row moved, not even a basis string.
+  `unexplained_accepts_invalid` stays **21**, so no over-acceptance was introduced. The v2005
+  lane manifest is byte-identical (none of the 9 is in it).
+  ⚠️ That is a *drop in the defect signal achieved by correcting an expectation* — legitimate
+  here because the LRM is the oracle, but it is exactly the shape of
+  [[a-rising-pass-rate-is-not-evidence-of-correctness]] and is presented as an adjudication
+  correction, never as parser progress. **Parser yield: 0, by construction.**
+- **SIDE-EFFECT, ROUTED AND RE-MEASURED, NOT LEFT TO ROT:** 4 of the 9 sat inside `.3.24`'s
+  71-row population, so that tracked number went stale the instant the pins landed. It is
+  re-derived to **67 of 287** (verilator 55, sv2v 11, sv-tests 1) by
+  `advertised_invalidity_recount.py` → `.txt`, whose ground-truth leg **reproduces `.3.24`'s
+  recorded 71/59/11/1 on the pre-pin vintage** before publishing anything. Two candidate
+  readings of `_bad` were tried and rejected first (a stem *suffix* yields 64, not 71) — so
+  the predicate is now pinned in code rather than re-guessed. ⛔ The baseline revision is
+  **searched**, never defaulted to `HEAD`: a fixed default would silently invert the moment
+  these pins committed — the `.3.21` stale-vintage trap, refused by construction.
+- **INSTRUMENT DEFECT FOUND AND FIXED WHILE RE-RUNNING IT:** `sweep.py` printed its
+  *"every one of them is expected `must_accept`, which is the mis-adjudication"* conclusion
+  **unconditionally**, so the post-fix re-run asserted a finding that no longer existed. It
+  now reports the state it measured. A diagnosis instrument that cannot say "resolved" is a
+  standing source of false live findings.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `sweep.py` → `sweep.txt`: 9 `divergence:unexplained_rejects_valid`
+      rows over the whole 16 336-row manifest carry a base-less `enum [`, every one expected
+      `must_accept`; the coarse bucketer filed them as *"enum base range (ch6)", 9 rows* while
+      the stuck-signature clusters split the SAME construct across `{ ID =` (7) and `{ ID ,` (2).
+- [x] **ROOT CAUSE (WHY + WHERE)** — the EXPECTED VERDICT is wrong, not the parser.
+      `verify_pins.py` → `verify_pins.txt`, real release probe, `--profile sv_2017`: all 9 reject
+      with `furthest_position=` inside their first base-less enum header (e.g.
+      `t_enum.v` `furthest_position=648`, header span 638..649, line 39, `enum [2:0] {`) — WHERE =
+      the `enum […]` header itself, nowhere earlier. WHY = IEEE 1800-2017 A.2.2.1 reaches
+      `packed_dimension` only behind a type, and 6.19 requires an explicit data type declaration
+      for any non-`int` enum base; the six-case matrix in `sweep.txt` shows the other five base
+      shapes all ACCEPT, so the boundary is exact.
+- [x] **FIX** — declarative tier, adjudicator only: 9 `EXTRA_PINNED` entries + the taxonomy
+      docstring correction. ⛔ No grammar/engine tier is admissible — a grammar "fix" here would
+      be over-acceptance ([[feedback_sv_strict_lrm_compliance_default]]).
+- [x] **ADDRESSED (verified)** — re-runnable oracle `python3 stimuli/sv/adjudicate_external_corpus.py`:
+      `unexplained_rejects_valid` **296 → 287**, `match` **5780 → 5789**; the same instrument
+      re-run (`sweep_after.txt`) reports **9 match / 0 actionable**; `verify_pins.py` exits 0 with
+      **9/9 AT-ENUM** and all three ground-truth controls PASS.
+- [x] **NO REGRESSION** — ZERO parser bytes staged (no `grammars/`, no `rust/src/`, no
+      `generated/`), so no parser behaviour can move; the construct is still REJECTED. Full
+      manifest diff = **18 lines, i.e. exactly the 9 rows** and nothing else;
+      `unexplained_accepts_invalid` unchanged at **21** (no over-acceptance);
+      `adjudication_manifest_v2005.tsv` byte-identical; `bash scripts/check_doctrines.sh` →
+      **ALL 17 doctrines PASS**.
+- [x] **LOCKSTEP** — the burn-down worklist regenerated from the new manifest
+      (`rejects_valid_clusters.{tsv,md}` 296→287 rows, `rejects_valid_families.{tsv,md}` 8→7
+      families, the `.3.21` reconciliation guard confirming `287 rows ==` the manifest); `.3.24`
+      re-sized 71→67 with its own instrument; `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
+      `docs/TASK_TREE.md` updated. Book/contract/ledger/schema/release: **N/A — no user-visible
+      parser behaviour, no released-parser surface and no schema field changed** (the parser is
+      byte-identical); the DONE-BAR register is unchanged for the same reason.
 
 ##### `.3.24` — SIZE THE ADJUDICATOR-HOLE SHARE OF THE REMAINING WORKLIST: 71 of the 296 rows sit in files whose own path advertises intentional invalidity (routed by `.3.23`, 2026-08-09)
 
@@ -4296,10 +4374,18 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   distance to axis-2 green is shorter than the raw number says — and, more importantly,
   burning them down as *parser* defects would inject over-acceptance
   ([[feedback_sv_strict_lrm_compliance_default]]).
-- **MEASURED (2026-08-09):** of the **296** rows, **71** live in files whose path advertises
+- **MEASURED (2026-08-09):** of the **296** rows, **71** lived in files whose path advertises
   intentional invalidity — a `_bad` basename, a `test/error/` directory, or an `_ILLEGAL`
-  suffix. Split: **verilator 59, sv2v 11, sv-tests 1**. Every one is currently expected
-  `must_accept`.
+  suffix. Split: **verilator 59, sv2v 11, sv-tests 1**. Every one was expected `must_accept`.
+- **RE-MEASURED AT HEAD after `.3.23` landed: `67` of `287`** (verilator 55, sv2v 11,
+  sv-tests 1). `.3.23` pinned 4 of the 71 (`t_enum_bad_value.v`, `t_enum_bad_wrap.v`,
+  `t_enum_type_methods_bad.v`, `t_enum_type_nomethod_bad.v`). ⭐ The number is now backed by a
+  re-runnable instrument instead of being a bare figure —
+  `docs/tasks/artifacts/sv_corpus_grad/enum_base_range/advertised_invalidity_recount.py`,
+  which pins the predicate in code and REFUSES unless it still reproduces the 71/59/11/1
+  baseline on a pre-`.3.23` tracked vintage. **Re-run it before quoting this number**; two
+  plausible readings of the `_bad` rule disagree with the recorded one (a stem *suffix* yields
+  64), which is precisely why it is no longer left to be re-derived by hand.
 - ⛔⛔ **DO NOT TREAT THE FILENAME AS AN ORACLE. That is the whole difficulty of this leaf, and
   the naive reading is wrong.** Verilator's `_bad` suffix means *this test expects an error*,
   and the overwhelming majority of those errors are **elaboration/semantic** — width
@@ -4308,7 +4394,8 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   is not obviously wrong. The finding is that the class has never been AUDITED, not that it is
   mis-classified.
 - ⭐ **`.3.23` is the worked example that proves the subtlety, in both directions at once.**
-  `t_enum_bad_value.v` and `t_enum_bad_wrap.v` are in this 71. Their `_bad` label refers to an
+  `t_enum_bad_value.v` and `t_enum_bad_wrap.v` were in this 71 (and are two of the 4 `.3.23`
+  removed from it — so this example is now *worked*, not hypothetical). Their `_bad` label refers to an
   enum **value** being out of range — an elaboration error, so `must_accept` at parse level is
   right for the reason the name gives. But they nonetheless fail to PARSE, for a completely
   unrelated reason (`enum [N:M]`, a construct IEEE 1800 cannot derive), and *that* reason does

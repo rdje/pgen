@@ -3,7 +3,8 @@
 ## Metadata
 
 - Tree ID: `MEMORY-ARCH`
-- Status: `done` (CLOSED 2026-06-02)
+- Status: `active` (adoption CLOSED 2026-06-02; **RE-OPENED 2026-08-09** for `.6` — the layer-A
+  byte cap is at 99.2 % and the doctrine forbids raising it)
 - Roadmap lane: `Cross-cutting infrastructure — durable, harness-agnostic agent memory + enforcement`
 - Created: `2026-06-02`
 - Owner: repo-local workflow
@@ -69,7 +70,15 @@ sits in `~/.claude` and would not survive a machine loss or harness switch.
 - ID: `MEMORY-ARCH`
   Status: `done` (CLOSED 2026-06-02; `PGEN-MEMORY-ARCH-0001..0006`) — all 5 leaves done; layers A/B/C/D + enforcement E1–E4 in place, gates proven to bite, untracked-memory exposure closed.
   Goal: `Adopt the durable memory architecture standard in pgen (full enforcement), composing with the existing task-tree + COMMIT.md systems.`
-  Children: `MEMORY-ARCH.1 .. .5`
+  Children: `MEMORY-ARCH.1 .. .5` (adoption, done) + `.6` (standing headroom, open)
+
+- ID: `MEMORY-ARCH.6`
+  Status: `todo` (opened 2026-08-09 from `SV-CORPUS-GRAD.3.23` / `PGEN-SV-CORPUS-GRAD-0044`)
+  Goal: `Restore working HEADROOM under the layer-A BYTE cap by DEMOTING content to layers B/C — never by raising the cap.`
+  Context: `MEASURED at that commit: MEMORY.md = 7 114 of 7 168 bytes = 99.2 % full, 54 bytes spare, on 38 of 50 permitted lines. So the LINE cap is not the binding constraint and never will be — the file is bound entirely on bytes, exactly the asymmetry MEMORY_ARCHITECTURE.md §6 warns about ("neither cap may be the soft one that absorbs all the growth"). The routine next_action rewrite that every leaf performs is ~300-500 bytes; it therefore has roughly a 1-in-1 chance of BLOCKING THE NEXT COMMIT at the pre-commit hook, and the tempting fix at that moment — under commit pressure, with the work already done — is the one thing the doctrine names as the failure restated as a policy: raise the cap. This leaf exists so that decision is made calmly, in advance, and as a demotion.`
+  Acceptance: `MEMORY.md back under ~85 % of the byte cap (>= ~1 000 bytes spare) with NO cap change and NO pointer lost: every demoted fact reachable from what remains, via docs/tasks/ (B) or docs/decisions/ (C). Candidates, largest-first and all measurable with `awk '{print length, NR}' MEMORY.md | sort -rn | head`: the standing-tripwires line (7 tripwires inlined, each already owned by a named leaf that could carry it), the North-star block (11 pointer lines whose targets are authoritative layer-C records), and the flow-health line. ⛔ The DERIVED-state banner and the DERIVED fields it protects are NOT candidates — they are what stops the file re-accreting.`
+  Verification: `todo`
+  Commit: `todo`
 
 - ID: `MEMORY-ARCH.1`
   Status: `done` (`PGEN-MEMORY-ARCH-0002`, 2026-06-02)

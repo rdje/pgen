@@ -1,6 +1,6 @@
 # rejects-valid construct families (SV-CORPUS-GRAD.3.2)
 
-296 `divergence:unexplained_rejects_valid` rows classified into 8 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
+287 `divergence:unexplained_rejects_valid` rows classified into 7 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
 
 | # | family | rows | suite split |
 |---|---|---|---|
@@ -8,10 +8,9 @@
 | 2 | interface/modport (ch25) | 18 | verilator:10, sv-tests:3, ispras-sv-tests:2, sv2v:2, verible:1 |
 | 3 | constraint/randomize (ch18) | 16 | verilator:15, ispras-sv-tests:1 |
 | 4 | SVA implication/property (ch16) | 11 | ispras-sv-tests:5, verilator:4, Surelog:2 |
-| 5 | enum base range (ch6) | 9 | verilator:8, sv2v:1 |
-| 6 | foreach/array (ch7) | 9 | verilator:5, Surelog:2, iverilog:1, verible:1 |
-| 7 | size/type cast N'(...) (ch6/11) | 6 | Surelog:4, iverilog:1, sv2v:1 |
-| 8 | coverage bins/cross (ch19) | 3 | verilator:2, ispras-sv-tests:1 |
+| 5 | foreach/array (ch7) | 9 | verilator:5, Surelog:2, iverilog:1, verible:1 |
+| 6 | size/type cast N'(...) (ch6/11) | 6 | Surelog:4, iverilog:1, sv2v:1 |
+| 7 | coverage bins/cross (ch19) | 3 | verilator:2, ispras-sv-tests:1 |
 
 ## Representative stuck lines per family
 
@@ -38,12 +37,6 @@
 - `Surelog`: `bins c1 = ! binsof(a) intersect {[100:200]};// 4 cross products`  (tests/CrossItem/dut.sv)
 - `ispras-sv-tests`: `@($global_clock) a[*1:$] ##1 b);`  (ieee-1800-2012/14/14.14_05.sv)
 - `ispras-sv-tests`: `trans ##1 start_trans ##1 s ##1 end_trans;`  (ieee-1800-2012/16/16.08_04.sv)
-
-### enum base range (ch6)
-- `sv2v`: `typedef enum [5:0] {`  (test/core/enum_scope.sv)
-- `verilator`: `typedef enum [15:0] {`  (test_regress/t/t_cast.v)
-- `verilator`: `typedef enum [2:0] {`  (test_regress/t/t_debug_emitv.v)
-- `verilator`: `typedef enum [2:0] { ONES=~0 } three_t;`  (test_regress/t/t_enum.v)
 
 ### foreach/array (ch7)
 - `Surelog`: `foreach(array[i][j])`  (tests/ForeachSquare/dut.sv)

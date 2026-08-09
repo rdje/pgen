@@ -108,9 +108,18 @@ def main() -> int:
     for suite, rel, expected in actionable:
         print(f"    {suite:<12} {rel:<62} expected={expected}")
     print()
-    print("  => every one of them is expected `must_accept`, which is the mis-adjudication.")
-    print("     ⛔ Correcting the PARSER here would be an over-acceptance defect")
-    print("     ([[feedback_sv_strict_lrm_compliance_default]]); the fix is in the ADJUDICATOR.")
+    if actionable:
+        print("  => every one of them is expected `must_accept`, which is the mis-adjudication.")
+        print("     ⛔ Correcting the PARSER here would be an over-acceptance defect")
+        print("     ([[feedback_sv_strict_lrm_compliance_default]]); the fix is in the ADJUDICATOR.")
+    else:
+        # The conclusion used to print unconditionally, so a POST-FIX re-run asserted a
+        # mis-adjudication that no longer existed — an instrument stating a stale finding as
+        # a live one. It now reports the state it measured.
+        print("  => 0 actionable: the population is fully adjudicated (`.3.23` pinned the 9 as")
+        print("     `must_reject`, LRM-grounded and per-file justified by verify_pins.py). The")
+        print("     construct is still REJECTED and no parser byte moved — an adjudication")
+        print("     correction, never burn-down yield.")
     return 0
 
 

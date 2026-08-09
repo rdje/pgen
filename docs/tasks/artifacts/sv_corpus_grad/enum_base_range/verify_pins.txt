@@ -1,0 +1,22 @@
+## GROUND TRUTH — controls (a miss ABORTS before any row is published)
+  POSITIVE   e1_dim_no_base.sv        -> AT-ENUM       PASS
+  NEGATIVE-A e1 + planted early error -> EARLIER       PASS
+  NEGATIVE-B e3_vector_base_dim.sv    -> 0 base-less matches PASS
+
+## PER-ROW JUSTIFICATION — is each row stuck AT the base-less enum, and nowhere earlier?
+  suite       file                                   status     furthest  header span      line  construct
+  sv2v        enum_scope.sv                          AT-ENUM        1053  1043..1054       37    enum [5:0] {
+  verilator   t_cast.v                               AT-ENUM         585  574..586         27    enum [15:0] {
+  verilator   t_debug_emitv.v                        AT-ENUM        1083  1073..1084       57    enum [2:0] {
+  verilator   t_enum.v                               AT-ENUM         648  638..649         39    enum [2:0] {
+  verilator   t_enum_bad_value.v                     AT-ENUM         366  356..367         12    enum [2:0] {
+  verilator   t_enum_bad_wrap.v                      AT-ENUM         234  224..235         9     enum [1:0] {
+  verilator   t_enum_const_methods.v                 AT-ENUM         235  225..236         9     enum [1:0] {
+  verilator   t_enum_type_methods_bad.v              AT-ENUM         318  308..319         14    enum [3:0] {
+  verilator   t_enum_type_nomethod_bad.v             AT-ENUM         233  223..234         8     enum [3:0] {
+
+  ALL 9/9 rows are stuck INSIDE the base-less enum header and
+  nowhere earlier => each pin is justified per-file, not by family membership.
+  ⛔ Honest bound: a pinned row can no longer testify about anything AFTER its
+     enum header. That is inherent — the text is LRM-underivable, so the file can
+     never be `must_accept` — but it is a real loss of reach, not a free win.

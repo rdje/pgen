@@ -11941,7 +11941,7 @@ sv2v	test/core/enum_dupe.v	pass	out_of_scope_with_cause:v2005_profile_lane	defer
 sv2v	test/core/enum_dupe_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/enum_int.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/enum_int.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/enum_scope.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/enum_scope.sv	fail	must_reject	match	pinned .3.23: `enum [5:0] {` at line 37 - a packed dimension with no base type; IEEE 1800-2017 A.2.2.1 admits packed_dimension only behind an integer_vector_type or a type_identifier, and 6.19 requires an explicit data type declaration for any non-int enum base
 sv2v	test/core/enum_scope.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/enum_typedef_keep.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/enum_typedef_keep.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -13277,7 +13277,7 @@ verilator	test_regress/t/t_case_write2_tasks.v	fail	chained_only	deferred:chaine
 verilator	test_regress/t/t_case_x.v	pass	must_accept	match	verilator: driver t_case_x.py expects success
 verilator	test_regress/t/t_case_x_bad.v	pass	must_accept	match	verilator: driver t_case_x_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_case_zx_bad.v	pass	must_accept	match	verilator: driver t_case_zx_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_cast.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_cast.py expects success
+verilator	test_regress/t/t_cast.v	fail	must_reject	match	pinned .3.23: `enum [15:0] {` at line 27 - base-less packed dimension, no A.2.2.1 derivation (6.19 requires the explicit declaration); spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_cast_class.v	pass	must_accept	match	verilator: driver t_cast_class.py expects success
 verilator	test_regress/t/t_cast_class_incompat_bad.v	pass	must_accept	match	verilator: driver t_cast_class_incompat_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_cast_param_logic.v	pass	must_accept	match	verilator: driver t_cast_param_logic.py expects success
@@ -13756,7 +13756,7 @@ verilator	test_regress/t/t_covergroup_with_sample_args_too_few_bad.v	pass	must_a
 verilator	test_regress/t/t_covergroup_with_sample_args_too_many_bad.v	pass	must_accept	match	verilator: driver t_covergroup_with_sample_args_too_many_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_cpure.v	pass	must_accept	match	verilator: driver t_cpure.py expects success
 verilator	test_regress/t/t_cuse_forward.v	pass	must_accept	match	verilator: driver t_cuse_forward.py expects success
-verilator	test_regress/t/t_debug_emitv.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_debug_emitv.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_debug_emitv.v	fail	must_reject	match	pinned .3.23: `enum [2:0] {` at line 57 - base-less packed dimension, no A.2.2.1 derivation (6.19 requires the explicit declaration); spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_debug_gate.v	pass	must_accept	match	verilator: driver t_debug_gate.py expects success
 verilator	test_regress/t/t_debug_graph_test.v	pass	must_accept	match	verilator: driver t_debug_graph_test.py expects success
 verilator	test_regress/t/t_debug_inputs.v	pass	must_accept	match	verilator: driver t_debug_inputs.py expects success
@@ -13921,16 +13921,16 @@ verilator	test_regress/t/t_embed1_child.v	pass	chained_only	deferred:chained_onl
 verilator	test_regress/t/t_embed1_wrap.v	fail	chained_only	deferred:chained_only	verilator: no same-stem driver and never a top_filename - include/companion fragment
 verilator	test_regress/t/t_emit_accessors.v	pass	must_accept	match	verilator: driver t_emit_accessors.py expects success
 verilator	test_regress/t/t_emit_constw.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_emit_constw.py expects success
-verilator	test_regress/t/t_enum.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_enum.py expects success
+verilator	test_regress/t/t_enum.v	fail	must_reject	match	pinned .3.23: `enum [2:0] {` at line 39 - base-less packed dimension, no A.2.2.1 derivation (6.19 requires the explicit declaration); spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_enum_bad_cell.v	pass	must_accept	match	verilator: driver t_enum_bad_cell.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_enum_bad_circdecl.v	pass	must_accept	match	verilator: driver t_enum_bad_circdecl.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_enum_bad_dup.v	pass	must_accept	match	verilator: driver t_enum_bad_dup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_enum_bad_hide.v	pass	must_accept	match	verilator: driver t_enum_bad_hide.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_enum_bad_value.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_enum_bad_value.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_enum_bad_wrap.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_enum_bad_wrap.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_enum_bad_value.v	fail	must_reject	match	pinned .3.23: `enum [2:0] {` at line 12 - base-less packed dimension, no A.2.2.1 derivation. ⚠️ The file's own `_bad` label names an out-of-range enum VALUE (an elaboration error) - a DIFFERENT defect from the one the parser hits; the name is not the oracle here
+verilator	test_regress/t/t_enum_bad_wrap.v	fail	must_reject	match	pinned .3.23: `enum [1:0] {` at line 9 - base-less packed dimension, no A.2.2.1 derivation. ⚠️ Same as t_enum_bad_value.v: the `_bad` label names a value-wrap elaboration error, not this syntax
 verilator	test_regress/t/t_enum_base.v	pass	must_accept	match	verilator: driver t_enum_base.py expects success
 verilator	test_regress/t/t_enum_base_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_enum_base_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_enum_const_methods.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_enum_const_methods.py expects success
+verilator	test_regress/t/t_enum_const_methods.v	fail	must_reject	match	pinned .3.23: `enum [1:0] {` at line 9 - base-less packed dimension, no A.2.2.1 derivation (6.19 requires the explicit declaration); spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_enum_enumvalue_struct_bad.v	pass	must_accept	match	verilator: driver t_enum_enumvalue_struct_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_enum_func.v	pass	must_accept	match	verilator: driver t_enum_func.py expects success
 verilator	test_regress/t/t_enum_huge_methods.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_enum_huge_methods.py expects success
@@ -13950,8 +13950,8 @@ verilator	test_regress/t/t_enum_signed_wrap.v	pass	must_accept	match	verilator: 
 verilator	test_regress/t/t_enum_size.v	pass	must_accept	match	verilator: driver t_enum_size.py expects success
 verilator	test_regress/t/t_enum_type_bad.v	pass	must_accept	match	verilator: driver t_enum_type_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_enum_type_methods.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_enum_type_methods.py expects success
-verilator	test_regress/t/t_enum_type_methods_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_enum_type_methods_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_enum_type_nomethod_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_enum_type_nomethod_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_enum_type_methods_bad.v	fail	must_reject	match	pinned .3.23: `enum [3:0] {` at line 14 - base-less packed dimension, no A.2.2.1 derivation; the `_bad` label names a post-parse method-call error, so this reject is on the syntax ground stated here
+verilator	test_regress/t/t_enum_type_nomethod_bad.v	fail	must_reject	match	pinned .3.23: `enum [3:0] {` at line 8 - base-less packed dimension, no A.2.2.1 derivation; the `_bad` label names a post-parse method-call error, so this reject is on the syntax ground stated here
 verilator	test_regress/t/t_enum_type_pins.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_enum_type_pins.py expects success
 verilator	test_regress/t/t_enum_value_assign.v	pass	must_accept	match	verilator: driver t_enum_value_assign.py expects success
 verilator	test_regress/t/t_enum_x_bad.v	pass	must_accept	match	verilator: driver t_enum_x_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid

@@ -118,7 +118,6 @@ sv-tests	tests/chapter-7/queues/pop_front_assign.sv	394	514	] ; ID	q = q[1:$];
 sv-tests	tests/chapter-8/8.26.4--illegal_implements_parameter.sv	529	697	; virtual function	class Hello #(type T = ihello) implements T;
 sv-tests	tests/generic/typedef/typedef_test_8__bad.sv	429	452	ID ; module	typedef some_other_type myalias;
 sv2v	test/core/delay.sv	0	24	] ID ,	logic [4] a, b;
-sv2v	test/core/enum_scope.sv	0	1053	{ ID =	typedef enum [5:0] {
 sv2v	test/core/for_loop_inits.sv	0	96	+ = NUM	for (x += 1; x < y; x++)
 sv2v	test/core/interface_array.sv	2548	2985	. ID )	ModuleASet #(1, 1, 0) xs(intfX[2:0].ModportB);
 sv2v	test/core/interface_generate.sv	0	173	( ID [	modport client_mp (output .client_req(req[i]));
@@ -161,7 +160,6 @@ verilator	test_regress/t/t_array_event.v	203	393	; endtask function	->write_even
 verilator	test_regress/t/t_assert_imm_nz_bad.v	202	242	; ID :	input clk;
 verilator	test_regress/t/t_assign_automatic_bad.v	616	2126	. ID <=	].s_dyn <= '1;  // OK: direct nonblocking assignment to dynamically-sized array
 verilator	test_regress/t/t_case_inside_bad.v	203	252	default : ID	default: $stop;
-verilator	test_regress/t/t_cast.v	332	585	{ ID =	typedef enum [15:0] {
 verilator	test_regress/t/t_class_extends_bad.v	249	272	, ID ;	class Cls extends Base1, Base2;
 verilator	test_regress/t/t_class_extends_default.v	295	327	) ; /	class Cls1 extends Base1(default);
 verilator	test_regress/t/t_class_extends_nf_bad.v	278	306	; / /	class Cls extends IsNotFound;  // BAD: not found
@@ -180,17 +178,10 @@ verilator	test_regress/t/t_cover_fsm_sel_assign.v	197	634	ID ; begin	logic [D-1:
 verilator	test_regress/t/t_covergroup_autobins_bad.v	306	471	; } endgroup	bins auto[size_var];
 verilator	test_regress/t/t_covergroup_cross_opt_unsup.v	260	511	} ID :	}
 verilator	test_regress/t/t_covergroup_with_function_foo_bad.v	197	240	ID ( int	covergroup cg_bad with function foo(int x);
-verilator	test_regress/t/t_debug_emitv.v	954	1083	{ ID ,	typedef enum [2:0] {
 verilator	test_regress/t/t_delay.v	227	549	. ID ID	assign #sub.delay dly4 = dly1 + 1;
 verilator	test_regress/t/t_display_qqq.v	203	245	" ID "	$display("""First "quoted"\nsecond\
 verilator	test_regress/t/t_dpi_type_bad.v	352	371	" ID -	import "DPI-BAD" task dpix_twice;
-verilator	test_regress/t/t_enum.v	300	648	{ ID =	typedef enum [2:0] { ONES=~0 } three_t;
-verilator	test_regress/t/t_enum_bad_value.v	203	366	{ ID =	typedef enum [2:0] { VALUE_BAD1 = 8 } enum_t;
-verilator	test_regress/t/t_enum_bad_wrap.v	203	234	{ ID =	typedef enum [1:0] {
 verilator	test_regress/t/t_enum_base_bad.v	203	503	{ / /	enum logic [1:0][1:0] {  // BAD enum type
-verilator	test_regress/t/t_enum_const_methods.v	204	235	{ ID ,	typedef enum [1:0] {E0, E1, E2} enm_t;
-verilator	test_regress/t/t_enum_type_methods_bad.v	203	318	{ ID =	typedef enum [3:0] {
-verilator	test_regress/t/t_enum_type_nomethod_bad.v	203	233	{ ID =	typedef enum [3:0] {
 verilator	test_regress/t/t_event_control_pass.v	363	427	( ) ;	->b.get_event();
 verilator	test_regress/t/t_export_packed_struct.v	230	248	packed { ID	typedef union soft packed {
 verilator	test_regress/t/t_export_packed_struct2.v	227	267	packed { logic	typedef union soft packed {

@@ -1691,9 +1691,17 @@ direction is the whole point: an expectation read off the parser can only ever c
 | expected verdict | meaning |
 |---|---|
 | `must_accept` | valid at parse level (a file that should fail *later* — elaboration, lint — still parses) |
-| `must_reject` | invalid at parse or lexical level |
+| `must_reject` | the text has **no derivation** in the LRM's grammar (Annex A, or the clause-5 lexical rules) |
 | `chained_only` | adjudicable only with include/library chaining |
 | `out_of_scope_with_cause` | owned by another lane, which the row names |
+
+⭐ **`must_reject` is decided by the missing derivation, not by the upstream author's intent.** The
+common case is a suite's own negative test, but the majority of the pinned rulings are the other
+shape: text a *vendor tolerates* that the standard cannot derive. The taxonomy said "intentional
+invalidity" for a long while, and by the time `SV-CORPUS-GRAD.3.23` looked at it, roughly thirty
+pins contradicted their own definition — a hole waiting to be argued from, since a class defined by
+intent has no answer for a file whose author intended it to be valid. It is now defined by the
+grammar, which is the test that was always actually being applied.
 
 Comparing expectation against the observed verdict yields the **adjudication class**. Only two of
 them are defect signal — `divergence:unexplained_rejects_valid` and
@@ -1771,6 +1779,43 @@ parameterized by lane rather than hard-coded to the one the task was cut from. R
 second profile lane it surfaced six further rows, none of them among the first nineteen. A
 diagnostic copied per lane only ever covers the lane it was pasted into; a parameterized one asks
 the whole question.
+
+#### When the verification cannot fail, it is not a verification
+
+Reclassifying a family carries one specific risk, and it runs the opposite way from the "lowering
+the bar" worry: **a file can reject for more than one reason.** Pin it on construct X and it leaves
+the defect population for good — including the unrelated, real defect it *also* contains. So every
+pin needs a per-file proof that the parser is stuck at X **and nowhere earlier**.
+
+The trap is that this proof is trivially satisfiable. You already know every row rejects — that is
+why they were in the population — so a check written as "confirm each row rejects near X" returns
+N/N for any predicate loose enough to find X somewhere in the file, and reports nothing. **A checker
+whose only observed outcome is PASS has not been tested; it has been run.**
+
+`SV-CORPUS-GRAD.3.23` (nine rows of `enum [N:M] { … }`, a packed dimension with no base type, which
+IEEE 1800-2017 A.2.2.1 cannot derive) is the worked example. Its instrument locates the construct's
+header in **bytes** with comments and string literals blanked, runs the real probe, and requires
+`furthest_position` to land *inside that header* — refusing the pin on ACCEPT, on stuck-earlier and
+on stuck-later alike. Three controls run before any row verdict is printed:
+
+| control | what it proves | what its absence would allow |
+|---|---|---|
+| a known-good reproducer classifies AT-CONSTRUCT | the anchor logic works at all | a detector matching nothing, reporting 0/N as N/N |
+| the same reproducer with a defect **planted before** the construct classifies EARLIER | the checker can still **refuse** | rubber-stamping every row, masking second defects |
+| a legal near-miss (`enum logic [2:0]`) yields zero matches | the detector discriminates | "the population" meaning every file containing the keyword |
+
+Only the planted one exercises the refusing branch — the branch the whole argument rests on. It is
+the same control the [frontend⟷meta-parser envelope
+differential](gate-flow.md) uses, where a planted mutation must be caught exactly once at exactly
+its index or the run aborts before publishing a number. **When every input you have yields the same
+verdict, the control cannot be found; it has to be manufactured.**
+
+⚠️ Two smaller habits fall out of the same leaf. A diagnosis instrument needs a *resolved* state —
+one here ended with an unconditional "this is the mis-adjudication", so re-running it after the fix
+produced a tracked artifact asserting a finding that no longer existed. And a tracked number whose
+predicate lives only in prose is a claim, not a measurement: "71 rows with a `_bad` basename" was
+reproducible two ways that disagree (64 vs 71), so the predicate now lives in code behind a control
+that refuses unless it still reproduces the recorded figure.
 
 ## The decidability boundary (an honest limit)
 

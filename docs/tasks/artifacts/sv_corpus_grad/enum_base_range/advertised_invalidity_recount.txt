@@ -1,0 +1,16 @@
+## GROUND TRUTH — does the predicate still reproduce `.3.24`'s recorded baseline?
+  baseline: git show ba1c9914:stimuli/sv/characterization/adjudication_manifest.tsv
+    unexplained_rejects_valid=296  advertised=71 {'sv-tests': 1, 'sv2v': 11, 'verilator': 59}
+    expected 71 {'verilator': 59, 'sv2v': 11, 'sv-tests': 1} -> PASS
+
+## CENSUS — at HEAD
+  manifest: stimuli/sv/characterization/adjudication_manifest.tsv
+  unexplained_rejects_valid: 287
+  of which the PATH advertises intentional invalidity: 67
+    sv-tests     1
+    sv2v         11
+    verilator    55
+
+  ⛔ A SIZE, NOT A VERDICT: verilator's `_bad` usually names an ELABORATION error,
+     which parses fine, so `must_accept` remains the correct default for the class.
+     `.3.24` owns the audit; this only keeps its number from going stale.

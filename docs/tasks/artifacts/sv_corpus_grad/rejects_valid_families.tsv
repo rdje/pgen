@@ -118,7 +118,6 @@ OTHER (per-row triage)	sv-tests	tests/chapter-7/queues/pop_front_assign.sv	] ; I
 OTHER (per-row triage)	sv-tests	tests/chapter-8/8.26.4--illegal_implements_parameter.sv	; virtual function	class Hello #(type T = ihello) implements T;
 OTHER (per-row triage)	sv-tests	tests/generic/typedef/typedef_test_8__bad.sv	ID ; module	typedef some_other_type myalias;
 OTHER (per-row triage)	sv2v	test/core/delay.sv	] ID ,	logic [4] a, b;
-enum base range (ch6)	sv2v	test/core/enum_scope.sv	{ ID =	typedef enum [5:0] {
 OTHER (per-row triage)	sv2v	test/core/for_loop_inits.sv	+ = NUM	for (x += 1; x < y; x++)
 OTHER (per-row triage)	sv2v	test/core/interface_array.sv	. ID )	ModuleASet #(1, 1, 0) xs(intfX[2:0].ModportB);
 interface/modport (ch25)	sv2v	test/core/interface_generate.sv	( ID [	modport client_mp (output .client_req(req[i]));
@@ -161,7 +160,6 @@ OTHER (per-row triage)	verilator	test_regress/t/t_array_event.v	; endtask functi
 OTHER (per-row triage)	verilator	test_regress/t/t_assert_imm_nz_bad.v	; ID :	input clk;
 OTHER (per-row triage)	verilator	test_regress/t/t_assign_automatic_bad.v	. ID <=	].s_dyn <= '1;  // OK: direct nonblocking assignment to dynamically-sized array
 OTHER (per-row triage)	verilator	test_regress/t/t_case_inside_bad.v	default : ID	default: $stop;
-enum base range (ch6)	verilator	test_regress/t/t_cast.v	{ ID =	typedef enum [15:0] {
 OTHER (per-row triage)	verilator	test_regress/t/t_class_extends_bad.v	, ID ;	class Cls extends Base1, Base2;
 OTHER (per-row triage)	verilator	test_regress/t/t_class_extends_default.v	) ; /	class Cls1 extends Base1(default);
 OTHER (per-row triage)	verilator	test_regress/t/t_class_extends_nf_bad.v	; / /	class Cls extends IsNotFound;  // BAD: not found
@@ -180,17 +178,10 @@ OTHER (per-row triage)	verilator	test_regress/t/t_cover_fsm_sel_assign.v	ID ; be
 coverage bins/cross (ch19)	verilator	test_regress/t/t_covergroup_autobins_bad.v	; } endgroup	bins auto[size_var];
 OTHER (per-row triage)	verilator	test_regress/t/t_covergroup_cross_opt_unsup.v	} ID :	}
 coverage bins/cross (ch19)	verilator	test_regress/t/t_covergroup_with_function_foo_bad.v	ID ( int	covergroup cg_bad with function foo(int x);
-enum base range (ch6)	verilator	test_regress/t/t_debug_emitv.v	{ ID ,	typedef enum [2:0] {
 OTHER (per-row triage)	verilator	test_regress/t/t_delay.v	. ID ID	assign #sub.delay dly4 = dly1 + 1;
 OTHER (per-row triage)	verilator	test_regress/t/t_display_qqq.v	" ID "	$display("""First "quoted"\nsecond\
 OTHER (per-row triage)	verilator	test_regress/t/t_dpi_type_bad.v	" ID -	import "DPI-BAD" task dpix_twice;
-enum base range (ch6)	verilator	test_regress/t/t_enum.v	{ ID =	typedef enum [2:0] { ONES=~0 } three_t;
-enum base range (ch6)	verilator	test_regress/t/t_enum_bad_value.v	{ ID =	typedef enum [2:0] { VALUE_BAD1 = 8 } enum_t;
-enum base range (ch6)	verilator	test_regress/t/t_enum_bad_wrap.v	{ ID =	typedef enum [1:0] {
 OTHER (per-row triage)	verilator	test_regress/t/t_enum_base_bad.v	{ / /	enum logic [1:0][1:0] {  // BAD enum type
-enum base range (ch6)	verilator	test_regress/t/t_enum_const_methods.v	{ ID ,	typedef enum [1:0] {E0, E1, E2} enm_t;
-enum base range (ch6)	verilator	test_regress/t/t_enum_type_methods_bad.v	{ ID =	typedef enum [3:0] {
-enum base range (ch6)	verilator	test_regress/t/t_enum_type_nomethod_bad.v	{ ID =	typedef enum [3:0] {
 interface/modport (ch25)	verilator	test_regress/t/t_event_control_pass.v	( ) ;	->b.get_event();
 constraint/randomize (ch18)	verilator	test_regress/t/t_export_packed_struct.v	packed { ID	typedef union soft packed {
 constraint/randomize (ch18)	verilator	test_regress/t/t_export_packed_struct2.v	packed { logic	typedef union soft packed {

@@ -1,5 +1,59 @@
 # CHANGES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0044 — leaf SV-CORPUS-GRAD.3.23 DONE: the 9 base-less `enum [N:M]` rows pinned `must_reject`, LRM-grounded and per-file justified (adjudicator+docs; ZERO parser bytes, parser yield 0 BY CONSTRUCTION)
+
+- **THE OPEN CHOICE, DECIDED ON THE TAXONOMY'S OWN DEFINITIONS.** The diagnosis deliberately left
+  one call open: pin `must_reject`, or defer as `out_of_scope_with_cause:vendor_extension`?
+  `out_of_scope_with_cause` means *owned by ANOTHER LANE* and its rows adjudicate to `deferred:` —
+  no verdict, no claim — and there is no vendor-dialect lane to own these, so the deferral would
+  have removed the rows from the proof surface while asserting nothing. `must_reject` makes today's
+  REJECT a `match`: the parser is claimed **correct with a cite**, and CI re-verifies it. Same
+  ruling as .3.14a/.3.15/.3.16 on the same spec-outranks-tool shape.
+- ⛔ **AND THE DEFINITION THAT FRAMED THE CHOICE WAS WRONG, so it was fixed in the same edit.** The
+  taxonomy docstring read `must_reject = parse/lexical-level intentional invalidity`, while ~30
+  existing pins are text a *vendor tolerates* that the standard cannot derive — not "intentional"
+  by any reading. The operative test has always been the **missing derivation**, never the upstream
+  author's intent. A definition that contradicts thirty uses of itself is a hole waiting to be
+  argued from.
+- ⭐ **THE MANDATED PER-FILE JUSTIFICATION GOT AN INSTRUMENT, NOT AN ASSERTION** (`verify_pins.py` →
+  `verify_pins.txt`). Per row it locates every base-less `enum […] {` header in BYTES with comments
+  and string literals blanked (so a `// enum [3:0]` can never anchor a pin), runs the real release
+  probe, and REFUSES the pin unless `furthest_position` lands inside the FIRST such header —
+  refusing equally on ACCEPT, on stuck-EARLIER and on stuck-LATER. Measured **9/9 AT-ENUM**, every
+  one stuck exactly one byte before its `{`.
+- ⭐ **IT REFUSES RATHER THAN GUESSES.** Three ground-truth controls run before any row verdict is
+  printed: a POSITIVE (the tracked reproducer must classify AT-ENUM), a NEGATIVE-A (the same
+  reproducer with a syntax error **planted before** the enum must classify EARLIER) and a
+  NEGATIVE-B (a legal `enum logic [2:0]` must yield zero construct matches). NEGATIVE-A is the
+  load-bearing one: it is the only leg that proves the differ can actually see the masking case,
+  rather than rubber-stamping every row it is handed.
+- **MEASURED EFFECT, MATCHING THE PREDICTION EXACTLY:** `unexplained_rejects_valid` **296 → 287**,
+  `match` **5780 → 5789**; the full manifest diff is **18 lines = the 9 rows and nothing else** (not
+  even a basis string on an unrelated row); `unexplained_accepts_invalid` unchanged at **21**, so no
+  over-acceptance was introduced; `adjudication_manifest_v2005.tsv` byte-identical; the doctrine
+  enforcer reports **ALL 17 PASS**.
+- ⚠️ **AN ADJUDICATION CORRECTION, NEVER BURN-DOWN YIELD** ([[a-rising-pass-rate-is-not-evidence-of-correctness]]).
+  Zero parser bytes moved and the construct is still REJECTED. The honest cost is recorded rather
+  than netted: a pinned row can no longer testify about anything AFTER its enum header — inherent,
+  since the text is LRM-underivable, but a real loss of corpus reach.
+- **BY-PRODUCT 1 — an instrument that could not say "resolved".** `sweep.py` printed its *"every one
+  of them is expected `must_accept`, which is the mis-adjudication"* conclusion **unconditionally**,
+  so the post-fix re-run asserted a finding that no longer existed. Now conditional on what it
+  measured. A diagnosis instrument with no resolved-state is a standing source of false live
+  findings.
+- **BY-PRODUCT 2 — `.3.24`'s number re-measured 71 → 67 of 287** (verilator 55, sv2v 11,
+  sv-tests 1); 4 of the 9 pins were inside its population. It was a bare figure with no instrument
+  behind it, and two plausible readings of the `_bad` rule disagree with the recorded one (a stem
+  *suffix* yields 64), so the predicate is now pinned in code
+  (`advertised_invalidity_recount.py`) behind a ground-truth leg that REFUSES unless it still
+  reproduces 71/59/11/1 on a pre-`.3.23` vintage. ⛔ That baseline revision is **searched**, never
+  defaulted to `HEAD` — a fixed default would have silently inverted the moment these pins
+  committed, which is the `.3.21` stale-vintage trap one level up.
+- **LOCKSTEP:** live burn-down worklist regenerated (`rejects_valid_clusters` 296→287 rows / 182→180
+  signatures, `rejects_valid_families` 8→7 families, `.3.21`'s reconciliation guard confirming
+  `287 rows ==` the manifest). No book / contract / ledger / schema / release change — the parser is
+  byte-identical, so no user-visible surface moved.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0041 — leaf SV-CORPUS-GRAD.3.23 DIAGNOSED: the `enum [N:M] { … }` family is an ADJUDICATOR hole, and "fixing" it would make the parser wrong (docs+artifacts only; ZERO parser bytes)
 
 - **PICK, done with the repaired instrument.** With `.3.21`'s reconciliation in place, the next

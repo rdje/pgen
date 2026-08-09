@@ -1,0 +1,25 @@
+## MATRIX — which enum base shape actually rejects (profile sv_2017)
+  case                 verdict  furthest  want    shape
+  e1_dim_no_base       REJECT   30        REJECT  enum [2:0] { … }            packed dim, NO base type
+  e2_no_base_no_dim    ACCEPT   -         ACCEPT  enum { … }                  no base, no dim (int)
+  e3_vector_base_dim   ACCEPT   -         ACCEPT  enum logic [2:0] { … }      integer_vector_type + dim
+  e4_atom_base         ACCEPT   -         ACCEPT  enum int { … }              integer_atom_type
+  e5_signing_dim       ACCEPT   -         ACCEPT  enum bit signed [2:0] { … } vector + signing + dim
+  e6_typeid_dim        ACCEPT   -         ACCEPT  enum my_t [2:0] { … }       type_identifier + dim
+  cases differing from the LRM reading: 0
+
+  => exactly ONE shape rejects, and it is the one Annex A cannot derive. Every
+     LRM-expressible base (none / atom / vector+dim / signing+dim / type_id+dim)
+     parses, so this is a precise strictness boundary, not a hole in enum support.
+
+## SWEEP — the whole population, keyed on the CONSTRUCT (not on a cluster signature)
+  manifest rows scanned: 16336
+       9  match
+       2  divergence:explained_svpp_macro_use
+
+  ACTIONABLE (unexplained_rejects_valid): 0
+
+  => 0 actionable: the population is fully adjudicated (`.3.23` pinned the 9 as
+     `must_reject`, LRM-grounded and per-file justified by verify_pins.py). The
+     construct is still REJECTED and no parser byte moved — an adjudication
+     correction, never burn-down yield.
