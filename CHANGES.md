@@ -1,5 +1,61 @@
 # CHANGES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0045 — leaf SV-CORPUS-GRAD.3.24 DONE: the sizing question is answered, the filename hypothesis is refuted, and the defect was in the stage HEURISTIC (adjudicator+docs; ZERO parser bytes)
+
+- **THE ANSWER, AND IT IS THE OPPOSITE OF THE LEAF'S PREMISE.** Of the remaining
+  `unexplained_rejects_valid` rows, **adjudicator work sizeable from metadata is 0 of 284 (0.0 %)**
+  and **parser work by upstream's own testimony is 270 of 284 (95.1 %)** — 199 rows where upstream
+  asserts the unit COMPILES (a verilator driver expecting success, a clean Surelog golden, an
+  ispras `TYPE: POSITIVE`, an sv-tests positive, an sv2v conversion input, an ivtest `normal`) plus
+  71 where upstream names a POST-PARSE failure. ⇒ **keep cutting construct leaves.**
+- **THE 14 THAT ARE NEITHER ARE REPORTED SEPARATELY, not folded in.** Verilator saying only
+  *"Unsupported"* (or hitting an internal error) is testimony about the TOOL, not about the
+  language: it supports neither verdict. Merging those into "post-parse" would have inflated the
+  parser-work share with rows that prove nothing.
+- ⛔ **THE FILENAME HYPOTHESIS IS REFUTED, which is why it was worth measuring.** The leaf opened
+  on 71 rows whose path advertises invalidity (`_bad`, `test/error/`, `_ILLEGAL`). None is
+  reclassifiable from that signal — verilator's `_bad` overwhelmingly names an ELABORATION error,
+  which parses fine. Trusting the name would have injected over-acceptance across ~64 files
+  ([[feedback_sv_strict_lrm_compliance_default]]).
+- ⭐⭐ **BUT THE DEFECT CAME FROM THE OTHER LEG, and it moved 3 rows.** `VerilatorIndex` decided the
+  entire parse-stage question by grepping goldens for the literal `syntax error` — and verilator's
+  LEXER never emits that string. Enumerating its real message set across **all 1 427 tracked
+  goldens** split one construct family straight down the middle: `t_parse_eof_str_bad.v`
+  (unterminated string) and `t_fuzz_eof_bad.v` were `must_reject` because their goldens ALSO
+  happened to say `syntax error`; `t_parse_eof_qqq_bad.v`, `t_parse_eof_attr_bad.v` and
+  `t_lint_vcmarker_bad.v` — a file containing literal `<<<<<<< HEAD` merge-conflict markers — were
+  counted as PARSER DEFECTS because theirs did not. Four files, one lexical class, two verdicts,
+  separated by two particular words. That is `.3.15`'s *"the pin table already contradicts itself"*
+  one level down: in the HEURISTIC, which unlike a pin re-opens on every re-vendoring.
+- ⛔⛔ **A PREFIX RULE WOULD HAVE BEEN WRONG, and only the enumeration showed it.** Four of the ten
+  lexical spellings belong elsewhere: `EOF in define argument list`,
+  `Unterminated ( in define formal arguments.` and `EOF in unterminated preprocessor expression`
+  are the PREPROCESSOR (svpp lane), and `Unterminated /* comment inside -f file.` is about a `-f`
+  COMMAND FILE, not source text. Matching `EOF in ` would have swept all four in. The fix is an
+  enumerated allowlist — the same shape `.3.14b` was forced into for compiler directives.
+- **PER-ROW PROOF TO `.3.23`'s STANDARD:** each of the 3 was probed and its stuck point matches the
+  construct its own golden names (`furthest_position=212` at the `<<<<<<<`, `=202` at the
+  triple-quoted opener, `=210` having consumed `(* attr` and hit EOF needing `*)` — each agreeing
+  with verilator's own line:col). LRM grounds: clause 5.9 (a string literal sits on one line and
+  must close), A.9.1 (`attribute_instance` requires its `*)`), and no lexical derivation of
+  `<<<<<<<` exists at all.
+- **MEASURED:** `unexplained_rejects_valid` **287 → 284**, `match` **5789 → 5792**; exactly those 3
+  rows moved, **none in the reverse direction**, `unexplained_accepts_invalid` unchanged at 21,
+  v2005 lane manifest byte-identical, all 17 doctrines PASS. An ADJUDICATION CORRECTION, not
+  burn-down yield.
+- ⛔ **THE HONEST BOUND IS GUARDED, NOT JUST STATED.** A basis census inherits the adjudicator's
+  blind spot — it classifies the RECORDED derivation, so a row derived wrongly is classified
+  confidently as what the adjudicator believed; these 3 were invisible to it. And no metadata
+  census can EVER see the `.3.23` class, because upstream is a TOOL and the oracle is the STANDARD.
+  So both legs now REFUSE rather than under-report: on an unrecognized `basis` spelling, and on a
+  verilator lexical spelling nobody has ruled on. Both refusal paths are exercised — a planted
+  unruled spelling on every run, and dropping a real spelling was verified to abort
+  ([[a-check-whose-inputs-all-pass-has-not-been-tested]]).
+- **LOCKSTEP:** worklist regenerated (284 rows / 177 signatures / 7 families, reconciliation guard
+  green); `_bad` population re-measured 67 → 64; the book's adjudication chapter carries the
+  stage-claim table and both bounds. No release/schema/ledger/register change — the parser is
+  byte-identical.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0044 — leaf SV-CORPUS-GRAD.3.23 DONE: the 9 base-less `enum [N:M]` rows pinned `must_reject`, LRM-grounded and per-file justified (adjudicator+docs; ZERO parser bytes, parser yield 0 BY CONSTRUCTION)
 
 - **THE OPEN CHOICE, DECIDED ON THE TAXONOMY'S OWN DEFINITIONS.** The diagnosis deliberately left

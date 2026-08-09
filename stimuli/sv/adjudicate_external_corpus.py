@@ -409,6 +409,38 @@ FAILS_TRUE_RE = re.compile(r"fails\s*=\s*(True|test\.vlt_all)\b")
 TOP_FILENAME_RE = re.compile(r"top_filename\s*=\s*[\"']([^\"']+)[\"']")
 SYNTAX_ERR_RE = re.compile(r"syntax error", re.IGNORECASE)
 
+# SV-CORPUS-GRAD.3.24 — verilator's PARSE-STAGE error vocabulary, enumerated.
+#
+# ⛔ THE HOLE: `SYNTAX_ERR_RE` above is the ONLY thing `VerilatorIndex` used to decide whether a
+# `fails=True` test intends a parse-level failure, and verilator does NOT spell every such failure
+# "syntax error" — its LEXER has its own message set. Measured across all 1 427 tracked goldens,
+# and it split one construct family straight down the middle:
+#
+#   t_parse_eof_str_bad.v   unterminated "string   golden ALSO says "syntax error"  -> must_reject ✔
+#   t_parse_eof_qqq_bad.v   unterminated \"\"\"string  golden says only `EOF in unterminated`  -> must_accept ✘
+#   t_parse_eof_attr_bad.v  unterminated `(*`      golden says only `EOF in (*`      -> must_accept ✘
+#   t_fuzz_eof_bad.v        both at once           golden ALSO says "syntax error"  -> must_reject ✔
+#
+# Four files, one lexical class, two verdicts — separated by nothing but whether the upstream
+# message happened to contain two particular words. That is the `.3.15` "the pin table already
+# contradicts itself" shape, one level down: in the HEURISTIC rather than in the pins.
+#
+# ⛔⛔ AND A PREFIX RULE WOULD HAVE BEEN WRONG — the `EOF in …` family is NOT uniformly parse-stage.
+# The full enumerated vocabulary contains four spellings that belong to OTHER lanes entirely:
+#   `EOF in define argument list`, `Unterminated ( in define formal arguments.`,
+#   `EOF in unterminated preprocessor expression`   -> the PREPROCESSOR (svpp lane), and
+#   `Unterminated /* comment inside -f file.`       -> a `-f` COMMAND FILE, not source text at all.
+# Matching `EOF in ` would have swept all four into the parse verdict. So this is an enumerated
+# allowlist, exactly as `.3.14b`'s directive whitelist had to be, and for the same reason.
+VERILATOR_PARSE_STAGE_RE = re.compile(
+    r"syntax error"                                   # the parser proper
+    r"|EOF in unterminated (?:\"\"\" )?string"         # 5.9: a string literal running to EOF
+    r"|Unterminated string"                            # 5.9, same class, reported at the quote
+    r"|EOF in \(\*"                                    # A.9.1: attribute_instance with no `*)`
+    r"|EOF in '[^']*' block comment"                   # 5.4: /* … with no */
+    r"|Version control conflict marker in file",       # `<<<<<<<` has no lexical derivation at all
+    re.IGNORECASE)
+
 
 def read_text(path: Path) -> str:
     try:
@@ -531,7 +563,11 @@ class VerilatorIndex:
             for ref in TOP_FILENAME_RE.findall(text):
                 self.top_ref.setdefault(Path(ref).stem, stem)
         for out in sorted(t_dir.glob("*.out")):
-            if SYNTAX_ERR_RE.search(read_text(out)):
+            # .3.24: the PARSE-STAGE vocabulary, not just the literal "syntax error" —
+            # verilator's lexer errors never carry those two words. See
+            # VERILATOR_PARSE_STAGE_RE for the enumeration and for the four spellings
+            # deliberately left out (three preprocessor, one `-f` command file).
+            if VERILATOR_PARSE_STAGE_RE.search(read_text(out)):
                 self.syntax_out_stems.add(out.stem)
 
     def expect(self, relpath: str):
@@ -566,7 +602,10 @@ class VerilatorIndex:
             if driver in self.syntax_out_stems or stem in self.syntax_out_stems:
                 return ("must_reject",
                         f"verilator: driver {driver}.py fails=True and golden "
-                        f".out reports a syntax error")
+                        f".out reports a PARSE-STAGE error (.3.24: the parser's "
+                        f"'syntax error', or a LEXER message from the enumerated "
+                        f"vocabulary - unterminated string/attribute/block comment, "
+                        f"version-control conflict marker)")
             return ("must_accept",
                     f"verilator: driver {driver}.py fails=True but golden .out is "
                     "a post-parse tool error (lint/elab/unsupported) - syntax valid")

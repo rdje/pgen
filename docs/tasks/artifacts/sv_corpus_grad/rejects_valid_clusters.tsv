@@ -210,7 +210,6 @@ verilator	test_regress/t/t_interface_paren_missing_bad.v	280	303	; initial ID	in
 verilator	test_regress/t/t_langext_order.v	303	317	do ) ;	module t(input do);
 verilator	test_regress/t/t_lint_colonplus_bad.v	203	289	= ID [	output [2:1] z = r[2 :+ 1];
 verilator	test_regress/t/t_lint_notredop_bad.v	196	278	| ID ;	assign y[0] = !|v;
-verilator	test_regress/t/t_lint_vcmarker_bad.v	203	212	<< << <<	<<<<<<< HEAD  // Intentional test: This conflict marker should be here
 verilator	test_regress/t/t_lparam_assign_iface_typedef2.v	333	407	. ID ;	localparam type p0_t = if0.rq_t;
 verilator	test_regress/t/t_lparam_assign_iface_typedef4.v	333	407	. ID [	localparam type p0_t = if0.rq_t[1:0];
 verilator	test_regress/t/t_lparam_assign_iface_typedef_bad.v	543	694	; / /	p0_rq_t rq;  // Should fail: p0_rq_t is not a data type
@@ -231,8 +230,6 @@ verilator	test_regress/t/t_param_type_from_iface_struct.v	2039	2160	. ID ID	type
 verilator	test_regress/t/t_param_type_fwd.v	350	378	enum ID ;	parameter type enum E_t;
 verilator	test_regress/t/t_param_type_fwd_bad.v	223	251	enum ID ;	parameter type enum E_t;
 verilator	test_regress/t/t_param_type_id_bad.v	211	250	) ; endclass	);
-verilator	test_regress/t/t_parse_eof_attr_bad.v	203	210	<EOF>	(* attr
-verilator	test_regress/t/t_parse_eof_qqq_bad.v	203	202	" " "	"""str
 verilator	test_regress/t/t_parse_sync_bad2.v	202	247	ID ; typedef	typedef unknown defu;
 verilator	test_regress/t/t_past_unsup.v	203	435	@ ( posedge	if ($past(d, 1, 1, @(posedge clk))) $stop;  // Unsup
 verilator	test_regress/t/t_prop_always_bad.v	200	466	ID ) ;	assert property (s_always a);

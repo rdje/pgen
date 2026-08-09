@@ -1810,6 +1810,38 @@ differential](gate-flow.md) uses, where a planted mutation must be caught exactl
 its index or the run aborts before publishing a number. **When every input you have yields the same
 verdict, the control cannot be found; it has to be manufactured.**
 
+⭐ **And the same question, asked of the whole population, has a decision-changing answer.** Before
+cutting more construct leaves, `SV-CORPUS-GRAD.3.24` sized how much of the remaining defect signal
+is *adjudicator* work rather than *parser* work — because getting that wrong in either direction is
+expensive. Classifying every remaining row by the stage claim its own suite metadata makes:
+
+| upstream stage claim | share | what it means for the burn-down |
+|---|---|---|
+| upstream asserts the unit **compiles** | 70 % | parser work (or a real upstream-vs-LRM disagreement) |
+| upstream names a **post-parse** failure (elab / lint / type / name) | 25 % | parser work — the text parses by upstream's own testimony |
+| upstream says only **"Unsupported"** | 5 % | testimony about the *tool*, not the language — supports neither verdict |
+| upstream names a **lexical/syntactic** failure | 0 % | adjudicator work — and there is none left the recorded reasoning can surface |
+
+**95 % is parser work.** The tempting shortcut — "these files are named `_bad`, they must be
+negatives" — is refuted outright: not one of that population is reclassifiable from its name, and
+trusting it would have injected over-acceptance across dozens of files.
+
+⛔ **Two bounds on that number, both load-bearing.** A census of recorded reasoning inherits
+whatever the adjudicator was blind to: it classifies the *derivation*, so a row derived wrongly is
+classified confidently as what the adjudicator believed. And no metadata census can ever see the
+case above, where upstream is a *tool* and the oracle is the *standard* — a row can carry
+impeccable "this compiles" testimony and still be LRM-underivable. So the honest reading is
+"nothing left that the recorded reasoning can surface", never "nothing left".
+
+That bound is not theoretical: the three rows that *did* move in that leaf were invisible to the
+census and were found by enumerating the upstream tool's own error vocabulary instead. Verilator's
+stage test was a grep for the literal string `syntax error` — which its **lexer never emits** — so
+one construct family carried two different verdicts depending on whether the message happened to
+contain those two words. A prefix rule over the obvious `EOF in …` family would have been wrong too:
+four of the ten spellings belong to the preprocessor or to a `-f` command file, not to the source
+text. The rule that landed is an enumerated allowlist, and the guard now *refuses* when upstream
+grows a spelling nobody has ruled on, rather than silently under-reporting.
+
 ⚠️ Two smaller habits fall out of the same leaf. A diagnosis instrument needs a *resolved* state —
 one here ended with an unconditional "this is the mis-adjudication", so re-running it after the fix
 produced a tracked artifact asserting a finding that no longer existed. And a tracked number whose

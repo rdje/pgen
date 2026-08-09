@@ -1,5 +1,59 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0045 — the question was worth asking mainly because the answer was no
+
+`.3.24` existed to size a suspicion: that a material share of the SV burn-down was mis-adjudicated
+expectations rather than parser defects. Measured, it is **0 %** by the metadata channel — 95 % of
+the remaining rows carry upstream testimony that the file compiles or fails at a later stage. The
+leaf's own headline observation, that 71 rows sat in files named `_bad` or under `test/error/`,
+turns out to license exactly nothing.
+
+**That is a real result, not a wasted leaf.** Had the burn-down acted on the filename, it would
+have pinned ~64 files `must_reject` on a signal that means "this test expects an *elaboration*
+error" — over-acceptance's mirror image, and just as wrong. A negative answer that closes off a
+tempting shortcut is worth the same as a positive one; it is only cheaper to *skip*, never cheaper
+to *have skipped*.
+
+⛔ **The defect was found by the leg that was not the deliverable.** The deliverable was a census of
+recorded reasoning. The defect was found by enumerating the upstream tool's own error vocabulary —
+and the two are not interchangeable, for a reason worth stating precisely:
+
+> **A census of recorded reasoning inherits every blind spot of the reasoning it reads.** It
+> classifies the *derivation*, so a row derived wrongly is classified confidently, and correctly,
+> *as what the author of the derivation believed*. It can tell you what the current rules imply. It
+> cannot tell you the rules are wrong.
+
+Verilator's stage test was `re.compile(r"syntax error")` against the golden log. Verilator's *lexer*
+never emits those words. So one construct family — a token running unterminated to EOF — carried
+two different expected verdicts depending on whether the message happened to contain them:
+`t_parse_eof_str_bad.v` said "syntax error" *and* "EOF in unterminated string", so it was pinned;
+`t_parse_eof_qqq_bad.v` said only the latter, so it was counted as a parser defect. The basis census
+reads both as exactly what they claim to be and reports zero problems.
+
+**The generalization is about where to point an instrument.** Auditing the *outputs* of a heuristic
+tells you whether it is self-consistent. Auditing the *input space it discriminates over* — here,
+every message verilator can actually print, enumerated across 1 427 goldens — is what tells you
+whether it discriminates on the right thing. The first is cheap and reassuring; only the second
+finds a hole.
+
+⛔ **And the obvious widening would have been wrong.** Having seen `EOF in (*` and
+`EOF in unterminated """ string`, the natural fix is to match `EOF in `. The enumeration says no:
+four of the ten spellings are `EOF in define argument list`,
+`Unterminated ( in define formal arguments.`, `EOF in unterminated preprocessor expression` and
+`Unterminated /* comment inside -f file.` — three preprocessor errors and one about a command-line
+file list, none of them a statement about the source text. A prefix rule would have moved four rows
+into the wrong lane while fixing three. **This is the third time in this tree that enumerate-then-
+rule beat pattern-then-generalize** (`.3.14b`'s directive whitelist, `.3.9`'s fused-token sweep, and
+now this), and the pattern in all three is the same: the tempting rule is stated over the *shape* of
+the thing, the correct rule is stated over an *enumerated set* of the things that actually exist.
+
+**One more, smaller:** the fix is in a heuristic, not in a pin table, and that distinction has a
+lifetime attached. A pin covers one file forever. A heuristic hole re-opens every time the submodule
+is re-vendored and a new golden lands. So the guard that matters is not "are these three files
+right now" but "does the vocabulary still cover everything upstream prints" — which is why that leg
+refuses on an unruled spelling instead of reporting a clean run, and why its refusal path is
+exercised on every invocation rather than assumed.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0044 — the control that proves a checker can still say NO
 
 `.3.23` was, on paper, the easiest kind of leaf: the diagnosis was banked, the population was

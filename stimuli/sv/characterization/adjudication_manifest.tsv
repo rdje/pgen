@@ -13131,7 +13131,7 @@ verilator	test_regress/t/t_array_sel_short.v	pass	must_accept	match	verilator: d
 verilator	test_regress/t/t_array_sel_wide.v	pass	must_accept	match	verilator: driver t_array_sel_wide.py expects success
 verilator	test_regress/t/t_array_type_methods.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_array_type_methods.py expects success
 verilator	test_regress/t/t_array_unpacked_public.v	pass	must_accept	match	verilator: driver t_array_unpacked_public.py expects success
-verilator	test_regress/t/t_assert_always_unsup.v	fail	must_reject	match	verilator: driver t_assert_always_unsup.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_assert_always_unsup.v	fail	must_reject	match	verilator: driver t_assert_always_unsup.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_assert_assert.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_assert.py expects success
 verilator	test_regress/t/t_assert_bang_in_seq.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_assert_bang_in_seq.py expects success
 verilator	test_regress/t/t_assert_basic.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_assert_basic.py expects success
@@ -13370,7 +13370,7 @@ verilator	test_regress/t/t_class_lparam_chain.v	fail	must_accept	divergence:expl
 verilator	test_regress/t/t_class_member_bad.v	pass	must_accept	match	verilator: driver t_class_member_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_member_bad2.v	pass	must_accept	match	verilator: driver t_class_member_bad2.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_member_sens.v	pass	must_accept	match	verilator: driver t_class_member_sens.py expects success
-verilator	test_regress/t/t_class_member_var_virt_bad.v	fail	must_reject	match	verilator: driver t_class_member_var_virt_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_class_member_var_virt_bad.v	fail	must_reject	match	verilator: driver t_class_member_var_virt_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_class_membersel_int.v	pass	must_accept	match	verilator: driver t_class_membersel_int.py expects success
 verilator	test_regress/t/t_class_method.v	pass	must_accept	match	verilator: driver t_class_method.py expects success
 verilator	test_regress/t/t_class_method_bad.v	pass	must_accept	match	verilator: driver t_class_method_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -13409,7 +13409,7 @@ verilator	test_regress/t/t_class_param_bad1.v	pass	must_accept	match	verilator: 
 verilator	test_regress/t/t_class_param_bad2.v	pass	must_accept	match	verilator: driver t_class_param_bad2.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_param_bad_paren.v	pass	must_accept	match	verilator: driver t_class_param_bad_paren.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_param_circ_bad.v	pass	must_accept	match	verilator: driver t_class_param_circ_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_class_param_comma_bad.v	fail	must_reject	match	verilator: driver t_class_param_comma_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_class_param_comma_bad.v	fail	must_reject	match	verilator: driver t_class_param_comma_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_class_param_comparator.v	pass	must_accept	match	verilator: driver t_class_param_comparator.py expects success
 verilator	test_regress/t/t_class_param_enum.v	pass	must_accept	match	verilator: driver t_class_param_enum.py expects success
 verilator	test_regress/t/t_class_param_enum_bad.v	pass	must_accept	match	verilator: driver t_class_param_enum_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -13466,7 +13466,7 @@ verilator	test_regress/t/t_class_static_method.v	pass	must_accept	match	verilato
 verilator	test_regress/t/t_class_static_order.v	pass	must_accept	match	verilator: driver t_class_static_order.py expects success
 verilator	test_regress/t/t_class_super_bad.v	pass	must_accept	match	verilator: driver t_class_super_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_super_bad2.v	pass	must_accept	match	verilator: driver t_class_super_bad2.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_class_super_bad3.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_class_super_bad3.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_class_super_bad3.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_class_super_bad3.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_class_super_new.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_class_super_new.py expects success
 verilator	test_regress/t/t_class_super_new2.v	pass	must_accept	match	verilator: driver t_class_super_new2.py expects success
 verilator	test_regress/t/t_class_super_new3.v	pass	must_accept	match	verilator: driver t_class_super_new3.py expects success
@@ -13480,7 +13480,7 @@ verilator	test_regress/t/t_class_type_param_upcast.v	pass	must_accept	match	veri
 verilator	test_regress/t/t_class_type_param_upcast_all.v	pass	must_accept	match	verilator: driver t_class_type_param_upcast_all.py expects success
 verilator	test_regress/t/t_class_type_param_upcast_chain.v	pass	must_accept	match	verilator: driver t_class_type_param_upcast_chain.py expects success
 verilator	test_regress/t/t_class_typedef.v	pass	must_accept	match	verilator: driver t_class_typedef.py expects success
-verilator	test_regress/t/t_class_unsup_bad.v	fail	must_reject	match	verilator: driver t_class_unsup_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_class_unsup_bad.v	fail	must_reject	match	verilator: driver t_class_unsup_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_class_uses_this.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_class_uses_this.py expects success
 verilator	test_regress/t/t_class_uses_this_bad.v	pass	must_accept	match	verilator: driver t_class_uses_this_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_class_virtual.v	pass	must_accept	match	verilator: driver t_class_virtual.py expects success
@@ -13551,7 +13551,7 @@ verilator	test_regress/t/t_concat_impure.v	pass	must_accept	match	verilator: dri
 verilator	test_regress/t/t_concat_init_array_functions.v	pass	must_accept	match	verilator: driver t_concat_init_array_functions.py expects success
 verilator	test_regress/t/t_concat_large.v	pass	must_accept	match	verilator: driver t_concat_large.py expects success
 verilator	test_regress/t/t_concat_large_bad.v	pass	must_accept	match	verilator: driver t_concat_large_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_concat_link_bad.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_concat_link_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_concat_link_bad.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_concat_link_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_concat_opt.v	pass	must_accept	match	verilator: driver t_concat_opt.py expects success
 verilator	test_regress/t/t_concat_or.v	pass	must_accept	match	verilator: driver t_concat_or.py expects success
 verilator	test_regress/t/t_concat_sel.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_concat_sel.py expects success
@@ -13559,7 +13559,7 @@ verilator	test_regress/t/t_concat_string.v	pass	must_accept	match	verilator: dri
 verilator	test_regress/t/t_concat_unpack.v	pass	must_accept	match	verilator: driver t_concat_unpack.py expects success
 verilator	test_regress/t/t_config_default.v	pass	must_accept	match	verilator: driver t_config_default.py expects success
 verilator	test_regress/t/t_config_hier.v	pass	must_accept	match	verilator: driver t_config_hier.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_config_include_bad.v	fail	must_reject	match	verilator: driver t_config_include_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_config_include_bad.v	fail	must_reject	match	verilator: driver t_config_include_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_config_inst.v	pass	must_accept	match	verilator: driver t_config_inst.py expects success
 verilator	test_regress/t/t_config_inst_missing.v	pass	must_accept	match	verilator: driver t_config_inst_missing.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_config_liblist.v	pass	must_accept	match	verilator: driver t_config_liblist.py expects success
@@ -13586,7 +13586,7 @@ verilator	test_regress/t/t_const_dec_mixed_bad.v	pass	must_accept	match	verilato
 verilator	test_regress/t/t_const_handle.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_const_handle.py expects success
 verilator	test_regress/t/t_const_handle_bad.v	pass	must_accept	match	verilator: driver t_const_handle_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_const_hi.v	pass	must_accept	match	verilator: driver t_const_hi.py expects success
-verilator	test_regress/t/t_const_number_bad.v	fail	must_reject	match	verilator: driver t_const_number_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_const_number_bad.v	fail	must_reject	match	verilator: driver t_const_number_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_const_number_unsized.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_const_number_unsized.py expects success
 verilator	test_regress/t/t_const_number_v_bad.v	pass	must_accept	match	verilator: driver t_const_number_v_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_const_op_red_scope.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_const_op_red_scope.py expects success
@@ -13610,7 +13610,7 @@ verilator	test_regress/t/t_constraint_cls_arr_member.v	fail	must_accept	divergen
 verilator	test_regress/t/t_constraint_cond.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_cond.py expects success
 verilator	test_regress/t/t_constraint_countbits_unsup.v	pass	must_accept	match	verilator: driver t_constraint_countbits_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_constraint_countones.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_countones.py expects success
-verilator	test_regress/t/t_constraint_disable_soft_bad.v	fail	must_reject	match	verilator: driver t_constraint_disable_soft_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_constraint_disable_soft_bad.v	fail	must_reject	match	verilator: driver t_constraint_disable_soft_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_constraint_dist.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_dist.py expects success
 verilator	test_regress/t/t_constraint_dist_randc_bad.v	pass	must_accept	match	verilator: driver t_constraint_dist_randc_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_constraint_dist_weight.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_dist_weight.py expects success
@@ -13634,7 +13634,7 @@ verilator	test_regress/t/t_constraint_global_randMode.v	pass	must_accept	match	v
 verilator	test_regress/t/t_constraint_global_randmode_subobj.v	pass	must_accept	match	verilator: driver t_constraint_global_randmode_subobj.py expects success
 verilator	test_regress/t/t_constraint_global_random.v	pass	must_accept	match	verilator: driver t_constraint_global_random.py expects success
 verilator	test_regress/t/t_constraint_global_random_simple.v	pass	must_accept	match	verilator: driver t_constraint_global_random_simple.py expects success
-verilator	test_regress/t/t_constraint_implication_else_bad.v	fail	must_reject	match	verilator: driver t_constraint_implication_else_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_constraint_implication_else_bad.v	fail	must_reject	match	verilator: driver t_constraint_implication_else_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_constraint_implication_set.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_implication_set.py expects success
 verilator	test_regress/t/t_constraint_inheritance.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_inheritance.py expects success
 verilator	test_regress/t/t_constraint_inheritance_with.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_inheritance_with.py expects success
@@ -13731,7 +13731,7 @@ verilator	test_regress/t/t_covergroup_cross_opt_unsup.v	fail	must_accept	diverge
 verilator	test_regress/t/t_covergroup_default_bins.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_default_bins.py expects success
 verilator	test_regress/t/t_covergroup_embedded_unsup.v	pass	must_accept	match	verilator: driver t_covergroup_embedded_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_covergroup_empty.v	pass	must_accept	match	verilator: driver t_covergroup_empty.py expects success
-verilator	test_regress/t/t_covergroup_func_override_bad.v	fail	must_reject	match	verilator: driver t_covergroup_func_override_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_covergroup_func_override_bad.v	fail	must_reject	match	verilator: driver t_covergroup_func_override_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_covergroup_iff.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_iff.py expects success
 verilator	test_regress/t/t_covergroup_ignore_bins.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_ignore_bins.py expects success
 verilator	test_regress/t/t_covergroup_illegal_bins.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_illegal_bins.py expects success
@@ -13739,7 +13739,7 @@ verilator	test_regress/t/t_covergroup_in_class_duplicate_bad.v	pass	must_accept	
 verilator	test_regress/t/t_covergroup_in_class_namespace.v	pass	must_accept	match	verilator: driver t_covergroup_in_class_namespace.py expects success
 verilator	test_regress/t/t_covergroup_member_event_unsup.v	pass	must_accept	match	verilator: driver t_covergroup_member_event_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_covergroup_negative_ranges.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_negative_ranges.py expects success
-verilator	test_regress/t/t_covergroup_new_override_bad.v	fail	must_reject	match	verilator: driver t_covergroup_new_override_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_covergroup_new_override_bad.v	fail	must_reject	match	verilator: driver t_covergroup_new_override_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_covergroup_option.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_option.py expects success
 verilator	test_regress/t/t_covergroup_option_bad.v	pass	must_accept	match	verilator: driver t_covergroup_option_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_covergroup_option_unsup.v	pass	must_accept	match	verilator: driver t_covergroup_option_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -13748,7 +13748,7 @@ verilator	test_regress/t/t_covergroup_static_coverage.v	fail	must_accept	diverge
 verilator	test_regress/t/t_covergroup_trans.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_trans.py expects success
 verilator	test_regress/t/t_covergroup_trans_errors_bad.v	pass	must_accept	match	verilator: driver t_covergroup_trans_errors_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_covergroup_trans_restart.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_trans_restart.py expects success
-verilator	test_regress/t/t_covergroup_undef_field_bad.v	fail	must_reject	match	verilator: driver t_covergroup_undef_field_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_covergroup_undef_field_bad.v	fail	must_reject	match	verilator: driver t_covergroup_undef_field_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_covergroup_unsup.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_covergroup_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_covergroup_wildcard_bins.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_wildcard_bins.py expects success
 verilator	test_regress/t/t_covergroup_with_function_foo_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_covergroup_with_function_foo_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14057,7 +14057,7 @@ verilator	test_regress/t/t_flag_unroll_limit_stmt.v	pass	must_accept	match	veril
 verilator	test_regress/t/t_flag_werror.v	pass	must_accept	match	verilator: driver t_flag_build_jobs_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_flag_wfatal.v	pass	must_accept	match	verilator: driver t_flag_wfatal.py expects success
 verilator	test_regress/t/t_flag_woff.v	pass	must_accept	match	verilator: driver t_flag_woff.py expects success
-verilator	test_regress/t/t_flag_wpedantic_bad.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_flag_wpedantic_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_flag_wpedantic_bad.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_flag_wpedantic_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_flag_xinitial_0.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_flag_xinitial_0.py expects success
 verilator	test_regress/t/t_flag_xinitial_unique.v	pass	must_accept	match	verilator: driver t_flag_xinitial_unique.py expects success
 verilator	test_regress/t/t_for_assign.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_for_assign.py expects success
@@ -14267,11 +14267,11 @@ verilator	test_regress/t/t_func_wide.v	pass	must_accept	match	verilator: driver 
 verilator	test_regress/t/t_func_wide_out.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_func_wide_out.py expects success
 verilator	test_regress/t/t_function_generate.v	pass	must_accept	match	verilator: driver t_function_generate.py expects success
 verilator	test_regress/t/t_fuzz_always_bad.v	pass	must_accept	match	verilator: driver t_fuzz_always_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_fuzz_eof_bad.v	fail	must_reject	match	verilator: driver t_fuzz_eof_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_fuzz_eof_bad.v	fail	must_reject	match	verilator: driver t_fuzz_eof_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_fuzz_eqne_bad.v	pass	must_accept	match	verilator: driver t_fuzz_eqne_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_fuzz_genintf_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_fuzz_genintf_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_fuzz_negwidth_bad.v	fail	must_reject	match	verilator: driver t_fuzz_negwidth_bad.py fails=True and golden .out reports a syntax error
-verilator	test_regress/t/t_fuzz_nor_bad.v	fail	must_reject	match	verilator: driver t_fuzz_nor_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_fuzz_negwidth_bad.v	fail	must_reject	match	verilator: driver t_fuzz_negwidth_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
+verilator	test_regress/t/t_fuzz_nor_bad.v	fail	must_reject	match	verilator: driver t_fuzz_nor_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_fuzz_triand_bad.v	pass	must_accept	match	verilator: driver t_fuzz_triand_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_gantt.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gantt.py expects success
 verilator	test_regress/t/t_gate_array.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gate_array.py expects success
@@ -14464,7 +14464,7 @@ verilator	test_regress/t/t_inst_nansi_param.v	pass	must_accept	match	verilator: 
 verilator	test_regress/t/t_inst_noname_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_inst_noname_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_inst_notunsized.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_inst_notunsized.py expects success
 verilator	test_regress/t/t_inst_overwide.v	pass	must_accept	match	verilator: driver t_inst_overwide.py expects success
-verilator	test_regress/t/t_inst_param_comma_bad.v	fail	must_reject	match	verilator: driver t_inst_param_comma_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_inst_param_comma_bad.v	fail	must_reject	match	verilator: driver t_inst_param_comma_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_inst_param_override_bad.v	pass	must_accept	match	verilator: driver t_inst_param_override_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_inst_paren_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_inst_paren_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_inst_pin_place_bad.v	pass	must_accept	match	verilator: driver t_inst_pin_place_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14688,7 +14688,7 @@ verilator	test_regress/t/t_lint_blkseq_bad.v	pass	must_accept	match	verilator: d
 verilator	test_regress/t/t_lint_blkseq_loop.v	pass	must_accept	match	verilator: driver t_lint_blkseq_loop.py expects success
 verilator	test_regress/t/t_lint_blkseq_noedge.v	pass	must_accept	match	verilator: driver t_lint_blkseq_noedge.py expects success
 verilator	test_regress/t/t_lint_block_redecl_bad.v	pass	must_accept	match	verilator: driver t_lint_block_redecl_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_lint_bsspace_bad.v	fail	must_reject	match	verilator: driver t_lint_bsspace_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_lint_bsspace_bad.v	fail	must_reject	match	verilator: driver t_lint_bsspace_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_lint_caseincomplete_bad.v	pass	must_accept	match	verilator: driver t_lint_caseincomplete_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_cmpconst_bad.v	pass	must_accept	match	verilator: driver t_lint_cmpconst_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_colonplus_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_colonplus_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14727,7 +14727,7 @@ verilator	test_regress/t/t_lint_implicitstatic_bad.v	pass	must_accept	match	veri
 verilator	test_regress/t/t_lint_import_name2_bad.v	pass	must_accept	match	verilator: driver t_lint_import_name2_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_import_name_bad.v	pass	must_accept	match	verilator: driver t_lint_import_name_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_importstar_bad.v	pass	must_accept	match	verilator: driver t_lint_importstar_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_lint_in_inc_bad.v	pass	chained_only	deferred:chained_only	verilator: driver t_lint_in_inc_bad.py fails=True and golden .out reports a syntax error - but `include-dependent: reject expectation is chain-level
+verilator	test_regress/t/t_lint_in_inc_bad.v	pass	chained_only	deferred:chained_only	verilator: driver t_lint_in_inc_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker) - but `include-dependent: reject expectation is chain-level
 verilator	test_regress/t/t_lint_incabspath.v	pass	must_accept	match	verilator: driver t_lint_incabspath.py expects success
 verilator	test_regress/t/t_lint_infinite.v	pass	must_accept	match	verilator: driver t_lint_infinite.py expects success
 verilator	test_regress/t/t_lint_infinite_bad.v	pass	must_accept	match	verilator: driver t_lint_infinite_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14748,7 +14748,7 @@ verilator	test_regress/t/t_lint_latch_casei_bad.v	pass	must_accept	match	verilat
 verilator	test_regress/t/t_lint_lint_bad.v	pass	must_accept	match	verilator: driver t_lint_lint_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_literal_bad.v	pass	must_accept	match	verilator: driver t_lint_literal_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_misindent_bad.v	pass	must_accept	match	verilator: driver t_lint_misindent_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_lint_mod_paren_bad.v	fail	must_reject	match	verilator: driver t_lint_mod_paren_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_lint_mod_paren_bad.v	fail	must_reject	match	verilator: driver t_lint_mod_paren_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_lint_modmissing.v	pass	must_accept	match	verilator: driver t_lint_modmissing.py expects success
 verilator	test_regress/t/t_lint_modport_dir_bad.v	pass	must_accept	match	verilator: driver t_lint_modport_dir_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_multidriven_bad.v	pass	must_accept	match	verilator: driver t_lint_multidriven_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14770,7 +14770,7 @@ verilator	test_regress/t/t_lint_pindup_bad.v	pass	must_accept	match	verilator: d
 verilator	test_regress/t/t_lint_pinmissing_bad.v	pass	must_accept	match	verilator: driver t_lint_pinmissing_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_pinnotfound.v	pass	must_accept	match	verilator: driver t_lint_pinnotfound.py expects success
 verilator	test_regress/t/t_lint_pinnotfound_bad.v	pass	must_accept	match	verilator: driver t_lint_pinnotfound_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_lint_pkg_colon_bad.v	fail	must_reject	match	verilator: driver t_lint_pkg_colon_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_lint_pkg_colon_bad.v	fail	must_reject	match	verilator: driver t_lint_pkg_colon_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_lint_pragma_protected.v	fail	must_accept	divergence:explained_svpp_protected_envelope	verilator: driver t_lint_pragma_protected.py expects success
 verilator	test_regress/t/t_lint_pragma_protected_bad.v	fail	must_accept	divergence:explained_svpp_protected_envelope	verilator: driver t_lint_pragma_protected_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_procassinit_bad.v	pass	must_accept	match	verilator: driver t_lint_procassinit_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14795,7 +14795,7 @@ verilator	test_regress/t/t_lint_unused_iface.v	pass	must_accept	match	verilator:
 verilator	test_regress/t/t_lint_unused_iface_bad.v	pass	must_accept	match	verilator: driver t_lint_unused_iface_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_unused_tri.v	pass	must_accept	match	verilator: driver t_lint_unused_tri.py expects success
 verilator	test_regress/t/t_lint_unusedloop_removed_bad.v	pass	must_accept	match	verilator: driver t_lint_unusedloop_removed_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_lint_vcmarker_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_lint_vcmarker_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_lint_vcmarker_bad.v	fail	must_reject	match	verilator: driver t_lint_vcmarker_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_lint_warn_incfile2_bad.v	pass	must_accept	match	verilator: driver t_lint_warn_incfile2_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_warn_line_bad.v	pass	must_accept	match	verilator: driver t_lint_warn_line_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_lint_width.v	pass	must_accept	match	verilator: driver t_lint_width.py expects success
@@ -15280,10 +15280,10 @@ verilator	test_regress/t/t_paramgraph_selbit_dtype.v	pass	must_accept	match	veri
 verilator	test_regress/t/t_paramgraph_simple_cache_localparam_cfg.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_paramgraph_simple_cache_localparam_cfg.py expects success
 verilator	test_regress/t/t_paramgraph_simple_cache_types_if.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_paramgraph_simple_cache_types_if.py expects success
 verilator	test_regress/t/t_parse_delay.v	pass	must_accept	match	verilator: driver t_parse_delay.py expects success
-verilator	test_regress/t/t_parse_eof_attr_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_parse_eof_attr_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_parse_eof_qqq_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_parse_eof_qqq_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_parse_eof_str_bad.v	fail	must_reject	match	verilator: driver t_parse_eof_str_bad.py fails=True and golden .out reports a syntax error
-verilator	test_regress/t/t_parse_sync_bad.v	fail	must_reject	match	verilator: driver t_parse_sync_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_parse_eof_attr_bad.v	fail	must_reject	match	verilator: driver t_parse_eof_attr_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
+verilator	test_regress/t/t_parse_eof_qqq_bad.v	fail	must_reject	match	verilator: driver t_parse_eof_qqq_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
+verilator	test_regress/t/t_parse_eof_str_bad.v	fail	must_reject	match	verilator: driver t_parse_eof_str_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
+verilator	test_regress/t/t_parse_sync_bad.v	fail	must_reject	match	verilator: driver t_parse_sync_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_parse_sync_bad2.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_parse_sync_bad2.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_past.v	pass	must_accept	match	verilator: driver t_past.py expects success
 verilator	test_regress/t/t_past_bad.v	pass	must_accept	match	verilator: driver t_past_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -15755,7 +15755,7 @@ verilator	test_regress/t/t_strength_assignments_constants.v	pass	must_accept	mat
 verilator	test_regress/t/t_strength_buf_not.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_strength_buf_not.py expects success
 verilator	test_regress/t/t_strength_equal_strength.v	pass	must_accept	match	verilator: driver t_strength_equal_strength.py expects success
 verilator	test_regress/t/t_strength_highz.v	pass	must_accept	match	verilator: driver t_strength_highz.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_strength_strong1_strong1_bad.v	fail	must_reject	match	verilator: driver t_strength_strong1_strong1_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_strength_strong1_strong1_bad.v	fail	must_reject	match	verilator: driver t_strength_strong1_strong1_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_strength_strongest_constant.v	pass	must_accept	match	verilator: driver t_strength_strongest_constant.py expects success
 verilator	test_regress/t/t_strength_strongest_non_tristate.v	pass	must_accept	match	verilator: driver t_strength_strongest_non_tristate.py expects success
 verilator	test_regress/t/t_string.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_string.py expects success
@@ -15897,7 +15897,7 @@ verilator	test_regress/t/t_timescale_default.v	pass	must_accept	match	verilator:
 verilator	test_regress/t/t_timescale_lint.v	pass	must_accept	match	verilator: driver t_timescale_lint.py expects success
 verilator	test_regress/t/t_timescale_nobackwards.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_timescale_nobackwards.py expects success
 verilator	test_regress/t/t_timescale_parse.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_timescale_parse.py expects success
-verilator	test_regress/t/t_timescale_parse_bad.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_timescale_parse_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_timescale_parse_bad.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_timescale_parse_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_timescale_udp.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_timescale_udp.py expects success
 verilator	test_regress/t/t_timescale_unit.v	pass	must_accept	match	verilator: driver t_timescale_unit.py expects success
 verilator	test_regress/t/t_timing_always.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_timing_always.py expects success
@@ -16097,7 +16097,7 @@ verilator	test_regress/t/t_udp_bad_first_input.v	pass	must_accept	match	verilato
 verilator	test_regress/t/t_udp_bad_illegal_output.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_udp_bad_illegal_output.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_udp_bad_input_num.v	pass	must_accept	match	verilator: driver t_udp_bad_input_num.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_udp_bad_line_inputs.v	pass	must_accept	match	verilator: driver t_udp_bad_line_inputs.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_udp_bad_line_outputs.v	fail	must_reject	match	verilator: driver t_udp_bad_line_outputs.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_udp_bad_line_outputs.v	fail	must_reject	match	verilator: driver t_udp_bad_line_outputs.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_udp_bad_multi_output.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_udp_bad_multi_output.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_udp_binary.v	pass	must_accept	match	verilator: driver t_udp_binary.py expects success
 verilator	test_regress/t/t_udp_binary_top.v	pass	must_accept	match	verilator: driver t_udp_binary_top.py expects success
@@ -16105,16 +16105,16 @@ verilator	test_regress/t/t_udp_delay.v	pass	must_accept	match	verilator: driver 
 verilator	test_regress/t/t_udp_noname.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_udp_noname.py expects success
 verilator	test_regress/t/t_udp_nonsequential.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_udp_nonsequential.py expects success
 verilator	test_regress/t/t_udp_nonsequential_x.v	pass	must_accept	match	verilator: driver t_udp_nonsequential_x.py expects success
-verilator	test_regress/t/t_udp_param_bad.v	fail	must_reject	match	verilator: driver t_udp_param_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_udp_param_bad.v	fail	must_reject	match	verilator: driver t_udp_param_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_udp_sequential.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_udp_sequential.py expects success
 verilator	test_regress/t/t_udp_sequential_bad.v	pass	must_accept	match	verilator: driver t_udp_sequential_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_udp_sequential_x.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_udp_sequential_x.py expects success
-verilator	test_regress/t/t_udp_tableend_bad.v	fail	must_reject	match	verilator: driver t_udp_tableend_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_udp_tableend_bad.v	fail	must_reject	match	verilator: driver t_udp_tableend_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_udp_tableeof_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_udp_tableeof_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_unbounded.v	pass	must_accept	match	verilator: driver t_unbounded.py expects success
 verilator	test_regress/t/t_unbounded_bad.v	pass	must_accept	match	verilator: driver t_unbounded_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_unconnected.v	pass	must_accept	match	verilator: driver t_unconnected.py expects success
-verilator	test_regress/t/t_unconnected_bad.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_unconnected_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_unconnected_bad.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_unconnected_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_union_hard_bad.v	pass	must_accept	match	verilator: driver t_union_hard_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_union_soft.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_union_soft.py expects success
 verilator	test_regress/t/t_union_unpacked.v	pass	must_accept	match	verilator: driver t_union_unpacked.py expects success
@@ -16168,14 +16168,14 @@ verilator	test_regress/t/t_uvm_return_type3.v	pass	must_accept	match	verilator: 
 verilator	test_regress/t/t_uvm_static_func1.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_uvm_static_func1.py expects success
 verilator	test_regress/t/t_uvm_typeof_type.v	pass	must_accept	match	verilator: driver t_uvm_typeof_type.py expects success
 verilator	test_regress/t/t_vams_basic.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_vams_basic.py expects success
-verilator	test_regress/t/t_vams_kwd_bad.v	fail	must_reject	match	verilator: driver t_vams_kwd_bad.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_vams_kwd_bad.v	fail	must_reject	match	verilator: driver t_vams_kwd_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_vams_wreal.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_vams_wreal.py expects success
 verilator	test_regress/t/t_var_assign_landr.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_var_assign_landr.py expects success
 verilator	test_regress/t/t_var_bad_hide.v	pass	must_accept	match	verilator: driver t_var_bad_hide.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_var_bad_hide2.v	pass	must_accept	match	verilator: driver t_var_bad_hide2.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_var_bad_hide_docs.v	pass	must_accept	match	verilator: driver t_var_bad_hide_docs.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_var_bad_sameas.v	pass	must_accept	match	verilator: driver t_var_bad_sameas.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_var_bad_sv.v	fail	must_reject	match	verilator: driver t_var_bad_sv.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_var_bad_sv.v	fail	must_reject	match	verilator: driver t_var_bad_sv.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_var_const.v	pass	must_accept	match	verilator: driver t_var_const.py expects success
 verilator	test_regress/t/t_var_const2.v	pass	must_accept	match	verilator: driver t_var_const2.py expects success
 verilator	test_regress/t/t_var_const_bad.v	pass	must_accept	match	verilator: driver t_var_const_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -16307,7 +16307,7 @@ verilator	test_regress/t/t_wire_beh1800_bad.v	pass	must_accept	match	verilator: 
 verilator	test_regress/t/t_wire_behp1364_bad.v	pass	must_accept	match	verilator: driver t_wire_behp1364_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_wire_behp1800_bad.v	pass	must_accept	match	verilator: driver t_wire_behp1800_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_wire_self_bad.v	pass	must_accept	match	verilator: driver t_wire_self_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_wire_trireg_unsup.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_wire_trireg_unsup.py fails=True and golden .out reports a syntax error
+verilator	test_regress/t/t_wire_trireg_unsup.v	pass	must_reject	divergence:unexplained_accepts_invalid	verilator: driver t_wire_trireg_unsup.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax error', or a LEXER message from the enumerated vocabulary - unterminated string/attribute/block comment, version-control conflict marker)
 verilator	test_regress/t/t_wire_types.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_wire_types.py expects success
 verilator	test_regress/t/t_wired_net_test.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_wired_net_test.py expects success
 verilator	test_regress/t/t_with.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_with.py expects success

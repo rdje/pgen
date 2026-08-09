@@ -5,11 +5,11 @@
 
 ## CENSUS — at HEAD
   manifest: stimuli/sv/characterization/adjudication_manifest.tsv
-  unexplained_rejects_valid: 287
-  of which the PATH advertises intentional invalidity: 67
+  unexplained_rejects_valid: 284
+  of which the PATH advertises intentional invalidity: 64
     sv-tests     1
     sv2v         11
-    verilator    55
+    verilator    52
 
   ⛔ A SIZE, NOT A VERDICT: verilator's `_bad` usually names an ELABORATION error,
      which parses fine, so `must_accept` remains the correct default for the class.

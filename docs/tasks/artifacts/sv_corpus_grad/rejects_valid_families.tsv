@@ -210,7 +210,6 @@ OTHER (per-row triage)	verilator	test_regress/t/t_interface_paren_missing_bad.v	
 OTHER (per-row triage)	verilator	test_regress/t/t_langext_order.v	do ) ;	module t(input do);
 OTHER (per-row triage)	verilator	test_regress/t/t_lint_colonplus_bad.v	= ID [	output [2:1] z = r[2 :+ 1];
 OTHER (per-row triage)	verilator	test_regress/t/t_lint_notredop_bad.v	| ID ;	assign y[0] = !|v;
-OTHER (per-row triage)	verilator	test_regress/t/t_lint_vcmarker_bad.v	<< << <<	<<<<<<< HEAD  // Intentional test: This conflict marker should be here
 OTHER (per-row triage)	verilator	test_regress/t/t_lparam_assign_iface_typedef2.v	. ID ;	localparam type p0_t = if0.rq_t;
 OTHER (per-row triage)	verilator	test_regress/t/t_lparam_assign_iface_typedef4.v	. ID [	localparam type p0_t = if0.rq_t[1:0];
 OTHER (per-row triage)	verilator	test_regress/t/t_lparam_assign_iface_typedef_bad.v	; / /	p0_rq_t rq;  // Should fail: p0_rq_t is not a data type
@@ -231,8 +230,6 @@ OTHER (per-row triage)	verilator	test_regress/t/t_param_type_from_iface_struct.v
 OTHER (per-row triage)	verilator	test_regress/t/t_param_type_fwd.v	enum ID ;	parameter type enum E_t;
 OTHER (per-row triage)	verilator	test_regress/t/t_param_type_fwd_bad.v	enum ID ;	parameter type enum E_t;
 OTHER (per-row triage)	verilator	test_regress/t/t_param_type_id_bad.v	) ; endclass	);
-OTHER (per-row triage)	verilator	test_regress/t/t_parse_eof_attr_bad.v	<EOF>	(* attr
-OTHER (per-row triage)	verilator	test_regress/t/t_parse_eof_qqq_bad.v	" " "	"""str
 OTHER (per-row triage)	verilator	test_regress/t/t_parse_sync_bad2.v	ID ; typedef	typedef unknown defu;
 OTHER (per-row triage)	verilator	test_regress/t/t_past_unsup.v	@ ( posedge	if ($past(d, 1, 1, @(posedge clk))) $stop;  // Unsup
 SVA implication/property (ch16)	verilator	test_regress/t/t_prop_always_bad.v	ID ) ;	assert property (s_always a);

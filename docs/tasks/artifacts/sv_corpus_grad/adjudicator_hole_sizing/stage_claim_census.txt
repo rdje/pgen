@@ -1,0 +1,41 @@
+## LEG 1 — is verilator's LEXICAL message vocabulary still fully adjudicated?
+  PLANTED CONTROL: 'EOF in a message no one has ruled on' -> matched by the detector and UNRULED, so the refusal path fires. PASS
+  goldens scanned: 1427   distinct lexical-ish spellings: 10
+      2  EOF in 'X' block comment                         PARSE-STAGE
+      2  EOF in (*                                        PARSE-STAGE
+      2  EOF in define argument list                      preprocessor (svpp lane)
+      2  EOF in unterminated """ string                   PARSE-STAGE
+      1  EOF in unterminated preprocessor expression      preprocessor (svpp lane)
+      1  EOF in unterminated string                       PARSE-STAGE
+      1  Unterminated ( in define formal arguments.       preprocessor (svpp lane)
+      1  Unterminated /* comment inside -f file.          a `-f` command file, not source text
+      4  Unterminated string                              PARSE-STAGE
+      3  Version control conflict marker in file          PARSE-STAGE
+  ⇒ every spelling is adjudicated; the parse-stage subset is mirrored by VERILATOR_PARSE_STAGE_RE.
+
+## GROUND TRUTH — controls (a miss ABORTS before any number is printed)
+  POSITIVE   a parse-stage golden basis     -> PARSE_STAGE_CLAIM PASS
+  NEGATIVE   t_alias_ports_unsup.v              -> TOOL_LIMIT_CLAIM PASS
+  EXHAUSTIVE every row's basis is recognized  -> 0 unrecognized PASS
+
+## CENSUS — 284 `divergence:unexplained_rejects_valid` rows, by UPSTREAM STAGE CLAIM
+     0  (  0.0 %)  PARSE_STAGE_CLAIM    
+   199  ( 70.1 %)  UPSTREAM_SAYS_VALID  Surelog:49 ispras-sv-tests:36 iverilog:10 sv-tests:12 sv2v:16 verible:12 verilator:64
+    71  ( 25.0 %)  POST_PARSE_CLAIM     ispras-sv-tests:2 iverilog:5 slang:1 sv-tests:3 sv2v:11 verilator:49
+    14  (  4.9 %)  TOOL_LIMIT_CLAIM     verilator:14
+     0  (  0.0 %)  NO_CLAIM             
+
+  ⇒ ADJUDICATOR WORK sizeable from metadata: 0 of 284 (0.0 %).
+  ⇒ PARSER WORK by upstream's own testimony:  270 of 284 (95.1 %).
+  ⇒ UNDECIDABLE from metadata (tool-limit or no claim): 14 of 284.
+
+  ⛔ A metadata census CANNOT see the `.3.23` class, and that bound is the point: a row
+     can carry impeccable UPSTREAM_SAYS_VALID testimony and still be LRM-underivable,
+     because upstream is a TOOL and the oracle is the STANDARD. Those rows are found
+     only by reading the construct at the stuck point — i.e. by `.3.x` construct
+     leaves. This number sizes what the METADATA channel can reach, and no more.
+  ⛔ AND IT INHERITS THE ADJUDICATOR'S BLIND SPOT: it classifies the RECORDED
+     derivation, so a row derived WRONG is classified confidently as what the
+     adjudicator believed. The three rows `.3.24` reclassified were invisible to this
+     leg and were found by LEG 1 above. A 0 here means 'nothing left that the recorded
+     reasoning can surface' — never 'nothing left'.

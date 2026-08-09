@@ -4360,15 +4360,17 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
       **ALL 17 doctrines PASS**.
 - [x] **LOCKSTEP** — the burn-down worklist regenerated from the new manifest
       (`rejects_valid_clusters.{tsv,md}` 296→287 rows, `rejects_valid_families.{tsv,md}` 8→7
-      families, the `.3.21` reconciliation guard confirming `287 rows ==` the manifest); `.3.24`
+      families, the `.3.21` reconciliation guard confirming `287 rows ==` the manifest — since
+      re-run to 284 by `.3.24`); `.3.24`
       re-sized 71→67 with its own instrument; `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
       `docs/TASK_TREE.md` updated. Book/contract/ledger/schema/release: **N/A — no user-visible
       parser behaviour, no released-parser surface and no schema field changed** (the parser is
       byte-identical); the DONE-BAR register is unchanged for the same reason.
 
-##### `.3.24` — SIZE THE ADJUDICATOR-HOLE SHARE OF THE REMAINING WORKLIST: 71 of the 296 rows sit in files whose own path advertises intentional invalidity (routed by `.3.23`, 2026-08-09)
+##### `.3.24` — SIZE THE ADJUDICATOR-HOLE SHARE OF THE REMAINING WORKLIST — **ANSWERED: essentially ZERO, and the answer says keep cutting construct leaves** (routed by `.3.23`; **DONE** 2026-08-09)
 
-- **Status: `todo`.** Routed, not worked. ⚠️ **Potentially scope-changing for the SV release
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0045`). ⛔ **ZERO parser bytes.** Deliverable was a
+  NUMBER, and the number is decision-changing in the direction nobody predicted. ⚠️ **Potentially scope-changing for the SV release
   lane, which is why it is a leaf and not a note:** if a material share of the remaining 296
   `unexplained_rejects_valid` rows are adjudicator work rather than parser work, then the
   distance to axis-2 green is shorter than the raw number says — and, more importantly,
@@ -4377,8 +4379,8 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
 - **MEASURED (2026-08-09):** of the **296** rows, **71** lived in files whose path advertises
   intentional invalidity — a `_bad` basename, a `test/error/` directory, or an `_ILLEGAL`
   suffix. Split: **verilator 59, sv2v 11, sv-tests 1**. Every one was expected `must_accept`.
-- **RE-MEASURED AT HEAD after `.3.23` landed: `67` of `287`** (verilator 55, sv2v 11,
-  sv-tests 1). `.3.23` pinned 4 of the 71 (`t_enum_bad_value.v`, `t_enum_bad_wrap.v`,
+- **RE-MEASURED AT HEAD: `64` of `284`** (verilator 52, sv2v 11, sv-tests 1) — 71/296 before
+  `.3.23`, 67/287 after it, 64/284 after `.3.24`'s own three pins. `.3.23` pinned 4 of the 71 (`t_enum_bad_value.v`, `t_enum_bad_wrap.v`,
   `t_enum_type_methods_bad.v`, `t_enum_type_nomethod_bad.v`). ⭐ The number is now backed by a
   re-runnable instrument instead of being a bare figure —
   `docs/tasks/artifacts/sv_corpus_grad/enum_base_range/advertised_invalidity_recount.py`,
@@ -4415,6 +4417,108 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
 - ⚠️ **And the reverse risk is the one to hold on to:** every row wrongly moved OUT of
   `unexplained_rejects_valid` is a real parser defect made invisible. The class must shrink by
   evidence, never by plausibility ([[a-rising-pass-rate-is-not-evidence-of-correctness]]).
+
+#### THE ANSWER (measured 2026-08-09) — `stage_claim_census.py` → `stage_claim_census.txt`
+
+- ⭐ **ADJUDICATOR WORK SIZEABLE FROM METADATA: 0 of 284 (0.0 %). PARSER WORK BY UPSTREAM'S OWN
+  TESTIMONY: 270 of 284 (95.1 %).** The remaining 14 (4.9 %) are undecidable from metadata —
+  verilator `%Error-UNSUPPORTED` / internal-error rows, which are testimony about the TOOL and
+  support neither verdict, so they are broken out rather than quietly folded into "post-parse".
+  Split of the 270: **199 UPSTREAM_SAYS_VALID** (a driver expecting success, a clean Surelog
+  golden, an ispras `TYPE: POSITIVE`, an sv-tests positive, an sv2v conversion input, an ivtest
+  `normal`) and **71 POST_PARSE_CLAIM** (upstream names elaboration / lint / type / name
+  resolution). ⇒ **the burn-down is parser work; keep cutting construct leaves.**
+- ⛔ **THE FILENAME HYPOTHESIS IS REFUTED, which is the point of having measured it.** The leaf
+  opened on 71 rows whose path advertises invalidity; the census says none of them is
+  reclassifiable *from that signal*, and the `_bad` population is now **64 of 284** by its own
+  re-runnable instrument. Had the burn-down trusted the name, it would have injected
+  over-acceptance on ~64 files ([[feedback_sv_strict_lrm_compliance_default]]).
+
+#### ⭐⭐ BUT THE LEG THAT FOUND THE DEFECT IS THE OTHER ONE — and 3 rows moved
+
+- **`SYNTAX_ERR_RE` was the whole stage test for verilator, and verilator's LEXER never says
+  "syntax error".** `VerilatorIndex` decided *"does this `fails=True` test intend a parse-level
+  failure?"* by grepping the golden for that one literal. Enumerating verilator's real message
+  set across **all 1 427 tracked goldens** split ONE construct family down the middle:
+
+  | file | construct | golden | verdict |
+  |---|---|---|---|
+  | `t_parse_eof_str_bad.v` | unterminated `"` string | ALSO says `syntax error` | `must_reject` ✔ |
+  | `t_parse_eof_qqq_bad.v` | unterminated triple-quoted string | only `EOF in unterminated ... string` | `must_accept` ✘ |
+  | `t_parse_eof_attr_bad.v` | unterminated `(*` | only `EOF in (*` | `must_accept` ✘ |
+  | `t_fuzz_eof_bad.v` | both at once | ALSO says `syntax error` | `must_reject` ✔ |
+
+  Plus `t_lint_vcmarker_bad.v` — a file containing literal `<<<<<<< HEAD` merge-conflict markers,
+  filed as *"a post-parse tool error (lint/elab/unsupported) — syntax valid"*. **Four files, one
+  lexical class, two verdicts, separated by nothing but whether the upstream message happened to
+  contain two particular words.** That is `.3.15`'s *"the pin table already contradicts itself"*
+  one level down: in the HEURISTIC rather than in the pins — and a heuristic hole re-opens on
+  every re-vendoring, which a pin does not.
+- ⛔⛔ **A PREFIX RULE WOULD HAVE BEEN WRONG, and the enumeration is what showed it.** The
+  `EOF in …` family is NOT uniformly parse-stage: `EOF in define argument list`,
+  `Unterminated ( in define formal arguments.` and `EOF in unterminated preprocessor expression`
+  belong to the **preprocessor (svpp lane)**, and `Unterminated /* comment inside -f file.` is
+  about a **`-f` command file**, not source text at all. Matching `EOF in ` would have swept all
+  four into the parse verdict. So the fix is an ENUMERATED allowlist — the same shape `.3.14b`
+  was forced into for compiler directives, for the same reason.
+- **PER-ROW JUSTIFICATION, to `.3.23`'s standard:** each of the 3 was probed and its stuck point
+  matches the construct its golden names — `t_lint_vcmarker_bad` `furthest_position=212`, the
+  parser having consumed `module t;` and stopped at the `<<<<<<<` (verilator: `:9:1`);
+  `t_parse_eof_qqq_bad` `=202`, stopped at the triple-quoted opener (verilator `:7:1`);
+  `t_parse_eof_attr_bad` `=210`, having consumed `(* attr` and hit EOF needing `*)` (verilator
+  `:7:1`). LRM grounds: clause 5.9 (a string literal sits on ONE line and must close), A.9.1
+  (`attribute_instance` requires its `*)`), and — for the conflict markers — no lexical
+  derivation of `<<<<<<<` exists at all.
+- **MEASURED:** `unexplained_rejects_valid` **287 → 284**, `match` **5789 → 5792**; exactly those
+  3 rows moved and **no row moved in the reverse direction**, so no new
+  `unexplained_accepts_invalid` was created (still **21**); the v2005 lane manifest is
+  byte-identical. ⚠️ An ADJUDICATION CORRECTION, not burn-down yield.
+
+#### ⛔ THE HONEST BOUND ON THE NUMBER — stated because it is load-bearing
+
+- **A basis census inherits the adjudicator's blind spot.** It classifies the RECORDED derivation,
+  so a row derived WRONG is classified confidently *as what the adjudicator believed*. The 3 rows
+  above were invisible to it and were found by the vocabulary leg. ⇒ **"0 of 284" means "nothing
+  left that the recorded reasoning can surface", never "nothing left".**
+- **And no metadata census can ever see the `.3.23` class**, because upstream is a TOOL and the
+  oracle is the STANDARD: a row can carry impeccable `UPSTREAM_SAYS_VALID` testimony and still be
+  LRM-underivable. Those are found only by reading the construct at the stuck point.
+- ⭐ **Both bounds are now GUARDED, not just documented.** The census refuses on an unrecognized
+  `basis` spelling instead of bucketing it as "other", and LEG 1 refuses if verilator emits a
+  lexical spelling nobody has ruled on — so the next re-vendoring that grows a message stops the
+  instrument rather than silently shrinking the number. Both refusal paths are exercised: LEG 1
+  runs a planted unruled spelling on every invocation, and dropping a real spelling from the
+  ruled set was verified to abort ([[a-check-whose-inputs-all-pass-has-not-been-tested]]).
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the leaf's own premise: 71 of 296 rows sat in paths advertising
+      invalidity with no audit ever run, and a wrong call in either direction is expensive.
+      Re-derived at HEAD by `advertised_invalidity_recount.py` (64 of 284 now).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE = `VerilatorIndex.__init__`, which built
+      `syntax_out_stems` from `SYNTAX_ERR_RE = re.compile(r"syntax error")` alone. WHY = verilator's
+      LEXER errors never contain that string, so an entire lexical class was invisible to the stage
+      test; enumerating all 1 427 goldens shows 10 distinct lexical spellings of which 6 are
+      parse-stage and only 2 co-occur with `syntax error`. Evidence: `stage_claim_census.txt`
+      LEG 1 table + the four-file contradiction above + per-row `furthest_position=212/202/210`
+      probe output matching each golden's own line:col.
+- [x] **FIX** — declarative tier, adjudicator only: `VERILATOR_PARSE_STAGE_RE`, an ENUMERATED
+      allowlist (6 spellings in, 4 explicitly out with their owning lane named), consumed by
+      `VerilatorIndex`. No grammar or engine change is admissible — the parser is right to reject
+      all three files.
+- [x] **ADDRESSED (verified)** — re-runnable oracle `python3 stimuli/sv/adjudicate_external_corpus.py`:
+      `unexplained_rejects_valid` **287 → 284**, `match` **5789 → 5792**;
+      `stage_claim_census.py` exits 0 with LEG 1 fully adjudicated and 0 unrecognized bases.
+- [x] **NO REGRESSION** — ZERO parser bytes staged (no `grammars/`, `rust/src/`, `generated/`).
+      Manifest diff = exactly the 3 rows, **no row moved in the reverse direction**,
+      `unexplained_accepts_invalid` unchanged at **21**, `adjudication_manifest_v2005.tsv`
+      byte-identical, `bash scripts/check_doctrines.sh` → ALL 17 PASS.
+- [x] **LOCKSTEP** — worklist regenerated (`rejects_valid_clusters` 287→284 rows / 180→177
+      signatures; `rejects_valid_families` 284 rows / 7 families; `.3.21` reconciliation guard
+      green); `advertised_invalidity_recount` re-run (67→64); `CHANGES.md`,
+      `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`, the book's adjudication chapter.
+      Book/contract/ledger/schema/release/register: **N/A — the parser is byte-identical**, so no
+      user-visible parser surface moved.
 
 ### `.4` — Full-design corpora chaining
 
