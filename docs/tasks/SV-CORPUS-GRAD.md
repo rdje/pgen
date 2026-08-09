@@ -4288,6 +4288,47 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   exactly the shape of [[a-rising-pass-rate-is-not-evidence-of-correctness]] and must be
   presented as an adjudication correction, never as parser progress.
 
+##### `.3.24` — SIZE THE ADJUDICATOR-HOLE SHARE OF THE REMAINING WORKLIST: 71 of the 296 rows sit in files whose own path advertises intentional invalidity (routed by `.3.23`, 2026-08-09)
+
+- **Status: `todo`.** Routed, not worked. ⚠️ **Potentially scope-changing for the SV release
+  lane, which is why it is a leaf and not a note:** if a material share of the remaining 296
+  `unexplained_rejects_valid` rows are adjudicator work rather than parser work, then the
+  distance to axis-2 green is shorter than the raw number says — and, more importantly,
+  burning them down as *parser* defects would inject over-acceptance
+  ([[feedback_sv_strict_lrm_compliance_default]]).
+- **MEASURED (2026-08-09):** of the **296** rows, **71** live in files whose path advertises
+  intentional invalidity — a `_bad` basename, a `test/error/` directory, or an `_ILLEGAL`
+  suffix. Split: **verilator 59, sv2v 11, sv-tests 1**. Every one is currently expected
+  `must_accept`.
+- ⛔⛔ **DO NOT TREAT THE FILENAME AS AN ORACLE. That is the whole difficulty of this leaf, and
+  the naive reading is wrong.** Verilator's `_bad` suffix means *this test expects an error*,
+  and the overwhelming majority of those errors are **elaboration/semantic** — width
+  mismatches, unresolved names, type errors — all of which are perfectly **parseable**. So
+  `must_accept` at PARSE level is the correct default for that population, and the adjudicator
+  is not obviously wrong. The finding is that the class has never been AUDITED, not that it is
+  mis-classified.
+- ⭐ **`.3.23` is the worked example that proves the subtlety, in both directions at once.**
+  `t_enum_bad_value.v` and `t_enum_bad_wrap.v` are in this 71. Their `_bad` label refers to an
+  enum **value** being out of range — an elaboration error, so `must_accept` at parse level is
+  right for the reason the name gives. But they nonetheless fail to PARSE, for a completely
+  unrelated reason (`enum [N:M]`, a construct IEEE 1800 cannot derive), and *that* reason does
+  make the expected verdict wrong. ⇒ **the name explains a different defect from the one the
+  parser hits.** Any audit that reasons from the filename alone will get both of these
+  backwards.
+- **THE ONLY SOUND METHOD, therefore:** adjudicate from the suites' own driver metadata (which
+  error STAGE each test expects — the machinery `.8b.1`/`.8b.2`/`.8b.3` already built for
+  Surelog golden logs, sv2v stage classification and ivtest descriptors), cross-checked against
+  the row's actual `furthest_position` locus. A row is reclassifiable only when the metadata
+  says the expected error is LEXICAL/SYNTACTIC **and** the parser's stuck point is the
+  construct that metadata names.
+- **DELIVERABLE:** a number, not a fix — *how many of the 296 are adjudicator work?* — plus the
+  per-row evidence for whichever subset is reclassified. Sizing this changes how the rest of
+  the `.3` burn-down should be planned, so it is worth doing before the next several
+  construct leaves rather than after.
+- ⚠️ **And the reverse risk is the one to hold on to:** every row wrongly moved OUT of
+  `unexplained_rejects_valid` is a real parser defect made invisible. The class must shrink by
+  evidence, never by plausibility ([[a-rising-pass-rate-is-not-evidence-of-correctness]]).
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so
