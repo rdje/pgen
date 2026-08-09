@@ -1,0 +1,19 @@
+== census 1 (textual, ALL grammars): column-0 comments inside a rule body with a continuation after them
+   truncating sites: 0
+
+== census 2 (structural, grammars/systemverilog.ebnf): source vs IR alternative count, for every rule with an interior comment
+   rule                                                  source    IR  verdict
+   source_text_item                                           5     5  OK
+   data_type                                                 15    15  OK
+   net_declaration_sv_2017                                    4     4  OK
+   net_declaration_sv_2023                                    4     4  OK
+   primary_hier_scope_prefix                                  3     3  OK
+   scoped_or_hierarchical_tf_identifier                       2     2  OK
+   use_clause                                                 5     5  OK
+   variable_lvalue_scope                                      3     3  OK
+   minus_minus                                                1     1  OK
+   rparen                                                     1     1  OK
+
+   rules with an interior comment: 10
+   ALTERNATIVES LOST (source > IR): 0
+   instrument under-counts (source < IR, one-sidedness by design): 0

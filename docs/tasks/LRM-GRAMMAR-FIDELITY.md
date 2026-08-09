@@ -102,6 +102,39 @@ That splits the work into two pieces with different leverage:
   bounded first step — it surfaces the rest of the class before sessions are
   spent finding them one corpus row at a time.
 
+### `.1b` — ⭐ a SECOND fidelity axis the `.1` charter cannot see: **Annex A ⟷ the clauses' own normative EXAMPLES** (routed in by `SV-CORPUS-GRAD.3.19`, 2026-08-09)
+
+- **Status: `todo`** (opened by `SV-CORPUS-GRAD.3.19`; that leaf is the worked existence proof
+  and carries the full evidence bundle at
+  `docs/tasks/artifacts/sv_corpus_grad/config_use_param_override/`).
+- **WHY THIS IS NOT `.1`.** `.1` audits *shipped grammar vs Annex A* — it finds productions
+  PGEN failed to transcribe or transcribed wrongly, which is the whole seven-instance
+  "dropped-delimiter" class (`SV-0002` `stream_concatenation`, `trans_range_list`,
+  `boolean_abbrev`, the six bounded-property operators, `value_range`, `cycle_delay_range`
+  `SV-0044`, `expression_or_dist` `SV-0049`). ⛔ **It is structurally blind to a defect where
+  PGEN's transcription of Annex A is CORRECT and Annex A itself is wrong**, because Annex A is
+  its oracle. `.3.19` is exactly that: `use_clause` is transcribed faithfully — all four
+  alternatives, `[lib.]` optional, `[: config]` optional — and it still rejected 8 corpus rows
+  and 7 verbatim LRM example lines, because IEEE 1800's own clause 33.4.3 writes
+  `instance top use #(.WIDTH(32));` (7 times, in BOTH the 2017 and 2023 revisions) while its
+  Annex A `use_clause` has no `#` at all.
+- **THE INSTRUMENT this needs** (and it is different from `.1`'s): extract the fenced/indented
+  CODE EXAMPLES out of the LRM clause bodies and run each through the shipped parser under the
+  matching profile. An example the standard prints as legal that the parser rejects is either a
+  grammar gap or an Annex-A defect — and the two are told apart by asking whether Annex A
+  derives it. This is a corpus PGEN already owns and has never used: `docs/systemverilog/2017`
+  and `docs/systemverilog/2023` are in-repo.
+- **WHY IT IS WORTH DOING RATHER THAN LOGGING.** `.3.19` found its instance reactively, from a
+  corpus cluster, in a clause nobody had audited. There is no reason to believe clause 33 is the
+  only place the standard contradicts its own Annex A — and every such site is, by construction,
+  invisible to both `.1` and to the reactive corpus lane until some vendored file happens to use
+  it. Annex A's own preamble licenses the reading: *"The normative text description contained
+  within the clauses … provide additional details on the syntax."*
+- **HONEST BOUND to carry into the design:** LRM example blocks are not all self-contained
+  compilable units (many are fragments, some are deliberately erroneous — the ispras suite marks
+  these `! TYPE: NEGATIVE`), so the instrument needs an admission policy before it can produce a
+  pass rate, or it will report fragments as defects. Start report-only.
+
 ### `.2` — The standing coverage gate
 
 - **Status: `todo`** — promote `.1`'s audit into a deterministic `make` gate

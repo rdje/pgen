@@ -1,5 +1,53 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0037 — the source of truth can lose language without telling you, and every instrument we own says it didn't
+
+`.3.19`'s actual subject — a config `use` clause that could not consume a `#` — is a clean, small
+grammar fix. The part worth writing down is what happened on the way to it.
+
+**The episode.** The fix is one new alternative on `use_clause`. It was landed with its explanatory
+comment block at column 0, the way a comment ABOVE a rule is written. Codegen succeeded. The release
+build succeeded. Then the repro matrix came back with nine deviations instead of zero: the five new
+cases still REJECTED, *and four cases that had passed before the edit had flipped to REJECT*.
+
+**The tempting root cause was wrong.** The new alternative contains a `#` twice — once inside the
+`@probe_sample: "use #(.P(1))"` string, once per comment line — so "`#` is mishandled" was the
+natural reading, and it is the kind of reading that gets published. Five one-rule synthetic grammars,
+each declaring exactly three alternatives and differing in one thing, settled it instead: baseline 3,
+INDENTED comment 3, `#` inside a string 3, **column-0 comment after alt 1 → 1**, **after alt 2 → 2**.
+Strings are handled correctly. `#` is not the problem. A comment line at column 0 inside a rule body
+ENDS the rule, and every alternative after it is discarded — including, here, a pre-existing
+alternative and the rule's return annotation.
+
+**What makes it serious is not the size, it is the silence.** With two alternatives gone:
+`--lint-grammar` clean; `defined_rule_count` 1477, unchanged; `--dump-rule-profiles` byte-identical
+across all 1,477 rules and all three profiles. That last one stings, because this leaf had *already
+run and banked* that census as evidence before the symptom appeared. A rule-count instrument
+structurally cannot see this: no rule is added or removed, only the inside of one rule shrinks.
+
+**It was caught by luck of good practice, not by a gate.** The repro matrix carried `a*` control rows
+for the four Annex-A alternatives that already worked. Nothing required those rows — the leaf's
+subject was the `h*` cases. They existed because a matrix should pin what must NOT move, and they are
+the only reason the truncation surfaced at all rather than shipping as "the fix didn't take".
+
+**And the direction was luck too.** Truncation removed alternatives here, so the parser
+under-accepted and something went red. Applied to a rule whose later alternatives carry `@predicate`
+gates or negative lookaheads, the same mechanism removes *strictness* — the parser silently
+over-accepts, and nothing in this repo goes red at all.
+
+Measured before moving on: **0 truncating sites across every tracked grammar**, and in the SV grammar
+all 10 rules carrying an interior comment have source and IR alternative counts that agree. Nothing
+shipped is wrong today. It is a live trap, not a live defect, and it is now a tree
+(`EBNF-FRONTEND-SILENT-TRUNCATION`) rather than a memory.
+
+**A second, smaller lesson from the same leaf: a negative control can disable the assertion it is
+meant to trip.** The new shape sample was "proven live" by breaking `expected_content_kind` and
+demanding a nonexistent key — and the gate stayed GREEN. The reason is that a sample whose expected
+and current kinds differ is classed DRIFTED, and the entire structural-assertion block runs only
+`if aligned`. The control had switched off the check it was testing. The live lock is
+`current_content_kind`; breaking that fails the gate by name. A control that passes is not evidence
+the thing works — it is evidence you have not yet found the assertion.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0036 — a construct can be broken in a direction no pass-rate can see
 
 `.3.18` fixed one dropped delimiter in `expression_or_dist`, and the interesting part is not the six

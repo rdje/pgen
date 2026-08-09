@@ -19,6 +19,92 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.180 / Contract 1.0.180 — SV-CORPUS-GRAD.3.19 (`PGEN-SV-CORPUS-GRAD-0037`, 2026-08-09), ledger `SV-0050` (`Released`): **THE CONFIG `use` CLAUSE COULD NOT CONSUME A `#` — AND THE REASON IS THAT IEEE 1800 CONTRADICTS ITSELF (GRAMMAR; all profiles; SCHEMA UNCHANGED at 20)**
+
+**What changed.** `use_clause` (`grammars/systemverilog.ebnf:6039`) gained a fifth alternative,
+`use #( named_parameter_assignment {, …} )[: config]`, so a configuration can override parameters
+the way the LRM's own examples do.
+
+⭐ **Why this one is unusual — the defect is in the STANDARD, not in PGEN's reading of it.** The
+previous three grammar fixes in this series (`SV-0002`, `SV-0044`, `SV-0049`) were all the same
+class: the LRM wrote a literal delimiter and PGEN read it as BNF metasyntax. Here PGEN's
+transcription of Annex A is **correct and complete** — all three alternatives, `[lib.]` optional,
+`[: config]` optional. The problem is that IEEE 1800 says two different things:
+
+| surface | what it says | occurrences |
+|---|---|---|
+| Annex A / Syntax 33-4 (A.1.5) | `use_clause ::= use [lib.]cell [:config] \| use named_parameter_assignment {, …} [:config] \| use [lib.]cell named_parameter_assignment {, …} [:config]` — **no `#`** | identical in 1800-2017 and 1800-2023 |
+| Clause 33.4.3, normative examples | `instance top use #(.WIDTH(32));`, `use #(.W(top.WIDTH));`, `use #(.W());`, `use #();` | **7 per revision**, in BOTH revisions |
+
+**How that was adjudicated** — three independent grounds, so it is a reading rather than a
+preference:
+
+1. Annex A subordinates itself in its own preamble: *"The full syntax and semantics of
+   SystemVerilog are not described solely using BNF. The normative text description contained
+   within the clauses and annexes of this standard provide **additional details on the syntax**."*
+2. The BNF-only reading makes an explicit prohibition **vacuous**. Clause 33.4.3 states
+   *"Configurations may not use positional parameter notation to override parameters"* — but under
+   the brace-less alternatives positional notation is not even expressible. A standard does not
+   forbid what its own grammar cannot write.
+3. Measured, not recalled: every one of the **12** parameter-override `use` clauses in PGEN's
+   vendored external corpus is spelled `#( … )`; **zero** use the Annex-A spelling.
+
+⇒ the parser accepts the **union** of the two normative surfaces.
+
+**What is still rejected, on purpose.** `use #(32)` and `use #(32, .W(8))` — positional overrides,
+which 33.4.3 forbids in so many words. The new alternative therefore takes
+`named_parameter_assignment`, **not** `list_of_parameter_assignments`; reusing
+`parameter_value_assignment` (which is literally `hash lparen ( list_of_parameter_assignments )?
+rparen`) would have been the obvious move and would have silently accepted them.
+
+**Empirical pre/post** (`--profile sv_2017`, the leaf's 17-case matrix):
+
+```text
+# before
+instance top use #(.WIDTH(32));         -> REJECT, furthest_position=246 (the `#`)
+instance top.a1 use #();                -> REJECT
+instance top.a1 use #(32);              -> REJECT   (correct)
+instance top.a1 use rtlLib.adder .W(8); -> ACCEPT   (Annex-A form)
+
+# after
+instance top use #(.WIDTH(32));         -> ACCEPT
+instance top.a1 use #();                -> ACCEPT
+instance top.a1 use #(32);              -> REJECT   (still correct — 33.4.3 forbids positional)
+instance top.a1 use rtlLib.adder .W(8); -> ACCEPT   (unchanged)
+```
+
+**What a consumer sees.** A `config_rule_statement` of `kind: "inst_use"` (or `"cell_use"`) can now
+carry a `body` containing `{kind:"hash"}`, `{kind:"lparen"}`, the named assignments, and
+`{kind:"rparen"}`:
+
+```json
+{"kind": "inst_use",
+ "clause": {"name": {"head": {"body": "top"}, "scope_chain": []}},
+ "body": [[[], "use"], {"kind": "hash"}, {"kind": "lparen"},
+          [{"name": {"body": "WIDTH"}, "value": {"…": "32"}}, []],
+          {"kind": "rparen"}, []]}
+```
+
+**Schema version:** stays at **`20`**, and that is measured rather than assumed. The construct was
+100 % unparseable before this release, so no previously-witnessed shape can move; the ASTs of all
+**10** already-parsing cases in the repro matrix are **byte-identical** across the fix (`cmp` 10/10).
+
+**Corpus proof:** 16 336 files, pass **9 726 → 9 734 (+8)**, **0 pass→fail / 0 pass→timeout /
+0 pass→crash**; unexplained rejects-valid **304 → 296** with **zero new** by set difference;
+`unexplained_accepts_invalid` set unchanged (21); the 8 flipped files set-equal to the 8 keyed
+before the edit; the `verilog_2005` lane byte-inert with a `cmp`-clean manifest.
+`defined_rule_count` **1477 unchanged**, so `sv_cert_recognized_union_gate` and
+`verilog_2005_conformance_gate` needed **no re-baseline**. A new `use_clause_hash_named_override`
+shape sample was added and **proven non-vacuous by a negative control**.
+
+⚠️ **Known residual, tracked and being fixed next (`SV-CORPUS-GRAD.3.20`):** `use_clause` carries no
+`@profiles` gate, so `verilog_2005` accepts this spelling — and the four pre-existing named-override
+alternatives — none of which exist in IEEE 1364-2005, whose `use_clause` has exactly one
+alternative. Pre-existing for four forms, extended to five here; measured blast radius **0 corpus
+rows** (no file in the 2 459-file v2005 lane contains a config `use` clause of any spelling).
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → the 2026-08-09 `SV-CORPUS-GRAD.3.19` current-state note.
+
 ### 1.0.179 / Contract 1.0.179 — SV-CORPUS-GRAD.3.18 (`PGEN-SV-CORPUS-GRAD-0036`, 2026-08-09), ledger `SV-0049` (`Released`): **THE `dist` CONSTRAINT OPERATOR WAS WRONG THREE WAYS AT ONCE — LITERAL LRM BRACES READ AS EBNF REPETITION (GRAMMAR; `sv_2017`+`sv_2023`; SCHEMA 19 → 20)** — `expression_or_dist` (`grammars/systemverilog.ebnf:2344`) rendered IEEE 1800-2017 A.2.10's `expression_or_dist ::= expression [ dist { dist_list } ]` as `( kw_dist dist_list* )?`. Those braces are **literal SystemVerilog**, and the trap is two lines away in the LRM itself: `dist_list ::= dist_item { , dist_item }` uses the *same characters* as repetition metasyntax. ⭐ **One dropped delimiter, three symptoms — which is why the corpus scattered them across three different stuck-point clusters.** The reason is that `dist_item → value_range → expression` can itself begin with `{`, as a **concatenation**: for `{100 := 1, …}` that speculative path dies at the `:=` (the `: = NUM` cluster signature that surfaced this leaf), for `{[100:102] :/ 1}` it dies at the `[`, and for `{5, 8}` it **succeeds with the wrong tree**. So: (1) **under-acceptance** — every weighted or ranged distribution the LRM writes was unparseable, in constraint *and* assertion contexts; (2) ⚠️ **silent mis-parse** — `soft x dist {5, 8};` PARSED, but the LRM's **two** items were handed to the consumer as **one** whose value was the concatenation expression `{5, 8}` (`"kind": "concat"` in the dump). No pass/fail oracle in this repo could see that; only a shape dump can, and **no shape sample covered this rule** (0 of the then-31). A wrong tree is worse than a rejection, because the consumer has no way to notice; (3) **over-acceptance** — the brace-less `x dist 100 := 1;`, which has no production in A.2.10 at all, was accepted. **FIX** (pure grammar, existing tokens, zero new rules): restore the literal braces — `( kw_dist lbrace dist_list rbrace )?`. The `*` retires with them, since `dist_list` already carries its own `( comma dist_item )*`. **SCHEMA 19 → 20 — and unlike the same-class `SV-0044` fix, this one had to bump:** that construct was 100 % unparseable so no witnessed shape could move; this one was not. The `dist` slot goes from the 2-element `[[trivia,"dist"], [ <one concat-valued item> ]]` to the 4-element `[[trivia,"dist"], {kind:"lbrace"}, [ <item>, <item> ], {kind:"rbrace"}]`. **Migration:** read `dist[2]` where you read `dist[1]`; read individual `dist_item`s where you read one concatenation-valued item. **MEASURED:** external corpus 16 336 files, pass **9 720 → 9 726 (+6)** with **0 pass→fail / 0 pass→timeout / 0 pass→crash**; unexplained rejects-valid **310 → 304** with **ZERO new** by set difference; `unexplained_accepts_invalid` set **BYTE-IDENTICAL** (21) — the control that matters when a fix *tightens* the language; the 6 flipped files **set-equal** to the 6 keyed before the edit (**flipped-but-not-keyed = 0**); the 2 459-file `verilog_2005` lane **byte-inert** (zero transitions, manifest `cmp`-clean), which is measured rather than assumed even though constraints and SVA do not exist in IEEE 1364-2005. ⭐ `verilator/t_constraint_dist_randc_bad.v` flipping to PASS is **correct**: §18.5.4's own Limitations make `dist` on a `randc` variable an *elaboration* error, not a syntax one, so a conforming parser must parse it. ⛔⛔ **THE CLASS FINDING:** this is the **seventh** logged instance of the dropped-delimiter class and the **third in Annex A subclause A.2.10 alone** (after `boolean_abbrev` and `cycle_delay_range`/`SV-0044`). `SV-0044` recorded the same complaint and its own notes even named `dist { … }` as a residual it was setting aside; it was found again two weeks later, reactively, by a different cluster. The reactive posture does not converge — an exhaustive Annex-A bracket/brace sweep is what closes the class. **LOCK ADDED:** the shape sample `expression_or_dist_braced_list`, verified live by a negative control (breaking it fails the gate). Full matrix in ledger row `SV-0049`.
 
 ### 1.0.178 / Contract 1.0.178 — SV-CORPUS-GRAD.3.14b (`PGEN-SV-CORPUS-GRAD-0033`, 2026-08-09), ledger `SV-0048` (`Released`): **A COMPILER DIRECTIVE WAS TOLERATED ONLY AT FILE TOP LEVEL — `` `timescale `` ONE LINE INSIDE A MODULE REJECTED (GRAMMAR; cross-profile; schema 19 UNCHANGED)** — `compiler_directive` was an alternative of `source_text_item` and of **nothing else**, so no in-scope item list could reach it. ⭐ **The whole diagnosis is one line of movement:** the same directive text above `module m;` PASSES and its AST carries `{"kind":"compiler_directive"}`; moved one line inside the module it rejects at `furthest_position=9`. Same text, two placements, two verdicts ⇒ not a lexical or spelling defect. **The fix is a name WHITELIST, not blanket directive tolerance, and the reason is the transferable content of this release: the population is not uniform, and neither was the ruling that routed it.** `.3.13` handed over *"the standing law is TOLERATE"*; `.3.14a` refuted that by reading clause 22 directive by directive (tolerate 5, keep rejecting 3); `.3.14b` then refuted `.3.14a`'s own table, which had enumerated only the six names the routed population happened to contain — reading IEEE 1800-2017 clause 22 **and** IEEE 1364-2005 clause 19 end to end surfaced **two further placement-restricted families**: `` `unconnected_drive ``/`` `nounconnected_drive `` ("shall be specified outside the design element declarations", §22.9/§19.9) and `` `begin_keywords ``/`` `end_keywords `` ("can only be specified outside a design element", §22.14/§19.11). A blanket rule would have widened acceptance into **six** LRM-forbidden constructs. **Sampling a clause is not reading it.** Second, independent reason for a whitelist: a backtick line is not necessarily a directive — `` `MY_MACRO(x) `` at an item position is an unexpanded §22.13-class text MACRO, i.e. a preprocessing dependency, and a blanket rule would swallow the line, drop the items the macro expands to, and turn a correct reject into a silent pass. **TOLERATED:** `` `celldefine `` `` `endcelldefine `` `` `undef `` `` `timescale `` `` `pragma `` `` `line `` (+ `` `undefineall ``, SV profiles only — absent from 1364-2005), at module-body and class-body item positions. **STILL REJECTED, deliberately:** the six placement-restricted names, the seven text-hiding ones (`` `include ``, `` `define ``, `` `ifdef `` `` `ifndef `` `` `else `` `` `elsif `` `` `endif ``), and all unexpanded macro uses including `` `__FILE__ ``/`` `__LINE__ ``. **What consumers see:** `non_port_module_item` and `class_item` can now yield `{"kind":"compiler_directive","body":"<directive line>"}` — a kind that previously appeared only under `source_text`; a consumer exhaustively matching those item kinds must add the arm. **Why schema stays 19:** the in-scope node is byte-identical to the top-level one, so no emitted kind is added, renamed or removed — proven exhaustively over all 287 previously-passing files that contain a whitelisted directive token (287/287 dumped, 595 top-level nodes unchanged, **0** in-scope nodes). **Measured:** corpus pass **9 712 → 9 720 (+8)** with **0 pass→fail / 0 pass→timeout / 0 pass→crash** over 16 336 files, and **2 180 → 2 181 (+1)** with **0 pass→fail** over the 2 459-file `verilog_2005` lane; **accepts-invalid UNCHANGED in both lanes (21 / 14)** — the over-acceptance control. Unexplained `360 → 352` and `75 → 74`, ⛔ of which **−3 is an ADJUDICATION CORRECTION and only −5 is yield** (measured separately by running the adjudicator alone against the unchanged baseline). ⛔⛔ **The first landing silently did nothing, and the toolbox found it:** the new rule was in the generated parser with **no caller** because **a `#` comment at column 0 inside an alternation list terminates the rule and drops every `|` arm below it, with no diagnostic**; the same comment indented is absorbed. Repo-wide audit — 17 grammars, 8 comment-above-arm sites, all indented and verified live, **0** column-0 occurrences — so nothing shipped is damaged; the hazard is routed as `.3.14c`. ⚠️ **Honest bounds:** tolerance is at ITEM positions, never between two tokens of one statement; hosts are module and class bodies only (generate/interface/program/package/checker bodies routed to `.3.14d`); `` `pragma `` is tolerated as a line, not parsed as a structured §22.11 pragma. Full matrix in ledger row `SV-0048`.

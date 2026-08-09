@@ -3470,6 +3470,409 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`; `SV-AST-SHAPE-FIDELITY`
   `.4`/`.5` opened.
 
+##### `.3.19` — the config `use` clause cannot consume a `#`: IEEE 1800 Annex A's `use_clause` and clause 33's own normative EXAMPLES disagree, and the parser implements only Annex A (⭐ a NEW defect class — the contradiction is INSIDE the standard, not in PGEN's transcription of it)
+
+- **Status: `done`** (2026-08-09, session #219, `PGEN-SV-CORPUS-GRAD-0037`; release
+  `1.0.179` → **`1.0.180`**, schema **`20` UNCHANGED**, ledger **`SV-0050`**) — a REAL parser
+  defect with parser bytes and **parser yield 8**, cut from the STUCK POSITION over the LIVE
+  worklist per `MEMORY.md`'s standing warning against the family bucketer — a warning this
+  leaf then turned into a measured instance (see the re-cut section).
+- **PICK (measured).** Clusters **#6 `# ( .` (6 rows)** and **#24 `# ( )` (2 rows)** in the
+  HEAD `rejects_valid_clusters.md` are one construct split by the clusterer purely on
+  whether the override list is empty. The token-level tell is the same in both: the 3-token
+  stuck window opens on `#` `(`. Widening from the cluster to the construct with the tracked
+  positional scan (`keyed_config_use_rows.py`, `keyed_rows_before.txt`) gives the real
+  extent: **8 / 304 rows are blocked at a config `use #( … )`**, across 2 suites
+  (ispras-sv-tests 6, verilator 2) — i.e. the two clusters are exactly the whole construct,
+  with nothing else mixed in.
+- **REPRODUCE (tool-pinned, `config_use_param_override/before.txt`)** — 17 cases under
+  `--profile sv_2017`. Every case is the SAME design + `config` block with only the single
+  config-rule line varying, so a verdict difference can come from nothing but `use_clause`.
+
+  | group | cases | verdict BEFORE |
+  |---|---|---|
+  | `a1`–`a7` — the four Annex A `use_clause` alternatives (incl. `:config`, `[lib.]`, the named-only and named-with-cell forms) | 7 | **ACCEPT** (all) |
+  | `h1`–`h5` — `use #( … )`, copied VERBATIM from the LRM's OWN clause-33 examples | 5 | **REJECT** (246/249/249/249/249) |
+  | `c1`–`c3` — controls: `liblist`, `cell … use`, ordinary module `#()` instantiation | 3 | ACCEPT |
+  | `n1`/`n2` — POSITIONAL override inside a config, which LRM 33.4.3 forbids in so many words | 2 | REJECT (must stay) |
+
+- **LRM GROUND TRUTH (verified verbatim in the in-repo LRM text of BOTH revisions before any
+  edit).** ⭐ **The standard contradicts itself, identically, in 1800-2017 and 1800-2023.**
+  - **Annex A / Syntax 33-4** — no `#` anywhere. Present four times in-repo and identical in
+    all four: `2017/txt/section-33-…:227`, `2023/txt/section-33-…:227`,
+    `2023/txt/section-Annex_A-…:271`, and `2017/txt/section-41-data-read-api.txt:290`
+    (⚠️ that last path is an **extraction artifact**, not a citation error — the 2017 LRM
+    split filed Annex A's body under a section name taken from a stray page header; the
+    Annex A preamble sits in the same file at `:35`. The 2023 extraction is clean and carries
+    identical text, so nothing here rests on the mis-titled file alone):
+
+    ```
+    use_clause ::= use [ library_identifier . ] cell_identifier [ : config ]
+                 | use named_parameter_assignment { , named_parameter_assignment } [ : config ]
+                 | use [ library_identifier . ] cell_identifier named_parameter_assignment
+                   { , named_parameter_assignment } [ : config ]
+    ```
+
+  - **Clause 33.4.3's normative examples** — every parameter override is written `use #( … )`,
+    **14 occurrences, 7 in each revision and at the same 7 places**:
+    2017 `:365` `instance top use #(.WIDTH(32));`, `:366`, `:382`, `:383`,
+    `:412` `use #(.W());`, `:423` `use #();`, `:462`; 2023 `:366`, `:367`, `:383`, `:384`,
+    `:413`, `:424`, `:463`. A spelling repeated 7 times and then re-published unchanged six
+    years later is not a typo.
+- **THE ADJUDICATION, and it is decidable rather than a preference — three independent grounds:**
+  1. ⭐ **Annex A subordinates itself, in its own preamble** (2023 `section-Annex_A-…:24`,
+     2017 `section-41-data-read-api.txt:35`): *"The full syntax
+     and semantics of SystemVerilog are not described solely using BNF. The normative text
+     description contained within the clauses and annexes of this standard provide
+     **additional details on the syntax** and semantics described in this BNF."* This is the
+     same principle already ruled on in this repo for Annex A **footnotes** 44/48 —
+     [[feedback_sv_strict_lrm_compliance_default]] §2, *"Annex A footnotes are normative and
+     in scope, not just the BNF"*.
+  2. ⭐⭐ **The BNF-only reading makes an explicit normative prohibition VACUOUS.** LRM 33.4.3
+     states *"Configurations may not use positional parameter notation to override
+     parameters."* (2017 `:333`, 2023 `:334`). Under Annex A's brace-less alternatives positional notation is not even
+     **expressible** — there is no production that could carry it. The sentence is only
+     meaningful if the `#( … )` form is intended, because that is the one place an
+     `ordered_parameter_assignment` could otherwise appear. A standard does not forbid what
+     its own grammar cannot write.
+  3. **MEASURED, not recalled** (the trap this repo already burned itself on —
+     [[feedback_sv_strict_lrm_compliance_default]], the provenance correction): the tracked
+     census `census_use_clause_spellings.sh` (output `use_clause_census.txt`) enumerates every
+     config `use` clause in the whole vendored corpus — **27 clauses: 12 parameter overrides,
+     all 12 spelled `#( … )`; ZERO brace-less; 15 plain `use [lib.]cell [:config]`.** The
+     Annex-A override alternatives are not merely unused by the parser, they are unused by the
+     world. (Corroborating only — grounds 1 and 2 are internal to the standard and stand
+     alone.)
+  ⇒ the parser must accept the **union** of what the two normative surfaces print. Adding
+  `use #( … )` is COMPLIANCE, not dialect tolerance: the standard prints those exact lines as
+  legal configurations, so accepting them cannot be "accepting text the standard forbids".
+- **ROOT CAUSE (WHY + WHERE) — grammar source, `grammars/systemverilog.ebnf`:**
+  - **WHERE:** `use_clause:6039`–`6043` — four alternatives, faithfully transcribing Annex A
+    A.1.5 and **only** Annex A. No alternative can begin with `hash`.
+  - **WHY (trace, `config_use_param_override/trace_h1_before.txt`)** —
+    `PGEN_TRACE_VERBOSITY=debug … --trace-rules config_rule_statement,use_clause` on
+    `repro/h1_hash_named.sv` (the `.3.11` trap avoided: the parent is traced alongside the
+    suspect, since the leaf rule alone prints nothing usable):
+
+    ```
+    ✅ Exiting rule 'inst_clause' successfully - advanced from 227 to 242
+    🚪 Entering branch 1/4 for rule 'use_clause' at position 242
+    ❌ Branch 1/4 for rule 'use_clause' failed at position 242
+    …
+    🚪 Entering branch 3/4 for rule 'use_clause' at position 242
+    ❌ Exiting rule 'named_parameter_assignment' with error: Backtrack { position: 247
+    ❌ Branch 3/4 for rule 'use_clause' failed at position 242
+    🚪 Entering branch 4/4 for rule 'use_clause' at position 242
+    ❌ Branch 4/4 for rule 'use_clause' failed at position 242
+    ❌ Exiting rule 'use_clause' with error: Backtrack { position: 242
+    ```
+
+    Byte map: **227** = the `instance` starting the rule, **242** = where `use_clause` is
+    entered, **247** = **the `#` itself**. `inst_clause` succeeds; all four `use_clause`
+    branches then fail, and the one that gets furthest (branch 3, `use named_parameter_assignment …`)
+    dies **on the `#`** because `named_parameter_assignment:3549` begins with `dot`. Nothing
+    in the rule can consume a `#`.
+- ⭐⭐ **THE CLASS FINDING — this is NOT the dropped-delimiter class, and that distinction is
+  the actionable part.** The seven logged instances of that class (`SV-0002`
+  `stream_concatenation`, `trans_range_list`, `boolean_abbrev`, the six bounded-property
+  operators, `value_range`, `cycle_delay_range` `SV-0044`, `expression_or_dist` `SV-0049`)
+  are all **PGEN transcription errors**: the LRM wrote a literal delimiter and PGEN read it as
+  BNF metasyntax. Here PGEN's transcription of Annex A is **exactly right** — the delimiters
+  are missing **in the standard**, and the standard's own clause body contradicts it. That is
+  a different defect class with a different detector: no amount of care transcribing Annex A
+  finds it, because it is only visible when the BNF is diffed against the clause's normative
+  examples. ⇒ the `LRM-GRAMMAR-FIDELITY` Annex-A sweep, as currently chartered, would **not**
+  have caught this one. Routed there as a distinct sub-item, not folded into the existing one
+  ([[feedback_every_finding_must_be_fixed_not_logged]]).
+- **FIX (hierarchy level 1 — pure grammar, existing tokens only):** add the clause-33 spelling
+  as a fifth `use_clause` alternative, sited immediately after its brace-less Annex-A sibling:
+
+  ```
+  | @probe_sample: "use #(.P(1))" kw_use_04489a12 hash lparen
+      ( named_parameter_assignment ( comma named_parameter_assignment )* )? rparen
+      ( colon kw_config_dfba7aad )?
+  ```
+
+  `hash`/`lparen`/`rparen`/`comma`/`named_parameter_assignment` all already exist
+  (`:6190`/`:6909`/`:6934`/`:3549`) ⇒ **zero new rules and zero new tokens**, so
+  `defined_rule_count` is expected UNCHANGED.
+  ⛔ **The list is `named_parameter_assignment`, NOT `list_of_parameter_assignments`.** The
+  obvious-looking reuse (`parameter_value_assignment:4169` is literally
+  `hash lparen ( list_of_parameter_assignments )? rparen`) would also admit
+  `ordered_parameter_assignment` and therefore accept `use #(32)` — the one spelling LRM
+  33.4.3 `:333` explicitly forbids. `n1`/`n2` are the controls that keep that honest.
+  The empty `#()` form is first-class (LRM 2023 `:424`, and two corpus rows), hence the
+  optional list rather than a `+`.
+- ⭐⭐⭐ **THE FIRST ATTEMPT AT THIS FIX SILENTLY DELETED TWO ALTERNATIVES OF THE RULE, AND
+  ONLY THE REPRO MATRIX CAUGHT IT.** This is the most important thing this leaf found, and
+  it is recorded in full rather than quietly corrected — it is a defect in the EBNF
+  frontend, i.e. in the single source of truth itself.
+  - **What happened.** The new alternative was landed with its explanatory comment block at
+    **column 0**, above the `|` line, which is how a comment before a *rule* is written.
+    Regeneration and the release rebuild both succeeded. Then `after.txt` came back with
+    **9** deviations instead of the expected 0: the five `h*` cases still REJECTED (the fix
+    appeared not to exist) **and `a1`/`a2`/`a3`/`c2` — four cases that had ACCEPTED before
+    the edit — had flipped to REJECT.**
+  - **Why the obvious reading was WRONG, and why it was measured instead.** The tempting
+    conclusion was "`#` is mishandled" — and the new alternative contains a `#` twice, once
+    in the `@probe_sample: "use #(.P(1))"` STRING and once per comment line. Either guess
+    would have produced a plausible, publishable, wrong root cause. The discriminator
+    (`frontend_truncation_probe.sh`, output `frontend_truncation.txt`) is five one-rule
+    synthetic grammars that each declare exactly three alternatives and differ in one thing:
+
+    | case | shape | IR alternatives (want 3) |
+    |---|---|---|
+    | `C_baseline` | no comment | **3** |
+    | `D_indented_comment` | comment INDENTED between alts | **3** |
+    | `B_hash_in_string` | `#` inside a `@probe_sample` STRING | **3** |
+    | `A_col0_comment_after_alt1` | comment at **column 0** after alt 1 | **1** — node degrades `Or`→`Sequence` |
+    | `E_col0_comment_after_alt2` | comment at **column 0** after alt 2 | **2** |
+
+    ⇒ strings are handled correctly and `#` is not the problem. **A column-0 comment line
+    inside a rule body ENDS the rule**, and every alternative after it is discarded. `D` vs
+    `A` differ only in the leading whitespace of a comment.
+  - **Confirmed on the real rule at the IR level**, not inferred from the symptom:
+    `ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --dump-gen-ast` gave
+    `use_clause` **3** alternatives (the three that preceded the comment) — so the new
+    `#( … )` arm *and* the pre-existing simple `use [lib.]cell [:config]` arm *and* its
+    `-> {library,name,config}` annotation had all been dropped. That explains both halves
+    of the symptom exactly: `h*` still rejected because the new arm was never there, and
+    `a1`/`a2`/`a3`/`c2` regressed because the SIMPLE arm they depend on was deleted too.
+  - ⛔⛔ **EVERY INSTRUMENT THIS REPO OWNS WAS BLIND TO IT.** With two alternatives gone:
+    `--lint-grammar` clean; `defined_rule_count` **1477, unchanged**; `--dump-rule-profiles`
+    **byte-identical** across all 1 477 rules and all three profiles
+    (`sv_2017` 1354 / `sv_2023` 1373 / `verilog_2005` 1122) — the very census this leaf had
+    *already run and banked* as `rule_profile_census.txt` before the symptom appeared. A
+    rule-count gate cannot see this because no rule is added or removed; only the *inside*
+    of one rule shrinks.
+  - **FIX in this leaf:** indent the comment block to match the six pre-existing interior
+    comments in `systemverilog.ebnf`, plus a `⛔⛔` warning in the grammar at the site. IR
+    re-verified: **5 alternatives, alt 4 is the new `#( … )` arm, and the annotation is back
+    on the (now-5th) simple arm.** A whole-IR diff pre→post shows **exactly one rule
+    changed — `use_clause`** — with `rule_order` identical and every other rule
+    byte-identical.
+  - **Is any live language missing today? NO — measured, both directions**
+    (`truncation_census.py`, output `truncation_census.txt`, exits non-zero on any hit):
+    census 1 (textual, ALL tracked grammars) finds **0** truncating sites; census 2
+    (structural, SV) compares source `|`-count against IR alternative count for all **10**
+    rules carrying an interior comment and finds **0 alternatives lost** — every
+    pre-existing interior comment is indented and intact. So nothing shipped is wrong
+    because of this; it is a live trap, not a live defect.
+  - **ROUTED** to the new tree **`EBNF-FRONTEND-SILENT-TRUNCATION`**
+    ([[feedback_every_finding_must_be_fixed_not_logged]]) — `.1` a mechanism-agnostic
+    source⟷IR alternative-count gate, `.2` the frontend repair (and a written decision on
+    what actually continues a rule body), `.3` the EBNF-dialect documentation. Not worked
+    here: it does not block this leaf, and the lane lock is SV release
+    ([[feedback_flow_findings_are_routed_not_worked]]).
+  - ⚠️ **The direction of this failure was luck.** It removed alternatives, so the parser
+    UNDER-accepted and a control row went red. The same truncation applied to a rule whose
+    later alternatives carry `@predicate` gates or negative lookaheads would make the parser
+    silently OVER-accept — and nothing in this repo would have gone red at all.
+- ⚠️⚠️ **HONEST BOUND — THIS LEAF LEAVES A REAL `verilog_2005` OVER-ACCEPTANCE STANDING, AND
+  IT IS FIXED BY `.3.20`, NOT MERELY LOGGED.** Surfaced by running the repro matrix under the
+  v2005 profile as well, which is the only reason it was noticed at all.
+  - **The LRM fact, verified in-repo:** IEEE 1364-2005 has **ONE** `use_clause` alternative —
+    `use [library_identifier.]cell_identifier[:config]`
+    (`docs/verilog/2005/txt/section-Annex_A-…:119`, repeated at
+    `section-13-…:271`). There is **no parameter override in a 1364-2005 config at all**, and
+    `use #(` appears **zero** times anywhere in the 2005 text. The named-override alternatives
+    are a SystemVerilog addition.
+  - **The grammar fact, measured:** `use_clause` carries **no `@profiles` gate** — pre AND
+    post, `--dump-rule-profiles` reports it `satisfiable_under [sv_2017, sv_2023,
+    verilog_2005]`. So all four pre-existing override alternatives (`a4`–`a7`) ALREADY
+    accept under `verilog_2005`, and `after_v2005.txt` shows this leaf's `h1`–`h5` joining
+    them. **The over-acceptance is pre-existing for 4 forms and extended to 5 by this leaf**
+    — stated plainly rather than filed under "not introduced here".
+  - **Blast radius, measured before deciding:** **0 of the 2 459 files in the v2005 lane
+    contain a config `use` clause of any spelling** (scan over `v2005_lane_files.tsv`), so
+    the gap costs zero corpus rows and the v2005 lane cannot move either way. Same shape as
+    `.3.11`'s time-literal measurement — and per
+    [[feedback_sv_strict_lrm_compliance_default]] that governs how much CARE the tightening
+    needs, **never whether to do it**.
+  - **Why it is not folded in here.** `@profiles` is a RULE-level directive, so gating four
+    of five alternatives means splitting `use_clause` into a profiled sub-rule ⇒
+    `defined_rule_count` MOVES ⇒ **both** cert contracts must be re-baselined in the same
+    commit (the `CI-PARITY-GATE-ROT.22` tripwire, which exists because `.3.14b` did exactly
+    this and shipped two RED gates for a whole release). That is a second, tightening change
+    with its own per-file pass-set proof, bundled into a leaf whose subject is a different
+    defect — the same reasoning `.3.18` used when it declined to fold a second schema change
+    into one release.
+  - ⇒ **`.3.20` opened and worked NEXT, in this same lane** — not parked. Routing decides
+    WHEN, never WHETHER ([[feedback_every_finding_must_be_fixed_not_logged]]), and every
+    piece of LRM evidence it needs is banked above.
+- **ADDRESSED (verified) — the repro matrix flips exactly where the LRM says it should
+  (`after.txt`, `after_v2005.txt`):**
+
+  | group | before | after |
+  |---|---|---|
+  | `h1`–`h5` (clause-33 `use #( … )`) | REJECT (246/249/249/249/249) | **ACCEPT** ×5 |
+  | `a1`–`a7` (the four Annex-A alternatives) | ACCEPT ×7 | ACCEPT ×7 |
+  | `c1`–`c3` (controls) | ACCEPT ×3 | ACCEPT ×3 |
+  | `n1`/`n2` (LRM-forbidden positional) | REJECT | **REJECT** — strictness held |
+  | cases differing from the post-fix expectation | 5 | **0** |
+
+  ⭐ `n1`/`n2` staying REJECT is the load-bearing row: it is what proves the fix reused
+  `named_parameter_assignment` and not `list_of_parameter_assignments`.
+- ⭐ **SCHEMA UNCHANGED AT `20` — MEASURED, not assumed.** `.3.18` bumped because one of its
+  cases *parsed* before the fix with a wrong tree; here every `#( … )` form was a hard
+  REJECT, so no witnessed wire shape can move. Proven rather than argued: the AST of all
+  **10** already-parsing cases (`a1`–`a7`, `c1`–`c3`) was dumped on both parsers and is
+  **byte-identical 10/10** (`cmp`). The new arm's own shape is
+  `{kind: "inst_use", clause: …, body: [ ["use"], {kind:"hash"}, {kind:"lparen"},
+  [<named assignments>], {kind:"rparen"} ]}`.
+- **ADDRESSED — measured GLOBALLY, both lanes** (baselines preserved to
+  `rust/target/sv_axis2_baseline/*.pre_3_19.*` **before** the run, per this tree's standing
+  overwrite trap):
+  - **MAIN `sv_2017` lane, 16 336 files — pass 9 726 → 9 734 (+8)**, fail 6 606 → 6 598,
+    timeout 4 (unchanged), crash 0.
+  - **Adjudication: `unexplained_rejects_valid` 304 → 296 (−8)**, `match` 5 772 → 5 780.
+  - **V2005 lane BYTE-INERT:** 2 459 files, pass 2 181 / fail 278 / timeout 0 — **zero
+    per-file transitions**, and `adjudication_manifest_v2005.tsv` is **BYTE-IDENTICAL**
+    (`cmp` clean). Predicted from the lane scan (0 config `use` clauses) and then confirmed.
+- **NO REGRESSION — the `.3.4` LAW, per-FILE, by set difference rather than net counts
+  (`transitions_sv2017.txt`, `transitions_v2005.txt`, `adjudication_setdiff.txt`):**
+  - **Transition matrix: `pass→pass` 9 726, `fail→fail` 6 598, `fail→pass` 8,
+    `timeout→timeout` 4. ZERO `pass→fail`, ZERO `pass→timeout`, ZERO `pass→crash`**, and the
+    file key-set is identical on both sides.
+  - **ZERO NEW `unexplained_rejects_valid`** by set difference over the 16 336-row manifest
+    (304 → 296 = 8 healed, 0 added).
+  - ⛔ **`unexplained_accepts_invalid` is the control that matters and its SET is unchanged
+    (21 → 21, 0 new, 0 healed).** This leaf WIDENS the language, so a silent over-acceptance
+    elsewhere is the failure mode; the set comparison is what rules it out.
+  - **The ONLY adjudication transition anywhere in either lane is 8 ×
+    `unexplained_rejects_valid → match`.** The v2005 manifest has **0** rows changing class.
+  - **TARGETING — proven, not asserted:** the 8 flipped files are **set-equal** to the 8 rows
+    `keyed_config_use_rows.py` keyed BEFORE the edit. **flipped-but-not-keyed = 0** and
+    **keyed-but-not-flipped = 0**; re-running the keyer after the fix returns **0 / 296**.
+- ⭐ **INDEPENDENT RE-PROOF FROM THE RE-CUT WORKLIST** (the `.3.16`/`.3.18` discipline — a
+  second instrument, not written to confirm this fix, agreeing with it): **296 rows / 182
+  signatures** (was 304 / 184), and **BOTH** signatures that surfaced this leaf are gone
+  entirely — `grep` for `# (` in the new cluster table returns **nothing**. The signature
+  count falling by exactly 2 is the tell that two whole stuck-point shapes retired rather
+  than rows shuffling.
+- ⭐⭐ **AND THE RE-CUT CONVICTED THE COARSE FAMILY BUCKETER, CONCRETELY.** `MEMORY.md`'s
+  standing warning is "⛔ NOT from the family bucketer"; this leaf turns that from advice into
+  a measured instance. Of the 8 healed rows, the bucketer had filed **6 under
+  `interface/modport (ch25)`** and 2 under `OTHER` — **not one under anything resembling
+  config/ch33, because no such family exists in it.** A leaf-cutter trusting that view would
+  have gone to IEEE 1800 clause 25 to fix a clause-33 defect. The `interface/modport` family
+  correspondingly drops 24 → 18 and `OTHER` 226 → 224 — i.e. **the bucketer's second-largest
+  family shrank by 25 % from a fix that touched no interface code at all.**
+- ⚠️ **INSTRUMENT TRAP FOUND AND WORKED AROUND (worth its own note):
+  `classify_rejects_valid_families.py` DEFAULTS TO THE RETIRED `_v2` ARTIFACTS.** Its
+  `--clusters`/`--out-tsv`/`--out-md` defaults are `rejects_valid_clusters_v2.tsv` /
+  `rejects_valid_families_v2.{tsv,md}`, so the obvious no-argument invocation (a) reads the
+  **2026-07-23** cluster table and (b) writes the **`_v2`** outputs, leaving the LIVE
+  `rejects_valid_families.{md,tsv}` untouched and stale. Caught because the regenerated
+  families report said **304 rows** while the freshly-cut clusters said **296** — a
+  one-number inconsistency that would otherwise have shipped as a stale tracked artifact. No
+  damage: the `_v2` rewrite is **byte-identical to tracked** (`git status` clean on those two
+  paths), which incidentally re-proves the classifier deterministic over an unchanged input.
+  The correct invocation passes all three paths explicitly; routed to `.3.21`.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `furthest_position=246` on
+  `config_use_param_override/repro/h1_hash_named.sv`; the 17-case matrix in `before.txt` shows
+  all **5** clause-33 `use #( … )` forms REJECT (246/249/249/249/249) while all 7 Annex-A forms
+  and 3 controls ACCEPT; **8 corpus rows** keyed by `keyed_config_use_rows.py`
+  (`keyed_rows_before.txt`), across ispras-sv-tests (6) and verilator (2).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `use_clause:6039` implements IEEE 1800 Annex A A.1.5
+  faithfully and completely, and Annex A has no `#`; the LRM's own clause 33.4.3 prints
+  `use #( … )` 7× per revision. `--trace-rules config_rule_statement,use_clause` at
+  `PGEN_TRACE_VERBOSITY=debug` shows `inst_clause` succeeding 227→242 and **all four**
+  `use_clause` branches failing at 242, the deepest (branch 3) exiting
+  `named_parameter_assignment` with `Backtrack { position: 247 }` — **byte 247 IS the `#`**
+  (`trace_h1_before.txt`, byte map included). Nothing in the rule can consume it.
+- [x] **FIX** — tier 1, pure grammar: a fifth alternative
+  `kw_use hash lparen ( named_parameter_assignment ( comma named_parameter_assignment )* )? rparen ( colon kw_config )?`
+  (`grammars/systemverilog.ebnf:6042`). Existing tokens only; **zero new rules or tokens**.
+  ⛔ `named_parameter_assignment`, NOT `list_of_parameter_assignments` — the latter would accept
+  `use #(32)`, which LRM 33.4.3 forbids.
+- [x] **ADDRESSED (verified)** — repro matrix **5 REJECT→ACCEPT**, 7 Annex-A forms and 3 controls
+  held, both LRM-forbidden positional cases still REJECT; **0 of 17** cases differ from the
+  post-fix expectation, under `sv_2017` **and** `verilog_2005`. Corpus pass **9 726 → 9 734**,
+  unexplained rejects-valid **304 → 296**; re-keying returns **0 / 296**. Oracles:
+  `stimuli/run_external_corpus.sh sv 60 8 0` (release probe, memory guard) +
+  `stimuli/sv/adjudicate_external_corpus.py` + `matrix.py` + `keyed_config_use_rows.py`.
+- [x] **NO REGRESSION** — per-file census **0 pass→fail / 0 pass→timeout / 0 pass→crash** over
+  16 336 files with an identical key set; **ZERO new** rejects-valid by set difference;
+  `unexplained_accepts_invalid` set unchanged (21 → 21, 0 new); v2005 lane **0 transitions** and
+  manifest `cmp`-clean; flipped set **set-equal** to the keyed set (both directions 0);
+  `sv_syntax_closure_gate` GREEN with `defined_rule_count` **1477 unchanged** and
+  `unreachable_rules: 0`; `sv_cert_recognized_union_gate` GREEN **with no re-baseline**
+  (canonical UNKNOWN 11, union UNKNOWN 0, witness 1348, residual `[]`, seeds 0/7/42) —
+  attributable in advance because `--dump-rule-profiles` is byte-identical pre→post across all
+  1 477 rules and all three profiles (`rule_profile_census.txt`); `ast_shape_contract_gate` GREEN
+  and **proven non-vacuous** (`ast_shape_negative_control.txt`);
+  `verilog_2005_conformance_gate` GREEN; `clippy_on_rust_change` GREEN incl. the STRICT generated
+  stage; `bash scripts/check_doctrines.sh` 17/17.
+- [x] **LOCKSTEP** — ledger `SV-0050`; contract `1.0.180` (schema **20, deliberately unchanged**,
+  with a measured justification); SV book `changelog-index.md`, `json-carrier.md` (new
+  "The Config `use` Clause and Parameter Overrides" section) and `schema-versioning.md` (the
+  non-bump recorded so a reader cannot mistake a missing row for a missing release); the new
+  `use_clause_hash_named_override` shape sample + its dispatch arm; `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`; new tree
+  `EBNF-FRONTEND-SILENT-TRUNCATION`; new leaves `.3.20`, `.3.21`, `LRM-GRAMMAR-FIDELITY.1b`.
+
+##### `.3.20` — the config `use_clause` parameter-override alternatives are not profile-gated, so `verilog_2005` accepts four (now five) forms IEEE 1364-2005 has no production for (routed by `.3.19`, 2026-08-09)
+
+- **Status: `todo` — the NEXT leaf in this lane**, not parked. It is a STRICTNESS
+  (tightening) fix under [[feedback_sv_strict_lrm_compliance_default]], so it carries a
+  regression risk the widening leaves do not: the per-FILE pass-set diff (the `.3.4` LAW) is
+  the primary safety instrument, and any `pass → fail` halts the leaf.
+- **ISSUE (already measured by `.3.19`, evidence banked at
+  `docs/tasks/artifacts/sv_corpus_grad/config_use_param_override/after_v2005.txt`):** under
+  `--profile verilog_2005` the parser accepts `use .W(8)`, `use .W(8), .D(16)`,
+  `use adder .W(8)`, `use rtlLib.adder .W(8)` and (since `.3.19`) `use #( … )`. IEEE
+  1364-2005 declares exactly one alternative — `use [library_identifier.]cell_identifier[:config]`
+  (`docs/verilog/2005/txt/section-Annex_A-…:119`, `section-13-…:271`) — and contains zero
+  occurrences of `use #(`.
+- **ROOT CAUSE (already located):** `use_clause` (`grammars/systemverilog.ebnf:6039`) carries
+  no `@profiles` directive, and `--dump-rule-profiles` confirms `satisfiable_under
+  [sv_2017, sv_2023, verilog_2005]`. The override alternatives are SystemVerilog-only
+  language sitting in a profile-universal rule.
+- **PLANNED FIX:** split the override alternatives into a `@profiles: ["sv_2017", "sv_2023"]`
+  sub-rule (house convention: `use_clause_sv_only`, cf. `always_keyword_sv_only`), leaving
+  `use_clause` with the 1364-2005 form plus a reference to the gated sibling.
+- ⛔⛔ **THE CENSUS WILL MOVE, AND BOTH CERT CONTRACTS MUST BE RE-BASELINED IN THE SAME
+  COMMIT** — `defined_rule_count` 1477 → 1478 (or more), `sv_2017`/`sv_2023` +1 and
+  `verilog_2005` +0, so `sv_cert_recognized_union_gate` and `verilog_2005_conformance_gate`
+  both need new baselines with attributing notes. This is the exact `CI-PARITY-GATE-ROT.22`
+  tripwire that `.3.14b` tripped and shipped RED for a whole release; it is written here in
+  advance so the leaf cannot forget.
+- **EXPECTED BLAST RADIUS: zero corpus rows.** `.3.19` scanned all 2 459 v2005-lane files and
+  **none contains a config `use` clause of any spelling**, so the v2005 manifest should be
+  `cmp`-clean and the sv_2017 lane untouched. ⚠️ That prediction is the thing to VERIFY, not
+  to assume — a tightening that moves nothing is also what a fix that silently did nothing
+  looks like, so the leaf must show the repro matrix flipping `a4`–`a7`/`h1`–`h5` to REJECT
+  under `verilog_2005` while holding them ACCEPT under `sv_2017`.
+
+##### `.3.21` — `classify_rejects_valid_families.py` defaults to the RETIRED `_v2` artifacts, so the obvious invocation silently reads a July input and leaves the live report stale (routed by `.3.19`, 2026-08-09)
+
+- **Status: `todo`** — instrument hygiene on the axis-2 worklist chain. Small, but it sits
+  directly under the burn-down's PICK step, so a stale read here mis-aims a whole leaf.
+- **ISSUE (measured in `.3.19`):** run with no arguments, the script's defaults are
+  `--clusters …/rejects_valid_clusters_v2.tsv`, `--out-tsv …/rejects_valid_families_v2.tsv`,
+  `--out-md …/rejects_valid_families_v2.md` (`stimuli/sv/classify_rejects_valid_families.py`
+  `:79`/`:81`/`:83`). So it (a) classifies the **2026-07-23** cluster table and (b) writes the
+  `_v2` outputs, while the LIVE `rejects_valid_families.{md,tsv}` — the tracked artifact the
+  burn-down actually reads — is left untouched and stale.
+- **HOW IT SURFACED, and why that matters:** the regenerated families report claimed **304
+  rows** while the clusters cut minutes earlier said **296**. A one-number inconsistency. It
+  was noticed only because both numbers happened to be on screen together; nothing in the
+  script, and no gate, compares them.
+- **The sibling `cluster_rejects_valid.py` does NOT share the defect** — its defaults already
+  point at the live `rejects_valid_clusters.{tsv,md}`. So the two halves of one pipeline
+  disagree about which vintage is current, which is the worst possible arrangement.
+- **PLANNED FIX:** point the defaults at the live artifacts (matching the clusterer), and add
+  a REFUSAL when the input cluster table's row count disagrees with the manifest's current
+  `unexplained_rejects_valid` count — an instrument that cannot notice it is reading a stale
+  input is a confident guess ([[feedback_instrument_needs_ground_truth]]).
+- **No damage this time, and it was checked rather than assumed:** the `_v2` rewrite is
+  byte-identical to the tracked July version (`git status` clean on both paths), which
+  incidentally re-proves the classifier deterministic over an unchanged input.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

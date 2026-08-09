@@ -57,11 +57,36 @@ This is the document downstream projects such as Nexsim should read first when d
 > ITEM positions (between items), not between two tokens of one statement, and the hosts are
 > module and class bodies only (`docs/tasks/SV-CORPUS-GRAD.md` `.3.14d`).
 
+> **Current-state note (2026-08-09, `SV-CORPUS-GRAD.3.19` — GRAMMAR-level, release `1.0.180`,
+> ledger `SV-0050`, SCHEMA UNCHANGED at `20`):** the config `use` clause could not consume a `#`,
+> so **no parameter override written the way IEEE 1800's own clause-33 examples write it would
+> parse**. ⭐ The standard contradicts itself here, identically in 2017 and 2023: Annex A /
+> Syntax 33-4 gives `use_clause` three alternatives with **no `#` anywhere**, while clause 33.4.3
+> prints `instance top use #(.WIDTH(32));` **seven times per revision**. PGEN had transcribed
+> Annex A correctly and completely — this is NOT the dropped-delimiter class of `SV-0044`/`SV-0049`,
+> where the LRM was right and PGEN mis-read it. The rule now carries the **union of the two
+> normative surfaces**: `use [lib.]cell [:config]`, `use .P(1), …`, `use [lib.]cell .P(1), …` **and**
+> `use #( .P(1), … )` including the empty `use #()`. ⛔ **Deliberately still REJECTED:** positional
+> overrides such as `use #(32)` — 33.4.3 states *"Configurations may not use positional parameter
+> notation to override parameters"*, so the new arm takes `named_parameter_assignment`, never
+> `list_of_parameter_assignments`. ⚠️ **What a consumer sees:** `config_rule_statement` rows of
+> `kind: "inst_use"` / `"cell_use"` can now carry a `body` containing `{kind:"hash"}`,
+> `{kind:"lparen"}`, the named assignments and `{kind:"rparen"}`. **Schema stays `20`** and that is
+> MEASURED, not assumed — the construct was 100 % unparseable before, so no witnessed shape can
+> move, and the ASTs of all 10 already-parsing repro cases are byte-identical across the fix.
+> Strictly more permissive on legal input: corpus pass 9 726 → 9 734 with **0 pass→fail** over
+> 16 336 files, and the 2 459-file `verilog_2005` lane is **byte-inert**; accepts-invalid unchanged
+> in both lanes (21 / 14). ⚠️ **Known residual, tracked and fixed next
+> (`docs/tasks/SV-CORPUS-GRAD.md` `.3.20`):** `use_clause` carries no `@profiles` gate, so
+> `verilog_2005` accepts this spelling and the four pre-existing named-override alternatives, none
+> of which exist in IEEE 1364-2005 — pre-existing for four forms, extended to five here, with a
+> measured blast radius of **0 corpus rows**.
+
 ## Contract Identity
 - Contract version:
-  - `1.0.179`
+  - `1.0.180`
 - Parser release version:
-  - `1.0.179`
+  - `1.0.180`
 - Embedding API contract baseline:
   - `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)

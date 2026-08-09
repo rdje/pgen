@@ -1,0 +1,8 @@
+// SV-CORPUS-GRAD.3.19 repro — the config `use` clause parameter-override spelling.
+module adder #(parameter ID = "id", W = 8, D = 512) ();
+endmodule: adder
+module top(); adder a1(); endmodule
+config cfg;
+  design rtlLib.top;
+  cell rtlLib.adder use rtlLib.adder:config;
+endconfig

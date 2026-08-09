@@ -1,5 +1,55 @@
 # CHANGES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0037 — leaf SV-CORPUS-GRAD.3.19: the config `use` clause could not consume a `#`, because IEEE 1800 contradicts itself (grammar; release 1.0.180, schema UNCHANGED at 20, ledger SV-0050)
+
+- **A NEW defect class — the contradiction is inside the STANDARD, not in PGEN's reading of it.**
+  Annex A / Syntax 33-4 gives `use_clause` three alternatives with **no `#` anywhere**, while clause
+  33.4.3 writes `instance top use #(.WIDTH(32));` **seven times per revision**, identically in
+  IEEE 1800-2017 and 1800-2023. `use_clause` (`grammars/systemverilog.ebnf:6039`) had transcribed
+  Annex A correctly and completely, so nothing in the rule could consume a `#`. This is NOT the
+  dropped-delimiter class of SV-0002/SV-0044/SV-0049, where the LRM was right and PGEN mis-read it —
+  and an Annex-A-vs-grammar sweep is structurally blind to it, because Annex A is its oracle.
+- **Adjudicated on three grounds internal to the standard, not on preference:** (1) Annex A's own
+  preamble subordinates itself — "the normative text description contained within the clauses ...
+  provide additional details on the syntax"; (2) the BNF-only reading makes 33.4.3's explicit
+  "Configurations may not use positional parameter notation" VACUOUS, since positional notation is
+  not expressible under the brace-less alternatives at all; (3) measured — all 12 parameter-override
+  `use` clauses in the vendored corpus are spelled `#( ... )`, zero use the Annex-A spelling.
+- **Fix:** a fifth alternative `use #( named_parameter_assignment {, ...} )[: config]`. Pure grammar,
+  existing tokens, **zero new rules** (`defined_rule_count` 1477 unchanged). The list is
+  `named_parameter_assignment`, deliberately NOT `list_of_parameter_assignments` — the obvious reuse
+  of `parameter_value_assignment` would have accepted `use #(32)`, exactly what 33.4.3 forbids.
+- **Measured, both lanes:** external corpus 16,336 files, pass **9,726 -> 9,734 (+8)** with
+  **0 pass->fail / 0 pass->timeout / 0 pass->crash**; unexplained rejects-valid **304 -> 296** with
+  **ZERO new** by set difference; `unexplained_accepts_invalid` set unchanged (21); the 8 flipped
+  files **set-equal** to the 8 keyed before the edit; the 2,459-file `verilog_2005` lane byte-inert.
+  Both cert contracts needed **no re-baseline** — the per-profile census is byte-identical
+  (1354/1373/1122), checked BEFORE the gates rather than discovered by a red one.
+- **Schema stays 20, measured not assumed** — the construct was 100% unparseable, so no witnessed
+  shape can move, and the ASTs of all 10 already-parsing repro cases are byte-identical (`cmp`).
+- ⭐⭐ **A SILENT FRONTEND DEFECT FOUND EN ROUTE, and it is the bigger finding.** The first attempt at
+  this one-line fix put its comment block at **column 0**, and the frontend silently DELETED two
+  alternatives of the rule — the new one and a pre-existing one, plus its return annotation. Five
+  synthetic one-rule grammars discriminate it: indented comment 3 alternatives, `#` inside a string
+  3, **column-0 comment 1 and 2**. With two alternatives gone, `--lint-grammar` was clean,
+  `defined_rule_count` read 1477 unchanged and `--dump-rule-profiles` was byte-identical — every
+  instrument in the repo was blind, and only a repro matrix whose already-PASSING rows flipped to
+  REJECT caught it. Measured: **0 truncating sites across every tracked grammar today**, so nothing
+  shipped is wrong. Routed to the new tree `EBNF-FRONTEND-SILENT-TRUNCATION` (gate -> frontend
+  repair -> dialect docs).
+- **Also routed:** `SV-CORPUS-GRAD.3.20` (`use_clause` has no `@profiles` gate, so `verilog_2005`
+  accepts overrides IEEE 1364-2005 has no production for — pre-existing for 4 forms, extended to 5
+  here, measured blast radius 0 corpus rows; worked NEXT, in lane); `SV-CORPUS-GRAD.3.21`
+  (`classify_rejects_valid_families.py` defaults to the RETIRED `_v2` artifacts, so the obvious
+  invocation reads a July input and leaves the live report stale — caught by a 304-vs-296 row-count
+  inconsistency); `LRM-GRAMMAR-FIDELITY.1b` (audit Annex A against the clauses' own normative
+  EXAMPLES — the axis `.1` cannot see).
+- **Negative-control note worth keeping:** the new `use_clause_hash_named_override` shape sample was
+  proven live only on the SECOND attempt. Breaking `expected_content_kind` leaves the gate GREEN,
+  because a sample whose expected and current kinds differ is classed DRIFTED and its structural
+  assertions are skipped entirely. The live lock is `current_content_kind`; breaking that fails the
+  gate by name.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0036 — leaf SV-CORPUS-GRAD.3.18: the `dist` constraint operator was wrong THREE ways at once (grammar; release 1.0.179, schema 19 -> 20, ledger SV-0049)
 
 - **One dropped delimiter, three symptoms.** `expression_or_dist` (`grammars/systemverilog.ebnf:2344`)

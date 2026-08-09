@@ -2827,13 +2827,13 @@ ispras-sv-tests	ieee-1800-2012/33/33.02_01.v	pass	must_accept	match	ispras: '// 
 ispras-sv-tests	ieee-1800-2012/33/33.02_01_adder.v	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.04.02_01.sv	pass	must_accept	match	pinned .8b.2: config liblist override through a config'd instance (33.4.2) - configuration resolution semantics
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_05.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_06.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_07.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_06.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_07.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.06_01.v	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/33/33.06_01_adder.v	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/34/34.03.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -13571,8 +13571,8 @@ verilator	test_regress/t/t_config_libmap/sub/other.sv	pass	chained_only	deferred
 verilator	test_regress/t/t_config_libmap/x4.v	pass	chained_only	deferred:chained_only	verilator: multi-file test payload outside flat test_regress/t/
 verilator	test_regress/t/t_config_libmap_inc.v	pass	must_accept	match	verilator: driver t_config_libmap_inc.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_config_multitop.v	pass	must_accept	match	verilator: driver t_config_multitop.py expects success
-verilator	test_regress/t/t_config_param.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_config_param.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_config_rules.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_config_rules.py expects success
+verilator	test_regress/t/t_config_param.v	pass	must_accept	match	verilator: driver t_config_param.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_config_rules.v	pass	must_accept	match	verilator: driver t_config_rules.py expects success
 verilator	test_regress/t/t_config_rules_sub.v	fail	chained_only	deferred:chained_only	verilator: no same-stem driver and never a top_filename - include/companion fragment
 verilator	test_regress/t/t_config_top.v	pass	must_accept	match	verilator: driver t_config_top.py expects success
 verilator	test_regress/t/t_config_top2.v	pass	must_accept	match	verilator: driver t_config_top2.py expects success

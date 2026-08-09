@@ -66,6 +66,12 @@ This determinism is a **hard guarantee** of the schema. Any non-determinism is a
 > port list (`1.0.170`, ledger `SV-0040`), the schema-`19` spaced SVA
 > cycle-delay abbreviations (`1.0.175`, ledger `SV-0045`), and the
 > schema-`20` `dist` constraint operator (`1.0.179`, ledger `SV-0049`).
+> **Release `1.0.180` (`SV-CORPUS-GRAD.3.19`, ledger `SV-0050` — the config `use`
+> clause parameter-override spelling) deliberately does NOT bump it**, and that is
+> measured rather than assumed: the construct was 100 % unparseable before, so no
+> shape a consumer had ever seen could move, and the ASTs of all ten already-parsing
+> forms of the clause are byte-identical across the fix. A release with no row in the
+> table below is a release that kept the schema.
 > Pin the integer from the contract; the historical
 > `1.x.0` rows and the schema-`2` row are retained as history.
 >

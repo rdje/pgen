@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-08814182.js";
+            window.path_to_searchindex_js = "searchindex-e74828a6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -640,6 +640,73 @@ so interior white space — <code>x dist {100 : = 1}</code> — is currently tol
 spelling arguably forbids it. That is a <strong>strictness</strong> question in the same family as the
 <code>time_literal</code> white-space item, tracked separately in <code>docs/tasks/SV-CORPUS-GRAD.md</code>; it is not
 introduced by this release and no corpus file depends on it.</p>
+<h2 id="the-config-use-clause-and-parameter-overrides"><a class="header" href="#the-config-use-clause-and-parameter-overrides">The Config <code>use</code> Clause and Parameter Overrides</a></h2>
+<p><em>Parser release <code>1.0.180</code> (<code>SV-CORPUS-GRAD.3.19</code>, ledger <code>SV-0050</code>). Schema stays <code>20</code>.</em></p>
+<p>A <code>config</code> block selects which cell binds to which instance, and it can override parameters while
+doing so. Before <code>1.0.180</code> the parameter-override spelling that IEEE 1800’s own examples use did
+not parse at all:</p>
+<pre><code class="language-systemverilog">config cfg;
+  design rtlLib.top;
+  instance top     use #(.WIDTH(32));      // rejected before 1.0.180
+  instance top.a1  use #(.W(top.WIDTH));   // rejected before 1.0.180
+  instance top.a1  use #();                // rejected before 1.0.180
+endconfig
+</code></pre>
+<h3 id="why-it-was-missing--the-standard-disagrees-with-itself"><a class="header" href="#why-it-was-missing--the-standard-disagrees-with-itself">Why it was missing — the standard disagrees with itself</a></h3>
+<p>This is worth spelling out, because it is <em>not</em> the failure mode behind the other recent grammar
+fixes in this book. Those (<code>SV-0044</code> cycle-delay ranges, <code>SV-0049</code> the <code>dist</code> operator) were cases
+where the LRM wrote a literal delimiter and PGEN’s grammar read it as BNF metasyntax. Here PGEN’s
+transcription was <strong>right</strong>, and the standard is internally inconsistent:</p>
+<ul>
+<li><strong>Annex A / Syntax 33-4</strong> defines <code>use_clause</code> with three alternatives and <strong>no <code>#</code> anywhere</strong>:
+<code>use [lib.]cell [:config]</code>, <code>use .P(1), …</code>, <code>use [lib.]cell .P(1), …</code>.</li>
+<li><strong>Clause 33.4.3</strong> then writes every one of its parameter-override examples as <code>use #( … )</code> —
+seven times, and identically in both IEEE 1800-2017 and IEEE 1800-2023.</li>
+</ul>
+<p>PGEN follows the union of the two, on three grounds that are internal to the standard rather than a
+matter of taste. Annex A’s preamble subordinates itself — <em>“The normative text description contained
+within the clauses and annexes of this standard provide additional details on the syntax”</em>. The
+BNF-only reading would make clause 33.4.3’s explicit <em>“Configurations may not use positional
+parameter notation to override parameters”</em> meaningless, since positional notation cannot even be
+written under the brace-less alternatives. And every parameter-override <code>use</code> clause in PGEN’s
+vendored external corpus — all 12 of them — uses the <code>#( … )</code> spelling.</p>
+<h3 id="what-still-rejects-on-purpose"><a class="header" href="#what-still-rejects-on-purpose">What still rejects, on purpose</a></h3>
+<pre><code class="language-systemverilog">instance top.a1 use #(32);            // REJECTED — positional override
+instance top.a1 use #(32, .W(8));     // REJECTED — mixed positional
+</code></pre>
+<p>Clause 33.4.3 forbids positional parameter notation in a configuration, so the <code>#( … )</code> list accepts
+<code>named_parameter_assignment</code> only. This is why the grammar does <strong>not</strong> reuse
+<code>parameter_value_assignment</code> — that rule is exactly <code># ( [ list_of_parameter_assignments ] )</code>, and
+<code>list_of_parameter_assignments</code> admits ordered assignments. An ordinary module instantiation is
+unaffected and still accepts both notations:</p>
+<pre><code class="language-systemverilog">adder #(8, 16)  a1();   // fine — ordinary instantiation, positional allowed
+adder #(.W(8))  a2();   // fine
+</code></pre>
+<h3 id="what-a-consumer-sees"><a class="header" href="#what-a-consumer-sees">What a consumer sees</a></h3>
+<p>The <code>use</code> clause is carried as a raw token sequence inside its <code>config_rule_statement</code>, whose <code>kind</code>
+discriminator (<code>inst_use</code> / <code>cell_use</code> / <code>inst_liblist</code> / <code>cell_liblist</code> / <code>default_liblist</code>) tells
+you which shape to expect:</p>
+<pre><code class="language-json">{"kind": "inst_use",
+ "clause": {"name": {"head": {"body": "top"}, "scope_chain": []}},
+ "body": [[[], "use"],
+          {"kind": "hash"}, {"kind": "lparen"},
+          [{"name": {"body": "WIDTH"}, "value": {"…": "32"}}, []],
+          {"kind": "rparen"}, []]}
+</code></pre>
+<p>The <code>{"kind": "hash"}</code> / <code>{"kind": "lparen"}</code> / <code>{"kind": "rparen"}</code> markers are how you tell the
+braced form from the Annex-A brace-less one (<code>use .WIDTH(32)</code>), which carries the named assignments
+with no surrounding punctuation nodes.</p>
+<p><strong>Schema is unchanged at <code>20</code>.</strong> This construct was 100 % unparseable before <code>1.0.180</code>, so no shape
+a consumer had ever seen could move — verified by dumping the AST of every already-parsing form of
+the clause on both parsers and confirming all ten are byte-identical.</p>
+<h3 id="bound-worth-knowing-1"><a class="header" href="#bound-worth-knowing-1">Bound worth knowing</a></h3>
+<p><code>use_clause</code> carries no profile gate, so the parameter-override forms are currently reachable under
+<code>--profile verilog_2005</code> as well. IEEE 1364-2005 has exactly one <code>use_clause</code> alternative —
+<code>use [library_identifier.]cell_identifier[:config]</code> — with no parameter override at all, so that is
+an over-acceptance under the Verilog-2005 profile. It predates this release for the brace-less forms
+and is extended to the braced one here; it is tracked in <code>docs/tasks/SV-CORPUS-GRAD.md</code> <code>.3.20</code> and
+being fixed next. No file in PGEN’s Verilog-2005 corpus lane contains a config <code>use</code> clause of any
+spelling, so nothing measured depends on it today.</p>
 <h2 id="directives-inside-module-and-class-bodies"><a class="header" href="#directives-inside-module-and-class-bodies">Directives Inside Module and Class Bodies</a></h2>
 <p><em>Parser release <code>1.0.178</code> (<code>SV-CORPUS-GRAD.3.14b</code>, ledger <code>SV-0048</code>). Schema stays <code>19</code>.</em></p>
 <p>Before <code>1.0.178</code> a compiler directive was tolerated <strong>only at file top level</strong>. The rule

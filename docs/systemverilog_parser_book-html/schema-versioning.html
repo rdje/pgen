@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-08814182.js";
+            window.path_to_searchindex_js = "searchindex-e74828a6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -238,6 +238,12 @@ the schema-<code>16</code> event-trigger <code>-&gt;&gt;</code>/delay/array LRM 
 port list (<code>1.0.170</code>, ledger <code>SV-0040</code>), the schema-<code>19</code> spaced SVA
 cycle-delay abbreviations (<code>1.0.175</code>, ledger <code>SV-0045</code>), and the
 schema-<code>20</code> <code>dist</code> constraint operator (<code>1.0.179</code>, ledger <code>SV-0049</code>).
+<strong>Release <code>1.0.180</code> (<code>SV-CORPUS-GRAD.3.19</code>, ledger <code>SV-0050</code> — the config <code>use</code>
+clause parameter-override spelling) deliberately does NOT bump it</strong>, and that is
+measured rather than assumed: the construct was 100 % unparseable before, so no
+shape a consumer had ever seen could move, and the ASTs of all ten already-parsing
+forms of the clause are byte-identical across the fix. A release with no row in the
+table below is a release that kept the schema.
 Pin the integer from the contract; the historical
 <code>1.x.0</code> rows and the schema-<code>2</code> row are retained as history.</p>
 <p>⛔ <strong>This prose is a convenience, not the source of truth — and it has already

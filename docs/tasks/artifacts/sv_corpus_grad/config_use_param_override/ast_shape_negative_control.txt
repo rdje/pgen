@@ -1,0 +1,39 @@
+# ast_shape_contract_gate — the new sample proven NON-VACUOUS (SV-CORPUS-GRAD.3.19)
+#
+# A green gate never shown to go red is a claim, not a proof (TOOLBOX.md: "a box is EARNED,
+# not ticked"). Two negative controls were needed here, and THE FIRST ONE FAILED TO FIRE —
+# which is itself the finding, because it is the control a careful person would write first.
+
+## control 1 (WRONG, and instructive): break expected_content_kind + demand a bogus key
+   expected_content_kind: sequence -> json_object
+   expected_json_object_keys_present: [] -> ["THIS_KEY_DOES_NOT_EXIST"]
+   => make -C rust ast_shape_contract_gate  rc=0, STILL GREEN.
+
+   WHY (ast_shape_contract.rs, the `let aligned = ...` line):
+       aligned = (current_content_kind == expected_content_kind)
+   and the ENTIRE structural-assertion block — including the
+   expected_json_object_keys_present check — runs only `if aligned`. Making the two differ
+   marks the sample DRIFTED, so the assertion is SKIPPED rather than failed. Meanwhile the
+   regression lock compares `observed` against CURRENT, which was untouched and still matched.
+   => a negative control that edits `expected` alone can NEVER fail: it disables the very
+      assertion it is trying to trip.
+
+## control 2 (CORRECT): break current_content_kind — the lock that is actually live
+   current_content_kind: sequence -> json_object   (expected moved with it, so the sample
+   stays "aligned" and nothing is skipped)
+   => rc=2, FAILED, naming the sample and the rule:
+       - use_clause_hash_named_override (rule=use_clause) observed=Sequence manifest_current=JsonObject manifest_expected=JsonObject drift_status=aligned structural_ok=false details=["expected_content_kind=json_object but observed content was not Json(Object); observed=Sequence"]
+     sample 'use_clause_hash_named_override': observed content_kind Sequence != manifest current_content_kind JsonObject; either the parser was regenerated without updating the manifest in the same commit, or a code change altered runtime shape unexpectedly
+
+## restored + re-verified green
+     ✅ AST-shape contract gate passed.   (rc=0, 18 passed / 0 failed)
+
+## ⚠️ HONEST BOUND ON THIS SAMPLE'S STRENGTH — stated, not implied
+   The matching use_clause alternative is un-annotated, so the emitted node classifies as
+   `sequence`. For a non-json_object sample the ONLY live assertion is the regression lock
+   (observed kind == current kind); the key-level checks that give .3.18's
+   `expression_or_dist` sample its bite (expected_json_object_keys_present) do not apply.
+   => this sample locks the KIND of the emitted node, not its interior. It is a weaker lock
+   than a json_object sample, and it is the strongest one available for an un-annotated
+   alternative. Feeds SV-AST-SHAPE-FIDELITY.4 (shape-locked share of the annotated SV surface
+   measured at 2.09%).

@@ -1,0 +1,6 @@
+case                         IR alts    expected 3
+C_baseline                   3          OK
+D_indented_comment           3          OK
+B_hash_in_string             3          OK
+A_col0_comment_after_alt1    1          *** 2 ALTERNATIVE(S) SILENTLY LOST (top node Sequence) ***
+E_col0_comment_after_alt2    2          *** 1 ALTERNATIVE(S) SILENTLY LOST (top node Or) ***

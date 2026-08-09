@@ -1,0 +1,14 @@
+# Per-profile rule census, PRE vs POST the .3.19 grammar edit.
+# ./rust/target/debug/ast_pipeline <grammar> --dump-rule-profiles <out.json>
+# (pre grammar = git show HEAD:grammars/systemverilog.ebnf)
+#
+# WHY THIS RUNS BEFORE THE GATES: .3.18 found BOTH cert contracts shipping RED because
+# .3.14b moved this census and re-baselined neither (routed to CI-PARITY-GATE-ROT.22).
+# The census is the thing those two contracts are pinned to, so it is checked up front
+# rather than discovered by a red gate.
+
+rule_count pre/post: 1477 1477
+rules added: []  removed: []
+rules whose satisfiable-profile set CHANGED: 0
+pre  {'sv_2017': 1354, 'sv_2023': 1373, 'verilog_2005': 1122}
+post {'sv_2017': 1354, 'sv_2023': 1373, 'verilog_2005': 1122}

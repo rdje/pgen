@@ -86,12 +86,6 @@ OTHER (per-row triage)	ispras-sv-tests	ieee-1800-2012/29/29.06_01.sv	NUM ) NUM	(
 OTHER (per-row triage)	ispras-sv-tests	ieee-1800-2012/29/29.08_01.sv	NUM ) NUM	(01) 0 : ? : 0 ;
 OTHER (per-row triage)	ispras-sv-tests	ieee-1800-2012/29/29.09_01.sv	NUM : ?	? ?? 01 : ? : 1 ; // preset logic
 OTHER (per-row triage)	ispras-sv-tests	ieee-1800-2012/30/30.07.01_01.sv	, NUM )	specparam PATHPULSE$clk$q = (2, 9), PATHPULSE$clr$q = (0, 4),
-interface/modport (ch25)	ispras-sv-tests	ieee-1800-2012/33/33.04.03_02.sv	# ( .	instance top use #(.WIDTH(32));
-interface/modport (ch25)	ispras-sv-tests	ieee-1800-2012/33/33.04.03_03.sv	# ( .	instance top.a1 use #(.W(top.S));
-interface/modport (ch25)	ispras-sv-tests	ieee-1800-2012/33/33.04.03_05.sv	# ( .	instance top.a1 use #(.W()); // set only parameter 'W' back to its default
-OTHER (per-row triage)	ispras-sv-tests	ieee-1800-2012/33/33.04.03_06.sv	# ( )	instance top.a1 use #(); // set all parameters in instance 'a1'
-interface/modport (ch25)	ispras-sv-tests	ieee-1800-2012/33/33.04.03_07.sv	# ( .	instance top.a1 use #(.WIDTH(48));
-interface/modport (ch25)	ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	# ( .	instance top.t use #(.WIDTH(48));
 OTHER (per-row triage)	iverilog	ivtest/ivltests/br_gh553.v	; integer ID	dut inst[4];
 OTHER (per-row triage)	iverilog	ivtest/ivltests/display_bug.v	] ID ;	word [2] array;      // word[0:1] exposes the bug as well
 OTHER (per-row triage)	iverilog	ivtest/ivltests/module_output_port_sv_var2.v	ID ; output	output reg a;
@@ -180,8 +174,6 @@ interface/modport (ch25)	verilator	test_regress/t/t_class_static_member_sel.v	= 
 OTHER (per-row triage)	verilator	test_regress/t/t_clk_concat5.v	; logic [	input clk;
 OTHER (per-row triage)	verilator	test_regress/t/t_clk_concat6.v	; logic [	input clk;
 OTHER (per-row triage)	verilator	test_regress/t/t_comb_do_not_convert_to.v	; reg ID	input clk;
-interface/modport (ch25)	verilator	test_regress/t/t_config_param.v	# ( .	instance t.u_1a use #(.P1(), .P2("override.u_a.p2"));
-OTHER (per-row triage)	verilator	test_regress/t/t_config_rules.v	# ( )	instance t.m32 use #();
 constraint/randomize (ch18)	verilator	test_regress/t/t_constraint_operators.v	~ ID ==	constraint unary { !(-~c == 'h22); }
 constraint/randomize (ch18)	verilator	test_regress/t/t_constraint_unsat.v	) begin /	if (!randomize() with { addr == a; data == d; }) begin
 OTHER (per-row triage)	verilator	test_regress/t/t_cover_fsm_sel_assign.v	ID ; begin	logic [D-1:0][W-1:0] s;

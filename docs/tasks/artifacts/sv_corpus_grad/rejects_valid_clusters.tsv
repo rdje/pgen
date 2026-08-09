@@ -86,12 +86,6 @@ ispras-sv-tests	ieee-1800-2012/29/29.06_01.sv	119	288	NUM ) NUM	(01) 0 : ? : 0 ;
 ispras-sv-tests	ieee-1800-2012/29/29.08_01.sv	102	271	NUM ) NUM	(01) 0 : ? : 0 ;
 ispras-sv-tests	ieee-1800-2012/29/29.09_01.sv	143	322	NUM : ?	? ?? 01 : ? : 1 ; // preset logic
 ispras-sv-tests	ieee-1800-2012/30/30.07.01_01.sv	182	343	, NUM )	specparam PATHPULSE$clk$q = (2, 9), PATHPULSE$clr$q = (0, 4),
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_02.sv	337	389	# ( .	instance top use #(.WIDTH(32));
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_03.sv	451	527	# ( .	instance top.a1 use #(.W(top.S));
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_05.sv	419	474	# ( .	instance top.a1 use #(.W()); // set only parameter 'W' back to its default
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_06.sv	337	392	# ( )	instance top.a1 use #(); // set all parameters in instance 'a1'
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_07.sv	411	466	# ( .	instance top.a1 use #(.WIDTH(48));
-ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	497	551	# ( .	instance top.t use #(.WIDTH(48));
 iverilog	ivtest/ivltests/br_gh553.v	37	62	; integer ID	dut inst[4];
 iverilog	ivtest/ivltests/display_bug.v	0	110	] ID ;	word [2] array;      // word[0:1] exposes the bug as well
 iverilog	ivtest/ivltests/module_output_port_sv_var2.v	211	235	ID ; output	output reg a;
@@ -183,8 +177,6 @@ verilator	test_regress/t/t_class_static_member_sel.v	904	1229	= NUM ;	baz.get_ba
 verilator	test_regress/t/t_clk_concat5.v	1174	1397	; logic [	input clk;
 verilator	test_regress/t/t_clk_concat6.v	1331	1581	; logic [	input clk;
 verilator	test_regress/t/t_comb_do_not_convert_to.v	199	371	; reg ID	input clk;
-verilator	test_regress/t/t_config_param.v	470	686	# ( .	instance t.u_1a use #(.P1(), .P2("override.u_a.p2"));
-verilator	test_regress/t/t_config_rules.v	448	1014	# ( )	instance t.m32 use #();
 verilator	test_regress/t/t_constraint_operators.v	203	1423	~ ID ==	constraint unary { !(-~c == 'h22); }
 verilator	test_regress/t/t_constraint_unsat.v	200	495	) begin /	if (!randomize() with { addr == a; data == d; }) begin
 verilator	test_regress/t/t_cover_fsm_sel_assign.v	197	634	ID ; begin	logic [D-1:0][W-1:0] s;

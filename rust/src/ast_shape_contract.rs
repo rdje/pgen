@@ -1211,6 +1211,22 @@ mod tests {
                 "expression_or_dist" => parser
                     .parse_expression_or_dist()
                     .map_err(|err| err.to_string()),
+                // SV-CORPUS-GRAD.3.19 (ledger SV-0050): lock the config `use` clause.
+                // IEEE 1800 contradicts itself here — Annex A's `use_clause` has no `#`,
+                // while clause 33.4.3 prints `instance top use #(.WIDTH(32));` seven times
+                // per revision, in BOTH 2017 and 2023 — so the rule now carries the union
+                // of the two normative surfaces and this sample pins the arm that was
+                // added for the clause-33 spelling. Two things it guards. (1) The rule is
+                // the one where a column-0 comment silently deleted TWO alternatives
+                // during this leaf, undetected by --lint-grammar, defined_rule_count and
+                // --dump-rule-profiles alike; a shape lock is the only instrument in the
+                // repo that would have gone red. (2) `.3.20` is about to SPLIT this rule
+                // into a `@profiles`-gated sibling to stop `verilog_2005` accepting
+                // overrides IEEE 1364-2005 has no production for — this sample is what
+                // makes that restructuring gate-visible instead of silent.
+                "use_clause" => parser
+                    .parse_use_clause()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

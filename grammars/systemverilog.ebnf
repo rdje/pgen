@@ -6039,6 +6039,23 @@ unsized_dimension := lbrack rbrack
 use_clause := @probe_sample: "use top .P(1)" kw_use_04489a12 cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
             | @probe_sample: "use l.top .P(1)" kw_use_04489a12 ( library_identifier dot )? cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
             | @probe_sample: "use .P(1)" kw_use_04489a12 named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
+            # SV-CORPUS-GRAD.3.19 — the `#( … )` override spelling. IEEE 1800 CONTRADICTS ITSELF here,
+            # identically in 2017 and 2023: Annex A / Syntax 33-4 writes `use named_parameter_assignment
+            # { , … }` with no `#`, while clause 33.4.3's own normative examples write
+            # `instance top use #(.WIDTH(32));` — 7 times per revision (2017 :365/:366/:382/:383/:412/
+            # :423/:462; 2023 :366/:367/:383/:384/:413/:424/:463). Annex A's preamble subordinates itself
+            # ("the normative text description contained within the clauses … provide additional details
+            # on the syntax"), and the BNF-only reading makes 33.4.3 :333 — "Configurations may not use
+            # positional parameter notation" — VACUOUS, since positional notation is not expressible
+            # under the brace-less alternatives at all. So the parser accepts the union of both
+            # normative surfaces.
+            # ⛔ The list is named_parameter_assignment, NOT list_of_parameter_assignments: reusing
+            # parameter_value_assignment would admit ordered_parameter_assignment and accept `use #(32)`,
+            # which is exactly what :333 forbids. The empty `#()` is first-class (2023 :424).
+            # ⛔⛔ THIS COMMENT BLOCK MUST STAY INDENTED. A column-0 `#` line inside a rule body ENDS the
+            # rule and silently discards every following alternative — measured here, no error, no lint,
+            # no census move (SV-CORPUS-GRAD.3.19 → routed to EBNF-FRONTEND-SILENT-TRUNCATION).
+            | @probe_sample: "use #(.P(1))" kw_use_04489a12 hash lparen ( named_parameter_assignment ( comma named_parameter_assignment )* )? rparen ( colon kw_config_dfba7aad )?
             | @probe_sample: "use top" kw_use_04489a12 ( library_identifier dot )? cell_identifier ( colon kw_config_dfba7aad )?
            -> {library: $2, name: $3, config: $4}
 

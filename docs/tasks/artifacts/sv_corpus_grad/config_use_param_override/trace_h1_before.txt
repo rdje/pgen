@@ -1,0 +1,40 @@
+# WHY+WHERE — SV-CORPUS-GRAD.3.19, the config `use` clause cannot consume a `#`
+#
+# PGEN_TRACE_VERBOSITY=debug ./rust/target/release/parseability_probe \
+#   --parse systemverilog docs/tasks/artifacts/sv_corpus_grad/config_use_param_override/repro/h1_hash_named.sv \
+#   --profile sv_2017 --trace-rules config_rule_statement,use_clause
+#
+# Byte map of the repro (python3: open(...,'rb').read()[pos:pos+16]):
+#   227 = '\n  instance top '   <- the config_rule_statement starts here
+#   242 = ' use #(.WIDTH(32'    <- use_clause is ENTERED here
+#   246 = ' #(.WIDTH(32));\n'   <- furthest_position reported by --parse
+#   247 = '#(.WIDTH(32));\ne'   <- THE '#'. named_parameter_assignment backtracks from it.
+#
+# .3.11 trap avoided: the leaf rule alone prints nothing useful, so the PARENT
+# (config_rule_statement) is traced alongside use_clause.
+
+🚪 Entering branch 1/5 for rule 'config_rule_statement' at position 227
+❌ Branch 1/5 for rule 'config_rule_statement' failed at position 227
+🚪 Entering branch 2/5 for rule 'config_rule_statement' at position 227
+✅ Exiting rule 'inst_clause' successfully - advanced from 227 to 242
+❌ Branch 2/5 for rule 'config_rule_statement' failed at position 227
+🚪 Entering branch 3/5 for rule 'config_rule_statement' at position 227
+✅ Exiting rule 'inst_clause' successfully - advanced from 227 to 242
+🚪 Entering branch 1/4 for rule 'use_clause' at position 242
+❌ Branch 1/4 for rule 'use_clause' failed at position 242
+🚪 Entering branch 2/4 for rule 'use_clause' at position 242
+❌ Branch 2/4 for rule 'use_clause' failed at position 242
+🚪 Entering branch 3/4 for rule 'use_clause' at position 242
+❌ Exiting rule 'named_parameter_assignment' with error: Backtrack { position: 247
+❌ Branch 3/4 for rule 'use_clause' failed at position 242
+🚪 Entering branch 4/4 for rule 'use_clause' at position 242
+❌ Branch 4/4 for rule 'use_clause' failed at position 242
+❌ Exiting rule 'use_clause' with error: Backtrack { position: 242
+❌ Branch 3/5 for rule 'config_rule_statement' failed at position 227
+🚪 Entering branch 4/5 for rule 'config_rule_statement' at position 227
+❌ Branch 4/5 for rule 'config_rule_statement' failed at position 227
+🚪 Entering branch 5/5 for rule 'config_rule_statement' at position 227
+❌ Branch 5/5 for rule 'config_rule_statement' failed at position 227
+
+# --parse headline:
+Error: parse_full rejected sample for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/config_use_param_override/repro/h1_hash_named.sv': Parser did not consume full input at position 195 [furthest_position=246, +51 bytes deeper than surface position]

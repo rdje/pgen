@@ -462,6 +462,94 @@ spelling arguably forbids it. That is a **strictness** question in the same fami
 `time_literal` white-space item, tracked separately in `docs/tasks/SV-CORPUS-GRAD.md`; it is not
 introduced by this release and no corpus file depends on it.
 
+## The Config `use` Clause and Parameter Overrides
+
+*Parser release `1.0.180` (`SV-CORPUS-GRAD.3.19`, ledger `SV-0050`). Schema stays `20`.*
+
+A `config` block selects which cell binds to which instance, and it can override parameters while
+doing so. Before `1.0.180` the parameter-override spelling that IEEE 1800's own examples use did
+not parse at all:
+
+```systemverilog
+config cfg;
+  design rtlLib.top;
+  instance top     use #(.WIDTH(32));      // rejected before 1.0.180
+  instance top.a1  use #(.W(top.WIDTH));   // rejected before 1.0.180
+  instance top.a1  use #();                // rejected before 1.0.180
+endconfig
+```
+
+### Why it was missing — the standard disagrees with itself
+
+This is worth spelling out, because it is *not* the failure mode behind the other recent grammar
+fixes in this book. Those (`SV-0044` cycle-delay ranges, `SV-0049` the `dist` operator) were cases
+where the LRM wrote a literal delimiter and PGEN's grammar read it as BNF metasyntax. Here PGEN's
+transcription was **right**, and the standard is internally inconsistent:
+
+- **Annex A / Syntax 33-4** defines `use_clause` with three alternatives and **no `#` anywhere**:
+  `use [lib.]cell [:config]`, `use .P(1), …`, `use [lib.]cell .P(1), …`.
+- **Clause 33.4.3** then writes every one of its parameter-override examples as `use #( … )` —
+  seven times, and identically in both IEEE 1800-2017 and IEEE 1800-2023.
+
+PGEN follows the union of the two, on three grounds that are internal to the standard rather than a
+matter of taste. Annex A's preamble subordinates itself — *"The normative text description contained
+within the clauses and annexes of this standard provide additional details on the syntax"*. The
+BNF-only reading would make clause 33.4.3's explicit *"Configurations may not use positional
+parameter notation to override parameters"* meaningless, since positional notation cannot even be
+written under the brace-less alternatives. And every parameter-override `use` clause in PGEN's
+vendored external corpus — all 12 of them — uses the `#( … )` spelling.
+
+### What still rejects, on purpose
+
+```systemverilog
+instance top.a1 use #(32);            // REJECTED — positional override
+instance top.a1 use #(32, .W(8));     // REJECTED — mixed positional
+```
+
+Clause 33.4.3 forbids positional parameter notation in a configuration, so the `#( … )` list accepts
+`named_parameter_assignment` only. This is why the grammar does **not** reuse
+`parameter_value_assignment` — that rule is exactly `# ( [ list_of_parameter_assignments ] )`, and
+`list_of_parameter_assignments` admits ordered assignments. An ordinary module instantiation is
+unaffected and still accepts both notations:
+
+```systemverilog
+adder #(8, 16)  a1();   // fine — ordinary instantiation, positional allowed
+adder #(.W(8))  a2();   // fine
+```
+
+### What a consumer sees
+
+The `use` clause is carried as a raw token sequence inside its `config_rule_statement`, whose `kind`
+discriminator (`inst_use` / `cell_use` / `inst_liblist` / `cell_liblist` / `default_liblist`) tells
+you which shape to expect:
+
+```json
+{"kind": "inst_use",
+ "clause": {"name": {"head": {"body": "top"}, "scope_chain": []}},
+ "body": [[[], "use"],
+          {"kind": "hash"}, {"kind": "lparen"},
+          [{"name": {"body": "WIDTH"}, "value": {"…": "32"}}, []],
+          {"kind": "rparen"}, []]}
+```
+
+The `{"kind": "hash"}` / `{"kind": "lparen"}` / `{"kind": "rparen"}` markers are how you tell the
+braced form from the Annex-A brace-less one (`use .WIDTH(32)`), which carries the named assignments
+with no surrounding punctuation nodes.
+
+**Schema is unchanged at `20`.** This construct was 100 % unparseable before `1.0.180`, so no shape
+a consumer had ever seen could move — verified by dumping the AST of every already-parsing form of
+the clause on both parsers and confirming all ten are byte-identical.
+
+### Bound worth knowing
+
+`use_clause` carries no profile gate, so the parameter-override forms are currently reachable under
+`--profile verilog_2005` as well. IEEE 1364-2005 has exactly one `use_clause` alternative —
+`use [library_identifier.]cell_identifier[:config]` — with no parameter override at all, so that is
+an over-acceptance under the Verilog-2005 profile. It predates this release for the brace-less forms
+and is extended to the braced one here; it is tracked in `docs/tasks/SV-CORPUS-GRAD.md` `.3.20` and
+being fixed next. No file in PGEN's Verilog-2005 corpus lane contains a config `use` clause of any
+spelling, so nothing measured depends on it today.
+
 ## Directives Inside Module and Class Bodies
 
 *Parser release `1.0.178` (`SV-CORPUS-GRAD.3.14b`, ledger `SV-0048`). Schema stays `19`.*

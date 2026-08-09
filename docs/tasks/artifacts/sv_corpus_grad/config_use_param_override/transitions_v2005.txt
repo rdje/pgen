@@ -1,0 +1,9 @@
+# SV-CORPUS-GRAD.3.19 — verilog_2005 lane, per-FILE transitions
+# files before=2459 after=2459   key set identical: True
+    pass -> pass       2181
+    fail -> fail        278
+
+per-file transitions: 0
+
+# EXPECTED: zero. The v2005 lane contains 0 files with a config `use` clause of any
+# spelling, so this leaf's grammar edit is unreachable from it (scan over v2005_lane_files.tsv).

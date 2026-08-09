@@ -1,0 +1,6 @@
+controls OK: +h1@247, -a3@262, -c3@261
+sweeping 296 unexplained_rejects_valid rows from stimuli/sv/characterization/adjudication_manifest.tsv
+blocked at a config `use #( … )`: 0 / 296 (profile sv_2017)
+
+non-integer probe results: 1
+  sv2v	test/lex/latin1.sv	unparseable

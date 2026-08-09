@@ -1,11 +1,11 @@
 # rejects-valid construct families (SV-CORPUS-GRAD.3.2)
 
-304 `divergence:unexplained_rejects_valid` rows classified into 8 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
+296 `divergence:unexplained_rejects_valid` rows classified into 8 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
 
 | # | family | rows | suite split |
 |---|---|---|---|
-| 1 | OTHER (per-row triage) | 226 | verilator:95, Surelog:41, ispras-sv-tests:30, sv2v:24, iverilog:13, sv-tests:12, verible:10, slang:1 |
-| 2 | interface/modport (ch25) | 24 | verilator:11, ispras-sv-tests:7, sv-tests:3, sv2v:2, verible:1 |
+| 1 | OTHER (per-row triage) | 224 | verilator:94, Surelog:41, ispras-sv-tests:29, sv2v:24, iverilog:13, sv-tests:12, verible:10, slang:1 |
+| 2 | interface/modport (ch25) | 18 | verilator:10, sv-tests:3, ispras-sv-tests:2, sv2v:2, verible:1 |
 | 3 | constraint/randomize (ch18) | 16 | verilator:15, ispras-sv-tests:1 |
 | 4 | SVA implication/property (ch16) | 11 | ispras-sv-tests:5, verilator:4, Surelog:2 |
 | 5 | enum base range (ch6) | 9 | verilator:8, sv2v:1 |
@@ -24,8 +24,8 @@
 ### interface/modport (ch25)
 - `ispras-sv-tests`: `sim.queues[Active].push_back('{is_update: 1});`  (ieee-1800-2012/04/04.05_01.sv)
 - `ispras-sv-tests`: `q = q[1:$];                      // void'(q.pop_front()) or q.delete(0)`  (ieee-1800-2012/07/07.10.04_01.sv)
-- `ispras-sv-tests`: `instance top use #(.WIDTH(32));`  (ieee-1800-2012/33/33.04.03_02.sv)
-- `ispras-sv-tests`: `instance top.a1 use #(.W(top.S));`  (ieee-1800-2012/33/33.04.03_03.sv)
+- `sv-tests`: `q = q[1:$]; // q.delete(0)`  (tests/chapter-7/queues/delete_assign.sv)
+- `sv-tests`: `q = { q[0:1], 10, q[2:$] }; // q.insert(2, 10)`  (tests/chapter-7/queues/insert_assign.sv)
 
 ### constraint/randomize (ch18)
 - `ispras-sv-tests`: `success = std::randomize(a, b) with {b - a > length;};`  (ieee-1800-2012/18/18.12.01_01.sv)

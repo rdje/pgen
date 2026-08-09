@@ -1,0 +1,23 @@
+# SV-CORPUS-GRAD.3.19 — per-FILE transition matrix, sv_2017 lane (the .3.4 LAW)
+# before = rust/target/sv_axis2_baseline/results.pre_3_19.tsv (preserved BEFORE the run)
+# after  = stimuli/sv/characterization/results.tsv
+# files before=16336 after=16336
+# key set identical: True
+
+    pass -> pass       9726
+    fail -> fail       6598
+    fail -> pass          8   <-- HEALED
+ timeout -> timeout       4
+
+REGRESSIONS (pass -> anything else): 0
+healed (fail -> pass): 8
+
+every flipped file:
+  fail -> pass	ispras-sv-tests	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/33/33.04.03_02.sv
+  fail -> pass	ispras-sv-tests	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/33/33.04.03_03.sv
+  fail -> pass	ispras-sv-tests	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/33/33.04.03_05.sv
+  fail -> pass	ispras-sv-tests	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/33/33.04.03_06.sv
+  fail -> pass	ispras-sv-tests	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/33/33.04.03_07.sv
+  fail -> pass	ispras-sv-tests	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/33/33.04.03_08.sv
+  fail -> pass	verilator	stimuli/sv/subs/verilator/test_regress/t/t_config_param.v
+  fail -> pass	verilator	stimuli/sv/subs/verilator/test_regress/t/t_config_rules.v

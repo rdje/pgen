@@ -1,0 +1,14 @@
+controls OK: +h1@247, -a3@262, -c3@261
+sweeping 304 unexplained_rejects_valid rows from stimuli/sv/characterization/adjudication_manifest.tsv
+blocked at a config `use #( … )`: 8 / 304 (profile sv_2017)
+  ispras-sv-tests	ieee-1800-2012/33/33.04.03_02.sv	furthest=389
+  ispras-sv-tests	ieee-1800-2012/33/33.04.03_03.sv	furthest=527
+  ispras-sv-tests	ieee-1800-2012/33/33.04.03_05.sv	furthest=474
+  ispras-sv-tests	ieee-1800-2012/33/33.04.03_06.sv	furthest=392
+  ispras-sv-tests	ieee-1800-2012/33/33.04.03_07.sv	furthest=466
+  ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	furthest=551
+  verilator	test_regress/t/t_config_param.v	furthest=686
+  verilator	test_regress/t/t_config_rules.v	furthest=1014
+
+non-integer probe results: 1
+  sv2v	test/lex/latin1.sv	unparseable

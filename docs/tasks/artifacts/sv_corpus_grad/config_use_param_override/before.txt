@@ -1,0 +1,21 @@
+# config use-clause repro matrix — profile sv_2017
+case                           verdict  furthest  want    LRM
+a1_use_cell                    ACCEPT   -         ACCEPT  A.1.5 use_clause alt 1
+a2_use_lib_cell                ACCEPT   -         ACCEPT  A.1.5 use_clause alt 1 (+lib)
+a3_use_lib_cell_config         ACCEPT   -         ACCEPT  A.1.5 use_clause alt 1 (:config)
+a4_use_named_only              ACCEPT   -         ACCEPT  A.1.5 use_clause alt 2
+a5_use_named_multi             ACCEPT   -         ACCEPT  A.1.5 use_clause alt 2 (list)
+a6_use_cell_named              ACCEPT   -         ACCEPT  A.1.5 use_clause alt 3
+a7_use_lib_cell_named          ACCEPT   -         ACCEPT  A.1.5 use_clause alt 3 (+lib)
+h1_hash_named                  REJECT   246       ACCEPT  33.4.3 :365 (2017)  <-- differs from post-fix expectation
+h2_hash_named_hier             REJECT   249       ACCEPT  33.4.3 :366 (2017)  <-- differs from post-fix expectation
+h3_hash_empty                  REJECT   249       ACCEPT  33.4.3 :424 (2023)  <-- differs from post-fix expectation
+h4_hash_named_default          REJECT   249       ACCEPT  33.4.3 :413 (2023)  <-- differs from post-fix expectation
+h5_hash_named_multi            REJECT   249       ACCEPT  corpus: verilator t_config_param  <-- differs from post-fix expectation
+c1_default_liblist             ACCEPT   -         ACCEPT  control — liblist clause
+c2_cell_use_config             ACCEPT   -         ACCEPT  control — cell_clause use_clause
+c3_module_param_inst           ACCEPT   -         ACCEPT  control — ordinary #() instantiation
+n1_hash_positional_ILLEGAL     REJECT   249       REJECT  33.4.3 :333 — FORBIDS positional
+n2_hash_mixed_ILLEGAL          REJECT   249       REJECT  33.4.3 :333 — FORBIDS positional
+
+cases differing from the post-fix expectation: 5
