@@ -4225,6 +4225,69 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   that fail to decode as UTF-8, so the leaf is sized before it is scoped. One visible row is
   the witness, not the construct (`.3.16`'s lesson).
 
+##### `.3.23` — the `enum [N:M] { … }` family is an ADJUDICATOR hole, not a parser gap: PGEN is RIGHT to reject all 9 rows (diagnosed 2026-08-09, execution pending)
+
+- **Status: `todo` — DIAGNOSIS COMPLETE AND BANKED; the remaining work is the adjudicator
+  edit.** ⛔ **ZERO parser bytes. Do NOT "fix" the grammar here** — accepting this construct
+  would be an over-acceptance defect ([[feedback_sv_strict_lrm_compliance_default]]). Same
+  class as `.3.15`/`.3.16`/`.3.34`. Evidence:
+  `docs/tasks/artifacts/sv_corpus_grad/enum_base_range/` (`sweep.py`, re-runnable, +
+  `sweep.txt`, + the six-case reproducer).
+- **HOW IT WAS PICKED — and why the frontier's "NOT the bucketer, use a token-level tell"
+  rule earned its keep twice over.** The coarse family bucketer files this under
+  *"enum base range (ch6)", 9 rows*. The stuck-signature clusters split the SAME construct
+  across **two** signatures — `{ ID =` (7 rows) and `{ ID ,` (2 rows) — differing only in
+  whether the enum's first member carries an `= value`. ⇒ **a leaf cut from the top cluster
+  alone would have seen 7 and silently missed 2**, and `sweep.py` therefore keys on the
+  CONSTRUCT, not on either view. Sized before scoped, per `.3.16`.
+- **THE CONSTRUCT:** `typedef enum [2:0] { A, B } e_t;` — a packed dimension with **no base
+  type**.
+- **ROOT CAUSE (WHY + WHERE) — the parser is correct; the EXPECTED VERDICT is wrong.**
+  The six-case reproducer isolates it to exactly one shape (`--profile sv_2017`, release
+  probe): `enum [2:0] {…}` **REJECT** at `furthest_position=30`, while `enum {…}`,
+  `enum int {…}`, `enum logic [2:0] {…}`, `enum bit signed [2:0] {…}` and
+  `enum my_t [2:0] {…}` all **ACCEPT**. So every LRM-expressible base parses and the single
+  rejection is the one Annex A cannot derive — a precise strictness boundary, not a hole in
+  enum support.
+- **THE LRM SAYS REJECT, on two independent surfaces that AGREE** (unlike `.3.19`, where the
+  standard contradicted itself — the discriminator is worth stating, because it is what
+  decides whether the parser or the adjudicator moves):
+  1. **Annex A A.2.2.1** —
+     `enum_base_type ::= integer_atom_type [signing] | integer_vector_type [signing]
+     [packed_dimension] | type_identifier [packed_dimension]`. A `packed_dimension` is
+     reachable ONLY behind a type; a bare `[2:0]` has no derivation.
+  2. **Clause 6.19 prose** — *"In the absence of a data type declaration, the default data
+     type shall be **int**. **Any other data type used with enumerated types shall require an
+     explicit data type declaration.**"* A `[2:0]` dimension IS another data type (a 3-bit
+     vector, not `int`), so it *requires* the explicit declaration it is missing. Every
+     dimension-bearing example in 6.19 writes one: `enum bit [1:0] {IDLE, …}`.
+  3. Measured, not recalled: **zero** occurrences of a literal base-less `enum [` anywhere in
+     the 1800-2017 or 1800-2023 text (`grep -rE "enum[[:space:]]*\[[0-9A-Za-z_$]"` → empty;
+     the many `enum [ enum_base_type ]` hits are BNF optionality brackets, not dimensions).
+- **THE POPULATION IS EXACTLY 9, AND THERE IS NOTHING HIDDEN** (`sweep.txt`): scanning all
+  **16 336** manifest rows for the construct finds **9** `unexplained_rejects_valid` — the
+  entire actionable set, every one expected `must_accept` — plus 2 already-deferred
+  `explained_svpp_macro_use`. All 9 are stuck at the `enum [` itself, confirmed per row
+  against the cluster table's `furthest_position`, so none is being reclassified on a
+  coincidence of containing the token elsewhere. Eight are `verilator/test_regress`, one is
+  `sv2v/test/core` — a vendor-extension cluster, which is what the evidence predicts.
+- **PLANNED FIX — adjudicator only:** pin these 9 in
+  `stimuli/sv/adjudicate_external_corpus.py` as `must_reject` (LRM-grounded), or as an
+  `out_of_scope_with_cause:vendor_extension` deferral if the reviewer prefers to keep
+  "must_reject" for intentional-invalidity rather than dialect divergence. ⛔ Decide that on
+  the taxonomy's own definitions, not on which number looks better; both remove the rows from
+  the defect signal, and only one of them is honest about *why*.
+- ⛔ **PER-FILE JUSTIFICATION IS MANDATORY, and this is the trap.** A file can reject for more
+  than one reason. Reclassifying its expected verdict on the enum ground would then MASK a
+  second, real defect behind a correct-looking pin. Each of the 9 must be shown to reject at
+  the `enum [` **and nowhere earlier** — the `furthest_position` check above is that proof and
+  must be re-run against the pinned set, not assumed from this note.
+- **EXPECTED EFFECT:** `unexplained_rejects_valid` **296 → 287**, with 0 rows moving in any
+  other direction and zero parser bytes. ⚠️ That is a *drop in the defect signal achieved by
+  correcting an expectation* — legitimate here because the LRM is the oracle, but it is
+  exactly the shape of [[a-rising-pass-rate-is-not-evidence-of-correctness]] and must be
+  presented as an adjudication correction, never as parser progress.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

@@ -1,0 +1,33 @@
+## MATRIX — which enum base shape actually rejects (profile sv_2017)
+  case                 verdict  furthest  want    shape
+  e1_dim_no_base       REJECT   30        REJECT  enum [2:0] { … }            packed dim, NO base type
+  e2_no_base_no_dim    ACCEPT   -         ACCEPT  enum { … }                  no base, no dim (int)
+  e3_vector_base_dim   ACCEPT   -         ACCEPT  enum logic [2:0] { … }      integer_vector_type + dim
+  e4_atom_base         ACCEPT   -         ACCEPT  enum int { … }              integer_atom_type
+  e5_signing_dim       ACCEPT   -         ACCEPT  enum bit signed [2:0] { … } vector + signing + dim
+  e6_typeid_dim        ACCEPT   -         ACCEPT  enum my_t [2:0] { … }       type_identifier + dim
+  cases differing from the LRM reading: 0
+
+  => exactly ONE shape rejects, and it is the one Annex A cannot derive. Every
+     LRM-expressible base (none / atom / vector+dim / signing+dim / type_id+dim)
+     parses, so this is a precise strictness boundary, not a hole in enum support.
+
+## SWEEP — the whole population, keyed on the CONSTRUCT (not on a cluster signature)
+  manifest rows scanned: 16336
+       9  divergence:unexplained_rejects_valid
+       2  divergence:explained_svpp_macro_use
+
+  ACTIONABLE (unexplained_rejects_valid): 9
+    sv2v         test/core/enum_scope.sv                                        expected=must_accept
+    verilator    test_regress/t/t_cast.v                                        expected=must_accept
+    verilator    test_regress/t/t_debug_emitv.v                                 expected=must_accept
+    verilator    test_regress/t/t_enum.v                                        expected=must_accept
+    verilator    test_regress/t/t_enum_bad_value.v                              expected=must_accept
+    verilator    test_regress/t/t_enum_bad_wrap.v                               expected=must_accept
+    verilator    test_regress/t/t_enum_const_methods.v                          expected=must_accept
+    verilator    test_regress/t/t_enum_type_methods_bad.v                       expected=must_accept
+    verilator    test_regress/t/t_enum_type_nomethod_bad.v                      expected=must_accept
+
+  => every one of them is expected `must_accept`, which is the mis-adjudication.
+     ⛔ Correcting the PARSER here would be an over-acceptance defect
+     ([[feedback_sv_strict_lrm_compliance_default]]); the fix is in the ADJUDICATOR.

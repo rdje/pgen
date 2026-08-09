@@ -1,5 +1,40 @@
 # CHANGES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0041 — leaf SV-CORPUS-GRAD.3.23 DIAGNOSED: the `enum [N:M] { … }` family is an ADJUDICATOR hole, and "fixing" it would make the parser wrong (docs+artifacts only; ZERO parser bytes)
+
+- **PICK, done with the repaired instrument.** With `.3.21`'s reconciliation in place, the next
+  axis-2 family was cut from the LIVE worklist on a token-level tell: `typedef enum [2:0] { … }` —
+  a packed dimension with NO base type.
+- ⭐ **THE "NOT THE BUCKETER" RULE EARNED ITS KEEP TWICE OVER.** The coarse family bucketer files
+  this as *enum base range (ch6), 9 rows*; the stuck-signature clusters split the SAME construct
+  across TWO signatures — `{ ID =` (7) and `{ ID ,` (2) — differing only in whether the first enum
+  member carries an `= value`. A leaf cut from the top cluster alone would have seen 7 and silently
+  missed 2, so the sweep keys on the CONSTRUCT and finds the whole population.
+- **DIAGNOSIS: PGEN IS CORRECT TO REJECT.** A six-case reproducer through the release probe
+  isolates exactly one failing shape — `enum [2:0] {…}` REJECT at furthest_position=30 — while
+  `enum {…}`, `enum int {…}`, `enum logic [2:0] {…}`, `enum bit signed [2:0] {…}` and
+  `enum my_t [2:0] {…}` all ACCEPT. Every LRM-expressible base parses; the single rejection is the
+  one Annex A cannot derive. A precise strictness boundary, not a hole in enum support.
+- **TWO INDEPENDENT LRM SURFACES AGREE** (the discriminator against the SV-0050 class, where they
+  contradicted): (1) A.2.2.1 reaches `packed_dimension` only behind `integer_vector_type` or
+  `type_identifier`; (2) clause 6.19 in prose — *"In the absence of a data type declaration, the
+  default data type shall be int. Any other data type used with enumerated types shall require an
+  explicit data type declaration."* Plus, measured: ZERO literal base-less `enum [` occurrences
+  anywhere in the 1800-2017 or 1800-2023 text.
+- **POPULATION SIZED, NOT GUESSED:** scanning all 16,336 manifest rows finds exactly 9
+  `unexplained_rejects_valid` (8 verilator, 1 sv2v — a vendor-extension cluster, as the evidence
+  predicts) plus 2 already-deferred svpp rows. All 9 expected `must_accept`, and all 9 verified
+  stuck at the `enum [` itself rather than merely containing the token.
+- ⛔ **THE FIX IS ADJUDICATOR-ONLY.** Accepting the construct would be over-acceptance
+  ([[feedback_sv_strict_lrm_compliance_default]]) — the same ADJUDICATOR-hole class as .3.15/.3.16.
+  Execution is scoped in the leaf with a mandatory per-file justification step: a file can reject
+  for more than one reason, and reclassifying its expected verdict on the enum ground would MASK a
+  second real defect behind a correct-looking pin.
+- Expected effect when executed: unexplained_rejects_valid 296 -> 287, zero parser bytes. ⚠️ A drop
+  in the defect signal achieved by correcting an EXPECTATION — legitimate because the LRM is the
+  oracle, but it must be presented as an adjudication correction, never as parser progress
+  ([[a-rising-pass-rate-is-not-evidence-of-correctness]]).
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0040 — leaf SV-CORPUS-GRAD.3.21: the burn-down's PICK step read a July vintage by default, and its input TSV had been corrupt the whole time (instrument-only; ZERO parser bytes, no release, no schema, no ledger)
 
 - **DEFECT 1 — stale-vintage defaults.** `classify_rejects_valid_families.py`'s three argparse
