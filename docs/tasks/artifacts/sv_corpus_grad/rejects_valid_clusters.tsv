@@ -1,5 +1,5 @@
 suite	relpath	surface_pos	furthest_pos	signature	stuck_line
-Surelog	tests/1364_2005/dut.v	29	100	, ID ,	reg	     bit, rst, clk;
+Surelog	tests/1364_2005/dut.v	29	100	, ID ,	reg      bit, rst, clk;
 Surelog	tests/Assertions/dut.sv	369	445	@ ( posedge	let p2(x) = $past(x,,,@(posedge clock));
 Surelog	tests/Assignments/dut.sv	0	89	( ref bit	function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);
 Surelog	tests/AssumeProp/dut.sv	0	191	" ID ID	$fatal(1, "slv_aw_select_i is %d: AW has selected a slave that is not defined.\
@@ -142,10 +142,7 @@ sv2v	test/error/typedef_not_type_localparam.sv	115	156	; endmodule	L x;
 sv2v	test/error/typedef_not_type_net.sv	101	132	; endmodule	w x;
 sv2v	test/error/typedef_not_type_var.sv	101	131	; endmodule	v x;
 sv2v	test/lex/begin_keywords.sv	28	49	automatic = NUM	integer automatic = 2;
-sv2v	test/lex/latin1.sv	-3	-3	<NO-POSITION>	Error: failed to read input file 'stimuli/sv/subs/sv2v/test/lex/latin1.sv'
-
-Caused by:
-    stream did not contain valid 
+sv2v	test/lex/latin1.sv	-3	-3	<NO-POSITION>	Error: failed to read input file 'stimuli/sv/subs/sv2v/test/lex/latin1.sv'  Caused by:     stream did not contain valid 
 sv2v	test/lex/number_literal_whitespace.sv	0	115	ID / *	'b
 sv2v	test/nosim/assert.sv	0	401	NUM ( NUM	assert #0_0 (1);
 verible	verible/verilog/tools/kythe/testdata/event_control.sv	51	154	; endtask	@x[y];

@@ -4085,6 +4085,146 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   byte-identical to the tracked July version (`git status` clean on both paths), which
   incidentally re-proves the classifier deterministic over an unchanged input.
 
+**WORKED 2026-08-09 (`PGEN-SV-CORPUS-GRAD-0040`) — and it was TWO defects, not one:**
+
+- **Status: `done`.** Instrument-only; **zero parser bytes**, no release, no schema, no ledger
+  row. Evidence: `docs/tasks/artifacts/sv_corpus_grad/families_classifier_vintage/vintage_and_corruption.txt`.
+- **REPRODUCE, run rather than quoted.** The HEAD script was copied back into `stimuli/sv/`
+  (so its `parent.parent.parent` root resolution still lands on the repo root) and invoked
+  with only its two OUTPUT paths redirected, exercising the default `--clusters` exactly as an
+  operator hits it: it classified **543 rows** of the 2026-07-23 table against a live
+  population of **296**, and wrote the `_v2` outputs.
+- ⚠️ **HONEST SCOPE — the live report was NOT stale at HEAD, and saying otherwise would have
+  been the easy overclaim.** `.3.19` was burned by this once and thereafter passed all three
+  paths explicitly, so the tracked `rejects_valid_families.{tsv,md}` were current at 296. The
+  defect is a **latent trap in the defaults** — fired once, armed for the next operator — not
+  a stale artifact today. What made it dangerous is that the sibling `cluster_rejects_valid.py`
+  already defaulted to the LIVE paths: two halves of one pipeline, each individually
+  self-consistent, disagreeing about which vintage is current.
+- ⭐⭐ **AND BUILDING THE ROW-COUNT REFUSAL EXPOSED A SECOND, OLDER DEFECT: the input TSV was
+  CORRUPT, in every tracked vintage.** A field-count histogram of the tracked cluster table:
+  **295 lines with 6 fields, 1 with 7, 2 with 1, 1 empty** — 299 physical data lines over a
+  296-row population.
+  - **ROOT CAUSE (WHY + WHERE):** `cluster_rejects_valid.py::probe_one` `:219` returns
+    `(suite, rel, -3, -3, "<NO-POSITION>", out.strip()[:120])` — the probe's raw stdout+stderr.
+    A probe *read* error is multi-line (`Error: failed to read input file …` / blank /
+    `Caused by:` / `stream did not contain valid UTF-8`), so one record became **four physical
+    lines**. Separately one `stuck_line` contained a literal TAB, giving a 7-field row.
+  - **WHY IT WAS INVISIBLE:** the classifier's `if len(cols) < 6: continue` dropped the three
+    orphan fragments **in silence**, and 295 + 1 = 296 still matched the manifest. Every
+    published total was right by accident.
+  - ⛔ **This is why the refusal could not be a `wc -l` comparison.** On a healthy pipeline it
+    would have read 299 against 296 and fired — a false positive, which is precisely what
+    teaches an operator to disable a check. The corruption had to be fixed at the SOURCE
+    before the count could mean anything.
+- **FIX 1 — `cluster_rejects_valid.py::tsv_cell`,** applied at the write site so every column
+  is safe by construction. ⚠️ **The first cut was too wide and the diff said so:**
+  `" ".join(value.split())` also collapsed whitespace RUNS and rewrote **79 lines** of a
+  296-row artifact that has one real defect. Narrowed to a one-for-one replacement of
+  `[\r\n\t]`; the re-cut then differs from the tracked table in **exactly the two defective
+  records**, with the `.md` summary byte-identical (0 diff lines) and the regenerated
+  `families.tsv` differing in the same two rows. A repair whose diff is forty times the size
+  of the bug is a second change smuggled in beside the first.
+- **FIX 2 — two refusals plus three always-on controls**, replacing the reader's vigilance:
+  defaults now name the LIVE artifacts; a malformed line **REFUSES** (naming file, line
+  number and content) instead of being skipped; and the row count must equal the live
+  manifest's `unexplained_rejects_valid` count, with `--expect-rows` as a deliberate
+  off-manifest escape hatch. `ground_truth_controls()` pins a positive, a negative and a
+  detector-live check before any number is published — because the reconciliation is only as
+  good as the predicates beneath it, and *a bucketer that returned one family for everything
+  would reconcile perfectly on row count*.
+- ⛔⛔ **MY OWN FIRST EVIDENCE RUN FOR THIS LEAF WAS WRONG TWICE, IN THE SAME CLASS THE LEAF
+  REPAIRS — recorded, not quietly re-run.** (a) It read `$?` through a `| sed` pipeline, so
+  every refusal printed `exit=0`: an evidence harness that cannot see a failure. (b) It tried
+  to demonstrate the ROW-COUNT refusal using the retired `_v2` table — but that table is
+  *also* corrupted, so the MALFORMED refusal fired first and the row-count path was never
+  exercised at all. **A refusal that fires for the wrong reason is not evidence for the reason
+  you wanted.** The corrected proof uses a well-formed 295-row table (the live one minus a
+  row) so the path under test is the only one that can fire.
+- **ADDRESSED (verified) — all four paths proven with REAL exit codes:** malformed input
+  `exit=1` naming line 147; wrong vintage `exit=1` (295 vs 296); missing manifest with no
+  `--expect-rows` `exit=1`; the deliberate `--expect-rows 295` escape hatch `exit=0`; and the
+  repaired live pipeline with **no arguments** printing
+  `reconciled: 296 rows == …adjudication_manifest.tsv (divergence:unexplained_rejects_valid)`
+  then `classified 296 rows into 8 families`, `exit=0`.
+- ⚠️ **ROUTED, not worked → `.3.22`:** the one `<NO-POSITION>` row is
+  `sv2v/test/lex/latin1.sv`, a deliberately Latin-1-encoded lexer fixture the probe cannot
+  READ as UTF-8. It sits in `unexplained_rejects_valid` — the defect-signal class — while
+  being a fact about the instrument's input handling, not about the grammar. Same shape as the
+  `SV-CORPUS-GRAD.11a` tripwire (*a corpus `timeout` is a fact about the INSTRUMENT, not the
+  parser*). One row of 296; it does not block the release lane
+  ([[feedback_flow_findings_are_routed_not_worked]]).
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the HEAD script run in place with only its output paths
+  redirected classified **543 rows** from its default `--clusters`
+  (`rejects_valid_clusters_v2.tsv`, 2026-07-23) against a live population of **296**, and
+  wrote the `_v2` outputs; `git show HEAD:stimuli/sv/classify_rejects_valid_families.py |
+  grep -n 'default=base'` names all three stale defaults at `:79`/`:81`/`:83`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — two, both located by running tools over the artifacts
+  rather than by reading code: (1) the three `default=base / "…_v2…"` argparse defaults, while
+  the sibling clusterer's defaults at `cluster_rejects_valid.py:243`/`:246` already point at
+  the live paths; (2) `git ls-files`-tracked `rejects_valid_clusters.tsv` yields the field
+  histogram `295×6, 1×7, 2×1, 1×0` — 299 physical lines for 296 rows — traced to
+  `cluster_rejects_valid.py:219`, where the `<NO-POSITION>` branch writes the probe's raw
+  multi-line stdout+stderr into the last TSV column unescaped, and to the classifier's
+  `if len(cols) < 6: continue`, which discarded the resulting fragments silently.
+- [x] **FIX** — tier 1, ops/instrument, no parser bytes: `tsv_cell()` at the clusterer's write
+  site replacing `[\r\n\t]` one-for-one (deliberately NOT collapsing whitespace runs — that
+  first cut rewrote 79 lines for a 2-line defect); live defaults, a malformed-line REFUSAL, a
+  manifest row-count REFUSAL with an `--expect-rows` escape hatch, and three always-on
+  ground-truth controls in the classifier.
+- [x] **ADDRESSED (verified)** — re-cut cluster table differs from tracked in **exactly the two
+  defective records** (`diff` shown in full), `.md` summary byte-identical, field histogram now
+  `296×6` with zero malformed lines; all four refusal/acceptance paths re-run with real exit
+  codes (`exit=1`,`exit=1`,`exit=1`,`exit=0`) plus the no-argument green path printing
+  `reconciled: 296 rows == …(divergence:unexplained_rejects_valid)`. Oracles, each re-runnable:
+  `python3 stimuli/sv/classify_rejects_valid_families.py` (no args) and
+  `awk -F'\t' 'NR>1{print NF}' … | sort -n | uniq -c` over the cluster table.
+- [x] **NO REGRESSION** — zero parser bytes, so no parse behaviour can move: `git diff` touches
+  only the two `stimuli/sv/*.py` instruments and their three output artifacts. The regenerated
+  `rejects_valid_families.tsv` differs from tracked in **exactly the same two rows** as the
+  cluster table and nowhere else; the family ranking is unchanged (`OTHER` 224,
+  `interface/modport` 18, `constraint/randomize` 16, `SVA implication/property` 11, …, 8
+  families over 296 rows), which is the burn-down's PICK input and therefore the thing that
+  must not silently shift. `bash scripts/check_doctrines.sh` 17/17.
+- [x] **LOCKSTEP** — new evidence artifact
+  `docs/tasks/artifacts/sv_corpus_grad/families_classifier_vintage/vintage_and_corruption.txt`;
+  both instrument docstrings rewritten to carry the why; new routed leaf `.3.22`;
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`. No book/contract/
+  ledger/schema change — N/A, the change is internal tooling with no user-visible parser
+  surface.
+
+##### `.3.22` — one `unexplained_rejects_valid` row is an ENCODING failure, not a parser defect: the probe cannot READ `sv2v/test/lex/latin1.sv` (routed by `.3.21`, 2026-08-09)
+
+- **Status: `todo`.** Routed, not worked: one row of 296, and it does not block the SV release
+  lane ([[feedback_flow_findings_are_routed_not_worked]]).
+- **ISSUE (measured):** the live cluster table carries exactly one `<NO-POSITION>` row —
+  `sv2v test/lex/latin1.sv`, whose stuck "line" is the probe's own error, *"failed to read
+  input file … Caused by: stream did not contain valid UTF-8"*. The file is a deliberately
+  Latin-1-encoded **lexer** fixture; the parser never ran on it.
+- **WHY IT MATTERS beyond one row:** it is adjudicated
+  `divergence:unexplained_rejects_valid` — the class that means *"the parser wrongly rejected
+  valid input"*, i.e. the defect signal the whole `.3` burn-down is cut from. It will never
+  yield to a grammar fix, so it is a permanent unit of noise in the number the campaign is
+  driving to zero. Same shape as the standing `SV-CORPUS-GRAD.11a` tripwire: **a corpus
+  `timeout` is a fact about the INSTRUMENT, not the parser** — and so is an unreadable file.
+- **THE ADJUDICATION QUESTION (decide before coding):** does PGEN owe IEEE 1800 anything on
+  non-UTF-8 source? 1800-2017 §5.1 admits an implementation-defined character set beyond
+  ASCII, so a Latin-1 file is arguably legal input a signoff-grade tool should read. Two
+  defensible outcomes, and the leaf must pick one on evidence, not convenience:
+  (a) the expected verdict is wrong ⇒ reclassify to an `out_of_scope_with_cause:encoding` /
+  `impl_varying` deferral in `adjudicate_external_corpus.py`, which removes it from the defect
+  signal honestly; or (b) it is a genuine gap ⇒ the probe should decode with a declared
+  fallback rather than failing the read.
+- ⛔ **Do not simply drop the row.** Whichever way it goes, the manifest must record the cause;
+  a silently removed row is the `.3.19`-class defect (a number that improves because the
+  instrument stopped looking).
+- **First step:** count the population, not the instance — sweep the whole corpus for files
+  that fail to decode as UTF-8, so the leaf is sized before it is scoped. One visible row is
+  the witness, not the construct (`.3.16`'s lesson).
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

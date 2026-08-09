@@ -1,5 +1,5 @@
 family	suite	relpath	signature	stuck_line
-OTHER (per-row triage)	Surelog	tests/1364_2005/dut.v	, ID ,	reg	     bit, rst, clk;
+OTHER (per-row triage)	Surelog	tests/1364_2005/dut.v	, ID ,	reg      bit, rst, clk;
 OTHER (per-row triage)	Surelog	tests/Assertions/dut.sv	@ ( posedge	let p2(x) = $past(x,,,@(posedge clock));
 OTHER (per-row triage)	Surelog	tests/Assignments/dut.sv	( ref bit	function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);
 OTHER (per-row triage)	Surelog	tests/AssumeProp/dut.sv	" ID ID	$fatal(1, "slv_aw_select_i is %d: AW has selected a slave that is not defined.\
@@ -142,7 +142,7 @@ OTHER (per-row triage)	sv2v	test/error/typedef_not_type_localparam.sv	; endmodul
 OTHER (per-row triage)	sv2v	test/error/typedef_not_type_net.sv	; endmodule	w x;
 OTHER (per-row triage)	sv2v	test/error/typedef_not_type_var.sv	; endmodule	v x;
 OTHER (per-row triage)	sv2v	test/lex/begin_keywords.sv	automatic = NUM	integer automatic = 2;
-OTHER (per-row triage)	sv2v	test/lex/latin1.sv	<NO-POSITION>	Error: failed to read input file 'stimuli/sv/subs/sv2v/test/lex/latin1.sv'
+OTHER (per-row triage)	sv2v	test/lex/latin1.sv	<NO-POSITION>	Error: failed to read input file 'stimuli/sv/subs/sv2v/test/lex/latin1.sv'  Caused by:     stream did not contain valid 
 OTHER (per-row triage)	sv2v	test/lex/number_literal_whitespace.sv	ID / *	'b
 OTHER (per-row triage)	sv2v	test/nosim/assert.sv	NUM ( NUM	assert #0_0 (1);
 OTHER (per-row triage)	verible	verible/verilog/tools/kythe/testdata/event_control.sv	; endtask	@x[y];

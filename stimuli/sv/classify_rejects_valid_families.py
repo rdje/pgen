@@ -16,11 +16,30 @@ yield. Per-row precision belongs to the owning fix leaf's TOOLBOX diagnosis.
 
 Deterministic and stdlib-only: same input TSV -> byte-identical output.
 
+⛔ THE DEFAULTS POINT AT THE LIVE ARTIFACTS, AND THE INPUT IS RECONCILED BEFORE USE
+(``SV-CORPUS-GRAD.3.21``). Until that leaf the three defaults were the RETIRED ``_v2``
+artifacts, so the obvious no-argument invocation (a) classified a 2026-07-23 cluster table
+and (b) wrote the ``_v2`` outputs, leaving the LIVE ``rejects_valid_families.{tsv,md}`` —
+the artifact the burn-down actually reads to pick its next leaf — untouched and stale.
+Its sibling ``cluster_rejects_valid.py`` already defaulted to the live paths, so the two
+halves of one pipeline disagreed about which vintage was current: the worst possible
+arrangement, because each is individually self-consistent. It surfaced only because a
+regenerated families report said **304 rows** while clusters cut minutes earlier said
+**296**, and both numbers happened to be on screen together.
+
+So the row count is no longer something a reader has to notice. This script now REFUSES
+unless the cluster table's row count equals the live adjudication manifest's current
+``divergence:unexplained_rejects_valid`` count — two independently produced numbers that
+must agree ([[feedback_instrument_needs_ground_truth]]) — and REFUSES on any malformed
+input line instead of silently skipping it (the silent skip is what hid a TSV corruption:
+see ``tsv_cell`` in the clusterer).
+
 Usage:
   python3 stimuli/sv/classify_rejects_valid_families.py \
-      [--clusters docs/tasks/artifacts/sv_corpus_grad/rejects_valid_clusters_v2.tsv] \
-      [--out-tsv docs/tasks/artifacts/sv_corpus_grad/rejects_valid_families_v2.tsv] \
-      [--out-md  docs/tasks/artifacts/sv_corpus_grad/rejects_valid_families_v2.md]
+      [--clusters docs/tasks/artifacts/sv_corpus_grad/rejects_valid_clusters.tsv] \
+      [--out-tsv docs/tasks/artifacts/sv_corpus_grad/rejects_valid_families.tsv] \
+      [--out-md  docs/tasks/artifacts/sv_corpus_grad/rejects_valid_families.md] \
+      [--manifest stimuli/sv/characterization/adjudication_manifest.tsv | --expect-rows N]
 """
 
 import argparse
@@ -71,26 +90,103 @@ def classify(stuck_line: str) -> str:
     return _OTHER
 
 
+_REJECTS_VALID = "divergence:unexplained_rejects_valid"
+
+
+def manifest_rejects_valid_count(manifest: Path) -> int:
+    """The live population size, read from the adjudicator's own output."""
+    n = 0
+    with manifest.open(encoding="utf-8", errors="replace") as fh:
+        next(fh, "")  # header
+        for line in fh:
+            cols = line.rstrip("\n").split("\t")
+            if len(cols) >= 5 and cols[4] == _REJECTS_VALID:
+                n += 1
+    return n
+
+
+def ground_truth_controls() -> None:
+    """Prove both moving parts still work before any number is published.
+
+    The reconciliation below is only as good as the two predicates it rests on: that
+    `classify` actually discriminates, and that a malformed line is actually detected.
+    A bucketer that silently returned one family for everything, or a parser that
+    silently accepted a 2-column line, would both produce a confidently wrong report.
+    """
+    if classify("assert property (@(posedge clk) a |-> b);") == _OTHER:
+        raise SystemExit("REFUSE (control): the POSITIVE control failed — a textbook SVA "
+                         "implication line classified as OTHER, so the bucketer is not "
+                         "discriminating and every family count would be meaningless.")
+    if classify("wombat frobnicate zorp") != _OTHER:
+        raise SystemExit("REFUSE (control): the NEGATIVE control failed — a line matching no "
+                         "SystemVerilog construct was given a family, so the classifiers are "
+                         "over-matching.")
+    if len("a\tb".split("\t", 5)) >= 6:
+        raise SystemExit("REFUSE (control): the malformed-line detector is not live.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     root = Path(__file__).resolve().parent.parent.parent
     base = root / "docs/tasks/artifacts/sv_corpus_grad"
+    # ⛔ LIVE artifacts, matching the sibling clusterer. See the module docstring: these
+    # defaulted to the retired `_v2` vintage until SV-CORPUS-GRAD.3.21.
     ap.add_argument("--clusters", type=Path,
-                    default=base / "rejects_valid_clusters_v2.tsv")
+                    default=base / "rejects_valid_clusters.tsv")
     ap.add_argument("--out-tsv", type=Path,
-                    default=base / "rejects_valid_families_v2.tsv")
+                    default=base / "rejects_valid_families.tsv")
     ap.add_argument("--out-md", type=Path,
-                    default=base / "rejects_valid_families_v2.md")
+                    default=base / "rejects_valid_families.md")
+    ap.add_argument("--manifest", type=Path,
+                    default=root / "stimuli/sv/characterization/adjudication_manifest.tsv",
+                    help="live adjudication manifest; its unexplained_rejects_valid count "
+                         "must equal the cluster table's row count")
+    ap.add_argument("--expect-rows", type=int, default=None,
+                    help="expected row count, for a deliberate off-manifest run (e.g. a "
+                         "second lane or a historical table); overrides --manifest")
     args = ap.parse_args()
+
+    ground_truth_controls()
 
     rows = []
     lines = args.clusters.read_text(encoding="utf-8").splitlines()
-    for line in lines[1:]:  # skip header
-        cols = line.split("\t", 5)  # stuck_line may contain tabs
-        if len(cols) < 6:
+    for lineno, line in enumerate(lines[1:], start=2):  # skip header
+        if not line.strip():
             continue
+        cols = line.split("\t", 5)  # stuck_line is the last field, so a tab in it is safe
+        if len(cols) < 6:
+            # ⛔ REFUSE, never skip. The old `continue` here is what hid a TSV corruption:
+            # the clusterer wrote a multi-line probe error into `stuck_line`, one row became
+            # four physical lines, and the three orphan fragments were dropped in silence
+            # while the totals still looked right (SV-CORPUS-GRAD.3.21).
+            raise SystemExit(
+                f"REFUSE: {args.clusters} line {lineno} has {len(cols)} column(s), expected "
+                f"6 — the cluster table is malformed, not merely unfamiliar. Re-cut it with "
+                f"stimuli/sv/cluster_rejects_valid.py (whose `tsv_cell` collapses embedded "
+                f"newlines/tabs) rather than classifying a partial population.\n"
+                f"  offending line: {line[:160]!r}")
         suite, rel, _surf, _furth, sig, stuck = cols
         rows.append((suite, rel, sig, stuck, classify(stuck)))
+
+    # ⛔ Reconcile against a number this script did not produce.
+    expected = args.expect_rows
+    source = "--expect-rows"
+    if expected is None:
+        if not args.manifest.is_file():
+            raise SystemExit(
+                f"REFUSE: no live manifest at {args.manifest} and no --expect-rows given, so "
+                f"the input's vintage cannot be checked. Pass one or the other; an unchecked "
+                f"input is how a July cluster table got classified as current.")
+        expected = manifest_rejects_valid_count(args.manifest)
+        source = f"{args.manifest} ({_REJECTS_VALID})"
+    if len(rows) != expected:
+        raise SystemExit(
+            f"REFUSE: {args.clusters} carries {len(rows)} rows but {source} says {expected}. "
+            f"The cluster table is a different vintage from the manifest — re-cut it with "
+            f"stimuli/sv/cluster_rejects_valid.py before classifying, or pass --expect-rows "
+            f"{len(rows)} if this off-manifest run is deliberate. (Classifying a stale table "
+            f"mis-aims the whole burn-down: it is the PICK step's input.)")
+    print(f"reconciled: {len(rows)} rows == {source}")
 
     fam_total = Counter()
     fam_by_suite = defaultdict(Counter)

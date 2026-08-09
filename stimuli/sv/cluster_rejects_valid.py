@@ -191,6 +191,34 @@ def signature_at(text: str, pos: int, keywords=SV_KEYWORDS, operators=SV_OPERATO
     return " ".join(tokens), pos + (first or 0)
 
 
+def tsv_cell(value) -> str:
+    """One TSV cell: never a tab, never a line break, so one record is one LINE.
+
+    ⛔ `SV-CORPUS-GRAD.3.21`. The normal `stuck_line` path can only ever produce a single
+    source line, but the `<NO-POSITION>` path (`probe_one`) writes the probe's raw
+    stdout+stderr, and a probe error is MULTI-LINE:
+
+        Error: failed to read input file 'stimuli/sv/subs/sv2v/test/lex/latin1.sv'
+
+        Caused by:
+            stream did not contain valid UTF-8
+
+    Written unescaped, that one row became FOUR physical lines in
+    `rejects_valid_clusters.tsv`. The downstream classifier drops any line with fewer than
+    six columns, so the three orphan fragments vanished silently and the totals still
+    looked right — the corruption was visible only as a `wc -l` of 299 over a 296-row
+    population. A per-cell escape is the fix at the source; the classifier now REFUSES a
+    malformed line rather than skipping it, so the pair cannot drift back.
+
+    ⚠️ Deliberately narrow: it replaces ONLY the characters that break the format, one for
+    one, and leaves internal spacing alone. The first cut collapsed whitespace RUNS as well
+    (`" ".join(value.split())`) and rewrote **79 lines** of a 296-row artifact that has one
+    real defect. A repair whose diff is forty times the size of the bug is a second change
+    smuggled in beside the first, and it makes the before/after unreadable as evidence.
+    """
+    return re.sub(r"[\r\n\t]", " ", str(value))
+
+
 def line_at(text: str, pos: int) -> str:
     start = text.rfind("\n", 0, pos) + 1
     end = text.find("\n", pos)
@@ -305,7 +333,7 @@ def main():
     with args.out.open("w", encoding="utf-8") as fh:
         fh.write("suite\trelpath\tsurface_pos\tfurthest_pos\tsignature\tstuck_line\n")
         for suite, rel, sp, fp, sig, ln in results:
-            fh.write(f"{suite}\t{rel}\t{sp}\t{fp}\t{sig}\t{ln}\n")
+            fh.write(f"{suite}\t{rel}\t{sp}\t{fp}\t{sig}\t{tsv_cell(ln)}\n")
 
     clusters = defaultdict(list)
     for suite, rel, _sp, _fp, sig, ln in results:

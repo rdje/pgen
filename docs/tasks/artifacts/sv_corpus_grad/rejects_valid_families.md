@@ -16,7 +16,7 @@
 ## Representative stuck lines per family
 
 ### OTHER (per-row triage)
-- `Surelog`: `reg	     bit, rst, clk;`  (tests/1364_2005/dut.v)
+- `Surelog`: `reg      bit, rst, clk;`  (tests/1364_2005/dut.v)
 - `Surelog`: `let p2(x) = $past(x,,,@(posedge clock));`  (tests/Assertions/dut.sv)
 - `Surelog`: `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);`  (tests/Assignments/dut.sv)
 - `Surelog`: `$fatal(1, "slv_aw_select_i is %d: AW has selected a slave that is not defined.\`  (tests/AssumeProp/dut.sv)

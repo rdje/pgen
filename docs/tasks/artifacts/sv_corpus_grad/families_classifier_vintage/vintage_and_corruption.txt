@@ -1,0 +1,125 @@
+# SV-CORPUS-GRAD.3.21 — the classifier read a July vintage by default; two refusals replace the reader's vigilance.
+
+## 1. REPRODUCE — the defaults, and what they actually read
+$ git show HEAD:stimuli/sv/classify_rejects_valid_families.py | grep -n 'default=base'
+  79:                    default=base / "rejects_valid_clusters_v2.tsv")
+  81:                    default=base / "rejects_valid_families_v2.tsv")
+  83:                    default=base / "rejects_valid_families_v2.md")
+
+  Run the HEAD script IN PLACE with only its two OUTPUT paths redirected, so the default
+  --clusters is exercised as an operator would hit it:
+    $ python3 stimuli/sv/<HEAD copy>.py --out-tsv /tmp/o.tsv --out-md /tmp/o.md
+    rows classified from the DEFAULT --clusters : 543
+    live population (manifest unexplained_rejects_valid) : 296
+  => 543 rows of a 2026-07-23 table classified as current, and the outputs written to the
+     _v2 paths, leaving the LIVE rejects_valid_families.{tsv,md} untouched.
+
+  ⚠️ HONEST SCOPE, stated because the obvious claim would be wrong: the LIVE report is NOT
+     stale at HEAD. .3.19 was burned by this once (its regenerated report said 304 rows
+     while freshly-cut clusters said 296) and thereafter passed all three paths
+     EXPLICITLY, so the tracked live artifact is current at 296. The defect is a LATENT
+     TRAP in the defaults — it has fired once and is armed for the next operator — not a
+     stale artifact today. Its sibling cluster_rejects_valid.py already defaults to the
+     live paths, so the two halves of one pipeline disagreed about which vintage is
+     current: individually self-consistent, jointly wrong.
+
+## 2. A SECOND DEFECT, found while BUILDING the row-count refusal: the input TSV is CORRUPT
+$ git show HEAD:<rejects_valid_clusters.tsv> | awk -F'\t' 'NR>1{print NF}' | sort -n | uniq -c
+        1 0
+        2 1
+      295 6
+        1 7
+  299 physical data lines over a 296-row population:
+    - 1 record carries a TAB inside stuck_line            -> 7 fields
+    - 1 record's stuck_line is a MULTI-LINE probe error   -> split across 4 physical lines
+  The classifier's 'if len(cols) < 6: continue' dropped the 3 orphan fragments in SILENCE,
+  so every published total still looked right.
+  ⛔ This is why the refusal could not simply compare wc -l: on a HEALTHY pipeline it would
+     have read 299 vs 296 and fired. A false-positive gate teaches the operator to disable
+     it, so the corruption had to be fixed AT THE SOURCE before the count could be trusted.
+
+## 3. FIX 1 — cluster_rejects_valid.py::tsv_cell. Minimal, and the diff proves it:
+$ diff <HEAD clusters.tsv> <re-cut clusters.tsv>
+  2c2
+  < Surelog	tests/1364_2005/dut.v	29	100	, ID ,	reg	     bit, rst, clk;
+  ---
+  > Surelog	tests/1364_2005/dut.v	29	100	, ID ,	reg      bit, rst, clk;
+  145,148c145
+  < sv2v	test/lex/latin1.sv	-3	-3	<NO-POSITION>	Error: failed to read input file 'stimuli/sv/subs/sv2v/test/lex/latin1.sv'
+  < 
+  < Caused by:
+  <     stream did not contain valid 
+  ---
+  > sv2v	test/lex/latin1.sv	-3	-3	<NO-POSITION>	Error: failed to read input file 'stimuli/sv/subs/sv2v/test/lex/latin1.sv'  Caused by:     stream did not contain valid 
+  Every other row byte-identical; the .md summary byte-identical (0 diff lines); the
+  regenerated families.tsv differs in exactly the same two rows. Field counts after:
+        296 6
+
+  ⚠️ The FIRST cut of tsv_cell collapsed whitespace RUNS as well and rewrote 79 lines of a
+     296-row artifact that has one real defect. Narrowed to a per-character replacement of
+     [\r\n\t] only: a repair whose diff is forty times the size of the bug is a second
+     change smuggled in beside the first.
+
+## 4. FIX 2 — the two refusals, each PROVEN to fire, with REAL exit codes
+
+⚠️ The first attempt at this very section was wrong twice, and both are recorded because
+   they are the same class of error this leaf exists to fix:
+   (a) it read $? through a `| sed` pipeline, so every case printed `exit=0` — an evidence
+       harness that cannot see a failure is exactly the defect under repair;
+   (b) it tried to demonstrate the ROW-COUNT refusal using the retired _v2 table, but that
+       table is ALSO corrupted (same multi-line record, at its line 309), so the MALFORMED
+       refusal fired first and the row-count path was never exercised. A refusal that fires
+       for the wrong reason is not evidence for the reason you wanted.
+   The corruption is present in ALL THREE tracked vintages (live, _v2, _v3) — it is as old
+   as the <NO-POSITION> branch, not something a recent cut introduced.
+
+### 4a. malformed input -> REFUSE, naming the line (the pre-fix corrupted live table)
+$ python3 stimuli/sv/classify_rejects_valid_families.py --clusters <HEAD corrupted table>
+  REFUSE: rust/target/sv_3_20_work/corrupt.tsv line 147 has 1 column(s), expected 6 — the cluster table is malformed, not merely unfamiliar. Re-cut it with stimuli/sv/cluster_rejects_valid.py (whose `tsv_cell` collapses embedded newlines/tabs) rather than classifying a partial population.
+    offending line: 'Caused by:'
+  exit=1
+
+### 4b. wrong vintage -> REFUSE (a WELL-FORMED 295-row table against a 296-row manifest,
+        so the row-count path is the one under test rather than the malformed path)
+$ python3 stimuli/sv/classify_rejects_valid_families.py --clusters <live table minus one row>
+  REFUSE: rust/target/sv_3_20_work/short295.tsv carries 295 rows but /Volumes/SSD/Documents/github/pgen/stimuli/sv/characterization/adjudication_manifest.tsv (divergence:unexplained_rejects_valid) says 296. The cluster table is a different vintage from the manifest — re-cut it with stimuli/sv/cluster_rejects_valid.py before classifying, or pass --expect-rows 295 if this off-manifest run is deliberate. (Classifying a stale table mis-aims the whole burn-down: it is the PICK step's input.)
+  exit=1
+
+### 4c. no manifest and no --expect-rows -> REFUSE (an unchecked input IS the original bug)
+$ python3 stimuli/sv/classify_rejects_valid_families.py --manifest /nonexistent/manifest.tsv
+  REFUSE: no live manifest at /nonexistent/manifest.tsv and no --expect-rows given, so the input's vintage cannot be checked. Pass one or the other; an unchecked input is how a July cluster table got classified as current.
+  exit=1
+
+### 4d. the deliberate off-manifest escape hatch works, so the gate is usable, not just strict
+$ ... --clusters <live table minus one row> --expect-rows 295
+  reconciled: 295 rows == --expect-rows
+  classified 295 rows into 8 families
+     223  OTHER (per-row triage)
+      18  interface/modport (ch25)
+      16  constraint/randomize (ch18)
+      11  SVA implication/property (ch16)
+       9  enum base range (ch6)
+       9  foreach/array (ch7)
+       6  size/type cast N'(...) (ch6/11)
+       3  coverage bins/cross (ch19)
+  exit=0
+
+### 4e. GREEN — the repaired live pipeline reconciles with NO arguments at all
+$ python3 stimuli/sv/classify_rejects_valid_families.py
+  reconciled: 296 rows == /Volumes/SSD/Documents/github/pgen/stimuli/sv/characterization/adjudication_manifest.tsv (divergence:unexplained_rejects_valid)
+  classified 296 rows into 8 families
+     224  OTHER (per-row triage)
+      18  interface/modport (ch25)
+      16  constraint/randomize (ch18)
+      11  SVA implication/property (ch16)
+       9  enum base range (ch6)
+       9  foreach/array (ch7)
+       6  size/type cast N'(...) (ch6/11)
+       3  coverage bins/cross (ch19)
+  exit=0
+
+### 4f. three always-on ground-truth controls, before any number is published
+  ground_truth_controls(): a textbook SVA line must NOT classify as OTHER (positive); a line
+  matching no SV construct MUST classify as OTHER (negative); the short-line detector must
+  still be live. Rationale: the row-count reconciliation is only as good as the predicates
+  under it — a bucketer that returned one family for everything would reconcile perfectly.

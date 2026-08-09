@@ -1,5 +1,66 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0040 — the guard you are about to write is the one most likely to be wrong
+
+`.3.21` was supposed to be five minutes of tidying: point three argparse defaults at the live
+artifacts instead of a retired July vintage. What it actually cost was a second defect, a
+too-wide first fix, and an evidence run that was wrong in two ways — all inside a change that
+touches no parser bytes at all.
+
+**The planned refusal could not be written as planned.** The routing note said: refuse when the
+cluster table's row count disagrees with the manifest's `unexplained_rejects_valid` count. Writing
+that meant counting rows, and counting rows meant discovering that the tracked cluster table had
+**299 physical data lines for a 296-row population**: 295 lines with six fields, one with seven,
+two with one, one empty. The `<NO-POSITION>` branch of the clusterer writes the probe's raw
+stdout+stderr into the last TSV column, and a probe *read* error is multi-line, so one record had
+been four physical lines — in every tracked vintage, for as long as that branch has existed. The
+downstream classifier's `if len(cols) < 6: continue` swallowed the fragments, and 295 + 1 happened
+to equal 296, so every published total was right by accident.
+
+⛔ **The planned guard would therefore have fired on a healthy pipeline.** `wc -l` says 299, the
+manifest says 296, refuse. That false positive is the single most expensive kind of gate to ship:
+it trains the operator to pass `--no-check`, and then the guard is worse than absent because
+everyone believes it is running. The corruption had to be fixed at the source before the count
+could mean anything. **A reconciliation between two numbers is only as good as the weaker
+number's format.**
+
+**Then the fix was too big, and the diff said so.** The first `tsv_cell` was
+`" ".join(value.split())` — obvious, idiomatic, and it rewrote **79 lines** of a 296-row artifact
+that has one real defect, because it collapsed internal whitespace runs in every excerpt. Narrowed
+to a one-for-one replacement of `[\r\n\t]`, the re-cut differs from tracked in exactly the two
+defective records. ⭐ **Diff size is a design review.** A repair forty times larger than its bug is
+a second change smuggled in beside the first, and it destroys the before/after as evidence — you
+can no longer point at the diff and say *this, and only this, is what I did*.
+
+**And then the evidence run was wrong twice, in the same class as the bug.** First, it read `$?`
+through a `| sed` pipeline, so every refusal case printed `exit=0`: an evidence harness that cannot
+see a failure, written while fixing an instrument that could not see a failure. Second, it tried to
+demonstrate the ROW-COUNT refusal using the retired `_v2` table — which is also corrupted, so the
+MALFORMED refusal fired first and the path under test never executed. Both are recorded in the leaf
+rather than quietly re-run, because the general form is worth more than the incident:
+⭐ **a refusal that fires for the wrong reason is not evidence for the reason you wanted**, and the
+only way to know which reason fired is to construct an input that can trigger exactly one. The
+corrected proof uses a well-formed 295-row table — the live one minus a row — so the row-count path
+is the only one that can speak.
+
+**What generalizes.** Three habits, none of them clever:
+
+1. When adding a consistency check between two artifacts, **inspect the format of both before
+   trusting either count**. The number you are about to compare may not mean what its file
+   extension implies.
+2. **Read the diff of your own fix as a reviewer would.** If it is much larger than the defect,
+   you have written two changes.
+3. **Prove each refusal path with an input that can only trigger that path**, and read the exit
+   code where the process actually exits — not through a pipe.
+
+And one adjudication finding fell out, routed as `.3.22`: the single `<NO-POSITION>` row is
+`sv2v/test/lex/latin1.sv`, a deliberately Latin-1 lexer fixture the probe cannot *read*. It is
+adjudicated `unexplained_rejects_valid` — the class meaning *the parser wrongly rejected valid
+input* — while the parser never ran on it. It will never yield to a grammar fix, so it is a
+permanent unit of noise in the number this campaign is driving to zero. The standing
+`SV-CORPUS-GRAD.11a` tripwire already says a corpus timeout is a fact about the instrument rather
+than the parser; an unreadable file is the same fact wearing different clothes.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0039 — the artifact that recorded the bug and called it green
 
 `.3.20`'s subject — gate four SystemVerilog-only alternatives out of the `verilog_2005` profile — is

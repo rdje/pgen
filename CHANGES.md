@@ -1,5 +1,56 @@
 # CHANGES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0040 — leaf SV-CORPUS-GRAD.3.21: the burn-down's PICK step read a July vintage by default, and its input TSV had been corrupt the whole time (instrument-only; ZERO parser bytes, no release, no schema, no ledger)
+
+- **DEFECT 1 — stale-vintage defaults.** `classify_rejects_valid_families.py`'s three argparse
+  defaults named the RETIRED `_v2` artifacts, so the obvious no-argument invocation classified the
+  2026-07-23 cluster table and wrote the `_v2` outputs, leaving the LIVE
+  `rejects_valid_families.{tsv,md}` — what the `.3` burn-down reads to PICK its next leaf —
+  untouched. Reproduced by running the HEAD script in place with only its OUTPUT paths redirected:
+  **543 rows classified against a live population of 296.** Its sibling `cluster_rejects_valid.py`
+  already defaulted to the live paths, so the two halves of one pipeline disagreed about which
+  vintage was current — each individually self-consistent, jointly wrong.
+- HONEST SCOPE: the live report was NOT stale at HEAD. `.3.19` was burned by this once and
+  thereafter passed all three paths explicitly. This is a latent trap in the defaults — fired once,
+  armed for the next operator — not a stale artifact today.
+- **DEFECT 2, found while BUILDING the row-count refusal — the input TSV was corrupt, in every
+  tracked vintage.** Field-count histogram of the tracked cluster table: 295 lines with 6 fields,
+  1 with 7, 2 with 1, 1 empty — **299 physical lines over a 296-row population**. ROOT CAUSE:
+  `cluster_rejects_valid.py:219`, the `<NO-POSITION>` branch, writes the probe's raw multi-line
+  stdout+stderr into the last TSV column unescaped, so one read-error record became FOUR physical
+  lines. The classifier's `if len(cols) < 6: continue` then dropped the orphan fragments in silence
+  and 295 + 1 still matched the manifest — every published total right by accident.
+- ⛔ That is why the refusal could not be a `wc -l` comparison: on a HEALTHY pipeline it would have
+  read 299 vs 296 and fired. A false-positive gate teaches the operator to disable it, so the
+  corruption had to be fixed at the source before the count could mean anything.
+- **FIX 1** — `tsv_cell()` at the clusterer's write site, replacing `[\r\n\t]` one for one. The
+  first cut also collapsed whitespace RUNS and rewrote **79 lines** of a 296-row artifact with one
+  real defect; narrowed, the re-cut differs from tracked in **exactly the two defective records**,
+  the `.md` summary is byte-identical, and the regenerated families report differs in the same two
+  rows and nowhere else.
+- **FIX 2** — live defaults; a malformed line REFUSES (naming file, line and content) instead of
+  being skipped; the row count must equal the live manifest's `unexplained_rejects_valid` count,
+  with `--expect-rows` as a deliberate off-manifest escape hatch; and three always-on ground-truth
+  controls, because the reconciliation is only as good as its predicates — a bucketer returning one
+  family for everything would reconcile perfectly on row count.
+- ⛔⛔ THE FIRST EVIDENCE RUN FOR THIS LEAF WAS WRONG TWICE, IN THE CLASS THE LEAF REPAIRS, and is
+  recorded rather than quietly re-run: (a) it read `$?` through a `| sed` pipeline so every refusal
+  printed `exit=0` — an evidence harness that cannot see a failure; (b) it demonstrated the
+  ROW-COUNT refusal using the `_v2` table, which is ALSO corrupted, so the MALFORMED refusal fired
+  first and the path under test never ran. A refusal that fires for the wrong reason is not
+  evidence for the reason you wanted. Corrected with a well-formed 295-row table.
+- **VERIFIED** — all four paths with real exit codes: malformed `exit=1` naming line 147; wrong
+  vintage `exit=1` (295 vs 296); no manifest and no `--expect-rows` `exit=1`; the escape hatch
+  `exit=0`; and the no-argument green path printing `reconciled: 296 rows == …
+  (divergence:unexplained_rejects_valid)` then `classified 296 rows into 8 families`. Family
+  ranking unchanged (OTHER 224, interface/modport 18, constraint/randomize 16, SVA 11, …).
+  17/17 doctrines.
+- **ROUTED → `.3.22`:** the single `<NO-POSITION>` row is `sv2v/test/lex/latin1.sv`, a deliberately
+  Latin-1 lexer fixture the probe cannot READ as UTF-8. It sits in `unexplained_rejects_valid` —
+  the defect-signal class — while being a fact about the instrument's input handling. It will never
+  yield to a grammar fix, so it is permanent noise in the number the campaign drives to zero. Same
+  shape as the `SV-CORPUS-GRAD.11a` tripwire.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0039 — leaf SV-CORPUS-GRAD.3.20: `verilog_2005` was accepting five config `use`-clause forms IEEE 1364-2005 has no production for (grammar; release 1.0.181, schema UNCHANGED at 20, ledger SV-0051)
 
 - **A THIRD defect class, distinct from the two that precede it in this series.** `SV-0044`/`SV-0049`
