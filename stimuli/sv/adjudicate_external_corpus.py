@@ -98,6 +98,151 @@ EXTRA_PINNED = {
         "must_reject", "pinned: in-file comment 'The LRM disallows "
         "cross_identifier as a bins_expression' - a grammar-level restriction, "
         "and the driver CHECKs for an error"),
+
+    # ---- SV-CORPUS-GRAD.3.15 -- the bare generate_block family. ----------------
+    #
+    # ⛔ THE PARSER IS CORRECT ON ALL 19 AND THE MANIFEST WAS WRONG. Each file uses a
+    # begin/end block where IEEE 1800-2017 Annex A has no `generate_block` at all:
+    #
+    #   generate_region ::= generate { generate_item } endgenerate
+    #   generate_item   ::= module_or_generate_item | interface_or_generate_item
+    #                     | checker_or_generate_item
+    #   generate_block  ::= generate_item
+    #                     | [ id : ] begin [ : id ] { generate_item } end [ : id ]
+    #     -- A.4.2, mirrored verbatim by grammars/systemverilog.ebnf:2517-2521
+    #
+    # `generate_block` is reachable ONLY from `loop_generate_construct`,
+    # `if_generate_construct` and `case_generate_item`. So `for (...) begin : A ... end`
+    # and `if (P) begin : A ... end` are legal and DO parse (repro/C_*.sv, repro/D_*.sv
+    # both pass), while the same block sitting directly in a generate region or a module
+    # body does not -- it is the pre-2005 "legacy generate region", which verible's own
+    # lint rule NAMES as legacy in one of the very fixtures pinned below.
+    #
+    # ⭐⭐ THE REPO HAD ALREADY RULED THIS WAY, on the same construct, from the same suite:
+    # `module_begin_block.sv` two entries above is pinned `must_reject` because verible's
+    # in-file comment calls a bare begin block "LRM-invalid syntax". Its sibling fixture
+    # `generate_begin_module.sv` carried the OPPOSITE verdict purely because no comment
+    # happened to say so -- the two differ by an upstream author's annotation, not by
+    # anything in the LRM. That inconsistency IS the adjudicator hole this leaf closes.
+    #
+    # ⛔ This is an ADJUDICATION CORRECTION, never burn-down yield: no parser byte changes
+    # and the construct stays REJECTED. Tolerating it is a FUTURE, ADDITIVE, EBNF-declared
+    # dialect layer if it is ever wanted (feedback_sv_strict_lrm_compliance_default) --
+    # making it parse today would convert a correct reject into an over-acceptance defect.
+    ("Surelog", "tests/DefParamIndex/dut.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 5 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the Surelog golden-log heuristic"),
+    ("Surelog", "tests/GenerateBlock/dut.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 4 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the Surelog golden-log heuristic"),
+    ("Surelog", "tests/GenerateRegion/dut.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 49 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the Surelog golden-log heuristic"),
+    ("Surelog", "tests/ImplicitGenBlock/dut.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 37 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the Surelog golden-log heuristic"),
+    ("sv2v", "test/core/array.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 32 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the sv2v suite-contract heuristic"),
+    ("sv2v", "test/core/cast.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 5 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the sv2v suite-contract heuristic"),
+    ("sv2v", "test/core/decl_scope.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 6 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the sv2v suite-contract heuristic"),
+    ("sv2v", "test/core/inside_expr.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 27 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the sv2v suite-contract heuristic"),
+    ("sv2v", "test/core/logic_tf.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 18 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the sv2v suite-contract heuristic"),
+    ("verible", "verible/verilog/tools/lint/testdata/generate_begin_module.sv"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 4 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verible fixture heuristic"),
+    ("verilator", "test_regress/t/t_default_disable_iff_gen_multi_bad.v"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 13 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_dpi_string.v"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 14 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_gen_duplicated_blocks_bad.v"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 9 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_gen_if.v"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 23 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_gen_local.v"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 19 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_gen_self_return.v"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 31 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_interface_gen10.v"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 28 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_interface_gen5.v"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 28 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verilator driver heuristic"),
+    ("verilator", "test_regress/t/t_interface_gen7.v"): (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 34 - "
+        "IEEE 1800-2017 A.4.2 admits a generate_block only under "
+        "loop_generate_construct / if_generate_construct / case_generate_item; "
+        "neither generate_item nor module_or_generate_item has that alternative; "
+        "spec outranks the verilator driver heuristic"),
 }
 
 VERIBLE_SYNTAX_MODE_RE = re.compile(r"//\s*verilog_syntax\s*:")
@@ -591,9 +736,65 @@ def expect_ispras_v2005(relpath: str, text: str):
             "parts/) - not a standalone keyed unit")
 
 
+# SV-CORPUS-GRAD.3.15 -- the bare generate_block family, verilog_2005 lane.
+#
+# The SAME construct as the EXTRA_PINNED block above, judged against the OTHER edition.
+# IEEE 1364-2005 A.4.2 as extracted in grammars/verilog_2005_lrm_extracted.ebnf:452-462:
+#
+#   generate_region ::= generate { module_or_generate_item } endgenerate
+#   generate_block  ::= module_or_generate_item
+#                     | begin [ : generate_block_identifier ]
+#                         { module_or_generate_item } end
+#
+# `generate_block` is reachable only from loop_generate_construct (:714),
+# if_generate_construct (:534) and case_generate_item (:74) -- `module_or_generate_item`
+# (:749) has no bare-block alternative, so the verdict does NOT change with the edition.
+#
+# ⛔ THESE SIX WERE FOUND ONLY BECAUSE THE SWEEP WAS PARAMETERIZED BY LANE. The leaf was
+# cut from the sv_2017 axis-2 worklist, none of that lane's 19 files appear here, and
+# stopping at the lane the task named would have shipped a half fix that looked complete.
+V2005_LRM_PINNED = {
+    "ivtest/ivltests/br988.v": (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 7 - "
+        "IEEE 1364-2005 A.4.2 reaches a generate_block only from "
+        "loop/if/case generate constructs; generate_region and module_or_generate_item "
+        "have no such alternative; spec outranks the ivtest driver key"),
+    "ivtest/ivltests/pr1704726a.v": (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 39 - "
+        "IEEE 1364-2005 A.4.2 reaches a generate_block only from "
+        "loop/if/case generate constructs; generate_region and module_or_generate_item "
+        "have no such alternative; spec outranks the ivtest driver key"),
+    "ivtest/ivltests/pr1704726c.v": (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 517 - "
+        "IEEE 1364-2005 A.4.2 reaches a generate_block only from "
+        "loop/if/case generate constructs; generate_region and module_or_generate_item "
+        "have no such alternative; spec outranks the ivtest driver key"),
+    "ivtest/ivltests/pr1704726d.v": (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 82 - "
+        "IEEE 1364-2005 A.4.2 reaches a generate_block only from "
+        "loop/if/case generate constructs; generate_region and module_or_generate_item "
+        "have no such alternative; spec outranks the ivtest driver key"),
+    "ivtest/ivltests/pr2257003.v": (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 10 - "
+        "IEEE 1364-2005 A.4.2 reaches a generate_block only from "
+        "loop/if/case generate constructs; generate_region and module_or_generate_item "
+        "have no such alternative; spec outranks the ivtest driver key"),
+    "ivtest/ivltests/pr2257003b.v": (
+        "must_reject", "pinned .3.15: bare begin/end generate_block at line 4 - "
+        "IEEE 1364-2005 A.4.2 reaches a generate_block only from "
+        "loop/if/case generate constructs; generate_region and module_or_generate_item "
+        "have no such alternative; spec outranks the ivtest driver key"),
+}
+
+
 def expect_v2005(suite: str, rel: str, text: str, ividx):
     """Expected verdict for one v2005-lane row (leaf .8c.1) - suite metadata
     / upstream driver conventions only, judged against IEEE 1364-2005."""
+    # The LRM pins run FIRST: everything below is upstream TOOL testimony, and a
+    # conformance ruling with a clause cite outranks it (.3.14a/.3.14b/.3.15).
+    pinned = V2005_LRM_PINNED.get(rel.replace("\\", "/"))
+    if pinned:
+        return pinned
     if suite == "ispras-sv-tests":
         return expect_ispras_v2005(rel, text)
     if suite == "sv2v":

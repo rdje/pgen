@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0034 — when the pin table already disagrees with itself
+
+Three things from this slice are worth carrying past it, and none of them is a parser change —
+there wasn't one.
+
+⭐⭐ **Grep the pin tables for the CONSTRUCT before adjudicating a family.** The bare
+`generate_block` family looked like a fresh clause question. It was not: `EXTRA_PINNED` already
+held verible's `module_begin_block.sv` as `must_reject`, on that fixture's own
+`// LRM-invalid syntax` comment, while its sibling `generate_begin_module.sv` — the same
+construct one nesting level in — sat in the graduation bar as a parser defect. The two verdicts
+differed by whether an upstream author had written a comment. A contradiction already inside the
+project's accumulated rulings is stronger evidence than any fresh reading of Annex A, because it
+means the question was answered once and then re-asked under a different name. It also took the
+adjudication from "argue from the clause" to "make the table self-consistent", which is a much
+harder thing to get wrong.
+
+⛔⛔ **The lane a task names is not the lane a construct lives in.** The leaf was cut from the
+`sv_2017` axis-2 worklist and `MEMORY.md`'s `next_action` names that lane. The sweep was written
+parameterized by `--manifest`/`--profile` rather than hard-coded — a deliberate refusal to fork a
+diagnostic per lane — and pointing it at the `verilog_2005` manifest returned **6 more rows, all
+iverilog, none among the 19**. IEEE 1364-2005 A.4.2 gives the identical verdict, so the edition
+was never the variable; the *scope of the question* was. Nothing would have revealed the gap: no
+pass-rate, no cluster map, no family table looks across lanes. The cost of parameterizing was ten
+lines; the cost of not doing it was a fix that reported complete at 76 % coverage.
+
+⛔ **An instrument can look BUSY rather than BROKEN, and that is the dangerous failure.** The
+first spelling of "strip the trailing whitespace/comment run" was
+`re.sub(rb"(?:\s+|//[^\n]*|/\*.*?\*/)+\Z", b"", consumed)` — two quantifiers nested under an
+anchored `+`, which backtracks catastrophically. It ran at 100 % CPU for over three minutes and
+was killed. The natural conclusion — *"the corpus is slow, some of these files are huge"* — is
+wrong and would have been recorded as a fact about the corpus. **The tell was that CPU time
+equalled wall time while the probe process table was EMPTY**: a sweep that spawns subprocesses and
+has none running is not doing the work it claims. A linear backwards scan replaced it and the same
+sweep finishes in 5 s, matching `cluster_rejects_valid.py` on the same 331 files. Generalization:
+when a diagnostic is slow, check *where* the time is going before believing what it implies about
+the subject — a hung instrument and a hard problem look identical from the outside.
+
+⚠️ And the honest footnote on this commit's own gates: `TASK-ACCEPTANCE` reports PASS here
+**vacuously** — `scripts/check_diagnosis_evidence.sh` does not classify `stimuli/**` as a code
+change, so it never examined the checklist. The adjudicator is precisely the file that decides
+what counts as a defect, which is what that doctrine exists to guard. Routed to
+`DOCTRINE-GAP-OWNERSHIP.6`; until it is fixed, the checklist in `.3.15` is complete by author
+discipline rather than by enforcement, and it should be read that way.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0033 — the fix that measured as a no-op, and the two clauses nobody had read
 
 Three things in this slice are worth carrying past it, and none of them is the grammar edit.

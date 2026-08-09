@@ -18,17 +18,13 @@ Surelog	tests/ContAssign/dut.sv	0	26	ID [ NUM	wire intf intf2  [2];
 Surelog	tests/Covergroup/dut.sv	0	414	} endgroup covergroup	}
 Surelog	tests/CrossFunc/dut.sv	0	112	function ID ID	function CrossQueueType myFunc1(int f_lim);
 Surelog	tests/CrossItem/dut.sv	0	366	[ NUM :	bins c1 = ! binsof(a) intersect {[100:200]};// 4 cross products
-Surelog	tests/DefParamIndex/dut.sv	26	69	: ID ID	generate begin:foo
 Surelog	tests/DoWhile/dut.sv	0	56	( ) ;	function void uvm_default_factory::print ();
 Surelog	tests/EnumParenType/dut.sv	65	196	( ID )	(states_t) state1;
 Surelog	tests/ExtendClassMember/dut.sv	0	137	) extends ID	class uvm_sequencer_analysis_fifo #(type RSP = uvm_sequence_item) extends uvm_tlm_fifo #(RSP);
 Surelog	tests/ForeachClassParent/dut.sv	0	49	ID [ ID	protected uvm_phase m_type_overrides[$];
 Surelog	tests/ForeachSquare/dut.sv	0	112	) ID [	foreach(array[i][j])
-Surelog	tests/GenerateBlock/dut.sv	0	86	: ID wire	begin : A
-Surelog	tests/GenerateRegion/dut.sv	800	886	: ID wire	begin : A
 Surelog	tests/HierBitSlice/dut.sv	142	178	ID ; /	scalar_t pc;
 Surelog	tests/HierPathModule/dut.sv	52	58	medium ( )	module medium();
-Surelog	tests/ImplicitGenBlock/dut.sv	463	649	: ID wire	begin : foo
 Surelog	tests/IndexPartSelectBind/dut.sv	0	48	ID ; }	uvm_reg_data_t data;
 Surelog	tests/IndexedSelect/dut.sv	0	183	ID ( "	$display("test");
 Surelog	tests/InsideOp/dut.sv	179	286	inside { ID	if (GetWhat inside {Get0, GetDefault}) begin : gen_zero
@@ -98,7 +94,6 @@ ispras-sv-tests	ieee-1800-2012/33/33.04.03_05.sv	419	474	# ( .	instance top.a1 u
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_06.sv	337	392	# ( )	instance top.a1 use #(); // set all parameters in instance 'a1'
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_07.sv	411	466	# ( .	instance top.a1 use #(.WIDTH(48));
 ispras-sv-tests	ieee-1800-2012/33/33.04.03_08.sv	497	551	# ( .	instance top.t use #(.WIDTH(48));
-ispras-sv-tests	ieee-1800-2012/34/34.03.01_01.sv	140	180	` ID ID	`pragma protect encoding=(enctype="raw")
 iverilog	ivtest/ivltests/br_gh553.v	37	62	; integer ID	dut inst[4];
 iverilog	ivtest/ivltests/display_bug.v	0	110	] ID ;	word [2] array;      // word[0:1] exposes the bug as well
 iverilog	ivtest/ivltests/module_output_port_sv_var2.v	211	235	ID ; output	output reg a;
@@ -121,8 +116,6 @@ sv-tests	tests/chapter-18/18.12.1--adding-constraints-to-scope-variables_0.sv	39
 sv-tests	tests/chapter-18/18.5.4--distribution_0.sv	314	367	: = NUM	constraint c { b dist {3 := 1, 10 := 2}; }
 sv-tests	tests/chapter-18/18.5.4--distribution_2.sv	419	473	: = NUM	constraint c { b dist {3 := 0, 10 := 5}; }
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	387	413	; / /	reg logic; // OK: "logic" is not a keyword in 1364-2001
-sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug-line.sv	321	341	` ID NUM	`line 1 "5.6.4--compiler-directives-debug-line.sv" 1
-sv-tests	tests/chapter-5/5.6.4--compiler-directives-pragma.sv	317	329	` ID ID	`pragma protect
 sv-tests	tests/chapter-5/5.9-string-broken-line.sv	329	373	" ID \	$display("broken \
 sv-tests	tests/chapter-6/6.23--type_op_compare.sv	316	412	) type (	case (type(T))
 sv-tests	tests/chapter-6/6.9.2--vector_scalared.sv	317	352	ID = NUM	tri1 scalared [15:0] a = 0;
@@ -133,25 +126,18 @@ sv-tests	tests/chapter-7/queues/insert_assign.sv	388	474	] } ;	q = { q[0:1], 10,
 sv-tests	tests/chapter-7/queues/pop_back_assing.sv	392	479	- NUM ]	q = q[0:$-1]; // void'(q.pop_back()) or q.delete(q.size-1)
 sv-tests	tests/chapter-7/queues/pop_front_assign.sv	394	514	] ; ID	q = q[1:$];
 sv-tests	tests/chapter-8/8.26.4--illegal_implements_parameter.sv	529	697	; virtual function	class Hello #(type T = ihello) implements T;
-sv-tests	tests/generic/class/class_test_48.sv	301	324	` ID ID	`undef EVIL_MACRO
 sv-tests	tests/generic/typedef/typedef_test_8__bad.sv	429	452	ID ; module	typedef some_other_type myalias;
-sv2v	test/core/array.sv	97	711	: ID logic	begin : A
-sv2v	test/core/cast.sv	0	65	: ID int	begin : A
-sv2v	test/core/decl_scope.sv	0	145	: ID logic	begin : X
 sv2v	test/core/delay.sv	0	24	] ID ,	logic [4] a, b;
 sv2v	test/core/enum_scope.sv	0	1053	{ ID =	typedef enum [5:0] {
 sv2v	test/core/for_loop_inits.sv	0	96	+ = NUM	for (x += 1; x < y; x++)
-sv2v	test/core/inside_expr.sv	0	872	: ID localparam	begin : patterns
 sv2v	test/core/interface_array.sv	2548	2985	. ID )	ModuleASet #(1, 1, 0) xs(intfX[2:0].ModportB);
 sv2v	test/core/interface_generate.sv	0	173	( ID [	modport client_mp (output .client_req(req[i]));
 sv2v	test/core/interface_input_type.sv	92	118	ID , input	input intf i,
-sv2v	test/core/logic_tf.sv	0	308	: ID logic	begin : A
 sv2v	test/core/multipack_struct_cast.sv	0	56	] [ NUM	logic [2][3] x;
 sv2v	test/core/nest_order.sv	18	34	' ( ID	localparam Y = 5'(Z);
 sv2v	test/core/port_default.sv	0	185	= ID (	input wire integer x = F(P); // defining a default here is non-standard
 sv2v	test/core/struct_param.sv	449	522	] ID ;	logic [2] b;
 sv2v	test/core/struct_unit_array.sv	0	175	] ID =	S [WIDTH] s = '{
-sv2v	test/core/time.sv	57	70	` ID NUM	`timescale 1ns / 10ps
 sv2v	test/core/trailing_commas.sv	0	21	) ( ID	module ModuleA #(P=1,) (inp,);
 sv2v	test/core/unbased_unsized_default.sv	0	33	] [ NUM	input [4][5] inp;
 sv2v	test/error/enum_range_x.sv	54	87	' ID ]	A['x]
@@ -182,7 +168,6 @@ verible	verible/verilog/tools/kythe/testdata/primitive_type_with_dimensions.sv	2
 verible	verible/verilog/tools/kythe/testdata/program.sv	226	357	ID ; initial	environment env;
 verible	verible/verilog/tools/kythe/testdata/reversed_definition.sv	60	443	ID = new	static class2 instance1 = new();
 verible	verible/verilog/tools/lint/testdata/forbid_line_continuations.sv	0	55	" ID ID	string bad_literal = "Humpty Dumpty sat on a wall. \
-verible	verible/verilog/tools/lint/testdata/generate_begin_module.sv	0	98	: ID always	begin : gen_block1
 verible	verible/verilog/tools/lint/testdata/generate_label_module.sv	0	115	; end endgenerate	baz bam;
 verible	verible/verilog/tools/lint/testdata/instance_parameters.sv	0	45	; endmodule	bar #(4, 8) baz;
 verilator	test_regress/t/t_array_event.v	203	393	; endtask function	->write_events[index];
@@ -213,10 +198,8 @@ verilator	test_regress/t/t_covergroup_autobins_bad.v	306	471	; } endgroup	bins a
 verilator	test_regress/t/t_covergroup_cross_opt_unsup.v	260	511	} ID :	}
 verilator	test_regress/t/t_covergroup_with_function_foo_bad.v	197	240	ID ( int	covergroup cg_bad with function foo(int x);
 verilator	test_regress/t/t_debug_emitv.v	954	1083	{ ID ,	typedef enum [2:0] {
-verilator	test_regress/t/t_default_disable_iff_gen_multi_bad.v	198	285	: ID default	begin : g
 verilator	test_regress/t/t_delay.v	227	549	. ID ID	assign #sub.delay dly4 = dly1 + 1;
 verilator	test_regress/t/t_display_qqq.v	203	245	" ID "	$display("""First "quoted"\nsecond\
-verilator	test_regress/t/t_dpi_string.v	352	450	: ID string	begin : DSM
 verilator	test_regress/t/t_dpi_type_bad.v	352	371	" ID -	import "DPI-BAD" task dpix_twice;
 verilator	test_regress/t/t_enum.v	300	648	{ ID =	typedef enum [2:0] { ONES=~0 } three_t;
 verilator	test_regress/t/t_enum_bad_value.v	203	366	{ ID =	typedef enum [2:0] { VALUE_BAD1 = 8 } enum_t;
@@ -235,10 +218,6 @@ verilator	test_regress/t/t_foreach_nested.v	234	348	) this .	foreach(this.foo.x[
 verilator	test_regress/t/t_foreach_nindex_bad.v	203	287	; / /	foreach (array[i, j, badk, badl]);  // bad
 verilator	test_regress/t/t_foreach_type_bad.v	224	303	; / /	foreach (c[i]);  // bad type
 verilator	test_regress/t/t_fuzz_genintf_bad.v	349	398	. ID (	.b(ifs)
-verilator	test_regress/t/t_gen_duplicated_blocks_bad.v	197	233	: ID end	begin : block
-verilator	test_regress/t/t_gen_if.v	411	635	begin : ID	begin : named
-verilator	test_regress/t/t_gen_local.v	203	339	: ID for	begin : topgen
-verilator	test_regress/t/t_gen_self_return.v	201	1083	: ID for	begin : ram_dataout_gen
 verilator	test_regress/t/t_iface_self_ref_typedef.v	456	522	ID ; ID	typedef my_iface#(T) self_t;
 verilator	test_regress/t/t_implements_contents_bad.v	203	224	int ID ;	int badi;
 verilator	test_regress/t/t_implements_nested_bad.v	203	237	interface class ID	interface class bad_cannot_nest;
@@ -249,20 +228,14 @@ verilator	test_regress/t/t_inst_2star_bad.v	203	275	. * )	sub sub (foo, .*);
 verilator	test_regress/t/t_inst_noname_bad.v	204	218	) ; ID	m();
 verilator	test_regress/t/t_inst_paren_bad.v	226	250	; / /	sub sub_inst;  // No ()
 verilator	test_regress/t/t_inst_port_complex_unsup.v	245	319	. ID (	output wire .ao_rename(ao),  .bo_rename(bo)
-verilator	test_regress/t/t_interface_gen10.v	446	476	: ID ID	begin : TestIf
 verilator	test_regress/t/t_interface_gen11.v	446	514	ID ( .	t1 t (.mod_intf(mod_intfs[0]));
 verilator	test_regress/t/t_interface_gen13.v	214	363	ID = NUM	initial p2 = 1;
-verilator	test_regress/t/t_interface_gen5.v	447	477	: ID ID	begin : TestIf
 verilator	test_regress/t/t_interface_gen6.v	289	539	NUM ) begin	if (1) begin
-verilator	test_regress/t/t_interface_gen7.v	523	615	: ID for	begin : ia
 verilator	test_regress/t/t_interface_modport_export.v	259	329	( input logic	extern function myfunc (input logic val);
 verilator	test_regress/t/t_interface_nested_port_array.v	1045	1128	ID , output	l0_if#(W) l0,
 verilator	test_regress/t/t_interface_paren_missing_bad.v	280	303	; initial ID	intf intf_i;
 verilator	test_regress/t/t_langext_order.v	303	317	do ) ;	module t(input do);
 verilator	test_regress/t/t_lint_colonplus_bad.v	203	289	= ID [	output [2:1] z = r[2 :+ 1];
-verilator	test_regress/t/t_lint_implicit_def_bad.v	203	340	` ID ID	`default_nettype none
-verilator	test_regress/t/t_lint_implicit_func_bad.v	203	263	` ID wire	`default_nettype wire
-verilator	test_regress/t/t_lint_implicit_type_bad.v	237	320	` ID wire	`default_nettype wire
 verilator	test_regress/t/t_lint_notredop_bad.v	196	278	| ID ;	assign y[0] = !|v;
 verilator	test_regress/t/t_lint_vcmarker_bad.v	203	212	<< << <<	<<<<<<< HEAD  // Intentional test: This conflict marker should be here
 verilator	test_regress/t/t_lparam_assign_iface_typedef2.v	333	407	. ID ;	localparam type p0_t = if0.rq_t;

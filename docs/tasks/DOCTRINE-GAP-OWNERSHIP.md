@@ -490,6 +490,44 @@ the copy has no way to know.*
   the promise from the book**. Leaving a published forward-reference unowned is the one outcome
   this tree exists to forbid.
 
+### `.6` — `TASK-ACCEPTANCE` is BLIND to the adjudicator, the one file class that can move the SV graduation bar with zero parser bytes (`todo`, routed by `SV-CORPUS-GRAD.3.15`, 2026-08-09)
+
+- **MEASURED, not inferred.** With the whole `.3.15` change staged,
+  `bash scripts/check_diagnosis_evidence.sh` printed
+  *"diag-evidence: OK (no code change staged; task-acceptance checklist not required)"* and
+  exited 0 — so `TASK-ACCEPTANCE`'s PASS in that commit's 17/17 is **vacuous**. The staged set
+  included `stimuli/sv/adjudicate_external_corpus.py` and both tracked adjudication manifests.
+- **WHY + WHERE.** `scripts/check_diagnosis_evidence.sh:69-78` sets `code_changed=1` for
+  `grammars/*.ebnf`, `rust/src/*`, `generated/*`, the ast-shape contracts, `scripts/check_*.sh`,
+  `rust/scripts/*.sh`, `.githooks/*`, `.github/workflows/*.yml`, `rust/build.rs` and the two
+  Makefiles. `stimuli/**` matches nothing. The narrowing is **deliberate and documented** at
+  `:64-68` — *"ordinary tooling, corpora and helper scripts are not [in scope]"*.
+- ⛔ **The classification is what is wrong, not the narrowing.** The comment at `:62` states the
+  doctrine's own principle: ***"A change to a gate is a change to what 'verified' MEANS."***
+  `adjudicate_external_corpus.py` assigns the EXPECTED VERDICT for all 16 336 + 2 459 corpus
+  rows — it is the file that defines what counts as a defect, and the sum of its two
+  `unexplained` classes **is** the `.5` graduation bar. It is a proof surface, not ordinary
+  tooling. A wrong pin lowers the bar silently and in the passing direction, which is precisely
+  the failure `SV-CORPUS-GRAD.3.13` named as *"the trap this leaf must not fall into"*.
+- **The blind spot is not hypothetical — it is the recent norm.** `.3.13` (`-0031`), `.3.14a`
+  and `.3.15` (`-0034`) each moved the SV bar with **zero parser bytes**, so each was a commit
+  the acceptance enforcer could not see. Those three leaves happen to carry the checklist
+  anyway, by author discipline; nothing checked that they did.
+- **Reproduces outside SV** (`ROUTING-EVIDENCE`): the predicate is family-agnostic — it is a
+  path list with no family term — so any family's adjudication/expectation tooling under
+  `stimuli/**` is equally invisible. The VHDL lane's `CORPUS-GRAD-ALL.2` expectation work will
+  land in the same hole.
+- **Owed:** extend the code-change set to the expectation-defining surfaces (at minimum
+  `stimuli/*/adjudicate_*.py` and the tracked manifests they emit), with the same
+  waiver/routing escape the existing arms have — then re-run it against `-0031`/`-0034` to prove
+  it would now bind. ⛔ Do NOT widen to all of `stimuli/**`: the corpora themselves are data and
+  the `:64-68` narrowing is right about them.
+- **Sibling, same class:** `GENERATED-LINT-CORRECTNESS.11` — `clippy_on_rust_change` cannot fire
+  on a grammar-only commit because `generated/` is gitignored, so the union it greps is 0 by
+  construction. Both are *a gate structurally blind to the commit class that matters most to it*.
+- **Priority: parked.** Governance, and it does not block the SV release lane
+  ([[feedback_prefer_feature_work_over_governance_lanes]]).
+
 ## Evidence
 
 - `git log -1 -S "whole-file grep, not box-scoped" -- docs/decisions/project_build_integrity_compiler_root_cause_signature.md`

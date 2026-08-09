@@ -1,0 +1,25 @@
+controls OK (profile sv_2017): positive in, negative out
+sweeping 331 unexplained_rejects_valid rows from stimuli/sv/characterization/adjudication_manifest.tsv
+bare-begin family: 19 / 331 rows
+  Surelog	tests/DefParamIndex/dut.sv	furthest=69
+  Surelog	tests/GenerateBlock/dut.sv	furthest=86
+  Surelog	tests/GenerateRegion/dut.sv	furthest=886
+  Surelog	tests/ImplicitGenBlock/dut.sv	furthest=649
+  sv2v	test/core/array.sv	furthest=711
+  sv2v	test/core/cast.sv	furthest=65
+  sv2v	test/core/decl_scope.sv	furthest=145
+  sv2v	test/core/inside_expr.sv	furthest=872
+  sv2v	test/core/logic_tf.sv	furthest=308
+  verible	verible/verilog/tools/lint/testdata/generate_begin_module.sv	furthest=98
+  verilator	test_regress/t/t_default_disable_iff_gen_multi_bad.v	furthest=285
+  verilator	test_regress/t/t_dpi_string.v	furthest=450
+  verilator	test_regress/t/t_gen_duplicated_blocks_bad.v	furthest=233
+  verilator	test_regress/t/t_gen_if.v	furthest=635
+  verilator	test_regress/t/t_gen_local.v	furthest=339
+  verilator	test_regress/t/t_gen_self_return.v	furthest=1083
+  verilator	test_regress/t/t_interface_gen10.v	furthest=476
+  verilator	test_regress/t/t_interface_gen5.v	furthest=477
+  verilator	test_regress/t/t_interface_gen7.v	furthest=615
+
+non-integer probe results: 1
+  sv2v	test/lex/latin1.sv	unparseable

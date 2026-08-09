@@ -1734,6 +1734,44 @@ the macro; the other 4 used one elsewhere in the file and had stopped at an unre
 correct relabel still buries those stuck points, so they are re-routed as crafted minimal cases
 where the construct — not the vendored file — is the unit.
 
+#### When the pin table already contradicts itself
+
+The pinned rulings are not just an override list — they are the project's accumulated reading of the
+standard, and **an inconsistency among them is itself a defect**. `SV-CORPUS-GRAD.3.15` found one.
+
+Two fixtures from the same suite use the same construct, a `begin … end` block placed where IEEE
+1800-2017 A.4.2 has no production for one:
+
+```ebnf
+generate_region ::= generate { generate_item } endgenerate
+generate_item   ::= module_or_generate_item | interface_or_generate_item
+                  | checker_or_generate_item
+generate_block  ::= generate_item
+                  | [ id : ] begin [ : id ] { generate_item } end [ : id ]
+```
+
+`generate_block` is reachable only from `loop_generate_construct`, `if_generate_construct` and
+`case_generate_item` — so `for (…) begin : A … end` and `if (P) begin : A … end` are legal and do
+parse, while the same block sitting *directly* in a generate region or a module body has no
+production at all. It is the pre-2005 "legacy generate region".
+
+One of those fixtures was pinned `must_reject` years earlier, because its author had written
+`// LRM-invalid syntax` in the file. The other was `must_accept`, counting against the graduation
+bar as a parser defect — **for no reason except that nobody had written the comment.** The verdicts
+differed by an upstream annotation, not by anything in the standard.
+
+The lesson generalizes past this construct: **before adjudicating a family, search the pin tables
+for the construct itself.** A contradiction already sitting in the table is stronger evidence than
+a fresh reading of the clause, because it means the question was answered once and then re-asked
+under a different name. Twenty-five rows across four suites and both LRM editions moved to
+`must_reject` on that basis, and no parser byte changed.
+
+⛔ **And the lane a task names is not the lane a construct lives in.** That sweep was written
+parameterized by lane rather than hard-coded to the one the task was cut from. Run against the
+second profile lane it surfaced six further rows, none of them among the first nineteen. A
+diagnostic copied per lane only ever covers the lane it was pasted into; a parameterized one asks
+the whole question.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

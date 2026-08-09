@@ -257,7 +257,7 @@ Surelog	tests/DataAttrib/dut.sv	pass	must_accept	match	Surelog: golden log DataA
 Surelog	tests/DecValue/dut.sv	pass	must_accept	match	Surelog: golden log DecValue.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/DecimalSize/dut.sv	pass	must_accept	match	Surelog: golden log DecimalSize.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/DefParamFromParam/dut.sv	pass	must_accept	match	Surelog: golden log DefParamFromParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/DefParamIndex/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log DefParamIndex.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/DefParamIndex/dut.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 5 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the Surelog golden-log heuristic
 Surelog	tests/DefaultAssign/dut.sv	pass	must_accept	match	Surelog: golden log DefaultAssign.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/DefaultNetType/dut.sv	pass	must_accept	match	Surelog: golden log DefaultNetType.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/DefaultPatternAssign/dut.sv	pass	must_accept	match	Surelog: golden log DefaultPatternAssign.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -400,11 +400,11 @@ Surelog	tests/GenScopeShadow/dut.sv	pass	must_accept	match	Surelog: golden log G
 Surelog	tests/GenStructAccess/dut.sv	pass	must_accept	match	Surelog: golden log GenStructAccess.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/GenVarRef/dut.sv	pass	must_accept	match	Surelog: golden log GenVarRef.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/GenerateAssigns/top.v	fail	chained_only	deferred:chained_only	Surelog: driver references out-of-unit sources/libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or ../ paths) - chain-level only
-Surelog	tests/GenerateBlock/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log GenerateBlock.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/GenerateBlock/dut.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 4 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the Surelog golden-log heuristic
 Surelog	tests/GenerateBlock2/dut.sv	pass	must_accept	match	Surelog: golden log GenerateBlock2.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/GenerateInterface/top.sv	pass	must_accept	match	Surelog: golden log GenerateInterface.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/GenerateModule/top.v	pass	must_accept	match	Surelog: golden log GenerateModule.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/GenerateRegion/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log GenerateRegion.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/GenerateRegion/dut.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 49 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the Surelog golden-log heuristic
 Surelog	tests/GenerateUnnamed/top.v	pass	chained_only	deferred:chained_only	Surelog: driver references out-of-unit sources/libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or ../ paths) - chain-level only
 Surelog	tests/Guards/rtl1/ast_pkg.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/Guards/rtl2/ast_pkg.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
@@ -449,7 +449,7 @@ Surelog	tests/Implicit/dut.sv	pass	must_accept	match	Surelog: golden log Implici
 Surelog	tests/ImplicitArg/dut.sv	pass	must_accept	match	Surelog: golden log ImplicitArg.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ImplicitFunc/dut.sv	pass	must_accept	match	Surelog: golden log ImplicitFunc.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ImplicitFuncArgAndReturn/dut.sv	pass	must_accept	match	Surelog: golden log ImplicitFuncArgAndReturn.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/ImplicitGenBlock/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log ImplicitGenBlock.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/ImplicitGenBlock/dut.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 37 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the Surelog golden-log heuristic
 Surelog	tests/ImplicitPackedStructNet/dut.sv	pass	must_accept	match	Surelog: golden log ImplicitPackedStructNet.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ImplicitParam/dut.sv	pass	must_accept	match	Surelog: golden log ImplicitParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ImplicitPort/dut.sv	pass	must_accept	match	Surelog: golden log ImplicitPort.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -11859,7 +11859,7 @@ sv2v	test/core/always_spin.sv	fail	must_accept	divergence:explained_svpp_include
 sv2v	test/core/always_spin.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/ambiguous_tore.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/ambiguous_tore.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/array.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/array.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 32 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the sv2v suite-contract heuristic
 sv2v	test/core/array.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/array_in_package.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/array_in_package.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -11880,7 +11880,7 @@ sv2v	test/core/case_inside_cast.v	pass	out_of_scope_with_cause:v2005_profile_lan
 sv2v	test/core/case_violation_checks.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/case_violation_checks.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/case_violation_checks_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/cast.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/cast.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 5 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the sv2v suite-contract heuristic
 sv2v	test/core/cast.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/cast_conflict.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/cast_conflict.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -11909,7 +11909,7 @@ sv2v	test/core/dangling_else.sv	fail	must_accept	divergence:explained_svpp_macro
 sv2v	test/core/dangling_else.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/data_lifetime.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/data_lifetime.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/decl_scope.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/decl_scope.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 6 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the sv2v suite-contract heuristic
 sv2v	test/core/decl_scope.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/default_nettype.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/default_nettype.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -11987,7 +11987,7 @@ sv2v	test/core/input_reg.v	pass	out_of_scope_with_cause:v2005_profile_lane	defer
 sv2v	test/core/input_reg_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/inside_exhaust.sv	fail	must_accept	divergence:explained_svpp_include	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/inside_exhaust.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/inside_expr.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/inside_expr.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 27 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the sv2v suite-contract heuristic
 sv2v	test/core/inside_expr.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/instance_array.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/instance_array.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -12083,7 +12083,7 @@ sv2v	test/core/logic_cond_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	d
 sv2v	test/core/logic_struct_select.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/logic_struct_select.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/logic_struct_select_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/logic_tf.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/logic_tf.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 18 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the sv2v suite-contract heuristic
 sv2v	test/core/logic_tf.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/multi_array_decl.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/multi_array_decl.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -13021,7 +13021,7 @@ verible	verible/verilog/tools/lint/testdata/forbid_consecutive_null_statements.s
 verible	verible/verilog/tools/lint/testdata/forbid_line_continuations.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/forbid_negative_array_dim.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/generate-label-module-body.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit
-verible	verible/verilog/tools/lint/testdata/generate_begin_module.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
+verible	verible/verilog/tools/lint/testdata/generate_begin_module.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 4 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verible fixture heuristic
 verible	verible/verilog/tools/lint/testdata/generate_label_module.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/generate_label_prefix.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/instance-ports-module-body.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit
@@ -13763,7 +13763,7 @@ verilator	test_regress/t/t_debug_inputs.v	pass	must_accept	match	verilator: driv
 verilator	test_regress/t/t_debug_inputs_a.v	pass	chained_only	deferred:chained_only	verilator: no same-stem driver and never a top_filename - include/companion fragment
 verilator	test_regress/t/t_debug_inputs_b.v	pass	chained_only	deferred:chained_only	verilator: no same-stem driver and never a top_filename - include/companion fragment
 verilator	test_regress/t/t_debug_trace.v	pass	must_accept	match	verilator: driver t_debug_trace.py expects success
-verilator	test_regress/t/t_default_disable_iff_gen_multi_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_default_disable_iff_gen_multi_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_default_disable_iff_gen_multi_bad.v	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 13 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_default_disable_iff_scope.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_default_disable_iff_scope.py expects success
 verilator	test_regress/t/t_define_override.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_define_override.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_defparam_hier.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_defparam_hier.py expects success
@@ -13897,7 +13897,7 @@ verilator	test_regress/t/t_dpi_result_type.v	fail	must_accept	divergence:explain
 verilator	test_regress/t/t_dpi_result_type_bad.v	pass	must_accept	match	verilator: driver t_dpi_result_type_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_dpi_shortcircuit.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_shortcircuit.py expects success
 verilator	test_regress/t/t_dpi_shortcircuit2.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_shortcircuit2.py expects success
-verilator	test_regress/t/t_dpi_string.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_dpi_string.py expects success
+verilator	test_regress/t/t_dpi_string.v	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 14 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_dpi_sys.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_sys.py expects success
 verilator	test_regress/t/t_dpi_threads.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_dpi_threads.py expects success
 verilator	test_regress/t/t_dpi_type_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_dpi_type_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14306,7 +14306,7 @@ verilator	test_regress/t/t_gen_defparam_bad.v	pass	must_accept	match	verilator: 
 verilator	test_regress/t/t_gen_defparam_multi.v	pass	must_accept	match	verilator: driver t_gen_defparam_multi.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_gen_defparam_nfound_bad.v	pass	must_accept	match	verilator: driver t_gen_defparam_nfound_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_gen_div0.v	pass	must_accept	match	verilator: driver t_gen_div0.py expects success
-verilator	test_regress/t/t_gen_duplicated_blocks_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_gen_duplicated_blocks_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_gen_duplicated_blocks_bad.v	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 9 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_gen_for.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_gen_for.py expects success
 verilator	test_regress/t/t_gen_for0.v	pass	must_accept	match	verilator: driver t_gen_for0.py expects success
 verilator	test_regress/t/t_gen_for1.v	pass	must_accept	match	verilator: driver t_gen_for1.py expects success
@@ -14315,19 +14315,19 @@ verilator	test_regress/t/t_gen_for_overlap.v	fail	must_accept	divergence:explain
 verilator	test_regress/t/t_gen_for_shuffle.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gen_for_shuffle.py expects success
 verilator	test_regress/t/t_gen_forif.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_gen_forif.py expects success
 verilator	test_regress/t/t_gen_genblk.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gen_genblk.py expects success
-verilator	test_regress/t/t_gen_if.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_gen_if.py expects success
+verilator	test_regress/t/t_gen_if.v	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 23 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_gen_ifelse.v	pass	must_accept	match	verilator: driver t_gen_ifelse.py expects success
 verilator	test_regress/t/t_gen_inc.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_gen_inc.py expects success
 verilator	test_regress/t/t_gen_index.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gen_index.py expects success
 verilator	test_regress/t/t_gen_intdot.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_gen_intdot.py expects success
 verilator	test_regress/t/t_gen_intdot2.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gen_intdot2.py expects success
-verilator	test_regress/t/t_gen_local.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_gen_local.py expects success
+verilator	test_regress/t/t_gen_local.v	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 19 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_gen_lsb.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gen_lsb.py expects success
 verilator	test_regress/t/t_gen_mislevel.v	pass	must_accept	match	verilator: driver t_gen_mislevel.py expects success
 verilator	test_regress/t/t_gen_missing.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gen_missing.py expects success
 verilator	test_regress/t/t_gen_missing_bad2.v	pass	must_accept	match	verilator: driver t_gen_missing_bad2.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_gen_nonconst_bad.v	pass	must_accept	match	verilator: driver t_gen_nonconst_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_gen_self_return.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_gen_self_return.py expects success
+verilator	test_regress/t/t_gen_self_return.v	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 31 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_gen_upscope.v	pass	must_accept	match	verilator: driver t_gen_upscope.py expects success
 verilator	test_regress/t/t_gen_var_bad.v	pass	must_accept	match	verilator: driver t_gen_var_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_generate_fatal_bad.v	pass	must_accept	match	verilator: driver t_generate_fatal_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
@@ -14521,7 +14521,7 @@ verilator	test_regress/t/t_interface_find_ifc.v	pass	chained_only	deferred:chain
 verilator	test_regress/t/t_interface_func_impure_bad.v	pass	must_accept	match	verilator: driver t_interface_func_impure_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_interface_func_no_paren.v	pass	must_accept	match	verilator: driver t_interface_func_no_paren.py expects success
 verilator	test_regress/t/t_interface_gen.v	pass	must_accept	match	verilator: driver t_interface_gen.py expects success
-verilator	test_regress/t/t_interface_gen10.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_gen10.py expects success
+verilator	test_regress/t/t_interface_gen10.v	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 28 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_interface_gen11.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_gen11.py expects success
 verilator	test_regress/t/t_interface_gen12.v	pass	must_accept	match	verilator: driver t_interface_gen12.py expects success
 verilator	test_regress/t/t_interface_gen13.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_gen13.py expects success
@@ -14529,9 +14529,9 @@ verilator	test_regress/t/t_interface_gen14.v	fail	must_accept	divergence:explain
 verilator	test_regress/t/t_interface_gen2.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_interface_gen2.py expects success
 verilator	test_regress/t/t_interface_gen3.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_interface_gen3.py expects success
 verilator	test_regress/t/t_interface_gen4.v	pass	must_accept	match	verilator: driver t_interface_gen4.py expects success
-verilator	test_regress/t/t_interface_gen5.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_gen5.py expects success
+verilator	test_regress/t/t_interface_gen5.v	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 28 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_interface_gen6.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_gen6.py expects success
-verilator	test_regress/t/t_interface_gen7.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_interface_gen7.py expects success
+verilator	test_regress/t/t_interface_gen7.v	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 34 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verilator driver heuristic
 verilator	test_regress/t/t_interface_gen8.v	pass	must_accept	match	verilator: driver t_interface_gen8.py expects success
 verilator	test_regress/t/t_interface_gen9.v	pass	must_accept	match	verilator: driver t_interface_gen9.py expects success
 verilator	test_regress/t/t_interface_generic.v	pass	must_accept	match	verilator: driver t_interface_generic.py expects success

@@ -1,0 +1,11 @@
+controls OK (profile verilog_2005): positive in, negative out
+sweeping 60 unexplained_rejects_valid rows from stimuli/sv/characterization/adjudication_manifest_v2005.tsv
+bare-begin family: 6 / 60 rows
+  iverilog	ivtest/ivltests/br988.v	furthest=78
+  iverilog	ivtest/ivltests/pr1704726a.v	furthest=746
+  iverilog	ivtest/ivltests/pr1704726c.v	furthest=11256
+  iverilog	ivtest/ivltests/pr1704726d.v	furthest=1608
+  iverilog	ivtest/ivltests/pr2257003.v	furthest=112
+  iverilog	ivtest/ivltests/pr2257003b.v	furthest=40
+
+non-integer probe results: 0
