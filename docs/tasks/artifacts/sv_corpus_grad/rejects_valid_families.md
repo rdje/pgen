@@ -1,10 +1,10 @@
 # rejects-valid construct families (SV-CORPUS-GRAD.3.2)
 
-312 `divergence:unexplained_rejects_valid` rows classified into 9 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
+310 `divergence:unexplained_rejects_valid` rows classified into 8 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
 
 | # | family | rows | suite split |
 |---|---|---|---|
-| 1 | OTHER (per-row triage) | 227 | verilator:96, Surelog:41, ispras-sv-tests:30, sv2v:24, iverilog:13, sv-tests:12, verible:10, slang:1 |
+| 1 | OTHER (per-row triage) | 226 | verilator:95, Surelog:41, ispras-sv-tests:30, sv2v:24, iverilog:13, sv-tests:12, verible:10, slang:1 |
 | 2 | interface/modport (ch25) | 24 | verilator:11, ispras-sv-tests:7, sv-tests:3, sv2v:2, verible:1 |
 | 3 | constraint/randomize (ch18) | 22 | verilator:18, ispras-sv-tests:2, sv-tests:2 |
 | 4 | SVA implication/property (ch16) | 11 | ispras-sv-tests:5, verilator:4, Surelog:2 |
@@ -12,7 +12,6 @@
 | 6 | foreach/array (ch7) | 9 | verilator:5, Surelog:2, iverilog:1, verible:1 |
 | 7 | size/type cast N'(...) (ch6/11) | 6 | Surelog:4, iverilog:1, sv2v:1 |
 | 8 | coverage bins/cross (ch19) | 3 | verilator:2, ispras-sv-tests:1 |
-| 9 | named block/label (ch9/27) | 1 | Surelog:1 |
 
 ## Representative stuck lines per family
 
@@ -62,6 +61,3 @@
 - `ispras-sv-tests`: `bins apple = X with (a + b < 257) matches 127;`  (ieee-1800-2012/19/19.06.01.02_01.sv)
 - `verilator`: `bins auto[size_var];`  (test_regress/t/t_covergroup_autobins_bad.v)
 - `verilator`: `covergroup cg_bad with function foo(int x);`  (test_regress/t/t_covergroup_with_function_foo_bad.v)
-
-### named block/label (ch9/27)
-- `Surelog`: `if (GetWhat inside {Get0, GetDefault}) begin : gen_zero`  (tests/InsideOp/dut.sv)

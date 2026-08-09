@@ -1,11 +1,5 @@
-controls OK (profile verilog_2005): positive in, negative out
-sweeping 60 unexplained_rejects_valid rows from stimuli/sv/characterization/adjudication_manifest_v2005.tsv
-bare-begin family: 6 / 60 rows
-  iverilog	ivtest/ivltests/br988.v	furthest=78
-  iverilog	ivtest/ivltests/pr1704726a.v	furthest=746
-  iverilog	ivtest/ivltests/pr1704726c.v	furthest=11256
-  iverilog	ivtest/ivltests/pr1704726d.v	furthest=1608
-  iverilog	ivtest/ivltests/pr2257003.v	furthest=112
-  iverilog	ivtest/ivltests/pr2257003b.v	furthest=40
+controls OK (family begin, profile verilog_2005): +B_labelled_begin_in_generate.sv@30, -G_inside_v2005_pure.sv
+sweeping 54 unexplained_rejects_valid rows from stimuli/sv/characterization/adjudication_manifest_v2005.tsv
+`begin` family: 0 / 54 rows
 
 non-integer probe results: 0

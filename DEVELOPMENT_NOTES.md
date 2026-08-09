@@ -1,5 +1,34 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0035 — generalizing an instrument re-proves the leaf that built it
+
+`.3.16` needed the same whole-population sweep as `.3.15` over a different stuck token. The cheap
+move is to copy the file and edit one string; instead only the **predicate** became selectable
+(`--family begin|inside`), leaving the probe, the trivia scanner, the manifest walk and the control
+machinery shared. Two things fell out that a copy could not have produced:
+
+**The old family re-measured itself at zero.** `--family begin` now reports **0/310** in `sv_2017`
+and **0/54** in `verilog_2005`. That is a re-proof of `.3.15` from an instrument that was not
+written to confirm it — the strongest kind of regression evidence available here, and it cost
+nothing because the predicate lives beside its sibling rather than in a dead artifact.
+
+**The routed description was wrong about the construct's extent.** `.3.15` routed this as *"the
+`inside` set in a generate condition"*, one row. The sweep returned **two**: the second is a
+`localparam` initializer nowhere near a generate block. A finding described from the single row
+that happened to surface will understate itself, and only a whole-population sweep says by how
+much. Worth remembering when writing a routing note: the row is the witness, not the construct.
+
+⭐ **A control pinned to a corpus row failed for a reason worth keeping.** The `inside` control was
+first `Surelog/tests/InsideOp/dut.sv`. Under `verilog_2005` that file is SV-only source and stops
+at `package`, not at `inside`, so the v2005 sweep printed *"REFUSE: positive control not
+classified"* and produced no numbers at all. The instrument was right and the temptation — relax
+the assertion, or just skip the lane — was exactly the wrong response. The fix was to **construct
+the state being observed**: `repro/G_inside_v2005_pure.sv` is pure IEEE 1364-2005 text plus the one
+keyword, rejecting at `inside` under `verilog_2005` and passing under `sv_2017`, which is itself
+the edition evidence that `inside` is SystemVerilog-only. Controls are now keyed
+`(family, profile)` and the sweep refuses outright on a combination that has none, so an unasked
+lane can never read as a measured zero.
+
 ## 2026-08-09 - PGEN-SV-CORPUS-GRAD-0034 — when the pin table already disagrees with itself
 
 Three things from this slice are worth carrying past it, and none of them is a parser change —

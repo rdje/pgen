@@ -3104,22 +3104,76 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   3. **This is an ADJUDICATION CORRECTION, not burn-down yield.** `.5` counts unexplained
      divergences, so it must never be reported as parser progress. Parser yield this leaf: **0**.
 
-##### `.3.16` — the `inside` set in a generate condition rejects (routed by `.3.15`, 2026-08-09)
+##### `.3.16` — `inside` where a CONSTANT expression is required: legal in an `expression`, illegal in a `constant_expression` (routed by `.3.15`, closed same day)
 
-- **Status: `todo`** — `Surelog/tests/InsideOp/dut.sv` is the one row the coarse family
-  bucketer filed under `named block/label` that is not that construct: it stops at
-  `furthest_position=286`, on the ` inside {Get0, GetDefault}` of
-  `if (GetWhat inside {Get0, GetDefault}) begin : gen_zero`, i.e. inside the
-  `constant_expression` of an `if_generate_construct` — the `begin : gen_zero` after it is
-  never reached. It served as this leaf's NEGATIVE control precisely because it is a
-  different defect.
-- **Evidence banked, verdict NOT taken:** A.8.3 gives `inside_expression` as an alternative
-  of `expression` and **not** of `constant_expression`, and `grammars/systemverilog.ebnf:430`
-  mirrors that. So the parser is plausibly correct here too and this is a second adjudication
-  correction rather than a grammar gap — but that reading must be confirmed against the
-  clause prose (§11.4.13 and §27.5) before a row moves, exactly the discipline `.3.14a`
-  learned when it sampled a clause instead of reading it. ⛔ Do not pin on the strength of
-  the Annex A skim recorded here.
+- **Status: `done`** (2026-08-09, session #218, `PGEN-SV-CORPUS-GRAD-0035`) —
+  **adjudicator + docs, ZERO parser bytes**, parser yield **0**. A second adjudication
+  correction, and the routed description was too NARROW: it named "a generate condition",
+  and the sweep found the construct also in a **localparam initializer**.
+- **REPRODUCE.** `Surelog/tests/InsideOp/dut.sv` stops at `furthest_position=286`, on the
+  ` inside {Get0, GetDefault}` of `if (GetWhat inside {Get0, GetDefault}) begin : gen_zero`
+  — the `begin : gen_zero` after it is never reached, which is why it was `.3.15`'s NEGATIVE
+  control. Manifest row: `must_accept` on the Surelog golden log.
+- **ROOT CAUSE (WHY + WHERE) — the parser is RIGHT, and the clause was READ, not skimmed**
+  (the discipline `.3.14a` learned the hard way). IEEE 1800-2017 **A.8.3** verbatim:
+  `constant_expression ::= constant_primary | unary_operator { attribute_instance }
+  constant_primary | constant_expression binary_operator { attribute_instance }
+  constant_expression | constant_expression ? { attribute_instance } constant_expression :
+  constant_expression` — **no `inside` alternative**. And `inside` is not a fallback via
+  `binary_operator` either: **A.8.6** lists them exhaustively
+  (`+ - * / % == != === !== ==? !=? && || ** < <= > >= & | ^ ^~ ~^ >> << >>> <<< -> <->`)
+  and `inside` is absent. The operator has its own production, an alternative of
+  `expression` ONLY — `inside_expression ::= expression inside { open_range_list }` (A.8.3,
+  re-quoted as Syntax 11-3 in §11.4.13, whose prose likewise speaks only of expressions).
+  `grammars/systemverilog.ebnf:430` mirrors A.8.3 exactly. WHERE: the adjudicator's per-suite
+  tool-testimony heuristics, same as `.3.15`.
+- ⭐ **The discriminating pair, tracked** — same operator, same file shape, different required
+  nonterminal: `repro/F_inside_in_expression.sv` (`initial b = a inside {1, 2};`) **PASSES**,
+  `repro/E_inside_in_constant_expression.sv` (`localparam int B = A inside {1, 2};`)
+  **rejects AT the keyword** (byte 56).
+- **FIX** — 2 rows added to `EXTRA_PINNED` with per-shape cites (A.4.2
+  `if ( constant_expression )` for the generate condition; A.2.3 `param_assignment` →
+  `constant_param_expression` → `constant_mintypmax_expression` → `constant_expression` for
+  the localparam initializer).
+- **ADDRESSED (verified).** `sv_2017` unexplained rejects-valid **312 → 310 (−2)**, `match`
+  +2, exactly the 2 intended rows, every other class byte-identical; the `verilog_2005`
+  manifest is **byte-identical** (`cmp`) — the construct does not occur in that lane, and
+  that is MEASURED, not assumed (see below). Manifest deterministic across two runs. The
+  re-cut family map drops from 9 families to **8**: `named block/label` is gone entirely.
+- **NO REGRESSION.** `unexplained_accepts_invalid` **21 → 21**. Zero Rust/EBNF/generated
+  bytes; `results.tsv` untouched, so no parse verdict moved anywhere.
+- ⭐⭐ **THE INSTRUMENT WAS GENERALIZED, NOT COPIED — and generalizing it re-proved `.3.15`.**
+  The cheap way to sweep a second construct is to copy `sweep_begin_family.py` and edit one
+  string, which is the defect
+  `docs/knowledge/a-copied-diagnostic-covers-only-where-it-was-pasted.md` names. Instead the
+  probe, trivia scanner, manifest walk and controls stayed shared and only the **predicate**
+  became selectable (`--family begin|inside`). Two dividends fell out immediately:
+  1. `--family begin` now measures **0 / 310** (and **0 / 54** in v2005) — an INDEPENDENT
+     re-proof that `.3.15` closed that family, from an instrument that was not written to
+     confirm it.
+  2. `--family inside` found a **second row the coarse bucketer never surfaced**
+     (`verilator/t_inside_unpacked_param.v`, a localparam initializer, nowhere near a
+     generate block) — so the routed one-row description was wrong about the construct's
+     extent, and only a whole-population sweep could have said so.
+- ⛔ **THE CONTROL WAS PINNED TO A CORPUS ROW, AND THE INSTRUMENT REFUSED — correctly.** The
+  first cut used `Surelog/tests/InsideOp/dut.sv` as the `inside` control. Under
+  `verilog_2005` that file is SV-only source and stops at `package`, not at `inside`, so the
+  v2005 sweep printed *"REFUSE: positive control not classified"* and produced no numbers.
+  ⭐ The fix is **not** to relax the assertion but to CONSTRUCT the state being observed
+  ([[feedback_ground_truth_control_must_not_pin_untracked_state]]): `repro/G_inside_v2005_pure.sv`
+  is pure 1364 text plus the one keyword, rejects AT `inside` under `verilog_2005` (byte 43)
+  and **PASSES** under `sv_2017` — which is itself the edition evidence that `inside` is
+  SV-only. With it, the v2005 lane answers **0 / 54 measured**, not "never asked". A control
+  table keyed `(family, profile)` now REFUSES outright when no constructed control exists for
+  a combination, rather than sweeping uncontrolled.
+- **Verification:** `docs/tasks/artifacts/sv_corpus_grad/gen_block_family/` — `repro/E`,
+  `repro/F`, `repro/G`, and the four banked sweeps (`sweep_result.txt`,
+  `sweep_result_v2005.txt`, `sweep_result_inside.txt`, `sweep_result_inside_v2005.txt`).
+  `bash scripts/check_doctrines.sh` 17/17.
+- ⚠️ **HONEST BOUND.** Same as `.3.15`: a `must_reject` row proves the FILE is invalid, not
+  that the rest of it parses — both rows stop at the illegal construct, so anything later in
+  those files is invisible to them and belongs to `.9` as crafted cases. And as with `.3.15`,
+  this is an **ADJUDICATION CORRECTION**, never burn-down yield.
 
 ##### `.3.17` — a non-UTF-8 corpus file cannot be positioned at all (routed by `.3.15`, 2026-08-09)
 

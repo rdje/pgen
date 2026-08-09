@@ -95,14 +95,34 @@ def probe(path: Path, profile: str = "sv_2017"):
     return int(m.group(1)) if m else "unparseable"
 
 
-def in_family(path: Path, pos: int) -> bool:
+def _stuck_at_keyword(at: bytes, kw: bytes) -> bool:
+    tail = at[len(kw):len(kw) + 1]
+    return at.startswith(kw) and not tail.isalnum() and tail != b"_"
+
+
+def in_family(path: Path, pos: int, family: str = "begin") -> bool:
+    """Is the parse blocked at the construct this family names?
+
+    ⛔ PREDICATES, NOT COPIES. `.3.16` needed the same sweep over a different stuck token,
+    and the cheap answer — copy the file and edit one string — is the defect this repo has a
+    record for (docs/knowledge/a-copied-diagnostic-covers-only-where-it-was-pasted.md). The
+    probe, the trivia scanner, the controls and the manifest walk are family-neutral; only
+    the predicate is not, so only the predicate is selectable.
+    """
     data = path.read_bytes()
-    consumed = strip_trailing_trivia(data[:pos])
     at = data[pos:pos + 64].lstrip()
-    last_word = TRAILING_WORD_RE.search(consumed)
-    stuck_after_begin = bool(last_word) and last_word.group(0) == b"begin"
-    stuck_at_begin = at.startswith(b"begin") and not at[5:6].isalnum() and at[5:6] != b"_"
-    return stuck_after_begin or stuck_at_begin
+    if family == "inside":
+        # `inside` is stuck-AT only: the expression to its left parsed fine, and it is the
+        # keyword itself that has no production in this context.
+        return _stuck_at_keyword(at, b"inside")
+    if family == "begin":
+        consumed = strip_trailing_trivia(data[:pos])
+        last_word = TRAILING_WORD_RE.search(consumed)
+        # Either `begin` was consumed and the parse died on its `: label`, or it died AT the
+        # keyword. Both are the same absent production.
+        stuck_after_begin = bool(last_word) and last_word.group(0) == b"begin"
+        return stuck_after_begin or _stuck_at_keyword(at, b"begin")
+    raise SystemExit(f"REFUSE: unknown family {family!r}")
 
 
 def main() -> int:
@@ -114,19 +134,57 @@ def main() -> int:
     ap.add_argument("--manifest", type=Path,
                     default=ROOT / "stimuli/sv/characterization/adjudication_manifest.tsv")
     ap.add_argument("--profile", default="sv_2017")
+    ap.add_argument("--family", choices=("begin", "inside"), default="begin",
+                    help="which stuck-point predicate to sweep for")
     args = ap.parse_args()
 
     if not PROBE.is_file():
         raise SystemExit(f"REFUSE: probe not built at {PROBE.relative_to(ROOT)}")
 
-    positive = REPRO / "B_labelled_begin_in_generate.sv"
-    if not in_family(positive, 30):
-        raise SystemExit("REFUSE: positive control not classified into the family")
-    negative = SUBS / "Surelog/tests/InsideOp/dut.sv"
-    neg_pos = probe(negative, args.profile)
-    if not isinstance(neg_pos, int) or in_family(negative, neg_pos):
-        raise SystemExit("REFUSE: negative control (stuck at `inside`) misclassified")
-    print(f"controls OK (profile {args.profile}): positive in, negative out", file=sys.stderr)
+    # ⛔ CONTROLS ARE CONSTRUCTED AND TRACKED, never a corpus row. The first cut pinned the
+    # `inside` control to `Surelog/tests/InsideOp/dut.sv`, which is SV-only source: under
+    # `verilog_2005` it stops at `package`, not at `inside`, so the whole v2005 sweep REFUSED.
+    # That refusal was the instrument behaving correctly — and the fix is to construct the
+    # state being observed rather than to relax the assertion
+    # ([[feedback_ground_truth_control_must_not_pin_untracked_state]]).
+    #
+    # The two families are each other's NEGATIVE control: both positives are rejections, so a
+    # predicate that answered "yes" to any rejection is caught here rather than reported.
+    positives = {
+        # The bare generate_block is illegal in BOTH editions and the control text is pure
+        # 1364, so one file serves both profiles at the same pinned offset.
+        ("begin", "sv_2017"): (REPRO / "B_labelled_begin_in_generate.sv", 30),
+        ("begin", "verilog_2005"): (REPRO / "B_labelled_begin_in_generate.sv", 30),
+        ("inside", "sv_2017"): (REPRO / "E_inside_in_constant_expression.sv", 56),
+        # `inside` does not exist in IEEE 1364-2005 at all, so the v2005 control is pure
+        # 1364 text plus the one keyword — it rejects AT `inside` under verilog_2005 and
+        # PASSES under sv_2017, which is itself the edition evidence.
+        ("inside", "verilog_2005"): (REPRO / "G_inside_v2005_pure.sv", 43),
+    }
+    key = (args.family, args.profile)
+    if key not in positives:
+        raise SystemExit(
+            f"REFUSE: no constructed control for family {args.family!r} under profile "
+            f"{args.profile!r} — add one to repro/ rather than sweeping uncontrolled")
+    pos_path, pos_pin = positives[key]
+    pos_at = probe(pos_path, args.profile)
+    if pos_at != pos_pin:
+        raise SystemExit(f"REFUSE: positive control {pos_path.name} rejected at {pos_at}, "
+                         f"pinned {pos_pin}")
+    if not in_family(pos_path, pos_at, args.family):
+        raise SystemExit(f"REFUSE: positive control not classified into `{args.family}`")
+
+    other = "inside" if args.family == "begin" else "begin"
+    neg_key = (other, args.profile)
+    if neg_key in positives:
+        neg_path, neg_pin = positives[neg_key]
+        if in_family(neg_path, neg_pin, args.family):
+            raise SystemExit(f"REFUSE: `{other}` control misclassified into `{args.family}`")
+        neg_note = neg_path.name
+    else:
+        neg_note = "none available for this profile"
+    print(f"controls OK (family {args.family}, profile {args.profile}): "
+          f"+{pos_path.name}@{pos_at}, -{neg_note}", file=sys.stderr)
 
     # A relative --manifest is resolved against the repository root, never the caller's cwd
     # (directive 12): the same command line must mean the same thing from any directory.
@@ -148,13 +206,13 @@ def main() -> int:
         fp = probe(path, args.profile)
         if not isinstance(fp, int):
             return (suite, rel, fp, False)
-        return (suite, rel, fp, in_family(path, fp))
+        return (suite, rel, fp, in_family(path, fp, args.family))
 
     with ThreadPoolExecutor(max_workers=8) as ex:
         results = list(ex.map(verdict, rows))
 
     hits = sorted(r for r in results if r[3])
-    print(f"bare-begin family: {len(hits)} / {len(rows)} rows")
+    print(f"`{args.family}` family: {len(hits)} / {len(rows)} rows")
     for suite, rel, fp, _ in hits:
         print(f"  {suite}\t{rel}\tfurthest={fp}")
 

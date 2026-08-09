@@ -27,7 +27,6 @@ OTHER (per-row triage)	Surelog	tests/HierBitSlice/dut.sv	ID ; /	scalar_t pc;
 OTHER (per-row triage)	Surelog	tests/HierPathModule/dut.sv	medium ( )	module medium();
 OTHER (per-row triage)	Surelog	tests/IndexPartSelectBind/dut.sv	ID ; }	uvm_reg_data_t data;
 OTHER (per-row triage)	Surelog	tests/IndexedSelect/dut.sv	ID ( "	$display("test");
-named block/label (ch9/27)	Surelog	tests/InsideOp/dut.sv	inside { ID	if (GetWhat inside {Get0, GetDefault}) begin : gen_zero
 OTHER (per-row triage)	Surelog	tests/InterfImport/dut.sv	ID = ID	parameter tnoc_packet_config  PACKET_CONFIG  = TNOC_DEFAULT_PACKET_CONFIG
 OTHER (per-row triage)	Surelog	tests/InterfTypeBad/dut.sv	; ID ID	tnoc_types#(2) i_types;
 OTHER (per-row triage)	Surelog	tests/LetExpr/dut.sv	@ ( posedge	let p2(x) = $past(x,,,@(posedge clock));
@@ -220,7 +219,6 @@ OTHER (per-row triage)	verilator	test_regress/t/t_implements_contents_bad.v	int 
 OTHER (per-row triage)	verilator	test_regress/t/t_implements_nested_bad.v	interface class ID	interface class bad_cannot_nest;
 OTHER (per-row triage)	verilator	test_regress/t/t_implements_noninterface_bad.v	; endclass interface	class ClsBad1 implements NotIcls;
 OTHER (per-row triage)	verilator	test_regress/t/t_implements_notfound_bad.v	; endclass module	class ClsI implements Inotfound;
-OTHER (per-row triage)	verilator	test_regress/t/t_inside_unpacked_param.v	inside { ID	localparam HIT_INSIDE = HIT_LP inside {CHECKLIST_P};
 OTHER (per-row triage)	verilator	test_regress/t/t_inst_2star_bad.v	. * )	sub sub (foo, .*);
 OTHER (per-row triage)	verilator	test_regress/t/t_inst_noname_bad.v	) ; ID	m();
 OTHER (per-row triage)	verilator	test_regress/t/t_inst_paren_bad.v	; / /	sub sub_inst;  // No ()

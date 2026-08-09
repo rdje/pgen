@@ -243,6 +243,45 @@ EXTRA_PINNED = {
         "loop_generate_construct / if_generate_construct / case_generate_item; "
         "neither generate_item nor module_or_generate_item has that alternative; "
         "spec outranks the verilator driver heuristic"),
+
+    # ---- SV-CORPUS-GRAD.3.16 -- `inside` where a CONSTANT expression is required. ---------
+    #
+    # ⛔ THE PARSER IS CORRECT ON BOTH. IEEE 1800-2017 A.8.3, verbatim:
+    #
+    #   constant_expression ::=
+    #       constant_primary
+    #     | unary_operator { attribute_instance } constant_primary
+    #     | constant_expression binary_operator { attribute_instance } constant_expression
+    #     | constant_expression ? { attribute_instance } constant_expression
+    #                             : constant_expression
+    #
+    # There is NO `inside` alternative, and `inside` is not a `binary_operator` either --
+    # A.8.6 lists them exhaustively (+ - * / % == != === !== ==? !=? && || ** < <= > >= &
+    # | ^ ^~ ~^ >> << >>> <<< -> <->) and `inside` is not among them. The set-membership
+    # operator has its own production, an alternative of `expression` ONLY:
+    #
+    #   inside_expression ::= expression inside { open_range_list }
+    #     -- A.8.3, quoted again as Syntax 11-3 in section 11.4.13
+    #
+    # So `inside` is legal in an expression and illegal wherever the grammar demands a
+    # constant_expression: an if-generate condition (A.4.2 `if ( constant_expression )`) and
+    # a localparam initializer (A.2.3 param_assignment -> constant_param_expression ->
+    # constant_mintypmax_expression -> constant_expression) are the two shapes measured here.
+    #
+    # ⭐ The discriminating pair is TRACKED, and it shows the parser mirrors Annex A exactly:
+    # gen_block_family/repro/F_inside_in_expression.sv (`initial b = a inside {1, 2};`)
+    # PASSES, while E_inside_in_constant_expression.sv (`localparam int B = A inside {1, 2};`)
+    # rejects AT the keyword. Same operator, same file shape, different required nonterminal.
+    ("Surelog", "tests/InsideOp/dut.sv"): (
+        "must_reject", "pinned .3.16: `inside` in an if-generate CONSTANT condition at "
+        "line 25 - IEEE 1800-2017 A.8.3 constant_expression has no inside alternative and "
+        "A.8.6 binary_operator does not list `inside`; A.4.2 requires "
+        "if ( constant_expression ); spec outranks the Surelog golden-log heuristic"),
+    ("verilator", "test_regress/t/t_inside_unpacked_param.v"): (
+        "must_reject", "pinned .3.16: `inside` in a localparam initializer at line 13 - "
+        "IEEE 1800-2017 A.2.3 param_assignment takes a constant_param_expression, and "
+        "A.8.3 constant_expression has no inside alternative (inside_expression is an "
+        "alternative of expression only); spec outranks the verilator driver heuristic"),
 }
 
 VERIBLE_SYNTAX_MODE_RE = re.compile(r"//\s*verilog_syntax\s*:")

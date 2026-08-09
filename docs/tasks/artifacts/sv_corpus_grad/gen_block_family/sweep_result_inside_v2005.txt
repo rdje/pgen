@@ -1,0 +1,5 @@
+controls OK (family inside, profile verilog_2005): +G_inside_v2005_pure.sv@43, -B_labelled_begin_in_generate.sv
+sweeping 54 unexplained_rejects_valid rows from stimuli/sv/characterization/adjudication_manifest_v2005.tsv
+`inside` family: 0 / 54 rows
+
+non-integer probe results: 0

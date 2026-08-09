@@ -27,7 +27,6 @@ Surelog	tests/HierBitSlice/dut.sv	142	178	ID ; /	scalar_t pc;
 Surelog	tests/HierPathModule/dut.sv	52	58	medium ( )	module medium();
 Surelog	tests/IndexPartSelectBind/dut.sv	0	48	ID ; }	uvm_reg_data_t data;
 Surelog	tests/IndexedSelect/dut.sv	0	183	ID ( "	$display("test");
-Surelog	tests/InsideOp/dut.sv	179	286	inside { ID	if (GetWhat inside {Get0, GetDefault}) begin : gen_zero
 Surelog	tests/InterfImport/dut.sv	81	168	ID = ID	parameter tnoc_packet_config  PACKET_CONFIG  = TNOC_DEFAULT_PACKET_CONFIG
 Surelog	tests/InterfTypeBad/dut.sv	140	177	; ID ID	tnoc_types#(2) i_types;
 Surelog	tests/LetExpr/dut.sv	1	82	@ ( posedge	let p2(x) = $past(x,,,@(posedge clock));
@@ -223,7 +222,6 @@ verilator	test_regress/t/t_implements_contents_bad.v	203	224	int ID ;	int badi;
 verilator	test_regress/t/t_implements_nested_bad.v	203	237	interface class ID	interface class bad_cannot_nest;
 verilator	test_regress/t/t_implements_noninterface_bad.v	228	260	; endclass interface	class ClsBad1 implements NotIcls;
 verilator	test_regress/t/t_implements_notfound_bad.v	203	234	; endclass module	class ClsI implements Inotfound;
-verilator	test_regress/t/t_inside_unpacked_param.v	203	346	inside { ID	localparam HIT_INSIDE = HIT_LP inside {CHECKLIST_P};
 verilator	test_regress/t/t_inst_2star_bad.v	203	275	. * )	sub sub (foo, .*);
 verilator	test_regress/t/t_inst_noname_bad.v	204	218	) ; ID	m();
 verilator	test_regress/t/t_inst_paren_bad.v	226	250	; / /	sub sub_inst;  // No ()

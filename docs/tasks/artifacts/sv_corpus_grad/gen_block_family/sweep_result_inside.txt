@@ -1,0 +1,6 @@
+controls OK (family inside, profile sv_2017): +E_inside_in_constant_expression.sv@56, -B_labelled_begin_in_generate.sv
+sweeping 310 unexplained_rejects_valid rows from stimuli/sv/characterization/adjudication_manifest.tsv
+`inside` family: 0 / 310 rows
+
+non-integer probe results: 1
+  sv2v	test/lex/latin1.sv	unparseable
