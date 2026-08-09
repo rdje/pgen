@@ -3832,9 +3832,44 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
   no `@profiles` directive, and `--dump-rule-profiles` confirms `satisfiable_under
   [sv_2017, sv_2023, verilog_2005]`. The override alternatives are SystemVerilog-only
   language sitting in a profile-universal rule.
-- **PLANNED FIX:** split the override alternatives into a `@profiles: ["sv_2017", "sv_2023"]`
-  sub-rule (house convention: `use_clause_sv_only`, cf. `always_keyword_sv_only`), leaving
-  `use_clause` with the 1364-2005 form plus a reference to the gated sibling.
+- **PLANNED FIX (shape settled 2026-08-09 by the director's "make the decision" ruling — this
+  leaf is SCHEDULED NEXT, not deferred):** split the **four** override alternatives into a
+  `@profiles: ["sv_2017", "sv_2023"]` sibling named `use_clause_param_override_sv_only`, leaving
+  `use_clause` with a reference to it plus the single 1364-2005 form. House pattern verified in
+  place: `always_keyword:651` is exactly this shape (`kw_always … | always_keyword_sv_only`,
+  with `@profiles` on the sibling at `:646`).
+
+  ```
+  @profiles: ["sv_2017", "sv_2023"]
+  use_clause_param_override_sv_only := <alternatives 1-4, verbatim and IN ORDER>
+
+  use_clause := use_clause_param_override_sv_only
+              | @probe_sample: "use top" kw_use ( library_identifier dot )? cell_identifier ( colon kw_config )?
+             -> {library: $2, name: $3, config: $4}
+  ```
+
+- ⛔ **TWO TRAPS TO CARRY INTO THE EDIT — both already paid for once in this tree:**
+  1. **The sibling MUST be referenced FIRST.** `use_clause`'s own comment block (`:6032`-`:6038`,
+     `GRAMMAR-WELLFORMED.G.4.8`) records that the override alternatives must precede the simple
+     `use [lib.]cell [:config]` form, else PEG ordered choice commits the simple alt to
+     `use lib.cell` and strands a trailing `.param()` — it was a cert-coverage
+     witness-parseability residual. Referencing the sibling second would silently re-introduce
+     that defect, and it is the kind that shows up as a coverage residual rather than a parse
+     failure.
+  2. **The `-> {library: $2, name: $3, config: $4}` annotation stays on the simple alternative
+     and its `$N` indices DO NOT shift** — positional refs are per-ALTERNATIVE, which
+     `.3.19` confirmed at IR level when it inserted a new alternative above this one
+     (`branch_return_annotations` for `use_clause` went `[null,null,null,{…}]` →
+     `[null,null,null,null,{…}]`, the object simply moving with its own arm).
+  3. ⛔⛔ And the standing one: **any comment block added inside the rule body must be INDENTED**
+     → `EBNF-FRONTEND-SILENT-TRUNCATION`.
+- **EXPECTED CENSUS MOVE — predict it, then verify, because the prediction is falsifiable:**
+  `defined_rule_count` **1477 → 1478**; per-profile `sv_2017` **1354 → 1355**, `sv_2023`
+  **1373 → 1374**, `verilog_2005` **1122 → 1122 (UNCHANGED**, since the new rule is
+  `@profiles`-gated out of it). ⇒ the `sv_cert_recognized_union_gate` contract needs a
+  re-baseline and `verilog_2005_conformance_gate` should **not** — the same `+1 / +0` asymmetry
+  `.3.18` used as the attributing fingerprint for `.3.14b`'s arrears. Run
+  `ast_pipeline --dump-rule-profiles` on both grammars and diff BEFORE touching either contract.
 - ⛔⛔ **THE CENSUS WILL MOVE, AND BOTH CERT CONTRACTS MUST BE RE-BASELINED IN THE SAME
   COMMIT** — `defined_rule_count` 1477 → 1478 (or more), `sv_2017`/`sv_2023` +1 and
   `verilog_2005` +0, so `sv_cert_recognized_union_gate` and `verilog_2005_conformance_gate`
