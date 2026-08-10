@@ -725,6 +725,44 @@ assertion_variable_declaration := var_data_type list_of_variable_decl_assignment
 # branch); the branch becomes a clean flat {name,pattern} record list.
 @profiles: ["sv_2017", "sv_2023"]
 assignment_pattern_entry := member_identifier colon pattern -> {name: $1, pattern: $3}
+
+# IEEE 1800-2017 A.6.7.1 assignment_pattern — FOUR productions, each requiring >= 1
+# element, PLUS a fifth alternative below for the EMPTY pattern `'{ }`.
+#
+# ⛔⛔ DO NOT DELETE THE `@sample: "'{}"` ALTERNATIVE. It is NOT a transcription slip and
+# it is NOT over-acceptance. It has been deleted once already (SV-CORPUS-GRAD.3.26a, on
+# the reasoning "Annex A's four alternatives all require an expression, therefore `'{}`
+# is non-LRM") and a director ruling REVERTED that deletion the same day, because it
+# makes the parser reject input the ecosystem writes — uvm-core's `return '{};`
+# (uvm_lru_cache.svh:206,:273) and 49 corpus files.
+#
+# `'{ }` is LEGAL SystemVerilog. Read, not inferred, across 1800-2017 AND 1800-2023:
+#   - §11.4.12: "Concatenations are enclosed in just braces ( { } ), whereas structure
+#     and array literals are enclosed in braces that begin with an apostrophe ( '{ } )"
+#     — the standard writes THIS construct's own delimiter pair with the apostrophe.
+#   - Annex M / VPI: `#define vpiAssignmentPatternOp 75 /* '{} assignment pattern */`.
+#   - NO text anywhere declares `'{}` illegal or unsupported.
+# Annex A simply does not derive it. That is an ANNEX GAP — measured three times in this
+# grammar (`'{ }` here; `q[a:$]` licensed by A.8.4 footnote 42, .3.25; `use #(...)`
+# written 7x in clause 33.4.3, .3.19) — and an annex gap is NOT a prohibition.
+#
+# ⛔ STANDING RULE: "non-LRM" is a CITATION, never an inference. Before deleting any arm
+# as non-compliant, produce the LRM sentence that forbids it. See
+# docs/decisions/feedback_sv_strict_lrm_compliance_default.md § BOUNDING RULING, and the
+# card annex-a-footnotes-license-derivations-the-productions-cannot-derive.
+#
+# WHY THE EMPTY CASE LIVES HERE and not on empty_unpacked_array_concatenation (which is
+# the BARE-brace `{ }` form, A.8.1, a different production — see its own comment):
+# director 2026-08-10, *"the inside of '{...} can be empty. this need to be properly
+# capture in the EBNF"*. §11.4.12 calls `'{ }` the delimiter of a structure/array
+# LITERAL, so the empty case is the degenerate ASSIGNMENT PATTERN. Modelling it as a
+# concatenation gave it an AST node no assignment-pattern consumer looks for; it now
+# emits the same shape as any other pattern, differing only in the element list
+# (`'{}` -> {pattern: {exprs: []}, type: []}). SV-CORPUS-GRAD.3.26c moved it;
+# .3.26e moved THIS COMMENT, which .3.26c left behind on the old rule.
+#
+# ⛔ Comments stay OUTSIDE the rule body: a column-0 comment between alternatives
+# DELETES the alternatives that follow it (project_standing_tripwires).
 assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expression )* rbrace
                    -> {exprs: [$3, $4::2*]}
                     | @sample: "'{x: 0}" tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace
@@ -2226,7 +2264,9 @@ elaboration_system_task := elaboration_system_task_sv_2017
 #   §7.10: "The empty queue can be denoted by an empty unpacked array
 #       concatenation {}."
 #
-# TWO ARMS, and they are there for DIFFERENT reasons — do not collapse them.
+# ONE ARM — the LRM production, and nothing else. (SV-CORPUS-GRAD.3.26e: this header
+# used to read "TWO ARMS … do not collapse them", which .3.26c's re-modelling left
+# behind; it contradicted the ⭐ paragraph 10 lines below in the same block.)
 #
 # `lbrace rbrace` is the LRM production, verbatim. SV-CORPUS-GRAD.3.26 restored it:
 # it had never been accepted. History — SV-EXH-PROOF.3.3.4.b.6.2.37.8 replaced a

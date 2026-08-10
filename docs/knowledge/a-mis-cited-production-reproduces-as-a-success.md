@@ -58,6 +58,9 @@ Corollaries that paid off here:
 - **A one-rule fix whose corpus delta is entirely its own construct is the shape to aim for.** This
   one moved exactly 5 rows, all `unexplained_rejects_valid → match`, from four independent suites,
   and none the other way.
+- **And once the arm is kept on purpose, the comment saying so has to travel with it** — see
+  [[a-constructs-guard-comment-is-part-of-the-construct]], the sequel defect in which this very arm
+  was relocated to a better home and its guard was left on the old rule.
 
 ## ⛔ The sequel — the SAME fix made a SECOND citation claim, and that one was never opened either
 

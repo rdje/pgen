@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0193 — the guard rail was left behind when the arm moved: `'{}` was living in a rule with no comment at all (leaf `SV-CORPUS-GRAD.3.26e`, grammar comment-only, generated parser BYTE-IDENTICAL)
+
+- ⛔⛔ **THE DEFECT, and it had already cost this repo once.** `.3.26a` deleted the `'{}` arm outright
+  on the *"Annex A does not derive it, therefore non-LRM"* inference, and only a director ruling
+  reverted it. `.3.26b` then wrote the guard — the §11.4.12 + Annex M citations and *"the apostrophe
+  form is LEGAL and must keep parsing — ⛔ do not 'fix' it away"* — into the comment on
+  `empty_unpacked_array_concatenation`, which is where the arm was **then**. `.3.26c` moved the arm
+  to `assignment_pattern` and **left the guard behind.** At HEAD, `grammars/systemverilog.ebnf:733`
+  read, in full, `| @sample: "'{}" tick lbrace rbrace -> {exprs: []}` — **no citation, no rationale,
+  no ⛔** — while the protection sat on a rule whose own comment correctly says the arm is not there.
+  ⇒ the exact starting state of `.3.26a`, restored at a new address.
+- ⛔ **AND THE OLD HOME CONTRADICTED ITSELF 10 LINES APART** — header *"TWO ARMS … do not collapse
+  them"* over a rule that has had **one** arm since `.3.26c`, immediately above *"⭐ THIS RULE IS NOW
+  PURE A.8.1 — the bare-brace form ONLY."*
+- **THE FIX** — comments only, no production touched: the guard (citations, the deletion history, the
+  standing *"non-LRM is a CITATION, never an inference"* rule, and why the empty case belongs to
+  `assignment_pattern`) now sits above the arm it defends; the stale header is repaired and says why
+  it changed.
+- ⭐ **THE LESSON.** `.3.26c` verified **reachability** before moving the arm — every use site checked,
+  and that check was right. A construct's *documented protection* is not reachable from any use site,
+  so nothing prompted moving it. **When a construct moves, the comment that defends it is part of the
+  move — and no gate can check that, only a reader.** `--lint-grammar` is exit 0 on both sides, which
+  is the point: the deletion it guards against also passes lint.
+- **VERIFIED.** `--dump-gen-ast` confirms the inserted column-0 comment truncated nothing (the
+  standing tripwire): `assignment_pattern` = **Or / 5 alternatives / 5 branch return annotations**,
+  `assignment_pattern_entry` intact, `empty_unpacked_array_concatenation` single Sequence,
+  `rule_order` **1481**. `{}`, `'{}`, the real uvm `return '{};` shape and `'{0, 1}` all PASS.
+- **NO REGRESSION, proven not asserted.** `focus_systemverilog` re-run under the memory guard
+  (`exit=0`, `peak_tree_rss=1962MB`, `elapsed=101s`) leaves `generated/systemverilog_parser.rs`
+  **byte-identical** (`cmp` clean; `sha256 959e4578…bfb79bad` before and after) ⇒ zero codegen effect,
+  every parser-side oracle unreachable by construction, and no Rust byte for clippy to lint.
+- ⚠️ **HONEST BOUND, recorded rather than papered over:** this fixes the instance, not the class —
+  nothing mechanical ties an arm to the comment defending it. A heuristic check was considered and
+  **refused** (a heuristic over prose is not a census, and it would fail open). Routed to
+  `LRM-GRAMMAR-FIDELITY.1c`. **Reproduces outside SV — measured:** protective grammar comments across
+  all 17 grammars are `systemverilog` 14, `vhdl` 5, `ebnf` 3, `semantic_annotation` 1, rest zero.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0192 — pay the correct-forward debt: four durable surfaces still called `'{}` "non-LRM over-acceptance" three commits after the ruling that refuted it (leaf `SV-CORPUS-GRAD.3.26d`, docs only, ZERO code bytes)
 
 - **THE DEBT.** `-0189` obtained the director ruling that `'{}` is legal SV and fixed the grammar

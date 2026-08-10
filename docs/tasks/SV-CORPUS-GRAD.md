@@ -5433,6 +5433,109 @@ made the difference, and how far it sat from the edge."*
   routed changelog-coverage gap. No book chapter asserts anything about `'{}` (checked:
   `grep -rn "'{}" docs/book/src/` → 0 hits), so no book edit is due.
 
+##### `.3.26e` — ⛔ THE GUARD RAIL WAS LEFT BEHIND WHEN THE ARM MOVED: `'{}` now lives in a rule with no comment, and its old home still says "TWO ARMS" (comment-only, generated parser BYTE-IDENTICAL)
+
+- **Status: `done` 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0193`), grammar comment-only, generated parser
+  BYTE-IDENTICAL, ZERO Rust bytes.** Opened by `.3.26d` while re-reading the grammar to verify the
+  correct-forward was complete. **Owns two defects in `grammars/systemverilog.ebnf`, both introduced
+  by `.3.26c`'s otherwise-correct re-modelling.**
+- ⛔⛔ **DEFECT 1 — THE PROTECTIVE COMMENT DID NOT MOVE WITH THE ARM, AND IT IS THE ONLY THING THAT
+  EVER STOPPED THE DELETION.** `.3.26a` deleted the `'{}` arm outright on the "non-LRM" inference and
+  was reverted only by a director ruling. `.3.26b` then wrote the guard — the §11.4.12 + Annex M
+  citations, *"the apostrophe form is LEGAL and must keep parsing — ⛔ do not 'fix' it away"* — into
+  the comment on `empty_unpacked_array_concatenation`, which is where the arm was **then**. `.3.26c`
+  moved the arm to `assignment_pattern` and **left the guard behind.** Today
+  `grammars/systemverilog.ebnf:733` reads, in full:
+
+  ```ebnf
+                      | @sample: "'{}" tick lbrace rbrace
+                     -> {exprs: []}
+  ```
+
+  — no citation, no rationale, no ⛔. ⇒ **a reader who arrives at `assignment_pattern` applying the
+  strict-LRM policy sees an alternative that Annex A's four productions do not derive, with nothing
+  to stop them.** That is the *exact* starting state of `.3.26a`, restored at a new address, and the
+  protection now sits on a rule whose comment (correctly) tells you the arm is **not** there.
+  ⚠️ **This is not hypothetical risk-writing: the deletion has already happened once in this file.**
+- ⛔ **DEFECT 2 — the old home's comment now contradicts itself, 10 lines apart.** Line 2229 says
+  *"TWO ARMS, and they are there for DIFFERENT reasons — do not collapse them"*; line 2239 says
+  *"⭐ THIS RULE IS NOW PURE A.8.1 — the bare-brace form ONLY."* Both are in the same comment block
+  over a rule that has had **one** arm since `.3.26c`. `.3.26c` rewrote the body of the block and
+  missed its header.
+- **THE FIX (declarative tier — comments only, no production changes):** move the guard to where the
+  arm actually is, and repair the stale header. Net acceptance and net AST **unchanged by
+  construction**; the proof obligation is byte-identity of the generated parser, not a corpus run.
+- ⭐ **THE GENERAL LESSON, and it is the same shape as `.3.26d`'s:** `.3.26c` verified **reachability**
+  before moving the arm (it checked every use site, and that check was right and is recorded). It did
+  not verify that the arm's **documented protection** moved with it. A construct's guard rail is part
+  of the construct; relocating one without the other silently reverts a director ruling to an
+  unguarded state while every parse-level oracle stays green. ⇒ **when a construct moves, the comment
+  that defends it is part of the move, and only a reader can check that — no gate can.**
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — read the shipped grammar at HEAD. `assignment_pattern`'s empty
+  alternative (`grammars/systemverilog.ebnf:733`) carried **zero** comment bytes: no citation, no
+  rationale, no ⛔ — while the guard written to protect it (*"The apostrophe form is LEGAL and must
+  keep parsing — ⛔ do not 'fix' it away"*) sat on `empty_unpacked_array_concatenation`, a rule whose
+  own comment correctly states the arm is **not** there. Independently, that same block's header read
+  *"TWO ARMS … do not collapse them"* 10 lines above *"⭐ THIS RULE IS NOW PURE A.8.1 — the bare-brace
+  form ONLY"*, over a one-arm rule.
+- [x] **ROOT CAUSE (WHY + WHERE)** — correctness family; the defect is in the durable comment layer,
+  not in a production. **WHERE:** `grammars/systemverilog.ebnf` — `assignment_pattern` (the arm's new
+  home, undocumented) and the comment block over `empty_unpacked_array_concatenation` (stale header).
+  **WHY:** `.3.26c` verified **reachability** before moving the arm — every use site checked, and that
+  check was correct — but a construct's *documented protection* is not reachable from any use site, so
+  nothing prompted moving it. `./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf
+  --lint-grammar` → **exit 0** both before and after (`1481 rules`, `non_terminating=0`,
+  `ordered_choice_shadowing=0`, `unreachable_rules=0`, `undefined_references=0`,
+  `unbound_fact_kinds=0`, `profile_orphans=0`), i.e. **no lint can see this class** — which is the
+  point: the deletion it guards against passes lint too.
+- [x] **ADDRESSED (verified)** — guard moved to the arm's actual home and the stale header repaired.
+  `--dump-gen-ast` confirms the inserted column-0 comment truncated nothing (the standing tripwire):
+  `assignment_pattern` = **Or / 5 alternatives / 5 `branch_return_annotations`**,
+  `assignment_pattern_entry` = single Sequence (it sits immediately above the insertion point and was
+  the rule at risk), `empty_unpacked_array_concatenation` = single Sequence / 1 annotation,
+  `rule_order` = **1481**, entry `systemverilog_file` — reproducing `.3.26c`'s recorded values
+  exactly. All four shapes PASS on the release probe: `q = {};`, `q = '{};`, the real uvm
+  `return '{};` shape, and the non-empty regression `a = '{0, 1};`.
+- [x] **NO REGRESSION** — **comment-only, PROVEN not asserted.** `make -C rust SHELL=/bin/bash
+  focus_systemverilog` re-run under `scripts/run_with_memory_guard.sh --budget-mb 16384`
+  (`completed exit=0 peak_tree_rss=1962MB elapsed=101s`) leaves `generated/systemverilog_parser.rs`
+  **byte-identical** — `cmp` clean against the pre-change copy, `sha256`
+  `959e457800dfcbc046ab1b7fa790af65947fadbf5dfd554bae7cb5e5bfb79bad` **before and after**. ⇒ zero
+  codegen effect, so every parser-side oracle (cert-coverage at seeds 0/7/42, `ast_shape_contract`,
+  `generated_clippy_correctness`, the 16 336-file corpus) is unreachable from this change **by
+  construction**, and `clippy_on_rust_change` has nothing to lint because no Rust byte moved.
+- [x] **LOCKSTEP** — `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`; `docs/TASK_TREE.md`. Book:
+  N/A — no user-visible parser behaviour changes (acceptance and AST are byte-identical), and no book
+  chapter mentions the construct (`grep -rn "'{}" docs/book/src/` → 0).
+  **`promotion:` PROMOTED** — the lesson is carded as
+  [[a-constructs-guard-comment-is-part-of-the-construct]] (a cross-family grammar-authoring rule, not
+  an SV fact), linked from [[a-mis-cited-production-reproduces-as-a-success]]. Declining was
+  considered and rejected: the class was measured live in 4 of 17 grammars, so it is retrieval-worthy
+  rather than incident-local.
+
+⚠️ **HONEST BOUND — this leaf fixes the instance, not the class.** Nothing mechanical connects an arm
+to the comment that defends it, so the next relocation can strand the next guard exactly the same way.
+A cheap candidate check exists (an alternative carrying an `@sample` that no comment within N lines
+mentions), but it would be a heuristic over prose and this repo's standing lesson is that a heuristic
+is not a census. ⇒ **deliberately NOT mechanized here**, recorded as a known gap rather than papered
+over with a check that would fail open. Routed to `LRM-GRAMMAR-FIDELITY.1c`'s instrument discussion,
+which already owns the "what does the grammar accept that Annex A cannot derive" enumeration — the
+same list is exactly the set of arms that need a defending comment.
+
+⚠️ **ROUTING EVIDENCE — does the class reproduce OUTSIDE SystemVerilog? MEASURED: yes, but SV carries
+most of it.** Counting protective grammar comments (`^#` lines matching `⛔` or
+*do not delete/remove/re-add/collapse/fix*) across all **17** tracked grammars:
+`systemverilog` **14**, `vhdl` **5**, `ebnf` **3**, `semantic_annotation` **1**, the other 13 zero.
+⇒ the mechanism is **not SV-specific** — any grammar with a deliberately-kept arm can strand its
+guard by relocating the arm — but the exposure is concentrated where the LRM-fidelity pressure is,
+which is why the instrument belongs in `LRM-GRAMMAR-FIDELITY` (cross-family) rather than in this
+SV corpus tree. ⛔ Honest bound on this number itself: it counts *comments that look protective*, not
+*arms that need protection*, so it sizes the population's upper edge and cannot say how many are
+currently stranded — exactly the census-vs-heuristic distinction above, applied to my own number.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

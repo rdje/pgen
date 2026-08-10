@@ -1,5 +1,46 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0193 — a construct's guard rail is part of the construct; move one without the other and you silently revert a ruling
+
+`.3.26c` moved the `'{}` arm from `empty_unpacked_array_concatenation` to `assignment_pattern`, and
+it did the careful thing first: it verified **reachability** before moving — every use site of the
+old rule checked against the new one, recorded in the leaf, and correct. What it did not move was the
+**comment defending the arm**, which `.3.26b` had written specifically because that arm had been
+deleted once already and restored only by a director ruling.
+
+So at HEAD the arm lived at `grammars/systemverilog.ebnf:733` as a bare
+`| @sample: "'{}" tick lbrace rbrace -> {exprs: []}` — no citation, no rationale, no ⛔ — while the
+paragraph explaining that it is legal SystemVerilog and must not be "fixed away" sat on a different
+rule, under a comment that correctly tells you the arm is **not** there. A reader arriving at
+`assignment_pattern` with the strict-LRM policy in hand sees exactly what `.3.26a`'s author saw: an
+alternative Annex A's four productions cannot derive, with nothing beside it. **That is not a risk I
+am inventing; it is the state that produced the deletion, reconstituted at a new address.**
+
+**Why no gate catches this.** `--lint-grammar` is exit 0 on both sides — necessarily, because the
+deletion it guards against also lints clean and parses clean; only the corpus notices, and only if
+someone runs it. Reachability is checkable and was checked. *Defensibility* is not reachable from any
+use site, so nothing prompts it. ⇒ **when a construct moves, the comment that defends it is part of
+the move, and only a reader can check that.**
+
+**The bound is stated rather than papered over.** A mechanical check is imaginable — flag an
+alternative carrying an `@sample` that no comment within N lines mentions — and it was **refused**:
+it is a heuristic over prose, this repo's standing lesson is that no cut heuristic is a census, and
+its failure direction is open. Routed to `LRM-GRAMMAR-FIDELITY.1c`, whose "what does the grammar
+accept that the annex cannot derive" enumeration is *the same list* as "which arms need a defending
+comment" — one instrument, two readings, which is the honest way to mechanize it later.
+
+**Measured before routing** (`ROUTING-EVIDENCE`): the class is not SV-specific. Protective comments
+across all 17 tracked grammars — `systemverilog` 14, `vhdl` 5, `ebnf` 3, `semantic_annotation` 1,
+the other 13 zero. ⛔ And the honest bound on my own number: it counts comments that *look*
+protective, not arms that *need* protection, so it sizes the upper edge and cannot say how many are
+stranded today — the same census-vs-heuristic distinction, applied to the measurement I just made.
+
+**Second-order note on the verification.** Three of the four shapes passed immediately; the uvm
+`return '{};` case REJECTED. `furthest_position=24` put the failure inside my own synthetic function
+header, not at the `'{}` — the test file was invalid SystemVerilog, not the parser. Written down
+because the tempting reading of a red result at that moment was "the comment insertion truncated an
+alternative", and the furthest-position diagnostic answered it in one command instead.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0192 — a retraction that lands in one layer and not the others is not a retraction, it is a contradiction
 
 Three commits after the director ruled that `'{}` is legal SystemVerilog, **five** durable surfaces
