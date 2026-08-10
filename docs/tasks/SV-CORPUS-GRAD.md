@@ -7256,10 +7256,11 @@ does not exist is indistinguishable from one that does: the runner accepts an un
       and 4 fields so `cluster_rejects_valid.py` and `corpus_rule_coverage.py` are untouched; the
       new sidecar is OPTIONAL and its absence degrades LOUDLY to the pre-`.12a` answer on stderr.
 
-### `.12c` — two silent-failure surfaces `.12a` surfaced (`todo`, opened 2026-08-10 by `.12a`)
+### `.12c` — two silent-failure surfaces `.12a` surfaced (`in_progress`, opened 2026-08-10 by `.12a`)
 
-- **Status: `todo`. Both are real, both are small, and both fail SILENTLY — which is the only
-  reason they are grouped.**
+- **Status: `in_progress` since 2026-08-11 — ⭐ F1 is DONE (sub-leaf `.12c.1`,
+  `PGEN-SV-CORPUS-GRAD-0204`); F2 and F3 remain `todo`.** Both were real, both were small, and both
+  failed SILENTLY — which is the only reason they were grouped.
 - ⭐⭐ **F1 — the parser cannot read LATIN-1 SOURCE, and it is a CONFIRMED DEFECT and a SIGNOFF
   BLOCKER. Adjudicated 2026-08-10 on four independent lines of evidence; no longer an open spec
   question.**
@@ -7345,6 +7346,275 @@ does not exist is indistinguishable from one that does: the runner accepts an un
   because it PASSES once readable) + a `must_reject`/`must_accept` fixture pair in ASCII, Latin-1 and
   UTF-16 so the reader is regression-locked; F2 = the unknown-variable refusal with a test; F3 = the
   two-caller regression lock. ⛔ F1 is a **release blocker** for the Nexsim claim and outranks F2/F3.
+  ⭐ **F1 DELIVERED 2026-08-11 by `.12c.1`** (below); F2/F3 are unstarted.
+
+#### `.12c.1` — F1 IMPLEMENTED: one shared source-text decoder, so USER SOURCE is read instead of refused (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0204`)
+
+- **Status: `done`.** Owned the F1 fix (option 2 of `.12c`'s costed table) end to end: the
+  enumeration, the decoder, the wiring, the fixtures and the corpus re-measure. F2/F3 stay with
+  `.12c` and are separate leaves. ⭐ **Axis-2 bar 319 → 318**, and 11 corpus rows that testified to
+  nothing now carry a real parse position.
+- **REPRODUCE (measured at HEAD `d49ceeed`, shipped `rust/target/debug/parseability_probe`):**
+  ```
+  $ parseability_probe --parse systemverilog stimuli/sv/subs/sv2v/test/lex/latin1.sv --profile sv_2017
+  Error: failed to read input file 'stimuli/sv/subs/sv2v/test/lex/latin1.sv'
+  Caused by: stream did not contain valid UTF-8                                    (exit 1)
+  ```
+  Identical for all 12 scr1 files. ⛔ There is no parse verdict at all — the probe never reaches
+  the parser, so `results.tsv` banks `fail` for a file the parser was never shown.
+- **ROOT CAUSE (WHY + WHERE)** — re-confirmed at HEAD, not inherited: `std::fs::read_to_string`
+  refuses the byte stream before any parsing happens. WHERE = the source-text READERS, enumerated
+  below; the engine itself is encoding-blind (the generated parser holds `input: &'input str` and
+  indexes by byte offset), which is exactly why UTF-8 already passes through untouched.
+
+##### DELIVERABLE 1 — THE ENUMERATION (`.12c` required this first, because a blanket sweep answers
+"which sites read user source?" wrongly)
+
+Full census of the **46** text-reading sites under `rust/src/` (45 `read_to_string` + 1 `fs::read`;
+artifact: `docs/tasks/artifacts/sv_corpus_grad/source_text_readers/enumeration.md`). Three
+categories, and only category A is in scope:
+
+| cat | what it reads | sites | disposition |
+|---|---|---:|---|
+| **A** | **USER SOURCE TEXT** handed to a parser/preprocessor | **7** (6 readers) | ⭐ FIXED here |
+| B | GRAMMAR text (`.ebnf` — user-authored, but PGEN's own input language) | 4 | ROUTED (`EBNF-FRONTEND-SILENT-TRUNCATION.5`) — see routing evidence |
+| C | files PGEN itself WRITES (JSON manifests, generated Rust, reports, dumps) | 35 | ⛔ DELIBERATELY UNTOUCHED — encoding tolerance there would hide genuine corruption |
+
+- **Category A, named:** `rust/src/bin/parseability_probe.rs:504` (`--parse`) and `:556`
+  (`--parse-dump-ast[-pretty]`), `rust/src/bin/generated_parse_probe.rs:46`,
+  `rust/src/parse_harness.rs:463` (the emitted standalone-probe template),
+  `rust/src/sv_preprocessor.rs:412`, and `rust/src/main.rs:2797`/`:2802`
+  (`--mimicry-corpus-file`/`--mimicry-corpus-lines`).
+- ⭐⭐ **THE ENUMERATION PAID FOR ITSELF IMMEDIATELY — the repo already had TWO source-text readers
+  with CONTRADICTORY non-UTF-8 behaviour, and nothing said so.** `parseability_probe` REFUSES the
+  file; `sv_preprocessor.rs:414` has decoded it lossily since its introduction, replacing every
+  offending byte with U+FFFD and emitting `W_SVPP_NON_UTF8_SOURCE`. So the same 13 corpus files are
+  unreadable on one path and silently mangled on the other. ⛔ That divergence is precisely what a
+  single shared decoder exists to remove, and it would have survived a fix applied only at the
+  probe — the site `.12c` named.
+
+##### THE FIX — `rust/src/source_text.rs`, one module, called from all 7 category-A sites
+
+Option 2 of `.12c`'s costed table, implemented as specified. The decision ladder:
+
+| input | verdict |
+|---|---|
+| `EF BB BF` BOM | UTF-8, BOM stripped; **refuses** if the body is then invalid UTF-8 |
+| `FF FE` / `FE FF` BOM | UTF-16 LE/BE transcode; **refuses** on odd length or an unpaired surrogate |
+| no BOM, valid UTF-8 | UTF-8, byte-identical to disk (the common case — **nothing changes**) |
+| no BOM, invalid UTF-8 | **ISO-8859-1**, a *total* decoding — every byte maps, so it cannot fail |
+
+Four choices in that ladder were made, not defaulted into, and each is recorded because a later
+reader would otherwise have to re-derive it:
+
+- ⭐ **A file that DECLARES its encoding and then contradicts it is REFUSED, not guessed at.** A BOM
+  is a producer's explicit claim. The refusal names the exact byte offset, so unlike the
+  pre-`.12c.1` message (*"stream did not contain valid UTF-8"*, naming only the file) it is
+  actionable.
+- ⭐ **ISO-8859-1, not Windows-1252, for the no-BOM fallback.** ISO-8859-1 is *total* — all 256 byte
+  values map and `char as u8` round-trips exactly (unit-tested over the full byte range); CP1252
+  leaves five bytes undefined, so it can fail and would itself need a fallback. Since the LRM
+  already confines non-ASCII to comments, the glyph choice cannot change the token stream —
+  only totality can, and only one candidate has it.
+- ⭐ **The encoding notice goes to STDERR and only when the file is not plain UTF-8.** A line per
+  file would put 16 336 lines into a corpus run and train the operator to ignore them. ⛔ The
+  notice is unit-tested to never contain `furthest_position=`, because
+  `run_external_corpus.sh:parse_one()` extracts the parse position from probe stderr by scanning
+  for exactly that literal — a notice carrying it would FORGE a position into `positions.tsv`.
+- ⛔ **The offset caveat `.12c` demanded is CARRIED IN THE API, not just in prose.**
+  `SourceEncoding::preserves_disk_byte_offsets()` answers per file whether a reported byte offset
+  is still an offset into the file, and the stderr notice says so out loud. A span-mapping table
+  remains out of scope, as `.12c` specified.
+
+##### ⭐⭐ A THIRD THING THE ENUMERATION FOUND — one of the 7 readers COULD NOT BE COMMITTED
+
+Staging this leaf revealed that `rust/src/bin/generated_parse_probe.rs` — a hand-written,
+cargo-auto-discovered diagnostic binary, and one of the seven category-A readers — **has never
+been tracked in git** (`git log --all -- <path>` returns empty). `.gitignore:231` carries
+`generated_*.rs`; a pattern with no `/` matches at **any depth**, so it swallowed a source file it
+was never aimed at.
+
+Measured before touching anything, because a `.gitignore` edit is exactly the kind of change that
+should not be made on a hunch:
+
+- the generated tree it was presumably written for is ignored by `generated/` at `.gitignore:24`,
+  and **none of that tree's files even start with `generated_`** — so the pattern was protecting
+  nothing;
+- **exactly one** file on disk outside `**/target/` matches it, and it is this one;
+- the `generated_*.pm` / `generated_*.jl` siblings match **zero** files.
+
+⇒ the pattern's only live effect was the harm. Fixed here with a targeted
+`!rust/src/bin/generated_parse_probe.rs` negation carrying that measurement inline. ⛔ **This leaf
+took the minimum that made its own claim true and no more** — without it, "all 7 user-source
+readers decode" would have been true on disk and false in git, which is the kind of gap a commit
+message quietly inherits.
+
+⭐ **The CLASS is routed to `BIN-BUILD-INTEGRITY.6`** (which re-opens that `done` tree), because
+the interesting part is not the file — it is that `BIN-BUILD-INTEGRITY.2`'s census **cannot see
+this**. That gate deliberately derives its binary list from `cargo metadata --no-deps` rather than
+a hand-list, which fixed census *drift*; but `cargo metadata` reports the **working tree**. Here it
+reports **19 binaries including `generated_parse_probe`** and the gate is green; on a fresh clone
+it reports **18** and the gate is *still* green, having simply never heard of the binary. A census
+derived from the working tree cannot detect a file the working tree has and git does not — silent,
+and in the passing direction.
+
+##### VERIFICATION — the 13-file population, before → after (shipped probe, `--profile sv_2017`)
+
+| | before (`read_to_string`) | after (`source_text`) |
+|---|---|---|
+| `sv2v test/lex/latin1.sv` | ⛔ *"stream did not contain valid UTF-8"*, exit 1, **no verdict** | ✅ `parse_full passed`, exit 0 |
+| `scr1 src/includes/scr1_ahb.svh` | ⛔ same | ✅ `parse_full passed`, exit 0 |
+| the other 11 scr1 files | ⛔ same | a REAL parse rejection with a position, e.g. `scr1_memif.svh` → `position 429 [furthest_position=512, +83 bytes deeper]` |
+
+⭐ **The 11 rejections are the point, not a disappointment.** All 12 scr1 files are `chained_only`
+design fragments — their expected verdict does not change and cannot, because a `.svh` parsed in
+isolation is genuinely undecidable. What changed is that `results.tsv` now banks *what the parser
+said about the text* instead of *what the reader said about the bytes*.
+
+⛔ **AN ERROR IN `.12c`'s OWN PREDICTION, CORRECTED HERE RATHER THAN QUIETLY ABSORBED.** `.12c`
+wrote that the fix would make *"12 scr1 rows leave `chained_only` into a real verdict"*. It does
+not, and cannot: `chained_only` is the **expected** verdict, derived from the file being a design
+fragment, and encoding has no bearing on it. Only the sv2v row moves class. The prediction was
+right about the direction and wrong about the mechanism.
+
+##### VERIFICATION — the oracles
+
+- **Unit**: `cargo test --features generated_parsers --lib source_text::` → **13 passed**, covering
+  each rung of the ladder, the full-byte-range Latin-1 round trip, the BOM-that-lies refusal, both
+  UTF-16 endiannesses, surrogate handling, and the `furthest_position=` exclusion.
+- **Regression lock**: `cargo test --features generated_parsers --test source_text_encoding_regression`
+  → **4 passed**. Its central property is stronger than "Latin-1 no longer errors": one
+  `must_accept` and one `must_reject` SystemVerilog source × **five encodings** (UTF-8, UTF-8-BOM,
+  ISO-8859-1, UTF-16LE, UTF-16BE) must all agree with the UTF-8 verdict. ⛔ Fixtures are BUILT from
+  explicit bytes, never tracked as files — a tracked Latin-1 fixture is exactly what an editor or a
+  `.gitattributes` filter normalises to UTF-8, after which the lock passes while testing nothing.
+  ⭐ **This test caught its own author**: the first draft asserted `©` for all 13 corpus files, but
+  sv2v's fixture carries `0xC1 0xE5` (`Áå`), not `0xA9`.
+- **Preprocessor**: `cargo test --features generated_parsers --lib sv_preprocessor::` → **24
+  passed** (22 before + 2 new).
+- **Doctrines**: `bash scripts/check_doctrines.sh` → all 17 PASS.
+
+##### VERIFICATION — the corpus, re-measured at the tracked parameters (the number was PRE-COMMITTED)
+
+⭐ Before running it, this leaf wrote down what it expected: **9750 → 9752 pass**, and the axis-2
+bar **319 → 318**. Both landed exactly.
+
+```
+external-corpus[sv]: 16336 parsed — pass=9752 fail=6584 timeout=0 crash=0 (59.7% pass)
+                     (was 9750 / 6586, same 60 s timeout / 8 jobs / release probe, 71 s, peak 4 965 MB)
+adjudication:        match=5805  unexplained=318  explained=1433  deferred=8780
+```
+
+| oracle | before | after |
+|---|---:|---:|
+| `results.tsv` rows differing | — | **exactly 2** (the other 16 334 byte-identical) |
+| `positions.tsv` rows added / changed / removed | — | **11 added, 0 changed, 0 removed** |
+| `adjudication_manifest.tsv` rows differing | — | **exactly 2** |
+| ⭐ **axis-2 bar (unexplained divergences)** | **319** (298 + 21) | **318** (297 + 21) |
+| `adjudication_manifest_v2005.tsv` / its summary | — | **BYTE-IDENTICAL** |
+
+The two manifest rows, and nothing else moved:
+
+- `sv2v test/lex/latin1.sv` — `divergence:unexplained_rejects_valid` → **`match`**. This is the
+  whole −1 on the bar: a file counted as a parser defect for its copyright bytes.
+- `scr1 src/includes/scr1_ahb.svh` — observed `fail` → `pass`, class **unchanged**
+  (`deferred:chained_only`), because the *expected* verdict never depended on the encoding.
+
+⭐ **The 11 new `positions.tsv` rows are the real deliverable behind the −1.** Those files now
+bank *where the parser stopped* (`scr1_memif.svh` 512, `scr1_csr.svh` 5 461, `scr1_tapc.sv` 2 985,
+…) instead of nothing at all. Before this leaf they were `fail` rows with no position, because the
+probe never reached the parser — indistinguishable, in the artifact, from a genuine rejection at
+byte 0.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `parseability_probe --parse systemverilog
+      stimuli/sv/subs/sv2v/test/lex/latin1.sv --profile sv_2017` → `Error: failed to read input
+      file … Caused by: stream did not contain valid UTF-8`, exit 1, on all 13 ISO-8859-1 corpus
+      files. No parse verdict at all; `results.tsv` banked `fail` with an EMPTY position column for
+      text the parser was never shown.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `std::fs::read_to_string` refuses a non-UTF-8 byte stream
+      *before* parsing, so PGEN refused the FILE rather than rejecting a construct; the engine
+      itself is encoding-blind (`input: &'input str`, byte-indexed, which is why
+      `furthest_position=` is a byte offset and why multi-byte UTF-8 has always passed through).
+      WHERE: the 7 USER-SOURCE call sites, separated from 4 grammar readers and 35 PGEN-artifact
+      readers by the categorised 46-site census in
+      `docs/tasks/artifacts/sv_corpus_grad/source_text_readers/enumeration.md` — the census, not
+      the diagnosis, is what bounds the fix.
+- [x] **FIX** — new `rust/src/source_text.rs` (BOM → UTF-8 / UTF-16LE/BE → ISO-8859-1, encoding
+      reported), called from all 7 category-A sites. Fix tier: **library/reader**, strictly above
+      the engine — zero grammar bytes, zero codegen bytes, zero engine bytes, and the `&str` input
+      type (and therefore the peak-speed non-negotiable) is untouched. `.12c`'s option 3 —
+      make the engine byte-oriented — stays REJECTED for exactly that reason.
+- [x] **ADDRESSED (verified)** — corpus **9750 → 9752 pass** and axis-2 bar **319 → 318**, both
+      pre-committed before the run. `latin1.sv` REJECT→PASS; the 11 remaining scr1 files go from no
+      verdict to a real rejection carrying a position, e.g. `scr1_memif.svh` → `Parser did not
+      consume full input at position 429 [furthest_position=512, +83 bytes deeper than surface
+      position]`. 13 unit + 4 regression-lock + 24 preprocessor tests pass.
+- [x] **NO REGRESSION** — `results.tsv` differs in **exactly 2 of 16 336 rows** (asserted by diff,
+      not eyeballed); `positions.tsv` gains 11 rows and changes/loses none, so every previously
+      banked `furthest_position=` value is intact; `adjudication_manifest_v2005.tsv` and its
+      summary are **BYTE-IDENTICAL**; the corpus ran at the tracked parameters (60 s / 8 jobs /
+      release probe) in 71 s at peak 4 965 MB; all 17 doctrines PASS; `clippy_on_rust_change`
+      clean (source + generated stages). ⭐ The **emitted probe template** is the one changed site
+      no unit test reaches, so it was proven by its own oracle:
+      `make -C rust parse_harness_combinator_gate` → **28 arms CLEAN, diverge=0, anchor_miss=0**,
+      i.e. the harness still compiles and runs a throwaway probe per structural combinator.
+      ⛔ The invariant behind the 2-row result: for a file that IS valid UTF-8 the decoder's
+      output is the same `String` `read_to_string` produced, so no other row *can* move.
+- [x] **LOCKSTEP** — book: `docs/book/src/parseability-probe-debug.md` (the stderr notice + the
+      offset caveat) and `docs/book/src/embedding-and-downstream-integration.md` (a new
+      *Reading source files* section — the host does this, so the trap is the host's to avoid);
+      `TOOLBOX.md` symptom→tool row; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; decision record
+      `feedback_a_named_call_site_is_a_category_of_call_sites` + `docs/decisions/INDEX.md` +
+      regenerated `KNOWLEDGE_MAP.md`. DONE-BAR register **unchanged** — SV stays `Mostly Done`;
+      one row off a 319-row bar over a 46 %-adjudicated corpus does not move a family status, and
+      `.13` is still the leaf the release bar turns on.
+
+#### `.12c.2` — ⭐⭐ THE SV PREPROCESSOR DOUBLE-ENCODES EVERY NON-ASCII CHARACTER (`todo`, opened 2026-08-11 by `.12c.1`)
+
+- **Status: `todo`. A CONFIRMED defect, found by `.12c.1` and pinned by a deliberately
+  defect-asserting test so it cannot be fixed silently or regress silently.**
+- **HOW IT WAS FOUND — by the fix's own test, not by inspection.** `.12c.1` added an assertion that
+  a Latin-1 `©` survives the preprocessor. It **failed**, with the `©` arriving as `Â©`. The
+  reader was exonerated in one step: the same corruption reproduces on input that is **valid
+  UTF-8**, which never touches the Latin-1 branch at all.
+- **REPRODUCE** (`rust/target/debug/ast_pipeline`, HEAD `d49ceeed` + `.12c.1`):
+  ```
+  in : 2f2f 2043 6f70 7972 6967 6874 20c2 a9 ...   `// Copyright © 2016 — µ`   (44 B, valid UTF-8)
+  out: 2f2f 2043 6f70 7972 6967 6874 20c3 82c2 a9  `// Copyright Â© 2016 â\u{80}\u{94} Âµ` (51 B)
+  ```
+  **+7 bytes = exactly one per non-ASCII byte in the input** (`©`=2, `—`=3, `µ`=2).
+- **ROOT CAUSE (WHY + WHERE).** WHERE = `rust/src/sv_preprocessor.rs`, **8 sites**: `:1159`,
+  `:1325`, `:1341`, `:1348`, `:1385`, `:1594`, `:1784`, `:1818` — all of the form
+  `out.push(bytes[i] as char)` / `let ch = bytes[i] as char`, inside the line scanners
+  (`expand_macros_in_text` and its siblings) which walk the line as `text.as_bytes()`.
+  WHY = `u8 as char` is a **Latin-1 promotion**, not a UTF-8 decode: byte `0xC2` becomes U+00C2,
+  which re-encodes as two bytes. Every multi-byte UTF-8 sequence therefore comes back out as one
+  character per byte. ⛔ All 8 sites are **pre-existing at HEAD** — verified by diff, not assumed
+  (`git show HEAD:… | grep -c 'bytes\[i\] as char'` = 7, plus one `content_bytes[k]`; the only
+  `as char` lines in `.12c.1`'s diff are comments).
+- **WHY IT WAS INVISIBLE UNTIL NOW, stated so the class is understood rather than the instance.**
+  Nothing downstream ever looked. The parser skips comments, which is where the LRM confines
+  non-ASCII, so no parse verdict ever moved; the preprocessor's own tests all used pure ASCII; and
+  the one non-UTF-8 test in the file asserted only that the run did not fail. It took a test that
+  asserted on the *content* of the output to see it.
+- ⛔ **WHAT IT COSTS, honestly bounded.** Today: **no parse verdict is wrong**, because the
+  corrupted characters live in comments. But (a) `PreprocessedOutput::source_map` byte ranges are
+  wrong for any line after a non-ASCII character, so a diagnostic mapped back to source points at
+  the wrong column; (b) the preprocessed text is not a faithful copy of the user's source, which
+  breaks the "preprocess then hand to a tool" contract Nexsim needs; and (c) **expansion is on the
+  critical path** — `.13` shows 5 276 `chained_only` rows (32.3 % of the corpus) unblock on it, so
+  this graduates from cosmetic to load-bearing the moment `SVPP-EXPANSION` lands.
+- **THE PINS THAT MAKE IT UN-SILENCEABLE** (both in `rust/src/sv_preprocessor.rs`):
+  `a_plain_utf8_source_is_double_encoded_pinned_defect` asserts the corruption *and* its exact
+  +7-byte size on valid UTF-8 input; `tolerates_non_utf8_include_with_warning` asserts `Â©` with a
+  comment ordering the fix to flip it to `©`. ⭐ Both FAIL when `.12c.2` lands — by design.
+- **Owed:** decode-aware scanning at the 8 sites (the scanners index by byte, so the fix is to
+  advance by the UTF-8 sequence length rather than to switch to `chars()` wholesale — the
+  backtick/quote/comment detection must keep its byte offsets, which is exactly the property a
+  naive `chars()` rewrite would lose); the two pinned tests flipped; a source-map byte-range
+  assertion over non-ASCII input; and a re-run of the SVPP suite.
 
 ### `.12b` — the 263 rows POSITION cannot decide (`todo`, opened 2026-08-10 by `.12`, SIZED AND PARKED)
 
@@ -7415,10 +7685,37 @@ does not exist is indistinguishable from one that does: the runner accepts an un
   `.4` + an expander, and a standing gate so the denominator is published beside the bar and cannot
   silently rot.
 
-## ROUTING EVIDENCE (`.3.12` → `.11c`, `.11a` → `.11d`, and the `.11a`/`.11b` pair from `.10`)
+## ROUTING EVIDENCE (`.3.12` → `.11c`, `.11a` → `.11d`, the `.11a`/`.11b` pair from `.10`, and `.12c.1` → `EBNF-FRONTEND-SILENT-TRUNCATION.5`)
 
 ⛔ Required by the `ROUTING-EVIDENCE` doctrine: *a routing is a claim about WHERE a defect lives, and
 the deciding evidence is usually already on disk.*
+
+### `.12c.1` → `EBNF-FRONTEND-SILENT-TRUNCATION.5` — the four GRAMMAR readers
+
+1. **Does it reproduce OUTSIDE the family it is routed to? — the honest answer is NOT TODAY, and
+   that is measured, not assumed.** Censused every `.ebnf` under `grammars/`, `docs/` and
+   `rust/test_data/`: **42 files scanned, 0 non-UTF-8**. So the defect is real in the code
+   (`ebnf_frontend.rs:16`, `:563`, `ebnf_dual_run_diff.rs:288`, `parser_registry.rs:3805` all call
+   `read_to_string`) but has **no in-repo instance** — it is a user-facing limitation on
+   third-party grammars, not a live failure. ⛔ Stating that plainly is the point: routing it as if
+   it were breaking something today would misprice it, and routing it *without* the census would
+   have been a guess in either direction.
+2. **What was MEASURED to place it there, not what makes it plausible?** The categorised census of
+   all 46 text readers in `rust/src/`
+   (`docs/tasks/artifacts/sv_corpus_grad/source_text_readers/enumeration.md`). It is the census —
+   not the fix — that separates grammar text (4 sites) from user source (7) and from PGEN's own
+   artifacts (35), and the separation is what makes this a *different* leaf rather than four more
+   lines in `.12c.1`.
+3. **Why not just fix it here, since the decoder already exists?** Two reasons, both structural:
+   the standing **SV lane lock** binds work to the SV release, and a grammar file has a different
+   risk profile from user source — the grammars in this repo are PGEN-owned artifacts, so
+   encoding tolerance there sits closer to category C than to category A. That judgement deserves
+   its own leaf, not a footnote in this one.
+4. ⚠️ **Naming honesty, recorded on both sides.** The receiving tree is titled *silent* truncation
+   and this defect is **loud**. It is filed there because that tree is the repo's home for EBNF
+   frontend input-handling integrity, and the sibling relationship is real (*the frontend not
+   reading what the file says*) — but the mismatch is written into the receiving leaf rather than
+   glossed over.
 
 ### `.11c` — the memo is part of the acceptance semantics on cyclic rules
 

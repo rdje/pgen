@@ -11,6 +11,22 @@ fn usage() -> &'static str {
     "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`; dump support `SV-AST-SHAPE-FIDELITY.2.4`) parse `--parse` input — or dump the AST of `--parse-dump-ast[-pretty]` input — from an ALTERNATE start symbol (e.g. `library_text`, or a PEG-shadowed expression-position rule) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative or shadowed rule (unreachable from the default entry) be reproduced/traced/AST-dumped in isolation. AST-dump `--entry-rule` is currently wired for `systemverilog` only. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots."
 }
 
+/// `SV-CORPUS-GRAD.12c.1` — read the input as USER SOURCE TEXT.
+///
+/// `std::fs::read_to_string` refused the FILE (not a construct) for the 13 ISO-8859-1 files of the
+/// tracked SV corpus, so those rows never reached the parser at all. The shared decoder reads
+/// them; anything other than plain UTF-8 is announced on **stderr**, which the corpus runner
+/// captures, so a shifted byte offset is never a silent surprise.
+#[cfg(feature = "generated_parsers")]
+fn read_source(input_file: &str) -> Result<String> {
+    let decoded = pgen::source_text::read_source_file(input_file)
+        .with_context(|| format!("failed to read input file '{}'", input_file))?;
+    if let Some(notice) = decoded.non_utf8_notice(input_file) {
+        eprintln!("{notice}");
+    }
+    Ok(decoded.text)
+}
+
 fn default_ast_dump_file(grammar_name: &str) -> String {
     let mut stem = String::with_capacity(grammar_name.len());
     for ch in grammar_name.chars() {
@@ -501,8 +517,7 @@ fn command_parse(
     library_in_dir: Option<&str>,
     library_out_dir: Option<&str>,
 ) -> Result<()> {
-    let sample = std::fs::read_to_string(input_file)
-        .with_context(|| format!("failed to read input file '{}'", input_file))?;
+    let sample = read_source(input_file)?;
     let library_options = parser_registry::LibraryOptions {
         in_dir: library_in_dir.map(std::path::PathBuf::from),
         out_dir: library_out_dir.map(std::path::PathBuf::from),
@@ -553,8 +568,7 @@ fn command_parse_dump_ast(
     pretty: bool,
     max_bytes: Option<usize>,
 ) -> Result<()> {
-    let sample = std::fs::read_to_string(input_file)
-        .with_context(|| format!("failed to read input file '{}'", input_file))?;
+    let sample = read_source(input_file)?;
     // SV-AST-SHAPE-FIDELITY.2.4: an explicit `--entry-rule` dumps the AST parsed from that ALTERNATE
     // start symbol via the generated parser's `parse_full_from`, so a PEG-shadowed / entry-relative
     // rule can be inspected in isolation. `None` keeps the byte-identical canonical-entry dump path.

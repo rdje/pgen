@@ -1791,6 +1791,18 @@ which rose from 293 to 319. **A burn-down going *up* is the correct outcome here
 always defects and were merely wearing the wrong label, so the number did not get worse — it got
 true. The `verilog_2005` lane was measured the same way and came back clean, with zero rows moved.
 
+It has since come down by one, to **318**, and the reason is worth reading beside the paragraph
+above because it is the same lesson from the other end. One of those rows —
+`sv2v/test/lex/latin1.sv` — was never a parser defect at all: the file is ISO-8859-1, and PGEN's
+readers called `std::fs::read_to_string`, which refuses a non-UTF-8 byte stream outright. **The
+file was refused; no construct was ever rejected**, and the burn-down counted the refusal as a
+grammar gap. Twelve more corpus files (each carrying a single `0xA9` — the `©` in a copyright
+comment) were failing the same way without being counted, because their expected verdict was
+`chained_only`. `SV-CORPUS-GRAD.12c.1` gave PGEN one shared source-text decoder, and those twelve
+now bank a real parse position instead of nothing at all. See
+[Embedding and Downstream Integration § Reading source files](embedding-and-downstream-integration.md#reading-source-files--pgensource_text)
+for what a host embedding the parser has to do about this.
+
 One design detail is worth stating because getting it wrong would have been invisible. The
 whole-file test feeds *two* decisions, not one. On the negative-test path it answers "could this
 file's intended syntax error be hidden until after preprocessing?" — a question that really is about

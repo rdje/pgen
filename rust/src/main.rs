@@ -2792,15 +2792,20 @@ fn run_directed_corpus_mimicry(grammar: &LoadedGrammar, run: &DirectedGeneration
     let samples_per_round = run.samples_per_round.max(1);
 
     // ── Corpus ingestion (deterministic: files in the given order, then the lines file). ──
+    //
+    // SV-CORPUS-GRAD.12c.1 — a mimicry corpus is USER SOURCE TEXT, so it goes through the shared
+    // decoder: a Latin-1 seed file is read rather than failing the whole run.
     let mut corpus_inputs: Vec<(String, String)> = Vec::new();
     for path in run.mimicry_corpus_files {
-        let content = std::fs::read_to_string(path)
-            .with_context(|| format!("failed to read --mimicry-corpus-file {path}"))?;
+        let content = pgen::source_text::read_source_file(path)
+            .with_context(|| format!("failed to read --mimicry-corpus-file {path}"))?
+            .text;
         corpus_inputs.push((path.clone(), content));
     }
     if let Some(path) = run.mimicry_corpus_lines {
-        let content = std::fs::read_to_string(path)
-            .with_context(|| format!("failed to read --mimicry-corpus-lines {path}"))?;
+        let content = pgen::source_text::read_source_file(path)
+            .with_context(|| format!("failed to read --mimicry-corpus-lines {path}"))?
+            .text;
         for (idx, line) in content.lines().enumerate() {
             if !line.is_empty() {
                 corpus_inputs.push((format!("{path}:{}", idx + 1), line.to_string()));

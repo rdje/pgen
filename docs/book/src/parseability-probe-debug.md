@@ -74,6 +74,33 @@ parseability_probe --parse systemverilog path/to/file.sv
 
 Exits `0` on a fully-consuming parse, `1` on any parse rejection. The error message (printed to stderr on failure) includes both the **surface position** (where the outermost failing rule started) and the **furthest position** the parser actually reached — see [Furthest-Position Error Diagnostic](#furthest-position-error-diagnostic) for why both matter.
 
+### Source encoding — what the probe does with a non-UTF-8 file
+
+The probe decodes the input before parsing, rather than requiring it to be UTF-8. The ladder is
+BOM sniff → UTF-8 / UTF-16LE / UTF-16BE → **ISO-8859-1 fallback**, and anything that is not plain
+UTF-8 is announced on stderr:
+
+```bash
+$ parseability_probe --parse systemverilog scr1_memif.svh --profile sv_2017
+source-encoding: scr1_memif.svh decoded as iso-8859-1 (first non-UTF-8 byte at file offset 31); \
+reported byte offsets are into the decoded text, not the file
+```
+
+This exists because refusing the **file** is not the same as rejecting a **construct**. Before
+`SV-CORPUS-GRAD.12c.1` the probe called `read_to_string`, so thirteen files of the tracked
+SystemVerilog corpus — twelve of them carrying a single `0xA9` (`©`) inside a copyright comment —
+produced no parse verdict at all. IEEE 1800-2017 §5.4 puts no constraint on comment content, so
+those files are valid SystemVerilog, and every other SV tool reads them.
+
+⚠️ **The notice's second clause is the one to read.** Transcoding shifts byte offsets relative to
+the file on disk (one byte per non-ASCII byte under Latin-1; wholesale under UTF-16), so
+`furthest_position` and the surface position are offsets into the *decoded* text. Plain UTF-8
+input — the overwhelmingly common case — prints nothing and keeps on-disk offsets exactly.
+
+A file that **declares** an encoding through a BOM and then contradicts it is refused rather than
+guessed at, with the offending byte offset named. Silently re-reading such a file under a
+different encoding would replace a stated fact with a guess.
+
 ### Parse a file + dump the AST
 
 ```bash

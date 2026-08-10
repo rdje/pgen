@@ -10645,7 +10645,7 @@ scr1	src/core/scr1_scu.sv	fail	chained_only	deferred:chained_only	design corpus 
 scr1	src/core/scr1_tapc.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 scr1	src/core/scr1_tapc_shift_reg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 scr1	src/core/scr1_tapc_synchronizer.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-scr1	src/includes/scr1_ahb.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+scr1	src/includes/scr1_ahb.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 scr1	src/includes/scr1_arch_description.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 scr1	src/includes/scr1_arch_types.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 scr1	src/includes/scr1_csr.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -12629,7 +12629,7 @@ sv2v	test/lex/comment_no_space.sv	pass	must_accept	match	sv2v: conversion-input 
 sv2v	test/lex/cond.sv	fail	must_accept	divergence:explained_svpp_include	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/lex/file_line.sv	fail	must_accept	divergence:explained_svpp_include	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/lex/include_self.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
-sv2v	test/lex/latin1.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/lex/latin1.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/lex/line.sv	fail	must_accept	divergence:explained_svpp_include	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/lex/line.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/lex/macro.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: conversion-input .sv (valid SV by suite contract)

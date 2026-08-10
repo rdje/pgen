@@ -47,6 +47,37 @@ every entry point. The embedding API's typed `GrammarProfile` enum keeps its own
 of the typed contract, and a drift-gate test asserts they resolve every grammar-declared alias to
 the declared canonical profile — the two surfaces cannot silently diverge.
 
+### Reading source files — `pgen::source_text`
+
+The embedding API parses a `&str`; **turning a file into that `&str` is the host's job**, and it is
+a job with a trap in it. `std::fs::read_to_string` refuses any byte stream that is not valid UTF-8,
+so a host that uses it rejects the *file* rather than rejecting a *construct* — and vendor RTL
+routinely carries a `©`, an accented author name or a `µ` in a header comment, which IEEE
+1800-2017 §5.4 explicitly permits (it constrains only where a comment starts and ends, never its
+content).
+
+Since `SV-CORPUS-GRAD.12c.1`, PGEN ships the reader it uses itself:
+
+```rust
+let decoded = pgen::source_text::read_source_file("design/top.sv")?;
+let ast = /* hand `&decoded.text` to the embedding API */;
+
+if !decoded.encoding.preserves_disk_byte_offsets() {
+    // Positions PGEN reports are offsets into `decoded.text`, not into the file.
+    eprintln!("{}", decoded.non_utf8_notice("design/top.sv").unwrap());
+}
+```
+
+- **The ladder** is BOM sniff → UTF-8 / UTF-16LE / UTF-16BE → **ISO-8859-1 fallback**. Latin-1 is a
+  *total* decoding — all 256 byte values map and round-trip exactly — so the fallback cannot fail.
+- **The encoding is reported, never silently applied.** `DecodedSource::encoding` names it, and
+  `preserves_disk_byte_offsets()` answers the question a host actually needs: *is a reported byte
+  offset still an offset into my file?* (Only plain UTF-8 is; transcoding shifts positions.)
+- **A file that declares an encoding through a BOM and then contradicts it is refused**, with the
+  offending byte offset named, rather than re-read under a guess.
+- ⛔ **Only for user source.** Do not route JSON manifests, generated Rust or reports through it —
+  those are UTF-8 by construction, and a decode failure there is corruption that must stay loud.
+
 ### Stack robustness at the embedding boundary (`1.3.1`)
 
 A host process embedding a recursive-descent parser must never be aborted by that parser's

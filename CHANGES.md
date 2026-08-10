@@ -1,5 +1,54 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0204 — the SIGNOFF BLOCKER is fixed: PGEN reads Latin-1 / UTF-16 source instead of refusing the file (leaf `SV-CORPUS-GRAD.12c.1`; new `pgen::source_text` module + 7 call sites)
+
+- ⭐⭐ **`.12c` F1 IMPLEMENTED — the release blocker for the Nexsim claim.** Thirteen files of the
+  tracked SV corpus are ISO-8859-1 (twelve carrying exactly one `0xA9` — the `©` in
+  `/// Copyright by Syntacore LLC © 2016-2021`). `std::fs::read_to_string` refused the **file**
+  before any parsing, so those rows banked `fail` for text the parser was never shown. IEEE
+  1800-2017 §5.4 leaves comment content unconstrained, so they are valid SystemVerilog, and every
+  other SV tool reads them.
+- **THE FIX** — `rust/src/source_text.rs`, option 2 of `.12c`'s costed table: BOM sniff → UTF-8 /
+  UTF-16LE/BE → **ISO-8859-1 fallback**, encoding REPORTED on stderr, called from all 7
+  user-source call sites (`parseability_probe` ×2, `generated_parse_probe`, the compile-and-run
+  harness's emitted probe, `sv_preprocessor`, `--mimicry-corpus-file`/`-lines`). ⛔ Latin-1, not
+  CP1252, because it is *total* — every byte maps and round-trips, so the fallback cannot fail;
+  and a file whose BOM CONTRADICTS its body is refused with the offending byte offset rather than
+  re-read under a guess.
+- ⭐⭐ **THE ENUMERATION `.12c` DEMANDED FIRST PAID FOR ITSELF TWICE.** 46 text readers in
+  `rust/src/`: **7 read user source (fixed), 4 read grammar text (routed), 35 read files PGEN
+  itself writes** — where encoding tolerance would HIDE corruption, so they are deliberately
+  untouched. A blanket `read_to_string` sweep would have done real damage.
+  1. **Two readers of the same concern held OPPOSITE behaviours for their whole life** —
+     `parseability_probe` REFUSED a non-UTF-8 file while `sv_preprocessor` decoded it LOSSILY
+     (U+FFFD per byte) behind a warning. Nothing in the repo said so, because nothing had put them
+     side by side.
+  2. **A second, unrelated defect one layer down** — `SV-CORPUS-GRAD.12c.2` NEW: the preprocessor's
+     eight line scanners re-emit with `out.push(bytes[i] as char)`, a Latin-1 promotion, so **every
+     non-ASCII character is double-encoded** in the preprocessed output — including in files that
+     are perfectly valid UTF-8 (44 B in, 51 B out, `©` → `Â©`). Pre-existing at HEAD, verified by
+     diff. No parse verdict is wrong today (the corruption lands in comments) but the source map's
+     byte ranges are, and expansion is on `.13`'s critical path. ⭐ Pinned by **two tests that
+     assert the defect**, so it can neither be fixed nor regress silently.
+- **VERIFICATION** — 13 unit tests (the full ladder, the 256-byte Latin-1 round trip, the
+  BOM-that-lies refusal, both UTF-16 endiannesses, and an assertion that the stderr notice can
+  never contain `furthest_position=`, which the corpus runner scans for); a 4-test regression lock
+  whose central property is that **the encoding must not change the verdict** — one `must_accept`
+  and one `must_reject` source × 5 encodings; 24 preprocessor tests; all 17 doctrines PASS.
+  ⛔ Fixtures are BUILT from bytes, never tracked as files — a tracked Latin-1 fixture is what an
+  editor or a `.gitattributes` filter silently normalises to UTF-8, after which the lock passes
+  while testing nothing.
+- ⛔ **A PREDICTION IN `.12c` CORRECTED RATHER THAN QUIETLY ABSORBED**: it expected 12 scr1 rows to
+  "leave `chained_only` into a real verdict". They cannot — `chained_only` is the *expected*
+  verdict and comes from the file being a design fragment, not from its encoding. Only the sv2v row
+  changes class.
+- **ROUTED** — `EBNF-FRONTEND-SILENT-TRUNCATION.5` NEW (the four `.ebnf` readers have the same
+  defect; censused **42 grammar files, 0 non-UTF-8**, so it is a user-facing limitation with no
+  in-repo instance — routed with that measurement, not with a guess).
+- **PROMOTED** — `docs/decisions/feedback_a_named_call_site_is_a_category_of_call_sites.md`: a
+  defect named at one call site is a defect of a CATEGORY; enumerate and classify before fixing,
+  because the classification names the sites that must NOT change.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0202 — THE DENOMINATOR: only 46.3 % of the SV corpus carries a verdict, and the `©`-in-a-comment defect is confirmed (leaves `SV-CORPUS-GRAD.13` + `.12c` F1/F3, new census instrument, ZERO Rust/grammar bytes)
 
 - **DIRECTOR RULING 2026-08-10: "100 % confidence" — the 263 undecidable rows must be RESOLVED, not

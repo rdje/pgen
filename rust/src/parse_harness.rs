@@ -460,7 +460,11 @@ fn main() {{
         .expect("usage: probe <input_file> [entry_rule] [requested_profile]");
     let entry: Option<&str> = args.get(2).map(|s| s.as_str()).filter(|s| !s.is_empty());
     let profile: Option<&str> = args.get(3).map(|s| s.as_str()).filter(|s| !s.is_empty());
-    let input = std::fs::read_to_string(input_path).expect("read input file");
+    // SV-CORPUS-GRAD.12c.1 — the probe reads USER SOURCE TEXT, so it decodes through the shared
+    // reader (Latin-1 / UTF-16 are read, not refused) exactly like the shipped probes do.
+    let input = pgen::source_text::read_source_file(input_path)
+        .expect("read input file")
+        .text;
 
     let node_arena = pgen::NodeArena::new();
     let mut parser = generated::{struct_name}::new(&input, &node_arena, Box::new(pgen::NoOpLogger));

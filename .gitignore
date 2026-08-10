@@ -229,6 +229,16 @@ nytprof/
 generated_*.pm
 generated_*.jl
 generated_*.rs
+# ⛔ SV-CORPUS-GRAD.12c.1 (2026-08-11) — `generated_*.rs` has no `/`, so git matches it at ANY
+#  depth, and its ONLY live effect was to swallow a HAND-WRITTEN source file. Measured before
+#  changing anything: the generated tree is ignored by `generated/` at line 24 (none of its files
+#  even start with `generated_`), and exactly ONE file on disk outside `**/target/` matched this
+#  pattern — `rust/src/bin/generated_parse_probe.rs`, a cargo-auto-discovered diagnostic binary
+#  that `git log --all` shows was NEVER TRACKED, so no fresh clone has ever had it. The general
+#  class (a hand-written file made invisible by an artifact pattern — and therefore invisible to
+#  `BIN-BUILD-INTEGRITY`'s "every TRACKED bin still compiles" gate) is owned by
+#  `BIN-BUILD-INTEGRITY.6`.
+!rust/src/bin/generated_parse_probe.rs
 # (`perl/*parser.rs` stood here until LANG-CAPABILITY-AUDIT.10.7 deleted the `perl/` tree;
 #  measured 0 matching files on disk before removing the pattern. `*_parser.pm` below still
 #  matches 2 files under `tests/artifacts/`, so it stays.)

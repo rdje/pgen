@@ -493,6 +493,38 @@ would add compile cost for nothing.
     DEVELOPMENT_NOTES / MEMORY this commit. No book/contract surface: a
     test regained its ability to compile; no documented behavior changed.
 
+### `.6` — ⭐⭐ A HAND-WRITTEN BINARY HAS NEVER BEEN TRACKED, and the gate's census cannot see it (routed in by `SV-CORPUS-GRAD.12c.1`, 2026-08-11)
+
+- **Status: `todo`, opened 2026-08-11.** The one-file symptom is already FIXED in
+  `SV-CORPUS-GRAD.12c.1` (that leaf had to wire this binary, so it could not leave it
+  uncommittable). ⛔ What is NOT fixed, and is what this leaf owns, is the CLASS.
+- **THE FINDING, measured before anything was changed.** `rust/src/bin/generated_parse_probe.rs`
+  is a hand-written diagnostic binary — `git log --all -- <path>` returns **empty**, so it has
+  **never been tracked** and no fresh clone has ever contained it. Cause:
+  `.gitignore:231` carries `generated_*.rs`, a pattern with no `/`, which git therefore matches at
+  **any depth**. Measured blast radius: **exactly one** file on disk outside `**/target/` matches
+  it, and it is this one; the generated tree it was presumably written for is covered by
+  `generated/` at `.gitignore:24` and none of that tree's files even start with `generated_`. ⇒ the
+  pattern's only live effect was the harm.
+- ⭐⭐ **WHY `.2`'s GATE CANNOT CATCH THIS, and this is the part worth keeping.** `.2` fixed the
+  census-drift problem by deriving the binary list from `cargo metadata --no-deps` instead of a
+  hand-list — the right call, and it holds. But `cargo metadata` reports the **WORKING TREE**:
+  cargo auto-discovers `src/bin/*.rs`, so on this machine the census is **19 binaries including
+  `generated_parse_probe`**, and the gate is perfectly green. On a fresh clone the file is absent,
+  cargo reports **18**, and the gate is *still* perfectly green — it simply never hears about the
+  binary it should be building. ⛔ **A census derived from the working tree cannot detect a file
+  the working tree has and git does not.** That is a different axis from the one `.2` closed, and
+  it is invisible in exactly the direction that looks healthy.
+- **THE SHAPE OF THE REAL FIX** (deliberately not taken here, because it is a repo-wide policy
+  question and not an SV-release one): assert that every path `cargo metadata` reports as a target
+  source is TRACKED (`git ls-files --error-unmatch`), which is a cheap, deterministic, feature-free
+  check that runs in milliseconds and needs no build. ⚠️ Consider also whether the file should
+  simply be RENAMED out of the artifact namespace — it is a hand-written tool wearing a generated
+  artifact's name, and the negation now in `.gitignore` leaves the trap armed for the next one.
+- **WHAT `.12c.1` DID** — the minimum that made its own deliverable true, no more: a targeted
+  `!rust/src/bin/generated_parse_probe.rs` negation with the measurement recorded inline, so the
+  file is committable and the "all 7 user-source readers decode" claim is actually true in git.
+
 ## Acceptance Criteria (tree)
 
 1. Every tracked `[[bin]]` compiles under the feature combination it
@@ -504,10 +536,19 @@ would add compile cost for nothing.
    modules, not just binaries — `.2`'s `--all-targets` sweep covers them and
    `.5` is the worked instance; and every maintained GATE still RUNS (`.3`
    restored `ebnf_frontend_dual_run_gate`; `.4` made its failures legible). ✅
+4. **(Learned 2026-08-11, `.6`)** Every path `cargo metadata` reports as a
+   target source is TRACKED IN GIT. Criterion 1 says "every *tracked* bin
+   compiles"; that is silent about a bin git has never heard of, and `.2`'s
+   census is derived from the working tree, so it reports 19 binaries here
+   and 18 on a fresh clone — green both times. ⛔ **Not yet met.**
 
 ## Tree status
 
-All five leaves are `done` (`.1` binary repair, `.2` the standing gate,
+⚠️ **Re-opened 2026-08-11 by `.6`** — routed in by `SV-CORPUS-GRAD.12c.1`: a hand-written binary
+has never been tracked, and `.2`'s `cargo metadata` census cannot see it because that census
+reports the WORKING TREE, not git. The five original leaves stand; the tree is no longer closed.
+
+All five original leaves are `done` (`.1` binary repair, `.2` the standing gate,
 `.3` the RED gate's design call, `.4` the dead-diagnostics fix, `.5` the
 rotted integration test). The tree found and closed **three** independently
 rotted surfaces in one blind spot and left a maintained gate that makes the

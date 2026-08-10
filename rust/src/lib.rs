@@ -51,6 +51,11 @@ pub mod parse_harness_combinator_suite;
 #[cfg(feature = "ebnf_dual_run")]
 pub mod parse_harness_semantic_suite;
 pub mod regex_compile_validation;
+/// `SV-CORPUS-GRAD.12c.1` — the single decoder for USER SOURCE TEXT (BOM sniff → UTF-8 /
+/// UTF-16 → ISO-8859-1 fallback, encoding reported). Before it, every reader called
+/// `read_to_string` and refused any non-UTF-8 file outright — refusing the FILE rather than
+/// rejecting a construct. ⛔ Not for files PGEN itself writes. See the module docs.
+pub mod source_text;
 pub mod sv_preprocessor;
 pub mod test_registry;
 pub mod test_runner; // Only declare once

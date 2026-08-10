@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0204 — enumerate the readers before you fix one
+
+`SV-CORPUS-GRAD.12c` named the defect precisely: `parseability_probe.rs:504`/`:556` call
+`read_to_string`, which refuses the 13 ISO-8859-1 files of the SV corpus. It also insisted the
+enumeration of source-text readers come **first**, before the fix. That instruction earned its
+keep twice, and both times in ways a two-line patch at the named site would have missed.
+
+**Category is the whole game.** There are 46 text-reading sites under `rust/src/`. Only 7 read
+USER SOURCE; 4 read grammar text; **35 read files PGEN itself writes** — JSON manifests, generated
+Rust, reports, AST dumps. A blanket `read_to_string` → tolerant-reader sweep would have made those
+35 encoding-tolerant, which is strictly harmful: a decode failure there is not "the input used
+another encoding", it is corruption or a truncated write, and it must stay loud. The categorised
+list is `docs/tasks/artifacts/sv_corpus_grad/source_text_readers/enumeration.md`.
+
+**Finding 1 — two readers, two opposite answers, no one had noticed.** `parseability_probe`
+REFUSES a non-UTF-8 file. `sv_preprocessor.rs:414` has decoded it *lossily* since it was written,
+substituting U+FFFD per bad byte behind a `W_SVPP_NON_UTF8_SOURCE` warning. Same 13 files:
+unreadable on one path, silently mangled on the other. Fixing only the named site would have left
+the mangling in place and *widened* the divergence.
+
+**Finding 2 — wiring the second reader exposed a defect nobody was looking for.** The new test
+asserted that a Latin-1 `©` survives the preprocessor. It failed: the `©` came out as `Â©`. The
+reader was exonerated in one step, because the same corruption reproduces on input that is
+**valid UTF-8** — 44 bytes in, 51 bytes out, exactly +1 per non-ASCII byte. Root cause:
+`expand_macros_in_text` and seven sibling scanners walk the line as `text.as_bytes()` and re-emit
+with `out.push(bytes[i] as char)`. `u8 as char` is a *Latin-1 promotion*, not a UTF-8 decode, so
+every continuation byte becomes its own character. All 8 sites are pre-existing (verified by diff,
+not assumed). No parse verdict is wrong today — the corruption lands in comments, which the parser
+skips — but the source map's byte ranges are wrong, and expansion is on `.13`'s critical path.
+Owned by `.12c.2` and **pinned by two tests that assert the defect**, so the fix cannot land or
+regress silently.
+
+**Three decisions inside the decoder worth keeping.** (1) A file that declares an encoding via BOM
+and then contradicts it is *refused with the offending byte offset*, not re-read under a guess —
+a BOM is a stated fact, and replacing it with a guess is what "lossy" means one level up.
+(2) ISO-8859-1, not Windows-1252, is the no-BOM fallback: Latin-1 is *total* (all 256 values map
+and round-trip; unit-tested over the full byte range) while CP1252 leaves five bytes undefined and
+would need its own fallback. Since the LRM confines non-ASCII to comments, the glyph choice cannot
+move the token stream — only totality can. (3) The encoding notice goes to stderr, only for
+non-UTF-8 files, and is unit-tested to never contain `furthest_position=` — the corpus runner
+extracts parse positions from probe stderr by scanning for that literal, so a chatty notice would
+forge positions into `positions.tsv`.
+
+**The regression lock builds its fixtures rather than tracking them.** A tracked Latin-1 or UTF-16
+fixture file is exactly what an editor, a `.gitattributes` text filter, or a well-meaning "fix the
+encoding" commit normalises to UTF-8 — after which the lock still passes while testing nothing.
+`rust/tests/source_text_encoding_regression.rs` constructs the bytes, and the property it locks is
+stronger than "Latin-1 no longer errors": **the encoding must not change the parse verdict**, one
+`must_accept` and one `must_reject` source × five encodings.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0201 — a predicate that answers two different questions
 
 The `.12a` port looked like a one-liner: make `preproc_dependency()` consult the failure position.

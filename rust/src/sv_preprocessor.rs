@@ -411,19 +411,38 @@ fn preprocess_file_internal(
 
     let content_bytes = fs::read(&canonical_path)
         .with_context(|| format!("failed to read '{}'", canonical_path.display()))?;
-    let content = match String::from_utf8(content_bytes) {
-        Ok(content) => content,
-        Err(err) => {
-            state.push_warning(
-                "W_SVPP_NON_UTF8_SOURCE",
-                &canonical_path,
-                1,
-                "source file was not valid UTF-8; applied lossy decoding",
-                format!("{}; continuing with loss-tolerant text decode", err),
-            )?;
-            String::from_utf8_lossy(err.as_bytes()).into_owned()
-        }
-    };
+    // ⭐ SV-CORPUS-GRAD.12c.1 — the shared source-text decoder, not a local lossy fallback.
+    //
+    // Until this leaf the preprocessor substituted U+FFFD for every non-UTF-8 byte while
+    // `parseability_probe` refused the same file outright: two USER-SOURCE readers, two
+    // contradictory answers, and nothing in the repo saying so. The decoder ends that — a
+    // Latin-1 `©` in a header comment now survives as `©` on BOTH paths. The warning stays
+    // (the encoding is still worth telling the operator about) but it now names the encoding
+    // instead of announcing a loss that no longer happens.
+    let decoded = crate::source_text::decode_source_bytes(content_bytes)
+        .with_context(|| format!("failed to decode '{}'", canonical_path.display()))?;
+    if decoded.encoding != crate::source_text::SourceEncoding::Utf8 {
+        state.push_warning(
+            "W_SVPP_NON_UTF8_SOURCE",
+            &canonical_path,
+            1,
+            format!(
+                "source file is not plain UTF-8; decoded as {}",
+                decoded.encoding
+            ),
+            match decoded.first_non_utf8_byte_offset {
+                Some(at) => format!(
+                    "first non-UTF-8 byte at file offset {}; decoded losslessly, so byte offsets \
+                     into the preprocessed text no longer match the file",
+                    at
+                ),
+                None => "decoded losslessly; byte offsets into the preprocessed text no longer \
+                         match the file"
+                    .to_string(),
+            },
+        )?;
+    }
+    let content = decoded.text;
     state.include_stack.push(canonical_path.clone());
     state.record_include_file(&canonical_path);
     preprocess_text_internal(&content, &canonical_path, state, depth)?;
@@ -2338,9 +2357,85 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             .expect("preprocess non-utf8 include");
         assert!(output.text.contains("logic from_inc;"));
         assert!(output.text.contains("logic from_top;"));
-        assert!(output.diagnostics.iter().any(|d| {
-            d.code == "W_SVPP_NON_UTF8_SOURCE"
-                && d.severity == PreprocessorDiagnosticSeverity::Warning
-        }));
+        // ⭐ SV-CORPUS-GRAD.12c.1 — NO INFORMATION IS LOST AT THE READER ANY MORE. Until this
+        // leaf the preprocessor substituted U+FFFD for the `0xA9`, which is unrecoverable; the
+        // warning is kept because the encoding is still worth reporting, but the loss is gone.
+        assert!(!output.text.contains('\u{FFFD}'), "{}", output.text);
+        // ⛔ PINNED TO A KNOWN DEFECT — `SV-CORPUS-GRAD.12c.2`. The decoded `©` reaches the
+        // expander as U+00A9 and comes out as `Â©`, because `expand_macros_in_text` walks the
+        // line with `bytes[i] as char` and re-encodes every UTF-8 continuation byte as its own
+        // character. That double-encode is INDEPENDENT of this leaf (it corrupts plain UTF-8
+        // input too — see `a_plain_utf8_source_is_double_encoded_pinned_defect`) and is fixed by
+        // `.12c.2`. ⭐ When it lands, this assertion MUST be flipped to `"// Copyright ©"`;
+        // it is written this way so the fix cannot land silently.
+        assert!(output.text.contains("// Copyright Â©"), "{}", output.text);
+        let diagnostic = output
+            .diagnostics
+            .iter()
+            .find(|d| d.code == "W_SVPP_NON_UTF8_SOURCE")
+            .expect("the non-UTF-8 encoding is still reported");
+        assert_eq!(diagnostic.severity, PreprocessorDiagnosticSeverity::Warning);
+        assert!(
+            diagnostic.message.contains("iso-8859-1"),
+            "the warning must name the encoding it decoded from: {}",
+            diagnostic.message
+        );
+    }
+
+    #[test]
+    fn a_plain_utf8_source_raises_no_encoding_warning() {
+        // The other direction: the warning must stay rare. A UTF-8 file with multi-byte
+        // characters is not an encoding event and must not be reported as one.
+        let dir = create_temp_dir("svpp_utf8");
+        let top = dir.join("top.sv");
+        fs::write(&top, "// Copyright © 2016 — µ\nlogic from_top;\n").expect("write top");
+
+        let output = preprocess_systemverilog_file(&top, &SvPreprocessorConfig::default())
+            .expect("preprocess utf-8 source");
+        assert!(output.text.contains("logic from_top;"));
+        assert!(
+            !output
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SVPP_NON_UTF8_SOURCE"),
+            "plain UTF-8 must not raise the encoding warning"
+        );
+    }
+
+    #[test]
+    fn a_plain_utf8_source_is_double_encoded_pinned_defect() {
+        // ⛔ THIS TEST ASSERTS A DEFECT, DELIBERATELY. It was found by `SV-CORPUS-GRAD.12c.1`
+        // and is owned by `.12c.2`.
+        //
+        // `expand_macros_in_text` (and seven sibling scanners in this file) walk the line as
+        // `text.as_bytes()` and re-emit with `out.push(bytes[i] as char)`. For any byte >= 0x80
+        // that promotion produces a U+0080..=U+00FF character, so a two-byte UTF-8 sequence comes
+        // back out as two characters and is re-encoded as four bytes. The preprocessed text is
+        // therefore MOJIBAKE for every non-ASCII input — and this has nothing to do with the file
+        // being Latin-1: the input here is valid UTF-8.
+        //
+        // It is pinned rather than merely noted so that the fix is FORCED to notice it: `.12c.2`
+        // must change this test, and a silent regression back to byte-as-char would resurrect it.
+        // Today's parse verdicts are unaffected (non-ASCII lives in comments, which the parser
+        // skips), but the source map's byte ranges are wrong and expansion is on the critical
+        // path for `.13`.
+        let dir = create_temp_dir("svpp_utf8_double_encode");
+        let top = dir.join("top.sv");
+        let source = "// Copyright © 2016 — µ\nlogic from_top;\n";
+        fs::write(&top, source).expect("write top");
+
+        let output = preprocess_systemverilog_file(&top, &SvPreprocessorConfig::default())
+            .expect("preprocess utf-8 source");
+        assert_ne!(
+            output.text.as_bytes(),
+            source.as_bytes(),
+            "if this now passes through unchanged, `.12c.2` has landed — delete this test"
+        );
+        assert_eq!(
+            output.text.len(),
+            source.len() + 7,
+            "one extra byte per non-ASCII byte: ©=2 + —=3 + µ=2"
+        );
+        assert!(output.text.contains("Â©"), "{}", output.text);
     }
 }

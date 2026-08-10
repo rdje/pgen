@@ -257,6 +257,34 @@ but it must not silently reinterpret it as a different syntactic category. That 
 language surface**. If the answer later becomes "support it", that decision belongs in
 `ANNOTATION-PLACEMENT` as a placement-matrix cell, not here.
 
+### `.5` — the four GRAMMAR readers refuse a non-UTF-8 `.ebnf` file (routed in by `SV-CORPUS-GRAD.12c.1`, 2026-08-11)
+
+- **Status: `todo`, PARKED on the standing SV lane lock — not on a technical blocker.** It is
+  routed here, and not merely attributed to a named owner, because
+  `DOCTRINE-GAP-OWNERSHIP` is explicit that naming an owner is not routing.
+- ⚠️ **Naming honesty, stated rather than glossed:** this tree is titled *silent* truncation, and
+  this defect is **loud** — the read fails with an error. It is filed here because this tree is the
+  repository's home for **EBNF frontend input-handling integrity**, and the sibling relationship is
+  real: both are *the frontend not reading what the file says*. If the tree is ever renamed, this
+  is one of the reasons.
+- **THE DEFECT.** `SV-CORPUS-GRAD.12c.1` enumerated every text reader in `rust/src/` and
+  categorised them (artifact:
+  `docs/tasks/artifacts/sv_corpus_grad/source_text_readers/enumeration.md`). Four read
+  **grammar** text and all four call `fs::read_to_string`, so a `.ebnf` file that is ISO-8859-1 —
+  a `©` in a header comment is enough — is refused whole:
+  `rust/src/ebnf_frontend.rs:16` (top-level), `rust/src/ebnf_frontend.rs:563` (`@include`d),
+  `rust/src/bin/ebnf_dual_run_diff.rs:288`, `rust/src/parser_registry.rs:3805`.
+- **WHY IT IS NOT URGENT, measured rather than assumed.** Every grammar tracked in this repo is
+  UTF-8 (the same `.12c.1` census that found 13 non-UTF-8 files under `stimuli/sv/subs` found none
+  under `grammars/`), so nothing in the repo fails today. It is a **user-facing** limitation: a
+  third-party grammar authored on a Windows/Latin-1 toolchain is rejected for its copyright line.
+- **THE FIX IS MECHANICAL AND ALREADY BUILT.** `pgen::source_text::read_source_file` landed with
+  `.12c.1`; this is the same call swap four times, plus a fixture in the two non-UTF-8 encodings.
+  ⛔ Do **not** widen it to the ~35 category-C readers (JSON manifests, generated Rust, reports):
+  those are UTF-8 by construction and a decode failure there is corruption that must stay loud.
+- **RE-OPEN / SCHEDULE WHEN** the SV lane lock lifts, or sooner if a user reports a rejected
+  grammar.
+
 ## Acceptance Criteria (tree)
 
 1. A tracked, deterministic gate fails when a grammar's source alternatives and its IR
@@ -268,3 +296,5 @@ language surface**. If the answer later becomes "support it", that decision belo
    alternative-count disagreements.
 5. An inline `->` annotation inside a parenthesized group either parses as an annotation or
    is rejected with a located, self-explaining error — never re-read as a quantifier (`.4`).
+6. A grammar file that is valid EBNF but not UTF-8 is read, not refused, on all four grammar
+   readers, with the encoding reported (`.5`).

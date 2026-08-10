@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `4271a0c924b0bd304a6d6f3fe73d8c43d564478cd7e4540659a7a86b9d14a902` |
+| parse binary | `rust/target/release/parseability_probe` | `f4a7f1ce92ad4e4c412b99a7269d7a66c7e05d88be32136d27041634a128b6a8` |
 | grammar | `grammars/systemverilog.ebnf` | `2a1a92f597f3baaf3c93350b947832a1dfaee4692c9f166b3d323bffd2a4d5fd` |
 | generated parser | `generated/systemverilog_parser.rs` | `c7f96a67f125740a5d517d26c7fabf273e59080fb7519b1e8e0ef4cad58ad4c6` |
 
-Measured at `HEAD` = `de9003ce+dirty` (2026-08-10).
+Measured at `HEAD` = `d49ceeed+dirty` (2026-08-11).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,13 +53,13 @@ Measured at `HEAD` = `de9003ce+dirty` (2026-08-10).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.94` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `5.02` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9750 | 6586 | 0 | 0 | 59.7% |
+| 16336 | 9752 | 6584 | 0 | 0 | 59.7% |
 
 ## Per sub-corpus
 
@@ -72,10 +72,10 @@ Slowest completing file: `5.94` s — `stimuli/sv/subs/opentitan/hw/top_darjeeli
 | ispras-sv-tests | 1266 | 1088 | 178 | 0 | 0 | 85.9% |
 | iverilog | 3799 | 3231 | 568 | 0 | 0 | 85.0% |
 | opentitan | 3983 | 793 | 3190 | 0 | 0 | 19.9% |
-| scr1 | 50 | 7 | 43 | 0 | 0 | 14.0% |
+| scr1 | 50 | 8 | 42 | 0 | 0 | 16.0% |
 | slang | 92 | 71 | 21 | 0 | 0 | 77.2% |
 | sv-tests | 1028 | 859 | 169 | 0 | 0 | 83.6% |
-| sv2v | 953 | 725 | 228 | 0 | 0 | 76.1% |
+| sv2v | 953 | 726 | 227 | 0 | 0 | 76.2% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
 | verible | 152 | 121 | 31 | 0 | 0 | 79.6% |
 | verilator | 3263 | 2077 | 1186 | 0 | 0 | 63.7% |
