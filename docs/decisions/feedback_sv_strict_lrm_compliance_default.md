@@ -95,6 +95,37 @@ exact discipline this record already demands for claims about external tools (*"
 external tools accept is a measurement, not a recollection"*). Same rule, now extended to the
 standard itself.
 
+### The exhaustive PDF search, and a correction to my own tooling claim
+
+Director, 2026-08-10: *"I weird that you found no occurrence of `'{}` in the LRM, I have a doubt.
+I'm the PDFs contains examples using `'{}` because it is legal SV."* — the doubt was warranted,
+because the first PDF pass used a **broken extractor** and I had reported its silence as evidence.
+
+⛔ **`pdftotext -layout` is UNUSABLE on these PDFs** — it produced 82 000 lines yet found neither
+`'{}` nor the §11.4.12 sentence that demonstrably exists. **Use `pymupdf` (`import fitz`)**, which
+extracts 1315 pages / 3 358 607 chars (2017) and 1354 pages / 3 486 009 chars (2023) correctly.
+⚠️ An earlier note in this repo saying *"the PDFs extract unfaithfully"* was wrong and is corrected
+here: the **PDFs are fine; that one tool is not.** Reporting a tool's silence as a fact about the
+subject is the same error class as the inference this whole section is about.
+
+**Re-run with the working extractor, `grep -nE "'[[:space:]]*\{[[:space:]]*\}"` over both full PDFs
+— exactly 2 hits per revision, identical to what the `.md` gave:**
+
+| # | locus | text | what it is |
+|---|---|---|---|
+| 1 | §11.4.12 | *"…enclosed in braces that begin with an apostrophe ( `'{ }` )."* | the construct's **notation** |
+| 2 | Annex M (VPI) | `#define vpiAssignmentPatternOp 75 /* '{} assignment pattern */` | the operator's **name** |
+
+⇒ **there is no worked EXAMPLE in either LRM that uses `'{}`** — and equally **no text forbidding
+it**. Both facts are now measured rather than assumed.
+
+⭐ **And this does not change the ruling — it sharpens why the ruling is right.** The decision to keep
+`'{ }` never depended on finding a positive example; it rests on the asymmetry that (a) nothing in
+the standard forbids it, (b) Annex A is measurably incomplete in this repo three times over, and
+(c) the ecosystem — uvm-core included — writes it. **Absence of an example is not evidence of
+illegality, exactly as absence of a production is not.** Had the deletion been justified by "I found
+no example", it would have been the same fallacy in a new costume.
+
 ### How the two halves of this record compose
 
 | the finding | the right action |
