@@ -38,10 +38,15 @@
   Designing the switch against those 35 rows would tune it on bucket (b) and ship it blind to its
   actual customers. Reproduces outside SV: any family whose over-acceptance census comes from answer
   keys inherits it.
-- ⚠️ **OPERATIONAL, banked in the leaf:** the release `parseability_probe` build takes **~20 min** and
-  is killed at ~10 if it runs in the session's process group — two builds were lost that way, both
-  reporting `signal: 15, SIGTERM` with **zero** rustc errors, which reads exactly like a compile
-  failure. Detach with `nohup perl -e 'use POSIX qw(setsid); setsid(); exec @ARGV' cargo …`.
+- ⚠️ **OPERATIONAL, banked in the leaf — and the remedy is an EXISTING rule, not a new one.** The
+  release `parseability_probe` build takes ~20 min and was killed twice at 10–11 min, reporting
+  `signal: 15, SIGTERM` with **zero** rustc errors (reads exactly like a compile failure).
+  `scripts/run_with_memory_guard.sh:262` already does `set -m`, giving its child its own process
+  group; every long job run UNDER the guard survived (incl. a 13-minute corpus run) and both run
+  outside it died. `README.md` already mandates the guard for heavy jobs — the defect was not reading
+  a `cargo build` as a "job". ⭐ A second detach wrapper was **deliberately not added**: the fix for
+  "I did not apply the existing rule" is never a second rule. Diagnostic signature kept: `signal: 15`
+  with no `error[EXXXX]` is an infrastructure kill, never a broken grammar.
 
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0186 — the corpus runner's recorded parameters now BIND: adopt when the caller is silent, refuse (exit 5) when the caller disagrees (leaf `SV-CORPUS-GRAD.3.27`)
 

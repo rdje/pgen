@@ -44,11 +44,16 @@ customers.
   configs, and a rule reachable only from `sv_multi_entry_root` cannot be *proved* unreachable. `6 +
   11 = 17` is an identity. ⇒ never quote bare `--report-certificate-coverage` as an SV headline; it
   describes a narrower grammar than the one that ships.
-- **`signal: 15` with no `error[EXXXX]` is an infrastructure kill, not a broken grammar.** Two
-  release/debug builds died at 10–11 minutes looking exactly like compile failures. The release build
-  genuinely needs ~20 minutes; detaching it into its own session (`setsid` via perl, since macOS has
-  no `setsid` binary) made it finish in 19 m 55 s. Check the log for a real rustc error before
-  re-diagnosing the change that "broke" the build.
+- **`signal: 15` with no `error[EXXXX]` is an infrastructure kill, not a broken grammar** — and the
+  remedy was a rule the repo already had. Two builds died at 10–11 minutes looking exactly like
+  compile failures. The first instinct was to ship a detach wrapper; checking first showed
+  `scripts/run_with_memory_guard.sh:262` already does `set -m`, putting its child in its own process
+  group. The evidence splits on exactly that line: every long job run *under* the guard survived
+  (including a **13-minute** corpus run) and both run *outside* it died at **11 minutes**. `README.md`
+  already says heavy jobs must run under the guard; the defect was not reading a `cargo build` as a
+  "job". ⭐ **The fix for "I did not apply the existing rule" is never a second rule** — a
+  `run_detached.sh` beside a guard that already isolates the process group is two mechanisms for one
+  job, and they drift. Worth stating because the wrong fix was already half-written.
 
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0186 — the provenance block was right, and that is exactly why nobody noticed
 

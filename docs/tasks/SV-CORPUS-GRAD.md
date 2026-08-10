@@ -4953,20 +4953,44 @@ result than the shipped configuration supports. Quote `sv_cert_recognized_union_
   both arms, so no published integration surface moves, and this is an under-acceptance repair found
   in-house rather than a downstream-reported released-parser bug.
 
-⚠️ **OPERATIONAL NOTE BANKED FOR THE NEXT GRAMMAR LEAF — the release build takes ~20 minutes and
-will be KILLED at ~10 if it runs in the session's process group.** Two builds were lost that way,
-both dying `signal: 15, SIGTERM` with **zero** rustc errors after 10–11 minutes, which reads exactly
-like a compile failure until the log is checked for an `error[EXXXX]` that is not there. Detaching
-into a new session fixes it, and the same wrapper is needed for the ~13-minute corpus run:
+⚠️ **OPERATIONAL NOTE FOR THE NEXT GRAMMAR LEAF — and the remedy is a rule this repo ALREADY has,
+not a new one.** The release `parseability_probe` build takes **~20 minutes** and was killed twice at
+10–11 minutes, both times reporting `signal: 15, SIGTERM` with **zero** rustc errors — which reads
+exactly like a compile failure until you check the log for an `error[EXXXX]` that is not there.
+
+⛔ **First diagnosis was that a new detach wrapper was needed. That was WRONG, and checking before
+building it is what caught it.** `scripts/run_with_memory_guard.sh:262` already does `set -m`, giving
+its child **its own process group** — which is precisely the isolation the dead builds lacked. The
+evidence separates cleanly along that line and nothing else:
+
+| job | under the guard? | outcome |
+|---|---|---|
+| corpus promote run (~13 min) | **yes** | completed `exit=0` |
+| corpus re-measure (347 s) | **yes** | completed `exit=0` |
+| `cargo build --release` (~11 min) | no | `signal: 15`, 0 rustc errors |
+| `cargo build` debug (~11 min) | no | `signal: 15`, 0 rustc errors |
+| `cargo build --release`, ad-hoc `setsid` (19 m 55 s) | no (hand-detached) | completed `exit=0` |
+
+⇒ the 13-minute corpus job survived while an 11-minute build died **because one was guarded and the
+other was not**. `README.md` already states *"heavy or background jobs must run under the memory
+guard"*; the defect was that this session did not read a `cargo build` as a "job". So:
 
 ```bash
-nohup perl -e 'use POSIX qw(setsid); setsid(); exec @ARGV or die $!;' \
-  cargo build --release --features generated_parsers --bin parseability_probe >log 2>&1 &
+scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 7200 -- \
+  cargo build --release --features generated_parsers --bin parseability_probe
 ```
 
-Measured: detached release build **19 m 55 s**, exit 0; detached debug build **2 m 42 s**; corpus
-**347 s** + serial re-confirmation. ⛔ `signal: 15` with no `error[EXXXX]` in the log is an
-INFRASTRUCTURE kill, never a broken grammar — check before re-diagnosing the change.
+⭐ **A second detach mechanism was deliberately NOT added.** Shipping `scripts/run_detached.sh`
+alongside a guard that already isolates the process group would have been two mechanisms for one
+job, with the usual consequence — they drift, and the next reader cannot tell which is
+authoritative. **The fix for "I did not apply the existing rule" is never a second rule.**
+
+⛔ **DIAGNOSTIC SIGNATURE worth keeping:** `signal: 15, SIGTERM` in a cargo log with **no
+`error[EXXXX]` anywhere** is an INFRASTRUCTURE kill — an unguarded long job — never a broken grammar.
+Grep the log for a real rustc error before re-diagnosing the change that "broke the build".
+Measured build costs, so the next leaf can budget: release `parseability_probe` **19 m 55 s**, debug
+`parseability_probe` + `ast_pipeline` **2 m 42 s**, full SV corpus **347 s** + serial
+re-confirmation.
 
 ##### `.3.27` — ⛔ the corpus runner's DEFAULTS do not match the parameters the tracked artifact was produced with, and nothing compares them — so the obvious invocation silently re-baselines a graduation ORACLE (routed by `.3.25`, 2026-08-10)
 
