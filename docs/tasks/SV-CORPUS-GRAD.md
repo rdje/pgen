@@ -6752,6 +6752,18 @@ why the doctrine says re-measure rather than reason.
     `longest_match` and `ordered` differ exactly where two arms tie, and here they tie **by
     construction**, which is the whole defect) + the MEMORY before→after at n=16 and on
     `xbar_main.sv`.
+  - ⛔⛔ **TRAP FOR THE FIX SLICE, verified 2026-08-10 so it is not re-derived — IT MUST BE `ordered`,
+    AND SV'S OWN IDIOM IS THE WRONG ONE.** `@branch_policy` is an EXISTING declarative surface (no new
+    annotation ⇒ `DESIGN-PRIOR-ART` is satisfied by construction) taking **three** values —
+    `longest_match` (the default), `ordered`, `priority_first` (`annotation_validator.rs:669`). But
+    **`priority_first` STILL RUNS THE FULL TOURNAMENT** — it changes only how a tie is resolved, not
+    whether the losing arms are explored (`grammar_wellformedness.rs:1255`: *"under the DEFAULT
+    `longest_match` policy (and `priority_first`) the engine runs the FULL tournament"*). Only
+    `ordered` short-circuits: the keep-first-winner emission *"belongs to the `ordered` policy alone"*
+    (`ast_based_generator.rs:4715-4720`). ⚠️ **All 29 existing `@branch_policy` uses in
+    `systemverilog.ebnf` are `priority_first`**, as are every one in `rtl_frontend.ebnf` — so copying
+    the surrounding idiom yields a change that is a no-op against this defect while looking like the
+    fix. Confirm the emitted parser short-circuits before trusting any before→after number.
   - **FIX HIERARCHY, in order, with what each would cost — none chosen yet, because the memo question
     above changes the answer:** (1) *declarative* — give `conditional_else_branch` an
     `@branch_policy: ordered` so alt 1 commits on an `else if` and alt 2 is never explored; this is a
