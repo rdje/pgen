@@ -19,7 +19,41 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 | grammar | `grammars/systemverilog.ebnf` | `ca5efee128f652336de7ef63d13dfcb099d07ff275013b0bb23f726114d74a6a` |
 | generated parser | `generated/systemverilog_parser.rs` | `b631120165ae6e3e80c55c915e5868e58bb8be22ea3cf0b092f52515defc2ebd` |
 
-Measured at `HEAD` = `0457cb0e+dirty` (2026-08-09).
+Measured at `HEAD` = `f60fff20+dirty` (2026-08-10).
+
+## Measurement parameters (BINDING — the next run is held to them)
+
+> These four values are re-read from this report by `stimuli/run_external_corpus.sh` on
+> every later run: an omitted argument is **adopted** from the row below, and a supplied
+> argument that **differs** is **refused** (exit 5) unless `PGEN_CORPUS_REBASELINE=1`.
+> Before `SV-CORPUS-GRAD.3.27` this block was write-only, so the documented bare
+> invocation re-measured the whole corpus under a slower binary at a tighter deadline and
+> published over the artifact without a word.
+
+| parameter | value | source for this run |
+|---|---|---|
+| per-file timeout | 60 s | provenance |
+| parallel jobs | 8 | provenance |
+| max files | 0 (no cap) | provenance |
+| parse binary | `rust/target/release/parseability_probe` | provenance |
+
+## Deadline proximity and serial re-confirmation
+
+> A timeout is a statement about the machine as much as about the parser. Every
+> `timeout` row is re-run **alone** at the same deadline before it is recorded, and the
+> population sitting within 2x of the deadline is published so the flip-risk set is a
+> known number. Per-file durations: `stimuli/sv/characterization/durations.tsv`.
+
+| population | files |
+|---|---|
+| `timeout` after serial re-confirmation | 4 |
+| timeouts seen in the parallel pass | 4 |
+| re-confirmed serially | 4 |
+| reclassified by re-confirmation (contention, not the parser) | 0 |
+| **not** re-confirmed (cap `64`) | 0 |
+| completed within 2x of the 60s deadline | 0 |
+
+Slowest completing file: `16.79` s — `stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/tb/mm_ram.sv`.
 
 ## Totals
 
@@ -31,19 +65,22 @@ Measured at `HEAD` = `0457cb0e+dirty` (2026-08-09).
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
-| black-parrot | 205 | 17 | 188 | 0 | 0 | 8.3% |
 | Cores-VeeR-EL2 | 102 | 18 | 84 | 0 | 0 | 17.6% |
+| Surelog | 828 | 692 | 136 | 0 | 0 | 83.6% |
+| black-parrot | 205 | 17 | 188 | 0 | 0 | 8.3% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
 | ispras-sv-tests | 1266 | 1087 | 179 | 0 | 0 | 85.9% |
 | iverilog | 3799 | 3230 | 569 | 0 | 0 | 85.0% |
 | opentitan | 3983 | 789 | 3190 | 4 | 0 | 19.8% |
 | scr1 | 50 | 7 | 43 | 0 | 0 | 14.0% |
 | slang | 92 | 71 | 21 | 0 | 0 | 77.2% |
-| Surelog | 828 | 692 | 136 | 0 | 0 | 83.6% |
 | sv-tests | 1028 | 858 | 170 | 0 | 0 | 83.5% |
 | sv2v | 953 | 725 | 228 | 0 | 0 | 76.1% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
 | verible | 152 | 121 | 31 | 0 | 0 | 79.6% |
 | verilator | 3263 | 2075 | 1188 | 0 | 0 | 63.6% |
 
-_Raw per-file results: `stimuli/sv/characterization/results.tsv`._
+_Raw per-file results: `stimuli/sv/characterization/results.tsv` (3 columns: sub-corpus, status,
+repo-root-relative path — a stable contract three consumers unpack positionally)._
+_Per-file durations: `stimuli/sv/characterization/durations.tsv` (the same rows plus a 4th wall-seconds column)._
+_Both are sorted by (sub-corpus, path), so two runs are directly diffable._

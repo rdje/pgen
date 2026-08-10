@@ -408,9 +408,13 @@ universal_test_runner_*.log
 # superseded 2026-03-07 policy, reversed by "Slice 5: stop tracking generated/*"
 # and removed on 2026-07-04 so generated/ is properly untracked again.)
 
-# External-corpus bulk characterization raw dumps (regenerable; track characterization.md only)
+# External-corpus bulk characterization raw dumps (regenerable; track characterization.md only).
+# The per-file duration sidecars (SV-CORPUS-GRAD.3.27) are the same class of ~1.4 MB regenerable
+# intermediate — their durable claim is the deadline-proximity census inside characterization.md.
 stimuli/*/characterization/results.tsv
 stimuli/*/characterization/results_v2005.tsv
+stimuli/*/characterization/durations.tsv
+stimuli/*/characterization/durations_v2005.tsv
 
 # IEEE LRM reference PDFs — vendored locally next to their MD workspaces for LRM
 # cross-checks (page-level citations); NOT tracked (large binaries + licensing). The

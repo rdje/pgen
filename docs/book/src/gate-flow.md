@@ -343,6 +343,60 @@ legitimate reuse.
 > that block as the "timestamp". Try both and **validate the result is a bare
 > integer**; a reordered guess is still a guess.
 
+### The measurement-parameter rule — for an artifact that is *tracked*, not handed off
+
+The rule above governs an artifact passed **between gates inside one run**. A different
+rule governs the artifacts a run **publishes into the repository** — the external-corpus
+characterizations under `stimuli/<family>/characterization/`, which are graduation
+oracles: the adjudication manifest and the whole rejects-valid burn-down are computed
+from them.
+
+For those, recording the provenance is only half the job. Writing down *how* a number
+was measured buys nothing if the next run never reads it back — and for a while, nothing
+did:
+
+```bash
+stimuli/run_external_corpus.sh sv          # the documented invocation
+```
+
+All three tracked artifacts record `60 8 0` against
+`rust/target/release/parseability_probe`. The script's own defaults were **20 s** against
+`rust/target/debug/parseability_probe`, and one corpus file parses in **12 s release vs
+127 s debug**. So the documented command re-measured the corpus under a ~10× slower binary
+at a 3× tighter deadline and published the result over the tracked oracle without a word.
+
+⛔ **The direction of the error is what makes it a bar defect, not a nuisance.** A file
+that times out is later adjudicated `divergence:explained_timeout` and *leaves*
+`unexplained_rejects_valid`. So a slow machine **improves the burn-down number** — the
+parser looks better because the hardware was busier. Nothing guarded that direction.
+
+Since `SV-CORPUS-GRAD.3.27` the recorded parameters **bind**:
+
+| the caller… | the runner… |
+|---|---|
+| omits an argument | **adopts** the value from the artifact's provenance block |
+| supplies a *matching* value | proceeds |
+| supplies a *differing* value | **refuses, exit 5**, printing both sets, before parsing anything |
+| has no tracked artifact yet | uses the script defaults, and says so |
+
+Two explicit escape hatches, both loud:
+
+```bash
+PGEN_CORPUS_OUT_DIR=rust/target/scratch stimuli/run_external_corpus.sh sv   # measure, then DIFF
+PGEN_CORPUS_REBASELINE=1              stimuli/run_external_corpus.sh sv 30  # new baseline, on purpose
+```
+
+Two supporting properties make the comparison the refusal protects actually practical:
+
+- **Every timeout is re-run alone** at the same deadline before it is recorded, because a
+  timeout under `-P 8` is a claim about the machine as much as about the parser. Per-file
+  durations land in a `durations.tsv` sidecar — never as a fourth column of `results.tsv`,
+  whose three-field shape three consumers unpack positionally and a fourth silently skips.
+- **Both artifacts are sorted** by `(sub-corpus, path)`. `xargs -P` appends in completion
+  order, so the tracked file's row order used to be nondeterministic: a re-run with
+  identical verdicts still produced thousands of moved lines. An oracle you cannot diff
+  against its own replacement is one nobody diffs.
+
 ---
 
 ## 6. Invocation — who actually runs what
@@ -397,7 +451,7 @@ the exemption list can neither be bypassed nor quietly accumulate.
 
 ## 7. How this flow has actually failed
 
-Ten distinct shapes, all measured, all from real incidents. A new gate should be
+Eleven distinct shapes, all measured, all from real incidents. A new gate should be
 read against this list.
 
 ### 1. A check that *cannot run* and returns green
@@ -595,7 +649,34 @@ finish). The pass/fail sets never moved. So a timeout is a statement about the i
 never about the parser, and a report that hides which instrument ran invites a budget effect
 to be read as a corpus regression.
 
-> The unifying principle behind all ten: **a gate must report on its subject, and
+### 11. A recorded parameter that nothing ever read back
+
+Failure 10's fix worked: the corpus reports began carrying content hashes and the
+invocation they were produced with. And then that record sat there, **write-only**, for
+every run that followed — because recording provenance and *checking* provenance are two
+different pieces of work, and only the first one had been done.
+
+The consequence is in the previous section: the documented bare invocation ran at the
+script's defaults (20 s, debug binary) while all three tracked artifacts recorded 60 s and
+the release binary, and re-published over them silently. `SV-CORPUS-GRAD.3.25` measured
+the damage on one such accident — **6 rows moved into `divergence:explained_timeout`,
+timeouts `4 → 10`, on a parser change that provably could not touch them.** They landed on
+already-deferred rows that run, so the burn-down number happened to survive; landing on
+`must_accept` rows, the identical drift would have *removed* files from
+`unexplained_rejects_valid` and improved the headline.
+
+The root cause is one line of shell. `TIMEOUT_S="${2:-20}"` collapses *"the caller asked
+for 20"* and *"nobody said, so the default is 20"* into one value — so the information a
+drift check would need is destroyed before any check could run. Capturing `"${2-}"` first
+and defaulting afterwards is the whole fix; the refusal is what that distinction makes
+possible.
+
+⭐ **The rule:** provenance is not a record, it is a **precondition**. If an artifact
+states the conditions it was measured under, the run that would replace it must be held to
+them — adopt when the caller is silent, refuse when the caller disagrees. A provenance
+block nobody reads back is a comment.
+
+> The unifying principle behind all eleven: **a gate must report on its subject, and
 > only its subject** — and it must report on *the claim being made*, not a cheaper claim
 > nearby. It must not report on its own documentation, its own absence, somebody else's
 > stale output, a quantity that has quietly stopped being the one its name promises, a

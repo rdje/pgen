@@ -1,5 +1,55 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0186 — the corpus runner's recorded parameters now BIND: adopt when the caller is silent, refuse (exit 5) when the caller disagrees (leaf `SV-CORPUS-GRAD.3.27`)
+
+- **THE DEFECT.** `stimuli/run_external_corpus.sh` overwrites tracked graduation oracles
+  (`characterization.md` + `results.tsv`, from which the adjudication manifest and the whole
+  rejects-valid burn-down are computed). Its provenance block faithfully recorded the parameters
+  each artifact was produced with — and **nothing ever read it back**. All three tracked artifacts
+  (`sv`/`vhdl`/`sv2005`) record `60 8 0` against the RELEASE probe; the script's defaults were
+  `20` against the DEBUG probe, and one corpus file parses in 12 s release vs 127 s debug. ⇒ the
+  documented bare invocation re-measured the corpus under a ~10x slower binary at a 3x tighter
+  deadline and published over the oracle silently. Measured cost in `.3.25`: **6 rows moved into
+  `divergence:explained_timeout`, timeouts 4 → 10**, on a parser change that provably could not
+  touch them. ⛔ Direction matters — a timed-out row LEAVES `unexplained_rejects_valid`, so a busy
+  machine IMPROVES the burn-down.
+- **ROOT CAUSE — one line of shell.** `TIMEOUT_S="${2:-20}"` collapses *"the caller asked for 20"*
+  and *"nobody said"* into one value, destroying the information any drift check would need.
+  Capture `"${2-}"` first, default afterwards; everything else follows.
+- **FIXED (all four priced remedies landed, two in a different shape after measurement):**
+  recorded parameters are **adopted** for omitted arguments and a differing argument is **refused
+  with exit 5** before anything is parsed (`DOCTRINE_ENFORCEMENT.md` §3 structural archetype);
+  new `PGEN_CORPUS_OUT_DIR` measures elsewhere so a pending run can be diffed before promotion;
+  `PGEN_CORPUS_REBASELINE=1` is the loud, deliberate override; every `timeout` is **re-run alone**
+  before it is recorded, bounded by `PGEN_CORPUS_TIMEOUT_RECONFIRM_MAX` (default 64) with any
+  truncation reported in the artifact.
+- ⛔ **Durations went to a `durations.tsv` SIDECAR, not a 4th column** — measured against the
+  consumers first: three hard-unpack exactly 3 fields (`ValueError`) and `cluster_rejects_valid.py`
+  skips any row with `len(cols) != 3`, so a 4th column would have **silently emptied the burn-down
+  worklist**.
+- ⭐ **A fifth defect found in the same class: the oracle was not diffable.** `xargs -P` appends in
+  completion order, so `results.tsv` row order was nondeterministic and a re-run with identical
+  verdicts still produced thousands of moved lines. Both artifacts are now sorted by
+  `(sub-corpus, path)` under `LC_ALL=C`.
+- **PROVEN, not asserted** — five controls: two refusal arms (timeout drift, binary drift) with the
+  tracked artifact `shasum`-identical before and after; the adopt arm (bare invocation now reports
+  all four parameters as `(provenance)`); the fresh-tree arm; and a positive+negative ground-truth
+  control for the re-confirmation pass
+  (`docs/tasks/artifacts/sv_corpus_grad/timeout_reconfirm_control/run_control.sh`, exit 0). The
+  **silent** consumer was re-run against the new artifact: `rows: 124  clusters: 42` against exactly
+  124 `fail` rows — zero dropped.
+- ⚠️ **SURFACED — the verification run found a bigger defect than the fix.** Under the README's
+  example `--budget-mb 12288` the run was killed `reason=rss-budget` at `peak_rss_mb=12468`.
+  `/usr/bin/time -l` on one file: a single release parse of `opentitan/.../xbar_main.sv` peaks at
+  **12 362 MB**. The four opentitan crossbars owned by `.11a` are an **unbounded memory divergence
+  on valid industry RTL**, not merely slow files — and they currently sit inside the population the
+  burn-down treats as `explained_timeout`. Measurement routed into `.11a`; the runner now documents
+  `>= 16384 MB` for `sv`.
+- **Lockstep:** book *The Gate Flow* §5 (*The measurement-parameter rule*) + §7.11 (*A recorded
+  parameter that nothing ever read back*, taking the failure catalogue from ten shapes to eleven,
+  README updated in step); `docs/knowledge/recorded-provenance-is-a-precondition-not-a-record.md`;
+  `DEVELOPMENT_NOTES.md`; `MEMORY.md`. No `.ebnf`/Rust/codegen/generated artifact touched.
+
 ## 2026-08-10 - PGEN-SV-FOCUS-0002 — the SV lane lock binds WORK, not CONVERSATION (docs only, ZERO code bytes)
 
 - **DIRECTOR (verbatim):** *"We can discuss, clarify other task-trees or activity but the SV lane

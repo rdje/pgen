@@ -1,5 +1,63 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0186 — the provenance block was right, and that is exactly why nobody noticed
+
+`SV-CORPUS-GRAD.10` taught this repository to make its corpus artifacts self-describing: every
+`characterization.md` carries the sha256 of the parse binary, the grammar and the generated parser,
+plus the invocation that produced it. That work was correct and it paid off — `.3.25` diagnosed a
+suspected performance regression in minutes by reading the block.
+
+**It was still only half a fix, and the missing half is the interesting one.** The block was
+*written* by every run and *read* by none. So the documented bare invocation
+`stimuli/run_external_corpus.sh sv` ran at the script's defaults — 20 s against the **debug**
+binary — while all three tracked artifacts record 60 s against the **release** binary, and one
+corpus file parses in 12 s release vs 127 s debug. The obvious command re-measured a graduation
+oracle under a ~10x slower binary at a 3x tighter deadline and published over it silently.
+
+The root cause is one line, and it is worth staring at:
+
+```bash
+TIMEOUT_S="${2:-20}"
+```
+
+`${2:-20}` collapses *"the caller asked for 20"* and *"nobody said, so the default is 20"* into one
+value. **The information a drift check would need is destroyed before any check could run.**
+Capturing `"${2-}"` first and defaulting afterwards is the entire fix; the refusal, the adoption and
+the report block are all just consequences of having that distinction available again.
+
+**Three things this leaf got wrong on the first pass, each caught by measuring instead of assuming:**
+
+1. *"Add a duration column to `results.tsv`."* Measured against the consumers: three do
+   `suite, observed, path = line.split("\t")` (hard 3-way unpack → `ValueError`) and
+   `cluster_rejects_valid.py` does `if len(cols) != 3: continue` — which would have **silently
+   dropped every row and reported an empty worklist**. The silent one generates the burn-down
+   worklist. Durations went to a sidecar.
+2. *"The artifact is comparable, it just needed parameter binding."* `sort -c` fails on the tracked
+   `results.tsv` at line 3: `xargs -P` appends in completion order, so a re-run with **identical
+   verdicts** still produced thousands of moved lines. Nobody diffs an artifact like that. Sorting
+   was not a tidy-up; it was the other half of the same defect.
+3. *"The re-confirmation pass is obviously fine."* It never fires on a healthy corpus (4/0/0
+   timeouts), so a broken reclassification counter would read `0` exactly like a healthy one. A
+   stub-binary control was built to force both directions — and it **failed its own first run and
+   refused to publish a number** rather than reporting `0`, because its repo-root arithmetic was
+   off by one. That is the failure direction an instrument must have.
+
+**And the run that verified the fix found a bigger fish than the fix.** Re-running the full corpus
+under `run_with_memory_guard.sh --budget-mb 12288` — the README's own example — was killed
+`reason=rss-budget` at `peak_rss_mb=12468`. `/usr/bin/time -l` on a single file names it: one
+release-binary parse of `opentitan/.../xbar_main.sv` peaks at **12 362 MB** before the 60 s deadline
+cuts it. So the four "slow" opentitan crossbars owned by `.11a` are not merely slow — they are an
+**unbounded memory divergence on valid, machine-generated, industry-standard RTL**, which a
+downstream embedder meets as an OOM rather than as a slow parse. They are currently adjudicated
+`divergence:explained_timeout`, i.e. that defect is sitting inside the population the burn-down
+treats as *explained*. Routed into `.11a` with the measurement; the word "timeout" was doing work it
+had not earned.
+
+**The generalizable habit:** provenance is a **precondition**, not a record. If an artifact states
+the conditions it was measured under, the run that would replace it must be held to them — adopt
+when the caller is silent, refuse when the caller disagrees. Promoted to
+`docs/knowledge/recorded-provenance-is-a-precondition-not-a-record.md`.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0046 — the standard contradicted itself, and the footnote was the tie-breaker
 
 `must_reject` in this project means *"the text has no derivation in Annex A."* That test quietly

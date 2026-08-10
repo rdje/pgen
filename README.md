@@ -119,7 +119,7 @@ scripts/run_with_memory_guard.sh --budget-mb 12288 --timeout-s 7200 -- \
 ```
 
 The complete gate catalogue, exit-code contracts, artifact hand-off protocol and the
-ten ways this flow has failed are in
+eleven ways this flow has failed are in
 [The Gate Flow — Reference](docs/book/src/gate-flow.md). Operational posture — host-RAM
 governance, hosted-Actions policy, workflow parity — is in
 [Operations and Governance](docs/book/src/operations-and-governance.md).
