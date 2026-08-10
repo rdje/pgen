@@ -7093,7 +7093,11 @@ cannot manufacture a false falsification. 0 rows landed there, so the decision c
 > **Measured, the two agree 80.2 % of the time, disagree provably 1.8 % of the time, and are
 > unresolvable by position for the remaining 18.0 %.**
 
-⇒ The axis-2 floor is **293 + 26 = 319** rejects-valid rows, not 293. The 263 undecided rows are an
+⇒ The axis-2 floor is **293 + 26 = 319** divergence rows, not 293. ⛔ **PRECISION, corrected
+2026-08-10:** 319 is the axis-2 BAR — the sum of BOTH defect classes, `unexplained_rejects_valid`
+**298** + `unexplained_accepts_invalid` **21** — not 319 rejects-valid rows. The rejects-valid
+component moved 272 → 298; the accepts-invalid component was untouched by `.12a`. (Axis 1 is
+`SV-REPLAY-DEBT`, a different tree entirely — not the accepts-invalid class.) The 263 undecided rows are an
 honest *upper* bound of 582 — they are NOT claimed as defects, and ⛔ must not be quoted as one.
 
 #### ROUTING (leaves CREATED, not owners named — `DOCTRINE-GAP-OWNERSHIP.2`)
@@ -7140,8 +7144,10 @@ honest *upper* bound of 582 — they are NOT claimed as defects, and ⛔ must no
 
 ### `.12a` — plumb the failure POSITION into the svpp label (**`done`** 2026-08-10, `PGEN-SV-CORPUS-GRAD-0201`)
 
-- **Status: `done`.** ⭐⭐ **THE PRE-COMMITTED NUMBER WAS HIT EXACTLY: axis 2 is now `unexplained =
-  319`, up from 293, and the 26 rows that moved are SET-IDENTICAL to the 26 `.12` named.** No row
+- **Status: `done`.** ⭐⭐ **THE PRE-COMMITTED NUMBER WAS HIT EXACTLY: the axis-2 bar is now
+  `unexplained = 319`, up from 293, and the 26 rows that moved are SET-IDENTICAL to the 26 `.12`
+  named.** ⛔ 319 = `unexplained_rejects_valid` **298** (272 + 26) + `unexplained_accepts_invalid`
+  **21** (untouched). The bar is the SUM of both classes; only the rejects-valid half moved. No row
   moved that `.12` had not already convicted, and none it convicted stayed.
 - **THE TWO HALVES.** (1) `stimuli/run_external_corpus.sh:293` discards the probe's stderr, so
   `results.tsv` banks `pass`/`fail`/`timeout` and nothing else; `furthest_position` must be captured
@@ -7254,15 +7260,47 @@ does not exist is indistinguishable from one that does: the runner accepts an un
 
 - **Status: `todo`. Both are real, both are small, and both fail SILENTLY — which is the only
   reason they are grouped.**
-- **F1 — the parser cannot read non-UTF-8 source.** 13 corpus files fail with `stream did not
-  contain valid UTF-8` before any parse happens: 12 scr1 `.svh`/`.sv` files and `sv2v
-  test/lex/latin1.sv`, a fixture whose entire purpose is latin-1 lexing. These are recorded as
-  ordinary `fail` rows, indistinguishable in `results.tsv` from a grammar rejection, and one of them
-  is currently counted in `unexplained_rejects_valid` as if the grammar had refused it. ⛔ Decide
-  the SPEC question first (IEEE 1800-2017 §5.1 source-text character set — what encoding is a
-  conforming tool required to accept?) before touching the reader; the answer decides whether this
-  is a defect, a documented boundary, or a `must_reject`. ⛔ Do NOT let a read failure and a parse
-  rejection keep sharing one status: that conflation is what hid it.
+- ⭐⭐ **F1 — the parser cannot read LATIN-1 SOURCE, and it is a CONFIRMED DEFECT and a SIGNOFF
+  BLOCKER. Adjudicated 2026-08-10 on four independent lines of evidence; no longer an open spec
+  question.**
+  1. **WHERE the bytes are — measured, all 13 files: EXCLUSIVELY INSIDE COMMENTS.** Twelve scr1
+     files carry exactly ONE non-ASCII byte each, and it is `0xA9` = `©` in
+     `/// Copyright by Syntacore LLC © 2016-2021`. The thirteenth is `sv2v test/lex/latin1.sv`
+     (2 bytes). **In every one of the 13, the SystemVerilog token stream is pure ASCII.**
+  2. **THE LRM PERMITS IT.** IEEE 1800-2017 §5.4 (`section-5-lexical-conventions.md:57-58`),
+     verbatim: *"A one-line comment shall start with the two characters // and end with a newline
+     character."* The content between is **unconstrained** — the LRM restricts string literals
+     (`string_literal ::= " { Any_ASCII_Characters } "`) and identifiers, and says nothing about
+     comment bytes. ⇒ a `©` in a header comment is **valid SystemVerilog**.
+  3. **EVERY OTHER PARSER READS THESE FILES.** verilator, slang, Surelog and iverilog contain
+     **zero** UTF-8/encoding machinery in their vendored sources — they are byte-oriented lexers, so
+     a high-bit byte inside a comment never leaves the comment scanner. verible touches UTF-8 in
+     exactly one place, `line-length-rule.cc:169 utf8_len()`, to compute DISPLAY WIDTH for a lint
+     rule — not for lexing. sv2v ships `test/lex/latin1.sv` as a deliberate fixture. **We are the
+     outlier, and the construct is a copyright symbol in a header comment.**
+  4. **THE COMMERCIAL RISK IS NOT HYPOTHETICAL.** Vendor RTL routinely carries `©`, accented author
+     names and `µ` in header comments. Today PGEN refuses the FILE, not the construct.
+- ⛔ **F1 IS NOT A UNICODE GAP — UTF-8 ALREADY WORKS, AND THAT IS MEASURED.** 100 corpus files
+  contain multi-byte UTF-8 sequences and PARSE SUCCESSFULLY today. The failing 13 are **Latin-1 /
+  ISO-8859**, which is *invalid UTF-8*, not "Unicode we do not support". Framing this as "add
+  Unicode support" would scope the wrong work.
+- **WHERE (one line, three sites):** `rust/src/bin/parseability_probe.rs:504` and `:556`
+  `std::fs::read_to_string(input_file)`. That call is the ONLY refusal point. The engine never
+  inspects encoding: the generated parser holds `input: &'input str`
+  (`generated/systemverilog_parser.rs:55`) and indexes it by BYTE offset, which is why
+  `furthest_position` is a byte offset and why UTF-8 passes through untouched.
+- **THE THREE COSTED OPTIONS (priced, not surveyed — recommendation is 2):**
+
+  | # | approach | cost | offsets | verdict |
+  |---|---|---|---|---|
+  | 1 | `from_utf8_lossy` at the read sites | ~3 lines | invalid byte → U+FFFD, **+2 shift each** | fixes all 13, but silently mangles genuinely corrupt input |
+  | **2** | **BOM sniff → UTF-8 / UTF-16LE/BE transcode → Latin-1 fallback, at the reader, encoding REPORTED** | **one small reader module, ~1 leaf** | +1 shift per non-ASCII byte, confined to where they occur | ⭐ **RECOMMENDED** — buys UTF-16 nearly free, keeps the refusal explicit, and Latin-1 is a TOTAL decoding (every byte maps, so it cannot fail) |
+  | 3 | make the engine byte-oriented (`&[u8]`) | very large | exact, always | ⛔ REJECTED: changes the input type across all 10 generated parsers + runtime + harness + interpreter + shape contracts, and puts the peak-speed non-negotiable at risk to fix a comment byte |
+- ⛔ **THE HONEST CAVEAT ON OPTION 2**, stated now so it is not discovered later: transcoding shifts
+  byte offsets relative to the file on disk, so a reported position after a non-ASCII byte on the
+  same line is off by the expansion. It is confined to lines that contain such bytes — overwhelmingly
+  comments, since the LRM already restricts literals and identifiers to ASCII. If exact on-disk
+  offsets are ever required, that needs a span-mapping table, which is NOT in this leaf.
 - **F2 — the corpus runner accepts an unknown `PGEN_CORPUS_*` spelling silently.** It reads
   `PGEN_CORPUS_OUT_DIR`; `PGEN_CORPUS_OUTDIR` (and any other near-miss) falls through to the
   canonical directory and overwrites tracked artifacts with whatever the run produced. `.12a` hit
@@ -7271,8 +7309,26 @@ does not exist is indistinguishable from one that does: the runner accepts an un
   are sandboxed. Fix shape: refuse on any `PGEN_CORPUS_*` variable the script does not recognise
   (the same "REFUSE on an unclassified spelling" discipline `LIVE-DOC-CURRENCY` instrument B already
   applies, and for the same reason — enumeration silently misses).
-- **Owed:** the §5.1 reading with a cite, F1's disposition (defect / boundary / `must_reject`) with
-  the 13 rows re-adjudicated accordingly, and F2's unknown-variable refusal with a test.
+- **F3 — the `.12a` two-caller split has NO mechanical guard.** `preproc_dependency()` must stay a
+  whole-file existence test for the `must_reject` arm while the `must_accept` arm is positional
+  ([[a-shared-predicate-may-answer-two-questions]]). Nothing today fails if a future edit makes the
+  predicate positional wholesale — it would silently corrupt the `must_reject` path, which is
+  precisely the failure the leaf avoided by hand. Fix shape: a regression lock asserting a
+  `must_reject` row with NO banked position keeps its demotion. ⛔ Recorded because "we reasoned
+  carefully once" is not a guard.
+- **F2 — the corpus runner accepts an unknown `PGEN_CORPUS_*` spelling silently.** It reads
+  `PGEN_CORPUS_OUT_DIR`; `PGEN_CORPUS_OUTDIR` (and any other near-miss) falls through to the
+  canonical directory and overwrites tracked artifacts with whatever the run produced. `.12a` hit
+  this with a 200-file capped run and caught it only because `git status` was checked immediately.
+  A redirect that does not redirect is worse than no redirect, because the operator believes they
+  are sandboxed. Fix shape: refuse on any `PGEN_CORPUS_*` variable the script does not recognise
+  (the same "REFUSE on an unclassified spelling" discipline `LIVE-DOC-CURRENCY` instrument B already
+  applies, and for the same reason — enumeration silently misses).
+- **Owed:** F1 = option 2 implemented at the reader + the 13 rows re-measured (expected: 12 scr1
+  rows leave `chained_only` into a real verdict, 1 sv2v row leaves `unexplained_rejects_valid`
+  because it PASSES once readable) + a `must_reject`/`must_accept` fixture pair in ASCII, Latin-1 and
+  UTF-16 so the reader is regression-locked; F2 = the unknown-variable refusal with a test; F3 = the
+  two-caller regression lock. ⛔ F1 is a **release blocker** for the Nexsim claim and outranks F2/F3.
 
 ### `.12b` — the 263 rows POSITION cannot decide (`todo`, opened 2026-08-10 by `.12`, SIZED AND PARKED)
 
@@ -7296,6 +7352,52 @@ does not exist is indistinguishable from one that does: the runner accepts an un
   cheaper sound discriminator is found for the `macro_use` half (of those 155 rows, the ones whose
   macros are ALL defined in-file need no `` `include `` graph to expand — a plausible cheap subset,
   but ⛔ its size is **unmeasured**: 155 is the whole `macro_use` undecided bucket, not the subset).
+
+### `.13` — ⭐⭐ THE DENOMINATOR: 38.7 % of the corpus carries NO VERDICT AT ALL (`todo`, opened 2026-08-10; director ruled "100 % confidence" 2026-08-10)
+
+- **Status: `todo`. This is the leaf the "ship with 100 % confidence" bar actually turns on**, and it
+  was invisible because every published number so far has been a NUMERATOR.
+- **THE MEASUREMENT** (new tracked instrument `stimuli/sv/corpus_verdict_coverage.py` →
+  `docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/coverage.md`; refuses on any adjudication
+  class it has no explicit bucket for, so a new class cannot land silently):
+
+  | bucket | rows | % |
+  |---|---:|---:|
+  | **ADJUDICATED** — asked and answered | 7 556 | 46.3 % |
+  | **ROUTED** — answered in the `verilog_2005` manifest, not lost | 2 459 | 15.1 % |
+  | ⛔ **NO VERDICT** — contributes NOTHING to the confidence claim | **6 321** | **38.7 %** |
+
+  Plus **263** rows inside `ADJUDICATED` that `.12` proved undecidable ⇒ **6 584 rows (40.3 %) of
+  the corpus are UNKNOWN, not clean.**
+- ⛔ **"UNKNOWN" AND "CLEAN" ARE DIFFERENT WORDS.** The graduation bar counts DIVERGENCES, which
+  answers *"how many defects do we know about"* and is silent on *"what fraction was asked a
+  question it could answer"*. A 319-row bar over a 46 %-adjudicated corpus is not the same claim as
+  a 319-row bar over a 100 %-adjudicated one, and only the second supports signoff.
+- **WHERE THE SILENCE IS** — `deferred:chained_only` is **5 276 rows (32.3 %)**, and it is the
+  WORST-PLACED 32 % it could possibly be: opentitan **3 983**, friscv 441, black-parrot 205,
+  Surelog 199, uvm-core 174, Cores-VeeR-EL2 102, verilator 79, scr1 50, slang 22, verible 17.
+  **That is the real industry RTL** — the flagship open-source silicon projects, the exact shape of
+  input Nexsim will feed us — and it currently testifies to nothing. The remaining silence:
+  `no_sv_key` 743 (iverilog, no upstream answer key), `svpp_owned` 186, `impl_varying` 90,
+  `verilog_ams_lane` 20, `ni_unimplemented` 6.
+- ⭐⭐ **THE CONVERGENCE THAT DECIDES THE SEQUENCING.** `chained_only` is deferred because a
+  multi-file design cannot be parsed honestly one file at a time — it needs `` `include ``/`` `define ``
+  chaining. That is **expansion**. So the SAME capability settles all three of:
+  **(a)** `.12b`'s 263 undecidable rows, **(b)** `.13`'s 5 276 `chained_only` rows, and **(c)** the
+  Nexsim front-end deliverable itself, which `SVPP-EXPANSION` already records as required
+  (*"un-expanded SV is not a usable design representation"*). **5 539 corpus rows = 33.9 % of the
+  corpus unblock on one capability.**
+  ⇒ **`SVPP-EXPANSION` is ON THE CRITICAL PATH to the release claim, not sequenced after it.** Its
+  standing `own-now/build-later, sequenced STRICTLY AFTER the locked program` disposition is
+  SUPERSEDED for this purpose by the director's 2026-08-10 "100 % confidence" ruling.
+- ⛔ **DO NOT "FIX" THIS BY RELABELLING.** The cheap way to make 38.7 % disappear is to pin the
+  deferred rows to an expectation and call them adjudicated. That is the exact move
+  `.3.13`/`.3.23` were burned by, one level up. A row earns a verdict by being PARSED under honest
+  conditions, never by being reclassified.
+- **Owed:** the sequenced plan to drive `NO VERDICT` down with a per-class disposition (fix /
+  honest-permanent-deferral with a cited reason / route), the `chained_only` half executed through
+  `.4` + an expander, and a standing gate so the denominator is published beside the bar and cannot
+  silently rot.
 
 ## ROUTING EVIDENCE (`.3.12` → `.11c`, `.11a` → `.11d`, and the `.11a`/`.11b` pair from `.10`)
 

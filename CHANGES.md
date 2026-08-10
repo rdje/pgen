@@ -1,5 +1,55 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0202 — THE DENOMINATOR: only 46.3 % of the SV corpus carries a verdict, and the `©`-in-a-comment defect is confirmed (leaves `SV-CORPUS-GRAD.13` + `.12c` F1/F3, new census instrument, ZERO Rust/grammar bytes)
+
+- **DIRECTOR RULING 2026-08-10: "100 % confidence" — the 263 undecidable rows must be RESOLVED, not
+  bounded.** Acting on it surfaced a much larger question than the 263.
+- ⭐⭐ **THE MEASUREMENT (new tracked instrument `stimuli/sv/corpus_verdict_coverage.py`):
+  ADJUDICATED 7 556 (46.3 %) · ROUTED to the v2005 manifest 2 459 (15.1 %) · ⛔ NO VERDICT 6 321
+  (38.7 %).** Plus the 263 undecidable inside `ADJUDICATED` ⇒ **40.3 % of the corpus is UNKNOWN, not
+  clean.** Every number published so far has been a NUMERATOR; this is the denominator.
+- **WHERE THE SILENCE IS — the worst-placed 32 % it could be.** `deferred:chained_only` is 5 276
+  rows: opentitan **3 983**, friscv 441, black-parrot 205, Surelog 199, uvm-core 174, VeeR 102,
+  verilator 79, scr1 50. That is the flagship open-source silicon — the exact shape of input Nexsim
+  will feed us — and it currently testifies to nothing. Then `no_sv_key` 743, `svpp_owned` 186,
+  `impl_varying` 90, `verilog_ams_lane` 20, `ni_unimplemented` 6.
+- ⭐⭐ **THE CONVERGENCE THAT DECIDES SEQUENCING.** `chained_only` is deferred because a multi-file
+  design needs `` `include ``/`` `define `` chaining — that is EXPANSION, the same capability that
+  settles `.12b`'s 263 rows and that the Nexsim front end needs anyway. **5 539 rows / 33.9 % of the
+  corpus unblock on ONE capability** ⇒ `SVPP-EXPANSION` is **ON THE CRITICAL PATH**, and its
+  standing "build-later, strictly after the locked program" disposition is SUPERSEDED for this
+  purpose by the ruling.
+- ⛔ **DO NOT CLOSE THE GAP BY RELABELLING.** Pinning deferred rows to an expectation would make
+  38.7 % vanish without parsing anything — the exact move `.3.13`/`.3.23` were burned by, one level
+  up. A row earns a verdict by being PARSED under honest conditions.
+- ⭐⭐ **`.12c` F1 ADJUDICATED — CONFIRMED DEFECT AND A SIGNOFF BLOCKER**, on four independent lines:
+  **(1)** all 13 files carry their non-ASCII bytes EXCLUSIVELY INSIDE COMMENTS — 12 of them exactly
+  one byte, `0xA9` `©`, in `/// Copyright by Syntacore LLC © 2016-2021`; the token stream is pure
+  ASCII in every case. **(2)** IEEE 1800-2017 §5.4 defines a one-line comment as running to a
+  newline and leaves its content UNCONSTRAINED (the LRM restricts string literals and identifiers to
+  ASCII, not comments). **(3)** verilator, slang, Surelog and iverilog carry ZERO encoding machinery
+  in their vendored sources — byte-oriented lexers — and verible touches UTF-8 only to compute
+  DISPLAY WIDTH for a lint rule; sv2v ships `test/lex/latin1.sv` deliberately. **We are the
+  outlier.** **(4)** vendor RTL routinely carries `©` and accented names in headers.
+- ⛔ **NOT A UNICODE GAP — UTF-8 ALREADY WORKS, MEASURED: 100 corpus files containing multi-byte
+  UTF-8 PARSE SUCCESSFULLY today.** The 13 failures are Latin-1/ISO-8859, i.e. *invalid* UTF-8.
+  Framing this as "add Unicode support" would scope the wrong work.
+- **WHERE + COST.** `parseability_probe.rs:504`/`:556` `std::fs::read_to_string` is the ONLY refusal
+  point; the engine never inspects encoding (`input: &'input str`, byte-indexed — which is why
+  `furthest_position` is a byte offset). Recommended: BOM sniff → UTF-8/UTF-16 transcode → Latin-1
+  fallback at the reader (Latin-1 decoding is TOTAL and cannot fail; UTF-16 comes nearly free).
+  ⛔ Making the engine byte-oriented (`&[u8]`) is REJECTED — it changes the input type across all 10
+  generated parsers plus runtime/harness/interpreter/shape contracts and risks the peak-speed
+  non-negotiable, to fix a byte in a comment. Honest caveat recorded: transcoding shifts byte offsets
+  on lines containing non-ASCII.
+- **`.12c` F3 OPENED — the `.12a` two-caller split has NO mechanical guard.** Nothing fails today if
+  a future edit makes `preproc_dependency()` positional wholesale, which would silently corrupt the
+  `must_reject` arm. "We reasoned carefully once" is not a guard.
+- **PRECISION CORRECTED in `.12`/`.12a`:** the axis-2 bar 319 is the SUM of both defect classes —
+  `unexplained_rejects_valid` **298** (272 + 26) + `unexplained_accepts_invalid` **21** — not 319
+  rejects-valid rows. Only the rejects-valid half moved. (Axis 1 is `SV-REPLAY-DEBT`, a different
+  tree, not the accepts-invalid class.)
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0201 — the svpp label is now POSITIONAL: axis 2 293 → 319, exactly the 26 rows `.12` convicted (leaf `SV-CORPUS-GRAD.12a` done, `.12c` opened; runner + adjudicator, ZERO Rust/grammar bytes)
 
 - **THE PRE-COMMITTED NUMBER WAS HIT EXACTLY.** `.12a` published `293 → 319` *before* the port was
