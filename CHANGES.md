@@ -1,5 +1,30 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-FOCUS-0001 — the SV lane lock is reaffirmed a FOURTH time and its exit condition acquires a BAR: "released with 100% confidence" (docs only, ZERO code bytes)
+
+- **DIRECTOR (verbatim):** *"the SV lane, that bring the SV parser to release status is the
+  highest priority activity right now. Do not depart from this until the SV parser is shipped,
+  released with 100% confidence."* Given immediately after the ruling that capability work must
+  not be pivoted to ⇒ the two read as one instruction: **capability work is authorized and is
+  still not next.**
+- ⭐ **WHAT IS NEW: the exit condition gained a QUALITY condition, not just an event.** 2026-08-08
+  said *"until it is released to NEXSIM"*; this adds *"with 100 % confidence"*. Recorded with its
+  operational mapping so it cannot rot into a mood word — the project already owns the definition:
+  **axis 1** certificate coverage, literal `UNKNOWN=0` at seeds 0/7/42 ✅ **met**; **axis 2**
+  external-corpus graduation, bar = zero unexplained divergences, measured **298** (277
+  rejects-valid + 21 accepts-invalid) ⛔ **the whole remaining distance**; plus the `Done` bar's
+  register/contract/gate-wiring legs (`SV-CORPUS-GRAD.5`/`.6`).
+- ⇒ *"100 % confidence"* is **not a new bar to design — it is the existing one with no waivers**:
+  no axis closed by relabelling, no residual explained away, no gate green because it could not
+  see the defect. [[a-rising-pass-rate-is-not-evidence-of-correctness]] is the standing guard, and
+  it bites hardest at the end, when the remaining rows are the awkward ones and reclassifying is
+  cheapest.
+- **Fourth statement of the same lock in three days ⇒ treat any impulse to leave it as an error,
+  not a judgement call.** Today's session is the pattern to keep: three findings ROUTED
+  (`SV-CORPUS-GRAD.3.26`, `.3.27`, `EBNF-FRONTEND-SILENT-TRUNCATION.4`), **none worked**.
+- `MEMORY.md`'s `active_work_unit` now carries the sharpened lock and names axis 2's 298 as the
+  remaining distance, so a fresh session reads the bar before choosing anything.
+
 ## 2026-08-10 - PGEN-HORIZON-0004 — the greenlight's SV-lane-lock boundary is now a director RULING, not an inference; `.11` and every capability row PARKED (docs only, ZERO code bytes)
 
 - **DIRECTOR (verbatim):** *"We should not pivot to `LANG-CAPABILITY-AUDIT.*` now because those

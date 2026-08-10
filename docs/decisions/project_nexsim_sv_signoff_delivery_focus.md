@@ -85,3 +85,43 @@ which by definition is SV work.
   and the instruments are now generalized — `stimuli/run_external_corpus.sh` emits
   repo-root-relative paths, `stimuli/sv/cluster_rejects_valid.py` is family-parameterized,
   and `furthest_position` is universal — so the SV re-measure is cheap by construction.
+
+## ⭐⭐⭐ REAFFIRMED A FOURTH TIME, AND GIVEN ITS BAR — 2026-08-10
+
+Director, verbatim: *"the SV lane, that bring the SV parser to release status is the highest
+priority activity right now. Do not depart from this until the SV parser is shipped, released
+with 100% confidence."*
+
+Given immediately after ruling that capability work must not be pivoted to
+([[feedback_capability_work_is_greenlit_by_standing_authorization]] §2), so the two are one
+instruction read together: **capability work is authorized and is still not next.**
+
+### What is NEW here — the exit condition acquired a BAR
+
+The 2026-08-08 lock said *"until it is released to NEXSIM"*. This adds **"with 100 % confidence"**,
+which is a *quality* condition on the release, not merely an event. ⛔ It must not be left as a
+mood word — this project already has the operational definition, and the phrase maps onto it:
+
+- **Axis 1 — certificate coverage.** `UNKNOWN` is at a literal **0** over a frozen universe, held
+  deterministically at seeds 0/7/42 by `sv_cert_recognized_union_gate`. ✅ **met.**
+- **Axis 2 — external-corpus graduation.** The bar is **zero unexplained divergences**;
+  measured today **298** (`unexplained_rejects_valid` 277 + `unexplained_accepts_invalid` 21).
+  ⛔ **the open axis, and the whole distance to release.**
+- **The `Done` bar's remaining legs** — the family-status register row, the published-contract
+  currency, and the graduation gate wiring (`SV-CORPUS-GRAD.5`/`.6`).
+
+⇒ *"100 % confidence"* is **not a new bar to design**; it is the existing one with no waivers.
+Read it as: **no axis closed by relabelling, no residual explained away, no gate green because it
+could not see the defect.** [[a-rising-pass-rate-is-not-evidence-of-correctness]] is the standing
+guard on exactly this, and it cuts hardest at the end, when the remaining rows are the awkward
+ones and reclassifying is cheapest.
+
+### How to apply — unchanged in mechanism, sharper in force
+
+- PNT frontier selection stays inside the SV delivery path. **Fourth statement of the same lock
+  in three days ⇒ treat any impulse to leave it as an error, not a judgement call.**
+- A finding in another family is ROUTED to a parked leaf, never worked. Today's session routed
+  three (`SV-CORPUS-GRAD.3.26`, `.3.27`, `EBNF-FRONTEND-SILENT-TRUNCATION.4`) and worked none —
+  that is the pattern to keep.
+- The only admissible exception remains a defect that **BLOCKS** the SV release, which is SV work
+  by definition. "Would be nice for SV" is not blocking.
