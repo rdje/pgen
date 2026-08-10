@@ -1,5 +1,28 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-HORIZON-0004 — the greenlight's SV-lane-lock boundary is now a director RULING, not an inference; `.11` and every capability row PARKED (docs only, ZERO code bytes)
+
+- **DIRECTOR (verbatim):** *"We should not pivot to `LANG-CAPABILITY-AUDIT.*` now because those
+  features does not seem to be useful to bring the SV parser to release status."*
+- `-0001` recorded the greenlight's interaction with the SV lane lock as the **conservative
+  reading of an ambiguity**, explicitly flagged as *"reversible with one word from the director."*
+  The word came in the same session, confirming it. ⇒ **upgraded from inference to ruling**, on
+  all three surfaces (the record, its INDEX row, the `.11` leaf), so a fresh session cannot
+  re-open it as an open question.
+- ⭐ **The durable part is the TEST the ruling supplies, not the parking.** The question for
+  pulling a capability row forward is not *"is it greenlit?"* — all of them are — but
+  **"does it unblock the SV release?"** ⇒ **authorization and priority are SEPARATE axes**, and
+  the greenlight settles only the first. *Being greenlit is not being next.* A capability item
+  earns the SV lane only as a defect that BLOCKS the release, which is the exception the lane
+  lock already names.
+- `LANG-CAPABILITY-AUDIT.11` is marked **`todo` — PARKED under the SV lane lock**, with the same
+  bound applied to every row it registers. ⭐ The seeded register **is** the deliverable the
+  tracking order asked for: the commitments are now owned and reachable from the resume path.
+  What remains — the structural check that keeps the register true — is *scheduled, not urgent*.
+- `MEMORY.md`'s parked enumeration now names `.11` alongside `.6`/`.10.13`/`.10.14`/`.3c`.
+- ⇒ **no pivot.** The active lane is unchanged: SV to release, next `.3` family from the 277-row
+  worklist (or the routed `.3.26` / `.3.27`).
+
 ## 2026-08-10 - PGEN-HORIZON-0002 — leaf LANG-CAPABILITY-AUDIT.11 OPENED: the horizon register, because six priced capability rows were owned by nothing (docs only, ZERO code bytes)
 
 - **DIRECTOR ORDER:** *"everything that was decided in `project_horizon_universal_parser.md` shall

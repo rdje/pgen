@@ -3593,8 +3593,16 @@ priced `schedule:` lane addresses.
 
 ### `.11` — THE HORIZON REGISTER: every commitment in `project_horizon_universal_parser` is task-tree OWNED or explicitly PARKED — never merely described (`todo`, opened 2026-08-10 by director order)
 
-- **Status: `todo`** — register seeded below; the leaf closes when every row has an owner
-  or a dated parked disposition, and a check keeps it that way.
+- **Status: `todo` — ⛔ PARKED under the SV lane lock (director 2026-08-10).** Register seeded
+  below; the leaf closes when every row has an owner or a dated parked disposition, and a check
+  keeps it that way. ⛔ **Do not pick this up before SV is RELEASED**, and the same holds for
+  every capability row it registers — director, verbatim: *"We should not pivot to
+  `LANG-CAPABILITY-AUDIT.*` now because those features does not seem to be useful to bring the SV
+  parser to release status."* ⭐ The seeded register IS the deliverable the order asked for (the
+  commitments are now tracked and reachable); what remains — the structural check — is
+  scheduled, not urgent. **Being greenlit is not being next**
+  ([[feedback_capability_work_is_greenlit_by_standing_authorization]] §1: authorization and
+  priority are separate axes).
 - **THE DIRECTIVE (director, 2026-08-10, verbatim):** *"So, everything that was decided in
   `docs/decisions/project_horizon_universal_parser.md` shall be task-tree owned, tracked if we
   want to achieve whatever was decided there."* Followed immediately by the scope bound:

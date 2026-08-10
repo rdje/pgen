@@ -40,12 +40,19 @@ offside rule + lexer modes, P3-8 NFKC normalization.
   (parse-time-mutable grammar — Raku slangs, Perl 5 `BEGIN`, Prolog `op/3`) is a declared
   HARD BOUND. A general capability greenlight is not a reversal of a specific, deliberate
   exclusion. If either is meant to reopen, it needs saying separately.
-- ⚠️ **It does not, on its face, lift the SV lane lock.** The lock
-  ([[project_nexsim_sv_signoff_delivery_focus]], director 2026-08-08 ×3) says do not leave
-  SV until it is RELEASED to Nexsim. This record is read as authorizing capability work
-  **when the lane opens**, not as pre-empting the lock — the conservative reading, because
-  the lock was set emphatically and this directive did not mention it. One word from the
-  director reverses that reading.
+- ⛔ **It does NOT lift the SV lane lock — DIRECTOR-CONFIRMED 2026-08-10, same session.**
+  The record first carried this as the *conservative reading* of an ambiguity, flagged as
+  reversible with one word. The director gave the word, verbatim: *"We should not pivot to
+  `LANG-CAPABILITY-AUDIT.*` now because those features does not seem to be useful to bring
+  the SV parser to release status."* ⇒ it is now a **ruling, not an inference**. The lock
+  ([[project_nexsim_sv_signoff_delivery_focus]], 2026-08-08 ×3) stands: do not leave SV until
+  it is RELEASED to Nexsim.
+  ⭐ **And the ruling supplies the TEST, which is the durable part** — the question for pulling
+  any capability row forward is not *"is it greenlit?"* (all of them are) but **"does it unblock
+  the SV release?"** A greenlit row that does not is *scheduled later*, not *scheduled now*.
+  ⇒ authorization and priority are **separate axes**, and this directive settles only the first.
+  A capability item earns the SV lane only as a defect that BLOCKS the release — the same
+  exception the lane lock already names.
 
 ## 3. Why P2-5 (parametric rules) still needs a surface call — and what is NOT already decided
 
