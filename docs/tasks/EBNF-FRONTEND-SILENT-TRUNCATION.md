@@ -204,6 +204,59 @@ of it. That is exactly why it must be gated now rather than remembered.
 - **Workaround until fixed** (used by `SV-CORPUS-GRAD.3.25`, and worth documenting in `.3`):
   lift the group to a **named rule** and annotate its alternatives there.
 
+#### PRIOR ART (searched 2026-08-10, on the director's question *"should we support inline return annotations? would it increase expressiveness?"*)
+
+Searched `grammars/ebnf.ebnf`, `docs/decisions/`, `docs/tasks/`, `docs/book/`. Three neighbours,
+none of which owns this case:
+
+| owner | direction | this case? |
+|---|---|---|
+| `LANG-CAPABILITY-AUDIT.1` — 27 unreachable `ebnf.ebnf` productions | **declared but unreachable + unwired** (`parametric_rule`, `error_production`, …) | ✘ — `alternation`'s `return_annotation?` is *reachable*, one of the 104 |
+| `ANNOTATION-PLACEMENT.4` — meta-grammar completeness | **shipped but undeclared** (lexical `[> … ]`, used 12× by svpp) | ✘ — the inverse; `.4`'s own closing bullet forbids merging the two |
+| `ANNOTATION-PLACEMENT` directive (2026-07-26) | placement universality + **no silent drop**, for *semantic* annotations | ~ — the *principle* applies verbatim, the directive's scope does not |
+
+⇒ **a THIRD fidelity direction, and the sharpest of the three: DECLARED, REACHABLE, honoured by
+the generated meta-parser — and mis-read by the hand-written frontend that actually runs.** The
+other two have one healthy half; here both halves of the self-hosting story look healthy and the
+production reader still disagrees. Worth naming as its own class.
+
+#### ⭐ THE ANSWER TO *"would supporting it increase expressiveness?"* — **NO. Measured, not argued.**
+
+A branch whose whole body is one rule reference and which carries no annotation of its own is
+**AST-transparent**: the referenced rule's value *is* the branch's value, and the emitted AST is
+byte-identical across the lift ([[a-bare-rule-reference-alternative-is-ast-transparent]];
+`SV-CORPUS-GRAD.3.20` proved it 15/15 cmp-identical). So `( A -> a | B -> b )` and
+`g := A -> a | B -> b` + a reference to `g` denote the **same tree**. The lift is a total,
+mechanical, shape-neutral transformation ⇒ inline group annotations are **pure sugar**; the set of
+expressible ASTs does not grow by one shape.
+
+**What it WOULD buy is census hygiene and frame cost, which are not nothing in this repo:**
+- every lift is a real rule, and rules are **charged for** — `.3.25` paid +3 rules, a cert-census
+  move (`expected_total` 1355→1358) and a contract re-baseline under the `CI-PARITY-GATE-ROT.22`
+  tripwire, for what is semantically one annotation;
+- each lifted rule costs a **frame + memo entry per occurrence** — precisely the wrapper class
+  `RGX-0078.5.i.4`'s `INLINE-CENSUS` (`pass_through` / `alternation_leaf`) exists to collapse
+  again. We add wrappers by hand and then spend engine work removing them.
+
+**⛔ Recommendation: do NOT build it as a language feature.** Reasons, in order:
+1. **Zero expressiveness gain** (above), against a documented house-pattern workaround.
+2. **It would ship half a rule.** `alternation` places `return_annotation?` *before* the `|`, so
+   the **last** branch of a group is underivable. Implementing only the derivable half gives
+   authors a rule with an arbitrary-looking exception; making it symmetric means changing the
+   meta-grammar too — a language change, not a bug fix.
+3. **`@profiles` is rule-level**, so the most common reason to split a group — dialect gating —
+   needs a named rule regardless. Inline annotations would not have saved `.3.25`'s edit.
+4. **Wrong order of work.** This frontend has *two* known silent mis-reads (`.1` deletes
+   alternatives; `.4` re-categorises an annotation). Adding surface to a reader with two open
+   silent-corruption defects is backwards.
+
+**⭐ Do the cheap half instead — make it AGREE or REFUSE.** The engine need not honour the cell,
+but it must not silently reinterpret it as a different syntactic category. That is
+`ANNOTATION-PLACEMENT`'s requirement 2 (the no-silent-drop diagnostic contract) applied to
+*return* annotations, which is a bounded frontend change with a real safety payoff and **no new
+language surface**. If the answer later becomes "support it", that decision belongs in
+`ANNOTATION-PLACEMENT` as a placement-matrix cell, not here.
+
 ## Acceptance Criteria (tree)
 
 1. A tracked, deterministic gate fails when a grammar's source alternatives and its IR

@@ -1,5 +1,32 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-EBNF-FRONTEND-0002 — leaf EBNF-FRONTEND-SILENT-TRUNCATION.4: prior art + the expressiveness answer (director question; docs only, ZERO code bytes)
+
+- **DIRECTOR QUESTION:** *"Should we support inline return annotations? Would supporting it in the
+  AST pipeline increase the expressiveness of EBNF syntax?"*
+- **ANSWER: NO — measured, not argued.** A branch whose entire body is one rule reference carrying
+  no annotation of its own is **AST-transparent** ([[a-bare-rule-reference-alternative-is-ast-transparent]];
+  `SV-CORPUS-GRAD.3.20` proved it 15/15 cmp-identical). So `( A -> a | B -> b )` and
+  `g := A -> a | B -> b` + a reference denote the **same tree** — the named-rule lift is a total,
+  mechanical, shape-neutral transformation. Inline group annotations are **pure sugar**; the set of
+  expressible ASTs does not grow by one shape.
+- **What it WOULD buy is census hygiene + frame cost**, which are real here: `.3.25` paid +3 rules,
+  a cert-census move (1355→1358) and a contract re-baseline for what is semantically one
+  annotation; and each lifted rule is a frame + memo entry per occurrence — the same wrapper class
+  `RGX-0078.5.i.4`'s `INLINE-CENSUS` exists to collapse again.
+- **RECOMMENDED: do not build it as a language feature** — zero expressiveness gain; it would ship
+  *half* a rule (`alternation` puts `return_annotation?` before the `|`, so a group's LAST branch
+  is underivable); `@profiles` is rule-level so dialect gating needs a named rule regardless; and
+  this frontend already has two open silent-corruption defects. **Do the cheap half: make the
+  frontend AGREE or REFUSE**, never silently re-categorise — `ANNOTATION-PLACEMENT`'s no-silent-drop
+  contract applied to return annotations, with no new language surface.
+- **PRIOR ART recorded (DESIGN-PRIOR-ART):** this is a **THIRD** meta-grammar fidelity direction.
+  `LANG-CAPABILITY-AUDIT.1` owns *declared-but-unreachable/unwired* (27 productions);
+  `ANNOTATION-PLACEMENT.4` owns *shipped-but-undeclared* (lexical `[> … ]`) and its own closing
+  bullet forbids merging the two. This case is **declared, REACHABLE, honoured by the generated
+  meta-parser — and mis-read by the hand-written frontend that actually runs**: both halves of the
+  self-hosting story look healthy and the production reader still disagrees.
+
 ## 2026-08-10 - PGEN-EBNF-FRONTEND-0001 — leaf EBNF-FRONTEND-SILENT-TRUNCATION.4 evidence UPGRADE: the mis-read construct is LEGAL by the project's own meta-grammar (docs only, ZERO code bytes)
 
 - **THE CORRECTION.** `-0046` routed this as "an inline `->` annotation inside a parenthesized
