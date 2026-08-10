@@ -2,6 +2,23 @@
 
 **Category:** project · **Established:** 2026-07-11 (director, revising/expanding the prior vision) · supersedes nothing but sits ABOVE [[project_vision_and_discipline]] as the long-term north star.
 
+## ⛔ WHERE THIS RECORD IS TRACKED (director order, 2026-08-10)
+
+> *"everything that was decided in `docs/decisions/project_horizon_universal_parser.md` shall be
+> task-tree owned, tracked if we want to achieve whatever was decided there."* — immediately
+> bounded: *"I am not saying to implement anything there now, but they shall clearly remain on
+> the list of things EBNF and the AST pipeline shall one day full support."*
+
+**The register is [`LANG-CAPABILITY-AUDIT.11`](../tasks/LANG-CAPABILITY-AUDIT.md).** Every axis,
+priced roadmap row and structural bound in this record appears there with an owning leaf or an
+explicit parked disposition. ⛔ **A commitment recorded here and nowhere else is NOT tracked** —
+layer C has no reachability check into layer B, so a decision record is exactly where an
+intention can sit for a year looking healthy. Measured at register-seeding: **six priced
+roadmap rows (P1-3, P1-4, P2-5, P2-6, P2-7, P3-8) had no owning leaf at all** — they existed
+only as rows in a table inside a leaf that had already closed `done`.
+
+⇒ **when adding a commitment to this record, add its register row in the same commit.**
+
 ## The goal (director, verbatim intent)
 
 Long term, PGEN shall have the **minimally required feature set** to accurately parse **any**

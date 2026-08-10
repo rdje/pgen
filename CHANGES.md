@@ -1,5 +1,39 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-HORIZON-0002 — leaf LANG-CAPABILITY-AUDIT.11 OPENED: the horizon register, because six priced capability rows were owned by nothing (docs only, ZERO code bytes)
+
+- **DIRECTOR ORDER:** *"everything that was decided in `project_horizon_universal_parser.md` shall
+  be task-tree owned, tracked if we want to achieve whatever was decided there"* — bounded the
+  same minute: *"I am not saying to implement anything there now, but they shall clearly remain
+  on the list of things EBNF and the AST pipeline shall one day full support."* ⇒ tracking, not
+  implementation.
+- ⛔ **THE MEASURED DEFECT:** `LANG-CAPABILITY-AUDIT.4` priced nine roadmap items and closed
+  `done`. Six — **P1-3 fact retraction, P1-4 case-insensitive keywords, P2-5 parameterized
+  productions, P2-6 precedence ladder, P2-7 offside/lexer-modes, P3-8 NFKC** — carry the owner
+  value *"unscheduled"*. They existed **only as rows in a table inside a closed leaf**: no open
+  leaf references them, no frontier names them, the resume pointer cannot reach them.
+- ⭐ **The same disease this tree has now named three times** — a surface on paper but not in the
+  engine (`.1`'s 27 decorative productions); a capability shipped under a name the census did not
+  search for (`.4`'s *"a name census is not a capability inventory"*); and now **a commitment in a
+  decision record with no work-tracking edge**. The third is invisible to every instrument the
+  repo owns, because **layer C has no reachability check into layer B**.
+- **THE REGISTER (`.11`)** seeds three tables with grep-verified owners: 9 capability axes
+  (A1–A9: 5 owned, 3 partial, **A7 Unicode unowned**), the 9 priced rows (**6 unowned**), and 8
+  structural commitments/bounds (C1–C8) recorded so *"no tree"* cannot be misread as
+  *"forgotten"* — including the two deliberate non-commitments (extensibility; row 16
+  parse-time-mutable grammar) and **C6, the one row whose scope the director explicitly deferred**.
+- **Closing `.11` requires a CHECK, not just the table** — a `DOCTRINE_ENFORCEMENT.md` §3
+  structural check that every register row resolves to a live leaf id or a parked disposition,
+  in the shape `GATE-REACHABILITY` uses for gates. ⛔ Without it the table is prose, and prose is
+  what failed.
+- **Both ends now point at each other:** the decision record gained a *"where this record is
+  tracked"* header naming `.11`, with the rule *"when adding a commitment to this record, add its
+  register row in the same commit."* `MEMORY.md` names the register too.
+- **Blocked-on-director, carried in the register so it stays visible:** the **P2-5 parametric
+  SYNTAX** (capability greenlit; notation open — the declared `[ … ]` form is an unratified
+  placeholder that silently miscompiles), and **C6** the precise definition of *"flexible /
+  friction removal"*.
+
 ## 2026-08-10 - PGEN-EBNF-FRONTEND-0002 — leaf EBNF-FRONTEND-SILENT-TRUNCATION.4: prior art + the expressiveness answer (director question; docs only, ZERO code bytes)
 
 - **DIRECTOR QUESTION:** *"Should we support inline return annotations? Would supporting it in the

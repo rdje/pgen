@@ -3591,12 +3591,108 @@ priced `schedule:` lane addresses.
 
 ---
 
+### `.11` — THE HORIZON REGISTER: every commitment in `project_horizon_universal_parser` is task-tree OWNED or explicitly PARKED — never merely described (`todo`, opened 2026-08-10 by director order)
+
+- **Status: `todo`** — register seeded below; the leaf closes when every row has an owner
+  or a dated parked disposition, and a check keeps it that way.
+- **THE DIRECTIVE (director, 2026-08-10, verbatim):** *"So, everything that was decided in
+  `docs/decisions/project_horizon_universal_parser.md` shall be task-tree owned, tracked if we
+  want to achieve whatever was decided there."* Followed immediately by the scope bound:
+  *"I am not saying to implement anything there now, but they shall clearly remain on the list
+  of things EBNF and the AST pipeline shall one day full support."*
+  ⇒ **this leaf is TRACKING, not implementation.** Landing a capability is out of scope here.
+- **⛔ THE DEFECT IT EXISTS TO FIX — measured 2026-08-10.** `.4` priced nine roadmap items and
+  then closed as `done`. Six of them (**P1-3, P1-4, P2-5, P2-6, P2-7, P3-8**) carry the owner
+  value *"unscheduled"* or *"`.4` seed → new leaf when scheduled*. So they exist **only as rows
+  in a table inside a CLOSED leaf**. No open leaf references them, no frontier names them, and
+  the resume pointer cannot reach them. A priced, greenlit capability that no tree owns is
+  indistinguishable from one nobody ever thought of — which is exactly the failure mode the
+  horizon record itself diagnosed (*"the audit is PRESCRIBED but has never been RUN"*), one
+  level up.
+- ⭐ **And it is the same disease this tree has now named three times**: a surface that exists
+  on paper but not in the engine (`.1`'s 27 decorative productions), a capability shipped under
+  a different name than the census looked for (`.4`'s *"a name census is not a capability
+  inventory"*), and now a **commitment recorded in a decision record with no work-tracking
+  edge**. All three are *the record and the reality disagreeing*; only the third is invisible
+  to every instrument the repo owns, because layer C has no reachability check into layer B.
+
+#### THE REGISTER (seed — owners are `grep`-verified, 2026-08-10)
+
+**A. Capability axes** (horizon §3 living list + the two added at #208):
+
+| # | axis | owner | state |
+|---|---|---|---|
+| A1 | context-sensitivity via the semantic store | `SCOPE-CONTEXT-PREDICATE`, `FINAL-PHASE-PREDICATE`, `STORE-AWARE-GEN`, `MEMO-STORE-SOUNDNESS`, `RULE-SPAN-VALUE-CONSTRAINT` | ✅ owned, strong |
+| A2 | forward / deferred obligations | `FINAL-PHASE-PREDICATE` (`phase:final`, landed) + `REGEX-PCRE2-FIDELITY` `.4.7.c` (forward/suffix-count) | ✅ owned |
+| A3 | layout / indentation sensitivity (INDENT/DEDENT, offside) | `WS-DIRECTIVE` covers `@whitespace_sensitive` only; the **offside primitive** is `.4` P2-7, gated on `LEX-ADJACENCY.2` | ⚠️ **partial — no leaf owns the offside primitive** |
+| A4 | lexer/parser feedback & ambiguity (JS ASI, C++ `>>`) | tie policies shipped (`ordered`/`longest_match`/`priority_first`, pinned in `PARSE-HARNESS.6.1`); the *feedback* channel has no owner | ⚠️ **partial** |
+| A5 | error recovery | `.8` fixed the `@recover: true` codegen crash and is `done`; ⛔ `.4` states explicitly *"No claim that recovery WORKS end-to-end"* | ⚠️ **crash owned, capability UNOWNED** |
+| A6 | preprocessor / macro expansion | `SVPP-EXPANSION`, `SVPP-CONTRACT-BODY` | ✅ owned (SV-specific) |
+| A7 | encoding / Unicode (identifier classes, normalization) | `.4` P3-8, unscheduled | ⛔ **UNOWNED** |
+| A8 | lexical adjacency / no-layout boundaries | `LEX-ADJACENCY` (+ `-design`) | ✅ owned |
+| A9 | steering-surface GRANULARITY (gates every other axis) | `ANNOTATION-PLACEMENT`, `INLINE-ACTIONS`, `LEXICAL-ANNOTATIONS` | ✅ owned |
+
+**B. Priced roadmap rows** (`.4`) — the six with no owning leaf are the core of this leaf:
+
+| row | item | owner | state |
+|---|---|---|---|
+| P0-1 | `include()` real + linter honours the graph | `.7` → re-opened as `.10` (`active`) | ✅ owned |
+| P0-2 | `@recover: true` codegen crash | `.8` | ✅ `done` |
+| P1-3 | fact retraction / instance-scoped fact lifetime | — | ⛔ **UNOWNED** |
+| P1-4 | declarative case-insensitive keywords | — | ⛔ **UNOWNED** |
+| P2-5 | parameterized productions | — (needs a director SURFACE call; see below) | ⛔ **UNOWNED** |
+| P2-6 | cross-rule precedence ladder | — | ⛔ **UNOWNED** |
+| P2-7 | offside rule + lexer modes | gated on `LEX-ADJACENCY.2`, no leaf | ⛔ **UNOWNED** |
+| P3-8 | NFKC identifier normalization | — | ⛔ **UNOWNED** |
+| T-9 | unreferenced-root ("orphan") report | `.2` seed | ⚠️ seed only |
+
+**C. Structural commitments and standing bounds** (these are *invariants/bounds*, and the
+register's job is to record that they are deliberately not work items — so a later reader does
+not mistake "no tree" for "forgotten"):
+
+| # | commitment | disposition |
+|---|---|---|
+| C1 | duality-completeness — no primitive is done at parse-only | invariant; binds every capability leaf. ⚠️ **no gate enforces it** — candidate for a doctrine check |
+| C2 | zero-cost / neutrality acceptance test | [[project_capability_growth_is_zero_cost_and_neutral]]; `PARSER-NEUTRALITY` tree |
+| C3 | composability IS in scope (#209) | `.7`/`.10` |
+| C4 | extensibility is a deliberate NON-commitment | ⛔ intentionally untracked — needs a precise mechanism agreed FIRST |
+| C5 | row 16 parse-time-mutable grammar | ⛔ declared HARD BOUND, out of scope by design |
+| C6 | *"flexible" = friction removal*, 🔜 to be defined more precisely later | ⚠️ **open director definition, no owner** — the one row whose *scope* is still undefined |
+| C7 | eagerness bar — expressive AWKWARDNESS is a defect class | ranking input, applied by `.4`; must bind future rows too |
+| C8 | the matrix must keep GROWING (don't close at 16 rows) | `.3c` (`todo`) |
+
+#### What closing this leaf requires
+
+1. **An owner per ⛔ row** — a leaf id, or a dated *parked* disposition naming why. A row may
+   legitimately be parked; it may not be silent.
+2. **A pointer FROM the decision record TO this register**, so layer C names its layer-B
+   tracker and the edge is discoverable from either end.
+3. **⭐ A check, or this rots exactly like the thing it fixes.** The natural shape is a
+   `DOCTRINE_ENFORCEMENT.md` §3 *structural* check: every capability row in this register
+   resolves to a live tree/leaf id or carries a parked disposition — the same
+   derive-and-reconcile shape `GATE-REACHABILITY` uses for gates and `LIVE-DOC-CURRENCY` uses
+   for route closure. ⛔ Without it this table is prose, and prose is what failed.
+4. ⚠️ **Do NOT let this leaf drift into implementation.** The director bounded it explicitly.
+   Any row that becomes real work opens its own leaf.
+
+#### Blocked-on-director (carried here so it is visible from the register, not buried)
+
+- **P2-5 surface call.** No parametric-rule syntax has ever been decided; `ebnf.ebnf:627`'s
+  `parametric_rule := rule_name "[" parameter_list "]"` is an unratified placeholder that
+  silently miscompiles (`expr[In, Yield]` → `expr ( In Yield )?`) and lints clean, because
+  `[ … ]` is already the optional-element form (`:288`). Capability greenlit
+  ([[feedback_capability_work_is_greenlit_by_standing_authorization]]); **notation open**.
+- **C6** — the precise definition of *"flexible / friction removal"*, which the director
+  deferred ("we can define that more clearer later").
+
 ## Acceptance Criteria (tree)
 
 - A measured, re-runnable expressiveness matrix — not prose.
 - Every gap carries a cost model before it becomes a work item.
 - The `ebnf.ebnf` unreachable set is adjudicated: wire it, or delete it, or document
   it as reserved — **not left as decorative surface** that misleads grammar authors.
+- ⭐ Every commitment recorded in [[project_horizon_universal_parser]] is task-tree OWNED or
+  carries an explicit parked disposition, and a check keeps that true (`.11`).
 
 ## Evidence
 
