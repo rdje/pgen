@@ -1849,6 +1849,60 @@ predicate lives only in prose is a claim, not a measurement: "71 rows with a `_b
 reproducible two ways that disagree (64 vs 71), so the predicate now lives in code behind a control
 that refuses unless it still reproduces the recorded figure.
 
+#### When the standard's own productions contradict its own footnote
+
+The `must_reject` test above — *"the text has no derivation in Annex A"* — assumes Annex A is
+self-consistent. It is not always, and the difference between "the LRM does not license this" and
+"the LRM licenses it in prose but forgot to write the production" decides whether a rejection is
+correct behaviour or a defect. Getting that backwards is expensive in both directions: fix a
+correct rejection and you inject over-acceptance; pin a real gap as `must_reject` and you make a
+defect permanent.
+
+`SV-CORPUS-GRAD.3.25` is the worked example. The queue slice `q = q[1:$]` is written five times in
+IEEE 1800-2017 §7.10.4's own normative example block, and §7.10.1 says outright that the bounds of
+`Q[a:b]` *"may be arbitrary integral expressions and, in particular, are not required to be
+constant expressions."* Yet the production tree cannot derive it:
+
+```ebnf
+select              ::= … bit_select [ [ part_select_range ] ]
+part_select_range   ::= constant_range | indexed_range
+constant_range      ::= constant_expression : constant_expression
+constant_primary    ::= …                        -- no `$` alternative
+```
+
+The deciding evidence is **A.8.4 footnote 42**: *"The `$` primary shall be legal only in a select
+for a queue variable, in an open_value_range, …"* — a rule that only makes sense if a select can
+contain `$`, which the productions above cannot produce. ⇒ the contradiction is *inside the
+standard*, and the parser's rejection is a defect rather than fidelity.
+
+Three habits generalise from it:
+
+- **Look for a footnote before concluding "no derivation".** Annex A's constraints on where a
+  construct is legal live in its numbered footnotes, not in the productions, and a footnote that
+  presupposes a derivation is evidence the production is the transcription error. This is the
+  opposite verdict from `SV-CORPUS-GRAD.3.23`, where the same question was asked about
+  `enum [N:M]` and *nothing* in the LRM licensed it — so that one was pinned `must_reject`.
+- **Let the annex's own asymmetries testify.** One line below `constant_range`, Annex A writes
+  `indexed_range ::= expression +: constant_expression` against
+  `constant_indexed_range ::= constant_expression +: constant_expression` — i.e. it *does*
+  distinguish the select form from the constant-select form on exactly the `expression` vs
+  `constant_expression` axis, and then has `part_select_range` share `constant_range` anyway.
+  A local inconsistency with a neighbouring production is a much stronger signal than a reading of
+  the prose.
+- **Repair the minimum the contradiction licenses, and price the wider fix.** The tempting
+  correction is to follow the evident intent and make the bounds full `expression`s. Measured, that
+  also takes `v[a++ : b]` and `v[a inside {1,2} : 0]` from REJECT to PASS — over-acceptance in a
+  parser whose default posture is strict-LRM. Adding `$` and nothing else keeps every non-`$` bound
+  on the existing `constant_range` path, so no previously-accepted or previously-rejected input
+  changes verdict. Profile gating matters here too: IEEE 1364-2005 has neither queues nor a `$`
+  primary, so the new alternative is declared `@profiles: ["sv_2017", "sv_2023"]`, and the
+  `verilog_2005` manifest staying byte-identical is what proves the gate held.
+
+⭐ **And a partial fix is reported partial.** Of the seven corpus rows the tell collected, five
+flipped to PASS; the other two kept rejecting with their `furthest_position` moved *deeper*, having
+cleared the `$` bound and stopped at the next construct. That is progress and a new finding, not
+a seven-row win — the leaf claims five and routes the rest.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

@@ -1,5 +1,57 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0046 — leaf SV-CORPUS-GRAD.3.25 DONE: the queue-slice `q[a:$]` bound parses (IEEE 1800-2017 A.8.4 **footnote 42**), `unexplained_rejects_valid` 284 → 277 (grammar-only, ZERO Rust bytes)
+
+- **THE DEFECT:** `q = q[1:$]` — written five times in IEEE 1800-2017 §7.10.4's own normative
+  example block — was REJECTED. `part_select_range → constant_range → constant_expression`, and
+  `constant_primary` has no `$` alternative (faithfully to A.8.4). Isolated with a 12-case
+  `--parse` matrix that exonerates every neighbouring `$` construct (`q[$]`, `q[$-1]`, `a[*1:$]`,
+  `a ##[1:$]`, `x = $`, `int q[$]`) and convicts exactly `q[lo:$]`.
+- **ROOT CAUSE — the contradiction is INSIDE the standard** (the `.3.19` class, not the `.3.23`
+  class). **A.8.4 footnote 42**: *"The `$` primary shall be legal only in a select for a queue
+  variable, …"* — a rule that only makes sense if a select CAN contain `$`, which the productions
+  cannot derive. §7.10.1 says the bounds *"are not required to be constant expressions"*. And
+  Annex A testifies against itself one line down: `indexed_range ::= expression +:
+  constant_expression` vs `constant_indexed_range ::= constant_expression +: …` — it already
+  separates select from constant-select on that axis, then has `part_select_range` share
+  `constant_range` anyway.
+- **THE FIX IS THE MINIMUM THE CONTRADICTION LICENSES.** One profile-gated alternative
+  (`queue_slice_range_sv_only` + 2 helper rules) admitting `$` / `$ ± constant_expression` on
+  either bound. ⛔ The wider `expression colon expression` form was measured and REFUSED: it takes
+  `v[a++ : b]` and `v[a inside {1,2} : 0]` REJECT→PASS. Bounds with no `$` still match via
+  `constant_range`, so **no existing input changes verdict**.
+- **MEASURED:** manifest diff is **exactly 7 rows**, all `fail → pass`; `unexplained_rejects_valid`
+  **284 → 277**, `match` **5792 → 5799**, `unexplained_accepts_invalid` **21 → 21**,
+  `explained`/`deferred`/`timeout` all UNCHANGED. `adjudication_manifest_v2005.tsv`
+  **byte-identical** — the `@profiles` gate held (`--dump-rule-profiles`: `verilog_2005`
+  **1122 → 1122**, 0 rules changed their satisfiable set).
+- ⭐ **THE TOKEN-LEVEL TELL UNDER-COUNTED — 2 of the 7 were outside its candidate set.** The tell
+  required `$` immediately before `]`, so `q = q[0:$-1];` (the LRM's own `pop_back` example) never
+  matched. ⇒ a tell is a **cut heuristic, never a census**; the manifest diff is the count. Same
+  defect shape `.3.23` recorded for the bucketer and for single signatures.
+- ⛔ **AND THE FIRST RE-RUN WAS WRONG, WHICH IS RECORDED RATHER THAN QUIETLY REDONE.** Invoking
+  `stimuli/run_external_corpus.sh sv` on its DEFAULTS (20 s, debug probe) produced 6 spurious
+  `explained_timeout` rows (timeouts 4→10) — because the tracked artifact's own provenance block
+  says it was generated with **60 s and the RELEASE probe**, and `mm_ram.sv` is *12 s release vs
+  127 s debug*. A full A/B (grammar reverted, parser regenerated, six heaviest files timed on both)
+  showed **+0…+2 s** — no regression. Re-run at the recorded parameters: timeouts **4 → 4**, diff
+  clean at 7 rows. The provenance block was right; **nothing compares it against the run that
+  overwrites it**. Routed → `.3.27`.
+- **CERT CONTRACT RE-BASELINED IN THIS COMMIT** (`CI-PARITY-GATE-ROT.22` tripwire): +3 rules ⇒
+  `expected_total` 1355→1358, `expected_canonical_witness` 1338→1341, `expected_union_witness`
+  1349→1352. Fully positive — `expected_proof` 6, canonical UNKNOWN 11, union UNKNOWN 0, residual
+  `[]` all UNCHANGED; all three new rules WITNESSED at seeds 0/7/42. The gate was run BEFORE the
+  re-baseline and named all 12 unmet criteria itself.
+- **GATES:** `sv_cert_recognized_union_gate` ✅ · `verilog_2005_conformance_gate` ✅ (total 1122
+  unchanged, 240 corpus checks / 0 mismatches) · `ast_shape_contract_gate` ✅ 18/18 ·
+  `check_doctrines.sh` ALL 17 PASS.
+- **TWO MORE FINDINGS ROUTED, both with measured evidence:** `.3.26` — the empty unpacked array
+  concatenation is wrong in BOTH directions (Annex A A.8.1 is `{ }`; PGEN rejects `{}` and accepts
+  `'{}`, which no production derives; 56 vs 42 corpus files use each, so it is a real
+  strictness-axis call). `EBNF-FRONTEND-SILENT-TRUNCATION.4` — an inline `->` annotation inside a
+  parenthesized group is re-read by the frontend as that element's QUANTIFIER (reproduced on a
+  5-rule synthetic; fails CLOSED at codegen, but `--lint-grammar` passes it).
+
 ## 2026-08-09 - PGEN-MEMORY-ARCH-0007 — leaf MEMORY-ARCH.6 DONE: layer-A headroom restored 99.8 % → 69.2 % full by DEMOTION, cap unchanged (continuity plumbing; ZERO parser bytes)
 
 - **THE TRIGGER:** `MEMORY.md` measured **7 156 of a 7 168-byte cap — 12 bytes spare** — while

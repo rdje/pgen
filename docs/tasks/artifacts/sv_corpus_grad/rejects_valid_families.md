@@ -1,12 +1,12 @@
 # rejects-valid construct families (SV-CORPUS-GRAD.3.2)
 
-284 `divergence:unexplained_rejects_valid` rows classified into 7 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
+277 `divergence:unexplained_rejects_valid` rows classified into 7 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
 
 | # | family | rows | suite split |
 |---|---|---|---|
-| 1 | OTHER (per-row triage) | 221 | verilator:91, Surelog:41, ispras-sv-tests:29, sv2v:24, iverilog:13, sv-tests:12, verible:10, slang:1 |
-| 2 | interface/modport (ch25) | 18 | verilator:10, sv-tests:3, ispras-sv-tests:2, sv2v:2, verible:1 |
-| 3 | constraint/randomize (ch18) | 16 | verilator:15, ispras-sv-tests:1 |
+| 1 | OTHER (per-row triage) | 218 | verilator:91, Surelog:41, ispras-sv-tests:26, sv2v:24, iverilog:13, sv-tests:12, verible:10, slang:1 |
+| 2 | constraint/randomize (ch18) | 16 | verilator:15, ispras-sv-tests:1 |
+| 3 | interface/modport (ch25) | 14 | verilator:9, ispras-sv-tests:2, sv2v:2, verible:1 |
 | 4 | SVA implication/property (ch16) | 11 | ispras-sv-tests:5, verilator:4, Surelog:2 |
 | 5 | foreach/array (ch7) | 9 | verilator:5, Surelog:2, iverilog:1, verible:1 |
 | 6 | size/type cast N'(...) (ch6/11) | 6 | Surelog:4, iverilog:1, sv2v:1 |
@@ -20,17 +20,17 @@
 - `Surelog`: `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);`  (tests/Assignments/dut.sv)
 - `Surelog`: `$fatal(1, "slv_aw_select_i is %d: AW has selected a slave that is not defined.\`  (tests/AssumeProp/dut.sv)
 
-### interface/modport (ch25)
-- `ispras-sv-tests`: `sim.queues[Active].push_back('{is_update: 1});`  (ieee-1800-2012/04/04.05_01.sv)
-- `ispras-sv-tests`: `q = q[1:$];                      // void'(q.pop_front()) or q.delete(0)`  (ieee-1800-2012/07/07.10.04_01.sv)
-- `sv-tests`: `q = q[1:$]; // q.delete(0)`  (tests/chapter-7/queues/delete_assign.sv)
-- `sv-tests`: `q = { q[0:1], 10, q[2:$] }; // q.insert(2, 10)`  (tests/chapter-7/queues/insert_assign.sv)
-
 ### constraint/randomize (ch18)
 - `ispras-sv-tests`: `success = std::randomize(a, b) with {b - a > length;};`  (ieee-1800-2012/18/18.12.01_01.sv)
 - `verilator`: `constraint unary { !(-~c == 'h22); }`  (test_regress/t/t_constraint_operators.v)
 - `verilator`: `if (!randomize() with { addr == a; data == d; }) begin`  (test_regress/t/t_constraint_unsat.v)
 - `verilator`: `typedef union soft packed {`  (test_regress/t/t_export_packed_struct.v)
+
+### interface/modport (ch25)
+- `ispras-sv-tests`: `sim.queues[Active].push_back('{is_update: 1});`  (ieee-1800-2012/04/04.05_01.sv)
+- `ispras-sv-tests`: `q = {};                          // q.delete()`  (ieee-1800-2012/07/07.10.04_01.sv)
+- `sv2v`: `modport client_mp (output .client_req(req[i]));`  (test/core/interface_generate.sv)
+- `sv2v`: `$fatal(.x("x"));`  (test/error/severity_task_arg.sv)
 
 ### SVA implication/property (ch16)
 - `Surelog`: `@($global_clock) a[*1:$] ##1 b);`  (tests/CheckerInst/dut.sv)

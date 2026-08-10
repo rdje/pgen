@@ -4520,6 +4520,316 @@ is the sole SV-only name (0 hits in 1364-2005 clause 19).
       Book/contract/ledger/schema/release/register: **N/A — the parser is byte-identical**, so no
       user-visible parser surface moved.
 
+##### `.3.25` — the queue-slice `q[a:$]` bound REJECTS: `part_select_range` routes through `constant_range`, and `constant_expression` correctly has no `$` primary (IEEE 1800-2017 A.8.4 **footnote 42** + §7.10.1 + §7.10.4 — ⭐ the OTHER half of the footnote whose `q[$]` half `SV-EXH-PROOF.3.3.4.b.6.2.13` already fixed)
+
+- **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0046`). Cut from the live 284-row worklist by a
+  **token-level tell**, per the `.3.23`/`.3.24` instruction to trust neither the family bucketer
+  nor a single signature: the tell is `$` **inside a bracketed range**, which the structural
+  bucketer scatters across the `OTHER`, `interface/modport (ch25)` and `SVA (ch16)` families and
+  which no one cluster signature collects (the 11 rows carrying it hold **6 distinct**
+  signatures — `] ; /` ×4, `@ ( ID` ×2, `ID [ ID` ×2, `] } ;`, `] ; ID`).
+
+#### THE TELL, AND WHAT IT IS *NOT* (the tell is not the family — measured)
+
+- 11 of 284 rows carry `$` inside `[...]`, across **3 suites** (Surelog 3, ispras-sv-tests 5,
+  sv-tests 3). ⛔ **They are NOT one defect, and the minimal-repro matrix is what proved it** —
+  4 of the 11 parse fine in isolation today and are stuck on something else entirely:
+
+  | shape | minimal repro | verdict today |
+  |---|---|---|
+  | queue slice, `$` hi bound | `q = q[1:$]` | **REJECT** ← this leaf, 7 rows |
+  | queue back-index | `q[$]`, `q[$-1]` | PASS (`.6.2.13`) |
+  | queue dimension | `int q[$];`, `protected int q[$];` | PASS |
+  | SVA consecutive repetition | `a[*1:$] ##1 b` | PASS |
+  | SVA cycle-delay range | `a ##[1:$] b` | PASS |
+  | bare `$` primary | `x = $;` | PASS |
+
+  ⇒ the leaf owns exactly the **7** `expr[lo:$]` rows; the other 4 stay on the worklist under
+  their own causes. Sizing the tell before cutting is what `.3.23` cost the tree by skipping.
+
+#### ROOT CAUSE — the WHERE is one production, and the WHY is that Annex A contradicts itself
+
+- **WHERE.** `grammars/systemverilog.ebnf:4179` `part_select_range := constant_range |
+  indexed_range`, and `:1590` `constant_range := constant_expression colon constant_expression`.
+  `constant_expression` bottoms out in `constant_primary` (`:1516`), which — faithfully to
+  IEEE 1800-2017 A.8.4 — has **no `$` alternative**. The bare-`$` primary lives only on the
+  non-constant side (`primary_dollar_sv_only`, `:4315`, `@profiles: ["sv_2017","sv_2023"]`).
+- **WHY the parser is not simply right to reject.** Three normative sources say `$` is legal here
+  and only the production tree says otherwise:
+  - **A.8.4 footnote 42** (`docs/systemverilog/2017/md/section-41-data-read-api.md:3564`) —
+    *"The `$` primary shall be legal only in **a select for a queue variable**, in an
+    open_value_range, covergroup_value_range, integer_covergroup_expression, or as an entire
+    sequence_actual_arg or property_actual_arg."* A select's range is `part_select_range`, so the
+    footnote **presupposes** a derivation the production tree does not provide.
+  - **§7.10.1** — *"In a queue slice expression such as Q[a:b], the slice bounds may be arbitrary
+    integral expressions and, in particular, **are not required to be constant expressions**."*
+  - **§7.10.4** — the normative example block is written in this syntax: `q = q[1:$];`,
+    `q = q[0:$-1];`, `q = { q[0:pos-1], e, q[pos:$] };`, `q = q[2:$];`, `q = q[1:$-1];`.
+- ⭐ **AND ANNEX A ITSELF SHOWS THE INTENT, one line down.** The sibling alternative is
+  `indexed_range ::= **expression** +: constant_expression` while
+  `constant_indexed_range ::= constant_expression +: constant_expression` — i.e. Annex A *does*
+  distinguish the select form from the constant-select form by exactly the `expression` vs
+  `constant_expression` axis, and then `part_select_range` re-uses `constant_range` anyway. The
+  contradiction is a transcription wart in Annex A, not a rule. ⇒ this is the **`.3.19` class**
+  (*the contradiction is INSIDE the standard*), **not** the `.3.23` class (*nothing in the LRM
+  licenses it*), and the two are separated here by a named footnote, not by plausibility.
+- ⭐⭐ **THE SIBLING HALF OF THE SAME FOOTNOTE IS ALREADY FIXED IN THIS GRAMMAR, WITH THIS
+  REASONING.** `bit_select_expression` (`:848`) carries a dedicated `kw_dollar` alternative added
+  by `SV-EXH-PROOF.3.3.4.b.6.2.13` for `q[$]` — the *bit-select* half of footnote 42. This leaf is
+  the *part-select* half. The house idiom for "`$` as a range bound" is likewise already in the
+  file three times (`:1744`/`:1745` covergroup `dollar_lo`/`dollar_hi`, `:1794`
+  `cycle_delay_const_range_expression`), so the fix adds no new vocabulary.
+
+#### ⛔ WHY NOT THE WIDER FIX — the over-acceptance was priced, not assumed
+
+- The tempting fix is `part_select_range := expression colon expression` (Annex A's evident
+  intent). **Refused**: measured, `expression` admits bound forms `constant_expression` does not,
+  and none is LRM-legal in a part-select — `v[a++ : b]` and `v[a inside {1,2} : 0]` both go
+  REJECT→PASS under it. That is textbook over-acceptance
+  ([[feedback_sv_strict_lrm_compliance_default]] — SV is strict-LRM **by default**).
+- **And the constness axis is already, unavoidably, not syntactic** — measured: `v[a:b]`,
+  `v[a+1:b-1]` and `v[f(a):b]` all PASS **today**, because a parser cannot tell a parameter from a
+  variable. So "keep `constant_expression`" buys no strictness it does not already have, and the
+  honest minimum is to add **`$` and nothing else**.
+- **Fix-hierarchy tier: grammar (tier 2).** Tier 1 (declarative annotation) does not apply — the
+  defect is a missing *production*, not a policy knob. No engine change.
+
+#### THE FIX (strictly additive, profile-gated)
+
+```ebnf
+part_select_range := constant_range           -> {kind: "range",         body: $1}
+                   | queue_slice_range_sv_only -> {kind: "queue_slice",  body: $1}   # NEW
+                   | indexed_range            -> {kind: "indexed_range", body: $1}
+```
+- `queue_slice_range_sv_only` admits `$` on either bound (`lo:$` / `$:hi` / `$:$`), with the
+  `$` bound itself `kw_dollar ( ( plus | minus ) constant_expression )?` so the LRM's own
+  `q[0:$-1]` / `q[1:$-1]` examples derive. Bounds without a `$` are untouched — the
+  `constant_range` alternative still owns them, so **no existing match changes**.
+- ⛔ **`@profiles: ["sv_2017", "sv_2023"]`, via the documented `_sv_only` lift idiom** (the same
+  one `primary_dollar_sv_only` uses): IEEE 1364-2005 has neither queues nor a `$` primary, so an
+  ungated rule would hand the `verilog_2005` lane a new accepts-invalid row. The v2005 manifest
+  being byte-identical afterwards is the check that this held.
+
+#### ⭐ MANIFEST RECONCILIATION — exactly 7 rows moved, and every one is this leaf's
+
+⛔ **Every moved row was diffed** (`git show HEAD:…/adjudication_manifest.tsv` vs the regenerated
+one) rather than inferred from the totals. Final: `match` **5792 → 5799**,
+`unexplained_rejects_valid` **284 → 277**, `unexplained_accepts_invalid` **21 → 21**,
+`explained` **1463 → 1463** (unchanged), `deferred` **8776 → 8776** (unchanged),
+corpus `timeout` **4 → 4** (unchanged). **7 rows changed class; nothing else moved.**
+
+**7 rows `unexplained_rejects_valid → match`, all `fail → pass`** — the burn-down yield:
+
+| suite | file |
+|---|---|
+| ispras-sv-tests | `ieee-1800-2012/06/06.24.03_03.sv`, `07/07.10.04_02.sv`, `11/11.04.14.04_01.sv` |
+| sv-tests | `chapter-7/queues/insert_assign.sv`, `pop_front_assign.sv`, **`pop_back_assing.sv`** |
+| verilator | **`test_regress/t_queue_back.v`** |
+
+⭐⭐ **The two in bold were NOT in the leaf's 11-row candidate set — the token-level tell
+under-counted, exactly as `.3.23` warned it would.** The tell regex required `$` immediately before
+the `]`, so `q = q[0:$-1];` (`pop_back_assing.sv:25`, the LRM's own `pop_back` example) did not
+match it. ⇒ **the tell is a cut heuristic, never a census** — the same defect shape `.3.23`
+recorded for the bucketer and for single signatures, now recorded for the token tell as well. The
+authoritative count is always the manifest diff.
+
+#### ⛔⛔ AND THE FIRST RE-RUN WAS WRONG — the leaf ran the corpus on DIFFERENT PARAMETERS than the artifact it was diffing against
+
+**This is recorded, not quietly re-run, because the mistake is the finding** (routed to `.3.27`).
+The first characterization re-run invoked `stimuli/run_external_corpus.sh sv` on its **defaults**
+and produced **6 extra moved rows** (`deferred:chained_only → divergence:explained_timeout`,
+timeouts `4 → 10`, one of them `pass → timeout`). Those 6 were investigated as a suspected
+performance regression: the grammar was reverted to `HEAD`, the parser regenerated, the debug
+probe rebuilt, and the six files timed on BOTH parsers serially — **20/33/32/30/127/20 s at
+baseline vs 21/35/32/31/128/20 s with the fix**, i.e. +0…+2 s, and `mm_ram.sv` contains no
+`[…:$]` site at all, so the new alternative cannot even execute in it. **No regression.**
+
+⭐ **The actual cause was configuration drift, and the artifact's own provenance block said so.**
+`characterization.md` records the parameters it was generated with:
+
+```
+Generated by `stimuli/run_external_corpus.sh sv 60 8 0` against `parseability_probe`.
+| parse binary | `rust/target/release/parseability_probe` | …
+```
+
+— **60 s and the RELEASE probe**. The script's *defaults* are **20 s and the DEBUG probe**, and
+`mm_ram.sv` is **12 s release vs 127 s debug**. So the bare invocation silently re-measured the
+whole corpus under a ~10× slower binary at a 3× tighter deadline. Re-run at the recorded
+parameters (`PGEN_PARSE_PROBE_BIN=…/release/parseability_probe … sv 60 8 0`), the timeout
+population returns to **exactly 4**, `explained`/`deferred` return to their baseline values, and
+the diff is the clean 7 rows above.
+
+⚠️ **The lesson is not "read the header more carefully."** The provenance block existed and was
+correct — it is the `FLOW-INTEGRITY` hand-off-provenance work paying off — but **nothing compares
+it against the run that overwrites it**, so a mismatched re-run publishes over a tracked oracle
+with no complaint. Had the 6 rows landed on `must_accept` files instead of `deferred` ones, they
+would have left `unexplained_rejects_valid` and the burn-down number would have improved for
+reasons having nothing to do with the parser
+([[a-rising-pass-rate-is-not-evidence-of-correctness]]). Routed to `.3.27`.
+
+#### ROUTING EVIDENCE — three findings sent out, each measured OUTSIDE the family first
+
+- **→ `EBNF-FRONTEND-SILENT-TRUNCATION.4`** (frontend, not SV). Writing the offset as an inline
+  `( plus -> {…} | minus -> {…} )` group made the EBNF frontend re-read the annotation payload as
+  the element's **quantifier** (`--dump-gen-ast`:
+  `Quantified{element: plus, quantifier: "kind: \"plus\""}`). **Reproduces outside SV** — a
+  5-rule synthetic (`top := a ( b -> {kind: "bee"} | c ) d`) yields the identical IR, so it is
+  the shared frontend, not this grammar. **Fails CLOSED**: codegen aborts `Unknown quantifier`
+  on both the synthetic and the full SV grammar (exit 1), so no wrong parser can ship; the
+  defect is that `--lint-grammar` passes it and the message names a quantifier nobody wrote.
+  Worked around here by lifting the group to the named rule `queue_slice_dollar_offset`.
+- **→ `.3.26`** (SV, same family, so the reproduces-outside question does not arise). The
+  `{}` / `'{}` empty-concat inversion; measured evidence in that leaf.
+- **→ `.3.27`** (the corpus RUNNER, not SV). The runner's defaults (20 s / debug probe) differ
+  from the parameters the tracked artifact records (60 s / release probe), and nothing compares
+  them. **Reproduces outside SV by construction** — `stimuli/run_external_corpus.sh` is the shared
+  family-parameterized runner the VHDL lane (`CORPUS-GRAD-ALL.2`) uses unchanged, so the remedy
+  belongs in the runner. Evidence = this leaf's own two runs (defaults → 6 spurious rows,
+  timeouts 4→10; recorded parameters → 0 spurious rows, timeouts 4→4) plus the reverted-grammar
+  timing A/B proving the parser was never implicated.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse systemverilog
+      <f> --profile sv_2017` on the 7 corpus rows: all `REJECT`, e.g. sv-tests
+      `queues/delete_assign.sv` `furthest_position=538`, ispras `07.10.04_01.sv`
+      `furthest_position=559`. Minimal repro `module m; int q[$]; initial q = q[1:$]; endmodule`
+      → `Parser did not consume full input at position 0 [furthest_position=51]`, position 51
+      being the `]` immediately after the `$`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE `grammars/systemverilog.ebnf:4179`
+      `part_select_range := constant_range | indexed_range` → `:1590` `constant_range :=
+      constant_expression colon constant_expression` → `constant_primary` (`:1516`) has no `$`.
+      WHY = A.8.4 footnote 42 licenses the `$` primary *in a select for a queue variable* while
+      A.8.4's own production tree cannot derive it. Isolated by the 12-case
+      `--parse` matrix above, which exonerates every neighbouring `$` construct
+      (`q[$]`, `q[$-1]`, `a[*1:$]`, `a ##[1:$]`, `x = $`, `int q[$]` all PASS) and convicts
+      exactly `q[lo:$]`; `q[$:1]` REJECT independently proves `constant_expression` derives no `$`.
+- [x] **FIX** — grammar tier: one new profile-gated alternative `queue_slice_range_sv_only` on
+      `part_select_range`. No engine change, no new annotation. The wider
+      `expression colon expression` form was measured and REFUSED (it takes `v[a++ : b]` and
+      `v[a inside {1,2} : 0]` REJECT→PASS).
+- [x] **ADDRESSED (verified)** — re-runnable oracle
+      `./rust/target/release/parseability_probe --parse systemverilog <f> --profile sv_2017`:
+      **5 of the 7** rows go **REJECT→PASS** (`insert_assign.sv`, `pop_front_assign.sv`,
+      `07.10.04_02.sv`, `06.24.03_03.sv`, `11.04.14.04_01.sv`). ⚠️ **The other 2 are NOT fixed and
+      are NOT claimed** — `delete_assign.sv` and `07.10.04_01.sv` still REJECT, but their
+      `furthest_position` moved **DEEPER** (538→603 and 559→873), i.e. the `$` bound now parses
+      and they stop at the *next* construct, `q = {};` — routed to `.3.26`, not folded in here
+      ([[a-rising-pass-rate-is-not-evidence-of-correctness]] cuts both ways: a partial fix is
+      reported partial). All 8 §7.10.4 normative forms parse: `q[1:$]`, `q[0:$-1]`, `q[pos:$]`,
+      `q[pos+1:$]`, `q[1:$-1]`, `{ q[0:pos-1], 1, q[pos:$] }`, `q[$:1]`, `q[$:$]`.
+      Adjudicator oracle `python3 stimuli/sv/adjudicate_external_corpus.py` (over a
+      characterization re-run at the artifact's OWN recorded parameters — `sv 60 8 0`, release
+      probe): `unexplained_rejects_valid` **284 → 277**, `match` **5792 → 5799**; the manifest
+      diff is **exactly 7 rows**, all `fail → pass` (2 of them outside the leaf's candidate set —
+      see the reconciliation above).
+- [x] **NO REGRESSION** — `unexplained_accepts_invalid` **21 → 21** (no row moved the wrong way);
+      `explained` **1463 → 1463** and `deferred` **8776 → 8776** UNCHANGED, corpus `timeout`
+      **4 → 4**; `adjudication_manifest_v2005.tsv` and `results_v2005.tsv` **byte-identical** —
+      the `@profiles` gate held, confirmed independently by `--dump-rule-profiles`
+      (`verilog_2005` **1122 → 1122**, and **0** rules changed their satisfiable-profile set).
+      Re-runnable oracle `make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate`: ✅ GREEN at
+      seeds 0/7/42 — canonical UNKNOWN **11** UNCHANGED, union UNKNOWN **0** UNCHANGED,
+      residual `[]` UNCHANGED, `expected_proof` **6** UNCHANGED, `sample_parse_failures=0`, all
+      three new rules WITNESSED. `make ast_shape_contract_gate` ✅ (18/18).
+      `bash scripts/check_doctrines.sh` → ALL 17 PASS.
+      ⛔ Performance A/B (grammar reverted to `HEAD`, parser regenerated, probe rebuilt, six
+      heaviest corpus files timed serially on both): **+0…+2 s**, ≤6 % — noise.
+- [x] **LOCKSTEP** — ⛔ **the cert contract is re-baselined IN THIS COMMIT**
+      (`systemverilog_recognized_cert_union_contract.json`: `expected_total` 1355→1358,
+      `expected_canonical_witness` 1338→1341, `expected_union_witness` 1349→1352 — the
+      `CI-PARITY-GATE-ROT.22` tripwire; the gate was run BEFORE the re-baseline and named all 12
+      unmet criteria itself). `verilog_2005_conformance_contract_v0.json` correctly does NOT move.
+      Worklist regenerated; `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
+      `docs/TASK_TREE.md`; the book's `grammar-wellformedness.md` gains *"When the standard's own
+      productions contradict its own footnote"*; Knowledge-Map card
+      `annex-a-footnotes-license-derivations-the-productions-cannot-derive` (74→78 facts).
+      Release/schema/ledger: **N/A** — no published parser surface or AST shape changed
+      (`ast_shape_contract` byte-identical), the change is purely additive acceptance.
+
+##### `.3.26` — ⛔⛔ the empty unpacked array concatenation is wrong in BOTH directions at once: PGEN accepts `'{}` (which Annex A cannot derive) and rejects `{}` (which Annex A *is*) — routed by `.3.25`, 2026-08-10
+
+- **Status: `todo`.** ⛔ **NOT fixed in `.3.25`** — it is a distinct defect with its own root
+  cause, its own LRM citation, and a real dialect-tolerance question that must not be settled by
+  a one-line literal flip. Surfaced because `.3.25`'s fix moved two rows' `furthest_position`
+  DEEPER onto this construct.
+- **THE FINDING.** IEEE 1800-2017 **A.8.1**:
+  `empty_unpacked_array_concatenation35 ::= { }` — **bare braces, no apostrophe**
+  (`docs/systemverilog/2017/md/section-41-data-read-api.md:2907`), with **footnote 35**: *"`{ }`
+  shall denote an empty unpacked array concatenation, as described in 10.10, and shall not be
+  used in any other [context]"* (`:3551`). §7.10 says the same in prose: *"The empty queue can be
+  denoted by an empty unpacked array concatenation `{}`"*. And **no `assignment_pattern`
+  alternative is empty** — all four require at least one `expression` (`:2292`–`:2295`) — so
+  **`'{}` has no derivation anywhere in Annex A**.
+- **PGEN today** (`grammars/systemverilog.ebnf:2229`):
+  `empty_unpacked_array_concatenation := tick lbrace rbrace`. Measured with
+  `parseability_probe --parse systemverilog … --profile sv_2017`:
+
+  | form | Annex A | PGEN | verdict |
+  |---|---|---|---|
+  | `q = {};` | **derivable** (A.8.1) | **REJECT** | under-acceptance |
+  | `q = '{};` | **not derivable** | **PASS** | over-acceptance |
+
+- ⭐ **ROOT CAUSE IS A CITATION ERROR IN A PRIOR FIX, NOT A MISSING FIX.**
+  `SV-EXH-PROOF.3.3.4.b.6.2.37.8` replaced a genuinely broken rule (`lbrace epsilon rbrace`,
+  where `epsilon` was an undefined symbol, so the rule could never match) — that half was right.
+  But it wrote the replacement literal as `'{ }` and cited *"§A.6.7"*; the production is at
+  **A.8.1** and reads `{ }`. The fix traded a never-matching rule for a wrong-literal rule, and
+  because its motivating input (`uvm_cache::get`'s `return '{};`) genuinely uses the apostrophe
+  form, the error reproduced as a *success* and was never questioned.
+- ⛔ **WHY THIS IS NOT A ONE-LINE FLIP — both populations are real, measured over
+  `stimuli/sv/subs/`:** **42** files write `= '{}` and **56** write `= {};`. Deleting the `tick`
+  arm would regress the 42 (including uvm_pkg, the `.37.8` motivator). So the leaf must decide
+  between (a) LRM-only `{ }` — strict, regresses real-world code that every major tool accepts;
+  (b) accept both, recording `'{}` as **deliberate dialect tolerance** and therefore a row the
+  accepts-invalid triage must carry. ⇒ this is exactly the bucket-(a) evidence the **director's
+  strictness-axis directive** (2026-07-25, this tree, §"STRICTNESS AXIS") asked to be collected
+  before designing the switch — the first instance found where strict-LRM and ecosystem reality
+  genuinely conflict. **Do not resolve it by plausibility.**
+- **First act when opened:** add `{}` (the LRM form) — that half is unambiguous and pure
+  under-acceptance repair; then adjudicate the `'{}` arm against the strictness directive rather
+  than silently keeping it.
+
+##### `.3.27` — ⛔ the corpus runner's DEFAULTS do not match the parameters the tracked artifact was produced with, and nothing compares them — so the obvious invocation silently re-baselines a graduation ORACLE (routed by `.3.25`, 2026-08-10)
+
+- **Status: `todo`.** The bare, documented invocation `stimuli/run_external_corpus.sh sv`
+  overwrites `characterization.md` + `results.tsv` — and therefore the adjudication manifest and
+  the burn-down number — **under different measurement conditions than the artifact it replaces**,
+  with no warning.
+- **MEASURED in `.3.25` (do not re-derive):**
+
+  | | committed artifact's provenance | script defaults |
+  |---|---|---|
+  | per-file timeout | **60 s** | **20 s** |
+  | parse binary | `rust/target/release/parseability_probe` | `rust/target/debug/parseability_probe` |
+
+  The two are not close: `mm_ram.sv` parses in **12 s release / 127 s debug**. Running the
+  defaults moved **6 rows** into `divergence:explained_timeout` (timeouts **4 → 10**, one row
+  `pass → timeout`) on a parser change that provably could not touch them. Re-run at the recorded
+  parameters, the timeout population returns to exactly **4** and those 6 rows do not move.
+- ⭐ **The provenance block is RIGHT — that is what makes this worth fixing.** `characterization.md`
+  faithfully records binary path, sha256 and invocation (the `FLOW-INTEGRITY` hand-off-provenance
+  work). The gap is that the record is **write-only**: no check reads the existing artifact's
+  parameters and compares them with the run about to replace it.
+- ⚠️ **Why it is a bar defect and not a nuisance.** Here the 6 rows were `deferred → explained`,
+  so `unexplained` (298) was untouched. The same drift landing on a `must_accept` row records it
+  `explained_timeout` and quietly removes it from `unexplained_rejects_valid` — **the burn-down
+  number improves because the machine was busy** ([[a-rising-pass-rate-is-not-evidence-of-correctness]]).
+  Nothing currently guards that direction.
+- **Candidate remedies (decide with measurement, do not assume):**
+  1. **Make the recorded parameters the defaults** — the runner reads the existing
+     `characterization.md` provenance block and reuses timeout + binary unless explicitly
+     overridden. Cheapest, and it makes the correct run the easy run.
+  2. **REFUSE on drift** — if an artifact exists and the pending run's parameters differ, abort
+     with both sets printed and require an explicit `--rebaseline`. The
+     `DOCTRINE_ENFORCEMENT.md` §3 *structural* archetype; strongest, and it cannot rot.
+  3. **Record per-file duration** in `results.tsv` and report the population within 2× of the
+     timeout, so the boundary set is a known number rather than a surprise.
+  4. **Confirm a timeout serially before recording it** — a timeout is real only if it reproduces
+     without contention; ~4–10 files, so the cost is trivial.
+- **Cross-family:** `stimuli/run_external_corpus.sh` is the shared family-parameterized runner the
+  VHDL lane (`CORPUS-GRAD-ALL.2`) uses unchanged — fix it in the runner, never in an SV wrapper.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so

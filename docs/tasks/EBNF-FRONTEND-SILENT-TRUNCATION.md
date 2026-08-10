@@ -110,6 +110,49 @@ of it. That is exactly why it must be gated now rather than remembered.
   documentation is the only thing standing between a grammar author and a silent language
   loss, so this leaf is worth landing even before the fix.
 
+### `.4` — an inline `->` return annotation inside a parenthesized GROUP is silently re-read as that element's QUANTIFIER (routed in by `SV-CORPUS-GRAD.3.25`, 2026-08-10)
+
+- **Status: `todo`.** A **second, independent** frontend mis-read, found the same way the
+  column-0 one was — by an author writing a legal-looking construct and the IR disagreeing.
+  Same class (*the frontend reads something other than what the file says*), different
+  mechanism, so it is a sibling leaf rather than part of `.2`.
+- **MEASURED — reproduced on a 5-rule synthetic, so it is FAMILY-NEUTRAL, not an SV artifact**
+  (the `ROUTING-EVIDENCE` question, answered before routing). Grammar:
+
+  ```ebnf
+  @entry: true
+  top := a ( b -> {kind: "bee"} | c ) d  -> {kind: "top"}
+  ```
+  `ast_pipeline <g>.ebnf --generate-parser --dump-gen-ast … --dump-gen-ast-pretty` yields
+
+  ```json
+  {"Or": {"alternatives": [
+     {"Quantified": {"element": {"Atom": … "b"}, "quantifier": "kind: \"bee\""}},
+     {"Atom": … "c"}]}}
+  ```
+  ⇒ the annotation payload `{kind: "bee"}` was consumed as the **quantifier string** of `b`.
+  Confirmed identically inside `grammars/systemverilog.ebnf` (`quantifier: "kind: \"plus\""`).
+- ⭐ **HONEST SEVERITY — this one fails CLOSED, and that distinction is the point.** Codegen
+  then aborts with `Error: Failed to generate parser using AST-based generator / Unknown
+  quantifier: kind: "plus"` (measured on BOTH the synthetic and the full SV grammar, exit 1).
+  So — unlike `.1`/`.2` — **no wrong parser can ship from this**. The defect is diagnostic
+  quality, not correctness:
+  1. the error names a **quantifier the author never wrote**, at no source location, so it
+     reads as an internal generator failure rather than "your annotation is in the wrong place";
+  2. **`--lint-grammar` passes the grammar** — it reports only an oblique
+     `always_succeeds_alternatives` NOTE on an unrelated-looking node path
+     (`root/s1/q/s0`), which is the tool an author would reach for first;
+  3. it is therefore a **latent trap for BOUNDED-QUANT-class work** — TOOLBOX §1.7 records the
+     same `Unknown quantifier` message arising from a *real* quantifier-decoding half-wire, so
+     the two causes are indistinguishable from the message alone.
+- **The decision to make first (same shape as `.2`):** is an inline `->` inside a group
+  *intended* to be legal (annotate one alternative of an anonymous group) or not? If **not**,
+  the frontend must REJECT it with a located error naming the construct; if **yes**, it must
+  parse as an annotation. ⛔ What it must not keep doing is silently reinterpret it as a
+  different syntactic category.
+- **Workaround until fixed** (used by `SV-CORPUS-GRAD.3.25`, and worth documenting in `.3`):
+  lift the group to a **named rule** and annotate its alternatives there.
+
 ## Acceptance Criteria (tree)
 
 1. A tracked, deterministic gate fails when a grammar's source alternatives and its IR
@@ -119,3 +162,5 @@ of it. That is exactly why it must be gated now rather than remembered.
 3. The EBNF dialect's comment/continuation rule is documented in the book (`.3`).
 4. Re-running the two censuses above finds zero truncating sites and zero source⟷IR
    alternative-count disagreements.
+5. An inline `->` annotation inside a parenthesized group either parses as an annotation or
+   is rejected with a located, self-explaining error — never re-read as a quantifier (`.4`).

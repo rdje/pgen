@@ -2036,7 +2036,7 @@ ispras-sv-tests	ieee-1800-2012/06/06.24.01_01.sv	fail	out_of_scope_with_cause:im
 ispras-sv-tests	ieee-1800-2012/06/06.24.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.24.03_01.sv	pass	must_accept	match	pinned .8b.2: bit-stream cast size mismatches (6.24.3) - type/width semantics
 ispras-sv-tests	ieee-1800-2012/06/06.24.03_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/06/06.24.03_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/06/06.24.03_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/06/06.25_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.02.01_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/07/07.02.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2085,7 +2085,7 @@ ispras-sv-tests	ieee-1800-2012/07/07.09.11_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/07/07.10.02.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.10.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.10.04_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/07/07.10.04_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/07/07.10.04_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.12.01_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/07/07.12.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.12.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -2231,7 +2231,7 @@ ispras-sv-tests	ieee-1800-2012/11/11.04.12_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/11/11.04.12_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.04.14.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.04.14.03_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/11/11.04.14.04_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/11/11.04.14.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.05.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.05.02_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/11/11.05.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -11473,13 +11473,13 @@ sv-tests	tests/chapter-7/queues/bounded.sv	pass	must_accept	match	sv-tests: posi
 sv-tests	tests/chapter-7/queues/delete.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/delete_assign.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/insert.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-7/queues/insert_assign.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-7/queues/insert_assign.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/max-size.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/persistence.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/pop_back.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-7/queues/pop_back_assing.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-7/queues/pop_back_assing.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/pop_front.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-7/queues/pop_front_assign.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-7/queues/pop_front_assign.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/push_back.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/push_back_assign.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/push_front.sv	pass	must_accept	match	sv-tests: positive test
@@ -15426,7 +15426,7 @@ verilator	test_regress/t/t_pull_bitsel_whole.v	fail	must_accept	divergence:expla
 verilator	test_regress/t/t_queue.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_queue.py expects success
 verilator	test_regress/t/t_queue_arg.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_queue_arg.py expects success
 verilator	test_regress/t/t_queue_assignment.v	pass	must_accept	match	verilator: driver t_queue_assignment.py expects success
-verilator	test_regress/t/t_queue_back.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_queue_back.py expects success
+verilator	test_regress/t/t_queue_back.v	pass	must_accept	match	verilator: driver t_queue_back.py expects success
 verilator	test_regress/t/t_queue_bounded.v	pass	must_accept	match	verilator: driver t_queue_bounded.py expects success
 verilator	test_regress/t/t_queue_class.v	pass	must_accept	match	verilator: driver t_queue_class.py expects success
 verilator	test_regress/t/t_queue_compare.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_queue_compare.py expects success

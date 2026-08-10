@@ -4176,8 +4176,58 @@ parameter_value_assignment_sv_2023 := hash lparen ( list_of_parameter_value_assi
 parameter_value_assignment := parameter_value_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
                             | parameter_value_assignment_sv_2023 -> {kind: "sv_2023", body: $1}
 
-part_select_range := constant_range -> {kind: "range",         body: $1}
-                   | indexed_range  -> {kind: "indexed_range", body: $1}
+# SV-CORPUS-GRAD.3.25 — the queue-slice `q[a:$]` bound. IEEE 1800-2017 A.8.4
+# footnote 42 states the `$` primary "shall be legal only in a select for a
+# queue variable, …", and §7.10.1 states the slice bounds of `Q[a:b]` "may be
+# arbitrary integral expressions and, in particular, are not required to be
+# constant expressions" — but A.8.4's own production tree routes a select's
+# range through `part_select_range → constant_range → constant_expression`,
+# whose `constant_primary` has no `$`. So the footnote presupposes a derivation
+# the productions do not provide: the contradiction is INSIDE the standard.
+# §7.10.4's normative examples are written in this syntax (`q = q[1:$];`,
+# `q = q[0:$-1];`, `q = { q[0:pos-1], e, q[pos:$] };`, `q = q[1:$-1];`).
+# ⛔ The wider fix (`expression colon expression`, Annex A's evident intent —
+# cf. `indexed_range := expression plus colon constant_expression`, which
+# already distinguishes select from constant-select on exactly that axis) was
+# measured and REFUSED: it takes `v[a++ : b]` and `v[a inside {1,2} : 0]`
+# REJECT→PASS, which no part-select may accept. Adding `$` and nothing else is
+# the honest minimum. Strictly additive — a bound with no `$` still matches via
+# `constant_range`, so no existing match changes. Sibling half of the same
+# footnote: `bit_select_expression`'s `kw_dollar` alternative (`q[$]`,
+# SV-EXH-PROOF.3.3.4.b.6.2.13).
+part_select_range := constant_range            -> {kind: "range",         body: $1}
+                   | queue_slice_range_sv_only -> {kind: "queue_slice",   body: $1}
+                   | indexed_range             -> {kind: "indexed_range", body: $1}
+
+# IEEE 1364-2005 has neither queues nor a `$` primary, so this rule is gated out
+# of the v2005-admitted surface via the same `_sv_only` lift idiom that
+# `primary_dollar_sv_only` uses — an ungated rule would hand the `verilog_2005`
+# lane a new accepts-invalid form.
+@profiles: ["sv_2017", "sv_2023"]
+queue_slice_range_sv_only := constant_expression colon queue_slice_dollar_bound
+                                  -> {kind: "dollar_hi",   lo: $1, hi: $3}
+                           | queue_slice_dollar_bound colon constant_expression
+                                  -> {kind: "dollar_lo",   lo: $1, hi: $3}
+                           | queue_slice_dollar_bound colon queue_slice_dollar_bound
+                                  -> {kind: "dollar_both", lo: $1, hi: $3}
+
+# `$`, and the `$ ± constant_expression` offsets §7.10.4 writes (`q[0:$-1]`).
+# ⛔ The offset is a NAMED rule, not an inline `( plus -> {…} | minus -> {…} )`
+# group: an inline return annotation inside a parenthesized group is re-read by
+# the EBNF frontend as that element's QUANTIFIER (measured via `--dump-gen-ast`:
+# `Quantified{element: plus, quantifier: "kind: \"plus\""}`). Codegen then fails
+# CLOSED — `Unknown quantifier: kind: "plus"` — so no wrong parser ships; the
+# defect is that the message names a quantifier nobody wrote, and
+# `--lint-grammar` passes the grammar with only an oblique always-succeeds note.
+# Family-neutral (reproduced on a 5-rule synthetic). Routed to
+# `EBNF-FRONTEND-SILENT-TRUNCATION.4`.
+@profiles: ["sv_2017", "sv_2023"]
+queue_slice_dollar_bound := kw_dollar ( queue_slice_dollar_offset )?
+                         -> {kind: "dollar", offset: $2}
+
+@profiles: ["sv_2017", "sv_2023"]
+queue_slice_dollar_offset := plus constant_expression  -> {kind: "plus",  body: $2}
+                           | minus constant_expression -> {kind: "minus", body: $2}
 
 pass_en_switchtype := kw_tranif_02d116e0 -> {kind: "tranif"}
                    | kw_rtranif_75c812fc -> {kind: "rtranif"}

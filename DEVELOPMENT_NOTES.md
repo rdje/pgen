@@ -1,5 +1,59 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0046 — the standard contradicted itself, and the footnote was the tie-breaker
+
+`must_reject` in this project means *"the text has no derivation in Annex A."* That test quietly
+assumes Annex A is self-consistent. `SV-CORPUS-GRAD.3.25` is the case where it is not, and the two
+possible readings lead to opposite actions: pin the rows `must_reject` and a real gap becomes
+permanent, or "fix" a correct rejection and inject over-acceptance into a parser whose declared
+posture is strict-LRM.
+
+The construct is the queue slice `q = q[1:$]`. Annex A cannot derive it — a select's range is
+`part_select_range → constant_range → constant_expression`, and `constant_primary` has no `$`.
+Three other places in the same standard say it is legal: §7.10.4 writes it five times in its own
+normative example block, §7.10.1 states the bounds "are not required to be constant expressions",
+and — decisively — **A.8.4 footnote 42** says *"The `$` primary shall be legal only in a select for
+a queue variable, …"*, a sentence with no meaning unless a select can contain `$`.
+
+**The generalisable habit: the annex keeps half its rules in its footnotes.** The productions say
+what can be built; the numbered footnotes say where it may appear. A footnote that *constrains*
+where a construct is legal is evidence that the construct is derivable and that the production is
+the transcription error. Nothing in the repo's adjudication procedure said to look there, and the
+distinction from `SV-CORPUS-GRAD.3.23` — where the same question about `enum [N:M]` was answered
+the other way and nine rows were pinned `must_reject` — is exactly whether such a sentence can be
+quoted. Not plausibility, not how many suites write it.
+
+A second, cheaper signal turned out to be just as strong and is easier to check mechanically:
+**look for a local inconsistency with the neighbouring production.** One line below
+`constant_range`, Annex A writes `indexed_range ::= expression +: constant_expression` against
+`constant_indexed_range ::= constant_expression +: constant_expression`. The annex already
+distinguishes the select form from the constant-select form on the `expression` vs
+`constant_expression` axis — and then lets `part_select_range` share `constant_range` anyway. That
+asymmetry is visible without reading a word of prose.
+
+**Where restraint mattered.** The evident intent is that a select's bounds are expressions, and
+implementing that intent is a one-token edit. Measured, it also takes `v[a++ : b]` and
+`v[a inside {1,2} : 0]` from REJECT to PASS. The contradiction licenses `$`; it does not license
+the increment operator. So the repair adds `$` and nothing else, every non-`$` bound keeps matching
+through the untouched `constant_range` alternative, and no input changes verdict in either
+direction. Worth noting that the strictness argument people reach for first — "but `constant_range`
+enforces constness" — is already false: `v[a:b]` parses today, because a parser cannot tell a
+parameter from a variable. Checking that before arguing from it saved a wrong justification.
+
+**And the run that measured the fix was itself misconfigured — which is the more transferable
+lesson.** Re-characterizing the corpus with the runner's defaults produced six extra moved rows and
+a plausible story about timeout-boundary flakiness. The story was wrong. The tracked artifact
+records the parameters it was produced with — 60 s and the release probe — while the script
+defaults to 20 s and the debug binary, and one file in that population is 12 s release versus 127 s
+debug. Two things follow. First, a suspected regression deserves a real A/B before it is explained:
+reverting the grammar, regenerating and re-timing took ten minutes and turned "6 rows moved" into
+"+0…+2 s, no regression." Second, and more durably, **the provenance block was correct and still
+did not help, because nothing reads it.** A record that only ever gets written is documentation;
+it becomes a guard the moment something compares it against the run about to replace it. That is
+`.3.27`.
+
+promotion: docs/knowledge/annex-a-footnotes-license-derivations-the-productions-cannot-derive.md
+
 ## 2026-08-09 - PGEN-MEMORY-ARCH-0007 — the cap was green, and that was the problem
 
 `MEMORY.md` passed its byte cap on every commit for weeks. It passed at 7 156 of 7 168 bytes, which

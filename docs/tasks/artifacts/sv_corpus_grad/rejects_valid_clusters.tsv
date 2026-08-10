@@ -53,12 +53,9 @@ ispras-sv-tests	ieee-1800-2012/05/05.09_01.sv	98	139	" ID ID	$display("Humpty Du
 ispras-sv-tests	ieee-1800-2012/06/06.07.01_02.sv	144	181	reg ID ;	inout wire reg p;
 ispras-sv-tests	ieee-1800-2012/06/06.09.02_01.sv	131	165	ID ; /	tri1 scalared [63:0] bus64; // a 'bus' that will be expanded
 ispras-sv-tests	ieee-1800-2012/06/06.20.01_02.sv	127	178	ID = NUM	module top #(int N = 5, M = N * 16, type T = int, T x = 0) ();
-ispras-sv-tests	ieee-1800-2012/06/06.24.03_03.sv	115	692	] ; /	channel = channel[size:$]; // update the stream so it now lacks that packet
-ispras-sv-tests	ieee-1800-2012/07/07.10.04_01.sv	169	559	] ; /	q = q[1:$];                      // void'(q.pop_front()) or q.delete(0)
-ispras-sv-tests	ieee-1800-2012/07/07.10.04_02.sv	169	236	] ; /	q = q[2:$]; // a new queue lacking the first two items
+ispras-sv-tests	ieee-1800-2012/07/07.10.04_01.sv	169	873	} ; /	q = {};                          // q.delete()
 ispras-sv-tests	ieee-1800-2012/08/08.26.04_01.sv	127	274	: ID /	endclass : ClassB
 ispras-sv-tests	ieee-1800-2012/11/11.04.02_01.sv	160	230	= ID -	j = i++ + (i = i - 1);
-ispras-sv-tests	ieee-1800-2012/11/11.04.14.04_01.sv	212	1042	] ; /	stream = stream[$bits(p_recv) / 8 : $]; // remove packet
 ispras-sv-tests	ieee-1800-2012/11/11.13_08.sv	105	185	@ ( posedge	let p2(x) = $past(x, , , @(posedge clock));
 ispras-sv-tests	ieee-1800-2012/12/12.06.01_05.sv	188	606	. ID )	tagged Jmp (tagged JmpU .a) : pc = pc + a;
 ispras-sv-tests	ieee-1800-2012/12/12.06.01_06.sv	188	628	. ID )	tagged Jmp (tagged JmpU .a) : pc = pc + a;
@@ -111,10 +108,7 @@ sv-tests	tests/chapter-6/6.23--type_op_compare.sv	316	412	) type (	case (type(T)
 sv-tests	tests/chapter-6/6.9.2--vector_scalared.sv	317	352	ID = NUM	tri1 scalared [15:0] a = 0;
 sv-tests	tests/chapter-6/6.9.2--vector_vectored.sv	317	352	ID ; endmodule	tri1 vectored [15:0] a;
 sv-tests	tests/chapter-6/6.9.2--vector_vectored_inv.sv	412	448	ID = NUM	logic vectored [15:0] a = 0;
-sv-tests	tests/chapter-7/queues/delete_assign.sv	388	538	] ; /	q = q[1:$]; // q.delete(0)
-sv-tests	tests/chapter-7/queues/insert_assign.sv	388	474	] } ;	q = { q[0:1], 10, q[2:$] }; // q.insert(2, 10)
-sv-tests	tests/chapter-7/queues/pop_back_assing.sv	392	479	- NUM ]	q = q[0:$-1]; // void'(q.pop_back()) or q.delete(q.size-1)
-sv-tests	tests/chapter-7/queues/pop_front_assign.sv	394	514	] ; ID	q = q[1:$];
+sv-tests	tests/chapter-7/queues/delete_assign.sv	388	603	} ; /	q = {}; // q.delete
 sv-tests	tests/chapter-8/8.26.4--illegal_implements_parameter.sv	529	697	; virtual function	class Hello #(type T = ihello) implements T;
 sv-tests	tests/generic/typedef/typedef_test_8__bad.sv	429	452	ID ; module	typedef some_other_type myalias;
 sv2v	test/core/delay.sv	0	24	] ID ,	logic [4] a, b;
@@ -238,7 +232,6 @@ verilator	test_regress/t/t_property_named.v	202	553	int ID )	property check_if_1
 verilator	test_regress/t/t_property_s_eventually2.v	255	250	ID ( "	$display("[%0t] stmt, %s", $time, msg); \
 verilator	test_regress/t/t_property_sexpr_bad.v	198	402	ID ) ;	assert property (@(posedge clk) ##1 not val);
 verilator	test_regress/t/t_property_unsup.v	2197	2452	ID eventually [	assert property (counter == 1 implies eventually[1: 2] counter == 3);
-verilator	test_regress/t/t_queue_back.v	203	493	- NUM ]	q = q[0:$-1];  // void'(q.pop_back()) or q.delete(q.size-1)
 verilator	test_regress/t/t_queue_empty_bad.v	203	250	} + NUM	i = {} + 1;
 verilator	test_regress/t/t_queue_empty_pin.v	202	234	} ) ;	task tsk(int q[] = {});
 verilator	test_regress/t/t_randomize_arraysel_membersel.v	434	677	with { ID	if (std::randomize(example.member[1]) with {example.member[1] inside {[0 : 3]};} == 0) $stop;
