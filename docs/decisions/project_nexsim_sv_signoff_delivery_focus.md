@@ -125,3 +125,25 @@ ones and reclassifying is cheapest.
   that is the pattern to keep.
 - The only admissible exception remains a defect that **BLOCKS** the SV release, which is SV work
   by definition. "Would be nice for SV" is not blocking.
+
+### ⭐ The lock binds WORK, not CONVERSATION — director clarification, 2026-08-10
+
+Verbatim: *"We can discuss, clarify other task-trees or activity but the SV lane remains what we
+should work on full-time until it is fully released to NEXSIM."*
+
+⛔ **Do not over-apply the lock.** Answering a question about another tree, checking a status,
+recording a director ruling, or ROUTING a finding into a parked leaf are **not** departures — they
+cost minutes and they are how the lane stays clean. Refusing to discuss a tree because of the lock
+would be a misreading, and a foreseeable one given how emphatically the lock is worded.
+
+The line is **effort**, not subject matter: *full-time* means the session's implementation work is
+SV. A useful test — **would this change a non-SV artifact's behaviour, or take more than a short
+detour?** If yes, it is work: route it, park it, come back after release. If no — a status read, an
+answer, a leaf that records a decision — it is fine.
+
+⚠️ **Honest note from the session that produced this record.** After the SV leaf landed
+(`PGEN-SV-CORPUS-GRAD-0046`), the session spent eight further commits on tracking and governance:
+banking the capability greenlight, opening the horizon register, and recording this lock twice. All
+were director-prompted and all are legitimately layer-C/B work — but the *pattern* is the thing to
+watch, because [[feedback_prefer_feature_work_over_governance_lanes]] says exactly this. ⇒ **a fresh
+session resumes on the SV frontier directly** (axis 2: 298 unexplained), not on more tracking.

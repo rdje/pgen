@@ -1,5 +1,23 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-FOCUS-0002 — the SV lane lock binds WORK, not CONVERSATION (docs only, ZERO code bytes)
+
+- **DIRECTOR (verbatim):** *"We can discuss, clarify other task-trees or activity but the SV lane
+  remains what we should work on full-time until it is fully released to NEXSIM."*
+- ⛔ **Recorded because the INVERSE failure is foreseeable.** The lock is worded emphatically
+  (*"treat any impulse to leave it as an error"*), and a session reading only that could start
+  refusing to answer questions about other trees — over-applying the lock into unhelpfulness.
+  Answering a question, checking a status, recording a ruling, or ROUTING a finding into a parked
+  leaf are **not** departures; they are how the lane stays clean.
+- **The line is EFFORT, not subject matter.** Test: *would this change a non-SV artifact's
+  behaviour, or take more than a short detour?* Yes ⇒ work: route it, park it, return after
+  release. No ⇒ a status read, an answer, a leaf recording a decision ⇒ fine.
+- ⚠️ **Honest self-observation banked in the record**: after `PGEN-SV-CORPUS-GRAD-0046` landed,
+  this session spent eight further commits on tracking/governance — all director-prompted and all
+  legitimate layer-B/C work, but the *pattern* is what
+  [[feedback_prefer_feature_work_over_governance_lanes]] exists to catch. ⇒ **a fresh session
+  resumes on the SV frontier directly** (axis 2: 298 unexplained), not on more tracking.
+
 ## 2026-08-10 - PGEN-SV-FOCUS-0001 — the SV lane lock is reaffirmed a FOURTH time and its exit condition acquires a BAR: "released with 100% confidence" (docs only, ZERO code bytes)
 
 - **DIRECTOR (verbatim):** *"the SV lane, that bring the SV parser to release status is the
