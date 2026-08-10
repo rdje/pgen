@@ -2084,7 +2084,7 @@ ispras-sv-tests	ieee-1800-2012/07/07.09.08_01.sv	pass	must_accept	match	pinned .
 ispras-sv-tests	ieee-1800-2012/07/07.09.11_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.10.02.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.10.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/07/07.10.04_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/07/07.10.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.10.04_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/07/07.12.01_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/07/07.12.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -5867,7 +5867,7 @@ iverilog	ivtest/ivltests/sv_ps_type_struct1.v	fail	must_accept	divergence:explai
 iverilog	ivtest/ivltests/sv_ps_var1.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue1.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue2.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
-iverilog	ivtest/ivltests/sv_queue3.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
+iverilog	ivtest/ivltests/sv_queue3.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_ap_method.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) sv_queue_ap_method.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_assign1.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/sv_queue_assign2.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
@@ -11471,7 +11471,7 @@ sv-tests	tests/chapter-7/memories/read-write.sv	pass	must_accept	match	sv-tests:
 sv-tests	tests/chapter-7/queues/basic.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/bounded.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/delete.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-7/queues/delete_assign.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-7/queues/delete_assign.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/insert.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/insert_assign.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-7/queues/max-size.sv	pass	must_accept	match	sv-tests: positive test
@@ -15431,8 +15431,8 @@ verilator	test_regress/t/t_queue_bounded.v	pass	must_accept	match	verilator: dri
 verilator	test_regress/t/t_queue_class.v	pass	must_accept	match	verilator: driver t_queue_class.py expects success
 verilator	test_regress/t/t_queue_compare.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_queue_compare.py expects success
 verilator	test_regress/t/t_queue_concat_assign.v	pass	must_accept	match	verilator: driver t_queue_concat_assign.py expects success
-verilator	test_regress/t/t_queue_empty_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_queue_empty_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_queue_empty_pin.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_queue_empty_pin.py expects success
+verilator	test_regress/t/t_queue_empty_bad.v	pass	must_accept	match	verilator: driver t_queue_empty_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_queue_empty_pin.v	pass	must_accept	match	verilator: driver t_queue_empty_pin.py expects success
 verilator	test_regress/t/t_queue_inherit_call.v	pass	must_accept	match	verilator: driver t_queue_inherit_call.py expects success
 verilator	test_regress/t/t_queue_init.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_queue_init.py expects success
 verilator	test_regress/t/t_queue_insert_at_end.v	pass	must_accept	match	verilator: driver t_queue_insert_at_end.py expects success

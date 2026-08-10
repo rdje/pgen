@@ -4756,7 +4756,8 @@ reasons having nothing to do with the parser
 
 ##### `.3.26` — ⛔⛔ the empty unpacked array concatenation is wrong in BOTH directions at once: PGEN accepts `'{}` (which Annex A cannot derive) and rejects `{}` (which Annex A *is*) — routed by `.3.25`, 2026-08-10
 
-- **Status: `todo`.** ⛔ **NOT fixed in `.3.25`** — it is a distinct defect with its own root
+- **Status: `done` 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0187`), grammar-only, ZERO Rust bytes.**
+  ⛔ **NOT fixed in `.3.25`** — it is a distinct defect with its own root
   cause, its own LRM citation, and a real dialect-tolerance question that must not be settled by
   a one-line literal flip. Surfaced because `.3.25`'s fix moved two rows' `furthest_position`
   DEEPER onto this construct.
@@ -4796,6 +4797,176 @@ reasons having nothing to do with the parser
 - **First act when opened:** add `{}` (the LRM form) — that half is unambiguous and pure
   under-acceptance repair; then adjudicate the `'{}` arm against the strictness directive rather
   than silently keeping it.
+
+##### `.3.26` — THE ADJUDICATION (2026-08-10, session #232): ⛔ NOT a director call — two recorded rulings already decide it, and they decide it in *opposite* directions that compose
+
+The leaf was opened expecting a strictness-axis escalation. It is not one. **Both arms are settled
+by decision records already on disk**, and the interesting part is that they pull opposite ways and
+still compose into one answer.
+
+| ruling | what it says here |
+|---|---|
+| `feedback_sv_strict_lrm_compliance_default` — *"So, we will stick to strict-LRM compliance then, good I prefer that"* (director, 2026-07-25) | strict-LRM **by default**; over-acceptance is a defect; the tolerance switch is **DEFERRED, not rejected** ⇒ `'{}` is over-acceptance and cannot simply be shrugged at |
+| `feedback_uvm_is_valid_sv` — *"A pgen parser failure on UVM means **our parser has a defect**. The input is correct."* | uvm-core writes `return '{};` at `uvm_lru_cache.svh:206` and `:273` ⇒ **rejecting `'{}` would BE a defect** |
+
+⭐ **They compose via the strictness directive's own vocabulary.** This tree's directive
+(§ *STRICTNESS AXIS*, constraint 2) splits over-acceptance into *(a) genuine dialect tolerance the
+ecosystem relies on* and *(b) plain over-acceptance bugs*, and rules that **"bucket (a) is what a
+switch is FOR, bucket (b) should simply be fixed."** `'{}` is bucket (a) with the strongest possible
+witness — the Accellera reference library itself. ⇒ **KEEP the arm, NAME it, and route it as the
+switch's first customer**; do not delete it, and do not leave it undocumented either. Deleting it
+would regress uvm-core and 48 other corpus files to satisfy a switch that does not exist yet.
+
+⇒ the fix is **two arms, for two different reasons**, and the grammar comment says which is which so
+a later reader cannot mistake the tolerated arm for a second LRM production.
+
+- **`lbrace rbrace`** — the A.8.1 production, verbatim. Pure under-acceptance repair.
+- **`tick lbrace rbrace`** — no derivation in Annex A; retained as recorded bucket-(a) tolerance.
+
+⚠️ **AND A FINDING ABOUT THE EVIDENCE BASE ITSELF, routed to `LRM-GRAMMAR-FIDELITY`.** The
+strictness directive's constraint 2 names the **accepts-invalid population (21 + 14 = 35 rows)** as
+*"by construction, every place PGEN currently accepts what the standard forbids."* ⛔ **It is not,
+and `'{}` is the counter-example.** That population is derived from corpus rows whose *answer key*
+says `must_reject`. `'{}` is accepted by PGEN **and by every real tool**, so no suite marks it
+must_reject and it can never appear there — yet it is unambiguously over-acceptance against Annex A.
+⇒ the accepts-invalid census measures *over-acceptance the corpus happens to probe negatively*, not
+over-acceptance. A switch designed only against those 35 rows would be designed against a biased
+sample. Same shape as the standing *"no cut heuristic is a census"* lesson.
+
+⚠️ **The leaf's own population counts were a cut heuristic too, and under-counted — re-measured
+here.** `.3.26`'s recorded `42` / `56` came from an `=`-anchored regex, which cannot see
+`return '{};` — the very call site that motivated the original defective fix. Unanchored over
+`stimuli/sv/subs` + `stimuli/sv/uvm`:
+
+```
+$ grep -rlE "'\{ *\}"        …   # tick form, any context  -> 49 files
+$ grep -rlE "(^|[^'])\{ *\}" …   # bare form, any context  -> 91 files
+```
+
+**49 tick / 91 bare** (regex FILE counts, not a parse census — comments and string literals are not
+excluded; stated so the number is not later quoted as exact). The direction is what matters and it
+is unambiguous: the LRM form is the *more* used of the two, so the repair serves the larger
+population as well as the standard.
+
+##### `.3.26` — ⚠️ A SURPRISING CERT NUMBER, RUN DOWN RATHER THAN ACCEPTED (and it was benign)
+
+Banked because the number arrived in the **flattering** direction, which is the direction a session
+is least likely to question. The ad-hoc canonical cert command printed:
+
+```
+CERTIFICATE-COVERAGE: … total=1358 proof=17 witness=1341 UNKNOWN=0 fully_certified=true
+```
+
+against a contract pinning `expected_proof=6` / `expected_canonical_unknown=11`. **`UNKNOWN 11 → 0`
+and `fully_certified=true` on a leaf that merely added an alternative is not plausible** — adding an
+alternative makes more of a grammar reachable, and cannot prove eleven rules *unreachable*.
+
+Two measurements settled it, in order:
+
+1. **Is it mine?** Run the identical command against the **HEAD** grammar (`git show
+   HEAD:grammars/systemverilog.ebnf`, placed at a path whose basename still resolves the registered
+   grammar name) with the same generated parser:
+
+   ```
+   HEAD grammar : total=1358 proof=17 witness=1341 UNKNOWN=0 fully_certified=true
+   working copy : total=1358 proof=17 witness=1341 UNKNOWN=0 fully_certified=true
+   ```
+
+   **Byte-identical.** ⇒ the leaf is cert-NEUTRAL, and the 17/0 predates it. That is also this
+   leaf's NO-REGRESSION evidence on the certification axis — an A/B against HEAD is stronger than
+   agreement with a stored constant, because it cannot be satisfied by a stale contract.
+2. **Then why does the contract say 6/11?** Because the *gate* runs a different configuration, and
+   `make sv_cert_recognized_union_gate` reproduces the contract exactly:
+   `canonical_unknown: 11 == expected_canonical_unknown: 11`, `union_unknown: 0`,
+   `union_witness: 1352`, `union_residual_rules: []`, deterministic across seeds `[0,7,42]`, **PASS**.
+
+⭐ **The explanation, and it is worth keeping** (TOOLBOX 4.6): the entry universe of an unreachability
+proof is *the cert entry plus every `--cert-union-config` entry present in the tree*. The bare
+command declares ONE entry, so 11 rules reachable only from `sv_multi_entry_root` / `library_text` /
+`systemverilog_parseable_file` are provably unreachable **from that entry** and get certified by
+proof. The gate declares all four entries, correctly REFUSES those eleven proofs, and witnesses the
+rules through the union instead. ⇒ `6 + 11 = 17` is an identity, not a coincidence, and
+`fully_certified=true` from the bare command is a claim about a **narrower** grammar than the one SV
+actually ships.
+⛔ **So the bare invocation is the wrong instrument for an SV headline** — it reports a stronger
+result than the shipped configuration supports. Quote `sv_cert_recognized_union_gate`, never
+`--report-certificate-coverage` alone, when the question is "is SV fully certified".
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the inversion, both directions, minimal repros under
+  `rust/target/sv_3_26/`:
+  `./rust/target/release/parseability_probe --parse systemverilog …/lrm_bare.sv --profile sv_2017`
+  → `Parser did not consume full input at position 0 [furthest_position=37, +37 bytes deeper]`
+  on `initial q = {};` (the LRM form), while `initial q = '{};` PASSES. `furthest_position=37`
+  lands **exactly on the `}`** — the parser consumed `{` as a concatenation opener and died where
+  `concatenation` demands its first `expression`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — correctness family. **WHERE:** `grammars/systemverilog.ebnf`,
+  rule `empty_unpacked_array_concatenation`, whose whole body was `tick lbrace rbrace`. **WHY:** a
+  CITATION error in a prior fix, not a missing fix. `SV-EXH-PROOF.3.3.4.b.6.2.37.8` correctly
+  replaced a never-matching body (`lbrace epsilon rbrace`; `epsilon` is undefined in this grammar,
+  which `--lint-grammar`'s undefined-reference check would now catch) but wrote the replacement as
+  `'{ }` citing *"§A.6.7"*. The production is **A.8.1** and reads `{ }`
+  (`docs/systemverilog/2017/md/section-41-data-read-api.md:2907`), with **footnote 35**: *"{ } shall
+  denote an empty unpacked array concatenation … and shall not be used in any other form of
+  concatenation"* (`:3551`); **no `assignment_pattern` alternative is empty** — all four require at
+  least one `expression` (`:2292`–`:2295`) — so `'{}` has no derivation in Annex A at all. The error
+  reproduced as a SUCCESS (its motivating input genuinely used the apostrophe) and was never
+  questioned. ⇒ the rule was wrong in BOTH directions simultaneously.
+- [x] **FIX** — declarative tier (grammar only; ZERO Rust bytes). Two annotated alternatives,
+  `lbrace rbrace | tick lbrace rbrace`, each carrying the rule's existing
+  `-> {kind: "empty_unpacked_array_concat"}` so the emitted node is identical on both arms. Arm 2 is
+  retained deliberately as recorded bucket-(a) dialect tolerance (see the adjudication above); the
+  grammar comment says which arm is which and why, and the stale "§A.6.7 / `'{ }`" citation is
+  corrected in place so the next reader is not misled the same way.
+- [x] **ADDRESSED (verified)** — `REJECT → PASS` on the LRM form, `PASS → PASS` on the tolerated
+  form, on **both** build modes (debug and release probes agree), with
+  `--parse-dump-ast` confirming both arms emit the same `empty_unpacked_array_concat` node.
+  Corpus, at the parameters `.3.27` now binds: **pass `9741 → 9746`, fail `6591 → 6586`**, timeout
+  `4 → 4`, crash `0 → 0`. Adjudicated burn-down: **`unexplained` `298 → 293`**
+  (rejects-valid `277 → 272`; accepts-invalid `21` unchanged); live worklist `277 → 272` rows /
+  `175 → 171` clusters, still 7 families.
+  ⭐ **EVERY MOVED ROW IS EXPLAINED BY THE CONSTRUCT — exactly 5, all
+  `divergence:unexplained_rejects_valid → match`, from FOUR independent suites**, and none moved the
+  other way:
+  `ispras-sv-tests ieee-1800-2012/07/07.10.04_01.sv` (the standard's OWN clause-keyed example for
+  §7.10.4), `iverilog ivtest/ivltests/sv_queue3.v`, `sv-tests tests/chapter-7/queues/delete_assign.sv`,
+  `verilator test_regress/t/t_queue_empty_bad.v`, `verilator test_regress/t/t_queue_empty_pin.v`.
+  A fix whose corpus delta is entirely its own construct is the shape a construct leaf should have.
+- [x] **NO REGRESSION** — `--lint-grammar` exit 0. **Certificate coverage A/B against HEAD, not
+  against a stored constant:** the HEAD grammar and the working copy produce a **byte-identical**
+  `CERTIFICATE-COVERAGE: … total=1358 proof=17 witness=1341 UNKNOWN=0` line, and
+  `make sv_cert_recognized_union_gate` **PASSED** reproducing its pinned contract exactly
+  (`canonical_unknown: 11 == expected 11`, `union_unknown: 0`, `union_witness: 1352`,
+  `union_residual_rules: []`, deterministic across seeds `[0,7,42]`, `unmet_criteria_count: 0`) ⇒ the
+  cert contract needs **no re-baseline**, `expected_total=1358` is unmoved because no rule was added.
+  `make ast_shape_contract_gate` **18/18 passed**.
+  `make generated_clippy_correctness_gate` → `✅ PASS — 0 clippy::correctness findings across 10
+  required + 1 optional generated artifacts` (⛔ run explicitly: `clippy_on_rust_change` printed
+  `No Rust/generated Rust changes detected; skipping` — the known standing tripwire, since
+  `generated/` is untracked so git sees no change). Corpus timeouts unchanged at 4, all four
+  serially re-confirmed, `0` reclassified.
+- [x] **LOCKSTEP** — `grammars/systemverilog.ebnf` comment rewritten with the correct A.8.1 citation
+  and the two-arms rationale; `LRM-GRAMMAR-FIDELITY.1c` opened for the biased-evidence-base finding;
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`, and the regenerated
+  adjudication/worklist artifacts. No contract/ledger/schema change: the AST node is unchanged on
+  both arms, so no published integration surface moves, and this is an under-acceptance repair found
+  in-house rather than a downstream-reported released-parser bug.
+
+⚠️ **OPERATIONAL NOTE BANKED FOR THE NEXT GRAMMAR LEAF — the release build takes ~20 minutes and
+will be KILLED at ~10 if it runs in the session's process group.** Two builds were lost that way,
+both dying `signal: 15, SIGTERM` with **zero** rustc errors after 10–11 minutes, which reads exactly
+like a compile failure until the log is checked for an `error[EXXXX]` that is not there. Detaching
+into a new session fixes it, and the same wrapper is needed for the ~13-minute corpus run:
+
+```bash
+nohup perl -e 'use POSIX qw(setsid); setsid(); exec @ARGV or die $!;' \
+  cargo build --release --features generated_parsers --bin parseability_probe >log 2>&1 &
+```
+
+Measured: detached release build **19 m 55 s**, exit 0; detached debug build **2 m 42 s**; corpus
+**347 s** + serial re-confirmation. ⛔ `signal: 15` with no `error[EXXXX]` in the log is an
+INFRASTRUCTURE kill, never a broken grammar — check before re-diagnosing the change.
 
 ##### `.3.27` — ⛔ the corpus runner's DEFAULTS do not match the parameters the tracked artifact was produced with, and nothing compares them — so the obvious invocation silently re-baselines a graduation ORACLE (routed by `.3.25`, 2026-08-10)
 

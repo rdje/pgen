@@ -1,12 +1,12 @@
 # rejects-valid construct families (SV-CORPUS-GRAD.3.2)
 
-277 `divergence:unexplained_rejects_valid` rows classified into 7 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
+272 `divergence:unexplained_rejects_valid` rows classified into 7 construct families (priority-ordered structural bucketer over the stuck source line; the leaf-cutting map for the `.3` burn-down). Families ranked by cross-suite row count.
 
 | # | family | rows | suite split |
 |---|---|---|---|
-| 1 | OTHER (per-row triage) | 218 | verilator:91, Surelog:41, ispras-sv-tests:26, sv2v:24, iverilog:13, sv-tests:12, verible:10, slang:1 |
+| 1 | OTHER (per-row triage) | 214 | verilator:89, Surelog:41, ispras-sv-tests:26, sv2v:24, iverilog:12, sv-tests:11, verible:10, slang:1 |
 | 2 | constraint/randomize (ch18) | 16 | verilator:15, ispras-sv-tests:1 |
-| 3 | interface/modport (ch25) | 14 | verilator:9, ispras-sv-tests:2, sv2v:2, verible:1 |
+| 3 | interface/modport (ch25) | 13 | verilator:9, sv2v:2, ispras-sv-tests:1, verible:1 |
 | 4 | SVA implication/property (ch16) | 11 | ispras-sv-tests:5, verilator:4, Surelog:2 |
 | 5 | foreach/array (ch7) | 9 | verilator:5, Surelog:2, iverilog:1, verible:1 |
 | 6 | size/type cast N'(...) (ch6/11) | 6 | Surelog:4, iverilog:1, sv2v:1 |
@@ -28,9 +28,9 @@
 
 ### interface/modport (ch25)
 - `ispras-sv-tests`: `sim.queues[Active].push_back('{is_update: 1});`  (ieee-1800-2012/04/04.05_01.sv)
-- `ispras-sv-tests`: `q = {};                          // q.delete()`  (ieee-1800-2012/07/07.10.04_01.sv)
 - `sv2v`: `modport client_mp (output .client_req(req[i]));`  (test/core/interface_generate.sv)
 - `sv2v`: `$fatal(.x("x"));`  (test/error/severity_task_arg.sv)
+- `verible`: `initial $display(nested_class0::handle1::handle2.nested_function());`  (verible/verilog/tools/kythe/testdata/nested_member_access.sv)
 
 ### SVA implication/property (ch16)
 - `Surelog`: `@($global_clock) a[*1:$] ##1 b);`  (tests/CheckerInst/dut.sv)

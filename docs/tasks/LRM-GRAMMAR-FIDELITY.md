@@ -135,6 +135,42 @@ That splits the work into two pieces with different leverage:
   these `! TYPE: NEGATIVE`), so the instrument needs an admission policy before it can produce a
   pass rate, or it will report fragments as defects. Start report-only.
 
+### `.1c` — ⛔ the strictness switch's declared evidence base is a BIASED SAMPLE: the accepts-invalid population cannot see over-acceptance the corpus never probes negatively (routed in by `SV-CORPUS-GRAD.3.26`, 2026-08-10)
+
+- **Status: `todo`** (opened by `SV-CORPUS-GRAD.3.26`, which carries the worked counter-example
+  and the grammar comment that names the tolerated arm).
+- **THE CLAIM BEING CORRECTED.** `SV-CORPUS-GRAD`'s strictness directive (2026-07-25, constraint 2)
+  designates the accepts-invalid population — **21 rows (`sv_2017`) + 14 (`verilog_2005`) = 35** —
+  as the design input for the deferred strictness switch, on the stated ground that those are
+  *"by construction, every place PGEN currently accepts what the standard forbids."*
+- ⛔ **They are not, and the counter-example is now in the shipped grammar.**
+  `empty_unpacked_array_concatenation`'s `'{ }` arm has **no derivation anywhere in Annex A** — all
+  four `assignment_pattern` alternatives require at least one `expression`, and A.8.1 writes the
+  empty form as bare `{ }`. It is over-acceptance by the directive's own definition. But it can
+  never enter the accepts-invalid population, because that population is built from corpus rows
+  whose **answer key** says `must_reject`, and `'{}` is accepted by every real tool — uvm-core
+  itself writes `return '{};` (`uvm_lru_cache.svh:206`, `:273`). **No suite will ever mark it
+  must_reject, so no census built that way can see it.**
+- **WHAT THE POPULATION ACTUALLY MEASURES:** over-acceptance *that some suite happens to probe
+  negatively*. That is a sample biased precisely AGAINST bucket (a) — the ecosystem-relied-upon
+  tolerances the switch exists to serve — because a tolerance the whole ecosystem shares is exactly
+  the one no suite writes a negative test for. ⇒ designing the switch against those 35 rows would
+  tune it on bucket (b) and ship it blind to its actual customers.
+- **REPRODUCES OUTSIDE SV — the routing test (`ROUTING-EVIDENCE`).** The defect is in the *method*,
+  not the SV grammar: any family whose over-acceptance census is derived from suite answer keys
+  inherits it, which is every family in `CORPUS-GRAD-ALL`. Nothing about the argument uses IEEE 1800
+  — it uses only "the census key is the suite's expectation, and suites do not write negative tests
+  for what everyone accepts." That is why it lands here (cross-family fidelity infrastructure) and
+  not in the SV corpus tree.
+- **THE INSTRUMENT THIS NEEDS**, and it is a sibling of `.1`'s, not of the corpus lane's: an
+  Annex-A-derived over-acceptance audit — enumerate what the shipped grammar accepts that the
+  transcribed Annex A cannot derive, *without* asking any corpus whether it minds. `.1`'s
+  Annex-A ⟷ shipped-grammar comparison already builds the machinery for one direction (productions
+  PGEN failed to transcribe); this is the same comparison read the other way round.
+- **SEED ROW for whenever it opens:** `empty_unpacked_array_concatenation` `'{ }` — bucket (a),
+  witness = uvm-core, measured population 49 corpus files, deliberately retained and commented in
+  `grammars/systemverilog.ebnf`.
+
 ### `.2` — The standing coverage gate
 
 - **Status: `todo`** — promote `.1`'s audit into a deterministic `make` gate

@@ -2217,17 +2217,41 @@ elaboration_system_task_sv_2017 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_n
 elaboration_system_task := elaboration_system_task_sv_2017
                         -> {body: $1}
 
-# SV-EXH-PROOF.3.3.4.b.6.2.37.8 — per IEEE 1800 §A.6.7:
-#   empty_unpacked_array_concatenation ::= '{ }
-# (The `'{` apostrophe-brace is the SV assignment-pattern opener; empty form
-# is for `int q[$] = '{};` / `return '{};` etc.) Pre-fix the pgen rule was
-# `lbrace epsilon rbrace` — TWO defects: (1) missing the leading `tick`
-# (apostrophe), (2) `epsilon` is not a defined rule in this grammar (no
-# `epsilon :=` exists), so the rule referenced an undefined symbol and
-# could never match at all. Fix: `tick lbrace rbrace` per LRM literal.
-# Surfaced by `.37.7`'s 1,508,106 furthest at `uvm_cache::get`'s `return '{};`.
-empty_unpacked_array_concatenation := tick lbrace rbrace
-                                   -> {kind: "empty_unpacked_array_concat"}
+# IEEE 1800-2017 A.8.1 (+ footnote 35, + §7.10 prose):
+#   empty_unpacked_array_concatenation35 ::= { }
+#   35) "{ } shall denote an empty unpacked array concatenation, as described in
+#       10.10, and shall not be used in any other form of concatenation."
+#   §7.10: "The empty queue can be denoted by an empty unpacked array
+#       concatenation {}."
+#
+# TWO ARMS, and they are there for DIFFERENT reasons — do not collapse them.
+#
+# `lbrace rbrace` is the LRM production, verbatim. SV-CORPUS-GRAD.3.26 restored it:
+# it had never been accepted. History — SV-EXH-PROOF.3.3.4.b.6.2.37.8 replaced a
+# genuinely broken body (`lbrace epsilon rbrace`, where `epsilon` is undefined in
+# this grammar, so the rule could never match) and that half was right; but it wrote
+# the replacement literal as `'{ }` and cited "§A.6.7". The production is at A.8.1
+# and reads `{ }`. Because its motivating input (uvm's `return '{};`) genuinely uses
+# the apostrophe form, the citation error reproduced as a SUCCESS and went unread.
+#
+# `tick lbrace rbrace` has NO derivation anywhere in Annex A — all four
+# assignment_pattern alternatives require at least one expression. It is therefore
+# over-acceptance, and it is KEPT DELIBERATELY as the first named bucket-(a) row of
+# the strictness axis: uvm-core itself writes `return '{};`
+# (uvm_lru_cache.svh:206,:273), and feedback_uvm_is_valid_sv rules that a PGEN
+# failure on UVM is OUR defect. Under feedback_sv_strict_lrm_compliance_default the
+# parser is strict-LRM BY DEFAULT with the tolerance switch DEFERRED, and
+# SV-CORPUS-GRAD's strictness directive says bucket (a) — "genuine dialect tolerance
+# the ecosystem relies on" — is exactly what that switch is FOR. When it lands, this
+# arm is its first customer. Measured population: 49 corpus files write `'{}`,
+# 91 write bare `{}` (regex file counts, not a parse census).
+#
+# ⛔ Comments stay OUTSIDE the rule body: a column-0 comment between alternatives
+# DELETES the alternatives that follow it (project_standing_tripwires).
+empty_unpacked_array_concatenation := lbrace rbrace
+                                        -> {kind: "empty_unpacked_array_concat"}
+                                   | tick lbrace rbrace
+                                        -> {kind: "empty_unpacked_array_concat"}
 
 enable_gate_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma enable_terminal rparen
                      -> {name: $1, output: $3, input: $5, enable: $7}

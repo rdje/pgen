@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0187 — a wrong citation is more dangerous than a missing fix, because it reproduces as a success
+
+`empty_unpacked_array_concatenation` was wrong in both directions at once: it rejected `{}` (which
+IEEE 1800-2017 A.8.1 literally *is*) and accepted `'{}` (which Annex A cannot derive anywhere). One
+rule, two opposite defects, and it had been that way since the fix that "repaired" it.
+
+**The mechanism is worth naming.** The prior leaf found a genuinely broken body — `lbrace epsilon
+rbrace`, where `epsilon` is not a rule in this grammar, so the production could never match — and
+replaced it. That half was right. But it wrote the replacement as `'{ }` and cited "§A.6.7"; the
+production lives at A.8.1 and reads `{ }`. **The error survived because its motivating input used
+the apostrophe form.** The fix was tested against `return '{};`, it passed, and a passing test on a
+wrong literal is indistinguishable from a passing test on a right one. A missing fix announces
+itself the next time someone runs the corpus; a mis-cited fix banks a green result and goes quiet.
+
+⇒ the habit: **when a fix quotes a production, quote the clause number too, and check it** — the
+citation is the part no test can verify for you.
+
+**The strictness question turned out not to be a question.** The leaf was opened expecting a director
+escalation about dialect tolerance. It needed none: two decision records already on disk settle it,
+and they pull in opposite directions. `feedback_sv_strict_lrm_compliance_default` makes the parser
+strict-LRM by default, so `'{}` is over-acceptance and cannot be shrugged at.
+`feedback_uvm_is_valid_sv` says a PGEN failure on UVM is *our* defect — and uvm-core itself writes
+`return '{};`. They compose through the tree's own strictness vocabulary: `'{}` is bucket (a),
+"dialect tolerance the ecosystem relies on", which is precisely what the deferred switch is for. Keep
+the arm, name it, route it. **Two recorded rulings that appear to conflict are usually a partition
+waiting to be noticed.**
+
+**And the evidence base for that future switch is biased — routed to `LRM-GRAMMAR-FIDELITY.1c`.** The
+strictness directive designates the 35 accepts-invalid rows as *"by construction, every place PGEN
+currently accepts what the standard forbids."* It is not. That population is keyed on suite
+`must_reject` expectations, and **a tolerance the entire ecosystem shares is exactly the one no suite
+writes a negative test for** — `'{}` can never appear there. The census measures over-acceptance the
+corpus happens to probe negatively, which is a sample biased *against* bucket (a), the switch's only
+customers.
+
+**Two smaller things worth carrying:**
+
+- **A flattering number deserves the same scrutiny as an alarming one.** The ad-hoc cert command
+  reported `UNKNOWN 11 → 0, fully_certified=true` after a change that merely added an alternative —
+  impossible on its face. Running it against the HEAD grammar produced the identical line, so it was
+  never mine; the gate reproduces the pinned 11 because its entry universe includes the union
+  configs, and a rule reachable only from `sv_multi_entry_root` cannot be *proved* unreachable. `6 +
+  11 = 17` is an identity. ⇒ never quote bare `--report-certificate-coverage` as an SV headline; it
+  describes a narrower grammar than the one that ships.
+- **`signal: 15` with no `error[EXXXX]` is an infrastructure kill, not a broken grammar.** Two
+  release/debug builds died at 10–11 minutes looking exactly like compile failures. The release build
+  genuinely needs ~20 minutes; detaching it into its own session (`setsid` via perl, since macOS has
+  no `setsid` binary) made it finish in 19 m 55 s. Check the log for a real rustc error before
+  re-diagnosing the change that "broke" the build.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0186 — the provenance block was right, and that is exactly why nobody noticed
 
 `SV-CORPUS-GRAD.10` taught this repository to make its corpus artifacts self-describing: every

@@ -1,5 +1,48 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0187 — the empty unpacked array concatenation was wrong in BOTH directions at once; the LRM form now parses (leaf `SV-CORPUS-GRAD.3.26`, grammar-only, ZERO Rust bytes)
+
+- **THE DEFECT.** `empty_unpacked_array_concatenation := tick lbrace rbrace` **rejected `{}`**, which
+  IEEE 1800-2017 **A.8.1** literally is (`empty_unpacked_array_concatenation35 ::= { }`, footnote 35,
+  and §7.10's *"The empty queue can be denoted by an empty unpacked array concatenation {}"*), while
+  **accepting `'{}`**, which Annex A cannot derive at all — all four `assignment_pattern`
+  alternatives require at least one `expression`.
+- **ROOT CAUSE — a CITATION error in a prior fix, not a missing fix.**
+  `SV-EXH-PROOF.3.3.4.b.6.2.37.8` correctly replaced a never-matching body (`lbrace epsilon rbrace`;
+  `epsilon` undefined) but wrote the replacement as `'{ }` citing "§A.6.7". The production is at
+  **A.8.1** and reads `{ }`. Because its motivating input (uvm's `return '{};`) genuinely uses the
+  apostrophe, **the error reproduced as a SUCCESS** and was never questioned.
+- ⭐ **THE STRICTNESS QUESTION NEEDED NO DIRECTOR CALL — two recorded rulings settle it, pulling
+  opposite ways and composing.** `feedback_sv_strict_lrm_compliance_default` makes the parser
+  strict-LRM by default (so `'{}` is over-acceptance) while `feedback_uvm_is_valid_sv` rules that a
+  PGEN failure on UVM is OUR defect — and uvm-core writes `return '{};`
+  (`uvm_lru_cache.svh:206,:273`). Per this tree's strictness directive, that makes `'{}` **bucket
+  (a) — dialect tolerance the ecosystem relies on, which is what the DEFERRED switch is FOR**. ⇒ two
+  arms kept for two different reasons, each named in the grammar comment so the tolerated arm cannot
+  later be mistaken for a second LRM production.
+- **VERIFIED.** `{}` REJECT→PASS and `'{}` PASS→PASS on both debug and release probes, same AST node.
+  Corpus: **pass 9741 → 9746, fail 6591 → 6586**, timeout 4 → 4. Burn-down: **unexplained 298 → 293**
+  (rejects-valid 277 → 272). ⭐ **All 5 moved rows are the same construct, from 4 independent
+  suites** — including ispras's clause-keyed example for §7.10.4, i.e. the standard's own — and none
+  moved the other way.
+- **NO REGRESSION.** Cert coverage **byte-identical between the HEAD grammar and the working copy**
+  (`total=1358 proof=17 witness=1341 UNKNOWN=0`) — an A/B against HEAD rather than agreement with a
+  stored constant; `sv_cert_recognized_union_gate` PASS at its exact pinned values (no re-baseline
+  needed, no rule added); `ast_shape_contract_gate` 18/18; `generated_clippy_correctness_gate` 0
+  correctness findings. ⚠️ `clippy_on_rust_change` **skipped with a ✅** (the known tripwire —
+  `generated/` is untracked so git sees no change); the explicit gate was run instead.
+- ⚠️ **ROUTED — `LRM-GRAMMAR-FIDELITY.1c` opened.** The strictness switch's declared evidence base
+  (the 35 accepts-invalid rows, called *"by construction, every place PGEN accepts what the standard
+  forbids"*) is a **biased sample**: it is keyed on suite `must_reject` expectations, and a tolerance
+  the whole ecosystem shares — like `'{}` — is exactly the one no suite writes a negative test for.
+  Designing the switch against those 35 rows would tune it on bucket (b) and ship it blind to its
+  actual customers. Reproduces outside SV: any family whose over-acceptance census comes from answer
+  keys inherits it.
+- ⚠️ **OPERATIONAL, banked in the leaf:** the release `parseability_probe` build takes **~20 min** and
+  is killed at ~10 if it runs in the session's process group — two builds were lost that way, both
+  reporting `signal: 15, SIGTERM` with **zero** rustc errors, which reads exactly like a compile
+  failure. Detach with `nohup perl -e 'use POSIX qw(setsid); setsid(); exec @ARGV' cargo …`.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0186 — the corpus runner's recorded parameters now BIND: adopt when the caller is silent, refuse (exit 5) when the caller disagrees (leaf `SV-CORPUS-GRAD.3.27`)
 
 - **THE DEFECT.** `stimuli/run_external_corpus.sh` overwrites tracked graduation oracles
