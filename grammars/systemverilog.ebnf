@@ -1488,6 +1488,20 @@ conditional_else_clause := kw_else_ae050f5b conditional_else_branch
 conditional_statement := @sample: "if (a) ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null ( conditional_else_clause )?
                       -> {unique_priority: $1, condition: $4, then_body: $6, else_body: $7}
 
+# ⛔ `ordered` IS LOAD-BEARING, NOT STYLE — do not "normalise" it to this file's
+# other 29 `priority_first` uses (SV-CORPUS-GRAD.11a, PGEN-SV-CORPUS-GRAD-0197).
+# The two arms are LANGUAGE-OVERLAPPING on `else if`: alt 2 reaches
+# `conditional_statement` again via `statement_or_null → statement → statement_item
+# → statement_item_sv_2017`, so on an `else if` BOTH arms parse the identical text
+# and tie. Under a tournament policy every level therefore parses the whole
+# remaining chain twice ⇒ T(k) = 2·T(k−1), measured as entries of exactly 2ⁿ−1 here
+# and 12 362 MB on one 261-line opentitan crossbar. `priority_first` would NOT fix
+# it — it changes only how a tie is RESOLVED, not whether the losing arm is
+# explored (`grammar_wellformedness.rs`: under `longest_match` and `priority_first`
+# the engine runs the FULL tournament). Only `ordered` short-circuits on the first
+# winner, and alt 1 is the correct winner on a tie: `elseif` is the shape the LRM's
+# `[ else statement_or_null ]` produces for a chained `else if`.
+@branch_policy: ordered
 conditional_else_branch := conditional_statement -> {kind: "elseif", body: $1}
                          | statement_or_null     -> {kind: "else",   body: $1}
 

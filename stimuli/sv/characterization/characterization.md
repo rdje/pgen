@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `dae37cc1f1b495eb59539a8363763945a2e8814c70ac6ad70b2bc3f8288f14f4` |
-| grammar | `grammars/systemverilog.ebnf` | `7661e4983fb9c842fe94dcdfdbc4910c9c1b669d975dc676057bc89b94932299` |
-| generated parser | `generated/systemverilog_parser.rs` | `959e457800dfcbc046ab1b7fa790af65947fadbf5dfd554bae7cb5e5bfb79bad` |
+| parse binary | `rust/target/release/parseability_probe` | `4271a0c924b0bd304a6d6f3fe73d8c43d564478cd7e4540659a7a86b9d14a902` |
+| grammar | `grammars/systemverilog.ebnf` | `2a1a92f597f3baaf3c93350b947832a1dfaee4692c9f166b3d323bffd2a4d5fd` |
+| generated parser | `generated/systemverilog_parser.rs` | `c7f96a67f125740a5d517d26c7fabf273e59080fb7519b1e8e0ef4cad58ad4c6` |
 
-Measured at `HEAD` = `bce1c8dd+dirty` (2026-08-10).
+Measured at `HEAD` = `3acdee5c+dirty` (2026-08-10).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -46,20 +46,20 @@ Measured at `HEAD` = `bce1c8dd+dirty` (2026-08-10).
 
 | population | files |
 |---|---|
-| `timeout` after serial re-confirmation | 4 |
-| timeouts seen in the parallel pass | 4 |
-| re-confirmed serially | 4 |
+| `timeout` after serial re-confirmation | 0 |
+| timeouts seen in the parallel pass | 0 |
+| re-confirmed serially | 0 |
 | reclassified by re-confirmation (contention, not the parser) | 0 |
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `15.24` s — `stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/tb/mm_ram.sv`.
+Slowest completing file: `5.20` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9746 | 6586 | 4 | 0 | 59.7% |
+| 16336 | 9750 | 6586 | 0 | 0 | 59.7% |
 
 ## Per sub-corpus
 
@@ -71,7 +71,7 @@ Slowest completing file: `15.24` s — `stimuli/sv/subs/opentitan/hw/vendor/pulp
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
 | ispras-sv-tests | 1266 | 1088 | 178 | 0 | 0 | 85.9% |
 | iverilog | 3799 | 3231 | 568 | 0 | 0 | 85.0% |
-| opentitan | 3983 | 789 | 3190 | 4 | 0 | 19.8% |
+| opentitan | 3983 | 793 | 3190 | 0 | 0 | 19.9% |
 | scr1 | 50 | 7 | 43 | 0 | 0 | 14.0% |
 | slang | 92 | 71 | 21 | 0 | 0 | 77.2% |
 | sv-tests | 1028 | 859 | 169 | 0 | 0 | 83.6% |

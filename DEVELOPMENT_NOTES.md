@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0197 — one annotation, and why the cheap fix was only safe to make after two sessions of measurement
+
+`.11a` is fixed by adding `@branch_policy: ordered` to one rule. It is a one-line change that a
+reasonable engineer could have guessed on day one — and guessing it would have been wrong twice over.
+
+**Wrong once, on the mechanism.** The obvious reading of `conditional_statement`'s 287 entries /
+208 memo hits was that packrat was already collapsing the recursion, which pointed the investigation
+at the wrapper chain instead of the choice site. `-0195` showed all 208 were cached FAILURES and the
+success replay count was 0. Without that split, "just memoize it" and "restructure the wrappers" both
+look like the fix, and neither is.
+
+**Wrong twice, on the cure.** `@branch_policy` has three values, and this grammar already uses one of
+them 29 times — `priority_first`. Copying the local idiom would have produced a change that reads
+exactly like the fix and measures as a no-op, because **`priority_first` still runs the full
+tournament**; it changes tie RESOLUTION, not whether the losing arm is EXPLORED. Only `ordered`
+carries the keep-first-winner short circuit. The one-line fix therefore had a wrong one-line
+neighbour, and the only thing separating them was reading the codegen.
+
+**Why the neutrality proof is the interesting part.** `ordered` and a tournament differ exactly where
+two arms tie — and here they tie *by construction*, since both arms derive the same text on an
+`else if`. That is precisely the condition under which a policy switch is dangerous, so a corpus pass
+count would not have been enough. The decisive evidence was the engine's own Protocol D line: under
+`ordered` it reproduced the `longest_match` selection **byte-for-byte** (`branch 1/2 consuming
+109/187/265`, `branch 2/2 consuming 31`), i.e. same arm, same lengths, at every level. The corpus then
+confirmed it at scale: 16 336 files, 0 pass→non-pass, fail set unchanged at 6586, and the verilog_2005
+lane byte-identical. Prove selection changes at the selection site; use the corpus to confirm, not to
+discover.
+
+**A newly-earned check.** `ordered_choice_shadowing` is policy-conditional: it fires only under
+`@branch_policy: ordered`, because under a backtracking policy a later arm is still reachable and the
+verdict would be unsound. So `ordered_choice_shadowing=0` on this grammar changed from a number that
+could not apply to this rule into one that does. Worth re-running `--lint-grammar` after any policy
+switch for that reason alone, even though the printed value is unchanged.
+
+**The result that should not be filed under performance.** These four files were adjudicated
+`divergence:explained_timeout`. A parser that allocates 12 GB on valid, machine-generated,
+industry-standard RTL is not a slow parse a faster machine hides — downstream it is an OOM. It had
+been sitting inside the population the burn-down treats as EXPLAINED, and the word "timeout" was
+doing work it had not earned. With the fix the class is empty and those rows adjudicate on their real
+merits, while `unexplained` holds at 293 — the honest signal that nothing was laundered.
+
+**And the fix refuted one of our own live documents.** `.3.27` raised the SV memory-guard guidance to
+`>= 16384 MB` on the strength of the 12 GB measurement, and `stimuli/run_external_corpus.sh` carried
+that reasoning in its header. The full run now peaks at 4 756 MB and finishes in 71 s. A guidance
+note justified by a defect has to be revisited when the defect dies, or it silently becomes folklore;
+the header is corrected with its history kept, since the larger budget is still harmless headroom.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0195 — the aggregate counter that pointed the investigation away from the cause, and the 663 rules that are not memoized at all
 
 `-0194` closed with one open question, deliberately named so it would not be re-derived: why does

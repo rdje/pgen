@@ -6778,6 +6778,93 @@ why the doctrine says re-measure rather than reason.
   - **REPRODUCER, now scripted:** `docs/tasks/artifacts/sv_corpus_grad/gen_if_else_chain.py N {ident|lit} OUT.sv`.
     Confirmed on the release probe: n=12/14/16 → **114 / 349 / 1314 MB**, `~1.94×` per added branch.
 
+  ### `.11a` — ✅ **FIXED 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0197`), tier-1 declarative, ONE annotation**
+
+  The fix is `@branch_policy: ordered` on `conditional_else_branch` (`grammars/systemverilog.ebnf`),
+  plus the comment explaining why it is load-bearing. **No Rust, no engine change, no other rule.**
+  The exponential is not merely reduced — it is **gone**: peak RSS is now FLAT in chain depth.
+
+  | | n=12 | n=14 | n=16 | `xbar_main.sv` (earlgrey) |
+  |---|---|---|---|---|
+  | **before** | 114 MB / 0.41 s | 348 MB / 1.61 s | 1313 MB / 6.59 s | **12 362 MB / TIMEOUT at 60 s** |
+  | **after** | **27 MB / 0.01 s** | **29 MB / 0.01 s** | **29 MB / 0.01 s** | **118 MB / 0.13 s, PASSES** |
+
+  All **4** tracked `timeout` rows now PASS (≤ 203 MB, ≤ 0.21 s). Choice-site entries collapse from
+  `2ⁿ − 1` (15/31/63) to exactly **n** (4/5/6), and total parse entries — 38 820 / 56 001 / 85 566
+  before — become **28 284 / 33 181 / 38 078**, i.e. **exactly linear** (+4 897 per added branch).
+
+  #### Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — `/usr/bin/time -l` on the scripted reproducer: n=16 → `1313 MB`,
+    `6.59s`; and the four corpus rows adjudicated `divergence:explained_timeout`, of which
+    `xbar_main.sv` alone peaked at `12362514432 maximum resident set size` before the 60 s deadline.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — two measured halves, both banked above.
+    **(i) The site:** `conditional_else_branch` (`systemverilog.ebnf:1491`) has LANGUAGE-OVERLAPPING
+    arms — `--trace-rules conditional_else_branch` at `PGEN_TRACE_VERBOSITY=debug` shows both arms
+    live and winning at different levels (`🏁 … selected branch 1/2 consuming 109/187/265 chars`,
+    `branch 2/2 consuming 31 chars`), and the entry counters put it at exactly `2ⁿ − 1` (`-0194`).
+    **(ii) Why packrat does not absorb it:** `--dump-rule-outcome-counts-json`, split per memo path
+    by the `-0195` census, gives `0` success replays against 381 inserts / 342 stale-tainted
+    evictions at n=6. ⇒ each level re-parses the whole remaining chain: `T(k) = 2·T(k−1)`.
+    Cross-checked with `--lint-grammar` (`ordered_choice_shadowing=0` — the arms overlap in the
+    LANGUAGE, which no static shadowing check can see, and that is exactly why it needed measuring).
+  - [x] **FIX** — tier **1 (declarative)** of the fix hierarchy: one `@branch_policy: ordered`
+    annotation. Tier 2 (grammar restructuring) is unnecessary and tier 3 (engine) was ELIMINATED from
+    this leaf and routed to `.11d`. ⛔ `priority_first` — this file's other 29 uses — would NOT work:
+    it still runs the full tournament.
+  - [x] **ADDRESSED (verified)** — `/usr/bin/time -l`, release probe: n=16 **1313 MB → 29 MB (45×)**
+    and **6.59 s → 0.01 s**; `xbar_main.sv` **12 362 MB / TIMEOUT → 118 MB / 0.13 s**; all 4 timeout
+    rows PASS. `--dump-rule-entry-counts-json`: choice site `2ⁿ − 1 → n`, totals now exactly linear.
+    Corpus-wide, `timeout=4 → timeout=0` and the whole 16 336-file run drops to **71 s at 4 756 MB
+    peak** (was 12 468 MB).
+  - [x] **NO REGRESSION** — every named oracle re-run and green:
+    **(a)** external corpus `sv_2017`, 16 336 files: the ONLY transitions are **4 × timeout→pass**,
+    **0 pass→non-pass**, fail set byte-identical `6586 → 6586`;
+    **(b)** external corpus `verilog_2005`, 2 459 files: **byte-identical verdicts, 0 transitions**;
+    **(c)** adjudication `unexplained` held at **293** (no false improvement) while
+    `divergence:explained_timeout` retired 4 → **0**;
+    **(d)** `sv_cert_recognized_union_gate`: `union UNKNOWN=0`, `canonical UNKNOWN=11`,
+    `residual=[]`, `sample_parse_failures=0`, deterministic across **seeds 0/7/42**, all equal to the
+    pinned expected values;
+    **(e)** `ast_shape_contract_gate` **18/18 GREEN**; `systemverilog_parser_book_gate` GREEN;
+    **(f)** `GENERATED-CLIPPY-CORRECTNESS: ✅ PASS — 0 clippy::correctness findings` across 10+1
+    generated artifacts under 68 pinned lints;
+    **(g)** `--lint-grammar`: `ordered_choice_shadowing=0`, `unreachable_rules=0`,
+    `non_terminating=0`, `undefined_references=0` — and the shadowing verdict is **newly meaningful
+    here**, since it fires ONLY under `@branch_policy: ordered`.
+  - [x] **LOCKSTEP** — grammar comment; this leaf; `.11`'s timeout tripwire + the `.3.27` memory-guard
+    guidance corrected (below); the promoted corpus oracle + re-adjudicated manifest;
+    `TOOLBOX.md`/book/`CHANGES.md`/`DEVELOPMENT_NOTES.md`/`MEMORY.md`.
+
+  ⭐⭐ **ACCEPTANCE NEUTRALITY IS PROVEN AT THE CHOICE SITE ITSELF, not only corpus-wide.** Protocol D
+  under `ordered` reproduces `-0194`'s `longest_match` trace **byte-for-byte**:
+  `🏁 Rule 'conditional_else_branch' selected branch 1/2 consuming 109 / 187 / 265 chars` at the outer
+  levels and `branch 2/2 consuming 31 chars` at the terminal `else`. ⇒ `ordered` selects **exactly
+  what the tournament selected**; it just stops exploring the loser. The AST is unchanged (n=4 →
+  3 × `elseif` + 1 × `else`). That is the strongest form of the neutrality argument the leaf owed:
+  the two policies differ only where arms TIE, and here the tie is won by the same arm either way.
+
+  ⛔ **ROUTED FINDING (hit while landing this leaf, NOT worked — lane lock): the TASK-ACCEPTANCE
+  signature family is missing a documented instrument.** `DIAGNOSIS_SIG` in
+  `scripts/check_diagnosis_evidence.sh:323` accepts `--dump-rule-call-counts` and
+  `--dump-rule-outcome-counts` but **not `--dump-rule-entry-counts`** — even though that flag is a
+  first-class TOOLBOX entry (3.4), is deterministic and re-runnable, and is the instrument that
+  produced this leaf's `2ⁿ − 1` and its `→ n` refutation. A ROOT CAUSE box backed ONLY by it is
+  rejected as unbacked, which is the exact "gate reports a missing capability" shape
+  ([[project_waiver_is_a_gate_bug_report]]). ⇒ **no waiver was needed here** (the box legitimately
+  cites `--trace-rules` and `--dump-rule-outcome-counts-json`, the instruments that actually decided
+  each half), so this is filed, not worked. Owner: `GENERATED-LINT-CORRECTNESS.8`, which already owns
+  the signature-vocabulary defect class. ⚠️ Price the token against the whole corpus before adding
+  it — `.4`'s chartered hypothesis would have admitted 2 of 304 boxes.
+
+  ⛔ **TWO PRIOR STATEMENTS IN THIS TREE ARE NOW OBSOLETE — correcting forward rather than editing
+  them away.** (1) `.11`'s standing tripwire says these four rows' adjudication *"depends on the
+  runner's timeout argument and on which binary ran"*. It no longer does: they pass in 0.03–0.21 s,
+  which no plausible budget cuts. (2) `.3.27` raised the SV memory-guard guidance to **≥ 16384 MB**
+  because one file needed 12 GB, and `stimuli/run_external_corpus.sh`'s header still carries that
+  reasoning. The measured tree peak is now **4 756 MB**, so the README's example `--budget-mb 12288`
+  is sufficient again — the guidance is corrected in the runner header in this commit, with the
+  history kept.
+
   ⛔ These four are also a standing tripwire for this campaign: they are the only
   rows whose adjudication class depends on the runner's timeout argument and on
   which binary ran, so a future slowdown would read as a corpus regression that is

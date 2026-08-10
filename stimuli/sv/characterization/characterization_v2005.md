@@ -15,11 +15,45 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `b58867d8bb5289681121cd3703e25d44f724c8ff92845bbd10fdb64c6994fc8a` |
-| grammar | `grammars/systemverilog.ebnf` | `50aaf3884edbec3846e6584f35305c822c56430b775efda2b92a2510d2e84ae0` |
-| generated parser | `generated/systemverilog_parser.rs` | `faab54408864147e0df083163c8cb382259f1d830fa5c4b136b128dd06a64f02` |
+| parse binary | `rust/target/release/parseability_probe` | `4271a0c924b0bd304a6d6f3fe73d8c43d564478cd7e4540659a7a86b9d14a902` |
+| grammar | `grammars/systemverilog.ebnf` | `2a1a92f597f3baaf3c93350b947832a1dfaee4692c9f166b3d323bffd2a4d5fd` |
+| generated parser | `generated/systemverilog_parser.rs` | `c7f96a67f125740a5d517d26c7fabf273e59080fb7519b1e8e0ef4cad58ad4c6` |
 
-Measured at `HEAD` = `cd4f877a+dirty` (2026-08-09).
+Measured at `HEAD` = `3acdee5c+dirty` (2026-08-10).
+
+## Measurement parameters (BINDING — the next run is held to them)
+
+> These four values are re-read from this report by `stimuli/run_external_corpus.sh` on
+> every later run: an omitted argument is **adopted** from the row below, and a supplied
+> argument that **differs** is **refused** (exit 5) unless `PGEN_CORPUS_REBASELINE=1`.
+> Before `SV-CORPUS-GRAD.3.27` this block was write-only, so the documented bare
+> invocation re-measured the whole corpus under a slower binary at a tighter deadline and
+> published over the artifact without a word.
+
+| parameter | value | source for this run |
+|---|---|---|
+| per-file timeout | 60 s | provenance |
+| parallel jobs | 8 | provenance |
+| max files | 0 (no cap) | provenance |
+| parse binary | `rust/target/release/parseability_probe` | provenance |
+
+## Deadline proximity and serial re-confirmation
+
+> A timeout is a statement about the machine as much as about the parser. Every
+> `timeout` row is re-run **alone** at the same deadline before it is recorded, and the
+> population sitting within 2x of the deadline is published so the flip-risk set is a
+> known number. Per-file durations: `stimuli/sv/characterization/durations_v2005.tsv`.
+
+| population | files |
+|---|---|
+| `timeout` after serial re-confirmation | 0 |
+| timeouts seen in the parallel pass | 0 |
+| re-confirmed serially | 0 |
+| reclassified by re-confirmation (contention, not the parser) | 0 |
+| **not** re-confirmed (cap `64`) | 0 |
+| completed within 2x of the 60s deadline | 0 |
+
+Slowest completing file: `0.52` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 
@@ -35,4 +69,7 @@ Measured at `HEAD` = `cd4f877a+dirty` (2026-08-09).
 | iverilog | 1762 | 1584 | 178 | 0 | 0 | 89.9% |
 | sv2v | 341 | 281 | 60 | 0 | 0 | 82.4% |
 
-_Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv`._
+_Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv` (3 columns: sub-corpus, status,
+repo-root-relative path — a stable contract three consumers unpack positionally)._
+_Per-file durations: `stimuli/sv/characterization/durations_v2005.tsv` (the same rows plus a 4th wall-seconds column)._
+_Both are sorted by (sub-corpus, path), so two runs are directly diffable._

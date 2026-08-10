@@ -40,13 +40,18 @@
 #                                         truncation is REPORTED, never silent). Set 0 to skip the
 #                                         pass entirely — the artifact then says so out loud.
 #
-# ⚠️ MEMORY BUDGET — the SV corpus needs more than the README's example 12288 MB. Measured
-# 2026-08-10 with `/usr/bin/time -l`: a SINGLE release-binary parse of
-# `stimuli/sv/subs/opentitan/hw/top_earlgrey/ip/xbar_main/rtl/autogen/xbar_main.sv` peaks at
-# **12 362 MB** before the 60 s deadline cuts it (the super-linear backtracking `.11a` owns).
-# That is the whole example budget in one process, so `run_with_memory_guard.sh --budget-mb 12288`
-# kills the run — and it was already grazing (measured peak 12 468 MB) before the serial
-# re-confirmation pass existed. Use **>= 16384** for `sv`.
+# ✅ MEMORY BUDGET — RESOLVED 2026-08-10 by SV-CORPUS-GRAD.11a (`PGEN-SV-CORPUS-GRAD-0197`); the
+# README's example 12288 MB is sufficient again. Measured tree peak for a full `sv` run is now
+# **4 756 MB** (16 336 files in 71 s, timeout=0).
+#
+# The history, kept because it explains why a larger budget is still a safe choice: until `.11a`
+# landed, a SINGLE release-binary parse of
+# `stimuli/sv/subs/opentitan/hw/top_earlgrey/ip/xbar_main/rtl/autogen/xbar_main.sv` peaked at
+# **12 362 MB** before the 60 s deadline cut it — the whole example budget in one process, so
+# `--budget-mb 12288` killed the run (measured tree peak 12 468 MB) and `.3.27` raised the guidance
+# to >= 16384. The cause was an O(2^n) `if/else if` blowup at `conditional_else_branch`, fixed by one
+# `@branch_policy: ordered` annotation; that file now parses in **0.13 s at 118 MB**. Nothing here
+# depends on the larger budget any more, but >= 16384 remains harmless headroom.
 set -uo pipefail
 
 # LC_ALL=C is load-bearing twice: `sort` must be locale-independent for the artifact to be

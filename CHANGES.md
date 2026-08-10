@@ -1,5 +1,36 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0197 — `.11a` FIXED: the O(2ⁿ) `if/else if` blowup is gone, killed by ONE declarative annotation (leaf `SV-CORPUS-GRAD.11a`, grammar + corpus oracle, ZERO Rust bytes)
+
+- **THE FIX.** `@branch_policy: ordered` on `conditional_else_branch` — tier 1 of the fix hierarchy,
+  one annotation plus the comment saying why it is load-bearing. No Rust, no engine change.
+- **MEMORY IS NOW FLAT IN CHAIN DEPTH** (`/usr/bin/time -l`, release probe): n=12/14/16 were
+  114 / 348 / **1313 MB** → **27 / 29 / 29 MB**, and 0.41 / 1.61 / 6.59 s → **0.01 s** throughout.
+- **THE FOUR 12 GB CORPUS ROWS ALL PASS.** `xbar_main.sv` was **12 362 MB / TIMEOUT at 60 s**; it is
+  now **118 MB / 0.13 s**. All 4 tracked `timeout` rows PASS at ≤ 203 MB, ≤ 0.21 s.
+- **STRUCTURAL PROOF** (`--dump-rule-entry-counts-json`): choice-site entries collapse from `2ⁿ − 1`
+  (15/31/63) to exactly **n** (4/5/6); total parse entries 38 820/56 001/85 566 → 28 284/33 181/38 078,
+  i.e. **exactly linear** (+4 897 per added branch).
+- ⭐⭐ **ACCEPTANCE NEUTRALITY PROVEN AT THE CHOICE SITE, not just corpus-wide.** Protocol D under
+  `ordered` reproduces the `longest_match` trace **byte-for-byte** — `selected branch 1/2 consuming
+  109/187/265 chars` outer, `branch 2/2 consuming 31 chars` terminal. `ordered` picks exactly what the
+  tournament picked; it only stops exploring the loser. AST unchanged.
+- **NO REGRESSION, every named oracle re-run:** external corpus `sv_2017` 16 336 files — only
+  **4 × timeout→pass**, **0 pass→non-pass**, fail set byte-identical `6586 → 6586`; `verilog_2005`
+  2 459 files **byte-identical**; `sv_cert_recognized_union_gate` union `UNKNOWN=0` deterministic
+  across **seeds 0/7/42**; `ast_shape_contract_gate` 18/18; SV book gate GREEN;
+  `GENERATED-CLIPPY-CORRECTNESS: ✅ PASS — 0 findings`; `--lint-grammar` `ordered_choice_shadowing=0`.
+- ⛔ **A DEFECT LEFT THE "EXPLAINED" BUCKET.** The 4 rows were adjudicated
+  `divergence:explained_timeout` — a 12 GB unbounded-allocation defect inside the population the
+  burn-down treats as explained. The corpus oracle and manifest are re-measured and promoted: that
+  class is now **empty (4 → 0)** and the rows reclassify on their real merits, while
+  `unexplained` holds at **293** (no regression, and no false improvement either).
+- **A LIVE-DOC CLAIM MY OWN FIX REFUTED, corrected in the same commit:** `.3.27` had raised the SV
+  memory-guard guidance to `>= 16384 MB` because one file needed 12 GB. The measured tree peak is now
+  **4 756 MB** (full run in **71 s**), so the README's example `--budget-mb 12288` is sufficient
+  again; `stimuli/run_external_corpus.sh`'s header is updated with the history kept.
+- **Lesson promoted:** `docs/knowledge/two-arms-that-derive-the-same-text-make-a-rule-exponential.md`.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0195 — `.11a`'s open question is ANSWERED: the memo is not serving the chain AT ALL, and `-0194`'s "the memo already collapses it" was a fused counter misread (leaf `SV-CORPUS-GRAD.11a` + new `.11d`, instrument + docs, ZERO Rust/grammar bytes)
 
 - **THE ANSWER.** `statement_or_null` takes 0 memo hits over 223 entries because **every successful
