@@ -116,6 +116,49 @@ of it. That is exactly why it must be gated now rather than remembered.
   column-0 one was — by an author writing a legal-looking construct and the IR disagreeing.
   Same class (*the frontend reads something other than what the file says*), different
   mechanism, so it is a sibling leaf rather than part of `.2`.
+
+- ⭐⭐ **UPGRADED 2026-08-10 (director challenge: *"an inline return annotation inside a
+  parenthesized group?"*) — THE CONSTRUCT IS LEGAL BY THE PROJECT'S OWN SPEC, so this is a
+  frontend ⟷ meta-grammar DIVERGENCE, not an author error.** The first write-up left that open;
+  the question forced the check, and the check inverted the reading. Two independent confirmations:
+
+  **(i) The meta-grammar declares it.** `grammars/ebnf.ebnf` derives the construct in three hops:
+  ```ebnf
+  grouped_expression := "(" rule_expression ")"          # :316
+  rule_expression    := alternation                      # :124
+  alternation        := sequence (return_annotation? "|" sequence)*   # :134
+  ```
+  A group contains a full `alternation`, and `alternation` admits a **per-branch `->` before each
+  `|`** (added deliberately — the comment at `:127`–`:133` says so, mirroring
+  `ebnf_frontend.rs`'s own inline-at-`->` placement). ⇒ `( b -> {…} | c )` is spec-legal.
+
+  **(ii) The parser GENERATED from that meta-grammar reads it correctly** — measured, not
+  inferred, via the 1.9 envelope driver
+  (`ebnf_dual_run_diff --input <synthetic> --emit-ast-json arm2.json`):
+  ```json
+  {"type":"grouped","expression":{"type":"alternation","alternatives":[
+     {"type":"sequence","elements":[{"type":"non_terminal","name":{"name":"b"}}]},
+     [{"type":"return_annotation","expression":{"type":"object_return", …"bee"…}},"|",
+      {"type":"sequence","elements":[{"type":"non_terminal","name":{"name":"c"}}]}]]}}
+  ```
+  **`quantified` node count: 0.** Arm 2 builds a `return_annotation`; arm 1 (the hand-written
+  `pgen::ebnf_frontend`, which is what actually reads every grammar today) builds
+  `Quantified{element: b, quantifier: "kind: \"bee\""}`.
+
+- ⛔ **Honest bound on legality — the LAST branch of a group is a separate question.**
+  `alternation` places `return_annotation?` **before** the `|`, and neither `grouped_expression`
+  nor `rule_expression` carries a trailing annotation slot; only `rule_definition` (`:104`) does.
+  So inside a group, a `->` on a **non-last** branch is derivable and a `->` on the **last** branch
+  is not. The synthetic above deliberately exercises the *non-last* (legal) position, so the
+  divergence is proven on ground the spec unambiguously grants. The SV edit that surfaced this
+  used both positions, which is why it is not itself the clean witness.
+
+- ⚠️ **Why the existing `.1.9` envelope differential did not already catch it.** `ebnf` is one of
+  the 6 ENVELOPE-EQUIVALENT grammars (913/913 token positions). That number is over the **shipped**
+  grammars, and **not one of them uses a per-branch `->` inside a group** — so the differential is
+  green and blind simultaneously. The instrument is sound; its corpus does not reach here. ⇒ the
+  regression proof for this leaf must be a **synthetic** case added to the differential's inputs,
+  not a re-run over `grammars/`.
 - **MEASURED — reproduced on a 5-rule synthetic, so it is FAMILY-NEUTRAL, not an SV artifact**
   (the `ROUTING-EVIDENCE` question, answered before routing). Grammar:
 
@@ -145,11 +188,19 @@ of it. That is exactly why it must be gated now rather than remembered.
   3. it is therefore a **latent trap for BOUNDED-QUANT-class work** — TOOLBOX §1.7 records the
      same `Unknown quantifier` message arising from a *real* quantifier-decoding half-wire, so
      the two causes are indistinguishable from the message alone.
-- **The decision to make first (same shape as `.2`):** is an inline `->` inside a group
-  *intended* to be legal (annotate one alternative of an anonymous group) or not? If **not**,
-  the frontend must REJECT it with a located error naming the construct; if **yes**, it must
-  parse as an annotation. ⛔ What it must not keep doing is silently reinterpret it as a
-  different syntactic category.
+- **The decision is now narrower than the first write-up assumed.** *Is it legal?* is answered for
+  the non-last branch — the meta-grammar derives it and the generated meta-parser builds it — so
+  the frontend must **parse it as an annotation** there, not reject it. Two questions remain:
+  1. **The last branch inside a group** (`( a -> {…} | b -> {…} )`) is currently underivable. Do
+     we extend `grouped_expression` with a trailing `return_annotation?`, or is the trailing
+     position deliberately reserved to `rule_definition`? Whichever is chosen, write it down as a
+     rule of the dialect (`.3`) — the current state is implicit in two disagreeing parsers.
+  2. **Which frontend is the spec?** `EBNF-SOURCE-OF-TRUTH` says the EBNF is the single source of
+     truth; here the *meta-grammar* and the *hand-written reader of it* disagree, and the
+     hand-written one wins by default because it is what runs. That is the general defect behind
+     this leaf, and it is bigger than one construct.
+  ⛔ What must not continue in any case is silently reinterpreting the construct as a **different
+  syntactic category** (a quantifier) rather than parsing or refusing it.
 - **Workaround until fixed** (used by `SV-CORPUS-GRAD.3.25`, and worth documenting in `.3`):
   lift the group to a **named rule** and annotate its alternatives there.
 

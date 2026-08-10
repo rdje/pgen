@@ -4678,6 +4678,13 @@ reasons having nothing to do with the parser
   on both the synthetic and the full SV grammar (exit 1), so no wrong parser can ship; the
   defect is that `--lint-grammar` passes it and the message names a quantifier nobody wrote.
   Worked around here by lifting the group to the named rule `queue_slice_dollar_offset`.
+  ⭐ **UPGRADED 2026-08-10 on a director challenge — the construct is LEGAL by the project's own
+  spec**, so this is a frontend ⟷ meta-grammar divergence rather than an author error:
+  `grouped_expression → rule_expression → alternation`, and `alternation` admits a per-branch
+  `->` before each `|` (`grammars/ebnf.ebnf:316/:124/:134`). Confirmed against the real
+  meta-parser with the 1.9 envelope driver — arm 2 builds a proper `return_annotation` inside a
+  `grouped` node with **0** `quantified` nodes, while arm 1 builds the bogus quantifier. Full
+  evidence + the honest last-branch bound in that leaf.
 - **→ `.3.26`** (SV, same family, so the reproduces-outside question does not arise). The
   `{}` / `'{}` empty-concat inversion; measured evidence in that leaf.
 - **→ `.3.27`** (the corpus RUNNER, not SV). The runner's defaults (20 s / debug probe) differ

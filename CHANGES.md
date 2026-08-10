@@ -1,5 +1,36 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-EBNF-FRONTEND-0001 — leaf EBNF-FRONTEND-SILENT-TRUNCATION.4 evidence UPGRADE: the mis-read construct is LEGAL by the project's own meta-grammar (docs only, ZERO code bytes)
+
+- **THE CORRECTION.** `-0046` routed this as "an inline `->` annotation inside a parenthesized
+  group is re-read as that element's QUANTIFIER", leaving open whether the construct was legal at
+  all. A director challenge — *"an inline return annotation inside a parenthesized group?"* —
+  forced the check, and the check **inverted the reading**: it is not an author error, it is a
+  **frontend ⟷ meta-grammar divergence**.
+- **(i) The spec derives it.** `grammars/ebnf.ebnf`: `grouped_expression := "(" rule_expression
+  ")"` (`:316`) → `rule_expression := alternation` (`:124`) → `alternation := sequence
+  (return_annotation? "|" sequence)*` (`:134`). The per-branch `->` before a `|` was added
+  deliberately (see the `:127`–`:133` comment). ⇒ `( b -> {…} | c )` is spec-legal.
+- **(ii) The parser GENERATED from that spec reads it correctly** — measured with the TOOLBOX §1.9
+  envelope driver (`ebnf_dual_run_diff … --emit-ast-json`): arm 2 emits
+  `grouped → alternation → return_annotation` with **0** `quantified` nodes, while arm 1 (the
+  hand-written `pgen::ebnf_frontend`, which is what actually reads every grammar) emits
+  `Quantified{element: b, quantifier: "kind: \"bee\""}`.
+- ⛔ **Honest bound recorded:** only the **non-last** branch inside a group is derivable —
+  `alternation` puts `return_annotation?` *before* the `|`, and neither `grouped_expression` nor
+  `rule_expression` carries a trailing slot (only `rule_definition` does). The synthetic witness
+  deliberately exercises the legal position.
+- ⚠️ **Why the existing envelope differential was green AND blind:** `ebnf` is ENVELOPE-EQUIVALENT
+  at 913/913 token positions — over the SHIPPED grammars, none of which uses a per-branch `->`
+  inside a group. The instrument is sound; its corpus does not reach here. ⇒ the regression proof
+  must be a SYNTHETIC input added to the differential, not a re-run over `grammars/`.
+- **The leaf's open decision narrowed accordingly:** "is it legal?" is settled for the non-last
+  branch (the frontend must parse it, not reject it); what remains is (1) whether a trailing
+  annotation inside a group should be added to the dialect, and (2) the general question this
+  exposes — when the meta-grammar and its hand-written reader disagree, `EBNF-SOURCE-OF-TRUTH`
+  says the EBNF wins, but the hand-written reader wins by default because it is what runs.
+- No code changed; the `-0046` grammar comment already points at this leaf and remains accurate.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0046 — leaf SV-CORPUS-GRAD.3.25 DONE: the queue-slice `q[a:$]` bound parses (IEEE 1800-2017 A.8.4 **footnote 42**), `unexplained_rejects_valid` 284 → 277 (grammar-only, ZERO Rust bytes)
 
 - **THE DEFECT:** `q = q[1:$]` — written five times in IEEE 1800-2017 §7.10.4's own normative
