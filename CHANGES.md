@@ -1,5 +1,38 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0191 — `'{ }` is modelled where it belongs: an `assignment_pattern` with an EMPTY element list (leaf `SV-CORPUS-GRAD.3.26c`, grammar-only, ZERO Rust bytes)
+
+- **DIRECTOR:** *"which means that the inside of `'{...}` can be empty. this need to be properly
+  capture in the EBNF."* `.3.26` had grafted a `tick lbrace rbrace` arm onto
+  `empty_unpacked_array_concatenation`, which was expedient and **structurally wrong**: `'{ }` is not
+  a concatenation. §11.4.12 calls `'{ }` the delimiter of a structure/array **literal** and Annex M
+  names the operator `vpiAssignmentPatternOp`, so the empty case is the degenerate
+  **assignment pattern**.
+- **THE CHANGE** — `assignment_pattern` gains a 5th alternative
+  `@sample: "'{}" tick lbrace rbrace -> {exprs: []}`; `empty_unpacked_array_concatenation` returns to
+  **pure A.8.1** (`lbrace rbrace` only). Net acceptance identical; the model corrected.
+- ⭐ **THE AST IS THE POINT.** `'{}` previously emitted `{kind: "empty_unpacked_array_concat"}` — a
+  node no assignment-pattern consumer looks for. It now emits the **same structure as every other
+  assignment pattern**, differing only in the element list: `'{}` → `{pattern: {exprs: []}, type: []}`
+  under `kind: "assign_pattern"`, versus `'{0, 1}` → `{pattern: {exprs: […]}, …}`. A Nexsim-side
+  consumer gets the natural degenerate case instead of a special case. `{}` still emits
+  `empty_unpacked_array_concat` — that one really is A.8.1.
+- **Reachability checked BEFORE the move:** `assignment_pattern_expression` is referenced at every
+  site `empty_unpacked_array_concatenation` is — `primary` (`:3237`/`:3254`), `constant_primary` via
+  `constant_assignment_pattern_expression` (`:1479`→`:1542`/`:1580`), and the two lvalue sites.
+- **VERIFIED.** `--lint-grammar` exit 0 (1481 rules, all error classes 0); `--dump-gen-ast` confirms
+  `assignment_pattern` = Or/**5** alts + 5 branch annotations and `empty_unpacked_array_concatenation`
+  = single sequence (no silent truncation); `{}`, `'{}`, uvm `return '{};` and `'{0, 1}` all PASS on
+  **both** debug and release probes.
+- **NO REGRESSION, measured not argued.** Cert coverage unmoved at seeds 0/7/42
+  (`total=1358 proof=17 witness=1341 UNKNOWN=0`); `sv_cert_recognized_union_gate` PASS at its pinned
+  values (**no re-baseline** — one alternative moved between two existing rules, no rule added);
+  `ast_shape_contract_gate` 18/18 (⚠️ construct not pinned — the shape change is real and measured
+  separately); `generated_clippy_correctness_gate` 0 findings. ⭐ **Full corpus re-measured: pass
+  9746 / fail 6586 / timeout 4 / crash 0 — identical; `adjudication_manifest.tsv` has ZERO diff**
+  across all 16 336 rows; burn-down `unexplained=293` unchanged. `characterization.md` moves only the
+  three instrument hashes and one 0.13 s timing.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0187 — the empty unpacked array concatenation was wrong in BOTH directions at once; the LRM form now parses (leaf `SV-CORPUS-GRAD.3.26`, grammar-only, ZERO Rust bytes)
 
 - **THE DEFECT.** `empty_unpacked_array_concatenation := tick lbrace rbrace` **rejected `{}`**, which

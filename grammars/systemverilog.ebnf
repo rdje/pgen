@@ -730,6 +730,8 @@ assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expressi
                     | @sample: "'{x: 0}" tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace
                     | @sample: "'{1: 0}" tick lbrace array_pattern_key colon expression ( comma array_pattern_key colon expression )* rbrace
                     | @sample: "'{2{0, 1}}" tick lbrace constant_expression lbrace expression ( comma expression )* rbrace rbrace
+                    | @sample: "'{}" tick lbrace rbrace
+                   -> {exprs: []}
 
 assignment_pattern_expression := ( assignment_pattern_expression_type )? assignment_pattern
                               -> {type: $1, pattern: $2}
@@ -2234,7 +2236,21 @@ elaboration_system_task := elaboration_system_task_sv_2017
 # and reads `{ }`. Because its motivating input (uvm's `return '{};`) genuinely uses
 # the apostrophe form, the citation error reproduced as a SUCCESS and went unread.
 #
-# `tick lbrace rbrace` is LEGAL SV and this arm is CORRECT — ⛔ do not delete it.
+# ⭐ THIS RULE IS NOW PURE A.8.1 — the bare-brace form ONLY. The apostrophe form `'{ }`
+# is LEGAL SV (see below) but it is NOT this production: it is an `assignment_pattern`
+# whose ELEMENT LIST IS EMPTY, and it is modelled there (director 2026-08-10:
+# *"the inside of '{...} can be empty. this need to be properly capture in the EBNF"*).
+# SV-CORPUS-GRAD.3.26c moved it. Modelling it here as a second arm was expedient and
+# wrong: it made `'{}` a kind of *concatenation* when the standard's own notation
+# (§11.4.12) calls `'{ }` the delimiter of a structure/array LITERAL, and it gave the
+# empty case an AST node no assignment-pattern consumer would look for.
+#
+# ⛔ DO NOT re-add a `tick lbrace rbrace` arm here. `'{}` acceptance is preserved via
+# assignment_pattern -> assignment_pattern_expression, reachable at every site this
+# rule is (primary, constant_primary via constant_assignment_pattern_expression, and
+# the two lvalue sites) — verified by parse before the move.
+#
+# The apostrophe form is LEGAL and must keep parsing — ⛔ do not "fix" it away.
 # Annex A's four assignment_pattern alternatives each require >= 1 expression, so the
 # PRODUCTIONS do not derive `'{ }`. That is an ANNEX GAP, not a prohibition, and this
 # grammar has two other measured instances of the same class (`q[a:$]` licensed by
@@ -2259,9 +2275,7 @@ elaboration_system_task := elaboration_system_task_sv_2017
 # ⛔ Comments stay OUTSIDE the rule body: a column-0 comment between alternatives
 # DELETES the alternatives that follow it (project_standing_tripwires).
 empty_unpacked_array_concatenation := lbrace rbrace
-                                        -> {kind: "empty_unpacked_array_concat"}
-                                   | tick lbrace rbrace
-                                        -> {kind: "empty_unpacked_array_concat"}
+                                   -> {kind: "empty_unpacked_array_concat"}
 
 enable_gate_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma enable_terminal rparen
                      -> {name: $1, output: $3, input: $5, enable: $7}

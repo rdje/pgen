@@ -5241,6 +5241,80 @@ made the difference, and how far it sat from the edge."*
   `a-mis-cited-production-reproduces-as-a-success.md`, and `LRM-GRAMMAR-FIDELITY.1c` (whose worked
   example was `'{}` and must be re-based on a genuine over-acceptance row).
 
+##### `.3.26c` — ⭐ MODEL IT WHERE IT BELONGS: `'{ }` is an `assignment_pattern` with an EMPTY element list, not an "empty concatenation with an apostrophe" (director 2026-08-10)
+
+- **Status: `done` 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0191`), grammar-only, ZERO Rust bytes.**
+- **DIRECTOR:** *"which means that the inside of `'{...}` can be empty. this need to be properly
+  capture in the EBNF."* ⇒ `.3.26`'s two-arm `empty_unpacked_array_concatenation` was expedient and
+  **structurally wrong**. `'{ }` is not a concatenation: §11.4.12 calls `'{ }` the delimiter of a
+  structure/array **literal**, and Annex M names the operator `vpiAssignmentPatternOp`. The empty
+  case is the degenerate `assignment_pattern`, so it belongs in `assignment_pattern`.
+- **THE CHANGE** — two rules, net acceptance identical, model corrected:
+
+  | rule | before | after |
+  |---|---|---|
+  | `assignment_pattern` | 4 alternatives, each requiring ≥ 1 element | **5** — new `@sample: "'{}" tick lbrace rbrace -> {exprs: []}` |
+  | `empty_unpacked_array_concatenation` | `lbrace rbrace` **\|** `tick lbrace rbrace` | **pure A.8.1**: `lbrace rbrace` only |
+
+- ⭐ **THE AST IS THE REAL DELIVERABLE HERE, and it is now the natural degenerate case.** `'{}`
+  previously emitted `{kind: "empty_unpacked_array_concat"}` — a node no assignment-pattern consumer
+  would look for. It now emits the **same shape as every other assignment pattern**, differing only
+  in the element list. Measured with `--parse-dump-ast`:
+
+  ```
+  '{}       … "kind":"primary" → "kind":"sv_2017" → {"pattern":{"exprs":[]},   "type":[]}, "kind":"assign_pattern"
+  '{0, 1}   … "kind":"primary" → "kind":"sv_2017" → {"pattern":{"exprs":[…]},  "type":[]}, "kind":"assign_pattern"
+  {}        … "kind":"empty_unpacked_array_concat"     (unchanged — this one IS A.8.1)
+  ```
+
+  ⇒ a Nexsim-side consumer walking assignment patterns gets `exprs: []` instead of a special case.
+- **REACHABILITY CHECKED BEFORE MOVING, not after.** `'{}` acceptance now flows through
+  `assignment_pattern → assignment_pattern_expression`, which is referenced at every site
+  `empty_unpacked_array_concatenation` is: `primary` (`:3237`/`:3254`), `constant_primary` via
+  `constant_assignment_pattern_expression` (`:1479`→`:1542`/`:1580`), and the two lvalue sites
+  (`:4381`/`:4443`). No use site loses the form.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — pre-change, `'{}` parsed only via a `tick lbrace rbrace` arm grafted
+  onto the A.8.1 bare-brace rule, so `--parse-dump-ast` on `q = '{};` emitted
+  `{kind: "empty_unpacked_array_concat"}` — a *concatenation* node for a construct the LRM calls a
+  literal, and a shape no `assignment_pattern` consumer handles.
+- [x] **ROOT CAUSE (WHY + WHERE)** — correctness family. **WHERE:** `grammars/systemverilog.ebnf`,
+  `assignment_pattern` (all four alternatives required ≥ 1 element, so the empty case had nowhere
+  legitimate to live) and `empty_unpacked_array_concatenation` (carried the graft). **WHY:** the
+  empty case was modelled by its *delimiters* rather than by *what it is*. `--dump-gen-ast` on the
+  corrected grammar confirms the intent landed and nothing was silently truncated:
+  `assignment_pattern` = **Or with 5 alternatives / 5 branch return annotations** (alt 4 the new
+  empty one), `empty_unpacked_array_concatenation` = **single Sequence / 1 annotation**.
+  `--lint-grammar` **exit 0** (`undefined_references=0`, `ordered_choice_shadowing=0`,
+  `unreachable_rules=0`, `profile_orphans=0`, 1481 rules).
+- [x] **ADDRESSED (verified)** — all four shapes PASS on the rebuilt probe: `q = {};` (A.8.1),
+  `q = '{};` (empty pattern), uvm's `return '{};`, and the non-empty regression `a = '{0, 1};`.
+  AST parity between empty and non-empty patterns shown above.
+- [x] **NO REGRESSION** — cert coverage deterministic and **unmoved** at seeds 0/7/42
+  (`total=1358 proof=17 witness=1341 UNKNOWN=0`); `make sv_cert_recognized_union_gate` **PASSED**
+  reproducing its pinned contract exactly (`canonical_unknown: 11 == expected 11`, `union_unknown: 0`,
+  `union_witness: 1352`, `union_residual_rules: []`, `unmet_criteria_count: 0`) ⇒ **no cert
+  re-baseline needed**, `expected_total=1358` unmoved (no rule added or removed — one alternative
+  moved between two existing rules). `make ast_shape_contract_gate` **18/18 passed** — ⚠️ honest
+  reading: that means the construct is not pinned by the manifest, **not** that the shape is
+  unchanged; the `'{}` shape change is real and was measured directly with `--parse-dump-ast` above.
+  `make generated_clippy_correctness_gate` → **`✅ PASS — 0 clippy::correctness findings`** across
+  10 required + 1 optional generated artifacts.
+  ⭐⭐ **FULL-CORPUS PROOF OF ACCEPTANCE-NEUTRALITY — row level, not just totals.** Re-measured all
+  **16 336** files at the provenance-bound parameters (`.3.27` adopted 60 s / release / 8 jobs
+  automatically; guard `exit=0`, `elapsed=347 s`): **pass 9746 · fail 6586 · timeout 4 · crash 0 —
+  every count identical to the pre-change baseline**, all 4 timeouts serially re-confirmed with 0
+  reclassified. Re-adjudicated: `match=5804 unexplained=293 explained=1463 deferred=8776`
+  (v2005 `match=2186 unexplained=68`) — **unchanged**, and
+  **`adjudication_manifest.tsv` has ZERO diff**, i.e. all 16 336 rows adjudicate identically.
+  `characterization.md` moves only 5 lines: the three instrument hashes (expected — new binary,
+  grammar and generated parser) and one file's wall time `15.37 → 15.24 s` (machine noise).
+  ⇒ the restructure is acceptance-neutral **by measurement**, not merely by argument.
+- [x] **LOCKSTEP** — grammar comments on both rules rewritten to say which production each is and
+  ⛔ not to re-graft the arm; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so
