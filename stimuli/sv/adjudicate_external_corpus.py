@@ -469,7 +469,19 @@ def strip_comments_and_strings(text: str) -> str:
 
 
 def preproc_dependency(raw_text: str):
-    """Return the strongest svpp dependency flag for a file, or ''."""
+    """Return the strongest svpp dependency flag for a file, or ''.
+
+    ⛔ This is a WHOLE-FILE existence test and that is correct for what it is asked
+    below on the `must_reject` path: "could the intended syntax error be hidden until
+    after preprocessing?" is genuinely a question about the whole file, and such a row
+    may not even have a failure position (it can be the one that wrongly ACCEPTS).
+
+    It is NOT sufficient on the `must_accept` path, where the answer is read as the
+    causal claim "this file fails BECAUSE it needs svpp". SV-CORPUS-GRAD.12 measured
+    the gap over all 1 459 labelled rows: the two statements agree 80.2 % of the time
+    and disagree provably for 26. `svpp_can_explain_failure()` below is the positional
+    gate that closes it; see SV-CORPUS-GRAD.12a.
+    """
     text = strip_comments_and_strings(raw_text)
     if PROTECTED_ENVELOPE_RE.search(text):
         return "protected_envelope"
@@ -481,6 +493,107 @@ def preproc_dependency(raw_text: str):
     if COND_RE.search(text):
         return "conditional"
     return ""
+
+
+# ---------------------------------------------------------------------------
+# SV-CORPUS-GRAD.12a — the positional gate on `explained_svpp_*`
+# ---------------------------------------------------------------------------
+# Compiler directives svpp hands through to the parser UNCHANGED.  SVPP-EXPANSION is
+# scoped to three operations - macro substitution, conditional resolution, `include
+# inlining (docs/tasks/SVPP-EXPANSION.md) - so these move no byte, and a parse stopped
+# ON one of them is not waiting for the preprocessor lane at all.  `line and `pragma are
+# deliberately absent: `line is preprocessor-adjacent but not one of the three scoped
+# operations, `pragma protect belongs to the §34 envelope lane, and treating an unclear
+# case as ALTERABLE is the choice that cannot manufacture a false reclassification.
+SVPP_PASSTHROUGH = {
+    "timescale", "default_nettype", "celldefine", "endcelldefine", "resetall",
+    "begin_keywords", "end_keywords", "unconnected_drive", "nounconnected_drive",
+}
+ANY_TICK_RE = re.compile(r"`[A-Za-z_][A-Za-z0-9_$]*")
+
+
+def blank_comments_and_strings(text: str) -> str:
+    """Blank comments/strings IN PLACE - length- and newline-preserving.
+
+    ⛔ Deliberately NOT `strip_comments_and_strings()`, which collapses each match to a
+    single space.  Collapsing is fine for "is there one?" and silently wrong for
+    "where is it?": every offset after the first comment shifts.
+    """
+    def repl(m):
+        return "".join("\n" if ch == "\n" else " " for ch in m.group(0))
+    return COMMENT_STRING_RE.sub(repl, text)
+
+
+def first_alterable_tick(stripped: str):
+    """Byte offset of the first backtick token svpp can ALTER, or None.
+
+    Below this offset a preprocessor's output is byte-identical to its input, so a
+    parse that stops there stops for a reason expansion cannot reach.
+    """
+    for m in ANY_TICK_RE.finditer(stripped):
+        if TICK_RE.match(stripped, m.start()).group(1) not in SVPP_PASSTHROUGH:
+            return m.start()
+    return None
+
+
+def load_positions(path: Path, label: str):
+    """results.tsv column-3 path -> `furthest_position`, from the runner's sidecar.
+
+    Keyed by the RAW column-3 spelling on purpose: the caller re-keys it through the
+    same path->suite-relative mapping it already performs for the results rows, so the
+    two can never disagree about a spelling (the failure mode CORPUS-GRAD-ALL.2.1's
+    absolute->relative switch actually produced).
+
+    Absent file => empty map => `svpp_can_explain_failure()` answers True everywhere
+    and the adjudication is byte-identical to the pre-.12a behaviour.
+    """
+    out = {}
+    if not path.is_file():
+        print(f"adjudicate: no {label} sidecar at {path} - the svpp positional gate "
+              "(SV-CORPUS-GRAD.12a) is INACTIVE for this run; re-run "
+              "stimuli/run_external_corpus.sh to emit it", file=sys.stderr)
+        return out
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        _suite, relpath, pos = line.split("\t")
+        out[relpath] = int(pos)
+    return out
+
+
+def svpp_can_explain_failure(raw_text: str, furthest):
+    """Could running svpp plausibly change THIS parse failure?
+
+    `furthest` is the probe's `furthest_position` - the deepest byte any branch
+    CONSUMED, not the offending token's offset, so the layout gap between the two must
+    be skipped before anything is compared.  Getting this backwards is not theoretical:
+    the first cut of the SV-CORPUS-GRAD.12 audit compared them directly and reported
+    504 of 1 459 rows misclassified, of which the true answer was 26.  See
+    docs/knowledge/a-furthest-position-names-a-region-not-a-token.md.
+
+    Answers True whenever the evidence is absent or undecidable - the gate only ever
+    REMOVES a label it can disprove.
+    """
+    if furthest is None:
+        return True                       # no position banked - keep today's answer
+    stripped = blank_comments_and_strings(raw_text)
+    stuck = None
+    for i in range(min(furthest, len(stripped)), len(stripped)):
+        if not stripped[i].isspace():
+            stuck = i
+            break
+    if stuck is None:
+        return True                       # consumed everything; a resolved `ifdef arm
+                                          # could still supply the missing tail
+    m = TICK_RE.match(stripped, stuck)
+    if m:
+        # Stopped exactly ON a directive: svpp explains it unless it is one svpp
+        # hands straight back.
+        return m.group(1) not in SVPP_PASSTHROUGH
+    first = first_alterable_tick(stripped)
+    if first is None:
+        return False                      # label claims a dependency the file lacks
+    return stuck >= first
 
 
 def expect_sv_tests(relpath: str, text: str):
@@ -2359,6 +2472,15 @@ def main():
     ap.add_argument("--out-summary",
                     default=root / "stimuli/sv/characterization/adjudication_summary.md",
                     type=Path)
+    # SV-CORPUS-GRAD.12a - the per-file `furthest_position` sidecar the runner emits.
+    # OPTIONAL by design: an older tree without it adjudicates exactly as before, and
+    # says so on stderr rather than silently reverting to the whole-file test.
+    ap.add_argument("--positions",
+                    default=root / "stimuli/sv/characterization/positions.tsv",
+                    type=Path)
+    ap.add_argument("--positions-v2005",
+                    default=root / "stimuli/sv/characterization/positions_v2005.tsv",
+                    type=Path)
     # --- the verilog_2005 profile lane (leaf .8c) ---
     ap.add_argument("--out-lane-list",
                     default=root / "stimuli/sv/characterization/v2005_lane_files.tsv",
@@ -2377,6 +2499,8 @@ def main():
                     type=Path)
     args = ap.parse_args()
 
+    raw_positions = load_positions(args.positions, "positions.tsv")
+    positions = {}
     rows = []
     for line in args.results.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -2399,6 +2523,10 @@ def main():
         else:
             raise SystemExit(f"unrecognized results path shape: {path!r}")
         rows.append((suite, rel, observed))
+        # .12a: re-key the sidecar through the SAME path->rel mapping this loop just
+        # performed, so the two spellings cannot drift apart the way the uvm marker did.
+        if path in raw_positions:
+            positions[(suite, rel)] = raw_positions[path]
     rows.sort()
 
     vidx = VerilatorIndex(args.subs_root / "verilator/test_regress/t")
@@ -2462,6 +2590,15 @@ def main():
                       "(svpp lane)")
         if expected != "must_accept":
             dep_flag = ""
+        elif (dep_flag and observed == "fail"
+                and not svpp_can_explain_failure(text, positions.get((suite, rel)))):
+            # SV-CORPUS-GRAD.12a - the file DOES carry a preprocessor construct, but
+            # the parse stops at a point svpp provably cannot reach or alter, so the
+            # dependency is real and irrelevant to THIS failure. Dropping the flag
+            # returns the row to `unexplained_rejects_valid`, where it always belonged.
+            dep_flag = ""
+            basis += (" - .12a: parse stops where svpp cannot alter the text, so the "
+                      "preprocessor dependency does not explain THIS failure")
         verdict = adjudicate(expected, observed, dep_flag)
         manifest.append((suite, rel, observed, expected, verdict, basis))
 
@@ -2540,6 +2677,8 @@ def main():
         return 0
 
     lane_set = set(lane)
+    raw_positions_v2005 = load_positions(args.positions_v2005, "positions_v2005.tsv")
+    positions = {}
     v_rows = []
     for line in args.results_v2005.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -2553,6 +2692,8 @@ def main():
                 f"v2005 results row ({suite}, {rel}) is not a lane member - "
                 "stale results_v2005.tsv vs the current lane derivation")
         v_rows.append((suite, rel, observed))
+        if path in raw_positions_v2005:
+            positions[(suite, rel)] = raw_positions_v2005[path]
     v_rows.sort()
     missing = lane_set - {(s, r) for s, r, _o in v_rows}
     if missing:
@@ -2577,6 +2718,15 @@ def main():
                       "(svpp lane)")
         if expected != "must_accept":
             dep_flag = ""
+        elif (dep_flag and observed == "fail"
+                and not svpp_can_explain_failure(text, positions.get((suite, rel)))):
+            # SV-CORPUS-GRAD.12a - the file DOES carry a preprocessor construct, but
+            # the parse stops at a point svpp provably cannot reach or alter, so the
+            # dependency is real and irrelevant to THIS failure. Dropping the flag
+            # returns the row to `unexplained_rejects_valid`, where it always belonged.
+            dep_flag = ""
+            basis += (" - .12a: parse stops where svpp cannot alter the text, so the "
+                      "preprocessor dependency does not explain THIS failure")
         verdict = adjudicate(expected, observed, dep_flag)
         v_manifest.append((suite, rel, observed, expected, verdict, basis))
 

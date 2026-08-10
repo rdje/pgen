@@ -1,5 +1,51 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0201 — the svpp label is now POSITIONAL: axis 2 293 → 319, exactly the 26 rows `.12` convicted (leaf `SV-CORPUS-GRAD.12a` done, `.12c` opened; runner + adjudicator, ZERO Rust/grammar bytes)
+
+- **THE PRE-COMMITTED NUMBER WAS HIT EXACTLY.** `.12a` published `293 → 319` *before* the port was
+  written, so the re-measure could not be graded on a curve. Result: **`unexplained_rejects_valid`
+  = 319**, exactly **26** rows moved, all one direction, **SET-IDENTICAL** to the 26 `.12` named
+  (20 `macro_use` + 4 `conditional` + 2 `include` — matching `.12`'s per-class table cell for cell).
+- **THE PLUMBING.** `run_external_corpus.sh:parse_one()` CAPTURES the probe's stderr instead of
+  discarding it and extracts `furthest_position` in pure bash. ⛔ Projected into a **third sidecar**
+  `positions.tsv`, never appended to `results.tsv`/`durations.tsv`: the runner's own comment block
+  had already MEASURED why — three consumers hard-unpack exactly three fields and
+  `cluster_rejects_valid.py` silently DROPS any row with `len(cols) != 3`, so a widened
+  `results.tsv` would have emptied the worklist generator without a word.
+- **THE PREDICATE.** `svpp_can_explain_failure()` resolves the layout gap first, then answers False
+  only when it can DISPROVE the label (stopped before the first *alterable* backtick, or stopped ON
+  a passthrough directive). Every undecidable case answers True — the gate only ever removes a label
+  it can refute.
+- ⭐ **THE HALF THE LEAF DID NOT SCOPE, AND IT MATTERED.** `preproc_dependency()` feeds TWO
+  decisions. On the `must_reject` arm it asks *"could the intended syntax error be hidden until
+  after preprocessing?"* — genuinely a whole-file question, on a row that may have no failure
+  position at all (it can be the row that wrongly ACCEPTS). The gate is therefore applied to the
+  `must_accept` arm ONLY; a wholesale positional change would have corrupted the other path
+  silently.
+- ⭐ **THE AGREEMENT IS NOW MECHANICAL.** `audit_explained_svpp.py` no longer restates the svpp
+  reach model — it IMPORTS it from the adjudicator and asserts per row that its rich verdict matches
+  the shipped boolean: **1433/1433 AGREE**. A future edit to either side now fails the audit instead
+  of quietly moving corpus rows. Post-fix audit CLEAN: 1433 rows, **0 disproven**. Before/after
+  banked under `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/{before,after}/`.
+- **`verilog_2005`: gate ACTIVE and BYTE-INERT.** All 173 `explained_svpp_*` rows there were
+  evaluated and **0 moved**; `adjudication_manifest_v2005.tsv` byte-identical. Stated explicitly
+  because a silent byte-identical result usually means "skipped" — it was measured and came back
+  clean.
+- **NO REGRESSION.** Corpus re-run unchanged at **9750 pass / 6586 fail / 0 timeout / 0 crash** over
+  16 336 files (peak 5 275 MB / 81 s under the memory guard); manifest row SET unchanged (asserted);
+  `results.tsv`/`durations.tsv` column contracts held at 3 and 4 fields; the sidecar is OPTIONAL and
+  its absence degrades LOUDLY on stderr to the pre-`.12a` answer.
+- **13 `fail` ROWS HAVE NO BANKED POSITION — CHASED, NOT ASSUMED.** All 13 are non-UTF-8 files the
+  probe cannot read at all; effect on this leaf is exactly zero (12 `chained_only`, 1 already
+  `unexplained`). Routed to **`.12c`**.
+- **`.12c` OPENED — two SILENT-failure surfaces.** F1: the parser cannot read non-UTF-8 source, and
+  a read failure is recorded indistinguishably from a grammar rejection (one is currently counted as
+  a defect; `sv2v test/lex/latin1.sv` is a latin-1 lexing fixture). F2: the corpus runner accepts an
+  unknown `PGEN_CORPUS_*` spelling SILENTLY — `PGEN_CORPUS_OUTDIR` instead of the real
+  `PGEN_CORPUS_OUT_DIR` fell through to the canonical directory and a capped smoke run overwrote
+  tracked artifacts. Caught immediately by `git status` and fully restored; **no tracked artifact
+  carries a capped-run number**. Recorded in the leaf rather than tidied away.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0200 — the `explained` label is an EXISTENCE test read as a CAUSAL claim: 26 rows provably misclassified, 263 undecidable, 1 170 corroborated (leaf `SV-CORPUS-GRAD.12` done + `.12a`/`.12b` opened; new instrument, ZERO Rust/grammar bytes)
 
 - **THE QUESTION.** `divergence:explained_svpp_*` removed **1 459 rows** from the axis-2 burn-down.

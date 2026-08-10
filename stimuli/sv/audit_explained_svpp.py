@@ -31,12 +31,13 @@ was the entire finding.  So the audit resolves the gap first:
 
 THE SOUND FALSIFICATION (the load-bearing test)
 -----------------------------------------------
-A preprocessor's output is byte-identical to its input up to the FIRST backtick
-token in the file.  Nothing before that offset can be added, removed, expanded or
-shifted by svpp -- `define lines are deleted, macros expand, `ifdef arms vanish, but
-all of that happens AT or AFTER the first backtick, never before it.
+A preprocessor's output is byte-identical to its input up to the first backtick token
+it can ALTER.  Nothing before that offset can be added, removed, expanded or shifted by
+svpp -- `define lines are deleted, macros expand, `ifdef arms vanish, but all of that
+happens AT or AFTER that point, never before it.  (⛔ "alterable" is not "any backtick":
+`timescale and its neighbours are handed through untouched and move nothing.)
 
-    stuck_offset < first_tick_offset
+    stuck_offset < first_alterable_tick
         =>  the parser choked on a token svpp provably cannot alter or move
         =>  it would choke identically on the fully expanded text
         =>  the `explained_svpp_*` label is FALSE for that row.
@@ -96,51 +97,40 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
-# Kept byte-compatible with adjudicate_external_corpus.py: same pattern, but every
-# match is replaced by an EQUAL-LENGTH run of spaces (newlines preserved) instead of
-# a single space, so every offset this instrument reports is an exact byte offset
-# into the file on disk.  The adjudicator's collapsing `sub(" ", ...)` is fine for a
-# boolean "is there one?" and useless for "where is it?".
-COMMENT_STRING_RE = re.compile(
-    r"//[^\n]*|/\*.*?\*/|\"(?:[^\"\\\n]|\\.)*\"", re.DOTALL)
+# ⛔ SINGLE SOURCE OF TRUTH.  The svpp reach model -- which directives the preprocessor
+# CONSUMES, which it hands through, and how a failure position is resolved against them
+# -- is owned by the ADJUDICATOR, because that is what actually labels the corpus.  This
+# instrument imports it rather than restating it, so the audit re-verifies the SHIPPED
+# predicate instead of a copy that can drift away from it (SV-CORPUS-GRAD.12a).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from adjudicate_external_corpus import (           # noqa: E402
+    SVPP_PASSTHROUGH,
+    blank_comments_and_strings,
+    first_alterable_tick,
+    svpp_can_explain_failure,
+)
 
-# Any backtick token at all -- directives AND macro uses.  See the module docstring
-# for why KNOWN_DIRECTIVES are deliberately included here.
 ANY_TICK_RE = re.compile(r"`[A-Za-z_][A-Za-z0-9_$]*")
 TICK_NAME_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_$]*)")
 
 # The three operations SVPP-EXPANSION is scoped to deliver (docs/tasks/SVPP-EXPANSION.md:
 # "macro substitution + conditional resolution + `include inlining").  A directive in
 # this set is CONSUMED by the preprocessor, so a parse stuck on it is genuinely waiting
-# for that lane.
+# for that lane.  Reporting-only: the adjudicator needs a boolean, this needs a REASON.
 SVPP_CONSUMED = {
     "define", "undef", "undefineall",                       # macro substitution
     "ifdef", "ifndef", "elsif", "else", "endif",            # conditional resolution
     "include",                                              # `include inlining
 }
-# Compiler directives svpp PASSES THROUGH to the parser unchanged -- IEEE 1800-2017
-# clause 22 constructs the COMPILER consumes, not the preprocessor.  A parse stuck on
-# one of these is not waiting for svpp; expansion would hand the parser the same token.
-SVPP_PASSTHROUGH = {
-    "timescale", "default_nettype", "celldefine", "endcelldefine", "resetall",
-    "begin_keywords", "end_keywords", "unconnected_drive", "nounconnected_drive",
-}
-# `line and `pragma are deliberately in NEITHER set.  `line is preprocessor-adjacent
-# (it rewrites reported line numbers) but is not one of the three scoped operations;
-# `pragma protect is owned by the §34 protected-envelope lane.  Calling either one a
-# defect would be a guess, so they are reported in their own bucket instead.
+# `line and `pragma are in neither SVPP_CONSUMED nor the imported SVPP_PASSTHROUGH.
+# `line is preprocessor-adjacent (it rewrites reported line numbers) but is not one of
+# the three scoped operations; `pragma protect is owned by the §34 protected-envelope
+# lane.  Calling either a defect would be a guess, so they get their own bucket.
 
 FURTHEST_RE = re.compile(r"furthest_position=(\d+)")
 SURFACE_RE = re.compile(r"did not consume full input at position (\d+)")
 
 UVM_FOLD_MARKER = "stimuli/sv/uvm/"
-
-
-def blank_comments_and_strings(text: str) -> str:
-    """Blank comments/strings IN PLACE -- length- and newline-preserving."""
-    def repl(m):
-        return "".join("\n" if ch == "\n" else " " for ch in m.group(0))
-    return COMMENT_STRING_RE.sub(repl, text)
 
 
 def tick_offsets(stripped: str):
@@ -209,6 +199,10 @@ def probe(probe_bin: Path, path: Path, timeout_s: int):
     return (int(fm.group(1)) if fm else None,
             int(sm.group(1)) if sm else None,
             tail)
+
+
+# The verdicts that assert the label is FALSE -- must equal the shipped predicate.
+DISPROVEN_VERDICTS = ("FALSIFIED", "STUCK-ON-PASSTHROUGH", "NO-TICK-AT-ALL")
 
 
 def stuck_offset_of(stripped: str, furthest):
@@ -310,6 +304,12 @@ def main():
         stuck = stuck_offset_of(stripped, furthest)
         verdict, tick_name = classify(stripped, furthest, stuck, first_tick, last_tick)
         at = stuck if stuck is not None else furthest
+        # ⭐ DIFFERENTIAL SELF-CHECK (SV-CORPUS-GRAD.12a). This instrument's rich
+        # verdict and the adjudicator's boolean are two implementations of one model.
+        # Assert they agree on every row, so a future edit to either surfaces here
+        # instead of silently moving corpus rows.
+        shipped_says_disproven = not svpp_can_explain_failure(raw, furthest)
+        disagree = shipped_says_disproven != (verdict in DISPROVEN_VERDICTS)
         return {
             "class": cls, "suite": suite, "relpath": rel,
             "bytes": len(raw),
@@ -320,6 +320,7 @@ def main():
             "fail_line": line_of(raw, at) if at is not None else "",
             "first_tick_line": line_of(raw, first_tick) if first_tick is not None else "",
             "snippet": snippet_at(raw, at) if at is not None else tail[:120],
+            "disagree": disagree,
         }
 
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
@@ -424,6 +425,18 @@ def main():
         lines.append("")
 
     (args.outdir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    bad = [r for r in results if r["disagree"]]
+    if bad:
+        print(f"\n⛔ DIFFERENTIAL SELF-CHECK FAILED on {len(bad)} row(s): this audit and "
+              "adjudicate_external_corpus.py:svpp_can_explain_failure() disagree. One of "
+              "the two changed without the other.", file=sys.stderr)
+        for r in bad[:10]:
+            print(f"    {r['suite']}/{r['relpath']} verdict={r['verdict']}",
+                  file=sys.stderr)
+    else:
+        print(f"differential self-check: {len(results)}/{len(results)} rows AGREE with "
+              "the shipped adjudicator predicate", file=sys.stderr)
 
     for v, c in zip(verdicts, tot):
         print(f"{v:>16}: {c}", file=sys.stderr)

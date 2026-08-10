@@ -415,6 +415,12 @@ stimuli/*/characterization/results.tsv
 stimuli/*/characterization/results_v2005.tsv
 stimuli/*/characterization/durations.tsv
 stimuli/*/characterization/durations_v2005.tsv
+# The per-file `furthest_position` sidecars (SV-CORPUS-GRAD.12a) join them: same class of
+# regenerable intermediate, and their durable claim is the adjudication manifest itself,
+# which IS tracked. ⛔ Absent sidecar = the svpp positional gate is inactive and says so on
+# stderr, so a fresh clone degrades loudly to the pre-.12a answer rather than silently.
+stimuli/*/characterization/positions.tsv
+stimuli/*/characterization/positions_v2005.tsv
 
 # IEEE LRM reference PDFs — vendored locally next to their MD workspaces for LRM
 # cross-checks (page-level citations); NOT tracked (large binaries + licensing). The

@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0201 — a predicate that answers two different questions
+
+The `.12a` port looked like a one-liner: make `preproc_dependency()` consult the failure position.
+It is not, and the reason is worth keeping.
+
+**One function, two callers, two questions.** `preproc_dependency()` is consulted on both the
+`must_accept` and the `must_reject` arms of `adjudicate()`, and the arms are asking different
+things:
+
+- `must_accept` + observed `fail` -> *"did this file fail BECAUSE it needs the preprocessor?"*
+  A causal claim about one parse, and exactly the claim `.12` disproved for 26 rows.
+- `must_reject` -> *"could this file's intended syntax error be hidden until after preprocessing?"*
+  A question about the whole file. It is asked of rows that may have **no failure position at all**,
+  because the interesting `must_reject` row is the one that wrongly PASSES.
+
+Making the predicate positional wholesale would have satisfied the first and silently corrupted the
+second: every `must_reject` row would have been judged against a position that either does not exist
+or describes the wrong thing. The landed change therefore leaves `preproc_dependency()` alone and
+adds a separate gate applied only on the `must_accept` arm, with a docstring on each saying which
+caller depends on which reading. **When a shared predicate turns out to answer two questions, split
+the change, not the predicate.**
+
+**The sidecar decision was already made, and re-reading beat re-deciding.** The obvious way to carry
+`furthest_position` is a fourth column on `results.tsv`. The runner's own comment block had already
+measured why that is wrong: three consumers hard-unpack exactly three fields (a loud `ValueError`),
+and `cluster_rejects_valid.py` skips any row with `len(cols) != 3` — so a widened `results.tsv`
+would have made the rejects-valid worklist generator emit an empty worklist, silently. The duration
+column had faced the same choice and gone to a sidecar. Reading that block cost a minute and
+saved re-deriving a decision the tree had already paid for.
+
+**Making the two implementations agree by construction.** `.12` wrote a standalone audit tool; `.12a`
+wrote the shipped predicate. Two implementations of one model is a drift hazard, and the drift would
+show up as corpus rows moving for no stated reason. So the audit tool now IMPORTS the model from the
+adjudicator and asserts per row that its own richer verdict matches the shipped boolean — 1433/1433.
+The audit stopped being a one-off investigation and became a differential oracle over the thing that
+actually labels the corpus.
+
+**A burn-down that goes UP.** Axis 2 moved 293 -> 319. That is the correct direction and the leaf
+pre-committed to it in writing before the port existed, precisely so the re-measure could not be
+read as "the fix made things worse" or quietly rationalised if it landed somewhere else. The rows
+were always defects; they were wearing the wrong label.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0200 — a positional oracle that produced a big, plausible, wrong number on its first run
 
 `.12` asked a one-sentence question: the burn-down removes 1 459 rows on the strength of an

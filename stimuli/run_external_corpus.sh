@@ -105,12 +105,14 @@ if [ "$FAM" = sv2005 ]; then
   CANON_OUTDIR="$ROOT/stimuli/sv/characterization"
   RESULTS_NAME="results_v2005.tsv"
   DURATIONS_NAME="durations_v2005.tsv"
+  POSITIONS_NAME="positions_v2005.tsv"
   REPORT_NAME="characterization_v2005.md"
 else
   SUBS="$ROOT/stimuli/$FAM/subs"
   CANON_OUTDIR="$ROOT/stimuli/$FAM/characterization"
   RESULTS_NAME="results.tsv"
   DURATIONS_NAME="durations.tsv"
+  POSITIONS_NAME="positions.tsv"
   REPORT_NAME="characterization.md"
 fi
 CANON_REPORT="$CANON_OUTDIR/$REPORT_NAME"
@@ -212,6 +214,7 @@ else
 fi
 RESULTS="$OUTDIR/$RESULTS_NAME"
 DURATIONS="$OUTDIR/$DURATIONS_NAME"
+POSITIONS="$OUTDIR/$POSITIONS_NAME"
 REPORT="$OUTDIR/$REPORT_NAME"
 
 if [ ! -x "$PROBE" ]; then
@@ -290,7 +293,14 @@ parse_one() {
   rel="${f#"$ROOT"/}"
   t0="$(_now_ms)"
   # shellcheck disable=SC2086
-  timeout "$TIMEOUT_S" "$PROBE" --parse "$GRAMMAR" "$f" $PROFILE_ARGS >/dev/null 2>&1
+  # ⭐ SV-CORPUS-GRAD.12a — stderr is CAPTURED, not discarded. The probe prints
+  # `furthest_position=N` on every reject, and discarding it is why the adjudicator had
+  # to decide "is this file preprocessor-blocked?" from a whole-file regex instead of
+  # from where the parse actually stopped. Measured cost of the capture: none that the
+  # run's own wall clock can resolve; measured cost of NOT having it: 26 corpus rows
+  # mislabelled `explained_svpp_*` and removed from the burn-down (leaf .12).
+  local err fp
+  err="$(timeout "$TIMEOUT_S" "$PROBE" --parse "$GRAMMAR" "$f" $PROFILE_ARGS 2>&1 >/dev/null)"
   rc=$?
   t1="$(_now_ms)"
   ms=$(( t1 - t0 )); [ "$ms" -ge 0 ] || ms=0
@@ -300,7 +310,15 @@ parse_one() {
                                               # overflow abort) is NOT a
                                               # graceful reject - own status
   else status=fail; fi
-  printf '%s\t%s\t%s\t%d.%02d\n' "$sub" "$status" "$rel" "$(( ms / 1000 ))" "$(( (ms % 1000) / 10 ))"
+  # Pure-bash extraction (no subprocess in the hot loop): take the text after the last
+  # `furthest_position=` and keep its leading digits. Empty when the probe printed none
+  # (a pass, a timeout, or a non-parse error) — column 5 is then empty, never 0, because
+  # 0 is a REAL position and would read as "stopped at byte 0".
+  fp=""
+  case "$err" in
+    *furthest_position=*) fp="${err##*furthest_position=}"; fp="${fp%%[!0-9]*}" ;;
+  esac
+  printf '%s\t%s\t%s\t%d.%02d\t%s\n' "$sub" "$status" "$rel" "$(( ms / 1000 ))" "$(( (ms % 1000) / 10 ))" "$fp"
 }
 export -f parse_one
 export ROOT
@@ -361,9 +379,21 @@ fi
 awk -F'\t' -v OFS='\t' -v RF="$RECONFIRM_FILE" '
   BEGIN { while ((getline l < RF) > 0) { split(l, a, "\t"); r[a[3]] = l } }
   { if ($3 in r) print r[$3]; else print }
-' "$RAW" | sort -t'	' -k1,1 -k3,3 > "$DURATIONS"
-cut -f1-3 "$DURATIONS" > "$RESULTS"
-rm -f "$RAW" "$RECONFIRM_FILE"
+' "$RAW" | sort -t'	' -k1,1 -k3,3 > "$RAW.sorted"
+
+# ⛔ THE TRACKED ARTIFACT SHAPES ARE HELD: results.tsv stays 3 columns and durations.tsv
+# stays 4. The `furthest_position` column added in SV-CORPUS-GRAD.12a is projected into a
+# THIRD sidecar rather than appended to either, for the reason already measured for the
+# duration column: three consumers hard-unpack exactly three fields
+# (`adjudicate_external_corpus.py` at both readers, `corpus_rule_coverage.py`) and
+# `cluster_rejects_valid.py` DROPS any row with `len(cols) != 3` — one loud break and one
+# silent one, the silent one being the worklist generator.
+cut -f1-4 "$RAW.sorted" > "$DURATIONS"
+cut -f1-3 "$RAW.sorted" > "$RESULTS"
+# Only rows that actually carry a position: passes and timeouts have none, and an absent
+# row is what tells the adjudicator "undecidable, keep today's answer".
+awk -F'	' -v OFS='	' '$5 != "" { print $1, $3, $5 }' "$RAW.sorted" > "$POSITIONS"
+rm -f "$RAW" "$RAW.sorted" "$RECONFIRM_FILE"
 
 # ---- instrument identity (SV-CORPUS-GRAD.10) ----
 #

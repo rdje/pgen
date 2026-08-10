@@ -7138,10 +7138,11 @@ honest *upper* bound of 582 — they are NOT claimed as defects, and ⛔ must no
       is that the leaf now states what they MEAN. Instrument determinism proven by `cmp` across
       `--jobs 8` vs `--jobs 4`.
 
-### `.12a` — plumb the failure POSITION into the svpp label (`todo`, opened 2026-08-10 by `.12`)
+### `.12a` — plumb the failure POSITION into the svpp label (**`done`** 2026-08-10, `PGEN-SV-CORPUS-GRAD-0201`)
 
-- **Status: `todo`. The mechanism fix behind `.12`'s 26 rows, and it is a pipeline change, not a
-  one-line predicate change** — which is why `.12` did not attempt it inline.
+- **Status: `done`.** ⭐⭐ **THE PRE-COMMITTED NUMBER WAS HIT EXACTLY: axis 2 is now `unexplained =
+  319`, up from 293, and the 26 rows that moved are SET-IDENTICAL to the 26 `.12` named.** No row
+  moved that `.12` had not already convicted, and none it convicted stayed.
 - **THE TWO HALVES.** (1) `stimuli/run_external_corpus.sh:293` discards the probe's stderr, so
   `results.tsv` banks `pass`/`fail`/`timeout` and nothing else; `furthest_position` must be captured
   and carried into the adjudicator. (2) `preproc_dependency()` must become a positional predicate:
@@ -7160,6 +7161,118 @@ honest *upper* bound of 582 — they are NOT claimed as defects, and ⛔ must no
   the rows were always defects, they were merely mislabelled ([[a-rising-pass-rate-is-not-evidence-of-correctness]]).
 - **Owed:** the plumbing, the positional predicate, a re-adjudication, the manifest diff proving
   exactly 26 rows moved and which, and the axis-2 accounting updated to 319.
+
+#### WHAT LANDED (both halves, and a third the leaf had not scoped)
+
+1. **The plumbing.** `stimuli/run_external_corpus.sh:parse_one()` now CAPTURES the probe's stderr
+   instead of discarding it and extracts `furthest_position` in pure bash (no subprocess in the hot
+   loop). ⛔ It is projected into a **third sidecar** `positions.tsv`, never appended to
+   `results.tsv` or `durations.tsv` — the runner's own comment block had already MEASURED why: three
+   consumers hard-unpack exactly three fields and `cluster_rejects_valid.py` silently DROPS any row
+   with `len(cols) != 3`, so a widened `results.tsv` would have emptied the worklist generator
+   without a word. The established sidecar decision was reused rather than re-litigated.
+2. **The positional predicate.** `svpp_can_explain_failure()` in `adjudicate_external_corpus.py`,
+   gated in at BOTH manifest loops. It resolves the layout gap first (`stuck_offset`), then answers
+   False only when it can DISPROVE the label — stopped before the first *alterable* backtick, or
+   stopped ON a passthrough directive. Every undecidable case (no position banked, stopped at EOF,
+   `` `line ``/`` `pragma ``) answers True, so the gate only ever removes a label it can refute.
+3. ⭐ **THE HALF THE LEAF DID NOT SCOPE, AND IT MATTERED.** `preproc_dependency()` feeds TWO
+   decisions, not one. On the `must_reject` path it answers *"could the intended syntax error be
+   hidden until after preprocessing?"* — a genuinely WHOLE-FILE question, and one whose row may have
+   no failure position at all (it can be the row that wrongly ACCEPTS). Making the predicate
+   positional wholesale would have corrupted that path silently. The gate is therefore applied
+   **only on the `must_accept` arm**, and `preproc_dependency()` keeps its existence-test semantics
+   with a comment saying which caller relies on which reading.
+
+#### THE VERIFICATION — two independent implementations, agreeing row-for-row
+
+- **Manifest diff: exactly 26 rows changed adjudication**, all one direction
+  (`explained_svpp_* → unexplained_rejects_valid`): 20 `macro_use` + 4 `conditional` + 2 `include`,
+  matching `.12`'s per-class table cell for cell. The row SET is otherwise unchanged (asserted).
+- **Set-identity with `.12`'s independently-derived list: `True`.** The standalone audit tool and
+  the shipped adjudicator predicate are two implementations of one model, and they convict the same
+  26 files.
+- ⭐ **That agreement is now MECHANICAL, not a one-off.** `audit_explained_svpp.py` no longer
+  restates the svpp reach model — it **imports** `SVPP_PASSTHROUGH`, `blank_comments_and_strings`,
+  `first_alterable_tick` and `svpp_can_explain_failure` from the adjudicator, and asserts per row
+  that its own rich verdict agrees with the shipped boolean: **1433/1433 AGREE**. A future edit to
+  either side now fails the audit instead of quietly moving corpus rows.
+- **The re-run audit over the FIXED manifest is CLEAN:** 1433 rows, **0 `FALSIFIED`, 0
+  `STUCK-ON-PASSTHROUGH`**. Banked as the before/after pair under
+  `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/{before,after}/` with a README.
+- **`verilog_2005` lane: gate ACTIVE and BYTE-INERT.** `positions_v2005.tsv` emitted, the gate
+  evaluated all 173 `explained_svpp_*` rows there, and `adjudication_manifest_v2005.tsv` is
+  byte-identical to HEAD — **0 rows moved**. ⛔ Worth stating because the alternative reading
+  ("v2005 was skipped") is the one a silent byte-identical result usually means: it was NOT skipped,
+  it was measured and came back clean.
+
+#### ⛔ THE 13 `fail` ROWS WITH NO BANKED POSITION — chased, not assumed
+
+`positions.tsv` holds 6 573 rows against 6 586 `fail` rows. The 13-row gap was not waved through:
+all 13 are **non-UTF-8 source files** where the probe never parses at all (`stream did not contain
+valid UTF-8`), so no position exists to bank. Their effect on this leaf is **exactly zero** — 12
+adjudicate `deferred:chained_only` and 1 is already `unexplained_rejects_valid`, so not one of them
+reaches the svpp gate. Routed to **`.12c`**: a reader-level limitation is still a limitation, and
+one of the 13 (`sv2v test/lex/latin1.sv`) is a file whose entire purpose is to test latin-1 lexing.
+
+#### ⛔ AN OPERATOR ERROR IS RECORDED HERE BECAUSE THE TREE IS NOT A HIGHLIGHT REEL
+
+The smoke run that validated the sidecar was invoked with `PGEN_CORPUS_OUTDIR=…`; the runner reads
+**`PGEN_CORPUS_OUT_DIR`**. The typo silently fell through to the canonical output directory, and a
+200-file capped run overwrote the tracked `characterization.md` plus the (gitignored) `results.tsv`
+and `durations.tsv`. Caught immediately by `git status`, `characterization.md` restored from the
+index, and the raw pair regenerated by the full re-run this leaf needed anyway — **no tracked
+artifact carries a capped-run number**. ⭐ The transferable point is that a redirect env var that
+does not exist is indistinguishable from one that does: the runner accepts an unknown
+`PGEN_CORPUS_*` spelling silently. Routed to `.12c` alongside the reader finding.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `.12` proved 26 of 1 459 `explained_svpp_*` rows mislabelled; before
+      this leaf the adjudicator had no way to know, because `run_external_corpus.sh:293` discarded
+      the probe's stderr and `results.tsv` banked only `pass`/`fail`/`timeout`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE `stimuli/run_external_corpus.sh:parse_one()` (position
+      discarded at the source) + `stimuli/sv/adjudicate_external_corpus.py:preproc_dependency()`
+      (whole-file existence test) consumed as a causal claim by `adjudicate()`. WHY = the two are a
+      pair: the predicate could not be positional because the position was never carried.
+- [x] **FIX** — capture + `positions.tsv` sidecar (runner); `svpp_can_explain_failure()` gated onto
+      the `must_accept` arm only (adjudicator); audit tool converted to import the shipped model and
+      assert agreement. ZERO Rust bytes, ZERO grammar bytes — the parser is untouched, and the
+      corpus re-run proves it: **16 336 files → 9750 pass / 6586 fail / 0 timeout / 0 crash**, the
+      banked baseline to the row.
+- [x] **ADDRESSED (verified)** — `unexplained_rejects_valid` **293 → 319**, the number pre-committed
+      in this leaf before the port was written. Manifest diff: exactly 26 rows moved, set-identical
+      to `.12`'s independently-derived list. Post-fix audit clean (0 disproven of 1433). Differential
+      self-check 1433/1433. v2005 manifest byte-identical with the gate active.
+- [x] **NO REGRESSION** — corpus outcome triple unchanged (9750/6586/0, peak 5 275 MB / 81 s under
+      the memory guard); `adjudication_manifest_v2005.tsv` BYTE-IDENTICAL; the manifest row SET
+      unchanged (asserted, not eyeballed); `results.tsv`/`durations.tsv` column contracts held at 3
+      and 4 fields so `cluster_rejects_valid.py` and `corpus_rule_coverage.py` are untouched; the
+      new sidecar is OPTIONAL and its absence degrades LOUDLY to the pre-`.12a` answer on stderr.
+
+### `.12c` — two silent-failure surfaces `.12a` surfaced (`todo`, opened 2026-08-10 by `.12a`)
+
+- **Status: `todo`. Both are real, both are small, and both fail SILENTLY — which is the only
+  reason they are grouped.**
+- **F1 — the parser cannot read non-UTF-8 source.** 13 corpus files fail with `stream did not
+  contain valid UTF-8` before any parse happens: 12 scr1 `.svh`/`.sv` files and `sv2v
+  test/lex/latin1.sv`, a fixture whose entire purpose is latin-1 lexing. These are recorded as
+  ordinary `fail` rows, indistinguishable in `results.tsv` from a grammar rejection, and one of them
+  is currently counted in `unexplained_rejects_valid` as if the grammar had refused it. ⛔ Decide
+  the SPEC question first (IEEE 1800-2017 §5.1 source-text character set — what encoding is a
+  conforming tool required to accept?) before touching the reader; the answer decides whether this
+  is a defect, a documented boundary, or a `must_reject`. ⛔ Do NOT let a read failure and a parse
+  rejection keep sharing one status: that conflation is what hid it.
+- **F2 — the corpus runner accepts an unknown `PGEN_CORPUS_*` spelling silently.** It reads
+  `PGEN_CORPUS_OUT_DIR`; `PGEN_CORPUS_OUTDIR` (and any other near-miss) falls through to the
+  canonical directory and overwrites tracked artifacts with whatever the run produced. `.12a` hit
+  this with a 200-file capped run and caught it only because `git status` was checked immediately.
+  A redirect that does not redirect is worse than no redirect, because the operator believes they
+  are sandboxed. Fix shape: refuse on any `PGEN_CORPUS_*` variable the script does not recognise
+  (the same "REFUSE on an unclassified spelling" discipline `LIVE-DOC-CURRENCY` instrument B already
+  applies, and for the same reason — enumeration silently misses).
+- **Owed:** the §5.1 reading with a cite, F1's disposition (defect / boundary / `must_reject`) with
+  the 13 rows re-adjudicated accordingly, and F2's unknown-variable refusal with a test.
 
 ### `.12b` — the 263 rows POSITION cannot decide (`todo`, opened 2026-08-10 by `.12`, SIZED AND PARKED)
 

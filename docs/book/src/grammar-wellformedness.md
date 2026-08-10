@@ -1780,8 +1780,24 @@ Two details of that audit are worth carrying to any similar instrument:
   in it was healthy. Resolving the gap first took the finding from 504 to 26.
 
 The honest form of the resulting number is a floor and a ceiling, not a point: the defect population
-is **at least** 26 rows larger than the burn-down claims, and at most 289 larger. Quoting the
+is **at least** 26 rows larger than the burn-down claimed, and at most 289 larger. Quoting the
 ceiling as a defect count would be the same error as quoting the original figure as settled.
+
+**The label is now decided positionally.** The corpus runner captures the probe's failure position
+into a sidecar — it had been discarding the parser's stderr, which is the only reason the question
+could not be asked before — and the adjudicator awards an `explained_svpp_*` label only when the
+parse stops somewhere expansion can actually reach. The 26 rows returned to the defect burn-down,
+which rose from 293 to 319. **A burn-down going *up* is the correct outcome here**: those rows were
+always defects and were merely wearing the wrong label, so the number did not get worse — it got
+true. The `verilog_2005` lane was measured the same way and came back clean, with zero rows moved.
+
+One design detail is worth stating because getting it wrong would have been invisible. The
+whole-file test feeds *two* decisions, not one. On the negative-test path it answers "could this
+file's intended syntax error be hidden until after preprocessing?" — a question that really is about
+the whole file, and whose row may have no failure position at all, because it can be the row that
+wrongly *accepts*. Only the positive-test path became positional; the existence test stayed exactly
+as it was for the other caller. A predicate serving two questions must be changed for one of them at
+a time.
 
 #### When the pin table already contradicts itself
 
