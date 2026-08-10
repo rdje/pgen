@@ -1,5 +1,68 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0195 — the aggregate counter that pointed the investigation away from the cause, and the 663 rules that are not memoized at all
+
+`-0194` closed with one open question, deliberately named so it would not be re-derived: why does
+`statement_or_null` take **0** memo hits across 223 entries at ~13 distinct byte positions? It also
+recorded, as settled, that `conditional_statement` (287 entries / **208 memo hits**) showed the memo
+"already doing the obvious fix". Both statements came from the same JSON field. One was the question;
+the other turned out to be the same defect, already answered wrongly.
+
+**`rule_memo_hit_counts` is a FUSED counter.** Codegen increments it from three sites
+(`ast_based_generator.rs`, three `record_memo_hit` calls): a cached clean failure, a cached tainted
+failure, and a replayed success. Only the third is the packrat guarantee. `parser_registry.rs:136`
+says this in plain words — *"fail-set + valid tainted-failure + success replays"* — and the field doc
+was read as a completeness note rather than as a warning. Split per path, **all 208 of
+`conditional_statement`'s hits are cached failures and 0 are success replays.**
+
+⛔ **Note the failure direction.** The cheap, frequent component (refusing dead ends) dominates the
+sum, so the metric looks healthiest exactly where the expensive component has stopped working. A
+fused counter does not merely lose resolution — it retires the right suspect. The memo was excluded
+from the investigation for a full session on the strength of that 208.
+
+**The instrument needed no engine change.** The generated `memoized_call` already logs every memo
+transition at `PGEN_TRACE_VERBOSITY=debug`, keyed by numeric rule id; only the *summary* was lossy.
+`docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py` joins those lines against the
+parser's own `RULE_NAMES` table. Worth generalising: before building an instrument, check whether the
+engine is already emitting the distinction and the aggregation is what threw it away.
+
+**What the split shows, and why it is self-proving.** A *stale-tainted eviction* can only execute on
+an entry carrying `tainted_at_epoch = Some(_)`, so counting evictions IS the proof of taint — no
+separate taint instrument was needed. Across n = 4/5/6 and both chain variants, inserts follow
+`2ⁿ − 1`, evictions follow `2ⁿ − 1 − n`, and success replays are **0** everywhere: every entry ever
+looked up a second time had already been thrown away. The mechanism is `memoized_call` taking
+`predicate_evaluations()` — a **global cumulative** counter — as its taint test, and the **global**
+`write_epoch` as its validity test. Both are whole-parse scalars, so on the SV statement surface
+every non-leaf rule is tainted and every tainted entry is stale by its next lookup.
+
+**The ground-truth control earned its keep on the first run.** Cross-checking the trace census
+against the independent atomic counters (`miss + hits` must equal `rule_entry_counts`) failed
+immediately on ~305 live rules. The tempting move — relax the control until it passes — would have
+buried the second finding of this slice: **663 of the 1481 SV rules, across 2871 call sites, are not
+memoized at all.** They run through `inlined_frame_call`, which keeps the entry counter, the coverage
+push and the enter/exit trace, but contains no `memoized_call`. So `-0194`'s *"every one of the 1481
+rules is wrapped in `memoized_call`"* is true of the rule METHOD and false of the executed PATH — and
+a `grep` inside `parse_<rule>` cannot tell the two apart. The control is now partitioned rather than
+weakened: strictly-memoized rules must balance exactly, inlined-reachable rules may only fall short,
+and the shortfall is reported. None of the four chain rules is inlined, which is precisely what makes
+their zeros trustworthy.
+
+**Cross-family, measured rather than argued** (`ROUTING-EVIDENCE`): the taint/eviction code is shared
+codegen, compiled into all ten generated parsers by construction, but the pathology needs predicates
+AND store writes between an insert and its next lookup. SV: `predicate_evaluations=1467`,
+`facts_emitted=1128` ⇒ 1860 evictions. regex — the only other grammar declaring `@predicate` (18):
+`predicate_evaluations=3`, `facts_emitted=5` ⇒ **0 evictions**. The negative result is recorded as-is;
+it says the degradation is not "predicates exist" but "the store moves during exploration". Routed to
+`.11d` with the honest limit that no synthetic predicates-without-store-writes control exists yet.
+
+**Consequence for the fix.** The memo answer did change the tier, by *elimination*: an engine fix to
+the taint precision is real but cross-family and sits on a soundness mechanism, so it leaves this
+tree. `.11a`'s tier-1 declarative fix (`@branch_policy: ordered` on `conditional_else_branch`) stands
+and is now known to be sufficient on its own — it removes the 2× at the choice site whether or not
+the memo ever serves it. Unchanged and still owed by the FIX slice: the Protocol-D
+acceptance-neutrality proof (`longest_match` and `ordered` differ exactly where two arms tie, and
+here they tie by construction) and the MEMORY before→after at n=16 and on `xbar_main.sv`.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0193 — a construct's guard rail is part of the construct; move one without the other and you silently revert a ruling
 
 `.3.26c` moved the `'{}` arm from `empty_unpacked_array_concatenation` to `assignment_pattern`, and

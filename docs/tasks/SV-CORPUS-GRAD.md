@@ -6680,6 +6680,78 @@ why the doctrine says re-measure rather than reason.
     while `conditional_statement`'s survive inside a quieter window. **MEASURE IT, do not assume it** —
     the deciding instrument is a per-rule insert-vs-evict census, which does not exist yet and is
     likely the `--build-a-tool` step.
+  - ⭐⭐ **ANSWERED AND MEASURED 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0195`). Store-taint eviction is
+    CONFIRMED, and the answer also REFUTES this leaf's own reading of `conditional_statement`.**
+    The instrument is `docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py` — and it
+    needed **no engine change**: the generated `memoized_call` ALREADY logs every memo transition
+    under `PGEN_TRACE_VERBOSITY=debug`, keyed by numeric rule id. The census joins those lines
+    against the parser's own `RULE_NAMES` table. Measured, both variants, all three depths:
+
+    | rule (n=4 / n=5 / n=6) | success inserts | STALE-tainted evictions | **SUCCESS replays** | failure hits |
+    |---|---|---|---|---|
+    | `conditional_else_branch` | 15 / 31 / 63 | 11 / 26 / 57 | **0 / 0 / 0** | 0 / 0 / 0 |
+    | `conditional_statement` | 15 / 31 / 63 | 11 / 26 / 57 | **0 / 0 / 0** | 44 / 98 / **208** |
+    | `statement_or_null` | 31 / 63 / 127 | 22 / 52 / 114 | **0 / 0 / 0** | 0 / 0 / 0 |
+    | `statement_item_sv_2017` | 32 / 64 / 128 | 22 / 52 / 114 | **0 / 0 / 0** | 0 / 0 / 0 |
+
+    ⇒ **the packrat success replay NEVER fires on the chain — 0 replays against 381 inserts at n=6,
+    at every depth, in BOTH the `ident` and `lit` variants (every per-rule number identical).**
+    Inserts go as `2ⁿ − 1`; evictions as `2ⁿ − 1 − n`, i.e. **every entry that is ever looked up
+    again is found stale and thrown away**; the `n` survivors are simply never revisited.
+  - ⛔⛔ **CORRECTION TO `-0194` (this leaf's previous bullet, and that commit's subject line).** The
+    claim *"the memo ALREADY collapses `conditional_statement` (287 entries/208 hits)"* is **WRONG**,
+    and the error was reading a FUSED counter. `rule_memo_hit_counts` sums three different memo
+    paths — replayed success, cached clean failure, cached tainted failure (`parser_registry.rs:136`
+    says so). Split apart, **all 208 of `conditional_statement`'s n=6 "hits" are cached FAILURES and
+    exactly 0 are success replays.** The memo is collapsing the cheap dead-end probes, not the
+    expensive re-parse of the remaining chain. ⇒ *"add memoization" is not already-true-and-
+    insufficient; the memo is simply not serving this construct at all.*
+  - **ROOT CAUSE (WHY + WHERE), now mechanical.** `memoized_call` in the generated parser:
+    (a) stamps a successful entry as tainted iff its body transitively moved the **global cumulative**
+    `predicate_evaluations()` counter (`generated/systemverilog_parser.rs:1419458` snapshot →
+    `:1419463` compare → `:1419491` stamp), and (b) on every later lookup evicts that entry if the
+    **global** `write_epoch` has moved since (`:1419399-1419416`). On the SV statement surface both
+    conditions hold essentially always — any rule spanning the statement surface evaluates *some*
+    predicate, and the store is written constantly during exploration — so the memo is **effectively
+    disabled for the whole upper statement surface**. Without packrat's collapse, the
+    language-overlap at `conditional_else_branch` (named by `-0194`) compounds unchecked:
+    `T(k) = 2·T(k−1)` ⇒ O(2ⁿ). ⭐ Note the eviction path is itself the proof of taint: it can only
+    run on an entry carrying `tainted_at_epoch = Some(_)`.
+  - ⭐ **NEW, PREVIOUSLY UNWRITTEN, AND IT INVALIDATES A CLAIM IN THE BULLET ABOVE: 663 of the 1481
+    SV rules (2871 call sites) are NOT memoized at all.** They are reached through the generated
+    `inlined_frame_call` helper, which keeps the full observable frame — entry counter, coverage
+    push, enter/exit trace — but contains **no `memoized_call`**. So *"every one of the 1481 rules is
+    wrapped in `memoized_call`"* is true of the rule METHOD and false of the executed PATH. This is
+    exactly what made the census's first ground-truth control fail on ~305 live rules, and it is why
+    that control is now **partitioned** (STRICT rules must balance exactly; inlined-reachable rules
+    may only fall short, and the shortfall is reported, never dropped). None of the four chain rules
+    above is inlined — they all balance exactly, which is what makes their zeros trustworthy.
+  - ⛔ **The instrument REFUSES rather than guesses.** Every run cross-checks the trace census against
+    the independent atomic counters (`--dump-rule-outcome-counts-json`): for every STRICT rule,
+    `miss + hits` must equal `rule_entry_counts` exactly, and the id→name join is itself verified
+    (all 1481 `RULE_*` consts must index their own name). Measured: **310 STRICT rules balance
+    exactly** on all six runs. The control fired for real on the first attempt — that is how the
+    inlined population was found at all, rather than being averaged into a published number.
+  - **REPRODUCE (seconds, no rebuild):**
+    ```bash
+    python3 docs/tasks/artifacts/sv_corpus_grad/gen_if_else_chain.py 6 ident tmp/c6.sv
+    PGEN_TRACE_VERBOSITY=debug ./rust/target/release/parseability_probe --parse systemverilog \
+        tmp/c6.sv --profile sv_2017 --trace --trace-log-file tmp/t6.log
+    ./rust/target/release/parseability_probe --parse systemverilog tmp/c6.sv \
+        --profile sv_2017 --dump-rule-outcome-counts-json tmp/oc6.json
+    python3 docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py tmp/t6.log \
+        --verify tmp/oc6.json --rules conditional_else_branch,conditional_statement,statement_or_null
+    ```
+  - ⇒ **THE FIX HIERARCHY IS NOW RESOLVABLE, and the memo question did change the answer — it
+    ELIMINATED tier 3 from this leaf.** An engine fix to the taint over-approximation would help, but
+    it is cross-family, sits on a SOUNDNESS mechanism (`MEMO-STORE-SOUNDNESS.2`), and is not SV-corpus
+    work ⇒ **ROUTED OUT to `.11d`** (evidence below). For `.11a` itself the tier-1 *declarative* fix
+    stands and is now known to be sufficient on its own: `@branch_policy: ordered` on
+    `conditional_else_branch` removes the 2× at the choice site whether or not the memo ever serves
+    it. ⛔ Still owed by the FIX slice, unchanged: acceptance-neutrality proof (Protocol D —
+    `longest_match` and `ordered` differ exactly where two arms tie, and here they tie **by
+    construction**, which is the whole defect) + the MEMORY before→after at n=16 and on
+    `xbar_main.sv`.
   - **FIX HIERARCHY, in order, with what each would cost — none chosen yet, because the memo question
     above changes the answer:** (1) *declarative* — give `conditional_else_branch` an
     `@branch_policy: ordered` so alt 1 commits on an `else if` and alt 2 is never explored; this is a
@@ -6748,8 +6820,26 @@ why the doctrine says re-measure rather than reason.
   left-recursion treatment (grow-the-seed), which would make the acceptance
   order-INdependent by construction rather than by cache luck; that is a design leaf, and
   it belongs to the engine, not to this corpus tree.
+- **`.11d` — ⭐ the memo TAINT test is a global over-approximation, so packrat silently
+  stops working wherever the store is live** (routed out of `.11a`, 2026-08-10,
+  `PGEN-SV-CORPUS-GRAD-0195`). **Status: `todo`.** `memoized_call` taints a successful entry
+  iff the **global cumulative** `predicate_evaluations()` counter moved across the body, and
+  then invalidates it as soon as the **global** `write_epoch` moves. Both signals are
+  whole-parse scalars, so the test cannot distinguish *"this body's outcome depends on the
+  store"* from *"some unrelated rule anywhere in this body's subtree consulted the store"*,
+  nor *"the facts this entry actually read changed"* from *"any fact anywhere changed"*.
+  ⇒ on a grammar where predicates are common and the store is written during exploration,
+  **every non-leaf rule is tainted and every tainted entry is stale by its next lookup**, so
+  the packrat guarantee silently degrades to none. Measured on the `.11a` chain: 0 success
+  replays against 381 inserts, 342 evictions (n=6). ⛔ **NOT a soundness complaint —
+  `MEMO-STORE-SOUNDNESS.2` is conservative in the SAFE direction and the current behaviour is
+  correct.** It is a **precision** defect with an unbounded performance cost, and the fix is a
+  narrower dependency record (which facts/scopes a body actually read) rather than a global
+  counter pair. Natural home is the engine + `MEMO-STORE-SOUNDNESS`, not this corpus tree.
+  ⚠️ Sizing it needs a per-rule taint census across families first — do NOT assume the `.11a`
+  chain's 100 % eviction rate is representative.
 
-## ROUTING EVIDENCE (`.3.12` → `.11c`, and the `.11a`/`.11b` pair from `.10`)
+## ROUTING EVIDENCE (`.3.12` → `.11c`, `.11a` → `.11d`, and the `.11a`/`.11b` pair from `.10`)
 
 ⛔ Required by the `ROUTING-EVIDENCE` doctrine: *a routing is a claim about WHERE a defect lives, and
 the deciding evidence is usually already on disk.*
@@ -6782,6 +6872,47 @@ the deciding evidence is usually already on disk.*
    *quantitative* claim ("how much acceptance depends on evaluation order") is measured only on SV
    and on the synthetic case. No other family's cyclic surface has been swept for order-dependent
    acceptance, and `.11c` should start by doing that rather than by assuming SV is representative.
+
+### `.11d` — the memo taint test is a global over-approximation
+
+1. **Does it reproduce OUTSIDE the family it is routed to? — the MECHANISM yes, by construction;
+   the PATHOLOGY not yet, and the negative result is recorded rather than smoothed over.** The taint
+   snapshot/compare/stamp and the epoch-eviction are emitted from the **shared codegen**
+   `memoized_call` template, so they are compiled identically into all ten generated parsers — no
+   grammar can opt out. But the pathology needs BOTH legs, and only SV currently has them.
+   Measured, same instrument, one parse each:
+
+   | grammar | `predicate_evaluations` | `facts_emitted` / `rolled_back` | stale-tainted evictions |
+   |---|---|---|---|
+   | `systemverilog` (`.11a` chain, n=6) | **1467** | 1128 / 1119 | **1860** |
+   | `regex` (named groups + backref + bounded quants) | **3** | 5 / 0 | **0** |
+
+   ⇒ regex is CLEAN, and that is informative rather than disappointing: it shows the degradation is
+   not "predicates are present" but "predicates are evaluated **and** the store is written between
+   an insert and its next lookup". `regex` is the ONLY other grammar in the repo declaring
+   `@predicate` (18; vhdl/json/rtl_frontend/svpp declare none), so SV vs regex is the whole
+   available cross-family surface today — which is exactly why `.11d` must start by BUILDING the
+   cross-family taint census rather than by generalising from one chain.
+2. **What was MEASURED to place it in the ENGINE, not in `systemverilog.ebnf`?** That the eviction
+   fires on rules whose taint is **inherited, not intrinsic**: `statement_or_null`,
+   `statement`, `statement_item` and `statement_item_sv_2017` declare no predicate of their own, yet
+   all four are stamped tainted and evicted at the same rate (114 each at n=6), because
+   `predicate_evaluations()` is a whole-parse counter and any predicate anywhere in their subtree
+   moves it. A grammar edit cannot fix a test that never looked at the grammar. The identical
+   per-rule numbers under the `ident` and `lit` variants — chains that differ in whether their
+   conditions reference an identifier at all — is the second half of that: the taint does not track
+   what the rule actually read.
+3. **What would have to be true for the routing to be WRONG, and was it checked?** It would be wrong
+   if the evictions were driven by `systemverilog.ebnf`'s own predicate placement — i.e. if moving or
+   deleting SV's predicates removed the degradation, making it a grammar-shaped defect. Partially
+   checked and NOT fully closed: the `lit` variant removes every identifier-driven fact LOOKUP from
+   the chain's conditions and changes nothing (same inserts, same 114 evictions, `facts_emitted`
+   1128 in both), which rules out the chain's OWN predicates as the driver. ⚠️ **Honest limit:** it
+   does not rule out SV's predicate surface as a whole, because the SV stdlib preload and the
+   statement surface still emit facts throughout. A grammar with predicates but no mid-parse store
+   writes has not been constructed, and that synthetic control — not another corpus run — is the
+   cheapest thing `.11d` can do to make this routing airtight. The `parse_harness_semantic_suite`
+   (TOOLBOX 1.8) already owns the isolating-grammar machinery for exactly that.
 
 ### `.11a` / `.11b` (routed by `.10`, evidence recorded here for completeness)
 

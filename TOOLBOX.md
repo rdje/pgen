@@ -148,6 +148,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
+| **"Is the memo actually SERVING this rule?" — ⛔ `rule_memo_hit_counts` FUSES success replays with cached failures; 208 "hits" were 208 failures and 0 replays** | [3.6 memo insert/evict/replay census](#36-per-rule-memo-insert--evict--replay-census--is-the-memo-actually-serving-this-rule) |
 | "Which rules could a derived DFA scanner fuse? the measured ceiling? the choice-site / merged-choice surface?" | [5.3 `--report-fusibility-census`](#53---report-fusibility-census) |
 | "Which rules exist under which `@profiles`? Which rules can a corpus run under profile P ever exercise?" | [5.4 `--dump-rule-profiles`](#54---dump-rule-profiles) |
 | "Which LRM chapters/clauses does the keyed corpus target? Where is the negative-axis gap?" | [5.4 companion — `corpus_clause_coverage.py`](#54---dump-rule-profiles) |
@@ -468,6 +469,45 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
 - **OUTPUT:** the JSON file (rules sorted; zero-count rules omitted per map). Opt-in: unset ⇒ the coverage stack stays disabled and behavior is byte-identical. Build-mode-independent like 3.4.
 - **ROUTING (RGX-0078.5.i.7 D2-A):** the outcome dump enables coverage ⇒ the parse runs the PROTOCOL graph, so the raw/committed/memo-hit pins stay byte-exact forever under the observability twin (a BARE parse — no coverage/trace/counters/memo-stats consumer — runs the fused `cascade_*` graph instead; its byte-identity is enforced by the equivalence/AST oracles, not by counters).
+
+### 3.6 Per-rule memo INSERT / EVICT / REPLAY census — "is the memo actually serving this rule?"
+- **WHAT:** `docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py` — splits a parse's memo
+  activity per rule into **success inserts**, **stale-tainted evictions**, **success replays** and
+  **failure hits**. Needs no engine change: the generated `memoized_call` already logs every memo
+  transition at `PGEN_TRACE_VERBOSITY=debug`, keyed by numeric rule id; the script joins those lines
+  against the parser's own `RULE_NAMES` table. `SV-CORPUS-GRAD.11a`.
+- **WHEN:** ⛔ whenever a rule looks memo-served but the parse is still super-linear, and **before
+  concluding anything from `rule_memo_hit_counts` (3.5)** — that field **FUSES three different memo
+  paths** (replayed success, cached clean failure, cached tainted failure). The distinction is not
+  academic: `conditional_statement` reports **208 hits** on the `.11a` chain at n=6, and **all 208
+  are cached FAILURES with 0 success replays**. Reading the fused counter as "the memo already
+  collapses this rule" is exactly the wrong conclusion, and it was drawn once (`-0194`, corrected by
+  `-0195`).
+- **HOW:**
+  ```bash
+  PGEN_TRACE_VERBOSITY=debug ./rust/target/release/parseability_probe --parse systemverilog \
+      in.sv --profile sv_2017 --trace --trace-log-file t.log
+  ./rust/target/release/parseability_probe --parse systemverilog in.sv \
+      --profile sv_2017 --dump-rule-outcome-counts-json oc.json
+  python3 docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py t.log \
+      --verify oc.json --rules rule_a,rule_b --top 20
+  ```
+- **OUTPUT:** a per-rule table over the nine memo transitions + the whole-parse totals. **Success
+  replays are the packrat guarantee; everything else is bookkeeping.**
+- ⭐ **GROUND TRUTH — it refuses rather than guesses.** `--verify` cross-checks the trace census
+  against the independent atomic counters: `miss + hits` must equal `rule_entry_counts` exactly, and
+  the id→name join is itself verified (every `RULE_*` const must index its own name). A mismatch
+  exits 2 instead of publishing.
+- ⛔ **The control is PARTITIONED, and you must know why: NOT EVERY RULE IS MEMOIZED.** A rule
+  reached through the generated `inlined_frame_call` helper gets a full observable frame — entry
+  counter, coverage push, enter/exit trace — but **no `memoized_call` at all**. On
+  `systemverilog.ebnf` that is **663 of 1481 rules across 2871 call sites**, so a flat
+  "every rule must balance" control fails on ~305 live rules and teaches you nothing. Strictly
+  memoized rules must balance exactly; inlined-reachable rules may only fall short, and the
+  shortfall is reported rather than dropped. ⚠️ ⇒ *"rule R has a `memoized_call` in its method"* does
+  NOT mean R's executed path was memoized — check the inlined set first.
+- **ROUTING:** both runs take the PROTOCOL graph (tracing and counters each clear `bare_parse` —
+  2.1), which is the correct graph here: it is the one whose `memoized_call` is under study.
 
 ---
 

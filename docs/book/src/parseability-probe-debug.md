@@ -384,6 +384,65 @@ This dump is the dynamic input of the **choice-site census** (`ast_pipeline --re
 
 ---
 
+## Is the Memo Actually Serving This Rule? (per-rule insert / evict / replay census)
+
+`rule_memo_hit_counts` above is a **fused** counter: it sums three unrelated memo paths — a replayed
+success, a cached clean failure, and a cached tainted failure. For "how memo-hot is this rule" that
+fusion is fine. For **"is packrat doing its job here"** it is actively misleading, because only one
+of the three — the success replay — is the packrat guarantee. The other two are cheap bookkeeping
+about dead ends.
+
+The distinction decided a real investigation. On the `SV-CORPUS-GRAD.11a` `if / else if` chain,
+`conditional_statement` reports **208 memo hits at n=6**, which reads as "well served". Split apart,
+**all 208 are cached failures and exactly 0 are success replays** — the memo never once replayed the
+expensive re-parse of the remaining chain. The first reading of that number concluded the memo
+already collapsed the rule and the fix lay elsewhere; the split refuted it.
+
+`docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py` performs the split. It needs no
+engine change: the generated `memoized_call` already logs every memo transition at
+`PGEN_TRACE_VERBOSITY=debug`, keyed by numeric rule id, and the script joins those lines against the
+parser's own `RULE_NAMES` table.
+
+```bash
+PGEN_TRACE_VERBOSITY=debug parseability_probe --parse systemverilog in.sv \
+    --profile sv_2017 --trace --trace-log-file t.log
+parseability_probe --parse systemverilog in.sv \
+    --profile sv_2017 --dump-rule-outcome-counts-json oc.json
+python3 docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py t.log \
+    --verify oc.json --rules conditional_statement,statement_or_null --top 20
+```
+
+```
+rule                                miss ins_success  evict_succ hit_success    hit_fail
+conditional_statement                 79          63          57           0         208
+statement_or_null                    223         127         114           0           0
+```
+
+Read it as: `statement_or_null` inserted 127 successful entries, had **114 of them thrown away** as
+stale before they could be reused, and was **never once served from cache**.
+
+Key properties:
+
+- **Success replays are the guarantee; everything else is bookkeeping.** A rule with many hits and
+  zero replays is a rule the memo is not helping.
+- **A stale-tainted eviction means the entry was epoch-stamped and the store moved underneath it.**
+  Under `MEMO-STORE-SOUNDNESS.2` an entry whose body consulted the store may be replayed only while
+  the store is unchanged; the eviction path can therefore only run on a tainted entry, which makes
+  the eviction count itself proof of taint.
+- **Ground truth — it refuses rather than guesses.** `--verify` cross-checks the trace census against
+  the independent atomic counters (`miss + hits` must equal `rule_entry_counts`), and verifies the
+  id→name join itself. A mismatch exits non-zero instead of publishing a number.
+- ⚠️ **Not every rule is memoized, and the control is partitioned because of it.** A rule reached
+  through the generated `inlined_frame_call` helper gets a full observable frame — entry counter,
+  coverage push, enter/exit trace — but **no `memoized_call` at all**. On `systemverilog.ebnf` that
+  is **663 of 1481 rules across 2871 call sites**. So "rule R's method contains a `memoized_call`"
+  does not mean R's executed path was memoized; strictly-memoized rules must balance exactly, while
+  inlined-reachable rules may only fall short, and the shortfall is reported rather than dropped.
+- **Routing** — both runs take the protocol graph (tracing and counters each clear `bare_parse`),
+  which is the correct graph here: it is the one whose `memoized_call` is under study.
+
+---
+
 ## Furthest-Position Error Diagnostic
 
 When a parse fails, the standard PEG error message reports the position where the OUTERMOST failing rule started — which is often megabytes shallower than the actual defective construct. pgen's `furthest_position` tracking augments every error message with the deepest byte position any branch reached during the parse (even on backtracked branches).

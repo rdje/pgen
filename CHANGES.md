@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0195 — `.11a`'s open question is ANSWERED: the memo is not serving the chain AT ALL, and `-0194`'s "the memo already collapses it" was a fused counter misread (leaf `SV-CORPUS-GRAD.11a` + new `.11d`, instrument + docs, ZERO Rust/grammar bytes)
+
+- **THE ANSWER.** `statement_or_null` takes 0 memo hits over 223 entries because **every successful
+  entry it inserts is evicted as STALE-TAINTED before it can ever be replayed.** Measured per rule,
+  both variants, n = 4/5/6: success inserts `2ⁿ − 1`, stale evictions `2ⁿ − 1 − n`, **success replays
+  0 at every depth** (381 inserts / 342 evictions / **0 replays** at n=6 across the four chain rules).
+- ⛔⛔ **CORRECTION TO `-0194` (including its commit subject).** `rule_memo_hit_counts` FUSES three
+  memo paths — replayed success, cached clean failure, cached tainted failure (three
+  `record_memo_hit` sites in `ast_based_generator.rs`). Split apart, **all 208 of
+  `conditional_statement`'s n=6 "hits" are cached FAILURES and 0 are success replays.** The memo
+  collapses the cheap dead-end probes, not the expensive re-parse. "The memo already collapses the
+  rule everyone would have blamed" is refuted; packrat is simply not serving this construct.
+- **ROOT CAUSE (WHY+WHERE).** `memoized_call` stamps a success as tainted iff the body moved the
+  **global cumulative** `predicate_evaluations()` counter (`systemverilog_parser.rs:1419458/:1419463/
+  :1419491`), then evicts it on any later lookup once the **global** `write_epoch` has moved
+  (`:1419399-1419416`). On the SV statement surface both hold essentially always ⇒ the memo is
+  effectively disabled there, so the `conditional_else_branch` language-overlap `-0194` named
+  compounds unchecked into O(2ⁿ).
+- ⭐ **NEW INSTRUMENT, no engine change needed:** `docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py`
+  — the generated `memoized_call` already logs every memo transition at debug verbosity; the census
+  joins those lines against the parser's own `RULE_NAMES`. Wired into `TOOLBOX.md` 3.6 and the book.
+- ⭐ **AND A PREVIOUSLY UNWRITTEN ENGINE FACT: 663 of 1481 SV rules (2871 call sites) are NOT
+  memoized at all** — they run through `inlined_frame_call`, which keeps the observable frame but has
+  no `memoized_call`. This is why the census's ground-truth control fired on ~305 live rules on its
+  first run; the control is now partitioned (strict rules balance exactly, inlined-reachable rules may
+  only fall short and the shortfall is reported). None of the four chain rules is inlined.
+- **ROUTED OUT → new leaf `.11d`** (with the `ROUTING-EVIDENCE` record): the taint test is a global
+  over-approximation, so packrat silently degrades wherever the store is live. Measured cross-family:
+  SV `predicate_evaluations=1467`/`facts_emitted=1128` ⇒ 1860 evictions; **regex 3/5 ⇒ 0 evictions**.
+  Mechanism is shared codegen (by construction in all 10 parsers); the pathology is SV-only so far,
+  and the negative regex result is recorded rather than smoothed over.
+- **FIX HIERARCHY RESOLVED — the memo answer ELIMINATED tier 3 from `.11a`.** The engine fix is real
+  but cross-family and sits on a soundness mechanism ⇒ `.11d`. `.11a`'s tier-1 declarative fix
+  (`@branch_policy: ordered` on `conditional_else_branch`) stands and is now known sufficient alone.
+  Still owed by the FIX slice: Protocol-D acceptance-neutrality + the MEMORY before→after.
+- **Lesson promoted:** `docs/knowledge/a-fused-counter-is-not-evidence-about-any-of-its-parts.md`.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0194 — `.11a`'s choice site is NAMED: `conditional_else_branch` is entered exactly `2ⁿ − 1` times, and the memo already collapses the rule everyone would have blamed (leaf `SV-CORPUS-GRAD.11a`, diagnosis + reproducer artifact, ZERO code bytes)
 
 - **THE SITE.** `grammars/systemverilog.ebnf:1491-1492` —
