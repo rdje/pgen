@@ -1,5 +1,35 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0206 — the corpus runner REFUSES an unrecognised `PGEN_CORPUS_*` spelling, and stops leaving scratch residue in the tracked directory (leaf `SV-CORPUS-GRAD.12c.3`, ZERO Rust bytes)
+
+- ⭐⭐ **`.12c` F2 CLOSED.** The runner read `PGEN_CORPUS_OUT_DIR`; a near-miss like
+  `PGEN_CORPUS_OUTDIR` was simply never read, so the run fell through to the **canonical**
+  directory and overwrote tracked graduation oracles — while the operator believed they were
+  sandboxed and therefore did not check. `.12a` hit exactly this. **A redirect that does not
+  redirect is worse than no redirect.**
+- **THE FIX — total classification, refuse on the unmatched.** `${!PGEN_CORPUS_@}` enumerates the
+  ENVIRONMENT and classifies every name against a closed 3-name whitelist; anything unmatched exits
+  **6** with the recognised set printed. ⛔ Not a list of misspellings — enumerating the wrong side
+  misses silently, the discipline `LIVE-DOC-CURRENCY` instrument B already applies. Census first:
+  the only `PGEN_CORPUS_*` names in the repo are the 3 recognised ones plus the near-miss, so no
+  caller breaks. The guard carries its own ground truth (exit **7 MISCALIBRATED** if it stops
+  recognising a known name or starts accepting the near-miss).
+- ⭐⭐ **The guard refused its own author on its first run**: the whitelist was first held in
+  `PGEN_CORPUS_KNOWN_VARS`, a name inside the namespace it polices. Fixed by RENAMING it out of
+  that namespace — special-casing would have been the enumerate-the-exceptions anti-pattern the
+  guard exists to remove.
+- **SECOND DEFECT, found by F2's own test harness**: a killed run left a 124 KB
+  `.durations.tsv.parallel` in the TRACKED artifact directory, because the scratch `rm` sat only on
+  the success path. ⭐⭐ **The first cut of that fix was INERT and only the re-measure caught it** —
+  a bare `trap … EXIT` does not run when the shell dies on an untrapped signal, and `timeout` sends
+  SIGTERM, which is precisely the case that leaves residue. Trapping INT/TERM/HUP fixed it.
+  ⚠️ Honest limit: SIGKILL cannot be trapped, so `kill -9` and OOM kills still leave the temps.
+- **VERIFIED, both directions**: 2 RED arms exit 6 naming the offending variables; 2 GREEN arms
+  (recognised variable / nothing set) leave the guard silent; the MISCALIBRATED control exits 7;
+  residue after SIGTERM **1 → 0** and after SIGINT **0**, with SIGKILL documented as the untrappable
+  limit; a full capped 200-file sandboxed run exits 0, writes all 4 artifacts, leaves 0 temps and
+  touches nothing tracked. All 17 doctrines PASS.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0205 — the SV preprocessor no longer double-encodes non-ASCII text (leaf `SV-CORPUS-GRAD.12c.2`; the pin `-0204` planted is flipped)
 
 - ⭐⭐ **FIXED, one commit after it was found.** `-0204`'s enumeration exposed that

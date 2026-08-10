@@ -7711,6 +7711,104 @@ AFTER:  output_bytes=44   byte-identical to the input (hexdump compared, not eye
       behaviour, so there is no user-facing contract to update; `CHANGES.md` and
       `DEVELOPMENT_NOTES.md` carry it. DONE-BAR register **unchanged**.
 
+#### `.12c.3` — F2: the corpus runner ACCEPTS an unknown `PGEN_CORPUS_*` spelling silently (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0206`)
+
+- **Status: `done`.** Closes `.12c` F2, plus a second residue defect the F2 test harness surfaced.
+  ZERO Rust bytes — this is `stimuli/run_external_corpus.sh` only.
+- **REPRODUCE / ISSUE.** The runner reads `PGEN_CORPUS_OUT_DIR`. `PGEN_CORPUS_OUTDIR` — or any
+  other near-miss — was simply never read, so the run fell through to the **canonical** directory
+  and overwrote tracked graduation oracles with whatever it produced. `.12a` hit exactly this with
+  a 200-file capped run and caught it only because `git status` happened to be checked immediately
+  afterwards. ⭐ **A redirect that does not redirect is worse than no redirect**, because the
+  operator believes they are sandboxed and therefore does not check.
+- **ROOT CAUSE (WHY + WHERE).** WHERE `stimuli/run_external_corpus.sh`, the environment block
+  (`PGEN_CORPUS_OUT_DIR` read at what is now `:277`). WHY the script *reads* the names it knows and
+  never *classifies* the ones it is given — an unknown name produces an **absent read**, not a
+  reported miss, so it fails silently and in the direction that looks safe.
+- **THE FIX — total classification, refuse on the unmatched.** `${!PGEN_CORPUS_@}` enumerates the
+  **environment**, and every name is classified against a closed whitelist of 3; anything
+  unmatched exits **6** with the recognised set printed. ⛔ Deliberately not a list of
+  misspellings: enumerating the wrong side misses silently, which is
+  [[feedback_enumerating_instrument_must_refuse]] — the same discipline `LIVE-DOC-CURRENCY`
+  instrument B applies. Census first: the only `PGEN_CORPUS_*` names anywhere in the repo are the
+  3 recognised ones plus the `OUTDIR` near-miss, so no existing caller breaks.
+- **GROUND TRUTH INSIDE THE GUARD** (`feedback_instrument_needs_ground_truth`): every invocation
+  re-asserts, in microseconds, that all 3 known names classify `known` and that the provoking
+  near-miss classifies `unknown`; a miss exits **7** as `MISCALIBRATED` rather than reporting a
+  clean environment.
+- ⭐⭐ **THE GUARD CAUGHT ITS OWN AUTHOR ON ITS FIRST RUN.** The whitelist was first held in
+  `PGEN_CORPUS_KNOWN_VARS` — a name inside the namespace the whitelist polices — so the guard
+  refused itself. ⛔ The fix is the RENAME (`KNOWN_CORPUS_ENV_VARS`), not a special case:
+  special-casing would have been the enumerate-the-exceptions anti-pattern the guard exists to
+  remove.
+
+##### THE SECOND DEFECT — a killed run leaves scratch residue in the TRACKED directory
+
+Found by the F2 test harness itself: killing a canonical run at 6 s left a 124 KB
+`stimuli/sv/characterization/.durations.tsv.parallel` behind. The temps live beside their output on
+purpose (same filesystem, so the final write is a rename), but the only `rm` was on the success
+path at the end of the script — so every timeout, Ctrl-C or memory-guard kill left untracked churn
+in the artifact directory, where it reads like an artifact.
+
+⭐⭐ **The first cut of that fix was INERT, and only the re-measure caught it.** A bare
+`trap … EXIT` does **not** run when the shell dies on an untrapped signal, and `timeout` sends
+SIGTERM — exactly the case that produces residue. The re-measure after adding the EXIT trap alone
+*still found the stray file*. Trapping INT/TERM/HUP (each handler simply calls `exit`, which then
+runs the EXIT trap; `rm -f` is idempotent) is what actually fixed it. ⚠️ **Honest limit, stated not
+discovered later:** SIGKILL cannot be trapped, so `kill -9` and OOM kills still leave the temps.
+
+##### VERIFICATION — every arm exercised, both directions
+
+| arm | condition | result |
+|---|---|---|
+| RED 1 | `PGEN_CORPUS_OUTDIR=…` (the provoking near-miss) | refused, **exit 6**, names the variable |
+| RED 2 | `PGEN_CORPUS_OUT` + `PGEN_CORPUS_JOBS` together | refused, **exit 6**, names both |
+| GREEN 3 | `PGEN_CORPUS_OUT_DIR=…` (recognised) | guard silent, run proceeds past it |
+| GREEN 4 | nothing set | guard silent, run proceeds past it |
+| CONTROL 5 | whitelist mutated to *accept* the near-miss | **exit 7 MISCALIBRATED** — the control fires |
+| RESIDUE SIGTERM | `timeout 6` mid-run | exit 124, **0 residue** (was 1) |
+| RESIDUE SIGINT | `kill -INT` mid-run | exit 130, **0 residue** |
+| RESIDUE SIGKILL | `kill -9` mid-run | **1 residue — the documented, untrappable limit** |
+| GREEN end-to-end | capped 200-file sandboxed run | exit 0, 4 artifacts written, **0 temps left**, tracked dir untouched |
+
+⛔ **An honest gap in the control, recorded rather than glossed:** the ground-truth check catches a
+whitelist that *widens* (accepts a near-miss), but a whitelist that *drops* a name it should know
+is self-consistent and invisible to it. The guard would then refuse a legitimate variable — loud
+and immediately obvious, i.e. failing in the safe direction — which is why it is acceptable.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_CORPUS_OUTDIR=/tmp/nope stimuli/run_external_corpus.sh sv`
+      previously ran to the **canonical** directory, overwriting tracked oracles while the operator
+      believed the run was sandboxed; `.12a` hit it live. Separately, `timeout 6 … sv` left
+      `stimuli/sv/characterization/.durations.tsv.parallel` (124 KB) behind.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY (a) the script READS the names it knows and never
+      CLASSIFIES what it is given, so an unknown spelling is an absent read rather than a reported
+      miss — silent, in the passing direction; WHY (b) the scratch `rm` sat only on the success
+      path, and `bash -n`/`make --dry-run`-class reasoning is not enough here: a bare `trap … EXIT`
+      does not fire on an untrapped signal, which the re-measure proved. WHERE
+      `stimuli/run_external_corpus.sh` — the environment block and the `RAW`/`RECONFIRM_FILE`
+      lifecycle.
+- [x] **FIX** — total `${!PGEN_CORPUS_@}` classification against a closed 3-name whitelist,
+      refusing with exit 6 and a self-explaining message, carrying its own ground-truth controls
+      (exit 7 on MISCALIBRATED); plus `_cleanup_corpus_temps` on EXIT **and** INT/TERM/HUP. Fix
+      tier: **ops/script** — zero Rust, zero grammar, zero generated bytes.
+- [x] **ADDRESSED (verified)** — RED arms exit **6** naming the offending variable(s); the
+      MISCALIBRATED control exits **7**; residue after a SIGTERM kill **1 → 0** and after SIGINT
+      **0**; `bash -n` clean.
+- [x] **NO REGRESSION** — GREEN arms unchanged: with a recognised variable and with nothing set,
+      the guard is silent and the run reaches its `effective measurement parameters` banner; a full
+      capped 200-file sandboxed run (`PGEN_CORPUS_OUT_DIR` + `PGEN_CORPUS_REBASELINE`) exits **0**,
+      writes all 4 artifacts, leaves **0** temps and touches nothing tracked
+      (`git status --porcelain stimuli/sv/characterization/` = 0). Repo census confirms the only
+      `PGEN_CORPUS_*` names in use are the 3 recognised ones, so no caller breaks — including
+      `docs/tasks/artifacts/sv_corpus_grad/timeout_reconfirm_control/run_control.sh`, which uses
+      `PGEN_CORPUS_OUT_DIR` + `PGEN_CORPUS_REBASELINE`. All 17 doctrines PASS.
+- [x] **LOCKSTEP** — the runner's own header block documents the three recognised variables and now
+      states that anything else is refused; `CHANGES.md` + `DEVELOPMENT_NOTES.md` carry it. No book
+      chapter documents this script's environment, and no user-facing behaviour changed for a
+      correct invocation. DONE-BAR register **unchanged**.
+
 ### `.12b` — the 263 rows POSITION cannot decide (`todo`, opened 2026-08-10 by `.12`, SIZED AND PARKED)
 
 - **Status: `todo`, parked on evidence with a named re-open trigger — not a silent deferral.**

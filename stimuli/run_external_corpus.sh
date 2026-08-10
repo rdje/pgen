@@ -34,6 +34,10 @@
 #                                         touched, so a pending run can be DIFFED before promotion
 #   PGEN_CORPUS_REBASELINE=1              proceed despite parameter drift, establishing a new
 #                                         baseline; loud, never silent
+#   ⛔ These three are the COMPLETE set. Since SV-CORPUS-GRAD.12c.3 any OTHER `PGEN_CORPUS_*`
+#   variable is REFUSED (exit 6) rather than ignored: a near-miss like `PGEN_CORPUS_OUTDIR` used
+#   to be silently unread, so the run wrote to the CANONICAL directory while the operator believed
+#   it was sandboxed.
 #   PGEN_CORPUS_TIMEOUT_RECONFIRM_MAX     cap on serial timeout re-confirmation (default 64;
 #                                         the measured populations are 4 / 0 / 0 for sv / vhdl /
 #                                         sv2005, so the cap is ~16x the observed maximum and any
@@ -60,6 +64,78 @@ set -uo pipefail
 export LC_ALL=C
 
 FAM="${1:?usage: run_external_corpus.sh <sv|sv2005|vhdl> [timeout_s] [jobs] [max_files]}"
+
+# ── SV-CORPUS-GRAD.12c.3 (finding F2) — REFUSE an unrecognised `PGEN_CORPUS_*` spelling ────────
+#
+# ⛔ THE DEFECT THIS CLOSES. This script reads `PGEN_CORPUS_OUT_DIR`. A near-miss —
+# `PGEN_CORPUS_OUTDIR`, `PGEN_CORPUS_OUT`, a typo, a half-remembered name — was simply never read,
+# so the run fell through to the CANONICAL directory and OVERWROTE tracked graduation oracles with
+# whatever it produced. `.12a` hit exactly this with a 200-file capped run and caught it only
+# because `git status` happened to be checked immediately afterwards.
+#
+# ⭐ A redirect that does not redirect is worse than no redirect at all, because the operator
+# believes they are sandboxed and therefore does NOT check.
+#
+# ⛔ It classifies TOTALLY and refuses on the unmatched, rather than enumerating misspellings —
+# the discipline `LIVE-DOC-CURRENCY` instrument B already applies, and for the same reason:
+# enumeration misses silently, and silently in the PASSING direction
+# (docs/decisions/feedback_enumerating_instrument_must_refuse.md). The recognised set is small,
+# closed and authoritative; the set of ways to get it wrong is not.
+#
+# ⚠️ The whitelist is deliberately NOT named `PGEN_CORPUS_KNOWN_VARS`. The first cut was, and the
+# guard's very first run refused the guard's own state variable — the holder of the whitelist sat
+# inside the namespace the whitelist polices. Special-casing it would have been the enumerate-the-
+# exceptions anti-pattern this guard exists to avoid; renaming it out of the namespace is the fix.
+KNOWN_CORPUS_ENV_VARS="PGEN_CORPUS_OUT_DIR PGEN_CORPUS_REBASELINE PGEN_CORPUS_TIMEOUT_RECONFIRM_MAX"
+
+# The decision as a pure function, so it can carry ground truth (an instrument with no ground truth
+# is a confident guess — docs/decisions/feedback_instrument_needs_ground_truth.md).
+# $1 = variable name; echoes `known` or `unknown`.
+corpus_var_verdict() {
+  case " $KNOWN_CORPUS_ENV_VARS " in
+    *" $1 "*) printf 'known\n' ;;
+    *)        printf 'unknown\n' ;;
+  esac
+}
+
+# GROUND TRUTH, re-run on every invocation (microseconds): every recognised name must classify
+# `known`, and the near-miss that provoked this guard must classify `unknown`. A miss REFUSES
+# rather than quietly reporting a clean environment.
+for _ctrl in $KNOWN_CORPUS_ENV_VARS; do
+  [ "$(corpus_var_verdict "$_ctrl")" = known ] || {
+    echo "external-corpus: MISCALIBRATED — the env guard does not recognise its own '$_ctrl'" >&2
+    exit 7
+  }
+done
+[ "$(corpus_var_verdict PGEN_CORPUS_OUTDIR)" = unknown ] || {
+  echo "external-corpus: MISCALIBRATED — the env guard accepts the near-miss it exists to catch" >&2
+  exit 7
+}
+unset _ctrl
+
+# `${!PREFIX@}` lists the names of every set variable with that prefix — the environment is
+# enumerated, not the misspellings.
+_unknown_corpus_vars=""
+for _name in ${!PGEN_CORPUS_@}; do
+  [ "$(corpus_var_verdict "$_name")" = unknown ] && _unknown_corpus_vars="$_unknown_corpus_vars $_name"
+done
+if [ -n "$_unknown_corpus_vars" ]; then
+  {
+    echo "external-corpus: REFUSING — unrecognised PGEN_CORPUS_* variable(s):$_unknown_corpus_vars"
+    echo
+    echo "  This script reads ONLY these, and silently ignores anything else:"
+    for _known in $KNOWN_CORPUS_ENV_VARS; do echo "    $_known"; done
+    echo
+    echo "  Refusing rather than ignoring, because the failure is invisible in the direction that"
+    echo "  looks safe: an unread PGEN_CORPUS_OUT_DIR near-miss does not redirect anything, so the"
+    echo "  run writes to the CANONICAL directory and overwrites tracked graduation oracles while"
+    echo "  the operator believes the run is sandboxed."
+    echo
+    echo "  Fix the spelling, or 'unset' the variable if it was not meant for this script."
+  } >&2
+  exit 6
+fi
+unset _name _unknown_corpus_vars _known
 
 # ⛔ Capture what the CALLER actually supplied BEFORE any default is applied. The whole
 # reconciliation below turns on the difference between "the caller asked for 20s" and "nobody
@@ -337,6 +413,30 @@ if [ "$MAX_FILES" -gt 0 ] && [ "$TOTAL_FOUND" -gt "$MAX_FILES" ]; then
   echo "external-corpus[$FAM]: capping at $MAX_FILES of $TOTAL_FOUND files (smoke run)" >&2
 fi
 echo "external-corpus[$FAM]: parsing ${#FILES[@]} files (timeout=${TIMEOUT_S}s, jobs=$JOBS) ..." >&2
+
+# ⛔ SV-CORPUS-GRAD.12c.3 — the scratch temps are removed on EXIT, not only on the success path.
+# They live beside their output on purpose (same filesystem), but until now the only `rm` was at
+# the very end of the script, so a run killed by a timeout, a Ctrl-C or the memory guard left a
+# ~124 KB `.durations.tsv.parallel` sitting in the TRACKED artifact directory — untracked churn
+# that reads like an artifact. Measured by killing a canonical run at 6 s while exercising the env
+# guard above. `${VAR:-}` because `set -u` is on and the trap can fire before either is assigned.
+#
+# ⭐⭐ THE SIGNAL TRAPS ARE NOT DECORATION, and the first cut of this fix proved it by being INERT.
+# `trap … EXIT` alone does NOT run when the shell dies on an UNTRAPPED signal, and `timeout` sends
+# SIGTERM — which is precisely the case that leaves residue. The re-measure after adding the EXIT
+# trap alone still found the stray file; only trapping the signals fixed it. Each handler just
+# calls `exit`, which then runs the EXIT trap (`rm -f` is idempotent, so the double call is free).
+# ⚠️ Honest limit: SIGKILL cannot be trapped, so a hard `kill -9` (or an OOM kill) still leaves the
+# temps. That is unavoidable, not overlooked.
+_cleanup_corpus_temps() {
+  [ -n "${RAW:-}" ] && rm -f "$RAW" "$RAW.sorted"
+  [ -n "${RECONFIRM_FILE:-}" ] && rm -f "$RECONFIRM_FILE"
+  return 0
+}
+trap _cleanup_corpus_temps EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 RAW="$OUTDIR/.${DURATIONS_NAME}.parallel"
 : > "$RAW"

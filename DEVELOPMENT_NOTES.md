@@ -1,5 +1,41 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0206 — two guards, and both were wrong on their first run
+
+`.12c.3` is a small ops leaf: make the corpus runner refuse an unrecognised `PGEN_CORPUS_*`
+variable instead of silently ignoring it. Both halves of it were written correctly-looking and
+were wrong, and in both cases only *running* them showed it.
+
+**The guard refused itself.** The whitelist of recognised names was first held in a variable called
+`PGEN_CORPUS_KNOWN_VARS`. The guard enumerates the environment with `${!PGEN_CORPUS_@}` — which of
+course includes the variable holding the whitelist. First invocation: *"REFUSING — unrecognised
+PGEN_CORPUS_* variable(s): PGEN_CORPUS_KNOWN_VARS PGEN_CORPUS_OUTDIR"*. The tempting fix is a
+special case; the correct fix is to move the state **out of the namespace it polices**, because a
+special case is the enumerate-the-exceptions pattern this guard exists to remove. A checker whose
+own bookkeeping lives inside its subject matter will keep finding itself.
+
+**The cleanup trap was inert.** The second half — stop leaving a 124 KB `.durations.tsv.parallel`
+in the tracked artifact directory when a run is killed — looked like a one-liner:
+`trap 'rm -f …' EXIT`. It is not. **Bash does not run the EXIT trap when the shell dies on an
+untrapped signal**, and the killer here is `timeout`, which sends SIGTERM. So the fix addressed
+every case except the only one that produced the symptom. The re-measure — kill a run at 6 s, then
+`git status` the directory — still found the file. Adding `trap 'exit 143' TERM` (and INT, HUP),
+each of which then triggers the EXIT trap, is what actually worked. SIGKILL remains untrappable and
+is documented as such rather than left to be discovered.
+
+**What generalises.** Both defects share a shape: the change was *plausible on reading* and
+*inert or self-defeating on running*, and no amount of re-reading would have shown it. The
+discriminating step in both cases cost seconds — invoke the script once; kill it once and look at
+the directory. ⇒ for an ops change, the acceptance evidence is the arm matrix, not the diff: RED
+(the defect reproduces and is now refused), GREEN (the legitimate paths still work), and a CONTROL
+that deliberately breaks the guard to prove it can fail. The control is what caught the whitelist
+question — mutate it to accept the near-miss, and confirm the run exits 7 rather than proceeding.
+
+⛔ One honest gap recorded in the leaf rather than papered over: the control catches a whitelist
+that WIDENS, but a whitelist that DROPS a name is self-consistent and invisible to it. That failure
+mode refuses a legitimate variable — loud and immediate, i.e. the safe direction — which is why it
+is acceptable rather than fixed.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0205 — pin a defect you cannot fix yet, and it cannot land silently
 
 `-0204` found a defect it deliberately did not fix: the SV preprocessor's line scanners re-emitted
