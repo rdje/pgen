@@ -1,5 +1,39 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0205 — the SV preprocessor no longer double-encodes non-ASCII text (leaf `SV-CORPUS-GRAD.12c.2`; the pin `-0204` planted is flipped)
+
+- ⭐⭐ **FIXED, one commit after it was found.** `-0204`'s enumeration exposed that
+  `expand_macros_in_text` and `substitute_function_macro_body` re-emitted with
+  `out.push(bytes[i] as char)` — a **Latin-1 promotion, not a UTF-8 decode** — so every multi-byte
+  character came back out as one character per byte. Measured on a 44-byte *valid UTF-8* file:
+  `output_bytes=51`, `©` → `Â©`. Now **44**, byte-identical to the input (hexdump-compared).
+- ⛔ **8 `as char` sites, 6 defects — classified before editing, not swept.** The other two
+  (`split_macro_parameter_tokens`, `parse_macro_invocation_args`) never EMIT: they compare against
+  ASCII literals and slice at the delimiters they find, so a promoted high byte matches nothing and
+  both slice endpoints stay on character boundaries. Correct as written, now commented as such.
+- ⭐ **The scanners stay byte-indexed on purpose.** Rewriting them over `chars()` was the obvious
+  move and the wrong one: every delimiter they hunt is ASCII and `SourceMapEntry` carries **byte**
+  offsets. The new `source_char_at()` copies the whole sequence and advances by `len_utf8()`.
+  The boundary invariant it relies on was VERIFIED, not hoped for — `is_ident_start` /
+  `is_ident_continue` are ASCII-only, so identifier scanning always stops before a continuation
+  byte — and is recorded in the helper's doc comment, because widening either predicate would
+  break it silently.
+- ⭐⭐ **THE PIN DID ITS JOB.** `-0204` landed two tests that ASSERTED the defect precisely so this
+  fix could not be silent; both were flipped here
+  (`a_plain_utf8_source_is_double_encoded_pinned_defect` →
+  `a_plain_utf8_source_passes_through_byte_identical`). The load-bearing assertion is byte
+  **length**, not `contains` — a wrong re-encode can still contain the right substring.
+- **Two new locks for what the corpus does not exercise**: the string / block-comment /
+  function-macro-body branches, and — the consequence that outlived the visible mojibake — every
+  `SourceMapEntry` range must be a valid slice of the output, with the last ending exactly at its
+  length. While characters were being inflated, every range after a non-ASCII character named the
+  wrong bytes, silently, because nothing ever sliced the text with them.
+- **VERIFIED**: `sv_preprocessor::` 26 passed; `sv_preprocessor_quality_gate` ✅ (all `key_hit_*`
+  counters unchanged); `sv_preprocessor_curated_differential_gate` ✅ (taxonomy counters unchanged);
+  `clippy_on_rust_change` clean; all 17 doctrines PASS. ⛔ No corpus re-run is owed, and that is a
+  fact not a shortcut: the corpus parses files DIRECTLY and the adjudicator's preprocessor test is
+  a text scan, so the SVPP is not on the corpus path.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0204 — the SIGNOFF BLOCKER is fixed: PGEN reads Latin-1 / UTF-16 source instead of refusing the file (leaf `SV-CORPUS-GRAD.12c.1`; new `pgen::source_text` module + 7 call sites)
 
 - ⭐⭐ **`.12c` F1 IMPLEMENTED — the release blocker for the Nexsim claim.** Thirteen files of the

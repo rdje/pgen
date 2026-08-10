@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0205 — pin a defect you cannot fix yet, and it cannot land silently
+
+`-0204` found a defect it deliberately did not fix: the SV preprocessor's line scanners re-emitted
+with `out.push(bytes[i] as char)`, doubling every non-ASCII character. It was a different root
+cause from the one that leaf owned, so it got its own leaf — and, because "we will fix it next"
+is a promise and not a mechanism, it got **two tests that assert the defect**, with a comment
+ordering the fix to change them.
+
+That is worth generalising. A finding you route rather than fix is normally protected by nothing:
+the leaf can be forgotten, and the defect can also *disappear* — fixed incidentally by unrelated
+work — with nobody noticing either way. A pinned assertion closes both directions at once. It fails
+the moment the behaviour changes, so the fix cannot be silent; and it keeps failing if the
+behaviour regresses afterwards, so the fix cannot rot. The cost is one test and a comment. Here it
+paid inside one commit.
+
+**The classification mattered more than the fix.** `grep -n "as char"` returns 8 hits in that file
+and only **6** are defects. `split_macro_parameter_tokens` and `parse_macro_invocation_args` never
+*emit* a character — they compare the promoted value against ASCII literals and slice the input at
+the delimiters they find. A byte ≥ 0x80 promoted to U+0080..=U+00FF matches none of those literals,
+so a multi-byte character is walked a byte at a time and falls through, and both slice endpoints
+land on ASCII delimiters, hence on character boundaries. Correct as written. Sweeping all 8 would
+have churned two functions to fix nothing, which is the same trap `-0204`'s reader enumeration
+avoided one level up.
+
+**Byte-indexed scanning was the design, not the bug.** The tempting fix is to rewrite the scanners
+over `chars()`. It is wrong: every delimiter they hunt is ASCII, and `SourceMapEntry` carries byte
+offsets into the output. The fix keeps the byte cursor and only changes how a character is copied
+out — whole sequence in, `len_utf8()` advance.
+
+**The invariant that makes that safe was verified, not assumed.** `source_char_at` slices
+`text[index..]`, which panics off a character boundary, so the invariant is load-bearing. It holds
+because every advance is a whole character, a `+1`/`+2` over bytes already compared to an ASCII
+literal, or a jump to an index produced by `is_ident_start`/`is_ident_continue` — and reading those
+two predicates shows they are ASCII-only, so identifier scanning always stops before a continuation
+byte. That reasoning lives in the helper's doc comment, because widening either predicate later
+would break it without any test necessarily noticing.
+
+**The assertion that actually catches this class is byte LENGTH.** `contains("©")` can pass on a
+wrongly re-encoded string. Length equality over a line carrying a 2-, a 3- and a 2-byte character
+cannot be satisfied by any per-byte promotion. And the consequence worth locking was not the
+visible mojibake at all — it was that every `SourceMapEntry` range after a non-ASCII character
+named the wrong bytes, silently, because nothing in the codebase ever sliced the output with them.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0204 — enumerate the readers before you fix one
 
 `SV-CORPUS-GRAD.12c` named the defect precisely: `parseability_probe.rs:504`/`:556` call

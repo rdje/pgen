@@ -7571,10 +7571,11 @@ byte 0.
       one row off a 319-row bar over a 46 %-adjudicated corpus does not move a family status, and
       `.13` is still the leaf the release bar turns on.
 
-#### `.12c.2` — ⭐⭐ THE SV PREPROCESSOR DOUBLE-ENCODES EVERY NON-ASCII CHARACTER (`todo`, opened 2026-08-11 by `.12c.1`)
+#### `.12c.2` — ⭐⭐ THE SV PREPROCESSOR DOUBLE-ENCODES EVERY NON-ASCII CHARACTER (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0205`)
 
-- **Status: `todo`. A CONFIRMED defect, found by `.12c.1` and pinned by a deliberately
-  defect-asserting test so it cannot be fixed silently or regress silently.**
+- **Status: `done`. A CONFIRMED defect, found by `.12c.1` and pinned by a deliberately
+  defect-asserting test so it could not be fixed silently or regress silently — the pin did its
+  job and was flipped by this leaf.**
 - **HOW IT WAS FOUND — by the fix's own test, not by inspection.** `.12c.1` added an assertion that
   a Latin-1 `©` survives the preprocessor. It **failed**, with the `©` arriving as `Â©`. The
   reader was exonerated in one step: the same corruption reproduces on input that is **valid
@@ -7610,11 +7611,105 @@ byte 0.
   `a_plain_utf8_source_is_double_encoded_pinned_defect` asserts the corruption *and* its exact
   +7-byte size on valid UTF-8 input; `tolerates_non_utf8_include_with_warning` asserts `Â©` with a
   comment ordering the fix to flip it to `©`. ⭐ Both FAIL when `.12c.2` lands — by design.
-- **Owed:** decode-aware scanning at the 8 sites (the scanners index by byte, so the fix is to
-  advance by the UTF-8 sequence length rather than to switch to `chars()` wholesale — the
-  backtick/quote/comment detection must keep its byte offsets, which is exactly the property a
-  naive `chars()` rewrite would lose); the two pinned tests flipped; a source-map byte-range
-  assertion over non-ASCII input; and a re-run of the SVPP suite.
+##### ⛔ THE 8 SITES ARE NOT 8 DEFECTS — 6 ARE, 2 ARE CORRECT (classified before editing)
+
+The same discipline `.12c.1` used on the readers, applied one level down. `grep -n "as char"`
+returns 8 hits; a sweep of all 8 would have churned two functions for nothing.
+
+| site | function | emits? | verdict |
+|---|---|---|---|
+| `:1325` `:1341` `:1348` `:1385` | `expand_macros_in_text` (line-comment / block-comment / string / default branches) | **yes** | ⭐ DEFECT — fixed |
+| `:1784` `:1818` | `substitute_function_macro_body` (`` `" `` region content / non-identifier bytes) | **yes** | ⭐ DEFECT — fixed |
+| `:1159` | `split_macro_parameter_tokens` | no | ✅ CORRECT — see below |
+| `:1594` | `parse_macro_invocation_args` | no | ✅ CORRECT — see below |
+
+**Why the two non-emitting sites are correct, and why that had to be checked rather than assumed.**
+They only ever *compare* the promoted char against ASCII literals and *slice* the input at the
+delimiters they find. A byte ≥ 0x80 promoted to U+0080..=U+00FF matches none of those literals, so
+a multi-byte character is walked a byte at a time and simply falls through — and both slice
+endpoints land on the ASCII delimiters, hence on character boundaries. The idiom is misleading but
+the behaviour is right; both now carry a comment saying so, because the next reader will grep the
+same string.
+
+##### THE FIX — `source_char_at()`, and the invariant that makes it safe
+
+Six sites go from `out.push(bytes[i] as char); i += 1;` to
+`let ch = source_char_at(text, i); out.push(ch); i += ch.len_utf8();`.
+
+⛔ **The scanners stay byte-indexed on purpose.** Rewriting them over `chars()` would have been the
+obvious move and the wrong one: every delimiter they hunt is ASCII, and `SourceMapEntry` carries
+**byte** offsets into the output. Byte indexing is the design; the promotion was the bug.
+
+⭐ **The boundary invariant, verified rather than hoped for.** `source_char_at` slices `text[index..]`,
+which panics off a character boundary — so the invariant is load-bearing. It holds because every
+cursor advance in these scanners is one of: `ch.len_utf8()` (a whole character), a `+1`/`+2` over
+bytes already compared against an ASCII literal, or a jump to an index produced by
+`is_ident_start`/`is_ident_continue` — and **both of those are ASCII-only**
+(`b.is_ascii_alphabetic() || b == b'_'` and `b.is_ascii_alphanumeric() || b == b'_' || b == b'$'`),
+so identifier scanning always stops *before* a continuation byte. That was measured by reading both
+predicates, not inferred from the call sites, and it is recorded in the helper's doc comment
+because a future edit widening either predicate to accept high bytes would break it silently.
+
+##### VERIFICATION — before → after
+
+```
+$ ast_pipeline --preprocess-systemverilog top.sv      # `// Copyright © 2016 — µ` + one decl, 44 B
+BEFORE: output_bytes=51   `// Copyright Â© 2016 â\u{80}\u{94} Âµ`   (+1 per non-ASCII byte)
+AFTER:  output_bytes=44   byte-identical to the input (hexdump compared, not eyeballed)
+```
+
+- **`sv_preprocessor::` suite → 26 passed** (24 before + the 2 net new). The two pinned
+  defect-asserting tests were FLIPPED, which is the whole point of having pinned them:
+  `a_plain_utf8_source_is_double_encoded_pinned_defect` became
+  `a_plain_utf8_source_passes_through_byte_identical`, and
+  `tolerates_non_utf8_include_with_warning` now asserts `// Copyright ©` instead of `Â©`.
+- ⭐ **The load-bearing assertion is byte LENGTH, not `contains`.** A scanner that re-encodes
+  wrongly can still contain the right substring somewhere; length equality over a line carrying a
+  2-, a 3- and a 2-byte character cannot be satisfied by any per-byte promotion.
+- **Two new tests cover the branches the corpus does NOT exercise** —
+  `non_ascii_survives_in_strings_and_block_comments_and_macro_bodies` drives the string,
+  block-comment and function-macro-substitution paths, because a fix applied only to the
+  line-comment branch (the one the corpus hits) would have passed everything else.
+- ⭐ **`the_source_map_byte_ranges_index_the_output_after_a_non_ascii_line`** locks the consequence
+  that outlived the visible mojibake: every `SourceMapEntry` range must be a valid slice of the
+  output and the last must end exactly at its length. While the expander inflated characters, every
+  range after a non-ASCII character named the wrong bytes — silently, because nothing ever sliced
+  the text with them.
+- **NO REGRESSION** — `sv_preprocessor_quality_gate` ✅, `sv_preprocessor_curated_differential_gate`
+  ✅ (taxonomy counters unchanged), `clippy_on_rust_change` clean, all 17 doctrines PASS. ⛔ No
+  corpus re-run is owed and that is a fact rather than a shortcut: the corpus parses files
+  DIRECTLY (`parseability_probe --parse`) and the adjudicator's preprocessor-dependency test is a
+  text scan, so the SVPP is not on the corpus path at all.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `ast_pipeline --preprocess-systemverilog` on a 44-byte valid-UTF-8
+      file reported `output_bytes=51` and emitted `// Copyright Â© 2016 â\u{80}\u{94} Âµ`: exactly
+      one extra byte per non-ASCII byte. Found by `.12c.1`'s own test asserting the `©` survives.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `u8 as char` is a **Latin-1 promotion**, not a UTF-8
+      decode, so byte `0xC2` becomes U+00C2 and re-encodes as two bytes; every multi-byte sequence
+      comes back out as one character per byte. WHERE: `rust/src/sv_preprocessor.rs`, the **6
+      emitting** sites of `expand_macros_in_text` and `substitute_function_macro_body` — separated
+      from the 2 compare-only sites by classification before any edit, and confirmed pre-existing
+      at HEAD (`git show HEAD:… | grep -c 'bytes\[i\] as char'` = 7 + 1 `content_bytes[k]`; the
+      only `as char` lines in `.12c.1`'s diff were comments).
+- [x] **FIX** — `source_char_at()` + `ch.len_utf8()` advance at the 6 emitting sites. Fix tier:
+      **library**, above grammar and engine — zero grammar bytes, zero codegen bytes, and the
+      scanners stay byte-indexed because the source map is byte-indexed.
+- [x] **ADDRESSED (verified)** — `output_bytes` **51 → 44**, output byte-identical to input
+      (hexdump-compared). `sv_preprocessor::` **26 passed**, including the two pinned tests flipped
+      from asserting the defect to asserting correctness, three new branch/source-map locks, and
+      `expands_nested_uvm_style_field_macros_without_leaking_conditionals` still green (the UVM
+      macro path is the one `substitute_function_macro_body` serves).
+- [x] **NO REGRESSION** — `make -C rust sv_preprocessor_quality_gate` ✅ (all `key_hit_*` counters
+      unchanged) and `make -C rust sv_preprocessor_curated_differential_gate` ✅
+      (`diff_taxonomy_output_mismatch 0`, `rust_failed_expected_passed 2` — both unchanged);
+      `clippy_on_rust_change` clean; all 17 doctrines PASS. ⛔ The two compare-only scanners were
+      left byte-stepping deliberately, so no behaviour there could move.
+- [x] **LOCKSTEP** — the book's preprocessor/source-map surface says nothing about encoding, and
+      this change makes the preprocessed text match its input rather than changing any documented
+      behaviour, so there is no user-facing contract to update; `CHANGES.md` and
+      `DEVELOPMENT_NOTES.md` carry it. DONE-BAR register **unchanged**.
 
 ### `.12b` — the 263 rows POSITION cannot decide (`todo`, opened 2026-08-10 by `.12`, SIZED AND PARKED)
 

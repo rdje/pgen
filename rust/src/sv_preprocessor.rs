@@ -1156,6 +1156,12 @@ fn split_macro_parameter_tokens(input: &str) -> Vec<&str> {
     let mut i = 0usize;
 
     while i < bytes.len() {
+        // SV-CORPUS-GRAD.12c.2 — `bytes[i] as char` is a Latin-1 promotion, and it stays here
+        // deliberately: this scanner never EMITS a character, it only compares against ASCII
+        // literals and slices `&input[..]` at the ASCII delimiters it finds. A promoted
+        // U+0080..=U+00FF matches none of those literals, so a multi-byte character is skipped a
+        // byte at a time and both slice endpoints stay on character boundaries. Examined, correct
+        // — unlike the six emitting sites this leaf fixed.
         let ch = bytes[i] as char;
         if escaped {
             escaped = false;
@@ -1322,9 +1328,11 @@ fn expand_macros_in_text(
 
     while i < bytes.len() {
         if in_line_comment {
-            let ch = bytes[i] as char;
+            // SV-CORPUS-GRAD.12c.2 — copy the whole UTF-8 sequence; see `source_char_at`.
+            // Comments are where the LRM permits non-ASCII, so this is the site that mattered.
+            let ch = source_char_at(text, i);
             out.push(ch);
-            i += 1;
+            i += ch.len_utf8();
             if ch == '\n' {
                 in_line_comment = false;
             }
@@ -1338,16 +1346,17 @@ fn expand_macros_in_text(
                 i += 2;
                 in_block_comment = false;
             } else {
-                out.push(bytes[i] as char);
-                i += 1;
+                let ch = source_char_at(text, i);
+                out.push(ch);
+                i += ch.len_utf8();
             }
             continue;
         }
 
         if in_double_quote {
-            let ch = bytes[i] as char;
+            let ch = source_char_at(text, i);
             out.push(ch);
-            i += 1;
+            i += ch.len_utf8();
             if escaped_in_string {
                 escaped_in_string = false;
             } else if ch == '\\' {
@@ -1382,8 +1391,9 @@ fn expand_macros_in_text(
         }
 
         if bytes[i] != b'`' {
-            out.push(bytes[i] as char);
-            i += 1;
+            let ch = source_char_at(text, i);
+            out.push(ch);
+            i += ch.len_utf8();
             continue;
         }
 
@@ -1591,6 +1601,8 @@ fn parse_macro_invocation_args(input: &str, open_paren_idx: usize) -> Option<(Ve
     let mut escaped = false;
 
     while i < bytes.len() {
+        // SV-CORPUS-GRAD.12c.2 — compare-only, like `split_macro_parameter_tokens`: this scanner
+        // emits nothing and slices at ASCII delimiters, so the Latin-1 promotion is harmless here.
         let ch = bytes[i] as char;
         if in_line_comment {
             if ch == '\n' {
@@ -1781,8 +1793,9 @@ fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) ->
                             out.push_str(token);
                         }
                     } else {
-                        out.push(content_bytes[k] as char);
-                        k += 1;
+                        let ch = source_char_at(content, k);
+                        out.push(ch);
+                        k += ch.len_utf8();
                     }
                 }
                 out.push('"');
@@ -1815,8 +1828,9 @@ fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) ->
         }
 
         if !is_ident_start(bytes[i]) {
-            out.push(bytes[i] as char);
-            i += 1;
+            let ch = source_char_at(body, i);
+            out.push(ch);
+            i += ch.len_utf8();
             continue;
         }
         let start = i;
@@ -1833,6 +1847,30 @@ fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) ->
     }
 
     out
+}
+
+/// The character whose UTF-8 sequence starts at `index`.
+///
+/// ⭐ `SV-CORPUS-GRAD.12c.2`. The line scanners in this file walk their input as `as_bytes()`, and
+/// that is the right design — every delimiter they look for (`` ` ``, `"`, `/`, `\n`, the
+/// identifier alphabet) is ASCII, and the source map they feed is byte-indexed. What was wrong was
+/// how they re-emitted: `out.push(bytes[i] as char)` is a **Latin-1 promotion**, not a UTF-8
+/// decode, so byte `0xC2` became U+00C2 and re-encoded as two bytes. Every multi-byte character
+/// came back out doubled — `©` as `Â©` — including in files that are perfectly valid UTF-8.
+///
+/// Emitting the whole sequence and advancing by its length keeps the output byte-identical to the
+/// input *and* keeps the cursor on a character boundary.
+///
+/// ⛔ The boundary invariant this relies on, stated because a future edit could break it silently:
+/// every cursor advance in these scanners is either this function's `len_utf8()`, or a `+1`/`+2`
+/// over bytes the scanner has already compared against an ASCII literal, or a jump to an index
+/// produced by [`is_ident_start`]/[`is_ident_continue`] — and both of those are **ASCII-only**, so
+/// identifier scanning always stops before a continuation byte.
+fn source_char_at(text: &str, index: usize) -> char {
+    text[index..]
+        .chars()
+        .next()
+        .expect("caller loops while index < text.len(), and index is on a char boundary")
 }
 
 fn is_ident_start(b: u8) -> bool {
@@ -2361,14 +2399,12 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         // leaf the preprocessor substituted U+FFFD for the `0xA9`, which is unrecoverable; the
         // warning is kept because the encoding is still worth reporting, but the loss is gone.
         assert!(!output.text.contains('\u{FFFD}'), "{}", output.text);
-        // ⛔ PINNED TO A KNOWN DEFECT — `SV-CORPUS-GRAD.12c.2`. The decoded `©` reaches the
-        // expander as U+00A9 and comes out as `Â©`, because `expand_macros_in_text` walks the
-        // line with `bytes[i] as char` and re-encodes every UTF-8 continuation byte as its own
-        // character. That double-encode is INDEPENDENT of this leaf (it corrupts plain UTF-8
-        // input too — see `a_plain_utf8_source_is_double_encoded_pinned_defect`) and is fixed by
-        // `.12c.2`. ⭐ When it lands, this assertion MUST be flipped to `"// Copyright ©"`;
-        // it is written this way so the fix cannot land silently.
-        assert!(output.text.contains("// Copyright Â©"), "{}", output.text);
+        // ⭐ END TO END, BOTH HALVES. `.12c.1` made the READER lossless — the `0xA9` decodes to
+        // U+00A9 instead of U+FFFD — and `.12c.2` made the EXPANDER lossless, so the character
+        // now survives all the way to the preprocessed text. This assertion was pinned to the
+        // then-current defect (`Â©`) for exactly one commit, so that the fix could not land
+        // silently; it now asserts the correct output.
+        assert!(output.text.contains("// Copyright ©"), "{}", output.text);
         let diagnostic = output
             .diagnostics
             .iter()
@@ -2403,39 +2439,102 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
     }
 
     #[test]
-    fn a_plain_utf8_source_is_double_encoded_pinned_defect() {
-        // ⛔ THIS TEST ASSERTS A DEFECT, DELIBERATELY. It was found by `SV-CORPUS-GRAD.12c.1`
-        // and is owned by `.12c.2`.
+    fn a_plain_utf8_source_passes_through_byte_identical() {
+        // ⭐ `SV-CORPUS-GRAD.12c.2` — the inverse of the test this replaced.
         //
-        // `expand_macros_in_text` (and seven sibling scanners in this file) walk the line as
-        // `text.as_bytes()` and re-emit with `out.push(bytes[i] as char)`. For any byte >= 0x80
-        // that promotion produces a U+0080..=U+00FF character, so a two-byte UTF-8 sequence comes
-        // back out as two characters and is re-encoded as four bytes. The preprocessed text is
-        // therefore MOJIBAKE for every non-ASCII input — and this has nothing to do with the file
-        // being Latin-1: the input here is valid UTF-8.
+        // Until `.12c.2`, `expand_macros_in_text` and its siblings re-emitted with
+        // `out.push(bytes[i] as char)` — a Latin-1 promotion, not a UTF-8 decode — so a two-byte
+        // sequence came back out as two characters and four bytes. This same input measured
+        // 44 B in, **51 B out**: exactly one extra byte per non-ASCII byte. That was MOJIBAKE for
+        // every non-ASCII input, and it had nothing to do with the file being Latin-1 — this
+        // input is valid UTF-8.
         //
-        // It is pinned rather than merely noted so that the fix is FORCED to notice it: `.12c.2`
-        // must change this test, and a silent regression back to byte-as-char would resurrect it.
-        // Today's parse verdicts are unaffected (non-ASCII lives in comments, which the parser
-        // skips), but the source map's byte ranges are wrong and expansion is on the critical
-        // path for `.13`.
-        let dir = create_temp_dir("svpp_utf8_double_encode");
+        // ⛔ The byte-LENGTH assertion is the load-bearing one, not the `contains`: a scanner that
+        // re-encodes wrongly can still contain the right substring somewhere. Length equality over
+        // a line carrying a 2-, a 3- and a 2-byte character catches any per-byte promotion.
+        let dir = create_temp_dir("svpp_utf8_passthrough");
         let top = dir.join("top.sv");
         let source = "// Copyright © 2016 — µ\nlogic from_top;\n";
         fs::write(&top, source).expect("write top");
 
         let output = preprocess_systemverilog_file(&top, &SvPreprocessorConfig::default())
             .expect("preprocess utf-8 source");
-        assert_ne!(
-            output.text.as_bytes(),
-            source.as_bytes(),
-            "if this now passes through unchanged, `.12c.2` has landed — delete this test"
-        );
         assert_eq!(
             output.text.len(),
-            source.len() + 7,
-            "one extra byte per non-ASCII byte: ©=2 + —=3 + µ=2"
+            source.len(),
+            "the preprocessed text must be byte-identical in length; was source.len()+7 before \
+             .12c.2 (© = 2 B, — = 3 B, µ = 2 B)"
         );
-        assert!(output.text.contains("Â©"), "{}", output.text);
+        assert_eq!(output.text, source);
+    }
+
+    #[test]
+    fn non_ascii_survives_in_strings_and_block_comments_and_macro_bodies() {
+        // The other three emitting scanners `.12c.2` fixed, each on the path that reaches it:
+        // the double-quote branch, the block-comment branch, and the function-macro body
+        // substitution. A fix applied only to the line-comment branch — the one the corpus
+        // exercises — would pass the test above and still corrupt these.
+        let dir = create_temp_dir("svpp_utf8_branches");
+        let top = dir.join("top.sv");
+        let source = concat!(
+            "`define GREET(x) $display(\"hé: %s — µ\", x)\n",
+            "/* blöck çomment ©\n   still in it ± */\n",
+            "initial `GREET(\"wörld\");\n",
+            "localparam string S = \"ünïcode\";\n"
+        );
+        fs::write(&top, source).expect("write top");
+
+        let output = preprocess_systemverilog_file(&top, &SvPreprocessorConfig::default())
+            .expect("preprocess utf-8 source");
+        for expected in [
+            "blöck çomment ©",
+            "still in it ±",
+            "hé: %s — µ",
+            "\"wörld\"",
+            "\"ünïcode\"",
+        ] {
+            assert!(
+                output.text.contains(expected),
+                "lost {expected:?} in:\n{}",
+                output.text
+            );
+        }
+        assert!(!output.text.contains('\u{FFFD}'), "{}", output.text);
+        assert!(!output.text.contains("Ã"), "double-encoded: {}", output.text);
+    }
+
+    #[test]
+    fn the_source_map_byte_ranges_index_the_output_after_a_non_ascii_line() {
+        // ⛔ The consequence that outlived the visible mojibake. `SourceMapEntry` carries
+        // `output_start`/`output_end` byte offsets into `output.text`; while the expander inflated
+        // every non-ASCII character, every range after such a character named the wrong bytes —
+        // silently, because nothing ever sliced the text with them.
+        let dir = create_temp_dir("svpp_utf8_source_map");
+        let top = dir.join("top.sv");
+        fs::write(&top, "// © — µ\nlogic a;\nlogic b;\n").expect("write top");
+
+        let output = preprocess_systemverilog_file(&top, &SvPreprocessorConfig::default())
+            .expect("preprocess utf-8 source");
+        assert!(!output.source_map.is_empty());
+        for entry in &output.source_map {
+            let slice = output
+                .text
+                .get(entry.output_start..entry.output_end)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "source-map range {}..{} is not a valid slice of {} bytes of output",
+                        entry.output_start,
+                        entry.output_end,
+                        output.text.len()
+                    )
+                });
+            assert!(!slice.is_empty());
+        }
+        let last = output.source_map.last().expect("at least one entry");
+        assert_eq!(
+            last.output_end,
+            output.text.len(),
+            "the map must cover the output exactly"
+        );
     }
 }
