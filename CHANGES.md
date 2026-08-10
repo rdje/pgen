@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0194 — `.11a`'s choice site is NAMED: `conditional_else_branch` is entered exactly `2ⁿ − 1` times, and the memo already collapses the rule everyone would have blamed (leaf `SV-CORPUS-GRAD.11a`, diagnosis + reproducer artifact, ZERO code bytes)
+
+- **THE SITE.** `grammars/systemverilog.ebnf:1491-1492` —
+  `conditional_else_branch := conditional_statement | statement_or_null`. The two alternatives are
+  **language-overlapping** on this input: alt 2 reaches `conditional_statement` again via
+  `statement_or_null → statement → statement_item → statement_item_sv_2017`. Under the default
+  `longest_match` policy both are fully explored at every level ⇒ `T(k) = 2·T(k−1)`.
+- **MEASURED, exactly** (`--dump-rule-entry-counts-json`): `conditional_else_branch` entries are
+  **15 / 31 / 63** at n = 4 / 5 / 6 — precisely `2ⁿ − 1`. Protocol D confirms both arms live:
+  `🏁 … selected branch 1/2 consuming 109/187/265 chars` outer, `branch 2/2 consuming 31 chars` at the
+  terminal `else`.
+- ⭐⭐ **THE MEMO IS ALREADY DOING THE OBVIOUS FIX.** `--dump-rule-outcome-counts-json` at n=6:
+  `conditional_statement` **287 entries / 208 memo hits**, but `conditional_else_branch` **63/0**,
+  `statement_or_null` **223/0**, `statement`/`statement_item`/`statement_item_sv_2017` **224/0** each.
+  ⇒ "just memoize it" is already true of the recursive rule and already insufficient; the exponential
+  lives in the **wrapper chain**, whose `statement_item_sv_2017` is a 20-alternative cascade — exactly
+  where `.10`'s pinned hot rules come from.
+- ⛔ **STORE REFUTED AT PER-RULE RESOLUTION** (it was previously refuted only in aggregate). Identifier
+  and literal-only chains at n=6 are **identical on every rule that matters** and on `facts_emitted`
+  (1128 both), differing only in total entries. The exponential is purely structural — do not revisit.
+- ⛔ **ONE OPEN QUESTION, named so it is not re-derived:** why does `statement_or_null` take **0** memo
+  hits over 223 entries at ~13 distinct positions? It IS memoized (all 1481 rules are; the call takes
+  a `RULE_*` constant, so `grep 'memoized_call("rule")'` is a **false negative** — noted because it
+  cost a step here) and it SUCCEEDS, so `.3.12`'s recursion-taint rule does not apply (that refuses
+  **failures** only). Remaining candidate is store-taint eviction (`MEMO-STORE-SOUNDNESS.2`) — **to be
+  measured, not assumed**; the deciding instrument is a per-rule insert-vs-evict census that does not
+  exist yet.
+- **FIX HIERARCHY recorded, none chosen** — the memo answer changes which tier is right: declarative
+  (`@branch_policy: ordered` at the site, a selection-semantics change needing an acceptance proof) →
+  grammar (remove the second path; `conditional_else_branch` is PGEN's own encoding of the LRM's
+  `[ else statement_or_null ]`, so this does not touch LRM fidelity) → engine.
+- **REPRODUCER BANKED** as `docs/tasks/artifacts/sv_corpus_grad/gen_if_else_chain.py` (both variants,
+  self-documenting), verified byte-identical to the files these numbers were measured on. Release
+  probe: n=12/14/16 → **114 / 349 / 1314 MB**, ~1.94× per added branch.
+- **NO REGRESSION.** Diagnosis + a new tracked artifact; ZERO code bytes, no grammar touched.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0193 — the guard rail was left behind when the arm moved: `'{}` was living in a rule with no comment at all (leaf `SV-CORPUS-GRAD.3.26e`, grammar comment-only, generated parser BYTE-IDENTICAL)
 
 - ⛔⛔ **THE DEFECT, and it had already cost this repo once.** `.3.26a` deleted the `'{}` arm outright

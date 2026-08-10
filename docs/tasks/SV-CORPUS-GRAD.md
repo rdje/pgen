@@ -6617,12 +6617,82 @@ why the doctrine says re-measure rather than reason.
   - **REPRODUCER (regenerate in seconds):** an `always_comb` containing `if ((a & ~(32'hK)) == 32'hK)
     begin s = 5'dK; end else if …` × N, N = 12…16. Both the identifier and literal-only variants are
     needed — the pair is what refutes the store hypothesis.
-  - **NEXT SLICE (not yet done):** name the exact choice site with Protocol D — scope
-    `--trace-rules conditional_statement,statement_item` at `PGEN_TRACE_VERBOSITY=debug` on the n=12
-    synthetic and read the `🏁 selected branch N/M` lines, to see whether the `else` arm's
-    else-if-vs-else-statement alternatives are both explored at every level under the default
-    `longest_match` policy. Fix hierarchy applies; acceptance needs a **MEMORY** before→after
-    (`/usr/bin/time -l` at n=16 and on `xbar_main.sv`) alongside the group-2 SPEED signature.
+  - ⭐⭐ **THE CHOICE SITE IS NAMED (2026-08-10, `PGEN-SV-CORPUS-GRAD-0194`, Protocol D + entry/outcome
+    counters). It is `conditional_else_branch`, `grammars/systemverilog.ebnf:1491-1492`:**
+
+    ```ebnf
+    conditional_else_branch := conditional_statement -> {kind: "elseif", body: $1}
+                             | statement_or_null     -> {kind: "else",   body: $1}
+    ```
+
+    **The two alternatives are LANGUAGE-OVERLAPPING on exactly the input this chain produces.** Alt 1
+    is `conditional_statement`; alt 2 reaches the *same* rule via
+    `statement_or_null → statement → statement_item → statement_item_sv_2017 → conditional_statement`.
+    So on an `else if …`, **both alternatives parse the identical text**, and the rule's policy is the
+    default `longest_match`, which explores every alternative before picking. Each level therefore
+    parses the entire remaining chain **twice** ⇒ `T(k) = 2·T(k−1)`.
+  - **MEASURED, not argued — the entry count at that site is EXACTLY `2ⁿ − 1`**
+    (`--dump-rule-entry-counts-json`, identifier variant):
+
+    | branches n | 4 | 5 | 6 |
+    |---|---|---|---|
+    | `conditional_else_branch` entries | **15** | **31** | **63** |
+    | `2ⁿ − 1` | 15 | 31 | 63 |
+    | `conditional_statement` entries | 71 | 143 | 287 |
+    | `statement_or_null` entries | 55 | 111 | 223 |
+    | total entries | 38 820 | 56 001 | 85 566 |
+
+    Protocol D's own line confirms both arms are live at every level:
+    `🏁 Rule 'conditional_else_branch' selected branch 1/2 consuming 109 / 187 / 265 chars` at the
+    outer levels and `branch 2/2 consuming 31 chars` at the terminal `else`.
+  - ⭐⭐ **AND THE MEMO IS NOT THE MISSING PIECE THE WAY IT LOOKS — IT ALREADY COLLAPSES THE RECURSIVE
+    RULE AND FAILS ON THE WRAPPERS.** `--dump-rule-outcome-counts-json` at n=6:
+
+    | rule | entries | memo hits | body executions |
+    |---|---|---|---|
+    | `conditional_statement` | 287 | **208** | 79 |
+    | `conditional_else_branch` | 63 | **0** | 63 |
+    | `statement_or_null` | 223 | **0** | 223 |
+    | `statement` / `statement_item` / `statement_item_sv_2017` | 224 each | **0** | 224 each |
+
+    ⇒ the packrat memo *is* serving the duplicated `conditional_statement`, so the naive reading
+    ("add memoization") is already true and already insufficient. The exponential lives in the
+    **wrapper chain**, which re-executes in full 223 times — and `statement_item_sv_2017` is a
+    **20-alternative** choice (`🏁 … selected branch 14/20`), which is precisely where `.10`'s pinned
+    hot rules come from (`system_tf_call` 318 → 588 → 1114 across n=4/5/6).
+  - ⛔⛔ **THE STORE IS NOW REFUTED AT PER-RULE RESOLUTION, not just in aggregate.** The earlier
+    refutation showed the literal-only variant still blows up. Re-run with outcome counters, the
+    identifier and literal-only chains at n=6 are **identical on every number that matters** —
+    `conditional_else_branch` 63/0, `conditional_statement` 287/208, `statement_or_null` 223/0,
+    `statement_item_sv_2017` 224/0, `facts_emitted` 1128 in **both** — differing only in total
+    entries (85 566 vs 75 803, i.e. the smaller literal text). **The exponential is purely
+    structural.** Do not revisit the store.
+  - ⛔ **THE ONE OPEN QUESTION, named precisely so the next slice does not re-derive it: WHY does
+    `statement_or_null` take 0 memo hits across 223 entries at ~13 distinct byte positions?** It is
+    memoized — every one of the 1481 rules is wrapped in `memoized_call` (1482 sites; the call takes
+    a `RULE_*` constant, **not** a string, so `grep 'memoized_call("rule")'` returns 0 and is a false
+    negative — that cost a step here). And it SUCCEEDS, so the `.3.12` recursion-taint rule does not
+    apply: that rule refuses to cache **failures only** (`ast_code_generator.rs:623`,
+    `if result.is_ok() || recursion_block_events == snapshot { insert }`). ⇒ the remaining candidate
+    is **store-taint eviction** (`MEMO-STORE-SOUNDNESS.2`: an entry whose body consulted the store is
+    replayable only while the store is unchanged; n=6 shows `predicate_evaluations=1467`,
+    `rollbacks=66 491`), which would evict the wrappers' entries before they can ever be replayed
+    while `conditional_statement`'s survive inside a quieter window. **MEASURE IT, do not assume it** —
+    the deciding instrument is a per-rule insert-vs-evict census, which does not exist yet and is
+    likely the `--build-a-tool` step.
+  - **FIX HIERARCHY, in order, with what each would cost — none chosen yet, because the memo question
+    above changes the answer:** (1) *declarative* — give `conditional_else_branch` an
+    `@branch_policy: ordered` so alt 1 commits on an `else if` and alt 2 is never explored; this is a
+    **selection-semantics change** and per Protocol D must be proven not to change acceptance, since
+    `longest_match` vs `ordered` differ exactly where two arms tie. (2) *grammar* — restructure so the
+    `else if` case is not reachable through two paths (the LRM writes `[ else statement_or_null ]`,
+    and `conditional_else_branch` is PGEN's own encoding, so this is in-scope and does not touch
+    LRM fidelity). (3) *engine* — whatever the memo census turns up.
+  - **ACCEPTANCE (unchanged):** a **MEMORY** before→after (`/usr/bin/time -l` at n=16 and on
+    `xbar_main.sv`) alongside the TOOLBOX group-2 SPEED signature, plus a full-corpus acceptance-
+    neutrality proof, since options (1) and (2) both touch selection.
+  - **REPRODUCER, now scripted:** `docs/tasks/artifacts/sv_corpus_grad/gen_if_else_chain.py N {ident|lit} OUT.sv`.
+    Confirmed on the release probe: n=12/14/16 → **114 / 349 / 1314 MB**, `~1.94×` per added branch.
 
   ⛔ These four are also a standing tripwire for this campaign: they are the only
   rows whose adjudication class depends on the runner's timeout argument and on
