@@ -279,6 +279,29 @@ actionable count is plausibly 10–25, not 140. ⛔ **Do not open 140 leaves.**
 - ⭐ `.1` shipped the **mechanism** this leaf needs (a content-keyed register + a `--check`
   ratchet with proven RED arms). What remains for `.2` is the **wiring**: register the check in
   `scripts/check_doctrines.sh` so a staged commit is blocked, not merely a manual run.
+- ⭐⭐ **THE HONEST LIMIT ABOVE IS NO LONGER HYPOTHETICAL, AND ITS HARDER HALF IS MECHANIZABLE
+  AFTER ALL — measured 2026-08-10 (`SV-CORPUS-GRAD.11a`, `PGEN-SV-CORPUS-GRAD-0197`).** That leaf
+  surfaced three findings and recorded them all in a session summary. Audited immediately
+  afterwards, at the director's challenge: **only 1 of the 3 was actually task-tree owned.** One
+  cited an owner — *"Owner: `GENERATED-LINT-CORRECTNESS.8`"* — written **from inside the SV tree**,
+  while `.8` contained zero mention of it; the other existed only in the chat summary and a passing
+  line in a knowledge card. ⇒ **naming an owner is not routing; creating the owning leaf is.** Both
+  were repaired into real leaves (`GENERATED-LINT-CORRECTNESS.12`, `SV-CORPUS-GRAD.12`), but
+  nothing would have caught them.
+- ⛔ **So `.2` should enforce BOTH DIRECTIONS, and the second is a cheap structural check** —
+  contrary to the "can only check that an owner was NAMED" limit stated above:
+  1. *(as designed)* recorded-gap language must CITE an owning leaf ID; and
+  2. *(new)* the cited ID must **RESOLVE** — a leaf with that ID must exist in the named tree.
+     That is a `grep` for the leaf heading in `docs/tasks/<TREE>.md`, no judgement required, and it
+     is exactly the meta-check `scripts/check_doctrines.sh` already performs on its own registry
+     (*"a registry entry pointing at a check that does not exist is a dangling promise"*).
+  ⚠️ Direction 2 still cannot prove the owner is the RIGHT one, or that the destination leaf
+  describes the finding — a mis-routed-but-existing ID passes. State that limit rather than imply
+  the check is complete; it converts a silent loss into a wrong address, which is strictly better.
+- ⚠️ **Scope note for the design:** the SV instance was cited in PROSE inside another tree's bullet,
+  not in a `docs/decisions/` record, so a check scoped to decision records would have missed it.
+  The cheapest sound trigger is any staged `docs/tasks/*.md` line naming a `TREE.leaf` id that does
+  not resolve — which also catches the far more common typo/renumber drift.
 
 ### `.3` — the return-annotation CODEGEN placeholder class: 5 paths that succeed silently (`todo`)
 

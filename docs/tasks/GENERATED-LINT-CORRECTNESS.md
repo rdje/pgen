@@ -1464,6 +1464,42 @@ the RED-W2 arm is what turned a latent hazard into a measured one.
 - **Cross-check owed at fix time:** the same ignored-path blindness may affect any other gate that
   enumerates changed paths from the git index; `GATE-REACHABILITY` proves a gate is *invoked*, not
   that its own trigger can *fire*.
+- ⭐ **INDEPENDENTLY REPRODUCED 2026-08-10 by `SV-CORPUS-GRAD.11a` (`PGEN-SV-CORPUS-GRAD-0197`)** — a
+  second grammar-only commit, a second regenerated SV parser, and the same
+  *"No Rust/generated Rust changes detected; skipping clippy flow."* ⇒ the finding is not a
+  one-off of `.3.14b`. ⚠️ That commit did **not** use the `--force` posture recorded above; it ran
+  `make generated_clippy_correctness_gate` instead, which lints the generated artifacts directly
+  under the 68 pinned lints and reported `0 clippy::correctness findings` across 10+1 artifacts.
+  That is a STRONGER substitute, and it should probably become the recorded posture — but the
+  substitution was chosen by the author, not by the flow, which is exactly the gap.
+
+### `.12` — `DIAGNOSIS_SIG` omits `--dump-rule-entry-counts`, a first-class TOOLBOX instrument (`todo`, routed by `SV-CORPUS-GRAD.11a` 2026-08-10)
+
+- **Status: `todo`** — parked, not worked: a gate-vocabulary finding that does **not** block the SV
+  release lane ([[feedback_prefer_feature_work_over_governance_lanes]]). Recorded so it is never
+  re-found. Sibling of `.8`, which is the same defect class on `NOREGRESS_SIG`.
+- **THE GAP.** `scripts/check_diagnosis_evidence.sh:323` `DIAGNOSIS_SIG` accepts
+  `--dump-rule-call-counts` and `--dump-rule-outcome-counts` but **not `--dump-rule-entry-counts`**,
+  although all three are documented TOOLBOX instruments (3.1 / 3.5 / **3.4**), all three are
+  deterministic and re-runnable, and 3.4 is explicitly the *machine-readable* dual of 3.1 — the one
+  a gate can actually re-execute. So a ROOT CAUSE box backed only by the machine-readable instrument
+  is rejected while the same fact quoted from the live *dashboard* is accepted.
+- **MEASURED, not inferred.** `SV-CORPUS-GRAD.11a` root-caused an O(2ⁿ) blowup with
+  `--dump-rule-entry-counts-json` (choice-site entries `2ⁿ − 1` → exactly `n` after the fix). Its
+  first checklist cited that flag and the gate reported the box *unbacked*, then matched an OLDER
+  ticked box elsewhere in the file and failed with `belongs to a LEAF THIS CHANGE DID NOT TOUCH` —
+  i.e. the true cause (missing token) was reported as a *scoping* breach, which is a misleading
+  diagnostic in its own right and worth fixing alongside.
+- ⛔ **NO WAIVER WAS WRITTEN, and that is the point.** The box was re-backed with `--trace-rules` +
+  `--dump-rule-outcome-counts-json`, which genuinely decided each half of that root cause — so the
+  gate was satisfied honestly, not bypassed. This leaf exists because an author hitting a missing
+  capability IS the gate reporting a defect, whether or not they needed to waive
+  ([[project_waiver_is_a_gate_bug_report]]); `RGX-0090`'s waiver sat unread for months precisely
+  because nothing filed it.
+- ⚠️ **PRICE IT BEFORE ADOPTING IT** — `.4`'s chartered sixth family, adopted on one clean sample,
+  would have admitted **2 of 304** boxes, and `.7` refused a family at **0–3 of 307**. Measure how
+  many of the existing corpus's boxes this token would newly back before adding it; a token that
+  backs almost nothing is vocabulary bloat, and one that backs too much is a widening.
 
 
 ## Commit log

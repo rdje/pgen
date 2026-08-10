@@ -6852,8 +6852,11 @@ why the doctrine says re-measure rather than reason.
   rejected as unbacked, which is the exact "gate reports a missing capability" shape
   ([[project_waiver_is_a_gate_bug_report]]). ⇒ **no waiver was needed here** (the box legitimately
   cites `--trace-rules` and `--dump-rule-outcome-counts-json`, the instruments that actually decided
-  each half), so this is filed, not worked. Owner: `GENERATED-LINT-CORRECTNESS.8`, which already owns
-  the signature-vocabulary defect class. ⚠️ Price the token against the whole corpus before adding
+  each half), so this is filed, not worked. **Owner: `GENERATED-LINT-CORRECTNESS.12`**, a leaf that
+  now EXISTS and carries the evidence — ⛔ an earlier revision of this bullet named `.8` (the
+  nearest-looking sibling) without writing anything into that tree, which is a **dangling routing
+  promise**: the owning tree had no idea, so the finding was logged, not tracked. Naming an owner is
+  not routing; creating the owning leaf is. ⚠️ Price the token against the whole corpus before adding
   it — `.4`'s chartered hypothesis would have admitted 2 of 304 boxes.
 
   ⛔ **TWO PRIOR STATEMENTS IN THIS TREE ARE NOW OBSOLETE — correcting forward rather than editing
@@ -6937,6 +6940,48 @@ why the doctrine says re-measure rather than reason.
   counter pair. Natural home is the engine + `MEMO-STORE-SOUNDNESS`, not this corpus tree.
   ⚠️ Sizing it needs a per-rule taint census across families first — do NOT assume the `.11a`
   chain's 100 % eviction rate is representative.
+
+### `.12` — ⭐⭐ AUDIT THE `explained` POPULATION: the one class ever audited hid a 12 GB parser defect (`todo`, opened 2026-08-10 by `.11a`)
+
+- **Status: `todo`. IN-LANE and it bears directly on the release claim** — this is not a governance
+  finding. It asks whether *"axis 2 = 293 unexplained is the whole remaining distance"* is TRUE.
+- **THE PRECEDENT, and it is 1-for-1.** `divergence:explained_timeout` held **4** rows that the
+  burn-down treated as understood. `.11a` audited them and every one was an **O(2ⁿ) parser defect
+  allocating 12 GB on valid, machine-generated, industry-standard RTL** — a downstream OOM, not a
+  slow parse. One annotation retired the entire class (4 → 0) and all four now PASS in ≤ 0.21 s. ⇒
+  **the only `explained` class this campaign has ever opened turned out to be a defect wearing a
+  resource-limit mask.** That is a sample of one, and it is the only sample there is.
+- **THE REMAINING POPULATION — 1 459 rows, and after `.11a` they are ALL one family:**
+
+  | class | rows |
+  |---|---|
+  | `divergence:explained_svpp_macro_use` | 1111 |
+  | `divergence:explained_svpp_conditional` | 203 |
+  | `divergence:explained_svpp_include` | 141 |
+  | `divergence:explained_svpp_protected_envelope` | 4 |
+
+  Every one asserts *"this file fails because it needs the preprocessor lane, not because the parser
+  is wrong."* Plausible — `svpp` is a real, separate, unfinished lane — and **exactly as plausible as
+  "this file fails because it timed out" was.**
+- ⛔ **THE ASYMMETRY THAT MAKES THIS WORTH DOING.** A wrong `unexplained` verdict costs a wasted
+  investigation. A wrong `explained` verdict costs a **shipped parser defect**, because the row is
+  removed from the burn-down by construction and nothing ever looks at it again. The two errors are
+  not equally priced, and only one of them is being checked.
+- **HOW TO AUDIT IT CHEAPLY — a spot-check, not a re-adjudication.** The claim is falsifiable per
+  row: if a row is genuinely svpp-blocked, the parse must fail *at or before* the first
+  preprocessor-requiring construct. So sample each class, take the `furthest_position=` from the
+  parse error, and check what sits at that offset. A row whose furthest position is **past** its last
+  macro/include/`ifdef` is not svpp-blocked — it is a parser gap with an svpp label. ⚠️ Sample per
+  CLASS, not uniformly: 1 111 of the rows are one class, so a uniform sample tells you about
+  `macro_use` and nothing else.
+- ⛔ **DO NOT re-derive expected verdicts from the parser** — the manifest's doctrine is
+  expected-from-SPEC ([[feedback_corpus_expected_from_spec_not_fix]]). This leaf audits whether the
+  OBSERVED→`explained` mapping is sound, never what the expected verdict should be.
+- **Owed:** a per-class spot-check with its sample size and method stated, the misclassified rows
+  named and re-routed, and — whatever the result — the honest sentence about what `explained` means
+  written into the axis-2 accounting. A clean audit is a real outcome and worth the same commit as a
+  dirty one; what is not acceptable is the current state, where the number is quoted as settled and
+  has been checked exactly once.
 
 ## ROUTING EVIDENCE (`.3.12` → `.11c`, `.11a` → `.11d`, and the `.11a`/`.11b` pair from `.10`)
 
