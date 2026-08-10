@@ -7289,6 +7289,22 @@ does not exist is indistinguishable from one that does: the runner accepts an un
   inspects encoding: the generated parser holds `input: &'input str`
   (`generated/systemverilog_parser.rs:55`) and indexes it by BYTE offset, which is why
   `furthest_position` is a byte offset and why UTF-8 passes through untouched.
+- ⭐ **SCOUTING BANKED 2026-08-11 (director approved "F1 first, then expansion"; measured before the
+  session ended, so the next session starts from facts rather than re-running these):**
+  - **NO corpus file carries a BOM** — censused all 16 336 rows for `EF BB BF` / `FF FE` / `FE FF`:
+    **zero hits**. ⇒ BOM sniffing in option 2 is DEFENSIVE (for future/vendor input), not
+    load-bearing for the corpus, and **UTF-16 support cannot be validated by this corpus** — it
+    needs crafted fixtures. Do not let a green corpus run be read as evidence the UTF-16 arm works.
+  - ⛔ **`read_to_string` has ~20 call sites across `rust/src/`**, but they are NOT all the same
+    concern: most read JSON manifests, grammars, generated Rust or reports — files PGEN itself
+    writes, which are UTF-8 by construction. **The defect is confined to the sites that read
+    USER SOURCE TEXT.** Fix the source-text path, and ⛔ do NOT sweep the other sites: making a
+    manifest reader Latin-1-tolerant would hide genuine corruption in files we generate.
+  - ⇒ **home for the decoder = a small shared module in `pgen` (e.g. `rust/src/source_text.rs`)
+    called by the source-reading paths**, so the embedding API used by Nexsim gets the fix too and
+    not just the diagnostic probe. Enumerate the source-text readers first; that enumeration is the
+    first deliverable, because "which sites read user source?" is exactly the question a blanket
+    find-and-replace would answer wrongly.
 - **THE THREE COSTED OPTIONS (priced, not surveyed — recommendation is 2):**
 
   | # | approach | cost | offsets | verdict |
