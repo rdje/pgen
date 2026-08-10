@@ -112,11 +112,27 @@ frontier, never as a silent exemption.
   Commit: `PGEN-LIVE-DOC-CONTAINMENT-0006`
 
 - ID: `LIVE-DOC-CONTAINMENT.4`
-  Status: `pending` — ⛔ **PARKED as transition debt (director, 2026-08-08: *"After this I hope we will be done with these administrative documents so we can focus on real parsers' work"*).** It is pure classification with **no measured pressure** behind it and it blocks nothing; the doctrine's own §Phase-2.5 provides exactly this — record the deferral with an owner and an ordered frontier rather than pretend it is done. ⚠️ Re-open when live-doc pressure appears on a surface OTHER than `MEMORY.md`; that is the trigger, and it is the evidence a lifecycle map would need
+  Status: `pending` — ⛔ **PARKED as transition debt (director, 2026-08-08: *"After this I hope we will be done with these administrative documents so we can focus on real parsers' work"*).** It is pure classification with **no measured pressure** behind it and it blocks nothing; the doctrine's own §Phase-2.5 provides exactly this — record the deferral with an owner and an ordered frontier rather than pretend it is done. ⚠️ Re-open when live-doc pressure appears on a surface OTHER than `MEMORY.md`; that is the trigger, and it is the evidence a lifecycle map would need. ⭐⭐ **THE TRIGGER HAS SINCE FIRED (2026-08-10, `.5` below): `CHANGES.md` measured at 34 % omission (41 of the last 120 commits), on a surface `.4`'s own Goal classifies `rolling_ledger`.** So the "no measured pressure" premise of this parking no longer holds — the parking now rests **only** on the SV lane lock, which is a scheduling decision, not a technical one
   Goal: `Map PGEN's EXISTING enforcers onto the doctrine's lifecycle classes rather than duplicating them -- MEMORY-ARCH -> bounded_snapshot; README-STABILITY -> bounded_snapshot; LIVE-DOC-CURRENCY -> the currency verifier across classes; PUBLISHED-VERSION-CURRENCY -> maintained_reference; CHANGES.md / DEVELOPMENT_NOTES.md -> rolling_ledger; docs/decisions/ -> partitioned_canonical; git -> external_terminal. Publish the map; it is the artifact that prevents the second-authority failure.`
   Acceptance: `every governed surface carries lifecycle + owner + authority + bounds + verifier, or an explicit transition-debt record naming its owner and ordered frontier; no surface silently unclassified.`
   Verification: `pending`
   Commit: `pending`
+
+- ID: `LIVE-DOC-CONTAINMENT.5`
+  Status: `todo` — ⛔ **PARKED behind the SV lane lock** (routed IN by `SV-CORPUS-GRAD.3.26d`, 2026-08-10, `PGEN-SV-CORPUS-GRAD-0192`). Not worked here: the finding is an ops/live-doc defect, not an SV-release blocker, so it is OWNED and SCHEDULED rather than logged ([[feedback_every_finding_is_owned_and_scheduled_never_just_logged]]). ⭐ **Named re-open trigger: the SV lane lock lifting, OR any session that needs `CHANGES.md` to answer "what changed" and cannot trust it.**
+  Goal: `CHANGES.md silently omits a third of the work. MEASURED over the last 120 commits (git log --format='%h%x09%s' -120, each subject's PGEN-<FAMILY>-<NNNN> slice id joined against grep -q on CHANGES.md): 41 MISSING / 79 HAS = 34% with no changelog entry. The omissions are not trivia -- PGEN-SV-CORPUS-GRAD-0189 is the DIRECTOR RULING that retracted a wrong grammar decision, and -0188/-0190 are its follow-ups; the whole retraction was invisible on the changelog surface while the retracted claim (-0187) sat there uncorrected. Also missing: 6 consecutive PGEN-MEMORY-000{1..6}, all 6 PGEN-LIVE-DOC-CONTAINMENT-000{1..6} (this tree's OWN commits), PGEN-HORIZON-0001/0003. DECIDE, then enforce: either (a) CHANGES.md's charter is "every slice", and a doctrine check joins the staged commit subject's slice id against the file -- cheap, structural, exactly the shape of the existing enforcers; or (b) its charter is "notable slices only", in which case that charter must be WRITTEN DOWN in COMMIT.md and the 34% stops being drift. ⛔ What is not acceptable is the current state: COMMIT.md lists CHANGES.md as a required surface with an unstated "as needed" escape, so a third of the history is missing by accident rather than by policy, and nothing measures it.`
+  Acceptance: `the charter is written down in COMMIT.md; if (a), a check_*.sh registered in scripts/check_doctrines.sh with RED-before/GREEN-after probes and a ground-truth control (a commit whose id is present must PASS, one whose id is absent must FAIL -- blinding the join must make the control REFUSE, not silently pass); if (b), the exemption criteria are stated and the three SV entries backfilled by -0192 are confirmed as correctly in-charter.`
+  Verification: `pending`
+  Commit: `pending`
+
+⭐⭐ **AND THIS FIRES `.4`'s OWN RE-OPEN TRIGGER, stated verbatim in its Status: *"Re-open when
+live-doc pressure appears on a surface OTHER than `MEMORY.md`."*** `CHANGES.md` is a surface other
+than `MEMORY.md`, the pressure is measured (34 % omission), and `.4`'s Goal already assigns
+`CHANGES.md` the `rolling_ledger` lifecycle class — a class whose whole contract is *the ledger is
+complete for its declared scope*. ⇒ `.4` is no longer "pure classification with no measured pressure
+behind it"; it now has its evidence, and `.5` is the concrete instance that would test any map `.4`
+publishes. ⛔ Both stay PARKED behind the SV lane lock — recorded so the trigger is not re-derived
+from scratch next time, per this tree's own §Phase-2.5 discipline.
 
 ## Deferred / transition debt (honest, per the doctrine's own §Phase-2.5)
 

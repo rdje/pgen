@@ -1,6 +1,73 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0192 — a retraction that lands in one layer and not the others is not a retraction, it is a contradiction
+
+Three commits after the director ruled that `'{}` is legal SystemVerilog, **five** durable surfaces
+still said it was *"non-LRM over-acceptance"*: the changelog entry that made the claim, this repo's
+own SV task leaf, `docs/TASK_TREE.md`, a Knowledge-Map card, and a leaf routed into another tree. The
+fixing session had corrected the two layers it happened to be editing (the grammar comment, the
+decision record), **written the remaining four down as a debt list, and moved on.** Nothing
+mechanically holds a retraction to its own debt list, so the list is only as good as the next
+session's willingness to read it.
+
+⇒ **the retracted surfaces are the ones a fresh session reads first.** `CHANGES.md` is what "what
+happened recently" resolves to; the KM card is what *retrieval* returns for "why does PGEN accept
+`'{}`"; the routed leaf is what `LRM-GRAMMAR-FIDELITY` will read on the day it opens. Correcting the
+grammar comment first is natural and almost exactly backwards in terms of who reads what.
+
+**A fifth surface was on nobody's list.** `docs/TASK_TREE.md`'s SV row carried the full false framing
+— *"accepted `'{}` (which Annex A cannot derive) … KEPT as the first NAMED bucket-(a) dialect
+tolerance"* — and was found only by grepping the construct across the whole tracked tree rather than
+by working the recorded list. **A hand-written debt list is itself a cut heuristic**, and this repo
+already has a standing lesson that no cut heuristic is a census. The grep is the census.
+
+**Retained verbatim, marked retracted — not rewritten.** Every corrected surface keeps its original
+text with a banner naming exactly which clauses are false and why. Deleting the reasoning would
+destroy the only evidence of *how* a well-sourced argument was built on an unsourced premise: the
+`.3.26` adjudication section quotes two genuine decision records correctly and composes them
+elegantly, and is worthless, because the premise underneath was never read. **A well-sourced
+adjudication built on an unsourced premise is still unsourced** — and it reads more convincingly than
+a poorly-sourced one, which is what makes it dangerous.
+
+**The card got stronger, so it was corrected rather than retired.** Its thesis is *"a mis-cited
+production reproduces as a SUCCESS."* The same fix made **two** citation claims — the transcription
+(`'{ }` vs `{ }`, opened and verified) and a negative one (*"`'{}` is not legal"*, inferred, never
+opened). One card, two worked instances, and a sharper rule: **a claim of the form "X is not legal"
+is a citation with the quote left out.**
+
+**A finding that loses its witness must say so.** `LRM-GRAMMAR-FIDELITY.1c` was opened on `'{}` as
+its worked counter-example. The structural argument survives the retraction untouched; its only
+instance does not. It is now recorded as an **unwitnessed hypothesis** — because a `todo` leaf that
+reads like a measured finding when it is a conjecture is the same failure one layer down. It also
+gained something better than the witness it lost: **Annex-A non-derivability is a known-bad
+classifier** for the audit it proposes — it would flag `'{ }`, `q[a:$]` and `use #(...)`, all three
+legal and all three already measured — so those three become the instrument's ground-truth controls.
+
+**Two instrument traps, same construct, same failure direction.** `-0190` recorded that `pdftotext`
+finds neither `'{}` nor the §11.4.12 sentence in PDFs that contain both. Re-verifying independently
+here found a second: an exact-phrase grep for *"begin with an apostrophe"* over the **markdown**
+also returns 0 hits, because the line wraps mid-phrase. Both instruments fail **silently, in the
+"no evidence" direction**, which is the direction that confirms a negative claim. ⇒ search the
+distinctive short token, never the sentence; and treat a negative search result as evidence only
+after the instrument has been shown to find something you know is there.
+
+**And a defect found by the census, routed rather than worked** (SV lane lock): `CHANGES.md` had no
+entry at all for `-0188`, `-0189` or `-0190`. Over the last 120 commits, **41 (34 %) carry no
+changelog entry** — including six consecutive `PGEN-MEMORY` slices and all six of
+`LIVE-DOC-CONTAINMENT`'s own commits. `COMMIT.md` lists `CHANGES.md` as a required surface with an
+unstated *"as needed"* escape, so a third of the history is missing by accident rather than by
+policy, and nothing measures it. Owned by the new leaf `LIVE-DOC-CONTAINMENT.5` — which also fires
+`.4`'s **own named re-open trigger** (*"live-doc pressure on a surface OTHER than `MEMORY.md`"*),
+retiring that leaf's "no measured pressure" parking rationale and leaving it parked on the lane lock
+alone.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0187 — a wrong citation is more dangerous than a missing fix, because it reproduces as a success
+
+> ⛔⛔ **RETRACTED IN PART by `-0192`** — the `{}` half stands; every claim below that `'{}` is
+> *"not derivable"*, *"over-acceptance"* or *"bucket-(a) dialect tolerance"* is **FALSE**. `'{ }` is
+> legal SystemVerilog (§11.4.12 notation; Annex M `vpiAssignmentPatternOp`; no prohibiting text
+> anywhere). The rule was wrong in **one** direction, not two. Kept verbatim as the record of the
+> reasoning — see the `-0192` note above for why the retracted text is retained rather than deleted.
 
 `empty_unpacked_array_concatenation` was wrong in both directions at once: it rejected `{}` (which
 IEEE 1800-2017 A.8.1 literally *is*) and accepted `'{}` (which Annex A cannot derive anywhere). One

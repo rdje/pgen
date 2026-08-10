@@ -4756,7 +4756,24 @@ reasons having nothing to do with the parser
 
 ##### `.3.26` — ⛔⛔ the empty unpacked array concatenation is wrong in BOTH directions at once: PGEN accepts `'{}` (which Annex A cannot derive) and rejects `{}` (which Annex A *is*) — routed by `.3.25`, 2026-08-10
 
+> ⛔⛔ **RETRACTED IN PART by `.3.26d` (`PGEN-SV-CORPUS-GRAD-0192`) — read before quoting anything
+> in this leaf, including its heading.** The `{}` half is correct and stands: PGEN did reject the
+> A.8.1 form, and fixing that was pure under-acceptance repair worth 5 corpus rows. **The `'{}`
+> half is FALSE.** This leaf's heading, its "wrong in BOTH directions" framing, its
+> over-acceptance verdict, and the whole `THE ADJUDICATION` section below rest on the inference
+> *"not derivable from Annex A ⇒ not legal SV"*, which is **invalid** and which this tree had
+> already refuted twice (`.3.25` `q[a:$]` via A.8.4 footnote 42; `.3.19` `use #(...)` via clause
+> 33.4.3). `'{ }` is **legal SystemVerilog**: §11.4.12 writes the construct's own delimiter pair as
+> `'{ }`, Annex M/VPI names the operator `vpiAssignmentPatternOp 75 /* '{} assignment pattern */`,
+> and **no LRM text declares it illegal** — measured exhaustively over both revisions in `.3.26b`
+> and `.3.26c`. ⇒ the rule was wrong in **ONE** direction. `'{}` is not tolerance, not bucket-(a),
+> and not the deferred strictness switch's first customer; it is simply correct, and since
+> `.3.26c` it is modelled as an `assignment_pattern` with an empty element list. Director ruling +
+> the standing rule (**"non-LRM" is a CITATION, never an inference**):
+> [[feedback_sv_strict_lrm_compliance_default]] § BOUNDING RULING.
+
 - **Status: `done` 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0187`), grammar-only, ZERO Rust bytes.**
+  ⚠️ **Superseded in part** — see the retraction banner above and leaves `.3.26b`/`.3.26c`/`.3.26d`.
   ⛔ **NOT fixed in `.3.25`** — it is a distinct defect with its own root
   cause, its own LRM citation, and a real dialect-tolerance question that must not be settled by
   a one-line literal flip. Surfaced because `.3.25`'s fix moved two rows' `furthest_position`
@@ -4773,10 +4790,10 @@ reasons having nothing to do with the parser
   `empty_unpacked_array_concatenation := tick lbrace rbrace`. Measured with
   `parseability_probe --parse systemverilog … --profile sv_2017`:
 
-  | form | Annex A | PGEN | verdict |
-  |---|---|---|---|
-  | `q = {};` | **derivable** (A.8.1) | **REJECT** | under-acceptance |
-  | `q = '{};` | **not derivable** | **PASS** | over-acceptance |
+  | form | Annex A | PGEN | verdict (as recorded 2026-08-10) | verdict (CORRECTED, `.3.26d`) |
+  |---|---|---|---|---|
+  | `q = {};` | **derivable** (A.8.1) | **REJECT** | under-acceptance | ✅ unchanged — under-acceptance |
+  | `q = '{};` | **not derivable** | **PASS** | ~~over-acceptance~~ | ⛔ **NOT a defect** — legal SV per §11.4.12 + Annex M; Annex A is incomplete here, and accepting it is CORRECT |
 
 - ⭐ **ROOT CAUSE IS A CITATION ERROR IN A PRIOR FIX, NOT A MISSING FIX.**
   `SV-EXH-PROOF.3.3.4.b.6.2.37.8` replaced a genuinely broken rule (`lbrace epsilon rbrace`,
@@ -4787,18 +4804,32 @@ reasons having nothing to do with the parser
   form, the error reproduced as a *success* and was never questioned.
 - ⛔ **WHY THIS IS NOT A ONE-LINE FLIP — both populations are real, measured over
   `stimuli/sv/subs/`:** **42** files write `= '{}` and **56** write `= {};`. Deleting the `tick`
-  arm would regress the 42 (including uvm_pkg, the `.37.8` motivator). So the leaf must decide
+  arm would regress the 42 (including uvm_pkg, the `.37.8` motivator).
+  ⛔ **[RETRACTED from here to the end of this bullet — `.3.26d`.** There was no choice to make:
+  `'{}` is legal SV, so "accept both" was never a tolerance decision and there is no bucket-(a)
+  row. The `42`/`56` counts are also superseded — re-measured unanchored as **49 tick / 91 bare**
+  below.] So the leaf must decide
   between (a) LRM-only `{ }` — strict, regresses real-world code that every major tool accepts;
   (b) accept both, recording `'{}` as **deliberate dialect tolerance** and therefore a row the
   accepts-invalid triage must carry. ⇒ this is exactly the bucket-(a) evidence the **director's
   strictness-axis directive** (2026-07-25, this tree, §"STRICTNESS AXIS") asked to be collected
   before designing the switch — the first instance found where strict-LRM and ecosystem reality
   genuinely conflict. **Do not resolve it by plausibility.**
+  ⭐ **The last sentence was right and was not followed** — the plausibility that resolved it was
+  the unread premise, not the adjudication built on top.
 - **First act when opened:** add `{}` (the LRM form) — that half is unambiguous and pure
-  under-acceptance repair; then adjudicate the `'{}` arm against the strictness directive rather
-  than silently keeping it.
+  under-acceptance repair; ⛔ **[RETRACTED — `.3.26d`]** ~~then adjudicate the `'{}` arm against the
+  strictness directive rather than silently keeping it.~~
 
 ##### `.3.26` — THE ADJUDICATION (2026-08-10, session #232): ⛔ NOT a director call — two recorded rulings already decide it, and they decide it in *opposite* directions that compose
+
+> ⛔⛔ **THIS WHOLE SECTION IS RETRACTED (`.3.26d`).** It adjudicates a strictness question that
+> **does not exist**, because its premise — *"`'{}` is over-acceptance"* — is false (banner at the
+> top of `.3.26`). The two rulings it invokes are real and correctly quoted; they simply do not
+> apply, since nothing needed tolerating. Kept verbatim as the record of the reasoning, and because
+> its own failure mode is the lesson: **a well-sourced adjudication built on an unsourced premise
+> is still unsourced.** The composition argument reads convincingly precisely because both cited
+> rulings are genuine — which is what made the missing citation easy to miss.
 
 The leaf was opened expecting a strictness-axis escalation. It is not one. **Both arms are settled
 by decision records already on disk**, and the interesting part is that they pull opposite ways and
@@ -4825,13 +4856,19 @@ a later reader cannot mistake the tolerated arm for a second LRM production.
 
 ⚠️ **AND A FINDING ABOUT THE EVIDENCE BASE ITSELF, routed to `LRM-GRAMMAR-FIDELITY`.** The
 strictness directive's constraint 2 names the **accepts-invalid population (21 + 14 = 35 rows)** as
-*"by construction, every place PGEN currently accepts what the standard forbids."* ⛔ **It is not,
-and `'{}` is the counter-example.** That population is derived from corpus rows whose *answer key*
-says `must_reject`. `'{}` is accepted by PGEN **and by every real tool**, so no suite marks it
-must_reject and it can never appear there — yet it is unambiguously over-acceptance against Annex A.
-⇒ the accepts-invalid census measures *over-acceptance the corpus happens to probe negatively*, not
-over-acceptance. A switch designed only against those 35 rows would be designed against a biased
-sample. Same shape as the standing *"no cut heuristic is a census"* lesson.
+*"by construction, every place PGEN currently accepts what the standard forbids."* The claim is that
+this population cannot see over-acceptance no suite probes negatively — because it is derived from
+corpus rows whose *answer key* says `must_reject`, and a tolerance the whole ecosystem shares is
+exactly the one nobody writes a negative test for. ⇒ the census would measure *over-acceptance the
+corpus happens to probe negatively*, not over-acceptance. Same shape as the standing *"no cut
+heuristic is a census"* lesson.
+
+> ⛔ **ITS WITNESS IS RETRACTED (`.3.26d`).** This paragraph originally offered `'{}` as the worked
+> counter-example. `'{}` is legal SV, so it is **not** over-acceptance and proves nothing here. The
+> structural argument above may well be true, but as of `.3.26d` it has **zero witnesses** and is
+> carried in `LRM-GRAMMAR-FIDELITY.1c` as an **unwitnessed hypothesis**, not a finding. ⭐ The
+> instrument `.1c` asks for — an Annex-A-derived over-acceptance audit that never consults a corpus
+> — is what would produce a real witness, and is now the only thing that can promote it.
 
 ⚠️ **The leaf's own population counts were a cut heuristic too, and under-counted — re-measured
 here.** `.3.26`'s recorded `42` / `56` came from an `=`-anchored regex, which cannot see
@@ -5314,6 +5351,87 @@ made the difference, and how far it sat from the edge."*
   ⇒ the restructure is acceptance-neutral **by measurement**, not merely by argument.
 - [x] **LOCKSTEP** — grammar comments on both rules rewritten to say which production each is and
   ⛔ not to re-graft the arm; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`; `docs/TASK_TREE.md`.
+
+##### `.3.26d` — ⛔ PAY THE CORRECT-FORWARD DEBT: four durable surfaces still called `'{}` "non-LRM over-acceptance" three commits after the ruling that refuted it (docs only, ZERO code bytes)
+
+- **Status: `done` 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0192`), docs only, ZERO code bytes.**
+- **WHY THIS IS ITS OWN LEAF.** `.3.26b` obtained the director ruling and fixed the *grammar comment*
+  and the *decision record*, then listed four surfaces it had **not** fixed and deferred them to
+  "next session". `.3.26c` then re-modelled the construct without touching that list either. So for
+  three commits the repository's changelog, its own task tree, its Knowledge-Map card and a routed
+  leaf in another tree all still asserted a claim the project had formally retracted. ⭐ **A
+  retraction that lands in one layer and not the others is not a retraction — it is a
+  contradiction**, and the layers that kept the false version are exactly the ones a future session
+  reads first (`CHANGES.md`, the KM card via retrieval, the routed leaf when `LRM-GRAMMAR-FIDELITY`
+  opens).
+- **THE FOUR SURFACES, and what each one now says:**
+
+  | surface | carried | now |
+  |---|---|---|
+  | `CHANGES.md` `-0187` | *"`'{}` … which Annex A cannot derive at all"*; a bullet adjudicating it as **bucket-(a) dialect tolerance** | ⛔ RETRACTED-IN-PART banner naming the false clauses + inline markers; the `{}` half explicitly preserved as correct |
+  | leaf `.3.26` (this tree) | heading *"wrong in BOTH directions"*; an over-acceptance verdict table row; a whole ADJUDICATION section | banner at the leaf head; the verdict table gains a CORRECTED column; the ADJUDICATION section marked retracted **verbatim, not deleted** |
+  | KM card `a-mis-cited-production-reproduces-as-a-success` | *"wrong in both directions at once"*; a closing section adjudicating the tolerated arm | the "both directions" claim removed; a new **sequel section** — the same fix made a SECOND citation claim and that one was never opened either |
+  | `LRM-GRAMMAR-FIDELITY.1c` | `'{}` as its worked counter-example + as its SEED ROW | re-stated as an **UNWITNESSED hypothesis**; the three known constructs re-cast as **negative controls** |
+
+- ⭐ **THE CARD GOT STRONGER, NOT WEAKER — which is why it was corrected rather than retired.** Its
+  thesis is *"a mis-cited production reproduces as a SUCCESS, so the test that should catch it
+  passes."* The very fix that occasioned it made **two** citation claims: the transcription (`'{ }`
+  vs `{ }`, opened and verified) and a negative claim (*"`'{}` is not legal"*, never opened). The
+  card's own habit — *quote the clause number, and open the clause* — would have caught both. So the
+  correction adds a second worked instance to the same card instead of contradicting it, and sharpens
+  the rule to: **a claim of the form "X is not legal" is a citation with the quote left out.**
+- ⚠️ **`.1c` LOST ITS ONLY WITNESS AND IS SAID SO OUT LOUD.** The structural argument (a census keyed
+  on suite `must_reject` answers cannot see a tolerance the whole ecosystem shares) is untouched by
+  the retraction — but it now has **zero** confirmed instances, and a `todo` leaf that reads like a
+  measured finding when it is an unwitnessed hypothesis is the same failure one layer down. It also
+  gained a real design constraint from the retraction: **Annex-A non-derivability is a KNOWN-BAD
+  classifier** for the audit `.1c` proposes — it would flag `'{ }`, `q[a:$]` and `use #(...)`, all
+  three legal and all three already measured — so those three become the instrument's ground-truth
+  controls.
+- ⭐ **INDEPENDENT RE-VERIFICATION, not inherited trust.** The LRM claims were re-run from scratch
+  rather than copied from `.3.26b`, and the re-run **found a tooling trap the prose does not name**:
+  an exact-phrase grep for *"begin with an apostrophe"* over `docs/systemverilog/2017/md/` returns
+  **0 hits**, because the markdown wraps the sentence mid-phrase. Searching the short token finds it
+  immediately at `section-0-defined-as-false-…-is-greater.md:520-522`, under the `#### 11.4.12
+  Concatenation operators` heading at `:498`. ⇒ recorded on the card: **search the distinctive token,
+  not the sentence** — the second way this construct has now produced a false negative from a search
+  instrument (the first was `pdftotext`, `.3.26b`/`-0190`).
+- ⚠️ **AND A SEPARATE DEFECT FOUND WHILE PAYING THE DEBT — routed, not worked** (SV lane lock; and
+  per [[feedback_every_finding_is_owned_and_scheduled_never_just_logged]] it is OWNED and SCHEDULED,
+  not merely logged). `CHANGES.md` was missing entries for `-0188`, `-0189` and `-0190` entirely —
+  including the director ruling itself. Censused over the last 120 commits:
+  **41 (34 %) have no `CHANGES.md` entry**. The three SV ones are written here (in-lane); the general
+  gap is routed to **`LIVE-DOC-CONTAINMENT.5`**.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — ops family. The debt list is `.3.26b`'s own LOCKSTEP box (*"STILL
+  CARRYING THE FALSE FRAMING — correct forward next session"*). Reproduced mechanically:
+  `git log --format='%h%x09%s' -120` joined against `grep -q -- "$id" CHANGES.md` returns
+  **`MISSING 41` / `HAS 79`**, with `PGEN-SV-CORPUS-GRAD-0188/-0189/-0190` among the missing — i.e.
+  the changelog's last word on `'{}` was the retracted `-0187`, and the retraction was absent from
+  that surface altogether.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. **WHERE:** `CHANGES.md` `-0187`,
+  `docs/tasks/SV-CORPUS-GRAD.md` `.3.26`, `docs/knowledge/a-mis-cited-production-reproduces-as-a-success.md`,
+  `docs/tasks/LRM-GRAMMAR-FIDELITY.md` `.1c`. **WHY:** a correction was applied to the layers the
+  fixing session was editing (grammar comment, decision record) and *listed* for the layers it was
+  not, and nothing mechanically holds a retraction to its own debt list — the same class as the
+  missing changelog entries, which `git log -S` shows landing silently 41 times in 120 commits.
+  Re-verified the underlying LRM facts independently: `grep -rn "'{ *}" docs/systemverilog/2017/md/`
+  → exactly **2** hits, both supporting (`section-0-…-is-greater.md:522` §11.4.12 notation;
+  `section-83-accept-on-operator.md:89` `vpiAssignmentPatternOp`); `grep -rn "shall not.*'{"` → **0**.
+- [x] **ADDRESSED (verified)** — all four surfaces now carry the corrected claim; re-grepped after
+  the edits, the strings `over-acceptance`, `not derivable` and `bucket (a)` survive in this tree
+  **only** inside explicitly-marked retraction context, never as an assertion.
+- [x] **NO REGRESSION** — **ZERO code bytes**: `git diff --cached --name-only` contains no
+  `grammars/`, no `rust/`, no `generated/` path, so no parser oracle is reachable from this change by
+  construction. `bash scripts/check_doctrines.sh` PASS (all registered doctrines, incl. `MEMORY-ARCH`,
+  `KNOWLEDGE-MAP` regen-and-diff, `LIVE-DOC-CURRENCY`, `TASK-ACCEPTANCE`).
+- [x] **LOCKSTEP** — `CHANGES.md` (the `-0187` banner **plus** the three backfilled entries
+  `-0188`/`-0189`/`-0190` and this one); `DEVELOPMENT_NOTES.md`; `MEMORY.md` (debt cleared);
+  `docs/TASK_TREE.md`; `LRM-GRAMMAR-FIDELITY.1c`; new leaf `LIVE-DOC-CONTAINMENT.5` owning the
+  routed changelog-coverage gap. No book chapter asserts anything about `'{}` (checked:
+  `grep -rn "'{}" docs/book/src/` → 0 hits), so no book edit is due.
 
 ### `.4` — Full-design corpora chaining
 

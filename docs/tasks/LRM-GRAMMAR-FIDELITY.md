@@ -137,39 +137,60 @@ That splits the work into two pieces with different leverage:
 
 ### `.1c` — ⛔ the strictness switch's declared evidence base is a BIASED SAMPLE: the accepts-invalid population cannot see over-acceptance the corpus never probes negatively (routed in by `SV-CORPUS-GRAD.3.26`, 2026-08-10)
 
-- **Status: `todo`** (opened by `SV-CORPUS-GRAD.3.26`, which carries the worked counter-example
-  and the grammar comment that names the tolerated arm).
-- **THE CLAIM BEING CORRECTED.** `SV-CORPUS-GRAD`'s strictness directive (2026-07-25, constraint 2)
+- **Status: `todo`** — and ⛔ **UNWITNESSED**: opened 2026-08-10 by `SV-CORPUS-GRAD.3.26` on a
+  worked counter-example that was **retracted the same day**. The structural argument below is
+  intact; it currently has **zero** confirmed instances. Corrected forward by
+  `SV-CORPUS-GRAD.3.26d` (`PGEN-SV-CORPUS-GRAD-0192`).
+- **THE CLAIM BEING CHALLENGED.** `SV-CORPUS-GRAD`'s strictness directive (2026-07-25, constraint 2)
   designates the accepts-invalid population — **21 rows (`sv_2017`) + 14 (`verilog_2005`) = 35** —
   as the design input for the deferred strictness switch, on the stated ground that those are
   *"by construction, every place PGEN currently accepts what the standard forbids."*
-- ⛔ **They are not, and the counter-example is now in the shipped grammar.**
-  `empty_unpacked_array_concatenation`'s `'{ }` arm has **no derivation anywhere in Annex A** — all
-  four `assignment_pattern` alternatives require at least one `expression`, and A.8.1 writes the
-  empty form as bare `{ }`. It is over-acceptance by the directive's own definition. But it can
-  never enter the accepts-invalid population, because that population is built from corpus rows
-  whose **answer key** says `must_reject`, and `'{}` is accepted by every real tool — uvm-core
-  itself writes `return '{};` (`uvm_lru_cache.svh:206`, `:273`). **No suite will ever mark it
-  must_reject, so no census built that way can see it.**
-- **WHAT THE POPULATION ACTUALLY MEASURES:** over-acceptance *that some suite happens to probe
-  negatively*. That is a sample biased precisely AGAINST bucket (a) — the ecosystem-relied-upon
-  tolerances the switch exists to serve — because a tolerance the whole ecosystem shares is exactly
-  the one no suite writes a negative test for. ⇒ designing the switch against those 35 rows would
-  tune it on bucket (b) and ship it blind to its actual customers.
+- **THE HYPOTHESIS (structural, and it uses no SV-specific fact).** That population is built from
+  corpus rows whose **answer key** says `must_reject`. A tolerance the entire ecosystem shares is
+  precisely the one for which no suite writes a negative test — so if such a tolerance exists in the
+  shipped grammar, the census is **blind to it by construction**. ⇒ the population would measure
+  *over-acceptance that some suite happens to probe negatively*, not over-acceptance; a switch tuned
+  on those 35 rows would be tuned on bucket (b) and ship blind to bucket (a), its actual customers.
+  Same shape as the standing *"no cut heuristic is a census"* lesson.
+- ⛔⛔ **THE ORIGINAL WITNESS IS RETRACTED — and how it failed is itself the leaf's most useful
+  evidence.** The leaf was opened citing `empty_unpacked_array_concatenation`'s `'{ }` arm as an
+  over-acceptance the census could never see. **`'{ }` is legal SystemVerilog**: §11.4.12 writes the
+  construct's own delimiter pair as `'{ }`, Annex M/VPI names the operator
+  `vpiAssignmentPatternOp 75 /* '{} assignment pattern */`, and no LRM text forbids it (measured
+  exhaustively over both revisions with `pymupdf`, `SV-CORPUS-GRAD.3.26b`/`.3.26c`). It is not
+  over-acceptance at all, so it never belonged in this population — and the reason it looked like
+  over-acceptance is the **same** methodological error this leaf is about, one level up: a verdict
+  read off Annex-A derivability instead of off the standard's text. See
+  [[feedback_sv_strict_lrm_compliance_default]] § BOUNDING RULING — *"non-LRM" is a CITATION, never
+  an inference.*
+- ⚠️ **CONSEQUENCE FOR THIS LEAF, stated plainly rather than papered over:** an "over-acceptance
+  audit" that classifies by *Annex-A non-derivability* would have produced exactly the retracted
+  finding — it would flag `'{ }`, `q[a:$]` and `use #(...)`, all three legal, all three already
+  measured. **Annex-A non-derivability is therefore a KNOWN-BAD classifier for this instrument**,
+  and any design that starts from it is starting from a refuted premise. Whatever `.1` builds must
+  separate *"the annex does not derive it"* (frequent, and benign three times over) from *"the
+  standard forbids it"* (which requires a located sentence). ⭐ **That distinction is the real
+  deliverable of this leaf**, and it is worth more than the finding that opened it.
 - **REPRODUCES OUTSIDE SV — the routing test (`ROUTING-EVIDENCE`).** The defect is in the *method*,
   not the SV grammar: any family whose over-acceptance census is derived from suite answer keys
   inherits it, which is every family in `CORPUS-GRAD-ALL`. Nothing about the argument uses IEEE 1800
   — it uses only "the census key is the suite's expectation, and suites do not write negative tests
   for what everyone accepts." That is why it lands here (cross-family fidelity infrastructure) and
   not in the SV corpus tree.
-- **THE INSTRUMENT THIS NEEDS**, and it is a sibling of `.1`'s, not of the corpus lane's: an
-  Annex-A-derived over-acceptance audit — enumerate what the shipped grammar accepts that the
-  transcribed Annex A cannot derive, *without* asking any corpus whether it minds. `.1`'s
-  Annex-A ⟷ shipped-grammar comparison already builds the machinery for one direction (productions
-  PGEN failed to transcribe); this is the same comparison read the other way round.
-- **SEED ROW for whenever it opens:** `empty_unpacked_array_concatenation` `'{ }` — bucket (a),
-  witness = uvm-core, measured population 49 corpus files, deliberately retained and commented in
-  `grammars/systemverilog.ebnf`.
+- **THE INSTRUMENT THIS NEEDS**, and it is a sibling of `.1`'s, not of the corpus lane's: enumerate
+  what the shipped grammar accepts that the transcribed Annex A cannot derive, *without* asking any
+  corpus whether it minds. `.1`'s Annex-A ⟷ shipped-grammar comparison already builds the machinery
+  for one direction (productions PGEN failed to transcribe); this is the same comparison read the
+  other way round. ⛔ **But its output is a CANDIDATE LIST, never a verdict list** — see the
+  known-bad-classifier note above. Each candidate needs a second, text-level adjudication (is there
+  a sentence forbidding it?) before it can be called over-acceptance, and the expected outcome for
+  most candidates, on this repository's own measured record, is *"legal; the annex is incomplete"*.
+- **SEED ROWS:** ⛔ **none — the leaf has no confirmed instance.** The three constructs measured so
+  far in this class (`'{ }` §11.4.12/Annex M; `q[a:$]` A.8.4 footnote 42, `SV-CORPUS-GRAD.3.25`;
+  `use #(...)` clause 33.4.3, `.3.19`) are all **legal**, i.e. all three are negative controls for
+  the instrument, not seed rows. ⭐ That is a genuinely useful starting set: **an audit that flags
+  any of the three has mis-classified**, which gives the instrument a ground-truth control before
+  it publishes a single number.
 
 ### `.2` — The standing coverage gate
 

@@ -3,15 +3,14 @@ id: a-mis-cited-production-reproduces-as-a-success
 title: A mis-cited production is more dangerous than a missing one — it reproduces as a SUCCESS, so the test that should catch it passes
 answers:
   - "why did a grammar fix pass its test and still be wrong"
-  - "how can a rule be wrong in two opposite directions at once"
   - "should I check the clause number when a grammar comment quotes an LRM production"
-  - "why does PGEN accept '{} but reject {}"
+  - "why did PGEN reject {} in SystemVerilog"
   - "what is an empty unpacked array concatenation in SystemVerilog"
-  - "how do I tell over-acceptance from under-acceptance in the same rule"
+  - "is it enough to open the clause once when a fix makes two citation claims"
 tags: [grammar-authoring, lrm-fidelity, systemverilog, verification, citations, strictness]
 date: 2026-08-10
 status: current
-evidence: docs/tasks/SV-CORPUS-GRAD.md leaf .3.26 (repro, root cause, the 5-row corpus delta, the acceptance checklist); grammars/systemverilog.ebnf rule empty_unpacked_array_concatenation (the two annotated arms + the corrected A.8.1 citation); docs/systemverilog/2017/md/section-41-data-read-api.md:2907 (A.8.1), :3551 (footnote 35), :2292-:2295 (all four assignment_pattern alternatives non-empty); the superseded fix SV-EXH-PROOF.3.3.4.b.6.2.37.8
+evidence: docs/tasks/SV-CORPUS-GRAD.md leaves .3.26 (repro, root cause, the 5-row corpus delta), .3.26b (the director ruling that '{} is legal), .3.26c (the re-modelling), .3.26d (this card's correction); grammars/systemverilog.ebnf rules empty_unpacked_array_concatenation (pure A.8.1) and assignment_pattern (the empty-element-list alternative); docs/systemverilog/2017/md/section-41-data-read-api.md:2907 (A.8.1), :3551 (footnote 35); the §11.4.12 notation sentence at docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:520-522; Annex M/VPI at docs/systemverilog/2017/md/section-83-accept-on-operator.md:89; the superseded fix SV-EXH-PROOF.3.3.4.b.6.2.37.8
 reverify: "printf 'module m;\\n int q[$];\\n initial q = {};\\nendmodule\\n' > /tmp/e.sv && ./rust/target/release/parseability_probe --parse systemverilog /tmp/e.sv --profile sv_2017"
 ---
 
@@ -34,11 +33,10 @@ empty_unpacked_array_concatenation35 ::= { }
 bare braces, **no apostrophe** — with footnote 35 (*"{ } shall denote an empty unpacked array
 concatenation … and shall not be used in any other form of concatenation"*) and §7.10's prose
 (*"The empty queue can be denoted by an empty unpacked array concatenation {}"*) both saying the
-same thing. Meanwhile `'{}` has **no derivation anywhere in Annex A**: all four
-`assignment_pattern` alternatives require at least one `expression`.
+same thing.
 
-So one rule was wrong in **both directions at once** — under-accepting the LRM form, over-accepting
-a form the standard cannot derive.
+So the shipped rule accepted a literal the cited clause does not contain, and rejected the one it
+does — **while its test went green**, because the test used the wrong literal too.
 
 ⭐ **Why it survived.** The motivating input was uvm's `return '{};`, which genuinely uses the
 apostrophe. The fix was tested against it, it passed, and **a passing test on a wrong literal is
@@ -54,9 +52,6 @@ later.
 
 Corollaries that paid off here:
 
-- **Check the neighbours.** Confirming `{ }` at A.8.1 was not enough; the claim *"`'{}` is not
-  derivable"* required reading all four `assignment_pattern` alternatives to see that none is empty.
-  A production's absence is proved by enumerating what is present.
 - **The annex keeps half its rules in footnotes** — see
   [[annex-a-footnotes-license-derivations-the-productions-cannot-derive]] for the sibling case where
   a footnote *licenses* a derivation the productions cannot express. Here footnote 35 *confirms* one.
@@ -64,16 +59,47 @@ Corollaries that paid off here:
   one moved exactly 5 rows, all `unexplained_rejects_valid → match`, from four independent suites,
   and none the other way.
 
-## When both directions are real, they are not one decision
+## ⛔ The sequel — the SAME fix made a SECOND citation claim, and that one was never opened either
 
-Fixing under-acceptance is unambiguous. Removing over-acceptance is not, and the two must be
-adjudicated separately rather than "cleaned up" together. Here the tolerated arm stayed, because two
-standing rulings partition the problem: the parser is strict-LRM **by default** with a tolerance
-switch **deferred, not rejected**, *and* a parser failure on UVM is the parser's defect — and UVM
-writes `return '{};`. That makes the apostrophe arm **dialect tolerance the ecosystem relies on**,
-i.e. exactly what the deferred switch exists to serve, rather than a bug to delete.
+This card originally closed with a section adjudicating `'{}` as *"over-acceptance kept as deliberate
+dialect tolerance"*. **That was wrong, and it is instructive that it was wrong in exactly the way the
+card warns about.**
 
-⛔ So keep it, **name it in the grammar**, and route it — never leave a deliberately tolerated arm
-looking like a second production someone transcribed. The comment is the only thing distinguishing
-"we accept this on purpose" from "we accept this by mistake", and the mistake is what this whole card
-is about.
+The repair to the `{ }` half was verified by opening A.8.1. The claim about the **other** half —
+*"`'{}` has no derivation in Annex A, therefore it is over-acceptance"* — was **inferred from the
+absence of a production**, never read. Pressed by the director (*"Please find in the LRM where it is
+claimed `'{}` wasn't supported"*), the answer is **nowhere**. Measured across both revisions, with
+`pymupdf` over the full PDFs and by grep over the markdown, `'{ }` appears exactly twice per
+revision and **both occurrences support it**:
+
+- **§11.4.12** — *"Concatenations are enclosed in just braces ( `{ }` ), whereas structure and array
+  literals are enclosed in braces that begin with an apostrophe ( **`'{ }`** )."* The standard writes
+  the construct's own delimiter pair with the apostrophe.
+- **Annex M / VPI** — `#define vpiAssignmentPatternOp 75 /* '{} assignment pattern */`.
+
+No text anywhere forbids it. `'{ }` is **legal SystemVerilog**, a third measured instance of the
+Annex-A-incompleteness class alongside `q[a:$]` (footnote 42) and `use #(...)` (clause 33.4.3) — so
+the rule was wrong in **one** direction, not two, and the apostrophe form is not tolerated, it is
+correct. Since `SV-CORPUS-GRAD.3.26c` it is modelled where it belongs: an `assignment_pattern` whose
+element list is empty.
+
+> ⛔ **The standing rule this established: "non-LRM" is a CITATION, never an inference.** Absence
+> from a production is not a prohibition. Before claiming a construct is illegal, produce the
+> sentence that says so. See `docs/decisions/feedback_sv_strict_lrm_compliance_default.md`
+> § BOUNDING RULING.
+
+⭐ **Why this belongs on this card rather than a new one.** The habit above says *quote the clause
+number and open the clause*. The session that wrote this card **did open one clause and then
+skipped the other** — it had the LRM on disk, searched it correctly minutes earlier to confirm
+A.8.1, and asserted the negative claim from reasoning instead of running one more grep. So the rule
+is not "check your citation"; it is **check every citation the change makes, including the ones
+phrased as a conclusion rather than a quote.** A claim of the form *"X is not legal"* is a citation
+with the quote left out.
+
+⚠️ **And the search itself needs a working instrument.** The first negative search was run with
+`pdftotext -layout`, which produced 82 000 lines and found neither `'{}` nor the §11.4.12 sentence
+that demonstrably exists — a broken extractor's silence reported as evidence, which is the same
+error class one level down. Use `pymupdf` (`import fitz`) on the in-repo PDFs, or grep the markdown;
+⛔ never `pdftotext`. Note the markdown wraps sentences, so an exact-phrase grep for
+*"begin with an apostrophe ( '{ } )"* also finds nothing — search for the distinctive short token
+(`apostrophe`, `'{ }`), not the sentence.

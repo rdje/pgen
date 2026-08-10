@@ -1,5 +1,49 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0192 — pay the correct-forward debt: four durable surfaces still called `'{}` "non-LRM over-acceptance" three commits after the ruling that refuted it (leaf `SV-CORPUS-GRAD.3.26d`, docs only, ZERO code bytes)
+
+- **THE DEBT.** `-0189` obtained the director ruling that `'{}` is legal SV and fixed the grammar
+  comment and the decision record — then **listed four surfaces it had not fixed** and deferred them.
+  `-0191` re-modelled the construct without touching that list either. ⇒ for three commits the
+  changelog, this repo's own task tree, a Knowledge-Map card and a routed leaf in another tree all
+  still asserted a claim the project had formally retracted. ⭐ **A retraction that lands in one layer
+  and not the others is not a retraction, it is a contradiction** — and the layers that kept the
+  false version are the ones a fresh session reads first.
+- **CORRECTED — five surfaces, not four** (`docs/TASK_TREE.md` was carrying it too and was on
+  nobody's list): the `-0187` entry above (⛔ RETRACTED-IN-PART banner + inline markers, retained
+  verbatim rather than rewritten); leaf `SV-CORPUS-GRAD.3.26` (banner, a CORRECTED column on its
+  verdict table, its whole ADJUDICATION section marked retracted); the KM card
+  `a-mis-cited-production-reproduces-as-a-success`; `LRM-GRAMMAR-FIDELITY.1c`; `docs/TASK_TREE.md`.
+- ⭐ **THE CARD GOT STRONGER, WHICH IS WHY IT WAS CORRECTED RATHER THAN RETIRED.** Its thesis is
+  *"a mis-cited production reproduces as a SUCCESS, so the test that should catch it passes."* The
+  fix that occasioned it made **two** citation claims: the transcription (`'{ }` vs `{ }` — opened
+  and verified) and a negative one (*"`'{}` is not legal"* — never opened, inferred). Same card, new
+  worked instance, sharpened rule: **a claim of the form "X is not legal" is a citation with the
+  quote left out.**
+- ⚠️ **`LRM-GRAMMAR-FIDELITY.1c` LOST ITS ONLY WITNESS AND NOW SAYS SO.** Its structural argument
+  survives (a census keyed on suite `must_reject` answers cannot see a tolerance the whole ecosystem
+  shares) but has **zero** confirmed instances, so it is re-stated as an **unwitnessed hypothesis**.
+  It also gains a real design constraint: **Annex-A non-derivability is a KNOWN-BAD classifier** for
+  the audit it proposes — it would flag `'{ }`, `q[a:$]` and `use #(...)`, all three legal and all
+  three already measured — so those three become the instrument's ground-truth controls rather than
+  its seed rows.
+- ⭐ **RE-VERIFIED INDEPENDENTLY, and the re-run found a second search trap.** An exact-phrase grep
+  for *"begin with an apostrophe"* over `docs/systemverilog/2017/md/` returns **0 hits** — the
+  markdown wraps the sentence mid-phrase. The short token finds it at once
+  (`section-0-…-is-greater.md:520-522`, under `#### 11.4.12 Concatenation operators` at `:498`).
+  `grep -rn "'{ *}"` → exactly **2** hits, both supporting; `grep -rn "shall not.*'{"` → **0**.
+  ⇒ carded: **search the distinctive token, not the sentence** (the first such trap was `pdftotext`,
+  `-0190`).
+- ⚠️ **A SEPARATE DEFECT FOUND WHILE PAYING THE DEBT — routed, not worked.** `CHANGES.md` had **no
+  entry at all** for `-0188`, `-0189`, `-0190`. Censused over the last 120 commits: **41 (34 %) carry
+  no changelog entry**, including 6 consecutive `PGEN-MEMORY-000{1..6}` and all six of
+  `LIVE-DOC-CONTAINMENT`'s own commits. The three SV ones are backfilled below (in-lane); the general
+  gap is owned by the new leaf **`LIVE-DOC-CONTAINMENT.5`**, which also **fires `.4`'s own named
+  re-open trigger** (*"live-doc pressure on a surface OTHER than `MEMORY.md`"*). Both stay parked
+  behind the SV lane lock.
+- **NO REGRESSION.** ZERO code bytes — no `grammars/`, `rust/` or `generated/` path in the change, so
+  no parser oracle is reachable by construction. `bash scripts/check_doctrines.sh` PASS.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0191 — `'{ }` is modelled where it belongs: an `assignment_pattern` with an EMPTY element list (leaf `SV-CORPUS-GRAD.3.26c`, grammar-only, ZERO Rust bytes)
 
 - **DIRECTOR:** *"which means that the inside of `'{...}` can be empty. this need to be properly
@@ -33,26 +77,153 @@
   across all 16 336 rows; burn-down `unexplained=293` unchanged. `characterization.md` moves only the
   three instrument hashes and one 0.13 s timing.
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0190 — the exhaustive PDF search, and a correction to a tooling claim: the PDFs are fine, `pdftotext` is not (leaf `SV-CORPUS-GRAD.3.26b`, docs only, ZERO code bytes)
+
+> *Backfilled by `-0192` — this entry was missing from the changelog; see `LIVE-DOC-CONTAINMENT.5`.*
+
+- **DIRECTOR:** *"Everything decisions you make must be grounded on proofs, citations, references in
+  LRM. I['m] weird[ed out] that you found no occurrence of `'{}` in the LRM, I have a doubt. I'm
+  [sure] the PDFs contain[] examples using `'{}` because it is legal SV."* ⭐ **The doubt was
+  warranted**: the first PDF pass used a BROKEN extractor and reported its silence as evidence — the
+  same error class as the inference it was meant to replace.
+- **`pdftotext -layout` is UNUSABLE on these PDFs.** 82 000 lines of output, yet it finds neither
+  `'{}` nor the §11.4.12 sentence that demonstrably exists in the markdown. ⇒ the earlier note
+  claiming *"the PDFs extract unfaithfully"* was itself WRONG and is corrected: **the PDFs are fine,
+  that one tool is not.** Use **pymupdf** (`import fitz`) — 1315 pages / 3 358 607 chars (2017),
+  1354 pages / 3 486 009 chars (2023).
+- **RE-RUN over both full PDFs with the working extractor:** exactly **2 hits per revision**,
+  identical to the markdown, and **neither is an example** — §11.4.12 *"…enclosed in braces that
+  begin with an apostrophe ( '{ } )"* [notation] and Annex M/VPI
+  `#define vpiAssignmentPatternOp 75 /* '{} assignment pattern */` [name].
+- ⇒ there is **NO worked example** using `'{}` in either LRM, and equally **NO text forbidding it**.
+  Both are now measured rather than assumed. This does not change the `-0189` ruling, it sharpens it:
+  keeping `'{ }` never depended on finding a positive example. ⭐ Had the deletion been justified by
+  *"I found no example"*, it would have been **the same fallacy in a new costume** — absence of an
+  example is not evidence of illegality, exactly as absence of a production is not.
+- **NO REGRESSION.** Docs only. Live status UNCHANGED (`systemverilog` Mostly Done).
+
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0189 — ⛔ DIRECTOR RULING: `'{}` is LEGAL SV; the deletion is REVERTED and its premise was INFERRED, never read (leaf `SV-CORPUS-GRAD.3.26b`, comment-only, generated parser BYTE-IDENTICAL)
+
+> *Backfilled by `-0192` — this entry was missing from the changelog, which meant the retraction of
+> `-0187` was invisible on this surface for three commits. See `LIVE-DOC-CONTAINMENT.5`.*
+
+- **DIRECTOR:** *"removing `'{}` does not belong to those types of decision because this causes PGEN
+  SV parser to reject inputs using `'{}`"* … *"It wasn't sota, signoff and sure not
+  professional-grade, please refrain from doing such thing again."* … *"Are you sure `'{}` is
+  non-LRM … Please find in the LRM where it is claimed `'{}` wasn't supported."* … *"You shouldn't
+  infer such things, you have all the LRMs' PDF and .md files."*
+- **THE DELETION IS REVERTED** (it never reached a shipped build; both arms restored and verified),
+  **and its premise was false:**
+  - **NOWHERE** does either LRM say `'{}` is illegal or unsupported. The only *"shall not"* near
+    assignment patterns is §10.9's port-expression rule, unrelated.
+  - The claim was **INFERRED** from *"all four `assignment_pattern` alternatives require ≥ 1
+    expression"*. That inference — *not derivable from Annex A ⇒ not legal SV* — had **already been
+    refuted twice in this repository**: `q[a:$]` licensed by **A.8.4 footnote 42** (`.3.25`), and
+    `use #(...)` written **7 times in clause 33.4.3** but absent from Annex A (`.3.19`). There is a
+    Knowledge-Map card for exactly this inference.
+  - **What the LRM does say:** §11.4.12 — *"structure and array literals are enclosed in braces that
+    begin with an apostrophe ( '{ } )"*; Annex M/VPI — `vpiAssignmentPatternOp 75 /* '{} assignment
+    pattern */`.
+- ⇒ **`'{}` is a THIRD instance of the Annex-A-incompleteness class, NOT over-acceptance. PGEN
+  accepting it is CORRECT.**
+- ⛔ **THE STANDING RULE THIS ESTABLISHES — "non-LRM" is a CITATION, never an inference.**
+  `feedback_sv_strict_lrm_compliance_default` gains a **BOUNDING RULING** placed ABOVE the absolutist
+  wording that was misapplied. Operative test, **in this order**: *does the change make the parser
+  REJECT input the ecosystem writes?* — Annex-A derivability second. ⚠️ Aggravating detail recorded:
+  the session **had** searched the LRM correctly minutes earlier to confirm A.8.1, then asserted the
+  negative claim from reasoning instead of running one more grep.
+- **New standing directive + index row:**
+  `feedback_every_finding_is_owned_and_scheduled_never_just_logged` — every issue must be LOGGED +
+  OWNED + TRACKED + SCHEDULED (fixed now, or deferred with a **NAMED TRIGGER**); `todo` is not a
+  schedule. Names the provoking error: deferring an **in-lane** SV defect by invoking the SV lane
+  lock, which exists to stop *leaving* the lane.
+- **`SV-CORPUS-GRAD.11a` ROOT-CAUSED rather than logged.** Trigger is **if/else-chain DEPTH**
+  (englishbreakfast 239 lines PASSES; darjeeling 261 lines needs 12 GB); ~**2× peak RSS per added
+  branch** (26 → 1138 MB over 4 → 16 branches), extrapolating to ~9 GB at the real 19. A **5-second
+  synthetic reproducer** replaces the 60-second corpus file. The store/memo-invalidation hypothesis
+  is **REFUTED** by a literal-only variant that still blows up (58/145/497 MB) at a constant 63 %
+  memo hit rate.
+- **NO REGRESSION proven, not asserted:** re-running `focus_systemverilog` leaves
+  `generated/systemverilog_parser.rs` **byte-identical**
+  (`10ad6361d1a3db9d8343d46cf957e98f99a3248f68fc2bff3e5336a2a9f80fb7`), so this touches no parser
+  behaviour. `--lint-grammar` exit 0. `{}`, `'{}` and uvm `return '{};` all PASS. Live status
+  UNCHANGED (`systemverilog` Mostly Done).
+
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0188 — correct a WRONG remedy left in a durable layer: the build-kill fix is the guard this repo already ships, not a new detach wrapper (leaf `SV-CORPUS-GRAD.3.26` follow-up, docs only, ZERO code bytes)
+
+> *Backfilled by `-0192` — this entry was missing from the changelog; see `LIVE-DOC-CONTAINMENT.5`.*
+
+- **THE DEFECT IN THE DURABLE LAYER.** `-0187`'s leaf prescribed a bespoke `nohup`/`perl setsid`
+  one-liner for the ~20-minute release build that had been killed twice at 10–11 minutes. That
+  instruction was wrong, and **wrong in the expensive direction**: it teaches a bespoke workaround
+  for a mechanism the repository already has.
+- **THE EVIDENCE SPLITS ON ONE LINE AND NOTHING ELSE** — `scripts/run_with_memory_guard.sh:262` does
+  `set -m`, giving its child its **own process group**, exactly the isolation the dead builds lacked:
+
+  | job | guarded? | outcome |
+  |---|---|---|
+  | corpus promote run (~13 min) | guarded | completed `exit=0` |
+  | corpus re-measure (347 s) | guarded | completed `exit=0` |
+  | `cargo build --release` (~11 min) | **UNGUARDED** | `signal: 15`, 0 rustc errors |
+  | `cargo build` debug (~11 min) | **UNGUARDED** | `signal: 15`, 0 rustc errors |
+  | `cargo build --release` + ad-hoc `setsid` | hand-detached | completed `exit=0` |
+
+  A **13-minute guarded** job survived while an **11-minute unguarded** one died. `README.md` already
+  mandates the guard for *"heavy or background jobs"*; the defect was not reading a `cargo build` as
+  a "job".
+- ⭐ **A SECOND DETACH MECHANISM WAS DELIBERATELY NOT ADDED.** A `scripts/run_detached.sh` beside a
+  guard that already isolates the process group is two mechanisms for one job, and they drift — the
+  next reader cannot tell which is authoritative. **The fix for "I did not apply the existing rule"
+  is never a second rule.**
+- **DIAGNOSTIC SIGNATURE KEPT:** `signal: 15, SIGTERM` with **no** `error[EXXXX]` anywhere in a cargo
+  log is an infrastructure kill, never a broken grammar. Grep for a real rustc error before
+  re-diagnosing the change that "broke the build".
+- **Measured build costs banked** so the next grammar leaf can budget: release probe **19 m 55 s**,
+  debug probe + `ast_pipeline` **2 m 42 s**, full SV corpus **347 s** + re-confirmation.
+- **NO REGRESSION.** Docs only. Live status UNCHANGED (`systemverilog` Mostly Done).
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0187 — the empty unpacked array concatenation was wrong in BOTH directions at once; the LRM form now parses (leaf `SV-CORPUS-GRAD.3.26`, grammar-only, ZERO Rust bytes)
+
+> ⛔⛔ **RETRACTED IN PART — read this before quoting anything below** (corrected forward by
+> `PGEN-SV-CORPUS-GRAD-0192`, leaf `.3.26d`, after the director ruling recorded in `-0189`).
+> **The `{}` half of this entry stands and is correct.** The `'{}` half does not: every phrasing
+> below that calls `'{}` *"not derivable"*, *"over-acceptance"* or *"bucket-(a) dialect tolerance"*
+> is **FALSE**. `'{ }` is **legal SystemVerilog** — §11.4.12 writes the construct's own delimiter
+> pair as `'{ }` (*"structure and array literals are enclosed in braces that begin with an
+> apostrophe ( '{ } )"*) and Annex M/VPI names the operator
+> `vpiAssignmentPatternOp 75 /* '{} assignment pattern */`; **no LRM text anywhere declares it
+> illegal.** The "over-acceptance" verdict was never read in the standard — it was INFERRED from
+> Annex-A non-derivability, an inference this repository had already refuted twice
+> (`.3.25` `q[a:$]`, `.3.19` `use #(...)`). PGEN accepting `'{}` is **CORRECT**, and since
+> `-0191` it is modelled where it belongs: an `assignment_pattern` with an empty element list.
+> Standing rule this established: **"non-LRM" is a CITATION, never an inference** —
+> `docs/decisions/feedback_sv_strict_lrm_compliance_default.md` § BOUNDING RULING.
 
 - **THE DEFECT.** `empty_unpacked_array_concatenation := tick lbrace rbrace` **rejected `{}`**, which
   IEEE 1800-2017 **A.8.1** literally is (`empty_unpacked_array_concatenation35 ::= { }`, footnote 35,
   and §7.10's *"The empty queue can be denoted by an empty unpacked array concatenation {}"*), while
   **accepting `'{}`**, which Annex A cannot derive at all — all four `assignment_pattern`
-  alternatives require at least one `expression`.
+  alternatives require at least one `expression`. ⛔ **[RETRACTED clause — see the banner: Annex-A
+  non-derivability is an annex gap, not a prohibition; `'{}` is legal.]**
 - **ROOT CAUSE — a CITATION error in a prior fix, not a missing fix.**
   `SV-EXH-PROOF.3.3.4.b.6.2.37.8` correctly replaced a never-matching body (`lbrace epsilon rbrace`;
   `epsilon` undefined) but wrote the replacement as `'{ }` citing "§A.6.7". The production is at
   **A.8.1** and reads `{ }`. Because its motivating input (uvm's `return '{};`) genuinely uses the
   apostrophe, **the error reproduced as a SUCCESS** and was never questioned.
-- ⭐ **THE STRICTNESS QUESTION NEEDED NO DIRECTOR CALL — two recorded rulings settle it, pulling
+- ⛔ **[RETRACTED BULLET — the whole strictness adjudication below rests on the false premise.**
+  `'{}` was never over-acceptance, so it is not bucket-(a) tolerance and it is not the deferred
+  switch's first customer; there was no strictness question to adjudicate. It is simply legal SV,
+  and the two arms were kept for **one** reason — both forms are legal — until `-0191` re-modelled
+  the apostrophe form as an `assignment_pattern` with an empty element list. Retained verbatim as
+  the record of what was believed on 2026-08-10.**]
+  ⭐ ~~**THE STRICTNESS QUESTION NEEDED NO DIRECTOR CALL — two recorded rulings settle it, pulling
   opposite ways and composing.** `feedback_sv_strict_lrm_compliance_default` makes the parser
   strict-LRM by default (so `'{}` is over-acceptance) while `feedback_uvm_is_valid_sv` rules that a
   PGEN failure on UVM is OUR defect — and uvm-core writes `return '{};`
   (`uvm_lru_cache.svh:206,:273`). Per this tree's strictness directive, that makes `'{}` **bucket
   (a) — dialect tolerance the ecosystem relies on, which is what the DEFERRED switch is FOR**. ⇒ two
   arms kept for two different reasons, each named in the grammar comment so the tolerated arm cannot
-  later be mistaken for a second LRM production.
+  later be mistaken for a second LRM production.~~
 - **VERIFIED.** `{}` REJECT→PASS and `'{}` PASS→PASS on both debug and release probes, same AST node.
   Corpus: **pass 9741 → 9746, fail 6591 → 6586**, timeout 4 → 4. Burn-down: **unexplained 298 → 293**
   (rejects-valid 277 → 272). ⭐ **All 5 moved rows are the same construct, from 4 independent
@@ -64,10 +235,13 @@
   needed, no rule added); `ast_shape_contract_gate` 18/18; `generated_clippy_correctness_gate` 0
   correctness findings. ⚠️ `clippy_on_rust_change` **skipped with a ✅** (the known tripwire —
   `generated/` is untracked so git sees no change); the explicit gate was run instead.
-- ⚠️ **ROUTED — `LRM-GRAMMAR-FIDELITY.1c` opened.** The strictness switch's declared evidence base
+- ⚠️ **ROUTED — `LRM-GRAMMAR-FIDELITY.1c` opened.** ⛔ **[Its worked example was `'{}` and is
+  RETRACTED — see the banner. The structural argument survives; its only witness did not, so `.1c`
+  is now an UNWITNESSED hypothesis, re-stated as such by `-0192`.]** The strictness switch's
+  declared evidence base
   (the 35 accepts-invalid rows, called *"by construction, every place PGEN accepts what the standard
   forbids"*) is a **biased sample**: it is keyed on suite `must_reject` expectations, and a tolerance
-  the whole ecosystem shares — like `'{}` — is exactly the one no suite writes a negative test for.
+  the whole ecosystem shares would be exactly the one no suite writes a negative test for.
   Designing the switch against those 35 rows would tune it on bucket (b) and ship it blind to its
   actual customers. Reproduces outside SV: any family whose over-acceptance census comes from answer
   keys inherits it.
