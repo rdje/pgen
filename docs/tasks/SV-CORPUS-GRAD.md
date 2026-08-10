@@ -5194,6 +5194,53 @@ made the difference, and how far it sat from the edge."*
   `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, and this leaf. No contract/ledger/schema
   surface changes: the runner is operator-invoked and publishes no downstream contract.
 
+##### `.3.26b` — ⛔ DIRECTOR RULING 2026-08-10: `'{}` is LEGAL SV; the `.3.26a` deletion is REVERTED and its premise was FABRICATED (comment-only, generated parser BYTE-IDENTICAL)
+
+- **Status: `done` 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0189`).** `.3.26a` (never released — the deletion
+  was reverted before any build shipped) removed the `'{ }` arm claiming it was "non-LRM
+  over-acceptance". **The claim was never read in the LRM. It was inferred**, and the director
+  stopped it: *"removing `'{}` does not belong to those types of decision because this causes PGEN SV
+  parser to reject inputs using `'{}`"* … *"It wasn't sota, signoff and sure not professional-grade,
+  please refrain from doing such thing again."* Full ruling + the standing rule it establishes:
+  [[feedback_sv_strict_lrm_compliance_default]] § **BOUNDING RULING**.
+- **What the LRM actually says** (searched exhaustively across `docs/systemverilog/{2017,2023}/md/`):
+  **no text anywhere** declares `'{}` illegal or unsupported; **§11.4.12** writes the construct's own
+  delimiter pair as `'{ }` (*"…enclosed in braces that begin with an apostrophe ( '{ } )"*); **Annex
+  M/VPI** names the operator `vpiAssignmentPatternOp 75 /* '{} assignment pattern */`. ⇒ `'{}` is a
+  **third instance of the Annex-A-incompleteness class**, alongside `q[a:$]` (footnote 42, `.3.25`)
+  and `use #(...)` (clause 33.4.3, `.3.19`) — **not** over-acceptance.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — with the arm deleted, the release probe REJECTED the uvm call-site
+  shape `return '{};` and `q = '{};`, i.e. the parser rejected input uvm-core and 49 corpus files
+  write. Restored: `./rust/target/release/parseability_probe --parse systemverilog … --profile
+  sv_2017` → `{}` **PASS**, `'{}` **PASS**, uvm `return '{};` shape **PASS**.
+- [x] **ROOT CAUSE (WHY + WHERE)** — correctness family, and the defect was in the REASONING, not the
+  grammar. **WHERE:** the `.3.26`/`-0187` prose + the `grammars/systemverilog.ebnf` comment on
+  `empty_unpacked_array_concatenation`. **WHY:** *"not derivable from Annex A"* was equated with
+  *"illegal SV"*. `./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar` →
+  **exit 0** on the restored two-arm rule, and `--parse-dump-ast` shows both arms emitting the same
+  `empty_unpacked_array_concat` node — so the arm was never a grammar defect to begin with. The
+  inference had already been refuted twice in-repo (`.3.25` footnote 42; `.3.19` clause 33.4.3) and
+  is carded as [[annex-a-footnotes-license-derivations-the-productions-cannot-derive]].
+- [x] **ADDRESSED (verified)** — both arms restored and verified REJECT→PASS on the release probe for
+  all three shapes above; the grammar comment now states the arm is CORRECT and cites §11.4.12 +
+  Annex M, replacing the "over-acceptance / bucket-(a) tolerance" framing.
+- [x] **NO REGRESSION** — **the change is comment-only and that is PROVEN, not asserted**:
+  re-running `make -C rust focus_systemverilog` leaves `generated/systemverilog_parser.rs`
+  **byte-identical** (`sha256 10ad6361d1a3db9d8343d46cf957e98f99a3248f68fc2bff3e5336a2a9f80fb7`
+  before and after) ⇒ zero codegen effect, so every parser-side oracle (cert-coverage,
+  `ast_shape_contract`, generated-clippy, the corpus) is unreachable from this change by
+  construction. `--lint-grammar` exit 0.
+- [x] **LOCKSTEP** — [[feedback_sv_strict_lrm_compliance_default]] gains the BOUNDING RULING above
+  its absolutist wording; new standing directive
+  [[feedback_every_finding_is_owned_and_scheduled_never_just_logged]] + `docs/decisions/INDEX.md`
+  row; `MEMORY.md` carries the correct-forward debt list. ⚠️ **STILL CARRYING THE FALSE FRAMING —
+  correct forward next session:** `CHANGES.md` `-0187`, leaf `.3.26`, the card
+  `a-mis-cited-production-reproduces-as-a-success.md`, and `LRM-GRAMMAR-FIDELITY.1c` (whose worked
+  example was `'{}` and must be re-based on a genuine over-acceptance row).
+
 ### `.4` — Full-design corpora chaining
 
 - **Status: `todo`** — extend the curated chaining (bootstrap_files) so
@@ -6240,6 +6287,48 @@ why the doctrine says re-measure rather than reason.
   `streaming_concatenation` 407 352 / `attribute_instance` 394 824 /
   `system_tf_call` 394 128 calls). Fix hierarchy applies as usual; the SPEED
   signature family (TOOLBOX group 2) governs its acceptance evidence.
+  ⭐⭐ **ROOT-CAUSED 2026-08-10 (session #232) — the leaf now has a 5-SECOND REPRODUCER instead of a
+  60-second 12 GB corpus file. Work from this, not from the corpus.**
+  - **TRIGGER = `if / else if` CHAIN DEPTH, not input size.** The decode is an `always_comb` with a
+    **19-deep** `if / else if` chain, each condition `(a & ~(ID)) == ID`. Decisive differential:
+    `top_englishbreakfast/.../xbar_peri.sv` (**239 lines**) **PASSES**, while
+    `top_darjeeling/.../xbar_peri.sv` (**261 lines**) consumes 12 GB — a ~9 % size difference with
+    opposite outcomes. `diff` of the two shows only comment/port-list size, no new construct.
+  - **GROWTH IS ~2× PEAK RSS PER ADDED BRANCH ⇒ O(2ⁿ)**, measured on a synthetic chain
+    (`/usr/bin/time -l`, release probe):
+
+    | branches | 4 | 6 | 8 | 10 | 12 | 13 | 14 | 15 | 16 |
+    |---|---|---|---|---|---|---|---|---|---|
+    | peak RSS (MB) | 26 | 28 | 32 | 46 | 104 | 177 | 307 | 583 | 1138 |
+
+    Extrapolating the measured doubling to the real file's 19 branches gives ≈ 9 GB, consistent with
+    the 12 362 MB measured on `xbar_main.sv`. ⇒ the corpus file is not special; **chain depth is the
+    whole variable.**
+  - **THE COST IS THE `primary` ALTERNATIVE CASCADE.** `--dump-rule-entry-counts-json` diffed
+    n=12 → n=14 (+2 branches) shows **every** hot rule at ≈ **4×** (= 2× per branch), led by
+    `system_tf_call` 49 326 → 196 810, `attribute_instance` 49 338 → 196 810,
+    `tf_call_with_args`/`class_scoped_tf_call_with_args` ≈ 28 900 → 114 934 — the same cascade `.10`
+    pinned via `--dump-rule-call-counts`.
+  - ⛔ **HYPOTHESIS RAISED AND REFUTED BY MEASUREMENT — do not re-run this dead end.** The store
+    looked guilty: `--dump-rule-outcome-counts-json` shows `facts_emitted` **45 181 → 180 365** and
+    `rollbacks` **2 188 992 → 8 640 174** across n=12 → 14, and `MEMO-STORE-SOUNDNESS.2` evicts
+    taint-gated memo entries on every store write. **Refuted:** a chain whose conditions are PURE
+    LITERALS (no identifiers ⇒ no fact lookups) still blows up — **58 / 145 / 497 MB at n = 12 / 14 /
+    16**. Same exponential base, ~2.3× lower constant. ⇒ the driver is **structural ambiguity in the
+    chain**, not the fact/store machinery.
+  - ⛔ **AND IT IS NOT A MEMO MISS.** `total_memo_hits` scales with everything else and the **hit
+    rate is a constant 63.4 % → 63.9 %** across n=12 → 14. The memo is serving proportionally; the
+    work itself is exponential.
+  - **REPRODUCER (regenerate in seconds):** an `always_comb` containing `if ((a & ~(32'hK)) == 32'hK)
+    begin s = 5'dK; end else if …` × N, N = 12…16. Both the identifier and literal-only variants are
+    needed — the pair is what refutes the store hypothesis.
+  - **NEXT SLICE (not yet done):** name the exact choice site with Protocol D — scope
+    `--trace-rules conditional_statement,statement_item` at `PGEN_TRACE_VERBOSITY=debug` on the n=12
+    synthetic and read the `🏁 selected branch N/M` lines, to see whether the `else` arm's
+    else-if-vs-else-statement alternatives are both explored at every level under the default
+    `longest_match` policy. Fix hierarchy applies; acceptance needs a **MEMORY** before→after
+    (`/usr/bin/time -l` at n=16 and on `xbar_main.sv`) alongside the group-2 SPEED signature.
+
   ⛔ These four are also a standing tripwire for this campaign: they are the only
   rows whose adjudication class depends on the runner's timeout argument and on
   which binary ran, so a future slowdown would read as a corpus regression that is

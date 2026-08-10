@@ -2234,17 +2234,27 @@ elaboration_system_task := elaboration_system_task_sv_2017
 # and reads `{ }`. Because its motivating input (uvm's `return '{};`) genuinely uses
 # the apostrophe form, the citation error reproduced as a SUCCESS and went unread.
 #
-# `tick lbrace rbrace` has NO derivation anywhere in Annex A — all four
-# assignment_pattern alternatives require at least one expression. It is therefore
-# over-acceptance, and it is KEPT DELIBERATELY as the first named bucket-(a) row of
-# the strictness axis: uvm-core itself writes `return '{};`
-# (uvm_lru_cache.svh:206,:273), and feedback_uvm_is_valid_sv rules that a PGEN
-# failure on UVM is OUR defect. Under feedback_sv_strict_lrm_compliance_default the
-# parser is strict-LRM BY DEFAULT with the tolerance switch DEFERRED, and
-# SV-CORPUS-GRAD's strictness directive says bucket (a) — "genuine dialect tolerance
-# the ecosystem relies on" — is exactly what that switch is FOR. When it lands, this
-# arm is its first customer. Measured population: 49 corpus files write `'{}`,
-# 91 write bare `{}` (regex file counts, not a parse census).
+# `tick lbrace rbrace` is LEGAL SV and this arm is CORRECT — ⛔ do not delete it.
+# Annex A's four assignment_pattern alternatives each require >= 1 expression, so the
+# PRODUCTIONS do not derive `'{ }`. That is an ANNEX GAP, not a prohibition, and this
+# grammar has two other measured instances of the same class (`q[a:$]` licensed by
+# A.8.4 footnote 42 — SV-CORPUS-GRAD.3.25; `use #(...)` written 7 times in clause
+# 33.4.3 but absent from Annex A's use_clause — .3.19). See the Knowledge-Map card
+# annex-a-footnotes-license-derivations-the-productions-cannot-derive.
+#
+# What the standard actually says, searched across 1800-2017 and 1800-2023:
+#   - §11.4.12: "structure and array literals are enclosed in braces that begin with
+#     an apostrophe ( '{ } )" — the LRM writes the delimiter pair itself as `'{ }`.
+#   - Annex M/VPI: `#define vpiAssignmentPatternOp 75 /* '{} assignment pattern */`.
+#   - NO text anywhere declares `'{}` illegal or unsupported.
+# uvm-core writes `return '{};` (uvm_lru_cache.svh:206,:273); 49 corpus files use it.
+#
+# ⚠️ SV-CORPUS-GRAD.3.26a DELETED this arm on the claim that it was "non-LRM
+# over-acceptance". That claim was never read in the LRM — it was INFERRED from
+# non-derivability, which is exactly the inference this project had already refuted
+# twice. Director ruling 2026-08-10 reverted it; see the BOUNDING RULING section of
+# feedback_sv_strict_lrm_compliance_default. "non-LRM" requires a CITATION, never an
+# inference.
 #
 # ⛔ Comments stay OUTSIDE the rule body: a column-0 comment between alternatives
 # DELETES the alternatives that follow it (project_standing_tripwires).

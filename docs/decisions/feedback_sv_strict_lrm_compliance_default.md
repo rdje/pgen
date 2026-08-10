@@ -6,6 +6,114 @@ metadata:
   type: feedback
 ---
 
+## ⛔⛔ BOUNDING RULING (director 2026-08-10, session #232) — READ THIS BEFORE APPLYING ANYTHING BELOW
+
+**This section exists because the wording below was applied literally and produced a WRONG change.**
+Session #232 deleted the `'{ }` arm of `empty_unpacked_array_concatenation` — a form Annex A cannot
+derive — citing *"never leaving the grammar non-compliant"* and *"no exception, no compromise"*. The
+director stopped it:
+
+> *"Why did you remove `'{}` in the first place. your goal is to take every sensible, sota, signoff,
+> professional-grade decision so that the SV parser can be released. removing `'{}` does not belong
+> to those types of decision because this causes PGEN SV parser to reject inputs using `'{}`."*
+
+> *"Which means the decision leading to removing `'{}` from the SV parser was sub-optimal to say the
+> least. It wasn't sota, signoff and sure not professional-grade, please refrain from doing such
+> thing again."*
+
+⭐ **THE OPERATIVE TEST, and it comes FIRST — before any Annex-A derivability argument:**
+
+> **Does the change make the SV parser REJECT input the ecosystem actually writes?**
+> If yes, it is not a compliance win and it is not the sign-off-grade decision — **whatever the
+> annex says.** The goal is a *releasable* parser; this policy exists to serve that goal, never to
+> override it.
+
+⛔⛔ **AND THE PREMISE WAS FALSE — the deletion was not even a compliance win.** Pressed by the
+director (*"Are you sure `'{}` is non-LRM… Please find in the LRM where it is claimed `'{}` wasn't
+supported"*), the answer is: **nowhere. There is no such text.** The claim was never read — it was
+INFERRED from *"the four `assignment_pattern` alternatives each require ≥1 expression"*, and the
+inference *not derivable from Annex A ⇒ not legal SV* **is invalid, and this repository had already
+refuted it twice with measurements before this session**:
+
+| prior instance | Annex A says | the LRM nonetheless supports it |
+|---|---|---|
+| `q[a:$]` (`SV-CORPUS-GRAD.3.25`) | `constant_expression` has no `$` primary | **A.8.4 footnote 42** + §7.10.1 + §7.10.4's own examples |
+| `instance top use #(.W(32));` (`.3.19`) | `use_clause` has no `#` at all | **clause 33.4.3 writes it 7 times**, in both revisions |
+
+…and the lesson is already a Knowledge-Map card:
+[[annex-a-footnotes-license-derivations-the-productions-cannot-derive]]. **Making the same inference
+a third time, against the project's own carded finding, is the actual defect here.**
+
+⭐ **What the LRM does say about `'{ }`, searched exhaustively across 1800-2017 and 1800-2023:**
+
+- **§11.4.12** — *"Concatenations are enclosed in just braces ( `{ }` ), whereas structure and array
+  literals are enclosed in braces that begin with an apostrophe ( **`'{ }`** )."* The standard writes
+  the construct's own delimiter pair as `'{ }`.
+- **Annex M / VPI** — `#define vpiAssignmentPatternOp 75 /* '{} assignment pattern */`, i.e. the
+  standard's own object model names the operator `'{}`.
+- **No prohibition anywhere.** The only "shall not" near assignment patterns is §10.9's rule about
+  port expressions, which is unrelated.
+
+⇒ **`'{ }` is a THIRD instance of the documented Annex-A-incompleteness class, not over-acceptance.**
+PGEN accepting it is **CORRECT**, not a tolerated deviation, and the `.3.26` framing of it as
+"bucket-(a) dialect tolerance" is itself an over-correction to be fixed. Absence from a production is
+**not** a prohibition — least of all in an annex this project has measured to be incomplete twice.
+
+⛔ **The cost asymmetry, which was also inverted.** Even had the premise been true: accepting `'{ }`
+harms *nobody* — no valid program is mis-parsed, no wrong AST is emitted, no consumer is misled.
+Rejecting it breaks **uvm-core** (`uvm_lru_cache.svh:206,:273`, `return '{};`) and 49 corpus files.
+Compliance-by-DELETION traded a large shipping harm for a zero benefit. **Removing an accepted form
+is a product decision with a product cost — price it before invoking the policy.**
+
+⛔⛔ **STANDING RULE THIS ESTABLISHES — "non-LRM" is a CITATION, never an inference.** Before any
+claim that a construct is illegal SV, produce the LRM sentence that says so — a clause, a footnote,
+a "shall not". *"I could not derive it from Annex A"* is evidence of an **annex gap**, and this
+project has three measured instances of exactly that. ⇒ never write "non-LRM" into a grammar
+comment, a changelog or a decision record without the quoted text behind it.
+
+⭐⭐ **AND THERE IS NO EXCUSE FOR INFERRING IT HERE — the standards are IN THE REPOSITORY.**
+Director, 2026-08-10: *"You shouldn't infer such things, you have all the LRMs' PDF and .md files,
+why do you need to infer when you have all the LRM material handy."* Both revisions ship in-tree as
+searchable Markdown (plus the PDFs):
+
+```bash
+docs/systemverilog/2017/md/    docs/systemverilog/2023/md/
+grep -rn "'{}"  docs/systemverilog/2017/md/ docs/systemverilog/2023/md/
+grep -rn -A8 "^assignment_pattern ::=" docs/systemverilog/2017/md/
+grep -rniE "<construct>.{0,80}(shall not|illegal|not supported|not permitted)" docs/systemverilog/
+```
+
+⛔ **The aggravating detail: this session HAD searched the LRM correctly, minutes earlier**, to
+confirm A.8.1's `{ }` production and footnote 35 — then asserted the *negative* claim from memory
+and reasoning instead of running one more `grep`. **Searching to confirm what the standard SAYS and
+then inferring what it FORBIDS is the whole failure.** A negative normative claim needs a search at
+least as much as a positive one, because absence of a production and presence of a prohibition look
+identical if you never look.
+
+⇒ **A normative claim about SystemVerilog is a SEARCH, not a recollection or a derivation** — the
+exact discipline this record already demands for claims about external tools (*"A claim about what
+external tools accept is a measurement, not a recollection"*). Same rule, now extended to the
+standard itself.
+
+### How the two halves of this record compose
+
+| the finding | the right action |
+|---|---|
+| PGEN accepts something the LRM forbids, and **no real code relies on it** | **FIX IT STRICTLY.** This is the case the reaffirmation below is about — e.g. `.3.11`'s spaced `time_literal`, measured 0 of 16,336 files. |
+| PGEN accepts something the LRM forbids, and **real code depends on it** | **KEEP IT**, name it in the grammar as deliberate bucket-(a) tolerance, and route it to the future opt-in layer (`LRM-GRAMMAR-FIDELITY.1c`). ⛔ Do **not** delete it to reach compliance. |
+
+⇒ *"never leaving the grammar non-compliant"* below governs the **first** row. It was never a licence
+to break real-world inputs, and the `time_literal` case that motivated it had **zero** real-world
+usage — which is exactly why it read as absolute. **`'{ }` STAYS.**
+
+⚠️ **Second-order lesson recorded because the failure was a reasoning failure, not a knowledge gap.**
+`SV-CORPUS-GRAD.3.26` had already reached the correct answer — keep both arms — from the same
+evidence. The session then re-read this record, found stronger absolutist wording, and **talked
+itself out of a correct decision**. A policy record is an input to judgement, not a substitute for
+it; when a rule's literal reading would ship a worse product, the reading is wrong, not the product
+goal. See [[feedback_every_finding_is_owned_and_scheduled_never_just_logged]] for the sibling
+discipline (surfacing is not the deliverable) raised in the same session.
+
 ## ⭐ REAFFIRMATION (director 2026-07-26, session #208) — this is the operative wording
 
 Director, verbatim: *"PGEN SV needs to be 100% compliant to the LRM by default. We
