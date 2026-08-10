@@ -1,5 +1,56 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0200 — a positional oracle that produced a big, plausible, wrong number on its first run
+
+`.12` asked a one-sentence question: the burn-down removes 1 459 rows on the strength of an
+`explained_svpp_*` label — is the label true? The first instrument answered "no, for 504 of them."
+That answer was wrong, and the way it was wrong is the part worth keeping.
+
+**The mechanism.** A preprocessor's output is byte-identical to its input up to the first construct
+it can alter. So if the parse dies strictly before that offset, it dies in text svpp cannot touch,
+and it would die identically after expansion. That reasoning is airtight and it is still what the
+final instrument uses. The bug was not in the logic; it was in what one of the two operands means.
+
+**`furthest_position` names a REGION, not a TOKEN.** It is the deepest byte any branch *consumed* —
+so a parse defeated *by* a token reports the byte where consumption stopped, which is before the
+whitespace and comments preceding that token. Surelog `tests/PPComment/dut.sv` is the clean shape:
+
+```
+module top();\n  \n  `define USE_BOOTMODE_TEST
+^0           ^13       ^19
+```
+
+The parser consumes `module top();` (13 bytes), then chokes on the backtick at 19. Reported:
+`furthest_position=13`. Compared naively against "first backtick at 19", that reads as *died 6 bytes
+before any preprocessor construct* — a falsification — when it is in fact *died exactly on one*.
+Six bytes of layout, 504 false positives, one very plausible headline.
+
+**The fix is one definition:** resolve `stuck_offset` = the first non-whitespace, non-comment byte at
+or after `furthest_position`, and judge *that*. 504 → 25. `stuck_offset_of()` in
+`stimuli/sv/audit_explained_svpp.py` is now the reference implementation, and `.12a` is instructed to
+reuse it rather than re-derive it.
+
+**The second refinement is about the other operand.** "First backtick" is also not the right anchor,
+because not every directive moves a byte. `SVPP-EXPANSION` is scoped to three operations — macro
+substitution, conditional resolution, `` `include `` inlining — and passes `` `timescale ``,
+`` `default_nettype ``, `` `celldefine ``, `` `resetall ``, `` `begin_keywords `` and
+`` `unconnected_drive `` through unchanged. Anchoring on the first *alterable* tick moved 2 more rows
+into the proven bucket, and it is what convicts iverilog `br_gh782b.v`, which chokes at byte 64 on
+the `1` of `` `timescale /* comment */ 1 `` while its first alterable tick sits at 361.
+
+**Why a census instead of the sample the leaf scoped.** The leaf asked for a per-class spot-check.
+The full 1 459-row census cost 2.9 s at 8-way parallelism, so sampling would have bought nothing and
+given up the ability to say *how many* — and this tree has been burned before by cut heuristics
+presented as counts. The census also produced the only genuinely reassuring number in the leaf:
+1 170 rows (80.2 %) stop **exactly on** a macro use, an `` `include `` or a conditional, which
+positively corroborates the label rather than merely failing to refute it. That was not previously
+established for a single row outside the 33 examined in `.3.13`.
+
+**What the audit deliberately did not do.** It never re-derives an expected verdict. Whether
+`parameter type class T = C0` *should* parse under `sv_2017` is a spec question owned elsewhere; the
+audit's only claim is that a row failing there is not waiting for the preprocessor. Keeping that line
+sharp is what let the leaf land with zero adjudicator bytes and a byte-identical manifest.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0197 — one annotation, and why the cheap fix was only safe to make after two sessions of measurement
 
 `.11a` is fixed by adding `@branch_policy: ordered` to one rule. It is a one-line change that a

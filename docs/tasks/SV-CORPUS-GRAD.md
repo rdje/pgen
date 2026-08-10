@@ -6970,10 +6970,16 @@ why the doctrine says re-measure rather than reason.
   approaching the chain's, a profile attributes material self-time to memo eviction, another family
   needs the memo on a store-heavy grammar, or the engine is being opened for another reason anyway.
 
-### `.12` — ⭐⭐ AUDIT THE `explained` POPULATION: the one class ever audited hid a 12 GB parser defect (`todo`, opened 2026-08-10 by `.11a`)
+### `.12` — ⭐⭐ AUDIT THE `explained` POPULATION: the one class ever audited hid a 12 GB parser defect (**`done`** 2026-08-10, `PGEN-SV-CORPUS-GRAD-0200`)
 
-- **Status: `todo`. IN-LANE and it bears directly on the release claim** — this is not a governance
-  finding. It asks whether *"axis 2 = 293 unexplained is the whole remaining distance"* is TRUE.
+- **Status: `done`.** ⭐ **THE ANSWER: *"293 unexplained is the whole remaining distance"* is FALSE,
+  but only just — the true floor is 293 + **26 proven** rows, with **263 more undecided**.** A FULL
+  CENSUS of all 1 459 rows (not the sampled spot-check the leaf scoped — the census cost 2.9 s, so
+  sampling would have been a false economy and [[a-cut-heuristic-is-not-a-census]] applies here as
+  everywhere else). **80.2 % of the population is positively CORROBORATED**, which is a real
+  strengthening of the release claim and was not previously established at all.
+- **IN-LANE and it bears directly on the release claim** — this is not a governance finding. It
+  asks whether *"axis 2 = 293 unexplained is the whole remaining distance"* is TRUE.
 - **THE PRECEDENT, and it is 1-for-1.** `divergence:explained_timeout` held **4** rows that the
   burn-down treated as understood. `.11a` audited them and every one was an **O(2ⁿ) parser defect
   allocating 12 GB on valid, machine-generated, industry-standard RTL** — a downstream OOM, not a
@@ -7011,6 +7017,172 @@ why the doctrine says re-measure rather than reason.
   written into the axis-2 accounting. A clean audit is a real outcome and worth the same commit as a
   dirty one; what is not acceptable is the current state, where the number is quoted as settled and
   has been checked exactly once.
+
+#### THE MEASURED ANSWER (full census, 2026-08-10) — `stimuli/sv/audit_explained_svpp.py`
+
+Artifacts: `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/{audit.tsv,summary.md}`.
+Instrument identity pinned in the report and **equal to the corpus provenance triple**
+(probe `4271a0c9…`, grammar `2a1a92f5…`, generated parser `c7f96a67…`) — this audit describes THIS
+tree. Deterministic: `--jobs 8` and `--jobs 4` produce a byte-identical `audit.tsv` (`cmp`).
+
+| class | rows | corroborated | **DISPROVEN** | undecided |
+|---|---:|---:|---:|---:|
+| `explained_svpp_macro_use` | 1111 | 936 | **20** | 155 |
+| `explained_svpp_conditional` | 203 | 199 | **4** | 0 |
+| `explained_svpp_include` | 141 | 33 | **2** | 106 |
+| `explained_svpp_protected_envelope` | 4 | 2 | **0** | 2 |
+| **TOTAL** | **1459** | **1170 (80.2 %)** | **26 (1.8 %)** | **263 (18.0 %)** |
+
+#### ⛔⛔ THE FIRST CUT OF THIS AUDIT "PROVED" 504 MISCLASSIFIED ROWS, AND IT WAS AN ARTEFACT
+
+Recorded because the near-miss is the transferable lesson, not the number. The first instrument
+compared `furthest_position` against the first backtick offset directly and reported **504 of 1 459**
+rows falsified — a 34.5 % misclassification rate, which would have been a headline finding.
+
+It was **off by the whitespace gap**. `furthest_position` is the deepest byte any branch *consumed*,
+not the offset of the token that defeated the parse, so a parse stuck *on* a directive reports the
+byte just before the whitespace preceding it. Surelog `tests/PPComment/dut.sv` is the canonical
+shape: `module top();` + `\n  \n  ` + `` `define `` reports `furthest_position=13` while the
+offending backtick sits at **19** — a 6-byte gap that reads as "died 6 bytes before any preprocessor
+construct" and is in fact "died exactly on one". **Every row spot-checked in that 504 was healthy.**
+
+The fix is to resolve the gap before judging: `stuck_offset` := the first non-whitespace,
+non-comment byte at or after `furthest_position`. 504 → 25. ⭐ The lesson generalises past this leaf:
+**`furthest_position` names a REGION, not a TOKEN**, and any instrument that compares it to a
+source offset must skip the layout first. This is the second time a positional oracle in this tree
+produced a large, plausible, wrong number (cf. `.3.25`'s undercounting tells) — the tell is that the
+number was BIG and arrived on the FIRST run.
+
+#### THE TWO SOUND TESTS (why the surviving 26 are proofs, not suspicions)
+
+1. **`FALSIFIED` (25 rows).** A preprocessor's output is byte-identical to its input up to the first
+   backtick it can *alter*. If `stuck_offset` lies strictly before that offset, no branch ever
+   reached svpp's region of influence, so the parse fails identically on the expanded text. Airtight.
+   ⭐ The refinement that "alterable" ≠ "any backtick" is load-bearing and moved 2 rows on its own:
+   svpp substitutes macros, resolves conditionals and inlines `` `include `` — it hands
+   `` `timescale ``/`` `default_nettype ``/`` `celldefine ``/`` `resetall ``/`` `begin_keywords ``/
+   `` `unconnected_drive `` straight through, so those move nothing and cannot start the window.
+   iverilog `br_gh782b.v` is the case: it chokes at byte 64 on the `1` of
+   `` `timescale /* comment */ 1 ``, and its first alterable tick is at 361.
+2. **`STUCK-ON-PASSTHROUGH` (1 row).** verilator `t_gate_primitives_implicit_net.v` chokes at byte
+   1886 **on `` `default_nettype none `` itself**, mid-module-body. svpp returns that token
+   unchanged, so running the preprocessor cannot be what this row is waiting for. It is the `.3.14`
+   class (`compiler_directive` is an alternative of `source_text_item` and of nothing else).
+
+⛔ `line`/`pragma` are deliberately judged by NEITHER test and counted as alterable, the choice that
+cannot manufacture a false falsification. 0 rows landed there, so the decision cost nothing.
+
+#### HAND-VERIFIED, NOT TAKEN ON INSTRUMENT TRUST (6 of 26, spanning every sub-shape)
+
+| file | chokes on | why svpp cannot be the answer |
+|---|---|---|
+| verilator `t_uvm_hello.v` | `;` after `class test extends uvm_test` (byte 463) | first alterable tick at 470 — 7 bytes later |
+| verilator `t_display.v` | a `\`+newline continued string literal (8648) | §5.9 line-continued string; first tick 8703 |
+| iverilog `sv_type_param_restrict_class1.v` | `parameter type class T = C0` (139) | type-parameter restriction; first tick 187 |
+| iverilog `sv_soft_packed_union.v` | `union soft packed {` (131) | soft packed union; first tick 508 |
+| verilator `t_vams_basic.v` | `wreal wr;` (483) | Verilog-AMS type; first tick 548 |
+| verilator `t_gate_primitives_implicit_net.v` | `` `default_nettype `` in a module body (1886) | passthrough directive — svpp returns it unchanged |
+
+#### ⛔ THE HONEST SENTENCE ABOUT WHAT `explained` MEANS (owed by the leaf, written here)
+
+> `divergence:explained_svpp_*` asserts **"this file contains a preprocessor construct
+> somewhere"** — `adjudicate_external_corpus.py:471 preproc_dependency()` is a whole-file existence
+> test over the raw text and never consults where the parse actually failed. It is read downstream
+> as the far stronger **"this file fails BECAUSE it needs the preprocessor lane"**, and the row is
+> removed from the axis-2 burn-down on the strength of that stronger reading.
+> **Measured, the two agree 80.2 % of the time, disagree provably 1.8 % of the time, and are
+> unresolvable by position for the remaining 18.0 %.**
+
+⇒ The axis-2 floor is **293 + 26 = 319** rejects-valid rows, not 293. The 263 undecided rows are an
+honest *upper* bound of 582 — they are NOT claimed as defects, and ⛔ must not be quoted as one.
+
+#### ROUTING (leaves CREATED, not owners named — `DOCTRINE-GAP-OWNERSHIP.2`)
+
+- **`.12a`** — the mechanism fix: make the label position-aware. Owns the 26 rows' reclassification.
+- **`.12b`** — the 263 rows position cannot decide. Sized and parked with its re-open trigger.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `python3 stimuli/sv/audit_explained_svpp.py --jobs 8` over the full
+      1 459-row `explained_svpp_*` population (2.9 s). 26 rows carry a preprocessor label while the
+      parser demonstrably chokes on something svpp cannot touch; e.g. verilator
+      `t_gate_primitives_implicit_net.v` labelled `explained_svpp_macro_use` chokes at
+      `furthest_position=1886`, which is `` `default_nettype none `` itself.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE `stimuli/sv/adjudicate_external_corpus.py:471
+      preproc_dependency()`, reached from `adjudicate()` at `:2340`. WHY = it answers
+      *"does this file contain a `` `include ``/macro use/`` `ifdef ``/protected envelope
+      ANYWHERE?"* by regex over the whole file, and `adjudicate()` consumes that boolean as a
+      CAUSAL claim about the failure. The failure position is available (the probe prints
+      `furthest_position=` on every reject) and is simply never plumbed through — `results.tsv`
+      banks only `pass`/`fail`/`timeout`, because `stimuli/run_external_corpus.sh:293` discards the
+      probe's stderr (`>/dev/null 2>&1`). Second WHY, independent of the first: even a
+      position-aware test is wrong if it treats all backticks alike, since svpp's scoped operations
+      (`docs/tasks/SVPP-EXPANSION.md`: macro substitution + conditional resolution + `` `include ``
+      inlining) leave `` `timescale ``-class directives untouched.
+- [x] **FIX** — none in this leaf **by design**: it is a measurement leaf, and the ONE thing it was
+      forbidden to do is re-derive expected verdicts ([[feedback_corpus_expected_from_spec_not_fix]]).
+      ZERO Rust bytes, ZERO grammar bytes, ZERO changes to `adjudicate_external_corpus.py` — the
+      manifest is byte-identical at HEAD. The mechanism fix is routed to `.12a`, which owns both the
+      plumbing and the reclassification; the 26 rows are named in `audit.tsv` so they survive
+      independently of when `.12a` lands.
+- [x] **ADDRESSED (verified)** — the question the leaf was opened to answer is answered with a
+      number and a method: full census, 1459/1459 rows, 0 `NO-POSITION` (every row yielded a
+      position — the method has no silent coverage hole), 0 `NO-TICK-AT-ALL` (no row contradicts its
+      own label outright). 6 of the 26 disproven rows hand-verified against the raw bytes, spanning
+      every sub-shape (pre-tick ordinary syntax, passthrough directive, continued string literal,
+      type-parameter restriction, soft union, Verilog-AMS type). The instrument's own first answer
+      was refuted and the refutation is recorded above rather than quietly corrected.
+- [x] **NO REGRESSION** — no tracked artifact was rewritten: `git status` shows only the new
+      instrument and the new artifact directory. `adjudication_manifest.tsv` untouched, so the
+      published axis-2 numbers still say exactly what they said before this leaf ran; what changed
+      is that the leaf now states what they MEAN. Instrument determinism proven by `cmp` across
+      `--jobs 8` vs `--jobs 4`.
+
+### `.12a` — plumb the failure POSITION into the svpp label (`todo`, opened 2026-08-10 by `.12`)
+
+- **Status: `todo`. The mechanism fix behind `.12`'s 26 rows, and it is a pipeline change, not a
+  one-line predicate change** — which is why `.12` did not attempt it inline.
+- **THE TWO HALVES.** (1) `stimuli/run_external_corpus.sh:293` discards the probe's stderr, so
+  `results.tsv` banks `pass`/`fail`/`timeout` and nothing else; `furthest_position` must be captured
+  and carried into the adjudicator. (2) `preproc_dependency()` must become a positional predicate:
+  a file earns `explained_svpp_*` only when the parse chokes at or after the first backtick svpp can
+  ALTER — and `` `timescale ``-class passthrough directives do not count as alterable
+  (`.12` proved that refinement moves rows on its own).
+- ⛔ **THE TRAP, NAMED BEFORE IT IS STEPPED IN.** `furthest_position` is the deepest byte
+  *consumed*, not the offending token's offset. Comparing it to a source offset without first
+  skipping whitespace and comments is what made `.12`'s first cut report 504 false positives. The
+  fix must resolve `stuck_offset` exactly as `audit_explained_svpp.py:stuck_offset_of()` does; that
+  function is the reference implementation and is already proven against 1 459 rows.
+- **EXPECTED EFFECT, PRE-COMMITTED so the re-measure cannot be graded on a curve:** 26 rows move
+  `explained_svpp_*` → `unexplained_rejects_valid`, taking axis 2 from 293 to **319**. Any other
+  number means the port diverged from the audited semantics and the DIFFERENCE must be explained
+  row-by-row, not averaged away. ⛔ This is a burn-down INCREASE and that is the correct direction:
+  the rows were always defects, they were merely mislabelled ([[a-rising-pass-rate-is-not-evidence-of-correctness]]).
+- **Owed:** the plumbing, the positional predicate, a re-adjudication, the manifest diff proving
+  exactly 26 rows moved and which, and the axis-2 accounting updated to 319.
+
+### `.12b` — the 263 rows POSITION cannot decide (`todo`, opened 2026-08-10 by `.12`, SIZED AND PARKED)
+
+- **Status: `todo`, parked on evidence with a named re-open trigger — not a silent deferral.**
+- **WHAT THEY ARE.** 259 `IN-WINDOW` (the parse chokes on ordinary syntax *between* the first and
+  last alterable backtick) + 4 `PAST-LAST-TICK` (it chokes past every one of them). Concentrated in
+  `include` (106 of 141 rows — 75 % of that whole class) and `macro_use` (155).
+- **WHY POSITION CANNOT SETTLE THEM, stated so nobody re-runs the same test expecting more.** An
+  expansion at an earlier offset changes the token stream that follows it: a macro expanding to
+  `module m;` unbalances an `endmodule` a thousand lines later, and an `` `include `` can supply the
+  `typedef` that decides whether `foo bar;` is a declaration at all. The `include` class's 75 %
+  concentration is exactly this — a file that includes its type definitions is genuinely undecidable
+  from raw text.
+- ⛔ **THE HONEST BOUND.** These are neither corroborated nor disproven. Axis 2's floor is 319 and
+  its ceiling is 582; quoting 582 as a defect count would be as wrong as quoting 293 as settled.
+- **THE ONLY INSTRUMENT THAT SETTLES THEM IS `SVPP-EXPANSION` ITSELF** — expand each file, re-parse,
+  and compare. That tree is `proposed`/build-later and sequenced strictly AFTER the locked program,
+  so this leaf is **blocked on it by construction**, not by choice.
+- **RE-OPEN IF** any of: `SVPP-EXPANSION.2` lands an expander (then this is a mechanical re-run and
+  should be its first customer); the SV release bar is challenged on the 263-row ambiguity; or a
+  cheaper sound discriminator is found for the `macro_use` half (of those 155 rows, the ones whose
+  macros are ALL defined in-file need no `` `include `` graph to expand — a plausible cheap subset,
+  but ⛔ its size is **unmeasured**: 155 is the whole `macro_use` undecided bucket, not the subset).
 
 ## ROUTING EVIDENCE (`.3.12` → `.11c`, `.11a` → `.11d`, and the `.11a`/`.11b` pair from `.10`)
 

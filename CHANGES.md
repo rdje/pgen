@@ -1,5 +1,45 @@
 # CHANGES.md
 
+## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0200 — the `explained` label is an EXISTENCE test read as a CAUSAL claim: 26 rows provably misclassified, 263 undecidable, 1 170 corroborated (leaf `SV-CORPUS-GRAD.12` done + `.12a`/`.12b` opened; new instrument, ZERO Rust/grammar bytes)
+
+- **THE QUESTION.** `divergence:explained_svpp_*` removed **1 459 rows** from the axis-2 burn-down.
+  The only `explained` class this campaign had ever opened (`explained_timeout`, 4 rows) turned out
+  to be a 12 GB parser defect wearing a resource-limit mask. So *"293 unexplained is the whole
+  remaining distance"* had been checked exactly once, on a sample of four.
+- **THE ANSWER (full census of all 1 459 rows, 2.9 s — not the sampled spot-check the leaf scoped):**
+  **1 170 corroborated (80.2 %) · 26 PROVABLY misclassified (1.8 %) · 263 undecidable by position
+  (18.0 %)**. ⇒ the axis-2 floor is **293 + 26 = 319**, with an honest ceiling of 582.
+- **WHY THE LABEL DRIFTS.** `adjudicate_external_corpus.py:471 preproc_dependency()` is a whole-file
+  regex existence test — *does this file contain a `` `include ``/macro/`` `ifdef `` ANYWHERE?* —
+  and `adjudicate()` consumes that boolean as a claim about **why the parse failed**. The failure
+  position is never plumbed through: `run_external_corpus.sh:293` discards the probe's stderr.
+- ⛔⛔ **THE INSTRUMENT'S OWN FIRST ANSWER WAS WRONG, AND IS RECORDED RATHER THAN QUIETLY FIXED.**
+  The first cut compared `furthest_position` to the first backtick offset directly and reported
+  **504 of 1 459** misclassified — a 34.5 % headline. `furthest_position` is the deepest byte
+  *consumed*, so a parse stuck **on** a directive reports the byte before the whitespace in front of
+  it (`module top();` + `\n  \n  ` + `` `define `` → position 13, backtick at 19). Every row
+  spot-checked in that 504 was healthy. Skipping the layout first: **504 → 26**.
+- ⭐ **NOT EVERY DIRECTIVE MOVES A BYTE** — a refinement that moved 2 rows on its own. Expansion
+  substitutes macros, resolves conditionals and inlines `` `include ``; it passes `` `timescale ``,
+  `` `default_nettype ``, `` `celldefine ``, `` `resetall `` straight through, so those cannot start
+  the preprocessor's region of influence. One row (`t_gate_primitives_implicit_net.v`) stops **on**
+  `` `default_nettype `` mid-module-body — a `.3.14`-class parser gap filed as a macro dependency.
+- **HAND-VERIFIED, NOT TAKEN ON INSTRUMENT TRUST** — 6 of the 26 checked against raw bytes, spanning
+  every sub-shape: a line-continued string literal 8 000 bytes before the first directive, a
+  `parameter type class T` restriction, a `union soft packed`, a Verilog-AMS `wreal`, a
+  `class … extends …;`, and the passthrough directive above.
+- **NEW TRACKED INSTRUMENT** `stimuli/sv/audit_explained_svpp.py` + artifacts under
+  `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/`. Determinism byte-proven (`cmp` across
+  `--jobs 8` vs `--jobs 4`); instrument-identity triple equals the corpus provenance triple.
+- **NO REGRESSION / SCOPE HELD.** ZERO Rust bytes, ZERO grammar bytes, ZERO adjudicator changes —
+  `adjudication_manifest.tsv` is byte-identical at HEAD. The published axis-2 numbers still say what
+  they said; what changed is that the tree now states what they MEAN. Re-derivation of expected
+  verdicts was explicitly out of scope (expected-from-SPEC doctrine).
+- **ROUTED AS REAL LEAVES, not named owners** (`DOCTRINE-GAP-OWNERSHIP.2`): **`.12a`** = plumb the
+  position through and make the label positional (pre-committed effect: axis 2 293 → **319**, any
+  other number to be explained row-by-row); **`.12b`** = the 263 undecidable rows, SIZED AND PARKED,
+  blocked by construction on `SVPP-EXPANSION` — the only instrument that can settle them.
+
 ## 2026-08-10 - PGEN-SV-CORPUS-GRAD-0197 — `.11a` FIXED: the O(2ⁿ) `if/else if` blowup is gone, killed by ONE declarative annotation (leaf `SV-CORPUS-GRAD.11a`, grammar + corpus oracle, ZERO Rust bytes)
 
 - **THE FIX.** `@branch_policy: ordered` on `conditional_else_branch` — tier 1 of the fix hierarchy,

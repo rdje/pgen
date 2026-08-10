@@ -1742,6 +1742,47 @@ the macro; the other 4 used one elsewhere in the file and had stopped at an unre
 correct relabel still buries those stuck points, so they are re-routed as crafted minimal cases
 where the construct — not the vendored file — is the unit.
 
+#### Auditing the explanation itself — the asymmetry that makes it worth doing
+
+That 29-versus-4 split is the whole problem in miniature, and `SV-CORPUS-GRAD.12` asked it of the
+entire population: **1 459 rows carried an `explained_svpp_*` label; how many had actually been
+checked?** The answer was one class of four rows, ever — and when a previous leaf opened the
+neighbouring `explained_timeout` class, all four of *those* turned out to be a parser defect
+allocating 12 GB on valid RTL, wearing a resource-limit mask.
+
+The two possible errors are not priced the same. **A wrong `unexplained` verdict costs a wasted
+investigation; a wrong `explained` verdict ships a defect**, because the row leaves the burn-down by
+construction and nothing looks at it again. Only one of them was being checked.
+
+The label is decided by a whole-file existence test — *does this file contain a `` `include ``, a
+macro use, an `` `ifdef ``, or a protected envelope anywhere?* — and is then read as the far
+stronger causal claim *this file fails because it needs the preprocessor*. Those are different
+statements, and the gap between them is measurable: a genuinely preprocessor-blocked parse must die
+**at or after** the first byte the preprocessor can alter, because a preprocessor's output is
+byte-identical to its input up to that point.
+
+Over a full census of all 1 459 rows, the two statements **agree 80.2 % of the time, disagree
+provably for 26 rows, and are unresolvable by position for the remaining 18 %**. The 26 are parser
+findings that had been filed as preprocessor dependencies — among them a file that stops on
+`` `default_nettype `` inside a module body, which the preprocessor hands through untouched, and one
+that stops on a line-continued string literal 8 000 bytes before the file's first directive.
+
+Two details of that audit are worth carrying to any similar instrument:
+
+- **Not every directive moves a byte.** Expansion substitutes macros, resolves conditionals and
+  inlines `` `include ``; it passes `` `timescale ``, `` `default_nettype `` and their neighbours
+  straight through. A test that treats all `` ` ``-tokens as the start of the preprocessor's reach
+  both misses defects and manufactures them.
+- **A failure position names a region, not a token.** The reported furthest position is the deepest
+  byte any branch *consumed*, so a parse stopped *on* a directive reports the byte just before the
+  whitespace in front of it. The first cut of this audit compared the two directly and reported 504
+  misclassified rows — a 34.5 % rate that was entirely a six-byte layout gap. Every row spot-checked
+  in it was healthy. Resolving the gap first took the finding from 504 to 26.
+
+The honest form of the resulting number is a floor and a ceiling, not a point: the defect population
+is **at least** 26 rows larger than the burn-down claims, and at most 289 larger. Quoting the
+ceiling as a defect count would be the same error as quoting the original figure as settled.
+
 #### When the pin table already contradicts itself
 
 The pinned rulings are not just an override list — they are the project's accumulated reading of the
