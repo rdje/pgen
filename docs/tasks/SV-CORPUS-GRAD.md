@@ -6940,6 +6940,35 @@ why the doctrine says re-measure rather than reason.
   counter pair. Natural home is the engine + `MEMO-STORE-SOUNDNESS`, not this corpus tree.
   ⚠️ Sizing it needs a per-rule taint census across families first — do NOT assume the `.11a`
   chain's 100 % eviction rate is representative.
+- ⭐⭐ **SIZED 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0199`), and the warning above was RIGHT: the chain is
+  NOT representative, so this leaf stays PARKED on evidence rather than on judgement.** Census
+  (TOOLBOX 3.6) over six real passing SV files spanning three suites — all six ground-truth controls
+  green:
+
+  | file | success inserts | stale evictions | eviction rate | replays / insert |
+  |---|---|---|---|---|
+  | `iverilog/…/genblk_named.v` | 11 657 | 1 983 | **17.0 %** | 8.6 |
+  | `iverilog/…/onehot16_tb.v` | 1 314 | 23 | 1.8 % | 6.4 |
+  | `iverilog/…/test_disphob.v` | 3 484 | **0** | **0 %** | 5.8 |
+  | `iverilog/…/multireg.v` | 2 134 | 28 | 1.3 % | 7.2 |
+  | `black-parrot/…/bp_be_ctl_pkgdef.svh` | 4 618 | **0** | **0 %** | 5.4 |
+  | `verilator/…/t_class_extends2.v` | 4 626 | 51 | 1.1 % | 5.7 |
+
+  ⇒ on ordinary SV the eviction rate is **0–17 %, median ≈1.2 %**, and packrat delivers **5.4–8.6
+  success replays per insert** — it is working well. Even the worst file has the *highest* replay
+  ratio of the six, i.e. the evictions there are a tax on an already-effective cache, not a collapse.
+  The `.11a` chain's 100 % / **0 replays** is a pathological tail, and its trigger — an
+  overlapping-arm choice site — was removed declaratively.
+- ⛔ **DECISION (2026-08-10, mine, on the director's delegation): PARK. The re-open trigger is
+  named so this is not a silent deferral.** Rationale: (1) not a soundness defect — the behaviour is
+  conservative in the SAFE direction; (2) no residual SV symptom — the corpus runs **16 336 files in
+  71 s at 4 756 MB peak with 0 timeouts**, so the "peak speed" non-negotiable has no open complaint
+  to answer; (3) the fix would change a SOUNDNESS mechanism inside shared codegen compiled into all
+  ten generated parsers, which is the wrong risk to take in a lane whose bar is *"ship with 100 %
+  confidence"*; (4) the in-lane leaf `.12` (auditing the 1 459 `explained` rows) bears **directly** on
+  the release claim, and this does not. **RE-OPEN IF** any of: a real SV file shows an eviction rate
+  approaching the chain's, a profile attributes material self-time to memo eviction, another family
+  needs the memo on a store-heavy grammar, or the engine is being opened for another reason anyway.
 
 ### `.12` — ⭐⭐ AUDIT THE `explained` POPULATION: the one class ever audited hid a 12 GB parser defect (`todo`, opened 2026-08-10 by `.11a`)
 
