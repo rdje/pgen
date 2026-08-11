@@ -178,6 +178,16 @@ documentation; it is a tripwire that runs.** That is the strongest argument yet 
 **Remaining for `.3`:** 131 records, of which ~74 still need the line-1 normalization. Batch them by
 citation rank — the tail is mostly single-citation records where a thin `answers:` list is honest.
 
+- ID: `LESSON-RETRIEVAL.6`
+  Status: `pending` (opened 2026-08-11 by `PGEN-SV-CORPUS-GRAD-0207`, which hit it while doing the right thing)
+  Goal: `The PROMOTION signal is the answers: KEY, so CONSOLIDATING a lesson into an existing record is invisible to the gate. check_lesson_promotion.sh detects promotion with `git diff --cached -U0 -- docs/decisions | grep -qE '^\+answers:'` — the literal key line. A record that already HAS answers: and gains three new question keys produces only `+  - "..."` lines, so the gate sees NO promotion and the author must either create a NEW record or decline. ⛔ That is a structural bias toward FRAGMENTATION: it makes "write a fourth record about the same discipline" satisfy the doctrine while "fold the refinement into the record that already owns it" does not — the opposite of the memory hygiene the layer-C system of record depends on (one record per fact; check for an existing file that covers it and update rather than duplicate).`
+  Evidence (measured, not hypothesised): `PGEN-SV-CORPUS-GRAD-0207 wrote a lesson that genuinely REFINED feedback_an_ops_change_is_proven_by_an_arm_matrix_not_by_its_diff (created two commits earlier by -0206). Creating a fourth record would have split one discipline across two files; updating the existing one was correct hygiene AND invisible to the gate, so the commit had to DECLINE with "already promoted by consolidation" as the reason. The decline is honest, but the gate learned nothing and a reader scanning declines will see one where a promotion happened.`
+  Design sketch (do NOT re-derive): `Widen the promotion detector from the `answers:` KEY to "the staged docs/decisions diff adds at least one question key" — i.e. also accept an added line matching `^\+[[:space:]]+- ".*"` inside a decisions file. ⛔ KEEP IT SPECIFIC: any added line under docs/decisions/ would make a typo fix count as a promotion, which is the fails-open direction. The `.4` probe harness already drives the real script against a scratch repo with genuine staged states, so this needs one new arm: a record that ALREADY has answers: gaining a new question key must satisfy the gate, and a decisions edit that adds NO question key must still NOT.`
+  Prerequisites: `NONE. Independent of `.5` (that one is about how a DECLINE may be written; this is about what counts as a PROMOTION).`
+  Acceptance: `pending`
+  Verification: `pending`
+  Commit: `pending`
+
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |

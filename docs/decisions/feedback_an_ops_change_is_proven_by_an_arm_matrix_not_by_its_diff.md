@@ -14,6 +14,9 @@ answers:
   - "why did my env-variable guard reject its own configuration variable"
   - "what evidence should an ops or build-flow change carry"
   - "how do I prove a guard can actually fail"
+  - "my control fired but the code looks correct — what now?"
+  - "is a red test that is wrong worse than no test?"
+  - "how do I verify a refactor of a script that generates tracked artifacts"
 reverify: PGEN_CORPUS_OUTDIR=/tmp/x bash stimuli/run_external_corpus.sh sv; echo $?   # expect 6 + a self-explaining refusal
 ---
 
@@ -82,6 +85,37 @@ cases — invoke the script once; kill it once and look at the directory.
 a name is self-consistent and invisible to it. That failure mode refuses a legitimate variable —
 loud and immediate, the safe direction — which is why it is acceptable rather than fixed. Recording
 which way your control is blind is part of shipping it.
+
+## ⛔ A control that fails for the WRONG REASON is worse than no control
+
+Added 2026-08-11 (`SV-CORPUS-GRAD.12c.4`), because the same session hit it from the other side.
+
+A control asserting *"this predicate really is positional"* needs **one input and two positions
+with opposite answers**. The first draft put the marker it keyed on at the START of the text and
+probed the END — which lands on a trailing newline, so the predicate answered `True` through its
+*"consumed everything"* branch rather than through anything positional. The control fired,
+naming a defect that did not exist, against code that was correct.
+
+That failure mode is specific and expensive. A red arm that is right for the wrong reason is
+recoverable. A red arm that is **wrong** teaches the reader that red does not mean anything, and
+the next genuine failure gets waved through.
+
+> **When a control fires, the first question is not "what do I fix?" but "is this control measuring
+> what its message claims?"**
+
+Settling it cost five seconds in a REPL against the real predicate (position 0 → `False`, position
+of the marker → `True`, `None` → `True`), and produced a probe whose two answers can differ *only*
+positionally. Leave that reasoning in the code, or the next editor re-introduces it.
+
+## The oracle for refactoring a generator of tracked artifacts is BYTE-IDENTITY
+
+Same leaf, same commit. Moving logic out of two duplicated inline blocks into one shared function
+is behaviour-preserving *by intent*; the evidence is that all **five** generated files hash
+identically before and after, plus an empty `git status` on the artifact directory.
+
+⛔ **Matching counters are not enough.** A counter is a sum, and two compensating errors sum
+correctly. Byte-identity is cheap whenever the generator runs in seconds, and it is the only
+evidence that a refactor actually preserved behaviour.
 
 Sibling of [[feedback_instrument_needs_ground_truth]] (an instrument must carry the facts its
 output has to reproduce) and [[feedback_enumerating_instrument_must_refuse]] (classify totally,

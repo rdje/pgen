@@ -1,5 +1,38 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0207 — a control that fails for the wrong reason is worse than no control
+
+`.12c.4` closes F3: the `must_accept` and `must_reject` arms of the adjudicator ask different
+questions of the same helper, `.12a` kept them apart by hand, and nothing mechanical held the split.
+
+**The fix worth remembering is not the test — it is the signature.** `reject_arm_demotion(dep_flag)`
+takes no position argument and has no way to obtain one. Unifying the arms now requires changing a
+signature, which a reviewer sees; before, it required editing one shared helper, which a reviewer
+does not see as a change to two different questions. A test can be deleted or skipped; a parameter
+list has to be argued with. Prefer the structural guard, then add controls for what structure
+cannot express.
+
+**And the control was wrong first.** The control that asserts *"the accept arm really is
+positional"* needs one text and two positions with opposite answers. The first draft put the
+`` `define `` at the top and probed the end of the text — which lands on a trailing newline, so the
+predicate returned True through its `stuck is None` ("consumed everything") branch rather than
+through anything positional. The control fired, naming a defect that did not exist, against code
+that was correct.
+
+That is a specific and costly failure mode. A red arm that is right for the wrong reason is
+recoverable; a red arm that is *wrong* teaches the reader that red does not mean anything, and the
+next genuine failure gets waved through. So when a control fires, the first question is not "what
+do I fix?" but **"is the control measuring what its message claims?"** — here, five seconds in a
+REPL against the real predicate (position 0 → False, position of the tick → True, None → True)
+settled it and produced a probe whose two answers can differ *only* positionally.
+
+**The oracle for refactoring a generator of tracked artifacts is byte-identity, and nothing
+weaker.** This change moved logic out of two duplicated inline blocks into one function. Counters
+matching is not enough — a counter is a sum, and two compensating errors sum correctly. All five
+generated files were sha256-compared before and after, and `git status` on the artifact directory
+was checked empty. That is cheap here (the adjudicator runs in seconds) and it is the only evidence
+that a behaviour-preserving refactor actually preserved behaviour.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0206 — two guards, and both were wrong on their first run
 
 `.12c.3` is a small ops leaf: make the corpus runner refuse an unrecognised `PGEN_CORPUS_*`

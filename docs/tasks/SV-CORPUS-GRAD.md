@@ -7256,11 +7256,15 @@ does not exist is indistinguishable from one that does: the runner accepts an un
       and 4 fields so `cluster_rejects_valid.py` and `corpus_rule_coverage.py` are untouched; the
       new sidecar is OPTIONAL and its absence degrades LOUDLY to the pre-`.12a` answer on stderr.
 
-### `.12c` — two silent-failure surfaces `.12a` surfaced (`in_progress`, opened 2026-08-10 by `.12a`)
+### `.12c` — two silent-failure surfaces `.12a` surfaced (**`done`** 2026-08-11, opened 2026-08-10 by `.12a`)
 
-- **Status: `in_progress` since 2026-08-11 — ⭐ F1 is DONE (sub-leaf `.12c.1`,
-  `PGEN-SV-CORPUS-GRAD-0204`); F2 and F3 remain `todo`.** Both were real, both were small, and both
-  failed SILENTLY — which is the only reason they were grouped.
+- **Status: `done` — all three findings closed on 2026-08-11**: F1 = `.12c.1`
+  (`PGEN-SV-CORPUS-GRAD-0204`, the Latin-1 signoff blocker), F2 = `.12c.3` (`-0206`, the silent
+  `PGEN_CORPUS_*` misspelling), F3 = `.12c.4` (`-0207`, the two-caller split guard). ⭐ Along the
+  way the same enumeration discipline found two defects nobody was looking for — `.12c.2` (`-0205`,
+  the preprocessor double-encode) and `BIN-BUILD-INTEGRITY.6` (a hand-written binary that had never
+  been tracked). All three originals were real, all were small, and all failed SILENTLY — which is
+  the only reason they were grouped.
 - ⭐⭐ **F1 — the parser cannot read LATIN-1 SOURCE, and it is a CONFIRMED DEFECT and a SIGNOFF
   BLOCKER. Adjudicated 2026-08-10 on four independent lines of evidence; no longer an open spec
   question.**
@@ -7808,6 +7812,96 @@ and immediately obvious, i.e. failing in the safe direction — which is why it 
       states that anything else is refused; `CHANGES.md` + `DEVELOPMENT_NOTES.md` carry it. No book
       chapter documents this script's environment, and no user-facing behaviour changed for a
       correct invocation. DONE-BAR register **unchanged**.
+
+#### `.12c.4` — F3: the `.12a` two-caller split had NO mechanical guard (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0207`)
+
+- **Status: `done`. This closes `.12c` entirely** (F1 = `.12c.1`, F2 = `.12c.3`, F3 = here).
+  ZERO Rust bytes, ZERO grammar bytes — `stimuli/sv/adjudicate_external_corpus.py` only, and the
+  manifests it generates are **byte-identical**.
+- **REPRODUCE / ISSUE.** `preproc_dependency()` feeds two callers that ask genuinely different
+  questions, and `.12a` kept them apart **by hand**:
+  - `must_accept` + observed `fail` → *"did this file fail BECAUSE it needs the preprocessor?"* —
+    a question about WHERE the parse stopped ⇒ **positional**;
+  - `must_reject` → *"could the intended syntax error live behind an `` `include ``/macro, so
+    isolation parse cannot testify?"* — a question about the FILE ⇒ an **existence** test, and the
+    row may have **no failure position at all** (it can be the one that wrongly ACCEPTS).
+
+  Nothing failed if a future edit made the predicate positional wholesale. Every `must_reject` row
+  with no banked position would stop being demoted and re-enter the burn-down as a defect it is
+  not — silently, and in the direction that makes the number look worse for a fake reason.
+- **ROOT CAUSE (WHY + WHERE).** WHERE `stimuli/sv/adjudicate_external_corpus.py`, the two
+  near-identical arm blocks in `main()` (the `sv` lane and the `verilog_2005` lane) that both
+  consumed `preproc_dependency()`. WHY the asymmetry lived only in **prose and care**: both arms
+  read the same helper inline, so nothing in the code shape distinguished a whole-file consumer
+  from a positional one, and duplicating the block twice doubled the exposure.
+- **THE FIX — make the asymmetry STRUCTURAL, then add controls.**
+  1. ⭐ The `must_reject` demotion is extracted into `reject_arm_demotion(dep_flag)` — used by
+     **both** lanes, so the duplication is gone — and **it takes no position argument and has no
+     way to obtain one**. Making that arm positional now requires changing a *signature*, which is
+     visible in review; before, it required editing one shared helper, which was not.
+  2. `_self_check_arm_split()` runs **before any row is adjudicated**, so a broken split refuses
+     to produce a manifest rather than producing a wrong one.
+- **THE CONTROLS, and each one's RED arm was fired rather than assumed**
+  ([[feedback_an_ops_change_is_proven_by_an_arm_matrix_not_by_its_diff]]):
+
+  | control | RED arm applied | result |
+  |---|---|---|
+  | structural — the reject arm cannot see a position | add a `furthest=None` parameter | ⛔ `MISCALIBRATED: reject_arm_demotion() takes ['dep_flag', 'furthest']`, exit 1 |
+  | behavioural — the 5 dependency→class mappings | make `include` stop demoting | ⛔ `reject_arm_demotion('include') -> None, expected 'chained_only'`, exit 1 |
+  | the OTHER arm really is positional | make `svpp_can_explain_failure` whole-file again | ⛔ `a parse stopping BEFORE every alterable tick is not svpp-explainable`, exit 1 |
+  | GREEN | unmodified script | exit 0, full run |
+
+- ⛔⛔ **THE CONTROL FIRED AGAINST CORRECT CODE ON ITS FIRST RUN, AND THAT IS RECORDED BECAUSE IT
+  IS THE MORE USEFUL HALF.** The positional probe originally put the `` `define `` FIRST and
+  probed the end of the text — which lands on a trailing newline, so `svpp_can_explain_failure`
+  returned True via its `stuck is None` ("consumed everything") branch, not via anything
+  positional. The control reported *"the accept arm is no longer POSITIONAL"* about code that was
+  perfectly fine. ⭐ **A control that fails for a reason other than the one it names is worse than
+  no control** — it trains the reader to disbelieve red. Fixed by placing the tick LAST, so
+  `stuck < first_alterable_tick` is reachable and the two answers can differ *only* positionally;
+  the reasoning is in the code so the next editor does not re-introduce it. Confirmed by hand
+  against the real predicate: position 0 → `False`, position of the `` `define `` → `True`,
+  `None` → `True`.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `grep -n "preproc_dependency("` shows one helper consumed by two
+      arms in two duplicated blocks; `.12a` separated them by hand and left a note, and no test,
+      gate or type distinguished them. A wholesale positional edit would have silently un-demoted
+      every `must_reject` row with no banked position.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the asymmetry existed only in prose: both arms read the
+      same helper inline, so nothing in the code SHAPE marked one as whole-file and the other as
+      positional, and the block was duplicated across the `sv` and `verilog_2005` lanes. WHERE
+      `stimuli/sv/adjudicate_external_corpus.py` `main()`, both arm blocks (now one function).
+- [x] **FIX** — `reject_arm_demotion(dep_flag)` (position-free by signature, shared by both lanes)
+      + `_self_check_arm_split()` invoked at the top of `main()`. Fix tier: **ops/instrument** —
+      zero Rust, zero grammar, zero generated bytes.
+- [x] **ADDRESSED (verified)** — all three RED arms fire with distinct, self-explaining messages
+      and exit 1 (signature widened → caught; a demotion mapping broken → caught; the accept arm
+      made whole-file → caught); GREEN exits 0 and completes the full run. ⭐ The controls also
+      caught their own author: the first positional probe was wrong and fired against correct code.
+- [x] **NO REGRESSION** — the decisive oracle for a refactor of a tracked-oracle generator: all
+      **5** generated artifacts (`adjudication_manifest.tsv`, `adjudication_summary.md`,
+      `adjudication_manifest_v2005.tsv`, `adjudication_summary_v2005.md`, `v2005_lane_files.tsv`)
+      are **BYTE-IDENTICAL** by sha256 before→after, and `git status --porcelain
+      stimuli/sv/characterization/` is empty. Counters unchanged: `match=5805 unexplained=318
+      explained=1433 deferred=8780`; v2005 `match=2186 unexplained=68 explained=173 deferred=32`.
+      All 17 doctrines PASS.
+- [x] **LOCKSTEP** — the module docstring's two-caller note now points at the guard;
+      `CHANGES.md` + `DEVELOPMENT_NOTES.md` carry it. No book chapter documents this instrument's
+      internals and no published number moved. DONE-BAR register **unchanged**.
+
+##### LESSON DISPOSITION — `promotion: declined (already promoted by CONSOLIDATION — this leaf's lesson REFINES [[feedback_an_ops_change_is_proven_by_an_arm_matrix_not_by_its_diff]], created two commits earlier by -0206, and that record was UPDATED here with two new sections and three new question keys rather than duplicated into a fourth file about the same discipline)`
+
+⛔ **And that decline exposed a real gap in the gate, which is routed rather than shrugged at.**
+`check_lesson_promotion.sh` detects promotion by grepping the staged `docs/decisions` diff for the
+literal `^\+answers:` — the KEY. A record that already has `answers:` and gains new question keys
+produces only `+  - "…"` lines, so **consolidating a lesson into the record that already owns it is
+invisible to the doctrine**, while creating a fourth record about the same discipline would have
+satisfied it. That is a structural bias toward FRAGMENTATION, in a layer whose whole value is one
+record per fact. ⇒ **`LESSON-RETRIEVAL.6`** (opened here), with the measured instance, the
+fails-open direction to avoid (any added line under `docs/decisions/` must NOT count — a typo fix
+is not a promotion), and the probe arm it needs.
 
 ### `.12b` — the 263 rows POSITION cannot decide (`todo`, opened 2026-08-10 by `.12`, SIZED AND PARKED)
 

@@ -596,6 +596,107 @@ def svpp_can_explain_failure(raw_text: str, furthest):
     return stuck >= first
 
 
+def reject_arm_demotion(dep_flag: str):
+    """The `must_reject` arm's use of the preprocessor dependency — a WHOLE-FILE question.
+
+    ⛔ SV-CORPUS-GRAD.12c.3 (finding F3).  `preproc_dependency()` feeds TWO callers that ask
+    DIFFERENT questions, and `.12a` had to keep them apart BY HAND:
+
+      must_accept + observed fail -> "did this file fail BECAUSE it needs the preprocessor?"
+                                     a question about WHERE the parse stopped => POSITIONAL,
+                                     answered by `svpp_can_explain_failure()`.
+      must_reject                 -> "could the intended syntax error live behind an `include
+                                     or a macro, so that isolation parse cannot testify?"
+                                     a question about the FILE => an EXISTENCE test, and there
+                                     may be no failure position at all (the row can be the one
+                                     that wrongly ACCEPTS).
+
+    Nothing mechanical held that apart.  A future edit making the predicate positional wholesale
+    would silently corrupt this arm — every `must_reject` row with no banked position would stop
+    being demoted and would re-enter the burn-down as a defect it is not.
+
+    ⭐ This function IS the guard, and it is structural rather than a test: **it takes no position
+    argument and has no way to obtain one.**  Making this arm positional now requires changing a
+    signature, which is visible in review; before, it required changing one shared helper, which
+    was not.  The runtime controls in `_self_check_arm_split()` cover the rest.
+
+    Returns `(new_expected, basis_suffix)` or `None` when the row keeps its `must_reject`.
+    """
+    if dep_flag == "include":
+        # The intended-bad content may live in the `include'd file, which isolation parse never
+        # sees - the reject expectation is only meaningful at chain level (leaf .4).
+        return ("chained_only",
+                " - but `include-dependent: reject expectation is chain-level")
+    if dep_flag in ("macro_use", "conditional"):
+        # Mirror of the include rule (leaf .8b.1): the intended syntax error may only
+        # materialize after macro expansion / conditional resolution, which isolation parse of
+        # the raw text never performs - a raw-text reject would testify for the wrong reason.
+        return ("out_of_scope_with_cause",
+                " - but macro/conditional-dependent: the reject "
+                "expectation is only meaningful post-preprocessing "
+                "(svpp lane)")
+    return None
+
+
+def _self_check_arm_split():
+    """Ground truth for the two-caller split, re-run on every invocation (microseconds).
+
+    An instrument with no ground truth is a confident guess
+    (docs/decisions/feedback_instrument_needs_ground_truth.md).  These controls assert the
+    property `.12a` established by hand and `.12c.3` makes mechanical, in BOTH directions.
+    """
+    import inspect
+
+    # (1) STRUCTURAL: the reject arm cannot consult a position, because it is not given one.
+    reject_params = list(inspect.signature(reject_arm_demotion).parameters)
+    if reject_params != ["dep_flag"]:
+        raise SystemExit(
+            "adjudicator MISCALIBRATED: reject_arm_demotion() takes "
+            f"{reject_params!r}; the must_reject arm is a WHOLE-FILE existence test and must "
+            "not be able to see a failure position (SV-CORPUS-GRAD.12c.3 F3)")
+
+    # (2) BEHAVIOURAL: a must_reject row is demoted on the DEPENDENCY ALONE - no position exists
+    #     for it and none is needed.
+    for flag, want in (("include", "chained_only"),
+                       ("macro_use", "out_of_scope_with_cause"),
+                       ("conditional", "out_of_scope_with_cause"),
+                       ("", None),
+                       ("protected", None)):
+        got = reject_arm_demotion(flag)
+        got_class = got[0] if got else None
+        if got_class != want:
+            raise SystemExit(
+                f"adjudicator MISCALIBRATED: reject_arm_demotion({flag!r}) -> {got_class!r}, "
+                f"expected {want!r} (SV-CORPUS-GRAD.12c.3 F3)")
+
+    # (3) THE OTHER ARM REALLY IS POSITIONAL - the control that fails if someone "unifies" the
+    #     two by making the accept arm whole-file again.  ONE text, TWO positions, opposite
+    #     answers: a whole-file predicate cannot produce them.
+    #
+    #     ⛔ The tick is deliberately placed LAST.  The first draft of this control put the
+    #     `define first and probed the end of the text - which lands on a trailing newline, so
+    #     `stuck is None` ("consumed everything") returned True for the wrong reason and the
+    #     control fired against correct code.  A control that fails for a reason other than the
+    #     one it names is worse than no control; the probe is built so the two answers can only
+    #     differ positionally.  With the tick last, `stuck < first_alterable_tick` is reachable.
+    probe = "module m;\n  BADTOKEN\nendmodule\n`define W 8\n"
+    tick_at = probe.index("`define")
+    if svpp_can_explain_failure(probe, 0):
+        raise SystemExit("adjudicator MISCALIBRATED: a parse stopping BEFORE every alterable "
+                         "tick is not svpp-explainable (SV-CORPUS-GRAD.12c.3 F3)")
+    if not svpp_can_explain_failure(probe, tick_at):
+        raise SystemExit("adjudicator MISCALIBRATED: a parse stopping ON a `define must be "
+                         "svpp-explainable (SV-CORPUS-GRAD.12c.3 F3)")
+
+    # (4) AND IT STILL DEFAULTS TO KEEPING THE LABEL when there is no position at all - the
+    #     gate only ever REMOVES a label it can disprove.  Note this is the SAME text that
+    #     answers False at position 0: without a position the answer flips to True, which is
+    #     exactly the asymmetry the `must_reject` arm relies on.
+    if not svpp_can_explain_failure(probe, None):
+        raise SystemExit("adjudicator MISCALIBRATED: with no banked position the accept arm must "
+                         "keep today's answer (SV-CORPUS-GRAD.12c.3 F3)")
+
+
 def expect_sv_tests(relpath: str, text: str):
     if relpath in SVTESTS_PINNED:
         return SVTESTS_PINNED[relpath]
@@ -2461,6 +2562,9 @@ def adjudicate(expected, observed, dep_flag):
 
 
 def main():
+    # SV-CORPUS-GRAD.12c.3 F3 - the two-caller split is asserted BEFORE any row is adjudicated,
+    # so a broken split refuses to produce a manifest rather than producing a wrong one.
+    _self_check_arm_split()
     ap = argparse.ArgumentParser(description=__doc__)
     root = Path(__file__).resolve().parent.parent.parent  # repo root
     ap.add_argument("--results", default=root / "stimuli/sv/characterization/results.tsv",
@@ -2572,22 +2676,13 @@ def main():
         dep_flag = ""
         if expected in ("must_accept", "must_reject"):
             dep_flag = preproc_dependency(text)
-        if expected == "must_reject" and dep_flag == "include":
-            # The intended-bad content may live in the `include'd file, which
-            # isolation parse never sees - the reject expectation is only
-            # meaningful at chain level (leaf .4).
-            expected = "chained_only"
-            basis += " - but `include-dependent: reject expectation is chain-level"
-        elif expected == "must_reject" and dep_flag in ("macro_use", "conditional"):
-            # Mirror of the include rule (leaf .8b.1): the intended syntax
-            # error may only materialize after macro expansion / conditional
-            # resolution, which isolation parse of the raw text never
-            # performs - a raw-text reject would testify for the wrong
-            # reason, so the reject expectation is svpp-lane.
-            expected = "out_of_scope_with_cause"
-            basis += (" - but macro/conditional-dependent: the reject "
-                      "expectation is only meaningful post-preprocessing "
-                      "(svpp lane)")
+        if expected == "must_reject":
+            # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to consult a
+            # failure position (see reject_arm_demotion's docstring).
+            demotion = reject_arm_demotion(dep_flag)
+            if demotion is not None:
+                expected, basis_suffix = demotion
+                basis += basis_suffix
         if expected != "must_accept":
             dep_flag = ""
         elif (dep_flag and observed == "fail"
@@ -2708,14 +2803,13 @@ def main():
         dep_flag = ""
         if expected in ("must_accept", "must_reject"):
             dep_flag = preproc_dependency(text)
-        if expected == "must_reject" and dep_flag == "include":
-            expected = "chained_only"
-            basis += " - but `include-dependent: reject expectation is chain-level"
-        elif expected == "must_reject" and dep_flag in ("macro_use", "conditional"):
-            expected = "out_of_scope_with_cause"
-            basis += (" - but macro/conditional-dependent: the reject "
-                      "expectation is only meaningful post-preprocessing "
-                      "(svpp lane)")
+        if expected == "must_reject":
+            # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to consult a
+            # failure position (see reject_arm_demotion's docstring).
+            demotion = reject_arm_demotion(dep_flag)
+            if demotion is not None:
+                expected, basis_suffix = demotion
+                basis += basis_suffix
         if expected != "must_accept":
             dep_flag = ""
         elif (dep_flag and observed == "fail"

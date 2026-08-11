@@ -1,5 +1,35 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0207 — the `.12a` two-caller split is now MECHANICAL, and `SV-CORPUS-GRAD.12c` is CLOSED (leaf `.12c.4`, F3; manifests BYTE-IDENTICAL)
+
+- ⭐⭐ **`.12c` F3 CLOSED — and with it the whole `.12c` umbrella** (F1 `-0204`, F2 `-0206`,
+  F3 here). `preproc_dependency()` feeds two callers asking different questions: `must_accept`
+  is POSITIONAL (*"did this file fail BECAUSE of the preprocessor?"*) while `must_reject` is a
+  WHOLE-FILE existence test (*"could the intended error hide behind an `` `include ``?"*) whose
+  row may have **no failure position at all**. `.12a` kept them apart BY HAND and left a note;
+  nothing failed if a later edit unified them, and every `must_reject` row with no banked position
+  would have quietly stopped being demoted.
+- **THE FIX IS STRUCTURAL FIRST, TESTS SECOND.** The demotion is extracted into
+  `reject_arm_demotion(dep_flag)` — shared by the `sv` and `verilog_2005` lanes, so the duplicated
+  block is gone — and **it takes no position argument and has no way to obtain one**. Making that
+  arm positional now requires changing a signature, which review sees; before it required editing
+  one shared helper, which review did not. `_self_check_arm_split()` then runs BEFORE any row is
+  adjudicated, so a broken split refuses to emit a manifest rather than emitting a wrong one.
+- **EVERY CONTROL'S RED ARM WAS FIRED, not assumed**: widening the signature → caught; breaking a
+  dependency→class mapping → caught; making the accept arm whole-file again → caught. Each exits 1
+  with a distinct, self-explaining message; GREEN exits 0.
+- ⛔⛔ **The control fired against CORRECT code on its first run**, and that is the more useful
+  half. The positional probe put the `` `define `` first and probed the end of the text — a
+  trailing newline — so the predicate answered True through its "consumed everything" branch, not
+  through anything positional. **A control that fails for a reason other than the one it names is
+  worse than no control**: it trains the reader to disbelieve red. Fixed by placing the tick LAST
+  so the two answers can differ only positionally, with the reasoning left in the code.
+- **NO REGRESSION — the decisive oracle for refactoring a tracked-oracle generator**: all **5**
+  generated artifacts are **BYTE-IDENTICAL** by sha256 before→after (`adjudication_manifest.tsv`,
+  `adjudication_summary.md`, both v2005 files, `v2005_lane_files.tsv`), `git status` on the
+  characterization directory is empty, and every counter is unchanged (`match=5805 unexplained=318
+  explained=1433 deferred=8780`). All 17 doctrines PASS.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0206 — the corpus runner REFUSES an unrecognised `PGEN_CORPUS_*` spelling, and stops leaving scratch residue in the tracked directory (leaf `SV-CORPUS-GRAD.12c.3`, ZERO Rust bytes)
 
 - ⭐⭐ **`.12c` F2 CLOSED.** The runner read `PGEN_CORPUS_OUT_DIR`; a near-miss like
