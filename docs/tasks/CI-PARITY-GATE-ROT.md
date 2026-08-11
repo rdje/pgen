@@ -3289,3 +3289,166 @@ gate cannot tell you how broken it is"*). Fix all three, then require the run to
 ⛔ And the acceptance for this leaf is **`make -C rust SHELL=/bin/bash sota_exit_gate` green
 end-to-end**, not just this sub-gate — it was RED for the aggregate, and the aggregate is the claim.
 
+
+### `.24` — `target/debug/ast_pipeline` has THREE feature sets and no owner: the canonical build rule predates the feature it omits by one day (`todo` — ROUTED IN from `ENGINE-UNIVERSAL-SERVICES.10`, 2026-08-11 session #217; ⛔ PARKED behind the SV lane lock)
+
+- **Status: `todo`** — **routed, not worked.** It blocks nothing (every affected flow has a manual
+  workaround: rebuild with both features), and the SV lane lock binds work, not routing. ⭐ **Re-open
+  trigger:** the next time any flow reads a `--report-feature-surface`-less measurement from
+  `target/debug/ast_pipeline`, or the next `sota_exit_gate` end-to-end run, whichever comes first.
+
+#### THE FINDING — and the director's question is what produced it
+
+The session that found this reported it as *"`make focus_scratch` silently downgrades the shared
+`ast_pipeline` binary"* and asked whether that was worth a leaf. The director asked the better
+question: **why was the downgrade allowed in the first place — was there a rationale?**
+
+There was not, and the archaeology is unambiguous:
+
+| date | commit | what happened |
+|---|---|---|
+| **2026-02-19** | `36678059` | `$(RUST_AST_PIPELINE)` gets its build rule: `cargo build --features generated_parsers --bin ast_pipeline`. `git show 36678059:rust/Cargo.toml \| grep -c ebnf_dual_run` → **0** — the feature **did not exist yet**. |
+| **2026-02-20** | `de8ca8bc` | `ebnf_dual_run` is introduced — **one day later**. |
+| **2026-03-23** | `fc63a64f` | The frontend build is moved to its own `target/ebnf_frontend_build` target-dir, *specifically so it does not clobber the main binary*. |
+
+⇒ **nobody ever decided to omit `ebnf_dual_run` from the canonical rule.** The rule simply predates
+the feature and was never revisited. The third row is the important one: the clobbering collision
+**was** recognized — once, for one consumer — and solved by isolating that consumer, while the
+general case was left standing.
+
+⛔ **And the original framing was wrong, which is why the director's question mattered.**
+`focus_scratch` does not downgrade anything; it is an innocent consumer. `$(SCRATCH_PARSER):
+$(SCRATCH_JSON) $(RUST_AST_PIPELINE)` — like **21** other references — depends on the canonical
+rule, so whenever `$(AST_PIPELINE_SOURCES)` is newer than the binary, make rebuilds it *to the rule's
+declared feature set*. That is make doing its job correctly against a stale declaration.
+
+#### WHAT IS ACTUALLY BROKEN — one path, three feature sets, last writer wins
+
+Measured on `rust/Makefile` at this commit:
+
+| feature set written to `rust/target/debug/ast_pipeline` | recipes |
+|---|---|
+| `generated_parsers` only | **1** (the canonical `$(RUST_AST_PIPELINE)` file rule — 21 targets depend on it) |
+| `ebnf_dual_run` only | **3** (`regex_parser_bootstrap`'s seed/verify steps) |
+| `generated_parsers ebnf_dual_run` | **2** (`parse_harness_combinator_gate`, `parse_harness_semantic_gate`) |
+
+Nothing declares what that path is *supposed* to be, so its capability is a function of which target
+ran most recently. `ast_pipeline` already knows how to answer the question
+(`--report-feature-surface`, added by `PARSE-HARNESS.10` for the #140-class trap) — but that check
+lives in the parse harness, i.e. in **one consumer**, not at the path.
+
+#### THE COST, measured rather than hypothesized
+
+The routing session's own before/after sweep returned an **empty `CERTIFICATE-COVERAGE:` line for all
+18 runs on each side** (`Error: EBNF input 'grammars/json.ebnf' requires building with --features
+ebnf_dual_run` — on stderr, while the sweep parsed stdout). ⛔ **Two empty sets diff clean**, so an
+unnoticed run would have published "zero cert drift across every grammar × seeds 0/7/42" backed by
+nothing. It was caught only because a human-scale sanity check — *"json cannot really have vanished"*
+— prompted re-running `--report-feature-surface`. That is not a control.
+
+#### ⭐ SLICE 1 LANDED (`PGEN-CI-PARITY-GATE-ROT-0027`, 2026-08-11) — the REFUSAL, on director request
+
+The director's follow-up was the right one: *"is there any action you can take to make sure the
+problem does not happen again and messed up your before→after comparisons?"* Documentation is not
+that action — a control that runs **before a number is published** is.
+
+`scripts/require_ast_pipeline_features.sh <bin> <feature>...` refuses to let a measurement proceed on
+an under-featured binary, naming the exact rebuild command. Its contract is **refuse rather than
+guess**: a missing binary, a binary too old to answer `--report-feature-surface`, an unparseable
+surface, or an unknown feature name are all refusals — because *"I could not tell"* and *"it is fine"*
+must never share an exit code.
+
+⭐ **It is proven to FIRE, which is the part that makes it worth anything.** `--self-test` builds stub
+binaries and asserts **4 controls** every run — POSITIVE (a complete binary is accepted), NEGATIVE
+(`ebnf_dual_run=false` is refused), MISSING-BINARY, and MUTE-BINARY. Same positive+negative discipline
+the envelope differential (TOOLBOX 1.9) runs before it publishes a number; a guard nobody has watched
+refuse is indistinguishable from `true`.
+
+```
+$ scripts/require_ast_pipeline_features.sh --self-test
+AST-PIPELINE-FEATURE-GUARD: self-test ok — 4/4 controls (the guard is proven to fire)
+$ scripts/require_ast_pipeline_features.sh rust/target/debug/ast_pipeline generated_parsers ebnf_dual_run
+AST-PIPELINE-FEATURE-GUARD: ok — 'rust/target/debug/ast_pipeline' carries [generated_parsers ebnf_dual_run]
+```
+
+⛔ **GATE-REACHABILITY disposition, stated rather than glossed:** this slice ships the guard as a
+**tool**, invoked by hand and by the self-test, and **wires it into no flow yet**. That is a real
+limitation — an uninvoked check is weak — and it is deliberate: wiring it into
+`sv_cert_recognized_union_gate.sh` (the obvious first host) changes a gate script, whose no-regression
+evidence is a ~10-minute 3-seed run this slice did not have time to take. **Owed by slice 2**, below.
+
+#### OWED — candidates, not a chosen design (the pricing is this leaf's job)
+
+0. ⭐ **SLICE 2, and the smallest next step: WIRE the guard.** Call it from
+   `sv_cert_recognized_union_gate.sh` right after its `build_debug_ast_pipeline` stage (a no-op assert
+   there by construction, so the risk is bounded), and from any cert sweep. Acceptance is the union
+   gate green end-to-end at seeds 0/7/42, which is what this slice deferred.
+
+1. **Give the path one owner.** Make the canonical rule build both features, and let the 21
+   dependants inherit it. ⛔ Price first: `ebnf_dual_run` compiles the `.ebnf` frontend into every
+   `focus_*` build, so this trades build time for correctness on the hot path.
+2. **Or make the path self-describing at the point of use** — a tiny `require_feature_surface`
+   make/shell helper the gates and any sweep call before measuring, generalizing `PARSE-HARNESS.10`'s
+   pre-check from the harness to the binary path it guards.
+3. **Or separate the paths** the way `fc63a64f` already did once, so a feature set never has to be
+   inferred from build order.
+4. ⭐ **Independent of which is chosen:** an empty metric line must never be read as a value. The
+   sweep that produced this finding parsed stdout and ignored a stderr error; that shape is the
+   `.11` stale-log-metric class this tree already owns.
+
+#### ROUTING EVIDENCE
+
+1. **Does the finding reproduce OUTSIDE the family it is being sent to?** It has no family — it is a
+   property of the shared build path, and it is measured across **three unrelated consumer groups**:
+   a codegen target (`focus_scratch`, via 21 `$(RUST_AST_PIPELINE)` dependants), a bootstrap flow
+   (`regex_parser_bootstrap`), and two parse-harness gates. `CI-PARITY-GATE-ROT` is the right home
+   because it already owns the enforced `FLOW-INTEGRITY` doctrine, whose clauses — *"the recipe keeps
+   one home"* and *"a guard tests the artifact it actually READS"* — name this defect almost
+   literally.
+2. **What was MEASURED, not what makes it plausible?** `git show 36678059:rust/Cargo.toml | grep -c
+   ebnf_dual_run` → 0, against the three dated commits above; the three-way feature-set census of
+   `rust/Makefile` (1 / 3 / 2 recipes); `grep -cE '\$\(RUST_AST_PIPELINE\)' rust/Makefile` → 21; and
+   the live false-green (18 empty `CERTIFICATE-COVERAGE:` lines per side, recovered by
+   `--report-feature-surface` reporting `ebnf_dual_run=false`).
+3. **What would make the routing WRONG, and was it checked?** It would be wrong if the single-feature
+   build were a deliberate, documented cost decision — then this is a pricing question for whoever
+   made it, not a rot finding. **Checked and refuted**: the feature did not exist when the rule was
+   written, and no decision record, task leaf or Makefile comment mentions the trade-off. It would
+   also be wrong if `PARSE-HARNESS.10` already owned the general case; it does not — its pre-check is
+   scoped to `compile_and_parse`'s own probe and cannot see an ad-hoc sweep or a `focus_*` rebuild.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — a live false-green, measured: a before/after cert sweep emitted an
+  empty `CERTIFICATE-COVERAGE:` row for **18 runs on each side**, because
+  `./rust/target/debug/ast_pipeline grammars/json.ebnf --report-certificate-coverage` printed
+  `Error: EBNF input 'grammars/json.ebnf' requires building with --features ebnf_dual_run` on stderr
+  while the sweep scraped stdout. `diff before.txt after.txt` compared **EQUAL** — i.e. it would have
+  published "zero cert drift across every grammar × seeds 0/7/42" backed by nothing.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `rust/target/debug/ast_pipeline` is written by three
+  recipes with three feature sets and nothing declares which it should be, so its capability depends
+  on build order. Measured on `rust/Makefile`: `generated_parsers` alone ×1 (the canonical
+  `$(RUST_AST_PIPELINE)` file rule), `ebnf_dual_run` alone ×3, both ×2;
+  `grep -cE '\$\(RUST_AST_PIPELINE\)' rust/Makefile` → **21** dependants. WHERE the omission entered:
+  `git log -1 --format=%ad --date=short 36678059` → **2026-02-19** wrote the single-feature rule, and
+  `git show 36678059:rust/Cargo.toml | grep -c ebnf_dual_run` → **0** — the feature did not exist
+  until `de8ca8bc`, **2026-02-20**. ⇒ no rationale, no decision; the rule predates the feature by one
+  day and was never revisited. (`fc63a64f`, 2026-03-23, then fixed the collision for exactly one
+  consumer by isolating it in `target/ebnf_frontend_build`, leaving the general case.)
+- [x] **FIX** — ops/build-flow tier, and the LOWEST tier available for slice 1: a standalone refusal
+  (`scripts/require_ast_pipeline_features.sh`) that touches no build recipe and no gate, so it cannot
+  regress anything while the design question (make the canonical rule dual-feature? separate the
+  paths?) is still unpriced. ⛔ Deliberately NOT the higher-leverage fix — that is slice 2.
+- [x] **ADDRESSED (verified)** — `bash -n` clean; `--self-test` reports **4/4 controls** and is
+  two-sided by construction (`self-test NEGATIVE control: pass (ebnf_dual_run=false is refused)` —
+  the guard is observed REFUSING the exact defect, not merely accepting a good binary); against the
+  real binary, `AST-PIPELINE-FEATURE-GUARD: ok — 'rust/target/debug/ast_pipeline' carries
+  [generated_parsers ebnf_dual_run]`. ⛔ Honest bound: `shellcheck` is **not installed on this host**,
+  so only `bash -n` ran.
+- [x] **NO REGRESSION** — the change is **one new file**, referenced by nothing: no Makefile, gate
+  script, workflow or source file was edited (`git show --stat` for this commit is the proof), so no
+  existing flow can behave differently. All 18 doctrines pass with it staged.
+- [x] **LOCKSTEP** — this leaf (the archaeology, the three-way census, the slice-1/slice-2 split, and
+  the stated GATE-REACHABILITY limitation); `TOOLBOX.md` §1.4 gains the guard beside the
+  `--report-feature-surface` trap it generalizes. No book/contract/register/release move: an
+  internal build-flow helper changes no user-facing surface and no family status.
