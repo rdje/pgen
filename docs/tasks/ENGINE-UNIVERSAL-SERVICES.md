@@ -989,7 +989,7 @@ census and an LR plan coexist. Fixing it in the engine fixes it for VHDL, PNR an
 rule; SV's `sv_cert_recognized_union_gate` returns to `union UNKNOWN=0` with residual `[]`, deterministic
 across seeds 0/7/42; and the contract's re-baseline note records the restoration.
 
-### `.11` — a FORCED branch that dies still renders a sibling SILENTLY, so the one witnessing arm is never probed (`todo`, opened 2026-08-12 session #218 by `.10` mechanism 2; ⛔ **now the sole BLOCKER for returning SV's union UNKNOWN to 0**)
+### `.11` — a FORCED branch that dies still renders a sibling SILENTLY, so the one witnessing arm is never probed (`todo`, opened 2026-08-12 session #218 by `.10` mechanism 2; one of its two candidate mechanisms already REFUTED; ⛔ **now the sole BLOCKER for returning SV's union UNKNOWN to 0**)
 
 `.10` mechanism 1 fixed a forced **quantifier** that re-fired unboundedly and fell back to a sibling.
 `.10` mechanism 2 fixed the **seed** the plan never decided. What is left is the same *fallback*
@@ -1013,16 +1013,26 @@ failure mode one rule further out, and on the **suffix** side.
 ⇒ the forced branch was selected and did **not** render, and `generate_or`'s documented
 forced-first-**with-fallback** silently emitted a sibling — the mechanism-1 signature exactly.
 
-**OWED — the WHY is not yet established, and this leaf may not land code until it is.** Two candidate
-mechanisms, to be separated with tools rather than argued:
-1. **Budget.** `with_covergroup_expression → covergroup_expression → expression` is the full SV
-   expression hierarchy; the pass's `max_depth = reach_prefix_budget + target_subtree_depth` may not
-   admit it, so the branch aborts depth-exceeded. The `failure_reasons` record
-   (`TOOLBOX.md` 6.1 — already written by every run, no re-run needed) names the per-branch error.
-2. **Suppression.** `suppress_recursive_forced_branch` stands a forced branch down on genuine
-   re-entry when the forced alternative can reach back into `current_rule`. Arms 0 and 1 reference
-   `select_expression` and plainly can; arm 2's reachability is the thing to *measure*
-   (`rule_can_reach`), not to assume.
+**THE TWO CANDIDATE MECHANISMS — one is already REFUTED (2026-08-12, `PGEN-ENGINE-UNIVERSAL-SERVICES-0006`).**
+
+1. **Budget / downstream failure — the SURVIVING candidate.**
+   `with_covergroup_expression → covergroup_expression → expression` is the full SV expression
+   hierarchy; the pass's `max_depth = reach_prefix_budget + target_subtree_depth` may not admit it,
+   so the forced branch aborts (depth-exceeded, visit-limit or a prune) and `generate_or`'s
+   forced-first-**with-fallback** renders a sibling. The `failure_reasons` record
+   (`TOOLBOX.md` 6.1 — already written by every run that emits reports, no re-run needed) names the
+   per-branch error; a `--max-depth` ladder (24/32/40) is the A/B that separates depth from prune.
+2. ⛔ **Suppression — REFUTED, measured.** `suppress_recursive_forced_branch` only stands a forced
+   branch down when the forced alternative references `current_rule` **or** reaches it transitively.
+   Computed over the post-elimination gen-AST (BFS on the rule-reference graph from each
+   alternative's own references, target `select_expression_lr_suffix`):
+   | alt | own references | transitive reachers of the target | predicate |
+   |---|---|---|---|
+   | 0 `&& select_expression` | `logical_and`, `select_expression` | `select_expression` | **true** |
+   | 1 `\|\| select_expression` | `logical_or`, `select_expression` | `select_expression` | **true** |
+   | 2 `with ( … ) ( matches … )?` | `kw_with_…`, `lparen`, `with_covergroup_expression`, `rparen`, `kw_matches_…`, `integer_covergroup_expression` | **none** | **false** |
+   ⇒ the guard **cannot** fire for the `with` arm, whatever the call-stack depth — the second
+   conjunct is false. This candidate is closed; do not re-propose it.
 
 ⭐ **A silent fallback is the real finding here, wider than SV.** `generate_or` falling back is
 correct for termination and wrong for *observability*: a reach directive that was overridden leaves
