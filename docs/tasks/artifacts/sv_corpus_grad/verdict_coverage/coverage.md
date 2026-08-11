@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `13c9b2b4139d1831158c153db6047a6d6dab8894f378b7e4881ff10aaeee3201` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `dae5e357d5c310b736bdeffb62ab665e537ccb0c2009ca648e11e4b140262f2c` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `9c7e70a72e671e04dc3c19fff2ea35a712488ddfd0af9ba78996965c2a7f4a01` |
 
 ## The headline
@@ -19,9 +19,9 @@
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 5,804 | 35.5 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `match` | 5,805 | 35.5 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,091 | 6.7 % | parse stops on a macro use - positionally gated since .12a |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 298 | 1.8 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 297 | 1.8 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_svpp_conditional` | 199 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 139 | 0.9 % | parse stops on an `include - positionally gated since .12a |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 21 | 0.1 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
@@ -67,4 +67,87 @@
 | sv2v | `deferred:chained_only` | 3 |
 | Surelog | `deferred:svpp_owned` | 1 |
 | sv-tests | `deferred:chained_only` | 1 |
+
+## Inside `NO VERDICT` — what the parser ALREADY did on the row's own bytes (SV-CORPUS-GRAD.13a)
+
+- **ONE-SIDED POSITIVE — 1,923 rows (11.8 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
+  - 1,824 are compilation-unit-shaped; ⚠️ **99 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
+- ⛔ **DARK — 4,398 rows (26.9 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
+
+| class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK |
+|---|---:|---:|---:|---:|
+| `deferred:chained_only` | 5,276 | 1,019 | 99 | 4,158 |
+| `deferred:no_sv_key` | 743 | 665 | 0 | 78 |
+| `deferred:svpp_owned` | 186 | 123 | 0 | 63 |
+| `deferred:impl_varying` | 90 | 5 | 0 | 85 |
+| `deferred:verilog_ams_lane` | 20 | 6 | 0 | 14 |
+| `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 |
+| **TOTAL** | **6,321** | **1,824** | **99** | **4,398** |
+
+## The DARK half — can the row's own deferral reason even REACH the failure?
+
+A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 4,398 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
+
+| class | DARK rows | of which NO `` ` `` anywhere | what that means |
+|---|---:|---:|---|
+| `deferred:chained_only` | 4,158 | 530 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
+| `deferred:no_sv_key` | 78 | 26 | information only — the label is the absence of an upstream ANSWER KEY, which no directive could supply |
+| `deferred:svpp_owned` | 63 | 8 | ⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator `t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's PURPOSE, not a directive in its text |
+| `deferred:impl_varying` | 85 | 0 | information only — the LRM leaves the verdict implementation-defined regardless of directives |
+| `deferred:verilog_ams_lane` | 14 | 11 | information only — the label is about the DIALECT (Verilog-AMS), not directives |
+| `deferred:ni_unimplemented` | 0 | 0 | information only — upstream marks the construct not-implemented |
+
+## Every `NO VERDICT` class, by per-row REASON — what a disposition must attach to
+
+⛔ A class is not an argument. `deferred:svpp_owned` is ten different arguments wearing one label, and a per-class disposition would be a guess about most of them.
+
+| class | rows | reason (the row's own `basis`) |
+|---|---:|---|
+| `deferred:chained_only` | 4,955 | design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4) |
+| `deferred:chained_only` | 53 | Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 36 | Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 36 | verilator: multi-file test payload outside flat test_regress/t/ |
+| `deferred:chained_only` | 29 | verilator: no same-stem driver and never a top_filename - include/companion fragment |
+| `deferred:chained_only` | 24 | Surelog: multi-file test unit (8 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 15 | Surelog: multi-file test unit (4 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 15 | Surelog: multi-file test unit (5 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 14 | Surelog: driver references out-of-unit sources/libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or ../ paths) - chain-level only |
+| `deferred:chained_only` | 13 | verilator: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 12 | Surelog: multi-file test unit (6 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 12 | slang: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 11 | verible: kythe multi-file/include fixture directory |
+| `deferred:chained_only` | 10 | Surelog: multi-file test unit (10 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 10 | slang: unittest library/multi-file fixture directory |
+| `deferred:chained_only` | 9 | Surelog: multi-file test unit (9 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 6 | verible: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 5 | Surelog: no per-test .sl driver unit owns this file's directory - unkeyed (chain-level only) |
+| `deferred:chained_only` | 3 | sv2v: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 1 | Surelog: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 1 | Surelog: golden log ElabSysCall.log aborted with [FTL:] - no usable parse testimony |
+| `deferred:chained_only` | 1 | Surelog: golden log ExprEvalPartial.log aborted with [FTL:] - no usable parse testimony |
+| `deferred:chained_only` | 1 | Surelog: golden log ParamFile.log, ParamFileMacro.log, ParamFileNoTop.log, ParamFileOverr.log aborted with [FTL:] - no usable p… |
+| `deferred:chained_only` | 1 | Surelog: golden log PreprocLine.log reports [SNT:] syntax errors - upstream keys this single-source unit parse-level invalid - … |
+| `deferred:chained_only` | 1 | Surelog: no committed golden log for the unit - no upstream parse testimony |
+| `deferred:chained_only` | 1 | sv-tests: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 1 | verilator: driver t_lint_in_inc_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax erro… |
+| `deferred:no_sv_key` | 596 | ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted) |
+| `deferred:no_sv_key` | 147 | ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is no… |
+| `deferred:svpp_owned` | 100 | sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane) |
+| `deferred:svpp_owned` | 50 | verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance |
+| `deferred:svpp_owned` | 25 | sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, dire… |
+| `deferred:svpp_owned` | 5 | verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit |
+| `deferred:svpp_owned` | 1 | Surelog: golden log PreProcMacro.log reports [SNT:] syntax errors - upstream keys this single-source unit parse-level invalid -… |
+| `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: `include with apostrophe-quoted filename - 22.5 requires "..." or <...>; preprocessing-stage inv… |
+| `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: `line level 3 (valid levels 0/1/2) - 22.12 directive-argument validity, preprocessing stage |
+| `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: `line with a malformed level argument '1B' - 22.12 directive-argument validity, preprocessing stage |
+| `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: `line with a non-numeric level argument - 22.12 directive-argument validity, preprocessing stage |
+| `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: bare `line at EOF missing all arguments - 22.12 directive-argument validity, preprocessing stage |
+| `deferred:impl_varying` | 90 | ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe) |
+| `deferred:verilog_ams_lane` | 20 | ivtest: vvp_tests descriptor runs under -gverilog-ams - Verilog-AMS surface, outside the IEEE 1800 scope (VERILOG-AMS tree parked) |
+| `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) array_packed_sysfunct.json - type NI (Not Implemented): the upstream runner skips the test, so … |
+| `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) array_packed_value_list.json - type NI (Not Implemented): the upstream runner skips the test, s… |
+| `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) struct_packed_value_list.json - type NI (Not Implemented): the upstream runner skips the test, … |
+| `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) sv_interface.json - type NI (Not Implemented): the upstream runner skips the test, so it carrie… |
+| `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) sv_mixed_assign1.json - type NI (Not Implemented): the upstream runner skips the test, so it ca… |
+| `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) sv_mixed_assign2.json - type NI (Not Implemented): the upstream runner skips the test, so it ca… |
 

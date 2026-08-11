@@ -1,5 +1,54 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0208 — a percentage is not a population, and the file's own bytes can refute its label
+
+`.13a` had one job: make the 38.7 %-no-verdict headline dispositionable. The lesson worth carrying is
+not the arithmetic — it is that **three questions were fused into one number**, and they have
+opposite worth.
+
+**What the parser already did is data, and it was sitting unused.** The manifest carries `observed`
+for all 16 336 rows. 1 923 of the 6 321 no-verdict rows already **pass** a standalone parse. That is
+not a verdict — there is no expectation to compare against — but it is not nothing either: a full
+consume forecloses a *rejects-valid* defect for that row. Writing the stratum down as **one-sided**
+keeps both halves of that honest, where "38.7 % unknown" hid the good half and "1 923 more passes"
+would have manufactured a bad claim. The remaining **4 398 DARK** rows are the ones a burn-down can
+actually attack, and 26.9 % is a very different program from 38.7 %.
+
+**The fragment caveat is the part that would have been easy to get wrong.** An accept is only
+one-sided-*positive* if the file is a legal compilation unit. 99 of those passing rows are `.svh`
+include payloads and `// verilog_syntax: parse-as-module-body` excerpts, which are **not** units — so
+accepting one may itself BE an accepts-invalid instance. Counting them as positives would have
+credited the corpus for the parser's own over-acceptance.
+
+**A label can be refuted by the file's own bytes.** No `` ` `` anywhere ⇒ no macro expansion,
+conditional resolution or `` `include `` inlining can alter, delete or shift a byte ⇒ the parse fails
+identically after chaining. 530 `deferred:chained_only` rows are in that state. This is `.12`'s
+falsification one bucket down, and it needed no corpus re-run: the bytes were already on disk.
+
+**But the refutation names what is NOT the cause, never what is** — so the next step was the toolbox,
+not a conclusion. Three of the 530, probed: every one dies on a user-defined type name a sibling file
+declares (`wire csrng_req_t cmd_req;`), with the trace naming the gate —
+`🚫 checked_type_identifier rejected by post predicate 'has_fact [type_name, …]'`. The live channel
+is the **cross-file fact**, not text expansion. That is why the sequencing claim moved: those 530 rows
+unblock on unit-level fact continuity, which needs no preprocessor at all, while the 3 628
+tick-carrying rows genuinely need expansion. **A convergence claim is only as good as the population
+it was measured over.**
+
+**And the same measurement had to be told to mean nothing five times out of six.** The tick test also
+flags 8 `svpp_owned` rows — and reading all 8 refutes the exciting reading: verible excerpt fixtures
+and verilator `t_preproc_*_bad` EOF cases, whose preprocessor relevance is the test's *purpose*. So
+the instrument carries a per-class interpretation and refuses at import without one. The temptation
+to publish `575 rows misclassified` was real, it was one grep away, and it would have been wrong for
+45 of them.
+
+**Two smaller things worth keeping.** (1) The path oracle is the tracked results file, not a second
+copy of the suite layout — `uvm-core` does not live under `subs/`, and a duplicated `resolve_path()`
+would drift silently; the resolution asserts one match with an agreeing outcome, 16 336/16 336, and
+both red arms were fired. (2) The tracked artifact was **already stale by one row** after a single
+day, publishing the superseded axis-2 bar 319 instead of 318, with nothing in the repo able to
+notice. That is now `.13b`, and it is the ordinary fate of any number written into a file with no
+gate behind it.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0207 — a control that fails for the wrong reason is worse than no control
 
 `.12c.4` closes F3: the `must_accept` and `must_reject` arms of the adjudicator ask different

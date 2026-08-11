@@ -7971,6 +7971,172 @@ is not a promotion), and the probe arm it needs.
   honest-permanent-deferral with a cited reason / route), the `chained_only` half executed through
   `.4` + an expander, and a standing gate so the denominator is published beside the bar and cannot
   silently rot.
+- **DECOMPOSED 2026-08-11 by `.13a`** into `.13a` (**`done`** — the stratification + this plan),
+  `.13b` (the standing denominator gate), `.13c` (the 530 rows whose deferral its own bytes refute),
+  `.13d` (the 3 628 expansion-blocked rows), `.13e` (`no_sv_key`), `.13f` (the honest-permanent set),
+  `.13g` (the fragment-shaped population). ⛔ The umbrella closes only when every one of the 6 321
+  rows sits under a leaf that names its disposition.
+
+#### `.13a` — the STRATIFICATION: the 38.7 % is not one population, and 26.9 % is the real burn-down (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0208`)
+
+- **THE PROBLEM WITH THE HEADLINE.** `38.7 % carries no verdict` is a NUMBER, not a plan. A
+  disposition (fix / honest permanent deferral / route) attaches to a **reason** and to **what the
+  parser already did** — and `deferred:svpp_owned` alone turned out to be *ten different arguments
+  wearing one label*. Dispositioning a class blob would have been six guesses.
+- **WHAT WAS MEASURED** (`stimuli/sv/corpus_verdict_coverage.py`, extended; artifact
+  `docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/coverage.md` + `strata.tsv`; 0.6 s,
+  byte-identical across re-runs):
+
+  | stratum | rows | % of corpus | what it is worth |
+  |---|---:|---:|---|
+  | **ONE-SIDED POSITIVE** (unit-shaped) | 1 824 | 11.2 % | the parse consumed the WHOLE file standalone ⇒ **no rejects-valid defect hides here**. ⛔ Silent on accepts-invalid, and still NOT a verdict — no expectation to compare to |
+  | ⚠️ **ONE-SIDED, FRAGMENT-shaped** | 99 | 0.6 % | an `.svh` include payload / excerpt-mode fixture. Accepting one is **not** testimony FOR the parser — a fragment is not a legal compilation unit, so the accept may itself BE the over-acceptance |
+  | ⛔ **DARK** | **4 398** | **26.9 %** | the parse FAILED and the deferral is why nobody looked. **This is the population a burn-down has to attack** |
+
+  ⇒ ⭐ **The number to plan against is 4 398 (26.9 %), not 6 321 (38.7 %)** — and the difference is
+  not a relabelling, because not one row moved into `ADJUDICATED`. `1 923` rows were merely shown to
+  be one-sided rather than empty.
+- ⭐⭐ **THE FINDING — 530 DARK rows carry a deferral their own bytes refute.** A file containing no
+  `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or
+  `` `include `` inlining: the preprocessed text is **byte-identical** to the raw text, so the parse
+  fails identically after chaining. Census over all 4 398 DARK rows: **530 `deferred:chained_only`
+  rows have no backtick at all** (friscv 346, opentitan 152, uvm-core 13, Surelog 12, slang 3,
+  Cores-VeeR-EL2 2, verilator 2). This is `.12`'s sound falsification, one bucket down.
+- **AND THE ROOT CAUSE OF THOSE 530 IS NOT WHAT THE LABEL SAYS — MEASURED, NOT REASONED.** Probed
+  three of them with the real toolbox (TOOLBOX §1.1 + §3.2 + §2.4):
+
+  ```
+  ./rust/target/release/parseability_probe --parse systemverilog \
+      stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/csrng_if.sv --profile sv_2017
+  # did not consume full input at position 279 [furthest_position=468, +189 bytes deeper]
+  #   text at 468:  wire csrng_req_t   cmd_req;      <-- a type name from ANOTHER file
+  PGEN_TRACE_VERBOSITY=high … --trace | grep -E "🚫|has_fact"
+  # 🔍 has_fact(kind=type_name, name=Identifier("clk")) → false
+  #      caller=… > data_type > known_unscoped_data_type_identifier > checked_type_identifier
+  # 🚫 Rule 'checked_type_identifier' rejected by post predicate 'has_fact [type_name, clk]'
+  ```
+  All three die on a **user-defined type name declared in a sibling file**
+  (`csrng_req_t`, `flash_phy_prim_flash_req_t`, a parameterized `dv_lc_tx_if_cov #(…)`).
+  ⇒ the live channel is the **cross-file FACT** channel — the `type_name` a package supplies — and
+  PGEN's SV parser is fact-gated, so that channel is real. It is **not text expansion**.
+- ⭐⭐ **THE SEQUENCING CONSEQUENCE, and it corrects a standing claim.** `.13` recorded that
+  `chained_only` + `.12b`'s 263 + the Nexsim front end all unblock on **expansion**, putting
+  `SVPP-EXPANSION` on the critical path. For **530 of those rows that is provably false**: no
+  directive exists in the file to expand. They unblock on **unit-level fact continuity** — parsing a
+  file list into one fact store, which is `.4`'s subject and needs no preprocessor at all. Expansion
+  remains on the critical path for the 3 628 DARK `chained_only` rows that *do* carry ticks; the two
+  capabilities are now separated by measurement instead of assumed to be one.
+- ⛔ **WHAT WAS CHECKED BEFORE PUBLISHING, and refuted.** The same zero-backtick test flags 8
+  `deferred:svpp_owned` rows, and reading all 8 refutes the temptation to call them misclassified:
+  5 are verible `// verilog_syntax: parse-as-module-body` excerpt fixtures and 3 are verilator
+  `t_preproc_*_bad` unterminated-string/EOF cases. Their preprocessor relevance is **the test's
+  purpose**, not a directive in its text. The instrument therefore carries a per-class
+  `TICK_MEANING` reading — the same measurement refutes one label and is irrelevant to five — and
+  **refuses at import** if a NO-VERDICT class has no reading. Publishing one number for all six
+  would have been wrong five times.
+- **THE INSTRUMENT'S NEW GROUND-TRUTH CONTROL.** File paths are resolved through the tracked corpus
+  results file rather than by re-encoding the suite layout (a second copy of `resolve_path()` —
+  `uvm-core` does not live under `subs/` — would drift silently). Every manifest row must resolve to
+  **exactly one** results row whose outcome **agrees** with the manifest: 16 336/16 336, 0 ambiguous,
+  0 disagreements. **Both red arms were fired**, not assumed: deleting one results row →
+  `⛔ REFUSING: … resolved to 0 corpus results rows`; flipping one outcome →
+  `⛔ REFUSING: … is 'fail' in the manifest and 'pass' in the results file`; a NO-VERDICT class with
+  no `TICK_MEANING` → refused at import. Each exits 1 with its own message.
+- ⚠️ **AND THE ARTIFACT WAS ALREADY STALE, by exactly the mechanism `.13b` exists to stop.** The
+  committed `coverage.md` was written 2026-08-10 against manifest
+  `13c9b2b4…`; at HEAD the manifest is `dae5e357…` (the `.12c.1` Latin-1 fix moved one row
+  `unexplained_rejects_valid → match`), so the tracked artifact published `match 5 804 / bar 319`
+  while the truth was `5 805 / 318`. **Nothing in the repo noticed for a day.** Sized here, fixed by
+  re-running, and gated by `.13b`.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `python3 stimuli/sv/corpus_verdict_coverage.py` published
+  `NO VERDICT: 6,321 (38.7 %)` as ONE undifferentiated population, and the tracked artifact was
+  stale by one row (`match 5 804` vs HEAD's `5 805`) with no check able to see it.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the 38.7 % could not be dispositioned: it fused three
+  strata with opposite worth. WHERE the deferral is refutable and what actually rejects, from the
+  toolbox rather than from reasoning: `furthest_position=468` on `csrng_if.sv` lands on
+  `wire csrng_req_t cmd_req;`, and `--trace` names the mechanism —
+  `🚫 Rule 'checked_type_identifier' rejected by post predicate 'has_fact [type_name, …]'`,
+  `🔍 has_fact(kind=type_name, …) → false` — i.e. a **cross-file fact**, not text expansion, in
+  `grammars/systemverilog.ebnf`'s store-gated type-identifier surface.
+- [x] **ADDRESSED (verified)** — the census now publishes 1 824 one-sided-unit / 99 fragment / 4 398
+  DARK / 530 tick-free, before→after on the stale artifact `match 5 804 → 5 805`,
+  `unexplained_rejects_valid 298 → 297` (axis-2 bar 319 → **318**, agreeing with `.12c.1`), and the
+  6 321 rows are decomposed into 6 owned sub-leaves. Re-run is **byte-identical**
+  (`coverage.md` sha256 `3ba5d1bd…` twice).
+- [x] **NO REGRESSION** — docs/instrument only: **ZERO Rust, grammar, codegen or generated bytes**
+  (`git diff --stat` touches `stimuli/sv/corpus_verdict_coverage.py`, `docs/**`, the continuity
+  files); the 5 tracked characterization oracles are **byte-identical** by sha256 (this leaf reads
+  them, never writes them); all 17 doctrines PASS via `bash scripts/check_doctrines.sh`.
+- [x] **LOCKSTEP** — book *Grammar Well-Formedness* § the denominator subsection, `MEMORY.md`,
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md` frontier.
+
+#### `.13b` — the standing DENOMINATOR gate (`todo`, opened 2026-08-11 by `.13a`) ⇐ NEXT
+
+- **WHY, measured, not hypothetical:** the `coverage.md` artifact rotted **within one day** of being
+  written (`.13a`), publishing a superseded bar. A number in a tracked file with no gate is a
+  number that will be wrong the next time somebody quotes it.
+- **Owed:** a deterministic `make` target that re-runs the census and **fails if the tracked artifact
+  differs by one byte** (the pattern the corpus oracles already use), plus publication of the
+  denominator **beside** the axis-2 bar everywhere the bar is quoted — the graduation gate (`.5`),
+  the family-status criterion, and the book — so a 318-row bar can never again be read as if the
+  corpus were fully adjudicated. ⛔ The gate must fail in BOTH directions (stale artifact AND
+  un-regenerated instrument), and both arms must be fired before it is trusted.
+
+#### `.13c` — the 530 DARK rows whose deferral their own bytes refute (`todo`, opened 2026-08-11 by `.13a`)
+
+- **The population is measured and listed** by `.13a`: 530 `deferred:chained_only` rows with no
+  `` ` `` anywhere (friscv 346, opentitan 152, uvm-core 13, Surelog 12, slang 3, Cores-VeeR-EL2 2,
+  verilator 2). For every one of them, **chaining cannot change a byte**.
+- **The question this leaf answers per row:** is the failure explained by the *cross-file fact*
+  channel (`has_fact(kind=type_name, …) → false`, the mechanism `.13a` proved live on 3 rows) — or
+  by nothing at all? A row that fails for any other reason is an **unexplained rejects-valid defect
+  that has been sitting inside a deferral bucket**, and belongs back on the axis-2 bar. That is
+  exactly what `.12` found one level up, where the bar went 293 → 319 and *that was the correct
+  direction*.
+- **Instrument:** the failure position is ALREADY on disk for every row
+  (`stimuli/sv/characterization/positions.tsv`, 6 584 rows), so this is a re-analysis plus a scoped
+  `--trace-rules` per candidate — no corpus re-run. ⛔ Do NOT relabel: a row earns a verdict by
+  being parsed.
+
+#### `.13d` — the 3 628 DARK `chained_only` rows that DO carry directives (`todo`, opened 2026-08-11 by `.13a`)
+
+- 4 158 DARK `chained_only` − the 530 of `.13c` = **3 628 rows** where a directive genuinely exists
+  in the file, so expansion can move bytes and the deferral is not refutable from the text.
+- **Disposition: route to `.4` + `SVPP-EXPANSION`** — this is the population that really does justify
+  calling expansion critical-path, and `.13a` has now sized it honestly (3 628, not 5 276).
+  Per-basis-reason worklist is published in `coverage.md` (design corpus 4 955 total, Surelog
+  multi-file units, verilator/slang/verible include payloads).
+
+#### `.13e` — `deferred:no_sv_key`: 743 rows, of which only 78 can hide anything (`todo`, opened 2026-08-11 by `.13a`)
+
+- Stratified: **665 one-sided positive** (iverilog files the parser fully consumes — they cannot hide
+  a rejects-valid defect) + **78 DARK**, 26 of them with no directive at all.
+- Two per-row reasons only, both published: 596 *no `regress-sv.list` entry*, 147 *`vvp_tests`
+  descriptor without an explicit generation flag*. **Owed:** for the 78 DARK rows, whether iverilog
+  offers any secondary key (a companion golden log, a `Makefile` target) — and if not, an
+  honest-permanent deferral naming the 78 rather than the 743.
+
+#### `.13f` — the honest-permanent-deferral set: 302 rows where NO VERDICT is the right answer forever (`todo`, opened 2026-08-11 by `.13a`)
+
+- `deferred:svpp_owned` 186 + `impl_varying` 90 + `verilog_ams_lane` 20 + `ni_unimplemented` 6 =
+  **302 rows (1.8 %)**. Each already carries a per-row reason in `coverage.md`, and `.13a` read the
+  8 zero-backtick `svpp_owned` rows to confirm the label survives the tick test.
+- **Owed:** state the permanence *explicitly* (a permanent deferral is a claim, and today it is
+  indistinguishable from a to-do), with the reason cited per basis reason, and a bound so the set
+  cannot silently grow — a new row landing here must name which existing argument it joins.
+
+#### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
+
+- **99 rows** currently pass standalone while being `.svh` include payloads or `// verilog_syntax:`
+  excerpt fixtures — i.e. **not legal standalone compilation units**. Accepting one is at best
+  uninformative and at worst an accepts-invalid instance the corpus is crediting as a pass.
+- **Owed:** decide per basis reason between (a) parsing them entry-relative
+  (`--entry-rule`, TOOLBOX §1.2) against the unit shape they actually are, which would give them a
+  real verdict, and (b) marking them permanently unadjudicable as whole files. ⛔ Leaving them
+  counted as one-sided positives is the one option `.13a` rules out.
 
 ## ROUTING EVIDENCE (`.3.12` → `.11c`, `.11a` → `.11d`, the `.11a`/`.11b` pair from `.10`, and `.12c.1` → `EBNF-FRONTEND-SILENT-TRUNCATION.5`)
 

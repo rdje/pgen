@@ -74,6 +74,22 @@ event to a rare expensive one: cache hits + refusals, retries + successes, "file
 pipelines. Ask of every headline number: *which mechanisms does this sum, and which one did I
 actually want?* If the answer is more than one, the number is not evidence yet.
 
+⭐ **A COVERAGE DENOMINATOR fuses the same way, and there the fused reading is PESSIMISTIC — which is
+just as blocking.** `SV-CORPUS-GRAD.13` published *"38.7 % of the SV corpus (6 321 rows) carries no
+verdict"*, one number over three strata of opposite worth (`.13a`, same instrument re-run):
+
+| stratum | rows | worth |
+|---|---:|---|
+| one-sided positive, unit-shaped | 1 824 | the parse consumed the WHOLE file ⇒ **no rejects-valid defect hides here**; silent on accepts-invalid |
+| ⚠️ one-sided, FRAGMENT-shaped | 99 | an `.svh` payload / excerpt fixture — accepting one is **not** testimony, it may BE the over-acceptance |
+| ⛔ dark (the parse failed) | 4 398 | nothing is known — **this** is what a burn-down attacks |
+
+⇒ the program is 26.9 %, not 38.7 %, and the difference required **no relabelling at all**: the
+manifest already carried the observed outcome per row, unused. Note the two failure directions in one
+record — a fused *performance* counter reads reassuring, a fused *coverage* denominator reads alarming
+— and note that splitting it also produced a stratum whose sign is the opposite of the obvious one
+(accepting a fragment is bad news). **Split first; decide what each part is worth second.**
+
 See also [[a-memo-key-must-name-every-context-the-outcome-depends-on]] (the memo's other honesty
 bound — what a `(rule, position)` key may hold),
 [[a-rising-pass-rate-is-not-evidence-of-correctness]] (the same failure direction on a corpus

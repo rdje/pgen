@@ -1811,6 +1811,55 @@ wrongly *accepts*. Only the positive-test path became positional; the existence 
 as it was for the other caller. A predicate serving two questions must be changed for one of them at
 a time.
 
+#### The denominator — what fraction of the corpus was asked a question it could answer?
+
+Everything above counts **divergences**. That answers *how many defects do we know about* and is
+silent on the question a signoff claim actually rests on: *how much of the corpus was asked a question
+it could answer at all?* A 318-row defect bar over a 46 %-adjudicated corpus is not the same claim as
+the same bar over a fully adjudicated one, and only the second supports shipping.
+
+Measured (`stimuli/sv/corpus_verdict_coverage.py`, `SV-CORPUS-GRAD.13`): of 16 336 rows, **46.3 % are
+adjudicated**, 15.1 % are **routed** to the `verilog_2005` lane's own manifest — and **38.7 %
+(6 321 rows) carry no verdict at all**, overwhelmingly the `deferred:chained_only` class, which is the
+most realistic industry RTL in the corpus. ⛔ **Unknown and clean are different words.** A row with no
+verdict is not evidence of correctness; it is not evidence of anything.
+
+But 38.7 % is a headline, not a plan, because it fuses three strata of opposite worth (`.13a`):
+
+| stratum | rows | % | what it is worth |
+|---|---:|---:|---|
+| **one-sided positive**, unit-shaped | 1 824 | 11.2 % | the parse consumed the **whole file** standalone ⇒ no *rejects-valid* defect hides here. Silent on accepts-invalid, and still not a verdict — there is no expectation to compare against |
+| ⚠️ **one-sided, fragment-shaped** | 99 | 0.6 % | an `.svh` include payload or a `// verilog_syntax:` excerpt — **not** a legal compilation unit, so accepting it is not testimony *for* the parser; the accept may itself be the over-acceptance |
+| ⛔ **dark** | **4 398** | **26.9 %** | the parse failed and the deferral is why nobody looked |
+
+The number to plan against is therefore **4 398**, and reaching it moved **no row** into the
+adjudicated bucket — the manifest already recorded what the parser did on every file, and that
+observation was simply unused.
+
+Inside the dark half, a deferral can sometimes be refuted by the input's own bytes. A file containing
+no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or
+`` `include `` inlining, so its parse fails identically after chaining: **530 `chained_only` rows are
+in that state.** What that refutes is the *textual* reading of the deferral — and refuting a cause is
+not naming one, so the next step is the toolbox. All three rows probed die on a **user-defined type
+name declared in a sibling file** (`wire csrng_req_t cmd_req;`, with the trace reporting
+`🚫 checked_type_identifier rejected by post predicate 'has_fact [type_name, …]'`). In a store-gated
+parser a `typedef` elsewhere supplies the fact a predicate requires, so the dependency is real — but
+it is a **cross-file fact** dependency, not a text one, and the two are satisfied by different
+capabilities: parsing a file list into one fact store, versus running a preprocessor. Those 530 rows
+need the first and not the second; the 3 628 dark rows that *do* carry directives need the second.
+
+Two honesty rules fell out of that census and are worth carrying to any similar instrument:
+
+- **The same falsification means different things per bucket.** The zero-directive test also flags 8
+  rows deferred to the preprocessor lane, and reading all 8 refutes the exciting interpretation: they
+  are excerpt-mode fixtures and unterminated-string tests whose preprocessor relevance is the *test's
+  purpose*, not a directive in the text. The instrument now pairs every class with an explicit reading
+  and refuses to run if a class lacks one.
+- **A number in a tracked file with no gate behind it will be wrong when it is next quoted.** This
+  artifact went stale within a day of being written, publishing the superseded 319-row bar after the
+  Latin-1 fix had taken it to 318. The standing denominator gate that stops that recurring is
+  `SV-CORPUS-GRAD.13b`.
+
 #### When the pin table already contradicts itself
 
 The pinned rulings are not just an override list — they are the project's accumulated reading of the

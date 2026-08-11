@@ -1,5 +1,49 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0208 — the corpus denominator is not one population: 26.9 % is DARK, and 530 of those rows carry a deferral their own bytes refute (leaf `SV-CORPUS-GRAD.13a`, ZERO Rust/grammar bytes)
+
+- ⭐⭐ **`38.7 % carries no verdict` was a headline, not a plan.** `.13` published one number for
+  6 321 rows; a disposition attaches to a **reason** and to **what the parser already did**.
+  Stratified: **1 824 ONE-SIDED POSITIVE** (the parse consumed the WHOLE file standalone ⇒ no
+  *rejects-valid* defect hides there — ⛔ silent on accepts-invalid, and still not a verdict),
+  ⚠️ **99 FRAGMENT-shaped** (an `.svh` payload / `// verilog_syntax:` excerpt — accepting one is not
+  testimony, it may BE the over-acceptance), and ⛔ **4 398 DARK (26.9 %)**. ⇒ **the burn-down
+  population is 4 398, not 6 321** — and **not one row was relabelled**, which is the whole
+  discipline: 1 923 rows were shown to be one-sided rather than moved into `ADJUDICATED`.
+- ⭐⭐ **THE FINDING — 530 DARK rows carry a deferral their own bytes REFUTE.** A file with no `` ` ``
+  byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include ``
+  inlining: the preprocessed text is byte-identical, so the parse fails identically after chaining.
+  530 `deferred:chained_only` rows are in that state (friscv 346, opentitan 152, uvm-core 13,
+  Surelog 12, slang 3, Cores-VeeR-EL2 2, verilator 2). This is `.12`'s sound falsification applied
+  one bucket down.
+- ⭐⭐ **AND THE TOOLBOX NAMED THE LIVE MECHANISM RATHER THAN REASONING ABOUT IT.** Three of the 530,
+  probed: `furthest_position=468` on `csrng_if.sv` lands on `wire csrng_req_t cmd_req;`, and the
+  trace says `🚫 Rule 'checked_type_identifier' rejected by post predicate 'has_fact [type_name, …]'`
+  / `🔍 has_fact(kind=type_name, …) → false`. All three die on a **type name a sibling file
+  declares**. ⇒ the live channel is the **cross-file FACT**, not text expansion.
+- ⭐⭐ **THAT CORRECTS A STANDING SEQUENCING CLAIM.** `.13` recorded that `chained_only` unblocks on
+  expansion, putting `SVPP-EXPANSION` on the critical path. For **530 rows that is provably false** —
+  there is no directive to expand; they unblock on **unit-level fact continuity** (`.4`, no
+  preprocessor). Expansion stays critical-path for the **3 628** DARK rows that do carry ticks. Two
+  capabilities, separated by measurement instead of assumed to be one.
+- ⛔ **WHAT WAS CHECKED BEFORE PUBLISHING — and refuted.** The same tick test flags 8
+  `deferred:svpp_owned` rows; reading all 8 (5 verible `parse-as-module-body` excerpt fixtures + 3
+  verilator `t_preproc_*_bad` unterminated-string/EOF cases) refutes the misclassification reading —
+  their preprocessor relevance is the test's **purpose**, not a directive in the text. So the
+  instrument carries a per-class `TICK_MEANING` and **refuses at import** if a NO-VERDICT class has
+  no reading. One number for all six classes would have been wrong five times.
+- **NEW GROUND-TRUTH CONTROL, both red arms fired.** Paths resolve through the tracked corpus results
+  file instead of a second copy of the suite layout: every manifest row must map to **exactly one**
+  results row whose outcome **agrees** (16 336/16 336, 0 ambiguous, 0 disagreements). Deleting one
+  results row and flipping one outcome each produce their own refusal, exit 1.
+- ⚠️ **THE TRACKED ARTIFACT HAD ALREADY ROTTED — in one day.** `coverage.md` published
+  `match 5 804` / axis-2 bar **319** while HEAD's manifest says `5 805` / **318** (the `.12c.1`
+  Latin-1 fix). Nothing in the repo could see it. Fixed by re-running; gated by the new `.13b`.
+- **`.13` decomposed into 7 owned leaves** (`.13a` done; `.13b` denominator gate — NEXT; `.13c` the
+  530; `.13d` the 3 628; `.13e` `no_sv_key` 743 → only 78 can hide anything; `.13f` the 302-row
+  honest-permanent set; `.13g` the 99 fragments). NO REGRESSION: zero Rust/grammar/codegen bytes, the
+  5 tracked characterization oracles byte-identical, census re-run byte-identical, 17 doctrines PASS.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0207 — the `.12a` two-caller split is now MECHANICAL, and `SV-CORPUS-GRAD.12c` is CLOSED (leaf `.12c.4`, F3; manifests BYTE-IDENTICAL)
 
 - ⭐⭐ **`.12c` F3 CLOSED — and with it the whole `.12c` umbrella** (F1 `-0204`, F2 `-0206`,
