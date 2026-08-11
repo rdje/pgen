@@ -57,8 +57,10 @@ label *"needs the other files"*, and they are satisfied by completely different 
 **text expansion** versus **parsing a file list into one fact store**.
 
 ⇒ the sequencing consequence, which is the reason this is worth a record: a standing claim that the
-whole 5 276-row class unblocks on the preprocessor was **corrected by measurement** — 530 rows
-unblock on unit-level fact continuity and need no preprocessor at all, while 3 628 genuinely do.
+whole 5 276-row class unblocks on the preprocessor was **corrected by measurement**. Sized properly
+(`SV-CORPUS-GRAD.13c`, one traced parse per refuted row): **2 057 rows unblock on unit-level fact
+continuity and need no preprocessor at all**, 1 527 genuinely need expansion, 346 are `$readmemh` hex
+images that can never parse, and 57 are candidate parser defects.
 **A convergence claim is only as good as the population it was measured over.**
 
 ## ⛔⛔ The same test can be decisive for one label and irrelevant for five
@@ -76,9 +78,41 @@ the reader's head. `stimuli/sv/corpus_verdict_coverage.py` pairs every no-verdic
 explicit reading (`TICK_MEANING`) and **refuses at import** if a class has none — so a new class
 cannot arrive and silently inherit the one interpretation that happens to be exciting.
 
+## ⛔⛔ And the classifier that sorts the refuted rows must be CALIBRATED, not designed
+
+Refuting the label is the easy half. Sorting *what is actually going on* in the refuted rows is where
+a heuristic sneaks in, and it announces itself by moving too much. Sizing this population
+(`SV-CORPUS-GRAD.13c`, 4 158 rows) the candidate-defect bucket read, in order:
+
+**1 902 → 1 933 → 53 → 1 885 → 335 → 228 → 57.**
+
+Every intermediate answer was produced by a defensible improvement, and every one but the last was
+wrong. The instructive four:
+
+- **Three probed rows are a shape, not a distribution.** The first classifier generalised from the
+  three rows whose failure landed *after* the unknown type name, and mis-sorted the corpus norm
+  (`sw_region_cfg_t [MpRegions-1:0] region_i`) because a packed dimension sat in between.
+- **Enumerate the tool's vocabulary from a real run.** Rewriting it to use the parser's own predicate
+  trace was right — and it matched `has_fact` but not `fact_attribute_equals`, the spelling that gates
+  `class X extends BASE`. That single missing arm put **1 203 rows, 63 % of the worklist**, into
+  "candidate defect" *while the trace named the cross-file base class one line above*.
+- **A PEG parser speculates, so a whole-run signal excuses everything.** It tries a type reading on
+  ordinary tokens: `static task host();` yields demanded-and-missing "type names" `static` and `host`.
+  Only a signal intersected with the FAILURE REGION is evidence about the failure.
+- **If a claim is checkable, check it.** "A sibling file would supply this name" became a corpus-wide
+  declaration index (11 359 files, ~2 s): `mem_model_base_test` resolves to `dccm_base_test.sv`,
+  `host` resolves to nothing. Building it exposed two more defects in the reader itself — a type
+  *used inside* a `typedef struct` body being read as the typedef's own name, and a bounded
+  `[^;]{0,300}` scan that can never reach a struct typedef's name at all.
+
+⭐ **The habit that caught all six: before believing a bucket, run the real tool on ONE member of
+it.** Not a sample, not a code review — one probe, about two minutes. Publishing the third answer
+would have claimed 1 885 hidden parser defects and been wrong by 33×.
+
 ## The general rule
 
-**Refute from the input where you can; then name the mechanism with a tool.** Publish the two
+**Refute from the input where you can; then name the mechanism with a tool — and calibrate the sorter
+against the tool before you publish its counts.** Publish the two
 separately, because they have different strengths: the refutation is a proof about what cannot be the
 cause, and the mechanism is an observation that has to be earned per row. And before you aggregate a
 falsification across buckets, ask of each one whether its label's claim is *about* the bytes you

@@ -1,0 +1,58 @@
+verdict	channel	suite	relpath	furthest	stuck	first_tick	fail_line	bytes	fact_names	snippet
+NO-ALTERABLE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/base/uvm_port_base.svh	2863	2863		75	29865	uvm_port_component_base	xtends uvm_component; function new (string name, uvm_component parent);
+NO-ALTERABLE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_policies.svh	4829	4830		147	4900	T	function uvm_object clone(input T from); return from.clone(); endfunction
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_m.svh	1622	1623		87	19862		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_mu.svh	1939	1940		104	24138		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/ElabSysCall/dut.sv	42	78		3	385		must be at most 4kB"); end endmodule module top_error(); if (1) begin $error(
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/LoopBits/LoopBits.sv	0	0		1	63		-parse -d uhdm -d coveruhdm -elabuhdm -d ast dut.sv -nobuilt
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv	414	415		11	624		(lc_ctrl_pkg::Off)) lc_tx_cov; lc_tx_cov cov; initial begin cov = lc_tx_
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	1430	1433		53	13926		th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv	5899	5899		244	21910		448'h0 }) }; //////////////////////////////////////////// // lc_ct
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv	5906	5906		233	22616		448'h0 }) }; //////////////////////////////////////////// // lc_ct
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv	275	275		7	906		#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	200	201		6	303		pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	51			2	52		name enum CUSTOM_1,
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	slang	tests/unittests/data/local.svh	22			2	36		Just a test string "test string"
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	slang	tests/unittests/data/nested/nested_local.svh	0			1	14		"test string"
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	slang	tests/unittests/data/system/system.svh	0			1	16		"system stuff!"
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	verilator	test_regress/t/t_langext_order_sub.v	335	336		11	351		ext_order_sub(input do); endmodule
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/ModPortTest/top.v	220	220		14	739	id_t1	id_t1 aw_id; modport Master ( output aw_id ); id_t
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitClass/top.v	460	461		24	868	DD	ass B b; DD d; covergroup memory @ (posedge ce); address : co
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitTest/top.v	729	730		34	1144	result,shifter	shifter = shifter ~& result; shifter = shifter ~| result; end endmodu
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dat.sv	903	904		27	7111	i3c_dat_mem_t	ut i3c_dat_mem_t dat_rdata_o, // HCI Device Address Table interface. inp
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dct.sv	975	976		28	4310	i3c_dct_mem_t	t i3c_dct_mem_t dct_wdata_i, // HCI Device Characteristics Table interfac
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dxt.sv	1944	1949		53	3576	ram_1p_cfg_t	t ram_1p_cfg_t cfg_i, output ram_1p_cfg_rsp_t cfg_rsp_o ); localparam
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	6554	6554		168	19497	DmemAddrWidth,ImemAddrWidth,bind	_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	682	683		24	9472	t_MainMode	input t_MainMode main_mode, input [31:0] regs_i [1:31], output logi
+PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/base/uvm_resource_base.svh	5509	5510	8409	123	20400	uvm_resource_base	(uvm_resource_base) rsrc_q_t; // SV queue of resources typedef uvm_resource
+PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_driver.svh	2257	2257	2262	59	3848	REQ	xtends uvm_component; `uvm_component_param_utils(uvm_driver#(REQ,RSP)) // T
+PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_in_order_comparator.svh	3591	3592	3804	87	8563	T	uilt_in_comp #( T ) , type convert = uvm_built_in_converter #( T ) ,
+PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_pair.svh	1913	1913	1966	48	5211	T1	) extends uvm_object; typedef uvm_class_pair #(T1, T2 ) this_type; `uvm_ob
+PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_sqr_connections.svh	2229	2230	2264	57	3724	REQ	tends uvm_port_base #(uvm_sqr_if_base #(REQ, RSP)); `UVM_SEQ_PORT(`UVM_SEQ_ITE
+PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh	2340	2340	2403	59	13793	REQ	xtends uvm_component; typedef uvm_tlm_req_rsp_channel #(REQ, RSP) this_type;
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/tl_agent/dv/env/tl_agent_env_pkg.sv	534	535	556	17	742		(tl_agent_env_cfg)) tl_agent_env_cov; `include "tl_agent_env_cfg.sv" `inclu
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/signal_force.sv	719	719	2019	24	2350		)::set(null, "*", pick_if_name(), fi_if); end // Pick a name
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_darjeeling/dv/autogen/tb__alert_handler_connect.sv	243	244	274	7	5467		y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_earlgrey/dv/autogen/tb__alert_handler_connect.sv	243	244	274	7	4562		y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/peek/abs.sv	738	739	869	16	4259		te /////////////// assign pre_regs[0] = 32'h0; for (genvar i = 1; i < 32; i++)
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/peek/mem.sv	484	485	539	13	5003		logic has_snd_req; assign has_snd_req = mem_gnt_snd_d | (mem_gnt_fst_q & `CR.da
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	scr1	src/tb/scr1_top_tb_runtests.sv	334	335	470	10	9076		------------------ initial begin $value$plusargs("imem_pattern=%h", imem_re
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	uvm-core	uvm-core-2020.3.1/src/reg/uvm_reg_sequence.svh	3172	3172	3191	73	20131		ence #(uvm_reg_item)) extends BASE; `uvm_object_param_utils(uvm_reg_sequence
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	uvm-core	uvm-core-2020.3.1/src/seq/uvm_sequencer_base.svh	1496	1497	14540	41	47855		(uvm_sequence_base) uvm_config_seq; typedef class uvm_sequence_request; // Util
+PRE-TICK	UNDECLARED-ANYWHERE	black-parrot	bp_top/test/common/bp_nonsynth_core_profiler.sv	27	31	1761	3	10455	ERROR_CURRENTLY_UNSUPPORTED	NTLY_UNSUPPORTED typedef struct packed { logic icache_miss; logic b
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/aes/dv/env/aes_ral_extension.svh	320	320	324	6	1081	aes_reg_block	xtends aes_reg_block; `uvm_object_utils(aes_reg_block_extended) function ne
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_dbg/dv/autogen/tb__xbar_connect.sv	231	232	240	7	854	xbar_dbg	.py` tool xbar_dbg dut(); `DRIVE_CLK(clk_dbg_i) `DRIVE_CLK(clk_peri_i) initia
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	232	233	241	7	3448	xbar_main	py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) init
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_mbx/dv/autogen/tb__xbar_connect.sv	231	232	240	7	1137	xbar_mbx	.py` tool xbar_mbx dut(); `DRIVE_CLK(clk_mbx_i) initial force dut.clk_mbx_i =
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1639	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) initial force dut.clk_peri_i
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	960	961	3111	24	5299	csr_enable_cp,ip_clk_en_cp,peri_cross	le_off = peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0); } endg
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv	2244	2245	6845	56	19061	TL_DW,otp_ctrl_core_reg_block	ctrl_core_reg_block ral) with function sample(bit[TL_DW-1:0]
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	232	233	241	7	2502	xbar_main	py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) `DRIV
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1965	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) initial force dut.clk_peri_i
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	960	961	3111	24	6299	csr_enable_cp,ip_clk_en_cp,peri_cross	le_off = peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0); } endg
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv	2244	2245	5448	56	15677	TL_DW,otp_ctrl_core_reg_block	ctrl_core_reg_block ral) with function sample(bit[TL_DW-1:0]
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1375	xbar_main	py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) init
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1409	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) `DRIVE_CLK(clk_spi_host0_i) `
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	960	961	3111	24	6141	csr_enable_cp,ip_clk_en_cp,peri_cross	le_off = peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0); } endg
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/protocol/irqs.sv	362	362	623	12	1104	NoNMI	ither of these NoNMI: assume property (~irq_nm_i); NoFastIRQ: assume property (~
+PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/spec_instance.sv	471	472	565	14	2815	t_MainMode	ate. */ t_MainMode main_mode; always_comb begin if (wbexc_handling_irq) ma

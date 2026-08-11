@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0210 — seven answers, six of them wrong, and the one habit that caught every single one
+
+`.13c` had to decide, for 4 158 corpus rows deferred as *"needs the other files"*, whether that
+deferral can even reach the failure. The final numbers matter (2 057 cross-file facts, 1 527
+expansion, 346 not-source, 57 candidate defects) but the transferable part is how they were reached.
+
+**The worklist read 1 902 → 1 933 → 53 → 1 885 → 335 → 328 → 228 → 57.** Every one of those was
+produced by an instrument I had just improved for a defensible reason, and every one except the last
+was wrong. The corrections, in order:
+
+1. **A text-adjacency classifier missed the shape that dominates the corpus.** `.13a` had probed three
+   rows whose failure landed on the identifier *after* the unknown type (`wire csrng_req_t | cmd_req`),
+   so the first classifier looked at adjacent tokens — and mis-sorted the opentitan norm,
+   `sw_region_cfg_t [MpRegions-1:0] region_i`, because the nearest identifier behind the failure was
+   the packed dimension's parameter. **Three probed rows are a shape, not a distribution.**
+2. **Fixing that swung it the other way** (53 rows), because adding subroutine prefixes to the skip
+   list made almost any identifier pair read as a declaration.
+3. ⇒ **Stop classifying from text.** The parser answers this question authoritatively: at
+   `PGEN_TRACE_VERBOSITY=high` every predicate prints its verdict, ~200 MB of trace in ~1 s, streamed
+   through a grep and never stored. That was the right move and it still got the next answer wrong,
+   because
+4. **the trace pattern matched `has_fact` and not `fact_attribute_equals`** — the spelling that gates
+   `class X extends BASE`. One missing arm put **1 203 rows (63 % of the worklist)** into the
+   candidate-defect bucket *while the parser's own trace named the cross-file base class on the line
+   above*. Enumerate a vocabulary from a real trace; do not infer it from the two examples you saw.
+5. **A PEG parser speculates.** It tries a type reading on ordinary tokens, so `static task host();`
+   produced demanded-and-missing "type names" `static` and `host`. Intersecting with the identifiers
+   in the *failure region* fixed that, and then
+6. **"a sibling file would supply it" turned out to be checkable** — so it had to be checked. A
+   corpus-wide declaration index (11 359 files, ~2 s) resolves `mem_model_base_test` to
+   `dccm_base_test.sv` and resolves `host` to nothing. Two more corrections came out of the index
+   itself: `declared_in_file` mistook a type *used inside* a `typedef struct` body for the typedef's
+   own name (toolbox-refuted on `sram_key_t`), and the index's `[^;]{0,300}` could never reach a
+   struct typedef's name at all, so 276 ordinary opentitan types read as declared nowhere.
+
+**The habit that caught all six: before believing a bucket, probe one member of it.** Not a sample,
+not a review of the code — run the actual parser on one row and read what it says. Every correction
+above started that way, and each cost about two minutes. The alternative was publishing
+"1 885 hidden parser defects", which was one `grep` away and would have been wrong by 33×.
+
+**And the structural payoff came from the same discipline.** *"`chained_only` unblocks on
+expansion"* was a reasonable claim. Measured, it is three claims: 2 057 rows want cross-file **facts**
+(a file list parsed into one fact store — no preprocessor), 1 527 want **text expansion**, and 346
+want nothing because they are `$readmemh` hex dumps with a `.v` extension. A capability plan built on
+the unmeasured version would have bought the wrong instrument first.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0209 — put the check where the lane actually runs, and never let it regenerate what it compares
 
 `.13b` was owed as "a deterministic `make` target". Writing it that way would have satisfied the leaf

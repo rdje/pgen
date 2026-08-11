@@ -1856,6 +1856,34 @@ it is a **cross-file fact** dependency, not a text one, and the two are satisfie
 capabilities: parsing a file list into one fact store, versus running a preprocessor. Those 530 rows
 need the first and not the second; the 3 628 dark rows that *do* carry directives need the second.
 
+Applying that falsification to the whole dark `chained_only` population — not just its
+directive-free corner — sizes it properly (`SV-CORPUS-GRAD.13c`,
+`stimuli/sv/audit_dark_chained_only.py`, 46 s for 4 158 rows including 2 285 traced parses):
+**2 285 of 4 158 rows (55 %) have their textual deferral refuted**, and the parser's own trace then
+sorts them:
+
+| bucket | rows | what it is |
+|---|---:|---|
+| ⛔ not SystemVerilog source | 346 | `$readmemh` memory images carrying a `.v` extension — they can never parse and testify to nothing |
+| fact-gated, cross-file | **2 057** | the parser demanded a `type_name` fact for a name **a named sibling file declares** |
+| cross-library | 171 | the name lives in another vendored suite (a test using UVM) — the unit is incomplete as the corpus holds it |
+| ⭐ candidate defects | **57** | a fact demanded that nothing anywhere declares (25), no fact demanded at the failure at all (24), or the name declared **in that very file** (8) |
+| undecidable from text | 1 527 | the failure sits where an earlier expansion could shift the stream |
+
+⇒ **half the dark population is blocked by cross-file *facts*, not by text** — and that decides
+sequencing: those 2 057 rows unblock on parsing a file list into one fact store, which needs no
+preprocessor at all, while 1 527 genuinely need expansion. Naming the two capabilities separately
+was only possible once the population was measured rather than argued about.
+
+⚠️ One methodological note is worth more than the numbers. That worklist read **1 902 → 1 933 → 53 →
+1 885 → 335 → 228 → 57** across successive corrections, every intermediate answer defensible and
+wrong: a text classifier that missed packed dimensions; a trace pattern that matched `has_fact` but
+not the `fact_attribute_equals` spelling gating `class X extends BASE` (1 203 rows, while the trace
+named the base class one line above); a declaration test that mistook a type *used inside* a
+`typedef struct` body for the typedef's own name. Each was caught the same way — by probing one row
+of a bucket before believing the bucket. **A number that moves by 1 900 on a one-line edit is a
+heuristic, not a census.**
+
 Two honesty rules fell out of that census and are worth carrying to any similar instrument:
 
 - **The same falsification means different things per bucket.** The zero-directive test also flags 8

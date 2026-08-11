@@ -1,5 +1,45 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0210 — `chained_only` is not one capability: 2 057 rows are blocked by cross-file FACTS, 1 527 by expansion, and 57 are candidate defects (leaf `SV-CORPUS-GRAD.13c`, ZERO Rust/grammar bytes)
+
+- ⭐⭐ **4 158 DARK `deferred:chained_only` rows → a 57-row candidate worklist**, via a new tracked
+  instrument (`stimuli/sv/audit_dark_chained_only.py`, 46 s including **2 285 traced parses** at
+  8-way parallelism under the memory guard, peak 768 MB). `.13a` sized the refuted population at
+  530 (the directive-free corner); applying `.12`'s full falsification gives **2 285 of 4 158
+  (55.0 %)**.
+- **THE STRUCTURAL FINDING, measured rather than sampled:** of the 2 285 text-refuted rows,
+  **2 057 are blocked by a cross-file TYPE FACT with the declaring sibling file NAMED per row**,
+  171 by a library vendored in another suite, and 57 by nothing either channel explains.
+  ⇒ **those 2 057 unblock on unit-level fact continuity (`.4`, no preprocessor at all)**, and
+  expansion is needed for **1 527** rows, not 3 628 and not 5 276. `.13d` is re-sized accordingly.
+- ⛔ **346 corpus rows are not SystemVerilog source**: `$readmemh` memory images (`@00010000` + hex
+  bytes) carrying a `.v` extension, every one friscv — plus 3 slang plain-text `.svh` fixtures and 2
+  Surelog tool-option files. They can never parse, they inflate the DARK population, and they sit in
+  the 16 336-row denominator every published percentage divides by. Routed to **`.13c.1`**.
+- **THE 57, by why they are candidates:** 25 where a `type_name` fact was demanded that **nothing in
+  the whole vendored corpus declares**; 24 where the parser demanded **no** missing fact at the
+  failure at all; 8 where the name **is declared in that very file** and the fact was still missing.
+  Named families for `.13c.2`: `static task`/`static function`, the implicit parameter-port shorthand
+  `#(.ImemAddrWidth, .DmemAddrWidth)`, class **type parameters** (`REQ`/`T`/`T1`) not supplying a
+  `type_name` fact inside the class body, and the forward `typedef class X;`.
+- ⛔⛔ **THE METHOD IS THE HEADLINE: the worklist read 1 902 → 1 933 → 53 → 1 885 → 335 → 228 → 57**,
+  every intermediate answer defensible and wrong. A text classifier missed the packed-dimension
+  shape; the parser-testimony rewrite matched `has_fact` but not the `fact_attribute_equals` spelling
+  that gates `class X extends BASE` (**1 203 rows — 63 % of the worklist — while the trace named the
+  cross-file base class on the line above**); `declared_in_file` mistook a type *used inside* a
+  `typedef struct` body for the typedef's own name (toolbox-refuted on `sram_key_t`); the corpus
+  index's `[^;]{0,300}` could never reach a struct typedef's name, so 276 ordinary opentitan types
+  read as declared nowhere. Every one was caught by probing a single row before believing its bucket.
+  **A number that moves by 1 900 on a one-line edit is a heuristic, and no cut heuristic is a census.**
+- **Three legs, none of them my judgement:** `.12`'s imported layout-gap resolution; the parser's own
+  predicate trace, intersected with the identifiers in the **failure region** (a PEG parser
+  speculates a type reading on ordinary tokens, so a whole-parse signal would excuse everything); and
+  a corpus-wide declaration index (11 359 files, ~2 s) that decides *in this file / in a sibling / in
+  another suite / nowhere*.
+- NO REGRESSION: zero Rust/grammar/codegen bytes; the 5 characterization oracles and the `.13`
+  verdict-coverage artifacts byte-identical; all 18 doctrines PASS with `SV-CORPUS-DENOMINATOR`
+  re-deriving `7556/2459/6321/4398/318` unchanged; `mdbook_docs_gate` + 10 book gates GREEN.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0209 — the SV corpus denominator is now a DOCTRINE: the bar cannot be published without it (leaf `SV-CORPUS-GRAD.13b`, ZERO Rust/grammar bytes)
 
 - ⭐⭐ **`.13a` owed "a deterministic `make` gate", and a `make` gate would have been the wrong

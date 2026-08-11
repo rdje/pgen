@@ -7973,10 +7973,11 @@ is not a promotion), and the probe arm it needs.
   silently rot.
 - **DECOMPOSED 2026-08-11 by `.13a`** into `.13a` (**`done`** — the stratification + this plan),
   `.13b` (**`done`** — the standing denominator gate, doctrine `SV-CORPUS-DENOMINATOR`),
-  `.13c` (the 530 rows whose deferral its own bytes refute) ⇐ **NEXT**,
-  `.13d` (the 3 628 expansion-blocked rows), `.13e` (`no_sv_key`), `.13f` (the honest-permanent set),
-  `.13g` (the fragment-shaped population). ⛔ The umbrella closes only when every one of the 6 321
-  rows sits under a leaf that names its disposition.
+  `.13c` (**`done`** — 4 158 DARK rows → a 57-row candidate worklist; opened `.13c.1`/`.13c.2`),
+  `.13d` (the expansion-blocked rows — **re-sized by `.13c` from 3 628 to 1 527**), `.13e`
+  (`no_sv_key`), `.13f` (the honest-permanent set), `.13g` (the fragment-shaped population).
+  ⛔ The umbrella closes only when every one of the 6 321 rows sits under a leaf that names its
+  disposition.
 
 #### `.13a` — the STRATIFICATION: the 38.7 % is not one population, and 26.9 % is the real burn-down (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0208`)
 
@@ -8160,29 +8161,133 @@ is not a promotion), and the probe arm it needs.
   measured and FIXED next door by `GENERATED-LINT-CORRECTNESS.7` (33 files carried that free pass,
   7 of 138 code commits passed by borrowing), so the cure is leaf-section scoping, not invention.
 
-#### `.13c` — the 530 DARK rows whose deferral their own bytes refute (`todo`, opened 2026-08-11 by `.13a`)
+#### `.13c` — the DARK rows whose deferral their own bytes refute: 4 158 → a **57-row** candidate worklist (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0210`)
 
-- **The population is measured and listed** by `.13a`: 530 `deferred:chained_only` rows with no
-  `` ` `` anywhere (friscv 346, opentitan 152, uvm-core 13, Surelog 12, slang 3, Cores-VeeR-EL2 2,
-  verilator 2). For every one of them, **chaining cannot change a byte**.
-- **The question this leaf answers per row:** is the failure explained by the *cross-file fact*
-  channel (`has_fact(kind=type_name, …) → false`, the mechanism `.13a` proved live on 3 rows) — or
-  by nothing at all? A row that fails for any other reason is an **unexplained rejects-valid defect
-  that has been sitting inside a deferral bucket**, and belongs back on the axis-2 bar. That is
-  exactly what `.12` found one level up, where the bar went 293 → 319 and *that was the correct
-  direction*.
-- **Instrument:** the failure position is ALREADY on disk for every row
-  (`stimuli/sv/characterization/positions.tsv`, 6 584 rows), so this is a re-analysis plus a scoped
-  `--trace-rules` per candidate — no corpus re-run. ⛔ Do NOT relabel: a row earns a verdict by
-  being parsed.
+- **`.13a` sized the population as 530** (rows with no `` ` `` at all). Applying `.12`'s full
+  falsification instead of only its degenerate case, the real number is **2 285 of 4 158 (55.0 %)**:
+  every row whose `stuck_offset` sits **before the first alterable tick** is equally refuted, not
+  just the tick-free ones.
+- **THE MEASUREMENT** — `stimuli/sv/audit_dark_chained_only.py` (new, tracked; artifacts in
+  `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/`), 46 s end-to-end for 4 158 rows
+  including **2 285 traced parses** at 8-way parallelism, under the memory guard (peak 768 MB):
 
-#### `.13d` — the 3 628 DARK `chained_only` rows that DO carry directives (`todo`, opened 2026-08-11 by `.13a`)
+  | bucket | rows | what it is |
+  |---|---:|---|
+  | ⛔ **NOT-SV-SOURCE** | **346** | `$readmemh` memory images (an `@00010000` line then hex byte rows) carrying a `.v` extension. **Not source text** — they can never parse and testify to nothing. A CORPUS COMPOSITION defect, routed to `.13c.1` |
+  | `IN-WINDOW` | 1 477 | choked between the first and last alterable directive — an earlier expansion can shift the following stream. Undecidable from text (`.12b`'s bound) |
+  | `PAST-LAST-TICK` | 50 | same bound |
+  | **TEXT-REFUTED** | **2 285** | expansion **provably** cannot explain the failure |
+  | → `FACT-GATED-CROSS-FILE` | **2 057** | the parser demanded a `type_name` fact it lacked, for a name **a named sibling file in the same suite declares** |
+  | → `CROSS-LIBRARY` | 171 | the name is declared in a DIFFERENT vendored suite (a Surelog test using UVM) — the unit is incomplete as the corpus holds it |
+  | → ⭐ `UNDECLARED-ANYWHERE` | **25** | a fact was demanded and **no file in the whole vendored corpus** declares that name ⇒ chaining cannot supply it. CANDIDATE DEFECT |
+  | → ⭐ `NO-FACT-GATE-AT-FAILURE` | **24** | the parser demanded **no** missing `type_name` fact at the failure at all. CANDIDATE DEFECT |
+  | → ⭐ `FACT-GATED-LOCAL-TYPE` | **8** | the name **is declared in this very file** and the parser still lacked the fact. CANDIDATE DEFECT |
+  | **⭐ WORKLIST** | **57** | opentitan 20, Surelog 11, uvm-core 10, Cores-VeeR-EL2 10, slang 3, verilator/scr1/black-parrot 1 each |
 
-- 4 158 DARK `chained_only` − the 530 of `.13c` = **3 628 rows** where a directive genuinely exists
-  in the file, so expansion can move bytes and the deferral is not refutable from the text.
-- **Disposition: route to `.4` + `SVPP-EXPANSION`** — this is the population that really does justify
-  calling expansion critical-path, and `.13a` has now sized it honestly (3 628, not 5 276).
-  Per-basis-reason worklist is published in `coverage.md` (design corpus 4 955 total, Surelog
+- ⭐⭐ **THE STRUCTURAL FINDING, now measured rather than sampled: 2 057 rows (49.5 % of the DARK
+  `chained_only` population) are blocked by a cross-file TYPE FACT, with the declaring file named
+  per row.** `.13a` proved that mechanism on 3 rows; this leaf proves it at scale. ⇒ what unblocks
+  them is **unit-level fact continuity** (`.4` — parse a file list into one fact store, no
+  preprocessor), and expansion is needed only for the 1 527 rows that remain undecidable from text.
+  The `chained_only`-needs-`SVPP-EXPANSION` claim is now split by measurement, not by argument.
+- **THE INSTRUMENT'S THREE LEGS, each grounded in something other than my judgement:**
+  1. the TEXT falsification, importing `.12`'s `stuck_offset_of` / `tick_offsets` /
+     `blank_comments_and_strings` rather than re-deriving them;
+  2. the PARSER's own testimony — one traced parse per refuted row, harvesting every
+     `has_fact(kind=type_name, …) → false` and every `rejected by post predicate
+     'fact_attribute_equals [type_name, …]'`, intersected with the identifiers **in the failure
+     region** (a PEG parser speculates a type reading on ordinary tokens constantly, so a
+     whole-parse signal would excuse everything);
+  3. a corpus-wide DECLARATION INDEX (11 359 files, 8 suites + uvm, ~2 s) that decides whether the
+     demanded name is declared **in this file**, **in a sibling**, **in another vendored suite**, or
+     **nowhere at all** — so "a sibling file would supply it" is a checked claim, not a plausible one.
+- ⛔⛔ **FIVE SUCCESSIVE ANSWERS WERE DEFENSIBLE AND WRONG, and every one was caught by probing a
+  single member of the bucket before believing the bucket.** The worklist read
+  **1 902 → 1 933 → 53 → 1 885 → 335 → 328 → 228 → 57**. In order: a text-adjacency classifier
+  missed the packed-dimension shape; adding subroutine prefixes swung it the other way; the
+  parser-testimony rewrite matched only `has_fact` and missed the `fact_attribute_equals` spelling
+  that gates `class X extends BASE` — **1 203 rows, 63 % of the worklist, while the trace named the
+  cross-file base class on the line above**; `declared_in_file` matched a type USED INSIDE a
+  `typedef struct` body (`sram_key_t` inside `… } scrmbl_key_init_t;`), toolbox-refuted; the corpus
+  index's `[^;]{0,300}` could never reach a struct typedef's name, so 276 ordinary opentitan types
+  read as declared nowhere; and a test depending on a library vendored in another suite is neither
+  a defect nor in-suite chaining. ⛔ **A number that moves by 1 900 on a one-line edit is a
+  heuristic, and no cut heuristic is a census.**
+- **Named candidate FAMILIES visible in the 57** (each still owed a per-row toolbox adjudication in
+  `.13c.2`): `static task`/`static function` explicit-lifetime subroutines (3 rows, the parser reads
+  `static` as a type name); the implicit parameter-port shorthand `#(.ImemAddrWidth, .DmemAddrWidth)`;
+  class **type parameters** (`REQ`, `T`, `T1`) not supplying a `type_name` fact inside the class body
+  (5 uvm-core rows); a forward `typedef class X;` likewise; `.svh`/`.sv` fixtures that are plain text
+  or tool option files (slang 3, Surelog 2 — more corpus composition).
+- ⛔ **NO row was relabelled.** Every number here is a statement about what the parser did on the
+  file as the corpus holds it.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — 4 158 DARK `deferred:chained_only` rows (`.13a`'s census) had never
+  been asked whether their deferral can even reach their failure; `.13a` sized only the tick-free
+  degenerate case (530).
+- [x] **ROOT CAUSE (WHY + WHERE)** — per row, from the parser rather than from the text:
+  `furthest_position=` + the resolved stuck token locates the failure, and the traced parse names
+  the mechanism — e.g. on `otp_ctrl_top_specific_pkg.sv`
+  `🔍 has_fact(kind=type_name, name=Identifier("sram_key_t")) → false` with the caller chain
+  `… > type_declaration > struct_union_member > data_type > known_unscoped_data_type_identifier >
+  checked_type_identifier`, and `🚫 Rule 'checked_type_identifier' rejected by post predicate
+  'has_fact [Identifier("type_name"), Identifier("sram_key_t")]'`. On
+  `dccm_memtest.sv` it is `🚫 Rule 'known_unscoped_base_class_type_identifier' rejected by post
+  predicate 'fact_attribute_equals [type_name, mem_model_base_test, declaration_family, class]'`.
+- [x] **ADDRESSED (verified)** — the 4 158-row blob is now a **57-row candidate worklist** plus
+  2 057 rows with a NAMED declaring sibling file, 346 non-source rows and 1 527 honestly
+  undecidable ones. Before→after on the question asked: 0 of 4 158 rows had a per-row disposition,
+  now 4 158 of 4 158 do. Re-run is deterministic (fixed inputs, no seeds; 46 s, peak 768 MB).
+- [x] **NO REGRESSION** — instrument + docs only: **ZERO Rust, grammar, codegen or generated
+  bytes**; the 5 tracked characterization oracles and the `.13` verdict-coverage artifacts are
+  **byte-identical** by sha256 (this leaf reads them, never writes them); all **18** doctrines PASS,
+  including `SV-CORPUS-DENOMINATOR` re-deriving the tuple `7556/2459/6321/4398/318` unchanged.
+- [x] **LOCKSTEP** — book *Grammar Well-Formedness* (the `.13c` result beside the denominator),
+  `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, and the knowledge card
+  [[a-refutation-names-what-is-not-the-cause]] updated with the calibration history.
+
+#### `.13c.1` — 351 corpus rows that are not SystemVerilog source at all (`todo`, opened 2026-08-11 by `.13c`)
+
+- **346 `$readmemh` memory images** (`@00010000` + hex byte rows) carrying a `.v` extension, every
+  one friscv, plus **3 slang plain-text `.svh` fixtures** (`Just a test string "test string"`) and
+  **2 Surelog files that are tool option lines** (`-parse -d uhdm … dut.sv -nobuilt`).
+- **Why it matters, in both directions:** they can never parse, so they inflate the DARK population
+  and would sit forever in a defect worklist; and they are counted in the 16 336-row denominator
+  every published percentage divides by. ⛔ **Neither removing them silently nor leaving them
+  counted is acceptable** — the corpus's own composition has to state what a row is.
+- **Owed:** a tracked, reason-carrying exclusion (a `not_source_text` adjudication class with the
+  detector that decides it, so a new such file cannot land silently), the denominator re-published
+  through `.13b`'s gate, and the census in `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/`
+  cited as the evidence.
+
+#### `.13c.2` — adjudicate the 57-row candidate worklist row by row (`todo`, opened 2026-08-11 by `.13c`)
+
+- **The worklist is measured and listed** (`…/dark_chained_only/worklist.tsv`): 25
+  `UNDECLARED-ANYWHERE` + 24 `NO-FACT-GATE-AT-FAILURE` + 8 `FACT-GATED-LOCAL-TYPE`.
+- ⛔ **A worklist is not a defect count.** Each row needs the toolbox (probe + scoped
+  `--trace-rules`) to say whether the parser is wrong, the file is not a legal standalone unit, or
+  the construct is genuinely invalid SV. `.12` is the precedent for the outcome being real: the
+  axis-2 bar went **293 → 319** because rows like these were wearing the wrong label, and *that was
+  the correct direction*.
+- **Start with the families `.13c` named** — they are cheap because one diagnosis covers several
+  rows: `static task`/`static function` (3), the implicit parameter-port shorthand, class type
+  parameters as `type_name` facts (5 uvm-core rows), the forward `typedef class`.
+- **Every confirmed defect joins the axis-2 bar** and the `.3` burn-down worklist, which `.13`
+  already records as STALE by 26 rows.
+
+#### `.13d` — the DARK `chained_only` rows expansion really does own: **1 527**, not 3 628 (`todo`, opened 2026-08-11 by `.13a`, re-sized by `.13c`)
+
+- `.13c` measured it: **1 477 `IN-WINDOW` + 50 `PAST-LAST-TICK` = 1 527 rows** where the failure sits
+  inside the region an alterable directive can reach, so the deferral is not refutable from the text
+  and expansion is the only instrument that settles it. ⛔ `.13a`'s 3 628 was a subtraction of the
+  degenerate tick-free case only, and is superseded.
+- **Disposition: route to `.4` + `SVPP-EXPANSION`.** This is the population that genuinely justifies
+  calling expansion critical-path — **1 527 rows, not 5 276**, because `.13c` moved 2 057 to
+  cross-file FACT continuity (`.4`, no preprocessor), 171 to cross-library incompleteness, 346 to
+  not-source (`.13c.1`) and 57 to the candidate worklist (`.13c.2`).
+- Per-basis-reason worklist is published in `coverage.md` (design corpus 4 955 total, Surelog
   multi-file units, verilator/slang/verible include payloads).
 
 #### `.13e` — `deferred:no_sv_key`: 743 rows, of which only 78 can hide anything (`todo`, opened 2026-08-11 by `.13a`)
