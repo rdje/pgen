@@ -100,10 +100,41 @@ EXTRA_PINNED = {
     ("verible", "verible/verilog/tools/lint/testdata/module_begin_block.sv"): (
         "must_reject", "pinned: in-file comment marks the bare begin block "
         "'LRM-invalid syntax'"),
+    # ---- GRAMMAR-WELLFORMED.A2.5 -- pin CORRECTED from must_reject to must_accept. --------
+    #
+    # ⛔ THE PIN WAS WRONG, AND IT LOOKED RIGHT ONLY BECAUSE A SEPARATE DEFECT MASKED IT.
+    # It read: "'The LRM disallows cross_identifier as a bins_expression' - a grammar-level
+    # restriction, and the driver CHECKs for an error". The restriction is REAL and the driver
+    # does CHECK for an error, but it is NOT grammar-level, and no parser can enforce it:
+    #
+    #   bins_expression ::= variable_identifier | cover_point_identifier [ . bin_identifier ]
+    #     -- IEEE 1800-2017 A.2.11, docs/systemverilog/2017/md/section-19-functional-coverage.md:1032
+    #
+    # and in Annex A *every* one of those identifier classes is the same terminal --
+    # `cover_point_identifier := identifier` (grammars/systemverilog.ebnf:1742) and
+    # `cross_identifier := identifier` (:1845). Telling `binsof(cp_a_cross_b)` from
+    # `binsof(cp_a)` therefore requires knowing what the name was DECLARED as, i.e. name
+    # resolution -- semantic, not syntactic. slang enforces it because slang elaborates; the
+    # file's own header concedes the split ("Some tools accept this; --compat=all keeps the
+    # diagnostic as a warning"). PGEN transcribes A.2.11 verbatim and is RIGHT to accept.
+    #
+    # ⭐ WHY IT SAT GREEN: PGEN did reject this file -- at its FIRST bins, `binsof(cp_a.one) &&
+    # binsof(cp_b.one)`, because `select_expression`'s `&&` continuation was dead code
+    # (SV-CORPUS-GRAD.13c.2a.2). The row never exercised the cross-identifier question at all.
+    # A NEGATIVE TEST THAT PASSES FOR THE WRONG REASON is worth no more than a positive one that
+    # does -- the same lesson `arm` was added to MANIFEST.tsv for, one level up, in the corpus
+    # adjudication. A2.5 fixed the `&&` defect and the accidental agreement evaporated.
+    # → [[a-catch-all-alternative-makes-an-accept-meaningless]], the `.3.15` "the parser is
+    # correct and the manifest was wrong" precedent, and the corpus doctrine's LRM-above-tool rank.
+    #
+    # ⚠️ ROUTED, NOT SILENT: PGEN owns a semantic store (`@emit_fact`/`@predicate`) that could in
+    # principle carry declaration-kind facts and enforce this class. Whether a PARSER should is a
+    # scope question for the director, not a defect in this fix -- LANG-CAPABILITY-AUDIT.11.
     ("slang", "tests/regression/driver/cross-ident-in-binsof.sv"): (
-        "must_reject", "pinned: in-file comment 'The LRM disallows "
-        "cross_identifier as a bins_expression' - a grammar-level restriction, "
-        "and the driver CHECKs for an error"),
+        "must_accept", "pinned (A2.5, CORRECTED): the cross-identifier restriction is "
+        "SEMANTIC, not grammar-level - A.2.11's bins_expression admits any identifier and "
+        "cover_point_identifier/cross_identifier are the same terminal, so only name "
+        "resolution can separate them; slang errors because slang elaborates"),
 
     # ---- SV-CORPUS-GRAD.3.15 -- the bare generate_block family. ----------------
     #

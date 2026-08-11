@@ -71,6 +71,16 @@ This determinism is a **hard guarantee** of the schema. Any non-determinism is a
 > measured rather than assumed: the construct was 100 % unparseable before, so no
 > shape a consumer had ever seen could move, and the ASTs of all ten already-parsing
 > forms of the clause are byte-identical across the fix.
+> **Release `1.0.182` (`GRAMMAR-WELLFORMED.A2.5`, ledger `SV-0052` — left recursion
+> became an ENGINE service in both shapes) does NOT bump it either, and this is the
+> clearest case of the rule**: four alternatives of `select_expression` and
+> `block_event_expression` went from 100 % unparseable to parsing, so consumers gain
+> the kinds `and`, `or` and `with_matches` — new *reachability*, not a replaced shape.
+> `SV-0048` names this exactly: *an additive vocabulary reachability change, not a
+> schema change*. ⚠️ Additive is not free: an exhaustive match on those rules' kinds
+> must grow arms. Measured rather than assumed — the shape-contract gate's locked
+> samples are unchanged, and the two `select_expression` inputs that parsed before
+> still parse to the same `{kind:"condition"}` root.
 > **Release `1.0.181` (`SV-CORPUS-GRAD.3.20`, ledger `SV-0051` — gating those
 > parameter overrides out of `verilog_2005`) does NOT bump it either, and this one
 > is the more interesting non-bump**: `@profiles` is a RULE-level directive, so the

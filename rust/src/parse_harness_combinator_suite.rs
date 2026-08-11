@@ -63,13 +63,22 @@
 //!   policies below (`longest_match` / `ordered` / `priority_first`) are structural (they pick which
 //!   alternative wins purely by consumed-length / source-order / `@priority`); they are in scope. The
 //!   `@predicate`-gated verdict changes are `.6.2`.
-//! - **Bare *direct* left-recursion `A := A x | y` is a KNOWN divergence, out of scope.** PGEN's
-//!   structural LR-elimination only rewrites the **wrapper/indirect** form (`A := wrapper | base`,
-//!   `wrapper := A suffix`) — the `left_recursion` case below uses that eliminated form. Bare direct
-//!   recursion is left to *runtime cycle-breaking* (`RecursionGuard`), where the interpreter and the
-//!   generated parser agree on the verdict but diverge on `furthest_position` (measured). That is a
-//!   genuine interpreter-fidelity gap surfaced for follow-up — see
-//!   [`DIRECT_LEFT_RECURSION_KNOWN_DIVERGENCE`] — not a `.6.1` regression.
+//! ⭐ **Bare *direct* left-recursion `A := A x | y` used to be listed here as a KNOWN divergence. It
+//! is not one any more — `GRAMMAR-WELLFORMED.A2.5` removed the cause.** A pre-pass
+//! (`ast_pipeline::normalize_direct_left_recursive_alternatives`) rewrites the direct shape into the
+//! wrapper shape *before* planning, so both sides run the same eliminated grammar and the old
+//! `furthest_position` gap has no path left to occur. It is now certified by three first-class GATE
+//! cases — `direct_left_recursion`, `direct_left_recursion_multi_alt` and
+//! `direct_left_recursion_folded_ast` — rather than described in prose.
+//!
+//! ⛔ **And retiring the `--ignored` probe those cases replaced is itself a lesson worth keeping.**
+//! `measure_direct_left_recursion_known_divergence` compared the interpreter against the oracle and
+//! printed the result. Its grammar declared no `@entry: true`, which `QUANT-PLUS-ITER.2` step C made
+//! a hard codegen error on 2026-07-26 — so from that date its oracle half returned an error string
+//! instead of a measurement, five times per run, and the probe still exited 0 because it `eprintln!`s
+//! and asserts nothing. Its numbers went on being quoted as current in `TOOLBOX.md` and the book for
+//! two weeks. A diagnostic that reports by printing inherits the credibility of an assertion with
+//! none of its teeth; the class is tracked in `LANG-CAPABILITY-AUDIT.10.16`.
 
 use std::path::{Path, PathBuf};
 
@@ -144,6 +153,27 @@ pub enum Combinator {
     /// operators, so a fold that ignores `alt_index`, or cross-wires two wrappers'
     /// templates, produces `add` where `sub` is declared and cannot pass.
     LeftRecursionFoldedAst,
+    /// GRAMMAR-WELLFORMED.A2.5 — left recursion written the way every language standard's Annex A
+    /// writes it: the self-reference **inline in the choice** (`expr := expr "+" term | term`),
+    /// with no wrapper rule to hoist it. Before the
+    /// `normalize_direct_left_recursive_alternatives` pre-pass this matched no elimination pattern,
+    /// so the alternative reached codegen intact and the runtime cycle guard REJECTED it at the
+    /// seed position — dead code that still parsed its operands.
+    ///
+    /// ⛔ Why this is a variant of its own rather than another [`LeftRecursion`] row: the two shapes
+    /// enter the engine through DIFFERENT doors. `LeftRecursion` is what the planner always
+    /// matched; this is what it never saw. Collapsing them would let the coverage gate call direct
+    /// LR covered on the strength of a case that never exercised the normalizer.
+    DirectLeftRecursion,
+    /// GRAMMAR-WELLFORMED.A2.5 × ENGINE-UNIVERSAL-SERVICES.8 — the COMPOSITION, and the only case
+    /// that measures what SystemVerilog actually needs: direct left recursion whose alternatives
+    /// **declare their AST**. `.8`'s [`LeftRecursionFoldedAst`] proves the fold replays annotations
+    /// written on a *wrapper* rule; [`DirectLeftRecursion`] proves the direct shape parses at all.
+    /// Neither proves that annotations written on a **directly** left-recursive alternative survive
+    /// being hoisted onto a synthetic `_lr_altN` rule with their `$N` indices still addressing the
+    /// author's own positions — which is precisely what `hoist_branch_annotations` claims and what
+    /// `select_expression`'s `-> {kind: "and", lhs: $1, rhs: $3}` depends on.
+    DirectLeftRecursionFoldedAst,
     /// SV-CORPUS-GRAD.3.12 — the packrat memo × RUNTIME CYCLE-BREAKING composition. A cycle-guard
     /// rejection is a fact about the live parse stack, not about `(rule, position)`, so a body that
     /// hit one must not be filed under the memo's stack-blind key: replaying it from a *different*
@@ -204,6 +234,8 @@ impl Combinator {
         Combinator::RuleReference,
         Combinator::LeftRecursion,
         Combinator::LeftRecursionFoldedAst,
+        Combinator::DirectLeftRecursion,
+        Combinator::DirectLeftRecursionFoldedAst,
         Combinator::RecursionGuardedMemoIsolation,
         Combinator::LayoutInsensitiveDefault,
         Combinator::LayoutWhitespaceSensitiveFull,
@@ -481,9 +513,11 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         // `expr_lr_base (expr_lr_suffix)*` (tool-verified: 4 `_lr_base` + 6 `_lr_suffix` helper nodes in
         // the gen-AST). The interpreter and the oracle run the SAME `transform_from_raw_ast`
         // LR-elimination (both default `eliminate_left_recursion = true`), so they see the identical
-        // eliminated tree. Bare DIRECT recursion `A := A x | y` does NOT match the wrapper pattern
-        // (`extract_rule_reference_name` rejects a multi-element sequence) and is left to runtime
-        // cycle-breaking — see [`DIRECT_LEFT_RECURSION_KNOWN_DIVERGENCE`] and the module honest-bounds.
+        // eliminated tree. Bare DIRECT recursion `A := A x | y` does not match this wrapper pattern
+        // either (`extract_rule_reference_name` rejects a multi-element sequence); since
+        // `GRAMMAR-WELLFORMED.A2.5` it is NORMALIZED into this shape first and then eliminated by
+        // this same planner, so the `direct_left_recursion` case below must agree with this one
+        // input-for-input. Before A2.5 it fell through to runtime cycle-breaking and was rejected.
         grammar_body: "@entry: true\nexpr := wrapper | term\nwrapper := expr \"+\" term\nterm := \"n\"\n",
         inputs: &[("n", true), ("n+n", true), ("n+n+n", true), ("n+", false), ("+n", false)],
         entry_rule: Some("expr"),
@@ -518,6 +552,81 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         entry_rule: Some("expr"),
         requested_profile: None,
         note: "an LR-eliminated rule returns the AST its annotations DECLARED, left-nested",
+    },
+    // ── Direct (inline-in-the-choice) left recursion — GRAMMAR-WELLFORMED.A2.5 ───────────────────────
+    CombinatorCase {
+        name: "direct_left_recursion",
+        combinator: Combinator::DirectLeftRecursion,
+        // GRAMMAR-WELLFORMED.A2.5 — the shape every language standard's Annex A actually uses: the
+        // self-reference written INLINE in the choice, not hoisted into a wrapper rule. Before the
+        // `normalize_direct_left_recursive_alternatives` pre-pass (`mod.rs`) this matched no
+        // elimination pattern at all, so the alternative reached codegen intact and the runtime
+        // cycle guard REJECTED it at the seed position — `n+n` did not parse, while `n` did, which
+        // is what a dead alternative looks like from the outside. It is now normalized into the
+        // `left_recursion` case's wrapper shape and eliminated by the same planner, so the two
+        // cases must agree input-for-input.
+        grammar_body: "@entry: true\nexpr := expr \"+\" term | term\nterm := \"n\"\n",
+        inputs: &[("n", true), ("n+n", true), ("n+n+n", true), ("n+", false), ("+n", false)],
+        entry_rule: Some("expr"),
+        requested_profile: None,
+        note: "the DIRECT LR form is normalized to the wrapper shape, then eliminated identically",
+    },
+    CombinatorCase {
+        name: "direct_left_recursion_multi_alt",
+        combinator: Combinator::DirectLeftRecursion,
+        // ⛔ ONE dead alternative is a bug; SEVERAL in one rule is the real shape — IEEE 1800-2017
+        // A.2.11's `select_expression` had THREE, and A.2.10's `sequence_expr` five. Each must get
+        // its own wrapper, and each wrapper must keep ITS OWN `$N` positions. The `-` arm exists so
+        // a normalizer that hoisted only the first alternative, or that cross-wired two wrappers'
+        // annotations, cannot pass.
+        grammar_body: "@entry: true\nexpr := expr \"+\" term | expr \"-\" term | term\nterm := \"n\"\n",
+        inputs: &[
+            ("n", true),
+            ("n+n", true),
+            ("n-n", true),
+            ("n+n-n", true),
+            ("n-n+n", true),
+            ("n-", false),
+            ("-n", false),
+        ],
+        entry_rule: Some("expr"),
+        requested_profile: None,
+        note: "every directly left-recursive alternative of one rule is normalized independently",
+    },
+    CombinatorCase {
+        name: "direct_left_recursion_folded_ast",
+        combinator: Combinator::DirectLeftRecursionFoldedAst,
+        // ⭐ The composition A2.5 and ENGINE-UNIVERSAL-SERVICES.8 each cover only half of, and the
+        // one SystemVerilog actually ships: the alternatives are BOTH directly left-recursive AND
+        // annotated. `.8`'s `left_recursion_folded_ast` writes its annotations on wrapper rules the
+        // author declared, so the fold reads them where they already were; here the normalizer
+        // MOVES them onto synthetic `expr_lr_alt1`/`expr_lr_alt2` rules, and the author's `$1`/`$3`
+        // must still address the hoisted body's own positions. A hoist that dropped an annotation
+        // yields a structural AST; one that cross-wired two alternatives yields `add` where `sub`
+        // is declared. Both are invisible to the byte-identity assertion — the interpreter and the
+        // oracle share the pre-pass — so the gate asserts the EXACT left-nested value against the
+        // DECLARATION, exactly as `.8` does.
+        //
+        // This is the isolating twin of `select_expression`'s
+        // `… logical_and … -> {kind: "and", lhs: $1, rhs: $3}`.
+        grammar_body: concat!(
+            "@entry: true\n",
+            "expr := expr \"+\" term -> {type: \"add\", lhs: $1, rhs: $3}\n",
+            "      | expr \"-\" term -> {type: \"sub\", lhs: $1, rhs: $3}\n",
+            "      | term\n",
+            "term := \"n\" -> {type: \"num\"}\n",
+        ),
+        inputs: &[
+            ("n", true),
+            ("n+n", true),
+            ("n+n-n", true),
+            ("n-n+n", true),
+            ("n+", false),
+            ("+n", false),
+        ],
+        entry_rule: Some("expr"),
+        requested_profile: None,
+        note: "annotations on a DIRECTLY left-recursive alternative survive the hoist, $N intact",
     },
     // ── The packrat memo × runtime cycle-breaking composition (SV-CORPUS-GRAD.3.12) ─────────────────
     CombinatorCase {
@@ -657,20 +766,6 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         note: "an undeclared spelling passes through unresolved → the gated rule stays EXCLUDED (no coercion)",
     },
 ];
-
-/// A KNOWN interpreter-vs-oracle divergence that is **out of `.6.1` scope**, kept here as a durable,
-/// re-checkable repro (no silent caps, [[feedback_always_signoff_decisions]]). Bare *direct*
-/// left-recursion `start := start "+" term | term` is NOT structurally LR-eliminated (PGEN's
-/// `detect_left_recursive_chain_plan` only matches the wrapper/indirect form — a multi-element sequence
-/// alt like `start "+" term` is not a bare rule-ref, so `extract_rule_reference_name` returns `None`).
-/// It is instead left to **runtime cycle-breaking** (`RecursionGuard`). On that path the interpreter and
-/// the generated parser AGREE on the verdict (both REJECT `"n+n"`, since the guard kills the descent) but
-/// DIVERGE on `furthest_position` (measured: interpreter reaches `2`/`4`, the generated parser stays
-/// `0`). This is a genuine interpreter-fidelity gap on the runtime-cycle-breaking path — surfaced for the
-/// director and a candidate follow-up (a `.6.x` fidelity fix), distinct from the LR-*eliminated* combinator
-/// the suite certifies above. Reproduce via the ignored [`measurement`] probe.
-pub const DIRECT_LEFT_RECURSION_KNOWN_DIVERGENCE: &str =
-    "start := start \"+\" term | term\nterm := \"n\"\n";
 
 /// The outcome of comparing the interpreter and the oracle on ONE `(grammar, input)` pair.
 #[derive(Debug, Clone)]
@@ -1135,6 +1230,37 @@ mod gate {
             "no engine-internal marker may survive into a published AST: {:?}",
             folded.interp_ast
         );
+
+        // ── The DIRECT-LR ANNOTATION-HOIST proof (GRAMMAR-WELLFORMED.A2.5) ──────────────────────────
+        // The normalizer MOVES a directly left-recursive alternative's annotation onto a synthetic
+        // `expr_lr_altN` rule. Byte-identity cannot see whether that move preserved the author's `$N`
+        // positions or kept each alternative's template with its own operator: the interpreter and the
+        // oracle run the SAME pre-pass, so a hoist that dropped or cross-wired annotations diverges on
+        // neither side. Only the DECLARATION is an external fact, so — as in `.8` above — assert
+        // against it. `n+n-n` is the discriminating input: it needs both templates, in order.
+        let direct_folded = sample_of(Combinator::DirectLeftRecursionFoldedAst, "n+n-n");
+        let direct_ast: serde_json::Value = serde_json::from_str(
+            direct_folded
+                .interp_ast
+                .as_deref()
+                .expect("the direct-LR folded-AST case must produce a typed AST for \"n+n-n\""),
+        )
+        .expect("the typed AST must be JSON");
+        let direct_value = direct_ast
+            .get("content")
+            .and_then(|content| content.get("Json"))
+            .expect("an annotated direct-LR rule's content must be a shaped value");
+        assert_eq!(
+            direct_value,
+            &serde_json::json!({
+                "type": "sub",
+                "lhs": {"type": "add", "lhs": {"type": "num"}, "rhs": {"type": "num"}},
+                "rhs": {"type": "num"},
+            }),
+            "a DIRECTLY left-recursive alternative's annotation must survive the hoist onto its \
+             synthetic `_lr_altN` rule with `$1`/`$3` still addressing the author's own positions — \
+             the exact claim SystemVerilog's `select_expression` rests on. Emitted: {direct_value}"
+        );
     }
 
     /// No silent gap: every [`Combinator::ALL`] variant is exercised by ≥1 case, and every case name is
@@ -1191,55 +1317,5 @@ mod measurement {
         }
         let clean = reports.iter().filter(|r| r.is_clean()).count();
         eprintln!("\n{clean}/{} combinator cases CLEAN", reports.len());
-    }
-
-    /// Scouting (`--ignored`): re-measure the KNOWN direct-left-recursion divergence
-    /// ([`DIRECT_LEFT_RECURSION_KNOWN_DIVERGENCE`]) — the durable, re-runnable repro of the
-    /// runtime-cycle-breaking `furthest_position` gap (interpreter agrees on the verdict but diverges on
-    /// `furthest_position`). Kept `--ignored` because it documents an out-of-`.6.1`-scope finding, not a
-    /// gate. Run: `cargo test --features "generated_parsers ebnf_dual_run" --lib
-    ///  parse_harness_combinator_suite::measurement::measure_direct_left_recursion_known_divergence
-    ///  -- --ignored --nocapture`.
-    #[test]
-    #[ignore = "documents an out-of-scope KNOWN divergence (direct LR runtime cycle-breaking); run with --ignored --nocapture"]
-    fn measure_direct_left_recursion_known_divergence() {
-        use crate::parse_harness::CompileAndParseOptions;
-        use crate::parse_harness_interpreter::{InterpretOptions, interpret_parse};
-
-        let bin = default_ast_pipeline_bin();
-        if !bin.is_file() {
-            eprintln!("ast_pipeline not built at {} — cannot measure", bin.display());
-            return;
-        }
-        let workdir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/parse_harness_combinator");
-        let grammars_dir = workdir.join("grammars");
-        std::fs::create_dir_all(&grammars_dir).expect("create grammars dir");
-        let grammar_path = grammars_dir.join("direct_left_recursion.ebnf");
-        std::fs::write(&grammar_path, DIRECT_LEFT_RECURSION_KNOWN_DIVERGENCE).expect("write grammar");
-
-        let opts = CompileAndParseOptions {
-            ast_pipeline_bin: Some(bin),
-            workdir: Some(workdir.clone()),
-            keep_workdir: true,
-            ..Default::default()
-        };
-
-        eprintln!("\n=== direct left-recursion (RUNTIME cycle-breaking, NOT LR-eliminated) — KNOWN divergence ===");
-        let inputs = ["n", "n+n", "n+n+n", "n+", "+n"];
-        run_on_large_stack(move || {
-            for input in inputs {
-                let interp = interpret_parse(&grammar_path, input, &InterpretOptions::default());
-                let oracle = compile_and_parse(&grammar_path, input, &opts);
-                match (interp, oracle) {
-                    (Ok(i), Ok(o)) => eprintln!(
-                        "    {:<8} interp(accepted={}, furthest={}) oracle(accepted={}, furthest={}) verdict_agree={} furthest_agree={}",
-                        format!("{input:?}"),
-                        i.accepted, i.furthest_position, o.accepted, o.furthest_position,
-                        i.accepted == o.accepted, i.furthest_position == o.furthest_position,
-                    ),
-                    (i, o) => eprintln!("    {input:?}: plumbing interp={i:?} oracle={o:?}"),
-                }
-            }
-        });
     }
 }

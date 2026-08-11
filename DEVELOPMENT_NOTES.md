@@ -1,5 +1,59 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-GRAMMAR-WELLFORMED-0153 — three instruments were green about things they could not see, and the fix was the cheap part
+
+The engine change is eleven lines of idea: a directly left-recursive alternative *is* the wrapper
+shape with the wrapper inlined, so hoist its body into a synthetic rule, leave a bare reference
+behind, and the planner that already worked does the rest. Everything expensive in this commit came
+from instruments, and each failed in the passing direction.
+
+**1. A gate caught the fix littering — and the right response was to fix the fix.** The pre-pass
+created four synthetic `_lr_altN` rules; `apply_left_recursive_chain_plan` *rewrites* the wrappers
+it consumes rather than deleting them, so all four survived defined-but-referenced-by-nothing.
+`sv_syntax_closure_gate` failed with `unreachable_rules=4 > max_unreachable_rules=0` and named them.
+The tempting move — raise the cap to 4, bless four engine-internal names — was refused because the
+contract's own history drove that cap from 1 to 0 with the note *"the net of the LR-elimination
+synthetic rules no longer being created"*. **A cap is never raised to land content, and engine
+litter does not get a waiver a grammar would not get.** The retraction is a fixed point rather than
+one pass, because retracting a rule can orphan another one that only it named.
+
+**2. A `--ignored` probe had been unable to measure for two weeks, and nobody could have known.**
+`measure_direct_left_recursion_known_divergence` compared the interpreter against the compile-and-run
+oracle and *printed* the result. On 2026-07-26 `@entry: true` became mandatory at codegen; the
+probe's grammar declared none; from that day its oracle half returned `Err(Codegen …)` five times a
+run and the test still exited 0. Its numbers went on being quoted as current in `TOOLBOX.md`, in the
+book, and in its own docstring. ⭐ **A diagnostic that reports by printing inherits the credibility
+of an assertion with none of its teeth.** The minimum repair for the whole class is not a verdict
+assertion — a scouting probe should not pin outcomes — but a *plumbing* assertion: if either side
+you compare fails to run, the probe fails, because a probe that cannot compare has no output worth
+printing. Seven print-only probes remain; routed to `LANG-CAPABILITY-AUDIT.10.16`.
+
+**3. A negative test that had been passing for the wrong reason.** The corpus accepts-invalid
+control moved 21 → 22 — the one direction a widening fix must never move. Root-cause:
+`cross-ident-in-binsof.sv` was pinned `must_reject` on the claim that "the LRM disallows
+cross_identifier as a bins_expression" is *a grammar-level restriction*. The restriction is real;
+grammar-level it is not. A.2.11's `bins_expression` admits any identifier, and
+`cover_point_identifier := identifier` / `cross_identifier := identifier` are **the same terminal** —
+only name resolution can separate them, which is why slang (an elaborator) errors and the file's own
+header concedes "some tools accept this". PGEN had been rejecting that file at its *first* bins, on
+the very `&&` defect this commit fixes. ⇒ **ruling out one accidental route is not ruling out the
+accidental route, and that applies to negative tests too.** It is the same lesson the `arm` column
+was added to `MANIFEST.tsv` for, one level up, in the corpus adjudication.
+
+**4. Two live rules that the census cannot witness — and the reading that would have deleted them.**
+SV's first LR plans brought its first `_lr_base`/`_lr_suffix` pairs, and the cert generator reports
+both suffix rules `parsed=true witnessed_target=false`. That exact verdict is what contract v5 used
+to prove `white_space` and `comment_only_source_region` were engine-shadowed dead and remove them.
+Reading it the same way here would have deleted two rules that four pinned reproducers demonstrably
+drive through the real generated parser. **The verdict does not carry its own interpretation; ground
+truth does.** The generator's reach planner cannot route to a rule created after it built its graph —
+an instrument gap, owned by `ENGINE-UNIVERSAL-SERVICES.10`, with the union baseline re-based honestly
+(`union UNKNOWN` 0 → 2) rather than quietly absorbed.
+
+**The through-line.** Every one of the four was silent, and three of the four were *green*. The
+project's standing answer — tools first, ground truth before verdicts, no cap raised to land content —
+is what made each of them findable rather than a surprise for the consumer.
+
 ## 2026-08-11 - PGEN-ENGINE-UNIVERSAL-SERVICES-0002 — the engine was publishing its own left-recursion bookkeeping as the AST, and the gate that should have caught it could only see values it already recognized
 
 Two findings, and the second one is the transferable half.

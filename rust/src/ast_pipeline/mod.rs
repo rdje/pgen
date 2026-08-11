@@ -2908,6 +2908,21 @@ impl RustASTPipeline {
                     Some(annotations_ref.branch_return_annotations.clone());
             }
         }
+        // GRAMMAR-WELLFORMED.A2.5 / SV-CORPUS-GRAD.13c.2a.2 — normalize DIRECT left recursion
+        // into the INDIRECT wrapper shape BEFORE planning. Runs after the pre-LR-elim snapshot
+        // above so the inventory still reports the grammar author's own annotation layout.
+        let normalized_direct = self.normalize_direct_left_recursive_alternatives(
+            grammar_tree,
+            rule_order,
+            annotations.as_deref_mut(),
+        );
+        if !normalized_direct.is_empty() {
+            eprintln!(
+                "[mod.rs][eliminate_left_recursive_patterns()] 🔁 Normalized {} DIRECTLY left-recursive alternative(s) into the wrapper shape",
+                normalized_direct.len()
+            );
+        }
+
         let original_order = rule_order.clone();
         let mut transformed_rules = HashSet::new();
         let mut transformation_count = 0usize;
@@ -2942,10 +2957,212 @@ impl RustASTPipeline {
             transformed_rules.insert(plan.helper_base_rule.clone());
         }
 
+        let retracted =
+            Self::retract_consumed_normalization_rules(&normalized_direct, grammar_tree, rule_order);
+        if retracted > 0 {
+            eprintln!(
+                "[mod.rs][eliminate_left_recursive_patterns()] 🧹 Retracted {} consumed normalization rule(s) — the planner inlined them, so leaving them defined would publish useless symbols",
+                retracted
+            );
+        }
+
         eprintln!(
             "[mod.rs][eliminate_left_recursive_patterns()] 🏁 Completed left-recursion elimination pass ({} transformations)",
             transformation_count
         );
+    }
+
+    /// GRAMMAR-WELLFORMED.A2.5 — delete the synthetic `<rule>_lr_altN` rules the normalization
+    /// created **once the planner has consumed them**. Returns how many were retracted.
+    ///
+    /// ⛔ WHY THIS IS NOT OPTIONAL. `apply_left_recursive_chain_plan` *rewrites* the wrapper rules it
+    /// eliminates rather than deleting them: the base rule becomes `base ( suffix )*` and stops
+    /// referencing its wrappers, which leaves each wrapper defined but reachable from nothing. For an
+    /// author-written wrapper that is merely untidy — the name is the author's and something may still
+    /// name it. For a rule the ENGINE invented one pass earlier it is a defect: nothing outside this
+    /// module knows the name exists, so a leftover is a **useless symbol** in the Hopcroft-Ullman
+    /// sense, emitted as dead parser code and counted against the syntax-closure contract's
+    /// `max_unreachable_rules`. Measured on SystemVerilog before this retraction: 4 normalized
+    /// alternatives ⇒ `unreachable_rules=4`, failing `sv_syntax_closure_gate` against a hard-won
+    /// `max_unreachable_rules=0`. ⭐ Raising that cap to admit engine litter is precisely the move
+    /// the project forbids — a cap is never raised to land content.
+    ///
+    /// The retraction is safe because it runs **after** planning: `apply_left_recursive_chain_plan`
+    /// has already baked each alternative's annotation into the base rule's `_pgen_lr_chain`
+    /// templates, so the fold no longer needs the rule these templates came from.
+    ///
+    /// ⭐ The condition is *unreferenced*, never *unreachable-from-entry*. A synthetic rule that some
+    /// surviving body still names is kept, so a plan that did not apply — or applied partially —
+    /// leaves a working grammar rather than a dangling reference. The fixed point matters for the
+    /// same reason: retracting one rule can orphan another that only it named.
+    fn retract_consumed_normalization_rules(
+        synthesized: &[String],
+        grammar_tree: &mut HashMap<String, ASTNode>,
+        rule_order: &mut Vec<String>,
+    ) -> usize {
+        if synthesized.is_empty() {
+            return 0;
+        }
+        let mut retracted: HashSet<String> = HashSet::new();
+        loop {
+            let mut referenced: HashSet<String> = HashSet::new();
+            // Iterate `rule_order`, never the HashMap — the codegen byte-determinism discipline.
+            for rule_name in rule_order.iter() {
+                if retracted.contains(rule_name) {
+                    continue;
+                }
+                if let Some(body) = grammar_tree.get(rule_name) {
+                    grammar_wellformedness::collect_node_rule_refs(body, &mut referenced);
+                }
+            }
+            let newly: Vec<String> = synthesized
+                .iter()
+                .filter(|name| !retracted.contains(*name) && !referenced.contains(*name))
+                .cloned()
+                .collect();
+            if newly.is_empty() {
+                break;
+            }
+            retracted.extend(newly);
+        }
+        for rule_name in &retracted {
+            grammar_tree.remove(rule_name);
+        }
+        rule_order.retain(|rule_name| !retracted.contains(rule_name));
+        retracted.len()
+    }
+
+    /// GRAMMAR-WELLFORMED.A2.5 — rewrite every **directly** left-recursive alternative into the
+    /// **indirect wrapper** shape, which is the only shape `detect_left_recursive_chain_plan`
+    /// recognizes. Returns how many alternatives were normalized.
+    ///
+    /// ⛔ WHY THIS EXISTS. The planner matches an alternative that is a *bare rule reference* to a
+    /// rule which itself begins with the base rule. A self-reference written **inline in the
+    /// choice** — the way every language standard's Annex A writes `expr ::= expr op expr | …` —
+    /// matches none of that, so the alternative reached codegen intact and the runtime cycle guard
+    /// met it at the seed position and **rejected** it. It did not "handle" the recursion; the
+    /// alternative was simply DEAD CODE that still parsed its operands, so the construct looked
+    /// supported until something had to follow the first operand. Measured on the raw IEEE
+    /// 1800-2017 Annex A transcription: **9 dead alternatives across 3 rules**
+    /// (`select_expression` 3 of 8, `sequence_expr` 5 of 12, `block_event_expression` 1 of 3).
+    ///
+    /// ⭐ The rewrite is a NORMALIZATION, not a second elimination path. A direct alternative is
+    /// mechanically the wrapper shape with the wrapper inlined, so hoisting the alternative's body
+    /// into a synthetic rule and leaving a bare reference behind lets the existing, tested planner
+    /// and its `_pgen_lr_chain` annotation machinery do all the work — which is also what keeps the
+    /// resulting AST *left-nested* and faithful to the standard's binary production, rather than
+    /// the flat chain a hand-written `seed ( continuation )*` grammar rewrite would produce.
+    ///
+    /// The hoisted body is moved **verbatim**, so the author's `$N` indices still address their
+    /// original positions (`$1` = the self-reference, `$2…` = the suffix), which is the same
+    /// invariant `apply_left_recursive_chain_plan`'s flatten path preserves for real wrapper rules.
+    ///
+    /// Returns the synthetic rule names it created, in creation order, so
+    /// [`Self::retract_consumed_normalization_rules`] can delete the ones the planner inlines.
+    fn normalize_direct_left_recursive_alternatives(
+        &self,
+        grammar_tree: &mut HashMap<String, ASTNode>,
+        rule_order: &mut Vec<String>,
+        mut annotations: Option<&mut Annotations>,
+    ) -> Vec<String> {
+        let mut normalized: Vec<String> = Vec::new();
+        // Iterate `rule_order`, never the HashMap: codegen must be byte-deterministic.
+        for rule_name in rule_order.clone() {
+            let Some(ASTNode::Or { alternatives }) = grammar_tree.get(&rule_name) else {
+                continue;
+            };
+            if alternatives.len() < 2 {
+                continue;
+            }
+
+            let mut direct_indices: Vec<usize> = Vec::new();
+            let mut seed_alternatives = 0usize;
+            for (index, alternative) in alternatives.iter().enumerate() {
+                let is_direct = match alternative {
+                    ASTNode::Sequence { elements } => {
+                        Self::sequence_suffix_if_prefixed_with_rule(elements, &rule_name).is_some()
+                    }
+                    _ => false,
+                };
+                if is_direct {
+                    direct_indices.push(index);
+                } else {
+                    seed_alternatives += 1;
+                }
+            }
+            // ⛔ A rule whose alternatives are ALL left-recursive derives nothing, and hoisting its
+            // alternatives would only move the non-termination behind a helper rule. That belongs
+            // to the linter's `non_terminating` error, so leave it visible where it is.
+            if direct_indices.is_empty() || seed_alternatives == 0 {
+                continue;
+            }
+
+            let mut rewritten = alternatives.clone();
+            for index in direct_indices {
+                let wrapper_rule = Self::allocate_synthetic_rule_name(
+                    format!("{}_lr_alt{}", rule_name, index + 1),
+                    grammar_tree,
+                );
+                grammar_tree.insert(wrapper_rule.clone(), rewritten[index].clone());
+                rewritten[index] = Self::make_rule_reference_node(&wrapper_rule);
+                if let Some(annotations) = annotations.as_deref_mut() {
+                    Self::hoist_branch_annotations(annotations, &rule_name, index, &wrapper_rule);
+                }
+                match rule_order.iter().position(|name| name == &rule_name) {
+                    Some(position) => rule_order.insert(position, wrapper_rule.clone()),
+                    None => rule_order.push(wrapper_rule.clone()),
+                }
+                normalized.push(wrapper_rule);
+            }
+            grammar_tree.insert(rule_name.clone(), Self::build_or_node(rewritten));
+        }
+        normalized
+    }
+
+    /// Move `base_rule`'s branch-`index` annotations onto `wrapper_rule` as its only branch.
+    ///
+    /// The alternative left behind is a bare rule reference, which is AST-transparent — it adds no
+    /// wrapper node — so clearing the base entry keeps the emitted shape identical to what the
+    /// author wrote, and the annotation rides the hoisted body where its `$N` indices still resolve.
+    fn hoist_branch_annotations(
+        annotations: &mut Annotations,
+        base_rule: &str,
+        index: usize,
+        wrapper_rule: &str,
+    ) {
+        if let Some(branches) = annotations.branch_return_annotations.get_mut(base_rule) {
+            if let Some(entry) = branches.get_mut(index) {
+                let hoisted = entry.take();
+                if hoisted.is_some() {
+                    annotations
+                        .branch_return_annotations
+                        .insert(wrapper_rule.to_string(), vec![hoisted]);
+                }
+            }
+        }
+        if let Some(branches) = annotations.branch_semantic_annotations.get_mut(base_rule) {
+            if let Some(entry) = branches.get_mut(index) {
+                let hoisted = std::mem::take(entry);
+                if !hoisted.is_empty() {
+                    annotations
+                        .branch_semantic_annotations
+                        .insert(wrapper_rule.to_string(), vec![hoisted]);
+                }
+            }
+        }
+        if let Some(branches) = annotations
+            .branch_mid_sequence_semantic_annotations
+            .get_mut(base_rule)
+        {
+            if let Some(entry) = branches.get_mut(index) {
+                let hoisted = std::mem::take(entry);
+                if !hoisted.is_empty() {
+                    annotations
+                        .branch_mid_sequence_semantic_annotations
+                        .insert(wrapper_rule.to_string(), vec![hoisted]);
+                }
+            }
+        }
     }
 
     fn detect_left_recursive_chain_plan(

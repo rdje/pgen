@@ -245,7 +245,7 @@ Surelog	tests/ContAssign/dut.sv	fail	must_accept	divergence:unexplained_rejects_
 Surelog	tests/ContAssignConst/dut.sv	pass	must_accept	match	Surelog: golden log ContAssignConst.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/Context/dut.sv	pass	must_accept	match	Surelog: golden log Context.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CovMacro/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log CovMacro.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/Covergroup/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log Covergroup.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/Covergroup/dut.sv	pass	must_accept	match	Surelog: golden log Covergroup.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CrossFunc/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log CrossFunc.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CrossItem/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log CrossItem.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/DashYTest/dut.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (5 sources) - dir-level chained adjudication (leaf .4)
@@ -2565,11 +2565,11 @@ ispras-sv-tests	ieee-1800-2012/19/19.05_01.sv	fail	out_of_scope_with_cause:impl_
 ispras-sv-tests	ieee-1800-2012/19/19.06.01.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06.01.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06.01.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/19/19.06.01.04_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/19/19.06.01.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06.01.04_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/19/19.06.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/19/19.06.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/19/19.06.03_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/19/19.06.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -10678,7 +10678,7 @@ slang	tests/regression/driver/cannot-index-scalar.sv	pass	must_accept	match	slan
 slang	tests/regression/driver/clockvar-target-assign.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/command-files.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/compat-mode-all.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
-slang	tests/regression/driver/cross-ident-in-binsof.sv	fail	must_reject	match	pinned: in-file comment 'The LRM disallows cross_identifier as a bins_expression' - a grammar-level restriction, and the driver CHECKs for an error
+slang	tests/regression/driver/cross-ident-in-binsof.sv	pass	must_accept	match	pinned (A2.5, CORRECTED): the cross-identifier restriction is SEMANTIC, not grammar-level - A.2.11's bins_expression admits any identifier and cover_point_identifier/cross_identifier are the same terminal, so only name resolution can separate them; slang errors because slang elaborates
 slang	tests/regression/driver/custom-task-arg-checking.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/define-system-task.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/dep-file-trim.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
@@ -13727,7 +13727,7 @@ verilator	test_regress/t/t_covergroup_bin_counts.v	fail	must_accept	divergence:e
 verilator	test_regress/t/t_covergroup_clocked_sample.v	pass	must_accept	match	verilator: driver t_covergroup_clocked_sample.py expects success
 verilator	test_regress/t/t_covergroup_coverpoint_method_unsup.v	pass	must_accept	match	verilator: driver t_covergroup_coverpoint_method_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_covergroup_cross.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_cross.py expects success
-verilator	test_regress/t/t_covergroup_cross_opt_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_covergroup_cross_opt_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_covergroup_cross_opt_unsup.v	pass	must_accept	match	verilator: driver t_covergroup_cross_opt_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_covergroup_default_bins.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_covergroup_default_bins.py expects success
 verilator	test_regress/t/t_covergroup_embedded_unsup.v	pass	must_accept	match	verilator: driver t_covergroup_embedded_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_covergroup_empty.v	pass	must_accept	match	verilator: driver t_covergroup_empty.py expects success

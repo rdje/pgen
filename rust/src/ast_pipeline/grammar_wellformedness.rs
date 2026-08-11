@@ -276,7 +276,12 @@ fn referenced_rule(parts: &[TokenValue]) -> Option<&str> {
 
 /// Collect every rule referenced ANYWHERE in `node` (all positions, including inside
 /// lookaheads) into `out`. Building block for structural reachability (GRAMMAR-WELLFORMED.A1b).
-fn collect_node_rule_refs(node: &ASTNode, out: &mut HashSet<String>) {
+/// Collect every rule name `node` references, transitively through its structure.
+///
+/// `pub(crate)` so the LR-elimination pre-pass in `ast_pipeline::mod` can ask the same question this
+/// module's reachability analysis asks, rather than growing a second copy of the traversal that
+/// could drift from it (`GRAMMAR-WELLFORMED.A2.5`).
+pub(crate) fn collect_node_rule_refs(node: &ASTNode, out: &mut HashSet<String>) {
     match node {
         ASTNode::Or { alternatives } => {
             for a in alternatives {

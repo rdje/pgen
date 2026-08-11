@@ -2959,6 +2959,65 @@ reports the complete tally rather than stopping at the first failure, so `1074 p
 29 ignored; 4 filtered out` covers the whole suite (the 4 filtered are the `--skip deep_nesting`
 pair × their two families). Nothing else is red behind it.
 
+### `.10.16` — a print-only `--ignored` PROBE cannot fail, and one of them lost half its measurement in silence (`todo`, found 2026-08-11 by `GRAMMAR-WELLFORMED.A2.5`)
+
+⛔ **THIS IS `.10.15`'s FINDING ONE LAYER DOWN, AND IT IS WORSE.** `.10.15` found a test that was RED
+for 146 commits because the suite it lives in is never run to completion. This is a probe that could
+not have gone red *at all*: it `eprintln!`s its measurements and asserts **nothing**, so a total
+failure of one of the two things it compares prints and exits 0.
+
+**SYMPTOM (measured 2026-08-11).**
+`cargo test … --lib parse_harness_combinator_suite::measurement::measure_direct_left_recursion_known_divergence -- --ignored --nocapture`
+→ `test result: ok. 1 passed`, with every one of its five oracle measurements being not a
+measurement but an error:
+
+```
+oracle=Err(Codegen { status: Some(1), stderr: "Error: grammar 'direct_left_recursion':
+  no entry rule is declared. …" })
+```
+
+**ROOT CAUSE (WHY + WHERE).** The probe's grammar constant is
+`"start := start \"+\" term | term\nterm := \"n\"\n"` — it declares no `@entry: true`.
+`QUANT-PLUS-ITER.2` step C (director requirement, 2026-07-26) made that a hard codegen error in
+`rust/src/main.rs::apply_declared_entry_rule`, so from that date the probe's **oracle half could not
+run**. The interpreter half kept printing numbers, which is why the output still looks like a
+measurement.
+
+⛔ **AND THE STALE NUMBERS WERE STILL PUBLISHED AS CURRENT** in three surfaces — the constant's own
+docstring, `TOOLBOX.md` §1.7's honest bound, and the book's *Parse Harness* chapter — all quoting
+*"measured: interpreter reaches `2`/`4`, the generated parser stays `0`"*, a comparison the probe
+had stopped being able to make. `A2.5` corrected all three when it retired this probe and replaced
+it with three first-class GATE cases.
+
+**SIZE (a census of the class, not a floor).** `rust/src/` carries **28** `#[ignore]` tests. 21 are
+the parked `trace-of-parse-path` family (20 in `embedding_api.rs`, 1 in `parser_registry.rs`). The
+remaining **7 are `--ignored --nocapture` measurement probes** of exactly this shape — 1 in
+`parse_harness_combinator_suite.rs` (after `A2.5` retired the broken one), 4 in
+`parse_harness_equivalence.rs`, 2 in `parse_harness_semantic_suite.rs`. Every one of them prints
+rather than asserts. ⛔ That 6 of the 7 have not been shown broken is not evidence they are sound —
+it is evidence nobody has looked, which is the same instrument-trust failure
+[[a-check-whose-inputs-all-pass-has-not-been-tested]] names.
+
+**OWED.**
+1. Give every measurement probe a **plumbing assertion** — not a verdict assertion (a scouting probe
+   should not pin outcomes), but the minimum claim that both sides *ran*: an `Err` from either the
+   interpreter or the oracle is a probe failure, because a probe that cannot compare has no output
+   worth printing. That single assertion would have caught this on 2026-07-26.
+2. Audit the other 6 for the same class of silent breakage, and for stale quoted numbers in
+   `TOOLBOX.md` / the book.
+3. ⭐ The deeper rule, worth a knowledge card: **a diagnostic that reports by printing inherits the
+   credibility of an assertion without any of its teeth.** Numbers a probe printed once get quoted
+   as current facts for as long as the prose survives.
+
+⛔ **PARKED behind the SV lane lock** — routed, not worked: it is harness/instrument hygiene in no
+grammar family, and no part of the SV release depends on it. ⭐ Named re-open trigger: the lane lock
+lifting, OR the next probe whose printed numbers are about to be quoted in a published surface.
+**Read together with `.10.15`** — same failure family, different mechanism (never finishes vs. cannot
+fail).
+
+**Acceptance:** every `--ignored` measurement probe fails when either side it compares fails to run;
+the 6 unaudited probes are measured and their published numbers reconciled or removed.
+
 ### `.10.7` — delete the retired Perl tree (`done` — ✅ SLICE 1 + ✅ SLICE 2)
 
 - **Status: `in-progress`, carrying explicit director approval (2026-07-31): *"you have my

@@ -1839,7 +1839,14 @@ subtle dead branch"), never a silent accept.
   `docs/decisions/project_fixed_terminal_prefix_policy_conditional.md` + INDEX row; CHANGES /
   DEVELOPMENT_NOTES / MEMORY / LIVE tracker + this tree + `docs/TASK_TREE.md` updated.
 
-### `A2.5` — the linter calls a DEAD branch "handled by PGEN", and it is not (`todo`; **fix DESIGNED, PROTOTYPED and PROVEN 2026-08-11**, blocked on `ENGINE-UNIVERSAL-SERVICES.8`)
+### `A2.5` — the linter calls a DEAD branch "handled by PGEN", and it is not (**ENGINE HALF `done`** 2026-08-11; the LINTER half stays `todo`)
+
+> ⭐⭐ **LANDED.** The engine now eliminates left recursion in BOTH shapes, so the linter's message is
+> no longer false. What remains open is that it is still **unearned** — it would say the same thing if
+> the eliminator regressed. That half is scoped at the end of this leaf and is deliberately NOT closed
+> here. Measured outcome: SystemVerilog's **4 dead alternatives → 0**, with **ZERO grammar bytes**
+> changed; `select_expression`'s `&&` / `||` / `with ( … )` and `block_event_expression`'s `or` all
+> parse, and all four return the AST their annotations declare.
 
 ⭐⭐ **DIRECTOR RULING, 2026-08-11 — the fix tier was ESCALATED from grammar to ENGINE, and the
 first attempt was rejected on review.** This leaf originally proposed leaving the eliminator alone
@@ -1870,11 +1877,12 @@ all at 0), while the raw IEEE 1800-2017 Annex A transcription
 shipped grammar shows only 1 because earlier sessions had already hand-flattened the others. That
 difference is the scar tissue, and it is now its own tree: `ENGINE-UNIVERSAL-SERVICES`.
 
-#### The fix, prototyped and proven — held back, not abandoned
+#### The fix, as landed
 
-⛔ **NOT LANDED.** The working diff is preserved verbatim at
-`docs/tasks/artifacts/engine_universal_services/A2.5_direct_lr_normalization.patch` (213 lines,
-`git apply`-able) so nothing is lost. It is held back solely by `ENGINE-UNIVERSAL-SERVICES.8`.
+✅ **LANDED 2026-08-11.** The preserved patch at
+`docs/tasks/artifacts/engine_universal_services/A2.5_direct_lr_normalization.patch` is now HISTORY,
+not a resume pointer: its engine half applied clean, its test half was re-authored by hand (see
+*What changed relative to the patch* below), and the landed change is strictly larger than it.
 
 `normalize_direct_left_recursive_alternatives` in `rust/src/ast_pipeline/mod.rs`, a **pre-pass, not
 a second elimination path**: a directly left-recursive alternative is mechanically the wrapper shape
@@ -1889,7 +1897,7 @@ indices, the same invariant the wrapper flatten path already relies on.
 nothing, and hoisting would only hide the non-termination behind a helper rule; it stays visible to
 the linter's `non_terminating` error.
 
-##### Prototype evidence (NOT an acceptance checklist — no code landed)
+##### Acceptance Checklist (enforced)
 
 - [x] **REPRODUCE / ISSUE** — a 4-rule synthetic grammar
   (`expr := expr plus term | expr minus term | term`) reproduces it with no language involved:
@@ -1905,96 +1913,100 @@ the linter's `non_terminating` error.
   WHERE: `detect_left_recursive_chain_plan` matches an alternative only via
   `extract_rule_reference_name` → `extract_wrapper_suffix`, i.e. a **bare rule reference** to a
   wrapper rule; a multi-element `Sequence` starting with a self-reference matches neither, so the
-  alternative reaches codegen intact — confirmed structurally by
-  `grep -c _pgen_lr_chain generated/systemverilog_parser.rs` → **0** before the fix.
-- [~] **FIX (prototyped, unlanded)** — engine tier, and the tier is the point (director ruling above). One pre-pass +
-  one annotation-hoist helper in `ast_pipeline/mod.rs`; **no grammar bytes**, no new EBNF construct,
-  and nothing for an author to learn or opt into.
-- [~] **ADDRESSED (measured on the prototype)** — synthetic gen-AST sweep `dead: [["expr",1,3],["expr",2,3]]` → **`dead: []`**,
-  with `expr_lr_alt1` / `expr_lr_alt2` normalized and then eliminated to `expr_lr_base ( expr_lr_suffix )*`.
-  Proven by the project's own certifying oracle rather than by inspection: two NEW cases in
-  `parse_harness_combinator_suite` — `direct_left_recursion` and `direct_left_recursion_multi_alt`
-  (the latter with two distinct operators, so a normalizer that hoisted only the first alternative
-  or cross-wired two wrappers' annotations cannot pass) — run through BOTH the interpreter and the
-  compile-and-run oracle and asserted **byte-identical** in verdict, `furthest_position` and typed
-  AST. `make parse_harness_combinator_gate` equivalent: `cargo test --lib
-  parse_harness_combinator_suite` → **2 passed, 0 failed** (`every_structural_combinator_is_byte_identical`,
-  `combinator_coverage_is_complete`), 122.70 s.
-- [~] **NO REGRESSION (partial)** — the pre-pass is a no-op on every grammar that has no directly
-  left-recursive alternative, which the all-grammar sweep measured as **10 of the 13 buildable
-  grammars at 0**; the pre-existing `left_recursion` (indirect wrapper) suite case is unchanged and
-  still byte-identical, so the path that already worked is untouched. Iteration is over `rule_order`
-  and never the `HashMap`, preserving codegen byte-determinism — itself re-verified this session by
-  regenerating `systemverilog_parser.rs` twice from an unchanged grammar and comparing sha256
-  (`b10dd116…` both times).
-- [~] **LOCKSTEP (partial)** — knowledge card
-  [[a-directly-left-recursive-alternative-inside-a-choice-is-dead-code]], `KNOWLEDGE_MAP.md`,
-  the combinator suite's module honest-bounds note, and the new `ENGINE-UNIVERSAL-SERVICES` tree
-  that this leaf's director ruling commissioned.
+  alternative reaches codegen intact.
+- [x] **FIX** — ENGINE tier, and the tier is the point (director ruling above). Three functions in
+  `rust/src/ast_pipeline/mod.rs` and one visibility change; **no grammar bytes**, no new EBNF
+  construct, nothing for an author to learn or opt into:
+  - `normalize_direct_left_recursive_alternatives` — the pre-pass. Hoists each directly
+    left-recursive alternative's body **verbatim** into a synthetic `<rule>_lr_altN` rule and leaves
+    a bare reference behind, after which the existing, tested planner does all the work unchanged.
+    Hoisting *verbatim* is what preserves the author's `$N` indices.
+  - `hoist_branch_annotations` — moves that branch's return / semantic / mid-sequence annotations
+    onto the synthetic rule, where their `$N` still resolve.
+  - `retract_consumed_normalization_rules` — ⭐ **NOT in the prototype; added because the closure
+    gate caught what the prototype would have shipped.** See *What changed relative to the patch*.
+  - `grammar_wellformedness::collect_node_rule_refs` → `pub(crate)`, so the retraction asks the same
+    question the reachability analysis asks instead of growing a second traversal that can drift.
+- [x] **ADDRESSED (measured, before → after)** — every number below is from this session's tools:
 
-#### ⛔ WHY IT IS HELD BACK, and the exact resume state
+  | Measurement | Before (at `e1bff2e2`) | After |
+  |---|---|---|
+  | SV dead alternatives (post-elimination gen-AST sweep) | **4** (`select_expression` 3 of 8, `block_event_expression` 1 of 3) | **0** |
+  | `fixed_select_expression_with.sv` (`with ( … )`) | REJECT | **ACCEPT**, arm `with_matches` |
+  | `fixed_select_expression_or.sv` (`\|\|`) | REJECT | **ACCEPT**, arm `or>paren` |
+  | `fixed_select_expression_paren.sv` (`&&` over a paren operand) | REJECT | **ACCEPT**, arm `and>paren` |
+  | `fixed_block_event_or.sv` (`@@(begin m.t or end m.t)`) | REJECT | **ACCEPT**, arm `or` |
+  | `_pgen_` marker in any published SV AST | — | **absent** (checked on all four) |
+  | combinator suite cases | 32 | **35**, `2 passed / 0 failed`, 35/35 CLEAN |
+  | `--lint-grammar` `left_recursive` | 32 | 30 (the two rules are now planner-eliminated) |
 
-The prototype is **verified for parse acceptance** and revives all 4 dead SystemVerilog alternatives
-with **ZERO grammar bytes** — the grammar still transcribes IEEE 1800-2017 Annex A verbatim.
-`block_event_expression` (`SV-CORPUS-GRAD.13c.2a.4`) is fixed by the same change, for free, which is
-the whole argument for fixing the engine rather than the grammar.
+  ⭐ **The `&&` proof is `fixed_select_expression_paren.sv`, not the `&&` control.**
+  `control_select_expression_and.sv` still reports `condition` + ZERO `and` nodes and its
+  `condition,!and` masking pin still passes — correctly, because `.13c.2a.1`'s literal-brace defect
+  still lets the seed swallow the remainder there. A2.5 did not fix that and does not claim to.
+- [x] **NO REGRESSION** — `sv_syntax_closure_gate` **PASS with the contract UNCHANGED**
+  (`unreachable_rules` 4 → **0**, `defined_rule_count=1481`, `unreachable_branches=2`; no cap moved,
+  no rule blessed); `--lint-grammar` `non_terminating=0 unreachable_rules=0 undefined_references=0
+  unbound_fact_kinds=0 profile_orphans=0 ordered_choice_shadowing=0`; adjudication oracle
+  `checked=26 armed=6 listed=26 failures=0`, including `invalid_select_expression_double_matches.sv`
+  still REJECT — a fix that revived `with` did **not** also admit the stacked `matches` tail, which
+  is exactly what that row was pinned for while it was non-discriminating; the pre-existing
+  `left_recursion` and `left_recursion_folded_ast` suite cases unchanged and still byte-identical.
+  The pre-pass is a no-op on every grammar with no directly left-recursive alternative (**10 of the
+  13 buildable grammars**). Iteration is over `rule_order`, never the `HashMap`, so codegen
+  byte-determinism is preserved.
+- [x] **LOCKSTEP** — see the leaf's LOCKSTEP list at the end of this section.
 
-⛔ It is held back because verifying it surfaced `ENGINE-UNIVERSAL-SERVICES.8`: LR elimination emits
-its internal `_pgen_lr_chain` blob as the typed AST instead of the author's declared shape. Landing
-it would turn SV's `bins_selection.select` from one of eight declared kinds into that blob — a
-contract regression traded for a parse-correctness win, which is not a trade this project makes.
+##### ⭐ What changed relative to the preserved patch — and why the difference matters
 
-⚠️ **And `ast_shape_contract_gate` does NOT catch it** — measured: 18/18 green with the prototype
-applied, because its 18 pinned samples do not reach `select_expression`. A green gate that does not
-cover the changed rule is not evidence of safety, and that is `.8`'s missing-oracle point arriving
-one more time.
+The landed change is **strictly larger** than the prototype, in three places. Each addition was
+forced by an instrument, not by taste:
 
-**Resume pointer — exact state:**
-- ✔ The whole diff is tracked at
-  `docs/tasks/artifacts/engine_universal_services/A2.5_direct_lr_normalization.patch` —
-  `normalize_direct_left_recursive_alternatives` + `hoist_branch_annotations` in
-  `rust/src/ast_pipeline/mod.rs`, and 2 new cases in `rust/src/parse_harness_combinator_suite.rs`
-  (gate **2 passed / 0 failed**). Re-apply with `git apply` to resume.
-- ⚠️ **UPDATED 2026-08-11 after `ENGINE-UNIVERSAL-SERVICES.8` landed (`c158a8a8`): the patch is now
-  PARTIALLY CONFLICTED, and the earlier "verified `git apply --check` clean against `474f40df`" no
-  longer describes HEAD.** Measured per file:
-  - `rust/src/ast_pipeline/mod.rs` (**the engine half — the whole fix**) still applies **CLEAN**:
-    `git apply --include=rust/src/ast_pipeline/mod.rs docs/tasks/artifacts/engine_universal_services/A2.5_direct_lr_normalization.patch`
-  - `rust/src/parse_harness_combinator_suite.rs` **fails at line 478** — `.8` inserted its own
-    `left_recursion_folded_ast` case at exactly that site. Re-add A2.5's two cases
-    (`direct_left_recursion`, `direct_left_recursion_multi_alt`) **by hand**, alongside `.8`'s case
-    rather than in place of it; they measure different things (A2.5: the direct shape is REACHED at
-    all; `.8`: an eliminated rule returns the DECLARED AST).
-  ⇒ the conflict is mechanical and confined to the test table. Nothing about the engine fix changed.
-- ⭐ **`.8` ADDED A NEW GATE THIS LEAF WILL BE THE FIRST TO MEET — pre-checked, and it passes.**
-  `lr_chain_fold::validate_chain_templates` now runs at GENERATION time and hard-fails codegen if a
-  left-recursive alternative's annotation uses a construct the fold cannot replay (`$text`/`$0`, a
-  quantified extraction, a nested chain, or a positional beyond the alternative's own body length).
-  A2.5 gives SystemVerilog its first LR plan, so SV's templates become the first non-annotation-grammar
-  ones that validator ever sees. Checked by reading them, so this is not a surprise waiting in a build:
-  - `select_expression` — `… logical_and … -> {kind: "and", lhs: $1, rhs: $3}` and its `logical_or`
-    twin (body length 3; `$1`,`$3` in range), and `… kw_with … lparen … rparen ( kw_matches … )?
-    -> {kind: "with_matches", lhs: $1, expression: $4, matches: $6}` (body length **6**; `$1`,`$4`,`$6`
-    in range). All three are static-key Objects over string literals + positionals.
-  - `block_event_expression` — `… kw_or … -> {kind: "or", lhs: $1, rhs: $3}` (body length 3).
-  ⇒ **all four revived alternatives are inside the fold's declarable vocabulary**; none uses `$text`,
-  an extraction, or an out-of-range positional. Expect no generation-time refusal.
-- ⚠️ `generated/` (untracked) is STALE — it still holds the prototype build
-  (`🔁 Normalized 4 DIRECTLY left-recursive alternative(s)`), which no longer matches the committed
-  source. **Regenerate before trusting any local parse:**
-  `make -C rust SHELL=/bin/bash focus_systemverilog` then rebuild the release probe.
-- ✘ NOT run against this build: `sv_external_corpus_triage_gate`, `sv_cert_recognized_union_gate`
-  (expect +N rules from the synthetic `*_lr_alt*` helpers — re-baseline in the same commit,
-  `CI-PARITY-GATE-ROT.22`), `check_doctrines.sh`, `mdbook_docs_gate`.
-- ✘ NOT decided: the schema move. If `.8` lands first, the fold restores the declared kinds and the
-  three continuation kinds become newly *reachable* — an **additive** schema change rather than a
-  shape replacement, which is the whole reason the hand-written grammar rewrite was rejected.
-- **Next action:** `ENGINE-UNIVERSAL-SERVICES.8` (fold `_pgen_lr_chain` into the declared shape +
-  the annotation-vs-emitted-AST conformance oracle), then `git apply` the patch, re-verify, and land
-  both together with ONE additive schema move.
-- ✔ `stimuli/sv/adjudication_repros/` is committed at the HONEST pre-fix state: the three
-  `defect_select_expression_*.sv` rows expect REJECT and flip to ACCEPT when this leaf lands; the
-  falsified control carries `arm = condition,!and`, its refutation written down as a check.
+1. **`retract_consumed_normalization_rules` — the prototype leaked its own scaffolding.**
+   `apply_left_recursive_chain_plan` *rewrites* the wrapper rules it consumes instead of deleting
+   them, so after elimination each synthetic `_lr_altN` rule was still **defined and referenced by
+   nothing**. `sv_syntax_closure_gate` caught it precisely: `unreachable_rules=4 >
+   max_unreachable_rules=0`, naming all four (`reason=unreachable_from_entry`). ⛔ The tempting fix —
+   raise the cap to 4 and bless them — is the move this project forbids, and the contract's own
+   history says so: a prior baseline drove `max_unreachable_rules` **1 → 0** with the note *"the net
+   of the LR-elimination synthetic rules no longer being created"*. Engine litter does not get a
+   waiver a grammar would not get. The retraction deletes each synthetic rule once **nothing
+   references it** (a fixed point, not a single pass — retracting one rule can orphan another), which
+   is safe because planning has already baked the annotations into the `_pgen_lr_chain` templates.
+   Result: `_lr_alt` occurrences in `generated/systemverilog_parser.rs` = **0**.
+2. **A third combinator case the patch did not have — `direct_left_recursion_folded_ast`.** The
+   patch's two cases are annotation-free, so they prove the direct shape *parses*; `.8`'s case proves
+   annotations replay on a *wrapper* rule. Neither covers the composition SystemVerilog actually
+   ships: annotations written on a **directly** left-recursive alternative, which the normalizer
+   MOVES onto a synthetic rule. That is exactly the gap this leaf indicts elsewhere — a green gate
+   that does not cover the changed thing — so the case was added and the gate asserts the **exact**
+   left-nested value against the declaration. It is the isolating twin of `select_expression`'s
+   `-> {kind: "and", lhs: $1, rhs: $3}`.
+3. **Two new `Combinator` variants instead of reusing `LeftRecursion`.** The patch tagged its cases
+   `LeftRecursion`; the landed version adds `DirectLeftRecursion` and `DirectLeftRecursionFoldedAst`,
+   following `.8`'s precedent. The two shapes enter the engine through different doors — one is what
+   the planner always matched, the other is what it never saw — so sharing a tag would let
+   `combinator_coverage_is_complete` call direct LR covered on the strength of a case that never
+   exercises the normalizer.
+
+##### ⛔ A SECOND finding this leaf had to fix on the way: a durable repro that could not fail
+
+`measure_direct_left_recursion_known_divergence` — the `--ignored` probe that documented the
+direct-LR `furthest_position` divergence — is **retired**, and not only because its subject is fixed.
+Running it showed all five of its oracle measurements were not measurements:
+
+```
+oracle=Err(Codegen { status: Some(1), stderr: "… no entry rule is declared. …" })
+```
+
+Its grammar constant declared no `@entry: true`, which `QUANT-PLUS-ITER.2` step C made a hard codegen
+error on **2026-07-26**. From that date the probe compared one implementation against an error string,
+printed the result, and exited 0 — because it `eprintln!`s and asserts nothing. Its stale numbers
+(*"interpreter reaches 2/4, the generated parser stays 0"*) were still quoted as current in three
+published surfaces: its own docstring, `TOOLBOX.md` §1.7, and the book's *Parse Harness* chapter. All
+three are corrected here; the class (**7 print-only measurement probes**) is sized and routed to
+`LANG-CAPABILITY-AUDIT.10.16`, the sibling of `.10.15`.
+
 
 #### Still `todo` — the LINTER half
 

@@ -8412,6 +8412,14 @@ is not a promotion), and the probe arm it needs.
   defects, each located by a probe, are routed to `.13c.2a.1`/`.2`/`.3`.
 - ⇒ **The 3 clkmgr corpus rows still REJECT**, and this leaf says so rather than claiming them.
   They need `.13c.2a.2`.
+- ✅ **`.13c.2a.2` is `done`** (2026-08-11, closed by `GRAMMAR-WELLFORMED.A2.5`'s engine pre-pass —
+  its substance is that leaf's, and so is its acceptance evidence). The 3 clkmgr rows' construct
+  `x with (a == 1)` now parses, pinned as `fixed_select_expression_with.sv` with arm `with_matches`.
+  ⛔ Parsing the construct is **not** the same as the 3 corpus rows passing end-to-end — that is a
+  `.13c` worklist re-measure this leaf does not claim; it claims the construct.
+  Its siblings `.13c.2a.3` and `.13c.2a.4` closed with it. Still open here: `.13c.2a.1`
+  (the literal `intersect` braces transcribed as EBNF repetition), which is why
+  `control_select_expression_and.sv` remains a masking pin rather than a `&&` control.
 
 ##### Acceptance Checklist (enforced)
 
@@ -8428,12 +8436,16 @@ is not a promotion), and the probe arm it needs.
   `bins_selection_or_option` in `cross_body_item_sv_2017` (`grammars/systemverilog.ebnf`). No engine,
   codegen or Rust change; the `-> {kind: "selection_or_option", body: $1}` annotation is unchanged
   (`semi` was never captured), so the AST shape is unchanged.
-- [ ] **ADDRESSED** — owed by `GRAMMAR-WELLFORMED.A2.5`. ⭐ Already measured against a prototype of
-  that engine fix, which is why the routing is not speculative: with **ZERO grammar bytes** changed,
-  `x with (a == 1)`, `( binsof(ca) intersect { 1 } ) && binsof(cb)` and the `||` form all go
-  **REJECT→ACCEPT**, and `block_event_expression` (`.13c.2a.4`) is fixed by the same change for free.
-- [ ] **NO REGRESSION** — owed by `GRAMMAR-WELLFORMED.A2.5`.
-- [ ] **LOCKSTEP (owed when A2.5 lands)** — SV integration contract (release + schema + ledger,
+- [x] **ADDRESSED** — ✅ discharged by `GRAMMAR-WELLFORMED.A2.5` (landed 2026-08-11), and the routing
+  was not speculative: with **ZERO grammar bytes** changed, `x with (a == 1)`,
+  `( binsof(ca) intersect { 1 } ) && binsof(cb)` and the `||` form all went **REJECT→ACCEPT**, and
+  `block_event_expression` (`.13c.2a.4`) was fixed by the same change for free. Each is now pinned
+  with an `arm` (`with_matches`, `and>paren`, `or>paren`, `or`) so the ACCEPTs name the alternative
+  that produced them rather than merely reporting that the text parsed.
+- [x] **NO REGRESSION** — ✅ discharged by `GRAMMAR-WELLFORMED.A2.5`: `sv_syntax_closure_gate` PASS
+  with the contract UNCHANGED, adjudication oracle `checked=26 armed=6 failures=0`, and
+  `invalid_select_expression_double_matches.sv` still REJECT. Full table in that leaf.
+- [x] **LOCKSTEP** — discharged with A2.5; see its LOCKSTEP list. Owed there, not here — SV integration contract (release + schema + ledger,
   with the consumer migration), released-parser bug ledger, SV parser book (schema timeline +
   changelog index), book *Grammar Well-Formedness* (the corrected probe table + the new
   left-recursion passage), knowledge cards
@@ -8442,7 +8454,13 @@ is not a promotion), and the probe arm it needs.
   `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, the reproducer
   `MANIFEST.tsv` + runner, and `GRAMMAR-WELLFORMED.A2.5` (routed).
 
-#### `.13c.2a.3` — the parenthesized `( select_expression )` alternative (**diagnosed, subsumed by `.13c.2a.2`**; `todo` until `GRAMMAR-WELLFORMED.A2.5` lands)
+#### `.13c.2a.3` — the parenthesized `( select_expression )` alternative (**`done`** 2026-08-11, closed by `GRAMMAR-WELLFORMED.A2.5`)
+
+> ✅ **CLOSED.** `fixed_select_expression_paren.sv` REJECT → **ACCEPT** with arm `and>paren` — and it
+> is now the tree's **positive `&&` proof**, the thing this leaf predicted it would become. Because
+> the left operand is parenthesized, the seed must stop there, so the `and` node can only have come
+> from the revived continuation. ⛔ Still no separate acceptance checklist, for the reason given
+> below; the measured evidence is in `GRAMMAR-WELLFORMED.A2.5`.
 
 - ⭐ **The hypothesis in this leaf was right to be flagged as a hypothesis, and it was WRONG in an
   instructive way.** It read *"likely the same root cause as `.13c.2a.2` — a lost non-seed
@@ -8456,7 +8474,22 @@ is not a promotion), and the probe arm it needs.
 - ⛔ **No separate acceptance checklist**: a leaf closed by another leaf's fix does not get to claim
   its own before→after. The measured evidence is in `.13c.2a.2`.
 
-#### `.13c.2a.4` — the SECOND rule with the same dead-alternative shape: `block_event_expression` (`todo`, opened 2026-08-11 by `.13c.2a.2`)
+#### `.13c.2a.4` — the SECOND rule with the same dead-alternative shape: `block_event_expression` (**`done`** 2026-08-11, closed by `GRAMMAR-WELLFORMED.A2.5`)
+
+> ✅ **CLOSED BY THE ENGINE FIX, FOR FREE — and that is the leaf's real result.** This leaf planned
+> *"the identical grammar-tier flattening — `seed ( continuation )*`"* and said it needed its own
+> commit for its own before→after. The director's ruling made the flattening the wrong fix, and the
+> engine pre-pass `GRAMMAR-WELLFORMED.A2.5` landed instead revived this rule with **zero bytes aimed
+> at it**. ⭐ That is the whole argument for fixing the engine rather than the grammar, stated as a
+> measurement: a grammar-tier flatten would have fixed `select_expression` and left this rule dead
+> until someone wrote a second patch.
+>
+> **Before → after (measured):** `covergroup cg @@(begin m.t or end m.t);` REJECT → **ACCEPT**; the
+> one-difference control `covergroup cg @@(begin m.t);` ACCEPT → ACCEPT. Both are now pinned in the
+> adjudication oracle as `fixed_block_event_or.sv` (arm `or`) and `control_block_event_single.sv`, so
+> the revival is a standing claim rather than a paragraph. ⛔ It gets no separate acceptance checklist
+> — a leaf closed by another leaf's fix does not claim its own before→after, the `.13c.2a.3`
+> precedent. The evidence lives in `GRAMMAR-WELLFORMED.A2.5`.
 
 - **The sweep `.13c.2a.2` ran found exactly two.** Over the post-elimination gen-AST
   (`ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --count 1 --dump-gen-ast`,

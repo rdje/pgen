@@ -534,7 +534,7 @@ gate uses does not apply because these grammars are synthetic and never register
 Because the corpus is a *fixed curated input set* (not the seeded stimuli generator), the differential is
 `synthetic grammar × curated input` with no randomness — deterministic by construction.
 
-The 32 isolating cases cover the whole structural surface:
+The 35 isolating cases cover the whole structural surface:
 
 | Combinator | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -552,6 +552,9 @@ The 32 isolating cases cover the whole structural surface:
 | **rule reference** | `start := a b` | dispatch to referenced rules |
 | **left recursion** (LR-eliminated) | `expr := wrapper \| term`, `wrapper := expr "+" term` | the wrapper form is rewritten to `base (suffix)*` |
 | **left recursion — folded AST** | the same form with `-> {type: "add", lhs: $1, rhs: $3}` on two distinct operators | the eliminated rule returns the **declared** left-nested AST (`ENGINE-UNIVERSAL-SERVICES.8`). ⛔ The annotation-free row above cannot see this: its AST is structural, which is why the suite was green while every LR-eliminated rule in every grammar published the eliminator's internal record. Byte-identity cannot judge it either — both sides leaked identically — so the gate asserts the **exact** value against the declaration. Measured: `left_recursion_folded_ast CLEAN samples=6 diverge=0` |
+| **left recursion — direct** | `expr := expr "+" term \| term` — the self-reference written **inline in the choice**, the way every standard's Annex A writes it | the pre-pass hoists the alternative into a synthetic `expr_lr_alt1` rule and the *existing* planner eliminates it, so this agrees with the wrapper row input-for-input (`GRAMMAR-WELLFORMED.A2.5`). Before it, this shape matched no elimination pattern: the alternative reached codegen intact and the runtime cycle guard **rejected** it at the seed position, so `n` parsed and `n+n` did not — dead code that still parsed its operands |
+| **left recursion — direct, multi-alternative** | `expr := expr "+" term \| expr "-" term \| term` | each directly left-recursive alternative gets its **own** wrapper keeping its **own** `$N` positions — a normalizer that hoisted only the first, or cross-wired two wrappers, cannot pass. IEEE 1800-2017 A.2.11's `select_expression` has three such alternatives and A.2.10's `sequence_expr` five |
+| **left recursion — direct, folded AST** | the multi-alternative form with `-> {type: "add", lhs: $1, rhs: $3}` on each arm | ⭐ the composition the shipped SystemVerilog grammar actually needs, and the one neither row above covers: annotations written on a **directly** left-recursive alternative are *moved* onto its synthetic rule, and the author's `$1`/`$3` must still address the hoisted body's own positions. Byte-identity is blind here — both sides run the same pre-pass — so the gate asserts the **exact** left-nested value against the declaration, as `ENGINE-UNIVERSAL-SERVICES.8` does. This is the isolating twin of `select_expression`'s `-> {kind: "and", lhs: $1, rhs: $3}` |
 | **memo × runtime cycle-breaking** | `start := call \| cast`, `call := recv \| fn`, `recv := cast`, `cast := call "'" …` on `"f(x)'(x)"` | an INDIRECT cycle the LR eliminator does not rewrite, so `cast` is reached at position 0 once from *inside* the cycle (guard-blocked) and once from outside it (legal 8-byte match). A memo that files the blocked attempt under the stack-blind `(rule, position)` key replays it and the tournament never sees the longer alternative — the `SV-CORPUS-GRAD.3.12` defect, pinned |
 | **layout — insensitive default** | `start := "a" "b"` (no directive) | layout is auto-skipped: `"a b"`, `" ab"`, `"ab "` all **accept** |
 | **layout — `@whitespace_sensitive: true`** | same grammar + the directive | every space is literal: only `"ab"` accepts (the `regex.ebnf` policy) — since `WS-DIRECTIVE.2` |
@@ -587,20 +590,25 @@ not by guesswork:
   decoder both spellings and delegated the stimuli duplicate to it; the four `quant_bounded_*` cases in
   the table above are the per-combinator differential proof that all four bounded windows now compile,
   parse, and interpret byte-identically.
-- **LR-elimination shifts the canonical entry.** When PGEN eliminates the wrapper/indirect left-recursion
-  form, it **prepends** the synthetic `_lr_base` / `_lr_suffix` helper rules to the rule order — so
-  `rule_order[0]` is no longer the semantic entry (`expr`); it becomes the base rule. Driving an
-  LR-eliminated grammar therefore requires naming the real entry explicitly (the suite does, applying the
-  same entry to both the interpreter and the oracle so the differential stays valid). This only affects
-  synthetic left-recursive grammars — the shipped grammars express operator chains iteratively
-  (`X := Y (op Y)*`), which needs no elimination.
+- **LR-elimination shifts the canonical entry.** When PGEN eliminates left recursion it **prepends**
+  the synthetic `_lr_base` / `_lr_suffix` helper rules to the rule order — so `rule_order[0]` is no
+  longer the semantic entry (`expr`); it becomes the base rule. (The direct form's `_lr_altN` rules
+  are prepended too, but only for the duration of the pass: once the planner inlines them they are
+  **retracted**, so they never reach codegen and never appear in a rule order the author can
+  observe.) Driving an LR-eliminated grammar therefore requires
+  naming the real entry explicitly (the suite does, applying the same entry to both the interpreter and
+  the oracle so the differential stays valid). In practice this is invisible: codegen **requires** an
+  `@entry: true` declaration, so the positional fallback survives only in the interpreter, where a
+  synthetic grammar that declares no entry can silently re-root onto a helper rule.
 
-Bare *direct* left recursion (`A := A x | y`) is a deliberately **out-of-scope** case: PGEN's structural
-elimination only matches the wrapper form, so direct recursion is left to *runtime cycle-breaking*
-(`RecursionGuard`). On that path the interpreter and the generated parser agree on the verdict but diverge
-on `furthest_position` (measured: interpreter reaches `2`/`4`, the generated parser stays `0`) — a genuine
-interpreter-fidelity gap kept as a durable, re-runnable probe and surfaced for a follow-up, distinct from
-the LR-*eliminated* combinator the suite certifies.
+**Bare *direct* left recursion (`A := A x | y`) is no longer a divergence — it is certified.** It used
+to be out of scope: PGEN's structural elimination matched only the wrapper form, so direct recursion fell
+through to *runtime cycle-breaking* (`RecursionGuard`), where the interpreter and the generated parser
+agreed on the verdict but diverged on `furthest_position`. `GRAMMAR-WELLFORMED.A2.5` removed the cause
+rather than the symptom: a pre-pass normalizes the direct shape into the wrapper shape *before* planning,
+so both sides now run the same eliminated grammar. The three `direct_left_recursion*` rows above are the
+proof, and they run in the **gate** — verdict, `furthest_position` and typed AST byte-identical, plus an
+exact-value assertion against the declaration.
 
 ## The semantic-directive orchestration suite (`PARSE-HARNESS.6.2`)
 
@@ -747,7 +755,7 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, `return_annotation` since `.5.3`, and
   `rtl_const_expr` since `.5.5` — via a curated corpus for that un-generatable grammar); the DEFERRED
   ratchet is now empty. The combinator-complete corpus has now also landed in full: the **structural**
-  half (`.6.1`, *The structural combinator suite* above — 32 isolating grammars: 16 at landing, plus the
+  half (`.6.1`, *The structural combinator suite* above — 35 isolating grammars: 16 at landing, plus the
   four bounded-quantifier cases added when `BOUNDED-QUANT.1` closed that half-wire, the three
   layout-policy cases added when `WS-DIRECTIVE.2` made whitespace-sensitivity a declarable,
   synthetic-grammar-expressible capability, the two default-profile cases added when
@@ -758,7 +766,9 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   corpus had surfaced, the three associativity tie-break cases added by
   `GENERATED-LINT-CORRECTNESS.2`, and the folded-AST left-recursion case added by
   `ENGINE-UNIVERSAL-SERVICES.8` — the one that asserts an eliminated rule returns the AST its
-  annotations DECLARED, which the annotation-free left-recursion case structurally cannot see)
+  annotations DECLARED, which the annotation-free left-recursion case structurally cannot see,
+  and the three DIRECT left-recursion cases added by `GRAMMAR-WELLFORMED.A2.5`, which turned that
+  shape from a documented divergence into a certified combinator)
   and the
   **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
   36 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the

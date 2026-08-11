@@ -592,3 +592,69 @@ annotation is exercised and verified over a corpus nobody hand-picked"*.
 - The scar-tissue census is a re-runnable instrument, and its current output is published.
 - The gap list is priced well enough for the director to choose from it.
 - The responsibility-boundary rule is a decision record that a reviewer can cite.
+
+### `.10` — the cert generator cannot witness the rules the ENGINE synthesizes (`todo`, opened 2026-08-11 by `GRAMMAR-WELLFORMED.A2.5`; ⛔ **BLOCKER for returning SV's union UNKNOWN to 0**)
+
+⛔⛔ **THIS IS THE PRICE A2.5 PAID, AND IT IS RECORDED AS A DEBT, NOT AS A FOOTNOTE.**
+`sv_cert_recognized_union_gate` went from `union UNKNOWN=0` to `union UNKNOWN=2`, residual
+`["block_event_expression_lr_suffix", "select_expression_lr_suffix"]`. Nothing about SystemVerilog got
+worse — the parser accepts strictly more, correctly. What happened is that A2.5 gave SV its first LR
+plans, every LR plan synthesizes a `<rule>_lr_base` / `<rule>_lr_suffix` pair, and **the reach planner
+cannot route a probe to a rule that did not exist when it built its graph.**
+
+**ROOT CAUSE (WHY + WHERE, tools-first).** `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` on both rules:
+
+```
+[plannable-probe] rule='select_expression_lr_suffix' parsed=true witnessed_target=false
+  sample="package\foo ;covergroup\foo ;cross\foo_0 ,\foo_0 {option.\foo_0 =3.5;}endgroup endpackage"
+[plannable-probe] rule='block_event_expression_lr_suffix' parsed=true witnessed_target=false
+  sample="package\foo ;covergroup\foo @\foo_0 ;endgroup endpackage"
+```
+
+`parsed=true witnessed_target=false` with a sample that misses the target *by taking a different
+alternative of an ancestor*: the `select_expression` probe emits `cross f, f { option.f = 3.5; }` — the
+`option` arm of `cross_body_item`, which never enters `bins_selection`, so `select_expression` is never
+reached at all; the `block_event_expression` probe emits `covergroup f @f_0 ;` — `coverage_event`'s
+simple `@` form rather than the `@@( … )` block-event form. WHERE: the rule-target installer
+(`set_reach_plan_for_rule` → `install_reach_plan_from_hops`, `stimuli_generator.rs`) plans over the
+rule-reference graph; `_lr_suffix` is created by `apply_left_recursive_chain_plan` *after* that graph is
+built, and it sits inside the `( … )*` of the rewritten base rule.
+
+⭐ **IT IS AN INSTRUMENT GAP, AND THE DISTINCTION IS LOAD-BEARING.** The same
+`parsed=true witnessed_target=false` verdict is what contract v5 used to prove `white_space` and
+`comment_only_source_region` were *engine-shadowed dead* and delete them. Reading it that way here would
+be a serious error, and ground truth is what separates the two cases: four adjudication reproducers drive
+these exact continuations through the REAL generated parser, pass, and pin the arm that produced them —
+`fixed_select_expression_{with,paren,or}.sv` (`with_matches`, `and>paren`, `or>paren`) and
+`fixed_block_event_or.sv` (`or`). ⇒ the rules are LIVE and EXERCISED; the generator cannot see them.
+[[instruments-need-ground-truth]] is the standing north-star entry this instance belongs to.
+
+⛔ **The two repairs that are NOT available, so nobody re-proposes them:**
+1. **Delete the LR plan** (contract v6's fix for `module_path_expression_lr_suffix`: make the producer
+   natively non-left-recursive). Closed by the director's 2026-08-11 ruling — avoiding LR plans to keep a
+   census clean re-introduces exactly the hand-compilation A2.5 exists to remove.
+2. **Witness-rescue `@sample`s** on the affected SV rules. Closed twice over: it is grammar bytes for an
+   engine-wide problem (the same category error as hand-flattening), and it is the scar tissue `.2` exists
+   to *remove*. It is also probably not even expressible — `_lr_suffix` has no source-EBNF rule to annotate.
+
+**OWED — the repair is in the generator, and it likely already has the parts.**
+`set_reach_plan_forcing_quantifiers` (`SV-EXH-PROOF.7.4.6.11`) already exists to force every `?`/`*` a
+reach path crosses to expand at least once, which is one of the two things a `_lr_suffix` probe needs; the
+other is a reach graph that knows about post-elimination synthetic rules. Owed:
+1. Make the rule-target reach planner aware of rules synthesized by LR elimination — either by rebuilding
+   the reach graph post-elimination, or by teaching the planner the `base → _lr_base ( _lr_suffix )*`
+   shape directly so it can route through the quantifier to the suffix.
+2. ⭐ **Prove it on a synthetic grammar first, not on SystemVerilog.** The combinator suite already ships
+   the isolating grammars (`direct_left_recursion*`, `left_recursion*`); a cert-coverage run over one of
+   them reproduces this with four rules instead of 1 362, which is where this should be debugged.
+3. Restore `expected_union_unknown` to **0** and empty `expected_union_residual_rules` in
+   `systemverilog_recognized_cert_union_contract.json`, deleting this leaf's entry from its
+   `rebaseline_note`.
+
+⚠️ **Generalization, and the reason this is a `.10` rather than an SV leaf:** *any* grammar that gains an
+LR plan gains two rules this census cannot witness. SV is simply the first family where a cert-coverage
+census and an LR plan coexist. Fixing it in the engine fixes it for VHDL, PNR and everything after.
+
+**Acceptance:** a cert-coverage run over an isolating left-recursive grammar witnesses its `_lr_suffix`
+rule; SV's `sv_cert_recognized_union_gate` returns to `union UNKNOWN=0` with residual `[]`, deterministic
+across seeds 0/7/42; and the contract's re-baseline note records the restoration.

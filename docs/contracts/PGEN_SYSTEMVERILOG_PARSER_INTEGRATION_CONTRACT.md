@@ -5,6 +5,36 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-11, `GRAMMAR-WELLFORMED.A2.5` — ENGINE-level, release `1.0.182`,
+> ledger `SV-0052`, schema STAYS `20`):** PGEN's left-recursion elimination now handles the **direct**
+> shape — `A := A op B | …`, the self-reference written inline in the choice, which is how every
+> standard's Annex A writes an operator production. It previously matched only the indirect wrapper
+> shape, so a directly left-recursive alternative reached codegen intact and the runtime cycle guard
+> **rejected** it at the seed position. The rule still parsed its operands, so the construct looked
+> supported until something had to follow the first operand.
+>
+> **What flips REJECT→ACCEPT (four alternatives, ZERO grammar bytes changed):** `select_expression`'s
+> `&&`, `||` and `with ( … ) [ matches … ]` (IEEE 1800-2017 A.2.11) and `block_event_expression`'s
+> `or` (A.6.11, reached from `coverage_event`'s `@@( … )` form). Each now returns the AST its
+> annotation declares, left-nested: `{kind:"and"|"or", lhs, rhs}`, `{kind:"with_matches", lhs,
+> expression, matches}`.
+>
+> ⚠️ **CONSUMER ACTION — additive, but not zero.** A consumer exhaustively matching
+> `select_expression` kinds must add `and` / `or` / `with_matches` arms, and one matching
+> `block_event_expression` must add `or`. **WHY THE SCHEMA DOES NOT MOVE:** all four alternatives were
+> **100 % unparseable** before, so no previously-emitted shape is replaced — this is the `SV-0044`
+> class, and the rule is stated verbatim in the schema-`19` note for `SV-0048`: *"an additive
+> vocabulary reachability change, not a schema change."* Verified, not argued: `ast_shape_contract_gate`
+> green with its 18 locked samples unchanged, and the two `select_expression` inputs that parsed before
+> still parse to the same `{kind:"condition"}` root.
+>
+> ⛔ **What this does NOT fix, stated so it is not inferred:** `binsof(a) intersect { 1 } && binsof(b)`
+> *without* parentheses still parses as a single `condition` with the `&&` inert — not because the
+> continuation is dead, but because `intersect`'s LITERAL braces are still transcribed as EBNF
+> repetition, so the seed swallows the remainder (`SV-CORPUS-GRAD.13c.2a.1`, open). Parenthesize the
+> left operand to exercise the continuation. Also unchanged: precedence. LR elimination fixes the
+> *recursion*; a language's operator precedence is language-specific and stays in the grammar.
+
 > **Current-state note (2026-07-06, MEMO-STORE-SOUNDNESS.2 — engine-level, NO release bump):** the
 > shared parse engine's packrat memo is now **taint-gated with store-write-epoch validation** — a
 > memoized outcome whose rule body consulted the semantic store is replayable only while the store
@@ -113,9 +143,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.181`
+  - `1.0.182`
 - Parser release version:
-  - `1.0.181`
+  - `1.0.182`
 - Embedding API contract baseline:
   - `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)

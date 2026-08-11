@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e041ec36.js";
+            window.path_to_searchindex_js = "searchindex-fc7e4bad.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,37 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10182--contract-10182--grammar-wellformeda25-pgen-grammar-wellformed-0153-2026-08-11-ledger-sv-0052-released-four-ieee-alternatives-that-had-been-dead-for-the-life-of-the-parser-now-run-engine-sv_2017sv_2023-zero-grammar-bytes-schema-unchanged-at-20"><a class="header" href="#10182--contract-10182--grammar-wellformeda25-pgen-grammar-wellformed-0153-2026-08-11-ledger-sv-0052-released-four-ieee-alternatives-that-had-been-dead-for-the-life-of-the-parser-now-run-engine-sv_2017sv_2023-zero-grammar-bytes-schema-unchanged-at-20">1.0.182 / Contract 1.0.182 — GRAMMAR-WELLFORMED.A2.5 (<code>PGEN-GRAMMAR-WELLFORMED-0153</code>, 2026-08-11), ledger <code>SV-0052</code> (<code>Released</code>): <strong>FOUR IEEE ALTERNATIVES THAT HAD BEEN DEAD FOR THE LIFE OF THE PARSER NOW RUN (ENGINE; <code>sv_2017</code>+<code>sv_2023</code>; ZERO GRAMMAR BYTES; SCHEMA UNCHANGED at 20)</strong></a></h3>
+<p><strong>What changed.</strong> PGEN’s left-recursion elimination now handles the <strong>direct</strong> shape —
+<code>A := A op B | …</code>, the self-reference written inline in the choice, which is how every standard’s
+Annex A writes an operator production. It previously matched only the indirect <em>wrapper</em> shape, so a
+directly left-recursive alternative reached codegen intact and the runtime cycle guard <strong>rejected</strong>
+it at the seed position. The rule still parsed its operands, so the construct looked supported until
+something had to follow the first operand.</p>
+<p>Four alternatives flip REJECT → ACCEPT: <code>select_expression</code>’s <code>&amp;&amp;</code>, <code>||</code> and
+<code>with ( … ) [ matches … ]</code> (IEEE 1800-2017 A.2.11), and <code>block_event_expression</code>’s <code>or</code> (A.6.11,
+reached from <code>coverage_event</code>’s <code>@@( … )</code> form). Each returns the AST its annotation declares,
+left-nested — <code>{kind:"and"|"or", lhs, rhs}</code> and
+<code>{kind:"with_matches", lhs, expression, matches}</code>.</p>
+<p><strong>What a consumer must do.</strong> Add <code>and</code> / <code>or</code> / <code>with_matches</code> arms to any exhaustive match on
+<code>select_expression</code> kinds, and an <code>or</code> arm for <code>block_event_expression</code>. <strong>The schema does not
+move</strong>, by this project’s stated rule rather than by preference: all four alternatives were 100 %
+unparseable before, so no previously-emitted shape is replaced — the <code>SV-0044</code> class, and the
+principle <code>SV-0048</code> states verbatim (<em>“an additive vocabulary reachability change, not a schema
+change”</em>). Verified: <code>ast_shape_contract_gate</code> green with its locked samples unchanged, and the two
+<code>select_expression</code> inputs that parsed before still parse to the same <code>{kind:"condition"}</code> root.</p>
+<p>⛔ <strong>What this does NOT fix.</strong> <code>binsof(a) intersect { 1 } &amp;&amp; binsof(b)</code> <em>without</em> parentheses still
+parses as a single <code>condition</code> with the <code>&amp;&amp;</code> inert — not because the continuation is dead, but
+because <code>intersect</code>’s literal braces are still transcribed as EBNF repetition, so the seed swallows
+the remainder (<code>SV-CORPUS-GRAD.13c.2a.1</code>, open). Parenthesize the left operand to exercise the
+continuation. Operator <strong>precedence</strong> is also unchanged and stays a grammar concern: LR elimination
+fixes the recursion, not the precedence.</p>
+<p><strong>Proof.</strong> Full external corpus 16 336 files: pass <strong>9 752 → 9 758 (+6)</strong> with <strong>0 pass→fail /
+0 pass→timeout / 0 pass→crash</strong>, all six flips covergroup/cross/binsof files;
+<code>unexplained_rejects_valid</code> <strong>297 → 292</strong> with ZERO new; <code>unexplained_accepts_invalid</code>
+<strong>21 → 21 set-identical</strong>. Six pinned reproducers under <code>stimuli/sv/adjudication_repros/</code> carry the
+<code>arm</code> that produced each ACCEPT, so the verdicts name the alternative rather than merely reporting
+that the text parsed.</p>
 <h3 id="10181--contract-10181--sv-corpus-grad320-pgen-sv-corpus-grad-0039-2026-08-09-ledger-sv-0051-released-verilog_2005-was-accepting-five-config-use-clause-forms-ieee-1364-2005-has-no-production-for-grammar-verilog_2005-only-schema-unchanged-at-20"><a class="header" href="#10181--contract-10181--sv-corpus-grad320-pgen-sv-corpus-grad-0039-2026-08-09-ledger-sv-0051-released-verilog_2005-was-accepting-five-config-use-clause-forms-ieee-1364-2005-has-no-production-for-grammar-verilog_2005-only-schema-unchanged-at-20">1.0.181 / Contract 1.0.181 — SV-CORPUS-GRAD.3.20 (<code>PGEN-SV-CORPUS-GRAD-0039</code>, 2026-08-09), ledger <code>SV-0051</code> (<code>Released</code>): <strong><code>verilog_2005</code> WAS ACCEPTING FIVE CONFIG <code>use</code>-CLAUSE FORMS IEEE 1364-2005 HAS NO PRODUCTION FOR (GRAMMAR; <code>verilog_2005</code> ONLY; SCHEMA UNCHANGED at 20)</strong></a></h3>
 <p><strong>What changed.</strong> The four SystemVerilog-only parameter-override alternatives of <code>use_clause</code>
 (<code>grammars/systemverilog.ebnf:6039</code>) moved into a <code>@profiles: ["sv_2017", "sv_2023"]</code> sibling,

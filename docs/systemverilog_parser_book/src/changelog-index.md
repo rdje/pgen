@@ -19,6 +19,43 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.182 / Contract 1.0.182 — GRAMMAR-WELLFORMED.A2.5 (`PGEN-GRAMMAR-WELLFORMED-0153`, 2026-08-11), ledger `SV-0052` (`Released`): **FOUR IEEE ALTERNATIVES THAT HAD BEEN DEAD FOR THE LIFE OF THE PARSER NOW RUN (ENGINE; `sv_2017`+`sv_2023`; ZERO GRAMMAR BYTES; SCHEMA UNCHANGED at 20)**
+
+**What changed.** PGEN's left-recursion elimination now handles the **direct** shape —
+`A := A op B | …`, the self-reference written inline in the choice, which is how every standard's
+Annex A writes an operator production. It previously matched only the indirect *wrapper* shape, so a
+directly left-recursive alternative reached codegen intact and the runtime cycle guard **rejected**
+it at the seed position. The rule still parsed its operands, so the construct looked supported until
+something had to follow the first operand.
+
+Four alternatives flip REJECT → ACCEPT: `select_expression`'s `&&`, `||` and
+`with ( … ) [ matches … ]` (IEEE 1800-2017 A.2.11), and `block_event_expression`'s `or` (A.6.11,
+reached from `coverage_event`'s `@@( … )` form). Each returns the AST its annotation declares,
+left-nested — `{kind:"and"|"or", lhs, rhs}` and
+`{kind:"with_matches", lhs, expression, matches}`.
+
+**What a consumer must do.** Add `and` / `or` / `with_matches` arms to any exhaustive match on
+`select_expression` kinds, and an `or` arm for `block_event_expression`. **The schema does not
+move**, by this project's stated rule rather than by preference: all four alternatives were 100 %
+unparseable before, so no previously-emitted shape is replaced — the `SV-0044` class, and the
+principle `SV-0048` states verbatim (*"an additive vocabulary reachability change, not a schema
+change"*). Verified: `ast_shape_contract_gate` green with its locked samples unchanged, and the two
+`select_expression` inputs that parsed before still parse to the same `{kind:"condition"}` root.
+
+⛔ **What this does NOT fix.** `binsof(a) intersect { 1 } && binsof(b)` *without* parentheses still
+parses as a single `condition` with the `&&` inert — not because the continuation is dead, but
+because `intersect`'s literal braces are still transcribed as EBNF repetition, so the seed swallows
+the remainder (`SV-CORPUS-GRAD.13c.2a.1`, open). Parenthesize the left operand to exercise the
+continuation. Operator **precedence** is also unchanged and stays a grammar concern: LR elimination
+fixes the recursion, not the precedence.
+
+**Proof.** Full external corpus 16 336 files: pass **9 752 → 9 758 (+6)** with **0 pass→fail /
+0 pass→timeout / 0 pass→crash**, all six flips covergroup/cross/binsof files;
+`unexplained_rejects_valid` **297 → 292** with ZERO new; `unexplained_accepts_invalid`
+**21 → 21 set-identical**. Six pinned reproducers under `stimuli/sv/adjudication_repros/` carry the
+`arm` that produced each ACCEPT, so the verdicts name the alternative rather than merely reporting
+that the text parsed.
+
 ### 1.0.181 / Contract 1.0.181 — SV-CORPUS-GRAD.3.20 (`PGEN-SV-CORPUS-GRAD-0039`, 2026-08-09), ledger `SV-0051` (`Released`): **`verilog_2005` WAS ACCEPTING FIVE CONFIG `use`-CLAUSE FORMS IEEE 1364-2005 HAS NO PRODUCTION FOR (GRAMMAR; `verilog_2005` ONLY; SCHEMA UNCHANGED at 20)**
 
 **What changed.** The four SystemVerilog-only parameter-override alternatives of `use_clause`

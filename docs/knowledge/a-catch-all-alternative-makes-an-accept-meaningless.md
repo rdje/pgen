@@ -15,7 +15,7 @@ tags: [grammar-authoring, instrument-soundness, adjudication, lrm-fidelity, syst
 date: 2026-08-11
 status: current (row 2 of the probe table CORRECTED 2026-08-11 by SV-CORPUS-GRAD.13c.2a.2 — it claimed the `&&` continuation fired; the AST shows zero `and` nodes)
 evidence: docs/tasks/SV-CORPUS-GRAD.md leaves .13c.2a / .13c.2a.1 / .13c.2a.2 / .13c.2a.3; grammars/systemverilog.ebnf `select_expression` (8 alternatives, last is cross_set_expression -> covergroup_expression -> expression) and `select_condition`; stimuli/sv/adjudication_repros/{fixed_select_expression_with,fixed_select_expression_paren,fixed_select_expression_or,control_select_expression_and,defect_intersect_range_list,control_intersect_value_list}.sv + MANIFEST.tsv `arm` column; docs/systemverilog/2017/md/section-19-functional-coverage.md §19.6.2 + A.2.11
-reverify: "python3 stimuli/sv/run_adjudication_repros.py --verbose | grep -E 'select_expression|intersect'   # every armed row must print ok; the arm column is what makes the ACCEPTs mean something. To see the check bite, flip control_select_expression_and.sv's arm from !select_chain>and to select_chain>and in stimuli/sv/adjudication_repros/MANIFEST.tsv and re-run: the verdict stays ACCEPT and the run FAILS."
+reverify: "python3 stimuli/sv/run_adjudication_repros.py --verbose | grep -E 'select_expression|intersect|block_event'   # every armed row must print ok; the arm column is what makes the ACCEPTs mean something. To see the check bite, flip control_select_expression_and.sv's arm from condition,!and to condition,and in stimuli/sv/adjudication_repros/MANIFEST.tsv and re-run: the verdict stays ACCEPT and the run FAILS."
 ---
 
 Many real grammar rules end in a **catch-all**: a final alternative that reaches the language's

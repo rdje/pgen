@@ -1,5 +1,83 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-GRAMMAR-WELLFORMED-0153 — left recursion became an ENGINE service, and four IEEE alternatives that had been dead for the life of the parser started running (leaf `GRAMMAR-WELLFORMED.A2.5` engine half done; `SV-CORPUS-GRAD.13c.2a.2`/`.3`/`.4` closed; `ENGINE-UNIVERSAL-SERVICES.10` + `LANG-CAPABILITY-AUDIT.10.16` NEW)
+
+- ⭐⭐ **ROOT CAUSE (WHY + WHERE).** PGEN's LR elimination matched only the **indirect wrapper**
+  shape — an alternative that is a bare rule reference to a rule beginning with the base rule.
+  A self-reference written **inline in the choice** (`A := A op B | …`), which is how every
+  standard's Annex A writes an operator production, matched nothing
+  `detect_left_recursive_chain_plan` looks for, so the alternative reached codegen intact and the
+  runtime cycle guard met it at the seed position and **rejected** it:
+  `💥 Infinite recursion detected in rule 'select_expression' at position 127` on branches 3, 4
+  and 6, then `🏁 selected branch 7/8 consuming 2 chars`. The guard does not *handle* the
+  recursion. The rule still parsed its operands, so the construct looked supported until something
+  had to follow the first operand — which is why no pass-rate and no `furthest_position` could
+  ever have pointed at it.
+- **FIX — ENGINE tier, ZERO grammar bytes, and the tier is the point.** A director ruling
+  (2026-08-11) rejected the grammar-tier repair that had already been implemented and verified:
+  *"the engine handles what is objectively shared, common to all EBNFs; the EBNF carries only what
+  is specific to each language."* `normalize_direct_left_recursive_alternatives`
+  (`rust/src/ast_pipeline/mod.rs`) hoists each directly left-recursive alternative's body
+  **verbatim** into a synthetic `<rule>_lr_altN` rule and leaves a bare reference behind — which
+  IS the wrapper shape — so the existing, tested planner does all the work unchanged and the
+  author's `$N` indices still address their own positions. `hoist_branch_annotations` moves the
+  branch's annotations onto that rule.
+- ⭐ **A gate caught the fix littering, and the cap did NOT move.** Elimination *rewrites* the
+  wrapper rules it consumes instead of deleting them, so the four synthetic rules survived as
+  defined-but-referenced-by-nothing — useless symbols emitted as dead parser code.
+  `sv_syntax_closure_gate` failed with `unreachable_rules=4 > max_unreachable_rules=0` and named
+  all four. `retract_consumed_normalization_rules` deletes each once nothing references it (a
+  fixed point — retracting one can orphan another), because this contract's own history drove that
+  cap from 1 to 0 and engine litter does not get a waiver a grammar would not get. Gate now passes
+  with the contract **byte-unchanged**.
+- **AFTER (measured, before → after).** SV dead alternatives **4 → 0**. `select_expression`'s
+  `&&`, `||` and `with ( … )` and `block_event_expression`'s `or` all parse, each returning the AST
+  its annotation declares. Full external corpus 16 336 files: pass **9 752 → 9 758 (+6)**, **0
+  pass→fail / 0 pass→timeout / 0 pass→crash**, all six flips covergroup/cross/binsof files;
+  `unexplained_rejects_valid` **297 → 292** with ZERO new; `unexplained_accepts_invalid`
+  **21 → 21 SET-IDENTICAL**. Axis-2 defect bar **318 → 313** (denominator unmoved —
+  `7556/2459/6321/4398/313`). Release `1.0.182`, ledger `SV-0052`, **schema stays `20`** by this
+  ledger's own rule (`SV-0048`: *"an additive vocabulary reachability change, not a schema
+  change"*).
+- ⛔ **AND A NEGATIVE TEST THAT HAD BEEN PASSING FOR THE WRONG REASON.** The corpus
+  accepts-invalid control went 21 → 22 before being root-caused:
+  `slang/tests/regression/driver/cross-ident-in-binsof.sv` was pinned `must_reject` on the claim
+  that the cross-identifier restriction is *"a grammar-level restriction"*. It is not — A.2.11's
+  `bins_expression` admits any identifier, and `cover_point_identifier` and `cross_identifier` are
+  **the same terminal**, so only name resolution can separate them. PGEN had been "passing" that
+  negative test by rejecting the file at its FIRST bins, on the `&&` defect this commit fixes. The
+  pin is corrected to `must_accept` with the LRM citation. ⇒ *a negative test that passes for the
+  wrong reason is worth no more than a positive one that does* — the `arm`-column lesson, one level
+  up, in the corpus adjudication.
+- ⛔ **DEBT INCURRED, RECORDED NOT ABSORBED.** SV's first LR plans mean its first
+  `_lr_base`/`_lr_suffix` pairs, and the cert generator's reach planner cannot route a probe to a
+  rule created after it built its graph (`parsed=true witnessed_target=false`, with samples that
+  miss by taking a different alternative of an ancestor). `sv_cert_recognized_union_gate` moved
+  `union UNKNOWN` **0 → 2**, honestly re-baselined with both rules named and owned by
+  **`ENGINE-UNIVERSAL-SERVICES.10`**. Ground truth says the rules are LIVE — four pinned
+  reproducers drive them through the real generated parser — so this is an INSTRUMENT gap, not
+  uncovered surface, and reading it as the latter would have deleted two live rules.
+- ⛔ **A SECOND SILENT INSTRUMENT FAILURE, found on the way.** The `--ignored` probe
+  `measure_direct_left_recursion_known_divergence` had been unable to measure its oracle half since
+  **2026-07-26**, when `QUANT-PLUS-ITER.2` made `@entry: true` mandatory and its grammar declared
+  none — five `oracle=Err(Codegen …)` per run, exit 0, because it `eprintln!`s and asserts nothing.
+  Its stale numbers were still published in three surfaces. Retired and replaced by three
+  first-class GATE cases; the class (**7 print-only probes**) is sized and routed to
+  **`LANG-CAPABILITY-AUDIT.10.16`**.
+- **Suite.** `parse_harness_combinator_gate` **32 → 35 cases, 35/35 CLEAN, 2 passed / 0 failed**.
+  The third new case, `direct_left_recursion_folded_ast`, is the one the preserved patch did not
+  have and the one SystemVerilog actually needs: annotations on a **directly** left-recursive
+  alternative, asserted **exact** against the declaration, because byte-identity is blind here —
+  both implementations run the same pre-pass.
+- **Files.** `rust/src/ast_pipeline/mod.rs`, `rust/src/ast_pipeline/grammar_wellformedness.rs`
+  (`collect_node_rule_refs` → `pub(crate)`, reused rather than re-implemented),
+  `rust/src/parse_harness_combinator_suite.rs`, `stimuli/sv/adjudicate_external_corpus.py`,
+  `stimuli/sv/adjudication_repros/` (+2 files, 3 renamed, MANIFEST arms), the SV integration
+  contract + bug ledger, the union-cert contract, books *Parse Harness* + *Grammar
+  Well-Formedness*, knowledge card renamed to
+  `left-recursion-is-an-engine-service-not-a-grammar-authoring-burden`, `TOOLBOX.md`, task trees.
+  **ZERO grammar bytes.**
+
 ## 2026-08-11 - PGEN-ENGINE-UNIVERSAL-SERVICES-0002 — an LR-eliminated rule now returns the AST its grammar DECLARED, and the oracle that could not see otherwise gained its missing half (leaf `ENGINE-UNIVERSAL-SERVICES.8`)
 
 - ⭐⭐ **ROOT CAUSE (WHY + WHERE).** `rewrite_lr_chain_annotations`

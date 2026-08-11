@@ -1441,9 +1441,11 @@ bounded-property operators `nexttime [3] a` / `s_always [1:2] a` (`30 → 29`); 
 defect (the bracketed forms had been rejected) as well as a cert witness. One restored a store-gated
 identifier via a literal-count declaration prelude (`29 → 28`). The last two were the **SVA infix
 left-recursion cascade**: the assertion `sequence_expr` and `property_expr` rules were flat,
-directly-left-recursive ordered choices (`A := A op A`), which PGEN's indirect-only LR eliminator
-cannot rewrite, so the runtime cycle-breaker blocked every infix operator and they *rejected* at the
-operator. Restructured into an IEEE-1800 §16 Table 16-3 precedence cascade — sequence operators
+directly-left-recursive ordered choices (`A := A op A`), which PGEN's then indirect-only LR eliminator
+could not rewrite, so the runtime cycle-breaker blocked every infix operator and they *rejected* at the
+operator. (⭐ Since `A2.5` the eliminator handles that shape natively — but this cascade stays, and
+would still be the right answer: it encodes IEEE 1800 §16's **precedence**, which is language-specific
+and no engine can infer. LR elimination fixes the *recursion*, not the *precedence*.) Restructured into an IEEE-1800 §16 Table 16-3 precedence cascade — sequence operators
 `a intersect b` / `a within b` / `a ##1 b` (`28 → 26`) then property operators `a until b` /
 `a s_until b` / `a iff b` (`26 → 22`) — the operators now parse with correct precedence, every
 previously-parsing form keeps its exact AST carrier (the cascade is schema-preserving), and the four
@@ -1837,7 +1839,11 @@ adjudicated bucket — the manifest already recorded what the parser did on ever
 observation was simply unused.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4398/318`.** The `SV-CORPUS-DENOMINATOR` doctrine
+> `7556/2459/6321/4398/313`.** (`GRAMMAR-WELLFORMED.A2.5` moved the bar **318 → 313**: reviving
+> `select_expression`'s dead `&&` / `||` / `with ( … )` alternatives turned five clause-19 covergroup
+> files from `unexplained_rejects_valid` into `match`, with the accepts-invalid set byte-identical.
+> The denominator did not move, which is the point of publishing them together.) The
+> `SV-CORPUS-DENOMINATOR` doctrine
 > (`scripts/check_sv_corpus_denominator.sh`) re-derives all five numbers from the tracked
 > adjudication manifest on every commit and fails if this line disagrees or if the census artifact
 > has gone stale — so **the bar can never again be published without its denominator beside it**.
@@ -2016,6 +2022,29 @@ EBNF*: it stops the grammar transcribing Annex A, it yields a flatter AST than t
 left-nested fold, and it costs a schema break that the real fix would have to break again. A grammar
 should carry only what is specific to its language. The repair belongs to the engine, where it fixes
 every grammar at once and costs this one **zero bytes** — tracked as `A2.5`.
+
+✅ **`A2.5` landed (2026-08-11), and the engine half is done.** A pre-pass
+(`normalize_direct_left_recursive_alternatives`) hoists each directly left-recursive alternative into
+a synthetic rule and leaves a bare reference behind, which is precisely the shape the existing planner
+already eliminates — so one tested transform now covers both spellings, and the author's `$N` indices
+ride along untouched. Measured on SystemVerilog: **4 dead alternatives → 0**, `&&` / `||` /
+`with ( … )` and `block_event_expression`'s `or` all parse, each returning the AST its annotation
+declares, and the grammar still transcribes Annex A verbatim.
+
+⭐ **The engine had to clean up after itself, and a gate is what said so.** Elimination *rewrites* the
+wrapper rules it consumes rather than deleting them, so the four synthetic rules survived as
+**defined-but-referenced-by-nothing** — useless symbols emitted as dead parser code.
+`sv_syntax_closure_gate` failed with `unreachable_rules=4 > max_unreachable_rules=0` and named all
+four. The fix is a retraction pass, **not** a raised cap: this contract's own history drove that cap
+from 1 to 0, and engine litter does not get a waiver a grammar would not get. The gate now passes with
+the contract byte-unchanged.
+
+⛔ **What is still owed is the linter itself.** Its message is no longer false, but it is still
+*unearned* — it would say the same thing if the eliminator regressed, because it re-implements its own
+notion of "left-recursive" instead of asking the eliminator what it actually accepts. Until that is
+derived from `detect_left_recursive_chain_plan` (the way `A2.3` made codegen and the linter share
+`effective_rule_branch_policy`), the sweep in the knowledge card remains the only instrument that
+finds a genuinely dead alternative.
 
 ⛔ **The linter reported all of this as clean**, in a message that tells a grammar author to look
 elsewhere: *"is left-recursive (cycle: `select_expression -> select_expression`) — handled by PGEN's

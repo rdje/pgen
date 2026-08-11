@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e041ec36.js";
+            window.path_to_searchindex_js = "searchindex-fc7e4bad.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -243,6 +243,16 @@ clause parameter-override spelling) deliberately does NOT bump it</strong>, and 
 measured rather than assumed: the construct was 100 % unparseable before, so no
 shape a consumer had ever seen could move, and the ASTs of all ten already-parsing
 forms of the clause are byte-identical across the fix.
+<strong>Release <code>1.0.182</code> (<code>GRAMMAR-WELLFORMED.A2.5</code>, ledger <code>SV-0052</code> — left recursion
+became an ENGINE service in both shapes) does NOT bump it either, and this is the
+clearest case of the rule</strong>: four alternatives of <code>select_expression</code> and
+<code>block_event_expression</code> went from 100 % unparseable to parsing, so consumers gain
+the kinds <code>and</code>, <code>or</code> and <code>with_matches</code> — new <em>reachability</em>, not a replaced shape.
+<code>SV-0048</code> names this exactly: <em>an additive vocabulary reachability change, not a
+schema change</em>. ⚠️ Additive is not free: an exhaustive match on those rules’ kinds
+must grow arms. Measured rather than assumed — the shape-contract gate’s locked
+samples are unchanged, and the two <code>select_expression</code> inputs that parsed before
+still parse to the same <code>{kind:"condition"}</code> root.
 <strong>Release <code>1.0.181</code> (<code>SV-CORPUS-GRAD.3.20</code>, ledger <code>SV-0051</code> — gating those
 parameter overrides out of <code>verilog_2005</code>) does NOT bump it either, and this one
 is the more interesting non-bump</strong>: <code>@profiles</code> is a RULE-level directive, so the
