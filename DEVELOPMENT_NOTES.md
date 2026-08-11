@@ -1,5 +1,53 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-ENGINE-UNIVERSAL-SERVICES-0002 — the engine was publishing its own left-recursion bookkeeping as the AST, and the gate that should have caught it could only see values it already recognized
+
+Two findings, and the second one is the transferable half.
+
+**1. A universal service that stopped one step short.** PGEN eliminates left recursion so an EBNF
+author never has to. The rewrite is correct; what was missing is the step *back*. An eliminated rule
+published `{initial, suffixes, type: "_pgen_lr_chain", wrapper_specs}` — the eliminator's own
+record, with the author's per-alternative templates serialized into a string field — instead of the
+shape the grammar declared. On `$1.a.b` the record carried `.a` inside `initial` and **never applied
+`.b` at all**. This contradicts PGEN's second doctrine (*return annotations shape that AST*) for
+exactly the rules the engine transforms, and it had been true of every LR-eliminated rule in every
+grammar since the feature shipped.
+
+The lesson is about where a transform's responsibility ends: **a transform the engine performs for
+the author is not finished until its output is expressed in the author's vocabulary.** Halfway is
+worse than not doing it, because the intermediate representation then becomes a contract nobody
+declared and nobody documented.
+
+**2. The gate saw the value and had nothing to say about it.** The annotation-vs-emitted-AST oracle
+already existed and already ran on the affected grammars, with sample inputs (`"$1.field"`,
+`"$1[0]"`) that reach the defect exactly. It passed, twice over:
+
+- its walker verifies objects whose `type:` matches a **declared** discriminator and *skips* the
+  rest; `_pgen_lr_chain` is synthetic and deliberately absent from the inventory, so the record
+  produced **no verdict** — and no verdict is indistinguishable from a pass;
+- its coverage leg then found the declared `property_access` object **nested inside** the record's
+  `initial` field, verified it there, and marked the discriminator covered — so
+  "declared-but-never-produced" stayed empty too.
+
+⇒ **An oracle whose domain is "values I recognize" is blind to any transformation that preserves the
+recognized value and moves it.** Wrapping is precisely such a transformation. The complement a
+positive checker cannot supply is *negative space*: the engine now reserves the `_pgen_` `type:`
+prefix, no grammar author can declare it, and its presence anywhere in a published AST is a
+**failure** rather than a skip — so the next engine feature that leaks is caught by the same rule.
+
+**3. Why one fold, not three.** The chain value is built by three independent emitters (protocol
+codegen, fused-cascade codegen, the interpreter). Writing the fold three times would have reproduced
+this leaf's own root cause — the differential gates prove those three agree *with each other*, and
+all three leaked identically while every suite stayed green. One shared function
+(`ast_pipeline::lr_chain_fold`) makes agreement structural and frees the gates to check the thing
+that actually matters: the AST against the **declaration**. A new `UnifiedReturnAST` variant carries
+it, so `rustc` enumerated all 14 consumers that had been silently ignoring the synthetic object.
+
+**4. Refuse at generation time, never at runtime.** A chain template the fold cannot express
+(`$text`, a quantified extraction, an out-of-range positional) now stops codegen with the rule and
+the construct named. The failure direction matters: the alternative is a parser that builds and
+silently returns an AST that does not match its grammar.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0212 — in a rule with a catch-all expression arm, an ACCEPT is not evidence the intended alternative fired
 
 The `.13c.2a` fix itself is one token: the `;` inside a `cross_body` was spelled in both

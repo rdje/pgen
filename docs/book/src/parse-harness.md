@@ -422,6 +422,16 @@ tuned to `--max-depth 32` with a step budget — where it fully certifies 48/48 
 
 ### Canonical serialization of the LR-chain blob (`PARSE-HARNESS.5.3`)
 
+> ⚠️ **Superseded in one respect by `ENGINE-UNIVERSAL-SERVICES.8`** — read this section as the
+> history of a *determinism* fix, which still holds. What changed is where the blob lives: the chain
+> record is no longer a value in the emitted AST at all. The engine now **folds** it back through the
+> author's annotations at AST construction (`ast_pipeline::lr_chain_fold`, one implementation shared
+> by both codegen graphs and the interpreter), so an LR-eliminated rule returns the declared shape and
+> the `wrapper_specs` string is a codegen-side table parsed once per process instead of a field of
+> every chain value. The canonical key-sorted serialization below is still what makes that table
+> byte-deterministic across codegen runs and the interpreter — the two consumers simply changed.
+> See *The Annotation System → Left recursion is folded back into your shape*.
+
 When PGEN eliminates left-recursion from a rule (for example `return_annotation`'s
 `property_access_expression := accessor_base '.' identifier` and its array-access sibling), it rewrites the
 rule into a base + suffix pair and attaches a synthetic `_pgen_lr_chain` value that carries a **`wrapper_specs`**
@@ -524,7 +534,7 @@ gate uses does not apply because these grammars are synthetic and never register
 Because the corpus is a *fixed curated input set* (not the seeded stimuli generator), the differential is
 `synthetic grammar × curated input` with no randomness — deterministic by construction.
 
-The 28 isolating cases cover the whole structural surface:
+The 32 isolating cases cover the whole structural surface:
 
 | Combinator | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -541,6 +551,7 @@ The 28 isolating cases cover the whole structural surface:
 | **atom** — terminal / regex-token | `"hello"` / `/[0-9]+/` | exact literal / anchored pattern match |
 | **rule reference** | `start := a b` | dispatch to referenced rules |
 | **left recursion** (LR-eliminated) | `expr := wrapper \| term`, `wrapper := expr "+" term` | the wrapper form is rewritten to `base (suffix)*` |
+| **left recursion — folded AST** | the same form with `-> {type: "add", lhs: $1, rhs: $3}` on two distinct operators | the eliminated rule returns the **declared** left-nested AST (`ENGINE-UNIVERSAL-SERVICES.8`). ⛔ The annotation-free row above cannot see this: its AST is structural, which is why the suite was green while every LR-eliminated rule in every grammar published the eliminator's internal record. Byte-identity cannot judge it either — both sides leaked identically — so the gate asserts the **exact** value against the declaration. Measured: `left_recursion_folded_ast CLEAN samples=6 diverge=0` |
 | **memo × runtime cycle-breaking** | `start := call \| cast`, `call := recv \| fn`, `recv := cast`, `cast := call "'" …` on `"f(x)'(x)"` | an INDIRECT cycle the LR eliminator does not rewrite, so `cast` is reached at position 0 once from *inside* the cycle (guard-blocked) and once from outside it (legal 8-byte match). A memo that files the blocked attempt under the stack-blind `(rule, position)` key replays it and the tournament never sees the longer alternative — the `SV-CORPUS-GRAD.3.12` defect, pinned |
 | **layout — insensitive default** | `start := "a" "b"` (no directive) | layout is auto-skipped: `"a b"`, `" ab"`, `"ab "` all **accept** |
 | **layout — `@whitespace_sensitive: true`** | same grammar + the directive | every space is literal: only `"ab"` accepts (the `regex.ebnf` policy) — since `WS-DIRECTIVE.2` |
@@ -736,7 +747,7 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   `systemverilog_preprocessor` since `.5.1`, `ebnf` since `.5.2`, `return_annotation` since `.5.3`, and
   `rtl_const_expr` since `.5.5` — via a curated corpus for that un-generatable grammar); the DEFERRED
   ratchet is now empty. The combinator-complete corpus has now also landed in full: the **structural**
-  half (`.6.1`, *The structural combinator suite* above — 28 isolating grammars: 16 at landing, plus the
+  half (`.6.1`, *The structural combinator suite* above — 32 isolating grammars: 16 at landing, plus the
   four bounded-quantifier cases added when `BOUNDED-QUANT.1` closed that half-wire, the three
   layout-policy cases added when `WS-DIRECTIVE.2` made whitespace-sensitivity a declarable,
   synthetic-grammar-expressible capability, the two default-profile cases added when
@@ -744,9 +755,13 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   profile-alias cases added when `PROFILE-ALIAS.2` did the same for request-spelling resolution —
   the pair that also taught the oracle + suite to drive a *requested profile* end-to-end, and the
   memo × runtime-cycle-breaking case added by `SV-CORPUS-GRAD.3.12`, whose defect no shipped-grammar
-  corpus had surfaced) and the
+  corpus had surfaced, the three associativity tie-break cases added by
+  `GENERATED-LINT-CORRECTNESS.2`, and the folded-AST left-recursion case added by
+  `ENGINE-UNIVERSAL-SERVICES.8` — the one that asserts an eliminated rule returns the AST its
+  annotations DECLARED, which the annotation-free left-recursion case structurally cannot see)
+  and the
   **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
-  29 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
+  36 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
   findings-driven re-anchors and the STIMULI-SIGNOFF.13.2 SC-08 value-guard mirror pins), which also
   landed the interpreter's semantic orchestration mirror + split memo, and — with `13.2` — the
   value-constraint atom-guard mirror. A fuzzing lane (`.7`) remains the optional push toward

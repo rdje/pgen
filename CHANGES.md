@@ -1,5 +1,60 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-ENGINE-UNIVERSAL-SERVICES-0002 — an LR-eliminated rule now returns the AST its grammar DECLARED, and the oracle that could not see otherwise gained its missing half (leaf `ENGINE-UNIVERSAL-SERVICES.8`)
+
+- ⭐⭐ **ROOT CAUSE (WHY + WHERE).** `rewrite_lr_chain_annotations`
+  (`rust/src/ast_pipeline/mod.rs`) replaces an LR-eliminated rule's declared annotations with a
+  synthetic chain record and hoists the author's templates into its `wrapper_specs` field —
+  **and nothing folded it back**. The only fold in the tree
+  (`unified_return_ast::parse_typed_lr_chain`) is a reader-side path in the `UnifiedReturnAST`
+  vocabulary, unreachable from any generated parser. Reproduced on a shipped `fully_certified`
+  grammar: `parseability_probe --parse-dump-ast-pretty return_annotation` on `$1.a.b` returned
+  `{initial, suffixes, type: "_pgen_lr_chain", wrapper_specs: "<439 B>"}` — with `.b` never applied.
+- ⭐⭐ **WHY NO GATE CAUGHT IT — the more valuable half.** The annotation-vs-AST oracle
+  (`run_inventory_wide_auto_gate`) already existed, already ran on the affected grammars, and its
+  curated samples included the two inputs that reach the defect. It was blind **twice**: it verifies
+  only objects whose `type:` matches a **declared** discriminator and *skips* the rest (a synthetic
+  record produces no verdict, which reads as a pass), and its coverage leg found the declared
+  `property_access` object **nested inside** the record's own `initial` field and marked it covered.
+  ⇒ *an oracle whose domain is "values I recognize" is blind to any transformation that preserves
+  the recognized value and moves it.* → [[an-oracle-that-only-verifies-what-it-recognizes-cannot-see-a-wrapper]]
+- **FIX — one fold, three callers.** New `UnifiedReturnAST::LrChainFold` variant + shared
+  `ast_pipeline::lr_chain_fold`, called by the protocol emitter, the fused-cascade emitter and the
+  interpreter. A variant rather than a recognized object shape because `rustc` then enumerates every
+  consumer — **14 sites** that had silently ignored the synthetic object. Writing the fold three
+  times would have reproduced this leaf's own root cause: the differential gates prove those three
+  agree *with each other*, and all three leaked identically while every suite stayed green.
+- **AFTER (measured).** `$1.a.b` → `{type: "property_access", base: {type: "property_access", base:
+  {type: "positional", index: 1}, property: "a"}, property: "b"}` — the left-nested binary shape the
+  grammar declares. `$1.a[2].b` folds across BOTH wrapper alternatives correctly (`alt_index`
+  dispatch). `grep -c '"_pgen_lr_chain"' generated/*_parser.rs` → **0 files**, was
+  `return_annotation` 6 + `semantic_annotation` 10.
+- **SPEED.** The `wrapper_specs` JSON is parsed **once per process** behind an emitted `OnceLock`
+  (the interpreter interns its table to `'static`), the fold borrows template strings straight into
+  the produced values, and the multi-hundred-byte `wrapper_specs` literal **stops being a field of
+  every emitted chain value**.
+- **HONEST BOUNDS, enforced at GENERATION time.** `validate_chain_templates` refuses `$text`/`$0`, a
+  quantified extraction, a nested chain, or an out-of-range positional inside a chain template,
+  naming the rule and the construct — a build failure, never a silently wrong AST.
+- ⭐ **THE MISSING ORACLE.** The engine now reserves the `_pgen_` `type:` prefix; the annotation-shape
+  gate **FAILS** any emitted value carrying it instead of skipping it, so the *next* engine feature
+  that leaks is caught by the same rule. Proven to fire by a RED probe feeding the exact pre-fix
+  value, which additionally pins the coverage blindness (`discriminators_not_covered()` is still
+  empty on the leaked shape) with a GREEN control on the folded shape.
+- ⭐ **THE DISCRIMINATING CASE.** Combinator suite 28→29: `left_recursion_folded_ast` (two distinct
+  operators, declared object annotations). The pre-existing `left_recursion` case is annotation-free
+  — which is why it never saw this — and byte-identity alone still cannot judge it, so the gate
+  asserts the **exact** left-nested value against the declaration plus the absence of any `_pgen_`
+  marker.
+- ⭐ **BLAST RADIUS, measured rather than feared.** Only `return_annotation` and
+  `semantic_annotation` emit a chain today — both PGEN-internal — and **their published integration
+  surface carries no AST at all** (`parse_annotation*` returns verdict + diagnostics), while the
+  PGEN-internal consumer already folded the record on read to the same `UnifiedReturnAST`. ⇒ the
+  feared multi-family schema move is, measured, **not a downstream break**; both contracts carry a
+  `Notable Recent Shape Changes` entry regardless. SystemVerilog joins them only when
+  `GRAMMAR-WELLFORMED.A2.5` lands — **additively**, which was the whole reason for this ordering.
+- **UNBLOCKS** `GRAMMAR-WELLFORMED.A2.5` → `SV-CORPUS-GRAD.13c.2a.2`/`.3`/`.4`.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0213 — three `select_expression` alternatives are DEAD CODE, and the fix belongs to the ENGINE, not the grammar (leaves `SV-CORPUS-GRAD.13c.2a.2`/`.3`/`.4`, `GRAMMAR-WELLFORMED.A2.5`, new tree `ENGINE-UNIVERSAL-SERVICES`; ZERO grammar/Rust bytes)
 
 - ⭐⭐ **ROOT CAUSE.** IEEE 1800-2017 A.2.11 writes `select_expression`'s `&&`, `||` and `with ( … )`

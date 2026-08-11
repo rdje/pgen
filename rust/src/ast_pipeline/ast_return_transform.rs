@@ -89,7 +89,58 @@ impl AstReturnTransformer {
             UnifiedReturnAST::MatchedText => Ok(quote! {
                 ParseContent::Terminal(&parser.input[start_pos..parser.position])
             }),
+            // ENGINE-UNIVERSAL-SERVICES.8 — an LR-eliminated rule returns the AST
+            // its author declared, not the eliminator's chain record. The fold
+            // itself lives in ONE place (`lr_chain_fold`) that this emitter, the
+            // cascade emitter and the interpreter all call.
+            UnifiedReturnAST::LrChainFold {
+                initial,
+                suffixes,
+                specs,
+            } => Self::generate_lr_chain_fold(initial, suffixes, specs, captured_vars),
         }
+    }
+
+    /// Emit the left-recursion chain fold (`ENGINE-UNIVERSAL-SERVICES.8`).
+    ///
+    /// The per-alternative templates are embedded as their canonical (key-sorted,
+    /// therefore byte-deterministic) JSON and parsed **once per process** behind a
+    /// `OnceLock`, so a parse pays one relaxed atomic load rather than a JSON
+    /// decode — and the giant `wrapper_specs` string literal that used to be a
+    /// FIELD OF EVERY EMITTED CHAIN VALUE disappears from the AST entirely.
+    fn generate_lr_chain_fold(
+        initial: &UnifiedReturnAST,
+        suffixes: &UnifiedReturnAST,
+        specs: &[crate::ast_pipeline::unified_return_ast::LrChainWrapperSpec],
+        captured_vars: &[String],
+    ) -> Result<TokenStream> {
+        let initial_code = Self::generate_transform(initial, captured_vars, "")?;
+        let suffixes_code = Self::generate_transform(suffixes, captured_vars, "")?;
+        let specs_json = serde_json::to_string(specs)?;
+        Ok(quote! {
+            {
+                static __PGEN_LR_CHAIN_SPECS: std::sync::OnceLock<
+                    Vec<crate::ast_pipeline::unified_return_ast::LrChainWrapperSpec>,
+                > = std::sync::OnceLock::new();
+                let __pgen_lr_specs = __PGEN_LR_CHAIN_SPECS.get_or_init(|| {
+                    crate::ast_pipeline::lr_chain_fold::parse_specs(#specs_json)
+                });
+                let __pgen_lr_initial = {
+                    let __pgen_lr_content = #initial_code;
+                    __pgen_lr_content.to_shaped_value(parser.arena)
+                };
+                let __pgen_lr_suffixes = {
+                    let __pgen_lr_content = #suffixes_code;
+                    __pgen_lr_content.to_shaped_value(parser.arena)
+                };
+                ParseContent::Shaped(crate::ast_pipeline::lr_chain_fold::fold_lr_chain(
+                    parser.arena,
+                    __pgen_lr_initial,
+                    __pgen_lr_suffixes,
+                    __pgen_lr_specs.as_slice(),
+                ))
+            }
+        })
     }
 
     fn parse_capture_expr(var_ref: &str) -> TokenStream {

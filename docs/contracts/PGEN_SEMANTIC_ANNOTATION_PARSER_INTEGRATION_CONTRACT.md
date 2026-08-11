@@ -82,3 +82,23 @@ Two-surface lockstep. Both the EBNF-language surface (`grammars/semantic_annotat
 Durable no-depth-limit guarantee. The reference depth is structurally unbounded at every layer (EBNF `*`, hand-rolled `loop`, lexer, resolver iterator). Locked by two regression tests exercising 64 segments each — see `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` "Rule Reference Syntax (Normative)" for the normative pin and the failure-direction.
 
 Strict trailing-dot / strict-bracket policy. Malformed forms (bare `.`, `[` with no `<digits>]`) roll back to before the offending segment; the surrounding payload parser then handles the leftover or falls back to `Raw`.
+
+## Notable Recent Shape Changes
+
+### 2026-08-11 — LR-eliminated rules now return the DECLARED AST (`ENGINE-UNIVERSAL-SERVICES.8`)
+
+`type_reference` is left-recursive through four wrapper alternatives (`union_type`,
+`intersection_type`, `array_type`, `optional_type`), so PGEN eliminates the recursion. Until now the
+elimination's own internal record — `{initial, suffixes, type: "_pgen_lr_chain", wrapper_specs}` —
+was published *as the rule's typed AST* instead of the declared `{type: "union_type", types: […]}`
+and its siblings. The engine now folds the chain back through the author's annotations, so an
+LR-eliminated rule is indistinguishable from a hand-written one.
+
+⭐ **Published-surface impact: NONE.** This family's stable surface returns a verdict plus
+diagnostics and carries no AST. Only a consumer walking the raw typed-AST JSON of an LR-eliminated
+rule sees a difference, and for such a consumer this is a buggy→correct fix, not a versioned
+evolution — the previous value was never a declared shape.
+
+Regression locks: the annotation-shape gate now FAILS any emitted value whose `type:` carries the
+engine-reserved `_pgen_` prefix (proven to fire by a RED probe), and the combinator suite's
+`left_recursion_folded_ast` case asserts the exact declared left-nested value.

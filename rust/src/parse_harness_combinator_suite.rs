@@ -133,6 +133,17 @@ pub enum Combinator {
     /// Left recursion in the wrapper/indirect form PGEN structurally eliminates
     /// (`expr := wrapper | term`, `wrapper := expr "+" term`), rewritten to `base (suffix)*`.
     LeftRecursion,
+    /// ENGINE-UNIVERSAL-SERVICES.8 — left recursion whose alternatives carry RETURN
+    /// ANNOTATIONS, so the case measures the thing [`LeftRecursion`] cannot: does the
+    /// eliminated rule return the AST its author DECLARED?
+    ///
+    /// ⛔ Why a second LR case rather than annotations on the first: `left_recursion`'s
+    /// grammar is annotation-free, so its typed AST is structural and the eliminator's
+    /// internal chain record never appears in it. That is exactly why the suite was green
+    /// for the whole life of the defect. The isolating grammar here uses TWO distinct
+    /// operators, so a fold that ignores `alt_index`, or cross-wires two wrappers'
+    /// templates, produces `add` where `sub` is declared and cannot pass.
+    LeftRecursionFoldedAst,
     /// SV-CORPUS-GRAD.3.12 — the packrat memo × RUNTIME CYCLE-BREAKING composition. A cycle-guard
     /// rejection is a fact about the live parse stack, not about `(rule, position)`, so a body that
     /// hit one must not be filed under the memo's stack-blind key: replaying it from a *different*
@@ -192,6 +203,7 @@ impl Combinator {
         Combinator::AtomRegexToken,
         Combinator::RuleReference,
         Combinator::LeftRecursion,
+        Combinator::LeftRecursionFoldedAst,
         Combinator::RecursionGuardedMemoIsolation,
         Combinator::LayoutInsensitiveDefault,
         Combinator::LayoutWhitespaceSensitiveFull,
@@ -477,6 +489,35 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         entry_rule: Some("expr"),
         requested_profile: None,
         note: "the wrapper/indirect LR form is structurally eliminated to `base (suffix)*`",
+    },
+    CombinatorCase {
+        name: "left_recursion_folded_ast",
+        combinator: Combinator::LeftRecursionFoldedAst,
+        // ENGINE-UNIVERSAL-SERVICES.8. The same eliminated form as `left_recursion`, but every
+        // alternative DECLARES its AST. `n+n-n` must fold LEFT-NESTED into
+        //   {lhs: {lhs: num, rhs: num, type: "add"}, rhs: num, type: "sub"}
+        // — the shape the standard's binary production describes and the author wrote. Before `.8`
+        // the emitted value was the eliminator's `{initial, suffixes, type: "_pgen_lr_chain",
+        // wrapper_specs}` record instead, on BOTH sides, so the byte-identity assertion alone stayed
+        // green: the exact-AST assertion in the gate test is what makes this case discriminating.
+        grammar_body: concat!(
+            "@entry: true\n",
+            "expr := add | sub | term\n",
+            "add := expr \"+\" term -> {type: \"add\", lhs: $1, rhs: $3}\n",
+            "sub := expr \"-\" term -> {type: \"sub\", lhs: $1, rhs: $3}\n",
+            "term := \"n\" -> {type: \"num\"}\n",
+        ),
+        inputs: &[
+            ("n", true),
+            ("n+n", true),
+            ("n+n-n", true),
+            ("n-n+n", true),
+            ("n+", false),
+            ("+n", false),
+        ],
+        entry_rule: Some("expr"),
+        requested_profile: None,
+        note: "an LR-eliminated rule returns the AST its annotations DECLARED, left-nested",
     },
     // ── The packrat memo × runtime cycle-breaking composition (SV-CORPUS-GRAD.3.12) ─────────────────
     CombinatorCase {
@@ -1056,6 +1097,43 @@ mod gate {
             left.interp_ast, right.interp_ast,
             "left and right must select DIFFERENT alts on a tie — identical ASTs would mean the \
              `assoc_*` rows cannot see the tie-break direction at all (a vacuous pass)"
+        );
+
+        // ── The LR-FOLD DECLARED-SHAPE proof (ENGINE-UNIVERSAL-SERVICES.8) ──────────────────────────
+        // ⛔ Byte-identity between the interpreter and the oracle CANNOT establish this, and believing
+        // otherwise is exactly how the defect survived: both sides emitted the eliminator's internal
+        // `_pgen_lr_chain` record, agreed perfectly, and the suite was green. So this asserts the AST
+        // against the DECLARATION — an external fact neither implementation supplies.
+        let folded = sample_of(Combinator::LeftRecursionFoldedAst, "n+n-n");
+        let ast: serde_json::Value = serde_json::from_str(
+            folded
+                .interp_ast
+                .as_deref()
+                .expect("the folded-AST case must produce a typed AST for \"n+n-n\""),
+        )
+        .expect("the typed AST must be JSON");
+        let value = ast
+            .get("content")
+            .and_then(|content| content.get("Json"))
+            .expect("an annotated LR rule's content must be a shaped value");
+        assert_eq!(
+            value,
+            &serde_json::json!({
+                "type": "sub",
+                "lhs": {"type": "add", "lhs": {"type": "num"}, "rhs": {"type": "num"}},
+                "rhs": {"type": "num"},
+            }),
+            "an LR-eliminated rule must return the LEFT-NESTED AST its annotations declared, not the \
+             eliminator's chain record. Emitted: {value}"
+        );
+        assert!(
+            !folded
+                .interp_ast
+                .as_deref()
+                .unwrap_or_default()
+                .contains(crate::ast_pipeline::lr_chain_fold::ENGINE_INTERNAL_TYPE_PREFIX),
+            "no engine-internal marker may survive into a published AST: {:?}",
+            folded.interp_ast
         );
     }
 

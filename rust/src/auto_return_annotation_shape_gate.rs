@@ -114,6 +114,13 @@ fn derive_shape_kind_from_ast(ast: &UnifiedReturnAST) -> ShapeKind {
         | UnifiedReturnAST::BooleanLiteral { .. }
         | UnifiedReturnAST::NullLiteral
         | UnifiedReturnAST::Identifier { .. } => ShapeKind::Unknown,
+        // ENGINE-UNIVERSAL-SERVICES.8 — descriptors are derived from the
+        // INVENTORY's `raw_text` (what the author wrote), and the inventory never
+        // carries an engine-synthesized annotation, so this is unreachable from
+        // `from_inventory_entry`. Classifying it as `Unknown` (skip) rather than
+        // guessing keeps the gate honest if a future caller feeds it a
+        // post-elimination AST.
+        UnifiedReturnAST::LrChainFold { .. } => ShapeKind::Unknown,
     }
 }
 
@@ -463,6 +470,36 @@ fn walk_and_verify_against_discriminator_map(
                             reasons.join("; ")
                         ));
                     }
+                } else if let Some(internal) =
+                    t.strip_prefix(crate::ast_pipeline::lr_chain_fold::ENGINE_INTERNAL_TYPE_PREFIX)
+                {
+                    // ⭐⭐ ENGINE-UNIVERSAL-SERVICES.8 — the NEGATIVE-SPACE leg, and
+                    // the leg whose absence let the defect live.
+                    //
+                    // Until `.8` this walker verified only objects whose `type:`
+                    // matched a DECLARED discriminator and silently skipped every
+                    // other object. The left-recursion eliminator's internal
+                    // record (`type: "_pgen_lr_chain"`) matched nothing, so it was
+                    // skipped — while the declared object NESTED INSIDE its
+                    // `initial` field was found, verified, and counted as covered.
+                    // Both the verification leg AND the coverage leg therefore read
+                    // green on an AST that was not the declared one.
+                    //
+                    // A `_pgen_`-prefixed discriminator can only come from the
+                    // ENGINE (no grammar author can declare one — the prefix is
+                    // reserved), so its presence anywhere in a published AST is
+                    // unambiguously an implementation detail leaking through the
+                    // annotation-shaped contract. That is a failure, not a skip.
+                    failures.push(format!(
+                        "input {:?}: the emitted AST carries the ENGINE-INTERNAL value \
+                         `type: \"{}{}\"` — a generated parser must return the AST its grammar \
+                         DECLARED, never an engine intermediate (ENGINE-UNIVERSAL-SERVICES.8). \
+                         Offending value: {}",
+                        sample_input,
+                        crate::ast_pipeline::lr_chain_fold::ENGINE_INTERNAL_TYPE_PREFIX,
+                        internal,
+                        value
+                    ));
                 }
             }
             for nested in map.values() {
@@ -760,6 +797,73 @@ mod tests {
             report.failures
         );
         assert!(report.failures[0].contains("declared key 'value' missing"));
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.8 — the negative-space leg, proven to FIRE.
+    ///
+    /// This is the exact shape the left-recursion eliminator published for every
+    /// LR-eliminated rule in every grammar before `.8`: the declared object
+    /// wrapped inside the engine's own chain record. Both of the gate's original
+    /// legs read green on it — the record's `type:` matched no declared
+    /// discriminator so it was skipped, and the declared object nested inside
+    /// `initial` was found and counted as covered. The assertions below pin BOTH
+    /// halves of that blindness, so neither can come back.
+    #[test]
+    fn inventory_wide_gate_fails_on_an_engine_internal_type_discriminator() {
+        let inv = EmittedReturnAnnotationInventory {
+            version: 1,
+            grammar: "demo".to_string(),
+            annotation_count: 1,
+            annotations: vec![EmittedReturnAnnotationEntry {
+                rule: "property_access_expression".to_string(),
+                branch_index: 0,
+                annotation_type: "return_object".to_string(),
+                raw_text: r#"{type: "property_access", base: $1, property: $3}"#.to_string(),
+                normalized_text: r#"{type: "property_access", base: $1, property: $3}"#.to_string(),
+            }],
+        };
+
+        let leaked = run_inventory_wide_auto_gate(&inv, &["$1.field".to_string()], |_| {
+            Ok(json!({
+                "type": "_pgen_lr_chain",
+                "initial": {"type": "property_access", "base": {"index": 1}, "property": "field"},
+                "suffixes": [],
+                "wrapper_specs": "[{\"alt_index\":0}]",
+            }))
+        });
+        assert_eq!(
+            leaked.failures.len(),
+            1,
+            "the engine-internal record must fail, not be skipped; got {:?}",
+            leaked.failures
+        );
+        assert!(
+            leaked.failures[0].contains("ENGINE-INTERNAL")
+                && leaked.failures[0].contains("_pgen_lr_chain"),
+            "the failure must name the leak: {}",
+            leaked.failures[0]
+        );
+        assert!(
+            leaked.discriminators_not_covered().is_empty(),
+            "COVERAGE BLINDNESS CONTROL: the declared discriminator nested inside the engine \
+             record still reads as covered, which is why the coverage leg alone could never have \
+             caught this — the negative-space leg is what does"
+        );
+
+        // GREEN control: the SAME declared shape, emitted directly (what the
+        // `.8` fold produces), passes with no failures.
+        let folded = run_inventory_wide_auto_gate(&inv, &["$1.field".to_string()], |_| {
+            Ok(json!({
+                "type": "property_access",
+                "base": {"index": 1},
+                "property": "field",
+            }))
+        });
+        assert!(
+            folded.failures.is_empty(),
+            "the folded, declared shape must pass; got {:?}",
+            folded.failures
+        );
     }
 
     #[test]

@@ -1,5 +1,41 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Recent Architecture Change Note (2026-08-11) — the left-recursion chain FOLD is one shared runtime service (`ENGINE-UNIVERSAL-SERVICES.8`)
+
+**New module `rust/src/ast_pipeline/lr_chain_fold.rs` — the single implementation of "an
+LR-eliminated rule returns the AST its grammar declared."** Left-recursion elimination
+(`rewrite_lr_chain_annotations` in `ast_pipeline/mod.rs`) hoists an author's per-alternative return
+annotations into a spec table and rewrites the rule into `base (suffix)*`. Folding that back into the
+declared left-nested shape was, until now, **not done anywhere** on the emitted-AST path, so every
+LR-eliminated rule of every grammar published the eliminator's internal record.
+
+**The seam this creates, and why it is shaped this way.** The chain value is produced by three
+independent emitters — `AstReturnTransformer` (protocol graph, `ParseContent`),
+`ast_based_generator::cascade::value::dv_value_transform_expr` (fused bare-parse graph, `PgenValue`)
+and `parse_harness_interpreter::fold_return` — and each of them now emits or performs a **call into
+the same function**. That is a deliberate departure from the usual pattern here (each emitter
+implements a construct in its own vocabulary, with the differential gates proving they agree): those
+gates prove the three agree *with each other*, and all three leaked identically for the life of the
+feature. Making agreement structural frees the gates to assert the property that actually matters —
+the AST against the **declaration**.
+
+- Carrier: a new `UnifiedReturnAST::LrChainFold { initial, suffixes, specs }` variant replaces the
+  synthetic `Object{type: "_pgen_lr_chain", …}`. The variant, not a recognized object shape, is the
+  point: `rustc` enumerated the **14** consumers (validator, fusibility census, both emitters, the
+  interpreter, the shape gate, two unparse surfaces, the legacy string generator, the pretty-printer)
+  that had been silently ignoring the synthetic object.
+- Cost posture: the codegen-embedded spec JSON is parsed **once per process** behind an emitted
+  `OnceLock`; the interpreter interns its table to `'static` via the module's `intern_specs`, so the
+  fold borrows template strings straight into the produced `PgenValue`s and allocates nothing per
+  iteration. The multi-hundred-byte `wrapper_specs` literal is no longer a field of every emitted
+  chain value.
+- Failure direction: `validate_chain_templates` runs at GENERATION time and refuses a template the
+  fold cannot express (`$text`/`$0`, quantified extraction, nested chain, out-of-range positional),
+  naming the rule and the construct — a build failure instead of a silently wrong AST.
+- Reserved namespace: `ENGINE_INTERNAL_TYPE_PREFIX` (`_pgen_`) is now a contract. No grammar author
+  may declare it, and `auto_return_annotation_shape_gate` FAILS any emitted value carrying it — the
+  standing regression guard for this whole defect class, not just for left recursion.
+
 ## Recent Architecture Change Note (2026-07-22) — the dedicated 256 MiB parse stack (`SV-CORPUS-GRAD.8c.3`)
 
 **New module `rust/src/dedicated_parse_stack.rs` — big-stack execution for generated-parser

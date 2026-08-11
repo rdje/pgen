@@ -3199,36 +3199,27 @@ impl RustASTPipeline {
             }
         }
 
-        let wrapper_specs_serialized = serde_json::to_string(&wrapper_specs)
-            .expect("LrChainWrapperSpec Serialize must not fail");
+        // ---- 2b. ENGINE-UNIVERSAL-SERVICES.8 — refuse, at GENERATION time, any
+        // wrapper template the chain fold cannot express. Before `.8` an
+        // unfoldable template silently produced a wrong AST; now it names the
+        // rule and the construct and stops the build.
+        if let Err(refusal) =
+            lr_chain_fold::validate_chain_templates(&plan.base_rule, &wrapper_specs)
+        {
+            panic!("{refusal}");
+        }
 
-        // ---- 3. Build the synthetic _pgen_lr_chain Object literal that's
-        // attached as the rewritten annotation. `wrapper_specs_str` is shared
-        // across base_rule and all wrapper rules.
-        let wrapper_specs_node = UnifiedReturnAST::StringLiteral {
-            value: wrapper_specs_serialized,
-        };
+        // ---- 3. Build the synthetic chain-fold annotation that's attached as
+        // the rewritten annotation. `wrapper_specs` is shared across base_rule
+        // and all wrapper rules.
         let make_chain_annotation = |initial: UnifiedReturnAST, suffix_position: usize| {
-            let mut props: std::collections::HashMap<String, Box<UnifiedReturnAST>> =
-                std::collections::HashMap::new();
-            props.insert(
-                "type".to_string(),
-                Box::new(UnifiedReturnAST::StringLiteral {
-                    value: "_pgen_lr_chain".to_string(),
-                }),
-            );
-            props.insert("initial".to_string(), Box::new(initial));
-            props.insert(
-                "suffixes".to_string(),
-                Box::new(UnifiedReturnAST::PositionalRef {
+            UnifiedReturnAST::LrChainFold {
+                initial: Box::new(initial),
+                suffixes: Box::new(UnifiedReturnAST::PositionalRef {
                     index: suffix_position,
                 }),
-            );
-            props.insert(
-                "wrapper_specs".to_string(),
-                Box::new(wrapper_specs_node.clone()),
-            );
-            UnifiedReturnAST::Object { properties: props }
+                specs: wrapper_specs.clone(),
+            }
         };
 
         // ---- 4. Replace base_rule's annotation with a single synthetic
@@ -3301,7 +3292,7 @@ impl RustASTPipeline {
                 props.insert(
                     "type".to_string(),
                     Box::new(UnifiedReturnAST::StringLiteral {
-                        value: "_pgen_lr_chain_alt".to_string(),
+                        value: lr_chain_fold::CHAIN_ALT_TYPE_MARKER.to_string(),
                     }),
                 );
                 props.insert(
@@ -5868,6 +5859,7 @@ pub mod fusibility_census;
 pub mod grammar_wellformedness;
 pub mod grouped_quantifier_parser;
 pub mod library;
+pub mod lr_chain_fold;
 pub mod mutual_recursion_handler;
 pub mod predicate_expr;
 pub use predicate_expr::{

@@ -48,7 +48,11 @@ semantic store. The three terms:
 is expressed as a precedence cascade.** The **AST pipeline's `eliminate_left_recursive_patterns`
 pass** (on by default; toggle `--eliminate-left-recursion`) rewrites *indirect / chained* left
 recursion — where a rule reaches itself only through bare-reference wrapper rules — into a
-non-recursive form, backed by a runtime cycle-breaker. **Direct inline left recursion
+non-recursive form, backed by a runtime cycle-breaker. The rewrite is then **folded back through
+the author's return annotations** at AST construction, so an eliminated rule returns the declared
+left-nested AST and is indistinguishable from a hand-written one — one shared implementation
+(`ast_pipeline::lr_chain_fold`) called by both codegen graphs and the interpreter
+(`ENGINE-UNIVERSAL-SERVICES.8`; see *The Annotation System*). **Direct inline left recursion
 (`A := A op A | term`) is *not* auto-eliminated**: the detector
 (`detect_left_recursive_chain_plan`) targets the indirect wrapper-chain shape, so a flat
 inline rule like `expr := expr "+" term | term` yields zero transformations and its left branch

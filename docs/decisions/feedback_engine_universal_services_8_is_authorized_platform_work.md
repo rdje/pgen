@@ -62,6 +62,28 @@ cover the change is not evidence of safety.
 
 ⇒ ship the conformance oracle **with** the fold, not after it.
 
+## Addendum, 2026-08-11 (session #216) — the schema cost, MEASURED
+
+`.8` is landed (`PGEN-ENGINE-UNIVERSAL-SERVICES-0002`). §2 above reserved the schema decision because
+the blast radius was unknown. It is now measured, and it is **smaller than the caution assumed** —
+recorded here so the reservation is closed with evidence rather than left open:
+
+- **Two grammars emit a chain today, both PGEN-INTERNAL**: `return_annotation` (rule
+  `accessor_base`) and `semantic_annotation` (rule `type_reference`). Every other shipped grammar —
+  SV, VHDL, regex, svpp, json, rtl_frontend, rtl_const_expr, ebnf, scratch — is at **0**
+  (`grep -c '"_pgen_lr_chain"' generated/*_parser.rs` across all 11).
+- **Their published integration surface carries no AST at all.** `parse_annotation` /
+  `parse_annotation_result` / `parse_annotation_named` return a verdict plus diagnostics
+  (`rust/src/embedding_api.rs`), and the one PGEN-internal consumer of the raw output already folded
+  the record on read (`unified_return_ast::parse_typed_lr_chain`) into the same `UnifiedReturnAST`.
+- ⇒ **no downstream consumer contract changes**, and no version bump is owed. Both contracts carry a
+  `Notable Recent Shape Changes` entry regardless, framed as this repo already frames such a
+  correction (`RETANN-0001` precedent): *buggy→correct, not a versioned evolution* — the previous
+  value was never a declared shape.
+- **SystemVerilog joins only when `GRAMMAR-WELLFORMED.A2.5` lands, and additively**: three
+  previously-unreachable `select_expression` kinds appear, none is replaced. That is exactly the
+  ordering §1 of this record required, and it is why it required it.
+
 ## How to apply
 
 - Resume at `ENGINE-UNIVERSAL-SERVICES.8`; the blocked fix is preserved and re-appliable at

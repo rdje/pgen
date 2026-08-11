@@ -133,6 +133,10 @@ fn canonicalize_return_ast(ast: &UnifiedReturnAST) -> String {
             format!("{}::{}", canonicalize_return_ast(base), target_str)
         }
         UnifiedReturnAST::Passthrough => "$1".to_string(),
+        // ENGINE-UNIVERSAL-SERVICES.8 — engine-synthesized, never authored, so it
+        // has no source spelling to unparse to. The unparse surface round-trips
+        // AUTHOR text; naming the synthetic explicitly beats inventing one.
+        UnifiedReturnAST::LrChainFold { .. } => "<engine: lr-chain-fold>".to_string(),
     }
 }
 

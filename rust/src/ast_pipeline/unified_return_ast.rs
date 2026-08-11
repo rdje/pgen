@@ -136,6 +136,32 @@ pub enum UnifiedReturnAST {
     /// (`octal_digits = octal_digit+ -> $text` → `"777"`) without re-introducing
     /// the structured Quantified shape that a bare `char+` produces.
     MatchedText,
+
+    /// ENGINE-SYNTHESIZED (`ENGINE-UNIVERSAL-SERVICES.8`): the left-recursion
+    /// chain fold. No grammar author writes this — `rewrite_lr_chain_annotations`
+    /// installs it on an LR-eliminated rule in place of the declared per-branch
+    /// annotations it hoisted into `specs`.
+    ///
+    /// It is a first-class variant rather than a recognized `Object` shape on
+    /// purpose: the chain value is built by three independent emitters (protocol
+    /// codegen, cascade codegen, the interpreter) plus consumed by the validator,
+    /// the stimuli generator and the fusibility census, and a variant makes the
+    /// compiler enumerate every one of them. The previous synthetic
+    /// `{type: "_pgen_lr_chain", …}` Object was invisible to all of them — which
+    /// is how the eliminator's internal record reached the published AST of every
+    /// LR-eliminated rule in every grammar, unnoticed, for the life of the feature.
+    ///
+    /// Semantics live in [`crate::ast_pipeline::lr_chain_fold`] — one fold, three
+    /// callers.
+    LrChainFold {
+        /// The seed rule's value (`$1` of the rewritten `base suffix*` body).
+        initial: Box<UnifiedReturnAST>,
+        /// The suffix quantifier's value (`$2` of the rewritten body, or the
+        /// wrapper's own trailing position).
+        suffixes: Box<UnifiedReturnAST>,
+        /// The author's per-alternative templates, `alt_index`-keyed.
+        specs: Vec<LrChainWrapperSpec>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -149,7 +175,7 @@ enum AccessPostfix {
 /// AST verbatim; positional refs in the template stay as `PositionalRef`
 /// nodes so the walker's substitution step can replace them with the running
 /// fold value (`$1`) and the suffix's captures (`$K` for `K >= 2`).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LrChainWrapperSpec {
     pub alt_index: usize,
     pub original_body_length: usize,
@@ -505,7 +531,22 @@ impl UnifiedReturnAST {
     }
 
     /// Resolve a synthetic `_pgen_lr_chain` typed value into a folded
-    /// `UnifiedReturnAST`. Strategy 3a chain shape:
+    /// `UnifiedReturnAST`.
+    ///
+    /// ⚠️ **LEGACY / COMPATIBILITY PATH since `ENGINE-UNIVERSAL-SERVICES.8`.**
+    /// This is the *reader-side* fold: it existed so the pipeline could recover
+    /// an annotation AST from the `return_annotation` parser's own output, in
+    /// THIS module's vocabulary. It was never on the emitted-AST path, which is
+    /// exactly why every LR-eliminated rule of every grammar published the
+    /// eliminator's record instead of the declared shape. The engine now folds at
+    /// AST construction ([`crate::ast_pipeline::lr_chain_fold`]), so a current
+    /// generated parser hands this reader the DECLARED object (`property_access`
+    /// / `array_access` / …) and this arm is not reached. It is kept — not
+    /// deleted — because a stale pre-fold generated artifact on disk would
+    /// otherwise fail to read at all, and degrading loudly beats degrading
+    /// mysteriously.
+    ///
+    /// Strategy 3a chain shape:
     ///
     /// ```ignore
     /// {
@@ -675,6 +716,10 @@ impl UnifiedReturnAST {
             }
             UnifiedReturnAST::MatchedText => Err(
                 "$text / $0 (whole-match text) is not supported inside a left-recursion chain template"
+                    .to_string(),
+            ),
+            UnifiedReturnAST::LrChainFold { .. } => Err(
+                "a nested left-recursion chain fold is not supported inside a chain template"
                     .to_string(),
             ),
             UnifiedReturnAST::StringLiteral { value } => {
@@ -1613,6 +1658,27 @@ impl UnifiedReturnAST {
             UnifiedReturnAST::Passthrough => {
                 format!("{}Passthrough\n", indent_str)
             }
+            UnifiedReturnAST::LrChainFold {
+                initial,
+                suffixes,
+                specs,
+            } => {
+                let mut result = format!(
+                    "{}LrChainFold({} alternative template(s)) {{\n",
+                    indent_str,
+                    specs.len()
+                );
+                result.push_str(&format!("{}  initial:\n", indent_str));
+                result.push_str(&initial.pretty_print(indent + 2));
+                result.push_str(&format!("{}  suffixes:\n", indent_str));
+                result.push_str(&suffixes.pretty_print(indent + 2));
+                for spec in specs {
+                    result.push_str(&format!("{}  alt {}:\n", indent_str, spec.alt_index));
+                    result.push_str(&spec.annotation_template.pretty_print(indent + 2));
+                }
+                result.push_str(&format!("{}}}\n", indent_str));
+                result
+            }
         }
     }
 
@@ -1975,6 +2041,19 @@ impl UnifiedReturnAST {
                     Ok(format!("{}ParseContent::Terminal(\"\")", indent))
                 }
             }
+
+            // ENGINE-UNIVERSAL-SERVICES.8 — the string-emitting legacy generator
+            // is not the path an LR-eliminated rule takes (that is
+            // `AstReturnTransformer::generate_lr_chain_fold`, the `quote!`
+            // emitter every shipped parser is built by). Refusing here rather
+            // than emitting a half-correct expression keeps the two emitters
+            // from silently disagreeing.
+            UnifiedReturnAST::LrChainFold { .. } => Err(
+                "ENGINE-UNIVERSAL-SERVICES.8: the left-recursion chain fold is emitted only by \
+                 `AstReturnTransformer` (the token-stream generator); the string-emitting \
+                 `generate_code` path does not implement it."
+                    .to_string(),
+            ),
         }
     }
 
@@ -3043,6 +3122,7 @@ mod tests {
             UnifiedReturnAST::QuantifiedExtraction { .. } => "QuantifiedExtraction",
             UnifiedReturnAST::Passthrough => "Passthrough",
             UnifiedReturnAST::MatchedText => "MatchedText",
+            UnifiedReturnAST::LrChainFold { .. } => "LrChainFold",
         }
     }
 
@@ -3089,8 +3169,26 @@ mod tests {
             },
             UnifiedReturnAST::Passthrough,
             UnifiedReturnAST::MatchedText,
+            // ENGINE-UNIVERSAL-SERVICES.8 — the one variant this legacy emitter
+            // deliberately REFUSES (see `REFUSED_BY_GENERATE_CODE` below).
+            UnifiedReturnAST::LrChainFold {
+                initial: pos1(),
+                suffixes: Box::new(UnifiedReturnAST::PositionalRef { index: 2 }),
+                specs: vec![LrChainWrapperSpec {
+                    alt_index: 0,
+                    original_body_length: 3,
+                    annotation_template: UnifiedReturnAST::Object {
+                        properties: [("base".to_string(), pos1())].into_iter().collect(),
+                    },
+                }],
+            },
         ]
     }
+
+    /// Variants whose `generate_code` emission is a documented REFUSAL rather
+    /// than Rust source. Kept as data so the syntax-validity lock below states
+    /// the exemption instead of silently tolerating an `Err`.
+    const REFUSED_BY_GENERATE_CODE: &[&str] = &["LrChainFold"];
 
     /// `generate_code` emits Rust SOURCE as a `String`, so the compiler cannot check
     /// it: a malformed emission is just data and every `cargo build` of PGEN stays
@@ -3118,8 +3216,18 @@ mod tests {
             if !covered.contains(&tag) {
                 covered.push(tag);
             }
-            let code = ast
-                .generate_code(&captured_vars, "", &logger)
+            let emission = ast.generate_code(&captured_vars, "", &logger);
+            if REFUSED_BY_GENERATE_CODE.contains(&tag) {
+                let refusal = emission.expect_err(&format!(
+                    "{tag} is listed as refused by generate_code but it emitted code"
+                ));
+                assert!(
+                    refusal.contains("AstReturnTransformer"),
+                    "{tag}: the refusal must name the emitter that DOES implement it: {refusal}"
+                );
+                continue;
+            }
+            let code = emission
                 .unwrap_or_else(|e| panic!("{tag}: generate_code returned Err: {e}"));
 
             // The emission is only ever spliced in as an expression, so that is
@@ -3152,6 +3260,7 @@ mod tests {
             "QuantifiedExtraction",
             "Passthrough",
             "MatchedText",
+            "LrChainFold",
         ];
         for tag in all_tags {
             assert!(

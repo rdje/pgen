@@ -584,6 +584,48 @@ impl AstBasedGenerator {
                     ),
                 }
             }
+            // ENGINE-UNIVERSAL-SERVICES.8 — the fused graph's twin of
+            // `AstReturnTransformer::generate_lr_chain_fold`. Both emit a CALL to
+            // the one shared fold, so the two graphs cannot diverge on it: the
+            // only thing each emitter contributes is its own way of naming the
+            // seed and suffix operands.
+            U::LrChainFold {
+                initial,
+                suffixes,
+                specs,
+            } => {
+                let initial_expr = self.dv_value_transform_expr(
+                    rule_name,
+                    initial,
+                    branch_body,
+                    bindings,
+                    DvSentinelCtx::Content,
+                )?;
+                let suffixes_expr = self.dv_value_transform_expr(
+                    rule_name,
+                    suffixes,
+                    branch_body,
+                    bindings,
+                    DvSentinelCtx::Content,
+                )?;
+                let specs_json = serde_json::to_string(specs)?;
+                quote! {
+                    {
+                        static __PGEN_LR_CHAIN_SPECS: std::sync::OnceLock<
+                            Vec<crate::ast_pipeline::unified_return_ast::LrChainWrapperSpec>,
+                        > = std::sync::OnceLock::new();
+                        let __pgen_lr_specs = __PGEN_LR_CHAIN_SPECS.get_or_init(|| {
+                            crate::ast_pipeline::lr_chain_fold::parse_specs(#specs_json)
+                        });
+                        crate::ast_pipeline::lr_chain_fold::fold_lr_chain(
+                            parser.arena,
+                            #initial_expr,
+                            #suffixes_expr,
+                            __pgen_lr_specs.as_slice(),
+                        )
+                    }
+                }
+            }
             U::ArrayAccess { .. } | U::QuantifiedExtraction { .. } => anyhow::bail!(
                 "direct-value emission reached an out-of-vocabulary transform (array access / quantified extraction) in rule '{rule_name}' — the vocabulary audit must have demoted it (partition drift)"
             ),
@@ -1393,6 +1435,12 @@ fn dv_ast_contains_matched_text(ast: &UnifiedReturnAST) -> bool {
         U::ArrayAccess { base, index } => {
             dv_ast_contains_matched_text(base) || dv_ast_contains_matched_text(index)
         }
+        // ENGINE-UNIVERSAL-SERVICES.8 — `$text` inside a chain template is
+        // refused at generation time (`lr_chain_fold::validate_chain_templates`),
+        // so only the two body-position operands can carry one.
+        U::LrChainFold {
+            initial, suffixes, ..
+        } => dv_ast_contains_matched_text(initial) || dv_ast_contains_matched_text(suffixes),
         _ => false,
     }
 }
@@ -1412,6 +1460,12 @@ fn dv_ast_contains_passthrough(ast: &UnifiedReturnAST) -> bool {
         U::ArrayAccess { base, index } => {
             dv_ast_contains_passthrough(base) || dv_ast_contains_passthrough(index)
         }
+        // ENGINE-UNIVERSAL-SERVICES.8 — a wrapper rule's chain carries the
+        // wrapper's ORIGINAL annotation as `initial`, so a passthrough there is
+        // a real whole-body demand on this rule.
+        U::LrChainFold {
+            initial, suffixes, ..
+        } => dv_ast_contains_passthrough(initial) || dv_ast_contains_passthrough(suffixes),
         _ => false,
     }
 }

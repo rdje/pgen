@@ -3336,6 +3336,10 @@ pub fn return_ast_fold_class(
         | U::Identifier { .. }
         | U::Object { .. }
         | U::PropertyAccess { .. }
+        // ENGINE-UNIVERSAL-SERVICES.8 — the chain fold returns a self-contained
+        // `PgenValue`; no child CONTENT escapes through it (the suffix records
+        // are consumed by the fold and never re-emitted).
+        | U::LrChainFold { .. }
         | U::MatchedText => TransformFoldClass::ValuePure,
         U::Array { .. }
         | U::ArrayAccess { .. }
@@ -3603,6 +3607,15 @@ pub fn collect_positional_indices(
             collect_positional_indices(base, out);
             collect_positional_indices(index, out);
         }
+        // ENGINE-UNIVERSAL-SERVICES.8 — only `initial` and `suffixes` are
+        // positions of THIS rule's body; `specs` are the wrapper alternatives'
+        // templates, whose `$N` index the SUFFIX captures, not this body.
+        U::LrChainFold {
+            initial, suffixes, ..
+        } => {
+            collect_positional_indices(initial, out);
+            collect_positional_indices(suffixes, out);
+        }
         U::StringLiteral { .. }
         | U::NumberLiteral { .. }
         | U::BooleanLiteral { .. }
@@ -3694,6 +3707,17 @@ fn audit_value_ast(
         | U::NullLiteral
         | U::Identifier { .. }
         | U::MatchedText => {}
+        // ENGINE-UNIVERSAL-SERVICES.8 — the chain fold is value-emittable
+        // (`lr_chain_fold::fold_lr_chain` returns a `PgenValue` directly), so
+        // only its two body-position operands need auditing. The wrapper
+        // templates were already refused at generation time by
+        // `lr_chain_fold::validate_chain_templates` if they were not foldable.
+        U::LrChainFold {
+            initial, suffixes, ..
+        } => {
+            audit_value_ast(initial, branch_body, fused, false, reasons);
+            audit_value_ast(suffixes, branch_body, fused, false, reasons);
+        }
         U::Object { properties } => {
             // Deterministic reason order (HashMap source).
             let mut sorted: Vec<_> = properties.iter().collect();

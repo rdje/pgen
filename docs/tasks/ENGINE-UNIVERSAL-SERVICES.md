@@ -107,6 +107,54 @@ Candidate gaps already visible; to be completed by `.1`/`.2`:
   dozen rules (`rtl_const_expr` has ~16 levels, un-generatable within the bounded stimuli ladder —
   `PARSE-HARNESS.5.5`). An engine-level precedence-climbing directive would delete that cascade from
   every expression grammar PGEN will ever host.
+- ⭐ **a BOUNDED-REFUSAL ceiling on nesting depth — and the evidence that it is an ENGINE gap, not a
+  regex one, was measured by accident during `.8` (2026-08-11).** `regex` has one
+  (`REGEX_MAX_NESTING_DEPTH = 250`, `RGX-0085.1`) — but it was hand-added to the *regex-specific*
+  embedding path, so no other family inherited it. The cost of not having it is measurable:
+  `cargo test --lib` was left running for **68 minutes** and `/usr/bin/sample` on the test binary
+  showed the only two busy threads were `parser_embedding_systemverilog_deep_nesting_…` and
+  `parser_embedding_vhdl_deep_nesting_…`, both grinding through
+  `cascade_match_expression → relation → simple_expression → term → factor → primary` on a
+  2000-deep paren nest. Those tests assert *"a clean diagnostic, not a process abort"* — which they
+  do eventually satisfy — but they bound the OUTCOME and not the TIME, so the parser refuses by
+  exhaustion rather than by a fast located refusal.
+  ⛔ **Owed before this is priced, not assumed:** (1) re-measure in RELEASE, since the observation is
+  from a debug build and debug is 10–50× slower here — a release parser may be entirely fine;
+  (2) if it reproduces, decide whether the ceiling belongs to the ENGINE — a bound every family
+  inherits — rather than to one family's embedding wrapper. ⛔ The SPELLING is deliberately left
+  un-named until that pricing; see the PRIOR ART block below for what already exists and what
+  constrains the design. ⚠️ It also has a developer-flow cost today: these two tests dominate
+  `cargo test --lib`, which pushes anyone iterating toward narrower verification.
+  #### PRIOR ART — the nesting-depth bound (searched 2026-08-11, before naming any surface)
+
+  ⭐ **The search found real prior art, which is the success case**: this is not "invent a primitive",
+  it is "one family already has it, hand-wired, and the constraint on how it must be built is already
+  decided". Recorded per [[feedback_read_prior_art_before_designing]].
+
+  1. **`grammars/ebnf.ebnf` — is it already EXPRESSIBLE?** **No.** The meta-grammar has no
+     depth/nesting/recursion vocabulary at all; `grep -niE "depth|nesting|recursion|max_"` returns only
+     `max_count` (the `{,10}` quantifier bound) and one comment about brace-depth-aware lexing. So an
+     author cannot declare a nesting bound today, by any spelling.
+  2. **`docs/decisions/` — already decided or designed?** **The CONSTRAINT is decided, the SURFACE is
+     not.** [[feedback_recursion_ceiling_must_bound_real_stack]] (from `PGEN-RGX-0085`) rules that a
+     depth ceiling which returns a clean error is useless if its bound exceeds the stack the recursion
+     actually runs on — the OS guard page faults first — so it must be bounded to the real stack or
+     pre-checked at the integration boundary *before* recursion starts. ⇒ any engine-level form
+     inherits that ruling; it is not a free design.
+  3. **`docs/tasks/` — does a tree already own it?** `RGX-0085` owns and CLOSED the regex-family
+     implementation (`REGEX_MAX_NESTING_DEPTH = 250` + `GENERATED_REGEX_INLINE_DEPTH_THRESHOLD` 16→4,
+     pre-parse, in `run_generated_regex_on_dedicated_stack`). It is deliberately scoped to the regex
+     embedding path; no tree owns a general form.
+  4. **`docs/book/` — a designed-but-unbuilt form documented?** Only the SHIPPED regex one
+     (`docs/regex_parser_book/src/rules-groups.md` *"Parenthesis nesting limit"*, released `1.1.77`,
+     ledger `REGEX-0084`). Nothing describes a general or declarable form.
+
+  ⇒ **the gap is real and its shape is now constrained rather than invented**: what is missing is a
+  bound every family inherits, satisfying the `RGX-0085` ruling. Whether that is grammar-declared, an
+  engine default, or an integration-boundary pre-check is **the open design question `.3` must price —
+  deliberately NOT named here**, because naming a spelling before the pricing is exactly the failure
+  the prior-art doctrine exists to stop.
+
 - **error recovery / resync**, so a parser can report more than the first failure.
 - **incremental / re-parse**, for editor-facing consumers.
 - **left-factoring** of common prefixes across alternatives — the sibling transform to LR
@@ -221,7 +269,7 @@ priced candidate, or an argued-empty; plus the recovered backlog of ideas alread
 earlier sessions (parametric rules is the one the director recalls by name — others are to be
 recovered from `LANG-CAPABILITY-AUDIT.11`'s horizon register and `docs/decisions/`, not from memory).
 
-### `.8` — ⭐⭐ THE LR-ELIMINATION FOLD LEAKS AN INTERNAL REPRESENTATION INTO THE TYPED AST (`todo`, found 2026-08-11 by `GRAMMAR-WELLFORMED.A2.5`, **BLOCKS the A2.5 engine fix from shipping**)
+### `.8` — ⭐⭐ THE LR-ELIMINATION FOLD LEAKED AN INTERNAL REPRESENTATION INTO THE TYPED AST (`done` — `PGEN-ENGINE-UNIVERSAL-SERVICES-0002`, 2026-08-11 session #216; found by `GRAMMAR-WELLFORMED.A2.5`, which it **UNBLOCKS**)
 
 ⛔ **This is a PRE-EXISTING engine gap, not a regression, and it was found by accident — again.**
 After `A2.5` made SystemVerilog's `select_expression` actually parse its continuations, the emitted
@@ -258,6 +306,279 @@ gate rather than an assumption.
 ⛔ **Until this lands, `A2.5`'s engine fix must not ship**: it would change SystemVerilog's
 `bins_selection.select` from one of eight declared kinds to a chain blob, which is a contract
 regression even though it is also a parse-correctness win.
+
+#### DIAGNOSIS — the two mechanisms, both tool-located (session #216)
+
+**1. WHY the AST is wrong — WHERE the fold is missing.**
+`rewrite_lr_chain_annotations` (`rust/src/ast_pipeline/mod.rs`, steps 4–5) replaces an LR-eliminated
+rule's declared per-branch annotations with a synthetic record and hoists the author's templates into
+its `wrapper_specs` field. **No stage ever folded that record back.** The only fold in the tree was
+`unified_return_ast.rs::parse_typed_lr_chain` — a *reader-side* path the pipeline uses when it
+re-reads the `return_annotation` parser's own output, in the `UnifiedReturnAST` vocabulary, not in the
+emitted-AST vocabulary and not reachable from any generated parser.
+
+Reproduced end-to-end on a shipped, `fully_certified` grammar
+(`./rust/target/debug/parseability_probe --parse-dump-ast-pretty return_annotation ann.txt out.json`,
+input `$1.a.b`), `wrapper_specs` elided:
+
+```jsonc
+{ "initial": { "base": {"index": 1, "type": "positional"}, "property": "a", "type": "property_access" },
+  "suffixes": [ {"alt_index": 0, "captures": [".", "b"], "type": "_pgen_lr_chain_alt"} ],
+  "type": "_pgen_lr_chain",
+  "wrapper_specs": "<439 bytes elided>" }
+```
+
+The declared shape — `property_access_expression := accessor_base '.' identifier ->
+{type: "property_access", base: $1, property: $3}` — is present *as a field of an engine record*
+instead of *being* the value, and the second `.b` was never applied at all.
+
+**Blast radius, measured rather than assumed** (`grep -c '"_pgen_lr_chain"' generated/*_parser.rs`,
+all 11 generated parsers): `return_annotation` 6 sites, `semantic_annotation` 10 sites, **every other
+grammar 0** — one LR-eliminated rule family each (`accessor_base`, `type_reference`), each counted
+once per emitter (protocol + cascade) per base/wrapper rule. ⇒ the schema move is confined to PGEN's
+two *internal* annotation grammars; no downstream consumer family (SV, VHDL, regex, PNR) emits a
+chain today. SystemVerilog joins them only when `A2.5` lands, and additively.
+
+**2. WHY no gate caught it — and this half generalizes.**
+The annotation-vs-emitted-AST oracle the leaf asks for **already existed**:
+`run_inventory_wide_auto_gate` (`rust/src/auto_return_annotation_shape_gate.rs`), driven per grammar
+by `rust/tests/auto_return_annotation_shape_gate_integration.rs`, including
+`auto_gate_return_annotation_inventory_wide_shape` whose sample list literally contains `"$1.field"`
+and `"$1[0]"` — the two inputs that reach the defect. It ran, it saw the value, and it passed
+(`test result: ok. 9 passed; 0 failed`). It was blind in **two** independent ways:
+
+- **Position-blind verification.** The walker verifies any object whose `type:` literal is a
+  *declared* discriminator, wherever it sits in the tree, and **skips** any object whose `type:` is
+  not declared. `_pgen_lr_chain` is not in the inventory — synthetic annotations are excluded from it
+  by design (`python3 -c "…"` over `generated/return_annotation_return_annotations.json`:
+  `has _pgen_lr_chain entry: False`) — so the record was skipped without a verdict.
+- **Coverage-blind coverage.** The declared `property_access` object *nested inside* the record's
+  `initial` field was found and verified, so `property_access`/`array_access` never appeared in
+  `discriminators_not_covered()` either: the run reports only `{"flat_spread", "matched_text",
+  "null"}` uncovered. Even the coverage leg — which is `eprintln!`'d, not asserted — read green.
+
+⭐ Stated generally: **an oracle that only checks values it recognizes cannot see an engine that
+wraps them.** The missing leg is negative space — *nothing in a published AST may carry a
+representation the engine invented* — and that is what `.8` adds.
+
+#### THE FIX — one fold, three callers, and a variant the compiler cannot let you miss
+
+**`UnifiedReturnAST::LrChainFold { initial, suffixes, specs }`** replaces the synthetic
+`Object{type: "_pgen_lr_chain", …}`. A first-class variant rather than a recognized object shape *is*
+the fix's spine: the chain value is built by three independent emitters and read by the validator,
+the fusibility census, the shape gate, two unparse surfaces, the pretty-printer and the legacy
+string generator — and a variant makes `rustc` enumerate all of them. `cargo check --lib --tests`
+listed exactly **14 exhaustive-match sites** (`error[E0004]`), every one of which had silently
+ignored the synthetic object for the life of the feature; each is now an explicit, commented arm.
+⚠️ Honest bound: three further sites carry a `_ =>` wildcard and so did NOT fail to compile
+(`dv_ast_contains_matched_text`, `dv_ast_contains_passthrough`, and the boundary-scanner plan's
+`shaped_object_class_verdict`). The first two were given real arms by hand; the third correctly
+DROPS the rule with a named reason, because it requires `Some(UnifiedReturnAST::Object { .. })` —
+which is why a wildcard is not a substitute for the variant, and why they had to be found by reading
+rather than by the compiler.
+
+**`rust/src/ast_pipeline/lr_chain_fold.rs`** holds the fold — ONE implementation, called by
+`AstReturnTransformer::generate_lr_chain_fold` (protocol graph), the cascade emitter's
+`dv_value_transform_expr` (fused bare-parse graph) and the interpreter's `fold_return`. ⭐ The
+alternative — a fold per emitter — was refused precisely because this leaf's own root cause is that
+mutual agreement between implementations proved nothing; with one function the three cannot diverge
+*by construction*, and the gates are freed to check the property that matters (AST ≡ declaration).
+
+Cost, by construction rather than by hope: the `wrapper_specs` JSON is parsed **once per process**
+behind an emitted `OnceLock` (the interpreter interns its table to `'static` the same way it already
+interns rule names), the fold borrows template strings straight into the produced `PgenValue`s, and
+the giant `wrapper_specs` string literal **stops being a field of every emitted chain value**. The
+per-iteration work is one small template walk — irreducible, since a left-nested binary AST is O(n)
+nodes.
+
+**Honest bounds, enforced at GENERATION time.** `validate_chain_templates` refuses `$text`/`$0`, a
+quantified extraction, a nested chain, and an out-of-range positional inside a chain template, naming
+the rule and the construct. A template the engine cannot fold is a missing engine capability and now
+stops the build; before `.8` it would have produced a silently wrong AST.
+
+**The oracle.** `run_inventory_wide_auto_gate` gains the negative-space leg: an emitted value whose
+`type:` carries the reserved `_pgen_` prefix is a **failure**, not a skip — no grammar author can
+declare that prefix, so its presence in a published AST is unambiguously the engine leaking through
+the annotation-shaped contract. It is proven to FIRE by
+`inventory_wide_gate_fails_on_an_engine_internal_type_discriminator`, which feeds the exact pre-`.8`
+value and additionally pins the *coverage blindness* (`discriminators_not_covered()` is still empty
+on the leaked shape) — so the record says why the coverage leg alone could never have caught this.
+A GREEN control in the same test asserts the folded shape passes.
+
+**The discriminating suite case.** `left_recursion_folded_ast` (combinator
+`LeftRecursionFoldedAst`) is an LR grammar with **two** operators and declared object annotations;
+the pre-existing `left_recursion` case is annotation-free, which is why the suite was green
+throughout. Byte-identity alone still cannot judge it — both sides folded identically before, both
+leaked identically — so the gate test asserts the **exact** left-nested value for `n+n-n` against the
+declaration, plus the absence of any `_pgen_` marker.
+
+#### ROUTED OUT — a derived-count drift found while doing this leaf's lockstep
+
+Updating the combinator-suite count for the new case required re-deriving it, and the published
+counts were **already wrong** — three of them, none caught by any gate:
+
+| surface | published | re-derived from source | stale by |
+|---|---|---|---|
+| `TOOLBOX.md` 1.7 (twice: prose + `N/N CLEAN`) | 28 | `grep -c "^    CombinatorCase {" …combinator_suite.rs` = **31** (32 after this leaf) | 3 |
+| `docs/book/src/parse-harness.md` (prose + an itemised `16+4+3+2+2+1` derivation) | 28 | same | 3 |
+| `docs/book/src/parse-harness.md` (semantic half) | 29 | `grep -c "^    SemanticCase {" …semantic_suite.rs` = **36** | 7 |
+
+⛔ **Does it reproduce outside this tree?** Yes, and that is why it is routed rather than absorbed:
+two independent surfaces, two independent suites, and the drift predates this leaf (the missing 3
+are `GENERATED-LINT-CORRECTNESS.2`'s associativity cases). The failure direction is the quiet one — a
+count that UNDERSTATES coverage reads as a smaller suite, so nothing prompts a re-check.
+`docs/DERIVED_STATE_CONTAINMENT.md` governs exactly this class, and its `E2.6` enforcer covers
+layer-A `MEMORY.md` **only**; outside layer A nothing checks.
+
+⇒ instances CORRECTED here as ordinary lockstep (TOOLBOX 32/32, book 32 structural / 36 semantic —
+each re-derived, not re-typed); the **class** is routed to `LIVE-DOC-CONTAINMENT.6`, which is parked
+behind the SV lane lock with a named re-open trigger. Not worked here: it is a live-doc enforcement
+gap, not an engine service and not an SV-release blocker.
+
+##### ROUTING EVIDENCE (`LIVE-DOC-CONTAINMENT.6`)
+
+1. **Does the finding reproduce OUTSIDE the family it is being sent to?** It reproduces outside *this*
+   tree, which is why it is being sent away — and it is **not** specific to the destination family
+   either, which is the honest statement. Measured on **two independent documents** (`TOOLBOX.md`,
+   `docs/book/src/parse-harness.md`) about **two independent suites** (structural combinator, semantic
+   orchestration), i.e. 3 drifted counts, none sharing a source or a maintainer path. `LIVE-DOC-CONTAINMENT`
+   is the right destination not because the defect belongs to it by locality, but because that tree
+   already owns the governing standard (`docs/DERIVED_STATE_CONTAINMENT.md`, authored by its `.1`) and
+   its existing enforcer (`.3`'s `E2.6`) is precisely the thing whose scope is too narrow here.
+2. **What was MEASURED, not what makes it plausible?** The counts were re-derived from the source
+   arrays: `grep -c "^    CombinatorCase {" rust/src/parse_harness_combinator_suite.rs` → **31** before
+   this leaf's addition (32 after) against a published **28**; `grep -c "^    SemanticCase {"
+   rust/src/parse_harness_semantic_suite.rs` → **36** against a published **29**. Both suites'
+   `*_coverage_is_complete` gate tests pass, so the ARRAYS were always right and only the PROSE was
+   wrong — which is the derived-state class exactly, not a coverage gap.
+3. **What would make the routing WRONG, and was it checked?** It would be wrong if these counts were
+   already enforced somewhere, making this a broken-check story owned by whoever wrote the check rather
+   than an unenforced-class story. Checked: `E2.6` in `scripts/check_memory_architecture.sh` is scoped
+   to layer-A `MEMORY.md`, and no doctrine in `scripts/check_doctrines.sh` re-derives a published suite
+   count — the 18-doctrine report was read for this. It would also be wrong if the drift were confined
+   to a surface this tree owns; it is not — `TOOLBOX.md` and the live book are both outside it.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/debug/parseability_probe --parse-dump-ast-pretty
+  return_annotation ann2.txt out.json` on input `$1.a.b` (a shipped, `fully_certified` grammar)
+  returned the eliminator's record instead of the declared shape — and dropped `.b` entirely:
+  `{"initial": {"property": "a", "type": "property_access", …}, "suffixes": [{"alt_index": 0,
+  "captures": [".", "b"], "type": "_pgen_lr_chain_alt"}], "type": "_pgen_lr_chain", "wrapper_specs":
+  "<439 bytes>"}`. Static census `grep -c '"_pgen_lr_chain"' generated/*_parser.rs` → 6
+  (`return_annotation`) + 10 (`semantic_annotation`), 0 elsewhere.
+- [x] **ROOT CAUSE (WHY + WHERE)** — TWO mechanisms, each located.
+  **(a)** `rewrite_lr_chain_annotations` (`rust/src/ast_pipeline/mod.rs`, steps 4–5) installs the
+  synthetic chain record and **no stage folds it back**; the only fold,
+  `unified_return_ast.rs::parse_typed_lr_chain`, is a reader-side `UnifiedReturnAST` path no
+  generated parser reaches. The emitted value at that exact mechanism, dumped with
+  `./rust/target/debug/parseability_probe --parse-dump-ast-pretty return_annotation ann2.txt out.json`
+  (input `$1.a.b`), is `{"initial": {…"property": "a"…}, "suffixes": [{"alt_index": 0, "captures":
+  [".", "b"], "type": "_pgen_lr_chain_alt"}], "type": "_pgen_lr_chain", "wrapper_specs": "<439 B>"}`
+  — the record, not the declaration, and the second continuation unapplied. **(b)** The oracle that
+  should have caught it —
+  `run_inventory_wide_auto_gate`, driven by
+  `rust/tests/auto_return_annotation_shape_gate_integration.rs`, whose curated samples literally
+  include `"$1.field"` and `"$1[0]"` — verifies only objects whose `type:` matches a DECLARED
+  discriminator and **skips** the rest, and the inventory excludes synthetics by construction
+  (`python3 -c` over `generated/return_annotation_return_annotations.json` →
+  `has _pgen_lr_chain entry: False`). Its coverage leg then found the declared `property_access`
+  object nested inside the record's own `initial` field and marked it covered — the run reports only
+  `{"flat_spread", "matched_text", "null"}` uncovered. `cargo test --features generated_parsers
+  --test auto_return_annotation_shape_gate_integration` → `test result: ok. 9 passed; 0 failed` on
+  the defective AST.
+- [x] **FIX** — ENGINE tier (the only tier that satisfies the tree's boundary rule: left recursion is
+  a property of *parsing*, not of any language). New `UnifiedReturnAST::LrChainFold` variant +
+  `rust/src/ast_pipeline/lr_chain_fold.rs`, ONE fold called by all three emitters. ZERO grammar
+  bytes; nothing for an author to learn or opt into.
+- [x] **ADDRESSED (verified)** — before→after on the reproducer, same command, same input:
+  `{initial, suffixes, type: "_pgen_lr_chain", wrapper_specs}` → `{"base": {"base": {"index": 1,
+  "type": "positional"}, "property": "a", "type": "property_access"}, "property": "b", "type":
+  "property_access"}` — the declared left-nested shape, with `.b` applied. `$1.a[2].b` folds across
+  BOTH wrapper alternatives (`{…"index": 2, "type": "array_access"…}` nested under
+  `property_access`), proving `alt_index` dispatch. Static census after regeneration:
+  `grep -l '"_pgen_lr_chain"' generated/*_parser.rs` → **0 files** (was 2), with 6 + 10
+  `lr_chain_fold::fold_lr_chain` call sites in their place. The oracle that was blind now FAILS the
+  pre-fix value: `cargo test --lib
+  auto_return_annotation_shape_gate::tests::inventory_wide_gate_fails_on_an_engine_internal_type_discriminator`
+  → ok (RED probe + GREEN control in one test).
+- [x] **NO REGRESSION** — every oracle that can SEE this change, re-run, plus a two-sided control on
+  what it can reach.
+  * `parse_harness_equivalence_gate` — interpreter vs generated parser over every registered grammar:
+    **4 passed / 0 failed**, `certified_grammars_are_byte_identical` green, so the two grammars whose
+    AST moved are still **byte-identical** between the two implementations.
+  * `parse_harness_combinator_gate` — **32/32 CLEAN, 0 divergences** (2 passed / 0 failed, 153.92 s),
+    including the new `left_recursion_folded_ast CLEAN samples=6 diverge=0 anchor_miss=0` and its
+    exact-declared-shape assertion.
+  * `parse_harness_semantic_gate` — **36/36 CLEAN, 0 divergences** (2 passed / 0 failed, 165.31 s).
+  * `ast_shape_contract_gate` — **18 passed / 0 failed**, ✅ *AST-shape contract gate passed*.
+  * `auto_return_annotation_shape_gate_integration` — **9 passed / 0 failed** WITH the new
+    negative-space leg live ⇒ no emitted AST in any of those 9 grammars carries a `_pgen_`
+    discriminator.
+  * touched-module unit tests (`lr_chain_fold`, the shape gate, `unified_return_ast`,
+    `annotation_validator`, `ast_shape_contract`, `fusibility_census`) — **160 passed / 0 failed**.
+  * `make clippy_on_rust_change` — ✅ completed, **0 `^error` lines**; source strict lint clean and
+    `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS` (68 pinned lints all still in
+    `clippy::correctness`), with the generated-parser stage STRICT by default.
+  * `mdbook_docs_gate` — ✅ passed, plus all **10** per-parser book gates.
+  * CODEGEN DETERMINISM re-proven: three consecutive `--generate-parser` runs to the SAME output path
+    are **byte-identical** (`60553fa7…`), and the shipped artifact equals a fresh run modulo the
+    output path the generator embeds in its own source.
+  * ⭐ TWO-SIDED REACH CONTROL: `_lr_base` helper-rule census over all 11 generated parsers —
+    `return_annotation` **44**, `semantic_annotation` **48**, every other grammar **0**. So
+    `rewrite_lr_chain_annotations` never runs for the other nine, no `LrChainFold` node is ever
+    constructed there, and every arm this change added is unreachable for them. That is a proof of
+    scope, not an assumption — and the control shows a non-empty population, so it is not a
+    silently-broken grep.
+  * ⛔ HONEST BOUND, recorded rather than waived: the FULL `cargo test --lib` sweep is **not** part of
+    this evidence. It was started and abandoned at 68 minutes; `/usr/bin/sample` on the test binary
+    showed the only two busy threads were `parser_embedding_{systemverilog,vhdl}_deep_nesting_…` on a
+    2000-deep paren nest — pre-existing stress tests in grammars whose `_lr_base` count is **0**, i.e.
+    provably beyond this change's reach. A confirmatory full sweep runs AFTER this commit rather than
+    holding verified work hostage to it; the slow-test observation itself is recorded in `.3`'s gap
+    list as a candidate ENGINE service (a bounded-refusal nesting ceiling), not as a conclusion.
+- [x] **LOCKSTEP** — book: `annotation-system.md` (new *Left recursion is folded back into your shape*
+  section, and the Proof-Expectations list now demands an annotation-vs-emitted-AST check by name),
+  `parse-harness.md` (a superseded-note on the `.5.3` blob section, the new combinator row, and the
+  corrected suite counts), `developer-architecture.md` (the LR paragraph now names the fold).
+  `TOOLBOX.md` 1.7 (counts + what the new case proves that byte-identity cannot). Contracts: both
+  annotation families gained a `Notable Recent Shape Changes` entry — measured as **not** a downstream
+  break, so **no release/schema bump and no ledger row** (their published surface returns verdict +
+  diagnostics and carries no AST — argued from `rust/src/embedding_api.rs`, not assumed).
+  `docs/reference/RUST_CODEBASE_ANALYSIS.md` architecture note for the new shared-runtime seam. The
+  authorizing decision record gained a dated addendum closing the schema question it had explicitly
+  reserved. `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md` frontier row.
+  Lesson PROMOTED to `docs/knowledge/an-oracle-that-only-verifies-what-it-recognizes-cannot-see-a-wrapper.md`
+  (+ the derived `KNOWLEDGE_MAP.md`). Routed out: `LIVE-DOC-CONTAINMENT.6`. DONE-BAR register: **N/A**
+  — no family's status changes.
+
+### `.9` — the annotation-conformance oracle is CURATED-SAMPLE-BOUND, not corpus-bound (`todo`, opened by `.8` 2026-08-11)
+
+`.8` gave `run_inventory_wide_auto_gate` the leg it was missing (negative space), but left two
+measured weaknesses untouched, both stated by the module's own header (*"Per-rule sample mapping … is
+a future extension that needs either an auto-generated samples corpus or a curated
+`<grammar>_auto_gate_samples.json`"*):
+
+1. **Its inputs are hand-written.** Each grammar gets a curated `samples` list in
+   `rust/tests/auto_return_annotation_shape_gate_integration.rs`. Coverage is therefore bounded by
+   what someone remembered to type. `parse_harness_equivalence::build_corpus` already generates a
+   deterministic stimuli corpus (seeds 0/7/42 × a depth ladder) for every registered grammar and is
+   directly reusable here.
+2. **`discriminators_not_covered()` is `eprintln!`'d, never asserted.** Measured on the current
+   curated samples: `semantic_annotation` **61** uncovered, `regex` **7**, `rtl_const_expr` **2**,
+   `return_annotation` **3**. A declared shape the parser never produces is a real signal — it is
+   how a dead alternative or a mis-wired annotation would show — and today it is a print. It cannot
+   simply be flipped to a hard failure at those counts; it needs the corpus from (1) first, then a
+   **two-sided ratchet** over a tracked register (a new uncovered discriminator fails; a
+   now-covered one still listed also fails), per the `GATE-REACHABILITY` / `LIVE-DOC-CURRENCY`
+   precedent.
+
+⛔ Do not read `.8` as closing the conformance question. `.8` closes *"the engine must not leak its
+own representation"*, which is one shape of one defect class. `.9` closes *"every declared
+annotation is exercised and verified over a corpus nobody hand-picked"*.
+
+⭐ Also owed here: the gate has no `make` target of its own — it runs only as part of the whole
+`cargo test` sweep, so `GATE-REACHABILITY`'s question (*what INVOKES it?*) has a weak answer.
 
 ## Acceptance Criteria (tree)
 

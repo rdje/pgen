@@ -435,6 +435,24 @@ impl AnnotationValidator {
                 }
                 self.validate_return_ast(rule_name, annotation_index, base, raw_annotation, report);
             }
+            // ENGINE-UNIVERSAL-SERVICES.8 — engine-synthesized, never authored, so
+            // there is no author-facing diagnostic to raise about it. Its two
+            // body-position operands are still validated; the wrapper templates
+            // were validated as the author's own annotations BEFORE the
+            // eliminator hoisted them, and their foldability is enforced
+            // separately by `lr_chain_fold::validate_chain_templates`.
+            UnifiedReturnAST::LrChainFold {
+                initial, suffixes, ..
+            } => {
+                self.validate_return_ast(rule_name, annotation_index, initial, raw_annotation, report);
+                self.validate_return_ast(
+                    rule_name,
+                    annotation_index,
+                    suffixes,
+                    raw_annotation,
+                    report,
+                );
+            }
             UnifiedReturnAST::StringLiteral { .. }
             | UnifiedReturnAST::NumberLiteral { .. }
             | UnifiedReturnAST::BooleanLiteral { .. }
@@ -2169,6 +2187,13 @@ impl AnnotationValidator {
                 .map(|value| self.max_positional_ref(value))
                 .max()
                 .unwrap_or(0),
+            // ENGINE-UNIVERSAL-SERVICES.8 — only `initial`/`suffixes` index THIS
+            // rule's body; a wrapper template's `$N` indexes the suffix captures.
+            UnifiedReturnAST::LrChainFold {
+                initial, suffixes, ..
+            } => self
+                .max_positional_ref(initial)
+                .max(self.max_positional_ref(suffixes)),
             UnifiedReturnAST::StringLiteral { .. }
             | UnifiedReturnAST::NumberLiteral { .. }
             | UnifiedReturnAST::BooleanLiteral { .. }

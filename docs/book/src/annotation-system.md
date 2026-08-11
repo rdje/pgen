@@ -164,6 +164,46 @@ This is why the docs distinguish between:
 - full main annotation grammars,
 - generated parser steady-state behavior.
 
+## Left recursion is folded back into *your* shape
+
+You never write around PGEN's left-recursion elimination, and you never see it in the AST. Write the
+standard's own binary production:
+
+```ebnf
+expr := add | sub | term
+add  := expr "+" term  -> {type: "add", lhs: $1, rhs: $3}
+sub  := expr "-" term  -> {type: "sub", lhs: $1, rhs: $3}
+term := "n"            -> {type: "num"}
+```
+
+PGEN rewrites `expr` internally into `expr_lr_base (expr_lr_suffix)*` — and then **folds the result
+back through your annotations**, left-associatively, so `n+n-n` parses to exactly what you declared:
+
+```json
+{ "type": "sub",
+  "lhs": {"type": "add", "lhs": {"type": "num"}, "rhs": {"type": "num"}},
+  "rhs": {"type": "num"} }
+```
+
+`$1` in a left-recursive alternative is the accumulated left operand; the remaining `$N` are that
+alternative's own positions. An LR-eliminated rule is **indistinguishable from a hand-written one**,
+which is the whole point: the responsibility boundary says the engine absorbs what is common to all
+EBNFs, and left recursion is a property of *parsing*, not of your language.
+
+**Honest bounds.** A left-recursive alternative's annotation may not use `$text`/`$0`, a quantified
+extraction (`$N::first`), or an out-of-range positional — those cannot be replayed over a folded
+chain, so PGEN **refuses them at generation time**, naming the rule and the construct, rather than
+emitting an AST that does not match your declaration.
+
+> ⛔ Historical note worth keeping (`ENGINE-UNIVERSAL-SERVICES.8`): before this fold existed, an
+> LR-eliminated rule published the eliminator's own record —
+> `{initial, suffixes, type: "_pgen_lr_chain", wrapper_specs}` — instead of the declared shape, in
+> every grammar, for the life of the feature. Every differential gate stayed green, because they
+> assert the interpreter and the generated parser are byte-identical **to each other**, and both
+> leaked identically. *Two implementations agreeing is not evidence either one is right.* The gate
+> that closes it is negative space: a value carrying an engine-reserved `_pgen_` discriminator now
+> fails the annotation-shape gate outright.
+
 ## Proof Expectations
 
 Annotation support is not considered real just because syntax exists. It is expected to have:
@@ -171,7 +211,9 @@ Annotation support is not considered real just because syntax exists. It is expe
 - validator coverage,
 - shared/built-in suite coverage,
 - round-trip or comparable contract evidence,
-- maintained aggregate gates.
+- maintained aggregate gates,
+- an **annotation-vs-emitted-AST** check: the AST a parser returns is verified against what the
+  grammar declared, not merely against a second implementation of the same engine.
 
 ## Spread Operators: `*` and `**`
 

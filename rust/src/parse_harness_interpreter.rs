@@ -3265,6 +3265,27 @@ impl<'g, 'i> Interp<'g, 'i> {
             UnifiedReturnAST::MatchedText => {
                 ParseContent::Terminal(&self.input[start_pos..self.position])
             }
+            // ENGINE-UNIVERSAL-SERVICES.8 — the third caller of the ONE fold.
+            // The spec table is interned to `'static` (bounded, one leak per
+            // distinct table) exactly as this module interns rule names, so the
+            // fold borrows template strings straight into the produced value and
+            // costs no per-iteration allocation — matching what the generated
+            // parser gets for free from its `OnceLock`.
+            UnifiedReturnAST::LrChainFold {
+                initial,
+                suffixes,
+                specs,
+            } => {
+                let initial_value = self.fold_return(initial, base, start_pos).to_shaped_value(self.arena);
+                let suffixes_value =
+                    self.fold_return(suffixes, base, start_pos).to_shaped_value(self.arena);
+                ParseContent::Shaped(crate::ast_pipeline::lr_chain_fold::fold_lr_chain(
+                    self.arena,
+                    initial_value,
+                    suffixes_value,
+                    crate::ast_pipeline::lr_chain_fold::intern_specs(specs),
+                ))
+            }
         }
     }
 
