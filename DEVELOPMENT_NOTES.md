@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0211 — a search that can move AWAY from the answer will report "unexplained" for files that are fully explained
+
+`.13c.2` had to answer, for 57 corpus rows, the only question that matters about a candidate list:
+*is the parser wrong here?* The answer — **7 defects in 3 constructs**, 8 rows where PGEN is right to
+reject, the rest cross-file or macro-owned — is worth less than the shape of the mistake that
+produced three earlier answers.
+
+The instrument works by transformation-and-parse: declare the names the parser says it lacks, wrap
+the file in a compilation unit if it needs one, re-parse, repeat to a fixed point. Its residue
+bucket — the one that means *candidate parser defect* — read **47 → 22 → 20**. The first two
+corrections were ordinary coverage gaps (a `class`-only prelude cannot satisfy a cross-file
+**module**; a `type_name`-only harvest cannot see a missing **package** behind `import uvm_pkg::*;`).
+The third was not.
+
+**The harvest returned an interface's own PORT as a demanded-and-missing name.** A PEG parser
+speculates a declaration reading on ordinary tokens, so `rst_ni` — a port of
+`interface cip_lc_tx_cov_if(input [3:0] val, input rst_ni)` — appeared in the trace as a name whose
+fact was missing. Declaring it shadowed the port, and the parse went **backwards**. The row then
+reported RESIDUAL: an unexplained candidate defect, for a file that parses perfectly once its two
+missing packages exist. ⇒ **a hill-climbing search whose steps are not checked can descend**, and
+when it does it fails in the direction that manufactures work and, worse, manufactures *findings*.
+The fix is one line of discipline: a candidate joins the prelude only if adding it does not REDUCE
+how far the parse reaches. Admission by measurement, never by plausibility.
+
+The same shape, one layer down, defeated the keyword filter. The instrument asks the grammar for its
+own reserved words — the right instinct, and the regex it reads
+(`reserved_non_keyword_identifier_sv`) holds **173** spellings and does **not** include `covergroup`,
+`endgroup`, `virtual`, `bind` or `new`. Every one of those really does show up in a trace as
+demanded-and-missing, and a prelude containing `class covergroup; endclass` is a syntax error that
+poisons every later probe of that row into a false RESIDUAL. The cure was not a longer hand-typed
+list — it was to ask the parser: each candidate's own declaration block is PARSED before it may enter
+a prelude.
+
+Two smaller carry-forwards:
+
+- **A candidate FAMILY named from a snippet is a hypothesis, not a finding.** `.13c` named four
+  families from the source text at `furthest_position` — `static function`, the implicit
+  parameter-port shorthand, class type parameters, forward `typedef class`. Isolated as minimal
+  reproducers, **all four parse**, and the three real defects were named by none of them. This is
+  [[a-furthest-position-names-a-region-not-a-token]] arriving one level up: the position locates a
+  region, and everything in that region looks like a suspect.
+- **The negative half of an adjudication is the half a pass-rate cannot see.** Eight of the 57 rows
+  are text no simulator may accept, and PGEN rejecting them is correct. Left as prose, that
+  conclusion protects nothing; the day someone relaxes a rule to fix a different row, those eight
+  start passing and the metric *improves*. They are now negative reproducers whose expectation is
+  REJECT forever, in the same two-sided ratchet as the defects.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0210 — seven answers, six of them wrong, and the one habit that caught every single one
 
 `.13c` had to decide, for 4 158 corpus rows deferred as *"needs the other files"*, whether that

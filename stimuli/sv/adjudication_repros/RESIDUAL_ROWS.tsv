@@ -1,0 +1,21 @@
+suite	relpath	final_verdict	repro	note
+Surelog	tests/ElabSysCall/dut.sv	INVALID-SV	invalid_fatal_without_finish_number.sv	$fatal("…") carries no finish_number; $error/$warning/$info in the same file are fine
+Surelog	tests/LoopBits/LoopBits.sv	NOT-SV-SOURCE		the file is a Surelog COMMAND LINE (`-parse -d uhdm … dut.sv -nobuiltin`) with a .sv extension — route to .13c.1
+Surelog	tests/UnitTest/top.v	INVALID-SV	invalid_binary_reduction_nand.sv	`shifter ~& result` uses the unary reduction operator as a binary one
+black-parrot	bp_top/test/common/bp_nonsynth_core_profiler.sv	INVALID-SV		the file's first token is the bare marker `ERROR_CURRENTLY_UNSUPPORTED`, followed by a typedef — a deliberate upstream "do not compile" sentinel, not SV
+opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	INVALID-SV	invalid_param_trailing_comma.sv	`.EntropyWidth(EntropyWidth),` is followed directly by `)`
+opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	INVALID-SV	invalid_implicit_named_param.sv	`bind otbn_core otbn_trace_if #(.ImemAddrWidth, .DmemAddrWidth)` — parameter shorthand without parens
+opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	DEFECT	defect_cross_body_item.sv	`ignore_bins ignore_enable_off = peri_cross with (…)` inside a cross body
+opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv	DEFECT	defect_tfport_index_method_call.sv	`ral.vendor_test_digest[0].get_offset()` with `ral` a covergroup/subroutine formal
+opentitan	hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv	DEFECT	defect_constant_size_cast.sv	`512'({ 64'h…, 448'h0 })` in a parameter's constant expression
+opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	DEFECT	defect_cross_body_item.sv	same construct as the darjeeling copy
+opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv	DEFECT	defect_tfport_index_method_call.sv	same construct as the darjeeling copy
+opentitan	hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv	DEFECT	defect_constant_size_cast.sv	same construct as the darjeeling copy
+opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	DEFECT	defect_cross_body_item.sv	same construct as the darjeeling copy
+opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv	INVALID-SV	invalid_implicit_named_param.sv	`ibex_simple_system_cosim_checker#( .SecureIbex, .ICache, …)` — parameter shorthand without parens
+opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	INVALID-SV	invalid_dollar_module_identifier.sv	`module $_DLATCH_P_` — a Yosys techmap cell name, not an SV identifier
+opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	FRAGMENT-ENUM-BODY		the whole file is `CUSTOM_1,` — an enum-member list included INSIDE an `enum { … }`, so no wrapper in the ladder can shape it
+slang	tests/unittests/data/local.svh	NOT-SV-SOURCE		a plain-text `include` fixture (`// Just a test string` + a bare string literal) — route to .13c.1
+slang	tests/unittests/data/nested/nested_local.svh	NOT-SV-SOURCE		a plain-text `include` fixture (a bare string literal) — route to .13c.1
+slang	tests/unittests/data/system/system.svh	NOT-SV-SOURCE		a plain-text `include` fixture (a bare string literal) — route to .13c.1
+verilator	test_regress/t/t_langext_order_sub.v	INVALID-SV	invalid_reserved_word_port.sv	`module t_langext_order_sub(input do)` — the file itself carries `// verilator lint_off SYMRSVDWORD`

@@ -785,6 +785,29 @@ Cause map: `NO reach path` = dead-rule candidate (adjudicate via 5.1) · `parsed
 1. `--parse` and read `furthest_position` (3.2) → map to a line.
 2. Minimal-reproduce that construct; `--parse` it. Fails on the minimal = localized; passes = contextual (bisect what precedes).
 3. If a `@predicate` is suspected, `--trace-rules <suspect>` at `high`/`debug` (2.4) → the verdict names the rejecting predicate and resolved args.
+4. ⭐ **PAIR THE REPRODUCER WITH AN ACCEPTING CONTROL, then PIN BOTH** (`SV-CORPUS-GRAD.13c.2`). A
+   reproducer alone proves a rejection; a reproducer plus the nearest construct that DOES parse
+   proves *what the defect is*. `parameter logic [7:0] K = 8'(1);` rejecting means little until
+   `initial k = 8'(1);` is shown to pass — then the defect is the CONSTANT-expression path, not the
+   cast. Add both to `stimuli/sv/adjudication_repros/` + `MANIFEST.tsv`; `stimuli/sv/run_adjudication_repros.py`
+   then re-runs them as a **two-sided ratchet**: `class=defect` fails when it starts parsing (flip it
+   — the fix landed), `class=invalid` fails when it starts parsing (an **over-acceptance**
+   regression), `class=control` fails when it stops parsing (the reproducer no longer isolates one
+   difference). ⛔ A verdict of *"the parser is right to reject this"* MUST be pinned as
+   `class=invalid` — otherwise the day a rule is relaxed for some other row, that text starts
+   passing and the pass rate **improves**.
+   ```bash
+   python3 stimuli/sv/run_adjudication_repros.py --verbose
+   # ADJUDICATION-REPROS: checked=16 listed=16 failures=0
+   ```
+5. ⭐ **BEFORE CALLING A CORPUS ROW A DEFECT, SUBTRACT THE CHEAP EXPLANATIONS — BY PARSING, not by
+   argument** (`stimuli/sv/adjudicate_dark_worklist.py`). It declares the names the parser says it
+   lacks, wraps the file in a compilation unit if it needs one, re-parses to a fixed point, then
+   MINIMIZES the prelude — so a row is classified `CROSS-FILE-FACTS` / `FRAGMENT-<kind>` /
+   `MACRO-BLOCKED` / `RESIDUAL` by what actually parses. ⛔ Each candidate declaration is admitted
+   only if it does not REDUCE how far the parse reaches: declaring a speculated name that is really a
+   PORT shadows the port and drives the parse **backwards**, which reports "unexplained" for files
+   that are fully explained.
 
 ## Protocol C — a parse is slow / hangs
 1. `--dump-rule-call-counts 30 --dump-rule-call-counts-exclude "trivia,…"` (3.1) → the dominating rules.

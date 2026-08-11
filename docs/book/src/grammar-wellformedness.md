@@ -1884,6 +1884,61 @@ named the base class one line above); a declaration test that mistook a type *us
 of a bucket before believing the bucket. **A number that moves by 1 900 on a one-line edit is a
 heuristic, not a census.**
 
+#### What a 57-row candidate list is actually worth
+
+A candidate list is a hypothesis, and the only way to price one is to adjudicate every row.
+`SV-CORPUS-GRAD.13c.2` did that (`stimuli/sv/adjudicate_dark_worklist.py`, 61 s for 57 rows, and
+byte-identical at two different parallelism settings), by the same rule the census used: **a row
+earns its verdict by being parsed**, never by being relabelled. Each verdict below is a real parse of
+a *named, published* transformation of the row's own bytes — a declaration prelude, a
+compilation-unit wrapper, or neither — and the prelude is minimized afterwards, so what gets
+published is the smallest set that explains the row.
+
+| verdict | rows | reading |
+|---|---:|---|
+| macro-blocked | 26 | once the missing declarations are supplied, the parse dies **on** a named undefined macro (`` `uvm_component_param_utils ``, `` `DRIVE_CLK ``, `` `ifdef ``) — expansion owns the remainder |
+| cross-file facts | 9 | declaring the demanded names makes the file parse; `uvm_policies.svh` needs exactly one, `class uvm_object` |
+| ⭐ invalid SystemVerilog | 8 | the text is not legal SV and rejecting it is **correct** |
+| ⭐⭐ **parser defects** | **7** | valid SV that is rejected — **three distinct constructs** |
+| not source text | 4 | a tool command line and three plain-text fixtures wearing `.sv`/`.svh` |
+| fragments | 3 | include payloads that parse only inside a `module`, or an enum-member list |
+
+Two results matter more than the split. First, **every candidate family the census had named was
+wrong**: explicit-lifetime `static function`, the implicit parameter-port shorthand, class type
+parameters and forward `typedef class` all parse today when isolated as minimal reproducers, and the
+three real defects were named by none of them — a snippet at `furthest_position` suggests a family,
+only a parse settles one. Second, the **invalid** half is a finding rather than a leftover: a trailing
+comma in a named parameter list, `#(.Name)` used as a *parameter* shorthand where the LRM makes the
+parentheses mandatory, `$fatal("…")` with no `finish_number`, a port called `do`, `~&` as a binary
+operator, and `module $_DLATCH_P_`. Accepting any of them would be an **over-acceptance** defect,
+which a pass-rate metric is blind to by construction.
+
+So the adjudication is kept as an oracle, not a paragraph.
+`stimuli/sv/run_adjudication_repros.py` re-runs sixteen minimal reproducers — each defect paired with
+an *accepting* control that isolates it to exactly one difference — as a two-sided ratchet: a defect
+that starts parsing fails with "flip it, the fix landed"; an invalid case that starts parsing fails as
+an over-acceptance regression; a control that stops parsing fails because its reproducer no longer
+isolates anything. It was proven able to fail before it was trusted.
+
+The instrument itself needed three corrections, and the third is the general lesson. Its residue
+bucket — the one that means *candidate parser defect* — read **47 → 22 → 20**: a class-only
+declaration prelude could never satisfy a cross-file *module*; a `type_name`-only harvest could never
+see a missing *package* behind `import uvm_pkg::*;`; and worst, the harvest returned an interface's
+own **port** as a demanded-and-missing name, so declaring it shadowed the port and the parse went
+**backwards**. A search that can move away from an answer will report "unexplained" for files that
+are fully explained. Every candidate is now admitted by measurement: a name joins the prelude only if
+adding it does not reduce how far the parse reaches. The same shape defeated the keyword filter —
+the grammar's own reserved-word list holds 173 spellings and omits `covergroup`, `virtual` and `bind`,
+each of which a speculating PEG parser really does report as missing, and `class covergroup; endclass`
+is a syntax error that poisons every later probe. The fix was not a longer hand-typed list but asking
+the parser: a candidate's declaration block is parsed before it may enter a prelude.
+
+One refinement of the census falls out of this, and it does not weaken it. The census proved 2,285
+rows carry a deferral their bytes refute **at the first failure**; that stands. What the adjudication
+adds is that for 26 of the 57, once the fact and unit-shape blockers are removed, the *residual*
+failure lands back inside the macro window. **Text-refuted at the first failure** and **expansion is
+irrelevant to this row** are different claims, and they were being read as one.
+
 Two honesty rules fell out of that census and are worth carrying to any similar instrument:
 
 - **The same falsification means different things per bucket.** The zero-directive test also flags 8

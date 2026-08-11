@@ -1,5 +1,58 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0211 — a 57-row candidate worklist is **7 real defects, in 3 constructs**; 8 more rows are text PGEN is RIGHT to reject (leaf `SV-CORPUS-GRAD.13c.2`, ZERO Rust/grammar bytes)
+
+- ⭐⭐ **All 57 rows of `.13c`'s candidate worklist adjudicated, each by a PARSE** — new tracked
+  instrument `stimuli/sv/adjudicate_dark_worklist.py` (61 s for 57 rows at 6-way parallelism under
+  the memory guard, peak 404 MB, **byte-identical at `--jobs 6` and `--jobs 4`**). ⛔ Nothing is
+  relabelled: every verdict is a real parse of a NAMED, published transformation of the row's own
+  bytes — a declaration prelude, a compilation-unit wrapper, or neither — and the prelude is
+  MINIMIZED afterwards, so the artifact carries the smallest set that explains each row.
+
+  | verdict | rows | disposition |
+  |---|---:|---|
+  | `MACRO-BLOCKED` | 26 | the residual failure sits on a NAMED undefined macro ⇒ `.13d` |
+  | `CROSS-FILE-FACTS` | 9 | `uvm_policies.svh` needs exactly ONE `class uvm_object` ⇒ `.4` |
+  | ⭐ `INVALID-SV` | 8 | the rejection is CORRECT — pinned as NEGATIVE reproducers |
+  | ⭐⭐ **`DEFECT`** | **7** | 3 constructs ⇒ `.13c.2a` / `.13c.2b` / `.13c.2c` |
+  | `NOT-SV-SOURCE` | 4 | ⇒ `.13c.1` |
+  | fragments | 3 | ⇒ `.13g` |
+
+- **THE THREE DEFECTS**, each with a minimal reproducer AND an accepting control that isolates it to
+  one difference: a **non-empty `cross_body`** rejects every `bins_selection_or_option` it may
+  contain while `{ }` parses (LRM A.2.11, 3 rows); a **size cast in a CONSTANT expression** rejects
+  (`parameter logic [7:0] K = 8'(1);`) while the same cast in a statement parses (A.8.4, 2 rows); and
+  **`ral.arr[0].g()` rejects when the receiver is a subroutine formal** while the identical
+  expression parses when it is a class property (A.8.2, 2 rows).
+- ⭐ **8 rows are text no simulator may accept, and PGEN rejecting them is the strict-LRM default
+  working**: a trailing comma in a named parameter list; `#(.Name)` used as a *parameter* shorthand,
+  which `named_parameter_assignment ::= . parameter_identifier ( [ param_expression ] )` forbids
+  (2 rows, incl. an `otbn` `bind`); `$fatal("…")` with no `finish_number`; a port named `do`; `~&`
+  used as a BINARY operator; `module $_DLATCH_P_`. Each is now a NEGATIVE reproducer expected to
+  REJECT **forever**, because over-acceptance is the failure mode a pass-rate metric cannot see.
+- ⛔⛔ **EVERY candidate family `.13c` NAMED was WRONG.** `static function` explicit lifetimes, the
+  implicit parameter-port shorthand, class **type parameters** as `type_name` facts and the forward
+  `typedef class` all PARSE today when isolated (9/9 ACCEPT). The three real defects were named by
+  none of them ⇒ a snippet at `furthest_position` suggests a family; only a parse settles one.
+- ⛔⛔ **The instrument's own residue bucket read 47 → 22 → 20**, and the third correction is the
+  general lesson: the harvest returned an interface's own **port** (`rst_ni`) as a
+  demanded-and-missing name, declaring it shadowed the port, and **the parse went BACKWARDS** — a
+  search that can move away from an answer reports "unexplained" for files that are fully explained.
+  Every candidate is now admitted by MEASUREMENT (a name joins the prelude only if it does not
+  REDUCE reach). Same shape in the keyword filter: the grammar's own reserved list holds 173
+  spellings and omits `covergroup`/`virtual`/`bind`, so a prelude could contain the syntax error
+  `class covergroup; endclass` — fixed by PARSING each candidate's declaration block, not by typing
+  a longer list.
+- **The adjudication is an ORACLE, not a paragraph:** `stimuli/sv/run_adjudication_repros.py`
+  re-runs 16 reproducers against `MANIFEST.tsv` as a two-sided ratchet (a `defect` that starts
+  parsing says *flip it, the fix landed*; an `invalid` that starts parsing is an **over-acceptance
+  regression**; a `control` that stops parsing means the reproducer no longer isolates anything;
+  missing file or missing manifest row is a hard error). Proven able to fail before being trusted.
+- ⭐ **An honest refinement of `.13c` that does not weaken it:** its 2 285 text-refuted rows are
+  refuted **at the first failure**, and that stands — but for 26 of the 57, once the fact and
+  unit-shape blockers are removed the **residual** failure lands back inside the macro window.
+  *Text-refuted at the first failure* ≠ *expansion is irrelevant to this row*.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0210 — `chained_only` is not one capability: 2 057 rows are blocked by cross-file FACTS, 1 527 by expansion, and 57 are candidate defects (leaf `SV-CORPUS-GRAD.13c`, ZERO Rust/grammar bytes)
 
 - ⭐⭐ **4 158 DARK `deferred:chained_only` rows → a 57-row candidate worklist**, via a new tracked

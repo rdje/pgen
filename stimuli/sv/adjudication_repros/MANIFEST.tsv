@@ -1,0 +1,17 @@
+id	expect	class	worklist_rows	construct	lrm	note
+control_cross_body_empty.sv	ACCEPT	control	0	an EMPTY cross_body	A.2.11 cross_body	isolates defect_cross_body_item to the cross_body ITEM
+control_error_elaboration_task.sv	ACCEPT	control	0	$error in a conditional generate	A.9.3 elaboration_system_task	isolates the $fatal rejection to finish_number
+control_explicit_named_param.sv	ACCEPT	control	0	.A(A) named parameter assignment	A.4.1.1 named_parameter_assignment	isolates the .A rejection to the missing parens
+control_fatal_with_finish_number.sv	ACCEPT	control	0	$fatal(1, "…")	A.9.3 elaboration_system_task	isolates the $fatal rejection to finish_number
+control_param_no_trailing_comma.sv	ACCEPT	control	0	named parameter list, no trailing comma	A.4.1.1 list_of_parameter_assignments	isolates the rejection to the trailing comma
+control_property_index_method_call.sv	ACCEPT	control	0	ral.arr[0].g() with ral a class PROPERTY	A.8.2 method_call	isolates the defect to the receiver's declaration site
+control_size_cast_in_statement.sv	ACCEPT	control	0	8'(1) in a non-constant expression	A.8.4 cast	isolates the defect to the CONSTANT-expression path
+defect_constant_size_cast.sv	REJECT	defect	2	8'(1) in a parameter's constant expression	A.8.4 constant_cast	FLIPS TO ACCEPT WHEN FIXED — top_{darjeeling,earlgrey}_rnd_cnst_pkg.sv
+defect_cross_body_item.sv	REJECT	defect	3	a bins_selection_or_option inside cross { … }	A.2.11 cross_body_item	FLIPS TO ACCEPT WHEN FIXED — clkmgr_env_cov.sv x3
+defect_tfport_index_method_call.sv	REJECT	defect	2	ral.arr[0].g() with ral a subroutine formal	A.8.2 method_call	FLIPS TO ACCEPT WHEN FIXED — otp_ctrl_env_cov.sv x2
+invalid_binary_reduction_nand.sv	REJECT	invalid	1	a ~& b used as a BINARY operator	Table 11-3 / A.8.6	over-acceptance would be the defect — Surelog tests/UnitTest/top.v
+invalid_dollar_module_identifier.sv	REJECT	invalid	1	module $_DLATCH_P_	5.6 identifier	over-acceptance would be the defect — lowrisc_ibex syn/rtl/latch_map.v
+invalid_fatal_without_finish_number.sv	REJECT	invalid	1	$fatal("…") with no finish_number	A.9.3 elaboration_system_task	over-acceptance would be the defect — Surelog tests/ElabSysCall/dut.sv
+invalid_implicit_named_param.sv	REJECT	invalid	2	#(.A) implicit named PARAMETER shorthand	A.4.1.1 named_parameter_assignment	over-acceptance would be the defect — otbn_top_sim.sv, ibex cosim bind
+invalid_param_trailing_comma.sv	REJECT	invalid	1	trailing comma in a named parameter list	A.4.1.1 list_of_parameter_assignments	over-acceptance would be the defect — kmac_reduced_tb.sv
+invalid_reserved_word_port.sv	REJECT	invalid	1	a port named with the reserved word `do`	Table B-1 keywords	over-acceptance would be the defect — verilator t_langext_order_sub.v

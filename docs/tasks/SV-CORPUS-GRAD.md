@@ -7974,6 +7974,8 @@ is not a promotion), and the probe arm it needs.
 - **DECOMPOSED 2026-08-11 by `.13a`** into `.13a` (**`done`** — the stratification + this plan),
   `.13b` (**`done`** — the standing denominator gate, doctrine `SV-CORPUS-DENOMINATOR`),
   `.13c` (**`done`** — 4 158 DARK rows → a 57-row candidate worklist; opened `.13c.1`/`.13c.2`),
+  `.13c.2` (**`done`** — the 57 adjudicated: **7 defects in 3 constructs**, 8 correct rejections of
+  invalid SV, the rest routed; opened `.13c.2a`/`.13c.2b`/`.13c.2c`),
   `.13d` (the expansion-blocked rows — **re-sized by `.13c` from 3 628 to 1 527**), `.13e`
   (`no_sv_key`), `.13f` (the honest-permanent set), `.13g` (the fragment-shaped population).
   ⛔ The umbrella closes only when every one of the 6 321 rows sits under a leaf that names its
@@ -8262,20 +8264,170 @@ is not a promotion), and the probe arm it needs.
   through `.13b`'s gate, and the census in `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/`
   cited as the evidence.
 
-#### `.13c.2` — adjudicate the 57-row candidate worklist row by row (`todo`, opened 2026-08-11 by `.13c`)
+#### `.13c.2` — the 57-row candidate worklist adjudicated: **7 rows are defects, 3 constructs** (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0211`)
 
-- **The worklist is measured and listed** (`…/dark_chained_only/worklist.tsv`): 25
-  `UNDECLARED-ANYWHERE` + 24 `NO-FACT-GATE-AT-FAILURE` + 8 `FACT-GATED-LOCAL-TYPE`.
-- ⛔ **A worklist is not a defect count.** Each row needs the toolbox (probe + scoped
-  `--trace-rules`) to say whether the parser is wrong, the file is not a legal standalone unit, or
-  the construct is genuinely invalid SV. `.12` is the precedent for the outcome being real: the
-  axis-2 bar went **293 → 319** because rows like these were wearing the wrong label, and *that was
-  the correct direction*.
-- **Start with the families `.13c` named** — they are cheap because one diagnosis covers several
-  rows: `static task`/`static function` (3), the implicit parameter-port shorthand, class type
-  parameters as `type_name` facts (5 uvm-core rows), the forward `typedef class`.
-- **Every confirmed defect joins the axis-2 bar** and the `.3` burn-down worklist, which `.13`
-  already records as STALE by 26 rows.
+- **THE ANSWER, per row, all 57 of them** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/adjudication.{tsv,md}`):
+
+  | final verdict | rows | what it means | disposition |
+  |---|---:|---|---|
+  | `MACRO-BLOCKED` | **26** | once the unit's missing declarations are supplied, the parse dies ON a NAMED undefined macro (`` `uvm_component_param_utils ``, `` `DRIVE_CLK ``, `` `CHIP_HIER ``, `` `ifdef ``, …) | expansion owns it → `.13d` |
+  | `CROSS-FILE-FACTS` | **9** | declaring the names the parser demanded makes the file PARSE — minimal set published per row (`uvm_policies.svh` needs exactly ONE: `class uvm_object`) | `.4` fact continuity |
+  | ⭐ `INVALID-SV` | **8** | the text is **not legal SV** and the rejection is CORRECT | pinned as NEGATIVE reproducers |
+  | ⭐⭐ **`DEFECT`** | **7** | valid SV that PGEN REJECTS — **3 distinct constructs** | routed to `.13c.2a`/`.13c.2b`/`.13c.2c` |
+  | `NOT-SV-SOURCE` | **4** | a Surelog COMMAND LINE and 3 slang plain-text fixtures wearing `.sv`/`.svh` | corpus composition → `.13c.1` |
+  | `FRAGMENT-MODULE` | **2** | parses only inside a `module` ⇒ an include payload | unit shape → `.13g` |
+  | `FRAGMENT-ENUM-BODY` | **1** | the whole file is `CUSTOM_1,` — an enum-member list included INSIDE an `enum { … }` | unit shape → `.13g` |
+
+- ⭐⭐ **THE HEADLINE: a 57-row CANDIDATE worklist is 7 real defects — and `.13c`'s own named
+  candidate families were, every one of them, WRONG.** `.13c` proposed `static function`
+  explicit-lifetime subroutines, the implicit parameter-port shorthand, class **type parameters**
+  as `type_name` facts, and the forward `typedef class`. Isolated as minimal reproducers, **all
+  four parse today** (`repro A1`–`A9`, 9/9 ACCEPT). The three defects that are real were named by
+  none of them. ⇒ a snippet at `furthest_position` suggests a family; only a PARSE settles one
+  ([[a-furthest-position-names-a-region-not-a-token]]).
+- **THE THREE CONFIRMED DEFECTS**, each with a minimal reproducer and its ACCEPTING control, so
+  each is pinned to exactly ONE difference:
+
+  | # | construct | LRM | rows | reproducer / control |
+  |---|---|---|---:|---|
+  | `.13c.2a` | a `bins_selection_or_option` inside a non-empty `cross_body` — `ignore_bins ib = ca with (…)` | A.2.11 `cross_body_item` | 3 | `defect_cross_body_item.sv` / `control_cross_body_empty.sv` (the same cross with `{ }` PARSES) |
+  | `.13c.2b` | a size cast in a **constant** expression — `parameter logic [7:0] K = 8'(1);` | A.8.4 `constant_cast` | 2 | `defect_constant_size_cast.sv` / `control_size_cast_in_statement.sv` (`initial k = 8'(1);` PARSES) |
+  | `.13c.2c` | `ral.arr[0].g()` where the receiver is a **subroutine formal** | A.8.2 `method_call` | 2 | `defect_tfport_index_method_call.sv` / `control_property_index_method_call.sv` (identical expression with `ral` a class PROPERTY PARSES) |
+
+- ⭐ **THE INVALID-SV HALF IS A FINDING, NOT A LEFTOVER.** Eight rows are text no simulator may
+  accept, and PGEN rejecting them is the strict-LRM default working
+  ([[feedback_sv_strict_lrm_compliance_default]]): a trailing comma in a named parameter list; the
+  `.name` implicit shorthand used for a **parameter**, where `named_parameter_assignment ::= .
+  parameter_identifier ( [ param_expression ] )` makes the parens mandatory (A.4.1.1) — 2 rows,
+  including an `otbn` `bind`; `$fatal("…")` with no `finish_number` while `$error`/`$warning` in the
+  same file are fine (A.9.3); a port named `do`; `~&` used as a BINARY operator; and
+  `module $_DLATCH_P_` (a Yosys techmap cell name). Each is now a **negative** reproducer whose
+  expectation is `REJECT` **forever** — because over-acceptance is the failure mode this axis is
+  blind to by construction.
+- **THE INSTRUMENT — `stimuli/sv/adjudicate_dark_worklist.py`** (new, tracked; 61 s for 57 rows at
+  6-way parallelism under the memory guard, peak 404 MB, **byte-identical at `--jobs 6` and
+  `--jobs 4`**). ⛔ It relabels nothing: each verdict is a real parse of a NAMED, published
+  transformation of the row's own bytes — a declaration prelude, a compilation-unit wrapper, or
+  neither — and the prelude is MINIMIZED afterwards, so what is published is the smallest set that
+  explains the row rather than whatever the search accumulated.
+- ⛔⛔ **THREE SUCCESSIVE VERSIONS OF THE INSTRUMENT WERE DEFENSIBLE AND WRONG, each caught by one
+  row.** RESIDUAL — the bucket that means *candidate parser defect* — read **47 → 22 → 20**:
+  1. the prelude declared each name as a `class` only, so a cross-file **module** (`xbar_main
+     dut();`) could never be satisfied and 8 opentitan rows sat in RESIDUAL. Fixed by an escalating
+     form ladder (`class` → `module` → both → all four), with the winning form published.
+  2. the harvest matched `type_name` only — right for `.13c`'s question, wrong for this one.
+     `cip_lc_tx_cov_if.sv` opens `import uvm_pkg::*;`: the missing declaration is a **package**, no
+     `type_name` fact is ever demanded for it, and the row read as a defect candidate for a file
+     that parses perfectly once its two packages exist (`repro L6`).
+  3. worst of the three, and the one that matters: the harvest returned the interface's own **port**
+     `rst_ni` as a demanded-and-missing name; declaring it shadowed the port and the parse went
+     **BACKWARDS**. A search that can move away from an answer will report "unexplained" for files
+     that are fully explained. ⇒ every candidate is now admitted by MEASUREMENT — a name joins the
+     prelude only if adding it does not REDUCE how far the parse reaches.
+  ⛔ And the keyword filter had the same shape: `reserved_non_keyword_identifier_sv` holds 173
+  spellings and does **not** include `covergroup`, `endgroup`, `virtual`, `bind` or `new`, every one
+  of which a speculating PEG parser really does report as demanded-and-missing. A prelude containing
+  `class covergroup; endclass` is a syntax error that poisons every later probe of that row. The fix
+  is not a longer hand-typed list — it is asking the parser: a candidate's own declaration block is
+  PARSED before it may enter a prelude.
+- ⭐ **A NEW, HONEST REFINEMENT OF `.13c` — and it does not weaken it.** `.13c` proved 2 285 rows
+  carry a deferral their bytes refute **at the first failure**. That stays true. What this leaf adds
+  is that for 26 of the 57, once the fact and unit-shape blockers are removed the **residual**
+  failure lands back inside the macro window. ⇒ *text-refuted at the first failure* is not the same
+  claim as *expansion is irrelevant to this row*, and the two were being read as one.
+- **THE ADJUDICATION IS NOW AN ORACLE, not a paragraph.** `stimuli/sv/run_adjudication_repros.py`
+  re-executes all **16** reproducers against `MANIFEST.tsv` as a **two-sided ratchet**: a `defect`
+  that starts parsing fails with *"flip it to ACCEPT — the fix landed"*; an `invalid` that starts
+  parsing fails as an **over-acceptance regression**; a `control` that stops parsing fails because
+  its reproducer no longer isolates one difference; a manifest row with no file, or a file with no
+  manifest row, is a hard error rather than a skip. Proven able to fail: flipping one expectation
+  gives `exit=1` with the located row, and restoring it gives `exit=0`
+  ([[a-check-whose-inputs-all-pass-has-not-been-tested]]).
+- **`RESIDUAL_ROWS.tsv` is two-sided too**: a RESIDUAL row with no adjudication is a hard error, and
+  an adjudication for a row that is **no longer** RESIDUAL is equally a hard error — so neither a
+  new unexplained row nor a stale verdict can ride along silently.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — all 57 worklist rows re-probed on HEAD, **57/57 `rc=1`**, e.g.
+  `Error: parse_full rejected sample for grammar 'systemverilog' on
+  '…/uvm-core-2020.3.1/src/comps/uvm_policies.svh': Parser did not consume full input at position
+  4763 [furthest_position=4829]`. `.13c` left them a WORKLIST with no per-row disposition.
+- [x] **ROOT CAUSE (WHY + WHERE)** — per row, from the parser. On `uvm_policies.svh` the label
+  `FACT-GATED-LOCAL-TYPE` (i.e. *candidate defect*) came from the local type parameter `T`, while
+  `--trace-rules checked_type_identifier` names the real blocker on the same line:
+  `↪ NEGATIVE: 15 facts of kind 'type_name' exist (none matched name Identifier("uvm_object"))` —
+  and one `class uvm_object; endclass` makes the file parse. For `.13c.2c`,
+  `--trace-rules method_call,method_call_root,select_or_range,call_with_postfix_chain` shows
+  `🏁 Rule 'method_call_receiver_sv_2017' selected branch 2/14 … branch_policy=longest_match` and
+  `✅ Rule 'method_call_root' successfully parsed from 136 to 149 (consumed 13 bytes: ' ral.arr[0].g')`
+  — the un-fact-gated `hierarchical_sequence_identifier` arm swallows the method NAME, leaving `()`
+  with no `. method_identifier` to bind to. `known_unscoped_sequence_identifier` is correctly
+  rejected one line earlier (`🚫 … rejected by post predicate 'has_fact [sequence_name, ral]'`), so
+  the gate exists and the sibling arm bypasses it.
+- [x] **ADDRESSED (verified)** — before→after on the question asked: **0 of 57** rows had a
+  disposition, **57 of 57** do, and the candidate-defect count is **7, not 57**. Each defect is
+  REJECT→(expected)ACCEPT-on-fix with an ACCEPTING control isolating one difference:
+  `control_cross_body_empty.sv` rc=0 vs `defect_cross_body_item.sv` rc=1;
+  `control_size_cast_in_statement.sv` rc=0 vs `defect_constant_size_cast.sv` rc=1;
+  `control_property_index_method_call.sv` rc=0 vs `defect_tfport_index_method_call.sv` rc=1. On the
+  real corpus file, deleting only the cross body flips
+  `clkmgr_env_cov.sv` lines 12–35 from `furthest_position=540` REJECT to
+  `parse_full passed` — one construct, whole-file. Named re-runnable oracle:
+  `python3 stimuli/sv/run_adjudication_repros.py` → `ADJUDICATION-REPROS: checked=16 listed=16
+  failures=0`, and it was proven able to FAIL (one flipped expectation → `exit=1`).
+- [x] **NO REGRESSION** — instruments + docs only: **ZERO Rust, grammar, codegen or generated
+  bytes**. The tracked characterization oracles and `.13c`'s `audit.tsv`/`summary.md`/`worklist.tsv`
+  are **byte-identical** by sha256 (this leaf reads them, never writes them); the adjudication is
+  deterministic (fixed inputs, no seeds — byte-identical at `--jobs 6` and `--jobs 4`); all
+  doctrines PASS including `SV-CORPUS-DENOMINATOR` re-deriving `7556/2459/6321/4398/318` unchanged.
+  ⛔ The axis-2 bar is deliberately **NOT** moved here: re-adjudicating the 7 rows in the tracked
+  manifest is `.3`/`.13b` denominator work, and this leaf does not write an oracle it audits.
+- [x] **LOCKSTEP** — book *Grammar Well-Formedness* (the `.13c.2` result beside `.13c`'s worklist),
+  `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, and `TOOLBOX.md`
+  (the new adjudication oracle).
+
+#### `.13c.2a` — DEFECT: a non-empty `cross_body` rejects every item it may contain (`todo`, opened 2026-08-11 by `.13c.2`)
+
+- **IEEE 1800-2017 A.2.11**: `cross_body ::= { { cross_body_item ; } } | ;` and
+  `cross_body_item ::= function_declaration | bins_selection_or_option ;`. PGEN accepts the empty
+  body `{ }` and rejects **every** non-empty one — measured on both arms:
+  `ignore_bins ib = ca with (a == 1);` and `option.weight = 2;` (the `coverage_option` arm), and
+  `ignore_bins ib = binsof(ca);`.
+- **Reproducer** `stimuli/sv/adjudication_repros/defect_cross_body_item.sv` (expect REJECT today,
+  ACCEPT once fixed); control `control_cross_body_empty.sv`. ⚠️ The neighbouring COVERPOINT body is
+  fine — `bins`/`illegal_bins`/`bins … = default` inside `coverpoint x { … }` all parse — so this is
+  the CROSS body specifically, not coverage bins in general.
+- **Corpus rows unblocked:** 3 (`clkmgr_env_cov.sv` under `top_darjeeling`, `top_earlgrey`,
+  `top_englishbreakfast`). Fix hierarchy: declarative/grammar tier — no engine change is implied.
+
+#### `.13c.2b` — DEFECT: a size cast is rejected in a CONSTANT expression (`todo`, opened 2026-08-11 by `.13c.2`)
+
+- `parameter logic [7:0] K = 8'(1);` REJECTS while `initial k = 8'(1);` PARSES ⇒ the gap is the
+  **constant-expression** path, not the cast. IEEE 1800-2017 A.8.4:
+  `constant_primary ::= … | constant_cast | …`, `constant_cast ::= casting_type ' ( constant_expression )`.
+- **Reproducer** `defect_constant_size_cast.sv`; control `control_size_cast_in_statement.sv`.
+- **Corpus rows unblocked:** 2 (`top_{darjeeling,earlgrey}_rnd_cnst_pkg.sv`, both
+  `512'({ 64'h…, 448'h0 })` inside a package parameter). ⚠️ Worth sizing beyond these rows before
+  fixing: a constant-expression path that is missing ONE `constant_primary` alternative is unlikely
+  to be missing only that one — check the whole A.8.4 alternative list against
+  `constant_primary`'s alternatives in `grammars/systemverilog.ebnf` as part of the diagnosis.
+
+#### `.13c.2c` — DEFECT: `ral.arr[0].g()` rejects when the receiver is a subroutine formal (`todo`, opened 2026-08-11 by `.13c.2`)
+
+- The identical expression parses when `ral` is a class PROPERTY and rejects when it is a
+  **subroutine formal argument** — so the discriminator is the receiver's declaration site, i.e. a
+  fact the store does not hold for `tf_port_item` names.
+- **Mechanism, already located** (see `.13c.2`'s ROOT CAUSE box): under
+  `branch_policy=longest_match`, `method_call_receiver_sv_2017` branch 2/14 reaches the
+  **un-fact-gated** `hierarchical_sequence_identifier` arm, which consumes `ral.arr[0].g` including
+  the method name. Its fact-gated sibling `known_unscoped_sequence_identifier` IS rejected
+  (`has_fact [sequence_name, ral]` → false), so the gate is present and the sibling arm bypasses it.
+  ⚠️ **This is the `.3.x` "un-gated sibling alternative" shape** — worth checking whether other
+  `ps_or_hierarchical_*` rules carry the same un-gated third arm before fixing just this one.
+- **Reproducer** `defect_tfport_index_method_call.sv`; control `control_property_index_method_call.sv`.
+- **Corpus rows unblocked:** 2 (`otp_ctrl_env_cov.sv` ×2, `ral.vendor_test_digest[0].get_offset()`
+  inside a `bins` value list).
 
 #### `.13d` — the DARK `chained_only` rows expansion really does own: **1 527**, not 3 628 (`todo`, opened 2026-08-11 by `.13a`, re-sized by `.13c`)
 
