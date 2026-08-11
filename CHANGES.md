@@ -1,5 +1,50 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0209 — the SV corpus denominator is now a DOCTRINE: the bar cannot be published without it (leaf `SV-CORPUS-GRAD.13b`, ZERO Rust/grammar bytes)
+
+- ⭐⭐ **`.13a` owed "a deterministic `make` gate", and a `make` gate would have been the wrong
+  answer.** The book's own gate-flow chapter measures the automatic tier at **0 of 123 `make`
+  targets** — hosted Actions are paused, 14 of 15 workflows are `workflow_dispatch`-only, and the one
+  that still auto-runs invokes `scripts/check_doctrines.sh`. ⇒ shipped as the **18th registered
+  doctrine**, `SV-CORPUS-DENOMINATOR` (`scripts/check_sv_corpus_denominator.sh`, ~1 s), so it binds on
+  **every commit** (E3) and **every push** (E4). Precedent for a family-specific doctrine:
+  `REGEX-ORACLE-ANCHOR-SYNC`.
+- **LEG 1 — FRESHNESS.** The tracked `coverage.md` / `coverage.tsv` / `strata.tsv` must be
+  **byte-identical** to a fresh census re-run. ⛔ The re-run goes to a **scratch** directory: *a check
+  that regenerates the file it then compares always passes*, and that was designed out rather than
+  discovered.
+- **LEG 2 — CO-PUBLICATION.** Every designated live surface must carry the derived
+  `adjudicated/routed/no-verdict/dark/axis-2-bar` tuple — today **`7556/2459/6321/4398/318`** — so the
+  bar can never move without its denominator moving with it. The anchor is **marker-scoped**, exactly
+  as the regex oracle anchor uses bold, so era-dated numbers in surrounding prose stay history rather
+  than becoming false failures.
+- ⛔ **No duplicated bucketing.** The enforcer *invokes* the instrument instead of re-implementing its
+  class→bucket map; the instrument already refuses on an unclassified adjudication class.
+- ⚠️ **The submodule bound is reported, not hidden.** The vendored corpora are git submodules, so a
+  checkout without them cannot run the DARK-half backtick census: that leg prints
+  **`NOT EVALUATED`** and the corpus-independent legs still bind.
+- ⭐ **A line-scoped anchor reader failed on its first run against a CORRECT book** — the book wraps
+  prose, so the marker and the tuple sat on different lines and the anchor read as MISSING. Now
+  paragraph-scoped, returning **every** tuple in the marker paragraph so a stray number fails loudly.
+- **SIX ARMS FIRED, none assumed:** stale artifact / stale anchor / missing anchor / instrument
+  refusal / corpus-absent mode (NOT EVALUATED + the rest binding) / a deliberately broken
+  ground-truth control (**exit 2**). Every mutated file restored and re-verified by sha256.
+- **Lockstep + a stale number fixed in passing:** `DOCTRINE_ENFORCEMENT.md` §10 (the meta-check fails
+  without the mirrored row), the book's live anchor, and the gate-flow chapter's doctrine count —
+  which was itself stale at **14** and is now **18**.
+- ⚠️⚠️ **AND A DOCTRINE PASSED THIS COMMIT WITHOUT REQUIRING ANYTHING.** `LESSON-PROMOTION` exited 0
+  on this commit's new lesson because `check_lesson_promotion.sh` greps for `promotion: declined (…)`
+  **anywhere in any staged `docs/tasks/*.md`**, and this tree file carries one written two commits ago
+  by `.12c.4`. ⛔ Any tree file holding one decline grants a **standing free pass** to every later
+  lesson staged with it: **4 of 287** tracked task files hold a token today, including the two most
+  frequently touched trees. This commit does **not** keep the borrowed pass — the lesson is promoted on
+  merit (`docs/knowledge/a-gate-must-be-able-to-fail-and-able-to-run.md`) — and the hole is ROUTED to
+  the new **`LESSON-RETRIEVAL.7`**, with the measured note that the identical file-scoped fails-open
+  shape was already found and FIXED next door by `GENERATED-LINT-CORRECTNESS.7` (33 files carried that
+  free pass; 7 of 138 code commits passed by borrowing), so the cure is leaf-section scoping.
+- NO REGRESSION: zero Rust/grammar/codegen bytes, 5 characterization oracles byte-identical, all 18
+  doctrines PASS, `mdbook_docs_gate` + 10 per-parser book gates GREEN.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0208 — the corpus denominator is not one population: 26.9 % is DARK, and 530 of those rows carry a deferral their own bytes refute (leaf `SV-CORPUS-GRAD.13a`, ZERO Rust/grammar bytes)
 
 - ⭐⭐ **`38.7 % carries no verdict` was a headline, not a plan.** `.13` published one number for

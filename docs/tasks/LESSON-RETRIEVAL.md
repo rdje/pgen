@@ -97,7 +97,7 @@ is not yet a fact — it is a hypothesis.
 - ID: `LESSON-RETRIEVAL`
   Status: `active`
   Goal: durable lessons are retrievable by question, and promotion cannot be silently skipped
-  Children: `.1`, `.2`, `.3`, `.4`
+  Children: `.1`, `.2`, `.3`, `.4`, `.5`, `.6`, `.7`
 
 - ID: `LESSON-RETRIEVAL.1`
   Status: `done` (`PGEN-LESSON-RETRIEVAL-0001`)
@@ -185,6 +185,17 @@ citation rank — the tail is mostly single-citation records where a thin `answe
   Design sketch (do NOT re-derive): `Widen the promotion detector from the `answers:` KEY to "the staged docs/decisions diff adds at least one question key" — i.e. also accept an added line matching `^\+[[:space:]]+- ".*"` inside a decisions file. ⛔ KEEP IT SPECIFIC: any added line under docs/decisions/ would make a typo fix count as a promotion, which is the fails-open direction. The `.4` probe harness already drives the real script against a scratch repo with genuine staged states, so this needs one new arm: a record that ALREADY has answers: gaining a new question key must satisfy the gate, and a decisions edit that adds NO question key must still NOT.`
   Prerequisites: `NONE. Independent of `.5` (that one is about how a DECLINE may be written; this is about what counts as a PROMOTION).`
   Acceptance: `pending`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `LESSON-RETRIEVAL.7`
+  Status: `pending` (opened 2026-08-11 by `PGEN-SV-CORPUS-GRAD-0209`, which was **granted a free pass by it** and only noticed because a green looked too easy)
+  Goal: `SCOPE THE DECLINE TOKEN TO THE LEAF THE CHANGE TOUCHES. check_lesson_promotion.sh looks for `promotion: declined (…)` ANYWHERE in ANY staged docs/tasks/*.md file. So a tree file that already carries ONE decline — written for an earlier, unrelated leaf — satisfies the doctrine for EVERY later lesson staged alongside it, forever. The doctrine then reports PASS having required nothing, which is the exact failure mode it was created to end (a silent omission), one level up.`
+  Evidence (measured, not hypothesised): `⭐ THE LIVE INSTANCE IS THE COMMIT THAT OPENED THIS LEAF. `PGEN-SV-CORPUS-GRAD-0209` staged a new dated DEVELOPMENT_NOTES lesson with no promotion and no decision of its own; `bash scripts/check_lesson_promotion.sh` exited **0**, satisfied by `docs/tasks/SV-CORPUS-GRAD.md:7894` — the `LESSON DISPOSITION` token written by leaf `.12c.4` in `-0207`, two commits earlier. Blast radius, measured: **4 of 287** tracked task files carry a decline token today (`SV-CORPUS-GRAD`, `SV-EXH-PROOF`, `LESSON-RETRIEVAL`, `BOOK-PARAGRAPH-SHAPE`), and two of those are the most frequently touched trees in the repo — so the free pass is not rare, it is the default for the active lanes. A sweep of the last 200 commits found 1 other commit whose pass COULD have rested on an unearned token; on inspection it had also written its own, so the doctrine's historical record is intact and the hole is prospective — which is precisely when it is cheap to close. ⛔ The commit that found this fixed its OWN compliance on merit (it promoted docs/knowledge/a-gate-must-be-able-to-fail-and-able-to-run.md) rather than keeping the borrowed pass.`
+  Does it reproduce outside this doctrine? `YES — MEASURED, and it is already FIXED next door, which is what makes the fix pattern non-speculative. GENERATED-LINT-CORRECTNESS.7 found the identical file-scoped fails-open shape in check_diagnosis_evidence.sh: any ticked acceptance box in any staged task file satisfied any code change, and **33 tracked task files carried that standing free pass, with 7 of the last 138 code-change commits passing only by borrowing**. The fix there was leaf-section scoping plus "the staged change must TOUCH that section". Same disease, same cure, different enforcer.`
+  Design sketch (do NOT re-derive): `Reuse check_diagnosis_evidence.sh's proven machinery rather than inventing a second mechanism: `added_ranges <file>` (the lines the staged change adds or modifies) + the leaf-section bounds (headings of level <= 3), then require the decline token to sit inside a leaf section the change TOUCHES. ⛔ Compose with `.5` (a decline may WRAP across lines) — the window search and the section scoping are orthogonal and both are wanted; do them in one pass so the second does not reopen the first. ⛔ KEEP the placeholder rejection from `.4`.`
+  Prerequisites: `NONE, but landing `.5` first is cheaper — both edit the same matcher.`
+  Acceptance: `A decline written in the leaf the change touches SATISFIES; the SAME token in an untouched leaf of the same staged file FAILS; the `(<reason>)` placeholder still fails; all existing arms of docs/tasks/artifacts/lesson_retrieval/run_lesson_promotion_probes.sh stay green, plus a new arm reproducing THIS commit's borrowed pass — RED before the change, GREEN after.`
   Verification: `pending`
   Commit: `pending`
 

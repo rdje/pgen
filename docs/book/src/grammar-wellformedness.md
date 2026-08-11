@@ -1836,6 +1836,14 @@ The number to plan against is therefore **4 398**, and reaching it moved **no ro
 adjudicated bucket — the manifest already recorded what the parser did on every file, and that
 observation was simply unused.
 
+> ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
+> `7556/2459/6321/4398/318`.** The `SV-CORPUS-DENOMINATOR` doctrine
+> (`scripts/check_sv_corpus_denominator.sh`) re-derives all five numbers from the tracked
+> adjudication manifest on every commit and fails if this line disagrees or if the census artifact
+> has gone stale — so **the bar can never again be published without its denominator beside it**.
+> The instrument's own output lives at
+> `docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/coverage.md`.
+
 Inside the dark half, a deferral can sometimes be refuted by the input's own bytes. A file containing
 no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or
 `` `include `` inlining, so its parse fails identically after chaining: **530 `chained_only` rows are

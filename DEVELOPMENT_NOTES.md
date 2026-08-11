@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0209 — put the check where the lane actually runs, and never let it regenerate what it compares
+
+`.13b` was owed as "a deterministic `make` target". Writing it that way would have satisfied the leaf
+and changed nothing: this repository has already measured its own automatic tier at **0 of 123 `make`
+targets**, because hosted Actions are paused and the single auto-running workflow calls the doctrine
+driver rather than any target. **A gate's tier is part of its design, not an afterthought** — so the
+check shipped as the 18th registered doctrine and now binds on every commit and every push. The
+generalisable question is *"which lane will this actually run in?"*, asked before the shape is chosen.
+
+**The trap worth naming: a freshness check that regenerates the file it compares always passes.** The
+obvious implementation is "re-run the instrument, then `git diff`". That would have been green forever,
+because the re-run overwrites the evidence. The scratch-directory indirection is the entire check.
+
+**A number needs an anchor, and the anchor needs a discriminator.** The chapter that publishes the bar
+also narrates its history (`293 → 319`, `down by one, to 318`), so a check demanding "the current bar
+appears" is weak and one demanding "no other bar appears" is unusable. The marker-scoped anchor —
+borrowed from `check_regex_oracle_anchor_sync.sh`, which uses bold for the same purpose — keeps live
+and historical citations distinguishable, and it is the reason the co-publication leg can be strict
+(*all* tuples in the marker paragraph must equal the derived tuple) without fighting the prose.
+
+**And the anchor reader was wrong first, against correct content.** Line-scoped, it reported the
+anchor MISSING while the marker and the tuple sat two words apart across a wrap. That is the same
+class as `.12`'s six-byte layout gap: **an instrument that indexes text must be told the shape of the
+text it indexes.** Paragraph scoping fixed it, and returning *every* tuple in the paragraph turned the
+looseness into strictness — a stray number now fails rather than being averaged into agreement.
+
+**What the submodule bound taught.** The corpora are submodules, so a hosted checkout can run four of
+the five legs and not the fifth. The honest options are to skip the whole check or to report the one
+leg as `NOT EVALUATED`; only the second keeps the other legs binding, and this tree's founding
+principle already settled it: *a check that cannot run must say so, not return green.*
+
+**Fixed in passing, and worth noticing why it was possible:** the book claimed **14** enforced
+doctrines when there were 17. The count is a derivable fact maintained by hand — the same shape as the
+census artifact this leaf exists to gate, one level up. It is now 18 and cited in one place.
+
+**And the most useful thing this slice found, it found about itself.** `LESSON-PROMOTION` passed this
+commit while requiring nothing: its decline token is matched **anywhere in any staged
+`docs/tasks/*.md`**, and this tree file already carried one from two commits ago. The tell was the
+green — I had recorded no decision, so a PASS could only mean the gate had not asked. ⛔ *A doctrine
+that asks for nothing is indistinguishable from one that is not wired.* Two obligations follow, and
+both were discharged: earn the pass on merit (a real knowledge card, not the borrowed token), and route
+the hole with what was measured (`LESSON-RETRIEVAL.7`; 4 of 287 tree files hold a token, and the
+identical file-scoped shape was already fixed next door by `GENERATED-LINT-CORRECTNESS.7`). **When a
+gate you are relying on passes more easily than you can explain, stop and ask what it actually
+required** — that instinct is the only thing standing between a wired doctrine and a decorative one.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0208 — a percentage is not a population, and the file's own bytes can refute its label
 
 `.13a` had one job: make the 38.7 %-no-verdict headline dispositionable. The lesson worth carrying is

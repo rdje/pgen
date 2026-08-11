@@ -7972,7 +7972,8 @@ is not a promotion), and the probe arm it needs.
   `.4` + an expander, and a standing gate so the denominator is published beside the bar and cannot
   silently rot.
 - **DECOMPOSED 2026-08-11 by `.13a`** into `.13a` (**`done`** — the stratification + this plan),
-  `.13b` (the standing denominator gate), `.13c` (the 530 rows whose deferral its own bytes refute),
+  `.13b` (**`done`** — the standing denominator gate, doctrine `SV-CORPUS-DENOMINATOR`),
+  `.13c` (the 530 rows whose deferral its own bytes refute) ⇐ **NEXT**,
   `.13d` (the 3 628 expansion-blocked rows), `.13e` (`no_sv_key`), `.13f` (the honest-permanent set),
   `.13g` (the fragment-shaped population). ⛔ The umbrella closes only when every one of the 6 321
   rows sits under a leaf that names its disposition.
@@ -8073,17 +8074,91 @@ is not a promotion), and the probe arm it needs.
 - [x] **LOCKSTEP** — book *Grammar Well-Formedness* § the denominator subsection, `MEMORY.md`,
   `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md` frontier.
 
-#### `.13b` — the standing DENOMINATOR gate (`todo`, opened 2026-08-11 by `.13a`) ⇐ NEXT
+#### `.13b` — the standing DENOMINATOR gate (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0209`)
 
 - **WHY, measured, not hypothetical:** the `coverage.md` artifact rotted **within one day** of being
   written (`.13a`), publishing a superseded bar. A number in a tracked file with no gate is a
   number that will be wrong the next time somebody quotes it.
-- **Owed:** a deterministic `make` target that re-runs the census and **fails if the tracked artifact
-  differs by one byte** (the pattern the corpus oracles already use), plus publication of the
-  denominator **beside** the axis-2 bar everywhere the bar is quoted — the graduation gate (`.5`),
-  the family-status criterion, and the book — so a 318-row bar can never again be read as if the
-  corpus were fully adjudicated. ⛔ The gate must fail in BOTH directions (stale artifact AND
-  un-regenerated instrument), and both arms must be fired before it is trusted.
+- **WHAT LANDED — a registered DOCTRINE, not a `make` target, and the difference is the whole
+  point.** `.13a` owed "a deterministic `make` gate". A `make` target would have been **OPERATOR
+  tier** — the book's own gate-flow chapter measures the automatic tier at **0 of 123 `make`
+  targets**, because hosted Actions are paused and 14 of 15 workflows are `workflow_dispatch`-only.
+  The single auto-running workflow invokes `scripts/check_doctrines.sh`, so the only lane that
+  actually runs on every commit *and* on every push is the doctrine registry. ⇒ shipped as
+  `scripts/check_sv_corpus_denominator.sh`, doctrine **`SV-CORPUS-DENOMINATOR`** (the 18th),
+  costing ~1 s. Precedent for a family-specific doctrine: `REGEX-ORACLE-ANCHOR-SYNC`.
+- **THE TWO LEGS.**
+  1. **FRESHNESS** — the tracked `coverage.md` / `coverage.tsv` / `strata.tsv` must be
+     **byte-identical** to a fresh census re-run. ⛔ The re-run writes to a **scratch** directory
+     (`rust/target/sv_corpus_denominator_gate`): *a check that regenerates the file it then compares
+     always passes*, and that trap was designed out rather than discovered.
+  2. **CO-PUBLICATION** — every designated live surface must carry the derived
+     `adjudicated/routed/no-verdict/dark/axis-2-bar` tuple, today **`7556/2459/6321/4398/318`**.
+     So the bar cannot move without its denominator moving with it. The anchor is **marker-scoped**
+     (`Live verdict-coverage tuple`), exactly as `REGEX-ORACLE-ANCHOR-SYNC` uses bold, so era-dated
+     numbers in the surrounding prose stay history instead of becoming false failures.
+- ⛔ **THE CLASS→BUCKET MAP IS NOT DUPLICATED.** The enforcer *invokes* the instrument rather than
+  re-implementing its bucketing — one source of truth, and the instrument already refuses on an
+  adjudication class it has no bucket for.
+- ⚠️ **THE SUBMODULE BOUND, stated rather than hidden.** The vendored corpora are git **submodules**,
+  so a hosted checkout cannot run the DARK-half backtick census. That leg then reports
+  **`NOT EVALUATED`** on stderr — loudly, never as a pass — while the corpus-independent legs
+  (`coverage.tsv`, `strata.tsv` columns 1-5, the whole co-publication leg) still bind.
+- ⭐ **A LINE-SCOPED ANCHOR READER FAILED ON ITS FIRST RUN, against a correct book.** The book wraps
+  its prose, so the marker and the tuple legitimately sit on different lines; the reader called the
+  anchor MISSING while it was two words away. Now paragraph-scoped, and it returns **every** tuple
+  in the marker paragraph so a stray number fails loudly instead of averaging into agreement.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `git ls-files 'scripts/*.sh' 'rust/scripts/*.sh'
+  '.github/workflows/*.yml' 'rust/Makefile' '.githooks/*' | xargs grep -ln corpus_verdict_coverage`
+  → **no output**: nothing in the repository invoked the census or read its artifact, and
+  `.13a` measured the consequence (tracked artifact published bar 319 vs HEAD's 318).
+- [x] **ROOT CAUSE (WHY + WHERE)** — an ops/build-flow defect (signature family 5). WHERE:
+  `git log -S'corpus_verdict_coverage' --oneline` returns exactly two commits (`12f34e75` created
+  the instrument, `3aadf98f` extended it) and **no gate, enforcer, workflow, Makefile or hook is
+  among the referencing files** — i.e. the artifact is a hand-maintained duplicate of a derivable
+  fact, which can only lag. WHY it stayed invisible: `GATE-REACHABILITY` polices `make` targets, and
+  a python instrument invoked by nobody is not a target, so no existing doctrine had jurisdiction.
+- [x] **ADDRESSED (verified)** — before: `bash scripts/check_doctrines.sh` = 17 doctrines, none
+  reading the census. After: **18 doctrines PASS**, the new one printing
+  `sv-corpus-denominator: OK (tuple 7556/2459/6321/4398/318 …; artifacts fresh: coverage.tsv,
+  coverage.md, strata.tsv)`. **Six arms fired, none assumed** — (1) a one-byte-stale `coverage.tsv`
+  → `is NOT what the instrument produces today — it is STALE`; (2) an anchor reading `…/319` →
+  `publishes verdict-coverage tuple(s) ['…319'] but the census derives …318`; (3) the anchor removed
+  → `carries NO live denominator anchor`; (4) the instrument refusing → `FAIL — the census
+  instrument refused to run`; (5) corpus absent → `NOT EVALUATED` + the other legs still binding,
+  exit 0; (6) a deliberately broken ground-truth control → `CONTROL MISSED … refusing`, **exit 2**.
+  Every mutated file was restored and re-verified byte-identical by sha256.
+- [x] **NO REGRESSION** — **ZERO Rust, grammar, codegen or generated bytes**; the 5 tracked
+  characterization oracles are **byte-identical** by sha256 (the enforcer never writes tracked
+  state — its scratch output goes to `rust/target/`); `bash -n` clean; all **18** doctrines PASS
+  including the `<meta:mirror>` ID-set check against `DOCTRINE_ENFORCEMENT.md` §10; `mdbook_docs_gate`
+  + all 10 per-parser book gates GREEN.
+- [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10 (the mirrored row — a meta-check *fails* without
+  it), book *Grammar Well-Formedness* (the live anchor) and *The Gate Flow* (the doctrine count,
+  which was itself stale at **14** and is now 18, with `Four of the fourteen` → `Five of the
+  eighteen` staged-scope), `MEMORY.md` flow-health, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
+
+##### ⚠️ A DOCTRINE PASSED THIS COMMIT WITHOUT REQUIRING ANYTHING — found, fixed on merit, and ROUTED
+
+- **What happened.** `LESSON-PROMOTION` exited **0** on this commit's new `DEVELOPMENT_NOTES.md`
+  lesson while it should have demanded a promotion or a decision. `check_lesson_promotion.sh` greps
+  for `promotion: declined (…)` **anywhere in any staged `docs/tasks/*.md`**, and this leaf's own tree
+  file carries one at `docs/tasks/SV-CORPUS-GRAD.md:7894` — written by `.12c.4` in `-0207`, two
+  commits ago, for an unrelated lesson. ⛔ Any tree file holding one decline grants a **standing free
+  pass** to every later lesson staged with it.
+- **Why it was caught at all:** the green arrived without my having recorded a decision, and a
+  doctrine that asks for nothing is indistinguishable from one that is not wired
+  ([[a-check-whose-inputs-all-pass-has-not-been-tested]]).
+- **This commit does NOT keep the borrowed pass** — the lesson is promoted on merit
+  (`docs/knowledge/a-gate-must-be-able-to-fail-and-able-to-run.md`), so `promoted=1` is earned.
+- **ROUTED to `LESSON-RETRIEVAL.7`** (created in the same commit, per ⛔ *naming an owner is not
+  routing*), carrying the measured evidence: 4 of 287 tracked task files hold a token today —
+  including the two most-touched trees — and the identical file-scoped fails-open shape was already
+  measured and FIXED next door by `GENERATED-LINT-CORRECTNESS.7` (33 files carried that free pass,
+  7 of 138 code commits passed by borrowing), so the cure is leaf-section scoping, not invention.
 
 #### `.13c` — the 530 DARK rows whose deferral their own bytes refute (`todo`, opened 2026-08-11 by `.13a`)
 
