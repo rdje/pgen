@@ -547,6 +547,23 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **WHAT:** prints the BFS hop chain (`reach_hops`) the planner installs to steer generation toward each target — the entry→target rule path + chosen branch per hop.
 - **WHEN:** a `parsed=true witnessed_target=false` result — to see *which* path stole the bytes.
 - **HOW:** prefix any generation/cert command: `PGEN_REACH_PATH_DUMP=1 ./rust/target/debug/ast_pipeline … 2>&1 | grep -i reach`.
+- ⛔⛔ **RUN THIS BEFORE YOU BLAME THE PLANNER — a probe SAMPLE cannot tell you what the plan ASKED
+  for** (`ENGINE-UNIVERSAL-SERVICES.10`, measured). A `witnessed_target=false` sample shows where
+  generation *ended up*; the hop dump shows what it was *instructed to do*. They are different
+  instruments and the gap between them is the diagnosis. Reading only the samples produced a
+  confident, **wrong** root cause that reached a task leaf *and* a tracked gate contract: SV's two
+  `_lr_suffix` residuals were recorded as *"the reach planner cannot route to a rule that did not
+  exist when it built its graph"*, when `PGEN_REACH_PATH_DUMP=1` shows a **complete, correct** 21-hop
+  chain ending `("bins_selection","root/s3"), ("select_expression","root/s1/q")` — every OR steered,
+  the quantifier forced. The real defect was one stack frame away, in the RENDER
+  (`generate_quantified` re-forcing its site on every recursive re-entry). ⇒ the cause map below
+  splits `parsed=true witnessed=false` into **plan-side** and **render-side**, and this dump is what
+  separates them.
+- **PAIR IT WITH** `PGEN_TRACE_VERBOSITY=high … | grep "Quantifier decision"` when the path crosses a
+  `?`/`*`: a forced site prints `candidates=[1]` (exactly one repeat count, so a downstream failure
+  has **no fallback** and propagates to the nearest OR, which *does* fall back — silently). Counting
+  those lines is how a runaway forcing loop is caught: 119 at one site in a single probe was the
+  `.10` signature, versus 5 after the fix.
 
 ### 4.5 Witness-pass knobs (A/B isolation; default-off / default-floor)
 - `PGEN_WITNESS_NO_PURDOM=1` — disable Purdom shortest-derivation ordering (A/B: is the ordering the cause?).
@@ -773,13 +790,17 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 
 ---
 
-## Protocol A — diagnose an `UNKNOWN` (3 steps)
+## Protocol A — diagnose an `UNKNOWN` (4 steps)
 
 1. **Full list + honest number** — `PGEN_CERT_COVERAGE_DUMP_ALL=1 … --report-certificate-coverage … --seed 0` (re-run seeds 7, 42 for determinism).
 2. **WHY each one failed** — `PGEN_CERT_COVERAGE_DEBUG_PROBES=1 …` → read `parsed` / `witnessed_target` per `[plannable-probe]` line.
-3. **Exact rejection** — for a `parsed=false` rule, feed its forced sample back through `--trace-rules <rule>` at `PGEN_TRACE_VERBOSITY=debug` → the `🚫 rejected by post predicate …` line.
+3. ⭐ **WHAT THE PLAN ASKED FOR** — for any `parsed=true witnessed_target=false`, `PGEN_REACH_PATH_DUMP=1 …` (4.4). ⛔ **Do not skip to a conclusion after step 2.** Step 2 shows where generation *ended up*; only step 3 shows what it was *instructed to do*, and the whole diagnosis is the gap between them. Skipping it is how `ENGINE-UNIVERSAL-SERVICES.10`'s first root cause was written down wrong — in a task leaf and in a tracked gate contract.
+4. **Exact rejection** — for a `parsed=false` rule, feed its forced sample back through `--trace-rules <rule>` at `PGEN_TRACE_VERBOSITY=debug` → the `🚫 rejected by post predicate …` line.
 
-Cause map: `NO reach path` = dead-rule candidate (adjudicate via 5.1) · `parsed=true witnessed=false` = reach/routing gap · `parsed=false` + predicate-reject = store-gate (the precondition fact was never generated → store-aware generation).
+Cause map: `NO reach path` = dead-rule candidate (adjudicate via 5.1) · `parsed=false` + predicate-reject = store-gate (the precondition fact was never generated → store-aware generation) · `parsed=true witnessed=false` splits in **three**, and step 3 is what tells them apart:
+- **plan-side** — the hop dump is missing, short, or routes through the wrong carrier ⇒ a reach/routing gap.
+- **render-side** — the hop chain is complete and correct but the sample ignores it ⇒ generation was steered and *failed*, then fell back. Look for a forced site that re-fires (4.4's `Quantifier decision` pairing); `generate_or`'s forced-first-**with-fallback** makes this silent by design.
+- **parser-side** — the sample renders the target construct correctly and still does not witness ⇒ the PARSER never commits to the target, typically a longest-match sibling that spans the same syntax (`.10` mechanism 2: SV's `select_expression` catch-all reaches the full expression grammar, which parses `&&` itself, so a bare-identifier seed absorbs the operand). Confirm with `--parse-dump-ast-pretty` and read the discriminator `kind` — entry counts alone will show the rule *entered* and mislead you.
 
 ## Protocol B — a parser rejects valid input
 1. `--parse` and read `furthest_position` (3.2) → map to a line.

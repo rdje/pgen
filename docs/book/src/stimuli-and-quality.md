@@ -889,6 +889,38 @@ It turns the bare residual count into an evidence-backed partition: for each tar
 
 The classification is additive (older report JSON without the field still parses) and is intended as signoff evidence: it answers, per target, whether closing the residual to zero is attainable by steering or whether some targets are structurally out of reach.
 
+### A reach directive fires ONCE — the shallowest entry of its rule
+
+A reach plan is a path, and a BFS path visits each rule exactly once. So every directive it installs —
+an OR branch choice or a forced quantifier minimum — describes **one** decision, at the shallowest
+entry of the rule that owns it. Any deeper re-entry of that same rule is recursion *below* the
+directive, and must take its minimal terminating form instead of re-applying it.
+
+`generate_or` has enforced that since `RTL-FE-CLOSURE.5.6`. `generate_quantified` did not, and the
+consequence was that **left-recursion elimination was unwitnessable by construction, in every
+grammar** (`ENGINE-UNIVERSAL-SERVICES.10`). The eliminator rewrites a left-recursive rule to
+
+```
+X := X_lr_base ( X_lr_suffix )*        X_lr_suffix := op X
+```
+
+so the forced quantifier's own body re-enters the rule that owns the quantifier. Each re-entry
+re-forced the `*`; the derivation never terminated; the forced descent died on depth; and the
+enclosing choice — which falls back by design so generation still terminates — quietly rendered a
+sibling. The census then read `parsed=true witnessed_target=false`, which is *indistinguishable from
+an engine-shadowed dead rule* for a rule that is live and exercised.
+
+Both paths now enforce the same invariant, scoped identically: the guard fires only on a genuine
+re-entry **and** only when the quantified element can reach back into its owning rule, so every
+non-recursive forced quantifier renders byte-identically.
+
+⛔ Fixing this took SystemVerilog's union residual from 2 to 1, not to 0. The remainder is a
+**different** mechanism worth knowing when you author a grammar: `select_expression`'s catch-all
+alternative reaches the general expression hierarchy, which parses `&&` and `||` itself, so under
+longest-match a bare-identifier seed absorbs the whole operand and the suffix never commits — no
+amount of path forcing can witness a suffix whose *seed* the grammar lets a sibling swallow. Choosing
+a seed that terminates is the witness planner's remaining job there.
+
 Another useful boundary in the same main-SystemVerilog lane was the old runtime restriction on rule-level steering.
 
 Until this slice, rule-level `@sample` and active-entry `@probe_sample` could not fire when the target rule root was an `Or`. That meant top-level wrapper rules with plain alternation could only be steered with branch-local annotations, even when the cleaner design would have been a rule-level helper foothold.

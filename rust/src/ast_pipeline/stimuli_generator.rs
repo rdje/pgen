@@ -12581,6 +12581,67 @@ impl<'a> StimuliGenerator<'a> {
                 .copied(),
             _ => None,
         };
+        // ENGINE-UNIVERSAL-SERVICES.10: a forced quantifier minimum is a directive for ONE
+        // firing — the shallowest entry of `current_rule` on the reach path — exactly as an OR
+        // directive is (`generate_or`'s `suppress_recursive_forced_branch`, RTL-FE-CLOSURE.5.6
+        // generalised by H.12.5.7.2). The reach path is a simple BFS path (each rule appears
+        // once), so any RE-ENTRY of `current_rule` is recursion BELOW the directive's single
+        // intended firing and must take its minimal terminating form instead of re-forcing.
+        //
+        // ⛔ Without this guard, LEFT-RECURSION ELIMINATION is unwitnessable BY CONSTRUCTION,
+        // for every grammar. The eliminator emits `X := X_lr_base ( X_lr_suffix )*` where
+        // `X_lr_suffix := op X` — so the forced site's own body re-enters the rule that OWNS
+        // the site. Every re-entry re-forces the `*`; the derivation never terminates; the
+        // branch dies on depth; and `generate_or`'s forced-first-WITH-fallback then silently
+        // renders a sibling alternative. The visible verdict is `parsed=true
+        // witnessed_target=false` with a probe that never reached the target at all — which
+        // reads exactly like an engine-shadowed DEAD rule while the rule is live and exercised.
+        //
+        // Measured on an 11-rule isolating synthetic (`decl → gitem → citem → expr`, `expr`
+        // directly left-recursive): 119 forced decisions at site `expr::root/s1` in a single
+        // probe before this guard, and the probe rendered `citem`'s `option` sibling instead of
+        // its `bins` arm.
+        //
+        // Scoped exactly like the OR guard, so every non-recursive forced quantifier stays
+        // byte-identical: it fires only on a genuine re-entry AND only when the quantified
+        // element can reach back into `current_rule`. Off-reach (`reach_forced_min == None`)
+        // and off-recursion it short-circuits before the memoised reachability query runs.
+        // GENERAL / parser-agnostic — keyed on the structural self-reference plus the live
+        // recursion count, never on rule names and never on the eliminator's `_lr_` spelling.
+        let suppress_recursive_forced_quantifier: bool = reach_forced_min.is_some() && {
+            // Cheap gate FIRST: suppression only matters on a genuine RE-ENTRY of
+            // `current_rule` (the directive already fired on the shallow entry).
+            if call_stack
+                .iter()
+                .filter(|r| r.as_str() == current_rule)
+                .count()
+                < 2
+            {
+                false
+            } else {
+                // Direct (`element` references `current_rule`) or INDIRECT (it references a
+                // rule that transitively reaches `current_rule` — the LR shape, where the
+                // element is a bare reference to the synthetic `X_lr_suffix`).
+                let mut refs = HashSet::new();
+                self.collect_rule_references(element, &mut refs);
+                refs.contains(current_rule)
+                    || refs.iter().any(|r| self.rule_can_reach(r, current_rule))
+            }
+        };
+        if suppress_recursive_forced_quantifier {
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "Reach-plan forced quantifier suppressed on re-entry: rule='{}' path='{}'",
+                    current_rule, node_path
+                ),
+            );
+        }
+        let reach_forced_min: Option<usize> = if suppress_recursive_forced_quantifier {
+            None
+        } else {
+            reach_forced_min
+        };
         let repeat_candidates: Vec<usize> = if let Some(forced_min) = reach_forced_min {
             // Exactly the forced expansion (still minimal): at least once, never below the
             // quantifier's own minimum, never above its bounded maximum.
@@ -27418,6 +27479,151 @@ mod tests {
         assert_eq!(p.directives, w.directives, "same forced OR directives");
         assert_eq!(p.target_group_key, w.target_group_key, "same target identity");
         assert_eq!(p.target_branch_index, w.target_branch_index, "same target branch");
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.10: the POST-LR-ELIMINATION shape in miniature — exactly what
+    /// `apply_left_recursive_chain_plan` leaves in the grammar tree for `expr := expr "&" expr | "x"`:
+    ///   `unit           := "u" item`
+    ///   `item           := "opt" | "sel" expr`   ← the sibling `generate_or` silently falls back to
+    ///   `expr           := expr_lr_base ( expr_lr_suffix )*`
+    ///   `expr_lr_base   := "x"`
+    ///   `expr_lr_suffix := "&" expr`             ← re-enters `expr`, which OWNS the forced site
+    ///
+    /// ⭐ The load-bearing edge is that the quantified element's body reaches back into the rule
+    /// that owns the quantifier. That is not an exotic grammar — it is what the eliminator emits
+    /// for EVERY left-recursive rule in every grammar, which is why the defect this pins was
+    /// universal to left recursion rather than specific to SystemVerilog.
+    fn lr_eliminated_chain_grammar() -> (HashMap<String, ASTNode>, Vec<String>) {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "unit".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "u"), rule_ref("item")],
+            },
+        );
+        grammar_tree.insert(
+            "item".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("quoted_string", "opt"),
+                    ASTNode::Sequence {
+                        elements: vec![token("quoted_string", "sel"), rule_ref("expr")],
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "expr".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("expr_lr_base"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("expr_lr_suffix")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert("expr_lr_base".to_string(), token("quoted_string", "x"));
+        grammar_tree.insert(
+            "expr_lr_suffix".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "&"), rule_ref("expr")],
+            },
+        );
+        let rule_order = vec![
+            "unit".to_string(),
+            "item".to_string(),
+            "expr".to_string(),
+            "expr_lr_base".to_string(),
+            "expr_lr_suffix".to_string(),
+        ];
+        (grammar_tree, rule_order)
+    }
+
+    #[test]
+    fn forced_quantifier_stands_down_on_re_entry_so_an_lr_suffix_can_witness() {
+        // ENGINE-UNIVERSAL-SERVICES.10. A forced quantifier minimum is a directive for ONE
+        // firing — the shallowest entry of its owning rule. Before the re-entry guard,
+        // `generate_quantified` re-applied `forced_quantifier_min[(expr, root/s1)] = 1` on every
+        // recursive re-entry of `expr` (`expr → expr_lr_suffix → expr → …`), so the derivation
+        // never terminated, the `sel` branch died on depth, and `generate_or`'s
+        // forced-first-WITH-fallback silently rendered the `opt` sibling instead. The cert census
+        // then read `parsed=true witnessed_target=false` — indistinguishable from an
+        // engine-shadowed DEAD rule, for a rule that is live and exercised.
+        let (grammar_tree, rule_order) = lr_eliminated_chain_grammar();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 0);
+        // Mirror the budget the REAL witness passes install (`generate_plannable_rule_witnesses`
+        // sets `max_depth = 2 × max_depth + target_subtree_depth` and doubles `max_rule_visits`).
+        // The fixture's stock depth-8 / 4-visit budget is smaller than any live pass would use, and
+        // this test is about the forcing guard, not about budget sizing.
+        generator.config.max_depth = 16;
+        generator.config.max_rule_visits = 8;
+        assert!(
+            generator.set_reach_plan_for_rule("unit", "expr_lr_suffix", 16),
+            "the LR suffix must be graph-reachable: `expr` references it inside its `( … )*`"
+        );
+
+        // The PLAN itself was never the defect and must be unchanged by the guard: it still
+        // forces `item`'s `sel` branch and still forces the LR quantifier site to expand.
+        let plan = generator.reach_plan.as_ref().expect("plan installed");
+        assert_eq!(
+            plan.forced_branch_for("item", "root"),
+            Some(1),
+            "the plan must still steer `item` into its `sel` branch"
+        );
+        assert_eq!(
+            plan.forced_quantifier_min
+                .get(&("expr".to_string(), "root/s1".to_string()))
+                .copied(),
+            Some(1),
+            "the plan must still force the LR suffix quantifier to expand once"
+        );
+
+        generator.construct_mode = true;
+        let sample = generator
+            .generate_from_entry("unit")
+            .expect("construct-mode generation under the LR reach plan must succeed");
+        generator.construct_mode = false;
+
+        // "u" + "sel" + ( "x" + ( "&" + ( "x" + zero repeats ) ) ). The inner `expr` is a
+        // RE-ENTRY, so its own forced minimum stands down and the chain terminates.
+        assert_eq!(
+            sample, "uselx&x",
+            "the suffix must expand exactly once and the re-entered `expr` must take its \
+             minimal (zero-repeat) form — got {:?}",
+            sample
+        );
+        assert!(
+            !sample.contains("opt"),
+            "the pre-fix symptom was the `opt` sibling fallback after the forced `sel` branch \
+             died on unbounded self-forcing — got {:?}",
+            sample
+        );
+    }
+
+    #[test]
+    fn re_entry_guard_leaves_a_non_recursive_forced_quantifier_alone() {
+        // ENGINE-UNIVERSAL-SERVICES.10 MONOTONICITY GUARD — the other side of the scoping. The
+        // guard must fire ONLY when the quantified element can reach back into the rule that owns
+        // the site; a forced quantifier whose body cannot recurse is untouched, so every
+        // pre-`.10` witness plan renders byte-identically. `class_b_quantified_choice_grammar`'s
+        // forced `?` holds an Or of two bare tokens — no rule reference, so no way back into
+        // `lvalue` — which is exactly the population the guard must not touch.
+        let grammar_tree = class_b_quantified_choice_grammar();
+        let rule_order = vec!["lvalue".to_string()];
+
+        let mut witness = simple_generator(&grammar_tree, &rule_order, 7);
+        assert!(witness.set_reach_plan_forcing_quantifiers("lvalue", "lvalue", "root/s0/q", 1, 16));
+        witness.construct_mode = true;
+        let sample = witness
+            .generate_from_entry("lvalue")
+            .expect("construct-mode generation under the witness plan must succeed");
+        witness.construct_mode = false;
+        assert_eq!(
+            sample, "pid",
+            "a non-recursive forced quantifier must still expand exactly as before the guard"
+        );
     }
 
     /// SV-EXH-PROOF.7.4.6.14: the store-entry-blocked BRANCH shape in miniature — the real

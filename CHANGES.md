@@ -1,5 +1,66 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-ENGINE-UNIVERSAL-SERVICES-0005 — left recursion was UNWITNESSABLE by construction in every grammar, because one forced-quantifier directive had no re-entry guard (leaf `ENGINE-UNIVERSAL-SERVICES.10` mechanism 1 closed; mechanism 2 diagnosed and left OPEN)
+
+- ⛔⛔ **THIS CORRECTS A ROOT CAUSE THIS REPO HAD ALREADY WRITTEN DOWN — in a task leaf AND in a
+  tracked gate contract.** `A2.5` recorded SV's two `_lr_suffix` residuals as *"the reach planner
+  cannot route to a rule that did not exist when it built its graph"*. **Measured false.**
+  `reach_hops_pass` BFSes the grammar tree **after** elimination, and `PGEN_REACH_PATH_DUMP=1`
+  prints a complete, correct 21-hop chain ending
+  `("bins_selection","root/s3"), ("select_expression","root/s1/q")` — every OR steered, the
+  quantifier forced. The plan was never the defect. ⭐ The wrong cause came from reading the probe
+  SAMPLES alone: a sample shows where generation *ended up*, never what it was *asked* to do. Those
+  are two instruments, and the diagnosis is the gap between them.
+- ⭐⭐ **REAL ROOT CAUSE (WHY + WHERE), reproduced on an 11-rule synthetic BEFORE SystemVerilog was
+  touched.** `generate_quantified` (`rust/src/ast_pipeline/stimuli_generator.rs`) read
+  `forced_quantifier_min` by `(current_rule, node_path)` with **no call-stack re-entry guard** —
+  while `generate_or` has carried exactly that guard since `RTL-FE-CLOSURE.5.6`. LR elimination
+  emits `X := X_lr_base ( X_lr_suffix )*` with `X_lr_suffix := op X`, so the forced site's own body
+  **re-enters the rule that owns the site**. Every re-entry re-forced the `*`:
+  `PGEN_TRACE_VERBOSITY=high` counted **119** `Quantifier decision … candidates=[1]` lines at one
+  site in a **single** probe. A forced site has exactly one candidate repeat count, so the failure
+  has no fallback — it propagates to the nearest OR, whose forced-first-**with-fallback** then
+  renders a sibling **silently**. ⇒ *every* grammar that gained an LR plan gained two rules its
+  census could never witness; SV was just the first family where a census and an LR plan coexist.
+- **FIX — ENGINE tier, ZERO grammar bytes, generated parsers BYTE-IDENTICAL.** One guard in
+  `generate_quantified`, mirroring `generate_or`'s: stand the forced minimum down on a genuine
+  re-entry (≥2 live occurrences of the rule on the call stack) **and only when** the quantified
+  element can reach back into that rule. Keyed on the structural self-reference plus the live
+  recursion count — never on rule names, never on the eliminator's `_lr_` spelling.
+- **AFTER (measured, before → after).** Synthetic: `UNKNOWN=1 ["expr_lr_suffix"]` → **`UNKNOWN=0
+  fully_certified=true`**, probe now renders the real continuation
+  (`sample="unit group x{cross x{bins x=x&&x;}}"`), forced decisions **119 → 5**. SystemVerilog
+  canonical **`UNKNOWN=2` → `1`**; multi-config **union UNKNOWN 2 → 1**, witness **1354 → 1355**,
+  canonical **13 → 12**, residual `["select_expression_lr_suffix"]`, `sample_parse_failures=0`.
+  `block_event_expression_lr_suffix` witnesses with the real `@@(begin f or begin f)` form.
+- ⭐ **THE REMAINING RESIDUAL IS A DIFFERENT MECHANISM, and is recorded as one rather than folded
+  in.** Post-fix the generator emits the structurally correct probe `cross f, f { bins f = f && f; }`
+  — it *does* reach and render the `&&`. It still does not witness because the **parser** never
+  commits: `select_expression`'s catch-all `cross_set_expression → covergroup_expression →
+  expression` is the full SV expression hierarchy, which parses `&&` itself, so under longest-match
+  the seed swallows the operand. Measured with `--parse-dump-ast-pretty`: that shape yields kind
+  **`cross_set`**, never `and`; the pinned `binsof(...) intersect {...}` repro yields `and`. This is
+  the fact `fixed_select_expression_paren.sv` already documents in prose. What is owed is SEED
+  diversification in the witness planner. `ENGINE-UNIVERSAL-SERVICES.10` stays OPEN and remains the
+  named blocker for returning the union basis to 0.
+- **NO REGRESSION.** Cross-grammar cert sweep measured **before→after by stashing the change and
+  rebuilding** — `json`/`regex`/`vhdl`/`rtl_frontend`/`systemverilog_preprocessor`/`scratch` ×
+  seeds 0/7/42, `diff` **IDENTICAL**. Generated parser **byte-identical** across the two trees
+  (`fc5a61e8…`), proving a stimuli-generation change cannot reach a shipped parser.
+  `cargo test --lib ast_pipeline::stimuli_generator::` **228 passed / 0 failed**. The new lib test
+  is proven **discriminating** — RED with the guard disabled, reproducing the exact production
+  symptom. ⛔ Honest bound: `ebnf`/`return_annotation`/`semantic_annotation`/`rtl_const_expr` have
+  no registered parser on the cert path, before or after, so they are unmeasured rather than green.
+- ⚠️ **A trap worth keeping:** `make focus_scratch` overwrote the dual-feature `ast_pipeline`, so the
+  first baseline sweep returned an EMPTY `CERTIFICATE-COVERAGE:` line for every grammar — which,
+  unnoticed, would have read as "no drift". Re-run after `--report-feature-surface` confirmed the
+  feature set. The #140-class trap `TOOLBOX.md` 1.4 documents fires against ad-hoc sweeps too.
+- **LOCKSTEP.** Union contract re-baselined in this commit (`CI-PARITY-GATE-ROT.22`) carrying the
+  corrected root cause; `TOOLBOX.md` (Protocol A is now **4 steps** — the reach-path dump is
+  mandatory before concluding, and `parsed=true witnessed_target=false` is split into plan-side /
+  render-side / parser-side); book `diagnosing-unknowns.md` + `stimuli-and-quality.md`.
+  DONE-BAR register **unchanged** — union UNKNOWN is 1, not 0. No release/schema/ledger move.
+
 ## 2026-08-11 - PGEN-GRAMMAR-WELLFORMED-0153 — left recursion became an ENGINE service, and four IEEE alternatives that had been dead for the life of the parser started running (leaf `GRAMMAR-WELLFORMED.A2.5` engine half done; `SV-CORPUS-GRAD.13c.2a.2`/`.3`/`.4` closed; `ENGINE-UNIVERSAL-SERVICES.10` + `LANG-CAPABILITY-AUDIT.10.16` NEW)
 
 - ⭐⭐ **ROOT CAUSE (WHY + WHERE).** PGEN's LR elimination matched only the **indirect wrapper**

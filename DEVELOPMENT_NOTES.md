@@ -1,5 +1,81 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-ENGINE-UNIVERSAL-SERVICES-0005 — the diagnosis that was already written down, and was wrong
+
+The engineering here is one guard, about twenty lines including the reason it exists. Everything
+that mattered was in getting to it, and the most useful thing this session produced is not the fix.
+
+**1. The repo had a confident, wrong root cause — in two durable places.** `A2.5` closed by
+recording that SV's two `_lr_suffix` residuals came from a planner that *"cannot route to a rule that
+did not exist when it built its graph"*. That sentence went into the task leaf and into
+`systemverilog_recognized_cert_union_contract.json`'s `rebaseline_note`, which is a **tracked gate
+contract** — i.e. it would have been read as established fact by whoever picked the leaf up. It is
+false, and one command shows it: `reach_hops_pass` BFSes `self.grammar_tree` *after* elimination, so
+the synthetic rules are in its graph, and `PGEN_REACH_PATH_DUMP=1` prints a complete 21-hop chain
+ending `("bins_selection","root/s3"), ("select_expression","root/s1/q")` — every OR steered, the
+quantifier forced.
+
+⭐ **Why a careful session still got it wrong, which is the generalizable part.** The `[plannable-probe]`
+samples looked exactly like routing failures — one rendered `cross f, f { option.f = 3.5; }`, a
+sibling arm that never enters `bins_selection` at all. That is genuine evidence *of where generation
+ended up*, and it is silent about *what generation was asked to do*. Two instruments, two questions;
+the diagnosis lives in the difference. `TOOLBOX.md` Protocol A is now four steps rather than three,
+with the reach dump mandatory before any conclusion, and the `parsed=true witnessed_target=false`
+cause map split three ways (plan-side / render-side / parser-side) instead of being labelled "reach
+gap" — the label that made the wrong answer sound complete.
+
+**2. The synthetic did the work SystemVerilog could not.** The leaf's own instruction was to debug on
+a synthetic LR grammar rather than SV's 1 362 rules, and it paid twice. The *first* synthetic —
+minimal direct LR — came back `fully_certified=true`, which falsified the recorded root cause
+immediately: if the planner were blind to LR-synthesized rules it would have failed there too. The
+second attempt failed for a different reason worth noting: 40 random samples witness everything in an
+11-rule grammar, so the plannable pass never ran. Dropping to `--count 1` is what put the generator
+on the reach path, and then the reproduction was exact — `UNKNOWN=1 ["expr_lr_suffix"]`,
+`1 parsed-but-routed-elsewhere`, and a probe rendering `citem`'s `option` sibling. Same signature as
+SV, eleven rules instead of 1 362.
+
+**3. The mechanism, once visible, was a missing sibling of a guard that already existed.**
+`generate_or` has suppressed a forced branch on recursive re-entry since `RTL-FE-CLOSURE.5.6`,
+generalised by `H.12.5.7.2`, for precisely the stated reason: *a BFS reach path visits each rule
+once, so any re-entry is recursion below the directive's single intended firing.* That invariant is
+about **reach directives**, not about OR nodes — but only the OR path enforced it.
+`generate_quantified` looked its forced minimum up by `(rule, node_path)` and re-applied it forever.
+
+LR elimination is the shape that makes this fatal, and it makes it fatal *by construction*:
+`X := X_lr_base ( X_lr_suffix )*` with `X_lr_suffix := op X` puts the forced site's own body back
+inside the rule that owns the site. `PGEN_TRACE_VERBOSITY=high | grep "Quantifier decision"` counted
+**119** forced firings at one site in a single probe. And a forced site emits `candidates=[1]` —
+exactly one repeat count — so when the descent finally dies on depth there is no smaller count to
+retry; the failure walks up to the nearest OR, which falls back *by design, silently*. That silence
+is why the census reported a routing miss instead of a runaway.
+
+**4. What the fix cost, and what it did not.** ZERO grammar bytes. The generated parser regenerated
+in the stashed (pre-fix) and restored (post-fix) trees is byte-identical, `fc5a61e8ae1d5f88aff0c4a4d7f847f9`
+— a stimuli-generation change cannot reach a shipped parser, and that is proven rather than argued.
+The cross-grammar cert sweep was taken the same way, by stashing and rebuilding: 18 runs each side,
+`diff` identical.
+
+**5. It closed half the leaf, and the other half is a different animal.** Union UNKNOWN went 2 → 1,
+not 2 → 0. Post-fix the generator emits `cross f, f { bins f = f && f; }` — structurally the right
+construct — and the parser still does not commit to `select_expression_lr_suffix`, because
+`select_expression`'s catch-all arm reaches the general expression hierarchy, which parses `&&`
+itself; under longest-match the seed eats the operand. `--parse-dump-ast-pretty` says it plainly: that
+shape yields kind `cross_set`, the pinned `binsof(...) intersect {...}` repro yields `and`.
+⭐ The repo already knew this — `fixed_select_expression_paren.sv` warns in prose that *"parentheses
+around an operand carrying no `intersect` prove nothing"* — but the knowledge lived in a reproducer's
+comment where no instrument could consult it. What is owed is seed diversification: when the target is
+`X_lr_suffix`, the planner must steer `X_lr_base`'s own alternatives too, because a seed a
+longest-match sibling can swallow makes the suffix unwitnessable however well the path is forced.
+
+**6. A false green, caught.** `make focus_scratch` rebuilds `target/debug/ast_pipeline` **without**
+`ebnf_dual_run`, so the first before/after sweep produced an empty `CERTIFICATE-COVERAGE:` line for
+every grammar. Read casually — 18 empty lines on each side — that diffs clean and looks like proof of
+no regression. `TOOLBOX.md` 1.4 documents this trap for the parse harness, which grew a
+`--report-feature-surface` pre-check because of it; the lesson is that the trap is not the harness's,
+it is the shared binary path's, and ad-hoc measurement has no pre-check at all. The sweep was re-run
+after asserting the feature surface, and the empty-line case is now something to look for rather than
+something to trip over.
+
 ## 2026-08-11 - PGEN-GRAMMAR-WELLFORMED-0153 — three instruments were green about things they could not see, and the fix was the cheap part
 
 The engine change is eleven lines of idea: a directly left-recursive alternative *is* the wrapper

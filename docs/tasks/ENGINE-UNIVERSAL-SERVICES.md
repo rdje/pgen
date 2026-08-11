@@ -593,7 +593,188 @@ annotation is exercised and verified over a corpus nobody hand-picked"*.
 - The gap list is priced well enough for the director to choose from it.
 - The responsibility-boundary rule is a decision record that a reviewer can cite.
 
-### `.10` — the cert generator cannot witness the rules the ENGINE synthesizes (`todo`, opened 2026-08-11 by `GRAMMAR-WELLFORMED.A2.5`; ⛔ **BLOCKER for returning SV's union UNKNOWN to 0**)
+### `.10` — the cert generator cannot witness the rules the ENGINE synthesizes (`in progress` — mechanism 1 CLOSED `PGEN-ENGINE-UNIVERSAL-SERVICES-0005`, 2026-08-11 session #217; mechanism 2 OPEN; opened 2026-08-11 by `GRAMMAR-WELLFORMED.A2.5`; ⛔ **still the BLOCKER for returning SV's union UNKNOWN to 0**)
+
+#### ⛔ STATUS AND THE CORRECTION THIS LEAF OWES ITS OWN FIRST DRAFT
+
+`union UNKNOWN` **2 → 1**, canonical **13 → 12**, residual now `["select_expression_lr_suffix"]`
+(`block_event_expression_lr_suffix` WITNESSES). ZERO grammar bytes; generated parsers **byte-identical**.
+
+⛔⛔ **The root cause recorded below in the original draft — and copied into the union contract's
+`rebaseline_note` — was WRONG, and it is corrected here rather than quietly overwritten.** The draft
+said *"the reach planner cannot route a probe to a rule that did not exist when it built its graph"*.
+**Measured false.** `reach_hops_pass` BFSes `self.grammar_tree` **after** elimination, so the
+synthetic rules are in its graph, and `PGEN_REACH_PATH_DUMP=1` prints a **complete and correct**
+21-hop chain ending
+`("bins_selection_or_option","root/o1/s1"), ("bins_selection","root/s3"), ("select_expression","root/s1/q")`
+— every OR already steered, the LR quantifier already forced. **The plan was never the defect;
+rendering it was.** ⭐ The draft was written from the probe SAMPLES alone (which do look like a
+routing failure) without dumping the plan; the lesson is that a `parsed=true witnessed_target=false`
+sample tells you where generation *ended up*, never what it was *asked* to do — those need two
+different instruments, and `PGEN_REACH_PATH_DUMP` is the second one.
+
+#### DIAGNOSIS — mechanism 1 (CLOSED): the forced quantifier had no re-entry guard
+
+⭐ **Reproduced on an 11-rule synthetic BEFORE SystemVerilog was touched**, as the leaf itself
+demanded. Probe grammar in the `scratch` slot (`decl → gitem → citem → expr`, `expr` directly
+left-recursive behind a choice — the `cross_body_item → bins_selection → select_expression` shape):
+
+```
+--count 1 --seed 0  →  UNKNOWN=1 ["expr_lr_suffix"], 1 parsed-but-routed-elsewhere
+  [plannable-probe] rule='expr_lr_suffix' parsed=true witnessed_target=false
+                    sample="unit group x{cross x{option.x=x;}}"
+  [reach-path] target='expr_lr_suffix' hops=[("scratch","root/s1/q"), ("decl","root/o3/s3/q"),
+               ("gitem","root/o2/s3/q"), ("citem","root/o1/s3"), ("expr","root/s1/q")]
+```
+
+The plan steers `citem` into its `bins` arm (`root/o1`) and forces `expr`'s LR quantifier — and the
+render still emits `citem`'s `option` sibling. **WHERE:** `generate_quantified`
+(`rust/src/ast_pipeline/stimuli_generator.rs`) looked up `forced_quantifier_min` by
+`(current_rule, node_path)` with **no call-stack re-entry guard** — unlike `generate_or`, which has
+carried exactly that guard since `RTL-FE-CLOSURE.5.6` (`suppress_recursive_forced_branch`, generalised
+by `H.12.5.7.2`). **WHY:** LR elimination emits `X := X_lr_base ( X_lr_suffix )*` with
+`X_lr_suffix := op X`, so the forced site's own body **re-enters the rule that owns the site**. Every
+re-entry re-forced the `*`. `PGEN_TRACE_VERBOSITY=high` counted **119** forced decisions at site
+`expr::root/s1` in a **single** probe (`candidates=[1]` each time — and when forced, the candidate
+list has exactly one entry, so there is no smaller repeat count to fall back to). The derivation never
+terminates, the forced branch dies on depth, and `generate_or`'s documented
+forced-first-**with-fallback** then silently renders a sibling.
+
+⇒ **left recursion was unwitnessable BY CONSTRUCTION, for every grammar** — SV was simply the first
+family where a cert census and an LR plan coexist. That is what makes this an engine fix rather than
+an SV one, exactly as the leaf predicted.
+
+#### THE FIX — one guard, mirrored from the one `generate_or` already had
+
+`generate_quantified` stands the forced minimum down on a **genuine re-entry** (≥2 live occurrences of
+`current_rule` on the call stack) **and only when** the quantified element can reach back into
+`current_rule` (direct or transitive). Scoped exactly like the OR guard, so every non-recursive forced
+quantifier is byte-identical and the cheap call-stack test short-circuits before the memoised
+reachability query ever runs. Keyed on the structural self-reference plus the live recursion count —
+never on rule names, never on the eliminator's `_lr_` spelling.
+
+⭐ This is `.6`'s *"normalize into an existing path rather than adding a second one"* technique applied
+to a **guard**: the OR path and the quantifier path now enforce the same invariant — *a reach
+directive is a directive for ONE firing, the shallowest entry of its owning rule* — instead of one
+path enforcing it and the other silently not.
+
+#### DIAGNOSIS — mechanism 2 (OPEN): the SEED is longest-match-shadowed, so the suffix can never commit
+
+⛔ **Do not read the remaining residual as the same defect.** Post-fix the generator emits the
+**structurally correct** probe — `cross f, f { bins f = f && f; }` — i.e. it now reaches and renders
+the `&&` continuation. It still reports `witnessed_target=false` because the **parser** does not
+commit to it: `select_expression`'s catch-all arm `cross_set_expression → covergroup_expression →
+expression` **is the full SV expression hierarchy, which parses `&&`/`||` itself**, so under
+longest-match the seed swallows the whole operand and the `( _lr_suffix )*` never commits.
+
+Measured, not argued — `--parse-dump-ast-pretty` on that exact shape:
+
+| input shape | AST kind at the select | `select_expression_lr_suffix` entries |
+|---|---|---|
+| `ignore_bins ib = ca && cb;` (what the generator emits) | **`cross_set`** | 1 (entered, never committed) |
+| `ignore_bins ib = ( binsof(ca) intersect { 1 } ) && binsof(cb);` (the pinned repro) | `and` | 4 |
+
+⭐ This is the same fact the repo already documents in prose:
+`stimuli/sv/adjudication_repros/fixed_select_expression_paren.sv` warns *"Parentheses around an
+operand carrying no `intersect` prove nothing — that is an ordinary SV expression reaching the
+catch-all `cross_set_expression` arm"*, which is exactly why all four pinned reproducers use a
+`binsof(...) intersect {...}` operand. The generator did not know it.
+
+**OWED (mechanism 2) — SEED diversification.** When the target is `X_lr_suffix`, the witness planner
+must also steer `X_lr_base`'s **own** alternatives, because a seed the longest-match catch-all can
+absorb makes the suffix unwitnessable no matter how well the path is forced. The parts likely exist:
+`target_own_reach_sites` already forces a target rule's own root-`Or` branch, and the
+carrier-diversification pass already re-routes through alternative parents — neither currently touches
+the *sibling seed rule* the eliminator created. ⛔ Prove it on the synthetic first, again: the same
+11-rule scratch grammar reproduces the shape once its `expr` gains a catch-all alternative that spans
+the operator.
+
+⛔ **The two repairs that remain unavailable** (unchanged from the original draft, restated so nobody
+re-proposes them): deleting the LR plan, and witness-rescue `@sample`s on the affected SV rules.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — SV canonical run, `PGEN_CERT_COVERAGE_DUMP_ALL=1
+  PGEN_CERT_COVERAGE_DEBUG_PROBES=1 ast_pipeline grammars/systemverilog.ebnf
+  --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40
+  --seed 0` → `UNKNOWN=2`, `UNKNOWN rules (2 of 2 shown): ["block_event_expression_lr_suffix",
+  "select_expression_lr_suffix"]`, both `[plannable-probe] parsed=true witnessed_target=false`.
+  Isolated to an **11-rule synthetic** in the `scratch` slot at `--count 1 --seed 0`:
+  `UNKNOWN=1 ["expr_lr_suffix"]`, `1 parsed-but-routed-elsewhere`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `PGEN_REACH_PATH_DUMP=1` first **falsified** the recorded cause:
+  the hop chain is complete and correct on both grammars (SV's ends
+  `("bins_selection","root/s3"), ("select_expression","root/s1/q")`), so the planner is not blind.
+  WHERE: `generate_quantified` (`rust/src/ast_pipeline/stimuli_generator.rs`) reads
+  `forced_quantifier_min` by `(current_rule, node_path)` with no call-stack re-entry guard, while
+  `generate_or` has had one since `RTL-FE-CLOSURE.5.6`. WHY: the eliminator's own output
+  (`X := X_lr_base ( X_lr_suffix )*`, `X_lr_suffix := op X`) makes the forced site's body re-enter the
+  site's owner, so the forcing re-fires unboundedly — `PGEN_TRACE_VERBOSITY=high` counts **119**
+  `Quantifier decision: rule='expr' path='root/s1' … candidates=[1]` lines in one probe, and a forced
+  candidate list holds exactly one repeat count, so the failure has no fallback and propagates to the
+  nearest OR.
+- [x] **FIX** — ENGINE tier (a property of parsing, not of any language); no lower tier exists — a
+  declarative or grammar-level fix would be scar tissue for an engine gap, which is what `.2` exists
+  to remove. One re-entry guard in `generate_quantified`, mirroring `generate_or`'s. ZERO grammar
+  bytes; nothing for an author to learn or opt into.
+- [x] **ADDRESSED (verified)** — before→after on the same commands.
+  * Synthetic (`--count 1/2/3 --seed 0`): `UNKNOWN=1 ["expr_lr_suffix"]` → **`UNKNOWN=0
+    fully_certified=true`**; `1 parsed-but-routed-elsewhere` → **0**; the probe now renders the real
+    continuation, `[plannable-probe] rule='expr_lr_suffix' parsed=true witnessed_target=true
+    sample="unit group x{cross x{bins x=x&&x;}}"`. Forced decisions at `expr::root/s1`: **119 → 5**.
+  * SystemVerilog canonical: `UNKNOWN=2` → **`UNKNOWN=1`**;
+    `block_event_expression_lr_suffix` now `witnessed_target=true` with
+    `sample="package\foo ;covergroup\foo @@(begin\foo_0 or begin\foo_0 );endgroup endpackage"` — the
+    real `or` continuation of the block-event form.
+  * SystemVerilog multi-config UNION (the contract's own basis): `UNKNOWN 2 → 1`,
+    `witness 1354 → 1355`, canonical `13 → 12`, residual `["select_expression_lr_suffix"]`,
+    `sample_parse_failures=0`.
+  * The guard is proven **DISCRIMINATING**, not merely present: with it disabled the new lib test
+    fails with the exact production symptom (`left: "uopt"` — the sibling fallback), and the
+    monotonicity control passes in both states.
+- [x] **NO REGRESSION** — every oracle that can see a stimuli-generation change.
+  * `sv_cert_recognized_union_gate` — ✅ **PASSED**, `unmet_criteria_count: 0`,
+    `recognized_basis_green: true`, `canonical_unknown: 12`, `union_unknown: 1`,
+    `union_witness: 1355`, `union_residual_rules: ["select_expression_lr_suffix"]`, **deterministic
+    across seeds [0,7,42]** (the gate asserts seed agreement itself), `sample_parse_failures=0`.
+    Contract re-baselined **in this same commit** — the `CI-PARITY-GATE-ROT.22` tripwire, which
+    exists because a census-moving change once shipped both cert gates RED for a whole release.
+  * **Cross-grammar cert sweep, measured before→after by stashing the change and rebuilding** —
+    `json`, `regex`, `vhdl`, `rtl_frontend`, `systemverilog_preprocessor`, `scratch` × seeds
+    **0/7/42** (18 runs each side): `diff` of the two `CERTIFICATE-COVERAGE:` line sets is
+    **IDENTICAL** — zero drift, all still `fully_certified=true`. ⛔ Honest bound: `ebnf`,
+    `return_annotation`, `semantic_annotation` and `rtl_const_expr` are **not measurable on this
+    path** (`certificate-coverage: no generated parser is registered for grammar '…'`), before or
+    after — recorded rather than silently counted as green.
+  * ⭐ **CODEGEN BYTE-IDENTITY** — the generated parser regenerated in the stashed (pre-fix) and
+    restored (post-fix) trees is **byte-identical** (`fc5a61e8ae1d5f88aff0c4a4d7f847f9`), proving
+    this is a stimuli-generation change that cannot reach any shipped parser.
+  * Touched module: `cargo test --lib ast_pipeline::stimuli_generator::` — **228 passed / 0 failed**,
+    including the real-SystemVerilog and real-`rtl_frontend` witness/reach tests.
+  * `make clippy_on_rust_change` — source strict lint clean, `GENERATED-CLIPPY-CORRECTNESS: ✅
+    POLICY-ONLY PASS` (pinned correctness roster intact).
+  * `parse_harness_equivalence_gate` — **4 passed / 0 failed**. The one differential gate whose
+    corpus is **built by the stimuli generator** (`build_corpus` constructs a `StimuliGenerator` per
+    seed × depth), so it is the suite that can actually see this change. ⭐ Scope argued rather than
+    assumed: it installs no reach plan, so `reach_plan` is `None` and the new guard short-circuits
+    at its first condition — the gate is the *evidence* for that, not a substitute for it.
+  * `mdbook_docs_gate` — ✅ passed (the two book chapters edited here).
+  * ⛔ **Deliberately NOT claimed:** `parse_harness_combinator_gate`, `parse_harness_semantic_gate`
+    and `ast_shape_contract_gate` are parser-side oracles over curated inputs, and the codegen
+    byte-identity proof above makes them **unreachable** by this change. Naming them as evidence
+    would be padding a checklist with runs that cannot fail for this reason.
+  * ⚠️ A trap hit and worth recording: `make focus_scratch` **overwrote the dual-feature
+    `ast_pipeline`**, so the first baseline sweep returned an empty `CERTIFICATE-COVERAGE:` line for
+    every grammar. An empty result read as "no drift" would have been a false green; the sweep was
+    re-run after `--report-feature-surface` confirmed `ebnf_dual_run=true`. This is the #140-class
+    trap `TOOLBOX.md` 1.4 documents, and it fires against ad-hoc sweeps too, not only the harness.
+- [x] **LOCKSTEP** — union contract re-baselined **in this commit** with the corrected root cause;
+  `TOOLBOX.md` (`PGEN_REACH_PATH_DUMP` promoted to a first-class step of the UNKNOWN protocol);
+  book `gate-flow.md` + `developer-architecture.md`; `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+  `MEMORY.md`, `docs/TASK_TREE.md` frontier. DONE-BAR register: **N/A** — SV's claimed status is
+  unchanged (union UNKNOWN is 1, not 0). No release/schema/ledger move: no shipped parser byte
+  changes.
+
+#### ORIGINAL DRAFT (retained — its root cause is superseded above, deliberately not deleted)
 
 ⛔⛔ **THIS IS THE PRICE A2.5 PAID, AND IT IS RECORDED AS A DEBT, NOT AS A FOOTNOTE.**
 `sv_cert_recognized_union_gate` went from `union UNKNOWN=0` to `union UNKNOWN=2`, residual

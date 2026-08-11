@@ -98,8 +98,21 @@ Read the two flags:
 | `parsed` | `witnessed_target` | Meaning | Cause class |
 |---|---|---|---|
 | `true` | `true` | Witnessed — not in the residual | (OK) |
-| `true` | `false` | The forced sample parsed but routed through **other** rules | reach/routing gap |
+| `true` | `false` | The forced sample parsed but routed through **other** rules | **three different causes — see below** |
 | `false` | — | The forced sample **did not parse at all** | malformed forced sample (often a store-gate rejection) |
+
+⛔ **`parsed=true witnessed_target=false` is not one cause, and calling it "a reach gap" is how a
+wrong diagnosis gets written down confidently.** The sample tells you where generation *ended up*; it
+never tells you what the plan *asked for*. Always run the reach-path dump (below) before concluding:
+
+| What the hop dump shows | Cause | Where the fix lives |
+|---|---|---|
+| chain missing, short, or routed through the wrong carrier | **plan-side** — a genuine reach/routing gap | the reach planner |
+| chain complete and correct, sample ignores it | **render-side** — generation *was* steered and then failed, and `generate_or`'s forced-first-**with-fallback** silently rendered a sibling | whatever made the forced descent fail (a re-firing forced quantifier, a depth budget) |
+| sample renders the target construct correctly, still not witnessed | **parser-side** — the parser never *commits* to the target, typically a longest-match sibling spanning the same syntax | the grammar shape, or seed selection in the witness planner |
+
+The last row is easy to misread: use `--parse-dump-ast-pretty` and check the discriminator `kind`,
+because rule **entry** counts will show the target entered (speculatively) and tell you nothing.
 
 Aggregate the whole pass to see the dominant failure mode:
 
@@ -240,6 +253,34 @@ Prints the BFS hop chain (`reach_hops`) the planner installs to steer generation
 toward each target rule — the entry→target rule path with the chosen branch at
 each hop. Use it when a `parsed=true witnessed_target=false` result needs you to
 see *which* path the planner took (and therefore which sibling stole the bytes).
+
+### Why this step is not optional
+
+`ENGINE-UNIVERSAL-SERVICES.10` is the worked example. Two SystemVerilog rules
+(`select_expression_lr_suffix`, `block_event_expression_lr_suffix`) reported
+`parsed=true witnessed_target=false`, and their probe samples looked exactly like a routing
+failure — one rendered `cross f, f { option.f = 3.5; }`, the `option` sibling that never enters
+`bins_selection` at all. From the samples alone the cause was recorded as *"the reach planner cannot
+route to a rule that did not exist when it built its graph"*, and that sentence reached both a task
+leaf and a **tracked gate contract**.
+
+The hop dump falsified it in one command. The chain was complete and correct — 21 hops ending
+`("bins_selection","root/s3"), ("select_expression","root/s1/q")`, every OR steered and the
+left-recursion quantifier forced. The planner was never wrong; the *render* was, one stack frame
+away: a forced quantifier re-fired on every recursive re-entry of its own rule, so the forced descent
+never terminated and the enclosing choice quietly fell back to a sibling.
+
+Pair it with the generator's own decision trace when the path crosses a `?`/`*`:
+
+```bash
+PGEN_TRACE_VERBOSITY=high ./rust/target/debug/ast_pipeline grammars/<g>.ebnf \
+  --report-certificate-coverage --count 1 --seed 0 2>&1 | grep "Quantifier decision"
+```
+
+A forced site prints `candidates=[1]` — exactly **one** repeat count, so a failure below it has no
+fallback of its own and propagates up to the nearest choice, which *does* fall back. Counting those
+lines is how a runaway forcing loop is caught: 119 at a single site in one probe was the `.10`
+signature, against 5 after the fix.
 
 ---
 
