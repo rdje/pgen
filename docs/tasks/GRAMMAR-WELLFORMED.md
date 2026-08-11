@@ -1966,6 +1966,19 @@ one more time.
     rather than in place of it; they measure different things (A2.5: the direct shape is REACHED at
     all; `.8`: an eliminated rule returns the DECLARED AST).
   ⇒ the conflict is mechanical and confined to the test table. Nothing about the engine fix changed.
+- ⭐ **`.8` ADDED A NEW GATE THIS LEAF WILL BE THE FIRST TO MEET — pre-checked, and it passes.**
+  `lr_chain_fold::validate_chain_templates` now runs at GENERATION time and hard-fails codegen if a
+  left-recursive alternative's annotation uses a construct the fold cannot replay (`$text`/`$0`, a
+  quantified extraction, a nested chain, or a positional beyond the alternative's own body length).
+  A2.5 gives SystemVerilog its first LR plan, so SV's templates become the first non-annotation-grammar
+  ones that validator ever sees. Checked by reading them, so this is not a surprise waiting in a build:
+  - `select_expression` — `… logical_and … -> {kind: "and", lhs: $1, rhs: $3}` and its `logical_or`
+    twin (body length 3; `$1`,`$3` in range), and `… kw_with … lparen … rparen ( kw_matches … )?
+    -> {kind: "with_matches", lhs: $1, expression: $4, matches: $6}` (body length **6**; `$1`,`$4`,`$6`
+    in range). All three are static-key Objects over string literals + positionals.
+  - `block_event_expression` — `… kw_or … -> {kind: "or", lhs: $1, rhs: $3}` (body length 3).
+  ⇒ **all four revived alternatives are inside the fold's declarable vocabulary**; none uses `$text`,
+  an extraction, or an out-of-range positional. Expect no generation-time refusal.
 - ⚠️ `generated/` (untracked) is STALE — it still holds the prototype build
   (`🔁 Normalized 4 DIRECTLY left-recursive alternative(s)`), which no longer matches the committed
   source. **Regenerate before trusting any local parse:**
