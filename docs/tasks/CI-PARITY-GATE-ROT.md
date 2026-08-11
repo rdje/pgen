@@ -3379,10 +3379,17 @@ evidence is a ~10-minute 3-seed run this slice did not have time to take. **Owed
 
 #### OWED — candidates, not a chosen design (the pricing is this leaf's job)
 
-0. ⭐ **SLICE 2, and the smallest next step: WIRE the guard.** Call it from
-   `sv_cert_recognized_union_gate.sh` right after its `build_debug_ast_pipeline` stage (a no-op assert
-   there by construction, so the risk is bounded), and from any cert sweep. Acceptance is the union
-   gate green end-to-end at seeds 0/7/42, which is what this slice deferred.
+0. ✅ **SLICE 2 LANDED (`PGEN-CI-PARITY-GATE-ROT-0028`, 2026-08-11) — option (1): the canonical rule
+   now DECLARES the full feature set.** On the director's ruling once the cost was measured: *"this
+   impact on speed only affects the time it takes to generate the parser's code. If that's the case
+   then I do not care."* `$(RUST_AST_PIPELINE)` builds
+   `--features "generated_parsers ebnf_dual_run"`, so the path's capability is a property of the
+   PATH, and all 21 dependants inherit it. This removes the class rather than policing it; the guard
+   from slice 1 stays as the measurement-site control (see the residual below).
+   ⛔ **RESIDUAL, not closed:** the 3 `regex_parser_bootstrap` recipes still write the same path with
+   `ebnf_dual_run` ALONE (losing `generated_parsers`). Deliberately untouched — that is the
+   cold-clone seed path where `generated/` may be empty, so changing its feature set needs a
+   cold-clone test this slice did not take. **Slice 3.**
 
 1. **Give the path one owner.** Make the canonical rule build both features, and let the 21
    dependants inherit it. ⛔ Price first: `ebnf_dual_run` compiles the `.ebnf` frontend into every
@@ -3452,3 +3459,54 @@ evidence is a ~10-minute 3-seed run this slice did not have time to take. **Owed
   the stated GATE-REACHABILITY limitation); `TOOLBOX.md` §1.4 gains the guard beside the
   `--report-feature-surface` trap it generalizes. No book/contract/register/release move: an
   internal build-flow helper changes no user-facing surface and no family status.
+
+#### Acceptance Checklist (enforced) — SLICE 2
+
+- [x] **REPRODUCE / ISSUE** — the defect is triggered by a SOURCE CHANGE, which is why it hid: make
+  compares mtimes, so `focus_*` skips the rebuild on a warm tree and only downgrades once a source is
+  newer. Reproduced deterministically with `touch rust/src/ast_pipeline/mod.rs && make -C rust
+  focus_scratch` → pre-change `AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=false generated_parsers=true`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE, located by `git log -S` on the exact recipe string:
+  `git log --oneline -S 'cargo build --features generated_parsers --bin ast_pipeline' -- rust/Makefile`
+  → a SINGLE commit, `36678059` *"Wire raw AST annotation handling end-to-end in non-bootstrap
+  pipeline"* (2026-02-19) — so `$(RUST_AST_PIPELINE)`'s feature set has never been revisited since the
+  day it was written. WHY it is wrong: `git show 36678059:rust/Cargo.toml | grep -c ebnf_dual_run` →
+  **0**, i.e. the feature did not exist until `de8ca8bc` (2026-02-20), one day later. 21 targets
+  depend on the rule (`grep -cE '\$\(RUST_AST_PIPELINE\)' rust/Makefile`), so each of them rebuilt
+  an under-featured binary whenever a source changed. Confirmed at the recipe level with
+  `make -C rust -n SHELL=/bin/bash focus_scratch | grep 'cargo build.*ast_pipeline'`, which before
+  this slice emitted `cargo build --features generated_parsers --bin ast_pipeline` and now emits
+  `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`.
+- [x] **FIX** — ops/build-flow tier, ONE line: the canonical rule declares
+  `--features "generated_parsers ebnf_dual_run"`. Chosen over the guard-everywhere option because it
+  removes the class instead of policing it, and over path-separation because a single owned path is
+  simpler than two paths whose divergence must itself be policed.
+- [x] **ADDRESSED (verified)** — `touch rust/src/ast_pipeline/mod.rs && make -C rust focus_scratch`
+  now yields `ebnf_dual_run=true generated_parsers=true`, and
+  `scripts/require_ast_pipeline_features.sh rust/target/debug/ast_pipeline generated_parsers
+  ebnf_dual_run` → `ok`. End-to-end on the ORIGINAL symptom: the cert sweep re-run immediately after
+  `focus_scratch` returns real `CERTIFICATE-COVERAGE:` rows where it previously returned **18 empty
+  rows per side**. (12 rows are still empty — `ebnf`/`return_annotation`/`semantic_annotation`/
+  `rtl_const_expr` × 3 seeds have no registered parser on this path; that is the pre-existing
+  structural fact, unchanged and stated rather than counted as a win.)
+- [x] **NO REGRESSION — and the parser-RUNTIME question answered by construction, not by assertion.**
+  ⭐ The director's constraint was explicit: the regex parser's sub-1 µs runtime must not move.
+  (a) `ebnf_dual_run` has **ZERO** `cfg(feature)` sites in the parser codegen
+  (`ast_based_generator.rs`, `ast_pipeline/mod.rs`); every site in the generator crate is on a
+  `#[test]`. (b) Empirically: `generated/regex_parser.rs` regenerated by a **single**-feature and a
+  **dual**-feature generator is BYTE-IDENTICAL, md5 `943829436b0d628fa8ab21d12f0962c0` both ways;
+  `generated/scratch_parser.rs` md5 `fc5a61e8ae1d5f88aff0c4a4d7f847f9`, unchanged from before this
+  slice. (c) Release runtime binaries (`parseability_probe`, `regex_perf_probe`) are **separate cargo
+  invocations** with their own `--features`, and Cargo features are per-invocation — a debug
+  generator's feature set cannot reach them. ⇒ **no parser runtime can be affected by this rule.**
+  Cross-grammar cert sweep after the change is `diff`-IDENTICAL to the verified baseline. All 18
+  doctrines pass.
+- [x] **COST, measured rather than waved through** — generation-time only: `focus_scratch` with a
+  forced `ast_pipeline` rebuild took **55 s** dual-feature (the single-feature build of the same
+  binary measured 42 s earlier in the session), i.e. roughly +15-30 s per rebuild of the generator,
+  paid only when a source changes. Director's ruling recorded above.
+- [x] **LOCKSTEP** — this leaf; `rust/Makefile` carries the rationale at the rule itself (so the next
+  reader cannot repeat the 2026-02-19 omission); `TOOLBOX.md` 1.4 updated — the `focus_*` half of the
+  #140-class trap is CLOSED, the bootstrap half is not, and it says so. `CHANGES.md`. No book,
+  contract, register, release or schema move: an internal build-flow rule changes no user-facing
+  surface, no family status, and no shipped byte.
