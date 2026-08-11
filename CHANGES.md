@@ -1,5 +1,36 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0212 — the `;` inside a `cross_body` was spelled twice, so the only spelling that parsed was the one no tool accepts (leaf `SV-CORPUS-GRAD.13c.2a`, ONE grammar token)
+
+- ⭐⭐ **A rejects-valid AND an accepts-invalid defect, closed by removing one token.**
+  `cross_body_sv_2017 := lbrace ( cross_body_item semi )* rbrace` appended a `semi` **and**
+  `cross_body_item_sv_2017` ended in one, so the grammar demanded `option.weight = 2;;`. Measured
+  before→after: `option.weight = 2;` **REJECT→ACCEPT**, `ignore_bins ib = binsof(ca) intersect
+  { 1 };` **REJECT→ACCEPT**, a multi-item cross body **REJECT→ACCEPT**, and `…;;`
+  **ACCEPT→REJECT**.
+- **Root cause, from the parser** (`--trace-rules cross_body`):
+  `✅ Rule 'cross_body_item' successfully parsed from 104 to 123 (consumed 19 bytes:
+  ' option.weight = 2;')` followed by `❌ Exiting rule 'semi' with error: Backtrack { position: 124 }`.
+- ⭐ **The standard contradicts itself and the clause text wins.** IEEE 1800-2017 A.2.11 really does
+  spell the `;` in both `cross_body` and `cross_body_item`; §19.6.2/§19.6.3 of the same clause write
+  `cross a, b { ignore_bins ignore = binsof(a) intersect { 5, [1:3] }; }` with one, as does every
+  corpus row. Annex A is the transcription defect (the `.3.25` precedent).
+- ⛔⛔ **The fix disproved the leaf's own scope, and three NEW defects were located by probe** — each
+  now a reproducer paired with an accepting control: `intersect { 5, [1:3] }` rejects because the
+  LRM's **literal braces** were transcribed as EBNF repetition (`.13c.2a.1`); `select_expression
+  with ( … )` never fires (`.13c.2a.2`, the 3 clkmgr corpus rows' real blocker); `( select_expression )`
+  never fires (`.13c.2a.3`). A fourth is routed: `cross_body_item_sv_2017`'s first alternative is a
+  **terminal matching the literal text `function_declaraton`** — the LRM's own typo transcribed as a
+  token (`.13c.2d`).
+- ⛔ **What this commit does NOT claim:** the 3 `clkmgr_env_cov.sv` corpus rows still REJECT, and the
+  axis-2 bar is unmoved. The 57-row adjudication re-runs to the same disposition for every row.
+- **No regression:** `sv_external_corpus_triage_gate` re-run on the edited grammar —
+  `cases_executed: 14 / parse_pass_total: 14 / parse_fail_total: 0 / cases_blocked_total: 0`
+  (690 s, peak 8 233 MB) — plus all 18 doctrines and `mdbook_docs_gate`.
+- The reproducer ratchet grew 16 → **22** and stays green, now including
+  `invalid_cross_body_double_semi.sv` — the over-acceptance this fix closed, expected to REJECT
+  forever.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0211 — a 57-row candidate worklist is **7 real defects, in 3 constructs**; 8 more rows are text PGEN is RIGHT to reject (leaf `SV-CORPUS-GRAD.13c.2`, ZERO Rust/grammar bytes)
 
 - ⭐⭐ **All 57 rows of `.13c`'s candidate worklist adjudicated, each by a PARSE** — new tracked

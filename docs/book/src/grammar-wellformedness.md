@@ -1939,6 +1939,52 @@ adds is that for 26 of the 57, once the fact and unit-shape blockers are removed
 failure lands back inside the macro window. **Text-refuted at the first failure** and **expansion is
 irrelevant to this row** are different claims, and they were being read as one.
 
+#### When an ACCEPT proves nothing
+
+The first of those defects took one token to fix, and taught more than that. Inside a `cross`, the
+semicolon was spelled twice — once in `cross_body`, once in `cross_body_item` — so the grammar
+demanded `option.weight = 2;;`, and *that* spelling, the one no simulator accepts, was the only one
+that parsed. The standard is genuinely self-contradictory here: A.2.11 writes the `;` in both
+places, while §19.6.2 and §19.6.3 of the same clause write
+`cross a, b { ignore_bins ignore = binsof(a) intersect { 5, [1:3] }; }` with one. The clause
+examples win, as in [the queue-slice repair](#when-the-pin-table-already-contradicts-itself)'s
+precedent, and removing the duplicate closed a rejects-valid *and* an accepts-invalid defect at once.
+
+Then the fix disproved its own leaf. The reproducer paired with it used `ignore_bins ib = ca with
+(…)` — and after the fix it *still* rejected, for an unrelated reason it had been quietly crediting
+to the first. A reproducer that fails for two reasons isolates neither.
+
+Probing the rule around it turned out to need a specific discipline, because `select_expression`
+ends in a **catch-all** alternative reaching the general expression hierarchy. That makes a great
+many inputs parse without the intended alternative ever firing:
+
+| probe | verdict | what it proves |
+|---|---|---|
+| `binsof(ca) && binsof(cb)` | accepts | **nothing** — the whole thing is a legal expression |
+| `binsof(ca) intersect {1} && binsof(cb) intersect {2}` | accepts | the `&&` continuation really fires |
+| `( binsof(ca) )` | accepts | **nothing** — a parenthesized expression |
+| `( binsof(ca) intersect {1} ) && binsof(cb)` | rejects | the `( select_expression )` arm is inert |
+| `x with (a == 1)` | rejects | the `with` continuation is inert |
+
+The trick is to force the alternative with a **keyword the catch-all cannot swallow** — `intersect`
+here. The same trap sits one rule lower: `intersect { … }` has *literal* braces in the standard and
+EBNF repetition in the grammar, yet `intersect { 5, 6 }` parses, because `{5, 6}` is read as a
+concatenation. Only `intersect { 5, [1:3] }` — a range is not an expression — reveals that the
+braces were lost, and that the rule is simultaneously under- and over-accepting.
+
+Three inert alternatives were located that way in one sitting, each pinned with a control built to
+rule the accidental route out. The general lesson is worth more than the three: **where a rule has a
+catch-all arm, the alternatives above it get no coverage from incidental traffic**, so a corpus pass
+rate will report them as fine indefinitely. `furthest_position` cannot help either — the parse
+succeeds. Read the selected branch instead:
+
+```
+🏁 Rule 'select_expression' selected branch 7/8 consuming 2 chars (branch_policy=longest_match)
+✅ Rule 'select_expression' successfully parsed from 127 to 129 (consumed 2 bytes: ' x')
+```
+
+The seed won and nothing extended it — which is exactly what a missing continuation looks like.
+
 Two honesty rules fell out of that census and are worth carrying to any similar instrument:
 
 - **The same falsification means different things per bucket.** The zero-directive test also flags 8

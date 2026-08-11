@@ -8,8 +8,8 @@
 | input | repo-root-relative path | sha256 |
 |---|---|---|
 | worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `c898d15c7fc830b3f4a5ec9673dd78f7f43652b921ce30956e6646ae58701f08` |
-| grammar | `grammars/systemverilog.ebnf` | `2a1a92f597f3baaf3c93350b947832a1dfaee4692c9f166b3d323bffd2a4d5fd` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `fcf0fead98090f047e9ec1b023fa0cd57b53481957c995d67aa2b4fb2ad46603` |
+| grammar | `grammars/systemverilog.ebnf` | `eac78ed598a3da125d35d0b125479536917e75aa587ee3b4219c2cd7cb937398` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `9f773c4a6d366c23e70b540e312fca61a6c05583e0e0346934579925559c8c28` |
 
 ## Verdicts
 
@@ -41,13 +41,13 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `CROSS-FILE-FACTS` | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv` | 24 | none | `t_Counteren,t_MainMode,t_MainResult,t_Mcause,t_Minterrupts,t_Mseccfg_ent,t_Mstatus,t_Mtvec,t_Pmpcfg_ent,t_Privilege` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/base/uvm_port_base.svh` | 75 | none | `uvm_component,uvm_coreservice_t,uvm_object,uvm_phase,uvm_port_type_e,uvm_root,uvm_void` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_policies.svh` | 147 | none | `uvm_object` |
-| `DEFECT` | opentitan | `hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | — | `defect_cross_body_item.sv` |
+| `DEFECT` | opentitan | `hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | — | `defect_select_expression_with.sv` |
 | `DEFECT` | opentitan | `hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv` | 56 | — | `defect_tfport_index_method_call.sv` |
 | `DEFECT` | opentitan | `hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv` | 244 | — | `defect_constant_size_cast.sv` |
-| `DEFECT` | opentitan | `hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | — | `defect_cross_body_item.sv` |
+| `DEFECT` | opentitan | `hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | — | `defect_select_expression_with.sv` |
 | `DEFECT` | opentitan | `hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv` | 56 | — | `defect_tfport_index_method_call.sv` |
 | `DEFECT` | opentitan | `hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv` | 233 | — | `defect_constant_size_cast.sv` |
-| `DEFECT` | opentitan | `hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | — | `defect_cross_body_item.sv` |
+| `DEFECT` | opentitan | `hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | — | `defect_select_expression_with.sv` |
 | `FRAGMENT-ENUM-BODY` | opentitan | `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` | 2 | — | the whole file is `CUSTOM_1,` — an enum-member list included INSIDE an `enum { … }`, so no wrapper in the ladder can shape it |
 | `FRAGMENT-MODULE` | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_m.svh` | 87 | module |  |
 | `FRAGMENT-MODULE` | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_mu.svh` | 104 | module |  |

@@ -1817,9 +1817,22 @@ cross_body_sv_2023 := lbrace cross_body_item* rbrace -> {kind: "block", items: $
 cross_body := cross_body_sv_2017 -> {kind: "sv_2017", body: $1}
             | cross_body_sv_2023 -> {kind: "sv_2023", body: $1}
 
+// ⛔ A.2.11 SPELLS THE `;` TWICE AND THE STANDARD'S OWN EXAMPLES SPELL IT ONCE
+// (SV-CORPUS-GRAD.13c.2a). IEEE 1800-2017 A.2.11 reads
+//     cross_body      ::= { { cross_body_item ; } } | ;
+//     cross_body_item ::= function_declaraton | bins_selection_or_option ;
+// so a literal transcription demands `ignore_bins x = …;;` — and it DID: `option.weight = 2;;`
+// parsed while the single-semicolon form did not. §19.6.2 and §19.6.3 of the same standard write
+//     cross a, b { ignore_bins ignore = binsof(a) intersect { 5, [1:3] }; }
+// with ONE, as does every row in the vendored corpus. Annex A is the transcription defect and the
+// clause examples are the stronger witness ([[annex-a-footnotes-license-derivations-the-productions-cannot-derive]],
+// the `.3.25` precedent). ⭐ The `;` is removed HERE rather than from `cross_body_sv_2017` so the
+// repair matches the sv_2023 pair below, which already carries it on the item — and so the double
+// form STOPS parsing: `cross_body_item` is non-nullable, so `( cross_body_item semi )*` can no
+// longer absorb a stray `;`. One edit, a rejects-valid AND an accepts-invalid fix.
 @profiles: ["sv_2017"]
 cross_body_item_sv_2017 := kw_function_declaraton_06b7ed29  -> {kind: "function_decl"}
-                         | bins_selection_or_option semi    -> {kind: "selection_or_option", body: $1}
+                         | bins_selection_or_option         -> {kind: "selection_or_option", body: $1}
 
 @profiles: ["sv_2023"]
 cross_body_item_sv_2023 := function_declaration              -> {kind: "function_decl",        body: $1}

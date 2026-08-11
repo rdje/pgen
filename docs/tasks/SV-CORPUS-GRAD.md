@@ -8387,19 +8387,129 @@ is not a promotion), and the probe arm it needs.
   `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, and `TOOLBOX.md`
   (the new adjudication oracle).
 
-#### `.13c.2a` — DEFECT: a non-empty `cross_body` rejects every item it may contain (`todo`, opened 2026-08-11 by `.13c.2`)
+#### `.13c.2a` — the `;` inside a `cross_body` was spelled TWICE (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0212`)
 
-- **IEEE 1800-2017 A.2.11**: `cross_body ::= { { cross_body_item ; } } | ;` and
-  `cross_body_item ::= function_declaration | bins_selection_or_option ;`. PGEN accepts the empty
-  body `{ }` and rejects **every** non-empty one — measured on both arms:
-  `ignore_bins ib = ca with (a == 1);` and `option.weight = 2;` (the `coverage_option` arm), and
-  `ignore_bins ib = binsof(ca);`.
-- **Reproducer** `stimuli/sv/adjudication_repros/defect_cross_body_item.sv` (expect REJECT today,
-  ACCEPT once fixed); control `control_cross_body_empty.sv`. ⚠️ The neighbouring COVERPOINT body is
-  fine — `bins`/`illegal_bins`/`bins … = default` inside `coverpoint x { … }` all parse — so this is
-  the CROSS body specifically, not coverage bins in general.
-- **Corpus rows unblocked:** 3 (`clkmgr_env_cov.sv` under `top_darjeeling`, `top_earlgrey`,
-  `top_englishbreakfast`). Fix hierarchy: declarative/grammar tier — no engine change is implied.
+- ⭐⭐ **ONE TOKEN, AND IT WAS BOTH A REJECTS-VALID AND AN ACCEPTS-INVALID DEFECT.**
+  `cross_body_sv_2017 := lbrace ( cross_body_item semi )* rbrace` appended a `semi` **and**
+  `cross_body_item_sv_2017`'s second alternative ended in `semi`, so the grammar demanded
+  `option.weight = 2;;` — and that spelling, the one no tool accepts, was the ONLY one that parsed.
+  The fix removes the `semi` from the ITEM, matching the sv_2023 pair (`cross_body_sv_2023` has no
+  trailing `semi` and its item carries one), which is also what makes the double form stop parsing:
+  `cross_body_item` is non-nullable, so `( cross_body_item semi )*` can no longer absorb a stray `;`.
+- ⭐ **THE STANDARD CONTRADICTS ITSELF HERE, AND THE CLAUSE TEXT WINS.** IEEE 1800-2017 A.2.11 does
+  write the `;` in both places (`docs/systemverilog/2017/md/section-19-functional-coverage.md:1000`
+  and `:1006`) — a literal transcription is what PGEN had. §19.6.2 and §19.6.3 of the *same clause*
+  write it once:
+  `cross a, b { ignore_bins ignore = binsof(a) intersect { 5, [1:3] }; }`, as does every corpus row.
+  Annex A is the transcription defect and the normative examples are the stronger witness — the
+  `.3.25` precedent, [[annex-a-footnotes-license-derivations-the-productions-cannot-derive]].
+- ⛔⛔ **THE LEAF'S OWN SCOPE WAS TOO WIDE, AND THE FIX PROVED IT.** `.13c.2` opened this leaf as
+  *"a non-empty `cross_body` rejects every item it may contain"* and paired it with a reproducer
+  using `ignore_bins ib = ca with (…)`. After the fix the `option.` and `binsof … intersect` arms
+  parse and **that reproducer still rejects** — for a second, unrelated reason. A reproducer that
+  fails for two reasons isolates neither, and while it held both it was crediting the `with` defect
+  to the `;` defect. It is repointed (`fixed_cross_body_item.sv`, class `fixed`) and three NEW
+  defects, each located by a probe, are routed to `.13c.2a.1`/`.2`/`.3`.
+- ⇒ **The 3 clkmgr corpus rows still REJECT**, and this leaf says so rather than claiming them.
+  They need `.13c.2a.2`.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `x: cross ca, cb { option.weight = 2; }` →
+  `Parser did not consume full input at position 0 [furthest_position=123]`; the LRM's own §19.6.2
+  example likewise. The empty body `{ }` parsed, so the defect was the ITEM, not the cross.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `PGEN_TRACE_VERBOSITY=debug … --trace-rules cross_body` names
+  the doubled token exactly:
+  `✅ Rule 'cross_body_item' successfully parsed from 104 to 123 (consumed 19 bytes: ' option.weight = 2;')`
+  then `❌ Exiting rule 'semi' with error: Backtrack { position: 124 }` and
+  `❌ Branch 1/2 for rule 'cross_body' failed at position 102`. Confirmed by the complementary
+  probe: `option.weight = 2;;` **parsed** before this commit.
+- [x] **FIX** — declarative tier, ONE token: `bins_selection_or_option semi` →
+  `bins_selection_or_option` in `cross_body_item_sv_2017` (`grammars/systemverilog.ebnf`). No engine,
+  codegen or Rust change; the `-> {kind: "selection_or_option", body: $1}` annotation is unchanged
+  (`semi` was never captured), so the AST shape is unchanged.
+- [x] **ADDRESSED (verified)** — measured before→after on the rebuilt release probe:
+  `option.weight = 2;` **REJECT→ACCEPT**; `ignore_bins ib = binsof(ca) intersect { 1 };`
+  **REJECT→ACCEPT**; a multi-item body (`option.` + `ignore_bins`) **REJECT→ACCEPT**; and the
+  over-acceptance `option.weight = 2;;` **ACCEPT→REJECT**. Named re-runnable oracle:
+  `python3 stimuli/sv/run_adjudication_repros.py` → `ADJUDICATION-REPROS: checked=22 listed=22
+  failures=0`, now carrying `fixed_cross_body_item.sv` (expect ACCEPT, must not regress) and
+  `invalid_cross_body_double_semi.sv` (expect REJECT forever).
+- [x] **NO REGRESSION** — `sv_external_corpus_triage_gate` re-run end-to-end on the edited grammar:
+  `cases_executed: 14 / preprocess_pass_total: 14 / parse_pass_total: 14 / parse_fail_total: 0 /
+  cases_blocked_total: 0` (690 s, peak 8 233 MB under the memory guard), including both UVM package
+  cases under `sv_2017` and `sv_2023`. All 18 doctrines PASS; the 57-row adjudication re-runs to
+  **the same disposition for every row** (only the instrument's recorded grammar sha256 moves,
+  which is the identity block doing its job); `mdbook_docs_gate` green.
+  ⛔ Deliberately NOT claimed: the 3 clkmgr corpus rows still reject (`.13c.2a.2`), and the axis-2
+  bar is not moved here.
+- [x] **LOCKSTEP** — book *Grammar Well-Formedness*, `MEMORY.md`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, the reproducer `MANIFEST.tsv` and `RESIDUAL_ROWS.tsv`.
+
+#### `.13c.2a.1` — DEFECT: `intersect { … }`'s LITERAL braces were transcribed as EBNF repetition (`todo`, opened 2026-08-11 by `.13c.2a`)
+
+- **IEEE 1800-2017 A.2.11**: `select_condition ::= binsof ( bins_expression ) [ intersect {
+  covergroup_range_list } ]`, where `{ }` are **literal braces**. The grammar has
+  `select_condition := kw_binsof lparen bins_expression rparen ( kw_intersect covergroup_range_list* )?`
+  — the braces are gone.
+- ⭐ **AND IT IS CURRENTLY BOTH UNDER- AND OVER-ACCEPTING.** `intersect { 5, 6 }` parses, but only
+  because `{5, 6}` is a legal **concatenation expression** reaching
+  `covergroup_value_range → covergroup_expression → expression`; a RANGE is not an expression, so
+  the standard's own §19.6.2 example `intersect { 5, [1:3] }` **rejects** (`furthest_position=150`).
+  ⇒ any fix must restore the literal braces, not widen the value arm.
+- **Reproducer** `defect_intersect_range_list.sv`; control `control_intersect_value_list.sv` (which
+  documents that it passes by the accidental route).
+- ⭐ **This is the dropped-delimiter class the tree already names** — `.3.8`'s *"LITERAL `[ ]` read
+  as EBNF optional-grouping"*, here with braces. ⚠️ Worth a sweep for other literal `{ }` / `[ ]` in
+  Annex A that became EBNF metasyntax, rather than fixing this one site alone.
+
+#### `.13c.2a.2` — DEFECT: `select_expression`'s `with ( … )` continuation never fires (`todo`, opened 2026-08-11 by `.13c.2a`)
+
+- **IEEE 1800-2017 A.2.11**: `select_expression ::= … | select_expression with (
+  with_covergroup_expression ) [ matches integer_covergroup_expression ] | cross_identifier | …`.
+  Both `x with (a == 1)` and `binsof(ca) with (a == 1)` REJECT (`furthest_position=130` / `138`).
+- **Mechanism, located:** `--trace-rules bins_selection` shows the parse stopping at the seed —
+  `🏁 Rule 'select_expression' selected branch 7/8 consuming 2 chars (branch_policy=longest_match)`
+  then `✅ Rule 'select_expression' successfully parsed from 127 to 129 (consumed 2 bytes: ' x')` —
+  the `cross_identifier` arm wins and **no `with` continuation is applied**.
+- ⛔ **NOT LR elimination in general, and the control proves it the hard way.** The sibling
+  left-recursive `&&` / `||` continuations DO fire: `binsof(ca) intersect { 1 } && binsof(cb)
+  intersect { 2 }` parses. ⚠️ That control had to be built carefully — `binsof(ca) && binsof(cb)`
+  also parses and proves NOTHING, because it is a legal ordinary expression reaching the catch-all
+  `cross_set_expression` arm. `intersect` is a keyword, so putting it in both operands is what rules
+  the accidental route out.
+- **Reproducer** `defect_select_expression_with.sv`; control `control_select_expression_and.sv`.
+- **Corpus rows unblocked: 3** (`clkmgr_env_cov.sv` ×3 — `ignore_bins ignore_enable_off =
+  peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0);`).
+
+#### `.13c.2a.3` — DEFECT: the parenthesized `( select_expression )` alternative never fires (`todo`, opened 2026-08-11 by `.13c.2a`)
+
+- **IEEE 1800-2017 A.2.11** lists `( select_expression )` as an alternative.
+  `( binsof(ca) intersect { 1 } ) && binsof(cb)` REJECTS (`furthest_position=158`) while the same
+  text without the parentheses parses.
+- ⚠️ **Parentheses around an operand carrying no `intersect` DO parse** — because then the whole
+  thing is an ordinary SV expression matched by the catch-all `cross_set_expression` arm. So the
+  construct looks supported until a keyword forces the real alternative. Same accidental-route
+  hazard as `.13c.2a.1`/`.2`, and the same lesson: in this rule, an accept is not evidence the
+  intended alternative fired.
+- **Reproducer** `defect_select_expression_paren.sv`. Likely the same root cause as `.13c.2a.2`
+  (a lost non-seed alternative of the LR-eliminated `select_expression`) — ⛔ *likely* is a
+  hypothesis; the leaf must trace it rather than assume the sibling's diagnosis transfers.
+
+#### `.13c.2d` — the sv_2017 `cross_body_item` matches a MISSPELLED LITERAL where the LRM means a nonterminal (`todo`, opened 2026-08-11 by `.13c.2a`)
+
+- `cross_body_item_sv_2017`'s first alternative is `kw_function_declaraton_06b7ed29`, and that rule
+  is `trivia /function_declaraton\b/` — a **terminal matching the literal text
+  `function_declaraton`**. IEEE 1800-2017 A.2.11 misspells the nonterminal
+  (`function_declaraton`, corrected in 1800-2023), and the extraction transcribed the typo as a
+  token. ⇒ under `sv_2017` a `function_declaration` inside a cross body is unreachable; the sv_2023
+  sibling correctly references the real `function_declaration` nonterminal.
+- Already visible but unadjudicated: `GRAMMAR-WELLFORMED-H127` lists `kw_function_declaraton` among
+  the sv_2023 `no_path` residual and classified it as blessed-synthetic, which this finding
+  supersedes for the sv_2017 arm.
+- **Owed:** a probe pinning the current REJECT, the LRM-typo citation, the one-line reference fix,
+  and a **sweep for the same shape** — a `kw_*` terminal whose spelling is an Annex A NONTERMINAL
+  name (`kw_tx_path_delay_expression_7b2dee37` is the other candidate the grep found).
 
 #### `.13c.2b` — DEFECT: a size cast is rejected in a CONSTANT expression (`todo`, opened 2026-08-11 by `.13c.2`)
 

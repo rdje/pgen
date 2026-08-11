@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0212 — in a rule with a catch-all expression arm, an ACCEPT is not evidence the intended alternative fired
+
+The `.13c.2a` fix itself is one token: the `;` inside a `cross_body` was spelled in both
+`cross_body_sv_2017` and `cross_body_item_sv_2017`, so the grammar demanded `option.weight = 2;;`
+— and *that* spelling, the one no simulator accepts, was the only one that parsed. Removing the
+token from the item flipped four inputs the right way at once, including the over-acceptance.
+
+The transferable part is what happened next.
+
+**The fix disproved the leaf's own scope.** `.13c.2` had opened the leaf as *"a non-empty
+`cross_body` rejects every item it may contain"* and paired it with a reproducer using
+`ignore_bins ib = ca with (…)`. After the fix, the `option.` and `binsof … intersect` arms parse and
+that reproducer **still rejects** — for an unrelated reason. While it held both, it was silently
+crediting a second defect to the first, and a "fixed" verdict would have shipped with the corpus
+rows still failing. A reproducer that fails for two reasons isolates neither; the repair is to
+repoint it and route the remainder, not to widen the claim.
+
+**And the rule it sits in cannot be probed naively.** `select_expression` ends in a catch-all
+alternative — `cross_set_expression → covergroup_expression → expression` — so a great many inputs
+parse *as ordinary SystemVerilog expressions* without the intended alternative ever firing:
+
+- `intersect { 5, 6 }` parses, but `{5, 6}` is being read as a **concatenation**, not as the
+  brace-delimited `covergroup_range_list` the LRM specifies — which is why `intersect { 5, [1:3] }`,
+  the standard's own example, rejects: a range is not an expression.
+- `binsof(ca) && binsof(cb)` parses and proves nothing about the `&&` alternative, because the whole
+  thing is a legal expression.
+- `( binsof(ca) )` parses for the same reason, while `( binsof(ca) intersect { 1 } )` rejects.
+
+⇒ **to test an alternative in such a rule, force it with a token the catch-all cannot swallow.**
+`intersect` is a keyword, so putting it in both operands is what turned "`&&` seems to work" into
+evidence that the `&&` continuation genuinely fires — and, by contrast, showed that the `with` and
+parenthesized alternatives never do. Three defects were located that way in one sitting, each with a
+control built to rule the accidental route out. Without that discipline all three would have read as
+supported.
+
+The corollary for grammar authoring: a catch-all arm makes a rule **look** complete and makes its
+gaps invisible to any accept-based measurement, including a corpus pass rate. Where one exists, the
+alternatives above it deserve explicit, keyword-forced coverage rather than incidental traffic.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0211 — a search that can move AWAY from the answer will report "unexplained" for files that are fully explained
 
 `.13c.2` had to answer, for 57 corpus rows, the only question that matters about a candidate list:
