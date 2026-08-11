@@ -5668,6 +5668,16 @@ impl<'a> StimuliGenerator<'a> {
     /// directive keyed on `R` also makes `needs_rule_body_descent(R)` true, so any rule-level `@sample`
     /// on `R` correctly stands down — the H.12.5.5.2.2 interaction).
     ///
+    /// ⭐ THREE TIERS, each strictly additive and each tried only when the previous one failed —
+    /// they force three DIFFERENT rules, which is the whole reason all three are needed:
+    ///   1. `R`'s own body (`-0090`, this pass's original scope) — the TARGET;
+    ///   2. `R`'s mandatory child rules (`.3.3.1`, C-ii) — its CHILDREN;
+    ///   3. `R`'s reach-path SEED (`ENGINE-UNIVERSAL-SERVICES.10` mechanism 2) — its SIBLING: the
+    ///      mandatory rule the final hop renders BEFORE a min-0 quantified reference to `R`. That
+    ///      tier answers the residual where the probe is already structurally correct and the
+    ///      PARSER still refuses to commit `R`, because a catch-all inside the seed spans `R`'s
+    ///      leading token and longest-match absorbs the whole operand (see `reach_seed_rules`).
+    ///
     /// The CALLER (the cert-coverage driver) invokes this ONLY for rules still `UNKNOWN` after the
     /// diverse / recursive-reach / plannable passes, so a grammar those passes already fully certify
     /// has an EMPTY residual and this pass never runs — it is **truly inert** for the certified roster
@@ -5718,8 +5728,27 @@ impl<'a> StimuliGenerator<'a> {
                     child_root_or.is_some() || !child_inner_qs.is_empty()
                 })
                 .collect();
-            // Nothing to force anywhere (no R-own choice/optional AND no forceable child) ⇒ skip.
-            if root_or.is_none() && inner_quantifier_paths.is_empty() && child_forcings.is_empty() {
+            // ENGINE-UNIVERSAL-SERVICES.10 (mechanism 2): the SIBLING SEED rules the reach path's
+            // final hop renders BEFORE the min-0 quantified reference to R (see `reach_seed_rules`).
+            // Forceable = the seed has its own top-level choice and/or min-0 optionals to steer.
+            let seed_forcings: Vec<(String, Option<(String, usize)>, Vec<String>)> = self
+                .reach_seed_rules(entry_rule, rule)
+                .into_iter()
+                .map(|seed| {
+                    let (seed_root_or, seed_inner_qs) = self.target_own_reach_sites(&seed);
+                    (seed, seed_root_or, seed_inner_qs)
+                })
+                .filter(|(_, seed_root_or, seed_inner_qs)| {
+                    seed_root_or.is_some() || !seed_inner_qs.is_empty()
+                })
+                .collect();
+            // Nothing to force anywhere (no R-own choice/optional, no forceable child, no
+            // forceable seed) ⇒ skip.
+            if root_or.is_none()
+                && inner_quantifier_paths.is_empty()
+                && child_forcings.is_empty()
+                && seed_forcings.is_empty()
+            {
                 continue;
             }
             let target_subtree_depth = min_derivation_depths.get(rule).copied().unwrap_or(0);
@@ -5870,6 +5899,84 @@ impl<'a> StimuliGenerator<'a> {
                                         self.clear_reach_plan();
                                         break 'children;
                                     }
+                                }
+                            }
+                        }
+                        self.clear_reach_plan();
+                    }
+                }
+            }
+            // ENGINE-UNIVERSAL-SERVICES.10 (mechanism 2): if neither R's own structure nor its
+            // mandatory children witnessed, diversify the SEED — the mandatory sibling the reach
+            // path's final hop renders BEFORE the min-0 quantified reference to R. This is the
+            // residual class where the probe is already STRUCTURALLY CORRECT (it renders R's own
+            // construct) and the PARSER still refuses to commit it, because a catch-all alternative
+            // inside the seed spans R's leading token and longest-match absorbs the whole operand.
+            // Purely additive (runs only when both earlier tiers failed), so the `-0090`/`.3.3.1`
+            // behaviour above stays byte-identical.
+            if !witnessed && !seed_forcings.is_empty() {
+                // ⛔ ONE probe per branch, not two. The earlier tiers re-roll twice because their
+                // construct-mode skeleton is fixed and only terminals vary; on THIS axis the
+                // skeleton is exactly what each candidate changes, so the same budget buys twice
+                // the seed-choice coverage. Per-rule ceiling matches the child tier's (16 probes).
+                let per_seed_cap = max_attempts_per_rule.max(1).saturating_mul(2);
+                let mut total_seed_budget = per_seed_cap.saturating_mul(2);
+                'seeds: for (seed, seed_root_or, seed_inner_qs) in &seed_forcings {
+                    if total_seed_budget == 0 {
+                        break 'seeds;
+                    }
+                    let mut seed_budget = per_seed_cap.min(total_seed_budget);
+                    // ⛔ Plain index order, unlike the R-own / child tiers' "non-degenerate first".
+                    // Those tiers know `o0` is the pass-through that already failed; here the
+                    // alternative that already failed is whichever the UNFORCED generator picked
+                    // (Purdom-shortest, not `o0`), so no index is privileged and skipping one
+                    // would be guessing.
+                    let seed_branches: Vec<Option<usize>> = match seed_root_or {
+                        Some((_, alt_count)) => (0..*alt_count).map(Some).collect(),
+                        None => vec![None],
+                    };
+                    for seed_branch in seed_branches {
+                        if seed_budget == 0 {
+                            // This seed is exhausted — move to the next one.
+                            break;
+                        }
+                        if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                            break 'seeds;
+                        }
+                        if let Some(plan) = self.reach_plan.as_mut() {
+                            // Force ONLY the seed: R's own body renders as the base reach plan
+                            // already steers it, so a witness here isolates the seed as the cause.
+                            if let (Some((seed_or_path, _)), Some(branch_index)) =
+                                (seed_root_or, seed_branch)
+                            {
+                                plan.directives
+                                    .insert((seed.clone(), seed_or_path.clone()), branch_index);
+                            }
+                            for seed_q in seed_inner_qs {
+                                plan.forced_quantifier_min
+                                    .insert((seed.clone(), seed_q.clone()), 1);
+                            }
+                        }
+                        seed_budget -= 1;
+                        total_seed_budget -= 1;
+                        self.construct_mode = true;
+                        let probe = self.generate_from_entry_with_optional_timeout(entry_rule, timeout);
+                        self.construct_mode = false;
+                        match probe {
+                            Ok(sample) => {
+                                if matches!(
+                                    witness_check(rule, &sample),
+                                    PlannableProbeVerdict::Witnessed
+                                ) {
+                                    witnessed = true;
+                                    self.clear_reach_plan();
+                                    break 'seeds;
+                                }
+                            }
+                            Err(e) => {
+                                if Self::is_target_timeout_error(&e) {
+                                    self.clear_reach_plan();
+                                    break 'seeds;
                                 }
                             }
                         }
@@ -8706,6 +8813,148 @@ impl<'a> StimuliGenerator<'a> {
             // `Or`: no single alternative is unconditionally generated (the choice is un-forced
             // here) — skip. `Lookahead`: materialises nothing — skip.
             ASTNode::Or { .. } | ASTNode::Lookahead { .. } => {}
+        }
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.10 (mechanism 2): the **SEED** rules a reach path's final hop puts
+    /// in FRONT of the target — the mandatory `rule_reference` siblings preceding, inside the same
+    /// `Sequence`, a **min-0** `Quantified` whose element subtree references `target_rule`.
+    ///
+    /// ⭐ WHY THIS IS A WITNESS AXIS OF ITS OWN, and why neither existing axis can reach it. A
+    /// min-0 quantified continuation commits only if the mandatory sibling rendered before it
+    /// STOPS short of the continuation's own leading token. When that sibling's choice carries a
+    /// catch-all alternative that spans the token, longest-match hands the whole operand to the
+    /// seed, the `( target )*` matches zero times, and the target is **ENTERED but never
+    /// COMMITTED** — a structurally correct sample reported `parsed=true witnessed_target=false`.
+    /// No amount of PATH forcing changes that: the defect is in a rule the path never decides.
+    /// `target_own_reach_sites` forces the target's OWN body and `mandatory_child_rules` forces its
+    /// CHILDREN; the seed is neither — it is the target's SIBLING.
+    ///
+    /// Measured on the isolating synthetic (`expr := "binsof" "(" ident ")" | expr "&&" expr |
+    /// fullexpr`, whose `fullexpr := ident ( "&&" ident )*` is the catch-all): on the seed the
+    /// catch-all absorbs, `expr_lr_suffix` is entries=1 committed=**0**; on a discriminating seed
+    /// it is entries=3 committed=**1**.
+    ///
+    /// ⛔ Keyed purely on `ASTNode` structure plus the hop chain the plan actually installed —
+    /// never on a rule name, never on the left-recursion eliminator's `_lr_` spelling. The
+    /// eliminator's `X := X_lr_base ( X_lr_suffix )*` is the shape this was found on, not the
+    /// definition: every `P := seed ( continuation )*` carries it.
+    ///
+    /// ⛔ HONEST BOUND (no silent caps): only the FINAL hop is scanned — the site that references
+    /// the target directly, where the shadowing is adjacent. A seed shadowing an INTERMEDIATE hop
+    /// is not covered by this axis. Nearest sibling first (it consumes the bytes next to the
+    /// continuation). Order-preserving + deduped; `target_rule` itself is never returned.
+    fn reach_seed_rules(&self, entry_rule: &str, target_rule: &str) -> Vec<String> {
+        let Some(hops) = self.reach_hops(entry_rule, target_rule) else {
+            return Vec::new();
+        };
+        let Some((hop_rule, _)) = hops.last() else {
+            return Vec::new();
+        };
+        let Some(root) = self.grammar_tree.get(hop_rule.as_str()) else {
+            return Vec::new();
+        };
+        let mut out: Vec<String> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+        Self::collect_preceding_seed_rules(root, target_rule, &mut out, &mut seen);
+        out.retain(|name| self.grammar_tree.contains_key(name.as_str()));
+        out
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.10: the structural walk behind `reach_seed_rules` — find every
+    /// min-0 `Quantified` sequence element whose subtree references `target_rule`, and collect the
+    /// mandatory rule-reference elements before it, nearest first.
+    fn collect_preceding_seed_rules(
+        node: &ASTNode,
+        target_rule: &str,
+        out: &mut Vec<String>,
+        seen: &mut HashSet<String>,
+    ) {
+        match node {
+            ASTNode::Sequence { elements } => {
+                for (index, element) in elements.iter().enumerate() {
+                    if let ASTNode::Quantified {
+                        element: quantified_element,
+                        quantifier,
+                    } = element
+                    {
+                        // min >= 1 renders unconditionally, so the parser MUST commit the
+                        // continuation or reject outright — there is no silent zero-iteration
+                        // escape and therefore no shadowing hazard. min-0 is exactly the class.
+                        if super::parse_quantifier_bounds(quantifier)
+                            .is_some_and(|(min, _)| min == 0)
+                            && Self::subtree_references_rule(quantified_element, target_rule)
+                        {
+                            for preceding in elements[..index].iter().rev() {
+                                if let Some(name) = Self::mandatory_rule_reference_of(preceding) {
+                                    if name != target_rule && seen.insert(name.to_string()) {
+                                        out.push(name.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Self::collect_preceding_seed_rules(element, target_rule, out, seen);
+                }
+            }
+            ASTNode::Or { alternatives } => {
+                for alternative in alternatives {
+                    Self::collect_preceding_seed_rules(alternative, target_rule, out, seen);
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                Self::collect_preceding_seed_rules(element, target_rule, out, seen);
+            }
+            ASTNode::Atom {
+                value: ASTValue::Node(inner),
+            } => {
+                Self::collect_preceding_seed_rules(inner, target_rule, out, seen);
+            }
+            // A token leaf holds no sequence; a lookahead materialises nothing.
+            ASTNode::Atom { .. } | ASTNode::Lookahead { .. } => {}
+        }
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.10: `Some(name)` when `node` is an unconditional `rule_reference`
+    /// leaf (possibly behind transparent `Atom(Node(..))` wrappers). Deliberately an
+    /// UNDER-approximation — a sequence / choice / quantified element is NOT treated as a seed, so
+    /// the axis only ever fires where the seed is one whole mandatory rule whose alternatives are
+    /// forceable by a single `(rule, node_path)` directive.
+    fn mandatory_rule_reference_of(node: &ASTNode) -> Option<&str> {
+        match node {
+            ASTNode::Atom {
+                value: ASTValue::Node(inner),
+            } => Self::mandatory_rule_reference_of(inner),
+            ASTNode::Atom {
+                value: ASTValue::Token(parts),
+            } => match Self::extract_token_pair(parts) {
+                Some(("rule_reference", name)) => Some(name),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.10: does `node`'s subtree carry a direct `rule_reference` to
+    /// `rule`? Lookaheads materialise nothing, so they never count as carrying the target.
+    fn subtree_references_rule(node: &ASTNode, rule: &str) -> bool {
+        match node {
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .any(|alternative| Self::subtree_references_rule(alternative, rule)),
+            ASTNode::Sequence { elements } => elements
+                .iter()
+                .any(|element| Self::subtree_references_rule(element, rule)),
+            ASTNode::Quantified { element, .. } => Self::subtree_references_rule(element, rule),
+            ASTNode::Lookahead { .. } => false,
+            ASTNode::Atom {
+                value: ASTValue::Node(inner),
+            } => Self::subtree_references_rule(inner, rule),
+            ASTNode::Atom {
+                value: ASTValue::Token(parts),
+            } => {
+                matches!(Self::extract_token_pair(parts), Some(("rule_reference", name)) if name == rule)
+            }
         }
     }
 
@@ -24339,6 +24588,258 @@ mod tests {
         let (root_or, inner) = generator.target_own_reach_sites("missing");
         assert_eq!(root_or, None);
         assert!(inner.is_empty());
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.10 (mechanism 2): the SEED walker is purely structural — it
+    /// reports the mandatory rule-reference siblings a **min-0** quantified reference to the target
+    /// is preceded by, nearest first, at the reach path's final hop.
+    #[test]
+    fn reach_seed_rules_finds_the_mandatory_sibling_before_a_min0_continuation() {
+        let mut grammar_tree: HashMap<String, ASTNode> = HashMap::new();
+        // The LR-eliminated shape, hand-written so this test needs no eliminator:
+        //   entry := "u" host
+        //   host  := seed ( cont )*        <- `cont` is the min-0 continuation, `seed` its shadow
+        //   cont  := "&&" host
+        grammar_tree.insert(
+            "entry".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "u"), rule_ref("host")],
+            },
+        );
+        grammar_tree.insert(
+            "host".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("seed"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("cont")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "cont".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "&&"), rule_ref("host")],
+            },
+        );
+        grammar_tree.insert("seed".to_string(), token("quoted_string", "s"));
+        // A min-1 continuation: mandatory, so the parser must commit it or reject — no
+        // zero-iteration escape, hence no shadowing hazard and no seed.
+        grammar_tree.insert(
+            "mandatory_host".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("seed"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("mandatory_cont")),
+                        quantifier: "+".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "mandatory_cont".to_string(),
+            token("quoted_string", "!"),
+        );
+        grammar_tree.insert(
+            "mandatory_entry".to_string(),
+            rule_ref("mandatory_host"),
+        );
+        // Two preceding mandatory siblings — reported NEAREST FIRST, because the adjacent one
+        // consumes the bytes next to the continuation.
+        grammar_tree.insert(
+            "two_seed_host".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("far_seed"),
+                    rule_ref("near_seed"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("cont")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert("far_seed".to_string(), token("quoted_string", "f"));
+        grammar_tree.insert("near_seed".to_string(), token("quoted_string", "n"));
+        grammar_tree.insert(
+            "two_seed_entry".to_string(),
+            rule_ref("two_seed_host"),
+        );
+        let rule_order: Vec<String> = [
+            "entry",
+            "host",
+            "cont",
+            "seed",
+            "mandatory_entry",
+            "mandatory_host",
+            "mandatory_cont",
+            "two_seed_entry",
+            "two_seed_host",
+            "far_seed",
+            "near_seed",
+        ]
+        .iter()
+        .map(|r| r.to_string())
+        .collect();
+        let generator = simple_generator(&grammar_tree, &rule_order, 0);
+
+        // The `( cont )*` site's preceding mandatory sibling is `seed`.
+        assert_eq!(
+            generator.reach_seed_rules("entry", "cont"),
+            vec!["seed".to_string()]
+        );
+        // ⛔ min-1 continuation ⇒ NO seed axis (the parser cannot silently skip it).
+        assert!(
+            generator
+                .reach_seed_rules("mandatory_entry", "mandatory_cont")
+                .is_empty(),
+            "a min-1 continuation has no zero-iteration escape, so it has no shadowing seed"
+        );
+        // Nearest sibling first.
+        assert_eq!(
+            generator.reach_seed_rules("two_seed_entry", "cont"),
+            vec!["near_seed".to_string(), "far_seed".to_string()]
+        );
+        // The target is never returned as its own seed, and an unreachable target yields nothing.
+        assert!(generator.reach_seed_rules("entry", "missing").is_empty());
+        assert!(generator.reach_seed_rules("entry", "entry").is_empty());
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.10 (mechanism 2): the DISCRIMINATING end-to-end test. The base
+    /// reach plan alone renders the seed's SHORTEST alternative — the catch-all a longest-match
+    /// parser absorbs the continuation into — so the probe is structurally correct and still not
+    /// witnessed. The seed tier forces the seed's other alternative and the probe becomes
+    /// discriminating. The control below is what makes this a proof rather than a claim: it asserts
+    /// the pre-fix behaviour on the SAME generator, so a regression that silences the seed tier
+    /// fails here with the exact production symptom.
+    #[test]
+    fn seed_diversification_renders_a_discriminating_seed_for_a_shadowed_continuation() {
+        let mut grammar_tree: HashMap<String, ASTNode> = HashMap::new();
+        //   start := "u" expr
+        //   expr  := seed ( cont )*
+        //   cont  := "&&" expr
+        //   seed  := "binsof" "(" "a" ")" | catchall   <- alt 0 DISCRIMINATES, alt 1 is the CATCH-ALL
+        //   catchall := "x"
+        // The alternative shapes mirror the real grammars exactly: the discriminating arm is an
+        // inline token sequence and the catch-all is a rule REFERENCE into a deeper hierarchy
+        // (`fullexpr` in the isolating scratch probe, `cross_set_expression` in SystemVerilog) —
+        // which is the arm the unforced generator renders, as the control below pins.
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "u"), rule_ref("expr")],
+            },
+        );
+        grammar_tree.insert(
+            "expr".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("seed"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("cont")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "cont".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "&&"), rule_ref("expr")],
+            },
+        );
+        grammar_tree.insert(
+            "seed".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![
+                            token("quoted_string", "binsof"),
+                            token("quoted_string", "("),
+                            token("quoted_string", "a"),
+                            token("quoted_string", ")"),
+                        ],
+                    },
+                    rule_ref("catchall"),
+                ],
+            },
+        );
+        grammar_tree.insert("catchall".to_string(), token("quoted_string", "x"));
+        let rule_order: Vec<String> = ["start", "expr", "cont", "seed", "catchall"]
+            .iter()
+            .map(|r| r.to_string())
+            .collect();
+
+        // CONTROL — the base reach plan alone (what every earlier tier installs) renders the
+        // catch-all seed, exactly as SystemVerilog's `\foo_0 && \foo_0` probe did.
+        {
+            let mut generator = simple_generator(&grammar_tree, &rule_order, 0);
+            // Same depth headroom the pass gives itself, so the control differs from the seed tier
+            // in ONE thing only: whether the seed's alternative is forced.
+            generator.config.max_depth = 32;
+            assert!(
+                generator.set_reach_plan_for_rule("start", "cont", 32),
+                "`cont` must be graph-reachable from `start`"
+            );
+            generator.construct_mode = true;
+            let sample = generator
+                .generate_from_entry_with_optional_timeout("start", None)
+                .expect("base reach plan should generate");
+            generator.construct_mode = false;
+            generator.clear_reach_plan();
+            assert!(
+                sample.contains("&&"),
+                "the base reach plan already forces the continuation, got {:?}",
+                sample
+            );
+            // ⛔ The LEADING seed is the only one that can shadow: it is the derivation the parser
+            // runs before the `( cont )*` site, so it — and not a seed rendered inside the
+            // continuation's own operand — decides whether the continuation ever commits.
+            assert!(
+                sample.starts_with("ux"),
+                "CONTROL: the base reach plan renders the CATCH-ALL seed — a discriminating \
+                 LEADING seed here would mean this test no longer discriminates, got {:?}",
+                sample
+            );
+        }
+
+        // THE FIX — the pass's seed tier forces the seed's other alternative. `witness_check`
+        // stands in for the longest-match parser: it commits the continuation only when the seed
+        // cannot absorb it, i.e. only for the discriminating spelling.
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 0);
+        let mut discriminating_samples: Vec<String> = Vec::new();
+        let witnessed = generator.generate_target_own_structure_witnesses(
+            "start",
+            &["cont".to_string()],
+            0,
+            4,
+            |_rule, sample| {
+                // Stands in for the longest-match parser: the continuation commits only when the
+                // LEADING seed is the discriminating spelling that cannot absorb it.
+                if sample.starts_with("ubinsof") {
+                    discriminating_samples.push(sample.to_string());
+                    PlannableProbeVerdict::Witnessed
+                } else {
+                    PlannableProbeVerdict::ParsedNotWitnessed
+                }
+            },
+        );
+        assert_eq!(
+            witnessed, 1,
+            "the seed tier must witness the shadowed continuation; samples seen: {:?}",
+            discriminating_samples
+        );
+        assert!(
+            discriminating_samples
+                .iter()
+                .any(|s| s.starts_with("ubinsof") && s.contains("&&")),
+            "the witnessing sample must carry BOTH the discriminating LEADING seed and the \
+             continuation, got {:?}",
+            discriminating_samples
+        );
     }
 
     #[test]

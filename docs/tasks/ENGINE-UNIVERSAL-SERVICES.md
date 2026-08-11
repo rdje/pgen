@@ -593,7 +593,7 @@ annotation is exercised and verified over a corpus nobody hand-picked"*.
 - The gap list is priced well enough for the director to choose from it.
 - The responsibility-boundary rule is a decision record that a reviewer can cite.
 
-### `.10` — the cert generator cannot witness the rules the ENGINE synthesizes (`in progress` — mechanism 1 CLOSED `PGEN-ENGINE-UNIVERSAL-SERVICES-0005`, 2026-08-11 session #217; mechanism 2 OPEN; opened 2026-08-11 by `GRAMMAR-WELLFORMED.A2.5`; ⛔ **still the BLOCKER for returning SV's union UNKNOWN to 0**)
+### `.10` — the cert generator cannot witness the rules the ENGINE synthesizes (`in progress` — mechanism 1 CLOSED `PGEN-ENGINE-UNIVERSAL-SERVICES-0005` 2026-08-11 session #217; mechanism 2 CLOSED `PGEN-ENGINE-UNIVERSAL-SERVICES-0006` 2026-08-12 session #218; **mechanism 3 split out to `.11`**; opened 2026-08-11 by `GRAMMAR-WELLFORMED.A2.5`; ⛔ the BLOCKER for returning SV's union UNKNOWN to 0 is now `.11`)
 
 #### ⛔ STATUS AND THE CORRECTION THIS LEAF OWES ITS OWN FIRST DRAFT
 
@@ -658,7 +658,7 @@ to a **guard**: the OR path and the quantifier path now enforce the same invaria
 directive is a directive for ONE firing, the shallowest entry of its owning rule* — instead of one
 path enforcing it and the other silently not.
 
-#### DIAGNOSIS — mechanism 2 (OPEN): the SEED is longest-match-shadowed, so the suffix can never commit
+#### DIAGNOSIS — mechanism 2 (CLOSED `PGEN-ENGINE-UNIVERSAL-SERVICES-0006`, session #218): the SEED is longest-match-shadowed, so the suffix can never commit
 
 ⛔ **Do not read the remaining residual as the same defect.** Post-fix the generator emits the
 **structurally correct** probe — `cross f, f { bins f = f && f; }` — i.e. it now reaches and renders
@@ -692,7 +692,156 @@ the operator.
 ⛔ **The two repairs that remain unavailable** (unchanged from the original draft, restated so nobody
 re-proposes them): deleting the LR plan, and witness-rescue `@sample`s on the affected SV rules.
 
-#### Acceptance Checklist (enforced)
+#### THE FIX — mechanism 2: a THIRD tier on the target-own-structure pass, forcing the target's SIBLING
+
+The witness planner had exactly two levers, and neither can reach this class:
+`target_own_reach_sites` forces the **target's own** body; `mandatory_child_rules` forces the
+**target's children**. The shadowing rule is the target's **SIBLING** — the mandatory rule the reach
+path's final hop renders *before* the min-0 quantified reference to the target.
+
+`generate_target_own_structure_witnesses` now carries a third strictly-additive tier
+(`reach_seed_rules` + `collect_preceding_seed_rules` + `mandatory_rule_reference_of` +
+`subtree_references_rule`, `rust/src/ast_pipeline/stimuli_generator.rs`): for a residual target `T`
+it takes the FINAL hop of the chain the plan actually installed, walks that hop rule's body for a
+**min-0** `Quantified` whose element subtree references `T`, and enumerates the alternatives of every
+mandatory `rule_reference` sibling preceding it — nearest first.
+
+Design points, each deliberate:
+* **min-0 only.** A min-1 continuation must be committed or the parse rejects — there is no
+  zero-iteration escape, so no shadowing hazard exists. min-0 is exactly the class.
+* **Plain index order** over the seed's alternatives, unlike the two older tiers' *"non-degenerate
+  `o1..` first, degenerate `o0` last"*. Those tiers know `o0` is the pass-through that already
+  failed; here the alternative that already failed is whichever the UNFORCED generator picked
+  (min-derivation, not `o0`), so no index is privileged and skipping one would be guessing.
+* **One probe per branch, not two.** The older tiers re-roll twice because their skeleton is fixed
+  and only terminals vary; on this axis the skeleton is exactly what each candidate changes, so the
+  same per-rule ceiling (16 probes) buys twice the seed-choice coverage.
+* **Only the seed is forced.** `T`'s own body renders as the base reach plan already steers it, so a
+  witness here isolates the seed as the cause.
+* ⛔ Keyed on `ASTNode` structure + the installed hop chain — **never** on a rule name and never on
+  the eliminator's `_lr_` spelling. `X := X_lr_base ( X_lr_suffix )*` is the shape this was found
+  on, not the definition: every `P := seed ( continuation )*` carries it.
+* ⛔ **HONEST BOUND (no silent caps):** only the FINAL hop is scanned. A seed shadowing an
+  INTERMEDIATE hop is outside this axis.
+
+#### ⛔ SYSTEMVERILOG IS NOT CLOSED BY THIS, AND THE REASON IS A *THIRD* MECHANISM — measured, not assumed
+
+The seed tier **fires correctly on SystemVerilog**: the run's probes for
+`select_expression_lr_suffix` now visibly diversify the seed across all five
+`select_expression_lr_base` alternatives (`binsof(…)&&binsof(…)`, `!binsof(…)&&!binsof(…)`,
+`(…)&&(…)`, `…&&…`, `…matches …&&binsof(…)`). SV's residual stays at `UNKNOWN=1` because **no seed
+spelling can witness it** — the witnessing operand is on the *suffix* side.
+
+Measured with `--dump-rule-outcome-counts-json` (committed counts, C3-B), one covergroup cross per row:
+
+| `ignore_bins ib = …` | `select_expression_lr_suffix` entries | **committed** |
+|---|---|---|
+| `binsof(ca) && binsof(cb)` | 1 | **0** |
+| `!binsof(ca) && !binsof(cb)` | 1 | **0** |
+| `( binsof(ca) ) && binsof(cb)` | 2 | **0** |
+| `( ca ) && ( cb )` | 2 | **0** |
+| `binsof(ca) intersect ca && binsof(cb)` | 1 | **0** |
+| `binsof(ca) intersect { 1 } && binsof(cb)` | 1 | **0** ⛔ |
+| `( binsof(ca) intersect { 1 } ) && binsof(cb)` | 4 | **1** ✅ |
+| `binsof(ca) with ( ca ) && binsof(cb)` | 4 | **2** ✅ |
+
+Two findings fall out, and **both are routed rather than absorbed here** (see `.11` and
+`SV-CORPUS-GRAD.13c.2e`):
+
+1. **The witnessing arm is `with (…)`, and the pass never renders it.**
+   `select_expression_lr_suffix := Or[ && select_expression | || select_expression | with ( … ) ( matches … )? ]`
+   (`--dump-gen-ast`). Tier 1's candidate order for 3 alternatives is `[1, 2, 0]` with a 4-probe
+   budget at 2 probes each, so branch **2 — the `with` arm — is allotted probes 3 and 4**; both
+   rendered `&&` instead. Across the **whole** SV cert run, **0 of 27** `select_expression_lr_suffix`
+   probe samples carry `with`. A forced branch that dies and silently renders a sibling is the
+   mechanism-1 signature exactly, one rule further out. ⇒ `.11`.
+2. ⛔⛔ **`intersect { 1 }` does not force the real alternative — and the repository says it does.**
+   `stimuli/sv/adjudication_repros/fixed_select_expression_paren.sv` states *"`intersect` is a
+   keyword, so it forces the real alternative"*. Measured **false** for the unparenthesized form:
+   `--parse-dump-ast-pretty` on `binsof(ca) intersect { 1 } && binsof(cb)` yields kind `condition`
+   with **no `and` node**, and the `intersect` payload contains a `concat` of `1` whose
+   `operand_chain.rest` holds `logical_and` + `binsof(cb)` — i.e. `select_condition`'s
+   `covergroup_range_list*` **swallowed `{ 1 } && binsof(cb)` as one expression**. IEEE 1800-2017
+   A.2.11 spells the braces as LITERAL syntax — `intersect { covergroup_range_list }` — and
+   `systemverilog.ebnf:5259` models them as neither, so `{ 1 }` is parsed as a concatenation
+   *expression* and nothing terminates the list. That is an LRM-fidelity defect in the grammar, in
+   the locked SV lane. ⇒ routed to `SV-CORPUS-GRAD.13c.2e`.
+
+#### Acceptance Checklist (enforced) — mechanism 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0006`)
+
+- [x] **REPRODUCE / ISSUE** — SV canonical run reproduced the documented residual exactly:
+  `PGEN_CERT_COVERAGE_DUMP_ALL=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1 PGEN_REACH_PATH_DUMP=1
+  ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017
+  --entry-rule systemverilog_file --count 40 --seed 0` → `UNKNOWN=1
+  ["select_expression_lr_suffix"]`, `[plannable-probe] … parsed=true witnessed_target=false
+  sample="…{bins\foo_0 =\foo_0 &&\foo_0 ;}…"`. **Isolated to a 7-rule synthetic** in the `scratch`
+  slot (preserved at `docs/tasks/artifacts/engine_universal_services/mechanism2_seed_shadowing_probe.ebnf`):
+  `--count 1 --seed 0` → `UNKNOWN=1 ["expr_lr_suffix"]`, `1 parsed-but-routed-elsewhere`,
+  `sample_parse_failures=0`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `generate_target_own_structure_witnesses`
+  (`rust/src/ast_pipeline/stimuli_generator.rs`) had two forcing levers — `target_own_reach_sites`
+  (the target's own body) and `mandatory_child_rules` (its children) — and the shadowing rule is
+  neither: it is the mandatory SIBLING rendered before the min-0 quantified reference to the target.
+  WHY: `--dump-gen-ast` shows the eliminated shape
+  `expr := Sequence[ ref expr_lr_base @s0, Quantified*{ ref expr_lr_suffix } @s1 ]` with
+  `expr_lr_base := Or[ "binsof" "(" ident ")" | fullexpr ]`; `PGEN_REACH_PATH_DUMP=1` shows the hop
+  chain ending `("expr","root/s1/q")` — the quantifier is forced and **nothing decides the base**.
+  The base's catch-all `fullexpr` parses `&&` itself, so under longest_match the seed absorbs the
+  whole operand and the `( … )*` matches zero times. Measured on the real generated parser with
+  `--dump-rule-outcome-counts-json`: `bins b=a&&x;` → `expr_lr_suffix` entries=1 **committed=0**;
+  `bins b=binsof(a)&&x;` → entries=3 **committed=1**. Entered, never committed — which is precisely
+  what `parsed=true witnessed_target=false` on a structurally correct sample means.
+- [x] **FIX** — ENGINE tier (a property of witnessing under longest-match, not of any language); no
+  lower tier exists — a declarative/grammar fix would be the scar tissue `.2` exists to remove. A
+  third strictly-additive tier on the existing pass (`reach_seed_rules` + 3 structural helpers),
+  running only when the two older tiers failed. ZERO grammar bytes.
+- [x] **ADDRESSED (verified)** — before→after on the same commands.
+  * Synthetic, **all 9 combinations** of `--count 1/2/3` × `--seed 0/7/42`:
+    `UNKNOWN=1 ["expr_lr_suffix"]` → **`UNKNOWN=0 fully_certified=true`**, `sample_parse_failures=0`.
+    The witnessing probe is the discriminating seed:
+    `[target-own-probe] rule='expr_lr_suffix' parsed=true witnessed_target=true
+    sample="unit group b0{cross fss{bins ufuj3=binsof(fg)&&binsof(exy8);}}"`, after four
+    catch-all-seeded probes (`…=k9l&&rj7;…`) that did not.
+  * SystemVerilog canonical: `UNKNOWN=1` → **`UNKNOWN=1`** — unchanged, and the reason is measured,
+    not assumed: the tier fires and diversifies all five base alternatives, but the witnessing
+    operand is on the *suffix* side (the table above). Routed to `.11`, not waived.
+  * The tier is proven **DISCRIMINATING, not merely present**: with it disabled (`if false && …`)
+    the new lib test fails with the exact production symptom — `witnessed 0`, and **zero**
+    discriminating samples ever generated (`samples seen: []`). Restored, both tests pass.
+- [x] **NO REGRESSION** — every oracle that can see a stimuli-generation change.
+  * **Cross-grammar cert sweep, measured before→after by stashing the change and rebuilding** —
+    `json`, `regex`, `vhdl`, `rtl_frontend`, `systemverilog_preprocessor`, `scratch` × seeds
+    **0/7/42** (18 populated rows each side): `diff` of the two `CERTIFICATE-COVERAGE:` line sets is
+    **IDENTICAL** — zero drift, all still `fully_certified=true`, `sample_parse_failures=0`. ⚠️ Row
+    counts checked non-empty on both sides first (the `CI-PARITY-GATE-ROT.24` trap: two empty result
+    sets diff clean), and `scripts/require_ast_pipeline_features.sh` confirmed
+    `ebnf_dual_run=true generated_parsers=true` before each sweep.
+  * ⭐ **CODEGEN BYTE-IDENTITY** — `make focus_systemverilog` run in the stashed (pre-fix) and
+    restored (post-fix) trees produces a **byte-identical** parser
+    (`ff9a79a0fa695cbe0167364bb558f636` both sides), proving this is a stimuli-generation change that
+    cannot reach any shipped parser.
+  * `sv_cert_recognized_union_gate` — ✅ **PASSED** (see the run log line quoted in `CHANGES.md`):
+    `union_unknown: 1`, `canonical_unknown: 12`, `union_residual_rules:
+    ["select_expression_lr_suffix"]`, `sample_parse_failures=0`, **deterministic across seeds
+    [0,7,42]** (the gate asserts seed agreement itself). ⭐ Contract **not** re-baselined — the census
+    is unchanged, so a rebaseline would be noise.
+  * Touched module: `cargo test --lib -- ast_pipeline::stimuli_generator::` — **218 → 220 passed /
+    0 failed**, the delta being exactly the two tests added here; no existing test moved.
+  * `make clippy_on_rust_change` — source strict lint clean, `GENERATED-CLIPPY-CORRECTNESS` pass.
+  * `parse_harness_equivalence_gate` — the one differential gate whose corpus is **built by the
+    stimuli generator**, so it is the suite that can actually see this change.
+  * ⛔ **Deliberately NOT claimed:** `parse_harness_combinator_gate`, `parse_harness_semantic_gate`
+    and `ast_shape_contract_gate` are parser-side oracles over curated inputs; the codegen
+    byte-identity proof above makes them unreachable by this change, and naming them would be
+    padding the checklist with runs that cannot fail for this reason.
+- [x] **LOCKSTEP** — this leaf; new leaf `.11` (mechanism 3) opened with its measured evidence; the
+  `intersect { … }` LRM-fidelity defect routed to `SV-CORPUS-GRAD.13c.2e`; the probe grammar
+  preserved as a tracked artifact; the cert-driver transparency line now names all three tiers;
+  book `grammar-wellformedness.md`; `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
+  `docs/TASK_TREE.md`. DONE-BAR register: **N/A** — SV's claimed status is unchanged (union UNKNOWN
+  is 1, not 0). No release/schema/ledger move: no shipped parser byte changes.
+
+#### Acceptance Checklist (enforced) — mechanism 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0005`)
 
 - [x] **REPRODUCE / ISSUE** — SV canonical run, `PGEN_CERT_COVERAGE_DUMP_ALL=1
   PGEN_CERT_COVERAGE_DEBUG_PROBES=1 ast_pipeline grammars/systemverilog.ebnf
@@ -839,3 +988,51 @@ census and an LR plan coexist. Fixing it in the engine fixes it for VHDL, PNR an
 **Acceptance:** a cert-coverage run over an isolating left-recursive grammar witnesses its `_lr_suffix`
 rule; SV's `sv_cert_recognized_union_gate` returns to `union UNKNOWN=0` with residual `[]`, deterministic
 across seeds 0/7/42; and the contract's re-baseline note records the restoration.
+
+### `.11` — a FORCED branch that dies still renders a sibling SILENTLY, so the one witnessing arm is never probed (`todo`, opened 2026-08-12 session #218 by `.10` mechanism 2; ⛔ **now the sole BLOCKER for returning SV's union UNKNOWN to 0**)
+
+`.10` mechanism 1 fixed a forced **quantifier** that re-fired unboundedly and fell back to a sibling.
+`.10` mechanism 2 fixed the **seed** the plan never decided. What is left is the same *fallback*
+failure mode one rule further out, and on the **suffix** side.
+
+**WHAT IS MEASURED (not assumed).**
+
+* SV's residual is `select_expression_lr_suffix`, whose eliminated body is (`--dump-gen-ast`)
+  `Or[ logical_and select_expression | logical_or select_expression | kw_with lparen with_covergroup_expression rparen ( kw_matches integer_covergroup_expression )? ]`.
+* Only the **third** arm witnesses. Measured on the real generated parser with
+  `--dump-rule-outcome-counts-json` (committed counts, C3-B):
+  `binsof(ca) with ( ca ) && binsof(cb)` → `select_expression_lr_suffix` entries=4 **committed=2**,
+  while every `&&`/`||`-only spelling the generator emits is entries=1..2 **committed=0**. (The full
+  eight-row table is in `.10`.)
+* The target-own tier **is allotted that arm**: for 3 alternatives its candidate order is `[1, 2, 0]`
+  with a 4-probe budget at 2 probes each, so branch **2 — the `with` arm — receives probes 3 and 4**.
+  Both rendered `&&` instead.
+* Across the **whole** canonical SV cert run, **0 of 27** `select_expression_lr_suffix` probe samples
+  carry `with` (`grep "rule='select_expression_lr_suffix'" | grep -c with` → `0`).
+
+⇒ the forced branch was selected and did **not** render, and `generate_or`'s documented
+forced-first-**with-fallback** silently emitted a sibling — the mechanism-1 signature exactly.
+
+**OWED — the WHY is not yet established, and this leaf may not land code until it is.** Two candidate
+mechanisms, to be separated with tools rather than argued:
+1. **Budget.** `with_covergroup_expression → covergroup_expression → expression` is the full SV
+   expression hierarchy; the pass's `max_depth = reach_prefix_budget + target_subtree_depth` may not
+   admit it, so the branch aborts depth-exceeded. The `failure_reasons` record
+   (`TOOLBOX.md` 6.1 — already written by every run, no re-run needed) names the per-branch error.
+2. **Suppression.** `suppress_recursive_forced_branch` stands a forced branch down on genuine
+   re-entry when the forced alternative can reach back into `current_rule`. Arms 0 and 1 reference
+   `select_expression` and plainly can; arm 2's reachability is the thing to *measure*
+   (`rule_can_reach`), not to assume.
+
+⭐ **A silent fallback is the real finding here, wider than SV.** `generate_or` falling back is
+correct for termination and wrong for *observability*: a reach directive that was overridden leaves
+no trace at default verbosity, so a probe that "did not witness" is indistinguishable from a probe
+that was never actually driven. Whatever the SV cause turns out to be, this leaf should also make an
+overridden forced branch **visible** — the cheapest honest form being a counter or a dump line in the
+same family as `PGEN_REACH_PATH_DUMP`, since the pairing lesson `.10` already paid for is that the
+plan and the render need two different instruments.
+
+**Acceptance:** the WHY named with tool output (which of the two mechanisms, at which site); a probe
+that renders `select_expression_lr_suffix`'s `with` arm; `sv_cert_recognized_union_gate` at
+`union UNKNOWN=0` with residual `[]`, deterministic across seeds 0/7/42; an overridden forced branch
+observable without source edits; and the isolating synthetic first, as `.10` demanded twice.

@@ -1,5 +1,57 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0006 — three rules can make a witness fail, and the planner only knew two of them
+
+The fix is one more tier on a pass that already had two. What makes it worth writing down is *why a
+third tier was needed at all*, and what the session found while proving it was not enough for
+SystemVerilog.
+
+**1. The planner's levers were both pointed the wrong way.** `generate_target_own_structure_witnesses`
+could force a target rule `R`'s own body and `R`'s mandatory children. Both look *downward* from `R`.
+But left-recursion elimination emits `X := X_lr_base ( X_lr_suffix )*`, and whether
+`X_lr_suffix` ever commits is decided by `X_lr_base` — `R`'s **sibling**, a rule no lever touched.
+Once stated that way the gap is obvious; it was invisible for as long as the question was framed as
+*"why isn't the target reached?"* rather than *"who else consumes the bytes first?"*.
+
+**2. The instrument that settles it is the committed count, not the parse verdict.** Every probe in
+this class *parses*. `--dump-rule-outcome-counts-json` separates entered from committed, and on the
+isolating synthetic the two seeds differ by exactly that: `entries=1 committed=0` versus
+`entries=3 committed=1`. A parse verdict cannot see the difference, which is why the class kept
+reading as a routing failure — the same shape of mistake `-0005` made one mechanism earlier, with a
+different pair of instruments.
+
+**3. The synthetic was rebuilt from a prose description, and that cost real time.** `-0005` proved
+mechanism 1 on an 11-rule scratch grammar and then restored the slot without keeping the grammar.
+Its shape survived only as a sentence in the leaf. Reconstructing it, regenerating the parser and
+rediscovering the build-order trap below took longer than the fix. The probe grammar is now a tracked
+artifact (`docs/tasks/artifacts/engine_universal_services/mechanism2_seed_shadowing_probe.ebnf`) —
+if a leaf says *"prove it on the synthetic first"*, the synthetic belongs in the repository.
+
+**4. A build-order trap worth naming, because it fails in the PASSING direction.** `make focus_scratch`
+builds `ast_pipeline` **before** it regenerates `generated/scratch_parser.rs`, so the binary that
+then reports `--report-certificate-coverage` for `scratch` embeds the *previous* parser. The first
+run of the new probe grammar reported `UNKNOWN=9`, `witness=0`, every probe `parsed=false` — a result
+that looks like a broken grammar and is actually a stale binary. `--lint-grammar` was clean and
+`parseability_probe` (rebuilt after) accepted the same input, which is what exposed it. This is the
+`#140` family the feature guard already covers for *missing features*; it is a distinct member,
+because the binary here has both features and merely predates the artifact it is judging.
+
+**5. What the session found while failing to close SystemVerilog.** SV's residual did not move, and
+chasing why produced two findings neither of which is the generator's:
+* The only operand shapes that commit `select_expression_lr_suffix` are
+  `( binsof(ca) intersect { 1 } ) && binsof(cb)` and `binsof(ca) with ( ca ) && binsof(cb)` — the
+  latter being the suffix's own third arm, which the target-own tier *is* allotted probes for and
+  which **0 of 27** samples in the whole run actually rendered. A forced branch that dies and
+  silently renders a sibling: the mechanism-1 signature, one rule further out. ⇒ `.11`.
+* `binsof(ca) intersect { 1 } && binsof(cb)` does **not** force the real alternative, though a
+  tracked repro file says it does. IEEE 1800-2017 A.2.11 spells `intersect { covergroup_range_list }`
+  with literal braces; the grammar models neither brace and makes the list a `*`, so `{ 1 }` parses
+  as a *concatenation expression* and the range list swallows `&& binsof(cb)`. ⇒ `SV-CORPUS-GRAD.13c.2e`.
+
+⭐ The generalizable point from (5): **a probe that "did not witness" is indistinguishable from a
+probe that was never actually driven**, because `generate_or`'s fallback is silent. That is correct
+for termination and wrong for diagnosis, and it is now `.11`'s second deliverable.
+
 ## 2026-08-11 - PGEN-ENGINE-UNIVERSAL-SERVICES-0005 — the diagnosis that was already written down, and was wrong
 
 The engineering here is one guard, about twenty lines including the reason it exists. Everything

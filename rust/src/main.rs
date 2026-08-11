@@ -3756,9 +3756,11 @@ fn run_certificate_coverage_report(
     if canonical.target_own_attempted > 0 {
         // GRAMMAR-WELLFORMED.H.12.5.5.3.2: transparency for the target-own-structure (M1b) reach pass.
         // Only runs over the residual still UNKNOWN after pass 3, so a fully-certified grammar reports
-        // nothing here (zero residual ⇒ pass not run).
+        // nothing here (zero residual ⇒ pass not run). ENGINE-UNIVERSAL-SERVICES.10 mechanism 2 added
+        // the pass's third tier, so the line names all three rules it can force — the TARGET's own
+        // body, its mandatory CHILDREN, and its reach-path SEED sibling.
         println!(
-            "  (target-own-structure reach pass: {} residual UNKNOWN rules targeted; {} witnessed by forcing the target rule's own root-Or branch + inner optionals)",
+            "  (target-own-structure reach pass: {} residual UNKNOWN rules targeted; {} witnessed by forcing the target rule's own root-Or branch + inner optionals, its mandatory children's structure, or its reach-path seed sibling's alternatives)",
             canonical.target_own_attempted, canonical.target_own_witnessed
         );
     }

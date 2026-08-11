@@ -1,0 +1,32 @@
+# PROBE GRAMMAR — ENGINE-UNIVERSAL-SERVICES.10 mechanism 2 (restore the default fixture
+# with `git checkout grammars/scratch/scratch.ebnf` before committing).
+#
+# Isolates the SystemVerilog `cross_body_item -> bins_selection -> select_expression`
+# shape in 7 authored rules:
+#   * `expr` is DIRECTLY left-recursive behind a choice (A2.5's inline-in-the-choice form),
+#   * one alternative (`"binsof" "(" ident ")"`) is a DISCRIMINATING seed that stops at `&&`,
+#   * one alternative (`fullexpr`) is a CATCH-ALL that parses `&&` ITSELF — the isolating twin
+#     of `select_expression`'s `cross_set_expression -> covergroup_expression -> expression`
+#     arm. Under longest_match the catch-all absorbs the operator, so `expr_lr_suffix`
+#     is entered but never commits.
+
+@entry: true
+scratch := "unit" decl*
+
+decl := "type" ident ";"
+      | "var" ident ";"
+      | "group" ident "{" gitem* "}"
+
+gitem := "opt" ident ";"
+       | "cross" ident "{" citem* "}"
+
+citem := "bins" ident "=" expr ";"
+       | "option" "." ident "=" expr ";"
+
+expr := "binsof" "(" ident ")"
+      | expr "&&" expr
+      | fullexpr
+
+fullexpr := ident ( "&&" ident )*
+
+ident := /[a-z][a-z0-9_]*/

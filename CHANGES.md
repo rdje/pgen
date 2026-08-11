@@ -1,5 +1,64 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0006 — the witness planner could force the target and its children but never its SIBLING, so a longest-match seed made every quantified continuation unwitnessable (leaf `ENGINE-UNIVERSAL-SERVICES.10` mechanism 2 closed; mechanism 3 split out to `.11`; ZERO grammar bytes, generated parsers byte-identical)
+
+- **THE DEFECT.** Left-recursion elimination synthesizes `X := X_lr_base ( X_lr_suffix )*`. A min-0
+  quantified continuation commits **only** if the mandatory sibling rendered before it stops short of
+  the continuation's own leading token. When that sibling's choice carries a catch-all alternative
+  spanning the token, longest-match hands the seed the whole operand, the `( … )*` matches zero
+  times, and the target is **entered but never committed** — the probe is *structurally correct* and
+  still reports `parsed=true witnessed_target=false`, which is exactly what makes this class read
+  like a routing failure when it is not.
+- **WHY THE EXISTING MACHINERY COULD NOT REACH IT.** The witness planner had two levers:
+  `target_own_reach_sites` (the target's own body) and `mandatory_child_rules` (its children). Both
+  look *downward*. The shadowing rule is the target's **sibling**.
+- ⭐ **MEASURED, on an isolating 7-rule synthetic in the `scratch` slot before SystemVerilog was
+  touched** (preserved at
+  `docs/tasks/artifacts/engine_universal_services/mechanism2_seed_shadowing_probe.ebnf`).
+  `--dump-rule-outcome-counts-json` on the real generated parser: `bins b=a&&x;` →
+  `expr_lr_suffix` **entries=1 committed=0**; `bins b=binsof(a)&&x;` → **entries=3 committed=1**.
+  Same rule, same path — only the seed's alternative differs.
+- **FIX (ENGINE tier, `rust/src/ast_pipeline/stimuli_generator.rs`).** A third strictly-additive tier
+  on `generate_target_own_structure_witnesses`: `reach_seed_rules` takes the FINAL hop of the chain
+  the plan actually installed, walks that rule's body for a min-0 `Quantified` whose element subtree
+  references the target, and enumerates the alternatives of every mandatory `rule_reference` sibling
+  before it, nearest first. Gated on **min-0** by design — a min-1 continuation must be committed or
+  the parse rejects, so it has no zero-iteration escape and no shadowing hazard. Keyed on `ASTNode`
+  structure + the installed hops; never on a rule name, never on the eliminator's `_lr_` spelling.
+- **BEFORE → AFTER.** Synthetic, **all 9** combinations of `--count 1/2/3` × `--seed 0/7/42`:
+  `UNKNOWN=1 ["expr_lr_suffix"]` → **`UNKNOWN=0 fully_certified=true`**, `spf=0`; the witnessing
+  probe is `…{bins ufuj3=binsof(fg)&&binsof(exy8);}…` after four catch-all-seeded probes that were
+  not witnessed. The tier is proven **discriminating**: disabled, the new lib test fails with the
+  production symptom (`witnessed 0`, `samples seen: []`).
+- ⛔ **SYSTEMVERILOG IS NOT CLOSED BY THIS, AND THE REASON IS MEASURED, NOT ASSUMED.** SV stays at
+  `UNKNOWN=1 ["select_expression_lr_suffix"]`. The tier fires and diversifies all five
+  `select_expression_lr_base` alternatives; no seed spelling can witness, because the witnessing
+  operand is on the **suffix** side. `binsof(ca) with ( ca ) && binsof(cb)` → suffix
+  **committed=2**, while every `&&`/`||` spelling the generator emits is **committed=0**. The
+  target-own tier *is* allotted that arm (candidate order `[1,2,0]`, probes 3–4) and both probes
+  rendered `&&`; across the whole run **0 of 27** probe samples carry `with`. A forced branch that
+  dies and silently renders a sibling — the mechanism-1 signature one rule further out. ⇒ new leaf
+  `ENGINE-UNIVERSAL-SERVICES.11`, now the sole blocker for `union UNKNOWN=0`.
+- ⛔⛔ **A SECOND FINDING, AND IT CONTRADICTS A CLAIM THIS REPO HAD WRITTEN DOWN.**
+  `stimuli/sv/adjudication_repros/fixed_select_expression_paren.sv` says *"`intersect` is a keyword,
+  so it forces the real alternative"*. **Measured false** for the unparenthesized form:
+  `--parse-dump-ast-pretty` on `binsof(ca) intersect { 1 } && binsof(cb)` gives kind `condition` with
+  **no `and` node**, and the `intersect` payload holds a `concat` of `1` whose `operand_chain.rest`
+  carries `logical_and` + `binsof(cb)` — `covergroup_range_list*` swallowed `{ 1 } && binsof(cb)` as
+  one expression. IEEE 1800-2017 A.2.11 spells `intersect { covergroup_range_list }` with **literal
+  braces**; `systemverilog.ebnf:5259` models neither brace and makes the list a `*`. LRM-fidelity
+  defect, routed to `SV-CORPUS-GRAD.13c.2e`.
+- **NO REGRESSION.** Cross-grammar cert sweep measured before→after by stashing and rebuilding —
+  `json`/`regex`/`vhdl`/`rtl_frontend`/`systemverilog_preprocessor`/`scratch` × seeds 0/7/42, 18
+  populated rows per side, `diff` **IDENTICAL**, all `fully_certified=true`. `make
+  focus_systemverilog` in the stashed and restored trees produces a **byte-identical** parser
+  (`ff9a79a0fa695cbe0167364bb558f636`) ⇒ no shipped byte can move.
+  `cargo test --lib -- ast_pipeline::stimuli_generator::` **218 → 220 passed / 0 failed** (the delta
+  is exactly the two tests added). `sv_cert_recognized_union_gate` PASSED — `union_unknown: 1`,
+  `canonical_unknown: 12`, residual `["select_expression_lr_suffix"]`, deterministic at seeds
+  [0,7,42]; the contract is **not** re-baselined because the census did not move. Strict clippy
+  clean; `parse_harness_equivalence_gate` green.
+
 ## 2026-08-11 - PGEN-CI-PARITY-GATE-ROT-0028 — the canonical `ast_pipeline` rule now OWNS its path's capability (leaf `CI-PARITY-GATE-ROT.24` slice 2; ops/build-flow, one line + rationale)
 
 - **DIRECTOR'S RULING, after the cost was measured rather than guessed.** The open question was

@@ -619,6 +619,30 @@ moved SystemVerilog `UNKNOWN` `90 → 89` (witness `1201 → 1202`, deterministi
 could *not* close sharpened the next ticket: a few carriers whose forced distinguishing form is *still*
 re-attributed to a sibling at the parent ordered choice — the parent-commit-hard class named above.
 
+A later step added the pass's **third** tier, and it is worth stating what makes it a *different* lever
+rather than more of the same. The first tier forces the target rule's own body; the second forces the
+target's mandatory children. Both look *downward* from the target. But a target reached through a
+**min-0 quantified** reference — the shape left-recursion elimination synthesizes for every recursive
+rule, `X := X_lr_base ( X_lr_suffix )*` — has a third dependency the plan never decides: the mandatory
+**sibling** rendered immediately before it, its *seed*. A min-0 continuation commits only if the seed's
+derivation stops short of the continuation's own leading token; when the seed's choice carries a
+catch-all alternative that spans that token, longest-match hands the seed the whole operand, the
+quantifier matches zero times, and the target is **entered but never committed**. The probe is
+structurally correct and still reports `parsed=true witnessed_target=false`, which is exactly the
+reading that makes this class so easy to misdiagnose as a routing failure. It is measurable in one line
+with `--dump-rule-outcome-counts-json`: on an isolating grammar whose recursive rule has both a
+discriminating arm and a catch-all, the suffix rule is `entries=1 committed=0` on the catch-all seed and
+`entries=3 committed=1` on the discriminating one. The **seed-diversification** tier enumerates the
+alternatives of every mandatory rule-reference sibling preceding the quantified site at the reach path's
+final hop, keyed — like the other two tiers — purely on `ASTNode` structure and the hop chain the plan
+actually installed, never on a rule name and never on the eliminator's `_lr_` spelling. It gates on
+min-0 deliberately: a min-1 continuation must be committed or the parse rejects, so it has no
+zero-iteration escape and therefore no shadowing hazard. On the isolating grammar it moves
+`UNKNOWN 1 → 0` (`fully_certified=true`) at every combination of `--count 1/2/3` × `--seed 0/7/42`, with
+every other grammar's certificate line byte-identical and the generated parsers byte-identical — this is
+a stimuli-generation change and cannot reach a shipped parser. Its honest bound is stated rather than
+implied: only the final hop is scanned, so a seed shadowing an *intermediate* hop is outside the axis.
+
 The next SystemVerilog step was the second branch of the attribution rule again — **the grammar is at
 fault, so fix the grammar** — and it is a textbook instance of the *delimiter-drop* class the
 SystemVerilog grammar's LRM extraction keeps producing. The streaming-concatenation family

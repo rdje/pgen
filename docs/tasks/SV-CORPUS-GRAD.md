@@ -8552,6 +8552,39 @@ is not a promotion), and the probe arm it needs.
 - **Corpus rows unblocked:** 2 (`otp_ctrl_env_cov.sv` ×2, `ral.vendor_test_digest[0].get_offset()`
   inside a `bins` value list).
 
+#### `.13c.2e` — `select_condition`'s `intersect { … }` BRACES are not modelled, so the range list swallows the rest of the expression (`todo`, opened 2026-08-12 session #218 by `ENGINE-UNIVERSAL-SERVICES.10`)
+
+⛔⛔ **This leaf exists because the repository asserts the opposite in a tracked file, and the
+assertion is measured FALSE.** `stimuli/sv/adjudication_repros/fixed_select_expression_paren.sv`
+states *"`intersect` is a keyword, so it forces the real alternative"*. It does not.
+
+- **IEEE 1800-2017 A.2.11:** `select_condition ::= binsof ( bins_expression ) [ intersect {
+  covergroup_range_list } ]` — the `{` and `}` are **literal syntax**, and `covergroup_range_list` is
+  the comma-separated list *inside* them.
+- **`systemverilog.ebnf:5259` models neither:**
+  `select_condition := kw_binsof_efb35b22 lparen bins_expression rparen ( kw_intersect_6c96caaf covergroup_range_list* )?`
+  — no brace terminals, and the list is a `*` repetition instead.
+- **WHY + WHERE, measured with `--parse-dump-ast-pretty`** on
+  `x: cross ca, cb { ignore_bins ib = binsof(ca) intersect { 1 } && binsof(cb); }`: the select node is
+  kind **`condition`** with **no `and` node at all**; its `intersect` payload holds a `concat` of `1`
+  whose `operand_chain.rest` carries `logical_and` + `binsof(cb)`. ⇒ `{ 1 }` was parsed as a
+  **concatenation expression**, and with no closing-brace terminal to stop it the `covergroup_range_list*`
+  **swallowed `{ 1 } && binsof(cb)` as one expression**.
+- **Committed-count corroboration** (`--dump-rule-outcome-counts-json`):
+  `binsof(ca) intersect { 1 } && binsof(cb)` → `select_expression_lr_suffix` entries=1 **committed=0**,
+  versus the parenthesized `( binsof(ca) intersect { 1 } ) && binsof(cb)` → entries=4 **committed=1**.
+  The parens are doing the work the braces should be doing.
+- **Class:** LRM-fidelity — a mis-shape that also over-accepts (it accepts an arbitrary expression
+  where the LRM admits only a brace-delimited range list). Under the SV *"100 % LRM-compliant by
+  default; over-acceptance is a defect"* bar this is a defect, not a preference.
+- **Owed:** run the toolbox first (`--lint-grammar`, `--dump-gen-ast`, a `--trace-rules
+  select_condition` on the reproducer) to confirm no other rule depends on the current brace-free
+  spelling; fix the grammar to the LRM shape; re-measure the table above; and **correct the claim in
+  `fixed_select_expression_paren.sv`** — a repro file that teaches a false fact is worse than none.
+- ⚠️ Do not assume this is the only place the extraction dropped LRM-literal braces. The same sweep
+  shape as `.13c.2a.2`'s (which found exactly two dead LR alternatives) should be run for
+  brace-delimited LRM productions before this is called closed.
+
 #### `.13d` — the DARK `chained_only` rows expansion really does own: **1 527**, not 3 628 (`todo`, opened 2026-08-11 by `.13a`, re-sized by `.13c`)
 
 - `.13c` measured it: **1 477 `IN-WINDOW` + 50 `PAST-LAST-TICK` = 1 527 rows** where the failure sits
