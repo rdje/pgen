@@ -1955,6 +1955,17 @@ one more time.
   `normalize_direct_left_recursive_alternatives` + `hoist_branch_annotations` in
   `rust/src/ast_pipeline/mod.rs`, and 2 new cases in `rust/src/parse_harness_combinator_suite.rs`
   (gate **2 passed / 0 failed**). Re-apply with `git apply` to resume.
+- ⚠️ **UPDATED 2026-08-11 after `ENGINE-UNIVERSAL-SERVICES.8` landed (`c158a8a8`): the patch is now
+  PARTIALLY CONFLICTED, and the earlier "verified `git apply --check` clean against `474f40df`" no
+  longer describes HEAD.** Measured per file:
+  - `rust/src/ast_pipeline/mod.rs` (**the engine half — the whole fix**) still applies **CLEAN**:
+    `git apply --include=rust/src/ast_pipeline/mod.rs docs/tasks/artifacts/engine_universal_services/A2.5_direct_lr_normalization.patch`
+  - `rust/src/parse_harness_combinator_suite.rs` **fails at line 478** — `.8` inserted its own
+    `left_recursion_folded_ast` case at exactly that site. Re-add A2.5's two cases
+    (`direct_left_recursion`, `direct_left_recursion_multi_alt`) **by hand**, alongside `.8`'s case
+    rather than in place of it; they measure different things (A2.5: the direct shape is REACHED at
+    all; `.8`: an eliminated rule returns the DECLARED AST).
+  ⇒ the conflict is mechanical and confined to the test table. Nothing about the engine fix changed.
 - ⚠️ `generated/` (untracked) is STALE — it still holds the prototype build
   (`🔁 Normalized 4 DIRECTLY left-recursive alternative(s)`), which no longer matches the committed
   source. **Regenerate before trusting any local parse:**
