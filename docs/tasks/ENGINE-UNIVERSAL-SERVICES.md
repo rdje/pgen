@@ -111,9 +111,11 @@ Candidate gaps already visible; to be completed by `.1`/`.2`:
   regex one, was measured by accident during `.8` (2026-08-11).** `regex` has one
   (`REGEX_MAX_NESTING_DEPTH = 250`, `RGX-0085.1`) — but it was hand-added to the *regex-specific*
   embedding path, so no other family inherited it. The cost of not having it is measurable:
-  `cargo test --lib` was left running for **68 minutes** and `/usr/bin/sample` on the test binary
-  showed the only two busy threads were `parser_embedding_systemverilog_deep_nesting_…` and
-  `parser_embedding_vhdl_deep_nesting_…`, both grinding through
+  `cargo test --lib` was left running for **68 minutes**, then on a second, independent run for
+  **2 h 27 m** before being abandoned, and `/usr/bin/sample` on the test binary — taken twice, hours
+  apart, with identical stacks — showed the only two busy threads were
+  `parser_embedding_systemverilog_deep_nesting_…` and
+  `parser_embedding_vhdl_deep_nesting_…` (every other test had finished), both grinding through
   `cascade_match_expression → relation → simple_expression → term → factor → primary` on a
   2000-deep paren nest. Those tests assert *"a clean diagnostic, not a process abort"* — which they
   do eventually satisfy — but they bound the OUTCOME and not the TIME, so the parser refuses by
@@ -123,8 +125,12 @@ Candidate gaps already visible; to be completed by `.1`/`.2`:
   (2) if it reproduces, decide whether the ceiling belongs to the ENGINE — a bound every family
   inherits — rather than to one family's embedding wrapper. ⛔ The SPELLING is deliberately left
   un-named until that pricing; see the PRIOR ART block below for what already exists and what
-  constrains the design. ⚠️ It also has a developer-flow cost today: these two tests dominate
-  `cargo test --lib`, which pushes anyone iterating toward narrower verification.
+  constrains the design. ⚠️⚠️ **The developer-flow cost is no longer hypothetical and now has a dated
+  casualty**: because these two tests set the suite's wall time, the lib suite is effectively never
+  completed — and `LANG-CAPABILITY-AUDIT.10.15` is a test that sat **RED for 146 commits** behind
+  them, found only when a run was finally driven to a verdict with them skipped
+  (`1074 passed / 1 failed`). ⇒ read the two findings together: the missing ceiling is not only a
+  robustness question, it is why a red suite stopped being a signal.
   #### PRIOR ART — the nesting-depth bound (searched 2026-08-11, before naming any surface)
 
   ⭐ **The search found real prior art, which is the success case**: this is not "invent a primitive",

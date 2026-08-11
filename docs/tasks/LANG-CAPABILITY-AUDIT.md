@@ -2906,6 +2906,59 @@ assumed here.
   verdict: the defect is `Ok` on both sides today.
 
 
+### `.10.15` — ⛔ `.10.3` REMOVED THE EMISSION AND LEFT `.10.4`'s ASSERTION BEHIND — a RED lib test, 146 commits old (`todo`, found 2026-08-11 by `ENGINE-UNIVERSAL-SERVICES.8`'s confirmatory sweep)
+
+**SYMPTOM.** `cargo test --features "generated_parsers ebnf_dual_run" --lib -- --skip deep_nesting`
+→ **1074 passed / 1 failed**:
+
+```
+---- ast_pipeline::ast_based_generator::semantic_usage_tests::unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names ----
+panicked at src/ast_pipeline/ast_based_generator.rs:14841:
+expected semantic_annotation fallback to detect '@' directives
+```
+
+**ROOT CAUSE (WHY + WHERE), and the two leaves are siblings in THIS tree.** `.10.3` (`cc0cbffe`,
+`PGEN-LANG-CAPABILITY-AUDIT-0023`, 2026-07-31) deliberately retired `"semantic_annotation"` from
+`NATIVE_UNRESOLVED_REFERENCE_BUILTINS`, deleting the arm that emitted
+`if start_pos >= self.input.len() || self.input.as_bytes()[start_pos] != b'@'` — correctly, since
+`semantic_annotation` is a real rule in a real grammar, not a primitive. `.10.4`'s test
+(last touched at `779dca06`, **82+ commits EARLIER**) still asserts
+`rendered.contains("starts_with") || rendered.contains("b'@'")`. `.10.3` did not update it.
+
+⛔ **Unsatisfiable ever since, not intermittently**: `git log cc0cbffe..HEAD -S "b'@'"` and
+`-S "starts_with"` over `rust/src/ast_pipeline/ast_based_generator.rs` both return **nothing**, so no
+commit re-added either token. `git rev-list --count cc0cbffe..HEAD` = **146**.
+
+⭐⭐ **WHY NOBODY NOTICED — and it is the same finding as the nesting ceiling.** The lib suite is
+effectively never run to completion: measured at **>2h 27m** before being abandoned, with
+`/usr/bin/sample` (twice, hours apart, identical stacks) showing the only remaining threads were
+`parser_embedding_systemverilog_deep_nesting_…` and `parser_embedding_vhdl_deep_nesting_…` on a
+2000-deep paren nest. Every other test had finished. ⇒ a red test can sit in the tracked suite for
+146 commits because the suite's wall time is set by two stress tests unrelated to it. That is the
+developer-flow cost named in `ENGINE-UNIVERSAL-SERVICES.3`'s bounded-refusal gap entry, now with a
+dated casualty. **The two findings should be read together.**
+
+**VERDICT — the CODE is right, the TEST is stale.** `.10.3`'s whole point is that an undefined
+reference to `semantic_annotation` must emit the bare never-matching `Backtrack` stub like any other,
+so the linter's undefined-reference error is the single diagnostic. The fix is to flip that one
+assertion to the stub form the SAME test already applies to `parse_true` a few lines below — i.e.
+make both halves assert the same post-`.10.3` truth.
+
+⚠️ **Do not "fix" it by re-adding the `@` matcher**: that would undo `.10.3` and re-introduce a
+builtin the tree deliberately retired.
+
+⛔ **PARKED behind the SV lane lock** — routed, not worked: it is a codegen/test defect in another
+family, not an SV-release blocker. ⭐ Named re-open trigger: the lane lock lifting, OR the next
+session that runs the lib suite and needs a green baseline.
+
+**Acceptance:** the assertion is corrected to the stub form (not the emission restored), and the test
+passes.
+
+✔ **And it is the ONLY one — that is a census, not a floor.** `cargo test` runs every test and
+reports the complete tally rather than stopping at the first failure, so `1074 passed; 1 failed;
+29 ignored; 4 filtered out` covers the whole suite (the 4 filtered are the `--skip deep_nesting`
+pair × their two families). Nothing else is red behind it.
+
 ### `.10.7` — delete the retired Perl tree (`done` — ✅ SLICE 1 + ✅ SLICE 2)
 
 - **Status: `in-progress`, carrying explicit director approval (2026-07-31): *"you have my
