@@ -1961,9 +1961,9 @@ many inputs parse without the intended alternative ever firing:
 | probe | verdict | what it proves |
 |---|---|---|
 | `binsof(ca) && binsof(cb)` | accepts | **nothing** — the whole thing is a legal expression |
-| `binsof(ca) intersect {1} && binsof(cb) intersect {2}` | accepts | the `&&` continuation really fires |
+| `binsof(ca) intersect {1} && binsof(cb) intersect {2}` | accepts | ⛔ **nothing either** — see below |
 | `( binsof(ca) )` | accepts | **nothing** — a parenthesized expression |
-| `( binsof(ca) intersect {1} ) && binsof(cb)` | rejects | the `( select_expression )` arm is inert |
+| `( binsof(ca) intersect {1} ) && binsof(cb)` | rejects | the `&&` continuation is inert |
 | `x with (a == 1)` | rejects | the `with` continuation is inert |
 
 The trick is to force the alternative with a **keyword the catch-all cannot swallow** — `intersect`
@@ -1972,18 +1972,60 @@ EBNF repetition in the grammar, yet `intersect { 5, 6 }` parses, because `{5, 6}
 concatenation. Only `intersect { 5, [1:3] }` — a range is not an expression — reveals that the
 braces were lost, and that the rule is simultaneously under- and over-accepting.
 
-Three inert alternatives were located that way in one sitting, each pinned with a control built to
-rule the accidental route out. The general lesson is worth more than the three: **where a rule has a
-catch-all arm, the alternatives above it get no coverage from incidental traffic**, so a corpus pass
-rate will report them as fine indefinitely. `furthest_position` cannot help either — the parse
-succeeds. Read the selected branch instead:
+Row 2 of that table is the one worth dwelling on, because it shipped in this book claiming the
+opposite. The reasoning behind it was that both operands carry the keyword `intersect`, so the input
+could not be passing as one ordinary expression — and that was true, and it was not the accidental
+route that was actually taken. **Dumping the AST settles what an exit code cannot:** one `condition`
+node, *zero* `and` nodes, with `binsof(cb)` parsed as a plain subroutine call and `intersect` as a
+hierarchical identifier, all of it swallowed by the seed's own `covergroup_range_list*` — the
+repetition that should have been literal braces. The `&&` continuation was dead the whole time.
+
+**Ruling out one accidental route is not ruling out the accidental route.** There is no general
+argument that finishes this job; the only reliable move is to read the arm that fired out of the
+AST. That is now mechanical: rows in the reproducer manifest may pin an `arm` — a `>`-separated chain of
+AST `kind` values, optionally negated — and an accept down any other route fails the oracle. The
+masking pin above now carries `condition,!and`: it must keep parsing, and it must keep producing no
+`and` node, which is the falsified claim written down as a check. The kinds an `arm` names have to be
+*unique to the alternative under test*, which is itself a grammar-authoring constraint worth knowing.
+
+#### Left recursion that the linter says is handled, and is not
+
+All three of those inert alternatives turned out to be one defect. IEEE 1800-2017 A.2.11 writes
+`select_expression` with three **directly left-recursive** alternatives — `&&`, `||`, and
+`with ( … )` — and transcribed literally, all three were dead code. PGEN's LR elimination rewrites
+only the **indirect wrapper** shape: an alternative that is a bare reference to a rule which itself
+begins with the base rule. A self-reference in *first position inside a choice* matches nothing the
+planner looks for, so the alternative reaches codegen intact and the runtime cycle guard meets it at
+the seed:
 
 ```
+🚪 Entering branch 3/8 for rule 'select_expression' at position 127
+💥 Infinite recursion detected in rule 'select_expression' at position 127
+…
 🏁 Rule 'select_expression' selected branch 7/8 consuming 2 chars (branch_policy=longest_match)
 ✅ Rule 'select_expression' successfully parsed from 127 to 129 (consumed 2 bytes: ' x')
 ```
 
 The seed won and nothing extended it — which is exactly what a missing continuation looks like.
+
+⭐⭐ **The obvious repair is the wrong one, and rejecting it is the most transferable thing here.**
+Flattening the recursion by hand in the grammar — `seed ( continuation )*`, the shape this grammar
+already uses for `expression` — works, and it was implemented and verified before being thrown away.
+It is wrong because it hand-compiles into an EBNF a transform that is *objectively common to every
+EBNF*: it stops the grammar transcribing Annex A, it yields a flatter AST than the eliminator's own
+left-nested fold, and it costs a schema break that the real fix would have to break again. A grammar
+should carry only what is specific to its language. The repair belongs to the engine, where it fixes
+every grammar at once and costs this one **zero bytes** — tracked as `A2.5`.
+
+⛔ **The linter reported all of this as clean**, in a message that tells a grammar author to look
+elsewhere: *"is left-recursive (cycle: `select_expression -> select_expression`) — handled by PGEN's
+LR elimination + runtime cycle-breaking (informational, not an error)"*. Runtime cycle-breaking does
+not *handle* a directly left-recursive alternative; it **rejects** it. This is contract item 3 — *no
+dead branches* — failing in the passing direction, and it is the mirror image of the `A2.3` finding
+above, where the same check hard-failed a branch that was alive. A sweep of the post-elimination
+gen-AST sizes the SV surface at exactly **two rules, four dead alternatives** out of 1 481
+(`select_expression`, and `block_event_expression`'s `or` arm). Both are owned; the linter fix is
+`GRAMMAR-WELLFORMED.A2.5`.
 
 Two honesty rules fell out of that census and are worth carrying to any similar instrument:
 

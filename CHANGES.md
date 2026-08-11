@@ -1,5 +1,57 @@
 # CHANGES.md
 
+## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0213 — three `select_expression` alternatives are DEAD CODE, and the fix belongs to the ENGINE, not the grammar (leaves `SV-CORPUS-GRAD.13c.2a.2`/`.3`/`.4`, `GRAMMAR-WELLFORMED.A2.5`, new tree `ENGINE-UNIVERSAL-SERVICES`; ZERO grammar/Rust bytes)
+
+- ⭐⭐ **ROOT CAUSE.** IEEE 1800-2017 A.2.11 writes `select_expression`'s `&&`, `||` and `with ( … )`
+  as **directly** left-recursive productions. PGEN's LR elimination rewrites only the **indirect
+  wrapper** shape (an alternative that is a *bare rule reference* to a rule which itself begins with
+  the base rule), so all three reached codegen intact and the runtime cycle guard **rejected** them
+  at the seed: `💥 Infinite recursion detected in rule 'select_expression'` on branches 3, 4 and 6,
+  then `🏁 … selected branch 7/8 consuming 2 chars`. The guard does not *handle* the recursion.
+- ⛔ **THE LINTER CALLS THIS "handled by PGEN"** — contract item 3 (*no dead branches*) failing in
+  the PASSING direction ⇒ `GRAMMAR-WELLFORMED.A2.5`.
+- ⛔⛔ **THE PREVIOUS COMMIT'S CONTROL WAS FALSE.** `-0212` pinned `binsof(ca) intersect {1} &&
+  binsof(cb) intersect {2}` as proof the `&&` continuation fires. The AST refutes it: **one
+  `condition` node, ZERO `and` nodes** — the seed swallows the remainder through the
+  `covergroup_range_list*` whose literal braces were lost (`.13c.2a.1`). Its reasoning was airtight
+  and its conclusion wrong: **ruling out ONE accidental route is not ruling out THE accidental
+  route.** Repointed as a masking pin.
+- ⭐ **The oracle gained the missing dimension.** `MANIFEST.tsv` has an `arm` column — a
+  `>`-separated chain of AST `kind` values, negatable — checked against the dumped AST, so an accept
+  down any other route FAILS. Proven able to fail by replanting `-0212`'s exact false claim: verdict
+  stays ACCEPT, run goes red. 24 rows, 5 armed, green.
+- ⭐⭐ **A GRAMMAR-TIER FIX WAS IMPLEMENTED, VERIFIED, AND THEN REVERTED UNSHIPPED** on director
+  ruling: *"PGEN engine shall handle all things that are objectively shared, common to all EBNFs …
+  hardcoding LR elimination in EBNF is a bad, non-sota, non-signoff [decision]"*. It hand-compiled a
+  universal transform into one language's grammar, produced a FLATTER AST than the eliminator's own
+  left-nested fold, and cost a schema break the real fix would have to break again.
+- **The engine fix is designed, prototyped and PROVEN** — a pre-pass normalizing the direct shape
+  into the wrapper shape, reusing the tested planner: **4 dead SV alternatives revived with ZERO
+  grammar bytes**, `block_event_expression` fixed for free, 2 new combinator-suite cases
+  byte-identical (interpreter vs compile-and-run oracle). Preserved at
+  `docs/tasks/artifacts/engine_universal_services/A2.5_direct_lr_normalization.patch`.
+- ⛔ **It is NOT landed**, because verifying it surfaced `ENGINE-UNIVERSAL-SERVICES.8`: LR
+  elimination emits its internal `_pgen_lr_chain` blob as the typed AST instead of the declared
+  shape — **pre-existing, on every LR-eliminated rule of every grammar** (`return_annotation`, a
+  shipped fully-certified grammar, leaks it at 10 sites). Landing the fix would trade an SV contract
+  regression for a parse win. ⚠️ `ast_shape_contract_gate` is 18/18 GREEN with the prototype applied
+  and proves nothing — its pins do not reach `select_expression`.
+- ⚠️ **Why no gate caught the blob:** the differential suites assert interpreter and generated parser
+  are byte-identical **to each other**. Both leak identically, so agreement is total. *Two
+  implementations agreeing is not evidence either is right.* No oracle compares the emitted AST
+  against the **declared** annotation — that is `.8`'s second deliverable.
+- **Sized, not guessed:** a gen-AST sweep across all 13 buildable grammars finds the shape in
+  SystemVerilog only — but **9 dead alternatives across 3 rules** in the raw Annex A transcription
+  (`select_expression` 3/8, `sequence_expr` 5/12, `block_event_expression` 1/3) versus 1 in the
+  hand-massaged shipped grammar. That difference is scar tissue from earlier hand-flattenings.
+- **NEW TREE `ENGINE-UNIVERSAL-SERVICES`** (director-commissioned): catalogue what the engine does
+  for every EBNF, the scar-tissue census, the gap list, the stage-by-stage engine anatomy with a
+  contract per stage, techniques for adding universal features, and the feature taxonomy priced by
+  **when it costs** — gen-AST→gen-AST rewrites are free at parse time by construction, which is how
+  PGEN stays extensible *and* lightning fast.
+- Codegen re-proven **deterministic** in passing: two independent regenerations of an unchanged
+  grammar are sha256-identical.
+
 ## 2026-08-11 - PGEN-SV-CORPUS-GRAD-0212 — the `;` inside a `cross_body` was spelled twice, so the only spelling that parsed was the one no tool accepts (leaf `SV-CORPUS-GRAD.13c.2a`, ONE grammar token)
 
 - ⭐⭐ **A rejects-valid AND an accepts-invalid defect, closed by removing one token.**

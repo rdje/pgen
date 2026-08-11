@@ -8428,73 +8428,53 @@ is not a promotion), and the probe arm it needs.
   `bins_selection_or_option` in `cross_body_item_sv_2017` (`grammars/systemverilog.ebnf`). No engine,
   codegen or Rust change; the `-> {kind: "selection_or_option", body: $1}` annotation is unchanged
   (`semi` was never captured), so the AST shape is unchanged.
-- [x] **ADDRESSED (verified)** — measured before→after on the rebuilt release probe:
-  `option.weight = 2;` **REJECT→ACCEPT**; `ignore_bins ib = binsof(ca) intersect { 1 };`
-  **REJECT→ACCEPT**; a multi-item body (`option.` + `ignore_bins`) **REJECT→ACCEPT**; and the
-  over-acceptance `option.weight = 2;;` **ACCEPT→REJECT**. Named re-runnable oracle:
-  `python3 stimuli/sv/run_adjudication_repros.py` → `ADJUDICATION-REPROS: checked=22 listed=22
-  failures=0`, now carrying `fixed_cross_body_item.sv` (expect ACCEPT, must not regress) and
-  `invalid_cross_body_double_semi.sv` (expect REJECT forever).
-- [x] **NO REGRESSION** — `sv_external_corpus_triage_gate` re-run end-to-end on the edited grammar:
-  `cases_executed: 14 / preprocess_pass_total: 14 / parse_pass_total: 14 / parse_fail_total: 0 /
-  cases_blocked_total: 0` (690 s, peak 8 233 MB under the memory guard), including both UVM package
-  cases under `sv_2017` and `sv_2023`. All 18 doctrines PASS; the 57-row adjudication re-runs to
-  **the same disposition for every row** (only the instrument's recorded grammar sha256 moves,
-  which is the identity block doing its job); `mdbook_docs_gate` green.
-  ⛔ Deliberately NOT claimed: the 3 clkmgr corpus rows still reject (`.13c.2a.2`), and the axis-2
-  bar is not moved here.
-- [x] **LOCKSTEP** — book *Grammar Well-Formedness*, `MEMORY.md`, `CHANGES.md`,
-  `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, the reproducer `MANIFEST.tsv` and `RESIDUAL_ROWS.tsv`.
+- [ ] **ADDRESSED** — owed by `GRAMMAR-WELLFORMED.A2.5`. ⭐ Already measured against a prototype of
+  that engine fix, which is why the routing is not speculative: with **ZERO grammar bytes** changed,
+  `x with (a == 1)`, `( binsof(ca) intersect { 1 } ) && binsof(cb)` and the `||` form all go
+  **REJECT→ACCEPT**, and `block_event_expression` (`.13c.2a.4`) is fixed by the same change for free.
+- [ ] **NO REGRESSION** — owed by `GRAMMAR-WELLFORMED.A2.5`.
+- [ ] **LOCKSTEP (owed when A2.5 lands)** — SV integration contract (release + schema + ledger,
+  with the consumer migration), released-parser bug ledger, SV parser book (schema timeline +
+  changelog index), book *Grammar Well-Formedness* (the corrected probe table + the new
+  left-recursion passage), knowledge cards
+  ([[a-directly-left-recursive-alternative-inside-a-choice-is-dead-code]] NEW,
+  [[a-catch-all-alternative-makes-an-accept-meaningless]] CORRECTED), `KNOWLEDGE_MAP.md`,
+  `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, the reproducer
+  `MANIFEST.tsv` + runner, and `GRAMMAR-WELLFORMED.A2.5` (routed).
 
-#### `.13c.2a.1` — DEFECT: `intersect { … }`'s LITERAL braces were transcribed as EBNF repetition (`todo`, opened 2026-08-11 by `.13c.2a`)
+#### `.13c.2a.3` — the parenthesized `( select_expression )` alternative (**diagnosed, subsumed by `.13c.2a.2`**; `todo` until `GRAMMAR-WELLFORMED.A2.5` lands)
 
-- **IEEE 1800-2017 A.2.11**: `select_condition ::= binsof ( bins_expression ) [ intersect {
-  covergroup_range_list } ]`, where `{ }` are **literal braces**. The grammar has
-  `select_condition := kw_binsof lparen bins_expression rparen ( kw_intersect covergroup_range_list* )?`
-  — the braces are gone.
-- ⭐ **AND IT IS CURRENTLY BOTH UNDER- AND OVER-ACCEPTING.** `intersect { 5, 6 }` parses, but only
-  because `{5, 6}` is a legal **concatenation expression** reaching
-  `covergroup_value_range → covergroup_expression → expression`; a RANGE is not an expression, so
-  the standard's own §19.6.2 example `intersect { 5, [1:3] }` **rejects** (`furthest_position=150`).
-  ⇒ any fix must restore the literal braces, not widen the value arm.
-- **Reproducer** `defect_intersect_range_list.sv`; control `control_intersect_value_list.sv` (which
-  documents that it passes by the accidental route).
-- ⭐ **This is the dropped-delimiter class the tree already names** — `.3.8`'s *"LITERAL `[ ]` read
-  as EBNF optional-grouping"*, here with braces. ⚠️ Worth a sweep for other literal `{ }` / `[ ]` in
-  Annex A that became EBNF metasyntax, rather than fixing this one site alone.
+- ⭐ **The hypothesis in this leaf was right to be flagged as a hypothesis, and it was WRONG in an
+  instructive way.** It read *"likely the same root cause as `.13c.2a.2` — a lost non-seed
+  alternative of the LR-eliminated `select_expression`"*. Same root cause: yes. Lost alternative:
+  **no** — the paren arm fired all along. `ignore_bins ib = ( binsof(ca) intersect { 1 } );` parses
+  and emits `kind: "paren"`, measured by AST dump. What never fired was the `&&` continuation that
+  had to extend it, which is `.13c.2a.2`'s defect.
+- ⇒ The reproducer stays `defect_select_expression_paren.sv` (expect REJECT until
+  `GRAMMAR-WELLFORMED.A2.5` lands) and is the tree's **future positive proof that the `&&`
+  continuation fires** — the proof `control_select_expression_and.sv` only ever appeared to give.
+- ⛔ **No separate acceptance checklist**: a leaf closed by another leaf's fix does not get to claim
+  its own before→after. The measured evidence is in `.13c.2a.2`.
 
-#### `.13c.2a.2` — DEFECT: `select_expression`'s `with ( … )` continuation never fires (`todo`, opened 2026-08-11 by `.13c.2a`)
+#### `.13c.2a.4` — the SECOND rule with the same dead-alternative shape: `block_event_expression` (`todo`, opened 2026-08-11 by `.13c.2a.2`)
 
-- **IEEE 1800-2017 A.2.11**: `select_expression ::= … | select_expression with (
-  with_covergroup_expression ) [ matches integer_covergroup_expression ] | cross_identifier | …`.
-  Both `x with (a == 1)` and `binsof(ca) with (a == 1)` REJECT (`furthest_position=130` / `138`).
-- **Mechanism, located:** `--trace-rules bins_selection` shows the parse stopping at the seed —
-  `🏁 Rule 'select_expression' selected branch 7/8 consuming 2 chars (branch_policy=longest_match)`
-  then `✅ Rule 'select_expression' successfully parsed from 127 to 129 (consumed 2 bytes: ' x')` —
-  the `cross_identifier` arm wins and **no `with` continuation is applied**.
-- ⛔ **NOT LR elimination in general, and the control proves it the hard way.** The sibling
-  left-recursive `&&` / `||` continuations DO fire: `binsof(ca) intersect { 1 } && binsof(cb)
-  intersect { 2 }` parses. ⚠️ That control had to be built carefully — `binsof(ca) && binsof(cb)`
-  also parses and proves NOTHING, because it is a legal ordinary expression reaching the catch-all
-  `cross_set_expression` arm. `intersect` is a keyword, so putting it in both operands is what rules
-  the accidental route out.
-- **Reproducer** `defect_select_expression_with.sv`; control `control_select_expression_and.sv`.
-- **Corpus rows unblocked: 3** (`clkmgr_env_cov.sv` ×3 — `ignore_bins ignore_enable_off =
-  peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0);`).
-
-#### `.13c.2a.3` — DEFECT: the parenthesized `( select_expression )` alternative never fires (`todo`, opened 2026-08-11 by `.13c.2a`)
-
-- **IEEE 1800-2017 A.2.11** lists `( select_expression )` as an alternative.
-  `( binsof(ca) intersect { 1 } ) && binsof(cb)` REJECTS (`furthest_position=158`) while the same
-  text without the parentheses parses.
-- ⚠️ **Parentheses around an operand carrying no `intersect` DO parse** — because then the whole
-  thing is an ordinary SV expression matched by the catch-all `cross_set_expression` arm. So the
-  construct looks supported until a keyword forces the real alternative. Same accidental-route
-  hazard as `.13c.2a.1`/`.2`, and the same lesson: in this rule, an accept is not evidence the
-  intended alternative fired.
-- **Reproducer** `defect_select_expression_paren.sv`. Likely the same root cause as `.13c.2a.2`
-  (a lost non-seed alternative of the LR-eliminated `select_expression`) — ⛔ *likely* is a
-  hypothesis; the leaf must trace it rather than assume the sibling's diagnosis transfers.
+- **The sweep `.13c.2a.2` ran found exactly two.** Over the post-elimination gen-AST
+  (`ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --count 1 --dump-gen-ast`,
+  alternatives whose first element is a rule reference to the enclosing rule): **2 rules / 4 dead
+  alternatives** out of 1 481 — `select_expression` (3 of 8, fixed by `.13c.2a.2`) and this one.
+- `block_event_expression := block_event_expression kw_or_1758356d block_event_expression | kw_begin
+  hierarchical_btf_identifier | kw_end hierarchical_btf_identifier` (IEEE 1800-2017 A.6.11,
+  reached from `coverage_event`'s `@@( … )` form). Alternative 1 is directly left-recursive ⇒ dead.
+- **Reproducer, already measured at HEAD (`PGEN-SV-CORPUS-GRAD-0213`):**
+  `covergroup cg @@(begin m.t or end m.t);` → **REJECT**; the accepting control
+  `covergroup cg @@(begin m.t);` → **ACCEPT**. Same one-difference isolation as `.13c.2a.2`'s pair.
+- **Fix, expected:** the identical grammar-tier flattening — `seed ( continuation )*` — since `or`
+  is associative here and A.6.11 gives it no relative precedence. ⛔ It is a SEPARATE leaf and a
+  separate commit because it needs its OWN measured before→after; the mechanism being already
+  diagnosed does not transfer the evidence.
+- ⚠️ **Do not stop at these two.** The sweep is a script in a task leaf, not an instrument — the
+  linter is the surface that should have caught both, and it reports them as *"handled by PGEN"*.
+  That is `GRAMMAR-WELLFORMED.A2.5` (opened by `.13c.2a.2`, parked by the lane lock).
 
 #### `.13c.2d` — the sv_2017 `cross_body_item` matches a MISSPELLED LITERAL where the LRM means a nonterminal (`todo`, opened 2026-08-11 by `.13c.2a`)
 

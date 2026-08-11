@@ -24,6 +24,26 @@ whose verdict this runner re-executes, in both directions:
 `defect` fails on an unannounced FIX, `invalid`/`control` fail on a regression. A manifest row
 whose file is missing, or a file with no manifest row, is a hard error — not a skip.
 
+⭐⭐ THE `arm` COLUMN — WHY A VERDICT IS NOT ENOUGH (SV-CORPUS-GRAD.13c.2a.2)
+---------------------------------------------------------------------------
+An ACCEPT says the text parsed. It does NOT say WHICH alternative parsed it, and where a rule
+ends in a catch-all arm reaching the general expression hierarchy, the answer is routinely "not
+the one under test". This oracle shipped a control (`control_select_expression_and.sv`) whose
+whole claim — *"both operands carry the KEYWORD `intersect`, so it cannot be passing as one
+plain expression"* — was FALSE: it parsed with the `&&` continuation dead, because the seed
+`select_condition` swallowed the entire remainder through a `covergroup_range_list*` whose
+literal braces had been lost. A verdict-only oracle called that green.
+
+So a row may pin the ARM as well as the verdict. `arm` is a `,`-separated list of claims; each
+claim is a `>`-separated ancestor→descendant chain of AST `kind` values that must appear nested
+(each step is any descendant, not necessarily a child), e.g. `select_chain>with_matches`.
+Prefix a chain with `!` to require its ABSENCE. Choose `kind` values that are UNIQUE to the
+alternative under test — verify with `grep -c 'kind: "X"' grammars/systemverilog.ebnf — and
+prove the claim can fail by running it against the input it must reject.
+
+Only ACCEPT rows may carry an `arm`: a REJECT produces no AST, so an `arm` there is an
+incoherent manifest, and this runner treats it as a hard error rather than a skip.
+
 Run:
     python3 stimuli/sv/run_adjudication_repros.py            # exit 0 = every claim still holds
     python3 stimuli/sv/run_adjudication_repros.py --verbose
@@ -32,8 +52,10 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -66,11 +88,69 @@ FIX_HINT = {
 }
 
 
+ARM_HINT = ("⛔ THE VERDICT IS RIGHT AND THE ARM IS WRONG. The text parsed, but not through the "
+            "alternative this row claims — the classic accidental route under a catch-all arm. "
+            "An ACCEPT alone would have reported this as green.")
+
+
 def parses(path: Path) -> bool:
     proc = subprocess.run(
         [str(PROBE), "--parse", "systemverilog", str(path), "--profile", "sv_2017"],
         capture_output=True, text=True, timeout=TIMEOUT_S)
     return proc.returncode == 0
+
+
+def parse_ast(path: Path):
+    """The typed AST for `path`, or None when the probe declines to produce one."""
+    with tempfile.TemporaryDirectory(dir=str(ROOT / "tmp")) as workdir:
+        out = Path(workdir) / "ast.json"
+        proc = subprocess.run(
+            [str(PROBE), "--parse-dump-ast", "systemverilog", str(path), str(out),
+             "--profile", "sv_2017"],
+            capture_output=True, text=True, timeout=TIMEOUT_S)
+        if proc.returncode != 0 or not out.exists():
+            return None
+        return json.loads(out.read_text(encoding="utf-8"))
+
+
+def _kind_chain_present(node, chain: list[str]) -> bool:
+    """True when `chain` occurs as a nested ancestor→descendant sequence of `kind` values.
+
+    Each step matches any DESCENDANT, not only a direct child, because the shape between two
+    annotated rules is an implementation detail of the intervening un-annotated rules.
+    """
+    if not chain:
+        return True
+    head, rest = chain[0], chain[1:]
+    if isinstance(node, dict):
+        if node.get("kind") == head and any(
+                _kind_chain_present(v, rest) for v in node.values()):
+            return True
+        return any(_kind_chain_present(v, chain) for v in node.values())
+    if isinstance(node, list):
+        return any(_kind_chain_present(v, chain) for v in node)
+    return False
+
+
+def arm_failures(row: dict, ast) -> list[str]:
+    """Which of the row's `arm` claims the produced AST does not support."""
+    spec = (row.get("arm") or "").strip()
+    if not spec:
+        return []
+    if ast is None:
+        return [f"arm '{spec}' cannot be checked — the probe produced no AST"]
+    bad = []
+    for claim in (c.strip() for c in spec.split(",") if c.strip()):
+        negated = claim.startswith("!")
+        chain = [step.strip() for step in claim.lstrip("!").split(">") if step.strip()]
+        present = _kind_chain_present(ast, chain)
+        if present and negated:
+            bad.append(f"arm claim '{claim}': the chain IS present in the AST, and the manifest "
+                       "requires its absence")
+        elif not present and not negated:
+            bad.append(f"arm claim '{claim}': the chain is ABSENT from the AST, and the manifest "
+                       "requires it — the input parsed down some other route")
+    return bad
 
 
 def main() -> int:
@@ -83,8 +163,15 @@ def main() -> int:
                          "   (cd rust && cargo build --release --features generated_parsers "
                          "--bin parseability_probe)")
 
+    (ROOT / "tmp").mkdir(exist_ok=True)
+
     with MANIFEST.open(encoding="utf-8") as fh:
-        rows = list(csv.DictReader(fh, delimiter="\t"))
+        reader = csv.DictReader(fh, delimiter="\t")
+        if "arm" not in (reader.fieldnames or []):
+            raise SystemExit("⛔ REFUSING: MANIFEST.tsv has no `arm` column. The column is how a "
+                             "row pins WHICH alternative parsed it; a manifest without it silently "
+                             "downgrades every claim to a verdict.")
+        rows = list(reader)
 
     listed = {r["id"] for r in rows}
     on_disk = {p.name for p in REPROS.glob("*.sv")}
@@ -95,7 +182,14 @@ def main() -> int:
         failures.append(f"{orphan}: on disk, absent from the manifest — every reproducer must "
                         "carry its claim")
 
+    for row in rows:
+        if (row.get("arm") or "").strip() and row["expect"] != "ACCEPT":
+            failures.append(f"{row['id']}: carries an `arm` claim but expects "
+                            f"{row['expect']} — a rejected input produces no AST, so the claim "
+                            "can never be checked. Drop the arm or fix the expectation.")
+
     checked = 0
+    armed = 0
     for row in sorted(rows, key=lambda r: r["id"]):
         path = REPROS / row["id"]
         if not path.exists():
@@ -103,15 +197,24 @@ def main() -> int:
         got = "ACCEPT" if parses(path) else "REJECT"
         checked += 1
         ok = got == row["expect"]
-        if args.verbose or not ok:
-            print(f"{'ok  ' if ok else 'FAIL'} {row['id']:<44} "
-                  f"{row['class']:<8} expect={row['expect']} got={got}")
+        bad_arms: list[str] = []
+        if ok and got == "ACCEPT" and (row.get("arm") or "").strip():
+            bad_arms = arm_failures(row, parse_ast(path))
+            armed += 1
+        if args.verbose or not ok or bad_arms:
+            status = "ok  " if ok and not bad_arms else "FAIL"
+            arm = f" arm={row['arm']}" if (row.get("arm") or "").strip() else ""
+            print(f"{status} {row['id']:<44} "
+                  f"{row['class']:<8} expect={row['expect']} got={got}{arm}")
         if not ok:
             failures.append(f"{row['id']}: expected {row['expect']}, got {got}\n"
                             f"      {FIX_HINT.get((row['class'], got), '')}\n"
                             f"      construct: {row['construct']}  (LRM {row['lrm']})")
+        for bad in bad_arms:
+            failures.append(f"{row['id']}: {bad}\n      {ARM_HINT}\n"
+                            f"      construct: {row['construct']}  (LRM {row['lrm']})")
 
-    print(f"\nADJUDICATION-REPROS: checked={checked} listed={len(rows)} "
+    print(f"\nADJUDICATION-REPROS: checked={checked} armed={armed} listed={len(rows)} "
           f"failures={len(failures)}")
     if failures:
         print("\n".join(f"  ⛔ {f}" for f in failures))
