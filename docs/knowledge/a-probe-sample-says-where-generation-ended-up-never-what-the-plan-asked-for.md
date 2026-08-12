@@ -78,6 +78,13 @@ census can only see the second. Whenever a component recovers silently, budget f
 reports what it *tried*, not only what it produced; otherwise every downstream diagnosis starts from
 the recovery instead of the failure.
 
+⭐ **That instrument now exists** — `PGEN_REACH_FORCED_OVERRIDE_DUMP=1` (`TOOLBOX.md` 6.4,
+`ENGINE-UNIVERSAL-SERVICES.11` slice 1) prints the lost directive beside the generator's own reason
+string, so the render-side row of the table above stops being an inference. Reach for it as the third
+step of this diagnosis, and read
+[[a-recorded-failure-reason-is-not-a-readable-one]] first: the reason had been recorded all along,
+and the cert-coverage path discarded it at process exit.
+
 Corollary for this repo: a forced quantifier prints `candidates=[1]` — exactly one repeat count, so it
 has no fallback of its own and its failure always propagates to the nearest choice. Counting those
 lines (`PGEN_TRACE_VERBOSITY=high … | grep "Quantifier decision"`) is how a runaway forcing loop is

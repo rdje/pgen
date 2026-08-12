@@ -85,7 +85,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
-| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast` |
+| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]` |
 | 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
@@ -96,6 +96,17 @@ were measured and deliberately refused (`GENERATED-LINT-CORRECTNESS.4`): a line 
 *location*, and "verified by grep" is a *claim* — the box asks for the output of a tool you ran.
 Groups 2 and 5 exist because this repo's SPEED campaign and its ops defects were being forced to
 waive an otherwise-correct gate; if you find a sixth such class, **open a leaf rather than waive**.
+
+⭐⭐ **A NEW INSTRUMENT MUST BE REGISTERED IN THE SAME COMMIT THAT LANDS IT.** Group 1 is a
+*vocabulary of tools*, so an instrument whose token is not in `DIAGNOSIS_SIG`
+(`scripts/check_diagnosis_evidence.sh`) is invisible to the gate, and every leaf root-caused with it
+is blocked — leaving only two ways out, citing a tool that did **not** produce the diagnosis, or
+waiving. Both are dishonest. Measured: the gate correctly refused `ENGINE-UNIVERSAL-SERVICES.11`
+slice 1 — *the leaf that built `PGEN_REACH_FORCED_OVERRIDE_DUMP`* — because the token it had just
+created was not yet listed. This is not a sixth family and not a relaxation; it is the same
+correction group 2 made for the SPEED profilers, a bar aimed at a stale tool list. ⛔ The obligation
+is two-way: register a token **only** when a real, runnable instrument emits it, and update this
+table in the same commit.
 
 **A box is EARNED, not ticked.** A `[x]` you write is a *claim*; the proof is the **oracle re-run**.
 The ADDRESSED and NO-REGRESSION boxes must cite a **named, re-runnable oracle** (the exact gate /
@@ -144,6 +155,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"WHY is this closed-loop coverage target still residual?" — ⛔ the pass-summary counters are TARGET-scoped and read 0 while branches die** | [6.1 `failure_reasons`](#61-failure_reasons--why-a-residual-coverage-target-survived-already-written-no-re-run) — the per-branch record every gate run already wrote |
 | **"`--max-depth` is 20 — why does the log say `max_depth=448`? and does that escalation ever PAY?"** | [6.2 depth-slack retry census](#62-depth-slack-retry-census--does-the-generators-depth-escalation-ever-pay) — the retry adds slack to the LIVE budget, so nesting is cumulative; the census prices each rung |
 | **"`store_entry_raises=N` — but how many of those raises were actually NEEDED?"** | [6.3 blocked-verdict census](#63-store-entry-blocked-verdict-census--is-a-witness-entry-raise-actually-needed-or-is-the-verdict-over-approximating) — names each blocked target SPURIOUS vs GENUINE; measured 15 of 16 spurious on `sv_2017` |
+| **"The plan FORCES branch N — so why does the probe show branch 0? was the branch ever driven at all?"** — ⛔ `generate_or` falls back SILENTLY, and on the cert-coverage path 6.1 cannot answer (`--coverage-output` is refused there) | [6.4 `PGEN_REACH_FORCED_OVERRIDE_DUMP`](#64-pgen_reach_forced_override_dump--the-reach-plan-forced-a-branch-did-it-actually-render) — pairs the lost directive with the generator's own reason string |
 | "Is my grammar well-formed (LR / shadowing / non-terminating)?" | [5.1 `--lint-grammar`](#51---lint-grammar) |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
@@ -795,6 +807,53 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   noise.** The cross-language mirror `docs/tasks/artifacts/sv_exh_proof/class_c_store_entry_closure.py`
   re-derives the same verdict and REFUSES (exit 2) if it drifts back to scoping on polarity.
   Full map: `docs/tasks/SV-EXH-PROOF.md` `.7.4.6.17`.
+
+### 6.4 `PGEN_REACH_FORCED_OVERRIDE_DUMP` — the reach plan forced a branch; did it actually RENDER?
+
+- **WHAT:** `PGEN_REACH_FORCED_OVERRIDE_DUMP=1` makes `generate_or`'s documented
+  forced-first-**with-fallback** visible. When a reach-plan-forced branch fails, the OR silently
+  renders a sibling and returns `Ok`, so the directive is lost with **no trace at any verbosity**.
+  This flag emits two paired stderr records — `outcome=failed reason=…` (the generator's own error
+  string for the forced branch, the same text `record_branch_failure` files under `failure_reasons`)
+  and `outcome=overridden rendered_branch=M` (what got substituted). Presence-gated print only, read
+  once per process; generation stays byte-identical. `ENGINE-UNIVERSAL-SERVICES.11` slice 1.
+- **WHEN:** ⛔ **the FIRST thing to run when a probe "did not witness" and you cannot tell whether it
+  was ever actually driven down the intended branch** — a `witnessed_target=false` verdict, a
+  `parsed-but-routed-elsewhere` residual, or any *"the plan says it forces branch N, so why does the
+  sample show branch 0?"* question. ⭐ It is the one that answers WHY on the cert-coverage path,
+  where **6.1 cannot**: `--report-certificate-coverage` returns at `rust/src/main.rs:1149` and
+  `--coverage-output` is refused alongside it (it `require`s `--generate-stimuli`), so the
+  per-branch `failure_reasons` a cert run writes are discarded at process exit. 6.1 stays the tool
+  for the closed-loop replay gap report; this is the tool for the witness passes.
+- **HOW:**
+  ```bash
+  PGEN_REACH_FORCED_OVERRIDE_DUMP=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1 \
+    ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage \
+    --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0 2>&1 \
+    | grep "forced-override" | grep "<your residual rule>"
+  ```
+  Pairs naturally with `PGEN_REACH_PATH_DUMP=1` (4.4): that one prints the plan, this one prints the
+  RENDER — the pairing lesson `.10` paid for is that the two need different instruments.
+- **OUTPUT (the real one that closed `.11`'s diagnosis, on its first run):**
+  ```
+  [forced-override] rule='select_expression_lr_suffix' path='root' forced_branch=2/3 outcome=failed
+      reason="Stimuli generation depth exceeded max_depth=67 while expanding rule 'real_number'"
+  [forced-override] rule='select_expression_lr_suffix' path='root' forced_branch=2/3
+      outcome=overridden rendered_branch=0
+  ```
+  `forced_branch=2/3` = branch index 2 of 3 alternatives. 1 784 override records across that whole
+  SV run — so **scope it with `grep`**, exactly like `--trace-rules` (2.2).
+- **READING:** an `outcome=failed` line is the directive being LOST; the reason string names the
+  mechanism verbatim (`depth exceeded max_depth=N while expanding rule 'R'` = budget,
+  `target timeout`/`helper timeout` = time, anything else = a prune). An `outcome=overridden` with no
+  preceding `outcome=failed` for the same site means the forced branch was never *attempted* — check
+  `suppress_recursive_forced_branch` and the `bypass_fuel` re-admission instead.
+- ⚠️ **The reason is only half the answer — the OTHER half is whether the budget is scoped right.**
+  `.11` measured `max_depth=67` from `reach_prefix_budget + min_derivation_depths[rule]`, i.e. the
+  rule's SHALLOWEST alternative, on a pass that then forces a specific (much deeper) one. Before
+  concluding *"needs more budget"*, check `witness_target_depth_budget` — the engine's established
+  per-BRANCH formula. ⛔ And do NOT reach for a bigger global `--max-depth`: measured on SV it buys
+  `UNKNOWN 1→0` by paying `sample_parse_failures 0→8→17`. Full map: `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` `.11`.
 
 ---
 

@@ -989,7 +989,7 @@ census and an LR plan coexist. Fixing it in the engine fixes it for VHDL, PNR an
 rule; SV's `sv_cert_recognized_union_gate` returns to `union UNKNOWN=0` with residual `[]`, deterministic
 across seeds 0/7/42; and the contract's re-baseline note records the restoration.
 
-### `.11` — a FORCED branch that dies still renders a sibling SILENTLY, so the one witnessing arm is never probed (`todo`, opened 2026-08-12 session #218 by `.10` mechanism 2; one of its two candidate mechanisms already REFUTED; ⛔ **now the sole BLOCKER for returning SV's union UNKNOWN to 0**)
+### `.11` — a FORCED branch that dies still renders a sibling SILENTLY, so the one witnessing arm is never probed (`in progress` — slice 1 INSTRUMENT landed `PGEN-ENGINE-UNIVERSAL-SERVICES-0008` 2026-08-12 session #219, and it CONFIRMED candidate mechanism 1; opened 2026-08-12 session #218 by `.10` mechanism 2; ⛔ **the sole BLOCKER for returning SV's union UNKNOWN to 0**)
 
 `.10` mechanism 1 fixed a forced **quantifier** that re-fired unboundedly and fell back to a sibling.
 `.10` mechanism 2 fixed the **seed** the plan never decided. What is left is the same *fallback*
@@ -1046,3 +1046,200 @@ plan and the render need two different instruments.
 that renders `select_expression_lr_suffix`'s `with` arm; `sv_cert_recognized_union_gate` at
 `union UNKNOWN=0` with residual `[]`, deterministic across seeds 0/7/42; an overridden forced branch
 observable without source edits; and the isolating synthetic first, as `.10` demanded twice.
+
+#### ⛔ CORRECTION TO THIS LEAF'S OWN PLAN — `failure_reasons` is NOT reachable from a cert-coverage run
+
+The plan above said to read the `failure_reasons` record because it is *"already written by every run
+that emits reports, no re-run needed"* (`TOOLBOX.md` 6.1). That is TRUE of the closed-loop replay gap
+report and **FALSE of the path this residual lives on**, which is why session #219 started by proving
+it rather than by trusting it:
+
+* `--report-certificate-coverage` **returns** at `rust/src/main.rs:1149`
+  (`return run_certificate_coverage_report(…)`), long before the `--coverage-output` write at
+  `main.rs:1373`.
+* `--coverage-output` cannot even be *requested* alongside it — clap rejects the pair up front:
+  ```
+  $ ast_pipeline grammars/json.ebnf --report-certificate-coverage --count 3 --seed 0 \
+        --coverage-output rust/target/eus_11/probe_cov.json
+  Error: …/--coverage-*/… require --generate-stimuli or --generate-stimuli-module
+  $ ls rust/target/eus_11/probe_cov.json → No such file or directory
+  ```
+
+⇒ every `record_branch_failure` the witness passes file is discarded when the process exits. The WHY
+was **structurally unobservable**, not merely unlogged — so per the TOOLBOX-FIRST standing directive
+(*"if the existing tools cannot surface the WHY and WHERE, the next step is to BUILD a tool, not to
+speculate"*) slice 1 built the missing leg, which the leaf's own acceptance already required.
+
+#### SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0008`) — the instrument: `PGEN_REACH_FORCED_OVERRIDE_DUMP`
+
+`rust/src/ast_pipeline/stimuli_generator.rs` — a presence-gated env flag in the
+`PGEN_REACH_PATH_DUMP` family that makes `generate_or`'s forced-first-**with-fallback** visible, in
+two paired lines:
+
+| line | emitted when | answers |
+|---|---|---|
+| `outcome=failed reason=…` | the reach-FORCED branch is the one that just failed | **WHY** the directive was lost — the generator's own error string, the same text `record_branch_failure` files under `failure_reasons` |
+| `outcome=overridden rendered_branch=M` | the OR returns `Ok` on a branch that is **not** the forced one | **WHAT** was silently substituted |
+
+Design points, each deliberate:
+* **Wired at all seven exits of the attempt loop**, not the obvious two — the four `return Ok`
+  (literal-hint short-circuit, plain success, depth-slack-retry success, constructive-reach-retry
+  success) and the three `record_branch_failure` sites. A partially-wired instrument that misses a
+  retry path would report *"never overridden"* on exactly the runs where a retry rescued it, and that
+  silent-blind-spot class is what this leaf exists to close.
+* **Only the forced branch's own failure is reported.** A sibling failing afterwards is ordinary
+  search; the forced one failing is the directive being lost.
+* **Read ONCE per process** (`OnceLock`, the `report_memo_stats_enabled` discipline). `generate_or`
+  is the generator's hottest chokepoint, so a per-node `getenv` would be a locked linear `environ`
+  scan at every OR site.
+* **Presence-gated PRINT only** — it never changes a generation decision. Proven, not asserted:
+  the full 1 612-line probe stream of the canonical SV run is byte-identical with the flag on
+  (`diff -q`), and the `CERTIFICATE-COVERAGE:` headline is unchanged.
+* ⛔ Keyed on rule name + node path + branch index — **no grammar-specific spelling**, so it works on
+  any EBNF (engine tier, per the 2026-08-11 director ruling).
+
+#### DIAGNOSIS — candidate mechanism 1 CONFIRMED, and it is DEPTH (not prune, not visit-limit, not timeout)
+
+The instrument named it on its **first** run — the canonical SV cert-coverage command with
+`PGEN_REACH_FORCED_OVERRIDE_DUMP=1` added:
+
+```
+  [forced-override] rule='select_expression_lr_suffix' path='root' forced_branch=2/3 outcome=failed
+      reason="Stimuli generation depth exceeded max_depth=67 while expanding rule 'real_number'"   ×2
+  [forced-override] rule='select_expression_lr_suffix' path='root' forced_branch=2/3 outcome=overridden
+      rendered_branch=0                                                                            ×2
+```
+
+Exactly the two probes the leaf predicted (tier 1's candidate order `[1, 2, 0]` allots branch 2 the
+3rd and 4th probes), failing and being substituted by branch 0 (`&&`) — 1 784 override events across
+the whole run, of which these 4 are the residual's.
+
+**WHY:** the forced `with ( with_covergroup_expression )` arm descends the full SV expression
+hierarchy and runs out of DEPTH — it died expanding `real_number`, a leaf of that cascade.
+
+**WHERE:** `generate_target_own_structure_witnesses`, `rust/src/ast_pipeline/stimuli_generator.rs`:
+
+```rust
+let target_subtree_depth = min_derivation_depths.get(rule).copied().unwrap_or(0);
+let budget = reach_prefix_budget.saturating_add(target_subtree_depth);   // 2*24 + 19 = 67
+self.config.max_depth = budget;
+```
+
+The budget is computed **once per rule, outside** the `'branches:` loop that then FORCES a specific
+alternative — so it is scoped to the rule's *shallowest* alternative, never to the one being forced.
+⭐ The engine already knows this is wrong and says so, one function away:
+`witness_target_depth_budget` (`SV-EXH-PROOF.7.4.6.9`) budgets a BRANCH target by
+`min_full_derivation_depth_of_node(alternative) + 1`, and its docstring states the exact failure —
+*"a rule-scoped depth is the depth of that rule's SHALLOWEST alternative — which is precisely the
+alternative a residual branch target is NOT"*. The target-own pass never adopted it. ⇒ slice 2.
+
+#### THE `--max-depth` LADDER — depth confirmed, and the global knob REFUSED as the fix
+
+The A/B the leaf asked for, run end-to-end on the canonical SV config (`--count 40 --seed 0`):
+
+| `--max-depth` | target-own budget | forced branch 2 | `with`-carrying probes | union-basis `UNKNOWN` | `sample_parse_failures` |
+|---|---|---|---|---|---|
+| **24** (default) | `2×24 + 19 = 67` | **failed** → overridden to 0 | 0 of 27 | **1** | **0** |
+| 32 | `2×32 + 19 = 83` | rendered, witnessed | 1 | **0** | **8** ⛔ |
+| 40 | `2×40 + 19 = 99` | rendered, witnessed | 1 | **0** | **17** ⛔ |
+
+Two conclusions, both measured:
+1. **Depth is the binding constraint** — more budget alone flips the residual. The prune/visit-limit
+   and timeout candidates are excluded: the reason string names `depth exceeded`, and no
+   `target_timeout`/`helper_timeout` reason appears for this rule at any rung.
+2. ⛔ **Raising `--max-depth` is NOT the fix, and this is why it must not be proposed again.** It is a
+   GLOBAL knob: it buys `UNKNOWN 1→0` by paying `sample_parse_failures 0→8→17`, monotonically worse
+   with depth. Those are witness samples the real parser then REJECTS — trading a known residual for
+   unproven witnesses on the *same* gate. The fix has to be LOCAL to the forced branch.
+
+#### Acceptance Checklist (enforced) — slice 1, the instrument (`PGEN-ENGINE-UNIVERSAL-SERVICES-0008`)
+
+- [x] **REPRODUCE / ISSUE** — canonical run reproduces the documented residual exactly:
+  `PGEN_CERT_COVERAGE_DUMP_ALL=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1 ast_pipeline
+  grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017 --entry-rule
+  systemverilog_file --count 40 --seed 0` → `CERTIFICATE-COVERAGE: … UNKNOWN=1 fully_certified=false
+  (sample_parse_failures=0…)`, `UNKNOWN rules (1 of 1 shown): ["select_expression_lr_suffix"]`.
+  `grep -c "rule='select_expression_lr_suffix'"` → **27** probe samples,
+  of which `grep -c with` → **0**. The WHY behind that 0 was unobservable: `--coverage-output` is
+  refused alongside `--report-certificate-coverage` (`Error: …/--coverage-*/… require
+  --generate-stimuli…`, artifact never created), so `failure_reasons` never reaches disk.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the new instrument names both on its first run.
+  Exact command: `PGEN_REACH_FORCED_OVERRIDE_DUMP=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1 ast_pipeline
+  grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017 --entry-rule
+  systemverilog_file --count 40 --seed 0 2>&1 | grep forced-override` →
+  `[forced-override] rule='select_expression_lr_suffix' path='root' forced_branch=2/3 outcome=failed
+  reason="Stimuli generation depth exceeded max_depth=67 while expanding rule 'real_number'"`,
+  paired with `outcome=overridden rendered_branch=0`. **WHY** = the forced `with (…)` arm exhausts
+  the DEPTH budget inside the SV expression cascade; **WHERE** = the per-rule budget
+  `reach_prefix_budget + min_derivation_depths[rule]` computed outside the `'branches:` loop in
+  `generate_target_own_structure_witnesses` (`rust/src/ast_pipeline/stimuli_generator.rs`), which is
+  scoped to the rule's shallowest alternative rather than the forced one. Independently confirmed by
+  the `--max-depth` 24/32/40 ladder above (`UNKNOWN` 1→0→0).
+- [x] **FIX** — engine tier, and deliberately the SMALLEST that closes the observability gap: one
+  `OnceLock` env flag + two print-only helpers + one `Option<usize>` binding, wired at all seven
+  exits of `generate_or`'s attempt loop. No declarative or grammar tier exists for this defect — the
+  missing thing is an ENGINE diagnostic, and the leaf's own acceptance already required it.
+- [x] **ADDRESSED (verified)** — before: the forced-branch override left **no trace at any
+  verbosity**, and `.11` carried two candidate mechanisms with no way to choose between them. After:
+  the run emits **1 784** located override records, **4** of them for the residual rule, naming the
+  mechanism (`depth exceeded`), the site (`path='root' forced_branch=2/3`) and the substitution
+  (`rendered_branch=0`). Candidate 1 (budget) is CONFIRMED; candidate 2 (suppression) stays REFUTED.
+  Re-runnable oracle: the canonical command above with `PGEN_REACH_FORCED_OVERRIDE_DUMP=1`.
+- [x] **NO REGRESSION** — the flag is print-only and measured to be so: the canonical run's full
+  probe stream (`[plannable-probe]`/`[target-own-probe]`/`[store-free-probe]`/`[carrier-div-probe]`,
+  **1 612** lines) is **byte-identical** with the flag ON vs the pre-change baseline (`diff -q`
+  clean), and the `CERTIFICATE-COVERAGE:` headline is unchanged
+  (`total=1362 proof=17 witness=1344 UNKNOWN=1 sample_parse_failures=0`). Named oracle re-run:
+  `make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate` GREEN — canonical `UNKNOWN=12`,
+  union `UNKNOWN=1`, union residual `["select_expression_lr_suffix"]`, `sample_parse_failures=0`,
+  identical across seeds 0/7/42, all equal to the tracked contract. `clippy_on_rust_change` clean
+  (strict source + strict generated). ZERO codegen bytes: the change is in the stimuli generator, so
+  the generated parsers are untouched.
+- [x] **LOCKSTEP** — `TOOLBOX.md` §6.4 (new tool entry) + its quick-chooser row + its five-family
+  signature table; `scripts/check_diagnosis_evidence.sh` `DIAGNOSIS_SIG` (see below);
+  `docs/book/src/diagnosing-unknowns.md` (mirrored surface); a new Knowledge-Map card
+  `docs/knowledge/a-recorded-failure-reason-is-not-a-readable-one.md` with
+  `a-probe-sample-says-where-generation-ended-up-never-what-the-plan-asked-for.md` updated to point
+  at the instrument it asked for, plus the regenerated `KNOWLEDGE_MAP.md`; `CHANGES.md`;
+  `DEVELOPMENT_NOTES.md`; `MEMORY.md`. The DONE-BAR register and its book view are UNCHANGED — no
+  family's claimed status moves on a diagnostic-only slice.
+
+#### ⭐ THE ACCEPTANCE GATE REFUSED THIS SLICE FIRST, AND IT WAS RIGHT — a new instrument must be REGISTERED
+
+Worth recording because the failure mode is general and the temptation is to route around it.
+`scripts/check_diagnosis_evidence.sh` blocked the first commit attempt with
+*"ROOT CAUSE box is ticked and backed, but it belongs to a LEAF THIS CHANGE DID NOT TOUCH"* — an
+accurate report of a real state. The box in **this** leaf carried **0** tokens from `DIAGNOSIS_SIG`
+(measured, not guessed: `awk` the box body, `grep -cE` the signature alternation → `0`), because the
+only tool that could produce the diagnosis was the one this very slice was creating. With no
+signature match here, the checker fell through to a *different* ticked ROOT CAUSE box in a finished
+leaf and correctly refused to let it be borrowed.
+
+⇒ **group 1 of the five-family table is a VOCABULARY OF TOOLS, and an unregistered tool is an
+invisible one.** `PGEN_REACH_PATH_DUMP` is already listed on identical footing. Landing a family-1
+instrument without adding its token leaves an author exactly two exits — cite a tool that did not
+produce the diagnosis, or waive — and the second is the failure mode `GENERATED-LINT-CORRECTNESS.4`
+named when it refused a gate that *"teaches waivers"*. So `PGEN_REACH_FORCED_OVERRIDE_DUMP` and
+`[forced-override]` join `DIAGNOSIS_SIG`, and `TOOLBOX.md`'s family table records the obligation in
+both directions: register a token **only** for a real runnable instrument, and in the same commit.
+
+⛔ **This is an addition to the recognized-tool list, NOT a relaxation of the bar** — the same
+correction group 2 made for this repo's real profilers (`SPEED` was being forced to waive an
+otherwise-correct gate because the list named `cargo flamegraph` and not `/usr/bin/sample`). Nothing
+about what counts as evidence changed: the box still has to quote the output of a tool that was run,
+and this slice's box quotes the exact command plus its verbatim output.
+
+#### SLICE 2 — the fix (`todo`, next action)
+
+Budget the forced ALTERNATIVE, not the rule: inside `generate_target_own_structure_witnesses`'s
+`'branches:` loop, when a root-`Or` branch is forced, raise `self.config.max_depth` to cover that
+alternative's own `min_full_derivation_depth_of_node(alternative) + 1` — reusing
+`witness_target_depth_budget`'s established formula rather than inventing a second one. Strictly
+additive and monotone (`max(rule_scoped, branch_scoped)` only ever grows, so no target that witnesses
+today can stop witnessing), and LOCAL to the target-own probes, so the global `--max-depth` — and
+with it `sample_parse_failures=0` — is untouched. ⛔ Prove it on the isolating synthetic first, as
+`.10` demanded twice: the `.10` mechanism-2 probe grammar
+(`docs/tasks/artifacts/engine_universal_services/mechanism2_seed_shadowing_probe.ebnf`) plus a third
+`expr` alternative `expr "with" "(" deep ")"` whose `deep` is a mandatory chain deeper than the
+pass's budget — the catch-all seed keeps `&&`/`||` unwitnessable, so `with` is the only witnessing
+arm, exactly as in SV. Preserve it with `scripts/preserve_scratch_probe.sh` before restoring the slot.

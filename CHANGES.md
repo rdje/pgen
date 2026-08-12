@@ -1,5 +1,63 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0008 — the witness planner's forced branch was being overridden SILENTLY, so `.11` had two candidate mechanisms and no way to choose; the instrument named the winner on its first run (leaf `ENGINE-UNIVERSAL-SERVICES.11` slice 1; ENGINE tier, ZERO codegen bytes)
+
+- **THE REASON WAS COMPUTED, FILED, AND THROWN AWAY.** `generate_or` documents a
+  forced-first-**with-fallback**: when the reach plan's forced branch fails, a sibling renders and the
+  rule returns `Ok`. Correct for termination, wrong for observability — the directive is lost with no
+  trace at any verbosity, so a probe that *"did not witness"* is indistinguishable from one that was
+  never driven down the intended branch.
+- ⛔ **AND `TOOLBOX.md` 6.1 CANNOT ANSWER IT ON THIS PATH — the leaf's own plan was wrong about that,
+  and it was proven rather than trusted.** `failure_reasons` is *"already written, no re-run needed"*
+  for the closed-loop replay gap report, but `--report-certificate-coverage` returns at
+  `rust/src/main.rs:1149`, and `--coverage-output` cannot even be requested alongside it — clap
+  refuses the pair up front (`… require --generate-stimuli or --generate-stimuli-module`; the
+  artifact is never created). On the one path where residual `UNKNOWN`s live, every
+  `record_branch_failure` is discarded at process exit.
+- **BUILT THE MISSING LEG** (`PGEN_REACH_FORCED_OVERRIDE_DUMP=1`,
+  `rust/src/ast_pipeline/stimuli_generator.rs`), per the TOOLBOX-FIRST directive's *"build a tool,
+  do not speculate"* clause and the leaf's own acceptance. Two paired stderr records:
+  `outcome=failed reason=…` (WHY the directive was lost — the generator's own error string) and
+  `outcome=overridden rendered_branch=M` (WHAT was substituted). Wired at **all seven** exits of the
+  attempt loop, not the obvious two: a miss on the retry paths would report *"never overridden"* on
+  exactly the runs a retry rescued.
+- ⭐ **IT CLOSED THE DIAGNOSIS ON ITS FIRST RUN.**
+  `[forced-override] rule='select_expression_lr_suffix' path='root' forced_branch=2/3 outcome=failed
+  reason="Stimuli generation depth exceeded max_depth=67 while expanding rule 'real_number'"`, paired
+  with `outcome=overridden rendered_branch=0` — exactly the 2 probes `.11` predicted, out of 1 784
+  override events in the run. ⇒ candidate mechanism 1 (**budget**) CONFIRMED and narrowed to DEPTH;
+  candidate 2 (suppression) stays REFUTED.
+- **WHERE:** `generate_target_own_structure_witnesses` computes
+  `budget = reach_prefix_budget + min_derivation_depths[rule]` **once per rule, outside** the loop
+  that then forces a specific alternative — so it is scoped to the rule's *shallowest* alternative,
+  never the forced one. The engine already has the right formula one function away
+  (`witness_target_depth_budget`, `SV-EXH-PROOF.7.4.6.9`), whose docstring names this exact failure.
+  ⇒ slice 2.
+- ⛔ **AND THE OBVIOUS FIX IS REFUSED ON MEASUREMENT.** The `--max-depth` 24/32/40 ladder buys
+  `UNKNOWN 1→0→0` by paying `sample_parse_failures` **0→8→17** — witness samples the real parser then
+  REJECTS. A global knob cannot pay for a local budget defect; slice 2 must scope the budget to the
+  forced branch.
+- **NO REGRESSION.** Print-only, and measured to be so: the canonical SV run's full **1 612**-line
+  probe stream is byte-identical with the flag ON (`diff -q` clean) and the `CERTIFICATE-COVERAGE:`
+  headline is unchanged. `sv_cert_recognized_union_gate` GREEN against the tracked contract across
+  seeds 0/7/42; `clippy_on_rust_change` clean. ZERO codegen bytes — the change is in the stimuli
+  generator, so the generated parsers are untouched.
+- ⭐ **THE ACCEPTANCE GATE REFUSED THIS SLICE FIRST, AND IT WAS RIGHT.**
+  `check_diagnosis_evidence.sh` blocked the commit: this leaf's ROOT CAUSE box carried **0** tokens
+  from `DIAGNOSIS_SIG` (measured), because the only tool that could produce the diagnosis was the one
+  this slice was creating — so the checker fell through to a finished leaf's box and correctly
+  refused the borrow. ⇒ **group 1 of the five-family table is a VOCABULARY OF TOOLS, and an
+  unregistered instrument is an invisible one**; `PGEN_REACH_FORCED_OVERRIDE_DUMP` /
+  `[forced-override]` now join it, on identical footing to the already-listed `PGEN_REACH_PATH_DUMP`.
+  ⛔ An ADDITION to the recognized-tool list, not a relaxation — the same correction group 2 made for
+  this repo's real profilers. The obligation is recorded in both directions in `TOOLBOX.md`: register
+  a token only for a real runnable instrument, and in the same commit that lands it.
+- **LOCKSTEP:** `TOOLBOX.md` §6.4 + quick-chooser row + the five-family signature table;
+  `scripts/check_diagnosis_evidence.sh`; book *Diagnosing UNKNOWNs*; a new KM card
+  (`a-recorded-failure-reason-is-not-a-readable-one`) + the probe-sample card updated to point at the
+  instrument it asked for + regenerated `KNOWLEDGE_MAP.md`; the leaf. DONE-BAR register unchanged —
+  no family status moves on a diagnostic-only slice.
+
 ## 2026-08-12 - PGEN-GENERATED-LINT-CORRECTNESS-0013 — the synthetic-preservation rule lands as a TOOL at the point of loss, and the obvious GATE is refused on measurement (leaf `GENERATED-LINT-CORRECTNESS.13`; ops/build-flow, ZERO Rust bytes)
 
 - **DIRECTOR-APPROVED RULE:** *"if a leaf says prove it on the synthetic, the synthetic is

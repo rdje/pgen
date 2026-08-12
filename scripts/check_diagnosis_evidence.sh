@@ -320,7 +320,19 @@ unchecked() {
 # actually run. ⛔ A bare `grep` mention is DELIBERATELY EXCLUDED: it matches 16 boxes on prose such
 # as "verified by grep", i.e. it is a claim, not tool output. Rationale + the measured case:
 # docs/decisions/project_ops_build_flow_root_cause_signature.md.
-DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--dump-rule-outcome-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|/usr/bin/sample|\botool\b|\bspindump\b|\bfiltercalltree\b|\bITIMER_PROF\b|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT|git (ls-files|log -S|log --all -S|rev-list|fsck|reflog|diff-tree|merge-base|cat-file)|\bshellcheck\b|bash -n |sh -n |make -n |make --dry-run|\bE2BIG\b|\bENOSPC\b|\bEACCES\b|\bARG_MAX\b|guard\.[0-9]+\.marker|reason=(none|rss-budget|free-floor|disk-floor|timeout)'
+#
+# ⭐ REGISTERING A NEW INSTRUMENT IS A LOCKSTEP OBLIGATION, NOT A SIXTH FAMILY
+# (ENGINE-UNIVERSAL-SERVICES.11 slice 1, 2026-08-12). Group 1 is a VOCABULARY OF TOOLS, so a
+# family-1 instrument that lands without its token joining this list is invisible here: every leaf
+# root-caused with it is blocked, and the only ways out are to cite a tool that did NOT produce the
+# diagnosis or to waive - both dishonest, and the second is how a gate teaches bypass. That is
+# exactly what happened when `PGEN_REACH_FORCED_OVERRIDE_DUMP` (TOOLBOX.md 6.4) landed: the gate
+# CORRECTLY refused the very leaf that built the tool. `PGEN_REACH_PATH_DUMP` is already registered
+# on identical footing, so this is the same correction group 2 made for the SPEED profilers - the
+# bar was aimed at a stale tool list, not lowered. ⛔ The obligation runs the OTHER way too: a token
+# may only be added here when a real, runnable instrument emits it, and TOOLBOX.md's five-family
+# table must list it in the same commit. Adding a token for prose is the `grep` exclusion above.
+DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|PGEN_REACH_FORCED_OVERRIDE_DUMP|\[forced-override\]|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--dump-rule-outcome-counts|--lint-grammar|--parse-dump-ast|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|/usr/bin/sample|\botool\b|\bspindump\b|\bfiltercalltree\b|\bITIMER_PROF\b|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT|git (ls-files|log -S|log --all -S|rev-list|fsck|reflog|diff-tree|merge-base|cat-file)|\bshellcheck\b|bash -n |sh -n |make -n |make --dry-run|\bE2BIG\b|\bENOSPC\b|\bEACCES\b|\bARG_MAX\b|guard\.[0-9]+\.marker|reason=(none|rss-budget|free-floor|disk-floor|timeout)'
 NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corpus *1[0-9]/1[0-9]|shape.?contract|spf=0|sample_parse_failures=0|fully_certified|clippy'
 
 fails=()

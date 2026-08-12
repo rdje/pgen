@@ -26,8 +26,29 @@ use serde_json::Value as JsonValue;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::panic::Location;
+use std::sync::OnceLock;
 // GRAMMAR-WELLFORMED.B1: wall-clock time (`std::time::{Duration, Instant}`) is no longer used —
 // the generation budget is a DETERMINISTIC step counter, so no run-to-run timing variance.
+
+/// ENGINE-UNIVERSAL-SERVICES.11 (OBSERVABILITY-ONLY): `PGEN_REACH_FORCED_OVERRIDE_DUMP=1` makes
+/// `generate_or`'s documented forced-first-**with-fallback** visible. Falling back is correct for
+/// TERMINATION and wrong for OBSERVABILITY: when a reach-plan-forced branch fails, the OR silently
+/// renders a sibling and returns `Ok`, so a probe that "did not witness" is indistinguishable from a
+/// probe that was never actually driven down the forced branch. The per-branch `failure_reasons`
+/// record that WOULD explain it is unreachable from a `--report-certificate-coverage` run: that path
+/// returns at `main.rs:1149`, and `--coverage-output` is rejected up front because it `require`s
+/// `--generate-stimuli`. This flag is the missing leg.
+///
+/// Read ONCE per process (the same discipline as `report_memo_stats_enabled`): this sits inside
+/// `generate_or`, the generator's hottest chokepoint, so a per-node `getenv` would be a locked
+/// linear `environ` scan on every OR site. Presence-gated PRINT only — it never changes a generation
+/// decision, so generation stays byte-identical whether it is set or not.
+static REACH_FORCED_OVERRIDE_DUMP_ENABLED: OnceLock<bool> = OnceLock::new();
+
+fn reach_forced_override_dump_enabled() -> bool {
+    *REACH_FORCED_OVERRIDE_DUMP_ENABLED
+        .get_or_init(|| std::env::var_os("PGEN_REACH_FORCED_OVERRIDE_DUMP").is_some())
+}
 
 const HELPER_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation helper timeout exceeded";
 const TARGET_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation target timeout exceeded";
@@ -2374,6 +2395,65 @@ impl<'a> StimuliGenerator<'a> {
 
     pub fn coverage_metrics(&self) -> &StimuliCoverageMetrics {
         &self.coverage
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.11 (OBSERVABILITY-ONLY): the reach-plan-FORCED branch at this OR
+    /// site was attempted and FAILED. This is the WHY leg — it carries the generator's own error
+    /// string, the same text `record_branch_failure` files under `failure_reasons` and that a
+    /// cert-coverage run has no way to emit (see `REACH_FORCED_OVERRIDE_DUMP_ENABLED`).
+    ///
+    /// Fires only for the forced branch itself, never for the siblings tried after it — an ordinary
+    /// branch failure is normal search, while the forced one failing is the directive being lost.
+    /// The crate shadows `eprintln!` → trace, so force real stderr with `::std::eprintln!`.
+    /// GENERAL/parser-agnostic: rule name + node path + branch index, no grammar-specific spelling.
+    fn dump_forced_branch_failure(
+        &self,
+        forced_branch: Option<usize>,
+        selected_branch: usize,
+        current_rule: &str,
+        node_path: &str,
+        alternatives: usize,
+        reason: &str,
+    ) {
+        if forced_branch != Some(selected_branch) || !reach_forced_override_dump_enabled() {
+            return;
+        }
+        ::std::eprintln!(
+            "  [forced-override] rule='{}' path='{}' forced_branch={}/{} outcome=failed reason={:?}",
+            current_rule,
+            node_path,
+            selected_branch,
+            alternatives,
+            reason
+        );
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.11 (OBSERVABILITY-ONLY): the OR site returned `Ok` on a branch that
+    /// is NOT the one the reach plan forced. This is the OVERRIDE leg — paired with
+    /// `dump_forced_branch_failure` it turns a silent substitution into a two-line record: which
+    /// directive was lost, why, and what got rendered instead.
+    fn dump_forced_branch_overridden(
+        &self,
+        forced_branch: Option<usize>,
+        selected_branch: usize,
+        current_rule: &str,
+        node_path: &str,
+        alternatives: usize,
+    ) {
+        let Some(forced_branch) = forced_branch else {
+            return;
+        };
+        if forced_branch == selected_branch || !reach_forced_override_dump_enabled() {
+            return;
+        }
+        ::std::eprintln!(
+            "  [forced-override] rule='{}' path='{}' forced_branch={}/{} outcome=overridden rendered_branch={}",
+            current_rule,
+            node_path,
+            forced_branch,
+            alternatives,
+            selected_branch
+        );
     }
 
     /// CERT-GEN-BUDGET.2: the cumulative DETERMINISTIC generation step counter (B1) — one step
@@ -11316,6 +11396,12 @@ impl<'a> StimuliGenerator<'a> {
                         .position(|global_idx| *global_idx == forced_global)
                 })
         };
+        // ENGINE-UNIVERSAL-SERVICES.11: the GLOBAL branch index the reach plan forced here, kept so
+        // every exit of the attempt loop below can name it in the env-gated override dump. `None`
+        // off-reach and whenever the directive was stood down (`suppress_recursive_forced_branch`),
+        // which is exactly when there is no override to report.
+        let reach_forced_global: Option<usize> =
+            reach_forced_local.map(|forced_local| candidate_indices[forced_local]);
         let attempt_order: Vec<usize> = if let Some(forced_local) = reach_forced_local {
             let mut ordered = Vec::with_capacity(candidate_indices.len());
             ordered.push(forced_local);
@@ -11646,6 +11732,13 @@ impl<'a> StimuliGenerator<'a> {
                         sample_hint.len()
                     ),
                 );
+                self.dump_forced_branch_overridden(
+                    reach_forced_global,
+                    selected_global,
+                    current_rule,
+                    node_path,
+                    alternatives.len(),
+                );
                 // GRAMMAR-WELLFORMED.H.8 (Defect A): same tail-state update as the rule-level hint
                 // override — without it the join rule consults stale state after the hint render
                 // and fuses the hint's tail keyword with the next item (`endprogram`+`module`).
@@ -11677,6 +11770,13 @@ impl<'a> StimuliGenerator<'a> {
                             selected_global,
                             output.len()
                         ),
+                    );
+                    self.dump_forced_branch_overridden(
+                        reach_forced_global,
+                        selected_global,
+                        current_rule,
+                        node_path,
+                        alternatives.len(),
                     );
                     return Ok(output);
                 }
@@ -11766,6 +11866,13 @@ impl<'a> StimuliGenerator<'a> {
                                         original_max_depth.saturating_add(depth_retry_slack)
                                     ),
                                 );
+                                self.dump_forced_branch_overridden(
+                                    reach_forced_global,
+                                    selected_global,
+                                    current_rule,
+                                    node_path,
+                                    alternatives.len(),
+                                );
                                 return Ok(output);
                             }
                             Err(retry_err) => {
@@ -11783,6 +11890,14 @@ impl<'a> StimuliGenerator<'a> {
                                         "OR branch failed after depth-slack retry: rule='{}' path='{}' branch={} reason={}",
                                         current_rule, node_path, selected_global, retry_err
                                     ),
+                                );
+                                self.dump_forced_branch_failure(
+                                    reach_forced_global,
+                                    selected_global,
+                                    current_rule,
+                                    node_path,
+                                    alternatives.len(),
+                                    &retry_err.to_string(),
                                 );
                                 last_error = Some(retry_err);
                                 continue;
@@ -11862,6 +11977,13 @@ impl<'a> StimuliGenerator<'a> {
                                         current_rule, node_path, selected_global, output.len()
                                     ),
                                 );
+                                self.dump_forced_branch_overridden(
+                                    reach_forced_global,
+                                    selected_global,
+                                    current_rule,
+                                    node_path,
+                                    alternatives.len(),
+                                );
                                 return Ok(output);
                             }
                             Err(retry_err) => {
@@ -11879,6 +12001,14 @@ impl<'a> StimuliGenerator<'a> {
                                         "OR branch failed after constructive-reach retry: rule='{}' path='{}' branch={} reason={}",
                                         current_rule, node_path, selected_global, retry_err
                                     ),
+                                );
+                                self.dump_forced_branch_failure(
+                                    reach_forced_global,
+                                    selected_global,
+                                    current_rule,
+                                    node_path,
+                                    alternatives.len(),
+                                    &retry_err.to_string(),
                                 );
                                 last_error = Some(retry_err);
                                 continue;
@@ -11899,6 +12029,14 @@ impl<'a> StimuliGenerator<'a> {
                             "OR branch failed: rule='{}' path='{}' branch={} reason={}",
                             current_rule, node_path, selected_global, err
                         ),
+                    );
+                    self.dump_forced_branch_failure(
+                        reach_forced_global,
+                        selected_global,
+                        current_rule,
+                        node_path,
+                        alternatives.len(),
+                        &err.to_string(),
                     );
                     last_error = Some(err);
                 }

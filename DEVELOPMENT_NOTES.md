@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0008 — the answer was already being computed; nothing could read it
+
+This slice adds no capability. It adds a *print*, and the interesting part is that a defect diagnosed
+across two sessions was sitting one `eprintln!` away the whole time.
+
+**1. The record existed. The path that needed it could not emit it.** `record_branch_failure` files
+the generator's error string for every failed OR branch, and `TOOLBOX.md` 6.1 correctly says that
+record is *"already written by every run that emits reports, no re-run needed"*. `.11`'s plan quoted
+that and told the next session to go read it. It was wrong — not about the record, about the *path*.
+`--report-certificate-coverage` returns at `rust/src/main.rs:1149`, well before the
+`--coverage-output` write at `:1373`; and the two flags cannot even be combined, because
+`--coverage-output` is declared to `require` `--generate-stimuli`. Asking for it produces a clap
+error and no file. So on the single path where residual `UNKNOWN`s are produced, every failure reason
+is computed, stored, and dropped at process exit. Checking that took one command and would have been
+skipped by anyone who trusted the plan — which is the argument for proving a plan's premise before
+executing it, even when the plan is your own from two sessions ago.
+
+**2. Seven exits, not two.** The temptation was to wire the dump at the obvious pair — the success
+return and the failure record. `generate_or`'s attempt loop actually has seven exits: four `return
+Ok` (literal-hint short-circuit, plain success, depth-slack-retry success, constructive-reach-retry
+success) and three `record_branch_failure` sites. Wiring only the obvious two produces an instrument
+that reports *"never overridden"* on precisely the runs where a retry rescued the fallback — a blind
+spot in the passing direction, in a tool built to close a blind spot in the passing direction. The
+seven were enumerated mechanically (`awk` over the loop's line range for `return`/`continue`/`break`)
+rather than by reading, because that is the step where "I think I found them all" fails.
+
+**3. Observability-only has to be *proven*, not asserted.** A flag that formats strings inside the
+generator's hottest chokepoint is exactly where an observer effect hides — the repo already documents
+two of them (`bare_parse` routing flips when tracing or memo-stats are enabled). Two disciplines:
+read the env **once** per process via `OnceLock`, the same treatment `report_memo_stats_enabled`
+received after a `getenv` was priced at ≈3 % of a regex parse; and prove the equivalence by
+`diff`-ing the full 1 612-line probe stream with the flag on against the pre-change baseline, rather
+than eyeballing the headline. The headline alone would not have caught a reordering.
+
+**4. What it found, and the fix it ruled OUT.** First run:
+`forced_branch=2/3 outcome=failed reason="Stimuli generation depth exceeded max_depth=67 while
+expanding rule 'real_number'"`. Budget, not suppression; depth, not timeout or prune. But the useful
+part is the number. `67 = 2×24 + 19`, where `19` is `min_derivation_depths["select_expression_lr_suffix"]`
+— a **rule**-scoped depth, computed once outside the loop that then forces a specific alternative.
+The forced alternative descends the whole SV expression cascade and is far deeper than the rule's
+shallowest one. So *"the budget is too small"* and *"the budget is measured against the wrong thing"*
+produce an identical symptom, and only the second is a defect. The `--max-depth` ladder settles which:
+raising it globally does reach `UNKNOWN=0`, while `sample_parse_failures` climbs `0→8→17` — the gate
+trading a known residual for witnesses its own parser rejects. An instrument that had only said
+*"depth exceeded"* would have invited exactly that trade.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0006 — three rules can make a witness fail, and the planner only knew two of them
 
 The fix is one more tier on a pass that already had two. What makes it worth writing down is *why a

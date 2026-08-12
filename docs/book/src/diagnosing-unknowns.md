@@ -31,6 +31,7 @@ the generation-input / memo observability.
 | **The FULL list of `UNKNOWN` rules (not the truncated 25)?** | `PGEN_CERT_COVERAGE_DUMP_ALL=1` | prefix the cert command |
 | **WHY each `UNKNOWN` rule failed to witness (the forced sample + verdict)?** | `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` | prefix the cert command → `[plannable-probe]` lines |
 | The reach path (BFS hop chain) the planner installs for a target? | `PGEN_REACH_PATH_DUMP=1` | prefix any generation/cert command |
+| **The plan forced branch N — did the render OBEY, or fall back to a sibling silently?** | `PGEN_REACH_FORCED_OVERRIDE_DUMP=1` | prefix any generation/cert command → `[forced-override]` lines |
 | **Which residual `UNKNOWN`s are profile-excluded by construction (vs genuine)?** | `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` | prefix the cert command → `RESIDUAL-CLASSIFICATION` block |
 | Is an `UNKNOWN` a dead rule, a reach gap, or a store-gate rejection? | the 3-step protocol below | dump-all → debug-probes → semantic trace |
 | The normalized grammar IR the generators consume? | `--dump-gen-ast` | `ast_pipeline g.ebnf --generate-parser --dump-gen-ast gen.json …` |
@@ -281,6 +282,53 @@ A forced site prints `candidates=[1]` — exactly **one** repeat count, so a fai
 fallback of its own and propagates up to the nearest choice, which *does* fall back. Counting those
 lines is how a runaway forcing loop is caught: 119 at a single site in one probe was the `.10`
 signature, against 5 after the fix.
+
+---
+
+## Forced-branch override dump (`PGEN_REACH_FORCED_OVERRIDE_DUMP`)
+
+The reach-path dump above answers *"what did the planner decide?"*. This one answers the question
+that follows it — *"and did the render actually obey?"*.
+
+```bash
+PGEN_REACH_FORCED_OVERRIDE_DUMP=1 ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf \
+  --report-certificate-coverage --grammar-profile sv_2017 \
+  --entry-rule systemverilog_file --count 40 --seed 0 2>&1 | grep forced-override
+```
+
+When a reach-plan-forced branch fails, `generate_or` falls back to a sibling and returns `Ok`. That
+fallback is *correct for termination and wrong for observability*: the directive is lost with no
+trace at any verbosity, so a probe that "did not witness" is indistinguishable from a probe that was
+never actually driven down the intended branch. The flag emits two paired records:
+
+```
+[forced-override] rule='select_expression_lr_suffix' path='root' forced_branch=2/3 outcome=failed
+    reason="Stimuli generation depth exceeded max_depth=67 while expanding rule 'real_number'"
+[forced-override] rule='select_expression_lr_suffix' path='root' forced_branch=2/3
+    outcome=overridden rendered_branch=0
+```
+
+`outcome=failed` carries **why** the directive was lost — the generator's own error string;
+`outcome=overridden` carries **what** was substituted. An `overridden` line with no `failed` line for
+the same site means the forced branch was never attempted at all, which is a different bug (the
+self-recursion suppression, or exhausted bypass fuel) in a different place.
+
+### Why this instrument had to exist
+
+`ENGINE-UNIVERSAL-SERVICES.11` is the worked example, and its point is that the *existing* record was
+unreachable. The per-branch `failure_reasons` map does hold this answer — but
+`--report-certificate-coverage` returns before any coverage artifact is written, and
+`--coverage-output` cannot even be requested alongside it (it requires `--generate-stimuli`). So on
+the one path where residual `UNKNOWN`s actually live, the reason was being computed, filed, and
+discarded at process exit. Two candidate mechanisms sat in the task leaf with no way to choose
+between them; the flag named the winner on its first run.
+
+⚠️ **Read the reason, then question the budget.** `max_depth=67` above is
+`reach_prefix_budget + min_derivation_depths[rule]` — the depth of the rule's *shallowest*
+alternative, on a pass that was at that moment forcing a much deeper one. "Needs more budget" and
+"the budget is scoped to the wrong thing" produce the identical symptom. And a bigger global
+`--max-depth` is not the answer either: on SystemVerilog it buys `UNKNOWN 1→0` while
+`sample_parse_failures` climbs `0→8→17`.
 
 ---
 
