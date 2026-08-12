@@ -8528,6 +8528,42 @@ is not a promotion), and the probe arm it needs.
   and a **sweep for the same shape** — a `kw_*` terminal whose spelling is an Annex A NONTERMINAL
   name (`kw_tx_path_delay_expression_7b2dee37` is the other candidate the grep found).
 
+##### ✅ The REJECT is now PINNED (2026-08-12 session #220, tools-first; no code touched)
+
+The probe half of "owed" is discharged, so the next session starts from a measurement instead of a
+sentence. Input `tmp/a13c2d/cross_function.sv` is IEEE 1800-2017 §19.6.1's own shape — a covergroup
+whose `cross` body declares a function and then uses it in a `bins`:
+
+```systemverilog
+aXb : cross a, b
+{
+  function int myFunc1(int p, int q);
+    return p + q;
+  endfunction
+  bins one = myFunc1(2, 5);
+}
+```
+
+```text
+--profile sv_2017 → REJECT, furthest_position=107  (byte 107 is the newline right after the body's `{`)
+--profile sv_2023 → parse_full passed
+```
+
+⇒ the profile split is the whole defect: `cross_body_item_sv_2023` references the real
+`function_declaration` nonterminal (`systemverilog.ebnf:1838`) while `cross_body_item_sv_2017`
+matches the literal text `function_declaraton` (`:1834` → `:6591`
+`kw_function_declaraton_06b7ed29 := trivia /function_declaraton\b/`).
+
+⚠️ **AND THE FIX IS NOT ONE LINE — the semicolon shape has to move with it.**
+`cross_body_sv_2017 := lbrace ( cross_body_item semi )* rbrace` (`:1809`) demands a `;` after EVERY
+item, so merely re-pointing the reference would then require `endfunction ;`, which §19.6.1's example
+does not write. The sv_2023 pair already carries the correct shape — the `;` belongs to the
+`bins_selection_or_option` alternative, not to every item (`:1839`) — so the repair is to mirror it,
+which is the same reasoning `.13c.2a` recorded five lines above in the grammar (clause examples beat
+the Annex A transcription, [[annex-a-footnotes-license-derivations-the-productions-cannot-derive]]).
+⛔ That makes this an **accept-widening** change: it needs the full ceremony (SV regeneration, corpus
+re-measure with the accepts-invalid set held, release + schema + ledger), not a drive-by edit.
+
 #### `.13c.2b` — DEFECT: a size cast is rejected in a CONSTANT expression (`todo`, opened 2026-08-11 by `.13c.2`)
 
 - `parameter logic [7:0] K = 8'(1);` REJECTS while `initial k = 8'(1);` PARSES ⇒ the gap is the
