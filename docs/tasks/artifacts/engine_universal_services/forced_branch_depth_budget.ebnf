@@ -1,0 +1,143 @@
+# PRESERVED SCRATCH PROBE — ENGINE-UNIVERSAL-SERVICES / forced_branch_depth_budget
+# Snapshot of the `scratch` slot (TOOLBOX.md 1.3) taken before restoring the default
+# fixture, so the synthetic this leaf reproduces on can be re-run by the next reader:
+#   cp docs/tasks/artifacts/engine_universal_services/forced_branch_depth_budget.ebnf grammars/scratch/scratch.ebnf
+#   make -C rust SHELL=/bin/bash focus_scratch
+#   (cd rust && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline)
+# ⛔ Rebuild ast_pipeline AFTER focus_scratch: the focus target builds the binary BEFORE it
+#    regenerates the parser, so a binary built by that run judges the PREVIOUS grammar.
+
+# PROBE GRAMMAR — ENGINE-UNIVERSAL-SERVICES.11 (restore the default fixture with
+# `git checkout grammars/scratch/scratch.ebnf` before committing).
+#
+# Isolates `.11`: a reach-FORCED branch whose own minimal derivation is DEEPER than the
+# target-own witness pass's budget dies `depth exceeded`, and `generate_or`'s
+# forced-first-WITH-FALLBACK renders a sibling SILENTLY — so the one witnessing arm is never
+# probed and the rule stays UNKNOWN. Mirrors SystemVerilog's `select_expression_lr_suffix`:
+#
+#   * `expr` is DIRECTLY left-recursive behind a choice, so the eliminator synthesizes
+#     `expr_lr_base` / `expr_lr_suffix` — the shape the SV residual lives on.
+#   * `expr_lr_suffix` has THREE alternatives and only the third can witness. `fullexpr` is a
+#     CATCH-ALL that parses `&&`/`||` ITSELF, so under longest_match it absorbs every operator
+#     spelling any seed can produce and the `&&`/`||` suffixes are ENTERED but never COMMIT.
+#     (That is `.10` mechanism 2, already fixed; here it is left unwitnessable for EVERY seed
+#     on purpose, so the `with` arm is the only remaining witness — as in SV, where the
+#     witnessing operand is on the SUFFIX side.)
+#   * the `with ( … )` arm descends `deep`, a 70-level MANDATORY chain: the isolating twin of
+#     SV's `with_covergroup_expression -> covergroup_expression -> expression` cascade.
+#   * ⭐ `decl`'s `"chain" deep ;` alternative is LOAD-BEARING, not filler. It gives the chain
+#     rules a CHEAP route from the entry, so the plannable pass witnesses `w01..w70` without
+#     forcing the `with` arm — exactly as SV's expression hierarchy is reachable from
+#     everywhere else. Without it every `w*` rule is itself residual and drives the pass to
+#     force branch 2 on its own behalf, which changes what is being isolated.
+#
+# RE-RUN (default `--max-depth 24`, no special flags):
+#   cp <this file> grammars/scratch/scratch.ebnf
+#   make -C rust SHELL=/bin/bash focus_scratch
+#   (cd rust && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline)
+#   PGEN_CERT_COVERAGE_DUMP_ALL=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1 \
+#     PGEN_REACH_FORCED_OVERRIDE_DUMP=1 ./rust/target/debug/ast_pipeline \
+#     grammars/scratch/scratch.ebnf --report-certificate-coverage --entry-rule scratch \
+#     --count 1 --seed 0
+#   BEFORE the fix: UNKNOWN=1 ["expr_lr_suffix"], with [forced-override] … forced_branch=2/3
+#                   outcome=failed reason="… depth exceeded …" + outcome=overridden
+#                   rendered_branch=0
+#   AFTER  the fix: UNKNOWN=0 fully_certified=true, and NO forced-override for expr_lr_suffix
+
+@entry: true
+scratch := "unit" decl*
+
+decl := "group" ident "{" gitem* "}"
+      | "chain" deep ";"
+
+gitem := "cross" ident "{" citem* "}"
+
+citem := "bins" ident "=" expr ";"
+
+expr := seedatom
+      | expr "&&" expr
+      | expr "||" expr
+      | expr "with" "(" deep ")"
+      | fullexpr
+
+seedatom := "binsof" "(" ident ")"
+
+fullexpr := atom ( ("&&" | "||") atom )*
+
+atom := "binsof" "(" ident ")"
+      | ident
+
+# The DEEP mandatory chain — 70 levels, every one obligatory.
+deep := w01
+w01 := "a01" w02
+w02 := "a02" w03
+w03 := "a03" w04
+w04 := "a04" w05
+w05 := "a05" w06
+w06 := "a06" w07
+w07 := "a07" w08
+w08 := "a08" w09
+w09 := "a09" w10
+w10 := "a10" w11
+w11 := "a11" w12
+w12 := "a12" w13
+w13 := "a13" w14
+w14 := "a14" w15
+w15 := "a15" w16
+w16 := "a16" w17
+w17 := "a17" w18
+w18 := "a18" w19
+w19 := "a19" w20
+w20 := "a20" w21
+w21 := "a21" w22
+w22 := "a22" w23
+w23 := "a23" w24
+w24 := "a24" w25
+w25 := "a25" w26
+w26 := "a26" w27
+w27 := "a27" w28
+w28 := "a28" w29
+w29 := "a29" w30
+w30 := "a30" w31
+w31 := "a31" w32
+w32 := "a32" w33
+w33 := "a33" w34
+w34 := "a34" w35
+w35 := "a35" w36
+w36 := "a36" w37
+w37 := "a37" w38
+w38 := "a38" w39
+w39 := "a39" w40
+w40 := "a40" w41
+w41 := "a41" w42
+w42 := "a42" w43
+w43 := "a43" w44
+w44 := "a44" w45
+w45 := "a45" w46
+w46 := "a46" w47
+w47 := "a47" w48
+w48 := "a48" w49
+w49 := "a49" w50
+w50 := "a50" w51
+w51 := "a51" w52
+w52 := "a52" w53
+w53 := "a53" w54
+w54 := "a54" w55
+w55 := "a55" w56
+w56 := "a56" w57
+w57 := "a57" w58
+w58 := "a58" w59
+w59 := "a59" w60
+w60 := "a60" w61
+w61 := "a61" w62
+w62 := "a62" w63
+w63 := "a63" w64
+w64 := "a64" w65
+w65 := "a65" w66
+w66 := "a66" w67
+w67 := "a67" w68
+w68 := "a68" w69
+w69 := "a69" w70
+w70 := "a70" ident
+
+ident := /[a-z][a-z0-9_]*/

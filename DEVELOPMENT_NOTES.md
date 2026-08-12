@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0009 — a budget scoped to the wrong thing looks exactly like a budget that is too small
+
+The fix is four lines of arithmetic. What is worth writing down is how nearly it was the *other*
+four lines, and one thing the synthetic taught that reasoning did not.
+
+**1. Two different defects print the same reason.** The instrument said
+`Stimuli generation depth exceeded max_depth=67`. The obvious reading is "67 is too small, raise it",
+and the ladder appears to confirm it: at `--max-depth 32` the residual clears. The number is what
+separates the readings. `67 = 2×24 + 19`, and `19` is `min_derivation_depths["select_expression_lr_suffix"]`
+— a **rule**-scoped depth, i.e. the depth of that rule's *shallowest* alternative, computed once
+outside the loop whose entire job is to force each alternative in turn. So the budget was never too
+small in general; it was measured against the alternative the pass was *not* rendering. Had the
+instrument printed only "depth exceeded" without the number, the global knob would have looked
+correct — and it costs `sample_parse_failures 0→8→17`, trading a known residual for witness samples
+the parser rejects. ⭐ **A diagnostic that reports a limit should report the limit's provenance, not
+just that it was hit.**
+
+**2. The engine already had the right formula, one function away.** `witness_target_depth_budget`
+(`SV-EXH-PROOF.7.4.6.9`) budgets a BRANCH target by the targeted alternative's own
+`min_full_derivation_depth_of_node`, and its docstring states the failure verbatim: *"a rule-scoped
+depth is the depth of that rule's SHALLOWEST alternative — which is precisely the alternative a
+residual branch target is NOT."* A second pass, added later, re-derived a budget by hand and got the
+older, wrong shape. Reusing the existing function rather than writing an equivalent expression is
+what keeps the two from drifting apart again — and it is why this fix has no new arithmetic to test.
+
+**3. The synthetic disproved its own first draft, and that is the argument for building it.** Draft
+one put the deep chain only under the `with` arm. It produced *exactly* the expected override traffic
+— `forced_branch=2/3 outcome=failed … depth exceeded` — and reported `UNKNOWN=0`. Reading the
+override lines alone, it looked like a faithful reproduction. It was not: with no other route to the
+chain rules, the *plannable* pass targeted each `w01..w50` on its own behalf and forced branch 2 for
+each, so the traffic came from a different pass and the residual never formed. Adding one cheap
+alternative (`decl := "chain" deep ";"`) — the analogue of SV's expression hierarchy being reachable
+from everywhere else — made the synthetic reproduce `UNKNOWN=1 ["expr_lr_suffix"]` with all four
+reach passes failing. ⭐ **"The instrument fires" is not "the defect reproduces."** The check that
+caught it was the boring one: read the headline the leaf actually claims, not just the trace you went
+looking for.
+
+**4. Restoring state after a loop that mutates it.** The per-branch budget writes `self.config.max_depth`
+inside the loop; the child- and seed-forcing tiers below read it. Without an explicit restore they
+would inherit whichever branch happened to run last — a behaviour change to passes this leaf never
+touched, order-dependent, and invisible to every gate because those tiers rarely decide anything on
+SV. One line, and it is the difference between a scoped fix and an accidental one.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0008 — the answer was already being computed; nothing could read it
 
 This slice adds no capability. It adds a *print*, and the interesting part is that a defect diagnosed

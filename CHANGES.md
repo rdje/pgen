@@ -1,5 +1,46 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0009 — the witness pass budgeted the rule's SHALLOWEST alternative while forcing a much deeper one; SV's recognized union basis reaches UNKNOWN=0 (leaf `ENGINE-UNIVERSAL-SERVICES.11` slice 2; ENGINE tier, ZERO grammar bytes, ZERO codegen bytes)
+
+- ⭐⭐ **SYSTEMVERILOG IS NOW RECOGNIZED `fully_certified` VIA THE UNION.**
+  `sv_cert_recognized_union_gate`: `union_unknown 1 → 0`, `union_residual_rules
+  ["select_expression_lr_suffix"] → []`, `fully_certified_via_union: true`, identical at seeds
+  0/7/42 with `sample_parse_failures=0`. Canonical `UNKNOWN 12 → 11`, canonical witness `1344 →
+  1345`, union witness `1355 → 1356`; `total=1362` and `proof=6` unchanged. The
+  `GRAMMAR-WELLFORMED.A2.5` debt is fully repaid.
+- **ROOT CAUSE (one line):** `generate_target_own_structure_witnesses` set
+  `max_depth = reach_prefix_budget + min_derivation_depths[rule]` **once per rule, outside** the loop
+  that then FORCES a specific alternative — a RULE-scoped depth for a per-BRANCH decision, and a
+  rule-scoped depth is the depth of that rule's *shallowest* alternative, precisely the one a forced
+  branch is not. `2×24 + 19 = 67`, while the forced `with (…)` arm descends the full SV expression
+  hierarchy; it died `depth exceeded` and `generate_or` silently rendered `&&` instead. Named by
+  slice 1's instrument, not inferred.
+- **THE FIX:** budget the alternative you force —
+  `min_full_derivation_depth_of_node(alternative) + 1`, reusing `witness_target_depth_budget`'s
+  existing per-BRANCH formula (`SV-EXH-PROOF.7.4.6.9`) rather than inventing a second one, so the two
+  passes cannot drift. `.max(budget)` keeps it monotone (nothing that witnesses today can stop);
+  `bypass_fuel` moves with it; the rule-scoped budget is RESTORED before the child/seed tiers so they
+  do not silently inherit whichever branch ran last.
+- ⛔ **AND IT DOES NOT PAY IN PARSE FAILURES, WHICH THE OBVIOUS FIX DID.** Raising the global
+  `--max-depth` also reaches `UNKNOWN=0` — at `sample_parse_failures 0→8→17` across the 24/32/40
+  ladder, i.e. witness samples the real parser then rejects. The landed fix is LOCAL to this pass's
+  probes and holds `sample_parse_failures=0`.
+- **PROVEN ON AN ISOLATING SYNTHETIC FIRST** (tracked:
+  `docs/tasks/artifacts/engine_universal_services/forced_branch_depth_budget.ebnf`): `UNKNOWN 1 → 0
+  fully_certified=true` at **all 9** of `--count 1/2/3` × `--seed 0/7/42`, with 0 remaining
+  forced-override events. ⭐ Its `decl := "chain" deep ;` alternative is load-bearing and was found by
+  MEASUREMENT: without a cheap route to the chain rules the plannable pass targets each of them on
+  its own behalf and the grammar reports `UNKNOWN=0` — override traffic without the residual, i.e. a
+  synthetic that looks right and isolates nothing.
+- **NO REGRESSION.** Cross-grammar cert sweep BEFORE vs AFTER **byte-identical** (the before-binary
+  rebuilt from HEAD, not one arm re-run); `ast_shape_contract_gate` GREEN; `clippy_on_rust_change`
+  clean; generated parsers untouched. ⛔ The 4 grammars with no registered generated parser are
+  recorded with the tool's own reason, never as blank rows — two empty result sets diff clean.
+- ⛔ **DONE-BAR register deliberately UNCHANGED** (`systemverilog` stays `Mostly Done`):
+  certificate-coverage is one proof surface, and SV's release bar is gated on the corpus axis
+  (`SV-CORPUS-GRAD.13`, 46.3 % adjudicated). Promoting the row on this result would claim more than
+  the other axes support.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0008 — the witness planner's forced branch was being overridden SILENTLY, so `.11` had two candidate mechanisms and no way to choose; the instrument named the winner on its first run (leaf `ENGINE-UNIVERSAL-SERVICES.11` slice 1; ENGINE tier, ZERO codegen bytes)
 
 - **THE REASON WAS COMPUTED, FILED, AND THROWN AWAY.** `generate_or` documents a

@@ -989,7 +989,7 @@ census and an LR plan coexist. Fixing it in the engine fixes it for VHDL, PNR an
 rule; SV's `sv_cert_recognized_union_gate` returns to `union UNKNOWN=0` with residual `[]`, deterministic
 across seeds 0/7/42; and the contract's re-baseline note records the restoration.
 
-### `.11` — a FORCED branch that dies still renders a sibling SILENTLY, so the one witnessing arm is never probed (`in progress` — slice 1 INSTRUMENT landed `PGEN-ENGINE-UNIVERSAL-SERVICES-0008` 2026-08-12 session #219, and it CONFIRMED candidate mechanism 1; opened 2026-08-12 session #218 by `.10` mechanism 2; ⛔ **the sole BLOCKER for returning SV's union UNKNOWN to 0**)
+### `.11` — a FORCED branch that dies still renders a sibling SILENTLY, so the one witnessing arm is never probed (✅ **`done`** — slice 1 INSTRUMENT `PGEN-ENGINE-UNIVERSAL-SERVICES-0008` + slice 2 FIX `PGEN-ENGINE-UNIVERSAL-SERVICES-0009`, both 2026-08-12 session #219; opened 2026-08-12 session #218 by `.10` mechanism 2. ⭐⭐ **SV's recognized union basis is now `UNKNOWN=0`, residual `[]`, `fully_certified_via_union: true` at seeds 0/7/42 — the `GRAMMAR-WELLFORMED.A2.5` debt is fully repaid**)
 
 `.10` mechanism 1 fixed a forced **quantifier** that re-fired unboundedly and fell back to a sibling.
 `.10` mechanism 2 fixed the **seed** the plan never decided. What is left is the same *fallback*
@@ -1229,17 +1229,110 @@ otherwise-correct gate because the list named `cargo flamegraph` and not `/usr/b
 about what counts as evidence changed: the box still has to quote the output of a tool that was run,
 and this slice's box quotes the exact command plus its verbatim output.
 
-#### SLICE 2 — the fix (`todo`, next action)
+#### SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0009`) — the fix: budget the ALTERNATIVE you FORCE
 
-Budget the forced ALTERNATIVE, not the rule: inside `generate_target_own_structure_witnesses`'s
-`'branches:` loop, when a root-`Or` branch is forced, raise `self.config.max_depth` to cover that
-alternative's own `min_full_derivation_depth_of_node(alternative) + 1` — reusing
-`witness_target_depth_budget`'s established formula rather than inventing a second one. Strictly
-additive and monotone (`max(rule_scoped, branch_scoped)` only ever grows, so no target that witnesses
-today can stop witnessing), and LOCAL to the target-own probes, so the global `--max-depth` — and
-with it `sample_parse_failures=0` — is untouched. ⛔ Prove it on the isolating synthetic first, as
-`.10` demanded twice: the `.10` mechanism-2 probe grammar
-(`docs/tasks/artifacts/engine_universal_services/mechanism2_seed_shadowing_probe.ebnf`) plus a third
-`expr` alternative `expr "with" "(" deep ")"` whose `deep` is a mandatory chain deeper than the
-pass's budget — the catch-all seed keeps `&&`/`||` unwitnessable, so `with` is the only witnessing
-arm, exactly as in SV. Preserve it with `scripts/preserve_scratch_probe.sh` before restoring the slot.
+⭐⭐ **`select_expression_lr_suffix` WITNESSES, and SystemVerilog's recognized union basis reaches
+`UNKNOWN=0` with residual `[]` — the `GRAMMAR-WELLFORMED.A2.5` debt is fully repaid.**
+
+`generate_target_own_structure_witnesses` set its depth budget **once per rule, outside** the
+`'branches:` loop that then forces a specific alternative:
+
+```rust
+let target_subtree_depth = min_derivation_depths.get(rule).copied().unwrap_or(0);
+let budget = reach_prefix_budget.saturating_add(target_subtree_depth);   // 2*24 + 19 = 67
+self.config.max_depth = budget;
+```
+
+A rule-scoped depth is the depth of that rule's **shallowest** alternative — precisely the one a
+forced branch is *not*. The fix computes, per iteration, that branch's own
+`min_full_derivation_depth_of_node(alternative) + 1`, reusing `witness_target_depth_budget`'s
+established per-BRANCH formula (`SV-EXH-PROOF.7.4.6.9`) instead of inventing a second one, so the two
+passes cannot drift apart.
+
+Design points, each deliberate:
+* **Strictly additive and monotone** — `.max(budget)` only ever RAISES the flat budget, so no target
+  that witnesses today can stop witnessing. An alternative whose depth the fixpoint never resolved
+  (a non-terminating one) yields `None` and keeps the old budget exactly.
+* **`bypass_fuel` moves with it** (`branch_budget + 1`), keeping the invariant the flat version had.
+* **The B-ii pass is byte-identical** — `branch == None` (a rule with no top-level choice) forces no
+  alternative, so it keeps the rule-scoped budget.
+* **The rule-scoped budget is RESTORED after the loop.** Without that, the mandatory-child and
+  seed-sibling tiers below would inherit whichever branch happened to run last — a silent,
+  order-dependent budget change to passes this leaf did not touch.
+* ⛔ **HONEST BOUND (no silent caps):** scoped to the target's OWN root-`Or` tier, where the defect
+  was measured. The child and seed tiers force a branch of a *different* rule and still use the flat
+  budget; the same under-funding is possible there in principle, but no case has been observed and
+  widening on a hunch would ship untested budget arithmetic. The identical shape also exists in
+  `generate_structured_witnesses`' own `'branches:` loop — same reasoning, same bound.
+* ⛔ Keyed on derivation structure only — no rule names, no `_lr_` spelling. Engine tier.
+
+**THE ISOLATING SYNTHETIC (tracked: `docs/tasks/artifacts/engine_universal_services/forced_branch_depth_budget.ebnf`).**
+Built first, as `.10` demanded twice. `expr` is directly left-recursive behind a choice, so the
+eliminator emits the same `expr_lr_base`/`expr_lr_suffix` shape SV's residual lives on; a catch-all
+`fullexpr` parses `&&`/`||` itself so those two suffix arms are entered but never commit *for every
+seed*; and the `with ( deep )` arm descends a 70-level mandatory chain.
+
+⭐ **One design point in it is load-bearing and was found by measurement, not by reasoning.** The
+first draft had no cheap route to the chain rules, so the *plannable* pass targeted each `w01..w50`
+on its own behalf, forced branch 2 for each, and the grammar reported `UNKNOWN=0` — i.e. it produced
+1 784-style override traffic while failing to reproduce the residual at all. Adding
+`decl := "chain" deep ";"` gives the chain rules a cheap route from the entry — exactly as SV's
+expression hierarchy is reachable from everywhere else — and the synthetic then reproduces the SV
+residual exactly: `UNKNOWN=1 ["expr_lr_suffix"]`, `sample_parse_failures=0`, all four reach passes
+failing, and
+`[forced-override] rule='expr_lr_suffix' path='root' forced_branch=2/3 outcome=failed
+reason="Stimuli generation depth exceeded max_depth=63 while expanding rule 'w24'"` ×2 followed by
+`outcome=overridden rendered_branch=0` ×2.
+
+#### Acceptance Checklist (enforced) — slice 2, the fix (`PGEN-ENGINE-UNIVERSAL-SERVICES-0009`)
+
+- [x] **REPRODUCE / ISSUE** — SV: `PGEN_CERT_COVERAGE_DUMP_ALL=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1
+  ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017
+  --entry-rule systemverilog_file --count 40 --seed 0` → `UNKNOWN=1
+  ["select_expression_lr_suffix"]`, 27 probe samples of which **0** carry `with`. **Isolated to a
+  synthetic first** (`docs/tasks/artifacts/engine_universal_services/forced_branch_depth_budget.ebnf`,
+  driven through the `scratch` slot): `--count 1 --seed 0` → `UNKNOWN=1 ["expr_lr_suffix"]`,
+  `sample_parse_failures=0`, all four reach passes reporting 0 witnessed.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `[forced-override] rule='select_expression_lr_suffix'
+  path='root' forced_branch=2/3 outcome=failed reason="Stimuli generation depth exceeded
+  max_depth=67 while expanding rule 'real_number'"` + `outcome=overridden rendered_branch=0`
+  (slice 1's `PGEN_REACH_FORCED_OVERRIDE_DUMP=1`, reproduced verbatim on the synthetic as
+  `max_depth=63 … 'w24'`). **WHY** = the forced `with (…)` arm's own minimal derivation is deeper
+  than the budget the pass granted it; **WHERE** = `generate_target_own_structure_witnesses`
+  (`rust/src/ast_pipeline/stimuli_generator.rs`) computing
+  `reach_prefix_budget + min_derivation_depths[rule]` once per rule, outside the `'branches:` loop —
+  a RULE-scoped depth (`2*24 + 19 = 67`) for a per-BRANCH decision. Confirmed independently by the
+  `--max-depth` 24/32/40 ladder (`UNKNOWN` 1→0→0).
+- [x] **FIX** — ENGINE tier, and no lower tier exists: the defect is in the witness planner's budget
+  arithmetic, not in any grammar (per the 2026-08-11 director ruling, an EBNF must not carry it).
+  Per-branch budget from `min_full_derivation_depth_of_node(alternative) + 1`, reusing
+  `witness_target_depth_budget`'s formula; `.max(budget)` keeps it monotone; the rule-scoped budget
+  is restored before the child/seed tiers. ZERO grammar bytes, ZERO codegen bytes.
+- [x] **ADDRESSED (verified)** — **synthetic:** `UNKNOWN 1 → 0 fully_certified=true`,
+  `sample_parse_failures=0`, at **all 9** of `--count 1/2/3` × `--seed 0/7/42`, with **0** remaining
+  `forced-override` events for the target (the forced branch now renders instead of being
+  substituted). **SystemVerilog:** canonical `UNKNOWN 1 → 0 fully_certified=true
+  (sample_parse_failures=0)` and probe samples carrying `with` **0 → 1**. Named re-runnable oracle:
+  `make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate` → `recognized_basis_green: true`,
+  `fully_certified_via_union: true`, `union_unknown: 0`, `union_residual_rules: []`, identical at
+  seeds 0/7/42. ⛔ And it does NOT buy this with parse failures, which the rejected global-knob fix
+  did: `sample_parse_failures=0` at every seed, against `0→8→17` on the `--max-depth` ladder.
+- [x] **NO REGRESSION** — `sv_cert_recognized_union_gate` GREEN against the rebaselined contract,
+  deterministic across seeds 0/7/42, `sample_parse_failures=0`. **Cross-grammar cert-coverage sweep
+  BEFORE vs AFTER is byte-identical** (`diff` clean, 19 rows × the real before-binary rebuilt from
+  HEAD — not a re-run of one arm): json / regex / rtl_frontend / systemverilog_preprocessor / vhdl /
+  scratch each `UNKNOWN=0 fully_certified=true spf=0` at seeds 0/7, unchanged. ⛔ The 4 rows for
+  `ebnf` / `return_annotation` / `rtl_const_expr` / `semantic_annotation` are recorded as
+  `OUT-OF-SCOPE: no generated parser registered` with the tool's own reason, never as blank rows —
+  two empty result sets diff clean (`CI-PARITY-GATE-ROT.24`). `ast_shape_contract_gate` GREEN;
+  `clippy_on_rust_change` clean (strict source + strict generated). Generated parsers untouched: the
+  change is in the stimuli generator, and codegen has no path through it.
+- [x] **LOCKSTEP** — the union contract
+  (`rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`) rebaselined
+  with a full `rebaseline_note` carrying the WHY+WHERE and the ⛔ do-not-raise-`--max-depth` finding;
+  the tracked probe artifact; `TOOLBOX.md` §6.4's budget warning; the book
+  *Diagnosing UNKNOWNs*; `docs/TASK_TREE.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`.
+  ⛔ The DONE-BAR register is deliberately **UNCHANGED**: `systemverilog` stays `Mostly Done`.
+  Certificate-coverage is one proof surface, and SV's release bar is gated on the corpus axis
+  (`SV-CORPUS-GRAD.13` — only 46.3 % of the corpus adjudicated), so promoting the row on this result
+  would be a claim the other axes do not support.

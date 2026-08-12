@@ -849,11 +849,18 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   preceding `outcome=failed` for the same site means the forced branch was never *attempted* — check
   `suppress_recursive_forced_branch` and the `bypass_fuel` re-admission instead.
 - ⚠️ **The reason is only half the answer — the OTHER half is whether the budget is scoped right.**
-  `.11` measured `max_depth=67` from `reach_prefix_budget + min_derivation_depths[rule]`, i.e. the
-  rule's SHALLOWEST alternative, on a pass that then forces a specific (much deeper) one. Before
-  concluding *"needs more budget"*, check `witness_target_depth_budget` — the engine's established
-  per-BRANCH formula. ⛔ And do NOT reach for a bigger global `--max-depth`: measured on SV it buys
-  `UNKNOWN 1→0` by paying `sample_parse_failures 0→8→17`. Full map: `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` `.11`.
+  A `depth exceeded max_depth=N` prints identically whether the budget is genuinely too small or
+  merely measured against the wrong thing, so **read `N`'s provenance, not just that it was hit**.
+  `.11` measured `max_depth=67` = `reach_prefix_budget + min_derivation_depths[rule]`, i.e. the
+  rule's SHALLOWEST alternative, on a pass that was at that moment forcing a much deeper one. ⭐ That
+  instance is CLOSED — the target-own tier now budgets the alternative it forces
+  (`min_full_derivation_depth_of_node(alt) + 1`, `witness_target_depth_budget`'s formula), and SV's
+  union basis reached `UNKNOWN=0`. The mandatory-CHILD and seed-SIBLING tiers, and
+  `generate_structured_witnesses`' own branch loop, still use the flat rule-scoped budget — the same
+  under-funding is possible there and no case has been observed, so that is where to look next.
+  ⛔ Do NOT reach for a bigger global `--max-depth`: measured on SV it buys `UNKNOWN 1→0` by paying
+  `sample_parse_failures 0→8→17` — witness samples the real parser then rejects. Full map:
+  `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` `.11`.
 
 ---
 

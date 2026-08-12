@@ -326,9 +326,16 @@ between them; the flag named the winner on its first run.
 ⚠️ **Read the reason, then question the budget.** `max_depth=67` above is
 `reach_prefix_budget + min_derivation_depths[rule]` — the depth of the rule's *shallowest*
 alternative, on a pass that was at that moment forcing a much deeper one. "Needs more budget" and
-"the budget is scoped to the wrong thing" produce the identical symptom. And a bigger global
-`--max-depth` is not the answer either: on SystemVerilog it buys `UNKNOWN 1→0` while
-`sample_parse_failures` climbs `0→8→17`.
+"the budget is scoped to the wrong thing" produce the identical symptom, so read where the number
+came from, not just that it was hit. And a bigger global `--max-depth` is not the answer either: on
+SystemVerilog it buys `UNKNOWN 1→0` while `sample_parse_failures` climbs `0→8→17` — witness samples
+the real parser then rejects.
+
+That particular budget is now correct: the target-own witness tier funds the alternative it forces
+(`min_full_derivation_depth_of_node(alternative) + 1`), SystemVerilog's recognized union basis
+reaches `UNKNOWN = 0` with an empty residual, and no `[forced-override]` line remains for that rule.
+The mandatory-child and seed-sibling tiers still use the flat rule-scoped budget, so if you meet this
+signature again, that is the first place to look.
 
 ---
 

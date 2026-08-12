@@ -5835,6 +5835,52 @@ impl<'a> StimuliGenerator<'a> {
             let budget = reach_prefix_budget.saturating_add(target_subtree_depth);
             self.config.max_depth = budget;
             let bypass_fuel = budget.saturating_add(1) as u32;
+            // ENGINE-UNIVERSAL-SERVICES.11: per-BRANCH budgets for the root-`Or` tier below.
+            //
+            // `budget` above is RULE-scoped, and a rule-scoped depth is the depth of that rule's
+            // SHALLOWEST alternative — which is precisely the alternative a forced branch is NOT.
+            // The tier's whole job is to force each alternative in turn, so budgeting it by the
+            // shallowest one under-funds every deeper sibling: the forced descent dies
+            // `depth exceeded` and `generate_or`'s forced-first-with-fallback renders a sibling,
+            // silently. Measured on `systemverilog`: `select_expression_lr_suffix`'s `with (…)` arm
+            // descends the full expression hierarchy and aborted at `max_depth=67`
+            // (`2*24 + 19`), so 0 of 27 probe samples ever carried `with` and the rule stayed the
+            // grammar's last residual `UNKNOWN`.
+            //
+            // The engine already knows the right formula — `witness_target_depth_budget`
+            // (SV-EXH-PROOF.7.4.6.9) budgets a BRANCH target by that alternative's own
+            // `min_full_derivation_depth_of_node` `+ 1` for the `Or`'s own level. This reuses it
+            // rather than inventing a second one, so the two passes cannot drift apart.
+            //
+            // STRICTLY ADDITIVE AND MONOTONE: the per-branch value only ever RAISES the flat
+            // budget (`.max(budget)`), never lowers it, so no target that witnesses today can stop
+            // witnessing. An alternative whose depth the fixpoint never resolved (a non-terminating
+            // one) yields `None` and keeps the rule-scoped budget exactly as before. LOCAL to this
+            // pass's probes — `--max-depth` itself is untouched, which matters because raising it
+            // globally is a measured REGRESSION: on SV the 24/32/40 ladder buys `UNKNOWN 1→0` while
+            // `sample_parse_failures` climbs `0→8→17`.
+            //
+            // ⛔ HONEST BOUND (no silent caps): scoped to the target's OWN root-`Or` tier, the one
+            // where the defect was measured. The mandatory-CHILD and seed-SIBLING tiers further
+            // down force a branch of a DIFFERENT rule and still use the flat `budget`; the same
+            // under-funding is possible there in principle, but no case has been observed, and
+            // widening on a hunch would ship untested budget arithmetic.
+            let branch_depth_budget = |generator: &Self, branch_index: usize| -> usize {
+                root_or
+                    .as_ref()
+                    .and_then(|(or_path, _)| {
+                        generator.or_alternatives_for_group_path(rule, or_path)
+                    })
+                    .and_then(|alternatives| alternatives.get(branch_index))
+                    .and_then(|alternative| {
+                        Self::min_full_derivation_depth_of_node(alternative, &min_derivation_depths)
+                    })
+                    .map(|branch_depth| {
+                        reach_prefix_budget.saturating_add(branch_depth.saturating_add(1))
+                    })
+                    .unwrap_or(budget)
+                    .max(budget)
+            };
             let branch_candidates: Vec<Option<usize>> = match &root_or {
                 // B-i: non-degenerate alternatives first, then the degenerate `o0`.
                 Some((_, alt_count)) => {
@@ -5852,7 +5898,16 @@ impl<'a> StimuliGenerator<'a> {
                 if probe_budget == 0 {
                     break;
                 }
-                if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                // ENGINE-UNIVERSAL-SERVICES.11: fund the alternative this iteration FORCES, not the
+                // rule's shallowest one. The B-ii pass (`branch == None`, no top-level choice)
+                // forces no alternative, so it keeps the flat rule-scoped budget byte-identically.
+                let branch_budget = match branch {
+                    Some(branch_index) => branch_depth_budget(self, branch_index),
+                    None => budget,
+                };
+                self.config.max_depth = branch_budget;
+                let branch_bypass_fuel = branch_budget.saturating_add(1) as u32;
+                if !self.set_reach_plan_for_rule(entry_rule, rule, branch_bypass_fuel) {
                     break;
                 }
                 if let Some(plan) = self.reach_plan.as_mut() {
@@ -5897,6 +5952,11 @@ impl<'a> StimuliGenerator<'a> {
                 }
                 self.clear_reach_plan();
             }
+            // ENGINE-UNIVERSAL-SERVICES.11: the loop above varies `max_depth` PER BRANCH, so restore
+            // the rule-scoped budget before the child/seed tiers. Without this they would inherit
+            // whichever branch happened to run last — a silent, order-dependent budget change to
+            // passes this leaf did not touch.
+            self.config.max_depth = budget;
             // GRAMMAR-WELLFORMED.H.12.5.5.3.3.1 (C-ii): if R's own structure forcing did not
             // witness, try forcing each MANDATORY child rule's OWN distinguishing structure on top
             // of R's minimal body. Purely additive (runs only when R-own failed); R-own behaviour
