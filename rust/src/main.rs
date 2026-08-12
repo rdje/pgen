@@ -91,6 +91,28 @@ struct Args {
     #[arg(long)]
     lint_grammar: bool,
 
+    /// ENGINE-UNIVERSAL-SERVICES.13 (TOOLBOX §1.5 as a CLI): parse this INPUT FILE against the
+    /// loaded grammar using the grammar-AST INTERPRETER
+    /// (`parse_harness_interpreter::interpret_parse_gen_ast`) and print one `INTERPRET-PARSE:`
+    /// verdict line, then exit — rc 0 on accept, rc 1 on reject. Answers "does this ARBITRARY
+    /// grammar accept this input?" with **no codegen, no `rustc`, no registry edit**, which the
+    /// scratch slot (§1.3) needed a `focus_scratch` + probe rebuild for and the in-process
+    /// harnesses (§1.4/§1.5) exposed to Rust callers only.
+    #[arg(long, value_name = "FILE")]
+    interpret_parse: Option<String>,
+
+    /// ENGINE-UNIVERSAL-SERVICES.13: alternate start symbol for `--interpret-parse`
+    /// (default: the grammar's declared `@entry: true` rule, i.e. `rule_order[0]`). The
+    /// LR-elimination pass PREPENDS `<rule>_lr_base`/`_lr_suffix` helpers to `rule_order`, so a
+    /// probe that must start from a mid-grammar rule names it here.
+    #[arg(long, value_name = "RULE", requires = "interpret_parse")]
+    interpret_entry_rule: Option<String>,
+
+    /// ENGINE-UNIVERSAL-SERVICES.13: write the accepted parse's typed AST to this JSON file
+    /// (pretty-printed). Nothing is written on a rejected parse.
+    #[arg(long, value_name = "FILE", requires = "interpret_parse")]
+    interpret_parse_ast_json: Option<String>,
+
     /// SV-CORPUS-GRAD.7 (parser-agnostic corpus rule-coverage instrument): serialize the
     /// loaded grammar's FULL rule inventory with, per rule, the declared `@profiles` set
     /// (absent = universal) and the DERIVED per-profile satisfiability (the same transitive
@@ -1058,6 +1080,25 @@ fn pipeline_main() -> Result<()> {
             args.grammar_profile.as_deref(),
         )?;
         return run_grammar_lint(&grammar, &unfiltered_grammar);
+    }
+
+    // ENGINE-UNIVERSAL-SERVICES.13: the grammar-AST INTERPRETER as a CLI verdict. Runs on the
+    // UNFILTERED bundle for the same reason the lint does — `@profiles` selection is a RUNTIME
+    // guard the interpreter applies itself from `--grammar-profile`, so pre-stripping the gated
+    // rule DEFINITIONS here would answer a different question than the generated parser does.
+    if let Some(input_file) = args.interpret_parse.clone() {
+        let grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
+        return run_interpret_parse(
+            &grammar,
+            &input_file,
+            args.grammar_profile.as_deref(),
+            args.interpret_entry_rule.as_deref(),
+            args.interpret_parse_ast_json.as_deref(),
+        );
     }
 
     // SV-CORPUS-GRAD.7: machine-readable per-profile rule-inventory dump (the corpus
@@ -4117,6 +4158,113 @@ fn print_lint_findings<T: LintFinding>(issues: &[T], tag: &str, cap: usize, noun
             issues.len()
         );
     }
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.13` — parse `input_path` against an already-loaded arbitrary grammar
+/// with the grammar-AST **interpreter** (TOOLBOX §1.5) and report the verdict on one greppable
+/// `INTERPRET-PARSE:` line. rc 0 on accept, rc 1 on reject (the `parseability_probe --parse`
+/// convention, so a shell instrument can gate on it directly).
+///
+/// ⛔ WHY THIS EXISTS. PGEN already had three ways to parse an *arbitrary* grammar and not one of
+/// them answered the question from a shell. §1.3's scratch slot is a CLI, but it costs a
+/// `make focus_scratch` + a `parseability_probe` relink per grammar edit — minutes per probe, and
+/// it carries the two documented traps (a stale `ast_pipeline` judging the previous grammar; a
+/// restored slot erasing the probe). §1.4's compile-and-run harness and §1.5's interpreter are
+/// **Rust APIs**: reaching them means writing a test. So a five-rule synthetic — the unit in which
+/// every left-recursion defect on this tree has actually been diagnosed — could not be measured
+/// without either a multi-minute rebuild or a source edit. This is the missing rung: the same
+/// interpreter the `PARSE-HARNESS.5`/`.6.1` gates certify byte-identical to the generated parser,
+/// reachable in one command with no codegen and no compile.
+///
+/// ⭐ The verdict is the interpreter's, and its authority is BY VERIFICATION, not by construction:
+/// what makes this line trustworthy is that `parse_harness_equivalence` (11 registered grammars)
+/// and `parse_harness_combinator_suite` (per structural combinator) pin the interpreter
+/// byte-identical to the real generated parser. On a construct outside that certified surface —
+/// store-gated `@predicate` parse outcomes — cross-check with §1.4 before quoting it.
+fn run_interpret_parse(
+    grammar: &LoadedGrammar,
+    input_path: &str,
+    profile: Option<&str>,
+    entry_rule: Option<&str>,
+    ast_json_out: Option<&str>,
+) -> Result<()> {
+    // The shared source decoder, so a Latin-1 corpus row reaches the interpreter the same way it
+    // reaches the generated parser (SV-CORPUS-GRAD.12c.1) instead of failing the whole run.
+    let input = pgen::source_text::read_source_file(input_path)
+        .with_context(|| format!("failed to read --interpret-parse input file {input_path}"))?
+        .text;
+
+    // `None` = `rule_order[0]`, which IS the declared `@entry: true` rule: `load_grammar_bundle`
+    // normalizes it to the front (`apply_declared_entry_rule`, QUANT-PLUS-ITER.2) AFTER the
+    // LR-elimination pass has prepended its helper rules, so the entry survives elimination.
+    let entry = entry_rule.or_else(|| grammar.rule_order.first().map(String::as_str));
+    if let Some(entry) = entry {
+        if !grammar.grammar_tree.contains_key(entry) {
+            return Err(anyhow::anyhow!(
+                "grammar '{}': --interpret-entry-rule '{}' is not a rule of this grammar",
+                grammar.grammar_name,
+                entry
+            ));
+        }
+    }
+
+    let outcome = pgen::parse_harness_interpreter::interpret_parse_gen_ast(
+        &grammar.grammar_name,
+        profile,
+        &grammar.grammar_tree,
+        &grammar.rule_order,
+        grammar.annotations.as_ref(),
+        entry,
+        &input,
+    )
+    .map_err(|err| {
+        anyhow::anyhow!(
+            "interpreter could not run on grammar '{}': {err}",
+            grammar.grammar_name
+        )
+    })?;
+
+    // ⭐ Printed BEFORE the reject `bail!`, and on stdout, so the measurement is greppable in BOTH
+    // directions. A tool that reports only its successes is the shape `CI-PARITY-GATE-ROT.24`
+    // caught: an empty stdout row and a message on stderr diff clean against another empty row.
+    println!(
+        "INTERPRET-PARSE: grammar='{}' entry='{}' profile='{}' input_bytes={} accepted={} \
+         furthest_position={}{}",
+        grammar.grammar_name,
+        entry.unwrap_or("<none>"),
+        profile.unwrap_or("<unspecified>"),
+        input.len(),
+        outcome.accepted,
+        outcome.furthest_position,
+        outcome
+            .error
+            .as_deref()
+            .map(|e| format!(" error={e:?}"))
+            .unwrap_or_default(),
+    );
+
+    if outcome.accepted {
+        if let Some(path) = ast_json_out {
+            let ast = outcome.ast_json.clone().unwrap_or(serde_json::Value::Null);
+            std::fs::write(path, serde_json::to_string_pretty(&ast)?)
+                .with_context(|| format!("failed to write --interpret-parse-ast-json to {path}"))?;
+            println!("INTERPRET-PARSE: typed AST written to {path}");
+        }
+        return Ok(());
+    }
+
+    Err(anyhow::anyhow!(
+        "interpreter REJECTED '{}' for grammar '{}' (entry '{}') at furthest_position={}{}",
+        input_path,
+        grammar.grammar_name,
+        entry.unwrap_or("<none>"),
+        outcome.furthest_position,
+        outcome
+            .error
+            .as_deref()
+            .map(|e| format!(": {e}"))
+            .unwrap_or_default(),
+    ))
 }
 
 fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar) -> Result<()> {

@@ -105,11 +105,35 @@ that does not need one.
    100 % LRM compliance by default, where an unexpected-but-accepting parse is a defect, not a
    convenience.
 
+## AMENDMENT (2026-08-12, session #222 — `.13` slice 3, `PGEN-ENGINE-UNIVERSAL-SERVICES-0013`)
+
+The decision **stands** — generation-time elimination was measured to work on the isolating
+synthetic — but two of its details were wrong by omission, and both were found by measurement rather
+than argument (`docs/tasks/artifacts/engine_universal_services/indirect_lr/README.md`):
+
+1. ⛔ **The rule to eliminate at is the CONSUMER rule, not the rule the lint names.** Eliminating at
+   `casting_type` — the rule every lint row prints first, and the one this record's own prose keeps
+   naming — is a **regression**: measured on the synthetic, one-level `t'(n)` goes accept → reject
+   and nothing recovers. PGEN's `*` is greedy and does not backtrack its iteration count
+   (`generated/systemverilog_parser.rs:7463`), so an eliminated `casting_type` swallows the whole
+   cast chain and `constant_cast`'s own trailing `' ( … )` can never match. Nothing outside the
+   cycle ever asks for a `casting_type`; a SystemVerilog expression asks for a `constant_primary`,
+   and that is the rule that must absorb the chain.
+2. ⭐ **The blow-up is one CLONE per intermediate rule on the cycle path — and each clone is a new
+   rule name in the typed AST.** The working transform needs `base` to include a copy of each
+   intermediate with the cycle edge removed (`constant_cast` re-emitted over a `casting_type` shorn
+   of its `constant_primary` arm). That is far short of the exponential closure ANTLR4 objects to,
+   so the "3 knots, not 30 cycles" pricing above survives — but the AST-shape cost is real and was
+   not priced here. `.13` (d) therefore carries an `ast_shape_contract` obligation, not only parse
+   verdicts. ⛔ `lr_chain_fold` (point 1 below) rebuilds the DECLARED shape for the *eliminated*
+   rule; it says nothing about a clone appearing under a new name, which is a separate question.
+
 ## HONEST BOUNDS
 
 - This decides the **mechanism**, not the algorithm's details: which elimination transform, how the
   fold generalises to a set of rules, and what the linter says when a knot is refused are still
-  open and belong to `.13`'s design/implementation slices.
+  open and belong to `.13`'s design/implementation slices. ⭐ The amendment above closes one of
+  those details (WHICH rule absorbs the chain) and opens another (what the clone does to the AST).
 - The entry-count table is a **share of rule entries**, not a share of wall time; it establishes the
   knot is hot, not the exact price of a runtime protocol. Nobody has built the runtime arm to A/B it
   — and under a *"costs are rejected, not traded"* rule, the burden sits on the arm that adds

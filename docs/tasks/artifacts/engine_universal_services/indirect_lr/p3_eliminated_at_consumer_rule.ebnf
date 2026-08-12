@@ -1,0 +1,27 @@
+# ENGINE-UNIVERSAL-SERVICES.13 — P3: knot A hand-eliminated at the CONSUMER rule (`prim`).
+#
+# The same cycle, rewritten at the rule the outside world actually asks for — `prim`, i.e.
+# `constant_primary`. `prim` absorbs the chain; its base holds every non-cyclic left corner,
+# INCLUDING a clone of the intermediate `cast_expr` whose own left corner (`ct`) has been
+# restricted to its non-cyclic alternatives:
+#
+#   prim           := prim_base ( prim_suffix )*
+#   prim_base      := lit | cast_expr_seed   ~ literal … | constant_cast[casting_type := non-cyclic]
+#   prim_suffix    := "'" "(" lit ")"        ~ constant_cast's residual after its leading casting_type
+#   cast_expr_seed := kw "'" "(" lit ")"     ~ THE CLONE — this is the blow-up term, and in
+#                                              SystemVerilog it is `constant_cast` re-emitted over a
+#                                              `casting_type` shorn of its `constant_primary` arm.
+#
+# ⛔ `ct` and `cast_expr` are GONE here only because this synthetic reaches them from nowhere else.
+# SystemVerilog reaches `casting_type` from `cast` too, so a real transformation must ADD the clone
+# and KEEP the originals. See README.md.
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim.
+@entry: true
+scratch := prim
+prim := prim_base ( prim_suffix )*
+prim_base := lit | cast_expr_seed
+prim_suffix := "'" "(" lit ")"
+cast_expr_seed := kw "'" "(" lit ")"
+lit := "n"
+kw := "t"

@@ -1,0 +1,28 @@
+# ENGINE-UNIVERSAL-SERVICES.13 — P1: SystemVerilog knot A, minimised to six rules.
+#
+# The shape, edge for edge, of the cycle
+#   casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_cast -> casting_type
+# (grammars/systemverilog.ebnf:1032 / :1641 / :1572 / :1539), with the 2-hop bare-rule-reference
+# chain collapsed to one hop. Every edge out of the consumer-facing rule is a BARE RULE REFERENCE
+# until the last, which is the wrapper shape the planner already matches:
+#
+#   prim      := lit | cast_expr        ~ constant_primary := primary_literal | … | constant_cast
+#   cast_expr := ct "'" "(" lit ")"     ~ constant_cast    := casting_type ' ( constant_expression )
+#   ct        := kw | prim              ~ casting_type     := simple_type | constant_primary
+#
+# ⭐ `scratch := prim` puts the ENTRY OUTSIDE the cycle, as `source_text` is in SystemVerilog, and
+# that placement is load-bearing: with `prim` itself as the entry the outermost `prim` occupies the
+# guard's (rule, position) slot before the derivation starts, and the probe measures the entry
+# choice rather than the cycle. `prim` is the rule under test because `constant_primary` is what a
+# SystemVerilog expression actually asks for — `casting_type` is reachable only from inside the
+# cycle, which is the whole point of the P2/P3 pair (see README.md).
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim:
+#   cp <this file> grammars/scratch/scratch.ebnf && make -C rust SHELL=/bin/bash focus_scratch
+@entry: true
+scratch := prim
+prim := lit | cast_expr
+cast_expr := ct "'" "(" lit ")"
+ct := kw | prim
+lit := "n"
+kw := "t"

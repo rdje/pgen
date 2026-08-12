@@ -1,0 +1,25 @@
+# ENGINE-UNIVERSAL-SERVICES.13 — P2: knot A hand-eliminated at the INNER cycle rule (`ct`).
+#
+# This is what a generalized `detect_left_recursive_chain_plan` would produce if it did the obvious
+# thing — follow the bare-rule-reference chain out of the rule the LINT names first
+# (`casting_type`, here `ct`) and rewrite THAT rule to `base ( suffix )*`:
+#
+#   ct        := ct_base ( ct_suffix )*   ~ casting_type := casting_type_lr_base ( …_lr_suffix )*
+#   ct_base   := kw | lit                 ~ the non-cyclic left corners (simple_type, signing, …,
+#                                           plus constant_primary shorn of the cycle edge)
+#   ct_suffix := "'" "(" lit ")"          ~ constant_cast's residual after its leading casting_type
+#
+# `prim` and `cast_expr` are UNCHANGED — exactly as they would be, since the plan rewrites only its
+# own base rule. The question this probe answers is whether that is enough for the CONSUMER (`prim`,
+# i.e. `constant_primary`) to reach the chained text. See README.md.
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim.
+@entry: true
+scratch := prim
+prim := lit | cast_expr
+cast_expr := ct "'" "(" lit ")"
+ct := ct_base ( ct_suffix )*
+ct_base := kw | lit
+ct_suffix := "'" "(" lit ")"
+lit := "n"
+kw := "t"

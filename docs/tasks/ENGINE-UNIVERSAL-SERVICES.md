@@ -1585,6 +1585,125 @@ bytes, ZERO Rust bytes. The short form:
   (*"it changes the resulting trees"*). Generalising that fold from one rule to a mutually-recursive
   **set** is the real work of acceptance (c)/(d), and is where the next slice starts.
 
+#### ✅ SLICE 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0013`, 2026-08-12 session #222) — the ISOLATING SYNTHETIC for acceptance (c), and the design it REFUTES
+
+> **The synthetic that acceptance (c) asks for now exists, and measuring it moved the fix's target
+> rule.** Artifacts + the re-runnable dual-oracle driver:
+> `docs/tasks/artifacts/engine_universal_services/indirect_lr/` (`README.md` carries the full
+> matrix). ZERO grammar bytes; the only Rust is a new INSTRUMENT (`--interpret-parse`), no engine
+> or codegen change.
+
+**THE SYNTHETIC.** Six rules carrying knot A edge for edge — `prim := lit | cast_expr`,
+`cast_expr := ct "'" "(" lit ")"`, `ct := kw | prim`, entry OUTSIDE the cycle as `source_text` is in
+SystemVerilog. `--lint-grammar` reports the same single surviving cycle; the generated parser
+reproduces the SystemVerilog signature exactly (`t'(n)` — one cast level, seeded by `ct`'s own
+alternative — ACCEPTS, and everything that needs the cycle REJECTS). The trace names the mechanism:
+
+```text
+💥 Infinite recursion detected in rule 'prim' at position 0
+🔙 Speculative parse failed … backtracked to position 0 (rule=ct)
+🏁 Rule 'ct' selected branch 1/2 consuming 1 chars     ← kw = "t", the ONLY branch left
+🏁 Rule 'prim' selected branch 2/2 consuming 5 chars   ← "t'(n)", and there it stops
+```
+
+⭐ Both of this leaf's real victims are one table now: `t'(n)'(n)` is `int'(2)'(3)`, and `n'(n)` —
+seeded by `prim`'s own alternative instead of `ct`'s — is `SV-CORPUS-GRAD.13c.2b`'s `8'(1)`.
+
+⛔⛔ **(1) ELIMINATING AT THE RULE THE LINT NAMES IS A REGRESSION, NOT A FIX.** P2 rewrites `ct`
+(= `casting_type`, the rule every lint row and this leaf's own opening paragraph names first) into
+`ct_base ( ct_suffix )*` — what a generalized `detect_left_recursive_chain_plan` produces if it
+simply follows the bare-reference chain. Measured: `t'(n)` goes **accept → reject** and nothing
+recovers. PGEN's `*` is greedy and does **not** backtrack its iteration count
+(`generated/systemverilog_parser.rs:7463` — `loop { if let Some(node) = try_parse(…) { … } else { break } }`),
+so the eliminated `ct` swallows the whole chain and `cast_expr`'s own trailing `"'" "(" lit ")"` can
+never match. The verdict proves itself: `reject@5` on a five-byte input = the parser reached the end
+and still needed four more bytes.
+
+⭐ **(2) THE TARGET IS THE CONSUMER RULE, AND P3 IS ITS SPECIFICATION.** Rewriting `prim`
+(= `constant_primary` — what a SystemVerilog expression actually asks for; nothing outside the cycle
+ever asks for a `casting_type`) accepts all five inputs on **both** oracles, including the
+two-traversal `t'(n)'(n)'(n)`. The transformation acceptance (d) must synthesize:
+
+- the **consumer** rule becomes `base ( suffix )*`;
+- `suffix` = the cycle's residual — everything after the leading back-reference in the rule that
+  closes the cycle (`constant_cast`'s `tick lparen constant_expression rparen`);
+- `base` = every non-cyclic left corner, **including a CLONE of each intermediate rule with the
+  cycle edge removed** (`cast_expr_seed`; in SV, `constant_cast` re-emitted over a `casting_type`
+  shorn of its `constant_primary` arm).
+
+⇒ ANTLR4's blow-up objection lands on **one clone per intermediate on the cycle path**, not an
+exponential closure — but each clone is a NEW RULE NAME IN THE TYPED AST, so acceptance (d) grows an
+`ast_shape_contract` obligation it did not have. That is a cost slice 2's decision record did not
+price, and it is recorded there now.
+
+⛔ **(3) THE CHEAP ORACLE IS WRONG ON THIS SHAPE — SPLIT OUT AS `.14`.** The interpreter disagrees
+with the generated parser on two of P1's five rows, **in both directions** (`t'(n)` gen=accept /
+interp=reject; `n'(n)` gen=reject / interp=accept), and agrees on every P2/P3 row — so the
+divergence is specific to a SURVIVING cycle. `PARSE-HARNESS.6.1`'s one indirect-LR case
+(`recursion_guarded_memo_isolation`) is green because its cycle is escapable one hop in. ⇒ **the
+combinator case acceptance (c) wants cannot land until `.14` closes**: added today it would fail the
+gate on `agreed=false`, correctly, and the fix for that is `.14`'s, not this leaf's.
+
+⭐ **THE INSTRUMENT THIS SLICE HAD TO BUILD** (`--interpret-parse`, TOOLBOX §1.5b). PGEN had three
+ways to parse an arbitrary grammar and none answered the question from a shell: §1.3 costs a
+`focus_scratch` + relink per edit, §1.4/§1.5 are Rust APIs. So the unit in which every left-recursion
+defect on this tree has actually been diagnosed — a five-rule synthetic — could not be measured
+without a multi-minute rebuild or a source edit. It is now one command, and the per-rule entry probe
+(`--interpret-entry-rule`) is what localized this slice's rejection to `cast_expr` in six seconds.
+
+⚠️ **AND THE FIRST DRAFT OF THIS MEASUREMENT WAS WRONG BECAUSE IT TRUSTED THAT INSTRUMENT ALONE.**
+The interpreter-only table had P1's `t'(n)` and `n'(n)` rows inverted — not under-reported,
+MISREPORTED — and it read as "even one cast level fails", which would have sent the fix after a
+mechanism that does not exist. `probe.sh` therefore runs BOTH oracles by construction and prints an
+`AGREE` column; `--interp-only` exists for a fast re-read and can never back a claim on its own.
+⇒ ⭐ **the lesson is the dual of `SV-CORPUS-GRAD.13c.2b`'s**: an ACCEPT is not evidence until you
+name the winning branch, and a REJECT is not evidence until you name the rejecting mechanism — a
+verdict from an oracle that is authoritative *by verification* is not evidence at all on a shape
+outside what verified it.
+
+**REMAINING ON `.13` after slice 3:** acceptance (c) the combinator case (⛔ BLOCKED on `.14`), and
+(d) the fix + the flips. Acceptance (a)+(b) are closed.
+
+##### Acceptance Checklist (enforced) — slice 3, the instrument + the synthetic
+
+- [x] **REPRODUCE / ISSUE** — knot A reproduced on a six-rule synthetic through the real generated
+  parser (scratch slot): `parseability_probe --parse scratch` on `t'(n)'(n)` →
+  `Parser did not consume full input at position 5 [furthest_position=3]`, while `t'(n)` passes —
+  the SystemVerilog `int'(3)` / `int'(2)'(3)` signature exactly. Full matrix (3 probes × 5 inputs ×
+  2 oracles): `docs/tasks/artifacts/engine_universal_services/indirect_lr/README.md`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `PGEN_TRACE_VERBOSITY=debug parseability_probe --parse scratch
+  … --trace-rules ct,prim,cast_expr` names both mechanism and site: `💥 Infinite recursion detected
+  in rule 'prim' at position 0` → `🔙 Speculative parse failed … (rule=ct)` → `🏁 Rule 'ct' selected
+  branch 1/2 consuming 1 chars`. The guard kills `ct`'s branch 2/2 at the seed position, so `ct` is
+  pinned to its non-recursive alternative and `prim` tops out at ONE cast level. The P2 regression's
+  own root cause is the non-backtracking `*` at `generated/systemverilog_parser.rs:7463`, evidenced
+  by `reject@5` on a 5-byte input under a rule needing 4 more bytes.
+- [x] **FIX** — fix-hierarchy tier = **new tooling / instrument** (no engine, grammar, codegen or
+  runtime change): `ast_pipeline --interpret-parse <FILE>` + `--interpret-entry-rule` +
+  `--interpret-parse-ast-json` (`rust/src/main.rs`, `run_interpret_parse`), the three tracked
+  synthetics and the dual-oracle `probe.sh`. Registered in the same commit, per the
+  instrument-registration rule: `INTERPRET-PARSE:`/`--interpret-parse` added to `DIAGNOSIS_SIG`
+  (`scripts/check_diagnosis_evidence.sh`) and to `TOOLBOX.md`'s group-1 table + new §1.5b + the
+  quick chooser + the book mirror. Why no lower tier: the engine fix is acceptance (d) and this
+  slice deliberately does not attempt it — measuring first is what moved its target rule.
+- [x] **ADDRESSED (verified)** — the acceptance-(c) question is answered with a measurement rather
+  than an argument: `probe.sh` REJECT→PASS on the target shape (P3 accepts all 5 inputs on both
+  oracles, including the two-traversal `t'(n)'(n)'(n)`), and accept→REJECT on the naive design
+  (P2 `t'(n)`), which is what refutes it. Deterministic by construction — fixed grammars × curated
+  inputs, no seed. The instrument itself is verified by agreement: 13 of 15 rows match the
+  authoritative-by-construction oracle, and the 2 that do not are `.14`.
+- [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash parse_harness_combinator_gate` re-run on the
+  landed tree: **35/35 CLEAN, 2 gate tests pass** (`every_structural_combinator_is_byte_identical`,
+  `combinator_coverage_is_complete`), byte-identical to the pre-change baseline taken at the top of
+  the session. `bash scripts/check_doctrines.sh` green. The scratch slot is restored to its
+  committed fixture (`probe.sh` traps EXIT), so no generated artifact or fixture drift survives.
+  No engine, codegen or grammar byte changed, so the 6 fully-certified grammars are untouched by
+  construction — `git diff --stat` names no file under `grammars/` or `generated/`.
+- [x] **LOCKSTEP** — `TOOLBOX.md` (§1.5b + quick chooser + group-1 signature table),
+  `docs/book/src/diagnosing-unknowns.md` (the book mirror), the slice-2 decision record (the
+  consumer-rule refinement + the AST-shape cost), `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`.
+
 #### ROUTED OUT of slice 1 — the SVA `implies` KEYWORD does not exist in the grammar (→ `LRM-GRAMMAR-FIDELITY.1b`)
 
 Found while building the SV-6 probe, and **not** part of this leaf: `implies` in
@@ -1598,3 +1717,58 @@ in the very same production was extracted as a keyword — and
 `property p; a implies b; endproperty` REJECTs at `furthest_position=39`. ⇒ an over-REJECTION of
 LRM-legal SystemVerilog, of exactly the metachar-collision silent-drop class `LRM-GRAMMAR-FIDELITY`
 was created to own. Routed there rather than worked here.
+
+### `.14` — the INTERPRETER and the generated parser disagree on an un-eliminated left-recursive cycle, in BOTH directions (`todo`, opened 2026-08-12 session #222 by `.13` slice 3)
+
+⛔ **This is a defect in an ORACLE, which is worse than a defect in a parser.** The
+`PARSE-HARNESS.5`/`.6.1` gates certify the grammar-AST interpreter byte-identical to the real
+generated parser, and `.6.1`'s stated reach is *"trusted on ANY grammar built from PGEN's structural
+constructs"*. Indirect left recursion is such a construct — the suite even carries a case for it
+(`recursion_guarded_memo_isolation`). On a six-rule synthetic the two implementations return
+**opposite verdicts on two of five inputs**:
+
+| input | GEN (generated parser, authoritative by construction) | INTERP (`--interpret-parse`) |
+|---|---|---|
+| `t'(n)` | accept | **reject@3** |
+| `n'(n)` | **reject@0** | accept |
+
+Grammar + driver + full matrix:
+`docs/tasks/artifacts/engine_universal_services/indirect_lr/` (`p1_knot_a_defect.ebnf`, `probe.sh`).
+Both P2 and P3 — the same cycle, eliminated — agree on **every** row, so the divergence is specific
+to a **surviving** cycle, i.e. exactly where `--lint-grammar` reports
+`left_recursion_unhandled > 0`.
+
+**WHY (mechanism, already documented — its CONSEQUENCE was not).** The generated parsers block on
+`check_cycle_id`, whose verdict names one blocking frame; the interpreter *has no cycle guard at
+all* — a whole-stack depth ceiling is its entire runtime-cycle-breaking path
+(`rust/src/parse_harness_interpreter.rs:746-749`, where the difference is written down as a
+deliberate design note). The note explains why the two memo-taint mechanisms differ; nothing said
+the two could return different VERDICTS, and nothing measured whether they do.
+
+**WHY THE SUITE IS GREEN ANYWAY.** `recursion_guarded_memo_isolation`'s cycle
+(`cast → call → recv → cast`) is escapable one hop in: its seed `fn` sits inside the first rule the
+cycle enters, so no probe input ever needs the recursion to be *entered twice*. The
+`p1_knot_a_defect` shape does — and that is the shape every real victim on `.13` has.
+
+⭐ **THIS BLOCKS `.13` ACCEPTANCE (c).** The combinator case `.13` (c) asks for cannot land while
+this is open: added today it fails the gate on `agreed=false`, correctly, and the repair belongs
+here. ⇒ `.14` is a PREREQUISITE of `.13` (c)/(d), not a parallel finding.
+
+⚠️ **AND IT ALREADY COST A WRONG TABLE.** `.13` slice 3's first draft ran the interpreter alone and
+published P1's two divergent rows inverted — a table that read "even one cast level fails", which
+would have sent the fix after a mechanism that does not exist. Caught only because the scratch slot
+was run for the trace. There is a precedent for the honest interim posture: bare DIRECT left
+recursion was an explicitly-classified `DIRECT_LEFT_RECURSION_KNOWN_DIVERGENCE` until
+`GRAMMAR-WELLFORMED.A2.5` removed its cause (`docs/tasks/PARSE-HARNESS.md:1311`). This is the
+INDIRECT twin, and it is currently unclassified, unmeasured and inside the certified claim.
+
+**Acceptance:** (a) the divergence reproduced as a first-class case in the `.6.1` suite (RED at
+first, which is the point); (b) the honest scope of `PARSE-HARNESS.5`/`.6.1` corrected in the suite
+docstring, `TOOLBOX.md` §1.5/§1.5b/§1.6/§1.7 and the book — a certification claim that is false on a
+named shape is repaired by narrowing the claim OR by fixing the interpreter, never by leaving the
+sentence standing; (c) the decision between mirroring `check_cycle_id` in the interpreter and
+classifying the shape as a KNOWN divergence, priced — ⭐ noting that `.13` (d) will REMOVE the
+surviving cycles from the shipped grammars, which shrinks the exposure but does not close it (a
+synthetic or a future grammar can always present one); (d) a sweep for other surviving cycles whose
+verdicts differ — the 7 SV + 3 `ebnf` distinct cycles of `.13` slice 1 are the obvious first
+denominator.

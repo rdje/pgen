@@ -1,5 +1,43 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0013 — the isolating synthetic exists, and measuring it moved the fix's target rule (leaf ENGINE-UNIVERSAL-SERVICES.13 slice 3; `.14` NEW and it BLOCKS `.13` (c); DOCS + 1 instrument, ZERO grammar bytes, ZERO engine bytes)
+
+- ⭐⭐ **`.13` acceptance (c) now has its synthetic** — six rules carrying SystemVerilog knot A edge
+  for edge (`prim := lit | cast_expr` / `cast_expr := ct "'" "(" lit ")"` / `ct := kw | prim`), driven
+  through the REAL generated parser via the scratch slot. It reproduces the SV signature exactly:
+  one cast level parses, everything that needs the cycle does not. `--trace-rules` names the
+  mechanism — the guard kills `ct`'s branch 2/2 at the seed position, so `prim` tops out at ONE
+  level. Both of `.13`'s real victims are in one table: `t'(n)'(n)` is `int'(2)'(3)`, `n'(n)` is
+  `SV-CORPUS-GRAD.13c.2b`'s `8'(1)`.
+- ⛔⛔ **ELIMINATING AT THE RULE THE LINT NAMES IS A REGRESSION, NOT A FIX.** Rewriting `ct`
+  (= `casting_type`) into `base ( suffix )*` — what a generalized planner would do if it followed the
+  bare-reference chain — takes one-level `t'(n)` from **accept to reject** and recovers nothing.
+  PGEN's `*` is greedy and never backtracks its iteration count
+  (`generated/systemverilog_parser.rs:7463`), so the eliminated rule swallows the whole chain and its
+  consumer's trailing suffix can never match. The verdict proves itself: `reject@5` on a 5-byte input.
+- ⭐ **THE TARGET IS THE CONSUMER RULE** (`prim` = `constant_primary` — nothing outside the cycle ever
+  asks for a `casting_type`). That shape accepts all five inputs on both oracles, at the price of one
+  **CLONE per intermediate rule on the cycle path** — far short of an exponential closure, but a NEW
+  rule name in the typed AST, so acceptance (d) now also owes `ast_shape_contract`. The slice-2
+  decision record is AMENDED with both corrections.
+- ⛔⛔ **`.14` NEW — a defect in an ORACLE, and it BLOCKS `.13` (c).** The interpreter and the
+  generated parser return **opposite verdicts on 2 of 5 inputs, in both directions**, on an
+  un-eliminated cycle (`t'(n)` gen=accept/interp=reject; `n'(n)` gen=reject/interp=accept) — inside
+  the surface `PARSE-HARNESS.5`/`.6.1` certify byte-identical. Both eliminated probes agree on every
+  row, so the divergence is specific to a SURVIVING cycle. The suites are green because their one
+  indirect-LR case has an escape hop no probe input needs to traverse twice.
+- ⭐ **NEW INSTRUMENT — `ast_pipeline --interpret-parse <FILE>`** (+ `--interpret-entry-rule`,
+  `--interpret-parse-ast-json`): the arbitrary-grammar parse verdict as ONE command — no codegen, no
+  compile, no registry edit — where the three existing routes were a multi-minute rebuild (§1.3) or a
+  Rust API (§1.4/§1.5). Registered in the same commit (`DIAGNOSIS_SIG` + `TOOLBOX.md` §1.5b + the
+  quick chooser + the group-1 table + the book).
+- ⚠️ **AND THE FIRST DRAFT OF THIS MEASUREMENT WAS WRONG BECAUSE IT TRUSTED THAT INSTRUMENT ALONE** —
+  the interpreter-only table had both divergent rows inverted, reading as "even one cast level fails".
+  `probe.sh` now runs BOTH oracles by construction and prints an `AGREE` column.
+- **VERIFIED:** `parse_harness_combinator_gate` **35/35 CLEAN**, 2 gate tests pass, byte-identical to
+  the pre-change baseline; doctrines 18/18; the scratch slot restored to its committed fixture (the
+  driver traps EXIT). No file under `grammars/` or `generated/` changed.
+
 ## 2026-08-12 - PGEN-DOCTRINE-GAP-OWNERSHIP-0003 — closing the session's findings properly: every one OWNED, TRACKED and SCHEDULED with a named trigger (leaves LANG-CAPABILITY-AUDIT.10.6a + DOCTRINE-GAP-OWNERSHIP.7 NEW; 3 frontier cells re-synced; DOCS + 1 instrument, ZERO grammar bytes, ZERO Rust bytes)
 
 - **THE INDEX HAD DRIFTED FROM THE TREES.** `docs/TASK_TREE.md` still named `.8` as

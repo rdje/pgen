@@ -292,6 +292,29 @@ There is also a feature-independent core, `interpret_parse_gen_ast`, that takes 
 gen-AST (the triple `grammar_tree` / `rule_order` / `annotations` that codegen consumes) — the entry
 point the `PARSE-HARNESS.5` differential-equivalence gate drives.
 
+#### From a shell: `ast_pipeline --interpret-parse`
+
+The same interpreter is reachable as a one-command CLI, which is how you ask "does this arbitrary
+grammar accept this input?" without writing a Rust test or paying the scratch slot's regeneration:
+
+```bash
+printf "t'(n)" > rust/target/in.txt
+ast_pipeline my_grammar.ebnf --interpret-parse rust/target/in.txt
+# INTERPRET-PARSE: grammar='my_grammar' entry='scratch' profile='<unspecified>' \
+#     input_bytes=5 accepted=true furthest_position=5
+```
+
+It exits **0 on accept, 1 on reject**, prints the verdict line on stdout in both cases, and takes
+`--interpret-entry-rule <RULE>` to start from a mid-grammar symbol (the fastest way to isolate which
+rule in a chain is failing) and `--interpret-parse-ast-json <FILE>` for the typed AST.
+
+⛔ **Its authority is the interpreter's — by verification, and the verification has a measured hole.**
+On a grammar whose `--lint-grammar` reports `left_recursion_unhandled > 0`, the two implementations
+have been measured returning **opposite verdicts** (the generated parsers block on `check_cycle_id`;
+the interpreter has no cycle guard at all, only a whole-stack depth ceiling). Cross-check such a
+grammar against the compile-and-run harness or the scratch slot before quoting a verdict. Tracked as
+`ENGINE-UNIVERSAL-SERVICES.14`.
+
 ### Why it is trustworthy — "by verification" (the hard case)
 
 Because the interpreter is a second implementation, its trust must be *earned*, not assumed. Two design
@@ -343,6 +366,18 @@ the `.4` smoke set): the **semantic-directive orchestration** that *gates parse 
 corpus needs it), and the full-corpus, all-registered-grammars byte-identity. As with every claim on
 this platform, the honest statement is *divergence-free over the tested corpus with a shared core* — not
 a formal all-inputs proof.
+
+⛔ **One shape is now a MEASURED exception rather than an untested corner: an un-eliminated
+left-recursive cycle.** A generated parser breaks such a cycle with `check_cycle_id`, whose verdict
+names one blocking frame; the interpreter has no cycle guard at all and reaches the same situations
+through a whole-stack depth ceiling. On a six-rule indirect-left-recursive synthetic the two return
+**opposite verdicts on two of five inputs, in both directions**
+(`ENGINE-UNIVERSAL-SERVICES.13` slice 3, artifacts under
+`docs/tasks/artifacts/engine_universal_services/indirect_lr/`). The suites stay green because their
+one indirect-LR case has an escape hop that no probe input needs to traverse twice. Until
+`ENGINE-UNIVERSAL-SERVICES.14` closes, treat the interpreter's verdict on a grammar whose
+`--lint-grammar` reports `left_recursion_unhandled > 0` as **unverified**, and cross-check it against
+the compile-and-run harness or the scratch slot.
 
 ## The differential-equivalence gate
 

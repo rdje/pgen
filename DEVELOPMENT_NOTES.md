@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0013 — a verdict from an oracle that is authoritative *by verification* is not evidence at all on a shape outside what verified it
+
+Three lessons, and the first one nearly published a wrong design.
+
+**1. "Authoritative by verification" is a claim with a DOMAIN, and the domain is not written on the
+tool.** The interpreter is certified byte-identical to the generated parser by two gates, and that
+sentence is what makes it quotable. It is also false on un-eliminated left recursion — measured here,
+in both directions, on six rules. The first draft of this slice's table was interpreter-only and had
+two rows inverted; it read as "even ONE cast level fails", which points the fix at a mechanism that
+does not exist. What caught it was running the scratch slot for an unrelated reason (the trace).
+⇒ Before quoting a by-verification oracle, ask *what shape verified it* — and if the grammar's own
+lint reports a defect in that exact shape (`left_recursion_unhandled > 0`), the answer is "nothing
+did". The dual of `SV-CORPUS-GRAD.13c.2b`'s lesson: an ACCEPT is not evidence until you name the
+winning branch, and a REJECT is not evidence until you name the rejecting mechanism.
+
+**2. The obvious generalization of a working transform can be a REGRESSION, and only a synthetic
+finds that out cheaply.** Every lint row, and this leaf's own opening paragraph, names
+`casting_type` — so "generalize the planner to follow the bare-reference chain out of `casting_type`"
+is the design that writes itself. It takes text the DEFECTIVE grammar already parsed and loses it,
+because PGEN's `*` is greedy and never backtracks its iteration count, so the eliminated rule eats
+the whole chain and starves its own consumer. That is a property of the *engine's quantifier*, not of
+the elimination algorithm, and no amount of reading the literature would have surfaced it. Three
+six-rule grammars and a driver did, in one afternoon, before a line of engine code was written.
+
+**3. When a probe needs a tool that does not exist, build the SMALL one.** PGEN had three ways to
+parse an arbitrary grammar and none answered the question from a shell: the scratch slot costs a
+regeneration plus a relink per edit, and the other two are Rust APIs. So the unit in which every
+left-recursion defect on this tree has actually been diagnosed — a five-rule synthetic — could not be
+measured without a multi-minute rebuild or a source edit, and the cost showed up as *fewer probes
+asked*. `--interpret-parse` is ~90 lines wrapping an existing function; the per-rule entry probe it
+enables (`--interpret-entry-rule`) localized this slice's rejection to one rule in six seconds. ⛔ And
+it must ship with its honest bound in the same commit, because a fast tool gets used *more*, which is
+exactly what makes an unstated domain limit dangerous.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0012 — when the prior art is split, the project's own constraint is the tie-breaker, and it has to be measured too
 
 No code changed. Three things worth keeping.

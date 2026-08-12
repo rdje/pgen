@@ -85,7 +85,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
-| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]` |
+| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]` |
 | 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
@@ -138,7 +138,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Does this file parse? Where does it fail?" | [1.1 `--parse`](#11---parse--supports) + [3.2 furthest-position](#32-furthest-position-error-diagnostic) |
 | **"The probe said `stream did not contain valid UTF-8` / the reported position looks shifted"** | the probe DECODES (BOM → UTF-8/UTF-16 → ISO-8859-1) since `SV-CORPUS-GRAD.12c.1` and prints `source-encoding: …` on stderr for anything that is not plain UTF-8. ⛔ Those positions are offsets into the **decoded** text, not the file. A remaining refusal means a BOM that CONTRADICTS the body — the message names the byte offset |
 | "What AST did it produce? Is the shape right?" | [1.2 `--parse-dump-ast-pretty`](#12---parse-dump-ast-pretty) |
-| **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (in-process, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (in-process, NO compile) |
+| **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | **[1.5b `--interpret-parse`](#15b---interpret-parse--the-interpreter-as-a-cli-one-command-no-codegen-no-compile) — START HERE, it is one command** · [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox incl. `--trace-rules`; authoritative by construction) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (Rust API, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (Rust API) |
 | **"Which alternative WINS this choice on this input? Is this branch LIVE or dead?"** | [Protocol D](#protocol-d--which-alternative-wins-this-choice--is-this-branch-live-the-a22a23-class-probe) — scratch slot + the `🏁 selected branch N/M` trace line + the 1.7 policy matrix |
 | **"Is the interpreter byte-identical to the generated parser? which input diverges?"** | [1.6 the differential-equivalence gate](#16-the-differential-equivalence-gate--is-the-interpreter-byte-identical-to-the-generated-parser) |
 | **"Is the interpreter byte-identical PER COMBINATOR (on a synthetic grammar, in isolation)?"** | [1.7 the structural combinator suite](#17-the-structural-combinator-suite--is-the-interpreter-byte-identical-per-combinator) |
@@ -266,6 +266,25 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   // feature-independent core (already-normalized gen-AST): interpret_parse_gen_ast(tree, order, anns, entry, input)
   ```
 - **OUTPUT:** a `ParseOutcome` whose `ast_json` is **byte-identical** to `parser_registry::parse_sample_ast_json` for a registered grammar (pinned by `parse_harness_interpreter::tests::interpreter_is_byte_identical_to_the_json_registry_parser`) and to `compile_and_parse` (1.4) on synthetic grammars. Needs `--features ebnf_dual_run` (the `.ebnf` frontend). No `rustc` per probe → the fast oracle-side of the `.5` differential-equivalence gate. Full design: book chapter *The Parse Harness* + `docs/tasks/PARSE-HARNESS.md` §13.
+
+### 1.5b `--interpret-parse` — the interpreter as a CLI, one command, no codegen, no compile
+- **WHAT:** `ast_pipeline <grammar.ebnf> --interpret-parse <INPUT_FILE>` — 1.5's interpreter driven from a shell. Prints one greppable verdict line and exits **rc 0 on accept, rc 1 on reject** (the `--parse` convention, so a shell instrument can gate on it directly). Companions: `--interpret-entry-rule <RULE>` (alternate start symbol; the default is the grammar's declared `@entry: true` rule) and `--interpret-parse-ast-json <FILE>` (the typed AST on accept).
+- **WHEN:** the "does this ARBITRARY grammar accept this input?" question, from a shell, on a synthetic you are still editing. This is the **fast rung**: no `focus_scratch`, no relink, no Rust test — so a five-rule synthetic is a one-second question instead of a three-minute one. Also the fast way to probe a MID-GRAMMAR rule (`--interpret-entry-rule`) when isolating which rule in a chain fails.
+- **HOW:**
+  ```bash
+  printf "t'(n)" > rust/target/in.txt
+  ./rust/target/debug/ast_pipeline docs/tasks/artifacts/engine_universal_services/indirect_lr/p1_knot_a_defect.ebnf \
+      --interpret-parse rust/target/in.txt
+  # isolate WHICH rule fails — same grammar, different start symbol:
+  ./rust/target/debug/ast_pipeline <g>.ebnf --interpret-parse rust/target/in.txt --interpret-entry-rule cast_expr
+  ```
+- **OUTPUT:**
+  ```text
+  INTERPRET-PARSE: grammar='p1_knot_a_defect' entry='scratch' profile='<unspecified>' input_bytes=5 accepted=true furthest_position=5
+  ```
+  (on reject the same line carries `accepted=false` + `error=…`, printed on **stdout before** the rc-1 exit, so the measurement is greppable in both directions).
+- ⛔⛔ **AUTHORITATIVE BY VERIFICATION, NOT BY CONSTRUCTION — AND THE VERIFICATION HAS A MEASURED HOLE.** This is the interpreter, whose credibility comes from 1.6/1.7 pinning it byte-identical to the real generated parser. On an **un-eliminated left-recursive cycle** that pinning does not hold: `ENGINE-UNIVERSAL-SERVICES.13` measured it disagreeing with the generated parser **in both directions** on a six-rule indirect-LR synthetic (`t'(n)` gen=accept/interp=reject; `n'(n)` gen=reject/interp=accept), because the generated parsers block on `check_cycle_id` while the interpreter has no cycle guard at all — only a whole-stack depth ceiling. Tracked as `ENGINE-UNIVERSAL-SERVICES.14`. ⇒ **If `--lint-grammar` reports `left_recursion_unhandled>0` for your grammar, cross-check every verdict against 1.3 or 1.4 before quoting it.** Elsewhere on the certified structural + return-annotation surface it is the fast, trustworthy rung; store-gated `@predicate` outcomes are outside it either way.
+- ⭐ Runs on the UNFILTERED grammar with `--grammar-profile` applied as the interpreter's runtime profile — the same posture `--lint-grammar` uses, so a `@profiles`-gated rule is gated the way the generated parser gates it rather than stripped at load.
 
 ### 1.6 The differential-equivalence gate — is the interpreter byte-identical to the generated parser?
 - **WHAT:** `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` (module `rust/src/parse_harness_equivalence.rs`) — the certifying oracle for the interpreter (1.5). For each registered grammar it runs the interpreter AND the shipped generated parser over ONE deterministic stimuli corpus (seeds 0/7/42, bounded generation, large-stack workers) and asserts **byte-identical** verdict + typed AST. Report-first API (`evaluate_grammar_equivalence` collects divergences, never panics) + 3 enforcing gate tests. PARSE-HARNESS.5.
