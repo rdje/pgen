@@ -1373,7 +1373,7 @@ byte-identical outside the target; or (b) a priced REFUSAL — the sweep run, th
 reproduces, so the flat budget stays. ⛔ (b) is a first-class outcome, not a failure to fix; what is
 not acceptable is leaving the question unasked.
 
-### `.13` — INDIRECT left recursion is not eliminated at all, and the runtime guard REJECTS the derivation: an LRM-legal SystemVerilog cast is unparseable (`todo`, opened 2026-08-12 session #220 by `GRAMMAR-WELLFORMED.A2.6`, with a minimal repro)
+### `.13` — INDIRECT left recursion is not eliminated at all, and the runtime guard REJECTS the derivation: an LRM-legal SystemVerilog cast is unparseable (`in progress` — ⭐ **acceptance (a) CLOSED by slice 1**, `PGEN-ENGINE-UNIVERSAL-SERVICES-0011`, 2026-08-12 session #221; opened 2026-08-12 session #220 by `GRAMMAR-WELLFORMED.A2.6`, with a minimal repro)
 
 ⭐⭐ **THIS IS THE ENGINE HALF OF THE SAME BOUNDARY `A2.5` DREW, one shape further out.** `A2.5`
 taught the eliminator the **inline direct** shape (`X := X op Y | seed`) by normalizing it into the
@@ -1466,3 +1466,101 @@ constant_expression → constant_expression_operand → constant_primary → con
 ⛔ **Acceptance (d) therefore grows by two rows**: when the fix lands, `defect_constant_size_cast.sv`
 and `defect_constant_size_cast_corpus_shape.sv` must flip to ACCEPT (their `MANIFEST.tsv` `expect`
 column re-baselined in the same commit), and the two OpenTitan rows must parse unmodified.
+
+#### ✅ SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0011`, 2026-08-12 session #221) — acceptance (a) is CLOSED: the per-cycle adjudication, and the leaf's own caution is refuted
+
+> **Two numbers changed, in opposite directions. The worklist is 3.5× SMALLER than the headline
+> said, and the defect rate is far HIGHER than this leaf guessed.** Artifacts + re-runnable
+> instruments: `docs/tasks/artifacts/engine_universal_services/lr_cycle_adjudication/`. ZERO grammar
+> bytes, ZERO Rust bytes.
+
+**(1) `left_recursion_unhandled=30` COUNTS RULE ROWS, NOT CYCLES.** `detect_left_recursion`
+(`grammar_wellformedness.rs:1181`) starts a DFS from **every** rule and reports any that closes back
+on itself, so one 12-rule cycle is printed 12 times. Canonicalising each reported path by rotation
+(`canonicalize_lint_cycles.py`, which REFUSES a row that is not the `rule -> … -> rule` shape the
+lint guarantees, and refuses a headline that disagrees with the rows it parsed):
+
+```text
+grammars/systemverilog.ebnf: 30 reported rule rows -> 7 DISTINCT cycles
+grammars/ebnf.ebnf:           5 reported rule rows -> 3 DISTINCT cycles
+```
+
+⇒ acceptance (a)'s stated worklist — *"all 30 SV + 5 ebnf"* — is **10 rows**, not 35. ⛔ The leaf
+inherited "30" from the lint headline and priced the work off it; the headline was never wrong, it
+was answering a different question.
+
+**(2) THE ADJUDICATION — 8 OF THE 10 COST REAL TEXT** (`adjudicate.py`, one spec-grounded input per
+cycle, both dialect profiles where the cycle has a twin):
+
+| cycle | knot | input that NEEDS the recursion | verdict |
+|---|---|---|---|
+| SV-1 / SV-5 | cast/call | `initial k = w()'(1);` — casting_type is a `constant_function_call` (A.8.4 + §6.24.1) | **REJECT** both profiles, `furthest_position` at the `'` |
+| SV-2 / SV-3 | cast/const | `parameter logic [7:0] K = 8'(1);` | **REJECT** both profiles (`SV-CORPUS-GRAD.13c.2b`, 2 corpus rows) |
+| SV-6 / SV-7 | property | `property p; (a \|=> b) -> c; endproperty` — `property_expr implies property_expr` | **REJECT** both profiles |
+| SV-4 | class-scope | `typedef A::B::C::D t4;` (sv_2023) | ACCEPT — **DEAD-BUT-COVERED** |
+| EBNF-1 | return-expr | `-> $1 + $2` | frontend rc=0, **meta-parser rc=1** |
+| EBNF-2 | return-expr | `-> $1 ? $2 : $3` | frontend rc=0, **meta-parser rc=1** |
+| EBNF-3 | return-expr | `-> $1.name` | both rc=0 — **DEAD-BUT-COVERED** |
+
+⭐⭐ **THAT REFUTES THIS LEAF'S OWN CAUTION.** `.13` opened with *"the 30 are not 30 defects: a
+surviving cycle only costs reachability of the left-recursive derivations, and for many of the 30 the
+LRM may never put a legal string on that path."* The caution was right to demand measurement and
+wrong about the outcome — **8 of 10 reject text the standard licenses**, including two constructs
+nobody had named before this slice (a function-call cast size, and property-level implication).
+
+⭐ **AND THE FIX SURFACE IS 3 KNOTS, NOT 30 CYCLES.** SV-1/2/3/5 all pass through the single edge
+`casting_type → constant_primary`; SV-6/7 through the single alternative `property_expr implies
+property_expr` (`systemverilog.ebnf:4726`); EBNF-1/2/3 through `return_expression`. A design that
+breaks three knots closes every measured loss. ⇒ the "grammar blow-up" objection the leaf raises
+against Paull elimination should be priced against **3 rules**, not 30 cycles, before it is accepted
+as an argument for the runtime (seed-growing) alternative.
+
+⛔ **TWO ROWS ARE `DEAD-BUT-COVERED`, AND THE VERDICT IS EARNED, NOT ASSERTED.** An accepting probe
+proves nothing about a cycle — the `SV-CORPUS-GRAD.13c.2b` trap, in the other direction. Both rows
+carry mechanical evidence that `adjudicate.py` re-checks every run and fails on:
+
+- **SV-4** — the traced run shows BOTH `💥 Infinite recursion detected in rule
+  'incomplete_class_scoped_type'` AND `🏁 Rule 'data_type_or_incomplete_class_scoped_type_sv_2023'
+  selected branch 1/2`. The guard killed the recursive alternative; `data_type`'s own scoped-type
+  path served the text.
+- **EBNF-3** — the arm-2 AST holds `positional_reference` + `property_access_suffix` and **no**
+  `member_access` node, so `member_access_return` never fired.
+
+⚠️ **HONEST BOUND:** `DEAD-BUT-COVERED` is *"no LRM-grounded input has been found that only this
+alternative can derive"*, not a proof that none exists. It is the weaker claim on purpose.
+
+⛔ **TWO TRAPS THIS MEASUREMENT WALKED INTO** — recorded because both nearly published a wrong table:
+
+1. **`property p; a -> b; endproperty` is a passing probe that exercises NOTHING.** `->` is also an
+   ordinary binary expression operator (A.8.6), so `sequence_expr` swallows it and
+   `prop_primary_sv_2017 selected branch 1/30` — the left-recursive alternative is branch 26/30 and
+   never fires. Forcing it needs a non-expression left operand: `(a |=> b) -> c`.
+2. **`ebnf_dual_run_diff` exits 0 on an arm-2 rejection unless `--emit-ast-json` is passed** — without
+   it only arm 1 (the hand-written frontend) is reported. The first draft of `adjudicate.py` omitted
+   the flag and printed three green ebnf rows where two are rejections. Same shape as
+   `CI-PARITY-GATE-ROT.24`'s under-featured-binary trap: an incomplete invocation yields a
+   clean-looking result.
+
+⭐ **EBNF-1/EBNF-2 ARE ALSO A FRONTEND-REPLACEMENT BLOCKER.** Both are accepted by the hand-written
+`ebnf_frontend` and rejected by the parser generated from `grammars/ebnf.ebnf`, so `ebnf.ebnf` cannot
+replace the frontend while these cycles survive — a concrete, named reason for
+`LANG-CAPABILITY-AUDIT.10.6`'s question, measured rather than estimated.
+
+**REMAINING ON `.13`:** acceptance (b) the prior-art-grounded design decision, (c) the isolating
+synthetic in the combinator suite, (d) the fix + the flips (now: `int'(2)'(3)`, the two
+`defect_constant_size_cast*` reproducers, the two OpenTitan rows, the six REJECT rows and two arm-2
+`rc=1` rows of `adjudicate.py`).
+
+#### ROUTED OUT of slice 1 — the SVA `implies` KEYWORD does not exist in the grammar (→ `LRM-GRAMMAR-FIDELITY.1b`)
+
+Found while building the SV-6 probe, and **not** part of this leaf: `implies` in
+`grammars/systemverilog.ebnf` is `implies := trivia "->"` (`:6388`) — the name the LRM extractor's
+`PUNCTUATION_TOKEN_NAMES` table gives the `->` operator glyph
+(`tools/extract_systemverilog_lrm_profiles.py:133`). But IEEE 1800-2017 A.2.10 writes
+`property_expr ::= … | property_expr implies property_expr` where `implies` is a **reserved keyword**
+(§16.12.7). Both spellings collapse onto the same rule name. Measured: `grep -c kw_implies
+grammars/systemverilog.ebnf` = **0** while `kw_iff_ee1c009e` has **18** uses — the sibling operator
+in the very same production was extracted as a keyword — and
+`property p; a implies b; endproperty` REJECTs at `furthest_position=39`. ⇒ an over-REJECTION of
+LRM-legal SystemVerilog, of exactly the metachar-collision silent-drop class `LRM-GRAMMAR-FIDELITY`
+was created to own. Routed there rather than worked here.

@@ -2100,6 +2100,20 @@ an engine capability nothing in PGEN has yet; it is owned by `ENGINE-UNIVERSAL-S
 that repro as its first row. Current class size: SV **30**, the raw Annex A transcription **23**,
 `ebnf` **5**, every other grammar **0**.
 
+⛔ **READ THAT COUNT CORRECTLY: it counts RULE ROWS, not cycles.** The detector starts a DFS from
+every rule and reports any that closes back on itself, so one 12-rule cycle is printed 12 times —
+once per rule that can start it. Canonicalising by rotation
+(`docs/tasks/artifacts/engine_universal_services/lr_cycle_adjudication/canonicalize_lint_cycles.py`)
+gives the real worklist: SystemVerilog's **30 rows are 7 distinct cycles** and `ebnf`'s **5 are 3**.
+The headline is not wrong — it is answering *"how many rules are affected"*, which is the right
+question for an author looking for a rule name and the wrong one for anybody sizing a fix.
+⭐ `.13`'s per-cycle adjudication then measured what those 10 cost: **8 of the 10 reject text the
+standard licenses** (a numeric size cast in a constant expression, a function-call cast size,
+property-level implication, and two PGEN return-annotation forms the hand-written EBNF frontend
+accepts), and 2 are *dead-but-covered* — the alternative is unreachable but a sibling rule derives
+the same text. All four SV cast rows and both SV property rows reduce to **one edge each**, so the
+fix surface is 3 knots rather than 30 cycles.
+
 ⛔ **The warning is deliberately NOT a `dead_branch` error.** A surviving *indirect* cycle does not
 prove any one alternative is dead — the intermediate rules may still have non-recursive paths, so the
 alternative can still parse something. Claiming deadness there would repeat, in the failing direction,

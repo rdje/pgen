@@ -149,6 +149,15 @@ not *"the cycle exists"*; it is *"no OTHER alternative of the re-entered rule ca
 So a count of surviving cycles is not a count of defects, and sizing one means finding the inputs
 where every sibling alternative is dead — not reading the cycle list.
 
+⛔ **And `left_recursion_unhandled=N` counts RULE ROWS, not cycles.** The detector starts a DFS from
+every rule, so one 12-rule cycle is reported 12 times. Canonicalising by rotation turns
+SystemVerilog's **30 rows into 7 distinct cycles** and `ebnf`'s **5 into 3**
+(`docs/tasks/artifacts/engine_universal_services/lr_cycle_adjudication/canonicalize_lint_cycles.py`).
+`.13`'s adjudication then priced all 10: **8 reject text the standard licenses**, 2 are
+*dead-but-covered* (the alternative is unreachable, a sibling rule derives the same text — proven per
+row by the trace/AST, never by the probe merely passing). ⇒ when you size this class in your own
+grammar, canonicalise first, then hunt the input where every sibling is dead.
+
 ⭐ **And do not reach for the grammar tier when you find one.** The same leaf proved
 `constant_primary_sv_2017` (15 alternatives), `constant_primary_sv_2023` (16) and `casting_type` (5)
 are order-identical to the Annex A extraction, so hand-splitting the cycle would trade a byte-for-byte

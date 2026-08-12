@@ -234,6 +234,39 @@ That splits the work into two pieces with different leverage:
   any of the three has mis-classified**, which gives the instrument a ground-truth control before
   it publishes a single number.
 
+### `.1d` — ⭐ the extractor's OPERATOR-NAME table collides with an Annex A KEYWORD: SVA `implies` does not exist in the grammar (`todo`, routed in by `ENGINE-UNIVERSAL-SERVICES.13` slice 1, 2026-08-12)
+
+- **THE COLLISION, at its source.** `tools/extract_systemverilog_lrm_profiles.py:133` maps the
+  operator glyph `"->"` to the rule name `implies` (its `PUNCTUATION_TOKEN_NAMES` table). Annex A
+  *also* spells a reserved keyword `implies` — `property_expr ::= … | property_expr implies
+  property_expr` (A.2.10; the operator is normative in §16.12.7). Both land on the same identifier,
+  so the shipped grammar carries exactly one rule for the two of them:
+  `implies := trivia "->"` (`grammars/systemverilog.ebnf:6388`).
+- **MEASURED, three ways, none of them a reading of the code:**
+  - `grep -c kw_implies grammars/systemverilog.ebnf` → **0**, while `kw_iff_ee1c009e` → **18**. The
+    sibling operator in the *same* production (`property_expr iff property_expr`) was extracted as a
+    keyword; `implies` was not. That asymmetry inside one production is the signature.
+  - `property p; a implies b; endproperty` → **REJECT**, `furthest_position=39`.
+  - `property p; a -> b; endproperty` → ACCEPT, but traced it resolves through
+    `prop_primary_sv_2017 selected branch 1/30` = `sequence_expr`, i.e. as the ordinary binary
+    expression `a -> b` (A.8.6) — which is legal SV and *not* the property operator. So the `->`
+    accept is not evidence the property operator works.
+- **WHY IT MATTERS:** an over-REJECTION of LRM-legal SystemVerilog on a normative SVA operator, from
+  precisely the metachar/name-collision silent-drop class this tree was created to own. It is
+  invisible to `--lint-grammar` (the name resolves, so `undefined_references=0`) and invisible to the
+  corpus lanes unless a file happens to use the keyword.
+- **OWED:** (1) confirm the keyword against the LRM text (this routing is grounded in the extractor
+  table + the `iff` asymmetry, not in a reading of the standard's keyword list); (2) a sweep — the
+  same table maps `<->` to `iff_arrow`, `=>` to `sequence_implies`, `*>` to `full_path_arrow`, so ask
+  whether any OTHER entry shadows an Annex A keyword or nonterminal, exactly as `.13c.2d` asked for
+  the `kw_*`-terminal-named-like-a-nonterminal shape; (3) the fix (a real `kw_implies_*` terminal for
+  the keyword, the punctuation rule renamed), which is **accept-widening** and therefore needs the
+  full ceremony; (4) a negative reproducer so the collision cannot silently return.
+- ⚠️ **SEQUENCING:** the property-operator half is currently masked — `property_expr implies
+  property_expr` is *also* unreachable through `ENGINE-UNIVERSAL-SERVICES.13`'s cycle SV-6/SV-7, so
+  fixing the keyword alone will not make `a implies b` parse at property level until `.13` lands.
+  Fix the naming anyway (it is a distinct defect), but expect the flip to need both.
+
 ### `.2` — The standing coverage gate
 
 - **Status: `todo`** — promote `.1`'s audit into a deterministic `make` gate

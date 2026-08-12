@@ -1,0 +1,8 @@
+# ENGINE-UNIVERSAL-SERVICES.13 — probe for ebnf cycle 1 (arithmetic_return).
+#   arithmetic_return -> return_expression -> expression_return -> arithmetic_return
+#   grammars/ebnf.ebnf:467  arithmetic_return := return_expression arithmetic_operator return_expression
+# The hand-written frontend ACCEPTS this file; the parser generated from ebnf.ebnf REJECTS it.
+# Expected today: frontend rc=0, meta-parser rc=1.  Once .13 lands: both rc=0.
+@entry: true
+r := "a" "b"
+    -> $1 + $2

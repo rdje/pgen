@@ -1,0 +1,10 @@
+# ENGINE-UNIVERSAL-SERVICES.13 — probe for ebnf cycle 3 (member_access_return).
+#   member_access_return -> return_expression -> expression_return -> member_access_return
+#   grammars/ebnf.ebnf:482  member_access_return := return_expression "." identifier_literal
+# ⚠️ BOTH arms accept — and that is NOT proof the cycle is harmless. The emitted AST shows
+# `$1.name` parsed as `positional_reference` + `property_access_suffix`, never as
+# `member_access` ⇒ verdict DEAD-BUT-COVERED, exactly like SV cycle 4.
+# Expected today: frontend rc=0, meta-parser rc=0, and NO "member_access" node in the AST.
+@entry: true
+r := "a" "b"
+    -> $1.name

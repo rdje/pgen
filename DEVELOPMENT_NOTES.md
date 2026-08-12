@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0011 — say what your number is a count OF, and then go and find the input that needs the thing
+
+No code changed. Four things are worth keeping.
+
+**1. A diagnostic headline is an answer to the question the diagnostic was asked, and the reader
+supplies a different question for free.** `left_recursion_unhandled=30` is a correct answer to *"how
+many rules are affected"* — the right question for an author hunting a rule name in a 1 485-rule
+grammar. `.13` read it as *"how many cycles must I adjudicate"* and priced a 35-row worklist; the
+real number is 10. Nothing was wrong with the instrument, the message, or the leaf's arithmetic.
+This is the second census error of the same family in this repository (`LIVE-MEANS-LIVE.1b`
+over-counted dependents by 96×) and the discipline is the one that record already states: say what a
+number is a count OF, and check that it is the quantity the decision turns on.
+
+**2. A probe that passes is not evidence until you know WHICH branch served it — and this bites in
+both directions.** `SV-CORPUS-GRAD.13c.2b` learned the first direction (the *failing* input names the
+rule, only inputs taking the other alternatives name the edge). This slice hit the mirror image
+twice. `property p; a -> b; endproperty` parses and exercises nothing, because `->` is also an
+ordinary binary expression operator so `sequence_expr` consumes it — the left-recursive alternative
+is branch 26 of 30 and never fires. `typedef A::B::C::D t;` parses while its own left-recursive
+alternative is guard-rejected, the text served by a sibling `data_type`. ⇒ every ACCEPT verdict in
+the adjudication table carries mechanical evidence of the winning branch (a trace line, or the
+absence of a node in the emitted AST), and the script fails if that evidence stops reproducing. An
+accepting row that cannot name its branch is not a row.
+
+**3. The tool that ran was not the tool I thought had run.** `ebnf_dual_run_diff` reports arm 1 and
+exits 0 unless `--emit-ast-json` forces arm 2 to produce an AST. The first draft of `adjudicate.py`
+printed three green `ebnf` rows where two are rejections — and it looked *more* plausible than the
+truth, because "the meta-parser handles everything the frontend does" is the answer one expects. Same
+shape as `CI-PARITY-GATE-ROT.24`'s under-featured binary: an incomplete invocation yields a
+clean-looking result, and two empty results diff clean. The general defence is the one both cases
+point at: before trusting a green row, confirm the arm you care about actually ran.
+
+**4. Sizing a fix by counting symptoms overstates it; sizing it by counting KNOTS is the number that
+matters.** The 10 distinct cycles collapse to 3 shared edges. That changes the standing design
+question — the leaf's prior-art note weighs Paull elimination's *grammar blow-up* against runtime
+seed-growing, and the blow-up must now be priced against 3 rules, not 30 cycles. A measurement that
+reframes the design decision is worth more than one that confirms the estimate.
+
 ## 2026-08-12 - PGEN-SV-CORPUS-GRAD-0216 — when the leaf tells you where to look, check whether it is right before you look there
 
 No code changed. Four things about this diagnosis are worth keeping.

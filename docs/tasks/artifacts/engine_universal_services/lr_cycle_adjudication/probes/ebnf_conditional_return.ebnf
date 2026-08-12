@@ -1,0 +1,8 @@
+# ENGINE-UNIVERSAL-SERVICES.13 — probe for ebnf cycle 2 (conditional_return).
+#   conditional_return -> return_expression -> expression_return -> conditional_return
+#   grammars/ebnf.ebnf:473  conditional_return := return_expression "?" return_expression ":" return_expression
+# The hand-written frontend ACCEPTS this file; the parser generated from ebnf.ebnf REJECTS it.
+# Expected today: frontend rc=0, meta-parser rc=1.  Once .13 lands: both rc=0.
+@entry: true
+r := "a" "b" "c"
+    -> $1 ? $2 : $3

@@ -1,5 +1,40 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0011 — the worklist is 3.5× smaller than the headline said, and the defect rate is far higher than the leaf guessed (leaf ENGINE-UNIVERSAL-SERVICES.13 acceptance (a) CLOSED; LRM-GRAMMAR-FIDELITY.1d NEW; DOCS + instruments only, ZERO grammar bytes, ZERO Rust bytes)
+
+- ⭐⭐ **`left_recursion_unhandled=30` COUNTS RULE ROWS, NOT CYCLES.** `detect_left_recursion` starts
+  a DFS from every rule and reports any that closes back on itself, so one 12-rule cycle is printed
+  12 times. Canonicalising by rotation: SystemVerilog **30 rows → 7 distinct cycles**, `ebnf`
+  **5 → 3**. `.13`'s acceptance (a) worklist is **10 rows, not 35**. The instrument REFUSES a row
+  that is not the `rule -> … -> rule` shape the lint guarantees, and refuses a headline that
+  disagrees with the rows it parsed.
+- ⭐⭐ **THE ADJUDICATION REFUTES THE LEAF'S OWN CAUTION: 8 OF THE 10 COST REAL TEXT.** `.13` opened
+  with *"for many of the 30 the LRM may never put a legal string on that path"*. Measured, one
+  spec-grounded input per cycle, both dialect profiles: `w()'(1)` REJECTs (a function-call cast
+  size, A.8.4 + §6.24.1); `8'(1)` in a constant expression REJECTs (2 OpenTitan corpus rows);
+  `(a |=> b) -> c` REJECTs (property-level implication); `-> $1 + $2` and `-> $1 ? $2 : $3` are
+  accepted by the hand-written EBNF frontend and REJECTED by the parser generated from `ebnf.ebnf`.
+- ⭐ **THE FIX SURFACE IS 3 KNOTS, NOT 30 CYCLES** — 4 SV cycles share the edge
+  `casting_type → constant_primary`, 2 share the alternative `property_expr implies property_expr`,
+  and the ebnf trio shares `return_expression`. The grammar-blow-up objection to Paull elimination
+  should be priced against 3 rules.
+- ⛔ **TWO ROWS ARE `DEAD-BUT-COVERED`, AND THE VERDICT IS EARNED.** An accepting probe proves
+  nothing about a cycle. SV-4 requires the traced run to show BOTH the guard rejection AND
+  `data_type_or_incomplete_class_scoped_type_sv_2023 selected branch 1/2`; EBNF-3 requires the arm-2
+  AST to hold `property_access_suffix` and **no** `member_access` node. Either failing exits non-zero.
+- ⛔ **TWO TRAPS RECORDED BECAUSE BOTH NEARLY PUBLISHED A WRONG TABLE.** (1) `property p; a -> b;`
+  is a passing probe that exercises nothing — `->` is also a binary expression operator (A.8.6), so
+  `sequence_expr` swallows it and the left-recursive alternative (branch 26/30) never fires.
+  (2) `ebnf_dual_run_diff` exits 0 on an arm-2 rejection unless `--emit-ast-json` is passed; the
+  first draft omitted it and read three green ebnf rows where two are rejections.
+- **ROUTED OUT → `LRM-GRAMMAR-FIDELITY.1d` (NEW):** the SVA keyword `implies` does not exist in the
+  grammar. The extractor's `PUNCTUATION_TOKEN_NAMES` maps the glyph `->` to the name `implies`
+  (`tools/extract_systemverilog_lrm_profiles.py:133`), colliding with Annex A's reserved keyword of
+  the same spelling — `grep -c kw_implies` = **0** while `kw_iff_ee1c009e` has **18** uses, the
+  sibling operator in the same production. `property p; a implies b; endproperty` REJECTs.
+- **VERIFIED:** both new instruments exit 0 and self-verify; `mdbook_docs_gate` green; the KM card's
+  own `reverify` passes; doctrines 18/18. DONE-BAR register unchanged (SV stays `Mostly Done`).
+
 ## 2026-08-12 - PGEN-SV-CORPUS-GRAD-0216 — the leaf's own hypothesis was wrong: nothing is missing from the grammar, the declared derivation is unreachable (leaf SV-CORPUS-GRAD.13c.2b DIAGNOSED; ENGINE-UNIVERSAL-SERVICES.13 gains its first corpus pricing; DOCS + reproducers only, ZERO grammar bytes, ZERO Rust bytes)
 
 - **THE DEFECT.** `parameter logic [7:0] K = 8'(1);` REJECTs; `initial k = 8'(1);` ACCEPTs.
