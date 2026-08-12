@@ -1373,7 +1373,7 @@ byte-identical outside the target; or (b) a priced REFUSAL — the sweep run, th
 reproduces, so the flat budget stays. ⛔ (b) is a first-class outcome, not a failure to fix; what is
 not acceptable is leaving the question unasked.
 
-### `.13` — INDIRECT left recursion is not eliminated at all, and the runtime guard REJECTS the derivation: an LRM-legal SystemVerilog cast is unparseable (`in progress` — ⭐ **acceptance (a) CLOSED by slice 1**, `PGEN-ENGINE-UNIVERSAL-SERVICES-0011`, 2026-08-12 session #221; opened 2026-08-12 session #220 by `GRAMMAR-WELLFORMED.A2.6`, with a minimal repro)
+### `.13` — INDIRECT left recursion is not eliminated at all, and the runtime guard REJECTS the derivation: an LRM-legal SystemVerilog cast is unparseable (`in progress` — ⭐ **acceptance (a) CLOSED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0011` and **acceptance (b) CLOSED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0012`, both 2026-08-12 session #221; opened 2026-08-12 session #220 by `GRAMMAR-WELLFORMED.A2.6`, with a minimal repro)
 
 ⭐⭐ **THIS IS THE ENGINE HALF OF THE SAME BOUNDARY `A2.5` DREW, one shape further out.** `A2.5`
 taught the eliminator the **inline direct** shape (`X := X op Y | seed`) by normalizing it into the
@@ -1546,10 +1546,39 @@ alternative can derive"*, not a proof that none exists. It is the weaker claim o
 replace the frontend while these cycles survive — a concrete, named reason for
 `LANG-CAPABILITY-AUDIT.10.6`'s question, measured rather than estimated.
 
-**REMAINING ON `.13`:** acceptance (b) the prior-art-grounded design decision, (c) the isolating
-synthetic in the combinator suite, (d) the fix + the flips (now: `int'(2)'(3)`, the two
+**REMAINING ON `.13` after slice 1:** acceptance (b) the prior-art-grounded design decision, (c) the
+isolating synthetic in the combinator suite, (d) the fix + the flips (now: `int'(2)'(3)`, the two
 `defect_constant_size_cast*` reproducers, the two OpenTitan rows, the six REJECT rows and two arm-2
 `rc=1` rows of `adjudicate.py`).
+
+#### ✅ SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0012`, 2026-08-12 session #221) — acceptance (b) is CLOSED: eliminate at GENERATION, do not grow the seed at runtime
+
+Full record + the prior-art survey:
+[[project_indirect_left_recursion_is_eliminated_at_generation_not_grown_at_runtime]]. ZERO grammar
+bytes, ZERO Rust bytes. The short form:
+
+- ⛔ **The literature does NOT settle it, and both answers are in production.** CPython's PEG parser
+  (PEP 617 / `pegen`) grows seeds in the memo cache and supports indirect + mutual left recursion;
+  **ANTLR4 rewrites DIRECT left recursion and REFUSES indirect left recursion**, by a stated
+  engineering decision, calling the classical elimination algorithm's exponential blow-up *"wholly
+  unworkable in practice"*. Academic anchors: Warth et al. (PEPM 2008), Medeiros et al.
+  (arXiv 1207.0443 / SCP 2014), Tratt (2010), *Eliminating Left Recursion without the Epsilon*
+  (arXiv 1908.10888).
+- **PGEN's second non-negotiable decides it.** Seed growing is a per-parse protocol paid on every
+  input forever; elimination is a build-time rewrite, free at parse time by construction — the exact
+  axis `.7`'s taxonomy prices an engine feature on.
+- ⭐ **And "those rules are cold anyway" was checked, not assumed** (`--dump-rule-entry-counts-json`,
+  three diverse corpus files): knot A is **15 of SV's 1 481 rules (1.0 %)** and carries
+  **2.85 % / 3.24 % / 3.29 %** of all rule entries — about **3× its fair share**. A runtime protocol
+  there taxes the hot path.
+- ⭐ **ANTLR4's blow-up objection is priced against the wrong denominator here.** It is a property of
+  eliminating an *arbitrary* grammar; slice 1 measured PGEN's real surface as **3 knots**. If a
+  future grammar ever presents a knot that genuinely explodes, the honest answer is ANTLR4's —
+  refuse it with a named diagnostic — not to buy a runtime protocol for every grammar that does not
+  need one. ⛔ This decision explicitly does NOT pre-authorise that rescue.
+- ⭐ **`.8`'s `lr_chain_fold` already paid the objection the literature raises against elimination**
+  (*"it changes the resulting trees"*). Generalising that fold from one rule to a mutually-recursive
+  **set** is the real work of acceptance (c)/(d), and is where the next slice starts.
 
 #### ROUTED OUT of slice 1 — the SVA `implies` KEYWORD does not exist in the grammar (→ `LRM-GRAMMAR-FIDELITY.1b`)
 

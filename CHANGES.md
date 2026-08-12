@@ -1,5 +1,32 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0012 — the literature ships both answers and disagrees; PGEN's own non-negotiable picks one (leaf ENGINE-UNIVERSAL-SERVICES.13 acceptance (b) CLOSED; 1 NEW decision record; ZERO grammar bytes, ZERO Rust bytes)
+
+- **THE DECISION:** indirect left recursion is closed by a gen-AST → gen-AST **ELIMINATION pass at
+  generation time**, not by Warth/Medeiros-style **seed growing at runtime** →
+  [[project_indirect_left_recursion_is_eliminated_at_generation_not_grown_at_runtime]].
+- ⛔ **THE PRIOR ART DOES NOT SETTLE IT — both answers are in production and they disagree.**
+  CPython's PEG parser (PEP 617 / `pegen`) grows seeds in the memo cache and supports indirect +
+  mutual left recursion; **ANTLR4 rewrites DIRECT left recursion and REFUSES indirect left
+  recursion** by a stated engineering decision, calling classical elimination's exponential blow-up
+  *"wholly unworkable in practice"*. Academic anchors: Warth et al. (PEPM 2008), Medeiros et al.
+  (arXiv 1207.0443 / SCP 2014), Tratt (2010), *Eliminating Left Recursion without the Epsilon*.
+- **WHAT DECIDES IT IS PGEN'S OWN SECOND NON-NEGOTIABLE** — peak speed, costs REJECTED not traded.
+  Seed growing is a per-parse protocol paid forever; elimination is free at parse time by
+  construction.
+- ⭐ **"Those rules are cold anyway" was CHECKED, not assumed** (`--dump-rule-entry-counts-json`,
+  three diverse corpus files): the `casting_type ↔ constant_primary` knot is **15 of SV's 1 481
+  rules (1.0 %)** and carries **2.85 % / 3.24 % / 3.29 %** of all rule entries — ~3× its fair share.
+- ⭐ **ANTLR4's blow-up objection is priced against the wrong denominator here** — it is a property
+  of eliminating an ARBITRARY grammar, and slice 1 measured PGEN's real surface as **3 knots**. ⛔ If
+  a future knot genuinely explodes, the honest answer is ANTLR4's (refuse it with a named
+  diagnostic); this decision explicitly does NOT pre-authorise buying seed growing to rescue it.
+- ⭐ **`.8`'s `lr_chain_fold` already paid the literature's main objection to elimination** (*"it
+  changes the resulting trees"*). Generalising that fold from one rule to a mutually-recursive SET
+  is the real work of acceptance (c)/(d).
+- **VERIFIED:** doctrines 18/18 (incl. DESIGN-PRIOR-ART); `mdbook_docs_gate` green; decision record
+  indexed. DONE-BAR register unchanged (SV stays `Mostly Done`).
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0011 — the worklist is 3.5× smaller than the headline said, and the defect rate is far higher than the leaf guessed (leaf ENGINE-UNIVERSAL-SERVICES.13 acceptance (a) CLOSED; LRM-GRAMMAR-FIDELITY.1d NEW; DOCS + instruments only, ZERO grammar bytes, ZERO Rust bytes)
 
 - ⭐⭐ **`left_recursion_unhandled=30` COUNTS RULE ROWS, NOT CYCLES.** `detect_left_recursion` starts

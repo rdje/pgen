@@ -1,5 +1,32 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0012 — when the prior art is split, the project's own constraint is the tie-breaker, and it has to be measured too
+
+No code changed. Three things worth keeping.
+
+**1. A prior-art search that returns a consensus is easy; one that returns a split is the useful
+kind.** Both mechanisms for indirect left recursion are shipping in tools people trust, and they
+chose opposite answers for stated reasons — CPython grows seeds and supports mutual recursion;
+ANTLR4 rewrites the direct case and *refuses* the indirect one on the grounds that classical
+elimination is unworkable. The temptation with a split like that is to pick the more recent or the
+more famous. What actually resolves it is asking which project's constraints resemble yours. PGEN
+rejects parse-time cost rather than trading it, and CPython does not — so CPython's answer is right
+for CPython and wrong here, and that is a much firmer footing than "the literature recommends".
+
+**2. Both sides of the argument had a number, and both numbers were checkable.** The runtime arm's
+weak point is *"how hot are the rules that would pay the protocol"* — measured at ~3 % of all rule
+entries for 1 % of the rules, three files, consistent. The elimination arm's weak point is ANTLR4's
+blow-up objection — priced against slice 1's measured 3 knots rather than against an arbitrary
+grammar. Neither number was available before this pair of slices; the design decision would have
+been a preference two commits earlier.
+
+**3. Say what the decision does NOT authorise.** The bound that matters here is the future one: if a
+grammar ever presents a knot whose elimination genuinely explodes, this record does not license
+reaching for seed growing to rescue it — the honest fallback is ANTLR4's, a named refusal. Writing
+that down now costs one paragraph; discovering later that a decision record was read as blanket
+permission costs a subsystem. Same shape as the boundaries
+[[feedback_capability_work_is_greenlit_by_standing_authorization]] carries.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0011 — say what your number is a count OF, and then go and find the input that needs the thing
 
 No code changed. Four things are worth keeping.
