@@ -35,6 +35,34 @@ used an internal shorthand the director had never been given. If a question is w
 it must be self-contained; if it needs a glossary, it was probably not a director question.
 
 
+**⭐⭐ THE THIRD COSTUME: A TRANSPARENCY CALLOUT (director, 2026-08-12, session #218).** The
+director approved a rule *and* the form the engineer had proposed for it. On measuring, the engineer
+found the proposed form wrong, chose the right one, recorded it — and then raised a prominent
+"⚠️ one thing you should hear directly, because it changes what you approved" callout about the
+implementation form. The director's answer:
+
+> *"you are the elite coder, the expert here. Make informed decisions, sota, signoff,
+> production-grade decisions, in the interest of the project. I am just the director, I don't even
+> understand what you are asking me to make a decision about."*
+
+⇒ **HOW a rule is enforced is not a scope change and is never a director call.** The director
+approved the RULE ("if a leaf says prove it on the synthetic, the synthetic is committed"); whether
+it lives in prose, in `check_diagnosis_evidence.sh`, or in a new doctrine is engineering. Nothing the
+director is paying for changed: same rule, same cost class, no 19th doctrine.
+
+⛔ **THE TEST THAT WOULD HAVE CAUGHT IT — apply it before any callout:** *could the director act on
+this differently than I already have?* If the answer needs repo-internal vocabulary
+(`check_diagnosis_evidence.sh`, `<meta:mirror>`, `LESSON-PROMOTION`) to even parse, it is a task, not
+a question. The 2026-08-01 corollary above already said a director question must be self-contained;
+this instance shows the same failure in a **declarative** callout rather than an interrogative one —
+and that is worse, because a callout looks like diligence.
+
+⭐ **The correct move was to state the outcome in one line and keep building:** *"the rule is in;
+enforced in the checker rather than in prose, because prose-only was measured being skipped 1592
+times here."* Surfacing is for what changes the director's decisions, not for narrating mine
+([[feedback_prefer_feature_work_over_governance_lanes]] is the sibling: park what does not block).
+
+
 **STANDING DIRECTIVE (director, 2026-08-01):** *"That is a very technical question that as a
 director I can't answer, in all honesty. … you are the elite, expert coder, programmer with a deep
 knowledge of PGEN roadmap, objectives and codebase, meaning you have all you need to precisely

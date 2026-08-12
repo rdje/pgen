@@ -1,5 +1,46 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-GENERATED-LINT-CORRECTNESS-0013 — the synthetic-preservation rule lands as a TOOL at the point of loss, and the obvious GATE is refused on measurement (leaf `GENERATED-LINT-CORRECTNESS.13`; ops/build-flow, ZERO Rust bytes)
+
+- **DIRECTOR-APPROVED RULE:** *"if a leaf says prove it on the synthetic, the synthetic is
+  committed."* A same-day follow-up set the boundary for HOW — *"you are the elite coder, the expert
+  here. Make informed decisions … I am just the director"* — so the rule is the director's and the
+  mechanism is engineering.
+- **THE GAP, MEASURED:** **19** task files claim a synthetic / `scratch`-slot reproduction; **2**
+  name a tracked `.ebnf` ⇒ **17 of 19 (89 %)** claim a reproduction nobody can re-run.
+  `PGEN-ENGINE-UNIVERSAL-SERVICES-0005`'s 11-rule synthetic survived only as a sentence, and
+  rebuilding it took session #218 longer than the next mechanism's fix.
+- ⛔ **THE GATE IS REFUSED, AND THE REFUSAL IS PRICED.** The act leaves nothing to key on — a correct
+  workflow restores the slot, so the commit shows **no diff** there. The only signal is prose, and
+  over the whole corpus a scratch-phrasing trigger inside ticked acceptance boxes fires on **24**
+  boxes of which **22 (91 %)** would fail — mostly legitimate NON-obligations (`PARSE-HARNESS.2` is
+  the leaf that *created* the slot; `CI-PARITY-GATE-ROT.24` names `focus_scratch` only to
+  demonstrate a build-flow trap and never had a probe grammar). A looser obligation is worse still:
+  11 of its "passes" are shipped grammars, the `.7` vacuity defect repeated. 91 % false positives
+  teaches waivers. **Third chartered addition to `check_diagnosis_evidence.sh` refused on
+  measurement, after `.4` (2/304) and `.7` (0/307).**
+- **FIXED AT THE POINT OF LOSS INSTEAD.** The artifact was lost to FRICTION plus a one-sided
+  instruction, not ignorance: (1) `scripts/preserve_scratch_probe.sh` snapshots the slot into
+  `docs/tasks/artifacts/<tree>/`, stamps a re-run recipe, `git add`s it and prints the path to cite
+  — refusing rather than guessing, with `--self-test` proving all four refusals fire (**4/4**);
+  (2) `make focus_scratch` prints it at the one moment the author is holding the probe;
+  (3) `TOOLBOX.md` §1.3 now teaches *preserve, THEN restore*, and carries the refusal so the gate is
+  not re-proposed without new evidence.
+- ⭐ **Not "prose again".** `LESSON-PROMOTION`'s 1592 skips were a mechanism nothing invoked; here
+  `make focus_scratch` IS the invoker — every author who builds a probe runs it.
+- ⛔ **SECOND DEFECT FOUND, failing in the PASSING direction:** `focus_scratch` builds `ast_pipeline`
+  **before** regenerating the parser, so a binary built by that run judges the PREVIOUS grammar.
+  Session #218's first run on a correct probe read `UNKNOWN=9, witness=0, every probe parsed=false`
+  — a broken-grammar signature produced by a stale binary. Distinct from the `#140` family (that
+  binary lacks a feature; this one has both and merely predates the artifact). Now named in the
+  target's own output and in `TOOLBOX.md` 1.3.
+- **RETRO-POPULATION, stated not discovered later:** the 22 boxes are not retro-broken — nothing
+  gates on this, so no backfill leaf is opened.
+- **NO REGRESSION.** All 18 doctrines pass; `mdbook_docs_gate` passed; `grammars/scratch/scratch.ebnf`
+  byte-identical after the green round-trip probe; `bash -n` and `make --dry-run` clean. ⛔ No Rust
+  source changed, so no clippy/cert/corpus/parser oracle is reachable — naming them would be padding.
+  Live-status register UNCHANGED.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0006 — the witness planner could force the target and its children but never its SIBLING, so a longest-match seed made every quantified continuation unwitnessable (leaf `ENGINE-UNIVERSAL-SERVICES.10` mechanism 2 closed; mechanism 3 split out to `.11`; ZERO grammar bytes, generated parsers byte-identical)
 
 - **THE DEFECT.** Left-recursion elimination synthesizes `X := X_lr_base ( X_lr_suffix )*`. A min-0

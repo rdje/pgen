@@ -278,6 +278,16 @@ focus_scratch: $(SCRATCH_PARSER)
 	@echo "  (cd $(RUST_DIR) && cargo build --release --features generated_parsers --bin parseability_probe)"
 	@echo "  ./rust/target/release/parseability_probe --parse scratch <input_file>"
 	@echo ""
+	@echo "⛔ cert-coverage on scratch ALSO needs ast_pipeline rebuilt AFTER this target:"
+	@echo "  (cd $(RUST_DIR) && cargo build --features \"generated_parsers ebnf_dual_run\" --bin ast_pipeline)"
+	@echo "  this target builds that binary BEFORE regenerating the parser, so one built by this run"
+	@echo "  judges the PREVIOUS grammar (session #218: UNKNOWN=9 / every probe parsed=false, on a"
+	@echo "  correct grammar). GENERATED-LINT-CORRECTNESS.13."
+	@echo ""
+	@echo "⭐ If this probe backs a task-leaf claim, PRESERVE IT BEFORE RESTORING the slot:"
+	@echo "  scripts/preserve_scratch_probe.sh <TREE-ID> <probe_name>"
+	@echo "  then: git checkout grammars/scratch/scratch.ebnf"
+	@echo ""
 
 # Generate rtl_const_expr raw-AST JSON from EBNF (GRAMMAR-WELLFORMED.H.4 — Phase H cert-coverage wiring)
 $(RTL_CONST_EXPR_JSON): $(RTL_CONST_EXPR_EBNF) $(RUST_EBNF_FRONTEND_BIN)

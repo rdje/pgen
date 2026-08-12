@@ -1502,57 +1502,123 @@ the RED-W2 arm is what turned a latent hazard into a measured one.
   backs almost nothing is vocabulary bloat, and one that backs too much is a widening.
 
 
-### `.13` — a leaf may CLAIM an isolating synthetic and not commit it, so the next reader rebuilds it from prose (`todo`, DIRECTOR-APPROVED 2026-08-12 session #218, opened by `ENGINE-UNIVERSAL-SERVICES.10`)
+### `.13` — a leaf may CLAIM an isolating synthetic and not commit it, so the next reader rebuilds it from prose (`done` — `PGEN-GENERATED-LINT-CORRECTNESS-0013`, 2026-08-12 session #218; DIRECTOR-APPROVED, opened by `ENGINE-UNIVERSAL-SERVICES.10`)
 
-⭐ **DIRECTOR RULING (2026-08-12), on a suggestion raised at the end of `-0006`:** *"if you think
-that's the sota, signoff, production-grade decision to make, then fine, go ahead and do it."* The
-suggestion was the rule **"if a leaf says prove it on the synthetic, the synthetic is committed."**
+⭐ **DIRECTOR RULING (2026-08-12):** the rule *"if a leaf says prove it on the synthetic, the
+synthetic is committed"* is approved. A follow-up ruling the same day set the boundary for HOW:
 
-⛔ **AND THE SUGGESTION'S OWN FORM WAS WRONG — corrected here before any work starts.** It was
-pitched as *"a one-line addition to the toolbox/task-acceptance guidance rather than a new gate."*
-This repository has already MEASURED what unenforced guidance is worth: the `LESSON-PROMOTION`
-doctrine exists because a promotion mechanism *"existed, was wired, and was skipped **1592 times**
-because no gate asked"*, and `GATE-REACHABILITY` exists because *"a check nothing invokes is
-indistinguishable from one that does not exist"*. Prose alone is the form this repo keeps proving
-does not hold.
+> *"you are the elite coder, the expert here. Make informed decisions, sota, signoff,
+> production-grade decisions, in the interest of the project. I am just the director, I don't even
+> understand what you are asking me to make a decision about."*
 
-**THE GAP, SIZED (2026-08-12, `git ls-files` + grep over the tracked tree — not inferred):**
-* **19** tracked task files carry a synthetic / `scratch`-slot reproduction claim.
-* **2** of them name a tracked `.ebnf` artifact — `ENGINE-UNIVERSAL-SERVICES` and
-  `LANG-CAPABILITY-AUDIT`. ⇒ **17 of 19 (89 %) claim a reproduction the next reader cannot re-run.**
-* **10** `.ebnf` probe artifacts are tracked under `docs/tasks/artifacts/` in total, so the habit
-  exists — it is simply not the rule.
+⇒ the RULE is the director's; the MECHANISM is engineering. Recorded in
+[[feedback_answer_your_own_technical_questions]], whose new section names this instance — an
+implementation-form decision raised as a "⚠️ this changes what you approved" callout, which is the
+same escalation failure in declarative clothing.
 
-**THE COST, PAID AND MEASURED.** `PGEN-ENGINE-UNIVERSAL-SERVICES-0005` proved mechanism 1 on an
-11-rule synthetic, restored the `scratch` slot, and kept nothing; the grammar survived only as a
-sentence in the leaf. Session #218 had to reconstruct it from that sentence, regenerate the parser
-and rediscover a build-order trap along the way — **longer than mechanism 2's fix took**. The leaf
-had even said, twice, *"prove it on the synthetic first"*; it was the artifact, not the instruction,
-that was missing.
+#### ⛔ THE GATE IS REFUSED — priced over the whole corpus, not preferred away
 
-**OWED — and PRICE IT BEFORE ADOPTING IT, the `.4`/`.7`/`.12` discipline.**
-1. **Decide the trigger.** The honest candidate: a staged task file whose acceptance-checklist boxes
-   claim a synthetic / `scratch`-slot reproduction must also NAME a tracked grammar path that
-   exists. It fires only when the author *claims* a synthetic, so it cannot fail on a leaf that
-   never had one — the false-positive surface is small by construction.
-2. **Prove BOTH directions before trusting it** (the `.7` lesson — box-scoping was vacuous and
-   passed anyway): a RED probe where the claim is present and the artifact is absent must FAIL, and
-   a GREEN probe where both are present must PASS. Confirm the rule would have fired on `-0005`,
-   the case that motivated it.
-3. **Measure the retro-population.** The checker is staged-file-scoped, so the 17 files above are
-   not retro-broken — but say so explicitly rather than discovering it later, and decide whether
-   those 17 get a backfill leaf or a recorded disposition.
-4. **Extend `scripts/check_diagnosis_evidence.sh` rather than adding a 19th doctrine.** Its charter
-   is already *"the acceptance checklist is evidence, not a claim"*, and a synthetic the next reader
-   cannot run is precisely a claim. A new doctrine would also have to move the `<meta:mirror>` count
-   in `DOCTRINE_ENFORCEMENT.md` §10 — cost with no extra coverage.
-5. **Lockstep:** `TOOLBOX.md` §1.3 (the `scratch` slot's *"restore the default fixture before
-   committing"* instruction is exactly where the *"and commit the probe"* half belongs) and the
-   task-acceptance checklist section.
+The obvious mechanism is a gate on the acceptance checklist. It does not work, and the measurement
+says so rather than an opinion:
 
-⚠️ **SCOPE HONESTY.** This is a governance/tooling lane and the SV lane lock is live
-([[feedback_prefer_feature_work_over_governance_lanes]]). It is recorded as `todo` under an explicit
-director approval, not started — `ENGINE-UNIVERSAL-SERVICES.11` remains the frontier.
+* A gate must detect *"this author built and destroyed a probe"*. **That act leaves nothing to key
+  on**: a correct workflow restores the slot, so the commit shows **no diff** at
+  `grammars/scratch/scratch.ebnf`. There is no artifact, no mtime, no mode change — by construction.
+* The only remaining signal is PROSE. Measured over every ticked box in `docs/tasks/` (trigger:
+  scratch-slot phrasing inside a ticked acceptance box; obligation: the enclosing leaf names a
+  tracked `.ebnf`):
+  | variant | fires on | would FAIL | verdict |
+  |---|---|---|---|
+  | obligation = any tracked `.ebnf` | 24 boxes | 13 | **vacuous** — 11 "passes" are `grammars/json.ebnf` / `grammars/systemverilog.ebnf`, i.e. SHIPPED grammars, not preserved probes. The `.7` "box-scoping was vacuous" defect, repeated. |
+  | obligation = a tracked `.ebnf` OUTSIDE `grammars/` | 24 boxes | **22 (91 %)** | **false-positive-dominated** |
+* ⛔ **The 22 are mostly legitimate NON-obligations**, which is the finding: `PARSE-HARNESS.2` is the
+  leaf that **created** the scratch slot — its "probe grammar" *is* the tracked fixture;
+  `PARSE-HARNESS.3`/`.6.2` drive the harness API, never the slot; `CI-PARITY-GATE-ROT.24` names
+  `focus_scratch` only to demonstrate a build-flow trap and never had a probe grammar at all. Text
+  cannot separate *"I destroyed a probe"* from *"I mentioned the slot"*.
+* A gate at 91 % false positives **teaches authors to waive it** — precisely the failure `.6` and
+  `.12` document ([[project_waiver_is_a_gate_bug_report]]). This is the **third** chartered addition
+  to `check_diagnosis_evidence.sh` refused on pricing, after `.4` (2/304) and `.7` (0/307), and the
+  refusal is the same discipline those two established.
+
+#### THE FIX — change the mechanism at the POINT OF LOSS, where the real defect was
+
+The artifact was not lost for want of a rule. It was lost because preserving meant inventing a path,
+creating a directory and remembering to `git add`, while the instruction the author reads at the
+exact moment of destruction (`TOOLBOX.md` 1.3) said only *"restore the default fixture before
+committing"*. **Friction plus a one-sided instruction, not ignorance.** Three changes, all at that
+moment:
+
+1. **`scripts/preserve_scratch_probe.sh`** — one command that snapshots the slot into
+   `docs/tasks/artifacts/<tree>/<probe>.ebnf`, stamps a re-run recipe into its header, `git add`s
+   it, and prints the path to cite. ⭐ It **refuses rather than guesses**, with `--self-test` proving
+   each refusal fires (4 controls, 4/4): an already-restored slot (the state a confused caller is
+   actually in — writing the default fixture there would look like preserved evidence and prove
+   nothing), an empty slot, an unsafe name, and an existing artifact with different content.
+2. **`make focus_scratch` prints it** — at the one moment the author is holding the probe. The same
+   hint block also names the build-order trap below.
+3. **`TOOLBOX.md` 1.3 reversed the order it teaches** — *preserve, THEN restore* — and carries the
+   refusal above, so the gate is not re-proposed without new evidence.
+
+⭐ **This is not "prose again", and the distinction is load-bearing.** The `LESSON-PROMOTION`
+precedent (a mechanism *"wired, and skipped 1592 times because no gate asked"*) is about a mechanism
+nothing invoked. Here `make focus_scratch` **is** the invoker — every author who builds a probe runs
+it — and the tool it names removes the friction that caused the loss. That is a mechanism change at
+the failure point, not an exhortation.
+
+#### ⛔ A SECOND DEFECT FOUND WHILE DOING THIS, and it fails in the PASSING direction
+
+`make focus_scratch` builds `ast_pipeline` **before** it regenerates `generated/scratch_parser.rs`,
+so a binary built by that run judges the **previous** grammar. Session #218's first cert-coverage run
+on a correct new probe reported `UNKNOWN=9, witness=0, sample_parse_failures=1`, every probe
+`parsed=false` — which reads as a broken grammar and was a stale binary. `--lint-grammar` was clean
+and a freshly-built `parseability_probe` accepted the same input, which is what exposed it. Distinct
+from the `#140` family the feature guard covers (that binary lacks a feature; this one has both and
+merely predates the artifact). Now named in the target's own output and in `TOOLBOX.md` 1.3.
+
+#### RETRO-POPULATION — stated, not discovered later
+
+The 22 boxes above are **not** retro-broken: nothing gates on this, so they carry no obligation and
+no backfill leaf is opened. Two leaves already preserve a probe (`ENGINE-UNIVERSAL-SERVICES`,
+`LANG-CAPABILITY-AUDIT`), and 10 `.ebnf` probe artifacts are tracked under `docs/tasks/artifacts/`
+in total — the habit existed, it simply had no tool and no instruction pointing at it.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `git ls-files` + a corpus scan of every ticked acceptance box in
+  `docs/tasks/`: **19** task files claim a synthetic / `scratch`-slot reproduction, **2** name a
+  tracked `.ebnf` ⇒ **17 of 19 (89 %)** claim a reproduction the next reader cannot re-run. The cost
+  is measured, not hypothetical: `-0005`'s 11-rule synthetic was reconstructed from one sentence in
+  session #218, taking longer than mechanism 2's fix.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. WHERE: `TOOLBOX.md` §1.3's closing
+  instruction (*"restore the default fixture … before committing"*) and `rust/Makefile`'s
+  `focus_scratch` hint block — the two surfaces an author reads while holding the probe, neither of
+  which mentioned preserving it. WHY: `git ls-files` shows only 10 preserved `.ebnf` artifacts
+  against 24 ticked boxes citing the slot, and `git diff --quiet -- grammars/scratch/scratch.ebnf`
+  is TRUE after a correct workflow — so the loss is invisible to every existing check by
+  construction, which is also why the gate variant is refused above (24 fires / 22 failures / 91 %
+  false positives, measured with the same corpus scan).
+- [x] **FIX** — declarative > grammar > engine does not apply (no grammar, no parser); this is the
+  ops/build-flow tier. `scripts/preserve_scratch_probe.sh` + the `focus_scratch` hint +
+  `TOOLBOX.md` 1.3 reversed. No gate, refused on the pricing table above.
+- [x] **ADDRESSED (verified)** — before→after on the symptom.
+  * `scripts/preserve_scratch_probe.sh --self-test` → **4 passed, 0 failed**, rc 0; each of the four
+    refusals observed firing rather than assumed.
+  * GREEN round-trip probe: the `-0006` synthetic copied into the slot, preserved, and the emitted
+    artifact's body **byte-identical** to the slot content (`diff` clean); the staged `git add` and
+    the printed citation path both confirmed, then the probe artifact deleted and the slot restored.
+  * `make -C rust SHELL=/bin/bash focus_scratch` now prints both reminders (preserve-before-restore,
+    and rebuild `ast_pipeline` after) — verified by running the target, not by reading the recipe.
+  * `bash -n` clean on the new script; `make --dry-run focus_scratch` clean on the recipe.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` ALL 18 doctrines pass; the scratch
+  integration fixture is byte-identical (`git status` clean at `grammars/scratch/scratch.ebnf` after
+  the green probe, and `generated/scratch_parser.rs` regenerated from the restored default fixture);
+  `make -C rust SHELL=/bin/bash mdbook_docs_gate` passed. ⛔ No Rust source changed, so no clippy,
+  cert, corpus or parser oracle is reachable by this change — naming them would be padding.
+- [x] **LOCKSTEP** — `TOOLBOX.md` §1.3 (preserve-then-restore + the refusal + the build-order trap);
+  `rust/Makefile` `focus_scratch` hint; [[feedback_answer_your_own_technical_questions]] (the
+  escalation instance); this leaf; `docs/TASK_TREE.md`. Live-status register: **N/A** — no family
+  claim moves.
 
 ## Commit log
 
