@@ -1,0 +1,11 @@
+{
+  "candidates": [],
+  "covered_cycle_rules": [],
+  "declined": [],
+  "eliminated_base_rules": [
+    "type_reference"
+  ],
+  "elimination_ran": true,
+  "grammar": "semantic_annotation",
+  "surviving_cycle_rules": []
+}

@@ -1,0 +1,1505 @@
+{
+  "candidates": [
+    {
+      "acyclic_alternative_indices": [
+        0,
+        2,
+        3,
+        4
+      ],
+      "base_rule": "casting_type",
+      "clone_cost": [
+        "call_primary",
+        "cast",
+        "constant_cast",
+        "constant_function_call",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_primary_sv_2023",
+        "direct_callable_method_call",
+        "method_call_receiver",
+        "method_call_receiver_sv_2017",
+        "method_call_receiver_sv_2023",
+        "method_call_root"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 1,
+          "intermediate_rules": [
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast"
+          ],
+          "path": [
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 1,
+          "intermediate_rules": [
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast"
+          ],
+          "path": [
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 1,
+          "intermediate_rules": [
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_cast"
+          ],
+          "path": [
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_cast"
+          ],
+          "suffix": "tick lparen constant_expression rparen"
+        },
+        {
+          "base_alternative_index": 1,
+          "intermediate_rules": [
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast"
+          ],
+          "path": [
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body lbrack constant_range_expression rbrack?"
+        },
+        {
+          "base_alternative_index": 1,
+          "intermediate_rules": [
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast"
+          ],
+          "path": [
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body lbrack constant_range_expression rbrack?"
+        },
+        {
+          "base_alternative_index": 1,
+          "intermediate_rules": [
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_cast"
+          ],
+          "path": [
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_cast"
+          ],
+          "suffix": "tick lparen constant_expression rparen"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": false,
+      "starvation_sites": [
+        {
+          "alternative_index": 0,
+          "on_route": true,
+          "residual": "tick lparen expression rparen",
+          "rule": "cast",
+          "survives_rewrite": true
+        },
+        {
+          "alternative_index": 0,
+          "on_route": true,
+          "residual": "tick lparen constant_expression rparen",
+          "rule": "constant_cast",
+          "survives_rewrite": true
+        }
+      ]
+    },
+    {
+      "acyclic_alternative_indices": [
+        1
+      ],
+      "base_rule": "constant_function_call",
+      "clone_cost": [
+        "call_primary",
+        "cast",
+        "casting_type",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_primary_sv_2023",
+        "direct_callable_method_call",
+        "method_call_receiver",
+        "method_call_receiver_sv_2017",
+        "method_call_receiver_sv_2023",
+        "method_call_root"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 0,
+          "intermediate_rules": [
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017"
+          ],
+          "path": [
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 0,
+          "intermediate_rules": [
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023"
+          ],
+          "path": [
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023"
+          ],
+          "suffix": "lbrack constant_range_expression rbrack? tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 0,
+          "intermediate_rules": [
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017"
+          ],
+          "path": [
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 0,
+          "intermediate_rules": [
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023"
+          ],
+          "path": [
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023"
+          ],
+          "suffix": "lbrack constant_range_expression rbrack? tick lparen expression rparen dot callable_method_call_body"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": false,
+      "starvation_sites": [
+        {
+          "alternative_index": 9,
+          "on_route": true,
+          "residual": "lbrack constant_range_expression rbrack?",
+          "rule": "constant_primary_sv_2023",
+          "survives_rewrite": true
+        }
+      ]
+    },
+    {
+      "acyclic_alternative_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        12,
+        13,
+        14
+      ],
+      "base_rule": "constant_primary_sv_2017",
+      "clone_cost": [
+        "call_primary",
+        "cast",
+        "casting_type",
+        "constant_cast",
+        "constant_function_call",
+        "constant_primary",
+        "direct_callable_method_call",
+        "method_call_receiver",
+        "method_call_receiver_sv_2017",
+        "method_call_receiver_sv_2023",
+        "method_call_root"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 8,
+          "intermediate_rules": [
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "path": [
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 8,
+          "intermediate_rules": [
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "path": [
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 11,
+          "intermediate_rules": [
+            "constant_cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "path": [
+            "constant_primary_sv_2017",
+            "constant_cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "suffix": "tick lparen constant_expression rparen"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": true,
+      "starvation_sites": []
+    },
+    {
+      "acyclic_alternative_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        10,
+        11,
+        13,
+        14,
+        15
+      ],
+      "base_rule": "constant_primary_sv_2023",
+      "clone_cost": [
+        "call_primary",
+        "cast",
+        "casting_type",
+        "constant_cast",
+        "constant_function_call",
+        "constant_primary",
+        "direct_callable_method_call",
+        "method_call_receiver",
+        "method_call_receiver_sv_2017",
+        "method_call_receiver_sv_2023",
+        "method_call_root"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 9,
+          "intermediate_rules": [
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "path": [
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body lbrack constant_range_expression rbrack?"
+        },
+        {
+          "base_alternative_index": 9,
+          "intermediate_rules": [
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "path": [
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body lbrack constant_range_expression rbrack?"
+        },
+        {
+          "base_alternative_index": 12,
+          "intermediate_rules": [
+            "constant_cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "path": [
+            "constant_primary_sv_2023",
+            "constant_cast",
+            "casting_type",
+            "constant_primary"
+          ],
+          "suffix": "tick lparen constant_expression rparen"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": true,
+      "starvation_sites": []
+    },
+    {
+      "acyclic_alternative_indices": [
+        0
+      ],
+      "base_rule": "incomplete_class_scoped_type_sv_2023",
+      "clone_cost": [
+        "incomplete_class_scoped_type"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 1,
+          "intermediate_rules": [
+            "incomplete_class_scoped_type"
+          ],
+          "path": [
+            "incomplete_class_scoped_type_sv_2023",
+            "incomplete_class_scoped_type"
+          ],
+          "suffix": "scope_resolution type_identifier_or_class_type"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": true,
+      "starvation_sites": []
+    },
+    {
+      "acyclic_alternative_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "base_rule": "method_call_receiver_sv_2017",
+      "clone_cost": [
+        "call_primary",
+        "cast",
+        "casting_type",
+        "constant_function_call",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_primary_sv_2023",
+        "direct_callable_method_call",
+        "method_call_receiver",
+        "method_call_root"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 7,
+          "intermediate_rules": [
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver"
+          ],
+          "path": [
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver"
+          ],
+          "suffix": "dot callable_method_call_body tick lparen expression rparen"
+        },
+        {
+          "base_alternative_index": 7,
+          "intermediate_rules": [
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver"
+          ],
+          "path": [
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver"
+          ],
+          "suffix": "dot callable_method_call_body lbrack constant_range_expression rbrack? tick lparen expression rparen"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": true,
+      "starvation_sites": []
+    },
+    {
+      "acyclic_alternative_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "base_rule": "method_call_receiver_sv_2023",
+      "clone_cost": [
+        "call_primary",
+        "cast",
+        "casting_type",
+        "constant_function_call",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_primary_sv_2023",
+        "direct_callable_method_call",
+        "method_call_receiver",
+        "method_call_root"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 7,
+          "intermediate_rules": [
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver"
+          ],
+          "path": [
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver"
+          ],
+          "suffix": "dot callable_method_call_body tick lparen expression rparen"
+        },
+        {
+          "base_alternative_index": 7,
+          "intermediate_rules": [
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver"
+          ],
+          "path": [
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver"
+          ],
+          "suffix": "dot callable_method_call_body lbrack constant_range_expression rbrack? tick lparen expression rparen"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": true,
+      "starvation_sites": []
+    },
+    {
+      "acyclic_alternative_indices": [
+        1
+      ],
+      "base_rule": "method_call_root",
+      "clone_cost": [
+        "call_primary",
+        "cast",
+        "casting_type",
+        "constant_function_call",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_primary_sv_2023",
+        "direct_callable_method_call",
+        "method_call_receiver",
+        "method_call_receiver_sv_2017",
+        "method_call_receiver_sv_2023"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 0,
+          "intermediate_rules": [
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call"
+          ],
+          "path": [
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call"
+          ],
+          "suffix": "dot callable_method_call_body tick lparen expression rparen"
+        },
+        {
+          "base_alternative_index": 0,
+          "intermediate_rules": [
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call"
+          ],
+          "path": [
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call"
+          ],
+          "suffix": "dot callable_method_call_body lbrack constant_range_expression rbrack? tick lparen expression rparen"
+        },
+        {
+          "base_alternative_index": 0,
+          "intermediate_rules": [
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call"
+          ],
+          "path": [
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call"
+          ],
+          "suffix": "dot callable_method_call_body tick lparen expression rparen"
+        },
+        {
+          "base_alternative_index": 0,
+          "intermediate_rules": [
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call"
+          ],
+          "path": [
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call",
+            "call_primary",
+            "direct_callable_method_call"
+          ],
+          "suffix": "dot callable_method_call_body lbrack constant_range_expression rbrack? tick lparen expression rparen"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": false,
+      "starvation_sites": [
+        {
+          "alternative_index": 0,
+          "on_route": false,
+          "residual": "dot method_call_body",
+          "rule": "direct_method_call",
+          "survives_rewrite": true
+        },
+        {
+          "alternative_index": 0,
+          "on_route": true,
+          "residual": "dot callable_method_call_body",
+          "rule": "direct_callable_method_call",
+          "survives_rewrite": true
+        }
+      ]
+    },
+    {
+      "acyclic_alternative_indices": [
+        0,
+        1,
+        2,
+        3,
+        5
+      ],
+      "base_rule": "call_primary",
+      "clone_cost": [
+        "cast",
+        "casting_type",
+        "constant_function_call",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_primary_sv_2023",
+        "direct_callable_method_call",
+        "method_call_receiver",
+        "method_call_receiver_sv_2017",
+        "method_call_receiver_sv_2023",
+        "method_call_root"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 4,
+          "intermediate_rules": [
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call"
+          ],
+          "path": [
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 4,
+          "intermediate_rules": [
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call"
+          ],
+          "path": [
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2017",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call"
+          ],
+          "suffix": "lbrack constant_range_expression rbrack? tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 4,
+          "intermediate_rules": [
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call"
+          ],
+          "path": [
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2017",
+            "constant_function_call"
+          ],
+          "suffix": "tick lparen expression rparen dot callable_method_call_body"
+        },
+        {
+          "base_alternative_index": 4,
+          "intermediate_rules": [
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call"
+          ],
+          "path": [
+            "call_primary",
+            "direct_callable_method_call",
+            "method_call_root",
+            "method_call_receiver",
+            "method_call_receiver_sv_2023",
+            "cast",
+            "casting_type",
+            "constant_primary",
+            "constant_primary_sv_2023",
+            "constant_function_call"
+          ],
+          "suffix": "lbrack constant_range_expression rbrack? tick lparen expression rparen dot callable_method_call_body"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": false,
+      "starvation_sites": [
+        {
+          "alternative_index": 1,
+          "on_route": false,
+          "residual": "lbrack range_expression rbrack?",
+          "rule": "primary_sv_2023",
+          "survives_rewrite": true
+        }
+      ]
+    },
+    {
+      "acyclic_alternative_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "base_rule": "property_expr_sv_2017",
+      "clone_cost": [
+        "property_expr"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 5,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2017",
+            "property_expr"
+          ],
+          "suffix": "kw_or_1758356d property_expr"
+        },
+        {
+          "base_alternative_index": 6,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2017",
+            "property_expr"
+          ],
+          "suffix": "kw_and_cffa50a3 property_expr"
+        },
+        {
+          "base_alternative_index": 24,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2017",
+            "property_expr"
+          ],
+          "suffix": "kw_until_b310f4d4 property_expr"
+        },
+        {
+          "base_alternative_index": 25,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2017",
+            "property_expr"
+          ],
+          "suffix": "kw_s_until_073539cf property_expr"
+        },
+        {
+          "base_alternative_index": 26,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2017",
+            "property_expr"
+          ],
+          "suffix": "kw_until_with_f31dfb3c property_expr"
+        },
+        {
+          "base_alternative_index": 27,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2017",
+            "property_expr"
+          ],
+          "suffix": "kw_s_until_with_3a7bcf5b property_expr"
+        },
+        {
+          "base_alternative_index": 28,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2017",
+            "property_expr"
+          ],
+          "suffix": "implies property_expr"
+        },
+        {
+          "base_alternative_index": 29,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2017",
+            "property_expr"
+          ],
+          "suffix": "kw_iff_ee1c009e property_expr"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": true,
+      "starvation_sites": []
+    },
+    {
+      "acyclic_alternative_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "base_rule": "property_expr_sv_2023",
+      "clone_cost": [
+        "property_expr"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 5,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2023",
+            "property_expr"
+          ],
+          "suffix": "kw_or_1758356d property_expr"
+        },
+        {
+          "base_alternative_index": 6,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2023",
+            "property_expr"
+          ],
+          "suffix": "kw_and_cffa50a3 property_expr"
+        },
+        {
+          "base_alternative_index": 24,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2023",
+            "property_expr"
+          ],
+          "suffix": "kw_until_b310f4d4 property_expr"
+        },
+        {
+          "base_alternative_index": 25,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2023",
+            "property_expr"
+          ],
+          "suffix": "kw_s_until_073539cf property_expr"
+        },
+        {
+          "base_alternative_index": 26,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2023",
+            "property_expr"
+          ],
+          "suffix": "kw_until_with_f31dfb3c property_expr"
+        },
+        {
+          "base_alternative_index": 27,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2023",
+            "property_expr"
+          ],
+          "suffix": "kw_s_until_with_3a7bcf5b property_expr"
+        },
+        {
+          "base_alternative_index": 28,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2023",
+            "property_expr"
+          ],
+          "suffix": "implies property_expr"
+        },
+        {
+          "base_alternative_index": 29,
+          "intermediate_rules": [
+            "property_expr"
+          ],
+          "path": [
+            "property_expr_sv_2023",
+            "property_expr"
+          ],
+          "suffix": "kw_iff_ee1c009e property_expr"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": true,
+      "starvation_sites": []
+    }
+  ],
+  "covered_cycle_rules": [
+    "call_primary",
+    "cast",
+    "casting_type",
+    "constant_cast",
+    "constant_function_call",
+    "constant_primary",
+    "constant_primary_sv_2017",
+    "constant_primary_sv_2023",
+    "direct_callable_method_call",
+    "incomplete_class_scoped_type",
+    "incomplete_class_scoped_type_sv_2023",
+    "method_call_receiver",
+    "method_call_receiver_sv_2017",
+    "method_call_receiver_sv_2023",
+    "method_call_root",
+    "property_expr",
+    "property_expr_sv_2017",
+    "property_expr_sv_2023"
+  ],
+  "declined": [
+    {
+      "cycle": [
+        "cast",
+        "casting_type",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_function_call",
+        "call_primary",
+        "direct_callable_method_call",
+        "method_call_root",
+        "method_call_receiver",
+        "method_call_receiver_sv_2017",
+        "cast"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "cast"
+    },
+    {
+      "cycle": [
+        "constant_cast",
+        "casting_type",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_cast"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "constant_cast"
+    },
+    {
+      "cycle": [
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_cast",
+        "casting_type",
+        "constant_primary"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "constant_primary"
+    },
+    {
+      "cycle": [
+        "incomplete_class_scoped_type",
+        "incomplete_class_scoped_type_sv_2023",
+        "incomplete_class_scoped_type"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "incomplete_class_scoped_type"
+    },
+    {
+      "cycle": [
+        "direct_callable_method_call",
+        "method_call_root",
+        "method_call_receiver",
+        "method_call_receiver_sv_2017",
+        "cast",
+        "casting_type",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_function_call",
+        "call_primary",
+        "direct_callable_method_call"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "direct_callable_method_call"
+    },
+    {
+      "cycle": [
+        "method_call_receiver",
+        "method_call_receiver_sv_2017",
+        "cast",
+        "casting_type",
+        "constant_primary",
+        "constant_primary_sv_2017",
+        "constant_function_call",
+        "call_primary",
+        "direct_callable_method_call",
+        "method_call_root",
+        "method_call_receiver"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "method_call_receiver"
+    },
+    {
+      "cycle": [
+        "module_path_concatenation",
+        "module_path_expression",
+        "module_path_expression_lr_base",
+        "module_path_expression_operand",
+        "module_path_primary",
+        "module_path_concatenation"
+      ],
+      "reason": "no_bare_left_corner_route",
+      "rule": "module_path_concatenation"
+    },
+    {
+      "cycle": [
+        "module_path_expression_operand",
+        "module_path_primary",
+        "module_path_concatenation",
+        "module_path_expression",
+        "module_path_expression_lr_base",
+        "module_path_expression_operand"
+      ],
+      "reason": "no_bare_left_corner_route",
+      "rule": "module_path_expression_operand"
+    },
+    {
+      "cycle": [
+        "module_path_expression_lr_base",
+        "module_path_expression_operand",
+        "module_path_primary",
+        "module_path_concatenation",
+        "module_path_expression",
+        "module_path_expression_lr_base"
+      ],
+      "reason": "no_bare_left_corner_route",
+      "rule": "module_path_expression_lr_base"
+    },
+    {
+      "cycle": [
+        "module_path_expression",
+        "module_path_expression_lr_base",
+        "module_path_expression_operand",
+        "module_path_primary",
+        "module_path_concatenation",
+        "module_path_expression"
+      ],
+      "reason": "no_bare_left_corner_route",
+      "rule": "module_path_expression"
+    },
+    {
+      "cycle": [
+        "module_path_primary",
+        "module_path_concatenation",
+        "module_path_expression",
+        "module_path_expression_lr_base",
+        "module_path_expression_operand",
+        "module_path_primary"
+      ],
+      "reason": "no_bare_left_corner_route",
+      "rule": "module_path_primary"
+    },
+    {
+      "cycle": [
+        "property_expr",
+        "property_expr_sv_2017",
+        "property_expr"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "property_expr"
+    }
+  ],
+  "eliminated_base_rules": [
+    "block_event_expression",
+    "module_path_expression",
+    "select_expression",
+    "sequence_expr"
+  ],
+  "elimination_ran": true,
+  "grammar": "systemverilog_lrm_profiled_wrapper",
+  "surviving_cycle_rules": [
+    "cast",
+    "casting_type",
+    "constant_cast",
+    "constant_function_call",
+    "constant_primary_sv_2017",
+    "constant_primary_sv_2023",
+    "constant_primary",
+    "incomplete_class_scoped_type_sv_2023",
+    "incomplete_class_scoped_type",
+    "direct_callable_method_call",
+    "method_call_receiver_sv_2017",
+    "method_call_receiver_sv_2023",
+    "method_call_receiver",
+    "method_call_root",
+    "call_primary",
+    "module_path_concatenation",
+    "module_path_expression_operand",
+    "module_path_expression_lr_base",
+    "module_path_expression",
+    "module_path_primary",
+    "property_expr_sv_2017",
+    "property_expr_sv_2023",
+    "property_expr"
+  ]
+}

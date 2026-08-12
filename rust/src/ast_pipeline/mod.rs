@@ -6197,6 +6197,8 @@ pub mod first_set;
 pub mod fusibility_census;
 pub mod grammar_wellformedness;
 pub mod grouped_quantifier_parser;
+// ENGINE-UNIVERSAL-SERVICES.13 slice 4 — the INDIRECT left-recursion survey (pure analysis).
+pub mod indirect_lr_plan;
 pub mod library;
 pub mod lr_chain_fold;
 pub mod mutual_recursion_handler;

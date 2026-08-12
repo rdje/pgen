@@ -1,0 +1,192 @@
+{
+  "candidates": [
+    {
+      "acyclic_alternative_indices": [
+        0,
+        1,
+        2,
+        4
+      ],
+      "base_rule": "return_expression",
+      "clone_cost": [
+        "arithmetic_return",
+        "conditional_return",
+        "expression_return",
+        "member_access_return"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 3,
+          "intermediate_rules": [
+            "expression_return",
+            "arithmetic_return"
+          ],
+          "path": [
+            "return_expression",
+            "expression_return",
+            "arithmetic_return"
+          ],
+          "suffix": "arithmetic_operator return_expression"
+        },
+        {
+          "base_alternative_index": 3,
+          "intermediate_rules": [
+            "expression_return",
+            "conditional_return"
+          ],
+          "path": [
+            "return_expression",
+            "expression_return",
+            "conditional_return"
+          ],
+          "suffix": "\"?\" return_expression \":\" return_expression"
+        },
+        {
+          "base_alternative_index": 3,
+          "intermediate_rules": [
+            "expression_return",
+            "member_access_return"
+          ],
+          "path": [
+            "return_expression",
+            "expression_return",
+            "member_access_return"
+          ],
+          "suffix": "\".\" identifier_literal"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": true,
+      "starvation_sites": [
+        {
+          "alternative_index": 0,
+          "on_route": true,
+          "residual": "arithmetic_operator return_expression",
+          "rule": "arithmetic_return",
+          "survives_rewrite": false
+        },
+        {
+          "alternative_index": 0,
+          "on_route": true,
+          "residual": "\"?\" return_expression \":\" return_expression",
+          "rule": "conditional_return",
+          "survives_rewrite": false
+        },
+        {
+          "alternative_index": 0,
+          "on_route": true,
+          "residual": "\".\" identifier_literal",
+          "rule": "member_access_return",
+          "survives_rewrite": false
+        }
+      ]
+    },
+    {
+      "acyclic_alternative_indices": [
+        2
+      ],
+      "base_rule": "expression_return",
+      "clone_cost": [
+        "arithmetic_return",
+        "conditional_return",
+        "member_access_return",
+        "return_expression"
+      ],
+      "degenerate_routes_dropped": 0,
+      "routes": [
+        {
+          "base_alternative_index": 0,
+          "intermediate_rules": [
+            "arithmetic_return",
+            "return_expression"
+          ],
+          "path": [
+            "expression_return",
+            "arithmetic_return",
+            "return_expression"
+          ],
+          "suffix": "arithmetic_operator return_expression"
+        },
+        {
+          "base_alternative_index": 1,
+          "intermediate_rules": [
+            "conditional_return",
+            "return_expression"
+          ],
+          "path": [
+            "expression_return",
+            "conditional_return",
+            "return_expression"
+          ],
+          "suffix": "\"?\" return_expression \":\" return_expression"
+        },
+        {
+          "base_alternative_index": 3,
+          "intermediate_rules": [
+            "member_access_return",
+            "return_expression"
+          ],
+          "path": [
+            "expression_return",
+            "member_access_return",
+            "return_expression"
+          ],
+          "suffix": "\".\" identifier_literal"
+        }
+      ],
+      "routes_truncated": false,
+      "starvation_safe": true,
+      "starvation_sites": []
+    }
+  ],
+  "covered_cycle_rules": [
+    "arithmetic_return",
+    "conditional_return",
+    "expression_return",
+    "member_access_return",
+    "return_expression"
+  ],
+  "declined": [
+    {
+      "cycle": [
+        "arithmetic_return",
+        "return_expression",
+        "expression_return",
+        "arithmetic_return"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "arithmetic_return"
+    },
+    {
+      "cycle": [
+        "conditional_return",
+        "return_expression",
+        "expression_return",
+        "conditional_return"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "conditional_return"
+    },
+    {
+      "cycle": [
+        "member_access_return",
+        "return_expression",
+        "expression_return",
+        "member_access_return"
+      ],
+      "reason": "no_acyclic_seed",
+      "rule": "member_access_return"
+    }
+  ],
+  "eliminated_base_rules": [],
+  "elimination_ran": true,
+  "grammar": "ebnf",
+  "surviving_cycle_rules": [
+    "return_expression",
+    "expression_return",
+    "arithmetic_return",
+    "conditional_return",
+    "member_access_return"
+  ]
+}

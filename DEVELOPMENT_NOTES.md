@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0015 — a synthetic is faithful to the DEFECT and not automatically to the FIX
+
+**The compression that was harmless twice and wrong the third time.** `p1_knot_a_defect.ebnf` carries
+SystemVerilog knot A "edge for edge" with one stated compression: SV reaches `constant_cast` from
+`constant_primary` through `constant_primary_sv_2017`, two hops where the synthetic has one. Its
+README priced that as harmless — *"Nothing on the cycle's shape changes"* — and for the two questions
+slice 3 asked it, it was: the defect reproduced with the exact SystemVerilog signature, and the
+P2-vs-P3 comparison came out right. Slice 4 asked a third question — *which rule may absorb the
+chain* — and the compression is fatal to it, because the elided hop is exactly where SystemVerilog's
+dialect split lives. `constant_primary := constant_primary_sv_2017 | constant_primary_sv_2023` has
+NO non-cyclic alternative, so it cannot be the base rule; the synthetic's merged `prim := lit |
+cast_expr` has one and reads as if it can.
+⇒ **A synthetic's fidelity is scoped to the question it was built for.** Re-validate it against the
+real artifact when the question changes — one command here, and it moved the fix's target rule.
+
+**The instrument refuted its own criterion twice, and both refutations came from data already in the
+repository.** Draft 1 exempted on-route starvation holders and therefore blessed `ct` — the rule
+slice 3 had already MEASURED as a regression. Draft 2 counted every holder and therefore rejected
+`ebnf`'s `return_expression` — the knot slice 1 had already NAMED. Neither error was found by
+staring at the criterion; both were found by running it against measurements that existed. ⇒ When a
+new analysis reproduces an old measurement, that is not redundancy — it is the only calibration
+available for a criterion nothing else can check.
+
+**And the number that was rhetorical for two slices is now measured.** ANTLR4's "wholly unworkable
+in practice" was answered in slice 2 by decision and in slice 3 by a 6-rule example ("one clone per
+intermediate"). Both were right about the SHAPE and wrong about the SCALE: SV's cast/call knot is a
+13-rule cycle, not the 4-rule cycle the lint prints first, so the price is 13 clone rules — each a
+new name in the typed AST. The lesson is not that the objection lands (it does not; linear is
+linear) but that a cost argued from a synthetic is an argument, not a price.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0013 — a verdict from an oracle that is authoritative *by verification* is not evidence at all on a shape outside what verified it
 
 Three lessons, and the first one nearly published a wrong design.

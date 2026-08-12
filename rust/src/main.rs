@@ -91,6 +91,20 @@ struct Args {
     #[arg(long)]
     lint_grammar: bool,
 
+    /// ENGINE-UNIVERSAL-SERVICES.13 slice 4: survey the grammar's SURVIVING left recursion — the
+    /// cycles `--lint-grammar` reports as `left_recursion_unhandled` — and print, per candidate
+    /// base rule, the left-corner routes, the suffix an elimination would iterate, the clone cost,
+    /// and every site exposed to the greedy-`*` STARVATION that slice 3 measured (a rule holding
+    /// the candidate at its left corner with a non-empty residual). Read-only: it plans nothing and
+    /// changes no byte of the grammar. `PGEN_INDIRECT_LR_DUMP_ALL=1` prints every route and every
+    /// declined cycle instead of the per-candidate summary.
+    #[arg(long)]
+    report_indirect_lr_plan: bool,
+
+    /// ENGINE-UNIVERSAL-SERVICES.13 slice 4: machine-readable JSON for the indirect-LR survey.
+    #[arg(long, value_name = "FILE", requires = "report_indirect_lr_plan")]
+    indirect_lr_plan_json: Option<String>,
+
     /// ENGINE-UNIVERSAL-SERVICES.13 (TOOLBOX §1.5 as a CLI): parse this INPUT FILE against the
     /// loaded grammar using the grammar-AST INTERPRETER
     /// (`parse_harness_interpreter::interpret_parse_gen_ast`) and print one `INTERPRET-PARSE:`
@@ -1080,6 +1094,22 @@ fn pipeline_main() -> Result<()> {
             args.grammar_profile.as_deref(),
         )?;
         return run_grammar_lint(&grammar, &unfiltered_grammar);
+    }
+
+    // ENGINE-UNIVERSAL-SERVICES.13 slice 4: the indirect-left-recursion SURVEY. Runs on the same
+    // filtered, POST-elimination view the lint reads, so its denominator is exactly the lint's
+    // `left_recursion_unhandled` set and the two reports can be compared line for line.
+    if args.report_indirect_lr_plan {
+        let unfiltered_grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
+        let grammar = apply_grammar_profile_filter(
+            unfiltered_grammar,
+            args.grammar_profile.as_deref(),
+        )?;
+        return run_indirect_lr_plan_report(&grammar, args.indirect_lr_plan_json.as_deref());
     }
 
     // ENGINE-UNIVERSAL-SERVICES.13: the grammar-AST INTERPRETER as a CLI verdict. Runs on the
@@ -4504,6 +4534,212 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
             problems.join(" + ")
         ))
     }
+}
+
+/// ENGINE-UNIVERSAL-SERVICES.13 slice 4 — print the INDIRECT left-recursion survey.
+///
+/// ⛔ It plans; it does not apply. The value it adds over `--lint-grammar` is that the lint says a
+/// cycle survived while this says what an elimination would have to DO about it: which rule may
+/// absorb the chain, what suffix it would iterate, how many clone rules that costs, and — the
+/// measurement slice 3 paid for — which candidates are disqualified because a greedy `*` at that
+/// rule would starve a consumer that needs the same text.
+///
+/// Read-only and always rc 0: a surviving cycle is a `.13` worklist row, not a lint failure, and
+/// the verdict on it belongs to the leaf's per-cycle adjudication table.
+fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>) -> Result<()> {
+    use pgen::ast_pipeline::indirect_lr_plan::{render_elements, survey_indirect_left_recursion};
+    use std::collections::BTreeMap;
+
+    let dump_all = std::env::var("PGEN_INDIRECT_LR_DUMP_ALL")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+
+    let survey = survey_indirect_left_recursion(&grammar.grammar_tree, &grammar.rule_order);
+    let elimination = &grammar.left_recursion_elimination;
+
+    println!("=== INDIRECT-LR-SURVEY: '{}' ===", grammar.grammar_name);
+    println!(
+        "elimination_ran={} eliminated_base_rules={} surviving_cycle_rules={} candidates={} declined={}",
+        elimination.ran,
+        elimination.eliminated_base_rules.len(),
+        survey.surviving_cycle_rules.len(),
+        survey.candidates.len(),
+        survey.declined.len()
+    );
+    if !elimination.ran {
+        println!(
+            "[warn] the LR-elimination pass did not run on this grammar, so a 'surviving' cycle here \
+             may simply be one the pass never saw — no handling claim is made in either direction"
+        );
+    }
+
+    let covered = survey.covered_cycle_rules();
+    println!(
+        "cycle-rule coverage: {}/{} reported rule rows reachable by a bare left-corner route",
+        covered.len(),
+        survey.surviving_cycle_rules.len()
+    );
+
+    let safe = survey.safe_candidates();
+    println!(
+        "starvation-safe candidates: {}/{}",
+        safe.len(),
+        survey.candidates.len()
+    );
+
+    for candidate in &survey.candidates {
+        let clones = candidate.clone_cost();
+        println!();
+        println!(
+            "[candidate] {}  routes={}{}{}  seeds={}  clone_cost={}  verdict={}",
+            candidate.base_rule,
+            candidate.routes.len(),
+            if candidate.routes_truncated {
+                "+ (TRUNCATED — lower bound)"
+            } else {
+                ""
+            },
+            if candidate.degenerate_routes_dropped > 0 {
+                format!(
+                    " ({} degenerate route(s) dropped — empty suffix)",
+                    candidate.degenerate_routes_dropped
+                )
+            } else {
+                String::new()
+            },
+            candidate.acyclic_alternative_indices.len(),
+            clones.len(),
+            if candidate.is_starvation_safe() {
+                "MAY-ABSORB"
+            } else {
+                "STARVED"
+            }
+        );
+        if !clones.is_empty() {
+            println!(
+                "    clones: {}",
+                clones.iter().cloned().collect::<Vec<_>>().join(", ")
+            );
+        }
+        let route_limit = if dump_all { candidate.routes.len() } else { 3 };
+        for route in candidate.routes.iter().take(route_limit) {
+            println!(
+                "    route alt#{}: {} -> {}   suffix: {}",
+                route.base_alternative_index,
+                route.path().join(" -> "),
+                candidate.base_rule,
+                render_elements(&route.suffix_elements())
+            );
+        }
+        if candidate.routes.len() > route_limit {
+            println!(
+                "    … {} more route(s) (PGEN_INDIRECT_LR_DUMP_ALL=1 to print them all)",
+                candidate.routes.len() - route_limit
+            );
+        }
+        let site_limit = if dump_all {
+            candidate.starvation_sites.len()
+        } else {
+            5
+        };
+        for site in candidate.starvation_sites.iter().take(site_limit) {
+            println!(
+                "    {} {} alt#{}{} — residual '{}' a greedy suffix could steal",
+                if site.survives_rewrite { "⛔ starved by" } else { "·  benign site" },
+                site.rule,
+                site.alternative_index,
+                match (site.on_route, site.survives_rewrite) {
+                    (true, true) => " (on-route, still reachable after the rewrite)",
+                    (true, false) => " (on-route, goes dead with the rewrite)",
+                    (_, _) => "",
+                },
+                site.residual
+            );
+        }
+        if candidate.starvation_sites.len() > site_limit {
+            println!(
+                "    … {} more starvation site(s) (PGEN_INDIRECT_LR_DUMP_ALL=1 to print them all)",
+                candidate.starvation_sites.len() - site_limit
+            );
+        }
+    }
+
+    if !survey.declined.is_empty() {
+        println!();
+        println!("--- DECLINED (no plan; the survey's own coverage gap, itemised) ---");
+        let mut by_reason: BTreeMap<&str, usize> = BTreeMap::new();
+        for declined in &survey.declined {
+            *by_reason.entry(declined.reason.token()).or_default() += 1;
+        }
+        for (reason, count) in &by_reason {
+            println!("    {reason}: {count}");
+        }
+        let declined_limit = if dump_all { survey.declined.len() } else { 5 };
+        for declined in survey.declined.iter().take(declined_limit) {
+            println!(
+                "    {} [{}]: {}",
+                declined.rule,
+                declined.reason.token(),
+                declined.cycle.join(" -> ")
+            );
+        }
+        if survey.declined.len() > declined_limit {
+            println!(
+                "    … {} more (PGEN_INDIRECT_LR_DUMP_ALL=1 to print them all)",
+                survey.declined.len() - declined_limit
+            );
+        }
+    }
+
+    if let Some(path) = json_path {
+        let candidates: Vec<serde_json::Value> = survey
+            .candidates
+            .iter()
+            .map(|candidate| {
+                serde_json::json!({
+                    "base_rule": candidate.base_rule,
+                    "routes_truncated": candidate.routes_truncated,
+                    "degenerate_routes_dropped": candidate.degenerate_routes_dropped,
+                    "acyclic_alternative_indices": candidate.acyclic_alternative_indices,
+                    "clone_cost": candidate.clone_cost().iter().cloned().collect::<Vec<_>>(),
+                    "starvation_safe": candidate.is_starvation_safe(),
+                    "routes": candidate.routes.iter().map(|route| serde_json::json!({
+                        "base_alternative_index": route.base_alternative_index,
+                        "path": route.path(),
+                        "intermediate_rules": route.intermediate_rules(),
+                        "suffix": render_elements(&route.suffix_elements()),
+                    })).collect::<Vec<_>>(),
+                    "starvation_sites": candidate.starvation_sites.iter().map(|site| serde_json::json!({
+                        "rule": site.rule,
+                        "alternative_index": site.alternative_index,
+                        "residual": site.residual,
+                        "on_route": site.on_route,
+                        "survives_rewrite": site.survives_rewrite,
+                    })).collect::<Vec<_>>(),
+                })
+            })
+            .collect();
+        let payload = serde_json::json!({
+            "grammar": grammar.grammar_name,
+            "elimination_ran": elimination.ran,
+            "eliminated_base_rules": elimination.eliminated_base_rules,
+            "surviving_cycle_rules": survey.surviving_cycle_rules,
+            "covered_cycle_rules": covered.iter().cloned().collect::<Vec<_>>(),
+            "candidates": candidates,
+            "declined": survey.declined.iter().map(|declined| serde_json::json!({
+                "rule": declined.rule,
+                "reason": declined.reason.token(),
+                "cycle": declined.cycle,
+            })).collect::<Vec<_>>(),
+        });
+        ensure_parent_dir_exists(path)?;
+        std::fs::write(path, serde_json::to_string_pretty(&payload)?)
+            .with_context(|| format!("failed to write --indirect-lr-plan-json output '{path}'"))?;
+        println!();
+        println!("indirect-LR survey JSON -> {path}");
+    }
+
+    Ok(())
 }
 
 fn default_parser_output_path(input_path: &str) -> String {

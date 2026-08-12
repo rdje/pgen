@@ -85,7 +85,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
-| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]` |
+| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]` |
 | 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
@@ -157,6 +157,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"`store_entry_raises=N` — but how many of those raises were actually NEEDED?"** | [6.3 blocked-verdict census](#63-store-entry-blocked-verdict-census--is-a-witness-entry-raise-actually-needed-or-is-the-verdict-over-approximating) — names each blocked target SPURIOUS vs GENUINE; measured 15 of 16 spurious on `sv_2017` |
 | **"The plan FORCES branch N — so why does the probe show branch 0? was the branch ever driven at all?"** — ⛔ `generate_or` falls back SILENTLY, and on the cert-coverage path 6.1 cannot answer (`--coverage-output` is refused there) | [6.4 `PGEN_REACH_FORCED_OVERRIDE_DUMP`](#64-pgen_reach_forced_override_dump--the-reach-plan-forced-a-branch-did-it-actually-render) — pairs the lost directive with the generator's own reason string |
 | "Is my grammar well-formed (LR / shadowing / non-terminating)?" | [5.1 `--lint-grammar`](#51---lint-grammar) |
+| **"`--lint-grammar` says `left_recursion_unhandled=N` — so WHICH rule could absorb the chain, what suffix, and what does it cost?"** | [5.5 `--report-indirect-lr-plan`](#55---report-indirect-lr-plan) — ⛔ the lint names the cycle, not the fix; picking the wrong base rule is a measured REGRESSION |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
@@ -676,6 +677,19 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **HOW:** `./rust/target/debug/ast_pipeline grammars/<g>.ebnf --dump-rule-profiles /tmp/rule_profiles.json`
 - **OUTPUT:** `{"grammar", "profiles", "rule_count", "rules": {rule: {"declared_profiles": [...]|null, "satisfiable_under": [...]}}}` — for systemverilog: 1,466 rules; satisfiable_under sv_2017=1,343 / sv_2023=1,362 / verilog_2005=1,115 (the sv_2017/v2005 counts equal the cert-coverage canonical totals — the two instruments cross-confirm).
 - **COMPANION — the LRM-structure lens (SV-CORPUS-GRAD.7b):** `stimuli/sv/corpus_clause_coverage.py` maps the *keyed* corpus (sv-tests `:tags:`, ispras clause-encoded filenames) onto the LRM's own chapter/clause structure — the complement to the rule lens. Reads only the committed adjudication manifests (main + v2005; **no parser run**), deterministic. Answers "which LRM chapters/clauses does the keyed corpus target, and where is the negative-axis gap?" — surfaces parse-bearing chapters with no keyed case and chapters with no keyed `must_reject` (the thinnest axis). NOT a competing coverage % (only ~14% of the universe is clause-keyed; `.7a` owns the authoritative parseable-surface denominator). Output: `stimuli/sv/characterization/clause_coverage.md` + per-clause `.tsv`.
+
+### 5.5 `--report-indirect-lr-plan`
+- **WHAT:** (ENGINE-UNIVERSAL-SERVICES.13, `rust/src/ast_pipeline/indirect_lr_plan.rs`) the INDIRECT-left-recursion SURVEY — for every cycle `--lint-grammar` reports as `left_recursion_unhandled`, which rule could absorb the chain (`X := X_lr_base ( X_lr_suffix )*`), what SUFFIX it would iterate, how many CLONE rules that costs, and — the load-bearing column — every **starvation site**: a rule holding the candidate at its left corner with a NON-EMPTY residual, which a greedy non-backtracking `*` can starve. PURE analysis; plans nothing, changes no grammar byte, always rc 0.
+- **WHEN:** `--lint-grammar` printed `left_recursion_unhandled=N` and you need to know what a fix would have to DO — ⛔ **the lint names the cycle, never the fix, and the rule it names FIRST is a measured regression to eliminate at**: rewriting SV's `casting_type` turns the accepted `int'(3)` into a rejection (`docs/tasks/artifacts/engine_universal_services/indirect_lr/`, probe P2).
+- **HOW:**
+  ```bash
+  ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --report-indirect-lr-plan
+  PGEN_INDIRECT_LR_DUMP_ALL=1 ./rust/target/debug/ast_pipeline grammars/<g>.ebnf \
+    --report-indirect-lr-plan --indirect-lr-plan-json /tmp/survey.json
+  ```
+- **OUTPUT:** `=== INDIRECT-LR-SURVEY: '<grammar>' ===`, then per candidate `routes=/seeds=/clone_cost=/verdict=MAY-ABSORB|STARVED`, each route as `path -> base   suffix: …`, and each starvation site. `PGEN_INDIRECT_LR_DUMP_ALL=1` lifts the per-candidate print caps (3 routes / 5 sites / 5 declines).
+- ⭐ **The verdict is calibrated against measured ground truth, in both directions**: on the P1 synthetic it independently calls `prim` MAY-ABSORB (probe P3 accepts all five inputs on both oracles) and `ct` STARVED (probe P2 regresses) — unit-tested in `indirect_lr_plan.rs` so the criterion cannot drift back.
+- ⛔ **DECLINES LOUDLY.** The walk only follows a **bare leading rule reference**; a cycle closing through a nullable prefix, a quantifier or a group is listed under `DECLINED` with its reason (`no_bare_left_corner_route`), never silently dropped. Measured coverage: `systemverilog` 30/30, `ebnf` 5/5, `systemverilog_lrm_profiled_wrapper` 18/23. `no_acyclic_seed` is a different statement — a rule whose every alternative reaches the cycle has no seed to chain from, which is why SV's `constant_primary` cannot be the base rule and `constant_primary_sv_2017` is.
 
 ---
 

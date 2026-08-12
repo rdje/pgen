@@ -1,5 +1,49 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0015 — the plan is DERIVED from the shipped grammars now, and it moved the fix's target rule a SECOND time (leaf ENGINE-UNIVERSAL-SERVICES.13 slice 4; `.15` NEW; 1 instrument, ZERO grammar bytes, ZERO codegen bytes)
+
+- ⭐⭐ **Acceptance (d)'s one free variable — which rule absorbs the chain — is no longer a
+  description of a hand-written synthetic.** New instrument `ast_pipeline <g> --report-indirect-lr-plan`
+  (TOOLBOX §5.5, `rust/src/ast_pipeline/indirect_lr_plan.rs`, pure analysis): per surviving cycle it
+  derives the left-corner ROUTES, the SUFFIX an elimination would iterate, the CLONE cost, and every
+  **starvation site** — a rule holding the candidate at its left corner with a non-empty residual,
+  which PGEN's greedy non-backtracking `*` can starve.
+- **The criterion is calibrated against slice 3's measured ground truth, in both directions and
+  blind:** on the P1 synthetic it calls `prim` `MAY-ABSORB` (probe P3 accepts all 5 inputs on both
+  oracles) and `ct` `STARVED` (probe P2 regresses `t'(n)` accept→reject), and it derives a suffix
+  byte-equal to P3's hand-written `prim_suffix`. Unit-tested, so it cannot drift back.
+- ⛔ **Two criteria the measurement REFUTED before publication.** (1) An on-route holder is not
+  exempt — the rewrite shears the *clone* and leaves the original standing; with the exemption the
+  survey blessed `ct`, the known regression. (2) A holder the rewrite makes UNREACHABLE cannot
+  starve anything — without that, `grammars/ebnf.ebnf`'s `return_expression`, the knot slice 1 named
+  for all three `ebnf` cycles, was wrongly rejected.
+- ⭐⭐ **THE TARGET RULE MOVED AGAIN: `constant_primary` cannot be the base rule.** The survey
+  declines it `no_acyclic_seed` — `constant_primary := constant_primary_sv_2017 |
+  constant_primary_sv_2023`, BOTH on the cycle, so `X := X_base ( suffix )*` has no `X_base`. The
+  synthetic hid it by collapsing exactly the hop the dialect split lives on. The target is
+  `constant_primary_sv_2017`/`_sv_2023`, and the survey recovers their suffix from the shipped
+  grammar: `tick lparen constant_expression rparen` — the `'(3)` of `int'(2)'(3)`.
+- ⭐ **ANTLR4's blow-up objection priced against this repository at last: 13 clones for SV's biggest
+  knot**, not the 2 the synthetic suggested, because the real cycle is 13 rules long. Still linear —
+  the objection does not land — but 13 new typed-AST rule names is a materially bigger
+  `ast_shape_contract` obligation than slice 3 recorded. Per knot: cast/call 13, method-call
+  receiver 12, class scope 1, property 6, `ebnf` 4.
+- ⛔⛔ **The SVA property knot (SV-6/7) has NO starvation-safe base rule — `.13` (d) cannot close it.**
+  Its only candidates are STARVED by `prop_and_sv_2017 := prop_primary_sv_2017 kw_and prop_and_sv_2017`.
+  Knot-specific, not shape-specific: the RAW Annex A transcription offers `property_expr_sv_2017` at
+  `clone_cost=1`; what disqualifies the shipped grammar is its hand-written `prop_and`/`prop_or`/
+  `prop_iff`/`prop_until` precedence cascade — `.2`-class scar tissue. ⇒ NEW leaf `.15`, with the
+  measurement recorded at the routing point.
+- **Census, every grammar** (reproduces slice 1's population row for row): `systemverilog` 30 rows /
+  30 covered / 12 candidates / **5 safe**; `systemverilog_lrm_profiled_wrapper` 23 / 18 / 11 / 7;
+  `ebnf` 5 / 5 / 2 / 2; every other grammar 0. Artifacts:
+  `docs/tasks/artifacts/engine_universal_services/indirect_lr/survey/`.
+- **VERIFIED:** `parse_harness_combinator_gate` — all 35 cases CLEAN (`diverge=0 anchor_miss=0`) + 2
+  gate tests; `cargo test --lib indirect_lr_plan` 5/5; `scripts/check_doctrines.sh` 18/18. No grammar
+  or `generated/` byte changed — the module is reachable only from the new read-only CLI branch.
+  ⏳ The full `--features "generated_parsers ebnf_dual_run"` lib sweep was still running at commit
+  time (1 085 green, 0 failed, both heavy differential gates included).
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0014 — correcting `-0013`'s sequencing claim: `.14` does NOT block `.13` (c) (leaves ENGINE-UNIVERSAL-SERVICES.13 + .14; DOCS only, ZERO code bytes)
 
 - ⛔ **`-0013` published "`.14` BLOCKS `.13` (c)". It was reasoned, not checked, and it is wrong in

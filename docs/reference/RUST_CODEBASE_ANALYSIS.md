@@ -1,5 +1,32 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Recent Architecture Change Note (2026-08-12) — indirect left recursion gets a PLANNER before it gets a rewrite (`ENGINE-UNIVERSAL-SERVICES.13` slice 4)
+
+**New module `rust/src/ast_pipeline/indirect_lr_plan.rs` — pure analysis, no engine behaviour.** It
+answers, for every cycle `--lint-grammar` reports as `left_recursion_unhandled`, what an elimination
+would have to DO: the left-corner ROUTES from a candidate base rule back to itself, the SUFFIX the
+rewrite would iterate (`X := X_lr_base ( X_lr_suffix )*`), the CLONE cost, and every **starvation
+site** — a rule holding the candidate at its left corner with a non-empty residual.
+
+**Why a separate module rather than an extension of `detect_left_recursive_chain_plan`.** The
+existing planner (`ast_pipeline/mod.rs`) matches ONE shape and mutates the grammar as it goes; this
+one enumerates every candidate across the whole grammar and mutates nothing, which is what makes it
+safe to run on all 17 grammars and to unit-test against a synthetic. Keeping it out of `mod.rs` also
+keeps the analysis reviewable — the survey's criterion was refuted twice by measurement before it
+was right, and both refutations were found by running it, not by reading it.
+
+**The seam it defines for the eventual rewrite.** `ChainRoute::suffix_elements()` /
+`intermediate_rules()` are the two functions a generalized `apply_left_recursive_chain_plan` needs:
+the suffix is the route's residuals concatenated INNERMOST FIRST (a derivation descends to the
+cycle-closing reference and consumes each residual on the way back out), and each intermediate is
+one clone rule. Measured on `grammars/systemverilog.ebnf`: 13 clones for the cast/call knot, 12 for
+the method-call receiver, 1 for class scope — linear in the cycle length, and each clone is a new
+name in the typed AST (`ast_shape_contract`).
+
+**Exposure:** `ast_pipeline --report-indirect-lr-plan` (+ `--indirect-lr-plan-json`,
+`PGEN_INDIRECT_LR_DUMP_ALL`), a read-only CLI branch that returns before any generator runs, so no
+generation path can reach the new code.
+
 ## Recent Architecture Change Note (2026-08-11) — the left-recursion chain FOLD is one shared runtime service (`ENGINE-UNIVERSAL-SERVICES.8`)
 
 **New module `rust/src/ast_pipeline/lr_chain_fold.rs` — the single implementation of "an

@@ -1,0 +1,9 @@
+{
+  "candidates": [],
+  "covered_cycle_rules": [],
+  "declined": [],
+  "eliminated_base_rules": [],
+  "elimination_ran": true,
+  "grammar": "builtin_semantic_annotation",
+  "surviving_cycle_rules": []
+}

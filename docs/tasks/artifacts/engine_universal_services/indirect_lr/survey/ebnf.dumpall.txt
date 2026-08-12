@@ -1,0 +1,25 @@
+=== INDIRECT-LR-SURVEY: 'ebnf' ===
+elimination_ran=true eliminated_base_rules=0 surviving_cycle_rules=5 candidates=2 declined=3
+cycle-rule coverage: 5/5 reported rule rows reachable by a bare left-corner route
+starvation-safe candidates: 2/2
+
+[candidate] return_expression  routes=3  seeds=4  clone_cost=4  verdict=MAY-ABSORB
+    clones: arithmetic_return, conditional_return, expression_return, member_access_return
+    route alt#3: return_expression -> expression_return -> arithmetic_return -> return_expression   suffix: arithmetic_operator return_expression
+    route alt#3: return_expression -> expression_return -> conditional_return -> return_expression   suffix: "?" return_expression ":" return_expression
+    route alt#3: return_expression -> expression_return -> member_access_return -> return_expression   suffix: "." identifier_literal
+    ·  benign site arithmetic_return alt#0 (on-route, goes dead with the rewrite) — residual 'arithmetic_operator return_expression' a greedy suffix could steal
+    ·  benign site conditional_return alt#0 (on-route, goes dead with the rewrite) — residual '"?" return_expression ":" return_expression' a greedy suffix could steal
+    ·  benign site member_access_return alt#0 (on-route, goes dead with the rewrite) — residual '"." identifier_literal' a greedy suffix could steal
+
+[candidate] expression_return  routes=3  seeds=1  clone_cost=4  verdict=MAY-ABSORB
+    clones: arithmetic_return, conditional_return, member_access_return, return_expression
+    route alt#0: expression_return -> arithmetic_return -> return_expression -> expression_return   suffix: arithmetic_operator return_expression
+    route alt#1: expression_return -> conditional_return -> return_expression -> expression_return   suffix: "?" return_expression ":" return_expression
+    route alt#3: expression_return -> member_access_return -> return_expression -> expression_return   suffix: "." identifier_literal
+
+--- DECLINED (no plan; the survey's own coverage gap, itemised) ---
+    no_acyclic_seed: 3
+    arithmetic_return [no_acyclic_seed]: arithmetic_return -> return_expression -> expression_return -> arithmetic_return
+    conditional_return [no_acyclic_seed]: conditional_return -> return_expression -> expression_return -> conditional_return
+    member_access_return [no_acyclic_seed]: member_access_return -> return_expression -> expression_return -> member_access_return

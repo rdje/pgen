@@ -1,0 +1,18 @@
+GRAMMAR                                    CYCLEROWS    COVERED CANDIDATES     SAFE DECLINED
+builtin_return_annotation                         0          0          0        0        0
+builtin_semantic_annotation                       0          0          0        0        0
+ebnf                                              5          5          2        2        3
+json                                              0          0          0        0        0
+regex                                             0          0          0        0        0
+return_annotation                                 0          0          0        0        0
+rtl_const_expr                                    0          0          0        0        0
+rtl_frontend                                      0          0          0        0        0
+semantic_annotation                               0          0          0        0        0
+systemverilog_2017_lrm_extracted           LOAD-FAILED
+systemverilog_2023_lrm_extracted           LOAD-FAILED
+systemverilog_lrm_profiled_generated       LOAD-FAILED
+systemverilog_lrm_profiled_wrapper               23         18         11        7       12
+systemverilog_preprocessor                        0          0          0        0        0
+systemverilog                                    30         30         12        5       18
+verilog_2005_lrm_extracted                 LOAD-FAILED
+vhdl                                              0          0          0        0        0
