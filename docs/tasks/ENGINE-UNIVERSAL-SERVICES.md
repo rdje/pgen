@@ -1640,9 +1640,28 @@ price, and it is recorded there now.
 with the generated parser on two of P1's five rows, **in both directions** (`t'(n)` gen=accept /
 interp=reject; `n'(n)` gen=reject / interp=accept), and agrees on every P2/P3 row — so the
 divergence is specific to a SURVIVING cycle. `PARSE-HARNESS.6.1`'s one indirect-LR case
-(`recursion_guarded_memo_isolation`) is green because its cycle is escapable one hop in. ⇒ **the
-combinator case acceptance (c) wants cannot land until `.14` closes**: added today it would fail the
-gate on `agreed=false`, correctly, and the fix for that is `.14`'s, not this leaf's.
+(`recursion_guarded_memo_isolation`) is green because its cycle is escapable one hop in.
+
+⛔ **CORRECTION, same session, before the next slice started — `.14` does NOT block acceptance (c),
+and the first draft of this section said it did.** The claim was reasoned, not checked, and two
+in-tree facts refute it:
+
+1. **Closing `.14` would not make the case green either.** A combinator case is clean only when
+   `agreed && anchor_ok` (`parse_harness_combinator_suite.rs`, `CombinatorCaseReport::is_clean`).
+   Making the interpreter mirror `check_cycle_id` would move the two oracles to AGREEING on REJECT —
+   `agreed` yes, `anchor_ok` still no, because the anchor is the spec-reasoned ACCEPT. So the case is
+   RED until the ENGINE parses the text, i.e. until acceptance (d).
+2. **And (d) makes it green without `.14`.** Both sides run the same `transform_from_raw_ast`
+   LR-elimination (`parse_harness_combinator_suite.rs:514`), so once the eliminator handles the
+   shape they consume the identical eliminated tree — which is why P2/P3, the hand-eliminated
+   probes, agree on every row. The precedent is exact: bare DIRECT LR was
+   `DIRECT_LEFT_RECURSION_KNOWN_DIVERGENCE` while its cycle survived and became a green first-class
+   case, on the same source grammar, the moment `GRAMMAR-WELLFORMED.A2.5` eliminated it
+   (`docs/tasks/PARSE-HARNESS.md:1311`).
+
+⇒ **(c) and (d) land TOGETHER, and `.14` is an independent oracle defect running in parallel** — it
+does not gate this leaf, and this leaf's fix shrinks its exposure without closing it. The frontier
+after this slice is therefore **`.13` (d), the fix itself**.
 
 ⭐ **THE INSTRUMENT THIS SLICE HAD TO BUILD** (`--interpret-parse`, TOOLBOX §1.5b). PGEN had three
 ways to parse an arbitrary grammar and none answered the question from a shell: §1.3 costs a
@@ -1750,9 +1769,16 @@ the two could return different VERDICTS, and nothing measured whether they do.
 cycle enters, so no probe input ever needs the recursion to be *entered twice*. The
 `p1_knot_a_defect` shape does — and that is the shape every real victim on `.13` has.
 
-⭐ **THIS BLOCKS `.13` ACCEPTANCE (c).** The combinator case `.13` (c) asks for cannot land while
-this is open: added today it fails the gate on `agreed=false`, correctly, and the repair belongs
-here. ⇒ `.14` is a PREREQUISITE of `.13` (c)/(d), not a parallel finding.
+⛔ **THIS DOES NOT BLOCK `.13`, AND THIS LEAF'S FIRST DRAFT SAID IT DID** (corrected the same
+session, before the next slice started — see `.13` slice 3's own correction block). A combinator
+case is clean only when `agreed && anchor_ok`: mirroring `check_cycle_id` here would move the two
+oracles to AGREEING on REJECT, leaving the spec-reasoned ACCEPT anchor unmet, so it cannot green the
+case. Conversely `.13` (d) greens it WITHOUT this leaf, because both sides run the same
+`transform_from_raw_ast` elimination and would consume the identical eliminated tree — the exact
+path bare DIRECT LR took from `DIRECT_LEFT_RECURSION_KNOWN_DIVERGENCE` to a green first-class case
+when `GRAMMAR-WELLFORMED.A2.5` landed. ⇒ **`.14` runs in PARALLEL with `.13`**, and `.13` (d)
+shrinks its exposure (fewer surviving cycles in the shipped grammars) without closing it — a
+synthetic or a future grammar can always present one.
 
 ⚠️ **AND IT ALREADY COST A WRONG TABLE.** `.13` slice 3's first draft ran the interpreter alone and
 published P1's two divergent rows inverted — a table that read "even one cast level fails", which
