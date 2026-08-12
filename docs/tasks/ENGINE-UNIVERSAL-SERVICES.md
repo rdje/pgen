@@ -1422,3 +1422,47 @@ input and a probe verdict); (b) a prior-art-grounded design decision recorded in
 case there today — `recursion_guarded_memo_isolation` covers the guard's *memo* interaction, not the
 lost derivation); (d) `int'(2)'(3)` parses, with the SV corpus and the 6 fully-certified grammars
 byte-identical outside the target.
+
+#### ⭐⭐ ROUTED IN — a SECOND victim of the SAME cycle, and the first one with CORPUS pricing (`SV-CORPUS-GRAD.13c.2b`, 2026-08-12 session #221)
+
+This leaf opened with `int'(2)'(3)` — a *constructed* LRM-legal chain. It now also owns a defect that
+arrived from the opposite direction: a **vendored corpus row** that `SV-CORPUS-GRAD.13c.2` had
+adjudicated `DEFECT` months before this cycle was named, and whose own leaf's hypothesis (a missing
+`constant_primary` alternative) was refuted by the diagnosis.
+
+```systemverilog
+package p; parameter logic [7:0] K = 8'(1); endpackage   // REJECT
+module  m; logic [7:0] k; initial k = 8'(1);  endmodule  // ACCEPT
+```
+
+Same cycle, entered one rule earlier:
+
+```text
+constant_expression → constant_expression_operand → constant_primary → constant_primary_sv_2017
+  → constant_cast → casting_type → constant_primary   💥 Infinite recursion detected, position 383
+```
+
+⭐ **What it adds that `int'(2)'(3)` could not:**
+
+1. **A price.** `docs/tasks/artifacts/sv_corpus_grad/constant_size_cast/corpus_row_cast_bisect.py`
+   removes only the `N'` size-cast prefix from OpenTitan's `top_darjeeling_rnd_cnst_pkg.sv` (22
+   occurrences) and `top_earlgrey_rnd_cnst_pkg.sv` (11) and both flip **REJECT → parse_full passed**.
+   So this cycle is the *sole* blocker of 2 real corpus rows — the fix has a measured corpus delta,
+   not just a constructed one.
+2. **A sharper statement of what a surviving cycle costs.** The guard fires in the PASSING arms too:
+   on `parameter logic [7:0] K = W'(1);` the trace shows `💥 Infinite recursion detected in rule
+   'constant_primary'` and then `🏁 Rule 'casting_type' selected branch 1/5`. ⇒ a surviving cycle
+   costs **nothing until it is the only road**. The cost is not "the cycle exists"; it is "no other
+   alternative of the re-entered rule can match this text". That is the shape the per-cycle
+   adjudication (acceptance (a)) must actually test for, and it is why a count of cycles is not a
+   count of defects — the leaf already said so, and this measures the mechanism behind it.
+3. **A fidelity proof that closes the grammar-tier escape.**
+   `constant_primary_lrm_alternative_audit.py` shows `constant_primary_sv_2017` (15), `_sv_2023` (16)
+   and `casting_type` (5) are **order-identical** to the LRM extraction. Hand-splitting the cycle in
+   `systemverilog.ebnf` would trade a proven byte-for-byte Annex A transcription for a workaround —
+   the third reason [[left-recursion-is-an-engine-service-not-a-grammar-authoring-burden]] gives for
+   refusing a grammar-tier repair, now instantiated with a measurement.
+
+⛔ **Acceptance (d) therefore grows by two rows**: when the fix lands, `defect_constant_size_cast.sv`
+and `defect_constant_size_cast_corpus_shape.sv` must flip to ACCEPT (their `MANIFEST.tsv` `expect`
+column re-baselined in the same commit), and the two OpenTitan rows must parse unmodified.

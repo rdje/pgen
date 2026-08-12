@@ -15,6 +15,8 @@ answers:
   - "why does the lint say left_recursion_unhandled and what does it cost me"
   - "does PGEN eliminate INDIRECT left recursion"
   - "how do I see ALL of a grammar's lint findings instead of the first ten"
+  - "why is 8'(1) rejected in a parameter but accepted in a statement"
+  - "how much does a surviving left-recursive cycle actually cost me"
 tags: [grammar-authoring, left-recursion, codegen, linter, instrument-soundness, lrm-fidelity, systemverilog, engine-boundary]
 date: 2026-08-11
 status: current (REWRITTEN by GRAMMAR-WELLFORMED.A2.5, which fixed the defect this card used to describe; EXTENDED by A2.6, which made the linter's verdict derived and found the claim was false for 30 of SV's 30 surviving cycles; the pre-fix behaviour is kept below because shipped parsers built before it still show it)
@@ -128,6 +130,31 @@ LRM-legal cast chain `int'(2)'(3)` is rejected via `casting_type -> constant_pri
 constant_cast -> casting_type` (`💥 Infinite recursion detected in rule 'casting_type'`). Eliminating
 **indirect** left recursion is an engine capability PGEN does not have yet:
 `ENGINE-UNIVERSAL-SERVICES.13`.
+
+## ⭐ A surviving cycle costs NOTHING until it is the only road
+
+The most useful thing to know about an `unhandled` cycle is when it will actually hurt you, and it is
+narrower than "this rule is left-recursive". Measured on that same SV cycle
+(`SV-CORPUS-GRAD.13c.2b`), in a *constant* expression:
+
+| input | what `casting_type` can match | verdict |
+|---|---|---|
+| `parameter int K = int'(1);` | `simple_type` — branch 1/5 | ACCEPT |
+| `parameter logic [7:0] K = W'(1);` | `simple_type → ps_type_identifier` — branch 1/5 | ACCEPT |
+| `parameter logic [7:0] K = 8'(1);` | only `constant_primary` — branch 2/5 | **REJECT** |
+
+⛔ The guard fires in **all three** — the `W'(1)` trace prints `💥 Infinite recursion detected in rule
+'constant_primary'` and then `🏁 Rule 'casting_type' selected branch 1/5` and passes. ⇒ the cost is
+not *"the cycle exists"*; it is *"no OTHER alternative of the re-entered rule can match this text"*.
+So a count of surviving cycles is not a count of defects, and sizing one means finding the inputs
+where every sibling alternative is dead — not reading the cycle list.
+
+⭐ **And do not reach for the grammar tier when you find one.** The same leaf proved
+`constant_primary_sv_2017` (15 alternatives), `constant_primary_sv_2023` (16) and `casting_type` (5)
+are order-identical to the Annex A extraction, so hand-splitting the cycle would trade a byte-for-byte
+standard transcription for a workaround — reason 1 above, with a measurement attached. That cycle
+alone blocks 2 vendored OpenTitan corpus files, whose only unparseable construct is a numeric size
+cast in a package parameter.
 
 Related: [[a-catch-all-alternative-makes-an-accept-meaningless]] (how the four dead arms looked
 supported for so long), [[annex-a-footnotes-license-derivations-the-productions-cannot-derive]] (the

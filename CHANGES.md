@@ -1,5 +1,40 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-SV-CORPUS-GRAD-0216 — the leaf's own hypothesis was wrong: nothing is missing from the grammar, the declared derivation is unreachable (leaf SV-CORPUS-GRAD.13c.2b DIAGNOSED; ENGINE-UNIVERSAL-SERVICES.13 gains its first corpus pricing; DOCS + reproducers only, ZERO grammar bytes, ZERO Rust bytes)
+
+- **THE DEFECT.** `parameter logic [7:0] K = 8'(1);` REJECTs; `initial k = 8'(1);` ACCEPTs.
+  `.13c.2b` opened suspecting a missing `constant_primary` alternative and asked for the whole
+  IEEE 1800-2017 A.8.4 list to be audited before fixing.
+- ⭐⭐ **THE AUDIT'S ANSWER IS "NOTHING IS MISSING", PROVEN MECHANICALLY.**
+  `constant_primary_lrm_alternative_audit.py` diffs the SHIPPED rule against the machine-extracted
+  Annex A one (`grammars/systemverilog_lrm_profiled_generated.ebnf`): `constant_primary_sv_2017`
+  **15/15**, `_sv_2023` **16/16**, `casting_type` **5/5**, all **order-identical**. `constant_cast`
+  is alternative 12 and always was.
+- **ROOT CAUSE — the runtime cycle guard rejects the one alternative that could match.** Traced
+  (`--trace-rules constant_primary`): `🚪 Entering branch 2/5 for rule 'casting_type' at position
+  383` → `💥 Infinite recursion detected in rule 'constant_primary' at position 383` →
+  `❌ Exiting rule 'constant_cast' with error: Backtrack`. The stack names the whole cycle:
+  `constant_primary → constant_primary_sv_2017 → constant_cast → casting_type → constant_primary`.
+  ⇒ this is a SECOND victim of the cycle `ENGINE-UNIVERSAL-SERVICES.13` opened on, reached from a
+  corpus row rather than a constructed chain.
+- ⭐ **THE DISCRIMINATOR IS NOT "CONSTANT EXPRESSION" AND NOT "SIZE CAST".** Five-arm A/B, all
+  tracked reproducers: `int'(1)` ACCEPTs (casting_type = `simple_type`), `W'(1)` ACCEPTs
+  (`simple_type → ps_type_identifier`), `8'(1)` REJECTs. The guard **fires in the passing arms too**
+  and costs nothing there. ⇒ a surviving cycle costs nothing until it is the ONLY road, so a count
+  of cycles is never a count of defects.
+- ⭐ **"UNBLOCKS 2 ROWS" IS NOW MEASURED, NOT ATTRIBUTED.** `corpus_row_cast_bisect.py` removes only
+  the `N'` size-cast prefix from OpenTitan's `top_darjeeling_rnd_cnst_pkg.sv` (22) and
+  `top_earlgrey_rnd_cnst_pkg.sv` (11) — both flip `REJECT (furthest_position=5899/5906)` →
+  `parse_full passed`. This construct is their sole remaining blocker.
+- **FIX TIER = ENGINE, and the grammar tier is refused on the standing ruling**
+  ([[left-recursion-is-an-engine-service-not-a-grammar-authoring-burden]]): hand-splitting the cycle
+  would trade a proven byte-for-byte Annex A transcription for a workaround. Routed to
+  `ENGINE-UNIVERSAL-SERVICES.13`, whose acceptance (d) grows by the two reproducers + the two rows.
+- **VERIFIED:** 3 new tracked reproducers, `run_adjudication_repros.py` **26 → 29 checked,
+  failures=0**; all three artifact scripts exit 0; `mdbook_docs_gate` green; the KM card's own
+  `reverify` command passes. No grammar, codegen or Rust byte changed — DONE-BAR register unchanged
+  (SV stays `Mostly Done`).
+
 ## 2026-08-12 - PGEN-GRAMMAR-WELLFORMED-0154 — the linter told 30 of SystemVerilog's 30 surviving left-recursive cycles they were "handled by PGEN", after the eliminator had declined every one of them (leaf GRAMMAR-WELLFORMED.A2.6; ENGINE-UNIVERSAL-SERVICES.13 NEW; ZERO grammar bytes, ZERO codegen bytes)
 
 - ⭐⭐ **A CLAIM ABOUT THE ENGINE THAT NOTHING VERIFIED, FAILING IN THE PASSING DIRECTION.**

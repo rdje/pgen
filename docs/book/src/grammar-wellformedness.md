@@ -2106,6 +2106,28 @@ alternative can still parse something. Claiming deadness there would repeat, in 
 exactly the unsound verdict the always-succeeds correction above retired. What is sound, and what the
 message states, is that the cycle's *left-recursive derivations* are unreachable.
 
+⭐ **How much a surviving cycle costs you, measured — it is nothing until the cycle is the only
+road.** `SV-CORPUS-GRAD.13c.2b` pinned this on the same `casting_type` cycle, all three inputs in the
+same constant-expression position:
+
+| input | what `casting_type` can match at the seed | verdict |
+|---|---|---|
+| `parameter int K = int'(1);` | `simple_type` — branch 1/5 | ACCEPT |
+| `parameter logic [7:0] K = W'(1);` | `simple_type → ps_type_identifier` — branch 1/5 | ACCEPT |
+| `parameter logic [7:0] K = 8'(1);` | only `constant_primary` — branch 2/5 | **REJECT** |
+
+The guard fires in **all three**: the `W'(1)` trace prints `💥 Infinite recursion detected in rule
+'constant_primary'` and then `🏁 Rule 'casting_type' selected branch 1/5` and parses. ⇒ the cost of a
+surviving cycle is not that it exists, it is that *no other alternative of the re-entered rule can
+match this text* — which is why the class size (30 on SV) is a count of cycles and never a count of
+defects, and why sizing one means hunting the inputs where every sibling alternative is dead. That
+one cycle blocks 2 vendored OpenTitan corpus files whose only unparseable construct is a numeric size
+cast in a package parameter (proven by removing just the `N'` prefix: both flip to `parse_full
+passed`). ⛔ And the grammar-tier escape is closed by measurement, not by taste — that leaf's audit
+shows `constant_primary_sv_2017`/`_sv_2023`/`casting_type` are **order-identical** to the Annex A
+extraction, so hand-splitting the cycle would trade a byte-for-byte standard transcription for a
+workaround.
+
 ⭐ **And the diagnostic no longer hides its own findings.** This class printed `take(10)` with no
 override, so 20 of SV's 30 were unreachable from the CLI at any verbosity — the sweep that found all
 this had to go around the instrument. Every class now shares one print helper with a cap of 40 and a

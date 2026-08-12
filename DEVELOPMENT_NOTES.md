@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-SV-CORPUS-GRAD-0216 — when the leaf tells you where to look, check whether it is right before you look there
+
+No code changed. Four things about this diagnosis are worth keeping.
+
+**1. The leaf's stated hypothesis was the fastest thing to refute, and refuting it first saved the
+work.** `.13c.2b` was written as *"a size cast is rejected in a CONSTANT expression"* and instructed
+the next session to check A.8.4's alternative list for more gaps. That instruction is exactly right
+as a discipline and exactly wrong as a lead: the list is complete — 15/15, 16/16, 5/5, order-identical
+to the machine-extracted Annex A. Had the audit been done by eye against the LRM as remembered, the
+"nothing is missing" answer would have been a claim; done against
+`grammars/systemverilog_lrm_profiled_generated.ebnf` it is a fidelity **proof**, and it also closes
+the grammar-tier repair off for good, because you cannot improve on byte-identical.
+
+**2. The passing controls carried the diagnosis, not the failing one.** The failing arm says only
+*something about `8'(1)` in a constant expression is unsupported*. What names the mechanism is that
+`int'(1)` and `W'(1)` pass **in the same position** — and that the trace shows the cycle guard firing
+in those passing runs too, immediately before `🏁 Rule 'casting_type' selected branch 1/5`. ⇒ the
+defect is not "size casts in constant expressions" but *a size cast whose size is a numeric literal*,
+because that is the only case where `constant_primary` is `casting_type`'s sole viable alternative.
+Two controls that did not exist before the session turned a construct-shaped statement into an
+edge-shaped one. The general form: when a rule has alternatives, the failing input tells you the rule
+failed; only inputs that take the *other* alternatives tell you which edge is broken.
+
+**3. An attribution left untested until fix-time is a number that can be wrong for months.**
+`.13c.2` recorded *"corpus rows unblocked: 2"* from an adjudication, and the natural moment to check
+it is after the fix — when it is too late for the estimate to have been useful. It is checkable now,
+by deleting the construct instead of implementing support for it: strip only the `N'` prefix (so
+`512'({…})` becomes the legal `({…})`, leaving every other byte to be parsed at full strength) and
+both rows parse. That is a general trick for pricing an unimplemented fix — remove the construct
+minimally and see what else the file trips over. If something else does, the "unblocks N rows" claim
+was wrong and you learn it before committing to the work rather than after.
+
+**4. The severity of a surviving cycle is conditional, and the condition is nameable.** `A2.6` landed
+the warning; this leaf measures what it costs. A cycle is free until every *sibling* alternative of
+the re-entered rule is dead for that input. That is why SV's 30 is a count of cycles, never a count of
+defects, and it tells `ENGINE-UNIVERSAL-SERVICES.13`'s per-cycle adjudication what to actually test:
+not "does this cycle exist" but "is there text for which this cycle is the only road".
+
 ## 2026-08-12 - PGEN-GRAMMAR-WELLFORMED-0154 — how to earn a verdict about your own engine, and why "ask the planner" was the wrong derivation
 
 The change is small. Three things about it are worth keeping.

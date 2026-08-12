@@ -8564,7 +8564,7 @@ the Annex A transcription, [[annex-a-footnotes-license-derivations-the-productio
 ⛔ That makes this an **accept-widening** change: it needs the full ceremony (SV regeneration, corpus
 re-measure with the accepts-invalid set held, release + schema + ledger), not a drive-by edit.
 
-#### `.13c.2b` — DEFECT: a size cast is rejected in a CONSTANT expression (`todo`, opened 2026-08-11 by `.13c.2`)
+#### `.13c.2b` — DEFECT: a size cast is rejected in a CONSTANT expression (**DIAGNOSED** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0216`; opened 2026-08-11 by `.13c.2`; the FIX is `ENGINE-UNIVERSAL-SERVICES.13`)
 
 - `parameter logic [7:0] K = 8'(1);` REJECTS while `initial k = 8'(1);` PARSES ⇒ the gap is the
   **constant-expression** path, not the cast. IEEE 1800-2017 A.8.4:
@@ -8575,6 +8575,122 @@ re-measure with the accepts-invalid set held, release + schema + ledger), not a 
   fixing: a constant-expression path that is missing ONE `constant_primary` alternative is unlikely
   to be missing only that one — check the whole A.8.4 alternative list against
   `constant_primary`'s alternatives in `grammars/systemverilog.ebnf` as part of the diagnosis.
+
+##### ⭐⭐ DIAGNOSED (2026-08-12 session #221, tools-first; ZERO grammar bytes, ZERO Rust bytes)
+
+> **The leaf's own hypothesis is REFUTED, and the answer is one edge further out.** Nothing is
+> missing from the grammar: `constant_cast` is alternative **12 of 15** in
+> `constant_primary_sv_2017` and always was. The declared derivation is simply **unreachable** —
+> this is the SECOND corpus-grounded victim of the indirect left-recursive cycle
+> `ENGINE-UNIVERSAL-SERVICES.13` opened on, and the first one that costs real vendored corpus rows.
+
+**THE A.8.4 AUDIT THE LEAF ASKED FOR — the answer is "nothing is missing", proven mechanically.**
+`docs/tasks/artifacts/sv_corpus_grad/constant_size_cast/constant_primary_lrm_alternative_audit.py`
+diffs the SHIPPED rule against the LRM-extracted one
+(`grammars/systemverilog_lrm_profiled_generated.ebnf`, machine-generated from IEEE 1800 Annex A by
+`tools/extract_systemverilog_lrm_profiles.py`), stripping PGEN return annotations and normalising
+the single shipped indirection `enum_id_scope_prefix` → `( package_scope | class_scope )` (whose
+body the script asserts rather than assumes):
+
+```text
+constant_primary_sv_2017   shipped 15 vs LRM 15   all ==, in order
+constant_primary_sv_2023   shipped 16 vs LRM 16   all ==, in order
+casting_type               shipped  5 vs LRM  5   all ==, in order
+VERDICT: AGREE — no missing LRM alternative
+```
+
+⇒ the sizing worry the leaf recorded ("unlikely to be missing only that one") is closed with a clean
+negative. There is **no** grammar-fidelity defect here to find, in this rule or its neighbours.
+
+**ROOT CAUSE (WHY + WHERE) — the runtime cycle guard rejects the one alternative that could match.**
+Traced on the reproducer, scoped to `constant_primary`
+(`PGEN_TRACE_VERBOSITY=debug … --trace-rules constant_primary`):
+
+```text
+🚪 Entering branch 2/5 for rule 'casting_type' at position 383
+💥 Infinite recursion detected in rule 'constant_primary' at position 383
+🔙 Speculative parse failed with error 'InvalidSyntax { message: "Infinite recursion detected",
+   position: 383 }', backtracked to position 383 (rule=casting_type)
+❌ Exiting rule 'constant_cast' with error: Backtrack { position: 383 }
+```
+
+Byte 383 is the whitespace immediately before `8` in `K = 8'(1)`. The rule stack the same trace
+prints names the whole cycle:
+
+```text
+constant_expression → constant_expression_operand → constant_primary → constant_primary_sv_2017
+  → constant_cast → casting_type → constant_primary   ⛔ SAME POSITION, guard rejects
+```
+
+That is cycle #2 of the 7 distinct SV cycles `--lint-grammar` reports (`grammars/systemverilog.ebnf`
+`:1641` `constant_primary`, `:1594` the `constant_cast` alternative, `:1539` `constant_cast`,
+`:1033` `casting_type`'s `constant_primary` alternative). The lint says the same thing statically
+since `GRAMMAR-WELLFORMED.A2.6` made its verdict derived rather than asserted:
+
+```text
+left_recursion_unhandled=30 (warning — the LR-elimination pass ran and these cycles survived it;
+  only the runtime guard is left, and it REJECTS same-position re-entry), left_recursion_eliminated=2
+[warn] rule 'casting_type' is left-recursive (cycle: casting_type -> constant_primary ->
+  constant_primary_sv_2017 -> constant_cast -> casting_type) and PGEN's LR-elimination pass did NOT
+  eliminate it …
+```
+
+**THE DISCRIMINATOR IS NOT "CONSTANT EXPRESSION", AND NOT "SIZE CAST" — it is whether `casting_type`
+has ANY other viable alternative at the seed position.** Five arms, all tracked reproducers, run by
+`docs/tasks/artifacts/sv_corpus_grad/constant_size_cast/casting_type_edge_matrix.sh`:
+
+| arm | `casting_type` resolves via | verdict |
+|---|---|---|
+| `control_size_cast_in_statement.sv` — `initial k = 8'(1);` | `constant_primary`, FIRST entry at that position | ACCEPT |
+| `control_simple_type_cast_in_constant.sv` — `parameter int K = int'(1);` | `simple_type` (branch 1/5) | ACCEPT |
+| `control_param_name_cast_in_constant.sv` — `parameter logic [7:0] K = W'(1);` | `simple_type → ps_type_identifier` (branch 1/5) | ACCEPT |
+| `defect_constant_size_cast.sv` — `parameter logic [7:0] K = 8'(1);` | `constant_primary` — **cycle-blocked** | REJECT |
+| `defect_constant_size_cast_corpus_shape.sv` — `512'({ 64'h…, 448'h0 })` | `constant_primary` — **cycle-blocked** | REJECT |
+
+⭐ Arms 2 and 3 are new here and they are what make the statement precise. The guard **fires in the
+passing arms too** — traced on `W'(1)`, `💥 Infinite recursion detected in rule 'constant_primary'`
+appears and then `🏁 Rule 'casting_type' selected branch 1/5 consuming 2 chars` wins anyway. A
+surviving cycle costs nothing until it is the *only* road. A **numeric** size is exactly the case
+where `simple_type` cannot match, so `constant_primary` is the only road and the derivation dies.
+⇒ the honest defect statement is: **a size cast whose size is a numeric literal is unparseable
+inside a constant expression**, not "size casts in constant expressions are unparseable".
+
+**AND THE ASYMMETRY WITH THE STATEMENT ARM IS THE SAME FACT, READ FROM THE OTHER END.** In
+`initial k = 8'(1);` the descent is `primary → cast → casting_type → constant_primary`, so
+`constant_primary` is entered at that position for the **first** time and the guard has nothing to
+block; its own `constant_cast` re-entry is then blocked harmlessly because `primary_literal`
+(alternative 1/15) already matches `8`. The constant path descends
+`constant_primary → … → casting_type → constant_primary`, so the guard bites on the way *down*.
+
+**PRICING — "unblocks 2 rows" is now MEASURED, not attributed** (`corpus_row_cast_bisect.py`).
+Removing only the numeric size-cast prefix (`N'` before `(`, so `512'({…})` becomes the legal
+parenthesised concatenation `({…})`) and changing nothing else:
+
+```text
+top_darjeeling_rnd_cnst_pkg.sv   22 casts removed   REJECT furthest_position=5899 → parse_full passed
+top_earlgrey_rnd_cnst_pkg.sv     11 casts removed   REJECT furthest_position=5906 → parse_full passed
+```
+
+⇒ this construct is the **sole remaining blocker** of both rows, so the fix flips exactly 2 and no
+fewer. ⛔ That check exists because `.13c.2`'s "corpus rows unblocked: 2" was an *attribution*, and
+an attribution that is only tested when the fix lands is a number that can be wrong for months.
+
+**FIX TIER — ENGINE, and the grammar tier is REFUSED ON A STANDING RULING, not on preference.**
+The fix-hierarchy's grammar tier would mean hand-breaking the cycle in `systemverilog.ebnf` (a Paull
+split of `casting_type`/`constant_primary`). The director ruled on 2026-08-11 that the engine handles
+what is common to ALL EBNFs and a grammar carries only what is language-specific
+([[left-recursion-is-an-engine-service-not-a-grammar-authoring-burden]]) — and left recursion is the
+canonical example. A grammar-side rewrite would also break this leaf's own audit result above: the
+rule is currently **byte-for-byte the LRM's**, and hand-splitting it trades a proven fidelity
+property for a workaround. ⇒ routed to `ENGINE-UNIVERSAL-SERVICES.13`, which now owns two
+independent LRM-grounded inputs on the same cycle (`int'(2)'(3)` and this one) plus the first
+corpus pricing it has.
+
+**STATUS:** the DIAGNOSIS half is closed and this leaf is **blocked on `ENGINE-UNIVERSAL-SERVICES.13`**,
+not on further SV investigation. When `.13` lands, re-run all three scripts in
+`docs/tasks/artifacts/sv_corpus_grad/constant_size_cast/`: the matrix's two REJECT arms must become
+ACCEPT, the bisect's "before" must stop being a rejection, and the `MANIFEST.tsv` `expect` column for
+the two `defect_*` rows must be re-baselined in the same commit.
 
 #### `.13c.2c` — DEFECT: `ral.arr[0].g()` rejects when the receiver is a subroutine formal (`todo`, opened 2026-08-11 by `.13c.2`)
 
