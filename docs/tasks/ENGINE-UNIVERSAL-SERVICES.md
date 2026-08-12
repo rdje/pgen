@@ -1336,3 +1336,39 @@ reason="Stimuli generation depth exceeded max_depth=63 while expanding rule 'w24
   Certificate-coverage is one proof surface, and SV's release bar is gated on the corpus axis
   (`SV-CORPUS-GRAD.13` — only 46.3 % of the corpus adjudicated), so promoting the row on this result
   would be a claim the other axes do not support.
+
+### `.12` — the SAME mis-scoped budget survives in three more forcing tiers, unmeasured (`todo`, opened 2026-08-12 session #219 by `.11` slice 2's honest bound)
+
+`.11` slice 2 fixed a budget that was scoped to a rule's **shallowest** alternative on a pass that
+forces a specific, possibly much deeper one. It fixed **one** of four places that do this. This leaf
+exists so the other three are OWNED rather than living as a sentence in a closed leaf — the
+every-finding-is-FIXED rule, where routing decides *when*, not *whether*.
+
+**THE THREE SITES** (`rust/src/ast_pipeline/stimuli_generator.rs`), each forcing a root-`Or` branch
+while `self.config.max_depth` holds the flat `reach_prefix_budget + min_derivation_depths[rule]`:
+
+1. `generate_target_own_structure_witnesses` — the **mandatory-CHILD** tier. Forces a branch of a
+   child rule; the child's forced alternative can be deeper than the child's shallowest one.
+2. `generate_target_own_structure_witnesses` — the **seed-SIBLING** tier (`.10` mechanism 2). Same
+   shape, on the seed rule.
+3. `generate_structured_witnesses` — its own `'branches:` loop, which forces R's root-`Or` branches
+   under a composed prelude + head-leaf pin. This is the closest twin of the site `.11` fixed.
+
+⛔ **NOT a code change yet, and deliberately so.** No case has been observed at any of the three, and
+`.11` slice 2's whole argument was that budget arithmetic must be scoped by measurement rather than
+by analogy — shipping the same edit three more times on a hunch would be exactly the reasoning that
+leaf refused. The cost of being wrong is not symmetric: each site raises a budget, and a raised
+budget is what buys `UNKNOWN` at the price of `sample_parse_failures` when it is not the real cause.
+
+**HOW TO MEASURE IT (no new instrument needed — `.11` slice 1 already built it).** The signature is
+already observable: run any grammar's cert coverage under `PGEN_REACH_FORCED_OVERRIDE_DUMP=1` and
+look for `outcome=failed reason="… depth exceeded …"` on a rule whose forced site belongs to one of
+the three tiers. A cheap sweep is the natural first step — the same nine-grammar sweep `.11` slice 2
+used for its regression arm, re-read for `forced-override` records instead of headline equality.
+
+**Acceptance:** either (a) a measured case at one or more of the three sites, fixed by the same
+per-branch formula and proven on an isolating synthetic first, with the cross-grammar sweep
+byte-identical outside the target; or (b) a priced REFUSAL — the sweep run, the census of
+`depth exceeded` forced-override records published, and the conclusion recorded that no site
+reproduces, so the flat budget stays. ⛔ (b) is a first-class outcome, not a failure to fix; what is
+not acceptable is leaving the question unasked.
