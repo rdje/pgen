@@ -1211,6 +1211,27 @@ mod tests {
                 "expression_or_dist" => parser
                     .parse_expression_or_dist()
                     .map_err(|err| err.to_string()),
+                // SV-CORPUS-GRAD.13c.2e (ledger SV-0053): lock the covergroup select
+                // condition. The SAME defect as `expression_or_dist` above, one clause
+                // away — IEEE 1800-2017 A.2.11 `select_condition ::= binsof (
+                // bins_expression ) [ intersect { covergroup_range_list } ]`, whose
+                // LITERAL braces reached the grammar as `covergroup_range_list*`. It
+                // survived `SV-0049` because that leaf fixed the instance it was
+                // looking at rather than the class, and nothing locked this rule
+                // (0 of the then-33 samples contained a `binsof`).
+                // ⛔ WHAT THIS SAMPLE DOES AND DOES NOT GUARD, stated so the next
+                // reader does not over-trust it. The `{expression, intersect}` key
+                // pair catches a carrier collapse, and the `[5, [1:3]]` input cannot
+                // parse AT ALL under the brace-free spelling — so a revert fails this
+                // sample loudly rather than subtly. What it CANNOT see is the shape
+                // change on input the old spelling also accepted (`intersect {5, 8}`
+                // parsed before, as one concat-valued item): the keys are identical
+                // either way. That leg is pinned by the adjudication oracle's `!concat`
+                // arms on control_intersect_value_list.sv and
+                // control_select_expression_and.sv, which are the sharper instrument.
+                "select_condition" => parser
+                    .parse_select_condition()
+                    .map_err(|err| err.to_string()),
                 // SV-CORPUS-GRAD.3.19 (ledger SV-0050): lock the config `use` clause.
                 // IEEE 1800 contradicts itself here — Annex A's `use_clause` has no `#`,
                 // while clause 33.4.3 prints `instance top use #(.WIDTH(32));` seven times

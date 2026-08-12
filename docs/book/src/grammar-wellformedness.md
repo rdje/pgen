@@ -1863,10 +1863,16 @@ adjudicated bucket — the manifest already recorded what the parser did on ever
 observation was simply unused.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4398/313`.** (`GRAMMAR-WELLFORMED.A2.5` moved the bar **318 → 313**: reviving
-> `select_expression`'s dead `&&` / `||` / `with ( … )` alternatives turned five clause-19 covergroup
-> files from `unexplained_rejects_valid` into `match`, with the accepts-invalid set byte-identical.
-> The denominator did not move, which is the point of publishing them together.) The
+> `7556/2459/6321/4398/309`.** (`SV-CORPUS-GRAD.13c.2e` moved the bar **313 → 309**: restoring
+> `select_condition`'s literal `intersect { … }` braces turned four more clause-19 covergroup files
+> from `unexplained_rejects_valid` into `match`, again with the accepts-invalid set byte-identical.
+> The step before it, `GRAMMAR-WELLFORMED.A2.5`, moved the bar **318 → 313** by reviving
+> `select_expression`'s dead `&&` / `||` / `with ( … )` alternatives. ⚠️ Read the two together: the
+> A2.5 repro needed PARENTHESES to prove anything, because the un-braced `intersect` list was still
+> swallowing whatever followed it — the same clause, defective twice, and the second defect was
+> masking the evidence for the first. **The denominator did not move in either step**, which is the
+> point of publishing them together: four fewer known defects over the same 46.3 % of the corpus is
+> a smaller claim than "the bar fell".) The
 > `SV-CORPUS-DENOMINATOR` doctrine
 > (`scripts/check_sv_corpus_denominator.sh`) re-derives all five numbers from the tracked
 > adjudication manifest on every commit and fails if this line disagrees or if the census artifact

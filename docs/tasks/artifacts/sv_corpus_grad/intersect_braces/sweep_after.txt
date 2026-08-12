@@ -1,0 +1,66 @@
+LRM literal-brace transcription sweep — `{ X }` groups the grammar renders as `X*`
+  LRM productions read: 2017=867, 2023=880
+  grammar rules read:   1465  (grammars/systemverilog.ebnf)
+
+DEFECT  — literal `{ X_list }` rendered as `X_list*`, no braces: 0
+
+CORRECT — literal `{ X_list }` modelled with `lbrace … rbrace`: 6
+    [2017] expression_or_dist -> grammar `expression_or_dist` braces `dist_list`
+    [2017] inside_expression -> grammar `inside_expression_sv_2017` braces `open_range_list`
+    [2017] select_condition -> grammar `select_condition` braces `covergroup_range_list`
+    [2023] expression_or_dist -> grammar `expression_or_dist` braces `dist_list`
+    [2023] inside_expression -> grammar `inside_expression_sv_2023` braces `range_list`
+    [2023] select_condition -> grammar `select_condition` braces `covergroup_range_list`
+
+REPEAT  — `{ X }` where X is not a list ⇒ genuine repetition: 49
+    [2017] anonymous_program -> `anonymous_program_item`
+    [2017] combinational_body -> `combinational_entry`
+    [2017] conditional_expression -> `attribute_instance`
+    [2017] constraint_block -> `constraint_block_item`
+    [2017] edge_input_list -> `level_symbol`
+    [2017] implicit_data_type -> `packed_dimension`
+    [2017] level_input_list -> `level_symbol`
+    [2017] liblist_clause -> `library_identifier`
+    [2017] library_text -> `library_description`
+    [2017] module_path_conditional_expression -> `attribute_instance`
+    [2017] name_of_instance -> `unpacked_dimension`
+    [2017] net_decl_assignment -> `unpacked_dimension`
+    [2017] ordered_checker_port_connection -> `attribute_instance`
+    [2017] ordered_port_connection -> `attribute_instance`
+    [2017] rs_case -> `rs_case_item`
+    [2017] rs_code_block -> `data_declaration`
+    [2017] rs_code_block -> `statement_or_null`
+    [2017] sequential_body -> `sequential_entry`
+    [2017] specify_block -> `specify_item`
+    [2017] statement -> `attribute_instance`
+    [2017] udp_input_declaration -> `attribute_instance`
+    [2017] udp_reg_declaration -> `attribute_instance`
+    [2023] anonymous_program -> `anonymous_program_item`
+    [2023] combinational_body -> `combinational_entry`
+    [2023] conditional_expression -> `attribute_instance`
+    [2023] constraint_block -> `constraint_block_item`
+    [2023] edge_input_list -> `level_symbol`
+    [2023] generate_region -> `generate_item`
+    [2023] implicit_data_type -> `packed_dimension`
+    [2023] level_input_list -> `level_symbol`
+    [2023] liblist_clause -> `library_identifier`
+    [2023] library_text -> `library_description`
+    [2023] module_path_conditional_expression -> `attribute_instance`
+    [2023] name_of_instance -> `unpacked_dimension`
+    [2023] net_decl_assignment -> `unpacked_dimension`
+    [2023] ordered_checker_port_connection -> `attribute_instance`
+    [2023] ordered_port_connection -> `attribute_instance`
+    [2023] param_assignment -> `variable_dimension`
+    [2023] randcase_statement -> `randcase_item`
+    [2023] rs_case -> `rs_case_item`
+    [2023] rs_code_block -> `data_declaration`
+    [2023] rs_code_block -> `statement_or_null`
+    [2023] sequential_body -> `sequential_entry`
+    [2023] specify_block -> `specify_item`
+    [2023] statement -> `attribute_instance`
+    [2023] udp_ansi_declaration -> `attribute_instance`
+    [2023] udp_input_declaration -> `attribute_instance`
+    [2023] udp_nonansi_declaration -> `attribute_instance`
+    [2023] udp_reg_declaration -> `attribute_instance`
+
+VERDICT: 0 mis-transcribed literal-brace production(s).

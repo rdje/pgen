@@ -8417,9 +8417,13 @@ is not a promotion), and the probe arm it needs.
   `x with (a == 1)` now parses, pinned as `fixed_select_expression_with.sv` with arm `with_matches`.
   ⛔ Parsing the construct is **not** the same as the 3 corpus rows passing end-to-end — that is a
   `.13c` worklist re-measure this leaf does not claim; it claims the construct.
-  Its siblings `.13c.2a.3` and `.13c.2a.4` closed with it. Still open here: `.13c.2a.1`
-  (the literal `intersect` braces transcribed as EBNF repetition), which is why
-  `control_select_expression_and.sv` remains a masking pin rather than a `&&` control.
+  Its siblings `.13c.2a.3` and `.13c.2a.4` closed with it. ✅ **`.13c.2a.1` (the literal `intersect`
+  braces transcribed as EBNF repetition) is now `done` too** — closed 2026-08-12 by `.13c.2e`
+  (`PGEN-SV-CORPUS-GRAD-0214`), which is what promoted `control_select_expression_and.sv` from a
+  masking pin to a genuine `&&` control, exactly as that file predicted. ⛔ Read `.13c.2e`'s
+  duplicate-ownership note before opening another sub-leaf here: `.13c.2a.1` was owned in THIS
+  paragraph and never given a `####` heading, so a second tree re-found the same defect a day later.
+  A leaf that owns work must be a NODE, not a mention.
 
 ##### Acceptance Checklist (enforced)
 
@@ -8552,7 +8556,154 @@ is not a promotion), and the probe arm it needs.
 - **Corpus rows unblocked:** 2 (`otp_ctrl_env_cov.sv` ×2, `ral.vendor_test_digest[0].get_offset()`
   inside a `bins` value list).
 
-#### `.13c.2e` — `select_condition`'s `intersect { … }` BRACES are not modelled, so the range list swallows the rest of the expression (`todo`, opened 2026-08-12 session #218 by `ENGINE-UNIVERSAL-SERVICES.10`)
+#### `.13c.2e` — `select_condition`'s `intersect { … }` BRACES are not modelled, so the range list swallows the rest of the expression (**`done`** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0214`; opened 2026-08-12 session #218 by `ENGINE-UNIVERSAL-SERVICES.10`)
+
+> ✅ **CLOSED — ONE GRAMMAR LINE, and it closes `.13c.2a.1` with it because the two leaves were
+> always the same defect** (see the DUPLICATE-OWNERSHIP note below, which is a finding in its own
+> right). `select_condition` now reads
+> `( kw_intersect_6c96caaf lbrace covergroup_range_list rbrace )?`. Both legs moved and both were
+> measured: `binsof(ca) intersect { 5, [1:3] }` — the standard's own §19.6.2 example — went
+> **REJECT → ACCEPT**, and `binsof(ca) intersect 5;`, which A.2.11 cannot derive, went
+> **ACCEPT → REJECT**.
+>
+> ⭐⭐ **THE SIBLING PREDICTED ITS OWN PROMOTION, AND THE RATCHET COLLECTED.**
+> `control_select_expression_and.sv` shipped in `-0213` as a MASKING PIN carrying the arm
+> `condition,!and`, and its comment said: *"When `.13c.2a.1` restores the literal braces the seed
+> will stop over-consuming, this row will FAIL, and that failure is the signal to re-adjudicate it
+> as a genuine `&&` control."* On this commit the oracle failed on exactly that claim. That is a
+> two-sided ratchet doing the one thing a prose note cannot — **collecting on a prediction without
+> anyone remembering to check**.
+>
+> ⛔⛔ **DUPLICATE OWNERSHIP — TWO LEAVES OWNED ONE DEFECT FOR A DAY, AND NEITHER KNEW.**
+> `.13c.2a.1` was opened 2026-08-11 by `.13c.2a` as *"the literal `intersect` braces transcribed as
+> EBNF repetition"*. `.13c.2e` was opened 2026-08-12 by `ENGINE-UNIVERSAL-SERVICES.10` as the same
+> sentence with better evidence, and **`.13c.2a.1` never got a `####` heading** — it existed only as
+> a phrase inside its parent's body, which is why a second finder could not see it. ⇒ The routing
+> lesson is structural, not clerical: **a leaf that owns work must be a NODE, not a mention.** A
+> mention is invisible to `grep '^#### '`, and that is the search every arriving finder runs.
+> `.13c.2a.1` is given its heading below and closed as discharged-by-this-leaf, on the
+> `.13c.2a.3`/`.13c.2a.4` precedent (a leaf closed by another leaf's fix does not claim its own
+> before→after).
+>
+> ⚠️ **THE CLASS WAS NOT SWEPT WHEN ITS FIRST INSTANCE WAS FIXED, AND THAT IS WHY THIS SURVIVED.**
+> Ledger `SV-0049` (2026-08-09, three days earlier) fixed the IDENTICAL defect one clause away —
+> `expression_or_dist ::= expression [ dist { dist_list } ]` rendered as `( kw_dist dist_list* )?`.
+> It fixed the instance it was looking at. Had it swept the class, this leaf would not exist. The
+> sweep now exists as an instrument rather than as a resolution
+> (`docs/tasks/artifacts/sv_corpus_grad/intersect_braces/lrm_brace_transcription_sweep.py`), and its
+> before/after pair is what lets this leaf claim the class is closed rather than hope so.
+
+**WHAT THE SWEEP MEASURED — the leaf's own *"do not assume this is the only place"* discharged.**
+The discriminator is semantic and decidable: IEEE 1800 writes repetition `{ x }` and literal braces
+`{ x }` with the same characters, but a `{ X_list }` whose inner nonterminal is itself a LIST can
+only be literal — repeating a comma-separated list with no separator between repetitions is
+something no clause means. Run over **both** the 2017 and 2023 extracted LRMs (867 / 880
+productions) against all three grammar spellings of every rule:
+
+| tier | before | after |
+|---|---:|---:|
+| **DEFECT** — literal `{ X_list }` rendered as `X_list*`, no braces | **2** (`select_condition`, once per LRM edition) | **0** |
+| **CORRECT** — literal `{ X_list }` modelled `lbrace … rbrace` | 4 (`expression_or_dist`, `inside_expression`) | 6 (+ `select_condition`) |
+| **REPEAT** — `{ X }`, X not a list ⇒ genuine repetition | 49 | 49 |
+
+⇒ **`select_condition` was the only mis-transcription in either edition.** ⛔ **THE CLAIM IS THE
+BRACE CLASS, NOT THE DELIMITER CLASS — and the difference is routed, not glossed.** `SV-0049`'s own
+changelog asked for an *"exhaustive Annex-A **bracket/brace** sweep"*; this leaf delivers the brace
+half. The bracket half has no discriminator yet: transferring the `_list` rule naively returns **83
+rows / 45 productions**, visibly dominated by ordinary optionals (`[ lifetime ]`, `[ signing ]`,
+`[ port_direction ]`, `[ name_of_instance ]` ×7 — two read against the LRM, both genuine), a ratio
+that would teach waivers rather than close a class. Owned by **`LRM-GRAMMAR-FIDELITY.1a`** with that
+sizing as its routing evidence. The instrument refuses
+rather than guesses: four controls run before any verdict prints (both LRMs parse to a plausible
+size; the grammar reader resolves `select_condition`; `expression_or_dist` **and**
+`inside_expression` are in CORRECT; `specify_block` is in REPEAT), and it deliberately does **not**
+pin `select_condition` to a tier — that is the cell the fix moves, so pinning it would have made the
+control unfalsifiable. Honest bound, stated: the tier rule keys on the `_list` suffix, so a
+literal-brace production whose inner nonterminal is named otherwise would land in REPEAT and be
+missed — which is why REPEAT is printed in full rather than summarised.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — two reproducers, one per leg. (a) `binsof(ca) intersect { 5, [1:3] }`
+  (`fixed_intersect_range_list.sv`, the LRM's §19.6.2 example) →
+  `Parser did not consume full input at position 1004 [furthest_position=1167]`. (b)
+  `binsof(ca) intersect 5;` — no A.2.11 derivation — **ACCEPTED**. The rule was simultaneously
+  under- and over-accepting, which is the dropped-delimiter signature.
+- [x] **ROOT CAUSE (WHY + WHERE)** — tools-first, three independent instruments agreeing.
+  `--parse-dump-ast-pretty` on `binsof(ca) intersect { 1 } && binsof(cb)`: **one `condition` node,
+  ZERO `and` nodes**, the `intersect` payload a `concat` of `1` whose `operand_chain.rest` carries
+  `logical_and` + `binsof(cb)`. `PGEN_TRACE_VERBOSITY=debug --trace-rules select_condition` names
+  the span exactly: `✅ Rule 'concatenation' successfully parsed from 148 to 154 (consumed 6 bytes:
+  ' { 1 }')` then `✅ Rule 'covergroup_range_list' successfully parsed from 148 to 168 (consumed 20
+  bytes: ' { 1 } && binsof(cb)')`. `--dump-rule-outcome-counts-json`:
+  `select_expression_lr_suffix` entries=1 **committed=0**. WHERE = `grammars/systemverilog.ebnf:5259`
+  — `( kw_intersect_6c96caaf covergroup_range_list* )?`, no brace terminals and a `*` where the LRM
+  has a single list.
+- [x] **FIX** — declarative tier, ONE line, ZERO Rust bytes in the parser path:
+  `( kw_intersect_6c96caaf covergroup_range_list* )?` →
+  `( kw_intersect_6c96caaf lbrace covergroup_range_list rbrace )?`. ⭐ The `intersect: $5`
+  annotation is **UNCHANGED**, and that was verified rather than assumed: the already-correct
+  sibling `expression_or_dist` captures its whole optional group the same way (`dist: $2`). ⛔ The
+  tempting alternative `intersect: $5::3` (extract just the list) was **REFUSED on evidence** — a
+  `( … )?` group is emitted as `ParseContent::Sequence`, **not** `Quantified`
+  (`ast_based_generator.rs`, the optional-group `else { ParseContent::Sequence(Vec::new()) }` arm),
+  and `QuantifiedExtraction` falls through to `Terminal("<not_quantified>")` on a non-Quantified
+  base (`ast_return_transform.rs:773`). It would have corrupted the carrier on **both** the present
+  and absent paths. The absent path is measured clean under the fix: `intersect` = `[]`, no sentinel.
+- [x] **ADDRESSED** — measured before → after.
+
+  | probe | before | after |
+  |---|---|---|
+  | `intersect { 5, [1:3] }` (LRM §19.6.2) | REJECT | **ACCEPT**, `item[1]` a real `range` |
+  | `intersect 5` (no A.2.11 derivation) | ACCEPT | **REJECT** |
+  | `intersect { 1 } && binsof(cb)` — `and` nodes | **0** | **1** |
+  | same — `concat` nodes | 1 | **0** |
+  | same — `select_condition` entries/committed | 1/1 | **2/2** |
+  | same — `select_expression_lr_suffix` entries/committed | 1/**0** | 3/**1** |
+  | `intersect { 5, 6 }` — carrier | 2 elts, ONE concat-valued item | **4 elts**, `[kw, lbrace, TWO items, rbrace]` |
+  | `intersect` absent | `[]` | `[]` (unchanged, no sentinel) |
+
+- [x] **NO REGRESSION** — the binding proof is the per-file transition census (the `.3.4` LAW), not
+  a pass count. External corpus **16 336 files: pass 9 758 → 9 762 (+4), 0 pass→fail, 0 timeout,
+  0 crash.** ⭐ **All 4 flips are inside the keyed set derived BEFORE the measurement**
+  (`keyed_intersect_rows.py`: 10 REJECT→ACCEPT candidates, 2 must-not-regress, 0 brace-less), so
+  *flipped-but-not-keyed = 0* is checkable rather than asserted. Adjudication:
+  `unexplained_rejects_valid` **292 → 288 with ZERO new rows** (set difference), and
+  `unexplained_accepts_invalid` **21 → 21 SET-IDENTICAL** — the control that matters for a fix that
+  both widens and narrows. Axis-2 bar **313 → 309**; the DENOMINATOR did not move (7 556 / 46.3 %
+  adjudicated), and the two are re-published together because `SV-CORPUS-DENOMINATOR` fails
+  otherwise. Adjudication oracle `checked=26 armed=7 failures=0` (armed 6 → 7).
+  `--lint-grammar` output **byte-identical**; `sv_syntax_closure_gate` PASS with the contract
+  **byte-unchanged** (`unreachable_rules: 0`); `ast_shape_contract_gate` 18/18 with a **34th**
+  sample added so the rule is gate-visible; `sv_external_corpus_triage_gate` `parse_fail_total=0`;
+  **all 18 doctrines PASS**.
+  ⚠️ **HONEST BOUND, stated rather than implied:** the over-acceptance leg (`intersect 5`) is proven
+  on a SYNTHETIC only — the corpus carries **0** brace-less `binsof(…) intersect` rows, mechanically
+  derived. The fix removes a real over-acceptance; it does not remove one this corpus was catching.
+  ⚠️ **A second bound:** 6 of the 10 keyed rows did not flip. Spot-checked two — `csrng_cov_if.sv`
+  stops at position 419 on a `` `include ``, `CrossFunc/dut.sv` at 112 on a `function` inside a
+  cross body — i.e. they fail on unrelated defects reached EARLIER in the file. A keyed row that
+  does not flip is not a bug in this fix; an unkeyed row that flips would be, and there were none.
+- [x] **LOCKSTEP** — SV integration contract (release `1.0.182` → `1.0.183`, schema `20` → `21`,
+  with the consumer migration), released-parser bug ledger (`SV-0053`) plus the `SV-0052` row's
+  now-stale *"`.13c.2a.1`, OPEN"* note, the shape contract (34th sample + the `select_condition`
+  dispatch arm in `rust/src/ast_shape_contract.rs`), book *Grammar Well-Formedness* (the live
+  verdict-coverage tuple), the four reproducers + `MANIFEST.tsv`, the verdict-coverage census
+  artifacts, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, and this tree
+  (`.13c.2a.1` closed, `.13c.2a`'s "still open here" line retired).
+
+#### `.13c.2a.1` — the literal `intersect` braces transcribed as EBNF repetition (**`done`** 2026-08-12, closed by `.13c.2e`)
+
+> ✅ **CLOSED.** `defect_intersect_range_list.sv` REJECT → **ACCEPT** and is repointed to
+> `fixed_intersect_range_list.sv` (class `fixed`, arm `condition>range,!condition>concat`).
+> ⛔ **No separate acceptance checklist** — a leaf closed by another leaf's fix does not claim its
+> own before→after (`.13c.2a.3` precedent). The measured evidence is in `.13c.2e`.
+>
+> ⛔ **This leaf is the reason `.13c.2e` carries a duplicate-ownership note.** It was opened one day
+> earlier, with the correct diagnosis, and was then re-found from scratch by a different tree —
+> because it was never given a heading of its own. Its substance and its lesson both live in
+> `.13c.2e`; what is recorded HERE is that the earlier, correct diagnosis was not lost through being
+> wrong, but through being unfindable.
 
 ⛔⛔ **This leaf exists because the repository asserts the opposite in a tracked file, and the
 assertion is measured FALSE.** `stimuli/sv/adjudication_repros/fixed_select_expression_paren.sv`

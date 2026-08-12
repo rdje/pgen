@@ -1,0 +1,23 @@
+corpus rows: 16336   results: rust/target/sv_axis2_baseline/results.pre_13c_2e.tsv
+
+KEYED, FAILING (binsof-intersect):        29
+  ... carrying a RANGE in the list:       10   <- REJECT->ACCEPT candidates
+      stimuli/sv/subs/Surelog/tests/CrossFunc/dut.sv
+      stimuli/sv/subs/Surelog/tests/CrossItem/dut.sv
+      stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/19/19.06.01.01_01.sv
+      stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/19/19.06.01.02_01.sv
+      stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/19/19.06.02_01.sv
+      stimuli/sv/subs/opentitan/hw/ip/csrng/dv/cov/csrng_cov_if.sv
+      stimuli/sv/subs/opentitan/hw/ip/edn/dv/cov/edn_cov_if.sv
+      stimuli/sv/subs/opentitan/hw/ip/entropy_src/dv/cov/entropy_src_cov_if.sv
+      stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv
+      stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv
+KEYED, PASSING (binsof-intersect):        2   <- must not regress
+      stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/19/19.06.01_01.sv
+      stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/19/19.06.03_01.sv
+  ... BRACE-LESS (no LRM production):     0   <- ACCEPT->REJECT candidates
+
+NOT KEYED but containing `intersect`:     16   <- SVA sequence operator, untouched
+
+A flip inside the keyed sets is attributable to this fix. A flip OUTSIDE them is not,
+and is the signal to stop and diagnose rather than to explain.

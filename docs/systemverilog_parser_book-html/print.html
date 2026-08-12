@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fc7e4bad.js";
+            window.path_to_searchindex_js = "searchindex-dd2268ba.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1623,7 +1623,7 @@ AST-dump schema version”). It stayed <code>1</code> across the additive
 slice-campaign rows below (whose <code>1.x.0</code> minor-notation tracked
 per-slice progress under integer schema <code>1</code>), moved to <code>2</code> at
 POST-SV-AUDIT.2.4a (release <code>1.0.116</code>), to <code>3</code> at POST-SV-AUDIT.2.4b
-(release <code>1.0.117</code>), and is now <strong><code>16</code></strong> — via the schema-<code>4</code> stream
+(release <code>1.0.117</code>), and is now <strong><code>21</code></strong> — via the schema-<code>4</code> stream
 LRM-delimiter fix (<code>1.0.140</code>, ledger <code>SV-0002</code>), the schema-<code>5</code>
 covergroup-bins-brace fix (<code>1.0.145</code>, ledger <code>SV-0007</code>), the schema-<code>6</code>
 UDP truth-table typed-carrier restore (<code>1.0.147</code>, ledger <code>SV-0009</code>),
@@ -1644,12 +1644,27 @@ the schema-<code>16</code> event-trigger <code>-&gt;&gt;</code>/delay/array LRM 
 (<code>1.0.169</code>, ledger <code>SV-0039</code>), the schema-<code>18</code> modport shared-direction
 port list (<code>1.0.170</code>, ledger <code>SV-0040</code>), the schema-<code>19</code> spaced SVA
 cycle-delay abbreviations (<code>1.0.175</code>, ledger <code>SV-0045</code>), and the
-schema-<code>20</code> <code>dist</code> constraint operator (<code>1.0.179</code>, ledger <code>SV-0049</code>).
+schema-<code>20</code> <code>dist</code> constraint operator (<code>1.0.179</code>, ledger <code>SV-0049</code>), and the
+schema-<code>21</code> covergroup select-condition <code>intersect { … }</code> braces (<code>1.0.183</code>,
+ledger <code>SV-0053</code>).
 <strong>Release <code>1.0.180</code> (<code>SV-CORPUS-GRAD.3.19</code>, ledger <code>SV-0050</code> — the config <code>use</code>
 clause parameter-override spelling) deliberately does NOT bump it</strong>, and that is
 measured rather than assumed: the construct was 100 % unparseable before, so no
 shape a consumer had ever seen could move, and the ASTs of all ten already-parsing
 forms of the clause are byte-identical across the fix.
+<strong>Release <code>1.0.183</code> (<code>SV-CORPUS-GRAD.13c.2e</code>, ledger <code>SV-0053</code> — the covergroup
+select condition’s literal <code>intersect { … }</code> braces) DOES bump it, and it is the
+textbook case of the rule in the other direction</strong>: <code>binsof(a) intersect {5, 8}</code>
+PARSED before the fix, so a shape consumers had already seen is REPLACED — the
+<code>intersect</code> slot goes from <code>[[trivia,"intersect"], [ &lt;one concat-valued item&gt; ]]</code>
+to <code>[[trivia,"intersect"], {kind:"lbrace"}, [ &lt;item&gt;, &lt;item&gt; ], {kind:"rbrace"}]</code>.
+Read it beside the three non-bumps below: the test is never <em>“did the language
+widen”</em>, it is <em>“could a consumer have seen the old shape”</em>. Here it could, so the
+schema moves; for <code>1.0.182</code> the constructs were 100 % unparseable, so it did not.
+⚠️ <strong>Migration:</strong> read <code>intersect[2]</code> where you read <code>intersect[1]</code>, and read the
+individual <code>covergroup_value_range</code>s where you read one concatenation-valued item —
+a range now appears there as <code>{kind:"range"}</code>, a kind that could not previously
+occur. The <code>intersect</code>-absent case is unchanged (<code>[]</code>).
 <strong>Release <code>1.0.182</code> (<code>GRAMMAR-WELLFORMED.A2.5</code>, ledger <code>SV-0052</code> — left recursion
 became an ENGINE service in both shapes) does NOT bump it either, and this is the
 clearest case of the rule</strong>: four alternatives of <code>select_expression</code> and
@@ -1917,6 +1932,54 @@ wins and this file is the defect.</strong></p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10183--contract-10183--sv-corpus-grad13c2e-pgen-sv-corpus-grad-0214-2026-08-12-ledger-sv-0053-released-the-covergroup-select-conditions-literal-lrm-braces--the-same-defect-as-sv-0049-one-clause-away-three-days-later-grammar-sv_2017sv_2023-schema-20--21"><a class="header" href="#10183--contract-10183--sv-corpus-grad13c2e-pgen-sv-corpus-grad-0214-2026-08-12-ledger-sv-0053-released-the-covergroup-select-conditions-literal-lrm-braces--the-same-defect-as-sv-0049-one-clause-away-three-days-later-grammar-sv_2017sv_2023-schema-20--21">1.0.183 / Contract 1.0.183 — SV-CORPUS-GRAD.13c.2e (<code>PGEN-SV-CORPUS-GRAD-0214</code>, 2026-08-12), ledger <code>SV-0053</code> (<code>Released</code>): <strong>THE COVERGROUP SELECT CONDITION’S LITERAL LRM BRACES — THE SAME DEFECT AS <code>SV-0049</code>, ONE CLAUSE AWAY, THREE DAYS LATER (GRAMMAR; <code>sv_2017</code>+<code>sv_2023</code>; SCHEMA 20 → 21)</strong></a></h3>
+<p><strong>What changed.</strong> <code>select_condition</code> (<code>grammars/systemverilog.ebnf:5259</code>) rendered IEEE
+1800-2017 A.2.11’s <code>select_condition ::= binsof ( bins_expression ) [ intersect { covergroup_range_list } ]</code> as <code>( kw_intersect covergroup_range_list* )?</code>. Those braces are
+<strong>literal SystemVerilog</strong>, and Annex A spells repetition with the same two characters — the
+identical collision <code>SV-0049</code> had just fixed in <code>expression_or_dist</code>. Restored to
+<code>( kw_intersect lbrace covergroup_range_list rbrace )?</code>; the <code>*</code> retires with it, since
+<code>covergroup_range_list</code> already carries its own <code>( comma covergroup_value_range )*</code>. The
+<code>intersect: $5</code> annotation is unchanged — the group is captured whole, exactly as the
+already-correct sibling captures <code>dist: $2</code>.</p>
+<p><strong>Three symptoms from one dropped delimiter.</strong> (1) <strong>Under-acceptance</strong> — <code>covergroup_range_list → covergroup_value_range → covergroup_expression</code> reaches the general expression grammar, so
+<code>intersect { 5, 6 }</code> still “worked” as a CONCATENATION; but a RANGE is not an expression, so the
+standard’s own §19.6.2 example <code>binsof(a) intersect { 5, [1:3] }</code> had no derivation and rejected.
+(2) ⚠️ <strong>Silent mis-parse, invisible to every pass/fail oracle</strong> — with no closing-brace terminal
+to stop it, the list ran past its end: <code>binsof(ca) intersect { 1 } &amp;&amp; binsof(cb)</code> parsed with the
+whole remainder absorbed, producing ONE <code>condition</code> node and <strong>ZERO <code>and</code> nodes</strong>. The trace names
+it exactly — <code>covergroup_range_list</code> consumed 20 bytes <code>' { 1 } &amp;&amp; binsof(cb)'</code>. ⭐ That is why
+release <code>1.0.182</code>’s revived <code>&amp;&amp;</code> alternative needed PARENTHESES in its reproducer to demonstrate
+anything: <strong>one clause carried two independent defects, and the second was masking the evidence
+for the first.</strong> (3) <strong>Over-acceptance</strong> — the brace-less <code>binsof(a) intersect 5</code>, which A.2.11
+has no production for, was accepted; it now rejects.</p>
+<p><strong>SCHEMA 20 → 21</strong>, by the test <code>SV-0049</code> states verbatim: a construct that was 100 % unparseable
+cannot replace a witnessed shape, but one that PARSED before does. <code>intersect {5, 8}</code> parsed
+before. The <code>intersect</code> slot goes from the 2-element <code>[[trivia,"intersect"], [ &lt;one concat-valued item&gt; ]]</code> to the 4-element <code>[[trivia,"intersect"], {kind:"lbrace"}, [ &lt;item&gt;, &lt;item&gt; ], {kind:"rbrace"}]</code>. <strong>Migration:</strong> read <code>intersect[2]</code> where you read <code>intersect[1]</code>; read the
+individual <code>covergroup_value_range</code>s where you read one concatenation-valued item — a range now
+appears there as <code>{kind:"range"}</code>, a kind that could not previously occur. The <code>intersect</code>-absent
+case is unchanged (<code>[]</code>).</p>
+<p><strong>MEASURED.</strong> External corpus 16 336 files, pass <strong>9 758 → 9 762 (+4)</strong> with <strong>0 pass→fail / 0
+timeout / 0 crash</strong>, and all 4 flips inside the keyed set derived <em>before</em> the run
+(<strong>flipped-but-not-keyed = 0</strong>); <code>unexplained_rejects_valid</code> <strong>292 → 288</strong> with <strong>ZERO new</strong> by set
+difference; <code>unexplained_accepts_invalid</code> <strong>21 → 21 SET-IDENTICAL</strong> — the control that matters for
+a fix that both widens and narrows; axis-2 bar <strong>313 → 309</strong> with the denominator unmoved (7 556 /
+46.3 % adjudicated); <code>sv_cert_recognized_union_gate</code> union UNKNOWN=0, witness 1 356, residual <code>[]</code>,
+<code>fully_certified_via_union: true</code> across seeds 0/7/42 — <strong>no re-baseline</strong>; <code>--lint-grammar</code>
+byte-identical; <code>sv_syntax_closure_gate</code> PASS with the contract byte-unchanged; adjudication oracle
+<code>checked=26 armed=7 failures=0</code>; all 18 doctrines PASS. ⚠️ The over-acceptance leg is proven on a
+SYNTHETIC only — the corpus carries <strong>0</strong> brace-less <code>binsof(…) intersect</code> rows, derived
+mechanically and stated rather than implied.</p>
+<p>⛔⛔ <strong>THE CLASS FINDING, AND THIS TIME IT IS AN INSTRUMENT RATHER THAN A COMPLAINT.</strong> <code>SV-0049</code>
+wrote that <em>“the reactive posture does not converge — an exhaustive Annex-A bracket/brace sweep is
+what closes the class”</em>, then fixed its instance and did not sweep; this is the eighth instance and
+it shipped three days later. The brace half of that sweep now exists
+(<code>docs/tasks/artifacts/sv_corpus_grad/intersect_braces/lrm_brace_transcription_sweep.py</code>, four
+refuse-rather-than-guess controls), runs over BOTH the 2017 and 2023 LRMs, and reports
+mis-transcribed literal-brace productions <strong>2 → 0</strong>. ⚠️ The BRACKET half is <strong>not</strong> closed and is
+routed to <code>LRM-GRAMMAR-FIDELITY.1a</code> with its sizing measured: the brace discriminator does not
+transfer, returning 83 rows / 45 productions dominated by ordinary optionals.</p>
+<p><strong>LOCK ADDED:</strong> the shape sample <code>select_condition_intersect_braced_list</code> — 0 of the then-33 locked
+samples contained a <code>binsof</code>, the same blind spot <code>SV-0049</code> recorded for <code>dist</code>.</p>
 <h3 id="10182--contract-10182--grammar-wellformeda25-pgen-grammar-wellformed-0153-2026-08-11-ledger-sv-0052-released-four-ieee-alternatives-that-had-been-dead-for-the-life-of-the-parser-now-run-engine-sv_2017sv_2023-zero-grammar-bytes-schema-unchanged-at-20"><a class="header" href="#10182--contract-10182--grammar-wellformeda25-pgen-grammar-wellformed-0153-2026-08-11-ledger-sv-0052-released-four-ieee-alternatives-that-had-been-dead-for-the-life-of-the-parser-now-run-engine-sv_2017sv_2023-zero-grammar-bytes-schema-unchanged-at-20">1.0.182 / Contract 1.0.182 — GRAMMAR-WELLFORMED.A2.5 (<code>PGEN-GRAMMAR-WELLFORMED-0153</code>, 2026-08-11), ledger <code>SV-0052</code> (<code>Released</code>): <strong>FOUR IEEE ALTERNATIVES THAT HAD BEEN DEAD FOR THE LIFE OF THE PARSER NOW RUN (ENGINE; <code>sv_2017</code>+<code>sv_2023</code>; ZERO GRAMMAR BYTES; SCHEMA UNCHANGED at 20)</strong></a></h3>
 <p><strong>What changed.</strong> PGEN’s left-recursion elimination now handles the <strong>direct</strong> shape —
 <code>A := A op B | …</code>, the self-reference written inline in the choice, which is how every standard’s

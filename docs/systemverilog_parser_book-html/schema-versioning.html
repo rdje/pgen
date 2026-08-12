@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fc7e4bad.js";
+            window.path_to_searchindex_js = "searchindex-dd2268ba.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -216,7 +216,7 @@ AST-dump schema version”). It stayed <code>1</code> across the additive
 slice-campaign rows below (whose <code>1.x.0</code> minor-notation tracked
 per-slice progress under integer schema <code>1</code>), moved to <code>2</code> at
 POST-SV-AUDIT.2.4a (release <code>1.0.116</code>), to <code>3</code> at POST-SV-AUDIT.2.4b
-(release <code>1.0.117</code>), and is now <strong><code>16</code></strong> — via the schema-<code>4</code> stream
+(release <code>1.0.117</code>), and is now <strong><code>21</code></strong> — via the schema-<code>4</code> stream
 LRM-delimiter fix (<code>1.0.140</code>, ledger <code>SV-0002</code>), the schema-<code>5</code>
 covergroup-bins-brace fix (<code>1.0.145</code>, ledger <code>SV-0007</code>), the schema-<code>6</code>
 UDP truth-table typed-carrier restore (<code>1.0.147</code>, ledger <code>SV-0009</code>),
@@ -237,12 +237,27 @@ the schema-<code>16</code> event-trigger <code>-&gt;&gt;</code>/delay/array LRM 
 (<code>1.0.169</code>, ledger <code>SV-0039</code>), the schema-<code>18</code> modport shared-direction
 port list (<code>1.0.170</code>, ledger <code>SV-0040</code>), the schema-<code>19</code> spaced SVA
 cycle-delay abbreviations (<code>1.0.175</code>, ledger <code>SV-0045</code>), and the
-schema-<code>20</code> <code>dist</code> constraint operator (<code>1.0.179</code>, ledger <code>SV-0049</code>).
+schema-<code>20</code> <code>dist</code> constraint operator (<code>1.0.179</code>, ledger <code>SV-0049</code>), and the
+schema-<code>21</code> covergroup select-condition <code>intersect { … }</code> braces (<code>1.0.183</code>,
+ledger <code>SV-0053</code>).
 <strong>Release <code>1.0.180</code> (<code>SV-CORPUS-GRAD.3.19</code>, ledger <code>SV-0050</code> — the config <code>use</code>
 clause parameter-override spelling) deliberately does NOT bump it</strong>, and that is
 measured rather than assumed: the construct was 100 % unparseable before, so no
 shape a consumer had ever seen could move, and the ASTs of all ten already-parsing
 forms of the clause are byte-identical across the fix.
+<strong>Release <code>1.0.183</code> (<code>SV-CORPUS-GRAD.13c.2e</code>, ledger <code>SV-0053</code> — the covergroup
+select condition’s literal <code>intersect { … }</code> braces) DOES bump it, and it is the
+textbook case of the rule in the other direction</strong>: <code>binsof(a) intersect {5, 8}</code>
+PARSED before the fix, so a shape consumers had already seen is REPLACED — the
+<code>intersect</code> slot goes from <code>[[trivia,"intersect"], [ &lt;one concat-valued item&gt; ]]</code>
+to <code>[[trivia,"intersect"], {kind:"lbrace"}, [ &lt;item&gt;, &lt;item&gt; ], {kind:"rbrace"}]</code>.
+Read it beside the three non-bumps below: the test is never <em>“did the language
+widen”</em>, it is <em>“could a consumer have seen the old shape”</em>. Here it could, so the
+schema moves; for <code>1.0.182</code> the constructs were 100 % unparseable, so it did not.
+⚠️ <strong>Migration:</strong> read <code>intersect[2]</code> where you read <code>intersect[1]</code>, and read the
+individual <code>covergroup_value_range</code>s where you read one concatenation-valued item —
+a range now appears there as <code>{kind:"range"}</code>, a kind that could not previously
+occur. The <code>intersect</code>-absent case is unchanged (<code>[]</code>).
 <strong>Release <code>1.0.182</code> (<code>GRAMMAR-WELLFORMED.A2.5</code>, ledger <code>SV-0052</code> — left recursion
 became an ENGINE service in both shapes) does NOT bump it either, and this is the
 clearest case of the rule</strong>: four alternatives of <code>select_expression</code> and

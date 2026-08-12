@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `bf63cf3e29b384955003ad6f5528688f93a2b6727754b83158ff863a15b1b25b` |
-| grammar | `grammars/systemverilog.ebnf` | `eac78ed598a3da125d35d0b125479536917e75aa587ee3b4219c2cd7cb937398` |
-| generated parser | `generated/systemverilog_parser.rs` | `1f8286792ffb067679cc48e927f14057f50d3070491404852f55f3909a9957d6` |
+| parse binary | `rust/target/release/parseability_probe` | `bf976c1750770ba077e8af1fe0c1f14d8acf633c2b592960ca16d10d3bd66160` |
+| grammar | `grammars/systemverilog.ebnf` | `1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c` |
+| generated parser | `generated/systemverilog_parser.rs` | `d5784e6d6d1eb3951b932b1b3b2dd5b22f20c109c7406f33f659b10428a1af0e` |
 
-Measured at `HEAD` = `e1bff2e2+dirty` (2026-08-11).
+Measured at `HEAD` = `6c63f5f5+dirty` (2026-08-12).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,23 +53,23 @@ Measured at `HEAD` = `e1bff2e2+dirty` (2026-08-11).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.17` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `5.33` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9758 | 6578 | 0 | 0 | 59.7% |
+| 16336 | 9762 | 6574 | 0 | 0 | 59.8% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 18 | 84 | 0 | 0 | 17.6% |
-| Surelog | 828 | 693 | 135 | 0 | 0 | 83.7% |
+| Surelog | 828 | 694 | 134 | 0 | 0 | 83.8% |
 | black-parrot | 205 | 17 | 188 | 0 | 0 | 8.3% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
-| ispras-sv-tests | 1266 | 1091 | 175 | 0 | 0 | 86.2% |
+| ispras-sv-tests | 1266 | 1094 | 172 | 0 | 0 | 86.4% |
 | iverilog | 3799 | 3231 | 568 | 0 | 0 | 85.0% |
 | opentitan | 3983 | 793 | 3190 | 0 | 0 | 19.9% |
 | scr1 | 50 | 8 | 42 | 0 | 0 | 16.0% |

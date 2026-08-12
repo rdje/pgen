@@ -247,7 +247,7 @@ Surelog	tests/Context/dut.sv	pass	must_accept	match	Surelog: golden log Context.
 Surelog	tests/CovMacro/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log CovMacro.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/Covergroup/dut.sv	pass	must_accept	match	Surelog: golden log Covergroup.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CrossFunc/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log CrossFunc.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/CrossItem/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log CrossItem.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/CrossItem/dut.sv	pass	must_accept	match	Surelog: golden log CrossItem.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/DashYTest/dut.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (5 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/DashYTest/lib/AND.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (5 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/DashYTest/lib/BAD.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (5 sources) - dir-level chained adjudication (leaf .4)
@@ -2562,13 +2562,13 @@ ispras-sv-tests	ieee-1800-2012/19/19.05.05_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/19/19.05.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.05.07_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.05_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
-ispras-sv-tests	ieee-1800-2012/19/19.06.01.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/19/19.06.01.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/19/19.06.01.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/19/19.06.01.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06.01.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06.01.04_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06.01.04_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/19/19.06.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/19/19.06.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/19/19.06_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example

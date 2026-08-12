@@ -6,9 +6,17 @@
 // operand looked inert whenever anything followed it. One fix closes `.13c.2a.2` and this leaf,
 // because both are the same dead directly-left-recursive alternative.
 // ⛔ Parentheses around an operand carrying no `intersect` prove nothing — that is an ordinary SV
-// expression reaching the catch-all `cross_set_expression` arm. `intersect` is a keyword, so it
-// forces the real alternative; and the manifest additionally pins the ARM
-// (the arm this row must take once A2.5 lands) so an accept down the accidental route still FAILS.
+// expression reaching the catch-all `cross_set_expression` arm.
+// ⛔⛔ CORRECTED BY `.13c.2e` (`PGEN-SV-CORPUS-GRAD-0214`). This file used to continue: *"`intersect`
+// is a keyword, so it forces the real alternative"*. That was FALSE, and measured so. Until
+// `.13c.2e` restored `select_condition`'s LITERAL LRM braces, `intersect` forced nothing: the
+// brace-free `covergroup_range_list*` read `{ 1 }` as a CONCATENATION and swallowed everything
+// after it, so a keyword-bearing operand was exactly as inert as a keyword-free one — measured on
+// the sibling `control_select_expression_and.sv`, whose AST held ONE `condition` and ZERO `and`
+// nodes. What was load-bearing here was the PARENTHESES, which stop the seed by construction.
+// ⇒ The keyword argument is retired; the paren argument stands. The braces now stop the seed too,
+// which is why the sibling could be promoted from a masking pin to a real `&&` control.
+// The manifest additionally pins the ARM, so an accept down an accidental route still FAILS.
 module m;
   bit [2:0] a, b;
   covergroup cg;

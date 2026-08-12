@@ -5256,7 +5256,7 @@ select_tail := lbrack part_select_range rbrack
              | bit_select ( lbrack part_select_range rbrack )?
                     -> {kind: "bit_select", bits: $1, range: $2}
 
-select_condition := kw_binsof_efb35b22 lparen bins_expression rparen ( kw_intersect_6c96caaf covergroup_range_list* )?
+select_condition := kw_binsof_efb35b22 lparen bins_expression rparen ( kw_intersect_6c96caaf lbrace covergroup_range_list rbrace )?
                  -> {expression: $3, intersect: $5}
 
 select_expression := select_condition

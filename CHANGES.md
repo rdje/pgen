@@ -1,5 +1,67 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-SV-CORPUS-GRAD-0214 — the LRM's literal `intersect { … }` braces were read as EBNF repetition, so the range list swallowed the rest of the expression (leaf SV-CORPUS-GRAD.13c.2e done; .13c.2a.1 closed with it; ONE grammar line)
+
+- ⭐⭐ **ONE CLAUSE, TWO INDEPENDENT DEFECTS, AND THE SECOND WAS MASKING THE EVIDENCE FOR THE FIRST.**
+  IEEE 1800-2017 A.2.11 writes `select_condition ::= binsof ( bins_expression ) [ intersect {
+  covergroup_range_list } ]` with LITERAL braces; Annex A spells repetition with the same two
+  characters, and the grammar took the literal pair for the metasyntax one:
+  `( kw_intersect covergroup_range_list* )?`. Fixed to
+  `( kw_intersect lbrace covergroup_range_list rbrace )?` — `grammars/systemverilog.ebnf:5259`,
+  ZERO Rust bytes in the parser path. Release `1.0.182 → 1.0.183`, schema `20 → 21`, ledger
+  `SV-0053`.
+- **BOTH DIRECTIONS MOVED, which is the dropped-delimiter signature.** `binsof(ca) intersect
+  { 5, [1:3] }` — the standard's own §19.6.2 example — went **REJECT → ACCEPT** (a range is not an
+  expression, so the old concatenation route could not derive one). `binsof(ca) intersect 5`, which
+  A.2.11 has no production for, went **ACCEPT → REJECT**.
+- **ROOT CAUSE (tools-first, three instruments agreeing).** `--parse-dump-ast-pretty` on
+  `binsof(ca) intersect { 1 } && binsof(cb)`: ONE `condition` node, **ZERO `and` nodes**, the
+  `intersect` payload a `concat` whose `operand_chain.rest` carried `logical_and` + `binsof(cb)`.
+  `--trace-rules select_condition` named the span exactly — `covergroup_range_list` consumed 20
+  bytes `' { 1 } && binsof(cb)'`. `--dump-rule-outcome-counts-json`: `select_expression_lr_suffix`
+  entries=1 **committed=0** ⇒ the `&&` continuation `1.0.182` had just revived was still dead.
+  After: `and` nodes **0 → 1**, `concat` **1 → 0**, `_lr_suffix` committed **0 → 1**.
+- ⚠️ **THE CLASS WAS NOT SWEPT WHEN ITS FIRST INSTANCE WAS FIXED — that is why this survived.**
+  Ledger `SV-0049` (2026-08-09, three days earlier) fixed the IDENTICAL defect one clause away in
+  `expression_or_dist`. The sweep now exists as an INSTRUMENT rather than a resolution
+  (`docs/tasks/artifacts/sv_corpus_grad/intersect_braces/lrm_brace_transcription_sweep.py`, four
+  refuse-rather-than-guess controls): over BOTH the 2017 and 2023 LRMs, mis-transcribed
+  literal-brace productions **2 → 0**, with `expression_or_dist` and `inside_expression` as the
+  already-correct controls. The class is closed, not one more instance.
+- ⛔ **THE `$5::3` SHORTCUT WAS REFUSED ON EVIDENCE, not taste.** Extracting just the list would
+  have corrupted the carrier on both the present AND absent paths: a `( … )?` group is emitted as
+  `ParseContent::Sequence`, not `Quantified`, and `QuantifiedExtraction` falls through to
+  `Terminal("<not_quantified>")` on a non-Quantified base. The annotation `intersect: $5` is
+  unchanged, matching the already-correct sibling `expression_or_dist`'s `dist: $2`.
+- **NO REGRESSION — the per-file transition census, not a pass count.** External corpus **16 336
+  files: pass 9 758 → 9 762 (+4), 0 pass→fail, 0 timeout, 0 crash**, and **all 4 flips inside the
+  keyed set derived BEFORE the run**, so *flipped-but-not-keyed = 0* is checkable rather than
+  asserted. `unexplained_rejects_valid` **292 → 288 with ZERO new rows**;
+  `unexplained_accepts_invalid` **21 → 21 SET-IDENTICAL**. Axis-2 bar **313 → 309** with the
+  DENOMINATOR unmoved (7 556 / 46.3 % adjudicated) — republished together, as
+  `SV-CORPUS-DENOMINATOR` requires.
+- **GATES.** `--lint-grammar` byte-identical; `sv_syntax_closure_gate` PASS with the contract
+  byte-unchanged (`unreachable_rules: 0`); `sv_cert_recognized_union_gate` **union UNKNOWN=0,
+  witness 1 356, residual `[]`, `fully_certified_via_union: true`** across seeds 0/7/42 — **no
+  re-baseline needed**; `ast_shape_contract_gate` 18/18 with a **34th** sample making the rule
+  gate-visible; `sv_external_corpus_triage_gate` `parse_fail_total=0`; adjudication oracle
+  `checked=26 armed=7 failures=0`; all 18 doctrines PASS.
+- ⭐ **A REPRODUCER PREDICTED ITS OWN PROMOTION AND THE RATCHET COLLECTED.**
+  `control_select_expression_and.sv` shipped as a MASKING PIN (arm `condition,!and`) saying that
+  restoring the braces would make it fail and that the failure was the signal to re-adjudicate it
+  as a real `&&` control. It failed on exactly that claim; it is now armed `and>condition,!concat`.
+- ⛔⛔ **PROCESS FINDING — TWO LEAVES OWNED ONE DEFECT FOR A DAY.** `.13c.2a.1` had the correct
+  diagnosis on 2026-08-11 but existed only as a phrase inside its parent's body, with no `####`
+  heading, so `ENGINE-UNIVERSAL-SERVICES.10` re-found the same defect from scratch a day later as
+  `.13c.2e`. **A leaf that owns work must be a NODE, not a mention** — a mention is invisible to
+  the `grep '^#### '` every arriving finder runs.
+- ⚠️ **HONEST BOUNDS, stated rather than implied.** (1) The over-acceptance leg is proven on a
+  SYNTHETIC only — the corpus carries **0** brace-less `binsof(…) intersect` rows, derived
+  mechanically. (2) 6 of the 10 keyed rows did not flip; two were spot-checked and fail on
+  unrelated defects reached earlier in the file (a `` `include ``, a `function` inside a cross
+  body). A keyed row that does not flip is not a bug in the fix; an unkeyed row that flips would
+  be, and there were none.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0009 — the witness pass budgeted the rule's SHALLOWEST alternative while forcing a much deeper one; SV's recognized union basis reaches UNKNOWN=0 (leaf `ENGINE-UNIVERSAL-SERVICES.11` slice 2; ENGINE tier, ZERO grammar bytes, ZERO codegen bytes)
 
 - ⭐⭐ **SYSTEMVERILOG IS NOW RECOGNIZED `fully_certified` VIA THE UNION.**

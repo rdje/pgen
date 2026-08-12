@@ -1,0 +1,30 @@
+# SV axis-2 per-file transition census
+
+before : rust/target/sv_axis2_baseline/results.pre_13c_2e.tsv  (16336 rows)
+after  : stimuli/sv/characterization/results.tsv  (16336 rows)
+common : 16336   only-before: 0   only-after: 0
+
+pass count : 9758 -> 9762  (delta +4)
+
+## Transition matrix (common files only)
+
+| before | after | files |
+|---|---|---|
+| pass | pass | 9758 |
+| fail | fail | 6574 |
+| fail | pass | 4 |   <-- CHANGED
+
+## Per sub-corpus changed transitions
+
+| sub-corpus | transition | files |
+|---|---|---|
+| Surelog | fail -> pass | 1 |
+| ispras-sv-tests | fail -> pass | 3 |
+
+## fail -> pass  (4 files)
+
+  [Surelog] stimuli/sv/subs/Surelog/tests/CrossItem/dut.sv
+  [ispras-sv-tests] stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/19/19.06.01.01_01.sv
+  [ispras-sv-tests] stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/19/19.06.01.02_01.sv
+  [ispras-sv-tests] stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/19/19.06.02_01.sv
+

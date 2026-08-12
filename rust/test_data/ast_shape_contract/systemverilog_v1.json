@@ -667,6 +667,21 @@
    "current_content_kind": "sequence",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0037 / SV-CORPUS-GRAD.3.19, ledger SV-0050, schema UNCHANGED at 20: the config use-clause parameter-override lock. IEEE 1800 CONTRADICTS ITSELF on this rule, identically in 2017 and 2023 - Annex A / Syntax 33-4 writes `use named_parameter_assignment { , ... }` with no `#`, while clause 33.4.3's own normative examples write `instance top use #(.WIDTH(32));` SEVEN times per revision (2017 :365/:366/:382/:383/:412/:423/:462). Annex A's preamble subordinates itself (\"the normative text description contained within the clauses ... provide additional details on the syntax\"), and the BNF-only reading makes 33.4.3 :333 (\"Configurations may not use positional parameter notation\") VACUOUS, since positional notation is not expressible under the brace-less alternatives at all - so the rule now carries the UNION of the two normative surfaces. Schema does NOT move: this construct was 100% unparseable before, and every already-parsing case in the leaf's repro matrix dumps a BYTE-IDENTICAL AST across the fix (10/10). Two things this sample guards. (1) The list is named_parameter_assignment, NOT list_of_parameter_assignments - the latter would admit ordered_parameter_assignment and accept `use #(32)`, exactly what :333 forbids. (2) This is the rule where a COLUMN-0 comment silently deleted TWO alternatives during the leaf, invisible to --lint-grammar, to defined_rule_count (1477 unchanged) and to --dump-rule-profiles (byte-identical); a shape lock is the only instrument in this repo that would have gone red, and SV-CORPUS-GRAD.3.20 is about to SPLIT this rule into a @profiles-gated sibling, which this sample makes gate-visible."
+  },
+  {
+   "name": "select_condition_intersect_braced_list",
+   "input": "binsof(ca) intersect {5, [1:3]}",
+   "rule_under_test": "select_condition",
+   "declared_annotation": "{expression: $3, intersect: $5}  (the intersect group is `kw_intersect lbrace covergroup_range_list rbrace`)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "expression",
+    "intersect"
+   ],
+   "expected_json_object_string_values": {},
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0214 / SV-CORPUS-GRAD.13c.2e, ledger SV-0053, schema 20 -> 21: the covergroup select-condition shape lock. IEEE 1800-2017 A.2.11 `select_condition ::= binsof ( bins_expression ) [ intersect { covergroup_range_list } ]` — those braces are LITERAL SystemVerilog, not BNF repetition. It is the SAME defect as the sibling sample `expression_or_dist_braced_list` one clause away (`SV-0049`), which is the point: that leaf fixed the instance it was looking at, not the class, and this one survived another three days. Before the fix the rule read `( kw_intersect covergroup_range_list* )?`, so `intersect {5, 8}` PARSED but as ONE covergroup_value_range whose value was the concatenation expression `{5, 8}` instead of the LRM's TWO items — and with no closing-brace terminal to stop the list, it swallowed whatever followed: `binsof(ca) intersect {1} && binsof(cb)` measured ONE condition node and ZERO `and` nodes, so the `&&` continuation was invisible. This sample's input is the OTHER leg: a range is not an expression, so `{5, [1:3]}` — the standard's own §19.6.2 example — had no derivation at all and REJECTED. Post-fix the `intersect` slot is a four-element array (kw, lbrace, the two-item covergroup_range_list, rbrace), and a revert to `covergroup_range_list*` makes THIS input unparseable, so the sample goes red loudly rather than subtly. ⛔ What it cannot see is shape drift on input the old spelling also accepted — the keys are identical either way. That leg is pinned by the adjudication oracle's `!concat` arms on control_intersect_value_list.sv and control_select_expression_and.sv, which are the sharper instrument."
   }
  ]
 }

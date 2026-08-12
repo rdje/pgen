@@ -102,6 +102,48 @@ That splits the work into two pieces with different leverage:
   bounded first step — it surfaces the rest of the class before sessions are
   spent finding them one corpus row at a time.
 
+### `.1a` — the BRACE half of `.1`'s sweep is DONE and closed; the BRACKET half needs a discriminator that does not exist yet (routed in by `SV-CORPUS-GRAD.13c.2e`, 2026-08-12)
+
+- **Status: `todo`** — and it arrives with **half its charter already discharged**, which is why it
+  is a leaf rather than a note.
+- ⭐ **WHAT LANDED.** `SV-CORPUS-GRAD.13c.2e` (`PGEN-SV-CORPUS-GRAD-0214`, ledger `SV-0053`) built
+  the brace half of the sweep `SV-0049` asked for and left undone. `SV-0049`'s own changelog entry
+  says it plainly: *"THE CLASS FINDING: this is the **seventh** logged instance of the
+  dropped-delimiter class … The reactive posture does not converge — an exhaustive Annex-A
+  bracket/brace sweep is what closes the class."* It then fixed its instance and did not sweep, and
+  **the eighth instance shipped three days later, one clause away**. The instrument now exists:
+  `docs/tasks/artifacts/sv_corpus_grad/intersect_braces/lrm_brace_transcription_sweep.py`, run over
+  BOTH the 2017 and 2023 extracted LRMs, verdict **2 mis-transcribed → 0**.
+- ⛔ **WHY THE BRACE HALF WAS TRACTABLE, stated because it is the whole difficulty of what remains.**
+  Braces admitted a *decidable* discriminator: a `{ X }` whose inner nonterminal is itself a LIST
+  (`*_list`) can only be literal syntax, because repeating a comma-separated list with no separator
+  between repetitions is not something any clause means. That rule separates the three literal-brace
+  productions (`expression_or_dist`, `inside_expression`, `select_condition`) from the 49 genuine
+  repetitions with no judgement calls.
+- ⛔⛔ **THE DISCRIMINATOR DOES NOT TRANSFER TO BRACKETS — MEASURED, NOT ASSUMED.** The naive
+  transfer (LRM `[ X ]` that the grammar renders as an optional group with no `lbrack` in the rule)
+  returns **83 rows / 45 distinct productions**, and the population is visibly dominated by genuine
+  optional metasyntax: `function_declaration ::= function [ lifetime ] …`,
+  `implicit_data_type ::= [ signing ] { packed_dimension }`, `[ port_direction ]`,
+  `[ name_of_instance ]` ×7. Two were read against the LRM and both are ordinary optionals. ⇒ A
+  bracket sweep keyed this way would be **~45 candidates of which the true positives are a handful**
+  — a ratio that teaches waivers, the failure mode `GENERATED-LINT-CORRECTNESS.6`/`.12` document.
+- **WHAT THE LEAF ACTUALLY OWES:** find the bracket discriminator before running the sweep. The
+  known bracket instances point at a shape rather than a name — `SV-0044` `cycle_delay_range`
+  (`##[1:3]`), `.3.8`'s literal `[ ]`, and the `[*]` / `[->]` / `[=]` operator family `.1` already
+  lists — so the candidate signature is *the bracketed content is a RANGE or an operator glyph, not
+  a nonterminal that stands alone elsewhere*. That is a hypothesis, and it must be tested against
+  the 45 the naive rule returns before any fix is proposed.
+- **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED to place it here).
+  (1) *Does it reproduce outside the family?* The **mechanism** is family-agnostic — any
+  standard whose BNF reuses its metacharacters as literals is exposed, and this tree's charter is
+  exactly the LRM-extractor class. (2) *What was measured?* The 2/0 brace verdict and the 83/45
+  bracket sizing above, both from tracked instruments over tracked LRM markdown. (3) *Why not
+  finish it in `13c.2e`?* Because the brace half had a discriminator and the bracket half does not:
+  bolting an undiscriminated 45-row sweep onto a leaf whose evidence is otherwise exact would have
+  made the leaf's own claim ("the class is closed") false. ⚠️ **HONEST BOUND recorded on both
+  sides:** `.13c.2e` closes the BRACE class only, and says so.
+
 ### `.1b` — ⭐ a SECOND fidelity axis the `.1` charter cannot see: **Annex A ⟷ the clauses' own normative EXAMPLES** (routed in by `SV-CORPUS-GRAD.3.19`, 2026-08-09)
 
 - **Status: `todo`** (opened by `SV-CORPUS-GRAD.3.19`; that leaf is the worked existence proof

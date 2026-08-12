@@ -19,6 +19,65 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.183 / Contract 1.0.183 — SV-CORPUS-GRAD.13c.2e (`PGEN-SV-CORPUS-GRAD-0214`, 2026-08-12), ledger `SV-0053` (`Released`): **THE COVERGROUP SELECT CONDITION'S LITERAL LRM BRACES — THE SAME DEFECT AS `SV-0049`, ONE CLAUSE AWAY, THREE DAYS LATER (GRAMMAR; `sv_2017`+`sv_2023`; SCHEMA 20 → 21)**
+
+**What changed.** `select_condition` (`grammars/systemverilog.ebnf:5259`) rendered IEEE
+1800-2017 A.2.11's `select_condition ::= binsof ( bins_expression ) [ intersect {
+covergroup_range_list } ]` as `( kw_intersect covergroup_range_list* )?`. Those braces are
+**literal SystemVerilog**, and Annex A spells repetition with the same two characters — the
+identical collision `SV-0049` had just fixed in `expression_or_dist`. Restored to
+`( kw_intersect lbrace covergroup_range_list rbrace )?`; the `*` retires with it, since
+`covergroup_range_list` already carries its own `( comma covergroup_value_range )*`. The
+`intersect: $5` annotation is unchanged — the group is captured whole, exactly as the
+already-correct sibling captures `dist: $2`.
+
+**Three symptoms from one dropped delimiter.** (1) **Under-acceptance** — `covergroup_range_list
+→ covergroup_value_range → covergroup_expression` reaches the general expression grammar, so
+`intersect { 5, 6 }` still "worked" as a CONCATENATION; but a RANGE is not an expression, so the
+standard's own §19.6.2 example `binsof(a) intersect { 5, [1:3] }` had no derivation and rejected.
+(2) ⚠️ **Silent mis-parse, invisible to every pass/fail oracle** — with no closing-brace terminal
+to stop it, the list ran past its end: `binsof(ca) intersect { 1 } && binsof(cb)` parsed with the
+whole remainder absorbed, producing ONE `condition` node and **ZERO `and` nodes**. The trace names
+it exactly — `covergroup_range_list` consumed 20 bytes `' { 1 } && binsof(cb)'`. ⭐ That is why
+release `1.0.182`'s revived `&&` alternative needed PARENTHESES in its reproducer to demonstrate
+anything: **one clause carried two independent defects, and the second was masking the evidence
+for the first.** (3) **Over-acceptance** — the brace-less `binsof(a) intersect 5`, which A.2.11
+has no production for, was accepted; it now rejects.
+
+**SCHEMA 20 → 21**, by the test `SV-0049` states verbatim: a construct that was 100 % unparseable
+cannot replace a witnessed shape, but one that PARSED before does. `intersect {5, 8}` parsed
+before. The `intersect` slot goes from the 2-element `[[trivia,"intersect"], [ <one concat-valued
+item> ]]` to the 4-element `[[trivia,"intersect"], {kind:"lbrace"}, [ <item>, <item> ],
+{kind:"rbrace"}]`. **Migration:** read `intersect[2]` where you read `intersect[1]`; read the
+individual `covergroup_value_range`s where you read one concatenation-valued item — a range now
+appears there as `{kind:"range"}`, a kind that could not previously occur. The `intersect`-absent
+case is unchanged (`[]`).
+
+**MEASURED.** External corpus 16 336 files, pass **9 758 → 9 762 (+4)** with **0 pass→fail / 0
+timeout / 0 crash**, and all 4 flips inside the keyed set derived *before* the run
+(**flipped-but-not-keyed = 0**); `unexplained_rejects_valid` **292 → 288** with **ZERO new** by set
+difference; `unexplained_accepts_invalid` **21 → 21 SET-IDENTICAL** — the control that matters for
+a fix that both widens and narrows; axis-2 bar **313 → 309** with the denominator unmoved (7 556 /
+46.3 % adjudicated); `sv_cert_recognized_union_gate` union UNKNOWN=0, witness 1 356, residual `[]`,
+`fully_certified_via_union: true` across seeds 0/7/42 — **no re-baseline**; `--lint-grammar`
+byte-identical; `sv_syntax_closure_gate` PASS with the contract byte-unchanged; adjudication oracle
+`checked=26 armed=7 failures=0`; all 18 doctrines PASS. ⚠️ The over-acceptance leg is proven on a
+SYNTHETIC only — the corpus carries **0** brace-less `binsof(…) intersect` rows, derived
+mechanically and stated rather than implied.
+
+⛔⛔ **THE CLASS FINDING, AND THIS TIME IT IS AN INSTRUMENT RATHER THAN A COMPLAINT.** `SV-0049`
+wrote that *"the reactive posture does not converge — an exhaustive Annex-A bracket/brace sweep is
+what closes the class"*, then fixed its instance and did not sweep; this is the eighth instance and
+it shipped three days later. The brace half of that sweep now exists
+(`docs/tasks/artifacts/sv_corpus_grad/intersect_braces/lrm_brace_transcription_sweep.py`, four
+refuse-rather-than-guess controls), runs over BOTH the 2017 and 2023 LRMs, and reports
+mis-transcribed literal-brace productions **2 → 0**. ⚠️ The BRACKET half is **not** closed and is
+routed to `LRM-GRAMMAR-FIDELITY.1a` with its sizing measured: the brace discriminator does not
+transfer, returning 83 rows / 45 productions dominated by ordinary optionals.
+
+**LOCK ADDED:** the shape sample `select_condition_intersect_braced_list` — 0 of the then-33 locked
+samples contained a `binsof`, the same blind spot `SV-0049` recorded for `dist`.
+
 ### 1.0.182 / Contract 1.0.182 — GRAMMAR-WELLFORMED.A2.5 (`PGEN-GRAMMAR-WELLFORMED-0153`, 2026-08-11), ledger `SV-0052` (`Released`): **FOUR IEEE ALTERNATIVES THAT HAD BEEN DEAD FOR THE LIFE OF THE PARSER NOW RUN (ENGINE; `sv_2017`+`sv_2023`; ZERO GRAMMAR BYTES; SCHEMA UNCHANGED at 20)**
 
 **What changed.** PGEN's left-recursion elimination now handles the **direct** shape —

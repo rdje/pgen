@@ -44,7 +44,7 @@ This determinism is a **hard guarantee** of the schema. Any non-determinism is a
 > slice-campaign rows below (whose `1.x.0` minor-notation tracked
 > per-slice progress under integer schema `1`), moved to `2` at
 > POST-SV-AUDIT.2.4a (release `1.0.116`), to `3` at POST-SV-AUDIT.2.4b
-> (release `1.0.117`), and is now **`16`** — via the schema-`4` stream
+> (release `1.0.117`), and is now **`21`** — via the schema-`4` stream
 > LRM-delimiter fix (`1.0.140`, ledger `SV-0002`), the schema-`5`
 > covergroup-bins-brace fix (`1.0.145`, ledger `SV-0007`), the schema-`6`
 > UDP truth-table typed-carrier restore (`1.0.147`, ledger `SV-0009`),
@@ -65,12 +65,27 @@ This determinism is a **hard guarantee** of the schema. Any non-determinism is a
 > (`1.0.169`, ledger `SV-0039`), the schema-`18` modport shared-direction
 > port list (`1.0.170`, ledger `SV-0040`), the schema-`19` spaced SVA
 > cycle-delay abbreviations (`1.0.175`, ledger `SV-0045`), and the
-> schema-`20` `dist` constraint operator (`1.0.179`, ledger `SV-0049`).
+> schema-`20` `dist` constraint operator (`1.0.179`, ledger `SV-0049`), and the
+> schema-`21` covergroup select-condition `intersect { … }` braces (`1.0.183`,
+> ledger `SV-0053`).
 > **Release `1.0.180` (`SV-CORPUS-GRAD.3.19`, ledger `SV-0050` — the config `use`
 > clause parameter-override spelling) deliberately does NOT bump it**, and that is
 > measured rather than assumed: the construct was 100 % unparseable before, so no
 > shape a consumer had ever seen could move, and the ASTs of all ten already-parsing
 > forms of the clause are byte-identical across the fix.
+> **Release `1.0.183` (`SV-CORPUS-GRAD.13c.2e`, ledger `SV-0053` — the covergroup
+> select condition's literal `intersect { … }` braces) DOES bump it, and it is the
+> textbook case of the rule in the other direction**: `binsof(a) intersect {5, 8}`
+> PARSED before the fix, so a shape consumers had already seen is REPLACED — the
+> `intersect` slot goes from `[[trivia,"intersect"], [ <one concat-valued item> ]]`
+> to `[[trivia,"intersect"], {kind:"lbrace"}, [ <item>, <item> ], {kind:"rbrace"}]`.
+> Read it beside the three non-bumps below: the test is never *"did the language
+> widen"*, it is *"could a consumer have seen the old shape"*. Here it could, so the
+> schema moves; for `1.0.182` the constructs were 100 % unparseable, so it did not.
+> ⚠️ **Migration:** read `intersect[2]` where you read `intersect[1]`, and read the
+> individual `covergroup_value_range`s where you read one concatenation-valued item —
+> a range now appears there as `{kind:"range"}`, a kind that could not previously
+> occur. The `intersect`-absent case is unchanged (`[]`).
 > **Release `1.0.182` (`GRAMMAR-WELLFORMED.A2.5`, ledger `SV-0052` — left recursion
 > became an ENGINE service in both shapes) does NOT bump it either, and this is the
 > clearest case of the rule**: four alternatives of `select_expression` and

@@ -1,5 +1,53 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-SV-CORPUS-GRAD-0214 — a delimiter that is also a metacharacter, and why fixing one instance is not fixing the class
+
+The grammar edit is one line. Four things are worth writing down, and only the first is about
+`intersect`.
+
+**1. The same defect had been fixed three days earlier, one clause away, and this one still shipped.**
+Ledger `SV-0049` (2026-08-09) restored `expression_or_dist`'s literal `dist { dist_list }` braces
+after the extractor read them as EBNF repetition. `select_condition`'s `intersect {
+covergroup_range_list }` is the *identical* collision — same standard, same annex, same two
+characters doing double duty — and it survived, because that leaf fixed the instance in front of it.
+The lesson is not "look harder": it is that **a class-shaped defect needs a class-shaped instrument**,
+and the instrument has to be cheap enough to run at the moment of the first fix. The discriminator
+turns out to be decidable and one line long: *a `{ X }` whose X is itself a `*_list` nonterminal
+cannot be repetition metasyntax*, because repeating a comma-separated list with no separator between
+repetitions is not something any clause means. Over both LRM editions that rule finds exactly three
+productions — `expression_or_dist`, `inside_expression`, `select_condition` — and had it been run on
+2026-08-09 it would have printed the other two next to the one being fixed.
+
+**2. The obvious annotation was the wrong one, and the grammar itself said which.** With the braces
+added, `intersect: $5` now captures a four-element group `(kw, lbrace, list, rbrace)`, and the
+tempting cleanup is `$5::3` — extract just the list, drop the punctuation, matching how
+`bins_or_options` captures `ranges: $7`. It would have corrupted the AST. `QuantifiedExtraction`
+requires a `ParseContent::Quantified` base and falls through to `Terminal("<not_quantified>")`
+otherwise (`ast_return_transform.rs`), and codegen emits a `( … )?` group as a **`Sequence`** — the
+optional-group `else { ParseContent::Sequence(Vec::new()) }` arm — not a `Quantified`. Every existing
+`$N::M` in this repo sits over a `*` group; **none** sits over a `?` group, which is exactly the
+kind of gap that reads as "unused" rather than "unsupported". What settled it was not that reasoning
+but the already-correct sibling: `expression_or_dist` captures its whole optional group as
+`dist: $2`. A repo that has already solved the same shape correctly is the cheapest available oracle,
+and it is worth looking for one before inventing a form.
+
+**3. Serializing a tracked JSON artifact is a formatting decision, and getting it wrong hides the
+change.** Appending one sample to `systemverilog_v1.json` with `json.dumps(indent=2)` produced a
+686-line diff; with `indent=1, ensure_ascii=True` it was still 246 lines, because the file stores
+literal UTF-8 em-dashes rather than `\u2014` escapes. Only `indent=1, ensure_ascii=False` round-trips
+byte-clean, which is checkable in one command *before* editing: dump the original through the
+candidate settings and diff it against itself. A 15-line diff is reviewable; a 686-line diff is a
+place to hide a mistake, and the reviewer cannot tell the two apart from the summary line.
+
+**4. The prediction written into a reproducer is what made this cheap.**
+`control_select_expression_and.sv` had been demoted to a masking pin with the note that restoring the
+braces would make it FAIL, and that the failure should be read as the signal to re-adjudicate it as a
+genuine `&&` control. It failed on exactly that claim, in the same run that flipped the defect
+reproducer. Neither event needed anyone to remember anything — the two-sided ratchet collected on a
+day-old prediction automatically. That is the argument for spending the extra sentences on a pin
+whose claim you already believe: **the value is not the claim, it is that the claim can fail on
+schedule when someone else's work lands.**
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0009 — a budget scoped to the wrong thing looks exactly like a budget that is too small
 
 The fix is four lines of arithmetic. What is worth writing down is how nearly it was the *other*
