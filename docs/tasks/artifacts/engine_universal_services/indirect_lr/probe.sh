@@ -48,7 +48,26 @@ mkdir -p "$WORK" || exit 2
 # ⭐ Restore the scratch slot on ANY exit, including a failure or a Ctrl-C. The slot is a tracked
 # fixture and an un-restored one is a dirty tree the next task-tree pivot would inherit
 # (TOOLBOX §1.3's "preserve, THEN restore" discipline, made unconditional).
-restore_scratch() { [[ $INTERP_ONLY -eq 1 ]] || git checkout -- "$SCRATCH" 2>/dev/null; }
+#
+# ⛔⛔ RESTORING THE FIXTURE IS ONLY HALF THE SLOT, and the first version of this trap did only that
+# half. `generated/scratch_parser.rs` is git-ignored, so `git checkout` cannot touch it and
+# `git status` cannot report it: the tree looked clean while the generated parser still held the LAST
+# probe's grammar. Two tests read the slot as a matched pair and both went RED and stayed RED —
+# `parse_harness_equivalence::gate::certified_grammars_are_byte_identical` (`scratch DIVERGE
+# samples=3 agree=1 diverge=2`, the interpreter reading the restored greeting fixture against a
+# generated parser built from `p3_eliminated_at_consumer_rule.ebnf`) and
+# `parser_registry::tests::scratch_slot_parses_the_blessed_fixture_to_the_known_verdict_and_ast`.
+# ⇒ the restore must regenerate, not just check out. It costs one `focus_scratch` (~80 s) on a run
+# that already paid three of them.
+restore_scratch() {
+  [[ $INTERP_ONLY -eq 1 ]] && return 0
+  git checkout -- "$SCRATCH" 2>/dev/null || return 0
+  make -C rust SHELL=/bin/bash focus_scratch >"$WORK/restore_focus.log" 2>&1 || {
+    echo "⛔ scratch slot RESTORE-REGENERATE failed — generated/scratch_parser.rs still holds the" >&2
+    echo "   last probe's grammar. Re-run by hand before committing anything:" >&2
+    echo "     make -C rust SHELL=/bin/bash focus_scratch    # log: $WORK/restore_focus.log" >&2
+  }
+}
 trap restore_scratch EXIT
 
 interp_verdict() {  # $1 = grammar file, $2 = input file

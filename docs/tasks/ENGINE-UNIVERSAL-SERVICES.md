@@ -1718,6 +1718,10 @@ outside what verified it.
   `combinator_coverage_is_complete`), byte-identical to the pre-change baseline taken at the top of
   the session. `bash scripts/check_doctrines.sh` green. The scratch slot is restored to its
   committed fixture (`probe.sh` traps EXIT), so no generated artifact or fixture drift survives.
+  ⛔ **THAT LAST CLAUSE IS FALSE, and slice 4b MEASURED it**: the trap restored the TRACKED half and
+  left `generated/scratch_parser.rs` — git-ignored, hence invisible to `git status` — holding the P3
+  synthetic's grammar, which left `certified_grammars_are_byte_identical` and
+  `scratch_slot_parses_the_blessed_fixture_to_the_known_verdict_and_ast` RED for a day. Fixed in 4b.
   No engine, codegen or grammar byte changed, so the 6 fully-certified grammars are untouched by
   construction — `git diff --stat` names no file under `grammars/` or `generated/`.
 - [x] **LOCKSTEP** — `TOOLBOX.md` (§1.5b + quick chooser + group-1 signature table),
@@ -1868,17 +1872,85 @@ and `incomplete_class_scoped_type_sv_2023`, with the property knot routed out to
   byte-identical by construction. `make -C rust SHELL=/bin/bash parse_harness_combinator_gate` →
   **all 35 cases CLEAN (`diverge=0 anchor_miss=0`), 2 gate tests pass**
   (`every_structural_combinator_is_byte_identical`, `combinator_coverage_is_complete`).
-  `cargo test --lib indirect_lr_plan` → **5 passed, 0 failed**; `cargo test --lib` (default
-  features) → **933 passed, 9 failed**, all 9 the pre-existing
-  `needs --features generated_parsers` refusals that fail identically without this change.
-  `bash scripts/check_doctrines.sh` → **18/18**. ⏳ The full
-  `cargo test --features "generated_parsers ebnf_dual_run" --lib` sweep was still running at commit
-  time — **1 085 tests green, 0 failed so far**, including both heavy differential gates
-  (combinator + semantic); its final line is recorded in `CHANGES.md` when it lands.
+  `cargo test --lib indirect_lr_plan` → **5 passed, 0 failed**. `bash scripts/check_doctrines.sh`
+  → **18/18**. ⛔ **AMENDED BY SLICE 4b** — the confirmatory
+  `cargo test --features "generated_parsers ebnf_dual_run" --lib` sweep was still running when this
+  box was first written, and it landed **RED on three tests**: two were a real repository defect
+  THIS leaf shipped in slice 3 (fixed in 4b) and one is the pre-existing
+  `LANG-CAPABILITY-AUDIT.10.15`. Final, after 4b:
+  `cargo test --features "generated_parsers ebnf_dual_run" --lib -- --skip deep_nesting` →
+  **1 085 passed / 1 failed / 28 ignored**, the single failure being `.10.15`.
 - [x] **LOCKSTEP** — `TOOLBOX.md` (§5.5 + quick chooser + group-1 signature table),
   `scripts/check_diagnosis_evidence.sh`, `docs/book/src/diagnosing-unknowns.md`,
   `docs/tasks/artifacts/engine_universal_services/indirect_lr/survey/README.md`,
   `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
+
+
+#### ⛔⛔ SLICE 4b (`PGEN-ENGINE-UNIVERSAL-SERVICES-0016`, 2026-08-13 session #223) — slice 3's `probe.sh` left TWO GATES RED for a day, and slice 3's own no-regression box says it did not
+
+> **The confirmatory sweep slice 4 started at commit time came back RED on three tests. Two are a
+> repository defect THIS leaf shipped.** Instrument fixed:
+> `docs/tasks/artifacts/engine_universal_services/indirect_lr/probe.sh`. ZERO grammar bytes, ZERO
+> Rust bytes.
+
+**SYMPTOM**, on a tree with no uncommitted changes:
+
+```text
+test parse_harness_equivalence::gate::certified_grammars_are_byte_identical ... FAILED
+  PARSE-HARNESS.5: CERTIFIED grammar(s) regressed — interpreter no longer byte-identical:
+    scratch   DIVERGE samples=3 agree=1 diverge=2
+      · [Verdict] hello, world! :: interp.accepted=true oracle.accepted=false (interp furthest=7)
+test parser_registry::tests::scratch_slot_parses_the_blessed_fixture_to_the_known_verdict_and_ast ... FAILED
+```
+
+**ROOT CAUSE (WHY + WHERE).** `probe.sh`'s EXIT trap ran `git checkout -- grammars/scratch/scratch.ebnf`
+and stopped there. `generated/scratch_parser.rs` is **git-ignored**, so `git checkout` cannot restore
+it and `git status` cannot report it: the tracked fixture came back to the greeting grammar while the
+generated parser kept the LAST probe's. Measured on the tree slice 3 left behind —
+`grep -c "cast_expr\|prim" generated/scratch_parser.rs` = **128** against a fixture containing
+neither, with the artifact's mtime (`Aug 12 21:45`) inside slice 3's probe window. The two tests read
+the slot as a MATCHED PAIR (interpreter over the `.ebnf`, oracle over the generated parser), so a
+half-restore breaks both, and breaks them where no tracked-state check can see it.
+
+⭐ **THE GENERALISABLE FINDING.** "Restore the fixture" is only sound when the fixture IS the whole
+state. This slot is a **PAIR** — one tracked file plus one git-ignored artifact derived from it — and
+a clean `git status` is not evidence about the second. Promoted to the retrievable layer rather than
+left here.
+
+##### Acceptance Checklist (enforced) — slice 4b
+
+- [x] **REPRODUCE / ISSUE** — `cargo test --features "generated_parsers ebnf_dual_run" --lib
+  parse_harness_equivalence::gate::certified_grammars_are_byte_identical` → `FAILED`,
+  `scratch DIVERGE samples=3 agree=1 diverge=2`, on a clean tree at `09fbec24`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — only the tracked half was restored:
+  `grep -c "cast_expr\|prim" generated/scratch_parser.rs` = **128** (the P3 synthetic's rules) while
+  `grammars/scratch/scratch.ebnf` is the greeting fixture, and the gate's own message names the
+  mechanism — `interp.accepted=true … oracle.accepted=false (interp furthest=7)`: the interpreter
+  reading the `.ebnf` accepts `hello, world!` and the generated parser, built from a different
+  grammar, rejects it at the comma. WHERE: `probe.sh`'s `restore_scratch`, calling `git checkout` on
+  a path whose derived artifact is `.gitignore`d.
+- [x] **FIX** — fix-hierarchy tier = **instrument repair** (no engine, grammar, codegen or runtime
+  change): `restore_scratch` now REGENERATES after checking out (`make -C rust SHELL=/bin/bash
+  focus_scratch`, ~80 s on a run that already pays three of them) and prints a named manual recovery
+  if that regeneration fails. `bash -n probe.sh` clean. Why no lower tier: nothing else can restore a
+  git-ignored artifact — not `git`, not the doctrine enforcer, and not `git status`, which is exactly
+  why this survived a full commit workflow.
+- [x] **ADDRESSED (verified)** — measured before→after on the same two commands:
+  `certified_grammars_are_byte_identical` **FAILED → ok** and
+  `scratch_slot_parses_the_blessed_fixture_to_the_known_verdict_and_ast` **FAILED → ok**, once
+  `make -C rust SHELL=/bin/bash focus_scratch` restored the artifact
+  (`grep -c "cast_expr\|prim" generated/scratch_parser.rs` **128 → 0**).
+- [x] **NO REGRESSION** — `cargo test --features "generated_parsers ebnf_dual_run" --lib --
+  --skip deep_nesting` → **1 085 passed / 1 failed / 28 ignored**; the single failure is
+  `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`, **pre-existing and
+  already owned by `LANG-CAPABILITY-AUDIT.10.15`** (`.10.3` deleted the emission and left `.10.4`'s
+  assertion behind, 146 commits before this session) — re-observed with a current count, not routed
+  anew. Both heavy differential gates (combinator, semantic) are inside that sweep and pass.
+  `bash scripts/check_doctrines.sh` → **18/18**. No grammar, codegen or `generated/` source byte
+  changed — only the git-ignored `generated/scratch_parser.rs` was regenerated back to its own
+  fixture.
+- [x] **LOCKSTEP** — the promoted knowledge record, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, slice 3's
+  and slice 4's boxes amended above, `docs/TASK_TREE.md`, `MEMORY.md`.
 
 ### `.15` — the SVA property knot is unfixable by chain-absorption, because the grammar HAND-FACTORED its precedence cascade (`todo`, opened 2026-08-12 session #223 by `.13` slice 4)
 

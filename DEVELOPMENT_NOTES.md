@@ -1,5 +1,34 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0016 — "the tree is clean" is a statement about TRACKED state, and half of this slot was never tracked
+
+**A restore discipline is only as complete as the state it enumerates.** `probe.sh` borrowed the
+scratch slot, and its EXIT trap did the thing every doc recommends: `git checkout --
+grammars/scratch/scratch.ebnf`. That restores the tracked half. The slot's other half —
+`generated/scratch_parser.rs`, compiled from whatever grammar was last loaded — is `.gitignore`d, so
+`git checkout` cannot touch it and `git status` cannot mention it. The commit workflow passed, the
+18-doctrine enforcer passed, `git status` was empty, and two tests that read the pair had been red
+for a day.
+
+⇒ Before writing "restored", enumerate the state: which of it is tracked, which is DERIVED, and what
+regenerates the derived part. If the answer is a command, that command belongs in the trap, not in
+the next person's debugging session.
+
+**A confirmatory run you have not consumed is not evidence, and I nearly published it as evidence.**
+The first draft of `-0015`'s no-regression box said "1 085 tests green, 0 failed so far" while the
+sweep was still running. That number came from counting `... ok` lines — a filter that cannot see a
+failure, because a failing test prints `... FAILED` and its diagnosis only appears in the `failures:`
+block at the END. Three tests had already failed at that point and the counting method was
+structurally incapable of noticing. The dual of the tripwire this repository already knows: an
+instrument that can only report the passing direction reports PASS on a broken run.
+
+**The sweep also cost 45 minutes before yielding anything, and the answer to that was already in the
+repository.** `LANG-CAPABILITY-AUDIT.10.15` documents the invocation that works —
+`cargo test … --lib -- --skip deep_nesting` — because the deep-nesting stress tests take longer in a
+debug build than the rest of the suite combined. Sampling the stalled process (`/usr/bin/sample`)
+named them in three seconds. ⇒ when a run stalls, sample it before waiting on it, and check whether a
+leaf already knows the cheaper invocation.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0015 — a synthetic is faithful to the DEFECT and not automatically to the FIX
 
 **The compression that was harmless twice and wrong the third time.** `p1_knot_a_defect.ebnf` carries

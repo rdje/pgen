@@ -1,5 +1,39 @@
 # CHANGES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0016 — slice 3's probe script left two gates RED for a day, and slice 3's own no-regression box says it did not (leaf ENGINE-UNIVERSAL-SERVICES.13 slice 4b; 1 instrument repair, ZERO grammar bytes, ZERO Rust bytes)
+
+- ⛔⛔ **The confirmatory sweep `-0015` started at commit time came back RED on three tests, and two
+  of them are a repository defect this leaf shipped.** `parse_harness_equivalence::gate::
+  certified_grammars_are_byte_identical` (`scratch DIVERGE samples=3 agree=1 diverge=2`) and
+  `parser_registry::tests::scratch_slot_parses_the_blessed_fixture_to_the_known_verdict_and_ast`,
+  both on a tree with **nothing uncommitted**.
+- **ROOT CAUSE.** `probe.sh`'s EXIT trap ran `git checkout -- grammars/scratch/scratch.ebnf` and
+  stopped. `generated/scratch_parser.rs` is **git-ignored**, so `git checkout` cannot restore it and
+  `git status` cannot report it: the tracked fixture came back to the greeting grammar while the
+  generated parser kept the P3 synthetic's. Measured — `grep -c "cast_expr\|prim"
+  generated/scratch_parser.rs` = **128** against a fixture containing neither, artifact mtime inside
+  slice 3's probe window. The two tests read the slot as a MATCHED PAIR, so a half-restore breaks
+  both, where no tracked-state check can see it.
+- ⛔ **And slice 3's acceptance checklist asserts the opposite** — *"so no generated artifact or
+  fixture drift survives"* — ticked against a `git status` structurally blind to the other half. That
+  box is amended in the leaf rather than quietly re-ticked.
+- **FIX:** the trap now REGENERATES after checking out (`make -C rust focus_scratch`, ~80 s on a run
+  that already pays three) and names a manual recovery if that fails.
+- **ADDRESSED (measured before→after):** both tests **FAILED → ok**;
+  `grep -c "cast_expr\|prim" generated/scratch_parser.rs` **128 → 0**.
+- ⭐ **The generalisable finding, promoted:** "restore the fixture" is only sound when the fixture IS
+  the whole state — this slot is a tracked file PLUS a git-ignored derived artifact, and a clean
+  `git status` is not evidence about the second →
+  `docs/knowledge/a-restored-fixture-is-not-a-restored-slot-when-its-artifact-is-gitignored.md`
+  (Knowledge Map now 102 facts / 712 question keys).
+- **VERIFIED:** `cargo test --features "generated_parsers ebnf_dual_run" --lib -- --skip
+  deep_nesting` → **1 085 passed / 1 failed / 28 ignored**. The one failure is pre-existing and
+  already owned by `LANG-CAPABILITY-AUDIT.10.15` (`.10.3` deleted the emission and left `.10.4`'s
+  assertion behind, 146 commits before this session) — re-observed, not routed anew. Both heavy
+  differential gates are inside that sweep and pass; `scripts/check_doctrines.sh` 18/18.
+- ⇒ **`-0015`'s own "VERIFIED" line is corrected forward here**: it named the combinator gate, which
+  did pass, and flagged the full sweep as still running; the sweep's actual verdict is this entry.
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0015 — the plan is DERIVED from the shipped grammars now, and it moved the fix's target rule a SECOND time (leaf ENGINE-UNIVERSAL-SERVICES.13 slice 4; `.15` NEW; 1 instrument, ZERO grammar bytes, ZERO codegen bytes)
 
 - ⭐⭐ **Acceptance (d)'s one free variable — which rule absorbs the chain — is no longer a
