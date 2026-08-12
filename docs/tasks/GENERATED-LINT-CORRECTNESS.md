@@ -1502,6 +1502,58 @@ the RED-W2 arm is what turned a latent hazard into a measured one.
   backs almost nothing is vocabulary bloat, and one that backs too much is a widening.
 
 
+### `.13` — a leaf may CLAIM an isolating synthetic and not commit it, so the next reader rebuilds it from prose (`todo`, DIRECTOR-APPROVED 2026-08-12 session #218, opened by `ENGINE-UNIVERSAL-SERVICES.10`)
+
+⭐ **DIRECTOR RULING (2026-08-12), on a suggestion raised at the end of `-0006`:** *"if you think
+that's the sota, signoff, production-grade decision to make, then fine, go ahead and do it."* The
+suggestion was the rule **"if a leaf says prove it on the synthetic, the synthetic is committed."**
+
+⛔ **AND THE SUGGESTION'S OWN FORM WAS WRONG — corrected here before any work starts.** It was
+pitched as *"a one-line addition to the toolbox/task-acceptance guidance rather than a new gate."*
+This repository has already MEASURED what unenforced guidance is worth: the `LESSON-PROMOTION`
+doctrine exists because a promotion mechanism *"existed, was wired, and was skipped **1592 times**
+because no gate asked"*, and `GATE-REACHABILITY` exists because *"a check nothing invokes is
+indistinguishable from one that does not exist"*. Prose alone is the form this repo keeps proving
+does not hold.
+
+**THE GAP, SIZED (2026-08-12, `git ls-files` + grep over the tracked tree — not inferred):**
+* **19** tracked task files carry a synthetic / `scratch`-slot reproduction claim.
+* **2** of them name a tracked `.ebnf` artifact — `ENGINE-UNIVERSAL-SERVICES` and
+  `LANG-CAPABILITY-AUDIT`. ⇒ **17 of 19 (89 %) claim a reproduction the next reader cannot re-run.**
+* **10** `.ebnf` probe artifacts are tracked under `docs/tasks/artifacts/` in total, so the habit
+  exists — it is simply not the rule.
+
+**THE COST, PAID AND MEASURED.** `PGEN-ENGINE-UNIVERSAL-SERVICES-0005` proved mechanism 1 on an
+11-rule synthetic, restored the `scratch` slot, and kept nothing; the grammar survived only as a
+sentence in the leaf. Session #218 had to reconstruct it from that sentence, regenerate the parser
+and rediscover a build-order trap along the way — **longer than mechanism 2's fix took**. The leaf
+had even said, twice, *"prove it on the synthetic first"*; it was the artifact, not the instruction,
+that was missing.
+
+**OWED — and PRICE IT BEFORE ADOPTING IT, the `.4`/`.7`/`.12` discipline.**
+1. **Decide the trigger.** The honest candidate: a staged task file whose acceptance-checklist boxes
+   claim a synthetic / `scratch`-slot reproduction must also NAME a tracked grammar path that
+   exists. It fires only when the author *claims* a synthetic, so it cannot fail on a leaf that
+   never had one — the false-positive surface is small by construction.
+2. **Prove BOTH directions before trusting it** (the `.7` lesson — box-scoping was vacuous and
+   passed anyway): a RED probe where the claim is present and the artifact is absent must FAIL, and
+   a GREEN probe where both are present must PASS. Confirm the rule would have fired on `-0005`,
+   the case that motivated it.
+3. **Measure the retro-population.** The checker is staged-file-scoped, so the 17 files above are
+   not retro-broken — but say so explicitly rather than discovering it later, and decide whether
+   those 17 get a backfill leaf or a recorded disposition.
+4. **Extend `scripts/check_diagnosis_evidence.sh` rather than adding a 19th doctrine.** Its charter
+   is already *"the acceptance checklist is evidence, not a claim"*, and a synthetic the next reader
+   cannot run is precisely a claim. A new doctrine would also have to move the `<meta:mirror>` count
+   in `DOCTRINE_ENFORCEMENT.md` §10 — cost with no extra coverage.
+5. **Lockstep:** `TOOLBOX.md` §1.3 (the `scratch` slot's *"restore the default fixture before
+   committing"* instruction is exactly where the *"and commit the probe"* half belongs) and the
+   task-acceptance checklist section.
+
+⚠️ **SCOPE HONESTY.** This is a governance/tooling lane and the SV lane lock is live
+([[feedback_prefer_feature_work_over_governance_lanes]]). It is recorded as `todo` under an explicit
+director approval, not started — `ENGINE-UNIVERSAL-SERVICES.11` remains the frontier.
+
 ## Commit log
 
 | slice | leaf | commit subject |
