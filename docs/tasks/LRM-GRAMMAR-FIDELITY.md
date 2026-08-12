@@ -266,6 +266,22 @@ That splits the work into two pieces with different leverage:
   property_expr` is *also* unreachable through `ENGINE-UNIVERSAL-SERVICES.13`'s cycle SV-6/SV-7, so
   fixing the keyword alone will not make `a implies b` parse at property level until `.13` lands.
   Fix the naming anyway (it is a distinct defect), but expect the flip to need both.
+- ⛔ **SCHEDULE (a NAMED TRIGGER, because `todo` is not a schedule —
+  [[feedback_every_finding_is_owned_and_scheduled_never_just_logged]]).** Split in two, deliberately:
+  - **(i) the SWEEP — do it NOW-eligible, no blocker.** Ask of every entry in
+    `PUNCTUATION_TOKEN_NAMES` whether its assigned name shadows an Annex A keyword or nonterminal
+    (`<->`→`iff_arrow`, `=>`→`sequence_implies`, `*>`→`full_path_arrow`, …). Read-only, zero grammar
+    bytes, and it SIZES the class instead of fixing one instance — the
+    [[feedback_a_named_call_site_is_a_category_of_call_sites]] discipline. This half is the one to
+    pick up whenever the SV lane wants a bounded read-only slice.
+  - **(ii) the FIX — triggered by `ENGINE-UNIVERSAL-SERVICES.13` landing.** It is accept-widening
+    (a new `kw_implies_*` terminal + the punctuation rule renamed), so it needs the full ceremony,
+    and its own acceptance flip (`property p; a implies b; endproperty` → ACCEPT) cannot be
+    demonstrated until `.13` unblocks the property cascade. Landing it before then would mean
+    shipping an accept-widening change whose acceptance test still fails for an unrelated reason.
+- ⛔ **IN-LANE, not a lane-lock exception.** This is an over-rejection of LRM-legal SystemVerilog by
+  the SV parser, so it belongs to the SV release bar; it is not "another family's finding" being
+  smuggled past [[project_nexsim_sv_signoff_delivery_focus]].
 
 ### `.2` — The standing coverage gate
 
@@ -301,6 +317,14 @@ rather than reactively. `.3` (the extractor rewrite) can wait. The director
 decides when each leaf opens. This session created the tree (the "task-tree
 track this" directive) and did NOT start any leaf — the SV `.3.x` burn-down
 remains the active frontier.
+
+**Updated 2026-08-12 (session #221).** Four leaves have since been routed in by SV work and each
+carries its own named trigger rather than a bare `todo`: `.1a` (the bracket half of `.1`'s sweep,
+needs a discriminator that does not exist yet), `.1b` (Annex A ⟷ the clauses' normative examples),
+`.1c` (the strictness switch's biased evidence base), and `.1d` (the `implies` keyword collision —
+sweep half do-able now, fix half triggered by `ENGINE-UNIVERSAL-SERVICES.13` landing). The tree is
+therefore no longer "created but unstarted": it is the standing destination for LRM-fidelity findings
+the SV burn-down surfaces, and `.1d` is the first that is an outright over-rejection of legal SV.
 
 ## Acceptance Criteria (tree)
 

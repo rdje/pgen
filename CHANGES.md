@@ -1,5 +1,34 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-DOCTRINE-GAP-OWNERSHIP-0003 — closing the session's findings properly: every one OWNED, TRACKED and SCHEDULED with a named trigger (leaves LANG-CAPABILITY-AUDIT.10.6a + DOCTRINE-GAP-OWNERSHIP.7 NEW; 3 frontier cells re-synced; DOCS + 1 instrument, ZERO grammar bytes, ZERO Rust bytes)
+
+- **THE INDEX HAD DRIFTED FROM THE TREES.** `docs/TASK_TREE.md` still named `.8` as
+  `ENGINE-UNIVERSAL-SERVICES`'s frontier after `.13` (a)+(b) closed, still showed `.13c.2b` as an
+  open SV defect, and still described `LRM-GRAMMAR-FIDELITY` as "created, no leaf started" after four
+  leaves had been routed in. All three frontier cells re-synced with a dated HEAD clause.
+- ⭐ **NEW `LANG-CAPABILITY-AUDIT.10.6a`** — `ebnf_dual_run_diff --input X --output Y` runs **arm 1
+  only and exits 0**, so a bare invocation of a tool whose name says it compares two frontends reads
+  as "both agree". ⛔ BOUNDED at the routing point: the gate and `TOOLBOX.md` §1.9's recipe both pass
+  `--envelope-differential`, which DOES run arm 2 — the exposure is ad-hoc use, not a gate defect.
+  The **documentation half is FIXED in this commit** (`TOOLBOX.md` §1.9 now names the trap beside the
+  recipe); the tool half is parked with a named trigger.
+- ⭐⭐ **NEW `DOCTRINE-GAP-OWNERSHIP.7` — 224 `[[wikilink]]` citations point at 29 records that do not
+  exist, and no gate reads a link.** `KNOWLEDGE-MAP` checks the derived map against its fact SOURCES;
+  nothing asks whether a REFERENCE reached one. Worst rows are standing directives —
+  `feedback_research_grounded_sota_no_trial_and_revert` cited **52× across 34 files**,
+  `feedback_stick_to_agreed_plan_no_silent_drift` 22×, `feedback_never_edit_generated_artifacts` 12×.
+- ⛔ **THE HEADLINE IS THE CLASSIFICATION, NOT THE RAW 266.** 41 of the dangling occurrences are not
+  broken links at all (false positives like `[[bin]]`, hyphen-spelling variants of records that DO
+  exist, task-tree and document referents). The new instrument
+  `dangling_wikilink_census.py` buckets them and **exits on the MISSING count alone**, so a future
+  ratchet keys on the only bucket that is a defect — [[feedback_classify_referents_by_requirement]]
+  applied at measurement time rather than after someone acts on an inflated figure.
+- **FIXED IN PASSING:** `.13`'s own prior-art pointer was dangling (`feedback_prior_art_before_design`
+  → `feedback_read_prior_art_before_designing`) — a broken link in the very leaf whose prior-art
+  acceptance closed this session.
+- **VERIFIED:** every `[[…]]` this session added resolves (checked mechanically); the census exits
+  29; doctrines 18/18; `mdbook_docs_gate` green. DONE-BAR register unchanged (SV `Mostly Done`).
+
 ## 2026-08-12 - PGEN-ENGINE-UNIVERSAL-SERVICES-0012 — the literature ships both answers and disagrees; PGEN's own non-negotiable picks one (leaf ENGINE-UNIVERSAL-SERVICES.13 acceptance (b) CLOSED; 1 NEW decision record; ZERO grammar bytes, ZERO Rust bytes)
 
 - **THE DECISION:** indirect left recursion is closed by a gen-AST → gen-AST **ELIMINATION pass at

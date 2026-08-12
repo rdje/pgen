@@ -3018,6 +3018,43 @@ fail).
 **Acceptance:** every `--ignored` measurement probe fails when either side it compares fails to run;
 the 6 unaudited probes are measured and their published numbers reconciled or removed.
 
+### `.10.6a` — `ebnf_dual_run_diff` runs ARM 1 ONLY and exits 0 unless an arm-2 flag is passed, so a bare invocation reads as "both frontends agree" (`todo`, routed in by `ENGINE-UNIVERSAL-SERVICES.13` slice 1, 2026-08-12 session #221)
+
+- **MEASURED, on `docs/tasks/artifacts/engine_universal_services/lr_cycle_adjudication/probes/ebnf_arithmetic_return.ebnf`**
+  (a grammar the hand-written frontend accepts and the GENERATED meta-parser rejects):
+
+  ```text
+  ebnf_dual_run_diff --input X --output Y                              → rc=0, silent  ⛔ arm 2 never ran
+  ebnf_dual_run_diff --input X --output Y --emit-ast-json  Z           → rc=1, "generated meta-parser rejected the input"
+  ebnf_dual_run_diff --input X --output Y --envelope-differential E    → rc=1, same
+  ```
+
+- ⛔ **THE GATE IS SOUND — the exposure is ad-hoc use, and that is the whole finding.**
+  `ebnf_frontend_dual_run_gate` and `TOOLBOX.md` §1.9's recipe both pass `--envelope-differential`,
+  which runs arm 2 and fails correctly. What is exposed is the shape a person reaches for first:
+  *"run the dual-run differ on my grammar and see if it is clean"*. A tool whose NAME says it
+  compares two frontends, invoked with neither optional flag, compares one and reports success.
+- **How it was found:** the first draft of `.13`'s `adjudicate.py` did exactly that and printed three
+  green `ebnf` rows where two are rejections. It was caught only because a hand-run minutes earlier
+  had shown `rc=1` for the same input and the two results disagreed.
+- **CLASS:** identical to `CI-PARITY-GATE-ROT.24` — an under-featured invocation yielding a
+  clean-looking result, failing in the PASSING direction, with nothing on stdout to notice. Sibling
+  of [[feedback_instrument_needs_ground_truth]] / [[feedback_enumerating_instrument_must_refuse]]:
+  those govern what an instrument PUBLISHES; this is about an instrument that quietly did half its
+  job.
+- **OWED (the tool half):** make the bare invocation state which arms ran — either run both by
+  default, or print `arm2=not-run (pass --envelope-differential or --emit-ast-json)` on the report
+  and in the JSON, so a reader can never mistake a one-arm run for agreement. ⛔ Prefer the second:
+  changing the default would change the gate's cost profile, and the defect is that the tool is
+  SILENT about its own scope, not that the scope is wrong.
+- ⛔ **SCHEDULE (a NAMED TRIGGER, not a bare `todo` —
+  [[feedback_every_finding_is_owned_and_scheduled_never_just_logged]]).** The *documentation* half is
+  **already fixed** (`TOOLBOX.md` §1.9 now names the trap in the recipe it sits next to), which is
+  what protects the next reader. The *tool* half is **parked by the SV lane lock** — `ebnf` is not
+  SV and this blocks no SV release claim — and its trigger is **the first `LANG-CAPABILITY-AUDIT`
+  slice worked after the lane lock lifts**, i.e. it rides with `.10.8`/`.10.6`'s own follow-ups
+  rather than waiting for a separate decision.
+
 ### `.10.7` — delete the retired Perl tree (`done` — ✅ SLICE 1 + ✅ SLICE 2)
 
 - **Status: `in-progress`, carrying explicit director approval (2026-07-31): *"you have my

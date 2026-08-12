@@ -76,7 +76,10 @@ If either stops reproducing the script exits non-zero rather than printing a gre
 2. **`ebnf_dual_run_diff` exits 0 on an arm-2 rejection unless `--emit-ast-json` is passed.**
    Without it only arm 1 is reported. A first draft of `adjudicate.py` omitted the flag and read
    three green rows where two are rejections — the same *"an under-featured invocation yields a
-   clean-looking result"* shape `CI-PARITY-GATE-ROT.24` documents.
+   clean-looking result"* shape `CI-PARITY-GATE-ROT.24` documents. ⭐ Routed out as a tool defect
+   in its own right: **`LANG-CAPABILITY-AUDIT.10.6a`**. The gate itself is sound (it passes
+   `--envelope-differential`, which does run arm 2); what is exposed is ad-hoc use, and
+   `TOOLBOX.md` §1.9 now names the trap beside the recipe.
 
 ## Re-run
 

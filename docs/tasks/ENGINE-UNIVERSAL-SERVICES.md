@@ -1407,7 +1407,7 @@ adjudication** — for each surviving cycle, an LRM-grounded input that needs th
 verdict — so the fix is priced against real lost text rather than against a count. `casting_type` is
 the first row and it is already REJECT.
 
-**Prior art to consult before designing** ([[feedback_prior_art_before_design]]): Warth/Douglass/Millstein
+**Prior art to consult before designing** ([[feedback_read_prior_art_before_designing]]): Warth/Douglass/Millstein
 (*Packrat parsers can support left recursion*, PEPM 2008) — the seed-growing runtime technique, which
 is what a *guard* could become instead of a rejection; Medeiros et al. (arXiv 1207.0443) on
 left-recursion semantics for PEGs; and the classic Paull indirect-LR elimination, whose cost is the
@@ -1539,7 +1539,12 @@ alternative can derive"*, not a proof that none exists. It is the weaker claim o
    it only arm 1 (the hand-written frontend) is reported. The first draft of `adjudicate.py` omitted
    the flag and printed three green ebnf rows where two are rejections. Same shape as
    `CI-PARITY-GATE-ROT.24`'s under-featured-binary trap: an incomplete invocation yields a
-   clean-looking result.
+   clean-looking result. ⭐ **ROUTED OUT as a tool defect in its own right →
+   `LANG-CAPABILITY-AUDIT.10.6a`**, with the measurement that BOUNDS it: the gate and `TOOLBOX.md`
+   §1.9's recipe both pass `--envelope-differential`, which DOES run arm 2 and fails correctly, so
+   the exposure is ad-hoc use only — not a gate defect. That bound is recorded HERE, at the routing
+   point, rather than left for the receiving leaf to rediscover (the `ROUTING-EVIDENCE` doctrine).
+   The documentation half is fixed in the same commit; the tool half is parked with a named trigger.
 
 ⭐ **EBNF-1/EBNF-2 ARE ALSO A FRONTEND-REPLACEMENT BLOCKER.** Both are accepted by the hand-written
 `ebnf_frontend` and rejected by the parser generated from `grammars/ebnf.ebnf`, so `ebnf.ebnf` cannot

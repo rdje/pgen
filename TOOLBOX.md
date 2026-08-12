@@ -329,6 +329,15 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ./target/debug/ebnf_dual_run_diff --input ../grammars/<g>.ebnf \
       --output /tmp/r.json --emit-ast-json /tmp/arm2.json
   ```
+- ⛔⛔ **A BARE `--input … --output …` RUNS ARM 1 ONLY AND EXITS 0 — it does NOT compare the two
+  frontends** (`LANG-CAPABILITY-AUDIT.10.6a`, measured). Arm 2 runs only when you pass
+  `--envelope-differential` (what the gate and the recipes above use) or `--emit-ast-json`. On a
+  grammar the hand-written frontend accepts and the generated meta-parser rejects, the three
+  invocations give `rc=0 (silent)` / `rc=1` / `rc=1` respectively. ⇒ **never read a bare run's `rc=0`
+  as "both frontends agree"** — it is one arm reporting success. This cost real time in session #221:
+  a probe harness omitted the flag and printed three green rows where two were rejections. Same shape
+  as the under-featured-`ast_pipeline` trap in 1.4 — an incomplete invocation yields a clean-looking
+  result, in the passing direction, with nothing on stdout to notice.
 - **OUTPUT:** a per-grammar report — `is_envelope_equivalent` (the frontend-REPLACEMENT verdict), `tokens_compared`, `token_matches`, `payload_not_comparable`, `payload_divergences`, `kind_divergences`, `tokens_unverified`, `divergence_total`, `unmapped_arm2_constructs`, `unresolved_include_directives`, and a located `divergences` list (rule name + token index + both arms' tokens, capped at 40 with the uncapped total alongside). Measured at the time of writing: **34 014 token positions across 14 grammars**, with **6 ENVELOPE-EQUIVALENT** — `builtin_return_annotation`, `builtin_semantic_annotation`, **`ebnf` itself (913/913)**, `rtl_const_expr`, `rtl_frontend`, `vhdl`.
 - ⭐ **GROUND TRUTH — it refuses rather than guesses.** Every run first executes a **positive** control (a synthetic grammar that must project identically — 27/27 positions) and a **negative** control (a planted mutation the differ must catch exactly once, at exactly that index). A positive miss means the PROJECTION is broken; a negative miss means the DIFFER is blind. Either aborts before a number is published.
 - ⚠️ **HONEST BOUNDS, carried in the report itself:** return-annotation payloads are compared by KIND only (arm 1 has raw source text, arm 2 has a parsed tree; recovering the text would need a pretty-printer whose own bugs would read as findings) and are counted under `payload_not_comparable`; arm 2 is known-blind to `[> … ]` lexical annotations; `systemverilog_lrm_profiled_wrapper`'s low agreement is the include asymmetry (arm 1 resolves `include(…)`, arm 2 stops at the directive), flagged by `unresolved_include_directives`, not a defect rate. A token after a rule's first KIND divergence is counted `tokens_unverified` — never as agreement, never as disagreement.

@@ -551,6 +551,58 @@ the copy has no way to know.*
 - **Priority: parked.** Governance, and it does not block the SV release lane
   ([[feedback_prefer_feature_work_over_governance_lanes]]).
 
+### `.7` — 224 `[[wikilink]]` citations point at 29 records that do not exist, and no gate reads a link (`todo`, routed in by `ENGINE-UNIVERSAL-SERVICES.13` slice 1, 2026-08-12 session #221)
+
+- **THE GAP.** Layer C (`docs/decisions/`) and the Knowledge Map (`docs/knowledge/`) are addressed
+  by `[[name]]` from every other tracked surface — that is how a leaf cites a standing directive.
+  **Nothing checks that a `[[name]]` names anything.** `KNOWLEDGE-MAP` verifies the derived map
+  matches its fact SOURCES; it never asks whether a *reference* reached a source. So a citation that
+  resolves to nothing fails **silently, in the passing direction, and still reads like a citation** —
+  the exact archetype this tree was opened for.
+- **MEASURED** (`docs/tasks/artifacts/doctrine_gap_ownership/dangling_wikilink_census.py`, read-only,
+  over every tracked `.md` in `docs/` plus the root continuity files):
+
+  ```text
+  scanned 2,691 [[…]] occurrences against 236 records
+    bucket            targets  occurrences   meaning
+    MISSING                29          224   ⛔ the defect bucket — a citation that reaches nothing
+    SPELLING                9           12   hyphens where the record uses underscores
+    TASK-TREE               7            7   a real docs/tasks/<X>.md, wrong namespace
+    DOC-REFERENT            1            1   a tracked document, referenced as if it were a record
+    NEAR-MISS               1            1   probable typo, one edit from a real record
+    NOT-A-WIKILINK          6           21   false positive by construction (`[[bin]]`, `[[link]]`, …)
+  ```
+
+- ⛔ **THE HEADLINE IS THE CLASSIFICATION, NOT THE RAW TOTAL** — 266 dangling occurrences would be a
+  wrong number to publish, because 41 of them are not broken links at all. This is
+  [[feedback_classify_referents_by_requirement]] applied at the point of measurement rather than
+  after someone acts on an inflated figure; the script's **exit code is the MISSING count** so a
+  future ratchet keys on the only bucket that is a defect.
+- ⭐ **THE WORST ROWS ARE STANDING DIRECTIVES, WHICH IS WHY THIS IS NOT COSMETIC.**
+  `feedback_research_grounded_sota_no_trial_and_revert` is cited **52 times across 34 files**;
+  `feedback_stick_to_agreed_plan_no_silent_drift` **22 times**;
+  `feedback_never_edit_generated_artifacts` **12**. A session told to *"read the linked directive"*
+  finds nothing, and — worse — a reader who does not check assumes the rule is recorded somewhere.
+  ⛔ Those three are not forward markers: a marker is cited once, at the point of intent.
+- **OWED, in the order that de-risks it:** (1) decide per MISSING target whether the record was
+  **renamed** (repoint the citations), **never written** (write it, or drop the citation), or is a
+  deliberate forward marker (say so *in the record's place*, not by silence); (2) fix the three
+  mechanical buckets — SPELLING is a `sed`, TASK-TREE/DOC-REFERENT want a distinct link form so a
+  tree citation stops looking like a record citation; (3) add the resolution check to `KNOWLEDGE-MAP`
+  or as its own doctrine, ratcheted on the MISSING count, so the class cannot regrow.
+- ⛔ **SCHEDULE (a NAMED TRIGGER, not a bare `todo` —
+  [[feedback_every_finding_is_owned_and_scheduled_never_just_logged]]).** Governance, so it is
+  **parked by the SV lane lock** ([[feedback_prefer_feature_work_over_governance_lanes]]) and blocks
+  no SV release claim. Trigger: **the first governance slice worked after the SV lane lock lifts**,
+  taken together with `.2` (which mechanizes gap-ownership) — they land the same kind of check and
+  splitting them would build the same enforcer twice. ⚠️ Until then the census script is the
+  standing measurement: it is read-only, takes under a second, and exits non-zero, so it can be
+  wired into a gate the moment the leaf opens.
+- **HONEST BOUND:** the classifier decides `MISSING` by *"no file of that name in
+  `docs/decisions/` or `docs/knowledge/`"*. It cannot tell a renamed record from one never written —
+  that is the per-target judgement item (1) owes, and it is deliberately left to a human rather than
+  guessed by the instrument.
+
 ## Evidence
 
 - `git log -1 -S "whole-file grep, not box-scoped" -- docs/decisions/project_build_integrity_compiler_root_cause_signature.md`
