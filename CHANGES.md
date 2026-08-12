@@ -1,5 +1,47 @@
 # CHANGES.md
 
+## 2026-08-12 - PGEN-GRAMMAR-WELLFORMED-0154 — the linter told 30 of SystemVerilog's 30 surviving left-recursive cycles they were "handled by PGEN", after the eliminator had declined every one of them (leaf GRAMMAR-WELLFORMED.A2.6; ENGINE-UNIVERSAL-SERVICES.13 NEW; ZERO grammar bytes, ZERO codegen bytes)
+
+- ⭐⭐ **A CLAIM ABOUT THE ENGINE THAT NOTHING VERIFIED, FAILING IN THE PASSING DIRECTION.**
+  `--lint-grammar` printed *"handled by PGEN's LR elimination + runtime cycle-breaking
+  (informational, not an error)"* for every left-recursive cycle it found. The same run's elimination
+  pass reports, in its own trace, `🏁 Completed left-recursion elimination pass (2 transformations)`
+  — `block_event_expression` and `select_expression`. The lint runs on the POST-elimination grammar
+  (`load_grammar_bundle` → `transform_from_raw_ast` → `eliminate_left_recursive_patterns`), so all
+  **30** findings are cycles the pass had already declined. The sentence was false 30 times out of 30.
+- **THE VERDICT IS NOW DERIVED FROM THE PASS'S OWN OUTCOME.** `eliminate_left_recursive_patterns`
+  returns a `LeftRecursionEliminationOutcome` (ran / which base rules it rewrote / which direct
+  alternatives it normalized); `RustASTPipeline` exposes it, `LoadedGrammar` carries it, and
+  `classify_left_recursion` splits `left_recursion_eliminated=2 (info — and it NAMES them)` from
+  `left_recursion_unhandled=30 (warning)`. ⭐ Deriving it from the pass's RESULT is stronger than the
+  originally-sketched "ask `detect_left_recursive_chain_plan`", which cannot work post-pass: a
+  rewritten base rule no longer holds the wrapper alternatives the planner matches, so that call
+  returns `None` for every rule including the two it just eliminated.
+- ⛔ **THE CONSEQUENCE IS A REAL SV PARSE GAP, NOW OWNED.** The guard does not handle a surviving
+  cycle, it REJECTS same-position re-entry. On the first cycle the lint prints (`casting_type ->
+  constant_primary -> constant_cast -> casting_type`), the LRM-legal cast chain `int'(2)'(3)` is
+  rejected at `furthest_position=40` with `💥 Infinite recursion detected in rule 'casting_type'`,
+  while `int'(3)` passes. Eliminating INDIRECT left recursion is an engine capability PGEN does not
+  have; opened as `ENGINE-UNIVERSAL-SERVICES.13` with that repro. Class size: SV **30**, raw Annex A
+  transcription **23**, `ebnf` **5**, every other grammar **0**.
+- ⛔ **NOT promoted to a `dead_branch` error, deliberately.** A surviving indirect cycle does not
+  prove a specific alternative dead (the intermediate rules may still have non-recursive paths), and
+  claiming otherwise would repeat the unsound verdict `A2.2` retired — in the failing direction.
+- ⭐ **The diagnostic stopped hiding its own findings.** The class printed `take(10)` with no
+  override, so 20 of SV's 30 were invisible from the CLI. All classes now share one
+  `print_lint_findings` helper: cap 40, `PGEN_LINT_DUMP_ALL=1` prints everything, and the truncation
+  line names the escape. Proven both ways on the 52-finding always-succeeds class of the Annex A
+  wrapper grammar (40 + "and 12 more" → 52 + no truncation line).
+- **VERIFIED:** SV survivor lines printed 10 → **30**; `"handled by PGEN's LR elimination"` in the SV
+  lint **10 → 0**; all 12 shipped grammars still lint `rc=0` with every hard-error class at 0; the 11
+  generated parsers regenerate **byte-identical**; combinator + semantic harness gates green;
+  `clippy_on_rust_change` rc=0; `mdbook_docs_gate` green; doctrines 18/18. Two new tests pin the
+  derivation, RED-probed. ⚠️ The dual-feature `--lib` run carries one PRE-EXISTING failure
+  (`unresolved_reference_codegen_…_boolean_names`, proven pre-existing by a stash A/B — the tracked
+  `CI-PARITY-GATE-ROT` class-2 red owned by `LANG-CAPABILITY-AUDIT.10.4`) and was cut by the memory
+  guard's 5 400 s timeout with 3 CPU-bound deep-nesting stress tests unfinished. NO release/schema/
+  ledger bump — a lint-surface change cannot move the wire shape.
+
 ## 2026-08-12 - PGEN-SV-CORPUS-GRAD-0214 — the LRM's literal `intersect { … }` braces were read as EBNF repetition, so the range list swallowed the rest of the expression (leaf SV-CORPUS-GRAD.13c.2e done; .13c.2a.1 closed with it; ONE grammar line)
 
 - ⭐⭐ **ONE CLAUSE, TWO INDEPENDENT DEFECTS, AND THE SECOND WAS MASKING THE EVIDENCE FOR THE FIRST.**

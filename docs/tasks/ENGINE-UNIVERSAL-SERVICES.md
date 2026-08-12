@@ -1372,3 +1372,53 @@ byte-identical outside the target; or (b) a priced REFUSAL — the sweep run, th
 `depth exceeded` forced-override records published, and the conclusion recorded that no site
 reproduces, so the flat budget stays. ⛔ (b) is a first-class outcome, not a failure to fix; what is
 not acceptable is leaving the question unasked.
+
+### `.13` — INDIRECT left recursion is not eliminated at all, and the runtime guard REJECTS the derivation: an LRM-legal SystemVerilog cast is unparseable (`todo`, opened 2026-08-12 session #220 by `GRAMMAR-WELLFORMED.A2.6`, with a minimal repro)
+
+⭐⭐ **THIS IS THE ENGINE HALF OF THE SAME BOUNDARY `A2.5` DREW, one shape further out.** `A2.5`
+taught the eliminator the **inline direct** shape (`X := X op Y | seed`) by normalizing it into the
+**wrapper** shape the planner already matched. Neither covers an **indirect** cycle — `X := … A …`,
+`A := … B …`, `B := … X …` — and nothing else does either. The runtime cycle guard is not a fallback
+for it: it rejects re-entry at the same input position, so every derivation that needs the recursion
+at the seed position is simply **unreachable**.
+
+**MEASURED (the repro is three commands, `GRAMMAR-WELLFORMED.A2.6`).** The first cycle SystemVerilog's
+lint prints is `casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_cast ->
+casting_type`. IEEE 1800-2017 A.8.4 makes that cycle *derivable* text — `casting_type ::= … |
+constant_primary`, `constant_primary ::= … | constant_cast`, `constant_cast ::= casting_type ' (
+constant_expression )` — so `int'(2)'(3)` is a legal cast chain:
+
+```text
+int'(3)      → parse_full passed
+int'(2)'(3)  → REJECT, furthest_position=40
+             💥 Infinite recursion detected in rule 'casting_type' at position 32
+             ❌ Exiting rule 'constant_cast' with error: InvalidSyntax { message: "Infinite recursion detected" }
+```
+
+**SIZE (census, `--lint-grammar` headline, every buildable grammar):** `systemverilog` **30** surviving
+cycles, `systemverilog_lrm_profiled_wrapper` (raw Annex A) **23**, `ebnf` **5**, every other grammar
+**0**. So this is not an SV-only shape — it is an ENGINE gap whose only *current* victims are the two
+biggest grammars, which is exactly the pattern `.2`'s scar-tissue census predicts.
+
+⛔ **Not scoped as "add an algorithm" until it is measured per cycle.** The 30 are not 30 defects:
+a surviving cycle only costs *reachability of the left-recursive derivations*, and for many of the 30
+the LRM may never put a legal string on that path. The honest first slice is a **per-cycle
+adjudication** — for each surviving cycle, an LRM-grounded input that needs the recursion, and a probe
+verdict — so the fix is priced against real lost text rather than against a count. `casting_type` is
+the first row and it is already REJECT.
+
+**Prior art to consult before designing** ([[feedback_prior_art_before_design]]): Warth/Douglass/Millstein
+(*Packrat parsers can support left recursion*, PEPM 2008) — the seed-growing runtime technique, which
+is what a *guard* could become instead of a rejection; Medeiros et al. (arXiv 1207.0443) on
+left-recursion semantics for PEGs; and the classic Paull indirect-LR elimination, whose cost is the
+grammar blow-up `.7`'s taxonomy would price as a gen-AST → gen-AST rewrite (free at parse time by
+construction). ⭐ The choice between *eliminate at generation* and *grow the seed at runtime* is the
+real design call, and `.7`'s taxonomy says why it matters: the first is free at parse time, the second
+is not.
+
+**Acceptance:** (a) the per-cycle adjudication table (all 30 SV + 5 ebnf, each with an LRM/spec-grounded
+input and a probe verdict); (b) a prior-art-grounded design decision recorded in `docs/decisions/`;
+(c) the fix, proven first on an isolating synthetic in the combinator suite (the indirect shape has no
+case there today — `recursion_guarded_memo_isolation` covers the guard's *memo* interaction, not the
+lost derivation); (d) `int'(2)'(3)` parses, with the SV corpus and the 6 fully-certified grammars
+byte-identical outside the target.

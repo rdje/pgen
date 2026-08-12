@@ -35,7 +35,7 @@ the generation-input / memo observability.
 | **Which residual `UNKNOWN`s are profile-excluded by construction (vs genuine)?** | `PGEN_CERT_RESIDUAL_CLASSIFICATION=1` | prefix the cert command → `RESIDUAL-CLASSIFICATION` block |
 | Is an `UNKNOWN` a dead rule, a reach gap, or a store-gate rejection? | the 3-step protocol below | dump-all → debug-probes → semantic trace |
 | The normalized grammar IR the generators consume? | `--dump-gen-ast` | `ast_pipeline g.ebnf --generate-parser --dump-gen-ast gen.json …` |
-| Static well-formedness (LR / non-terminating / shadowing)? | `--lint-grammar` | `ast_pipeline g.ebnf --lint-grammar` |
+| Static well-formedness (LR / non-terminating / shadowing)? | `--lint-grammar` | `ast_pipeline g.ebnf --lint-grammar` (add `PGEN_LINT_DUMP_ALL=1` to print every finding of every class) |
 | Packrat memo hit/miss statistics? | `PGEN_REPORT_MEMO_STATS=1` | prefix a parse/generate command |
 | EXACT per-rule entry counts for a parse (machine-readable JSON)? | `--dump-rule-entry-counts-json` | `parseability_probe --parse <g> f --dump-rule-entry-counts-json c.json` |
 | How much parse work is DISCARDED (failed speculation), per rule? | `--dump-rule-outcome-counts-json` | `parseability_probe --parse <g> f --dump-rule-outcome-counts-json o.json` |
@@ -415,7 +415,7 @@ budget is adequate and the cause is elsewhere (a forcing/store-gate bug).
 | Tool | Command | Shows |
 |---|---|---|
 | Normalized grammar IR | `ast_pipeline g.ebnf --generate-parser --dump-gen-ast gen.json --dump-gen-ast-pretty …` | the exact AST the generators consume (after LR-elimination etc.) |
-| Static well-formedness | `ast_pipeline g.ebnf --lint-grammar` | left-recursion info, non-terminating errors, ordered-choice shadowing |
+| Static well-formedness | `ast_pipeline g.ebnf --lint-grammar` (`PGEN_LINT_DUMP_ALL=1` uncaps every class) | the DERIVED left-recursion verdict — `left_recursion_eliminated` (what the pass rewrote, by name) vs `left_recursion_unhandled` (cycles it declined; the runtime guard REJECTS those derivations, `A2.6`) — plus non-terminating errors and ordered-choice shadowing |
 | Memo statistics | `PGEN_REPORT_MEMO_STATS=1 parseability_probe --parse <g> f` | packrat hit/miss counts (perf triage) |
 | Per-rule entry counts (exact, JSON) | `parseability_probe --parse <g> f --dump-rule-entry-counts-json c.json` | every rule-method entry (successful and backtracked) — the machine-readable dual of the live dashboard; deterministic, so a re-runnable cost-model oracle |
 | Per-rule outcome counts (raw + committed + memo hits, JSON) | `parseability_probe --parse <g> f --dump-rule-outcome-counts-json o.json` | the same raw counters PLUS the committed (surviving) histogram from the transactional coverage stack PLUS per-rule memo-HIT counts — `raw − committed` = failed-speculation work per rule (committed keeps C3-B successful losers); `raw − memo_hits` = body executions; the choice-site + inline census's dynamic input |

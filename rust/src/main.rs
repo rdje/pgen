@@ -10,10 +10,10 @@ use pgen::ast_pipeline::stimuli_generator::{
     StimuliNegativeProfile, TargetDriveFilterContext, TargetDriveValidationSummary,
 };
 use pgen::ast_pipeline::{
-    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TraceVerbosity, TransformedASTJson,
-    ast_generator_direct::generate_parser_ast_based, configure_trace_output,
-    extract_semantic_directive, parse_semantic_string_list, resolve_trace_verbosity,
-    set_global_trace_verbosity,
+    ASTNode, Annotations, LeftRecursionEliminationOutcome, PipelineConfig, RustASTPipeline,
+    TraceVerbosity, TransformedASTJson, ast_generator_direct::generate_parser_ast_based,
+    configure_trace_output, extract_semantic_directive, parse_semantic_string_list,
+    resolve_trace_verbosity, set_global_trace_verbosity,
 };
 #[cfg(feature = "ebnf_dual_run")]
 use pgen::ebnf_frontend;
@@ -479,6 +479,10 @@ struct LoadedGrammar {
     grammar_tree: HashMap<String, ASTNode>,
     rule_order: Vec<String>,
     annotations: Option<Annotations>,
+    /// GRAMMAR-WELLFORMED.A2.6 — what the LR-elimination pass did while producing this grammar.
+    /// `ran: false` for a grammar loaded from an already-transformed JSON dump: no pass ran in this
+    /// process, so no handling claim may be made about its cycles in either direction.
+    left_recursion_elimination: LeftRecursionEliminationOutcome,
 }
 
 #[derive(Debug, Serialize)]
@@ -2210,6 +2214,8 @@ fn load_grammar_bundle_from_json_value(
             grammar_tree,
             rule_order,
             annotations,
+            // A2.6 — the pass just ran inside `transform_from_raw_ast`; carry its own record.
+            left_recursion_elimination: pipeline.left_recursion_elimination_outcome(),
         }
     } else if json_value.get("grammar_tree").is_some() && json_value.get("rule_order").is_some() {
         let transformed: TransformedASTJson = serde_json::from_value(json_value)?;
@@ -2218,6 +2224,8 @@ fn load_grammar_bundle_from_json_value(
             grammar_tree: transformed.grammar_tree,
             rule_order: transformed.rule_order,
             annotations: transformed.metadata.annotations,
+            // A2.6 — an already-transformed dump: whatever ran, it did not run here.
+            left_recursion_elimination: LeftRecursionEliminationOutcome::default(),
         }
     } else {
         return Err(anyhow::anyhow!(
@@ -2601,6 +2609,9 @@ fn apply_grammar_profile_filter(
         grammar_tree: retained_grammar_tree,
         rule_order: retained_rule_order,
         annotations: retained_annotations,
+        // A2.6 — the profile filter drops rule DEFINITIONS; it does not re-run (or undo) the
+        // elimination pass, so the outcome recorded when this grammar was built still describes it.
+        left_recursion_elimination: grammar.left_recursion_elimination,
     })
 }
 
@@ -4068,16 +4079,67 @@ fn run_dump_rule_profiles(unfiltered_grammar: &LoadedGrammar, out_path: &str) ->
     Ok(())
 }
 
+/// The one thing [`print_lint_findings`] needs from a lint finding: its human message. The two
+/// finding types are deliberately separate (a shadowing finding carries branch indices a
+/// well-formedness issue has no place for), so the shared printer asks for the message rather than
+/// the type.
+trait LintFinding {
+    fn lint_message(&self) -> String;
+}
+
+impl LintFinding for pgen::ast_pipeline::grammar_wellformedness::WellformednessIssue {
+    fn lint_message(&self) -> String {
+        self.message()
+    }
+}
+
+impl LintFinding for pgen::ast_pipeline::grammar_wellformedness::ShadowingIssue {
+    fn lint_message(&self) -> String {
+        self.message()
+    }
+}
+
+fn print_lint_findings<T: LintFinding>(issues: &[T], tag: &str, cap: usize, noun: &str) {
+    let shown = if std::env::var_os("PGEN_LINT_DUMP_ALL").is_some() {
+        issues.len()
+    } else {
+        cap
+    };
+    for issue in issues.iter().take(shown) {
+        println!("  {} {}", tag, issue.lint_message());
+    }
+    if issues.len() > shown {
+        println!(
+            "  {} ... and {} more {} (set PGEN_LINT_DUMP_ALL=1 to print all {})",
+            tag,
+            issues.len() - shown,
+            noun,
+            issues.len()
+        );
+    }
+}
+
 fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
-        detect_always_succeeds_alternatives, detect_left_recursion, detect_nonterminating_rules,
+        classify_left_recursion, detect_always_succeeds_alternatives, detect_nonterminating_rules,
         detect_nullable_repetition, detect_ordered_choice_shadowing, detect_profile_orphans,
         detect_unbound_fact_kinds, detect_undefined_references, detect_unreachable_rules,
     };
     use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
     let order = &grammar.rule_order;
-    let lr = detect_left_recursion(g, order);
+    // GRAMMAR-WELLFORMED.A2.6: the left-recursion verdict is DERIVED from the elimination pass's own
+    // outcome (which rules it rewrote), not asserted. The lint runs on the POST-elimination grammar
+    // — `load_grammar_bundle` → `transform_from_raw_ast` → `eliminate_left_recursive_patterns` —
+    // so a cycle that is still here is one the pass declined, and saying otherwise was false for
+    // 30 of the 30 findings the shipped SystemVerilog lint printed.
+    let elimination = &grammar.left_recursion_elimination;
+    let lr_report = classify_left_recursion(
+        g,
+        order,
+        elimination.ran,
+        &elimination.eliminated_base_rules,
+    );
     let nonterm = detect_nonterminating_rules(g, order);
     // GRAMMAR-WELLFORMED.A2.3: the annotations feed the per-rule effective @branch_policy — the
     // fixed-terminal-prefix deadness verdict fires only where its first-success-commit premise
@@ -4150,11 +4212,34 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         Vec::new()
     };
 
+    // A2.6: the left-recursion headline states the DERIVED status. When the pass never ran (a
+    // pre-transformed grammar JSON, or `eliminate_left_recursion: false`) no handling claim is made
+    // in either direction — the count is reported as the structural finding it is.
+    let left_recursion_headline = if lr_report.elimination_ran {
+        let unhandled = if lr_report.surviving.is_empty() {
+            "left_recursion_unhandled=0".to_string()
+        } else {
+            format!(
+                "left_recursion_unhandled={} (warning — the LR-elimination pass ran and these cycles survived it; only the runtime guard is left, and it REJECTS same-position re-entry)",
+                lr_report.surviving.len()
+            )
+        };
+        format!(
+            "{}, left_recursion_eliminated={} (info — derived from the pass's own outcome)",
+            unhandled,
+            lr_report.eliminated_rules.len()
+        )
+    } else {
+        format!(
+            "left_recursive={} (structural; the LR-elimination pass did not run on this grammar, so no handling claim is made)",
+            lr_report.surviving.len()
+        )
+    };
     println!(
-        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
+        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
         grammar.grammar_name,
         g.len(),
-        lr.len(),
+        left_recursion_headline,
         nonterm.len(),
         shadow.len(),
         always_notes.len(),
@@ -4178,75 +4263,50 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         Some(entry) => println!("  [info] entry rule '{entry}' — declared via `@entry: true`"),
         None => println!("  [error] grammar defines no rules, so it has no entry rule"),
     }
-    for issue in unreachable.iter().take(40) {
-        println!("  [error] {}", issue.message());
-    }
-    if unreachable.len() > 40 {
-        println!("  [error] ... and {} more unreachable rules", unreachable.len() - 40);
-    }
-    for issue in undefined_refs.iter().take(40) {
-        println!("  [error] {}", issue.message());
-    }
-    if undefined_refs.len() > 40 {
+    print_lint_findings(&unreachable, "[error]", 40, "unreachable rules");
+    print_lint_findings(&undefined_refs, "[error]", 40, "undefined-reference findings");
+    print_lint_findings(&unbound_facts, "[error]", 40, "unbound fact-kinds");
+    // GRAMMAR-WELLFORMED.A2.6 — the DERIVED left-recursion verdict. The `eliminated` half is the
+    // pass's own record of what it rewrote (informational, and now EARNED — it names rules); the
+    // `surviving` half is what the pass declined, which the runtime guard rejects rather than
+    // handles. The cap was 10 with no override here, and it hid 20 of SystemVerilog's 30.
+    if lr_report.elimination_ran && !lr_report.eliminated_rules.is_empty() {
         println!(
-            "  [error] ... and {} more undefined-reference findings",
-            undefined_refs.len() - 40
+            "  [info]  grammar info: PGEN's LR-elimination pass ELIMINATED {} left-recursive rule(s) on this grammar: {} — these are handled, and this line is derived from the pass's own outcome, not asserted",
+            lr_report.eliminated_rules.len(),
+            lr_report.eliminated_rules.join(", ")
         );
     }
-    for issue in unbound_facts.iter().take(40) {
-        println!("  [error] {}", issue.message());
-    }
-    if unbound_facts.len() > 40 {
-        println!("  [error] ... and {} more unbound fact-kinds", unbound_facts.len() - 40);
-    }
-    for issue in lr.iter().take(10) {
-        println!("  [info]  {}", issue.message());
-    }
-    if lr.len() > 10 {
-        println!("  [info]  ... and {} more left-recursive rules", lr.len() - 10);
-    }
+    print_lint_findings(
+        &lr_report.surviving,
+        if lr_report.elimination_ran {
+            "[warn] "
+        } else {
+            "[info] "
+        },
+        40,
+        "left-recursive rules",
+    );
     // GRAMMAR-WELLFORMED.A2/A2.2: every surviving shadowing reason (exact-duplicate +
     // fixed-terminal-prefix) is a SOUND, HARD-gated unreachability verdict — all authored grammars are
     // clean at 0. (The unsound `EarlierAlwaysMatches` warning was retired at A2.2; its observation is
     // now the non-verdict always-succeeds [note] printed below.)
-    for issue in shadow.iter().take(40) {
-        println!("  [error] {}", issue.message());
-    }
-    if shadow.len() > 40 {
-        println!("  [error] ... and {} more shadowed (unreachable) branch findings", shadow.len() - 40);
-    }
+    print_lint_findings(&shadow, "[error]", 40, "shadowed (unreachable) branch findings");
     // GRAMMAR-WELLFORMED.A2.2: the always-succeeds smell — a NON-VERDICT [note] (never gates).
-    for issue in always_notes.iter().take(40) {
-        println!("  [note]  {}", issue.message());
-    }
-    if always_notes.len() > 40 {
-        println!(
-            "  [note]  ... and {} more always-succeeds-alternative notes (informational — not a deadness verdict)",
-            always_notes.len() - 40
-        );
-    }
-    for issue in nullrep.iter().take(40) {
-        println!("  [warn]  {}", issue.message());
-    }
-    if nullrep.len() > 40 {
-        println!(
-            "  [warn]  ... and {} more nullable-repetition findings",
-            nullrep.len() - 40
-        );
-    }
+    print_lint_findings(
+        &always_notes,
+        "[note] ",
+        40,
+        "always-succeeds-alternative notes (informational — not a deadness verdict)",
+    );
+    print_lint_findings(&nullrep, "[warn] ", 40, "nullable-repetition findings");
     // ANNOTATION-COMPOSITION.6: profile orphans are now a HARD failure (the grammar was
     // remediated to 0). A @profiles orphan is a real grammar defect (present-but-unsatisfiable
     // under an edition); locking it at 0 stops regressions. Grammars with < 2 profiles never
     // produce orphans (the detector is skipped), so this only binds the SV grammar.
-    for issue in orphans.iter().take(40) {
-        println!("  [error] {}", issue.message());
-    }
-    if orphans.len() > 40 {
-        println!(
-            "  [error] ... and {} more profile-orphan findings",
-            orphans.len() - 40
-        );
-    }
+    print_lint_findings(&orphans, "[error]", 40, "profile-orphan findings");
+    // Non-terminating rules are never capped: the class is a hard error and has always printed in
+    // full, so it needs no "show all" escape.
     for issue in &nonterm {
         println!("  [error] {}", issue.message());
     }
@@ -6049,6 +6109,8 @@ mod tests {
             grammar_tree,
             rule_order: vec!["root".to_string()],
             annotations: None,
+            // A2.6 — a hand-built fixture: no elimination pass ran over it.
+            left_recursion_elimination: Default::default(),
         };
         let dump_path = unique_temp_path("gen_ast.json");
         let dump_path_str = dump_path.to_string_lossy().to_string();
@@ -6073,6 +6135,8 @@ mod tests {
             grammar_tree: HashMap::new(),
             rule_order: vec![],
             annotations: None,
+            // A2.6 — a hand-built fixture: no elimination pass ran over it.
+            left_recursion_elimination: Default::default(),
         };
         let dump_path = unique_temp_path("gen_ast_pretty.json");
         let dump_path_str = dump_path.to_string_lossy().to_string();
@@ -6100,6 +6164,8 @@ mod tests {
             grammar_tree,
             rule_order: vec!["root".to_string()],
             annotations: None,
+            // A2.6 — a hand-built fixture: no elimination pass ran over it.
+            left_recursion_elimination: Default::default(),
         };
         let dump_path = unique_temp_path("gen_ast_roundtrip.json");
         let dump_path_str = dump_path.to_string_lossy().to_string();
@@ -6131,6 +6197,8 @@ mod tests {
             grammar_tree,
             rule_order: vec!["root".to_string()],
             annotations: None,
+            // A2.6 — a hand-built fixture: no elimination pass ran over it.
+            left_recursion_elimination: Default::default(),
         };
         let dump_path = unique_temp_path("gen_ast_legacy.json");
         let dump_path_str = dump_path.to_string_lossy().to_string();
@@ -6179,6 +6247,8 @@ mod tests {
             grammar_tree,
             rule_order: vec!["root".to_string()],
             annotations: None,
+            // A2.6 — a hand-built fixture: no elimination pass ran over it.
+            left_recursion_elimination: Default::default(),
         };
         let dump_path = unique_temp_path("gen_ast_truncation.json");
         let dump_path_str = dump_path.to_string_lossy().to_string();

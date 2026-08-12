@@ -12,11 +12,14 @@ answers:
   - "how do I find every dead left-recursive alternative in a grammar"
   - "should I hand-flatten a left-recursive rule into seed plus continuation"
   - "who owns a parsing concern that every EBNF shares — the engine or the grammar"
+  - "why does the lint say left_recursion_unhandled and what does it cost me"
+  - "does PGEN eliminate INDIRECT left recursion"
+  - "how do I see ALL of a grammar's lint findings instead of the first ten"
 tags: [grammar-authoring, left-recursion, codegen, linter, instrument-soundness, lrm-fidelity, systemverilog, engine-boundary]
 date: 2026-08-11
-status: current (REWRITTEN by GRAMMAR-WELLFORMED.A2.5, which fixed the defect this card used to describe; the pre-fix behaviour is kept below because shipped parsers built before it still show it)
-evidence: rust/src/ast_pipeline/mod.rs `normalize_direct_left_recursive_alternatives` + `retract_consumed_normalization_rules`; rust/src/parse_harness_combinator_suite.rs cases `direct_left_recursion`, `direct_left_recursion_multi_alt`, `direct_left_recursion_folded_ast`; docs/tasks/GRAMMAR-WELLFORMED.md leaf A2.5; docs/tasks/SV-CORPUS-GRAD.md leaves .13c.2a.2/.3/.4; grammars/systemverilog.ebnf `select_expression` + `block_event_expression`; stimuli/sv/adjudication_repros/fixed_select_expression_{with,paren,or}.sv + fixed_block_event_or.sv
-reverify: "grep -q 'fn normalize_direct_left_recursive_alternatives' rust/src/ast_pipeline/mod.rs && grep -q 'direct_left_recursion_folded_ast' rust/src/parse_harness_combinator_suite.rs && python3 stimuli/sv/run_adjudication_repros.py >/dev/null && echo DIRECT-LR-IS-AN-ENGINE-SERVICE"
+status: current (REWRITTEN by GRAMMAR-WELLFORMED.A2.5, which fixed the defect this card used to describe; EXTENDED by A2.6, which made the linter's verdict derived and found the claim was false for 30 of SV's 30 surviving cycles; the pre-fix behaviour is kept below because shipped parsers built before it still show it)
+evidence: rust/src/ast_pipeline/grammar_wellformedness.rs `classify_left_recursion` + `LeftRecursionUnhandled`; rust/src/ast_pipeline/mod.rs `LeftRecursionEliminationOutcome` + `normalize_direct_left_recursive_alternatives` + `retract_consumed_normalization_rules`; rust/src/parse_harness_combinator_suite.rs cases `direct_left_recursion`, `direct_left_recursion_multi_alt`, `direct_left_recursion_folded_ast`; docs/tasks/GRAMMAR-WELLFORMED.md leaf A2.5; docs/tasks/SV-CORPUS-GRAD.md leaves .13c.2a.2/.3/.4; grammars/systemverilog.ebnf `select_expression` + `block_event_expression`; stimuli/sv/adjudication_repros/fixed_select_expression_{with,paren,or}.sv + fixed_block_event_or.sv
+reverify: "grep -q 'fn normalize_direct_left_recursive_alternatives' rust/src/ast_pipeline/mod.rs && grep -q 'direct_left_recursion_folded_ast' rust/src/parse_harness_combinator_suite.rs && grep -q 'pub fn classify_left_recursion' rust/src/ast_pipeline/grammar_wellformedness.rs && ! ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar 2>/dev/null | grep -q \"handled by PGEN's LR elimination\" && python3 stimuli/sv/run_adjudication_repros.py >/dev/null && echo DIRECT-LR-IS-AN-ENGINE-SERVICE"
 ---
 
 **Write the production the way the standard writes it.** PGEN eliminates left recursion in *both*
@@ -63,7 +66,10 @@ called them clean:
 
 That message was true for the wrapper shape and false for the direct one — the well-formedness
 contract's own item 3 (*no dead branches*) failing in the **passing** direction. ⚠️ If you maintain a
-parser generated before A2.5, this is still your behaviour; regenerate.
+parser generated before A2.5, this is still your behaviour; regenerate. ⛔ **And the message is gone
+entirely since `A2.6`**: it was false for every surviving cycle, not only the direct ones (30 of 30
+on SV), so the linter now derives the verdict from what the pass actually did — see the closing
+section.
 
 ## ⭐ The rule the fix is an instance of
 
@@ -110,11 +116,18 @@ cd rust && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pi
 # then: for each rule, report any alternative whose first element references the enclosing rule
 ```
 
-⚠️ Do not read a small count as reassurance. `--lint-grammar` prints only the first **10** of a
-grammar's left-recursive findings with no way to show the rest, so 22 of SystemVerilog's were
-invisible from the CLI; the sweep had to go around the instrument to see them. Deriving the linter's
-verdict from what the eliminator actually accepts is still owed (`GRAMMAR-WELLFORMED.A2.5`, linter
-half).
+✅ **Both instrument defects this card used to warn about are FIXED (`GRAMMAR-WELLFORMED.A2.6`,
+2026-08-12).** `--lint-grammar` no longer prints only the first 10 findings with no way to see the
+rest — every class shares one cap of 40 plus a `PGEN_LINT_DUMP_ALL=1` escape that the truncation line
+names. And the verdict is now DERIVED from the elimination pass's own outcome rather than asserted:
+`left_recursion_eliminated=N` (the rules the pass rewrote, by name) versus
+`left_recursion_unhandled=M` (a warning — the pass ran, these survived it). ⛔ The count that
+uncapping revealed is the reason this matters: SV's linter was telling **30 of 30** surviving cycles
+they were handled while the pass had rewritten **2**, and one of those 30 costs real text — the
+LRM-legal cast chain `int'(2)'(3)` is rejected via `casting_type -> constant_primary ->
+constant_cast -> casting_type` (`💥 Infinite recursion detected in rule 'casting_type'`). Eliminating
+**indirect** left recursion is an engine capability PGEN does not have yet:
+`ENGINE-UNIVERSAL-SERVICES.13`.
 
 Related: [[a-catch-all-alternative-makes-an-accept-meaningless]] (how the four dead arms looked
 supported for so long), [[annex-a-footnotes-license-derivations-the-productions-cannot-derive]] (the

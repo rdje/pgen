@@ -2627,6 +2627,37 @@ impl Default for PipelineConfig {
 
 pub struct RustASTPipeline {
     config: PipelineConfig,
+    /// GRAMMAR-WELLFORMED.A2.6 — what the left-recursion elimination pass ACTUALLY did on the last
+    /// `transform_from_raw_ast`. Interior mutability because the transform takes `&self` and 33 call
+    /// sites depend on that signature. `RefCell` makes the pipeline non-`Sync`, so "not shared
+    /// across threads" is compiler-enforced here rather than assumed — the workspace (including the
+    /// large-stack worker threads in the harness suites) builds under exactly that constraint.
+    left_recursion_elimination: std::cell::RefCell<LeftRecursionEliminationOutcome>,
+}
+
+/// GRAMMAR-WELLFORMED.A2.6 — the OUTCOME of the left-recursion elimination pass, as opposed to a
+/// belief about it.
+///
+/// ⛔ WHY THIS EXISTS. The linter used to tell every left-recursive rule it found that the cycle was
+/// *"handled by PGEN's LR elimination + runtime cycle-breaking"* — a hard-coded sentence about the
+/// engine that nothing verified. Measured on the shipped SystemVerilog grammar: the pass rewrote
+/// **2** rules and the linter printed that sentence about the **30** cycles the pass had just
+/// declined, in an `[info]` that tells the grammar author there is nothing to look at.
+///
+/// The lint runs on the POST-elimination grammar, so survival IS the verdict — but only a caller
+/// that knows the pass actually ran may say so, which is precisely what this record carries. A
+/// consumer holding `ran: false` (a pre-transformed grammar JSON, or a pipeline configured with
+/// `eliminate_left_recursion: false`) must not claim either way.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LeftRecursionEliminationOutcome {
+    /// Did the elimination pass run at all on the grammar this outcome describes?
+    pub ran: bool,
+    /// Base rules the planner actually rewrote (`apply_left_recursive_chain_plan`), in pass order.
+    /// A rule named here is no longer left-recursive in the emitted grammar.
+    pub eliminated_base_rules: Vec<String>,
+    /// Synthetic `<rule>_lr_altN` rules the direct-LR normalization created (`A2.5`), in creation
+    /// order. Reported for observability; the planner consumes them and they are retracted after.
+    pub normalized_direct_alternatives: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -2686,7 +2717,19 @@ struct ExtractedRuleAnnotations {
 impl RustASTPipeline {
     pub fn new(config: PipelineConfig) -> Self {
         set_global_trace_verbosity(config.trace_verbosity);
-        RustASTPipeline { config }
+        RustASTPipeline {
+            config,
+            left_recursion_elimination: std::cell::RefCell::new(
+                LeftRecursionEliminationOutcome::default(),
+            ),
+        }
+    }
+
+    /// GRAMMAR-WELLFORMED.A2.6 — what the LR-elimination pass did on the most recent
+    /// [`Self::transform_from_raw_ast`]. Defaults to `ran: false` before any transform, so a caller
+    /// that never ran one cannot mistake silence for "nothing to eliminate".
+    pub fn left_recursion_elimination_outcome(&self) -> LeftRecursionEliminationOutcome {
+        self.left_recursion_elimination.borrow().clone()
     }
 
     /// Transform raw AST JSON into processed AST format
@@ -2844,17 +2887,21 @@ impl RustASTPipeline {
             }
         }
 
-        if self.config.eliminate_left_recursion {
+        // GRAMMAR-WELLFORMED.A2.6 — record what the pass DID (or that it never ran), so the linter
+        // can derive its verdict from the engine's outcome instead of asserting one.
+        let elimination_outcome = if self.config.eliminate_left_recursion {
             self.eliminate_left_recursive_patterns(
                 &mut grammar_tree,
                 &mut rule_order,
                 Some(&mut annotations),
-            );
+            )
         } else {
             eprintln!(
                 "[mod.rs][transform_from_raw_ast()] ⏭️  Left-recursion elimination disabled by configuration"
             );
-        }
+            LeftRecursionEliminationOutcome::default()
+        };
+        *self.left_recursion_elimination.borrow_mut() = elimination_outcome;
 
         eprintln!("🎉  TRANSFORMATION COMPLETE");
         eprintln!("📊  Generated grammar with {} rules", grammar_tree.len());
@@ -2883,12 +2930,15 @@ impl RustASTPipeline {
         Ok((grammar_tree, rule_order, annotations))
     }
 
+    /// Returns the pass's own [`LeftRecursionEliminationOutcome`] (GRAMMAR-WELLFORMED.A2.6) — which
+    /// base rules it rewrote and which direct alternatives it normalized. That record is the only
+    /// sound basis for a downstream claim about whether a given cycle is handled.
     fn eliminate_left_recursive_patterns(
         &self,
         grammar_tree: &mut HashMap<String, ASTNode>,
         rule_order: &mut Vec<String>,
         mut annotations: Option<&mut Annotations>,
-    ) {
+    ) -> LeftRecursionEliminationOutcome {
         eprintln!(
             "[mod.rs][eliminate_left_recursive_patterns()] 🔧 Starting left-recursion elimination pass"
         );
@@ -2926,6 +2976,9 @@ impl RustASTPipeline {
         let original_order = rule_order.clone();
         let mut transformed_rules = HashSet::new();
         let mut transformation_count = 0usize;
+        // A2.6 — the base rules this pass actually rewrites, in pass order (`original_order`, never
+        // the HashMap, so the record is as deterministic as the codegen it describes).
+        let mut eliminated_base_rules: Vec<String> = Vec::new();
 
         for rule_name in original_order {
             if transformed_rules.contains(&rule_name) {
@@ -2950,6 +3003,7 @@ impl RustASTPipeline {
                 annotations.as_deref_mut(),
             );
             transformation_count += 1;
+            eliminated_base_rules.push(plan.base_rule.clone());
             transformed_rules.insert(plan.base_rule.clone());
             for (_orig_idx, wrapper_rule, _suffix) in &plan.wrapper_rules {
                 transformed_rules.insert(wrapper_rule.clone());
@@ -2970,6 +3024,12 @@ impl RustASTPipeline {
             "[mod.rs][eliminate_left_recursive_patterns()] 🏁 Completed left-recursion elimination pass ({} transformations)",
             transformation_count
         );
+
+        LeftRecursionEliminationOutcome {
+            ran: true,
+            eliminated_base_rules,
+            normalized_direct_alternatives: normalized_direct,
+        }
     }
 
     /// GRAMMAR-WELLFORMED.A2.5 — delete the synthetic `<rule>_lr_altN` rules the normalization
@@ -5345,6 +5405,68 @@ mod tests {
                 "{refused:?} must refuse the fallback"
             );
         }
+    }
+
+    /// GRAMMAR-WELLFORMED.A2.6 — the elimination pass must REPORT what it did, because that record
+    /// is the only sound basis for the linter's "handled" verdict. A silently-empty outcome would
+    /// make every cycle read as unhandled; a fabricated one would restore the defect this leaf fixed.
+    #[test]
+    fn transform_from_raw_ast_reports_what_the_lr_pass_actually_eliminated() {
+        // expr := expr "+" term | term ; term := "n"   — the inline DIRECT shape A2.5 normalizes,
+        // after which the existing planner eliminates it.
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        assert!(
+            !pipeline.left_recursion_elimination_outcome().ran,
+            "before any transform the outcome must not claim a pass ran"
+        );
+        let raw_ast_data = vec![
+            json!([
+                ["rule", "expr"],
+                ["rule_reference", "expr"],
+                ["quoted_string", "+"],
+                ["rule_reference", "term"],
+                ["operator", "|"],
+                ["rule_reference", "term"]
+            ]),
+            json!([["rule", "term"], ["quoted_string", "n"]]),
+        ];
+        pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+
+        let outcome = pipeline.left_recursion_elimination_outcome();
+        assert!(outcome.ran, "the pass runs by default");
+        assert!(
+            outcome.eliminated_base_rules.contains(&"expr".to_string()),
+            "the pass rewrote `expr`, so its record must name it: {outcome:?}"
+        );
+        assert!(
+            !outcome.normalized_direct_alternatives.is_empty(),
+            "the direct-LR alternative was normalized first, so it must be recorded: {outcome:?}"
+        );
+
+        // A grammar with NO left recursion leaves an empty — but still `ran: true` — record, so
+        // "nothing eliminated" is distinguishable from "no pass ran".
+        let clean_pipeline = RustASTPipeline::new(PipelineConfig::default());
+        clean_pipeline
+            .transform_from_raw_ast(&[json!([["rule", "only"], ["quoted_string", "n"]])])
+            .expect("raw_ast transformation should succeed");
+        let clean = clean_pipeline.left_recursion_elimination_outcome();
+        assert!(clean.ran);
+        assert!(clean.eliminated_base_rules.is_empty(), "{clean:?}");
+
+        // Disabling the pass must NOT be reported as "ran and eliminated nothing".
+        let disabled_pipeline = RustASTPipeline::new(PipelineConfig {
+            eliminate_left_recursion: false,
+            ..PipelineConfig::default()
+        });
+        disabled_pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        assert!(
+            !disabled_pipeline.left_recursion_elimination_outcome().ran,
+            "a disabled pass must report `ran: false`, never a silent empty success"
+        );
     }
 
     #[test]

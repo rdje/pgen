@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-12 - PGEN-GRAMMAR-WELLFORMED-0154 — how to earn a verdict about your own engine, and why "ask the planner" was the wrong derivation
+
+The change is small. Three things about it are worth keeping.
+
+**1. The instrument was standing next to its own refutation the whole time.** The linter's
+left-recursion message asserted *"handled by PGEN's LR elimination + runtime cycle-breaking"*. The
+elimination pass, in the very same process and the very same run, narrates what it actually did —
+`🏁 Completed left-recursion elimination pass (2 transformations)` — and that log is one env var away
+(`PGEN_TRACE_VERBOSITY=debug`; `eprintln!` inside `ast_pipeline` is `pgen_trace_debug!`). Two numbers
+from one run, 2 and 30, and the claim collapses. The lesson generalizes past this leaf: when a
+diagnostic makes a claim about a *different subsystem*, ask whether that subsystem already reports
+its own result, because a message that cannot be contradicted by its own process is not a finding,
+it is a belief.
+
+**2. The obvious derivation was wrong, and the position of the check is why.** `A2.5` owed
+*"consult `detect_left_recursive_chain_plan` rather than re-implementing its rules"* — modelled on
+`A2.3`, where codegen and the linter were made to share `effective_rule_branch_policy`. That is the
+right instinct and the wrong mechanism here: the lint runs on the **post-elimination** grammar, where
+a rewritten base rule no longer holds the wrapper alternatives the planner matches, so the planner
+would answer `None` for `select_expression` — the rule it had *just* eliminated — and the linter would
+report its own successes as failures. The correct derivation is one step earlier in kind: the pass
+has already run, so its **outcome** is ground truth, and survival in the post-pass grammar *is* the
+verdict. A predicate is a model of what a stage would do; a result is what it did.
+
+**3. Choosing the severity was the substantive decision, and the honest answer was the weaker one.**
+`A2.5` sketched making a non-eliminated cycle a `dead_branch` **error**. Refused, on the grammar's own
+semantics: a surviving *indirect* cycle does not prove any one alternative dead, because the
+intermediate rules may still have non-recursive paths, so that alternative can still parse something.
+That is precisely the shape of the unsound `EarlierAlwaysMatches` verdict this tree retired at `A2.2`,
+reflected into the failing direction. What is sound is narrower and still worth saying loudly: the
+cycle's *left-recursive derivations* are unreachable, because the runtime guard rejects same-position
+re-entry. So it lands as a warning that names the mechanism, and the deadness question stays open
+where it belongs — per cycle, against real text.
+
+**And the finding underneath it is not a documentation defect.** `int'(2)'(3)` is a legal IEEE
+1800-2017 cast chain (A.8.4: `casting_type ::= … | constant_primary`, `constant_primary ::= … |
+constant_cast`, `constant_cast ::= casting_type ' ( constant_expression )`) and PGEN rejects it —
+`furthest_position=40`, `💥 Infinite recursion detected in rule 'casting_type' at position 32`, while
+`int'(3)` passes. Thirty such cycles survive in SV, 23 in the raw Annex A transcription, 5 in `ebnf`.
+That is now `ENGINE-UNIVERSAL-SERVICES.13`, and its first slice is deliberately an *adjudication*
+rather than an algorithm: 30 surviving cycles are not 30 defects until each one is shown to cost real
+LRM-legal text, and the choice between Paull-style elimination at generation time and Warth-style
+seed-growing at runtime should be priced against that evidence, not against a count.
+
 ## 2026-08-12 - PGEN-SV-CORPUS-GRAD-0214 — a delimiter that is also a metacharacter, and why fixing one instance is not fixing the class
 
 The grammar edit is one line. Four things are worth writing down, and only the first is about

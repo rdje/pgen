@@ -32,7 +32,11 @@ attribute-style annotations), each contributing one orthogonal axis:
 1. **Reduced — no useless symbols** (Hopcroft–Ullman): every rule is **productive/terminating**
    AND **reachable** from the start symbol. [`detect_nonterminating_rules` ✅; reachability ⟶ A1b]
 2. **PEG-complete — terminates on every input** (Ford, POPL 2004): no direct/indirect left
-   recursion (PGEN eliminates ✅) + no nullable-repetition loop (`detect_nullable_repetition` ⚠️).
+   recursion (PGEN eliminates the WRAPPER shape and, since `A2.5`, the inline DIRECT shape; an
+   **INDIRECT** cycle is eliminated by nothing and only the runtime guard — which *rejects* rather
+   than handles — stands, so the lint reports it as `left_recursion_unhandled` ⚠️ `A2.6`; engine gap
+   owned by `ENGINE-UNIVERSAL-SERVICES.13`) + no nullable-repetition loop
+   (`detect_nullable_repetition` ⚠️).
 3. **No shadowed/dead branches** (PEG ordered-choice hygiene — branch-level useless symbols):
    exact-duplicate (`detect_ordered_choice_shadowing`, NOW a HARD gate — A1a ✅) + FIRST-domination
    (⟶ A2).
@@ -1839,7 +1843,7 @@ subtle dead branch"), never a silent accept.
   `docs/decisions/project_fixed_terminal_prefix_policy_conditional.md` + INDEX row; CHANGES /
   DEVELOPMENT_NOTES / MEMORY / LIVE tracker + this tree + `docs/TASK_TREE.md` updated.
 
-### `A2.5` — the linter calls a DEAD branch "handled by PGEN", and it is not (**ENGINE HALF `done`** 2026-08-11; the LINTER half stays `todo`)
+### `A2.5` — the linter calls a DEAD branch "handled by PGEN", and it is not (✅ **BOTH HALVES `done`** — ENGINE half 2026-08-11 `-0153`; the LINTER half landed as its own leaf **`A2.6`** 2026-08-12 `-0154`)
 
 > ⭐⭐ **LANDED.** The engine now eliminates left recursion in BOTH shapes, so the linter's message is
 > no longer false. What remains open is that it is still **unearned** — it would say the same thing if
@@ -2008,10 +2012,14 @@ three are corrected here; the class (**7 print-only measurement probes**) is siz
 `LANG-CAPABILITY-AUDIT.10.16`, the sibling of `.10.15`.
 
 
-#### Still `todo` — the LINTER half
+#### The LINTER half — ✅ **CLOSED by `A2.6`** (2026-08-12, `PGEN-GRAMMAR-WELLFORMED-0154`)
 
-The engine now handles the shape, so the linter's message is no longer *false*; it is still
-**unearned**, because it would say the same thing if the eliminator regressed. Owed:
+Both items below are done, and item 1's prescription was **corrected on measurement**: consulting
+`detect_left_recursive_chain_plan` cannot work at the lint's position (post-pass, it answers `None`
+for every rule, including the two it had just eliminated), so the verdict is derived from the pass's
+own OUTCOME instead. The bigger finding is that "unearned" understated it — the message was false for
+**30 of SV's 30** surviving cycles, and one of them costs LRM-legal text (`int'(2)'(3)`). See `A2.6`.
+The original owed list, kept for the record:
 
 1. Derive the `left_recursive` verdict from what the eliminator **actually accepts** — consult
    `detect_left_recursive_chain_plan` (post-normalization) rather than re-implementing its rules,
@@ -2074,6 +2082,187 @@ not in the instrument.
 4. ⚠️ `main.rs:4200` prints only `lr.iter().take(10)` with no override, so 22 of SV's 32
    left-recursive findings are invisible from the CLI; the sweep above had to go around the
    instrument to see them. A capped diagnostic with no "show all" is how a finding hides.
+
+### `A2.6` — the linter's left-recursion verdict is UNEARNED, and 30 of SystemVerilog's 30 cycles are told "handled by PGEN" *after* the eliminator declined them (✅ **`done`** — `PGEN-GRAMMAR-WELLFORMED-0154`, 2026-08-12 session #220; opened + closed here as `A2.5`'s owed LINTER half)
+
+> ⭐⭐ **This is `A2.5`'s LINTER half, promoted from a `#### Still todo` paragraph inside `A2.5` into an
+> OWNED leaf.** That promotion is the `PGEN-SV-CORPUS-GRAD-0214` lesson applied on purpose: a leaf that
+> owns work must be a NODE, not a sentence in its parent, or a later session re-finds the same defect
+> from scratch. `A2.5` fixed the ENGINE so the message stopped being *false* for the two rules it
+> repaired. This leaf is about the **other thirty**.
+
+#### What was measured (tools first — three independent readings, one session)
+
+**1. The linter's own output.** On the shipped SV grammar:
+
+```text
+$ ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar
+grammar lint: 'systemverilog' (1485 rules) — left_recursive=30 (informational, handled by PGEN), …
+  [info]  grammar info: rule 'casting_type' is left-recursive (cycle: casting_type -> constant_primary
+          -> constant_primary_sv_2017 -> constant_cast -> casting_type) — handled by PGEN's LR
+          elimination + runtime cycle-breaking (informational, not an error)
+  …
+  [info]  ... and 20 more left-recursive rules
+```
+
+**2. The elimination pass's own log, from the SAME run.** The `eprintln!` inside `ast_pipeline` is
+`pgen_trace_debug!`, so the pass narrates itself at `PGEN_TRACE_VERBOSITY=debug`:
+
+```text
+🔁 Normalized 4 DIRECTLY left-recursive alternative(s) into the wrapper shape
+✅ Rewriting left-recursive chain for rule 'block_event_expression' via helper 'block_event_expression_lr_base'
+✅ Rewriting left-recursive chain for rule 'select_expression' via helper 'select_expression_lr_base'
+🧹 Retracted 4 consumed normalization rule(s)
+🏁 Completed left-recursion elimination pass (2 transformations)
+```
+
+**3. The order of the two.** `--lint-grammar` lints what `load_grammar_bundle` returns, and that path
+runs `transform_from_raw_ast` → `eliminate_left_recursive_patterns` (`mod.rs:2847`, on by default)
+**before** `run_grammar_lint` (`main.rs:1041`). ⇒ the 30 findings are exactly the cycles the
+eliminator **already declined**: it ran, it rewrote 2 rules, and these 30 survived it. The sentence
+*"handled by PGEN's LR elimination"* is therefore false for **30 of 30** printed findings — and it is
+false in the PASSING direction, inside an `[info]` that tells the grammar author there is nothing to
+look at. (This is also why `A2.5` moved the count 32 → 30: eliminating a rule removes it from the
+cycle set entirely.)
+
+⛔ **The `✅` in this tree's own frame is part of the defect.** *"PEG-complete … no direct/indirect
+left recursion (PGEN eliminates ✅)"* is the same unearned claim one layer up, and it is corrected by
+this leaf: PGEN eliminates the **wrapper** shape and — since `A2.5` — the **inline direct** shape.
+An **indirect** cycle through N intermediate rules is not eliminated by anything.
+
+#### The consequence is not cosmetic — a demonstrated SV parse gap
+
+The runtime cycle guard does not *handle* a surviving cycle; it **cuts** it, by rejecting re-entry at
+the same input position. Anything whose only derivation needs that re-entry is unparseable. Measured
+on the very first cycle the lint prints (`casting_type -> constant_primary -> constant_cast ->
+casting_type`), with an IEEE 1800-2017 A.8.4-legal construct (`casting_type ::= … | constant_primary`,
+`constant_primary ::= … | constant_cast`, `constant_cast ::= casting_type ' ( constant_expression )`):
+
+```text
+$ parseability_probe --parse systemverilog control_cast.sv --profile sv_2017   # int'(3)
+parse_full passed for grammar 'systemverilog' on '…/control_cast.sv'
+
+$ parseability_probe --parse systemverilog nested_cast.sv  --profile sv_2017   # int'(2)'(3)
+Error: parse_full rejected … Parser did not consume full input at position 0 [furthest_position=40, …]
+
+$ PGEN_TRACE_VERBOSITY=debug … --trace-rules cast,casting_type,constant_cast,constant_primary
+💥 Infinite recursion detected in rule 'casting_type' at position 32
+❌ Exiting rule 'constant_cast' with error: InvalidSyntax { message: "Infinite recursion detected", position: 32 }
+```
+
+⇒ a real, LRM-legal SystemVerilog cast chain is REJECTED, by the exact cycle the linter blesses.
+⭐ **That defect is NOT this leaf's to fix** — eliminating indirect left recursion is an ENGINE
+capability, owned by `ENGINE-UNIVERSAL-SERVICES.13` (opened by this leaf, with this repro).
+This leaf's job is that the instrument must stop calling it handled.
+
+#### Class size (census, every buildable grammar, `--lint-grammar` headline)
+
+| grammar | surviving left-recursive cycles |
+|---|---|
+| `systemverilog` | **30** |
+| `systemverilog_lrm_profiled_wrapper` (raw Annex A) | **23** |
+| `ebnf` | **5** |
+| json, regex, vhdl, rtl_frontend, rtl_const_expr, svpp, the 3 annotation grammars | **0** each |
+
+#### The fix (this leaf)
+
+1. **Derive the verdict from what the eliminator ACTUALLY did, not from a belief about it.** ⭐ The
+   derivation `A2.5` proposed — "consult `detect_left_recursive_chain_plan`" — is *weaker* than what
+   the lint's position makes available, and would in fact return `None` for every rule (post-pass, a
+   rewritten base rule no longer holds the wrapper alternatives the planner matches). The pass has
+   **already run**, so its OUTCOME is the ground truth: it now reports which base rules it rewrote,
+   that outcome is carried on the loaded grammar, and the linter classifies each surviving cycle
+   against it. If the eliminator ever regresses, `select_expression` reappears among the survivors and
+   the verdict flips by construction — which is what "earned" means.
+2. **Say what is true, at a severity that is true.** A survivor becomes
+   `left_recursion_unhandled` — a **warning**, naming the mechanism (the guard rejects same-position
+   re-entry) and the consequence (those derivations are unreachable). ⛔ It is deliberately **not** the
+   hard `dead_branch` **error** `A2.5` sketched: a surviving *indirect* cycle does not prove a specific
+   alternative is dead — the intermediate rules may still have non-recursive paths, so that alternative
+   can still parse something. Claiming deadness there would be the unsound-verdict mistake `A2.2`
+   already retired once (`EarlierAlwaysMatches`), in the failing direction. What IS sound, and what the
+   message states, is that the *left-recursive derivations* of that cycle are unreachable.
+3. **Uncap the diagnostic.** `main.rs` printed `lr.iter().take(10)` with no override, hiding 20 of
+   SV's 30 findings; every other class is capped at 40 with the same blind spot. `PGEN_LINT_DUMP_ALL=1`
+   now prints every finding of every class. A capped diagnostic with no "show all" is how a finding
+   hides — and this one hid 20.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `--lint-grammar` on `grammars/systemverilog.ebnf` prints
+  `left_recursive=30 (informational, handled by PGEN)` and ten `[info] … handled by PGEN's LR
+  elimination + runtime cycle-breaking` lines, then `... and 20 more left-recursive rules` — 20
+  findings unreachable from the CLI at any verbosity.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the same `--lint-grammar` run at `PGEN_TRACE_VERBOSITY=debug`
+  prints the elimination pass's own log, `🏁 Completed left-recursion elimination pass (2
+  transformations)` naming only `block_event_expression` and `select_expression`, while the lint that
+  runs *after* it (`main.rs:1041` `run_grammar_lint`, fed by `load_grammar_bundle` →
+  `transform_from_raw_ast` → `eliminate_left_recursive_patterns`, `mod.rs:2847`) labels all 30
+  survivors "handled". WHERE: `grammar_wellformedness.rs`'s `WellformednessIssue::LeftRecursive`
+  message is a hard-coded claim about the engine that `detect_left_recursion` never checks — the
+  detector reports a CYCLE and the message reports a HANDLING, and nothing joins them. Confirmed
+  downstream by `--trace-rules cast,casting_type,constant_cast,constant_primary`:
+  `💥 Infinite recursion detected in rule 'casting_type' at position 32` on an LRM-legal `int'(2)'(3)`
+  that the probe rejects at `furthest_position=40`.
+- [x] **FIX** — ENGINE/instrument tier, no grammar bytes. `eliminate_left_recursive_patterns` returns
+  a `LeftRecursionEliminationOutcome` (did it run, which base rules it rewrote, which direct
+  alternatives it normalized); `RustASTPipeline` exposes the outcome of the last transform;
+  `LoadedGrammar` carries it; `classify_left_recursion` in `grammar_wellformedness.rs` splits the
+  survivors (`LeftRecursionUnhandled`, warning, honest message) from the rules the pass actually
+  eliminated (`left_recursion_eliminated`, info, earned); `PGEN_LINT_DUMP_ALL=1` uncaps every class's
+  findings through one shared `print_lint_findings` helper (cap 40 for every class, where
+  left-recursion's was 10).
+- [x] **ADDRESSED (verified)** — `--lint-grammar` on SV now reports
+  `left_recursion_unhandled=30 (warning …)` + `left_recursion_eliminated=2 (info — derived from the
+  pass's own outcome)` and NAMES the two: *"ELIMINATED 2 left-recursive rule(s) on this grammar:
+  block_event_expression, select_expression"*. Survivor lines printed **10 → 30** (the shared cap of
+  40 now covers the whole class), and the false claim is gone —
+  `--lint-grammar … | grep -c "handled by PGEN's LR elimination"` **10 → 0**. ⭐ The uncap is proven in
+  BOTH directions on the one class that still exceeds 40, the Annex A wrapper grammar's 52
+  always-succeeds notes: default prints 40 + `"... and 12 more … (set PGEN_LINT_DUMP_ALL=1 to print
+  all 52)"`, `PGEN_LINT_DUMP_ALL=1` prints 52 with zero truncation lines.
+- [x] **NO REGRESSION** — the eliminator's behaviour is untouched (the pass gained a return value and
+  one `push`), and that is measured, not argued: `make regenerate_generated_parsers` then
+  `shasum -a 256 generated/*.rs` against the pre-change snapshot — **all 11 generated parsers
+  byte-identical**, so no parser, no cert run and no corpus verdict can have moved. Lint exit
+  contract unchanged: all **12** shipped grammars still `rc=0` with `non_terminating=0
+  ordered_choice_shadowing=0 unreachable_rules=0 undefined_references=0 unbound_fact_kinds=0
+  profile_orphans=0`. `verilog_2005_conformance_gate` is the ONE gate that parses the lint headline,
+  and its stage-1 lint lock is reproduced verbatim here — same binary, same contract
+  (`grammars/systemverilog.ebnf`, `expected_exit_code 0`, `expected_profile_orphans 0`), same
+  extraction (`grep -oE "profile_orphans=[0-9]+"`) → `rc=0 profile_orphans=0 orphan_lines=0`. ⛔ Its
+  remaining stages are corpus accept/reject through the generated parsers, which are byte-identical,
+  so re-running the ~20-minute release-probe rebuild could not have produced new information; that is
+  a stated bound, not a skipped check. Dual-feature `--lib`: **1 110 ok, 1 failed, 3 unfinished** —
+  and both non-green facts are accounted for rather than waved past. The failure is
+  `ast_pipeline::ast_based_generator::semantic_usage_tests::unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`,
+  proven **PRE-EXISTING by a stash A/B** (`git stash push -- rust/src` → identical panic,
+  *"expected semantic_annotation fallback to detect '@' directives"* at
+  `ast_based_generator.rs:14841`); it is the already-tracked `CI-PARITY-GATE-ROT` class-2 red, owned
+  by `LANG-CAPABILITY-AUDIT.10.4`. The 3 unfinished are the deep-nesting stress tests
+  (`parser_embedding_{systemverilog,vhdl}_deep_nesting_yields_clean_diagnostic_not_process_abort`,
+  `tape_word_tests::an_event_word_can_never_be_minted_into_a_reference`), still burning 200 % CPU when
+  the memory guard's 5 400 s timeout cut the run — CPU-bound, not hung, and they exercise the
+  byte-identical generated parsers. ⭐ The gates that DO bind ran green inside that run:
+  `parse_harness_combinator_suite::gate::every_structural_combinator_is_byte_identical` and
+  `parse_harness_semantic_suite::gate::every_semantic_construct_is_byte_identical`;
+  `stimuli/sv/run_adjudication_repros.py` green; `clippy_on_rust_change` rc=0 (strict source +
+  generated-correctness policy, 68 pinned lints intact); `mdbook_docs_gate` green (10 per-parser books
+  + the main book); `scripts/check_doctrines.sh` **18/18**. ⭐ The two new tests are RED-probed:
+  deleting the outcome `push` fails
+  `transform_from_raw_ast_reports_what_the_lr_pass_actually_eliminated`, and restoring it passes — the
+  derivation cannot silently go empty.
+- [x] **LOCKSTEP** — `TOOLBOX.md` (§5.1's derived-verdict entry + `PGEN_LINT_DUMP_ALL` registered in
+  the family-1 signature table **and** in `scripts/check_diagnosis_evidence.sh`'s `DIAGNOSIS_SIG`, in
+  this same commit — the instrument-registration obligation); the book
+  (`grammar-wellformedness.md` incl. the stale *"PGEN eliminates left recursion for you"* contract
+  line, `diagnosing-unknowns.md` ×2 index rows); the knowledge card
+  `left-recursion-is-an-engine-service-not-a-grammar-authoring-burden.md` + its `KNOWLEDGE_MAP.md`
+  reverify command (now also asserts the false claim is absent from the SV lint — re-run green);
+  this tree's own frame (item 2's `PGEN eliminates ✅`); `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+  `MEMORY.md`, `docs/TASK_TREE.md`. Routed engine defect: `ENGINE-UNIVERSAL-SERVICES.13`. No
+  release/schema/ledger bump — the generated parsers are byte-identical, so the wire shape cannot
+  have moved.
 
 ### Phase B — make the constructive proof deterministic (the count becomes signal)
 - `B1` — **DONE (code, PGEN-GRAMMAR-WELLFORMED-0005; gate-residual confirm in flight):** replaced the

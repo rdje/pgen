@@ -27,8 +27,11 @@ independent axis. (This is literature-grounded, not invented; sources at the end
    terminal string) and *reachable* (from the start symbol). A rule that is neither is dead weight.
    *(Hopcroft–Ullman.)*
 2. **Complete — it terminates on every input.** A PEG is well-formed when it has no direct or
-   indirect left recursion (PGEN eliminates left recursion for you) and no repetition over an
-   empty-matching body (which would loop without consuming). *(Ford, PEG, 2004.)*
+   indirect left recursion and no repetition over an empty-matching body (which would loop without
+   consuming). *(Ford, PEG, 2004.)* ⭐ PGEN **eliminates** the wrapper shape and — since `A2.5` — the
+   inline direct shape, so those you never think about. An **indirect** cycle is a different matter:
+   nothing eliminates it, the runtime guard *rejects* rather than handles it, and the lint reports it
+   as `left_recursion_unhandled` (see *the left-recursion verdict is derived, not asserted*, below).
 3. **No dead branches.** In an ordered choice `a | b | …`, a later alternative is *shadowed* if an
    earlier one always matches first — it can never be selected, so it is unreachable. This is the
    branch-level form of "useless symbol." Exact-duplicate is detected as a hard gate.
@@ -2069,12 +2072,46 @@ four. The fix is a retraction pass, **not** a raised cap: this contract's own hi
 from 1 to 0, and engine litter does not get a waiver a grammar would not get. The gate now passes with
 the contract byte-unchanged.
 
-⛔ **What is still owed is the linter itself.** Its message is no longer false, but it is still
-*unearned* — it would say the same thing if the eliminator regressed, because it re-implements its own
-notion of "left-recursive" instead of asking the eliminator what it actually accepts. Until that is
-derived from `detect_left_recursive_chain_plan` (the way `A2.3` made codegen and the linter share
-`effective_rule_branch_policy`), the sweep in the knowledge card remains the only instrument that
-finds a genuinely dead alternative.
+✅ **`A2.6` then landed the linter half (2026-08-12) — and the "unearned" message turned out to be
+false about thirty more cycles.** The verdict is now DERIVED from the elimination pass's own outcome
+rather than asserted, and the derivation is stronger than the one `A2.5` sketched. Asking
+`detect_left_recursive_chain_plan` "would you eliminate this rule?" cannot work here at all: the lint
+sees the grammar **after** the pass, where a rewritten base rule no longer holds the wrapper
+alternatives the planner matches, so that call returns `None` for every rule — including the ones it
+had just eliminated. The pass has already run; its **result** is the ground truth. So the pass now
+reports what it did, the loaded grammar carries that record, and the lint headline reads:
+
+```text
+grammar lint: 'systemverilog' (1485 rules) —
+  left_recursion_unhandled=30 (warning — the LR-elimination pass ran and these cycles survived it;
+                               only the runtime guard is left, and it REJECTS same-position re-entry),
+  left_recursion_eliminated=2  (info — derived from the pass's own outcome), …
+  [info]  … ELIMINATED 2 left-recursive rule(s) on this grammar: block_event_expression, select_expression
+```
+
+⛔ **Thirty of thirty.** The pass rewrote 2 rules; the linter told all 30 survivors they were
+*"handled by PGEN's LR elimination + runtime cycle-breaking"*. It is worth being precise about why
+that was so wrong: the guard does not handle a surviving cycle, it **rejects** re-entry at the same
+input position, so the derivations that need it are unreachable. The demonstrated case is SV's first
+printed cycle, `casting_type -> constant_primary -> constant_cast -> casting_type` — IEEE 1800-2017
+A.8.4 makes `int'(2)'(3)` a legal cast chain, and PGEN rejects it (`furthest_position=40`,
+`💥 Infinite recursion detected in rule 'casting_type'`). Eliminating **indirect** left recursion is
+an engine capability nothing in PGEN has yet; it is owned by `ENGINE-UNIVERSAL-SERVICES.13`, with
+that repro as its first row. Current class size: SV **30**, the raw Annex A transcription **23**,
+`ebnf` **5**, every other grammar **0**.
+
+⛔ **The warning is deliberately NOT a `dead_branch` error.** A surviving *indirect* cycle does not
+prove any one alternative is dead — the intermediate rules may still have non-recursive paths, so the
+alternative can still parse something. Claiming deadness there would repeat, in the failing direction,
+exactly the unsound verdict the always-succeeds correction above retired. What is sound, and what the
+message states, is that the cycle's *left-recursive derivations* are unreachable.
+
+⭐ **And the diagnostic no longer hides its own findings.** This class printed `take(10)` with no
+override, so 20 of SV's 30 were unreachable from the CLI at any verbosity — the sweep that found all
+this had to go around the instrument. Every class now shares one print helper with a cap of 40 and a
+`PGEN_LINT_DUMP_ALL=1` escape, and the truncation line names it (*"... and 12 more … (set
+PGEN_LINT_DUMP_ALL=1 to print all 52)"*). A capped diagnostic with no "show all" is how a finding
+hides.
 
 ⛔ **The linter reported all of this as clean**, in a message that tells a grammar author to look
 elsewhere: *"is left-recursive (cycle: `select_expression -> select_expression`) — handled by PGEN's

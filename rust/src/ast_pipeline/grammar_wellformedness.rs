@@ -29,20 +29,45 @@ use std::collections::{HashMap, HashSet};
 
 /// A detected grammar well-formedness issue.
 ///
-/// IMPORTANT SCOPE NOTE (verified on the real SystemVerilog grammar, PARSE-SOTA.8.1):
-/// PGEN **handles left recursion** — it runs a compile-time left-recursion-elimination
-/// step (the `pre_lr_elim` annotations) AND the runtime `mutual_recursion_handler` detects
-/// and breaks left-recursive cycles. So `LeftRecursive` is **INFORMATIONAL only** here (28
-/// rules in the shipped SV grammar are left-recursive *by design* and parse fine); it must
-/// NOT be used to reject a grammar. The genuine, reject-worthy well-formedness defect is
-/// `NonTerminating` — a rule with NO finite terminal derivation, which neither LR
-/// elimination nor cycle-breaking can rescue.
+/// IMPORTANT SCOPE NOTE — ⛔ **CORRECTED BY GRAMMAR-WELLFORMED.A2.6 (2026-08-12), because the
+/// original was measurably false.** It read: *"PGEN handles left recursion … so `LeftRecursive` is
+/// INFORMATIONAL only (28 rules in the shipped SV grammar are left-recursive by design and parse
+/// fine)"*. What PGEN actually eliminates is the **wrapper** shape and — since `A2.5` — the inline
+/// **direct** shape. An **indirect** cycle is eliminated by nothing, and the runtime
+/// `mutual_recursion_handler` does not *handle* one: it REJECTS re-entry at the same input position,
+/// so the derivations that need it are unreachable. Measured on the shipped SV grammar: the pass
+/// rewrote **2** rules and **30** cycles survived it — one of which (`casting_type -> …
+/// -> constant_cast -> casting_type`) makes the LRM-legal cast chain `int'(2)'(3)` unparseable
+/// (`ENGINE-UNIVERSAL-SERVICES.13`).
+///
+/// So: `LeftRecursive` states a CYCLE and nothing more; the handling verdict belongs to
+/// [`classify_left_recursion`], which derives it from the pass's own outcome and emits
+/// [`WellformednessIssue::LeftRecursionUnhandled`] (a warning) for a survivor. Neither is used to
+/// reject a grammar. The genuine, reject-worthy well-formedness defect remains `NonTerminating` —
+/// a rule with NO finite terminal derivation, which neither LR elimination nor cycle-breaking can
+/// rescue.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WellformednessIssue {
-    /// INFORMATIONAL: `rule` is directly/indirectly left-recursive (PGEN handles this via
-    /// LR elimination + the runtime mutual-recursion handler; NOT an error). `cycle` is one
-    /// recursion path for the diagnostic.
+    /// INFORMATIONAL, and STRUCTURAL ONLY (GRAMMAR-WELLFORMED.A2.6): `rule` is directly/indirectly
+    /// left-recursive; `cycle` is one recursion path for the diagnostic. ⛔ This variant makes NO
+    /// claim about whether PGEN's LR-elimination pass handles the cycle — that verdict is DERIVED
+    /// from the pass's own outcome by [`classify_left_recursion`], never asserted here. It used to
+    /// be asserted here, and it was false for 30 of the 30 findings the shipped SystemVerilog lint
+    /// printed.
     LeftRecursive { rule: String, cycle: Vec<String> },
+    /// WARNING (GRAMMAR-WELLFORMED.A2.6): `rule`'s left-recursive `cycle` SURVIVED the LR-elimination
+    /// pass — the pass ran on this grammar and did not rewrite it. Only the runtime cycle guard
+    /// stands, and the guard does not *handle* the recursion: it REJECTS re-entry at the same input
+    /// position, so every derivation needing the recursion at the seed position is unreachable and
+    /// the grammar declares strictly more than the parser accepts.
+    ///
+    /// ⛔ Deliberately NOT a `dead_branch` error. A surviving INDIRECT cycle does not prove any one
+    /// alternative is dead — the intermediate rules may still have non-recursive paths, so the
+    /// alternative can still parse something. Claiming deadness there would repeat the unsound
+    /// verdict `A2.2` retired ([[project_earlier_always_matches_unsound_backtracking]]), in the
+    /// failing direction. What is sound, and what this states, is that the cycle's *left-recursive
+    /// derivations* are unreachable.
+    LeftRecursionUnhandled { rule: String, cycle: Vec<String> },
     /// ERROR: `rule` has NO finite terminal derivation (every path recurses without ever
     /// bottoming out at terminals) — it can never produce/parse a complete string. This is
     /// genuinely ill-formed and IS reject-worthy.
@@ -119,9 +144,17 @@ impl WellformednessIssue {
     pub fn message(&self) -> String {
         match self {
             WellformednessIssue::LeftRecursive { rule, cycle } => format!(
-                "grammar info: rule '{}' is left-recursive (cycle: {}) — handled by PGEN's LR elimination + runtime cycle-breaking (informational, not an error)",
+                "grammar info: rule '{}' is left-recursive (cycle: {}) — STRUCTURAL finding only. Whether PGEN's LR-elimination pass handles THIS cycle is a separate DERIVED verdict (the lint's left_recursion_eliminated / left_recursion_unhandled counters, taken from the pass's own outcome); this detector reports the cycle, never the handling.",
                 rule,
                 cycle.join(" -> ")
+            ),
+            WellformednessIssue::LeftRecursionUnhandled { rule, cycle } => format!(
+                "grammar well-formedness WARNING: rule '{}' is left-recursive (cycle: {}) and PGEN's LR-elimination pass did NOT eliminate it — the pass RAN on this grammar and this cycle survived it. The pass rewrites the wrapper shape ('{}' := <wrapper> | <seed>) and, since A2.5, the inline DIRECT shape ('{}' := '{}' <op> <y> | <seed>); an INDIRECT cycle through intermediate rules is eliminated by nothing. Only the runtime cycle guard is left, and it does not handle the recursion — it REJECTS re-entry at the same input position ('Infinite recursion detected in rule ...'), so every derivation that needs the recursion at the seed position is UNREACHABLE and this grammar declares strictly more than its parser accepts. Fix: break the cycle at its source (seed + suffix rule), or route it through the wrapper shape the eliminator recognizes.",
+                rule,
+                cycle.join(" -> "),
+                rule,
+                rule,
+                rule
             ),
             WellformednessIssue::NonTerminating { rule } => format!(
                 "grammar well-formedness ERROR: rule '{}' has no finite terminal derivation (it can never produce a complete string) — it is ill-formed; add a terminating alternative",
@@ -1158,6 +1191,55 @@ pub fn detect_left_recursion(
         }
     }
     issues
+}
+
+/// GRAMMAR-WELLFORMED.A2.6 — the left-recursion verdict, DERIVED from what the elimination pass
+/// actually did rather than from a belief about what it can do.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LeftRecursionReport {
+    /// Did the LR-elimination pass run on the grammar being linted? When false, no handling claim
+    /// is made in either direction and every cycle stays a structural [`WellformednessIssue::LeftRecursive`].
+    pub elimination_ran: bool,
+    /// Base rules the pass actually rewrote (from its own outcome record), in pass order.
+    pub eliminated_rules: Vec<String>,
+    /// Cycles still present in the linted grammar. When `elimination_ran`, each is a
+    /// [`WellformednessIssue::LeftRecursionUnhandled`] warning: the pass declined it and only the
+    /// runtime guard — which rejects rather than handles — remains.
+    pub surviving: Vec<WellformednessIssue>,
+}
+
+/// Classify a grammar's left recursion against the elimination pass's OUTCOME.
+///
+/// ⛔ WHY THE OUTCOME AND NOT THE PLANNER. The obvious derivation — "ask
+/// `detect_left_recursive_chain_plan` whether it covers this rule" — is both weaker and wrong here:
+/// the lint sees the grammar AFTER the pass, where a rewritten base rule no longer holds the wrapper
+/// alternatives the planner matches, so that call returns `None` for every rule including the ones
+/// it just eliminated. The pass has already run; its RESULT is the ground truth, and survival in the
+/// post-pass grammar is itself the verdict. If the eliminator ever regresses, the rule it used to fix
+/// reappears in `surviving` and the message flips with no second opinion to keep in sync.
+///
+/// ⭐ A rule may legitimately appear in BOTH lists: the pass can eliminate one shape on a rule while
+/// a different cycle through that same rule survives.
+pub fn classify_left_recursion(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    elimination_ran: bool,
+    eliminated_rules: &[String],
+) -> LeftRecursionReport {
+    let surviving = detect_left_recursion(grammar, rule_order)
+        .into_iter()
+        .map(|issue| match issue {
+            WellformednessIssue::LeftRecursive { rule, cycle } if elimination_ran => {
+                WellformednessIssue::LeftRecursionUnhandled { rule, cycle }
+            }
+            other => other,
+        })
+        .collect();
+    LeftRecursionReport {
+        elimination_ran,
+        eliminated_rules: eliminated_rules.to_vec(),
+        surviving,
+    }
 }
 
 /// DFS that returns a cycle path `start -> … -> start` if `start` is left-recursive.
@@ -3245,6 +3327,85 @@ mod tests {
         let order: Vec<String> = vec!["a".into(), "b".into()];
         let issues = detect_left_recursion(&g, &order);
         assert!(!issues.is_empty(), "indirect a->b->a left recursion must be detected: {issues:?}");
+    }
+
+    /// GRAMMAR-WELLFORMED.A2.6 — the verdict must be DERIVED from the elimination pass's outcome,
+    /// and it must never re-acquire the claim that made it wrong.
+    ///
+    /// The defect this pins: the linter told all 30 of SystemVerilog's surviving cycles they were
+    /// *"handled by PGEN's LR elimination + runtime cycle-breaking"* while the pass had rewritten
+    /// exactly 2 rules — a false statement in the PASSING direction, inside an `[info]`.
+    #[test]
+    fn left_recursion_verdict_is_derived_from_the_elimination_outcome() {
+        // a := b "x" | "y" ; b := a "z"  — an INDIRECT cycle: neither the wrapper shape the planner
+        // matches nor the inline-direct shape A2.5 normalizes, so nothing eliminates it.
+        let mut g = HashMap::new();
+        g.insert(
+            "a".into(),
+            or(vec![
+                seq(vec![rule_ref("b"), token("string", "x")]),
+                token("string", "y"),
+            ]),
+        );
+        g.insert("b".into(), seq(vec![rule_ref("a"), token("string", "z")]));
+        let order: Vec<String> = vec!["a".into(), "b".into()];
+
+        // 1. The pass RAN and eliminated nothing ⇒ every survivor is UNHANDLED, and says so.
+        let ran = classify_left_recursion(&g, &order, true, &[]);
+        assert!(ran.elimination_ran);
+        assert!(
+            !ran.surviving.is_empty(),
+            "the indirect a->b->a cycle must survive: {ran:?}"
+        );
+        assert!(
+            ran.surviving.iter().all(|i| matches!(
+                i,
+                WellformednessIssue::LeftRecursionUnhandled { .. }
+            )),
+            "a cycle the pass declined must be classified UNHANDLED: {ran:?}"
+        );
+        for issue in &ran.surviving {
+            let message = issue.message();
+            assert!(
+                !message.contains("handled by PGEN"),
+                "the false handling claim must never come back: {message}"
+            );
+            assert!(
+                message.contains("did NOT eliminate it"),
+                "an unhandled cycle must say the pass declined it: {message}"
+            );
+        }
+
+        // 2. The pass did NOT run ⇒ no claim in either direction; the finding stays structural.
+        let not_run = classify_left_recursion(&g, &order, false, &[]);
+        assert!(!not_run.elimination_ran);
+        assert!(
+            not_run
+                .surviving
+                .iter()
+                .all(|i| matches!(i, WellformednessIssue::LeftRecursive { .. })),
+            "without a pass outcome no handling verdict may be issued: {not_run:?}"
+        );
+        for issue in &not_run.surviving {
+            let message = issue.message();
+            assert!(
+                !message.contains("handled by PGEN"),
+                "the structural message must not claim handling either: {message}"
+            );
+            assert!(
+                message.contains("STRUCTURAL finding only"),
+                "the structural message must say what it is: {message}"
+            );
+        }
+
+        // 3. The eliminated half is carried through verbatim — it is the pass's record, not a
+        //    recomputation, so a regressed pass shows up here as an empty list rather than a lie.
+        let with_eliminated =
+            classify_left_recursion(&g, &order, true, &["select_expression".to_string()]);
+        assert_eq!(
+            with_eliminated.eliminated_rules,
+            vec!["select_expression".to_string()]
+        );
     }
 
     #[test]
