@@ -1,0 +1,11 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 1 — CONTROL Q1: is PGEN's `*` POSSESSIVE?
+#
+# `( "a" )*` followed by a mandatory trailing `"a"`, on input "aaa".
+#   - a give-back (Perl `a*`) engine     -> star takes 2, trailing takes 1 -> ACCEPT
+#   - a possessive (Perl `a*+`) engine   -> star takes 3, trailing starves -> REJECT
+#
+# REQUIRED VERDICT: REJECT. This is the starvation shape of the SystemVerilog cast knot,
+# reduced to two terminals: `cast := casting_type tick lparen expression rparen` is the
+# trailing `"a"`, and the LR-eliminated `( suffix )*` is the star.
+@entry: true
+scratch := ( "a" )* "a"

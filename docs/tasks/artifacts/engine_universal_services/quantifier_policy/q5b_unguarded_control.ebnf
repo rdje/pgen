@@ -1,0 +1,13 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 1 — Q5's one-difference control.
+#
+# Byte-for-byte `q5_guard_must_be_callsite_scoped.ebnf` with the `&"a"` guard removed, so
+# the ONLY difference between the two files is the guard. Without it the star is free to
+# consume the whole run and the parse completes.
+#
+# REQUIRED VERDICT: ACCEPT on "aaa".
+#
+# Without this arm, Q5's REJECT would not be attributable to the guard — it could be any
+# property of the two-rule shape. With it, the pair isolates the guard and nothing else.
+@entry: true
+scratch := star_rule
+star_rule := ( "a" )*

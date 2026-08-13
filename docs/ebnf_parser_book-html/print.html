@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cfa4a39d.js";
+            window.path_to_searchindex_js = "searchindex-04f01513.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1719cc59.js"></script>
@@ -855,6 +855,24 @@ a parse</strong> — there is no retraction directive, and <code>@close_scope</c
 quoted string in the same input still sees the first one’s delimiter fact. It is correct for one
 instance per parse, and the repeated-instance case is a tracked gap
 (<code>docs/tasks/LANG-CAPABILITY-AUDIT.md</code> <code>.3b</code>/<code>.4</code>).</p>
+<h3 id="-a-stop-guard-belongs-to-the-call-site-not-to-the-rule"><a class="header" href="#-a-stop-guard-belongs-to-the-call-site-not-to-the-rule">⛔ A stop-guard belongs to the CALL SITE, not to the rule</a></h3>
+<p>Idiom 1 is written inline for a reason. The guard encodes <em>“leave something for what comes after
+me”</em> — which is a fact about <strong>this</strong> use of the loop, not about the loop. Factor the guarded loop
+into its own rule and reuse it from a caller that wants the whole run, and you have broken that
+caller:</p>
+<pre><code class="language-ebnf"># Reserve one `a` for the trailing `"a"`. Measured: ACCEPTS "aaa" and "a".
+ok  := ( "a" &amp;"a" )* "a"
+
+# The SAME loop, reached from a holder with nothing after it.
+# Measured: REJECTS "aaa" — the guard reserves an `a` that nobody claims,
+# so the parse cannot consume the input. Delete the `&amp;"a"` and it accepts.
+run := ( "a" &amp;"a" )*
+top := run
+</code></pre>
+<p>So: <strong>write the guard where the closer is</strong>, and if two callers of one rule disagree about whether a
+residual follows, they need two rules. This is the authoring-tier form of a constraint the engine hits
+too — PGEN’s automatic left-recursion elimination has to shear a separate clone for exactly this
+reason (<code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code> <code>.17</code>).</p>
 <h2 id="quantifying-a-group"><a class="header" href="#quantifying-a-group">Quantifying a group</a></h2>
 <p>A quantifier binds to the single element on its left — use a group to repeat more than one element:</p>
 <pre><code class="language-ebnf"># repeat the (',' expression) pair — the classic comma-separated-list idiom

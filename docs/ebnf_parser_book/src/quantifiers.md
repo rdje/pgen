@@ -93,6 +93,29 @@ quoted string in the same input still sees the first one's delimiter fact. It is
 instance per parse, and the repeated-instance case is a tracked gap
 (`docs/tasks/LANG-CAPABILITY-AUDIT.md` `.3b`/`.4`).
 
+### ⛔ A stop-guard belongs to the CALL SITE, not to the rule
+
+Idiom 1 is written inline for a reason. The guard encodes *"leave something for what comes after
+me"* — which is a fact about **this** use of the loop, not about the loop. Factor the guarded loop
+into its own rule and reuse it from a caller that wants the whole run, and you have broken that
+caller:
+
+```ebnf
+# Reserve one `a` for the trailing `"a"`. Measured: ACCEPTS "aaa" and "a".
+ok  := ( "a" &"a" )* "a"
+
+# The SAME loop, reached from a holder with nothing after it.
+# Measured: REJECTS "aaa" — the guard reserves an `a` that nobody claims,
+# so the parse cannot consume the input. Delete the `&"a"` and it accepts.
+run := ( "a" &"a" )*
+top := run
+```
+
+So: **write the guard where the closer is**, and if two callers of one rule disagree about whether a
+residual follows, they need two rules. This is the authoring-tier form of a constraint the engine hits
+too — PGEN's automatic left-recursion elimination has to shear a separate clone for exactly this
+reason (`docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` `.17`).
+
 ## Quantifying a group
 
 A quantifier binds to the single element on its left — use a group to repeat more than one element:

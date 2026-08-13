@@ -1,0 +1,18 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 1 — CONTROL Q5: the NEGATIVE control for Q4.
+#
+# Q4's guarded star, reached from a holder that has NO residual — it wants the WHOLE run.
+# The guard reserves a trailing `"a"` that nobody claims, so the parse cannot consume the
+# input at all.
+#
+# REQUIRED VERDICT: REJECT on "aaa" (`q5b_unguarded_control.ebnf` is the same grammar with
+# the guard removed and MUST accept the same input — the one-difference pair).
+#
+# ⛔⛔ WHAT IT PINS. A stop-guard is CONTEXT-DEPENDENT: `constant_primary` must reserve the
+# trailing `' ( … )` when it is reached from `cast`, and must NOT reserve it when it is
+# reached from an ordinary expression. A guard written onto the RULE therefore cannot be
+# right in both places — it has to be written onto the CALL SITE, which for this pass means
+# a sheared clone reached only from the holder. The `.13` eliminator already clones; this
+# says the clone is where the guard belongs.
+@entry: true
+scratch := star_rule
+star_rule := ( "a" &"a" )*

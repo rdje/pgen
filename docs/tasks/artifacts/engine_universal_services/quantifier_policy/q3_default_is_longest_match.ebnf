@@ -1,0 +1,17 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 1 — CONTROL Q3: what IS the default choice policy?
+#
+# Q2 proves the choice gives back; it does not say what the choice PREFERS. On input "ab":
+#   - first-match commit (classical PEG) -> takes `"a"`, leaves `b` -> not a full parse -> REJECT
+#   - longest-match tournament           -> takes `"ab"` -> ACCEPT
+#
+# REQUIRED VERDICT: ACCEPT — the default `@branch_policy` is `longest_match`, i.e. EVERY
+# alternative is attempted and the longest consumer wins (`ast_based_generator.rs:4273`,
+# "Multi-branch - evaluate all branches and keep the longest successful match"; selection is
+# priority -> longest -> associativity at `:4387`).
+#
+# ⭐ WHY THIS MATTERS TO `.17`'s PRICING. A multi-attempt protocol at a combinator is not a
+# new cost class for PGEN — it is what the engine already does at every non-degenerate
+# multi-branch rule. The second non-negotiable has been satisfied here by STATIC ELISION
+# (`degenerate_dispatch_byte_sets`, `:4556`), not by refusing to ever attempt twice.
+@entry: true
+scratch := ( "a" | "ab" )

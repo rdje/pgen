@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0020 — "the engine cannot do X" is a measurement, and ours was three months stale
+
+`.17`'s design note reasoned from the PEG formalism: `e*` is `A ← e A / ε`, ordered choice commits,
+therefore making the quantifier give back *"reintroduces exactly the backtracking PEG removed to buy
+its memoization guarantee."* Every sentence of that is true about **PEG**. The load-bearing question
+was whether it is true about **PGEN**, and the answer is no — the engine already runs a give-back
+longest-match tournament at every non-degenerate choice, and has since long before this leaf opened.
+
+Two terminals were enough to show it. `( "a" | "ab" ) "c"` on `abc` accepts; `( "a" )* "a"` on `aaa`
+rejects. Same starvation shape, same engine, opposite answers — so the blocker was never
+*"PEG doesn't backtrack"*, it was *"one of our two combinators doesn't."* That is a much smaller
+claim, and it is the one the fix has to address.
+
+**The general habit, which is the reusable part.** A design that turns on *"the engine cannot do X"*
+must MEASURE that the engine cannot do X, on the smallest grammar that can show it, before choosing
+between options. Reasoning from the formalism a system is *modelled on* is not reasoning about the
+system: PGEN is a PEG the way a dialect is a language — the parts that diverge are exactly the parts
+a design leans on hardest. Here the divergence was documented (`developer-architecture.md` warns
+*"do not read `|` as 'first alternative wins'"*), in the same book the leaf could have opened, and
+still the design was written from the formalism.
+
+**Why the search paid off three more times.** Once the question became *"has PGEN met a starved
+greedy quantifier before?"* rather than *"how do I make `*` backtrack?"*, the repository answered
+immediately: `hierarchical_identifier` in May (patched with a negative-lookahead stop-guard, then
+reverted on a director decision to prefer a general engine service over a per-rule patch),
+`macro_default_value` in a third family, and a decision record whose closing paragraph names this
+exact class as deliberately deferred. ⇒ **the phrasing of the question decides whether prior art is
+findable.** "How do I implement my idea" searches nothing; "has this happened before" searches
+everything.
+
+**The measurement that changed the answer, not just the confidence.** `( "a" &"a" )* "a"` accepts
+both `aaa` and `a` — the starvation closes with a per-iteration lookahead, no re-entry, no memo
+exposure. The note had ruled this out (*"no static shear can separate them"*), and it was right
+about a shear of the *rule* and wrong about a shear of the *call site*. The negative control is what
+makes that precise rather than lucky: the same guard applied rule-globally **breaks** the holder that
+wants the whole run. A probe that only demonstrates the win would have shipped a design that fails
+on the second caller.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0018 — the fix that catches a regression is itself a change, and it needs the same evidence you demanded of the bug
 
 Slice 5 found a regression, root-caused it, corrected the criterion, re-verified end to end, and

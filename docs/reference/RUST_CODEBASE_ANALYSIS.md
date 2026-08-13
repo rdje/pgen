@@ -1,5 +1,32 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Steering Note (2026-08-13) — the give-back asymmetry is the engine's own, so `.17`'s fix drops a tier (`ENGINE-UNIVERSAL-SERVICES.17` slice 1)
+
+**No Rust changed. What changed is the assessment of what `.17` has to build**, and the note below
+(*"blocked by the greedy non-backtracking `*`"*) should be read with this correction.
+
+The blocker was framed as PEG's possessive repetition, implying an **engine-core** change — make the
+LR-eliminated `*` re-enterable — with the packrat memo as the exposed surface. Measured
+(`docs/tasks/artifacts/engine_universal_services/quantifier_policy/probe.sh`, 7/7 self-checking):
+
+- **PGEN already gives back at a CHOICE and only refuses to at a QUANTIFIER.** The default
+  `@branch_policy` is `longest_match` — `generate_or` evaluates every alternative and keeps the
+  longest (`ast_based_generator.rs:4273`, selection priority → longest → associativity at `:4387`),
+  and a successful-but-losing alternative is retried when a later element fails. The quantifier loop
+  (`:6041-6091`) takes the maximum count and never revisits it. ⇒ the asymmetry is **between two of
+  our own combinators**, not between PGEN and PEG.
+- **The multi-attempt cost is already paid everywhere and is controlled by STATIC ELISION**
+  (`degenerate_dispatch_byte_sets`, `:4556`; and at the quantifier, the `RGX-0078.5.i.7` Q-GUARD at
+  `:6006`). ⇒ the peak-speed non-negotiable is implemented here as *"prove the cost away at
+  generation time"*, not as *"never attempt twice"* — which is the bar a `.17` design must clear.
+- **A per-iteration lookahead stop-guard closes the starvation with no re-entry and no memo
+  exposure**, and must be **call-site scoped** (a rule-global guard breaks the caller that has no
+  residual). The `.13` eliminator already emits sheared clones, so the injection point exists.
+
+⇒ the front-runner moves from an engine-core change to a **gen-AST → gen-AST rewrite** — the highest
+fix tier, and the one `ENGINE-UNIVERSAL-SERVICES.7`'s taxonomy prices as free at parse time by
+construction. Durable form: [[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]].
+
 ## Recent Architecture Change Note (2026-08-13) — the indirect-LR rewrite lands, and it verifies its own postcondition (`ENGINE-UNIVERSAL-SERVICES.13` slice 5)
 
 **New module `rust/src/ast_pipeline/indirect_lr_elimination.rs` — the first engine pass that

@@ -1,0 +1,14 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 1 — CONTROL Q2: does ordered CHOICE give back?
+#
+# The one-difference partner of Q1: same "a successful sub-match starves the element after
+# it" shape, but the sub-match comes from a CHOICE instead of a quantifier. On input "abc"
+# the alternative `"a"` succeeds and then `"c"` fails at `b`.
+#   - a committing choice   -> REJECT
+#   - a giving-back choice  -> retries `"ab"`, then `"c"` matches -> ACCEPT
+#
+# REQUIRED VERDICT: ACCEPT.
+#
+# ⭐ Q1 vs Q2 is the whole finding: the SAME engine gives back at a choice and refuses to
+# give back at a quantifier. `.17`'s blocker is that asymmetry, not "PEG does not backtrack".
+@entry: true
+scratch := ( "a" | "ab" ) "c"

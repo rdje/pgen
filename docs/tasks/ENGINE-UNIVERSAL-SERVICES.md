@@ -2293,6 +2293,257 @@ and the interpreter has no cycle guard at all — the `.14` divergence, exactly.
 claimed **only** once the re-seeded artifact is built and `ebnf_dual_run` re-run; until then this
 leaf claims the grammar-level 5 → 0 and nothing about arm 2.
 
+##### ✅ `.17` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0020`, 2026-08-13 session #225) — the PRIOR ART this leaf's design owes, and the three measurements that shrink it
+
+> **DOCS + a tracked probe bank only — ZERO grammar bytes, ZERO Rust bytes, ZERO codegen bytes.**
+> The leaf's own gate says *"⛔ Prior art must be read before (i) is attempted"*. This slice reads
+> it, **re-measures every engine claim the design note makes** rather than quoting the note, and
+> hands slice 2 a smaller, better-posed decision. ⛔ The design decision is deliberately NOT taken
+> here — what changed is which option is the expensive one.
+>
+> Probe bank (re-runnable, self-checking, 7 cases):
+> `docs/tasks/artifacts/engine_universal_services/quantifier_policy/probe.sh` →
+> `QUANTIFIER-POLICY-CONTROLS: 7/7 as declared`.
+
+###### PRIOR ART
+
+Searched in the four sources [[feedback_read_prior_art_before_designing]] ranks by authority, plus
+the external literature the second non-negotiable demands before any parse-time cost is bought.
+
+**1. `grammars/ebnf.ebnf` — is it already expressible?** No. The meta-grammar declares
+`simple_quantifier` (`?`/`*`/`+`, `:184`), `bounded_quantifier` (`{N}`/`{N,M}`/`{N,}`/`{,M}`,
+`:191`) and `probability_quantifier` (`:214`) — **and no flavour axis at all**: no `*?`, no `*+`, no
+per-site policy. The contrast is the finding: the *choice* combinator **does** have a declared
+policy surface (`@branch_policy: longest_match | ordered`,
+`rust/src/ast_pipeline/semantic_directive_registry.rs:59-71`), and the 46-name registry has no
+quantifier sibling. ⇒ the quantifier is the one combinator PGEN never gave a policy, in the
+meta-grammar as well as in the engine.
+
+**2. `docs/decisions/` — already decided or designed?** Three hits, one of them decisive.
+
+- ⭐⭐ [[feedback_layer_0_unified_quantifier]] (2026-05-21) — Layer 0 folded `?`/`*`/`+`/bounded into
+  ONE parameterised codegen loop with a two-layer atomicity model. Its closing section is a direct
+  hit on `.17`: *"**What Layer 0 does NOT fix**: cross-rule backtracking (e.g. `hierarchical_identifier`'s
+  first-set-overlap case `(identifier constant_bit_select dot)* identifier` — PEG can't try the
+  trailing `identifier` at each iter before committing the prefix). That's a separate engine class"*
+  — and it records `.b.2`'s surgical patch as deliberately re-appliable. ⇒ **`.17`'s class was
+  identified, named and consciously deferred in May; it is not a new discovery, and the design must
+  not re-derive it.**
+- [[project_indirect_left_recursion_is_eliminated_at_generation_not_grown_at_runtime]] — this leaf's
+  parent record. Its 2026-08-13 amendment already routes the blocker here and states plainly that it
+  does **not** reopen seed growing, *"the blocker is a quantifier's backtracking policy, not the
+  elimination mechanism"*. Binding on slice 2.
+- [[project_earlier_always_matches_unsound_backtracking]] (2026-07-05) — retired a linter check whose
+  premise was *"PEG commits to the earlier alternative"*, because **PGEN's engine backtracks**. That
+  is the same law Q2/Q3 below re-measure.
+
+**3. `docs/tasks/` — does a tree already own it?** Four hits; the first is prior art for the *fix
+shape* and for the *ruling on who may own it*.
+
+- ⭐⭐ `SV-EXH-PROOF.3.3.4.b.2` (`completed-as-diagnosis-only`) — a surgical
+  `!callable_method_call_body` **negative-lookahead stop-guard** on `hierarchical_identifier`
+  (`grammars/systemverilog.ebnf:2158`) was diagnosed AND applied, and *"would have worked for the
+  first-set-overlap case at uvm_pkg byte 159297"*. It was **reverted on a director decision**:
+  *"revert and pivot to general Layer-0 engine fix rather than patch case-by-case"*, clean state
+  tagged `checkpoint/post-3-3-4-b-1-clean-pre-layer-0` @ `f758b878`. ⇒ two things are prior art
+  here: the guard shape, and the ruling that it must be an **engine service**, not a hand-written
+  per-rule patch — the identical ruling
+  [[left-recursion-is-an-engine-service-not-a-grammar-authoring-burden]] makes.
+- `LANG-CAPABILITY-AUDIT.3b` FINDING 3 — measured the possessive law head-on (`r10-bt-ab`,
+  `r10-bt-aaab` both REJECT, trace-confirmed, located at `ast_based_generator.rs:5692`) and recorded
+  the author-facing consequence — *"write `(!close body)* close`"* — with a working measurement
+  (`r10_static := "q" "/" ( !"/" char )* "/"` ACCEPTs `q/abc/` and `q//`). ⇒ the stop-guard is
+  already known to work in PGEN; Q4 below reproduces it on `.17`'s own shape.
+- `GRAMMAR-WELLFORMED` (`:1036`, `:1275`) — `macro_default_value := macro_default_atom+` is a
+  **third** victim of the same law, in a third family. The class is recurrent, not SV-specific.
+- `PARSE-SOTA-research-synthesis` §.1/§.2 — the repo's own literature survey. It already names the
+  possessive law as Ford POPL 2004, refuses GLL/GLR/Earley/Marpa outright, refuses runtime LR, and
+  lists **parametric rules (rust-peg)** as `B3` and **cut (Mizushima 2010)** as `B2`.
+- `.15` (this tree) — the SVA property knot: same starvation mechanism, different proximate cause.
+
+**4. `docs/book/` — a designed-but-unbuilt form?** One near-miss, and one claim that is NOT stale.
+
+- `docs/book/src/lexical-annotations.md` documents `[> LIST ]` / `[>! LIST ]` explicitly as **SDF2
+  *follow restrictions***. That is exactly the right formalism for "stop a maximal match short" —
+  but at the **lexical** tier (character classes after a token), and its own text says the `require`
+  arm is *"carried and available, but a documented generation no-op today"*, consumed by the stimuli
+  generator rather than by the parser. ⇒ right idea, wrong tier, not parser-consumed. A *structural*
+  follow restriction on a quantifier is not expressible today.
+- ⚠️ `docs/book/src/developer-architecture.md:17-25` is **current and correct** — re-read this
+  session, not quoted from `LANG-CAPABILITY-AUDIT.3b`'s finding, which is superseded. It already
+  warns *"Do not read `|` as 'first alternative wins'"* and states the `longest_match` default.
+  `LANG-CAPABILITY-AUDIT.5` repaired it and is `done`. No book defect to route.
+
+**External literature.**
+
+- **Ford, POPL 2004** — PEG defines `e*` as `A ← e A / ε`, and ordered choice commits once an
+  alternative succeeds ⇒ possessive **by construction**. The design note's formalism claim is
+  correct and stands unchanged.
+- **Perl 5 / PCRE** — the three flavours (greedy `a*`, lazy `a*?`, possessive `a*+`). PGEN emits
+  `a*+`; the note's `.19` correction that (i) wants `a*` and not `a*?` is confirmed and stands.
+- **ANTLR4 ALL(\*)** (Parr, Harwell & Fisher, OOPSLA 2014) — the mainstream alternative to
+  backtracking a loop is **prediction**: simulate the ATN in full context with a DFA cache and
+  decide loop exit before entering it. ⛔ `PARSE-SOTA` already refuses *dynamic ALL(\*) ambiguity
+  detection*; the **loop-exit** use is a distinct question and slice 2 should price it as such
+  rather than inherit that refusal.
+- **SDF2 / Rascal follow restrictions (`-/-`)** — the declarative, generation-time formalism for
+  the same problem. PGEN already borrows it lexically (above); the structural form is the gap.
+- **Mizushima, PASTE 2010 (cut)** — commits *harder*; the wrong direction here, and already tracked
+  as `PARSE-SOTA` `B2`.
+- **Warth PEPM 2008 / Medeiros SCP 2014** — runtime LR. Explicitly **not** reopened, per the parent
+  decision record.
+
+**What the search did NOT find.** No surface — meta-grammar, directive registry, book or tree —
+expresses a per-site quantifier give-back policy, and no tree owns one. So slice 2's proposal is
+genuinely new. It is also far smaller than the note assumed, because both mechanisms it would need
+already ship: a codegen-computed **per-iteration guard slot** in the emitted loop, and **sheared
+clones** from the `.13` eliminator.
+
+###### ⭐⭐ FINDING 1 — the same engine gives back at a CHOICE and refuses to at a QUANTIFIER
+
+The one-difference pair, measured (`probe.sh` Q1/Q2):
+
+| | grammar | input | verdict |
+|---|---|---|---|
+| **Q1** | `( "a" )* "a"` | `aaa` | **REJECT** — the star takes all three, the trailing `"a"` starves |
+| **Q2** | `( "a" \| "ab" ) "c"` | `abc` | **ACCEPT** — `"a"` wins, `"c"` fails, the choice gives back and retries `"ab"` |
+
+Both are *"a sub-match succeeds, then the element after it starves"*. The only variable is which
+combinator produced the sub-match, and the engine answers differently. ⇒ **`.17`'s blocker is an
+asymmetry between two of PGEN's own combinators — not a property of PEG.**
+
+###### ⭐⭐ FINDING 2 — a multi-attempt protocol is already the DEFAULT here, confined by STATIC ELISION
+
+Q3: `( "a" | "ab" )` on `ab` **ACCEPTs**, i.e. the longest alternative wins, not the first. Located:
+`ast_based_generator.rs:4273` — *"Multi-branch - evaluate all branches and keep the longest
+successful match"* — with selection ordered priority → longest → associativity (`:4387`), and the
+tournament **elided** where codegen can prove it unnecessary (`degenerate_dispatch_byte_sets`,
+`:4556`).
+
+⇒ the second non-negotiable has never been read here as *"never attempt twice"*. It has been
+satisfied by **proving the extra attempts away at codegen time**. That reframes `.17`'s pricing
+question from *"may the engine attempt more than once?"* (already answered: yes, everywhere) to
+*"can the extra attempts be confined, statically, to the sites that provably need them?"* — a
+question this codebase has answered once already, for the combinator next door.
+
+###### ⭐ FINDING 3 — a PEG-native stop-guard closes the starvation, and its price is a CLONE, not backtracking
+
+| | grammar | input | verdict |
+|---|---|---|---|
+| **Q4a** | `( "a" &"a" )* "a"` | `aaa` | **ACCEPT** — the guard refuses the fatal 3rd iteration |
+| **Q4b** | same | `a` | **ACCEPT** — and does not break the zero-iteration case |
+| **Q5** | `star_rule := ( "a" &"a" )*`, holder with **no** residual | `aaa` | **REJECT** |
+| **Q5b** | Q5 with the guard removed (one-difference control) | `aaa` | **ACCEPT** |
+
+Q4 closes Q1's starvation with **zero engine change, zero re-entry and zero memo exposure** — the
+loop still never revisits its count; it simply never takes the iteration that starves the holder.
+Q5/Q5b price it exactly: the guard is **context-dependent**, so it cannot be written onto the rule
+(`constant_primary` must reserve the trailing `' ( … )` when reached from `cast` and must **not**
+when reached from an ordinary expression). It has to be written onto the **call site** — which for
+this pass means the sheared clone `.13` already emits.
+
+⭐ **The emitted loop already has the slot.** `#quant_guard_tokens`
+(`ast_based_generator.rs:6006`, the `RGX-0078.5.i.7` Q-GUARD) breaks the loop on a static byte-set
+test at every iteration boundary, with furthest-position parity proven; `@stop_at_rule_boundary`
+(`:5915`) is a second, directive-driven break in the same position. ⛔ **That precedent is
+architectural, not a licence**: the Q-GUARD elides an attempt that would have **failed anyway**
+(sound by construction), while a follow-restriction guard refuses an attempt that would have
+**succeeded** — it changes the accepted language and carries a soundness burden the Q-GUARD never
+had.
+
+###### ⛔ WHAT THIS LEAF'S OWN DESIGN NOTE GOT WRONG, precisely
+
+1. *"it reintroduces exactly the backtracking PEG removed to buy its memoization guarantee"* —
+   **half wrong, and the wrong half is load-bearing.** PGEN never removed it: Q2/Q3 show a
+   give-back longest-match tournament running at every non-degenerate choice. What is missing is
+   give-back at **one** combinator. The formalism half (PEG's `e*` is possessive) is correct.
+2. *"no choice of base rule and no static shear can separate them — only re-entering the `*` at a
+   lower iteration count can"* — **refuted by Q4/Q5.** A per-iteration lookahead separates the two
+   contexts with no re-entry at all. What Q5 supplies is the constraint the note was reaching for:
+   a shear of the **rule** cannot separate them; a shear of the **call site** can.
+3. *"the memo half … is the load-bearing risk, not the loop"* — **correct, and it is now what makes
+   (iii) the cheap option**: a stop-guard leaves every rule with exactly one result per position, so
+   the memo is untouched. A re-enterable `*` does not.
+
+###### THE DESIGN SPACE AS IT NOW STANDS (slice 2 decides; this slice does not)
+
+- **(iii) call-site-scoped follow-restriction guard**, synthesized by the eliminator onto the sheared
+  clone — **the candidate to price first.** Zero parse-time cost beyond one guard test per iteration,
+  zero memo exposure, generation-time by construction, and it reuses two shipped mechanisms.
+  ⛔ Its open question must be answered with `--report-indirect-lr-plan` on the **shipped** grammar,
+  not on a synthetic: is the holder's residual FIRST set statically computable at each of the 28
+  rows, and does the guard stay sound when that residual is nullable or when two holders of the same
+  clone disagree?
+- **(i) re-enterable `*`, per-site and declared** — not refuted, but now the **expensive** option:
+  it buys memo soundness work that (iii) does not need. Kept alive because (iii) may not generalise.
+- **(ii) refuse the knot with a named diagnostic** — ANTLR4's answer and the status quo; stays the
+  honest fallback.
+- **(iv) predict the loop exit (ALL(\*)-style)** — newly listed. Distinct from `PARSE-SOTA`'s refusal
+  of dynamic *ambiguity detection*; priced separately or explicitly declined.
+
+⭐ **And one framing the note could not have had:** `@branch_policy` is a live **per-rule policy
+surface for a combinator**, so a quantifier-policy directive would be the *second* of its kind, not
+the first. Whether the policy should be author-declared at all — versus derived by the eliminator and
+never surfaced — is itself a slice-2 decision, and
+[[left-recursion-is-an-engine-service-not-a-grammar-authoring-burden]] argues for derived.
+
+###### Acceptance Checklist (enforced) — `.17` slice 1
+
+- [x] **REPRODUCE / ISSUE** — this leaf's design note asserted two engine properties as premises for
+  choosing between (i) and (ii), neither re-measured:
+  `INTERPRET-PARSE: grammar='q1_possessive_star' … accepted=false … error="Backtrack { position: 3 }"`
+  is the starvation; `INTERPRET-PARSE: grammar='q2_choice_gives_back' … accepted=true` is the same
+  shape surviving at a choice.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the give-back asymmetry is emitted, and both sides are located:
+  the possessive loop at `rust/src/ast_pipeline/ast_based_generator.rs:6041-6091`
+  (`if let Some(node) = parser.try_parse(…) { … } else { break }`, min-count enforced afterwards, no
+  emission path re-tries the loop shorter) versus the tournament at `:4273` (*"evaluate all branches
+  and keep the longest successful match"*) with static elision at `:4556`. The *why* the note gave —
+  *"PEG removed backtracking"* — is contradicted by `:4273` in the same file.
+- [x] **FIX** — none applied; this is the prior-art/design slice the leaf's own gate requires before
+  (i) may be attempted. Fix-hierarchy note for slice 2: the surviving front-runner (iii) is
+  **declarative + generation-time**, i.e. the *highest* tier, above the engine change (i) the note
+  assumed was mandatory.
+- [x] **ADDRESSED (verified)** — `bash docs/tasks/artifacts/engine_universal_services/quantifier_policy/probe.sh`
+  → `QUANTIFIER-POLICY-CONTROLS: 7/7 as declared`, rc 0. Ground truth in **both** directions: the
+  bank carries must-accept and must-reject cases, and a deliberately flipped expectation makes it
+  exit rc 1 naming the case (`Q5 … => REJECT (want ACCEPT) ⛔`), so it can notice its own breakage.
+  ⭐ The three load-bearing cases were re-run on the **real generated parser** (scratch slot,
+  authoritative BY CONSTRUCTION) and agree with the interpreter arm exactly:
+
+  ```text
+  # Q1  ( "a" )* "a"        on "aaa"
+  Error: parse_full rejected sample for grammar 'scratch' on 'rust/target/es17/aaa.txt':
+    Backtrack at position 3 [furthest_position=0, +0 bytes deeper than surface position]   (rc 1)
+  # Q4a ( "a" &"a" )* "a"   on "aaa"
+  parse_full passed for grammar 'scratch' on 'rust/target/es17/aaa.txt'                    (rc 0)
+  # Q4b ( "a" &"a" )* "a"   on "a"
+  parse_full passed for grammar 'scratch' on 'rust/target/es17/a.txt'                      (rc 0)
+  ```
+
+  ⇒ the give-back asymmetry and its stop-guard repair are properties of the **shipped codegen +
+  runtime**, not of the interpreter. (`Backtrack at position 3` is the same failure the interpreter
+  reports as `Backtrack { position: 3 }`.) Both probe rounds ran under the memory guard
+  (`peak_tree_rss=10650MB elapsed=1208s`, exit 0) — an unguarded release build of this crate dies at
+  ~10 min with `signal: 15` and no rustc error.
+- [x] **NO REGRESSION** — nothing shipped was touched: ZERO bytes under `grammars/`, ZERO under
+  `rust/src/`, ZERO codegen, ZERO generated artifacts staged. The probe bank drives standalone
+  `.ebnf` files through `--interpret-parse` and acquires no restore obligation of its own.
+  ⭐ **The scratch-slot restore is VERIFIED, not asserted** — `.13` slice 4b's whole finding is that
+  a clean `git status` is not evidence here, because `generated/scratch_parser.rs` is git-ignored and
+  a half-restore is invisible. So the restore ran in both halves (`git checkout` **then**
+  `make focus_scratch`, regenerating the artifact FROM the restored fixture) and the two gates that
+  read the slot as a matched pair were re-run:
+  `parse_harness_equivalence::gate::certified_grammars_are_byte_identical` → `test result: ok.
+  1 passed; 0 failed` (23.16s) and `parser_registry::tests::scratch_slot_…` → `1 passed; 0 failed`.
+  ⛔ Trap worth carrying: the first attempt at this measurement piped `cargo test` into `tail`, and
+  the memory guard duly reported `exit=0` for a run whose cargo invocation had **failed with
+  `unexpected argument`** — the pipe swallowed the status. A green number from a masked exit code is
+  the same failure shape as `CI-PARITY-GATE-ROT.24`'s two empty result sets diffing clean.
+- [x] **LOCKSTEP** — no user-visible behaviour changed, so no book/contract/schema edit is owed. The
+  one book surface this slice checked (`developer-architecture.md:17-25`) was re-read and is already
+  correct; `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md` / `docs/TASK_TREE.md` updated.
+
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it

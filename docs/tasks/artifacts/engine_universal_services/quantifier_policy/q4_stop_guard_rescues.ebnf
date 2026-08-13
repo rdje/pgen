@@ -1,0 +1,18 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 1 — CONTROL Q4: a PEG-NATIVE stop-guard rescues Q1.
+#
+# Q1's grammar plus one per-iteration lookahead: take another iteration only if one more
+# `"a"` remains — i.e. "do not consume the token the holder still needs".
+#
+# REQUIRED VERDICTS (both, and both matter):
+#   "aaa" -> ACCEPT   star takes 2 (the guard refuses the 3rd), trailing `"a"` matches
+#   "a"   -> ACCEPT   star takes 0, trailing `"a"` matches
+#
+# ⭐ This is design option (iii): the starvation is closed with ZERO engine change, ZERO
+# backtracking and ZERO memo exposure — the loop still never re-enters at a lower count; it
+# simply never takes the fatal iteration. It is the same shape `LANG-CAPABILITY-AUDIT.3b`
+# FINDING 3 records as the author-facing law (`(!close body)* close`) and the same shape
+# `SV-EXH-PROOF.3.3.4.b.2` hand-applied to `hierarchical_identifier` before it was reverted.
+#
+# ⛔ Its bound is Q5, and Q5 is why this cannot be a rule-global rewrite.
+@entry: true
+scratch := ( "a" &"a" )* "a"

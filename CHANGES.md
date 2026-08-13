@@ -1,5 +1,43 @@
 # CHANGES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0020 — the prior art `.17` was gated on, and it moved the design space (leaf ENGINE-UNIVERSAL-SERVICES.13 → `.17` slice 1; DOCS + a probe bank, ZERO code bytes)
+
+- **The gate said prior art first.** `.17` opened with a design note asserting two engine properties
+  as the premises for choosing between a re-enterable `*` and ANTLR4's named refusal. Neither had
+  been re-measured, and [[feedback_read_prior_art_before_designing]] requires that an engine claim be
+  measured rather than quoted. Both premises moved.
+- ⭐⭐ **FINDING 1 — the blocker is an asymmetry between PGEN's OWN combinators, not a property of
+  PEG.** One-difference pair: `( "a" | "ab" ) "c"` on `abc` **ACCEPTs** (the choice gives back a
+  successful-but-losing alternative) while `( "a" )* "a"` on `aaa` **REJECTs** (the quantifier never
+  gives an iteration back). Same shape, same engine, opposite answers.
+- ⭐⭐ **FINDING 2 — a multi-attempt protocol is already the DEFAULT.** `( "a" | "ab" )` on `ab`
+  ACCEPTs, i.e. the default `@branch_policy` is `longest_match`: every alternative is evaluated and
+  the longest wins (`ast_based_generator.rs:4273`), with the tournament **elided** where codegen can
+  prove it unnecessary (`:4556`). ⇒ the second non-negotiable has never meant *"never attempt
+  twice"* here — it has been satisfied by proving the extra attempts away at generation time.
+- ⭐ **FINDING 3 — a PEG-native stop-guard closes the starvation with no backtracking at all.**
+  `( "a" &"a" )* "a"` ACCEPTs both `aaa` and `a`. Its price is Q5: applied rule-globally it breaks
+  the holder that has no residual, so the guard must be **call-site scoped** — a sheared clone,
+  which `.13`'s eliminator already emits.
+- ⛔⛔ **The leaf's own note is CORRECTED:** *"no static shear can separate them — only re-entering
+  the `*` … can"* is refuted. A shear of the **rule** cannot separate the two contexts; a shear of
+  the **call site** can. ⇒ the front-runner is now **(iii) a follow-restriction guard on the sheared
+  clone** — declarative + generation-time, the *highest* fix tier — and the re-enterable `*` is
+  demoted to the expensive fallback it always was.
+- **PRIOR ART ALSO FOUND** the class was named and deliberately deferred in May
+  ([[feedback_layer_0_unified_quantifier]], *"what Layer 0 does NOT fix: cross-rule backtracking"*),
+  the guard shape applied-then-reverted on a director decision (`SV-EXH-PROOF.3.3.4.b.2`), a third
+  victim in a third family (`GRAMMAR-WELLFORMED` `macro_default_value`), and the notation already
+  present at the LEXICAL tier as SDF2 follow restrictions (`[> … ]` / `[>! … ]`) but not
+  parser-consumed.
+- **ADDRESSED:** `docs/tasks/artifacts/engine_universal_services/quantifier_policy/probe.sh` →
+  `QUANTIFIER-POLICY-CONTROLS: 7/7 as declared`, rc 0. Self-checking in both directions — a
+  deliberately flipped expectation exits rc 1 naming the case.
+- **NO REGRESSION:** ZERO bytes under `grammars/`, `rust/src/`, codegen or `generated/`. The probe
+  bank drives standalone `.ebnf` files through `--interpret-parse`, so it acquires no scratch-slot
+  restore obligation; the slot was used only for the two generated-parser confirmations and restored
+  in **both** halves per `.13` slice 4b.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0018 — the criterion that stopped slice 5's regression had no test, so a revert would have been silent (leaf ENGINE-UNIVERSAL-SERVICES.13 slice 5b; 1 test + 1 tracked synthetic, ZERO engine bytes)
 
 - ⛔⛔ **Slice 5's own fix was unprotected, and that is measured rather than inferred.** With
