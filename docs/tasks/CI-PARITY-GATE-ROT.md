@@ -3712,7 +3712,37 @@ proofs, none re-runnable, no shared mechanism.
   does, via `~`). A gate that claimed to catch T4 in general would itself be an unfalsifiable check —
   the very thing this leaf exists to stop.
 
-**Acceptance:** (a) T1 + T2 implemented and registered in the doctrine roster, with the driver
+##### ⛔ ROUTED IN — a SIBLING gap measured the same way, and it is REACHABILITY not falsifiability (`ENGINE-UNIVERSAL-SERVICES.17` slice 4b, 2026-08-14 session #228)
+
+This leaf asks *"would this check notice if the invariant did not hold?"*. Slice 4b measured the
+question one step earlier: **does anything RUN the check at all?**
+
+- **Measured:** `grep -rn` over `scripts/`, `rust/Makefile` and `.github/` for the four tracked probe
+  banks — `quantifier_policy`, `guard_feasibility`, `guard_dry_run`, `guard_effectiveness` —
+  returns **zero** invocations. Every one is operator-invoked only. Between them they carry the
+  measured laws `.17`'s entire design rests on, including the 37 rows that decide whether the
+  shipped repair regresses `initial k = int'(1);`.
+- ⛔ **The `GATE-REACHABILITY` doctrine passes**, and correctly: it binds *tracked gate targets*, and
+  a probe bank is not registered as one. So the roster has an exact statement of this principle —
+  *"a check nothing invokes is indistinguishable from one that does not exist"* — and a population
+  it provably does not reach.
+- ⭐ **Why it belongs here and not in its own leaf:** `.27`'s ladder is about the QUALITY of a check's
+  assertion; this is about whether the assertion is ever evaluated. They fail in the same direction
+  (silently, in the passing sense) and a bank fixed for one and not the other is still worthless —
+  a falsifiable bank nobody runs, or a scheduled bank that cannot fail. ⇒ **fold into this leaf's
+  acceptance rather than open a fifth parked governance leaf**
+  ([[feedback_prefer_feature_work_over_governance_lanes]]).
+- ⚠️ **Honest bound:** the fix is not "run all four in CI" — the `guard_effectiveness` GEN arm costs
+  ~11 min and ten `focus_scratch` cycles. The disposition has to be per-bank and explicit
+  (cheap interpreter-only arm in the automatic tier, expensive GEN arm operator-invoked with a
+  recorded reason), which is exactly the *"or carries a deliberate disposition"* half of
+  `GATE-REACHABILITY` that no probe bank has ever been asked for.
+
+⇒ acceptance (d) below.
+
+**Acceptance:** (d) every tracked probe bank is either invoked by something that RUNS or carries a
+recorded per-bank disposition naming why not and what does cover it — measured against the four that
+exist today, all currently uninvoked. (a) T1 + T2 implemented and registered in the doctrine roster, with the driver
 running every tracked bank's self-test; (b) each existing bank retrofitted, and RED-proven — the
 retrofit is worthless unless a deliberately broken bank is shown to fail its own self-test; (c) T5
 priced against a real commit's diff (runtime + kill-rate on the `.13`/`.17` history, where the answer
