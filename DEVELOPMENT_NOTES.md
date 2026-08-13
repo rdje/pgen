@@ -1,5 +1,26 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0018 — the fix that catches a regression is itself a change, and it needs the same evidence you demanded of the bug
+
+Slice 5 found a regression, root-caused it, corrected the criterion, re-verified end to end, and
+shipped. Everything about that was right except one thing: **the correction had no test.** Reverting
+it left all eleven `indirect_lr` tests green — so the single line standing between the repository and
+`initial k = 8'(1);` regressing again could have been deleted by a future refactor in silence.
+
+⇒ The habit to build: after fixing a defect, **revert the fix and re-run**. If nothing goes red, the
+fix is undefended, and you have not finished. It costs one command and it is the only way to know
+whether your test suite noticed.
+
+**Why the existing fixture could not have caught it, which is the interesting half.** Every
+starvation test built on the knot-A synthetic, where the only holder of the transparent rule dies
+with the rewrite — so a direct-holder scan and a transitive one return the *same* verdict there. The
+fixture was faithful to the cycle and silent on the property that decides the criterion. A test
+suite can be thorough about a mechanism and blind to the distinction the mechanism turns on; what
+separates them is whether some fixture makes the two candidate rules disagree.
+
+⇒ When you add a criterion, ask: **which fixture would report differently if I inverted it?** If the
+answer is "none", the criterion is decoration.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0017 — every green signal agreed, and the one red signal was right
 
 **The version of this slice that nearly shipped had: a lint counter improving 30 → 13, eleven green

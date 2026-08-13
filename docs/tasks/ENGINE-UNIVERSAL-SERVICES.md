@@ -2145,6 +2145,65 @@ IS a candidate (`property_expr`, 80 routes, 12 clones) and it is **STARVED**, by
 starvation-safe member" (slice 4's finding) — its *dominator* is starved too, by the same
 hand-written cascade. That is a grammar-tier cause, exactly `.15`'s charter.
 
+#### ⛔⛔ SLICE 5b (`PGEN-ENGINE-UNIVERSAL-SERVICES-0018`, 2026-08-13 session #224) — the criterion slice 5 landed to STOP a regression had no test, so a revert would have been silent
+
+> **Slice 5's own fix was unprotected.** `rules_transparent_to` is the whole reason
+> `initial k = 8'(1);` still parses, and reverting it to the pre-5b direct-holder scan left **every
+> test green**. Measured, not assumed: with the one-line revert applied,
+> `cargo test --lib indirect_lr` → **11 passed, 0 failed**. ZERO engine bytes; one test + one
+> tracked synthetic.
+
+⛔ **WHY THE EXISTING TESTS COULD NOT SEE IT — and it is the same blind spot as the regression.**
+`knot_a()` (P1/P4) is the fixture behind every starvation test, and in it the only holder of the
+transparent rule is `cast_expr`, which **dies with the rewrite** (`survives_rewrite=false`), so the
+site is filtered before the verdict. Direct-scan and transitive-scan return the *same* answer on
+that shape. SystemVerilog reaches `casting_type` from `cast` as well, so its holder outlives the
+plan — the exact ingredient the synthetic lacked. ⇒ a criterion whose fixture cannot express the
+distinction it encodes is untested by construction
+([[a-check-whose-inputs-all-pass-has-not-been-tested]]).
+
+**THE FIX** — `p5_transparent_holder.ebnf` (the fifth synthetic, tracked) and
+`a_transparent_holder_that_outlives_the_rewrite_starves_the_base_rule`. P5 is P4 plus one rule:
+
+```text
+scratch    := outer_cast | prim         ← outer_cast is reached from OUTSIDE the plan …
+outer_cast := ct "'" "(" lit ")"        ← … and holds ct WITH a residual        ~ cast
+ct         := kw | prim                 ← bare reference ⇒ TRANSPARENT to prim  ~ casting_type
+```
+
+⭐ **The test carries its own one-difference control**: the same assertion re-run on `knot_a()`
+must report `prim` **safe**, because there the holder dies with the rewrite. If both halves agreed,
+the criterion would be measuring nothing.
+
+##### Acceptance Checklist (enforced) — slice 5b
+
+- [x] **REPRODUCE / ISSUE** — the guard is missing, and that is measured rather than inferred:
+  reverting `collect_starvation_sites` to `step.next_rule != base_rule` (the pre-5b scan) and
+  running `cargo test --lib indirect_lr` gives **11 passed, 0 failed** — the criterion that stops
+  SystemVerilog's `initial k = 8'(1);` regression can be deleted without a single red test.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: every starvation test builds on `knot_a()`
+  (`indirect_lr_plan.rs`), whose only transparent-rule holder is `cast_expr`, an on-route rule the
+  `rules_surviving_rewrite` fixpoint marks dead — so `collect_starvation_sites` filters the site out
+  before either criterion can disagree. WHY: the fixture omits the one property that makes
+  transitivity load-bearing, a holder that OUTLIVES the rewrite. P3's header names that property in
+  prose (*"SystemVerilog reaches `casting_type` from `cast` too"*) and no fixture encoded it.
+- [x] **FIX** — fix-hierarchy tier = **test + tracked fixture** (no engine, grammar, codegen or
+  runtime change): `docs/tasks/artifacts/engine_universal_services/indirect_lr/p5_transparent_holder.ebnf`
+  and `a_transparent_holder_that_outlives_the_rewrite_starves_the_base_rule`. Why no lower tier:
+  the engine is already correct as of slice 5 — what was missing is the evidence that it stays so.
+- [x] **ADDRESSED (verified)** — RED-proven in both directions on the same command:
+  with the pre-5b scan restored, `cargo test --lib indirect_lr` → **FAILED, 11 passed / 1 failed**,
+  the single failure being the new test (`prim is starved THROUGH ct, which is transparent to it`);
+  with the criterion restored → **12 passed / 0 failed**. The control half asserts the opposite
+  verdict on `knot_a()` in the same test, so the two shapes are separated, not merely both accepted.
+- [x] **NO REGRESSION** — no engine, grammar or codegen byte changes, so `generated/` is untouched
+  by construction (`git diff --stat` names nothing under `grammars/` or `generated/`); the other 11
+  `indirect_lr` tests are unchanged and green; `bash scripts/check_doctrines.sh` → 18/18.
+- [x] **LOCKSTEP** — this leaf, the `indirect_lr` artifact README (P5 added to the file table and to
+  the blind-spot note), the promoted knowledge record
+  `revert-your-fix-and-re-run-a-fix-no-test-defends-is-not-finished` (Knowledge Map 105 → **106**
+  facts), `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
+
 #### ⛔⛔ `.17` NEW `todo` — chain absorption cannot close SystemVerilog's cast/call knot, because PGEN's `*` is greedy and never retries at a lower iteration count (opened 2026-08-13 session #224 by `.13` slice 5)
 
 **ROUTING EVIDENCE** — measured here, at the point it was found, rather than left for the receiving
@@ -2173,9 +2232,21 @@ leaf to rediscover:
   to price that explicitly.
 
 **Acceptance:** (a) a design that closes `int'(2)'(3)`, `8'(1)` and `w()'(1)` **without** regressing
-`initial k = 8'(1);`, priced against parse-time cost; (b) the isolating synthetic — P4 plus an
-outside holder of the transparent rule, which is the one shape P1–P4 do not have; (c) the flips,
-including the two OpenTitan corpus rows.
+`initial k = 8'(1);`, priced against parse-time cost; ✅ **(b) the isolating synthetic — DONE by
+slice 5b**: `p5_transparent_holder.ebnf` is P4 plus an outside holder of the transparent rule, the
+one shape P1–P4 do not have; (c) the flips, including the two OpenTitan corpus rows.
+
+⭐ **A DESIGN NOTE THIS LEAF INHERITS, so `.17` does not restart from zero.** The construct is
+genuinely ambiguous under a greedy non-backtracking `*`, and that is provable from the LRM rather
+than from the engine: `casting_type ::= … | constant_primary` means `int'(2)` is a legal *type* for
+another cast (`int'(2)'(3)`), while in `8'(1)` the same rule must stop at `8` and leave `'(1)` to
+the enclosing `cast`. **The same rule needs the chain in one context and the seed in the other**, so
+no choice of base rule and no static shear can separate them — only re-entering the `*` at a lower
+iteration count can. ⇒ the design space is (i) a re-enterable `*` for LR-eliminated rules only, paid
+on the failure path rather than on every parse, or (ii) ANTLR4's answer — refuse the knot with a
+named diagnostic, which is what the pass does today. ⛔ Prior art must be read before (i) is
+attempted ([[feedback_read_prior_art_before_designing]]); "make it backtrack" is a decision about
+PGEN's second non-negotiable, not a local edit.
 
 ⛔ **DO NOT re-run `.13`'s route-walk work here.** Slice 5 measured the route machinery as sound and
 the starvation as the blocker; the open question is the `*`, not the plan.

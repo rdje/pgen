@@ -1,5 +1,30 @@
 # CHANGES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0018 — the criterion that stopped slice 5's regression had no test, so a revert would have been silent (leaf ENGINE-UNIVERSAL-SERVICES.13 slice 5b; 1 test + 1 tracked synthetic, ZERO engine bytes)
+
+- ⛔⛔ **Slice 5's own fix was unprotected, and that is measured rather than inferred.** With
+  `collect_starvation_sites` reverted to the pre-5b direct-holder scan — deleting the one thing that
+  keeps `initial k = 8'(1);` parsing — `cargo test --lib indirect_lr` reported **11 passed,
+  0 failed**.
+- **ROOT CAUSE.** Every starvation test builds on `knot_a()` (P1/P4), whose only holder of the
+  transparent rule DIES with the rewrite, so the site is filtered before either criterion can
+  disagree. The fixture omitted the single property that makes transitivity load-bearing: a holder
+  that OUTLIVES the plan. P3's header names that property in prose; no fixture encoded it.
+- **FIX:** `p5_transparent_holder.ebnf` (P4 plus an outside holder of the transparent rule — the
+  fifth synthetic `.17` was owed) and
+  `a_transparent_holder_that_outlives_the_rewrite_starves_the_base_rule`, which carries its own
+  one-difference control: the same assertion on `knot_a()` must report the base rule SAFE.
+- **ADDRESSED (RED-proven both ways):** pre-5b criterion → **11 passed / 1 failed**, the single
+  failure being the new test; criterion restored → **12 passed / 0 failed**.
+- **NO REGRESSION:** ZERO engine/grammar/codegen bytes, so `generated/` is untouched by
+  construction; `check_doctrines.sh` 18/18.
+- ⭐ **Decisions taken on the open findings** (director handed them back): `.17` is the next SV
+  slice and its design space is now written down — the construct is provably ambiguous under a
+  greedy non-backtracking `*` (`casting_type` needs the chain for `int'(2)'(3)` and the seed for
+  `8'(1)`), so the choice is a re-enterable `*` for LR-eliminated rules paid on the failure path,
+  or ANTLR4's named refusal, which is today's behaviour. `.16` stays PARKED under the SV lane lock
+  with its named trigger — it blocks no SV work.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0017 — PGEN eliminates INDIRECT left recursion now, and a CONTROL row stopped the version that would have regressed SystemVerilog (leaf ENGINE-UNIVERSAL-SERVICES.13 slice 5; 1 new engine module, ZERO grammar bytes)
 
 - ⭐⭐ **The capability lands.** `ast_pipeline::indirect_lr_elimination` rewrites a whole multi-hop

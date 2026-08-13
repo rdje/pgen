@@ -1,8 +1,8 @@
 # `ENGINE-UNIVERSAL-SERVICES.13` — the indirect-left-recursion probe set
 
-Four six-to-eight-rule synthetics that reproduce SystemVerilog **knot A**, price the two ways of
-eliminating it, and — since slice 5 — prove the ENGINE does it. Owning leaf:
-`docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` `.13` slices 3 and 5. Driver: [`probe.sh`](probe.sh) (both
+Five six-to-nine-rule synthetics that reproduce SystemVerilog **knot A**, price the two ways of
+eliminating it, prove the ENGINE does it (P4), and pin the shape that must NOT be absorbed (P5).
+Owning leaf: `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` `.13` slices 3, 5 and 5b. Driver: [`probe.sh`](probe.sh) (both
 oracles) — `probe.sh --interp-only` for the cheap column alone.
 
 > ⭐⭐ **P4 is the one to read now.** P2 and P3 are *hand-eliminated* grammars: they answered "which
@@ -21,8 +21,10 @@ oracles) — `probe.sh --interp-only` for the cheap column alone.
 > reference, hence consumption-transparent) inherits its greed and `cast := casting_type tick lparen
 > expression rparen` can no longer match. On the shipped grammar `initial k = 8'(1);` went
 > **ACCEPT → REJECT** — a regression none of P1–P4 can exhibit, caught only by
-> `stimuli/sv/run_adjudication_repros.py`'s CONTROL row. ⇒ `ENGINE-UNIVERSAL-SERVICES.17` needs a
-> **fifth** synthetic: P4 plus an outside holder of the transparent rule.
+> `stimuli/sv/run_adjudication_repros.py`'s CONTROL row. ✅ **Closed by slice 5b:**
+> `p5_transparent_holder.ebnf` is that fifth synthetic, and
+> `a_transparent_holder_that_outlives_the_rewrite_starves_the_base_rule` pins it — RED-proven,
+> since the pre-5b criterion left all 11 other tests green.
 
 ## Why a synthetic at all
 
@@ -150,6 +152,7 @@ may rest on the interpreter column alone.
 | `p2_eliminated_at_inner_rule.ebnf` | hand-eliminated at `ct` (`casting_type`) — the regression |
 | `p3_eliminated_at_consumer_rule.ebnf` | hand-eliminated at `prim` (`constant_primary`) — the target shape |
 | `p4_knot_a_annotated.ebnf` | ⭐ slice 5's acceptance probe — P1 plus the annotations the real grammars carry, so the **engine** eliminates it |
+| `p5_transparent_holder.ebnf` | ⛔ slice 5b — P4 plus an OUTSIDE holder of the transparent rule: the one shape P1–P4 cannot exhibit, and the one that regressed |
 | `probe.sh` | the dual-oracle driver; restores the scratch slot on any exit |
 | `survey/` | slice 4's per-grammar census of the survey instrument |
 

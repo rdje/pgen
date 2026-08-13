@@ -939,6 +939,87 @@ mod tests {
         assert!(site.survives_rewrite);
     }
 
+    /// ⛔⛔ **THE TRANSITIVE HALF OF THE STARVATION CRITERION — the one slice 5 shipped a regression
+    /// without.** `p5_transparent_holder.ebnf`, rule for rule.
+    ///
+    /// `knot_a()` cannot pin it: there, the only holder of the transparent rule (`cast_expr`) DIES
+    /// with the rewrite, so the transitive path is never load-bearing and a scan over DIRECT
+    /// holders returns the same verdict. SystemVerilog reaches `casting_type` from `cast` as well,
+    /// so its holder OUTLIVES the plan — and `initial k = 8'(1);` went ACCEPT → REJECT.
+    ///
+    /// Here `outer_cast` plays `cast`: it is named from `scratch`, so it survives, and it holds
+    /// `ct` — a bare reference to `prim`, hence transparent — with a non-empty residual. `prim` must
+    /// therefore be STARVED. ⭐ Under the pre-5b criterion it reported MAY-ABSORB, so this test is
+    /// RED-provable against the exact defect it guards ([[a-check-whose-inputs-all-pass-has-not-been-tested]]).
+    #[test]
+    fn a_transparent_holder_that_outlives_the_rewrite_starves_the_base_rule() {
+        let rule = |name: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("rule_reference".to_string()),
+                TokenValue::String(name.to_string()),
+            ]),
+        };
+        let text = |literal: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("quoted_string".to_string()),
+                TokenValue::String(literal.to_string()),
+            ]),
+        };
+        let cast_body = || ASTNode::Sequence {
+            elements: vec![rule("ct"), text("'"), text("("), rule("lit"), text(")")],
+        };
+
+        let (mut grammar, mut order) = knot_a();
+        // `scratch := prim` becomes `scratch := outer_cast | prim`, and `outer_cast` is `cast`.
+        grammar.insert(
+            "scratch".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("outer_cast"), rule("prim")],
+            },
+        );
+        grammar.insert("outer_cast".to_string(), cast_body());
+        order.insert(1, "outer_cast".to_string());
+
+        let survey = survey_indirect_left_recursion(&grammar, &order);
+        let prim = survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is still a candidate — the cycle is unchanged");
+
+        assert!(
+            !prim.is_starvation_safe(),
+            "prim is starved THROUGH ct, which is transparent to it; a direct-holder scan sees \
+             nothing here and that is precisely the regression"
+        );
+        let site = prim
+            .surviving_starvation_sites()
+            .into_iter()
+            .find(|site| site.rule == "outer_cast")
+            .expect("the surviving holder is outer_cast");
+        assert_eq!(site.residual, "\"'\" \"(\" lit \")\"");
+        assert!(
+            !site.on_route,
+            "outer_cast is not on prim's route at all — it holds the TRANSPARENT rule, not the base"
+        );
+        assert!(site.survives_rewrite);
+
+        // ⭐ The one-difference control: drop `outer_cast` and this is P4 again, where `prim` IS
+        // safe because the only holder of the transparent rule dies with the rewrite. If both
+        // halves agreed, the criterion would be measuring nothing.
+        let (control_grammar, control_order) = knot_a();
+        let control = survey_indirect_left_recursion(&control_grammar, &control_order);
+        assert!(
+            control
+                .candidates
+                .iter()
+                .find(|candidate| candidate.base_rule == "prim")
+                .expect("prim is a candidate")
+                .is_starvation_safe(),
+            "without a surviving holder the same cycle must stay absorbable"
+        );
+    }
+
     #[test]
     fn clone_cost_is_one_rule_per_intermediate() {
         let (grammar, order) = knot_a();

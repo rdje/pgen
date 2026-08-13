@@ -1,0 +1,47 @@
+# ENGINE-UNIVERSAL-SERVICES.13 — P5: the shape P1–P4 cannot exhibit, and the one that regressed.
+#
+# ⛔⛔ WHY THIS FILE EXISTS. Slice 5 absorbed SystemVerilog's cast chain at `constant_primary`, and
+# `initial k = 8'(1);` went ACCEPT -> REJECT. P1–P4 could not have shown it, and P3's own header
+# said why: it deleted `ct` and `cast_expr` "because this synthetic reaches them from nowhere else",
+# while SystemVerilog reaches `casting_type` from `cast` too. The rule that gets starved is the one
+# the synthetic deleted.
+#
+# The missing ingredient is a holder that OUTLIVES the rewrite:
+#
+#   ct         := kw | prim                 ~ casting_type := … | constant_primary
+#                                             a BARE reference, so `ct` is TRANSPARENT to `prim`:
+#                                             it consumes exactly what `prim` consumes.
+#   outer_cast := ct "'" "(" lit ")"        ~ cast := casting_type tick lparen expression rparen
+#                                             holds the transparent rule WITH a residual, and is
+#                                             reached from `scratch`, i.e. from OUTSIDE the plan.
+#
+# Absorb the chain at `prim` and `ct` inherits its greed: on `n'(n)` the greedy `prim` takes the
+# whole thing as a cast of its own, and `outer_cast` can never match its trailing `"'" "(" lit ")"`.
+# That is slice 3's P2 starvation one hop further out — invisible to a scan over DIRECT holders of
+# the base rule, which is what the criterion did until slice 5b.
+#
+# ⭐ WHAT IT PINS. `indirect_lr_plan.rs`'s
+# `a_transparent_holder_that_outlives_the_rewrite_starves_the_base_rule` asserts `prim` is STARVED
+# here. Under the pre-5b criterion `prim` reported MAY-ABSORB, so the test is RED-provable against
+# the exact regression it guards.
+#
+# ⛔ P1 vs P5, the one-difference control pair: delete `outer_cast` (and `scratch`'s first
+# alternative) and this file IS P4 — where `prim` is legitimately safe, because the only holder of
+# the transparent rule dies with the rewrite. The verdict must differ between the two, and that
+# difference is the whole criterion.
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim:
+#   cp <this file> grammars/scratch/scratch.ebnf && make -C rust SHELL=/bin/bash focus_scratch
+@entry: true
+scratch := outer_cast -> {kind: "outer", body: $1}
+         | prim       -> {kind: "prim",  body: $1}
+outer_cast := ct "'" "(" lit ")"
+           -> {type: $1, body: $4}
+prim := lit       -> {kind: "lit",  body: $1}
+      | cast_expr -> {kind: "cast", body: $1}
+cast_expr := ct "'" "(" lit ")"
+          -> {type: $1, body: $4}
+ct := kw   -> {kind: "kw",   body: $1}
+    | prim -> {kind: "prim", body: $1}
+lit := "n"
+kw := "t"
