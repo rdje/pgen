@@ -2248,6 +2248,29 @@ named diagnostic, which is what the pass does today. ⛔ Prior art must be read 
 attempted ([[feedback_read_prior_art_before_designing]]); "make it backtrack" is a decision about
 PGEN's second non-negotiable, not a local edit.
 
+⭐ **NAME THE FLAVOUR PRECISELY — greediness and re-enterability are INDEPENDENT axes, and confusing
+them sends (i) after the wrong semantics.** In Perl 5's vocabulary:
+
+| Perl | preference order | gives back on failure? |
+|---|---|---|
+| `a*` `a+` `a?` `a{n,m}` | **greedy** — longest first | ✅ yes |
+| `a*?` `a+?` `a??` `a{n,m}?` | **lazy** — shortest first | ✅ yes |
+| `a*+` `a++` `a?+` `a{n,m}+` | greedy | ❌ never (possessive) |
+
+**PGEN emits `a*+` today** — verified in `generated/systemverilog_parser.rs`:
+`loop { … if let Some(()) = attempt { … } else { break } }` takes the maximum count and never
+revisits it. ⇒ **(i) is asking for `a*`, NOT for `a*?`.** Lazy is also re-enterable and is the wrong
+default: on `int'(2)'(3)` the chain must take the FULL length — that is the LRM's reading and the
+left-nested AST `lr_chain_fold` rebuilds — while `8'(1)` inside a `cast` must give back to zero.
+Greedy-first-with-give-back gets both; lazy-first flips which parse wins whenever both counts lead
+to an overall success, which is a semantic change, not a performance one.
+
+⛔ **And possessive is not a codegen shortcut — it is the FORMALISM.** PEG defines `e*` as
+`A ← e A / ε`, and PEG's ordered choice commits once an alternative succeeds. So (i) does not
+"fix a loop"; it reintroduces exactly the backtracking PEG removed to buy its memoization
+guarantee — which is why the memo half (a rule with several valid results at one position) is the
+load-bearing risk, not the loop.
+
 ⛔ **DO NOT re-run `.13`'s route-walk work here.** Slice 5 measured the route machinery as sound and
 the starvation as the blocker; the open question is the `*`, not the plan.
 
