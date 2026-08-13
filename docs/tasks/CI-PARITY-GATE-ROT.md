@@ -3510,3 +3510,90 @@ evidence is a ~10-minute 3-seed run this slice did not have time to take. **Owed
   #140-class trap is CLOSED, the bootstrap half is not, and it says so. `CHANGES.md`. No book,
   contract, register, release or schema move: an internal build-flow rule changes no user-facing
   surface, no family status, and no shipped byte.
+
+### `.25` — the mandated memory guard reports `exit=0` for any command that fails behind a PIPE, so a heavy job's failure publishes as a green (`todo` — ROUTED IN from `ENGINE-UNIVERSAL-SERVICES.17` slice 1, 2026-08-13 session #225; ⛔ PARKED behind the SV lane lock)
+
+**Why it is here and not in the SV tree.** `scripts/run_with_memory_guard.sh` is the wrapper this
+repository *mandates* for every heavy job (`README.md`, `MEMORY.md`, the gate recipes). A green it
+publishes is read as "the work succeeded", by a human and by any instrument scraping its line. That
+makes it proof-surface machinery, which is this tree's subject — not SystemVerilog's.
+
+#### ROUTING EVIDENCE
+
+⛔ **It reproduces outside the family it came from, and outside any grammar at all** — the two-sided
+control uses no parser, no grammar and no corpus:
+
+```text
+# CONTROL A — plain failing command: the guard reports the failure faithfully
+$ scripts/run_with_memory_guard.sh --budget-mb 1024 --timeout-s 30 -- bash -c 'exit 7'
+memory-guard: completed exit=7 peak_tree_rss=0MB elapsed=5s
+
+# CONTROL B — the SAME failure behind a pipe: the guard reports SUCCESS
+$ scripts/run_with_memory_guard.sh --budget-mb 1024 --timeout-s 30 -- bash -c 'exit 7 | tail -1'
+memory-guard: completed exit=0 peak_tree_rss=0MB elapsed=5s
+```
+
+- **The mechanism is POSIX, not a guard bug.** A pipeline's status is its *last* command's, so the
+  guard faithfully reports what the shell handed it. ⇒ the defect is that the guard's contract does
+  not defend against its most common invocation shape; it is not that the guard miscounts.
+- **It is not hypothetical — it fired in the session that found it.** `.17` slice 1 ran the two
+  scratch-slot pair gates as `cargo test … | tail -25`; cargo failed with
+  `error: unexpected argument 'scratch_slot' found`, the guard printed `completed exit=0`, and the
+  measurement would have been recorded as a PASS had the log not been read line by line. The gates
+  were re-run correctly and did pass — so nothing false shipped — but that was a reading habit, not
+  a mechanism.
+- **The class is already this tree's.** `.24` records two empty result sets diffing clean; the same
+  failure direction (silent, in the PASSING direction, nothing on stdout to notice). ⇒ same family,
+  and the remedy is likely shared.
+
+**Acceptance:** (a) the guard refuses or loudly flags a masked pipeline status — candidates to price:
+run the command under `set -o pipefail`, or detect a pipe in the payload and warn, or report
+`PIPESTATUS` alongside the final status; (b) a self-test proving it fires, in **both** directions (a
+piped failure is caught AND a piped success is not flagged), per
+[[feedback_instrument_needs_ground_truth]]; (c) a sweep of tracked callers that pipe into the guard,
+since each is a published green of unknown truth.
+
+⛔ **Do NOT "fix" this by telling authors to stop piping.** That is a discipline, and
+`DOCTRINE_ENFORCEMENT.md` is explicit that a doctrine which is not mechanically checked is a
+suggestion. The instrument has to defend its own contract.
+
+### `.26` — `DESIGN-PRIOR-ART` cannot fire on a design leaf that names no new directive token, which is exactly the leaf that reasoned from an unmeasured engine premise (`todo` — ROUTED IN from `ENGINE-UNIVERSAL-SERVICES.17` slice 1, 2026-08-13 session #225; ⛔ PARKED behind the SV lane lock)
+
+#### ROUTING EVIDENCE
+
+- **Measured on the real commit, not a synthetic.** `PGEN-ENGINE-UNIVERSAL-SERVICES-0019` is a
+  DOCS-only design note that chose between two engine designs. Novel backticked at-prefixed tokens
+  on its added lines: **0** (`git show e56e3eff | grep '^+' | grep -oE '`@[a-z_][a-z0-9_]*'`). The
+  checker's candidate set is exactly those tokens (`scripts/check_design_prior_art.sh:58-62`) and it
+  `continue`s when the set is empty ⇒ **the gate could not have fired**, and did not.
+- **What that cost.** The note asserted two engine properties as the premises for choosing between a
+  re-enterable `*` and a named refusal — *"PEG's ordered choice commits"* and *"[re-entry]
+  reintroduces exactly the backtracking PEG removed"*. Both are false of PGEN, which runs a
+  give-back `longest_match` tournament at every non-degenerate choice
+  (`ast_based_generator.rs:4273`). `.17` slice 1 measured it and the front-runner design changed
+  tier. One slice of rework, and the wrong design was one session from being built.
+- ⛔ **It reproduces outside the family, and outside the annotation surface entirely.** The gate's
+  subject is *"proposes a NEW annotation or directive surface"*; the gap is *"reasons about ENGINE
+  BEHAVIOUR from a prose premise"*, which any tree can do and which no gate reads. The parent
+  discipline already says the words — [[feedback_read_prior_art_before_designing]]: *"when citing
+  engine behaviour: **re-measure it.** Do not quote a doc's description of what the engine does."*
+  That sentence has **no enforcer**; only the directive-naming half does.
+
+**Acceptance:** (a) decide whether the engine-premise half is mechanizable at all — the honest answer
+may be *no*, and `check_design_prior_art.sh`'s own header already concedes the evidence archetype
+*"cannot verify the search was thorough"*; (b) if it is, a candidate discriminator to MEASURE against
+the tracked corpus before building: a design leaf making a behavioural claim about the engine must
+cite a re-runnable command or a `DIAGNOSIS_SIG` token, the same way a code change must; (c) if it is
+not, say so in the doctrine's honest-limits section rather than leaving the sentence looking enforced.
+⛔ Calibrate against the real corpus first — `check_routing_evidence.sh`'s header records that this
+check's own first cut *"would not have caught its own founding incident"*, and a checker that cries
+wolf gets bypassed.
+
+⭐ **A precision datapoint arrived by accident while this leaf was being written, and it belongs in
+(b)'s calibration.** The first draft's heading contained the literal at-prefixed word *directive* in
+backticks, purely as prose describing the gate. `check_design_prior_art.sh` flagged it —
+*"novel directive name(s): directive"* — on a leaf proposing no surface at all. That is the
+self-referential false-positive class the checker's own header prices and accepts, and it confirms
+the discriminator is **lexical**, keyed on a token's spelling rather than on a proposal. Any
+engine-premise discriminator built for (b) has to be measured against that same corpus, or it
+inherits the same precision.

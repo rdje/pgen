@@ -1,5 +1,26 @@
 # CHANGES.md
 
+## 2026-08-13 - PGEN-CI-PARITY-GATE-ROT-0025 — two CONFIRMED proof-surface defects routed before they could die with a session (leaves CI-PARITY-GATE-ROT.25 + .26; DOCS only, ZERO code bytes)
+
+- ⛔⛔ **`.25` — the MANDATED memory guard publishes `exit=0` for any command that fails behind a
+  pipe.** Two-sided control, no grammar involved: `bash -c 'exit 7'` → `completed exit=7`;
+  `bash -c 'exit 7 | tail -1'` → `completed exit=0`. The mechanism is POSIX (a pipeline's status is
+  its last command's), so the guard reports faithfully — the defect is that its contract does not
+  defend against its most common invocation shape. It FIRED in the session that found it: a
+  scratch-slot gate run piped into `tail` reported a green for a cargo invocation that had failed
+  with `unexpected argument`. Nothing false shipped, but only because the log was read line by line.
+- ⛔ **`.26` — `DESIGN-PRIOR-ART` cannot fire on a design leaf that names no new directive token.**
+  Measured on the real commit: `PGEN-ENGINE-UNIVERSAL-SERVICES-0019` — the design note that chose
+  between two engine designs from two UNMEASURED premises — carries **0** novel at-prefixed tokens,
+  and the checker's candidate set is exactly those. So the gate could not fire, and did not. The
+  parent discipline already says *"when citing engine behaviour: re-measure it"*; only the
+  directive-naming half of it has an enforcer.
+- **Why routed, not fixed:** both are proof-surface machinery, not SystemVerilog, and the SV lane
+  lock binds work rather than conversation. Both leaves carry `ROUTING EVIDENCE` establishing the
+  findings reproduce outside the family they came from — `.25`'s controls use no parser at all.
+- **NO REGRESSION:** ZERO bytes under `grammars/`, `rust/src/`, codegen or `generated/`; all 18
+  doctrines PASS.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0020 — the prior art `.17` was gated on, and it moved the design space (leaf ENGINE-UNIVERSAL-SERVICES.13 → `.17` slice 1; DOCS + a probe bank, ZERO code bytes)
 
 - **The gate said prior art first.** `.17` opened with a design note asserting two engine properties
