@@ -1,5 +1,56 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Recent Architecture Change Note (2026-08-13) — the indirect-LR rewrite lands, and it verifies its own postcondition (`ENGINE-UNIVERSAL-SERVICES.13` slice 5)
+
+**New module `rust/src/ast_pipeline/indirect_lr_elimination.rs` — the first engine pass that
+changes the grammar based on the slice-4 survey.** It runs inside
+`eliminate_left_recursive_patterns`, after the direct normalization and the one-hop wrapper planner,
+and rewrites a whole multi-hop ROUTE: `X := X_lr_base ( X_lr_suffix )*`, one sheared CLONE per
+intermediate, one per-route `X_lr_suffix_r<N>` rule. Iterates to a fixpoint, re-surveying after each
+rewrite. Measured: `ebnf` 5 → 0 surviving cycle rows, SystemVerilog 30 → **28**, every other
+shipped grammar untouched; `generated/systemverilog_parser.rs` is the only artifact that moves.
+
+⛔⛔ **The version that reported 30 → 13 was a REGRESSION, and only the two-sided reproducer ratchet
+saw it.** The starvation criterion scanned holders of the BASE rule; it must also scan holders of
+anything TRANSPARENT to it, because a bare-reference alternative is *consumption*-transparent and
+inherits the rewritten rule's greed. `casting_type := … | constant_primary` therefore hid
+`cast := casting_type tick lparen expression rparen`, and `initial k = 8'(1);` went ACCEPT → REJECT
+while every other signal stayed green. `rules_transparent_to` (a least fixed point over
+empty-residual left-corner edges) closes it, and SystemVerilog then reports
+`starvation-safe candidates: 0/28` — its cast/call knot is **unplannable by chain absorption at any
+base rule**, blocked by the greedy non-backtracking `*` (`ENGINE-UNIVERSAL-SERVICES.17`).
+
+**The seam with `lr_chain_fold` did NOT need widening, which was the surprise.** The design note
+above expected the fold to generalize "from one rule to a mutually-recursive set". It does not: a
+route's per-hop declared annotations **compose** into a single `LrChainWrapperSpec` template (each
+hop's `$1` filled by the hop below, every other `$N` remapped by `offset + N` into the flattened
+suffix), and `fold_lr_chain` consumes it unchanged. The generalization is entirely in the SPEC
+builder, so the one shared runtime service stays one function with one contract.
+
+**A new architectural pattern worth naming: TRIAL-THEN-COMMIT inside the pass.** The route walk is
+narrower than the lint (bare left corners, simple paths only), so a plan can silently half-shear a
+cycle. Rather than argue coverage, the pass applies each plan to a *copy*, re-runs
+`detect_left_recursion`, and commits only if the base rule's cycle is gone and the row count
+strictly fell — one grammar clone per rewrite, single-digit rewrites per grammar. It caught a real
+defect on its first run and is what moved the fix's target rule for the third time. ⇒ where a pass's
+precondition is cheaper to *check after* than to *prove before*, put the check in the pass.
+
+**⛔ A COPY-A-GRAMMAR-OBJECT HAZARD this module had to close, and every future one will too.** The
+clone builder first copied only per-BRANCH annotations, so `@profiles:` — a RULE-level annotation —
+was dropped and the sv_2017 constant primary became reachable under an `sv_2023` parse. Three
+defects sat behind that: the clone's lost gate, the `_lr_base`/`_lr_suffix` helpers as profile
+ORPHANS, and the need for a suffix branch to be a **rule** rather than an alternative (an
+alternative cannot carry `@profiles:`, and two dialect routes iterate byte-identical suffixes with
+different declared ASTs). ⇒ when a transform copies a grammar object, enumerate what is attached to
+the original **by kind** — branch return / branch semantic / mid-sequence / rule-level semantic /
+lexical follow-restriction — not by the fields that came to mind. Only `@profiles:` is copied onto
+the helpers, because it is the one rule-level directive that says whether the rule *exists*; the
+rest say what happens when it *runs*, and the base rule still runs.
+
+**Exposure:** on by default; `--no-eliminate-indirect-left-recursion` (and
+`PipelineConfig::eliminate_indirect_left_recursion`) holds the grammar at the direct/wrapper-only
+shape so a before→after is measurable on one binary.
+
 ## Recent Architecture Change Note (2026-08-12) — indirect left recursion gets a PLANNER before it gets a rewrite (`ENGINE-UNIVERSAL-SERVICES.13` slice 4)
 
 **New module `rust/src/ast_pipeline/indirect_lr_plan.rs` — pure analysis, no engine behaviour.** It

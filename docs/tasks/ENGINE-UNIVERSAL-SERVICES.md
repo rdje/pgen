@@ -1952,6 +1952,433 @@ left here.
 - [x] **LOCKSTEP** — the promoted knowledge record, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, slice 3's
   and slice 4's boxes amended above, `docs/TASK_TREE.md`, `MEMORY.md`.
 
+#### ⭐⭐ SLICE 5 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0017`, 2026-08-13 session #224) — THE TRANSFORMATION lands, and a CONTROL row stops the version that would have regressed SystemVerilog
+
+> **PGEN eliminates indirect left recursion now** — and the cast/call knot is NOT what it closes.
+> `ebnf` **5 → 0**, SystemVerilog **30 → 28**, every other shipped grammar untouched. Engine module:
+> `rust/src/ast_pipeline/indirect_lr_elimination.rs`. ZERO grammar bytes.
+>
+> ⛔⛔ **THE HEADLINE THIS SLICE NEARLY SHIPPED WAS `30 → 13`, AND IT WAS A REGRESSION.** The
+> transformation ran, the lint agreed, every unit test passed, `int'(2)'(3)` and `8'(1)` both flipped
+> REJECT → ACCEPT on the real generated parser — and `stimuli/sv/run_adjudication_repros.py` failed
+> on a **CONTROL**: `initial k = 8'(1);` — the same cast in a NON-constant expression — went
+> **ACCEPT → REJECT**. The two-sided ratchet is the only thing in the chain that could have caught
+> it, and the row it caught it on exists precisely because `SV-CORPUS-GRAD.13c.2` insisted a
+> reproducer be pinned to its accepting neighbour. See *THE STARVATION CRITERION WAS NOT TRANSITIVE*
+> below; the corrected criterion refuses `constant_primary`, and SystemVerilog's cast/call knot is
+> re-priced as blocked by the greedy non-backtracking `*`, not by the route walk.
+
+**WHAT LANDED.** The pass runs inside `eliminate_left_recursive_patterns`, after the direct
+normalization and the one-hop wrapper planner, on what those left behind. Per starvation-safe
+survey candidate it builds
+
+```text
+X            := X_lr_base ( X_lr_suffix )*
+X_lr_base    := <the author's alternatives, in the author's order, each CYCLIC one replaced
+                 IN PLACE by a reference to a sheared CLONE>
+X_lr_suffix  := <one branch per route: the route's residuals, innermost first>
+<base>_lr_seed_<rule> := <the intermediate, with the cycle-closing edge sheared off>
+```
+
+and iterates to a fixpoint, re-surveying after each rewrite.
+
+⭐ **THE FOLD NEEDED ZERO BYTES.** The leaf's own frontier line called the work *"generalizing
+`.8`'s `lr_chain_fold` from ONE rule to a mutually-recursive SET"*. It is not the fold that
+generalizes — it is the **spec**. A route's per-hop declared annotations **compose** into one
+template: each hop's `$1` is filled by the hop below it, and every other `$N` is remapped into the
+flattened suffix's capture space by `offset + N`, where `offset` is the total residual length of the
+hops *deeper* than this one (the suffix concatenates innermost-first, so the order is the reverse of
+the route). Knot A's four hops compose to
+
+```text
+{kind: "cast", body: {type: {kind: "constant_primary",
+                             body: {kind: "sv_2017", body: $1}},
+                      body: $4}}
+```
+
+and `lr_chain_fold::fold_lr_chain` consumes it unchanged. Asserted hop for hop in
+`the_composed_template_is_the_hand_derived_nesting`; the nesting it produces for `t'(n)'(n)` is the
+AST the UN-eliminated grammar declares for the same input, which is the property the whole
+transformation exists to preserve.
+
+⛔⛔ **THE STARVATION CRITERION WAS NOT TRANSITIVE, AND THAT IS THE REAL FINDING OF THIS SLICE.**
+The survey asked *"does any rule hold the BASE RULE at a left corner with a residual?"*. It must ask
+*"does any rule hold the base **or anything TRANSPARENT to it**?"* — because a rule whose alternative
+is a **bare reference** (empty residual) adds nothing between its caller and the base, so once the
+base becomes `X_base ( X_suffix )*` the transparent rule is **just as greedy**. SystemVerilog, two
+lines apart:
+
+```text
+casting_type := … | constant_primary          ← bare reference ⇒ TRANSPARENT to constant_primary
+cast         := casting_type tick lparen expression rparen   ← holds it WITH a residual
+```
+
+Measured: `initial k = 8'(1);` ACCEPT → REJECT (`furthest_position=42` on the minimal form), while
+`initial k = 8;` and `parameter logic [7:0] K = 8'(1);` both still pass. The greedy
+`constant_primary` swallows `8'(1)` as a cast of its own and `cast` can never match its trailing
+`tick lparen expression rparen` — **slice 3's P2 starvation exactly, one hop further out**, where a
+direct-holder scan is blind to it.
+
+⭐ **The synthetic could not have found it, and its own README said so.** P3 deleted `ct` and
+`cast_expr` because nothing else reached them; the file's header reads *"SystemVerilog reaches
+`casting_type` from `cast` too, so a real transformation must ADD the clone and KEEP the
+originals"*. Keeping the original is exactly what leaves the starved holder standing. The sentence
+was right and nobody had turned it into a criterion.
+
+⇒ `rules_transparent_to` (a least fixed point over empty-residual left-corner edges) now feeds
+`collect_starvation_sites`. With it, **`constant_primary` is STARVED** and the pass never plans it:
+`starvation-safe candidates: 0/28` on SystemVerilog.
+
+⛔⛔ **SO THE CAST/CALL KNOT IS RE-PRICED: IT IS BLOCKED BY THE GREEDY NON-BACKTRACKING `*`, NOT BY
+THE ROUTE WALK.** Chain absorption cannot close it at any base rule, because every candidate is
+transparently held by `cast` or `constant_cast` with a residual. That is a different problem from
+the one `.13` was opened for, it is the same mechanism `.15` names for the property knot, and it
+needs its own leaf → **`.17` NEW** (below). ⇒ acceptance (d) closes **1 of 3 knots** in
+SystemVerilog (class-scope, `SV-4`, which slice 1 adjudicated `DEAD-BUT-COVERED`) plus **all 3** in
+`ebnf`; the two knots that cost real LRM text are owned by `.15` and `.17`.
+
+⭐ **THE DOMINATOR FINDING STANDS, and it is what the trial guard was for.** Before the transitive
+criterion was written, the pass planned `constant_primary_sv_2017` and its own postcondition check
+refused it, printing the path:
+
+```text
+constant_primary_sv_2017 -> constant_primary_sv_2017_lr_base
+  -> …_lr_seed_constant_cast -> …_lr_seed_casting_type -> …_lr_seed_constant_primary
+  -> constant_primary_sv_2023      ← the SIBLING dialect arm, not sheared by any route
+  -> constant_cast -> casting_type -> constant_primary -> constant_primary_sv_2017
+```
+
+The twins are a genuine **mutually-recursive SET** reaching each other through the shared
+`constant_primary` spine, and that path re-enters three rules already on the route — so it is not a
+*simple* route, and `indirect_lr_plan::collect_routes` refuses non-simple routes by design. Only the
+**dominator** puts both arms inside one plan.
+
+⭐ **AND THE CRITERION THAT HID IT WAS INHERITED FROM THE WRONG TRANSFORM.** `no_acyclic_seed` is
+sound for the DIRECT/wrapper elimination, which *drops* a left-recursive alternative — a rule with
+none left really has nothing to seed from. The indirect transform **clones** it with the cycle edge
+sheared, so the seeds come from *under* the cyclic alternative: `constant_primary` has 0 acyclic
+alternatives and its two clones carry **13 and 14**. The decline is deleted from the survey; `seeds=`
+stays as data.
+
+⭐⭐ **THE GUARD THAT FOUND ALL OF THIS IS PART OF THE PASS, AND IT EARNED ITS KEEP ON ITS FIRST
+RUN.** A route set only covers cycles whose every hop exposes a bare leading rule reference, so a
+cycle closing through a nullable prefix, a quantifier, a group — or through a rule already on the
+route — is invisible to the plan, and a clone would leave it live. Rather than argue the coverage,
+the pass **applies each plan to a copy, re-runs `detect_left_recursion`, and commits only if** the
+base rule's cycle is gone *and* the total row count strictly fell. Cost: one grammar clone per
+rewrite, on grammars whose rewrite count is single-digit. Without it, SystemVerilog would have been
+rewritten into a grammar that is still left-recursive — a change that looks like a fix and is not.
+
+⛔⛔ **AND THE FIRST WORKING VERSION SHIPPED AN OVER-ACCEPTANCE — CAUGHT BY READING THE EMITTED
+PARSER, NOT BY REASONING ABOUT THE PASS.** `@profiles:` is a **rule-level** annotation, and the
+clone builder copied only the per-BRANCH ones. Measured in `generated/systemverilog_parser.rs`:
+
+```text
+fn parse_constant_primary_sv_2017 …
+    if !self.rule_profile_is_enabled(&["sv_2017", "verilog_2005"]) { …
+fn parse_constant_primary_lr_seed_constant_primary_sv_2017 …      ← no gate at all
+```
+
+⇒ the sv_2017 primary became reachable under an `sv_2023` parse — the exact failure mode the
+strict-LRM default exists to prevent ([[feedback_sv_strict_lrm_compliance_default]]), introduced by
+a rewrite that *looks* purely structural. Three separate profile defects came out of pulling that
+thread, and all three are fixed and pinned by
+`a_profile_gate_survives_on_both_the_clone_and_the_suffix_route`:
+
+1. **The clone lost the rule's gate** (above). Clones now copy the source rule's rule-level
+   `semantic_annotations` and its `lexical_follow_restriction` verbatim.
+2. **The HELPERS were profile orphans.** `X_lr_base` / `X_lr_suffix` for a gated base rule were
+   universal, so they are "present" under a profile in which nothing they reference is satisfiable.
+   Measured: `profile_orphans` **0 → 4** (an ERROR-class lint counter) on
+   `incomplete_class_scoped_type_sv_2023`. The helpers now inherit the base rule's `@profiles:` —
+   ⭐ and **only** `@profiles:`, because it is the one rule-level directive that says *whether the
+   rule exists*; `@predicate:`/`@emit_fact:` say what happens when it RUNS, and the base rule still
+   runs, so copying those would fire them twice per parse.
+3. ⭐⭐ **A SUFFIX BRANCH IS A RULE, NOT AN ALTERNATIVE — because an alternative cannot carry
+   `@profiles:`.** The two dialect routes through the shared spine iterate **byte-identical**
+   suffixes (`tick lparen constant_expression rparen`) and differ *only* in the AST they declare
+   (`{kind: "sv_2017", …}` vs `{kind: "sv_2023", …}`). Inline, the ordered choice would hand the
+   sv_2017 template to an sv_2023 parse. Each route therefore gets its own
+   `X_lr_suffix_r<N>` rule carrying the route's gate — copied verbatim from the rule on the route
+   whose declared list IS the intersection, never synthesized — and `X_lr_suffix` is the ordered
+   choice of bare references over them. Where no gate can separate two indistinguishable routes
+   that declare different ASTs, the plan is **refused** rather than ordered.
+
+⭐ **A fourth finding fell out of the same work: the route walk is PROFILE-BLIND, and some of the
+routes it finds are derivable under no profile at all.** SystemVerilog has **4** — each splicing an
+`sv_2017` constant primary onto an `sv_2023` method-call receiver, or the mirror. Their `@profiles`
+lists intersect to ∅. They are still **sheared** (the structural cycle is real, and the lint that
+verifies this pass is profile-blind too) but they contribute **no suffix branch**, because a branch
+for a derivation no profile admits is an over-acceptance wearing a chain's clothes.
+
+⚠️ **ALL FOUR WERE OBSERVED ON THE `constant_primary` PLAN, WHICH THE TRANSITIVE STARVATION
+CRITERION NOW DECLINES.** They are fixed and unit-pinned, but **only finding 2 (helper inheritance)
+is still exercised by a shipped grammar** — via `incomplete_class_scoped_type_sv_2023`, the one knot
+SystemVerilog does absorb. Findings 1, 3 and 4 are held by
+`a_profile_gate_survives_on_both_the_clone_and_the_suffix_route` alone until `.17` reopens the
+cast/call knot. Recorded rather than left implicit: a fix whose only witness is a unit test is a fix
+whose exposure is a unit test.
+
+**THE MEASURED BLAST RADIUS** (`--report-indirect-lr-plan`, whose header now reports what the pass
+DID: `indirect_eliminated_base_rules=/indirect_clone_rules=/indirect_refusals=`):
+
+| grammar | cycle rows | absorbed at | clones | starvation-safe candidates |
+|---|---|---|---|---|
+| `ebnf` | **5 → 0** | `return_expression` | 1 | 0/0 after |
+| `systemverilog` | **30 → 28** | `incomplete_class_scoped_type_sv_2023` | 0 | **0/28** — every candidate transitively starved |
+| `systemverilog_lrm_profiled_wrapper` | 23 → 23 | — | 0 | 0 |
+| every other shipped grammar | 0 → 0 | — | 0 | 0 |
+
+⛔ **`starvation-safe candidates: 0/28` IS THE HEADLINE FOR SYSTEMVERILOG, not a footnote.** It says
+the cast/call and property knots are not merely unplanned — they are **unplannable by chain
+absorption at any base rule**, because every candidate is transitively held with a residual. Chain
+absorption is the wrong instrument for them; that is `.15`'s and `.17`'s finding, now measured
+rather than suspected.
+
+⭐ **EVERY OTHER LINT COUNTER IS UNCHANGED — measured on ONE binary via the new
+`--no-eliminate-indirect-left-recursion` A/B switch**, so the before and after are the same code
+answering the same question.
+
+⛔ **THE SVA PROPERTY KNOT IS `.15`'s, WITH A SHARPER MECHANISM THAN SLICE 4 HAD.** Its dominator
+IS a candidate (`property_expr`, 80 routes, 12 clones) and it is **STARVED**, by
+`prop_primary_sv_2017`/`_sv_2023` alt#13 `… implies property_expr`. So the knot is not merely "no
+starvation-safe member" (slice 4's finding) — its *dominator* is starved too, by the same
+hand-written cascade. That is a grammar-tier cause, exactly `.15`'s charter.
+
+#### ⛔⛔ `.17` NEW `todo` — chain absorption cannot close SystemVerilog's cast/call knot, because PGEN's `*` is greedy and never retries at a lower iteration count (opened 2026-08-13 session #224 by `.13` slice 5)
+
+**ROUTING EVIDENCE** — measured here, at the point it was found, rather than left for the receiving
+leaf to rediscover:
+
+- **The mechanism, isolated to three inputs on the shipped grammar.** `initial k = 8;` ACCEPT ·
+  `parameter logic [7:0] K = 8'(1);` ACCEPT · `initial k = 8'(1);` **REJECT** (`furthest_position=42`)
+  with `constant_primary` absorbed. The greedy `constant_primary` takes `8'(1)` entire — a legal
+  `constant_cast` in its own right — and `cast := casting_type tick lparen expression rparen` then
+  has no `tick` left. Correct-by-PEG, wrong-by-LRM.
+- **It is not a route-walk gap and not fixable by choosing a different base.** With the transitive
+  criterion, `starvation-safe candidates: 0/28` on SystemVerilog: EVERY candidate on the knot is
+  transitively held with a residual by `cast` or `constant_cast`. There is no base rule to move to.
+- **It reproduces outside SystemVerilog by construction**, because the cause is the engine's `*`
+  (`generated/systemverilog_parser.rs`, `loop { if let Some(node) = try_parse(…) { … } else { break } }`
+  — no re-entry at a lower count), not a SystemVerilog shape. `ebnf`'s knot is unaffected only
+  because nothing holds `return_expression` transitively with a residual once the rewrite runs.
+- **It is the same mechanism `.15` names** for the SVA property knot (a starved dominator), which is
+  why the two should be designed together even though their proximate causes differ (`.15`'s is a
+  hand-written precedence cascade; this one is the LRM's own `casting_type` factoring, byte-identical
+  to Annex A per `constant_primary_lrm_alternative_audit.py` — so a grammar-tier repair is refused
+  by [[left-recursion-is-an-engine-service-not-a-grammar-authoring-burden]]).
+- ⛔ **Acceptance (b)'s decision record does NOT pre-authorise the obvious rescue.** Making the
+  eliminated `*` backtrack is a per-parse cost on a knot measured at ~3× its fair share of rule
+  entries, and *"costs are REJECTED, not traded"* is the second non-negotiable. Any design here has
+  to price that explicitly.
+
+**Acceptance:** (a) a design that closes `int'(2)'(3)`, `8'(1)` and `w()'(1)` **without** regressing
+`initial k = 8'(1);`, priced against parse-time cost; (b) the isolating synthetic — P4 plus an
+outside holder of the transparent rule, which is the one shape P1–P4 do not have; (c) the flips,
+including the two OpenTitan corpus rows.
+
+⛔ **DO NOT re-run `.13`'s route-walk work here.** Slice 5 measured the route machinery as sound and
+the starvation as the blocker; the open question is the `*`, not the plan.
+
+⛔⛔ **`generated/ebnf.rs` IS SEED-ONLY, SO THE `ebnf` RESULT IS A CLAIM ABOUT A FRESH CLONE, NOT
+ABOUT THIS WORKING COPY — and that is a defect class in its own right (→ `.16` NEW).**
+`regenerate_generated_parsers` rebuilds the annotation pair plus the **7** `GENERATED_PARSER_FAMILIES`
+(`rust/Makefile:932`); `generated/ebnf.rs` is in none of them. It is seeded once
+(`rust/Makefile:850`, `if [ ! -f … ]`) and then never regenerated. Measured here: the local artifact
+is dated **2026-07-30** while the grammar and codegen have moved since, and generating it fresh from
+the tracked `generated/ebnf.json` with today's binary produces the 6 new LR rules
+(`return_expression_lr_base`, `_lr_seed_expression_return`, `_lr_suffix`, `_lr_suffix_r0..r2`) and
+otherwise the identical rule-function set. ⇒ **the `ebnf` 5 → 0 is REAL in the grammar and only
+reaches an artifact on a clone that has to seed one.**
+
+⛔ **What is measured about the ebnf victims, and what is not.** EBNF-1/EBNF-2 (`-> $1 + $2`,
+`-> $1 ? $2 : $3`) accept on the INTERPRETER both before and after
+(`--interpret-parse` × `--no-eliminate-indirect-left-recursion`), which is not a flip and not
+evidence: slice 1's own table says these fail on the **meta-parser** (`generated/ebnf.rs`, arm 2),
+and the interpreter has no cycle guard at all — the `.14` divergence, exactly. So the ebnf flip is
+claimed **only** once the re-seeded artifact is built and `ebnf_dual_run` re-run; until then this
+leaf claims the grammar-level 5 → 0 and nothing about arm 2.
+
+#### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **It reproduces independent of this slice.** The local `generated/ebnf.rs` is dated 2026-07-30;
+  `grammars/ebnf.ebnf` and the codegen have both moved since, and nothing in `make` regenerates it.
+  So the divergence predates the indirect-LR pass — this slice only made it *visible* by being the
+  first change in a while that alters what a fresh seed would produce.
+- **The blast radius is bounded and named.** `generated/ebnf.rs` is compiled in only under
+  `ebnf_dual_run`, where it is arm 2 of the frontend differential. A stale arm 2 makes
+  `ebnf_dual_run_diff` compare today's hand-written frontend against a fortnight-old meta-parser —
+  green locally, and a different comparison on a cold CI runner.
+- **It is the same CLASS as slice 4b's trap**, one level up: a git-ignored derived artifact that no
+  `git status` can report on, and this time with no regeneration target at all rather than an
+  incomplete restore. ⛔ Not the same *instance* — 4b's was a probe script's half-restore.
+- **Not worked here** (SV lane lock; this is `ebnf`-family flow machinery). Trigger to start:
+  the next `ebnf_dual_run` gate investigation, or any change to `grammars/ebnf.ebnf`.
+
+**Acceptance:** (a) decide whether `ebnf` joins `GENERATED_PARSER_FAMILIES` or gets an explicit
+freshness check; (b) whichever is chosen, a gate that FAILS when the artifact is older than its
+inputs — the current state is undetectable by construction.
+
+**HONEST BOUNDS (each measured, none argued):**
+
+1. **Simple routes only.** Enforced by the trial guard above rather than assumed, and every refusal
+   prints the surviving cycle path.
+2. **A hop with a residual and no return annotation is REFUSED.** Its undeclared value is the
+   engine's default shaping of the whole alternative; `$1` would silently drop the residual. A hop
+   that is a BARE reference needs no annotation — such an alternative adds no wrapper node, so its
+   value *is* the referenced rule's value, and `$1` reproduces it exactly.
+   ⇒ `p1_knot_a_defect.ebnf` (no annotations at all) **cannot** prove this fix, which is why
+   `p4_knot_a_annotated.ebnf` was added — P1 plus exactly the annotations SystemVerilog declares on
+   the same four hops.
+   ⇒ ⭐ This is also why `parse_harness_combinator_suite`'s `recursion_guarded_memo_isolation` case
+   still tests what it always tested: its grammar is unannotated with a residual on the cycle hop,
+   so the pass refuses it and the surviving cycle the case depends on survives. That is correct
+   behaviour, not luck — but it *is* load-bearing, so annotating that case would silently change
+   what it measures.
+3. **Suffix-branch starvation is not modelled.** The base-rule starvation criterion is now
+   transitive, but nothing checks whether one `X_lr_suffix` route rule can starve another. Nothing
+   has been observed, and nothing proves it cannot be. ⚠️ Given that the *base* form of exactly this
+   omission shipped a regression in this slice, treat the absence of observations as weak evidence.
+4. **The route walk is profile-blind** (finding 4 above). It is *sound* — a route no profile can
+   derive is sheared and contributes nothing — but the route COUNT the survey prints includes
+   routes that derive nothing, so `routes=` is an upper bound on derivable routes, not a count of
+   them.
+5. **The `@profiles:` gate is COPIED, never synthesized.** When a route's intersection is not equal
+   to any single rule's declared list, the plan is refused rather than constructing a second
+   spelling of a directive whose only authoritative spelling is the grammar's. No shipped grammar
+   hits this today (dialect gates nest).
+
+##### Acceptance Checklist (enforced) — slice 5, the transformation
+
+- [x] **REPRODUCE / ISSUE** — ⛔ **be precise about WHICH defect this slice closes.** The leaf's
+  opening defect is *"INDIRECT left recursion is eliminated by nothing"* — an absent ENGINE
+  CAPABILITY — and that is what closes. It is **not** the same statement as *"SystemVerilog's
+  `int'(2)'(3)` parses"*, and this slice delivers the first without the second. Measured on ONE
+  binary, before and after, via the new `--no-eliminate-indirect-left-recursion` A/B switch:
+  `ast_pipeline grammars/<g>.ebnf --lint-grammar --no-eliminate-indirect-left-recursion` →
+  `'systemverilog' (1485 rules) left_recursion_unhandled=30` and `'ebnf' …=5`, with **no pass in
+  the engine able to rewrite either shape** — every cycle left to a runtime guard that REJECTS
+  re-entry rather than handling it (`GRAMMAR-WELLFORMED.A2.6`). The two LRM-legal SystemVerilog
+  victims (`int'(2)'(3)`, `8'(1)`; `adjudicate.py` rows SV-1/2/3/5, plus 2 OpenTitan corpus rows
+  priced by `SV-CORPUS-GRAD.13c.2b`) stay REJECT after this slice **by an explicit, measured
+  refusal** rather than by absence — `starvation-safe candidates: 0/28` — and are routed to `.17`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — **two** root causes, both measured, neither argued.
+
+  **(i) Why chain absorption cannot close SystemVerilog's cast/call knot** — the criterion that said
+  it could was not transitive. WHERE: `indirect_lr_plan::collect_starvation_sites` scanned holders of
+  the BASE rule only, so `casting_type := … | constant_primary` (`grammars/systemverilog.ebnf:1033`,
+  a bare reference, empty residual) hid `cast := casting_type tick lparen expression rparen`
+  (`:1029`). WHY it matters: a bare-reference alternative is AST- *and* consumption-transparent, so
+  the transparent rule inherits the base's greed. Measured on the shipped grammar, three inputs one
+  difference apart: `initial k = 8;` ACCEPT · `parameter logic [7:0] K = 8'(1);` ACCEPT ·
+  `initial k = 8'(1);` **REJECT** `furthest_position=42`. Fixed by `rules_transparent_to`, a least
+  fixed point over empty-residual left-corner edges; SystemVerilog then reports
+  `starvation-safe candidates: 0/28` and the pass declines the knot instead of breaking it.
+
+  **(ii) Why the previous two slices' target rule could not work**, printed by the pass itself:
+  `ast_pipeline grammars/systemverilog.ebnf --report-indirect-lr-plan` →
+  `⛔ REFUSED 'constant_primary_sv_2017': the rewrite left 'constant_primary_sv_2017' left-recursive
+  — the plan sheared only part of the cycle, which still closes through constant_primary_sv_2017 ->
+  constant_primary_sv_2017_lr_base -> …_lr_seed_constant_primary -> constant_primary_sv_2023 ->
+  constant_cast -> casting_type -> constant_primary -> constant_primary_sv_2017`. The sibling
+  dialect arm is reached through a path that re-enters three rules already on the route, so it is
+  not a *simple* route and `indirect_lr_plan::collect_routes` (`indirect_lr_plan.rs`, the `visited`
+  guard) refuses it by design. WHERE the wrong criterion came from: `DeclineReason::NoAcyclicSeed`,
+  inherited from the DIRECT transform, which DROPS a cyclic alternative where this one CLONES it.
+  The profile defect's WHY+WHERE is the emitted parser itself:
+  `parse_constant_primary_sv_2017` carries `if !self.rule_profile_is_enabled(&["sv_2017",
+  "verilog_2005"])` and the first draft's clone carried nothing.
+- [x] **FIX** — fix-hierarchy tier = **ENGINE** (a new pass; ZERO grammar bytes, ZERO changes to
+  `lr_chain_fold`): `rust/src/ast_pipeline/indirect_lr_elimination.rs` (plan → trial → commit,
+  clones, composed templates, per-route profile-gated suffix rules, 6 refusal classes), wired into
+  `eliminate_left_recursive_patterns` (`ast_pipeline/mod.rs`) behind
+  `PipelineConfig::eliminate_indirect_left_recursion` (default on) with
+  `--no-eliminate-indirect-left-recursion` as the A/B switch, and
+  `LeftRecursionEliminationOutcome` extended with `indirect_eliminated_base_rules` /
+  `indirect_clone_rules` / `indirect_refusals` so the report derives from the pass's outcome rather
+  than asserting one (the `A2.6` posture). `indirect_lr_plan.rs` loses the `NoAcyclicSeed` decline
+  and gains `covered_rules()`. Why no lower tier: a grammar-tier repair is refused by
+  [[left-recursion-is-an-engine-service-not-a-grammar-authoring-burden]], and the two victims'
+  rules are byte-identical LRM transcriptions (`constant_primary_lrm_alternative_audit.py`).
+  Registered: the report's new header lines and the A/B switch are in `TOOLBOX.md` §5.5 and the
+  book mirror; no new `DIAGNOSIS_SIG` token is needed because both ride the already-registered
+  `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan` instrument.
+- [x] **ADDRESSED (verified)** — measured before→after on one binary via the A/B switch, plus the
+  isolating synthetic and 11 unit tests. ⛔ **Read the SystemVerilog row as the REFUSAL it is:**
+  `'systemverilog' (1485 rules) left_recursion_unhandled=30` → `(1488 rules) …=28`, and
+  `starvation-safe candidates: 0/28` — the cast/call and property knots are *declined*, not fixed,
+  and `.17`/`.15` own them. `'ebnf' …=5` → `…=0` (`return_expression`, 1 clone).
+  `cargo test --lib indirect_lr` → **11 passed, 0 failed**, including
+  `the_composed_template_is_the_hand_derived_nesting` (the composed AST asserted hop for hop),
+  `a_mutually_recursive_set_is_eliminated_at_its_dominator`, and
+  `a_profile_gate_survives_on_both_the_clone_and_the_suffix_route`. The isolating synthetic
+  `p4_knot_a_annotated.ebnf` accepts all five probe inputs (`n`, `t'(n)`, `n'(n)`, `t'(n)'(n)`,
+  `t'(n)'(n)'(n)`) — P3's hand-eliminated result, reached with **no hand-written rewrite in the
+  loop** — and the same shape is now a first-class combinator case
+  (`indirect_left_recursion_folded_ast`, `Combinator::IndirectLeftRecursionFoldedAst`), which is
+  acceptance (c).
+  ⚠️ **Honest exercise bound:** with `constant_primary` correctly declined, SystemVerilog no longer
+  exercises the CLONE or SUFFIX-ROUTE profile gating — only the HELPER inheritance (via
+  `incomplete_class_scoped_type_sv_2023`, `@profiles: ["sv_2023"]`, which is what took
+  `profile_orphans` 0 → 4 before the fix). The other two legs are held by the unit test alone.
+- [x] **NO REGRESSION** — `generated/systemverilog_parser.rs` is the ONLY artifact that changes;
+  the other **10** generated parsers are byte-identical by md5 across a full
+  `regenerate_generated_parsers` (`ebnf.rs`, `json_parser.rs`, `regex_parser.rs`,
+  `return_annotation_parser.rs`, `rtl_const_expr_parser.rs`, `rtl_frontend_parser.rs`,
+  `scratch_parser.rs`, `semantic_annotation_parser.rs`,
+  `systemverilog_preprocessor_parser.rs`, `vhdl_parser.rs`). Every other SystemVerilog lint counter
+  is unchanged (`non_terminating` 0, `ordered_choice_shadowing` 0,
+  `always_succeeds_alternatives` 6, `unreachable_rules` 0, `undefined_references` 0,
+  `nullable_repetition` 0, `profile_orphans` 0) — the last of those only after the profile fixes;
+  the first working version took it to 4 and that is recorded above rather than quietly repaired.
+  `bash scripts/check_doctrines.sh` → **18/18**.
+  ⛔ **AND THE CLIPPY FLOW CAUGHT A THIRD DEFECT THIS SLICE SHIPPED, WHICH NO TEST COULD.**
+  `PipelineConfig` gained a field, and `src/bin/pgen_ast.rs:108` constructs it **exhaustively** —
+  so that binary stopped compiling (`error[E0063]: missing field
+  `eliminate_indirect_left_recursion``) while the lib, every test target and every gate stayed
+  green, because they all go through `PipelineConfig::default()`. ⇒ `clippy_source_all_targets` is
+  the only stage that builds **all targets**, and a struct-field addition is exactly the change
+  class whose blast radius lands outside the tested set. Fixed (the binary opts in explicitly, with
+  the reason), and `grep -rn "PipelineConfig {" --include=*.rs rust/src/` confirms it is the only
+  exhaustive construction outside the `Default` impl and one test.
+  **CONFIRMATORY SWEEP, CONSUMED** (not merely started — slice 4b's lesson):
+  `cargo test --features "generated_parsers ebnf_dual_run" --lib -- --skip deep_nesting` →
+  **1 091 passed / 1 failed / 28 ignored** in 1 025.9 s. The single failure is
+  `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`, **pre-existing and
+  owned by `LANG-CAPABILITY-AUDIT.10.15`** — the identical row slice 4b re-observed at
+  1 085/1/28; the count rose to 1 091 because this slice adds 11 unit tests and a combinator case,
+  and the failure set is unchanged. ⭐ **Acceptance (c) is inside that sweep and green:**
+  `parse_harness_combinator_suite::gate::every_structural_combinator_is_byte_identical ... ok` and
+  `combinator_coverage_is_complete ... ok`, so the new `indirect_left_recursion_folded_ast` case —
+  six inputs including the two-traversal `t'(n)'(n)'(n)` — agrees between the interpreter and the
+  generated parser and matches its independently reasoned anchors.
+  ⭐⭐ **The load-bearing no-regression evidence is `stimuli/sv/run_adjudication_repros.py`, and it
+  is the ONLY thing that caught the regression this slice nearly shipped.** On the over-eager
+  version it reported `checked=29 armed=7 failures=3`, of which the decisive row was
+  `FAIL control_size_cast_in_statement.sv control expect=ACCEPT got=REJECT` — *"A CONTROL STOPPED
+  PARSING. Its reproducer no longer isolates one difference"*. Neither the lint, nor 11 unit tests,
+  nor the byte-identity of 10 generated parsers, nor 18/18 doctrines could see it. ⇒ the two-sided
+  ratchet's CONTROL arm (`SV-CORPUS-GRAD.13c.2`) is the reason this slice is correct.
+  **AFTER the transitive fix, on the regenerated parser: `ADJUDICATION-REPROS: checked=29 armed=7
+  listed=29 failures=0`** — measured before→after `3 → 0`. The three rows individually:
+  `control_size_cast_in_statement.sv` REJECT → **parse_full passed**, and both
+  `defect_constant_size_cast*.sv` back to REJECT (`furthest_position=38` / `36`), i.e. still
+  `expect=REJECT` as their manifest rows say — **no `MANIFEST.tsv` re-baseline is owed, because
+  nothing flipped.**
+- [x] **LOCKSTEP** — `TOOLBOX.md` §5.5, `docs/book/src/grammar-wellformedness.md`,
+  `docs/book/src/developer-architecture.md` (whose left-recursion paragraph was ALSO stale on
+  `A2.5`), `docs/book/src/diagnosing-unknowns.md`, the slice-2 decision record + `docs/decisions/INDEX.md`,
+  `docs/reference/RUST_CODEBASE_ANALYSIS.md`, two promoted knowledge records
+  (`a-grammar-rewrite-must-verify-its-own-postcondition-…`,
+  `copying-a-grammar-rule-means-copying-its-rule-level-directives-…`,
+  `a-transparent-rule-inherits-the-greed-of-the-rule-it-forwards-to`), the `indirect_lr` artifact
+  README + `p4_knot_a_annotated.ebnf` + `probe.sh`, the new combinator case
+  (`parse_harness_combinator_suite.rs`), `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`.
+
 ### `.15` — the SVA property knot is unfixable by chain-absorption, because the grammar HAND-FACTORED its precedence cascade (`todo`, opened 2026-08-12 session #223 by `.13` slice 4)
 
 ⛔ **A measured LIMIT on `.13` (d), routed out at the point it was found rather than left for the

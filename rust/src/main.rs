@@ -439,6 +439,16 @@ struct Args {
     #[arg(long)]
     eliminate_left_recursion: bool,
 
+    /// ENGINE-UNIVERSAL-SERVICES.13 — hold the grammar at the DIRECT/wrapper-only elimination shape
+    /// by skipping the indirect (multi-hop route) pass.
+    ///
+    /// ⛔ This is a MEASUREMENT switch, not a policy one: the indirect pass is on by default and a
+    /// shipped parser is always generated with it. It exists so a before→after can be measured on
+    /// one binary — every counter this repository reports about left recursion (`--lint-grammar`
+    /// headline, `--report-indirect-lr-plan` census) otherwise has no "before" once the pass lands.
+    #[arg(long)]
+    no_eliminate_indirect_left_recursion: bool,
+
     /// Include search directory for SystemVerilog preprocessor mode (can be used multiple times)
     #[arg(long, requires = "preprocess_systemverilog")]
     sv_include_dir: Vec<String>,
@@ -1068,6 +1078,9 @@ fn pipeline_main() -> Result<()> {
         config.eliminate_left_recursion = true;
     }
     // Note: eliminate_left_recursion defaults to true in PipelineConfig::default()
+    if args.no_eliminate_indirect_left_recursion {
+        config.eliminate_indirect_left_recursion = false;
+    }
 
     let mut pipeline = RustASTPipeline::new(config);
 
@@ -4571,6 +4584,22 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
             "[warn] the LR-elimination pass did not run on this grammar, so a 'surviving' cycle here \
              may simply be one the pass never saw — no handling claim is made in either direction"
         );
+    }
+    // ENGINE-UNIVERSAL-SERVICES.13 slice 5 — what the INDIRECT pass DID, next to what the survey
+    // says it could do. ⛔ A candidate the survey calls MAY-ABSORB that the pass nonetheless left
+    // standing is the single most misleading reading of this report, so the refusal that explains
+    // it is printed here rather than left in a trace-gated log line.
+    println!(
+        "indirect_eliminated_base_rules={} indirect_clone_rules={} indirect_refusals={}",
+        elimination.indirect_eliminated_base_rules.len(),
+        elimination.indirect_clone_rules.len(),
+        elimination.indirect_refusals.len()
+    );
+    for rule in &elimination.indirect_eliminated_base_rules {
+        println!("    ✅ absorbed at '{rule}'");
+    }
+    for refusal in &elimination.indirect_refusals {
+        println!("    ⛔ REFUSED '{}': {}", refusal.base_rule, refusal.reason);
     }
 
     let covered = survey.covered_cycle_rules();

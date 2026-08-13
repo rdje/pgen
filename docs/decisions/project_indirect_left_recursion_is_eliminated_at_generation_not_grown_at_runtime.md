@@ -128,12 +128,63 @@ than argument (`docs/tasks/artifacts/engine_universal_services/indirect_lr/READM
    verdicts. ⛔ `lr_chain_fold` (point 1 below) rebuilds the DECLARED shape for the *eliminated*
    rule; it says nothing about a clone appearing under a new name, which is a separate question.
 
+## AMENDMENT (2026-08-13, session #224 — `.13` slice 5, `PGEN-ENGINE-UNIVERSAL-SERVICES-0017`)
+
+The decision **stands and is now implemented** (`rust/src/ast_pipeline/indirect_lr_elimination.rs`):
+`ebnf` 5 → **0** surviving cycle rows, SystemVerilog 30 → **28**. Four details move, and each was
+moved by a measurement rather than an argument.
+
+0. ⛔⛔ **THE MECHANISM CANNOT CLOSE SYSTEMVERILOG'S CAST/CALL KNOT, and the version that claimed it
+   could was a REGRESSION.** Chain absorption makes the base rule greedy, and PGEN's `*` never
+   retries at a lower iteration count — so any rule holding the base **or anything transparent to
+   it** with a residual can be starved. `casting_type := … | constant_primary` is a bare reference
+   (transparent), and `cast := casting_type tick lparen expression rparen` holds it with a residual:
+   `initial k = 8'(1);` went ACCEPT → REJECT. With the corrected transitive criterion SystemVerilog
+   reports `starvation-safe candidates: 0/28` — the knot is unplannable at ANY base rule. ⇒ this
+   record's *"3 knots"* pricing stands as a count of knots, but only **1 of SystemVerilog's 3** is
+   reachable by this mechanism (the class-scope knot, adjudicated `DEAD-BUT-COVERED`); the two that
+   cost real LRM text are blocked by the greedy `*` (`ENGINE-UNIVERSAL-SERVICES.17`) and by a
+   hand-written precedence cascade (`.15`). ⛔ That does **not** reopen seed-growing: the blocker is
+   a quantifier's backtracking policy, not the elimination mechanism, and the second non-negotiable
+   still refuses per-parse cost.
+
+1. ⛔⛔ **THE BASE RULE MOVES A THIRD TIME, AND SLICE 4's #1 IS REFUTED — `constant_primary` IS the
+   base.** Slice 4 declined it on `no_acyclic_seed` (*"both its alternatives are on the cycle, so
+   there is no seed"*) and named `constant_primary_sv_2017`/`_sv_2023` instead. Building the plan at
+   either twin leaves the grammar **still left-recursive**, and the engine says so with the path:
+   `constant_primary_sv_2017 → …_lr_seed_constant_primary → constant_primary_sv_2023 →
+   constant_cast → casting_type → constant_primary → constant_primary_sv_2017`. The two dialect
+   twins are a **mutually-recursive SET** reaching each other through the shared `constant_primary`
+   spine, and the path back is not a *simple* route, so no route shears it. The dominator is.
+2. ⭐ **`seeds=0` was never a disqualification for THIS transform, and the criterion that said so was
+   inherited from the wrong one.** The direct/wrapper elimination *drops* a left-recursive
+   alternative, so a rule with none left has nothing to seed from; the indirect transform **clones**
+   it with the cycle edge sheared, so the seeds come from *under* the cyclic alternative —
+   `constant_primary`'s two clones carry 13 and 14. The `no_acyclic_seed` decline is deleted from
+   the survey.
+3. ⭐ **The fold did not need generalizing — the SPEC did.** *"Generalise `lr_chain_fold` from one
+   rule to a mutually-recursive set"* turns out to need **zero** bytes in `lr_chain_fold`: a route's
+   per-hop declared annotations **compose** into one template (each hop's `$1` filled by the hop
+   below, every other `$N` remapped into the flattened suffix's capture space), and the existing
+   one-hop fold consumes it unchanged. Knot A's four hops compose to
+   `{kind: "cast", body: {type: {kind: "constant_primary", body: {kind: "sv_2017", body: $1}}, body: $4}}`.
+4. ⛔ **A hop with a residual and no declared annotation is REFUSED, not approximated** — its
+   undeclared value is the engine's default shaping of the whole alternative and `$1` would silently
+   drop the residual. This is why `p1_knot_a_defect.ebnf` cannot prove the fix and
+   `p4_knot_a_annotated.ebnf` exists.
+
 ## HONEST BOUNDS
 
 - This decides the **mechanism**, not the algorithm's details: which elimination transform, how the
   fold generalises to a set of rules, and what the linter says when a knot is refused are still
   open and belong to `.13`'s design/implementation slices. ⭐ The amendment above closes one of
   those details (WHICH rule absorbs the chain) and opens another (what the clone does to the AST).
+- ⛔ **The transform is SIMPLE-ROUTE based, and that bound is now enforced rather than assumed.** A
+  cycle whose closing path re-enters a rule already on the route — or closes through a nullable
+  prefix, a quantifier or a group — is invisible to the plan. The pass therefore applies each plan
+  to a COPY, re-runs `detect_left_recursion`, and commits only if the base rule's cycle is actually
+  gone and the total row count strictly fell. Every refusal carries the surviving cycle path. That
+  guard fired on its first run against SystemVerilog and is what found bound (1) above.
 - The entry-count table is a **share of rule entries**, not a share of wall time; it establishes the
   knot is hot, not the exact price of a runtime protocol. Nobody has built the runtime arm to A/B it
   — and under a *"costs are rejected, not traded"* rule, the burden sits on the arm that adds

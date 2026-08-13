@@ -2094,11 +2094,71 @@ grammar lint: 'systemverilog' (1485 rules) —
 that was so wrong: the guard does not handle a surviving cycle, it **rejects** re-entry at the same
 input position, so the derivations that need it are unreachable. The demonstrated case is SV's first
 printed cycle, `casting_type -> constant_primary -> constant_cast -> casting_type` — IEEE 1800-2017
-A.8.4 makes `int'(2)'(3)` a legal cast chain, and PGEN rejects it (`furthest_position=40`,
-`💥 Infinite recursion detected in rule 'casting_type'`). Eliminating **indirect** left recursion is
-an engine capability nothing in PGEN has yet; it is owned by `ENGINE-UNIVERSAL-SERVICES.13`, with
-that repro as its first row. Current class size: SV **30**, the raw Annex A transcription **23**,
-`ebnf` **5**, every other grammar **0**.
+A.8.4 makes `int'(2)'(3)` a legal cast chain, and PGEN rejected it (`furthest_position=40`,
+`💥 Infinite recursion detected in rule 'casting_type'`). Class size when `A2.6` measured it: SV
+**30**, the raw Annex A transcription **23**, `ebnf` **5**, every other grammar **0**.
+
+✅ **PGEN now eliminates indirect left recursion too** (`ENGINE-UNIVERSAL-SERVICES.13` slice 5,
+`ast_pipeline::indirect_lr_elimination`). The pass runs after the direct/wrapper planner, on what
+that planner left behind, and rewrites a whole **route** rather than a single hop:
+
+```text
+X            := X_lr_base ( X_lr_suffix )*
+X_lr_base    := <the author's alternatives, each CYCLIC one replaced by a sheared CLONE>
+X_lr_suffix  := <one branch per route: the route's residuals, innermost first>
+```
+
+Post-slice-5 class size: `ebnf` **5 → 0**, SystemVerilog **30 → 28**, every other shipped grammar
+still **0**. ⛔ SystemVerilog's cast/call and SVA property knots are **declined**, and the reason is
+measured rather than unfinished — see *what the pass refuses, and why it says so* below.
+
+⭐ **Three properties are worth knowing as a grammar author.**
+
+- **Your declared AST survives.** The route's per-hop return annotations are **composed** into one
+  template — each hop's `$1` filled by the hop below it, every other `$N` remapped into the
+  flattened suffix — and the existing chain fold (`ENGINE-UNIVERSAL-SERVICES.8`) applies it per
+  iteration. The tree you get is byte-identical to the left-nested one your un-eliminated grammar
+  declared.
+- **The pass verifies itself before it commits.** Each plan is applied to a *copy*, the left-recursion
+  lint is re-run, and the rewrite is kept only if the base rule's cycle is actually gone and the
+  total row count strictly fell. A plan that would half-shear a cycle is refused with the surviving
+  path printed.
+- **A hop with a residual and no return annotation is refused**, because its undeclared value is the
+  engine's default shaping of the whole alternative and no template can reproduce that. Annotate the
+  hop and the pass will take it.
+
+⛔ **What the pass refuses, and why it says so.** `--report-indirect-lr-plan` prints
+`indirect_eliminated_base_rules=/indirect_clone_rules=/indirect_refusals=` followed by one line per
+rewrite and per refusal, and — the line to read first on SystemVerilog —
+`starvation-safe candidates: 0/28`.
+
+⛔⛔ **A rule can only absorb a chain if nothing else can be STARVED by its new greed, and that
+check is TRANSITIVE.** After `X := X_base ( X_suffix )*`, PGEN's `*` is greedy and never retries at a
+lower iteration count. So any rule holding `X` at its left corner *with more elements after it* can
+lose — and so can any rule holding something **transparent** to `X`, because an alternative that is
+a bare reference consumes exactly what it forwards to:
+
+```text
+casting_type := … | constant_primary                          ← bare reference: transparent
+cast         := casting_type tick lparen expression rparen     ← holds it WITH a residual
+```
+
+Absorbing SystemVerilog's cast chain at `constant_primary` makes `casting_type` greedy too, so
+`8'(1)` is swallowed whole as a cast of its own and `cast` can never match its trailing
+`tick lparen expression rparen`: `initial k = 8'(1);` stops parsing while
+`parameter logic [7:0] K = 8'(1);` still works. The engine therefore **declines** the knot. Every
+candidate on it is transitively starved, so no other base rule helps either — the blocker is the
+greedy `*`, tracked as `ENGINE-UNIVERSAL-SERVICES.17`, and the SVA property knot is `.15`.
+
+⇒ **If your grammar reports `verdict=STARVED`, the fix is usually to give the holder a form that
+does not need the residual** — or to accept that this construct is not chain-absorbable. The report
+names the holder, its alternative and the exact residual at risk.
+
+⭐ **One criterion had to be deleted along the way: `seeds=0` is not a disqualification.** The
+direct/wrapper elimination *drops* a left-recursive alternative, so a rule whose every alternative is
+on the cycle has nothing left to seed from. The indirect transform *clones* it with the cycle edge
+sheared, so the seeds come from **under** the cyclic alternative — which is what makes a *dominator*
+of a mutually-recursive set eligible at all.
 
 ⛔ **READ THAT COUNT CORRECTLY: it counts RULE ROWS, not cycles.** The detector starts a DFS from
 every rule and reports any that closes back on itself, so one 12-rule cycle is printed 12 times —

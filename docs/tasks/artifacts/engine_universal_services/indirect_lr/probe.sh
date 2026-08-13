@@ -34,7 +34,11 @@ WORK="rust/target/indirect_lr_probe"
 INTERP_ONLY=0
 [[ "${1:-}" == "--interp-only" ]] && INTERP_ONLY=1
 
-PROBES=(p1_knot_a_defect p2_eliminated_at_inner_rule p3_eliminated_at_consumer_rule)
+# ⭐ P4 is the slice-5 acceptance probe: P1's shape with the return annotations the real grammars
+# carry, so the ENGINE eliminates it instead of a hand-written rewrite. Its row should read like
+# P3's (all five accept) with NO hand-eliminated grammar in the loop. P1 stays as the DEFECT
+# reproduction — it is unannotated, so the pass refuses it by design (see p4's header).
+PROBES=(p1_knot_a_defect p2_eliminated_at_inner_rule p3_eliminated_at_consumer_rule p4_knot_a_annotated)
 # The shared input set. `t'(n)` is ONE cast level (seeded by `ct`'s own alternative, no recursion
 # needed); `n'(n)` and `t'(n)'(n)` each need the cycle once; `t'(n)'(n)'(n)` needs it twice.
 INPUTS=("n" "t'(n)" "n'(n)" "t'(n)'(n)" "t'(n)'(n)'(n)")

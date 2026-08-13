@@ -1,5 +1,79 @@
 # CHANGES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0017 — PGEN eliminates INDIRECT left recursion now, and a CONTROL row stopped the version that would have regressed SystemVerilog (leaf ENGINE-UNIVERSAL-SERVICES.13 slice 5; 1 new engine module, ZERO grammar bytes)
+
+- ⭐⭐ **The capability lands.** `ast_pipeline::indirect_lr_elimination` rewrites a whole multi-hop
+  ROUTE — `X := X_lr_base ( X_lr_suffix )*` plus one sheared CLONE per intermediate — inside the
+  existing `eliminate_left_recursive_patterns` pass, after the direct normalization and the one-hop
+  wrapper planner. **`ebnf` 5 → 0** surviving cycle rows, **SystemVerilog 30 → 28**, every other
+  shipped grammar untouched.
+- ⛔⛔ **THE HEADLINE THIS SLICE NEARLY SHIPPED WAS `30 → 13`, AND IT WAS A REGRESSION.** Everything
+  was green — the lint improved, 11 unit tests passed, ten generated parsers stayed byte-identical,
+  18/18 doctrines passed, and BOTH target inputs (`int'(2)'(3)`, `8'(1)`) flipped REJECT → ACCEPT on
+  the real generated parser. `stimuli/sv/run_adjudication_repros.py` then failed on a **CONTROL**:
+  `initial k = 8'(1);` — the same cast in a NON-constant expression — went **ACCEPT → REJECT**.
+  Measured before→after on the ratchet: **`failures=3` → `failures=0`** (`checked=29 armed=7`).
+- **ROOT CAUSE: the starvation criterion was not transitive.** A bare-reference alternative is
+  consumption-transparent, so `casting_type := … | constant_primary` inherits the base's greed and
+  `cast := casting_type tick lparen expression rparen` starves — slice 3's P2 starvation one hop
+  further out, invisible to a direct-holder scan. Fixed by `rules_transparent_to`, a least fixed
+  point over empty-residual left-corner edges.
+- ⛔⛔ **SO SYSTEMVERILOG'S CAST/CALL KNOT IS RE-PRICED: `starvation-safe candidates: 0/28`.** It is
+  not unplanned, it is **unplannable by chain absorption at any base rule**, and the blocker is
+  PGEN's greedy non-backtracking `*` → **`.17` NEW**, with routing evidence. Acceptance (d) closes
+  1 of 3 SystemVerilog knots (class-scope, adjudicated `DEAD-BUT-COVERED`) and all 3 in `ebnf`.
+- ⭐ **`lr_chain_fold` needed ZERO bytes.** The leaf's own frontier called this *"generalizing the
+  fold from ONE rule to a mutually-recursive SET"*; it is the **spec** that generalizes. A route's
+  per-hop declared annotations COMPOSE into one template (each hop's `$1` filled by the hop below,
+  every other `$N` remapped by `offset + N` into the flattened suffix), and the existing one-hop
+  fold consumes it unchanged.
+- ⭐ **A dominator finding stands on the way there** (it is what the trial guard caught first):
+  building the plan at either dialect twin leaves the grammar **still left-recursive**, because the
+  twins are a mutually-recursive SET reaching each other through the shared `constant_primary`
+  spine and that path is not a *simple* route. And `no_acyclic_seed` — inherited from the DIRECT
+  transform, which *drops* a cyclic alternative where this one CLONES it — was excluding the only
+  rule that could have been the dominator. Both corrections landed; the transitive starvation
+  criterion then declines the knot anyway.
+- ⭐⭐ **The pass verifies its own postcondition.** Each plan is applied to a COPY, the
+  left-recursion lint is re-run, and it commits only if the base rule's cycle is gone AND the row
+  count strictly fell. It fired on its first run against SystemVerilog and is what found the
+  finding above.
+- ⛔⛔ **The first working version shipped an OVER-ACCEPTANCE, caught by reading the emitted
+  parser.** `@profiles:` is rule-level and the clone builder copied only per-branch annotations, so
+  `parse_constant_primary_lr_seed_constant_primary_sv_2017` carried no
+  `rule_profile_is_enabled(&["sv_2017", "verilog_2005"])` gate. Three profile defects came out of
+  that thread: the clone's lost gate, the HELPERS as profile ORPHANS (`profile_orphans` **0 → 4**,
+  an ERROR-class counter), and — the subtle one — **a suffix branch has to be a RULE, because an
+  alternative cannot carry `@profiles:`** and the two dialect routes iterate byte-identical
+  suffixes that declare different ASTs.
+- ⭐ **Fourth finding: the route walk is profile-blind.** SystemVerilog has **4** routes whose
+  `@profiles` lists intersect to ∅ — an `sv_2017` constant primary spliced onto an `sv_2023`
+  method-call receiver. They are sheared but contribute no suffix branch.
+- **NEW A/B SWITCH:** `--no-eliminate-indirect-left-recursion` holds the grammar at the
+  direct/wrapper-only shape so before→after is measurable on ONE binary. Measured:
+  `'systemverilog' (1485 rules) left_recursion_unhandled=30` → `(1488 rules) …=28`, with
+  `non_terminating`, `ordered_choice_shadowing`, `always_succeeds_alternatives`,
+  `unreachable_rules`, `undefined_references`, `nullable_repetition` and `profile_orphans` **all
+  unchanged**.
+- **NEW COMBINATOR CASE** (`acceptance (c)`): `indirect_left_recursion_folded_ast` —
+  `Combinator::IndirectLeftRecursionFoldedAst`, the annotated knot-A shape, six inputs including the
+  two-traversal `t'(n)'(n)'(n)`. Permanent interpreter-vs-generated-parser regression guard.
+- **ROUTED / OPEN:** `.17` NEW (the greedy `*` blocks SystemVerilog's cast/call knot for ANY base
+  rule); `.16` NEW (`generated/ebnf.rs` has no regeneration target, so local and fresh-clone builds
+  can diverge indefinitely); `.15` unchanged in scope but sharper — the SVA property knot's
+  *dominator* `property_expr` is starved too.
+- **VERIFIED (consumed, not merely started):**
+  `cargo test --features "generated_parsers ebnf_dual_run" --lib -- --skip deep_nesting` →
+  **1 091 passed / 1 failed / 28 ignored** (1 025.9 s); the one failure is pre-existing and owned by
+  `LANG-CAPABILITY-AUDIT.10.15`. Acceptance (c) is inside it and green —
+  `every_structural_combinator_is_byte_identical ... ok`, `combinator_coverage_is_complete ... ok`.
+  `stimuli/sv/run_adjudication_repros.py` → `checked=29 armed=7 failures=0`.
+  `bash scripts/check_doctrines.sh` → 18/18.
+- **Docs in lockstep:** `TOOLBOX.md` §5.5, `docs/book/src/grammar-wellformedness.md`,
+  `docs/book/src/developer-architecture.md` (whose left-recursion paragraph was ALSO stale on
+  `A2.5` — it still said direct inline recursion is not auto-eliminated), the slice-2 decision
+  record, the `indirect_lr` artifact README + the new `p4_knot_a_annotated.ebnf` probe.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0016 — slice 3's probe script left two gates RED for a day, and slice 3's own no-regression box says it did not (leaf ENGINE-UNIVERSAL-SERVICES.13 slice 4b; 1 instrument repair, ZERO grammar bytes, ZERO Rust bytes)
 
 - ⛔⛔ **The confirmatory sweep `-0015` started at commit time came back RED on three tests, and two

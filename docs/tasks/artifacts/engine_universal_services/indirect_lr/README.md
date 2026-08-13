@@ -1,8 +1,28 @@
 # `ENGINE-UNIVERSAL-SERVICES.13` — the indirect-left-recursion probe set
 
-Three six-to-eight-rule synthetics that reproduce SystemVerilog **knot A** and price the two ways of
-eliminating it. Owning leaf: `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` `.13` slice 3. Driver:
-[`probe.sh`](probe.sh) (both oracles) — `probe.sh --interp-only` for the cheap column alone.
+Four six-to-eight-rule synthetics that reproduce SystemVerilog **knot A**, price the two ways of
+eliminating it, and — since slice 5 — prove the ENGINE does it. Owning leaf:
+`docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` `.13` slices 3 and 5. Driver: [`probe.sh`](probe.sh) (both
+oracles) — `probe.sh --interp-only` for the cheap column alone.
+
+> ⭐⭐ **P4 is the one to read now.** P2 and P3 are *hand-eliminated* grammars: they answered "which
+> rule should absorb the chain?" before any engine could. P4 is P1's grammar with nothing rewritten
+> — only the return annotations the real grammars already carry — and the engine's own
+> `indirect_lr_elimination` pass turns it into P3's shape. ⛔ P1 stays exactly as it is, and it is
+> still REFUSED by the pass: it declares no annotations, and a hop with a residual and no declared
+> AST has an engine-default shape no composed template can reproduce. That refusal is the honest
+> bound, printed by name.
+>
+> ⛔⛔ **AND THIS PROBE SET HAS A MEASURED BLIND SPOT — it is faithful to the DEFECT and blind to the
+> FIX.** P3's own header says it: *"`ct` and `cast_expr` are GONE here only because this synthetic
+> reaches them from nowhere else. SystemVerilog reaches `casting_type` from `cast` too, so a real
+> transformation must ADD the clone and KEEP the originals."* Keeping the original is what leaves a
+> **starved** holder standing: after `constant_primary` absorbs the chain, `casting_type` (a bare
+> reference, hence consumption-transparent) inherits its greed and `cast := casting_type tick lparen
+> expression rparen` can no longer match. On the shipped grammar `initial k = 8'(1);` went
+> **ACCEPT → REJECT** — a regression none of P1–P4 can exhibit, caught only by
+> `stimuli/sv/run_adjudication_repros.py`'s CONTROL row. ⇒ `ENGINE-UNIVERSAL-SERVICES.17` needs a
+> **fifth** synthetic: P4 plus an outside holder of the transparent rule.
 
 ## Why a synthetic at all
 
@@ -129,7 +149,9 @@ may rest on the interpreter column alone.
 | `p1_knot_a_defect.ebnf` | the defect — knot A, unmodified |
 | `p2_eliminated_at_inner_rule.ebnf` | hand-eliminated at `ct` (`casting_type`) — the regression |
 | `p3_eliminated_at_consumer_rule.ebnf` | hand-eliminated at `prim` (`constant_primary`) — the target shape |
+| `p4_knot_a_annotated.ebnf` | ⭐ slice 5's acceptance probe — P1 plus the annotations the real grammars carry, so the **engine** eliminates it |
 | `probe.sh` | the dual-oracle driver; restores the scratch slot on any exit |
+| `survey/` | slice 4's per-grammar census of the survey instrument |
 
 Every `.ebnf` here names its entry rule `scratch`, so it loads into the scratch slot verbatim
 (`cp <file> grammars/scratch/scratch.ebnf`). The entry sits **outside** the cycle, as `source_text`

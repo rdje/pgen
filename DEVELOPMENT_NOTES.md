@@ -1,5 +1,91 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0017 — every green signal agreed, and the one red signal was right
+
+**The version of this slice that nearly shipped had: a lint counter improving 30 → 13, eleven green
+unit tests, ten generated parsers byte-identical, 18/18 doctrines passing, and BOTH target inputs
+flipping REJECT → ACCEPT on the real generated parser.** It was a regression. The single dissenting
+signal was one row of `run_adjudication_repros.py`:
+
+```text
+FAIL control_size_cast_in_statement.sv   control  expect=ACCEPT got=REJECT
+  ⛔ A CONTROL STOPPED PARSING. Its reproducer no longer isolates one difference.
+```
+
+`initial k = 8'(1);` — the same cast one context over from the one being fixed.
+
+⇒ **Defect-side evidence cannot detect a fix that trades one construct for another.** Every check
+above was asking "did the thing I aimed at improve?" Only the control was asking "did anything
+NEAR it get worse?" `SV-CORPUS-GRAD.13c.2` added those controls to make a reproducer *attributable*;
+their second job — the one that paid here — is to be the only instrument pointed at the blast
+radius rather than at the target. When a change is a *rewrite* rather than an addition, the control
+arm is not a nicety, it is the whole no-regression argument.
+
+**The technical lesson is small and sharp: a bare-reference alternative is transparent in TWO ways.**
+It is AST-transparent — well known here, it is why annotations hoist through it. It is also
+**consumption-transparent**, so when the rule it forwards to becomes `base ( suffix )*` with a
+greedy non-backtracking `*`, the forwarder inherits that greed. `casting_type := … |
+constant_primary` and `cast := casting_type tick lparen expression rparen` sit four lines apart in
+`grammars/systemverilog.ebnf`, and a starvation scan over *direct holders of the base* cannot see the
+second one at all. The criterion has to be a least fixed point over empty-residual left-corner
+edges. Promoted:
+`docs/knowledge/a-transparent-rule-inherits-the-greed-of-the-rule-it-forwards-to.md`.
+
+⚠️ **And the isolating synthetic was faithful to the defect and blind to the fix — in a way its own
+header had already written down.** P3 deleted the intermediates `ct`/`cast_expr` "because nothing
+else reaches them here", and the file says in plain prose that SystemVerilog reaches `casting_type`
+from `cast` too. That sentence *was* the counter-example; it had never been turned into a check. ⇒
+when a synthetic drops a rule because "nothing else uses it in this reduction", that deletion is a
+claim about the real grammar and it needs its own verification.
+
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0017 (ii) — a transformation that verifies its own postcondition finds the bug the analysis could not
+
+**Three slices in a row picked the wrong base rule, each on good evidence.** Slice 3 measured a
+synthetic and said `constant_primary`. Slice 4 derived a criterion from the shipped grammar, found
+`no_acyclic_seed`, and said `constant_primary_sv_2017`/`_sv_2023`. Slice 5 built the transformation,
+applied it to a copy, re-ran the lint — and the grammar was still left-recursive. The engine printed
+the path, and the path named the mechanism nobody had: two dialect twins reach each other through a
+shared spine, so the way back is not a *simple* route and no route shears it. The base is the
+DOMINATOR, `constant_primary`, which slice 4 had explicitly excluded.
+
+⇒ The generalisable point is not "we were wrong twice". It is that **a static criterion answers the
+question you encoded, and the transformation answers the question you asked.** The trial-then-commit
+check costs one grammar clone per rewrite and it is the only thing in the chain that could have
+caught this. Build the postcondition into the pass, not into a downstream gate: a gate tells you the
+tree is broken, a postcondition tells you WHICH plan broke it and refuses to apply it.
+
+**And `no_acyclic_seed` is a lesson about inherited criteria.** It is *sound* for the direct/wrapper
+elimination, which DROPS a left-recursive alternative — a rule with none left really has nothing to
+seed from. The indirect transform CLONES it with the cycle edge sheared, so the seeds come from
+under the cyclic alternative. Same words, different transform, opposite verdict. When a new pass
+borrows a predicate from an old one, the predicate's *justification* has to be re-derived, not just
+its name.
+
+**The defect the tests could not see, the emitted parser could.** The first working version passed
+every unit test and every lint, and shipped an over-acceptance: `@profiles:` is a RULE-level
+annotation and the clone builder copied only per-branch ones, so the sv_2017 constant primary became
+reachable under an `sv_2023` parse. What found it was reading the generated function next to its
+original —
+
+```text
+fn parse_constant_primary_sv_2017 … if !self.rule_profile_is_enabled(&["sv_2017", "verilog_2005"])
+fn parse_constant_primary_lr_seed_constant_primary_sv_2017 …            ← no gate at all
+```
+
+⇒ For any transform that COPIES a grammar object, enumerate what is attached to the original *by
+kind* — branch annotations, rule annotations, lexical restrictions, profile gates — rather than
+copying the fields you happened to think of. Two more defects were behind the same door: the
+`_lr_base`/`_lr_suffix` helpers of a gated rule are profile ORPHANS unless they inherit the gate,
+and a suffix branch has to be a RULE rather than an alternative because **an alternative cannot
+carry `@profiles:`** — the two dialect routes iterate byte-identical suffixes and differ only in the
+AST they declare, so an ungated ordered choice would stamp `sv_2017` on an `sv_2023` parse.
+
+⭐ **Copy the directive, never synthesize it.** The route's gate is the intersection of the
+`@profiles` lists along it, and the engine installs it by cloning the annotation of the rule whose
+declared list IS that intersection. Where no rule's list equals it, the plan is refused. A
+constructed annotation would be a second spelling of a directive whose only authoritative spelling
+is the grammar's — and a second spelling is a second thing to drift.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0016 — "the tree is clean" is a statement about TRACKED state, and half of this slot was never tracked
 
 **A restore discipline is only as complete as the state it enumerates.** `probe.sh` borrowed the

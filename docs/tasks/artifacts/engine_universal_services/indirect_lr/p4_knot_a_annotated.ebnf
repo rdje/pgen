@@ -1,0 +1,44 @@
+# ENGINE-UNIVERSAL-SERVICES.13 — P4: knot A with the RETURN ANNOTATIONS the real grammars carry.
+#
+# P1 reproduces knot A's SHAPE and was enough to measure the defect and to refute the naive fix.
+# It is not enough to measure the FIX, and slice 5 found out why the first time the engine pass ran
+# on it:
+#
+#   REFUSED 'prim': hop 'cast_expr' alternative 0 declares no return annotation and its residual is
+#   '"'" "(" lit ")"' — the chain's AST cannot be composed faithfully
+#
+# ⭐ That refusal is CORRECT, and it is the point. Eliminating an indirect cycle means folding the
+# route's per-hop declared ASTs into one composed template; a hop with a residual and no declared
+# AST has an engine-default shape the template cannot reproduce, so the engine refuses rather than
+# emitting a wrong AST. Every real knot is annotated — SystemVerilog's `constant_primary_sv_2017`
+# alt#11, `constant_cast`, `casting_type` alt#1 and `constant_primary` alt#0 all declare one, and so
+# does every hop of `ebnf`'s `return_expression` knot — so P1's unannotated form is the outlier, not
+# the norm.
+#
+# P4 is therefore P1 plus exactly the annotations SystemVerilog declares on the same four hops:
+#
+#   prim      alt#1  -> {kind: "cast", body: $1}   ~ constant_primary_sv_2017 alt#11
+#   cast_expr alt#0  -> {type: $1, body: $4}       ~ constant_cast (byte-identical shape)
+#   ct        alt#1  -> {kind: "prim", body: $1}   ~ casting_type alt#1 / constant_primary alt#0
+#
+# The engine composes them, innermost `$1` first, into the single per-iteration template
+#
+#   {kind: "cast", body: {type: {kind: "prim", body: $1}, body: $4}}
+#
+# and `$4` addresses `lit` at flattened suffix position 3. That template is asserted, hop for hop,
+# in `indirect_lr_elimination.rs`'s `the_composed_template_is_the_hand_derived_nesting` — and the
+# nesting it produces for `t'(n)'(n)` is byte-equal to the AST the UN-eliminated grammar declares
+# for the same input, which is the property the whole transformation exists to preserve.
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim:
+#   cp <this file> grammars/scratch/scratch.ebnf && make -C rust SHELL=/bin/bash focus_scratch
+@entry: true
+scratch := prim
+prim := lit       -> {kind: "lit",  body: $1}
+      | cast_expr -> {kind: "cast", body: $1}
+cast_expr := ct "'" "(" lit ")"
+          -> {type: $1, body: $4}
+ct := kw   -> {kind: "kw",   body: $1}
+    | prim -> {kind: "prim", body: $1}
+lit := "n"
+kw := "t"

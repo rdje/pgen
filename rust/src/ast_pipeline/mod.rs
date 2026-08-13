@@ -2607,6 +2607,11 @@ pub struct PipelineConfig {
     pub validate_output: bool,
     pub max_recursion_depth: usize,
     pub eliminate_left_recursion: bool,
+    /// `ENGINE-UNIVERSAL-SERVICES.13` — run the INDIRECT (multi-hop route) elimination pass.
+    /// Separate from [`Self::eliminate_left_recursion`] so a caller can hold the grammar at the
+    /// direct-only shape the survey instrument reports against, without also disabling the
+    /// one-hop planner every shipped grammar depends on.
+    pub eliminate_indirect_left_recursion: bool,
 }
 
 impl Default for PipelineConfig {
@@ -2621,6 +2626,7 @@ impl Default for PipelineConfig {
             validate_output: true,
             max_recursion_depth: 100,
             eliminate_left_recursion: true,
+            eliminate_indirect_left_recursion: true,
         }
     }
 }
@@ -2658,6 +2664,17 @@ pub struct LeftRecursionEliminationOutcome {
     /// Synthetic `<rule>_lr_altN` rules the direct-LR normalization created (`A2.5`), in creation
     /// order. Reported for observability; the planner consumes them and they are retracted after.
     pub normalized_direct_alternatives: Vec<String>,
+    /// `ENGINE-UNIVERSAL-SERVICES.13` — base rules the INDIRECT pass absorbed a chain at, in
+    /// application order. Disjoint from [`Self::eliminated_base_rules`] by construction: the direct
+    /// planner matches a one-hop wrapper and this one matches a multi-hop route, and the indirect
+    /// pass runs on what the direct pass left behind.
+    pub indirect_eliminated_base_rules: Vec<String>,
+    /// Sheared CLONE rules the indirect pass synthesized, in creation order — the blow-up term
+    /// ANTLR4's objection names, reported as a measurement rather than left to a grammar diff.
+    pub indirect_clone_rules: Vec<String>,
+    /// Starvation-safe candidates the indirect pass REFUSED, with the reason. A cycle that
+    /// survives has a named cause here, never silence.
+    pub indirect_refusals: Vec<indirect_lr_elimination::PlanRefusal>,
 }
 
 #[derive(Debug, Clone)]
@@ -3011,6 +3028,24 @@ impl RustASTPipeline {
             transformed_rules.insert(plan.helper_base_rule.clone());
         }
 
+        // ENGINE-UNIVERSAL-SERVICES.13 — INDIRECT left recursion, on what the one-hop planner above
+        // left behind. It runs AFTER that planner (and before the retraction below) for two
+        // reasons: the direct normalization can turn an inline self-reference into the wrapper
+        // shape this pass would otherwise see as a route, and its survey reads the POST-elimination
+        // grammar, which is the same view `--lint-grammar` reports.
+        let indirect = if self.config.eliminate_indirect_left_recursion {
+            indirect_lr_elimination::eliminate_indirect_left_recursion(
+                grammar_tree,
+                rule_order,
+                annotations.as_deref_mut(),
+            )
+        } else {
+            eprintln!(
+                "[mod.rs][eliminate_left_recursive_patterns()] ⏭️  INDIRECT left-recursion elimination disabled by configuration"
+            );
+            indirect_lr_elimination::IndirectEliminationOutcome::default()
+        };
+
         let retracted =
             Self::retract_consumed_normalization_rules(&normalized_direct, grammar_tree, rule_order);
         if retracted > 0 {
@@ -3029,6 +3064,9 @@ impl RustASTPipeline {
             ran: true,
             eliminated_base_rules,
             normalized_direct_alternatives: normalized_direct,
+            indirect_eliminated_base_rules: indirect.eliminated_base_rules,
+            indirect_clone_rules: indirect.synthesized_clone_rules,
+            indirect_refusals: indirect.refusals,
         }
     }
 
@@ -6198,6 +6236,7 @@ pub mod fusibility_census;
 pub mod grammar_wellformedness;
 pub mod grouped_quantifier_parser;
 // ENGINE-UNIVERSAL-SERVICES.13 slice 4 — the INDIRECT left-recursion survey (pure analysis).
+pub mod indirect_lr_elimination;
 pub mod indirect_lr_plan;
 pub mod library;
 pub mod lr_chain_fold;

@@ -115,6 +115,10 @@ fn run_pipeline_mode(
         validate_output: true,
         max_recursion_depth: 100,
         eliminate_left_recursion: true,
+        // ENGINE-UNIVERSAL-SERVICES.13 — the INDIRECT (multi-hop route) pass. On, like every
+        // shipping generation path; the `--no-eliminate-indirect-left-recursion` A/B switch on
+        // `ast_pipeline` is a measurement lever, not a posture this binary should differ on.
+        eliminate_indirect_left_recursion: true,
     };
 
     // Create pipeline

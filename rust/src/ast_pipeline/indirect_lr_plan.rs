@@ -147,10 +147,6 @@ pub enum DeclineReason {
     /// A route exists but every one of them iterates an empty suffix, so the rewrite would emit a
     /// non-consuming `*`. Reported rather than emitted.
     OnlyDegenerateRoutes,
-    /// The base rule has no non-cyclic alternative, so there is no seed to start the chain from.
-    /// Mirrors the guard [`super::RustASTPipeline::normalize_direct_left_recursive_alternatives`]
-    /// already applies to the direct shape.
-    NoAcyclicSeed,
 }
 
 impl DeclineReason {
@@ -159,7 +155,6 @@ impl DeclineReason {
         match self {
             DeclineReason::NoBareLeftCornerRoute => "no_bare_left_corner_route",
             DeclineReason::OnlyDegenerateRoutes => "only_degenerate_routes",
-            DeclineReason::NoAcyclicSeed => "no_acyclic_seed",
         }
     }
 }
@@ -177,13 +172,16 @@ pub struct DeclinedCycle {
 /// A site that would be exposed to the P2 starvation if `base_rule` absorbed the chain.
 ///
 /// ⛔ This is the measurement that decides base-rule selection. After `X := X_base ( suffix )*`,
-/// any rule holding `X` at its left corner **followed by more elements** is at risk: PGEN's `*`
-/// is greedy and never retries at a lower iteration count, so if the greedy `X` consumes text the
-/// holder's own residual needed, the holder can no longer match. Slice 3 measured exactly this —
-/// `cast_expr := ct "'" "(" lit ")"` went accept → reject when `ct` was the base.
+/// any rule holding `X` — **or any rule TRANSPARENT to `X`** ([`rules_transparent_to`]) — at its
+/// left corner **followed by more elements** is at risk: PGEN's `*` is greedy and never retries at
+/// a lower iteration count, so if the greedy `X` consumes text the holder's own residual needed,
+/// the holder can no longer match. Slice 3 measured this directly (`cast_expr := ct "'" "(" lit ")"`
+/// went accept → reject when `ct` was the base); slice 5 measured the TRANSITIVE form, where the
+/// holder never names `X` at all.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StarvationSite {
-    /// The rule holding the candidate at a left corner with a non-empty residual.
+    /// The rule holding the candidate — or a rule transparent to it — at a left corner with a
+    /// non-empty residual.
     pub rule: String,
     /// Which alternative of that rule.
     pub alternative_index: usize,
@@ -225,6 +223,13 @@ pub struct IndirectChainCandidate {
     /// lower bounds and must not be reported as totals.
     pub routes_truncated: bool,
     /// Alternatives of the base rule that reach no cycle — the verbatim seeds of `X_lr_base`.
+    ///
+    /// ⛔ **An empty vector is NOT a disqualification, and treating it as one is what hid
+    /// SystemVerilog's real base rule for two slices.** The direct/wrapper elimination DROPS a
+    /// left-recursive alternative, so a rule with no acyclic alternative has nothing left to seed
+    /// from; the indirect transformation CLONES it with the cycle edge sheared, so a cyclic
+    /// alternative still contributes every non-cyclic derivation underneath it. `constant_primary`
+    /// has 0 acyclic alternatives and its two clones carry 13 and 14 seeds between them.
     pub acyclic_alternative_indices: Vec<usize>,
     /// Sites exposed to the greedy-`*` starvation, in deterministic order.
     pub starvation_sites: Vec<StarvationSite>,
@@ -245,6 +250,26 @@ impl IndirectChainCandidate {
             .iter()
             .flat_map(|route| route.intermediate_rules())
             .collect()
+    }
+
+    /// Every rule this candidate's routes pass through, itself included — the knot it would close.
+    ///
+    /// ⭐ Used to prefer the rule that DOMINATES a mutually-recursive set over one of its members.
+    /// SystemVerilog's cast/call knot holds two dialect twins (`constant_primary_sv_2017` and
+    /// `_sv_2023`) that reach each other through a shared `constant_primary` spine: eliminating at
+    /// either twin leaves the other's arm live, because the path back is not a SIMPLE route and so
+    /// no route shears it. Eliminating at `constant_primary` — whose coverage is a strict superset
+    /// — puts both twins inside one plan, and its routes are simple.
+    pub fn covered_rules(&self) -> BTreeSet<String> {
+        let mut covered: BTreeSet<String> = BTreeSet::new();
+        covered.insert(self.base_rule.clone());
+        for route in &self.routes {
+            for step in &route.steps {
+                covered.insert(step.rule.clone());
+                covered.insert(step.next_rule.clone());
+            }
+        }
+        covered
     }
 
     /// Starvation sites that would still be REACHABLE after the rewrite — the real hazard.
@@ -419,14 +444,6 @@ pub fn survey_indirect_left_recursion(
         let acyclic_alternative_indices: Vec<usize> = (0..alternative_count)
             .filter(|index| !cyclic_alternatives.contains(index))
             .collect();
-        if acyclic_alternative_indices.is_empty() {
-            declined.push(DeclinedCycle {
-                rule: rule_name.clone(),
-                cycle: cycle.clone(),
-                reason: DeclineReason::NoAcyclicSeed,
-            });
-            continue;
-        }
 
         let on_route_rules: BTreeSet<String> = routes
             .iter()
@@ -660,7 +677,57 @@ fn rules_surviving_rewrite(
     live
 }
 
-/// Every site holding `base_rule` at a left corner with a non-empty residual.
+/// Rules that are **transparent** to `base_rule`: the base itself, plus every rule with an
+/// alternative that is a BARE reference (empty residual) to another transparent rule.
+///
+/// ⛔⛔ **WHY TRANSPARENCY, AND NOT JUST DIRECT HOLDERS — this is a REGRESSION the first version of
+/// the transformation actually shipped, and the two-sided reproducer ratchet caught it.**
+/// A transparent rule adds nothing between its caller and the base, so once the base becomes
+/// `X_base ( X_suffix )*` the transparent rule is **just as greedy as the base**. Measured on
+/// SystemVerilog:
+///
+/// ```text
+/// casting_type := … | constant_primary          ← bare reference: TRANSPARENT to constant_primary
+/// cast         := casting_type tick lparen expression rparen   ← holds it WITH a residual
+/// ```
+///
+/// With `constant_primary` as the base, `casting_type` inherits the greed, `constant_primary`
+/// swallows the whole `8'(1)` as a cast of its own, and `cast` can never match its trailing
+/// `tick lparen expression rparen`. `initial k = 8'(1);` went **ACCEPT → REJECT** — the same P2
+/// starvation slice 3 measured, one hop further out, where a direct-holder scan cannot see it.
+///
+/// ⭐ The synthetic could not have found this and its own README said so: P3 deleted `ct` and
+/// `cast_expr` because nothing else reached them, while *"SystemVerilog reaches `casting_type` from
+/// `cast` too, so a real transformation must ADD the clone and KEEP the originals"*. Keeping the
+/// original is exactly what leaves the starved holder standing.
+fn rules_transparent_to(
+    base_rule: &str,
+    steps_by_rule: &HashMap<String, Vec<ChainStep>>,
+) -> BTreeSet<String> {
+    let mut transparent: BTreeSet<String> = BTreeSet::new();
+    transparent.insert(base_rule.to_string());
+    loop {
+        let mut grown = false;
+        for (rule, steps) in steps_by_rule {
+            if transparent.contains(rule) {
+                continue;
+            }
+            if steps
+                .iter()
+                .any(|step| step.residual.is_empty() && transparent.contains(&step.next_rule))
+            {
+                transparent.insert(rule.clone());
+                grown = true;
+            }
+        }
+        if !grown {
+            break;
+        }
+    }
+    transparent
+}
+
+/// Every site holding a rule TRANSPARENT to `base_rule` at a left corner with a non-empty residual.
 fn collect_starvation_sites(
     base_rule: &str,
     steps_by_rule: &HashMap<String, Vec<ChainStep>>,
@@ -668,6 +735,7 @@ fn collect_starvation_sites(
     on_route_rules: &BTreeSet<String>,
     survivors: &BTreeSet<String>,
 ) -> Vec<StarvationSite> {
+    let transparent = rules_transparent_to(base_rule, steps_by_rule);
     let mut sites: Vec<StarvationSite> = Vec::new();
     for rule_name in rule_order {
         if rule_name == base_rule {
@@ -677,7 +745,7 @@ fn collect_starvation_sites(
             continue;
         };
         for step in steps {
-            if step.next_rule != base_rule || step.residual.is_empty() {
+            if !transparent.contains(&step.next_rule) || step.residual.is_empty() {
                 continue;
             }
             sites.push(StarvationSite {

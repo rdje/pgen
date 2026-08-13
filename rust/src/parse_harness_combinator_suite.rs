@@ -174,6 +174,27 @@ pub enum Combinator {
     /// author's own positions — which is precisely what `hoist_branch_annotations` claims and what
     /// `select_expression`'s `-> {kind: "and", lhs: $1, rhs: $3}` depends on.
     DirectLeftRecursionFoldedAst,
+    /// ENGINE-UNIVERSAL-SERVICES.13 — **INDIRECT** left recursion: a cycle that closes only through
+    /// a chain of intermediate rules (`prim → cast_expr → ct → prim`), which no wrapper match and no
+    /// direct normalization can see. Until slice 5 nothing eliminated this shape and the runtime
+    /// guard REJECTED it, so `t'(n)'(n)` — SystemVerilog's `int'(2)'(3)`, edge for edge — had no
+    /// derivation at all.
+    ///
+    /// ⛔ Why a variant of its own rather than another [`LeftRecursionFoldedAst`] row: the three LR
+    /// doors are genuinely different passes. The wrapper planner matches ONE hop; the direct
+    /// normalizer rewrites an inline self-reference into that one hop; this one walks a multi-hop
+    /// ROUTE, synthesizes a sheared CLONE per intermediate, and composes the hops' annotations into
+    /// a single fold template. Collapsing them would let the coverage gate call indirect LR covered
+    /// on the strength of a case that never reaches the route walk.
+    ///
+    /// ⭐ The grammar is ANNOTATED on purpose, and that is the load-bearing half. A structural
+    /// accept proves only that the chain parses; what the composition has to preserve is the
+    /// left-NESTED AST the un-eliminated grammar declares — `{kind: "cast", body: {type: {kind:
+    /// "prim", body: <the accumulated value>}, body: <lit>}}` — reproduced by
+    /// `lr_chain_fold::fold_lr_chain` from one composed template per route. An unannotated version
+    /// of this same grammar is REFUSED by the pass (a hop with a residual and no declared AST has
+    /// no template that can reproduce its default shaping), so it could not measure this at all.
+    IndirectLeftRecursionFoldedAst,
     /// SV-CORPUS-GRAD.3.12 — the packrat memo × RUNTIME CYCLE-BREAKING composition. A cycle-guard
     /// rejection is a fact about the live parse stack, not about `(rule, position)`, so a body that
     /// hit one must not be filed under the memo's stack-blind key: replaying it from a *different*
@@ -236,6 +257,7 @@ impl Combinator {
         Combinator::LeftRecursionFoldedAst,
         Combinator::DirectLeftRecursion,
         Combinator::DirectLeftRecursionFoldedAst,
+        Combinator::IndirectLeftRecursionFoldedAst,
         Combinator::RecursionGuardedMemoIsolation,
         Combinator::LayoutInsensitiveDefault,
         Combinator::LayoutWhitespaceSensitiveFull,
@@ -627,6 +649,53 @@ pub const COMBINATOR_CASES: &[CombinatorCase] = &[
         entry_rule: Some("expr"),
         requested_profile: None,
         note: "annotations on a DIRECTLY left-recursive alternative survive the hoist, $N intact",
+    },
+    // ── INDIRECT left recursion, eliminated at generation (ENGINE-UNIVERSAL-SERVICES.13 slice 5) ───
+    CombinatorCase {
+        name: "indirect_left_recursion_folded_ast",
+        combinator: Combinator::IndirectLeftRecursionFoldedAst,
+        // SystemVerilog knot A, minimised to six rules and carrying the annotations the shipped
+        // grammar declares on the same four hops
+        // (`docs/tasks/artifacts/engine_universal_services/indirect_lr/p4_knot_a_annotated.ebnf`):
+        //
+        //   prim      := lit | cast_expr        ~ constant_primary_sv_2017 (alt#11 -> constant_cast)
+        //   cast_expr := ct "'" "(" lit ")"     ~ constant_cast (byte-identical shape)
+        //   ct        := kw | prim              ~ casting_type alt#1 -> constant_primary
+        //
+        // ⭐ The entry sits OUTSIDE the cycle, as `source_text` does in SystemVerilog. With `prim`
+        // itself as entry the outermost `prim` occupies the guard's (rule, position) slot before the
+        // derivation starts, and the case would measure the entry choice rather than the cycle.
+        //
+        // ⛔ `t'(n)` needs NO recursion (`ct`'s own `kw` alternative seeds it) and parsed before this
+        // pass existed — it is the control that makes the other rows attributable. `n'(n)` and
+        // `t'(n)'(n)` each need the cycle once; `t'(n)'(n)'(n)` needs it twice, so a fold that
+        // handled only the first iteration cannot pass.
+        grammar_body: concat!(
+            "@entry: true\n",
+            "scratch := prim\n",
+            "prim := lit       -> {kind: \"lit\",  body: $1}\n",
+            "      | cast_expr -> {kind: \"cast\", body: $1}\n",
+            "cast_expr := ct \"'\" \"(\" lit \")\"\n",
+            "          -> {type: $1, body: $4}\n",
+            "ct := kw   -> {kind: \"kw\",   body: $1}\n",
+            "    | prim -> {kind: \"prim\", body: $1}\n",
+            "lit := \"n\"\n",
+            "kw := \"t\"\n",
+        ),
+        inputs: &[
+            ("n", true),
+            ("t'(n)", true),
+            ("n'(n)", true),
+            ("t'(n)'(n)", true),
+            ("t'(n)'(n)'(n)", true),
+            // A chain that stops mid-suffix must still be rejected — the `( suffix )*` is greedy and
+            // does not backtrack its iteration count, so this is the row that would break if the
+            // rewrite let a partial suffix count as an iteration.
+            ("t'(n)'(n", false),
+        ],
+        entry_rule: Some("scratch"),
+        requested_profile: None,
+        note: "an INDIRECT cycle is eliminated at generation and returns the left-nested AST its hops declare",
     },
     // ── The packrat memo × runtime cycle-breaking composition (SV-CORPUS-GRAD.3.12) ─────────────────
     CombinatorCase {

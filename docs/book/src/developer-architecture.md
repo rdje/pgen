@@ -44,24 +44,50 @@ semantic store. The three terms:
   each memo entry and replays it on cache hits (the published-correct fix, Laurent & Mens,
   SLE 2016).
 
-**Left recursion: indirect/chained recursion is eliminated for you; direct inline recursion
-is expressed as a precedence cascade.** The **AST pipeline's `eliminate_left_recursive_patterns`
-pass** (on by default; toggle `--eliminate-left-recursion`) rewrites *indirect / chained* left
-recursion — where a rule reaches itself only through bare-reference wrapper rules — into a
-non-recursive form, backed by a runtime cycle-breaker. The rewrite is then **folded back through
-the author's return annotations** at AST construction, so an eliminated rule returns the declared
-left-nested AST and is indistinguishable from a hand-written one — one shared implementation
-(`ast_pipeline::lr_chain_fold`) called by both codegen graphs and the interpreter
-(`ENGINE-UNIVERSAL-SERVICES.8`; see *The Annotation System*). **Direct inline left recursion
-(`A := A op A | term`) is *not* auto-eliminated**: the detector
-(`detect_left_recursive_chain_plan`) targets the indirect wrapper-chain shape, so a flat
-inline rule like `expr := expr "+" term | term` yields zero transformations and its left branch
-is blocked at runtime. For operator grammars you therefore write the natural **precedence
-cascade** — loosest→tightest `head tail tail*` levels with named tail rules and `-> $1`
-passthroughs — which is the proven idiom across PGEN's expression grammars (e.g.
-`constant_expression`). The
-cascade keeps the AST and annotations faithful to operator precedence; you do **not** hand-rewrite
-a single flat rule into tail form (that would distort the AST and the annotations).
+**Left recursion is eliminated for you — direct, wrapper-chained and indirect alike.** The **AST
+pipeline's `eliminate_left_recursive_patterns` pass** (on by default; toggle
+`--eliminate-left-recursion`) runs three stages, each feeding the next:
+
+1. **Direct inline recursion is normalized into the wrapper shape.** A flat
+   `expr := expr "+" term | term` — the way every language standard's Annex A writes it — has its
+   left-recursive alternatives hoisted into synthetic rules so the wrapper planner can see them
+   (`normalize_direct_left_recursive_alternatives`, `GRAMMAR-WELLFORMED.A2.5`). Before that, such an
+   alternative reached codegen intact and was *dead code* the runtime guard rejected.
+2. **Wrapper chains are eliminated** — `X := seed | W`, `W := X suffix` becomes
+   `X := X_lr_base ( X_lr_suffix )*` (`detect_left_recursive_chain_plan`).
+3. **Indirect routes are eliminated** — `X := … A …`, `A := … B …`, `B := … X …`, where the cycle
+   spans many hops, becomes the same `X_lr_base ( X_lr_suffix )*` plus one sheared **clone** per
+   intermediate on the route (`ast_pipeline::indirect_lr_elimination`,
+   `ENGINE-UNIVERSAL-SERVICES.13`). The pass applies each plan to a copy and re-runs the
+   left-recursion lint before committing, so a plan that would only half-shear a cycle is refused
+   with the surviving path named rather than shipped.
+
+Every stage's rewrite is **folded back through the author's return annotations** at AST
+construction, so an eliminated rule returns the declared left-nested AST and is indistinguishable
+from a hand-written one — one shared implementation (`ast_pipeline::lr_chain_fold`) called by both
+codegen graphs and the interpreter (`ENGINE-UNIVERSAL-SERVICES.8`; see *The Annotation System*).
+For an indirect route the hops' annotations are *composed* into a single per-iteration template, so
+that one fold covers a whole route without changing.
+
+⛔ **Three bounds worth knowing.** A hop with a residual and no return annotation is **refused** (its
+undeclared value is the engine's default shaping of the whole alternative, which no template can
+reproduce — annotate it). A cycle whose closing path re-enters a rule already on the route, or runs
+through a nullable prefix, a quantifier or a group, is outside the route walk and is refused loudly.
+And — the one that decides the most in practice — a rule can absorb a chain only if **nothing that
+outlives the rewrite can be starved by its new greed**, transitively: an alternative that is a bare
+reference forwards consumption as well as shape, so a holder that never names the base rule can
+still lose. See [Grammar Wellformedness](grammar-wellformedness.md).
+
+For operator grammars a **precedence cascade** — loosest→tightest `head tail tail*` levels with
+named tail rules and `-> $1` passthroughs — remains the idiom that keeps the AST faithful to
+operator precedence, and it is what PGEN's expression grammars use (e.g. `constant_expression`).
+⚠️ It is no longer a *workaround* for a missing capability, and it is not free: a cascade puts a
+residual after the rule it recurses on, which is exactly the shape that starves chain absorption.
+That is why SystemVerilog's SVA property knot is still uneliminated
+(`ENGINE-UNIVERSAL-SERVICES.15`) — though the same starvation also arises from the LRM's own
+`casting_type := … | constant_primary` / `cast := casting_type ' ( expression )` factoring
+(`.17`), so it is a property of the SHAPE, not of hand-writing. Write the cascade when you want the
+precedence; write the flat rule when you want the engine to do the work.
 
 Two consequences worth remembering:
 
