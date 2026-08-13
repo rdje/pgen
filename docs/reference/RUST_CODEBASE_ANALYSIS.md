@@ -73,7 +73,10 @@ LR-eliminated `*` re-enterable — with the packrat memo as the exposed surface.
 
 ⇒ the front-runner moves from an engine-core change to a **gen-AST → gen-AST rewrite** — the highest
 fix tier, and the one `ENGINE-UNIVERSAL-SERVICES.7`'s taxonomy prices as free at parse time by
-construction. Durable form: [[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]].
+construction. Durable form: [[project_pgen_gives_back_at_neither_combinator]] — ⛔ which SUPERSEDES
+`project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier` (`.17` slice 4): the choice does
+not give back either, so the starvation has TWO sources and the repair needs a guard in TWO
+positions. The fix-tier conclusion above is unaffected — it is still a gen-AST → gen-AST rewrite.
 
 ## Recent Architecture Change Note (2026-08-13) — the indirect-LR rewrite lands, and it verifies its own postcondition (`ENGINE-UNIVERSAL-SERVICES.13` slice 5)
 

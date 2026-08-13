@@ -3729,3 +3729,45 @@ to look for, which is the whole complaint. Do not let the cheap tiers close the 
 ⛔ **Sequencing.** PARKED behind the SV lane lock with `.25` and `.26` — it blocks no SV release
 work. ⭐ But note the standing bar it touches: the `ADDRESSED (verified)` box is the one every SV
 slice leans on, so this is the gate whose blind spot is most widely exercised.
+
+### `.28` NEW `todo` — superseding a decision record leaves its old id cited as LIVE, and no doctrine measures that (opened 2026-08-14 session #228 by `ENGINE-UNIVERSAL-SERVICES.17` slice 4b)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is sent to).
+
+- **It reproduces here, at full size, one commit after the supersede.** `.17` slice 4 superseded
+  [[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]], updated the surfaces its
+  author recalled, and passed **18/18 doctrines** plus `mdbook_docs_gate`. A `grep -rl` for the
+  refuted id afterwards returned **12** files, of which **2** still presented the law as live —
+  including `rust/src/ast_pipeline/indirect_lr_plan.rs:323`, a module doc comment that *specified
+  the superseded design*, i.e. the next implementer reading the code rather than the leaf would have
+  built the shape measured to regress `initial k = int'(1);`.
+- **It is not family-specific and not `.17`-specific.** The mechanism is that `MEMORY_ARCHITECTURE.md`
+  mandates *"supersede, don't mutate"* and supplies no instrument for the second half: nothing
+  enumerates who still cites the superseded id. Any record superseded by any tree has the same
+  exposure; `docs/decisions/` currently holds several.
+- ⛔ **The nearest existing doctrine is measured NOT to cover it.** `KNOWLEDGE-MAP` verifies the
+  derived map is in sync with its **fact sources** — it re-derives from the record files, so a stale
+  *citation elsewhere* is invisible to it. It passed with both defects present, before and after
+  regeneration. This is structurally the same gap `LESSON-PROMOTION` was created to close (a
+  mechanism existed, was wired, and nothing asked whether it had been used).
+- ⭐ **The check is cheap and the hard part is the classification, not the grep.** Of the 12
+  citations, **10 are correct and must stay**: derived artifacts (`KNOWLEDGE_MAP.md`), append-only
+  history that must quote the name it was written with (`CHANGES.md`, `docs/TASK_TREE.md`), files
+  carrying the correction *beside* the original (both `quantifier_policy` files, the owning leaf),
+  and the two records naming each other. ⇒ a blanket rewrite would do HARM
+  ([[feedback_a_named_call_site_is_a_category_of_call_sites]] — classify by what the referent
+  REQUIRES, per [[feedback_classify_referents_by_requirement]]).
+
+**Acceptance:** (a) a record carrying `superseded_by:` is machine-detectable, and every citation of
+its id outside an allow-classified set (derived / append-only history / the superseding record /
+a citation adjacent to an explicit supersede marker) FAILS the gate by name; (b) the check is RED
+against the tree as it stood at `96b0d60a` — the two real stale citations — and GREEN after the
+4b fix, so it is proven to discriminate rather than merely to pass; (c) the classification rule is
+written down where the next supersede will read it, in `MEMORY_ARCHITECTURE.md` beside
+*"supersede, don't mutate"*: **re-point what SPECIFIES, mark what NARRATES, never touch history**.
+
+⛔ **Sequencing.** PARKED behind the SV lane lock with `.25`, `.26` and `.27` — it blocks no SV
+release work, and `.17` slice 4b already fixed the live instance by hand. ⭐ Note what it shares with
+`.27`: both are gaps where the roster audits the PRESENCE of a structure and never whether the
+structure was actually reached.

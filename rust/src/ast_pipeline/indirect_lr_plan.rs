@@ -320,10 +320,27 @@ impl GuardFirstBytes {
 /// ## What the guard IS
 ///
 /// After the rewrite the base reads `X := X_lr_base ( X_lr_suffix )*` with a **possessive** `*`
-/// (`.17` slice 1, [[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]]). A holder
+/// (`.17` slice 1, [[project_pgen_gives_back_at_neither_combinator]]). A holder
 /// `H := X residual` starves when the loop eats text `residual` needed. The guard is the PEG-native
 /// repair slice 1 measured (`( "a" &"a" )* "a"` accepts `aaa` **and** `a`): commit an iteration only
 /// when the position after it can still start `residual`.
+///
+/// ⛔⛔ **WHAT THIS MODULE MEASURES IS HALF THE REPAIR — `.17` slice 4.** Two corrections that this
+/// census does NOT yet implement, so do not read its verdicts as a closure claim:
+///
+/// 1. **A byte-set guard is dead on SystemVerilog.** `trivia` is nullable and leads every token, so
+///    `/` is in every FIRST set; the byte test passes exactly where it had to refuse
+///    (`k = n'(n)/*c*/;`). The emitted form must be a STRUCTURAL lookahead over the residual —
+///    `&( residual )`, a sub-parse — not the `&FIRST(residual)` this module's byte sets describe.
+///    Exactness is measured at **0 of 157** sites, so the cheap form is a proof nowhere.
+/// 2. ⛔ **A guard on the `*` alone leaves a SECOND starvation open, and this census cannot see
+///    it.** An over-long SEED — `X_lr_base`'s own sheared clone — can match the holder's whole text
+///    with the loop taking ZERO iterations, and the choice does not give back. That needs a
+///    **trailing** guard, `X_lr_base ( X_lr_suffix &( residual ) )* &( residual )`. The two
+///    positions close DISJOINT starvations (bank: `guard_effectiveness/`, 37 rows, both oracles).
+///    [`GuardAssessment`] carries no seed term at all, so a `Guardable` verdict here is silent
+///    about it — adding that term is `.17` slice 5's first job, and the ORDERING must not be made
+///    guard-aware before it exists.
 ///
 /// ```text
 /// X_guarded := X_lr_base ( X_lr_suffix &FIRST(residual) )*

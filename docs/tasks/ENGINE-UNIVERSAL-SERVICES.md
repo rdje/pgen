@@ -3368,6 +3368,77 @@ complete model.** Recorded here so the deferral is a decision with a reason, not
   cap raised (`MEMORY-ARCH`, *"a cap is never raised to land content"*). Final: 30 lines / 7 107
   bytes, `check_memory_architecture.sh` rc 0.
 
+##### ⛔ `.17` SLICE 4b (`PGEN-ENGINE-UNIVERSAL-SERVICES-0024`, 2026-08-14 session #228) — slice 4's own LOCKSTEP missed two citations of the record it refuted, and one of them was SOURCE CODE
+
+> **A doc comment + a reference line + one promoted discipline record. ZERO grammar bytes, ZERO
+> executable Rust bytes** (the only `rust/src/` change is a `///` block), ZERO codegen, ZERO
+> generated artifacts.
+
+Slice 4 superseded [[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]] and updated
+the surfaces it *remembered* citing it. Asked afterwards whether the decision was signoff-grade, the
+first check run was the one slice 4 never ran: `grep -rl` for the refuted record's name. **Twelve
+files cite it; two were unswept.**
+
+- ⛔⛔ **`rust/src/ast_pipeline/indirect_lr_plan.rs:323`** — and it is worse than a stale link. That
+  doc comment is the census module's *"## What the guard IS"* section, and it still SPECIFIED the
+  superseded design: `X_guarded := X_lr_base ( X_lr_suffix &FIRST(residual) )*` — the byte-set form
+  slice 4 measured dead, in the single position slice 4 measured insufficient. The next reader of
+  the module — most plausibly slice 5, in a fresh session, reading the code rather than the leaf —
+  would have implemented exactly the shape that regresses `initial k = int'(1);`. Now carries both
+  corrections inline, with the pointer to `GuardAssessment`'s missing seed term and the explicit
+  order not to make the ordering guard-aware before it exists.
+- **`docs/reference/RUST_CODEBASE_ANALYSIS.md:76`** — *"Durable form: [[…]]"* re-pointed. Its
+  fix-tier conclusion (a gen-AST → gen-AST rewrite) is unaffected and says so.
+
+⭐ **The other ten citations are CORRECT and must stay**, which is why the sweep is a judgement and
+not a `sed`: `KNOWLEDGE_MAP.md` is derived, `CHANGES.md` and `docs/TASK_TREE.md` are append-only
+history that must quote the name they were written with, the two `quantifier_policy` files and this
+leaf's FINDING 1 carry the correction *beside* the original, and both decision records must name
+each other. ⇒ the rule is **re-point what SPECIFIES, mark what NARRATES, never touch history**.
+
+⛔ **THE PROCESS DEFECT, named.** Slice 4's LOCKSTEP box enumerated the surfaces it edited. That is a
+list of what the author remembered, and nothing measured it against the surfaces that actually
+reference the changed fact. A supersede is a rename with a blast radius, and the blast radius is
+`grep -rl <old_id>`, not recall. ⛔ It is also invisible to the doctrine roster: `KNOWLEDGE-MAP`
+checks the derived map is in sync with its *fact sources*, never that a superseded id stopped being
+cited as live — the same shape as `LESSON-PROMOTION`'s own founding gap.
+⇒ **routed to `CI-PARITY-GATE-ROT.28` NEW** (parked behind the lane lock, with the measured routing
+evidence: 12 citations, 2 stale, 1 in `rust/src/`, caught by hand after the gate said 18/18).
+
+⭐ **AND THE TRANSFERABLE HALF OF SLICE 4 IS NOW FIRST-CLASS, not buried.** Slice 4 wrote its lesson
+into `DEVELOPMENT_NOTES.md` and into the *project* record's closing section, where someone asking
+*"is my probe bank enough to claim a mechanism?"* would never find it. Promoted to
+[[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]] — a `feedback` discipline
+record with its own `answers:` keys, sibling to
+[[a-check-whose-inputs-all-pass-has-not-been-tested]]. A discipline filed under the defect that
+produced it is retrievable only by people who already know the defect.
+
+###### Acceptance Checklist (enforced) — `.17` slice 4b
+
+- [x] **REPRODUCE / ISSUE** — `grep -rl project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier`
+  over the tracked tree returns **12** files after slice 4 landed; two of them present the refuted
+  law as live, and one is a `rust/src/` doc comment specifying the superseded design.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `indirect_lr_plan.rs:323` (the `GuardVerdict` module
+  doc) and `docs/reference/RUST_CODEBASE_ANALYSIS.md:76`. WHY: slice 4's LOCKSTEP was an
+  author-recalled enumeration, and no doctrine measures a superseded record's remaining citations —
+  `KNOWLEDGE-MAP` verifies the derived map against its fact sources, which a stale *citation* does
+  not touch. The gate reported 18/18 with both defects present.
+- [x] **FIX** — fix-hierarchy tier = **documentation correctness** (no executable byte moves). Both
+  citations re-pointed, the source-code one additionally corrected on substance (byte-set →
+  structural, one position → two, plus the missing seed term and the ordering embargo). The
+  ten legitimate citations were classified and deliberately left.
+- [x] **ADDRESSED (verified)** — re-swept: `grep -rl` now shows the refuted id only where it is
+  narrated or explicitly marked superseded, and `grep -rl project_pgen_gives_back_at_neither_combinator`
+  covers both corrected surfaces. `KNOWLEDGE_MAP.md` regenerated (`knowledge-map: OK — facts valid,
+  ids unique, map in sync`). `bash scripts/check_doctrines.sh` → **ALL 18 PASS** on the staged diff.
+- [x] **NO REGRESSION** — the only `rust/src/` change is a `///` doc comment; no item, signature,
+  expression or attribute moves, so codegen output cannot differ by construction. Confirmed by
+  compiling: `cargo test --features "generated_parsers ebnf_dual_run" --lib indirect_lr` →
+  **21 passed / 0 failed**, unchanged from slice 3's count. No scratch-slot obligation is acquired.
+- [x] **LOCKSTEP** — `docs/decisions/` (the new `feedback` record + INDEX), `KNOWLEDGE_MAP.md`,
+  `docs/reference/RUST_CODEBASE_ANALYSIS.md`, `rust/src/ast_pipeline/indirect_lr_plan.rs`,
+  `CHANGES.md`, `docs/TASK_TREE.md`. `MEMORY.md` unchanged — the frontier did not move.
+
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
