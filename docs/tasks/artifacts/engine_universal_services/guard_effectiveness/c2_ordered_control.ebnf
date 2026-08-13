@@ -1,0 +1,22 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — C2: C1's one-difference control.
+#
+# Byte-for-byte `c1_choice_never_gives_back.ebnf` except for one added line:
+#
+#     C1:  ch := "a" | "ab"                          (default policy = longest_match)
+#     C2:  @branch_policy: ordered                   ← the only difference
+#          ch := "a" | "ab"
+#
+# REQUIRED VERDICT: **ACCEPT** on "abc". Under `ordered` the choice commits to `"a"`, and `"bc"`
+# then matches at position 1.
+#
+# ⛔ WHY IT IS MANDATORY. Without it, C1's REJECT has two readings — *"the engine does not give
+# back"* and *"this input has no parse under this grammar"* — and only the first is a finding. C2
+# exhibits the parse C1's engine refused to reach, so the REJECT can only be the commit.
+#
+# ⭐ It also pins the second half of the law: `ordered` does not give back EITHER, it merely commits
+# to a different alternative. Neither policy backtracks the choice; they differ only in which single
+# alternative is kept.
+@entry: true
+scratch := ch "bc"
+@branch_policy: ordered
+ch := "a" | "ab"

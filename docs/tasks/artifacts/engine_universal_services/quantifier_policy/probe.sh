@@ -5,12 +5,31 @@
 # argues from measurement instead of from the PEG formalism:
 #
 #   Q1  `( "a" )* "a"`            on "aaa"  MUST REJECT  — the quantifier is POSSESSIVE
-#   Q2  `( "a" | "ab" ) "c"`      on "abc"  MUST ACCEPT  — the choice DOES give back
+#   Q2  `( "a" | "ab" ) "c"`      on "abc"  MUST ACCEPT  — ⛔⛔ SEE THE CORRECTION BELOW
 #   Q3  `( "a" | "ab" )`          on "ab"   MUST ACCEPT  — default policy is longest_match
 #   Q4  `( "a" &"a" )* "a"`       on "aaa"  MUST ACCEPT  — a stop-guard rescues Q1 …
 #       same grammar             on "a"    MUST ACCEPT  — … in both directions
 #   Q5  guarded star, no residual on "aaa"  MUST REJECT  — so the guard is CALL-SITE scoped
 #   Q5b Q5 with the guard removed on "aaa"  MUST ACCEPT  — Q5's one-difference control
+#
+# ⛔⛔ CORRECTION TO Q2's READING (2026-08-13, `.17` slice 4 — the VERDICT is unchanged and must
+# stay ACCEPT; what was wrong is the MECHANISM slice 1 read out of it). Q2 was recorded as *"the
+# choice DOES give back — `"a"` wins, `"c"` fails, the choice retries `"ab"`"*, and that is the
+# premise of `.17` slice 1's FINDING 1 and of the decision record it produced. It does not follow:
+# Q3 on the very next line establishes that the default policy is `longest_match`, so `"ab"` wins
+# OUTRIGHT and `"c"` then matches the single remaining byte. The parse completes on the first and
+# only alternative the choice ever kept ⇒ **Q2's ACCEPT is predicted identically with and without a
+# give-back, so it discriminates nothing.**
+#
+# The discriminating shape — one where both alternatives match and only the SHORTER lets the caller
+# finish — is `ch := "a" | "ab"` with `scratch := ch "bc"` on "abc", and it **REJECTS**. Measured on
+# BOTH oracles in `../guard_effectiveness/` (cases C1/C2/C3), located at
+# `ast_based_generator.rs:5037` (a single `best_content` winner slot, losers discarded).
+# ⇒ read [[project_pgen_gives_back_at_neither_combinator]], NOT the superseded
+# [[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]].
+#
+# ⭐ Q1 / Q3 / Q4 / Q5 / Q5b are UNAFFECTED — each is a genuine one-difference control whose verdict
+# separates the hypotheses it was run for. Only Q2 was over-read.
 #
 # ⭐ GROUND TRUTH (`feedback_instrument_needs_ground_truth`). Every case DECLARES its required
 # verdict and this script compares against it, so the bank is self-checking in BOTH directions:
@@ -103,7 +122,8 @@ run Q5b q5b_unguarded_control.ebnf           aaa.txt ACCEPT
 
 echo
 if [ "$fail" -eq 0 ]; then
-  echo "QUANTIFIER-POLICY-CONTROLS: 7/7 as declared — the give-back laws hold as recorded."
+  echo "QUANTIFIER-POLICY-CONTROLS: 7/7 as declared — the VERDICTS hold as recorded."
+  echo "  ⛔ Q2's verdict is not evidence of a give-back — see the CORRECTION in this file's header."
 else
   echo "QUANTIFIER-POLICY-CONTROLS: MISMATCH — an engine law recorded in .17 no longer holds." >&2
   echo "  Do NOT adjust the expectations to match; the leaf's design rests on them." >&2

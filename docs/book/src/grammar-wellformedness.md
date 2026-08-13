@@ -2218,6 +2218,80 @@ than a byte test: precise, at the cost of a per-iteration sub-parse instead of o
 ⛔ **This census is reported, not applied.** The verdict the eliminator acts on is still the
 structural one, so nothing about which knots PGEN absorbs has changed.
 
+### The guard, measured — and why one guard is not enough
+
+The census above says a guard is *expressible*. Running one says whether it *works*, and the answer
+has three parts. All of them are measured on a synthetic that carries a real layout model — a
+nullable `trivia` rule leading every token, the way SystemVerilog writes it — on both the generated
+parser and the interpreter
+(`docs/tasks/artifacts/engine_universal_services/guard_effectiveness/`).
+
+**1. The structural form works; the byte form does not.** Take the starvation case and put a comment
+at the iteration boundary:
+
+```systemverilog
+k = n'(n);          // byte guard: ACCEPT     structural guard: ACCEPT
+k = n'(n)/*c*/;     // byte guard: REJECT ⛔   structural guard: ACCEPT
+```
+
+`/` is in `FIRST(residual)` because `trivia` is nullable and leads the tick, so the byte test passes
+at exactly the position it had to refuse. The loop commits the fatal iteration and the holder
+starves. The structural lookahead re-parses the residual there, comment and all, and refuses
+correctly.
+
+**2. A guard on the loop closes only half the problem.** The rewritten rule is
+`X := X_lr_base ( X_lr_suffix )*`, and `X_lr_base` carries the *sheared clones* — copies of the
+intermediates with the cycle edge removed. One of those clones can match the holder's whole text on
+its own, without the loop running at all:
+
+```systemverilog
+k = t'(n);          // the loop takes ZERO iterations; the clone in X_lr_base ate the cast
+```
+
+That parse starves the holder just as badly, and no guard on the `*` can see it. The over-long match
+came from an *alternation*, and — this is the part that surprises people — **PGEN's choice does not
+give back either**:
+
+```text
+ch := "a" | "ab"
+scratch := ch "bc"          on "abc"  ⇒  REJECT
+```
+
+The default `longest_match` policy evaluates every alternative and keeps the longest in a single
+winner slot; the losers are discarded, not remembered. When `"bc"` then fails there is nothing to
+retry, even though `"a"` would have worked. (Under `@branch_policy: ordered` the same grammar
+accepts, because it commits to a *different* single alternative — not because it backtracks.)
+
+⛔ **Do not read `|` as "try each until one works".** It is *"evaluate all, keep one, commit"*.
+
+**3. So the repair has two positions, on the same clone.**
+
+```text
+X_guarded := X_lr_base ( X_lr_suffix &( residual ) )* &( residual )
+                        └── stops the LOOP ──┘        └── refuses an over-long SEED ──┘
+```
+
+They close **disjoint** starvations, and dropping either one loses those cases outright:
+
+| | `k = n'(n);` (loop) | `k = t'(n);` (seed) |
+|---|---|---|
+| per-iteration guard only | ACCEPT | REJECT |
+| trailing guard only | REJECT | ACCEPT |
+| **both** | **ACCEPT** | **ACCEPT** |
+
+The trailing guard cannot rescue the loop case because by the time it runs the possessive `*` has
+already committed to its maximum count, and there is no give-back to a shorter one. The
+per-iteration guard cannot rescue the seed case because the loop never ran.
+
+⭐ **Neither guard needs backtracking**, which is what keeps the repair affordable: refusing an
+over-long seed makes that alternative *fail* rather than win, and a failed alternative is simply one
+fewer candidate for the tournament that was going to run anyway.
+
+⛔ **Both belong on a clone, never on the shared rule.** `constant_primary` must reserve a trailing
+`'( … )` when it is reached from `cast`, and must **not** when it is reached from an ordinary
+expression. Writing the guard onto the rule breaks every caller that wants the whole run — measured,
+not assumed: a residual-free holder of a rule-guarded base rejects `k = n;`.
+
 ### And "a guard is expressible here" is still not "this knot would close"
 
 `guard-feasible` is a verdict about the **starvation gate**. Three more refusals live behind that

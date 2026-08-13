@@ -1,0 +1,22 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — C3: slice 1's Q2, reproduced, so the refutation is not an
+# argument about a case this bank never ran.
+#
+# Slice 1's Q2 is `( "a" | "ab" ) "c"` on "abc" ⇒ ACCEPT. This file is that grammar with the choice
+# lifted into a rule, which is the form `.17`'s real subject takes (`casting_type` is a rule, not an
+# inline group) and which C1/C2 also use — so the three files differ only in the trailing element
+# and the policy line, never in shape.
+#
+# REQUIRED VERDICT: **ACCEPT** on "abc" — Q2's verdict, unchanged.
+#
+# ⛔ AND IT IS CONSISTENT WITH NO GIVE-BACK, which is the whole point. `longest_match` selects
+# `"ab"`; `"c"` then matches the single remaining byte. The parse completes on the FIRST and ONLY
+# alternative the choice ever kept. Q2 therefore discriminates nothing: its ACCEPT is predicted
+# identically by "the choice gives back" and by "the choice commits to the longest".
+#
+# ⭐ THE LESSON THIS FILE CARRIES, and it is bigger than `.17`: a control that passes under both
+# hypotheses is not evidence for either. Slice 1 ran Q2 as a MEASUREMENT and read a MECHANISM out of
+# it. The bank it belongs to is self-checking in both directions and still could not notice, because
+# the expectation it checked (`ACCEPT`) was the right answer for the wrong reason.
+@entry: true
+scratch := ch "c"
+ch := "a" | "ab"

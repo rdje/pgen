@@ -1,0 +1,35 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — C1: the choice does NOT give back, on the DEFAULT policy.
+#
+# ⛔⛔ THIS FILE EXISTS TO REFUTE `.17` SLICE 1's FINDING 1. That finding reads *"the same engine
+# gives back at a CHOICE and refuses to at a QUANTIFIER"* and it is the premise for `.17`'s central
+# framing — *"`.17`'s blocker is an asymmetry between two of PGEN's own combinators, not a property
+# of PEG"*. The premise rests on slice 1's Q2:
+#
+#     Q2   ( "a" | "ab" ) "c"   on "abc"   ACCEPT
+#     slice 1's reading: `"a"` wins, `"c"` fails, the choice gives back and retries `"ab"`.
+#
+# ⛔ Q2 CANNOT SHOW THAT, and the reason is slice 1's own Q3: the default policy is `longest_match`,
+# so `"ab"` wins OUTRIGHT and `"c"` then matches the remaining `c`. Q2's ACCEPT is fully explained
+# with NO give-back anywhere. It is a non-discriminating case — its verdict is identical under both
+# hypotheses. (`c3_slice1_q2_reproduced.ebnf` reproduces Q2's verdict here so the refutation is not
+# an argument about a case this bank never ran.)
+#
+# THE DISCRIMINATING SHAPE is one where both alternatives match and only the SHORTER one lets the
+# caller finish:
+#
+#     ch := "a" | "ab"      both match at 0; longest_match selects "ab"
+#     scratch := ch "bc"    "bc" then fails at position 2 (only `c` is left)
+#                           give-back to "a" would put "bc" at position 1, where it matches
+#
+# REQUIRED VERDICT: **REJECT** on "abc" — i.e. no give-back. `c2_ordered_control.ebnf` is the
+# one-difference control: the identical grammar under `@branch_policy: ordered` ACCEPTS the identical
+# input, which proves the REJECT is a property of the engine's COMMIT, not an unparseable input.
+#
+# ⭐ CONSEQUENCE FOR `.17`. Both of PGEN's combinators are possessive. The asymmetry slice 1 named
+# does not exist, so option (i) ("make the `*` re-enterable") cannot be justified as "restoring at
+# the quantifier what the choice already does" — it would be the FIRST give-back in the engine, and
+# priced as such. Option (iii)'s standing is unaffected: a stop-guard needs no give-back anywhere,
+# which is exactly why it survives this refutation intact.
+@entry: true
+scratch := ch "bc"
+ch := "a" | "ab"

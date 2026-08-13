@@ -1,0 +1,46 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — G4: the trailing guard is CALL-SITE scoped, measured.
+#
+# `g3_trailing_guard.ebnf` plus a SECOND holder of `prim` — one with NO residual, which therefore
+# wants the whole run:
+#
+#   G3:  scratch := kw_k eq outer_cast semi
+#   G4:  scratch := kw_k eq outer_cast semi | kw_k eq prim semi
+#                                           ^^^^^^^^^^^^^^^^^^^ the residual-free holder
+#
+# REQUIRED VERDICT: **REJECT** on `e7` (`k = n;`). `prim` matches `n`, then the trailing guard
+# demands a `tick lparen lit rparen` that this holder never wanted and the input does not carry, so
+# `prim` fails and BOTH alternatives die with it.
+#
+# ⛔⛔ WHAT IT PINS. This is slice 1's Q5 law at the new position: a follow restriction written onto
+# the RULE cannot be right for two holders that disagree about the residual. `constant_primary` must
+# reserve a trailing `' ( … )` when it is reached from `cast`, and must NOT when it is reached from
+# an ordinary expression — and `constant_primary` is reached from both. ⇒ the trailing guard belongs
+# on the same sheared clone the loop guard does, never on the shared rule. The transformation
+# therefore buys the clone chain ONCE and hangs both guards on it; it does not buy a second one.
+#
+# ⛔ `e1` must still ACCEPT here — the first holder is unharmed. A file that rejected everything
+# would prove nothing about scoping. `g5_trailing_guard_clone_control.ebnf` is the one-difference
+# control that proves `e7` is parseable at all under this shape.
+@entry: true
+scratch := kw_k eq outer_cast semi
+         | kw_k eq prim semi
+outer_cast := ct tick lparen lit rparen
+ct := kw | prim
+prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )* &( tick lparen lit rparen )
+prim_base := lit | cast_seed
+cast_seed := kw tick lparen lit rparen
+prim_suffix := tick lparen lit rparen
+
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

@@ -2214,7 +2214,14 @@ the criterion would be measuring nothing.
   `revert-your-fix-and-re-run-a-fix-no-test-defends-is-not-finished` (Knowledge Map 105 → **106**
   facts), `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
 
-#### ⛔⛔ `.17` NEW `todo` — chain absorption cannot close SystemVerilog's cast/call knot, because PGEN's `*` is greedy and never retries at a lower iteration count (opened 2026-08-13 session #224 by `.13` slice 5)
+#### ⛔⛔ `.17` `in progress` — chain absorption cannot close SystemVerilog's cast/call knot, because PGEN's combinators COMMIT ONCE and never retry (opened 2026-08-13 session #224 by `.13` slice 5; slices 1-4 CLOSED `PGEN-ENGINE-UNIVERSAL-SERVICES-0020`…`-0023`, **slice 5 = implement**)
+
+> ⛔⛔ **THE TITLE OF THIS LEAF WAS HALF WRONG UNTIL SLICE 4, AND THE MISSING HALF IS A SECOND
+> DEFECT.** It read *"because PGEN's `*` is greedy and never retries at a lower iteration count"*,
+> which is true and incomplete: slice 4 measured the CHOICE committing too (one winner kept, losers
+> discarded — `ast_based_generator.rs:5037`), so an over-long SEED starves its holder exactly as an
+> over-long LOOP does. A design that guards only the `*` closes half the knot and **regresses
+> `initial k = int'(1);`**. Read slice 4's RESULT 2 before slice 1's FINDING 1, which it refutes.
 
 **ROUTING EVIDENCE** — measured here, at the point it was found, rather than left for the receiving
 leaf to rediscover:
@@ -2409,7 +2416,17 @@ genuinely new. It is also far smaller than the note assumed, because both mechan
 already ship: a codegen-computed **per-iteration guard slot** in the emitted loop, and **sheared
 clones** from the `.13` eliminator.
 
-###### ⭐⭐ FINDING 1 — the same engine gives back at a CHOICE and refuses to at a QUANTIFIER
+###### ⛔⛔ FINDING 1 — ~~the same engine gives back at a CHOICE and refuses to at a QUANTIFIER~~ **REFUTED by slice 4 — DO NOT CITE**
+
+> ⛔⛔ **REFUTED 2026-08-13 by slice 4 (below). The choice does not give back either.** Q2's ACCEPT
+> is fully explained by FINDING 2's own `longest_match` default — `"ab"` wins outright and `"c"`
+> matches the one remaining byte — so the case is predicted identically with and without a
+> give-back and **discriminates nothing**. The shape that separates them (`ch := "a" | "ab"` with
+> `scratch := ch "bc"`) REJECTS on both oracles; the tournament keeps a single `best_content` slot
+> (`ast_based_generator.rs:5037`) and discards every loser.
+> ⇒ there is **no asymmetry between the combinators** — both commit — and the starvation has TWO
+> independent sources, not one. See [[project_pgen_gives_back_at_neither_combinator]]. The text
+> below is retained verbatim for the audit trail.
 
 The one-difference pair, measured (`probe.sh` Q1/Q2):
 
@@ -2475,7 +2492,14 @@ had.
    (iii) the cheap option**: a stop-guard leaves every rule with exactly one result per position, so
    the memo is untouched. A re-enterable `*` does not.
 
-###### THE DESIGN SPACE AS IT NOW STANDS (slice 2 decides; this slice does not)
+###### THE DESIGN SPACE AS IT NOW STANDS (slice 2 decides; this slice does not) — ⭐ **SETTLED BY SLICE 4: (iii), structural, TWO positions**
+
+> ⭐ **Outcome, recorded here so this list is not read as still-open:** slice 4 ADOPTS **(iii)** in
+> its structural form with a guard in **two** positions on one sheared clone, REFUSES **(i)** (now
+> the first give-back in the engine, not parity), leaves **(ii)** as the fallback it always was, and
+> does not reach **(iv)**. The byte-set form named below as *"the candidate to price first"* is
+> **dead** — slice 2 measured exactness at 0/157 and slice 4 measured it failing on the first
+> comment.
 
 - **(iii) call-site-scoped follow-restriction guard**, synthesized by the eliminator onto the sheared
   clone — **the candidate to price first.** Zero parse-time cost beyond one guard test per iteration,
@@ -3037,6 +3061,313 @@ is favourable, which is exactly the condition under which such a coupling ships 
   `docs/reference/RUST_CODEBASE_ANALYSIS.md`. No user-visible parser behaviour changed, so no
   contract or schema edit is owed.
 
+##### ✅ `.17` SLICE 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0023`, 2026-08-13 session #228) — (iii) is DECIDED, its shape is CORRECTED to TWO guard positions, and the engine law slices 1-3 reasoned from is REFUTED
+
+> **DOCS + a tracked probe bank only — ZERO grammar bytes, ZERO Rust bytes, ZERO codegen bytes,
+> ZERO generated-parser bytes.**
+> The leaf's gate for this slice, in slice 3's own words: *"the guard's effectiveness — that a
+> trivia-aware structural lookahead refuses exactly the fatal iteration on real SystemVerilog text —
+> is **still unmeasured**, and is slice 4's burden."* It is now measured, on both oracles. ⛔ Two of
+> the three results were not on the leaf's map: option (iii) **as specified through slice 3 does not
+> close SystemVerilog's cast knot**, and the engine law that framed the whole design is **false**.
+>
+> Effectiveness bank (re-runnable, self-checking, 37 rows × 2 oracles):
+> `docs/tasks/artifacts/engine_universal_services/guard_effectiveness/probe.sh` →
+> `GUARD-EFFECTIVENESS: 37/37 as declared`.
+
+###### THE INSTRUMENT — P5's shape, PLUS the one ingredient no probe in this family had
+
+The bank is `.13` slice 5b's `p5_transparent_holder.ebnf` hand-eliminated at `prim`, wrapped in an
+enclosing statement so the holder is MANDATORY (`k = … ;` — without the terminator a shorter parse
+hides the starvation), and carrying **SystemVerilog's own layout model**: a nullable
+`trivia := (line_comment | block_comment)*` leading every token, copied in shape from
+`grammars/systemverilog.ebnf:618-624`. Slice 2 measured that layout fact as the second cause of
+`exact = 0 of 157`; no synthetic in this tree had ever carried it, which is why no earlier probe
+could have found E3.
+
+The mapping is rule-for-rule (full table in `g0_unguarded.ebnf`'s header):
+`outer_cast` ~ `cast := casting_type tick lparen expression rparen` (the holder, residual
+`tick lparen lit rparen`) · `ct := kw | prim` ~ `casting_type := simple_type | constant_primary | …`
+(`:1032`, transparent on its second arm) · `prim := prim_base ( prim_suffix )*` ~
+`constant_primary := …_lr_base ( …_lr_suffix )*` · `cast_seed` ~ the sheared `constant_cast` clone
+`.13` slice 5 emits.
+
+###### ⭐⭐ RESULT 1 — the structural guard is effective; the byte-set form is DEAD
+
+| | `prim` | e1 `k = n'(n);` | e2 `…'(n)'(n);` | **e3 `…'(n)/*c*/;`** | e4 `…/*c*/'(n);` | e6 `k = t'(n)'(n);` |
+|---|---|---|---|---|---|---|
+| **G0** | `prim_base ( prim_suffix )*` | REJECT | REJECT | REJECT | REJECT | REJECT |
+| **G1** | `… ( prim_suffix &residual_first_byte )*` | ACCEPT | ACCEPT | **REJECT** ⛔ | ACCEPT | ACCEPT |
+| **G2** | `… ( prim_suffix &( tick lparen lit rparen ) )*` | ACCEPT | ACCEPT | **ACCEPT** ⭐ | ACCEPT | ACCEPT |
+
+E3 is E1 with a comment at the iteration boundary, and it is the whole discriminator. `trivia` is
+nullable and leads `tick`, so `/` ∈ `FIRST(residual)`; the byte test passes exactly where it had to
+refuse, the loop commits the fatal iteration, and the holder starves. ⇒ slice 2's *"a trivia-aware
+structural lookahead is effectively mandatory rather than a refinement"* is **measured**, not argued.
+
+⭐ **G1 is written as the CHARITABLE form on purpose**, so the result is a lower bound. It is a
+lookahead over a regex, so the engine's layout skipper runs first; the emitted Q-GUARD reads
+`parser.input.as_bytes()[parser.position]` raw (`ast_based_generator.rs:6014-6020`) and would also
+mis-fire on plain whitespace. Even given free whitespace handling the cheap form still slips.
+
+###### ⛔⛔ RESULT 2 — (iii) AS SPECIFIED DOES NOT CLOSE THE KNOT: there is a SECOND starvation, and it is at the CHOICE
+
+`e5` (`k = t'(n);`) **REJECTS under G0, G1 and G2 alike.** Bisected rather than reasoned about: it
+still rejects with the quantifier deleted outright (`prim := prim_base`), so no guard on the `*` can
+reach it. The over-long match comes from `prim_base`'s own sheared clone `cast_seed`, which matches
+the whole cast and wins the `ct` tournament; the holder then has no residual left, and the choice
+never gives back (RESULT 4).
+
+⛔ **The shipped analogue is exact, not analogous — and it is READ OFF THE SHIPPED REPORT, not
+inferred.** The driver's first pick is `casting_type` (slice 3), whose own clone set contains
+`constant_cast`, and the survey already names the site:
+
+```text
+[candidate] casting_type  routes=10  seeds=4  clone_cost=14  verdict=STARVED
+    clones: … cast, … constant_cast, constant_function_call, constant_primary, …
+    ⛔ starved by constant_cast alt#0 (on-route, still reachable after the rewrite)
+       — residual 'tick lparen constant_expression rparen' a greedy suffix could steal
+```
+
+After the rewrite `casting_type := casting_type_lr_base ( casting_type_lr_suffix )*`, and
+`casting_type_lr_base` carries the sheared `constant_cast` clone —
+`casting_type_acyclic tick lparen constant_expression rparen`, which is `cast_seed` in this bank,
+byte for byte in shape. On `int'(1)` it matches the whole cast, `casting_type` keeps it as the
+longest alternative, and the holder `cast := casting_type tick lparen expression rparen` has no
+`tick` left.
+
+⛔ **"It parses today" is MEASURED, not assumed** — this leaf's own slice-4 lesson applied to its own
+headline. On the shipped parser at HEAD:
+
+```text
+parse_full passed for grammar 'systemverilog' on '…/sv_int_cast.sv'    # module m; initial k = int'(1); endmodule
+parse_full passed for grammar 'systemverilog' on '…/sv_size_cast.sv'   # module m; initial k = 8'(1); endmodule
+```
+
+⇒ **shipping (iii) with the loop guard alone would trade `.13`'s defect for a new one**, on the same
+knot, in the same session that measured `28 → 0`. That is the single most valuable thing this slice
+found, and it was found *before* any engine byte moved.
+
+###### ⭐⭐ RESULT 3 — and it is closable, by a SECOND guard POSITION on the SAME clone
+
+| | `prim` | e1 | e2 | e3 | e4 | **e5** | e6 |
+|---|---|---|---|---|---|---|---|
+| **G2** per-iteration only | `( suffix &R )*` | ✅ | ✅ | ✅ | ✅ | **REJECT** | ✅ |
+| **G6** trailing only | `( suffix )* &R` | REJECT | REJECT | REJECT | REJECT | **ACCEPT** | REJECT |
+| **G3** both | `( suffix &R )* &R` | ✅ | ✅ | ✅ | ✅ | **ACCEPT** | ✅ |
+
+⭐⭐ **The two positions close DISJOINT starvations and neither is redundant** — G6 is the control
+that proves it, and it is the exact complement of G2:
+
+- the **per-iteration** guard stops the LOOP at the right count, and cannot touch an over-long SEED
+  (on `e5` the loop runs zero times);
+- the **trailing** guard refuses an over-long SEED, and cannot touch the LOOP (by the time it runs
+  the possessive `*` has committed to the maximum count, and there is no give-back to a shorter one
+  — so it can only turn a starved parse into a failed one).
+
+⭐ **Why the trailing guard costs no give-back**, which is what keeps it inside the second
+non-negotiable: refusing an over-long seed makes that branch **fail** rather than win, and a failed
+branch is not a losing branch — the tournament simply has one fewer candidate and picks the next.
+The repair converts a would-be give-back into a branch failure the shipped selection already handles.
+
+⛔ **It is still CALL-SITE scoped, and that is measured, not inherited from slice 1's Q5.** G4 is G3
+plus a second, residual-free holder of `prim`; on `e7` (`k = n;`) it **REJECTS**, because the
+trailing guard demands a residual that holder never wanted. G5 — G4 with the trailing guard removed —
+**ACCEPTS** the same input, so the REJECT is the guard and not the shape. ⇒ both guards hang on the
+same sheared clone the plan already emits; the transformation buys **one** clone chain carrying two
+lookaheads, not two chains.
+
+###### ⛔⛔ RESULT 4 — SLICE 1's FINDING 1 IS FALSE, AND SO IS THE DECISION RECORD IT PRODUCED
+
+Slice 1's FINDING 1 — *"the same engine gives back at a CHOICE and refuses to at a QUANTIFIER"* — is
+the premise for this leaf's central framing (*"`.17`'s blocker is an asymmetry between two of PGEN's
+own combinators, not a property of PEG"*) and was promoted to a decision record,
+[[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]].
+
+**It rests on Q2** — `( "a" | "ab" ) "c"` on `abc` ⇒ ACCEPT, read as *"`"a"` wins, `"c"` fails, the
+choice gives back and retries `"ab"`."* ⛔ That does not follow, and slice 1's own Q3 is why: the
+default policy is `longest_match`, so `"ab"` wins OUTRIGHT and `"c"` matches the single remaining
+byte. The parse completes on the first and only alternative the choice ever kept. **Q2's verdict is
+predicted identically with and without a give-back.**
+
+The discriminating shape is one where both alternatives match and only the SHORTER lets the caller
+finish. Measured on both oracles:
+
+| | grammar | input | GEN | INTERP | reading |
+|---|---|---|---|---|---|
+| **C1** | `ch := "a" \| "ab"` · `scratch := ch "bc"` | `abc` | **REJECT** | REJECT | the choice does **not** give back |
+| **C2** | the same under `@branch_policy: ordered` | `abc` | ACCEPT | ACCEPT | the parse EXISTS ⇒ C1 is the commit, not the grammar |
+| **C3** | slice 1's Q2, as a rule | `abc` | ACCEPT | ACCEPT | Q2's verdict reproduced — and non-discriminating |
+
+**Located.** The tournament declares ONE winner slot —
+`let mut best_content: Option<ParseContent<'input>> = None;` (`ast_based_generator.rs:5037`) — the
+policy cascade at `:4380-4440` only decides whether a candidate DETHRONES the incumbent, and the
+winner is consumed once at `:5102`. No losing alternative is retained anywhere, so there is nothing
+for a caller-failure to retry against. The *"evaluate all branches"* comment at `:4273` that slice 1
+cited is about **selection**, not retention.
+
+⇒ [[project_pgen_gives_back_at_neither_combinator]] supersedes the earlier record, which is retained
+and marked (per `MEMORY_ARCHITECTURE.md` *"supersede, don't mutate"*). What survives: the possessive
+quantifier; *costs are REJECTED, not traded* implemented as **prove the cost away at generation
+time** rather than *never attempt twice*; and the call-site scoping of the repair. What does not: the
+combinator asymmetry, and **any argument for a re-enterable `*` that leans on parity with the
+choice** — option (i) would be the FIRST give-back in the engine and must be priced as new behaviour.
+
+⭐ **The transferable lesson, and it is bigger than `.17`.** Slice 1's bank is self-checking in both
+directions, carries must-accept and must-reject cases, and exits non-zero on a flipped expectation —
+and it still could not notice, because the expectation it checked (`ACCEPT`) was **the right answer
+for the wrong reason**. A control that passes under both hypotheses discriminates nothing, and a
+*mechanism* may never be read out of one. Sibling of
+[[a-check-whose-inputs-all-pass-has-not-been-tested]]: that one is about inputs that never exercise a
+branch, this one about an output that never separates two explanations.
+
+###### ⭐⭐ THE DECISION THIS SLICE WAS ASKED TO TAKE
+
+**(a) ADOPT option (iii), in its STRUCTURAL form, with TWO guard positions on one sheared clone.**
+
+```text
+X_guarded := X_lr_base ( X_lr_suffix &( residual ) )* &( residual )
+```
+
+The byte-set form is refused outright — not "preferred against" — because slice 2 measured exactness
+at **0 of 157** sites and E3 shows what that costs on the first comment. The structural form's price
+is one residual sub-parse per committed iteration plus one at rule exit, and it is confined by
+construction: the guard lives on a clone reached only from the holder, so every other caller of the
+base rule pays nothing, and `no_competition` / `residual_nullable` sites are owed no guard at all
+(slice 2: 29 of 126 SV sites).
+
+**(b) REFUSE option (i) (a re-enterable `*`).** Unchanged in outcome, strengthened in reason: with
+FINDING 1 refuted it can no longer be argued as restoring parity, and its memo burden — a rule with
+several valid results at one position — is untouched by anything measured here. (iii) needs no
+give-back anywhere, which is precisely why it survived the refutation intact.
+
+**(c) (iii) MUST NOT SHIP WITHOUT THE TRAILING GUARD.** RESULT 2 is not a caveat; it is a predicted
+regression on `initial k = int'(1);`. Slice 5 implements both positions or neither.
+
+**(d) NO NEW LEAF IS OPENED FOR THE SEED STARVATION.** It is not a separate defect — it is the same
+follow restriction at the same call site in a second position, and it is fixed by the same clone.
+Routing it out would split one design across two trees.
+
+###### THE ORDERING QUESTION — deferred to slice 5, and the reason is now stronger than slice 3's
+
+Slice 3 asked whether the driver's candidate ordering should become guard-aware, having measured
+that it picked `casting_type` (`max_hops=0`) over `constant_primary` (`max_hops=1`) on the existing
+`acyclic_alternative_indices` tiebreak — *"the coincidence is favourable, which is exactly the
+condition under which such a coupling ships unnoticed."*
+
+**The ordering, located and read** (`indirect_lr_elimination.rs:330-343`) — four keys, none of them
+about guards:
+
+```text
+covered_rules().len()               DESC   prefer the DOMINATOR of a knot
+acyclic_alternative_indices.len()   DESC   prefer the rule with more acyclic seeds
+clone_cost().len()                  ASC    prefer the cheaper clone set
+position(base_rule)                 ASC    deterministic tiebreak
+```
+
+Re-measured this session on the shipped grammar: `casting_type` `routes=10 seeds=4 clone_cost=14`
+beats `constant_primary` `routes=10 seeds=0 clone_cost=14` on key 2, and the dry run picks
+`casting_type` + `property_expr` for `would_absorb=2 … 28 -> 0`.
+
+⛔ **This slice does not answer it, and deliberately so: the question changed shape under RESULT 2.**
+A candidate's guard cost is no longer `guard_hops` alone — it is *(hops for the loop guard)* **plus**
+*(whether the base's own seed set can swallow the holder's residual)*, and the second term does not
+exist in `GuardAssessment` at all (`verdict` / `residual_first` / `guard_hops`, `indirect_lr_plan.rs`).
+Wiring the ordering to the census as it stands would hard-code a preference derived from a model
+known to be incomplete — the same shape of error as slice 2 reasoning from the wrapper's annotation
+count. ⇒ **slice 5 extends the census with the seed term first, then decides the ordering against a
+complete model.** Recorded here so the deferral is a decision with a reason, not an omission.
+
+###### Acceptance Checklist (enforced) — `.17` slice 4
+
+- [x] **REPRODUCE / ISSUE** — the leaf's own gate was unanswerable from any shipped surface, and in
+  two independent ways. (1) The guard's effect had never been executed: slice 2 proved a guard
+  EXPRESSIBLE and slice 3 proved the plan BUILDABLE, but no artifact in this tree had ever run a
+  guarded parse, so *"the guard refuses exactly the fatal iteration"* was an unmeasured premise.
+  Reproduced as the starvation it repairs — `g0_unguarded` REJECTs all six inputs on BOTH oracles,
+  `Backtrack at position 9` on `k = n'(n);`. (2) The engine law the design rests on had never been
+  run on a discriminating case (see ROOT CAUSE).
+- [x] **ROOT CAUSE (WHY + WHERE)** — two, both located, both re-measured rather than quoted.
+  - **The byte guard's failure.** WHY: `trivia := (line_comment | block_comment)*`
+    (`grammars/systemverilog.ebnf:619`) is nullable and leads every token, so `/` ∈ `FIRST` of every
+    token and a byte test over `FIRST(residual)` passes at a position the residual cannot start
+    from. WHERE the shipped form would live: the Q-GUARD's byte-set test,
+    `ast_based_generator.rs:6006-6020` (`!matches!(parser.input.as_bytes()[parser.position], …)`).
+    Measured consequence: `g1_byte_guard` REJECTs `k = n'(n)/*c*/;` where `g2_structural_guard`
+    accepts it — one input, one difference.
+  - **The second starvation, and the false law behind it.** WHY: the multi-branch tournament keeps
+    exactly ONE winner — `let mut best_content: Option<ParseContent<'input>> = None;`
+    (`ast_based_generator.rs:5037`), dethrone-only cascade at `:4380-4440`, consumed once at
+    `:5102` — so a successful-but-losing alternative is DISCARDED and there is nothing for a
+    caller-failure to retry against. The *"evaluate all branches"* comment at `:4273` that slice 1
+    cited describes SELECTION, not retention. ⇒ an over-long seed starves its holder exactly as an
+    over-long loop does, and `.17`'s framing of the blocker as a quantifier-only asymmetry was
+    wrong at the root.
+- [x] **FIX** — fix-hierarchy tier = **design decision + tracked probe bank** (no engine, grammar,
+  codegen or generated-artifact byte moves; no shipped verdict changes). The leaf's design gate is
+  discharged and the shape of (iii) is CORRECTED before any of it is built: two guard positions on
+  one sheared clone, structural rather than byte-set, with the ordering deliberately deferred and
+  the reason recorded. ⛔ Deliberately NOT done: `is_starvation_safe` is untouched, no guard is
+  emitted, and `CandidateAdmission` is unchanged — the implementation is slice 5, and it now has a
+  specification that cannot ship the regression this slice found.
+  ⛔ The durable layer is corrected too, not just the leaf:
+  [[project_pgen_gives_back_at_neither_combinator]] supersedes
+  [[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]], which is RETAINED and marked
+  (`MEMORY_ARCHITECTURE.md` *"supersede, don't mutate"*), and slice 1's bank carries the correction
+  to Q2's reading **with its verdict unchanged** — the expectation was right, only the mechanism read
+  out of it was wrong.
+- [x] **ADDRESSED (verified)** — `bash docs/tasks/artifacts/engine_universal_services/guard_effectiveness/probe.sh`
+  → `GUARD-EFFECTIVENESS: 37/37 as declared`, rc 0, **every row on BOTH oracles with zero DIVERGE**.
+  Ground truth in both directions: 19 rows must ACCEPT and 18 must REJECT, and the ladder is built
+  so that each rung differs from its neighbour by exactly one construct (G0→G1→G2 the guard's form,
+  G2↔G6 its position, G3 both, G4↔G5 its scoping, C1↔C2 the branch policy).
+  ⭐ **Falsifiability proven, not asserted** — flipping `g2_structural_guard e3` from `ACCEPT` to
+  `REJECT` exits **rc 1** naming that row (`g2_structural_guard e3 … ACCEPT REJECT ⛔` →
+  `GUARD-EFFECTIVENESS: MISMATCH`), and the script was restored to a byte-identical hash afterwards.
+  ⛔ That rc was read from an UNPIPED run: the first attempt read it through `| grep` and got the
+  grep's `0`, which is the exact exit-code-masking trap `CI-PARITY-GATE-ROT.25` owns.
+  ⛔ **The bank refuses a case that cannot discriminate rather than running it.** G4/G5 are measured
+  on `e1` and `e7` only — their second alternative absorbs `e2`–`e6` on its own, so those rows would
+  pass under both hypotheses. That is this slice's own finding applied to its own instrument.
+  ⭐ **The GEN arm is what makes RESULT 4 a claim about the engine.** `c1_choice_never_gives_back`
+  REJECTs and `c2_ordered_control` ACCEPTs on the REAL generated parser, not only in the
+  interpreter — so the superseding decision record rests on shipped codegen.
+- [x] **NO REGRESSION** — ⭐ **BY CONSTRUCTION, and the one obligation this slice DOES acquire is
+  verified rather than assumed.** ZERO bytes under `grammars/`, ZERO under `rust/src/`, ZERO codegen,
+  ZERO generated artifacts staged; nothing shipped was touched, so no parser input can differ.
+  ⛔ The bank drives the scratch slot, which is precisely the obligation `.13` slice 4b root-caused:
+  `generated/scratch_parser.rs` is git-ignored, so a fixture-only restore leaves a clean-looking tree
+  and two RED gates. `probe.sh` restores in BOTH halves on every exit path (`git checkout` **then**
+  `make focus_scratch`, regenerating the artifact FROM the restored fixture), and the result is
+  checked rather than trusted: `grammars/scratch/scratch.ebnf` hashes to
+  `a8caa53d5a0d038dd8670d9d5383f457e8bcafc724bf3a22494127afd94d9273`, its pre-run value, and
+  `git status --porcelain grammars/scratch/` is empty.
+  The two gates that read the slot as a matched pair were re-run after the bank, each by EXACT name:
+  `parse_harness_equivalence::gate::certified_grammars_are_byte_identical` → `test result: ok.
+  1 passed; 0 failed` (23.39s) and
+  `parser_registry::tests::scratch_slot_parses_the_blessed_fixture_to_the_known_verdict_and_ast` →
+  `test result: ok. 1 passed; 0 failed`, alongside `parser_registry::tests` **42 passed / 0 failed**.
+  ⛔ **The second gate had to be re-run to be claimed at all**, and the reason is worth carrying: the
+  first attempt piped `cargo test` into `tail -12`, so the log kept the summary line and dropped the
+  per-test lines — the run was green, but the specific test could not be shown to have executed.
+  That is `CI-PARITY-GATE-ROT.25`'s trap in its *second* form: the pipe did not mask an exit code
+  here, it masked the EVIDENCE. A summary that says `42 passed` is not a statement about which 42.
+  ⛔ Every build and probe run went through `scripts/run_with_memory_guard.sh --budget-mb 16384`
+  WITHOUT a pipe, so the reported exit is the job's own (bank: `exit=0 peak_tree_rss=10660MB
+  elapsed=645s`).
+- [x] **LOCKSTEP** — `TOOLBOX.md` §5.5 (the three slice-4 results, the corrected reading of
+  `starvation-safe 0/28` as *commit-once* rather than *the greedy star*, and the ordering keys);
+  the book's grammar-wellformedness chapter; `docs/decisions/` (the superseding record + INDEX);
+  slice 1's `quantifier_policy/probe.sh` header (Q2's reading corrected, verdicts unchanged); the new
+  bank's README; `.15` below (the seed-starvation question, unmeasured there); `KNOWLEDGE_MAP.md`
+  (regenerated — the new decision record is a fact source); `MEMORY.md`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`. No user-visible parser behaviour changed, so no
+  contract or schema edit is owed.
+  ⛔ **`MEMORY.md` was TRIMMED, not grown, to land this.** The rewritten `next_action` first came out
+  at 7 346 bytes against the 7 168-byte cap; the overflow was demoted to this leaf rather than the
+  cap raised (`MEMORY-ARCH`, *"a cap is never raised to land content"*). Final: 30 lines / 7 107
+  bytes, `check_memory_architecture.sh` rc 0.
+
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
@@ -3250,6 +3581,21 @@ give the engine a precedence-declaration service and let the cascade be generate
 (b) the choice recorded in `docs/decisions/`; (c) the fix, with SV-6/SV-7's probes flipping to
 ACCEPT. ⛔ Sequencing: this leaf is BEHIND `.13` (d) — the transformation must exist before it can
 be extended, and `.13` (d) closes the two knots that do not need this.
+
+#### ⚠️ ROUTED IN — THE THIRD DESIGN GAINED A SECOND HALF, AND WHETHER THIS KNOT NEEDS IT IS UNMEASURED (`.17` slice 4, 2026-08-13 session #228)
+
+`.17` slice 4 measured a **second** starvation the census below cannot see: an over-long **SEED** —
+the rewritten base's own sheared clone — winning the holder's alternation, which no guard on the `*`
+can reach and which needs a TRAILING guard on the same clone. On the cast/call knot it is a
+predicted regression (`initial k = int'(1);`).
+
+⛔ **Whether `property_expr`'s knot has the same exposure is NOT measured**, in either direction.
+`GuardAssessment` carries `verdict` / `residual_first` / `guard_hops` and no seed term at all, so the
+`FEASIBLE  variants=1  max_hops=0` line below is silent on it — exactly the way it was silent about
+the wrapper's annotation count before slice 3. ⇒ do not read *"the cheapest row in the census"* as
+*"one guard closes it"*; `.17` slice 5 adds the seed term to the census, and this leaf's price is
+re-read after that, not before. The re-adjudication below **stands** — the starvation blocker is
+still closable at the dominator — but its cost is now a lower bound.
 
 #### ⛔⛔ ROUTED IN — THIS LEAF'S FOUNDING PREMISE IS RE-ADJUDICATED, AND A THIRD DESIGN IS NOW THE CHEAPEST (`.17` slice 2, 2026-08-13 session #226)
 

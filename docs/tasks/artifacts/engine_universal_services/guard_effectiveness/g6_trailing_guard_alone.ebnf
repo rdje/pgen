@@ -1,0 +1,46 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — G6: the trailing guard WITHOUT the per-iteration one.
+#
+# ⛔ ONE-DIFFERENCE CONTROL against G0, and the file that stops slice 5 from shipping the simpler
+# thing. `g3_trailing_guard.ebnf` carries BOTH guards; the obvious question is whether the trailing
+# one subsumes the loop one, since it constrains the rule's whole result rather than each step.
+#
+#   G0:  prim := prim_base ( prim_suffix )*
+#   G6:  prim := prim_base ( prim_suffix )* &( tick lparen lit rparen )
+#   G2:  prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )*
+#   G3:  prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )* &( tick lparen lit rparen )
+#
+# REQUIRED VERDICTS: **REJECT** on e1–e4 and e6, **ACCEPT** on e5 — the exact complement of G2.
+#
+# ⭐⭐ WHAT IT PINS: THE TWO GUARD POSITIONS CLOSE DISJOINT STARVATIONS, and neither is redundant.
+#   * The per-iteration guard stops the LOOP at the right count. The trailing guard cannot: by the
+#     time it runs, the possessive `*` has already committed to the maximum count and there is no
+#     give-back to a shorter one — so on `k = n'(n);` the loop has eaten the holder's residual and
+#     the trailing guard can only turn a starved parse into a failed one.
+#   * The trailing guard refuses an over-long SEED. The per-iteration guard cannot: on
+#     `k = t'(n);` the loop takes ZERO iterations and never runs, while `prim_base`'s sheared clone
+#     has already matched the whole cast.
+#
+# ⇒ the transformation owes BOTH, on the same clone. That is one clone chain carrying two lookaheads,
+# not two clone chains — the cost statement `.17` acceptance (a) has to price.
+@entry: true
+scratch := kw_k eq outer_cast semi
+outer_cast := ct tick lparen lit rparen
+ct := kw | prim
+prim := prim_base ( prim_suffix )* &( tick lparen lit rparen )
+prim_base := lit | cast_seed
+cast_seed := kw tick lparen lit rparen
+prim_suffix := tick lparen lit rparen
+
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

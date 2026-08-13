@@ -1,0 +1,63 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — G0: the post-rewrite grammar with NO guard.
+#
+# This is P5's transparent-holder shape (`.13` slice 5b) hand-eliminated at `prim`, PLUS the one
+# ingredient every earlier synthetic in this family lacks: SystemVerilog's own LAYOUT MODEL — a
+# nullable `trivia` rule leading every token. Slice 2 measured that layout fact as the second of the
+# two causes of `exact = 0 of 157`, and no probe in this tree had ever carried it.
+#
+# THE MAPPING onto the shipped grammar, rule for rule:
+#
+#   scratch     := kw_k eq outer_cast semi      ~ the enclosing statement, which is what makes the
+#                                                 holder MANDATORY. `initial k = 8'(1);` — without
+#                                                 the trailing `;` the outer context is optional and
+#                                                 the starvation hides behind a shorter parse.
+#   outer_cast  := ct tick lparen lit rparen    ~ cast := casting_type tick lparen expression rparen
+#                                                 THE HOLDER. Its residual after `ct` is
+#                                                 `tick lparen lit rparen` — the byte set the guard
+#                                                 would test, and the sub-parse the structural guard
+#                                                 would run.
+#   ct          := kw | prim                    ~ casting_type := simple_type | constant_primary
+#                                                 TRANSPARENT to `prim` on its second arm, so the
+#                                                 holder is one hop out (`guard_hops = 1`).
+#   prim        := prim_base ( prim_suffix )*   ~ constant_primary := …_lr_base ( …_lr_suffix )*
+#                                                 THE POSSESSIVE LOOP. `.17`'s entire subject.
+#   prim_base   := lit | cast_seed              ~ the acyclic left corners plus the sheared clone
+#   cast_seed   := kw tick lparen lit rparen    ~ constant_cast over a casting_type shorn of its
+#                                                 constant_primary arm — `.13` slice 5's clone
+#   prim_suffix := tick lparen lit rparen       ~ constant_cast's residual after its leading
+#                                                 casting_type — what the `*` iterates
+#
+# ⛔ WHAT THIS FILE MUST DO: STARVE. It is the negative control for `g1_byte_guard.ebnf` and
+# `g2_structural_guard.ebnf`, which differ from it by exactly one lookahead inside the `*` and
+# nothing else. If G0 ever starts accepting E1, the bank is measuring something other than the
+# starvation and every conclusion drawn from it is void.
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim:
+#   cp <this file> grammars/scratch/scratch.ebnf && make -C rust SHELL=/bin/bash focus_scratch
+@entry: true
+scratch := kw_k eq outer_cast semi
+outer_cast := ct tick lparen lit rparen
+ct := kw | prim
+prim := prim_base ( prim_suffix )*
+prim_base := lit | cast_seed
+cast_seed := kw tick lparen lit rparen
+prim_suffix := tick lparen lit rparen
+
+# ---- the token tier. Every token begins with `trivia`, exactly as `grammars/systemverilog.ebnf`
+# writes `tick := trivia "'"` (:7151), `lparen := trivia "("` (:7105), `rparen := trivia ")"` (:7130).
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+# ---- the layout tier, copied in shape from `grammars/systemverilog.ebnf:618-624`. NULLABLE, and it
+# leads every token — which is precisely why `/` is in the FIRST set of every token and why a
+# byte-set guard over FIRST(residual) cannot be exact anywhere on SystemVerilog.
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

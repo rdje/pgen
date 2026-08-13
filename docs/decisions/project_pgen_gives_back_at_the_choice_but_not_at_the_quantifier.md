@@ -1,6 +1,7 @@
 ---
 name: project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier
-description: "MEASURED ENGINE LAW (2026-08-13, ENGINE-UNIVERSAL-SERVICES.17 slice 1): PGEN gives back at a CHOICE and refuses to at a QUANTIFIER. The default @branch_policy is longest_match — every alternative is evaluated and the longest wins, and a successful-but-losing alternative is retried when a later element fails — while the quantifier is possessive (Perl `a*+`) and never revisits its iteration count. ⇒ a starved trailing element is an asymmetry between PGEN's OWN combinators, NOT a property of PEG, and 'a multi-attempt protocol costs too much' is refuted by the tournament the engine already runs everywhere. The second non-negotiable is satisfied here by STATIC ELISION at codegen, not by refusing to ever attempt twice."
+superseded_by: project_pgen_gives_back_at_neither_combinator
+description: "⛔⛔ SUPERSEDED 2026-08-13 by [[project_pgen_gives_back_at_neither_combinator]] (ENGINE-UNIVERSAL-SERVICES.17 slice 4) — RETAINED FOR THE AUDIT TRAIL, DO NOT CITE. Its central claim is REFUTED: the choice does not give back either. Its one-difference pair was non-discriminating — `( \"a\" | \"ab\" ) \"c\"` on `abc` accepts because `longest_match` picks `\"ab\"`, which is also the alternative that works, so the case is predicted identically with and without a give-back. Read the superseding record. Original text follows: MEASURED ENGINE LAW (2026-08-13, ENGINE-UNIVERSAL-SERVICES.17 slice 1): PGEN gives back at a CHOICE and refuses to at a QUANTIFIER. The default @branch_policy is longest_match — every alternative is evaluated and the longest wins, and a successful-but-losing alternative is retried when a later element fails — while the quantifier is possessive (Perl `a*+`) and never revisits its iteration count. ⇒ a starved trailing element is an asymmetry between PGEN's OWN combinators, NOT a property of PEG, and 'a multi-attempt protocol costs too much' is refuted by the tournament the engine already runs everywhere. The second non-negotiable is satisfied here by STATIC ELISION at codegen, not by refusing to ever attempt twice."
 id: project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier
 title: "PGEN gives back at the choice and not at the quantifier — the asymmetry is the engine's, not PEG's"
 date: 2026-08-13
@@ -19,6 +20,21 @@ metadata:
   type: project
   created: 2026-08-13
 ---
+
+> ⛔⛔ **SUPERSEDED 2026-08-13 by [[project_pgen_gives_back_at_neither_combinator]]
+> (`ENGINE-UNIVERSAL-SERVICES.17` slice 4). DO NOT CITE THIS RECORD FOR THE CHOICE'S BEHAVIOUR.**
+> Row 2 of its table below — `( "a" | "ab" ) "c"` on `abc` ⇒ ACCEPT, read as *"the choice gives
+> back"* — does not discriminate: row 3 of the same table establishes that the default policy is
+> `longest_match`, so `"ab"` wins outright and `"c"` matches the one remaining byte. The parse
+> completes on the only alternative the choice ever kept. Slice 4 ran the shape that separates the
+> two hypotheses (`ch := "a" | "ab"` with `scratch := ch "bc"`) and it **REJECTS**; the tournament
+> keeps a single `best_content` slot (`ast_based_generator.rs:5037`) and discards every loser, so
+> nothing exists to retry.
+>
+> **Retained, not deleted**, per `MEMORY_ARCHITECTURE.md` §*"supersede, don't mutate"* — the
+> superseding record names exactly which claims survive (the possessive quantifier; static elision
+> as the answer to the cost non-negotiable; the call-site scoping of the repair) and which do not
+> (the asymmetry, and any argument for a re-enterable `*` that leans on parity with the choice).
 
 **The question `ENGINE-UNIVERSAL-SERVICES.17` had to settle before designing anything:** PGEN's
 generated parsers refuse `initial k = 8'(1);` once the cast chain is absorbed, because the greedy

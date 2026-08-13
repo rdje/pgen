@@ -1,0 +1,47 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — G2: `g0_unguarded.ebnf` plus a STRUCTURAL follow guard.
+#
+# ⛔ ONE-DIFFERENCE CONTROL, against BOTH neighbours. Byte-for-byte `g0_unguarded.ebnf` except for
+# the `prim` line; and byte-for-byte `g1_byte_guard.ebnf` except for what the lookahead wraps.
+#
+#   G0:  prim := prim_base ( prim_suffix )*
+#   G1:  prim := prim_base ( prim_suffix &residual_first_byte )*            byte set { ' , / }
+#   G2:  prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )*     the residual ITSELF
+#
+# WHAT IT MODELS. Slice 2's mandated refinement — *"a trivia-aware structural lookahead
+# (`&( residual )` — exact, at the price of a per-iteration sub-parse instead of one byte compare)"*.
+# The lookahead's body is the holder's residual verbatim, so the guard asks the only question that
+# is actually decidable: *can the holder's residual parse here?* — not *does the next byte look like
+# it might?*
+#
+# ⭐ WHY IT IS TRIVIA-AWARE FOR FREE. The guard is a normal sub-parse
+# (`generate_lookahead_logic`, `ast_based_generator.rs:4120` — `try_parse`, then restore
+# `parser.position`), so `tick := trivia "'"` runs its own `trivia` exactly as it would in the real
+# parse. Nothing here is layout-specific; the exactness is a consequence of reusing the parser
+# instead of approximating it.
+#
+# ⛔ AND WHY IT IS NOT FREE. One sub-parse of the residual per committed iteration, on the
+# SUCCESS path, versus one byte compare. That is the cost `.17`'s acceptance (a) requires priced
+# against PGEN's second non-negotiable, and it is the reason G1 exists in this bank at all: if the
+# cheap form sufficed, the expensive one would not be bought.
+@entry: true
+scratch := kw_k eq outer_cast semi
+outer_cast := ct tick lparen lit rparen
+ct := kw | prim
+prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )*
+prim_base := lit | cast_seed
+cast_seed := kw tick lparen lit rparen
+prim_suffix := tick lparen lit rparen
+
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

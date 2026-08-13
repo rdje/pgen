@@ -1,0 +1,48 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — G1: `g0_unguarded.ebnf` plus a BYTE-SET follow guard.
+#
+# ⛔ ONE-DIFFERENCE CONTROL. Byte-for-byte `g0_unguarded.ebnf` except for the `prim` line and the
+# `residual_first_byte` rule it needs. Nothing else may differ, or the comparison is not a control.
+#
+#   G0:  prim := prim_base ( prim_suffix )*
+#   G1:  prim := prim_base ( prim_suffix &residual_first_byte )*
+#
+# WHAT IT MODELS. Slice 2's option (iii) in its CHEAP form — `X_lr_base ( X_lr_suffix &FIRST(residual) )*`
+# with `FIRST(residual)` compiled to a one-byte test. The holder's residual is
+# `tick lparen lit rparen`; `tick := trivia "'"` and `trivia` is nullable, so FIRST(residual) is
+# `{ ' , / }` — the tick itself, plus `/` contributed by the nullable comment rule that leads it.
+# That is the shipped over-approximation, reproduced here rather than asserted: slice 2 measured
+# `~` (over-approximated) on 157 of 157 sites across both SystemVerilog grammars.
+#
+# ⭐ THIS IS THE CHARITABLE FORM OF THE BYTE TEST, DELIBERATELY. The emitted Q-GUARD reads
+# `parser.input.as_bytes()[parser.position]` with no layout skip at all
+# (`ast_based_generator.rs:6014-6020`), so a real byte guard also mis-fires on plain WHITESPACE at
+# the boundary. Writing it here as a lookahead over a regex lets the engine's layout skipper run
+# first, which strictly HELPS G1. The finding is therefore a lower bound on the cheap form's
+# failure: even given free whitespace handling, it still slips on a comment (case E3).
+@entry: true
+scratch := kw_k eq outer_cast semi
+outer_cast := ct tick lparen lit rparen
+ct := kw | prim
+prim := prim_base ( prim_suffix &residual_first_byte )*
+prim_base := lit | cast_seed
+cast_seed := kw tick lparen lit rparen
+prim_suffix := tick lparen lit rparen
+
+# THE GUARD, and the whole of the difference from G0: one byte drawn from FIRST(residual) =
+# { ' , / }. The `/` is not a mistake and must not be "tightened" — it is what the shipped FIRST
+# machinery computes, because `trivia` is nullable and leads `tick`.
+residual_first_byte := /['\/]/
+
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

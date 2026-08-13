@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0023 — a control that passes under both hypotheses is not weak evidence, it is none
+
+`.17` slice 1 ran seven controls to settle what PGEN's combinators actually do, declared each
+verdict up front, checked them mechanically, proved the bank falsifiable by flipping an expectation,
+and got 7/7. One of those seven was read as the finding that framed the next three slices and became
+a decision record. It was wrong, and every safeguard the bank had was working correctly at the time.
+
+The case was `( "a" | "ab" ) "c"` on `abc` ⇒ ACCEPT, read as *"`"a"` wins, `"c"` fails, the choice
+gives back and retries `"ab"`."* The verdict is right. The mechanism is not: the very next control in
+the same bank establishes that the default branch policy is `longest_match`, so `"ab"` wins outright
+and `"c"` matches the one remaining byte. The parse completes on the first and only alternative the
+choice ever kept. Both hypotheses — *the choice gives back* and *the choice commits to the longest* —
+predict ACCEPT. The case separates nothing.
+
+⇒ **an instrument's ground truth constrains its VERDICT, never the mechanism you read out of it.**
+Everything the repository already demands of a probe bank was present here — declared expectations,
+both directions, a RED-proof, a self-check — and none of them can catch this, because the assertion
+being checked was true. The missing question is not *"does the bank agree with the engine?"* but
+*"would this case have come out differently if my explanation were false?"* If the answer is no, the
+case may still be a fine regression pin, and it may not be cited for a mechanism.
+
+The fix that finds it is cheap and mechanical: state the competing explanation, then construct the
+input where the two disagree. Here that meant making the following element two bytes instead of one
+(`"bc"`, so only the SHORTER alternative can finish) — a one-character edit to the probe, and the
+answer flips to REJECT. Twelve minutes of work sitting on the other side of a premise three slices
+had been built on.
+
+⛔ It also cost more than a premise. The false law framed the blocker as *"an asymmetry between two
+of PGEN's own combinators"*, which quietly guaranteed that a repair scoped to one combinator would
+be sufficient. It is not: the choice starves its holder too, and a design that guarded only the
+quantifier would have shipped a new regression on `initial k = int'(1);` — a rule that parses today.
+The measurement that found the second starvation and the measurement that refuted the law are the
+same measurement, which is not a coincidence: a wrong story about a mechanism hides exactly the
+cases the story says cannot exist.
+
+⭐ Sibling of `a-check-whose-inputs-all-pass-has-not-been-tested`. That one is about inputs that
+never exercise a branch; this one is about an output that never separates two explanations. Both
+are ways for a green gate to mean less than it looks like it means, and neither is visible from
+inside the gate.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0022 — an oracle that crosses a grammar boundary is measuring the wrong grammar
 
 Slice 2 left `property_expr`'s annotation-composability open, and gave a reason: *"the wrapper

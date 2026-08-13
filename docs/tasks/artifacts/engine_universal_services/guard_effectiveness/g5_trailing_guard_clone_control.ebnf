@@ -1,0 +1,41 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — G5: G4's one-difference control.
+#
+# Byte-for-byte `g4_trailing_guard_needs_a_clone.ebnf` except that the TRAILING guard is removed
+# (the per-iteration guard stays — this is G2's `prim` under G4's two holders):
+#
+#   G4:  prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )* &( tick lparen lit rparen )
+#   G5:  prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )*
+#
+# REQUIRED VERDICT: **ACCEPT** on `e7` (`k = n;`), the input G4 rejects.
+#
+# ⛔ WHY IT IS MANDATORY. Without it, G4's REJECT has two readings — *"the trailing guard broke the
+# residual-free holder"* and *"this shape cannot parse `k = n;` at all"* — and only the first is a
+# finding. G5 exhibits the parse G4's guard refused, so the REJECT can only be the guard.
+#
+# ⭐ And it doubles as the scoping cost statement: G5 is what the OTHER call site must receive. Two
+# holders of the same rule need two different clones — G4's body reached from `outer_cast`, G5's
+# body reached from the bare holder. That is the price of the trailing guard, and it is the same
+# clone the loop guard already pays for, not a second one.
+@entry: true
+scratch := kw_k eq outer_cast semi
+         | kw_k eq prim semi
+outer_cast := ct tick lparen lit rparen
+ct := kw | prim
+prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )*
+prim_base := lit | cast_seed
+cast_seed := kw tick lparen lit rparen
+prim_suffix := tick lparen lit rparen
+
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

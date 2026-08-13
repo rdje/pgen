@@ -5,7 +5,7 @@ Re-run everything with one command from the repository root:
 
 ```bash
 bash docs/tasks/artifacts/engine_universal_services/quantifier_policy/probe.sh
-# QUANTIFIER-POLICY-CONTROLS: 7/7 as declared — the give-back laws hold as recorded.
+# QUANTIFIER-POLICY-CONTROLS: 7/7 as declared — the VERDICTS hold as recorded.
 ```
 
 ## Why this bank exists
@@ -22,17 +22,44 @@ live here, re-runnable, rather than in prose.
 | # | grammar | input | verdict | the law it pins |
 |---|---|---|---|---|
 | Q1 | `( "a" )* "a"` | `aaa` | **REJECT** | the quantifier is **possessive** — it never gives an iteration back |
-| Q2 | `( "a" \| "ab" ) "c"` | `abc` | **ACCEPT** | the **choice does give back** a successful-but-losing alternative |
+| Q2 | `( "a" \| "ab" ) "c"` | `abc` | **ACCEPT** | ⛔⛔ ~~the choice does give back~~ **REFUTED — see the correction below** |
 | Q3 | `( "a" \| "ab" )` | `ab` | **ACCEPT** | the default `@branch_policy` is `longest_match`, not first-match commit |
 | Q4a | `( "a" &"a" )* "a"` | `aaa` | **ACCEPT** | a per-iteration **stop-guard** closes Q1's starvation with no engine change |
 | Q4b | `( "a" &"a" )* "a"` | `a` | **ACCEPT** | …and does not break the zero-iteration case |
 | Q5 | `star_rule := ( "a" &"a" )*`, no residual | `aaa` | **REJECT** | that guard is **context-dependent** — rule-global is wrong |
 | Q5b | Q5 with the guard removed | `aaa` | **ACCEPT** | Q5's one-difference control: the REJECT is the guard's doing |
 
-Q1 and Q2 are a deliberate **one-difference pair**. Both are "a sub-match succeeds, then the element
-after it starves"; the only variable is whether the sub-match came from a quantifier or a choice.
-The same engine answers differently. ⇒ **PGEN's blocker is an asymmetry between two of its own
-combinators, not a property of PEG.**
+~~Q1 and Q2 are a deliberate **one-difference pair**.~~
+
+## ⛔⛔ CORRECTION (2026-08-13, `.17` slice 4) — Q2's VERDICT stands; the LAW read out of it does not
+
+Q1/Q2 were presented as a one-difference pair showing *"the same engine answers differently"*, and
+that reading is **wrong**. Q3, one row above, establishes that the default policy is
+`longest_match` — so in Q2 the alternative `"ab"` wins **outright** and `"c"` then matches the single
+remaining byte. The parse completes on the first and only alternative the choice ever kept.
+**Q2's ACCEPT is predicted identically with and without a give-back**, so it separates nothing.
+
+The discriminating shape is one where both alternatives match and only the SHORTER lets the caller
+finish — `ch := "a" | "ab"` with `scratch := ch "bc"` on `"abc"` — and it **REJECTS** on both
+oracles. Located: the tournament keeps ONE winner slot
+(`let mut best_content: Option<ParseContent<'input>> = None;`, `ast_based_generator.rs:5037`), the
+cascade at `:4380-4440` only decides whether a candidate DETHRONES the incumbent, and the winner is
+consumed once at `:5102` — losers are discarded, so nothing exists to retry. The *"evaluate all
+branches"* comment at `:4273` cited below describes **selection**, not retention.
+
+⇒ **there is no asymmetry: both combinators commit.** Read
+[[project_pgen_gives_back_at_neither_combinator]]; the record this bank produced,
+[[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]], is superseded. Full measurement:
+`../guard_effectiveness/` (cases C1/C2/C3, 37-row bank, both oracles).
+
+⭐ **Q1, Q3, Q4a, Q4b, Q5 and Q5b are UNAFFECTED** — each is a genuine one-difference control whose
+verdict does separate the hypotheses it was run for. Only Q2 was over-read, and the expectation in
+`probe.sh` is deliberately left at `ACCEPT`: it was never the verdict that was wrong.
+
+⭐ The transferable lesson — **a control that passes under both hypotheses is not weak evidence, it
+is none.** This bank declared its expectations up front, checked them mechanically, carried cases in
+both directions and proved itself falsifiable, and none of that can catch this, because the
+assertion being checked was true.
 
 ## The two findings that move the design
 

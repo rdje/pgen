@@ -1,0 +1,51 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 4 — G3: `g2_structural_guard.ebnf` plus a TRAILING guard.
+#
+# ⛔ ONE-DIFFERENCE CONTROL against G2. Byte-for-byte `g2_structural_guard.ebnf` except that the
+# same lookahead is ALSO applied once after the whole rewritten body:
+#
+#   G2:  prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )*
+#   G3:  prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )* &( tick lparen lit rparen )
+#                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# WHY IT EXISTS. G2 closes every starvation the `*` causes and still REJECTS `e5`
+# (`k = t'(n);`) — because that one is not caused by the `*` at all. Bisected in slice 4: `e5`
+# rejects even with the quantifier deleted outright. The over-long match comes from `prim_base`'s
+# own sheared-clone alternative (`cast_seed`, i.e. `constant_cast` over a shorn `casting_type`)
+# winning the `ct` tournament outright, after which the holder has no residual left and the choice
+# never gives back ([[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]], as
+# CORRECTED by this slice).
+#
+# ⭐⭐ WHAT THE TRAILING GUARD DOES ABOUT IT. It moves the follow restriction from "each iteration"
+# to "the rule's whole result", so an over-long match from the SEED is refused exactly as an
+# over-long match from the LOOP is. Refusing it makes the `prim` branch FAIL rather than win, and a
+# failed branch is not a losing branch — the tournament then has only `kw` left and picks it. ⇒ the
+# repair needs no give-back at the choice, which is the property that made (iii) affordable in the
+# first place; it converts a would-be give-back into a branch failure the existing selection already
+# handles.
+#
+# ⛔ IT IS STILL A CALL-SITE CONSTRUCT, and `g4_trailing_guard_needs_a_clone.ebnf` measures that:
+# written onto the RULE it breaks every holder that wants the whole run — Q5's law, at the new
+# position. This file has exactly one holder, so the clone is degenerate here and the distinction is
+# invisible; G4/G5 supply it.
+@entry: true
+scratch := kw_k eq outer_cast semi
+outer_cast := ct tick lparen lit rparen
+ct := kw | prim
+prim := prim_base ( prim_suffix &( tick lparen lit rparen ) )* &( tick lparen lit rparen )
+prim_base := lit | cast_seed
+cast_seed := kw tick lparen lit rparen
+prim_suffix := tick lparen lit rparen
+
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//
