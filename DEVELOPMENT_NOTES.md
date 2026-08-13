@@ -1,5 +1,34 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0025 — a pinned `N/N` can be wrong in the flattering direction for a whole slice, and only a NEW report line exposed it
+
+`.17` slice 2 pinned *"every guard byte test on SystemVerilog is over-approximated — 157 of 157"* and
+that number was quoted onward into `TOOLBOX.md`, the book, two decision records, the knowledge base
+and two bank READMEs. The bank extracted it with `grep -c 'first='`, which counts LINES CONTAINING
+that substring — and the report prints `first=` once per starvation site AND `suffix_first=` once per
+candidate summary. So `157` was `129` sites plus `28` candidates. Slice 5 added a `seed_first=` line,
+the count jumped to 185, and the bank went red for a reason that had nothing to do with what it was
+guarding.
+
+⇒ **a substring scraper inflates in the direction that looks like better coverage.** An `N of N`
+ratio built over too many lines still reads as "all of them"; nothing sums wrong, no case flips, and
+the error survives every safeguard the bank already had. This same case had been re-derived twice
+before — once for a tautological `want` and once for reading a site-capped report — and both fixes
+left the extractor untouched, because the extractor was never the thing under suspicion.
+
+The discipline: anchor on something STRUCTURAL in the row you mean — a bracket group the row alone
+opens, or a marker in its only legal position — and cross-check with a SECOND independent extraction
+before pinning. `[guard=` and `— residual '` both return 129; the surviving-site census 68+29+29=126
+plus 3 benign rows accounts for it exactly. And treat a report's format as an interface: when you add
+a line to a diagnostic, sweep its scrapers the way you would sweep callers of a changed signature.
+
+⭐ Distinguishing a correction from a cover-up is one question: **did the thing being measured move,
+or did the measuring move?** Here the claim never moved — every candidate summary is approximated
+too, so "not one exact guard exists" held under either count — only the number quoted for it was
+wrong.
+
+Promoted to `docs/knowledge/a-report-scraper-must-anchor-on-structure-not-on-a-substring.md`.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0023 — a control that passes under both hypotheses is not weak evidence, it is none
 
 `.17` slice 1 ran seven controls to settle what PGEN's combinators actually do, declared each

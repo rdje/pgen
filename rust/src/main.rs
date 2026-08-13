@@ -4655,6 +4655,24 @@ fn run_indirect_lr_plan_report(
                 .collect::<Vec<_>>()
                 .join(" ")
         );
+        // ENGINE-UNIVERSAL-SERVICES.17 slice 5 — the SECOND guard position, censused beside the
+        // first. ⛔ The two are independent: the line above is about the guard INSIDE the `*`, this
+        // one about the guard at rule EXIT, and slice 4 measured them closing disjoint starvations.
+        // Reading only the first is what would have shipped a regression on `initial k = int'(1);`.
+        let seed_census = survey.seed_verdict_census();
+        println!(
+            "seed-verdict census over the same sites (the TRAILING guard position): {}",
+            seed_census
+                .iter()
+                .map(|(verdict, count)| format!("{verdict}={count}"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        );
+        println!(
+            "candidates needing the TRAILING guard emitted: {}/{}",
+            survey.trailing_guard_candidates().len(),
+            survey.candidates.len()
+        );
         // ⛔ The `~` is not decoration. A byte test on an OVER-approximated FIRST set passes at
         // positions where the residual cannot actually start, so the guard silently declines to
         // fire. It stays SOUND — an over-permissive guard never over-accepts — but `guardable~` is
@@ -4723,6 +4741,22 @@ fn run_indirect_lr_plan_report(
             },
             candidate.max_guard_hops()
         );
+        // `.17` slice 5 — the SEED term, printed on its own line because it is a different
+        // measurement over a different set of elements: `seed_first` is FIRST of the sheared clone's
+        // tail (the suffix MINUS the cycle-closing step's residual), unioned only over routes whose
+        // clone chain survives the shear. `seed_routes=0` means no over-long seed exists here at
+        // all, which is a stronger statement than an empty byte set.
+        println!(
+            "    seed: {}  seed_first={}  seed_routes={}/{}",
+            if candidate.requires_trailing_guard() {
+                "TRAILING GUARD REQUIRED"
+            } else {
+                "no trailing guard owed"
+            },
+            candidate.seed_first.render(),
+            candidate.seed_tail_routes,
+            candidate.routes.len()
+        );
         let route_limit = if dump_all { candidate.routes.len() } else { 3 };
         for route in candidate.routes.iter().take(route_limit) {
             println!(
@@ -4746,7 +4780,7 @@ fn run_indirect_lr_plan_report(
         };
         for site in candidate.starvation_sites.iter().take(site_limit) {
             println!(
-                "    {} {} alt#{}{} — residual '{}' a greedy suffix could steal [guard={} first={} hops={}]",
+                "    {} {} alt#{}{} — residual '{}' a greedy suffix could steal [guard={} seed={} first={} hops={}]",
                 if site.survives_rewrite { "⛔ starved by" } else { "·  benign site" },
                 site.rule,
                 site.alternative_index,
@@ -4757,6 +4791,7 @@ fn run_indirect_lr_plan_report(
                 },
                 site.residual,
                 site.guard.verdict.token(),
+                site.guard.seed_verdict.token(),
                 site.guard.residual_first.render(),
                 site.guard.guard_hops
             );
@@ -4877,11 +4912,17 @@ fn run_indirect_lr_plan_report(
                     "suffix_first_exact": candidate.suffix_first.exact,
                     "guard_variants": candidate.guard_variants().iter().cloned().collect::<Vec<_>>(),
                     "max_guard_hops": candidate.max_guard_hops(),
+                    // `.17` slice 5 — the TRAILING guard position.
+                    "seed_first": candidate.seed_first.render(),
+                    "seed_first_exact": candidate.seed_first.exact,
+                    "seed_tail_routes": candidate.seed_tail_routes,
+                    "requires_trailing_guard": candidate.requires_trailing_guard(),
                     "routes": candidate.routes.iter().map(|route| serde_json::json!({
                         "base_alternative_index": route.base_alternative_index,
                         "path": route.path(),
                         "intermediate_rules": route.intermediate_rules(),
                         "suffix": render_elements_display(&route.suffix_elements()),
+                        "seed_tail": render_elements_display(&route.seed_tail_elements()),
                     })).collect::<Vec<_>>(),
                     "starvation_sites": candidate.starvation_sites.iter().map(|site| serde_json::json!({
                         "rule": site.rule,
@@ -4890,6 +4931,7 @@ fn run_indirect_lr_plan_report(
                         "on_route": site.on_route,
                         "survives_rewrite": site.survives_rewrite,
                         "guard_verdict": site.guard.verdict.token(),
+                        "seed_verdict": site.guard.seed_verdict.token(),
                         "residual_first": site.guard.residual_first.render(),
                         "residual_first_exact": site.guard.residual_first.exact,
                         "guard_hops": site.guard.guard_hops,
@@ -4908,6 +4950,12 @@ fn run_indirect_lr_plan_report(
                 .map(|candidate| candidate.base_rule.clone())
                 .collect::<Vec<_>>(),
             "guard_verdict_census": census,
+            "seed_verdict_census": survey.seed_verdict_census(),
+            "trailing_guard_candidates": survey
+                .trailing_guard_candidates()
+                .iter()
+                .map(|candidate| candidate.base_rule.clone())
+                .collect::<Vec<_>>(),
             // ENGINE-UNIVERSAL-SERVICES.17 slice 3 — absent (not empty) when the dry run did not
             // run, so a consumer can never read "no refusals" out of "not measured".
             "guard_dry_run": dry_run.as_ref().map(|dry| serde_json::json!({

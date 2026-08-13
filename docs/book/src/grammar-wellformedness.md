@@ -2163,19 +2163,28 @@ is hopeless, and the report now prints a second, independent verdict beside it:
 starvation-safe candidates: 0/28
 guard-feasible candidates: 16/28 (option (iii): a call-site follow-restriction guard on the sheared clone)
 guard-verdict census over surviving starvation sites: guard_incomplete=68 guardable=29 residual_nullable=29
+seed-verdict census over the same sites (the TRAILING guard position): no_seed_tail=65 seed_residual_nullable=29 trailing_guard_required=32
+candidates needing the TRAILING guard emitted: 15/28
 
 [candidate] constant_primary  routes=10  seeds=0  clone_cost=14  verdict=STARVED
-    guard: FEASIBLE  suffix_first={'/}  variants=1 {'/}  max_hops=1
+    guard: FEASIBLE  suffix_first={'/}~  variants=1 {'/}~  max_hops=1
+    seed: TRAILING GUARD REQUIRED  seed_first={'/}~  seed_routes=10/10
     ⛔ starved by cast alt#0 — residual 'tick lparen expression rparen'
-       [guard=guardable first={'/} hops=1]
+       [guard=guardable seed=trailing_guard_required first={'/}~ hops=1]
 ```
 
 The idea is the PEG-native repair: commit a chain iteration only when the position after it can
 still start the holder's residual.
 
 ```text
-X_guarded := X_lr_base ( X_lr_suffix &FIRST(residual) )*
+X_guarded := X_lr_base ( X_lr_suffix &FIRST(residual) )*      # the first cut — see below
 ```
+
+⛔ That first cut is **not** the shape PGEN would emit, and both halves of it were corrected by
+measurement: the byte test `&FIRST(residual)` is defeated by a comment at the iteration boundary,
+and one guard position leaves a second starvation open. The measured form is two structural
+lookaheads — *The guard, measured* below. The byte sets stay, as the inputs that DECIDE whether a
+guard is owed; they are not what gets emitted.
 
 It has to be written on the **call site**, not on the rule — `constant_primary` must reserve the
 trailing `'( … )` when it is reached from `cast` and must *not* when it is reached from an ordinary
@@ -2291,6 +2300,59 @@ fewer candidate for the tournament that was going to run anyway.
 `'( … )` when it is reached from `cast`, and must **not** when it is reached from an ordinary
 expression. Writing the guard onto the rule breaks every caller that wants the whole run — measured,
 not assumed: a residual-free holder of a rule-guarded base rejects `k = n;`.
+
+### Which candidates actually need the trailing guard — the `seed:` line
+
+The two positions cost differently, so the report prices them separately. Beside every candidate's
+`guard:` line there is now a `seed:` line, and beside every site's `[guard=…]` a `seed=…`:
+
+```text
+[candidate] casting_type      routes=10  seeds=4  clone_cost=14  verdict=STARVED
+    guard: FEASIBLE  suffix_first={'/}~  variants=1 {'/}~  max_hops=0
+    seed: no trailing guard owed  seed_first={}  seed_routes=0/10
+
+[candidate] constant_primary  routes=10  seeds=0  clone_cost=14  verdict=STARVED
+    guard: FEASIBLE  suffix_first={'/}~  variants=1 {'/}~  max_hops=1
+    seed: TRAILING GUARD REQUIRED  seed_first={'/}~  seed_routes=10/10
+```
+
+Two rules on **one knot**, opposite answers — which is the whole reason the term exists.
+
+**What `seed_first` is FIRST of**, and it is not the suffix. The sheared clone chain derives *the
+closing rule's other alternatives*, then every step's residual on the way back out — every step
+**except the cycle-closing one**, whose alternative the shear deletes outright rather than
+redirecting. So the seed's tail is the route suffix minus its innermost residual, and a route whose
+whole suffix comes from the closing step contributes no seed at all.
+
+**`seed_routes=N/M`** is how many of the candidate's `M` routes contribute such a tail. A route
+contributes only when both hold:
+
+1. that tail is non-empty; and
+2. its clone chain **survives** the shear — a rule whose alternatives were all sheared away yields no
+   clone, and the alternative that referred to it vanishes from its parent in turn.
+
+Condition 2 is what separates the two rules above. `casting_type`'s routes close at `cast` and
+`constant_cast`, and each of those has exactly **one** alternative — the cycle-closing one — so the
+shear leaves nothing to clone. Read it off the dry run's own clone set: it contains
+`casting_type_lr_seed_constant_primary` and eleven siblings, and no `casting_type_lr_seed_cast`.
+
+| `seed=` verdict | meaning |
+|---|---|
+| `trailing_guard_required` | the sheared clone can eat this holder's residual with the loop at zero iterations ⇒ **the trailing guard is mandatory here** |
+| `no_seed_tail` | the rewrite adds no over-long seed at this base rule; **no trailing guard owed** |
+| `seed_no_competition` | the seed tail and the residual can never start on the same byte; **none owed** |
+| `seed_residual_nullable` | the residual can match empty ⇒ the holder cannot starve; **none owed** |
+| `seed_undecidable` | a FIRST set could not be resolved ⇒ nothing may be concluded, and feasibility is blocked |
+
+⭐ **There is deliberately no `seed_incomplete`.** The loop guard can cut a chain short at an
+intermediate iteration, which is what `guard_incomplete` names. The trailing guard runs once, at rule
+exit, on a clone reached only from a holder that wants the residual next — so refusing an over-long
+seed there cannot lose a derivation that holder had.
+
+Measured on the shipped grammars: SystemVerilog **15 of 28** candidates need the trailing guard, the
+LRM wrapper **13 of 18**, and `ebnf` — the one knot the eliminator absorbs today — **0 of 5**. That
+last number is the one to keep an eye on: it says the rewrite PGEN already ships carries no
+seed starvation.
 
 ### And "a guard is expressible here" is still not "this knot would close"
 

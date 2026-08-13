@@ -130,6 +130,45 @@ impl ChainRoute {
             .collect()
     }
 
+    /// `.17` slice 5 — the text the sheared clone chain can consume AFTER its acyclic left corner:
+    /// [`Self::suffix_elements`] minus the cycle-CLOSING step's own residual.
+    ///
+    /// ⭐⭐ **This is the SEED term, and it is not the suffix.** `X_lr_base`'s cyclic alternative is
+    /// `clone(steps[1].rule) ++ residual(steps[0])`, each clone in turn being
+    /// `clone(steps[i+1].rule) ++ residual(steps[i])` — until the closing step, whose alternative
+    /// (`Shear::Drop`, `indirect_lr_elimination.rs`) is **removed outright** rather than redirected,
+    /// taking its residual with it. So the seed derives
+    /// `<the closing rule's other alternatives> ++ residual(step n-2) ++ … ++ residual(step 0)`,
+    /// and the residual that leads `suffix_elements()` — the innermost one — belongs to the loop
+    /// alone.
+    ///
+    /// ⛔ Why it matters: a NON-EMPTY seed tail is text `X` can now consume with the `*` taking ZERO
+    /// iterations, so a holder can be starved by the seed with no loop to guard. That is `.17`
+    /// slice 4's RESULT 2, and no guard on the `*` can reach it. An EMPTY seed tail means the
+    /// sheared clone consumes exactly what the base's own acyclic alternatives already did, so the
+    /// rewrite introduces no new over-long seed at all.
+    ///
+    /// ⭐ On SystemVerilog the two knots differ here, which is exactly why the term belongs in the
+    /// census rather than in a design note: a route closing at `cast` / `constant_cast` carries a
+    /// four-element residual on the DROPPED alternative, while `constant_primary`'s knot closes at
+    /// `casting_type` through a bare reference and keeps its whole `tick lparen … rparen` tail.
+    pub fn seed_tail_elements(&self) -> Vec<ASTNode> {
+        self.steps
+            .iter()
+            .rev()
+            .skip(1)
+            .flat_map(|step| step.residual.iter().cloned())
+            .collect()
+    }
+
+    /// The cycle-closing step — the one whose alternative the clone DROPS.
+    ///
+    /// A route always has at least one step (it is built by pushing the closing step first), so this
+    /// is `Some` for every route the survey reports.
+    pub fn closing_step(&self) -> Option<&ChainStep> {
+        self.steps.last()
+    }
+
     /// A route whose suffix is empty derives nothing new per iteration: `X := X_base ( )*` would
     /// loop without consuming. Such a route must never be turned into a `*` — it is a
     /// **non-terminating** cycle and belongs to the linter's `NonTerminating` error.
@@ -325,25 +364,28 @@ impl GuardFirstBytes {
 /// repair slice 1 measured (`( "a" &"a" )* "a"` accepts `aaa` **and** `a`): commit an iteration only
 /// when the position after it can still start `residual`.
 ///
-/// ⛔⛔ **WHAT THIS MODULE MEASURES IS HALF THE REPAIR — `.17` slice 4.** Two corrections that this
-/// census does NOT yet implement, so do not read its verdicts as a closure claim:
+/// ⛔⛔ **THIS VERDICT IS ABOUT THE LOOP POSITION ONLY — `.17` slice 4/5.** Two things it does not
+/// say, so do not read it alone as a closure claim:
 ///
 /// 1. **A byte-set guard is dead on SystemVerilog.** `trivia` is nullable and leads every token, so
 ///    `/` is in every FIRST set; the byte test passes exactly where it had to refuse
 ///    (`k = n'(n)/*c*/;`). The emitted form must be a STRUCTURAL lookahead over the residual —
 ///    `&( residual )`, a sub-parse — not the `&FIRST(residual)` this module's byte sets describe.
-///    Exactness is measured at **0 of 157** sites, so the cheap form is a proof nowhere.
-/// 2. ⛔ **A guard on the `*` alone leaves a SECOND starvation open, and this census cannot see
-///    it.** An over-long SEED — `X_lr_base`'s own sheared clone — can match the holder's whole text
-///    with the loop taking ZERO iterations, and the choice does not give back. That needs a
-///    **trailing** guard, `X_lr_base ( X_lr_suffix &( residual ) )* &( residual )`. The two
-///    positions close DISJOINT starvations (bank: `guard_effectiveness/`, 37 rows, both oracles).
-///    [`GuardAssessment`] carries no seed term at all, so a `Guardable` verdict here is silent
-///    about it — adding that term is `.17` slice 5's first job, and the ORDERING must not be made
-///    guard-aware before it exists.
+///    Exactness is measured at **0 of 129** SystemVerilog sites and 0 of 77 wrapper sites, so the
+///    cheap form is a proof nowhere. The byte sets survive as the DECISION inputs (competition,
+///    containment), never as the emitted test. ⛔ That denominator read **157** until `.17` slice 5:
+///    the bank counted lines containing `first=`, and the per-candidate `suffix_first=` summary line
+///    carries that substring too, so 28 candidate rows were being counted as sites. The conclusion
+///    never depended on it — every candidate summary is approximated as well.
+/// 2. ⛔ **A guard on the `*` alone leaves a SECOND starvation open.** An over-long SEED —
+///    `X_lr_base`'s own sheared clone — can match the holder's whole text with the loop taking ZERO
+///    iterations, and the choice does not give back. That needs a **trailing** guard,
+///    `X_lr_base ( X_lr_suffix &( residual ) )* &( residual )`. The two positions close DISJOINT
+///    starvations (bank: `guard_effectiveness/`, 37 rows, both oracles). ⭐ Slice 5 added that term
+///    as [`SeedVerdict`], carried beside this one on [`GuardAssessment`]; read BOTH.
 ///
 /// ```text
-/// X_guarded := X_lr_base ( X_lr_suffix &FIRST(residual) )*
+/// X_guarded := X_lr_base ( X_lr_suffix &( residual ) )* &( residual )
 /// ```
 ///
 /// It is **call-site scoped** — slice 1's Q5/Q5b pair measured that a rule-global guard breaks the
@@ -413,10 +455,98 @@ impl Default for GuardVerdict {
     }
 }
 
+/// The verdict on the **trailing** guard at one starvation site — the second of `.17` slice 4's two
+/// guard positions, and the term [`GuardVerdict`] cannot express.
+///
+/// ## What the trailing guard IS, and why the loop verdict says nothing about it
+///
+/// `X_guarded := X_lr_base ( X_lr_suffix &( residual ) )* &( residual )`. [`GuardVerdict`] decides
+/// the guard INSIDE the `*`; this decides the one at rule exit. They close **disjoint** starvations
+/// and slice 4 measured both directions on both oracles (bank: `guard_effectiveness/`, 37 rows):
+///
+/// - the per-iteration guard stops the LOOP at the right count and cannot touch an over-long seed,
+///   because on that input the loop runs ZERO times;
+/// - the trailing guard refuses an over-long SEED and cannot touch the loop, because by the time it
+///   runs the possessive `*` has committed to the maximum count and there is no give-back
+///   ([[project_pgen_gives_back_at_neither_combinator]]).
+///
+/// ## The input is [`ChainRoute::seed_tail_elements`], NOT the suffix
+///
+/// The over-long seed is `X_lr_base`'s sheared clone chain, whose text after its acyclic left corner
+/// is the route suffix **minus the cycle-closing step's residual** — that step's alternative is
+/// dropped, not redirected. Two consequences the loop term cannot see:
+///
+/// 1. A route whose whole suffix comes from the closing step contributes **no** seed tail: the
+///    rewrite adds no derivation the base did not already have, so no trailing guard is owed.
+/// 2. A route whose clone chain does not SURVIVE shearing contributes no seed either — `clone_rule`
+///    returns `None` when every alternative of a rule was sheared away, and SystemVerilog's `cast`
+///    and `constant_cast` have exactly one alternative each.
+///
+/// ⛔ **Refusing an over-long seed costs no give-back**, which is what keeps the repair inside the
+/// second non-negotiable: it makes that branch FAIL rather than win, and a failed branch is not a
+/// losing branch — the tournament simply has one fewer candidate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SeedVerdict {
+    /// No route contributes a non-empty seed tail — either every suffix element belongs to the
+    /// closing step, or no clone chain survives shearing. The rewrite introduces no over-long seed
+    /// at this base rule, so **no trailing guard is owed anywhere on it**.
+    NoSeedTail,
+    /// `FIRST(seed_tail) ∩ FIRST(residual) = ∅` — the seed cannot consume text this holder needed,
+    /// so **no trailing guard is owed at this site**.
+    NoCompetition,
+    /// The holder's residual can match empty, so it cannot starve here at all. Kept as its own
+    /// bucket for the same reason [`GuardVerdict::ResidualNullable`] is.
+    ResidualNullable,
+    /// They compete: the sheared clone can consume text this holder's residual needed, with the
+    /// loop taking zero iterations. **The trailing guard is MANDATORY here** — shipping the
+    /// per-iteration guard alone regresses this site.
+    Required,
+    /// A FIRST set is `unresolved`, so nothing may be concluded in either direction.
+    Undecidable,
+}
+
+impl SeedVerdict {
+    /// A short, stable token for the report, the JSON and the tests.
+    pub fn token(&self) -> &'static str {
+        match self {
+            SeedVerdict::NoSeedTail => "no_seed_tail",
+            SeedVerdict::NoCompetition => "seed_no_competition",
+            SeedVerdict::ResidualNullable => "seed_residual_nullable",
+            SeedVerdict::Required => "trailing_guard_required",
+            SeedVerdict::Undecidable => "seed_undecidable",
+        }
+    }
+
+    /// Does this verdict BLOCK option (iii) at its site?
+    ///
+    /// ⛔ Only `Undecidable` does. `Required` is a COST, not a blocker — slice 4 measured the
+    /// trailing guard closing exactly this starvation (bank row `g3_trailing_guard e5`), so a site
+    /// that needs one is closable, and calling it feasible while emitting only the loop guard is the
+    /// defect, not the verdict.
+    pub fn blocks_guard(&self) -> bool {
+        matches!(self, SeedVerdict::Undecidable)
+    }
+
+    /// Does this site oblige the emitted clone to carry the TRAILING lookahead?
+    pub fn needs_trailing_guard(&self) -> bool {
+        matches!(self, SeedVerdict::Required)
+    }
+}
+
+impl Default for SeedVerdict {
+    fn default() -> Self {
+        SeedVerdict::Undecidable
+    }
+}
+
 /// Everything the survey knows about guarding one starvation site.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct GuardAssessment {
     pub verdict: GuardVerdict,
+    /// `.17` slice 5 — the verdict on the TRAILING guard position. ⛔ Independent of
+    /// [`Self::verdict`]: the two positions close disjoint starvations, so neither implies the
+    /// other and a feasibility claim needs both.
+    pub seed_verdict: SeedVerdict,
     /// FIRST of the holder's residual — the byte set the emitted guard would test.
     pub residual_first: GuardFirstBytes,
     /// How many rules the guard has to be cloned THROUGH: the holder references a rule transparent
@@ -461,6 +591,18 @@ pub struct IndirectChainCandidate {
     /// carrying every route's suffix as alternatives, so a guard on it has to be complete against
     /// all of them at once.
     pub suffix_first: GuardFirstBytes,
+    /// `.17` slice 5 — FIRST of the SEED TAIL, unioned over the routes that actually contribute one
+    /// ([`ChainRoute::seed_tail_elements`] non-empty **and** the clone chain surviving the shear).
+    ///
+    /// ⛔ This is the input to [`SeedVerdict`], and it is a DIFFERENT set from
+    /// [`Self::suffix_first`] whenever a route closes through a non-empty residual. Empty `bytes`
+    /// with `seed_tail_routes == 0` means the rewrite introduces no over-long seed at this base rule
+    /// at all.
+    pub seed_first: GuardFirstBytes,
+    /// How many routes contribute a non-empty, reachable seed tail — the denominator behind
+    /// [`Self::seed_first`], so an empty byte set cannot be read as "measured and empty" when it is
+    /// really "no route contributes one".
+    pub seed_tail_routes: usize,
 }
 
 impl IndirectChainCandidate {
@@ -523,14 +665,47 @@ impl IndirectChainCandidate {
             .collect()
     }
 
+    /// `.17` slice 5 — surviving sites whose SEED term blocks a guard (`seed_undecidable`).
+    ///
+    /// Separate from [`Self::guard_blocking_sites`] because the two positions are independent: a
+    /// site can be `guardable` on the loop and undecidable on the seed, and a feasibility claim that
+    /// reads only the first is the exact defect slice 4 found in this module.
+    pub fn seed_blocking_sites(&self) -> Vec<&StarvationSite> {
+        self.surviving_starvation_sites()
+            .into_iter()
+            .filter(|site| site.guard.seed_verdict.blocks_guard())
+            .collect()
+    }
+
+    /// Surviving sites that oblige the emitted clone to carry the TRAILING lookahead.
+    ///
+    /// ⭐ Non-empty ⇒ shipping the per-iteration guard alone REGRESSES this candidate, which is
+    /// slice 4's decision (c) turned into a per-candidate number.
+    pub fn trailing_guard_sites(&self) -> Vec<&StarvationSite> {
+        self.surviving_starvation_sites()
+            .into_iter()
+            .filter(|site| site.guard.seed_verdict.needs_trailing_guard())
+            .collect()
+    }
+
+    /// Does option (iii) at this base rule need the trailing guard position at all?
+    pub fn requires_trailing_guard(&self) -> bool {
+        !self.trailing_guard_sites().is_empty()
+    }
+
     /// Is option (iii) feasible at this base rule?
     ///
     /// ⛔ **Feasible is not the same as needed, and neither is the same as SHIPPED.** A candidate
     /// can be `is_starvation_safe() == false` (the shipped criterion refuses it) and guard-feasible
     /// at the same time — that combination is precisely the population option (iii) would unlock,
     /// and it is why this is reported next to the structural verdict rather than replacing it.
+    ///
+    /// ⛔⛔ **BOTH POSITIONS, since `.17` slice 5.** Feasibility used to read the loop term alone,
+    /// which made it silent about a starvation slice 4 measured and could have shipped a candidate
+    /// whose seed term is undecidable as `FEASIBLE`. A guard is feasible only where BOTH positions
+    /// are decidable.
     pub fn is_guard_feasible(&self) -> bool {
-        self.guard_blocking_sites().is_empty()
+        self.guard_blocking_sites().is_empty() && self.seed_blocking_sites().is_empty()
     }
 
     /// Distinct residual FIRST sets across the surviving sites that actually need a guard.
@@ -618,6 +793,28 @@ impl IndirectChainSurvey {
             }
         }
         census
+    }
+
+    /// `.17` slice 5 — the same census over the SEED term. Printed beside
+    /// [`Self::guard_verdict_census`], never instead of it: one row of the population can be
+    /// `guardable` on the loop and `trailing_guard_required` on the seed at the same time.
+    pub fn seed_verdict_census(&self) -> BTreeMap<&'static str, usize> {
+        let mut census: BTreeMap<&'static str, usize> = BTreeMap::new();
+        for candidate in &self.candidates {
+            for site in candidate.surviving_starvation_sites() {
+                *census.entry(site.guard.seed_verdict.token()).or_default() += 1;
+            }
+        }
+        census
+    }
+
+    /// Candidates that would need the TRAILING guard position emitted, not just the per-iteration
+    /// one — the population slice 4's decision (c) is about.
+    pub fn trailing_guard_candidates(&self) -> Vec<&IndirectChainCandidate> {
+        self.candidates
+            .iter()
+            .filter(|candidate| candidate.requires_trailing_guard())
+            .collect()
     }
 
     /// Cycle rules covered by at least one candidate — the survey's coverage numerator.
@@ -821,6 +1018,22 @@ pub fn survey_indirect_left_recursion_with_route_budget(
         if routes_truncated {
             suffix_first.unresolved = true;
         }
+        // `.17` slice 5 — the SEED term: FIRST of what the sheared clone chain can consume AFTER its
+        // acyclic left corner, unioned over the routes that actually contribute such a tail.
+        //
+        // ⛔ Truncation poisons this for the same reason it poisons `suffix_first`, and one step
+        // more sharply: a partial route set can miss the ONE route whose clone chain survives, and
+        // the missing seed reads as "no trailing guard owed" — silent, and in the passing direction.
+        let (mut seed_first, seed_tail_routes) = seed_first_of_routes(
+            rule_name,
+            &routes,
+            &alternative_counts,
+            grammar,
+            &mut first_set_cache,
+        );
+        if routes_truncated {
+            seed_first.unresolved = true;
+        }
         let starvation_sites = collect_starvation_sites(
             rule_name,
             &steps_by_rule,
@@ -829,6 +1042,8 @@ pub fn survey_indirect_left_recursion_with_route_budget(
             &survivors,
             grammar,
             &suffix_first,
+            &seed_first,
+            seed_tail_routes,
             &mut first_set_cache,
         );
 
@@ -840,6 +1055,8 @@ pub fn survey_indirect_left_recursion_with_route_budget(
             starvation_sites,
             degenerate_routes_dropped,
             suffix_first,
+            seed_first,
+            seed_tail_routes,
         });
     }
 
@@ -1103,6 +1320,142 @@ fn rules_transparent_to(
     transparent
 }
 
+/// `.17` slice 5 — FIRST of the SEED TAIL, unioned over the routes that contribute one, plus how
+/// many did.
+///
+/// A route contributes iff BOTH hold:
+///
+/// 1. its [`ChainRoute::seed_tail_elements`] is non-empty — otherwise the sheared clone consumes
+///    exactly what the base's own alternatives already consumed, and no new over-long seed exists;
+/// 2. its clone chain SURVIVES the shear ([`clone_chain_survives`]) — otherwise the alternative
+///    carrying the seed vanishes from `X_lr_base` entirely.
+///
+/// ⭐ Both conditions are load-bearing on the shipped grammar, and they are what make this a
+/// per-candidate discriminator rather than a restatement of `suffix_first`.
+fn seed_first_of_routes(
+    base_rule: &str,
+    routes: &[ChainRoute],
+    alternative_counts: &HashMap<&String, usize>,
+    grammar: &HashMap<String, ASTNode>,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+) -> (GuardFirstBytes, usize) {
+    let shear = shear_map(base_rule, routes);
+    let mut survival: BTreeMap<String, bool> = BTreeMap::new();
+    // ⛔ The seed of the union is the IDENTITY, not `Default` — an empty byte set is vacuously
+    // exact, and `Default`'s `exact: false` would collapse every candidate to non-exact regardless
+    // of what was measured (the same trap `suffix_first` documents).
+    let mut seed_first = GuardFirstBytes {
+        exact: true,
+        ..GuardFirstBytes::default()
+    };
+    let mut contributing = 0usize;
+    for route in routes {
+        let tail = route.seed_tail_elements();
+        if tail.is_empty() {
+            continue;
+        }
+        let Some(closing) = route.closing_step() else {
+            continue;
+        };
+        if !clone_chain_survives(
+            &closing.rule,
+            &shear,
+            alternative_counts,
+            &mut survival,
+            &mut Vec::new(),
+        ) {
+            continue;
+        }
+        contributing += 1;
+        let tail_first = first_bytes_of(
+            &ASTNode::Sequence { elements: tail },
+            grammar,
+            first_set_cache,
+        );
+        seed_first = seed_first.union(&tail_first);
+    }
+    (seed_first, contributing)
+}
+
+/// The shear map `plan_elimination` builds, as pure analysis: for every `(rule, alternative)` on any
+/// route, is that alternative DROPPED (its left corner is the base rule) or REDIRECTED to a clone?
+///
+/// ⛔ Keyed by rule and alternative index across ALL of the candidate's routes, exactly as the
+/// eliminator does — a rule can sit on several routes and lose a different alternative to each.
+fn shear_map(base_rule: &str, routes: &[ChainRoute]) -> BTreeMap<String, BTreeMap<usize, Option<String>>> {
+    let mut shear: BTreeMap<String, BTreeMap<usize, Option<String>>> = BTreeMap::new();
+    for route in routes {
+        for step in &route.steps {
+            let action = if step.next_rule == base_rule {
+                None // Shear::Drop — the alternative is removed outright.
+            } else {
+                Some(step.next_rule.clone()) // Shear::Redirect — it points at the deeper clone.
+            };
+            shear
+                .entry(step.rule.clone())
+                .or_default()
+                .insert(step.alternative_index, action);
+        }
+    }
+    shear
+}
+
+/// Does the sheared clone of `rule` exist at all?
+///
+/// Mirrors `indirect_lr_elimination::clone_rule`'s own emptiness rule: an alternative survives into
+/// the clone when it is untouched by the shear, or when it is REDIRECTED and the deeper clone
+/// itself survives; a DROPPED alternative never does. A rule that keeps nothing produces no clone,
+/// and the alternative that referred to it vanishes from its parent in turn.
+///
+/// ⭐ This is what separates SystemVerilog's two knots. `cast` and `constant_cast` have exactly ONE
+/// alternative each, and it is the cycle-closing one, so a route closing there leaves no clone and
+/// therefore no seed. `casting_type` has many, so a route closing there keeps its whole tail.
+///
+/// ⛔ Re-entry returns `true` — the over-approximating direction, i.e. "assume the seed EXISTS and
+/// demand the trailing guard". The eliminator itself refuses such a route set outright (*"clone
+/// construction re-entered"*), so this cannot describe a plan that ships; assuming survival keeps
+/// the error on the costs-a-lookahead side rather than the misses-a-starvation side.
+fn clone_chain_survives(
+    rule: &str,
+    shear: &BTreeMap<String, BTreeMap<usize, Option<String>>>,
+    alternative_counts: &HashMap<&String, usize>,
+    memo: &mut BTreeMap<String, bool>,
+    in_progress: &mut Vec<String>,
+) -> bool {
+    if let Some(known) = memo.get(rule) {
+        return *known;
+    }
+    if in_progress.iter().any(|name| name == rule) {
+        return true;
+    }
+    let rule_key = rule.to_string();
+    let total = alternative_counts.get(&rule_key).copied().unwrap_or(0);
+    let Some(rule_shear) = shear.get(rule) else {
+        // Not on any route ⇒ nothing is sheared ⇒ the clone is a verbatim copy.
+        return total > 0;
+    };
+    in_progress.push(rule_key.clone());
+    let mut survives = false;
+    for index in 0..total {
+        match rule_shear.get(&index) {
+            None => {
+                survives = true;
+                break;
+            }
+            Some(None) => {}
+            Some(Some(next_rule)) => {
+                if clone_chain_survives(next_rule, shear, alternative_counts, memo, in_progress) {
+                    survives = true;
+                    break;
+                }
+            }
+        }
+    }
+    in_progress.pop();
+    memo.insert(rule_key, survives);
+    survives
+}
+
 /// Every site holding a rule TRANSPARENT to `base_rule` at a left corner with a non-empty residual.
 #[allow(clippy::too_many_arguments)]
 fn collect_starvation_sites(
@@ -1113,6 +1466,8 @@ fn collect_starvation_sites(
     survivors: &BTreeSet<String>,
     grammar: &HashMap<String, ASTNode>,
     suffix_first: &GuardFirstBytes,
+    seed_first: &GuardFirstBytes,
+    seed_tail_routes: usize,
     first_set_cache: &mut HashMap<String, FirstSetSummary>,
 ) -> Vec<StarvationSite> {
     let transparent = rules_transparent_to(base_rule, steps_by_rule);
@@ -1145,6 +1500,8 @@ fn collect_starvation_sites(
                     guard_hops,
                     grammar,
                     suffix_first,
+                    seed_first,
+                    seed_tail_routes,
                     first_set_cache,
                 ),
             });
@@ -1174,11 +1531,14 @@ fn first_bytes_of(
 /// 3. **disjointness**, then **containment** — the two positive outcomes, in that order because
 ///    disjoint sets are trivially non-containing and the "no guard needed" reading is the stronger
 ///    (and cheaper) of the two.
+#[allow(clippy::too_many_arguments)]
 fn assess_guard(
     residual: &[ASTNode],
     guard_hops: usize,
     grammar: &HashMap<String, ASTNode>,
     suffix_first: &GuardFirstBytes,
+    seed_first: &GuardFirstBytes,
+    seed_tail_routes: usize,
     first_set_cache: &mut HashMap<String, FirstSetSummary>,
 ) -> GuardAssessment {
     let residual_first = first_bytes_of(
@@ -1201,9 +1561,45 @@ fn assess_guard(
     };
     GuardAssessment {
         verdict,
+        seed_verdict: assess_seed(&residual_first, seed_first, seed_tail_routes),
         residual_first,
         guard_hops,
     }
+}
+
+/// `.17` slice 5 — decide [`SeedVerdict`] for one starvation site. The test order mirrors
+/// [`assess_guard`]'s and for the same reasons, with one extra outcome AHEAD of the rest:
+///
+/// 1. **no seed tail** — the rewrite adds no derivation the base did not already have, so the
+///    question does not arise. Decided from route structure, not from bytes, which is why it comes
+///    first: an empty `seed_first` would otherwise read as "disjoint" and mean something else.
+/// 2. **undecidable** — an `unresolved` FIRST set on either side.
+/// 3. **nullable residual** — the holder cannot starve here regardless of the byte sets.
+/// 4. **disjointness** — the only outcome that clears a site of the trailing guard on evidence.
+///
+/// ⛔ There is deliberately NO containment tier here, and the asymmetry with [`GuardVerdict`] is the
+/// point. The loop guard can cut a chain short at an intermediate iteration, which is what
+/// `Incomplete` names; the trailing guard runs once, at rule exit, on a clone reached only from a
+/// holder that wants the residual next — so refusing an over-long seed there loses no derivation the
+/// holder had, and there is no incomplete case to report.
+fn assess_seed(
+    residual_first: &GuardFirstBytes,
+    seed_first: &GuardFirstBytes,
+    seed_tail_routes: usize,
+) -> SeedVerdict {
+    if seed_tail_routes == 0 {
+        return SeedVerdict::NoSeedTail;
+    }
+    if residual_first.unresolved || seed_first.unresolved {
+        return SeedVerdict::Undecidable;
+    }
+    if residual_first.nullable {
+        return SeedVerdict::ResidualNullable;
+    }
+    if seed_first.bytes.is_disjoint(&residual_first.bytes) {
+        return SeedVerdict::NoCompetition;
+    }
+    SeedVerdict::Required
 }
 
 fn alternatives_of(node: &ASTNode) -> Vec<ASTNode> {
@@ -1593,6 +1989,237 @@ mod tests {
         // One holder, one byte test ⇒ ONE guarded clone chain, and the holder names `ct` directly.
         assert_eq!(ct.guard_variants().len(), 1);
         assert_eq!(ct.max_guard_hops(), 0);
+    }
+
+    /// The `.17` slice 5 seed-term fixture: a knot whose route carries a residual on an OUTER step,
+    /// so the seed tail and the route suffix are provably different strings.
+    ///
+    /// ```text
+    /// scratch := outer | prim
+    /// outer   := prim "!"                    ← THE HOLDER, residual "!"
+    /// prim    := lit | mid                   ← the base; alt#1 is cyclic
+    /// mid     := cast "!"                    ← an outer step WITH a residual
+    /// cast    := prim "'" "(" lit ")"        ← the CLOSING step; `closing_alternatives` of them
+    /// ```
+    ///
+    /// Route suffix (innermost first) is `"'" "(" lit ")" "!"`; the seed tail is `"!"` alone,
+    /// because the closing step's alternative is DROPPED rather than redirected. `closing_alternatives`
+    /// is the single flip between the two halves of the pair below: at `1` the clone of `cast` keeps
+    /// nothing and the seed chain dies, at `2` it keeps `kw` and the seed survives.
+    fn seed_tail_knot(closing_alternatives: usize) -> (HashMap<String, ASTNode>, Vec<String>) {
+        let rule = |name: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("rule_reference".to_string()),
+                TokenValue::String(name.to_string()),
+            ]),
+        };
+        let text = |literal: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("quoted_string".to_string()),
+                TokenValue::String(literal.to_string()),
+            ]),
+        };
+        let cyclic_alternative = ASTNode::Sequence {
+            elements: vec![rule("prim"), text("'"), text("("), rule("lit"), text(")")],
+        };
+        let cast_body = match closing_alternatives {
+            1 => cyclic_alternative,
+            _ => ASTNode::Or {
+                alternatives: vec![cyclic_alternative, rule("kw")],
+            },
+        };
+
+        let mut grammar = HashMap::new();
+        grammar.insert(
+            "scratch".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("outer"), rule("prim")],
+            },
+        );
+        grammar.insert(
+            "outer".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("prim"), text("!")],
+            },
+        );
+        grammar.insert(
+            "prim".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("lit"), rule("mid")],
+            },
+        );
+        grammar.insert(
+            "mid".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("cast"), text("!")],
+            },
+        );
+        grammar.insert("cast".to_string(), cast_body);
+        grammar.insert("lit".to_string(), text("n"));
+        grammar.insert("kw".to_string(), text("t"));
+        let order = ["scratch", "outer", "prim", "mid", "cast", "lit", "kw"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        (grammar, order)
+    }
+
+    /// ⭐ `.17` slice 5 — the seed tail is the route suffix MINUS the cycle-closing step's residual,
+    /// and the two are different strings whenever an outer step carries one.
+    ///
+    /// ⛔ This is the arithmetic the whole term rests on: the closing step's alternative is dropped
+    /// by `clone_rule` (`Shear::Drop`), so its residual reaches the `*` and never the seed. Getting
+    /// it backwards would price the trailing guard against the wrong byte set.
+    #[test]
+    fn the_seed_tail_is_the_route_suffix_minus_the_closing_step_residual() {
+        let (grammar, order) = seed_tail_knot(2);
+        let survey = survey_indirect_left_recursion(&grammar, &order);
+        let prim = survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is a candidate");
+        assert_eq!(prim.routes.len(), 1);
+        let route = &prim.routes[0];
+        assert_eq!(route.path(), vec!["prim", "mid", "cast"]);
+        assert_eq!(
+            render_elements(&route.suffix_elements()),
+            "\"'\" \"(\" lit \")\" \"!\"",
+            "the LOOP iterates every step's residual, innermost first"
+        );
+        assert_eq!(
+            render_elements(&route.seed_tail_elements()),
+            "\"!\"",
+            "the SEED keeps only what survives the shear — the closing step's residual goes with \
+             the alternative that is dropped"
+        );
+        assert_eq!(route.closing_step().map(|step| step.rule.as_str()), Some("cast"));
+
+        // ⛔ And on a knot whose cycle closes through a BARE reference the two coincide, which is
+        // why a synthetic without an outer residual could never have discriminated them.
+        let (knot, knot_order) = knot_a();
+        let knot_survey = survey_indirect_left_recursion(&knot, &knot_order);
+        let knot_prim = knot_survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is a candidate");
+        let knot_route = &knot_prim.routes[0];
+        assert_eq!(
+            render_elements(&knot_route.suffix_elements()),
+            render_elements(&knot_route.seed_tail_elements()),
+            "prim's cycle closes at `ct := kw | prim`, a bare reference with no residual to lose"
+        );
+    }
+
+    /// ⭐⭐ `.17` slice 5 — THE TWO TERMS ARE INDEPENDENT, measured on one site that needs the
+    /// trailing guard and is `no_competition` on the loop.
+    ///
+    /// `outer := prim "!"` cannot be starved by the `*`: the suffix it iterates starts with `'` and
+    /// the residual starts with `!`, disjoint, so the loop census correctly owes it no guard. The
+    /// SEED can starve it, because the sheared clone's tail IS `"!"`. Reading only
+    /// [`GuardVerdict`] here reports a site with nothing to fix — which is exactly slice 4's
+    /// RESULT 2 reproduced at the smallest scale that shows it.
+    ///
+    /// ⛔ The pair differs by ONE alternative on the closing rule and nothing else, so the flip
+    /// cannot be attributed to anything but clone survival
+    /// ([[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]]).
+    #[test]
+    fn a_seed_can_starve_a_holder_the_loop_provably_cannot() {
+        let seed_site = |closing_alternatives: usize| {
+            let (grammar, order) = seed_tail_knot(closing_alternatives);
+            let survey = survey_indirect_left_recursion(&grammar, &order);
+            let prim = survey
+                .candidates
+                .iter()
+                .find(|candidate| candidate.base_rule == "prim")
+                .expect("prim is a candidate")
+                .clone();
+            let site = prim
+                .surviving_starvation_sites()
+                .into_iter()
+                .find(|site| site.rule == "outer")
+                .expect("outer holds prim with a residual and is reached from scratch")
+                .clone();
+            (prim, site)
+        };
+
+        // ---- the clone chain SURVIVES: `cast` keeps its `kw` alternative after the shear.
+        let (live, live_site) = seed_site(2);
+        assert_eq!(live.seed_tail_routes, 1);
+        assert_eq!(live.seed_first.render(), "{!}");
+        assert_eq!(live.suffix_first.render(), "{'}~");
+        assert_eq!(
+            live_site.guard.verdict.token(),
+            "no_competition",
+            "the LOOP is measured harmless here, and it really is"
+        );
+        assert_eq!(live_site.guard.seed_verdict.token(), "trailing_guard_required");
+        assert!(live.requires_trailing_guard());
+        assert_eq!(live.trailing_guard_sites().len(), 1);
+
+        // ---- the clone chain DIES: `cast` has only the alternative the shear drops.
+        let (dead, dead_site) = seed_site(1);
+        assert_eq!(
+            dead.seed_tail_routes, 0,
+            "no clone, no seed — `clone_rule` returns None when every alternative was sheared away"
+        );
+        assert_eq!(dead.seed_first.render(), "{}");
+        assert_eq!(
+            dead_site.guard.verdict.token(),
+            "no_competition",
+            "⛔ the LOOP verdict is IDENTICAL across the pair — the flip is the seed term alone"
+        );
+        assert_eq!(dead_site.guard.seed_verdict.token(), "no_seed_tail");
+        assert!(!dead.requires_trailing_guard());
+
+        // ⛔ Neither half is BLOCKED: a site that needs the trailing guard is closable, and calling
+        // it infeasible would refuse the population option (iii) exists to unlock.
+        assert!(live.is_guard_feasible());
+        assert!(dead.is_guard_feasible());
+    }
+
+    /// ⛔ `.17` slice 5 — the seed term is a CANDIDATE-level discriminator, not a grammar-level one:
+    /// the same knot answers differently at two base rules, and that is the term the candidate
+    /// ordering was told not to encode until it existed.
+    ///
+    /// On `knot_a()` the cycle closes at `ct := kw | prim` when the base is `prim` (the clone keeps
+    /// `kw`, so a seed exists) and at `cast_expr` when the base is `ct` (no seed). That is
+    /// SystemVerilog's own split, measured on the synthetic: `constant_primary` requires the
+    /// trailing guard, `casting_type` does not.
+    ///
+    /// ⛔ **What this test does NOT isolate, stated rather than implied.** On the `ct` side BOTH
+    /// conditions hold at once — `cast_expr`'s only alternative is sheared away AND every residual
+    /// on the route belongs to the closing step — so the assertion below cannot attribute the `0` to
+    /// either one. Clone survival is isolated by `a_seed_can_starve_a_holder_the_loop_provably_cannot`,
+    /// whose pair differs in survival alone; this test measures only that the two base rules on one
+    /// knot ANSWER DIFFERENTLY ([[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]]).
+    #[test]
+    fn two_base_rules_on_one_knot_disagree_about_the_seed() {
+        let (grammar, order) = knot_a();
+        let survey = survey_indirect_left_recursion(&grammar, &order);
+        let candidate = |name: &str| {
+            survey
+                .candidates
+                .iter()
+                .find(|candidate| candidate.base_rule == name)
+                .unwrap_or_else(|| panic!("{name} is a candidate"))
+        };
+
+        let prim = candidate("prim");
+        assert_eq!(prim.seed_tail_routes, 1, "the clone of `ct` keeps `kw`");
+        assert_eq!(prim.seed_first.render(), "{'}~");
+
+        let ct = candidate("ct");
+        assert_eq!(
+            ct.seed_tail_routes, 0,
+            "the clone of `cast_expr` keeps nothing — its only alternative is the cycle-closing one"
+        );
+        assert_eq!(ct.starvation_sites[0].guard.seed_verdict.token(), "no_seed_tail");
+        assert!(
+            !ct.requires_trailing_guard(),
+            "and so the rule the census calls guardable owes only the per-iteration position"
+        );
     }
 
     /// ⛔ The one-difference control for `no_competition`, and the reason the census has four

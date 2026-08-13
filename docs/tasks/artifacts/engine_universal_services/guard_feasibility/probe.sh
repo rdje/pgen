@@ -19,8 +19,10 @@
 #                                        token, so every FIRST set contains `/` and no two are
 #                                        ever disjoint (grammars/systemverilog.ebnf:619)
 #   C6  the LRM wrapper agrees           guard-feasible 13/18, against starvation-safe 3/18
-#   C7  ⛔ the qualifier on all of it     EVERY guard byte test is OVER-approximated (157/157) —
+#   C7  ⛔ the qualifier on all of it     EVERY guard byte test is OVER-approximated (129/129) —
 #                                        sound, but not a PROOF the knot closes
+#                                        ⛔ the DENOMINATOR was 157 until `.17` slice 5 and it was
+#                                        WRONG: see the adjudication above the case itself.
 #
 # ⭐ GROUND TRUTH (`feedback_instrument_needs_ground_truth`). Every case DECLARES the value it
 # requires and this script compares against it, so the bank is self-checking: any disagreement is a
@@ -141,16 +143,98 @@ check C6 "wrapper: starvation-safe / guard-feasible" \
 # is the `a-check-whose-inputs-all-pass-has-not-been-tested` shape, in the gate meant to prevent it.
 # It also read the DEFAULT report, whose per-candidate site list is capped at 5, so it measured 123
 # of the 157 sites and called that "every".
+#
+# ⛔⛔ AND THE THIRD DRAFT IS THIS ONE, BECAUSE THE SECOND ONE'S DENOMINATOR WAS NEVER THE SITE
+# COUNT — `.17` slice 5, found when a NEW report line made the ambiguity visible.
+# `grep -c 'first='` counts LINES containing that substring, and the per-candidate summary line
+# `guard: … suffix_first=…` contains it too. So `157` was `129` starvation sites **plus 28
+# per-candidate lines** — one per candidate, which is exactly the 28 the report iterates. Adding
+# slice 5's `seed_first=` line took it to 185 and made the conflation impossible to miss.
+# ⭐ THE SUBSTANCE IS UNCHANGED AND WAS NEVER AT RISK: every site is `~` and so is every candidate
+# summary, so "not one exact guard exists" held under either count. What was wrong is the number
+# quoted for it in TOOLBOX, the leaf, the decision record and this bank.
+# ⛔ The expectation below is therefore RE-ADJUDICATED, not edited to fit: 129 = 126 surviving
+# sites (`⛔ starved by`) + 3 benign ones (`·  benign site`), cross-checked against a second,
+# independent extraction on `— residual '`, and against the surviving-site census 68+29+29 = 126.
+# The extraction is now anchored so it cannot drift again: `[guard=` opens exactly one bracket group
+# per site line and appears nowhere else, and `~ hops=` is the approximation marker in its ONLY
+# position — which also stops a `~` BYTE inside a rendered set from being counted as the marker.
 SV_REPORT_ALL="$(PGEN_INDIRECT_LR_DUMP_ALL=1 "$PIPELINE" grammars/systemverilog.ebnf \
   --report-indirect-lr-plan 2>/dev/null)"
-sv_sites="$(grep -c 'first=' <<< "$SV_REPORT_ALL" || true)"
-sv_approx="$(grep -o 'first=[^]]*' <<< "$SV_REPORT_ALL" | grep -c '~' || true)"
+sv_sites="$(grep -o '\[guard=' <<< "$SV_REPORT_ALL" | wc -l | tr -d ' ')"
+sv_approx="$(grep -o '~ hops=' <<< "$SV_REPORT_ALL" | wc -l | tr -d ' ')"
 check C7 "systemverilog: OVER-approximated guard byte tests / all sites (uncapped)" \
-  "$sv_approx/$sv_sites" "157/157"
+  "$sv_approx/$sv_sites" "129/129"
+
+# C7b — the same qualifier on the OTHER grammar, which the 157-era bank never counted at all. It is
+# not redundant with C7: the wrapper carries the same nullable-`trivia` layout tier but a completely
+# different rule population, so an exact guard appearing there would refute the structural half of
+# C7's explanation while leaving the layout half standing.
+WRAPPER_REPORT_ALL="$(PGEN_INDIRECT_LR_DUMP_ALL=1 "$PIPELINE" \
+  grammars/systemverilog_lrm_profiled_wrapper.ebnf --report-indirect-lr-plan 2>/dev/null)"
+wrapper_sites="$(grep -o '\[guard=' <<< "$WRAPPER_REPORT_ALL" | wc -l | tr -d ' ')"
+wrapper_approx="$(grep -o '~ hops=' <<< "$WRAPPER_REPORT_ALL" | wc -l | tr -d ' ')"
+check C7b "wrapper: OVER-approximated guard byte tests / all sites (uncapped)" \
+  "$wrapper_approx/$wrapper_sites" "77/77"
+
+# ---- `.17` slice 5 — THE SEED TERM (the TRAILING guard position), pinned here because it prices
+# option (iii) exactly as C1–C7 price the loop position, and because it is the term the candidate
+# ORDERING was forbidden to encode until it existed.
+#
+# C8 is the census; C9 is the case that makes it a discriminator rather than a restatement. ⛔ If C9
+# ever reads the same verdict on both rules, the seed term has stopped separating candidates on one
+# knot and the ordering question it was built to answer has no input again.
+seed_bucket_of() {
+  local line bucket
+  line="$(grep -m1 '^seed-verdict census' <<< "$1" || true)"
+  bucket="$(grep -oE "$2=[0-9]+" <<< "$line" | head -1 || true)"
+  printf '%s' "${bucket:-$2=0}"
+}
+# The `seed:` line of one candidate, reduced to `seed_routes=N/M`.
+seed_routes_of() {
+  awk -v rule="$2" '
+    $1 == "[candidate]" { current = $2 }
+    current == rule && $1 == "seed:" {
+      for (i = 2; i <= NF; i++) if ($i ~ /^seed_routes=/) { print $i; exit }
+    }' <<< "$1"
+}
+
+check C8a "systemverilog: sites that need the TRAILING guard" \
+  "$(seed_bucket_of "$SV_REPORT" trailing_guard_required)" "trailing_guard_required=32"
+check C8b "systemverilog: sites where the rewrite adds no over-long seed" \
+  "$(seed_bucket_of "$SV_REPORT" no_seed_tail)" "no_seed_tail=65"
+check C8c "systemverilog: seed FIRST computable at every site" \
+  "$(seed_bucket_of "$SV_REPORT" seed_undecidable)" "seed_undecidable=0"
+check C8d "systemverilog: candidates needing the trailing guard emitted" \
+  "$(grep -m1 '^candidates needing the TRAILING guard' <<< "$SV_REPORT" | awk '{print $7}')" \
+  "15/28"
+
+# C9 — ⛔⛔ THE DISCRIMINATOR, and the correction it carries. `.17` slice 4 named
+# `casting_type_lr_base` as the base that would carry the sheared `constant_cast` clone and so
+# regress `initial k = int'(1);`. Measured here: `casting_type`'s routes CLOSE at `cast` /
+# `constant_cast`, each of which has exactly ONE alternative — the cycle-closing one — so the shear
+# leaves no clone and no seed (`seed_routes=0/10`). The rule whose base really carries that seed is
+# `constant_primary` (`10/10`). Ground truth for the survival half: the guard dry run's own clone
+# set contains no `casting_type_lr_seed_cast` and no `casting_type_lr_seed_constant_cast`.
+check C9a "systemverilog: 'casting_type' (the driver's pick) owes no trailing guard" \
+  "$(seed_routes_of "$SV_REPORT" casting_type)" "seed_routes=0/10"
+check C9b "systemverilog: 'constant_primary' carries the seed slice 4 described" \
+  "$(seed_routes_of "$SV_REPORT" constant_primary)" "seed_routes=10/10"
+check C9c "systemverilog: the eliminator builds no clone for the dropped closers" \
+  "$("$PIPELINE" grammars/systemverilog.ebnf --report-indirect-lr-plan \
+      --indirect-lr-plan-guard-dry-run --indirect-lr-plan-json /dev/stdout 2>/dev/null \
+    | grep -cE '"casting_type_lr_seed_(cast|constant_cast)"' || true)" "0"
+# ⛔ `ebnf` is the grammar whose knot the pass ACTUALLY absorbs today, so a non-zero here would mean
+# the shipped rewrite has an unguarded seed starvation in it right now.
+EBNF_REPORT="$("$PIPELINE" grammars/ebnf.ebnf --report-indirect-lr-plan \
+  --no-eliminate-indirect-left-recursion 2>/dev/null)"
+check C10 "ebnf: the knot the pass already absorbs owes no trailing guard" \
+  "$(grep -m1 '^candidates needing the TRAILING guard' <<< "$EBNF_REPORT" | awk '{print $7}')" \
+  "0/5"
 
 echo
 if [ "$fail" -eq 0 ]; then
-  echo "GUARD-FEASIBILITY-CENSUS: 9/9 as declared — option (iii)'s price on the shipped grammars is unchanged."
+  echo "GUARD-FEASIBILITY-CENSUS: 18/18 as declared — option (iii)'s price on the shipped grammars is unchanged."
 else
   echo "GUARD-FEASIBILITY-CENSUS: MISMATCH — option (iii)'s price has moved." >&2
   echo "  Do NOT edit the expectation to match; re-adjudicate in ENGINE-UNIVERSAL-SERVICES.17." >&2

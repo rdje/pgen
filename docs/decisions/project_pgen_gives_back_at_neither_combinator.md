@@ -113,7 +113,7 @@ converts a would-be give-back into a branch failure the existing selection alrea
 
 ⛔ **And the guard must be BYTE-EXACT, not a FIRST-set byte test.** `trivia` is nullable and leads
 every token, so `/` is in `FIRST` of every token; a byte-set guard passes on a comment exactly where
-it had to refuse (`k = n'(n)/*c*/;`). `.17` slice 2 measured exactness at **0 of 157** sites on both
+it had to refuse (`k = n'(n)/*c*/;`). `.17` slice 2 measured exactness at **0 of 129** sites on both
 SystemVerilog grammars. The structural form is mandatory, at the price of one residual sub-parse per
 committed iteration instead of one byte compare.
 

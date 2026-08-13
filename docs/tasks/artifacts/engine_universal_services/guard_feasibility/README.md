@@ -104,7 +104,7 @@ annotation-composability check also passes at `property_expr` is **not** measure
 refuses `property_expr` for a missing return annotation on `property_expr_sv_2017` alternative 5)
 and is slice 3's first check.
 
-## ⛔⛔ THE QUALIFIER ON EVERY NUMBER ABOVE — feasible is not closed, and it is measured at 157/157
+## ⛔⛔ THE QUALIFIER ON EVERY NUMBER ABOVE — feasible is not closed, and it is measured at 129/129
 
 `guard-feasible 16/28` means *a guard is expressible and provably **sound** at 16 candidates*. It
 does **not** mean 16 knots close. The report marks the difference with `~`:
@@ -118,8 +118,18 @@ cannot actually start and therefore silently declines to refuse the fatal iterat
 becomes unsound — `L(X_guarded) ⊆ L(X)` still holds, so an over-permissive guard can only fail to
 fire, never over-accept — but it is not a proof.
 
-**Measured: 157 of 157 sites are over-approximated. Not one exact guard exists on either grammar**
-(probe case C7, pinned absolutely against the uncapped report). Two compounding causes:
+**Measured: 129 of 129 SystemVerilog sites and 77 of 77 wrapper sites are over-approximated. Not
+one exact guard exists on either grammar** (probe cases C7/C7b, pinned absolutely against the
+uncapped report). Two compounding causes:
+
+> ⛔⛔ **THE DENOMINATOR READ `157` UNTIL `.17` SLICE 5, AND IT WAS NEVER THE SITE COUNT.** C7
+> extracted with `grep -c 'first='`, which counts LINES containing that substring — and the
+> per-candidate summary line `guard: … suffix_first=…` carries it too. So `157` was `129` sites plus
+> `28` candidate rows, one per candidate. Slice 5's new `seed_first=` line pushed it to 185 and made
+> the conflation visible. ⭐ The CLAIM was never at risk: every candidate summary is `~` as well, so
+> "not one exact guard exists" held under either count. C7 is now anchored on `[guard=` and
+> `~ hops=`, which occur exactly once per site line and nowhere else, and C7b pins the wrapper the
+> `157`-era bank never counted at all.
 
 1. **Structural** — `FirstSetSummary::byte_decided` is true only for single-byte-decided shapes, so
    any multi-element residual (`tick lparen expression rparen`) is approximate by construction.

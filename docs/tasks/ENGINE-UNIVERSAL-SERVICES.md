@@ -2667,7 +2667,7 @@ about the starvation blocker ONLY: whether the annotation-composability check al
 `property_expr` is **not** measured here (the wrapper refuses it for a missing return annotation on
 `property_expr_sv_2017` alternative 5) and is slice 3's first check. Recorded in `.15` below.
 
-###### ⛔⛔ THE QUALIFIER ON EVERY NUMBER ABOVE — FEASIBLE IS NOT CLOSED, AND IT IS MEASURED AT 157/157
+###### ⛔⛔ THE QUALIFIER ON EVERY NUMBER ABOVE — FEASIBLE IS NOT CLOSED, AND IT IS MEASURED AT 157/157 ⛔ (`157` → **129**: the denominator was 129 sites + 28 candidate rows — `.17` slice 5 RESULT 3; the *claim* is unchanged.)
 
 `guard-feasible 16/28` means *a guard is expressible and provably **sound** at 16 candidates*. It
 does **not** mean 16 knots close, and the report now says so in the output rather than in prose: `~`
@@ -2678,7 +2678,7 @@ cannot actually start from and therefore silently declines to refuse the fatal i
 guard: FEASIBLE  suffix_first={'/}~  variants=1 {'/}~  max_hops=1
 ```
 
-**Measured: 157 of 157 sites are over-approximated — not one exact guard exists on either grammar**
+**Measured: 157 of 157 sites are over-approximated — not one exact guard exists on either grammar** ⛔ (`157` → **129**: the denominator was 129 sites + 28 candidate rows — `.17` slice 5 RESULT 3; the *claim* is unchanged.)
 (probe case C7, pinned absolutely against the UNCAPPED report). Two compounding causes:
 
 1. **Structural** — `FirstSetSummary::byte_decided` holds only for single-byte-decided shapes, so any
@@ -2800,7 +2800,7 @@ release work, and slice 2 measured its live effect at zero.
   `bash docs/tasks/artifacts/engine_universal_services/guard_feasibility/probe.sh` →
   `GUARD-FEASIBILITY-CENSUS: 9/9 as declared`, rc 0. Ground truth in BOTH directions: two cases
   (C4 `undecidable=0`, C5 `no_competition=0`) assert a bucket must stay EMPTY, C7 pins the exactness
-  ratio at **157/157 over-approximated**, and a deliberately flipped expectation exits rc 1 naming
+  ratio at **157/157 over-approximated**, and a deliberately flipped expectation exits rc 1 naming ⛔ (`157` → **129**: the denominator was 129 sites + 28 candidate rows — `.17` slice 5 RESULT 3; the *claim* is unchanged.)
   the case (`C3 … => FEASIBLE variants=1 max_hops=0 ⛔ want BLOCKED variants=9 max_hops=9` →
   `GUARD-FEASIBILITY-CENSUS: MISMATCH`), so the bank can notice its own breakage.
   ⛔ **ROUTED OUT — none of this slice's four self-found defects was catchable by any of the 18
@@ -3230,7 +3230,7 @@ X_guarded := X_lr_base ( X_lr_suffix &( residual ) )* &( residual )
 ```
 
 The byte-set form is refused outright — not "preferred against" — because slice 2 measured exactness
-at **0 of 157** sites and E3 shows what that costs on the first comment. The structural form's price
+at **0 of 157** sites and E3 shows what that costs on the first comment. The structural form's price ⛔ (`157` → **129**: the denominator was 129 sites + 28 candidate rows — `.17` slice 5 RESULT 3; the *claim* is unchanged.)
 is one residual sub-parse per committed iteration plus one at rule exit, and it is confined by
 construction: the guard lives on a clone reached only from the holder, so every other caller of the
 base rule pays nothing, and `no_competition` / `residual_nullable` sites are owed no guard at all
@@ -3438,6 +3438,198 @@ produced it is retrievable only by people who already know the defect.
 - [x] **LOCKSTEP** — `docs/decisions/` (the new `feedback` record + INDEX), `KNOWLEDGE_MAP.md`,
   `docs/reference/RUST_CODEBASE_ANALYSIS.md`, `rust/src/ast_pipeline/indirect_lr_plan.rs`,
   `CHANGES.md`, `docs/TASK_TREE.md`. `MEMORY.md` unchanged — the frontier did not move.
+
+##### ⭐⭐ `.17` SLICE 5 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0025`, 2026-08-14 session #229) — the SEED term is in the census, it SPLITS the two candidates on SystemVerilog's cast knot, and slice 4's shipped analogue named the wrong base rule
+
+> **ANALYSIS + report columns + a pinned bank. ZERO grammar bytes, ZERO codegen bytes, and the
+> generated tree re-derived byte-for-byte identical** (all 11 parsers, hashes below). `is_starvation_safe`
+> — the verdict the shipped eliminator acts on — is untouched.
+>
+> Slice 4's deferral, verbatim: *"a candidate's guard cost is no longer `guard_hops` alone — it is
+> (hops for the loop guard) **plus** (whether the base's own seed set can swallow the holder's
+> residual), and the second term does not exist in `GuardAssessment` at all … slice 5 extends the
+> census with the seed term first, then decides the ordering against a complete model."* This slice
+> is that first job. ⛔ The ordering is still NOT decided — see the closing section for why the
+> answer changed shape again.
+
+###### THE TERM, DERIVED FROM THE ELIMINATOR RATHER THAN FROM THE DESIGN NOTE
+
+`X_lr_base`'s cyclic alternative is `clone(steps[1].rule) ++ residual(steps[0])`, each clone in turn
+`clone(steps[i+1].rule) ++ residual(steps[i])` — until the **cycle-closing** step, whose alternative
+`clone_rule` deletes outright (`Shear::Drop`, `indirect_lr_elimination.rs:681`) rather than
+redirecting. Two consequences, and neither is visible from `suffix_first`:
+
+1. **The seed tail is the route suffix MINUS the closing step's residual.** That residual travels
+   with the dropped alternative and reaches the `*` alone. `ChainRoute::seed_tail_elements`.
+2. **A route whose clone chain does not survive contributes no seed at all.** `clone_rule` returns
+   `None` when every alternative of a rule was sheared away, and the referring alternative then
+   vanishes from its parent in turn. `clone_chain_survives` mirrors exactly that rule.
+
+⇒ `GuardAssessment::seed_verdict` (`SeedVerdict`: `no_seed_tail` · `seed_no_competition` ·
+`seed_residual_nullable` · `trailing_guard_required` · `seed_undecidable`), plus candidate-level
+`seed_first` / `seed_tail_routes` / `requires_trailing_guard()`.
+
+⛔ **No `seed_incomplete` tier, deliberately, and the asymmetry with `GuardVerdict` is the point.**
+The loop guard can cut a chain short at an intermediate iteration — that is what `guard_incomplete`
+names. The trailing guard runs ONCE, at rule exit, on a clone reached only from a holder that wants
+the residual next, so refusing an over-long seed there cannot lose a derivation that holder had.
+
+###### ⭐⭐ RESULT 1 — the term SPLITS one knot's two candidates, and slice 4's shipped analogue named the wrong one
+
+```text
+[candidate] casting_type      seed: no trailing guard owed      seed_first={}       seed_routes=0/10
+[candidate] constant_primary  seed: TRAILING GUARD REQUIRED     seed_first={'/}~    seed_routes=10/10
+[candidate] property_expr     seed: TRAILING GUARD REQUIRED     seed_first={/aiosu}~ seed_routes=78/80
+[candidate] cast              seed: TRAILING GUARD REQUIRED     seed_first={./}~    seed_routes=8/8
+```
+
+`casting_type`'s ten routes all close at `cast` or `constant_cast`, and **each of those has exactly
+one alternative** (`grammars/systemverilog.ebnf:1029`, `:1539`) — the cycle-closing one. The shear
+deletes it, the clone is `None`, and no seed chain reaches `casting_type_lr_base`.
+
+⛔⛔ **GROUND TRUTH, from the REAL eliminator and not from this model.** The guard dry run's own
+clone set for `casting_type` is 12 rules — `casting_type_lr_seed_constant_primary`,
+`…_constant_primary_sv_2017/_sv_2023`, `…_constant_function_call`, `…_call_primary`,
+`…_call_with_postfix_chain`, `…_chainable_call_initial`, `…_direct_callable_method_call`,
+`…_method_call_root`, `…_method_call_receiver`, `…_method_call_receiver_sv_2017/_sv_2023` — and
+contains **no `casting_type_lr_seed_cast` and no `casting_type_lr_seed_constant_cast`**. Pinned as
+bank case C9c.
+
+⇒ slice 4's RESULT 2 wrote *"After the rewrite `casting_type := casting_type_lr_base (…)*`, and
+`casting_type_lr_base` carries the sheared `constant_cast` clone — `casting_type_acyclic tick lparen
+constant_expression rparen`"*. That shape is real and it is the one the `guard_effectiveness` bank
+models, but it belongs to **`constant_primary`** (whose routes close at `casting_type`, a
+many-alternative rule whose clone keeps `simple_type` and its siblings), not to `casting_type`. The
+bank's own mapping table said so all along — `prim ~ constant_primary` — and slice 4 transposed it
+onto the rule the driver happens to pick.
+
+⭐ **Slice 4's DECISION (c) is UNAFFECTED and is now per-candidate measured rather than universal.**
+"(iii) must not ship without the trailing guard" stands: SystemVerilog **15/28** candidates need it,
+the LRM wrapper **13/18**. What changes is the regression prediction attached to it — at
+`casting_type` specifically the loop guard alone would NOT regress `initial k = int'(1);`, because
+there is no seed there to over-consume it. At `property_expr`, the driver's *other* pick, it would.
+
+###### ⭐ RESULT 2 — `ebnf`, the one knot the eliminator absorbs TODAY, owes no trailing guard
+
+`0/5` candidates, census `seed_no_competition=6`. ⇒ the rewrite PGEN already ships carries no seed
+starvation, so this slice's finding is not a latent defect in a shipped parser. Pinned as C10.
+
+###### ⛔⛔ RESULT 3 — THE PINNED `157/157` WAS NEVER THE SITE COUNT, AND THE BANK FOUND IT ONLY BECAUSE A NEW LINE MADE THE AMBIGUITY VISIBLE
+
+`guard_feasibility/probe.sh` C7 extracted with `grep -c 'first='`, which counts **lines** containing
+that substring — and the per-candidate summary line `guard: … suffix_first=…` carries it too. So the
+pinned `157` was **129 starvation sites + 28 candidate rows**, one row per candidate, and the count
+had been quoted as a site count in TOOLBOX, the book, two decision records, the knowledge base and
+two bank READMEs. Adding slice 5's `seed_first=` line took it to 185 and the bank went red.
+
+Re-adjudicated rather than re-fitted, with two independent extractions agreeing:
+
+| | count |
+|---|---|
+| lines containing `first=` (the old extractor) | 185 |
+| … of which per-candidate `guard:` lines | 28 |
+| … of which per-candidate `seed:` lines (new) | 28 |
+| site lines, by `[guard=` | **129** |
+| site lines, by `— residual '` (independent) | **129** |
+| `⛔ starved by` (surviving) + `·  benign site` | 126 + 3 = **129** |
+| surviving-site census `68 + 29 + 29` | **126** ✅ |
+
+⭐ **The CLAIM was never at risk and that is worth stating precisely**: every candidate summary is
+`~` as well, so *"not one exact guard exists"* held under either count — only the denominator was
+inflated. C7 is now anchored on `[guard=` and `~ hops=`, each occurring exactly once per site line
+and nowhere else, and **C7b pins the wrapper at 77/77**, which the `157`-era bank never counted at
+all.
+
+⛔ **The transferable half.** A bank that reads a report by substring is coupled to every line the
+report will ever grow. The failure mode is silent in the direction that matters — a *larger*
+denominator makes an "N of N" ratio look like broader coverage — and it survived a slice that
+explicitly re-derived the case for being tautological and for reading a capped report. ⇒ an
+extractor must anchor on something STRUCTURAL in the line it means (a bracket group, a marker in its
+only legal position), never on a substring that a sibling line may also contain. Recorded as
+[[a-report-scraper-must-anchor-on-structure-not-on-a-substring]].
+
+###### THE ORDERING QUESTION — still open, and the reason changed AGAIN
+
+Slice 4 deferred it because `GuardAssessment` had no seed term. It has one now, and the answer moved
+anyway: the driver's current pick `casting_type` is **cheaper** on the seed axis (`0/10`, no trailing
+guard) while `constant_primary` is cheaper on nothing and costs `max_hops=1` besides. So the existing
+four-key sort already lands on the seed-cheap candidate here — for reasons that have nothing to do
+with guards, which is exactly the coincidence slice 3 flagged.
+
+⛔ **Not decided here, and the missing input is now a MEASUREMENT, not a model.** Making the ordering
+guard-aware changes which knots get absorbed ⇒ a shipped parser change ⇒ it needs the two-sided
+repro ratchet and a corpus re-measure, which is a slice of its own. What this slice removes is the
+excuse: the model is complete, so the next slice can decide against it.
+
+###### Acceptance Checklist (enforced) — `.17` slice 5
+
+- [x] **REPRODUCE / ISSUE** — the census could not answer the question slice 4 handed it. Before this
+  slice, `--report-indirect-lr-plan` printed the same `guard: FEASIBLE … max_hops=` line for
+  `casting_type` and `constant_primary`, with no column anywhere in the report or the JSON that
+  distinguishes a candidate whose sheared clone can starve its holder from one whose cannot — and
+  slice 4 had already measured that difference as the gap between a working repair and a REGRESSION
+  (`guard_effectiveness` rows G2/G6/G3 on `e5`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `GuardAssessment` carried `verdict` / `residual_first` /
+  `guard_hops`, all three derived from `suffix_first`, which is the FIRST set of what the **loop**
+  iterates. The seed's tail is a different string — the suffix minus the cycle-closing step's
+  residual — and whether it exists at all depends on clone survival, neither of which the struct
+  modelled. WHERE: `rust/src/ast_pipeline/indirect_lr_plan.rs` (`GuardAssessment`, `assess_guard`,
+  and the candidate build in `survey_indirect_left_recursion_with_route_budget`); the shear/drop
+  semantics it has to mirror are `indirect_lr_elimination.rs:465-476` (the shear map) and `:675-706`
+  (`clone_rule`, including the `kept.is_empty()` → `None` path).
+- [x] **FIX** — fix-hierarchy tier = **analysis module + report/JSON columns + bank** (no engine
+  behaviour, no grammar byte, no codegen byte). `SeedVerdict` + `GuardAssessment::seed_verdict`;
+  `ChainRoute::seed_tail_elements` / `closing_step`; `IndirectChainCandidate::seed_first` /
+  `seed_tail_routes` / `seed_blocking_sites` / `trailing_guard_sites` / `requires_trailing_guard`;
+  `IndirectChainSurvey::seed_verdict_census` / `trailing_guard_candidates`; report lines and JSON
+  fields. ⛔ `is_guard_feasible` now reads BOTH positions — a feasibility claim silent about a
+  starvation slice 4 measured is the defect, not the caution — and the cost of that was **measured
+  as zero**: `seed_undecidable=0` on every shipped grammar, so 16/28, 13/18 and 5/5 are unmoved and
+  the dry run still reports `would_absorb=2 … 28 -> 0`.
+  ⛔ Deliberately NOT done: no guard is emitted, `is_starvation_safe` is untouched, and the candidate
+  ordering is unchanged.
+- [x] **ADDRESSED (verified)** — `bash docs/tasks/artifacts/engine_universal_services/guard_feasibility/probe.sh`
+  → `GUARD-FEASIBILITY-CENSUS: 18/18 as declared`, rc 0 read from an UNPIPED run
+  (`CI-PARITY-GATE-ROT.25`), with eight NEW cases: C7b (the wrapper's exactness, never counted
+  before), C8a-d (the seed census and the 15/28 headline), C9a-c (the `casting_type` ↔
+  `constant_primary` split **plus the eliminator's own clone set as ground truth**) and C10 (`ebnf`
+  at 0/5). `cargo test --lib indirect_lr` → **24 passed / 0 failed** (21 before).
+  ⭐ **Falsifiability proven, not asserted, on BOTH axes of the term** — and the two probes are
+  deliberately different, because a single break could not have exercised both:
+  - the seed-tail arithmetic: `.rev().skip(1)` → `.skip(0)` ⇒ `the_seed_tail_is_the_route_suffix_minus_the_closing_step_residual`
+    and `a_seed_can_starve_a_holder_the_loop_provably_cannot` FAIL by name (`left: "{'}~" right: "{!}"`);
+  - clone survival: the shear map forced empty ⇒ `a_seed_can_starve_a_holder_the_loop_provably_cannot`
+    FAILS on *"no clone, no seed"*.
+  The source was restored to a byte-identical hash afterwards
+  (`f177552474996dffb420f9b172b3f69d7aa2619839e6ca5fdbeb1ff49bc60de5`) and the suite re-run green.
+  ⛔ **And the honesty note this slice owes its own test**: `two_base_rules_on_one_knot_disagree_about_the_seed`
+  survived BOTH breaks, because on the `ct` side the empty tail alone forces the verdict — its
+  docstring now says so instead of implying it measures survival
+  ([[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]]).
+- [x] **NO REGRESSION** — ⭐ **measured at the strongest available tier, not argued from the diff.**
+  `make -C rust regenerate_generated_parsers` under the memory guard (`exit=0 peak_tree_rss=6444MB
+  elapsed=262s`) re-derived all **11** generated parsers with the new binary, and
+  `shasum -a 256 generated/*.rs` is byte-identical to the pre-change snapshot — `ebnf.rs`,
+  `systemverilog_parser.rs`, `vhdl_parser.rs` and the eight others, every hash unchanged. ⇒ no parser
+  input can behave differently, because no parser byte moved.
+  The two report-reading banks both pass (`GUARD-DRY-RUN: 9/9`, `GUARD-FEASIBILITY-CENSUS: 18/18`).
+  ⛔ The three scratch-slot banks (`indirect_lr`, `quantifier_policy`, `guard_effectiveness`) were
+  deliberately NOT run: none of them reads this report, they exercise PARSE behaviour, and parse
+  behaviour is proven unchanged by the byte-identical generated tree — running them would acquire
+  `.13` slice 4b's scratch-slot restore obligation for no measurement. Stated rather than silent.
+- [x] **LOCKSTEP** — `TOOLBOX.md` §5.5 (the `seed:` line, the per-site `seed=` column, the verdict
+  table, the `casting_type`/`constant_primary` split, and the ordering bullet, which claimed the seed
+  term "is not in `GuardAssessment` at all" and is now false); the book's grammar-wellformedness
+  chapter (a new *"Which candidates actually need the trailing guard"* section, the corrected sample
+  report, and a marker on the superseded `&FIRST(residual)` snippet); `docs/decisions/` (the new
+  scraper-anchoring record + INDEX); `docs/knowledge/` + `KNOWLEDGE_MAP.md` (regenerated); the two
+  bank READMEs; `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+  ⛔ **The `157 → 129` correction was swept by `grep -rn`, not by recall** — slice 4b's lesson
+  applied on the slice that inherited it. Twelve citations: six SPECIFY and were corrected
+  (`indirect_lr_plan.rs`, `TOOLBOX.md` ×3 loci, the knowledge record, the `neither_combinator`
+  decision record, both bank READMEs, the bank itself), and the rest NARRATE — `CHANGES.md` is
+  append-only history and keeps the number it was written with, and this leaf's slice-2/3/4 boxes
+  are marked in place rather than rewritten.
 
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 

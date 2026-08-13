@@ -1,5 +1,52 @@
 # CHANGES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0025 — the SEED term lands in the census, it SPLITS the two candidates on SV's cast knot, and a pinned `157/157` turns out never to have been a site count (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 5; analysis + report columns + a pinned bank, ZERO grammar/codegen bytes, generated tree byte-identical)
+
+- ⭐⭐ **THE SECOND GUARD POSITION IS NOW PRICED PER CANDIDATE.** Slice 4 decided option (iii)'s shape
+  — `X_lr_base ( X_lr_suffix &( residual ) )* &( residual )` — and deferred the ordering because
+  *"the second term does not exist in `GuardAssessment` at all"*. It does now: `SeedVerdict`
+  (`no_seed_tail` · `seed_no_competition` · `seed_residual_nullable` · `trailing_guard_required` ·
+  `seed_undecidable`) beside the loop verdict, plus per-candidate `seed_first` / `seed_tail_routes` /
+  `requires_trailing_guard`, in the report and the JSON.
+- ⭐ **The term is derived from the ELIMINATOR, not from the design note.** The sheared clone's tail
+  is the route suffix **minus the cycle-closing step's residual** — `clone_rule` DROPS that
+  alternative rather than redirecting it — and a route contributes no seed at all when its clone
+  chain does not survive the shear (`clone_rule` returns `None` once every alternative of a rule is
+  sheared away).
+- ⛔⛔ **AND THAT SPLITS ONE KNOT'S TWO CANDIDATES, WHICH CORRECTS SLICE 4'S SHIPPED ANALOGUE.**
+  `casting_type` — the driver's actual first pick — reports `seed_routes=0/10`, **no trailing guard
+  owed**: its routes close at `cast` / `constant_cast`, each of which has exactly ONE alternative,
+  so the shear leaves no clone and no seed. `constant_primary` reports `10/10`, `property_expr`
+  `78/80`, `cast` `8/8`. ⇒ slice 4's *"`casting_type_lr_base` carries the sheared `constant_cast`
+  clone"* named the wrong base rule; the shape is real and belongs to `constant_primary`.
+  **GROUND TRUTH from the real eliminator**, not the model: the dry run's clone set for
+  `casting_type` holds 12 rules and **no `casting_type_lr_seed_cast`, no
+  `casting_type_lr_seed_constant_cast`** (bank case C9c).
+- ⭐ **Slice 4's decision (c) is unaffected and now measured** — SV **15/28** candidates need the
+  trailing guard, the LRM wrapper **13/18**, and `ebnf` — the one knot the eliminator absorbs today —
+  **0/5**, so the rewrite PGEN already ships carries no seed starvation.
+- ⛔⛔ **THE PINNED `157/157` WAS NEVER THE SITE COUNT.** `guard_feasibility` C7 extracted with
+  `grep -c 'first='`, which counts LINES containing that substring — and the per-candidate summary
+  line `guard: … suffix_first=…` carries it too. `157` was **129 sites + 28 candidate rows**. Adding
+  the `seed_first=` line took it to 185 and the bank went red. Re-adjudicated with two independent
+  extractions agreeing (`[guard=` and `— residual '` ⇒ 129; `126` surviving + `3` benign; census
+  `68+29+29=126`), and the extractor re-anchored on structure. ⭐ **The CLAIM never moved** — every
+  candidate summary is `~` too, so "not one exact guard exists" held under either count; only the
+  denominator quoted for it was wrong. Corrected in the six surfaces that SPECIFY it, marked in the
+  ones that NARRATE, and `CHANGES.md` history left alone.
+- **`is_guard_feasible` now reads BOTH positions.** Cost measured as zero: `seed_undecidable=0` on
+  every shipped grammar, so 16/28, 13/18 and 5/5 are unmoved and the dry run still reports
+  `would_absorb=2 … 28 -> 0`.
+- ⛔ **The ordering is still NOT decided, and the reason changed again**: the existing four-key sort
+  already lands on the seed-cheap candidate here, for reasons that have nothing to do with guards.
+  What this slice removes is the excuse — the model is complete now.
+- **Verified:** `guard_feasibility/probe.sh` **18/18 as declared** (8 new cases: C7b, C8a-d, C9a-c,
+  C10); `guard_dry_run/probe.sh` **9/9**; `cargo test --lib indirect_lr` **24 passed / 0 failed**
+  (21 before), falsifiability proven on BOTH axes of the new term with a byte-identical restore.
+  ⭐ **NO REGRESSION measured at the strongest tier**: `regenerate_generated_parsers` under the
+  memory guard re-derived all **11** generated parsers and every `shasum -a 256` is identical to the
+  pre-change snapshot. `scripts/check_doctrines.sh` ALL PASS.
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0024 — slice 4's own lockstep missed two citations of the record it refuted, and one was a doc comment SPECIFYING the superseded design (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 4b; CI-PARITY-GATE-ROT.28 NEW; docs + one `///` block, ZERO executable bytes)
 
 - ⛔⛔ **`rust/src/ast_pipeline/indirect_lr_plan.rs:323` still specified the dead design.** Slice 4

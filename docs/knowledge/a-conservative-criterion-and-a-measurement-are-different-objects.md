@@ -14,7 +14,7 @@ tags: [analysis, static-analysis, instruments, first-sets, left-recursion, ast-p
 date: 2026-08-13
 status: current
 evidence: rust/src/ast_pipeline/indirect_lr_plan.rs (`collect_starvation_sites` fires on any non-empty residual and consults no FIRST set; `assess_guard` adds the measurement beside it, without changing `is_starvation_safe`); `./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --report-indirect-lr-plan` printing `starvation-safe candidates: 0/28` next to `guard-feasible candidates: 16/28` and `residual_nullable=29`; ENGINE-UNIVERSAL-SERVICES.17 slice 2
-reverify: "bash docs/tasks/artifacts/engine_universal_services/guard_feasibility/probe.sh   # 9/9; C1 pins 0/28 conservative vs 16/28 measured, C7 pins 157/157 over-approximated"
+reverify: "bash docs/tasks/artifacts/engine_universal_services/guard_feasibility/probe.sh   # 9/9; C1 pins 0/28 conservative vs 16/28 measured, C7 pins 129/129 over-approximated"
 ---
 
 **A conservative criterion is designed so that a `safe` verdict is never wrong. That says nothing
@@ -70,7 +70,7 @@ than classifying it ([[a-check-whose-inputs-all-pass-has-not-been-tested]]). Pin
 Splitting the criterion in two is only half the job: the refined verdict then has to say whether it
 is a **proof** or a **possibility**, or readers will spend the difference. Here `guard-feasible
 16/28` means *a guard is expressible and provably sound at 16 candidates* — not *16 knots close*.
-The byte test it would emit is an over-approximation at **157 of 157** sites, so the guard can
+The byte test it would emit is an over-approximation at **129 of 129** sites, so the guard can
 silently decline to fire. Sound and closed are different claims, and the report now prints `~` on
 every approximated set rather than leaving the distinction in a README:
 

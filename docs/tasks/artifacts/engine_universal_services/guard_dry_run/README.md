@@ -68,7 +68,7 @@ census separates them, and probe cases D4/D6 pin both sides.
 The dry run **emits no guard**. The grammar it builds is the one `.13` slice 5 measured as a
 REGRESSION — and the driver's first pick is `casting_type`, the exact rule `TOOLBOX.md` §5.5 warns
 about (*rewriting it turns the accepted `int'(3)` into a rejection*, probe P2). `28 → 0` is
-**plan-stage reachability**, not closure. Stacked with slice 2's exactness result (0 of 157 sites
+**plan-stage reachability**, not closure. Stacked with slice 2's exactness result (0 of 129 sites
 exact), the guard's *effectiveness* on real SystemVerilog text remains unmeasured and is slice 4's
 burden.
 
