@@ -54,6 +54,7 @@
 //! `GRAMMAR-WELLFORMED.A2.6` forced on the lint, which used to assert that cycles it had declined
 //! were "handled".
 
+use super::first_set::{self, FirstSetSummary, RuleVisit, terminal_first_byte};
 use super::grammar_wellformedness::{WellformednessIssue, detect_left_recursion};
 use super::{ASTNode, ASTValue, TokenValue};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -211,6 +212,203 @@ pub struct StarvationSite {
     /// live because `prim` still names it and `scratch := prim` still names `prim` — reachable from
     /// outside the plan, and measurably starved.
     pub survives_rewrite: bool,
+    /// `ENGINE-UNIVERSAL-SERVICES.17` slice 2 — can a call-site follow-restriction guard close
+    /// THIS site, and what would it cost? [`GuardAssessment`] carries the verdict and its inputs.
+    pub guard: GuardAssessment,
+}
+
+/// The byte test a call-site follow-restriction guard would emit at one site, plus the two flags
+/// that decide whether it may be emitted at all.
+///
+/// Derived from [`first_set::branch_first_set`], which is a sound **over**-approximation. That is
+/// the safe direction for every use here: a disjointness test on over-approximated sets implies
+/// disjointness of the true sets, and a subset test between over-approximated sets is exactly what
+/// the emitted guard would evaluate, because the guard's own byte set IS the over-approximation.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct GuardFirstBytes {
+    /// Bytes that can begin a match, unioned across both FIRST carriers (quoted-terminal first
+    /// bytes and `first_bytes`) — see the [`first_set`] soundness contract.
+    pub bytes: BTreeSet<u8>,
+    /// The node can match the empty string.
+    pub nullable: bool,
+    /// FIRST analysis was incomplete, so `bytes` is NOT exhaustive and nothing may be concluded
+    /// from its membership or from its emptiness.
+    pub unresolved: bool,
+    /// Membership in `bytes` implies a DEFINITE match — the set over-includes nothing
+    /// (`FirstSetSummary::byte_decided`).
+    ///
+    /// ⭐⭐ **This is the difference between a guard that is sound and a guard that actually
+    /// FIRES.** The emitted guard tests one byte. When the residual's FIRST set is byte-decided,
+    /// passing the test means the residual really can start there, so the guard refuses exactly the
+    /// fatal iteration. When it is NOT, the set over-includes: the guard passes at positions where
+    /// the residual cannot start, so it silently fails to refuse. It never becomes UNSOUND — an
+    /// over-permissive guard only declines to fire, and `L(X_guarded) ⊆ L(X)` still holds — but a
+    /// non-exact guard is not a proof that the knot is closed.
+    ///
+    /// ⛔ On SystemVerilog this is where the layout model bites and it is measured, not feared:
+    /// `trivia := (line_comment | block_comment)*` is nullable and leads every token, so `/` is in
+    /// every residual's FIRST set and `int'(2)/*c*/'(3)` slips a byte-test guard.
+    pub exact: bool,
+}
+
+impl GuardFirstBytes {
+    /// Reduce a FIRST summary to the byte test, keeping the two flags that bound its use.
+    ///
+    /// ⛔ A terminal whose first byte cannot be recovered makes the whole set non-exhaustive, so it
+    /// sets `unresolved` rather than being dropped — dropping it would shrink an over-approximation,
+    /// which is the one direction that turns a sound analysis into an unsound one.
+    fn from_summary(summary: &FirstSetSummary) -> Self {
+        let mut bytes: BTreeSet<u8> = summary.first_bytes.iter().copied().collect();
+        let mut unresolved = summary.unresolved;
+        for terminal in &summary.terminals {
+            match terminal_first_byte(terminal) {
+                Some(byte) => {
+                    bytes.insert(byte);
+                }
+                None => unresolved = true,
+            }
+        }
+        GuardFirstBytes {
+            bytes,
+            nullable: summary.nullable,
+            unresolved,
+            exact: summary.byte_decided,
+        }
+    }
+
+    /// Union of two FIRST byte tests — how a candidate's several routes combine into the ONE
+    /// suffix set a single guard has to be complete against.
+    fn union(&self, other: &GuardFirstBytes) -> GuardFirstBytes {
+        GuardFirstBytes {
+            bytes: self.bytes.union(&other.bytes).copied().collect(),
+            nullable: self.nullable || other.nullable,
+            unresolved: self.unresolved || other.unresolved,
+            // Exactness is a property of the WHOLE set: a union is exact only if both halves are.
+            exact: self.exact && other.exact,
+        }
+    }
+
+    /// Compact, deterministic rendering: printable ASCII as characters, everything else as hex.
+    pub fn render(&self) -> String {
+        if self.unresolved {
+            return "UNRESOLVED".to_string();
+        }
+        let rendered: Vec<String> = self
+            .bytes
+            .iter()
+            .map(|byte| {
+                if byte.is_ascii_graphic() {
+                    format!("{}", *byte as char)
+                } else {
+                    format!("\\x{byte:02x}")
+                }
+            })
+            .collect();
+        format!(
+            "{{{}}}{}{}",
+            rendered.join(""),
+            if self.nullable { " +ε" } else { "" },
+            // `~` marks an OVER-APPROXIMATED set: a guard on it is still sound but may fail to
+            // fire. Silent would be the wrong default — see `exact`.
+            if self.exact { "" } else { "~" }
+        )
+    }
+}
+
+/// The verdict on a call-site follow-restriction guard at one starvation site.
+///
+/// ## What the guard IS
+///
+/// After the rewrite the base reads `X := X_lr_base ( X_lr_suffix )*` with a **possessive** `*`
+/// (`.17` slice 1, [[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]]). A holder
+/// `H := X residual` starves when the loop eats text `residual` needed. The guard is the PEG-native
+/// repair slice 1 measured (`( "a" &"a" )* "a"` accepts `aaa` **and** `a`): commit an iteration only
+/// when the position after it can still start `residual`.
+///
+/// ```text
+/// X_guarded := X_lr_base ( X_lr_suffix &FIRST(residual) )*
+/// ```
+///
+/// It is **call-site scoped** — slice 1's Q5/Q5b pair measured that a rule-global guard breaks the
+/// holders that have no residual — so it lands on a guarded clone reached only from `H`.
+///
+/// ## Why the verdict needs FOUR outcomes and not two
+///
+/// The shipped starvation criterion is deliberately STRUCTURAL: any non-empty residual counts. That
+/// is the right posture for choosing a base rule (it never misses a hazard), but it cannot tell a
+/// site that would really starve from one that merely looks like it, and it says nothing about
+/// whether a guard would be COMPLETE. Both questions are decidable from FIRST sets, and both change
+/// the price of option (iii):
+///
+/// - **`NoCompetition`** — `FIRST(suffix) ∩ FIRST(residual) = ∅`. The loop takes an iteration only
+///   at a position starting with `FIRST(suffix)`; `residual` can only match at one starting with
+///   `FIRST(residual)`. Disjoint ⇒ the greedy loop never consumes text the holder had a viable
+///   derivation for ⇒ **this site needs no guard at all**.
+/// - **`Guardable`** — they compete, and `FIRST(suffix) ⊆ FIRST(residual)`. Then every position at
+///   which the loop would continue also satisfies the guard, so the guard refuses only the final,
+///   fatal iteration and provably no earlier one: it loses nothing the unguarded loop accepted, and
+///   since `L(X_guarded) ⊆ L(X)` it adds nothing outside `L(X)·L(residual)` either.
+/// - **`Incomplete`** — they compete and `FIRST(suffix) ⊄ FIRST(residual)`. Some intermediate
+///   iteration ends at a position the guard refuses even though a longer chain would have
+///   succeeded, so the guard trades one under-acceptance for another. `( "a" &"b" )* "b"` on `aab`
+///   is the shape: the guard breaks the loop at iteration 1 and the whole holder fails.
+/// - **`ResidualNullable`** — `residual` can match empty, so the holder cannot starve here at all
+///   (it succeeds on the empty match). ⛔ Reported as its own bucket rather than folded into
+///   `NoCompetition`, because it is ALSO a hole in the transitive walk: [`rules_transparent_to`]
+///   follows only SYNTACTICALLY empty residuals, so a holder whose residual is non-empty but
+///   nullable stops the chain, and a hazard one hop further out is not searched from here.
+/// - **`Undecidable`** — a FIRST set is `unresolved`, or the suffix is nullable (then continuing the
+///   loop does not imply `FIRST(suffix)` at that position and the completeness argument has no
+///   premise). Nothing may be concluded in either direction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GuardVerdict {
+    NoCompetition,
+    Guardable,
+    Incomplete,
+    ResidualNullable,
+    Undecidable,
+}
+
+impl GuardVerdict {
+    /// A short, stable token for the report, the JSON and the tests.
+    pub fn token(&self) -> &'static str {
+        match self {
+            GuardVerdict::NoCompetition => "no_competition",
+            GuardVerdict::Guardable => "guardable",
+            GuardVerdict::Incomplete => "guard_incomplete",
+            GuardVerdict::ResidualNullable => "residual_nullable",
+            GuardVerdict::Undecidable => "undecidable",
+        }
+    }
+
+    /// Does this verdict BLOCK option (iii) at its site?
+    ///
+    /// `NoCompetition` and `ResidualNullable` do not: no guard is needed there. `Guardable` does
+    /// not: the guard is expressible and complete. The other two do.
+    pub fn blocks_guard(&self) -> bool {
+        matches!(self, GuardVerdict::Incomplete | GuardVerdict::Undecidable)
+    }
+}
+
+impl Default for GuardVerdict {
+    fn default() -> Self {
+        GuardVerdict::Undecidable
+    }
+}
+
+/// Everything the survey knows about guarding one starvation site.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct GuardAssessment {
+    pub verdict: GuardVerdict,
+    /// FIRST of the holder's residual — the byte set the emitted guard would test.
+    pub residual_first: GuardFirstBytes,
+    /// How many rules the guard has to be cloned THROUGH: the holder references a rule transparent
+    /// to the base, and the guard belongs on the `*` inside the base, so every transparent hop
+    /// between them needs its own guarded clone. `0` means the holder names the base directly.
+    ///
+    /// ⭐ This is the term slice 1 could not price, and it is what makes (iii) cost real rule names
+    /// rather than one lookahead: `cast := casting_type …` is TWO hops from `constant_primary`.
+    pub guard_hops: usize,
 }
 
 /// Everything the survey knows about one candidate base rule.
@@ -240,6 +438,12 @@ pub struct IndirectChainCandidate {
     /// candidate that quietly lost routes is a candidate whose numbers mean something different
     /// from what they say.
     pub degenerate_routes_dropped: usize,
+    /// FIRST of the suffix the eliminated `*` would iterate, unioned over ALL surviving routes.
+    ///
+    /// ⛔ The union, not the per-route set: one base rule emits one `*` over one `X_lr_suffix` rule
+    /// carrying every route's suffix as alternatives, so a guard on it has to be complete against
+    /// all of them at once.
+    pub suffix_first: GuardFirstBytes,
 }
 
 impl IndirectChainCandidate {
@@ -289,6 +493,57 @@ impl IndirectChainCandidate {
     pub fn is_starvation_safe(&self) -> bool {
         self.surviving_starvation_sites().is_empty()
     }
+
+    /// `.17` slice 2 — surviving sites that BLOCK a call-site follow-restriction guard.
+    ///
+    /// Empty ⇒ every surviving site is either provably not a hazard (`no_competition` /
+    /// `residual_nullable`) or closable by a complete guard (`guardable`) ⇒ option (iii) is
+    /// feasible at this base rule.
+    pub fn guard_blocking_sites(&self) -> Vec<&StarvationSite> {
+        self.surviving_starvation_sites()
+            .into_iter()
+            .filter(|site| site.guard.verdict.blocks_guard())
+            .collect()
+    }
+
+    /// Is option (iii) feasible at this base rule?
+    ///
+    /// ⛔ **Feasible is not the same as needed, and neither is the same as SHIPPED.** A candidate
+    /// can be `is_starvation_safe() == false` (the shipped criterion refuses it) and guard-feasible
+    /// at the same time — that combination is precisely the population option (iii) would unlock,
+    /// and it is why this is reported next to the structural verdict rather than replacing it.
+    pub fn is_guard_feasible(&self) -> bool {
+        self.guard_blocking_sites().is_empty()
+    }
+
+    /// Distinct residual FIRST sets across the surviving sites that actually need a guard.
+    ///
+    /// ⭐ **This is the "do two holders of the same clone disagree?" measurement the leaf's open
+    /// question names.** One guarded clone carries one byte test, so `n` distinct sets means `n`
+    /// guarded clone chains, not one — the multiplier on option (iii)'s rule-name cost.
+    pub fn guard_variants(&self) -> BTreeSet<String> {
+        self.surviving_starvation_sites()
+            .into_iter()
+            .filter(|site| {
+                matches!(
+                    site.guard.verdict,
+                    GuardVerdict::Guardable | GuardVerdict::Incomplete
+                )
+            })
+            .map(|site| site.guard.residual_first.render())
+            .collect()
+    }
+
+    /// The most guard clone hops any single site needs — the depth of the clone chain option (iii)
+    /// would have to synthesize.
+    pub fn max_guard_hops(&self) -> usize {
+        self.surviving_starvation_sites()
+            .into_iter()
+            .filter(|site| !matches!(site.guard.verdict, GuardVerdict::NoCompetition))
+            .map(|site| site.guard.guard_hops)
+            .max()
+            .unwrap_or(0)
+    }
 }
 
 /// The survey's whole result.
@@ -310,6 +565,29 @@ impl IndirectChainSurvey {
             .iter()
             .filter(|candidate| candidate.is_starvation_safe())
             .collect()
+    }
+
+    /// `.17` slice 2 — candidates a call-site follow-restriction guard could make absorbable.
+    ///
+    /// The headline number for pricing option (iii): how much of the population the shipped
+    /// structural criterion refuses would survive with the guard in hand.
+    pub fn guard_feasible_candidates(&self) -> Vec<&IndirectChainCandidate> {
+        self.candidates
+            .iter()
+            .filter(|candidate| candidate.is_guard_feasible())
+            .collect()
+    }
+
+    /// Every surviving starvation site of every candidate, bucketed by guard verdict — the census
+    /// itself, in `rule_order`.
+    pub fn guard_verdict_census(&self) -> BTreeMap<&'static str, usize> {
+        let mut census: BTreeMap<&'static str, usize> = BTreeMap::new();
+        for candidate in &self.candidates {
+            for site in candidate.surviving_starvation_sites() {
+                *census.entry(site.guard.verdict.token()).or_default() += 1;
+            }
+        }
+        census
     }
 
     /// Cycle rules covered by at least one candidate — the survey's coverage numerator.
@@ -335,6 +613,21 @@ impl IndirectChainSurvey {
 pub fn survey_indirect_left_recursion(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
+) -> IndirectChainSurvey {
+    survey_indirect_left_recursion_with_route_budget(grammar, rule_order, MAX_ROUTES_PER_BASE)
+}
+
+/// [`survey_indirect_left_recursion`] with the per-candidate route budget as a parameter.
+///
+/// ⛔ Exists so the TRUNCATION path is reachable from a test. It is otherwise unreachable on any
+/// shipped grammar — the widest knot enumerates 80 routes against a budget of 128 — and an
+/// unreachable branch that must fail SAFE is exactly the kind a release trusts and never exercises
+/// ([[a-check-whose-inputs-all-pass-has-not-been-tested]]). Callers outside tests should use the
+/// budgeted-by-default entry point above.
+pub fn survey_indirect_left_recursion_with_route_budget(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    route_budget: usize,
 ) -> IndirectChainSurvey {
     let mut surviving_cycle_rules: Vec<String> = Vec::new();
     let mut cycles_by_rule: BTreeMap<String, Vec<String>> = BTreeMap::new();
@@ -367,6 +660,11 @@ pub fn survey_indirect_left_recursion(
 
     let mut candidates: Vec<IndirectChainCandidate> = Vec::new();
     let mut declined: Vec<DeclinedCycle> = Vec::new();
+    // ⭐ ONE persistent FIRST cache for the whole survey. `branch_first_set`'s own contract makes
+    // this the supported shape (a fresh `RuleVisit` per query, a shared rule cache across them),
+    // and on a 1 466-rule grammar it is the difference between a report and a recomputation of the
+    // same rule summaries once per starvation site.
+    let mut first_set_cache: HashMap<String, FirstSetSummary> = HashMap::new();
 
     // Iterate `rule_order`, never the HashMap — every report this repository emits has to be
     // byte-deterministic for the same reason codegen does.
@@ -391,7 +689,7 @@ pub fn survey_indirect_left_recursion(
             }
             let mut visited: Vec<String> = vec![rule_name.to_string()];
             let mut found: Vec<Vec<ChainStep>> = Vec::new();
-            let budget = MAX_ROUTES_PER_BASE.saturating_sub(routes.len());
+            let budget = route_budget.saturating_sub(routes.len());
             let complete = collect_routes(
                 rule_name,
                 step,
@@ -408,7 +706,7 @@ pub fn survey_indirect_left_recursion(
                     steps,
                 });
             }
-            if routes.len() >= MAX_ROUTES_PER_BASE {
+            if routes.len() >= route_budget {
                 routes_truncated = true;
                 break;
             }
@@ -457,12 +755,51 @@ pub fn survey_indirect_left_recursion(
             grammar,
             rule_order,
         );
+        // `.17` slice 2 — the suffix FIRST set the guard has to be complete against, unioned over
+        // every surviving route because one base rule emits one `*`.
+        //
+        // ⛔⛔ **A TRUNCATED ROUTE SET MAKES THIS UNION UNSOUND, AND UNSOUND IN THE PASSING
+        // DIRECTION.** Every later test treats `suffix_first` as an OVER-approximation; a union
+        // over a SUBSET of the routes is an UNDER-approximation, which makes
+        // `FIRST(suffix) ⊆ FIRST(residual)` pass too easily and reports `guardable` — and hence a
+        // `FEASIBLE` candidate — on evidence that does not exist. Nothing downstream could notice.
+        // So truncation poisons the summary outright: `unresolved` forces every site to
+        // `Undecidable`, which blocks the candidate. (`routes_truncated` is false on every shipped
+        // grammar today — the widest knot enumerates 80 of a 128 budget — so this costs nothing
+        // now and cannot silently start lying later.)
+        let mut suffix_first = routes
+            .iter()
+            .map(|route| {
+                first_bytes_of(
+                    &ASTNode::Sequence {
+                        elements: route.suffix_elements(),
+                    },
+                    grammar,
+                    &mut first_set_cache,
+                )
+            })
+            // ⛔ The seed is the IDENTITY of the union, not `Default`: an empty byte set is
+            // vacuously exact, and `Default`'s `exact: false` would make `self.exact && other.exact`
+            // collapse every candidate to non-exact regardless of what was measured.
+            .fold(
+                GuardFirstBytes {
+                    exact: true,
+                    ..GuardFirstBytes::default()
+                },
+                |accumulated, route_first| accumulated.union(&route_first),
+            );
+        if routes_truncated {
+            suffix_first.unresolved = true;
+        }
         let starvation_sites = collect_starvation_sites(
             rule_name,
             &steps_by_rule,
             rule_order,
             &on_route_rules,
             &survivors,
+            grammar,
+            &suffix_first,
+            &mut first_set_cache,
         );
 
         candidates.push(IndirectChainCandidate {
@@ -472,6 +809,7 @@ pub fn survey_indirect_left_recursion(
             acyclic_alternative_indices,
             starvation_sites,
             degenerate_routes_dropped,
+            suffix_first,
         });
     }
 
@@ -700,40 +1038,52 @@ fn rules_surviving_rewrite(
 /// `cast_expr` because nothing else reached them, while *"SystemVerilog reaches `casting_type` from
 /// `cast` too, so a real transformation must ADD the clone and KEEP the originals"*. Keeping the
 /// original is exactly what leaves the starved holder standing.
+/// ⭐ Returned as a DEPTH map rather than a set (`.17` slice 2): the set is `.keys()`, unchanged,
+/// and the depth is the number of transparent hops between a holder's reference and the base — the
+/// number of guarded clones option (iii) has to synthesize to push one lookahead down to the `*`.
+/// Computed by layers, so each rule carries its SHORTEST transparency distance.
 fn rules_transparent_to(
     base_rule: &str,
     steps_by_rule: &HashMap<String, Vec<ChainStep>>,
-) -> BTreeSet<String> {
-    let mut transparent: BTreeSet<String> = BTreeSet::new();
-    transparent.insert(base_rule.to_string());
+) -> BTreeMap<String, usize> {
+    let mut transparent: BTreeMap<String, usize> = BTreeMap::new();
+    transparent.insert(base_rule.to_string(), 0);
+    let mut depth = 0usize;
     loop {
-        let mut grown = false;
+        let mut layer: Vec<String> = Vec::new();
         for (rule, steps) in steps_by_rule {
-            if transparent.contains(rule) {
+            if transparent.contains_key(rule) {
                 continue;
             }
-            if steps
-                .iter()
-                .any(|step| step.residual.is_empty() && transparent.contains(&step.next_rule))
-            {
-                transparent.insert(rule.clone());
-                grown = true;
+            if steps.iter().any(|step| {
+                step.residual.is_empty()
+                    && transparent.get(&step.next_rule).is_some_and(|hop| *hop == depth)
+            }) {
+                layer.push(rule.clone());
             }
         }
-        if !grown {
+        if layer.is_empty() {
             break;
+        }
+        depth += 1;
+        for rule in layer {
+            transparent.insert(rule, depth);
         }
     }
     transparent
 }
 
 /// Every site holding a rule TRANSPARENT to `base_rule` at a left corner with a non-empty residual.
+#[allow(clippy::too_many_arguments)]
 fn collect_starvation_sites(
     base_rule: &str,
     steps_by_rule: &HashMap<String, Vec<ChainStep>>,
     rule_order: &[String],
     on_route_rules: &BTreeSet<String>,
     survivors: &BTreeSet<String>,
+    grammar: &HashMap<String, ASTNode>,
+    suffix_first: &GuardFirstBytes,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
 ) -> Vec<StarvationSite> {
     let transparent = rules_transparent_to(base_rule, steps_by_rule);
     let mut sites: Vec<StarvationSite> = Vec::new();
@@ -745,22 +1095,85 @@ fn collect_starvation_sites(
             continue;
         };
         for step in steps {
-            if !transparent.contains(&step.next_rule) || step.residual.is_empty() {
+            let Some(guard_hops) = transparent.get(&step.next_rule).copied() else {
+                continue;
+            };
+            if step.residual.is_empty() {
                 continue;
             }
             sites.push(StarvationSite {
                 rule: rule_name.clone(),
                 alternative_index: step.alternative_index,
-                residual: render_elements(&step.residual),
+                residual: render_elements_display(&step.residual),
                 on_route: on_route_rules.contains(rule_name),
                 // A holder outside the plan is untouched by the rewrite and therefore always
                 // survives; an on-route holder survives only if the fixpoint says so.
                 survives_rewrite: !on_route_rules.contains(rule_name)
                     || survivors.contains(rule_name),
+                guard: assess_guard(
+                    &step.residual,
+                    guard_hops,
+                    grammar,
+                    suffix_first,
+                    first_set_cache,
+                ),
             });
         }
     }
     sites
+}
+
+/// FIRST byte test of an arbitrary node, through the shared FIRST machinery.
+fn first_bytes_of(
+    node: &ASTNode,
+    grammar: &HashMap<String, ASTNode>,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+) -> GuardFirstBytes {
+    let mut visiting_rules = RuleVisit::default();
+    let summary = first_set::branch_first_set(node, grammar, first_set_cache, &mut visiting_rules, 0);
+    GuardFirstBytes::from_summary(&summary)
+}
+
+/// `.17` slice 2 — decide [`GuardVerdict`] for one starvation site. See that type for the full
+/// derivation of each outcome; the order of the tests below is load-bearing:
+///
+/// 1. **undecidable first** — an `unresolved` FIRST set or a nullable suffix removes the premise of
+///    every later test, so concluding anything from them would be reasoning from a set that is not
+///    exhaustive. This is the only branch that may fire on incomplete information.
+/// 2. **nullable residual** — the holder cannot starve here regardless of the byte sets.
+/// 3. **disjointness**, then **containment** — the two positive outcomes, in that order because
+///    disjoint sets are trivially non-containing and the "no guard needed" reading is the stronger
+///    (and cheaper) of the two.
+fn assess_guard(
+    residual: &[ASTNode],
+    guard_hops: usize,
+    grammar: &HashMap<String, ASTNode>,
+    suffix_first: &GuardFirstBytes,
+    first_set_cache: &mut HashMap<String, FirstSetSummary>,
+) -> GuardAssessment {
+    let residual_first = first_bytes_of(
+        &ASTNode::Sequence {
+            elements: residual.to_vec(),
+        },
+        grammar,
+        first_set_cache,
+    );
+    let verdict = if residual_first.unresolved || suffix_first.unresolved || suffix_first.nullable {
+        GuardVerdict::Undecidable
+    } else if residual_first.nullable {
+        GuardVerdict::ResidualNullable
+    } else if suffix_first.bytes.is_disjoint(&residual_first.bytes) {
+        GuardVerdict::NoCompetition
+    } else if suffix_first.bytes.is_subset(&residual_first.bytes) {
+        GuardVerdict::Guardable
+    } else {
+        GuardVerdict::Incomplete
+    };
+    GuardAssessment {
+        verdict,
+        residual_first,
+        guard_hops,
+    }
 }
 
 fn alternatives_of(node: &ASTNode) -> Vec<ASTNode> {
@@ -788,16 +1201,48 @@ fn rule_reference_name(node: &ASTNode) -> Option<String> {
     }
 }
 
-/// Render nodes as compact EBNF-ish text. Report-only — nothing parses this back.
+/// Render nodes as compact EBNF-ish text.
+///
+/// ⛔⛔ **NOT report-only, whatever its previous doc comment said — this function DECIDES a
+/// refusal.** `indirect_lr_elimination.rs:483` settles the ambiguity check *"two routes iterate the
+/// identical suffix under the identical profile gate but declare different ASTs"* by comparing two
+/// of these strings. So a change here is a change to **which knots the eliminator absorbs**, i.e. to
+/// the shipped parser — not a cosmetic edit. That coupling is a defect in its own right and is
+/// tracked as `ENGINE-UNIVERSAL-SERVICES.18`; until it is fixed, **this function's output is
+/// FROZEN**, and anything that only needs to be READ by a human belongs in
+/// [`render_elements_display`].
 pub fn render_elements(elements: &[ASTNode]) -> String {
+    render_elements_with(elements, false)
+}
+
+/// The HUMAN-facing rendering: identical to [`render_elements`] except that a quantified GROUP keeps
+/// its parentheses.
+///
+/// ⛔ Separate from [`render_elements`] **deliberately, and the duplication is the point**. The
+/// unparenthesized form is a lie — `constant_expression`'s residual is
+/// `( binary_operator attribute_instance* constant_expression_operand )* ( question … )?`, two
+/// optional groups, so the whole residual is NULLABLE — and it printed as
+/// `binary_operator attribute_instance* constant_expression_operand* question … ?`, which reads as a
+/// MANDATORY `binary_operator`. Next to it slice 2's `residual_nullable` verdict looks like a tool
+/// bug rather than the grammar's own shape. But fixing that in the SHARED renderer would have made
+/// the eliminator's ambiguity comparison strictly finer — *refuse less, absorb more* — which is a
+/// parser-behaviour change smuggled in on a report edit. Splitting the two makes this slice's
+/// "nothing the parser executes changed" true **by construction** instead of by measurement.
+/// `.18` collapses them again, from the other side, by giving the ambiguity check a structural key.
+pub fn render_elements_display(elements: &[ASTNode]) -> String {
+    render_elements_with(elements, true)
+}
+
+fn render_elements_with(elements: &[ASTNode], parenthesize_groups: bool) -> String {
     elements
         .iter()
-        .map(render_node)
+        .map(|element| render_node_with(element, parenthesize_groups))
         .collect::<Vec<_>>()
         .join(" ")
 }
 
-fn render_node(node: &ASTNode) -> String {
+fn render_node_with(node: &ASTNode, parenthesize_groups: bool) -> String {
+    let render_node = |node: &ASTNode| render_node_with(node, parenthesize_groups);
     match node {
         ASTNode::Or { alternatives } => format!(
             "( {} )",
@@ -807,10 +1252,19 @@ fn render_node(node: &ASTNode) -> String {
                 .collect::<Vec<_>>()
                 .join(" | ")
         ),
-        ASTNode::Sequence { elements } => render_elements(elements),
-        ASTNode::Quantified { element, quantifier } => {
-            format!("{}{}", render_node(element), quantifier)
-        }
+        ASTNode::Sequence { elements } => render_elements_with(elements, parenthesize_groups),
+        // An `Or` already carries its own parentheses from the arm above; only a quantified
+        // SEQUENCE is ambiguous without them.
+        ASTNode::Quantified { element, quantifier } => match element.as_ref() {
+            ASTNode::Sequence { elements } if parenthesize_groups && elements.len() > 1 => {
+                format!(
+                    "( {} ){}",
+                    render_elements_with(elements, parenthesize_groups),
+                    quantifier
+                )
+            }
+            _ => format!("{}{}", render_node(element), quantifier),
+        },
         ASTNode::Lookahead { element, positive } => {
             format!("{}{}", if *positive { "&" } else { "!" }, render_node(element))
         }
@@ -1017,6 +1471,484 @@ mod tests {
                 .expect("prim is a candidate")
                 .is_starvation_safe(),
             "without a surviving holder the same cycle must stay absorbable"
+        );
+    }
+
+    /// ⭐ `.17` slice 2 — the guard census on `knot_a()`, against slice 1's MEASURED probe bank.
+    ///
+    /// `ct`'s starvation site is `cast_expr := ct "'" "(" lit ")"`, residual `"'" "(" lit ")"`, and
+    /// the suffix the eliminated `*` iterates is the same `"'" "(" lit ")"`. Equal FIRST sets ⇒
+    /// competing and contained ⇒ `guardable`. That is exactly probe Q4
+    /// (`( "a" &"a" )* "a"` accepts `aaa` **and** `a`,
+    /// `docs/tasks/artifacts/engine_universal_services/quantifier_policy/probe.sh`) transposed onto
+    /// the real knot: the guard refuses the iteration that would starve `cast_expr` and no other.
+    #[test]
+    fn the_starved_candidate_is_guardable_and_the_guard_costs_one_variant() {
+        let (grammar, order) = knot_a();
+        let survey = survey_indirect_left_recursion(&grammar, &order);
+        let ct = survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "ct")
+            .expect("ct is a candidate");
+
+        // The structural criterion refuses it — unchanged, and deliberately so.
+        assert!(!ct.is_starvation_safe());
+        // The guard census says the refusal is CLOSABLE, which is the whole point of the slice.
+        assert!(ct.is_guard_feasible());
+        let site = &ct.starvation_sites[0];
+        assert_eq!(site.rule, "cast_expr");
+        assert_eq!(site.guard.verdict.token(), "guardable");
+        // ⭐ The trailing `~` is the OVER-APPROXIMATION marker, and this synthetic has NO layout
+        // rule at all — so it proves the structural cause on its own: `"'" "(" lit ")"` is a
+        // multi-element sequence, hence never `byte_decided`, hence the byte test cannot be exact.
+        // SystemVerilog's nullable `trivia` compounds that; it does not create it.
+        assert_eq!(site.guard.residual_first.render(), "{'}~");
+        assert!(!site.guard.residual_first.exact);
+        assert_eq!(ct.suffix_first.render(), "{'}~");
+        // One holder, one byte test ⇒ ONE guarded clone chain, and the holder names `ct` directly.
+        assert_eq!(ct.guard_variants().len(), 1);
+        assert_eq!(ct.max_guard_hops(), 0);
+    }
+
+    /// ⛔ The one-difference control for `no_competition`, and the reason the census has four
+    /// outcomes instead of "guardable / not".
+    ///
+    /// Same knot, one byte changed: `cast_expr` now reads `ct "@" "(" lit ")"`, so the holder's
+    /// residual starts with `@` while the suffix the `*` iterates starts with `@` too… no — the
+    /// suffix IS the holder's residual on this shape, so to make the two disagree the SEED has to
+    /// carry the competing text instead. `outer := ct "!" ` holds `ct` with a residual `"!"` that
+    /// the `'`-led suffix can never consume ⇒ the greedy loop cannot starve it ⇒ `no_competition`,
+    /// and no guard is owed there at all.
+    #[test]
+    fn a_residual_the_suffix_can_never_consume_needs_no_guard() {
+        let rule = |name: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("rule_reference".to_string()),
+                TokenValue::String(name.to_string()),
+            ]),
+        };
+        let text = |literal: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("quoted_string".to_string()),
+                TokenValue::String(literal.to_string()),
+            ]),
+        };
+
+        let (mut grammar, mut order) = knot_a();
+        grammar.insert(
+            "scratch".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("outer"), rule("prim")],
+            },
+        );
+        grammar.insert(
+            "outer".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("ct"), text("!")],
+            },
+        );
+        order.insert(1, "outer".to_string());
+
+        let survey = survey_indirect_left_recursion(&grammar, &order);
+        let prim = survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is still a candidate");
+
+        // The STRUCTURAL criterion still refuses `prim`: `outer` holds a transparent rule with a
+        // non-empty residual, which is all it looks at.
+        assert!(!prim.is_starvation_safe());
+        let site = prim
+            .surviving_starvation_sites()
+            .into_iter()
+            .find(|site| site.rule == "outer")
+            .expect("outer survives the rewrite — scratch still names it");
+        // The FIRST sets say the hazard is not real: `'` and `!` cannot both start one byte.
+        assert_eq!(site.guard.verdict.token(), "no_competition");
+        assert_eq!(site.guard.residual_first.render(), "{!}");  // single terminal ⇒ EXACT, no `~`
+        // ⭐ And it costs NO guard variant — a site that needs no guard must not be priced as one.
+        assert!(site.guard.residual_first.exact, "a single-byte terminal IS byte-decided");
+        assert!(!prim.guard_variants().contains("{!}"));
+
+        // The one-difference control: give `outer` the SAME leading byte as the suffix and the
+        // verdict must flip to a hazard that does need a guard. If both spellings agreed, the
+        // disjointness test would be measuring nothing.
+        let mut competing = grammar.clone();
+        competing.insert(
+            "outer".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("ct"), text("'")],
+            },
+        );
+        let control = survey_indirect_left_recursion(&competing, &order);
+        let control_site = control
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is a candidate")
+            .surviving_starvation_sites()
+            .into_iter()
+            .find(|site| site.rule == "outer")
+            .expect("outer still holds ct");
+        assert_eq!(control_site.guard.verdict.token(), "guardable");
+    }
+
+    /// ⛔ `guard_incomplete` — the outcome that keeps option (iii) from being a free win, measured
+    /// on the shape slice 1's Q-series predicts: `( "a" &"b" )* "b"` on `aab` FAILS, because the
+    /// guard breaks the loop at an intermediate iteration whose position cannot start the residual.
+    ///
+    /// Here the base's suffix can begin with `'` OR `[`, while the surviving holder's residual
+    /// admits only `'`. `FIRST(suffix) ⊄ FIRST(residual)` ⇒ a chain that has to pass THROUGH a
+    /// `[…]` step to reach the holder's `'` would be cut short by the guard ⇒ the guard is
+    /// expressible but not complete, and the site BLOCKS the candidate.
+    #[test]
+    fn a_suffix_that_can_start_outside_the_residual_blocks_the_guard() {
+        let rule = |name: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("rule_reference".to_string()),
+                TokenValue::String(name.to_string()),
+            ]),
+        };
+        let text = |literal: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("quoted_string".to_string()),
+                TokenValue::String(literal.to_string()),
+            ]),
+        };
+
+        // ⛔ The holder has to OUTLIVE the rewrite or there is no surviving site to judge — the
+        // `p5_transparent_holder` shape, for exactly the reason slice 5b's fixture needed it.
+        let (mut grammar, mut order) = knot_a();
+        grammar.insert(
+            "scratch".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("outer_cast"), rule("prim")],
+            },
+        );
+        grammar.insert(
+            "outer_cast".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("ct"), text("'"), text("("), rule("lit"), text(")")],
+            },
+        );
+        order.insert(1, "outer_cast".to_string());
+
+        // A SECOND cyclic alternative on `prim`, whose route contributes a `[`-led suffix. This is
+        // the ONE difference from the control below.
+        let mut widened = grammar.clone();
+        widened.insert(
+            "prim".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("lit"), rule("cast_expr"), rule("index_expr")],
+            },
+        );
+        widened.insert(
+            "index_expr".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("prim"), text("["), rule("lit"), text("]")],
+            },
+        );
+        let mut widened_order = order.clone();
+        widened_order.push("index_expr".to_string());
+
+        let survey = survey_indirect_left_recursion(&widened, &widened_order);
+        let prim = survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is a candidate");
+        assert_eq!(prim.suffix_first.render(), "{'[}~");
+        let site = prim
+            .surviving_starvation_sites()
+            .into_iter()
+            .find(|site| site.rule == "outer_cast")
+            .expect("outer_cast survives the rewrite");
+        assert_eq!(site.guard.residual_first.render(), "{'}~");
+        assert_eq!(site.guard.verdict.token(), "guard_incomplete");
+        assert!(site.guard.verdict.blocks_guard());
+        assert!(!prim.is_guard_feasible());
+
+        // ⭐ The one-difference control: WITHOUT the `[`-led route the suffix is `{'}`, the same
+        // site is `guardable`, and the candidate is guard-feasible. If both halves agreed, the
+        // containment test would be measuring nothing.
+        let control = survey_indirect_left_recursion(&grammar, &order);
+        let control_prim = control
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is a candidate");
+        assert_eq!(control_prim.suffix_first.render(), "{'}~");
+        assert_eq!(
+            control_prim
+                .surviving_starvation_sites()
+                .into_iter()
+                .find(|site| site.rule == "outer_cast")
+                .expect("outer_cast still holds ct")
+                .guard
+                .verdict
+                .token(),
+            "guardable"
+        );
+        assert!(control_prim.is_guard_feasible());
+    }
+
+    /// ⛔ `residual_nullable` — a residual that can match EMPTY cannot starve its holder, so the
+    /// structural criterion counts a site that is not a hazard. Measured on SystemVerilog at 29 of
+    /// 126 surviving sites (`constant_expression`'s residual is two optional groups).
+    ///
+    /// ⭐ It is ALSO a hole in the transitive walk, which is why it is its own bucket rather than
+    /// folded into `no_competition`: [`rules_transparent_to`] follows only SYNTACTICALLY empty
+    /// residuals, so this holder stops the chain and a hazard one hop further out is never searched
+    /// from here.
+    #[test]
+    fn a_nullable_residual_is_bucketed_apart_from_a_disjoint_one() {
+        let rule = |name: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("rule_reference".to_string()),
+                TokenValue::String(name.to_string()),
+            ]),
+        };
+        let text = |literal: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("quoted_string".to_string()),
+                TokenValue::String(literal.to_string()),
+            ]),
+        };
+
+        let (mut grammar, mut order) = knot_a();
+        grammar.insert(
+            "scratch".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("outer"), rule("prim")],
+            },
+        );
+        // `outer := ct ( "!" )?` — a non-empty residual that is nonetheless nullable.
+        grammar.insert(
+            "outer".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule("ct"),
+                    ASTNode::Quantified {
+                        element: Box::new(text("!")),
+                        quantifier: "?".to_string(),
+                    },
+                ],
+            },
+        );
+        order.insert(1, "outer".to_string());
+
+        let survey = survey_indirect_left_recursion(&grammar, &order);
+        let site = survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is a candidate")
+            .surviving_starvation_sites()
+            .into_iter()
+            .find(|site| site.rule == "outer")
+            .expect("outer holds the transparent ct");
+        assert_eq!(site.guard.verdict.token(), "residual_nullable");
+        assert!(!site.guard.verdict.blocks_guard());
+        assert!(site.guard.residual_first.nullable);
+    }
+
+    /// ⛔⛔ A TRUNCATED route set must REFUSE a guard verdict, not compute one from the routes it
+    /// happened to reach — the one place this analysis could have been unsound in the passing
+    /// direction.
+    ///
+    /// Every later test reads `suffix_first` as an OVER-approximation. A union over a SUBSET of the
+    /// routes is an UNDER-approximation, so `FIRST(suffix) ⊆ FIRST(residual)` would pass too easily
+    /// and report `guardable` — and a `FEASIBLE` candidate — on evidence that was never gathered.
+    /// Here the budget is squeezed to 1 route while the grammar has two, so truncation fires and
+    /// every site must come back `undecidable`.
+    ///
+    /// ⭐ RED-provable: without the `routes_truncated` poison the same fixture reports `guardable`
+    /// on a set that omits the `[`-led route entirely — the exact false positive.
+    #[test]
+    fn a_truncated_route_set_refuses_a_guard_verdict_instead_of_guessing_one() {
+        let rule = |name: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("rule_reference".to_string()),
+                TokenValue::String(name.to_string()),
+            ]),
+        };
+        let text = |literal: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("quoted_string".to_string()),
+                TokenValue::String(literal.to_string()),
+            ]),
+        };
+
+        let (mut grammar, mut order) = knot_a();
+        grammar.insert(
+            "scratch".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("outer_cast"), rule("prim")],
+            },
+        );
+        grammar.insert(
+            "outer_cast".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("ct"), text("'"), text("("), rule("lit"), text(")")],
+            },
+        );
+        order.insert(1, "outer_cast".to_string());
+        grammar.insert(
+            "prim".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("lit"), rule("cast_expr"), rule("index_expr")],
+            },
+        );
+        grammar.insert(
+            "index_expr".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("prim"), text("["), rule("lit"), text("]")],
+            },
+        );
+        order.push("index_expr".to_string());
+
+        let survey = survey_indirect_left_recursion_with_route_budget(&grammar, &order, 1);
+        let prim = survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is a candidate");
+        assert!(prim.routes_truncated, "the budget of 1 must truncate 2 routes");
+        assert!(
+            prim.suffix_first.unresolved,
+            "a partial route union is not an over-approximation and must not be treated as one"
+        );
+        for site in prim.surviving_starvation_sites() {
+            assert_eq!(
+                site.guard.verdict.token(),
+                "undecidable",
+                "site {} must refuse rather than judge on partial evidence",
+                site.rule
+            );
+        }
+        assert!(!prim.is_guard_feasible());
+
+        // ⭐ The one-difference control: the SAME grammar with the real budget enumerates both
+        // routes, and the verdict becomes a measured one. If truncation and completeness produced
+        // the same answer, the poison would be untested.
+        let full = survey_indirect_left_recursion(&grammar, &order);
+        let full_prim = full
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is a candidate");
+        assert!(!full_prim.routes_truncated);
+        assert!(!full_prim.suffix_first.unresolved);
+        assert_eq!(full_prim.suffix_first.render(), "{'[}~");
+    }
+
+    /// ⭐ The clone-chain DEPTH, which is what makes option (iii) cost rule names rather than one
+    /// lookahead: the guard belongs on the `*` inside the base, the holder names a rule TRANSPARENT
+    /// to the base, and every transparent hop between them needs its own guarded clone.
+    ///
+    /// `p5_transparent_holder`'s shape: `outer_cast` holds `ct`, and `ct := kw | prim` is one bare
+    /// hop from the base `prim` ⇒ `hops=1`.
+    #[test]
+    fn guard_hops_count_the_transparent_clone_chain() {
+        let rule = |name: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("rule_reference".to_string()),
+                TokenValue::String(name.to_string()),
+            ]),
+        };
+        let text = |literal: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("quoted_string".to_string()),
+                TokenValue::String(literal.to_string()),
+            ]),
+        };
+
+        let (mut grammar, mut order) = knot_a();
+        grammar.insert(
+            "scratch".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("outer_cast"), rule("prim")],
+            },
+        );
+        grammar.insert(
+            "outer_cast".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("ct"), text("'"), text("("), rule("lit"), text(")")],
+            },
+        );
+        order.insert(1, "outer_cast".to_string());
+
+        let survey = survey_indirect_left_recursion(&grammar, &order);
+        let prim = survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "prim")
+            .expect("prim is a candidate");
+        let through_ct = prim
+            .surviving_starvation_sites()
+            .into_iter()
+            .find(|site| site.rule == "outer_cast")
+            .expect("outer_cast holds ct");
+        assert_eq!(through_ct.guard.guard_hops, 1, "outer_cast -> ct -> prim");
+        // `cast_expr` holds `ct` too and is the same one hop out; the base itself is hop 0.
+        assert_eq!(prim.max_guard_hops(), 1);
+    }
+
+    /// ⛔ A quantified GROUP keeps its parentheses, because the census's own verdicts are unreadable
+    /// without them: `( "a" "b" )?` printed as `"a" "b"?` reads as a MANDATORY `"a"`, and a
+    /// `residual_nullable` verdict next to it looks like a tool bug rather than the grammar's shape.
+    #[test]
+    fn a_quantified_group_renders_with_its_parentheses() {
+        let text = |literal: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String("quoted_string".to_string()),
+                TokenValue::String(literal.to_string()),
+            ]),
+        };
+        let grouped = ASTNode::Quantified {
+            element: Box::new(ASTNode::Sequence {
+                elements: vec![text("a"), text("b")],
+            }),
+            quantifier: "?".to_string(),
+        };
+        assert_eq!(render_elements_display(&[grouped.clone()]), "( \"a\" \"b\" )?");
+        // A single quantified element must NOT gain parentheses it never had.
+        let single = ASTNode::Quantified {
+            element: Box::new(text("a")),
+            quantifier: "*".to_string(),
+        };
+        assert_eq!(render_elements_display(&[single.clone()]), "\"a\"*");
+
+        // ⛔⛔ THE OTHER HALF, AND IT IS THE LOAD-BEARING ONE. `render_elements` is FROZEN because
+        // `indirect_lr_elimination.rs:483` decides an ambiguity refusal by comparing its output
+        // (`.18`). If it ever gained the parentheses, `( "a" "b" )?` and `"a" "b"?` would stop
+        // comparing equal, the refusal would fire less often, and the eliminator would absorb knots
+        // it refuses today — a shipped-parser change riding on a cosmetic edit. Pinned in the
+        // COLLIDING direction on purpose: this asserts the lossiness the display renderer fixes.
+        // The collision itself, spelled out: `( "a" "b" )?` and `"a" "b"?` are structurally
+        // DIFFERENT suffixes that the frozen renderer maps to the SAME string.
+        let optional_group = grouped; // ( "a" "b" )?
+        let optional_tail = ASTNode::Sequence {
+            elements: vec![
+                text("a"),
+                ASTNode::Quantified {
+                    element: Box::new(text("b")),
+                    quantifier: "?".to_string(),
+                },
+            ],
+        }; // "a" "b"?
+        assert_eq!(
+            render_elements(&[optional_group.clone()]),
+            render_elements(&[optional_tail.clone()]),
+            "FROZEN: these two collide, and the eliminator's ambiguity check consumes exactly this \
+             string — changing it changes which knots the pass absorbs (.18)"
+        );
+        assert_ne!(
+            render_elements_display(&[optional_group]),
+            render_elements_display(&[optional_tail]),
+            "DISPLAY: the human-facing renderer must separate them"
         );
     }
 

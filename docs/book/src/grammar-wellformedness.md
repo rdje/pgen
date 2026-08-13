@@ -2154,6 +2154,70 @@ greedy `*`, tracked as `ENGINE-UNIVERSAL-SERVICES.17`, and the SVA property knot
 does not need the residual** — or to accept that this construct is not chain-absorbable. The report
 names the holder, its alternative and the exact residual at risk.
 
+### `verdict=STARVED` is not the last word — read the `guard:` line next
+
+`STARVED` says *the shipped criterion refuses this base rule today*. It does not say the construct
+is hopeless, and the report now prints a second, independent verdict beside it:
+
+```text
+starvation-safe candidates: 0/28
+guard-feasible candidates: 16/28 (option (iii): a call-site follow-restriction guard on the sheared clone)
+guard-verdict census over surviving starvation sites: guard_incomplete=68 guardable=29 residual_nullable=29
+
+[candidate] constant_primary  routes=10  seeds=0  clone_cost=14  verdict=STARVED
+    guard: FEASIBLE  suffix_first={'/}  variants=1 {'/}  max_hops=1
+    ⛔ starved by cast alt#0 — residual 'tick lparen expression rparen'
+       [guard=guardable first={'/} hops=1]
+```
+
+The idea is the PEG-native repair: commit a chain iteration only when the position after it can
+still start the holder's residual.
+
+```text
+X_guarded := X_lr_base ( X_lr_suffix &FIRST(residual) )*
+```
+
+It has to be written on the **call site**, not on the rule — `constant_primary` must reserve the
+trailing `'( … )` when it is reached from `cast` and must *not* when it is reached from an ordinary
+expression — which is why the guard lands on the sheared clone the eliminator already emits, and why
+the report prices the clone chain (`max_hops`) and how many distinct byte tests it needs
+(`variants`).
+
+**How to read each site's verdict:**
+
+| verdict | meaning |
+|---|---|
+| `guardable` | `FIRST(suffix) ⊆ FIRST(residual)` — the guard refuses the fatal iteration and provably no earlier one |
+| `no_competition` | the suffix and the residual can never start on the same byte ⇒ this holder cannot be starved; **no guard owed** |
+| `residual_nullable` | the residual can match empty ⇒ the holder succeeds anyway; **no guard owed** |
+| `guard_incomplete` | they compete but containment fails ⇒ the guard would cut the loop short at an intermediate iteration |
+| `undecidable` | a FIRST set could not be resolved, or the suffix is nullable ⇒ nothing may be concluded |
+
+⭐ **Why `guardable` is safe in both directions.** Wherever the loop continues, the suffix matched
+there, so that position begins with `FIRST(suffix)` — and containment makes the guard pass there.
+The only iteration it can refuse is the last one. And because the guarded rule accepts a *subset* of
+what the unguarded one does, the holder still only accepts strings the declarative grammar already
+licensed: the guard **recovers** derivations, it never invents them.
+
+⛔ **`FEASIBLE` means sound, not closed — and the report tells you which.** A trailing `~` on a byte
+set (`suffix_first={'/}~`) marks it as an **over-approximation**: the guard passes at positions the
+residual cannot actually start from, so it silently declines to refuse the iteration you wanted it
+to refuse. It never becomes unsound — an over-permissive guard can only fail to fire, never
+over-accept — but it is not a proof.
+
+On SystemVerilog **every** site is `~`, for two compounding reasons:
+
+1. a FIRST set is exact only for single-byte-decided shapes, so any multi-token residual
+   (`tick lparen expression rparen`) is approximate by construction; and
+2. `trivia := (line_comment | block_comment)*` is nullable and leads every token, so `/` belongs to
+   every FIRST set — concretely, `int'(2)/*c*/'(3)` slips a byte-test guard.
+
+⇒ if you are relying on this, the exact form is a **structural** lookahead over the residual rather
+than a byte test: precise, at the cost of a per-iteration sub-parse instead of one byte compare.
+
+⛔ **This census is reported, not applied.** The verdict the eliminator acts on is still the
+structural one, so nothing about which knots PGEN absorbs has changed.
+
 ⭐ **One criterion had to be deleted along the way: `seeds=0` is not a disqualification.** The
 direct/wrapper elimination *drops* a left-recursive alternative, so a rule whose every alternative is
 on the cycle has nothing left to seed from. The indirect transform *clones* it with the cycle edge

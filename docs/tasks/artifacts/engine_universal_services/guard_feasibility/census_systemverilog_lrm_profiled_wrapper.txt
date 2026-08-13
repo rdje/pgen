@@ -1,0 +1,250 @@
+=== INDIRECT-LR-SURVEY: 'systemverilog_lrm_profiled_wrapper' ===
+elimination_ran=true eliminated_base_rules=4 surviving_cycle_rules=23 candidates=18 declined=5
+indirect_eliminated_base_rules=0 indirect_clone_rules=0 indirect_refusals=3
+    ⛔ REFUSED 'property_expr': hop 'property_expr_sv_2017' alternative 5 declares no return annotation and its residual is 'kw_or_1758356d property_expr', so the chain's AST cannot be composed faithfully — annotate it
+    ⛔ REFUSED 'incomplete_class_scoped_type_sv_2023': hop 'incomplete_class_scoped_type_sv_2023' alternative 1 declares no return annotation and its residual is 'scope_resolution type_identifier_or_class_type', so the chain's AST cannot be composed faithfully — annotate it
+    ⛔ REFUSED 'incomplete_class_scoped_type': hop 'incomplete_class_scoped_type_sv_2023' alternative 1 declares no return annotation and its residual is 'scope_resolution type_identifier_or_class_type', so the chain's AST cannot be composed faithfully — annotate it
+cycle-rule coverage: 18/23 reported rule rows reachable by a bare left-corner route
+starvation-safe candidates: 3/18
+guard-feasible candidates: 13/18 (option (iii): a call-site follow-restriction guard on the sheared clone)
+guard-verdict census over surviving starvation sites: guard_incomplete=22 guardable=18 residual_nullable=19
+    legend: byte sets are {…}; `+ε` = nullable; `~` = OVER-APPROXIMATED, so a byte-test guard on it is sound but may FAIL TO FIRE (a nullable layout rule leading every token puts its first bytes in every set)
+
+[candidate] cast  routes=4  seeds=0  clone_cost=11  verdict=STARVED
+    clones: call_primary, casting_type, constant_function_call, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023, direct_callable_method_call, method_call_receiver, method_call_receiver_sv_2017, method_call_receiver_sv_2023, method_call_root
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20./}~  variants=1 {\x09\x0a\x0d\x20./}~  max_hops=3
+    route alt#0: cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast   suffix: dot callable_method_call_body tick lparen expression rparen
+    route alt#0: cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast   suffix: dot callable_method_call_body tick lparen expression rparen
+    route alt#0: cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast   suffix: dot callable_method_call_body ( lbrack constant_range_expression rbrack )? tick lparen expression rparen
+    route alt#0: cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast   suffix: dot callable_method_call_body ( lbrack constant_range_expression rbrack )? tick lparen expression rparen
+    ⛔ starved by expression_base alt#1 — residual '( binary_operator attribute_instance* expression_operand )*' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>^|~} +ε~ hops=3]
+    ⛔ starved by direct_method_call alt#0 — residual 'dot method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=3]
+    ⛔ starved by direct_callable_method_call alt#0 (on-route, still reachable after the rewrite) — residual 'dot callable_method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=3]
+
+[candidate] casting_type  routes=6  seeds=4  clone_cost=12  verdict=STARVED
+    clones: call_primary, cast, constant_cast, constant_function_call, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023, direct_callable_method_call, method_call_receiver, method_call_receiver_sv_2017, method_call_receiver_sv_2023, method_call_root
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20'/}~  variants=1 {\x09\x0a\x0d\x20'/}~  max_hops=0
+    route alt#1: casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#1: casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#1: casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_cast -> casting_type   suffix: tick lparen constant_expression rparen
+    route alt#1: casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type   suffix: tick lparen expression rparen dot callable_method_call_body ( lbrack constant_range_expression rbrack )?
+    route alt#1: casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type   suffix: tick lparen expression rparen dot callable_method_call_body ( lbrack constant_range_expression rbrack )?
+    route alt#1: casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_cast -> casting_type   suffix: tick lparen constant_expression rparen
+    ⛔ starved by cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen expression rparen' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20'/}~ hops=0]
+    ⛔ starved by constant_cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen constant_expression rparen' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20'/}~ hops=0]
+
+[candidate] constant_cast  routes=2  seeds=0  clone_cost=4  verdict=STARVED
+    clones: casting_type, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20'/}~  variants=1 {\x09\x0a\x0d\x20'/}~  max_hops=3
+    route alt#0: constant_cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_cast   suffix: tick lparen constant_expression rparen
+    route alt#0: constant_cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_cast   suffix: tick lparen constant_expression rparen
+    ⛔ starved by constant_expression alt#0 — residual '( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>?^|~} +ε~ hops=3]
+    ⛔ starved by cast alt#0 — residual 'tick lparen expression rparen' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20'/}~ hops=3]
+
+[candidate] constant_function_call  routes=4  seeds=1  clone_cost=11  verdict=STARVED
+    clones: call_primary, cast, casting_type, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023, direct_callable_method_call, method_call_receiver, method_call_receiver_sv_2017, method_call_receiver_sv_2023, method_call_root
+    guard: BLOCKED  suffix_first={\x09\x0a\x0d\x20'/[}~  variants=1 {\x09\x0a\x0d\x20'/}~  max_hops=3
+    route alt#0: constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#0: constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call   suffix: ( lbrack constant_range_expression rbrack )? tick lparen expression rparen dot callable_method_call_body
+    route alt#0: constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#0: constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call   suffix: ( lbrack constant_range_expression rbrack )? tick lparen expression rparen dot callable_method_call_body
+    ⛔ starved by constant_expression alt#0 — residual '( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>?^|~} +ε~ hops=3]
+    ⛔ starved by cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen expression rparen' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20'/}~ hops=3]
+    ⛔ starved by constant_cast alt#0 — residual 'tick lparen constant_expression rparen' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20'/}~ hops=3]
+    ⛔ starved by constant_primary_sv_2023 alt#9 (on-route, still reachable after the rewrite) — residual '( lbrack constant_range_expression rbrack )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20/[} +ε~ hops=0]
+
+[candidate] constant_primary_sv_2017  routes=3  seeds=13  clone_cost=11  verdict=STARVED
+    clones: call_primary, cast, casting_type, constant_cast, constant_function_call, constant_primary, direct_callable_method_call, method_call_receiver, method_call_receiver_sv_2017, method_call_receiver_sv_2023, method_call_root
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20'/}~  variants=1 {\x09\x0a\x0d\x20'/}~  max_hops=2
+    route alt#8: constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#8: constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#11: constant_primary_sv_2017 -> constant_cast -> casting_type -> constant_primary -> constant_primary_sv_2017   suffix: tick lparen constant_expression rparen
+    ⛔ starved by constant_expression alt#0 — residual '( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>?^|~} +ε~ hops=2]
+    ⛔ starved by cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen expression rparen' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20'/}~ hops=2]
+    ⛔ starved by constant_cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen constant_expression rparen' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20'/}~ hops=2]
+
+[candidate] constant_primary_sv_2023  routes=3  seeds=14  clone_cost=11  verdict=STARVED
+    clones: call_primary, cast, casting_type, constant_cast, constant_function_call, constant_primary, direct_callable_method_call, method_call_receiver, method_call_receiver_sv_2017, method_call_receiver_sv_2023, method_call_root
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20'/}~  variants=1 {\x09\x0a\x0d\x20'/}~  max_hops=2
+    route alt#9: constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023   suffix: tick lparen expression rparen dot callable_method_call_body ( lbrack constant_range_expression rbrack )?
+    route alt#9: constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023   suffix: tick lparen expression rparen dot callable_method_call_body ( lbrack constant_range_expression rbrack )?
+    route alt#12: constant_primary_sv_2023 -> constant_cast -> casting_type -> constant_primary -> constant_primary_sv_2023   suffix: tick lparen constant_expression rparen
+    ⛔ starved by constant_expression alt#0 — residual '( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>?^|~} +ε~ hops=2]
+    ⛔ starved by cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen expression rparen' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20'/}~ hops=2]
+    ⛔ starved by constant_cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen constant_expression rparen' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20'/}~ hops=2]
+
+[candidate] constant_primary  routes=6  seeds=0  clone_cost=12  verdict=STARVED
+    clones: call_primary, cast, casting_type, constant_cast, constant_function_call, constant_primary_sv_2017, constant_primary_sv_2023, direct_callable_method_call, method_call_receiver, method_call_receiver_sv_2017, method_call_receiver_sv_2023, method_call_root
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20'/}~  variants=1 {\x09\x0a\x0d\x20'/}~  max_hops=1
+    route alt#0: constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#0: constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#0: constant_primary -> constant_primary_sv_2017 -> constant_cast -> casting_type -> constant_primary   suffix: tick lparen constant_expression rparen
+    route alt#1: constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary   suffix: tick lparen expression rparen dot callable_method_call_body ( lbrack constant_range_expression rbrack )?
+    route alt#1: constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary   suffix: tick lparen expression rparen dot callable_method_call_body ( lbrack constant_range_expression rbrack )?
+    route alt#1: constant_primary -> constant_primary_sv_2023 -> constant_cast -> casting_type -> constant_primary   suffix: tick lparen constant_expression rparen
+    ⛔ starved by constant_expression alt#0 — residual '( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>?^|~} +ε~ hops=1]
+    ⛔ starved by cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen expression rparen' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20'/}~ hops=1]
+    ·  benign site constant_cast alt#0 (on-route, goes dead with the rewrite) — residual 'tick lparen constant_expression rparen' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20'/}~ hops=1]
+
+[candidate] incomplete_class_scoped_type_sv_2023  routes=1  seeds=1  clone_cost=1  verdict=MAY-ABSORB
+    clones: incomplete_class_scoped_type
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20/:}~  variants=0  max_hops=0
+    route alt#1: incomplete_class_scoped_type_sv_2023 -> incomplete_class_scoped_type -> incomplete_class_scoped_type_sv_2023   suffix: scope_resolution type_identifier_or_class_type
+
+[candidate] incomplete_class_scoped_type  routes=1  seeds=0  clone_cost=1  verdict=MAY-ABSORB
+    clones: incomplete_class_scoped_type_sv_2023
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20/:}~  variants=0  max_hops=0
+    route alt#0: incomplete_class_scoped_type -> incomplete_class_scoped_type_sv_2023 -> incomplete_class_scoped_type   suffix: scope_resolution type_identifier_or_class_type
+    ·  benign site incomplete_class_scoped_type_sv_2023 alt#1 (on-route, goes dead with the rewrite) — residual 'scope_resolution type_identifier_or_class_type' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20/:}~ hops=0]
+
+[candidate] direct_callable_method_call  routes=4  seeds=0  clone_cost=11  verdict=STARVED
+    clones: call_primary, cast, casting_type, constant_function_call, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023, method_call_receiver, method_call_receiver_sv_2017, method_call_receiver_sv_2023, method_call_root
+    guard: BLOCKED  suffix_first={\x09\x0a\x0d\x20'/[}~  variants=1 {\x09\x0a\x0d\x20'/}~  max_hops=5
+    route alt#0: direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#0: direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call   suffix: ( lbrack constant_range_expression rbrack )? tick lparen expression rparen dot callable_method_call_body
+    route alt#0: direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#0: direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call   suffix: ( lbrack constant_range_expression rbrack )? tick lparen expression rparen dot callable_method_call_body
+    ⛔ starved by constant_expression alt#0 — residual '( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>?^|~} +ε~ hops=5]
+    ⛔ starved by expression_base alt#1 — residual '( binary_operator attribute_instance* expression_operand )*' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>^|~} +ε~ hops=4]
+    ⛔ starved by cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen expression rparen' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20'/}~ hops=5]
+    ⛔ starved by constant_cast alt#0 — residual 'tick lparen constant_expression rparen' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20'/}~ hops=5]
+    ⛔ starved by constant_primary_sv_2023 alt#9 (on-route, still reachable after the rewrite) — residual '( lbrack constant_range_expression rbrack )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20/[} +ε~ hops=2]
+    ⛔ starved by for_step alt#0 — residual '( comma for_step_assignment )*' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20,/} +ε~ hops=3]
+    ⛔ starved by module_path_expression_lr_base alt#0 — residual '( binary_module_path_operator attribute_instance* module_path_expression_operand )*' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!&/=^|~} +ε~ hops=4]
+    ⛔ starved by primary_sv_2023 alt#1 — residual '( lbrack range_expression rbrack )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20/[} +ε~ hops=1]
+
+[candidate] method_call_receiver_sv_2017  routes=2  seeds=13  clone_cost=10  verdict=STARVED
+    clones: call_primary, cast, casting_type, constant_function_call, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023, direct_callable_method_call, method_call_receiver, method_call_root
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20./}~  variants=1 {\x09\x0a\x0d\x20./}~  max_hops=2
+    route alt#7: method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017   suffix: dot callable_method_call_body tick lparen expression rparen
+    route alt#7: method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017   suffix: dot callable_method_call_body ( lbrack constant_range_expression rbrack )? tick lparen expression rparen
+    ⛔ starved by direct_method_call alt#0 — residual 'dot method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=2]
+    ⛔ starved by direct_callable_method_call alt#0 (on-route, still reachable after the rewrite) — residual 'dot callable_method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=2]
+
+[candidate] method_call_receiver_sv_2023  routes=2  seeds=13  clone_cost=10  verdict=STARVED
+    clones: call_primary, cast, casting_type, constant_function_call, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023, direct_callable_method_call, method_call_receiver, method_call_root
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20./}~  variants=1 {\x09\x0a\x0d\x20./}~  max_hops=2
+    route alt#7: method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023   suffix: dot callable_method_call_body tick lparen expression rparen
+    route alt#7: method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023   suffix: dot callable_method_call_body ( lbrack constant_range_expression rbrack )? tick lparen expression rparen
+    ⛔ starved by direct_method_call alt#0 — residual 'dot method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=2]
+    ⛔ starved by direct_callable_method_call alt#0 (on-route, still reachable after the rewrite) — residual 'dot callable_method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=2]
+
+[candidate] method_call_receiver  routes=4  seeds=0  clone_cost=11  verdict=STARVED
+    clones: call_primary, cast, casting_type, constant_function_call, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023, direct_callable_method_call, method_call_receiver_sv_2017, method_call_receiver_sv_2023, method_call_root
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20./}~  variants=1 {\x09\x0a\x0d\x20./}~  max_hops=1
+    route alt#0: method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver   suffix: dot callable_method_call_body tick lparen expression rparen
+    route alt#0: method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver   suffix: dot callable_method_call_body ( lbrack constant_range_expression rbrack )? tick lparen expression rparen
+    route alt#1: method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver   suffix: dot callable_method_call_body tick lparen expression rparen
+    route alt#1: method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver   suffix: dot callable_method_call_body ( lbrack constant_range_expression rbrack )? tick lparen expression rparen
+    ⛔ starved by direct_method_call alt#0 — residual 'dot method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=1]
+    ⛔ starved by direct_callable_method_call alt#0 (on-route, still reachable after the rewrite) — residual 'dot callable_method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=1]
+
+[candidate] method_call_root  routes=4  seeds=1  clone_cost=11  verdict=STARVED
+    clones: call_primary, cast, casting_type, constant_function_call, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023, direct_callable_method_call, method_call_receiver, method_call_receiver_sv_2017, method_call_receiver_sv_2023
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20./}~  variants=1 {\x09\x0a\x0d\x20./}~  max_hops=0
+    route alt#0: method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root   suffix: dot callable_method_call_body tick lparen expression rparen
+    route alt#0: method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root   suffix: dot callable_method_call_body ( lbrack constant_range_expression rbrack )? tick lparen expression rparen
+    route alt#0: method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root   suffix: dot callable_method_call_body tick lparen expression rparen
+    route alt#0: method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary -> direct_callable_method_call -> method_call_root   suffix: dot callable_method_call_body ( lbrack constant_range_expression rbrack )? tick lparen expression rparen
+    ⛔ starved by direct_method_call alt#0 — residual 'dot method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=0]
+    ⛔ starved by direct_callable_method_call alt#0 (on-route, still reachable after the rewrite) — residual 'dot callable_method_call_body' a greedy suffix could steal [guard=guardable first={\x09\x0a\x0d\x20./}~ hops=0]
+
+[candidate] call_primary  routes=4  seeds=5  clone_cost=11  verdict=STARVED
+    clones: cast, casting_type, constant_function_call, constant_primary, constant_primary_sv_2017, constant_primary_sv_2023, direct_callable_method_call, method_call_receiver, method_call_receiver_sv_2017, method_call_receiver_sv_2023, method_call_root
+    guard: BLOCKED  suffix_first={\x09\x0a\x0d\x20'/[}~  variants=1 {\x09\x0a\x0d\x20'/}~  max_hops=4
+    route alt#4: call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#4: call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2017 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary   suffix: ( lbrack constant_range_expression rbrack )? tick lparen expression rparen dot callable_method_call_body
+    route alt#4: call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_function_call -> call_primary   suffix: tick lparen expression rparen dot callable_method_call_body
+    route alt#4: call_primary -> direct_callable_method_call -> method_call_root -> method_call_receiver -> method_call_receiver_sv_2023 -> cast -> casting_type -> constant_primary -> constant_primary_sv_2023 -> constant_function_call -> call_primary   suffix: ( lbrack constant_range_expression rbrack )? tick lparen expression rparen dot callable_method_call_body
+    ⛔ starved by constant_expression alt#0 — residual '( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>?^|~} +ε~ hops=4]
+    ⛔ starved by expression_base alt#1 — residual '( binary_operator attribute_instance* expression_operand )*' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!%&*+-/<=>^|~} +ε~ hops=3]
+    ⛔ starved by cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen expression rparen' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20'/}~ hops=4]
+    ⛔ starved by constant_cast alt#0 — residual 'tick lparen constant_expression rparen' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20'/}~ hops=4]
+    ⛔ starved by constant_primary_sv_2023 alt#9 (on-route, still reachable after the rewrite) — residual '( lbrack constant_range_expression rbrack )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20/[} +ε~ hops=1]
+    ⛔ starved by for_step alt#0 — residual '( comma for_step_assignment )*' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20,/} +ε~ hops=2]
+    ⛔ starved by module_path_expression_lr_base alt#0 — residual '( binary_module_path_operator attribute_instance* module_path_expression_operand )*' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20!&/=^|~} +ε~ hops=3]
+    ⛔ starved by primary_sv_2023 alt#1 — residual '( lbrack range_expression rbrack )?' a greedy suffix could steal [guard=residual_nullable first={\x09\x0a\x0d\x20/[} +ε~ hops=0]
+
+[candidate] property_expr_sv_2017  routes=8  seeds=28  clone_cost=1  verdict=STARVED
+    clones: property_expr
+    guard: BLOCKED  suffix_first={\x09\x0a\x0d\x20-/aiosu}~  variants=6 {\x09\x0a\x0d\x20-/}~ {\x09\x0a\x0d\x20/a}~ {\x09\x0a\x0d\x20/i}~ {\x09\x0a\x0d\x20/o}~ {\x09\x0a\x0d\x20/s}~ {\x09\x0a\x0d\x20/u}~  max_hops=1
+    route alt#5: property_expr_sv_2017 -> property_expr -> property_expr_sv_2017   suffix: kw_or_1758356d property_expr
+    route alt#6: property_expr_sv_2017 -> property_expr -> property_expr_sv_2017   suffix: kw_and_cffa50a3 property_expr
+    route alt#24: property_expr_sv_2017 -> property_expr -> property_expr_sv_2017   suffix: kw_until_b310f4d4 property_expr
+    route alt#25: property_expr_sv_2017 -> property_expr -> property_expr_sv_2017   suffix: kw_s_until_073539cf property_expr
+    route alt#26: property_expr_sv_2017 -> property_expr -> property_expr_sv_2017   suffix: kw_until_with_f31dfb3c property_expr
+    route alt#27: property_expr_sv_2017 -> property_expr -> property_expr_sv_2017   suffix: kw_s_until_with_3a7bcf5b property_expr
+    route alt#28: property_expr_sv_2017 -> property_expr -> property_expr_sv_2017   suffix: implies property_expr
+    route alt#29: property_expr_sv_2017 -> property_expr -> property_expr_sv_2017   suffix: kw_iff_ee1c009e property_expr
+    ⛔ starved by property_expr_sv_2023 alt#5 — residual 'kw_or_1758356d property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/o}~ hops=1]
+    ⛔ starved by property_expr_sv_2023 alt#6 — residual 'kw_and_cffa50a3 property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/a}~ hops=1]
+    ⛔ starved by property_expr_sv_2023 alt#24 — residual 'kw_until_b310f4d4 property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/u}~ hops=1]
+    ⛔ starved by property_expr_sv_2023 alt#25 — residual 'kw_s_until_073539cf property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/s}~ hops=1]
+    ⛔ starved by property_expr_sv_2023 alt#26 — residual 'kw_until_with_f31dfb3c property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/u}~ hops=1]
+    ⛔ starved by property_expr_sv_2023 alt#27 — residual 'kw_s_until_with_3a7bcf5b property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/s}~ hops=1]
+    ⛔ starved by property_expr_sv_2023 alt#28 — residual 'implies property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20-/}~ hops=1]
+    ⛔ starved by property_expr_sv_2023 alt#29 — residual 'kw_iff_ee1c009e property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/i}~ hops=1]
+
+[candidate] property_expr_sv_2023  routes=8  seeds=28  clone_cost=1  verdict=STARVED
+    clones: property_expr
+    guard: BLOCKED  suffix_first={\x09\x0a\x0d\x20-/aiosu}~  variants=6 {\x09\x0a\x0d\x20-/}~ {\x09\x0a\x0d\x20/a}~ {\x09\x0a\x0d\x20/i}~ {\x09\x0a\x0d\x20/o}~ {\x09\x0a\x0d\x20/s}~ {\x09\x0a\x0d\x20/u}~  max_hops=1
+    route alt#5: property_expr_sv_2023 -> property_expr -> property_expr_sv_2023   suffix: kw_or_1758356d property_expr
+    route alt#6: property_expr_sv_2023 -> property_expr -> property_expr_sv_2023   suffix: kw_and_cffa50a3 property_expr
+    route alt#24: property_expr_sv_2023 -> property_expr -> property_expr_sv_2023   suffix: kw_until_b310f4d4 property_expr
+    route alt#25: property_expr_sv_2023 -> property_expr -> property_expr_sv_2023   suffix: kw_s_until_073539cf property_expr
+    route alt#26: property_expr_sv_2023 -> property_expr -> property_expr_sv_2023   suffix: kw_until_with_f31dfb3c property_expr
+    route alt#27: property_expr_sv_2023 -> property_expr -> property_expr_sv_2023   suffix: kw_s_until_with_3a7bcf5b property_expr
+    route alt#28: property_expr_sv_2023 -> property_expr -> property_expr_sv_2023   suffix: implies property_expr
+    route alt#29: property_expr_sv_2023 -> property_expr -> property_expr_sv_2023   suffix: kw_iff_ee1c009e property_expr
+    ⛔ starved by property_expr_sv_2017 alt#5 — residual 'kw_or_1758356d property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/o}~ hops=1]
+    ⛔ starved by property_expr_sv_2017 alt#6 — residual 'kw_and_cffa50a3 property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/a}~ hops=1]
+    ⛔ starved by property_expr_sv_2017 alt#24 — residual 'kw_until_b310f4d4 property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/u}~ hops=1]
+    ⛔ starved by property_expr_sv_2017 alt#25 — residual 'kw_s_until_073539cf property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/s}~ hops=1]
+    ⛔ starved by property_expr_sv_2017 alt#26 — residual 'kw_until_with_f31dfb3c property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/u}~ hops=1]
+    ⛔ starved by property_expr_sv_2017 alt#27 — residual 'kw_s_until_with_3a7bcf5b property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/s}~ hops=1]
+    ⛔ starved by property_expr_sv_2017 alt#28 — residual 'implies property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20-/}~ hops=1]
+    ⛔ starved by property_expr_sv_2017 alt#29 — residual 'kw_iff_ee1c009e property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/i}~ hops=1]
+
+[candidate] property_expr  routes=16  seeds=0  clone_cost=2  verdict=MAY-ABSORB
+    clones: property_expr_sv_2017, property_expr_sv_2023
+    guard: FEASIBLE  suffix_first={\x09\x0a\x0d\x20-/aiosu}~  variants=0  max_hops=0
+    route alt#0: property_expr -> property_expr_sv_2017 -> property_expr   suffix: kw_or_1758356d property_expr
+    route alt#0: property_expr -> property_expr_sv_2017 -> property_expr   suffix: kw_and_cffa50a3 property_expr
+    route alt#0: property_expr -> property_expr_sv_2017 -> property_expr   suffix: kw_until_b310f4d4 property_expr
+    route alt#0: property_expr -> property_expr_sv_2017 -> property_expr   suffix: kw_s_until_073539cf property_expr
+    route alt#0: property_expr -> property_expr_sv_2017 -> property_expr   suffix: kw_until_with_f31dfb3c property_expr
+    route alt#0: property_expr -> property_expr_sv_2017 -> property_expr   suffix: kw_s_until_with_3a7bcf5b property_expr
+    route alt#0: property_expr -> property_expr_sv_2017 -> property_expr   suffix: implies property_expr
+    route alt#0: property_expr -> property_expr_sv_2017 -> property_expr   suffix: kw_iff_ee1c009e property_expr
+    route alt#1: property_expr -> property_expr_sv_2023 -> property_expr   suffix: kw_or_1758356d property_expr
+    route alt#1: property_expr -> property_expr_sv_2023 -> property_expr   suffix: kw_and_cffa50a3 property_expr
+    route alt#1: property_expr -> property_expr_sv_2023 -> property_expr   suffix: kw_until_b310f4d4 property_expr
+    route alt#1: property_expr -> property_expr_sv_2023 -> property_expr   suffix: kw_s_until_073539cf property_expr
+    route alt#1: property_expr -> property_expr_sv_2023 -> property_expr   suffix: kw_until_with_f31dfb3c property_expr
+    route alt#1: property_expr -> property_expr_sv_2023 -> property_expr   suffix: kw_s_until_with_3a7bcf5b property_expr
+    route alt#1: property_expr -> property_expr_sv_2023 -> property_expr   suffix: implies property_expr
+    route alt#1: property_expr -> property_expr_sv_2023 -> property_expr   suffix: kw_iff_ee1c009e property_expr
+    ·  benign site property_expr_sv_2017 alt#5 (on-route, goes dead with the rewrite) — residual 'kw_or_1758356d property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/o}~ hops=0]
+    ·  benign site property_expr_sv_2017 alt#6 (on-route, goes dead with the rewrite) — residual 'kw_and_cffa50a3 property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/a}~ hops=0]
+    ·  benign site property_expr_sv_2017 alt#24 (on-route, goes dead with the rewrite) — residual 'kw_until_b310f4d4 property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/u}~ hops=0]
+    ·  benign site property_expr_sv_2017 alt#25 (on-route, goes dead with the rewrite) — residual 'kw_s_until_073539cf property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/s}~ hops=0]
+    ·  benign site property_expr_sv_2017 alt#26 (on-route, goes dead with the rewrite) — residual 'kw_until_with_f31dfb3c property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/u}~ hops=0]
+    ·  benign site property_expr_sv_2017 alt#27 (on-route, goes dead with the rewrite) — residual 'kw_s_until_with_3a7bcf5b property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/s}~ hops=0]
+    ·  benign site property_expr_sv_2017 alt#28 (on-route, goes dead with the rewrite) — residual 'implies property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20-/}~ hops=0]
+    ·  benign site property_expr_sv_2017 alt#29 (on-route, goes dead with the rewrite) — residual 'kw_iff_ee1c009e property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/i}~ hops=0]
+    ·  benign site property_expr_sv_2023 alt#5 (on-route, goes dead with the rewrite) — residual 'kw_or_1758356d property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/o}~ hops=0]
+    ·  benign site property_expr_sv_2023 alt#6 (on-route, goes dead with the rewrite) — residual 'kw_and_cffa50a3 property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/a}~ hops=0]
+    ·  benign site property_expr_sv_2023 alt#24 (on-route, goes dead with the rewrite) — residual 'kw_until_b310f4d4 property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/u}~ hops=0]
+    ·  benign site property_expr_sv_2023 alt#25 (on-route, goes dead with the rewrite) — residual 'kw_s_until_073539cf property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/s}~ hops=0]
+    ·  benign site property_expr_sv_2023 alt#26 (on-route, goes dead with the rewrite) — residual 'kw_until_with_f31dfb3c property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/u}~ hops=0]
+    ·  benign site property_expr_sv_2023 alt#27 (on-route, goes dead with the rewrite) — residual 'kw_s_until_with_3a7bcf5b property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/s}~ hops=0]
+    ·  benign site property_expr_sv_2023 alt#28 (on-route, goes dead with the rewrite) — residual 'implies property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20-/}~ hops=0]
+    ·  benign site property_expr_sv_2023 alt#29 (on-route, goes dead with the rewrite) — residual 'kw_iff_ee1c009e property_expr' a greedy suffix could steal [guard=guard_incomplete first={\x09\x0a\x0d\x20/i}~ hops=0]
+
+--- DECLINED (no plan; the survey's own coverage gap, itemised) ---
+    no_bare_left_corner_route: 5
+    module_path_concatenation [no_bare_left_corner_route]: module_path_concatenation -> module_path_expression -> module_path_expression_lr_base -> module_path_expression_operand -> module_path_primary -> module_path_concatenation
+    module_path_expression_operand [no_bare_left_corner_route]: module_path_expression_operand -> module_path_primary -> module_path_concatenation -> module_path_expression -> module_path_expression_lr_base -> module_path_expression_operand
+    module_path_expression_lr_base [no_bare_left_corner_route]: module_path_expression_lr_base -> module_path_expression_operand -> module_path_primary -> module_path_concatenation -> module_path_expression -> module_path_expression_lr_base
+    module_path_expression [no_bare_left_corner_route]: module_path_expression -> module_path_expression_lr_base -> module_path_expression_operand -> module_path_primary -> module_path_concatenation -> module_path_expression
+    module_path_primary [no_bare_left_corner_route]: module_path_primary -> module_path_concatenation -> module_path_expression -> module_path_expression_lr_base -> module_path_expression_operand -> module_path_primary

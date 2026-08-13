@@ -3597,3 +3597,135 @@ self-referential false-positive class the checker's own header prices and accept
 the discriminator is **lexical**, keyed on a token's spelling rather than on a proposal. Any
 engine-premise discriminator built for (b) has to be measured against that same corpus, or it
 inherits the same precision.
+
+---
+
+### `.27` — the acceptance gate audits the PRESENCE of proof, never its FALSIFIABILITY, so a check that cannot fail passes it (`todo` — ROUTED IN from `ENGINE-UNIVERSAL-SERVICES.17` slice 2, 2026-08-13 session #226; ⛔ PARKED behind the SV lane lock)
+
+**Why it is here and not in the SV tree.** `TASK-ACCEPTANCE` (`scripts/check_diagnosis_evidence.sh`)
+is the gate every code change in this repository passes, and probe banks are the artifact its
+`ADDRESSED (verified)` box most often points at. Both are proof-surface machinery — this tree's
+subject — and neither is SystemVerilog-specific.
+
+#### ROUTING EVIDENCE
+
+⛔ **It reproduces with no grammar, no parser and no corpus** — the evidence is three facts about the
+repository's own enforcement surface, each read directly off the tree:
+
+**1. The gate's archetype is `evidence`, and its contract is EXISTENCE.** `DOCTRINE_ENFORCEMENT.md`
+§ archetypes: *"**Evidence (artifact)** — requires a re-checkable artifact for an action that cannot
+be re-derived"*, and the checker's own header states the test: each required box must be *"TICKED
+(`[x]`) and backed by real tool-output evidence"*, matched against five recognised diagnosis-signature
+families. ⇒ it asks **"is there proof?"** and never **"could this proof have come out otherwise?"**
+
+**2. Measured on this very session: four defects, all producing well-formed evidence, none catchable
+by that question.** Every one was a claim whose failure mode was *unreachable* —
+
+| # | the defect | why the gate could not see it |
+|---|---|---|
+| 1 | a safety branch (`routes_truncated` ⇒ refuse) that no input reaches, so it asserts a safety it never demonstrates | the box's evidence was a real, passing run |
+| 2 | `render_elements` documented *"Report-only — nothing parses this back"* while `indirect_lr_elimination.rs:483` decides an ambiguity refusal by comparing its output | no check reads a doc comment, and the before/after evidence was genuine |
+| 3 | a verdict (`FEASIBLE`) published without the qualifier that made it *sound* rather than *closed* | the numbers were correct |
+| 4 | a probe-bank case whose expectation was derived from the value under test (`want = "$sites/$sites"`), so it would have passed on `0/0` | the bank exited 0 and printed a ✅ |
+
+**3. ⭐⭐ THE MECHANISM ALREADY EXISTS, IS ALREADY WIRED TWICE, AND NOTHING ASKS FOR IT — the exact
+shape `LESSON-PROMOTION` was created for.** Two scripts expose a falsifiability self-test:
+
+```text
+$ grep -l -- "--self-test" scripts/*.sh
+scripts/preserve_scratch_probe.sh
+scripts/require_ast_pipeline_features.sh
+
+$ for f in $(find docs/tasks/artifacts -name probe.sh); do printf "%s %s\n" "$(grep -c -- --self-test $f)" "$f"; done
+0 docs/tasks/artifacts/engine_universal_services/guard_feasibility/probe.sh
+0 docs/tasks/artifacts/engine_universal_services/quantifier_policy/probe.sh
+0 docs/tasks/artifacts/engine_universal_services/indirect_lr/probe.sh
+```
+
+⇒ **0 of 3 tracked probe banks can demonstrate their own falsifiability.** All three had it shown by
+HAND and recorded as PROSE in a task leaf (`.17` slice 1: *"a deliberately flipped expectation makes
+it exit rc 1"*; slice 2 likewise, twice). Prose in a leaf is not re-runnable, and the next bank
+inherits nothing.
+
+⛔ **And the knowledge layer already holds the lesson**:
+[[a-check-whose-inputs-all-pass-has-not-been-tested]] is a fact card, retrievable and repeatedly
+cited — `.11` slice 1, `.13` slice 5b (a criterion shipped with no test), and four times inside a
+single slice here. A lesson cited that often with no enforcer is the definition of this tree's
+subject.
+
+#### ⭐⭐ THE ROOT OF IT — the roster has THREE archetypes and needs a FOURTH
+
+`DOCTRINE_ENFORCEMENT.md` classifies every check as **structural** (re-derive an invariant from the
+tree), **oracle** (re-execute a deterministic tool and assert the result), or **evidence** (require a
+re-checkable artifact). All three answer the same question: *does the invariant hold right now?*
+
+**None of them asks whether the check would NOTICE if it did not.** That is the missing archetype:
+
+> **MUTATION** — break the thing under guard, and assert the guard goes RED.
+
+Every defect in the table above is invisible to the first three archetypes by construction and
+visible to the fourth. It is also not a new idea in this repository — it is what `.13` slice 5b did
+by hand (reverting `collect_starvation_sites` left `cargo test --lib indirect_lr` at **11 passed / 0
+failed**, proving the criterion that had just stopped a measured regression was untested), what `.11`
+slice 1 did by hand, and what `.17` slices 1 and 2 each did by hand. Four hand-rolled mutation
+proofs, none re-runnable, no shared mechanism.
+
+#### The proposal, in tiers — cheapest first, and NOT all of it is mechanizable
+
+- **T1 — static, ~20 lines.** In a tracked probe bank, an expectation argument must be a LITERAL: no
+  `$` in the `want` slot of a `check`-style helper. Catches defect 4 exactly and by construction.
+- **T2 — oracle, the load-bearing one.** Every tracked bank must expose `--self-test`, which flips
+  ONE declared expectation and asserts the bank exits non-zero **naming that case**; the doctrine
+  driver runs it. Turns "I flipped it by hand once" into a re-runnable artifact, and makes the
+  falsifiability claim survive the session that made it.
+- **T3 — structural.** A display-only renderer must be unreachable from the generation path, enforced
+  by module placement rather than by a doc comment nothing reads. Catches defect 2; note the doc
+  comment was *false for months* and no gate could have known.
+- ⭐⭐ **T5 — DIFF-SCOPED MUTATION TESTING. The one with the widest reach, and the only tier that
+  generalises past the four defects that prompted this leaf.** Run an off-the-shelf mutant harness
+  (`cargo-mutants`) restricted to the files the commit changed, and require every new or changed
+  function to have at least one mutant KILLED by the tests the commit ships. It mechanises exactly
+  the hand proof this repository already performs and then throws away. Reach, measured against
+  history rather than asserted: it catches defect 1 (the mutant *"delete the `routes_truncated`
+  poison"* survives), and it catches **`.13` slice 5b's shipped defect retroactively** — the mutant
+  *"revert `collect_starvation_sites` to the direct-holder scan"* survived 11 green tests, which is
+  precisely how that criterion shipped untested. ⛔ Price it honestly before adopting: mutation runs
+  are minutes-to-hours, so it belongs on a diff scope with a per-commit budget, never on the whole
+  crate.
+- **T6 — diff-scoped BRANCH COVERAGE floor.** The cheap approximation of T5: a branch added by the
+  commit must be *executed* by the suite (`cargo-llvm-cov`, changed files only). Weaker than mutation
+  — executed is not the same as tested — but it catches the whole "unreachable safe branch" family
+  (defect 1) for a fraction of the runtime.
+- **T7 — a comparison-based gate must assert its operands are NON-EMPTY.** Generalises
+  `CI-PARITY-GATE-ROT.24` from one incident into a rule: *two empty result sets diff clean*, so any
+  gate whose verdict is a `diff`/equality over gathered rows must first assert both sides are
+  non-empty. `.24` fixed one instance (`require_ast_pipeline_features.sh`); nothing stops the next.
+- **T8 — extend `reverify:` from knowledge cards to acceptance-box metrics.** Every fact card already
+  carries a re-runnable `reverify:` command in its front-matter, and the KNOWLEDGE-MAP doctrine keeps
+  it honest. Acceptance boxes quote numbers with no such handle, so a metric goes stale silently —
+  which is how a slice-4 census (*"wrapper 23/18/11/7"*) was still being read as current two slices
+  later. ⭐ Another mechanism that exists, is wired, and is not asked for one layer over.
+- ⛔ **T4 — NOT mechanizable, and saying so is part of the finding.** Defect 3 — a verdict published
+  without the qualifier that distinguishes *sound* from *closed* — is a judgement about whether a
+  headline overstates. The narrow mechanizable residue is weaker: an instrument computing an
+  over-approximation should surface the approximation flag in its own output (which `.17` slice 2 now
+  does, via `~`). A gate that claimed to catch T4 in general would itself be an unfalsifiable check —
+  the very thing this leaf exists to stop.
+
+**Acceptance:** (a) T1 + T2 implemented and registered in the doctrine roster, with the driver
+running every tracked bank's self-test; (b) each existing bank retrofitted, and RED-proven — the
+retrofit is worthless unless a deliberately broken bank is shown to fail its own self-test; (c) T5
+priced against a real commit's diff (runtime + kill-rate on the `.13`/`.17` history, where the answer
+is already known) and adopted or refused with that number; (d) T3, T6, T7, T8 priced separately —
+each is a distinct archetype, not a variant of the others; (e) **the MUTATION archetype added to
+`DOCTRINE_ENFORCEMENT.md`'s archetype table**, since a roster that cannot name the kind of proof it
+lacks cannot notice it is missing; (f) T4's limit recorded there too, so the roster states what it
+does NOT prove.
+
+⭐ **Ordering note for whoever takes this:** T1 and T2 are hours and close the incident. **T5 is the
+one that changes the class** — it is the only tier that would have caught a defect nobody had thought
+to look for, which is the whole complaint. Do not let the cheap tiers close the leaf.
+
+⛔ **Sequencing.** PARKED behind the SV lane lock with `.25` and `.26` — it blocks no SV release
+work. ⭐ But note the standing bar it touches: the `ADDRESSED (verified)` box is the one every SV
+slice leans on, so this is the gate whose blind spot is most widely exercised.

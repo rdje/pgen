@@ -1,5 +1,60 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0021 — a structural criterion cannot tell a hazard from a shape that merely looks like one
+
+`--report-indirect-lr-plan` decided starvation the cheapest way that is never WRONG: any holder with
+a non-empty residual is a hazard. That is the right posture for choosing a base rule — it cannot
+miss — but it is not a measurement of anything, and for two slices it was read as one.
+`starvation-safe candidates: 0/28` was quoted as *"UNPLANNABLE at any base rule"*, and the honest
+reading is *"the criterion I have refuses all 28"*.
+
+The FIRST machinery that separates the two has shipped since `RGX-0078.5.c.2`. The pass simply never
+called it. Once it does, 29 of SystemVerilog's 126 surviving sites turn out to be holders whose
+residual can match **empty** — they cannot starve at all — and the population the leaf had written
+off as uniformly hopeless splits 16/28 in favour of a fix.
+
+The reusable part is not the number. It is that a conservative criterion and a measurement are
+different objects, and a report that prints only the conservative one invites its readers to spend
+slices designing around a hazard that was never there. The fix here was to print BOTH and keep the
+conservative one load-bearing: `is_starvation_safe` is untouched, because promoting the refinement
+would change which knots the eliminator absorbs — a real parser change, owed a two-sided repro
+ratchet, and not something a reporting slice may smuggle in.
+
+### The other thing this slice had to not do
+
+Every FIRST set on SystemVerilog contains `/`, which looked exactly like contamination. It is not:
+`trivia := (line_comment | block_comment)*` is nullable and every token is `trivia "X"`, so a comment
+really can begin any token. Classifying it as noise would have hidden the consequence — a byte-test
+guard passes on `/`, so `int'(2)/*c*/'(3)` slips the guard. That is a bound on the FIX, discovered
+only because the surprising number was root-caused instead of explained away.
+
+### And the three the first draft got wrong — all the same mistake in different clothes
+
+Reviewing this slice against a signoff bar turned up three defects, and every one is *a claim
+standing on something weaker than it appears to stand on*.
+
+**A report edit that could move the parser.** `render_elements` says "Report-only — nothing parses
+this back". It also decides an ambiguity refusal in the eliminator, by string comparison. Making the
+report prettier therefore made that comparison finer — refuse less, absorb more — and the only thing
+holding the "no behaviour change" claim up was a before/after on three grammars. Splitting the
+renderer moved the claim from *measured on the grammars I happened to run* to *impossible by
+construction*. The general form: **when a no-change claim rests on a sample, look for the version
+that rests on a structure instead.**
+
+**A verdict computed from evidence that was never gathered.** Every guard test reads `suffix_first`
+as an over-approximation. If route enumeration truncates, that union is an *under*-approximation,
+the containment test passes too easily, and `FEASIBLE` gets printed on nothing. It cannot happen
+today — 80 routes against a budget of 128 — which is exactly why it would have shipped: the branch
+is unreachable, so nothing exercises it and nothing contradicts it.
+
+**A gate that could not fail.** The census bank's exactness case compared a computed ratio against
+an expectation derived from the same computation. It would have passed on 0/0. In the bank whose
+whole purpose is to notice when the numbers move.
+
+None of the three were caught by a gate. All three were caught by asking, of each claim, *what would
+have to be true for this to be wrong, and did I check that?* — which is the only review that finds
+this class, because by construction the artefact looks correct.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0020 — "the engine cannot do X" is a measurement, and ours was three months stale
 
 `.17`'s design note reasoned from the PEG formalism: `e*` is `A ← e A / ε`, ordered choice commits,

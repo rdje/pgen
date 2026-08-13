@@ -1,5 +1,28 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Steering Note (2026-08-13) — the survey now carries a MEASUREMENT beside its conservative verdict, and it moves the fix's size (`ENGINE-UNIVERSAL-SERVICES.17` slice 2)
+
+**One analysis module grew; nothing the parser executes changed.**
+`rust/src/ast_pipeline/indirect_lr_plan.rs` gained a guard-feasibility layer
+(`GuardVerdict` / `GuardAssessment` / `GuardFirstBytes`, `assess_guard`) that calls the shared FIRST
+machinery (`ast_pipeline/first_set.rs::branch_first_set`) the pass had never used, and
+`rules_transparent_to` became a DEPTH map so the guard's clone-chain length is measured rather than
+guessed. `rust/src/main.rs` prints two new headline lines, one per-candidate `guard:` line and one
+per-site column, plus six JSON fields.
+
+⛔ **The architectural point is the restraint, not the addition.** `is_starvation_safe` — the verdict
+`indirect_lr_elimination.rs` acts on — is deliberately UNCHANGED. Promoting the refinement into it
+would change which knots the eliminator absorbs, i.e. a real parser change owed a two-sided repro
+ratchet ([[a-conservative-criterion-and-a-measurement-are-different-objects]]).
+
+⇒ **Assessment change for the note below:** the greedy `*` is still the blocker, but it is now priced.
+`guard-feasible 16/28` against `starvation-safe 0/28`, and both remaining SystemVerilog knots are
+feasible at their dominators with ONE guard variant each — `constant_primary` at one clone hop,
+`property_expr` at zero. The fix `.17` has to build is a **generation-time synthesis onto the clone
+the eliminator already emits**, not an engine-core change to the quantifier. ⛔ Bound: a byte-test
+guard is defeated by an intervening comment, because `trivia` is nullable and leads every token —
+sound (it can only fail to fire), not exhaustive; slice 3 prices a structural lookahead against it.
+
 ## Steering Note (2026-08-13) — the give-back asymmetry is the engine's own, so `.17`'s fix drops a tier (`ENGINE-UNIVERSAL-SERVICES.17` slice 1)
 
 **No Rust changed. What changed is the assessment of what `.17` has to build**, and the note below

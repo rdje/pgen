@@ -4560,7 +4560,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
 /// Read-only and always rc 0: a surviving cycle is a `.13` worklist row, not a lint failure, and
 /// the verdict on it belongs to the leaf's per-cycle adjudication table.
 fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>) -> Result<()> {
-    use pgen::ast_pipeline::indirect_lr_plan::{render_elements, survey_indirect_left_recursion};
+    use pgen::ast_pipeline::indirect_lr_plan::{render_elements_display, survey_indirect_left_recursion};
     use std::collections::BTreeMap;
 
     let dump_all = std::env::var("PGEN_INDIRECT_LR_DUMP_ALL")
@@ -4615,6 +4615,37 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
         safe.len(),
         survey.candidates.len()
     );
+    // ENGINE-UNIVERSAL-SERVICES.17 slice 2 — the GUARD-FEASIBILITY census, printed next to the
+    // structural verdict rather than replacing it. ⛔ The two answer different questions: the line
+    // above says which rules a rewrite may target TODAY, this one says which it could target if the
+    // eliminator synthesized a call-site follow-restriction guard (option (iii)). A candidate that
+    // is STARVED and guard-feasible is the whole population that design would unlock.
+    let guard_feasible = survey.guard_feasible_candidates();
+    println!(
+        "guard-feasible candidates: {}/{} (option (iii): a call-site follow-restriction guard on the sheared clone)",
+        guard_feasible.len(),
+        survey.candidates.len()
+    );
+    let census = survey.guard_verdict_census();
+    if !census.is_empty() {
+        println!(
+            "guard-verdict census over surviving starvation sites: {}",
+            census
+                .iter()
+                .map(|(verdict, count)| format!("{verdict}={count}"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        );
+        // ⛔ The `~` is not decoration. A byte test on an OVER-approximated FIRST set passes at
+        // positions where the residual cannot actually start, so the guard silently declines to
+        // fire. It stays SOUND — an over-permissive guard never over-accepts — but `guardable~` is
+        // "expressible and safe", not "proven to close the knot".
+        println!(
+            "    legend: byte sets are {{…}}; `+ε` = nullable; `~` = OVER-APPROXIMATED, so a byte-test \
+             guard on it is sound but may FAIL TO FIRE (a nullable layout rule leading every token \
+             puts its first bytes in every set)"
+        );
+    }
 
     for candidate in &survey.candidates {
         let clones = candidate.clone_cost();
@@ -4650,6 +4681,29 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
                 clones.iter().cloned().collect::<Vec<_>>().join(", ")
             );
         }
+        // `.17` slice 2 — what option (iii) would cost AT THIS RULE. `guard_variants` is the
+        // leaf's "do two holders of the same clone disagree?" question, answered as a number: one
+        // guarded clone chain carries one byte test, so N variants means N chains.
+        let guard_variants = candidate.guard_variants();
+        println!(
+            "    guard: {}  suffix_first={}  variants={}{}  max_hops={}",
+            if candidate.is_guard_feasible() {
+                "FEASIBLE"
+            } else {
+                "BLOCKED"
+            },
+            candidate.suffix_first.render(),
+            guard_variants.len(),
+            if guard_variants.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    " {}",
+                    guard_variants.iter().cloned().collect::<Vec<_>>().join(" ")
+                )
+            },
+            candidate.max_guard_hops()
+        );
         let route_limit = if dump_all { candidate.routes.len() } else { 3 };
         for route in candidate.routes.iter().take(route_limit) {
             println!(
@@ -4657,7 +4711,7 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
                 route.base_alternative_index,
                 route.path().join(" -> "),
                 candidate.base_rule,
-                render_elements(&route.suffix_elements())
+                render_elements_display(&route.suffix_elements())
             );
         }
         if candidate.routes.len() > route_limit {
@@ -4673,7 +4727,7 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
         };
         for site in candidate.starvation_sites.iter().take(site_limit) {
             println!(
-                "    {} {} alt#{}{} — residual '{}' a greedy suffix could steal",
+                "    {} {} alt#{}{} — residual '{}' a greedy suffix could steal [guard={} first={} hops={}]",
                 if site.survives_rewrite { "⛔ starved by" } else { "·  benign site" },
                 site.rule,
                 site.alternative_index,
@@ -4682,7 +4736,10 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
                     (true, false) => " (on-route, goes dead with the rewrite)",
                     (_, _) => "",
                 },
-                site.residual
+                site.residual,
+                site.guard.verdict.token(),
+                site.guard.residual_first.render(),
+                site.guard.guard_hops
             );
         }
         if candidate.starvation_sites.len() > site_limit {
@@ -4732,11 +4789,16 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
                     "acyclic_alternative_indices": candidate.acyclic_alternative_indices,
                     "clone_cost": candidate.clone_cost().iter().cloned().collect::<Vec<_>>(),
                     "starvation_safe": candidate.is_starvation_safe(),
+                    "guard_feasible": candidate.is_guard_feasible(),
+                    "suffix_first": candidate.suffix_first.render(),
+                    "suffix_first_exact": candidate.suffix_first.exact,
+                    "guard_variants": candidate.guard_variants().iter().cloned().collect::<Vec<_>>(),
+                    "max_guard_hops": candidate.max_guard_hops(),
                     "routes": candidate.routes.iter().map(|route| serde_json::json!({
                         "base_alternative_index": route.base_alternative_index,
                         "path": route.path(),
                         "intermediate_rules": route.intermediate_rules(),
-                        "suffix": render_elements(&route.suffix_elements()),
+                        "suffix": render_elements_display(&route.suffix_elements()),
                     })).collect::<Vec<_>>(),
                     "starvation_sites": candidate.starvation_sites.iter().map(|site| serde_json::json!({
                         "rule": site.rule,
@@ -4744,6 +4806,10 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
                         "residual": site.residual,
                         "on_route": site.on_route,
                         "survives_rewrite": site.survives_rewrite,
+                        "guard_verdict": site.guard.verdict.token(),
+                        "residual_first": site.guard.residual_first.render(),
+                        "residual_first_exact": site.guard.residual_first.exact,
+                        "guard_hops": site.guard.guard_hops,
                     })).collect::<Vec<_>>(),
                 })
             })
@@ -4754,6 +4820,11 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
             "eliminated_base_rules": elimination.eliminated_base_rules,
             "surviving_cycle_rules": survey.surviving_cycle_rules,
             "covered_cycle_rules": covered.iter().cloned().collect::<Vec<_>>(),
+            "guard_feasible_candidates": guard_feasible
+                .iter()
+                .map(|candidate| candidate.base_rule.clone())
+                .collect::<Vec<_>>(),
+            "guard_verdict_census": census,
             "candidates": candidates,
             "declined": survey.declined.iter().map(|declined| serde_json::json!({
                 "rule": declined.rule,

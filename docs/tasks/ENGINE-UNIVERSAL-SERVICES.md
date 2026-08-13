@@ -120,6 +120,16 @@ Candidate gaps already visible; to be completed by `.1`/`.2`:
   2000-deep paren nest. Those tests assert *"a clean diagnostic, not a process abort"* — which they
   do eventually satisfy — but they bound the OUTCOME and not the TIME, so the parser refuses by
   exhaustion rather than by a fast located refusal.
+  ⛔ **THIRD ABANDONMENT, 2026-08-13 (`.17` slice 2):** a confirmatory full sweep was abandoned at
+  **7 h 21 m**, its log untouched for the last 7 h 13 m, with every other test — including both
+  byte-identity gates — already reported `ok`. The three measurements now read **68 min → 2 h 27 m →
+  7 h 21 m**, all on the same two tests, which is the cost of an unbounded ceiling stated plainly.
+  ⭐ Two process lessons, recorded because they are cheaper than a fourth data point: the repository's
+  own precedent for a confirmatory sweep is `--lib -- --skip deep_nesting` (used by `.13` slice 4b and
+  cited three times in this file), and `scripts/run_with_memory_guard.sh` has carried `--timeout-s`
+  all along. The 7 h run used neither. A bounded timeout is not optional on a background job — it is
+  the difference between "still running" and "hung", and without it those two states are
+  indistinguishable from the outside.
   ⛔ **Owed before this is priced, not assumed:** (1) re-measure in RELEASE, since the observation is
   from a debug build and debug is 10–50× slower here — a release parser may be entirely fine;
   (2) if it reproduces, decide whether the ceiling belongs to the ENGINE — a bound every family
@@ -2544,6 +2554,306 @@ never surfaced — is itself a slice-2 decision, and
   one book surface this slice checked (`developer-architecture.md:17-25`) was re-read and is already
   correct; `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md` / `docs/TASK_TREE.md` updated.
 
+##### ✅ `.17` SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0021`, 2026-08-13 session #226) — option (iii) PRICED on the shipped grammar: 16/28, and the cheapest row in the census belongs to `.15`
+
+> **One analysis module + its report columns + a tracked probe bank. ZERO grammar bytes, ZERO
+> codegen bytes, ZERO generated-parser bytes, ZERO change to any shipped verdict.**
+> The leaf's own gate for this slice: *"Its open question must be answered with
+> `--report-indirect-lr-plan` on the **shipped** grammar, not on a synthetic."* This slice answers
+> all three halves of that question with measured numbers and hands slice 3 a decision with a price
+> on it. ⛔ The design decision is still deliberately NOT taken — what changed is that (iii) now has
+> a cost, a coverage figure and two named limits instead of a plausibility argument.
+>
+> Census bank (re-runnable, self-checking, 8 cases):
+> `docs/tasks/artifacts/engine_universal_services/guard_feasibility/probe.sh` →
+> `GUARD-FEASIBILITY-CENSUS: 8/8 as declared`.
+
+###### THE CRITERION, DERIVED — and why the verdict needs FIVE outcomes
+
+After the `.13` rewrite the base reads `X := X_lr_base ( X_lr_suffix )*` with a **possessive** `*`.
+A holder `H := X residual` starves when the loop eats text `residual` needed. Option (iii) is slice
+1's measured Q4 repair, scoped to the call site:
+
+```text
+X_guarded := X_lr_base ( X_lr_suffix &FIRST(residual) )*
+```
+
+⭐ **The completeness condition is `FIRST(suffix) ⊆ FIRST(residual)`, and it is decidable.** At any
+position where the loop continues, the suffix matched there, so that position starts with
+`FIRST(suffix)`; containment then makes the guard PASS there, so the only iteration the guard can
+refuse is the last one — the fatal one. Without containment the guard cuts the loop short at an
+intermediate iteration and trades one under-acceptance for another (`( "a" &"b" )* "b"` on `aab`).
+And it can never over-accept in either case: `L(X_guarded) ⊆ L(X)`, so the holder still accepts only
+strings in `L(X)·L(residual)` — the guard **recovers derivations the declarative grammar already
+licensed**, it never invents one. Both tests run on the shared FIRST over-approximation
+(`ast_pipeline/first_set.rs`) in the sound direction: disjointness of over-approximated sets implies
+disjointness of the true sets, and the containment test compares against exactly the byte set the
+emitted guard would evaluate.
+
+| verdict | condition | consequence for (iii) |
+|---|---|---|
+| `guardable` | competing, `FIRST(suffix) ⊆ FIRST(residual)` | the guard closes the site |
+| `no_competition` | `FIRST(suffix) ∩ FIRST(residual) = ∅` | **no guard owed** — the loop can never take this holder's text |
+| `residual_nullable` | `residual` can match empty | **no guard owed** — the holder cannot starve |
+| `guard_incomplete` | competing, `FIRST(suffix) ⊄ FIRST(residual)` | BLOCKS the candidate |
+| `undecidable` | a FIRST set is `unresolved`, or the suffix is nullable | BLOCKS the candidate |
+
+###### THE THREE ANSWERS THE LEAF ASKED FOR
+
+**(1) "is the holder's residual FIRST set statically computable at each of the 28 rows?" — YES,
+`undecidable=0`** at all **185** surviving starvation sites (126 SystemVerilog + 59 wrapper). Not
+one site needs a conservative decline.
+
+**(2) "does the guard stay sound when that residual is nullable?" — the question does not arise,
+and the reason is a defect in the SHIPPED criterion.** A nullable residual means the holder succeeds
+on the empty match and **cannot starve**, so no guard is owed: **29 of 126** SV sites and 19 of 59
+wrapper sites are structural false alarms. ⚠️ It is also a hole in the transitive walk, recorded
+rather than closed here: `rules_transparent_to` follows only **syntactically** empty residuals, so a
+nullable-but-non-empty holder stops the chain and a hazard one hop further out is never searched
+from there.
+
+**(3) "or when two holders of the same clone disagree?" — at the rules that matter, they agree.**
+**17 of 28** SV candidates need exactly ONE guard variant. Every multi-variant row (2–6) is a
+non-dominator member of one of the two knots and is `BLOCKED` for an independent reason, so the
+multiplier is never paid.
+
+###### ⭐⭐ THE HEADLINE, AND THE ROW THAT CHANGES `.15`'s PREMISE
+
+| grammar | starvation-safe (shipped criterion) | **guard-feasible (option (iii))** |
+|---|---|---|
+| `systemverilog` | **0 / 28** | **16 / 28** |
+| `systemverilog_lrm_profiled_wrapper` | 3 / 18 | **13 / 18** |
+
+Both remaining SystemVerilog knots are guard-feasible **at their dominators**, each with one
+variant:
+
+```text
+[candidate] constant_primary   guard: FEASIBLE  suffix_first={'/}  variants=1 {'/}  max_hops=1
+[candidate] property_expr      guard: FEASIBLE  suffix_first={-/}  variants=1 {-/}  max_hops=0
+```
+
+⇒ the cast/call knot costs **one** guarded clone chain of depth 1 (through `casting_type`) on top of
+the 14 clones the plan already emits, and the SVA property knot costs **zero extra clones**.
+
+⛔⛔ **ROUTED OUT — the SVA row contradicts `.15`'s founding premise.** `.15` was opened on slice 4's
+finding that the property knot has NO starvation-safe base rule and concluded it needs `.3`'s
+precedence-declaration service. The census says the *starvation* blocker is closable at the
+dominator with one variant and zero hops — the cheapest row in the whole census. ⛔ That is a claim
+about the starvation blocker ONLY: whether the annotation-composability check also passes at
+`property_expr` is **not** measured here (the wrapper refuses it for a missing return annotation on
+`property_expr_sv_2017` alternative 5) and is slice 3's first check. Recorded in `.15` below.
+
+###### ⛔⛔ THE QUALIFIER ON EVERY NUMBER ABOVE — FEASIBLE IS NOT CLOSED, AND IT IS MEASURED AT 157/157
+
+`guard-feasible 16/28` means *a guard is expressible and provably **sound** at 16 candidates*. It
+does **not** mean 16 knots close, and the report now says so in the output rather than in prose: `~`
+marks an **over-approximated** byte set, i.e. one where the guard passes at positions the residual
+cannot actually start from and therefore silently declines to refuse the fatal iteration.
+
+```text
+guard: FEASIBLE  suffix_first={'/}~  variants=1 {'/}~  max_hops=1
+```
+
+**Measured: 157 of 157 sites are over-approximated — not one exact guard exists on either grammar**
+(probe case C7, pinned absolutely against the UNCAPPED report). Two compounding causes:
+
+1. **Structural** — `FirstSetSummary::byte_decided` holds only for single-byte-decided shapes, so any
+   multi-element residual (`tick lparen expression rparen`) is approximate by construction.
+2. **Layout** — `trivia := (line_comment | block_comment)*` (`grammars/systemverilog.ebnf:619`) is
+   nullable and leads every token, so **`/` is in the FIRST set of every token**; concretely,
+   `int'(2)/*c*/'(3)` slips a byte-test guard.
+
+⇒ ⛔ **This FLIPS slice 3's starting point, and the first draft of this leaf had it wrong.** Slice 1
+called the byte-test guard *"the candidate to price first"* and this slice's own first draft filed
+the comment case as an edge-case caveat. With exactness measured at **0 of 157**, the cheap form is
+not a proof of closure anywhere on SystemVerilog, and a **trivia-aware structural lookahead**
+(`&( residual )` — exact, at the price of a per-iteration sub-parse instead of one byte compare) is
+effectively mandatory rather than a refinement. Slice 3 still prices the trade; it may no longer
+assume the cheap form suffices.
+
+⭐ The same layout fact is why **`no_competition=0`**: with `/` in every set, no two token-led FIRST
+sets are ever disjoint, so the disjointness refinement is sound, implemented, and structurally unable
+to fire here. Pinned at 0 in both directions (probe case C5) so a future layout-model change is
+noticed rather than assumed. ⭐ It is also why the first reading of the census looked contaminated —
+every FIRST set containing `/` is the grammar's own layout model, and it was root-caused rather than
+classified.
+
+###### ⛔⛔ TWO THINGS THIS SLICE DELIBERATELY DID NOT DO — both were defects in its own first draft
+
+**A. It does not let a report edit reach the parser, and that is now true BY CONSTRUCTION.**
+`render_elements` carried the doc comment *"Report-only — nothing parses this back"* and that comment
+is **false**: `indirect_lr_elimination.rs:483` decides the ambiguity refusal *"two routes iterate the
+identical suffix under the identical profile gate but declare different ASTs"* by comparing two of
+its strings, and `indirect_lr_elimination.rs:209` calls the survey itself. The first draft of this
+slice added the group parentheses to that shared renderer — which makes the comparison strictly
+finer, i.e. **refuse less, absorb more**, i.e. a shipped-parser change riding on a cosmetic fix,
+justified only by a before/after measurement on three grammars. ⛔ Corrected: `render_elements` is
+**frozen byte-for-byte** and the human-facing `render_elements_display` is a separate entry point on
+a shared, flag-parameterised walker (zero duplication). A unit test pins the collision in BOTH
+directions — `( "a" "b" )?` and `"a" "b"?` must still render IDENTICALLY under the frozen renderer
+and DIFFERENTLY under the display one. The coupling itself is routed as `.18`.
+
+**B. It does not judge a candidate on partial evidence.** Every test here reads `suffix_first` as an
+OVER-approximation. A union over a **truncated** route set is an UNDER-approximation, so
+`FIRST(suffix) ⊆ FIRST(residual)` would pass too easily and report `guardable` — and a `FEASIBLE`
+candidate — on evidence never gathered, with nothing downstream able to notice. ⛔ The first draft
+had exactly that hole. Corrected: `routes_truncated` poisons `suffix_first` to `unresolved`, forcing
+every site to `undecidable` and the candidate to BLOCKED. It costs nothing today (the widest knot
+enumerates **80** routes against a budget of **128**) and is exercised through a new
+budget-parameterised entry point `survey_indirect_left_recursion_with_route_budget`, because an
+unreachable branch that must fail SAFE is precisely the branch a release trusts and never runs
+([[a-check-whose-inputs-all-pass-has-not-been-tested]]).
+
+###### ⛔⛔ `.18` NEW `todo` — a DISPLAY function decides a semantic refusal in the eliminator, so making the report more legible changes what the pass absorbs (opened 2026-08-13 session #226 by `.17` slice 2)
+
+**ROUTING EVIDENCE** — measured here, at the point it was found. ⭐ It stays in THIS tree because it
+is an engine/analysis boundary defect, not a language one; nothing is sent to another family.
+
+- **The coupling, located.** `indirect_lr_elimination.rs:483-486` decides the ambiguity refusal
+  *"two routes iterate the identical suffix under the identical profile gate but declare different
+  ASTs"* by comparing **rendered strings**:
+  `render_elements(&left.elements) == render_elements(&right.elements)`. `render_elements`
+  (`indirect_lr_plan.rs`) is documented *"Render nodes as compact EBNF-ish text. Report-only —
+  nothing parses this back"*, and that comment is now measurably false.
+- **It reproduces as a defect in BOTH directions, independent of this slice.** The pre-slice-2
+  renderer dropped a quantified group's parentheses, so `( a b )?` and `a b?` — structurally
+  different suffixes — rendered IDENTICALLY and compared EQUAL. A plan with those two routes would
+  have been **refused for an ambiguity it does not have**. The renderer is also lossy in the other
+  direction for any shape it abbreviates, so a real collision could in principle be missed.
+- **How it was found: slice 2's own first draft walked into it.** That draft fixed the missing
+  parentheses in the SHARED renderer, which makes the ambiguity comparison strictly more faithful —
+  **refuse less**, i.e. potentially absorb MORE. A parser-behaviour change riding on a report edit,
+  and exactly the shape a "docs-only" framing hides. It was caught by asking what else calls the
+  function, not by a gate.
+- **The slice was then RESTRUCTURED so the hazard cannot be reached from it:** `render_elements` is
+  frozen byte-for-byte and `render_elements_display` carries the parentheses, with a unit test
+  pinning that `( "a" "b" )?` and `"a" "b"?` still render IDENTICALLY under the frozen renderer. So
+  this leaf owns a LATENT coupling, not a live regression, and slice 2's no-regression claim rests on
+  construction rather than on a three-grammar sample.
+- ⚠️ **The collision is real and unfixed today.** Under the frozen renderer those two structurally
+  different suffixes compare EQUAL, so a plan carrying both would be refused for an ambiguity it does
+  not have. No shipped grammar exhibits the pair (the before/after capture shows every
+  `✅ absorbed at` and `⛔ REFUSED` line identical on `systemverilog`,
+  `systemverilog_lrm_profiled_wrapper` and `ebnf`), which is why this is PARKED rather than urgent.
+
+**Acceptance:** (a) the ambiguity check compares STRUCTURE, not a rendering — a dedicated key over
+the gen-AST (or a derived canonical form) with `render_elements` reserved for humans; (b) a test
+that is RED against the string comparison, i.e. two routes whose rendered forms collide but whose
+structures differ; (c) `render_elements`' doc comment corrected, or the function split, so the next
+reader cannot re-acquire the same assumption. ⛔ PARKED behind the SV lane lock — it blocks no SV
+release work, and slice 2 measured its live effect at zero.
+
+###### Acceptance Checklist (enforced) — `.17` slice 2
+
+- [x] **REPRODUCE / ISSUE** — the leaf's own open question was unanswerable from the shipped report:
+  `--report-indirect-lr-plan` printed each starvation site's residual as TEXT and nothing about
+  whether a guard on it is expressible, complete, or shareable. Reproduced as the absence it is —
+  HEAD's report for `constant_primary` carries the site and no guard column:
+  `⛔ starved by cast alt#0 (on-route, still reachable after the rewrite) — residual 'tick lparen expression rparen' a greedy suffix could steal`
+- [x] **ROOT CAUSE (WHY + WHERE)** — the survey's starvation criterion
+  (`indirect_lr_plan.rs::collect_starvation_sites`) is purely **structural**: it fires on any
+  non-empty residual and consults no FIRST set, so it cannot separate a site that would really
+  starve from one that merely looks like it, and it says nothing about a guard. Measured
+  consequence, both directions: **29 of 126** SV sites are `residual_nullable` — holders that
+  cannot starve at all — while `starvation-safe candidates: 0/28` reports the population as
+  uniformly hopeless. The FIRST machinery that decides all of it already ships
+  (`ast_pipeline/first_set.rs::branch_first_set`) and this pass simply never called it.
+- [x] **FIX** — fix-hierarchy tier = **new tooling / instrument** (no engine, grammar, codegen or
+  generated-artifact byte moves; the shipped `is_starvation_safe` verdict is deliberately
+  UNCHANGED). `GuardVerdict` / `GuardAssessment` / `GuardFirstBytes` in `indirect_lr_plan.rs`, the
+  new report columns and JSON fields, and `rules_transparent_to` refactored from a set to a DEPTH map
+  so the guard clone-chain length is a measured number instead of a guess.
+  ⛔ The refinement is REPORTED, not APPLIED: making `is_starvation_safe` consult it would change
+  which knots the eliminator absorbs — a real parser change, owed a two-sided repro ratchet, and
+  that is slice 3's decision, not this slice's.
+  ⛔ **Three soundness properties are held BY CONSTRUCTION rather than by measurement**, each fixing
+  a hole in this slice's own first draft (detailed above): `render_elements` frozen with
+  `render_elements_display` split off, so nothing here can reach the eliminator's ambiguity refusal;
+  `routes_truncated` poisoning `suffix_first` to `unresolved`, so a partial route union can never
+  produce a `FEASIBLE`; and `exact` (from `FirstSetSummary::byte_decided`) surfaced as `~` on every
+  rendered byte set, so "sound" is never printed where "closed" would be read.
+- [x] **ADDRESSED (verified)** — the three answers above, plus the bank:
+  `bash docs/tasks/artifacts/engine_universal_services/guard_feasibility/probe.sh` →
+  `GUARD-FEASIBILITY-CENSUS: 9/9 as declared`, rc 0. Ground truth in BOTH directions: two cases
+  (C4 `undecidable=0`, C5 `no_competition=0`) assert a bucket must stay EMPTY, C7 pins the exactness
+  ratio at **157/157 over-approximated**, and a deliberately flipped expectation exits rc 1 naming
+  the case (`C3 … => FEASIBLE variants=1 max_hops=0 ⛔ want BLOCKED variants=9 max_hops=9` →
+  `GUARD-FEASIBILITY-CENSUS: MISMATCH`), so the bank can notice its own breakage.
+  ⛔ **ROUTED OUT — none of this slice's four self-found defects was catchable by any of the 18
+  doctrines, and the reason is structural: `TASK-ACCEPTANCE` audits the PRESENCE of proof, never its
+  FALSIFIABILITY.** The roster's three archetypes (structural / oracle / evidence) all ask *does the
+  invariant hold?*; none asks *would this check notice if it did not?* ⇒ **`CI-PARITY-GATE-ROT.27`
+  NEW** (parked behind the lane lock), proposing the missing MUTATION archetype and an 8-tier ladder
+  — with the measured routing evidence that `--self-test` already exists in 2 `scripts/*.sh` and in
+  **0 of 3** tracked probe banks, all three of which proved their falsifiability by hand and recorded
+  it as prose.
+  ⛔ **C7's own first draft was TAUTOLOGICAL** — it compared `$approx/$sites` against
+  `$sites/$sites`, an expectation derived from the number under test, so it would have passed on 0/0
+  and on any future count alike; and it read the DEFAULT report, whose per-candidate site list is
+  capped at 5, so it measured 123 of 157 sites and called that "every". Now pinned ABSOLUTELY
+  against the uncapped report. A tautological assertion inside the gate meant to prevent exactly
+  that shape is worth recording, not quietly fixing.
+- [x] **NO REGRESSION** — ⭐ **primary argument is BY CONSTRUCTION, with the measurement as
+  confirmation.** `indirect_lr_elimination.rs` consumes exactly two things from this module — the
+  survey's decision fields and `render_elements` — and neither moves: `is_starvation_safe` and every
+  field feeding it are untouched, and `render_elements` is frozen byte-for-byte with a unit test
+  pinning its collision behaviour. So no input to codegen can differ, whatever the report prints.
+  The measurement agrees, in two independent cuts. BEFORE captured by restoring both files to HEAD,
+  rebuilding the SAME binary path and re-running (`PGEN_INDIRECT_LR_DUMP_ALL=1`, three grammars);
+  FINAL captured the same way.
+  **(i) The frozen-renderer path, checked on its own** — `elimination_ran`, `eliminated_base_rules`,
+  `indirect_eliminated_base_rules`, `indirect_clone_rules`, `indirect_refusals`, every
+  `✅ absorbed at`, every `⛔ REFUSED …` (whose message text is BUILT from `render_elements`), the
+  cycle-rule coverage line and `starvation-safe candidates:` are **BYTE-IDENTICAL** on all three
+  grammars. That is the direct evidence that nothing reaching codegen moved.
+  **(ii) The whole report** — with the new guard columns removed and both sides normalised for the
+  group-parenthesisation fix: `systemverilog` **0** differing lines,
+  `systemverilog_lrm_profiled_wrapper` **0**, `ebnf` **0**. Every pre-existing number —
+  `candidates`, `declined`, every route, every site — is unmoved.
+  `cargo test --lib indirect_lr` **19 passed / 0 failed** (was 12; seven new).
+  ⭐ **RED-proven TWICE, not merely green.** (a) Collapsing the verdict chain to an unconditional
+  `Guardable` → **15 passed / 3 failed**, naming exactly the cases that carry the criterion
+  (`a_residual_the_suffix_can_never_consume_needs_no_guard`,
+  `a_suffix_that_can_start_outside_the_residual_blocks_the_guard`,
+  `a_nullable_residual_is_bucketed_apart_from_a_disjoint_one`). (b) Removing the `routes_truncated`
+  poison **and** un-freezing `render_elements` in one probe → **17 passed / 2 failed**, naming
+  `a_truncated_route_set_refuses_a_guard_verdict_instead_of_guessing_one` and
+  `a_quantified_group_renders_with_its_parentheses`. Restored to 19/0 after each.
+  ⭐ **The exactness marker DISCRIMINATES rather than being always-on** — on the synthetic a
+  single-byte residual returns `{!}` with `exact=true` while the multi-element `"'" "(" lit ")"`
+  returns `{'}~`. ⛔ That synthetic carries NO layout rule at all, which proves the two causes are
+  INDEPENDENT: the structural one alone suffices, and SystemVerilog's nullable `trivia` compounds it
+  rather than creating it.
+  **Confirmatory sweep** (the repository's established scope — `.13` slice 4b's, for the reason
+  recorded under `.3`): `cargo test --features "generated_parsers ebnf_dual_run" --lib --
+  --skip deep_nesting` → **1 099 passed / 1 failed / 28 ignored** in 372.63s. The single failure is
+  `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`, **pre-existing and
+  owned by `LANG-CAPABILITY-AUDIT.10.15`** — confirmed by NAME and by its verbatim assertion string
+  (`expected semantic_annotation fallback to detect '@' directives`) against that leaf's recorded
+  symptom, not by assuming a familiar-looking red. ⭐ Both byte-identity gates
+  (`every_structural_combinator_is_byte_identical`, `every_semantic_construct_is_byte_identical`),
+  `comment_arm_suppression_matrix_is_pinned` and
+  `interpreter_agrees_with_compile_and_run_on_synthetic_combinators` are GREEN — those are the ones
+  that fire if anything on the parser/codegen path moved.
+  `make -C rust clippy_on_rust_change` → **pass** (strict source lint + generated-parser correctness
+  stage, roster integrity 68/68).
+  ⛔ Every build and test run went through `scripts/run_with_memory_guard.sh --budget-mb 16384`
+  WITHOUT a pipe, so the exit code is the job's own — the trap slice 1 recorded and
+  `CI-PARITY-GATE-ROT.25` owns.
+  ⛔ No scratch-slot obligation is acquired: the probe drives `--report-indirect-lr-plan`, which is
+  pure analysis over the post-elimination gen-AST and writes nothing.
+- [x] **LOCKSTEP** — `TOOLBOX.md` §5.5 (the two new headline lines, the per-candidate `guard:` line,
+  the per-site `[guard=… first=… hops=…]` column, the `no_competition=0` layout finding, and the
+  parenthesisation fix); the book's grammar-wellformedness chapter; `.15` below (its founding
+  premise, re-adjudicated); `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`,
+  `docs/reference/RUST_CODEBASE_ANALYSIS.md`. No user-visible parser behaviour changed, so no
+  contract or schema edit is owed.
+  ⭐ **One stale live number found and dated on the way**: `docs/TASK_TREE.md`'s slice-4 census
+  (*"wrapper 23/18/11/7"*) was measured BEFORE slice 5's elimination pass and its transitive
+  starvation criterion landed; a HEAD binary this session measures the wrapper at **18 candidates /
+  3 safe**. It is now marked as the slice-4-era figure it is rather than read as current. ⛔ It was
+  NOT moved by this slice — the BEFORE/AFTER capture below proves every structural number unchanged.
+
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
@@ -2757,6 +3067,40 @@ give the engine a precedence-declaration service and let the cascade be generate
 (b) the choice recorded in `docs/decisions/`; (c) the fix, with SV-6/SV-7's probes flipping to
 ACCEPT. ⛔ Sequencing: this leaf is BEHIND `.13` (d) — the transformation must exist before it can
 be extended, and `.13` (d) closes the two knots that do not need this.
+
+#### ⛔⛔ ROUTED IN — THIS LEAF'S FOUNDING PREMISE IS RE-ADJUDICATED, AND A THIRD DESIGN IS NOW THE CHEAPEST (`.17` slice 2, 2026-08-13 session #226)
+
+The heading above — *"unfixable by chain-absorption"* — rests on slice 4's measurement that the
+knot's only candidates are `prop_primary_sv_2017` / `_sv_2023`, both STARVED. `.17` slice 2's
+guard-feasibility census measures the same knot at its **DOMINATOR** and gets a different answer:
+
+```text
+[candidate] property_expr   routes=80  seeds=0  clone_cost=12  verdict=STARVED
+    guard: FEASIBLE  suffix_first={-/}  variants=1 {-/}  max_hops=0
+    ⛔ starved by prop_primary_sv_2017 alt#13 — residual 'implies property_expr' [guard=guardable first={-/} hops=0]
+    ⛔ starved by prop_primary_sv_2023 alt#13 — residual 'implies property_expr' [guard=guardable first={-/} hops=0]
+```
+
+⇒ **the starvation blocker is closable at `property_expr` with ONE guard variant and ZERO clone
+hops — the cheapest row in the entire census** (`.17`'s option (iii), a call-site follow-restriction
+guard on the sheared clone). `property_expr_sv_2017` / `_sv_2023` are guard-feasible too, at
+`variants=1 max_hops=1`. Two consequences for this leaf:
+
+1. **Acceptance (a) gains a THIRD option to price** — *neither* extend chain absorption to a
+   hand-factored cascade *nor* build `.3`'s precedence-declaration service, but let `.17`'s guard
+   close the starvation and absorb at the dominator, leaving the cascade in place and untouched.
+   It is the only one of the three that costs no new engine service.
+2. ⛔ **Two things this does NOT establish, and neither may be assumed.** (i) The census answers the
+   **starvation** question only — the wrapper refuses `property_expr` for a different reason
+   (*"hop 'property_expr_sv_2017' alternative 5 declares no return annotation and its residual is
+   'kw_or_1758356d property_expr', so the chain's AST cannot be composed faithfully"*), and whether
+   that check passes on the SHIPPED grammar at this base rule is UNMEASURED. (ii) The cascade
+   encodes SVA operator PRECEDENCE; absorbing at the dominator must be shown to preserve it, and
+   `.13` slice 5's own history is the warning — the version that improved every counter was a
+   REGRESSION only a CONTROL row caught.
+
+⇒ this leaf stays `todo` and stays BEHIND `.17`, but its scope is now *"price three designs"*, not
+*"build a precedence service"*. Sequencing unchanged.
 
 ### `.14` — the INTERPRETER and the generated parser disagree on an un-eliminated left-recursive cycle, in BOTH directions (`todo`, opened 2026-08-12 session #222 by `.13` slice 3)
 
