@@ -1,5 +1,30 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Steering Note (2026-08-13) — the elimination driver's ADMISSION POLICY is now a parameter, and that is what let the census be measured through the real planner (`ENGINE-UNIVERSAL-SERVICES.17` slice 3)
+
+**One driver gained a parameter; nothing the parser executes changed.**
+`indirect_lr_elimination.rs` gained `CandidateAdmission` (`StarvationSafe` | `GuardFeasibleDryRun`),
+and `eliminate_indirect_left_recursion` now delegates to
+`eliminate_indirect_left_recursion_with_admission` with `StarvationSafe`. The widened mode is
+reachable only from `dry_run_guard_feasible_elimination`, which works on a clone and is called only
+by the opt-in `--indirect-lr-plan-guard-dry-run` report section.
+
+⭐ **The architectural point is that the alternative was worse.** The question — *"of the
+guard-feasible candidates, how many actually reach a plan?"* — is a question about what the DRIVER
+does, and the three refusals that answer it (annotation composability at `compose_route_template`,
+the trial re-lint, the ambiguity comparison) are all unobservable for a candidate the starvation gate
+refuses. A second implementation of the plan stage would have drifted from the one it predicts;
+parameterising the admission set keeps exactly one planner in the tree.
+
+⇒ **Assessment change for the note below:** the guard is no longer only *expressible*; the plan it
+unlocks is *buildable*. `would_absorb=2 would_refuse=0 clone_rules=24 left_recursive_rule_rows 28 ->
+0` on `systemverilog` — the 16 guard-feasible candidates are 16 rules on TWO knots, absorbed at
+`casting_type` and `property_expr`. ⛔ Bound, and it is the same one: the dry run emits no guard, so
+that is plan-stage reachability, not closure. ⭐ One new architectural fact worth carrying:
+`systemverilog.ebnf` declares return annotations on **1069** rules while the LRM-generated
+`systemverilog_lrm_profiled_wrapper` declares **21** — the two views are comparable in structure and
+NOT in annotation, and any oracle that crosses that line is measuring the wrong grammar.
+
 ## Steering Note (2026-08-13) — the survey now carries a MEASUREMENT beside its conservative verdict, and it moves the fix's size (`ENGINE-UNIVERSAL-SERVICES.17` slice 2)
 
 **One analysis module grew; nothing the parser executes changed.**

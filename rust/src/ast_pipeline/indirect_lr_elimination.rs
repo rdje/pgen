@@ -87,6 +87,39 @@ pub struct PlanRefusal {
     pub reason: String,
 }
 
+/// `ENGINE-UNIVERSAL-SERVICES.17` slice 3 — WHICH candidates the driver is allowed to consider.
+///
+/// ⛔ **`StarvationSafe` is the shipped policy and the only one any generated parser ever sees.**
+/// The second variant exists so the question *"what would option (iii) actually unlock?"* can be
+/// answered by running the REAL planner rather than by a second implementation of it that would
+/// drift from the one it predicts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CandidateAdmission {
+    /// The shipped policy: a candidate is considered iff
+    /// [`IndirectChainCandidate::is_starvation_safe`] — no rule outliving the rewrite holds it at a
+    /// left corner with a non-empty residual a greedy `*` could steal.
+    StarvationSafe,
+    /// `.17` slice 3's DRY RUN: additionally consider candidates that are merely
+    /// [`IndirectChainCandidate::is_guard_feasible`] — the population a call-site
+    /// follow-restriction guard would make safe.
+    ///
+    /// ⛔ **This admits them WITHOUT emitting any guard**, so the grammar it produces is the
+    /// measured-regressing one (`.13` slice 5: rewriting `casting_type` unguarded turns the
+    /// accepted `int'(3)` into a rejection). It is therefore an instrument for PLAN-STAGE refusals
+    /// only — annotation composability, the trial re-lint, the ambiguity check — and never a claim
+    /// that the rewritten grammar parses. It is reachable only from
+    /// [`dry_run_guard_feasible_elimination`], which works on a clone.
+    GuardFeasibleDryRun,
+}
+
+impl CandidateAdmission {
+    /// Does this admission mode narrate to stderr? Only the shipped pass does — a dry run's
+    /// `✅ Absorbing` line would read as something the parser actually did.
+    fn narrates(self) -> bool {
+        matches!(self, CandidateAdmission::StarvationSafe)
+    }
+}
+
 /// What [`eliminate_indirect_left_recursion`] did, as opposed to a belief about it — the same
 /// posture `GRAMMAR-WELLFORMED.A2.6` forced on the linter.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -197,7 +230,77 @@ enum Shear {
 pub(super) fn eliminate_indirect_left_recursion(
     grammar_tree: &mut HashMap<String, ASTNode>,
     rule_order: &mut Vec<String>,
+    annotations: Option<&mut Annotations>,
+) -> IndirectEliminationOutcome {
+    eliminate_indirect_left_recursion_with_admission(
+        grammar_tree,
+        rule_order,
+        annotations,
+        CandidateAdmission::StarvationSafe,
+    )
+}
+
+/// What a [`dry_run_guard_feasible_elimination`] found — the outcome, plus the two numbers that
+/// price option (iii): how many left-recursive rule rows it started from and how many it left.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GuardDryRun {
+    /// What the driver did with the widened admission set.
+    pub outcome: IndirectEliminationOutcome,
+    /// Left-recursive rule rows before the dry run — the report's own `surviving_cycle_rules`.
+    pub cycle_rows_before: usize,
+    /// Left-recursive rule rows the dry run LEFT STANDING. ⛔ This is the payoff figure, and it is
+    /// re-derived from the rewritten clone by the same [`detect_left_recursion`] the lint uses —
+    /// never inferred from "N absorbed, so N fewer".
+    pub cycle_rows_after: usize,
+}
+
+/// `.17` slice 3 — answer *"which of the guard-feasible candidates actually reach a plan?"* by
+/// running the REAL driver on a CLONE with the guard census admitted.
+///
+/// ⛔ **What this measures and what it does not.** The three refusal sources downstream of the
+/// starvation check — a hop with no declared return annotation, the trial re-lint, the ambiguity
+/// comparison — are all independent of whether a guard is emitted, so a guardless dry run is a
+/// SOUND predictor for them. It models nothing the guard emission would itself add, and it makes no
+/// claim whatsoever about the resulting grammar's *parses* (see [`CandidateAdmission`]).
+pub fn dry_run_guard_feasible_elimination(
+    grammar_tree: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    annotations: Option<&Annotations>,
+) -> GuardDryRun {
+    let cycle_rows = |tree: &HashMap<String, ASTNode>, order: &[String]| -> usize {
+        detect_left_recursion(tree, order)
+            .into_iter()
+            .filter(|issue| matches!(issue, WellformednessIssue::LeftRecursive { .. }))
+            .count()
+    };
+
+    let mut trial_tree = grammar_tree.clone();
+    let mut trial_order = rule_order.to_vec();
+    let mut trial_annotations = annotations.cloned();
+    let cycle_rows_before = cycle_rows(&trial_tree, &trial_order);
+    let outcome = eliminate_indirect_left_recursion_with_admission(
+        &mut trial_tree,
+        &mut trial_order,
+        trial_annotations.as_mut(),
+        CandidateAdmission::GuardFeasibleDryRun,
+    );
+    let cycle_rows_after = cycle_rows(&trial_tree, &trial_order);
+    GuardDryRun {
+        outcome,
+        cycle_rows_before,
+        cycle_rows_after,
+    }
+}
+
+/// The driver itself. Behaviour is documented on [`eliminate_indirect_left_recursion`], which is
+/// the only caller a generated parser ever goes through; `admission` is the sole difference between
+/// that path and `.17` slice 3's dry run, and it is read in exactly two places — the candidate
+/// filter below, and [`CandidateAdmission::narrates`].
+fn eliminate_indirect_left_recursion_with_admission(
+    grammar_tree: &mut HashMap<String, ASTNode>,
+    rule_order: &mut Vec<String>,
     mut annotations: Option<&mut Annotations>,
+    admission: CandidateAdmission,
 ) -> IndirectEliminationOutcome {
     let mut outcome = IndirectEliminationOutcome::default();
     // A refused candidate stays refused for the whole pass — otherwise every re-survey would
@@ -207,8 +310,11 @@ pub(super) fn eliminate_indirect_left_recursion(
 
     loop {
         let survey = survey_indirect_left_recursion(grammar_tree, rule_order);
-        let mut ordered: Vec<&IndirectChainCandidate> = survey
-            .safe_candidates()
+        let admitted = match admission {
+            CandidateAdmission::StarvationSafe => survey.safe_candidates(),
+            CandidateAdmission::GuardFeasibleDryRun => survey.guard_admissible_candidates(),
+        };
+        let mut ordered: Vec<&IndirectChainCandidate> = admitted
             .into_iter()
             .filter(|candidate| !refused.contains(&candidate.base_rule))
             .collect();
@@ -287,14 +393,16 @@ pub(super) fn eliminate_indirect_left_recursion(
 
         match attempt {
             Ok(plan) => {
-                eprintln!(
-                    "[indirect_lr_elimination] ✅ Absorbing indirect left-recursive chain at rule '{}' \
-                     ({} route(s), {} clone(s) via helper '{}')",
-                    plan.base_rule,
-                    plan.suffix_branches.len(),
-                    plan.clones.len(),
-                    plan.helper_base_rule
-                );
+                if admission.narrates() {
+                    eprintln!(
+                        "[indirect_lr_elimination] ✅ Absorbing indirect left-recursive chain at rule '{}' \
+                         ({} route(s), {} clone(s) via helper '{}')",
+                        plan.base_rule,
+                        plan.suffix_branches.len(),
+                        plan.clones.len(),
+                        plan.helper_base_rule
+                    );
+                }
                 outcome.eliminated_base_rules.push(plan.base_rule.clone());
                 outcome
                     .synthesized_clone_rules
@@ -302,10 +410,12 @@ pub(super) fn eliminate_indirect_left_recursion(
                 apply_plan(&plan, grammar_tree, rule_order, annotations.as_deref_mut());
             }
             Err(reason) => {
-                eprintln!(
-                    "[indirect_lr_elimination] ⏭️  Declining rule '{}': {reason}",
-                    candidate.base_rule
-                );
+                if admission.narrates() {
+                    eprintln!(
+                        "[indirect_lr_elimination] ⏭️  Declining rule '{}': {reason}",
+                        candidate.base_rule
+                    );
+                }
                 refused.insert(candidate.base_rule.clone());
                 outcome.refusals.push(PlanRefusal {
                     base_rule: candidate.base_rule.clone(),
@@ -1304,6 +1414,101 @@ mod tests {
             ],
         );
         (grammar, order, annotations)
+    }
+
+    /// `p5_transparent_holder.ebnf` with knot A's annotations: [`knot_a_annotated`] plus an OUTSIDE
+    /// holder of the transparent rule, so the holder OUTLIVES any rewrite and every candidate on the
+    /// cycle is starved. ⇒ the shipped driver has nothing to admit here at all, which is what makes
+    /// it the discriminating fixture for the dry run.
+    fn knot_a_annotated_with_surviving_holder()
+    -> (HashMap<String, ASTNode>, Vec<String>, Annotations) {
+        let (mut grammar, mut order, annotations) = knot_a_annotated();
+        grammar.insert(
+            "scratch".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("outer_cast"), rule("prim")],
+            },
+        );
+        grammar.insert(
+            "outer_cast".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("ct"), text("'"), text("("), rule("lit"), text(")")],
+            },
+        );
+        order.insert(1, "outer_cast".to_string());
+        (grammar, order, annotations)
+    }
+
+    /// Serialize-compare, because neither `ASTNode` nor `Annotations` derives `PartialEq` — and a
+    /// dry run that quietly mutated its caller's grammar is precisely the failure this must catch.
+    fn frozen<T: serde::Serialize>(value: &T) -> String {
+        serde_json::to_string(value).expect("serializable")
+    }
+
+    /// ⭐⭐ `.17` slice 3 — the dry run reaches a candidate the shipped pass never considers, and
+    /// leaves the caller's grammar untouched while doing it.
+    ///
+    /// ⛔ RED-provable on the property that matters: point the dry run at
+    /// `CandidateAdmission::StarvationSafe` and the first assertion fails by name — it would report
+    /// nothing, exactly like the shipped pass.
+    ///
+    /// ⛔ **The three `frozen` assertions are NOT falsifiable today, and saying so is the point.**
+    /// [`dry_run_guard_feasible_elimination`] takes `&HashMap` / `&[String]` / `&Annotations`, so
+    /// the compiler already forbids what they check; they cannot fail while that signature holds.
+    /// They are a tripwire against a future refactor that widens those borrows for convenience —
+    /// the moment one becomes `&mut`, the safety argument moves from the type system into these
+    /// three lines, and they start doing real work. A test that can only pass is documentation
+    /// ([[a-check-whose-inputs-all-pass-has-not-been-tested]]); this one is labelled as such rather
+    /// than counted as evidence.
+    #[test]
+    fn the_guard_dry_run_reaches_what_the_shipped_pass_refuses_without_touching_the_grammar() {
+        let (mut grammar, mut order, mut annotations) = knot_a_annotated_with_surviving_holder();
+        let frozen_grammar = frozen(&grammar);
+        let frozen_order = frozen(&order);
+        let frozen_annotations = frozen(&annotations);
+
+        let dry = dry_run_guard_feasible_elimination(&grammar, &order, Some(&annotations));
+        assert!(
+            !dry.outcome.eliminated_base_rules.is_empty() || !dry.outcome.refusals.is_empty(),
+            "the dry run must reach the PLAN stage on a guard-feasible candidate — an empty \
+             outcome here means it saw the same empty admission set the shipped pass does, and \
+             the instrument would be measuring nothing"
+        );
+        // ⛔ The payoff figure is MEASURED on the rewritten clone, not inferred from the absorb
+        // count: this knot has two candidates and one rewrite at the dominator clears both rows.
+        assert!(
+            dry.cycle_rows_after < dry.cycle_rows_before,
+            "a dry run that absorbed something must leave fewer left-recursive rows ({} -> {})",
+            dry.cycle_rows_before,
+            dry.cycle_rows_after
+        );
+
+        // ⛔ The whole safety argument of the instrument: it works on a clone.
+        assert_eq!(frozen(&grammar), frozen_grammar, "dry run mutated the grammar tree");
+        assert_eq!(frozen(&order), frozen_order, "dry run mutated the rule order");
+        assert_eq!(
+            frozen(&annotations),
+            frozen_annotations,
+            "dry run mutated the annotations"
+        );
+
+        // ⭐ The one-difference control, on the SAME grammar: the shipped policy is a strict no-op
+        // here. Without this half, the assertion above could be satisfied by a dry run that merely
+        // repeats what the pass already does.
+        let shipped =
+            eliminate_indirect_left_recursion(&mut grammar, &mut order, Some(&mut annotations));
+        assert!(
+            shipped.eliminated_base_rules.is_empty() && shipped.refusals.is_empty(),
+            "every candidate on this knot is STARVED, so the shipped driver admits none of them — \
+             it absorbed {:?} and refused {:?}",
+            shipped.eliminated_base_rules,
+            shipped.refusals
+        );
+        assert_eq!(
+            frozen(&grammar),
+            frozen_grammar,
+            "a pass that admits nothing must also change nothing"
+        );
     }
 
     fn alternatives(grammar: &HashMap<String, ASTNode>, name: &str) -> Vec<String> {

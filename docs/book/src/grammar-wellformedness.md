@@ -2218,6 +2218,45 @@ than a byte test: precise, at the cost of a per-iteration sub-parse instead of o
 ⛔ **This census is reported, not applied.** The verdict the eliminator acts on is still the
 structural one, so nothing about which knots PGEN absorbs has changed.
 
+### And "a guard is expressible here" is still not "this knot would close"
+
+`guard-feasible` is a verdict about the **starvation gate**. Three more refusals live behind that
+gate — a hop that declares no return annotation (the chain's AST could not be composed faithfully),
+the trial re-lint, and the ambiguity comparison — and none of them is observable for a starved
+candidate, because the planner is only ever reached for candidates the gate already admitted.
+
+`--indirect-lr-plan-guard-dry-run` closes that blind spot by admitting the guard-feasible candidates
+into the real elimination driver **on a clone of your grammar**, and reporting what it did:
+
+```text
+--- GUARD DRY-RUN: which guard-feasible candidates actually reach a PLAN ---
+    inputs: annotations=present rules_with_branch_return_annotations=1069
+    would_absorb=2 would_refuse=0 clone_rules=24 left_recursive_rule_rows 28 -> 0
+    ✅ would absorb 'casting_type'
+    ✅ would absorb 'property_expr'
+```
+
+Two things are worth reading carefully here.
+
+**The row count is measured on the rewritten clone**, by the same detector the lint runs — not
+inferred as *before minus absorbed*. That is why two rewrites can clear twenty-eight rows: both land
+on a **dominator**, and a dominator's rewrite clears every rule on its knot. A large
+`guard-feasible` count is a count of affected *rules*, and the number of *rewrites* is usually far
+smaller.
+
+**The `inputs:` line is not decoration.** A chain's AST only needs composing if your grammar declares
+return annotations at all, so on an unannotated grammar every candidate passes that check
+vacuously — and `would_refuse=0` would mean "nothing to compose" rather than "it composes". The
+annotation census is printed next to the verdict so the two readings can never be confused. It is
+also what explains a result that otherwise looks like a contradiction: SystemVerilog's hand-written
+grammar (1069 annotated rules) absorbs both knots, while its LRM-generated wrapper view (21) refuses
+thirteen candidates, every one of them for a missing return annotation. Those two grammars are
+comparable in structure and **not** comparable in annotation.
+
+⛔ **The dry run emits no guard.** It answers *"would a plan be buildable here?"*, so the grammar it
+constructs is the unguarded one — which, on SystemVerilog, is a known regression. Nothing in its
+output is a claim about what the rewritten grammar parses.
+
 ⭐ **One criterion had to be deleted along the way: `seeds=0` is not a disqualification.** The
 direct/wrapper elimination *drops* a left-recursive alternative, so a rule whose every alternative is
 on the cycle has nothing left to seed from. The indirect transform *clones* it with the cycle edge

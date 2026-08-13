@@ -2854,6 +2854,189 @@ release work, and slice 2 measured its live effect at zero.
   3 safe**. It is now marked as the slice-4-era figure it is rather than read as current. ⛔ It was
   NOT moved by this slice — the BEFORE/AFTER capture below proves every structural number unchanged.
 
+##### ✅ `.17` SLICE 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0022`, 2026-08-13 session #227) — the census run through the REAL PLANNER: both SV knots reach a plan, `28 → 0`, and the wrapper's refusal was never evidence about the shipped grammar
+
+> **One admission mode + one opt-in report section + a tracked probe bank. ZERO grammar bytes, ZERO
+> codegen bytes, ZERO generated-parser bytes, ZERO change to any shipped verdict.**
+> The leaf's gate for this slice, in slice 2's own words: *"whether the annotation-composability
+> check also passes at `property_expr` is **not** measured here … and is slice 3's first check."*
+> ⛔ The design decision is STILL not taken. What changed is that the first check is answered, and
+> one of the two facts slice 2 rested it on turns out not to be a fact about this grammar at all.
+>
+> Dry-run bank (re-runnable, self-checking, 9 cases):
+> `docs/tasks/artifacts/engine_universal_services/guard_dry_run/probe.sh` →
+> `GUARD-DRY-RUN: 9/9 as declared`.
+
+###### THE INSTRUMENT, AND WHY IT IS THE REAL PLANNER RATHER THAN A MODEL OF IT
+
+`--report-indirect-lr-plan --indirect-lr-plan-guard-dry-run` admits the guard-feasible candidates
+into the **shipped** elimination driver, on a CLONE of the grammar, and reports what it did:
+
+```text
+--- GUARD DRY-RUN: which guard-feasible candidates actually reach a PLAN ---
+    inputs: annotations=present rules_with_branch_return_annotations=1069
+    would_absorb=2 would_refuse=0 clone_rules=24 left_recursive_rule_rows 28 -> 0
+    ✅ would absorb 'casting_type'
+    ✅ would absorb 'property_expr'
+```
+
+⭐ **A second implementation of the plan stage would have been the wrong instrument** — it would
+drift from the driver it predicts, and the question is precisely *"what does the driver do?"*. So
+the admission policy became a parameter (`CandidateAdmission`) and nothing else moved:
+`eliminate_indirect_left_recursion` delegates with `StarvationSafe` and is otherwise the same
+function. The three refusal sources downstream of the starvation check — a hop with no declared
+return annotation, the trial re-lint, the ambiguity comparison — are all **independent of whether a
+guard is emitted**, which is what makes a guardless dry run a sound predictor for them.
+
+###### ⭐⭐ THE ANSWER TO THE LEAF'S FIRST CHECK — AND IT IS YES
+
+**`property_expr` composes.** `would_refuse=0` on the shipped grammar: the SVA property knot reaches
+a plan, so `.15`'s re-adjudication (its acceptance (a) gains a third and cheapest design) **stands**,
+and the doubt slice 2 recorded against it is discharged.
+
+⭐⭐ **And the payoff figure is larger than the leaf assumed.** `left_recursive_rule_rows 28 -> 0`,
+re-derived from the rewritten clone by the same `detect_left_recursion` the lint runs — never
+inferred as *"before minus absorbed"*. **Two** rewrites clear all **28** surviving rows, because both
+are at DOMINATORS: the 16 guard-feasible candidates are not 16 rewrites, they are 16 rules on two
+knots. The price is **24 clone rules**.
+
+###### ⛔⛔ THE FACT SLICE 2 REASONED FROM WAS A FACT ABOUT A DIFFERENT GRAMMAR
+
+Slice 2 left `property_expr`'s composability open *because the wrapper refuses it* — *"hop
+`property_expr_sv_2017` alternative 5 declares no return annotation"*. The dry run reproduces that
+refusal exactly, and then measures why:
+
+| grammar | would_absorb | would_refuse | rules with branch return annotations |
+|---|---|---|---|
+| `systemverilog` | **2** | **0** | **1069** |
+| `systemverilog_lrm_profiled_wrapper` | 0 | **13** | **21** |
+| `ebnf` | 0 | 0 | 143 |
+
+**All 13 wrapper refusals are `declares no return annotation`.** The wrapper is a 33-line file over
+`systemverilog_lrm_profiled_generated.ebnf` — 148 KB **generated from the LRM Annex A markdown**,
+carrying one `->` line in total; the 21 annotated rules are the wrapper's own entrypoints. ⇒ **the
+two grammars are not annotation-comparable, and no composability conclusion may be transferred
+between them in either direction.** The wrapper remains a good oracle for *structure* (it is the raw
+transcription `.15` uses to prove the shipped cascade is scar tissue) and is worthless for
+*annotation* questions. ⛔ That distinction did not exist in the leaf before this slice, and slice 2
+crossed it without noticing.
+
+⭐ **This is also why the instrument prints its own INPUT.** `compose_route_template` returns
+*"nothing to compose"* when a grammar declares no annotations at all, so `would_refuse=0` has two
+readings — the chain composes, or there was nothing to compose. The `inputs:` line separates them,
+and probe cases D4/D6 pin both sides. Without it this slice's headline would have been unfalsifiable
+by construction.
+
+###### ⛔⛔ WHAT `28 → 0` DOES NOT MEAN — the qualifier is concrete, not ceremonial
+
+The dry run **emits no guard**. The grammar it builds is therefore the one `.13` slice 5 measured as
+a REGRESSION, and the clearest possible demonstration is that the driver's first pick is
+`casting_type` — the exact rule `TOOLBOX.md` §5.5 warns about: *"the rule the lint names FIRST is a
+measured regression to eliminate at: rewriting SV's `casting_type` turns the accepted `int'(3)` into
+a rejection"* (probe P2). ⇒ `28 → 0` is **plan-stage reachability**, not closure. Stacked with slice
+2's exactness result (0 of 157 sites exact), what is now established is:
+
+1. a guard is **expressible and sound** at both knots (slice 2), and
+2. the plan the guard would unlock is **buildable and AST-composable** at both knots (this slice),
+3. while the guard's *effectiveness* — that a trivia-aware structural lookahead refuses exactly the
+   fatal iteration on real SystemVerilog text — is **still unmeasured**, and is slice 4's burden.
+
+⭐ **One routing observation for slice 4, measured rather than assumed.** The driver picked
+`casting_type` (guard `max_hops=0`) over `constant_primary` (`max_hops=1`), i.e. the cheaper guard
+site — but it did so on the existing `acyclic_alternative_indices` tiebreak (`casting_type` seeds=4,
+`cast` seeds=0), **not** because it consulted the census: the ordering does not read the guard
+verdict at all. Slice 4 must decide whether to make it guard-aware; on this grammar the coincidence
+is favourable, which is exactly the condition under which such a coupling ships unnoticed.
+
+###### Acceptance Checklist (enforced) — `.17` slice 3
+
+- [x] **REPRODUCE / ISSUE** — the leaf's first check was unanswerable from any shipped tool, and the
+  reason is structural: `plan_elimination` is only ever reached from `survey.safe_candidates()`, so
+  every refusal downstream of the starvation check is unobservable for a STARVED candidate.
+  Reproduced as the absence it is — HEAD's report on `systemverilog.ebnf` prints
+  `indirect_refusals=0` next to `starvation-safe candidates: 0/28`, i.e. **no refusal data exists
+  for any of the 28 rows**, and `property_expr` is one of them.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `indirect_lr_elimination.rs::eliminate_indirect_left_recursion`,
+  the loop's admission filter. WHY the leaf could not answer its own question: the starvation check
+  is a **gate**, not a score, so a candidate it refuses never reaches `compose_route_template`
+  (`:645`), the trial re-lint (`:243`) or the ambiguity comparison (`:483`). ⭐ And the WHY behind
+  the wrapper/shipped split is measured, not inferred: `branch_return_annotations` is **1069** on
+  `systemverilog.ebnf` against **21** on the wrapper, whose body is LRM-generated and carries a
+  single `->` line in 148 KB.
+- [x] **FIX** — fix-hierarchy tier = **new tooling / instrument** (no grammar, codegen or
+  generated-artifact byte moves; no shipped verdict changes). `CandidateAdmission` +
+  `dry_run_guard_feasible_elimination` + `GuardDryRun` in `indirect_lr_elimination.rs`,
+  `IndirectChainSurvey::guard_admissible_candidates` in `indirect_lr_plan.rs`, and an **opt-in**
+  `--indirect-lr-plan-guard-dry-run` section on the report.
+  ⛔ Deliberately NOT done: `is_starvation_safe` is unchanged, the admission widening is reachable
+  only from the report flag, and it works on a clone. The shipped pass is byte-for-byte the same
+  function it was, with its admission set passed in rather than hard-coded.
+- [x] **ADDRESSED (verified)** — the three answers above, plus the bank:
+  `bash docs/tasks/artifacts/engine_universal_services/guard_dry_run/probe.sh` →
+  `GUARD-DRY-RUN: 9/9 as declared`, rc 0. Ground truth in BOTH directions: D4/D6 pin the
+  instrument's own INPUT (so `would_refuse=0` can never be read out of "no annotations"), D8 pins
+  that the default report is unchanged, and a deliberately flipped expectation exits rc 1 naming the
+  case (`D1 … => 2/0 ⛔ want 0/16` → `GUARD-DRY-RUN: MISMATCH`), with the script restored to a
+  byte-identical hash afterwards.
+  ⛔ **The bank caught a defect in its own first draft, which is the point of declaring the
+  expectation first.** D5b grepped the WHOLE wrapper report for `declares no return annotation` and
+  counted **16** — the dry run's 13 plus the 3 `⛔ REFUSED` lines the real pass already prints for
+  the candidates it admits today. Two different populations summed into one plausible-looking
+  number; it is now scoped to `would still REFUSE`.
+- [x] **NO REGRESSION** — ⭐ **primary argument is BY CONSTRUCTION, with the measurement as
+  confirmation.** The shipped entry point delegates with `CandidateAdmission::StarvationSafe`, whose
+  admission set is the same `survey.safe_candidates()` call the loop made before; the only other
+  behavioural branch is `narrates()`, which is `true` on that path. Nothing else in the driver, the
+  planner or codegen can see the change.
+  The measurement agrees, in two independent cuts, captured by running HEAD's binary against the
+  rebuilt one over the same three grammars with `PGEN_INDIRECT_LR_DUMP_ALL=1`. ⭐ The BEFORE binary
+  was copied aside *before* the first rebuild and then **verified to be HEAD** rather than assumed —
+  it rejects the new flag (`error: unexpected argument '--indirect-lr-plan-guard-dry-run' found`),
+  which no post-slice binary does. (It lived under `rust/target/`, i.e. untracked and reproducible by
+  rebuilding at HEAD; it is not carried as an artifact.)
+  **(i) stdout — the whole default report:** `systemverilog` **0** differing lines,
+  `systemverilog_lrm_profiled_wrapper` **0**, `ebnf` **0**.
+  **(ii) stderr — what the pass NARRATED:** **0**, **0**, **0**. That is the direct evidence that
+  gating the two `eprintln!`s did not move the shipped path, and it is a separate stream from the
+  report precisely so it cannot be confused with it.
+  `cargo test --features "generated_parsers ebnf_dual_run" --lib indirect_lr` → **21 passed / 0
+  failed** (was 19; two new).
+  ⭐ **RED-proven TWICE, each probe isolating one property.** (a) Pointing the dry run at
+  `CandidateAdmission::StarvationSafe` → **20 passed / 1 failed**, naming
+  `the_guard_dry_run_reaches_what_the_shipped_pass_refuses_without_touching_the_grammar` with its
+  stated reason (*"an empty outcome here means it saw the same empty admission set the shipped pass
+  does"*). (b) Collapsing `guard_admissible_candidates` to `is_starvation_safe` alone → **19 passed /
+  2 failed**, adding `the_guard_admission_set_is_the_safe_one_plus_the_guard_feasible_one`. Restored
+  to 21/0 after each.
+  ⛔ **One assertion in the new driver test is deliberately NOT counted as evidence, and says so in
+  its own doc comment.** `dry_run_guard_feasible_elimination` takes `&HashMap` / `&[String]` /
+  `&Annotations`, so the three "did not mutate the caller's grammar" checks are already guaranteed by
+  the type system and cannot fail while that signature holds. They are a tripwire against a future
+  refactor that widens those borrows — at which point the safety argument moves out of the compiler
+  and into those three lines. A test that can only pass is documentation
+  ([[a-check-whose-inputs-all-pass-has-not-been-tested]]); labelling it beats counting it.
+  **Confirmatory sweep** (the repository's established scope — `.13` slice 4b's): `cargo test
+  --features "generated_parsers ebnf_dual_run" --lib -- --skip deep_nesting` → **1 101 passed / 1
+  failed / 28 ignored** in 623.56s. The count is slice 2's **1 099** plus exactly this slice's two
+  new tests. The single failure is
+  `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`, **pre-existing and
+  owned by `LANG-CAPABILITY-AUDIT.10.15`** — confirmed by NAME *and* by its verbatim assertion
+  string (`expected semantic_annotation fallback to detect '@' directives`, panicking at
+  `ast_based_generator.rs:14841`) against the symptom that leaf records at
+  `docs/tasks/LANG-CAPABILITY-AUDIT.md:2917`, not by assuming a familiar-looking red.
+  `make -C rust clippy_on_rust_change` → **pass** (`clippy_source_all_targets` ok,
+  `clippy_generated_all_targets` ok, `Generated-parser clippy stage: pass`, correctness
+  roster-integrity 68/68). ⛔ That run was piped through `tail`, i.e. the exact exit-code-masking
+  trap `CI-PARITY-GATE-ROT.25` owns, so the verdict is read from the target's OWN terminal lines
+  (`✅ clippy_on_rust_change completed.`) rather than from the guard's reported exit.
+  ⛔ Every build and test run went through `scripts/run_with_memory_guard.sh --budget-mb 16384`.
+  ⛔ No scratch-slot obligation is acquired: the dry run works on a clone and writes nothing.
+- [x] **LOCKSTEP** — `TOOLBOX.md` §5.5 (the new flag, its output line and its two qualifiers); the
+  book's grammar-wellformedness chapter; `.15` below (its open doubt, discharged); the new probe
+  bank's README; `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`,
+  `docs/reference/RUST_CODEBASE_ANALYSIS.md`. No user-visible parser behaviour changed, so no
+  contract or schema edit is owed.
+
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
@@ -3098,6 +3281,17 @@ guard on the sheared clone). `property_expr_sv_2017` / `_sv_2023` are guard-feas
    encodes SVA operator PRECEDENCE; absorbing at the dominator must be shown to preserve it, and
    `.13` slice 5's own history is the warning — the version that improved every counter was a
    REGRESSION only a CONTROL row caught.
+
+⭐⭐ **(i) IS NOW MEASURED AND DISCHARGED (`.17` slice 3, 2026-08-13 session #227).** The guard
+census, run through the REAL planner on the shipped grammar
+(`--report-indirect-lr-plan --indirect-lr-plan-guard-dry-run`), absorbs `property_expr` with
+`would_refuse=0`: **the chain's AST composes at this base rule.** ⛔ And the wrapper refusal quoted
+above was never evidence about it — every one of that grammar's 13 dry-run refusals is *"declares no
+return annotation"*, because its body is LRM-generated and carries **21** annotated rules against
+`systemverilog.ebnf`'s **1069**. The two views are structurally comparable and NOT
+annotation-comparable. ⇒ option 3 is not merely the cheapest on paper; it is the one whose plan the
+engine can actually build today. **(ii) stands, unmeasured** — precedence preservation is still owed,
+and remains the reason this leaf is not closable from a census alone.
 
 ⇒ this leaf stays `todo` and stays BEHIND `.17`, but its scope is now *"price three designs"*, not
 *"build a precedence service"*. Sequencing unchanged.

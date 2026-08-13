@@ -105,6 +105,17 @@ struct Args {
     #[arg(long, value_name = "FILE", requires = "report_indirect_lr_plan")]
     indirect_lr_plan_json: Option<String>,
 
+    /// ENGINE-UNIVERSAL-SERVICES.17 slice 3: run the REAL elimination driver on a CLONE of the
+    /// grammar with the guard-feasible candidates admitted, and report what it would absorb and
+    /// what it would still refuse. Answers "of the N rules `guard-feasible candidates:` counts, how
+    /// many actually reach a plan?" — the refusals downstream of the starvation check (a hop with
+    /// no declared return annotation, the trial re-lint, the ambiguity comparison) are all
+    /// independent of whether a guard is emitted, so a guardless dry run predicts them soundly.
+    /// ⛔ It emits NO guard, so the grammar it builds is the measured-regressing one; nothing here
+    /// is a claim that the rewrite PARSES, and nothing here reaches the shipped grammar.
+    #[arg(long, requires = "report_indirect_lr_plan")]
+    indirect_lr_plan_guard_dry_run: bool,
+
     /// ENGINE-UNIVERSAL-SERVICES.13 (TOOLBOX §1.5 as a CLI): parse this INPUT FILE against the
     /// loaded grammar using the grammar-AST INTERPRETER
     /// (`parse_harness_interpreter::interpret_parse_gen_ast`) and print one `INTERPRET-PARSE:`
@@ -1122,7 +1133,11 @@ fn pipeline_main() -> Result<()> {
             unfiltered_grammar,
             args.grammar_profile.as_deref(),
         )?;
-        return run_indirect_lr_plan_report(&grammar, args.indirect_lr_plan_json.as_deref());
+        return run_indirect_lr_plan_report(
+            &grammar,
+            args.indirect_lr_plan_json.as_deref(),
+            args.indirect_lr_plan_guard_dry_run,
+        );
     }
 
     // ENGINE-UNIVERSAL-SERVICES.13: the grammar-AST INTERPRETER as a CLI verdict. Runs on the
@@ -4559,7 +4574,11 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
 ///
 /// Read-only and always rc 0: a surviving cycle is a `.13` worklist row, not a lint failure, and
 /// the verdict on it belongs to the leaf's per-cycle adjudication table.
-fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>) -> Result<()> {
+fn run_indirect_lr_plan_report(
+    grammar: &LoadedGrammar,
+    json_path: Option<&str>,
+    guard_dry_run: bool,
+) -> Result<()> {
     use pgen::ast_pipeline::indirect_lr_plan::{render_elements_display, survey_indirect_left_recursion};
     use std::collections::BTreeMap;
 
@@ -4777,6 +4796,70 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
         }
     }
 
+    // ENGINE-UNIVERSAL-SERVICES.17 slice 3 — the guard census, run through the REAL planner.
+    // ⛔ Opt-in, because it is the one part of this report that is not pure analysis of the loaded
+    // grammar: it applies plans to a CLONE. Nothing it builds is returned, generated or persisted.
+    let dry_run = if guard_dry_run {
+        let dry = pgen::ast_pipeline::indirect_lr_elimination::dry_run_guard_feasible_elimination(
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            grammar.annotations.as_ref(),
+        );
+        let outcome = &dry.outcome;
+        println!();
+        println!("--- GUARD DRY-RUN: which guard-feasible candidates actually reach a PLAN ---");
+        // ⛔ Both halves of this qualifier are load-bearing. The dry run admits candidates the
+        // shipped criterion refuses and emits NO guard for them, so the grammar it builds is the
+        // one `.13` slice 5 measured as a REGRESSION. What survives that limitation is the
+        // plan-stage verdict, which no guard would change.
+        println!(
+            "    ⛔ measures PLAN-STAGE refusals only (annotation composability, the trial re-lint, \
+             the ambiguity check) — it emits no guard and is NOT a claim that the rewrite parses"
+        );
+        // ⛔ THE INSTRUMENT STATES ITS OWN INPUT. `compose_route_template` returns "nothing to
+        // compose" when the grammar declares no annotations AT ALL, so an unannotated grammar
+        // produces `would_refuse=0` for a reason that has nothing to do with the chain being
+        // composable. Printing the annotation census next to the verdict is what makes the two
+        // readings distinguishable without a second tool.
+        println!(
+            "    inputs: annotations={} rules_with_branch_return_annotations={}",
+            if grammar.annotations.is_some() {
+                "present"
+            } else {
+                "ABSENT — every 'would absorb' below is vacuous"
+            },
+            grammar
+                .annotations
+                .as_ref()
+                .map(|annotations| annotations.branch_return_annotations.len())
+                .unwrap_or(0)
+        );
+        // ⛔ `cycle_rows_after` is re-derived from the rewritten clone by the same
+        // `detect_left_recursion` the lint runs — NOT inferred as "before minus absorbed". One
+        // rewrite at a DOMINATOR clears every rule on its knot, so the two numbers are unrelated
+        // and the difference is the whole point of measuring rather than counting.
+        println!(
+            "    would_absorb={} would_refuse={} clone_rules={} left_recursive_rule_rows {} -> {}",
+            outcome.eliminated_base_rules.len(),
+            outcome.refusals.len(),
+            outcome.synthesized_clone_rules.len(),
+            dry.cycle_rows_before,
+            dry.cycle_rows_after
+        );
+        for rule in &outcome.eliminated_base_rules {
+            println!("    ✅ would absorb '{rule}'");
+        }
+        for refusal in &outcome.refusals {
+            println!(
+                "    ⛔ would still REFUSE '{}': {}",
+                refusal.base_rule, refusal.reason
+            );
+        }
+        Some(dry)
+    } else {
+        None
+    };
+
     if let Some(path) = json_path {
         let candidates: Vec<serde_json::Value> = survey
             .candidates
@@ -4825,6 +4908,24 @@ fn run_indirect_lr_plan_report(grammar: &LoadedGrammar, json_path: Option<&str>)
                 .map(|candidate| candidate.base_rule.clone())
                 .collect::<Vec<_>>(),
             "guard_verdict_census": census,
+            // ENGINE-UNIVERSAL-SERVICES.17 slice 3 — absent (not empty) when the dry run did not
+            // run, so a consumer can never read "no refusals" out of "not measured".
+            "guard_dry_run": dry_run.as_ref().map(|dry| serde_json::json!({
+                "annotations_present": grammar.annotations.is_some(),
+                "rules_with_branch_return_annotations": grammar
+                    .annotations
+                    .as_ref()
+                    .map(|annotations| annotations.branch_return_annotations.len())
+                    .unwrap_or(0),
+                "would_absorb": dry.outcome.eliminated_base_rules,
+                "clone_rules": dry.outcome.synthesized_clone_rules,
+                "left_recursive_rule_rows_before": dry.cycle_rows_before,
+                "left_recursive_rule_rows_after": dry.cycle_rows_after,
+                "would_refuse": dry.outcome.refusals.iter().map(|refusal| serde_json::json!({
+                    "base_rule": refusal.base_rule,
+                    "reason": refusal.reason,
+                })).collect::<Vec<_>>(),
+            })),
             "candidates": candidates,
             "declined": survey.declined.iter().map(|declined| serde_json::json!({
                 "rule": declined.rule,

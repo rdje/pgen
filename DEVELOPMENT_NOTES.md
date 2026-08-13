@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0022 — an oracle that crosses a grammar boundary is measuring the wrong grammar
+
+Slice 2 left `property_expr`'s annotation-composability open, and gave a reason: *"the wrapper
+refuses it for a missing return annotation on `property_expr_sv_2017` alternative 5"*. That sentence
+is true, carefully sourced, quoted from a real tool run — and it is not evidence about the grammar
+PGEN ships. `systemverilog_lrm_profiled_wrapper` is a 33-line file over a 148 KB body **generated
+from the LRM Annex A markdown**; it declares return annotations on **21** rules, against
+`systemverilog.ebnf`'s **1069**. Every one of its thirteen dry-run refusals is *"declares no return
+annotation"*. It was never going to say anything else.
+
+The failure mode is worth naming precisely, because it is not carelessness. The two grammars ARE a
+matched pair for the question `.15` uses them for — the wrapper is the RAW transcription, so
+comparing its cycle structure against the shipped grammar's is exactly how the hand-written
+precedence cascade was identified as scar tissue. The pair is sound for **structure**. It is
+worthless for **annotation**, and nothing in either grammar, either report or either leaf said so.
+An oracle's reach is a property of what it was built to hold constant, and the moment a question
+changes axis the same pair stops being a pair.
+
+⇒ two durable consequences. The dry-run report prints its own `inputs:` annotation census next to
+its verdict, so `would_refuse=0` can never again be read out of *"there was nothing to compose"* —
+`compose_route_template` returns early on an unannotated grammar, which means the vacuous pass and
+the real pass print the identical number. And the leaf now records the axis explicitly: the two SV
+views are comparable in structure and NOT in annotation.
+
+⭐ The instrument that found it is the one worth reusing. The question — *"of the guard-feasible
+candidates, how many actually reach a plan?"* — could have been answered by re-implementing the plan
+stage's checks in the report. That would have been a second planner, drifting from the one it
+predicts, and it would have reproduced slice 2's error rather than exposing it. Parameterising the
+driver's admission set instead (`CandidateAdmission`) keeps exactly one planner in the tree and makes
+the dry run's answer the driver's answer by construction. The cost was one enum and two gated
+`eprintln!`s; the shipped path's stderr is byte-identical on all three grammars, which is the direct
+evidence that the gating changed nothing.
+
+⛔ And the honest limit is now recorded next to the headline rather than below it. `28 -> 0` is what
+the PLANNER would do; the dry run emits no guard, and its first pick is `casting_type` — the rule
+probe P2 measured turning `int'(3)` from accept into reject when it is eliminated unguarded. A
+number that large invites being quoted without its qualifier, so the qualifier is in the same output
+line, in the book, in the bank's header and in `TOOLBOX.md`.
+
 ## 2026-08-13 - PGEN-ENGINE-UNIVERSAL-SERVICES-0021 — a structural criterion cannot tell a hazard from a shape that merely looks like one
 
 `--report-indirect-lr-plan` decided starvation the cheapest way that is never WRONG: any holder with

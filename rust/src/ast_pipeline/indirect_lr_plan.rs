@@ -578,6 +578,19 @@ impl IndirectChainSurvey {
             .collect()
     }
 
+    /// `.17` slice 3 — the candidates a driver would consider **if** the guard existed: the
+    /// starvation-safe ones it considers today, plus the guard-feasible ones it refuses.
+    ///
+    /// ⛔ Reported/dry-run only. The shipped driver admits [`Self::safe_candidates`] and nothing
+    /// else; this set exists so option (iii)'s downstream refusals can be measured through the real
+    /// planner instead of predicted by a second copy of it.
+    pub fn guard_admissible_candidates(&self) -> Vec<&IndirectChainCandidate> {
+        self.candidates
+            .iter()
+            .filter(|candidate| candidate.is_starvation_safe() || candidate.is_guard_feasible())
+            .collect()
+    }
+
     /// Every surviving starvation site of every candidate, bucketed by guard verdict — the census
     /// itself, in `rule_order`.
     pub fn guard_verdict_census(&self) -> BTreeMap<&'static str, usize> {
@@ -1391,6 +1404,60 @@ mod tests {
         // stays reachable, because `prim` still names it and `scratch := prim` still names `prim`.
         assert!(site.on_route);
         assert!(site.survives_rewrite);
+    }
+
+    /// ⭐ `.17` slice 3 — the two admission sets a driver can be handed, on one grammar, so the
+    /// difference between them is a MEASUREMENT rather than a claim about the shipped policy.
+    ///
+    /// ⛔ RED-provable against the defect that matters: if `guard_admissible_candidates` were to
+    /// forward to `safe_candidates` (or to filter on `is_guard_feasible` alone, dropping the safe
+    /// ones), one of the two assertions below fails by name. The gap `{ct}` is exactly what
+    /// option (iii) would buy on this knot, and `ct` is the rule the P2 probe measured regressing
+    /// when it is eliminated WITHOUT a guard — which is why the wider set is dry-run-only.
+    #[test]
+    fn the_guard_admission_set_is_the_safe_one_plus_the_guard_feasible_one() {
+        let (grammar, order) = knot_a();
+        let survey = survey_indirect_left_recursion(&grammar, &order);
+
+        let names = |candidates: Vec<&IndirectChainCandidate>| -> Vec<String> {
+            candidates
+                .into_iter()
+                .map(|candidate| candidate.base_rule.clone())
+                .collect()
+        };
+        let safe = names(survey.safe_candidates());
+        let admissible = names(survey.guard_admissible_candidates());
+
+        // ⛔ The claim is the DIFFERENCE between the two sets, not either set's membership — a
+        // pasted list would re-encode whatever the code does and assert nothing about it. `ct` is
+        // the rule the P2 probe measured regressing when it is eliminated WITHOUT a guard, and it
+        // is exactly what option (iii) would buy on this knot.
+        assert!(
+            !safe.contains(&"ct".to_string()),
+            "the SHIPPED policy must refuse the starved candidate; it admitted {safe:?}"
+        );
+        let gained: Vec<&String> = admissible.iter().filter(|name| !safe.contains(name)).collect();
+        assert_eq!(
+            gained,
+            vec!["ct"],
+            "the dry-run policy must add exactly the guard-feasible candidate the shipped one \
+             refuses (safe={safe:?}, admissible={admissible:?})"
+        );
+        assert!(
+            safe.iter().all(|name| admissible.contains(name)),
+            "and it must KEEP every safe candidate — a set that dropped them would measure a \
+             different question (safe={safe:?}, admissible={admissible:?})"
+        );
+
+        // The two properties that make `ct` the gained one, stated so the test fails for a named
+        // reason if the census verdict ever moves rather than the admission logic.
+        let ct = survey
+            .candidates
+            .iter()
+            .find(|candidate| candidate.base_rule == "ct")
+            .expect("ct is a candidate");
+        assert!(!ct.is_starvation_safe());
+        assert!(ct.is_guard_feasible());
     }
 
     /// ⛔⛔ **THE TRANSITIVE HALF OF THE STARVATION CRITERION — the one slice 5 shipped a regression
