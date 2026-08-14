@@ -3631,6 +3631,158 @@ excuse: the model is complete, so the next slice can decide against it.
   append-only history and keeps the number it was written with, and this leaf's slice-2/3/4 boxes
   are marked in place rather than rewritten.
 
+##### ⭐⭐ `.17` SLICE 6 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0026`, 2026-08-14 session #229) — the CALL-SITE-SCOPED shape is BUILT and MEASURED, and it was the one rung the design had never expressed
+
+> **A tracked probe grammar + bank rows + docs. ZERO grammar bytes under `grammars/` (the scratch
+> slot is driven and restored), ZERO Rust bytes, ZERO codegen bytes, ZERO generated artifacts staged.**
+>
+> Slice 4 decided the guard is call-site scoped and slice 5 completed the model. Neither BUILT the
+> shape. This slice does, so that slice 7's planner has a measured rule-for-rule target instead of a
+> design note — and so the decision itself is falsifiable before any engine byte moves.
+
+###### ⛔⛔ THE HOLE, NAMED — the bank proved the two halves and never the combination
+
+Slice 4's ladder ends in three rungs that do not meet:
+
+| | shape | measured |
+|---|---|---|
+| `g3_trailing_guard` | both lookaheads on the SHARED rule `prim` | closes all six starvation inputs |
+| `g4_trailing_guard_needs_a_clone` | `g3` + a second, residual-FREE holder of `prim` | ⛔ `e7` (`k = n;`) **REJECTS** |
+| `g5_trailing_guard_clone_control` | `g4` minus the trailing guard | `e7` accepts ⇒ `g4`'s REJECT is the guard, not the shape |
+
+⇒ the decision that followed — *"both belong on a clone reached only from the holder"* — was the
+**only** shape with `g3`'s power and without `g4`'s damage, and **nothing in this tree had ever run
+it.** A design whose deciding artifact does not exist is a design believed, not measured; that is
+this leaf's own recurring failure mode ([[a-check-whose-inputs-all-pass-has-not-been-tested]],
+[[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]]) applied one level up, to
+the *set* of rungs rather than to one rung's inputs.
+
+###### THE SHAPE — `g7_guarded_clone_chain.ebnf`, and it is `g4` with ONE difference
+
+```text
+                     g4 (guard on the shared rule)          g7 (guard on a clone chain)
+holder               outer_cast := ct …                     outer_cast := ct_guard …
+transparent hop      ct   := kw | prim                      ct   := kw | prim          ← untouched
+                                                            ct_guard := kw | prim_guard
+the loop             prim := … &( … ) … &( … )              prim := prim_base ( prim_suffix )*   ← untouched
+                                                            prim_guard := prim_base ( prim_suffix &( R ) )* &( R )
+```
+
+Same two holders, same seven inputs; the only change is WHERE the two lookaheads live. The chain's
+length is exactly the census's `guard_hops` (here `1`) — one guarded clone per transparent hop plus
+the guarded base — and only the holder's LEFT CORNER is repointed, so every other element and
+therefore every `$N` position in its annotation is preserved.
+
+⭐ **The fallback is the mechanism, and it is why the guard must sit INSIDE a choice rather than at
+the holder's own call.** On `e5` (`k = t'(n);`) the seed `cast_seed` matches `t'(n)` entire, the
+trailing guard refuses it, and `prim_guard` FAILS — at which point `ct_guard`'s other alternative
+`kw` wins with the short match `t` and `outer_cast` gets its `'(n)` back. A guard that made
+`outer_cast` itself fail would have had nothing to fall back to.
+
+###### ⭐⭐ RESULT — it does both, on both oracles
+
+`GUARD-EFFECTIVENESS: 44/44 as declared`, rc 0, **zero `DIVERGE`**:
+
+| input | `g4` | `g7` |
+|---|---|---|
+| `e1`–`e6` (the six starvation shapes) | `e1` ✅ (others not run — see below) | **all six ACCEPT** |
+| `e7` `k = n;` (the residual-FREE holder) | ⛔ **REJECT** | ⭐⭐ **ACCEPT** |
+
+⇒ one grammar with `g3`'s power and without `g4`'s damage. The decision slice 4 recorded is now a
+measured shape rather than an inference, and slice 7's planner has a rule-for-rule target.
+
+⛔ **`g7` runs all seven inputs where `g4`/`g5` run two, and the asymmetry is deliberate.** `g4`/`g5`
+are restricted to `e1`/`e7` because their second alternative absorbs `e2`–`e6` on its own, so those
+rows would pass under both hypotheses. `g7` has no such shortcut on `e2`–`e6`: those inputs contain
+the cast, which only reaches a parse through `outer_cast` — the guarded chain — so every row
+discriminates.
+
+###### ⛔ TWO STALE CLAIMS IN THE BANK'S OWN DOCUMENTATION, found while extending it
+
+Neither changes a verdict; both are the class `.17` slice 4b and slice 5 keep finding — a prose
+number or pointer that nothing derives, left behind when the artifact around it grew.
+
+- **`probe.sh`'s header said *"19 cases must ACCEPT and 18 must REJECT"*.** The 37-row bank it
+  described was **21/16**; both numbers were wrong, and the script never reads them (it compares row
+  by row). Now stated as what a count of the `CASES` table returns: **28/16** over 44 rows.
+- **`README.md` said *"Routed to leaf `.19`"*, and no such leaf exists.** Slice 4's decision (d)
+  explicitly REFUSED to route the seed starvation out. The line predates that decision and was never
+  swept. ⭐ The same README names **`constant_primary`** as the base carrying the `constant_cast`
+  clone — which slice 5 measured as correct, and which the leaf's slice-4 prose had transposed onto
+  `casting_type`. The bank's README was right where the leaf was wrong.
+- `README.md`'s ladder table also documented only `g0`/`g1`/`g2`, four rungs behind the bank slice 4
+  itself shipped. Now complete.
+
+###### WHAT SLICE 7 INHERITS — the planner's obligations, read off `g7`
+
+1. **Reconstruct the transparent CHAIN, not just its depth.** `rules_transparent_to` returns a depth
+   map (`indirect_lr_plan.rs:1292`); the planner needs the actual rule path from the holder's
+   referenced rule down to the base, because each hop becomes one guarded clone.
+2. **Copy the non-chain alternatives verbatim** — `ct_guard := kw | prim_guard` keeps `kw`, and that
+   copy is what the tournament falls back to. A clone that dropped it would close nothing.
+3. **One chain per distinct residual**, which is exactly what `guard_variants` already counts.
+4. **Emit which positions each site needs**, from slice 5's two verdicts: the loop guard where
+   `guard=guardable`, the trailing guard where `seed=trailing_guard_required`. `casting_type` needs
+   only the first; `constant_primary` and `property_expr` need both.
+5. **The trailing lookahead appends**, so `$N` positions are unaffected: a lookahead emits
+   `ParseContent::Sequence(Vec::new())` (`ast_based_generator.rs:4155`) and `original_body_length`
+   only BOUNDS the template's valid `$N` range (`lr_chain_fold.rs:317-321`) — it is not an index.
+   Verified by reading both, not assumed.
+
+###### Acceptance Checklist (enforced) — `.17` slice 6
+
+- [x] **REPRODUCE / ISSUE** — the decision's own shape had never been executed. Reproduced as the
+  gap between two rungs that both exist: `g3_trailing_guard e5` ACCEPTs (the guard works) while
+  `g4_trailing_guard_needs_a_clone e7` REJECTs (the same guard breaks a residual-free holder), and
+  no grammar in the bank did both. Every claim that the clone chain resolves that tension was, until
+  this slice, an argument.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the shared-rule form breaks: the trailing `&( residual )`
+  is a property of the CALL SITE, not of the rule, so a holder that wants the whole run of `prim`
+  with no residual after it is refused by a guard it never asked for (`g4` vs `g5`, one difference).
+  WHY the clone chain fixes it: the guard is reachable only through `outer_cast → ct_guard →
+  prim_guard`, and the second holder still reaches the untouched `prim`. WHERE the fallback comes
+  from: the guarded clone of the transparent hop keeps its OTHER alternative, so when
+  `prim_guard` fails the `ct_guard` tournament still has `kw` — the same single-winner tournament
+  (`ast_based_generator.rs:5037`) that [[project_pgen_gives_back_at_neither_combinator]] describes,
+  used here as the recovery path rather than fought.
+- [x] **FIX** — fix-hierarchy tier = **a tracked probe grammar + bank rows + documentation**. No
+  engine, grammar, codegen or generated-artifact byte moves; no shipped verdict changes.
+  `g7_guarded_clone_chain.ebnf` + 7 rows, plus the two stale-claim corrections above.
+  ⛔ Deliberately NOT done: the planner is not written, `is_starvation_safe` is untouched, and no
+  guard is emitted by anything. That is slice 7, and it now has a target.
+- [x] **ADDRESSED (verified)** — `bash docs/tasks/artifacts/engine_universal_services/guard_effectiveness/probe.sh`
+  → **`GUARD-EFFECTIVENESS: 44/44 as declared`**, rc 0 read from an UNPIPED run under the memory
+  guard (`exit=0 peak_tree_rss=12687MB elapsed=866s`), **every row on BOTH oracles with zero
+  DIVERGE**. The seven new rows are `g7 e1`–`e7`, all ACCEPT on GEN and INTERP alike — including
+  `e7`, the row `g4` REJECTs three lines above it in the same run, which is what makes the pair a
+  measurement rather than two separate observations.
+  ⭐ The bank was ALSO run `--interp-only` first as a cheap pre-check; that arm can never carry the
+  claim on its own (`.13` slice 3's recorded lesson) and is recorded here only as sequence, not as
+  evidence.
+- [x] **NO REGRESSION** — the 37 pre-existing rows are unchanged and all still pass, so nothing this
+  slice added moved an earlier verdict.
+  ⛔ **The scratch-slot obligation was ACQUIRED and is verified discharged, not trusted** (`.13`
+  slice 4b's class): `grammars/scratch/scratch.ebnf` hashes to
+  `a8caa53d5a0d038dd8670d9d5383f457e8bcafc724bf3a22494127afd94d9273`, its pre-run value, and
+  `git status --porcelain grammars/scratch/` is empty. The two gates that read the slot as a matched
+  pair were re-run by EXACT name with per-test lines shown, not a summary:
+  `parse_harness_equivalence::gate::certified_grammars_are_byte_identical` → `test result: ok.
+  1 passed; 0 failed` (22.93s), and
+  `parser_registry::tests::scratch_slot_parses_the_blessed_fixture_to_the_known_verdict_and_ast` →
+  `ok`, inside `parser_registry::tests` **42 passed / 0 failed**.
+  No `rust/src/` or `grammars/` byte moved, so no generated parser can differ.
+- [x] **LOCKSTEP** — the bank's `probe.sh` header + `README.md` (ladder table completed, counts
+  re-derived, the `.19` pointer corrected); `TOOLBOX.md` §5.5; the book's grammar-wellformedness
+  chapter; `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`. No user-visible
+  parser behaviour changed, so no contract or schema edit is owed.
+  ⛔ `promotion: declined (a third card would COLLIDE with two already in the retrievable layer, making the map worse at the one job it has)`
+  — the slice-6 lesson is the LADDER-LEVEL restatement of
+  [[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]] (a rung whose output
+  cannot separate two explanations) and of
+  [[a-report-scraper-must-anchor-on-structure-not-on-a-substring]] (the prose-count half). Its
+  `answers:` keys would overlap both, and retrieval degrades when two cards answer one question.
+  Recorded in full in the slice-6 record above and in `DEVELOPMENT_NOTES.md` instead.
+
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it

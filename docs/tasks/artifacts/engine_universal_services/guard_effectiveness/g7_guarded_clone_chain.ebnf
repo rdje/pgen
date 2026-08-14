@@ -1,0 +1,84 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 6 — G7: the CALL-SITE-SCOPED shape, which no artifact in this
+# tree had ever expressed.
+#
+# ⛔⛔ WHY THIS RUNG WAS MISSING, AND WHY THAT MATTERED. Slice 4 proved two things and left the
+# combination unbuilt:
+#
+#   G3  the two guard positions close all six starvation shapes   — but the guard is on the SHARED rule
+#   G4  a residual-FREE holder of that shared rule then BREAKS    — `k = n;` REJECTs
+#   G5  removing the trailing guard un-breaks it                  — so G4's REJECT is the guard, not the shape
+#
+# ⇒ the decision was *"the guard is call-site scoped, so it lands on a clone reached only from the
+# holder"* — a shape with G3's power and without G4's damage. Nothing measured it. This file is that
+# shape, and it is the rule-for-rule TARGET the planner must synthesize (`.17` slice 7).
+#
+# THE ONE-DIFFERENCE PAIR IS G4 ↔ G7. Identical holders, identical inputs; the only change is WHERE
+# the two lookaheads live:
+#
+#   G4   outer_cast := ct …                 ct := kw | prim     prim := … &( … )   ← on the shared rule
+#   G7   outer_cast := ct_guard …           ct := kw | prim     prim := …          ← untouched
+#                                           ct_guard := kw | prim_guard
+#                                                               prim_guard := … &( … )
+#
+# THE CLONE CHAIN, and its length is exactly the census's `guard_hops`. The holder does not name the
+# base rule — it names `ct`, which is TRANSPARENT to `prim` — so pushing one lookahead down to the
+# `*` costs one guarded clone per transparent hop plus the guarded base itself. Here `guard_hops = 1`
+# ⇒ `ct_guard` + `prim_guard`.
+#
+# ⭐ THE FALLBACK IS THE WHOLE MECHANISM, and it is why the guard must sit INSIDE a choice rather
+# than at the holder's own call. On `k = t'(n);` the seed `cast_seed` matches `t'(n)` entire, the
+# trailing guard refuses it, and `prim_guard` FAILS — at which point `ct_guard`'s other alternative
+# `kw` wins with the short match `t`, and `outer_cast` gets its `'(n)` back. A guard that made
+# `outer_cast` itself fail would have nothing to fall back to.
+#
+# ⛔ WHAT THIS FILE MUST DO: accept e1–e6 (the guarded chain closes every starvation G3 closed) AND
+# e7 (`k = n;`, the residual-free holder, which G4 REJECTS). A single grammar doing both is the
+# design's whole claim. If e7 ever REJECTs here, the clone chain is not actually isolating the two
+# call sites and `.17`'s decision is wrong.
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim:
+#   cp <this file> grammars/scratch/scratch.ebnf && make -C rust SHELL=/bin/bash focus_scratch
+@entry: true
+scratch := kw_k eq outer_cast semi
+         | kw_k eq prim semi
+
+# ---- the residual-BEARING holder, redirected to the guarded chain. This is the only edit a
+# transformation would make to an existing rule: the left corner is repointed, every other element
+# (and therefore every `$N` position in its annotation) is preserved.
+outer_cast := ct_guard tick lparen lit rparen
+
+# ---- the ORIGINALS, untouched. `scratch`'s second alternative reaches `prim` through them and must
+# keep the unguarded behaviour — that is the whole point of cloning instead of editing in place.
+ct := kw | prim
+prim := prim_base ( prim_suffix )*
+
+# ---- the GUARDED CLONE CHAIN, reachable only from `outer_cast`.
+# `ct_guard` is `ct` with its transparent arm repointed; its OTHER alternative is copied verbatim,
+# and that copy is what the tournament falls back to when the guard refuses the seed.
+ct_guard := kw | prim_guard
+prim_guard := prim_base ( prim_suffix &( tick lparen lit rparen ) )* &( tick lparen lit rparen )
+
+# ---- shared by both chains: the seed set and the iterated suffix are NOT cloned, because neither
+# carries a guard. Only the rules on the path from the holder down to the `*` are.
+prim_base := lit | cast_seed
+cast_seed := kw tick lparen lit rparen
+prim_suffix := tick lparen lit rparen
+
+# ---- the token tier. Every token begins with `trivia`, exactly as `grammars/systemverilog.ebnf`
+# writes `tick := trivia "'"` (:7151), `lparen := trivia "("` (:7105), `rparen := trivia ")"` (:7130).
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+# ---- the layout tier, copied in shape from `grammars/systemverilog.ebnf:618-624`. NULLABLE, and it
+# leads every token — which is precisely why `/` is in the FIRST set of every token and why a
+# byte-set guard over FIRST(residual) cannot be exact anywhere on SystemVerilog.
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

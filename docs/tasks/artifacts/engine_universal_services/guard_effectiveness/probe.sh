@@ -13,6 +13,16 @@
 #   G3  prim := prim_base ( prim_suffix &( … ) )* &( … )               BOTH          — the shape slice 4 adopts
 #   G4  G3 plus a second, residual-free holder of `prim`               — the guard must be CALL-SITE scoped
 #   G5  G4 with the trailing guard removed                             — G4's one-difference control
+#   G7  G4's holders, guard moved onto a CLONE CHAIN                   — ⭐ `.17` slice 6: the shape the
+#                                                                        decision actually specifies
+#
+# ⭐⭐ G4 ↔ G7 is slice 6's pair, and it closes the hole slice 4 left. G3 has the power and G4 shows
+# the damage; NOTHING in this bank had ever expressed the combination the decision names — the guard
+# on a clone reached only from the residual-bearing holder. G7 is that shape: same two holders, same
+# seven inputs, and the only difference is WHERE the two lookaheads live. It must accept all six
+# starvation rows AND `e7`, the row G4 rejects. It is also the rule-for-rule TARGET the eliminator's
+# guard planner has to synthesize (`.17` slice 7), so a later planner can be checked against a
+# measured grammar instead of against a design note.
 #
 # ⭐⭐ G2 vs G6 is the slice's second finding: the two guard POSITIONS close DISJOINT starvations.
 # Per-iteration stops the LOOP at the right count and cannot touch an over-long SEED (e5, where the
@@ -28,10 +38,14 @@
 #   C3  slice 1's Q2, as a rule                   on "abc"  must ACCEPT — reproduced, and shown non-discriminating
 #
 # ⭐ GROUND TRUTH (`feedback_instrument_needs_ground_truth`). Every case DECLARES its verdict below
-# and the script compares against it, so the bank is self-checking in BOTH directions: 19 cases must
-# ACCEPT and 18 must REJECT, and any disagreement is a non-zero exit naming the case. ⛔ Do NOT
-# adjust an expectation to match a new measurement — `.17`'s design rests on these exact rows, and
-# a bank that edits its own expectations is a bank that cannot notice it broke.
+# and the script compares against it, so the bank is self-checking in BOTH directions: of the 44
+# rows, **28 must ACCEPT and 16 must REJECT**, and any disagreement is a non-zero exit naming the
+# case. ⛔ Do NOT adjust an expectation to match a new measurement — `.17`'s design rests on these
+# exact rows, and a bank that edits its own expectations is a bank that cannot notice it broke.
+# ⛔ This line read "19 … and 18" until `.17` slice 6, and BOTH numbers were wrong for the 37-row
+# bank it described (it was 21/16). Nothing depended on them — the script compares row by row and
+# never reads a total — but a prose count nothing derives is a claim that rots silently, which is
+# why these are now stated as what a count of the CASES table returns.
 #
 # ⛔ G4 and G5 are run on `e1` and `e7` ONLY, and that is deliberate. Their second alternative
 # (`kw_k eq prim semi`) absorbs `e2`–`e6` on its own, so those rows would pass under BOTH hypotheses
@@ -143,6 +157,14 @@ CASES=(
   "g5_trailing_guard_clone_control  e1  ACCEPT  G4's one-difference control"
   "g5_trailing_guard_clone_control  e7  ACCEPT  and it parses what G4 refused ⇒ G4's REJECT is the guard, not the shape"
 
+  "g7_guarded_clone_chain  e1  ACCEPT  ⭐⭐ the CALL-SITE-SCOPED shape: the guarded chain closes the loop starvation"
+  "g7_guarded_clone_chain  e2  ACCEPT  and does not over-refuse the chain"
+  "g7_guarded_clone_chain  e3  ACCEPT  and the comment does not slip it"
+  "g7_guarded_clone_chain  e4  ACCEPT  and a comment mid-chain is absorbed"
+  "g7_guarded_clone_chain  e5  ACCEPT  and the SEED starvation closes — the clone's own choice falls back to kw"
+  "g7_guarded_clone_chain  e6  ACCEPT  seeded chain closes"
+  "g7_guarded_clone_chain  e7  ACCEPT  ⭐⭐ AND the residual-FREE holder is UNHARMED — the row G4 REJECTS"
+
   "c1_choice_never_gives_back  abc  REJECT ⛔⛔ refutes slice 1 FINDING 1 — the choice does NOT give back"
   "c2_ordered_control          abc  ACCEPT  C1's one-difference control: the parse EXISTS, the engine refused to reach it"
   "c3_slice1_q2_reproduced     abc  ACCEPT  slice 1's Q2 verdict, and it is consistent with NO give-back"
@@ -218,7 +240,8 @@ total=${#CASES[@]}
 if [[ $fail -eq 0 ]]; then
   echo "GUARD-EFFECTIVENESS: $total/$total as declared — the byte guard slips on trivia (E3), the two"
   echo "  guard POSITIONS close disjoint starvations (G2 vs G6), only BOTH close all six (G3), the"
-  echo "  guard is call-site scoped (G4 vs G5), and the choice never gives back (C1 vs C2)."
+  echo "  guard is call-site scoped (G4 vs G5), a CLONE CHAIN gets both (G7), and the choice never"
+  echo "  gives back (C1 vs C2)."
 else
   echo "GUARD-EFFECTIVENESS: MISMATCH — a row disagrees with the verdict .17 slice 4 recorded." >&2
   echo "  Do NOT adjust the expectations to match; the leaf's decision rests on them." >&2

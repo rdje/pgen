@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0026 — a ladder can prove both halves of a decision and never the decision
+
+`.17` slice 4 built a seven-rung one-difference ladder, ran every rung on two oracles, declared each
+verdict up front, proved the bank falsifiable, and got 37/37. From it the leaf concluded that the
+guard must live on a clone reached only from the residual-bearing holder. Every input to that
+conclusion was measured. The conclusion itself was not: `g3` measured the guard on the SHARED rule
+(all six starvations close) and `g4` measured the damage that causes (a residual-free holder rejects
+`k = n;`), and **no rung ever expressed the combination** — the guard on a clone, which is what the
+decision actually says.
+
+⇒ **the unit that needs a control is not only the rung, it is the SET of rungs.** Ask of a finished
+ladder: *which rung is the decision?* If the answer is "none — it follows from these two", the
+decision is an inference standing on measurements, and the cheapest thing in the world is to build
+the one more grammar that makes it a measurement too. Here that grammar (`g7`) was six lines of
+change to `g4` and it accepts both what `g3` accepts and what `g4` rejects.
+
+This is a sibling of the two lessons this leaf already carries and it sits one level up from both:
+`a-check-whose-inputs-all-pass-has-not-been-tested` is about a rung whose inputs never exercise its
+refusing branch, `feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence` is about a
+rung whose output cannot separate two explanations, and this one is about a LADDER whose rungs never
+include the shape being decided.
+
+⛔ Two smaller finds while extending the bank, both the same class as `.17` slice 5's `157/157`: the
+probe's header prose claimed `19 ACCEPT / 18 REJECT` for a bank that was `21/16`, and its README
+pointed at a leaf `.19` that does not exist (slice 4's decision (d) explicitly refused to open one).
+Nothing derives from either — the script compares row by row — which is exactly why both rotted
+unnoticed. A number in prose that no code reads is a claim with no gate behind it; state it as what
+a count of the table returns, or do not state it.
+
+promotion: declined (the transferable rule is the one already promoted as
+`a-report-scraper-must-anchor-on-structure-not-on-a-substring` plus the existing
+`feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence`; this entry is the
+ladder-level restatement recorded on `.17` slice 6, not a third distinct discipline)
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0025 — a pinned `N/N` can be wrong in the flattering direction for a whole slice, and only a NEW report line exposed it
 
 `.17` slice 2 pinned *"every guard byte test on SystemVerilog is over-approximated — 157 of 157"* and

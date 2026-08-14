@@ -2301,6 +2301,29 @@ fewer candidate for the tournament that was going to run anyway.
 expression. Writing the guard onto the rule breaks every caller that wants the whole run — measured,
 not assumed: a residual-free holder of a rule-guarded base rejects `k = n;`.
 
+**4. So what does "on a clone" actually look like?** One guarded clone per *transparent hop* between
+the holder and the base, plus the guarded base itself — the census reports that depth as
+`max_hops` — and only the holder's **left corner** is repointed, so every other element of its body,
+and therefore every `$N` in its annotation, is preserved:
+
+```text
+outer_cast := ct_guard tick lparen lit rparen     # the holder: left corner repointed, nothing else
+ct         := kw | prim                           # the originals stay, untouched…
+prim       := prim_base ( prim_suffix )*          # …so a residual-free caller still gets the whole run
+ct_guard   := kw | prim_guard                     # the guarded chain, reachable only from outer_cast
+prim_guard := prim_base ( prim_suffix &( … ) )* &( … )
+```
+
+⭐ **The fallback is the mechanism, and it is why the guard sits inside a choice rather than at the
+holder's own call.** On `k = t'(n);` the seed matches the whole cast, the trailing guard refuses it,
+and `prim_guard` *fails* — at which point `ct_guard`'s other alternative wins with the short match
+and the holder gets its `'(n)` back. A guard that made `outer_cast` itself fail would have had
+nothing to fall back to. That is the single-winner tournament from result 2 used as the recovery
+path rather than fought.
+
+This shape accepts all six starvation inputs **and** `k = n;` — the input the rule-guarded version
+rejects. One grammar, both properties.
+
 ### Which candidates actually need the trailing guard — the `seed:` line
 
 The two positions cost differently, so the report prices them separately. Beside every candidate's

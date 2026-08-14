@@ -1,4 +1,4 @@
-# `ENGINE-UNIVERSAL-SERVICES.17` slice 4 — the guard EFFECTIVENESS bank
+# `ENGINE-UNIVERSAL-SERVICES.17` slices 4 + 6 — the guard EFFECTIVENESS bank
 
 Owned by `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` leaf `.17`, slice 4.
 
@@ -36,6 +36,19 @@ why no earlier probe could have found E3.
 | `g0_unguarded` | `prim_base ( prim_suffix )*` | the shipped post-rewrite base rule — the control that must starve |
 | `g1_byte_guard` | `prim_base ( prim_suffix &residual_first_byte )*` | slice 2's **cheap** form: a byte drawn from `FIRST(residual) = { ' , / }` |
 | `g2_structural_guard` | `prim_base ( prim_suffix &( tick lparen lit rparen ) )*` | slice 2's **mandated** form: the residual itself, sub-parsed |
+| `g6_trailing_guard_alone` | `prim_base ( prim_suffix )* &( … )` | the TRAILING position alone — `g2`'s exact complement |
+| `g3_trailing_guard` | `prim_base ( prim_suffix &( … ) )* &( … )` | **both** positions — the only rung that closes all six inputs |
+| `g4_trailing_guard_needs_a_clone` | `g3` **plus a second, residual-free holder** | the guard on the SHARED rule ⇒ `e7` (`k = n;`) breaks |
+| `g5_trailing_guard_clone_control` | `g4` with the trailing guard removed | `g4`'s one-difference control — the REJECT is the guard, not the shape |
+| `g7_guarded_clone_chain` | `g4`'s holders, the two lookaheads moved onto a **clone chain** | ⭐ `.17` slice 6 — the shape the decision actually specifies |
+
+⭐⭐ **`g4` ↔ `g7` is the pair that closes the ladder**, and until slice 6 it was missing: `g3` had
+the power, `g4` showed the damage, and nothing expressed the combination the decision names — the
+guard on a clone reached only from the residual-bearing holder. `g7` keeps `ct` and `prim`
+untouched, adds `ct_guard := kw | prim_guard` and the guarded `prim_guard`, and repoints only
+`outer_cast`'s left corner. It accepts all six starvation inputs **and** `e7`, the row `g4` rejects.
+It is also the rule-for-rule TARGET the eliminator's guard planner must synthesize, so that planner
+can be checked against a measured grammar rather than against a design note.
 
 The rule-for-rule mapping onto `grammars/systemverilog.ebnf` is in `g0_unguarded.ebnf`'s header.
 `cast := casting_type tick lparen expression rparen` is the holder; `casting_type := … |
@@ -68,7 +81,15 @@ deleted outright (`prim := prim_base`), so no guard on the `*` can reach it. The
 comes from `prim_base`'s sheared-clone alternative winning the `ct` tournament, and the holder then
 has no residual left. The shipped analogue is exact — `casting_type := simple_type | constant_primary
 | …` (`:1032`) over a `constant_primary` whose post-rewrite base carries the `constant_cast` clone.
-Routed to leaf `.19`.
+
+⛔ **This paragraph said *"Routed to leaf `.19`"* until `.17` slice 6, and no such leaf exists.**
+Slice 4's decision (d) explicitly REFUSED to route the seed starvation out — *"it is not a separate
+defect; it is the same follow restriction at the same call site in a second position, fixed by the
+same clone"* — and this line was written before that decision and never swept.
+⭐ Note also that this paragraph names **`constant_primary`** as the base carrying the clone, and it
+is right: `.17` slice 5 measured `casting_type` at `seed_routes=0/10` (its closers have one
+alternative each, so the shear leaves no clone) against `constant_primary` at `10/10`. The leaf's own
+slice-4 prose transposed the shape onto `casting_type`; this README did not.
 
 **3. ⛔⛔ `[[project_pgen_gives_back_at_the_choice_but_not_at_the_quantifier]]` is REFUTED.** The
 choice does not give back either. Slice 1's Q2 — `( "a" | "ab" ) "c"` on `abc` ⇒ ACCEPT — is
@@ -90,8 +111,11 @@ directions. A single-oracle run here does not under-report, it MISREPORTS.
 
 ## Ground truth, in both directions
 
-8 rows must ACCEPT and 13 must REJECT; every row declares its verdict in `probe.sh`'s `CASES` table
-and the script compares against it. Falsifiability is proven rather than asserted — flipping
+Of the 44 rows, **28 must ACCEPT and 16 must REJECT**; every row declares its verdict in
+`probe.sh`'s `CASES` table and the script compares against it. ⛔ This paragraph said *"8 rows must
+ACCEPT and 13 must REJECT"* until `.17` slice 6 — a count of an earlier, smaller bank that was never
+updated when slice 4 grew it, and wrong for that bank too. Nothing derives from it (the script
+compares row by row), which is exactly why it rotted unnoticed. Falsifiability is proven rather than asserted — flipping
 `g2_structural_guard e3` from `ACCEPT` to `REJECT` exits **rc 1** naming that row
 (`g2_structural_guard e3 … ACCEPT REJECT ⛔` → `GUARD-EFFECTIVENESS: MISMATCH`), and the script was
 restored to a byte-identical hash afterwards.
