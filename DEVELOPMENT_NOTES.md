@@ -1,5 +1,41 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0029 — a defect fixed inside the slice that found it leaves no reproducer, and "signoff-grade" is a property of the pointers as much as the decision
+
+Asked whether three findings had been decided at signoff grade, the honest answer needed an audit
+rather than a yes. Two of the three had a real gap, and in **neither case was the decision wrong** —
+what was wrong was what the decision left pointing at it.
+
+**1. A defect you fix before committing does not exist afterwards.** The instrument defect slice 7
+found (a report built from the plan instead of the artifact) was found and fixed inside one slice, so
+`git log -S` returns nothing for it. That is fine for the code and fatal for the *gate* that was
+routed out to catch its whole class: a gate needs a calibration case, and the calibration case was
+gone. The criterion had already been written asserting a "RED/GREEN pair in git" — a sentence
+composed from the author's memory of the session rather than from `git log`, and false the moment it
+was committed.
+
+⇒ **when a slice finds and fixes an instrument defect, `git diff` the pre-fix state into a tracked
+patch before fixing it.** It costs one command, and it is the difference between a future gate that
+can be calibrated and one that has to be argued about. Now `CI-PARITY-GATE-ROT.29` acceptance (e).
+
+**2. "Signoff-grade" applies to the pointers, not only to the judgement.** All three findings had
+sound decisions. Two still failed the audit — one because a criterion cited a nonexistent artifact,
+one because the frontier named the wrong next slice (a *flip* that would ship a shape nothing had yet
+executed). A third was stated in four narrating surfaces and owned by no obligation, which reads as
+tracked and is not.
+
+⇒ the audit question that actually finds things is not *"was the decision right?"* but **"what does
+the decision leave pointing at it, and is each of those true?"** Three checks, all cheap: does every
+artifact a criterion names EXIST; does the frontier name the step that is actually next; and is every
+finding owned by an acceptance rather than by prose.
+
+⛔ The sharpest instance: the frontier said *"slice 8 = flip the admission"* while the same slice's
+own honest-bound paragraph said the emitted shape had never been executed. **Both sentences were
+written by the same author in the same hour, three screens apart, and only reading them as a pair
+separated them** — which is the identical mechanism as slice 7's own RESULT 5, where a JSON comment
+contradicted a docstring three files away. Proximity in time is not proximity in attention.
+
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0028 — a report about a thing must be computed from that thing, and a price outlives the model it was derived under
 
 Two lessons from the slice that turned `.17`'s decided-and-modelled guard into an emitted one. Both

@@ -2253,6 +2253,21 @@ leaf to rediscover:
 slice 5b**: `p5_transparent_holder.ebnf` is P4 plus an outside holder of the transparent rule, the
 one shape P1–P4 do not have; (c) the flips, including the two OpenTitan corpus rows.
 
+⛔⛔ **(d) NEW (slice 7, 2026-08-14) — NO SLICE MAY SHIP A GUARD WHOSE HOP-CLONE HALF IS UNEXERCISED,
+and today it is.** Every guard chain the SystemVerilog dry run synthesizes has `chain:` of length 1
+(`max_hops=0` at both `casting_type` and `property_expr`), so `X_lr_guard{v}_<hop>` — the rule that
+carries the entire call-site-scoping argument, and the one whose absence turns the repair into
+slice 4's `g4`, which REJECTS `k = n;` — is reached by **no corpus run at all**. Its only coverage is
+two unit tests on synthetics.
+
+⛔ **This is a latent risk and NOT a hypothetical one**: the branching, multi-hop chains DO exist in
+the shipped grammar (`cast` and `constant_cast`, `hops=3` over five cloned rules — slice 7 RESULT 5).
+The driver simply never picks those candidates today. **Any change to the admission or to the
+candidate ORDERING can make them the pick**, at which point an untested emitter path ships. ⇒ the
+slice that flips either one must either exercise a multi-hop chain end-to-end, or measure and state
+that its own picks are still all `max_hops=0` — silence is not an option, because the report already
+tells you (`chain=` per site) and nothing else will.
+
 ⭐ **A DESIGN NOTE THIS LEAF INHERITS, so `.17` does not restart from zero.** The construct is
 genuinely ambiguous under a greedy non-backtracking `*`, and that is provable from the LRM rather
 than from the engine: `casting_type ::= … | constant_primary` means `int'(2)` is a legal *type* for
@@ -4113,7 +4128,16 @@ dry run never emits for it.
   the JSON.
   ⛔ Deliberately NOT done: the admission is unchanged, the candidate ORDERING is unchanged, and no
   generated parser byte moves. Those are the shipped-parser change and they are owed the two-sided
-  repro ratchet plus a corpus re-measure — slice 8.
+  repro ratchet plus a corpus re-measure.
+  ⛔⛔ **AND THE NEXT SLICE IS NOT THAT FLIP — this box's own first draft said it was, and that was
+  wrong.** What this slice emits has **never been executed**: `guard_effectiveness` measured a
+  HAND-WRITTEN `g7`, and slice 7 asserts PGEN's emission matches it in the gen-AST. Nothing has
+  generated a parser from PGEN's own guarded output and run an input through it. Flipping the
+  admission first would ship a shape whose deciding artifact does not exist — which is verbatim the
+  failure slice 6 opened with (*"a design whose deciding artifact does not exist is a design
+  believed, not measured"*), one level further along. ⇒ **slice 8 = the emitted guard PARSES** (an
+  opt-in admission widener that reaches the generation path, then the `g7` inputs run against a
+  parser generated from PGEN's own emission — the ratchet's first leg), **slice 9 = the flip.**
   ⛔ **DECLINES LOUDLY, three ways**, rather than emitting a partial guard: a site whose loop or seed
   verdict BLOCKS refuses the whole plan; a chain member with no bare arm into the chain refuses; and
   a bare arm into the chain whose target the construction order has not reached — a cyclic
@@ -4137,7 +4161,7 @@ dry run never emits for it.
   2. **drop the trailing guard** (ship the loop guard alone — slice 4's decision (c) verbatim) ⇒ the
      same test FAILS at a different line, `left: ["prim_lr_base prim_lr_guard0_suffix*"]` vs
      `right: [… &"'" "(" lit ")"]`;
-  3. **widen the shipped admission** to `guard_admissible_candidates()` — the exact edit slice 8 will
+  3. **widen the shipped admission** to `guard_admissible_candidates()` — the exact edit slice 9 will
      make deliberately ⇒ `the_shipped_admission_synthesizes_no_guard_on_the_same_starved_knot` FAILS
      printing the whole `SynthesizedGuard` it emitted;
   4. **follow only the FIRST transparent arm** in `guard_chain_from` ⇒
@@ -4213,6 +4237,94 @@ dry run never emits for it.
   not prevent this — because the extraction here was CORRECT and the defect was upstream of it. Two
   different questions ("did my grep match the right rows?" vs "was the value ever about the
   artifact?") retrieve on different keys.
+
+##### ⛔ `.17` SLICE 7b (`PGEN-ENGINE-UNIVERSAL-SERVICES-0029`, 2026-08-14 session #230) — asked whether slice 7's three findings were signoff-grade, the audit found TWO were not, and one of them was a claim about a commit that does not exist
+
+> **DOCS + one tracked patch artifact. ZERO grammar bytes, ZERO Rust bytes, ZERO codegen bytes, ZERO
+> generated artifacts.** Prompted by a director check on the three findings slice 7 surfaced, answered
+> by re-auditing rather than by asserting — the same prompt and the same posture as slice 6b, which is
+> the precedent for doing this at all.
+
+**GAP A (the false one) — `CI-PARITY-GATE-ROT.29` acceptance (d) cited a RED/GREEN pair that is NOT
+IN GIT.** Slice 7 wrote: *"the calibration pair is `GuardChain::summary` before and after slice 7 …
+which is a real RED/GREEN pair in git rather than a constructed one."* Measured:
+`git log -S "self.loop_guard, self.trailing_guard" -- rust/src/ast_pipeline/indirect_lr_elimination.rs`
+returns **nothing**. The plan-derived version was found and fixed INSIDE slice 7, so it never reached
+a commit — an implementer following that criterion would have hunted for a diff that does not exist.
+
+⛔ **Fixed by MAKING IT TRUE, not by softening the sentence.** The pre-fix state is reconstructed and
+shipped as a tracked artifact —
+`docs/tasks/artifacts/engine_universal_services/guard_dry_run/plan_derived_summary.patch`, verified
+with `git apply --check` — and the 2×2 is re-measured from it:
+
+| summary source | + emission plant | `guard_dry_run/probe.sh` |
+|---|---|---|
+| plan-derived (the patch) | yes | **`16/16` GREEN** ⛔ reports `[loop+trailing]` for a rule with no trailing lookahead |
+| tree-derived (HEAD) | yes | **`MISMATCH`** ✅ D10 flips by name |
+
+⭐⭐ **And the gap generalizes, which is the more valuable half.** A defect found and fixed within one
+slice leaves **no reproducer behind**: the acceptance box records that it happened, and the artifact a
+future gate would be calibrated against is gone by commit time. Every instance in this family has the
+same hole — `.17` slice 5's `157`, slice 6b's two hand-typed totals, slice 7's plan-derived summary.
+⇒ **`CI-PARITY-GATE-ROT.29` acceptance (e) NEW**: a slice that finds and fixes an instrument defect
+before committing preserves the pre-fix state as a tracked patch, or states why it is not worth
+preserving. One `git diff` before the fix.
+
+**GAP B — the FRONTIER named the wrong next slice, and it SPECIFIES.** Slice 7's own FIX box and the
+tree index both said *"slice 8 = FLIP the admission"*. But what slice 7 emits has **never been
+executed**: `guard_effectiveness` measured a HAND-WRITTEN `g7`, and slice 7 asserts PGEN's emission
+matches it **in the gen-AST**. No parser has ever been generated from PGEN's own guarded output.
+Flipping first would ship a shape whose deciding artifact does not exist — verbatim the failure
+slice 6 opened with, one step further along. ⇒ corrected in the leaf, `docs/TASK_TREE.md` and
+`MEMORY.md`: **slice 8 = the emitted guard PARSES** (the ratchet's first leg), **slice 9 = the flip**.
+
+**GAP C — finding 2 was STATED and OWNED BY NOBODY.** *"The hop-clone half is not corpus-exercised"*
+appeared in the leaf, the bank README, `TOOLBOX.md` and the tree index — as prose, in four places,
+with no obligation anywhere. This repository's rule is that every finding is FIXED and routing decides
+WHEN; a risk with no owner is a note. ⇒ promoted to **`.17` acceptance (d)**: no slice may ship a
+guard whose hop-clone half is unexercised, and the slice that changes the admission or the candidate
+ordering must either exercise a multi-hop chain end-to-end or MEASURE and state that its own picks are
+all still `max_hops=0`.
+
+**FINDING 3's first half was already signoff-grade** — the knowledge card, the map regeneration and
+`.29`'s routing evidence all landed with slice 7 — and finding 1's *decision* was too; what was wrong
+in each case was a downstream pointer, not the judgement. ⇒ **two of three needed work, and neither
+was visible from the decision itself.**
+
+###### Acceptance Checklist (enforced) — `.17` slice 7b
+
+- [x] **REPRODUCE / ISSUE** — `git log -S "self.loop_guard, self.trailing_guard" -- rust/src/ast_pipeline/indirect_lr_elimination.rs`
+  at `eb75df0b` returns EMPTY, against a criterion committed one commit earlier asserting the pair is
+  *"a real RED/GREEN pair in git"*. And `grep -n "slice 8" docs/tasks/ENGINE-UNIVERSAL-SERVICES.md`
+  returned the flip as the next slice, three screens from this leaf's own statement that nothing has
+  parsed the emitted shape.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `docs/tasks/CI-PARITY-GATE-ROT.md` acceptance (d), this
+  leaf's slice-7 FIX box, `docs/TASK_TREE.md` line 99, `MEMORY.md` `next_action`. WHY (A): a defect
+  fixed inside the slice that found it never becomes a commit, so *"before and after"* has only one
+  side in history — and the sentence was written from the author's memory of the session rather than
+  from `git log`. WHY (B): the frontier was written when *"emit"* and *"flip"* looked like the whole
+  remaining ladder; the missing rung — *execute what you emitted* — was named in the same slice's
+  honest-bound paragraph and never propagated to the pointer. WHY (C): a finding stated in four
+  narrating surfaces reads as tracked, and none of the four is an obligation.
+- [x] **FIX** — fix-hierarchy tier = **documentation correctness + a tracked reproducer artifact**.
+  (A) the pre-fix state reconstructed, captured, headed with its measured 2×2 and the exact commands,
+  and `git apply --check`-verified; the criterion rewritten to cite it and to say plainly that the
+  version was never committed. (B) the frontier corrected in all four surfaces, with the reason.
+  (C) `.17` acceptance (d) NEW. (D) the general class routed as `.29` acceptance (e).
+- [x] **ADDRESSED (verified)** — the calibration is re-measured from the TRACKED artifact rather than
+  from memory: `git apply` the patch + the emission plant → `GUARD-DRY-RUN: 16/16 as declared` while
+  `property_expr_lr_guard0` carries no trailing lookahead; restore to `eb75df0b`'s content
+  (`65aa20756662c07e5aa9f6061cce8f904ed68df6a0933490fef810cc66367e6c`) + the SAME plant →
+  `GUARD-DRY-RUN: MISMATCH (16 case(s) checked)`, D10 naming `property_expr_lr_guard0[loop]`. Source
+  restored to that hash, `cargo test --lib indirect_lr` **28 passed / 0 failed**, bank `16/16`, rc 0.
+- [x] **NO REGRESSION** — no `rust/src`, `grammars/` or `generated/` byte differs from `eb75df0b`
+  (hash above, `git status` clean before staging). The only added file is a `.patch` under
+  `docs/tasks/artifacts/`, which nothing executes. ⛔ No regeneration was run and none is owed —
+  stated rather than silent.
+- [x] **LOCKSTEP** — this leaf (acceptance (d) NEW, slice 7's FIX box corrected in place since it
+  SPECIFIES), `docs/tasks/CI-PARITY-GATE-ROT.md` (`.29` (d) corrected + (e) NEW), `docs/TASK_TREE.md`,
+  `MEMORY.md`, `CHANGES.md`. `DEVELOPMENT_NOTES.md` gains the durable lesson;
+  `promotion: declined (it is `.29` acceptance (e)'s own subject, and a card that duplicates an open gate criterion degrades retrieval — `.17` slice 6b's precedent)`.
 
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 

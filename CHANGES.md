@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0029 — asked whether slice 7's three findings were signoff-grade, the audit found TWO were not, and one was a claim about a commit that does not exist (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 7b; DOCS + one tracked patch artifact, ZERO code bytes)
+
+- ⛔⛔ **GAP A: `CI-PARITY-GATE-ROT.29` acceptance (d) cited a RED/GREEN calibration pair that is NOT
+  IN GIT.** `git log -S "self.loop_guard, self.trailing_guard"` returns **nothing** — the plan-derived
+  `GuardChain::summary` was found and fixed INSIDE slice 7, so it never reached a commit, and an
+  implementer following that criterion would have hunted for a diff that does not exist.
+- ⭐ **Fixed by MAKING IT TRUE, not by softening the sentence.** The pre-fix state is reconstructed and
+  shipped as `guard_dry_run/plan_derived_summary.patch` (`git apply --check` verified, header carries
+  the commands), and the 2×2 is re-measured FROM THE ARTIFACT: patch + emission plant →
+  `GUARD-DRY-RUN: 16/16` **green while describing a lookahead the grammar no longer carries**; HEAD +
+  the same plant → `MISMATCH (16 case(s) checked)`.
+- ⭐⭐ **And the gap GENERALIZES — a defect found and fixed within one slice leaves NO reproducer
+  behind.** Every instance in this family has the hole (`.17` slice 5's `157`, slice 6b's two totals,
+  slice 7's summary): the acceptance box records that it happened and the artifact a future gate would
+  be calibrated against is gone by commit time. ⇒ **`CI-PARITY-GATE-ROT.29` acceptance (e) NEW** —
+  preserve the pre-fix state as a tracked patch, or state why it is not worth preserving.
+- ⛔⛔ **GAP B: the FRONTIER named the wrong next slice, and it SPECIFIES.** Slice 7 said *"slice 8 =
+  FLIP the admission"* — but what slice 7 emits has **never been executed**: the effectiveness bank
+  measured a HAND-WRITTEN `g7`, and slice 7 asserts PGEN's emission matches it *in the gen-AST*. No
+  parser has ever been generated from PGEN's own guarded output. Flipping first would ship a shape
+  whose deciding artifact does not exist — verbatim slice 6's opening failure, one step further along.
+  ⇒ **slice 8 = the emitted guard PARSES; slice 9 = the flip**, corrected in the leaf, `TASK_TREE.md`
+  and `MEMORY.md`.
+- ⛔ **GAP C: finding 2 was STATED in four places and OWNED BY NOBODY.** *"The hop-clone half is not
+  corpus-exercised"* was prose in the leaf, the bank README, `TOOLBOX.md` and the tree index, with no
+  obligation anywhere — and this repository's rule is that every finding is FIXED, routing decides
+  WHEN. ⇒ promoted to **`.17` acceptance (d)**: no slice may ship a guard whose hop-clone half is
+  unexercised, and whoever changes the admission or the ordering must exercise a multi-hop chain
+  end-to-end or MEASURE and state that its own picks are still all `max_hops=0`.
+- ⭐ **Finding 3's card and finding 1's DECISION were already signoff-grade.** What was wrong in each
+  case was a downstream POINTER, not the judgement — which is why asserting "yes, they were" would
+  have been true about the decisions and false about the tree.
+- **Verified:** the calibration re-measured from the tracked patch in both directions; source restored
+  to `eb75df0b`'s content hash `65aa2075…`; `cargo test --lib indirect_lr` **28 passed / 0 failed**;
+  `GUARD-DRY-RUN: 16/16`; no `rust/src`, `grammars/` or `generated/` byte differs from `eb75df0b`.
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0028 — the guard PLANNER emits the `g7` shape, and BOTH of the census's prices for it were measured too low (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 7; ENGINE code + report/JSON columns + bank rows, ZERO grammar bytes, generated tree byte-identical)
 
 - ⭐⭐ **PGEN synthesizes the call-site-scoped guarded clone chain.** Slice 6 built the target as a

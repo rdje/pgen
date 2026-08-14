@@ -1,0 +1,95 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 7 — the CALIBRATION PAIR for CI-PARITY-GATE-ROT.29 acceptance (d),
+# as a tracked artifact rather than as a claim about a commit that does not exist.
+#
+# WHAT THIS PATCH REINTRODUCES. `GuardChain::summary` originally built its `positions` string from the
+# PLAN's two booleans (`self.loop_guard` / `self.trailing_guard`) and ran BEFORE `apply_plan`. That is
+# an honest answer to "what did the planner INTEND" and says nothing about what was EMITTED — so the
+# bank rows that pin the emission (D9/D10) could not see a defect in it.
+#
+# WHY IT IS NOT IN GIT HISTORY, AND WHY THAT MATTERED. The defect was found and fixed inside one
+# slice, so it was never committed — which made `.29`'s first draft of acceptance (d) cite a
+# "RED/GREEN pair in git" that a future implementer could not find. Shipping the patch makes the pair
+# real. ⛔ The general lesson is the leaf's own: a defect fixed before commit leaves NO reproducer
+# behind unless one is deliberately preserved, and a gate calibrated against a defect needs the
+# defect.
+#
+# THE 2x2, MEASURED (2026-08-14, session #230). The second column is the plant that DELETES the
+# trailing-lookahead emission in `apply_plan` (`if false && chain.trailing_guard`):
+#
+#   summary source        | + emission plant | guard_dry_run/probe.sh
+#   ----------------------|------------------|---------------------------------------------
+#   plan-derived (THIS)   | yes              | 16/16 GREEN  <- WRONG: reports [loop+trailing]
+#                         |                  |    for a rule whose body has no trailing lookahead
+#   tree-derived (HEAD)   | yes              | MISMATCH     <- RIGHT: D10 flips by name
+#
+# ⇒ a gate for acceptance (d) must be RED with this patch applied and GREEN without it.
+#
+# HOW TO RUN IT (from the repository root; the tree must be clean first):
+#   git apply docs/tasks/artifacts/engine_universal_services/guard_dry_run/plan_derived_summary.patch
+#   (cd rust && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline)
+#   bash docs/tasks/artifacts/engine_universal_services/guard_dry_run/probe.sh     # still 16/16
+#   git checkout -- rust/src/ast_pipeline/indirect_lr_elimination.rs               # ⛔ tree must be clean
+#
+# ⛔ `git checkout --` DISCARDS uncommitted edits to that file — `.17` slice 6b lost work that way.
+# Snapshot the file's CONTENT before applying if your tree is dirty, and compare hashes after.
+#
+# git apply ignores every line above the first `diff --git`, so this header is safe.
+diff --git a/rust/src/ast_pipeline/indirect_lr_elimination.rs b/rust/src/ast_pipeline/indirect_lr_elimination.rs
+index 2a3b94b9..bff122dc 100644
+--- a/rust/src/ast_pipeline/indirect_lr_elimination.rs
++++ b/rust/src/ast_pipeline/indirect_lr_elimination.rs
+@@ -310,20 +310,9 @@ impl GuardChain {
+     /// summary derived from the PLAN cannot detect a defect in the EMISSION, which is the only thing
+     /// it exists to describe. Same posture as [`IndirectEliminationOutcome`]'s own contract: what the
+     /// pass DID, as opposed to a belief about it.
+-    fn summary(&self, base_rule: &str, grammar_tree: &HashMap<String, ASTNode>) -> SynthesizedGuard {
+-        // A guard position is present iff the rule that should carry it ENDS in a lookahead.
+-        let ends_in_lookahead = |rule: &str| -> bool {
+-            matches!(
+-                grammar_tree.get(rule),
+-                Some(ASTNode::Sequence { elements })
+-                    if matches!(elements.last(), Some(ASTNode::Lookahead { positive: true, .. }))
+-            )
+-        };
+-        let trailing = ends_in_lookahead(&self.guarded_base_rule);
+-        let loop_guard = self
+-            .guarded_suffix_rule
+-            .as_deref()
+-            .is_some_and(ends_in_lookahead);
++    fn summary(&self, base_rule: &str) -> SynthesizedGuard {
++        let trailing = self.trailing_guard;
++        let loop_guard = self.loop_guard;
+         SynthesizedGuard {
+             base_rule: base_rule.to_string(),
+             guarded_base_rule: self.guarded_base_rule.clone(),
+@@ -347,11 +336,7 @@ impl GuardChain {
+                 .collect(),
+             // Likewise read back: a name the plan allocated but nothing wrote is not a synthesized
+             // rule.
+-            rules: self
+-                .synthesized_rules()
+-                .into_iter()
+-                .filter(|name| grammar_tree.contains_key(name))
+-                .collect(),
++            rules: self.synthesized_rules(),
+         }
+     }
+ }
+@@ -597,15 +582,12 @@ fn eliminate_indirect_left_recursion_with_admission(
+                 outcome
+                     .synthesized_clone_rules
+                     .extend(plan.clones.iter().map(|clone| clone.name.clone()));
+-                apply_plan(&plan, grammar_tree, rule_order, annotations.as_deref_mut());
+-                // ⛔ AFTER `apply_plan`, deliberately: every field below is read back off the tree
+-                // the pass just wrote, so a defect in the EMISSION shows up in the report instead of
+-                // being narrated over by the plan that intended it.
+                 outcome.synthesized_guards.extend(
+                     plan.guard_chains
+                         .iter()
+-                        .map(|chain| chain.summary(&plan.base_rule, grammar_tree)),
++                        .map(|chain| chain.summary(&plan.base_rule)),
+                 );
++                apply_plan(&plan, grammar_tree, rule_order, annotations.as_deref_mut());
+             }
+             Err(reason) => {
+                 if admission.narrates() {

@@ -3812,9 +3812,24 @@ saying so with evidence is an acceptable outcome; (c) a sweep for DANGLING task-
 (`.19`'s class) across `docs/tasks/**`, which is the same shape as `.28`'s stale-id sweep and should
 share its implementation; **(d) NEW (`.17` slice 7) — the DERIVED-FROM-THE-ARTIFACT half**: a check,
 or a documented refusal with a reason, that a value a bank pins is computed from the thing it names
-rather than from a decision about it. ⛔ The calibration pair is `GuardChain::summary` before and
-after slice 7 — plan-derived (bank green under a planted emission defect) vs tree-derived (bank RED),
-which is a real RED/GREEN pair in git rather than a constructed one.
+rather than from a decision about it. ⛔ The calibration pair is `GuardChain::summary` plan-derived vs
+tree-derived, and it ships as a TRACKED PATCH —
+`docs/tasks/artifacts/engine_universal_services/guard_dry_run/plan_derived_summary.patch` — because
+the defective version was **never committed**. It was found and fixed inside one slice, so
+`git log -S "self.loop_guard, self.trailing_guard"` returns nothing, and this criterion's first draft
+cited a "RED/GREEN pair in git" that no implementer could have found. ⇒ a gate for (d) must be **RED
+with the patch applied and GREEN without it**; the patch header carries the measured 2×2 and the
+exact commands.
+
+⛔⛔ **AND THAT IS A ROUTING FINDING IN ITS OWN RIGHT, one level up from this leaf's other three.** A
+defect found and fixed within a single slice leaves **no reproducer behind** — the acceptance box
+records that it happened, and the artifact that would let a future gate be calibrated against it is
+gone by the time the commit lands. Every earlier instance in this family (`.17` slice 5's `157`,
+slice 6b's two totals, slice 7's plan-derived summary) has the same hole. ⇒ **acceptance (e): when a
+slice finds and fixes an instrument defect before committing, the pre-fix state is preserved as a
+tracked patch or the leaf states why it is not worth preserving.** Cheap — one `git diff` before the
+fix — and it is the difference between a gate that can be calibrated and one that has to be argued
+about.
 
 ⭐ **The durable half is already promoted** —
 [[a-report-scraper-must-anchor-on-structure-not-on-a-substring]] carries the discipline and its
