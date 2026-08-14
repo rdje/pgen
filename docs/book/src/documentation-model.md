@@ -155,6 +155,53 @@ the neutral policy now sits at the repository root as
 [`README_POLICY.md`](../../../README_POLICY.md) beside the other portable standards, with
 this repository's *instance* of it under `docs/reference/`.
 
+#### The layer-A byte cap was raised to 32,768 — and why that is not the anti-pattern
+
+On 2026-08-14 the layer-A byte cap moved **7,168 → 32,768** by director ruling
+(`README-POLICY.8`). The rule one paragraph above still stands, so the distinction matters:
+
+> **A cap is never raised to LAND CONTENT. A cap may be raised to RESTORE HEADROOM, by an
+> explicit reviewed decision, taken while the file is passing.**
+
+`README-POLICY.2` set 7,168 as the post-trim size (5,720 B) plus ~25% headroom. That
+headroom was spent. Measured over layer A's own git history at the time of the ruling:
+
+| what was measured | value |
+|---|---|
+| last 40 layer-A commits — min / median / max bytes | 6,795 / 7,079 / **7,168 = the cap exactly** |
+| commits sitting at ≥ 97% of the cap | **36 of 40** |
+| commits within 68 bytes of the cap | 18 of 40 |
+| headroom remaining at the ruling | **117 bytes** |
+| updates whose net size change alone exceeded 117 bytes | 3 of the last 20 |
+
+The telling one is not any single number, it is `git diff --numstat` over nine consecutive
+commits: **`4 4`** — the same four lines rewritten in place, never grown. The cap had
+stopped bounding the *layer* and started editing the *prose*. Authors were shaving bytes to
+fit rather than deciding what belongs in layer A, which is the opposite of what the cap is
+for, and it is exactly the state this project's own lesson card
+`a-cap-with-no-headroom-is-a-cap-about-to-be-raised` predicts: *"the moment a cap blocks you
+is the worst possible moment to decide policy about it."* The ruling was taken at the calm
+moment that card asks for — layer A was **passing**, not blocked.
+
+⚠️ **The honest structural cost, stated up front.** At 50 lines / 32,768 bytes the byte axis
+permits ~655 B/line, so across the 7–32 KB band the **line cap is the only binding axis**,
+and the two-axis design degrades toward the single-axis form `README-POLICY.2` replaced. The
+byte cap keeps its original job — making the 138,403-byte outcome impossible — but it is no
+longer co-binding at pointer shape.
+
+⭐ **The mitigation is to report the metric that actually predicts failure.** The enforcer
+now prints headroom on every passing run:
+
+```text
+memory-arch: OK (layer A 7051/32768 bytes = 21% of cap, 30/50 lines = 60% of cap)
+```
+
+Layer A sat at ≥ 97% of its byte cap for 36 consecutive commits and **nothing said so**,
+because a passing gate printed the same three characters at 5,720 bytes as at 7,168. This is
+reporting only — it adds no failure path and cannot change a verdict; the caps remain the
+sole gate. What it changes is that "how much room is left?" is now answered on every commit
+instead of only when the gate finally fires.
+
 ## What Belongs In The Book
 
 Anything that an external reader needs in order to genuinely understand or master PGEN should eventually have first-class representation in the book.

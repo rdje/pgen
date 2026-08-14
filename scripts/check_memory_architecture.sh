@@ -26,15 +26,44 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 #   docs/tasks/ (layer B) or docs/decisions/ (layer C), both of which are durable and addressable.
 #   A cap increase requires an explicit reviewed decision recorded in docs/tasks/README-POLICY.md.
 #
-# The values: chosen AFTER the trim (39 lines / 5,720 bytes), leaving deliberately PROPORTIONAL
-# headroom so neither cap is the soft one that absorbs all the growth — 28% on lines, 25% on
-# bytes. The line cap is lowered 60 -> 50 to match the standard this script enforces, which says
-# "≤ ~50 lines" in both MEMORY_ARCHITECTURE.md §6 and MEMORY.md's own header; 60 was looser than
-# the rule it was policing. At 50 lines the byte cap allows ~143 bytes/line — the shape of an
-# actual pointer file — so the two caps bind at the same style of document rather than one
-# shadowing the other.
+# The line cap: chosen AFTER the README-POLICY.2 trim (39 lines / 5,720 bytes) with deliberately
+# proportional headroom (~28%). It is lowered 60 -> 50 to match the standard this script enforces,
+# which says "≤ ~50 lines" in both MEMORY_ARCHITECTURE.md §6 and MEMORY.md's own header; 60 was
+# looser than the rule it was policing.
+#
+# ⭐⭐ THE BYTE CAP IS 32768 BY DIRECTOR RULING (2026-08-14, README-POLICY.8) — NOT to fit content.
+#   README-POLICY.2 set it to 7168 = the post-trim 5,720 B plus ~25% headroom. That headroom is
+#   GONE, and the measurement is unambiguous (`git rev-list` + `git cat-file -s` over layer A's
+#   own history):
+#       last 40 layer-A commits: min 6795  median 7079  mean 7063  max 7168 == THE CAP EXACTLY
+#       36 of those 40 sat at >= 97% of the cap; 18 of 40 came within 68 bytes of it
+#       headroom at the ruling: 117 bytes — and 3 of the last 20 updates changed the file by
+#       more than 117 bytes on net alone
+#   ⇒ the cap had stopped bounding the LAYER and started editing the PROSE: `git diff --numstat`
+#   over nine consecutive commits reports `4 4` — the same four lines rewritten in place, never
+#   grown — i.e. authors were shaving bytes to fit rather than deciding what belongs in layer A.
+#   That is the failure this repository already named for itself in
+#   docs/knowledge/a-cap-with-no-headroom-is-a-cap-about-to-be-raised.md: *"the moment a cap blocks
+#   you is the worst possible moment to decide policy about it."* The ruling was taken at the calm
+#   moment the card asks for — layer A was PASSING, not blocked.
+#
+# ⛔ THE DISCIPLINE IS UNCHANGED, AND THE RAISE IS NOT A LICENCE. Layer A still holds
+#   where-we-are-NOW and nothing else; it is still OVERWRITE-only; anything else still belongs in
+#   docs/tasks/ (layer B) or docs/decisions/ (layer C). The raise buys HEADROOM so the demotion
+#   decision is never made under commit pressure — it does not buy room to accumulate.
+#
+# ⚠️ HONEST STRUCTURAL COST, stated rather than discovered later: at 50 lines / 32768 bytes the
+#   byte axis permits ~655 B/line, so in the 7-32 KB band the LINE cap is the only binding axis and
+#   the two-axis design degrades toward the single-axis form README-POLICY.2 replaced. The byte cap
+#   keeps its original job — making the 138,403-byte outcome impossible — but it is no longer
+#   co-binding at pointer shape. Mitigation, per the card: HEADROOM is now reported on every
+#   passing run (below), so the metric that predicts the next failure is visible on every commit
+#   instead of only when the gate finally fires.
+#
+# ⛔ A cap increase requires an explicit reviewed decision recorded in docs/tasks/README-POLICY.md.
+#   Both changes to this value now have one (.2 introduced it, .8 raised it).
 CAP="${MEMORY_POINTER_LINE_CAP:-50}"
-BYTE_CAP="${MEMORY_POINTER_BYTE_CAP:-7168}"
+BYTE_CAP="${MEMORY_POINTER_BYTE_CAP:-32768}"
 fail=0
 note(){ printf 'memory-arch: %s\n' "$1" >&2; fail=1; }
 
@@ -42,9 +71,16 @@ note(){ printf 'memory-arch: %s\n' "$1" >&2; fail=1; }
 [ -f MEMORY_ARCHITECTURE.md ] || note "MEMORY_ARCHITECTURE.md is missing (the memory system of record)"
 
 # E2.2 — layer A: bounded resume pointer present and within BOTH caps.
+# ⚠️ DISTINCT NAMES, DELIBERATELY. These two values are read again at the very end of the script
+# (the headroom report), so they must survive every loop in between. The obvious short names `n`
+# and `b` do NOT: the layer-C reconcile loop below rebinds `b="$(basename "$f")"`, and a first cut
+# of the report duly tried to divide a decision-record filename by the byte cap — printing a bash
+# arithmetic error on stderr while still exiting 0, i.e. failing in the passing direction.
+layer_a_lines=""; layer_a_bytes=""
 if [ -f MEMORY.md ]; then
-  n=$(wc -l < MEMORY.md | tr -d ' ')
-  b=$(wc -c < MEMORY.md | tr -d ' ')
+  layer_a_lines=$(wc -l < MEMORY.md | tr -d ' ')
+  layer_a_bytes=$(wc -c < MEMORY.md | tr -d ' ')
+  n="$layer_a_lines"; b="$layer_a_bytes"
   [ "$n" -le "$CAP" ] || note "MEMORY.md is $n lines (> cap $CAP) — it is layer A (resume pointer); demote content to docs/tasks/ (B) or docs/decisions/ (C)"
   # The byte cap is what makes the line cap mean something: 60 lines carried 138,403 bytes here.
   [ "$b" -le "$BYTE_CAP" ] || note "MEMORY.md is $b bytes (> cap $BYTE_CAP) — long lines bypass the line cap; demote content to docs/tasks/ (B) or docs/decisions/ (C). Do NOT raise the cap to fit the content."
@@ -175,5 +211,20 @@ else
   done
 fi
 
-if [ "$fail" -eq 0 ]; then echo "memory-arch: OK"; fi
+# ⭐ REPORT HEADROOM, NOT JUST COMPLIANCE (README-POLICY.8, implementing this repository's own
+# lesson card `a-cap-with-no-headroom-is-a-cap-about-to-be-raised`): "a cap answers 'am I
+# compliant?', which is binary and lagging — the question that predicts the next failure is 'how
+# much room is left?'". Layer A sat at >= 97% of its byte cap for 36 of 40 consecutive commits and
+# nothing said so, because a passing gate printed the same three characters at 5,720 bytes as at
+# 7,168. This is REPORTING ONLY — it adds no failure path and cannot change any verdict, which is
+# why it is safe to run on every commit; the caps above remain the sole gate.
+if [ "$fail" -eq 0 ]; then
+  if [ -n "$layer_a_bytes" ] && [ -n "$layer_a_lines" ]; then
+    printf 'memory-arch: OK (layer A %s/%s bytes = %d%% of cap, %s/%s lines = %d%% of cap)\n' \
+      "$layer_a_bytes" "$BYTE_CAP" "$(( layer_a_bytes * 100 / BYTE_CAP ))" \
+      "$layer_a_lines"  "$CAP"      "$(( layer_a_lines * 100 / CAP ))"
+  else
+    echo "memory-arch: OK"
+  fi
+fi
 exit $fail

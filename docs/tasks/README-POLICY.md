@@ -396,6 +396,14 @@ Set **after** the trim, per the policy (*"Choose them after a deliberate review 
 | lines (`MEMORY_POINTER_LINE_CAP`) | 60 | **50** | 39 | ~28% |
 | bytes (`MEMORY_POINTER_BYTE_CAP`) | *(none)* | **7168** | 5,720 | ~25% |
 
+⛔ **SUPERSEDED 2026-08-14 — the byte row only.** `7168` is now **32768** by director ruling
+(`.8` below). The ~25 % headroom this table designed in was fully spent: 36 of the following 40
+layer-A commits sat at ≥ 97 % of the cap, one landed on **7 168 exactly**, and `git diff
+--numstat` over nine consecutive commits reported `4 4` — the same four lines rewritten in place,
+never grown. The line row stands unchanged. Read `.8` for the measurement, the
+raise-for-headroom-vs-raise-for-content distinction, and the honest cost (the line cap becomes the
+sole binding axis in the 7–32 KB band).
+
 ⭐ The line cap is **lowered**, not raised: `MEMORY_ARCHITECTURE.md` §6 and `MEMORY.md`'s own
 header both said *"≤ ~50 lines"*, so the enforcer's 60 was looser than the rule it policed.
 At 50 lines the byte cap allows ~143 B/line — the shape of an actual pointer file — so the
@@ -841,6 +849,183 @@ The leaf owes an adjudication, not a presumed fix:
 ⛔ Do **not** default to A because it is smallest: the driver's own founding principle is
 *a check that cannot see must SAY SO, not return green*, and an inference that silently
 mislabels is the same shape one level up. Price B before choosing.
+
+---
+
+### `.8` — the layer-A byte cap had 117 bytes left and had stopped bounding the layer: DIRECTOR-RULED 7168 → 32768 (`done` — `PGEN-README-POLICY-0008`, 2026-08-14 session #234)
+
+**Origin.** Director instruction, 2026-08-14, raised mid-turn: *"If you ever face a MEMORY.md
+size issue just raise that size limit to 32,768 B cap or something your read_file() can slurp in
+one go."*
+
+⛔ **The stated premise was corrected before acting, not after.** The file that had just exceeded
+a read limit was `docs/TASK_TREE.md` (587 KB), **not** `MEMORY.md` — layer A is 30 lines / 7 051 B
+and reads in one go without difficulty. Reporting that plainly was the precondition for treating
+the ruling as informed rather than as a reflex. What the ruling turned out to be right about is an
+**adjacent** fact the director could not have seen and this leaf had to measure.
+
+#### ROOT-CAUSE MEASUREMENT — the cap had stopped bounding the layer and started editing the prose
+
+`scripts/check_memory_architecture.sh:37`, `BYTE_CAP="${MEMORY_POINTER_BYTE_CAP:-7168}"`, set by
+`.2` as the post-trim 5 720 B plus ~25 % headroom. Measured from layer A's own history:
+
+| measurement | value |
+|---|---:|
+| last 40 layer-A commits — min / median / mean / max bytes | 6 795 / 7 079 / 7 063 / **7 168 = the cap exactly** |
+| commits at ≥ 97 % of the byte cap | **36 of 40** |
+| commits within 68 bytes of the cap | 18 of 40 |
+| headroom at the ruling | **117 B** (7 051 of 7 168) |
+| updates whose net size change alone exceeded 117 B | 3 of the last 20 |
+| median net per-commit size change | 40 B |
+| `git diff --numstat HEAD~9 HEAD -- MEMORY.md` | **`4 4`** |
+
+⭐ **The last row is the diagnosis, not the first.** Any single size near the cap is merely
+"tight". `4 4` over nine consecutive commits — the same four lines rewritten in place, the file
+never growing — is authors **shaving bytes to fit** instead of deciding what belongs in layer A.
+That is the cap's purpose inverted: it had stopped bounding the LAYER and started editing the
+PROSE. Same root as the 138 403-byte failure `.2` fixed (*a bound satisfied without binding on the
+thing it is meant to bind*), reached from the opposite direction.
+
+⭐⭐ **This repository predicted it, in writing, and the prediction sat unread** —
+`docs/knowledge/a-cap-with-no-headroom-is-a-cap-about-to-be-raised.md` (2026-08-09): *"the moment
+a cap blocks you is the worst possible moment to decide policy about it"*, with the rule of thumb
+*"a capped file wants to sit at roughly two-thirds full"*. Layer A was at **98 %**, and the card's
+own `reverify:` line (`test "$b" -lt 6100`) had been RED for weeks with nothing running it. The
+card is updated here with what its own prediction cost.
+
+#### The distinction this leaf turns on
+
+> **A cap is never raised to LAND CONTENT. A cap may be raised to RESTORE HEADROOM, by an
+> explicit reviewed decision, taken while the file is PASSING.**
+
+`MEMORY_ARCHITECTURE.md` §6 forbids the first and explicitly permits the second — *"a cap increase
+should require an explicit reviewed decision, recorded in the work-tracking system, that the
+layer-A contract itself changed."* The director's ruling is that decision; this leaf is that
+record. It was taken at the calm moment the card asks for: **layer A was passing, not blocked**.
+Once a cap has actually blocked you the two acts are indistinguishable — which is a reason to
+decide early, never a reason to decide differently.
+
+#### What shipped
+
+1. `scripts/check_memory_architecture.sh` — `BYTE_CAP` 7168 → **32768** (line cap unchanged at
+   50), with the measurement, the ruling and the honest structural cost recorded in-source.
+2. The same enforcer now **reports headroom on every passing run** (see below).
+3. `docs/decisions/feedback_layer_a_byte_cap_is_32768_by_director_ruling.md` + its `INDEX.md` row.
+4. `docs/knowledge/a-cap-with-no-headroom-is-a-cap-about-to-be-raised.md` — the fulfilled
+   prediction, and a `reverify:` that no longer hard-codes the retired cap; `KNOWLEDGE_MAP.md`
+   regenerated (117 facts / 814 question keys).
+5. `docs/book/src/documentation-model.md` — a new *The layer-A byte cap was raised to 32,768*
+   subsection under *Layer A is capped the same way*.
+6. The cap table in `.2` above, annotated forward rather than rewritten.
+
+⚠️ **HONEST STRUCTURAL COST, stated here rather than discovered later.** At 50 lines / 32 768
+bytes the byte axis permits ~655 B/line, so across the 7–32 KB band the **line cap is the only
+binding axis**, and the two-axis design degrades toward the single-axis form `.2` replaced. The
+byte cap keeps its original job — making the 138 403-byte outcome impossible — but it is no longer
+co-binding at pointer shape. This is precisely the card's second warning (*"a two-axis cap binds
+only on its tighter axis — and can silently become one-axis"*), now true by construction rather
+than by drift. ⭐ Mitigation, and the reason it is acceptable: the metric that predicts the
+failure is now printed on every run instead of only when the gate fires.
+
+⭐ **DELIBERATELY NOT CHANGED: the portable standard's default.** `MEMORY_ARCHITECTURE.md` §9's
+reference script keeps `MEMORY_POINTER_BYTE_CAP:-7168`. 32 768 is *this deployment's* reviewed
+budget, earned by a measurement a fresh adopter has not made; exporting the number without the
+measurement would hand every future adopter a cap with no reason attached — the shape `.2` had to
+repair in the standard, restated. A fresh adopter with a freshly-trimmed pointer should start at
+7 168 and raise it the same way this leaf did, if their own history ever justifies it.
+
+#### Acceptance Checklist (enforced by `scripts/check_diagnosis_evidence.sh`)
+
+- [x] **REPRODUCE / ISSUE** — layer A passing at 7 051 of 7 168 bytes (98 %), i.e. **117 bytes of
+  headroom**, while the project's own lesson card prescribes ~2/3 full and its `reverify:`
+  threshold (`< 6100`) had been red for weeks with nothing invoking it.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family; `scripts/check_memory_architecture.sh:37`
+  (`BYTE_CAP=7168`, set by `.2` as 5 720 + ~25 %). Verbatim, and the header comment is the WHERE:
+
+  ```
+  $ for c in $(git rev-list -40 HEAD -- MEMORY.md); do git cat-file -s "$c:MEMORY.md"; done | sort -n
+  n=40 min=6795 max=7168 mean=7063 median=7079  cap=7168
+  commits at >=97% of cap: 36/40
+  commits within 68 B of cap (>=7100): 18/40
+
+  $ git diff --numstat HEAD~9 HEAD -- MEMORY.md
+  4	4	MEMORY.md
+
+  $ per-commit ABSOLUTE byte delta of layer A over its last 20 updates
+  n=20 min=0 median=40 max=264   (headroom today = 117 B)
+  updates whose net size change ALONE exceeds today's headroom: 3/20
+  ```
+
+  ⇒ **WHY**: the designed headroom is spent, so the bound now binds on every ordinary update;
+  **WHERE**: the `4 4` numstat localises the effect to in-place rewriting of the `Current state`
+  block — prose density, not layer content — which is the cap acting as an editor.
+- [x] **FIX** — tier: *declarative* (one enforcer constant + its recorded rationale). `BYTE_CAP`
+  7168 → 32768 per the director ruling; line cap untouched; discipline untouched. No lower tier
+  exists — the value is the policy.
+- [x] **ADDRESSED (verified)** — before→after on the symptom, from the enforcer itself:
+  `memory-arch: OK (layer A 7051/7168 bytes = 98% of cap, …)` → `memory-arch: OK (layer A
+  7051/32768 bytes = 21% of cap, 30/50 lines = 60% of cap)`. Headroom 117 B → 25 717 B. ⭐ Both
+  caps were re-proven RED, so they were raised and not disabled: `MEMORY_POINTER_BYTE_CAP=7000`
+  → rc 1 (`MEMORY.md is 7051 bytes (> cap 7000)`), `MEMORY_POINTER_LINE_CAP=20` → rc 1
+  (`MEMORY.md is 30 lines (> cap 20)`).
+- [x] **NO REGRESSION** — the retired enforcer was **re-executed from `git show HEAD:`** and
+  diffed against the new one at the SAME cap, both directions of the verdict:
+  on the FAILING path (`MEMORY_POINTER_BYTE_CAP=100`) the two are **byte-identical** including
+  `rc`, i.e. **no failure path changed**; on the PASSING path the sole difference is the added
+  headroom annotation. `bash -n scripts/check_memory_architecture.sh` clean. Full driver:
+  `bash scripts/check_doctrines.sh` → **ALL 18 doctrines PASS** (incl. `MEMORY-ARCH`,
+  `KNOWLEDGE-MAP`, `LIVE-DOC-CURRENCY`, `README-STABILITY`), and `knowledge-map:
+  OK (facts valid, ids unique, map in sync)`. No Rust or generated bytes are touched, so the
+  clippy flow is N/A by `COMMIT.md` step 2's own condition.
+  ⛔ **A real defect was caught by this leaf's own verification and fixed before commit**: the
+  first cut of the headroom report reused the short names `n`/`b`, which the layer-C reconcile
+  loop rebinds (`b="$(basename "$f")"`), so the report tried to divide a decision-record filename
+  by the byte cap — printing a bash arithmetic error on stderr **while still exiting 0**, i.e.
+  failing in the passing direction. Renamed to `layer_a_lines`/`layer_a_bytes` with the trap
+  recorded in-source.
+- [x] **LOCKSTEP** — this leaf; `.2`'s cap table annotated forward; `docs/decisions/` record +
+  `INDEX.md` row; the knowledge card + `KNOWLEDGE_MAP.md`; `docs/book/src/documentation-model.md`;
+  `DOCTRINE_ENFORCEMENT.md` §10 `MEMORY-ARCH` row; `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+  `MEMORY.md`, `docs/TASK_TREE.md`. ⛔ **LIVE STATUS REVIEWED AND UNCHANGED**, which `COMMIT.md`
+  requires stating rather than assuming: this change touches no parser, grammar, codegen or
+  generated byte, so `done_bar_family_register_v0.json` and
+  `docs/book/src/roadmap-and-live-status.md` are deliberately untouched.
+  ⭐ `promotion: PROMOTED` — the existing card
+  [[a-cap-with-no-headroom-is-a-cap-about-to-be-raised]] is updated with its own fulfilled
+  prediction rather than a new near-duplicate card being created.
+
+#### Surfaced by this leaf
+
+- ⛔ **The card's `reverify:` line was RED and nothing ran it.** Knowledge cards carry executable
+  re-verification commands, and no gate executes them — so a card can be measurably false while
+  the `KNOWLEDGE-MAP` doctrine (which checks the map is in sync with its *sources*, never that a
+  card's *claim still holds*) stays green. This is the same shape as `LESSON-RETRIEVAL.4`'s
+  finding one level further out. **Not fixed here; routed to `.9` below.**
+
+---
+
+### `.9` — ROUTED: a knowledge card's `reverify:` command is never executed by any gate (`todo`)
+
+- **Status: `todo`**. Opened 2026-08-14 by `.8`. Reporting/soundness defect in the retrieval
+  layer; **no parser verdict is affected**.
+
+Every card under `docs/knowledge/` may carry a `reverify:` field — a runnable command that
+re-proves the card's central claim. `knowledge-map/scripts/check_knowledge_map.sh` validates that
+cards are well-formed, ids unique, and the derived `KNOWLEDGE_MAP.md` in sync with its sources. It
+does **not** run `reverify:`, and nothing else does either.
+
+⚠️ **Does it reproduce outside this family?** (the `ROUTING-EVIDENCE` requirement) — **Yes,
+measured on the instance that triggered it**: `a-cap-with-no-headroom-is-a-cap-about-to-be-raised`
+declared `test "$b" -lt 6100 && echo HEADROOM-OK` and layer A was at 7 051 B, so the card's own
+tripwire had been failing since roughly 2026-08-12 while the doctrine reported green throughout.
+The defect is in the *mechanism*, not in that card: it applies to every card carrying the field.
+⛔ Before designing a fix, **census the population** — how many of the 117 cards declare
+`reverify:`, how many of those commands are still runnable, and how many currently pass. A gate
+that fails on day one across dozens of cards teaches waivers (`GENERATED-LINT-CORRECTNESS.4`'s
+measured lesson), so the adjudication is *report-first, ratchet second*, and the option of
+declaring the field advisory-and-deleting-it must be priced alongside enforcing it — the
+`LIVE-MEANS-LIVE.4a` precedent, where 62 hand-maintained `Last updated:` fields were deleted once
+a derivable fact was shown to dominate them strictly.
 
 ---
 

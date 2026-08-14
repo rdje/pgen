@@ -13,8 +13,8 @@ answers:
 tags: [memory-architecture, caps, continuity, instrument-honesty, layering]
 date: 2026-08-09
 status: current
-evidence: docs/tasks/MEMORY-ARCH.md leaf .6 (7 156 -> 4 961 B of a 7 168 B cap; 12 -> 2 207 B spare; 38 -> 29 of 50 lines); docs/decisions/project_north_star.md + docs/decisions/project_standing_tripwires.md (the two demotion destinations); MEMORY_ARCHITECTURE.md §6 (the 60-line / 138 403-byte measurement that created the second axis); scripts/check_memory_architecture.sh (both caps + the index<->record sync)
-reverify: "b=$(wc -c < MEMORY.md); echo \"$b of ${MEMORY_POINTER_BYTE_CAP:-7168} bytes\"; test \"$b\" -lt 6100 && echo HEADROOM-OK"
+evidence: docs/tasks/MEMORY-ARCH.md leaf .6 (7 156 -> 4 961 B of a 7 168 B cap; 12 -> 2 207 B spare; 38 -> 29 of 50 lines); docs/tasks/README-POLICY.md leaf .8 (the card's own prediction came true — 36 of 40 consecutive commits at >= 97% of cap, max == the cap exactly, 117 B left; director-ruled 7 168 -> 32 768 at the calm moment, with headroom now reported on every run); docs/decisions/project_north_star.md + docs/decisions/project_standing_tripwires.md (the two demotion destinations); MEMORY_ARCHITECTURE.md §6 (the 60-line / 138 403-byte measurement that created the second axis); scripts/check_memory_architecture.sh (both caps + the index<->record sync + the headroom report)
+reverify: "bash scripts/check_memory_architecture.sh   # prints layer-A headroom on BOTH axes; the card's rule of thumb is <= ~2/3 of the tighter axis"
 ---
 
 **A cap answers "am I compliant?", which is binary and lagging. The question that predicts the next
@@ -29,6 +29,24 @@ as a policy"*) is competing with the urge to land finished work.
 ⇒ **Treat headroom as the metric.** A capped file wants to sit at roughly two-thirds full, so that
 ordinary updates never approach the edge and the decision to demote is made calmly, in its own
 change, rather than under commit pressure.
+
+⭐⭐ **This card's prediction came true, and the follow-through is the lesson** (`README-POLICY.8`,
+2026-08-14). The same file spent **36 of its next 40 commits at ≥ 97 % of the byte cap**, touching
+**7 168 = the cap exactly**, with 117 bytes left. The tell was not any single size: `git diff
+--numstat` over nine consecutive commits reports **`4 4`** — the same four lines rewritten in
+place, never grown. **A cap with no headroom stops bounding the layer and starts editing the
+prose**: authors shave bytes to fit instead of deciding what belongs. Two corrections followed,
+and both were needed:
+1. **Raise at the calm moment, not the blocked one.** The ruling was taken while the file was
+   PASSING. *Restoring headroom* by reviewed decision is a different act from *raising a cap to
+   land content*, and only the second is the anti-pattern — but the two are indistinguishable once
+   you are already blocked, which is precisely why the decision must be made early.
+2. **Make the metric visible, or it will happen again.** A passing gate printed the same three
+   characters at 5 720 bytes as at 7 168, so nothing reported 36 commits of hard-against-the-edge.
+   The enforcer now prints headroom on every run (`layer A 7051/32768 bytes = 21% of cap, 30/50
+   lines = 60% of cap`). ⚠️ Raising ONE axis re-opens this card's own second warning: at
+   32 768 B / 50 lines the byte axis permits ~655 B/line, so the line cap became the sole binding
+   axis. Say so when you do it; a slack axis you have named is decoration you are watching.
 
 ⛔ **A two-axis cap binds only on its tighter axis — and can silently become one-axis.** The same
 file had a 50-line cap and a 7 168-byte cap. It was at **38 of 50 lines**: the line cap had no

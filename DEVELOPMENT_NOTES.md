@@ -1,5 +1,63 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-README-POLICY-0008 — a cap with no headroom stops bounding the layer and starts editing the prose
+
+A director instruction ("if you ever face a MEMORY.md size issue, raise the cap to 32,768 B")
+arrived on a premise that was factually wrong — the file that had exceeded a read limit was
+`docs/TASK_TREE.md` at 587 KB, not `MEMORY.md` at 7 051 B. Correcting the premise was cheap and
+necessary. Measuring the *adjacent* question was the actual work, and it changed the verdict from
+"unnecessary" to "overdue".
+
+**1. The tell is not the size, it is the shape of the diff.** Layer A had 117 bytes of headroom and
+had spent 36 of its last 40 commits at ≥ 97 % of cap, with one landing on 7 168 exactly. Any of
+those numbers reads as merely "tight". What settles it:
+
+```text
+$ git diff --numstat HEAD~9 HEAD -- MEMORY.md
+4	4	MEMORY.md
+```
+
+Nine consecutive commits, four lines added, four removed, zero net growth. A file under genuine
+editorial control does not produce that; a file being *squeezed* does. The cap had inverted its own
+purpose — instead of forcing the question "does this belong in layer A?", it was forcing the
+question "which words can I drop?". The median net per-commit change was **40 bytes** against a
+median update that rewrites four whole lines, which is the same fact stated numerically.
+
+**2. Raising a cap for HEADROOM and raising it for CONTENT are different acts, and the only
+reliable discriminator is *when*.** Both look identical at the moment the gate fires: the work is
+done, one line unblocks it. The discriminator is that a headroom raise can be taken while the file
+is still **passing** — which is exactly what this project's own card
+`a-cap-with-no-headroom-is-a-cap-about-to-be-raised` said on 2026-08-09, and exactly the state layer
+A was in. `MEMORY_ARCHITECTURE.md` §6 already encodes the distinction ("an explicit reviewed
+decision recorded in the work-tracking system"); what was missing was anyone noticing the calm
+moment while it lasted.
+
+**3. The card had a runnable tripwire, it was RED, and no gate runs tripwires.** `reverify: test
+"$b" -lt 6100` against a file at 7 051 B. `KNOWLEDGE-MAP` verifies cards are well-formed and the
+derived map is in sync with its sources; it never asks whether a card's claim *still holds*. So the
+retrieval layer can carry a measurably false card indefinitely with the doctrine green — one level
+further out than `LESSON-RETRIEVAL.4`'s finding, and the same shape. Routed to `README-POLICY.9`,
+deliberately **report-first**: census how many of the 117 cards declare `reverify:` and how many
+still pass *before* choosing between enforcing the field and deleting it, because a gate that fails
+across dozens of cards on day one teaches waivers (`GENERATED-LINT-CORRECTNESS.4`), and
+`LIVE-MEANS-LIVE.4a` is the precedent where deleting a hand-maintained field beat enforcing it.
+
+**4. Fixing one axis of a two-axis bound re-opens the bypass the second axis existed to close.** At
+50 lines / 32 768 bytes the byte axis permits ~655 B/line, so the line cap is now the only binding
+axis across the 7–32 KB band. That is the card's own second warning arriving by construction rather
+than by drift, and the right response was not a third bound but **making the metric visible**: the
+enforcer now prints utilisation on both axes on every passing run. Thirty-six commits hard against
+the edge produced no signal because a passing gate printed the same three characters at 5 720 bytes
+as at 7 168. Compliance is binary and lagging; headroom predicts.
+
+**5. The verification found a defect in the fix, and it failed in the passing direction.** The
+report initially reused `n`/`b`, which the layer-C reconcile loop rebinds to a basename — so it
+attempted arithmetic on `reference_sv_external_corpus_and_oracle_repos.md`, printed a bash error on
+stderr, and **still exited 0**. A reporting-only addition had introduced a path that emits an error
+without failing. Renamed to `layer_a_lines`/`layer_a_bytes`; the trap is recorded at the
+declaration, because the next person to add a variable at the top of that script faces the same
+600-line gap between binding and use.
+
 ## 2026-08-14 - PGEN-SV-CORPUS-GRAD-0217 — a delta is a claim about a JOIN, and this one was joined on the wrong column
 
 The leaf arrived with its answer pre-measured: 12 transitions, bar 309 → 303, re-run and promote.
