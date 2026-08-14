@@ -1137,6 +1137,55 @@ case that was never handled. Removed, with the proof recorded at the site.
 
 ---
 
+### `.11` — ROUTED: the layer-B INDEX every agent is routed to is 604 KB with a 76 591-byte line, and NOTHING watches it (`todo`, opened 2026-08-14 session #234)
+
+- **Status: `todo`**. Opened by the director's question *"I hope reading `docs/TASK_TREE.md`
+  doesn't cause any issue"* — which it does. Measured before answering, not after.
+
+`CLAUDE.md` step 5 and `MEMORY_ARCHITECTURE.md` §5 route **every** agent, in every harness, through
+`docs/TASK_TREE.md`. Measured at HEAD:
+
+| surface | bytes | lines | B/line | capped? |
+|---|---:|---:|---:|---|
+| `MEMORY.md` (layer A) | 8 391 | 30 | 280 | ✅ 32768 / 50 |
+| `README.md` | 8 315 | 178 | 47 | ✅ `README-STABILITY` |
+| **`docs/TASK_TREE.md` (layer B index)** | **604 021** | **463** | **1 304** | ❌ **nothing** |
+| *(reference)* `MEMORY.md` at its documented failure | 138 403 | 60 | 2 306 | was line-capped only |
+| *(reference)* `LIVE_ACHIEVEMENT_STATUS.md` at deletion | 1 547 057 | — | — | was unwatched |
+
+⛔ **Longest single line: 76 591 bytes** — four times the 18 816-byte line that
+`MEMORY_ARCHITECTURE.md` §6 cites as the canonical instance of this failure. ⛔ **4.4× larger than
+the 138 KB document** that caused the byte cap to exist at all. ⛔ **+59 819 B (+11 %) over its last
+40 commits**, and `-0008`/`-0009` are two of them — this leaf's own tree is feeding it.
+
+⚠️ **Does it reproduce outside this family?** (`ROUTING-EVIDENCE`) — **it IS the family**: this is
+the third instance of one class, and the first two are already closed in this repo.
+`README-POLICY.1` capped `README.md` after it reached 510 lines / 48 811 B unwatched; `.2` capped
+layer A after 138 403 B unwatched; `LIVE-MEANS-LIVE.2` records
+`LIVE_ACHIEVEMENT_STATUS.md` reaching 1 547 057 B **beside a README capped on two axes**. ⛔ The
+measured tell that nothing guards it: `grep -rln TASK_TREE.md scripts/check_*.sh` returns two
+enforcers, and **both of them size-check a different target** (`check_memory_architecture.sh` sizes
+`MEMORY.md`; `check_readme_stability.sh` sizes `README.md`) — they merely *mention* the index. Same
+shape as `README-POLICY.1`'s finding that the two guards touching `README.md` audited doc *paths*
+and the root file *set*, so it could triple in size with both green.
+
+⛔ **DO NOT DEFAULT TO A CAP.** `README.md` and `MEMORY.md` are bounded because their content has a
+canonical elsewhere to go. The index's content is *per-tree status prose*, whose canonical home is
+**the tree file it summarises** — so the fix is plausibly *derivation*, not *demotion*:
+`MEMORY_ARCHITECTURE.md` §11.7 already prescribes regenerating layer-A state from tree frontiers,
+and the same argument applies one layer down. Price at minimum:
+- **A** — cap it, and demote per-tree narrative into each `docs/tasks/<TREE>.md`.
+- **B** — **derive** the index from each tree's own frontier/status block, making drift impossible
+  and size a consequence rather than a policy (`DERIVED_STATE_CONTAINMENT` R1/R3 reasoning).
+- **C** — split: a bounded ROUTER (tree → file → frontier id) plus an unbounded archive nobody is
+  routed through.
+⛔ And measure the **read** cost, not just the byte count: the operational symptom is that an agent
+cannot load the index in one read, which is what surfaced it. A 604 KB file that every session must
+consult is a per-session tax, so the fix's success metric is *"a fresh agent can resume from it in
+one read"*, not *"it is under N bytes"*.
+
+---
+
 ## Acceptance Criteria (tree)
 
 - [x] The policy is adopted in-repo, not referenced across a volume boundary.
