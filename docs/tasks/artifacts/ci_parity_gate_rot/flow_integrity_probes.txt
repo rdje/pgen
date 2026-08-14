@@ -20,5 +20,10 @@ CI-PARITY-GATE-ROT.8 — FLOW-INTEGRITY probes (each RED replays a real incident
 ✓ RED-13 commented-out driver is not a lane      FAIL
 ✓ RED-14 guard tests summary.txt but reads .json FAIL
 ✓ CTRL-5 the corrected guard form passes         PASS
+✓ RED-15 the pre-fix Makefile (0994c3c0)         FAIL
+✓ RED-16 --debug alone re-added                  FAIL
+✓ CTRL-6 --trace-rules is not --trace            PASS
+✓ CTRL-7 a variable may hold the flags           PASS
+✓ CTRL-8 a comment quoting the flags             PASS
 ------------------------------------------------------------------------------
-arms=19  PASS=19  FAIL=0
+arms=24  PASS=24  FAIL=0

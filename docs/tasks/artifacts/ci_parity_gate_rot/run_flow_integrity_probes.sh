@@ -234,6 +234,51 @@ SH
 arm "CTRL-5 the corrected guard form passes" PASS
 rm -f "$ROOT/rust/scripts/zz_probe_guard_gate.sh"
 
+# ---------------------------------------------------------------- invariant (10), CI-PARITY-GATE-ROT.31
+# ⭐ RED-15 IS THE VERBATIM INCIDENT, REPLAYED FROM THE COMMIT THAT HAD IT — not a hand-written
+# imitation of it. `0994c3c0` is the last commit whose `rust/Makefile` defined
+# `RUST_GENERATOR = … --generate-parser --debug --trace …`; the sha is PINNED rather than symbolic,
+# because `HEAD` silently re-points the moment the fix lands and the arm would then test nothing.
+NOISY_MAKEFILE_SHA="0994c3c0"
+if git -C "$ROOT" cat-file -e "$NOISY_MAKEFILE_SHA:rust/Makefile" 2>/dev/null; then
+  git -C "$ROOT" show "$NOISY_MAKEFILE_SHA:rust/Makefile" > "$ROOT/rust/Makefile"
+  arm "RED-15 the pre-fix Makefile (0994c3c0)" FAIL "on the SHIPPING path"
+  restore
+else
+  fail=$((fail+1))
+  printf '✗ %-46s %s:rust/Makefile is unreachable — the arm tested NOTHING\n' \
+    "RED-15 the pre-fix Makefile" "$NOISY_MAKEFILE_SHA"
+fi
+
+# RED-16 — only ONE of the two flags comes back. `--debug` alone is the shape
+# `RUST_GENERATOR_BOOTSTRAP` actually carried, and it is the half a partial revert restores.
+printf '\nZZ_PROBE_GEN = $(RUST_AST_PIPELINE) --generate-parser --debug -o /dev/null\n' \
+  >> "$ROOT/rust/Makefile"
+arm "RED-16 --debug alone re-added" FAIL "invokes the generator with --debug"
+restore
+
+# CTRL-6 — ⛔ THE FALSE POSITIVE THAT WOULD MAKE INVARIANT (10) UNUSABLE. `--trace-rules` is a
+# LIVE debug tool this repository documents in TOOLBOX.md §2.2; a substring match would condemn it
+# and teach the next author to waive the gate rather than fix anything.
+printf '\nZZ_PROBE_GEN = $(RUST_AST_PIPELINE) --generate-parser --trace-rules foo -o /dev/null\n' \
+  >> "$ROOT/rust/Makefile"
+arm "CTRL-6 --trace-rules is not --trace" PASS
+restore
+
+# CTRL-7 — the OPT-IN shape must stay legal: a variable may HOLD the flags, because the rule is
+# about a shipping INVOCATION, not about the tokens existing. Without this arm the invariant would
+# forbid the very escape hatch the director's ruling requires be kept.
+printf '\nZZ_PROBE_TRACE_FLAGS = --debug --trace\n' >> "$ROOT/rust/Makefile"
+arm "CTRL-7 a variable may hold the flags" PASS
+restore
+
+# CTRL-8 — prose must be untouched. The fix's own comment block quotes the removed flags next to
+# the words "--generate-parser"; a check that fired on its own explanation would be unlandable.
+printf '\n# probe: RUST_GENERATOR used to run --generate-parser --debug --trace here\n' \
+  >> "$ROOT/rust/Makefile"
+arm "CTRL-8 a comment quoting the flags" PASS
+restore
+
 printf '%s\n' "------------------------------------------------------------------------------"
 printf 'arms=%d  PASS=%d  FAIL=%d\n' "$((pass + fail))" "$pass" "$fail"
 [ "$fail" -eq 0 ]

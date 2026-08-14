@@ -40,6 +40,9 @@
 #      doctrine added tomorrow silently got none (`.15`)
 #   9. a guard tests the artifact it READS — 6 sites guarded on summary.txt then jq-read
 #      summary.json, so a mid-run death buried the real cause under a missing-file error (`.14`)
+#  10. the SHIPPING generation recipe is QUIET — it carried `--debug --trace`, so every parser
+#      build asked the generator to narrate itself: 6.89 GB per regeneration, locally and
+#      streamed into the Actions log of the 11 workflows that reach the recipe (`.31`)
 #
 # Usage:
 #   bash scripts/check_flow_integrity.sh            # gate mode
@@ -290,6 +293,46 @@ for gate in sorted(glob.glob("rust/scripts/*.sh") + glob.glob("scripts/*.sh")):
             "    real cause under a missing-file error. Measured 2026-07-29: 6 such sites.\n"
             '    fix:  if [[ ! -s "$X_SUMMARY_TXT" || ! -s "$X_SUMMARY_JSON" ]]; then')
 
+# --------------------------------------------------------------- (10) the shipping recipe is QUIET
+# ⭐ MEASURED, AND BY ACCIDENT (`.31`). `RUST_GENERATOR` was defined as
+# `… --generate-parser --debug --trace --eliminate-left-recursion`, so EVERY `focus_<family>` and
+# every `regenerate_generated_parsers` — the recipe `.4` gave one home, which the composite action
+# and the parity gate both call — asked the generator to narrate itself. One full regeneration
+# emitted **6 894 576 244 B**; the same sequence quiet emits 14 194 408 B, of which all but
+# **4 838 B** is one `ast_pipeline` cargo rebuild both sides paid. On a hosted runner that
+# stream goes into the Actions log of the 11 workflows using the action, and a step whose output is
+# truncated is a step whose failure evidence may not survive — which is this tree's whole subject.
+# ⛔ The flags cannot change an artifact (they reach only `resolve_trace_verbosity`; the
+# `PipelineConfig.debug`/`.trace` fields they set are never read), so this is pure cost — and being
+# free of consequence is exactly what let it sit unnoticed.
+# ⚠️ HONEST BOUND, stated rather than implied: this scans the tracked `Makefile`s — the SHIPPING
+# recipe's only home — and NOT `rust/scripts/*.sh`, where a gate capturing a trace on purpose is
+# legitimate. The rule is line-scoped: a generator INVOCATION may not carry the flags; a variable
+# holding them for an opt-in path, or prose describing them, is untouched.
+GEN_FLAGS = ("--debug", "--trace")
+makefiles = sorted(sh("git ls-files '*Makefile' 'Makefile'").split())
+if not makefiles:
+    print("flow-integrity: the Makefile roster derivation returned NOTHING — a check that inspects\n"
+          "  nothing must refuse, not pass.", file=sys.stderr)
+    sys.exit(1)
+noisy_recipe = False
+for mf in makefiles:
+    for lineno, line in enumerate(read(mf).splitlines(), 1):
+        if line.lstrip().startswith("#") or "--generate-parser" not in line:
+            continue
+        carried = [f for f in GEN_FLAGS
+                   if re.search(rf"(?<![\w-]){re.escape(f)}(?![\w-])", line)]
+        if not carried:
+            continue
+        noisy_recipe = True
+        bad(f"(10) {mf}:{lineno} invokes the generator with {' '.join(carried)} on the SHIPPING path:\n"
+            f"      {line.strip()}\n"
+            "    Those flags are debug affordances. On this path they buy nothing an artifact keeps —\n"
+            "    they set only the trace verbosity — and cost 6.89 GB of log per regeneration, local\n"
+            "    and hosted alike (measured CI-PARITY-GATE-ROT.31; director-ruled 2026-08-14).\n"
+            "    fix:  drop them from the recipe. The trace is still one env var away:\n"
+            "          PGEN_TRACE_VERBOSITY=debug make -C rust SHELL=/bin/bash focus_<family>")
+
 # --------------------------------------------------------------- report / verdict
 if REPORT:
     print("=" * 78)
@@ -308,6 +351,9 @@ if REPORT:
     print(f"  ├─ auto-triggered workflows         : {len(auto_workflows)}")
     print(f"  └─ of those, invoking the driver    : {len(driver_lane)}"
           f"  {'(the whole roster has a lane)' if driver_lane else '⛔ NONE'}")
+    print(f"tracked Makefiles scanned             : {len(makefiles)}")
+    print(f"  └─ generator invocations w/ --debug|--trace : "
+          f"{'⛔ present' if noisy_recipe else '0 (shipping path quiet)'}")
     print("-" * 78)
     if unverified_now:
         print("⚠️  ACCEPTED RISK — these are handed artifacts they do not verify. The ratchet stops")
@@ -326,5 +372,6 @@ print(f"flow-integrity: OK ({len(need)} workflow(s) regenerate, {len(exempt_seen
       f"recipe has one home, PREPARE on, 0 standalone-default hand-offs, 0 requires-a-defect "
       f"assertions, provenance ratchet {len(verifying & consumers)}/{len(consumers)}, "
       f"all {len(enforcers)} doctrines on the automatic lane via the driver, "
-      f"0 guards testing an artifact they do not read)")
+      f"0 guards testing an artifact they do not read, "
+      f"shipping generation recipe quiet across {len(makefiles)} Makefile(s))")
 PYEOF

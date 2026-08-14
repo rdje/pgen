@@ -247,11 +247,35 @@ deletes its export directory on success and keeps it on failure — the evidence
 only interesting when something broke. `PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=1`
 overrides.
 
-**Logs are bounded where the producer is verbose.** The regeneration recipe runs
-the generator with `--debug --trace`; captured in full, one preparation measured
-**7.1 GB**. Harmless on a 3.6 TB volume, fatal on a hosted runner with ~14 GB free.
-The parity gate bounds that capture to its last 4 MiB — `make` stops *at* the
-failing step, so the tail is exactly where the evidence is.
+**Logs are bounded where the producer is verbose — and the loudest producer was
+silenced rather than merely bounded.** The regeneration recipe used to run the
+generator with `--debug --trace`, so one preparation captured in full measured
+**7.1 GB**: harmless on a 3.6 TB volume, fatal on a hosted runner with ~14 GB
+free, and streamed into the Actions log of every workflow that regenerates. A
+step whose output is truncated is a step whose failure evidence may not survive,
+which is the opposite of what a gate flow is for.
+
+Those flags left the shipping path in `CI-PARITY-GATE-ROT.31`. The same sequence
+now emits **14.19 MB**, and all but 4 838 B of that is one `ast_pipeline` cargo
+rebuild — a **485.7×** reduction end to end, with every generated artifact
+byte-identical across the change (33 of 33, against a same-session determinism
+control). `FLOW-INTEGRITY` invariant (10) fails any tracked Makefile line that
+invokes `--generate-parser` while carrying `--debug` or `--trace`, so they cannot
+drift back.
+
+The trace was moved off the default path, not deleted. Any generation target
+takes the engine's existing verbosity knob:
+
+```bash
+PGEN_TRACE_VERBOSITY=debug make -C rust SHELL=/bin/bash focus_systemverilog
+PGEN_TRACE_VERBOSITY=high  make -C rust SHELL=/bin/bash regenerate_generated_parsers
+```
+
+`debug` reproduces exactly what `--debug --trace` used to force (21 955 687 B on
+`focus_json`, against 21 955 519 B measured direct from the old flags); `high`
+reproduces the old bootstrap level. The parity gate still bounds its capture to
+the last 4 MiB — now cheap insurance rather than the thing standing between a
+hosted runner and its disk.
 
 ---
 
@@ -716,7 +740,7 @@ bash scripts/check_flow_integrity.sh --report
 `FLOW-INTEGRITY` is an enforced doctrine, run by `.githooks/pre-commit` on **every
 commit**. It is deliberately cheap — file reads and greps, no cargo, no build, no
 network — because a check nobody minds running is a check that keeps running. It
-enforces nine invariants, each traced to something that actually happened:
+enforces ten invariants, each traced to something that actually happened:
 
 | # | invariant | the incident |
 |---|---|---|
@@ -729,6 +753,7 @@ enforces nine invariants, each traced to something that actually happened:
 | 7 | hand-off provenance coverage only improves | 1 of 23 consumers verify; the list may only shrink |
 | 8 | the doctrine roster keeps an automatic lane **through the driver**; no auto-triggered workflow re-types enforcer names | the one auto-running workflow named 5 of 13, so 8 doctrines had no automatic lane and every one added later inherited none |
 | 9 | a guard tests the artifact it actually **reads** | 6 blocks guarded on `summary.txt` then read `summary.json`; a sub-gate dying mid-run left a 0-byte `summary.txt`, so the guard read false and a 5-hour run ended on a missing-file error four lines below the real cause |
+| 10 | no tracked Makefile line invokes `--generate-parser` carrying `--debug` or `--trace` | the shipping recipe asked the generator to narrate itself: **6.89 GB** per regeneration, local and streamed into the Actions log of the 11 workflows that reach it, for artifacts the flags cannot change |
 
 Two design choices make it hard to defeat:
 

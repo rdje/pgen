@@ -1,0 +1,154 @@
+==============================================================================
+CI-PARITY-GATE-ROT.31 — the SHIPPING generation recipe's LOG VOLUME, before -> after
+2026-08-14, session #233, host: darwin arm64, repo volume /Volumes/SSD (3.3 TB free)
+==============================================================================
+
+Director ruling being implemented (verbatim, 2026-08-14):
+  "remove --debug --trace for CI streams. Because these 2 options are only for debug,
+   tracing purposes. Again, they make sense only during debug runs."
+  "CI are not debug runs, especially if each run dumps 17GB, that's way too much."
+
+------------------------------------------------------------------------------
+0. WHAT WAS RUN, AND WHY IT IS NOT LITERALLY `regenerate_generated_parsers`
+------------------------------------------------------------------------------
+The measured sequence is that target MINUS its first step, `regex_parser_bootstrap`,
+whose unconditional `cargo build --features ebnf_dual_run` downgrades
+`rust/target/debug/ast_pipeline` and makes the documented recipe fail in 15 s on any
+WARM tree. That is `CI-PARITY-GATE-ROT.30`, a separate open leaf, and this leaf does not
+fix it. Everything after that step is invoked exactly as the target invokes it:
+
+    make -C rust SHELL=/bin/bash annotation_parsers
+    for f in json regex systemverilog systemverilog_preprocessor vhdl \
+             rtl_const_expr rtl_frontend; do make -C rust SHELL=/bin/bash focus_$f; done
+
+Each `generated/<f>.json` is `touch`ed first so every generator invocation actually
+fires on a warm tree (the parser rules depend on their JSON; the JSON rules depend on
+the .ebnf, so touching the JSON re-runs codegen without re-running the frontend).
+Harness: `rust/target/ci_parity_rot31/measure_regen.sh` (untracked, on the repo volume),
+run under `scripts/run_with_memory_guard.sh --budget-mb 16384`.
+
+------------------------------------------------------------------------------
+1. THE MEASUREMENT — combined stdout+stderr bytes per step
+------------------------------------------------------------------------------
+step                              BEFORE bytes   BEFORE s   AFTER bytes   AFTER s
+annotation_parsers                     235 038          3         1 325         2
+focus_json                          36 144 907         54    14 189 570        86
+focus_regex                        784 204 308         12           477         6
+focus_systemverilog              5 339 633 557         74           981        32
+focus_systemverilog_preprocessor    88 085 448          1           623         0
+focus_vhdl                         340 290 875          5           470         2
+focus_rtl_const_expr                41 290 216          1           436         1
+focus_rtl_frontend                 264 691 895          4           526         2
+------------------------------------------------------------------------------
+TOTAL                            6 894 576 244        154    14 194 408       131
+
+  6 894 576 244 B = 6.89 GB (6.42 GiB)   ->   14 194 408 B = 14.19 MB (13.54 MiB)
+  ratio 485.7x smaller; wall time 154 s -> 131 s (-14.9%)
+
+⚠️  READ THE `focus_json` ROW HONESTLY — 14 189 570 of the AFTER total's 14 194 408 B
+    are ONE cargo rebuild of `ast_pipeline`, not generator output. Both sides paid it
+    (it is inside the BEFORE row's 36 144 907 too); it lands in `focus_json` only
+    because that is the first `focus_*` target after the annotation pair is rewritten,
+    which makes the binary's own prerequisites newer than the binary. Re-run WARM, with
+    no cargo work to do, `focus_json` emits **366 B**.
+
+  ⇒ netting that one rebuild out of BOTH sides — an estimate, since it was measured
+    directly only on the AFTER side, where it is not buried under trace:
+        6 880 386 674 B  ->  4 838 B      ≈ 1 422 000x smaller
+    The 485.7x headline is the figure that was measured end to end on both sides and is
+    the one to quote; this is what the generator alone stopped emitting.
+
+------------------------------------------------------------------------------
+2. THE ARTIFACTS DID NOT MOVE — 33 of 33 byte-identical
+------------------------------------------------------------------------------
+`shasum -a 256 generated/*.rs generated/*.json` (11 parsers + 22 JSON artifacts),
+compared at three points:
+
+  baseline (HEAD 0994c3c0, untouched tree)          33 files
+  after a BEFORE regeneration (flags still on)      IDENTICAL  <- determinism control
+  after the AFTER regeneration (flags removed)      IDENTICAL
+  after the opt-in re-trace runs of section 4       IDENTICAL
+
+⭐ The determinism control is what makes the second comparison mean anything: without
+   it, "identical" could not be distinguished from a codegen that is simply stable, and
+   "different" could not be distinguished from nondeterminism.
+
+Direct A/B at the generator itself — same `-o` path both times, flags the only
+difference, because the output path IS embedded in the artifact and generating to two
+different paths produces two different files for a reason that has nothing to do with
+this change (that mistake was made once here and is recorded so it is not made again):
+
+  site                                            noisy log     quiet log   artifact
+  ast_pipeline  --generate-parser (json)         21 955 519 B       177 B   identical
+  ast_pipeline  --generate-parser --bootstrap-mode (ebnf.rs seed)
+                                                    280 784 B       171 B   identical
+  ast_pipeline_bootstrap --generate-parser --bootstrap-mode (semantic_annotation)
+                                                    205 807 B       184 B   identical
+
+All THREE sites that carried the flags are covered: `RUST_GENERATOR` (rust/Makefile:93),
+`RUST_GENERATOR_BOOTSTRAP` (:94), and the cold-clone `generated/ebnf.rs` seed (:861) —
+the last of which no `focus_*` target reaches, so it is proved here rather than by the
+sequence above.
+
+------------------------------------------------------------------------------
+3. WHY IT CANNOT AFFECT AN ARTIFACT (the structural half)
+------------------------------------------------------------------------------
+`--debug` / `--trace` reach the pipeline through exactly two paths:
+
+  rust/src/main.rs:936-938  resolve_trace_verbosity(args.verbosity, args.debug, args.trace)
+                            -> set_global_trace_verbosity(...)   [gates the pgen_trace! macros]
+  rust/src/main.rs:1097-98  config.debug / config.trace
+
+and the second is dead:
+
+  $ grep -rn 'config\.debug\|config\.trace[^_]' rust/src/
+  rust/src/main.rs:1097:    config.debug = args.debug || trace_verbosity >= TraceVerbosity::High;
+  rust/src/main.rs:1098:    config.trace = args.trace || trace_verbosity >= TraceVerbosity::Debug;
+
+Two writes, zero reads. ⇒ `--trace`'s own CLI help, "Enable trace mode in generated
+parser (detailed debug logging)" (rust/src/main.rs:441-443), describes a wire that is
+not connected: the `trace_enabled()` gates inside a generated parser are emitted
+unconditionally and consult the RUNTIME verbosity, not the generator's.
+
+------------------------------------------------------------------------------
+4. THE TRACE IS OPT-IN, NOT DELETED — and no new knob was invented
+------------------------------------------------------------------------------
+`resolve_trace_verbosity` consults `PGEN_TRACE_VERBOSITY` / `PGEN_VERBOSITY` whenever no
+`--verbosity` is passed, and no recipe in `rust/Makefile` passes one. So the engine's
+existing knob already IS the opt-in, and adding a `PGEN_GENERATOR_TRACE` beside it would
+have been a second name for a live mechanism (`DESIGN-PRIOR-ART`).
+
+Measured on `focus_json`, warm, one regeneration each:
+
+  (default, quiet)                          366 B
+  PGEN_TRACE_VERBOSITY=high          16 003 019 B     <- the old RUST_GENERATOR_BOOTSTRAP level
+  PGEN_TRACE_VERBOSITY=debug         21 955 687 B     <- the old RUST_GENERATOR level
+                                                         (cf. 21 955 519 B measured direct
+                                                          from `--debug --trace` in §2)
+
+⛔ THE `high` ROW READ **62 B** ON ITS FIRST ATTEMPT AND THAT WAS NOT A RESULT.
+   `make` had judged `generated/json_parser.rs` up to date: the preceding run wrote it at
+   21:49:16.676 and the `touch` landed at 21:49:16.703, 27 ms later. The number was kept
+   only because it was implausible — this is verbatim the trap
+   `docs/decisions/feedback_verify_sv_parser_regen_mtime.md` names, "make exiting 0 means
+   make ran, NOT that the parser was regenerated", observed live while measuring.
+
+------------------------------------------------------------------------------
+5. THE RATCHET — FLOW-INTEGRITY invariant (10)
+------------------------------------------------------------------------------
+`scripts/check_flow_integrity.sh` now fails any tracked Makefile line that invokes
+`--generate-parser` while carrying `--debug` or `--trace`. Replayed against the pre-fix
+tree it names all three sites and nothing else:
+
+  $ git show 0994c3c0:rust/Makefile > rust/Makefile && bash scripts/check_flow_integrity.sh
+  (10) rust/Makefile:93 invokes the generator with --debug --trace on the SHIPPING path:
+        RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion
+  (10) rust/Makefile:94 invokes the generator with --debug on the SHIPPING path:
+        RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion
+  (10) rust/Makefile:861 invokes the generator with --debug on the SHIPPING path:
+        $(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
+
+Probe suite: `run_flow_integrity_probes.sh`, **24 arms, 24 PASS** (19 pre-existing +
+RED-15 the replayed pre-fix Makefile, RED-16 `--debug` alone, CTRL-6 `--trace-rules` is
+not `--trace`, CTRL-7 a variable may HOLD the flags for the opt-in path, CTRL-8 a comment
+quoting them). Full output: `flow_integrity_probes.txt`.

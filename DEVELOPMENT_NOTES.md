@@ -1,5 +1,77 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-CI-PARITY-GATE-ROT-0029 — the cheapest defect this repository has ever fixed, and the reason it survived is the interesting part
+
+Removing two flags from one Makefile variable took minutes. The 6.89 GB per regeneration they cost
+had been there long enough that a comment in the local parity gate had already looked at the problem,
+priced it, and decided **not** to fix it. That decision is where the durable lesson is.
+
+**1. A flag that cannot change an output has no failure mode, so it is never blamed.** `--debug` and
+`--trace` on the generator produced byte-identical artifacts — verified 33 of 33, and structurally
+guaranteed: `grep -rn 'config\.debug\|config\.trace[^_]' rust/src/` returns two writes and zero
+reads. Every review that asked *does this change the output?* got the honest answer **no** and moved
+on. The cost lived in a dimension nobody diffs: what the build **prints**. ⇒ when hunting this class,
+do not look where correctness review looks. Look at volume, wall time, and what a failing step
+leaves behind.
+
+**2. Separating the three consequences is what keeps the fix correctly sized.** It is a **log-volume**
+bug (hosted CI streams step output rather than storing it, so this was never runner-disk exhaustion);
+it is a **speed** bug (bytes written are bytes not spent generating — 154 s → 131 s); and it is
+**not** an artifact-drift bug. The leaf that routed this named artifact drift as a live hypothesis
+for `ENGINE-UNIVERSAL-SERVICES.19`'s unexplained 99 747 bytes. It is **refuted**, and saying so
+plainly is worth more to `.19` than leaving the possibility open.
+
+**3. The control is the middle run, not the after run.** Hash → regenerate **with** the flags → hash
+→ remove them → regenerate → hash. Without the middle run "identical" cannot be distinguished from a
+codegen that is merely stable, nor "different" from nondeterminism. The per-site A/B needs the
+**same `-o` path** both times: the output path is embedded in the artifact, so two paths produce two
+different files for a reason that has nothing to do with the flags. That mistake was made once here,
+in the first A/B, and the three hashes disagreeing looked briefly like a real finding.
+
+**4. A stale help string is how a cost-only flag acquires an imagined benefit.** `--trace` is
+documented as *"Enable trace mode in generated parser (detailed debug logging)"*. It does no such
+thing — the `trace_enabled()` gates inside a generated parser are emitted unconditionally and read
+the parser's runtime verbosity. Anyone auditing this flag by reading `--help` would conclude that
+removing it weakens the shipped parser. The wire has not been connected for as long as the field has
+been dead.
+
+**5. Check for the knob before inventing one.** The acceptance text proposed `PGEN_GENERATOR_TRACE=1`.
+`resolve_trace_verbosity` already consulted `PGEN_TRACE_VERBOSITY` whenever no `--verbosity` was
+passed, and no recipe passed one — so the escape hatch existed, was documented in `TOOLBOX.md` §2.1,
+and is strictly more expressive than the boolean about to be added beside it (`=high` reproduces the
+old bootstrap level, `=debug` the old full one). A second name for a live mechanism is the
+prior-art defect.
+
+**6. ⛔ Removing noise removes a tell — and the tell was load-bearing.** The log's sheer volume had
+been an incidental signal that the slow regeneration step really ran. Quiet the recipe and `make`
+skipping that step looks identical to doing it. This fired **during the measurement**:
+`PGEN_TRACE_VERBOSITY=high` first read **62 B** because a `touch` landed 27 ms after the previous run
+wrote the parser, so make judged the target current and exited 0 having generated nothing. It was
+caught only because the number was implausible. `docs/decisions/feedback_verify_sv_parser_regen_mtime.md`
+cited the *"huge `--debug --trace` output"* as part of why the trap is easy to miss; that clause is
+now false, and the record was corrected in the same commit rather than left describing a world that
+no longer exists.
+
+**7. A rejected alternative that was reasoned backwards, sitting unread.**
+`rust/scripts/ci_workflow_local_gate.sh` recorded: *"The alternative — quietening the recipe — was
+rejected as out of scope: that recipe is SHARED with the tracked hosted workflow, and changing what
+evidence it leaves is a different change with a different owner."* Being shared with the hosted
+workflow is precisely **why** it had to be quietened; the sharing is the blast radius, not a
+firewall. Same shape as `WAIVER-ROUTING`'s founding case — a considered decision not to fix
+something is a bug report about the thing, and it sat inert. The comment is corrected **with its old
+reasoning quoted**, because a wrong rejection preserved is more useful than a wrong rejection
+deleted.
+
+**8. Ratchet or it returns.** `FLOW-INTEGRITY` invariant (10) is line-scoped: no tracked Makefile
+line invoking `--generate-parser` may carry `--debug`/`--trace`. The three CONTROL arms matter as
+much as the RED ones — `--trace-rules` is a live TOOLBOX instrument, a variable may **hold** the
+flags for the opt-in path, and a comment may quote them. A rule that condemns the escape hatch or its
+own explanation is a rule the next author waives.
+
+promotion: `docs/knowledge/a-debug-affordance-on-the-shipping-path-costs-nothing-the-artifact-keeps.md`
+(new card, lessons 1–6 + 8) and `docs/decisions/feedback_verify_sv_parser_regen_mtime.md` (lesson 6,
+corrected in place).
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0032 — the one-line change was the easy part; what the flip broke was every instrument that had been describing the problem
 
 Slice 9 changed one expression. `CandidateAdmission::StarvationSafe` became `GuardFeasible`, an

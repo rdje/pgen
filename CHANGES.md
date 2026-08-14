@@ -1,5 +1,51 @@
 # CHANGES.md
 
+## 2026-08-14 - PGEN-CI-PARITY-GATE-ROT-0029 — the shipping generation recipe stops narrating itself: 6.89 GB of trace per regeneration becomes 4 838 bytes, and not one artifact byte moves (leaf CI-PARITY-GATE-ROT.31, DIRECTOR-RULED; FLOW-INTEGRITY invariant 10 NEW; build recipe + one enforcer, ZERO grammar bytes, generated tree BYTE-IDENTICAL)
+
+- ⭐⭐ **DIRECTOR RULING IMPLEMENTED, VERBATIM.** *"remove `--debug --trace` for CI streams … CI are
+  not debug runs, especially if each run dumps 17GB."* `RUST_GENERATOR` carried `--debug --trace`
+  and `RUST_GENERATOR_BOOTSTRAP` carried `--debug`, so every `focus_<family>` and every
+  `regenerate_generated_parsers` — locally AND in the 11 hosted workflows that reach the recipe
+  through `.github/actions/regenerate-parsers` — asked the generator to narrate itself.
+- ⭐⭐ **THE AUDIT FOUND A THIRD SITE THE LEAF HAD NOT NAMED.** The routing evidence named
+  `rust/Makefile:93`; auditing the siblings as instructed found `:94` and, more importantly, an
+  **inline** invocation at `:861` — the cold-clone `generated/ebnf.rs` seed, reached by **no**
+  `focus_*` target and therefore invisible to any measurement of a regeneration. It runs only when
+  `generated/ebnf.rs` is absent: exactly the fresh checkout CI gives itself.
+- ⭐⭐ **MEASURED BOTH SIDES, SAME SESSION, SAME HARNESS.** One full regeneration (annotation pair +
+  7 families): **6 894 576 244 B / 154 s → 14 194 408 B / 131 s** — **485.7× smaller, 14.9 %
+  faster**. ⚠️ Stated honestly: 14 189 570 B of the after total is ONE `ast_pipeline` cargo rebuild
+  both sides paid; net of it the generator's own share is **~6.88 GB → 4 838 B**.
+- ⭐⭐ **NOT ONE ARTIFACT BYTE MOVED — 33 of 33, against a DETERMINISM CONTROL.** `shasum -a 256
+  generated/*.rs generated/*.json` (11 parsers + 22 JSON) at baseline, after a regeneration **with**
+  the flags, and after one without: all three identical. The middle run is what makes the third mean
+  something — without it "identical" cannot be told from a codegen that is merely stable.
+  ⇒ **`ENGINE-UNIVERSAL-SERVICES.19`'s unexplained 99 747 bytes must look elsewhere**; the leaf named
+  this as a live hypothesis and it is refuted.
+- ⛔ **WHY IT COULD NOT MOVE A BYTE, STRUCTURALLY.** `grep -rn 'config\.debug\|config\.trace[^_]'
+  rust/src/` returns **two writes and zero reads**. The flags' only live path is
+  `resolve_trace_verbosity()` → the `pgen_trace!` gate. ⇒ `--trace`'s own CLI help, *"Enable trace
+  mode in generated parser"*, **describes a wire that is not connected** — a stale help string is
+  how a cost-only flag acquires an imagined benefit.
+- ⭐ **THE TRACE IS OPT-IN, AND NO NEW KNOB WAS INVENTED.** The acceptance suggested
+  `PGEN_GENERATOR_TRACE=1`; prior art refuses it. `PGEN_TRACE_VERBOSITY=debug make -C rust
+  focus_json` → **21 955 687 B** (vs 21 955 519 B measured direct from the old flags), `=high` →
+  16 003 019 B (the old bootstrap level), quiet → 366 B.
+- ⭐ **`FLOW-INTEGRITY` GAINS INVARIANT (10)** — no tracked Makefile line invoking `--generate-parser`
+  may carry `--debug`/`--trace`. Replayed against `0994c3c0` it names all three sites and nothing
+  else. Probes **24/24** (19 pre-existing + RED-15 the pinned pre-fix Makefile, RED-16 `--debug`
+  alone, and CTRL-6/7/8 — `--trace-rules`, a variable holding the flags, and a comment quoting them
+  must all still pass, or the gate would condemn its own escape hatch).
+- ⛔ **TWO FINDINGS SURFACED WHILE MEASURING.** (1) The regen mtime trap fired live — a `touch`
+  27 ms after the previous write left `make` exiting 0 having generated nothing, caught only because
+  the byte count was implausible; and this fix **removes the log volume that used to be the
+  incidental tell**, so `feedback_verify_sv_parser_regen_mtime` was updated to say the mtime
+  assertion is now the only cheap one. (2) `ci_workflow_local_gate.sh` recorded that quietening the
+  recipe was *"rejected as out of scope: that recipe is SHARED with the tracked hosted workflow"* —
+  reasoned backwards, since the sharing is the blast radius; corrected in place with the old
+  reasoning quoted rather than deleted.
+- **Live status: UNCHANGED.** This changes what the build PRINTS, not what any parser accepts.
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0032 — ⭐⭐⭐ THE FLIP: the guarded admission is what PGEN ships, an LRM-legal SystemVerilog cast parses, and 12 real corpus files are gained with none lost (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 9; SV-CORPUS-GRAD.13h NEW; ENGINE code + the SV parser — the FIRST shipped-parser change in this leaf)
 
 - ⭐⭐⭐ **`initial k = 8'(1);` and `parameter logic [7:0] K = 8'(1);` PARSE.** `ENGINE-UNIVERSAL-SERVICES.13`'s

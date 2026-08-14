@@ -90,8 +90,37 @@ AST_PIPELINE_SOURCES = $(wildcard $(RUST_DIR)/src/*.rs) \
                       $(RUST_DIR)/Cargo.toml
 
 # Tools
-RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion
-RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion
+#
+# ⛔⛔ CI-PARITY-GATE-ROT.31 — THE SHIPPING GENERATION PATH IS QUIET BY DEFAULT.
+# Director ruling 2026-08-14: *"remove `--debug --trace` for CI streams … these 2 options are only
+# for debug, tracing purposes … CI are not debug runs."* `RUST_GENERATOR` carried `--debug --trace`
+# and `RUST_GENERATOR_BOOTSTRAP` carried `--debug`, so every `focus_<family>` and every
+# `regenerate_generated_parsers` — locally AND in the 11 hosted workflows that reach this recipe
+# through `.github/actions/regenerate-parsers` — asked the generator to narrate itself. Measured on
+# this tree, one full regeneration (annotation pair + 7 families):
+# **6 894 576 244 B → 14 194 408 B**, 485.7× smaller, wall time 154 s → 131 s. Of that AFTER total
+# 14 189 570 B is ONE `ast_pipeline` cargo rebuild both sides paid; net of it the generator itself
+# went from ~6.88 GB to 4 838 B. Census: `docs/tasks/artifacts/ci_parity_gate_rot/generator_trace_volume.txt`.
+#
+# ⭐ IT CANNOT CHANGE AN ARTIFACT, AND THAT IS STRUCTURAL RATHER THAN LUCKY. The two flags reach the
+# pipeline only through `resolve_trace_verbosity()` → the global verbosity that gates the
+# `pgen_trace!` macros (`rust/src/main.rs:936-938`). The `PipelineConfig` fields they also set —
+# `debug` and `trace` — are WRITTEN AND NEVER READ anywhere in the crate, so `--trace`'s own CLI help
+# (*"Enable trace mode in generated parser"*) describes a wire that is not connected. Verified
+# empirically all the same: all 9 regenerated parsers plus `generated/ebnf.rs` are byte-identical
+# across this change, against a same-session determinism control.
+#
+# ⭐ THE TRACE IS NOT DELETED — IT IS OPT-IN, THROUGH THE KNOB THE ENGINE ALREADY HAS rather than a
+# new one invented beside it (`DESIGN-PRIOR-ART`): `resolve_trace_verbosity` consults the
+# environment whenever no `--verbosity` is passed, and no recipe here passes one. So
+#     PGEN_TRACE_VERBOSITY=debug make -C rust SHELL=/bin/bash focus_systemverilog
+# restores the full stream these flags used to force, and `=high` reproduces the old
+# `RUST_GENERATOR_BOOTSTRAP` level. See `TOOLBOX.md` §2.1 and `docs/book/src/gate-flow.md`.
+#
+# ⛔ `FLOW-INTEGRITY` invariant (10) holds this: no `rust/Makefile` line that invokes
+# `--generate-parser` may carry `--debug` or `--trace` again.
+RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion
+RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --eliminate-left-recursion
 RUST_FRONTEND_TO_JSON = $(RUST_EBNF_FRONTEND_BIN)
 
 # Default target
@@ -858,7 +887,7 @@ regex_parser_bootstrap:
 		echo "          the annotation pair does not exist yet, so annotations route"; \
 		echo "          through the hand-rolled bootstrap surface BY DESIGN here —"; \
 		echo "          without the flag the RGX-0078.5.i.1.t2 guard refuses, see PGEN-RGX-0090)"; \
-		$(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
+		$(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
 		echo "🌱 generated/ebnf.rs seeded."; \
 		echo "  Rebuilding ast_pipeline now that has_generated_ebnf_parser is set..."; \
 		cd $(RUST_DIR) && cargo build --features ebnf_dual_run --bin ast_pipeline; \
@@ -927,8 +956,14 @@ annotation_parsers: return_annotation_parser semantic_annotation_parser
 # `audit_workflow_regeneration_surface` in that gate asserts the wiring still holds.
 #
 # Measured cost from a bare tracked tree: ~258 s (CI-PARITY-GATE-ROT.3 prepared census).
-# ⚠️ Verbose by construction: `RUST_GENERATOR` runs `--debug --trace`, so a full capture of
-# this sequence measured 7.1 GB. Bound the log when you capture it.
+# ✅ QUIET SINCE CI-PARITY-GATE-ROT.31 (2026-08-14, director-ruled). It used to be verbose BY
+# CONSTRUCTION — `RUST_GENERATOR` ran `--debug --trace`, and a full capture of this sequence
+# measured 7.1 GB, re-measured at 6 894 576 244 B the day it was fixed. It is now 14 194 408 B, of
+# which 14 189 570 B is one `ast_pipeline` cargo rebuild — the generator's own share is 4 838 B. The
+# log therefore needs no bounding to be safe; the parity gate still bounds its capture, which is now
+# a cheap belt-and-braces rather than the thing standing between a hosted runner and its disk.
+# ⭐ To get the old stream back for an actual debugging run:
+#     PGEN_TRACE_VERBOSITY=debug make -C rust SHELL=/bin/bash regenerate_generated_parsers
 GENERATED_PARSER_FAMILIES = json regex systemverilog systemverilog_preprocessor vhdl rtl_const_expr rtl_frontend
 
 .PHONY: regenerate_generated_parsers

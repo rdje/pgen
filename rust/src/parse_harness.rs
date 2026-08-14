@@ -307,9 +307,11 @@ fn run_in_workdir(
     let target_dir = crate_dir.join("target");
 
     // ── Step 1: codegen — the REAL ast_pipeline, one-step .ebnf → parser.rs (mode 3), exactly the shipped
-    //    recipe minus the `--debug`/`--trace` logging flags (verified byte-identical output). The only
-    //    difference from `make focus_<grammar>` is the embedded diagnostic output-path label, which is
-    //    inert (never appears in the typed AST).
+    //    recipe. The only difference from `make focus_<grammar>` is the embedded diagnostic output-path
+    //    label, which is inert (never appears in the typed AST).
+    //    ⭐ Until CI-PARITY-GATE-ROT.31 the shipped `RUST_GENERATOR` additionally carried
+    //    `--debug --trace`, and this call omitted them as logging flags verified not to move a byte;
+    //    the recipe has since dropped them as well, so this is now the identical command line.
     let mut codegen = Command::new(ast_pipeline_bin);
     codegen
         .arg(grammar_ebnf)

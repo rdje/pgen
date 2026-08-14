@@ -3897,7 +3897,7 @@ release work, and `.17` slice 4b already fixed the live instance by hand. ⭐ No
 `.27`: both are gaps where the roster audits the PRESENCE of a structure and never whether the
 structure was actually reached.
 
-### `.31` NEW `todo` — the SHIPPING generation recipe hardcodes `--debug --trace`, so every parser build emits a full trace: ~6 GB per regeneration locally and the same volume streamed into CI (opened 2026-08-14 session #232 by `ENGINE-UNIVERSAL-SERVICES.17` slice 9; ⛔ **DIRECTOR-RULED 2026-08-14** — see below)
+### `.31` ✅ `done` — the SHIPPING generation recipe hardcoded `--debug --trace`, so every parser build emitted a full trace: 6.89 GB per regeneration locally and the same volume streamed into CI (opened 2026-08-14 session #232 by `ENGINE-UNIVERSAL-SERVICES.17` slice 9; ⛔ **DIRECTOR-RULED 2026-08-14**; CLOSED 2026-08-14 session #233, `PGEN-CI-PARITY-GATE-ROT-0029`)
 
 ⛔⛔ **DIRECTOR RULING, VERBATIM (2026-08-14): _"remove `--debug --trace` for CI streams. Because
 these 2 options are only for debug, tracing purposes. Again, they make sense only during debug
@@ -3936,6 +3936,186 @@ back for actual debugging (an opt-in variable, e.g. `PGEN_GENERATOR_TRACE=1`), b
 capability is not the ruling — moving it off the default path is; (d) measure the before→after log
 volume of one full regeneration and record both numbers, so the fix has a size rather than an
 adjective.
+
+---
+
+#### ✅ CLOSED 2026-08-14 (session #233) — all four acceptance clauses met
+
+Full census, every figure derived this session:
+`docs/tasks/artifacts/ci_parity_gate_rot/generator_trace_volume.txt`.
+
+**(a) THE FLAGS ARE OFF THE SHIPPING PATH — and the audit found a THIRD site the leaf had not
+named.** The routing evidence named `RUST_GENERATOR` (`rust/Makefile:93`); auditing
+`RUST_GENERATOR_BOOTSTRAP` as instructed turned up `:94` carrying `--debug`, and one further
+**inline** invocation at `:861` — the cold-clone `generated/ebnf.rs` seed, which is not reached by
+any `focus_*` target and therefore could not have been found by measuring a regeneration. It runs
+**only** when `generated/ebnf.rs` is absent, i.e. exactly on the fresh checkout CI gives itself. All
+three are now quiet.
+
+**(b) THE ARTIFACTS DID NOT MOVE — 33 of 33 byte-identical, against a determinism CONTROL.**
+`shasum -a 256 generated/*.rs generated/*.json` (11 parsers + 22 JSON artifacts) at the baseline, after
+a regeneration **with** the flags, and after one **without**: all three identical. ⭐ The middle
+comparison is the control that makes the third mean something — without it, "identical" cannot be
+distinguished from a codegen that is merely stable, nor "different" from nondeterminism.
+
+⛔ **And the leaf's own hypothesis is REFUTED, which is worth saying plainly.** The acceptance text
+warned that a byte moving here would be a far larger finding and *"a live hypothesis for
+`ENGINE-UNIVERSAL-SERVICES.19`'s unexplained 99 747 bytes"*. No byte moved. **`.19` must look
+elsewhere** — the two leaves were told to read each other, so this is that answer, delivered rather
+than left for `.19` to re-derive.
+
+The structural half of *why* it cannot move a byte, since a null result deserves a mechanism:
+
+```text
+$ grep -rn 'config\.debug\|config\.trace[^_]' rust/src/
+rust/src/main.rs:1097:    config.debug = args.debug || trace_verbosity >= TraceVerbosity::High;
+rust/src/main.rs:1098:    config.trace = args.trace || trace_verbosity >= TraceVerbosity::Debug;
+```
+
+Two writes, **zero reads**. The flags' only live path is
+`resolve_trace_verbosity()` → `set_global_trace_verbosity()` (`rust/src/main.rs:936-938`), which
+gates the `pgen_trace!` macros and nothing else. ⇒ `--trace`'s own CLI help, *"Enable trace mode in
+generated parser (detailed debug logging)"* (`rust/src/main.rs:441-443`), **describes a wire that is
+not connected**: the `trace_enabled()` gates inside a generated parser are emitted unconditionally
+and consult the parser's RUNTIME verbosity, never the generator's.
+
+**(c) THE TRACE IS OPT-IN — and NO NEW KNOB WAS INVENTED.** The acceptance suggested
+`PGEN_GENERATOR_TRACE=1`. Prior art refuses it (`DESIGN-PRIOR-ART`): `resolve_trace_verbosity`
+already consults `PGEN_TRACE_VERBOSITY` / `PGEN_VERBOSITY` whenever no `--verbosity` is passed, and
+no recipe in `rust/Makefile` passes one — so the engine's documented knob (`TOOLBOX.md` §2.1) *is*
+the opt-in, and it is strictly more expressive than a boolean. Measured on `focus_json`, warm:
+
+| invocation | log bytes |
+|---|---|
+| default (quiet) | **366** |
+| `PGEN_TRACE_VERBOSITY=high make -C rust focus_json` | **16 003 019** — the old `RUST_GENERATOR_BOOTSTRAP` level |
+| `PGEN_TRACE_VERBOSITY=debug make -C rust focus_json` | **21 955 687** — the old `RUST_GENERATOR` level |
+
+against **21 955 519 B** measured direct from `--debug --trace` on the same input. The capability is
+intact to within the make wrapper's own echo lines.
+
+**(d) THE SIZE.** One full regeneration (annotation pair + 7 families), same harness both sides:
+
+| | log bytes | wall |
+|---|---|---|
+| BEFORE (`0994c3c0`) | **6 894 576 244** (6.89 GB) | 154 s |
+| AFTER | **14 194 408** (14.19 MB) | 131 s |
+
+**485.7× smaller, 14.9 % faster.** ⚠️ Stated honestly: **14 189 570 of the after total is ONE
+`ast_pipeline` cargo rebuild**, not generator output — both sides paid it, and it lands in the
+`focus_json` row only because that is the first family target after the annotation pair is rewritten.
+Net of it the generator's own share is **~6.88 GB → 4 838 B**; `focus_json` re-run warm emits 366 B.
+The 485.7× figure is the one measured end-to-end on both sides and is the one to quote.
+
+⛔ **The measured sequence is `regenerate_generated_parsers` MINUS its `regex_parser_bootstrap`
+step**, whose unconditional `cargo build` downgrades `rust/target/debug/ast_pipeline` and makes the
+documented recipe fail in 15 s on any warm tree. That is **`.30`**, still open, not fixed here —
+stated as a deviation rather than left for a reader to notice, exactly as `.17` slice 8 did.
+
+#### ⭐ THE RATCHET — `FLOW-INTEGRITY` gains invariant (10)
+
+A director ruling that lives only in a diff is one revert from being undone, and this tree exists
+because repairs rot. `scripts/check_flow_integrity.sh` now fails any tracked Makefile line that
+invokes `--generate-parser` while carrying `--debug` or `--trace`. Replayed against the pre-fix tree
+it names all three sites **and nothing else**:
+
+```text
+$ git show 0994c3c0:rust/Makefile > rust/Makefile && bash scripts/check_flow_integrity.sh
+(10) rust/Makefile:93 invokes the generator with --debug --trace on the SHIPPING path:
+      RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion
+(10) rust/Makefile:94 invokes the generator with --debug on the SHIPPING path:
+      RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion
+(10) rust/Makefile:861 invokes the generator with --debug on the SHIPPING path:
+      $(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
+```
+
+⛔ **Line-scoped on purpose, and three CONTROLS prove the scoping is not over-broad** — a rule that
+condemned the escape hatch or its own explanation would be unlandable, and would teach the next
+author to waive the gate rather than fix anything (`GENERATED-LINT-CORRECTNESS.4`'s measured lesson).
+`--trace-rules` is a live TOOLBOX instrument and must pass; a *variable* holding the flags for the
+opt-in path must pass; a *comment* quoting them must pass. **Honest bound, in the check's own
+source:** it scans tracked `Makefile`s — the shipping recipe's only home — and NOT
+`rust/scripts/*.sh`, where a gate capturing a trace on purpose is legitimate.
+
+#### ⛔ TWO FINDINGS SURFACED WHILE MEASURING
+
+1. **The mtime trap fired on me, live, and volume is no longer a tell.**
+   `PGEN_TRACE_VERBOSITY=high` first measured **62 B**. That was not a result: `make` had judged
+   `generated/json_parser.rs` up to date because the `touch` landed **27 ms** after the previous run
+   wrote it, so the recipe never ran and exited 0. This is verbatim
+   [[feedback_verify_sv_parser_regen_mtime]], and it was caught **only** because the number was
+   implausible. ⭐ That record's own explanation cited the *"huge `--debug --trace` output"* as part
+   of why the trap is easy to miss — this leaf removes that output, so the one incidental tell is
+   gone and the mtime assertion is now the only cheap one. The record was updated to say so, in this
+   commit, rather than left to describe a world that no longer exists.
+2. **A rejected-alternative comment that was reasoned backwards.**
+   `rust/scripts/ci_workflow_local_gate.sh` recorded that *"quietening the recipe was rejected as out
+   of scope: that recipe is SHARED with the tracked hosted workflow, and changing what evidence it
+   leaves is a different change with a different owner."* Being shared with the hosted workflow is
+   precisely why it had to be quietened — the sharing is the blast radius, not a firewall. The
+   comment is corrected in place **with its old reasoning quoted**, not deleted, because a wrong
+   rejection that sat unread is the more useful artifact.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `make --dry-run` over the shipping recipe, against the pre-fix tree
+  (`git show 0994c3c0:rust/Makefile > rust/Makefile`), shows the flags on the deliverable command
+  line itself — `make -C rust SHELL=/bin/bash --dry-run focus_systemverilog`:
+
+  ```text
+  ./target/debug/ast_pipeline_bootstrap --generate-parser --bootstrap-mode --debug --eliminate-left-recursion ../generated/semantic_annotation.json -o ../generated/semantic_annotation_parser.rs
+  ./target/debug/ast_pipeline_bootstrap --generate-parser --bootstrap-mode --debug --eliminate-left-recursion ../generated/return_annotation.json -o ../generated/return_annotation_parser.rs
+  ./target/debug/ast_pipeline --generate-parser --debug --trace --eliminate-left-recursion ../generated/systemverilog.json -o ../generated/systemverilog_parser.rs
+  ```
+
+  and the same command on the fixed tree prints the three lines with the flags gone. Captured cost of
+  one full regeneration at `0994c3c0`: **6 894 576 244 B / 154 s**
+  (`docs/tasks/artifacts/ci_parity_gate_rot/generator_trace_volume.txt` §1).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: three sites, derived not guessed —
+  `git ls-files '*Makefile' | xargs grep -n -- '--generate-parser'` → `rust/Makefile:93`
+  (`RUST_GENERATOR`), `:94` (`RUST_GENERATOR_BOOTSTRAP`), `:861` (the inline cold-clone `ebnf.rs`
+  seed). WHY: the debug affordances sit in the variable every `focus_*` and
+  `regenerate_generated_parsers` expands, so the deliverable path inherits them; and they are free of
+  any consequence an artifact keeps, which is what let them sit unnoticed —
+  `grep -rn 'config\.debug\|config\.trace[^_]' rust/src/` returns **two writes and zero reads**
+  (`rust/src/main.rs:1097-1098`), so their only live effect is
+  `resolve_trace_verbosity()` → the `pgen_trace!` gate at `rust/src/main.rs:936-938`.
+- [x] **FIX** — declarative tier (build recipe + one structural enforcer; **zero** grammar bytes,
+  one comment-only `rust/src/` edit, no `generated/*` in the change set). The flags are removed from
+  all three sites; the opt-in is the engine's existing `PGEN_TRACE_VERBOSITY`, not a new variable
+  (`DESIGN-PRIOR-ART`: `resolve_trace_verbosity` already reads it and no recipe passes
+  `--verbosity`); `FLOW-INTEGRITY` invariant (10) stops the flags returning.
+- [x] **ADDRESSED (verified)** — before→after **measured on both sides in this session**, not
+  described: one full regeneration **6 894 576 244 B → 14 194 408 B** (485.7×; net of the one shared
+  `ast_pipeline` cargo rebuild, ~6.88 GB → **4 838 B**) and **154 s → 131 s**. Re-runnable oracle:
+  `bash scripts/check_flow_integrity.sh --report` → `generator invocations w/ --debug|--trace :
+  0 (shipping path quiet)` and `flow-integrity: OK (… shipping generation recipe quiet across 1
+  Makefile(s))`, RED-provable by `git show 0994c3c0:rust/Makefile > rust/Makefile`, which fails
+  naming all three sites. Opt-in proven live: `PGEN_TRACE_VERBOSITY=debug make -C rust focus_json` →
+  **21 955 687 B** vs **366 B** quiet.
+- [x] **NO REGRESSION** — ⭐ the strongest form available here: **all 33 generated artifacts
+  byte-identical** (`shasum -a 256 generated/*.rs generated/*.json`, 11 parsers + 22 JSON), verified
+  against a **same-session determinism control** — a regeneration *with* the flags first reproduced
+  the baseline exactly, so the after-comparison is not confounded by codegen stability. Direct
+  generator A/B at all three sites, same `-o` path both times (the output path is embedded in the
+  artifact, so differing paths differ for an unrelated reason — a mistake made once here and
+  recorded): `ast_pipeline --generate-parser` json 21 955 519 B → 177 B identical; the `ebnf.rs`
+  bootstrap seed 280 784 B → 171 B identical; `ast_pipeline_bootstrap` semantic-annotation
+  205 807 B → 184 B identical. `bash scripts/check_doctrines.sh` green (all 18). Probe suite
+  `run_flow_integrity_probes.sh` **24 arms / 24 PASS** — the 19 pre-existing arms unchanged plus
+  RED-15 (the pre-fix Makefile replayed from the PINNED sha `0994c3c0`, not a hand-written
+  imitation), RED-16 (`--debug` alone — the half a partial revert restores), and CTRL-6/7/8, the
+  three false positives that would make invariant (10) unusable. `make -C rust clippy_on_rust_change`
+  clean.
+- [x] **LOCKSTEP** — `docs/book/src/gate-flow.md` (the log-bounding passage rewritten with the new
+  numbers + the opt-in recipes; invariant table nine → **ten**), `docs/book/src/parse-harness.md`
+  (the harness's codegen call is no longer "the recipe minus the logging flags" — it is now the same
+  command line), `DOCTRINE_ENFORCEMENT.md` §10 (`FLOW-INTEGRITY` row, ten invariants),
+  `rust/src/parse_harness.rs` (same correction at the source), `rust/scripts/ci_workflow_local_gate.sh`
+  (the backwards rejected-alternative note), `docs/decisions/feedback_verify_sv_parser_regen_mtime.md`
+  (its `--debug --trace` tell is gone; the trap is not), `rust/Makefile` (both comment blocks
+  re-measured). New tracked artifact: `generator_trace_volume.txt`. ⛔ No DONE-BAR row moves: this
+  changes what the build PRINTS, not what any parser accepts.
 
 
 ### `.30` NEW `todo` — `regenerate_generated_parsers` DOWNGRADES the binary it declares fully-featured, so the repository's own quick-start recipe fails on any warm tree (opened 2026-08-14 session #231 by `ENGINE-UNIVERSAL-SERVICES.17` slice 8; ⛔ PARKED behind the SV lane lock)

@@ -201,10 +201,12 @@ output so it is actionable.
 The harness adds nothing to the trusted surface beyond this five-step plumbing:
 
 1. **Codegen — the real thing.** It shells the shipped `ast_pipeline` binary once, reading the `.ebnf`
-   directly (`ast_pipeline foo.ebnf --generate-parser --eliminate-left-recursion -o …`). This is the
-   shipped `RUST_GENERATOR` recipe minus the `--debug`/`--trace` *logging* flags — verified to produce
-   **byte-identical** parser source (the only difference from `make focus_<grammar>` is the embedded
-   diagnostic output-path label, which never appears in the typed AST). The binary must carry
+   directly (`ast_pipeline foo.ebnf --generate-parser --eliminate-left-recursion -o …`). This is
+   **exactly** the shipped `RUST_GENERATOR` recipe — the only difference from `make focus_<grammar>`
+   is the embedded diagnostic output-path label, which never appears in the typed AST. Until
+   `CI-PARITY-GATE-ROT.31` the recipe additionally carried `--debug --trace`, and the harness omitted
+   them as *logging* flags verified not to change a byte; the recipe has since dropped them too, so
+   the two commands are now the same command. The binary must carry
    `--features ebnf_dual_run` to read a `.ebnf` directly; the standard tree's `target/debug/ast_pipeline`
    does. **Feature-surface tripwire (`PARSE-HARNESS.10`).** Because routine builds (`make focus_*`, an
    ad-hoc census-CLI build) legitimately produce a `--features generated_parsers`-only `ast_pipeline` at

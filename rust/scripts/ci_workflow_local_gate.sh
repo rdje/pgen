@@ -3385,15 +3385,20 @@ prepare_generated_artifacts() {
   # ⛔ Copying the developer's `generated/` into the export dir was REJECTED: it would make this
   # gate green against artifacts a fresh checkout does not have, which is the vacuity class this
   # tree exists to remove.
-  # ⚠️ THE LOG IS DELIBERATELY BOUNDED TO ITS TAIL, AND THAT IS A MEASURED DECISION.
-  # `rust/Makefile:93-94` runs the generator as `--generate-parser --debug --trace …`, so the
-  # cold-clone sequence emits PGEN's own `[PGEN][LOW]`/`[HIGH]`/`[DBG]` trace for seven grammars.
-  # Captured in full it measured **7.1 GB** for one preparation — fine on this 3.6 TB volume,
-  # fatal on a hosted runner with ~14 GB free. `make` stops AT the failing step, so the tail is
-  # exactly where a failure's evidence lives; `tail -c` also bounds memory to the window itself.
-  # ⛔ The alternative — quietening the recipe — was rejected as out of scope: that recipe is
-  # SHARED with the tracked hosted workflow, and changing what evidence it leaves is a different
-  # change with a different owner.
+  # ⚠️ THE LOG IS BOUNDED TO ITS TAIL, AND IT NO LONGER HAS TO BE.
+  # ⛔ HISTORY, KEPT BECAUSE THE REASONING WAS WRONG AND SHOULD BE VISIBLE. `rust/Makefile:93-94`
+  # used to run the generator as `--generate-parser --debug --trace …`, so the cold-clone sequence
+  # emitted PGEN's own `[PGEN][LOW]`/`[HIGH]`/`[DBG]` trace for seven grammars — **7.1 GB** for one
+  # preparation, fine on this 3.6 TB volume and fatal on a hosted runner with ~14 GB free. This
+  # comment then recorded that *"quietening the recipe was rejected as out of scope: that recipe is
+  # SHARED with the tracked hosted workflow"*. ⭐ That is backwards, and the director said so
+  # (2026-08-14): being shared with the hosted workflow is precisely why the recipe had to be
+  # quietened, not a reason to leave it. `CI-PARITY-GATE-ROT.31` removed the flags — the same
+  # sequence now emits 14 194 408 B, of which 4 838 B is the generator — and `FLOW-INTEGRITY`
+  # invariant (10) stops them coming back.
+  # ⇒ the tail bound stays as cheap insurance (a future verbose stage, or an opt-in
+  # `PGEN_TRACE_VERBOSITY=debug` run reaching this path), and `tail -c` still bounds memory to the
+  # window itself. `make` stops AT the failing step, so the tail is where a failure's evidence lives.
   local log_file="$LOG_DIR/00-prepare-generated.log"
   local log_tail_bytes=4194304
   note "preparing generated/ inside the export dir (cold-clone bootstrap; log: $log_file, last ${log_tail_bytes}B)"
