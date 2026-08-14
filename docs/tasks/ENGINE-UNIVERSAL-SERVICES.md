@@ -5269,6 +5269,69 @@ burn-down, or is held until the cost is reduced. The engineering recommendation 
 gained 12 files and lost none, and holding a correctness fix behind an unprofiled performance number
 trades a measured defect for an unmeasured one. ⛔ That is a recommendation, not the decision.
 
+##### ✅ RULED 2026-08-14 — **DELEGATED TO THE ENGINEER BY THE DIRECTOR** (*"This call is yours to make. The decision shall be sota, signoff!"*)
+
+⛔ **FIRST, THE QUESTION AS POSED CONFLATES THREE SEPARABLE DECISIONS**, and a signoff ruling has to
+say which one it answers. Answering the fused question is how *"ship and burn down"* becomes a
+euphemism for *"accept the cost"*:
+
+| | question | ruling |
+|---|---|---|
+| **A** | does the guarded admission STAY IN THE TREE, or is it reverted? | **STAYS** |
+| **B** | may SystemVerilog reach `Done` / be delivered to Nexsim carrying an unexplained +24.3 %? | **NO — no waiver** |
+| **C** | what is the work order inside `.20`? | **the GUARD before the PROFILE** |
+
+**A — the admission stays.** Reverting trades a **measured correctness defect** for an
+**unprofiled performance number**, which is the exact inversion of the reason to be cautious here.
+The flip took `left_recursion_unhandled` **28 → 0**, made LRM-legal `8'(1)` parse, and gained 12
+corpus files while losing none. ⛔ *"Costs are REJECTED, not traded"* is a demand that the cost be
+**eliminated**, not a licence to restore a defect — and **a revert eliminates nothing**: it
+re-opens 28 unhandled cycles and re-rejects LRM-legal text, violating the sibling non-negotiable
+(*SV is 100 % LRM-compliant by default; over-acceptance is a defect — and so is under-acceptance*)
+to buy back a number nobody has attributed. Both arms are defects; exactly one of them is currently
+**fixed**, and the ruling does not un-fix it.
+
+**B — and this is what makes A honest rather than a euphemism.** The admission holds a
+**CONDITIONAL TENANCY**, not a pass. The SV `Done` bar gains a clause: *the parse-time cost of the
+guarded admission must be attributed and then either eliminated or declared IRREDUCIBLE with the
+measurement that proves it.* ⛔ No waiver, and acceptance (e) already forbids the obvious escape —
+*"accuracy before speed"* licenses SHIPPING the correctness fix, never KEEPING its price. SV is
+`Mostly Done` and corpus-gated at 46.3 % regardless, so this clause costs the delivery **nothing
+today** and binds precisely when it would otherwise be tempting to skip.
+
+**C — reorder: acceptance (d) BEFORE (a).** ⭐ This does **not** violate (a)'s `⛔ FIRST`, which
+governs *"before any optimisation is designed"* — a guard is instrumentation, not an optimisation.
+Three reasons, in order of force:
+1. ⛔ **The leaf's own words indict the current state**: *"this regression was invisible to every
+   gate the repository has — the lint, the two-sided repro ratchet, the corpus pass/fail count and
+   all 18 doctrines were GREEN across a 24 % slowdown, and a cost nothing measures is a cost that
+   grows."* Profiling is a multi-session campaign. Doing it with the tree unguarded is
+   `GATE-REACHABILITY`'s founding failure — *a check that nothing invokes is indistinguishable from
+   a check that does not exist* — applied to time instead of to targets.
+2. **The ratchet IS the profile's baseline harness.** Built first, (a) inherits a deterministic,
+   re-runnable instrument instead of an ad-hoc timing script — and an ad-hoc timing script against
+   a stale baseline is *literally what produced the wrong `~11 %`* recorded above.
+3. ⭐⭐ **The ratchet must NOT be wall-clock-primary, and this is the substantive engineering call.**
+   The `~11 %` error came from comparing across *"materially faster machine conditions"*, so a
+   wall-clock ratchet inherits the very defect that misled this leaf once already. PGEN already
+   ships a machine-independent substrate: **`--dump-rule-entry-counts-json`** (TOOLBOX 3.4) — exact
+   per-rule entry counts, *"deterministic for a deterministic parser ⇒ a re-runnable oracle"*, and
+   build-mode-independent. ⇒ **ratchet on TOTAL RULE ENTRIES over a fixed corpus sample; keep
+   wall-clock as a coarse advisory with a wide band.** Entries are the *mechanism* causes (i) and
+   (ii) move through; wall-clock is only the *symptom*, and it is the half that cannot survive a
+   machine change or a hosted runner.
+   ⚠️ **Honest bound, stated before the instrument is built, not after**: the entry counters route
+   the parse to the PROTOCOL graph (the observability twin, TOOLBOX 3.4 ROUTING), so they guard
+   *structural* work and **cannot** describe the fused `cascade_*` graph on which the +24.3 % was
+   measured. Neither metric alone is sufficient. The ratchet therefore declares **both** and states
+   which one binds — a two-metric guard that says what it cannot see, rather than one number that
+   quietly means less than it appears to.
+
+⛔ **What this ruling deliberately does NOT decide**: the attribution across (i)-(iv), the priced
+option list, and whether any part of the cost is irreducible. Those are (a)/(b)/(c) and they are
+**measurements, not judgements** — pre-deciding them here is the *"designs built on unmeasured
+premises"* failure this leaf's own `.17` history is a record of.
+
 
 #### ⛔⛔ `.19` NEW `todo` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9)
 

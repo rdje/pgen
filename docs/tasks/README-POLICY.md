@@ -1014,18 +1014,126 @@ re-proves the card's central claim. `knowledge-map/scripts/check_knowledge_map.s
 cards are well-formed, ids unique, and the derived `KNOWLEDGE_MAP.md` in sync with its sources. It
 does **not** run `reverify:`, and nothing else does either.
 
-⚠️ **Does it reproduce outside this family?** (the `ROUTING-EVIDENCE` requirement) — **Yes,
-measured on the instance that triggered it**: `a-cap-with-no-headroom-is-a-cap-about-to-be-raised`
-declared `test "$b" -lt 6100 && echo HEADROOM-OK` and layer A was at 7 051 B, so the card's own
-tripwire had been failing since roughly 2026-08-12 while the doctrine reported green throughout.
-The defect is in the *mechanism*, not in that card: it applies to every card carrying the field.
-⛔ Before designing a fix, **census the population** — how many of the 117 cards declare
-`reverify:`, how many of those commands are still runnable, and how many currently pass. A gate
-that fails on day one across dozens of cards teaches waivers (`GENERATED-LINT-CORRECTNESS.4`'s
-measured lesson), so the adjudication is *report-first, ratchet second*, and the option of
-declaring the field advisory-and-deleting-it must be priced alongside enforcing it — the
-`LIVE-MEANS-LIVE.4a` precedent, where 62 hand-maintained `Last updated:` fields were deleted once
-a derivable fact was shown to dominate them strictly.
+⚠️ **Does it reproduce outside this family?** (the `ROUTING-EVIDENCE` requirement) — **Yes, and the
+census is now MEASURED rather than estimated** (`README-POLICY.10` self-audit; both numbers below
+correct figures this leaf was opened with):
+
+```
+$ ls docs/knowledge/*.md | wc -l            # cards on disk
+94
+$ grep -l '^reverify:' docs/knowledge/*.md | wc -l
+94
+```
+
+⛔ **The population is 94 cards, and 94 of 94 declare `reverify:` — 100 %, not a subset.** The leaf
+first said *"the 117 cards"*, which was the **fact count** printed by the map generator
+(`117 facts, 814 question keys`), not the card count. That matters beyond tidiness: it means
+`.9` has no cheap pilot subset, *every* option is a whole-corpus option, and "delete the field"
+means deleting it from 94 files while "enforce it" means 94 commands must pass on day one.
+
+⛔⛔ **AND THE TRIGGERING CARD WAS NEVER GREEN FOR A SINGLE COMMIT OF ITS LIFE.** The leaf first
+said its tripwire *"had been failing since roughly 2026-08-12"*, which was asserted, not measured.
+Measured:
+
+```
+$ git log --diff-filter=A --format='%h %ad' --date=short -- docs/knowledge/a-cap-with-no-headroom-is-a-cap-about-to-be-raised.md
+0457cb0e 2026-08-09
+$ first commit where MEMORY.md exceeded the card's own 6100 B threshold
+  df180942 2026-08-08  7113B
+```
+
+⇒ layer A crossed the threshold **the day BEFORE the card was authored**. The card did not *rot*;
+it **shipped already-false**, carrying a `reverify:` that had never passed. That is a strictly
+stronger finding than the one routed, and it moves `.9`'s centre of gravity: the failure is not
+"cards go stale and nothing re-checks them" but "**a `reverify:` is never executed even ONCE, not
+even by the commit that writes it**" — so the cheapest real fix may be an author-time check at the
+point of card creation, which is a different design from a standing corpus ratchet and must be
+priced beside it.
+
+The defect is in the *mechanism*, not in that card: it applies to all 94. ⛔ Before designing a
+fix, complete the census — how many of the 94 commands are still runnable, and how many currently
+pass. A gate that fails on day one across dozens of cards teaches waivers
+(`GENERATED-LINT-CORRECTNESS.4`'s measured lesson), so the adjudication is *report-first, ratchet
+second*, and the option of declaring the field advisory-and-deleting-it must be priced alongside
+enforcing it — the `LIVE-MEANS-LIVE.4a` precedent, where 62 hand-maintained `Last updated:` fields
+were deleted once a derivable fact was shown to dominate them strictly.
+
+---
+
+### `.10` — SELF-AUDIT of `.8`: two published numbers were asserted rather than measured, a new leaf was unreachable from the index, and a "prudent" fallback was dead code (`done` — `PGEN-README-POLICY-0009`, 2026-08-14 session #234)
+
+**Origin.** Director question immediately after `-0008` landed: *"Were these decisions SOTA,
+signoff?"* Answering it by re-deriving each claim instead of restating it found **four** defects in
+`.8`'s own output. Every one was in the **flattering / passing** direction, which is the only
+reason they needed a deliberate audit to surface at all.
+
+| # | what `.8` published | what re-derivation measured | direction |
+|---|---|---|---|
+| 1 | *"the 117 cards"* | **94 cards**; 117 was the map's FACT count, not the card count | wrong denominator |
+| 2 | *"RED for weeks … since roughly 2026-08-12"* | crossed **2026-08-08**, card authored **2026-08-09** ⇒ never green once | asserted, not measured |
+| 3 | `.9` routed as a tracked leaf | **`grep -c 'README-POLICY\.9' docs/TASK_TREE.md` = 0** — named only as `` **`.9` NEW** `` inside prose, so unreachable by its tree-qualified id | silently unroutable |
+| 4 | *"safe fallback"* `else echo "memory-arch: OK"` | **dead code** — unreachable by construction | advertises a case it never handles |
+
+⭐ **#1 and #2 are the same defect wearing two hats**: a number lifted from an adjacent measurement
+(the generator's fact count) and a date inferred from a plausible story. Both were *close enough to
+be believed* and neither was re-derived, which is exactly the failure mode `.8` itself diagnosed one
+level down — *a bound satisfied without binding*, restated as *a claim published without deriving*.
+
+⭐⭐ **#2 is a STRONGER finding than the one it corrects, and that is the argument for auditing.**
+The card did not rot into falsehood over weeks; it **shipped already-false**. Its `reverify:` never
+passed on any commit of its life. That changes `.9`'s design space — see the corrected routing
+evidence in `.9` above: an author-time check at card creation may dominate a standing corpus
+ratchet, and that option did not exist while the finding was "cards go stale".
+
+⭐ **#3 is the doctrine this repository already enforces, applied to itself.** `GATE-REACHABILITY`
+exists because *"a check that nothing INVOKES is indistinguishable from a check that does not
+exist"*. A routed leaf that the layer-B index does not name by id is the same shape: a future
+session greps `docs/TASK_TREE.md` for `README-POLICY.9`, finds nothing, and the routing is inert.
+Fixed by naming it tree-qualified in the index row.
+
+⭐ **#4 is the subtler one.** `if [ -n "$layer_a_bytes" ] … else echo "memory-arch: OK"` reads as
+defensive. It cannot run: the only way those stay empty is a missing `MEMORY.md`, which calls
+`note` → `fail=1` → the whole OK block is skipped. Probed directly rather than argued. A fallback
+that cannot execute is worse than no fallback, because the next reader trusts it and reasons from a
+case that was never handled. Removed, with the proof recorded at the site.
+
+#### Acceptance Checklist (enforced by `scripts/check_diagnosis_evidence.sh`)
+
+- [x] **REPRODUCE / ISSUE** — four claims in `-0008` re-derived; all four wrong or unbacked, all in
+  the passing direction. Table above.
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. **#3 WHERE**, verbatim:
+  `git ls-files docs/TASK_TREE.md` is tracked, and `grep -c 'README-POLICY\.9' docs/TASK_TREE.md`
+  → **`0`** while `grep -o '\*\*`\.9` NEW\*\*'` → 1 hit ⇒ the leaf exists only as unqualified prose.
+  **#2 WHERE**, verbatim: `git log --diff-filter=A --date=short` on the card → `0457cb0e 2026-08-09`
+  against the threshold crossing at `df180942 2026-08-08 7113B` (derived with `git rev-list
+  --reverse` + `git cat-file -s`). **#4 WHERE**, probed not argued: `MEMORY.md` moved aside →
+  `memory-arch: MEMORY.md (layer A resume pointer) is missing`, `rc=1`, the OK block never reached.
+  **WHY, common to all four**: each number was carried over from an adjacent measurement or a
+  plausible narrative instead of being re-derived at the point of publication.
+- [x] **FIX** — tier: *declarative/docs* for #1-#3 (correct forward in place, per this repo's
+  append-only history discipline — never rewrite the original claim, state it and correct it);
+  *code* for #4 (delete the unreachable branch, record the proof in-source). No lower tier exists
+  for #4: the branch either runs or it does not, and it does not.
+- [x] **ADDRESSED (verified)** — #1 `94`/`94` now quoted from `ls`+`grep -l` output pasted into
+  `.9`; #2 both commit hashes and dates pasted into `.9`; #3 `grep -c 'README-POLICY\.9'
+  docs/TASK_TREE.md` **0 → ≥1**; #4 the dead branch is gone and the enforcer still prints
+  `memory-arch: OK (layer A …/32768 bytes = …% of cap, …/50 lines = …% of cap)` on the passing
+  path, `rc=0`.
+- [x] **NO REGRESSION** — the pre-audit enforcer re-executed from `git show HEAD:` and diffed
+  against this one: **byte-identical including `rc`** on the failing path
+  (`MEMORY_POINTER_BYTE_CAP=100`) and on the passing path, since the only removed code was
+  unreachable. Both caps re-proven RED (`BYTE_CAP=7000` → rc 1; `LINE_CAP=20` → rc 1).
+  `bash -n scripts/check_memory_architecture.sh` clean. `bash scripts/check_doctrines.sh` →
+  **ALL 18 doctrines PASS** with the change staged; `knowledge-map: OK (facts valid, ids unique,
+  map in sync)`. No grammar, Rust or generated bytes touched ⇒ clippy N/A by `COMMIT.md` step 2.
+- [x] **LOCKSTEP** — `.9`'s routing evidence corrected forward (both numbers, with output);
+  `docs/TASK_TREE.md` (the `.9` id, tree-qualified); `scripts/check_memory_architecture.sh`;
+  `ENGINE-UNIVERSAL-SERVICES.20` (the delegated ruling, below); `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`. ⛔ **LIVE STATUS REVIEWED AND UNCHANGED** — no parser,
+  grammar, codegen or generated byte is touched. ⭐ `promotion: declined (the lesson is an instance
+  of the existing card `a-cap-with-no-headroom-…`'s own thesis — publish-what-you-derived — and
+  `.9` is the leaf that owns turning it into a mechanism; a second card would fork the topic before
+  the mechanism exists)`.
 
 ---
 

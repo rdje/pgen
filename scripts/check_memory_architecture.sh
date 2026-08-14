@@ -218,13 +218,17 @@ fi
 # nothing said so, because a passing gate printed the same three characters at 5,720 bytes as at
 # 7,168. This is REPORTING ONLY — it adds no failure path and cannot change any verdict, which is
 # why it is safe to run on every commit; the caps above remain the sole gate.
+# ⛔ NO EMPTY-VALUE FALLBACK, AND THAT IS PROVEN RATHER THAN ASSUMED (README-POLICY.10). The first
+# cut guarded this with `if [ -n "$layer_a_bytes" ] … else echo "memory-arch: OK"`, which reads as
+# prudent and is DEAD CODE: the only way those stay empty is a missing MEMORY.md, which calls
+# `note` and sets fail=1, so this whole block is skipped. Probed directly — MEMORY.md moved aside
+# prints `MEMORY.md (layer A resume pointer) is missing` and exits 1, never reaching here. A
+# fallback that cannot run is worse than none: it advertises a handled case that was never handled,
+# and the next reader trusts it. If a future edit makes a passing run possible with no MEMORY.md,
+# `set -u` fails loudly here — which is the correct outcome, not a silent bare OK line.
 if [ "$fail" -eq 0 ]; then
-  if [ -n "$layer_a_bytes" ] && [ -n "$layer_a_lines" ]; then
-    printf 'memory-arch: OK (layer A %s/%s bytes = %d%% of cap, %s/%s lines = %d%% of cap)\n' \
-      "$layer_a_bytes" "$BYTE_CAP" "$(( layer_a_bytes * 100 / BYTE_CAP ))" \
-      "$layer_a_lines"  "$CAP"      "$(( layer_a_lines * 100 / CAP ))"
-  else
-    echo "memory-arch: OK"
-  fi
+  printf 'memory-arch: OK (layer A %s/%s bytes = %d%% of cap, %s/%s lines = %d%% of cap)\n' \
+    "$layer_a_bytes" "$BYTE_CAP" "$(( layer_a_bytes * 100 / BYTE_CAP ))" \
+    "$layer_a_lines"  "$CAP"      "$(( layer_a_lines * 100 / CAP ))"
 fi
 exit $fail

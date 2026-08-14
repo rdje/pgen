@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-README-POLICY-0009 — every defect a self-audit found was in the flattering direction, and that is the whole reason to run one
+
+Four claims from `-0008` were re-derived rather than restated. All four were wrong or unbacked, and
+**none of them would have been caught by any gate**, because a wrong number that is close enough to
+be believed produces no failure anywhere.
+
+**1. The two number defects are one defect wearing two hats.** *"117 cards"* was lifted from an
+adjacent measurement — the map generator prints `117 facts, 814 question keys`, and facts are not
+cards (94). *"RED for weeks"* was inferred from a plausible story rather than a `git` query. Both
+were *publishable-looking*. The discipline that catches this is not review, it is: **re-derive at
+the point of publication, and paste the derivation next to the number.** `-0008` did exactly that
+for its own root-cause table and every one of those numbers held; it did not for the two numbers it
+wrote in prose, and both were wrong. The correlation is not a coincidence.
+
+**2. Measuring #2 properly made the finding worse, not smaller.** The card was authored 2026-08-09;
+layer A had crossed its threshold 2026-08-08. It never had a green day. So the mechanism defect is
+not decay — nothing decayed — it is that **a `reverify:` is not executed even by the commit that
+introduces it**. An author-time check is now a live option in `.9` and it was not before, because
+"cards go stale" implies a periodic sweep while "cards ship false" implies a write-time gate. The
+wrong diagnosis would have produced the wrong instrument.
+
+**3. A routed leaf that the index does not name by id is inert.** `.9` was written into
+`README-POLICY.md` and referred to in the index as `` **`.9` NEW** ``. A future session greps the
+index for `README-POLICY.9` and finds nothing. This is `GATE-REACHABILITY`'s founding argument —
+*a check that nothing invokes is indistinguishable from a check that does not exist* — with
+"routed finding" substituted for "gate". Routing is only routing if the destination is addressable.
+
+**4. Dead defensive code is worse than no defensive code.** `else echo "memory-arch: OK"` cannot
+run: an absent `MEMORY.md` calls `note`, sets `fail=1`, and skips the whole block. Proven by moving
+the file aside rather than by reading the control flow. The cost is not the branch, it is that the
+next reader reasons from a handled case that was never handled. Removed; the proof lives at the
+site so it is not re-added.
+
+**5. On the delegated `.20` ruling: a fused question cannot be answered at signoff quality.** "Ship
+or hold" bundles *does the code stay*, *may it reach Done*, and *what order does the work go in*.
+Answering the bundle is precisely how "ship and burn down" degrades into "accept the cost" — the
+first sub-answer (yes, keep it) silently supplies the third (so nothing needs to change). Split
+into A/B/C, the honest answer is keep-it **and** no-waiver **and** guard-before-profile, and the
+middle clause is the one doing the work. The technical substance is in C: a wall-clock ratchet
+would inherit the exact machine-variance defect that produced this leaf's wrong `~11 %`, so the
+ratchet keys on **deterministic rule-entry counts** with wall-clock demoted to advisory — and it
+declares the honest bound that entry counters observe the protocol graph, not the fused cascade
+graph the regression was measured on.
+
 ## 2026-08-14 - PGEN-README-POLICY-0008 — a cap with no headroom stops bounding the layer and starts editing the prose
 
 A director instruction ("if you ever face a MEMORY.md size issue, raise the cap to 32,768 B")
