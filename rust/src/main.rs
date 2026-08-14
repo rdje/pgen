@@ -460,21 +460,21 @@ struct Args {
     #[arg(long)]
     no_eliminate_indirect_left_recursion: bool,
 
-    /// ENGINE-UNIVERSAL-SERVICES.17 slice 8 — admit the GUARD-FEASIBLE candidate population on this
-    /// run, so the call-site guarded clone chains the planner synthesizes reach CODEGEN and can be
-    /// executed.
+    /// ENGINE-UNIVERSAL-SERVICES.17 slice 9 — NARROW the indirect-LR admission back to the
+    /// STARVATION-SAFE candidate population: the policy every generated parser shipped under up to
+    /// PGEN-ENGINE-UNIVERSAL-SERVICES-0030, before the flip.
     ///
     /// ⛔⛔ NOT the shipped policy, and nothing in `rust/Makefile` passes this. The shipped
-    /// admission is "no surviving starvation site", which by construction never produces a guard —
-    /// so `--report-indirect-lr-plan` reports `indirect_guard_chains=0` on every family and every
-    /// generated parser is guard-free. This flag exists because "the emitted guard PARSES" cannot be
-    /// measured without generating a parser from the emission.
+    /// admission is guard-feasible, so `--report-indirect-lr-plan` reports
+    /// `indirect_guard_chains=3` on SystemVerilog; under this flag it reports 0 and the cast/call
+    /// and property knots go back to being DECLINED.
     ///
-    /// ⛔ The rewrite it produces is a REAL grammar change: candidates the shipped criterion refuses
-    /// as STARVED are absorbed, and their surviving starvation sites get a guarded clone chain. Use
-    /// it on a probe grammar, never to build a deliverable. The pass prints a warning banner.
+    /// ⛔ A parser built with this flag REJECTS LRM-legal SystemVerilog — `8'(1)` in a constant
+    /// expression, which is ENGINE-UNIVERSAL-SERVICES.13's founding defect and two OpenTitan corpus
+    /// rows. It exists so a before→after can be measured on ONE binary; it is a measurement arm,
+    /// never a way to build a deliverable. The pass prints a warning banner.
     #[arg(long)]
-    indirect_lr_admit_guard_feasible: bool,
+    indirect_lr_admit_starvation_safe_only: bool,
 
     /// Include search directory for SystemVerilog preprocessor mode (can be used multiple times)
     #[arg(long, requires = "preprocess_systemverilog")]
@@ -1108,11 +1108,11 @@ fn pipeline_main() -> Result<()> {
     if args.no_eliminate_indirect_left_recursion {
         config.eliminate_indirect_left_recursion = false;
     }
-    // ENGINE-UNIVERSAL-SERVICES.17 slice 8 — opt-in only, and the two switches are independent:
-    // skipping the indirect pass and widening its admission are different questions, so a caller
+    // ENGINE-UNIVERSAL-SERVICES.17 slice 9 — opt-in only, and the two switches are independent:
+    // skipping the indirect pass and narrowing its admission are different questions, so a caller
     // passing both gets the skip (the pass never runs, so there is nothing to admit).
-    if args.indirect_lr_admit_guard_feasible {
-        config.indirect_lr_admit_guard_feasible = true;
+    if args.indirect_lr_admit_starvation_safe_only {
+        config.indirect_lr_admit_starvation_safe_only = true;
     }
 
     let mut pipeline = RustASTPipeline::new(config);
@@ -4586,6 +4586,43 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     }
 }
 
+/// ENGINE-UNIVERSAL-SERVICES.17 slice 9 — render the synthesized call-site guard chains.
+///
+/// ⛔ **ONE renderer, two callers, and that is the point.** The SHIPPED report block and the
+/// opt-in dry-run block describe the same structure and were two separate `for` loops until the
+/// flip made the shipped one non-empty; two spellings of one block is two things that have to agree
+/// and eventually will not ([[a-report-must-be-computed-from-the-artifact-it-describes]]).
+///
+/// ⛔ `verb` is the ONLY difference, and it is load-bearing rather than cosmetic: a scraper must be
+/// able to tell whether it read what the pass DID (`guard`) or what a dry run predicts it WOULD do
+/// (`would guard`) without tracking which section it is inside. The two blocks print in one report.
+///
+/// ⭐ `max_hops` is printed rather than left to be counted off `chain:`. `.17` acceptance (d) is
+/// stated in hops — *"exercise a multi-hop chain, or MEASURE that the picks are all `max_hops=0`"* —
+/// and a criterion whose input has to be derived by eye from a joined list is one that gets
+/// eyeballed wrong. It is `chain.len() - 1` by construction, computed here from the chain itself.
+fn print_synthesized_guards(
+    guards: &[pgen::ast_pipeline::indirect_lr_elimination::SynthesizedGuard],
+    verb: &str,
+) {
+    for guard in guards {
+        println!(
+            "    🛡  {} '{}' [{}]  chain: {} (max_hops={})  residual '{}'",
+            verb,
+            guard.guarded_base_rule,
+            guard.positions,
+            guard.chain.join(" > "),
+            guard.chain.len().saturating_sub(1),
+            guard.residual
+        );
+        println!(
+            "        sites: {}   rules: {}",
+            guard.call_sites.join(", "),
+            guard.rules.join(", ")
+        );
+    }
+}
+
 /// ENGINE-UNIVERSAL-SERVICES.13 slice 4 — print the INDIRECT left-recursion survey.
 ///
 /// ⛔ It plans; it does not apply. The value it adds over `--lint-grammar` is that the lint says a
@@ -4630,10 +4667,9 @@ fn run_indirect_lr_plan_report(
     // says it could do. ⛔ A candidate the survey calls MAY-ABSORB that the pass nonetheless left
     // standing is the single most misleading reading of this report, so the refusal that explains
     // it is printed here rather than left in a trace-gated log line.
-    // ⛔ `indirect_guard_chains` is `.17` slice 7's SHIPPED-PATH counter, and it is printed even
-    // though it is expected to be 0 everywhere. The guard planner runs unconditionally; what keeps
-    // it silent on a shipped parser is that the admission criterion is "no surviving starvation
-    // site" and a guard exists only for one. That is an argument — this number is the check on it.
+    // ⛔ `indirect_guard_chains` is `.17` slice 7's SHIPPED-PATH counter. It was 0 on every family
+    // until `.17` slice 9 flipped the admission; it is now 3 on SystemVerilog and still 0 elsewhere,
+    // and the number remains the check on the argument rather than the argument itself.
     println!(
         "indirect_eliminated_base_rules={} indirect_clone_rules={} indirect_refusals={} \
          indirect_guard_chains={}",
@@ -4645,6 +4681,14 @@ fn run_indirect_lr_plan_report(
     for rule in &elimination.indirect_eliminated_base_rules {
         println!("    ✅ absorbed at '{rule}'");
     }
+    // ⛔⛔ `.17` slice 9 — WHICH guards, on the SHIPPED path. Before the flip this block did not
+    // exist and did not need to: the counter above was 0 on every family by construction, and the
+    // only detail renderer lived in the opt-in dry run. The flip moved the guards onto the
+    // deliverable path and would have left the instrument describing them behind — so an operator
+    // asking *"what did the engine put in my parser?"* would have received a count and no names.
+    // ⭐ Same renderer as the dry run, deliberately: two spellings of one block is two things that
+    // have to agree ([[a-report-must-be-computed-from-the-artifact-it-describes]]).
+    print_synthesized_guards(&elimination.indirect_guard_chains, "guard");
     for refusal in &elimination.indirect_refusals {
         println!("    ⛔ REFUSED '{}': {}", refusal.base_rule, refusal.reason);
     }
@@ -4929,21 +4973,10 @@ fn run_indirect_lr_plan_report(
         //
         // ⛔ It is still not a claim that the rewrite PARSES — the qualifier above stands, and this
         // block only narrows what remains unmeasured from "no guard exists" to "the guard exists and
-        // its parses are the next slice's burden".
-        for guard in &outcome.synthesized_guards {
-            println!(
-                "    🛡  guard '{}' [{}]  chain: {}  residual '{}'",
-                guard.guarded_base_rule,
-                guard.positions,
-                guard.chain.join(" > "),
-                guard.residual
-            );
-            println!(
-                "        sites: {}   rules: {}",
-                guard.call_sites.join(", "),
-                guard.rules.join(", ")
-            );
-        }
+        // its parses are the next slice's burden". (`.17` slice 8 discharged that burden; since
+        // slice 9 this dry run measures what the SHIPPED admission has left to do, which on every
+        // family today is nothing.)
+        print_synthesized_guards(&outcome.synthesized_guards, "would guard");
         for refusal in &outcome.refusals {
             println!(
                 "    ⛔ would still REFUSE '{}': {}",

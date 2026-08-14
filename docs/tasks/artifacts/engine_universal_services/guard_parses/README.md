@@ -29,11 +29,22 @@ sibling `guard_effectiveness/` bank, whose `g0`–`g7` are hand-eliminated post-
 
 | arm | how the parser is generated | what PGEN does with the grammar |
 |---|---|---|
-| **A** | `make -C rust focus_scratch` — the shipped path | `starvation-safe candidates: 0/3` ⇒ **nothing absorbed**, the cycle survives |
-| **B** | the same generator line **plus** `--indirect-lr-admit-guard-feasible` | `prim` absorbed **and** its surviving starvation site guarded |
+| **A** | the same generator line **plus** `--indirect-lr-admit-starvation-safe-only` | `starvation-safe candidates: 0/3` ⇒ **nothing absorbed**, the cycle survives |
+| **B** | `make -C rust focus_scratch` — the shipped path | `prim` absorbed **and** its surviving starvation site guarded |
 
 Both arms of a grammar compile the **same** `generated/scratch.json`, produced by arm A. The
 admission is the only difference.
+
+⛔⛔ **THE ARMS SWAPPED WHICH ONE CARRIES THE FLAG AT `.17` SLICE 9, AND NOT ONE EXPECTATION MOVED.**
+This bank was written while the narrow admission shipped: arm A was the bare `make` path and arm B
+opted in with `--indirect-lr-admit-guard-feasible`. Slice 9 flipped the shipped criterion, so the
+lever inverted and the arms traded places. **Every parse verdict and every structural count is
+byte-identical to what slice 8 recorded** — which is the strongest statement this file can make about
+the flip: what used to require a flag is what `make` now produces, and the rows that proved it did
+not have to be renegotiated.
+
+⭐ The **banner** rows are the only two that inverted, and necessarily: the warning follows the
+non-shipped policy, and the non-shipped policy changed sides. Arm A now prints it; arm B does not.
 
 ## Why there are TWO grammars, and it is the bank's most important line
 

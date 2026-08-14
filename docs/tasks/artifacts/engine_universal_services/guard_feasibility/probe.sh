@@ -61,7 +61,27 @@ if ! scripts/require_ast_pipeline_features.sh "$PIPELINE" ebnf_dual_run >/dev/nu
   exit 2
 fi
 
-SV_REPORT="$("$PIPELINE" grammars/systemverilog.ebnf --report-indirect-lr-plan 2>/dev/null)"
+# ⛔⛔ `.17` SLICE 9 — THE SYSTEMVERILOG REPORTS ARE TAKEN UNDER THE NARROWED ADMISSION, AND EVERY
+# DECLARED VALUE BELOW IS UNCHANGED BECAUSE OF IT.
+#
+# This bank is a CENSUS OF THE KNOTS THE ELIMINATOR HAS NOT ABSORBED — starvation-safe vs
+# guard-feasible, the residual FIRST sets, the seed tails. Its subject only exists while the knots
+# survive. Slice 9 flipped the shipped admission, so a bare report now arrives with the cast/call and
+# property knots ALREADY absorbed and prints `candidates=0`: an empty census, which would read as
+# "the price of option (iii) is zero" when it means "option (iii) has shipped".
+#
+# ⇒ the lever names the population these rows are about. ⭐ The precedent is inside this same file:
+# C10 has always passed `--no-eliminate-indirect-left-recursion` to see `ebnf`'s knot before the pass
+# eats it, for exactly this reason and with the reason written beside it. This is that pattern
+# applied to the two knots that changed hands.
+#
+# ⛔ The WRAPPER reports deliberately do NOT take the lever: its 13 candidates are refused for a
+# missing return annotation under either admission, so its rows measure the same population either
+# way — and leaving them on the shipped path is what makes C6/C7b a control on the flip's blast
+# radius rather than a copy of the SV rows.
+NARROW="--indirect-lr-admit-starvation-safe-only"
+
+SV_REPORT="$("$PIPELINE" grammars/systemverilog.ebnf --report-indirect-lr-plan "$NARROW" 2>/dev/null)"
 WRAPPER_REPORT="$("$PIPELINE" grammars/systemverilog_lrm_profiled_wrapper.ebnf \
   --report-indirect-lr-plan 2>/dev/null)"
 
@@ -166,7 +186,7 @@ check C6 "wrapper: starvation-safe / guard-feasible" \
 # per site line and appears nowhere else, and `~ hops=` is the approximation marker in its ONLY
 # position — which also stops a `~` BYTE inside a rendered set from being counted as the marker.
 SV_REPORT_ALL="$(PGEN_INDIRECT_LR_DUMP_ALL=1 "$PIPELINE" grammars/systemverilog.ebnf \
-  --report-indirect-lr-plan 2>/dev/null)"
+  --report-indirect-lr-plan "$NARROW" 2>/dev/null)"
 sv_sites="$(grep -o '\[guard=' <<< "$SV_REPORT_ALL" | wc -l | tr -d ' ')"
 sv_approx="$(grep -o '~ hops=' <<< "$SV_REPORT_ALL" | wc -l | tr -d ' ')"
 check C7 "systemverilog: OVER-approximated guard byte tests / all sites (uncapped)" \
@@ -227,7 +247,7 @@ check C9a "systemverilog: 'casting_type' (the driver's pick) owes no trailing gu
 check C9b "systemverilog: 'constant_primary' carries the seed slice 4 described" \
   "$(seed_routes_of "$SV_REPORT" constant_primary)" "seed_routes=10/10"
 check C9c "systemverilog: the eliminator builds no clone for the dropped closers" \
-  "$("$PIPELINE" grammars/systemverilog.ebnf --report-indirect-lr-plan \
+  "$("$PIPELINE" grammars/systemverilog.ebnf --report-indirect-lr-plan "$NARROW" \
       --indirect-lr-plan-guard-dry-run --indirect-lr-plan-json /dev/stdout 2>/dev/null \
     | grep -cE '"casting_type_lr_seed_(cast|constant_cast)"' || true)" "0"
 # ⛔ `ebnf` is the grammar whose knot the pass ACTUALLY absorbs today, so a non-zero here would mean

@@ -32,9 +32,12 @@
 #   D10 SV: which chains, with POSITIONS casting_type ×2 [loop], property_expr ×1 [loop+trailing] —
 #                                      and the split is slice 5's per-candidate `seed:` verdict
 #                                      reproduced by a DIFFERENT code path
-#   D11 ⛔⛔ the SHIPPED path emits NONE  indirect_guard_chains=0 on all three grammars. This is the
-#                                      check on "a starvation-safe candidate has no site to guard",
-#                                      which is otherwise an argument.
+#   D11 ⛔⛔ the SHIPPED path emits THESE the EXACT chain set, at `.17` slice 9. It read
+#       (was: emits NONE)              `indirect_guard_chains=0` while the narrow admission shipped;
+#                                      the flip made that reading pin the ABSENCE of the fix, so the
+#                                      protection is now an exact set (D11), its counter (D11a), the
+#                                      unchanged zero on the other families (D11b) and the hop census
+#                                      acceptance (d) is stated in (D11c).
 #   D12 ⛔ the census UNDER-COUNTS       `casting_type` reports `variants=1` and the planner emits
 #       the CHAINS                     TWO chains. `guard_variants` keys on a residual BYTE SET and
 #                                      the shipped guard is STRUCTURAL: `tick lparen
@@ -90,14 +93,37 @@ if ! scripts/require_ast_pipeline_features.sh "$PIPELINE" ebnf_dual_run >/dev/nu
   exit 2
 fi
 
+# ⛔⛔ `.17` SLICE 9 — EVERY REPORT BELOW IS TAKEN UNDER THE NARROWED ADMISSION, AND THAT IS WHAT
+# KEEPS D1-D10/D12/D13 MEANING WHAT THEY MEANT.
+#
+# This bank measures ONE quantity: *what does admitting the guard-feasible population unlock, over
+# and above the starvation-safe one?* Until slice 9 the starvation-safe population was what the
+# pipeline applied, so the baseline was free — a bare `--report-indirect-lr-plan` produced it. The
+# flip made the guarded admission the applied one, so a bare report now arrives with both knots
+# ALREADY absorbed and the dry run correctly answers `would_absorb=0`: nothing left to unlock.
+#
+# ⛔ Reading that as "option (iii) stopped working" would be exactly backwards — it is option (iii)
+# having SHIPPED. So the baseline is now requested explicitly with the A/B lever, and every declared
+# value in D1-D10, D12 and D13 is byte-for-byte the one slice 7 recorded. ⭐ That invariance is the
+# finding: what the dry run predicted the flip would do is what the flip did.
+#
+# ⛔ The one case that MUST move is D11, and it moves in the direction the flip defines. It is
+# rewritten below rather than deleted, because "the shipped pass emits exactly these three guards"
+# is the same protection D11 always gave, pointed at the new policy.
+NARROW="--indirect-lr-admit-starvation-safe-only"
+
 dry_run_report() {
-  "$PIPELINE" "$1" --report-indirect-lr-plan --indirect-lr-plan-guard-dry-run 2>/dev/null
+  "$PIPELINE" "$1" --report-indirect-lr-plan --indirect-lr-plan-guard-dry-run "$NARROW" 2>/dev/null
 }
 
 SV_REPORT="$(dry_run_report grammars/systemverilog.ebnf)"
 WRAPPER_REPORT="$(dry_run_report grammars/systemverilog_lrm_profiled_wrapper.ebnf)"
 EBNF_REPORT="$(dry_run_report grammars/ebnf.ebnf)"
-SV_PLAIN="$("$PIPELINE" grammars/systemverilog.ebnf --report-indirect-lr-plan 2>/dev/null)"
+SV_PLAIN="$("$PIPELINE" grammars/systemverilog.ebnf --report-indirect-lr-plan "$NARROW" 2>/dev/null)"
+# The SHIPPED report — no lever, i.e. what `make` builds every family from. D11's subject.
+SV_SHIPPED="$("$PIPELINE" grammars/systemverilog.ebnf --report-indirect-lr-plan 2>/dev/null)"
+WRAPPER_SHIPPED="$("$PIPELINE" grammars/systemverilog_lrm_profiled_wrapper.ebnf --report-indirect-lr-plan 2>/dev/null)"
+EBNF_SHIPPED="$("$PIPELINE" grammars/ebnf.ebnf --report-indirect-lr-plan 2>/dev/null)"
 
 fail=0
 checks=0
@@ -182,7 +208,7 @@ check D7 "ebnf: would_absorb / would_refuse" \
 # unaffected. A dry-run section appearing without the flag would mean the report now applies plans
 # to a clone on every invocation, which is a different tool than the one slice 2's bank pins.
 check D8 "the default report carries no dry-run section" \
-  "$(grep -c 'GUARD DRY-RUN' <<< "$SV_PLAIN")" "0"
+  "$(grep -c 'GUARD DRY-RUN' <<< "$SV_SHIPPED")" "0"
 
 # ---- `.17` slice 7 — the EMISSION.
 
@@ -193,7 +219,18 @@ guards_of() {
 }
 
 # Each synthesized chain as `<guarded rule>[<positions>]`, in emission order.
+#
+# ⛔ `.17` slice 9 — anchored on `would guard`, the DRY-RUN verb. The renderer is now shared by two
+# blocks in ONE report (the shipped pass's `guard` and the dry run's `would guard`), so an anchor on
+# the bare marker would sum two populations the way D5b's first draft did. The verb is the
+# discriminator and it exists for this reason.
 chains_of() {
+  grep '^    🛡  would guard ' <<< "$1" \
+    | sed -E "s/.*would guard '([^']+)' \[([^]]+)\].*/\1[\2]/" | paste -sd, -
+}
+
+# The same, for the SHIPPED block — the guards a generated parser actually contains.
+shipped_chains_of() {
   grep '^    🛡  guard ' <<< "$1" \
     | sed -E "s/.*guard '([^']+)' \[([^]]+)\].*/\1[\2]/" | paste -sd, -
 }
@@ -215,14 +252,38 @@ check D10 "systemverilog: the chains, with their guard positions" \
   "$(chains_of "$SV_REPORT")" \
   "casting_type_lr_guard0[loop],casting_type_lr_guard1[loop],property_expr_lr_guard0[loop+trailing]"
 
-# ⛔⛔ D11 IS THE ONE THAT PROTECTS EVERY SHIPPED PARSER. The guard planner runs unconditionally; what
-# keeps it silent on the shipped path is that the admission criterion is "no surviving starvation
-# site" and a guard exists only for one. A non-zero here means a parser-behaviour change landed —
-# owed a two-sided repro ratchet and a corpus re-measure — whether or not anyone meant it.
-check D11 "systemverilog: the SHIPPED pass synthesizes no guard" \
-  "$(shipped_guards_of "$SV_PLAIN")" "0"
-check D11b "wrapper + ebnf: the SHIPPED pass synthesizes no guard" \
-  "$(shipped_guards_of "$WRAPPER_REPORT"),$(shipped_guards_of "$EBNF_REPORT")" "0,0"
+# ⛔⛔ D11 IS THE ONE THAT PROTECTS EVERY SHIPPED PARSER, AND `.17` SLICE 9 TURNED IT AROUND WITHOUT
+# WEAKENING IT. It read `= 0` while the shipped admission was starvation-safe-only: the guard planner
+# runs unconditionally, and what kept it silent was that a starvation-safe candidate has no site to
+# guard. That protection was "a non-zero here is an unintended parser change".
+#
+# Slice 9 made the guarded admission the shipped one, so `= 0` would now pin the ABSENCE of the fix.
+# The equivalent protection is an EXACT SET, not a count: these three chains, at these two rules, with
+# these positions, and nothing else. It fails on a silent revert (the set empties), on an accidental
+# widening (a fourth chain appears) and on a re-plan that moves a guard position — all three of which
+# are parser-behaviour changes owed a two-sided ratchet and a corpus re-measure.
+#
+# ⭐ Stronger than what it replaced, and deliberately so: the old form could not distinguish "0
+# because the criterion holds" from "0 because the pass silently stopped running".
+check D11 "systemverilog: the SHIPPED pass emits exactly the three guard chains" \
+  "$(shipped_chains_of "$SV_SHIPPED")" \
+  "casting_type_lr_guard0[loop],casting_type_lr_guard1[loop],property_expr_lr_guard0[loop+trailing]"
+check D11a "systemverilog: the SHIPPED guard-chain counter agrees with that set" \
+  "$(shipped_guards_of "$SV_SHIPPED")" "3"
+# ⛔ The wrapper and `ebnf` stay at ZERO under the SHIPPED admission, and that is the blast-radius
+# bound: the flip is a change to a criterion, not to a grammar, so a family whose knots were never
+# guard-feasible sees nothing. A non-zero here would mean the flip reached a family this slice never
+# measured a ratchet for.
+check D11b "wrapper + ebnf: the SHIPPED pass still synthesizes no guard" \
+  "$(shipped_guards_of "$WRAPPER_SHIPPED"),$(shipped_guards_of "$EBNF_SHIPPED")" "0,0"
+# ⛔⛔ D11c — `.17` ACCEPTANCE (d), MECHANISED. The obligation on the slice that flips the admission
+# is "exercise a multi-hop chain end to end, or MEASURE that your own picks are all max_hops=0".
+# This is that measurement, derived by the tool rather than counted off a joined chain by eye: the
+# set of hop counts across every guard SystemVerilog actually ships. `0` means the hop clone
+# (`X_lr_guard{v}_<hop>`) is on no shipped path, so its end-to-end coverage remains slice 8's
+# `guard_parses` bank. A non-zero appearing here is the trigger to exercise it on the real grammar.
+check D11c "systemverilog: the hop counts of every SHIPPED guard chain" \
+  "$(grep -oE 'max_hops=[0-9]+' <<< "$SV_SHIPPED" | sort -u | paste -sd, -)" "max_hops=0"
 
 # ⛔ D12 — the census figure is a LOWER BOUND on the chain count, pinned as a PAIR so the gap is the
 # measurement. `guard_variants` keys on the residual's FIRST BYTE SET, which is what the DEAD byte-
@@ -233,7 +294,7 @@ check D11b "wrapper + ebnf: the SHIPPED pass synthesizes no guard" \
 # and the emission side on the `🛡  guard '` marker in its only legal position — NOT on the bare rule
 # name, which also appears inside every `rules:` list.
 check D12 "casting_type: census variants vs chains the planner emits" \
-  "$(grep -A2 "^\[candidate\] casting_type " <<< "$SV_REPORT" | grep -m1 -oE 'variants=[0-9]+' | cut -d= -f2),$(grep -c "^    🛡  guard 'casting_type_lr_guard" <<< "$SV_REPORT")" \
+  "$(grep -A2 "^\[candidate\] casting_type " <<< "$SV_REPORT" | grep -m1 -oE 'variants=[0-9]+' | cut -d= -f2),$(grep -c "^    🛡  would guard 'casting_type_lr_guard" <<< "$SV_REPORT")" \
   "1,2"
 
 # ⛔⛔ D13 — THE SECOND UNDER-PRICE, and it is the same shape as D12 one field over. `hops=` is the

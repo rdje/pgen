@@ -4700,6 +4700,620 @@ never from a neighbouring measurement"*, and the bank's header now says so at th
   *wrong*, this one about a correct message never being *delivered*, and the retrieval key is
   different ("why did nothing print?" vs "is this number about the artifact?").
 
+##### ⭐⭐⭐ `.17` SLICE 9 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0032`, 2026-08-14 session #232) — THE FLIP: the guarded admission is what PGEN ships, and `generated/systemverilog_parser.rs` is the one artifact that moved
+
+> ⛔⛔ **THE SHIPPED-PARSER CHANGE THIS LEAF HAS BEEN BUILDING TOWARD SINCE SLICE 4.** `.13`'s
+> founding defect — an LRM-legal SystemVerilog cast that PGEN could not parse — closes on the
+> deliverable path, not on a synthetic and not behind a flag. Slice 7b's correction, verbatim:
+> *"slice 8 = the emitted guard PARSES (the ratchet's first leg), **slice 9 = the flip**."*
+>
+> ⛔ Scope, stated as a boundary rather than as a promise: **one criterion changed**, in
+> `eliminate_indirect_left_recursion`. No grammar byte, no codegen change, no new capability. Every
+> mechanism this slice ships was built by slices 4–8 and measured then; slice 9 is the decision to
+> use it.
+
+###### THE ONE-LINE CHANGE, AND WHY IT IS NOT A ONE-LINE SLICE
+
+```rust
+-        CandidateAdmission::StarvationSafe,     // 0 of 28 SV candidates admitted
++        CandidateAdmission::GuardFeasible,      // 16 of 28, each surviving site guarded
+```
+
+Everything else in the diff exists because that line moved: the opt-in door inverts into an A/B
+lever, four banks whose subject is *"the knots the eliminator has NOT absorbed"* have to name which
+admission they mean, and the report that describes what a parser contains has to start describing
+guards it never used to contain.
+
+###### ⭐⭐ RESULT 1 — THE FLIP'S OWN RED/GREEN PAIR WAS WRITTEN ONE SLICE AHEAD, AND IT FIRED VERBATIM
+
+`.17` slice 7's falsifiability list recorded plant 3 as: *"widen the shipped admission to
+`guard_admissible_candidates()` — **the exact edit slice 9 will make deliberately** ⇒
+`the_shipped_admission_synthesizes_no_guard_on_the_same_starved_knot` FAILS printing the whole
+`SynthesizedGuard` it emitted."* Slice 9 made that edit. Measured, before touching the test:
+
+```text
+test …::the_shipped_admission_synthesizes_no_guard_on_the_same_starved_knot ... FAILED
+  the shipped admission admits only starvation-SAFE candidates … — it emitted
+  [SynthesizedGuard { base_rule: "prim", guarded_base_rule: "prim_lr_guard0",
+    chain: ["ct", "prim"], positions: "loop+trailing",
+    residual: "\"'\" \"(\" lit \")\"", call_sites: ["outer_cast alt#0"], … }]
+```
+
+⭐⭐ **That discharges `CI-PARITY-GATE-ROT.29` acceptance (e) with no reconstructed artifact**, and it
+is the first instance in this family where that was true: the calibration pair for the flip is
+`git show 88b06424` — the pre-fix state IS the parent commit, because the defect this slice closes was
+not found *and fixed* inside one slice. ⇒ the acceptance (e) obligation is *"preserve the pre-fix
+state, or state why it needs no preserving"*, and this is the second answer.
+
+⛔ The test was **renamed and made two-sided**, not deleted: `the_narrowed_admission_synthesizes_no_guard_on_the_knot_the_shipped_one_guards`
+asserts both halves on one fixture. A control that only said *"the narrow door emits nothing"* would
+pass just as well on a repository where the flip was reverted and both doors were narrow — which is
+exactly the failure a rename invites.
+
+###### ⭐⭐ RESULT 2 — MEASURED ON ONE BINARY, VIA A LEVER THAT NOW NARROWS
+
+The opt-in widener `--indirect-lr-admit-guard-feasible` becomes the opt-in narrower
+`--indirect-lr-admit-starvation-safe-only`. ⛔ **The structural invariant slice 8 established is
+preserved in both directions**: the shipped call site names the shipped policy, so changing what
+ships is an edit to the function's own criterion and can never happen by a caller passing an
+argument. What inverted is which branch carries a flag.
+
+```text
+grammar                        NARROW (pre-flip)               SHIPPED (flipped)
+systemverilog                  left_recursion_unhandled=28     left_recursion_unhandled=0
+vhdl / ebnf / regex / json      …=0                            …=0
+rtl_frontend / rtl_const_expr   …=0                            …=0
+systemverilog_preprocessor      …=0                            …=0
+semantic_annotation / return_…  …=0                            …=0
+```
+
+⛔ **Every other SystemVerilog lint counter is IDENTICAL across the two arms** — `non_terminating=0`,
+`ordered_choice_shadowing=0`, `always_succeeds_alternatives=6`, `unreachable_rules=0`,
+`undefined_references=0`, `unbound_fact_kinds=0`, `nullable_repetition=0`, `profile_orphans=0`. Rule
+count 1488 → 1608. The shipped report absorbs at three rules (`casting_type`, `property_expr`,
+`incomplete_class_scoped_type_sv_2023` — the last was already absorbed pre-flip) with
+`indirect_clone_rules=24 indirect_guard_chains=3`.
+
+###### ⭐⭐ RESULT 3 — WHAT THE DRY RUN PREDICTED IS WHAT THE PASS DID, RULE FOR RULE
+
+`guard_dry_run/probe.sh` has predicted `would_absorb=2` at `casting_type` and `property_expr`,
+`clone_rules=24`, `guard_chains=3 guard_rules=6`, `left_recursive_rule_rows 28 -> 0` since slice 3.
+The shipped pass produced exactly that. ⭐ **Every declared value in that bank and in
+`guard_feasibility/probe.sh` is byte-identical after the flip** — 18/18 and 18/18 — once each is told
+which admission its census is about. That invariance is the finding: the dry run models the driver
+rather than approximating it, and this is the first time the two could be compared on the real
+grammar.
+
+###### ⛔⛔ RESULT 4 — FOUR BANKS MEASURE "THE SHIPPED GRAMMAR", AND THE FLIP MOVED WHAT THAT MEANS
+
+A census **of the knots the eliminator has not absorbed** is empty once the knots are absorbed. Both
+`guard_feasibility` (C1 `0/0 / 0/0`, C7 `0/0`, C8a `=0` …) and `guard_dry_run` (D1 `0/0`, D13 `0`)
+went RED on the first post-flip run, and **every one of those reds would have read as good news**:
+`0/28 → 0/0` looks like "no starved candidates", `129/129 → 0/0` looks like "no over-approximated
+guards", `would_absorb=2 → 0` looks like "nothing left to do". All three are the population having
+moved, not shrunk.
+
+⇒ each bank now names the admission its subject belongs to (`--indirect-lr-admit-starvation-safe-only`
+for the census rows, the bare path for the shipped rows), with the reason written at the variable.
+⭐ **The precedent was already inside one of them**: `guard_feasibility` C10 has always passed
+`--no-eliminate-indirect-left-recursion` to see `ebnf`'s knot before the pass eats it, with that
+reason beside it. The generalization is the finding —
+
+> **a bank pinned to "the shipped X" is pinned to a moving target, and it fails in the direction that
+> reads as success.**
+
+⇒ routed to `CI-PARITY-GATE-ROT.29` as a sixth instance and its first *non-scraper* one: nothing here
+mis-extracted a value; the extraction was correct and the SUBJECT changed underneath it.
+
+###### ⛔⛔ RESULT 5 — THE FLIP CREATED A REPORTING GAP AND THIS SLICE CLOSED IT
+
+Post-flip the ordinary report printed `indirect_guard_chains=3` and named **none of them**. The `🛡`
+detail renderer lived only in the opt-in dry-run block, because until this slice the shipped count was
+`0` by construction and there was nothing to render. ⇒ an operator asking *"what did the engine put in
+my parser?"* would have received a count.
+
+Fixed with ONE renderer shared by both blocks — two spellings of one block is two things that have to
+agree — distinguished by a **verb** that is load-bearing rather than cosmetic: the shipped block writes
+`🛡 guard '…'`, the dry run writes `🛡 would guard '…'`. Both print in one report, so a scraper can
+tell a fact from a prediction without tracking which section it is inside. ⛔ `guard_dry_run`'s
+`chains_of` and D12 were re-anchored onto the dry-run verb in the same edit; leaving them on the bare
+marker would have summed two populations, which is verbatim what D5b's first draft did.
+
+###### ⭐⭐ RESULT 6 — `.17` ACCEPTANCE (d), DISCHARGED BY MEASUREMENT AND MECHANISED
+
+The obligation on the flipping slice: *"either exercise a multi-hop chain end to end, or MEASURE and
+state that its own picks are all `max_hops=0` — silence is not an option."* Measured, and the
+instrument now computes it rather than leaving it to be counted off a joined chain by eye:
+
+```text
+systemverilog                  indirect_guard_chains=3   max_hops set: max_hops=0
+vhdl / ebnf / regex / json / rtl pair / sv preprocessor   indirect_guard_chains=0   (no chains)
+```
+
+⇒ **all three shipped picks are zero-hop**, so `X_lr_guard{v}_<hop>` is on no shipped path and its
+end-to-end coverage remains slice 8's `guard_parses` bank plus the unit tests. Stated, not silent.
+⛔ Pinned as bank `guard_dry_run` **D11c**, so the next slice that moves the admission or the
+candidate ordering is told by a failing row rather than by remembering to look.
+
+###### ⭐ RESULT 7 — A WIDER ADMISSION IS NOT A WEAKER ONE, and the control is a synthetic that absorbs NOTHING
+
+`p1_knot_a_defect.ebnf` is unannotated by design. Under the flip it gains a **third** refusal — `ct`,
+with the same named reason as the other two (*"hop 'cast_expr' alternative 0 declares no return
+annotation and its residual is … so the chain's AST cannot be composed faithfully"*) — and still
+absorbs nothing. ⇒ the guard admits a candidate to **planning**, not to absorption; every refusal
+downstream of the starvation gate still fires.
+
+⭐ That also protects a load-bearing dependency this leaf recorded as honest bound 2:
+`parse_harness_combinator_suite`'s `recursion_guarded_memo_isolation` needs P1's cycle to SURVIVE, and
+it does.
+
+⭐⭐ **And `p5_transparent_holder.ebnf` — `.17` acceptance (b)'s isolating synthetic — flips from
+`eliminated=0` to `eliminated=1 clone_rules=2 guard_chains=1`.** The one shape P1–P4 do not have is
+now fixed by the shipped pass.
+
+###### ⭐⭐⭐ RESULT 8 — THE TWO-SIDED RATCHET: TWO DEFECT ROWS FLIP, ZERO CONTROLS BREAK
+
+`stimuli/sv/run_adjudication_repros.py` is the instrument that caught the regression `.13` slice 5
+nearly shipped — *"neither the lint, nor 11 unit tests, nor the byte-identity of 10 generated
+parsers, nor 18/18 doctrines could see it"*. On the regenerated parser, before any manifest edit:
+
+```text
+ADJUDICATION-REPROS: checked=29 armed=7 listed=29 failures=2
+  ⛔ defect_constant_size_cast.sv:              expected REJECT, got ACCEPT
+  ⛔ defect_constant_size_cast_corpus_shape.sv: expected REJECT, got ACCEPT
+```
+
+⭐⭐ **Both failures are DEFECT REPRODUCERS THAT NOW PARSE** — the two rows whose manifest note has
+read *"FLIPS TO ACCEPT WHEN FIXED"* since `.13c.2`. ⛔ And the half that matters more: **not one
+control moved.** All 12 `control_*` rows, all 5 `fixed` rows and all 9 `invalid_*` over-acceptance
+guards hold — including `control_size_cast_in_statement.sv`, the exact row that read
+`expect=ACCEPT got=REJECT` on `.13` slice 5's over-eager version and stopped it shipping.
+
+⇒ re-baselined as the runner itself instructs — both rows to `expect=ACCEPT class=fixed`, citing this
+work unit — and re-run: **`checked=29 armed=7 listed=29 failures=0`**. ⭐ The ratchet is still
+two-sided after the edit, in the other direction: a revert now makes those rows REJECT and FAIL.
+
+###### ⭐⭐ RESULT 9 — AND IT REACHES REAL CORPUS TEXT, NOT ONLY THE REDUCED REPRO
+
+`.17` acceptance (c) names *"the flips, including the two OpenTitan corpus rows"*. Measured on the
+files themselves, `parseability_probe --parse systemverilog … --profile sv_2017`:
+
+| corpus file | tracked `results.tsv` (pre-flip) | measured now |
+|---|---|---|
+| `opentitan/hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv` | `fail` | **`parse_full passed`** |
+| `opentitan/hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv` | `fail` | **`parse_full passed`** |
+
+⭐ The reduced repro and the corpus shape flipped **together**, which is what separates *"the fix
+works on my synthetic"* from *"the fix reaches the text that motivated it"*.
+
+###### ⭐⭐⭐ RESULT 10 — THE CORPUS RE-MEASURE: 12 FILES GAINED, ZERO LOST, ACROSS FOUR INDEPENDENT UPSTREAMS
+
+Full re-run of `stimuli/run_external_corpus.sh sv` at the tracked parameters (60 s, 8 jobs, no cap)
+against the regenerated parser, written to a sandbox via `PGEN_CORPUS_OUT_DIR` so nothing tracked is
+overwritten before it is diffed:
+
+```text
+16336 parsed — pass=9774 fail=6562 timeout=0 crash=0   (baseline: pass=9762 fail=6574)
+```
+
+⛔ **A net figure can hide offsetting moves, so the load-bearing check is PER FILE.** Joining the two
+`results.tsv` on path: **12 transitions, every one `fail → pass`, and ZERO `pass → fail`.**
+
+| upstream | files gained |
+|---|---|
+| Surelog | 5 — `BlackBePipeInt`, `CastShift`, `ClogCast`, `ParamArraySelect`, `ParamTypespec` |
+| black-parrot | 4 — `bp_common_{cache,cfg_bus,clint,host}_pkgdef.svh` |
+| opentitan | 2 — `top_{darjeeling,earlgrey}_rnd_cnst_pkg.sv` |
+| sv2v | 1 — `test/core/nest_order.sv` |
+
+⭐ Four independent codebases, and the Surelog names (`CastShift`, `ClogCast`, `ParamTypespec`) are
+the construct family by their own authors' naming.
+
+⭐⭐ **AND THE DECISIVE NEGATIVE CHECK ON A WIDENING CHANGE: `accepts-invalid` is UNCHANGED at 21.**
+A criterion that admits more could have bought its 12 by accepting text the LRM forbids; re-adjudicated,
+it did not accept one new invalid file. Together with the 9 `invalid_*` repro rows still REJECTing,
+that is over-acceptance measured in two independent places rather than argued from the diff.
+
+###### ⛔⛔ RESULT 11 — SIX OF THE TWELVE DO NOT MOVE THE BAR, AND WHICH SIX IS THE FINDING
+
+Re-adjudicating the new results (sandboxed) splits the 12 exactly:
+
+| was | becomes | files | effect on the bar |
+|---|---|---|---|
+| `divergence:unexplained_rejects_valid` | **`match`** | 5 Surelog + 1 sv2v | ⭐ **axis-2 bar 309 → 303**, `match` 5814 → 5820 |
+| `deferred:chained_only` | `deferred:chained_only` | 4 black-parrot + **2 opentitan** | **none** — the row's verdict improved and it still contributes nothing |
+
+⛔⛔ **The two OpenTitan rows are in the second group.** They are the rows `.13c.2b` priced, the rows
+`defect_constant_size_cast.sv`'s manifest note names, and the rows `.17` acceptance (c) calls out —
+and because a design file parsed in isolation is `deferred:chained_only` by policy, **their flip is
+invisible to the graduation bar.** The fix is real, measured twice, and the published number does not
+see it.
+
+⇒ that is `.13`'s standing *"only 46.3 % of the corpus is adjudicated"* caveat with a price attached
+for the first time: **the deferred half absorbed half of this slice's corpus gain.** Routed as
+evidence into `SV-CORPUS-GRAD.13`, and it strengthens rather than weakens the case that the
+DENOMINATOR is the real bar.
+
+###### ⛔ THE ORACLE PROMOTION IS OWED, AND IT IS A SEPARATE UNIT — `SV-CORPUS-GRAD.13h` NEW
+
+The tracked characterization declares its own staleness rule: *"re-hash these three inputs; if any
+hash differs, this report no longer describes your tree and the honest act is to re-measure, not to
+quote."* `generated/systemverilog_parser.rs` changed, so it is stale by that rule.
+
+⛔ It is deliberately NOT promoted inside this slice, and the reason is mechanical rather than
+preferential: promoting `results.tsv` alone makes the census instrument **REFUSE** —
+
+```text
+⛔ REFUSING: Surelog/tests/BlackBePipeInt/dut.sv is `fail` in the manifest and `pass`
+   in the results file. One of the two is stale; a stratification built on the stale one would be wrong.
+```
+
+— so the promotion is an atomic cascade (characterization → adjudication → census → every live
+surface carrying the tuple → `MEMORY.md`'s bar) that **changes a published status number** and is
+owned by the corpus tree, not by the engine tree.
+
+⭐ **And the measurement it starts from is TRACKED, not left in a build directory.**
+`docs/tasks/artifacts/sv_corpus_grad/es17_slice9_flip/corpus_transitions.tsv` carries all 12 rows
+with their before/after observed verdict, their before/after adjudication class and their bar effect.
+⛔ Deliberately the DELTA and not the 16 336-row result set: the full run lives under
+`rust/target/`, which is **git-ignored**, and a hand-off that points at a git-ignored path is a
+hand-off to nothing (`.13` slice 4b's class). The full re-run costs ~4 minutes of parse, so it is
+re-derivable rather than irreplaceable — which is the stated reason for tracking one and not the
+other (`CI-PARITY-GATE-ROT.29` acceptance (e)).
+
+###### ⛔⛔⛔ RESULT 12 — THE FLIP COSTS **+24.3 %** PARSE TIME, MEASURED CLEANLY — AND MY FIRST NUMBER (`~11 %`) WAS WRONG BECAUSE IT TRUSTED A STALE BASELINE
+
+⛔ **Measured and surfaced rather than classified away**, because *"peak speed — costs are REJECTED,
+not traded"* is one of the project's two non-negotiables and this slice changes the flagship parser's
+hot path.
+
+⛔⛔ **AND THE FIRST NUMBER THIS BOX CARRIED WAS WRONG — RECORDED, NOT QUIETLY REPLACED.** It read
+*"parse time rose ~11 %"*, computed against the tracked 2026-08-12 baseline, with the attribution
+left open. The deciding arm has since been built and it says **+24.3 %**: the stale baseline had been
+measured under materially faster conditions, so comparing to it **halved the apparent cost**. ⇒ the
+lesson is this leaf's own recurring one applied to a performance number —
+[[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]] — and the corollary is
+sharper: **a stale baseline does not merely add noise, it can bias in a specific direction**, and the
+direction here was flattering.
+
+**THE CLEAN A/B — one session, one binary build, one `generated/systemverilog.json`, and the
+admission is the only difference:**
+
+| arm | total | mean/file | corpus verdicts |
+|---|---:|---:|---|
+| NARROW (`--indirect-lr-admit-starvation-safe-only`) | **303.0 s** | 0.0185 s | pass 9 762 / fail 6 574 |
+| SHIPPED, run 1 | 376.7 s | 0.0231 s | pass 9 774 / fail 6 562 |
+| SHIPPED, run 2 | 373.6 s | 0.0229 s | — |
+| *(stale tracked baseline, 2026-08-12, different machine state)* | *339.7 s* | *0.0208 s* | *pass 9 762 / fail 6 574* |
+
+⇒ **shipped / narrow = 1.243 and 1.233 ⇒ +23 % to +24 %.** Per file: **5 796 slower, 155 faster**,
+74 moving by more than 50 ms — an across-the-board cost, not the twelve newly-passing files doing
+more work.
+
+⭐⭐ **AND THE NARROW ARM VALIDATES ITSELF, which is why this A/B can be trusted where the baseline
+one could not**: it reproduces the tracked baseline's corpus verdicts **exactly** — `pass=9762
+fail=6574` on all 16 336 files. So the lever is a proven behavioural inverse of the pre-flip parser,
+and the +24 % is attributable to the admission and to nothing else in the build.
+
+⛔⛔ **THIS IS A NON-NEGOTIABLE IN TENSION AND IT IS A DIRECTOR CALL, NOT AN IMPLEMENTATION
+DETAIL.** *"Costs are REJECTED, not traded"* and *"accuracy before speed"* + *"SV is 100 % LRM-compliant
+by default"* both bind here: the flip closes a real under-acceptance defect (12 corpus files, two
+OpenTitan rows, an LRM A.8.4 construct) and charges ~24 % for it. ⇒ **surfaced to the director with
+the number, and owned by `.20` NEW** (below) rather than shipped under a *"correctness beats speed"*
+rationalisation. ⛔ What is NOT claimed: that 24 % is intrinsic. Nothing has profiled where it goes,
+and `.20`'s first acceptance item is exactly that.
+
+###### ⛔⛔ RESULT 13 — AN OPEN QUESTION THIS SLICE FOUND AND IS NOT CLOSING: THE NARROW ARM DOES NOT REPRODUCE THE PRE-FLIP PARSER BYTE-FOR-BYTE
+
+Building the speed A/B's control arm surfaced something worth stating rather than absorbing.
+Re-deriving SystemVerilog with `--indirect-lr-admit-starvation-safe-only` — the pre-slice-9 policy —
+on the same binary and the same `generated/systemverilog.json` gives a parser that is
+**behaviourally the pre-flip one** and **not byte-identical to it**:
+
+| artifact | rule fns | guard rules | bytes | sha256 |
+|---|---:|---:|---:|---|
+| tracked pre-flip (`88b06424`, old binary) | — | — | 131 642 655 | `4330ff8e…` |
+| narrow arm (this session, this binary) | 1 492 (= 1 488 grammar rules + 4 helpers) | **0** | 131 542 908 | `dae09343…` |
+| shipped (this session) | 1 612 (= 1 608 + 4) | 6 | 143 907 016 | `463c6476…` |
+
+⭐ The rule COUNT is exactly the pre-flip grammar's (`--lint-grammar` under the lever reports 1 488)
+and the guard count is zero, so the lever is a faithful **policy** inverse — which is all the lint
+A/B (`28 → 0`) and the speed A/B require, both being same-binary comparisons. ⛔ But **99 747 bytes
+separate two artifacts that ought to be identical**, and *"they behave the same"* is not *"nothing
+else moved"*.
+
+⛔ **NOT root-caused here, and the reason is the anti-spin rule rather than disinterest.** Two
+hypotheses survive without new tool output — (a) something in this slice's diff perturbs SV codegen
+even under the narrow admission, or (b) an INPUT moved: `generated/systemverilog.json` is a
+git-ignored derived artifact regenerated whenever `make` sees the frontend binary as newer, so every
+session that rebuilds `ast_pipeline` silently re-derives it. ⭐ (b) is `.16`'s finding class one level
+over, and the pre-flip file was produced from a JSON this working copy no longer has. Distinguishing
+them needs a measurement (regenerate twice for determinism; re-derive at the parent commit's source
+with today's JSON), not more reading.
+
+⛔ **What it does NOT put in doubt, stated so the boundary is checkable**: the 10 other parsers were
+measured byte-identical against the session-start snapshot with this same binary, so the diff is
+codegen-neutral for every family that does not enter this pass; and both speed arms are built from
+ONE JSON by ONE binary differing only in the admission, which makes that comparison *cleaner* than
+one against a two-day-old artifact, not weaker.
+
+⇒ owned as **`ENGINE-UNIVERSAL-SERVICES.19` NEW** (below) rather than left as a paragraph — this
+repository's rule is that every finding is FIXED and routing decides WHEN.
+
+⭐⭐ **AND THE SPEED ARM ADDED THE ONE FACT THAT MOST CONSTRAINS `.19`'s HYPOTHESES**, measured
+after this box was first written: the narrow-arm parser reproduces the pre-flip corpus verdicts
+**EXACTLY** — `pass=9762 fail=6574` across all 16 336 files, identical to the tracked baseline. So the
+99 747 bytes are **provably not behavioural on the corpus**, which rules out the alarming reading
+(that the diff changed what SV accepts under the old policy) and leaves the two recorded hypotheses
+intact. ⛔ It does not CLOSE `.19`: *"no behavioural difference on 16 336 files"* is a strong bound,
+not a proof of byte-equivalence, and this leaf declines to treat the two as one claim — which is
+precisely `.19`'s own acceptance (d).
+
+###### ⛔⛔ SELF-AUDIT (director check, 2026-08-14) — OF THE THREE FINDINGS THIS SLICE SURFACED, **ONE** WAS SIGNOFF-GRADE, AND THE WORST ONE WAS THE ONE TOUCHING A NON-NEGOTIABLE
+
+Asked whether the three surfaced findings were signoff-grade, the audit says **no** — and the pattern
+is worth more than the verdicts: **the finding with the highest stakes had the weakest method.**
+
+**FINDING 1 (the bar cannot see half its own fix) — substance SOUND, two gaps, both fixed.**
+- ⛔ **GAP A — an unverifiable superlative.** It claimed *"the FIRST priced evidence for `.13`'s
+  thesis"*. Nothing was checked. Measured instead: the bucket accounting only landed at `.13b` on
+  **2026-08-11**, three days earlier, so any prior instance was **unmeasurable by construction** —
+  the superlative is not merely unproven, its evidence could not exist. ⇒ retracted to *"measured
+  evidence"* in both surfaces, and the retraction states WHY rather than just dropping the word.
+- ⛔ **GAP B — the structural finding was OWNED BY NOBODY.** *"A `deferred:chained_only` row can
+  improve from `fail` to `pass` and the bar cannot see it"* appeared as prose in four places with
+  **no acceptance criterion anywhere**. That is `.17` slice 7b's GAP C **verbatim, reproduced by the
+  slice that cites it** — reading a card does not apply it, again. ⇒ promoted to
+  `SV-CORPUS-GRAD.13h` acceptance **(f)**, which forces a ruling between exactly two dispositions
+  (by-design ⇒ say so where the bar is published; defect ⇒ split the bucket) and refuses
+  *"it is complicated"* as an answer.
+
+**FINDING 2 (parse time) — NOT signoff-grade, and the audit is what caught that the NUMBER was wrong.**
+- ⛔ **GAP C — n=2 reported as a noise floor.** *"The same-binary noise floor is bounded at −0.8 %"*
+  came from **two** runs. Two samples cannot estimate variance; that is one paired observation
+  wearing a statistic's clothes.
+- ⛔ **GAP D — a possible NON-NEGOTIABLE violation with no owner.** It was surfaced with an
+  in-flight measurement and no leaf. GAP C's class again: a risk with no obligation.
+- ⛔⛔ **AND THE HEADLINE FIGURE WAS WRONG BY ROUGHLY 2×** — `~11 %` against a stale baseline vs
+  **+24.3 %** measured cleanly. ⭐ The mechanism is the transferable part: the 2026-08-12 baseline had
+  been taken under materially faster machine conditions, so **a stale baseline does not merely add
+  noise — it biased the estimate in the FLATTERING direction.** ⇒ `.20` NEW owns the cost, profile-first,
+  plus a standing corpus-timing ratchet, and the wrong number is corrected IN PLACE rather than replaced.
+
+**FINDING 3 (`MEMORY.md` had 2 bytes of headroom) — SHOULD NOT HAVE BEEN SURFACED.**
+It is measured and true, and it is a **status observation, not a finding**: it names no defect, and
+the remedy it implies — demote content, never raise the cap — is exactly what the `MEMORY-ARCH`
+doctrine already **forces** on the next session that tries. ⇒ it belonged in the routine-decision
+lane the surfacing directive explicitly bounds, and putting it beside a non-negotiable **diluted the
+two that mattered**. ⛔ Recorded rather than silently dropped, because "I surfaced too much" is the
+failure mode that trains a director to skim.
+
+⇒ **1 of 3 sound-but-under-owned, 1 of 3 wrong AND unowned, 1 of 3 not a finding.** The durable
+lesson is the correlation: **the finding that touched a non-negotiable was the one measured worst**,
+because a number that confirms an expectation gets less scrutiny than one that surprises — and `~11 %`
+was comfortable in a way `+24.3 %` is not.
+
+###### Acceptance Checklist (enforced) — `.17` slice 9
+
+- [x] **REPRODUCE / ISSUE** — at `88b06424`, PGEN could build and execute the guarded rewrite and did
+  not use it. Reproduced from the shipped surface on ONE binary, three ways:
+  `ast_pipeline grammars/systemverilog.ebnf --lint-grammar` → `left_recursion_unhandled=28` with
+  `starvation-safe candidates: 0/28`; `--report-indirect-lr-plan` → `indirect_guard_chains=0`; and the
+  consequence in real text — `python3 stimuli/sv/run_adjudication_repros.py` listing
+  `defect_constant_size_cast.sv` / `…_corpus_shape.sv` as `expect=REJECT`, both derived from
+  `top_{darjeeling,earlgrey}_rnd_cnst_pkg.sv` which the tracked `results.tsv` records as `fail`.
+  ⇒ two OpenTitan files and an LRM A.8.4 construct that PGEN had a working fix for and declined to
+  apply.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the fix was unreachable: it was never a defect in the guard,
+  the planner or the emitter — all three were built and measured by slices 4–8. It was **the
+  admission criterion**, and nothing else. WHERE, to one expression:
+  `indirect_lr_elimination::eliminate_indirect_left_recursion` passed
+  `CandidateAdmission::StarvationSafe`, whose definition is `surviving_starvation_sites().is_empty()`,
+  so a candidate that a guard would make safe was refused before `plan_elimination` ever saw it — and
+  `plan_guard_chains` (step 6) therefore had nothing to emit **by construction**, which is exactly what
+  `indirect_guard_chains=0` measured for two slices.
+  ⛔ Tool-located rather than read off the source, and the locating tool was a test written one slice
+  earlier: `.17` slice 7 recorded plant 3 as *"the exact edit slice 9 will make"* and predicted which
+  assertion would fail. Making the edit produced that failure verbatim, printing the whole
+  `SynthesizedGuard` (RESULT 1) — so the criterion is provably the only thing standing between the
+  emitter and the parser.
+- [x] **FIX** — fix-hierarchy tier = **engine policy**, and deliberately the smallest possible one:
+  `CandidateAdmission::StarvationSafe` → `GuardFeasible` at that single call site. Everything else in
+  the diff is a consequence.
+  `indirect_lr_elimination`: the opt-in door inverts —
+  `…_admitting_guard_feasible` → `…_admitting_starvation_safe_only`, with the banner rewritten to
+  warn in the new direction (*"a parser built this way REJECTS LRM-legal SystemVerilog"*), still
+  `std::eprintln!` because the trace shadow at `ast_pipeline/mod.rs:513` is unchanged.
+  `ast_pipeline/mod.rs`: `PipelineConfig::indirect_lr_admit_guard_feasible` →
+  `indirect_lr_admit_starvation_safe_only` (default `false`), the two-door branch inverted.
+  `main.rs`: `--indirect-lr-admit-starvation-safe-only`, plus `print_synthesized_guards` — ONE renderer
+  now shared by the shipped and dry-run blocks, with a load-bearing verb (`guard` / `would guard`) and
+  a computed `max_hops=` (RESULT 5). `bin/pgen_ast.rs`: the field in its exhaustive literal.
+  ⭐ **The two-door SHAPE is preserved and only its direction inverted**, which is the structural
+  invariant slice 8 established: the shipped call site names the shipped policy, so changing what
+  ships is an edit to that function's criterion and can never happen by a caller passing an argument.
+  ⛔ Deliberately NOT done: the candidate ORDERING (still carries no guard term — `.17`'s standing
+  note), the corpus oracle promotion (`SV-CORPUS-GRAD.13h`, and the census instrument REFUSES a
+  partial one), and any grammar byte.
+- [x] **ADDRESSED (verified)** — measured before→after on **one binary** via the new A/B lever, at
+  four independent tiers, each of which could have refuted the others:
+  1. **lint** — `systemverilog` `left_recursion_unhandled` **28 → 0**; every other family 0 under both
+     arms; every other SV lint counter identical (`non_terminating=0`,
+     `ordered_choice_shadowing=0`, `always_succeeds_alternatives=6`, `unreachable_rules=0`,
+     `undefined_references=0`, `unbound_fact_kinds=0`, `nullable_repetition=0`, `profile_orphans=0`).
+  2. **unit** — `cargo test --lib indirect_lr` → **28 passed / 0 failed**, including the inverted
+     two-sided control `the_narrowed_admission_synthesizes_no_guard_on_the_knot_the_shipped_one_guards`.
+  3. **the two-sided ratchet** — `run_adjudication_repros.py`: `failures=2`, **both of them defect
+     reproducers that now PARSE**, zero controls moved (RESULT 8). Re-baselined as the runner
+     instructs, re-run **`checked=29 armed=7 listed=29 failures=0`**.
+  4. **the corpus** — 16 336 files re-parsed: **12 transitions, ALL `fail → pass`, ZERO `pass → fail`**,
+     across four independent upstreams, with `accepts-invalid` unchanged at **21** (RESULT 10).
+  5. **the narrow control arm** — a parser built from the same JSON by the same binary under
+     `--indirect-lr-admit-starvation-safe-only` reproduces the pre-flip corpus verdicts **EXACTLY**
+     (`pass=9762 fail=6574`). ⭐ That is the strongest single statement available about the A/B lever:
+     it is a proven behavioural inverse over 16 336 real files, which is what licenses reading both
+     the `28 → 0` lint delta and the **+24.3 %** speed delta as properties of the admission alone.
+  ⭐⭐ **Falsifiability is not a plant here — it is the parent commit.** The flip's RED/GREEN pair was
+  written by slice 7 one slice ahead of the edit and fired verbatim (RESULT 1), so the calibration
+  artifact is `git show 88b06424` rather than a reconstructed patch. ⇒ `CI-PARITY-GATE-ROT.29`
+  acceptance (e) discharged by the second of its two answers.
+- [x] **NO REGRESSION** — ⭐ measured at the strongest available tier, and the tier is *broader* than
+  byte-identity because byte-identity is exactly what this slice cannot claim.
+  `shasum -a 256 generated/*.rs` after regenerating all 11 parsers with the new binary:
+  **`generated/systemverilog_parser.rs` is the ONLY artifact that changed**; the other **10** are
+  byte-identical to the pre-change snapshot. That matches the lint A/B prediction exactly — SV was the
+  only family whose counter moved — so the blast radius is measured twice by independent means.
+  ⛔ **Regression evidence for the one parser that DID change is the two-sided ratchet plus the
+  corpus**, both above: 12 corpus files gained and none lost, 12 controls and 9 over-acceptance guards
+  unmoved, `accepts-invalid` flat at 21. ⛔ A widening change's characteristic failure is
+  over-acceptance, and it is checked in two independent places rather than argued from the diff.
+  `bash scripts/check_doctrines.sh` → **ALL 18 PASS**.
+  ⭐⭐ **CONFIRMATORY SWEEP, CONSUMED — and unlike slices 7 and 8 it was NOT skippable**, because their
+  justification for skipping it was a byte-identical generated tree and this slice does not have one.
+  `cargo test --features "generated_parsers ebnf_dual_run" --lib -- --skip deep_nesting` →
+  **1 108 passed / 1 failed / 28 ignored** in 429 s (peak 11 474 MB under the guard). The single
+  failure is `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`,
+  **pre-existing and owned by `LANG-CAPABILITY-AUDIT.10.15`** — the identical row slice 4b recorded at
+  1 085/1/28 and slice 5 at 1 091/1/28. ⇒ the pass count rose with the tests added since; **the
+  FAILURE SET is unchanged**, which is the claim that matters.
+  ⭐⭐ **The load-bearing rows inside that sweep are the CROSS-ORACLE gates, and they are why a changed
+  parser can be trusted here**: `parse_harness_equivalence::gate::certified_grammars_are_byte_identical`
+  … ok, `parse_harness_combinator_suite::gate::every_structural_combinator_is_byte_identical` … ok,
+  `combinator_coverage_is_complete` … ok. ⛔ Those assert the INTERPRETER and the GENERATED PARSER
+  produce byte-identical ASTs — so the guarded rewrite did not merely keep accepting the same inputs,
+  it kept building the same tree. That is the property `lr_chain_fold` owes and the one a positional
+  change to a base rule could silently break; measured, not argued.
+  ⛔ The two banks whose SUBJECT the flip moved were re-anchored and re-run rather than re-baselined:
+  `guard_feasibility/probe.sh` **18/18** and `guard_dry_run/probe.sh` **18/18**, with **every declared
+  value byte-identical to the pre-flip run** (RESULT 3/4) — the dry run had predicted this exact
+  rewrite since slice 3, and that prediction is now checkable against the thing itself.
+- [x] **LOCKSTEP** — this leaf (RESULT 1-13 + acceptance (d) discharged by measurement, and its own
+  `~11 %` speed figure CORRECTED to `+24.3 %` in place rather than replaced); **`.19` NEW** (the
+  unexplained 99 747 bytes) and **`.20` NEW** (the parse-time cost, with a DIRECTOR CALL open);
+  `docs/tasks/CI-PARITY-GATE-ROT.md` (**`.31` NEW**, director-ruled: `--debug --trace` off the
+  shipping/CI generation path);
+  `docs/tasks/SV-CORPUS-GRAD.md` (**`.13h` NEW**, with the corpus delta as routing evidence);
+  `docs/tasks/artifacts/sv_corpus_grad/es17_slice9_flip/corpus_transitions.tsv` (**new tracked
+  artifact** — the delta made durable, because the run is under git-ignored `rust/target/`);
+  `stimuli/sv/adjudication_repros/MANIFEST.tsv` (two rows re-baselined `defect` → `fixed`, citing this
+  work unit); the three affected banks (`guard_parses` arms inverted + its README, `guard_dry_run`
+  D11 rewritten as an exact-set check plus D11a/D11c NEW, `guard_feasibility` reports levered);
+  `TOOLBOX.md` §5.5 (the new lever, the census bullet that said *"REPORTED, NOT APPLIED"* and is now
+  false, the residual table, the `🛡` shipped block); `docs/book/src/grammar-wellformedness.md` (a new
+  *"The guarded admission is what PGEN ships"* section, and the STARVED sections re-framed as the view
+  of the problem); `docs/reference/RUST_CODEBASE_ANALYSIS.md` (a slice-9 steering note; the slice-2
+  note's *"deliberately UNCHANGED"* marked superseded); `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+  `MEMORY.md`, `docs/TASK_TREE.md`.
+  ⛔ **LIVE STATUS REVIEWED AND UNCHANGED, which `COMMIT.md` requires stating rather than assuming.**
+  `done_bar_family_register_v0.json` keeps `systemverilog: "Mostly Done"` and
+  `docs/book/src/roadmap-and-live-status.md` is untouched: the SV `Done` bar's axis 2 is external-corpus
+  graduation, which this slice improves (12 files, 0 lost) without achieving — the corpus is still
+  46.3 % adjudicated and the axis-2 bar is still the PUBLISHED 309 until `SV-CORPUS-GRAD.13h` promotes
+  the 303. ⇒ editing either surface here would publish a status the proof surfaces do not yet support,
+  and the two `*_parser_family_status_gate.sh` arms exist to catch exactly that.
+  ⛔ **A user-visible parser behaviour DID change**, so unlike slices 7 and 8 the contract surface is
+  in scope and was checked: the change is purely additive acceptance (an LRM-legal construct that was
+  rejected now parses) with no AST-shape change — `lr_chain_fold` rebuilds the declared left-nested
+  tree and the guarded base rule is positionally identical to the rule it stands in for — so no
+  contract or schema edit is owed, and that is a measured statement rather than an omission.
+  ⭐ `promotion: PROMOTED` — [[a-bank-pinned-to-the-shipped-behaviour-is-pinned-to-a-moving-target]],
+  plus an update to [[a-conservative-criterion-and-a-measurement-are-different-objects]] recording that
+  its promotion finally happened, seven slices later, with the ratchet paid rather than waived, and a
+  `KNOWLEDGE_MAP.md` regeneration.
+
+#### ⛔⛔⛔ `.20` NEW `todo` — the guarded admission costs **+24.3 %** parse time on the SV corpus, and *"costs are REJECTED, not traded"* is a NON-NEGOTIABLE (opened 2026-08-14 session #232 by `.17` slice 9)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **Measured on the cleanest available A/B**: one session, one binary build, one
+  `generated/systemverilog.json`, the admission the only difference.
+  **NARROW 303.0 s / 0.0185 s per file → SHIPPED 376.7 s and 373.6 s / 0.0231 s and 0.0229 s.**
+  Ratio **1.243** and **1.233**. Per file: **5 796 slower, 155 faster**, 74 moving by >50 ms.
+- **The control validates itself**, which is what makes the number trustworthy: the narrow arm
+  reproduces the pre-flip corpus verdicts EXACTLY (`pass=9762 fail=6574` over 16 336 files), so it is
+  a proven behavioural inverse and the delta is attributable to the admission alone.
+- ⛔ **The first number reported for this was `~11 %` and it was WRONG** — computed against the
+  2026-08-12 tracked baseline (339.7 s), which had been measured under materially faster machine
+  conditions. A stale baseline biased the estimate in the FLATTERING direction, which is worth more
+  than the number itself: [[a-bank-pinned-to-the-shipped-behaviour-is-pinned-to-a-moving-target]] has
+  a performance-measurement sibling, and this is it.
+- **It reproduces by construction outside SystemVerilog**, and that is the reason this is an ENGINE
+  leaf rather than an SV one: the cost is paid by the shape `X := X_lr_base ( X_lr_suffix )*` plus a
+  per-iteration and a trailing structural lookahead, which the pass will emit for ANY grammar whose
+  knot is guard-feasible. SV is simply the first family to have one absorbed.
+- ⛔ **Nothing has profiled it.** *"~24 % is intrinsic to the design"* is NOT measured and must not be
+  assumed — the plausible sources are at least four and they have different prices: (i) the
+  eliminated `casting_type`/`property_expr` sit in the expression hot path and every expression parse
+  now traverses base+suffix instead of one rule; (ii) two structural lookaheads per guarded
+  iteration; (iii) 120 extra rules perturbing i-cache/branch prediction on a 143 MB parser; (iv) memo
+  behaviour on the new rule set. ⭐ (i) and (iii) would be paid even with the guards deleted, which
+  makes them separable by measurement.
+
+**Acceptance:** (a) ⛔ FIRST, and before any optimisation is designed — PROFILE it and attribute the
++24 % across (i)-(iv) above, so the fix targets the cost rather than the suspicion
+([[feedback_why_and_where_before_solution]], and this leaf's own `.17` history of designs built on
+unmeasured premises); (b) a third A/B arm — guard-feasible admission with the guard EMISSION
+suppressed — separates "absorbing the knot" from "guarding it", which is the single most
+discriminating measurement available and costs one generation plus one corpus run; (c) a priced
+option list with a measured target, and an explicit statement of what is IRREDUCIBLE if some of it
+is; (d) ⛔ a standing corpus-timing ratchet, because this regression was invisible to every gate the
+repository has — the lint, the two-sided repro ratchet, the corpus pass/fail count and all 18
+doctrines were GREEN across a 24 % slowdown, and a cost nothing measures is a cost that grows;
+(e) ⛔ do NOT close this by citing *"accuracy before speed"* — that ordering licenses SHIPPING the
+correctness fix, not KEEPING its price.
+
+⛔ **DIRECTOR CALL OPEN** (surfaced 2026-08-14): whether the flip ships now with `.20` owning the
+burn-down, or is held until the cost is reduced. The engineering recommendation on record is to
+**ship and burn down** — the defect it closes is under-acceptance of LRM-legal text, the corpus
+gained 12 files and lost none, and holding a correctness fix behind an unprofiled performance number
+trades a measured defect for an unmeasured one. ⛔ That is a recommendation, not the decision.
+
+
+#### ⛔⛔ `.19` NEW `todo` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **Measured, not inferred.** `rust/target/debug/ast_pipeline generated/systemverilog.json
+  --generate-parser --debug --trace --eliminate-left-recursion
+  --indirect-lr-admit-starvation-safe-only` produces `dae09343…`, **131 542 908 bytes**, with
+  **1 488 grammar rules and 0 guard rules** — the pre-flip grammar exactly. The tracked pre-flip
+  artifact was `4330ff8e…`, **131 642 655 bytes**. Same policy, same rule set, **99 747 bytes apart**.
+- **It is not the admission.** The rule-function count, the guard count and `--lint-grammar` under the
+  lever (`left_recursion_unhandled=28`, `starvation-safe candidates: 0/28`) all reproduce the pre-flip
+  numbers, so the lever is a faithful POLICY inverse. The difference is in emitted code, not in what
+  was absorbed.
+- **It does not reproduce in the other families**, which is what bounds it: the other 10 generated
+  parsers were re-derived byte-identical with this same binary against the session-start snapshot.
+  ⇒ whatever moved is reachable only through the indirect-LR path, or through SystemVerilog's own
+  frontend output.
+- **Two hypotheses, neither eliminated**, and saying so beats picking one:
+  **(a)** something in `.17` slice 9's diff perturbs SV codegen even under the narrow admission;
+  **(b)** an INPUT moved — `generated/systemverilog.json` is a **git-ignored derived artifact** that
+  `make` regenerates whenever the frontend binary is newer, so any session that rebuilds
+  `ast_pipeline` silently re-derives it, and the pre-flip parser came from a JSON this working copy no
+  longer holds. ⭐ (b) is **`.16`'s class one level over** — the same "derived artifact no `git status`
+  can report on" shape, this time with a regeneration rule that fires too eagerly rather than never.
+- **Why it was not chased inside slice 9**: the anti-spin tripwire. Distinguishing (a) from (b) needs
+  NEW tool output, not more reading, and the two measurements that would do it are cheap but not free
+  (regenerate twice for determinism; re-derive at the parent commit's source with today's JSON).
+- ⛔ **The blast radius is bounded and named.** Slice 9's published claims do not rest on this: the
+  lint A/B, the speed A/B and the byte-identity of the other 10 parsers are all SAME-BINARY
+  measurements. What is in doubt is the narrower statement *"a narrow-arm rebuild reproduces the
+  pre-flip artifact"*, which nothing in slice 9 asserts.
+
+**Acceptance:** (a) regenerate SV twice under the narrow lever and compare — a mismatch proves codegen
+is non-deterministic and ends the investigation there; (b) if deterministic, re-derive at
+`88b06424`'s source with TODAY's `generated/systemverilog.json` — matching `dae09343…` proves
+hypothesis (b) (the input moved) and matching `4330ff8e…` proves (a) (the diff moved codegen);
+(c) whichever it is, add the gate that would have caught it — for (b) that is a freshness check on
+`generated/systemverilog.json`, which is the same instrument `.16` owes `generated/ebnf.rs`, so the
+two should be designed together; (d) ⛔ do NOT close this by observing that the behaviour matches —
+*"it behaves the same"* and *"nothing else moved"* are different claims, and this leaf exists because
+the second one is unproven.
+
+
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it

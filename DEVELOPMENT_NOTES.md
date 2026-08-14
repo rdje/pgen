@@ -1,5 +1,77 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0032 — the one-line change was the easy part; what the flip broke was every instrument that had been describing the problem
+
+Slice 9 changed one expression. `CandidateAdmission::StarvationSafe` became `GuardFeasible`, an
+LRM-legal SystemVerilog cast started parsing, and twelve corpus files across four upstreams went
+from `fail` to `pass` with none going the other way. The durable lessons are not in that result —
+they are in what went red on the way to it, and in *which direction* the reds pointed.
+
+**1. A bank that measures "what the shipped path leaves undone" has no subject once the shipped path
+does it — and it fails in the direction that reads as success.** Two probe banks censused the knots
+the eliminator had not absorbed: how many candidates are starved, how many guard byte tests are
+over-approximated, how many sites need a trailing guard. After the flip:
+
+```text
+starvation-safe / guard-feasible   0/28 / 16/28   ->   0/0 / 0/0
+over-approximated guard byte tests 129/129        ->   0/0
+would_absorb / would_refuse        2/0            ->   0/0
+```
+
+Read cold that is a page of good news — *no starved candidates, no approximated guards, nothing left
+to absorb*. It is a page of **empty sets**. And crucially it is **not** the scraper class
+([[a-report-scraper-must-anchor-on-structure-not-on-a-substring]], which this leaf has hit four
+times): every grep matched the right rows and every field was cut correctly. What moved was the
+SUBJECT. The phrase "the shipped grammar" silently means "the grammar as the current policy leaves
+it", and a policy is a thing that changes.
+
+⇒ **the tell is that the bank's command line names no policy.** If the invocation is the bare
+default, the bank measures whatever the default currently does, and that is invisible for exactly as
+long as nobody changes the default. The fix is to name the admission at every report site — after
+which all 36 declared values came back **byte-identical to the pre-flip run**, and that invariance
+became the slice's strongest evidence, because the dry run had been *predicting* those exact numbers
+since three slices earlier.
+
+⭐ **One row in one of those files was already doing it right**, and had been for two slices: a case
+that passes `--no-eliminate-indirect-left-recursion` to see a knot *before* the pass eats it, with
+the reason written beside it. Somebody saw the hazard for one row and nobody generalised it to the
+file. Promoted as [[a-bank-pinned-to-the-shipped-behaviour-is-pinned-to-a-moving-target]].
+
+**2. A zero-check is a claim about a policy, not a safety property.** `indirect_guard_chains=0 on
+every shipped grammar` was a real protection for two slices — *"non-zero means the admission
+changed"*. After the flip it would have pinned the **absence of the fix**. Bumping it to `== 3` is
+not the repair either: a count cannot distinguish a silent revert from a pass that stopped running,
+and cannot see a guard position moving. The honest replacement is the **exact set** of chains, which
+fails on all three. ⇒ when a gate asserts a counter is zero, ask what makes it zero: if the answer is
+"the current policy" rather than "the invariant", the gate has a half-life.
+
+**3. A report about the shipped path must describe the shipped path — and the moment it starts having
+something to describe is the moment nobody remembers to look.** The `🛡` guard-detail renderer lived
+only in the opt-in dry-run block, correctly, because the shipped count was zero *by construction*.
+The flip made it three and left the report printing a bare number. An operator asking *"what did the
+engine put in my parser?"* would have got a count and no names. ⇒ **a counter that becomes non-zero
+for the first time is a documentation event**, and the fix is one shared renderer rather than a
+second copy — with a distinguishing VERB (`guard` vs `would guard`), because both blocks print in one
+report and a scraper must be able to tell a fact from a prediction.
+
+**4. The most valuable measurement in the slice is the one that says the fix did not count.** Six of
+the twelve corpus gains are `deferred:chained_only` — including **both** OpenTitan rows the fix was
+built for and which the repro manifest cites by name. Their verdict improved and the graduation bar
+cannot see it, because a design file parsed in isolation contributes nothing either way. Half of this
+slice's corpus gain was absorbed by the deferred half. That is not a disappointment to be filed; it
+is the first *priced* evidence for `SV-CORPUS-GRAD.13`'s thesis that the DENOMINATOR is the bar — a
+numerator that cannot see a real fix is the proof of it.
+
+⭐ **And the pacing is worth recording, because it is the thing a faster route would have got wrong.**
+Seven slices separate *"the guard census is REPORTED, NOT APPLIED"* from applying it: decide the
+shape against measurements, model it as a hand-written grammar, emit it from the planner, compile a
+parser from that emission and run bytes through it, and only then flip. Each step could have refuted
+the last and one did — a plant on the emitted-guard bank stayed green and proved the row set was
+checking nothing. ⇒ read
+[[a-conservative-criterion-and-a-measurement-are-different-objects]] as *"do not promote in the same
+breath"*, never as *"do not promote"*: a refusal that is only conservatism is exactly the one worth
+spending slices to convert into a measurement.
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0030 — a plant that stays green is a measurement, and the two things it measured here were both mine
 
 Slice 8's job was to execute what slice 7 emits. It did, and everything parsed. The durable lessons

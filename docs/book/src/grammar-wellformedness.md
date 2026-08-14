@@ -2081,8 +2081,13 @@ alternatives the planner matches, so that call returns `None` for every rule —
 had just eliminated. The pass has already run; its **result** is the ground truth. So the pass now
 reports what it did, the loaded grammar carries that record, and the lint headline reads:
 
+⛔ **The block below is the state that motivated this section, not today's output.** It is quoted at
+the point the defect was found, when the indirect pass declined SystemVerilog's two remaining knots;
+since the admission flip the same command reads `(1608 rules) — left_recursion_unhandled=0`. The
+argument the block illustrates is unchanged and is why the counter can be trusted now.
+
 ```text
-grammar lint: 'systemverilog' (1485 rules) —
+grammar lint: 'systemverilog' (1485 rules) —   ← historical: today this reads 1608 rules / …=0
   left_recursion_unhandled=30 (warning — the LR-elimination pass ran and these cycles survived it;
                                only the runtime guard is left, and it REJECTS same-position re-entry),
   left_recursion_eliminated=2  (info — derived from the pass's own outcome), …
@@ -2146,18 +2151,32 @@ cast         := casting_type tick lparen expression rparen     ← holds it WITH
 Absorbing SystemVerilog's cast chain at `constant_primary` makes `casting_type` greedy too, so
 `8'(1)` is swallowed whole as a cast of its own and `cast` can never match its trailing
 `tick lparen expression rparen`: `initial k = 8'(1);` stops parsing while
-`parameter logic [7:0] K = 8'(1);` still works. The engine therefore **declines** the knot. Every
-candidate on it is transitively starved, so no other base rule helps either — the blocker is the
-greedy `*`, tracked as `ENGINE-UNIVERSAL-SERVICES.17`, and the SVA property knot is `.15`.
+`parameter logic [7:0] K = 8'(1);` still works. Absorbing it **unguarded** therefore trades one
+defect for another, and for several releases the engine simply declined the knot.
 
-⇒ **If your grammar reports `verdict=STARVED`, the fix is usually to give the holder a form that
-does not need the residual** — or to accept that this construct is not chain-absorbable. The report
-names the holder, its alternative and the exact residual at risk.
+⭐⭐ **It no longer declines it — it guards it.** Everything from here to
+[The guarded admission is what PGEN ships](#the-guarded-admission-is-what-pgen-ships) describes the
+census the engine reports when a knot is *unabsorbed*, and on SystemVerilog that census is now empty
+because both knots were absorbed with call-site guards. **Read this section with
+`--indirect-lr-admit-starvation-safe-only` in mind**: it is the view of the problem, and the last
+section is the view of the fix. Every figure quoted below — `0/28`, `16/28`, the verdict censuses —
+is what that lever prints today, unchanged from when it was the shipped policy.
+
+⇒ **If your grammar reports `verdict=STARVED`, read the `guard:` line next** (below): a starved
+candidate that is guard-feasible is one the engine will absorb *with* a guard. If it is starved and
+not guard-feasible, the fix is usually to give the holder a form that does not need the residual —
+or to accept that this construct is not chain-absorbable. The report names the holder, its
+alternative and the exact residual at risk.
 
 ### `verdict=STARVED` is not the last word — read the `guard:` line next
 
-`STARVED` says *the shipped criterion refuses this base rule today*. It does not say the construct
-is hopeless, and the report now prints a second, independent verdict beside it:
+`STARVED` says *this base rule cannot be absorbed unguarded*. It does not say the construct is
+hopeless, and the report prints a second, independent verdict beside it — the one the shipped
+criterion reads:
+
+⛔ The block below is the SystemVerilog census under `--indirect-lr-admit-starvation-safe-only`. On
+the shipped path both of these knots are absorbed, so the same report prints `candidates=0` and the
+guards themselves instead.
 
 ```text
 starvation-safe candidates: 0/28
@@ -2404,10 +2423,11 @@ intermediate iteration, which is what `guard_incomplete` names. The trailing gua
 exit, on a clone reached only from a holder that wants the residual next — so refusing an over-long
 seed there cannot lose a derivation that holder had.
 
-Measured on the shipped grammars: SystemVerilog **15 of 28** candidates need the trailing guard, the
-LRM wrapper **13 of 18**, and `ebnf` — the one knot the eliminator absorbs today — **0 of 5**. That
-last number is the one to keep an eye on: it says the rewrite PGEN already ships carries no
-seed starvation.
+Measured on the shipped grammars, under the pre-flip admission: SystemVerilog **15 of 28**
+candidates need the trailing guard, the LRM wrapper **13 of 18**, and `ebnf` **0 of 5**. ⭐ Of the
+two SystemVerilog candidates the engine now absorbs, `property_expr` is one that needed it and gets
+`[loop+trailing]`; `casting_type` does not and gets `[loop]` alone. The engine emits the positions
+each site actually owes rather than both by default.
 
 ### And "a guard is expressible here" is still not "this knot would close"
 
@@ -2462,36 +2482,94 @@ the loop, which is precisely what their `seed:` lines say.
 would it emit?"*. No parser is generated and no input is run, so nothing in its output is a claim
 about what the rewritten grammar accepts or rejects.
 
-⛔ **And it never touches the parser you ship.** The guard planner runs on every plan, but a guard is
-only ever emitted for a *surviving starvation site*, and the shipped criterion admits only candidates
-that have none. The check on that is `indirect_guard_chains=` on the third header line of the ordinary
-report — **0 on every shipped grammar**.
-
-### Executing what the planner emits — `--indirect-lr-admit-guard-feasible`
-
-Everything above stops one step short of the question that matters: *does the guard PGEN writes
-actually parse?* The dry run builds the shape and discards it. The effectiveness measurements that
-established the design were made on grammars a **person** wrote by hand. Neither is a parser built
-from PGEN's own emission.
-
-`--indirect-lr-admit-guard-feasible` is that step. It takes the guard-feasible admission all the way
-through **codegen**, so you can generate a parser from a guarded rewrite and feed it real bytes:
+⛔ **Since PGEN 0.1.0-`0032` this dry run reports what is LEFT to do, and on every shipped grammar
+that is nothing.** The guard-feasible admission is now the shipped criterion (next section), so a
+bare report arrives with both knots already absorbed and the dry run correctly answers
+`would_absorb=0`. To see the census above — the population the flip absorbed — ask for the
+pre-flip admission explicitly:
 
 ```bash
-# 1. the shipped path — nothing is absorbed, because every candidate is STARVED
-make -C rust SHELL=/bin/bash focus_scratch
+rust/target/debug/ast_pipeline grammars/systemverilog.ebnf \
+    --report-indirect-lr-plan --indirect-lr-plan-guard-dry-run \
+    --indirect-lr-admit-starvation-safe-only
+```
 
-# 2. the same grammar, the same generator line, one extra flag
-rust/target/debug/ast_pipeline generated/scratch.json --generate-parser \
-    --eliminate-left-recursion --indirect-lr-admit-guard-feasible \
-    -o generated/scratch_parser.rs
+⭐ The two blocks use different verbs on purpose. The dry run writes `🛡  would guard '…'`; the
+shipped pass writes `🛡  guard '…'`. Both appear in one report, so a tool reading it can tell a
+prediction from a fact without tracking which section it is inside.
+
+### The guarded admission is what PGEN ships
+
+Everything above was, for several releases, a description of a capability PGEN had and did not use.
+The eliminator's criterion was *"absorb a knot only if no rule outliving the rewrite can starve
+it"* — safe, and on SystemVerilog it admitted **0 of 28** candidates. The two knots it declined are
+LRM-legal constructs, so declining them meant rejecting valid input:
+
+```systemverilog
+parameter logic [7:0] K = 8'(1);   // A.8.4 constant_cast — rejected, before
+```
+
+The criterion is now *"absorb a knot if it is safe, **or** if a call-site follow-restriction guard
+makes it safe"*, and the guard is emitted as part of the rewrite. The path from decision to shipping
+was deliberately four steps, because each one could have refuted the last: the guard shape was
+**decided** against measurements, **modelled** as a hand-written grammar, **emitted** by the planner,
+**executed** as a compiled parser, and only then made the default.
+
+What that changed, measured on one binary with the A/B lever below:
+
+| grammar | `left_recursion_unhandled`, before | after | generated parser |
+|---|---|---|---|
+| `systemverilog` | 28 | **0** | the one artifact that changed |
+| `vhdl`, `regex`, `json`, `ebnf`, the RTL pair, the SV preprocessor, both annotation grammars | 0 | 0 | byte-identical |
+
+Every other SystemVerilog lint counter is unchanged — `non_terminating=0`,
+`ordered_choice_shadowing=0`, `always_succeeds_alternatives=6`, `unreachable_rules=0`,
+`undefined_references=0`, `nullable_repetition=0`, `profile_orphans=0` — and the grammar grew from
+1488 to 1608 rules, all of them synthesized clones, helpers and the six guard rules.
+
+The three guards SystemVerilog ships are printed by the ordinary report:
+
+```text
+indirect_eliminated_base_rules=3 indirect_clone_rules=24 indirect_refusals=0 indirect_guard_chains=3
+    ✅ absorbed at 'casting_type'
+    ✅ absorbed at 'property_expr'
+    ✅ absorbed at 'incomplete_class_scoped_type_sv_2023'
+    🛡  guard 'casting_type_lr_guard0' [loop]  chain: casting_type (max_hops=0)  residual 'tick lparen constant_expression rparen'
+        sites: constant_cast alt#0   rules: casting_type_lr_guard0_suffix, casting_type_lr_guard0
+    🛡  guard 'casting_type_lr_guard1' [loop]  chain: casting_type (max_hops=0)  residual 'tick lparen expression rparen'
+        sites: cast alt#0   rules: casting_type_lr_guard1_suffix, casting_type_lr_guard1
+    🛡  guard 'property_expr_lr_guard0' [loop+trailing]  chain: property_expr (max_hops=0)  residual 'implies property_expr'
+        sites: prop_primary_sv_2017 alt#13, prop_primary_sv_2023 alt#13   rules: property_expr_lr_guard0_suffix, property_expr_lr_guard0
+```
+
+⭐ **A wider admission is not a weaker one.** The guard admits a candidate to *planning*, not to
+absorption: every refusal downstream of the starvation gate still fires. A hop that declares no
+return annotation is still refused by name, so a chain whose AST could not be composed faithfully is
+still declined rather than silently reshaped — measurable on the unannotated synthetic
+`p1_knot_a_defect.ebnf`, where the flip adds a *third* named refusal and absorbs nothing.
+
+#### The A/B lever — `--indirect-lr-admit-starvation-safe-only`
+
+To measure what the guarded admission buys, ask for the older one. It runs the same pass with the
+pre-flip criterion, so a before→after comes from **one binary** rather than from two builds that
+differ in more than the question:
+
+```bash
+# the shipped policy
+rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar
+#   → left_recursion_unhandled=0
+
+# the pre-flip policy, same binary, same grammar
+rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar \
+    --indirect-lr-admit-starvation-safe-only
+#   → left_recursion_unhandled=28
 ```
 
 On the worked example in
 `docs/tasks/artifacts/engine_universal_services/guard_parses/` — a twenty-line grammar carrying the
-same cast knot SystemVerilog has — the two arms differ on three inputs:
+same cast knot SystemVerilog has — the two arms differ on exactly the inputs the knot owns:
 
-| input | shipped admission | `--indirect-lr-admit-guard-feasible` |
+| input | `--indirect-lr-admit-starvation-safe-only` | shipped |
 |---|---|---|
 | `k = n'(n);` | accept | accept |
 | `k = n'(n)'(n);` | **reject** | **accept** |
@@ -2503,10 +2581,10 @@ refuses the derivation that would re-enter it. On the right the chain is absorbe
 starvation site is guarded, so all four parse — including `k = n;`, the holder that wants **no**
 residual after the rule and which a guard placed on the shared rule would break.
 
-⛔ **This is not the shipped policy, and it is not a way to build a deliverable.** Nothing in
-`rust/Makefile`, `scripts/` or the CI workflows passes the flag, and the pass prints a warning banner
-whenever it is on. What the flag buys is the ability to *measure* a rewrite before deciding to ship
-it — which is the difference between a design that has been argued and one that has been run.
+⛔ **The lever is not a way to build a deliverable.** Nothing in `rust/Makefile`, `scripts/` or the CI
+workflows passes it, and the pass prints a warning banner at default verbosity whenever it is on. A
+parser built through it rejects LRM-legal SystemVerilog, on purpose — that is the point of a
+measurement arm, and it is the arm that reproduces the defect the flip closed.
 
 ⭐ **One criterion had to be deleted along the way: `seeds=0` is not a disqualification.** The
 direct/wrapper elimination *drops* a left-recursive alternative, so a rule whose every alternative is

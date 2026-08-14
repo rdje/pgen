@@ -90,10 +90,11 @@ pub struct PlanRefusal {
 
 /// `ENGINE-UNIVERSAL-SERVICES.17` slice 3 — WHICH candidates the driver is allowed to consider.
 ///
-/// ⛔ **`StarvationSafe` is the shipped policy and the only one a `make`-generated parser ever
-/// sees.** The second variant exists so the question *"what would option (iii) actually unlock?"*
-/// can be answered by running the REAL planner rather than by a second implementation of it that
-/// would drift from the one it predicts.
+/// ⛔⛔ **THE SHIPPED VARIANT IS [`CandidateAdmission::GuardFeasible`] SINCE `.17` SLICE 9**, and
+/// this doc said the opposite for six slices. `StarvationSafe` is now the NARROWED policy: it is
+/// what every generated parser saw up to `PGEN-ENGINE-UNIVERSAL-SERVICES-0030`, and it survives
+/// as the A/B lever (`--indirect-lr-admit-starvation-safe-only`) so a before→after can be measured
+/// on ONE binary rather than on two builds that differ in more than the question.
 ///
 /// ⛔⛔ **This enum is the ADMISSION axis and nothing else** (`.17` slice 8). Until slice 8 the
 /// second variant was called `GuardFeasibleDryRun` and carried a `narrates()` method, which fused
@@ -104,11 +105,16 @@ pub struct PlanRefusal {
 /// parameter, decided by each entry point.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CandidateAdmission {
-    /// The shipped policy: a candidate is considered iff
+    /// The pre-`.17`-slice-9 policy, kept as the measurement lever: a candidate is considered iff
     /// [`IndirectChainCandidate::is_starvation_safe`] — no rule outliving the rewrite holds it at a
     /// left corner with a non-empty residual a greedy `*` could steal.
+    ///
+    /// ⛔ **A run under this admission REJECTS LRM-legal SystemVerilog** — `8'(1)` in a constant
+    /// expression and the corpus shape behind it — which is `.13`'s founding defect. It is not a
+    /// safer setting; it is the older one, and its only legitimate use is as arm A of a
+    /// one-difference measurement.
     StarvationSafe,
-    /// Additionally consider candidates that are merely
+    /// **The shipped policy since `.17` slice 9.** Additionally consider candidates that are merely
     /// [`IndirectChainCandidate::is_guard_feasible`] — the population a call-site
     /// follow-restriction guard makes safe.
     ///
@@ -122,8 +128,8 @@ pub enum CandidateAdmission {
     ///
     /// Two entry points use it, and they differ in what they do with the result, not in what they
     /// admit: [`dry_run_guard_feasible_elimination`] applies it to a CLONE and returns a report,
-    /// while [`eliminate_indirect_left_recursion_admitting_guard_feasible`] applies it to the
-    /// caller's own grammar and is therefore on the generation path.
+    /// while [`eliminate_indirect_left_recursion`] applies it to the caller's own grammar and is
+    /// therefore the one every `make`-generated parser goes through.
     GuardFeasible,
 }
 
@@ -378,11 +384,12 @@ struct EliminationPlan {
     suffix_branches: Vec<SuffixBranch>,
     /// `.17` slice 7 — the call-site guards this plan owes its surviving starvation sites.
     ///
-    /// ⛔⛔ **EMPTY on every plan a shipped parser has ever seen, and that is a CONSEQUENCE, not a
-    /// switch.** The shipped admission is [`CandidateAdmission::StarvationSafe`], whose whole
-    /// definition is `surviving_starvation_sites().is_empty()` — so a shipped candidate has no site
-    /// to guard and this vector cannot be non-empty. It fills only under
-    /// [`CandidateAdmission::GuardFeasible`]. There is deliberately no flag to read: a flag
+    /// ⛔⛔ **NON-EMPTY ON SHIPPED PLANS SINCE `.17` SLICE 9, and that is a CONSEQUENCE, not a
+    /// switch.** Up to `-0030` the shipped admission was [`CandidateAdmission::StarvationSafe`],
+    /// whose whole definition is `surviving_starvation_sites().is_empty()` — so a shipped candidate
+    /// had no site to guard and this vector could not fill. The shipped admission is now
+    /// [`CandidateAdmission::GuardFeasible`], and SystemVerilog's plan carries three chains
+    /// (`casting_type` ×2, `property_expr` ×1). There is still deliberately no flag to read: a flag
     /// would be a second thing that has to agree with the criterion.
     guard_chains: Vec<GuardChain>,
 }
@@ -398,8 +405,19 @@ enum Shear {
     Redirect { next_rule: String },
 }
 
-/// Eliminate every indirect left-recursive cycle the survey reports as starvation-safe, to a
-/// fixpoint.
+/// Eliminate every indirect left-recursive cycle the survey reports as GUARD-ADMISSIBLE — safe on
+/// its own, or made safe by a call-site follow-restriction guard — to a fixpoint.
+///
+/// ⛔⛔ **`.17` slice 9 changed the criterion this sentence describes, and it is the only
+/// shipped-behaviour change in that slice.** Up to `-0030` it read *"starvation-safe"*
+/// ([`survey.safe_candidates()`](IndirectLeftRecursionSurvey::safe_candidates)), which on
+/// SystemVerilog admitted **0 of 28** candidates and left `8'(1)` in a constant expression
+/// unparseable. It now reads [`guard_admissible_candidates`](IndirectLeftRecursionSurvey::guard_admissible_candidates),
+/// and a surviving starvation site is closed by the guarded clone chain
+/// [`plan_guard_chains`] emits rather than by declining the whole knot.
+///
+/// The old criterion is still reachable, for measurement only, through
+/// [`eliminate_indirect_left_recursion_admitting_starvation_safe_only`].
 ///
 /// ⭐ **Why a fixpoint and not one pass.** Two candidates can sit on the SAME knot — `ebnf`'s
 /// `return_expression` and `expression_return` are each other's intermediates — and rewriting one
@@ -432,29 +450,31 @@ pub(super) fn eliminate_indirect_left_recursion(
         grammar_tree,
         rule_order,
         annotations,
-        CandidateAdmission::StarvationSafe,
+        CandidateAdmission::GuardFeasible,
         Narration::Narrate,
     )
 }
 
-/// `ENGINE-UNIVERSAL-SERVICES.17` slice 8 — the OPT-IN widener: run the same pass on the caller's
-/// own grammar with [`CandidateAdmission::GuardFeasible`], so the guarded chains slice 7 synthesizes
-/// reach **codegen** and can be executed.
+/// `ENGINE-UNIVERSAL-SERVICES.17` slice 9 — the A/B lever, and it NARROWS rather than widens.
 ///
-/// ⛔⛔ **WHY THIS EXISTS, AND WHY IT IS NOT THE FLIP.** Everything slice 7 emits had been checked
-/// in the generated-AST only: `guard_effectiveness` measured a HAND-WRITTEN `g7`, and slice 7's unit
-/// tests assert PGEN's emission matches it rule for rule. Nothing had ever generated a *parser* from
-/// PGEN's own guarded output and run an input through it — so *"the guard works"* rested on two
-/// artifacts that meet nowhere. This entry point is the meeting place. It is deliberately a SECOND
-/// door rather than a widened [`eliminate_indirect_left_recursion`]: flipping the shipped admission
-/// is `.17` slice 9 and owes a two-sided repro ratchet plus a corpus re-measure, and a slice that
-/// proves the emission parses must not also be the slice that changes what ships.
+/// ⛔⛔ **THE DIRECTION OF THIS DOOR INVERTED AT SLICE 9, AND THAT IS THE WHOLE POINT.** Up to
+/// slice 8 the second door was `…_admitting_guard_feasible`: the shipped policy was
+/// [`CandidateAdmission::StarvationSafe`] and the widened one was opt-in, loud, and reachable from
+/// no `make` target. Slice 9 flipped the shipped criterion, so the guarded admission is now what
+/// every family generates under and this door holds the OLD policy. The structural invariant slice 8
+/// established is preserved verbatim, in both directions: **the shipped call site names the shipped
+/// policy**, so changing what ships is an edit to [`eliminate_indirect_left_recursion`]'s own
+/// criterion and can never happen by a caller passing a different argument.
 ///
-/// ⛔ **No `make` target reaches this.** The only caller is the `--indirect-lr-admit-guard-feasible`
-/// flag on the `ast_pipeline` binary, which nothing in `rust/Makefile` passes; the generation path
-/// every family goes through calls [`eliminate_indirect_left_recursion`] with the shipped admission.
+/// ⛔ **No `make` target reaches this**, exactly as no `make` target reached its predecessor. The
+/// only caller is the `--indirect-lr-admit-starvation-safe-only` flag on the `ast_pipeline` binary.
 /// That is a property of the call graph, not of a default value, so it is checkable by grep rather
 /// than by reading a config struct.
+///
+/// ⛔ **A parser built through this door REJECTS LRM-legal SystemVerilog.** `8'(1)` in a constant
+/// expression — `.13`'s founding defect, and two OpenTitan corpus rows — parses only under the
+/// shipped admission. So the banner below is not ceremony: an artifact built here is a *measurement
+/// arm*, never a deliverable, and it is the arm that reproduces a known defect on purpose.
 ///
 /// ⭐ It NARRATES, and that is the one place it deliberately differs from the dry run. A dry run's
 /// `✅ Absorbing` line would describe a clone nobody keeps; this pass's line describes the grammar
@@ -465,26 +485,27 @@ pub(super) fn eliminate_indirect_left_recursion(
 /// `pgen_trace_debug!` (`ast_pipeline/mod.rs:513`) — so every bare `eprintln!` in this file,
 /// including the `✅ Absorbing` / `⏭️ Declining` lines below, is a **trace call gated on
 /// `PGEN_TRACE_VERBOSITY=debug`** and prints nothing at the default verbosity. Measured, not
-/// assumed: the first draft of this banner used the bare macro and a default-verbosity run of
-/// `--indirect-lr-admit-guard-feasible` was completely SILENT while absorbing a candidate the
-/// shipped criterion refuses. A warning that only fires when you already asked for debug output is
-/// not a warning; per-rewrite narration is legitimately trace-gated, a policy warning is not.
-pub(super) fn eliminate_indirect_left_recursion_admitting_guard_feasible(
+/// assumed (`.17` slice 8 RESULT 5): the first draft of the slice-8 banner used the bare macro and a
+/// default-verbosity run was completely SILENT while changing what the pass absorbed. A warning that
+/// only fires when you already asked for debug output is not a warning; per-rewrite narration is
+/// legitimately trace-gated, a policy warning is not.
+pub(super) fn eliminate_indirect_left_recursion_admitting_starvation_safe_only(
     grammar_tree: &mut HashMap<String, ASTNode>,
     rule_order: &mut Vec<String>,
     annotations: Option<&mut Annotations>,
 ) -> IndirectEliminationOutcome {
     std::eprintln!(
-        "[indirect_lr_elimination] ⚠️  GUARD-FEASIBLE ADMISSION IS ON (`.17` slice 8 opt-in). \
-         Candidates the shipped criterion refuses as STARVED are admitted, and each surviving \
-         starvation site gets a call-site guarded clone chain. This is NOT the shipped policy — no \
-         `make` target enables it, and no deliverable parser may be built with it."
+        "[indirect_lr_elimination] ⚠️  STARVATION-SAFE-ONLY ADMISSION IS ON (`.17` slice 9 A/B \
+         lever). Guard-feasible candidates are REFUSED and no call-site guarded clone chain is \
+         emitted, which is the pre-slice-9 policy. This is NOT the shipped policy — no `make` \
+         target enables it, and a parser built this way REJECTS LRM-legal SystemVerilog \
+         (`8'(1)` in a constant expression). Measurement arm only; never a deliverable."
     );
     eliminate_indirect_left_recursion_with_admission(
         grammar_tree,
         rule_order,
         annotations,
-        CandidateAdmission::GuardFeasible,
+        CandidateAdmission::StarvationSafe,
         Narration::Narrate,
     )
 }
@@ -524,7 +545,7 @@ pub struct GuardDryRun {
 /// [`plan_guard_chains`] synthesizes, and it **parses nothing**: no parser is generated and no input
 /// is run, so it is not a claim that the rewritten grammar accepts or rejects anything. The pass
 /// that takes the same admission all the way to codegen is
-/// [`eliminate_indirect_left_recursion_admitting_guard_feasible`] (`.17` slice 8).
+/// [`eliminate_indirect_left_recursion`] — which since `.17` slice 9 IS the shipped path.
 pub fn dry_run_guard_feasible_elimination(
     grammar_tree: &HashMap<String, ASTNode>,
     rule_order: &[String],
@@ -896,11 +917,12 @@ fn plan_elimination(
 
     // ---- 6. `.17` slice 7 — the call-site guards the surviving starvation sites owe.
     //
-    // ⛔ Unconditional, and NOT behind an admission check, deliberately. `safe_candidates()` is
-    // defined as "no surviving starvation site", so on the shipped path this returns an empty vector
-    // by construction — a second switch here would be a second thing that has to agree with the
-    // criterion, and the two could drift. The byte-identity of every generated parser is therefore
-    // a MEASUREMENT of that argument, not a policy.
+    // ⛔ Unconditional, and NOT behind an admission check, deliberately. What it emits is decided by
+    // the candidate's own surviving starvation sites, so the admission criterion alone determines
+    // whether anything is emitted — a second switch here would be a second thing that has to agree
+    // with the criterion, and the two could drift. Under the pre-`.17`-slice-9 `safe_candidates()`
+    // ("no surviving starvation site") this returned an empty vector by construction; under the
+    // shipped `guard_admissible_candidates()` it returns exactly the sites the guard closes.
     let guard_chains = plan_guard_chains(
         candidate,
         grammar_tree,
@@ -2125,12 +2147,21 @@ mod tests {
         serde_json::to_string(value).expect("serializable")
     }
 
-    /// ⭐⭐ `.17` slice 3 — the dry run reaches a candidate the shipped pass never considers, and
+    /// ⭐⭐ `.17` slice 3 — the dry run reaches a candidate the NARROWED pass never considers, and
     /// leaves the caller's grammar untouched while doing it.
+    ///
+    /// ⛔ **The control arm inverted at `.17` slice 9 and the test is otherwise unchanged.** It was
+    /// written when [`eliminate_indirect_left_recursion`] admitted starvation-safe candidates only,
+    /// so the shipped pass WAS the strict no-op that made the dry run's reach meaningful. Slice 9
+    /// made the guarded admission the shipped one, so the no-op arm is now
+    /// [`eliminate_indirect_left_recursion_admitting_starvation_safe_only`]. The property under test
+    /// — *the dry run reaches a plan the narrow criterion refuses, without touching the caller's
+    /// grammar* — is the same one, measured against the same criterion, which now lives behind a
+    /// different door.
     ///
     /// ⛔ RED-provable on the property that matters: point the dry run at
     /// `CandidateAdmission::StarvationSafe` and the first assertion fails by name — it would report
-    /// nothing, exactly like the shipped pass.
+    /// nothing, exactly like the narrowed pass.
     ///
     /// ⛔ **The three `frozen` assertions are NOT falsifiable today, and saying so is the point.**
     /// [`dry_run_guard_feasible_elimination`] takes `&HashMap` / `&[String]` / `&Annotations`, so
@@ -2141,7 +2172,7 @@ mod tests {
     /// ([[a-check-whose-inputs-all-pass-has-not-been-tested]]); this one is labelled as such rather
     /// than counted as evidence.
     #[test]
-    fn the_guard_dry_run_reaches_what_the_shipped_pass_refuses_without_touching_the_grammar() {
+    fn the_guard_dry_run_reaches_what_the_narrowed_pass_refuses_without_touching_the_grammar() {
         let (mut grammar, mut order, mut annotations) = knot_a_annotated_with_surviving_holder();
         let frozen_grammar = frozen(&grammar);
         let frozen_order = frozen(&order);
@@ -2151,7 +2182,7 @@ mod tests {
         assert!(
             !dry.outcome.eliminated_base_rules.is_empty() || !dry.outcome.refusals.is_empty(),
             "the dry run must reach the PLAN stage on a guard-feasible candidate — an empty \
-             outcome here means it saw the same empty admission set the shipped pass does, and \
+             outcome here means it saw the same empty admission set the NARROWED pass does, and \
              the instrument would be measuring nothing"
         );
         // ⛔ The payoff figure is MEASURED on the rewritten clone, not inferred from the absorb
@@ -2172,17 +2203,20 @@ mod tests {
             "dry run mutated the annotations"
         );
 
-        // ⭐ The one-difference control, on the SAME grammar: the shipped policy is a strict no-op
+        // ⭐ The one-difference control, on the SAME grammar: the NARROWED policy is a strict no-op
         // here. Without this half, the assertion above could be satisfied by a dry run that merely
         // repeats what the pass already does.
-        let shipped =
-            eliminate_indirect_left_recursion(&mut grammar, &mut order, Some(&mut annotations));
+        let narrowed = eliminate_indirect_left_recursion_admitting_starvation_safe_only(
+            &mut grammar,
+            &mut order,
+            Some(&mut annotations),
+        );
         assert!(
-            shipped.eliminated_base_rules.is_empty() && shipped.refusals.is_empty(),
-            "every candidate on this knot is STARVED, so the shipped driver admits none of them — \
-             it absorbed {:?} and refused {:?}",
-            shipped.eliminated_base_rules,
-            shipped.refusals
+            narrowed.eliminated_base_rules.is_empty() && narrowed.refusals.is_empty(),
+            "every candidate on this knot is STARVED, so the starvation-safe-only driver admits \
+             none of them — it absorbed {:?} and refused {:?}",
+            narrowed.eliminated_base_rules,
+            narrowed.refusals
         );
         assert_eq!(
             frozen(&grammar),
@@ -2214,14 +2248,15 @@ mod tests {
     #[test]
     fn the_guarded_clone_chain_reproduces_the_hand_written_g7_shape() {
         let (mut grammar, mut order, mut annotations) = knot_a_annotated_with_surviving_holder();
-        // ⭐ `.17` slice 8 — through the OPT-IN GENERATION entry point, not the private driver. The
-        // shape this test pins is now reachable by codegen, so the test must enter by the door
-        // codegen enters by; calling the driver directly would leave that door untested.
-        let outcome = eliminate_indirect_left_recursion_admitting_guard_feasible(
-            &mut grammar,
-            &mut order,
-            Some(&mut annotations),
-        );
+        // ⭐ `.17` slice 8 — through the GENERATION entry point, not the private driver. The shape
+        // this test pins is reachable by codegen, so the test must enter by the door codegen enters
+        // by; calling the driver directly would leave that door untested.
+        // ⭐⭐ `.17` slice 9 — that door is now `eliminate_indirect_left_recursion` itself. The call
+        // moved from the opt-in widener to the shipped entry point *because the flip moved what
+        // ships*, and the assertions below did not change by one byte: what was an opt-in shape is
+        // now the shape every SystemVerilog parser is built with.
+        let outcome =
+            eliminate_indirect_left_recursion(&mut grammar, &mut order, Some(&mut annotations));
 
         assert_eq!(
             outcome.synthesized_guards.len(),
@@ -2409,11 +2444,9 @@ mod tests {
         );
 
         // Then the emission: every arm is cloned, and the branching hop repoints BOTH.
-        let outcome = eliminate_indirect_left_recursion_admitting_guard_feasible(
-            &mut grammar,
-            &mut order,
-            Some(&mut annotations),
-        );
+        // ⭐ `.17` slice 9 — the shipped door, for the same reason as the test above.
+        let outcome =
+            eliminate_indirect_left_recursion(&mut grammar, &mut order, Some(&mut annotations));
         let guard = outcome
             .synthesized_guards
             .iter()
@@ -2455,27 +2488,66 @@ mod tests {
         );
     }
 
-    /// ⛔ `.17` slice 7 — the SHIPPED path synthesizes no guard, and it is a CONSEQUENCE of the
+    /// ⛔ `.17` slice 7 — the NARROWED path synthesizes no guard, and it is a CONSEQUENCE of the
     /// admission criterion rather than a flag.
     ///
     /// The one-difference pair is the admission mode: the same fixture, the same planner, the same
     /// call — `GuardFeasible` emits one chain (the test above), `StarvationSafe` emits none.
     /// A control that could only pass would be one that ran the planner on a grammar with no
     /// starvation at all; this one runs it on the knot where every candidate IS starved.
+    ///
+    /// ⛔⛔ **THIS TEST IS THE FLIP'S OWN RED/GREEN PAIR, AND IT WAS PREDICTED ONE SLICE AHEAD.**
+    /// `.17` slice 7 listed plant 3 as *"widen the shipped admission to `guard_admissible_candidates()`
+    /// — the exact edit slice 9 will make deliberately ⇒
+    /// `the_shipped_admission_synthesizes_no_guard_on_the_same_starved_knot` FAILS printing the whole
+    /// `SynthesizedGuard` it emitted."* Slice 9 made that edit and the test failed with exactly that
+    /// text, naming `prim_lr_guard0` / `chain: ["ct","prim"]` / `positions: "loop+trailing"`. ⇒ the
+    /// calibration pair for the flip is `git show` of this file's parent commit and needs no
+    /// reconstructed patch (`CI-PARITY-GATE-ROT.29` acceptance (e)): the pre-fix state IS `-0031`.
+    ///
+    /// ⛔ It was RENAMED rather than deleted, and both halves are asserted rather than one. A test
+    /// that only says *"the narrow door emits nothing"* would pass just as well if the flip had
+    /// never landed and both doors were narrow — the failure mode a rename invites. The first half
+    /// pins what SHIPS.
     #[test]
-    fn the_shipped_admission_synthesizes_no_guard_on_the_same_starved_knot() {
-        let (mut grammar, mut order, mut annotations) = knot_a_annotated_with_surviving_holder();
-        let shipped =
-            eliminate_indirect_left_recursion(&mut grammar, &mut order, Some(&mut annotations));
-        assert!(
-            shipped.synthesized_guards.is_empty(),
-            "the shipped admission admits only starvation-SAFE candidates, which by definition have \
-             no site to guard — it emitted {:?}",
+    fn the_narrowed_admission_synthesizes_no_guard_on_the_knot_the_shipped_one_guards() {
+        // ---- the shipped half: the flip is a property of the deliverable path, asserted here so
+        // this control cannot go green on a repository where the flip was reverted.
+        let (mut shipped_grammar, mut shipped_order, mut shipped_annotations) =
+            knot_a_annotated_with_surviving_holder();
+        let shipped = eliminate_indirect_left_recursion(
+            &mut shipped_grammar,
+            &mut shipped_order,
+            Some(&mut shipped_annotations),
+        );
+        assert_eq!(
+            shipped.synthesized_guards.len(),
+            1,
+            "since `.17` slice 9 the SHIPPED admission is guard-feasible, so this starved knot must \
+             be absorbed WITH a call-site guard chain — it emitted {:?}",
             shipped.synthesized_guards
         );
         assert!(
+            shipped_grammar.keys().any(|name| name.contains("_lr_guard")),
+            "the guarded clone rules must reach the grammar codegen sees"
+        );
+
+        // ---- the narrowed half: same fixture, same planner, one different door.
+        let (mut grammar, mut order, mut annotations) = knot_a_annotated_with_surviving_holder();
+        let narrowed = eliminate_indirect_left_recursion_admitting_starvation_safe_only(
+            &mut grammar,
+            &mut order,
+            Some(&mut annotations),
+        );
+        assert!(
+            narrowed.synthesized_guards.is_empty(),
+            "the starvation-safe-only admission admits only candidates which by definition have no \
+             site to guard — it emitted {:?}",
+            narrowed.synthesized_guards
+        );
+        assert!(
             !grammar.keys().any(|name| name.contains("_lr_guard")),
-            "no guard rule may reach a shipped grammar"
+            "no guard rule may reach a grammar built under the narrowed admission"
         );
     }
 

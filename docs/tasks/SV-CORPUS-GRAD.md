@@ -8929,6 +8929,73 @@ states *"`intersect` is a keyword, so it forces the real alternative"*. It does 
   real verdict, and (b) marking them permanently unadjudicable as whole files. ⛔ Leaving them
   counted as one-sided positives is the one option `.13a` rules out.
 
+#### `.13h` — ⭐⭐ NEW `todo` — the corpus ORACLE is stale by its own rule: the parser changed under it, and promoting the re-measure is an ATOMIC cascade that moves the published bar (opened 2026-08-14 session #232 by `ENGINE-UNIVERSAL-SERVICES.17` slice 9)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **The re-measure is DONE, not proposed.** `stimuli/run_external_corpus.sh sv` was re-run at the
+  tracked parameters (60 s, 8 jobs, no cap) against the parser
+  `PGEN-ENGINE-UNIVERSAL-SERVICES-0032` generated, sandboxed via `PGEN_CORPUS_OUT_DIR`:
+  **16 336 files, pass 9 762 → 9 774, fail 6 574 → 6 562, 0 timeout, 0 crash.** Joined per path:
+  **12 transitions, ALL `fail → pass`, ZERO `pass → fail`.**
+- **The delta is TRACKED**, because the run lives under the git-ignored `rust/target/`:
+  `docs/tasks/artifacts/sv_corpus_grad/es17_slice9_flip/corpus_transitions.tsv` — every row with its
+  before/after observed verdict, before/after adjudication class, and bar effect.
+- **It reproduces independent of the routing**, and the sandboxed re-adjudication says by how much:
+  **6 rows convert `divergence:unexplained_rejects_valid` → `match` ⇒ the axis-2 bar moves
+  309 → 303**, `match` 5 814 → 5 820. The other 6 are `deferred:chained_only` on both sides.
+  ⭐ `accepts-invalid` is **UNCHANGED at 21** — the widened admission accepted no new invalid SV.
+- ⛔ **WHY IT IS A SEPARATE UNIT, mechanically rather than preferentially.** Promoting `results.tsv`
+  alone makes `corpus_verdict_coverage.py` **REFUSE** — *"is `fail` in the manifest and `pass` in the
+  results file; one of the two is stale"* — so characterization, adjudication, census and every live
+  surface carrying the tuple must move together or the `SV-CORPUS-DENOMINATOR` doctrine fails. That
+  cascade changes a **published status number** and is this tree's artifact, not the engine tree's.
+- ⛔⛔ **AND THE FINDING WORTH THE MOST IS IN THE HALF THAT DOES NOT COUNT.** The two OpenTitan rows
+  — `top_{darjeeling,earlgrey}_rnd_cnst_pkg.sv`, the rows `.13c.2b` priced and the ones the fix was
+  built for — are `deferred:chained_only`, so **their flip is invisible to the bar**. Half of this
+  slice's corpus gain was absorbed by the deferred half. ⇒ measured evidence for `.13`'s own thesis:
+  the DENOMINATOR is the bar, and a numerator that cannot see a real fix is the proof.
+  ⛔ **NOT claimed: that this is the FIRST such instance.** An earlier draft said so; it is
+  unverifiable and it is vacuous. The bucket accounting only landed at `.13b` on 2026-08-11, so any
+  earlier instance was unmeasurable by construction — a superlative whose evidence could not exist
+  ([[a-mis-cited-production-reproduces-as-a-success]] applied to a claim rather than to a rule).
+
+**Acceptance:** (a) promote the characterization set (`results.tsv`, `characterization.md`,
+`durations.tsv`, `positions.tsv`) with its instrument-identity hashes re-derived; (b) re-adjudicate
+and re-run the census in the same commit, so `corpus_verdict_coverage.py` never sees a mismatched
+pair; (c) re-publish the derived tuple on EVERY designated live surface plus `MEMORY.md`'s axis-2
+bar — the `SV-CORPUS-DENOMINATOR` doctrine is the check; (d) re-classify the 6 newly-matching rows in
+`RESIDUAL_ROWS.tsv`, and state explicitly that the 6 deferred rows improved without counting;
+(e) ⛔ do NOT re-run the corpus to produce (a) unless the parser has moved again — the tracked
+transition set plus a ~4-minute re-run is the whole input, and a second re-measure at a different
+parser state would silently mix two changes.
+
+⛔⛔ **(f) NEW — THE STRUCTURAL FINDING NEEDS A DISPOSITION, AND UNTIL IT HAS ONE IT IS OWNED BY
+NOBODY.** Everything above owns the PROMOTION: re-publishing numbers that moved. It does not own the
+thing the promotion exposed — *a `deferred:chained_only` row's verdict can improve from `fail` to
+`pass` and the graduation bar cannot see it*. Measured here at **6 of 12**, including the two rows the
+fixing slice was built for.
+
+⛔ This was originally written as prose in the routing evidence, in this leaf and in three other
+surfaces, with **no acceptance criterion anywhere** — which is verbatim `.17` slice 7b's GAP C
+("a finding STATED and OWNED BY NOBODY"), reproduced by the slice that cited it. A risk with no
+obligation is a note.
+
+⇒ (f) requires an explicit ruling, recorded in `.13`, between exactly two dispositions — and
+*"it is complicated"* is not one of them:
+  1. **BY DESIGN** — a standalone parse of a design file is not testimony about the design, so a
+     deferred row's improvement genuinely should not move a confidence bar. Then the obligation is to
+     say so where the bar is published, because a bar that silently UNDER-reports progress is
+     misleading in the direction that looks like slow progress.
+  2. **A DEFECT** — the bar should distinguish *"no verdict, and the file does not even parse"* from
+     *"no verdict, but it now parses standalone"*, because those are different states and collapsing
+     them discards measured information.
+⭐ Whichever is chosen, `.13`'s stratification already has the shape to carry it: this is a bucket
+split, not a new instrument. ⛔ And it must be decided from the DENOMINATOR's point of view rather
+than from this slice's — the question is not "did my fix get credit", it is "does the bar report what
+it claims to report".
+
 ## ROUTING EVIDENCE (`.3.12` → `.11c`, `.11a` → `.11d`, the `.11a`/`.11b` pair from `.10`, and `.12c.1` → `EBNF-FRONTEND-SILENT-TRUNCATION.5`)
 
 ⛔ Required by the `ROUTING-EVIDENCE` doctrine: *a routing is a claim about WHERE a defect lives, and

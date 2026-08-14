@@ -1,5 +1,44 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Steering Note (2026-08-14) — the eliminator's ADMISSION CRITERION flipped, and one generated parser moved with it (`ENGINE-UNIVERSAL-SERVICES.17` slice 9)
+
+**One criterion changed; `generated/systemverilog_parser.rs` is the only artifact that is not
+byte-identical.** `eliminate_indirect_left_recursion` now admits
+`survey.guard_admissible_candidates()` instead of `survey.safe_candidates()`, so a surviving
+starvation site is closed by the guarded clone chain slice 7 emits rather than by declining the whole
+knot. Measured on one binary via the new A/B lever: `systemverilog` `left_recursion_unhandled`
+**28 → 0**, every other family 0 under both arms, every other SV lint counter identical.
+
+⭐ **The architectural decision worth carrying is that the two-door SHAPE survived the flip
+unchanged, and only its direction inverted.** Slice 8 made the widened admission an opt-in second
+entry point so that *"the shipped call site names the shipped policy"*; slice 9 kept exactly that,
+with `eliminate_indirect_left_recursion_admitting_starvation_safe_only` now holding the non-shipped
+one. The invariant is direction-free: **changing what ships is an edit to
+`eliminate_indirect_left_recursion`'s own criterion and can never happen by a caller passing a
+different argument.** `PipelineConfig::indirect_lr_admit_starvation_safe_only` (default `false`) and
+`--indirect-lr-admit-starvation-safe-only` are the lever, and no `make` target reaches them.
+
+⛔ **Three consequences a future change in this area must respect.**
+1. **`indirect_guard_chains=` is no longer a zero-check.** The old protection — *"0 on every shipped
+   grammar, non-zero means the admission changed"* — cannot distinguish "the criterion holds" from
+   "the pass stopped running". It is replaced by an EXACT-SET check on the shipped chains
+   (`guard_dry_run` D11/D11a/D11b), which fails on a silent revert, an accidental widening, and a
+   moved guard position alike.
+2. **A census bank is pinned to a moving target unless it names its admission.** Four banks measure
+   *"the knots the eliminator has NOT absorbed"*; when the knots were absorbed, three of them went
+   RED **in the direction that reads as success** (`0/28 → 0/0` looks like "no starved candidates").
+   `guard_feasibility` and `guard_dry_run` now pass the lever explicitly, with the reason at the
+   variable. This is `CI-PARITY-GATE-ROT.29`'s class with the extraction CORRECT and the subject
+   moved.
+3. **A report about the shipped path must describe the shipped path.** The `🛡` renderer lived only
+   in the opt-in dry-run block, because the shipped count was 0 by construction. It is now one shared
+   renderer with a distinguishing VERB (`guard` vs `would guard`), because both blocks print in one
+   report and a scraper must be able to tell a fact from a prediction.
+
+⇒ **Assessment change for the note below:** its closing sentence — *"Flipping the admission is the
+shipped-parser change and is owed the two-sided repro ratchet plus a corpus re-measure"* — is
+discharged, not pending. Both were run and are recorded in the `.17` slice 9 acceptance box.
+
 ## Steering Note (2026-08-14) — the eliminator gained a SECOND synthesis stage, and it is silent on the shipped path by construction rather than by a flag (`ENGINE-UNIVERSAL-SERVICES.17` slice 7)
 
 **A new engine capability landed; nothing a generated parser executes changed.** `plan_elimination`
@@ -15,6 +54,9 @@ starvation site, and the shipped admission (`CandidateAdmission::StarvationSafe`
 having none — so a second gate here would be a second thing that has to agree with the criterion, and
 two things that must agree can disagree. The consequence is measurable rather than argued: all 11
 generated parsers re-derive byte-identical, and `indirect_guard_chains=0` on every shipped grammar.
+⛔ **Both of those numbers moved at slice 9** — see the note above. The ABSENCE-of-a-switch decision
+did not: the guard stage still runs on every plan, and what it emits is still decided by the
+candidate's own surviving starvation sites rather than by a second gate.
 
 ⛔ **Two constraints a future change in this area must respect.**
 1. `render_elements` stays byte-frozen — `indirect_lr_elimination`'s ambiguity refusal compares its
@@ -68,6 +110,10 @@ per-site column, plus six JSON fields.
 `indirect_lr_elimination.rs` acts on — is deliberately UNCHANGED. Promoting the refinement into it
 would change which knots the eliminator absorbs, i.e. a real parser change owed a two-sided repro
 ratchet ([[a-conservative-criterion-and-a-measurement-are-different-objects]]).
+⛔⛔ **SUPERSEDED AT SLICE 9 — the promotion happened, and the ratchet was PAID rather than waived.**
+Six slices separate this restraint from that change, and each one was a step the next could have
+refuted (decide → model → emit → execute → flip). The card still holds: a conservative criterion and
+a measurement stayed different objects for exactly as long as the measurement was unproven.
 
 ⇒ **Assessment change for the note below:** the greedy `*` is still the blocker, but it is now priced.
 `guard-feasible 16/28` against `starvation-safe 0/28`, and both remaining SystemVerilog knots are

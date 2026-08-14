@@ -1,5 +1,81 @@
 # CHANGES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0032 — ⭐⭐⭐ THE FLIP: the guarded admission is what PGEN ships, an LRM-legal SystemVerilog cast parses, and 12 real corpus files are gained with none lost (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 9; SV-CORPUS-GRAD.13h NEW; ENGINE code + the SV parser — the FIRST shipped-parser change in this leaf)
+
+- ⭐⭐⭐ **`initial k = 8'(1);` and `parameter logic [7:0] K = 8'(1);` PARSE.** `ENGINE-UNIVERSAL-SERVICES.13`'s
+  founding defect — an LRM A.8.4 construct PGEN could not parse — closes on the **deliverable** path.
+  One criterion moved: `eliminate_indirect_left_recursion` admits `guard_admissible_candidates()`
+  instead of `safe_candidates()`, so a surviving starvation site is closed by the call-site guarded
+  clone chain the planner already emits rather than by declining the whole knot. Measured on ONE
+  binary via the new A/B lever: `systemverilog` `left_recursion_unhandled` **28 → 0**.
+- ⭐⭐ **THE CORPUS: 12 files gained, ZERO lost, across FOUR independent upstreams.** Full re-run of
+  all **16 336** SV corpus files at the tracked parameters: `pass 9762 → 9774`, 0 timeout, 0 crash,
+  and joined **per file** (a net figure can hide offsetting moves) → **12 transitions, every one
+  `fail → pass`**. Surelog ×5 (`CastShift`, `ClogCast`, `ParamTypespec`, …), black-parrot ×4,
+  opentitan ×2, sv2v ×1. ⭐ **`accepts-invalid` UNCHANGED at 21** — a widening change bought none of
+  its 12 by accepting text the LRM forbids, checked in two independent places.
+- ⭐⭐ **The two-sided ratchet fired exactly as designed: two DEFECT reproducers now parse and not one
+  control moved.** `run_adjudication_repros.py` → `failures=2`, both
+  `defect_constant_size_cast*.sv`, whose manifest note has read *"FLIPS TO ACCEPT WHEN FIXED"* since
+  `.13c.2`. All 12 controls, 5 `fixed` rows and 9 `invalid_*` over-acceptance guards held — including
+  `control_size_cast_in_statement.sv`, the row that stopped `.13` slice 5's over-eager version
+  shipping. Re-baselined as the runner instructs → `checked=29 armed=7 failures=0`.
+- ⭐⭐ **The flip's RED/GREEN pair was written ONE SLICE AHEAD and fired verbatim.** `.17` slice 7
+  listed *"widen the shipped admission — the exact edit slice 9 will make"* as a falsifiability plant
+  and named the assertion it would break. Making the edit broke that assertion, printing the whole
+  `SynthesizedGuard`. ⇒ the calibration artifact is the parent commit, not a reconstructed patch.
+- ⛔⛔ **FOUR BANKS MEASURE "THE SHIPPED GRAMMAR", AND THE FLIP MOVED WHAT THAT MEANS — every red read
+  as good news.** A census of *the knots the eliminator has NOT absorbed* is empty once they are
+  absorbed: `0/28 → 0/0` looks like "no starved candidates", `129/129 → 0/0` like "no approximated
+  guards", `would_absorb=2 → 0` like "nothing left to do". All three are the population moving, not
+  shrinking, and **every extraction was correct** — this is not the scraper class. ⇒ each bank now
+  names its admission; all 36 declared values are then **byte-identical to the pre-flip run**, which
+  is itself the finding: what the dry run predicted since slice 3 is what the pass did.
+  ⭐ `promotion: PROMOTED` — [[a-bank-pinned-to-the-shipped-behaviour-is-pinned-to-a-moving-target]].
+- ⛔ **A zero-check does not survive a flip either.** `indirect_guard_chains=0 on every shipped
+  grammar` would now pin the ABSENCE of the fix. Replaced by an EXACT-SET check on the three shipped
+  chains, which fails on a silent revert, an accidental widening and a moved guard position alike —
+  three changes a count cannot separate.
+- ⛔ **The flip created a reporting gap and this slice closed it**: the report printed
+  `indirect_guard_chains=3` and named none of them, because the `🛡` renderer lived only in the opt-in
+  dry-run block. Now one shared renderer with a load-bearing verb (`guard` vs `would guard`, both
+  printing in one report) and a computed `max_hops=`.
+- ⭐ **`.17` acceptance (d) discharged by MEASUREMENT and mechanised**: all three shipped guard chains
+  are `max_hops=0`, so the hop clone is on no shipped path — stated, not silent, and pinned as bank
+  row D11c so the next slice that moves the admission is told by a failing row.
+- ⛔⛔ **AND SIX OF THE TWELVE CORPUS GAINS DO NOT MOVE THE BAR — including both OpenTitan rows the fix
+  was built for.** They are `deferred:chained_only`, so their verdict improves and the graduation bar
+  cannot see it; the other six convert `unexplained_rejects_valid → match`, moving the axis-2 bar
+  **309 → 303**. ⇒ measured evidence for `.13`'s thesis that the DENOMINATOR is the real bar, and
+  **`SV-CORPUS-GRAD.13h` NEW** owns promoting the oracle (an atomic cascade — the census instrument
+  REFUSES a partial one).
+- ⛔⛔⛔ **THE FLIP COSTS +24.3 % PARSE TIME, AND THAT IS A DIRECTOR CALL, NOT A FOOTNOTE** —
+  *"peak speed, costs are REJECTED not traded"* is a non-negotiable. Measured on the cleanest possible
+  A/B (one session, one binary build, one JSON, the admission the only difference): **narrow 303.0 s
+  / 0.0185 s per file → shipped 376.7 s and 373.6 s / 0.0231 s and 0.0229 s**, ratio **1.243** and
+  **1.233**; per file **5 796 slower, 155 faster**. ⭐ The control validates itself — the narrow arm
+  reproduces the pre-flip corpus verdicts EXACTLY (`pass=9762 fail=6574`), so it is a proven
+  behavioural inverse and the cost is attributable to the admission alone.
+  ⛔ **AND THE FIRST NUMBER PUBLISHED FOR THIS WAS `~11 %` AND WAS WRONG** — computed against the
+  2026-08-12 tracked baseline, which had been measured under materially faster conditions, so a stale
+  baseline **biased the estimate in the flattering direction**. Recorded rather than quietly
+  replaced. ⇒ **`ENGINE-UNIVERSAL-SERVICES.20` NEW** owns it, and its FIRST acceptance item is to
+  profile before optimising: *"~24 % is intrinsic"* is not measured and must not be assumed.
+  ⛔ It was invisible to every existing gate — the lint, the two-sided ratchet, the corpus pass/fail
+  count and all 18 doctrines were GREEN across it — so `.20` also owes a standing corpus-timing
+  ratchet.
+- ⛔⛔ **AND A THIRD FINDING THE SPEED ARM SURFACED — `ENGINE-UNIVERSAL-SERVICES.19` NEW.** Re-deriving
+  SV under the narrow lever reproduces the pre-flip **behaviour** exactly (1 488 rules, 0 guards,
+  `left_recursion_unhandled=28`) and **not** the pre-flip **bytes** — 99 747 apart on the same rule
+  set. Two hypotheses named, neither eliminated: the diff perturbed SV codegen, or the git-ignored
+  `generated/systemverilog.json` moved under it (which is `.16`'s class one level over). ⛔ Nothing
+  published here rests on it — every claim above is a SAME-BINARY measurement — and *"it behaves the
+  same"* is deliberately not accepted as *"nothing else moved"*.
+- **Verified:** `cargo test --lib indirect_lr` 28/28; `check_doctrines.sh` **18/18**; `guard_parses`
+  **64/64** (arms inverted, not one expectation renegotiated); `guard_dry_run` **18/18**;
+  `guard_feasibility` **18/18**; **10 of 11 generated parsers byte-identical**, SV the only one that
+  moved — matching the lint A/B prediction exactly.
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0031 — a self-audit of slice 8's four surfaced findings: two were OWNED, two were prose, and one of the two was the exact class the same leaf promoted (docs only, ZERO code bytes)
 
 - ⛔⛔ **FINDING 2 WAS STATED AND OWNED BY NOBODY** — *"the eprintln shadow is repo-wide, so any other

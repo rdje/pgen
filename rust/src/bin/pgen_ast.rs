@@ -119,11 +119,12 @@ fn run_pipeline_mode(
         // shipping generation path; the `--no-eliminate-indirect-left-recursion` A/B switch on
         // `ast_pipeline` is a measurement lever, not a posture this binary should differ on.
         eliminate_indirect_left_recursion: true,
-        // ENGINE-UNIVERSAL-SERVICES.17 slice 8 — the guard-feasible admission widener. OFF, like
-        // every path that produces an artifact anyone keeps: it admits candidates the shipped
-        // criterion refuses as STARVED. Its only caller is `ast_pipeline`'s explicit
-        // `--indirect-lr-admit-guard-feasible` flag, and this binary deliberately has no such flag.
-        indirect_lr_admit_guard_feasible: false,
+        // ENGINE-UNIVERSAL-SERVICES.17 slice 9 — the starvation-safe-only admission NARROWER. OFF,
+        // like every path that produces an artifact anyone keeps: narrowing reinstates the
+        // pre-slice-9 policy, under which LRM-legal SystemVerilog is REJECTED. Its only caller is
+        // `ast_pipeline`'s explicit `--indirect-lr-admit-starvation-safe-only` flag, and this binary
+        // deliberately has no such flag.
+        indirect_lr_admit_starvation_safe_only: false,
     };
 
     // Create pipeline

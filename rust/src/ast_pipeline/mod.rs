@@ -2612,19 +2612,20 @@ pub struct PipelineConfig {
     /// direct-only shape the survey instrument reports against, without also disabling the
     /// one-hop planner every shipped grammar depends on.
     pub eliminate_indirect_left_recursion: bool,
-    /// `ENGINE-UNIVERSAL-SERVICES.17` slice 8 — admit the GUARD-FEASIBLE candidate population on
-    /// this generation run, so the call-site guarded clone chains slice 7 synthesizes reach codegen.
+    /// `ENGINE-UNIVERSAL-SERVICES.17` slice 9 — NARROW this generation run back to the
+    /// starvation-safe candidate population, i.e. the admission every parser shipped under up to
+    /// `PGEN-ENGINE-UNIVERSAL-SERVICES-0030`.
     ///
     /// ⛔⛔ **`false` is the shipped value and nothing in `rust/Makefile` sets it.** The only way to
-    /// turn it on is the `--indirect-lr-admit-guard-feasible` flag on the `ast_pipeline` binary, and
-    /// the pass narrates a warning banner when it is on. It exists because *"the emitted guard
-    /// parses"* cannot be measured without generating a parser from the emission, and the shipped
-    /// admission — *"no surviving starvation site"* — never produces one.
+    /// turn it on is the `--indirect-lr-admit-starvation-safe-only` flag on the `ast_pipeline`
+    /// binary, and the pass narrates a warning banner when it is on.
     ///
-    /// ⛔ Turning this on is NOT the shipped-behaviour flip (`.17` slice 9), which changes what
-    /// [`indirect_lr_elimination::eliminate_indirect_left_recursion`] itself admits and owes a
-    /// two-sided repro ratchet plus a corpus re-measure.
-    pub indirect_lr_admit_guard_feasible: bool,
+    /// ⛔ **This field inverted at slice 9.** It was `indirect_lr_admit_guard_feasible` — an opt-in
+    /// WIDENER, because the shipped admission was the narrow one. The flip made the guarded
+    /// admission shipped, so what remains worth switching is the OLD policy, and it is kept for
+    /// exactly one reason: a before→after must be measurable **on one binary**. A parser built with
+    /// this set REJECTS LRM-legal SystemVerilog and is never a deliverable.
+    pub indirect_lr_admit_starvation_safe_only: bool,
 }
 
 impl Default for PipelineConfig {
@@ -2640,7 +2641,7 @@ impl Default for PipelineConfig {
             max_recursion_depth: 100,
             eliminate_left_recursion: true,
             eliminate_indirect_left_recursion: true,
-            indirect_lr_admit_guard_feasible: false,
+            indirect_lr_admit_starvation_safe_only: false,
         }
     }
 }
@@ -3061,10 +3062,14 @@ impl RustASTPipeline {
             // ⛔ `.17` slice 8 — TWO doors, and the shipped one is the `else` branch of a flag no
             // `make` target sets. Keeping them as separate entry points (rather than one function
             // taking the admission) is deliberate: the shipped call site names the shipped policy,
-            // so widening what ships is an edit to `indirect_lr_elimination`'s own criterion
-            // (`.17` slice 9) and cannot happen by a caller passing a different argument.
-            if self.config.indirect_lr_admit_guard_feasible {
-                indirect_lr_elimination::eliminate_indirect_left_recursion_admitting_guard_feasible(
+            // so changing what ships is an edit to `indirect_lr_elimination`'s own criterion and
+            // cannot happen by a caller passing a different argument.
+            // ⛔⛔ `.17` slice 9 — the DIRECTION inverted and the structure did not. The `if` branch
+            // held the opt-in WIDENER while the narrow admission shipped; it now holds the opt-in
+            // NARROWER while the guarded admission ships. Whichever way the policy points, the
+            // deliverable path is the branch that names no flag.
+            if self.config.indirect_lr_admit_starvation_safe_only {
+                indirect_lr_elimination::eliminate_indirect_left_recursion_admitting_starvation_safe_only(
                     grammar_tree,
                     rule_order,
                     annotations.as_deref_mut(),

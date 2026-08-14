@@ -14,7 +14,7 @@ tags: [analysis, static-analysis, instruments, first-sets, left-recursion, ast-p
 date: 2026-08-13
 status: current
 evidence: rust/src/ast_pipeline/indirect_lr_plan.rs (`collect_starvation_sites` fires on any non-empty residual and consults no FIRST set; `assess_guard` adds the measurement beside it, without changing `is_starvation_safe`); `./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --report-indirect-lr-plan` printing `starvation-safe candidates: 0/28` next to `guard-feasible candidates: 16/28` and `residual_nullable=29`; ENGINE-UNIVERSAL-SERVICES.17 slice 2
-reverify: "bash docs/tasks/artifacts/engine_universal_services/guard_feasibility/probe.sh   # 9/9; C1 pins 0/28 conservative vs 16/28 measured, C7 pins 129/129 over-approximated"
+reverify: "bash docs/tasks/artifacts/engine_universal_services/guard_feasibility/probe.sh   # 18/18; C1 pins 0/28 conservative vs 16/28 measured, C7 pins 129/129 over-approximated — both now read under `--indirect-lr-admit-starvation-safe-only`, because the refined criterion SHIPPED at `.17` slice 9 and the bare report shows an empty census"
 ---
 
 **A conservative criterion is designed so that a `safe` verdict is never wrong. That says nothing
@@ -55,6 +55,18 @@ Here it would change which knots the eliminator absorbs — a real parser change
 repro ratchet ([[a-grammar-rewrite-must-verify-its-own-postcondition-because-a-static-criterion-only-answers-what-you-encoded]]).
 A slice that refines a criterion and applies it in the same breath has spent its evidence budget on
 the wrong half.
+
+⭐⭐ **AND THE PROMOTION EVENTUALLY HAPPENED — SEVEN SLICES LATER, WHICH IS THE POINT.** `.17` slice 9
+made `guard_admissible_candidates()` the shipped criterion, and the gap between the two is the
+evidence the card is about: decide the guard shape against measurements, model it as a hand-written
+grammar, emit it from the planner, compile a parser from that emission and run bytes through it, and
+only then flip. Each step could have refuted the last, and one did — a plant on the emitted-guard
+bank stayed green and proved the row set could not check what it appeared to. ⇒ read this card as
+*"do not promote in the same breath"*, never as *"do not promote"*: the refusal that is only
+conservatism is exactly the one worth spending slices to convert into a measurement.
+⛔ One consequence to carry: once the refined criterion ships, the bank that measured the
+conservative population is measuring an empty set —
+[[a-bank-pinned-to-the-shipped-behaviour-is-pinned-to-a-moving-target]].
 
 ## The corollary that costs the most
 

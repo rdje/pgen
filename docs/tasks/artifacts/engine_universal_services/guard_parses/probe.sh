@@ -28,11 +28,21 @@
 #
 # THE ARMS, and the one-difference is the admission and nothing else:
 #
-#   A   the SHIPPED admission (make focus_scratch)   `starvation-safe candidates: 0/3` ⇒ nothing is
+#   A   --indirect-lr-admit-starvation-safe-only     `starvation-safe candidates: 0/3` ⇒ nothing is
 #                                                     absorbed, the cycle survives, the runtime cycle
 #                                                     guard REJECTS the chained casts
-#   B   --indirect-lr-admit-guard-feasible            ⇒ `prim` is absorbed AND its surviving
+#   B   the SHIPPED admission (make focus_scratch)    ⇒ `prim` is absorbed AND its surviving
 #                                                     starvation site gets the guarded clone chain
+#
+# ⛔⛔ THE ARMS SWAPPED WHICH ONE CARRIES THE FLAG AT `.17` SLICE 9, AND NOT ONE EXPECTATION MOVED.
+# Slice 8 wrote this bank while the narrow admission SHIPPED: arm A was the bare `make` path and
+# arm B opted in with `--indirect-lr-admit-guard-feasible`. Slice 9 flipped the shipped criterion, so
+# arm B is now the bare `make` path and arm A opts OUT with `--indirect-lr-admit-starvation-safe-only`.
+# Every parse verdict and every structural count below is byte-identical to what slice 8 recorded —
+# which is the strongest single statement this file can make about the flip: what used to require a
+# flag is what `make` now produces, and the rows that proved it did not have to be renegotiated.
+# ⭐ The BANNER rows are the two that DID invert, necessarily: the warning follows the non-shipped
+# policy, and the non-shipped policy changed sides.
 #
 # ⭐⭐ SIX GEN ROWS FLIP REJECT -> ACCEPT between the arms (three per grammar). A bank where every
 # row accepts under both arms would prove only that the grammars are parseable, so the run DERIVES
@@ -71,7 +81,7 @@
 # one because its grammars are hand-eliminated and the interpreter can read them as-is. Here the
 # INTERP column cannot stand alone for a stronger reason than cost: the A arms' whole finding is that
 # the two oracles DISAGREE, so an interpreter-only run would report ACCEPT everywhere and conclude
-# the shipped admission already parses it all.
+# the narrowed admission already parses it all.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -84,7 +94,8 @@ SCRATCH="grammars/scratch/scratch.ebnf"
 SCRATCH_JSON="generated/scratch.json"
 SCRATCH_PARSER="generated/scratch_parser.rs"
 WORK="rust/target/es17_guard_parses"   # repo volume, git-ignored (policy 13)
-WIDEN="--indirect-lr-admit-guard-feasible"
+# ⛔ `.17` slice 9 — this is the NARROWING lever now, and it is applied to arm A. See the header.
+NARROW="--indirect-lr-admit-starvation-safe-only"
 
 # grammar key -> file
 declare -A GRAMMAR=(
@@ -166,13 +177,13 @@ CASES=(
 # the plan (`.17` slice 7 RESULT 4 — a report about a thing must be computed from that thing).
 # <arm> <probe> <WANT> <note>
 STRUCT=(
-  "1A guard_rule_count 0  the shipped admission emits no guard rule — 0/3 candidates are starvation-safe"
+  "1A guard_rule_count 0  the narrowed admission emits no guard rule — 0/3 candidates are starvation-safe"
   "1A eliminated       0  and absorbs nothing, so the cycle survives into the parser"
-  "1A banner           0  the opt-in warning does not fire on the shipped path"
+  "1A banner           1  ⭐ .17 slice 9: the warning now fires on the NARROWED arm, at DEFAULT verbosity"
   "1B guard_rule_count 3  prim_lr_guard0 + its suffix + the HOP CLONE"
   "1B eliminated       1  'prim' is absorbed — the base rule now has the lr_base/lr_suffix shape"
   "1B hop_clone        1  ⭐⭐ .17 acceptance (d): prim_lr_guard0_ct EXISTS in the emitted parser"
-  "1B banner           1  the opt-in warning fires, at DEFAULT verbosity"
+  "1B banner           0  ⭐ and NOT on the shipped path, which is the bare make focus_scratch output"
   "2A guard_rule_count 0  same on the single-holder grammar"
   "2A eliminated       0  and nothing is absorbed there either"
   "2B guard_rule_count 3  the SAME three rules — dropping a holder changes no guard"
@@ -264,22 +275,22 @@ fi
 declare -A MEASURED_GEN MEASURED_INTERP MEASURED_STRUCT
 
 # Load one grammar into the scratch slot and generate its parser under one admission.
-#  $1 = arm key (e.g. 1A), $2 = grammar file, $3 = "shipped" | "widened"
+#  $1 = arm key (e.g. 1A), $2 = grammar file, $3 = "shipped" | "narrowed"
 run_arm() {
   local arm="$1" grammar="$2" mode="$3"
   ARM_RAN=1
   cp "$grammar" "$SCRATCH" || return 1
-  # ⛔ `make focus_scratch` FIRST in every arm, even the widened one: it is what regenerates
-  # `generated/scratch.json` from the fixture. The widened arm then re-runs ONLY the generator step
+  # ⛔ `make focus_scratch` FIRST in every arm, even the narrowed one: it is what regenerates
+  # `generated/scratch.json` from the fixture. The narrowed arm then re-runs ONLY the generator step
   # on that same JSON, so the two arms of a grammar compile the identical front-end output and the
   # admission is provably the only difference.
   make -C rust SHELL=/bin/bash focus_scratch >"$WORK/arm$arm.focus.log" 2>&1 || {
     echo "focus_scratch FAILED for arm $arm — see $WORK/arm$arm.focus.log" >&2; return 1; }
-  if [[ "$mode" == widened ]]; then
+  if [[ "$mode" == narrowed ]]; then
     # This is `rust/Makefile`'s RUST_GENERATOR line (:93) plus one flag.
     "$AST_PIPELINE" "$SCRATCH_JSON" --generate-parser --debug --trace --eliminate-left-recursion \
-      "$WIDEN" -o "$SCRATCH_PARSER" >"$WORK/arm$arm.gen.log" 2>"$WORK/arm$arm.gen.err" || {
-      echo "widened generation FAILED for arm $arm — see $WORK/arm$arm.gen.err" >&2; return 1; }
+      "$NARROW" -o "$SCRATCH_PARSER" >"$WORK/arm$arm.gen.log" 2>"$WORK/arm$arm.gen.err" || {
+      echo "narrowed generation FAILED for arm $arm — see $WORK/arm$arm.gen.err" >&2; return 1; }
   fi
   (cd rust && cargo build --features generated_parsers --bin parseability_probe) \
     >"$WORK/arm$arm.build.log" 2>&1 || {
@@ -292,8 +303,8 @@ run_arm() {
     read -r case_arm input _wg _wi _note <<<"$spec"
     [[ "$case_arm" == "$arm" ]] || continue
     MEASURED_GEN[$arm:$input]="$(gen_verdict "$WORK/$input.txt")"
-    if [[ "$mode" == widened ]]; then
-      MEASURED_INTERP[$arm:$input]="$(interp_verdict "$grammar" "$WORK/$input.txt" "$WIDEN")"
+    if [[ "$mode" == narrowed ]]; then
+      MEASURED_INTERP[$arm:$input]="$(interp_verdict "$grammar" "$WORK/$input.txt" "$NARROW")"
     else
       MEASURED_INTERP[$arm:$input]="$(interp_verdict "$grammar" "$WORK/$input.txt")"
     fi
@@ -304,12 +315,12 @@ run_arm() {
   # ⛔ The banner probe is what proves the two INTERP columns are DIFFERENT RUNS. Both read ACCEPT on
   # every row, so without it a bank that silently dropped the flag would look identical.
   local banner_stderr
-  if [[ "$mode" == widened ]]; then
-    banner_stderr="$("$AST_PIPELINE" "$grammar" --interpret-parse "$WORK/e1.txt" "$WIDEN" 2>&1 1>/dev/null)"
+  if [[ "$mode" == narrowed ]]; then
+    banner_stderr="$("$AST_PIPELINE" "$grammar" --interpret-parse "$WORK/e1.txt" "$NARROW" 2>&1 1>/dev/null)"
   else
     banner_stderr="$("$AST_PIPELINE" "$grammar" --interpret-parse "$WORK/e1.txt" 2>&1 1>/dev/null)"
   fi
-  if grep -q "GUARD-FEASIBLE ADMISSION IS ON" <<<"$banner_stderr"; then
+  if grep -q "STARVATION-SAFE-ONLY ADMISSION IS ON" <<<"$banner_stderr"; then
     MEASURED_STRUCT[$arm:banner]=1
   else
     MEASURED_STRUCT[$arm:banner]=0
@@ -319,10 +330,10 @@ run_arm() {
 echo "ENGINE-UNIVERSAL-SERVICES.17 slice 8 — does the EMITTED guard parse?"
 echo
 
-run_arm 1A "${GRAMMAR[1]}" shipped || exit 2
-run_arm 1B "${GRAMMAR[1]}" widened || exit 2
-run_arm 2A "${GRAMMAR[2]}" shipped || exit 2
-run_arm 2B "${GRAMMAR[2]}" widened || exit 2
+run_arm 1A "${GRAMMAR[1]}" narrowed || exit 2
+run_arm 1B "${GRAMMAR[1]}" shipped  || exit 2
+run_arm 2A "${GRAMMAR[2]}" narrowed || exit 2
+run_arm 2B "${GRAMMAR[2]}" shipped  || exit 2
 
 # ================= the verdict table =================
 fail=0
@@ -402,7 +413,7 @@ if [[ $fail -eq 0 ]]; then
   echo "  compiles to a parser that accepts every input on both grammars: the LOOP guard row (2B e1),"
   echo "  the TRAILING guard row (2B e5), and the CALL-SITE-SCOPING row (1B e7, which the shared-rule"
   echo "  shape rejects). The HOP CLONE prim_lr_guard0_ct is in both emitted parsers, and $flips GEN"
-  echo "  rows flip REJECT -> ACCEPT against the shipped admission."
+  echo "  rows flip REJECT -> ACCEPT against the NARROWED (pre-.17-slice-9) admission."
 else
   echo "GUARD-PARSES: MISMATCH — a row disagrees with the verdict .17 slice 8 recorded." >&2
   echo "  Do NOT adjust the expectations to match; the leaf's decision rests on them." >&2

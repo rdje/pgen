@@ -1,0 +1,34 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 9 — the SV corpus transition set (PGEN-ENGINE-UNIVERSAL-SERVICES-0032)
+#
+# WHY THIS FILE EXISTS. The slice-9 admission flip changed `generated/systemverilog_parser.rs`, so the
+# tracked corpus characterization is stale by its own staleness rule. The PROMOTION of that oracle is a
+# separate unit (`SV-CORPUS-GRAD.13h`) because it is an atomic cascade that moves a published number.
+# This file is the measurement that unit starts from, made DURABLE: the full re-run lives under
+# `rust/target/`, which is git-ignored, so a fresh session would otherwise have to rediscover the delta
+# rather than verify it (`CI-PARITY-GATE-ROT.29` acceptance (e)).
+#
+# HOW IT WAS PRODUCED — `stimuli/run_external_corpus.sh sv` at the TRACKED parameters (60s, 8 jobs, no
+# cap) with `PGEN_CORPUS_OUT_DIR` set, joined per-path against the tracked `results.tsv`. ~4 minutes of
+# parse; re-derivable rather than irreplaceable, which is why only the DELTA is tracked and not the
+# 16336-row result set.
+#
+# THE HEADLINE, DERIVED FROM THE ROWS BELOW:
+#   16336 files: pass 9762 -> 9774, fail 6574 -> 6562, timeout 0, crash 0
+#   12 transitions, ALL fail->pass. ZERO pass->fail.
+#   6 convert `divergence:unexplained_rejects_valid` -> `match`  ⇒ axis-2 bar 309 -> 303
+#   6 are `deferred:chained_only` and STAY deferred — their verdict improved and the bar cannot see it
+#   `accepts-invalid` UNCHANGED at 21 — the widened admission accepted no new invalid SV
+#
+suite	relpath	observed_before	observed_after	adjudication_before	adjudication_after	bar_effect
+black-parrot	bp_common/src/include/bp_common_cache_pkgdef.svh	fail	pass	deferred:chained_only	deferred:chained_only	none (deferred both sides)
+black-parrot	bp_common/src/include/bp_common_cfg_bus_pkgdef.svh	fail	pass	deferred:chained_only	deferred:chained_only	none (deferred both sides)
+black-parrot	bp_common/src/include/bp_common_clint_pkgdef.svh	fail	pass	deferred:chained_only	deferred:chained_only	none (deferred both sides)
+black-parrot	bp_common/src/include/bp_common_host_pkgdef.svh	fail	pass	deferred:chained_only	deferred:chained_only	none (deferred both sides)
+opentitan	hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv	fail	pass	deferred:chained_only	deferred:chained_only	none (deferred both sides)
+opentitan	hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv	fail	pass	deferred:chained_only	deferred:chained_only	none (deferred both sides)
+Surelog	tests/BlackBePipeInt/dut.sv	fail	pass	divergence:unexplained_rejects_valid	match	counts (unexplained -> match)
+Surelog	tests/CastShift/dut.sv	fail	pass	divergence:unexplained_rejects_valid	match	counts (unexplained -> match)
+Surelog	tests/ClogCast/dut.sv	fail	pass	divergence:unexplained_rejects_valid	match	counts (unexplained -> match)
+Surelog	tests/ParamArraySelect/dut.sv	fail	pass	divergence:unexplained_rejects_valid	match	counts (unexplained -> match)
+Surelog	tests/ParamTypespec/dut.sv	fail	pass	divergence:unexplained_rejects_valid	match	counts (unexplained -> match)
+sv2v	test/core/nest_order.sv	fail	pass	divergence:unexplained_rejects_valid	match	counts (unexplained -> match)
