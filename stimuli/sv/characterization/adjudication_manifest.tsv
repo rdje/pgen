@@ -162,7 +162,7 @@ Surelog	tests/BitsInGenBlock/dut.sv	pass	must_accept	match	Surelog: golden log B
 Surelog	tests/BitsLogic/dut.sv	pass	must_accept	match	Surelog: golden log BitsLogic.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BitsOp/dut.sv	pass	must_accept	match	Surelog: golden log BitsOp.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BitsStructMember/dut.sv	pass	must_accept	match	Surelog: golden log BitsStructMember.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/BlackBePipeInt/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log BlackBePipeInt.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/BlackBePipeInt/dut.sv	pass	must_accept	match	Surelog: golden log BlackBePipeInt.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackBox/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log BlackBox.log, BlackBoxInst.log, BlackBoxInstTop.log, BlackBoxMod.log, BlackBoxSubMod.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackConst/dut.sv	fail	must_accept	divergence:explained_svpp_macro_use	Surelog: golden log BlackConst.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/BlackParrotComplex/dut.sv	pass	must_accept	match	Surelog: golden log BlackParrotComplex.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -183,7 +183,7 @@ Surelog	tests/CaseFullElab/top.sv	pass	must_accept	match	Surelog: golden log Cas
 Surelog	tests/CaseInside/top.sv	pass	must_accept	match	Surelog: golden log CaseInside.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CastEnum/dut.sv	pass	must_accept	match	Surelog: golden log CastEnum.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CastPartSelect/dut.sv	pass	must_accept	match	Surelog: golden log CastPartSelect.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/CastShift/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log CastShift.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/CastShift/dut.sv	pass	must_accept	match	Surelog: golden log CastShift.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CastStructMember/dut.sv	pass	must_accept	match	Surelog: golden log CastStructMember.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CastToParam/dut.sv	pass	must_accept	match	Surelog: golden log CastToParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CastTypespec/dut.sv	pass	must_accept	match	Surelog: golden log CastTypespec.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -214,7 +214,7 @@ Surelog	tests/ClassVirtual/dut.sv	pass	must_accept	match	Surelog: golden log Cla
 Surelog	tests/ClockingBlock/dut.sv	pass	must_accept	match	Surelog: golden log ClockingBlock.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ClockingDrive/dut.sv	pass	must_accept	match	Surelog: golden log ClockingDrive.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ClockingSntx/dut.sv	pass	must_accept	match	Surelog: golden log ClockingSntx.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/ClogCast/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log ClogCast.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/ClogCast/dut.sv	pass	must_accept	match	Surelog: golden log ClogCast.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ClogParam/dut.sv	pass	must_accept	match	Surelog: golden log ClogParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/CmdLineOverride/dut.sv	pass	must_accept	match	Surelog: golden log CmdLineOverride.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ComplexBitSelect/dut.sv	pass	must_accept	match	Surelog: golden log ComplexBitSelect.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -633,7 +633,7 @@ Surelog	tests/PackedEnumPort/dut.sv	pass	must_accept	match	Surelog: golden log P
 Surelog	tests/PackedEnumVar/dut.sv	pass	must_accept	match	Surelog: golden log PackedEnumVar.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PackedUnpackedIo/dut.sv	pass	must_accept	match	Surelog: golden log PackedUnpackedIo.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ParamArray/dut.sv	pass	must_accept	match	Surelog: golden log ParamArray.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/ParamArraySelect/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log ParamArraySelect.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/ParamArraySelect/dut.sv	pass	must_accept	match	Surelog: golden log ParamArraySelect.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ParamArrayUnsizedPattern/dut.sv	pass	must_accept	match	Surelog: golden log ParamArrayUnsizedPattern.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ParamBitSelect/dut.sv	pass	must_accept	match	Surelog: golden log ParamBitSelect.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ParamByValue/dut.sv	pass	must_accept	match	Surelog: golden log ParamByValue.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -665,7 +665,7 @@ Surelog	tests/ParamOverloading/dut.sv	pass	must_accept	match	Surelog: golden log
 Surelog	tests/ParamRef/dut.sv	pass	must_accept	match	Surelog: golden log ParamRef.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ParamScope/dut.sv	pass	must_accept	match	Surelog: golden log ParamScope.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ParamSubstituteComplex/dut.sv	pass	must_accept	match	Surelog: golden log ParamSubstituteComplex.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/ParamTypespec/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log ParamTypespec.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/ParamTypespec/dut.sv	pass	must_accept	match	Surelog: golden log ParamTypespec.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/ParamTypespec2/dut.sv	pass	must_accept	match	Surelog: golden log ParamTypespec2.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PartSelect3/dut.sv	pass	must_accept	match	Surelog: golden log PartSelect3.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/PartSelect4/dut.sv	pass	must_accept	match	Surelog: golden log PartSelect4.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -980,14 +980,14 @@ black-parrot	bp_common/src/include/bp_common_bedrock_pkgdef.svh	pass	chained_onl
 black-parrot	bp_common/src/include/bp_common_bedrock_wormhole_defines.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_common/src/include/bp_common_cache_engine_if.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_common/src/include/bp_common_cache_engine_pkgdef.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-black-parrot	bp_common/src/include/bp_common_cache_pkgdef.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+black-parrot	bp_common/src/include/bp_common_cache_pkgdef.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_common/src/include/bp_common_cfg_bus_defines.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-black-parrot	bp_common/src/include/bp_common_cfg_bus_pkgdef.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-black-parrot	bp_common/src/include/bp_common_clint_pkgdef.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+black-parrot	bp_common/src/include/bp_common_cfg_bus_pkgdef.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+black-parrot	bp_common/src/include/bp_common_clint_pkgdef.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_common/src/include/bp_common_core_if.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_common/src/include/bp_common_core_pkgdef.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_common/src/include/bp_common_defines.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-black-parrot	bp_common/src/include/bp_common_host_pkgdef.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+black-parrot	bp_common/src/include/bp_common_host_pkgdef.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_common/src/include/bp_common_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_common/src/include/bp_common_rv64_csr_defines.svh	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 black-parrot	bp_common/src/include/bp_common_rv64_instr_defines.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -9412,7 +9412,7 @@ opentitan	hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic_target.sv	pass	chaine
 opentitan	hw/top_darjeeling/rtl/autogen/chip_darjeeling_asic.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/chip_darjeeling_verilator.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/testing/lc_ctrl_token_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling_pd_aon.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -10003,7 +10003,7 @@ opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_asic.sv	fail	chained_only	de
 opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_cw340.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_verilator.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/testing/lc_ctrl_token_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey_pd_aon.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey_pkg.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
@@ -12108,7 +12108,7 @@ sv2v	test/core/named_block.v	pass	out_of_scope_with_cause:v2005_profile_lane	def
 sv2v	test/core/named_genblk_cascade.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/named_genblk_cascade.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/named_genblk_cascade_tb.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/nest_order.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract)
+sv2v	test/core/nest_order.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/nest_order.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/net_base_type.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/net_base_type.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
@@ -12261,7 +12261,7 @@ sv2v	test/core/stream_unit.sv	pass	must_accept	match	sv2v: conversion-input .sv 
 sv2v	test/core/stream_unit.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/string.sv	pass	must_accept	match	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/string.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
-sv2v	test/core/string_byte_order.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: conversion-input .sv (valid SV by suite contract) - .12a: parse stops where svpp cannot alter the text, so the preprocessor dependency does not explain THIS failure
+sv2v	test/core/string_byte_order.sv	fail	must_accept	divergence:explained_svpp_include	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/string_byte_order.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane
 sv2v	test/core/string_cast.sv	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: conversion-input .sv (valid SV by suite contract)
 sv2v	test/core/string_cast.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	sv2v: golden Verilog-2005 conversion output - keyed for the verilog_2005 profile lane

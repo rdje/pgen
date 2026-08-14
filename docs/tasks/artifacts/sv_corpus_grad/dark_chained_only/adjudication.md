@@ -8,19 +8,20 @@
 | input | repo-root-relative path | sha256 |
 |---|---|---|
 | worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `c898d15c7fc830b3f4a5ec9673dd78f7f43652b921ce30956e6646ae58701f08` |
-| grammar | `grammars/systemverilog.ebnf` | `eac78ed598a3da125d35d0b125479536917e75aa587ee3b4219c2cd7cb937398` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `9f773c4a6d366c23e70b540e312fca61a6c05583e0e0346934579925559c8c28` |
+| grammar | `grammars/systemverilog.ebnf` | `1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `f04f6f0085358338def9d836330c34bff3a344558f492cdb6cfe6c716ec0739d` |
 
 ## Verdicts
 
 | verdict | rows | what it means |
 |---|---:|---|
-| `MACRO-BLOCKED` | 26 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
+| `MACRO-BLOCKED` | 29 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
 | `CROSS-FILE-FACTS` | 9 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `INVALID-SV` | 8 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
-| `DEFECT` | 7 | ⭐ valid SV that PGEN REJECTS — pinned by a minimal reproducer under `stimuli/sv/adjudication_repros/`, re-run by `stimuli/sv/run_adjudication_repros.py` |
 | `NOT-SV-SOURCE` | 4 | not source text at all (a command line, a plain-text fixture) — a CORPUS COMPOSITION defect, routed to `.13c.1` |
+| `DEFECT` | 2 | ⭐ valid SV that PGEN REJECTS — pinned by a minimal reproducer under `stimuli/sv/adjudication_repros/`, re-run by `stimuli/sv/run_adjudication_repros.py` |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
+| `PARSES-BARE` | 2 | ⚠️ parses with NO transformation at all — contradicts the corpus row |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
 | **TOTAL** | **57** | |
 
@@ -41,13 +42,8 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `CROSS-FILE-FACTS` | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv` | 24 | none | `t_Counteren,t_MainMode,t_MainResult,t_Mcause,t_Minterrupts,t_Mseccfg_ent,t_Mstatus,t_Mtvec,t_Pmpcfg_ent,t_Privilege` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/base/uvm_port_base.svh` | 75 | none | `uvm_component,uvm_coreservice_t,uvm_object,uvm_phase,uvm_port_type_e,uvm_root,uvm_void` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_policies.svh` | 147 | none | `uvm_object` |
-| `DEFECT` | opentitan | `hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | — | `defect_select_expression_with.sv` |
 | `DEFECT` | opentitan | `hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv` | 56 | — | `defect_tfport_index_method_call.sv` |
-| `DEFECT` | opentitan | `hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv` | 244 | — | `defect_constant_size_cast.sv` |
-| `DEFECT` | opentitan | `hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | — | `defect_select_expression_with.sv` |
 | `DEFECT` | opentitan | `hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv` | 56 | — | `defect_tfport_index_method_call.sv` |
-| `DEFECT` | opentitan | `hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv` | 233 | — | `defect_constant_size_cast.sv` |
-| `DEFECT` | opentitan | `hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | — | `defect_select_expression_with.sv` |
 | `FRAGMENT-ENUM-BODY` | opentitan | `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` | 2 | — | the whole file is `CUSTOM_1,` — an enum-member list included INSIDE an `enum { … }`, so no wrapper in the ladder can shape it |
 | `FRAGMENT-MODULE` | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_m.svh` | 87 | module |  |
 | `FRAGMENT-MODULE` | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_mu.svh` | 104 | module |  |
@@ -67,11 +63,14 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `MACRO-BLOCKED` | opentitan | `hw/top_darjeeling/ip/xbar_main/dv/autogen/tb__xbar_connect.sv` | 7 | module | stuck on `` `DRIVE_CLK `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_darjeeling/ip/xbar_mbx/dv/autogen/tb__xbar_connect.sv` | 7 | module | stuck on `` `DRIVE_CLK `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_darjeeling/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv` | 7 | module | stuck on `` `DRIVE_CLK `` (undefined here) |
+| `MACRO-BLOCKED` | opentitan | `hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | none | stuck on `` `uvm_component_utils `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_earlgrey/dv/autogen/tb__alert_handler_connect.sv` | 7 | module | stuck on `` `CHIP_HIER `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_earlgrey/ip/xbar_main/dv/autogen/tb__xbar_connect.sv` | 7 | module | stuck on `` `DRIVE_CLK `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_earlgrey/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv` | 7 | module | stuck on `` `DRIVE_CLK `` (undefined here) |
+| `MACRO-BLOCKED` | opentitan | `hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | none | stuck on `` `uvm_component_utils `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_englishbreakfast/ip/xbar_main/dv/autogen/tb__xbar_connect.sv` | 7 | module | stuck on `` `DRIVE_CLK `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_englishbreakfast/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv` | 7 | module | stuck on `` `DRIVE_CLK `` (undefined here) |
+| `MACRO-BLOCKED` | opentitan | `hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv` | 24 | none | stuck on `` `uvm_component_utils `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/check/peek/abs.sv` | 16 | module | stuck on `` `CR `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/check/peek/mem.sv` | 13 | module | stuck on `` `CR `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/check/protocol/irqs.sv` | 12 | module | stuck on `` `CSR `` (undefined here) |
@@ -89,3 +88,5 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `NOT-SV-SOURCE` | slang | `tests/unittests/data/local.svh` | 2 | — | a plain-text `include` fixture (`// Just a test string` + a bare string literal) — route to .13c.1 |
 | `NOT-SV-SOURCE` | slang | `tests/unittests/data/nested/nested_local.svh` | 1 | — | a plain-text `include` fixture (a bare string literal) — route to .13c.1 |
 | `NOT-SV-SOURCE` | slang | `tests/unittests/data/system/system.svh` | 1 | — | a plain-text `include` fixture (a bare string literal) — route to .13c.1 |
+| `PARSES-BARE` | opentitan | `hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv` | 244 | none |  |
+| `PARSES-BARE` | opentitan | `hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv` | 233 | none |  |

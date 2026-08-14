@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `bf976c1750770ba077e8af1fe0c1f14d8acf633c2b592960ca16d10d3bd66160` |
+| parse binary | `rust/target/release/parseability_probe` | `f672902df6b27c7b8e353ca36f902c549b363f8b10a731e60377d2ef550ce090` |
 | grammar | `grammars/systemverilog.ebnf` | `1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c` |
-| generated parser | `generated/systemverilog_parser.rs` | `d5784e6d6d1eb3951b932b1b3b2dd5b22f20c109c7406f33f659b10428a1af0e` |
+| generated parser | `generated/systemverilog_parser.rs` | `463c647603e83af1ed3e41fffb16ac2041f466fe1ac3b0df507161d3fcfc839e` |
 
-Measured at `HEAD` = `6c63f5f5+dirty` (2026-08-12).
+Measured at `HEAD` = `5e40bf37` (2026-08-14).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,29 +53,29 @@ Measured at `HEAD` = `6c63f5f5+dirty` (2026-08-12).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.33` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `6.43` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9762 | 6574 | 0 | 0 | 59.8% |
+| 16336 | 9774 | 6562 | 0 | 0 | 59.8% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 18 | 84 | 0 | 0 | 17.6% |
-| Surelog | 828 | 694 | 134 | 0 | 0 | 83.8% |
-| black-parrot | 205 | 17 | 188 | 0 | 0 | 8.3% |
+| Surelog | 828 | 699 | 129 | 0 | 0 | 84.4% |
+| black-parrot | 205 | 21 | 184 | 0 | 0 | 10.2% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
 | ispras-sv-tests | 1266 | 1094 | 172 | 0 | 0 | 86.4% |
 | iverilog | 3799 | 3231 | 568 | 0 | 0 | 85.0% |
-| opentitan | 3983 | 793 | 3190 | 0 | 0 | 19.9% |
+| opentitan | 3983 | 795 | 3188 | 0 | 0 | 20.0% |
 | scr1 | 50 | 8 | 42 | 0 | 0 | 16.0% |
 | slang | 92 | 72 | 20 | 0 | 0 | 78.3% |
 | sv-tests | 1028 | 859 | 169 | 0 | 0 | 83.6% |
-| sv2v | 953 | 726 | 227 | 0 | 0 | 76.2% |
+| sv2v | 953 | 727 | 226 | 0 | 0 | 76.3% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
 | verible | 152 | 121 | 31 | 0 | 0 | 79.6% |
 | verilator | 3263 | 2078 | 1185 | 0 | 0 | 63.7% |

@@ -1,5 +1,69 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-SV-CORPUS-GRAD-0217 — a delta is a claim about a JOIN, and this one was joined on the wrong column
+
+The leaf arrived with its answer pre-measured: 12 transitions, bar 309 → 303, re-run and promote.
+Re-deriving it instead of promoting it changed the published number. That is the whole lesson, and
+the rest is how the error was shaped.
+
+**1. A delta joined on the OBSERVED verdict measures only the rows that crossed it.** The routed
+transition set joined before/after per path on `pass`/`fail`. One row is `fail` on both sides and
+moved anyway:
+
+```text
+sv2v  test/core/string_byte_order.sv
+      divergence:unexplained_rejects_valid -> divergence:explained_svpp_include
+```
+
+Its adjudication is decided **positionally** — `.12a` awards `explained_svpp_*` only when the parse
+stops somewhere expansion can reach. The file is `localparam b = 64'("abcd"); … `include "…"`. The
+size cast at line 3 used to kill the parse before the `` `include `` at line 7; with the cast fixed
+the furthest position advances past it. Same observed verdict, different class, **−1 on the bar**.
+⇒ the honest join is over the manifest: `(suite, relpath) → (observed, adjudication)`. Written into
+`corpus_transitions.tsv` so the next promotion inherits the rule rather than the mistake.
+
+**2. The error direction is the interesting part: it UNDER-reported the fix.** Slice 9 bought 13
+improvements, not 12, and the 13th was invisible because that file has a *second, independent*
+blocker behind the one that was fixed. A fix's benefit is systematically under-measured on any row
+with more than one cause — which is an argument for measuring classes, not outcomes.
+
+**3. "Stale" and "wrong" are different words, and an audit that conflates them gets waived.** The
+`verilog_2005` lane's identity block proved it had been stale since 2026-08-10 across two grammar
+changes and an engine change. Re-measured, it moved **zero** rows. Both facts are true and both go in
+the record: the staleness was real, the number it protected was right **by luck, not by check**, and
+nothing in the repository could have told us which it was. Reporting only the first would have
+overstated it; reporting only the second would have buried the gap.
+
+**4. A correct two-sided ratchet that nobody invokes is a correct ratchet that reports nothing.**
+`adjudicate_dark_worklist.py`'s residual mapping is two-sided by design and fired the instant it ran
+— on five rows, **three of which had been fixed two days earlier**. The instrument was never wrong;
+it was never run. `GATE-REACHABILITY` exists for exactly this and cannot see it, because its
+population is tracked `make` gate targets and this is a python script under `stimuli/`. Routed to
+`.13i` with the reachability gap named, not just the staleness.
+
+**5. ⛔ The design constraint that stops `.13i` shipping the obvious implementation.** Six artifacts
+carry an *"Instrument identity"* block; the naive enforcer re-hashes all three inputs of each. That
+enforcer fails VHDL **today** — and every week — because the recorded `parseability_probe` hash moves
+whenever ANY family changes, while VHDL's own grammar and generated parser are byte-identical. The
+report is substantively correct and the check would call it stale. This is
+`GENERATED-LINT-CORRECTNESS.4`'s lesson arriving from a new direction: *price the candidate against
+the whole corpus before adopting it.* The axes are not equal — family-specific inputs are decisive,
+the shared binary is provenance.
+
+**6. The bar's silence on a deferred row is correct, and the instrument already said so.** `.13h`
+inherited an open question: a `deferred:chained_only` row can go `fail → pass` and the bar cannot see
+it — by design, or a defect? Ruled BY DESIGN, on three measured legs rather than on the argument: a
+divergence needs an expectation and a deferred row has none; the gain IS visible, as `dark`
+4 398 → 4 392; and two-thirds of it is not progress on the project's own terms (4 of 6 are `.svh`
+fragments). For the last two, `adjudicate_dark_worklist.py` returns its own verdict —
+**`PARSES-BARE`: "parses with NO transformation at all — contradicts the corpus row"** — and both
+files contain zero backticks, so no chaining can alter them. The finding was never about the bar; it
+is a **mislabelled deferral**. ⭐ The leaf that raised it as an unowned structural gap had not checked
+whether the instrument it cites already answered it.
+
+promotion: `docs/knowledge/a-delta-is-a-claim-about-a-join.md` (new card, lessons 1–2 + 6) and
+`.13i` (lessons 4–5, as acceptance criteria rather than prose).
+
 ## 2026-08-14 - PGEN-CI-PARITY-GATE-ROT-0029 — the cheapest defect this repository has ever fixed, and the reason it survived is the interesting part
 
 Removing two flags from one Makefile variable took minutes. The 6.89 GB per regeneration they cost

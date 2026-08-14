@@ -5,7 +5,7 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 0 | 0 | 0 | 102 |
-| Surelog | 828 | 559 | 47 | 22 | 200 |
+| Surelog | 828 | 564 | 42 | 22 | 200 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
 | ispras-sv-tests | 1266 | 775 | 29 | 16 | 446 |
@@ -14,11 +14,11 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 54 | 1 | 15 | 22 |
 | sv-tests | 1028 | 795 | 11 | 121 | 101 |
-| sv2v | 953 | 463 | 39 | 77 | 374 |
+| sv2v | 953 | 464 | 37 | 78 | 374 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 112 | 12 | 6 | 22 |
 | verilator | 3263 | 2038 | 140 | 956 | 129 |
-| **total** | **16336** | **5814** | **309** | **1433** | **8780** |
+| **total** | **16336** | **5820** | **302** | **1434** | **8780** |
 
 ## Verdict-class detail
 
@@ -32,12 +32,12 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | deferred:v2005_profile_lane | 2459 |
 | deferred:verilog_ams_lane | 20 |
 | divergence:explained_svpp_conditional | 199 |
-| divergence:explained_svpp_include | 139 |
+| divergence:explained_svpp_include | 140 |
 | divergence:explained_svpp_macro_use | 1091 |
 | divergence:explained_svpp_protected_envelope | 4 |
 | divergence:unexplained_accepts_invalid | 21 |
-| divergence:unexplained_rejects_valid | 288 |
-| match | 5814 |
+| divergence:unexplained_rejects_valid | 281 |
+| match | 5820 |
 
-**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**309**: rejects-valid 288, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
+**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**302**: rejects-valid 281, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
 

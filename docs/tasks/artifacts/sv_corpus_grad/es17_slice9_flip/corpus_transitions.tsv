@@ -14,10 +14,31 @@
 #
 # THE HEADLINE, DERIVED FROM THE ROWS BELOW:
 #   16336 files: pass 9762 -> 9774, fail 6574 -> 6562, timeout 0, crash 0
-#   12 transitions, ALL fail->pass. ZERO pass->fail.
-#   6 convert `divergence:unexplained_rejects_valid` -> `match`  ⇒ axis-2 bar 309 -> 303
+#   12 OBSERVED-verdict transitions, ALL fail->pass. ZERO pass->fail.  (the table below now carries
+#   13 rows: the 13th moved its ADJUDICATION without moving its observed verdict — see the
+#   correction block immediately after this headline, which is why the original 303 was wrong)
+#   6 convert `divergence:unexplained_rejects_valid` -> `match`
 #   6 are `deferred:chained_only` and STAY deferred — their verdict improved and the bar cannot see it
 #   `accepts-invalid` UNCHANGED at 21 — the widened admission accepted no new invalid SV
+#
+# ⛔⛔ CORRECTED 2026-08-14 BY `SV-CORPUS-GRAD.13h` — THE BAR IS 302, NOT 303, AND THE ERROR IS IN
+# THE JOIN THIS FILE IS BUILT ON. Promoting the oracle re-derived the manifest and found a
+# THIRTEENTH moved row, appended below: `sv2v test/core/string_byte_order.sv` is `fail` on BOTH
+# sides, so a per-path join on the OBSERVED verdict — which is how this table was produced — cannot
+# see it. Its ADJUDICATION moved anyway: the file is
+#     localparam b = 64'("abcd"); … localparam e = 32'("abcd"); … `include "string_byte_order.vh"
+# so before the flip the parse died on the size cast at line 3, ahead of anything the preprocessor
+# could reach, and `.12a`'s positional rule called that `unexplained_rejects_valid`. After the flip
+# both casts parse and the furthest position advances to the `` `include `` at line 7 ⇒
+# `explained_svpp_include`. ⭐ It is a THIRTEENTH GAIN from the same fix, invisible to a pass/fail
+# join because the row has a second, independent blocker behind the one that was fixed.
+#   ⇒ `divergence:unexplained_rejects_valid` 288 -> 281 (SEVEN out, not six)
+#   ⇒ `divergence:explained_svpp_include`    139 -> 140
+#   ⇒ axis-2 bar 309 -> 302   (281 rejects-valid + 21 accepts-invalid)
+# ⛔ THE LESSON, because it generalises past this row: a corpus delta joined on the pass/fail verdict
+# measures only the rows that CROSSED it. Adjudication classes are decided positionally as well, so
+# the honest join is over the MANIFEST — `(suite, relpath) -> (observed, adjudication)` — which is
+# what `.13h` used and what any future promotion must use.
 #
 suite	relpath	observed_before	observed_after	adjudication_before	adjudication_after	bar_effect
 black-parrot	bp_common/src/include/bp_common_cache_pkgdef.svh	fail	pass	deferred:chained_only	deferred:chained_only	none (deferred both sides)
@@ -32,3 +53,4 @@ Surelog	tests/ClogCast/dut.sv	fail	pass	divergence:unexplained_rejects_valid	mat
 Surelog	tests/ParamArraySelect/dut.sv	fail	pass	divergence:unexplained_rejects_valid	match	counts (unexplained -> match)
 Surelog	tests/ParamTypespec/dut.sv	fail	pass	divergence:unexplained_rejects_valid	match	counts (unexplained -> match)
 sv2v	test/core/nest_order.sv	fail	pass	divergence:unexplained_rejects_valid	match	counts (unexplained -> match)
+sv2v	test/core/string_byte_order.sv	fail	fail	divergence:unexplained_rejects_valid	divergence:explained_svpp_include	counts (unexplained -> explained; found by .13h, invisible to a pass/fail join)

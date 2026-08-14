@@ -1844,8 +1844,10 @@ a time.
 
 Everything above counts **divergences**. That answers *how many defects do we know about* and is
 silent on the question a signoff claim actually rests on: *how much of the corpus was asked a question
-it could answer at all?* A 318-row defect bar over a 46 %-adjudicated corpus is not the same claim as
-the same bar over a fully adjudicated one, and only the second supports shipping.
+it could answer at all?* A 302-row defect bar over a 46 %-adjudicated corpus is not the same claim as
+the same bar over a fully adjudicated one, and only the second supports shipping. (302 is the live
+figure — the tuple below is the anchor a doctrine re-derives; the 318 in the paragraph above is that
+era's number, kept because the story is what makes the point.)
 
 Measured (`stimuli/sv/corpus_verdict_coverage.py`, `SV-CORPUS-GRAD.13`): of 16 336 rows, **46.3 % are
 adjudicated**, 15.1 % are **routed** to the `verilog_2005` lane's own manifest — and **38.7 %
@@ -1857,16 +1859,37 @@ But 38.7 % is a headline, not a plan, because it fuses three strata of opposite 
 
 | stratum | rows | % | what it is worth |
 |---|---:|---:|---|
-| **one-sided positive**, unit-shaped | 1 824 | 11.2 % | the parse consumed the **whole file** standalone ⇒ no *rejects-valid* defect hides here. Silent on accepts-invalid, and still not a verdict — there is no expectation to compare against |
-| ⚠️ **one-sided, fragment-shaped** | 99 | 0.6 % | an `.svh` include payload or a `// verilog_syntax:` excerpt — **not** a legal compilation unit, so accepting it is not testimony *for* the parser; the accept may itself be the over-acceptance |
-| ⛔ **dark** | **4 398** | **26.9 %** | the parse failed and the deferral is why nobody looked |
+| **one-sided positive**, unit-shaped | 1 826 | 11.2 % | the parse consumed the **whole file** standalone ⇒ no *rejects-valid* defect hides here. Silent on accepts-invalid, and still not a verdict — there is no expectation to compare against |
+| ⚠️ **one-sided, fragment-shaped** | 103 | 0.6 % | an `.svh` include payload or a `// verilog_syntax:` excerpt — **not** a legal compilation unit, so accepting it is not testimony *for* the parser; the accept may itself be the over-acceptance |
+| ⛔ **dark** | **4 392** | **26.9 %** | the parse failed and the deferral is why nobody looked |
 
-The number to plan against is therefore **4 398**, and reaching it moved **no row** into the
+The number to plan against is therefore **4 392**, and reaching it moved **no row** into the
 adjudicated bucket — the manifest already recorded what the parser did on every file, and that
 observation was simply unused.
 
+> ⭐ **This stratum is where a deferred row's progress shows up, and that is the design, not a
+> gap** (`SV-CORPUS-GRAD.13h`, 2026-08-14). When the indirect-LR admission flip landed, twelve
+> corpus files went `fail → pass`; six of them are `deferred:chained_only`, so the **defect bar
+> cannot see them** — a bar counts *divergences*, a divergence needs an *expectation*, and a
+> deferred row has none. The information is not lost: those six left **dark** (4 398 → 4 392),
+> which is the fourth element of the live tuple below. ⛔ And two-thirds of that "invisible
+> progress" is not progress on the project's own terms — four of the six are `.svh` include
+> payloads, i.e. **fragment-shaped**, where an accept *may itself be the over-acceptance*. Of the
+> remaining two, the dark-worklist instrument returns the verdict **`PARSES-BARE`** — *"parses with
+> NO transformation at all — contradicts the corpus row"* — so what those rows expose is a
+> **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
+
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4398/309`.** (`SV-CORPUS-GRAD.13c.2e` moved the bar **313 → 309**: restoring
+> `7556/2459/6321/4392/302`.** (`SV-CORPUS-GRAD.13h` moved the bar **309 → 302** and `dark`
+> **4 398 → 4 392** by promoting the corpus oracle after the `ENGINE-UNIVERSAL-SERVICES.17`
+> slice-9 admission flip: `match` 5 814 → 5 820, `unexplained_rejects_valid` 288 → 281,
+> `accepts-invalid` byte-identical at 21, and the ADJUDICATED/ROUTED/NO-VERDICT split unmoved —
+> **fewer known defects over the same 46.3 % of the corpus, which is a smaller claim than "the bar
+> fell"**. ⛔ Seven rows left `unexplained_rejects_valid`, not six: six became `match`, and one —
+> `sv2v/test/core/string_byte_order.sv` — still FAILS but now fails on its `` `include `` instead of
+> on the size cast ahead of it, so it reclassified to `explained_svpp_include`. A delta computed by
+> joining on pass/fail cannot see that row, which is why the routed estimate said 303. The step
+> before it, `SV-CORPUS-GRAD.13c.2e`, moved the bar **313 → 309**: restoring
 > `select_condition`'s literal `intersect { … }` braces turned four more clause-19 covergroup files
 > from `unexplained_rejects_valid` into `match`, again with the accepts-invalid set byte-identical.
 > The step before it, `GRAMMAR-WELLFORMED.A2.5`, moved the bar **318 → 313** by reviving

@@ -1,5 +1,52 @@
 # CHANGES.md
 
+## 2026-08-14 - PGEN-SV-CORPUS-GRAD-0217 — the SV corpus oracle is promoted after the slice-9 flip, and the number it was promoted to is NOT the one that was routed: the bar is 302 (leaf SV-CORPUS-GRAD.13h done, .13i NEW, .13's (f) RULED; ORACLE artifacts only, ZERO grammar/code bytes)
+
+- ⛔⛔ **THE ROUTED FIGURE WAS WRONG — 302, not 303.** `.13h` was opened with the delta already
+  measured; re-deriving it instead of promoting it found a **13th** moved row.
+  `sv2v/test/core/string_byte_order.sv` is `fail` on BOTH sides, so the per-path join on the
+  **observed pass/fail verdict** — how the routed transition set was built — is structurally blind to
+  it. Its adjudication moved anyway: the file's `64'("abcd")` size cast at line 3 used to kill the
+  parse ahead of anything the preprocessor could reach (`unexplained_rejects_valid`); with the cast
+  fixed, the furthest position advances to the `` `include `` at line 7 ⇒ `explained_svpp_include`.
+  ⭐ A **13th gain** from slice 9, hidden behind a second independent blocker.
+  ⇒ `unexplained_rejects_valid` **288 → 281** (seven out, not six), `explained_svpp_include` 139 → 140,
+  **axis-2 bar 309 → 302**. The general rule is now written into the tracked artifact: *a corpus delta
+  joined on pass/fail measures only the rows that CROSSED it; adjudication is positional too, so the
+  honest join is over the MANIFEST.*
+- ⭐⭐ **THE PROMOTION, BOTH LANES.** sv: 16 336 files, `pass 9762 → 9774`, `fail 6574 → 6562`, 0
+  timeout, 0 crash (91 s, peak 5 303 MB) — per-suite Surelog +5, black-parrot +4, opentitan +2,
+  sv2v +1, reproducing the routed transition set suite-by-suite. Live tuple
+  **`7556/2459/6321/4392/302`**; `match` 5 814 → 5 820; `dark` 4 398 → 4 392. ⭐ ADJUDICATED / ROUTED /
+  NO-VERDICT **unmoved** — seven fewer known defects over the *same* 46.3 % of the corpus, which is a
+  strictly smaller claim than "the bar fell".
+- ⛔ **THE `verilog_2005` LANE WAS STALE SINCE 2026-08-10 AND NOBODY COULD HAVE KNOWN.** Its own
+  identity block recorded grammar `2a1a92f5…` against HEAD's `1d4564bd…` — two grammar changes
+  (`fdade1ce`, `438c475c`) and one engine change behind — while its manifest had been *rebuilt* on
+  08-14 from that 08-10 primary, a fresh-looking derivative of a stale measurement. ⭐ Re-measured it
+  moves **zero** rows (`pass 2181 / fail 278`, `match 2186`, unexplained 68; manifest byte-identical).
+  ⇒ the published bar was right **by luck, not by check** — stated that way because *stale* and
+  *wrong* are different words.
+- ⛔ **`RESIDUAL_ROWS.tsv` −5, DEFECT 7 → 2.** The dark-worklist two-sided ratchet fired the moment it
+  was invoked — and **three of the five had been fixed on 2026-08-11/12** (`clkmgr_env_cov.sv` ×3),
+  sitting in the residual DEFECT set for two days because nothing re-runs that instrument. The two
+  OpenTitan rows became **`PARSES-BARE`**, the three clkmgr rows `MACRO-BLOCKED` on
+  `` `uvm_component_utils ``. One construct remains (`.13c.2c`). A dangling `repro` citation to
+  `defect_select_expression_with.sv` — renamed on fix, never checked — went with them.
+- ⭐ **`.13`'s open question (f) is RULED: BY DESIGN.** A deferred row's `fail → pass` is invisible to
+  the bar because a bar counts divergences and a divergence needs an expectation. The information is
+  not discarded — it is `dark` 4 398 → 4 392, the tuple's fourth element. And two-thirds of the
+  "invisible progress" is not progress on the project's own terms: 4 of 6 are `.svh` fragments where an
+  accept *may itself be the over-acceptance* (`.13g`), and for the other 2 the instrument returns
+  **`PARSES-BARE` — "contradicts the corpus row"** (both files contain zero backticks) ⇒ a
+  **mislabelled deferral**, owned by `.13c`/`.13d`.
+- ⛔ **`.13i` NEW — six tracked oracles carry an "instrument identity" block and exactly ONE is
+  gate-checked.** Four were measurably stale; the one with a gate never was. ⭐ The VHDL row is the
+  design constraint rather than a fifth defect: its two family inputs are byte-identical and only the
+  **shared** `parseability_probe` differs, so a naive re-hash-all enforcer would fail a provably
+  correct report every week — the axes must be weighted or the check teaches authors to waive it.
+- **Live status: UNCHANGED.** SV stays `Mostly Done` — gated on the denominator (46.3 %), not the bar.
+
 ## 2026-08-14 - PGEN-CI-PARITY-GATE-ROT-0029 — the shipping generation recipe stops narrating itself: 6.89 GB of trace per regeneration becomes 4 838 bytes, and not one artifact byte moves (leaf CI-PARITY-GATE-ROT.31, DIRECTOR-RULED; FLOW-INTEGRITY invariant 10 NEW; build recipe + one enforcer, ZERO grammar bytes, generated tree BYTE-IDENTICAL)
 
 - ⭐⭐ **DIRECTOR RULING IMPLEMENTED, VERBATIM.** *"remove `--debug --trace` for CI streams … CI are

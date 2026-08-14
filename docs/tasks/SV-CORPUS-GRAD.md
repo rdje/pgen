@@ -7980,6 +7980,20 @@ is not a promotion), and the probe arm it needs.
   (`no_sv_key`), `.13f` (the honest-permanent set), `.13g` (the fragment-shaped population).
   ⛔ The umbrella closes only when every one of the 6 321 rows sits under a leaf that names its
   disposition.
+- ⛔⛔ **RULING RECORDED 2026-08-14 (`.13h` (f)) — a `deferred:chained_only` row whose verdict improves
+  from `fail` to `pass` is INVISIBLE TO THE BAR *BY DESIGN*, and that is not information loss.** A bar
+  counts divergences; a divergence needs an expectation; a deferred row has none. The improvement is
+  carried by the DENOMINATOR instead — `dark` **4 398 → 4 392**, the fourth element of the live tuple.
+  And two-thirds of it is not progress on this project's own terms: 4 of the 6 are `.svh` include
+  payloads ⇒ **fragment-shaped**, where `.13a` rules out counting an accept as positive testimony
+  (`.13g`'s subject). For the other 2 the dark-worklist instrument returns **`PARSES-BARE`** —
+  *"parses with NO transformation at all — contradicts the corpus row"* — and both files contain zero
+  backticks, so their deferral is refuted by their own bytes. ⇒ the finding is a **mislabelled
+  deferral** owned by `.13c`/`.13d`, not an under-reporting bar. The obligation disposition 1 carries
+  — say so where the bar is published — is discharged in
+  `docs/book/src/grammar-wellformedness.md`. Full evidence in `.13h`.
+- ⭐ **Live figures as of `PGEN-SV-CORPUS-GRAD-0217`**: tuple `7556/2459/6321/4392/302`. The
+  ADJUDICATED / ROUTED / NO-VERDICT split above is **unmoved** by `.13h`; only the bar and `dark` fell.
 
 #### `.13a` — the STRATIFICATION: the 38.7 % is not one population, and 26.9 % is the real burn-down (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0208`)
 
@@ -8264,7 +8278,18 @@ is not a promotion), and the probe arm it needs.
   through `.13b`'s gate, and the census in `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/`
   cited as the evidence.
 
-#### `.13c.2` — the 57-row candidate worklist adjudicated: **7 rows are defects, 3 constructs** (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0211`)
+#### `.13c.2` — the 57-row candidate worklist adjudicated: **7 rows are defects, 3 constructs** (**`done`** 2026-08-11, `PGEN-SV-CORPUS-GRAD-0211`; ⭐ **burnt down to 2 rows / 1 construct as of 2026-08-14 `.13h`** — see below)
+
+> ⭐ **STATUS UPDATE 2026-08-14 (`PGEN-SV-CORPUS-GRAD-0217`, leaf `.13h`) — 5 of the 7 are FIXED.**
+> Re-running `adjudicate_dark_worklist.py` after the slice-9 promotion graduated five rows out of
+> `RESIDUAL_ROWS.tsv`: the 2 `top_{darjeeling,earlgrey}_rnd_cnst_pkg.sv` rows are now `PARSES-BARE`
+> (the constant size cast, `.13c.2b` → fixed by `ENGINE-UNIVERSAL-SERVICES.17` slice 9), and the 3
+> `clkmgr_env_cov.sv` rows are now `MACRO-BLOCKED` on `` `uvm_component_utils `` (the
+> `select_expression … with ( … )` defect, `.13c.2a.2` → fixed by `.13c.2e`/`A2.5`, which had been
+> masking a macro dependency behind it). ⛔ **Three of those five were fixed on 2026-08-11/12 and this
+> leaf's number stayed wrong for two days**, because nothing re-runs the instrument — routed to
+> `.13i`. ⇒ **DEFECT 7 → 2**, both remaining rows being `.13c.2c`'s `ral.arr[0].g()`, one construct.
+> The headline above is left as written (supersede, don't mutate); this note is the live figure.
 
 - **THE ANSWER, per row, all 57 of them** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/adjudication.{tsv,md}`):
 
@@ -8919,6 +8944,91 @@ states *"`intersect` is a keyword, so it forces the real alternative"*. It does 
   indistinguishable from a to-do), with the reason cited per basis reason, and a bound so the set
   cannot silently grow — a new row landing here must name which existing argument it joins.
 
+#### `.13i` — ⭐⭐ NEW `todo` — SIX tracked oracles carry a self-describing "instrument identity" block and only ONE is gate-checked, so four were measurably stale and nobody could have known (opened 2026-08-14 session #233 by `.13h`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **The mechanism already exists and it WORKS.** Several tracked artifacts open with a block reading
+  *"Re-hash these three inputs; if any hash differs from the row below, **this report no longer
+  describes your tree** and the honest act is to re-measure, not to quote."* That is a complete,
+  cheap, un-fakeable staleness test — a `shasum -a 256` of files already in the tree.
+- ⛔ **It is wired to a gate in exactly one place.** `SV-CORPUS-DENOMINATOR`
+  (`scripts/check_sv_corpus_denominator.sh`) re-derives the CENSUS artifacts. Nothing re-derives the
+  identity blocks of the characterization reports or the dark-worklist adjudication:
+
+  ```text
+  $ git ls-files 'scripts/*.sh' 'rust/scripts/*.sh' '.github/workflows/*.yml' 'rust/Makefile' \
+      '.githooks/*' | xargs grep -ln 'Instrument identity'
+  (none)
+  ```
+
+- **The LIVE population is SIX, derived not guessed** —
+  `git ls-files | xargs grep -l 'Instrument identity'` returns 22 files, of which 16 are frozen
+  before/after snapshots, the emitting scripts, or prose. Every one of the six measured this session:
+
+  | artifact | decisive input | recorded | HEAD | verdict |
+  |---|---|---|---|---|
+  | `stimuli/sv/characterization/characterization.md` | generated parser | `d5784e6d…` | `463c6476…` | ⛔ stale 2026-08-14 (slice 9) |
+  | `stimuli/sv/characterization/characterization_v2005.md` | grammar | `2a1a92f5…` | `1d4564bd…` | ⛔ stale **2026-08-11**, twice over (`fdade1ce`, `438c475c`) |
+  | `…/sv_corpus_grad/dark_chained_only/adjudication.md` | grammar | `eac78ed5…` | `1d4564bd…` | ⛔ stale **2026-08-12** (`438c475c`) |
+  | `…/sv_corpus_grad/dark_chained_only/summary.md` | grammar | `2a1a92f5…` | `1d4564bd…` | ⛔ stale **2026-08-11**, and still is — `audit_dark_chained_only.py` was not re-run by `.13h` |
+  | `stimuli/vhdl/characterization/characterization.md` | grammar `df5b8f94…` ✅, generated parser `a90ae37b…` ✅ | — | — | ⚠️ fresh on both family inputs; differs ONLY on the shared parse binary |
+  | `…/sv_corpus_grad/verdict_coverage/coverage.md` | both manifests | — | — | ✅ gate-checked, never stale |
+
+  ⛔ **The one with a gate is the one that was never stale.** That is the whole finding in a line.
+- ⛔⛔ **AND THE VHDL ROW IS THE DESIGN CONSTRAINT, NOT A SIXTH DEFECT — it is why the obvious
+  implementation must not ship.** `rust/target/release/parseability_probe` embeds EVERY generated
+  parser, so its hash moves whenever ANY family changes. VHDL's own two inputs are byte-identical to
+  HEAD and slice 9 left the other ten parsers byte-identical (proven twice, in `-0032` and again in
+  `-0029`), so VHDL's report is **substantively correct** — yet a naive re-hash-all-three enforcer
+  would fail it today, and every week thereafter, for a reason that is never VHDL's. That is verbatim
+  `GENERATED-LINT-CORRECTNESS.4`'s measured lesson: *a check whose population does not match reality
+  teaches authors to waive it.* The axes are not equal — grammar and generated parser are
+  family-specific and decisive; the shared binary is a provenance note.
+- ⭐⭐ **AND THE COST WAS REAL, NOT HYPOTHETICAL — one of the three was hiding FIXED DEFECTS.** The
+  dark-worklist artifact's two-sided ratchet is correct and fired the instant `.13h` invoked it, on
+  five rows. **Three of the five had been fixed on 2026-08-11/12** (`clkmgr_env_cov.sv` ×3,
+  `.13c.2a.2` closed by `.13c.2e`/`A2.5`) and had been sitting in the residual **DEFECT** set for two
+  days. `.13c.2`'s published *"7 rows are defects"* was therefore wrong for two days, in the
+  PESSIMISTIC direction — which is why nothing complained.
+- ⚠️ **The v2005 half is the honest counter-example and it belongs in the evidence.** Re-measured, that
+  lane moved **zero** rows (`pass 2181 / fail 278`, `match 2186`, unexplained `68`; the manifest
+  regenerates byte-identical). So its published bar was **right by luck, not by check** — and *"stale"*
+  must not be reported as *"wrong"*. The defect is the absence of the check, not the value.
+- ⛔ **It reproduces outside SystemVerilog.** `stimuli/vhdl/characterization/characterization.md`
+  carries the identical block from the identical runner (`stimuli/run_external_corpus.sh` emits it for
+  every family), so VHDL inherits the same *unchecked* gap even though its current content is fresh.
+  Filed here because SV is where it was measured and the SV lane lock binds the work.
+- **Two further shapes found in the same sweep**, recorded so the fix is scoped once:
+  **(i)** a citation in `RESIDUAL_ROWS.tsv` pointed at `defect_select_expression_with.sv`, a repro
+  file that **does not exist** — renamed `fixed_select_expression_with.sv` when the defect was fixed,
+  with nothing checking the pointer (`CI-PARITY-GATE-ROT.29` acceptance (c) is the sibling);
+  **(ii)** `adjudicate_dark_worklist.py`, `adjudicate_external_corpus.py` and
+  `corpus_verdict_coverage.py` are invoked by **nothing** in `rust/Makefile`, the workflows or the
+  hooks — `GATE-REACHABILITY` covers tracked `make` gate TARGETS, so a python instrument under
+  `stimuli/` is outside its population by construction.
+
+**Acceptance:** (a) an enforcer that re-hashes every tracked artifact carrying an *"Instrument
+identity"* block and fails on any mismatch — ⛔ **DERIVED by scanning for the block**, never a
+hand-listed roster, because a hand list is the same rot one level up, and it must exclude the frozen
+before/after snapshots (16 of the 22 hits) without hard-coding their paths; (b) ⛔ **the axes must be
+weighted, or it is unlandable** — a mismatch on a family-specific input (grammar, generated parser)
+FAILS; a mismatch on the shared `parseability_probe` alone is a provenance note, because that binary
+moves for every family whenever any one of them changes (the VHDL row above is the live proof, and it
+is the arm to write the CONTROL against); (c) RED-provable against `0994c3c0`, where four of the six
+were stale, GREEN on HEAD after `.13h`; (d) it must distinguish *stale* from *wrong* in its message,
+since the v2005 lane was the former and not the latter, or it will be read as crying wolf and waived;
+(e) decide whether the three re-derivable instruments get a `make` target so `GATE-REACHABILITY` can
+see them at all, or an explicit register disposition; (f) fold in the dangling repro-pointer check (i)
+rather than opening a fifth leaf for the same class. ⛔ `dark_chained_only/summary.md` is STILL STALE
+at the close of `.13h` and deliberately so — `audit_dark_chained_only.py` is a separate instrument and
+re-running it is this leaf's work, not a silent side effect of the promotion.
+
+⛔ **Sequencing.** This is SV-lane work by subject (it guards the SV graduation oracle), so the lane
+lock does not park it — but it is a GUARD, not a defect burn-down, so it sequences after `.20`'s
+director call and the remaining `.13c.2c` defect unless the director says otherwise.
+
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
 
 - **99 rows** currently pass standalone while being `.svh` include payloads or `// verilog_syntax:`
@@ -8929,7 +9039,7 @@ states *"`intersect` is a keyword, so it forces the real alternative"*. It does 
   real verdict, and (b) marking them permanently unadjudicable as whole files. ⛔ Leaving them
   counted as one-sided positives is the one option `.13a` rules out.
 
-#### `.13h` — ⭐⭐ NEW `todo` — the corpus ORACLE is stale by its own rule: the parser changed under it, and promoting the re-measure is an ATOMIC cascade that moves the published bar (opened 2026-08-14 session #232 by `ENGINE-UNIVERSAL-SERVICES.17` slice 9)
+#### `.13h` — ✅ **`done`** — the corpus ORACLE was stale by its own rule: the parser changed under it, and promoting the re-measure was an ATOMIC cascade that moved the published bar (opened 2026-08-14 session #232 by `ENGINE-UNIVERSAL-SERVICES.17` slice 9; CLOSED 2026-08-14 session #233, `PGEN-SV-CORPUS-GRAD-0217`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -8995,6 +9105,200 @@ obligation is a note.
 split, not a new instrument. ⛔ And it must be decided from the DENOMINATOR's point of view rather
 than from this slice's — the question is not "did my fix get credit", it is "does the bar report what
 it claims to report".
+
+---
+
+### ✅ CLOSED 2026-08-14 (session #233) — every clause met, and the routed number was WRONG
+
+⛔⛔ **THE HEADLINE IS A CORRECTION, NOT A PROMOTION. The bar is 302, not the 303 this leaf routed.**
+The routing evidence derived its delta by joining the before/after corpus runs **on the observed
+pass/fail verdict**. That join is structurally blind to a row whose observed verdict does not move
+but whose ADJUDICATION does — and there is exactly one:
+
+```text
+sv2v  test/core/string_byte_order.sv   fail -> fail
+      divergence:unexplained_rejects_valid -> divergence:explained_svpp_include
+```
+
+The file is
+
+```systemverilog
+module top;
+    localparam a = "abcd";
+    localparam b = 64'("abcd");          // ← the size cast slice 9 fixed
+    logic [3:0][7:0] c = "abcd";
+    integer d = b;
+    localparam e = 32'("abcd");          // ← and again
+    `include "string_byte_order.vh"      // ← the SECOND, independent blocker
+endmodule
+```
+
+Before the flip the parse died on the cast at line 3 — ahead of anything the preprocessor could
+reach — and `.12a`'s positional rule therefore called it `unexplained_rejects_valid`. After the flip
+both casts parse, the furthest position advances to the `` `include `` at line 7, and the row is
+`explained_svpp_include`. ⭐ **It is a THIRTEENTH gain from the same fix**, invisible to the join
+because the row has a second blocker behind the one that was fixed. Class arithmetic, re-derived:
+
+| class | before | after | Δ |
+|---|---:|---:|---:|
+| `match` | 5 814 | 5 820 | +6 |
+| `divergence:unexplained_rejects_valid` | 288 | **281** | **−7** |
+| `divergence:explained_svpp_include` | 139 | 140 | +1 |
+| `divergence:unexplained_accepts_invalid` | 21 | 21 | 0 |
+| **axis-2 bar** | **309** | **302** | **−7** |
+
+⛔ **The generalisable rule, written into the tracked artifact so the next promotion inherits it:**
+*a corpus delta joined on the pass/fail verdict measures only the rows that CROSSED it; adjudication
+classes are decided POSITIONALLY as well, so the honest join is over the MANIFEST —
+`(suite, relpath) → (observed, adjudication)`.* `corpus_transitions.tsv` now carries the 13th row
+and the correction.
+
+**(a) THE ORACLE IS PROMOTED — BOTH LANES.** `stimuli/run_external_corpus.sh sv` at the tracked
+parameters (60 s / 8 jobs / no cap) against the rebuilt release probe: **16 336 files, pass
+9 762 → 9 774, fail 6 574 → 6 562, 0 timeout, 0 crash**, 91 s, peak 5 303 MB. Per-suite the gain is
+Surelog +5, black-parrot +4, opentitan +2, sv2v +1 = **+12**, which reproduces the routed transition
+set suite-by-suite. Instrument identity re-derived on every artifact.
+
+⛔ **AND THE `verilog_2005` LANE WAS RE-RUN TOO, BECAUSE IT WAS STALE BY THE SAME RULE AND NOBODY HAD
+NOTICED.** `characterization_v2005.md` recorded grammar `2a1a92f5…` — that is `987672a3`
+(2026-08-10). `grammars/systemverilog.ebnf` has moved **twice** since (`fdade1ce` 2026-08-11,
+`438c475c` 2026-08-12 → `1d4564bd…`), plus slice 9's engine change. So the second published SV bar
+was three parser-states behind, while `adjudication_manifest_v2005.tsv` had been *rebuilt* on
+2026-08-14 from that 2026-08-10 measurement — a fresh-looking derivative of a stale primary, which is
+the worst shape this class takes. ⭐ **Re-measured, it moves NOTHING**: `pass 2181 / fail 278`
+unchanged, `match 2186`, unexplained **68** (rejects-valid 54, accepts-invalid 14), and the manifest
+regenerates byte-identical. ⛔ Stated plainly because the two readings differ in kind: the staleness
+was **real and provable**, and the number it protected was **right by luck, not by check** — nothing
+in the repository could have told us which. Routed → `.13i`.
+
+**(b) THE CENSUS RE-RUN IN THE SAME COMMIT**, so `corpus_verdict_coverage.py` never saw a mismatched
+pair. Its ground-truth control (every manifest row resolves to exactly one results row whose outcome
+agrees) passed over all 16 336.
+
+**(c) THE TUPLE IS REPUBLISHED — and the doctrine PROVED it was required.** On the untouched book
+the enforcer went RED with the derivation, which is the mechanism working exactly as `.13b` designed:
+
+```text
+✗ docs/book/src/grammar-wellformedness.md publishes verdict-coverage tuple(s)
+  ['7556/2459/6321/4398/309'] but the census derives 7556/2459/6321/4392/302.
+  The bar and its denominator move TOGETHER — update the anchor.
+```
+
+After: `sv-corpus-denominator: OK (tuple 7556/2459/6321/4392/302 …)`. ⭐ **ADJUDICATED / ROUTED /
+NO VERDICT did not move at all** (7 556 / 2 459 / 6 321) — seven fewer known defects over the *same*
+46.3 % of the corpus, which is a strictly smaller claim than "the bar fell", and the tuple is the
+thing that makes the difference legible. `MEMORY.md`'s axis-2 bar updated in lockstep.
+
+**(d) `RESIDUAL_ROWS.tsv` — the acceptance's own premise was wrong, and the ratchet found more than
+it asked for.** (d) says *"re-classify the 6 newly-matching rows in `RESIDUAL_ROWS.tsv`"*. Those six
+(Surelog ×5, sv2v ×1) **are not in that file** — it holds `.13c.2`'s adjudication of the DARK
+candidate worklist, not the `unexplained_rejects_valid` population. What the file actually owed was
+found by running `adjudicate_dark_worklist.py`, whose two-sided ratchet fired on **five** rows:
+
+```text
+⛔ adjudicated in RESIDUAL_ROWS.tsv but no longer RESIDUAL — re-read it:
+   ('opentitan', 'hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv')
+   ('opentitan', 'hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv')
+   ('opentitan', 'hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv')
+   ('opentitan', 'hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv')
+   ('opentitan', 'hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv')
+```
+
+⛔⛔ **Only TWO of those five are slice 9's.** The three `clkmgr_env_cov.sv` rows were fixed by
+`.13c.2e`/`A2.5` on **2026-08-11/12** and have been sitting in the residual DEFECT set ever since,
+because **nothing re-runs this instrument**. Its ratchet is two-sided and correct; it simply had not
+been invoked since the grammar moved. Re-run: **DEFECT 7 → 2**, all five graduating —
+2 → **`PARSES-BARE`**, 3 → `MACRO-BLOCKED` on `` `uvm_component_utils `` (the `with` defect had been
+masking a macro dependency behind it). The two remaining DEFECT rows are `.13c.2c`'s
+`ral.arr[0].g()`, one construct. ⭐ **The `.13c.2` headline "7 rows are defects, 3 constructs" is
+therefore now "2 rows, 1 construct"** — annotated at that leaf rather than rewritten.
+
+⚠️ **A dangling repro pointer, found on the way out**: those three rows cited
+`repro = defect_select_expression_with.sv`, a file that **does not exist** — it was renamed
+`fixed_select_expression_with.sv` when the defect was fixed, and nothing checked the citation. It is
+gone with the rows; the class is `CI-PARITY-GATE-ROT.29` acceptance (c).
+
+**(e) HONOURED.** The parser did not move between the routed measurement and this one:
+`generated/systemverilog_parser.rs` is `463c6476…` on both sides, and `PGEN-CI-PARITY-GATE-ROT-0029`
+(landed in between) proved the whole generated tree byte-identical. The release probe was rebuilt and
+came out **byte-reproducible** (`f672902d…` before and after), so the instrument is the same
+instrument. One re-run per lane, at one parser state.
+
+#### ⛔⛔ (f) THE RULING: **BY DESIGN** — and the finding is a MISLABELLED ROW, not an under-reporting bar
+
+Recorded here and in `.13` per (f)'s instruction. Three legs, each measured rather than argued:
+
+1. **A bar counts DIVERGENCES, and a divergence needs an EXPECTATION.** A `deferred:chained_only`
+   row has none — that is what the deferral *means*. Moving such a row into the bar would make the
+   number report progress from an event that is not evidence, which is `.13`'s own
+   ⛔ *"do not fix this by relabelling"* rule pointed at the numerator instead of the denominator.
+2. ⭐ **THE INFORMATION IS NOT DISCARDED, WHICH REFUTES DISPOSITION 2's PREMISE.** `.13a`'s
+   stratification already separates *"no verdict and it does not parse"* (**dark**) from *"no verdict
+   but it parses standalone"* (one-sided). The six flips are visible there: **dark 4 398 → 4 392**,
+   the fourth element of the published tuple, and `no-backtick` 575 → 573. The leaf raised this as an
+   unowned structural gap without checking whether the instrument it cites already answered it.
+3. ⛔ **TWO-THIRDS OF THE "INVISIBLE PROGRESS" IS NOT PROGRESS, ON THE PROJECT'S OWN TERMS.** Four of
+   the six are `.svh` include payloads ⇒ **fragment-shaped** (99 → 103), and `.13a` rules out counting
+   a fragment accept as positive testimony precisely because *the accept may itself be the
+   over-acceptance*. That population is `.13g`'s open subject.
+   ⭐⭐ And for the other two — the OpenTitan rows the fixing slice was built for — the dark-worklist
+   instrument returns its own verdict, in its own words: **`PARSES-BARE` — *"parses with NO
+   transformation at all — contradicts the corpus row"***. Both files contain **zero backticks**
+   (measured), so no `` `include ``/`` `define `` chaining can alter a byte of them and their
+   `chained_only` deferral is refuted by their own bytes. ⇒ what those rows expose is a **mislabelled
+   deferral**, already owned by `.13c`/`.13d`, and giving them a real verdict is the fix — not
+   teaching the bar to count rows that have no expectation.
+
+⇒ **Obligation discharged.** Disposition 1 carries the duty to *say so where the bar is published*,
+because a bar that silently under-reports progress misleads in the direction that looks like slow
+progress. `docs/book/src/grammar-wellformedness.md` now states it beside the stratification table,
+with the `PARSES-BARE` evidence.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the tracked oracle described a parser that no longer exists.
+  `shasum -a 256` on the instrument-identity inputs of `stimuli/sv/characterization/characterization.md`:
+  recorded generated parser `d5784e6d…` vs HEAD's `463c6476…` (grammar hash unchanged — slice 9 was
+  ZERO grammar bytes, so the artifact's own block localises the staleness to codegen). Same test on
+  `characterization_v2005.md`: recorded grammar `2a1a92f5…` vs HEAD's `1d4564bd…`, i.e. stale on the
+  grammar axis too and by two commits (`git log -- grammars/systemverilog.ebnf`: `fdade1ce`,
+  `438c475c`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the promotion is atomic rather than incremental, located in
+  the instrument: `stimuli/sv/corpus_verdict_coverage.py` REFUSES a half-promoted pair —
+  *"is `fail` in the manifest and `pass` in the results file; one of the two is stale"* — so
+  characterization, adjudication and census must move together. WHERE the published number was wrong:
+  the routed delta was joined on the observed pass/fail verdict
+  (`corpus_transitions.tsv` header, *"joined per-path against the tracked results.tsv"*), which cannot
+  see `sv2v/test/core/string_byte_order.sv` moving `unexplained_rejects_valid →
+  explained_svpp_include` while staying `fail`. Re-derived over the MANIFEST instead:
+  `git show HEAD:…/adjudication_manifest.tsv` joined against the fresh one gives **13** moved rows,
+  not 12, and `unexplained_rejects_valid` **288 → 281**.
+- [x] **FIX** — declarative tier (no grammar, no `rust/src/*`, no `generated/*`): re-run the two
+  corpus lanes, re-adjudicate, re-census, graduate five rows out of `RESIDUAL_ROWS.tsv`, republish the
+  tuple, and correct the tracked transition artifact with the join rule that produced the error.
+- [x] **ADDRESSED (verified)** — before→after, every figure re-derived this session:
+  corpus `pass 9762 → 9774 / fail 6574 → 6562`; `match 5814 → 5820`;
+  `divergence:unexplained_rejects_valid 288 → 281`; `divergence:explained_svpp_include 139 → 140`;
+  **axis-2 bar 309 → 302**; `dark 4398 → 4392`; `one-sided unit 1824 → 1826`, `fragment 99 → 103`,
+  `no-backtick 575 → 573`; dark-worklist `DEFECT 7 → 2`, `MACRO-BLOCKED 26 → 29`, `PARSES-BARE 0 → 2`.
+  Named re-runnable oracle: `bash scripts/check_sv_corpus_denominator.sh` — **RED before**
+  (`publishes ['7556/2459/6321/4398/309'] but the census derives 7556/2459/6321/4392/302`),
+  **GREEN after** (`OK (tuple 7556/2459/6321/4392/302 …; artifacts fresh)`), and its freshness leg
+  re-runs the instrument into a scratch dir so it cannot pass by regenerating what it compares.
+- [x] **NO REGRESSION** — `python3 stimuli/sv/run_adjudication_repros.py` →
+  `ADJUDICATION-REPROS: checked=29 armed=7 listed=29 failures=0`, identical to the `-0032` baseline:
+  the 12 controls and the 9 `invalid_*` over-acceptance guards all hold, so nothing was bought by
+  accepting text the LRM forbids. `divergence:unexplained_accepts_invalid` **byte-identical at 21** on
+  both sides — a widening change that moved 13 rows added **zero** over-acceptances. The corpus row
+  SET is unchanged (16 336 rows, `set(before) == set(after)` asserted per (suite, relpath)), so no row
+  entered or left the population. `adjudication_manifest_v2005.tsv` regenerated **byte-identical** from
+  a fresh v2005 measurement. `bash scripts/check_doctrines.sh` green (all 18).
+- [x] **LOCKSTEP** — `docs/book/src/grammar-wellformedness.md` (tuple anchor, stratification table,
+  the live-vs-era bar note, and the new paragraph discharging (f)); `MEMORY.md` (axis-2 bar 309 → 302);
+  `corpus_transitions.tsv` (13th row + the join rule); `RESIDUAL_ROWS.tsv` (−5); `.13c.2`'s
+  "7 defects / 3 constructs" annotated to "2 / 1"; `.13` carries the (f) ruling; `.13i` NEW owns the
+  instrument-identity gap. ⛔ No DONE-BAR row moves: SV stays `Mostly Done`, gated on the denominator
+  (46.3 %), not on the bar.
 
 ## ROUTING EVIDENCE (`.3.12` → `.11c`, `.11a` → `.11d`, the `.11a`/`.11b` pair from `.10`, and `.12c.1` → `EBNF-FRONTEND-SILENT-TRUNCATION.5`)
 
