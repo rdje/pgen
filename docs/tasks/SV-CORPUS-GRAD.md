@@ -8977,6 +8977,28 @@ reproduces outside the family it is being sent to):
   | `…/sv_corpus_grad/verdict_coverage/coverage.md` | both manifests | — | — | ✅ gate-checked, never stale |
 
   ⛔ **The one with a gate is the one that was never stale.** That is the whole finding in a line.
+
+- ⛔⛔ **SELF-AUDIT 2026-08-14, SAME SESSION — THAT LINE IS WRONG IN THE SENSE THAT MATTERS, AND THE
+  DOCTRINE SAYS SO IN ITS OWN SOURCE.** `SV-CORPUS-DENOMINATOR` proves
+  `coverage.md == f(the manifests)`. It does **not** prove `the manifests == f(the current parser)` —
+  `scripts/check_sv_corpus_denominator.sh:39-41` declares exactly that limit: *"This re-derives the
+  published NUMBERS from tracked inputs; it does not re-adjudicate the corpus."* ⇒ from 2026-08-14
+  until `.13h` promoted the oracle, `coverage.md` was **internally consistent and describing a parser
+  that no longer existed**, and the gate was green throughout. The honest statement is *"the gated
+  artifact was never inconsistent with its inputs"*, which is a much smaller claim: **the derivation
+  chain has no ROOT check.** ⭐ This is the strongest form of the leaf and it raises acceptance (a):
+  an identity enforcer must anchor the chain at the grammar and the generated parser, not merely at
+  each link, or it re-creates the same green-over-stale state one level up.
+- ⚠️ **AND THE ROSTER RULE AS FIRST PUBLISHED DID NOT REPRODUCE ITS OWN COUNT.** The bullet above says
+  *"22 files, of which 16 are frozen snapshots, the emitting scripts, or prose"* ⇒ 6. Run as a rule
+  rather than read as a summary, the path-shaped exclusion yields **7 LIVE**, because
+  `DEVELOPMENT_NOTES.md` mentions the phrase in a lesson entry and matches none of the exclusions.
+  The six oracles are the right six; the *derivation* was eyeballed, which is precisely the
+  hand-listed-roster defect this leaf exists to fix, committed by the leaf itself.
+  ⇒ **acceptance (a) needs a STRUCTURAL discriminator, not a path filter**: an artifact qualifies iff
+  the heading is immediately followed by a markdown table whose rows carry a repo-relative path and a
+  64-hex sha256. That is a property of the emitted block, so prose that merely names it cannot match,
+  and a new emitter is picked up by construction.
 - ⛔⛔ **AND THE VHDL ROW IS THE DESIGN CONSTRAINT, NOT A SIXTH DEFECT — it is why the obvious
   implementation must not ship.** `rust/target/release/parseability_probe` embeds EVERY generated
   parser, so its hash moves whenever ANY family changes. VHDL's own two inputs are byte-identical to
@@ -9237,10 +9259,15 @@ Recorded here and in `.13` per (f)'s instruction. Three legs, each measured rath
    but it parses standalone"* (one-sided). The six flips are visible there: **dark 4 398 → 4 392**,
    the fourth element of the published tuple, and `no-backtick` 575 → 573. The leaf raised this as an
    unowned structural gap without checking whether the instrument it cites already answered it.
-3. ⛔ **TWO-THIRDS OF THE "INVISIBLE PROGRESS" IS NOT PROGRESS, ON THE PROJECT'S OWN TERMS.** Four of
-   the six are `.svh` include payloads ⇒ **fragment-shaped** (99 → 103), and `.13a` rules out counting
-   a fragment accept as positive testimony precisely because *the accept may itself be the
-   over-acceptance*. That population is `.13g`'s open subject.
+3. ⛔ **TWO-THIRDS OF THE "INVISIBLE PROGRESS" IS NOT *EVIDENCE OF* PROGRESS, ON THE PROJECT'S OWN
+   TERMS.** Four of the six are `.svh` include payloads ⇒ **fragment-shaped** (99 → 103), and `.13a`
+   rules out counting a fragment accept as positive testimony precisely because *the accept may
+   itself be the over-acceptance*. That population is `.13g`'s open subject.
+   ⚠️ **Wording corrected on self-audit the same day**: an earlier draft of this line read *"is not
+   progress"*. That overstates it and in the wrong direction — those four rows are **UNKNOWN**, not
+   worthless, and this tree's founding rule is that unknown and clean are different words. The
+   accurate claim is that a fragment accept is not *evidence* either way, which is why it cannot move
+   a confidence bar and why `.13g` owns giving those rows a real verdict.
    ⭐⭐ And for the other two — the OpenTitan rows the fixing slice was built for — the dark-worklist
    instrument returns its own verdict, in its own words: **`PARSES-BARE` — *"parses with NO
    transformation at all — contradicts the corpus row"***. Both files contain **zero backticks**
