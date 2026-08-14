@@ -3775,10 +3775,23 @@ reproduces outside the family it is being sent to):
     REJECT"* for a bank that was **21/16**, and its README claimed **8/13** for an even earlier
     shape. Its README also pointed at *"leaf `.19`"*, which does not exist — slice 4's decision (d)
     explicitly refused to open it.
-- **Both classes fail in the FLATTERING direction, which is why no one noticed.** An inflated
+  - ⭐⭐ **A THIRD instance, one day later, and it is the sharpest of the three** (`.17` slice 7,
+    2026-08-14 session #230). `guard_dry_run`'s new rows D9/D10 pin what the guard planner EMITS,
+    and the report they scrape built its `[positions]` string from the plan's own booleans rather
+    than from the grammar `apply_plan` wrote. Planting the exact defect the row exists to catch —
+    delete the trailing-lookahead emission — left the bank **`GUARD-DRY-RUN: 14/14` GREEN** while
+    describing a lookahead the emitted grammar no longer carried. ⇒ **a bank can be falsifiable in
+    form and blind in fact, when its input narrates a decision instead of measuring an artifact.**
+    Fixed in place by deriving each position from whether the rule that should carry it ends in a
+    `Lookahead`; the same plant now flips D10 by name.
+    ⛔ It also names a SECOND mechanizable half this leaf did not have: **the falsifiability plant
+    was run against `cargo test` and not against the bank**, and only the CLI-level plant separated
+    them. A plant that never rebuilds the binary measures the assertion layer and leaves every
+    report-scraping row untested.
+- **All three classes fail in the FLATTERING direction, which is why no one noticed.** An inflated
   denominator makes an `N of N` ratio read as broader coverage; a stale prose count reads as a
-  bank that is bigger and better-balanced than it is. Neither breaks a row, so a green run is
-  indistinguishable from a correct one.
+  bank that is bigger and better-balanced than it is; a plan-derived report reads as an emission
+  that happened. None breaks a row, so a green run is indistinguishable from a correct one.
 - **It reproduces outside `ENGINE-UNIVERSAL-SERVICES` by construction**, because the cause is
   structural, not family-specific: (a) any bank that scrapes a human-readable report by SUBSTRING is
   coupled to every line that report will ever grow, and (b) any bank that states a total in prose
@@ -3797,7 +3810,11 @@ report extraction anchors on a structural feature of the row (a bracket group, a
 legal position) rather than on a bare substring — ⛔ this half may not be mechanizable cheaply, and
 saying so with evidence is an acceptable outcome; (c) a sweep for DANGLING task-leaf pointers
 (`.19`'s class) across `docs/tasks/**`, which is the same shape as `.28`'s stale-id sweep and should
-share its implementation.
+share its implementation; **(d) NEW (`.17` slice 7) — the DERIVED-FROM-THE-ARTIFACT half**: a check,
+or a documented refusal with a reason, that a value a bank pins is computed from the thing it names
+rather than from a decision about it. ⛔ The calibration pair is `GuardChain::summary` before and
+after slice 7 — plan-derived (bank green under a planted emission defect) vs tree-derived (bank RED),
+which is a real RED/GREEN pair in git rather than a constructed one.
 
 ⭐ **The durable half is already promoted** —
 [[a-report-scraper-must-anchor-on-structure-not-on-a-substring]] carries the discipline and its

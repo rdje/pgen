@@ -2890,6 +2890,9 @@ release work, and slice 2 measured its live effect at zero.
 > Dry-run bank (re-runnable, self-checking, 9 cases):
 > `docs/tasks/artifacts/engine_universal_services/guard_dry_run/probe.sh` →
 > `GUARD-DRY-RUN: 9/9 as declared`.
+> ⛔ **`9` is what THIS SLICE measured, not the bank's current size** — slice 7 added D9-D13b and made
+> the headline DERIVE from the cases that ran. Narrating record, deliberately not rewritten; read the
+> bank's own output for the total.
 
 ###### THE INSTRUMENT, AND WHY IT IS THE REAL PLANNER RATHER THAN A MODEL OF IT
 
@@ -3733,7 +3736,14 @@ number or pointer that nothing derives, left behind when the artifact around it 
    referenced rule down to the base, because each hop becomes one guarded clone.
 2. **Copy the non-chain alternatives verbatim** — `ct_guard := kw | prim_guard` keeps `kw`, and that
    copy is what the tournament falls back to. A clone that dropped it would close nothing.
-3. **One chain per distinct residual**, which is exactly what `guard_variants` already counts.
+3. **One chain per distinct residual**, ~~which is exactly what `guard_variants` already counts~~.
+   ⛔⛔ **CORRECTED BY SLICE 7, AND IT SPECIFIES.** `guard_variants` counts distinct residual **byte
+   sets** — the key the DEAD byte-test form would have compared. The shipped guard is a structural
+   sub-parse, so the chain key is the residual's STRUCTURE (plus its position set and its chain), and
+   the census figure is only a LOWER BOUND. Measured on the driver's own first pick: `casting_type`
+   reports `variants=1` and the planner emits **two** chains, because `tick lparen
+   constant_expression rparen` and `tick lparen expression rparen` share a FIRST set and are
+   different sub-parses.
 4. **Emit which positions each site needs**, from slice 5's two verdicts: the loop guard where
    `guard=guardable`, the trailing guard where `seed=trailing_guard_required`. `casting_type` needs
    only the first; `constant_primary` and `property_expr` need both.
@@ -3879,6 +3889,330 @@ re-derives from record files — none asks whether a bank's arithmetic describes
   `MEMORY.md` unchanged — the frontier did not move. `DEVELOPMENT_NOTES.md` unchanged: the durable
   lesson here is *"a correction has two blast radii"*, recorded in this box, and
   `promotion: declined (it is the same discipline as CI-PARITY-GATE-ROT.29's acceptance (c), which now owns turning it into a gate)`.
+
+##### ⭐⭐ `.17` SLICE 7 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0028`, 2026-08-14 session #230) — the PLANNER emits the `g7` shape, and BOTH of the census's prices for it were measured too low
+
+> **ENGINE code + report/JSON columns + bank rows. ZERO grammar bytes, and the generated tree
+> re-derived BYTE-IDENTICAL — all 11 parsers, hashes below.** The guard planner runs on every plan;
+> what keeps it silent on the shipped path is the admission criterion, not a flag.
+>
+> Slice 6's closing section, verbatim: *"⇒ this grammar is the rule-for-rule TARGET a guard planner
+> must synthesize."* This slice is that planner. ⛔ It emits the shape and nothing PARSES it — see
+> the honest bound at the end, which is narrower than slice 6's and still not closure.
+
+###### WHAT WAS BUILT, against slice 6's five obligations
+
+| # | obligation | where it landed |
+|---|---|---|
+| 1 | reconstruct the transparent CHAIN, not its depth | `guard_chain_from` → `StarvationSite::guard_chain` (`indirect_lr_plan.rs`) |
+| 2 | copy the non-chain alternatives verbatim | `plan_guard_chains`, the `None` arm of the left-corner match |
+| 3 | one chain per distinct residual | ⛔ **refuted as stated — see RESULT 2**; the key is (positions, chain, residual STRUCTURE) |
+| 4 | emit which positions each site needs | `GuardVerdict::Guardable` → loop, `SeedVerdict::Required` → trailing |
+| 5 | the trailing lookahead appends | held — and it covers only that position; the loop one is designed AROUND, see RESULT 3 |
+
+The emitted shape, from the SystemVerilog dry run's own output:
+
+```text
+🛡  guard 'property_expr_lr_guard0' [loop+trailing]  chain: property_expr  residual 'implies property_expr'
+    sites: prop_primary_sv_2017 alt#13, prop_primary_sv_2023 alt#13
+    rules: property_expr_lr_guard0_suffix, property_expr_lr_guard0
+```
+
+###### ⭐⭐ RESULT 1 — the positions the EMITTER writes agree with slice 5's census, and the two are different code paths
+
+`casting_type` gets `[loop]` on both of its chains; `property_expr` gets `[loop+trailing]`. That is
+slice 5's `seed:` line — `casting_type seed_routes=0/10` *"no trailing guard owed"*, `property_expr
+78/80` *"TRAILING GUARD REQUIRED"* — reproduced by a component that never reads it as a headline: the
+emitter reads `SeedVerdict` per SITE, the report prints a per-CANDIDATE aggregate. ⭐ Two paths, one
+answer, and the bank pins the pair (D10) so a future disagreement names the candidate rather than
+showing up as a parse failure three slices later. ⛔ The `[positions]` string D10 compares is read
+back off the EMITTED grammar, not off the plan — see RESULT 4, where the first version of it was not.
+
+###### ⛔⛔ RESULT 2 — `guard_variants` UNDER-COUNTS THE CHAINS, and it does so on the driver's own first pick
+
+Slice 6's obligation 3 said *"one chain per distinct residual, which is exactly what `guard_variants`
+already counts."* Measured: **it is not**.
+
+```text
+[candidate] casting_type  …  variants=1 {'/}~          ← the census
+🛡  guard 'casting_type_lr_guard0' … residual 'tick lparen constant_expression rparen'
+🛡  guard 'casting_type_lr_guard1' … residual 'tick lparen expression rparen'
+```
+
+`guard_variants` keys on `residual_first.render()` — a FIRST **byte set**. That was the right key for
+the byte-test form, and slice 4 measured that form **dead**. The shipped guard is a structural
+sub-parse, so two residuals with one FIRST set are two different rules; `constant_cast` wants
+`constant_expression` inside its parentheses and `cast` wants `expression`. ⇒ **the census figure is
+a LOWER BOUND on option (iii)'s rule-name price**, off by one at `casting_type` and pinned as the
+PAIR `1,2` (bank D12) so the gap itself is the measurement rather than a number that later gets
+"corrected" to agree.
+
+⭐ **Why this is the same defect class the leaf keeps finding, one level up.** Slice 2 priced the
+design with the byte set because the byte set was the design; slice 4 killed the byte form and
+nobody re-priced. A number that outlives the decision it was derived under is
+[[a-report-scraper-must-anchor-on-structure-not-on-a-substring]] wearing a different hat — here the
+anchor is a *model*, not a substring.
+
+###### ⛔ RESULT 3 — the LOOP guard cannot be written inline, and the reason is the AST fold
+
+Slice 6's obligation 5 verified that a TRAILING lookahead is safe because it appends and
+`original_body_length` only bounds the template's `$N` range. That argument does **not** extend to
+the loop position. Writing `X_lr_guard{v} := X_lr_base ( X_lr_suffix &( R ) )* &( R )` literally
+makes the quantifier iterate a **Sequence** rather than the suffix rule, and `$2` — the list
+`fold_lr_chain` consumes (`apply_plan`'s `PositionalRef { index: 2 }`) — is read as a list of
+`{alt_index, captures}` records.
+
+⛔ **What that inline group's `$2` actually becomes is NOT MEASURED here, and the design is what
+makes the measurement unnecessary rather than what excuses it.** Slice 6 could answer its obligation
+by reading two files because a trailing lookahead only APPENDS; the loop position changes the
+quantified element's own type, which is a question about `ParseContent` shapes that would need a
+generated parser and an input to settle. Rather than answer it, this slice removes it: hoisting the
+group into a rule makes the quantified element a bare rule reference — exactly what `X` itself
+carries — so there is no group-content question left to have. Stated because "I did not need to
+measure it" and "I measured it" are different claims and only one of them is true.
+
+⇒ the emitter hoists it into a rule instead:
+
+```text
+X_lr_guard{v}        := X_lr_base ( X_lr_guard{v}_suffix )* &( R )
+X_lr_guard{v}_suffix := X_lr_suffix &( R )          -> $1
+```
+
+which is `g7` with the inline group named — the identical language, and the SAME transformation
+`apply_plan` already applies to the suffix branches for the same kind of reason (*"a branch is a RULE
+and not an inline alternative … a rule can carry `@profiles:` and an alternative cannot"*). ⭐ The
+principle is stronger than the workaround: **the guarded base rule is `X`'s body with one element
+appended and one rule name substituted**, so the fold's `$N` are unchanged BY CONSTRUCTION rather
+than by an argument about group content. The test asserts the two folds are byte-equal serialized.
+
+###### ⛔⛔ RESULT 4 — THIS SLICE'S OWN INSTRUMENT NARRATED THE PLAN, AND THE FALSIFIABILITY PLANT CAUGHT IT
+
+The first version of `GuardChain::summary` built `positions` from `self.loop_guard` /
+`self.trailing_guard` — the PLAN's two booleans. The bank rows D9/D10 read that report. So when the
+plant *"delete the trailing-lookahead emission in `apply_plan`"* was applied and the binary rebuilt:
+
+```text
+D10  systemverilog: the chains, with their guard positions
+     => casting_type_lr_guard0[loop],…,property_expr_lr_guard0[loop+trailing]   ✅   ⛔ WRONG
+```
+
+**14/14, green, and describing a lookahead the emitted grammar no longer carried.** The unit test
+caught the same break (it asserts the rule body), so the defect was in the REPORT and its bank rows,
+not in the emitter — but a bank whose rows cannot see the emission is a bank that would have signed
+off on a broken one.
+
+⛔ **`synthesized_clone_rules` was audited for the same defect and deliberately LEFT ALONE**, and the
+distinction is the useful part: `apply_plan` inserts every clone unconditionally, so its plan and its
+artifact cannot diverge. The guard positions are the field with a CONDITIONAL emission behind them,
+which is precisely why they are the field that could lie. ⇒ read back what is conditionally emitted;
+a value with no branch between plan and artifact is not the same risk.
+
+⛔ **Fixed by DERIVING, not by adding a row.** `summary` now reads the tree `apply_plan` just wrote:
+a position is present iff the rule that should carry it ENDS in a positive `Lookahead`, and a rule
+name the plan allocated but nothing wrote is filtered out of `rules`. Re-planted afterwards, and it
+now flips by name — `property_expr_lr_guard0[loop]`, `GUARD-DRY-RUN: MISMATCH (14 case(s) checked)`.
+The summary is therefore built AFTER `apply_plan` rather than before, which is why the call moved.
+
+⭐ **The transferable half, and it is the third instance of one shape in three slices.** Slice 5
+pinned a count a sibling line could inflate; slice 6b found two bank totals nobody re-derived; this
+one wrote a report from the DECISION rather than from the ARTIFACT. All three fail silently and in
+the flattering direction, and all three are the same rule: **a report about a thing must be computed
+from that thing**. `IndirectEliminationOutcome`'s own docstring had already said so — *"what the pass
+DID, as opposed to a belief about it"* — and the new field was the one that did not obey it. Routed
+to `CI-PARITY-GATE-ROT.29`, which slice 6b opened for exactly this class and which now has a third
+measured instance in its evidence.
+
+###### ⛔⛔ RESULT 5 — `max_hops` UNDER-PRICES THE CLONE COUNT TOO, and the claim that it does not was written BY THIS SLICE
+
+Having found RESULT 2 by building the thing the census priced, the same question was asked of the
+other price. This slice's own JSON comment had just asserted *"`guard_hops` is `guard_chain.len() - 1`
+by construction"*. Swept across the shipped grammars rather than believed:
+
+```text
+systemverilog                      sites=129  guard_hops == len(chain)-1 violations=6
+systemverilog_lrm_profiled_wrapper sites=77   guard_hops == len(chain)-1 violations=5
+ebnf                               sites=0    violations=0
+```
+
+Every violation is a **dialect twin**, and the shape is identical in all eleven:
+
+```text
+base=cast   holder=expression_base alt#1   hops=3
+            chain=[expression_operand, primary, primary_sv_2017, primary_sv_2023, cast]
+```
+
+`primary` reaches `cast` through `primary_sv_2017` **AND** `primary_sv_2023`. `guard_hops` is the
+SHORTEST transparency distance — 3 — while the guard has to clone **five** rules, because leaving
+either twin unguarded leaves a live unguarded route to the same starvation. ⇒ **`max_hops` is a
+lower bound on the clone count exactly as `guard_variants` is a lower bound on the chain count**: two
+independent under-prices in one census, both invisible until something was built against them.
+
+⛔ **What was wrong here was MY OWN sentence, one hour old.** The code already said the right thing
+(`guard_chain`'s docstring: *"a SET in DAG order, not a single path, because transparency can
+branch"*) — and the JSON comment beside it asserted the equality that contradicts it. Corrected in
+both places, `chain=` added to the per-site report line so the disagreement is READABLE rather than
+derivable, and pinned as bank rows **D13 (6) / D13b (5)** with a third data point (`ebnf`/`vhdl` → 0)
+proving the extractor is reading its input rather than returning a constant.
+
+⭐ **And it exposed an untested code path in this slice's own emitter.** Neither the SystemVerilog dry
+run (all chains length 1) nor the P5 fixture has a branching chain, so the loop that repoints BOTH
+arms had never executed. `knot_a_annotated_with_branching_transparency` + the new test close that,
+RED-proved by a plant that follows only the first transparent arm
+(`left: ["ct","pa","prim"]` vs `right: ["ct","pa","pb","prim"]`).
+
+⛔ **A third thing the probe found, and only because it was run rather than reasoned about.** The
+first fixture gave the two transparent arms DIFFERENT return annotations, and `plan_elimination`
+refused the plan outright — *"two routes iterate the identical suffix … but declare different
+ASTs"*. That refusal is correct and pre-existing, and it is worth recording as a property of
+branching transparency: **two transparent arms that are syntactically indistinguishable must agree on
+their AST or be separated by a `@profiles:` gate**, which is exactly what SystemVerilog's twins do
+and what `SuffixBranch::profile_key` exists to carry.
+
+###### ⛔⛔ THE HOP-CLONE HALF IS NOT EXERCISED BY SYSTEMVERILOG, AND SAYING SO IS THE POINT
+
+All three chains the SV dry run synthesizes have `chain:` of length 1 — `max_hops=0` at both
+`casting_type` and `property_expr`, i.e. every holder names its base rule DIRECTLY. So the
+corpus-scale run walks straight past `X_lr_guard{v}_<hop>`, the rule that carries the whole
+call-site-scoping argument. The only coverage of it is the two unit tests —
+`the_guarded_clone_chain_reproduces_the_hand_written_g7_shape` (one hop, asserted rule for rule
+against the bank grammar) and
+`a_branching_transparent_chain_clones_every_arm_and_guard_hops_undercounts_them` (a branching hop) —
+and they are therefore load-bearing rather than illustrative. ⛔ Stated rather than left implicit: a
+reader who sees `guard_chains=3` on SystemVerilog and concludes the hop machinery is corpus-proven
+would be wrong. ⭐ The `cast` / `constant_cast` candidates DO have branching chains
+(RESULT 5) — the driver simply never picks them, so the shipped grammar contains the shape and the
+dry run never emits for it.
+
+###### Acceptance Checklist (enforced) — `.17` slice 7
+
+- [x] **REPRODUCE / ISSUE** — nothing in PGEN could emit the shape slice 6 measured. Reproduced from
+  the shipped surface at `671d8f3e`: `--report-indirect-lr-plan --indirect-lr-plan-guard-dry-run` on
+  `grammars/systemverilog.ebnf` printed `would_absorb=2 would_refuse=0 clone_rules=24
+  left_recursive_rule_rows 28 -> 0` with **no guard rule of any kind**, under a banner that said so
+  — *"it emits no guard and is NOT a claim that the rewrite parses"*. The design was decided
+  (slice 4), modelled (slice 5) and BUILT as a grammar (slice 6); the engine could not produce it.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the emission was missing rather than broken: the survey
+  carried the guard's *verdicts* and its *depth* but neither of the two things an emitter needs — the
+  residual as ELEMENTS (`StarvationSite::residual` is a rendered `String`) and the transparent chain
+  as RULES (`rules_transparent_to` returns `BTreeMap<String, usize>`, a depth map,
+  `indirect_lr_plan.rs:1292`). WHERE the emission had to attach: `plan_elimination` step 6 and
+  `apply_plan`, because the guarded base rule must reference `X_lr_base` / `X_lr_suffix`, which do not
+  exist until the plan is built. ⛔ And WHERE it must NOT attach: the admission filter
+  (`indirect_lr_elimination.rs`, `CandidateAdmission::StarvationSafe => survey.safe_candidates()`) is
+  untouched, so the population that reaches a guard is unchanged.
+- [x] **FIX** — fix-hierarchy tier = **engine capability**, the first in this leaf.
+  `indirect_lr_plan`: `guard_chain_from` + `StarvationSite::guard_chain`, `left_corner_step` made
+  `pub` (so the emitter reads a residual through the survey's own narrowness instead of re-deriving
+  it), and `render_node_with` parenthesises a multi-element lookahead body — ⛔ **gated on
+  `parenthesize_groups`, so `render_elements` stays byte-frozen for the ambiguity refusal that
+  compares it** (`.17` slice 2's standing constraint).
+  `indirect_lr_elimination`: `GuardChain` / `GuardRedirect` / `SynthesizedGuard`, `plan_guard_chains`,
+  `site_residual`, the emission and holder-repointing passes in `apply_plan`, and
+  `IndirectEliminationOutcome::synthesized_guards`. Report: `guard_chains=` / `guard_rules=` / the
+  `🛡` lines / `indirect_guard_chains=` on the shipped header / `guard_chain` and `guard_chains` in
+  the JSON.
+  ⛔ Deliberately NOT done: the admission is unchanged, the candidate ORDERING is unchanged, and no
+  generated parser byte moves. Those are the shipped-parser change and they are owed the two-sided
+  repro ratchet plus a corpus re-measure — slice 8.
+  ⛔ **DECLINES LOUDLY, three ways**, rather than emitting a partial guard: a site whose loop or seed
+  verdict BLOCKS refuses the whole plan; a chain member with no bare arm into the chain refuses; and
+  a bare arm into the chain whose target the construction order has not reached — a cyclic
+  transparency relation — refuses by name instead of leaving an unguarded path to the same
+  starvation. The second pass over `guarded_by_source` closes the related hole where a chain member
+  is ALSO a starvation holder.
+  ⛔ **And the chain key ends in a SERIALIZATION of the residual, not a rendering.**
+  `render_elements` is paren-free by contract (it is frozen for the ambiguity refusal), so `a b*`
+  renders both `Sequence[a, Quantified{b}]` and `Quantified{Sequence[a, b]}`. Two sites colliding
+  there would share one chain — and a chain carries ONE lookahead, so the second site would be
+  guarded against a follow restriction that is not its own, silently. Not observed on any shipped
+  grammar; refused by construction rather than by absence. The readable fields still lead the key,
+  so variant numbering sorts by something a report reader can follow.
+- [x] **ADDRESSED (verified)** — `cargo test --lib indirect_lr` → **28 passed / 0 failed** (24 before).
+  ⭐ **Falsifiability PROVEN on FIVE independent breaks, each failing a DIFFERENT assertion by
+  name** ([[a-check-whose-inputs-all-pass-has-not-been-tested]]) — and the source was restored from a
+  CONTENT snapshot and re-hashed after each, which is `.17` slice 6b's own recorded mistake applied:
+  1. **guard on the shared rule** (skip the hop clones) ⇒
+     `the_guarded_clone_chain_reproduces_the_hand_written_g7_shape` FAILS at the chain-top assertion,
+     `left: "ct" right: "prim"` — the plan for `prim` is refused outright and the driver falls back;
+  2. **drop the trailing guard** (ship the loop guard alone — slice 4's decision (c) verbatim) ⇒ the
+     same test FAILS at a different line, `left: ["prim_lr_base prim_lr_guard0_suffix*"]` vs
+     `right: [… &"'" "(" lit ")"]`;
+  3. **widen the shipped admission** to `guard_admissible_candidates()` — the exact edit slice 8 will
+     make deliberately ⇒ `the_shipped_admission_synthesizes_no_guard_on_the_same_starved_knot` FAILS
+     printing the whole `SynthesizedGuard` it emitted;
+  4. **follow only the FIRST transparent arm** in `guard_chain_from` ⇒
+     `a_branching_transparent_chain_clones_every_arm_and_guard_hops_undercounts_them` FAILS with
+     `left: ["ct","pa","prim"]` vs `right: ["ct","pa","pb","prim"]` — the single-arm chain that
+     would leave an unguarded route to the same starvation.
+  Restored hashes: `indirect_lr_elimination.rs`
+  `a98f4aa8c836500f5a0e790570649f8be553b5b67d67f903d859ecc452e13c0a`, `indirect_lr_plan.rs`
+  `3f9eaa28fd31f6fb24357c6f144ff60340030b7a91f3a519a8bb2deb2b7bb02f`, suite re-run green at both.
+  ⭐⭐ **A FOURTH plant was run against the BANK rather than the unit tests, and it FOUND A DEFECT
+  (RESULT 4)** — break 2 rebuilt through the CLI left `GUARD-DRY-RUN: 14/14` green while the emitted
+  grammar had lost a lookahead. After the read-back fix the same plant flips D10 by name
+  (`property_expr_lr_guard0[loop]`, `MISMATCH (14 case(s) checked)`); source restored to
+  `1db24f0b52045290b10008670f974c032a4ceda610417f84577a083c40008a92`, suite and bank green.
+  ⛔ That plant is why the byte-identity measurement below was RE-RUN at the final source state
+  rather than inherited from the earlier one — the fix landed after the first regeneration, and a
+  no-regression claim taken at a different source state is not a measurement of what ships.
+  `guard_dry_run/probe.sh` → **`GUARD-DRY-RUN: 16/16 as declared`** (9 before; the headline is now
+  DERIVED from the cases that ran, `.17` slice 6b's class applied to the one bank it had not
+  reached). `guard_feasibility/probe.sh` → `18/18`, unmoved — its `[guard=` / `~ hops=` anchors
+  survive the new `chain=` field in the same bracket group, which is what re-running it checks.
+  ⛔ **The full `cargo test --lib --features "generated_parsers ebnf_dual_run"` suite was STARTED and
+  DELIBERATELY ABANDONED after ~50 minutes**, and saying so is the point. What stands in its place is
+  stronger for this change: the generated tree is byte-identical, so no parser input can behave
+  differently, and the bare `cargo test --lib` run is **955 passed / 9 failed** where all nine
+  failures are one build-configuration refusal (*"needs the generated annotation backend, but this
+  binary was built WITHOUT `--features generated_parsers`"*) raised by annotation-transform tests this
+  diff does not touch. ⇒ the featured suite would have re-measured what the byte-identity already
+  proves, at a cost that had already exceeded the whole rest of the slice.
+- [x] **NO REGRESSION** — ⭐ **measured at the strongest available tier, not argued from the diff.**
+  `make -C rust regenerate_generated_parsers` under the memory guard (`exit=0 peak_tree_rss=7474MB
+  elapsed=337s`) re-derived all **11** generated parsers with the new binary and
+  `shasum -a 256 generated/*.rs` is byte-identical to the pre-change snapshot:
+
+  ```text
+  7ce6578f799c36c79343f98c1e441feb70b453eee25be860ae64824f751938e5  generated/ebnf.rs
+  829056dfabc5346cce2c0306d436f58818df57fb39c07d5e7b4adcb500ac43e9  generated/json_parser.rs
+  eefd327d8db0d8c0ea3491d28715c65456e8467cd1103fb2a196c5aa4d5f38c5  generated/regex_parser.rs
+  c1e48f5e1ab5457b9154dbaea3ff4292c05c86390add192a472505ff942bee52  generated/return_annotation_parser.rs
+  b59ef442d69f70bbfe18f7a796779fada281eae29e513503d7339a43679ade63  generated/rtl_const_expr_parser.rs
+  67bc01cd8d6466aaf40e025d85be6333f8a788177ce99a0e803051e1d95719cd  generated/rtl_frontend_parser.rs
+  c339a24075ffa1f02e35ea6d6407b22ce497643a0eb3e10593cba0e558b4e49a  generated/scratch_parser.rs
+  e9c132b709a2e72d7d19312752e63857cc2259464a2c6fe403584794c4934a3e  generated/semantic_annotation_parser.rs
+  4330ff8e14c8511865cfd5eeb0ab3eabe323cba127c6713e86d7654a7ca970bd  generated/systemverilog_parser.rs
+  f46b0d29c328e0ebdbf07e30af6cf2b2a518cfaf72e29be2877fc84aa10229c3  generated/systemverilog_preprocessor_parser.rs
+  a90ae37b74131c4dd73ab7b663e6c01f92479aaa1342613c12c307716686b3e3  generated/vhdl_parser.rs
+  ```
+
+  ⇒ no parser input can behave differently, because no parser byte moved. The shipped counter agrees
+  independently: `indirect_guard_chains=0` on `ebnf`, `systemverilog`, `vhdl` and `regex`.
+  ⛔ **Run THREE times, and only the last one counts** — the first preceded the RESULT-4 read-back
+  fix and the second preceded RESULT 5's `chain=` field, so each measured a source state that is not
+  the one being committed. Verified rather than assumed: every `rust/src` file in the diff has an
+  mtime STRICTLY BEFORE the final run's start (`09:56:32`/`09:57:36`/`09:58:13`/`09:03:55` against a
+  `10:02:04` start). A no-regression claim inherited across an edit is not a measurement.
+  `guard_dry_run/probe.sh` (extended, D9-D13b) and `guard_feasibility/probe.sh` both green.
+  ⛔ The scratch-slot banks (`indirect_lr`, `quantifier_policy`, `guard_effectiveness`) were
+  deliberately NOT run: they exercise PARSE behaviour, which the byte-identical generated tree
+  proves unchanged, and running them would acquire `.13` slice 4b's scratch-slot restore obligation
+  for no measurement. Stated rather than silent.
+- [x] **LOCKSTEP** — this leaf (slice 6's obligation 3 corrected in place, since it SPECIFIES);
+  `TOOLBOX.md` §5.5 (the `variants` bullet, the dry-run bullet, the `indirect_guard_chains=` counter,
+  the bank's now-derived headline); the book's grammar-wellformedness chapter (the `🛡` output, the
+  hoisted-suffix explanation, the `variants` lower bound, and the *"emits no guard"* paragraph, which
+  is now false); `guard_dry_run/probe.sh` + its README; `docs/tasks/CI-PARITY-GATE-ROT.md` (`.29`
+  gains a third measured instance and a new acceptance (d)); `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+  `MEMORY.md`, `docs/TASK_TREE.md`. No user-visible parser behaviour changed, so no contract or
+  schema edit is owed.
+  ⭐ `promotion: PROMOTED` — [[a-report-must-be-computed-from-the-artifact-it-describes]], plus a
+  `KNOWLEDGE_MAP.md` regeneration. ⛔ Deliberately a NEW card rather than an extension of
+  [[a-report-scraper-must-anchor-on-structure-not-on-a-substring]], and slice 7 is itself the
+  evidence for the split: that card exists, was written one day earlier by this same leaf, and did
+  not prevent this — because the extraction here was CORRECT and the defect was upstream of it. Two
+  different questions ("did my grep match the right rows?" vs "was the value ever about the
+  artifact?") retrieve on different keys.
 
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 

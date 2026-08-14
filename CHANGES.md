@@ -1,5 +1,64 @@
 # CHANGES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0028 — the guard PLANNER emits the `g7` shape, and BOTH of the census's prices for it were measured too low (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 7; ENGINE code + report/JSON columns + bank rows, ZERO grammar bytes, generated tree byte-identical)
+
+- ⭐⭐ **PGEN synthesizes the call-site-scoped guarded clone chain.** Slice 6 built the target as a
+  grammar and closed with *"the rule-for-rule TARGET a guard planner must synthesize"*; this slice is
+  that planner. `plan_guard_chains` + `GuardChain` reconstruct the transparent chain, clone each hop
+  with its non-chain alternatives copied verbatim, emit
+  `X_lr_guard{v} := X_lr_base ( X_lr_guard{v}_suffix )* &( R )` and repoint the holder's LEFT CORNER
+  only. Measured on `systemverilog`: **`guard_chains=3 guard_rules=6`**.
+- ⛔⛔ **ZERO shipped-parser change, and it is a CONSEQUENCE rather than a flag.** The planner runs on
+  every plan; the shipped admission is *"no surviving starvation site"* and a guard exists only for
+  one, so it emits nothing there by construction. Measured, not argued: `regenerate_generated_parsers`
+  re-derived all **11** parsers byte-identical, and the new `indirect_guard_chains=` header counter
+  reads **0** on `ebnf`, `systemverilog`, `vhdl` and `regex`.
+- ⭐⭐ **The emitted POSITIONS agree with slice 5's census through a different code path.**
+  `casting_type` → `[loop]`, `property_expr` → `[loop+trailing]`, which is exactly `seed_routes=0/10`
+  vs `78/80` — but the emitter reads `SeedVerdict` per SITE while the report prints a per-CANDIDATE
+  aggregate. Pinned as bank row D10.
+- ⛔⛔ **`guard_variants` UNDER-COUNTS the chains, on the driver's own first pick.** It keys on a FIRST
+  **byte set** — the key the DEAD byte-test form compared — while the shipped guard is a structural
+  sub-parse. `casting_type` reports `variants=1` and the planner emits **2**: `'( expression )` and
+  `'( constant_expression )` share a FIRST set and are different rules. ⇒ the census figure is a
+  LOWER BOUND on option (iii)'s rule-name price; pinned as the pair `1,2` (D12), and slice 6's
+  obligation 3 corrected in place.
+- ⛔⛔ **AND SO DOES `max_hops`, on the OTHER price — the claim that it does not was written by this
+  slice.** Asking the same question of the second number found the JSON comment *"`guard_hops` is
+  `guard_chain.len() - 1` by construction"* false on **6 of 129** SV sites and **5 of 77** wrapper
+  sites, every one a dialect twin: `primary` reaches `cast` through `primary_sv_2017` AND
+  `primary_sv_2023`, so five rules get cloned where `hops=3` reads as four. `chain=` is now printed
+  per site, pinned as D13/D13b, and it exposed an UNTESTED path in this slice's own emitter (nothing
+  in the tree had a branching chain) — closed by a new fixture + test, RED-proved by a plant that
+  follows only the first arm.
+- ⛔ **The LOOP guard cannot be written inline, and the reason is the AST fold.**
+  `( X_lr_suffix &( R ) )*` makes the quantifier iterate a Sequence, so `$2` stops being the list of
+  suffix records `fold_lr_chain` consumes. Hoisted into `X_lr_guard{v}_suffix := X_lr_suffix &( R )`
+  with `-> $1`, which keeps the guarded rule's body POSITIONALLY IDENTICAL to the base rule's — the
+  fold is unchanged by construction, not by argument. Asserted as byte-equal serialized templates.
+- ⛔⛔ **THIS SLICE'S OWN INSTRUMENT NARRATED THE PLAN, and the falsifiability plant caught it.** The
+  first `GuardChain::summary` reported the plan's booleans, so deleting the trailing-lookahead
+  emission left `GUARD-DRY-RUN: 14/14` **green** while describing a lookahead the grammar no longer
+  carried. Fixed by DERIVING: each position is read back from whether the rule that should carry it
+  ends in a `Lookahead`, and the summary is built AFTER `apply_plan`. Re-planted, it now flips D10 by
+  name. ⇒ third instance in three slices of one shape — **a report about a thing must be computed
+  from that thing** — routed to `CI-PARITY-GATE-ROT.29`.
+- ⛔ **DECLINES LOUDLY, three ways**: a blocked loop or seed verdict refuses the whole plan; a chain
+  member with no bare arm into the chain refuses; and a cyclic transparency relation refuses rather
+  than leaving an unguarded path to the same starvation. A second pass over `guarded_by_source`
+  closes the case where a chain member is also a starvation holder.
+- ⛔ **The hop-clone half is NOT exercised by SystemVerilog** — every SV chain is `max_hops=0`, so the
+  corpus-scale run never reaches `X_lr_guard{v}_<hop>`. Its only coverage is the P5 unit test, which
+  is therefore load-bearing rather than illustrative. Stated rather than left implicit.
+- **Verified:** `cargo test --lib indirect_lr` **28 passed / 0 failed** (24 before), falsifiability
+  proven on **five** independent plants each failing a different assertion by name; all 11 generated
+  parsers byte-identical (`exit=0`, memory-guarded, re-run at the committed source state);
+  `GUARD-DRY-RUN: 16/16` (9 before, headline now derived); `GUARD-FEASIBILITY-CENSUS: 18/18` unmoved;
+  all 18 doctrines + the mdBook gate green. ⛔ The full featured lib suite was started and abandoned
+  after ~50 min — stated, not silent; the byte-identical generated tree is the stronger evidence for
+  this change, and the 9 failures in the bare `cargo test --lib` run are one build-configuration
+  refusal in annotation-transform tests this diff does not touch.
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0027 — a signoff audit of the three prior corrections found one unswept, and it was the one that SPECIFIES (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 6b; CI-PARITY-GATE-ROT.29 NEW; docs + two probe-bank shell edits, ZERO grammar/Rust/codegen/generated bytes)
 
 - ⛔⛔ **GAP A: slice 4's RESULT 2 still named the WRONG BASE RULE, in a specifying paragraph.** Slice 5

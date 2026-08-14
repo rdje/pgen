@@ -254,6 +254,31 @@ pub struct StarvationSite {
     /// `ENGINE-UNIVERSAL-SERVICES.17` slice 2 — can a call-site follow-restriction guard close
     /// THIS site, and what would it cost? [`GuardAssessment`] carries the verdict and its inputs.
     pub guard: GuardAssessment,
+    /// `.17` slice 7 — the rules that need a GUARDED CLONE for this site, deepest **last**, ending
+    /// at the base rule.
+    ///
+    /// ⛔⛔ **The depth alone is not enough to emit, and slice 6 named this as the planner's first
+    /// obligation.** [`GuardAssessment::guard_hops`] says *how many* transparent rules stand between
+    /// this holder's reference and the `*`; the emitter needs *which*, because each one becomes a
+    /// clone whose non-chain alternatives are copied verbatim and whose chain arm is repointed at
+    /// the deeper clone. On the measured target shape
+    /// (`guard_effectiveness/g7_guarded_clone_chain.ebnf`) this is `["ct", "prim"]` — `ct_guard` and
+    /// `prim_guard`, in that order of construction bottom-up.
+    ///
+    /// ⭐ It is a SET in DAG order, not a single path, because transparency can branch: a hop may
+    /// reach the base through two arms, and the clone has to repoint both. Ordered by transparency
+    /// depth descending then name, so the emitted rule set is byte-deterministic like the codegen it
+    /// feeds. `[base_rule]` alone when the holder names the base directly (`guard_hops == 0`).
+    ///
+    /// ⛔⛔ **`GuardAssessment::guard_hops` is therefore a LOWER BOUND on `len() - 1`, never an
+    /// equality, and the gap is the real clone price.** `guard_hops` is the SHORTEST transparency
+    /// distance; this is every rule on any transparent path. SystemVerilog's dialect twins make the
+    /// difference concrete and measured: `primary` reaches `cast` through `primary_sv_2017` **and**
+    /// `primary_sv_2023`, so the chain is
+    /// `[expression_operand, primary, primary_sv_2017, primary_sv_2023, cast]` — five rules cloned
+    /// where `hops=3` reads as four. **6 of 129** SystemVerilog sites and **5 of 77** wrapper sites
+    /// branch this way. ⇒ price a guard from this field, never from `max_guard_hops()`.
+    pub guard_chain: Vec<String>,
 }
 
 /// The byte test a call-site follow-restriction guard would emit at one site, plus the two flags
@@ -1165,7 +1190,18 @@ fn collect_routes(
 /// prefix the residual is not `elements[1..]` — the prefix may or may not have consumed. Declining
 /// that shape here and counting it in [`IndirectChainSurvey::declined`] keeps the survey's coverage
 /// a measured number instead of a silent approximation.
-fn left_corner_step(rule: &str, alternative_index: usize, alternative: &ASTNode) -> Option<ChainStep> {
+///
+/// ⭐ `pub` since `.17` slice 7, and for a single-source-of-truth reason. The guard planner has to
+/// emit `&( residual )` as a STRUCTURAL lookahead, so it needs the residual's **elements** —
+/// [`StarvationSite::residual`] is a rendered string, which no emitter can build from. Rather than
+/// let `indirect_lr_elimination` re-derive "everything after the leading rule reference" (a second
+/// implementation of the narrowness above, free to drift from this one), it reads the residual back
+/// through this function.
+pub fn left_corner_step(
+    rule: &str,
+    alternative_index: usize,
+    alternative: &ASTNode,
+) -> Option<ChainStep> {
     let elements: Vec<ASTNode> = match alternative {
         ASTNode::Sequence { elements } => elements.clone(),
         other => vec![other.clone()],
@@ -1318,6 +1354,69 @@ fn rules_transparent_to(
         }
     }
     transparent
+}
+
+/// `.17` slice 7 — the transparent CHAIN from `start` down to the base rule: every rule that would
+/// need a guarded clone so one lookahead reaches the `*`.
+///
+/// [`rules_transparent_to`] answers *how far*; this answers *through what*, which is the input an
+/// emitter needs and a depth map cannot supply. A rule belongs to the chain iff it lies on some
+/// transparent path `start → … → base_rule`, so the walk follows exactly the edges transparency was
+/// computed from — a step with an EMPTY residual into a rule whose transparency depth is strictly
+/// smaller.
+///
+/// ⛔ **Strictly smaller, not "one less", and the difference is a termination argument rather than a
+/// style choice.** Depth is the SHORTEST transparency distance, so a rule can also hold a bare
+/// reference to a same-depth or deeper transparent sibling; following those could cycle. Descending
+/// depth is a well-founded order, so the walk terminates on any grammar, including one whose
+/// transparent rules are mutually recursive.
+///
+/// Returns `[base_rule]` when `start` IS the base rule. Ordering is depth-descending then
+/// name-ascending — construction order for the emitter is this list reversed.
+fn guard_chain_from(
+    start: &str,
+    base_rule: &str,
+    transparent: &BTreeMap<String, usize>,
+    steps_by_rule: &HashMap<String, Vec<ChainStep>>,
+) -> Vec<String> {
+    let Some(start_depth) = transparent.get(start).copied() else {
+        return Vec::new();
+    };
+    let mut chain: BTreeSet<(usize, String)> = BTreeSet::new();
+    let mut stack: Vec<(String, usize)> = vec![(start.to_string(), start_depth)];
+    chain.insert((start_depth, start.to_string()));
+    while let Some((rule, depth)) = stack.pop() {
+        if depth == 0 {
+            continue;
+        }
+        let Some(steps) = steps_by_rule.get(&rule) else {
+            continue;
+        };
+        for step in steps {
+            if !step.residual.is_empty() {
+                continue;
+            }
+            let Some(next_depth) = transparent.get(&step.next_rule).copied() else {
+                continue;
+            };
+            if next_depth >= depth {
+                continue;
+            }
+            if chain.insert((next_depth, step.next_rule.clone())) {
+                stack.push((step.next_rule.clone(), next_depth));
+            }
+        }
+    }
+    debug_assert!(
+        chain
+            .iter()
+            .any(|(depth, rule)| *depth == 0 && rule == base_rule),
+        "a transparent chain must reach the base rule"
+    );
+    // Deepest first, base rule (depth 0) last — the order the emitter reverses to build bottom-up.
+    let mut ordered: Vec<(usize, String)> = chain.into_iter().collect();
+    ordered.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
+    ordered.into_iter().map(|(_, rule)| rule).collect()
 }
 
 /// `.17` slice 5 — FIRST of the SEED TAIL, unioned over the routes that contribute one, plus how
@@ -1503,6 +1602,12 @@ fn collect_starvation_sites(
                     seed_first,
                     seed_tail_routes,
                     first_set_cache,
+                ),
+                guard_chain: guard_chain_from(
+                    &step.next_rule,
+                    base_rule,
+                    &transparent,
+                    steps_by_rule,
                 ),
             });
         }
@@ -1691,8 +1796,23 @@ fn render_node_with(node: &ASTNode, parenthesize_groups: bool) -> String {
             }
             _ => format!("{}{}", render_node(element), quantifier),
         },
+        // Same rule as the quantifier arm above, and for the same reason (`.17` slice 7): a
+        // lookahead over a multi-element SEQUENCE reads as a lookahead over its first element
+        // without parentheses, which in a starvation report is the difference between "the guard
+        // demands `'(lit)`" and "the guard demands `'`". ⛔ Gated on `parenthesize_groups`, so
+        // `render_elements` — which `indirect_lr_elimination`'s ambiguity refusal compares — stays
+        // byte-frozen; only the DISPLAY form gains the parentheses.
         ASTNode::Lookahead { element, positive } => {
-            format!("{}{}", if *positive { "&" } else { "!" }, render_node(element))
+            let marker = if *positive { "&" } else { "!" };
+            match element.as_ref() {
+                ASTNode::Sequence { elements } if parenthesize_groups && elements.len() > 1 => {
+                    format!(
+                        "{marker}( {} )",
+                        render_elements_with(elements, parenthesize_groups)
+                    )
+                }
+                _ => format!("{marker}{}", render_node(element)),
+            }
         }
         ASTNode::Atom { value } => match value {
             ASTValue::Node(inner) => render_node(inner),

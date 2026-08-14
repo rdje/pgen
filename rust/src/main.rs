@@ -4608,11 +4608,17 @@ fn run_indirect_lr_plan_report(
     // says it could do. ⛔ A candidate the survey calls MAY-ABSORB that the pass nonetheless left
     // standing is the single most misleading reading of this report, so the refusal that explains
     // it is printed here rather than left in a trace-gated log line.
+    // ⛔ `indirect_guard_chains` is `.17` slice 7's SHIPPED-PATH counter, and it is printed even
+    // though it is expected to be 0 everywhere. The guard planner runs unconditionally; what keeps
+    // it silent on a shipped parser is that the admission criterion is "no surviving starvation
+    // site" and a guard exists only for one. That is an argument — this number is the check on it.
     println!(
-        "indirect_eliminated_base_rules={} indirect_clone_rules={} indirect_refusals={}",
+        "indirect_eliminated_base_rules={} indirect_clone_rules={} indirect_refusals={} \
+         indirect_guard_chains={}",
         elimination.indirect_eliminated_base_rules.len(),
         elimination.indirect_clone_rules.len(),
-        elimination.indirect_refusals.len()
+        elimination.indirect_refusals.len(),
+        elimination.indirect_guard_chains.len()
     );
     for rule in &elimination.indirect_eliminated_base_rules {
         println!("    ✅ absorbed at '{rule}'");
@@ -4779,8 +4785,12 @@ fn run_indirect_lr_plan_report(
             5
         };
         for site in candidate.starvation_sites.iter().take(site_limit) {
+            // `.17` slice 7 — `chain=` names the rules a guard would be cloned through, and it is
+            // printed NEXT TO `hops=` rather than instead of it because the two disagree wherever
+            // transparency BRANCHES: `hops` is the shortest distance, the chain is every rule on any
+            // transparent path, and the clone price is the chain. Measured: 6 of 129 SV sites.
             println!(
-                "    {} {} alt#{}{} — residual '{}' a greedy suffix could steal [guard={} seed={} first={} hops={}]",
+                "    {} {} alt#{}{} — residual '{}' a greedy suffix could steal [guard={} seed={} first={} hops={} chain={}]",
                 if site.survives_rewrite { "⛔ starved by" } else { "·  benign site" },
                 site.rule,
                 site.alternative_index,
@@ -4793,7 +4803,8 @@ fn run_indirect_lr_plan_report(
                 site.guard.verdict.token(),
                 site.guard.seed_verdict.token(),
                 site.guard.residual_first.render(),
-                site.guard.guard_hops
+                site.guard.guard_hops,
+                site.guard_chain.join(">")
             );
         }
         if candidate.starvation_sites.len() > site_limit {
@@ -4843,13 +4854,15 @@ fn run_indirect_lr_plan_report(
         let outcome = &dry.outcome;
         println!();
         println!("--- GUARD DRY-RUN: which guard-feasible candidates actually reach a PLAN ---");
-        // ⛔ Both halves of this qualifier are load-bearing. The dry run admits candidates the
-        // shipped criterion refuses and emits NO guard for them, so the grammar it builds is the
-        // one `.13` slice 5 measured as a REGRESSION. What survives that limitation is the
-        // plan-stage verdict, which no guard would change.
+        // ⛔ The qualifier CHANGED at `.17` slice 7 and the change is narrowing, not lifting. The
+        // dry run now SYNTHESIZES the guarded clone chains (printed below), so the grammar it builds
+        // is no longer the unguarded one `.13` slice 5 measured as a regression. What is still
+        // unmeasured is whether that grammar PARSES: nothing here generates a parser or runs an
+        // input, so the verdict this report carries remains the plan-stage one.
         println!(
-            "    ⛔ measures PLAN-STAGE refusals only (annotation composability, the trial re-lint, \
-             the ambiguity check) — it emits no guard and is NOT a claim that the rewrite parses"
+            "    ⛔ measures PLAN-STAGE outcomes (annotation composability, the trial re-lint, the \
+             ambiguity check) and the guard chains it SYNTHESIZES — it parses nothing, so it is \
+             NOT a claim that the rewritten grammar accepts or rejects any input"
         );
         // ⛔ THE INSTRUMENT STATES ITS OWN INPUT. `compose_route_template` returns "nothing to
         // compose" when the grammar declares no annotations AT ALL, so an unannotated grammar
@@ -4874,15 +4887,40 @@ fn run_indirect_lr_plan_report(
         // rewrite at a DOMINATOR clears every rule on its knot, so the two numbers are unrelated
         // and the difference is the whole point of measuring rather than counting.
         println!(
-            "    would_absorb={} would_refuse={} clone_rules={} left_recursive_rule_rows {} -> {}",
+            "    would_absorb={} would_refuse={} clone_rules={} guard_chains={} guard_rules={} \
+             left_recursive_rule_rows {} -> {}",
             outcome.eliminated_base_rules.len(),
             outcome.refusals.len(),
             outcome.synthesized_clone_rules.len(),
+            outcome.synthesized_guards.len(),
+            outcome.guard_rule_names().len(),
             dry.cycle_rows_before,
             dry.cycle_rows_after
         );
         for rule in &outcome.eliminated_base_rules {
             println!("    ✅ would absorb '{rule}'");
+        }
+        // ENGINE-UNIVERSAL-SERVICES.17 slice 7 — the CALL-SITE GUARD the planner synthesized for
+        // each surviving starvation site, printed so the emission is falsifiable from this report
+        // alone: the chain names every rule cloned, `positions` names which of the two lookaheads
+        // the sites actually owed, and `sites` names the holders whose left corner was repointed.
+        //
+        // ⛔ It is still not a claim that the rewrite PARSES — the qualifier above stands, and this
+        // block only narrows what remains unmeasured from "no guard exists" to "the guard exists and
+        // its parses are the next slice's burden".
+        for guard in &outcome.synthesized_guards {
+            println!(
+                "    🛡  guard '{}' [{}]  chain: {}  residual '{}'",
+                guard.guarded_base_rule,
+                guard.positions,
+                guard.chain.join(" > "),
+                guard.residual
+            );
+            println!(
+                "        sites: {}   rules: {}",
+                guard.call_sites.join(", "),
+                guard.rules.join(", ")
+            );
         }
         for refusal in &outcome.refusals {
             println!(
@@ -4935,6 +4973,19 @@ fn run_indirect_lr_plan_report(
                         "residual_first": site.guard.residual_first.render(),
                         "residual_first_exact": site.guard.residual_first.exact,
                         "guard_hops": site.guard.guard_hops,
+                        // `.17` slice 7 — WHICH transparent rules a guard would be cloned through,
+                        // not just how many.
+                        //
+                        // ⛔⛔ **`guard_hops` is a LOWER BOUND on `guard_chain.len() - 1`, never an
+                        // equality — and the gap is the real clone price.** `guard_hops` is the
+                        // SHORTEST transparency distance; the chain is the SET of rules on any
+                        // transparent path, and SystemVerilog's dialect twins make transparency
+                        // BRANCH: `primary` reaches `cast` through `primary_sv_2017` AND
+                        // `primary_sv_2023`, so the guarded chain clones five rules where
+                        // `max_hops=3` reads as four. Measured: **6 of 129** SV sites and **5 of 77**
+                        // wrapper sites branch this way. Both fields are emitted because neither
+                        // implies the other.
+                        "guard_chain": site.guard_chain,
                     })).collect::<Vec<_>>(),
                 })
             })
@@ -4967,6 +5018,16 @@ fn run_indirect_lr_plan_report(
                     .unwrap_or(0),
                 "would_absorb": dry.outcome.eliminated_base_rules,
                 "clone_rules": dry.outcome.synthesized_clone_rules,
+                // `.17` slice 7 — the guarded clone chains the planner emitted.
+                "guard_chains": dry.outcome.synthesized_guards.iter().map(|guard| serde_json::json!({
+                    "base_rule": guard.base_rule,
+                    "guarded_base_rule": guard.guarded_base_rule,
+                    "chain": guard.chain,
+                    "positions": guard.positions,
+                    "residual": guard.residual,
+                    "call_sites": guard.call_sites,
+                    "rules": guard.rules,
+                })).collect::<Vec<_>>(),
                 "left_recursive_rule_rows_before": dry.cycle_rows_before,
                 "left_recursive_rule_rows_after": dry.cycle_rows_after,
                 "would_refuse": dry.outcome.refusals.iter().map(|refusal| serde_json::json!({

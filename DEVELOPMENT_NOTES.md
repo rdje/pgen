@@ -1,5 +1,59 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0028 — a report about a thing must be computed from that thing, and a price outlives the model it was derived under
+
+Two lessons from the slice that turned `.17`'s decided-and-modelled guard into an emitted one. Both
+are about numbers that describe something *adjacent* to what they claim to describe.
+
+**1. The report narrated the plan, so the bank could not see the emission.** `GuardChain::summary`
+built its `positions` string from the plan's two booleans. The bank row that pins it therefore
+answered "what did the planner INTEND", while its label said "what did it EMIT". Planting the exact
+defect the row exists to catch — delete the trailing-lookahead emission — left the bank **14/14
+green** describing a lookahead the grammar no longer carried. The fix is not another row; it is to
+derive: a position is present iff the rule that should carry it ends in a `Lookahead`, read off the
+tree `apply_plan` just wrote, which also forced the summary to be built AFTER the apply rather than
+before.
+
+⇒ **the falsifiability plant belongs on the INSTRUMENT, not only on the code under test.** The unit
+test caught this break; the bank did not, and only planting through the CLI could tell them apart.
+A plant that only ever runs against `cargo test` measures the assertion layer and leaves every
+report-scraping row untested.
+
+This is the third instance in three slices, and they are one shape: slice 5's `157` counted lines a
+sibling line also matched; slice 6b's bank totals were hand-typed beside a table that grew; this one
+described a decision instead of an artifact. All three fail silently and in the flattering
+direction. `IndirectEliminationOutcome`'s own docstring had already stated the rule — *"what the
+pass DID, as opposed to a belief about it"* — and the newest field on it was the one that broke it.
+`CI-PARITY-GATE-ROT.29` owns mechanizing the class.
+
+**2. A price survives the model it was derived under, and nobody re-derives it.** `guard_variants`
+was written in slice 2 to count option (iii)'s clone chains, keyed on the residual's FIRST **byte
+set** — correct, because the design then was a byte test. Slice 4 measured that form **dead** and
+replaced it with a structural lookahead. Nothing re-priced. Three slices later the planner emits
+**two** chains where the census says `variants=1`, because two residuals can share a FIRST set and
+still be different sub-parses.
+
+⇒ when a decision is superseded, the *numbers derived under it* are part of its blast radius.
+Slice 6b's *"a correction has two blast radii — the value and the claim it was part of"* generalizes:
+a refuted MODEL invalidates every figure computed from it, and those figures are unfindable by
+grepping for the thing that changed, because they contain neither its name nor its value. The only
+reliable detector is the one that fired here — build the thing the number priced, and compare.
+
+⭐⭐ **And the detector has a cheap second use: once one price is found wrong, ask the same question
+of every price beside it.** Having found `variants`, the same question was put to `max_hops` — *does
+the thing you build match the number?* — and it did not, on 6 of 129 SystemVerilog sites. `max_hops`
+is the SHORTEST transparency distance; the guard clones every rule on any transparent path, and the
+dialect twins make transparency branch. That second finding cost one `python3` sweep over a JSON
+report that already existed. **A census is a set of prices sharing a set of assumptions; when one
+turns out to be measured against a superseded model, the others are the cheapest place to look
+next.**
+
+⛔ The sharpest detail is whose sentence was wrong the second time: not slice 2's, but **this slice's
+own JSON comment, written an hour earlier, asserting an equality the struct's own docstring three
+files away already denied**. Being the author of both halves is no protection — the two were written
+at different moments with different questions in mind, and only executing them together separated
+them.
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0026 — a ladder can prove both halves of a decision and never the decision
 
 `.17` slice 4 built a seven-rung one-difference ladder, ran every rung on two oracles, declared each

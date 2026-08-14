@@ -1,5 +1,34 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Steering Note (2026-08-14) — the eliminator gained a SECOND synthesis stage, and it is silent on the shipped path by construction rather than by a flag (`ENGINE-UNIVERSAL-SERVICES.17` slice 7)
+
+**A new engine capability landed; nothing a generated parser executes changed.** `plan_elimination`
+now has a step 6 — `plan_guard_chains` — that turns a candidate's SURVIVING starvation sites into
+call-site-scoped guarded clone chains, and `apply_plan` installs them and repoints the holders' left
+corners. `IndirectEliminationOutcome` gained `synthesized_guards`, surfaced as `guard_chains=` /
+`guard_rules=` / the `🛡` lines in the dry-run report and as `indirect_guard_chains=` on the ordinary
+one.
+
+⭐ **The architectural decision worth carrying is the ABSENCE of a switch.** The stage runs on every
+plan. What keeps it from touching a shipped parser is that a guard chain exists only for a surviving
+starvation site, and the shipped admission (`CandidateAdmission::StarvationSafe`) is *defined* as
+having none — so a second gate here would be a second thing that has to agree with the criterion, and
+two things that must agree can disagree. The consequence is measurable rather than argued: all 11
+generated parsers re-derive byte-identical, and `indirect_guard_chains=0` on every shipped grammar.
+
+⛔ **Two constraints a future change in this area must respect.**
+1. `render_elements` stays byte-frozen — `indirect_lr_elimination`'s ambiguity refusal compares its
+   output, so the new lookahead parenthesisation lives in `render_elements_display` only.
+2. The guarded base rule must stay POSITIONALLY IDENTICAL to the base rule it stands in for (same
+   first element, same quantified rule reference, one appended lookahead). That is what keeps
+   `lr_chain_fold`'s `$1`/`$2` meaning what they meant, and it is why the loop guard is hoisted into
+   `X_lr_guard{v}_suffix` instead of being written as an inline group.
+
+⇒ **Assessment change for the note below:** the dry run's grammar is no longer the unguarded one. The
+bound moves inward, not away — nothing here generates a parser or runs an input, so `28 -> 0` is
+still plan-stage reachability. Flipping the admission is the shipped-parser change and is owed the
+two-sided repro ratchet plus a corpus re-measure.
+
 ## Steering Note (2026-08-13) — the elimination driver's ADMISSION POLICY is now a parameter, and that is what let the census be measured through the real planner (`ENGINE-UNIVERSAL-SERVICES.17` slice 3)
 
 **One driver gained a parameter; nothing the parser executes changed.**

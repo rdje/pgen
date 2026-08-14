@@ -2675,6 +2675,16 @@ pub struct LeftRecursionEliminationOutcome {
     /// Starvation-safe candidates the indirect pass REFUSED, with the reason. A cycle that
     /// survives has a named cause here, never silence.
     pub indirect_refusals: Vec<indirect_lr_elimination::PlanRefusal>,
+    /// `ENGINE-UNIVERSAL-SERVICES.17` slice 7 — CALL-SITE GUARD chains the indirect pass
+    /// synthesized, in creation order.
+    ///
+    /// ⛔⛔ **Expected EMPTY on every shipped grammar, and reported precisely so that expectation is
+    /// checkable rather than assumed.** The shipped admission is "starvation-safe", i.e. *no
+    /// surviving starvation site*, and a guard chain is emitted only FOR such a site — so a
+    /// non-empty vector here means the admission criterion changed, which is a parser-behaviour
+    /// change owed a two-sided repro ratchet. Reading it costs one line; assuming it costs a silent
+    /// regression.
+    pub indirect_guard_chains: Vec<indirect_lr_elimination::SynthesizedGuard>,
 }
 
 #[derive(Debug, Clone)]
@@ -3067,6 +3077,7 @@ impl RustASTPipeline {
             indirect_eliminated_base_rules: indirect.eliminated_base_rules,
             indirect_clone_rules: indirect.synthesized_clone_rules,
             indirect_refusals: indirect.refusals,
+            indirect_guard_chains: indirect.synthesized_guards,
         }
     }
 

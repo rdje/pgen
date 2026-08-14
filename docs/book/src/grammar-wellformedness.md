@@ -2192,6 +2192,21 @@ expression — which is why the guard lands on the sheared clone the eliminator 
 the report prices the clone chain (`max_hops`) and how many distinct byte tests it needs
 (`variants`).
 
+⛔ **Both of those numbers are LOWER BOUNDS, and the report prints what they under-count beside
+them.**
+
+- **`variants` under-counts the CHAINS.** It counts distinct residual *byte sets*, which is what the
+  byte-test form above would have compared — and that form is measured dead. The emitted guard is a
+  structural sub-parse, so two residuals sharing a FIRST set are two different rules: `casting_type`
+  reports `variants=1` and the planner emits **two** chains, one for `cast`'s `'( expression )` and
+  one for `constant_cast`'s `'( constant_expression )`. Read the `🛡` lines for the real count.
+- **`max_hops` under-counts the CLONES.** It is the *shortest* transparency distance, while each
+  site's `chain=` lists every rule on any transparent path — and they differ wherever transparency
+  branches. SystemVerilog's dialect twins branch: `primary` reaches `cast` through both
+  `primary_sv_2017` and `primary_sv_2023`, so the guard clones five rules where `hops=3` reads as
+  four, and leaving either twin unguarded would leave a live unguarded route to the same starvation.
+  Measured: 6 of 129 sites here, 5 of 77 in the LRM wrapper.
+
 **How to read each site's verdict:**
 
 | verdict | meaning |
@@ -2324,6 +2339,23 @@ path rather than fought.
 This shape accepts all six starvation inputs **and** `k = n;` — the input the rule-guarded version
 rejects. One grammar, both properties.
 
+⭐ **PGEN synthesizes this shape.** The planner reconstructs the transparent chain, clones each hop
+with its non-chain alternatives copied verbatim, and repoints the holder's left corner — you can see
+exactly what it would emit in the dry run below. One detail differs from the hand-written form above,
+and it is not cosmetic: the loop guard is hoisted into a named rule rather than written inline.
+
+```text
+X_lr_guard0        := X_lr_base ( X_lr_guard0_suffix )* &( residual )
+X_lr_guard0_suffix := X_lr_suffix &( residual )
+```
+
+Written inline as `( X_lr_suffix &( residual ) )*`, the quantifier would iterate a *sequence* rather
+than the suffix rule, and the left-recursion chain fold reads that quantifier's result as its list of
+suffix records. Naming the group keeps the guarded rule's body **positionally identical** to the
+unguarded one — same first element, same quantified rule reference, one appended lookahead — so the
+AST it returns is the same by construction rather than by an argument about what a group's content
+becomes. That is what lets a holder reach either rule and get the same value.
+
 ### Which candidates actually need the trailing guard — the `seed:` line
 
 The two positions cost differently, so the report prices them separately. Beside every candidate's
@@ -2390,12 +2422,19 @@ into the real elimination driver **on a clone of your grammar**, and reporting w
 ```text
 --- GUARD DRY-RUN: which guard-feasible candidates actually reach a PLAN ---
     inputs: annotations=present rules_with_branch_return_annotations=1069
-    would_absorb=2 would_refuse=0 clone_rules=24 left_recursive_rule_rows 28 -> 0
+    would_absorb=2 would_refuse=0 clone_rules=24 guard_chains=3 guard_rules=6
+        left_recursive_rule_rows 28 -> 0
     ✅ would absorb 'casting_type'
     ✅ would absorb 'property_expr'
+    🛡  guard 'casting_type_lr_guard0' [loop]  chain: casting_type  residual 'tick lparen constant_expression rparen'
+        sites: constant_cast alt#0   rules: casting_type_lr_guard0_suffix, casting_type_lr_guard0
+    🛡  guard 'casting_type_lr_guard1' [loop]  chain: casting_type  residual 'tick lparen expression rparen'
+        sites: cast alt#0   rules: casting_type_lr_guard1_suffix, casting_type_lr_guard1
+    🛡  guard 'property_expr_lr_guard0' [loop+trailing]  chain: property_expr  residual 'implies property_expr'
+        sites: prop_primary_sv_2017 alt#13, prop_primary_sv_2023 alt#13   rules: property_expr_lr_guard0_suffix, property_expr_lr_guard0
 ```
 
-Two things are worth reading carefully here.
+Three things are worth reading carefully here.
 
 **The row count is measured on the rewritten clone**, by the same detector the lint runs — not
 inferred as *before minus absorbed*. That is why two rewrites can clear twenty-eight rows: both land
@@ -2412,9 +2451,21 @@ grammar (1069 annotated rules) absorbs both knots, while its LRM-generated wrapp
 thirteen candidates, every one of them for a missing return annotation. Those two grammars are
 comparable in structure and **not** comparable in annotation.
 
-⛔ **The dry run emits no guard.** It answers *"would a plan be buildable here?"*, so the grammar it
-constructs is the unguarded one — which, on SystemVerilog, is a known regression. Nothing in its
-output is a claim about what the rewritten grammar parses.
+**The `🛡` lines are the guard the planner synthesized**, and they are read back off the grammar it
+wrote rather than off the plan that intended it. Each names the guarded stand-in rule, which of the
+two positions it actually carries, the transparent `chain:` of rules cloned, the residual both
+lookaheads test, and the holder call sites whose left corner was repointed. On SystemVerilog that is
+three chains and six rules — and `property_expr` gets both positions while `casting_type` gets only
+the loop, which is precisely what their `seed:` lines say.
+
+⛔ **The dry run still parses nothing.** It answers *"would a plan be buildable here, and what shape
+would it emit?"*. No parser is generated and no input is run, so nothing in its output is a claim
+about what the rewritten grammar accepts or rejects.
+
+⛔ **And it never touches the parser you ship.** The guard planner runs on every plan, but a guard is
+only ever emitted for a *surviving starvation site*, and the shipped criterion admits only candidates
+that have none. The check on that is `indirect_guard_chains=` on the third header line of the ordinary
+report — **0 on every shipped grammar**.
 
 ⭐ **One criterion had to be deleted along the way: `seeds=0` is not a disqualification.** The
 direct/wrapper elimination *drops* a left-recursive alternative, so a rule whose every alternative is
