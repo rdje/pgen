@@ -38,14 +38,15 @@
 #   C3  slice 1's Q2, as a rule                   on "abc"  must ACCEPT — reproduced, and shown non-discriminating
 #
 # ⭐ GROUND TRUTH (`feedback_instrument_needs_ground_truth`). Every case DECLARES its verdict below
-# and the script compares against it, so the bank is self-checking in BOTH directions: of the 44
-# rows, **28 must ACCEPT and 16 must REJECT**, and any disagreement is a non-zero exit naming the
-# case. ⛔ Do NOT adjust an expectation to match a new measurement — `.17`'s design rests on these
-# exact rows, and a bank that edits its own expectations is a bank that cannot notice it broke.
-# ⛔ This line read "19 … and 18" until `.17` slice 6, and BOTH numbers were wrong for the 37-row
-# bank it described (it was 21/16). Nothing depended on them — the script compares row by row and
-# never reads a total — but a prose count nothing derives is a claim that rots silently, which is
-# why these are now stated as what a count of the CASES table returns.
+# and the script compares against it, so the bank is self-checking in BOTH directions — both an
+# ACCEPT and a REJECT population — and any disagreement is a non-zero exit naming the case. ⛔ Do NOT
+# adjust an expectation to match a new measurement: `.17`'s design rests on these exact rows, and a
+# bank that edits its own expectations is a bank that cannot notice it broke.
+# ⛔ THE SPLIT IS PRINTED, NOT WRITTEN HERE (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3). This comment
+# used to state it — "19 cases must ACCEPT and 18 must REJECT" — and BOTH numbers were wrong for the
+# 37-row bank they described (it was 21/16). Nothing read them, which is exactly why they rotted. The
+# run now derives and prints the split, so the only place it appears is the place it is measured, and
+# a row declaring neither verdict fails the bank instead of being counted as nothing.
 #
 # ⛔ G4 and G5 are run on `e1` and `e7` ONLY, and that is deliberate. Their second alternative
 # (`kw_k eq prim semi`) absorbs `e2`–`e6` on its own, so those rows would pass under BOTH hypotheses
@@ -236,7 +237,28 @@ for spec in "${CASES[@]}"; do
 done
 
 echo
+# ⛔ DERIVED, never stored: the total and the ACCEPT/REJECT split are counted from the CASES table at
+# run time. A prose count of a table is a claim with no gate behind it (`.17` slice 6).
+# ⭐ The two guards below are PLANT-PROVEN, not asserted: a row with verdict `MAYBE` exits rc 1 with
+# `45 rows — 28 must ACCEPT, 16 must REJECT` and the malformed-table message.
 total=${#CASES[@]}
+want_accept=0
+want_reject=0
+for spec in "${CASES[@]}"; do
+  read -r _g _i w _rest <<<"$spec"
+  [[ "$w" == ACCEPT ]] && want_accept=$((want_accept + 1))
+  [[ "$w" == REJECT ]] && want_reject=$((want_reject + 1))
+done
+printf 'ground truth, both directions: %d rows — %d must ACCEPT, %d must REJECT\n' \
+  "$total" "$want_accept" "$want_reject"
+if [[ $((want_accept + want_reject)) -ne $total ]]; then
+  echo "⛔ a CASES row declares neither ACCEPT nor REJECT — the table is malformed" >&2
+  fail=1
+fi
+if [[ $want_accept -eq 0 || $want_reject -eq 0 ]]; then
+  echo "⛔ the bank has lost one of its two directions — a one-sided bank proves nothing" >&2
+  fail=1
+fi
 if [[ $fail -eq 0 ]]; then
   echo "GUARD-EFFECTIVENESS: $total/$total as declared — the byte guard slips on trivia (E3), the two"
   echo "  guard POSITIONS close disjoint starvations (G2 vs G6), only BOTH close all six (G3), the"

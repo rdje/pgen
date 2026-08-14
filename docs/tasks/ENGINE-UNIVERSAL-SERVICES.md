@@ -3129,12 +3129,25 @@ inferred.** The driver's first pick is `casting_type` (slice 3), whose own clone
        — residual 'tick lparen constant_expression rparen' a greedy suffix could steal
 ```
 
-After the rewrite `casting_type := casting_type_lr_base ( casting_type_lr_suffix )*`, and
-`casting_type_lr_base` carries the sheared `constant_cast` clone —
+⛔⛔ **CORRECTED BY SLICE 5 — THIS PARAGRAPH NAMES THE WRONG BASE RULE, AND IT SPECIFIES.** The
+shape below is real and is exactly what the `guard_effectiveness` bank models, but it belongs to
+**`constant_primary`**, not to `casting_type`. `casting_type`'s ten routes CLOSE at `cast` /
+`constant_cast`, each of which has exactly ONE alternative — the cycle-closing one — so the shear
+leaves no clone and `casting_type_lr_base` carries **no seed at all** (`seed_routes=0/10`, and the
+real eliminator emits no `casting_type_lr_seed_cast`). Read `constant_primary` (`10/10`) wherever
+this paragraph says `casting_type`; `casting_type_acyclic` below is `constant_primary`'s closing
+clone of `casting_type`, which is why the name looked right. ⛔ Marked rather than rewritten because
+the surrounding RESULT-2 argument — that a SECOND starvation exists at the CHOICE and no guard on the
+`*` can reach it — is CORRECT and is what decision (c) rests on. Slice 5's RESULT 1 is authoritative
+for which rule carries it.
+
+After the rewrite `constant_primary := constant_primary_lr_base ( constant_primary_lr_suffix )*`, and
+`constant_primary_lr_base` carries the sheared `constant_cast` clone —
 `casting_type_acyclic tick lparen constant_expression rparen`, which is `cast_seed` in this bank,
-byte for byte in shape. On `int'(1)` it matches the whole cast, `casting_type` keeps it as the
+byte for byte in shape. On `int'(1)` it matches the whole cast, `constant_primary` keeps it as the
 longest alternative, and the holder `cast := casting_type tick lparen expression rparen` has no
-`tick` left.
+`tick` left (reached through `casting_type`, which is transparent to `constant_primary` — hence
+`max_hops=1` there and `0` at `casting_type`).
 
 ⛔ **"It parses today" is MEASURED, not assumed** — this leaf's own slice-4 lesson applied to its own
 headline. On the shipped parser at HEAD:
@@ -3782,6 +3795,90 @@ number or pointer that nothing derives, left behind when the artifact around it 
   [[a-report-scraper-must-anchor-on-structure-not-on-a-substring]] (the prose-count half). Its
   `answers:` keys would overlap both, and retrieval degrades when two cards answer one question.
   Recorded in full in the slice-6 record above and in `DEVELOPMENT_NOTES.md` instead.
+
+##### ⛔ `.17` SLICE 6b (`PGEN-ENGINE-UNIVERSAL-SERVICES-0027`, 2026-08-14 session #229) — asked whether slices 5/6 were signoff-grade, the audit found ONE of the three corrections had not been swept, and it was the one that SPECIFIES
+
+> **DOCS + two probe-bank shell edits. ZERO grammar bytes, ZERO Rust bytes, ZERO codegen bytes,
+> ZERO generated artifacts.** Prompted by a director check — *"hope you took signoff-grade decisions
+> on those three findings"* — answered by re-auditing rather than by asserting.
+
+**GAP A (the dangerous one) — slice 4's RESULT 2 still named the wrong base rule, in a SPECIFYING
+paragraph.** Slice 5 measured that `casting_type_lr_base` carries no seed (`seed_routes=0/10`;
+`cast`/`constant_cast` each have one alternative, so the shear leaves no clone) and recorded the
+correction in its OWN section — but slice 4's paragraph still read *"After the rewrite
+`casting_type := casting_type_lr_base (…)*`, and `casting_type_lr_base` carries the sheared
+`constant_cast` clone"*. ⛔⛔ **That is `.17` slice 4b's defect reproduced by the slice that inherited
+its lesson**: the next reader is slice 7, building the guard chain, and the most likely thing they
+read is the design paragraph — not the census section three screens later. Now corrected in place
+(`constant_primary`), with the RESULT-2 argument itself deliberately RETAINED because it is correct
+and decision (c) rests on it.
+
+⭐ **Why slice 5's own sweep missed it.** The sweep was `grep -rn "157"` — the number it had just
+disproved. The wrong RULE NAME contains no number, so a numeric sweep could not see it. ⇒ **a
+correction has TWO blast radii — the value you changed and the CLAIM it was part of** — and only the
+first is greppable. The second needs re-reading the paragraph the value lived in.
+
+**GAP B — the banks' headline totals were STORED, and one of them rotted three times in one
+session.** `guard_feasibility`'s summary line carried a hand-typed `9/9`, which I edited to `10/10`
+and then `18/18` while adding cases; `guard_effectiveness`'s header prose carried a split that was
+wrong for its own bank twice over. Both are `docs/DERIVED_STATE_CONTAINMENT.md` R1/R3 violations — a
+number a command answers exactly, written where it can drift. Fixed by DERIVING:
+`guard_feasibility` counts cases inside `check()` itself (`$checks/$checks`), and
+`guard_effectiveness` computes and PRINTS the split from the `CASES` table
+(`ground truth, both directions: 44 rows — 28 must ACCEPT, 16 must REJECT`) plus two new guards — a
+row declaring neither verdict, and the loss of either direction, both fail the bank.
+
+**FINDING 3 was already signoff-grade** (the `.19` pointer and the stale ladder table were corrected
+in place in slice 6), and **FINDING 2's own fix was too** (six specifying surfaces corrected, the
+narrating ones marked, history untouched) — but its *promotion* was a knowledge card and nothing
+more. A card is retrievable; it is not unavoidable. ⇒ **routed to `CI-PARITY-GATE-ROT.29` NEW** with
+measured routing evidence: two instances one week apart in the same bank family, both found by
+accident, both failing in the flattering direction, and the existing 18-doctrine roster blind to
+each (`GATE-REACHABILITY` asks if a check is invoked, `.27` if it is falsifiable, `KNOWLEDGE-MAP`
+re-derives from record files — none asks whether a bank's arithmetic describes the bank).
+
+###### Acceptance Checklist (enforced) — `.17` slice 6b
+
+- [x] **REPRODUCE / ISSUE** — `sed -n '3121,3140p' docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` at
+  `d4e6cca9` returns the uncorrected slice-4 paragraph naming `casting_type_lr_base` as the carrier
+  of the `constant_cast` clone, three screens above slice 5's measurement refuting it. And
+  `grep -n "as declared" docs/tasks/artifacts/engine_universal_services/*/probe.sh` returns one
+  hand-typed total (`18/18`) beside one derived one (`$total/$total`) — the asymmetry is the defect.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` slice 4
+  RESULT 2 (two paragraphs), `guard_feasibility/probe.sh` summary line,
+  `guard_effectiveness/probe.sh` header + summary. WHY (A): slice 5's citation sweep was keyed on the
+  numeric value it corrected, and the co-located claim it belonged to carries no number — a numeric
+  grep cannot find a wrong identifier. WHY (B): a total stated in prose has no deriving command
+  behind it, so nothing fails when the table it describes grows; measured three drifts of the same
+  number inside one session.
+- [x] **FIX** — fix-hierarchy tier = **documentation correctness + instrument hardening**. (A) the
+  specifying paragraphs corrected in place, the correct argument retained and marked. (B) both totals
+  derived at run time, plus two NEW refusals in `guard_effectiveness` (malformed row, lost
+  direction). (C) the mechanizable class ROUTED to `CI-PARITY-GATE-ROT.29` rather than left as a
+  knowledge card.
+- [x] **ADDRESSED (verified)** — `guard_feasibility/probe.sh` → `GUARD-FEASIBILITY-CENSUS: 18/18 as
+  declared`, rc 0, the headline now DERIVED and agreeing with the value it replaced (which is what
+  makes the derivation trustworthy rather than merely new). `guard_effectiveness/probe.sh
+  --interp-only` → `ground truth, both directions: 44 rows — 28 must ACCEPT, 16 must REJECT`,
+  `44/44`, rc 0.
+  ⭐ **The new refusal is PLANT-PROVEN, not asserted** ([[a-check-whose-inputs-all-pass-has-not-been-tested]]):
+  a planted `zz_planted_malformed abc MAYBE` row exits **rc 1** printing `45 rows — 28 must ACCEPT,
+  16 must REJECT` and `⛔ a CASES row declares neither ACCEPT nor REJECT`. ⛔ The restore of that
+  plant is itself recorded as a MISTAKE worth carrying: `git checkout --` was used on a file that had
+  UNCOMMITTED edits, so it reverted to `d4e6cca9` and silently discarded them. Caught by comparing
+  the post-restore hash against the pre-plant hash — which is exactly why that comparison is in the
+  procedure — and the edits were re-applied and re-verified. **Snapshot the CONTENT, not the commit,
+  before planting into a dirty file.**
+- [x] **NO REGRESSION** — no row, grammar, oracle or expectation changed; `guard_effectiveness`'s
+  edits are a header comment and post-loop arithmetic, so the 44/44 GEN result measured at
+  `d4e6cca9` still stands for every row and is not re-claimed here. ⛔ The GEN arm was deliberately
+  NOT re-run (~14 min + a scratch-slot obligation) because nothing this slice touches can reach a
+  parse; stated rather than silent. No `rust/src/` or `grammars/` byte moved.
+- [x] **LOCKSTEP** — this leaf (slice 4 RESULT 2 corrected in place), both probe banks,
+  `docs/tasks/CI-PARITY-GATE-ROT.md` (`.29` NEW), `CHANGES.md`, `docs/TASK_TREE.md`.
+  `MEMORY.md` unchanged — the frontier did not move. `DEVELOPMENT_NOTES.md` unchanged: the durable
+  lesson here is *"a correction has two blast radii"*, recorded in this box, and
+  `promotion: declined (it is the same discipline as CI-PARITY-GATE-ROT.29's acceptance (c), which now owns turning it into a gate)`.
 
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 

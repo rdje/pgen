@@ -3760,6 +3760,50 @@ to look for, which is the whole complaint. Do not let the cheap tiers close the 
 work. ⭐ But note the standing bar it touches: the `ADDRESSED (verified)` box is the one every SV
 slice leans on, so this is the gate whose blind spot is most widely exercised.
 
+### `.29` NEW `todo` — a probe bank's PROSE numbers and its report SCRAPERS both rot silently, and nothing measures either (opened 2026-08-14 session #229 by `ENGINE-UNIVERSAL-SERVICES.17` slices 5 + 6; ⛔ PARKED behind the SV lane lock)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **Two instances, one week apart, in the same bank family, each found by accident.**
+  - `.17` slice 5: `guard_feasibility` C7 pinned *"157 of 157 sites over-approximated"*. The
+    extraction was `grep -c 'first='`, which counts LINES containing that substring — and the
+    per-candidate summary line `guard: … suffix_first=…` carries it too. The real site count is
+    **129**; `157` was 129 sites + 28 candidate rows. It surfaced only because slice 5 added a
+    `seed_first=` line and the count jumped to 185.
+  - `.17` slice 6: `guard_effectiveness`'s header prose claimed *"19 cases must ACCEPT and 18 must
+    REJECT"* for a bank that was **21/16**, and its README claimed **8/13** for an even earlier
+    shape. Its README also pointed at *"leaf `.19`"*, which does not exist — slice 4's decision (d)
+    explicitly refused to open it.
+- **Both classes fail in the FLATTERING direction, which is why no one noticed.** An inflated
+  denominator makes an `N of N` ratio read as broader coverage; a stale prose count reads as a
+  bank that is bigger and better-balanced than it is. Neither breaks a row, so a green run is
+  indistinguishable from a correct one.
+- **It reproduces outside `ENGINE-UNIVERSAL-SERVICES` by construction**, because the cause is
+  structural, not family-specific: (a) any bank that scrapes a human-readable report by SUBSTRING is
+  coupled to every line that report will ever grow, and (b) any bank that states a total in prose
+  states something no code derives. The repository has **five** tracked banks under
+  `docs/tasks/artifacts/engine_universal_services/` alone and many more elsewhere; the two audited
+  here were the two that happened to be extended.
+- ⛔ **The existing roster is blind to both.** `GATE-REACHABILITY` asks whether a check is INVOKED,
+  `.27` asks whether it is FALSIFIABLE, `KNOWLEDGE-MAP` re-derives from record files, and
+  `LIVE-DOC-CURRENCY` watches declared `Last updated:` stamps. None asks whether a bank's own
+  arithmetic describes the bank, or whether its extractor anchors on the row it means.
+
+**Acceptance:** (a) a check that a tracked probe bank states no total its own run does not DERIVE —
+the two banks fixed by hand in `.17` slice 6 are the calibration pair, and it must be RED against the
+tree at `d4e6cca9` and GREEN after; (b) a check, or a documented refusal with a reason, that a bank's
+report extraction anchors on a structural feature of the row (a bracket group, a marker in its only
+legal position) rather than on a bare substring — ⛔ this half may not be mechanizable cheaply, and
+saying so with evidence is an acceptable outcome; (c) a sweep for DANGLING task-leaf pointers
+(`.19`'s class) across `docs/tasks/**`, which is the same shape as `.28`'s stale-id sweep and should
+share its implementation.
+
+⭐ **The durable half is already promoted** —
+[[a-report-scraper-must-anchor-on-structure-not-on-a-substring]] carries the discipline and its
+`reverify:` command. This leaf owns turning it into a GATE, because a card is retrievable and a gate
+is unavoidable.
+
 ### `.28` NEW `todo` — superseding a decision record leaves its old id cited as LIVE, and no doctrine measures that (opened 2026-08-14 session #228 by `ENGINE-UNIVERSAL-SERVICES.17` slice 4b)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it

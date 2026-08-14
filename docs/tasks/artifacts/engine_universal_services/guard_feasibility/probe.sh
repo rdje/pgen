@@ -66,10 +66,16 @@ WRAPPER_REPORT="$("$PIPELINE" grammars/systemverilog_lrm_profiled_wrapper.ebnf \
   --report-indirect-lr-plan 2>/dev/null)"
 
 fail=0
+# ⛔ DERIVED, NEVER STORED (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3). The summary line used to
+# carry a HAND-TYPED total, and it was edited three times in one session (9 → 10 → 18) — a number a
+# command answers exactly, stored where it can rot. `checks` is now incremented by `check` itself,
+# so the headline cannot disagree with the number of cases that actually ran.
+checks=0
 
 # check <case-label> <what> <got> <want>
 check() {
   local label="$1" what="$2" got="$3" want="$4"
+  checks=$((checks + 1))
   if [ "$got" = "$want" ]; then
     printf '  %-4s %-52s => %-34s ✅\n' "$label" "$what" "$got"
   else
@@ -234,7 +240,7 @@ check C10 "ebnf: the knot the pass already absorbs owes no trailing guard" \
 
 echo
 if [ "$fail" -eq 0 ]; then
-  echo "GUARD-FEASIBILITY-CENSUS: 18/18 as declared — option (iii)'s price on the shipped grammars is unchanged."
+  echo "GUARD-FEASIBILITY-CENSUS: $checks/$checks as declared — option (iii)'s price on the shipped grammars is unchanged."
 else
   echo "GUARD-FEASIBILITY-CENSUS: MISMATCH — option (iii)'s price has moved." >&2
   echo "  Do NOT edit the expectation to match; re-adjudicate in ENGINE-UNIVERSAL-SERVICES.17." >&2
