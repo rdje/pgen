@@ -3964,6 +3964,21 @@ warned that a byte moving here would be a far larger finding and *"a live hypoth
 elsewhere** — the two leaves were told to read each other, so this is that answer, delivered rather
 than left for `.19` to re-derive.
 
+⭐⭐ **PRECISION ADDED 2026-08-14, same day, after re-reading `.19` — the conclusion stands, the
+REASON above was not the one that does the work, and saying which leg carries a refutation is the
+difference between a result and an assertion.** `.19`'s two artifacts (`dae09343…` 131 542 908 B and
+`4330ff8e…` 131 642 655 B) were **BOTH generated with `--debug --trace`** — the flags are constant
+across its comparison. So flag *presence* was never a candidate explanation for its gap; the only way
+these flags could have produced it is by making codegen **NON-DETERMINISTIC**. ⇒ the leg that
+actually refutes it is not the with/without comparison but the **determinism control**: a
+regeneration with the flags still on reproduced the baseline byte-for-byte across all 33 artifacts.
+⛔ Two bounds stated rather than left implicit: (i) this was measured on the SHIPPED admission, not
+under `--indirect-lr-admit-starvation-safe-only`, and it generalises only because flag-handling is a
+property of the logging path (`resolve_trace_verbosity`) and not of the admission policy; (ii) **both
+of `.19`'s own named hypotheses are UNTOUCHED** — (a) the slice-9 diff perturbing SV codegen under
+the narrow admission, and (b) `generated/systemverilog.json` having silently moved. `.19` is narrowed
+by exactly one candidate, and that candidate was mine, not one it had listed.
+
 The structural half of *why* it cannot move a byte, since a null result deserves a mechanism:
 
 ```text
@@ -4055,6 +4070,13 @@ source:** it scans tracked `Makefile`s — the shipping recipe's only home — a
    precisely why it had to be quietened — the sharing is the blast radius, not a firewall. The
    comment is corrected in place **with its old reasoning quoted**, not deleted, because a wrong
    rejection that sat unread is the more useful artifact.
+   ⚠️ **The charitable half, added on re-audit rather than left out.** That note had a *second*
+   clause — *"changing what evidence it leaves is a different change with a different owner"* — and
+   that concern was legitimate: this change does reduce what a CI failure leaves behind. It is
+   answered rather than dismissed. The director ruled on it directly; the capability is one env var
+   away (`PGEN_TRACE_VERBOSITY=debug`); the parity gate's 4 MiB tail bound stays; and the evidence
+   being "reduced" was, at 6.89 GB, already being truncated by the log surface it was streamed into,
+   which is the opposite of preserved. Only the SHARED-recipe half of the rejection was backwards.
 
 #### Acceptance Checklist (enforced)
 
@@ -4080,6 +4102,15 @@ source:** it scans tracked `Makefile`s — the shipping recipe's only home — a
   `grep -rn 'config\.debug\|config\.trace[^_]' rust/src/` returns **two writes and zero reads**
   (`rust/src/main.rs:1097-1098`), so their only live effect is
   `resolve_trace_verbosity()` → the `pgen_trace!` gate at `rust/src/main.rs:936-938`.
+  ⭐ **HARDENED same day**: that grep is BINDING-scoped and would miss a read through any other
+  binding, which is a weaker instrument than the claim needs. Re-done at the FIELD level —
+  `grep -rnE '\.(debug|trace)\b' rust/src/` plus `grep -rn -B12 'pub debug: bool' rust/src/` —
+  **`PipelineConfig` is the only struct in the crate with a `pub debug: bool`**; its field is written
+  at three sites (`main.rs:1097-1098`, the `Default` impl `mod.rs:2634-2635`, `bin/pgen_ast.rs:109-110`)
+  and read at **none**. The `self.debug` reads that the loose search surfaces belong to
+  `ReturnAnnotationHandler` (`return_annotation_handler.rs:52`) and to `ast_generator_direct.rs`,
+  different structs with their own private fields. The conclusion did not change; the evidence now
+  matches its strength.
 - [x] **FIX** — declarative tier (build recipe + one structural enforcer; **zero** grammar bytes,
   one comment-only `rust/src/` edit, no `generated/*` in the change set). The flags are removed from
   all three sites; the opt-in is the engine's existing `PGEN_TRACE_VERBOSITY`, not a new variable
