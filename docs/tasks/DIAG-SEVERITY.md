@@ -156,6 +156,63 @@ migrates the (B) sites + closes the (A)-risk by construction.
 
 ---
 
+- ID: `DIAG-SEVERITY.6`
+  Status: `todo` NEW — ⛔⛔ **THE FOUNDING AUDIT (`.1`) MISSED 273 SITES, AND THE ENFORCEMENT GATE (`.4`) CANNOT SEE THEM**, because a `macro_rules!` SHADOW re-routes them where no call site shows it (opened 2026-08-14 session #231 by `ENGINE-UNIVERSAL-SERVICES.17` slice 8; ⛔ PARKED behind the SV lane lock)
+
+  **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether
+  it reproduces outside the family it is being sent to):
+
+  - **The mechanism, source-cited.** `rust/src/ast_pipeline/mod.rs:513` declares
+    ```rust
+    macro_rules! eprintln { ($($arg:tt)*) => { crate::pgen_trace_debug!($($arg)*) }; }
+    ```
+    and every `pub mod` declared after it (`:6263-6293`, including `indirect_lr_elimination`,
+    `ast_based_generator`, `stimuli_generator`, …) inherits the shadow. ⇒ **a bare `eprintln!`
+    anywhere under `ast_pipeline` is a Debug-level TRACE call**, printing nothing unless
+    `PGEN_TRACE_VERBOSITY=debug` is set. That is this tree's binding principle — *severity is never
+    gated by verbosity* — violated by a macro, at scale.
+  - **The population, measured rather than estimated** (`grep -rn "eprintln!" rust/src/ast_pipeline/`):
+    **273** call sites, of which **25** carry a `⚠️` / `⛔` / `WARNING` / `REFUS` marker within two
+    lines, i.e. are warning-or-worse by their own text. **9** already use `std::eprintln!` — so the
+    workaround exists, is in use, and is applied by accident rather than by rule.
+  - ⛔⛔ **`.1` IS EXACTLY THE AUDIT THAT SHOULD HAVE FOUND THIS.** Its goal names the population
+    verbatim: *"every site … where a Warning/Error/Fatal-severity message is emitted through a
+    verbosity-gated path (the trace_log/trace mechanism **+ any verbosity-wrapped eprintln**)"*. It
+    found none of these, and the reason is the finding: **the call site is literally `eprintln!`.**
+    An audit that greps for the gated mechanism cannot see a site that names the ungated one.
+  - ⛔ **`.4`'s gate is blind for the same reason and passes today.** It checks that the severity
+    mechanism EXISTS and that no unambiguous `fatal`/`panic` is routed through the trace. Neither
+    question reaches a macro that silently converts an entire module tree's stderr into trace.
+  - **Reproduced live, at full cost, in the slice that found it.** `.17` slice 8 added an opt-in flag
+    that changes what the eliminator admits and therefore what a generated parser contains, and gave
+    it a `⚠️` banner saying so. The first default-verbosity run printed **nothing at all** — no
+    banner, no `✅ Absorbing` line — while absorbing candidates the shipped criterion refuses. Fixed
+    there with `std::eprintln!`; the remaining 24 warning-class sites are unaudited.
+  - **It does not reproduce outside `ast_pipeline`** — the shadow is scoped to that module tree, and
+    `grep -rn "macro_rules! eprintln" rust/src/` returns exactly one hit. That bound is what makes
+    this leaf finite, and it is stated because a reader would reasonably fear it was repo-wide.
+
+  **Acceptance:** (a) each of the 273 sites classified with `.1`'s own three buckets — (A)
+  value-lost, (B) visibility-masked, (C) genuinely informational — with the 25 self-marked
+  warning-class sites adjudicated first; (b) every site classified (A)/(B) moved to `pgen_warn!` /
+  `pgen_error!` / `std::eprintln!`, ⛔ **and the (C) population left alone with the reason recorded**
+  — per-item narration on a grammar with thousands of rules is legitimately trace-gated, and "make it
+  all loud" would be a regression in the other direction; (c) `.4`'s gate extended to see the class:
+  a check that no `macro_rules!` in the tree redefines a std output macro to a verbosity-gated path
+  without an explicit registered waiver — RED-provable against HEAD, since the one at `mod.rs:513`
+  is exactly such a redefinition; (d) the shadow itself adjudicated — keeping it and requiring
+  `std::eprintln!` for severity is a legitimate outcome, but it must be a DECISION with a record,
+  not the status quo, because today the safe spelling is discoverable only by being burned.
+
+  ⛔ **Sequencing.** PARKED behind the SV lane lock. It blocks no SV release work — `.17` slice 8's
+  own banner is fixed and pinned in both directions by `guard_parses/probe.sh` — but it is a live
+  observability defect on 24 further self-declared warnings, and every one of them fails SILENTLY and
+  in the flattering direction: the operator sees a clean run.
+
+  ⭐ Durable half already promoted: [[a-warning-that-is-trace-gated-is-not-a-warning]] carries the
+  mechanism, the `std::eprintln!` fix and the narration-vs-policy line. This leaf owns turning it into
+  a swept population and a gate, because a card is retrievable and a gate is unavoidable.
+
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
@@ -165,7 +222,8 @@ migrates the (B) sites + closes the (A)-risk by construction.
 | — | `DIAG-SEVERITY.3` | `done` (`-0003`) | Error-by-reason: depth_exceeded bucket + summary + once-per-run pgen_warn!; taxonomy documented; revealed max_rule_visits as a 2nd masked budget failure. 570/570. |
 | — | `DIAG-SEVERITY.3.1` | `done` (`-0004`) | Canonical GenerationErrorReason enum (single source of truth) + un-masked max_rule_visits; 571/571. |
 | — | `DIAG-SEVERITY.4` | `done` (`-0005`) | Enforcement gate (check_diagnostics_and_docpaths.sh, wired into pre-commit + CI): severity-mechanism-present + no fatal/panic masked through trace + live-docs path guard. |
-| — | `DIAG-SEVERITY.5` | `done` (`-0006`) | Book lockstep (Diagnostics: severity vs verbosity + reason taxonomy in Developer Architecture). **TREE CLOSED.** |
+| — | `DIAG-SEVERITY.5` | `done` (`-0006`) | Book lockstep (Diagnostics: severity vs verbosity + reason taxonomy in Developer Architecture). ⛔ **TREE WAS CLOSED HERE, AND `.6` REOPENS IT** — closure meant "every site the audit found", and the audit could not see a macro shadow. |
+| 1 | `DIAG-SEVERITY.6` | `todo` | ⛔⛔ 273 `eprintln!` sites under `ast_pipeline` are trace-gated by a `macro_rules!` shadow (25 self-marked warning-class); `.1` missed them and `.4` cannot see them. PARKED behind the SV lane lock. |
 | 3 | `DIAG-SEVERITY.4` | `pending` | Enforcement gate (cannot regress). |
 | 4 | `DIAG-SEVERITY.5` | `pending` | Book lockstep + close. |
 

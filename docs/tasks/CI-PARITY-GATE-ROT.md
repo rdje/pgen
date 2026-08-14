@@ -3934,10 +3934,25 @@ reproduces outside the family it is being sent to):
   the tree CI has and wrong on the tree every developer has. ⛔ A gate that only runs cold cannot
   observe a defect that only appears warm.
 
-- ⛔ **It is NOT silent, and that is the one piece of good news.** The `RGX-0078.5.i.1.t2` annotation
-  backend guard refuses rather than generating a non-canonical artifact, so the outcome is a hard
-  error and not drift. ⇒ severity is *"the documented recipe is broken for every local user"*, not
-  *"artifacts silently diverge"*.
+- ⛔ **It is NOT silent, and that is the one piece of good news — now MEASURED rather than argued.**
+  The obvious fear is that an under-featured binary quietly generates a DIFFERENT artifact for some
+  grammar that happens not to need the annotation backend. Tested directly, by pointing the
+  under-featured `target/ebnf_frontend_build/debug/ast_pipeline`
+  (`AST-PIPELINE-FEATURE-SURFACE: generated_parsers=false`) at both the SIMPLEST and one of the
+  largest families:
+
+  ```text
+  json    refused (rc=1)
+  vhdl    refused (rc=1)
+  Error: REFUSED: semantic annotation '@entry: true' needs the generated annotation backend …
+  ```
+
+  ⭐⭐ **The trigger is `@entry: true`, which EVERY grammar in the repository carries** — so an
+  under-featured binary cannot generate any parser at all, and silent artifact drift is impossible
+  BY CONSTRUCTION rather than by luck. ⇒ severity is *"the documented recipe is broken for every
+  local user"*, and NOT *"artifacts silently diverge"*. ⛔ Stated with its evidence because the two
+  readings differ by an order of magnitude in urgency, and the slice that routed this leaf would
+  otherwise have handed on a fear instead of a fact.
 
 - **It reproduces outside `ENGINE-UNIVERSAL-SERVICES` by construction**, because nothing about it is
   grammar- or family-specific: any warm tree, any developer, any `make -C rust
