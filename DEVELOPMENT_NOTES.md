@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0030 — a plant that stays green is a measurement, and the two things it measured here were both mine
+
+Slice 8's job was to execute what slice 7 emits. It did, and everything parsed. The durable lessons
+are not in that result — they are in the three things that went wrong on the way to it, each of which
+survived a review of the source and died the moment something was *run*.
+
+**1. A plant that fails to falsify is a finding, not a false start.** The bank went green on its first
+honest run. Then the plant — delete the guard emission the bank exists to measure, rebuild, re-run —
+and it stayed **green, 35/35**. That is not a wasted twenty minutes; it is the only measurement in the
+slice that could have told me my rows were checking nothing. The cause was in the fixture: the
+grammar's second entry alternative could parse six of seven inputs on its own, so those rows passed
+whether the guard was emitted or not.
+
+⇒ **the discipline that failed is one this leaf had already promoted** —
+[[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]], written by `.17` slice 4
+two days earlier, whose *"do not run a case that cannot discriminate"* bullet describes this exact
+defect. Reading a card does not apply it. What applies it is a plant per property, and the addition
+made to that card is the method: **one plant for each thing the bank claims, each failing a different
+row by name.**
+
+⭐ **And the recurrence has a shape worth naming.** Nobody wrote a non-discriminating row from
+scratch. Each time the GRAMMAR was inherited from an earlier artifact (`g4` → `g7` → `s1`) while the
+ROW SET was written fresh — and the property that makes a row discriminating lives in the grammar,
+not in the row. ⇒ **when you copy a fixture, copy its row restriction and the reason for it, or
+re-derive that restriction with a plant.** Copying a fixture silently copies its blind spots.
+
+**2. `eprintln!` is not a keyword, and a warning nobody sees is not a warning.** A module three
+thousand lines away shadows `eprintln!` into a debug-level trace call, so the loud banner announcing
+that a non-shipped rewrite policy was in effect printed **nothing** at default verbosity. The line
+existed, was correct, and was in the right function; no amount of reading the diff could have shown
+it. ⇒ **execute the command and look — "I wrote the print" and "the print appears" are different
+claims** — and draw the line by purpose: per-item narration is legitimately trace-gated, a *policy*
+warning never is. Promoted as [[a-warning-that-is-trace-gated-is-not-a-warning]].
+
+**3. Prove a side effect in both directions, because the verdicts cannot.** The two interpreter
+columns of this bank read ACCEPT on every row of every arm, so nothing in the verdict table could
+distinguish a run with the new flag from a run that silently dropped it. The bank therefore asserts
+the banner is **absent** on the shipped arms and **present** on the widened ones. Whenever a switch's
+effect is invisible in the output you are comparing, the instrument has to check that the switch
+arrived.
+
+**4. A doc comment that was true when written is not a doc comment that is true.** The admission
+enum's own documentation said the mode emits no guard — falsified by the previous slice's emitter,
+one day earlier, and never swept. It would have misled exactly this slice's reader: someone deciding
+whether that mode is safe to generate a parser from. ⇒ when a slice changes what a mode *does*, the
+sweep list includes the type that names the mode, not only the call sites.
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0029 — a defect fixed inside the slice that found it leaves no reproducer, and "signoff-grade" is a property of the pointers as much as the decision
 
 Asked whether three findings had been decided at signoff grade, the honest answer needed an audit

@@ -1,0 +1,84 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 8 — S1: the grammar PGEN eliminates and guards BY ITSELF.
+#
+# ⛔⛔ WHY THIS FILE IS DIFFERENT FROM EVERY OTHER SYNTHETIC IN THIS FAMILY. `g0`–`g7` in the
+# sibling `guard_effectiveness/` bank are POST-rewrite shapes: hand-eliminated, hand-guarded, written
+# by a person to measure whether a shape works. This one is a PRE-rewrite shape — it is still left
+# recursive, it declares no helper rules and no lookaheads, and every rule below is one a grammar
+# author would write. The eliminated-and-guarded grammar is produced by PGEN's own pass.
+#
+# That distinction is the whole slice. `.17` slice 7 built the guard PLANNER and checked its output
+# in the generated AST, against the hand-written `g7`; nothing had ever generated a PARSER from
+# PGEN's own guarded emission and run an input through it. Two artifacts that agree in a tree, and a
+# claim ("the guard works") resting on the gap between them. This file closes the gap by being the
+# INPUT to the real pass.
+#
+# THE SHAPE, and it is P5 (`.13` slice 5b) plus SystemVerilog's layout tier (`.17` slice 4's `g0`):
+#
+#   prim := lit | cast_expr        ~ constant_primary — THE CONSUMER, and the base the driver picks
+#   cast_expr := ct tick …         ~ constant_cast — closes the cycle through `ct`
+#   ct := kw | prim                ~ casting_type := simple_type | constant_primary
+#                                    a BARE arm, so `ct` is TRANSPARENT to `prim`
+#   outer_cast := ct tick lparen lit rparen
+#                                  ~ cast := casting_type tick lparen expression rparen
+#                                    THE HOLDER, with a residual, reached from OUTSIDE the plan
+#   scratch alt#1 := kw_k eq prim semi
+#                                  the RESIDUAL-FREE holder — `k = n;`, the row `g4` REJECTS
+#
+# ⭐⭐ WHY THE HOLDER NAMES `ct` AND NOT `prim`, AND WHY THAT IS THE POINT. It makes the transparent
+# chain TWO rules long (`chain: ct > prim`, `max_hops=1`), so PGEN must emit the hop clone
+# `prim_lr_guard0_ct` — the rule that carries the entire call-site-scoping argument, and the one
+# `.17` acceptance (d) says no slice may ship unexercised. SystemVerilog's own dry run never reaches
+# it: all three chains it synthesizes have `chain:` of length 1. This grammar is the end-to-end
+# exercise that obligation asks for.
+#
+# WHAT PGEN EMITS FROM IT (measured, `--indirect-lr-admit-guard-feasible`; see the bank's README):
+#
+#   prim_lr_guard0_ct     := kw | prim_lr_guard0                    ← the HOP CLONE
+#   prim_lr_guard0        := prim_lr_base ( prim_lr_guard0_suffix )* &( tick lparen lit rparen )
+#   prim_lr_guard0_suffix := prim_lr_suffix &( tick lparen lit rparen )
+#   outer_cast            := prim_lr_guard0_ct tick lparen lit rparen   ← left corner repointed
+#   ct, prim              := UNTOUCHED                               ← the residual-free path
+#
+# which is `g7_guarded_clone_chain.ebnf` rule for rule, with PGEN's names.
+#
+# ⛔ THE SHIPPED ADMISSION REFUSES ALL THREE CANDIDATES HERE (`starvation-safe candidates: 0/3`), so
+# without the opt-in widener this grammar is NOT eliminated at all and the generated parser's runtime
+# cycle guard rejects the chained inputs. That refusal is the bank's ARM A, and it is what makes the
+# ACCEPTs in ARM B a flip rather than a description.
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim:
+#   cp <this file> grammars/scratch/scratch.ebnf && make -C rust SHELL=/bin/bash focus_scratch
+@entry: true
+scratch := kw_k eq outer_cast semi   -> {kind: "held", body: $3}
+         | kw_k eq prim semi         -> {kind: "bare", body: $3}
+
+# ---- the residual-BEARING holder. It OUTLIVES the rewrite, which is the ingredient P1–P4 lacked
+# and the reason `prim` is STARVED rather than starvation-safe.
+outer_cast := ct tick lparen lit rparen  -> {type: $1, body: $4}
+
+# ---- the knot. `prim -> cast_expr -> ct -> prim` is the indirect cycle; `ct`'s second arm is bare,
+# so `ct` consumes exactly what `prim` consumes and the holder's greed is inherited one hop out.
+prim := lit       -> {kind: "lit",  body: $1}
+      | cast_expr -> {kind: "cast", body: $1}
+cast_expr := ct tick lparen lit rparen   -> {type: $1, body: $4}
+ct := kw   -> {kind: "kw",   body: $1}
+    | prim -> {kind: "prim", body: $1}
+
+# ---- the token tier. Every token begins with `trivia`, exactly as `grammars/systemverilog.ebnf`
+# writes `tick := trivia "'"` (:7151), `lparen := trivia "("` (:7105), `rparen := trivia ")"` (:7130).
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+# ---- the layout tier, copied in shape from `grammars/systemverilog.ebnf:618-624`. NULLABLE, and it
+# leads every token — which is why `/` is in the FIRST set of every token and why the guard PGEN
+# emits has to be the structural sub-parse rather than the byte set (`.17` slice 4, row `g1 e3`).
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

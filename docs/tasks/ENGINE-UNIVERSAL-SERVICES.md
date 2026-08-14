@@ -2268,6 +2268,14 @@ slice that flips either one must either exercise a multi-hop chain end-to-end, o
 that its own picks are still all `max_hops=0` — silence is not an option, because the report already
 tells you (`chain=` per site) and nothing else will.
 
+⭐⭐ **DISCHARGED FOR SLICE 8, STILL OWED BY SLICE 9 (2026-08-14).** Slice 8's source grammar names
+the holder at `ct` rather than at `prim`, so its chain is `ct > prim` (`max_hops=1`) and PGEN must
+emit the hop clone. `guard_parses/probe.sh` row `B hop_clone` asserts `prim_lr_guard0_ct` is a
+function **in the compiled parser**, and row `B e7` (`k = n;` ACCEPT) is the input that proves it is
+isolating the two call sites rather than merely existing. ⇒ the rule is no longer covered by unit
+tests on synthetics ALONE — it is exercised end to end. ⛔ What that does NOT do is exercise it on
+SystemVerilog, which is why this obligation stays live for the admission/ordering flip.
+
 ⭐ **A DESIGN NOTE THIS LEAF INHERITS, so `.17` does not restart from zero.** The construct is
 genuinely ambiguous under a greedy non-backtracking `*`, and that is provable from the LRM rather
 than from the engine: `casting_type ::= … | constant_primary` means `int'(2)` is a legal *type* for
@@ -4326,6 +4334,372 @@ was visible from the decision itself.**
   `MEMORY.md`, `CHANGES.md`. `DEVELOPMENT_NOTES.md` gains the durable lesson;
   `promotion: declined (it is `.29` acceptance (e)'s own subject, and a card that duplicates an open gate criterion degrades retrieval — `.17` slice 6b's precedent)`.
 
+##### ⭐⭐ `.17` SLICE 8 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0030`, 2026-08-14 session #231) — the emitted guard PARSES, and the warning saying it is not the shipped policy was itself invisible
+
+> **ENGINE code + a new probe bank. ZERO grammar bytes, and the generated tree re-derived
+> BYTE-IDENTICAL — all 11 parsers, hashes below.**
+>
+> Slice 7b's correction, verbatim: *"slice 8 = the emitted guard PARSES (the ratchet's first leg),
+> slice 9 = the flip."* This slice is that leg. ⛔ It is NOT the flip: the shipped admission is
+> untouched, `indirect_guard_chains=0` on every family, and no deliverable parser byte moves.
+
+###### THE GAP, NAMED PRECISELY — two artifacts that agree in a tree and meet nowhere
+
+`guard_effectiveness/g7_guarded_clone_chain.ebnf` is a grammar a **person** wrote, measured on a real
+parser (slice 6). `plan_guard_chains` is an **emitter**, checked against that grammar in the
+generated AST (slice 7). Both are real; the claim *"the guard works"* rests on the join between them,
+and nothing had ever generated a **parser** from PGEN's own guarded output and run bytes through it.
+⇒ this slice builds the join: grammars that are still LEFT RECURSIVE, eliminated and guarded by the
+real pass, compiled, and fed the same `e1`–`e7` the hand-written `g7` was fed.
+
+###### WHAT WAS BUILT — one opt-in door, and it is deliberately a SECOND door
+
+| # | piece | where |
+|---|---|---|
+| 1 | the admission reaches CODEGEN | `eliminate_indirect_left_recursion_admitting_guard_feasible` (`indirect_lr_elimination.rs`) |
+| 2 | opt-in, per run | `PipelineConfig::indirect_lr_admit_guard_feasible` (default `false`) → `--indirect-lr-admit-guard-feasible` |
+| 3 | the source grammars PGEN eliminates ITSELF | `guard_parses/s1_guard_source.ebnf` (two holders) + `s2_holder_only.ebnf` (one) — PRE-rewrite |
+| 4 | the four-arm bank | `guard_parses/probe.sh` → **`GUARD-PARSES: 64/64 as declared`** |
+
+⛔ **A second entry point, not a widened first one.** `eliminate_indirect_left_recursion` still names
+the shipped policy at its own call site, so widening what ships is an edit to *that function's*
+criterion (slice 9) and cannot happen by a caller passing a different argument.
+⛔ **And no `make` target reaches it** — a property of the call graph, checkable by grep rather than
+by reading a default: `grep -rn "indirect.lr.admit.guard.feasible" rust/Makefile scripts/ .github/`
+returns **0**, and `git grep -l` names only the three source files that define it plus the bank that
+is its only caller.
+
+###### ⭐⭐ RESULT 1 — IT PARSES, and six rows FLIP
+
+```text
+  ARM  IN   GEN      WANT     INTERP   WANT
+  1A   e2   REJECT   REJECT   ACCEPT   ACCEPT   ✅ DIVERGE(.14)  the runtime cycle guard refuses the chained cast
+  1B   e7   ACCEPT   ACCEPT   ACCEPT   ACCEPT   ✅  ⭐⭐ THE CALL-SITE-SCOPING ROW: the residual-free holder is UNHARMED
+  2B   e1   ACCEPT   ACCEPT   ACCEPT   ACCEPT   ✅  ⭐⭐ THE LOOP-GUARD ROW
+  2B   e5   ACCEPT   ACCEPT   ACCEPT   ACCEPT   ✅  ⭐⭐ THE TRAILING-GUARD ROW
+GEN flips A REJECT -> B ACCEPT: 6   ·   declared oracle divergences (.14): 6
+```
+
+Every input ACCEPTs on arm B of both grammars, on real generated parsers built from PGEN's own
+guarded emission — including the over-long SEED (which the loop guard provably cannot reach) and
+`k = n;` (the residual-free holder, which the shared-rule shape `g4` REJECTS). ⭐ **One design doing
+both is its whole claim**, and until this bank it had only ever been shown on grammars a person wrote.
+The six `e2`/`e4`/`e6` flips are `.13`'s founding defect closed end to end, and `probe.sh` FAILS if
+the flip count reaches zero — a bank where both arms accept everything is describing a grammar rather
+than measuring an admission.
+
+###### ⛔⛔ RESULT 2 — THE FIRST PLANT DID NOT FALSIFY, AND THAT IS THIS SLICE'S MOST VALUABLE FINDING
+
+The bank's first shape was ONE grammar — `s1`, modelled on `g7` — and it went green on the first
+honest run. Then the falsifiability plant: **delete the trailing-lookahead emission from
+`apply_plan`, rebuild, re-run the whole bank.** Result:
+
+```text
+==================== PLANT 1 ====================
+bank rc=0
+GUARD-PARSES: 35/35 as declared
+```
+
+**Green. A plant that cannot fail is a row that cannot check.** Root cause, and it is in the GRAMMAR,
+not the engine: `s1`'s entry rule has two alternatives, and the second one —
+`scratch := … | kw_k eq prim semi`, the residual-FREE holder — parses `e1`–`e6` **on its own**
+through the eliminated-but-unguarded `prim`. So on `s1` those six rows pass under both hypotheses.
+
+⭐⭐ **`.17` slice 4 had already recorded exactly this, one ladder down**, and neither `g7` nor `s1`
+inherited it. `guard_effectiveness/probe.sh` runs `g4` and `g5` on `e1` and `e7` ONLY, with the reason
+written beside them: *"their second alternative (`kw_k eq prim semi`) absorbs `e2`–`e6` on its own, so
+those rows would pass under BOTH hypotheses and prove nothing about scoping. A case that does not
+discriminate is left out rather than run and over-read."*
+
+⛔⛔ **⇒ A CORRECTION TO SLICE 6, ROUTED AND FIXED IN PLACE.** `g7` has `g4`'s two holders and slice 6
+ran all seven of its rows, so *"it accepts all six starvation inputs AND `e7`"* — the sentence in the
+leaf, the bank README and `TOOLBOX.md` — is **six rows too strong**. On `g7` those six prove the guard
+does NO DAMAGE; the POWER claim rests on the single-holder rungs `g0`/`g2`/`g6`/`g3`, which slice 4
+built correctly. ⛔ **No expectation anywhere was changed and none should be** — every verdict in that
+bank is still right. What was wrong was the strength claimed for six of them, and it is corrected in
+all three surfaces.
+
+⇒ **the fix is the discriminating control the ladder never had**: `s2_holder_only.ebnf`, `s1` minus
+the rescuing alternative, nothing else changed. Its `e1`–`e6` have exactly one route to a parse, so
+each tests a guard POSITION — and the bank now refuses to pass if the `s2` arm did not run.
+
+###### ⭐⭐ RESULT 3 — with `s2` in place, all three guard properties are PLANT-PROVEN on a real parser
+
+| plant | one-line edit | rows that FAIL, and ONLY these |
+|---|---|---|
+| drop the TRAILING guard | delete `guarded_elements.push(lookahead())` | `2B e5` |
+| drop the LOOP guard | `guarded_suffix_rule = None` | `2B e1 e2 e3 e4 e6` + both `guard_rule_count` |
+| guard the SHARED rule (`g4`) | `guarded_base_rule = base_rule` | `1B e7` on BOTH oracles + both `guard_rule_count` |
+
+⭐ The third is the strongest single row in this slice: **the call-site-scoping decision, which `.17`
+has carried since slice 4 as an argument from two hand-written grammars, now fails a real generated
+parser by name when it is violated.**
+
+⭐⭐ **AND THE FIRST TWO PLANTS PARTITION THE ROWS — which is slice 4's disjointness result reproduced
+END TO END, through PGEN's own emitter.** Dropping the trailing guard breaks `2B e5` and *nothing
+else*; dropping the loop guard breaks *everything except* `2B e5`. Slice 4 measured that
+complementarity by hand-writing `g2` (loop only) and `g6` (trailing only) and reading their rows; here
+it falls out of two one-line edits to the EMITTER, with no hand-written grammar in the loop. ⇒ *"the
+two positions close DISJOINT starvations"* is no longer a property of two synthetics — it is a
+property of what PGEN generates.
+
+⛔ **The structural rows discriminate too, and the reason is worth reading**: the `g4` plant and the
+loop plant both take `guard_rule_count` 3 → 2, for different reasons (the guarded base stops being a
+separate rule; the guarded suffix is never allocated). A row that only ever reads `0`/non-`0` would
+have missed both.
+
+###### ⭐⭐ RESULT 4 — the HOP CLONE is exercised END TO END, which is acceptance (d)'s standing obligation
+
+Both source grammars' holders name `ct`, **not** `prim`, so the transparent chain is two rules long
+(`chain: ct > prim`, `max_hops=1`) and PGEN must emit `prim_lr_guard0_ct`. Measured in the compiled
+artifact, not in the plan:
+
+```text
+  2B   guard_rule_count   3      3      ✅  prim_lr_guard0 + its suffix + the HOP CLONE
+  2B   hop_clone          1      1      ✅  prim_lr_guard0_ct EXISTS in the emitted parser
+```
+
+⭐ And `1B e7` is the input that proves the clone is doing its job rather than merely existing:
+`k = n;` reaches `prim` through the **unguarded original**, which is the entire call-site-scoping
+argument. ⛔ Acceptance (d) is therefore discharged **for this slice**; it stays OPEN as an obligation
+on slice 9, which must exercise a multi-hop chain on the real grammar or measure and state that its
+own picks are still all `max_hops=0`.
+
+###### ⛔⛔ RESULT 5 — THE OPT-IN WARNING WAS INVISIBLE, AND ONLY RUNNING IT SHOWED THAT
+
+The first draft of the banner used `eprintln!`. A default-verbosity run of
+`--indirect-lr-admit-guard-feasible` was then **completely silent** while absorbing candidates the
+shipped criterion refuses as STARVED. Root cause, located rather than guessed: `ast_pipeline/mod.rs`
+declares
+
+```rust
+macro_rules! eprintln { ($($arg:tt)*) => { crate::pgen_trace_debug!($($arg)*) }; }   // :513
+```
+
+and `pub mod indirect_lr_elimination;` (`:6277`) is declared **after** it, so every bare `eprintln!`
+in that file — including the pre-existing `✅ Absorbing` / `⏭️ Declining` lines — is a trace call
+gated on `PGEN_TRACE_VERBOSITY=debug`. ⇒ fixed with `std::eprintln!`, and the fully-qualified path is
+LOAD-BEARING; the bank pins the fix in **both directions** (`A banner 0`, `B banner 1`).
+
+⭐ **The distinction the fix draws, because "make it all loud" would be wrong.** Per-rewrite
+narration is legitimately trace-gated — it is one line per absorbed rule on grammars with thousands.
+A **policy warning** is not: it says *this run is not the shipped behaviour*, and a warning that only
+fires when you already asked for debug output is not a warning. The shadow is left in place for the
+former and bypassed for the latter.
+
+###### ⛔⛔ RESULT 6 — THE ADMISSION ENUM'S OWN DOC HAD BEEN FALSE SINCE SLICE 7
+
+`CandidateAdmission::GuardFeasibleDryRun`'s doc read: *"⛔ **This admits them WITHOUT emitting any
+guard**, so the grammar it produces is the measured-regressing one."* True when slice 3 wrote it.
+**Falsified by slice 7's own emitter one slice later** — `plan_elimination` step 6 runs
+`plan_guard_chains` unconditionally, and a guard exists exactly for a surviving starvation site,
+which only a guard-feasible candidate has. Never swept.
+
+⛔ The reader it would have misled is precisely this slice's: someone deciding whether that admission
+is safe to generate a parser from. ⇒ corrected, and the variant **renamed** `GuardFeasible` — the
+`DryRun` suffix was a third false claim, since slice 8 takes the same admission to codegen.
+
+⭐ **The name was fusing three independent questions** — *which candidates are admitted*, *does the
+result reach a parser*, *does the pass narrate* — and slice 8 needs the combination the fused name
+declares impossible (guard-feasible **and** reaching codegen **and** loud). Narration is now the
+driver's own `Narration` parameter, decided per entry point on the honest criterion: **a pass whose
+output someone keeps says what it did; a pass whose output is thrown away stays quiet.** The dry run
+keeps its silence, for its own reason rather than by sharing a name.
+
+###### ⛔ RESULT 7 — THIS SLICE'S OWN INSTRUMENT BROKE TWICE, IN TWO DIFFERENT LAYERS
+
+`guard_rule_count` / `eliminated` / `hop_clone` first read `^\s*fn parse_…`. Every rule function the
+codegen emits is `pub fn parse_<rule>(`, so the anchors matched **nothing** and the first bank run
+reported `guard_rule_count=0` on the arm that has three of them.
+
+⭐ **Caught in one run, and by design rather than by luck**: the row DECLARES `3`. That is the whole
+reason the bank carries structural expectations instead of printing what it found — a scraper that
+prints its own finding is unfalsifiable, and this one would have printed a confident `0`.
+⇒ **the FOURTH measured instance of [[a-report-scraper-must-anchor-on-structure-not-on-a-substring]]
+in this leaf** (after `.17` slice 5's `157`, slice 6b's two hand-typed totals, slice 7's plan-derived
+summary). Routed to `CI-PARITY-GATE-ROT.29` as a fifth data point. ⛔ The same run also carried a
+`grep -c … || echo 0` fallback that printed a SECOND zero line — `grep -c` prints its own zero AND
+exits 1 — so every comparison ran against a two-line value. Both fixed, both explained at the anchor.
+
+⛔⛔ **AND A SECOND, IN A LAYER NOBODY AUDITS: A BACKTICK INSIDE A ROW'S NOTE IS A COMMAND.** The
+tables are double-quoted shell strings, so the note *"the `` `*` `` must stop at zero iterations"*
+made bash run the command `*`, which globbed to the repository root's first file:
+
+```text
+probe.sh: line 143: AGENTS.md: command not found
+```
+
+⭐ **It failed loudly only because the substitution happened to be nonsense.** `$HOME` or `$(date)`
+would have substituted silently and left a table whose printed notes are not the notes anyone wrote —
+a bank narrating something no one authored, which is this leaf's recurring defect in yet another
+layer. ⇒ fixed, and **made unable to recur**: `probe.sh` now reads its OWN source, greps the
+`CASES=(`/`STRUCT=(` block for a backtick or a `$` expansion, and exits 2 naming the row — before any
+of the fifteen minutes of builds. ⛔ Deliberately reading the FILE and not the arrays: by the time an
+array element exists the substitution has already happened and the evidence is gone. RED-proven by
+planting one backtick (`rc=2`, the row named) and restoring the script to a byte-identical hash.
+
+⭐ **And the check's own first version was too broad, which is worth one sentence because the failure
+mode is generic**: it refused to start over a backtick in its OWN explanatory comment inside the array
+block. Comment lines there are real shell comments and are never substituted, so they are exempt —
+measured, not assumed. **A self-check that cannot describe itself is one people delete.** It cost 50
+seconds to find, because the check runs before the fifteen minutes of builds rather than after.
+
+###### ⛔⛔ ROUTED OUT — `.14` DIVERGES IN BOTH DIRECTIONS, AND WHICH ONE IS A PROPERTY OF THE SURROUNDING GRAMMAR
+
+`.14`'s title says *"in BOTH directions"*. This bank reproduces both **in one run, on two grammars
+that differ by one line** — which nothing in the repository had:
+
+| | `1A` (two holders) | `2A` (one holder) |
+|---|---|---|
+| `e2` `k = n'(n)'(n);` | GEN **REJECT** · INTERP ACCEPT | both REJECT |
+| `e1` `k = n'(n);` | both ACCEPT | GEN **ACCEPT** · INTERP **REJECT** |
+
+⭐ **One mechanism, and it explains the flip.** The interpreter has no cycle guard, only a whole-stack
+depth ceiling (`parse_harness_interpreter.rs:746-749`), and under the `longest_match` default it must
+EVALUATE the cyclic alternative in order to compare it. On S1 the surviving second entry alternative
+rescues the parse after that evaluation blows the ceiling; S2 has nothing to rescue it. ⇒ **the
+direction `.14` bites in is a property of the surrounding grammar, not of the cycle** — a fact that
+leaf records in its title and has never had a fixture for.
+
+⛔ **Not fixed here** (`.14` is a parked leaf and the lane lock binds work, not conversation); routed
+INTO `.14` with this bank named as its repro. ⭐ Better than the existing `p1_knot_a_defect` fixture
+in two specific ways: it carries BOTH directions as a one-difference pair, and the same file's B arm
+shows the divergence VANISH once the cycle is eliminated — the control `.14` acceptance (a) needs to
+prove its case is about a *surviving* cycle rather than about the grammar.
+
+###### ⛔ AND THE ONE PLACE THIS BANK'S EXPECTATIONS WERE CORRECTED — recorded, not quietly edited
+
+Arm `2A`'s INTERP column was first written `ACCEPT`×6 **by extrapolation from `1A`**, where the
+interpreter does accept. Measured: `REJECT`×6. The extrapolation was the error — S2 drops exactly the
+alternative that rescues S1's interpreter parse — and the corrected cells are the divergence pin
+above rather than a design claim.
+
+⛔ **Stated because "I adjusted an expectation" is the sentence this repository refuses to let pass
+silently.** Two things make it legitimate here and both are checkable: (1) nothing in the design says
+what a cycle-guardless interpreter does at its depth ceiling, so those six cells were never a design
+claim to begin with — every design claim in the bank lives in the **GEN** column; and (2) **no GEN
+cell was ever wrong** — all 26 were written before the first run and measured correct. ⇒ the rule
+that was broken is not *"don't adjust expectations"* but *"derive an expectation from ground truth,
+never from a neighbouring measurement"*, and the bank's header now says so at the rows themselves.
+
+###### Acceptance Checklist (enforced) — `.17` slice 8
+
+- [x] **REPRODUCE / ISSUE** — at `c66c7a32`, nothing in PGEN could execute what it emits. Reproduced
+  from the shipped surface: `--report-indirect-lr-plan --indirect-lr-plan-guard-dry-run` on the new
+  source grammar printed `guard_chains=1 guard_rules=3` under a banner reading *"it parses nothing,
+  so it is NOT a claim that the rewritten grammar accepts or rejects any input"*, and
+  `git grep -l "indirect_lr_admit"` returned **nothing** — there was no path from that plan to a
+  parser.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the emission could not be executed: the guard-feasible
+  admission existed only inside `dry_run_guard_feasible_elimination`, which applies the plan to a
+  CLONE it discards (`indirect_lr_elimination.rs`), so no `PipelineConfig` and therefore no codegen
+  run could ever see a guarded tree. WHERE it had to attach: `PipelineConfig` →
+  `eliminate_left_recursive_patterns`'s indirect branch (`ast_pipeline/mod.rs:3046`), the one place
+  the generation path enters the pass. ⛔ Tool-located, not read off the source: the first
+  default-verbosity run of the new flag emitted **no banner and no `✅ Absorbing` line**, and
+  `PGEN_TRACE_VERBOSITY=debug` on the same command printed both — naming the trace shadow at
+  `ast_pipeline/mod.rs:513` as the reason (RESULT 5). ⛔ And a `parseability_probe --parse scratch`
+  run against an ARM-A parser reproduces the symptom the flip closes: `e2` REJECTs while `e1`
+  accepts, i.e. the runtime cycle guard, not a grammar error.
+- [x] **FIX** — fix-hierarchy tier = **engine capability**, plus two instrument-correctness fixes and
+  two documentation-correctness fixes found while building it.
+  `indirect_lr_elimination`: `eliminate_indirect_left_recursion_admitting_guard_feasible` (the opt-in
+  generation entry point, with a `std::eprintln!` banner), `CandidateAdmission::GuardFeasibleDryRun`
+  → `GuardFeasible` with its false doc corrected, and the narration axis split out of the enum into a
+  `Narration` parameter.
+  `ast_pipeline/mod.rs`: `PipelineConfig::indirect_lr_admit_guard_feasible` (default `false`) and the
+  two-door branch. `main.rs`: `--indirect-lr-admit-guard-feasible`. `bin/pgen_ast.rs`: the field in
+  its exhaustive literal — ⛔ **a compile break this slice shipped and the STRICT SOURCE CLIPPY stage
+  caught**, in a binary `cargo build --bin ast_pipeline` never compiles
+  (`error[E0063]: missing field indirect_lr_admit_guard_feasible`). ⭐ The lesson is small and
+  transferable: **adding a `pub` struct field breaks every exhaustive literal in the workspace, and
+  the one you are not building is the one that breaks** — `grep -rn "PipelineConfig {"` names all
+  four sites in a second, and `--all-targets` is what makes forgetting non-optional.
+  Bank: `guard_parses/{s1_guard_source.ebnf,s2_holder_only.ebnf,probe.sh,README.md}` — `s2` exists
+  because a plant proved `s1`'s rows could not check what they appeared to check (RESULT 2), and
+  `probe.sh` refuses to pass without it.
+  Corrections to slice 6's claim about `g7`'s six accepts, in the leaf, the `guard_effectiveness`
+  README and `TOOLBOX.md` — ⛔ **claim strength only; not one expectation in that bank changed.**
+  ⛔ Deliberately NOT done: the shipped admission, the candidate ORDERING and every generated parser
+  byte are unchanged. Those are slice 9.
+  ⛔ The two guard-emission unit tests were moved onto the NEW entry point rather than the private
+  driver — the shape they pin is now reachable by codegen, so the test must enter by the door codegen
+  enters by.
+- [x] **ADDRESSED (verified)** — `cargo test --lib indirect_lr` → **28 passed / 0 failed**, and the
+  bank `guard_parses/probe.sh` → **`GUARD-PARSES: 64/64 as declared`**, rc 0, with the before→after on
+  the symptom carried by the bank's own arms (**6 GEN rows REJECT → ACCEPT**, three per grammar).
+  ⭐⭐ **Falsifiability PROVEN by THREE plants run against the BANK, one per guard property** — not
+  against the unit tests, because `.17` slice 7's lesson is that a plant the unit tests catch can
+  still leave a bank green. Each fails a DIFFERENT declared row by name; the source was restored from
+  a CONTENT snapshot and re-hashed after each (`.17` slice 6b's recorded mistake applied):
+  1. **drop the trailing-guard emission** ⇒ `2B e5` REJECT — the over-long SEED is no longer refused;
+  2. **guard the SHARED rule instead of a clone** (`guarded_base_rule = base_rule`, the `g4` shape)
+     ⇒ `1B e7` REJECT **on both oracles** — `k = n;` breaks, which is the CALL-SITE-SCOPING claim
+     planted end to end and the strongest single row in this slice;
+  3. **drop the loop-guard emission** (`guarded_suffix_rule = None`) ⇒ `2B e1` / `2B e2` REJECT.
+  ⛔⛔ **AND THE FIRST ATTEMPT AT PLANT 1 LEFT THE BANK GREEN**, which is RESULT 2 and is recorded as a
+  result rather than as a false start: the plant is what proved the row set could not check the guard,
+  and `s2` is what it bought. A fourth plant — one backtick in a row's note — RED-proves the new
+  table self-check (`rc=2`, the row named), script restored byte-identically.
+  Source restored to `a49e0b5e5a0038b625eefcfa662abf6f7dd49eae8cdc0184893bfea36a27d13c` and the bank
+  re-run GREEN at that state; logs in `rust/target/es17_guard_parses/`.
+- [x] **NO REGRESSION** — ⭐ measured at the strongest available tier: the generated tree re-derived
+  with the new binary and `shasum -a 256 generated/*.rs` **byte-identical** to the pre-change
+  snapshot (hashes below) ⇒ no parser input can behave differently, because no parser byte moved.
+  The shipped counter agrees independently: `indirect_guard_chains=0`. `git grep` proves the flag is
+  unreachable from `rust/Makefile`, `scripts/` and `.github/` (0 hits).
+  ⛔⛔ **AND THE DOCUMENTED RECIPE COULD NOT BE USED, WHICH IS A DEFECT THIS SLICE FOUND AND ROUTED —
+  not a shortcut taken.** `make -C rust regenerate_generated_parsers` FAILS in 15 s on a warm tree:
+  `regex_parser_bootstrap` unconditionally runs `cargo build --features ebnf_dual_run --bin
+  ast_pipeline`, which REPLACES `rust/target/debug/ast_pipeline` with a binary missing
+  `generated_parsers`, and the `$(RUST_AST_PIPELINE)` rule that declares the full feature set is then
+  skipped because make sees the downgraded binary as the newest file. Measured
+  (`AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=false`, prerequisites at 17:44
+  against a binary at 17:52), and it is invisible in CI **by construction**: on a cold clone those
+  prerequisites do not exist, so make rebuilds them and the featured rule fires. ⇒ routed as
+  **`CI-PARITY-GATE-ROT.30`** with its calibration case (a warm tree — no fixture needed).
+  ⇒ this slice ran the SAME sequence minus the downgrading bootstrap step: build the featured binary
+  explicitly, verify it with `scripts/require_ast_pipeline_features.sh`, then `annotation_parsers`
+  plus every `focus_<family>`. ⛔ Stated rather than silent, because a no-regression box that quietly
+  substitutes its own command is exactly the shape this leaf keeps finding.
+  The scratch slot is restored AND regenerated by the bank's own trap, which additionally rebuilds
+  `parseability_probe` — that binary compiles the scratch parser IN, so a restored artifact beside a
+  stale binary is a third inconsistent state no `git status` shows.
+
+  ```text
+  7ce6578f799c36c79343f98c1e441feb70b453eee25be860ae64824f751938e5  generated/ebnf.rs
+  829056dfabc5346cce2c0306d436f58818df57fb39c07d5e7b4adcb500ac43e9  generated/json_parser.rs
+  eefd327d8db0d8c0ea3491d28715c65456e8467cd1103fb2a196c5aa4d5f38c5  generated/regex_parser.rs
+  c1e48f5e1ab5457b9154dbaea3ff4292c05c86390add192a472505ff942bee52  generated/return_annotation_parser.rs
+  b59ef442d69f70bbfe18f7a796779fada281eae29e513503d7339a43679ade63  generated/rtl_const_expr_parser.rs
+  67bc01cd8d6466aaf40e025d85be6333f8a788177ce99a0e803051e1d95719cd  generated/rtl_frontend_parser.rs
+  c339a24075ffa1f02e35ea6d6407b22ce497643a0eb3e10593cba0e558b4e49a  generated/scratch_parser.rs
+  e9c132b709a2e72d7d19312752e63857cc2259464a2c6fe403584794c4934a3e  generated/semantic_annotation_parser.rs
+  4330ff8e14c8511865cfd5eeb0ab3eabe323cba127c6713e86d7654a7ca970bd  generated/systemverilog_parser.rs
+  f46b0d29c328e0ebdbf07e30af6cf2b2a518cfaf72e29be2877fc84aa10229c3  generated/systemverilog_preprocessor_parser.rs
+  a90ae37b74131c4dd73ab7b663e6c01f92479aaa1342613c12c307716686b3e3  generated/vhdl_parser.rs
+  ```
+
+  ⭐ **`generated/scratch_parser.rs` is in that list and matters most here**, because it is the one
+  artifact this slice's bank rewrites eight times: it comes back byte-identical to the pre-change
+  value, so the restore-and-regenerate trap is verified rather than trusted.
+  ⛔ The shipped counter agrees on four families independently:
+  `indirect_guard_chains=0` on `ebnf`, `systemverilog`, `vhdl` and `regex`.
+- [x] **LOCKSTEP** — this leaf (acceptance (d) discharged for this slice and restated as slice 9's
+  obligation; slice 6's `g7` claim corrected in place, since it SPECIFIES what the ladder proves);
+  `TOOLBOX.md` §5.5 (the new flag, the bank, the trace-shadow trap, the `g7` correction, and a STALE
+  `37/37` for a 44-row bank that this slice replaced with the derived form); the
+  `guard_effectiveness` README; the book's grammar-wellformedness chapter (a new
+  *"Executing what the planner emits"* section); `docs/tasks/CI-PARITY-GATE-ROT.md` (`.29` gains a
+  fourth instance and a cheap partial answer to its acceptance (b)); this file's `.14` leaf (the
+  routed reproducer); `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`. No
+  user-visible parser behaviour changed, so no contract or schema edit is owed.
+  ⭐ `promotion: PROMOTED` — [[a-warning-that-is-trace-gated-is-not-a-warning]], plus a
+  `KNOWLEDGE_MAP.md` regeneration. ⛔ Deliberately a new card rather than an extension of
+  [[a-report-must-be-computed-from-the-artifact-it-describes]]: that card is about a value being
+  *wrong*, this one about a correct message never being *delivered*, and the retrieval key is
+  different ("why did nothing print?" vs "is this number about the artifact?").
+
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
@@ -4631,6 +5005,30 @@ the two could return different VERDICTS, and nothing measured whether they do.
 (`cast → call → recv → cast`) is escapable one hop in: its seed `fn` sits inside the first rule the
 cycle enters, so no probe input ever needs the recursion to be *entered twice*. The
 `p1_knot_a_defect` shape does — and that is the shape every real victim on `.13` has.
+
+⭐⭐ **ROUTED IN — BOTH DIRECTIONS AS A ONE-DIFFERENCE PAIR, which this leaf's title asserts and has
+never had a fixture for** (`.17` slice 8, 2026-08-14 session #231). `guard_parses/probe.sh` carries
+**six** declared divergence rows across two ~20-line grammars that differ by one line, produced as a
+by-product of measuring something else:
+
+| | `1A` — entry has a second alternative | `2A` — it does not |
+|---|---|---|
+| `e2` `k = n'(n)'(n);` | GEN **REJECT** · INTERP ACCEPT | both REJECT |
+| `e1` `k = n'(n);` | both ACCEPT | GEN **ACCEPT** · INTERP **REJECT** |
+
+⭐ **One mechanism explains the flip**, and it sharpens this leaf's WHY rather than merely adding a
+case: the interpreter's whole-stack depth ceiling is reached while *evaluating* the cyclic
+alternative — which `longest_match` requires in order to compare it — so whether the parse survives
+depends on whether an alternative OUTSIDE the cycle is still standing to win. ⇒ **the direction the
+divergence bites in is a property of the surrounding grammar, not of the cycle.**
+
+Grammars: `guard_parses/{s1_guard_source,s2_holder_only}.ebnf`. ⛔ **This does not change this leaf's
+verdict, scope or acceptance** — it is a better fixture for (a) than `p1_knot_a_defect` in two ways:
+both directions in one file pair, and the same files' B arms show the divergence VANISHING once the
+cycle is eliminated, which is the control (a) needs to prove the case is about a *surviving* cycle
+rather than about the grammar. ⭐ And the divergences are DECLARED per oracle rather than treated as a
+bank failure — the pattern any `.14` fixture needs, since a bank that fails on disagreement cannot
+measure the arm where they disagree.
 
 ⛔ **THIS DOES NOT BLOCK `.13`, AND THIS LEAF'S FIRST DRAFT SAID IT DID** (corrected the same
 session, before the next slice started — see `.13` slice 3's own correction block). A combinator

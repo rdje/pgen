@@ -3788,6 +3788,21 @@ reproduces outside the family it is being sent to):
     was run against `cargo test` and not against the bank**, and only the CLI-level plant separated
     them. A plant that never rebuilds the binary measures the assertion layer and leaves every
     report-scraping row untested.
+  - ⭐⭐ **A FOURTH instance the very next day, and it is the cleanest EVIDENCE FOR (b)** (`.17`
+    slice 8, 2026-08-14 session #231). The new `guard_parses` bank scrapes the emitted parser for
+    guard rule functions, and its first anchors were `^\s*fn parse_…` while the codegen emits
+    **`pub fn parse_…`**. They matched nothing and the run reported `guard_rule_count=0` on the arm
+    that has three of them. ⛔ **It was caught on the FIRST run and cost nothing**, and the reason is
+    the whole of (b)'s value: the row **DECLARES 3**, so a scraper that finds nothing FAILS instead
+    of printing a confident zero. ⇒ the transferable rule is narrower and stronger than *"anchor on
+    structure"*: **a structural scraper needs a declared non-zero expectation, because "found
+    nothing" and "there is nothing" are the same output.** A bank whose structural rows merely PRINT
+    what they found cannot distinguish a broken anchor from a true absence, and is exactly the class
+    of row nobody re-reads.
+    ⛔ The same run carried a second, purely mechanical instance: `grep -c … || echo 0` appends a
+    SECOND zero line, because `grep -c` prints its own zero AND exits 1. Every comparison then ran
+    against a two-line value and failed for the wrong reason — which is the benign direction of the
+    same defect, and the only reason it was legible.
 - **All three classes fail in the FLATTERING direction, which is why no one noticed.** An inflated
   denominator makes an `N of N` ratio read as broader coverage; a stale prose count reads as a
   bank that is bigger and better-balanced than it is; a plan-derived report reads as an emission
@@ -3808,7 +3823,11 @@ the two banks fixed by hand in `.17` slice 6 are the calibration pair, and it mu
 tree at `d4e6cca9` and GREEN after; (b) a check, or a documented refusal with a reason, that a bank's
 report extraction anchors on a structural feature of the row (a bracket group, a marker in its only
 legal position) rather than on a bare substring — ⛔ this half may not be mechanizable cheaply, and
-saying so with evidence is an acceptable outcome; (c) a sweep for DANGLING task-leaf pointers
+saying so with evidence is an acceptable outcome — ⭐ and `.17` slice 8 supplies (b) with its
+cheapest partial answer, which may be all of (b) that is worth mechanizing: **a structural row must
+declare a non-zero expectation**, so a broken anchor fails instead of reporting a plausible zero.
+That IS checkable structurally (a bank whose every structural expectation is `0` is unfalsifiable),
+unlike "is this substring the right anchor", which is not; (c) a sweep for DANGLING task-leaf pointers
 (`.19`'s class) across `docs/tasks/**`, which is the same shape as `.28`'s stale-id sweep and should
 share its implementation; **(d) NEW (`.17` slice 7) — the DERIVED-FROM-THE-ARTIFACT half**: a check,
 or a documented refusal with a reason, that a value a bank pins is computed from the thing it names
@@ -3877,3 +3896,73 @@ written down where the next supersede will read it, in `MEMORY_ARCHITECTURE.md` 
 release work, and `.17` slice 4b already fixed the live instance by hand. ⭐ Note what it shares with
 `.27`: both are gaps where the roster audits the PRESENCE of a structure and never whether the
 structure was actually reached.
+
+### `.30` NEW `todo` — `regenerate_generated_parsers` DOWNGRADES the binary it declares fully-featured, so the repository's own quick-start recipe fails on any warm tree (opened 2026-08-14 session #231 by `ENGINE-UNIVERSAL-SERVICES.17` slice 8; ⛔ PARKED behind the SV lane lock)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **Measured, on the shipped recipe, at `c66c7a32` + slice 8's diff.**
+  `make -C rust SHELL=/bin/bash regenerate_generated_parsers` — the exact command `README.md`'s Quick
+  Start prints and `.github/actions/regenerate-parsers` runs — **fails in 15 s**:
+
+  ```text
+  Error: REFUSED: semantic annotation '@whitespace_sensitive: true' needs the generated annotation
+  backend, but this binary was built WITHOUT `--features generated_parsers` …
+  make[2]: *** [regex_parser] Error 1
+  ```
+
+- **ROOT CAUSE, located rather than inferred.** `regex_parser_bootstrap` (`rust/Makefile:847`) runs
+  `cargo build --features ebnf_dual_run --bin ast_pipeline` **unconditionally in both branches** —
+  including the `else` branch whose only stated purpose is *"verifying it still compiles against
+  these sources"*. Cargo features are per-invocation, so that call REPLACES
+  `rust/target/debug/ast_pipeline` with a binary missing `generated_parsers`. It then runs
+  `$(MAKE) regex_parser`, whose prerequisite `$(RUST_AST_PIPELINE)` — the rule that OWNS that path and
+  declares the full feature set — is skipped, because make compares mtimes and the downgraded binary
+  is now the newest thing in sight. Measured on the failing run:
+
+  ```text
+  2026-08-14 17:44  generated/return_annotation_parser.rs      ← $(RUST_AST_PIPELINE) prerequisites
+  2026-08-14 17:44  generated/semantic_annotation_parser.rs
+  2026-08-14 17:52  rust/target/debug/ast_pipeline             ← rebuilt UNDER-FEATURED by the bootstrap
+  AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=false
+  ```
+
+- ⭐⭐ **WHY CI NEVER SEES IT, AND WHY THAT IS THE WHOLE FINDING.** On a cold clone —
+  `actions/checkout` with `generated/` untracked — those two prerequisites **do not exist**, so make
+  MUST build them and the featured rule fires afterwards. The recipe is therefore correct exactly on
+  the tree CI has and wrong on the tree every developer has. ⛔ A gate that only runs cold cannot
+  observe a defect that only appears warm.
+
+- ⛔ **It is NOT silent, and that is the one piece of good news.** The `RGX-0078.5.i.1.t2` annotation
+  backend guard refuses rather than generating a non-canonical artifact, so the outcome is a hard
+  error and not drift. ⇒ severity is *"the documented recipe is broken for every local user"*, not
+  *"artifacts silently diverge"*.
+
+- **It reproduces outside `ENGINE-UNIVERSAL-SERVICES` by construction**, because nothing about it is
+  grammar- or family-specific: any warm tree, any developer, any `make -C rust
+  regenerate_generated_parsers`. `rust/scripts/ci_workflow_local_gate.sh`'s
+  `prepare_generated_artifacts` calls the same target, so the local workflow-parity gate inherits it.
+
+- ⛔ **This leaf's own family already fixed this exact class once**, which is why it belongs here:
+  `.24` slice 2 made `$(RUST_AST_PIPELINE)` declare `generated_parsers` AND `ebnf_dual_run` precisely
+  so *"the path's capability is a property of the path, not of whichever target happened to run
+  last"* (`rust/Makefile:159-176`). The bootstrap's inline `cargo build` re-introduces the defect the
+  rule was rewritten to prevent — one file apart, and the comment explaining the fix is 90 lines above
+  the line that undoes it.
+
+**Acceptance:** (a) `make -C rust regenerate_generated_parsers` succeeds on a WARM tree, RED-provable
+against HEAD (the 15-second failure above is the calibration case, and it needs no fixture — a warm
+tree is the default state); (b) the fix makes the path's capability structural rather than ordered —
+candidates: have the bootstrap's verification step build the FULL feature set, or build it into a
+separate `--target-dir` as `$(RUST_EBNF_FRONTEND_BIN)` already does, or make `$(RUST_AST_PIPELINE)`
+order-only-independent of it; ⛔ *"remember to rebuild afterwards"* is not a candidate; (c) a check
+that no recipe in `rust/Makefile` writes `rust/target/debug/ast_pipeline` with a feature set narrower
+than the rule that owns that path declares — the mechanizable half, and the one that stops the third
+instance.
+
+⛔ **Sequencing.** PARKED behind the SV lane lock with `.25`–`.29`. It blocks no SV release work:
+`.17` slice 8 got its no-regression measurement by building the featured binary explicitly and
+invoking `annotation_parsers` + the per-family `focus_*` targets directly, which is the same sequence
+`regenerate_generated_parsers` runs minus the downgrading bootstrap step — stated in that slice's NO
+REGRESSION box rather than left as an unexplained deviation from the documented recipe.

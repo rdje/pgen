@@ -460,6 +460,22 @@ struct Args {
     #[arg(long)]
     no_eliminate_indirect_left_recursion: bool,
 
+    /// ENGINE-UNIVERSAL-SERVICES.17 slice 8 — admit the GUARD-FEASIBLE candidate population on this
+    /// run, so the call-site guarded clone chains the planner synthesizes reach CODEGEN and can be
+    /// executed.
+    ///
+    /// ⛔⛔ NOT the shipped policy, and nothing in `rust/Makefile` passes this. The shipped
+    /// admission is "no surviving starvation site", which by construction never produces a guard —
+    /// so `--report-indirect-lr-plan` reports `indirect_guard_chains=0` on every family and every
+    /// generated parser is guard-free. This flag exists because "the emitted guard PARSES" cannot be
+    /// measured without generating a parser from the emission.
+    ///
+    /// ⛔ The rewrite it produces is a REAL grammar change: candidates the shipped criterion refuses
+    /// as STARVED are absorbed, and their surviving starvation sites get a guarded clone chain. Use
+    /// it on a probe grammar, never to build a deliverable. The pass prints a warning banner.
+    #[arg(long)]
+    indirect_lr_admit_guard_feasible: bool,
+
     /// Include search directory for SystemVerilog preprocessor mode (can be used multiple times)
     #[arg(long, requires = "preprocess_systemverilog")]
     sv_include_dir: Vec<String>,
@@ -1091,6 +1107,12 @@ fn pipeline_main() -> Result<()> {
     // Note: eliminate_left_recursion defaults to true in PipelineConfig::default()
     if args.no_eliminate_indirect_left_recursion {
         config.eliminate_indirect_left_recursion = false;
+    }
+    // ENGINE-UNIVERSAL-SERVICES.17 slice 8 — opt-in only, and the two switches are independent:
+    // skipping the indirect pass and widening its admission are different questions, so a caller
+    // passing both gets the skip (the pass never runs, so there is nothing to admit).
+    if args.indirect_lr_admit_guard_feasible {
+        config.indirect_lr_admit_guard_feasible = true;
     }
 
     let mut pipeline = RustASTPipeline::new(config);

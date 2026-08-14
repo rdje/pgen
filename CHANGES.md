@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0030 — the emitted guard PARSES, and the warning saying it is not the shipped policy was itself invisible (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 8; ENGINE code + a new probe bank, ZERO grammar bytes, generated tree BYTE-IDENTICAL)
+
+- ⭐⭐ **PGEN now generates a PARSER from its own guarded emission, and it parses.** Slice 7 built the
+  guard planner and checked it in the generated AST against a HAND-WRITTEN `g7`; nothing had ever
+  compiled PGEN's own guarded output and run bytes through it. New opt-in
+  `--indirect-lr-admit-guard-feasible` takes the guard-feasible admission through **codegen**, and the
+  new bank `guard_parses/probe.sh` → **`GUARD-PARSES: 64/64 as declared`** measures it on both
+  oracles. **6 GEN rows flip REJECT → ACCEPT** against the shipped admission — `.13`'s founding defect
+  closed end to end.
+- ⭐⭐ **The HOP CLONE is exercised end-to-end for the first time**, discharging `.17` acceptance (d)
+  for this slice. Both source grammars name the holder at `ct` rather than at the base, so
+  `chain: ct > prim` (`max_hops=1`) and PGEN must emit `prim_lr_guard0_ct` — asserted present in the
+  COMPILED parser. Every SystemVerilog chain is `max_hops=0`, so no corpus run reaches that rule.
+- ⛔⛔ **THE FIRST FALSIFIABILITY PLANT DID NOT FALSIFY — and it is this slice's most valuable
+  finding.** Deleting the trailing-guard emission and re-running the whole bank left it **GREEN**.
+  Root cause is in the GRAMMAR: the first source's second entry alternative parses `e1`–`e6` on its
+  own through the eliminated-but-unguarded rule, so those rows pass under both hypotheses. ⇒ added
+  `s2_holder_only.ebnf`, the same grammar minus that alternative, and the bank now REFUSES to pass
+  without it. All three guard properties are now plant-proven on a real parser: drop the trailing
+  guard ⇒ `2B e5` fails; drop the loop guard ⇒ `2B e1`/`2B e2` fail; guard the SHARED rule (the `g4`
+  shape) ⇒ `1B e7` fails on both oracles.
+- ⛔⛔ **AND IT CORRECTS SLICE 6 — `g7`'s six accepts were over-read**, by the identical argument
+  slice 4 used to restrict `g4`/`g5` to two inputs each. On `g7` those six rows prove the guard does
+  NO DAMAGE; the power claim rests on the single-holder rungs. ⛔ Claim strength only — **not one
+  expectation in that bank changed, and none should.** Corrected in the leaf, the bank README and
+  `TOOLBOX.md`.
+- ⛔⛔ **The opt-in WARNING was invisible.** `ast_pipeline/mod.rs:513` shadows `eprintln!` with a
+  `pgen_trace_debug!` forwarder, so every bare `eprintln!` under `ast_pipeline` is gated on
+  `PGEN_TRACE_VERBOSITY=debug` — the first default-verbosity run of the new flag printed **nothing**
+  while absorbing candidates the shipped criterion refuses. Fixed with `std::eprintln!`; the bank pins
+  it in both directions (`banner` absent on the shipped arms, present on the widened ones).
+- ⛔ **`CandidateAdmission::GuardFeasibleDryRun`'s doc had been FALSE since slice 7** (*"admits them
+  WITHOUT emitting any guard"* — slice 7's emitter falsified it one slice later and nobody swept).
+  Corrected and renamed `GuardFeasible`; the narration axis is now a separate `Narration` parameter,
+  because slice 8 needs guard-feasible **and** reaching codegen **and** loud, which the fused name
+  declared impossible.
+- ⛔ **Two more instrument defects, both in this slice's own bank**: the structural scrapers anchored
+  on `fn parse_…` while the codegen emits `pub fn parse_…` (caught in one run because the row DECLARES
+  3), and a backtick inside a row's note made bash run `*`, globbing to `AGENTS.md`. The second is now
+  impossible: `probe.sh` reads its own source and refuses to start if a table row contains a backtick
+  or a `$` expansion — RED-proven.
+- ⛔ **ROUTED, not fixed here:** the smallest `.14` reproducer in the repository — six rows where
+  `GEN=REJECT INTERP=ACCEPT` on two ~20-line grammars, with the same file's B arm showing the
+  divergence vanish once the cycle is eliminated (the control `.14` acceptance (a) needs).
+- **Verified:** `cargo test --lib indirect_lr` **28 passed / 0 failed**; `GUARD-PARSES: 64/64`;
+  all **11** generated parsers re-derived **byte-identical**; `indirect_guard_chains=0` everywhere;
+  `grep -rn` proves the flag is unreachable from `rust/Makefile`, `scripts/` and `.github/` (0 hits).
+
 ## 2026-08-14 - PGEN-ENGINE-UNIVERSAL-SERVICES-0029 — asked whether slice 7's three findings were signoff-grade, the audit found TWO were not, and one was a claim about a commit that does not exist (leaf ENGINE-UNIVERSAL-SERVICES.17 slice 7b; DOCS + one tracked patch artifact, ZERO code bytes)
 
 - ⛔⛔ **GAP A: `CI-PARITY-GATE-ROT.29` acceptance (d) cited a RED/GREEN calibration pair that is NOT

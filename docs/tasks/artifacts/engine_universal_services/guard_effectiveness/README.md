@@ -50,6 +50,23 @@ untouched, adds `ct_guard := kw | prim_guard` and the guarded `prim_guard`, and 
 It is also the rule-for-rule TARGET the eliminator's guard planner must synthesize, so that planner
 can be checked against a measured grammar rather than against a design note.
 
+⛔⛔ **BUT READ `g7`'s SIX ACCEPTS CORRECTLY — ONLY `e7` DISCRIMINATES, and this paragraph over-read
+them until `.17` slice 8.** `g7` has the same two holders as `g4`, and the note eight lines up in
+`probe.sh` already says what that costs: *"G4 and G5 are run on `e1` and `e7` ONLY … their second
+alternative (`kw_k eq prim semi`) absorbs `e2`–`e6` on its own, so those rows would pass under BOTH
+hypotheses."* The identical argument applies to `g7` — its `e1`–`e6` reach `prim` **unguarded**
+through that same alternative — and slice 6 ran all seven rows anyway. ⇒ on `g7` those six rows prove
+the guard does **no damage**, not that it works; `e7` is the row that carries the design's claim, and
+the power claim rests on `g0` ↔ `g2` ↔ `g6` ↔ `g3`, which are single-holder and therefore
+discriminating.
+
+⭐ **This was found by a PLANT, one ladder up.** `.17` slice 8 built the same two-holder shape as a
+PRE-rewrite grammar, deleted the trailing-guard emission from the engine, and the whole bank stayed
+**GREEN** — a plant that cannot fail is a row that cannot check. Its fix is the discriminating
+control this bank's `g7` rung never had: `guard_parses/s2_holder_only.ebnf`, the same grammar minus
+the rescuing alternative. ⛔ **No expectation here changed and none should** — every verdict in this
+bank is still correct. What changed is the strength this README claims for six of them.
+
 The rule-for-rule mapping onto `grammars/systemverilog.ebnf` is in `g0_unguarded.ebnf`'s header.
 `cast := casting_type tick lparen expression rparen` is the holder; `casting_type := … |
 constant_primary` is the transparent hop; `constant_primary := …_lr_base ( …_lr_suffix )*` is the

@@ -90,35 +90,41 @@ pub struct PlanRefusal {
 
 /// `ENGINE-UNIVERSAL-SERVICES.17` slice 3 — WHICH candidates the driver is allowed to consider.
 ///
-/// ⛔ **`StarvationSafe` is the shipped policy and the only one any generated parser ever sees.**
-/// The second variant exists so the question *"what would option (iii) actually unlock?"* can be
-/// answered by running the REAL planner rather than by a second implementation of it that would
-/// drift from the one it predicts.
+/// ⛔ **`StarvationSafe` is the shipped policy and the only one a `make`-generated parser ever
+/// sees.** The second variant exists so the question *"what would option (iii) actually unlock?"*
+/// can be answered by running the REAL planner rather than by a second implementation of it that
+/// would drift from the one it predicts.
+///
+/// ⛔⛔ **This enum is the ADMISSION axis and nothing else** (`.17` slice 8). Until slice 8 the
+/// second variant was called `GuardFeasibleDryRun` and carried a `narrates()` method, which fused
+/// three independent questions into one name: *which candidates are admitted*, *does the result
+/// reach a parser*, and *does the pass narrate*. Slice 8 needs a run that is guard-feasible AND
+/// reaches codegen AND narrates loudly — a combination the fused name declares impossible while the
+/// code allows it. Narration is now [`eliminate_indirect_left_recursion_with_admission`]'s own
+/// parameter, decided by each entry point.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CandidateAdmission {
     /// The shipped policy: a candidate is considered iff
     /// [`IndirectChainCandidate::is_starvation_safe`] — no rule outliving the rewrite holds it at a
     /// left corner with a non-empty residual a greedy `*` could steal.
     StarvationSafe,
-    /// `.17` slice 3's DRY RUN: additionally consider candidates that are merely
+    /// Additionally consider candidates that are merely
     /// [`IndirectChainCandidate::is_guard_feasible`] — the population a call-site
-    /// follow-restriction guard would make safe.
+    /// follow-restriction guard makes safe.
     ///
-    /// ⛔ **This admits them WITHOUT emitting any guard**, so the grammar it produces is the
-    /// measured-regressing one (`.13` slice 5: rewriting `casting_type` unguarded turns the
-    /// accepted `int'(3)` into a rejection). It is therefore an instrument for PLAN-STAGE refusals
-    /// only — annotation composability, the trial re-lint, the ambiguity check — and never a claim
-    /// that the rewritten grammar parses. It is reachable only from
-    /// [`dry_run_guard_feasible_elimination`], which works on a clone.
-    GuardFeasibleDryRun,
-}
-
-impl CandidateAdmission {
-    /// Does this admission mode narrate to stderr? Only the shipped pass does — a dry run's
-    /// `✅ Absorbing` line would read as something the parser actually did.
-    fn narrates(self) -> bool {
-        matches!(self, CandidateAdmission::StarvationSafe)
-    }
+    /// ⭐ **The guarded chain IS emitted under this admission**, and has been since `.17` slice 7:
+    /// [`plan_elimination`] step 6 runs [`plan_guard_chains`] unconditionally, and a guard exists
+    /// exactly for a surviving starvation site — which only a guard-feasible candidate has.
+    /// ⛔ This doc said the opposite (*"admits them WITHOUT emitting any guard … the grammar it
+    /// produces is the measured-regressing one"*) from slice 3 until slice 8 found it: true when
+    /// written, falsified by slice 7's own emitter one slice later, and never swept. The reader it
+    /// would have misled is the one deciding whether this admission is safe to generate from.
+    ///
+    /// Two entry points use it, and they differ in what they do with the result, not in what they
+    /// admit: [`dry_run_guard_feasible_elimination`] applies it to a CLONE and returns a report,
+    /// while [`eliminate_indirect_left_recursion_admitting_guard_feasible`] applies it to the
+    /// caller's own grammar and is therefore on the generation path.
+    GuardFeasible,
 }
 
 /// What [`eliminate_indirect_left_recursion`] did, as opposed to a belief about it — the same
@@ -376,7 +382,7 @@ struct EliminationPlan {
     /// switch.** The shipped admission is [`CandidateAdmission::StarvationSafe`], whose whole
     /// definition is `surviving_starvation_sites().is_empty()` — so a shipped candidate has no site
     /// to guard and this vector cannot be non-empty. It fills only under
-    /// [`CandidateAdmission::GuardFeasibleDryRun`]. There is deliberately no flag to read: a flag
+    /// [`CandidateAdmission::GuardFeasible`]. There is deliberately no flag to read: a flag
     /// would be a second thing that has to agree with the criterion.
     guard_chains: Vec<GuardChain>,
 }
@@ -427,7 +433,73 @@ pub(super) fn eliminate_indirect_left_recursion(
         rule_order,
         annotations,
         CandidateAdmission::StarvationSafe,
+        Narration::Narrate,
     )
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.17` slice 8 — the OPT-IN widener: run the same pass on the caller's
+/// own grammar with [`CandidateAdmission::GuardFeasible`], so the guarded chains slice 7 synthesizes
+/// reach **codegen** and can be executed.
+///
+/// ⛔⛔ **WHY THIS EXISTS, AND WHY IT IS NOT THE FLIP.** Everything slice 7 emits had been checked
+/// in the generated-AST only: `guard_effectiveness` measured a HAND-WRITTEN `g7`, and slice 7's unit
+/// tests assert PGEN's emission matches it rule for rule. Nothing had ever generated a *parser* from
+/// PGEN's own guarded output and run an input through it — so *"the guard works"* rested on two
+/// artifacts that meet nowhere. This entry point is the meeting place. It is deliberately a SECOND
+/// door rather than a widened [`eliminate_indirect_left_recursion`]: flipping the shipped admission
+/// is `.17` slice 9 and owes a two-sided repro ratchet plus a corpus re-measure, and a slice that
+/// proves the emission parses must not also be the slice that changes what ships.
+///
+/// ⛔ **No `make` target reaches this.** The only caller is the `--indirect-lr-admit-guard-feasible`
+/// flag on the `ast_pipeline` binary, which nothing in `rust/Makefile` passes; the generation path
+/// every family goes through calls [`eliminate_indirect_left_recursion`] with the shipped admission.
+/// That is a property of the call graph, not of a default value, so it is checkable by grep rather
+/// than by reading a config struct.
+///
+/// ⭐ It NARRATES, and that is the one place it deliberately differs from the dry run. A dry run's
+/// `✅ Absorbing` line would describe a clone nobody keeps; this pass's line describes the grammar
+/// the caller is about to generate from, so it is exactly the line that must be visible.
+///
+/// ⛔⛔ **The banner is `std::eprintln!` and the fully-qualified path is LOAD-BEARING.** This module
+/// sits under [`super`], which shadows `eprintln!` with a `macro_rules!` forwarding to
+/// `pgen_trace_debug!` (`ast_pipeline/mod.rs:513`) — so every bare `eprintln!` in this file,
+/// including the `✅ Absorbing` / `⏭️ Declining` lines below, is a **trace call gated on
+/// `PGEN_TRACE_VERBOSITY=debug`** and prints nothing at the default verbosity. Measured, not
+/// assumed: the first draft of this banner used the bare macro and a default-verbosity run of
+/// `--indirect-lr-admit-guard-feasible` was completely SILENT while absorbing a candidate the
+/// shipped criterion refuses. A warning that only fires when you already asked for debug output is
+/// not a warning; per-rewrite narration is legitimately trace-gated, a policy warning is not.
+pub(super) fn eliminate_indirect_left_recursion_admitting_guard_feasible(
+    grammar_tree: &mut HashMap<String, ASTNode>,
+    rule_order: &mut Vec<String>,
+    annotations: Option<&mut Annotations>,
+) -> IndirectEliminationOutcome {
+    std::eprintln!(
+        "[indirect_lr_elimination] ⚠️  GUARD-FEASIBLE ADMISSION IS ON (`.17` slice 8 opt-in). \
+         Candidates the shipped criterion refuses as STARVED are admitted, and each surviving \
+         starvation site gets a call-site guarded clone chain. This is NOT the shipped policy — no \
+         `make` target enables it, and no deliverable parser may be built with it."
+    );
+    eliminate_indirect_left_recursion_with_admission(
+        grammar_tree,
+        rule_order,
+        annotations,
+        CandidateAdmission::GuardFeasible,
+        Narration::Narrate,
+    )
+}
+
+/// Does a pass describe itself on stderr? ⛔ Independent of [`CandidateAdmission`] since `.17`
+/// slice 8, because the two axes cross: the guard-feasible admission is used BOTH by a silent dry
+/// run on a clone and by a narrating pass on the caller's own grammar.
+///
+/// The rule is about the RESULT, not about the policy: a pass whose output someone keeps says what
+/// it did; a pass whose output is thrown away stays quiet, because an `✅ Absorbing` line for a
+/// discarded clone reads as something the parser actually did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Narration {
+    Narrate,
+    Silent,
 }
 
 /// What a [`dry_run_guard_feasible_elimination`] found — the outcome, plus the two numbers that
@@ -447,11 +519,12 @@ pub struct GuardDryRun {
 /// `.17` slice 3 — answer *"which of the guard-feasible candidates actually reach a plan?"* by
 /// running the REAL driver on a CLONE with the guard census admitted.
 ///
-/// ⛔ **What this measures and what it does not.** The three refusal sources downstream of the
-/// starvation check — a hop with no declared return annotation, the trial re-lint, the ambiguity
-/// comparison — are all independent of whether a guard is emitted, so a guardless dry run is a
-/// SOUND predictor for them. It models nothing the guard emission would itself add, and it makes no
-/// claim whatsoever about the resulting grammar's *parses* (see [`CandidateAdmission`]).
+/// ⛔ **What this measures and what it does not.** It reports PLAN-STAGE outcomes — a hop with no
+/// declared return annotation, the trial re-lint, the ambiguity comparison — plus the guard chains
+/// [`plan_guard_chains`] synthesizes, and it **parses nothing**: no parser is generated and no input
+/// is run, so it is not a claim that the rewritten grammar accepts or rejects anything. The pass
+/// that takes the same admission all the way to codegen is
+/// [`eliminate_indirect_left_recursion_admitting_guard_feasible`] (`.17` slice 8).
 pub fn dry_run_guard_feasible_elimination(
     grammar_tree: &HashMap<String, ASTNode>,
     rule_order: &[String],
@@ -472,7 +545,8 @@ pub fn dry_run_guard_feasible_elimination(
         &mut trial_tree,
         &mut trial_order,
         trial_annotations.as_mut(),
-        CandidateAdmission::GuardFeasibleDryRun,
+        CandidateAdmission::GuardFeasible,
+        Narration::Silent,
     );
     let cycle_rows_after = cycle_rows(&trial_tree, &trial_order);
     GuardDryRun {
@@ -483,14 +557,15 @@ pub fn dry_run_guard_feasible_elimination(
 }
 
 /// The driver itself. Behaviour is documented on [`eliminate_indirect_left_recursion`], which is
-/// the only caller a generated parser ever goes through; `admission` is the sole difference between
-/// that path and `.17` slice 3's dry run, and it is read in exactly two places — the candidate
-/// filter below, and [`CandidateAdmission::narrates`].
+/// the caller every `make`-generated parser goes through; `admission` is the sole difference between
+/// that path and the two guard-feasible entry points, and it is read in exactly ONE place — the
+/// candidate filter below. `narration` is the other axis and is read in one place too.
 fn eliminate_indirect_left_recursion_with_admission(
     grammar_tree: &mut HashMap<String, ASTNode>,
     rule_order: &mut Vec<String>,
     mut annotations: Option<&mut Annotations>,
     admission: CandidateAdmission,
+    narration: Narration,
 ) -> IndirectEliminationOutcome {
     let mut outcome = IndirectEliminationOutcome::default();
     // A refused candidate stays refused for the whole pass — otherwise every re-survey would
@@ -502,7 +577,7 @@ fn eliminate_indirect_left_recursion_with_admission(
         let survey = survey_indirect_left_recursion(grammar_tree, rule_order);
         let admitted = match admission {
             CandidateAdmission::StarvationSafe => survey.safe_candidates(),
-            CandidateAdmission::GuardFeasibleDryRun => survey.guard_admissible_candidates(),
+            CandidateAdmission::GuardFeasible => survey.guard_admissible_candidates(),
         };
         let mut ordered: Vec<&IndirectChainCandidate> = admitted
             .into_iter()
@@ -583,7 +658,7 @@ fn eliminate_indirect_left_recursion_with_admission(
 
         match attempt {
             Ok(plan) => {
-                if admission.narrates() {
+                if narration == Narration::Narrate {
                     eprintln!(
                         "[indirect_lr_elimination] ✅ Absorbing indirect left-recursive chain at rule '{}' \
                          ({} route(s), {} clone(s) via helper '{}')",
@@ -608,7 +683,7 @@ fn eliminate_indirect_left_recursion_with_admission(
                 );
             }
             Err(reason) => {
-                if admission.narrates() {
+                if narration == Narration::Narrate {
                     eprintln!(
                         "[indirect_lr_elimination] ⏭️  Declining rule '{}': {reason}",
                         candidate.base_rule
@@ -2139,11 +2214,13 @@ mod tests {
     #[test]
     fn the_guarded_clone_chain_reproduces_the_hand_written_g7_shape() {
         let (mut grammar, mut order, mut annotations) = knot_a_annotated_with_surviving_holder();
-        let outcome = eliminate_indirect_left_recursion_with_admission(
+        // ⭐ `.17` slice 8 — through the OPT-IN GENERATION entry point, not the private driver. The
+        // shape this test pins is now reachable by codegen, so the test must enter by the door
+        // codegen enters by; calling the driver directly would leave that door untested.
+        let outcome = eliminate_indirect_left_recursion_admitting_guard_feasible(
             &mut grammar,
             &mut order,
             Some(&mut annotations),
-            CandidateAdmission::GuardFeasibleDryRun,
         );
 
         assert_eq!(
@@ -2332,11 +2409,10 @@ mod tests {
         );
 
         // Then the emission: every arm is cloned, and the branching hop repoints BOTH.
-        let outcome = eliminate_indirect_left_recursion_with_admission(
+        let outcome = eliminate_indirect_left_recursion_admitting_guard_feasible(
             &mut grammar,
             &mut order,
             Some(&mut annotations),
-            CandidateAdmission::GuardFeasibleDryRun,
         );
         let guard = outcome
             .synthesized_guards
@@ -2383,7 +2459,7 @@ mod tests {
     /// admission criterion rather than a flag.
     ///
     /// The one-difference pair is the admission mode: the same fixture, the same planner, the same
-    /// call — `GuardFeasibleDryRun` emits one chain (the test above), `StarvationSafe` emits none.
+    /// call — `GuardFeasible` emits one chain (the test above), `StarvationSafe` emits none.
     /// A control that could only pass would be one that ran the planner on a grammar with no
     /// starvation at all; this one runs it on the knot where every candidate IS starved.
     #[test]

@@ -4,8 +4,8 @@ description: "DISCIPLINE (2026-08-13, ENGINE-UNIVERSAL-SERVICES.17 slice 4) — 
 id: feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence
 title: "A control that passes under both hypotheses is not weak evidence — it is none"
 date: 2026-08-13
-evidence: docs/tasks/artifacts/engine_universal_services/guard_effectiveness/ (cases C1/C2/C3, 37 rows, both oracles); docs/tasks/artifacts/engine_universal_services/quantifier_policy/README.md (the corrected Q2 row); docs/tasks/ENGINE-UNIVERSAL-SERVICES.md leaf .17 slice 4 RESULT 4
-reverify: "bash docs/tasks/artifacts/engine_universal_services/guard_effectiveness/probe.sh --interp-only | grep -q '37/37 as declared' && echo DISCRIMINATING-CONTROLS-HOLD"
+evidence: docs/tasks/artifacts/engine_universal_services/guard_effectiveness/ (cases C1/C2/C3, both oracles); docs/tasks/artifacts/engine_universal_services/quantifier_policy/README.md (the corrected Q2 row); docs/tasks/ENGINE-UNIVERSAL-SERVICES.md leaf .17 slice 4 RESULT 4; and TWO recurrences after this card was written — .17 slice 6's g7 rows e1-e6 and .17 slice 8's s1 rows e1-e6, the second found by a plant that left the whole bank GREEN (leaf .17 slice 8 RESULT 2, docs/tasks/artifacts/engine_universal_services/guard_parses/)
+reverify: "bash docs/tasks/artifacts/engine_universal_services/guard_parses/probe.sh | grep -q 'as declared' && echo DISCRIMINATING-CONTROLS-HOLD   # the S2 arm exists only because a plant proved S1's rows could not discriminate; probe.sh refuses to pass without it"
 answers:
   - "is my probe bank enough to claim a mechanism"
   - "why did a green self-checking gate still let a wrong claim through"
@@ -72,6 +72,27 @@ on `initial k = int'(1);` — a statement measured to parse at HEAD.
 same measurement.** That is not a coincidence and it is the real reason this matters: a wrong story
 about a mechanism hides exactly the cases the story says cannot exist.
 
+## ⛔⛔ IT RECURRED TWICE AFTER THIS CARD WAS WRITTEN — and the addition is HOW TO FIND IT
+
+This card was promoted by `.17` slice 4 on 2026-08-13. Within two days the identical defect appeared
+twice more, in the same leaf, in banks written by an author who had read it:
+
+| when | the bank | the rows that could not discriminate |
+|---|---|---|
+| `.17` slice 6 | `guard_effectiveness` `g7` | `e1`–`e6` — `g7` carries `g4`'s two holders, and slice 4 had ALREADY restricted `g4`/`g5` to `e1`+`e7` for exactly that reason |
+| `.17` slice 8 | `guard_parses` `s1` | `e1`–`e6` — `s1` inherited `g7`'s shape, so it inherited the hole |
+
+⭐⭐ **The transferable addition, and it is a method rather than a warning: a PLANT is what proves a
+row discriminates. Reasoning that it does is what failed all three times.** Slice 8 deleted the guard
+emission it was measuring, rebuilt, and re-ran the whole bank — **green, 35/35**. That is a one-line
+edit and one bank run, and it converts *"I believe this row tests the guard"* into a measurement.
+
+⛔ **Note the shape of the recurrence, because it is the thing to watch for.** Nobody re-derived a
+non-discriminating row from scratch — each time the GRAMMAR was inherited from a prior artifact
+(`g4` → `g7` → `s1`) while the ROW SET was written fresh, and the property that makes a row
+discriminating lives in the grammar, not in the row. ⇒ **when you copy a fixture, copy its row
+restriction and its reason, or re-derive the restriction with a plant.**
+
 ## Practical checks
 
 - **Name the alternative explanation in the probe file itself.** If you cannot state one, you are
@@ -79,6 +100,9 @@ about a mechanism hides exactly the cases the story says cannot exist.
 - **Do not run a case that cannot discriminate** — leave it out rather than run it and over-read it.
   (`.17` slice 4 applied this to its own bank: two of its rungs are measured on two inputs each,
   because their other inputs are absorbed by a second alternative and would pass either way.)
+- **Plant against the bank, per PROPERTY.** One plant per thing the bank claims — `.17` slice 8 runs
+  three (drop the trailing guard, drop the loop guard, guard the shared rule), and each must fail a
+  DIFFERENT row by name. A single plant proves one row discriminates and says nothing about the rest.
 - **A one-difference pair needs the difference to be the variable under test.** Q1/Q2 differed in
   the combinator *and* in whether the winning alternative was the one that worked. That is two
   differences, and only one was named.

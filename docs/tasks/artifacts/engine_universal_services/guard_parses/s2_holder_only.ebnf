@@ -1,0 +1,60 @@
+# ENGINE-UNIVERSAL-SERVICES.17 slice 8 — S2: S1 with the RESCUING alternative removed, so the
+# guard is the only thing that can produce the verdict.
+#
+# ⛔⛔ WHY THIS FILE EXISTS, AND IT IS A DEFECT IN S1's ROW SET THAT A PLANT FOUND. S1's entry rule
+# has two alternatives:
+#
+#   scratch := kw_k eq outer_cast semi        # the residual-BEARING holder — needs the guard
+#          | kw_k eq prim semi                # the residual-FREE holder — must stay unguarded
+#
+# and the second one can parse e1–e6 ON ITS OWN, through the eliminated-but-unguarded `prim`.
+# So every S1 arm-B row except `e7` passes under BOTH hypotheses: with the guard and without it.
+# Measured, not reasoned: deleting the trailing-lookahead emission in `apply_plan` and re-running the
+# whole bank left it **GREEN, 35/35**. A plant that cannot fail is a row that cannot check.
+#
+# ⭐ `.17` slice 4 had already recorded exactly this, one ladder down — `guard_effectiveness/probe.sh`
+# runs `g4` and `g5` on `e1` and `e7` ONLY, *"because their second alternative absorbs e2–e6 on its
+# own, so those rows would pass under BOTH hypotheses and prove nothing"*. The two-holder shape is
+# discriminating for CALL-SITE SCOPING (`e7`) and for the ADMISSION (the arm A/B flip), and not for
+# the guard. S1 inherited its shape from `g7` and its row set from nowhere.
+#
+# ⇒ THIS FILE IS THE ONE-DIFFERENCE CONTROL: S1 minus the second alternative. Nothing else changes —
+# same knot, same holder, same tokens, same layout tier. The candidate is still STARVED (the holder
+# still holds `ct` with a residual), the chain is still `ct > prim`, and the guard PGEN emits is
+# byte-for-byte the same shape. What changes is that `e1`–`e6` now have exactly ONE route to a parse,
+# through `outer_cast`, so each of them tests a guard position:
+#
+#   e1  k = n'(n);        the LOOP guard must stop the `*` at zero iterations
+#   e5  k = t'(n);        the TRAILING guard must refuse the over-long SEED, so `ct_guard`'s other
+#                         alternative `kw` wins the tournament and the holder gets its residual back
+#
+# ⛔ AND IT CANNOT TEST e7. `k = n;` has no holder to reach it here, so it is not in S2's rows — the
+# residual-free holder is S1's job. Neither grammar alone measures the design; the PAIR does, which
+# is why both ship.
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim:
+#   cp <this file> grammars/scratch/scratch.ebnf && make -C rust SHELL=/bin/bash focus_scratch
+@entry: true
+scratch := kw_k eq outer_cast semi   -> {kind: "held", body: $3}
+
+# ---- identical to S1 from here down.
+outer_cast := ct tick lparen lit rparen  -> {type: $1, body: $4}
+prim := lit       -> {kind: "lit",  body: $1}
+      | cast_expr -> {kind: "cast", body: $1}
+cast_expr := ct tick lparen lit rparen   -> {type: $1, body: $4}
+ct := kw   -> {kind: "kw",   body: $1}
+    | prim -> {kind: "prim", body: $1}
+
+lit := trivia /n/
+kw := trivia /t/
+kw_k := trivia /k/
+eq := trivia "="
+semi := trivia ";"
+tick := trivia "'"
+lparen := trivia "("
+rparen := trivia ")"
+
+@branch_policy: priority_first
+trivia := (line_comment | block_comment)*
+line_comment := /\/\/[^\n]*(\n|$)/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//

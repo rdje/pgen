@@ -2467,6 +2467,47 @@ only ever emitted for a *surviving starvation site*, and the shipped criterion a
 that have none. The check on that is `indirect_guard_chains=` on the third header line of the ordinary
 report — **0 on every shipped grammar**.
 
+### Executing what the planner emits — `--indirect-lr-admit-guard-feasible`
+
+Everything above stops one step short of the question that matters: *does the guard PGEN writes
+actually parse?* The dry run builds the shape and discards it. The effectiveness measurements that
+established the design were made on grammars a **person** wrote by hand. Neither is a parser built
+from PGEN's own emission.
+
+`--indirect-lr-admit-guard-feasible` is that step. It takes the guard-feasible admission all the way
+through **codegen**, so you can generate a parser from a guarded rewrite and feed it real bytes:
+
+```bash
+# 1. the shipped path — nothing is absorbed, because every candidate is STARVED
+make -C rust SHELL=/bin/bash focus_scratch
+
+# 2. the same grammar, the same generator line, one extra flag
+rust/target/debug/ast_pipeline generated/scratch.json --generate-parser \
+    --eliminate-left-recursion --indirect-lr-admit-guard-feasible \
+    -o generated/scratch_parser.rs
+```
+
+On the worked example in
+`docs/tasks/artifacts/engine_universal_services/guard_parses/` — a twenty-line grammar carrying the
+same cast knot SystemVerilog has — the two arms differ on three inputs:
+
+| input | shipped admission | `--indirect-lr-admit-guard-feasible` |
+|---|---|---|
+| `k = n'(n);` | accept | accept |
+| `k = n'(n)'(n);` | **reject** | **accept** |
+| `k = t'(n);` | accept | accept |
+| `k = n;` | accept | accept |
+
+The rejections on the left are the runtime cycle guard: the cycle was never eliminated, so the parser
+refuses the derivation that would re-enter it. On the right the chain is absorbed *and* its surviving
+starvation site is guarded, so all four parse — including `k = n;`, the holder that wants **no**
+residual after the rule and which a guard placed on the shared rule would break.
+
+⛔ **This is not the shipped policy, and it is not a way to build a deliverable.** Nothing in
+`rust/Makefile`, `scripts/` or the CI workflows passes the flag, and the pass prints a warning banner
+whenever it is on. What the flag buys is the ability to *measure* a rewrite before deciding to ship
+it — which is the difference between a design that has been argued and one that has been run.
+
 ⭐ **One criterion had to be deleted along the way: `seeds=0` is not a disqualification.** The
 direct/wrapper elimination *drops* a left-recursive alternative, so a rule whose every alternative is
 on the cycle has nothing left to seed from. The indirect transform *clones* it with the cycle edge
