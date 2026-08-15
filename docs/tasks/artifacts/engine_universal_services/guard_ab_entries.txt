@@ -1,0 +1,20 @@
+memory-guard: started pid=69604 pgid=69604 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=1800s free=79% disk=3289GB cmd: bash docs/tasks/artifacts/engine_universal_services/run_guard_ab_entries.sh
+==============================================================================================
+ENGINE-UNIVERSAL-SERVICES.20 (b) — three-arm A/B, DETERMINISTIC WORK tier (rule entries)
+==============================================================================================
+ARM 1  narrow (pre-flip policy)        files=16335  nodump=1  entries=  812,963,769  committed= 33,156,204  memo_hits=  341,704,992
+ARM 3  absorbed, guards SUPPRESSED     files=16335  nodump=1  entries=  833,400,172  committed= 31,431,974  memo_hits=  366,211,100
+ARM 2  SHIPPED                         files=16335  nodump=1  entries=  899,064,022  committed= 34,434,223  memo_hits=  394,972,142
+
+⭐ ground truth: ARM 2 reproduces the independent family census EXACTLY (899,064,022 entries)
+
+flip total   ARM2/ARM1 = 1.1059  (+10.59 % entries)
+  absorption ARM3/ARM1 = 1.0251  (+2.51 %)
+  guards     ARM2/ARM3 = 1.0788  (+7.88 %)
+SPLIT of the 86,100,253 added entries: absorption 20,436,403 = 23.7 %  ·  guards 65,663,850 = 76.3 %
+
+⛔ READ THIS AS WORK, NEVER AS TIME. Entries cannot be converted into seconds — `.21` measured
+   the counters ~8.9x less sensitive than wall clock to a per-entry cost rise. The structural
+   tier ranks these two halves the OPPOSITE way (guards 1.9 %); that disagreement is the
+   mechanism, not an error: six constantly-entered rules versus 114 rarely-entered ones.
+memory-guard: completed exit=0 peak_tree_rss=11824MB elapsed=182s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/generated_logs/memory_guard/guard.69604.marker

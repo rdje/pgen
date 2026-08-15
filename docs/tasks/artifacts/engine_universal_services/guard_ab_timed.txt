@@ -1,0 +1,18 @@
+==============================================================================
+ENGINE-UNIVERSAL-SERVICES.20 (b) — TIMED tier, 2 interleaved rounds (2026-08-15/16)
+==============================================================================
+⛔ THIS TIER IS NOISE-LIMITED ON THIS MACHINE TONIGHT AND ITS SPLIT IS NOT PUBLISHABLE.
+   Recorded in full so the refusal is evidence-backed rather than asserted.
+
+arm                                       runs      median        min        max     spread
+ARM 1  narrow (pre-flip policy)              2      365.8s     346.3s     385.2s      38.9s
+ARM 3  absorbed, guards SUPPRESSED           2      388.1s     337.7s     438.5s     100.8s
+ARM 2  SHIPPED                               2      366.6s     341.0s     392.2s      51.2s
+
+FIRST PASS, sequential, one run per arm, earlier the same evening:
+   ARM 1 301.5s   ARM 3 377.5s   ARM 2 397.4s   =>  absorption 79.2 %, guards 20.8 %
+
+⛔ THE TWO PASSES DISAGREE BY MORE THAN THE EFFECT. ARM 1 moved 301.5s -> 365.8s (+21 %)
+   between passes with an IDENTICAL binary and corpus, and the per-arm spread reaches 100.8s
+   (27 %). An instrument whose noise floor exceeds the 24 % effect it is aimed at cannot
+   adjudicate it. The machine had just absorbed three 21-minute / 12 GB release builds.

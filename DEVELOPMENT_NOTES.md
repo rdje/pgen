@@ -1,5 +1,31 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0044 — the number you wanted, measured twice, disagreeing with itself
+
+**1. When two passes of the same measurement disagree by more than the effect, you have measured your
+machine, not your change.** The first pass gave a beautiful split — 79 % absorption, 21 % guards,
+consistent with the published +24 %. The second, interleaved, gave ARM2/ARM1 = 1.002: no effect at
+all. The same binary that ran the corpus in 301.5 s ran it in 365.8 s an hour later. The correct
+output of that situation is not the prettier number; it is the spread, published, plus the condition
+that would make the measurement admissible. I had written the caveat *"structure is not time"* onto
+the previous slice; this slice is where "time is not time either, unless you control the machine"
+had to be learned.
+
+**2. Two deterministic instruments ranking the same two things in OPPOSITE orders is information, not
+an error to reconcile.** Static census: guards are 1.9 % of what the flip added. Execution census:
+guards are 76.3 % of the work it added. Both exact, both reproducible. Six rules that are entered
+constantly beat 114 rules that are entered rarely — and neither census can see the per-entry cost
+that a third instrument would measure. The useful output was not a winner; it was the sentence
+*"'which half is expensive' has no single answer, so name the axis before optimising"*.
+
+**3. A verdict check is not an integrity check.** My timed runner aliased all three arms onto one
+output directory (bash expands a whole `local a=… out=…${a}…` line before assigning, so `${a}` came
+from an outer loop). Every arm still printed ✓ *"verdicts as expected"*, because each run read back
+its own results from the aliased path. Six green checks, one silently mixed dataset. The thing that
+caught it was an aggregator counting inputs — and its first cut *skipped* the missing ones and
+averaged the rest. ⇒ any aggregation step must REFUSE on a missing input; "found fewer than expected"
+and "there were fewer than expected" must never print the same way.
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0042 — a correction you documented this morning will still catch you this afternoon, unless it lives in the instrument
 
 **1. Knowing about a measurement trap does not protect you from it; encoding it does.** Hours after

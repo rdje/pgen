@@ -5221,7 +5221,7 @@ was comfortable in a way `+24.3 %` is not.
   its promotion finally happened, seven slices later, with the ratchet paid rather than waived, and a
   `KNOWLEDGE_MAP.md` regeneration.
 
-#### ⛔⛔⛔ `.20` `in progress` — (d) DISCHARGED slice 1, (a) FIRST PASS slice 2, **(b) STRUCTURAL TIER slice 3** (`-0042`: guard emission is **1.90 %** of the flip's structural growth, absorption **98.10 %**); (b) timed tier + (c)/(e) OPEN — the guarded admission costs **+24.3 %** parse time on the SV corpus, and *"costs are REJECTED, not traded"* is a NON-NEGOTIABLE (opened 2026-08-14 session #232 by `.17` slice 9)
+#### ⛔⛔⛔ `.20` `in progress` — (d) DISCHARGED slice 1, (a) FIRST PASS slice 2, **(b) MEASURED THREE WAYS slices 3+4** (`-0042`/`-0044`: STRUCTURE guards **1.9 %** · WORK (entries) guards **76.3 %** — the two deterministic tiers rank the halves OPPOSITELY, which is the mechanism: 6 constantly-entered rules vs 114 rarely-entered ones — and TIME is **noise-limited on this machine**, so ⛔ **(b) is NOT discharged**); (c)/(e) OPEN — the guarded admission costs **+24.3 %** parse time on the SV corpus, and *"costs are REJECTED, not traded"* is a NON-NEGOTIABLE (opened 2026-08-14 session #232 by `.17` slice 9)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -6737,6 +6737,130 @@ measure, not just copied to a tracked path.
   it is only imported — so `PARSE-COST-RATCHET`'s identity tier is unaffected and its baseline is
   untouched; the doctrine driver re-runs it green. `make -C rust SHELL=/bin/bash mdbook_docs_gate`
   passes.
+
+#### ⭐⭐⭐ `.20` SLICE 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0044`, 2026-08-15/16 session #237) — (b) MEASURED THREE WAYS, and the three ways DISAGREE about which half is expensive. **(b) is NOT discharged: the tier ruling B binds on is noise-limited, and that refusal is the deliverable.**
+
+Slice 3 built the third arm and priced it STRUCTURALLY. This slice built the two release probes the
+timed comparison needs (~21 min / 12 GB peak each), ran the corpus per arm, and then could not
+publish the number it went looking for. What it found instead is more useful than the number would
+have been.
+
+##### ⭐ THE ARMS ARE SOUND — verdicts are exact and reproducible across every run
+
+| arm | corpus verdicts | reproduces |
+|---|---|---|
+| **1** narrow admission | `pass 9762 / fail 6574` | ⭐ EXACTLY `.17` slice 9's narrow arm and the tracked pre-flip baseline — the lever is a proven behavioural inverse |
+| **2** SHIPPED | `pass 9774 / fail 6562` | ⭐ the TRACKED oracle, **16 336/16 336 verdicts byte-identical** to `stimuli/sv/characterization/results.tsv` |
+| **3** absorbed, guards SUPPRESSED | `pass 9487 / fail 6849` | itself, on all 3 runs |
+
+Every arm reproduced its verdicts on every one of its runs. ⛔ **ARM 3 passes FEWER files than even
+ARM 1** (9487 < 9762): absorbing the knot and then withholding the guard is strictly worse than not
+absorbing at all — **287** files regress `pass → fail` across 8 sub-corpora (verilator 83, opentitan
+73, Surelog 48, sv2v 30, iverilog 29, ispras 17, black-parrot 4, sv-tests 3). ⇒ the guards are
+LOAD-BEARING for acceptance, not overhead, and any optimisation that removes them re-opens 287 files.
+
+##### ⛔⛔⛔ THREE INSTRUMENTS, THREE ANSWERS, AND THE DISAGREEMENT IS THE MECHANISM
+
+| tier | what it measures | absorption | guards | reproducible? |
+|---|---|---:|---:|---|
+| STRUCTURE (`run_guard_ab_structural.sh`) | norm_bytes / rules emitted | **98.1 %** | **1.9 %** | yes, exactly |
+| WORK (`run_guard_ab_entries.sh`) | rule ENTRIES over 16 335 files | **23.7 %** | **76.3 %** | yes, exactly |
+| TIME (`run_guard_ab_timed.sh`) | wall clock over the corpus | *79.2 %* | *20.8 %* | ⛔ **no — see below** |
+
+**The two deterministic tiers rank the halves OPPOSITELY, and both are right.** The guard emission is
+**six rules — 1.9 %** of the code the flip added — that are entered constantly: **+65 663 850**
+entries. The absorption is **114 rules — 98.1 %** of the code — entered comparatively rarely:
+**+20 436 403**. Bytes measure what was WRITTEN; entries measure what is EXECUTED; and a per-entry
+cost is invisible to both. ⇒ *"which half is expensive"* has no single answer, and any burn-down that
+optimises the wrong axis will move a number without moving the seconds.
+
+⭐ Ground truth on the work tier, not assumed: ARM 2's census reproduces the independent
+`lr_profile/family_census.py` total **exactly — 899 064 022 entries** — and the instrument REFUSES
+rather than publishing a split if it ever does not.
+
+##### ⛔⛔ WHY (b) IS NOT DISCHARGED — the tier ruling B binds on cannot resolve the effect tonight
+
+Ruling **B** binds on parse TIME. Measured twice, same evening, same corpus, identical binaries:
+
+| pass | ARM 1 | ARM 3 | ARM 2 | verdict |
+|---|---:|---:|---:|---|
+| first, sequential, 1 run/arm | 301.5 s | 377.5 s | 397.4 s | ⇒ absorption 79.2 %, guards 20.8 % |
+| second, **interleaved**, 2 rounds | 365.8 s (spread 38.9) | 388.1 s (spread **100.8**) | 366.6 s (spread 51.2) | ⇒ ARM2/ARM1 = **1.002**, i.e. nothing |
+
+**ARM 1 moved 301.5 s → 365.8 s (+21 %) between passes with the same binary**, and one arm's spread
+reached **100.8 s (27 %)** — larger than the 24 % effect being adjudicated. The machine had by then
+absorbed three 21-minute / 12 GB release builds. ⇒ **an instrument whose noise floor exceeds its
+effect cannot adjudicate that effect**, and publishing the first pass's tidy 79/21 split would be
+picking the run that agreed with me. `.17` slice 9's own `~11 %` error was this same defect wearing a
+different hat — a comparison across conditions that were not held equal.
+
+**WHAT WOULD DISCHARGE (b):** re-run `run_guard_ab_timed.sh` with ≥3 rounds on a QUIET machine — no
+builds in the preceding hour — and require the per-arm spread to be **< ¼ of the effect** before any
+split is read off it. The arms, the probes and the runner all exist now, so that is one command and
+~15 minutes, not another session of building.
+
+##### ⛔ THE TIMED RUNNER SHIPPED WITH A DEFECT OF MY OWN, AND IT IS RECORDED BECAUSE IT ALMOST PASSED
+
+Its first cut wrote
+
+```bash
+local a="$1" r="$2" out="$ARMS/timed/${a}_r${r}"
+```
+
+Bash expands the entire command line **before** performing any of the assignments, so `${a}` and
+`${r}` resolved against the OUTER scope — where the arm-validation loop above had left `a=arm3`.
+**All three arms wrote to `timed/arm3_r$r`, each run silently overwriting the previous.** It did not
+look like a failure: every run read back its own `results.tsv` from that path, so all six verdict
+checks printed ✓ and the script exited 0 saying *"every arm reproduced its expected corpus
+verdicts"*. The only tell was the aggregator reporting **0 runs** for two arms — which its first cut
+answered by printing `—` and averaging what was left, yielding a plausible `median 325.1 s, spread
+53.0 s` that was three different arms mixed together. ⇒ two fixes: the `local`s are separate
+statements, and **the aggregator now REFUSES on a missing input instead of skipping it.**
+
+##### ⚠️ HONEST BOUNDS
+
+- The wall-clock split is UNRESOLVED, not "roughly 79/21". Both passes are recorded in
+  `guard_ab_timed.txt` so the refusal is evidence-backed.
+- The work tier answers *which half does more WORK*, never *which half costs more TIME* — entries are
+  ~8.9× less sensitive than wall clock to a per-entry rise
+  ([[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]]).
+- ARM 3 is unsound (287 regressions), so its timings compare partly-different work. The same-verdict
+  subsets from the first pass (+26.1 % ARM1→ARM3, +4.1 % ARM3→ARM2) are recorded but inherit the
+  same noise caveat.
+- ⛔ Reaching the clean path required `PGEN_CORPUS_REBASELINE=1` because the corpus runner's
+  non-destructive hatch does not work — `SV-CORPUS-GRAD.3.28`, opened by this slice.
+
+##### Acceptance Checklist (enforced) — `.20` slice 4, (b) work tier + the timed refusal
+
+- [x] **REPRODUCE / ISSUE** — the arm `.20`(b) asks for is now built and RUN, not just generated: two
+  release probes (ARM 1, ARM 3) at ~21 min / 12 GB each, three corpus runs per arm, every arm
+  reproducing its expected verdicts on every run, and ARM 2 reproducing the tracked oracle
+  16 336/16 336.
+- [x] **ROOT CAUSE (WHY + WHERE)** — for the question the slice answers: WHY the two deterministic
+  tiers disagree — the guard emission is 6 rules entered 65.7 M times while the absorption is 114
+  rules entered 20.4 M times, so a static census and an execution census rank them oppositely BY
+  CONSTRUCTION. WHERE, by the ops/build-flow toolbox and the engine's own counters:
+
+  ```
+  $ nm rust/target/lr_ab_arms/probe_arm3 | grep -c _lr_guard      # the arm is what it claims
+  0
+  $ bash docs/tasks/artifacts/engine_universal_services/run_guard_ab_entries.sh
+  ARM 1  entries= 812,963,769   ARM 3  entries= 833,400,172   ARM 2  entries= 899,064,022
+  SPLIT: absorption 20,436,403 = 23.7 %  ·  guards 65,663,850 = 76.3 %
+  ```
+- [x] **FIX** — this slice measures; it changes no shipped byte. Two tracked instruments added
+  (`run_guard_ab_timed.sh`, `run_guard_ab_entries.sh`) with their outputs committed; the timed
+  runner's own path-aliasing defect fixed and its aggregator made refusing.
+- [x] **ADDRESSED (verified)** — before→after on what (b) knew. BEFORE: no third arm had ever been
+  RUN, and the split between absorbing and guarding was unmeasured on every axis. AFTER: it is
+  measured exactly on two axes (**structure 98.1/1.9**, **work 23.7/76.3**), the arms are
+  verdict-verified, and the third axis is measured to be UNRESOLVABLE on this machine tonight with
+  the spread that proves it. ⛔ The wall-clock split is explicitly NOT claimed.
+- [x] **NO REGRESSION** — `rust/target/release/parseability_probe` was rebuilt from the shipped
+  parser and verified (`nm … | grep -c _lr_guard` → 11, matching the pre-slice binary); `generated/`
+  is untouched; `stimuli/` tracked artifacts are untouched (`git status --porcelain stimuli/` empty,
+  `results.tsv` mtime unchanged at 08-14 22:32). `bash scripts/check_doctrines.sh` → ALL 20 enforced
+  doctrines PASS. `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
 
 #### ⛔⛔ `.24` NEW `todo` — `PARSE-COST-RATCHET`'s identity block pins every INPUT and not the EXECUTABLE, so the gate says *"the measurement cannot have moved"* while the probe on disk embeds a different parser (opened 2026-08-15 session #237 by `.20` slice 4, DEMONSTRATED LIVE)
 
