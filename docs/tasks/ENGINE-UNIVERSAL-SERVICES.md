@@ -5682,6 +5682,92 @@ unusable.
   confirms rather than extends).
 
 
+##### ⛔⛔ `.20` SLICE 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0035`, 2026-08-15 session #234) — SELF-AUDIT of slices 1-2, requested by the director; **STARTED, NOT FINISHED** — one defect found and fixed, and the audit is OPEN
+
+⛔ Director directive: *"You should always double-check all your claims and make sota, signoff and
+production-grade decisions."* Following the `README-POLICY.10` (`-0009`) precedent, in which
+re-deriving `-0008`'s claims instead of restating them found **four** defects, **every one flattering**.
+⚠️ **This slice was interrupted by an `/exit` and is INCOMPLETE.** It is recorded in this state
+deliberately — an audit that stops silently is worse than one never started, because the unaudited
+claims keep their apparent endorsement.
+
+###### ✅ AUDITED AND HELD
+
+| claim | re-derivation | verdict |
+|---|---|---|
+| LR family = **0.681 %** of corpus rule entries | re-summed from the 16 336-row census: 6 126 595 / 899 264 997 = **0.6813 %** | ✅ exact |
+| `24.3 / 0.681` ⇒ **~35×** | **35.7×** | ✅ |
+| the bound is published in 4 places | `grep '0.681'` → `cost.md` 1, `check_parse_cost_ratchet.sh` 1, `TOOLBOX.md` 1, `DOCTRINE_ENFORCEMENT.md` 1 | ✅ all four |
+
+###### ⛔⛔⛔ DEFECT 1 — FOUND AND FIXED: I COMMITTED, IN THE DURABLE RECORD, THE EXACT ERROR SLICE 2 RESULT 4 WARNS AGAINST
+
+`CHANGES.md` carried *"a quarter of the parse **now** runs underneath them"* and *"it measures the
+one quantity **this change deliberately did not move**"*; `MEMORY.md` carried the same second clause.
+Both assert a **pre/post change**. ⛔ **Every number in slices 1-2 was measured on the SHIPPED parser
+alone.** There is no pre-flip entry count and no pre-flip profile arm — that is precisely what
+acceptance (b) is for, and RESULT 4 of slice 2 says so two paragraphs later in the same file.
+
+⇒ the record was **internally inconsistent**, and the inconsistency ran in the **flattering
+direction**: it makes the explanation read as *established* when it is a hypothesis consistent with
+the data. ✅ Corrected in place (not deleted — supersede-don't-mutate applies to the claim, and the
+correction names what would prove it). The surviving statement is: in the shipped parser LR is ~2 %
+self / ~27 % inclusive, and *whether the flip moved the subtree rather than the entry count is
+consistent with both measurements but unmeasured*.
+
+⭐ The transferable half: **two individually correct measurements can compose into an unproven
+third**. Neither the 0.681 % nor the 27.3 % is wrong; the *causal join between them* was never
+measured, and joining them read as a conclusion because both inputs were solid.
+
+###### ⛔ OPEN — CLAIMS NOT YET RE-DERIVED (the next session starts here)
+
+1. ⛔⛔ **The code-folding claim is INFERRED, not verified.** Slice 2 RESULT 5 concludes *identical
+   code folding* from symbol COUNTS (10 families, 1 `cascade_error_from_parse`). That is consistent
+   with ICF but was **not** tested against the live alternative — that SystemVerilog's copy was
+   INLINED away, leaving `sample` to attribute to the nearest preceding symbol. Both produce the
+   same symbol census. ⇒ **decide it with `otool` annotated disassembly** (a registered SPEED token):
+   disassemble an SV caller and check whether the call target address IS the `rtl_frontend` symbol's
+   address. Until then `TOOLBOX.md` 3.8's *mechanism* is provisional — its *operational advice*
+   (do not trust per-family symbol attribution; check the symbols your conclusion rests on) holds
+   under either mechanism.
+2. **`165 of 174` LR symbols** — not re-derived since first measurement.
+3. **`1.9 % / 27.3 %` and the `2.4 % / 27.9 %` control** — single runs each; sampling is stochastic
+   and neither was repeated. ⚠️ A profile is not a deterministic oracle, and slices 1-2 nowhere state
+   a confidence interval for them.
+4. **"the LR rules are cheap and rare"** — *"rare"* is imprecise: 0.681 % of ENTRIES, but the census
+   shows **73.5 % of corpus FILES** enter them. Rare per entry, ubiquitous per file.
+5. **"no such flag exists today"** (the guard-suppression lever, sizing acceptance (b)) — checked by
+   one `grep` over `main.rs` + `mod.rs`, not over `indirect_lr_elimination.rs` itself.
+6. **"~22-minute release rebuilds"** — quoted from `MEMORY.md`, never measured in this session.
+
+###### Acceptance Checklist (enforced) — `.20` slice 3
+
+- [x] **REPRODUCE / ISSUE** — the director asked for every claim to be double-checked. Re-deriving
+  rather than restating immediately reproduced an inconsistency inside one file: `CHANGES.md` asserts
+  a pre/post change at line 11-13 and denies having measured one at line 25.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: slices 1 and 2 each measured the SHIPPED parser only, and
+  the *join* of their two correct numbers into a causal story about the FLIP was never measured.
+  WHERE: `CHANGES.md` (*"now runs underneath"*, *"the one quantity this change deliberately did not
+  move"*) and `MEMORY.md` (the second clause). Located by grepping the durable record for the
+  change-asserting phrasing, which is how it was established that the defect was NOT confined to a
+  chat message.
+- [x] **FIX** — fix-hierarchy tier = **claim correction in the durable record**, zero code/gate bytes.
+  Both surfaces now state the shipped-parser fact and mark the causal reading as unmeasured, naming
+  (b) as what would prove it. The remaining unaudited claims are enumerated above rather than left
+  implicitly endorsed.
+- [x] **ADDRESSED (verified)** — `grep -n "now runs underneath\|quantity this change deliberately did
+  not move\|the one quantity the change did not move"` over `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md
+  CHANGES.md DEVELOPMENT_NOTES.md MEMORY.md TOOLBOX.md` returns **no hits** after the fix (it
+  returned 2 in `CHANGES.md` and 1 in `MEMORY.md` before). The three audited numeric claims re-derive
+  exactly (table above).
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 19 enforced doctrines PASS**,
+  `PARSE-COST-RATCHET` included, its identity tier re-hashing grammar + generated parser + sample
+  digest unchanged. Documentation-only; no executable byte moved.
+- promotion: declined (the durable lesson — *two individually correct measurements can compose into
+  an unproven third* — is a sharper restatement of the failure already carried by
+  `docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md`; promoting a second
+  card before the audit that produced it is FINISHED would bank a lesson from an unfinished audit).
+
+
 #### ⛔⛔ `.19` NEW `todo` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it

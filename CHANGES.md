@@ -8,9 +8,11 @@
   profiler is the only instrument in the toolbox that observes it.
 - ⭐⭐⭐ **SELF 1.9 %, INCLUSIVE 27.3 %** on the heaviest corpus file (`pinmux_reg_top.sv`, 4.5 s,
   1 ms sampling). The 14× gap RESOLVES slice 1's tension: the LR rules are entered rarely and cost
-  almost nothing themselves, but **a quarter of the parse now runs underneath them**. A counter
-  counts entries into cheap functions; the expense is the subtree. ⇒ the binding metric is not
-  merely *less sensitive*, it measures the one quantity this change deliberately did not move.
+  almost nothing themselves, but **a quarter of the parse runs underneath them** in the SHIPPED
+  parser. A counter counts entries into cheap functions; the expense is the subtree. ⚠️ **The
+  reading that the flip moved the SUBTREE rather than the ENTRY COUNT is CONSISTENT with both
+  measurements but is NOT itself measured** — every number here comes from the shipped parser
+  alone, and no pre-flip entry count or profile arm exists yet. (b) is what would prove it.
 - ⛔ The denominator is the **parsing worker thread**, not the process: `sample` reports two threads
   at 2 774 samples each and the main thread's are **all `__ulock_wait`** (idle, waiting on the
   worker). Dividing by the process total would have halved every percentage.
