@@ -1,5 +1,18 @@
 # LIVE-MEANS-LIVE — `LIVE_ACHIEVEMENT_STATUS.md` is 94.7 % changelog, and nothing watches it
 
+## Metadata
+
+- Tree ID: `LIVE-MEANS-LIVE`
+- Family / slice-id prefix: **`PGEN-LIVE-MEANS-LIVE-<NNNN>`**
+  ⛔ **DECLARED 2026-08-14 (`PGEN-LIVE-MEANS-LIVE-0015`) BECAUSE ITS ABSENCE CAUSED A REAL DEFECT.**
+  This tree had **no `## Metadata` block at all** — one of the 77 of 161 `docs/tasks/*.md` files
+  without one — so it declared no prefix, and a session working `.6` stamped **seven** commits
+  `PGEN-README-POLICY-<NNNN>` (the prefix of the tree it had *arrived from*) while the owning leaf
+  was `LIVE-MEANS-LIVE.6`. `git log --grep PGEN-LIVE-MEANS-LIVE` misses all seven. The rule with no
+  declaration to follow is the rule that gets drifted from; see `.6`'s commit log for the mapping.
+- Created: `2026-07-31`
+- Owner: repo-local workflow
+
 - **Status: `active`** — opened 2026-07-31, session #229, by **DIRECT DIRECTOR ORDER**:
   > *"the file is called LIVE_ACHIEVEMENT_STATUS.md — if it keeps antique quotes, it ceases to
   > be live, it becomes a museum. It feels to me as if we shouldn't keep those historical
@@ -1650,6 +1663,33 @@ message** (`check_readme_stability.sh:83`, retired in `.1c2`). A hand-authored r
 see it. ⇒ answers their Q4 (*"can an unbounded sink still hide behind this graph?"*) — **yes, not
 behind it, beside it** — and the fix is to derive candidate edges from the enforcers' own output
 text, since any guard that names a destination is defining a route.
+
+#### Commit log for `.6` (tree → commit; the direction that was MISSING until `-0015`)
+
+⛔ **Why this section exists.** The director asked *"is there a task-tree attached or pointing to
+`2e50add8`?"* and the audit answered **only in one direction**: every commit names `leaf
+LIVE-MEANS-LIVE.6` in its subject (commit → tree ✅), but the tree named **none** of the last three
+back (tree → commit ❌ — `-0017`, `-0018`, `-0019` appeared nowhere in any task file). `COMMIT.md`
+requires *"commit log entries"* in the owning tree and this leaf carried none. Same shape as
+`README-POLICY.9`'s unreachable-id defect and the layer-C index reconcile: **a link that exists in
+one direction is not a link.**
+
+⛔⛔ **SLICE-PREFIX MISMATCH, recorded rather than rewritten** (history is append-only). All eight
+slices below were stamped `PGEN-README-POLICY-<NNNN>` while owned by `LIVE-MEANS-LIVE.6`. The tree's
+own prefix — used by its 14 prior commits — is `PGEN-LIVE-MEANS-LIVE-<NNNN>`. The mapping below is
+what makes them findable from this side; the root cause (no declared prefix) is fixed in the
+Metadata block above, and this tree's slices use the correct prefix from `-0015` onward.
+
+| slice (as committed) | what it landed |
+|---|---|
+| `PGEN-README-POLICY-0013` | `README-POLICY.11` folded in as a duplicate; consumer census + identifier reachability (1038/1046) |
+| `PGEN-README-POLICY-0014` | the pointer-table recommendation REFUTED by `INDEX.md` (126 KB) and `KNOWLEDGE_MAP.md` (533 KB) |
+| `PGEN-README-POLICY-0015` | the SPEC from first principles — function, growth law (r = 0.741), invariants I1/I2 |
+| `PGEN-README-POLICY-0016` | the FORMAT measured over five candidates; size and query-count shown non-decisive |
+| `PGEN-README-POLICY-0017` | verdict `key=value`; TSV/table eliminated on correctness, YAML on structure |
+| `PGEN-README-POLICY-0018` | `B = 192 B/row` — the last open design parameter |
+| `PGEN-README-POLICY-0019` | verdict REOPENED by the director (kv unformalized vs JSONL); migration PARKED until SV release |
+| **`PGEN-LIVE-MEANS-LIVE-0015`** | **this** — Metadata + prefix declared, commit log added, both link directions closed |
 
 #### Verification (docs-only; no code change ⇒ no acceptance checklist per `COMMIT.md`)
 
