@@ -1892,7 +1892,45 @@ removing prose, not by the syntax. Real tree-id substring collisions across all 
   direction this repository fails on repeatedly, and it disqualifies TSV and the Markdown table for
   a surface meant to last.
 
-##### 3c. ⇒ THE PROPOSED FORMAT — one self-describing record per line
+##### 3c. ⇒ ✅ VERDICT: **`key=value` LINE RECORDS WIN** — one self-describing record per line
+
+| candidate | self-describing hit | survives column insert | lines/rec | B/rec | verdict |
+|---|---|---|---:|---:|---|
+| **`key=value`** | ✅ | ✅ | 1.0 | **86** | ✅ **WINS** |
+| JSONL | ✅ | ✅ | 1.0 | 99 | runner-up — pick it only if a typed validator becomes the primary consumer |
+| TSV | ❌ positional | ❌ **silent wrong value** | 1.0 | 57 | ❌ out |
+| Markdown table | ❌ positional | ❌ **silent wrong value** | 1.0 | 97 | ❌ out |
+| YAML | ✅ | ✅ | **4.0** | 93 | ❌ out — breaks one-record-one-line (I2) |
+
+**TSV and the Markdown table are eliminated on correctness, not on style**: both fail the
+column-insert probe by returning a *plausible wrong value with no error*. **YAML is eliminated
+structurally** — 4 lines/record means a grep hit is a fragment, not a record. That leaves `key=value`
+and JSONL, which are equivalent on both discriminating axes; `key=value` takes it on **86 vs 99
+B/record**, better tokenization (`=` vs JSON punctuation), no quoting/escaping discipline, and no
+`jq` on the critical path. ⭐ The choice is **reversible by construction** — the field names are
+identical, so kv ⇄ JSONL is a mechanical rewrite if tooling needs ever change.
+
+⛔⛔ **THE ONE PRECONDITION THAT MAKES `key=value` SAFE — VERIFIED, NOT ASSUMED.** `key=value` has
+exactly one failure mode: a value containing a space. Measured against the live data:
+
+```
+tree file paths containing a space : 0
+tree ids containing a space        : 0 of 110
+status tokens in use               : done(124) active(47) complete(18) todo(8) parked(4) superseded(3) blocked(3)  -- all single words
+```
+
+⇒ safe today, and the schema must **pin it** (`status` an enum of space-free tokens; `id`, `frontier`,
+`file` space-free by construction). ⚠️ **The counterexample is live in this repo**:
+`done_bar_family_register_v0.json` uses `Mostly Done` / `Provisional (corpus pending)`. If that
+vocabulary is ever copied into the tree index, `key=value` breaks — so the enum is not a nicety, it
+is the load-bearing constraint. JSONL would tolerate spaces; that is its one genuine advantage and it
+is bought at 15 % more bytes plus escaping rules.
+
+⭐ **By-product finding the census surfaced**: `done` (124) and `complete` (18) are **two spellings
+of one state**, in use simultaneously. A free-form cell hides that; an enum forces the choice. Fold
+into the schema step.
+
+##### 3c-i. The record shape
 
 ```text
 TREE id=SV-CORPUS-GRAD status=active frontier=.20 lane=sv file=docs/tasks/SV-CORPUS-GRAD.md
