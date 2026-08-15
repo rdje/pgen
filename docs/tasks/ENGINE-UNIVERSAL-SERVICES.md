@@ -6512,6 +6512,47 @@ a bigger timeout; (d) restate slice 1's ground-truth claim with the reproducible
 (**16 335/16 335**, 1 no-dump) rather than the published `16 336/16 336`.
 
 
+#### ⚠️ `.23` NEW `todo` — the direct-LR normalizer's "all alternatives are left-recursive → leave it alone" guard MISSES the mixed case, so well-formedness reports the error against an ENGINE-INVENTED rule name the author never wrote (opened 2026-08-15 session #236 by `.21` slice 2)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED, and whether it reproduces
+outside the family it is filed under):
+
+- **Stays in this tree, and that is measured, not assumed**: both the normalizer
+  (`rust/src/ast_pipeline/mod.rs:3203`) and the well-formedness checker are ENGINE-universal. The
+  reproducer is a 4-rule synthetic with no SystemVerilog in it
+  (`docs/tasks/artifacts/engine_universal_services/lr_alt_survives_unconsumed.ebnf`), so the defect
+  is a property of the engine, not of any grammar family.
+- **The mechanism, located to the line.** `normalize_direct_left_recursive_alternatives` counts an
+  alternative as a `seed` (mod.rs:3231) whenever it is not a `Sequence` starting with the base
+  rule. A **bare rule reference to an indirect wrapper** is therefore counted as a seed — even
+  though it is left-recursive through one hop. So for `expr := expr "+" term | mulwrap` with
+  `mulwrap := expr "*" term`, `seed_alternatives = 1`, the deliberate guard at mod.rs:3237 (*"A rule
+  whose alternatives are ALL left-recursive derives nothing … leave it visible where it is"*) does
+  **not** fire, and the engine hoists `expr_lr_alt1`. The planner then classifies both alternatives
+  as wrappers, `base_alternatives` is empty (mod.rs:3335), it returns `None`, and the hoist is never
+  consumed.
+- **The user-visible symptom, measured.** `make -C rust SHELL=/bin/bash focus_scratch` on that
+  synthetic reports, verbatim:
+  `grammar well-formedness ERROR: rule 'expr_lr_alt1' has no finite terminal derivation (it can
+  never produce a complete string) — it is ill-formed; add a terminating alternative`.
+  ⛔ **`expr_lr_alt1` does not exist in the author's grammar.** The guard's own stated intent is to
+  leave the non-termination *visible where it is*; in the mixed case it instead surfaces it on a
+  synthetic name, one hop removed from the alternative that actually causes it.
+- ⚠️ **Severity, stated honestly: this is a DIAGNOSTIC-QUALITY defect, not a correctness one.** The
+  grammar genuinely is non-terminating and the engine genuinely refuses it — the verdict is right,
+  the *locus* is wrong. It is also the reason `_lr_alt` cannot reach a shipped parser, so nothing
+  downstream mis-prices. It is filed rather than fixed because of that, and because of the SV lane
+  lock.
+
+**Acceptance:** (a) decide whether `seed_alternatives` should count a bare reference to a rule whose
+body begins with the base rule as a seed at all — ⛔ derived by reading what `extract_wrapper_suffix`
+will later accept, not by pattern-matching this one synthetic, or the next shape is missed the same
+way; (b) if it should not, the guard at mod.rs:3237 fires and the error lands on the author's own
+rule — verify against the preserved synthetic that the diagnostic names `expr`, not `expr_lr_alt1`;
+(c) confirm the fix cannot change any shipped family's emitted rule set (the 10-family declared-name
+census `python3 stimuli/sv/corpus_parse_cost.py --verify-families` is the before/after oracle, and
+`generated/*` byte-identity is the stronger one).
+
 #### ⛔⛔ `.19` NEW `todo` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
