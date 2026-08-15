@@ -1,5 +1,32 @@
 # CHANGES.md
 
+## 2026-08-15 - PGEN-DECISIONS-0001 — director STANDING DIRECTIVE recorded (layer C): verify a claim THREE DIFFERENT WAYS before publishing it, because a repeated pass repeats its own blind spot (DOCS only, ZERO code/gate bytes)
+
+- Directive, verbatim: *"From now on, before making claims for me to review, please double-check,
+  triple-check that they hold, because we need sota, signoff claims, decisions."*
+- ⛔⛔ Recorded with the fact that makes it load-bearing: it is the **SECOND** statement of the rule
+  (the first is quoted in `ENGINE-UNIVERSAL-SERVICES.20` slice 3), and that directive WAS followed —
+  a self-audit ran and found a real defect — yet the next two slices still published claims that did
+  not hold. ⇒ the failure is not willingness, so a third restatement would not fix it either. The
+  record is therefore a PROCEDURE WITH NAMED LEGS, so *"did I check?"* becomes answerable.
+- ⭐ **Why one more careful pass does not work**, measured on session #235: every corrected claim had
+  already been checked once, carefully, by a check that COULD NOT FAIL — a CONSERVATION control
+  (`sum(self) == root`) against a MISASSIGNMENT bug, and a ten-case control suite drawn from the same
+  PROSE as the classifier it was testing. A second pass of the same kind re-runs the same blind spot.
+- ⇒ three DIFFERENT questions: **(1) RE-DERIVE** by command from the source; **(2) FALSIFY** — name
+  the competing hypothesis, prefer an oracle you did not build, prove the control can go RED, and
+  derive classifiers from the PRODUCER not from its description; **(3) DURABILITY** — is the producer
+  TRACKED and does anything FAIL when the claim goes stale.
+- ⭐ Leg 3 is the one that was skipped, and it is what separates *signoff-grade* from *true-today*:
+  four audit instruments and eight profile reports sat in a gitignored directory (`git ls-files` →
+  **0**), and a corrected constant replaced a wrong unwatched number with a right unwatched one.
+- ⛔ Standing rule for hand-off: when a leg is missing, **name it** — *"re-derived and falsified; NOT
+  durable, the instrument is untracked"* is signoff-grade; a hidden gap is the defect. Intervals, not
+  point estimates, for anything stochastic. And when a re-derivation disagrees with a published
+  number, **the re-derivation carries the heavier burden of proof** — it has been run once.
+- New record `docs/decisions/feedback_verify_a_claim_three_ways_before_publishing_it.md` + its
+  `INDEX.md` row (layer-C bidirectional reconcile PASSES); layer-A pointer added to `MEMORY.md`.
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0038 — director-asked SELF-ASSESSMENT of `-0037`: the diagnosis is signoff-grade, the DURABILITY is not, and both gaps reproduce by command (leaf ENGINE-UNIVERSAL-SERVICES.21; DOCS only, ZERO code/gate bytes)
 
 - ⛔ Checked with commands rather than by re-reading my own prose — the same trap `-0037`'s root
