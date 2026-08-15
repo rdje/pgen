@@ -1704,6 +1704,84 @@ file already holds the detail), and whether a bytes-per-row instrument belongs b
 NOT bulk-truncate rows — the content is reachable in each tree file, but that must be **proven per
 row** first, exactly as `.1a`'s 452/452 census proved the tracker delete safe.
 
+#### ⭐⭐ COST + RISK PRICED 2026-08-14 (`PGEN-README-POLICY-0013`, director-asked: *"what would it cost to change the format? is there any foreseeable risk?"*)
+
+⛔ **First, ownership: `README-POLICY.11` was opened for this on 2026-08-14 and is a DUPLICATE of
+this leaf.** `.11` is now a pointer here; this leaf remains the owner. The miss is worth naming — the
+dedupe rule (`MEMORY_ARCHITECTURE.md` §10, *"before writing a fact, check the index for an existing
+record and update it instead of forking a near-duplicate"*) was not run, and the thing that would
+have surfaced `.6` in one grep is **the index whose unreadability is this leaf's subject**. The
+defect obstructed the search for itself.
+
+**RE-MEASURED AT HEAD — it has grown 29 % in 14 days:**
+
+| | 2026-07-31 (`.6` as opened) | 2026-08-14 | Δ |
+|---|---:|---:|---:|
+| bytes | 468 401 | **604 021** | **+135 620 (+29 %)** |
+| lines | 454 | 463 | +9 |
+| largest single cell | 64 450 (`RGX-0078`) | **76 591** (`SV-CORPUS-GRAD`) | +12 141 |
+
+⇒ **cost of delay ≈ +9.7 KB/day of prose that will have to be migrated.**
+
+**ROOT CAUSE (new — `.6` recorded the symptom, not the mechanism).** Nobody authored a long line:
+`awk 'length($0)>2000 {if ($0 ~ /^\|/) t++; else o++}'` → **43 table rows, 1 other**. A Markdown
+table row *must* be one line, so length is an **emergent** property of (a) an index that is a table
+× (b) a status cell used for accumulating narrative. **9.5 % of lines carry 87.2 % of the bytes**;
+median line 64 B.
+
+**COST — the mechanical coupling is ~ZERO, measured.** `git ls-files | xargs grep -ln TASK_TREE.md`
+returns 28 files; **not one parses its content**:
+- `scripts/check_memory_architecture.sh:101` — `[ -f docs/TASK_TREE.md ]`, existence only.
+- `rust/scripts/ci_workflow_local_gate.sh:406` — a **sorted allowlist of root-markdown names**; the
+  path does not change, so the entry does not either.
+- `scripts/check_readme_stability.sh:89` — a hint **string inside an error message**.
+- `live_document_currency_register_v0.json` — charters it `index`; instrument A already exempts it,
+  and the exemption note already names THIS leaf.
+- The remaining ~24 are prose links from the six harness bootstrap files, `README.md`, `COMMIT.md`,
+  the book and `docs/decisions/` — all path links, unaffected by a format change.
+⇒ **no gate, workflow, hook or Makefile reads a row.** The migration cannot break a consumer,
+because there are no content consumers. Target shape `tree | status | frontier leaf | link` measures
+**~6 453 B for all 110 rows — 1.1 % of today**, and reads in one agent read, which is the
+operational success metric (`README-POLICY.11`'s framing, retained).
+
+**RISK — the identifier half is essentially free; the PROSE half is the real risk and is UNPROVEN.**
+Per-row census (the `.1a` / `MEMORY-ARCH.6` method, run before any migration):
+
+```
+IDENTIFIER REACHABILITY: 1038/1046 = 99.2% already reachable from the owning tree file / docs/decisions/
+rows with >=1 unreachable identifier: 8 of 110   (trees with no owning tree file: 0)
+```
+
+All 8 adjudicated individually — **none is a migration risk, and two are pre-existing defects the
+census FOUND**:
+- **6 are slice ids** (`PGEN-BIN-BUILD-INTEGRITY-0006`, `PGEN-STIMULI-SIGNOFF-0016`,
+  `PGEN-RGX-0078-0002`, `PGEN-GRAMMAR-WELLFORMED-0153`, `PGEN-LANG-CAPABILITY-AUDIT-0028`,
+  `PGEN-LEXICAL-ANNOTATIONS-0005`) — each returns **exactly 1 commit** from `git log --grep`, i.e.
+  they live in layer D and were never the index's to hold.
+- **1 is a DANGLING wiki-link**: `INLINE-ACTIONS`' cell cites `[[project_inline_semantic_action_directives]]`
+  and `docs/decisions/project_inline_semantic_action_directives.md` **does not exist**. Pre-existing,
+  unrelated to format.
+- **1 is `.26`**, cited by `ENGINE-UNIVERSAL-SERVICES` as `` `.25`/`.26` `` with no such leaf in the
+  tree file — the **third instance** of the routing gap found at `README-POLICY.9` and `.10`: a leaf
+  named in prose that its own tree does not define.
+
+⛔⛔ **THE HONEST BOUND, AND IT IS THE WHOLE RISK.** Identifiers are only **28 % of the row bytes**;
+strip every `[[link]]`, code-span and slice id and **395 425 B (72 %) of prose remains**, carrying
+measured numbers and rationale that no identifier tracks. **A 99.2 % identifier census says nothing
+about that 72 %.** ⇒ the go/no-go artifact is a **prose-side proof**, not this one: per row, show the
+cell's substantive sentences already exist in the tree file, or MOVE them there first. That is `.6`'s
+original *"proven per row, do NOT bulk-truncate"* instruction, now with the number that says how much
+is at stake. Anything with no home gets written into its tree **before** the cell is cut, exactly as
+`README-POLICY.2` wrote two homeless facts into `docs/decisions/` before trimming layer A.
+
+**Recommended sequencing when this is worked** (not executed here — this leaf stays `todo`):
+1. per-row prose census + move (the expensive, load-bearing step; ~110 rows, and it only grows),
+2. rewrite the table to `tree | status | frontier | link`,
+3. re-run the identifier census as a regression check (expect ≥ 1038/1046, minus the 2 defects fixed),
+4. add the bytes-per-row instrument beside A and B so it cannot recur,
+5. fix the two by-product defects above (dangling record, undefined `.26`).
+
+
 ### `.7` — the published SystemVerilog integration contract has accumulated a version log (`todo`)
 
 Found by `.2` on the doctrine's **first run**, by **both** instruments independently:

@@ -1139,6 +1139,23 @@ case that was never handled. Removed, with the proof recorded at the site.
 
 ### `.11` — ROUTED: the layer-B INDEX every agent is routed to is 604 KB with a 76 591-byte line, and NOTHING watches it (`todo`, opened 2026-08-14 session #234)
 
+⛔⛔ **SUPERSEDED SAME DAY — THIS LEAF IS A DUPLICATE. The owner is `LIVE-MEANS-LIVE.6`**, which has
+held this finding since **2026-07-31** with the same diagnosis (the `README-POLICY.2` bypass in a new
+location), the same prescription (*"decide whether the index rows keep only status + frontier +
+pointer"*) and the same guard rail (*"do NOT bulk-truncate — proven per row"*). All evidence produced
+here, plus the cost/risk pricing the director asked for, has been **moved into `.6`**; this section
+is kept as a pointer rather than deleted, per the append-only history discipline.
+
+⭐ **Why the miss is worth recording rather than quietly fixing.** The dedupe rule
+(`MEMORY_ARCHITECTURE.md` §10) was not run before opening `.11`. It would have taken one grep — and
+the artifact that grep must search is **`docs/TASK_TREE.md` itself**, the 604 KB file with 76 KB
+lines whose unreadability is the very subject. ⇒ **the defect obstructed the search for itself**, and
+that is a second-order cost of this class that neither leaf had named: an unreadable index does not
+merely cost reading time, it causes *duplicate ownership*, which is the failure the task-tree system
+exists to prevent. Banked as the sharpest available argument for fixing it.
+
+⇒ **Read `docs/tasks/LIVE-MEANS-LIVE.md` `.6` for everything below.** Retained here for provenance:
+
 - **Status: `todo`**. Opened by the director's question *"I hope reading `docs/TASK_TREE.md`
   doesn't cause any issue"* — which it does. Measured before answering, not after.
 
