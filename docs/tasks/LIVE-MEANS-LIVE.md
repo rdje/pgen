@@ -1774,7 +1774,105 @@ original *"proven per row, do NOT bulk-truncate"* instruction, now with the numb
 is at stake. Anything with no home gets written into its tree **before** the cell is cut, exactly as
 `README-POLICY.2` wrote two homeless facts into `docs/decisions/` before trimming layer A.
 
-#### ⛔⛔ THE "POINTER TABLE" RECOMMENDATION IS REFUTED BY IN-REPO COUNTEREXAMPLE (2026-08-14, `PGEN-README-POLICY-0014`)
+#### ⭐⭐⭐ THE SPEC, FROM FIRST PRINCIPLES (director, 2026-08-14 — `PGEN-README-POLICY-0015`). ⛔ THIS SUPERSEDES THE OPTION SURVEY BELOW: the survey was shopping for a format before the requirement was written down.
+
+Director, going back to basics: *"What is the function of `TASK_TREE.md`? What is its ultimate goal?
+What is it supposed to do and do well? A new task-tree will increase its task-tree count by one, but
+its byte size by B bytes and number of lines by L, right? Reading and writing shall be extremely
+fast, regardless of its final file size."*
+
+**That is not a question, it is the specification** — and it decides the design, which two rounds of
+option-comparison could not.
+
+##### 1. The FUNCTION — it is a DISPATCH TABLE, and it currently does three jobs
+
+The file today fuses three things with different lifecycles, which is the same root error
+`MEMORY_ARCHITECTURE.md` §3 names for the memory blob:
+
+| job | lifecycle | belongs in |
+|---|---|---|
+| **(a)** define what a task-tree IS + the code-change doctrine | ~static | this file, or `TASK_TREE_README.md` |
+| **(b)** enumerate every tree, its state, its frontier, its file | one row per tree | **this file — the only real job** |
+| **(c)** narrate what happened inside each tree | grows per session | ⛔ `docs/tasks/<TREE>.md`, which already owns it |
+
+**Ultimate goal:** *a fresh agent — any model, any harness, after any interruption — lands on the
+correct leaf fast, and no tree can be silently lost.* Two properties it must do **well**:
+- **COMPLETENESS** — every tree is enumerated. This is the anti-lost-work guarantee and the reason
+  the file exists at all.
+- **DISPATCH** — from a tree name to `{status, frontier leaf, file}` in one hop.
+
+Everything else is somebody else's job: rationale → the tree file; history → `git` + `CHANGES.md`;
+where-we-are-now → `MEMORY.md` (layer A). ⇒ job **(c)** is 87.2 % of the bytes and **0 % of the
+function**.
+
+##### 2. THE GROWTH LAW — measured, and it is the defect stated exactly
+
+The director's model says a new tree costs **+1 tree, +B bytes, +L lines**, with B and L constants.
+Measured against 110 rows:
+
+```
+correlation(row bytes, commits touching that tree) = 0.741      n = 110
+median row 1 384 B   mean 4 997 B   max 75 137 B                (522x spread)
+```
+
+| tree | row at BIRTH | row NOW | factor |
+|---|---:|---:|---:|
+| `SV-CORPUS-GRAD` | 1 827 B | 76 592 B | **×41** |
+| `ENGINE-UNIVERSAL-SERVICES` | 1 310 B | 39 107 B | **×29** |
+| `README-POLICY` | 2 263 B | 9 591 B | ×4 |
+
+⇒ **L IS already constant (1 line per tree). B IS NOT.** The schema is *right at birth and wrong at
+maturity*: a newborn row is 1.3–2.3 KB and grows ×29–41 through ordinary work. The file's size is a
+function of **WORK DONE**, not of **TREES TRACKED** — `O(trees × sessions)` where the spec demands
+`O(trees)`. That single sentence is the defect, and it is what every earlier framing in this leaf was
+circling without stating.
+
+##### 3. THE TWO INVARIANTS the spec implies — and they discriminate PERFECTLY
+
+- **I1 — BOUNDED COST PER UNIT.** Adding/working a tree costs a bounded constant. (the director's B, L)
+- **I2 — LOCAL UPDATE.** Changing one tree touches only that tree's region. (the director's *"writing
+  shall be extremely fast"* — and what makes `git diff` legible)
+
+| surface | I1 bounded cost/unit | I2 local update |
+|---|---|---|
+| `docs/TASK_TREE.md` | ❌ r = 0.741 against work | ❌ 75 KB line rewritten for a one-word edit |
+| `docs/decisions/INDEX.md` | ❌ rows reach 3 986 B | ✅ one line per record |
+| `KNOWLEDGE_MAP.md` | ✅ derived from capped cards | ✅ max line 1 550 B |
+| `*_register_v0.json` | ✅ JSON schema | ✅ 73–155 B/line |
+
+⭐⭐ **This retro-corrects the survey below, and the correction matters.** It called
+`KNOWLEDGE_MAP.md` a counterexample *because it is 533 KB* — **that was measuring the wrong thing.**
+Under the actual spec, 533 KB over 94 capped cards is `O(units)` with a large constant: **compliant.**
+Size was never the metric; **growth law and locality** are. `docs/TASK_TREE.md` is the only one of
+the four that fails both, and it fails them for the same reason — job (c).
+
+##### 4. WHAT THE SPEC REQUIRES (the design is now derived, not chosen)
+
+1. **One row per tree, `L = 1`** — already true; keep it.
+2. **A MECHANICALLY CAPPED row, `B` a constant** — the missing piece, and the thing every failed
+   surface here lacks. `INDEX.md` proves that one-row-per-unit *without* a per-row bound still rots.
+3. **Fields, not prose**: `tree | status | frontier leaf | link`. Rationale/narrative stay in the
+   tree file, which already owns them.
+4. **Detail by DISPATCH, never by inclusion** — the row answers *where to look*, never *what happened*.
+
+Cost at `B = 300 B`: **110 trees → 33 KB · 250 → 73 KB · 1 000 → 293 KB** — one read at every scale,
+so *"fast regardless of final file size"* holds with a linear law and a small constant. Sharding is
+unnecessary and would be premature.
+
+⭐ **And this RESOLVES the hand-vs-derived question the survey could not decide.** Both satisfy the
+spec, so it is not the deciding axis: **derivation is an optimisation (it removes drift and is the
+`KNOWLEDGE_MAP.md` pattern already proven here), the per-row cap is the REQUIREMENT.** Ship the cap
+first — it is what makes the growth law hold — and derive afterwards if drift proves to be a real
+cost. That ordering also lets the migration land without building any new machinery that could rot
+(`GATE-REACHABILITY`).
+
+⛔ **UNCHANGED BY THIS SPEC**: the 72 % prose migration is still the dominant risk and still needs a
+per-row proof before any cell is cut. The spec says *what to build*; it does not make *getting there*
+cheap.
+
+---
+
+#### ⛔ (SUPERSEDED BY THE SPEC ABOVE — retained for provenance) The "pointer table" recommendation is refuted by in-repo counterexample (2026-08-14, `PGEN-README-POLICY-0014`)
 
 Director challenge: *"are you confident there is no other strong and compelling solution? We need
 certainty it is the best, stable, sota, signoff, risk-free option, and the format we can use long
