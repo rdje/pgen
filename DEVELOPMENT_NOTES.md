@@ -1,5 +1,64 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0033 — a metric can be exact, deterministic and machine-independent, and still be ~35× blind to the regression it was chosen to watch
+
+The `.20` ruling specified a deterministic rule-ENTRY ratchet over wall clock, for a good reason
+already paid for: the first figure recorded for the guarded admission's cost was `~11 %`, and it was
+wrong because it compared against a baseline measured under *"materially faster machine
+conditions"*. A machine-dependent number had biased the estimate in the flattering direction. The
+reasoning continued that entries are *"the mechanism causes (i) and (ii) move through"*.
+
+Then the census was run, and the second half of that sentence did not survive contact with it.
+
+The guarded-admission rule family accounts for **6 126 595 of 899 264 997** corpus rule entries —
+**0.681 %** — and the flip's *delta* is strictly smaller, because the rules it replaced were
+themselves being entered before. So the counter moves **under 1 %** where the clock moved **24.3 %**.
+
+**The metric is not wrong. It is answering a different question.** The parse did not do meaningfully
+MORE rule entries; each entry got MORE EXPENSIVE. A counter counts events, and this regression lived
+entirely in the cost of an event.
+
+**The trap is that the counter's good properties are all properties of RELIABILITY, and none of them
+is a property of SENSITIVITY.** Exact, deterministic, reproducible on any machine — every one of
+those reads like rigour, and not one of them says the quantity moved when the thing you care about
+moved. That is why this had to be measured before the instrument was trusted rather than after: the
+design rationale had already been written as though the coupling were high, and nobody had the
+number. It cost one full-corpus census to get, and it is the single most decision-relevant fact in
+the whole instrument.
+
+**What NOT to do about it.** Both tempting responses are wrong. Discarding the counter loses the
+only metric that survives a machine change or a hosted runner — and the exactness is real: a probe
+arm fired the ratchet on a rise of **349 entries in 416 841 264**, `+0.00 %`, because an exact
+comparison leaves no band for a structural regression to hide in. Shipping it quietly is worse: it
+would let the next `+24 %` pass a green gate for the second time, which is the entire defect being
+closed.
+
+**What was done instead — three things, in order of force.**
+
+1. **Look for a sharper counter before settling.** The raw entry counter had a strictly better
+   sibling available at *identical* measured cost: `raw − committed` = FAILED SPECULATION, the
+   probing work a structural guard actually spends through. **98.3 %** of sampled entries are rolled
+   back, and the guarded family commits **127 of 3 092 966** — same determinism, same
+   machine-independence, far closer to the mechanism. It was found by measuring the alternative, not
+   by taking the first deterministic thing to hand.
+2. **Publish the bound where the number is read**, in the same words every time — the artifact, the
+   gate header, `TOOLBOX.md` 3.7, the doctrine mirror. A proxy whose weakness is documented once, in
+   a task file, is a proxy that will be over-read within two sessions.
+3. **Keep the noisy metric as a declared advisory** on a band wide enough never to cry wolf, and say
+   which one binds. Two metrics covering two different failure modes beat one number that quietly
+   means less than it appears to.
+
+⇒ **a proxy with a measured bound is an instrument; a proxy with an assumed bound is a claim.**
+
+A second, smaller lesson from the same slice, and a reminder that the confound is usually mundane:
+the wall-clock advisory was nearly worthless as first designed. A probe invocation costs a measured
+**9.8 ms** before it parses anything, and the median corpus file takes ~18 ms in total — so an
+unadjusted per-file wall-clock number is **majority `fork`**, and would have drifted with the loader
+rather than with the parser. The floor is now re-measured inside every run and subtracted, never
+baked in as a constant.
+
+promotion: docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md
+
 ## 2026-08-14 - PGEN-README-POLICY-0009 — every defect a self-audit found was in the flattering direction, and that is the whole reason to run one
 
 Four claims from `-0008` were re-derived rather than restated. All four were wrong or unbacked, and

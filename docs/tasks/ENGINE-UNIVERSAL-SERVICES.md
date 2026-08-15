@@ -5332,6 +5332,218 @@ option list, and whether any part of the cost is irreducible. Those are (a)/(b)/
 **measurements, not judgements** — pre-deciding them here is the *"designs built on unmeasured
 premises"* failure this leaf's own `.17` history is a record of.
 
+##### ✅ `.20` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0033`, 2026-08-15 session #234) — ACCEPTANCE (d) DISCHARGED: the cost is measured, and the ratchet refuses a rise
+
+⭐ Ruling C's work order, executed: **the guard BEFORE the profile.** Nothing in this slice
+optimises anything — it builds the instrument (a) will inherit as its baseline harness, because an
+ad-hoc timing script against a stale baseline *is literally what produced the wrong `~11 %`*.
+
+**WHAT LANDED** — three tracked surfaces plus the wiring:
+
+| surface | what it is |
+|---|---|
+| `stimuli/sv/corpus_parse_cost.py` | the instrument: census, sample derivation, measurement |
+| `stimuli/sv/parse_cost_sample.tsv` | the PINNED 192-file sample (40 hot / 40 lr / 112 breadth) |
+| `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/` | the baseline: `cost.md`, `entries.tsv`, `advisory.json` |
+| `scripts/check_parse_cost_ratchet.sh` | the gate, registered as doctrine `PARSE-COST-RATCHET` |
+| `rust/Makefile` | `sv_parse_cost_ratchet`, `sv_parse_cost_rebaseline` |
+
+###### ⭐⭐ RESULT 1 — THE INSTRUMENT HAS GROUND TRUTH: IT REPRODUCES THE GRADUATION ORACLE ON EVERY ONE OF 16 336 FILES
+
+A full-corpus entry census (16 336 files, `-j8`, **zero** no-dump rows) was run before any sample was
+chosen. Its `accepted` verdicts were joined against the tracked `stimuli/sv/characterization/
+results.tsv`:
+
+```
+tracked results.tsv pass: 9774
+census accepted=True    : 9774
+per-file agreement      : 16336/16336 agree, 0 disagree
+```
+
+⇒ the instrument observes the SAME parser the graduation oracle does, on every file, and
+`pass 9 774 / fail 6 562` reproduces `.17` slice 9's shipped-arm A/B row exactly. An instrument with
+no ground truth is a confident guess; this one was made to reproduce a number the project had
+already measured before it was allowed to publish a new one.
+
+###### ⭐⭐ RESULT 2 — THE BINDING METRIC'S THREE PROPERTIES WERE VERIFIED, NOT ASSUMED
+
+Ruling C requires a machine-independent substrate. Each property was measured before anything was
+built on it:
+
+| property | measurement |
+|---|---|
+| deterministic | 3 release runs of the same file → **1 unique sha256** over the dumps |
+| build-mode-independent | debug vs release → `entries`/`committed`/`memo_hits` **all MATCH** |
+| consistent across dumps | entry dump vs outcome dump `total_entries` → **306 491 = 306 491** |
+
+The third mattered concretely: the census that selected the sample used the entry dump and the
+baseline uses the outcome dump, so a divergence there would have made the two incomparable.
+
+###### ⭐⭐⭐ RESULT 3 — THE RULING NAMED 3.4; MEASUREMENT PROMOTED IT TO 3.5, FOR FREE
+
+Ruling C specified `--dump-rule-entry-counts-json` (TOOLBOX 3.4). Measured, the **outcome** dump
+(3.5) costs the SAME `0.04 s` on the same file and is a strict superset — it adds COMMITTED entries
+and memo hits, and therefore `raw − committed`, the parse's **failed-speculation** work. That is not
+a cosmetic upgrade: it is the mechanism a structural GUARD spends its cost through.
+
+| measured on the pinned 192-file sample | value |
+|---|---:|
+| rule entries | 416 841 264 |
+| committed | 7 124 616 |
+| **failed speculation** | **409 716 648 = 98.3 % of entries** |
+| guarded-admission family entries | 3 092 966 |
+| …of which COMMITTED | **127** |
+
+⇒ the guarded admission is, to three significant figures, **pure speculation**: entered, probed,
+rolled back. A ratchet on raw entries alone would have been blind to a guard that doubles its
+probing and commits the same amount. ⭐ The instrument therefore binds on **three** counters, not
+one, and the extra two cost nothing.
+
+###### ⛔⛔⛔ RESULT 4 — THE FINDING THAT BOUNDS THE INSTRUMENT, AND IT PARTLY REFUTES THE RULING'S OWN PREMISE
+
+Ruling C reasoned that *"entries are the mechanism causes (i) and (ii) move through"*. **Measured,
+that is true only STRUCTURALLY, and the quantitative gap is large enough to change how the number
+must be read.**
+
+Across the full 16 336-file corpus the guarded-admission family takes **6 126 595 of 899 264 997
+entries = 0.681 %**. The flip's entry DELTA is strictly smaller still — the rules it replaced
+(`casting_type`, `property_expr`, …) were themselves entered before the flip. So:
+
+> the entry count moved **well under 1 %** while wall clock moved **+24.3 %**
+> ⇒ the binding metric is **at least ~35× less sensitive** to *this* regression than the advisory one.
+
+⛔ **Stated as a finding rather than absorbed, because it changes what the number PROVES.** The
++24.3 % is a rise in cost **per entry**, not in the **number** of entries — and no counter can see
+that. This is the performance-measurement sibling of the lesson already recorded in RESULT 12 of
+`.17` slice 9, one level deeper: a metric can be exact, deterministic, machine-independent **and
+still nearly blind to the thing it was chosen to watch**.
+
+⭐ It is NOT a reason to discard the metric, and the ruling's reasoning for choosing it survives
+intact: it catches structural growth EXACTLY (RED-6 below fires on **+0.00 %**), it cannot be fooled
+by a busy machine, and it is the only leg that survives a hosted runner. It IS a reason that the
+baseline, the gate header, `TOOLBOX.md` 3.7 and the doctrine mirror all state the bound in the same
+words on every run, rather than publishing one number that quietly means less than it appears to.
+⇒ **acceptance (a)'s profile is what attributes the +24.3 %; this ratchet stops it growing further
+unwatched in the meantime.** Those are different jobs and (d) never claimed the first one.
+
+###### ⚠️ RESULT 5 — THE ADVISORY WOULD HAVE MEASURED `fork`, NOT PARSING, AND THE FLOOR IS NOW SUBTRACTED
+
+A `parseability_probe` invocation on a one-line module takes a measured **9.8 ms** (median of 10)
+before it parses anything — fork + exec + the SV stdlib preload. The median corpus file's whole wall
+time is ~18 ms. ⇒ an unadjusted per-file wall-clock advisory is **majority process startup**, and
+would drift with the loader rather than with the parser.
+
+The floor is therefore **re-measured inside every run and subtracted**, never baked in as a
+constant, and the advisory is restricted to the `hot` tier where the remaining signal dominates
+(measured 82–90 % signal on the two heaviest files). Two further design consequences, both measured
+rather than stylistic:
+- the ENTRIES pass runs **parallel** (an exact integer cannot be moved by contention) while the
+  wall-clock pass runs **serial** — contention is precisely the confound that produced the `~11 %`;
+- the advisory lives in `advisory.json`, **outside** the byte-compared `cost.md`, because a
+  machine-dependent number inside a byte-compared artifact makes the artifact undiffable — which is
+  the staleness defect `SV-CORPUS-GRAD.13i` is a record of.
+
+###### ⭐⭐ RESULT 6 — THE CHEAP TIER IS A PROOF, NOT A SAMPLING SHORTCUT
+
+The gate runs on **every commit** via `.githooks/pre-commit`, where a 2.5-minute re-measure is not
+viable. Rather than sampling less, tier 1 re-hashes the three inputs the baseline names — grammar,
+generated parser, and a digest over the sampled corpus files' bytes. The binding metric is an exact
+function of exactly those (RESULT 2), so:
+
+> if none of the three moved, the measurement **cannot** have moved — and if one did, the gate
+> refuses and demands a re-measure instead of guessing.
+
+⛔ The sample-input digest is not redundant with the parser hash and its absence was a real hole:
+the corpora are git **submodules**, so a bump changes what is measured **without touching one byte of
+PGEN**. RED-2 fires on exactly that. ⭐ And making the baseline stale on a parser hash change is the
+direct fix for `SV-CORPUS-GRAD.13i` — six tracked oracles carried an identity block, only ONE was
+gate-checked, four were measurably stale. This one is checked on every commit.
+
+###### ⭐⭐ RESULT 7 — ELEVEN ADVERSARIAL ARMS, INCLUDING TWO THAT MUST REFUSE RATHER THAN PASS
+
+`gate-flow.md` §9: *"A gate without adversarial arms is a claim, not a proof."* Every arm was fired
+and every perturbation byte-restored (verified by `cmp` and a clean `git status`):
+
+| arm | perturbation | wanted | got |
+|---|---|---|---|
+| GREEN | clean tree | 0 | ✓ 0 |
+| RED-1 | grammar edited | 1 | ✓ 1 |
+| RED-2 | a **sampled corpus file** edited (the submodule hole) | 1 | ✓ 1 |
+| RED-3 | baseline records a WRONG grammar hash | 1 | ✓ 1 |
+| RED-4 | identity table **deleted** | **2 (refuse)** | ✓ 2 |
+| RED-5 | `entries.tsv` column renamed | **2 (refuse)** | ✓ 2 |
+| RED-6 | a binding counter **ROSE** | 1 | ✓ 1 |
+| CTRL-1 | an unrelated tracked file edited | 0 | ✓ 0 |
+| CTRL-2 | a binding counter **FELL** | 0 + improvement note | ✓ 0 |
+| + 2 restore-verification arms | tree returns to green | 0 | ✓ 0 |
+
+⭐⭐ **RED-6 is the sharpest result here.** It fired on a rise of **349 entries out of 416 841 264 —
+`+0.00 %`**. The ratchet is EXACT, not threshold-based: there is no band inside which a structural
+regression can hide, which is the property a percentage threshold would have destroyed.
+⭐ **RED-4 and RED-5 matter as much**, and are the arms most gates omit: a deleted identity table and
+a renamed column both make the gate **REFUSE (exit 2)** rather than pass. A check that cannot see its
+subject must say so — `gate-flow.md` §7.1/§7.8, and §7.8 is exactly the *consumer that outlived its
+producer's schema* failure that a positional unpack would have reproduced here.
+
+###### ⛔ WHAT THIS SLICE DELIBERATELY DOES NOT DO
+
+- **(a) the profile** — not started. RESULT 4 sharpens it: the attribution must explain a *per-entry*
+  cost rise, so causes (i) and (iii) are now the leading candidates and (ii) is measurable via the
+  failed-speculation counter this slice added.
+- **(b) the third A/B arm** — not built. It is now materially cheaper: the baseline publishes the
+  guarded-admission family's entries and committed counts, so the narrow arm's delta is a
+  subtraction rather than a re-derivation.
+- **(c) the priced option list** — not started; it depends on (a).
+- ⛔ **The `.20` leaf stays `todo`.** Acceptance (d) is discharged; (a), (b), (c), (e) are not, and
+  clause **B** of the ruling — no waiver, conditional tenancy — is unchanged and still binds.
+
+###### Acceptance Checklist (enforced) — `.20` slice 1
+
+- [x] **REPRODUCE / ISSUE** — the regression this gate exists for is already reproduced and recorded
+  in `.17` slice 9 RESULT 12 on a clean one-binary A/B (narrow `303.0 s` vs shipped `376.7 s` /
+  `373.6 s`, ratio **1.243** / **1.233**). The issue THIS slice reproduces is the *absence of any
+  instrument*: measured at `4d1f995c`, `git ls-files 'scripts/*.sh' 'rust/scripts/*.sh'
+  'rust/Makefile' '.githooks/*' '.github/workflows/*.yml' | xargs grep -l` for any parse-timing or
+  entry-count ratchet returns **nothing**, and `scripts/check_doctrines.sh` registered **18**
+  doctrines, none of which measures parse cost. ⇒ the +24.3 % was invisible by construction, not by
+  bad luck.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY nothing caught it: every existing proof surface asks a
+  **verdict** question (does it parse? does the lint fire? does the corpus pass count hold?) and the
+  regression moved **no verdict at all** — `.17` slice 9 measured `pass 9 774 / fail 6 562` GREEN
+  across the slowdown, and this slice's own census reproduces those verdicts on 16 336/16 336 files
+  (RESULT 1). WHERE, precisely: the gap is between `gate-flow.md`'s Layer-1 leaf gates and the
+  doctrine registry — `performance_gate` exists but keys on the **regex** benchmark thresholds, so
+  the SV parser had **no cost surface of any kind**. Tool-located, not inferred: the full-corpus
+  entry census (RESULT 1) is the first measurement of SV parse cost this repository has ever
+  produced, and it had to be built to answer the question at all.
+- [x] **FIX** — fix-hierarchy tier = **new proof surface** (no engine, grammar or generated byte
+  changes; `generated/` is untouched and its sha256 `463c6476…` is recorded in the baseline). The
+  instrument, the pinned sample, the tracked baseline, the two-tier gate, the doctrine registration
+  + its `DOCTRINE_ENFORCEMENT.md` §10 mirror row, and two `make` targets. Two decisions depart from
+  ruling C's letter and both are measured, not preferred: **3.5 over 3.4** (RESULT 3 — free, strictly
+  more sensitive) and **three binding counters instead of one**. The ruling's substance — entries
+  bind, wall clock advises with a wide band, both declared, the blind spot stated — is implemented
+  exactly.
+- [x] **ADDRESSED (verified)** — measured before→after on the real gate, not asserted. BEFORE: no
+  instrument exists; a `+24.3 %` regression passes every gate in the repository (`.17` slice 9,
+  reproduced above). AFTER: `bash scripts/check_parse_cost_ratchet.sh` → `parse-cost-ratchet: OK
+  (identity fresh for: generated parser, grammar, sample inputs; 192 pinned sample files)` in
+  **0.4 s**, and `PGEN_PARSE_COST_REMEASURE=1` re-measures and compares in ~2.5 min. The gate's
+  discriminating power is measured by **11 adversarial arms, 11/11 as wanted** (RESULT 7),
+  including RED-6 firing on a **+0.00 %** rise (349 of 416 841 264 entries) and two arms that must
+  **refuse with exit 2** rather than pass. ⚠️ The bound on what this proves is measured and published
+  rather than left implicit: **at least ~35× less sensitive than wall clock to the specific +24.3 %**
+  (RESULT 4), which is why acceptance (a) remains open and (d) does not close the leaf.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 19 enforced doctrines PASS**
+  (18 pre-existing + `PARSE-COST-RATCHET`), including the `<meta:mirror>` check proving the registry
+  and `DOCTRINE_ENFORCEMENT.md` §10 list exactly the same 19 ids. ⭐ Zero code, grammar or generated
+  bytes changed, so no parser behaviour can have moved — and that claim is itself gate-held: the
+  baseline records `generated/systemverilog_parser.rs` = `463c6476…`, the same hash the tree carried
+  before this slice. Every probe-arm perturbation was byte-restored and confirmed by `cmp` plus a
+  clean `git status` (RESULT 7). `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes with the
+  book's doctrine count corrected `18 → 19` in both places it appears.
+- promotion: `docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md` (RESULT 4).
+
 
 #### ⛔⛔ `.19` NEW `todo` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9)
 

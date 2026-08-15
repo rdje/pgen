@@ -162,6 +162,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
+| **"Did the whole SV parser get SLOWER — and would anything have told me?"** — ⛔ never answer with an ad-hoc timing script against a remembered number; that published `~11 %` for a **+24.3 %** regression | [3.7 the SV parse-cost ratchet](#37-the-sv-parse-cost-ratchet--did-the-whole-parser-get-slower-and-would-anything-have-told-me) |
 | **"Is the memo actually SERVING this rule?" — ⛔ `rule_memo_hit_counts` FUSES success replays with cached failures; 208 "hits" were 208 failures and 0 replays** | [3.6 memo insert/evict/replay census](#36-per-rule-memo-insert--evict--replay-census--is-the-memo-actually-serving-this-rule) |
 | "Which rules could a derived DFA scanner fuse? the measured ceiling? the choice-site / merged-choice surface?" | [5.3 `--report-fusibility-census`](#53---report-fusibility-census) |
 | "Which rules exist under which `@profiles`? Which rules can a corpus run under profile P ever exercise?" | [5.4 `--dump-rule-profiles`](#54---dump-rule-profiles) |
@@ -558,6 +559,42 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   NOT mean R's executed path was memoized — check the inlined set first.
 - **ROUTING:** both runs take the PROTOCOL graph (tracing and counters each clear `bare_parse` —
   2.1), which is the correct graph here: it is the one whose `memoized_call` is under study.
+
+### 3.7 The SV parse-cost RATCHET — "did the whole parser get slower, and would anything have told me?"
+- **WHAT:** `stimuli/sv/corpus_parse_cost.py` (the instrument) + `scripts/check_parse_cost_ratchet.sh`
+  (the standing gate, doctrine `PARSE-COST-RATCHET`). Measures the SV parser's cost over a **pinned
+  192-file corpus sample** — 40 heaviest by entries, 40 heaviest by guarded-admission entries, 112 a
+  stratified stride guaranteeing all 14 sub-corpora — and refuses if it RISES.
+  `ENGINE-UNIVERSAL-SERVICES.20` acceptance (d).
+- **WHEN:** ⛔ before and after ANY change that can touch the parse hot path — a grammar edit, a
+  codegen change, a left-recursion admission policy, a memo change. Also the first thing to read when
+  asking *"is the parser slower than it was?"*
+- **WHY IT EXISTS:** `.17` slice 9's guarded LR admission cost **+24.3 %** parse time and every gate
+  in the repository stayed GREEN, because nothing measured parse cost at all.
+- **HOW:**
+  ```bash
+  bash scripts/check_parse_cost_ratchet.sh                    # identity tier, ~0.4 s
+  make -C rust SHELL=/bin/bash sv_parse_cost_ratchet          # the full ratchet, ~2.5 min
+  make -C rust SHELL=/bin/bash sv_parse_cost_rebaseline       # promote a new baseline (deliberate)
+  ```
+- **OUTPUT:** `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/` — `cost.md` (the
+  byte-compared report), `entries.tsv` (per-file), `advisory.json` (wall clock).
+- ⭐⭐ **WHAT BINDS, AND WHY IT IS NOT WALL CLOCK.** The binding numbers are exact integers from 3.5 —
+  rule entries, COMMITTED entries, memo hits — each verified deterministic across repeated release
+  runs AND byte-identical between the debug and release probes. Wall clock is **advisory only**, on a
+  wide ±50 % band that never fails the gate: a wall-clock-primary ratchet inherits the very defect
+  that made this leaf publish `~11 %` for a **+24.3 %** regression (it compared across *"materially
+  faster machine conditions"*).
+- ⚠️ **THE PROCESS FLOOR IS SUBTRACTED AND RE-MEASURED EVERY RUN, NEVER ASSUMED.** A probe invocation
+  costs ~9.8 ms before it parses anything (fork + exec + SV stdlib preload) and the median corpus file
+  takes ~18 ms total — so a raw per-file wall-clock number is mostly a measurement of `fork`.
+- ⛔ **THE DECLARED BLIND SPOT (read this before quoting the number).** The counters tick only in the
+  PROTOCOL graph (3.4/3.5 ROUTING). The fused `cascade_*` twins — including
+  `cascade_match_casting_type_lr_suffix` and friends — tick nothing, and the +24.3 % was measured
+  there. **Measured bound: the guarded-admission family is 0.681 % of corpus entries, so the binding
+  metric is at least ~35× less sensitive to that regression than wall clock.** It guards STRUCTURAL
+  work exactly; it does not price the fused graph. Neither metric alone is sufficient and the report
+  says so every run.
 
 ---
 
@@ -1015,6 +1052,10 @@ Cause map: `NO reach path` = dead-rule candidate (adjudicate via 5.1) · `parsed
 ## Protocol C — a parse is slow / hangs
 1. `--dump-rule-call-counts 30 --dump-rule-call-counts-exclude "trivia,…"` (3.1) → the dominating rules.
 2. `--trace-rules <dominator>` (2.2) → the actual call pattern; `PGEN_REPORT_MEMO_STATS=1` (3.3) for memo behavior.
+3. ⛔ **"Did the whole SV parser get slower?" is a different question, and it has a standing
+   instrument** — see 3.7. Do NOT answer it with an ad-hoc timing script against a remembered
+   number: that is exactly how this repository published a `~11 %` figure that was really
+   **+24.3 %** (`ENGINE-UNIVERSAL-SERVICES.20`).
 
 ## Protocol D — which alternative WINS this choice? / is this branch LIVE? (the A2.2/A2.3-class probe)
 

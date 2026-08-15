@@ -1929,3 +1929,28 @@ regex_pcre2_compile_perf_gate_cross_check:
 
 .PHONY: regex_pcre2_compile_perf_gate_full
 regex_pcre2_compile_perf_gate_full: regex_pcre2_compile_perf_gate regex_pcre2_compile_perf_gate_cross_check
+
+# ── ENGINE-UNIVERSAL-SERVICES.20 acceptance (d) — the SV parse-cost ratchet ─────────────────
+#
+# ⛔ WHY THIS TARGET EXISTS. `.17` slice 9's guarded left-recursion admission cost +24.3 %
+# parse time and EVERY gate in the repository stayed green across it, because nothing measured
+# parse cost at all. This is the re-measure entry point: it re-runs the pinned sample and
+# refuses if any binding counter ROSE.
+#
+# The doctrine enforcer (`scripts/check_parse_cost_ratchet.sh`, registered in
+# scripts/check_doctrines.sh) runs the cheap IDENTITY tier on every commit; this target runs
+# the full ratchet (~2.5 min) and is what the enforcer tells you to run when the parser moves.
+.PHONY: sv_parse_cost_ratchet
+sv_parse_cost_ratchet:
+	@echo "⏱  Re-measuring the SV parse-cost ratchet (pinned sample, ~2.5 min)..."
+	cd $(RUST_DIR)/.. && PGEN_PARSE_COST_REMEASURE=1 bash scripts/check_parse_cost_ratchet.sh
+	@echo "✅ parse-cost ratchet holds."
+
+# Promote a NEW baseline — deliberate, never automatic. An improvement only tightens the
+# ratchet once somebody says so; a silent auto-promote would let a regression ride in behind
+# an unrelated improvement in the same run.
+.PHONY: sv_parse_cost_rebaseline
+sv_parse_cost_rebaseline:
+	@echo "⏱  Re-measuring and PROMOTING a new SV parse-cost baseline..."
+	cd $(RUST_DIR)/.. && PGEN_PARSE_COST_REBASELINE=1 bash scripts/check_parse_cost_ratchet.sh
+	@echo "✅ parse-cost baseline promoted — review the diff before committing."

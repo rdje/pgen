@@ -153,7 +153,7 @@ Two gates check the *proof surface itself* rather than the product:
   `actions/checkout` produces), runs **33 surface audits** over the real
   repository, then **replays the command each tracked workflow runs** inside the
   export. See §3 for why the export is the interesting part.
-- **`scripts/check_doctrines.sh`** — the doctrine enforcer, **18** registered
+- **`scripts/check_doctrines.sh`** — the doctrine enforcer, **19** registered
   checks, run by `.githooks/pre-commit` on **every commit**. This is the only layer
   that runs without a human deciding to (§6). The registry inside it is the single
   source of the roster; `DOCTRINE_ENFORCEMENT.md` §10 is its reviewed mirror and a
@@ -449,7 +449,7 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 > this flow.** Hosted Actions are paused to conserve account minutes, so 14 of the
 > 15 tracked workflows are `workflow_dispatch`-only, and the one that still
 > auto-runs (`memory-architecture-gate.yml`) runs the doctrine driver and no `make`
-> target at all. **The automatic layer covers the 18 enforced doctrines and none of
+> target at all. **The automatic layer covers the 19 enforced doctrines and none of
 > the 123 gate targets.** Every proof lane described in this chapter runs only when
 > a human asks — the 92 "reachable" ones exactly as much as the 30 orphans.
 >
