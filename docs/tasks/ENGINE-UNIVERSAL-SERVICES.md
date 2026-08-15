@@ -6085,6 +6085,69 @@ committed entries and memo hits — none of which is affected. What is wrong is 
 share**, and therefore the **published statement of how blind the gate is**. The gate under-claimed
 its own sensitivity by 4×.
 
+##### ⛔⛔⛔ `.21` SELF-ASSESSMENT (director-asked 2026-08-15, *"were there sota, signoff …"*) — SLICE 1's DIAGNOSIS IS SIGNOFF-GRADE; ITS **DURABILITY IS NOT**, AND BOTH GAPS ARE CONFIRMED BY COMMAND
+
+⛔ Answered with the tool rather than by re-reading my own prose, because *"a classifier written from
+the design's prose can only confirm the design's prose"* is this very leaf's root cause and the same
+trap applies to a self-assessment. **Both gaps reproduce:**
+
+```
+$ git check-ignore -q rust/target/audit_scratch/lr_attribute.py && echo IGNORED
+IGNORED                       # …and family_census.py, bl_callers.py, sample_impact.py
+$ ls rust/target/audit_scratch/*.txt | wc -l ; git ls-files rust/target/audit_scratch/ | wc -l
+9                             # the 8 profile reports + 1
+0                             # tracked: NONE
+$ grep -rln "CORPUS_FAMILY_SHARE_PCT" --include=*.sh --include=*.py --include=*.yml .
+stimuli/sv/corpus_parse_cost.py                    # only the file that DEFINES it
+$ git ls-files 'scripts/*.sh' 'rust/scripts/*.sh' '.github/workflows/*.yml' 'rust/Makefile' \
+    '.githooks/*' | xargs grep -ln -- '--census'
+                              # nothing. no tracked runner invokes the census at all
+```
+
+**GAP 1 — ⛔⛔ THE INSTRUMENTS THAT PRODUCED THESE NUMBERS ARE UNTRACKED, SO THE NUMBERS ARE
+UNREPRODUCIBLE.** `lr_attribute.py` (five ground-truth controls, including the external per-symbol
+oracle that caught an 8× error), `family_census.py`, `bl_callers.py` and `sample_impact.py` all live
+in `rust/target/audit_scratch/` — gitignored. So do the 8 profile reports. ⇒ `.20` slice 4's
+`1.83-3.60 % / 22.38-26.75 %` intervals and `.21` slice 1's `24 of 192` sample-impact figure cannot
+be re-derived by anyone, including me after a `cargo clean`. ⛔ **This is the same class of defect as
+`.22`** — a measurement whose producer is not durable — committed one turn after writing a knowledge
+card about validating instruments. `GATE-REACHABILITY`'s founding sentence applies verbatim: *a check
+nothing invokes is indistinguishable from a check that does not exist.*
+
+**GAP 2 — ⛔⛔ THE CORRECTED CONSTANT HAS EXACTLY THE PROPERTY THAT MADE THE OLD ONE ROT.**
+`CORPUS_FAMILY_SHARE_PCT = "2.741"` is hand-carried, referenced only by the file that defines it, and
+guarded by a **comment** (*"⛔ Re-derive it with a full-corpus census … NOT by editing this line"*).
+A comment is prose, and `DOCTRINE_ENFORCEMENT.md` §1 is that a rule nothing checks is a suggestion.
+The census costs **71 s** measured, so cheapness is not the excuse. ⇒ I replaced a wrong unwatched
+number with a right unwatched number, and the corrected `~8.9×` will go stale the next time the
+grammar moves, silently, exactly as `0.681 %` did.
+
+**GAP 3 — ⚠️ `_lr_alt` IS COVERED ON THE EMITTER'S AUTHORITY BUT NEVER OBSERVED.** Its positive
+control `expression_lr_alt1` is a string I typed from reading `mod.rs:3244`, not a name any parser
+has emitted — SV has 0. A mis-read of that `format!` would reproduce as a passing control.
+
+**GAP 4 — ⚠️ I OVERSTATED INDEPENDENCE.** *"Two independent instruments agree, 75.1 % vs 76 %"* —
+the QUANTITIES are independent (corpus entries vs CPU samples); the **classifier is shared**, and it
+is the classifier that was defective. The agreement therefore bounds far less than it reads.
+
+**GAP 5 — ⚠️ THE OTHER NINE FAMILIES WERE NEVER CHECKED.** The emission shapes are engine-universal
+and `return_annotation` / `semantic_annotation` each carry `left_recursion_eliminated=1`; whether
+their emitted names match the new predicate is unmeasured.
+
+⇒ **ADDED TO `.21` ACCEPTANCE, and the leaf STAYS `in progress`:** (e) promote the audit instruments
++ their profile artifacts into tracked paths, or delete the claims that depend on them — a measured
+number whose producer is untracked is a *"trust me"*; (f) make the corpus family share **DERIVED or
+GATED**, not carried — the census is 71 s, so a `--verify-family-share` mode re-run on demand (and a
+tracked artifact the way `SV-CORPUS-DENOMINATOR` does it) is affordable; (g) observe `_lr_alt` for
+real by generating a parser from a directly-left-recursive grammar, and run the predicate over all
+ten families' declared rule names.
+
+⭐ **What DOES hold**, so the assessment is not uniformly negative: the root cause was derived from
+the emission sites rather than the artifact; the RED probe (8/21) proves the new controls are
+non-vacuous; the reporting-only claim is gate-held by byte-identical BINDING counters rather than
+asserted; and the `instrument` identity input was proven by firing (exit 1 → exit 0). The
+**diagnosis** met the bar. The **durability** did not.
+
 ##### ✅ `.21` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0037`, 2026-08-15 session #235) — (a), (c), (d) DISCHARGED; (b) MEASURED and then DELIBERATELY NOT ADOPTED, because it is blocked on `.22`
 
 ###### ⭐⭐⭐ RESULT 1 — (a): THE PREDICATE IS NOW DERIVED FROM THE EMISSION SITES, AND THERE ARE **EIGHT** SHAPES ACROSS **TWO** ELIMINATORS

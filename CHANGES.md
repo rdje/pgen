@@ -1,5 +1,29 @@
 # CHANGES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0038 — director-asked SELF-ASSESSMENT of `-0037`: the diagnosis is signoff-grade, the DURABILITY is not, and both gaps reproduce by command (leaf ENGINE-UNIVERSAL-SERVICES.21; DOCS only, ZERO code/gate bytes)
+
+- ⛔ Checked with commands rather than by re-reading my own prose — the same trap `-0037`'s root
+  cause is (*a classifier written from the design's prose can only confirm the design's prose*).
+- ⛔⛔ **GAP 1 — the instruments that produced the published numbers are UNTRACKED.**
+  `git check-ignore` confirms `lr_attribute.py` (five controls incl. the external oracle that caught
+  an 8× error), `family_census.py`, `bl_callers.py` and `sample_impact.py` are all in gitignored
+  `rust/target/audit_scratch/`, along with the 8 profile reports — `git ls-files` returns **0**.
+  ⇒ `.20` slice 4's `1.83-3.60 % / 22.38-26.75 %` and `.21`'s `24 of 192` are **unreproducible**.
+  Same defect class as `.22`, committed one turn after a card about validating instruments.
+- ⛔⛔ **GAP 2 — the corrected constant is as unwatched as the one it replaced.**
+  `CORPUS_FAMILY_SHARE_PCT = "2.741"` is referenced only by the file defining it and guarded by a
+  **comment**; `grep -l -- '--census'` over every tracked script, workflow, Makefile and hook returns
+  **nothing**. The census costs a measured **71 s**. ⇒ a right unwatched number replaced a wrong one.
+- ⚠️ **GAP 3** `_lr_alt`'s control is a string typed from `mod.rs:3244`, never observed (SV has 0).
+  ⚠️ **GAP 4** *"two independent instruments agree"* overstated — quantities differ, classifier is
+  shared, and the classifier was the defect. ⚠️ **GAP 5** the other 9 families were never checked.
+- ⇒ `.21` gains acceptance **(e)** track the instruments or drop the dependent claims, **(f)** make
+  the corpus family share DERIVED or GATED rather than carried, **(g)** observe `_lr_alt` for real
+  and run the predicate over all ten families. The leaf stays `in progress`.
+- ⭐ What holds: root cause derived from the emission sites, the 8/21 RED probe proving the controls
+  non-vacuous, the reporting-only claim gate-held by byte-identical BINDING counters, and the
+  `instrument` identity input proven by firing. The diagnosis met the bar; the durability did not.
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0037 — the parse-cost instrument's LR family is now derived from the EMISSION SITES, the published blind-spot bound is corrected `~35× → ~8.9×`, and the instrument is part of its own baseline's identity (leaf ENGINE-UNIVERSAL-SERVICES.21 slice 1)
 
 - ⛔ **The defect, measured not suspected**: `LR_FAMILY_RE` matched `_lr_base`/`_lr_suffix` only —
