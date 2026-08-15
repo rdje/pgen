@@ -5401,6 +5401,14 @@ one, and the extra two cost nothing.
 
 ###### ⛔⛔⛔ RESULT 4 — THE FINDING THAT BOUNDS THE INSTRUMENT, AND IT PARTLY REFUTES THE RULING'S OWN PREMISE
 
+> ⛔⛔ **SUPERSEDED IN ITS NUMBERS BY `.21` (2026-08-15) — the finding STANDS, the magnitude does
+> not.** Every `0.681 %` / `~35×` below was computed with a classifier that matched only
+> `_lr_base`/`_lr_suffix` — **97 of the 128** LR rule names the parser declares, no `_lr_seed` and
+> not one `_lr_guard` rule, leaving **75.1 %** of the family uncounted. Corrected: the family is
+> **2.741 %** of corpus entries and the bound is **~8.9×**, i.e. the gate was UNDER-claiming its own
+> sensitivity by ~4×. ⭐ The BINDING counters are byte-identical across the correction, so nothing
+> this slice concluded about parse COST moves. Retained unedited below as the audit trail.
+
 Ruling C reasoned that *"entries are the mechanism causes (i) and (ii) move through"*. **Measured,
 that is true only STRUCTURALLY, and the quantitative gap is large enough to change how the number
 must be read.**
@@ -6036,7 +6044,7 @@ without publishing a stale DATE* — is routed to `LIVE-MEANS-LIVE` rather than 
 - promotion: `docs/knowledge/a-conservation-control-cannot-catch-a-misassignment.md` (RESULT 2).
 
 
-#### ⛔⛔ `.21` NEW `todo` — the parse-cost instrument's "guarded-admission family" counts 97 of the 128 LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so misses **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4)
+#### ⚠️ `.21` `in progress` — the parse-cost instrument's "guarded-admission family" counted 97 of the 128 LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ⛔ **(b) MEASURED and BLOCKED on `.22`**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -6076,6 +6084,167 @@ reported family does — and the identity tier must FAIL first, proving it notic
 committed entries and memo hits — none of which is affected. What is wrong is the **reported family
 share**, and therefore the **published statement of how blind the gate is**. The gate under-claimed
 its own sensitivity by 4×.
+
+##### ✅ `.21` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0037`, 2026-08-15 session #235) — (a), (c), (d) DISCHARGED; (b) MEASURED and then DELIBERATELY NOT ADOPTED, because it is blocked on `.22`
+
+###### ⭐⭐⭐ RESULT 1 — (a): THE PREDICATE IS NOW DERIVED FROM THE EMISSION SITES, AND THERE ARE **EIGHT** SHAPES ACROSS **TWO** ELIMINATORS
+
+The old predicate was written from the leaf's own prose — `X := X_lr_base ( X_lr_suffix )*` — and
+that is exactly the error: it described the *shape the author had in mind*, not the shape the code
+emits. Read off the emitters instead:
+
+| emitter | line | shape | old predicate |
+|---|---|---|---|
+| `indirect_lr_elimination.rs` | 915 | `{base}_lr_base` | ✅ |
+| | 916 | `{base}_lr_suffix` | ✅ |
+| | 862 | `{base}_lr_suffix_r{index}` | ✅ |
+| | 1018 | `{base}_lr_seed_{rule}` | ⛔ **missed** |
+| | 1188 | `{base}_lr_guard{variant}` | ⛔ **missed** |
+| | 1190 | `{base}_lr_guard{variant}_suffix` | ⛔ **missed** |
+| | 1241 | `{base}_lr_guard{variant}_{hop}` | ⛔ **missed** |
+| `ast_pipeline/mod.rs` (the **DIRECT** pass) | 3244 | `{rule}_lr_alt{n}` | ⛔ **missed** |
+| | 3347 / 3349 | `{rule}_lr_base` / `{rule}_lr_suffix` | ✅ |
+
+⛔⛔ **And a NINTH hole nobody had named: both allocators append `_{index}` on a name COLLISION**
+(`indirect_lr_elimination.rs::allocate`, `mod.rs::allocate_synthetic_rule_name`), so the
+END-anchored `_lr_base$` drops `X_lr_base_1` silently. The new predicate therefore anchors on a
+**segment boundary**, not on end-of-string: `_lr_(base|suffix|seed|guard|alt)(?![a-z])`. The
+negative lookahead is what still refuses the pinned near-miss `something_lr_baseline`, which was the
+one thing the original reasoning got right and is kept.
+
+⭐ `_lr_alt` is **0 rules / 0 entries in SV today** — included anyway, because the predicate must
+describe the emitter, not this month's grammar. That is the whole lesson of the defect.
+
+###### ⭐⭐ RESULT 2 — THE CONTROLS WERE THE REAL FAILURE, AND THE RED PROBE PROVES THE NEW ONES ARE NOT VACUOUS
+
+The instrument already had a ten-case control suite that **refuses rather than publishing** on any
+miss — and it passed throughout, because **all ten cases were drawn from the `_lr_base`/`_lr_suffix`
+half**. A suite that refuses on an unclassified name cannot help when the missing names were never
+imagined. ⇒ the controls now enumerate the **producer's** shapes: one positive per emission site,
+two collision-suffix positives, and four near-miss negatives.
+
+⭐ **RED PROBE — run the NEW 21-case suite against the OLD predicate: `8 of 21` MISS**, every one in
+the should-match-but-does-not direction (`…_lr_seed_constant_primary_sv_2017`, `…_lr_guard1`,
+`…_lr_guard0_suffix`, `…_lr_guard0_constant_primary`, `expression_lr_alt1`, `…_lr_base_1`, …). The
+new controls would have caught the defect on day one; the old ones could not have.
+
+###### ⭐⭐⭐ RESULT 3 — (d): THE BINDING COUNTERS DO NOT MOVE, AND THAT IS THE POINT
+
+Re-baselined on the **same pinned 192-file sample**:
+
+| metric | before | after | verdict |
+|---|---:|---:|---|
+| **rule entries** | 416,841,264 | 416,841,264 | ✅ **byte-identical (BINDING)** |
+| **committed** | 7,124,616 | 7,124,616 | ✅ **byte-identical (BINDING)** |
+| **memo hits** | 186,981,263 | 186,981,263 | ✅ **byte-identical (BINDING)** |
+| `lr_entries` | 3,092,966 | **12,440,690** | ×4.02 |
+| `lr_committed` | 127 | **514** | ×4.05 |
+| family share of the sample | 0.742 % | **2.985 %** | — |
+
+⇒ **no cost claim in this tree moves.** The ratchet's history is intact, the sample is untouched,
+and what changed is only the number describing *how much of the machinery the report was counting*.
+Slice 1's *"pure speculation"* conclusion survives: **514 of 12 440 690 = 0.004 %** committed.
+
+###### ⭐⭐ RESULT 4 — THE INSTRUMENT IS NOW PART OF ITS OWN BASELINE'S IDENTITY, AND THE GATE PROVED IT NOTICED
+
+⛔ The identity block named three inputs — grammar, generated parser, sample bytes — on the sound
+argument that the BINDING counters are an exact function of exactly those. Sound, and **insufficient**:
+`entries.tsv` also publishes `lr_entries`/`lr_committed` and `cost.md` a family share, and those are
+functions of the **instrument's own classifier**. Correcting it staled every published family number
+while the identity tier printed `fresh`. That is `SV-CORPUS-GRAD.13i`'s defect one input short
+instead of one gate short. ⇒ `instrument` is the **fourth** identity input, on both sides.
+
+⭐ **Proven by firing it, not by reading it.** With the row added to the gate and absent from the
+baseline, `bash scripts/check_parse_cost_ratchet.sh` → **exit 1**,
+*"the baseline's identity table has no `instrument` row, so that input is unguarded"*. After the
+rebaseline → **exit 0**, *"identity fresh for: generated parser, grammar, instrument, sample inputs"*.
+
+⛔⛔ **And adding it exposed a BOOTSTRAP DEADLOCK in the gate that had never been reachable before:**
+the `instrument` row cannot exist until a rebaseline writes it, and the rebaseline refused to write
+while the row was missing (`if REBASELINE and not failures`). Identity divergence was a hard failure
+on *every* path, including the one whose entire purpose is to resolve it. Fixed narrowly: under
+`PGEN_PARSE_COST_REBASELINE=1` a missing or stale identity row is a **NOTE**; on every other path it
+stays a hard failure, and the ratchet's own breach check is untouched — a rebaseline still refuses if
+a BINDING counter rose.
+
+###### ⛔⛔ RESULT 5 — (b): THE SAMPLE **WOULD** CHANGE, AND ADOPTING IT NOW WOULD BE WRONG
+
+Measured with the instrument's **own** `select_sample`, run over two censuses that differ only in the
+predicate:
+
+| tier | rows | changed by the fix |
+|---|---:|---|
+| `hot` (heaviest by total entries) | 40 | **0** |
+| `lr` (heaviest by family entries) | 40 | **5** |
+| `breadth` (deterministic stride over the rest) | 112 | **19** — a *consequence*: breadth fills from what `hot`+`lr` leave |
+
+⇒ 24 of 192 rows would move. **Not adopted, for three measured reasons in increasing force:**
+1. The `hot` tier — which carries the bulk of the entries — is **completely unaffected**, so the
+   sample's coverage of the cost it exists to watch does not improve.
+2. Re-deriving resets the ratchet's binding baseline. Trading the comparability the ratchet exists
+   for, in exchange for reshuffling 12.5 % of one selection tier, is a bad trade.
+3. ⛔⛔ **Decisive: the census is not currently REPRODUCIBLE, so a sample derived from it today
+   cannot be pinned honestly.** Same measurement, same instrument: re-deriving the *existing*
+   predicate's sample from a fresh census reproduces `hot` **40/40** and `lr` **40/40** exactly — and
+   `breadth` differs by **5 of 112**, entirely because the census now yields 16 335 rows instead of
+   16 336. `.22`'s single silently-dropped file perturbs the per-suite pools and moves the stride.
+   ⇒ **acceptance (b) is BLOCKED on `.22`**, and that is a measured dependency, not a preference.
+   ⭐ It is also the sharpest available evidence that `.22`'s silent drop is not cosmetic: **one
+   unreported file moves 5 pinned sample rows.**
+
+###### ⚠️ WHAT THIS SLICE DELIBERATELY DOES NOT DO
+
+- ⛔ It does not re-derive the pinned sample — (b) stays open and is **blocked on `.22`**, above.
+- It does not touch `.20` (a)/(b)/(c)/(e). `.20` stays `todo` and ruling clause **B** still binds.
+- It does not rewrite the historical record: slices 1-3's `0.681 %` / `~35×` stand as written, with
+  a SUPERSEDED banner at slice 1 RESULT 4 naming the corrected magnitude. Supersede, don't mutate.
+
+###### Acceptance Checklist (enforced) — `.21` slice 1
+
+- [x] **REPRODUCE / ISSUE** — the defect is measured, not suspected: a full-corpus per-rule census
+  (16 335 files) sums the complete LR family at **24 644 435 of 899 064 022 entries = 2.7411 %**
+  while `LR_FAMILY_RE` matched **6 125 716 = 0.6813 %**, i.e. **18 518 719 entries = 75.1 %**
+  uncounted, spread over **16** `_lr_seed` and **6** `_lr_guard` rules. Independently corroborated by
+  a second instrument on a different quantity: across 8 `/usr/bin/sample` profiles the old predicate
+  accounts for **0.54 %** of a **2.27 %** LR self-time — a **76 %** miss against the census's 75.1 %.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the classifier was derived from the leaf's PROSE
+  (`X := X_lr_base ( X_lr_suffix )*`) rather than from the code that emits the names, and its ten
+  controls were drawn from the same prose, so they could only ever confirm it. WHERE, to the line:
+  `stimuli/sv/corpus_parse_cost.py:100`, against **eight** emission shapes located by
+  `grep -n 'format!("{[a-z_]*}_lr'` over the two eliminators —
+  `indirect_lr_elimination.rs:862/915/916/1018/1188/1190/1241` and `ast_pipeline/mod.rs:3244/3347/3349`
+  — plus a ninth hole, `allocate()`'s `_{index}` collision suffix, which defeats an END-anchored
+  pattern by construction. `git ls-files` + `grep -c '"[a-z_0-9]+_lr_alt[0-9]*"'` over the generated
+  parser confirms `_lr_alt` is 0 in SV today, so it was covered on the emitter's authority, not the
+  artifact's.
+- [x] **FIX** — fix-hierarchy tier = **instrument correctness + its guard**, no engine, grammar or
+  generated bytes. (1) `LR_FAMILY_RE` → `_lr_(base|suffix|seed|guard|alt)(?![a-z])`, segment-anchored
+  so `allocate()`'s collision suffix cannot drop a rule and the pinned near-miss `_lr_baseline` is
+  still refused; (2) the control suite rebuilt from the **producer's** shapes — 21 cases, one per
+  emission site plus two collision positives and four near-miss negatives; (3) the corpus-wide bound
+  moved out of report prose into named constants with a provenance string, because a number
+  hand-copied into four surfaces goes stale in all four at once; (4) ⭐ `instrument` added as the
+  **fourth identity input** on both the instrument and the gate, so this class of staleness cannot
+  recur silently; (5) the rebaseline path un-deadlocked so an identity input can ever be adopted.
+- [x] **ADDRESSED (verified)** — measured before→after on the real gate. **RED first:**
+  `bash scripts/check_parse_cost_ratchet.sh` → **exit 1**, *"the baseline's identity table has no
+  `instrument` row, so that input is unguarded"* — the new guard fired before it was satisfied.
+  **GREEN after** `PGEN_PARSE_COST_REBASELINE=1` → **exit 0**, *"identity fresh for: generated
+  parser, grammar, instrument, sample inputs; 192 pinned sample files"*. **Control-suite RED probe:**
+  the new 21-case suite run against the OLD predicate **MISSES 8 of 21**, all in the
+  should-match direction — the controls are demonstrably non-vacuous. **The correction is
+  reporting-only, and that is gate-held rather than asserted:** across the rebaseline all three
+  BINDING counters are byte-identical (`entries` 416,841,264, `committed` 7,124,616, `memo_hits`
+  186,981,263) while `lr_entries` moved ×4.02 and `lr_committed` ×4.05.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 19 enforced doctrines PASS**,
+  `PARSE-COST-RATCHET` included and now guarding a fourth input. ⭐ Zero code, grammar and generated
+  bytes: `generated/systemverilog_parser.rs` hashes identically before and after (it is one of the
+  identity rows the gate re-checks), so no parser behaviour can have moved, and the sample manifest
+  is untouched. `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
+- promotion: `docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md` **updated
+  rather than duplicated** — the card's entire argument rested on the `0.681 %` this slice refutes,
+  and it now carries the corrected figures plus the meta-lesson its own correction demonstrates
+  (*measure the coupling — with a classifier derived from the producer, not from your own prose*).
 
 
 #### ⛔⛔⛔ `.22` NEW `todo` — the transactional coverage stack (TOOLBOX 3.5) never terminates on a corpus file that a bare parse accepts in 0.077 s, and the census silently drops it (opened 2026-08-15 session #235 by `.20` slice 4)

@@ -1,5 +1,54 @@
 # CHANGES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0037 — the parse-cost instrument's LR family is now derived from the EMISSION SITES, the published blind-spot bound is corrected `~35× → ~8.9×`, and the instrument is part of its own baseline's identity (leaf ENGINE-UNIVERSAL-SERVICES.21 slice 1)
+
+- ⛔ **The defect, measured not suspected**: `LR_FAMILY_RE` matched `_lr_base`/`_lr_suffix` only —
+  **97 of the 128** LR rule names the SV parser declares — so a full-corpus per-rule census
+  (16 335 files) puts the complete family at **24 644 435 / 899 064 022 = 2.7411 %** against the
+  **0.6813 %** the instrument saw: **18 518 719 entries = 75.1 %** uncounted, across **16**
+  `_lr_seed` and **6** `_lr_guard` rules. A predicate whose heading said GUARDED counted no guard.
+- ⭐ **Root cause is a method, not a typo**: the classifier was derived from the leaf's own PROSE
+  (`X := X_lr_base ( X_lr_suffix )*`) rather than from the code that emits the names — and its ten
+  controls were drawn from the same prose, so they could only confirm it. There are **eight** shapes
+  across **two** eliminators (`indirect_lr_elimination.rs:862/915/916/1018/1188/1190/1241` and
+  `ast_pipeline/mod.rs:3244/3347/3349`), plus a **ninth hole**: both allocators append `_{index}` on
+  a name collision, which an END-anchored `_lr_base$` drops silently.
+- ✅ **Fix**: `_lr_(base|suffix|seed|guard|alt)(?![a-z])` — segment-anchored so a collision suffix
+  cannot drop a rule, with the negative lookahead still refusing the pinned near-miss
+  `something_lr_baseline`. Controls rebuilt from the PRODUCER: 21 cases, one per emission site plus
+  two collision positives and four near-miss negatives. ⭐ **RED PROBE: the new suite MISSES 8 of 21
+  against the old predicate**, all should-match — the controls are demonstrably non-vacuous.
+- ⭐⭐ **The correction is reporting-only, and it is gate-held rather than asserted.** Re-baselined on
+  the same pinned 192-file sample: `entries` **416,841,264**, `committed` **7,124,616**, `memo_hits`
+  **186,981,263** — all three BINDING counters **byte-identical**; `lr_entries` ×4.02
+  (3,092,966 → **12,440,690**) and `lr_committed` ×4.05 (127 → **514**). No cost claim moves and the
+  ratchet's history is intact. *"Pure speculation"* survives: **0.004 %** committed.
+- ⛔ **The published bound is corrected in all four surfaces plus the card**: `24.3 / 0.681 = ~35×`
+  becomes `24.3 / 2.741 = **~8.9×**` — the gate had been UNDER-claiming its own sensitivity by ~4×.
+  The corpus-wide figure moved out of report prose into named constants with a provenance string,
+  because a number hand-copied into four places goes stale in all four at once.
+- ⭐⭐ **`instrument` is now the FOURTH identity input.** The block named grammar + parser + sample
+  bytes on the sound argument that the BINDING counters are an exact function of those — sound and
+  insufficient, since the family columns are functions of the instrument's classifier, so correcting
+  it staled every published family number while the identity tier printed `fresh`. Proven by firing:
+  **exit 1** *"no `instrument` row, so that input is unguarded"* → after rebaseline **exit 0**
+  *"identity fresh for: generated parser, grammar, instrument, sample inputs"*.
+- ⛔⛔ **Adding it exposed a BOOTSTRAP DEADLOCK never reachable before**: the `instrument` row cannot
+  exist until a rebaseline writes it, and the rebaseline refused to write while it was missing.
+  Identity divergence was a hard failure on *every* path including the one meant to resolve it. Fixed
+  narrowly — under `PGEN_PARSE_COST_REBASELINE=1` it is a NOTE; every other path is unchanged, and a
+  rebaseline still refuses if a BINDING counter rose.
+- ⛔ **(b) is MEASURED and deliberately NOT ADOPTED.** Re-deriving the sample with the corrected
+  predicate would move **24 of 192** rows (`hot` **0/40**, `lr` **5/40**, `breadth` 19/112 as a
+  consequence). Declined because the `hot` tier is unaffected, re-deriving resets the ratchet's
+  baseline, and — decisively — **the census is not currently reproducible**: re-deriving today's
+  sample under the OLD predicate reproduces `hot` 40/40 and `lr` 40/40 but `breadth` differs by
+  **5 of 112**, entirely because `.22`'s one silently-dropped file moves the per-suite stride. ⇒ (b)
+  is **BLOCKED on `.22`**, and that is the sharpest evidence yet that the silent drop is not
+  cosmetic: one unreported file perturbs 5 pinned sample rows.
+- ZERO grammar/generated/parser bytes; `generated/systemverilog_parser.rs` hashes identically before
+  and after. All 19 doctrines PASS; `mdbook_docs_gate` PASS.
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0036 — the director-requested SELF-AUDIT is FINISHED (6 of 6 claims re-derived): slices 1-2 SURVIVE, the one material defect was the AUDITOR'S OWN instrument, and three new findings re-price a bound published in four places (leaf ENGINE-UNIVERSAL-SERVICES.20 slice 4; DOCS only, ZERO code/grammar/generated/gate bytes)
 
 - ⛔ Slice 3 recorded itself as *"STARTED, NOT FINISHED"* with six claims *"NOT YET RE-DERIVED"*,

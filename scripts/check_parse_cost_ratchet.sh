@@ -39,8 +39,12 @@
 # ⚠️ HONEST LIMIT, stated rather than discovered later (DOCTRINE_ENFORCEMENT.md §3). The binding
 # metric observes the PROTOCOL graph. A production parse with no diagnostic consumer runs the
 # FUSED `cascade_*` graph, which ticks no per-rule counters — and the +24.3 % was measured there.
-# Measured bound: the guarded-admission family is 0.681 % of corpus entries, so this metric is at
-# least ~35× less sensitive to THAT regression than wall clock is. It binds STRUCTURAL work
+# Measured bound: the LR-elimination family is 2.741 % of corpus entries, so this metric is at
+# least ~8.9× less sensitive to THAT regression than wall clock is. ⛔ That bound READ ~35× until
+# `ENGINE-UNIVERSAL-SERVICES.21`, because the classifier that measured it counted only
+# `_lr_base`/`_lr_suffix` and so saw 0.681 % — no `_lr_seed`, and in a family named for the GUARD,
+# no `_lr_guard` rule at all: 75.1 % of the family's entries were uncounted. The gate was
+# UNDER-claiming its own sensitivity by ~4×. It binds STRUCTURAL work
 # exactly; it does not claim to price the fused graph. The wall-clock advisory is the only view of
 # the other graph and is machine-dependent, which is precisely why it advises and does not bind.
 # Neither metric alone is sufficient, and the report says so on every run.
@@ -195,22 +199,47 @@ if os.path.isfile(GENERATED_PARSER):
 else:
     unevaluated.append(f"{GENERATED_PARSER} is absent — generated/ is not tracked; regenerate "
                        f"with `make -C rust SHELL=/bin/bash regenerate_generated_parsers`")
+# ⛔ THE INSTRUMENT IS AN INPUT TOO (`ENGINE-UNIVERSAL-SERVICES.21`). The BINDING counters are an
+# exact function of grammar+parser+inputs and the instrument only reads them — but `entries.tsv`
+# also publishes `lr_entries`/`lr_committed` and `cost.md` a family share, and those ARE functions
+# of the instrument's classifier. Correcting that classifier staled every published family number
+# while this tier reported `fresh`. A baseline's identity must name everything its ARTIFACT
+# depends on, not everything its headline metric depends on.
+if os.path.isfile(INSTRUMENT):
+    live["instrument"] = sha256_of(INSTRUMENT)
+else:
+    unevaluated.append(f"{INSTRUMENT} is absent — the instrument that produced the baseline")
 if corpus_present:
     live["sample inputs"] = sample_input_digest(sample)
 else:
     unevaluated.append("the vendored SV corpora are git submodules and the pinned sample is not "
                        "fully checked out here")
 
+# ⛔ A REBASELINE IS THE ACT THAT RESOLVES AN IDENTITY DIVERGENCE, SO IT CANNOT BE BLOCKED BY ONE
+# (`ENGINE-UNIVERSAL-SERVICES.21`). Deriving these as hard failures on every path deadlocked the
+# only supported way to adopt a NEW identity input: the `instrument` row cannot exist until a
+# rebaseline writes it, and the rebaseline refused to write while the row was missing. Under
+# `PGEN_PARSE_COST_REBASELINE=1` both conditions are reported as NOTES and the re-measure decides;
+# on every other path they stay hard failures, unchanged. ⭐ This is not a relaxation of the gate:
+# a rebaseline is an explicit, deliberate, env-gated operator act whose entire purpose is to
+# declare "this tree is the new reference", and it still refuses if the RATCHET itself breaches.
+def identity_problem(msg):
+    (notes if REBASELINE else failures).append(
+        (msg + "  [reported as a note: PGEN_PARSE_COST_REBASELINE=1 is set, and adopting the "
+                "current tree is what a rebaseline is for]") if REBASELINE else msg)
+
+
 stale = []
 for label, digest in live.items():
     if label not in ident:
-        fail(f"the baseline's identity table has no `{label}` row, so that input is unguarded")
+        identity_problem(f"the baseline's identity table has no `{label}` row, so that input "
+                         f"is unguarded")
         continue
     if ident[label][1] != digest:
         stale.append(label)
 
 if stale:
-    fail("the parse-cost BASELINE IS STALE — it no longer describes this tree.\n"
+    identity_problem("the parse-cost BASELINE IS STALE — it no longer describes this tree.\n"
          + "".join(f"        {lbl}: baseline `{ident[lbl][1][:16]}…` vs live `{live[lbl][:16]}…`\n"
                    for lbl in stale)
          + "      The binding metric is an exact function of these inputs, so a change here is a\n"

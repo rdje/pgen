@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0037 — a classifier written from the design's prose can only ever confirm the design's prose, and so can the controls you write beside it
+
+The parse-cost instrument had to answer "how much of this parse is the left-recursion machinery?".
+It classified a rule as family by matching `_lr_base$|_lr_suffix(_r\d+)?$` — straight out of the
+sentence the leaf used to describe the transformation, `X := X_lr_base ( X_lr_suffix )*`.
+
+Measured against the code that actually emits those names, that sentence describes **three of eight
+shapes**. The eliminators also emit `_lr_seed_*`, three flavours of `_lr_guard*`, and — from the
+*direct* pass in a different file entirely — `_lr_alt*`. The classifier matched 97 of the 128 LR
+rule names the SV parser declares and missed **75.1 %** of the family's corpus entries. In a
+predicate whose own heading said GUARDED, it counted **no guard rule at all**.
+
+**The part worth keeping is that the instrument had controls, and they could not have caught it.**
+Ten pinned cases, refusing rather than publishing on any miss, including a well-chosen near-miss
+(`something_lr_baseline`, since `_lr_base` prefixes it). Every one of the ten was drawn from the
+`_lr_base`/`_lr_suffix` half — from the same prose as the predicate.
+
+**A control suite that refuses on an unclassified NAME is no help when the missing names were never
+imagined.** The suite tested the classifier against the author's model. Both came from one source,
+so agreement between them carried no information.
+
+⇒ **derive a membership test from the PRODUCER, and write one control per emission site.** The fix
+was `grep -n 'format!("{[a-z_]*}_lr'` over the two eliminators; the shape list fell out in one
+command, including one shape (`_lr_alt`) that has **zero** instances in SystemVerilog today and is
+covered anyway — because the predicate must describe the emitter, not this month's grammar.
+
+Two smaller things the same exercise turned up, both invisible until something forced them:
+
+- **An END-anchor was wrong by construction.** Both allocators append `_{index}` on a name
+  collision, so `X_lr_base_1` is legal and `_lr_base$` drops it silently. Anchor on a segment
+  boundary — `(?![a-z])` — which keeps the near-miss refusal and survives the suffix.
+- **A baseline's identity must name everything its ARTIFACT depends on, not everything its headline
+  metric depends on.** The identity block named grammar + parser + inputs, correctly reasoning that
+  the binding counters are an exact function of exactly those. But the artifact also publishes family
+  columns, and those are a function of the *instrument*. Correcting the classifier staled every
+  published family number while the identity tier printed `fresh`. Adding `instrument` as a fourth
+  input then deadlocked the rebaseline — the row cannot exist until a rebaseline writes it, and the
+  rebaseline refused while it was missing. **An escape hatch that is also gated by the condition it
+  exists to clear is not an escape hatch.**
+
+promotion: `docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md` (updated, not
+duplicated — the card's whole argument rested on the `0.681 %` this corrects)
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0036 — the auditor's instrument was the thing that was broken, and its ground-truth control could not have caught it
 
 The self-audit of `.20` slices 1-2 set out to re-derive six claims. Five of them held. The sixth —

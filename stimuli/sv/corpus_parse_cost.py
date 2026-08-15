@@ -80,6 +80,32 @@ PROFILE = "sv_2017"
 GRAMMAR_FILE = "grammars/systemverilog.ebnf"
 GENERATED_PARSER = "generated/systemverilog_parser.rs"
 DEFAULT_MANIFEST = "stimuli/sv/parse_cost_sample.tsv"
+# ⛔ THE INSTRUMENT IS PART OF ITS OWN BASELINE'S IDENTITY (`ENGINE-UNIVERSAL-SERVICES.21`).
+# The first identity block named three inputs — grammar, parser, sample bytes — on the sound
+# argument that the BINDING counters are an exact function of exactly those. True, and
+# insufficient: `entries.tsv` also publishes `lr_entries`/`lr_committed`, and `cost.md` a family
+# share, all of which are functions of THIS FILE's classifier. When `.21` corrected that
+# classifier, every one of those published numbers went stale and the identity tier still
+# printed `fresh` — the same "an identity block nothing reads" defect `SV-CORPUS-GRAD.13i` is a
+# record of, one input short instead of one gate short.
+INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
+
+# ── the corpus-wide family share, and why it is a NAMED CONSTANT rather than prose ───────────
+#
+# This instrument measures the 192-file SAMPLE. The bound it publishes is a FULL-CORPUS figure,
+# so it cannot be derived here and must be carried. It was prose inside the report writer until
+# `ENGINE-UNIVERSAL-SERVICES.21`, which is how a single number ended up hand-copied into four
+# surfaces and stale in all of them at once. One constant, one provenance string, one place to
+# correct.
+#
+# ⛔ Re-derive it with a full-corpus census (`--census`) summed under `is_lr_family`, NOT by
+# editing this line to match a remembered value.
+CORPUS_FAMILY_SHARE_PCT = "2.741"
+CORPUS_FAMILY_PROVENANCE = (
+    "24 644 435 of 899 064 022 entries over 16 335 files, `ENGINE-UNIVERSAL-SERVICES.21`; "
+    "the previous 0.681 % counted only `_lr_base`/`_lr_suffix`"
+)
+BLIND_SPOT_FACTOR = "8.9"  # 24.3 / CORPUS_FAMILY_SHARE_PCT
 DEFAULT_PROBE = "rust/target/release/parseability_probe"
 FALLBACK_PROBE = "rust/target/debug/parseability_probe"
 CORPUS_MANIFEST = "stimuli/sv/characterization/durations.tsv"
@@ -88,20 +114,45 @@ PER_FILE_TIMEOUT_S = 120
 
 # ── the LR-family classifier ────────────────────────────────────────────────────────────────
 #
-# The guarded admission rewrites a left-recursive rule `X` into `X_lr_base ( X_lr_suffix )*`,
-# emitting `X_lr_base`, `X_lr_suffix` and the per-alternative `X_lr_suffix_r<N>`. Attributing
-# entries to that family is what lets `.20` acceptance (b)'s A/B compute its delta directly
-# off this artifact instead of re-deriving it.
+# ⛔⛔ DERIVED FROM THE EMISSION SITES, NOT FROM GREPPING TODAY'S GENERATED PARSER
+# (`ENGINE-UNIVERSAL-SERVICES.21`). The first version of this classifier was written from the
+# shape the leaf's prose described — `X := X_lr_base ( X_lr_suffix )*` — and it matched **97 of
+# the 128** LR rule names the SV parser declares, missing **75.1 %** of the family's corpus
+# entries (18 518 719 of 24 644 435). It counted no `_lr_seed` rule and, in a predicate whose
+# own name says GUARDED, **not one `_lr_guard` rule**. Two eliminators emit these names, and
+# between them there are EIGHT shapes:
 #
-# ⛔ ANCHORED, not a substring test. `_lr_base` is a PREFIX of `_lr_baseline`, so a substring
-# match would silently absorb any future rule whose name merely starts that way — a miss in the
-# flattering direction, since it would inflate the family and make the admission look like it
-# already owns cost it does not. The controls below pin exactly that case.
-LR_FAMILY_RE = re.compile(r"_lr_base$|_lr_suffix(_r\d+)?$")
+#   rust/src/ast_pipeline/indirect_lr_elimination.rs   (the guarded/indirect pass)
+#     :915   {base}_lr_base
+#     :916   {base}_lr_suffix
+#     :862   {base}_lr_suffix_r{index}
+#     :1018  {base}_lr_seed_{rule}
+#     :1188  {base}_lr_guard{variant}
+#     :1190  {base}_lr_guard{variant}_suffix
+#     :1241  {base}_lr_guard{variant}_{hop}
+#   rust/src/ast_pipeline/mod.rs                       (the direct pass)
+#     :3244  {rule}_lr_alt{n}
+#     :3347  {rule}_lr_base
+#     :3349  {rule}_lr_suffix
+#
+# ⛔ AND BOTH ALLOCATORS APPEND `_{index}` ON COLLISION (`indirect_lr_elimination.rs::allocate`,
+# `mod.rs::allocate_synthetic_rule_name`), so an END-anchored pattern is wrong by construction:
+# a single name collision would silently drop `X_lr_base_1` out of the family. The previous
+# `_lr_base$` form had exactly that hole.
+#
+# ⇒ the predicate matches the TOKEN at a segment boundary rather than at end-of-string:
+# `_lr_<token>` followed by anything that is not a lowercase letter (a digit, `_`, or the end).
+#
+# ⛔ Still not a substring test, and that half of the original reasoning was right and is kept:
+# `_lr_base` is a PREFIX of `_lr_baseline`, so a bare substring match would absorb any future
+# rule merely starting that way — a miss in the FLATTERING direction, inflating the family so
+# the admission looks like it already owns cost it does not. `(?![a-z])` is what refuses it, and
+# the controls below pin that case together with one positive per emitted shape.
+LR_FAMILY_RE = re.compile(r"_lr_(base|suffix|seed|guard|alt)(?![a-z])")
 
 
 def is_lr_family(rule: str) -> bool:
-    """Does this rule name belong to a guarded-admission LR family?"""
+    """Does this rule name belong to a left-recursion-elimination family?"""
     return LR_FAMILY_RE.search(rule) is not None
 
 
@@ -112,17 +163,38 @@ def _self_check() -> None:
     (docs/decisions/feedback_instrument_needs_ground_truth.md). Both the POSITIVE controls and
     the NEGATIVES are pinned, and a miss REFUSES rather than publishing a measurement.
     """
+    # ⛔⛔ ONE POSITIVE PER EMITTED SHAPE, AND THE SHAPE LIST COMES FROM THE EMISSION SITES.
+    # The previous suite had ten cases and every one of them was drawn from the `_lr_base` /
+    # `_lr_suffix` half. It therefore PASSED while the classifier was blind to `_lr_seed`,
+    # `_lr_guard` and `_lr_alt` — 75.1 % of the family's corpus entries. A control suite that
+    # refuses on an unclassified NAME cannot help when the missing names were never imagined:
+    # ⭐ the controls must enumerate the PRODUCER's shapes, not the consumer's expectations.
     cases = [
-        # every shape the pass actually emits, taken from generated/systemverilog_parser.rs
-        ("casting_type_lr_base", True),
-        ("casting_type_lr_suffix", True),
-        ("casting_type_lr_suffix_r0", True),
-        ("property_expr_lr_suffix_r10", True),
-        ("incomplete_class_scoped_type_sv_2023_lr_base", True),
+        # ── indirect_lr_elimination.rs, one per emission site ────────────────────────────────
+        ("casting_type_lr_base", True),                          # :915
+        ("casting_type_lr_suffix", True),                        # :916
+        ("casting_type_lr_suffix_r0", True),                     # :862
+        ("property_expr_lr_suffix_r10", True),                   # :862
+        ("casting_type_lr_seed_constant_primary_sv_2017", True),  # :1018
+        ("property_expr_lr_seed_prop_or_sv_2023", True),          # :1018
+        ("casting_type_lr_guard1", True),                        # :1188
+        ("casting_type_lr_guard0_suffix", True),                 # :1190
+        ("casting_type_lr_guard0_constant_primary", True),       # :1241
+        # ── ast_pipeline/mod.rs (the DIRECT pass) ────────────────────────────────────────────
+        ("expression_lr_alt1", True),                            # :3244
+        ("incomplete_class_scoped_type_sv_2023_lr_base", True),  # :3347
+        # ⛔ allocate()/allocate_synthetic_rule_name() append `_{index}` on a name COLLISION, so
+        # an END-anchored pattern drops these silently. This is why the predicate anchors on a
+        # segment boundary rather than on end-of-string.
+        ("casting_type_lr_base_1", True),
+        ("casting_type_lr_seed_constant_primary_2", True),
         # the rule the admission REPLACED is not itself in the family
         ("casting_type", False),
-        # ⛔ the near-miss this classifier is anchored for
+        # ⛔ the near-miss this classifier is anchored for — `_lr_base` prefixes `_lr_baseline`
         ("something_lr_baseline", False),
+        ("something_lr_seedling", False),
+        ("something_lr_guarded", False),
+        ("something_lr_altitude", False),
         ("lr_base_helper", False),
         # an unrelated rule that merely contains the token
         ("suffix_rule", False),
@@ -320,7 +392,8 @@ def sample_input_digest(files: list[str]) -> str:
 
 def identity(files: list[str]) -> dict:
     ident = {}
-    for label, rel in (("grammar", GRAMMAR_FILE), ("generated_parser", GENERATED_PARSER)):
+    for label, rel in (("grammar", GRAMMAR_FILE), ("generated_parser", GENERATED_PARSER),
+                       ("instrument", INSTRUMENT_FILE)):
         path = os.path.join(ROOT, rel)
         if not os.path.isfile(path):
             die(f"required input missing: {rel}\n"
@@ -467,14 +540,21 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A("")
     A("## Instrument identity (what produced this number)")
     A("")
-    A("> Re-hash these three inputs. If any differs, **this baseline no longer describes your")
+    A("> Re-hash these four inputs. If any differs, **this baseline no longer describes your")
     A("> tree** and the honest act is to re-measure, not to quote. The gate re-hashes them on")
     A("> every run — unlike the six oracles `SV-CORPUS-GRAD.13i` found carrying an identity")
     A("> block that nothing read, four of which were measurably stale.")
     A("")
+    A("⛔ **`instrument` is the fourth input, and it was added because its absence was a real")
+    A("hole** (`ENGINE-UNIVERSAL-SERVICES.21`). The first block named three, on the sound")
+    A("argument that the BINDING counters are an exact function of exactly those. Sound, and")
+    A("insufficient: the family columns below are functions of the instrument's own classifier,")
+    A("so correcting that classifier staled every published family number while the identity")
+    A("tier still reported `fresh`.")
+    A("")
     A("| input | repo-root-relative path | sha256 |")
     A("|---|---|---|")
-    for label in ("grammar", "generated_parser", "sample_inputs"):
+    for label in ("grammar", "generated_parser", "instrument", "sample_inputs"):
         e = ident[label]
         A(f"| {label.replace('_', ' ')} | `{e['path']}` | `{e['sha256']}` |")
     A("")
@@ -507,31 +587,43 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A(f"committed {acc_committed:,} — {100.0 * (acc_entries - acc_committed) / acc_entries:.1f} %")
     A("failed speculation even where the parse succeeded.")
     A("")
-    A("## The guarded admission's own family")
+    A("## The left-recursion-elimination family")
+    A("")
+    A("⛔ **This section counted a QUARTER of its own subject until `ENGINE-UNIVERSAL-SERVICES.21`.**")
+    A("The classifier was written from the shape the prose described (`X_lr_base ( X_lr_suffix )*`)")
+    A("and matched 97 of the 128 LR rule names the parser declares — no `_lr_seed`, and in a")
+    A("heading that said GUARDED, not one `_lr_guard` rule. It is now derived from the two")
+    A("eliminators' emission sites; see the classifier's own comment for the eight shapes.")
     A("")
     A("| quantity | value |")
     A("|---|---:|")
-    A(f"| `*_lr_base` / `*_lr_suffix*` entries | {lr_total:,} |")
+    A(f"| family entries (`_lr_base`/`_lr_suffix`/`_lr_seed`/`_lr_guard`/`_lr_alt`) | {lr_total:,} |")
     A(f"| of those, committed | {lr_committed:,} |")
-    A(f"| family share of all entries | {100.0 * lr_total / total:.3f} % |")
+    A(f"| family share of all entries in this sample | {100.0 * lr_total / total:.3f} % |")
     A("")
     A("⭐ Published so `.20` acceptance (b)'s third A/B arm computes its delta straight off this")
     A("artifact instead of re-deriving it.")
     A("")
-    A(f"⭐ The family commits **{lr_committed:,}** of its {lr_total:,} entries. The guarded")
-    A("admission is, to three significant figures, **pure speculation**: it is entered, it probes,")
-    A("it rolls back. That is the expected shape of a structural guard and it is stated here so a")
-    A("later reader does not mistake the family's entry count for productive work.")
+    A(f"⭐ The family commits **{lr_committed:,}** of its {lr_total:,} entries — "
+      f"**{100.0 * lr_committed / lr_total:.3f} %**. The elimination machinery is, to three")
+    A("significant figures, **pure speculation**: it is entered, it probes, it rolls back. That is")
+    A("the expected shape of a structural guard and it is stated here so a later reader does not")
+    A("mistake the family's entry count for productive work.")
     A("")
     A("⛔⛔ **AND IT CARRIES A FINDING THAT BOUNDS THIS WHOLE INSTRUMENT.** Across the full")
-    A("16 336-file corpus the family takes **0.681 %** of all rule entries. The flip's entry DELTA")
-    A("is smaller still — the rules it replaced were themselves entered — so the entry count moved")
-    A("**well under 1 %** while wall clock moved **+24.3 %**. ⇒ the binding metric is **at least")
-    A("~35× less sensitive** to *this* regression than the advisory one. That is not a reason to")
+    A(f"corpus the family takes **{CORPUS_FAMILY_SHARE_PCT} %** of all rule entries")
+    A(f"({CORPUS_FAMILY_PROVENANCE}). The flip's entry DELTA is smaller still — the rules it")
+    A("replaced were themselves entered — so the entry count moved by a few percent at most while")
+    A(f"wall clock moved **+24.3 %**. ⇒ the binding metric is **at least ~{BLIND_SPOT_FACTOR}×")
+    A("less sensitive** to *this* regression than the advisory one. That is not a reason to")
     A("discard it: it catches structural growth EXACTLY and cannot be fooled by a busy machine. It")
     A("is a reason to state plainly what it does **not** prove — the +24.3 % is a rise in cost PER")
     A("entry, not in the NUMBER of entries, and no counter can see that. `.20` acceptance (a)'s")
     A("profile is what attributes it; this ratchet stops it growing further unwatched meanwhile.")
+    A("")
+    A(f"⚠️ The published bound was **~35×** until `.21`, computed on the 0.681 % the broken")
+    A("classifier saw. The gate was under-claiming its own sensitivity by about 4×; the corrected")
+    A("figure is still a large blind spot and is still the reason (a) exists.")
     A("")
     A("## Per tier")
     A("")

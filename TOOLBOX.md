@@ -592,8 +592,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⛔ **THE DECLARED BLIND SPOT (read this before quoting the number).** The counters tick only in the
   PROTOCOL graph (3.4/3.5 ROUTING). The fused `cascade_*` twins — including
   `cascade_match_casting_type_lr_suffix` and friends — tick nothing, and the +24.3 % was measured
-  there. **Measured bound: the guarded-admission family is 0.681 % of corpus entries, so the binding
-  metric is at least ~35× less sensitive to that regression than wall clock.** It guards STRUCTURAL
+  there. **Measured bound: the LR-elimination family is 2.741 % of corpus entries, so the binding
+  metric is at least ~8.9× less sensitive to that regression than wall clock.** ⛔ This read
+  *"0.681 % … ~35×"* until `ENGINE-UNIVERSAL-SERVICES.21`: the classifier counted only
+  `_lr_base`/`_lr_suffix`, so it saw 97 of the parser's 128 LR rule names — no `_lr_seed`, and, in a
+  family named for the GUARD, **no `_lr_guard` rule at all** — leaving **75.1 %** of the family's
+  entries uncounted and the gate UNDER-claiming its own sensitivity by ~4×. It guards STRUCTURAL
   work exactly; it does not price the fused graph. Neither metric alone is sufficient and the report
   says so every run.
 
