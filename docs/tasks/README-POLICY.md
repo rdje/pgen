@@ -1169,7 +1169,65 @@ enforcers, and **both of them size-check a different target** (`check_memory_arc
 shape as `README-POLICY.1`'s finding that the two guards touching `README.md` audited doc *paths*
 and the root file *set*, so it could triple in size with both green.
 
-⛔ **DO NOT DEFAULT TO A CAP.** `README.md` and `MEMORY.md` are bounded because their content has a
+#### ROOT CAUSE — nobody chose long lines; they are a CONSEQUENCE of two ordinary decisions
+
+Director question, 2026-08-14: *"Why do we need to have long lines in `TASK_TREE.md`, why are we
+even doing that?"* — **we don't, and nobody decided to.** Measured:
+
+```
+$ awk 'length($0)>2000 {if ($0 ~ /^\|/) t++; else o++} END{print t, o}' docs/TASK_TREE.md
+43 1
+```
+
+**43 of the 44 long lines are Markdown TABLE ROWS.** A table row must be exactly one line — that is
+the format, not a style choice. So the length comes from composing two decisions that were each
+reasonable alone:
+
+1. the index is a **Markdown table**, and
+2. the status cell was used to hold **per-tree narrative**, which accumulates.
+
+⇒ **line length here is an emergent property, not an authored one.** No one ever typed a 76 591-byte
+line; a cell grew, one session at a time, inside a format where a cell *is* a line. Distribution:
+**9.5 % of lines (44) carry 87.2 % of the file (526 792 B)**; median line is **64 B**, p90 1 855 B,
+p99 33 370 B. The file is a small document with 44 embedded documents in it.
+
+#### Why this is actively harmful, measured rather than argued
+
+1. ⛔ **It destroys `git diff`, which is layer D — the audit trail.** `PGEN-README-POLICY-0010`
+   edited roughly one sentence in one row. `git diff --numstat` reports `1 1`, and the diff is
+   **15 014 B to express a ~700 B edit — 21× amplification**. A reviewer cannot see what changed,
+   and `git log -S`/blame on a per-tree fact is worthless. The index is the one file where "what
+   changed about this tree?" should be the easiest question in the repository, and it is the hardest.
+2. ⛔ **Every long cell is a summary of a document that already exists**, i.e. stored state with a
+   canonical home — `DERIVED_STATE_CONTAINMENT` R1's subject exactly:
+
+   | tree | index cell | owning tree file |
+   |---|---:|---:|
+   | `SV-CORPUS-GRAD` | 76 592 B | 717 545 B |
+   | `RGX-0078` | 64 451 B | 1 444 887 B |
+   | `ENGINE-UNIVERSAL-SERVICES` | 39 107 B | 437 429 B |
+   | `LANG-CAPABILITY-AUDIT` | 37 805 B | 275 585 B |
+
+3. ⛔ **A line cap could never have caught this** — 463 lines is a *small* file by line count. It is
+   the precise shape the byte cap exists for, one layer out from where the byte cap was installed.
+
+#### ⇒ OPTION B (DERIVE / POINTER) DOMINATES, and the size argument is the weakest part of the case
+
+A pointer index — `tree | status | frontier leaf | link` — measures **~6 453 B for all 118 rows,
+1.1 % of today's 604 021 B**, and reads in one go, which is the operational success metric. But the
+decisive argument is not size: it is that **the narrative belongs to the tree file** and keeping a
+second copy in a table cell is a duplicate that can only ever drift, in the one file every agent is
+routed through.
+
+⛔ **GATED ON A LOSSLESS-DEMOTION PROOF, not on judgement.** The risk is a cross-tree fact whose
+*only* home is an index cell — and prose review will not find one. Use the method
+`MEMORY-ARCH.6` already proved here and the knowledge card prescribes: extract every wiki-link,
+leaf id and slice id from the **pre-change** cells and assert each is reachable from
+{the new index} ∪ {the tree files}, reporting a count, not an impression. Anything unreachable gets
+written into its owning tree **before** the cell is cut, exactly as `.2` wrote two homeless facts
+into `docs/decisions/` before trimming layer A.
+
+⚠️ **Do not fold this into a cap.** `README.md` and `MEMORY.md` are bounded because their content has a
 canonical elsewhere to go. The index's content is *per-tree status prose*, whose canonical home is
 **the tree file it summarises** — so the fix is plausibly *derivation*, not *demotion*:
 `MEMORY_ARCHITECTURE.md` §11.7 already prescribes regenerating layer-A state from tree frontiers,
