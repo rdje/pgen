@@ -1892,7 +1892,63 @@ removing prose, not by the syntax. Real tree-id substring collisions across all 
   direction this repository fails on repeatedly, and it disqualifies TSV and the Markdown table for
   a surface meant to last.
 
-##### 3c. ⇒ ✅ VERDICT: **`key=value` LINE RECORDS WIN** — one self-describing record per line
+##### 3c-0. ⛔⛔ VERDICT REOPENED BY THE DIRECTOR (2026-08-14) — THE TIEBREAK BELOW WAS INTERNALLY INCONSISTENT
+
+Director: *"We shouldn't drop JSONL just because the record size is 13 B more than key=value.
+`key=value` is not formalized while JSONL is, correct? We shouldn't reject one just because its
+record has K bytes more. As you said earlier, size is not the ultimate issue here — it is access and
+behaviour."* **Correct on both counts, and the first is a defect in this leaf's own reasoning.**
+
+1. ⛔ **The tiebreak contradicted this leaf's own Finding 1.** §3b established that *size is a
+   NON-DIFFERENTIATOR* — then §3c decided between the two surviving candidates on **13 B/record**.
+   That is the finding being asserted and then ignored two paragraphs later.
+2. ⛔ **`key=value` is NOT formalized; JSONL is.** JSON has a normative grammar (RFC 8259 /
+   ECMA-404), defined escaping and unicode rules, and **JSON Schema** for declarative validation of
+   the enum, required fields and patterns. `key=value` as proposed here has **no specification at
+   all** — its grammar would be whatever the checker happened to enforce, and this project would own
+   every edge case (spaces, `=` inside values, duplicate keys, ordering, unicode) **forever**. In a
+   repository whose founding doctrine is *the formal artifact is the single source of truth*,
+   inventing an unformalized dialect for a long-lived surface is off-doctrine.
+3. ⛔ **And the "one failure mode, VERIFIED safe" framing was too kind to kv.** The space-free
+   precondition is not a measurement that settles the question — it is a **standing invariant that
+   must be enforced for the life of the file**. JSONL does not have that failure mode at all. A
+   verified-today constraint and a structurally-absent constraint are different objects, and the
+   director's criterion is explicitly *long term*.
+
+⭐ **PRIOR ART, MEASURED (and it should have been checked before the verdict):**
+
+```
+tracked .json  : 543          tracked .jsonl : 125
+key=value line records in tracked data files : 0   -- it would be a NEW dialect
+```
+
+⇒ **JSONL is already house style here** (125 tracked files, alongside the `*_register_v0.json`
+schema-validated registers this leaf itself cites as the only pattern that stayed small);
+`key=value` has **no precedent as tracked data**. Its familiarity comes from instrument *stdout*
+(`CERTIFICATE-COVERAGE: grammar=… entry=…`), which is a different thing from a tracked record format.
+
+**STATUS: the format choice is REOPENED and PARKED.** What survives from §3b is intact and is not
+relitigated when this resumes: TSV and the Markdown table are eliminated **on correctness** (silent
+wrong value on column insert), YAML **on structure** (4 lines/record). The live question is
+`key=value` vs **JSONL**, and the deciding criteria are now:
+
+| criterion | `key=value` | JSONL |
+|---|---|---|
+| formal specification | ❌ none — this project would own it | ✅ RFC 8259 / ECMA-404 |
+| declarative schema validation | ❌ hand-rolled checker | ✅ JSON Schema (enum, required, patterns) |
+| precedent in this repo | ❌ 0 tracked files | ✅ 125 tracked `.jsonl` + 543 `.json` |
+| failure mode | ⚠️ space in a value — a standing invariant | ✅ none |
+| self-describing grep hit | ✅ | ✅ |
+| queries answerable in ONE grep | ✅ (measured) | ✅ (measured) |
+| bytes/record | 86 | 99 (+15 %) |
+
+⇒ on the criteria this leaf itself declared decisive — **access, behaviour, long-term stability** —
+**JSONL now leads**, and the earlier verdict does not stand. ⛔ Not re-decided here: the director
+ruled *"let's settle that later, after the SV lane is complete."*
+
+---
+
+##### 3c. ⛔ (VERDICT SUPERSEDED — see 3c-0 above; retained for provenance) `key=value` line records, one self-describing record per line
 
 | candidate | self-describing hit | survives column insert | lines/rec | B/rec | verdict |
 |---|---|---|---:|---:|---|
@@ -1948,7 +2004,7 @@ the director's *"fast regardless of final file size"*, satisfied with a linear l
 constant. ⛔ The cap is per-ROW and mechanical — that is the whole requirement; a row that cannot
 fit its news is a row whose news belongs in the tree file, which is the point.
 
-⭐⭐ **NOTHING IN THE DESIGN REMAINS UNDECIDED.** Function, growth law, invariants, format, field
+⛔ **CORRECTED 2026-08-14: the FORMAT is reopened (see 3c-0) — `key=value` vs JSONL is live, everything else below stands.** ⭐ Nothing else in the design remains undecided. Function, growth law, invariants, format, field
 schema, the enum, the space-free precondition, the three-jobs/three-homes split, cap-before-derive
 ordering, and now `B`. What remains is **WORK, not decisions** (the 72 % prose migration with its
 per-row proof; writing the bidirectional reconcile check) plus exactly one call that is not the
