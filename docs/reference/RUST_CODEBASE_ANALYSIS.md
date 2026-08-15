@@ -30,8 +30,30 @@ Two consequences for anyone reasoning about this subsystem:
    continues. That is how `.20` slice 1's *"zero no-dump rows / 16 336/16 336 agree"* became
    unreproducible (**16 335 rows, 1 no-dump**) without any gate going red.
 
-Owned by `ENGINE-UNIVERSAL-SERVICES.22`, whose acceptance (c) is to make the drop LOUD — a refusal or
-a published roster — rather than to raise a timeout.
+Owned by `ENGINE-UNIVERSAL-SERVICES.22`. ✅ **ROOT-CAUSED AND HALF-CLOSED 2026-08-16
+(`PGEN-ENGINE-UNIVERSAL-SERVICES-0046`).** The mechanism is one line of codegen:
+`ast_based_generator.rs:9166` stores `coverage_stack[memo_coverage_checkpoint..].to_vec()` into every
+`MemoEntry` and `:9049` replays it with `extend_from_slice` on every hit, so the coverage recorder
+**materialises the shared parse DAG as a TREE** — the memo makes the parse linear by SHARING and the
+recorder undoes exactly that. Measured growth law (`…/coverage_stack_blowup/probe.sh`): rule entries
+LINEAR (+19 295 per `else if` arm, constant) while the coverage stack is EXPONENTIAL (**×4.00 per
+arm**, 353 005 042 slots at 7 arms; the corpus file has 10 ⇒ ~93 GB). `/usr/bin/sample`:
+`_platform_memmove` is **4302 of 4314** worker samples = **99.7 %** of CPU. Peak RSS is **13.7 GB
+within one second** on a 24 GB machine, spiking then falling (`Vec` reallocation), which corrects the
+gentler *"150 MB/s to 4 682 MB in 30 s"* first reading.
+
+⇒ **(c) is DISCHARGED**: the drop is now classified by reason, DECLARED in a tracked roster with its
+owning leaf (`…/parse_cost_ratchet/corpus_nodump.tsv`), and any undeclared drop **REFUSES** (exit 2)
+in all three corpus-touching modes. ⛔ Not by raising the timeout — at ×4.00 per arm no timeout is
+large enough.
+
+⛔ **A SECOND, WIDER CONSEQUENCE FOR ANY CONSUMER OF 3.5:** `raw − committed` is published as *failed
+speculation* and is **not an invariant**. `committed` is the coverage stack folded per rule, so a
+memo hit adds a subtree the parser never re-entered; measured `committed/entries` runs **0.62× →
+2 173.88×**, i.e. the difference goes negative. It is positive on all 192 pinned-sample rows, but
+that sample was selected from a census that DROPS the files where it fails. Consumers must check the
+sign. The ENGINE fix is `.22`(e), which is an engine-SEMANTICS decision (what `total_committed`
+means under memo replay) with three priced options recorded in the leaf.
 
 ## Steering Note (2026-08-14) — the eliminator's ADMISSION CRITERION flipped, and one generated parser moved with it (`ENGINE-UNIVERSAL-SERVICES.17` slice 9)
 

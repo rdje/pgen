@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0046 — one hang, one law, and the number the law invalidated on the way past
+
+**1. A hang justifies a longer wait; a GROWTH LAW forecloses one.** The obvious response to "the
+outcome dump times out at 120 s" is 300 s. Emitting the construct at 0..N arms and putting the linear
+column beside the exponential one changed the conversation permanently: entries +19 295 per arm
+(constant), coverage stack ×4.00 per arm. Once that table exists, "raise the timeout" is not a
+smaller fix, it is a wrong one — the next input has one more arm. ⇒ before pricing a fix for a
+performance defect, spend one probe deriving its growth law; it is what decides which fixes are even
+admissible.
+
+**2. The defect was worst exactly where the optimisation was helping most.** A memo exists to
+collapse repeated work into a shared DAG. A recorder that stores the recorded region per memo insert
+and replays it per hit re-expands precisely what the memo collapsed — so the pathological input is
+not the biggest file (the corpus maximum, 175× larger, measures fine) but the one with the highest
+sharing factor. ⭐ An instrumented run that is fine on a large input and impossible on a small one is
+that signature, and it should be read as "my observer is fighting my cache", not as "big input".
+Promoted to `docs/knowledge/an-observer-that-replays-a-memoized-result-turns-the-dag-back-into-a-tree.md`.
+
+**3. Deriving a quantity from two counters is a claim about both, and it went unchecked for weeks.**
+`raw − committed` = failed speculation reads like arithmetic, and it is arithmetic on two things
+measured by DIFFERENT mechanisms — real invocations versus a replayed record. The moment replay
+exists, the difference can go negative. It never did on the 192-row sample, and that is the part
+worth remembering: **the sample could not have shown it, because the sample was selected from a
+census that dropped the file where it fails.** A check whose population excludes the failure mode is
+not evidence about the failure mode.
+
+**4. The routing evidence I inherited was gentle in the flattering direction, and re-measuring cost
+one command.** "~150 MB/s to 4 682 MB peak in 30 s" describes a slow leak. `ps -o rss=` once a second
+says 13 735 MB at t=1 s, falling after — a `Vec` reallocation spike consuming 57 % of the machine
+instantly. Same defect, completely different urgency. ⇒ when a prior slice's number is the reason
+something is deprioritised, re-derive the number before accepting the priority.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0045 — the second time I built the same deadlock, hours after documenting the first
 
 **1. "Derived or gated" has a second half, and gating the constant alone would have missed it.** The

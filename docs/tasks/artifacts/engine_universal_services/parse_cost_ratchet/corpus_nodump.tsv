@@ -1,0 +1,30 @@
+# docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/corpus_nodump.tsv
+#
+# ENGINE-UNIVERSAL-SERVICES.22 acceptance (c) — the DECLARED no-dump roster.
+#
+# A corpus file that produces no rule-outcome dump is a file the parse-cost measurement does not
+# cover. Before this roster existed the row was folded into an integer, the integer was printed,
+# and the run continued — which is how `.20` slice 1 published "zero no-dump rows" and
+# "16 336/16 336 agree" while ONE file was silently absent, and that one file measurably moved
+# 5 of the 192 PINNED sample rows (`.21` slice 1 RESULT 5).
+#
+# ⛔ EVERY no-dump file must appear here WITH THE LEAF THAT OWNS FIXING IT, or the run REFUSES
+# (`adjudicate_nodump`, exit 2). This is a declaration of a known defect, never a waiver: the row
+# exists so the drop is visible in the artifact, attributable to an owner, and detectable when it
+# changes. A NEW drop is not in this file and therefore stops the measurement.
+#
+# ⛔ DO NOT "fix" a row here by raising PER_FILE_TIMEOUT_S. `.22` measured the blow-up as
+# EXPONENTIAL — the transactional coverage stack grows ×4.14 per else-if arm while the parse
+# itself grows linearly (+19 295 rule entries per arm) — so no timeout is large enough and every
+# timeout is arbitrary. The fix is in the engine, not in the clock.
+#
+# ⛔ THE ROSTER KEYS ON `path`, NOT ON `reason`, AND THAT IS DELIBERATE. The SAME file surfaces
+# as `timeout` when measured serially and as `empty-dump` under `-j8`, because the OS reclaims
+# the 13.7 GB process before the 120 s timeout expires. Both are the same defect; gating on the
+# reason would make the check flaky on exactly the file it exists for. The observed reason is
+# PRINTED on every run so a change in symptom is still visible.
+#
+# 4 tab-separated fields:  path <TAB> reason <TAB> owning-leaf <TAB> note
+#
+path	reason	owning_leaf	note
+stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv	timeout	ENGINE-UNIVERSAL-SERVICES.22	Bare parse 0.108 s and the TOOLBOX 3.4 entry dump 0.056 s / 200 975 entries / accepted=True; the TOOLBOX 3.5 outcome dump never terminates. Same PROTOCOL graph in both, so the defect is the transactional coverage stack alone. Root cause: memoized_call stores coverage_stack[checkpoint..].to_vec() per memo entry and replays it with extend_from_slice on every hit, which materialises the shared parse DAG as a TREE. Measured growth on the else-if ladder: entries LINEAR (+19 295/arm), coverage stack EXPONENTIAL (x4.14/arm) reaching 353 005 042 slots at 7 arms; this file has 10, extrapolating to ~93 GB. /usr/bin/sample: _platform_memmove is 4302 of 4314 samples = 99.7 % of CPU.

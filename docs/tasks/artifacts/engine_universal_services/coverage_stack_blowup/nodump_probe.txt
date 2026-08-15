@@ -1,0 +1,18 @@
+============================================================================================
+ENGINE-UNIVERSAL-SERVICES.22 (c) — no-dump REFUSAL, RED probes
+============================================================================================
+control:       stimuli/sv/subs/Cores-VeeR-EL2/design/dec/el2_dec_trigger.sv
+cheap no-dump: rust/target/e22/nodump_probe_absent.sv (absent by construction)
+
+  PASS GREEN control alone                    exit 0 (want 0) — an ordinary file dumps; the REDs below are not vacuous
+       rows=1 nodump=[]
+  PASS RED undeclared drop                    exit 2 (want 2) — an undeclared drop REFUSES instead of shrinking the denominator
+       rows=1 nodump=[('rust/target/e22/nodump_probe_absent.sv', 'empty-dump')]
+  PASS GREEN declared drop                    exit 0 (want 0) — a DECLARED drop proceeds and says so — the roster is not a blanket refusal
+       rows=1 nodump=[('rust/target/e22/nodump_probe_absent.sv', 'empty-dump')]
+  PASS RED roster names another file          exit 2 (want 2) — a roster row cannot cover a file it does not name
+       rows=1 nodump=[('rust/target/e22/nodump_probe_absent.sv', 'empty-dump')]
+  PASS TRACKED roster declares the real file  stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv -> 'timeout' (want 'timeout')
+
+5 passed, 0 failed.
+* the refusal has been OBSERVED firing, and observed NOT firing on a declared drop.

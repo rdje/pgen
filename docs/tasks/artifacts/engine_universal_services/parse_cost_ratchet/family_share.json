@@ -25,6 +25,12 @@
     }
   },
   "lr_entries": 24644435,
+  "nodump": [
+    {
+      "path": "stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv",
+      "reason": "empty-dump"
+    }
+  ],
   "note": "The share of all PROTOCOL-graph rule entries taken by the left-recursion elimination family over the whole SV corpus. It is the DENOMINATOR of `PARSE-COST-RATCHET`'s published blind-spot bound: the binding counters are at least (wall_clock_regression_pct / this) times less sensitive than wall clock to a per-entry cost rise. \u26d4 Derived, never hand-edited; `--verify-family-share` re-hashes every identity row above on every run.",
   "schema": "pgen.parse_cost.family_share/v1",
   "total_entries": 899064022,

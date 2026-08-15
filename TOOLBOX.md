@@ -529,6 +529,30 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
 - **OUTPUT:** the JSON file (rules sorted; zero-count rules omitted per map). Opt-in: unset ⇒ the coverage stack stays disabled and behavior is byte-identical. Build-mode-independent like 3.4.
 - **ROUTING (RGX-0078.5.i.7 D2-A):** the outcome dump enables coverage ⇒ the parse runs the PROTOCOL graph, so the raw/committed/memo-hit pins stay byte-exact forever under the observability twin (a BARE parse — no coverage/trace/counters/memo-stats consumer — runs the fused `cascade_*` graph instead; its byte-identity is enforced by the equivalence/AST oracles, not by counters).
+- ⛔⛔⛔ **THIS DUMP CAN FAIL TO TERMINATE ON AN INPUT THAT PARSES IN 0.1 s, AND IT IS THE COVERAGE
+  STACK — measured, not suspected (`ENGINE-UNIVERSAL-SERVICES.22`).** `stimuli/sv/subs/Surelog/
+  tests/ExponTimeIfElseGen/dut.sv` (**2 787 bytes**) parses BARE in 0.108 s and dumps under **3.4**
+  in 0.056 s with 200 975 entries — and under 3.5 it peaks at **13.7 GB RSS inside ONE SECOND** on a
+  24 GB machine and never writes a dump. 3.4 and 3.5 take the SAME graph, so the delta is the
+  transactional coverage stack alone. WHY: `memoized_call` stores `coverage_stack[checkpoint..]
+  .to_vec()` in every MemoEntry and replays it with `extend_from_slice` on every hit, which
+  materialises the shared parse DAG as a **TREE** — the memo makes the parse linear by SHARING, and
+  the coverage recorder undoes exactly that sharing. Measured growth law on an `else if` ladder
+  (`docs/tasks/artifacts/engine_universal_services/coverage_stack_blowup/probe.sh`): rule entries
+  **LINEAR** (+19 295 per arm, constant) while the coverage stack is **EXPONENTIAL (×4.14 per
+  arm)**, reaching **353 005 042** slots at 7 arms; the corpus file carries 10, extrapolating to
+  ~93 GB. ⇒ ⛔ **do not answer a 3.5 hang with a bigger timeout** — no timeout is large enough. If
+  3.5 hangs, take the measurement with **3.4** (which has no coverage stack) and say which columns
+  you therefore do not have.
+- ⛔⛔ **AND THAT BREAKS `raw − committed` AS A GENERAL IDENTITY.** The docstring above reads
+  *"`raw − committed` = the rule's FAILED-speculation entries"*, and it holds only while memo
+  REPLAY is negligible. It is not an invariant: `committed` is `coverage_stack.len()` folded per
+  rule, so a memo hit re-appends a whole cached subtree that the parser never re-entered, while
+  `raw` counts real invocations only. Measured on the ladder above, `committed / entries` runs
+  **0.62× → 2 173.88×** across 8 rungs — i.e. `raw − committed` goes NEGATIVE. It is positive on
+  all 192 rows of the pinned parse-cost sample, and that is an empirical fact about those files,
+  ⛔ **not a guarantee** — and the sample was selected from a census that DROPS exactly the files
+  where it would fail. Before quoting failed-speculation percentages, check the sign.
 
 ### 3.6 Per-rule memo INSERT / EVICT / REPLAY census — "is the memo actually serving this rule?"
 - **WHAT:** `docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py` — splits a parse's memo

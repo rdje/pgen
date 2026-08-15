@@ -5351,6 +5351,12 @@ ad-hoc timing script against a stale baseline *is literally what produced the wr
 ###### ⭐⭐ RESULT 1 — THE INSTRUMENT HAS GROUND TRUTH: IT REPRODUCES THE GRADUATION ORACLE ON EVERY ONE OF 16 336 FILES
 
 A full-corpus entry census (16 336 files, `-j8`, **zero** no-dump rows) was run before any sample was
+⛔⛔ **CORRECTED IN PLACE 2026-08-16 (`.22` acceptance (d)): *zero* no-dump rows is WRONG and
+the reproducible figure is `16 335` rows / `1` no-dump.** The census dropped
+`stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv` on a 120 s timeout and reported only
+a COUNT, which this slice then read as zero. The drop is now DECLARED in a tracked roster and
+an undeclared one REFUSES (`.22` slice 1). ⇒ every figure below that says *16 336* is a count of
+files OFFERED, never of files MEASURED.
 chosen. Its `accepted` verdicts were joined against the tracked `stimuli/sv/characterization/
 results.tsv`:
 
@@ -5519,7 +5525,10 @@ producer's schema* failure that a positional unpack would have reproduced here.
   **verdict** question (does it parse? does the lint fire? does the corpus pass count hold?) and the
   regression moved **no verdict at all** — `.17` slice 9 measured `pass 9 774 / fail 6 562` GREEN
   across the slowdown, and this slice's own census reproduces those verdicts on 16 336/16 336 files
-  (RESULT 1). WHERE, precisely: the gap is between `gate-flow.md`'s Layer-1 leaf gates and the
+  (RESULT 1). ⛔ **CORRECTED 2026-08-16 (`.22` (d)): the reproducible figure is `16 335/16 335`,
+  1 no-dump** — the census silently dropped one file it could not dump and published only a
+  count. The conclusion is untouched (the regression moved no verdict), but the DENOMINATOR was
+  the number of files offered, not measured. WHERE, precisely: the gap is between `gate-flow.md`'s Layer-1 leaf gates and the
   doctrine registry — `performance_gate` exists but keys on the **regex** benchmark thresholds, so
   the SV parser had **no cost surface of any kind**. Tool-located, not inferred: the full-corpus
   entry census (RESULT 1) is the first measurement of SV parse cost this repository has ever
@@ -7120,7 +7129,7 @@ shared path-normalising comparison helper the instruments import, instead of the
 copies that exist now — the second copy was written **after** the first defect was recorded, which is
 the evidence that prose does not transfer.
 
-#### ⛔⛔⛔ `.22` NEW `todo` — the transactional coverage stack (TOOLBOX 3.5) never terminates on a corpus file that a bare parse accepts in 0.077 s, and the census silently drops it (opened 2026-08-15 session #235 by `.20` slice 4)
+#### ⛔⛔⛔ `.22` `in progress` — the transactional coverage stack (TOOLBOX 3.5) never terminates on a corpus file that a bare parse accepts in 0.077 s, and the census silently drops it (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ⏳ **(e) the FIX is the frontier**, ⏳ **(b) open**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -7150,7 +7159,191 @@ may not survive, so sizing that is part of (a); (b) decide whether the file's `a
 derivation agreement); (c) ⛔ make the drop LOUD — a no-dump row is currently indistinguishable from a
 measured one in every downstream number, and the fix is a REFUSAL or a published `nodump` roster, not
 a bigger timeout; (d) restate slice 1's ground-truth claim with the reproducible number
-(**16 335/16 335**, 1 no-dump) rather than the published `16 336/16 336`.
+(**16 335/16 335**, 1 no-dump) rather than the published `16 336/16 336`; ✅ **(e) ADDED by slice 1 —
+FIX the blow-up itself**, since (a) located it and *"logging them is the first step, fixing them is
+the end goal"*: the record recorder must stop materialising the shared parse DAG as a tree while
+KEEPING the completeness guarantee `GRAMMAR-WELLFORMED.H.10.2.2` added the replay for.
+
+##### ✅ `.22` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0046`, 2026-08-16 session #238) — (a) ROOT-CAUSED to a line, with a GROWTH LAW; (c) the silent drop now REFUSES; (d) the ground-truth claim restated
+
+###### ⭐⭐⭐ (a) THE MECHANISM: THE MEMO MAKES THE PARSE LINEAR BY **SHARING**, AND THE COVERAGE RECORDER UNDOES EXACTLY THAT SHARING
+
+Isolation first, three parses of the SAME 2 787-byte file differing only in the observability
+surface attached — so exactly one variable moves:
+
+| how | graph | result |
+|---|---|---|
+| BARE `--parse` | FUSED `cascade_*` | ✅ **0.108 s**, `parse_full passed` |
+| `--dump-rule-entry-counts-json` (**3.4**) | PROTOCOL, **no** coverage stack | ✅ **0.056 s**, `accepted: True`, **200 975 entries** / 711 rules |
+| `--dump-rule-outcome-counts-json` (**3.5**) | PROTOCOL **+ coverage stack** | ⛔ **13.7 GB RSS inside ONE SECOND**, never writes a dump |
+
+⇒ 3.4 and 3.5 take the **same** graph. The delta is the transactional coverage stack, and nothing
+else. ⭐ **The RSS profile SPIKES and then FALLS** — 13 735 → 8 327 → 5 367 MB at 1 s intervals —
+because the growth is `Vec` reallocation (allocate double, copy, free). ⛔ That corrects this leaf's
+own routing evidence, which recorded *"~150 MB/s to 4 682 MB peak in 30 s"* and read far gentler
+than the truth: the real peak is **57 % of a 24 GB machine, in the first second**.
+
+**WHERE, from the profiler rather than from reading.** `/usr/bin/sample` on the live process, read
+through its own per-symbol table (the external oracle TOOLBOX 3.8 trap 4 exists for):
+
+```
+Sort by top of stack, same collapsed (when >= 5):
+        __ulock_wait  (in libsystem_kernel.dylib)        4314      <- the idle main thread
+        _platform_memmove  (in libsystem_platform.dylib) 4302      <- the WORKER thread
+```
+
+**4302 of 4314 samples = 99.7 % of the parse is a memcpy**, called from `memoized_call` and from the
+rule bodies it is inlined into (`parse_generate_block`, `parse_loop_generate_construct`,
+`parse_module_or_generate_item`, …). Not "slow parsing" — copying.
+
+**WHY, at the emission site** (`rust/src/ast_pipeline/ast_based_generator.rs`, materialised in
+`generated/systemverilog_parser.rs`):
+
+```rust
+// :9166-9167  insert — a full COPY of everything the body pushed
+let coverage_delta = if self.coverage_enabled {
+    Some(self.coverage_stack[memo_coverage_checkpoint..].to_vec())
+} else { None };
+// :9049       hit — the copy is REPLAYED onto the live stack
+if let Some(coverage) = &entry.coverage_delta {
+    self.coverage_stack.extend_from_slice(coverage);
+}
+```
+
+A memo hit does not re-enter the subtree — that is the entire point of a memo — but it *appends the
+whole recorded subtree again*. Each enclosing memo entry then stores a copy of that too. ⇒ the
+recorder expands the shared DAG into the full derivation **tree**, and every level multiplies.
+
+###### ⭐⭐⭐ THE GROWTH LAW, MEASURED — LINEAR PARSE, EXPONENTIAL RECORDER
+
+The corpus file is a chain of `else if` arms in a generate loop (Surelog's own exponential-parse
+regression test). ⛔ One pathological file proves a hang, not a law, and a law is what says whether
+the mechanism is the memo, the guard or the recorder. `…/coverage_stack_blowup/probe.sh` emits the
+same construct at 0..N arms and runs all three surfaces on each rung:
+
+| arms | entries (3.4) | Δentries | committed = `coverage_stack.len()` | ×prev | committed/entries |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 27 320 | — | 16 924 | — | 0.62× |
+| 1 | 46 615 | +19 295 | 81 562 | ×4.82 | 1.75× |
+| 2 | 65 910 | +19 295 | 340 114 | ×4.17 | 5.16× |
+| 3 | 85 205 | +19 295 | 1 374 322 | ×4.04 | 16.13× |
+| 4 | 104 500 | +19 295 | 5 511 154 | ×4.01 | 52.74× |
+| 5 | 123 795 | +19 295 | 22 058 482 | ×4.00 | 178.19× |
+| 6 | 143 090 | +19 295 | 88 247 794 | ×4.00 | 616.73× |
+| 7 | 162 385 | +19 295 | **353 005 042** | ×4.00 | **2 173.88×** |
+
+**Entries LINEAR (+19 295 per arm, constant to the unit). Coverage stack EXPONENTIAL, ×4.00 per
+arm.** Extrapolated: 8 arms = 1.46 G slots (5.4 GB), 9 = 6.05 G (22.5 GB), **10 arms = 25.06 G slots
+= 93.3 GB — and the corpus file has 10.** ⭐ Corroborated independently: a direct run at 8 arms was
+killed by the memory guard at **12 GB** after 17.3 s, bracketing the 5.4 GB *stack-only* prediction
+once the MemoEntry copies are added.
+
+###### ⛔⛔ A SECOND DEFECT FALLS OUT OF THE LAW — `raw − committed` IS NOT AN INVARIANT
+
+TOOLBOX 3.5 and this tree publish *"`raw − committed` = the rule's FAILED-speculation entries"*, and
+`.20` slice 1 read **98.3 % failed speculation** off it. That identity holds only while memo replay
+is negligible: `committed` is `coverage_stack.len()` folded per rule, so a memo hit adds a subtree
+the parser never re-entered, while `raw` counts real invocations. Measured above, `committed/entries`
+runs **0.62× → 2 173.88×**, i.e. **`raw − committed` goes negative**. ⭐ It is positive on all 192
+pinned-sample rows (checked: `committed > entries` in **0 of 192**) — but that is an empirical fact
+about those files, ⛔ **not a guarantee**, and the sample was selected from a census that DROPS
+exactly the files where it fails. Recorded in TOOLBOX 3.5; no published figure is retracted, because
+every one of them was computed on rows where the sign holds.
+
+###### ⭐⭐ (c) THE DROP IS NOW A REFUSAL, NOT A COUNT
+
+⛔ The acceptance text forbade the obvious answer — *"the fix is a REFUSAL or a published `nodump`
+roster, not a bigger timeout"* — and the growth law is why: at ×4.14 per arm **no timeout is large
+enough**, and every timeout is arbitrary. Shipped instead, in the `SV-CORPUS-DENOMINATOR` posture:
+
+1. `measure_one_entries` **classifies** the failure (`timeout` / `empty-dump` / `malformed-dump` /
+   `os-error`) instead of returning a bare `None`, so a real engine defect is distinguishable from a
+   missing file.
+2. A tracked roster `…/parse_cost_ratchet/corpus_nodump.tsv` declares each known drop **with the leaf
+   that owns fixing it**. A declaration, never a waiver.
+3. `adjudicate_nodump` prints every drop with its reason and **REFUSES (exit 2)** on any file the
+   roster does not name — wired into all three corpus-touching modes (`--census`, the pinned-sample
+   measure, `--rederive-family-share`).
+4. `family_share.json` now records the roster itself, not just `files_nodump: 1`.
+
+⭐ The roster keys on **path, not reason**, and that was measured rather than assumed: the same file
+reports `timeout` when measured serially and `empty-dump` under `-j8`, because the OS reclaims the
+13.7 GB process before the 120 s timeout expires. Gating on the reason would make the check flaky on
+the one file it exists for; the observed reason is printed every run so a change in symptom is still
+visible.
+
+**5/5 refusal arms OBSERVED firing** (`…/coverage_stack_blowup/nodump_probe.py`): GREEN control
+alone; RED undeclared drop → exit 2; GREEN *declared* drop → exit 0 (so the roster is not a blanket
+refusal); RED roster naming a different file → exit 2; plus an assertion that the TRACKED roster
+really does carry the pathological path. ⭐ That probe deliberately does **not** run the pathological
+file — making every reader allocate 57 % of their RAM to re-derive a `dict` lookup is a poor trade,
+and the file's own behaviour is measured by its neighbour `probe.sh`. One instrument, one job.
+
+###### ✅ (d) THE GROUND-TRUTH CLAIM, RESTATED WHERE IT WAS PUBLISHED
+
+`.20` slice 1's *"16 336 files, **zero** no-dump rows"* and *"reproduces those verdicts on
+16 336/16 336 files"* are **corrected in place** to **16 335/16 335, 1 no-dump**, with the reason
+named: the census reported a COUNT and this slice read it as zero. ⛔ Note what is NOT corrected —
+`.20` slice 4's *"ARM 2 reproduces the tracked oracle 16 336/16 336"* is the corpus RUNNER's verdicts
+against `results.tsv`, a different instrument that does measure all 16 336. Over-correcting a
+neighbouring true claim because it shares digits would be its own defect.
+
+###### ⏳ WHAT SLICE 1 DELIBERATELY DOES NOT DO — (e), and why it is a slice of its own
+
+The fix is **not** "drop the replay". `GRAMMAR-WELLFORMED.H.10.2.2` added it deliberately and its
+codegen pin says why: *"without the replay, a subtree first parsed inside a rolled-back speculation
+and then memo-hit on the committed path is silently absent from the witness record"*. Removing it
+re-opens a real completeness hole in the certifying linter's witness side — the same
+*"the guards are LOAD-BEARING, not overhead"* shape `.20` slice 4 measured. Priced options, none yet
+chosen:
+
+| option | idea | cost | risk |
+|---|---|---|---|
+| **A** store a REFERENCE, not an expansion | `coverage_stack: Vec<Item>` where `Item = Rule(id) \| MemoRef(delta_id)`; the final fold walks the DAG once, memoized per delta | codegen change + a fold rewrite; storage back to O(entries) | the fold must count multiplicity correctly — the true committed count really is ~10^10, so it must be `u64` arithmetic, never a materialised list |
+| **B** fold eagerly into a per-rule histogram | replay adds a histogram instead of appending slots | `try_parse` rollback needs a histogram checkpoint = O(RULE_COUNT) per speculation — **1 608 counters × millions of speculations** | almost certainly worse than the disease |
+| **C** cap + declare | refuse the dump past a stack ceiling | trivial | ⛔ answers a wrong number with a smaller wrong number |
+
+⛔ **A is the only one that preserves both properties**, but it changes what `total_committed`
+MEANS (a derivation-tree multiplicity, which is genuinely exponential and correctly so) and
+therefore what `raw − committed` means. That is an engine-semantics decision with a published
+consequence, so it is owned as `.22`(e) rather than bolted onto a diagnosis slice.
+
+###### Acceptance Checklist (enforced) — `.22` slice 1, acceptance (a) + (c) + (d)
+
+- [x] **REPRODUCE / ISSUE** — three parses of the same file, one variable apart:
+  ```
+  $ ./rust/target/release/parseability_probe --parse systemverilog …/ExponTimeIfElseGen/dut.sv --profile sv_2017
+  parse_full passed …                                                    real 0m0.108s
+  $ … --dump-rule-entry-counts-json e.json      accepted True  total_entries 200975  rules 711   real 0m0.056s
+  $ … --dump-rule-outcome-counts-json o.json    (no dump; RSS 13735 MB at t=1s, 8327 at t=2s, 5367 at t=3s)
+  ```
+- [x] **ROOT CAUSE (WHY + WHERE)** — performance family. WHERE, by `/usr/bin/sample`'s own
+  per-symbol table (an oracle this slice did not build): **`_platform_memmove` 4302 of 4314
+  samples = 99.7 %** of the worker thread, called from `memoized_call`. WHY, at the emission site:
+  `ast_based_generator.rs:9166` stores `self.coverage_stack[memo_coverage_checkpoint..].to_vec()`
+  into every `MemoEntry` and `:9049` replays it with `extend_from_slice` on every hit, so the
+  recorder materialises the shared parse DAG as a TREE. Quantified as a growth law rather than an
+  anecdote: rule entries LINEAR (+19 295/arm, constant), coverage stack EXPONENTIAL (**×4.00/arm**,
+  353 005 042 slots at 7 arms), from
+  `bash docs/tasks/artifacts/engine_universal_services/coverage_stack_blowup/probe.sh 7 25`.
+- [x] **FIX** — fix-hierarchy tier = **instrument + ops/build-flow** for this slice; ZERO engine,
+  grammar or generated bytes (the ENGINE fix is `(e)`, deliberately deferred with priced options and
+  a stated reason, not silently omitted). Failure classification (`NoDump`), a tracked declaration
+  roster, and a REFUSAL replacing the silent count.
+- [x] **ADDRESSED (verified)** — before→after on the symptom. BEFORE: `measure_one_entries` returned
+  `None` for every failure kind, the census printed `1 no-dump` and continued, and nothing named the
+  file. AFTER: every corpus mode prints
+  `parse-cost: no-dump [declared] stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv — empty-dump: …`
+  and an UNDECLARED drop exits 2 — proven by running it:
+  `python3 …/coverage_stack_blowup/nodump_probe.py` → **5 passed, 0 failed** (RED undeclared → exit
+  2; GREEN declared → exit 0). The full-corpus re-derivation completes and publishes the roster:
+  `derived family share 2.741 % (24,644,435 of 899,064,022 entries over 16335 files, 1 no-dump)`.
+- [x] **NO REGRESSION** — ⭐ `entries.tsv` is **BYTE-IDENTICAL across the rebaseline** (only
+  `advisory.json` — machine-dependent wall clock — and `cost.md` move), so the three BINDING counters
+  did not shift; and the family share re-derives to **2.741 %** on exactly the same numerator and
+  denominator as before this slice. `bash scripts/check_doctrines.sh` → **ALL 20 enforced doctrines
+  PASS**. `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes. `generated/` untouched; no Rust
+  source touched, so no clippy surface.
 
 
 #### ⚠️ `.23` NEW `todo` — the direct-LR normalizer's "all alternatives are left-recursive → leave it alone" guard MISSES the mixed case, so well-formedness reports the error against an ENGINE-INVENTED rule name the author never wrote (opened 2026-08-15 session #236 by `.21` slice 2)

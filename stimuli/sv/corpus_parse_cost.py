@@ -364,9 +364,82 @@ def sub_corpus_of(rel: str) -> str:
     return "(unknown)"
 
 
+# ── the NO-DUMP roster: a dropped file is DECLARED or it REFUSES (`.22` acceptance (c)) ─────
+#
+# ⛔ THE DEFECT THIS CLOSES IS SILENCE, NOT THE DROP. A corpus file the probe cannot dump is a
+# file the measurement does not cover. Before `ENGINE-UNIVERSAL-SERVICES.22` every such row was
+# folded into an integer, the integer was printed, and the run continued — so `.20` slice 1's
+# *"zero no-dump rows"* and *"16 336/16 336 agree"* were published while ONE file was silently
+# absent, and that one file measurably moved 5 of the 192 PINNED sample rows (`.21` slice 1
+# RESULT 5). A count is not a roster: it cannot say WHICH file, WHY, or whether it is the same
+# file as yesterday.
+#
+# ⭐ THE FIX IS THE `SV-CORPUS-DENOMINATOR` POSTURE, NOT A BIGGER TIMEOUT: publish the roster,
+# and REFUSE on drift. A known, owned drop is declared in a tracked file with the leaf that owns
+# fixing it; anything else stops the run. ⛔ Raising `PER_FILE_TIMEOUT_S` would convert a REFUSAL
+# into a longer wait for the same wrong answer — the blow-up is exponential (measured ×4.14 per
+# else-if arm), so no timeout is large enough and every timeout is arbitrary.
+
+NODUMP_ROSTER = (
+    "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/corpus_nodump.tsv"
+)
+
+
+class NoDump:
+    """One corpus file the probe produced no dump for, WITH the reason it did not."""
+
+    __slots__ = ("path", "reason", "detail")
+
+    def __init__(self, path: str, reason: str, detail: str) -> None:
+        self.path, self.reason, self.detail = path, reason, detail
+
+    def __repr__(self) -> str:  # pragma: no cover - diagnostics only
+        return f"NoDump({self.path!r}, {self.reason!r})"
+
+
+def read_nodump_roster() -> dict[str, str]:
+    """The DECLARED no-dump files: `path -> reason`. Absent roster = an empty roster, which is
+    strict rather than permissive — an undeclared drop then refuses."""
+    path = os.path.join(ROOT, NODUMP_ROSTER)
+    out: dict[str, str] = {}
+    if not os.path.isfile(path):
+        return out
+    with open(path, encoding="utf-8") as fh:
+        for n, line in enumerate(fh, 1):
+            line = line.rstrip("\n")
+            if not line.strip() or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) < 3:
+                die(f"{NODUMP_ROSTER}:{n}: expected at least 3 tab-separated fields "
+                    f"(path, reason, owning-leaf), got {len(parts)}")
+            out[parts[0]] = parts[1]
+    return out
+
+
+def adjudicate_nodump(nodump: list[NoDump], scope: str) -> None:
+    """REFUSE (exit 2) on any no-dump file the roster does not declare.
+
+    ⛔ Refuses rather than warning. A warning printed into a 16 336-file run's stderr is a count
+    with extra characters — this whole leaf exists because that is what happened.
+    """
+    roster = read_nodump_roster()
+    undeclared = [n for n in nodump if n.path not in roster]
+    for n in nodump:
+        mark = "declared" if n.path in roster else "⛔ UNDECLARED"
+        print(f"parse-cost: no-dump [{mark}] {n.path} — {n.reason}: {n.detail}", file=sys.stderr)
+    if undeclared:
+        die(f"{len(undeclared)} of {len(nodump)} no-dump file(s) in the {scope} are NOT declared "
+            f"in {NODUMP_ROSTER}, so this measurement would silently omit them.\n"
+            f"  Either fix the defect that stops the dump, or DECLARE the file with the leaf that "
+            f"owns fixing it — one tab-separated row: path\\treason\\towning-leaf\\tnote.\n"
+            f"  ⛔ Do NOT raise PER_FILE_TIMEOUT_S: `ENGINE-UNIVERSAL-SERVICES.22` measured the "
+            f"blow-up as exponential (×4.14 per else-if arm), so no timeout is large enough.")
+
+
 # ── measurement: the BINDING metric ─────────────────────────────────────────────────────────
 
-def measure_one_entries(args: tuple[str, str]) -> tuple | None:
+def measure_one_entries(args: tuple[str, str]) -> tuple | NoDump:
     """One file -> its exact counter row. None when the probe produced no dump.
 
     ⭐ USES THE OUTCOME DUMP (TOOLBOX 3.5), NOT THE PLAIN ENTRY DUMP (3.4), AND THAT IS A
@@ -383,6 +456,11 @@ def measure_one_entries(args: tuple[str, str]) -> tuple | None:
     probe, rel = args
     fd, tmp = tempfile.mkstemp(suffix=".json", dir=os.path.join(ROOT, "rust", "target"))
     os.close(fd)
+    # ⛔ THE FAILURE REASON IS RETURNED, NOT DISCARDED (`ENGINE-UNIVERSAL-SERVICES.22` (c)).
+    # Every one of these paths used to `return None`, so a 120 s TIMEOUT — the symptom of a real
+    # engine defect — was indistinguishable from a missing file. The census then counted the row
+    # into a `nodump` list, printed the count, and continued: that is how slice 1's *"zero no-dump
+    # rows"* and *"16 336/16 336 agree"* became unreproducible with nothing failing.
     try:
         subprocess.run(
             [probe, "--parse", GRAMMAR, os.path.join(ROOT, rel), "--profile", PROFILE,
@@ -390,11 +468,17 @@ def measure_one_entries(args: tuple[str, str]) -> tuple | None:
             capture_output=True, timeout=PER_FILE_TIMEOUT_S,
         )
         if os.path.getsize(tmp) == 0:
-            return None
+            return NoDump(rel, "empty-dump",
+                          "the probe exited without writing a dump (no timeout)")
         with open(tmp, encoding="utf-8") as fh:
             d = json.load(fh)
-    except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
-        return None
+    except subprocess.TimeoutExpired:
+        return NoDump(rel, "timeout",
+                      f"the probe did not finish within {PER_FILE_TIMEOUT_S} s")
+    except json.JSONDecodeError as exc:
+        return NoDump(rel, "malformed-dump", f"the dump is not valid JSON: {exc}")
+    except OSError as exc:
+        return NoDump(rel, "os-error", str(exc))
     finally:
         try:
             os.unlink(tmp)
@@ -409,7 +493,8 @@ def measure_one_entries(args: tuple[str, str]) -> tuple | None:
             int(d.get("total_memo_hits", 0)), lr_e, lr_c)
 
 
-def measure_entries(probe: str, files: list[str], jobs: int) -> tuple[list[tuple], list[str]]:
+def measure_entries(probe: str, files: list[str],
+                    jobs: int) -> tuple[list[tuple], list[NoDump]]:
     """Entries for every file, in parallel.
 
     ⭐ Parallelism is SOUND here and is not for the advisory metric: an entry count is an exact
@@ -417,15 +502,15 @@ def measure_entries(probe: str, files: list[str], jobs: int) -> tuple[list[tuple
     serial for exactly the opposite reason.
     """
     rows: list[tuple] = []
-    nodump: list[str] = []
+    nodump: list[NoDump] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
-        for rel, res in zip(files, ex.map(measure_one_entries, [(probe, f) for f in files])):
-            if res is None:
-                nodump.append(rel)
+        for res in ex.map(measure_one_entries, [(probe, f) for f in files]):
+            if isinstance(res, NoDump):
+                nodump.append(res)
             else:
                 rows.append(res)
     rows.sort(key=lambda r: (sub_corpus_of(r[0]), r[0]))
-    return rows, sorted(nodump)
+    return rows, sorted(nodump, key=lambda n: n.path)
 
 
 # ── measurement: the ADVISORY metric ────────────────────────────────────────────────────────
@@ -770,9 +855,13 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
         A("")
         A("Reported, never dropped: a file the probe could not dump is a file this baseline does")
         A("not cover, and silently shrinking the sample is how a ratchet loosens itself.")
+        A(f"⛔ Since `ENGINE-UNIVERSAL-SERVICES.22` each row also carries WHY, and an undeclared")
+        A(f"drop REFUSES the run (roster: `{NODUMP_ROSTER}`).")
         A("")
-        for rel in nodump:
-            A(f"- `{rel}`")
+        A("| file | reason | detail |")
+        A("|---|---|---|")
+        for n in nodump:
+            A(f"| `{n.path}` | `{n.reason}` | {n.detail} |")
         A("")
     A("_Per-file rows: `entries.tsv` — 9 columns (sub-corpus, tier, path, accepted, entries,")
     A("committed, memo_hits, lr_entries, lr_committed), sorted by (sub-corpus, path) so two runs")
@@ -1147,6 +1236,7 @@ def run_rederive_family_share(probe: str, jobs: int, out_path: str) -> int:
           f"(~70 s) ...", file=sys.stderr)
     t0 = time.perf_counter()
     rows, nodump = measure_entries(probe, files, jobs)
+    adjudicate_nodump(nodump, "full-corpus family-share census")
     if not rows:
         die("every corpus file failed to produce a dump — refusing to publish an empty share")
     total = sum(r[2] for r in rows)
@@ -1165,6 +1255,7 @@ def run_rederive_family_share(probe: str, jobs: int, out_path: str) -> int:
         "total_entries": total,
         "files_measured": len(rows),
         "files_nodump": len(nodump),
+        "nodump": [{"path": n.path, "reason": n.reason} for n in nodump],
         "files_in_manifest": listed,
         "identity": ident,
         "classifier_pattern": LR_FAMILY_RE.pattern,
@@ -1208,13 +1299,15 @@ def run_census(probe: str, outdir: str, jobs: int) -> int:
         die("no corpus files found — the vendored corpora are git submodules; check them out")
     print(f"parse-cost: census over {len(files)} files at -j{jobs} ...", file=sys.stderr)
     rows, nodump = measure_entries(probe, files, jobs)
+    adjudicate_nodump(nodump, "full-corpus census")
     os.makedirs(outdir, exist_ok=True)
     out = os.path.join(outdir, "census.tsv")
     with open(out, "w", encoding="utf-8") as fh:
         for rel, accepted, ent, _com, _memo, lr_e, _lr_c in rows:
             fh.write(f"{sub_corpus_of(rel)}\t{rel}\t{'True' if accepted == 'yes' else 'False'}"
                      f"\t{ent}\t{lr_e}\n")
-    print(f"parse-cost: census -> {out} ({len(rows)} rows, {len(nodump)} no-dump)", file=sys.stderr)
+    print(f"parse-cost: census -> {out} ({len(rows)} rows, {len(nodump)} no-dump, all declared)",
+          file=sys.stderr)
     return 0
 
 
@@ -1231,6 +1324,7 @@ def run_measure(probe: str, outdir: str, manifest_path: str, jobs: int, repeats:
 
     ident = identity(files)
     rows, nodump = measure_entries(probe, files, jobs)
+    adjudicate_nodump(nodump, "pinned 192-file sample")
     if not rows:
         die("every sampled file failed to produce a dump — refusing to publish an empty baseline")
 
