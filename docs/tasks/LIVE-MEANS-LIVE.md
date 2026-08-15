@@ -1930,6 +1930,30 @@ is bought at 15 % more bytes plus escaping rules.
 of one state**, in use simultaneously. A free-form cell hides that; an enum forces the choice. Fold
 into the schema step.
 
+##### 3c-ii. ✅ `B = 192 bytes` — the last open design parameter, now closed
+
+Rendered every one of the 110 live tree ids into the proposed record shape:
+
+```
+longest tree id        : 31 chars (EBNF-FRONTEND-SILENT-TRUNCATION)
+widest rendered record : 132 B     median 100 B     mean 102 B
+B=192  ->  0 of 110 records exceed it   |   110 trees = 21 KB   |   1 000 trees = 192 KB
+```
+
+**`B = 192`**: 45 % headroom over the widest real record, chosen *after* rendering the actual data
+and with proportional slack — the same discipline `README-POLICY.2` used for the layer-A caps, and
+the same one `README-POLICY.8` had to repair when that headroom was later spent. ⇒ growth law
+`size = N × 192 B`: **one read at 110 trees (21 KB) and still one read at 1 000 (192 KB)**, which is
+the director's *"fast regardless of final file size"*, satisfied with a linear law and a small
+constant. ⛔ The cap is per-ROW and mechanical — that is the whole requirement; a row that cannot
+fit its news is a row whose news belongs in the tree file, which is the point.
+
+⭐⭐ **NOTHING IN THE DESIGN REMAINS UNDECIDED.** Function, growth law, invariants, format, field
+schema, the enum, the space-free precondition, the three-jobs/three-homes split, cap-before-derive
+ordering, and now `B`. What remains is **WORK, not decisions** (the 72 % prose migration with its
+per-row proof; writing the bidirectional reconcile check) plus exactly one call that is not the
+engineer's: **WHEN** — this is non-SV work under a standing lane lock.
+
 ##### 3c-i. The record shape
 
 ```text
