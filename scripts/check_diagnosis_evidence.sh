@@ -321,6 +321,16 @@ unchecked() {
 # as "verified by grep", i.e. it is a claim, not tool output. Rationale + the measured case:
 # docs/decisions/project_ops_build_flow_root_cause_signature.md.
 #
+# ⭐ `make -q` / `make -d` REGISTERED (CI-PARITY-GATE-ROT.32 (d), 2026-08-15) — the lockstep
+# obligation above, discharged rather than waived. `make -n` was already here; `-q` (ask make what it
+# BELIEVES about a target, execute nothing) and `-d` (make's own dependency reasoning, which prints
+# `Prerequisite X is newer than target Y` / `Must remake target Z`) are the same tool, same family,
+# same footing — and they are what root-caused a defect IN MAKE'S OWN COMPARISON, where a check
+# built on a re-implementation of that comparison would have agreed with the bug. ⛔ PRICED AS A
+# WIDENING must be (the `.4`/`.7` bar): measured across all 404 ticked ROOT CAUSE boxes in
+# `docs/tasks/`, the tokens `make -q ` / `make -d ` occur **once** corpus-wide — in the leaf that
+# added them. Zero existing boxes newly qualify, so this admits the instrument, not a loophole.
+#
 # ⭐ REGISTERING A NEW INSTRUMENT IS A LOCKSTEP OBLIGATION, NOT A SIXTH FAMILY
 # (ENGINE-UNIVERSAL-SERVICES.11 slice 1, 2026-08-12). Group 1 is a VOCABULARY OF TOOLS, so a
 # family-1 instrument that lands without its token joining this list is invisible here: every leaf
@@ -332,7 +342,7 @@ unchecked() {
 # bar was aimed at a stale tool list, not lowered. ⛔ The obligation runs the OTHER way too: a token
 # may only be added here when a real, runnable instrument emits it, and TOOLBOX.md's five-family
 # table must list it in the same commit. Adding a token for prose is the `grep` exclusion above.
-DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_LINT_DUMP_ALL|PGEN_REACH_PATH_DUMP|PGEN_REACH_FORCED_OVERRIDE_DUMP|\[forced-override\]|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--dump-rule-outcome-counts|--lint-grammar|--parse-dump-ast|INTERPRET-PARSE:|--interpret-parse|INDIRECT-LR-SURVEY:|--report-indirect-lr-plan|PGEN_INDIRECT_LR_DUMP_ALL|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|/usr/bin/sample|\botool\b|\bspindump\b|\bfiltercalltree\b|\bITIMER_PROF\b|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT|git (ls-files|log -S|log --all -S|rev-list|fsck|reflog|diff-tree|merge-base|cat-file)|\bshellcheck\b|bash -n |sh -n |make -n |make --dry-run|\bE2BIG\b|\bENOSPC\b|\bEACCES\b|\bARG_MAX\b|guard\.[0-9]+\.marker|reason=(none|rss-budget|free-floor|disk-floor|timeout)'
+DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_LINT_DUMP_ALL|PGEN_REACH_PATH_DUMP|PGEN_REACH_FORCED_OVERRIDE_DUMP|\[forced-override\]|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--dump-rule-outcome-counts|--lint-grammar|--parse-dump-ast|INTERPRET-PARSE:|--interpret-parse|INDIRECT-LR-SURVEY:|--report-indirect-lr-plan|PGEN_INDIRECT_LR_DUMP_ALL|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|/usr/bin/sample|\botool\b|\bspindump\b|\bfiltercalltree\b|\bITIMER_PROF\b|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT|git (ls-files|log -S|log --all -S|rev-list|fsck|reflog|diff-tree|merge-base|cat-file)|\bshellcheck\b|bash -n |sh -n |make -n |make --dry-run|make -q |make --question|make -d |make --debug|\bE2BIG\b|\bENOSPC\b|\bEACCES\b|\bARG_MAX\b|guard\.[0-9]+\.marker|reason=(none|rss-budget|free-floor|disk-floor|timeout)'
 NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corpus *1[0-9]/1[0-9]|shape.?contract|spf=0|sample_parse_failures=0|fully_certified|clippy'
 
 fails=()

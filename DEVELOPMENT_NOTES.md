@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-CI-PARITY-GATE-ROT-0032 — when you price an exposure, make sure you are pricing the right duration
+
+Three lessons, and the first one is the one that would have shipped a wrong "safe" verdict.
+
+**1. "That job takes minutes, so it can't hit a one-second race" names the wrong duration.** The
+acute fix for the make-3.81 whole-second defect wrote exactly that about the big grammar families,
+and the follow-up sweep was chartered to *"measure each `focus_*`'s wall time"*. Both reason from the
+total build. But a sequential driver cannot touch the input before `make` returns, so the gap it must
+beat is **the work that happens after the target is written** — which is a different number for every
+edge of a chain, and can be near zero for the *last* target because the step that invalidates it is
+the *first* step of the next build. Measured here: on the `parser ← json` edge that step is the
+frontend, 0.006-0.111 s for every family, so 10 of 10 were exposed — including the one that takes
+28.5 s to regenerate and had been reasoned safe. **Price the tail, per edge. Never the total.**
+
+**2. A guard for a precision defect must not have a precision defect — and a guard that inspects
+nothing exits 0.** Two traps in one small script. (a) `st_mtime` as a float is a double; near a
+1.79e9 epoch it cannot order two writes a few hundred microseconds apart, which is precisely the
+comparison being repaired. `st_mtime_ns` is an exact integer. (b) The first cut `cd`ed to the
+repository root — house style, and correct for every other script here — while `make` runs from
+`rust/` and passes `../generated/…`. Every path would have resolved outside the repository, every
+`stat` come back absent, every edge answered "nothing to do", and the guard would have exited 0 while
+protecting nothing. `make -n` showed it in one line before it shipped. The fix is not just the
+re-anchor: a **missing input is now a hard refusal**, because "found nothing" and "there was nothing"
+must not print the same way.
+
+**3. Read the control's failure before you trust its success.** The census compared every regenerated
+artifact against the shipped one as a free determinism control, and it reported **10/10 mismatches**
+— a result that reads as a codegen-determinism emergency. The control was what was wrong: both
+artifacts embed provenance (`"generated_at"` and the `-o` path, one of them at five sites), so a
+byte comparison across two output paths can never hold. The by-product is more useful than the
+control: **a generated json cannot be byte-compared across runs at all**, so any content-addressed
+freshness scheme in this repository must key on the grammar. A control that fires is data; classify
+it only after you have opened the two files.
+
 ## 2026-08-15 - PGEN-CI-PARITY-GATE-ROT-0030 — check the TOOL before you blame the filesystem, and let a control fail loudly
 
 Two lessons from one defect, and the second is the one I nearly skipped.

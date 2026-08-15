@@ -740,7 +740,7 @@ bash scripts/check_flow_integrity.sh --report
 `FLOW-INTEGRITY` is an enforced doctrine, run by `.githooks/pre-commit` on **every
 commit**. It is deliberately cheap — file reads and greps, no cargo, no build, no
 network — because a check nobody minds running is a check that keeps running. It
-enforces ten invariants, each traced to something that actually happened:
+enforces eleven invariants, each traced to something that actually happened:
 
 | # | invariant | the incident |
 |---|---|---|
@@ -754,6 +754,41 @@ enforces ten invariants, each traced to something that actually happened:
 | 8 | the doctrine roster keeps an automatic lane **through the driver**; no auto-triggered workflow re-types enforcer names | the one auto-running workflow named 5 of 13, so 8 doctrines had no automatic lane and every one added later inherited none |
 | 9 | a guard tests the artifact it actually **reads** | 6 blocks guarded on `summary.txt` then read `summary.json`; a sub-gate dying mid-run left a 0-byte `summary.txt`, so the guard read false and a 5-hour run ended on a missing-file error four lines below the real cause |
 | 10 | no tracked Makefile line invokes `--generate-parser` carrying `--debug` or `--trace` | the shipping recipe asked the generator to narrate itself: **6.89 GB** per regeneration, local and streamed into the Actions log of the 11 workflows that reach it, for artifacts the flags cannot change |
+| 11 | every `$(<FAM>_JSON): $(<FAM>_EBNF)` rule is guarded against GNU Make 3.81's **whole-second** mtime comparison | a grammar rewritten in the same second as the previous build's output was invisible to make: the rule was skipped at exit 0 and a probe judged the *previous* grammar. Measured across the ten families: 5 exposed on the `json ← grammar` edge, **10 of 10** on `parser ← json` |
+
+### Invariant 11 in detail — and the premise it refuted
+
+Make 3.81 skips a rule iff `floor(mtime(target)) >= floor(mtime(prereq))`, so its
+decision is *wrong* exactly when the two share a whole second and the prerequisite
+is genuinely newer. The acute fix (`CI-PARITY-GATE-ROT.32`) repaired the scratch
+probe path and reasoned that the minute-long families were unlikely to be hit. The
+sweep measured that reasoning and found it names the wrong duration.
+
+A sequential driver cannot touch a grammar before `make` returns, so **the gap it
+must beat is the work after the target is written**, not the whole build:
+
+| edge | the gap | measured |
+|---|---|---|
+| `json ← grammar` | the generator step | 0.06-28.5 s ⇒ **5 of 10 exposed** |
+| `parser ← json` | the frontend step, on the *next* build | 0.006-0.111 s ⇒ **10 of 10 exposed** |
+
+The second edge produces a *fresh* json beside a *stale* parser — the artifact the
+gates inspect is current while the artifact that actually parses is not. It reaches
+SystemVerilog, whose regeneration takes 28.5 s but whose frontend step takes 0.054 s.
+
+The fix is an exact-window guard rather than an unconditional `rm`:
+`scripts/make_freshness_guard.sh` removes an artifact only when make would be
+provably wrong, so an up-to-date tree pays nothing. That matters because three
+tracked gates call `focus_*` purely to *ensure* an artifact exists
+(`sv_cert_recognized_union_gate.sh`, `verilog_2005_conformance_gate.sh`,
+`rtl_const_expr_cert_gate.sh`) and would otherwise pay a full regeneration every
+run. `focus_scratch` keeps the stronger unconditional `rm`, because its caller has
+just edited the slot by construction — and the invariant accepts either shape.
+
+Requiring `make >= 4.0` would fix all 65 file rules at once; it is **priced, not
+adopted** — it costs every contributor an install plus a `gmake`-vs-`make` rename
+through the docs, and hosted Linux runners ship make 4.x while hosted macOS runners
+ship 3.81, so it buys a CI-parity split as well.
 
 Two design choices make it hard to defeat:
 

@@ -1,0 +1,33 @@
+memory-guard: started pid=21913 pgid=21913 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=3600s free=76% disk=3292GB cmd: bash docs/tasks/artifacts/ci_parity_gate_rot/run_make_freshness_window_census.sh --reps 3
+====================================================================================================
+CI-PARITY-GATE-ROT.32 (d) — MAKE 3.81 STALE-WINDOW CENSUS (every figure measured this run)
+====================================================================================================
+make: GNU Make 3.81
+reps per step: 3   (the reported figure is the MINIMUM — immunity must hold on the
+                        fastest observed run, not on the average)
+----------------------------------------------------------------------------------------------------
+family                         gram B   t_front     t_gen  edge A (grammar→json)   edge B (json→parser)    
+----------------------------------------------------------------------------------------------------
+semantic_annotation             21749     0.048     1.606  IMMUNE  (gap>=1.61s)    EXPOSED (gap~0.05s)     
+return_annotation                7721     0.021     0.325  EXPOSED (gap~0.33s)     EXPOSED (gap~0.02s)     
+regex                          157319     0.111     5.060  IMMUNE  (gap>=5.06s)    EXPOSED (gap~0.11s)     
+json                             1027     0.014     0.139  EXPOSED (gap~0.14s)     EXPOSED (gap~0.01s)     
+scratch                          2326     0.008     0.062  EXPOSED (gap~0.06s)     EXPOSED (gap~0.01s)     
+rtl_const_expr                   3585     0.018     0.332  EXPOSED (gap~0.33s)     EXPOSED (gap~0.02s)     
+systemverilog_preprocessor      15968     0.006     0.468  EXPOSED (gap~0.47s)     EXPOSED (gap~0.01s)     
+rtl_frontend                    25515     0.051     1.538  IMMUNE  (gap>=1.54s)    EXPOSED (gap~0.05s)     
+vhdl                            38269     0.065     1.844  IMMUNE  (gap>=1.84s)    EXPOSED (gap~0.07s)     
+systemverilog                  435027     0.054    28.461  IMMUNE  (gap>=28.46s)   EXPOSED (gap~0.05s)     
+----------------------------------------------------------------------------------------------------
+instances measured                 : 10/10
+EDGE A exposed (stale JSON served) : 5  return_annotation json scratch rtl_const_expr systemverilog_preprocessor
+EDGE B exposed (stale PARSER served): 10  semantic_annotation return_annotation regex json scratch rtl_const_expr systemverilog_preprocessor rtl_frontend vhdl systemverilog
+exposed on EITHER edge             : 10  json regex return_annotation rtl_const_expr rtl_frontend scratch semantic_annotation systemverilog systemverilog_preprocessor vhdl
+----------------------------------------------------------------------------------------------------
+⭐ READ THIS AS A COST MODEL, NOT A RANKING. A family is EXPOSED when its own build is fast
+   enough that a scripted driver can complete it and edit the grammar again inside one second.
+   Slowness is the only thing protecting the rest — which is a property of today's grammars
+   and today's machine, not a property of the rules. Both are free to change.
+✅ identity controls: 10/10 families reproduced their shipped json AND parser
+   byte-identically from the tracked grammar — the measured work was the real work.
+memory-guard: completed exit=0 peak_tree_rss=2679MB elapsed=126s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/generated_logs/memory_guard/guard.21913.marker

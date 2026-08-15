@@ -43,6 +43,10 @@
 #  10. the SHIPPING generation recipe is QUIET — it carried `--debug --trace`, so every parser
 #      build asked the generator to narrate itself: 6.89 GB per regeneration, locally and
 #      streamed into the Actions log of the 11 workflows that reach the recipe (`.31`)
+#  11. every EBNF→json rule is guarded against make 3.81's WHOLE-SECOND mtime comparison — a
+#      prerequisite rewritten in the same second as its target is invisible, so the rule is skipped
+#      at exit 0 and the build consumes a STALE artifact. Measured (`.32`): 5 of 10 families exposed
+#      on the grammar→json edge and 10 of 10 on the json→parser edge (`.32` (d))
 #
 # Usage:
 #   bash scripts/check_flow_integrity.sh            # gate mode
@@ -333,6 +337,50 @@ for mf in makefiles:
             "    fix:  drop them from the recipe. The trace is still one env var away:\n"
             "          PGEN_TRACE_VERBOSITY=debug make -C rust SHELL=/bin/bash focus_<family>")
 
+# --------------------------------------------------------------- (11) every EBNF→json rule is guarded
+# ⭐ MEASURED, AND THE MEASUREMENT REFUTED THE ACUTE FIX'S OWN PREMISE (`.32`). GNU Make 3.81 — the
+# only make on this host — compares mtimes at WHOLE-SECOND granularity, so a prerequisite rewritten
+# in the same second as its target is invisible and the rule is skipped at exit 0. `.32` repaired
+# `focus_scratch` and reasoned that the minute-long families were probably safe. The census
+# (`docs/tasks/artifacts/ci_parity_gate_rot/make_freshness_window_census.txt`) measured the two edges
+# and found 5 of 10 families exposed on grammar→json and **10 of 10 on json→parser**, SystemVerilog
+# included: the gap a driver must beat there is the FRONTEND step, and that is 0.006-0.111 s for
+# every family in the repository. Slowness protected nobody.
+# ⛔ THE POPULATION IS DERIVED FROM THE MAKEFILE, so an eleventh family added tomorrow is covered by
+# construction — which is the whole point. A family is covered if its `$(<FAM>_JSON)` is named on a
+# guard invocation (the exact-window shape) or on an unconditional `rm` (the stronger `focus_scratch`
+# shape). Both are legitimate; a family named by neither is exposed.
+GUARD_SCRIPT = "scripts/make_freshness_guard.sh"
+if not os.path.isfile(os.path.join(ROOT, GUARD_SCRIPT)):
+    bad(f"(11) {GUARD_SCRIPT} is missing — the make-3.81 stale-window guard has no home.")
+json_rules, guarded = {}, {}
+for mf in makefiles:
+    body = read(mf)
+    for lineno, line in enumerate(body.splitlines(), 1):
+        m = re.match(r"^\$\(([A-Z0-9_]+)_JSON\):\s*\$\(([A-Z0-9_]+)_EBNF\)", line)
+        if m:
+            json_rules[(mf, m.group(1))] = lineno
+    for line in body.splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        if "make_freshness_guard.sh" in line or "$(FRESHNESS_GUARD)" in line or "rm -f" in line:
+            for fam in re.findall(r"\$\(([A-Z0-9_]+)_JSON\)", line):
+                guarded.setdefault((mf, fam), line.strip())
+for (mf, fam), lineno in sorted(json_rules.items()):
+    if (mf, fam) not in guarded:
+        bad(f"(11) {mf}:{lineno} — $({fam}_JSON) is generated from $({fam}_EBNF), but no operator\n"
+            f"    entry point guards that chain against GNU Make 3.81's whole-second comparison.\n"
+            f"    A grammar edited in the same wall-clock second as the previous build wrote\n"
+            f"    $({fam}_JSON) is INVISIBLE to make: the rule is skipped at exit 0 and the probe,\n"
+            f"    gate or test that follows judges the PREVIOUS grammar. Measured 2026-08-15: a\n"
+            f"    pinned 0.8 s collision ran the frontend 0 times and the parser still declared the\n"
+            f"    old rules.\n"
+            f"    fix:  in the phony entry point that drives this family, before the recursive\n"
+            f"          $(MAKE), add\n"
+            f"            @$(FRESHNESS_GUARD) --chain $({fam}_EBNF) $({fam}_JSON) $({fam}_PARSER) \\\n"
+            f"                --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE)\n"
+            f"          (or `rm -f` both artifacts there, the stronger focus_scratch shape).")
+
 # --------------------------------------------------------------- report / verdict
 if REPORT:
     print("=" * 78)
@@ -352,8 +400,10 @@ if REPORT:
     print(f"  └─ of those, invoking the driver    : {len(driver_lane)}"
           f"  {'(the whole roster has a lane)' if driver_lane else '⛔ NONE'}")
     print(f"tracked Makefiles scanned             : {len(makefiles)}")
-    print(f"  └─ generator invocations w/ --debug|--trace : "
+    print(f"  ├─ generator invocations w/ --debug|--trace : "
           f"{'⛔ present' if noisy_recipe else '0 (shipping path quiet)'}")
+    print(f"  └─ EBNF→json rules                  : {len(json_rules)}, "
+          f"{len([k for k in json_rules if k in guarded])} guarded against make-3.81 whole seconds")
     print("-" * 78)
     if unverified_now:
         print("⚠️  ACCEPTED RISK — these are handed artifacts they do not verify. The ratchet stops")
@@ -373,5 +423,6 @@ print(f"flow-integrity: OK ({len(need)} workflow(s) regenerate, {len(exempt_seen
       f"assertions, provenance ratchet {len(verifying & consumers)}/{len(consumers)}, "
       f"all {len(enforcers)} doctrines on the automatic lane via the driver, "
       f"0 guards testing an artifact they do not read, "
-      f"shipping generation recipe quiet across {len(makefiles)} Makefile(s))")
+      f"shipping generation recipe quiet across {len(makefiles)} Makefile(s), "
+      f"{len(json_rules)}/{len(json_rules)} EBNF→json rules guarded against make-3.81 whole seconds)")
 PYEOF

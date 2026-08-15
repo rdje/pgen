@@ -1,0 +1,38 @@
+================================================================================================
+CI-PARITY-GATE-ROT.32 (d) — make-freshness-guard probes (oracle: `make -q`, i.e. make itself)
+================================================================================================
+GNU Make 3.81
+family under test: json   (the acute `.32` fix covered `scratch` ONLY — this is one of the
+                    nine it did not reach)
+------------------------------------------------------------------------------------------------
+  ✓ GREEN-0  artifacts newer than the grammar → make says up to date   [json rc=0 parser rc=0]
+  ✓ GREEN-1  guard does NOTHING on an up-to-date tree   [rc=0 output=0B]
+  ✓ GREEN-2  `make focus_json` is still a no-op (zero cost preserved)   [rc=0 frontend×0 generator×0]
+  ✓ RED-A1   ⛔ grammar 0.8 s NEWER, same second → MAKE BELIEVES THE JSON IS UP TO DATE   [make -q rc=0 (0 = the defect: it will skip the rule)]
+  ✓ RED-A2   guard --dry-run reports it WOULD force   [rc=3]
+  ✓ RED-A3   guard removes the json AND cascades to the parser   [rc=0]
+  ✓ RED-A4   make now agrees the json must be rebuilt   [make -q rc=1]
+  ✓ RED-A5   `make focus_json` regenerates BOTH steps exactly once   [rc=0 frontend×1 generator×1]
+  ✓ RED-A6   the regenerated parser is byte-identical to the one we started with   [829056dfabc5346c vs 829056dfabc5346c]
+  ✓ RED-B1   ⛔ json 0.8 s NEWER, same second → MAKE BELIEVES THE PARSER IS UP TO DATE   [make -q rc=0 (0 = fresh json, STALE parser)]
+  ✓ RED-B2   guard removes the parser and LEAVES the json (edge B is not edge A)   [rc=0]
+  ✓ RED-B3   make now agrees the parser must be rebuilt   [make -q rc=1]
+  ✓ RED-B4   only the GENERATOR re-runs — the fresh json is not thrown away   [rc=0 frontend×0 generator×1]
+  ✓ CTRL-1   grammar newer by a WHOLE second → make already sees it   [make -q rc=1]
+  ✓ CTRL-1b  …so the guard stays out of the way (make is right; let it work)   [rc=0 output=0B]
+  ✓ CTRL-2   same second but the TARGET is newer → make is RIGHT to skip   [make -q rc=0]
+  ✓ CTRL-2b  …guard does not fire (the exact clause that makes it exact)   [rc=0 output=0B]
+  ✓ CTRL-3   a wrong-cwd invocation REFUSES instead of silently inspecting nothing   [rc=2 (this is the defect `make -n` caught in the guard's first cut)]
+------------------------------------------------------------------------------------------------
+arms=18  PASS=18  FAIL=0
+tree restored: grammars/json.ebnf mtime + generated/json.json/generated/json_parser.rs bytes and mtimes
+make-freshness-guard self-test (mtimes pinned; no race, no machine dependence)
+  ✓ RED-1   same second, prereq 0.5s NEWER  → FORCE
+  ✓ RED-2   same second, prereq 1ns NEWER   → FORCE
+  ✓ GREEN-1 prereq 2s OLDER                 → none
+  ✓ CTRL-1  prereq 1s NEWER (make sees it)  → none
+  ✓ CTRL-2  same second, TARGET newer       → none
+  ✓ CTRL-3  mtimes exactly equal            → none
+  ✓ CTRL-4  target absent                   → none
+  ✓ CTRL-5  prereq absent                   → none
+  arms=8  PASS=8  FAIL=0

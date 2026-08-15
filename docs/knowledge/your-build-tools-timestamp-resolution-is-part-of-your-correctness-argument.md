@@ -40,6 +40,26 @@ the workflow that was never exercised at speed.
 And it fails **silently, in the passing direction**. There is no error, no warning, no exit code —
 just an artifact describing something you are no longer testing.
 
+## ⛔ "The slow targets are probably safe" is the wrong quantity — and it was measured wrong
+
+The instinct is that a build taking minutes cannot be hit, because nobody can edit and rebuild inside
+a second. That reasoning names the wrong duration. A sequential driver cannot touch the input before
+`make` returns, so **the gap you must beat is the work that happens AFTER the target is written**,
+not the total build time. Two edges therefore behave completely differently in the same chain:
+
+| edge | target ← prerequisite | the gap a driver must beat |
+|---|---|---|
+| A | `intermediate` ← `source` | everything the build does *after* the intermediate is written |
+| B | `final` ← `intermediate` | the step that rewrites the intermediate on the *next* build — often the *first*, fastest step |
+
+In the reference deployment (10 grammar families) edge A left 5 of 10 exposed exactly as intuition
+suggests — the slow families were safe. **Edge B exposed 10 of 10**, including the family whose full
+regeneration takes 28.5 s, because the step that rewrites its intermediate takes 0.054 s. The result
+is worse than the original bug: a **fresh** intermediate beside a **stale** final artifact, so the
+file your gates inspect is current while the file that actually runs is not.
+
+⇒ Measure the tail, per edge. Never reason from the total.
+
 ## ⛔ Check the tool before you blame the filesystem
 
 The first hypothesis in the reference deployment was coarse filesystem timestamps. It was wrong, and
@@ -64,12 +84,25 @@ Two plausible causes, one command that separates them. Without it you "fix" the 
    have no guaranteed order under `-j`, so the cleanup can race the build it must precede — a fix
    that reintroduces a nondeterministic version of the same bug.
 2. **Require make ≥ 4.0.** Correct, and it costs every contributor an install; decide it from a
-   census of which rules actually have sub-second-collidable prerequisites, not from taste.
-3. ⭐ **Make freshness content-addressed instead of time-addressed.** Hash the inputs an artifact
-   depends on and store the digest beside it; refuse when the digests disagree. This is immune to
-   the whole class — and to submodule bumps, clock skew and copied trees as well. In the reference
-   deployment the two gates built that way (a parse-cost baseline, a corpus census) were provably
-   unaffected while the timestamp-driven path was silently serving stale output.
+   census of which rules actually have sub-second-collidable prerequisites, not from taste. Watch for
+   a CI-parity split too: hosted Linux runners ship make 4.x while hosted macOS runners ship 3.81.
+3. ⭐⭐ **Emulate the comparison the old tool cannot make, and act only where it is provably wrong.**
+   Make's decision is wrong iff
+   `floor(mtime(target)) == floor(mtime(prereq))` **and** `mtime(prereq) > mtime(target)` — read with
+   nanosecond integers, never float seconds, whose ~16 significant digits cannot order two writes a
+   few hundred microseconds apart near a 1.7e9 epoch. That second clause is what makes it exact:
+   same-second-but-target-newer is the tool being *right*. A guard on that condition deletes the
+   target only inside the window, so an up-to-date tree pays nothing and you can therefore afford to
+   put it on **every** target — including the ones whose rebuild costs 30 s. Remedy 1 cannot be
+   applied that widely for exactly that reason.
+4. ⭐ **Make freshness content-addressed instead of time-addressed.** Hash the inputs an artifact
+   depends on and store the digest beside it; refuse when the digests disagree. Immune to the whole
+   class — and to submodule bumps, clock skew and copied trees as well. In the reference deployment
+   the two gates built that way (a parse-cost baseline, a corpus census) were provably unaffected
+   while the timestamp-driven path was silently serving stale output.
+   ⛔ Hash the **source**, not the emitted intermediate: that deployment's intermediate JSON embeds a
+   wall-clock `generated_at`, so two runs of the same tool on the same input never hash the same and
+   a digest keyed on it would report "changed" forever.
 
 ## The transferable rule
 

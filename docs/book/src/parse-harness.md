@@ -127,6 +127,36 @@ PGEN_TRACE_VERBOSITY=debug ./rust/target/release/parseability_probe \
     --report-certificate-coverage --entry-rule scratch --count 40 --seed 0
 ```
 
+### ⛔ Why step 2 deletes before it builds — the whole-second trap (`CI-PARITY-GATE-ROT.32`)
+
+This host's only `make` is Apple's **GNU Make 3.81**, which compares file timestamps at
+**whole-second** granularity; sub-second comparison arrived in make 4.x. A prerequisite rewritten in
+the same wall-clock second as its target is therefore invisible, and the rule is skipped at exit 0.
+
+A person edits a grammar, thinks, and types `make` — always more than a second, so the defect cannot
+be seen by hand. A **scripted or agent-driven probe loop** — the exact way this slot is meant to be
+driven — hits it constantly, and it fails **silently, in the passing direction**: a green run against
+the previous grammar. It was found that way. An adversarial batch of four scratch grammars reported
+LR rule names belonging to the *preceding* shape; a deterministic replay with the slot pinned 0.8 s
+newer than `generated/scratch.json` inside one second ran the frontend **0** times and left the
+regenerated parser declaring `alpha` while the slot said `bravo`.
+
+Two protections are in place, and they are deliberately different shapes:
+
+- **`focus_scratch` deletes both scratch artifacts and re-enters `make`.** Timestamps stop being part
+  of the probe path's correctness argument at all. It costs ~2-4 s where an up-to-date tree used to
+  cost ~0 s — the right trade for a target whose caller has, by construction, just edited the slot.
+- **Every other family carries an exact-window guard** (`scripts/make_freshness_guard.sh`), which
+  removes an artifact only when make's own comparison is provably wrong — same whole second *and* the
+  prerequisite genuinely newer. An up-to-date tree pays nothing, so `focus_systemverilog` keeps its
+  no-op.
+
+⚠️ The measured exposure is not the one intuition predicts. The gap a driver must beat is the build
+work that happens *after* the target is written, not the total build time — so on the `parser ← json`
+edge, where that gap is the 0.006-0.111 s frontend step, **all ten families are exposed, SystemVerilog
+included**. See [The Gate Flow — Reference](gate-flow.md) invariant (11) and the census at
+`docs/tasks/artifacts/ci_parity_gate_rot/make_freshness_window_census.txt`.
+
 ### The canonical probe: which alternative wins? (TOOLBOX Protocol D)
 
 The slot's signature use is the question that motivated the whole harness: *which alternative does

@@ -123,6 +123,40 @@ RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursi
 RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --eliminate-left-recursion
 RUST_FRONTEND_TO_JSON = $(RUST_EBNF_FRONTEND_BIN)
 
+# ⛔⛔ CI-PARITY-GATE-ROT.32 (d) — EVERY OPERATOR ENTRY POINT GUARDS MAKE 3.81's WHOLE-SECOND BLIND
+# SPOT BEFORE IT BUILDS ANYTHING. Read `scripts/make_freshness_guard.sh` for the full mechanism; the
+# short version is that this host's only `make` is GNU Make **3.81**, which compares mtimes at
+# WHOLE-SECOND granularity, so a prerequisite rewritten in the same second as its target is invisible
+# and the rule is skipped at exit 0 — silently, in the PASSING direction.
+#
+# ⭐ THE SWEEP WAS MEASURED, NOT ESTIMATED, AND IT REFUTED THE ACUTE FIX'S OWN PREMISE. `.32` closed
+# the scratch path and recorded that the minute-long families were "unlikely" to be hit. The census
+# (`docs/tasks/artifacts/ci_parity_gate_rot/make_freshness_window_census.txt`) says:
+#   - EDGE A  json ← grammar : the gap a driver must beat is the GENERATOR step ⇒ 5 of 10 exposed
+#                              (return_annotation 0.33 s, json 0.14 s, scratch 0.06 s,
+#                               rtl_const_expr 0.33 s, systemverilog_preprocessor 0.47 s).
+#   - EDGE B  parser ← json  : the gap is the FRONTEND step, which is 0.006-0.111 s for EVERY family
+#                              ⇒ **10 of 10 exposed, SystemVerilog included (0.054 s)**. A family can
+#                              pass edge A and still hand you a FRESH json with a STALE parser.
+# ⇒ slowness protected nobody on edge B, and the exposure is a property of today's grammars and
+# today's machine, not of the rules.
+#
+# ⛔ THE GUARD IS NOT `rm`, DELIBERATELY. It removes an artifact ONLY when make's own comparison is
+# provably wrong (same whole second AND the prerequisite genuinely newer), so an up-to-date tree pays
+# nothing and `focus_systemverilog` keeps its no-op — which matters because three tracked gates call
+# `focus_*` purely to ENSURE an artifact exists (`sv_cert_recognized_union_gate.sh`,
+# `verilog_2005_conformance_gate.sh`, `rtl_const_expr_cert_gate.sh`) and would otherwise pay a full
+# 28.5 s SV regeneration every run.
+#
+# ⛔ RECIPE STEP + RECURSIVE $(MAKE), NEVER A SIBLING PREREQUISITE — sibling prerequisites have no
+# guaranteed order under `-j`, so the guard could race the build it must precede. Same reasoning as
+# `focus_scratch`, which keeps its stronger unconditional `rm` because a probe caller has just edited
+# the slot by construction.
+#
+# `FLOW-INTEGRITY` invariant (11) holds this: every `$(<FAM>_JSON): $(<FAM>_EBNF)` rule must be
+# covered by a guard invocation or by an unconditional `rm`.
+FRESHNESS_GUARD = bash ../scripts/make_freshness_guard.sh
+
 # Default target
 .PHONY: all
 all: $(REGEX_PARSER)
@@ -274,7 +308,9 @@ json_parser: $(JSON_JSON) $(RUST_AST_PIPELINE)
 # `cargo test --features generated_parsers` invocations exercise the json
 # family (build.rs sets has_generated_json_parser when the artifact exists).
 .PHONY: focus_json
-focus_json: $(JSON_PARSER)
+focus_json:
+	@$(FRESHNESS_GUARD) --chain $(JSON_EBNF) $(JSON_JSON) $(JSON_PARSER) --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE)
+	@$(MAKE) $(JSON_PARSER)
 	@echo ""
 	@echo "✅ json parser artifact ready: $(JSON_PARSER)"
 	@echo ""
@@ -378,7 +414,9 @@ rtl_const_expr_parser: $(RTL_CONST_EXPR_JSON) $(RUST_AST_PIPELINE)
 # `cargo test --features generated_parsers` invocations exercise the rtl_const_expr
 # family (build.rs sets has_generated_rtl_const_expr_parser when the artifact exists).
 .PHONY: focus_rtl_const_expr
-focus_rtl_const_expr: $(RTL_CONST_EXPR_PARSER)
+focus_rtl_const_expr:
+	@$(FRESHNESS_GUARD) --chain $(RTL_CONST_EXPR_EBNF) $(RTL_CONST_EXPR_JSON) $(RTL_CONST_EXPR_PARSER) --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE)
+	@$(MAKE) $(RTL_CONST_EXPR_PARSER)
 	@echo ""
 	@echo "✅ rtl_const_expr parser artifact ready: $(RTL_CONST_EXPR_PARSER)"
 	@echo ""
@@ -410,7 +448,9 @@ systemverilog_preprocessor_parser: $(SVPP_JSON) $(RUST_AST_PIPELINE)
 # `cargo test --features generated_parsers` invocations exercise the systemverilog_preprocessor
 # family (build.rs sets has_generated_systemverilog_preprocessor_parser when the artifact exists).
 .PHONY: focus_systemverilog_preprocessor
-focus_systemverilog_preprocessor: $(SVPP_PARSER)
+focus_systemverilog_preprocessor:
+	@$(FRESHNESS_GUARD) --chain $(SVPP_EBNF) $(SVPP_JSON) $(SVPP_PARSER) --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE)
+	@$(MAKE) $(SVPP_PARSER)
 	@echo ""
 	@echo "✅ systemverilog_preprocessor parser artifact ready: $(SVPP_PARSER)"
 	@echo ""
@@ -445,7 +485,9 @@ rtl_frontend_parser: $(RTL_FRONTEND_JSON) $(RUST_AST_PIPELINE)
 # `cargo test --features generated_parsers` invocations exercise the rtl_frontend
 # family (build.rs sets has_generated_rtl_frontend_parser when the artifact exists).
 .PHONY: focus_rtl_frontend
-focus_rtl_frontend: $(RTL_FRONTEND_PARSER)
+focus_rtl_frontend:
+	@$(FRESHNESS_GUARD) --chain $(RTL_FRONTEND_EBNF) $(RTL_FRONTEND_JSON) $(RTL_FRONTEND_PARSER) --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE)
+	@$(MAKE) $(RTL_FRONTEND_PARSER)
 	@echo ""
 	@echo "✅ rtl_frontend parser artifact ready: $(RTL_FRONTEND_PARSER)"
 	@echo ""
@@ -480,7 +522,9 @@ vhdl_parser: $(VHDL_JSON) $(RUST_AST_PIPELINE)
 # `cargo test --features generated_parsers` invocations exercise the vhdl
 # family (build.rs sets has_generated_vhdl_parser when the artifact exists).
 .PHONY: focus_vhdl
-focus_vhdl: $(VHDL_PARSER)
+focus_vhdl:
+	@$(FRESHNESS_GUARD) --chain $(VHDL_EBNF) $(VHDL_JSON) $(VHDL_PARSER) --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE)
+	@$(MAKE) $(VHDL_PARSER)
 	@echo ""
 	@echo "✅ vhdl parser artifact ready: $(VHDL_PARSER)"
 	@echo ""
@@ -787,7 +831,13 @@ debug-semantic-annotations: $(SEMANTIC_ANNOTATION_EXE) $(RETURN_ANNOTATION_EXE)
 
 # Return annotation parser complete flow
 .PHONY: return_annotation_parser
-return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
+# CI-PARITY-GATE-ROT.32 (d) — `--json-only`: this flow's recipe runs the generator unconditionally
+# (a recipe line, not a file rule), so edge B does not exist here and removing the parser would only
+# let $(RUST_AST_PIPELINE)'s placeholder logic drop a stub in its place. Edge A is real and MEASURED:
+# the return_annotation generator step is 0.33 s, well inside the one-second window.
+return_annotation_parser:
+	@$(FRESHNESS_GUARD) --chain $(RETURN_ANNOTATION_EBNF) $(RETURN_ANNOTATION_JSON) $(RETURN_ANNOTATION_PARSER) --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE_BOOTSTRAP) --json-only
+	@$(MAKE) $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
 	@echo "🚀 Starting complete flow for return annotation parser..."
 	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(RETURN_ANNOTATION_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
@@ -798,7 +848,10 @@ return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRA
 
 # Semantic annotation parser complete flow
 .PHONY: semantic_annotation_parser
-semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
+# CI-PARITY-GATE-ROT.32 (d) — `--json-only`, for the reason given on return_annotation_parser above.
+semantic_annotation_parser:
+	@$(FRESHNESS_GUARD) --chain $(SEMANTIC_ANNOTATION_EBNF) $(SEMANTIC_ANNOTATION_JSON) $(SEMANTIC_ANNOTATION_PARSER) --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE_BOOTSTRAP) --json-only
+	@$(MAKE) $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
 	@echo "🚀 Starting complete flow for semantic annotation parser..."
 	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(SEMANTIC_ANNOTATION_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
@@ -835,7 +888,9 @@ regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 # refreshes from grammar source) and `focus_systemverilog` (~3-5min on
 # first run; the SV parser is ~47MB and not tracked in git).
 .PHONY: focus_regex
-focus_regex: $(REGEX_PARSER)
+focus_regex:
+	@$(FRESHNESS_GUARD) --chain $(REGEX_EBNF) $(REGEX_JSON) $(REGEX_PARSER) --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE)
+	@$(MAKE) $(REGEX_PARSER)
 	@echo ""
 	@echo "✅ Regex parser artifact ready: $(REGEX_PARSER)"
 	@echo ""
@@ -844,7 +899,9 @@ focus_regex: $(REGEX_PARSER)
 	@echo ""
 
 .PHONY: focus_systemverilog
-focus_systemverilog: $(SYSTEMVERILOG_PARSER)
+focus_systemverilog:
+	@$(FRESHNESS_GUARD) --chain $(SYSTEMVERILOG_EBNF) $(SYSTEMVERILOG_JSON) $(SYSTEMVERILOG_PARSER) --tools $(RUST_EBNF_FRONTEND_BIN) $(RUST_AST_PIPELINE)
+	@$(MAKE) $(SYSTEMVERILOG_PARSER)
 	@echo ""
 	@echo "✅ SystemVerilog parser artifact ready: $(SYSTEMVERILOG_PARSER)"
 	@echo ""

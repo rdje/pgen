@@ -4236,7 +4236,7 @@ REGRESSION box rather than left as an unexplained deviation from the documented 
 
 ---
 
-### `.32` — GNU Make **3.81** compares timestamps at WHOLE-SECOND granularity, so a scripted edit→build loop silently consumes a STALE artifact (`done` for the acute path, `PGEN-CI-PARITY-GATE-ROT-0030`, 2026-08-15 session #236; the repo-wide sweep is acceptance (d), `todo`)
+### `.32` — GNU Make **3.81** compares timestamps at WHOLE-SECOND granularity, so a scripted edit→build loop silently consumes a STALE artifact (`done` — acute path `PGEN-CI-PARITY-GATE-ROT-0030` 2026-08-15 session #236; the repo-wide sweep (d) + acceptance (c) `PGEN-CI-PARITY-GATE-ROT-0032` 2026-08-15 session #237)
 
 #### ⛔ HOW IT WAS FOUND — a CONTROL failed, and the control was right
 
@@ -4319,17 +4319,38 @@ including the per-family `focus_*` targets and the aggregate regeneration recipe
 long, so a same-second prerequisite collision is unlikely — *unlikely, not impossible, and not
 measured*. That sweep is acceptance (d) and is `todo`.
 
+> ⛔⛔ **SUPERSEDED BY MEASUREMENT (`-0032`), AND THE PARAGRAPH ABOVE IS KEPT BECAUSE BEING WRONG IN
+> PUBLIC IS THE POINT.** *"Those are minutes long, so a collision is unlikely"* names the wrong
+> duration: the gap a sequential driver must beat is the work AFTER the target is written, not the
+> total build. On the `parser ← json` edge that gap is the FRONTEND step — 0.006-0.111 s for every
+> family — so **10 of 10 are exposed, SystemVerilog (28.5 s to regenerate, 0.054 s to re-emit its
+> json) included**. All ten instances are guarded as of (d) below.
+
 ⭐ What is provably immune, and worth stating because it is the right pattern: **`PARSE-COST-RATCHET`
 hashes CONTENT, not mtime**, so its identity tier cannot be fooled this way. Likewise
 `SV-CORPUS-DENOMINATOR`'s byte-identical re-run. Content-addressed freshness is the general answer;
 `rm` is the local one.
 
 **Acceptance:** (a) ✅ the acute scratch path cannot serve a stale artifact — done, verified below;
-(b) ✅ record the mechanism where the next reader will meet it (`TOOLBOX.md` 1.3, the book's *Parse
-Harness* chapter, a knowledge card) — done; (c) ⏳ decide whether to require `make >= 4.0` (a
-prerequisite change with an install cost) or to keep content-addressed freshness as the doctrine —
-⛔ derive this from a census of which rules actually have sub-second-collidable prerequisites, not
-from taste; (d) ⏳ sweep the remaining `generated/` rules for the same exposure and price it.
+(b) ✅ record the mechanism where the next reader will meet it — ⛔ **THIS BOX WAS TICKED EARLY AND
+WAS FALSE FOR TWO OF ITS THREE SURFACES, AND THE CORRECTION IS RECORDED RATHER THAN QUIETLY
+BACKFILLED.** `-0030` ticked it naming `TOOLBOX.md` 1.3, the book's *Parse Harness* chapter and a
+knowledge card; `git show --stat 222e89d5` lists **neither `TOOLBOX.md` nor `docs/book/`** among its
+9 files. Only the knowledge card was real. Both missing surfaces were written in `-0032` (this
+slice), so the box is now true — but it was published false for two commits, and it is the same
+class as the `-0039` overstatement this tree already records: *a claim about a surface, published
+without opening the surface* → [[feedback_verify_a_claim_three_ways_before_publishing_it]] leg 1
+(re-derive by command) would have caught it in one `git show --stat`;
+(c) ✅ **`make >= 4.0` is PRICED, NOT ADOPTED — and (d)'s census is what made the call derivable
+rather than a matter of taste.** It fixes all 65 file rules at once and needs no per-rule reasoning.
+Against that: every contributor pays an install plus a `gmake`-vs-`make` rename across the README,
+the book, `COMMIT.md` and 15 workflows; GitHub's ubuntu runners ship make 4.x while its macOS runners
+ship 3.81, so requiring 4.0 buys a **CI-parity split** in the one repository whose named subject is
+CI parity. The exact-window guard adopted in (d) reaches all ten instances for one 150-line script
+and nine one-line recipe additions, with zero cost on an up-to-date tree — so the upgrade buys
+nothing the guard does not already have, at a cost the guard does not have. ⇒ **declined, revisit
+only if a future rule shape cannot be guarded**;
+(d) ✅ swept — see below.
 
 #### Acceptance Checklist (enforced) — `.32` (acute path)
 
@@ -4373,7 +4394,7 @@ from taste; (d) ⏳ sweep the remaining `generated/` rules for the same exposure
   them rode a stale artifact and none of that leaf's published findings are affected.
 - promotion: `docs/knowledge/your-build-tools-timestamp-resolution-is-part-of-your-correctness-argument.md` **NEW**.
 
-#### ⏳ `.32` (d) — THE SWEEP: population DERIVED, pricing and fix-shape still open (director-ordered 2026-08-15, **TIME-BOXED**: *"continue the make rules, but please make sure it does not last days"*, then return to the SV lane)
+#### ✅ `.32` (d) — THE SWEEP, DISCHARGED IN ONE SLICE (director-ordered 2026-08-15, **TIME-BOXED**: *"continue the make rules, but please make sure it does not last days"*, then return to the SV lane)
 
 **Derived by command, so the next session resumes without re-discovering it** (`rust/Makefile` is the
 only tracked Makefile — `git ls-files '*Makefile*'`):
@@ -4397,20 +4418,149 @@ rule's own build is**, not of how important it is. `scratch` regenerates in ~2 s
 constantly; `systemverilog` takes minutes and is very unlikely to be hit *by a human* — ⚠️ but that
 is an argument about the DRIVER, not the rule, and an agent loop changes the driver. Not yet measured.
 
-**What (d) still owes** (each cheap; the whole item is meant to be one slice, not a campaign):
-1. **Price the nine.** Measure each `focus_*`'s wall time; anything a script can complete inside a
-   second is exposed in practice, the rest is exposed in principle. ⛔ Derive it, do not assume the
-   long ones are safe.
-2. **Pick ONE fix shape and apply it uniformly** — the `focus_scratch` treatment (`rm` + recursive
-   `$(MAKE)` in the phony entry point) generalises to all 8 entry points with no new machinery, and
-   is preferable to touching the 10 file rules, which `build.rs` and cargo key on.
-   ⚠️ Cost to state honestly before adopting: every `focus_*` becomes unconditional, so
-   `focus_systemverilog` would always pay its full regeneration. That may be unacceptable and is the
-   real decision in this item — a per-target opt-in may be the answer instead.
-3. **Stop it recurring** — a new rule of this shape should not silently re-open it. Candidate: extend
-   `FLOW-INTEGRITY` (whose whole charter is *"the gate flow cannot drift back"*, ten invariants each
-   traced to a real incident) with an 11th rather than adding a 21st doctrine. ⛔ Price it against
-   the real corpus first, per `GENERATED-LINT-CORRECTNESS.4`/`.7`.
-4. **Record the `make >= 4.0` option as PRICED, not adopted** — it fixes all 65 rules at once, and
-   costs every contributor an install plus a `gmake`-vs-`make` rename across the docs; GitHub's
-   ubuntu runners ship make 4.x while macOS runners ship 3.81, so CI parity is part of the price.
+**What (d) owed, and what each item became** (DISCHARGED 2026-08-15 session #237,
+`PGEN-CI-PARITY-GATE-ROT-0032`; one slice, as the director's time-box required):
+
+1. ✅ **Price the ten** — and the pricing question in this list was itself WRONG. It said *"measure
+   each `focus_*`'s wall time"*. Total wall time is the wrong quantity and would have declared
+   SystemVerilog safe. A sequential driver cannot edit the grammar before `make` returns, so the gap
+   it must beat is **the work that happens AFTER the target is written**, which splits the chain into
+   two edges with completely different exposure. Criterion, exact rather than felt: make skips iff
+   `floor(target) >= floor(prereq)`, so a gap `>= 1.000 s` guarantees `floor(prereq) > floor(target)`
+   ⇒ provably immune.
+
+   | edge | target ← prereq | the gap a driver must beat | measured | verdict |
+   |---|---|---|---:|---|
+   | **A** | `$(X_JSON)` ← `$(X_EBNF)` | the GENERATOR step | 0.062-28.461 s | **5 of 10 exposed** |
+   | **B** | `$(X_PARSER)` ← `$(X_JSON)` | the FRONTEND step, on the NEXT build | 0.006-0.111 s | ⛔ **10 of 10 exposed** |
+
+   ⛔⛔ **EDGE B WAS NOT IN THIS LEAF'S POPULATION TABLE AT ALL, AND IT REFUTES THIS LEAF'S OWN
+   "HONEST BOUND".** `-0030` wrote that the minute-long families are *"unlikely to be hit — unlikely,
+   not impossible, and not measured"*. Measured: on edge B the frontend step is **0.054 s for
+   SystemVerilog**, so the family that takes 28.5 s to regenerate is exposed like every other. And
+   the failure it produces reads WORSE than the original: a **fresh json beside a stale parser**, so
+   the artifact the gates and censuses inspect is current while the artifact that actually parses is
+   not. Exposed on edge A: `return_annotation` 0.325 s, `json` 0.139 s, `scratch` 0.062 s,
+   `rtl_const_expr` 0.332 s, `systemverilog_preprocessor` 0.468 s.
+   Instrument (TRACKED, per `ENGINE-UNIVERSAL-SERVICES.21` (e)'s lesson):
+   `docs/tasks/artifacts/ci_parity_gate_rot/run_make_freshness_window_census.sh` →
+   `make_freshness_window_census.txt`. n=3, minimum reported (immunity must hold on the fastest run).
+   It never touches `generated/`, and its identity control reproduced all 10 shipped json+parser
+   pairs from the tracked grammars — the timings were paid on the real work.
+
+2. ✅ **ONE fix shape, uniform — but NOT the one this list proposed.** The proposal was to generalise
+   `focus_scratch`'s unconditional `rm` to all 8 entry points, with the honest warning that
+   `focus_systemverilog` would then always pay its full regeneration. That warning is now MEASURED
+   and is disqualifying: **three tracked gates call `focus_*` purely to ENSURE an artifact exists** —
+   `rust/scripts/sv_cert_recognized_union_gate.sh:177` and `verilog_2005_conformance_gate.sh:172`
+   (`focus_systemverilog`, 28.5 s of generation) and `rtl_const_expr_cert_gate.sh:179`. Uniform `rm`
+   would charge each of them a full regeneration per run for a hazard window they are not in.
+   ⇒ **`scripts/make_freshness_guard.sh`** instead: it removes an artifact only where make's own
+   comparison is **provably wrong** —
+   `floor(target) == floor(prereq)` **AND** `mtime(prereq) > mtime(target)`, read as **nanosecond
+   integers** (a float `st_mtime` near a 1.79e9 epoch cannot order two writes a few hundred µs apart
+   — a guard for a precision defect must not have a precision defect). Same-second-but-target-newer
+   is make being RIGHT, and the guard leaves it alone. ⇒ **zero cost on an up-to-date tree**, which
+   is what makes it affordable on all ten instances including SV. Wired into all 7 remaining
+   `focus_*` targets plus the two annotation flows (`--json-only` there: their recipe regenerates the
+   parser unconditionally, so edge B does not exist and removing it would only let
+   `$(RUST_AST_PIPELINE)`'s placeholder logic drop a stub in its place). `focus_scratch` keeps its
+   stronger unconditional `rm` — its caller has just edited the slot by construction, and
+   `PARSE-HARNESS.11`'s probe-time header check rides that rule.
+   ⛔ Recipe step + recursive `$(MAKE)`, never a sibling prerequisite (`-j` ordering), per `.32`(a).
+
+3. ✅ **Stop it recurring — `FLOW-INTEGRITY` invariant (11), not a 21st doctrine**, exactly as this
+   item proposed. Population DERIVED from the Makefile (`$(<FAM>_JSON): $(<FAM>_EBNF)` → 10 rules),
+   so an eleventh family added tomorrow is covered by construction rather than by someone remembering
+   to extend a list; a family counts as covered if its `$(<FAM>_JSON)` is named on a guard invocation
+   **or** on an unconditional `rm` (both shapes are legitimate, and CTRL-9/9b prove the check accepts
+   the second — otherwise it would be demanding a spelling rather than the property). Cost: greps,
+   no build; the doctrine driver still runs in seconds.
+
+4. ✅ **`make >= 4.0` PRICED, NOT ADOPTED** — recorded in acceptance (c) above, and the census is what
+   made it a derivation instead of a preference.
+
+#### Acceptance Checklist (enforced) — `.32` (d), the sweep
+
+- [x] **REPRODUCE / ISSUE** — reproduced on a family the acute fix never reached (`json`), pinned not
+  raced, and read through **make's own verdict** rather than through this fix's model of make:
+  `make -q <target>` exits 0 for *"up to date"*, 1 for *"would rebuild"*, and executes nothing.
+
+  ```
+  RED-A1  grammar pinned 0.8 s NEWER than generated/json.json, same whole second
+          make -C rust -q ../generated/json.json          → rc 0   ⛔ make will SKIP the rule
+  RED-B1  json pinned 0.8 s NEWER than generated/json_parser.rs, same whole second
+          make -C rust -q ../generated/json_parser.rs     → rc 0   ⛔ fresh json, STALE parser
+  ```
+
+  Population: 10 instances of `$(X_JSON): $(X_EBNF) $(RUST_EBNF_FRONTEND_BIN)`, 5 exposed on edge A
+  and 10 on edge B (census above).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: GNU Make 3.81 truncates mtimes to whole seconds
+  (`make --version` → `GNU Make 3.81`; the APFS-nanosecond hypothesis was refuted in `.32`(a) by
+  `stat -c '%.9Y'`), so it cannot order two writes inside one second and answers *"up to date"*.
+  WHERE, by the **ops/build-flow** toolbox — and the instrument is deliberately make itself, because
+  a defect IN MAKE'S COMPARISON cannot be diagnosed by a re-implementation of that comparison, which
+  would agree with the bug:
+
+  ```
+  $ (cd rust && make -q ../generated/json.json) ; echo rc=$?      # make's own verdict, runs nothing
+  rc=1                                                            # 1 = it would rebuild
+  $ (cd rust && make -d -q ../generated/json.json) | grep -E 'newer than target|Must remake'
+   Prerequisite `target/ebnf_frontend_build/debug/ast_pipeline' is newer than target `../generated/json.json'.
+  Must remake target `../generated/json.json'.
+  $ (cd rust && make -n focus_json) | head -1                      # the guard's own wiring, dry-run
+  bash ../scripts/make_freshness_guard.sh --chain ../grammars/json.ebnf …
+  ```
+
+  Under the pinned same-second collision that same `make -q ` returns **rc 0** — make declaring a
+  target up to date while its prerequisite is genuinely newer. WHERE, precisely: both edges of all
+  ten `rust/Makefile` chains — `$(X_JSON): $(X_EBNF) $(RUST_EBNF_FRONTEND_BIN)` and
+  `$(X_PARSER): $(X_JSON) $(RUST_AST_PIPELINE)` — with exposure a function of the per-edge TAIL.
+- [x] **FIX** — fix-hierarchy tier = **ops/build-flow**; zero engine, grammar or generated bytes.
+  `scripts/make_freshness_guard.sh` (exact-window, nanosecond integers, two edges, cascade) called
+  from 9 entry points; `FLOW-INTEGRITY` invariant (11) keeps the population covered.
+  ⛔ **`make -n` caught a defect in the guard's FIRST CUT before it shipped, and it was the silent
+  kind**: the script `cd`s to the repository root like every other script here, while `make` runs
+  from `rust/` and passes `../generated/json.json` — so every path would have resolved OUTSIDE the
+  repository, every `stat` would have come back absent, every edge would have answered *"nothing to
+  do"*, and the guard would have exited 0 having inspected **nothing**. Fixed by capturing the
+  invocation cwd and re-anchoring, and — because that class must not return quietly — a **missing
+  grammar is now a hard refusal (exit 2)**, with CTRL-3 asserting it.
+  ⭐ **`make -q` / `make -d` REGISTERED in `check_diagnosis_evidence.sh`'s ops/build-flow vocabulary,
+  because the gate CORRECTLY refused this very leaf.** `make -n` was already a token; `-q` and `-d`
+  — the instruments that actually produced this diagnosis — were not, so the box was blocked. That
+  is the lockstep obligation the enforcer's own header records (`ENGINE-UNIVERSAL-SERVICES.11`
+  slice 1): register the instrument, never cite a tool that did not produce the diagnosis and never
+  waive. ⛔ PRICED as a widening must be: across all **404** ticked ROOT CAUSE boxes in
+  `docs/tasks/`, `make -q ` / `make -d ` occur **once** corpus-wide — in this leaf. Zero existing
+  boxes newly qualify. Its four probe suites re-run GREEN afterwards (6 + 10 + 13 + 9 = 38 arms).
+- [x] **ADDRESSED (verified)** — measured before→after on the identical pinned reproducer, oracle
+  `make -q` throughout. **18/18 arms**
+  (`docs/tasks/artifacts/ci_parity_gate_rot/run_make_freshness_probes.sh`, output
+  `make_freshness_probes.txt`):
+
+  | arm | before | after the guard |
+  |---|---|---|
+  | edge A (`json ← grammar`) | `make -q` rc **0** — will skip | json + parser removed → rc **1**; `make focus_json` runs frontend ×1, generator ×1 |
+  | edge B (`parser ← json`) | `make -q` rc **0** — will skip | parser removed, **json kept** → rc 1; `make focus_json` runs frontend ×**0**, generator ×1 |
+  | determinism | — | the regenerated parser is **byte-identical** to the pre-probe artifact |
+  | zero-cost control | `make focus_json` = no-op | still a no-op: frontend ×0, generator ×0, guard prints nothing |
+  | over-fire control (grammar newer by a whole second) | make already sees it (rc 1) | guard stays out of the way |
+  | over-fire control (same second, TARGET newer) | make is RIGHT (rc 0) | guard does not fire |
+
+  ⛔ The two over-fire controls are load-bearing: without them *"always force"* would pass every RED
+  arm above, and always-force is precisely the option item 2 rejected. Guard self-test **8/8**
+  (`--self-test`), every arm pinning mtimes so nothing depends on machine speed.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 20 enforced doctrines PASS**
+  (`FLOW-INTEGRITY` now reports `10/10 EBNF→json rules guarded against make-3.81 whole seconds`),
+  re-run WITH the change staged so the 5 staged-scope doctrines evaluated it rather than nothing.
+  `run_flow_integrity_probes.sh` → **29/29** (was 24; +RED-17 a family loses its guard, +RED-18 an
+  eleventh family arrives unguarded, +RED-19 the guard survives only as a comment, +CTRL-9/9b the
+  `rm` shape still counts). The touched enforcer's own four probe suites stay GREEN —
+  `run_diag_evidence_probes.sh` 6/6, `…_root_kw_probes.sh` 10/10, `…_family5_probes.sh` 13/13,
+  `…_leaf_scope_probes.sh` 9/9. `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes. The probe restores
+  the grammar's mtime and both artifacts' bytes and mtimes through an exit trap; `git status` clean
+  for `generated/` inputs afterwards.
+- promotion: `docs/knowledge/your-build-tools-timestamp-resolution-is-part-of-your-correctness-argument.md`
+  UPDATED — the two-edge measurement (the "slow targets are safe" reasoning names the wrong duration)
+  and the exact-window guard as a fourth, stronger remedy.

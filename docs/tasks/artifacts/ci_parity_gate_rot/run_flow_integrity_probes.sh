@@ -279,6 +279,47 @@ printf '\n# probe: RUST_GENERATOR used to run --generate-parser --debug --trace 
 arm "CTRL-8 a comment quoting the flags" PASS
 restore
 
+# ---------------------------------------------------------------- invariant (11), CI-PARITY-GATE-ROT.32
+# ⭐ RED-17 IS THE STATE THE REPOSITORY WAS IN UNTIL 2026-08-15: nine of the ten EBNF→json rules
+# unguarded against GNU Make 3.81's whole-second mtime comparison, and the tenth (`scratch`) repaired
+# only because an agent loop happened to drive it hard enough to expose it.
+python3 - "$ROOT/rust/Makefile" <<'PY'
+import re,sys; p=sys.argv[1]; s=open(p).read()
+open(p,"w").write(re.sub(r"^\t@\$\(FRESHNESS_GUARD\) --chain \$\(VHDL_EBNF\).*\n", "", s, flags=re.M))
+PY
+arm "RED-17 a family loses its freshness guard" FAIL "VHDL_JSON) is generated from"
+restore
+
+# RED-18 — an ELEVENTH family arrives tomorrow with no guard. This is the recurrence the invariant
+# exists for: the population is DERIVED from the Makefile, so a new rule is covered by construction
+# rather than by someone remembering to extend a list.
+printf '\n$(ZZPROBE_JSON): $(ZZPROBE_EBNF) $(RUST_EBNF_FRONTEND_BIN)\n\t@echo probe\n' \
+  >> "$ROOT/rust/Makefile"
+arm "RED-18 a NEW family arrives unguarded" FAIL "ZZPROBE_JSON) is generated from"
+restore
+
+# RED-19 — the guard invocation survives only as a COMMENT. That is what a half-finished revert
+# leaves behind, and this repository has shipped an audit that fired on its own comment before; the
+# converse — a comment read as a live guard — is the same defect inverted.
+python3 - "$ROOT/rust/Makefile" <<'PY'
+import re,sys; p=sys.argv[1]; s=open(p).read()
+open(p,"w").write(re.sub(r"^\t@(\$\(FRESHNESS_GUARD\) --chain \$\(VHDL_EBNF\).*)$", r"# \1", s, flags=re.M))
+PY
+arm "RED-19 guard survives only as a comment" FAIL "VHDL_JSON) is generated from"
+restore
+
+# CTRL-9 — ⛔ THE OTHER LEGAL SHAPE MUST KEEP COUNTING. `focus_scratch` carries no guard call at all:
+# it is covered by the STRONGER unconditional `rm -f` the acute `.32` fix installed. If this arm
+# fails, the invariant is demanding one specific spelling rather than the property, and the next
+# author's correct fix would be rejected.
+python3 - "$ROOT/rust/Makefile" <<'PY'
+import re,sys; p=sys.argv[1]; s=open(p).read()
+open(p,"w").write(re.sub(r"^\t@rm -f \$\(SCRATCH_JSON\).*\n", "\t@true\n", s, flags=re.M))
+PY
+arm "CTRL-9  removing the rm UNCOVERS scratch" FAIL "SCRATCH_JSON) is generated from"
+restore
+arm "CTRL-9b scratch is covered by its rm, guard-free" PASS "10/10 EBNF→json rules guarded"
+
 printf '%s\n' "------------------------------------------------------------------------------"
 printf 'arms=%d  PASS=%d  FAIL=%d\n' "$((pass + fail))" "$pass" "$fail"
 [ "$fail" -eq 0 ]
