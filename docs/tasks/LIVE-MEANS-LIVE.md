@@ -1846,6 +1846,88 @@ Under the actual spec, 533 KB over 94 capped cards is `O(units)` with a large co
 Size was never the metric; **growth law and locality** are. `docs/TASK_TREE.md` is the only one of
 the four that fails both, and it fails them for the same reason — job (c).
 
+##### 3b. THE FORMAT — measured against five candidates, not chosen by taste (`PGEN-README-POLICY-0016`)
+
+Director: *"What is the ultimate, super efficient, super fast, AI/LLM/agent-friendly format? To me
+there should be NO PROSE in `TASK_TREE.md` — prose resides solely in the task-trees themselves. It
+shall be super searchable, greppable, because that's how agents work."*
+
+The real 110-row dataset was rendered into five candidate formats and measured.
+
+**Finding 1 — SIZE IS A NON-DIFFERENTIATOR.** Every candidate lands in the same band, and all are
+~50–100× better than today's **4 997 B/record mean**:
+
+| candidate | B/record | lines/record |
+|---|---:|---:|
+| TSV | 57 | 1.0 |
+| key=value line records | 86 | 1.0 |
+| Markdown table | 97 | 1.0 |
+| JSONL | 99 | 1.0 |
+| YAML | 93 | **4.0** |
+
+⇒ **the win comes from deleting job (c), not from picking a format.** Any of these is fine on size;
+YAML is the only structural loser (4 lines/record breaks I2's *one record = one line*).
+
+**Finding 2 — QUERY COUNT IS ALSO A NON-DIFFERENTIATOR.** Once prose is gone, every agent query is
+one grep in every candidate (exact key lookup 1 hit; `active` filter 44/44 exact in all four). ⛔ Worth
+stating plainly because it is the intuitive answer and it is **wrong**: greppability is bought by
+removing prose, not by the syntax. Real tree-id substring collisions across all 110 ids: **1**
+(`RGX-0087` ⊂ `RGX-0087-FIX2`) — so even a naive bare-key grep is nearly safe, and an anchored
+`id=` pattern makes it exactly safe.
+
+**Finding 3 — THE TWO AXES THAT DO DISCRIMINATE**, and they select the same winner:
+
+- ⭐ **Is a single grep hit interpretable OUT OF CONTEXT?** This is the decisive agent property: grep
+  returns **one line** into the model's context, usually without the header.
+  - Markdown table / TSV → **POSITIONAL**; the hit means nothing without the header (a second read,
+    or a fragile assumption).
+  - `key=value` / JSONL → **carry their own field names**; the hit is self-contained.
+- ⭐⭐ **Schema evolution fails SILENTLY in positional formats** — proven, not argued. Insert an
+  `owner` column and ask a consumer for field 3:
+  ```
+  positional: printf 'X\tme\tactive\t.1\tf.md' | cut -f3   ->  active     (expected .1)
+  named:      grep -o 'status=[a-z]*'                        ->  status=active  (unaffected)
+  ```
+  The positional reader returns a **plausible wrong value** with no error. That is the failure
+  direction this repository fails on repeatedly, and it disqualifies TSV and the Markdown table for
+  a surface meant to last.
+
+##### 3c. ⇒ THE PROPOSED FORMAT — one self-describing record per line
+
+```text
+TREE id=SV-CORPUS-GRAD status=active frontier=.20 lane=sv file=docs/tasks/SV-CORPUS-GRAD.md
+```
+
+| field | constraint |
+|---|---|
+| `id=` | `[A-Z][A-Z0-9-]*`, unique, = the tree file basename |
+| `status=` | **ENUM** — `active｜todo｜done｜blocked｜parked｜superseded` |
+| `frontier=` | a leaf id (`.13i`) or `-` |
+| `lane=` | short token |
+| `file=` | repo-relative path |
+
+⭐ **Why `key=value` over JSONL**, given both are self-describing: 86 vs 99 B/record (−13 %, and JSON
+punctuation tokenizes worse than `=`), no quoting/escaping discipline to get wrong, and no `jq` on
+the critical path — `grep 'status=active'` is already exact. JSONL is the better choice **if** a
+typed validator or external tooling ever becomes the primary consumer; that is a reversible decision
+and the field names are identical either way, so the migration between them is mechanical.
+
+⭐⭐ **It makes COMPLETENESS — the file's whole reason to exist — MECHANICAL**, and this is the
+strongest argument for it. Because `file=` names a real path, a checker reconciles **both
+directions**: every `file=` must exist, and every `docs/tasks/*.md` must have a row. That is exactly
+the layer-C index check `check_memory_architecture.sh` E2.5 already runs for `docs/decisions/`, which
+was adopted after it passed at *135 records / 133 rows*. ⛔ Today no such check is possible at all,
+because a "row" is 76 KB of prose with no parsable field.
+
+⭐ **Rendering**: wrap the record block in a fenced code block. It stays valid Markdown for the book
+and README links, renders as monospace, and `grep` ignores fences entirely.
+
+⛔ **AND THE PROSE HAS A DESTINATION THAT ALREADY EXISTS.** The director's *"no prose"* rule also
+evicts job (a) — the workflow definition + Code-Change Doctrine — which is **46 252 B (7 %)** of the
+file, the non-table remainder. `docs/TASK_TREE_README.md` already exists at 8 758 B and is already
+described as the reusable step-by-step guide. ⇒ job (a) → `TASK_TREE_README.md`, job (b) → the
+record block, job (c) → the tree files. **Three jobs, three homes, no prose in the index.**
+
 ##### 4. WHAT THE SPEC REQUIRES (the design is now derived, not chosen)
 
 1. **One row per tree, `L = 1`** — already true; keep it.
