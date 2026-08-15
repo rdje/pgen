@@ -1,0 +1,21 @@
+diff --git a/rust/src/ast_pipeline/indirect_lr_elimination.rs b/rust/src/ast_pipeline/indirect_lr_elimination.rs
+index 34a47cf3..3ea4801e 100644
+--- a/rust/src/ast_pipeline/indirect_lr_elimination.rs
++++ b/rust/src/ast_pipeline/indirect_lr_elimination.rs
+@@ -1105,6 +1105,16 @@ fn plan_guard_chains(
+     annotations: Option<&Annotations>,
+     taken: &mut BTreeSet<String>,
+ ) -> Result<Vec<GuardChain>, String> {
++    // ⛔⛔ MEASUREMENT-ONLY ARM — ENGINE-UNIVERSAL-SERVICES.20 acceptance (b), ARM 3.
++    // Guard-feasible admission is KEPT; the guard EMISSION is suppressed, which is the one A/B that
++    // separates "absorbing the knot" from "guarding it". A parser built this way is DELIBERATELY
++    // UNSOUND on the sites the guard closes and is never a deliverable. This hunk exists only as the
++    // tracked patch `docs/tasks/artifacts/engine_universal_services/guard_emission_suppressed.patch`
++    // and MUST NOT be committed to the engine: the surrounding comment at the call site argues
++    // against a shipped switch here, because a second switch would have to agree with the admission
++    // criterion and the two could drift.
++    return Ok(Vec::new());
++    #[allow(unreachable_code)]
+     let base_rule = candidate.base_rule.as_str();
+     // key -> (positions, residual, chain, sites) in a deterministic order.
+     let mut grouped: BTreeMap<String, (bool, bool, Vec<ASTNode>, Vec<String>, Vec<GuardRedirect>)> =

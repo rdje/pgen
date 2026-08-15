@@ -1,0 +1,16 @@
+memory-guard: started pid=69444 pgid=69444 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=2400s free=82% disk=3290GB cmd: bash docs/tasks/artifacts/engine_universal_services/run_guard_ab_structural.sh
+==============================================================================
+ENGINE-UNIVERSAL-SERVICES.20 (b) — three-arm A/B, STRUCTURAL tier
+==============================================================================
+--- ARM 1: narrow admission (existing flag, no patch) ------------------------
+--- ARM 3: absorbed, guard emission SUPPRESSED (patched engine) --------------
+--- ARM 2: SHIPPED (the tracked engine, regenerated as a revert control) -----
+
+ARM 1  narrow admission (pre-slice-9)          norm_bytes=130512738   RULE_COUNT=1488   lr_names=7     guard_names=0   path_sites=33249
+ARM 2  SHIPPED (absorbed + guarded)            norm_bytes=142671859   RULE_COUNT=1608   lr_names=127   guard_names=6   path_sites=36346
+ARM 3  absorbed, guards SUPPRESSED             norm_bytes=142441376   RULE_COUNT=1602   lr_names=121   guard_names=0   path_sites=36291
+
+revert control: ARM 2 regenerated d7d372c0e36847e5 vs shipped generated/ d7d372c0e36847e5  IDENTICAL — the patch left no residue
+------------------------------------------------------------------------------
+✅ three arms generated; engine restored byte-exactly.
+memory-guard: completed exit=0 peak_tree_rss=7585MB elapsed=196s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/generated_logs/memory_guard/guard.69444.marker

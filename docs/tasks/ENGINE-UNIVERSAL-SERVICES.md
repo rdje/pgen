@@ -5221,7 +5221,7 @@ was comfortable in a way `+24.3 %` is not.
   its promotion finally happened, seven slices later, with the ratchet paid rather than waived, and a
   `KNOWLEDGE_MAP.md` regeneration.
 
-#### ⛔⛔⛔ `.20` NEW `todo` — the guarded admission costs **+24.3 %** parse time on the SV corpus, and *"costs are REJECTED, not traded"* is a NON-NEGOTIABLE (opened 2026-08-14 session #232 by `.17` slice 9)
+#### ⛔⛔⛔ `.20` `in progress` — (d) DISCHARGED slice 1, (a) FIRST PASS slice 2, **(b) STRUCTURAL TIER slice 3** (`-0042`: guard emission is **1.90 %** of the flip's structural growth, absorption **98.10 %**); (b) timed tier + (c)/(e) OPEN — the guarded admission costs **+24.3 %** parse time on the SV corpus, and *"costs are REJECTED, not traded"* is a NON-NEGOTIABLE (opened 2026-08-14 session #232 by `.17` slice 9)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -6043,6 +6043,92 @@ without publishing a stale DATE* — is routed to `LIVE-MEANS-LIVE` rather than 
   byte of the product moved. `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
 - promotion: `docs/knowledge/a-conservation-control-cannot-catch-a-misassignment.md` (RESULT 2).
 
+
+#### ⭐⭐⭐ `.20` SLICE 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0042`, 2026-08-15 session #237) — (b) STRUCTURAL TIER: the third arm EXISTS, and **guard emission is 1.9 % of what the admission added**
+
+`.20`(b) asks for *"the single most discriminating measurement available"* — an arm that keeps the
+guard-feasible ADMISSION but suppresses the guard EMISSION, so the published two-arm A/B (narrow
+`303.0 s` vs shipped `376.7 s`, ratio **1.243**) can be split into *absorbing the knot* and *guarding
+it*. That arm now exists, and its cheap tier is measured.
+
+##### THE LEVER — a tracked PATCH, because the call site argues against a shipped switch
+
+`plan_guard_chains` is invoked unconditionally at `indirect_lr_elimination.rs:926`, and the comment
+there is explicit about why: *"a second switch here would be a second thing that has to agree with
+the criterion, and the two could drift"*. So the lever is
+`docs/tasks/artifacts/engine_universal_services/guard_emission_suppressed.patch` — 21 lines, applied
+and reverted around one measurement, never committed to the engine. Same shape as
+`A2.5_direct_lr_normalization.patch` beside it. ⛔ A parser built this way is **deliberately unsound**
+on the sites the guard closes and is never a deliverable.
+
+##### ⭐ RESULT — three arms, one table (`run_guard_ab_structural.sh`, 201 s, engine restored by an exit trap)
+
+| arm | norm_bytes | `RULE_COUNT` | LR names | `_lr_guard*` |
+|---|---:|---:|---:|---:|
+| **1** narrow admission (pre-`.17` slice 9) | 130 512 738 | 1488 | 7 | 0 |
+| **3** absorbed, guards SUPPRESSED | 142 441 376 | 1602 | 121 | 0 |
+| **2** SHIPPED (absorbed + guarded) | 142 671 859 | 1608 | 127 | 6 |
+
+⇒ **absorption (3 − 1) = +11 928 638 B / +114 rules · guards (2 − 3) = +230 483 B / +6 rules.**
+The guard emission is **1.90 %** of the structural growth the flip introduced; the absorption is
+**98.10 %**.
+
+##### ⛔⛔ THE FIRST READING OF THIS TABLE WAS INVERTED, BY A TRAP THIS SESSION HAD ALREADY DOCUMENTED
+
+Raw `stat` bytes are **not comparable across arms**. A generated parser embeds its own `-o` path as a
+diagnostic string — **36 346 times** in the shipped SV parser, measured — so one extra character in
+the output FILENAME adds 36 346 bytes to the file. Comparing ARM 3 against
+`generated/systemverilog_parser.rs`, whose embedded path is 12 characters shorter, made ARM 3 look
+**203 KB LARGER** than the shipped parser and produced the opposite conclusion about what guards
+cost. The runner now normalises the path before measuring, and prints `path_sites` so the correction
+is visible rather than implicit. ⭐ The embedding was found hours earlier by
+`CI-PARITY-GATE-ROT.32`(d)'s census control — and it still caught this measurement out, which is the
+argument for putting a normalisation in the INSTRUMENT rather than in a reader's memory.
+
+##### ⚠️ HONEST BOUND — STRUCTURE IS NOT TIME, AND THIS LEAF'S OWN CARD SAYS SO
+
+`1.90 %` is a **static footprint**, not a runtime share. A per-entry cost can live in a handful of
+rules that are entered constantly — which is exactly what
+[[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]] records, and exactly why the LR family's
+`0.681 %` entry share could sit under a `+24.3 %` wall-clock rise. ⇒ this tier gives a strong prior
+(*the cost is in the absorption, not the guard*) and narrows where to profile; it does **not**
+discharge (b). **Slice 4 owes the timed tier**: a release `parseability_probe` per arm (~22 min /
+12 GB peak each) and a corpus run per arm, with the verdict drift reported — ARM 3 is unsound, so it
+may REJECT files ARM 2 accepts, and a timing comparison across different verdict sets must say so.
+
+##### Acceptance Checklist (enforced) — `.20` slice 3, (b) structural tier
+
+- [x] **REPRODUCE / ISSUE** — the missing arm is the issue, and its absence is measured rather than
+  asserted: `.17` slice 9 recorded only narrow `303.0 s` vs shipped `376.7 s`, and `.20` slice 1's
+  own "what this slice does not do" says *"(b) the third A/B arm — not built"*. With two arms, every
+  attribution between absorption and guarding is unfalsifiable.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the arm did not exist: the guard emitter has no switch, by
+  deliberate design, so the arm requires a source change and nobody had written one that could be
+  applied without shipping it. WHERE, by the ops/build-flow toolbox — `plan_guard_chains` at
+  `rust/src/ast_pipeline/indirect_lr_elimination.rs:1102`, called unconditionally from `:926`:
+
+  ```
+  $ git apply docs/tasks/artifacts/engine_universal_services/guard_emission_suppressed.patch
+  $ (cd rust && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline)
+  $ ./rust/target/debug/ast_pipeline --generate-parser --eliminate-left-recursion \
+        generated/systemverilog.json -o rust/target/lr_ab_arms/sv_arm3_noguard_parser.rs
+  RULE_COUNT 1608 -> 1602,  _lr_guard* names 6 -> 0
+  ```
+- [x] **FIX** — this slice measures; it changes no shipped byte. The lever is a tracked patch, the
+  arms are generated into `rust/target/lr_ab_arms/`, and the reproducible runner is
+  `docs/tasks/artifacts/engine_universal_services/run_guard_ab_structural.sh` with its output
+  committed as `guard_ab_structural.txt`.
+- [x] **ADDRESSED (verified)** — before→after on the question the slice exists to answer. BEFORE: the
+  guard's share of the flip was unmeasured, and the leaf's candidate causes (i)-(iv) could not be
+  ordered. AFTER: the guard emission is **+230 483 B / +6 rules = 1.90 %** of the structural growth,
+  against absorption's **+11 928 638 B / +114 rules = 98.10 %** — with the path-normalisation
+  correction applied and printed.
+- [x] **NO REGRESSION** — the engine is restored by an exit trap and the restoration is PROVEN, not
+  assumed: ARM 2 regenerated from the reverted tree hashes `d7d372c0e36847e5`, byte-identical to the
+  shipped `generated/systemverilog_parser.rs` under the same path normalisation, and
+  `git diff --quiet -- rust/src/` is clean at exit. `generated/` is never written by any arm.
+  `bash scripts/check_doctrines.sh` → ALL 20 enforced doctrines PASS;
+  `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
 
 #### ⚠️ `.21` `in progress` — the parse-cost instrument's "guarded-admission family" counted 97 of the **127** LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ✅ **(e) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0041`; ⏳ **(f) is now the frontier**; ✅ **(g) DISCHARGED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0039`; ⛔ **(b) MEASURED and BLOCKED on `.22`**)
 

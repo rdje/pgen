@@ -1,5 +1,30 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0042 — a correction you documented this morning will still catch you this afternoon, unless it lives in the instrument
+
+**1. Knowing about a measurement trap does not protect you from it; encoding it does.** Hours after
+recording that a generated parser embeds its own output path — and building a census control around
+that fact — I compared three parser arms by raw `stat` size and read the answer backwards. The arm
+with guards suppressed looked *larger* than the shipped parser, because its filename was 12
+characters longer and the path is embedded 36 346 times. The fix is not "remember harder": it is that
+the runner now normalises the path before measuring and prints the site count, so the correction is
+applied by the tool and visible in the output. **A trap you have to remember is a trap you will hit.**
+
+**2. When the emitter has no switch on purpose, the measurement lever is a tracked patch.** The guard
+emitter is called unconditionally, and its call site argues explicitly against adding a switch: a
+second switch would have to agree with the admission criterion, and two things that must agree can
+drift. That argument is right, and it does not mean the measurement cannot be made — it means the
+lever must not ship. A 21-line patch, tracked beside the leaf, applied and reverted inside one
+runner with an exit trap, gives the arm without giving the engine a second policy input. The
+restoration is then PROVEN (regenerate and hash), not assumed.
+
+**3. Do the cheap tier of an expensive measurement first — it may reorder the expensive one.** The
+timed A/B needs two 22-minute release builds and two corpus runs. The structural tier needed four
+minutes and answered "which half is big?" decisively (98.1 % absorption, 1.9 % guards). That does not
+replace the timing — static footprint is not runtime share, and this very leaf carries a card about
+exactly that confusion — but it changes what the expensive run is looking for, and it would have been
+wasteful to learn it afterwards.
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0041 — promoting an instrument is a re-derivation, not a `cp`
 
 **1. Moving a measurement's producer into version control is where you find out what it actually
