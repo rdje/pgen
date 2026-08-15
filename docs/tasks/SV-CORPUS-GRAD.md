@@ -5231,6 +5231,62 @@ made the difference, and how far it sat from the edge."*
   `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, and this leaf. No contract/ledger/schema
   surface changes: the runner is operator-invoked and publishes no downstream contract.
 
+##### `.3.28` NEW `todo` — ⛔⛔ `.3.27`'s NON-DESTRUCTIVE ESCAPE HATCH CANNOT ESCAPE: the refusal runs first, so `PGEN_CORPUS_OUT_DIR` never suppresses the drift abort — and the refusal's own advice tells you to use it (opened 2026-08-15 session #237 by `ENGINE-UNIVERSAL-SERVICES.20` slice 4, which it blocked)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before opening this, and
+whether it reproduces outside the family it is filed under):
+
+- **Reproduced on the first attempt to use it, not theorised.** Measuring `.20`(b)'s third A/B arm
+  needs a corpus run against a DIFFERENT probe binary, written somewhere non-canonical — precisely
+  the case `.3.27` built `PGEN_CORPUS_OUT_DIR` for (*"measure elsewhere and DIFF before promoting —
+  the non-destructive path that did not exist"*). It refuses:
+
+  ```
+  $ PGEN_PARSE_PROBE_BIN=rust/target/lr_ab_arms/probe_arm2 \
+    PGEN_CORPUS_OUT_DIR=rust/target/lr_ab_arms/corpus_arm2 \
+    stimuli/run_external_corpus.sh sv 60 8 0
+  external-corpus[sv]: ⛔ REFUSING — the pending run's measurement parameters differ …
+    parse binary  pending run: rust/target/lr_ab_arms/probe_arm2   tracked artifact: rust/target/release/parseability_probe
+    Fix, in order of preference:
+      2. PGEN_CORPUS_OUT_DIR=<dir> …  — measure elsewhere and DIFF before promoting;   <-- ALREADY SET
+  ```
+
+- **ROOT CAUSE, located by reading the control flow rather than the prose** (`grep -n` on the same
+  file): the drift refusal is at **`stimuli/run_external_corpus.sh:260`**; `PGEN_CORPUS_OUT_DIR` is
+  resolved into `OUTDIR` at **`:286`** — twenty-six lines LATER. ⇒ the hatch is opened after the
+  door has already slammed. It is not a partial suppression or a precedence question: the refusal
+  cannot see the variable, ever.
+- **This is a defect in `.3.27`'s OWN delivery, and it is the flattering kind.** `.3.27` names two
+  escape hatches — `PGEN_CORPUS_REBASELINE=1` (*"deliberately establish a new baseline"*) and
+  `PGEN_CORPUS_OUT_DIR` (*"the non-destructive path that did not exist"*). Only the destructive-
+  sounding one works. So an author who follows the refusal's own remedy list in order hits the
+  identical refusal at step 2 and is pushed to step 3 — the one that says *rebaseline*. ⛔ A gate
+  whose safe remedy silently fails and whose loud remedy works is a gate that **teaches the waiver**,
+  which is the failure `GENERATED-LINT-CORRECTNESS.6`/`.12` document.
+- **Does it reproduce outside SV?** ⭐ Yes, by construction and this is why it is filed as a runner
+  defect rather than an SV one: the refusal and the `OUTDIR` resolution are both family-agnostic —
+  the same two lines run for `vhdl` and `sv2005`. Any family whose tracked artifact records a
+  different probe or timeout is equally unable to take the non-destructive path. No SV-specific
+  state is involved.
+- **Blast radius today: nothing is broken, one thing is unreachable.** No gate invokes this runner
+  (`.3.27` measured that and it still holds), so the defect costs no CI. What it costs is the
+  ability to measure an arm without either touching a tracked oracle or declaring a rebaseline.
+- **Workaround in use meanwhile, recorded so it is not mistaken for a fix**: `.20` slice 4 measures
+  ARM 2 by OMITTING `PGEN_PARSE_PROBE_BIN` (the tracked value IS arm 2, so there is no drift) and
+  will measure ARM 3 with `PGEN_CORPUS_REBASELINE=1` **plus** `PGEN_CORPUS_OUT_DIR`. That is safe —
+  `OUTDIR` redirects every write, so "rebaseline" rebaselines nothing tracked — but it is exactly
+  the loud-hatch-for-a-quiet-need inversion this leaf is about.
+
+**Acceptance:** (a) resolve `PGEN_CORPUS_OUT_DIR` **before** the reconciliation, and make parameter
+drift NON-FATAL when the run is redirected — nothing tracked can be harmed by a run that writes
+elsewhere, which is the hatch's whole premise; ⛔ keep it LOUD (the run must still print the drift
+and the report must keep its `NON-CANONICAL RUN` banner), because the danger being guarded is a
+silent re-baseline, not a noisy one; (b) a RED probe per hatch — drift + `OUT_DIR` must proceed,
+drift + canonical output must still exit 5, and drift + `REBASELINE=1` must still proceed — so a
+future reordering cannot re-close the hatch silently; (c) ⭐ re-read the refusal's remedy list
+against the code it describes: this leaf exists because the message documented a capability the
+control flow did not have, and (b)'s arms are what make the message and the code agree.
+
 ##### `.3.26b` — ⛔ DIRECTOR RULING 2026-08-10: `'{}` is LEGAL SV; the `.3.26a` deletion is REVERTED and its premise was FABRICATED (comment-only, generated parser BYTE-IDENTICAL)
 
 - **Status: `done` 2026-08-10 (`PGEN-SV-CORPUS-GRAD-0189`).** `.3.26a` (never released — the deletion
