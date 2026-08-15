@@ -4564,3 +4564,53 @@ is an argument about the DRIVER, not the rule, and an agent loop changes the dri
 - promotion: `docs/knowledge/your-build-tools-timestamp-resolution-is-part-of-your-correctness-argument.md`
   UPDATED — the two-edge measurement (the "slow targets are safe" reasoning names the wrong duration)
   and the exact-window guard as a fourth, stronger remedy.
+
+### `.33` NEW `todo` — a ticked acceptance box may name a SURFACE the commit never touched, and nothing compares the claim against the diff (opened 2026-08-15 session #237 by `.32`(d), which found one)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was measured, and whether it reproduces
+outside the leaf that surfaced it):
+
+- **A real instance, in this tree, found by command not by suspicion.** `.32` acceptance (b) was
+  ticked reading *"record the mechanism where the next reader will meet it (`TOOLBOX.md` 1.3, the
+  book's *Parse Harness* chapter, a knowledge card) — done"*:
+
+  ```
+  $ git show --stat 222e89d5 | tail -12
+   CHANGES.md · DEVELOPMENT_NOTES.md · KNOWLEDGE_MAP.md · MEMORY.md · docs/TASK_TREE.md
+   docs/knowledge/your-build-tools-…-argument.md · docs/tasks/CI-PARITY-GATE-ROT.md
+   docs/tasks/ENGINE-UNIVERSAL-SERVICES.md · rust/Makefile
+  ```
+
+  **Neither `TOOLBOX.md` nor anything under `docs/book/` is in the commit.** Two of the three named
+  surfaces were never written; only the knowledge card was real. The box was true for one third of
+  what it claimed and it passed every gate.
+- ⛔ **Why no gate saw it.** `TASK-ACCEPTANCE` audits that the boxes EXIST, are TICKED and carry a
+  diagnosis SIGNATURE; `.27` (already open) adds that it never audits FALSIFIABILITY. This is a third
+  axis neither covers: whether a box's own claim about WHERE something was recorded matches the
+  files the commit actually touched. Nothing in the driver reads the diff for that.
+- ⭐ **It is mechanically checkable, which is what makes it a defect rather than a fact of life.** A
+  ticked box naming a tracked path (`` `TOOLBOX.md` ``, `` `docs/book/src/x.md` ``) inside a
+  record/document/write claim is a testable assertion against `git diff --cached --name-only`. The
+  hard part is not detection, it is the FALSE-POSITIVE rate: boxes legitimately name files as
+  CONTEXT (*"the affected rule is `rust/Makefile`'s `$(SCRATCH_JSON)`"*) far more often than as a
+  promise, and a checker that cannot tell those apart teaches waivers — the failure
+  `GENERATED-LINT-CORRECTNESS.6`/`.12` document and the reason `.4` (2/304) and `.7` (0/307) REFUSED
+  two proposed additions on measurement.
+- **Reproduces outside this tree?** ⚠️ **Unmeasured, and that measurement is acceptance (a).** One
+  instance is an anecdote. The corpus is ~404 ticked ROOT CAUSE boxes plus their siblings across 162
+  task files; the question *"how many ticked boxes name a surface their own commit did not touch"*
+  is answerable by script and has never been asked.
+- **Class, stated plainly:** this is the same family as `.21`'s GAP 1 and `-0039`'s overstatement —
+  **a claim published without opening the surface it claims about.** Three instances in three days,
+  each caught by a human re-reading rather than by a gate.
+
+**Acceptance:** (a) ⛔ FIRST, MEASURE THE CORPUS before designing anything — for every ticked box in
+`docs/tasks/` that names a tracked path inside a record/document/update claim, join against the
+commit that introduced it (`git log -L` / `git blame` on the box line) and report how many name a
+file that commit did not touch. That number decides whether this is a class or an incident, and
+`.4`/`.7` are the precedent for REFUSING to build on a thin one; (b) if the population justifies it,
+the check must distinguish a PROMISE (*"recorded in X"*, *"documented in X"*) from CONTEXT (*"the
+affected rule is in X"*) — and the arm that proves it is a control box naming a file as context,
+which must PASS; (c) ⭐ whatever (a) decides, `.32`(b) itself is already corrected in place with the
+false claim recorded rather than backfilled — the record of the miss is the fixture (b) would reuse.
+

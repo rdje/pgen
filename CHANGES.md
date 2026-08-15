@@ -1,5 +1,46 @@
 # CHANGES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0043 (leaves ENGINE-UNIVERSAL-SERVICES.24 + .25 and CI-PARITY-GATE-ROT.33 OPENED, plus a SEQUENCING RULING on .21(f); DOCS only, ZERO code/grammar/generated/gate bytes) — three surfaced findings become three OWNED leaves, because surfacing is not the bar
+
+- **Director, 2026-08-15:** *"All these should normally have been made the sota, signoff way."* Right,
+  and the gap was precise: of five items surfaced, two were already owned and gated (`.32` closed,
+  `.20`(b) in flight) and **three were bullets in a message with no owner** — which is exactly the
+  posture `CLAUDE.md` §15 rejects (*logging is the first step, fixing is the end goal*). Each now has
+  a leaf, measured routing evidence, and acceptance items.
+- ⛔⛔ **`ENGINE-UNIVERSAL-SERVICES.24` — the ratchet's identity block pins every INPUT and not the
+  EXECUTABLE, DEMONSTRATED LIVE.** With `.20` slice 4's ARM-3 probe on disk, `check_parse_cost_ratchet.sh`
+  passes and prints *"every input the binding metric depends on is byte-identical to the baseline's,
+  so the measurement cannot have moved"* — while `nm` reports **0** `_lr_guard` symbols in that binary
+  against the pinned parser's **6**. The sentence is false in that state and it is the gate's own.
+  Root cause: the four identity rows are all SOURCES; the producer is
+  `DEFAULT_PROBE = rust/target/release/parseability_probe` (`corpus_parse_cost.py:138`), untracked and
+  unhashed. Tier 1 computes nothing so no commit can be misled; tier 2 would silently measure the
+  wrong parser. Acceptance names the two candidate fixes and requires the choice be MEASURED, plus a
+  RED arm that replays this incident.
+- ⚠️ **`ENGINE-UNIVERSAL-SERVICES.25` — every generated parser embeds its own output path once per
+  emitted site: 36 346 times in SV = 1 308 456 B = 0.91 % of the artifact.** One extra character in
+  the output FILENAME adds 36 346 bytes. It has caused two measurement errors in one day, in opposite
+  directions, both caught by controls rather than by reading: a 10/10 false determinism alarm in the
+  `.32`(d) census, and an INVERTED three-arm reading in `.20` slice 3. ⛔ Acceptance puts *read the
+  emitter first* ahead of any proposal — the obvious "hoist it to a constant" may be wrong — and
+  gives the normalisation ONE home, since the second copy was written after the first defect was
+  already recorded.
+- **`CI-PARITY-GATE-ROT.33` — a ticked acceptance box may name a SURFACE the commit never touched.**
+  `.32`(b) claimed the mechanism was recorded in `TOOLBOX.md` 1.3 and the book's *Parse Harness*
+  chapter; `git show --stat 222e89d5` lists neither. `TASK-ACCEPTANCE` audits existence, ticking and
+  a diagnosis signature; `.27` adds falsifiability; nothing reads the DIFF for the claim. ⛔ Acceptance
+  (a) is to MEASURE the corpus first — `.4` (2/304) and `.7` (0/307) are the precedent for refusing a
+  checker whose population is thin, and the false-positive risk here is real (boxes name files as
+  CONTEXT far more often than as a promise).
+- ✅ **SEQUENCING RULED — `.21`(f) is deferred behind `.20`(b), WITH A TRIGGER.** The director returned
+  the call as mine to make. Reasoning recorded in the leaf: only `.20` is under a standing no-waiver
+  clause (ruling B, the release bar); `(e)` already turned (f)'s subject from *"wrong and
+  irreproducible"* into *"right and re-derivable in 66 s"*; and the argument AGAINST is stated too.
+  The deferral is bounded — (f) runs at the first of (b) discharging, any change to the instrument /
+  SV grammar / SV parser, or **before `.21` may leave `in progress`** — and it is overturned
+  immediately if `grep -rln CORPUS_FAMILY_SHARE_PCT` ever returns a second file (measured today: it
+  returns only the file that defines it).
+
 ## 2026-08-15 - PGEN-SV-CORPUS-GRAD-0218 (leaf SV-CORPUS-GRAD.3.28 OPENED, routed out of ENGINE-UNIVERSAL-SERVICES.20 slice 4; DOCS only, ZERO code/grammar/generated/gate bytes) — `.3.27`'s non-destructive escape hatch cannot escape, and the refusal's own advice recommends it
 
 - **Found by trying to use it, not by review.** `.20`(b)'s third A/B arm needs a corpus run against a

@@ -6230,6 +6230,52 @@ tracked artifact the way `SV-CORPUS-DENOMINATOR` does it) is affordable; (g) obs
 real by generating a parser from a directly-left-recursive grammar, and run the predicate over all
 ten families' declared rule names.
 
+###### ✅ SEQUENCING RULED 2026-08-15 (session #237) — **(f) IS DEFERRED BEHIND `.20`(b), WITH A TRIGGER**, and the ruling is recorded because a deferral without one is just a backlog
+
+⛔ **This was mine to decide and I put it to the director first — that was the error, not the
+answer.** [[feedback_answer_your_own_technical_questions]]:
+ordering already-approved lanes is EXECUTION. The director returned it (*"This is yours to make. You
+should do it the sota, signoff way"*), so here is the call with its reasoning, its trigger, and what
+would overturn it.
+
+**THE QUESTION.** `.21`(f) — make the corpus family share DERIVED or GATED — versus `.20`(b) — the
+timed third A/B arm. Both were open; only one can be next.
+
+**THE CALL: `.20`(b) first, `(f)` immediately after it, and `(f)` is not allowed to slip past that.**
+
+**WHY, in order of force:**
+
+1. ⛔ **Only one of the two is under a standing no-waiver clause.** Ruling **B** on `.20` says
+   SystemVerilog may not reach `Done` or ship to Nexsim carrying an unexplained +24.3 %. That is the
+   release bar itself. `(f)` guards a number the ratchet REPORTS; it binds nothing and blocks
+   nothing — `.21` slice 1 states in its own words that the three BINDING counters are unaffected and
+   that *"what is wrong is the reported family share"*.
+2. **(e) already removed the sharp edge (f) was holding.** Before slice 3, the corrected `2.741 %`
+   was hand-carried by an instrument that a `cargo clean` deleted — a wrong number AND an
+   irreproducible one. It is now re-derivable by a tracked producer in 66 s, verified against the
+   published figure. So the residual risk (f) closes is *"the right number could go stale
+   unnoticed"*, not *"the number cannot be checked"*. That is a real risk and a smaller one.
+3. **The costs are asymmetric in the same direction.** Deferring (b) keeps the release bar
+   unmeasurable and leaves the burn-down aimed by suspicion; deferring (f) risks one reported
+   percentage going stale between now and the next grammar move, detectable in 66 s by a command
+   that now exists.
+4. ⚠️ **Against the call, stated rather than omitted:** (f) is cheap and I am holding the context for
+   it right now, so doing it second costs a re-read. And a deferral is exactly how `CORPUS_FAMILY_SHARE_PCT`
+   became a comment-guarded constant in the first place — this leaf is *about* a number nobody
+   watched. That is why the deferral carries a trigger instead of a hope.
+
+**THE TRIGGER — (f) runs at the FIRST of these, whichever comes first:**
+- `.20`(b) is discharged (its timed tier lands), or
+- any change to `stimuli/sv/corpus_parse_cost.py`, the SV grammar, or the shipped SV parser — because
+  those are precisely the inputs that make the carried share stale, and
+- ⛔ in any case, **before `.21` may be marked anything other than `in progress`**. `(f)` is the last
+  open item on this leaf; closing the leaf without it is the failure mode, not the deferral itself.
+
+**WHAT WOULD OVERTURN THIS:** a measurement showing the reported share is consumed by something that
+gates — today `grep -rln CORPUS_FAMILY_SHARE_PCT` returns only the file that defines it, so nothing
+downstream can be misled by it. If that grep ever returns a second file, (f) becomes blocking and
+jumps the queue.
+
 ⭐ **What DOES hold**, so the assessment is not uniformly negative: the root cause was derived from
 the emission sites rather than the artifact; the RED probe (8/21) proves the new controls are
 non-vacuous; the reporting-only claim is gate-held by byte-identical BINDING counters rather than
@@ -6691,6 +6737,104 @@ measure, not just copied to a tracked path.
   it is only imported — so `PARSE-COST-RATCHET`'s identity tier is unaffected and its baseline is
   untouched; the doctrine driver re-runs it green. `make -C rust SHELL=/bin/bash mdbook_docs_gate`
   passes.
+
+#### ⛔⛔ `.24` NEW `todo` — `PARSE-COST-RATCHET`'s identity block pins every INPUT and not the EXECUTABLE, so the gate says *"the measurement cannot have moved"* while the probe on disk embeds a different parser (opened 2026-08-15 session #237 by `.20` slice 4, DEMONSTRATED LIVE)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — measured before opening, and whether it
+reproduces outside the family it is filed under):
+
+- ⭐ **Not a hypothesis — reproduced with the tree in exactly that state.** `.20` slice 4 built a
+  release `parseability_probe` from ARM 3's parser (guard emission suppressed). With that binary on
+  disk, the ratchet's every-commit tier passes and states its own soundness argument:
+
+  ```
+  $ nm rust/target/release/parseability_probe | grep -c _lr_guard
+  0                                    # the binary embeds a parser with NO guard rules
+  $ grep -oE '"[a-z_0-9]*_lr_guard[a-z_0-9]*"' generated/systemverilog_parser.rs | sort -u | wc -l
+  6                                    # the parser the baseline PINS declares six
+  $ bash scripts/check_parse_cost_ratchet.sh
+  parse-cost-ratchet: note — tier 2 (the re-measure) did not run, and did not need to: every input
+    the binding metric depends on is byte-identical to the baseline's, so the measurement cannot
+    have moved.
+  parse-cost-ratchet: OK (identity fresh for: generated parser, grammar, instrument, sample inputs)
+  rc=0
+  ```
+
+  The sentence *"the measurement cannot have moved"* is FALSE in this state, and it is the gate's own
+  words.
+- **ROOT CAUSE:** the identity table (`docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/cost.md:44-47`)
+  carries four rows — grammar, generated parser, instrument, sample inputs — all of them SOURCES.
+  The thing that actually produces the numbers is `DEFAULT_PROBE = "rust/target/release/parseability_probe"`
+  (`stimuli/sv/corpus_parse_cost.py:138`), an UNTRACKED build artifact that nothing hashes and nothing
+  ties to the parser source it was compiled from.
+- ⚠️ **Blast radius, priced honestly and it is NOT alarming — which is why it needs a leaf rather than
+  a panic.** Tier 1 (every commit) computes no measurement, so no commit can be misled. Tier 2 is
+  on-demand and would silently measure whatever binary is on disk. In normal operation the binary IS
+  built from the pinned parser, so the gap is latent; it opens exactly when someone does what `.20`
+  slice 4 did — build an experimental arm — which is a thing this campaign now does routinely.
+- **Reproduces outside SV?** The mechanism is family-agnostic (any instrument defaulting to a built
+  binary), but the ratchet itself is SV-only today, so the instance is SV's. Filed here.
+- ⭐ **The class is the one `.21`(e) just closed one file over**: a measurement whose PRODUCER is not
+  pinned. `(e)` tracked the python producers; this is the compiled one, and it was invisible to that
+  sweep because it is not a file anyone writes.
+
+**Acceptance:** (a) decide and record WHICH of the two available fixes is right, from measurement not
+taste — **(i)** hash the probe binary as a fifth identity row (exact, but the binary is rebuilt often
+and untracked, so identity would churn on every rebuild even when the parser did not move), or
+**(ii)** ⭐ have the probe REPORT the parser it was built from — a fingerprint the generated parser
+already could carry — and have tier 2 refuse when that fingerprint differs from the pinned parser's
+digest (no churn, and it answers the real question rather than a proxy for it); (b) whichever lands,
+a RED arm that replays THIS incident: an ARM-3-style binary on disk must make the re-measure REFUSE,
+and the arm must be proven to go GREEN once the correct binary is restored — the demonstration above
+is the fixture and `rust/target/lr_ab_arms/probe_arm3` is the artifact it needs; (c) ⛔ correct the
+gate's own sentence either way: *"the measurement cannot have moved"* is a claim about the whole
+pipeline, and until (a) lands it is a claim about the inputs only. A gate that overstates its own
+guarantee is the failure `.21` was opened for, one surface over.
+
+#### ⚠️ `.25` NEW `todo` — every generated parser embeds its own OUTPUT PATH once per emitted site (**36 346** times in SV, 1.3 MB), which makes two parsers byte-incomparable and has now inverted one published reading (opened 2026-08-15 session #237 by `.20` slice 4 + `CI-PARITY-GATE-ROT.32`(d))
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **Measured, on the shipped artifact:**
+
+  ```
+  $ python3 -c "s=open('generated/systemverilog_parser.rs').read(); p='../generated/systemverilog_parser.rs'; \
+      print(s.count(p), s.count(p)*len(p), len(s))"
+  36346   1308456   143798585        # 0.91 % of the parser is its own -o path, repeated
+  ```
+
+  ⇒ **one extra character in the output FILENAME adds 36 346 bytes to the artifact.**
+- ⛔⛔ **It has cost real measurement errors TWICE IN ONE DAY, in opposite directions, and both were
+  caught by controls rather than by reading:**
+  1. `CI-PARITY-GATE-ROT.32`(d)'s census identity control reported **10/10 families mismatching**
+     their shipped artifacts — reading as a codegen-determinism emergency. Cause: the census wrote to
+     a different path, so the embedded string differed. The control was what was wrong.
+  2. `.20` slice 3's three-arm table was read from raw `stat` bytes and made the guard-suppressed arm
+     look **203 KB LARGER** than the shipped parser, i.e. *guards make the parser smaller* — the
+     opposite of the truth (they add 230 483 B). Corrected by normalising the path inside the
+     instrument.
+- **Two separable questions, and the leaf must not conflate them:**
+  - **(Q1) measurement hygiene** — every comparison of two generated parsers must normalise the
+    embedded path. Two instruments now do; a third reader will not know to.
+  - **(Q2) the emission itself** — WHY does a diagnostic string need the full output path at 36 346
+    sites rather than once in a header constant referenced by the sites? ⚠️ Not yet investigated;
+    the emission may have a reason (per-site panic messages, `file!()`-style provenance) and this
+    leaf must READ THE EMITTER before proposing anything — `DESIGN-PRIOR-ART`, and this tree's own
+    `.17` history of designs built on unmeasured premises.
+- **Reproduces outside SV: yes, by construction** — it is the generator's emission, so every family
+  carries it in proportion to its rule count. SV is simply the largest instance.
+- **Blast radius today:** zero correctness impact on any parse — the string is diagnostic. The cost
+  is 0.91 % of artifact size, plus a measurement hazard that has already fired twice.
+
+**Acceptance:** (a) ⛔ FIRST, read the emitter and record WHY the path is emitted per-site — this is a
+`why-before-solution` leaf and the obvious "just hoist it to a constant" may be wrong; (b) if it is
+hoistable, price the change (bytes saved, compile time, whether any diagnostic loses information)
+before proposing it, and note that a change here moves EVERY generated artifact — the
+`PARSE-COST-RATCHET` identity, the byte-identity controls in six gates, and `CODEGEN-DETERMINISM`'s
+baselines all re-baseline in lockstep; (c) ⭐ regardless of (a)/(b)'s outcome, give Q1 ONE home: a
+shared path-normalising comparison helper the instruments import, instead of the two independent
+copies that exist now — the second copy was written **after** the first defect was recorded, which is
+the evidence that prose does not transfer.
 
 #### ⛔⛔⛔ `.22` NEW `todo` — the transactional coverage stack (TOOLBOX 3.5) never terminates on a corpus file that a bare parse accepts in 0.077 s, and the census silently drops it (opened 2026-08-15 session #235 by `.20` slice 4)
 
