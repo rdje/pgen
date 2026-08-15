@@ -1,5 +1,59 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0034 — self-time and inclusive time answer different questions, and a re-routing change hides entirely in the gap between them
+
+Slice 1 left a number that did not add up. The guarded-admission rule family is **0.681 %** of all
+corpus rule entries, and the change that created it cost **+24.3 %** of wall clock. Both numbers were
+measured carefully. They looked irreconcilable.
+
+They are reconciled by one profile: the LR machinery is **1.9 % of SELF time and 27.3 % of INCLUSIVE
+time** — a 14× gap, reproduced at 2.4 % / 27.9 % on an independent file with the opposite parse
+verdict.
+
+**The rules are cheap and rare; a quarter of the parse runs underneath them.** That is what a
+*re-routing* change looks like from every angle at once: the entry counter sees almost nothing
+because the number of entries into the new rules is genuinely small; the self-time profile sees
+almost nothing because the new rules do almost no work themselves; and the clock sees 24 % because
+the work they now sit on top of is a quarter of the parse.
+
+**The transferable rule is about which question each instrument answers.**
+
+- a COUNTER answers *how often did this happen* — blind to cost per occurrence;
+- SELF-time answers *where is the CPU right now* — blind to who caused it;
+- INCLUSIVE time answers *what is running underneath this* — and is the only one of the three that
+  can see a re-routing.
+
+A change that moves work **under** something rather than adding work is invisible to the first two
+and obvious to the third. Reaching for the first two and concluding "the change is small" is the
+error this pair of slices exists to prevent, and it would have been an easy one: two carefully
+measured, individually correct numbers both said so.
+
+**Three traps were paid for on the way, all silent, all now in `TOOLBOX.md` 3.8.**
+
+1. **The denominator.** `sample` reported two threads at 2 774 samples each; the main thread was
+   100 % `__ulock_wait`, idle, waiting on the parsing worker. Dividing by the process total halves
+   every percentage — and produces a plausible-looking answer.
+2. **Nested frames.** An inclusive share summed over every node of a family double-counts wherever
+   the family recurses. Only the OUTERMOST nodes may be summed.
+3. **The linker lies about which parser you are profiling.** A SystemVerilog parse attributed
+   samples to `rtl_frontend::…::cascade_error_from_parse`. There are 10 generated families in the
+   binary and exactly ONE copy of that helper: the generated helpers are byte-identical across
+   families because they come from a single codegen template, so identical code folding merges them
+   and keeps an arbitrary name. It reads exactly like a cross-parser call, which is a far more
+   interesting and far more wrong conclusion.
+
+⭐ The third one carries the wider lesson: **an anomaly in an instrument's output is a claim about
+the instrument until it is root-caused.** One `nm -C` invocation separated "the parsers are calling
+each other" from "the linker deduplicated a template" — and the same command then had to be pointed
+at the symbols the conclusion actually rested on, which showed 165 of 174 LR symbols intact and the
+27.3 % safe. Checking the binary in general would not have earned that; checking the specific
+symbols did.
+
+promotion: declined (the self-vs-inclusive lesson is the same failure already carried by
+`docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md`, which this slice
+confirms with a second instrument rather than extends; the code-folding hazard is a profiling
+caveat and is registered where it is actually retrieved from, `TOOLBOX.md` 3.8)
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0033 — a metric can be exact, deterministic and machine-independent, and still be ~35× blind to the regression it was chosen to watch
 
 The `.20` ruling specified a deterministic rule-ENTRY ratchet over wall clock, for a good reason

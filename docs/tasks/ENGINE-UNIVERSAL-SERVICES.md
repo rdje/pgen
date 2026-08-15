@@ -5544,6 +5544,143 @@ producer's schema* failure that a positional unpack would have reproduced here.
   book's doctrine count corrected `18 → 19` in both places it appears.
 - promotion: `docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md` (RESULT 4).
 
+##### ⭐⭐⭐ `.20` SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0034`, 2026-08-15 session #234) — ACCEPTANCE (a) FIRST PASS: cause (i) is CONFIRMED, and the counter's blindness is now EXPLAINED rather than merely measured
+
+⛔ Tools-first, and the SPEED vocabulary the evidence gate already registers: `/usr/bin/sample` on a
+**BARE** parse — deliberately, because a bare parse runs the FUSED `cascade_*` graph, which is the
+graph the +24.3 % was measured on **and** the one slice 1's counters provably cannot see. A sampling
+profiler is the only instrument in the toolbox that observes it.
+
+###### ⭐⭐⭐ RESULT 1 — SELF-TIME **2 %**, INCLUSIVE **27 %**: THE LR MACHINERY DOES ALMOST NOTHING AND ROUTES ALMOST EVERYTHING
+
+Measured on the heaviest corpus file (`pinmux_reg_top.sv`, 4.5 s bare parse, in the pinned sample),
+sampled at 1 ms. ⛔ The denominator is the **parsing worker thread**, not the process: `sample`
+reports two threads of 2 774 samples each and the main thread's are **all `__ulock_wait`** — idle,
+waiting on the worker. Using the process total would have halved every percentage.
+
+| | samples | % of worker thread |
+|---|---:|---:|
+| LR machinery **self**-time | 52 | **1.9 %** |
+| LR machinery **inclusive** (subtree) | 757 | **27.3 %** |
+
+⭐⭐ **The 14× gap between self and inclusive is the whole finding, and it RESOLVES slice 1's
+tension.** Slice 1 measured the guarded-admission family at 0.681 % of rule ENTRIES and could not
+explain how that squares with +24.3 % of TIME. It squares like this: the LR rules are **entered
+rarely and cost almost nothing themselves**, but a quarter of the entire parse now runs *underneath*
+them. A counter counts entries into cheap functions; the expense is the subtree. ⇒ the binding metric
+is not merely "less sensitive" — it is measuring the one quantity this change deliberately did not
+move.
+
+###### ⭐⭐ RESULT 2 — CAUSE (i) IS CONFIRMED BY NAME, NOT BY PLAUSIBILITY
+
+The outermost LR subtrees are dominated, by a wide margin, by a single function:
+
+```
+159, 57, 49, 30, 25, 21, 19, 18, 16, 16, 14, 12 …  samples
+  SystemverilogParser::cascade_match_casting_type_lr_base
+```
+
+That is `.20`'s routing-evidence cause **(i)** verbatim — *"the eliminated `casting_type` … sits in
+the expression hot path and every expression parse now traverses base+suffix instead of one rule"* —
+now measured rather than hypothesised, and measured on the FUSED graph (`cascade_match_*`), i.e. on
+the code the shipped parser actually executes.
+
+###### ⭐⭐ RESULT 3 — THE CONTROL: A **PASSING** PARSE REPRODUCES IT, SO IT IS NOT A BACKTRACKING ARTIFACT
+
+The profiled file is a corpus `fail` row, and a rejecting parse backtracks unusually — so the result
+was re-run against the slowest **accepting** file (`t_math_synmul_mul.v`, 3.7 s, 1 832 worker
+samples) before being believed:
+
+| file | verdict | LR self | LR inclusive | ratio |
+|---|---|---:|---:|---:|
+| `pinmux_reg_top.sv` | fail | 1.9 % | **27.3 %** | 14.0× |
+| `t_math_synmul_mul.v` | **pass** | 2.4 % | **27.9 %** | 11.6× |
+
+Two independent files, opposite verdicts, different sub-corpora — and the inclusive share agrees to
+within 0.6 points.
+
+###### ⛔⛔ RESULT 4 — WHAT THIS DOES **NOT** PROVE, STATED BEFORE ANYONE READS 27 % AS 24 %
+
+⛔ **`27.3 %` is NOT the +24.3 % delta, and the numerical proximity is a coincidence until an A/B
+says otherwise.** Inclusive time beneath `casting_type_lr_base` includes all the work the *pre-flip*
+parser also did — parsing the contents of a casting type is not new. What the flip changed is the
+**path**, not the existence of the work. So this measurement locates the cost and identifies the
+mechanism; it does not attribute the delta.
+
+⇒ **This re-prices acceptance (b) as the next unit rather than more of (a).** A third arm with the
+guard emission suppressed, profiled the same way, turns `27.3 %` into a *difference* — and the
+sampling harness, the worker-thread denominator, the outermost-subtree attribution and the
+accept/reject control are all now built and reusable, which is most of that slice's cost already
+paid. Causes (iii) i-cache and (iv) memo remain unmeasured and are NOT claimed either way.
+
+###### ⛔⛔⛔ RESULT 5 — A FOUNDATIONALLY SURPRISING SYMBOL, ROOT-CAUSED RATHER THAN CLASSIFIED AWAY: THE LINKER FOLDS GENERATED PARSERS TOGETHER
+
+The profile of a **SystemVerilog** parse attributed samples to
+`generated_parsers::rtl_frontend::RtlFrontendParser::cascade_error_from_parse` and
+`…::byte_window_lossy`. A different family's parser cannot be running here, so this was chased
+rather than absorbed.
+
+`nm -C` on the binary answers it in one command:
+
+| helper | symbols in binary | families present |
+|---|---:|---|
+| `cascade_error_from_parse` | **1** | `rtl_frontend` only |
+| `byte_window_lossy` | 2 | `rtl_frontend`, `scratch` |
+| `create_contextual_error` | 9 | 9 families incl. `systemverilog` |
+| `memoized_call` | 516 | all |
+
+There are **10 generated families in the binary** and exactly **one** `cascade_error_from_parse`. ⇒
+**identical code folding**: the generated helpers are byte-identical across families because they
+come from one codegen template, the linker merges them, and the surviving symbol name is arbitrary.
+The samples are SystemVerilog's own work wearing another family's name.
+
+⛔ **Not a defect — but a standing PROFILING-INTEGRITY hazard, and it belongs in the toolbox rather
+than in this leaf's memory**: in this binary, *per-family attribution read off a generated symbol
+name can be wrong*, and it fails silently and plausibly. Recorded in `TOOLBOX.md` 3.8.
+
+✅ **And it was checked against THIS slice's own numbers rather than waved off**: the LR machinery is
+**165 of 174** LR symbols and every `_lr_seed`/`_lr_guard` symbol is SystemVerilog's own, with only
+9 LR symbols across two annotation families that do not run in an SV corpus parse. ⇒ folding does
+**not** contaminate RESULT 1–3. Had that check gone the other way, the 27.3 % would have been
+unusable.
+
+###### Acceptance Checklist (enforced) — `.20` slice 2
+
+- [x] **REPRODUCE / ISSUE** — the subject is `.20` acceptance (a): attribute the +24.3 % across
+  causes (i)–(iv). Reproduced as an open question by slice 1's own measurement, which sharpened it
+  rather than answering it: the guarded-admission family is **0.681 %** of corpus rule entries
+  against a **+24.3 %** wall-clock cost, so the cost is per-entry and no counter can locate it.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the counter is blind and WHERE the time actually goes, one
+  answer: `/usr/bin/sample` on a bare parse gives LR **self-time 1.9 %** against LR **inclusive
+  27.3 %** (worker-thread denominator 2 774; the main thread is entirely `__ulock_wait`). The LR
+  rules are cheap and are entered rarely — a quarter of the parse runs in their **subtree**. WHERE,
+  to one function: **`cascade_match_casting_type_lr_base`** dominates every outermost LR subtree
+  (159/57/49/30/25/… samples), which is routing-evidence cause **(i)** named exactly, and measured on
+  the FUSED `cascade_*` graph the shipped parser executes. Call-graph attribution over 13 753 parsed
+  nodes, counting only OUTERMOST LR nodes so nested frames cannot double-count.
+- [x] **FIX** — ⛔ none, deliberately, and that is the slice's correctness: ruling C's *"before any
+  optimisation is designed"* still binds and nothing here is an optimisation. Zero code, grammar,
+  generated, script and gate bytes changed; this slice lands MEASUREMENT plus the `TOOLBOX.md` 3.8
+  hazard the measurement uncovered. `.20` stays `todo`.
+- [x] **ADDRESSED (verified)** — verified by an independent CONTROL rather than by repetition: the
+  profiled file is a corpus `fail` row, so the whole result was re-run on the slowest **accepting**
+  file, a different sub-corpus (`t_math_synmul_mul.v`, 1 832 worker samples) → LR self **2.4 %**,
+  inclusive **27.9 %**, ratio 11.6×. Two files, opposite verdicts, inclusive share agreeing within
+  **0.6 points**. ⛔ And the instrument itself was falsified before its numbers were used: `nm -C`
+  proved the binary folds identical generated helpers across all 10 families (`cascade_error_from_
+  parse`: **1 symbol, 10 families**), then proved that folding does NOT reach the LR symbols
+  (**165 of 174** are SystemVerilog's own, every `_lr_seed`/`_lr_guard` among them) — so RESULT 1–3
+  survive a hazard that would otherwise have invalidated them silently.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 19 enforced doctrines PASS**,
+  including `PARSE-COST-RATCHET` whose identity tier re-hashes the grammar, the generated parser and
+  the sample-input digest and finds all three unchanged — i.e. the parser this slice profiled is
+  byte-identically the parser slice 1 baselined, gate-held rather than asserted. No executable byte
+  of the product changed, so no behaviour can have moved.
+- promotion: declined (RESULT 5's transferable half is registered as a toolbox hazard in
+  `TOOLBOX.md` 3.8, which is where a profiling caveat is actually retrieved from; RESULT 1's lesson
+  is already carried by `a-deterministic-counter-cannot-see-a-per-entry-cost-rise`, which this slice
+  confirms rather than extends).
+
 
 #### ⛔⛔ `.19` NEW `todo` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9)
 

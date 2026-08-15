@@ -163,6 +163,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
 | **"Did the whole SV parser get SLOWER — and would anything have told me?"** — ⛔ never answer with an ad-hoc timing script against a remembered number; that published `~11 %` for a **+24.3 %** regression | [3.7 the SV parse-cost ratchet](#37-the-sv-parse-cost-ratchet--did-the-whole-parser-get-slower-and-would-anything-have-told-me) |
+| **"WHERE does the parse time actually go?"** — ⛔ the counters cannot answer this: they all route to the PROTOCOL graph, and a production parse runs the FUSED one. Three traps, all silent | [3.8 sampling a parse with `/usr/bin/sample`](#38-sampling-a-parse-with-usrbinsample--the-only-view-of-the-fused-graph-and-its-two-traps) |
 | **"Is the memo actually SERVING this rule?" — ⛔ `rule_memo_hit_counts` FUSES success replays with cached failures; 208 "hits" were 208 failures and 0 replays** | [3.6 memo insert/evict/replay census](#36-per-rule-memo-insert--evict--replay-census--is-the-memo-actually-serving-this-rule) |
 | "Which rules could a derived DFA scanner fuse? the measured ceiling? the choice-site / merged-choice surface?" | [5.3 `--report-fusibility-census`](#53---report-fusibility-census) |
 | "Which rules exist under which `@profiles`? Which rules can a corpus run under profile P ever exercise?" | [5.4 `--dump-rule-profiles`](#54---dump-rule-profiles) |
@@ -595,6 +596,47 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   metric is at least ~35× less sensitive to that regression than wall clock.** It guards STRUCTURAL
   work exactly; it does not price the fused graph. Neither metric alone is sufficient and the report
   says so every run.
+
+### 3.8 Sampling a parse with `/usr/bin/sample` — the ONLY view of the fused graph, and its two traps
+- **WHAT:** `/usr/bin/sample <pid> <secs> 1 -f out.txt` on a **BARE** parse. ⭐ This is the only
+  instrument in the toolbox that observes the FUSED `cascade_*` graph: every counter-based tool
+  (3.1/3.4/3.5/3.6) routes the parse to the PROTOCOL graph by construction, so none of them can see
+  the code a production parse actually runs.
+- **WHEN:** attributing a *speed* result — above all when a counter says a change is small and the
+  clock says it is large. `ENGINE-UNIVERSAL-SERVICES.20` slice 2.
+- **HOW:**
+  ```bash
+  ./rust/target/release/parseability_probe --parse systemverilog big.sv --profile sv_2017 & PID=$!
+  sleep 0.3 && /usr/bin/sample $PID 4 1 -f /tmp/prof.txt && wait $PID
+  ```
+  Pick a file with a multi-second parse; `stimuli/sv/characterization/durations.tsv` sorted on
+  column 4 names them.
+- ⛔ **TRAP 1 — THE DENOMINATOR IS THE WORKER THREAD, NOT THE PROCESS.** The probe runs the parse on
+  a spawned thread (`pgen-parseability-probe`) while the main thread blocks in `__ulock_wait`.
+  `sample` reports BOTH at the same count, so dividing by the process total **halves every
+  percentage**. Take the non-main thread's root count as the denominator; a main thread that is
+  100 % `__ulock_wait` is idle, not work.
+- ⛔⛔ **TRAP 2 — SELF-TIME ANSWERS "WHERE IS THE CPU", NOT "WHO CAUSED IT".** Measured on the SV LR
+  machinery: **self 1.9 %, inclusive 27.3 %** — a 14× gap. A rule that re-routes a hot path costs
+  almost nothing itself and everything underneath. Read `Sort by top of stack` for self-time and the
+  `Call graph:` section for inclusive, and when summing an inclusive share count **only the
+  OUTERMOST** nodes of the family, or nested frames double-count.
+- ⛔⛔⛔ **TRAP 3 — THE LINKER FOLDS THE GENERATED PARSERS TOGETHER, SO A PER-FAMILY SYMBOL NAME CAN
+  BE A LIE.** A SystemVerilog parse will attribute samples to
+  `generated_parsers::rtl_frontend::…::cascade_error_from_parse` — because the binary contains **10**
+  generated families and exactly **one** copy of that helper. The generated helpers are byte-identical
+  across families (one codegen template), the linker merges them, and the surviving symbol name is
+  arbitrary. ⚠️ It fails **silently and plausibly**: it looks like a cross-parser call.
+  **Check before trusting any per-family attribution** — and check the specific symbols your
+  conclusion rests on, not the binary in general:
+  ```bash
+  nm -C rust/target/release/parseability_probe | grep '::<helper>::'    # 1 symbol, N families = FOLDED
+  nm -C rust/target/release/parseability_probe | grep -E '_lr_(base|suffix|seed|guard)' \
+      | grep -oE 'generated_parsers::[a-z_0-9]+::' | sort | uniq -c     # 165 of 174 are SV's own = SAFE
+  ```
+  Folding is heaviest on the generic helpers (`cascade_error_from_parse`, `byte_window_lossy`) and
+  absent on rule methods carrying family-specific literals (`create_contextual_error`: 9 symbols;
+  `memoized_call`: 516).
 
 ---
 
@@ -1056,6 +1098,10 @@ Cause map: `NO reach path` = dead-rule candidate (adjudicate via 5.1) · `parsed
    instrument** — see 3.7. Do NOT answer it with an ad-hoc timing script against a remembered
    number: that is exactly how this repository published a `~11 %` figure that was really
    **+24.3 %** (`ENGINE-UNIVERSAL-SERVICES.20`).
+4. ⛔ **"WHERE does the time go?" needs a SAMPLER, not a counter** — 3.8. Every tool in 3.1–3.6
+   routes the parse to the PROTOCOL graph, so none of them observes the fused `cascade_*` code a
+   production parse runs. Measured consequence: the SV LR machinery is **1.9 % of self-time and
+   27.3 % of inclusive time**, and no counter can distinguish those.
 
 ## Protocol D — which alternative WINS this choice? / is this branch LIVE? (the A2.2/A2.3-class probe)
 
