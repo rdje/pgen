@@ -22,6 +22,14 @@ This file is the **4th portable architecture** a project adopts, alongside the t
 | 2 | **Memory-architecture** | durable harness-agnostic agent memory (4 layers) | `MEMORY_ARCHITECTURE.md` |
 | 3 | **Knowledge-map** | a retrieval layer over fact cards | `knowledge-map/` |
 | 4 | **Doctrine-enforcement** | turning every rule into a mechanically-gated check | **this file** |
+| 5 | **Claim-verification** | what "checked" means before a number is PUBLISHED — re-derive · falsify · make durable | `docs/CLAIM_VERIFICATION.md` |
+
+⭐ **(5) comes logically BEFORE this file, and was adopted after it for the usual reason.** This
+standard asks *"is this rule enforced?"*; claim-verification asks *"is this **number** earned?"* — and
+a gate built on an unverified measurement enforces the wrong thing precisely, forever. Measured in
+this deployment: a published blind-spot bound of `~35×` was really `~8.9×`, because the classifier
+that produced it was written from the design's own prose and its ten controls were drawn from that
+same prose, so they could only ever agree with each other.
 
 All four are **project- and harness-agnostic**: a project backed by Codex, Claude Code, Gemini, or a
 human adopts each by replaying its standard. This one is the sibling of `MEMORY_ARCHITECTURE.md` —

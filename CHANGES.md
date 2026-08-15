@@ -1,5 +1,26 @@
 # CHANGES.md
 
+## 2026-08-15 - PGEN-DECISIONS-0002 — the claim-verification directive is generalized into a PORTABLE STANDARD, `docs/CLAIM_VERIFICATION.md` — the 5th portable architecture (director-requested; DOCS only, ZERO code/gate bytes)
+
+- Director asked for the new policy to be written so it is **useful to other agents in other
+  projects**, so it is project- and harness-agnostic: no PGEN nouns in the body, and the measured
+  evidence is cited as *"the reference deployment"* the way `MEMORY_ARCHITECTURE.md` §6 does.
+- ⭐ Registered as the **5th** portable architecture in `DOCTRINE_ENFORCEMENT.md`'s table, with the
+  note that it comes logically BEFORE it: doctrine-enforcement asks *"is this rule enforced?"*,
+  claim-verification asks *"is this NUMBER earned?"* — and a gate built on an unverified measurement
+  enforces the wrong thing precisely, forever.
+- Contents: §1 why "check it again" does not work (four measured claims, each already checked by a
+  procedure structurally incapable of catching its defect); §2 the taxonomy of checks that cannot
+  fail, whose general form is **a check and the thing it checks must not share a parent**; §3 the
+  three legs — RE-DERIVE by command · FALSIFY against an oracle you did not build (and make the
+  control go RED) · DURABILITY (producer tracked, claim watched); §4 the publishing contract, where
+  a MISSING leg is named rather than hidden; §5 two mechanizations (the claim tag, the
+  derived-constant rule); §6 anti-patterns; §7 a 5-step adoption checklist.
+- ⛔ Every quantitative claim in it was measured in this repository this session — 8× profiler error,
+  0.68 % vs 2.74 %, 8/21 RED probe, 0.6 vs 3.1 points, `git ls-files` → 0, 71 s census.
+- Cross-linked from the layer-C record `feedback_verify_a_claim_three_ways_before_publishing_it.md`
+  (the local *why*) to the standard (the adoptable *what*). Layer-C reconcile PASSES.
+
 ## 2026-08-15 - PGEN-DECISIONS-0001 — director STANDING DIRECTIVE recorded (layer C): verify a claim THREE DIFFERENT WAYS before publishing it, because a repeated pass repeats its own blind spot (DOCS only, ZERO code/gate bytes)
 
 - Directive, verbatim: *"From now on, before making claims for me to review, please double-check,

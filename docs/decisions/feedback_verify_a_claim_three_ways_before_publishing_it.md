@@ -10,6 +10,11 @@ metadata:
 review, please double-check, triple-check that they hold, because we need sota, signoff claims,
 decisions."*
 
+⭐ **Generalized into a portable standard at `docs/CLAIM_VERIFICATION.md`** (director-requested,
+2026-08-15) — the 5th portable architecture, project- and harness-agnostic, so other projects and
+other agents can adopt the same procedure. This record is the PGEN-local *why*; that file is the
+adoptable *what*. Keep them in step: the three legs are defined there.
+
 ⛔⛔ **It is the SECOND statement of this rule, and that fact is the most important thing in this
 record.** The first was *"You should always double-check all your claims and make sota, signoff and
 production-grade decisions"* (quoted in `ENGINE-UNIVERSAL-SERVICES.20` slice 3). That directive was
