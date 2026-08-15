@@ -5768,6 +5768,349 @@ measured, and joining them read as a conclusion because both inputs were solid.
   card before the audit that produced it is FINISHED would bank a lesson from an unfinished audit).
 
 
+##### ✅ `.20` SLICE 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0036`, 2026-08-15 session #235) — THE SELF-AUDIT IS **FINISHED**: 6 of 6 open claims re-derived, slices 1-2 SURVIVE, and the one defect found was **in the auditor's own instrument**
+
+⛔ Slice 3 stopped mid-audit and said so, which is the only reason this could be resumed honestly.
+Every one of its six enumerated open claims is now re-derived from tool output rather than restated.
+
+⭐⭐ **The headline is not what the audit expected.** Slices 1-2's published numbers hold. The single
+material defect uncovered belongs to **this slice's own re-derivation instrument**, which produced an
+**8× wrong** headline while its ground-truth control stayed green — and a draft finding accusing
+slice 2 of a defect was written, and is retracted below rather than deleted.
+
+###### SCOREBOARD — 6 of 6 CLOSED
+
+| # | slice 3's open claim | verdict |
+|---|---|---|
+| 1 | code folding is ICF, not inlining — *"INFERRED, not verified"* | ✅ **VERIFIED, and the mechanism is now pinned to the LINKER** |
+| 2 | `165 of 174` LR symbols | ✅ exact |
+| 3 | `1.9 % / 27.3 %` + the `2.4 % / 27.9 %` control — single runs, no interval | ✅ **self REPRODUCES** over 8 runs · ⚠️ **inclusive is 0.5-3.0 points HIGH** and the *"0.6 points"* agreement was LUCK |
+| 4 | *"cheap and rare"* — 0.681 % of entries, 73.5 % of files | ✅ **0.6813 %** and **73.50 %**, both exact |
+| 5 | *"no such flag exists today"* — checked by one grep | ✅ **VERIFIED and widened — the source ARGUES AGAINST adding one** |
+| 6 | *"~22-minute release rebuilds"* — quoted, never measured | ✅ **exact on both axes: 1 324 s = 22.07 min, peak 12 281 MB = 12.0 GB** |
+
+⭐ Plus **three findings the audit list did not contain**, all from re-deriving rather than
+restating. N1 re-prices a bound this repository publishes in **four** places.
+
+###### ⭐⭐⭐ RESULT 1 — ITEM 1 CLOSED: IT IS THE **LINKER**, PROVEN THREE WAYS, AND THE INLINING ALTERNATIVE IS REFUTED
+
+Slice 3 was right to refuse slice 2's symbol-count argument: *10 families, 1 symbol* is equally
+consistent with **ICF** and with **SystemVerilog's copy having been INLINED away**, leaving `sample`
+to attribute to the nearest preceding symbol. The two hypotheses make **opposite** predictions about
+the call graph, so the decisive evidence is the call graph — `otool` annotated disassembly, exactly
+as slice 3 specified:
+
+```
+$ otool -tV -p '__ZN4pgen17generated_parsers13systemverilog19SystemverilogParser33cascade_kw_timeprecision_628f1cfc17heff5c4972c1a3912E' \
+      rust/target/release/parseability_probe
+0000000100c9b3f4  mov  x2, x22
+0000000100c9b3f8  bl   __ZN4pgen17generated_parsers12rtl_frontend17RtlFrontendParser24cascade_error_from_parse17h401e57134db20f5aE
+0000000100c9b3fc  ldur x8, [x29, #-0x98]
+```
+
+A **SystemVerilog** rule method makes a real `bl` into the address that carries the **`rtl_frontend`**
+symbol. Inlining-away predicts no such call exists. Three independent legs:
+
+| leg | measurement | what it settles |
+|---|---|---|
+| **call site** | `otool -tV -p` on the SV caller ⇒ `bl` → `rtl_frontend::…::cascade_error_from_parse` | SV *calls* the shared body; it was not inlined |
+| **call-site census** | a `BL`-opcode scan of all **65 692 604 B** of `__text` finds **2 505** call sites targeting `0x103bdf850`, of which **1 964 are inside `generated_parsers::systemverilog::` methods** (regex 201, vhdl 106, semantic_annotation 91, rtl_frontend 47, sv_preprocessor 41, rtl_const_expr 30, json 15, return_annotation 10) | nine families share ONE body — not an artifact of one call |
+| ⭐⭐ **pre-link** | the un-linked `libpgen-636e6a229e44ae4e.rlib` carries **9 distinct per-family symbols**, SV's own among them: `…13systemverilog19SystemverilogParser24cascade_error_from_parse17hbd2a47f7dfbb49a9E` | the **compiler emitted 9 copies and the binary has 1** ⇒ the fold happened at LINK time |
+
+⇒ `TOOLBOX.md` 3.8's mechanism sentence (*"the linker merges them"*) is **earned, not inferred**, and
+its operational advice was already safe under either mechanism. RESULT 5's table re-derives exactly —
+`cascade_error_from_parse` **1**, `byte_window_lossy` **2**, `create_contextual_error` **9**,
+`memoized_call` **516**. ⚠️ One refinement: the binary's ten generated families are json, regex,
+return_annotation, rtl_const_expr, rtl_frontend, **scratch**, semantic_annotation, systemverilog,
+systemverilog_preprocessor, vhdl — i.e. **`ebnf` is NOT among them and the toolbox `scratch` slot
+IS**. Slice 2's *"10 generated families"* is right as a count and its composition is now recorded.
+
+###### ⛔⛔⛔ RESULT 2 — ITEM 3, AND THE DEFECT IS **MINE**: A GREEN GROUND-TRUTH CONTROL OVER AN 8×-WRONG NUMBER
+
+**8 fresh profiles** (5 on the `fail` file, 3 on the `pass` control), 1 ms sampling, TOOLBOX 3.8's
+three rules applied — worker-thread denominator, OUTERMOST-only inclusive, trap-3 checked (all
+**6 801** LR frames across all 8 reports are `generated_parsers::systemverilog::`, zero folding
+contamination).
+
+⛔ **The first version of the re-derivation reported LR self-time at 18.12 % against slice 2's
+1.9 %, and I had drafted that as a DEFECT IN SLICE 2. It was a defect in my parser.** A `sample`
+report has **four** sections and only the first is a call graph; the parser stopped at
+`Sort by top of stack` and `Binary Images` but **not** at
+`Total number in stack (recursive counted multiple, when >=5)`, so 694 lines of a different table
+were ingested as call-graph rows, re-parenting **14 022** samples.
+
+⭐⭐ **And the ground-truth control passed the whole time, necessarily.** The control was
+`sum(self) == worker root count` — a **conservation** identity. The bug was a **misassignment**:
+samples wrongly subtracted from one node's self-time reappear as the mis-parented rows' own
+self-time, so the total is identical either way. What caught it was an **external oracle** —
+`sample`'s own `Sort by top of stack` per-symbol table — where **2 of 195** symbols disagreed, one
+with a self-time of **−14 015**. Promoted: [[a-conservation-control-cannot-catch-a-misassignment]].
+
+⇒ the instrument now REFUSES (exit 2) on five controls, and the binding one is external: **C4 —
+every symbol `sample` itself lists must match this script's independently-derived self-time**
+(139-209 symbols per report, all matching). C3 (`self < 0` refuses) is free and would alone have
+caught it.
+
+**Corrected measurement, n = 8:**
+
+| arm | n | LR self % | LR inclusive % | ratio | slice 2 published |
+|---|---:|---|---|---|---|
+| `pinmux_reg_top.sv` (fail) | 5 | **1.83-2.35** (mean 2.16) | **23.67-26.75** (mean 25.27) | 10.4-13.6× | self 1.9 % · incl 27.3 % · 14.0× |
+| `t_math_synmul_mul.v` (pass) | 3 | **2.07-3.60** (mean 2.60) | **22.38-24.86** (mean 23.49) | 6.9-11.0× | self 2.4 % · incl 27.9 % · 11.6× |
+
+- ✅ **The SELF half reproduces.** Both published values sit inside the measured band.
+- ⚠️ **The INCLUSIVE half is optimistic by 0.5-3.0 points.** `27.3 %` is above the top of a 5-run
+  band whose maximum is `26.75 %`; `27.9 %` is 3.0 points above a 3-run maximum of `24.86 %`.
+- ⛔ **The *"agreeing within 0.6 points"* control claim was LUCK, and this is the sharper correction.**
+  The within-file spread alone is **3.1 points** (fail, inclusive) — wider than the between-file gap
+  the claim was celebrating. A single run per arm cannot support a 0.6-point agreement claim, and
+  slices 1-2 nowhere state that sampling is stochastic.
+- ⇒ **the durable form is `LR self ≈ 2 % (1.8-3.6), inclusive ≈ 24 % (22-27), ratio ≈ 11× (7-14),
+  n=8`** — and slice 2's CONCLUSION (cheap themselves, expensive subtree) **survives intact**.
+- ✅ Cause (i) survives too: `cascade_match_casting_type_lr_base` remains the dominant outermost LR
+  subtree in every one of the 8 reports.
+
+###### ⛔⛔⛔ RESULT 3 — **NEW (N1)**: THE TRACKED INSTRUMENT'S "GUARDED-ADMISSION FAMILY" OMITS **75.1 %** OF THE PASS'S OWN ENTRIES, AND THE `~35×` BOUND IS REALLY `~8.9×`
+
+`stimuli/sv/corpus_parse_cost.py:100` defines the family as
+`LR_FAMILY_RE = _lr_base$|_lr_suffix(_r\d+)?$`. The same elimination pass **also** emits
+`*_lr_seed_*` and `*_lr_guard*` rules, and none of them matches. Declared in
+`generated/systemverilog_parser.rs`: **128** LR rule names, of which the predicate matches **97**,
+leaving **24 seed + 6 guard = 30 uncounted** (the 128th, `_pgen_lr_chain_alt`, is the internal
+discriminator `.8` removed from the typed AST, not a family member; the three classes are provably
+disjoint — 0 overlap). A full-corpus per-rule census (16 335 files) prices what that costs, over the
+**73** of them a real corpus actually enters:
+
+| family member | rules | entries | share of corpus entries | committed |
+|---|---:|---:|---:|---:|
+| `_lr_base` / `_lr_suffix` — **what the instrument counts** | 51 | 6 125 716 | **0.6813 %** | 4 240 |
+| `_lr_seed` — **uncounted** | 16 | 15 140 142 | **1.6840 %** | 12 755 |
+| `_lr_guard` — **uncounted** | 6 | 3 378 577 | **0.3758 %** | 2 874 |
+| **the complete family** | **73** | **24 644 435** | **2.7411 %** | 19 869 |
+
+⇒ the predicate misses **18 518 719 of 24 644 435 entries = 75.1 %** of the machinery it names.
+⛔ **A predicate that claims to measure the GUARDED admission does not count a single guard rule** —
+`casting_type_lr_guard1` alone is **1 374 769 entries / 2 214 committed**.
+
+⭐⭐ **Two independent instruments agree on the size of the miss.** The profile (RESULT 2) says the
+narrow predicate sees **0.54 %** of a **2.27 %** LR self-time, i.e. it misses **76 %** of the
+machinery's own CPU; the corpus census says it misses **75.1 %** of its entries. Different tools,
+different quantities, same answer.
+
+⛔ **The consequence is a published number, in four places.** The blind-spot bound
+`24.3 / 0.681 = ~35×` becomes `24.3 / 2.741 = **~8.9×**` — the ratchet is **four times less blind**
+than `cost.md`, `scripts/check_parse_cost_ratchet.sh`, `TOOLBOX.md` 3.7 and
+`DOCTRINE_ENFORCEMENT.md` §10 all currently state. ⚠️ And the direction is the one this leaf keeps
+finding: under-counting the family **under-states the guarded admission's own footprint**, which is
+flattering to the change under audit. That is the third flattering error in three audits.
+⇒ **ROUTED to `.21`** (below) — a fix touches a tracked instrument, the pinned sample's `lr` tier
+selection, the baseline and four published surfaces, so it is a slice of its own, not a footnote.
+
+###### ⛔⛔⛔ RESULT 4 — **NEW (N2)**: THE OUTCOME DUMP HANGS ON A CORPUS FILE A BARE PARSE HANDLES IN **0.077 s**, AND SLICE 1'S *"ZERO NO-DUMP ROWS"* DOES NOT REPRODUCE
+
+The re-run census returned **16 335 rows and 1 no-dump**, against slice 1's *"16 336 files … **zero**
+no-dump rows"* and *"16 336/16 336 agree"*; its accepted count is **9 773**, not the published
+**9 774**. The single missing file was chased rather than absorbed:
+
+`stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv` — **2 787 bytes**, recorded `pass` at
+**0.07 s** in `stimuli/sv/characterization/durations.tsv`.
+
+| how it is parsed | graph | result |
+|---|---|---|
+| BARE `--parse` | FUSED `cascade_*` | ✅ **0.077 s**, `parse_full passed` |
+| `--dump-rule-entry-counts-json` (TOOLBOX **3.4**) | PROTOCOL, **no** coverage stack | ✅ **0.062 s**, dump written, `accepted: True`, **200 975 entries** over 711 rules |
+| `--dump-rule-outcome-counts-json` (TOOLBOX **3.5**) | PROTOCOL **+ transactional coverage stack** | ⛔ ~150 MB/s allocation, **peak 4 682 MB in 30 s**, terminated in **5 of 5 attempts** (23 s, 27 s, 30 s, 59 s, plus the census's own 120 s timeout) — **never produced a dump** |
+
+⭐⭐ **The isolation is exact: 3.4 and 3.5 take the SAME graph, and only 3.5 diverges** ⇒ the
+pathology is in the **transactional coverage stack**, not in protocol-graph routing. And the file is
+not big: **200 975 entries** is 19× the corpus median (10 542) and **175× below** the corpus maximum
+(35 107 691) — a file with 175× more work is measured successfully.
+
+⛔ **This falsifies the basis of slice 1 RESULT 3's promotion of 3.4 → 3.5**, which read *"measured,
+the outcome dump costs the SAME 0.04 s on the same file"* — **one file**. There is at least one file
+on which 3.5 costs **≥ 480×** more and never terminates.
+⚠️ Honest bound: whether that parse would eventually terminate given unbounded RAM is **NOT
+measured** — every attempt was killed by the environment (memory-guard marker `reason=none`,
+`peak_rss_mb=4682`, so the guard itself did not kill it).
+⇒ **ROUTED to `.22`** (below).
+
+###### RESULT 5 — ITEMS 2, 4, 5, 6, EACH RE-DERIVED
+
+- **Item 2 — `165 of 174`** ✅ exact:
+  `nm -C … | grep -E '_lr_(base|suffix|seed|guard)'` ⇒ **165** `systemverilog`, **6**
+  `return_annotation`, **3** `semantic_annotation`. The 9 non-SV symbols cannot run in an SV corpus
+  parse, and RESULT 2 confirms none appeared in 8 profiles.
+- **Item 4 — *"cheap and rare"*: both numbers exact, the ADJECTIVES now split.** Re-run census:
+  **0.6813 %** of entries (published `0.681 %`) and **12 007 / 16 335 = 73.50 %** of files (slice 3
+  claimed `73.5 %`); `24.3 / 0.6813 = 35.7×`. ⇒ *rare per entry, ubiquitous per file* holds exactly.
+  ⛔ *"cheap"* is the word that does not: RESULT 3 shows the measured family is **4×** larger than
+  the instrument's, so what was priced as cheap was priced on a quarter of itself.
+- **Item 5 — *"no such flag exists today"*** ✅ **verified, and the widened grep matters for (b)**.
+  Zero `env::var` / `std::env` / `"PGEN_` in **any** of `indirect_lr_elimination.rs`,
+  `indirect_lr_plan.rs`, `lr_chain_fold.rs`. `plan_guard_chains` has exactly one non-test call site
+  — `indirect_lr_elimination.rs:926` — and it is unconditional. The only LR-related CLI flag
+  repo-wide is `--eliminate-left-recursion` (all-or-nothing); the only LR env var is
+  `PGEN_INDIRECT_LR_DUMP_ALL`, a reporting knob. ⛔⛔ **And the source ARGUES AGAINST the switch (b)
+  needs**, in a comment at that call site: *"Unconditional, and NOT behind an admission check,
+  deliberately … a second switch here would be a second thing that has to agree with the criterion,
+  and the two could drift."* ⇒ **(b) cannot be a permanent admission flag.** It must be a
+  measurement-only lever — a temporary local patch, or a generation-time dry-run path — and slice 3's
+  one-grep claim under-stated the constraint rather than the cost.
+- ✅ **Item 6 — *"~22-minute release rebuilds"*: measured, and the quoted figure is EXACT on both
+  axes.** The rebuild that matters is the one acceptance (b) will pay — touch
+  `generated/systemverilog_parser.rs`, then
+  `cargo build --release --features generated_parsers --bin parseability_probe` under the memory
+  guard. Marker: **`exit=0 peak_tree_rss=12281MB elapsed=1324s`** ⇒ **22.07 min / 12.0 GB**, against
+  `MEMORY.md`'s *"≈22 min / peak 12.0 GB"*. 0 rustc errors. ⭐ Verified to be a pure recompile rather
+  than a regeneration: `generated/systemverilog_parser.rs` md5 is `09b8cc21…` before **and** after,
+  so only the mtime moved. ⇒ **(b) costs ≈22 min of rebuild per arm on this machine, and it needs at
+  least two** (guard-suppressed generation, then the restore) — plus a corpus run each. That is the
+  number to plan (b) against, and it is now measured rather than remembered.
+
+###### ⭐⭐ RESULT 6 — **NEW (N3)**, DIRECTOR-ASKED MID-SLICE (*"LR elimination support is still an issue?"*): NO — AND `TOOLBOX.md` 5.1 STILL SAID YES
+
+Answered with the tool rather than from the record. `--lint-grammar` over **all 17 tracked grammars**:
+
+| population | `left_recursion_unhandled` |
+|---|---|
+| **all 10 shipped parser families** | **0** — SV `unhandled=0 eliminated=2`; `return_annotation` / `semantic_annotation` `eliminated=1`; the rest `0/0` |
+| `systemverilog_lrm_profiled_wrapper` (⛔ **not a family** — `lrm_extraction_harness`) | **23** (also 42 profile-orphans, 23 shadowed branches, 5 undefined refs; never generated a shipped parser) |
+| the 4 other non-family grammars (LRM extractions + the derived artifact) | lint exits on prior error classes before the LR headline |
+
+⇒ **LR elimination is CORRECT and CLOSED for everything PGEN ships.** `.17` slice 9 took SV
+`28 → 0`. What remains open is its **cost**, which is this leaf — feature done, invoice outstanding.
+
+⛔ **The live doc disagreed.** `TOOLBOX.md` 5.1 published *"Current: SV **30**,
+`systemverilog_lrm_profiled_wrapper` **23**, `ebnf` **5**, every other grammar **0**"* — the PRE-flip
+state, stale in **two of its three numbers** (SV is 0, `ebnf` is 0) since `.17` slice 9 landed on
+2026-08-14. ⚠️ Nothing detected it: `LIVE-DOC-CURRENCY` leg A counts DISTINCT DATES in a surface and
+leg B is dormant, so neither can see a *number* going stale inside a sentence that was never dated.
+Corrected in place in this commit, and the corrected line now names its derivation and its date so
+the next reader can re-run it. ⇒ the generalisable gap — *a live doc can publish a stale MEASUREMENT
+without publishing a stale DATE* — is routed to `LIVE-MEANS-LIVE` rather than fixed here.
+
+###### ⚠️ WHAT THIS SLICE DELIBERATELY DOES NOT DO
+
+- It does not fix N1 or N2 — both are routed to their own leaves with their own acceptance.
+- It does not touch acceptance **(b)**, **(c)** or **(e)**. ⛔ **`.20` stays `todo`**, and ruling
+  clause **B** — no waiver, conditional tenancy — is unchanged and still binds.
+- ⭐ It DOES change (b)'s shape: item 5 proves the lever must be measurement-only, and RESULT 3 means
+  (b)'s "subtraction rather than re-derivation" shortcut (slice 1) subtracts the **wrong family**
+  until `.21` lands. ⇒ **`.21` before (b)**.
+
+###### Acceptance Checklist (enforced) — `.20` slice 4
+
+- [x] **REPRODUCE / ISSUE** — slice 3 recorded itself as *"STARTED, NOT FINISHED"* with six named
+  claims *"NOT YET RE-DERIVED"*, and warned that *"an audit that stops silently is worse than one
+  never started, because the unaudited claims keep their apparent endorsement."* Reproduced as an
+  open state, not a symptom: those six claims carried slices 1-2's endorsement without re-derivation.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY each open claim was open and WHERE the answer is, one leg
+  per claim. Item 1 — `otool` annotated disassembly of the SV caller shows
+  `bl __ZN4pgen…rtl_frontend…cascade_error_from_parse…`, plus a `BL`-opcode scan of `__text`
+  attributing **1 964 of 2 505** call sites to `generated_parsers::systemverilog::`, plus **9**
+  pre-link per-family symbols in the rlib ⇒ the LINKER folds, inlining refuted. Item 3 — `/usr/bin/sample`
+  ×8 with **call-graph attribution** on the worker thread gives **self-time 1.83-3.60 %** against
+  inclusive 22.38-26.75 %; ⛔ and the WHY of this slice's own 8× error is located exactly: `sample`
+  emits four sections and the parser did not stop at `Total number in stack …`, re-parenting 14 022
+  samples, which a conservation control cannot see and an external per-symbol oracle caught at
+  **2 of 195** symbols. N1 — `stimuli/sv/corpus_parse_cost.py:100`. N2 — isolated to the
+  transactional coverage stack, because TOOLBOX 3.4 and 3.5 take the same graph and only 3.5 diverges.
+- [x] **FIX** — fix-hierarchy tier = **claim correction + measurement in the durable record**; ZERO
+  code, grammar, generated, script and gate bytes. Slices 1-2's surviving claims are restated with
+  their measured intervals; the two that do not survive (inclusive optimistic by 0.5-3.0 points; the
+  *"0.6 points"* control agreement) are corrected in place; the drafted-and-false *"slice 2 is
+  defective"* finding is recorded as retracted rather than deleted. N1 and N2 are given owning leaves
+  rather than being noted.
+- [x] **ADDRESSED (verified)** — verified by INDEPENDENT re-execution, not by restatement.
+  Deterministic legs re-derive exactly: `0.6813 %` vs published `0.681 %`, `73.50 %` vs `73.5 %`,
+  `35.7×`, `165/6/3`, and the folding table `1 / 2 / 9 / 516`. Stochastic legs are re-run **8 times**
+  and reported as intervals, which is what slices 1-2 lacked. ⛔ The re-derivation instrument was
+  itself falsified before its numbers were used: its first version was **8× wrong** (18.12 % vs
+  2.27 %) with a GREEN control, and it now refuses on five controls whose binding leg is external
+  agreement with `sample`'s own table on **139-209 symbols per report**, all matching.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 19 enforced doctrines PASS**,
+  `PARSE-COST-RATCHET` included: its identity tier re-hashes the grammar, the generated parser and
+  the sample-input digest and finds all three unchanged, so the parser audited here is byte-identically
+  the parser slices 1-2 measured — gate-held rather than asserted. Documentation-only; no executable
+  byte of the product moved. `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
+- promotion: `docs/knowledge/a-conservation-control-cannot-catch-a-misassignment.md` (RESULT 2).
+
+
+#### ⛔⛔ `.21` NEW `todo` — the parse-cost instrument's "guarded-admission family" counts 97 of the 128 LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so misses **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **Measured, full-corpus, per rule** (16 335 files): the complete elimination family is **73 rules /
+  24 644 435 entries / 2.7411 %** of corpus entries; `LR_FAMILY_RE` at
+  `stimuli/sv/corpus_parse_cost.py:100` matches **51 rules / 6 125 716 entries / 0.6813 %**. Missed:
+  **18 518 719 entries = 75.1 %**, in **16** `_lr_seed` rules (1.6840 %) and **6** `_lr_guard` rules
+  (0.3758 %). ⭐ Two populations, both stated so neither is over-read: **declared** in
+  `generated/systemverilog_parser.rs` the split is **97 matched / 24 seed + 6 guard uncounted** of
+  128 LR rule names (0 overlap between the three classes); **entered** by the real corpus it is
+  **51 / 16 + 6** of 73.
+- **A second, independent instrument agrees on the size of the miss**: on 8 `/usr/bin/sample`
+  profiles the narrow predicate accounts for **0.54 %** of a **2.27 %** LR self-time — a **76 %**
+  miss against the census's **75.1 %**. Different tool, different quantity, same answer.
+- ⛔ **It reproduces outside SystemVerilog by construction**: the predicate is a property of the
+  codegen's rule-naming scheme, not of SV. Any family whose knot is guard-feasible emits the same
+  `_lr_seed_*` / `_lr_guard*` names and would be mis-priced identically. SV is simply the only
+  family with an absorbed knot today.
+- ⚠️ **The instrument's own controls do not cover it, and they look like they do.** `_self_check()`
+  pins ten cases including the near-miss `something_lr_baseline` and the replaced rule
+  `casting_type`; **not one of the ten is a seed or a guard rule**, so a control suite that refuses
+  on an unclassified name passes with three quarters of the family unclassified.
+
+**Acceptance:** (a) extend the predicate to the rules the pass actually emits, with the ten existing
+controls kept and seed/guard positives added — ⛔ derived from `indirect_lr_elimination.rs`'s emission
+sites, not from grepping today's generated parser, or the next emitted shape is missed the same way;
+(b) re-derive the pinned sample, whose `lr` tier is *"the 40 heaviest by guarded-admission entries"*
+and was therefore ranked on a quarter of the family — and state how many of the 40 change;
+(c) re-publish the blind-spot bound **`~35×` → `~8.9×`** in all four surfaces that carry it
+(`cost.md`, `scripts/check_parse_cost_ratchet.sh`, `TOOLBOX.md` 3.7, `DOCTRINE_ENFORCEMENT.md` §10)
+plus the `a-deterministic-counter-cannot-see-a-per-entry-cost-rise` card, whose whole argument is
+built on the `0.681 %` figure; (d) re-baseline, since the binding counters do not move but the
+reported family does — and the identity tier must FAIL first, proving it noticed.
+
+⛔ **Do NOT read this as "the ratchet was wrong".** The BINDING metric is total rule entries,
+committed entries and memo hits — none of which is affected. What is wrong is the **reported family
+share**, and therefore the **published statement of how blind the gate is**. The gate under-claimed
+its own sensitivity by 4×.
+
+
+#### ⛔⛔⛔ `.22` NEW `todo` — the transactional coverage stack (TOOLBOX 3.5) never terminates on a corpus file that a bare parse accepts in 0.077 s, and the census silently drops it (opened 2026-08-15 session #235 by `.20` slice 4)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **The file**: `stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv`, **2 787 bytes**, recorded
+  `pass` at **0.07 s** in `stimuli/sv/characterization/durations.tsv`.
+- **Three parses, and the isolation is exact**: BARE (FUSED graph) **0.077 s** accepted; TOOLBOX
+  **3.4** entry dump (PROTOCOL graph, no coverage stack) **0.062 s**, `accepted: True`, **200 975
+  entries** over 711 rules; TOOLBOX **3.5** outcome dump (PROTOCOL graph **+ transactional coverage
+  stack**) allocates ~150 MB/s to **4 682 MB peak in 30 s** and was terminated in **5 of 5** attempts
+  (23 s / 27 s / 30 s / 59 s / the census's 120 s timeout) without ever writing a dump.
+  ⇒ 3.4 and 3.5 take the **same** graph, so the defect is in the **coverage stack**, not the routing.
+- **It is not a big-input effect**: 200 975 entries is 19× the corpus median (10 542) and **175×
+  below** the corpus maximum (35 107 691), and the maximum file measures fine.
+- ⛔ **It reproduces outside SystemVerilog by construction, though only SV is measured**: the
+  transactional coverage stack is engine-universal (`memoized_call` + the rule transaction), not
+  SV-specific. Whether another family has a triggering input is **unmeasured** and must not be
+  assumed either way.
+- ⛔ **It is silent by construction today.** `measure_one_entries` returns `None` on
+  `subprocess.TimeoutExpired` and the row is counted into a `nodump` list; the census prints the
+  count and continues. That is how slice 1's *"zero no-dump rows"* and *"16 336/16 336 agree"*
+  became unreproducible without anything failing.
+
+**Acceptance:** (a) root-cause the blow-up with the toolbox — ⛔ 3.6's memo insert/evict/replay census
+is the named instrument for *"memo-served but still super-linear"*, and it needs a trace this parse
+may not survive, so sizing that is part of (a); (b) decide whether the file's `accepted: True` under
+3.4 and its `pass` under a bare parse are the same derivation (a verdict agreement is not a
+derivation agreement); (c) ⛔ make the drop LOUD — a no-dump row is currently indistinguishable from a
+measured one in every downstream number, and the fix is a REFUSAL or a published `nodump` roster, not
+a bigger timeout; (d) restate slice 1's ground-truth claim with the reproducible number
+(**16 335/16 335**, 1 no-dump) rather than the published `16 336/16 336`.
+
+
 #### ⛔⛔ `.19` NEW `todo` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it

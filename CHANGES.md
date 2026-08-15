@@ -1,5 +1,85 @@
 # CHANGES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0036 — the director-requested SELF-AUDIT is FINISHED (6 of 6 claims re-derived): slices 1-2 SURVIVE, the one material defect was the AUDITOR'S OWN instrument, and three new findings re-price a bound published in four places (leaf ENGINE-UNIVERSAL-SERVICES.20 slice 4; DOCS only, ZERO code/grammar/generated/gate bytes)
+
+- ⛔ Slice 3 recorded itself as *"STARTED, NOT FINISHED"* with six claims *"NOT YET RE-DERIVED"*,
+  warning that *"an audit that stops silently is worse than one never started."* This closes it.
+- ✅ **Item 1 — the code-folding mechanism is the LINKER, proven three ways.** Slice 3 was right that
+  symbol counts alone cannot separate ICF from *"SystemVerilog's copy was INLINED away"*. `otool -tV -p`
+  on an SV rule method shows `bl __ZN4pgen…rtl_frontend…cascade_error_from_parse…`; a `BL`-opcode scan
+  of all **65 692 604 B** of `__text` finds **2 505** call sites to that single address, **1 964 of
+  them inside `generated_parsers::systemverilog::` methods**; and the **pre-link** rlib carries **9
+  distinct per-family copies**, SV's own among them. Compiler emitted 9, binary has 1 ⇒ the fold is at
+  LINK time. `TOOLBOX.md` 3.8's mechanism sentence is now earned rather than inferred.
+- ✅ **Items 2 and 4 re-derive exactly**: `165 / 6 / 3` LR symbols; **0.6813 %** of corpus entries
+  (published `0.681 %`); **12 007 / 16 335 = 73.50 %** of files enter the family; `35.7×`; and the
+  folding table `1 / 2 / 9 / 516`. *Rare per entry, ubiquitous per file* holds exactly.
+- ⚠️ **Item 3 — the profile pair, re-run 8 times.** The **self** half REPRODUCES (published 1.9 % /
+  2.4 %; measured 1.83-2.35 % over 5 runs and 2.07-3.60 % over 3). The **inclusive** half is
+  **0.5-3.0 points HIGH**: measured 23.67-26.75 % (fail) and 22.38-24.86 % (pass) against published
+  27.3 % / 27.9 %. ⛔ And the *"agreeing within 0.6 points"* control claim was **LUCK** — the
+  within-file spread alone is **3.1 points**, wider than the between-file gap it was celebrating.
+  Durable form: **LR self ≈ 2 % (1.8-3.6), inclusive ≈ 24 % (22-27), ratio ≈ 11× (7-14), n=8**.
+  Slice 2's CONCLUSION — cheap themselves, expensive subtree — survives intact, as does cause (i).
+- ⛔⛔⛔ **THE ONE MATERIAL DEFECT WAS THIS SLICE'S OWN INSTRUMENT, AND ITS CONTROL WAS GREEN.** The
+  first re-derivation read LR self-time at **18.12 %** against the true **2.27 %** — **8× wrong** —
+  and a finding accusing slice 2 of a defect had been drafted. Cause: a `sample` report has **four**
+  sections and only the first is a call graph; the parser did not stop at
+  `Total number in stack (recursive counted multiple, when >=5)`, re-parenting **14 022** samples.
+  ⭐⭐ The control `sum(self) == worker root` passed **necessarily** — it is a CONSERVATION identity
+  and the bug was a MISASSIGNMENT, which conserves the total. Caught by an EXTERNAL oracle:
+  `sample`'s own per-symbol table, **2 of 195** symbols disagreeing, one at **−14 015**. The
+  instrument now refuses on five controls whose binding leg is that external agreement (139-209
+  symbols per report, all matching). The false finding is **retracted in the record, not deleted**.
+  Promoted: `docs/knowledge/a-conservation-control-cannot-catch-a-misassignment.md`.
+- ⛔⛔ **NEW N1 (→ new leaf `.21`) — the parse-cost instrument's "guarded-admission family" counts 51
+  of the 73 rules the pass emits.** `LR_FAMILY_RE` at `stimuli/sv/corpus_parse_cost.py:100` matches
+  `_lr_base` / `_lr_suffix` only; of the **128** LR rule names the parser declares it matches **97**,
+  leaving **24 `_lr_seed` + 6 `_lr_guard` = 30 uncounted** (three provably disjoint classes). Over the
+  **73** the real corpus actually enters: matched **51 rules / 6 125 716 entries / 0.6813 %**;
+  uncounted **16** seed rules (**1.6840 %**) and **6** guard rules (**0.3758 %**). Complete entered
+  family: **73 rules / 24 644 435 entries / 2.7411 %**. ⇒ the predicate misses **18 518 719 = 75.1 %** — and a predicate
+  naming the GUARDED admission counts **no guard rule at all** (`casting_type_lr_guard1` alone is
+  1 374 769 entries). Two independent instruments agree on the size of the miss (census **75.1 %**,
+  profile **76 %**). ⇒ **the published blind-spot bound `~35×` is really `~8.9×`**, in four surfaces.
+  The BINDING counters are unaffected; what was wrong is the gate's published statement of its own
+  blindness — it under-claimed its sensitivity by 4×.
+- ⛔⛔ **NEW N2 (→ new leaf `.22`) — the transactional coverage stack never terminates on a file a
+  bare parse accepts in 0.077 s.** `stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv`
+  (**2 787 B**, recorded `pass` at 0.07 s): BARE **0.077 s** accepted; TOOLBOX **3.4** entry dump
+  **0.062 s**, `accepted: True`, **200 975 entries**; TOOLBOX **3.5** outcome dump allocates
+  ~150 MB/s to **4 682 MB peak in 30 s** and was terminated in **5 of 5** attempts without ever
+  writing a dump. 3.4 and 3.5 take the SAME graph ⇒ the defect is the **coverage stack**, not the
+  routing — and the file is 19× the corpus median but **175× below** its maximum, which measures
+  fine. ⇒ slice 1's *"**zero** no-dump rows / 16 336/16 336 agree"* does **not** reproduce
+  (**16 335 rows, 1 no-dump**; accepted **9 773**, not 9 774), and the census drops it **silently**.
+- ⛔ **NEW N3 — director-asked mid-slice (*"LR elimination support is still an issue?"*): NO, and the
+  live doc still said yes.** Re-derived over all 17 tracked grammars: **every one of the 10 shipped
+  parser families is `left_recursion_unhandled=0`** (SV `0`, `eliminated=2`). The only survivor is
+  `systemverilog_lrm_profiled_wrapper` (**23**), which is the `lrm_extraction_harness` and **not a
+  family**. `TOOLBOX.md` 5.1 published the PRE-flip state (*"SV **30** … `ebnf` **5**"*), stale in
+  two of its three numbers since 2026-08-14; corrected in place, now carrying its derivation and date.
+  ⇒ **LR elimination is CORRECT and CLOSED for everything PGEN ships — only its COST is open.**
+- ⭐ **Item 5 re-derived and widened, and it re-shapes acceptance (b).** No `env::var` / `std::env` /
+  `"PGEN_` in any of the three LR sources; `plan_guard_chains` has one non-test call site
+  (`indirect_lr_elimination.rs:926`) and it is unconditional; the only LR CLI flag repo-wide is
+  `--eliminate-left-recursion`. ⛔ And the source **argues against** the switch (b) needs — *"a second
+  switch here would be a second thing that has to agree with the criterion, and the two could
+  drift."* ⇒ (b)'s lever must be measurement-only, not a permanent admission flag.
+- ✅ **Item 6 — the quoted *"~22-minute release rebuilds"* is EXACT on both axes.** Measured on the
+  rebuild acceptance (b) will actually pay (touch `generated/systemverilog_parser.rs`, then the
+  release build under the memory guard): **`exit=0 peak_tree_rss=12281MB elapsed=1324s`** =
+  **22.07 min / 12.0 GB**, 0 rustc errors, and verified a pure recompile (the SV parser's md5 is
+  `09b8cc21…` before and after). ⇒ (b) costs ≈22 min per arm and needs at least two.
+- ⛔ **`.20` stays `todo`.** (a) has a first pass, (d) is discharged; (b), (c), (e) are open and
+  ruling clause **B** — no waiver, conditional tenancy — still binds. ⇒ **`.21` before (b)**, because
+  (b)'s planned "subtraction rather than re-derivation" shortcut subtracts the wrong family until
+  the predicate is fixed.
+- ZERO code, grammar, generated, script and gate bytes. `bash scripts/check_doctrines.sh` → all 19
+  doctrines PASS, `PARSE-COST-RATCHET` included: its identity tier re-hashes grammar + generated
+  parser + sample digest and finds all three unchanged, so the parser audited here is byte-identically
+  the one slices 1-2 measured.
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0034 — ACCEPTANCE (a) FIRST PASS: the LR machinery is 2 % of self-time and 27 % of INCLUSIVE time, which both confirms cause (i) and explains why slice 1's counter is blind (leaf ENGINE-UNIVERSAL-SERVICES.20 slice 2; ZERO code/grammar/generated/gate bytes)
 
 - ⛔ Tools-first with the SPEED vocabulary the evidence gate already registers: `/usr/bin/sample` on

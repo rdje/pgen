@@ -1,5 +1,38 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Steering Note (2026-08-15) — the OBSERVABILITY TWIN has an unbounded-cost input, and the instrument that meets it drops the row silently (`ENGINE-UNIVERSAL-SERVICES.20` slice 4 → new leaf `.22`)
+
+**Risk picture, not an architecture change — no Rust byte moved in this slice.** It is recorded here
+because it concerns an engine-universal subsystem and it was found by accident.
+
+PGEN runs two execution graphs: the fused `cascade_*` graph a production (BARE) parse takes, and the
+PROTOCOL graph any diagnostic consumer routes to. Measured on
+`stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv` — **2 787 bytes**, recorded `pass` at
+0.07 s:
+
+| how it is parsed | graph | outcome |
+|---|---|---|
+| BARE `--parse` | FUSED | **0.077 s**, accepted |
+| `--dump-rule-entry-counts-json` (TOOLBOX 3.4) | PROTOCOL, **no** coverage stack | **0.062 s**, `accepted: True`, **200 975 entries** / 711 rules |
+| `--dump-rule-outcome-counts-json` (TOOLBOX 3.5) | PROTOCOL **+ transactional coverage stack** | ⛔ ~150 MB/s allocation, **4 682 MB peak in 30 s**, terminated 5 of 5 attempts, **no dump ever written** |
+
+⇒ **The divergence is the transactional coverage stack, not the protocol routing** — 3.4 and 3.5
+take the same graph and only 3.5 diverges. And it is not an input-size effect: 200 975 entries is 19×
+the corpus median and **175× below** the corpus maximum, which measures fine.
+
+Two consequences for anyone reasoning about this subsystem:
+
+1. **The observability twin is not cost-equivalent to the shipped graph on all inputs**, and nothing
+   currently bounds the gap. Every instrument built on 3.5 — the parse-cost baseline, the fusibility
+   census's `--fusibility-outcome-counts` join, the memo census's `--verify` leg — inherits it.
+2. ⛔ **The failure is silent by construction.** `measure_one_entries` returns `None` on
+   `subprocess.TimeoutExpired`, the row lands in a `nodump` list, the count is printed and the run
+   continues. That is how `.20` slice 1's *"zero no-dump rows / 16 336/16 336 agree"* became
+   unreproducible (**16 335 rows, 1 no-dump**) without any gate going red.
+
+Owned by `ENGINE-UNIVERSAL-SERVICES.22`, whose acceptance (c) is to make the drop LOUD — a refusal or
+a published roster — rather than to raise a timeout.
+
 ## Steering Note (2026-08-14) — the eliminator's ADMISSION CRITERION flipped, and one generated parser moved with it (`ENGINE-UNIVERSAL-SERVICES.17` slice 9)
 
 **One criterion changed; `generated/systemverilog_parser.rs` is the only artifact that is not

@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0036 — the auditor's instrument was the thing that was broken, and its ground-truth control could not have caught it
+
+The self-audit of `.20` slices 1-2 set out to re-derive six claims. Five of them held. The sixth —
+re-running the profile that produced *"LR self 1.9 %, inclusive 27.3 %"* — came back at **18.12 %**
+self, an **8×** disagreement, and a finding declaring slice 2 defective was written before anything
+else was checked.
+
+The finding was false. The re-derivation script was wrong.
+
+A `/usr/bin/sample` report has four sections and only the first is a call graph. The parser stopped
+at `Sort by top of stack` and `Binary Images` but not at
+`Total number in stack (recursive counted multiple, when >=5)`, so 694 lines of a different table
+were read as call-graph rows and **14 022** samples were re-parented onto the last node of the graph.
+
+**The part worth keeping is not the bug. It is that the script had a ground-truth control, the
+control was green, and the control was structurally incapable of failing.** It asserted
+
+```python
+sum(self_counts) == worker_thread_root_count
+```
+
+which is a **conservation** identity: true of any correct walk, and equally true of this incorrect
+one, because samples wrongly subtracted from one node's self-time reappear as the mis-parented rows'
+own self-time. Value moved between buckets. The total never noticed.
+
+**A control that inspects a TOTAL cannot see a defect that MOVES value between the parts of that
+total.** If a tool's job is to divide a total across categories — a profiler, an accounting script,
+any attribution — then every internal identity over the total is checking the half of the job the
+tool was never at risk of getting wrong.
+
+What caught it was an **external oracle** hiding in the same file: `sample` publishes its own
+per-symbol self-time table. Requiring the script to match that table for every symbol `sample` lists
+turned "seems right" into 139-209 exact agreements per report — and named the bug through the two
+that disagreed, one of them a self-time of **−14 015**. The cheap sibling control would have caught
+it alone and for free: self-time cannot be negative, so assert it.
+
+⚠️ The audit-specific sting is worth stating separately. This surfaced while re-deriving *someone
+else's* published numbers, which is exactly when a broken instrument is most dangerous: a
+disagreement reads as *"the published claim is defective"* rather than *"one of us is, and it might
+be me."* A re-derivation is a **new** instrument. It has been run once; the thing it contradicts has
+at least been read. **Validate the auditor before believing the audit.**
+
+promotion: `docs/knowledge/a-conservation-control-cannot-catch-a-misassignment.md`
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0034 — self-time and inclusive time answer different questions, and a re-routing change hides entirely in the gap between them
 
 Slice 1 left a number that did not add up. The guarded-admission rule family is **0.681 %** of all

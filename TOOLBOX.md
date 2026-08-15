@@ -597,7 +597,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   work exactly; it does not price the fused graph. Neither metric alone is sufficient and the report
   says so every run.
 
-### 3.8 Sampling a parse with `/usr/bin/sample` — the ONLY view of the fused graph, and its two traps
+### 3.8 Sampling a parse with `/usr/bin/sample` — the ONLY view of the fused graph, and its four traps
 - **WHAT:** `/usr/bin/sample <pid> <secs> 1 -f out.txt` on a **BARE** parse. ⭐ This is the only
   instrument in the toolbox that observes the FUSED `cascade_*` graph: every counter-based tool
   (3.1/3.4/3.5/3.6) routes the parse to the PROTOCOL graph by construction, so none of them can see
@@ -637,6 +637,36 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   Folding is heaviest on the generic helpers (`cascade_error_from_parse`, `byte_window_lossy`) and
   absent on rule methods carrying family-specific literals (`create_contextual_error`: 9 symbols;
   `memoized_call`: 516).
+  ⭐ **The MECHANISM is now proven, not inferred** (`ENGINE-UNIVERSAL-SERVICES.20` slice 4). Symbol
+  counts alone cannot separate folding from *"this family's copy was INLINED away, so `sample`
+  attributed to the nearest preceding symbol"* — the two make opposite call-graph predictions. Decide
+  it with `otool` annotated disassembly, and with the PRE-LINK archive:
+  ```bash
+  otool -tV -p '<mangled SV caller symbol>' rust/target/release/parseability_probe | grep -A0 'bl\t'
+  #   bl __ZN4pgen17generated_parsers12rtl_frontend…cascade_error_from_parse…   <- SV really calls it
+  strings -a rust/target/release/deps/libpgen-*.rlib | grep -oE '_ZN4pgen17generated_parsers.*24cascade_error_from_parse17h[0-9a-f]+E' | sort -u | wc -l
+  #   9   <- the COMPILER emitted 9 per-family copies; the linked binary has 1 ⇒ the LINKER folded
+  ```
+
+- ⛔⛔ **TRAP 4 — A `sample` REPORT HAS FOUR SECTIONS AND ONLY THE FIRST IS A CALL GRAPH.** In order:
+  `Call graph:` · `Total number in stack (recursive counted multiple, when >=5):` ·
+  `Sort by top of stack, same collapsed (when >= 5):` · `Binary Images:`. Section 2 is **not** a tree
+  and its rows are indented like one. Measured (`ENGINE-UNIVERSAL-SERVICES.20` slice 4): a parser
+  that stopped at sections 3 and 4 but not at section 2 ingested 694 of its lines as call-graph rows,
+  re-parented **14 022** samples, and reported LR self-time at **18.12 %** against a true **2.27 %** —
+  **8× wrong**, and wrong in the direction that produced a (false) finding.
+  ⭐⭐ **And the obvious ground-truth control cannot catch it.** `sum(self) == worker root count` is a
+  CONSERVATION identity; a MISASSIGNMENT conserves the total, so it passes. Two controls that DO work,
+  both cheap:
+  ```bash
+  # C-a (free): self-time is non-negative BY DEFINITION — assert it, and refuse rather than print.
+  # C-b (binding): your per-symbol self-time must EQUAL sample's own `Sort by top of stack` table
+  #                for every symbol it lists (139-209 symbols/report). That table is an INDEPENDENT
+  #                oracle sitting in the same file. Its `>= 5` collapse only hides the tail.
+  ```
+  ⇒ [[a-conservation-control-cannot-catch-a-misassignment]]. ⚠️ And when a re-derivation disagrees
+  with a published number, **the re-derivation is the new instrument and carries the heavier burden
+  of proof** — it has been run once.
 
 ---
 
@@ -719,7 +749,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **WHAT:** static well-formedness report — left-recursion info; HARD-gated errors for non-terminating rules, ordered-choice shadowing (both verdicts are now SELECTION-SEMANTICS-CONDITIONAL: exact-duplicate fires only where the tie-break provably keeps the EARLIER twin — under `@associativity: right`, a later-higher `@priority`, or `@deterministic_group` evaluation-order rotation the engine SELECTS the later twin, so no verdict; under `@associativity: nonassoc` an equal-priority tie fails the whole choice — a distinct "restructure deliberately" verdict since merge/remove would change acceptance (A2.4); fixed-terminal-prefix ONLY on an `@branch_policy: ordered` rule with no branch-phase predicate and no partition rotation — under the default `longest_match`/`priority_first` the later alternative is LIVE (A2.3)), unreachable rules, **undefined references** (a rule referencing a rule never defined — codegen would emit a never-matching stub; the check runs on the UNFILTERED grammar and allowlists codegen's native builtins), unbound fact-kinds, and profile orphans; nullable-repetition warnings; always-succeeds notes — then exits (nonzero on any error-class finding).
 - **WHEN:** after any grammar edit; to adjudicate a `no_path`/dead-rule candidate; **"every parse rejects at `furthest_position=0` and nothing points at the cause"** (the undefined-ref signature); "is my grammar well-formed?".
 - **HOW:** `./rust/target/debug/ast_pipeline grammars/<g>.ebnf --lint-grammar`.
-- ⭐⭐ **THE LEFT-RECURSION VERDICT IS DERIVED FROM THE ELIMINATION PASS, NOT ASSERTED (`GRAMMAR-WELLFORMED.A2.6`).** The lint runs on the **post-elimination** grammar, so a cycle still present is one the pass **declined**, and the headline says exactly that — `left_recursion_eliminated=N` (the pass's own record, and it NAMES the rules) versus `left_recursion_unhandled=M` (a **warning**). Until `A2.6` this class printed *"handled by PGEN's LR elimination + runtime cycle-breaking (informational, not an error)"* about every cycle it found; measured on the shipped SV grammar that sentence was false for **30 of 30** — the pass had rewritten **2** rules. ⛔ An `unhandled` cycle is not merely untidy: the runtime guard does not handle it, it **rejects** same-position re-entry, so those derivations are unreachable. The demonstrated case is SV's `casting_type -> constant_primary -> constant_cast -> casting_type` — LRM-legal `int'(2)'(3)` is REJECTED (`ENGINE-UNIVERSAL-SERVICES.13`). Current: SV **30**, `systemverilog_lrm_profiled_wrapper` **23**, `ebnf` **5**, every other grammar **0**.
+- ⭐⭐ **THE LEFT-RECURSION VERDICT IS DERIVED FROM THE ELIMINATION PASS, NOT ASSERTED (`GRAMMAR-WELLFORMED.A2.6`).** The lint runs on the **post-elimination** grammar, so a cycle still present is one the pass **declined**, and the headline says exactly that — `left_recursion_eliminated=N` (the pass's own record, and it NAMES the rules) versus `left_recursion_unhandled=M` (a **warning**). Until `A2.6` this class printed *"handled by PGEN's LR elimination + runtime cycle-breaking (informational, not an error)"* about every cycle it found; measured on the shipped SV grammar that sentence was false for **30 of 30** — the pass had rewritten **2** rules. ⛔ An `unhandled` cycle is not merely untidy: the runtime guard does not handle it, it **rejects** same-position re-entry, so those derivations are unreachable. The demonstrated case was SV's `casting_type -> constant_primary -> constant_cast -> casting_type` — LRM-legal `int'(2)'(3)` was REJECTED (`ENGINE-UNIVERSAL-SERVICES.13`), and `.17` slice 9's guarded admission **CLOSED it**. ⭐ **Current, re-derived over all 17 tracked grammars (`ENGINE-UNIVERSAL-SERVICES.20` slice 4, 2026-08-15): every one of the 10 shipped parser FAMILIES is `left_recursion_unhandled=0`** — SV `unhandled=0 eliminated=2`, `return_annotation` and `semantic_annotation` `eliminated=1`, the rest `0/0`. The ONLY grammar with survivors is `systemverilog_lrm_profiled_wrapper` (**23** unhandled, 4 eliminated), which is the `lrm_extraction_harness` and **not a family** — it also carries 42 profile-orphans, 23 shadowed branches and 5 undefined references, and has never generated a shipped parser. ⛔ The previously published line here (*"SV **30**, wrapper 23, `ebnf` **5**"*) was the PRE-flip state and had gone stale by two of its three numbers; `ebnf` is **0**. ⚠️ LR elimination is therefore CORRECT and CLOSED for everything that ships — what remains open is its **cost** (+24.3 % parse time, `ENGINE-UNIVERSAL-SERVICES.20`), not its coverage.
 - ⭐ **`PGEN_LINT_DUMP_ALL=1` prints EVERY finding of EVERY class** (the per-class print cap is 40; left-recursion's was **10**, and it hid 20 of SV's 30 — the sweep that found `A2.6` had to go around the instrument). The truncation line now names the escape:
   ```bash
   PGEN_LINT_DUMP_ALL=1 ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar
