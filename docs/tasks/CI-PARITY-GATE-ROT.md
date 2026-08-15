@@ -4372,3 +4372,45 @@ from taste; (d) ⏳ sweep the remaining `generated/` rules for the same exposure
   frontend and the generator exactly once (`grep -c` on their captured logs = 1/1 each), so none of
   them rode a stale artifact and none of that leaf's published findings are affected.
 - promotion: `docs/knowledge/your-build-tools-timestamp-resolution-is-part-of-your-correctness-argument.md` **NEW**.
+
+#### ⏳ `.32` (d) — THE SWEEP: population DERIVED, pricing and fix-shape still open (director-ordered 2026-08-15, **TIME-BOXED**: *"continue the make rules, but please make sure it does not last days"*, then return to the SV lane)
+
+**Derived by command, so the next session resumes without re-discovering it** (`rust/Makefile` is the
+only tracked Makefile — `git ls-files '*Makefile*'`):
+
+| population | count | how derived |
+|---|---:|---|
+| file-target rules | **65** | `awk '/^[^\t#[:space:]][^:=]*:[^=]/' rust/Makefile`, minus `.`-prefixed specials |
+| rules with an **authored** prerequisite (`*.ebnf` / `AST_PIPELINE_SOURCES` / `build.rs`) | **13** | the same scan filtered on `EBNF\|GRAMMARS_DIR\|SOURCES\|\.ebnf` |
+| ⭐ of those, the **identical shape** to the one that bit `.32` | **10** | `grep -cE '^\$\([A-Z_]+_JSON\): \$\([A-Z_]+_EBNF\) \$\(RUST_EBNF_FRONTEND_BIN\)'` |
+| `focus_*` operator entry points | **8** | `focus_json focus_regex focus_rtl_const_expr focus_rtl_frontend focus_scratch focus_systemverilog focus_systemverilog_preprocessor focus_vhdl` |
+
+⇒ **`$(X_JSON): $(X_EBNF) $(RUST_EBNF_FRONTEND_BIN)` is a TEN-INSTANCE family, and `scratch` was
+simply the one an agent drove in a loop.** The acute fix landed on `focus_scratch` only, so the other
+nine carry the same exposure today.
+
+⛔ **The exposure criterion, stated so the pricing is not done by feel.** Make 3.81 skips a rule iff
+`floor(mtime(target)) >= floor(mtime(prereq))`. The prerequisite here is edited by a human or a
+script *between* builds, so the hazard is **"can the previous build's target write and the next
+prerequisite edit land in the same wall-clock second?"** ⇒ exposure is a function of **how fast the
+rule's own build is**, not of how important it is. `scratch` regenerates in ~2 s and was hit
+constantly; `systemverilog` takes minutes and is very unlikely to be hit *by a human* — ⚠️ but that
+is an argument about the DRIVER, not the rule, and an agent loop changes the driver. Not yet measured.
+
+**What (d) still owes** (each cheap; the whole item is meant to be one slice, not a campaign):
+1. **Price the nine.** Measure each `focus_*`'s wall time; anything a script can complete inside a
+   second is exposed in practice, the rest is exposed in principle. ⛔ Derive it, do not assume the
+   long ones are safe.
+2. **Pick ONE fix shape and apply it uniformly** — the `focus_scratch` treatment (`rm` + recursive
+   `$(MAKE)` in the phony entry point) generalises to all 8 entry points with no new machinery, and
+   is preferable to touching the 10 file rules, which `build.rs` and cargo key on.
+   ⚠️ Cost to state honestly before adopting: every `focus_*` becomes unconditional, so
+   `focus_systemverilog` would always pay its full regeneration. That may be unacceptable and is the
+   real decision in this item — a per-target opt-in may be the answer instead.
+3. **Stop it recurring** — a new rule of this shape should not silently re-open it. Candidate: extend
+   `FLOW-INTEGRITY` (whose whole charter is *"the gate flow cannot drift back"*, ten invariants each
+   traced to a real incident) with an 11th rather than adding a 21st doctrine. ⛔ Price it against
+   the real corpus first, per `GENERATED-LINT-CORRECTNESS.4`/`.7`.
+4. **Record the `make >= 4.0` option as PRICED, not adopted** — it fixes all 65 rules at once, and
+   costs every contributor an install plus a `gmake`-vs-`make` rename across the docs; GitHub's
+   ubuntu runners ship make 4.x while macOS runners ship 3.81, so CI parity is part of the price.
