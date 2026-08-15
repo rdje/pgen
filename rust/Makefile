@@ -285,6 +285,11 @@ focus_json: $(JSON_PARSER)
 $(SCRATCH_JSON): $(SCRATCH_EBNF) $(RUST_EBNF_FRONTEND_BIN)
 	@echo "Generating scratch JSON with debug output (Rust frontend)..."
 	@mkdir -p $(GENERATED_DIR)
+# ⛔ PARSE-HARNESS.11 — the slot's HEADER is not part of the throwaway. This rule depends on
+# $(SCRATCH_EBNF), so it re-runs exactly when the slot has changed since the last generation —
+# i.e. at the one moment a destroyed header is still visible. It CANNOT be caught later: the
+# correct probe workflow ends in `git checkout`, so the loss never reaches a commit.
+	@bash ../scripts/check_scratch_slot_header.sh --probe-time
 	$(RUST_FRONTEND_TO_JSON) $(SCRATCH_EBNF) --emit-raw-ast-json $(SCRATCH_JSON)
 
 # Generate final scratch parser from JSON

@@ -1,5 +1,42 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-PARSE-HARNESS-0004 — a loss that the correct workflow restores cannot be caught at commit time, however good the gate is
+
+The scratch slot is one tracked path carrying two parts with opposite lifecycles: a 32-line
+operating manual, and a body documented as free to overwrite. Loading a probe by writing the whole
+file destroys the manual. That much is an ordinary two-lifecycle hazard.
+
+What is worth writing down is why **no existing gate could have caught it**, and why that is a
+property of the workflow rather than a gap in the gates:
+
+- the correct probe workflow ENDS in `git checkout grammars/scratch/scratch.ebnf`, so the commit
+  shows no diff on that path — `git diff --quiet` exits 0 and every commit-time doctrine is
+  evaluating a file that has already been repaired;
+- the integration test over that very file asserts the default fixture parses `"hello, world!"` — a
+  header-less file with the identical body passes it;
+- `LIVE-DOC-CURRENCY` watches `.md` surfaces; this is an `.ebnf` fixture.
+
+Measured: with the manual destroyed, `bash scripts/check_doctrines.sh` reported ALL 19 PASS.
+
+⇒ **the guard has to ride whatever already reads the file, in the state the file is wrong.** Here
+that is the make rule `$(SCRATCH_JSON)`, which depends on the slot and therefore re-runs exactly
+when the slot has changed since the last generation. No polling, no always-run phony target, and
+the check fires while the probe is still on disk — the only moment the header is recoverable. A
+commit-time tier still exists for the case where a removal IS committed, but it is the weaker leg
+here, not the backstop it usually is.
+
+**Why not just write "do not delete this header".** Because the header already said *"Edit the
+grammar body below"*, in a section headed HOW TO USE, and it was overwritten anyway. The reader who
+needs the warning is the reader who did not read it. This is `DOCTRINE_ENFORCEMENT.md` §1 restated
+against a real instance: a rule nothing checks is a suggestion.
+
+**Two smaller design notes.** (1) The committed header is derived with `git show HEAD:` rather than
+copied into the checker — a copy of the thing you are protecting is one more thing to drift, and
+this doctrine exists because the first copy was lost. (2) The refusal offers `--restore-header`,
+which re-attaches the committed header above whatever body is loaded. A guard that only says NO
+invites a hand reconstruction, and a hand-reconstructed manual is exactly how a manual quietly
+loses a line.
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0039 — deriving a control from the producer's SOURCE is not the same as observing the producer's OUTPUT
 
 Slice 1 of `.21` did the right thing and rebuilt a broken classifier from the two eliminators'

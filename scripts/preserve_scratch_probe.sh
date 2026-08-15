@@ -71,6 +71,15 @@ preserve() {
    recover it from your shell history or rebuild it, then re-run this."
   fi
 
+  # ⛔ PARSE-HARNESS.11 — refuse to preserve a slot whose operating manual has been destroyed.
+  # This script's own instruction to the next reader is `cp <artifact> <slot>`, so an artifact
+  # captured from a header-less slot RE-CREATES the loss every time somebody follows it.
+  if ! bash "$ROOT/scripts/check_scratch_slot_header.sh" --probe-time; then
+    die "$SLOT_REL has lost its header block, so preserving it would bake the loss into a tracked
+   artifact — this script tells the next reader to \`cp\` it straight back over the slot.
+   Repair first:  bash scripts/check_scratch_slot_header.sh --restore-header"
+  fi
+
   local dir_rel="docs/tasks/artifacts/$(slug_of_tree "$tree")"
   local out_rel="$dir_rel/$name.ebnf"
   mkdir -p "$ROOT/$dir_rel"

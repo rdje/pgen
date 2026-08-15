@@ -80,10 +80,33 @@ unchanged.
 - The generated artifacts (`generated/scratch_parser.rs`, `generated/scratch.json`) are **git-ignored**
   — they never enter the tracked set. `scratch.ebnf` **is** tracked.
 
+⛔ **Overwrite the BODY, keep the HEADER.** The slot file holds two parts with opposite lifecycles:
+a 32-line comment header that is the slot's operating manual — the regeneration command, the
+rebuild-`ast_pipeline`-AFTER ordering trap, that the artifacts are git-ignored, how to restore — and
+a body that is *meant* to be replaced freely. Replacing the whole file destroys the manual, and the
+loss is structurally invisible afterwards: the correct workflow ends in `git checkout`, so the
+commit shows no diff on that path, and the integration test over this very file only asserts that
+the **body** parses.
+
+⇒ this is mechanically enforced by the doctrine `SCRATCH-SLOT-HEADER`
+(`scripts/check_scratch_slot_header.sh`), in two tiers. `make focus_scratch` refuses to regenerate
+from a slot whose header no longer matches the committed one — it fires while your probe is still
+loaded, which is the only moment the loss is recoverable — and the commit-time tier requires the
+header block to still name its four operational anchors. If it refuses, repair it in one command
+and keep your probe:
+
+```bash
+bash scripts/check_scratch_slot_header.sh --restore-header   # re-attaches the committed header
+```
+
+Deliberately improving the header is free at commit time; while probing, declare it with
+`PGEN_SCRATCH_HEADER_EDIT=1`.
+
 ### Workflow
 
 ```bash
-# 1. Edit grammars/scratch/scratch.ebnf (keep the entry rule named `scratch`).
+# 1. Edit the grammar BODY of grammars/scratch/scratch.ebnf, below its header
+#    (keep the entry rule named `scratch`).
 #    For example, to probe the fixed-prefix ordered-choice shape on "ab":
 #        scratch := "a" | "a" "b"
 

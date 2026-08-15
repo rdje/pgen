@@ -1612,3 +1612,142 @@ rustc compile.
   (compile-and-run section) tripwire paragraph (`mdbook_docs_gate` ✅); `DEVELOPMENT_NOTES.md`
   queued candidate marked DELIVERED; this tree (`.10` leaf + frontier + status); `docs/TASK_TREE.md`
   row; CHANGES.md / MEMORY.md.
+
+---
+
+## 23. PARSE-HARNESS.11 — the blessed scratch slot's OPERATING MANUAL is not part of the throwaway (`done`, `PGEN-PARSE-HARNESS-0004`, 2026-08-15 session #236, director-raised)
+
+### 23.1 The incident (measured, this session, by the author of the change)
+
+While preserving evidence for `ENGINE-UNIVERSAL-SERVICES.21` acceptance (g), the agent needed a
+directly-left-recursive probe grammar in the slot. It wrote the whole of
+`grammars/scratch/scratch.ebnf` — **deleting the 32-line header block** and replacing it with a
+four-line probe. The director caught it immediately; nothing mechanical did, and nothing mechanical
+*could*.
+
+The header is not decoration. It is the only place that records:
+
+| the header says | what is lost without it |
+|---|---|
+| `make -C rust SHELL=/bin/bash focus_scratch` | how to regenerate the slot at all |
+| `parseability_probe --parse scratch <input>`, the trace/AST/lint/cert variants | how to drive the slot with the toolbox |
+| ⛔ rebuild `ast_pipeline` **AFTER** `focus_scratch` | the `GENERATED-LINT-CORRECTNESS.13` ordering trap — a binary built by that run judges the PREVIOUS grammar (session #218 lost a session to it: `UNKNOWN=9`, every probe `parsed=false`, on a correct grammar) |
+| `generated/scratch_parser.rs` / `scratch.json` are git-ignored; **THIS file is tracked** | that the slot is also the committed integration-test fixture |
+| `git checkout grammars/scratch/scratch.ebnf` | how to restore |
+
+### 23.2 ⛔⛔ WHY NO EXISTING GATE COULD SEE IT — the invisibility is STRUCTURAL, not an oversight
+
+- **A commit-time gate cannot see it.** The correct probe workflow *ends* in
+  `git checkout grammars/scratch/scratch.ebnf`. The slot is restored before the commit, so the
+  commit shows **no diff on that path at all**. This is the same argument
+  `scripts/preserve_scratch_probe.sh`'s own header makes for why *it* is a tool and not a gate.
+- **The scratch integration test cannot see it.** It asserts the default fixture parses
+  `"hello, world!"`. A header-less file carrying the identical body passes it.
+- **`LIVE-DOC-CURRENCY` cannot see it.** That doctrine watches `.md` surfaces; this is an `.ebnf`
+  fixture.
+
+⇒ the loss window is open only while the probe is loaded, and only a check that runs **then** can
+close it.
+
+### 23.3 ⛔ THE REMEDY IS DELIBERATELY *NOT* ANOTHER SENTENCE IN THE HEADER
+
+The director explicitly declined to add a "do not remove this header" banner and asked for the
+engineer's view. Concurred, on the repository's own evidence: the header **already** said *"Edit the
+grammar body below"*, inside a section literally headed `HOW TO USE`, and it was overwritten anyway.
+`DOCTRINE_ENFORCEMENT.md` §1 — *a rule nothing checks is a suggestion* — makes the prediction
+explicit: a second suggestion, in a file whose first suggestion had just been ignored, buys nothing.
+
+### 23.4 The fix — one check script, three call sites, two tiers
+
+`scripts/check_scratch_slot_header.sh` is the single source of truth (`DOCTRINE_ENFORCEMENT.md` §5).
+
+| tier | invariant | called from | catches |
+|---|---|---|---|
+| **STRUCTURAL** (default) | a banner-delimited header block exists and still names all four operational **anchors** | `scripts/check_doctrines.sh` (doctrine `SCRATCH-SLOT-HEADER`, the 20th) → pre-commit + CI | a header removal that *is* committed |
+| **`--probe-time`** | the above **plus** byte-identity with the committed header | the `$(SCRATCH_JSON)` Makefile rule; `preserve_scratch_probe.sh` | ⭐ **the actual incident** |
+
+Four design points, each because the obvious version is worse:
+
+1. **The `--probe-time` tier hangs off `$(SCRATCH_JSON)`, not off `focus_scratch`.** That rule
+   depends on `$(SCRATCH_EBNF)`, so make re-runs it *exactly* when the slot has changed since the
+   last generation — which is precisely the moment a destroyed header is still on disk and still
+   recoverable. A phony prerequisite would either run always (noise) or never (useless).
+2. **The committed header is DERIVED from `git show HEAD:`, never copied into the script.** A
+   second copy of the manual is a second thing to drift, and this doctrine exists because the first
+   copy was lost.
+3. **The anchors are commands and paths, not prose phrases.** Enumerating wordings is what made
+   `LIVE-DOC-CURRENCY`'s instrument B measure one population as 10, then 16, then 18 — every miss
+   silent in the passing direction. And the structural tier deliberately does **not** diff against
+   HEAD, so improving the manual stays free; only *probing* is held byte-identical.
+4. ⭐ **`--restore-header` makes the refusal a one-command repair** that re-attaches the committed
+   header above whatever body is loaded. A guard that only says NO invites a hand reconstruction,
+   and a hand-reconstructed manual is exactly how a manual quietly loses a line.
+
+⚠️ **Honest limit, stated rather than discovered later.** `--probe-time` is reachable only through
+the two tracked entry points above. An author who invokes `ast_pipeline` on the slot directly gets
+the structural tier at commit time and nothing sooner. That is a real gap and it is accepted: the
+two wired paths are the ones every documented probe workflow goes through, and the header's own
+`HOW TO USE` names `focus_scratch`.
+
+### 23.5 PARSE-HARNESS.11 — Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — reproduced by command, not recalled: writing a four-line probe over
+  the whole slot and running `make -C rust SHELL=/bin/bash focus_scratch` previously generated
+  happily. `git diff --quiet -- grammars/scratch/scratch.ebnf` after the restore exits **0**, which
+  is the proof that no commit-time gate can ever observe the loss. `bash scripts/check_doctrines.sh`
+  on that tree: **ALL 19 PASS** — every doctrine green over a destroyed operating manual.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the slot is a tracked file with two parts under **one**
+  path and opposite lifecycles — a body that is *meant* to be overwritten and a header that must
+  never be — and nothing distinguished them, so whole-file replacement (the natural way to load a
+  probe) destroys the half that must survive. The loss is then unobservable because the workflow
+  restores the path before any commit. WHERE, established by the ops/build-flow toolbox rather than
+  asserted:
+
+  ```
+  $ git ls-files grammars/scratch/          # the slot IS tracked content — its header is too
+  grammars/scratch/README.md
+  grammars/scratch/scratch.ebnf
+  $ git ls-files generated/ | wc -l         # …while everything it generates is not
+  0
+  $ git show HEAD:rust/Makefile | grep -A3 '^\$(SCRATCH_JSON):' | grep -c check_scratch_slot_header
+  0                                          # BEFORE: the one rule that reads the slot guarded nothing
+  $ make -n -C rust SHELL=/bin/bash focus_scratch     # AFTER: the guard is IN the recipe, and first
+  bash ../scripts/check_scratch_slot_header.sh --probe-time
+  ./target/ebnf_frontend_build/debug/ast_pipeline ../grammars/scratch/scratch.ebnf --emit-raw-ast-json ../generated/scratch.json
+  ```
+
+  ⇒ the two entry points that read the slot are `rust/Makefile`'s `$(SCRATCH_JSON)` rule and
+  `scripts/preserve_scratch_probe.sh`, and neither looked at lines 1-32. Replaying the incident
+  against the new guard names it exactly: `scratch-slot-header: grammars/scratch/scratch.ebnf has
+  no banner-delimited header block.` → `make: *** [../generated/scratch.json] Error 1`.
+  ⭐ `make -n` is also the reachability proof: the guard is not merely written, it is the FIRST
+  thing the recipe runs.
+- [x] **FIX** — fix-hierarchy tier = **ops/build-flow guard**; zero engine, grammar or generated
+  bytes. New `scripts/check_scratch_slot_header.sh` (two tiers + `--restore-header` + `--self-test`),
+  registered as the 20th doctrine `SCRATCH-SLOT-HEADER`, and wired `--probe-time` into the
+  `$(SCRATCH_JSON)` rule and into `preserve_scratch_probe.sh` — the latter because that script tells
+  the next reader to `cp <artifact> <slot>`, so preserving a header-less slot would bake the loss
+  into tracked evidence and re-create it on every replay.
+- [x] **ADDRESSED (verified)** — measured before→after, all arms fired. **The incident replayed:**
+  whole-file overwrite → `make -C rust SHELL=/bin/bash focus_scratch` **exit 2**, refusing at the
+  `$(SCRATCH_JSON)` rule with the repair command; `--restore-header` → the probe body is preserved
+  (`grep -c 'expr := expr'` = 1) and the header is **byte-identical to HEAD**; re-run → **exit 0**
+  and the parser generates (`expr_lr_base expr_lr_suffix`). **`--self-test`: 8 passed, 0 failed** —
+  GREEN on the real slot, RED on a deleted header, RED on a banner with all four anchors gone, RED
+  on **exactly one** anchor removed, RED on an empty slot, GREEN after repair, plus a positive check
+  that the repair preserved the probe body. **`--probe-time` matrix:** body-only swap (the correct
+  workflow) → 0; whole-file overwrite → 1; header reworded mid-probe → 1; same with
+  `PGEN_SCRATCH_HEADER_EDIT=1` → 0. **preserve refuses a header-less slot** → rc 1 with **no
+  artifact written**.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 20 enforced doctrines PASS**
+  (19 + this one; the `<meta:mirror>` check holds `DOCTRINE_ENFORCEMENT.md` §10 equal to the
+  registry). `bash scripts/preserve_scratch_probe.sh --self-test` → **4 passed, 0 failed**, unchanged
+  by the new arm. The default fixture regenerates with 0 LR rules and the slot is byte-identical to
+  HEAD (`git diff --quiet`). `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes. Zero code,
+  grammar and generated bytes.
+- [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10 row (the 20th doctrine); `scripts/check_doctrines.sh`
+  registry; the top-level book *The Parse Harness* chapter; this tree + `docs/TASK_TREE.md` row;
+  `CHANGES.md` / `DEVELOPMENT_NOTES.md` / `MEMORY.md`.
+- promotion: `docs/knowledge/a-two-lifecycle-file-needs-a-guard-at-the-boundary.md` **NEW** — the
+  transferable shape is *one path, two lifecycles, no boundary*, and its companion insight that a
+  loss which the correct workflow restores is invisible to every commit-time gate by construction.
