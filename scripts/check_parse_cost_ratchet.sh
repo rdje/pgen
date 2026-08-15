@@ -293,6 +293,21 @@ if REMEASURE or REBASELINE:
             print((proc.stderr or proc.stdout).strip(), file=sys.stderr)
             sys.exit(2)
 
+        # ⭐ `.21` acceptance (g) — the classifier is ENGINE-universal, so it is verified against
+        # EVERY generated parser's declared rule names, not just SystemVerilog's. It rides tier 2
+        # because it reads `generated/`, which tier 1 does not enumerate.
+        # ⚠️ HONEST LIMIT, stated rather than discovered later: tier 2 is on-demand, so this arm
+        # runs when an operator re-measures or rebaselines — NOT on every commit. Tier 1 re-hashes
+        # the SV parser, so SV's own family names cannot move unnoticed; the other nine families
+        # are only re-checked here. Wiring it to an every-run tier is `.21` acceptance (f)'s call.
+        fam = subprocess.run([sys.executable, INSTRUMENT, "--verify-families"],
+                             capture_output=True, text=True)
+        if fam.returncode != 0:
+            fail("the LR-family classifier does not classify every declared `_lr` rule name "
+                 "across the generated parsers:\n"
+                 + "".join(f"        {l}\n" for l in (fam.stderr or fam.stdout).strip().splitlines()[:6])
+                 + "      Re-derive it from the eliminators' emission sites — never from this list.")
+
         base_tot, base_rows = totals_of(f"{ART}/entries.tsv")
         new_tot, new_rows = totals_of(f"{scratch}/entries.tsv")
 

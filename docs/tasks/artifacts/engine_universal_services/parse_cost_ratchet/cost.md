@@ -43,7 +43,7 @@ tier still reported `fresh`.
 |---|---|---|
 | grammar | `grammars/systemverilog.ebnf` | `1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c` |
 | generated parser | `generated/systemverilog_parser.rs` | `463c647603e83af1ed3e41fffb16ac2041f466fe1ac3b0df507161d3fcfc839e` |
-| instrument | `stimuli/sv/corpus_parse_cost.py` | `56df92badc9c7194c4fb10493f0b028170e25a1f7049696c114554fd43fdd2b7` |
+| instrument | `stimuli/sv/corpus_parse_cost.py` | `bc5015a74d6a151f9086e2c40b8267cfe56587b44658da5af86bd1e0701942bf` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
 `sample inputs` digests the manifest ORDER plus every sampled file's bytes: the corpora
@@ -79,7 +79,7 @@ failed speculation even where the parse succeeded.
 
 ⛔ **This section counted a QUARTER of its own subject until `ENGINE-UNIVERSAL-SERVICES.21`.**
 The classifier was written from the shape the prose described (`X_lr_base ( X_lr_suffix )*`)
-and matched 97 of the 128 LR rule names the parser declares — no `_lr_seed`, and in a
+and matched 97 of the 127 LR rule names the parser declares — no `_lr_seed`, and in a
 heading that said GUARDED, not one `_lr_guard` rule. It is now derived from the two
 eliminators' emission sites; see the classifier's own comment for the eight shapes.
 

@@ -1,5 +1,50 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0039 — deriving a control from the producer's SOURCE is not the same as observing the producer's OUTPUT
+
+Slice 1 of `.21` did the right thing and rebuilt a broken classifier from the two eliminators'
+emission sites rather than from the leaf's own prose. That corrected a 4x error. It also left one
+arm of the new control suite unobserved, and the gap is subtle enough to be worth writing down.
+
+Seven of the eight emission shapes were pinned by names the shipped SystemVerilog parser really
+declares. The eighth, `{rule}_lr_alt{n}`, was pinned by `expression_lr_alt1` — **a string typed
+while reading `rust/src/ast_pipeline/mod.rs:3244`**. Measured across all ten generated parsers,
+`_lr_alt` occurs **zero** times. So that control could never fail; and if the `format!` had been
+misread, it could never have passed for the right reason either.
+
+⇒ *"derive from the producer, not from a description of the producer"* (`docs/CLAIM_VERIFICATION.md`
+§3 leg 2) kills a test and an implementation descended from the same PROSE. It leaves alive a test
+and an implementation descended from the same **reading of the same line**. Observation is a
+separate act.
+
+**What observing it took.** Three probes on the blessed scratch slot (TOOLBOX 1.3), preserved as
+tracked artifacts so they outlive the slot restore:
+
+- a well-formed direct-LR grammar hoists two `_lr_alt` rules and the retraction deletes both, so
+  the shape never reaches a generated parser;
+- the one shape that leaves a hoist unconsumed — `base_alternatives` empty at `mod.rs:3335`, because
+  normalization's `seed_alternatives` counter (`mod.rs:3231`) counts a bare wrapper reference as a
+  seed, so its "all alternatives are left-recursive → leave it alone" guard does not fire — is
+  REFUSED by grammar well-formedness, and the refusal prints the name:
+  `rule 'expr_lr_alt1' has no finite terminal derivation`. ⭐ An oracle written for another purpose
+  entirely, which is exactly why it is worth more than a second read of the emitter.
+- and the confirming probe was not yet a test: it hoisted at position 0, where "the suffix is the
+  alternative's index + 1" and "the suffix is a running count" predict the SAME `_lr_alt1`. Moving
+  the only direct alternative to position 1 separated them — the engine emitted `_lr_alt2`.
+
+**The finding.** `_lr_alt` is unreachable in every shipped parser by two independent mechanisms.
+The arm stays, because a classifier must describe the emitter rather than this month's grammar —
+but it is now labelled DEFENSIVE COVERAGE in the instrument, so it does not read as evidence it is
+not. An unobserved arm is indistinguishable from a correct one while it sits in a passing suite,
+and it is the arm that silently stops matching when the emitter is refactored.
+
+**A second, smaller lesson from the same slice.** The new cross-family checker's per-shape reporter
+read `m.group(1)` — coupling it to the predicate's internal group layout, which is precisely the
+thing this leaf is a record of somebody editing. A RED probe that swapped in slice 1's old pattern
+(group 1 = the optional `(_r\d+)?`) crashed on `None` instead of reporting the 30 names it fails to
+classify. Named groups make that dependency explicit and let an unexpected predicate degrade
+instead of aborting. The probe paid for itself before the code shipped.
+
 ## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0037 — a classifier written from the design's prose can only ever confirm the design's prose, and so can the controls you write beside it
 
 The parse-cost instrument had to answer "how much of this parse is the left-recursion machinery?".

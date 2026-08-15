@@ -6044,7 +6044,7 @@ without publishing a stale DATE* — is routed to `LIVE-MEANS-LIVE` rather than 
 - promotion: `docs/knowledge/a-conservation-control-cannot-catch-a-misassignment.md` (RESULT 2).
 
 
-#### ⚠️ `.21` `in progress` — the parse-cost instrument's "guarded-admission family" counted 97 of the 128 LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ⛔ **(b) MEASURED and BLOCKED on `.22`**)
+#### ⚠️ `.21` `in progress` — the parse-cost instrument's "guarded-admission family" counted 97 of the **127** LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ✅ **(g) DISCHARGED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0039`; ⛔ **(b) MEASURED and BLOCKED on `.22`**; ⏳ (e)/(f) open)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -6309,6 +6309,175 @@ predicate:
   and it now carries the corrected figures plus the meta-lesson its own correction demonstrates
   (*measure the coupling — with a classifier derived from the producer, not from your own prose*).
 
+
+##### ✅ `.21` SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0039`, 2026-08-15 session #236) — (g) DISCHARGED: `_lr_alt` is OBSERVED, the predicate is verified across all ten families, and the published declared-name count was wrong by one
+
+###### ⭐⭐⭐ RESULT 1 — (g) part 1: `_lr_alt` IS OBSERVED, BY AN ORACLE THIS INSTRUMENT DID NOT BUILD
+
+Slice 1's self-assessment GAP 3 was exact: `expression_lr_alt1` was *"a string I typed from reading
+`mod.rs:3244`, not a name any parser has emitted"*, so a mis-read of that `format!` would have
+reproduced as a **passing** control. Three scratch-slot probes settle it, all preserved as tracked
+artifacts (`scripts/preserve_scratch_probe.sh`, so the synthetics outlive the slot restore):
+
+| probe | artifact | grammar shape | result |
+|---|---|---|---|
+| **A** | `lr_alt_consumed_and_retracted.ebnf` | `expr := expr "+" term \| expr "-" term \| term` | two hoists, both consumed; `retract_consumed_normalization_rules` deletes them ⇒ generated parser declares `expr_lr_base`/`expr_lr_suffix` and **no `_lr_alt`** |
+| **B** | `lr_alt_survives_unconsumed.ebnf` | one inline direct alt + one bare ref to an indirect wrapper | the planner leaves the hoist unconsumed, and well-formedness **REFUSES** — naming it: `rule 'expr_lr_alt1' has no finite terminal derivation` |
+| **C** | `lr_alt_index_discriminator.ebnf` | the only direct alt at **position 1** | engine emits **`expr_lr_alt2`** |
+
+⭐ **B is the observation.** The name comes out of the grammar well-formedness checker — an oracle
+written for another purpose entirely — not out of this instrument or its author's reading.
+
+⭐ **C is a FALSIFICATION, not a repetition.** B alone is equally consistent with two hypotheses:
+H1 the `{n}` is the ALTERNATIVE's `index + 1` (mod.rs:3244), H2 it is a running count of hoists. B
+hoists at position 0, where both predict `_lr_alt1`. C moves the only direct alternative to
+position 1: H1 predicts `_lr_alt2`, H2 predicts `_lr_alt1`. **Measured `expr_lr_alt2` ⇒ H1
+confirmed, H2 refuted.** The two controls in `_self_check` are now these observed names.
+
+⛔⛔ **AND THE HONEST FINDING: `_lr_alt` IS UNREACHABLE IN ANY SHIPPED PARSER, BY TWO INDEPENDENT
+MECHANISMS.** (1) when the planner consumes the hoist, the retraction deletes it (probe A); (2) the
+only shape that leaves it referenced — `base_alternatives` empty at `mod.rs:3335`, because
+normalization's own `seed_alternatives` counter (mod.rs:3231) counts a bare wrapper reference as a
+seed and so its *"all alternatives are left-recursive → leave it alone"* guard does not fire — is
+refused by well-formedness before codegen (probe B). ⇒ keeping `_lr_alt` in the predicate is
+**defensive coverage of the emitter**, which is correct and is the whole lesson of the defect, but
+the instrument now SAYS that rather than implying it is a live dump shape.
+
+###### ⭐⭐ RESULT 2 — (g) part 2: THE PREDICATE OVER ALL TEN FAMILIES, AS A TRACKED RE-RUNNABLE MODE
+
+`python3 stimuli/sv/corpus_parse_cost.py --verify-families` (~1 s, reads the artifacts, no probe):
+
+```
+generated/ebnf.rs                                  138     0          0  —
+generated/json_parser.rs                             9     0          0  —
+generated/regex_parser.rs                          276     0          0  —
+generated/return_annotation_parser.rs               35     2          2  base=1 suffix=1
+generated/rtl_const_expr_parser.rs                  48     0          0  —
+generated/rtl_frontend_parser.rs                   169     0          0  —
+generated/semantic_annotation_parser.rs            114     2          2  base=1 suffix=1
+generated/systemverilog_parser.rs                 1608   127        127  base=5 guard=6 seed=24 suffix=92
+generated/systemverilog_preprocessor_parser.rs      74     0          0  —
+generated/vhdl_parser.rs                           225     0          0  —
+
+10 generated parsers, 131 declared LR rule names, 131 classified.
+```
+
+⭐ Three design points, each because the obvious version would pass by construction:
+- **the roster is DERIVED from the artifacts** (every `generated/*.rs` declaring a `RULE_NAMES`
+  registry), never hand-listed — a hand list is one more copy to drift, and a new family would
+  escape the check the day it lands. It independently reproduces the ten families the live-status
+  register names. `scratch_parser.rs` is excluded BY NAME with the reason stated: it is the blessed
+  throwaway slot, so its rule set is whatever probe was last loaded.
+- **the population is every declared name CONTAINING `_lr`**, not every name the predicate matches.
+  Scoping it to what the predicate already accepts is exactly the ten-controls-from-the-same-prose
+  shape that caused this leaf.
+- **the reader checks itself**: `RULE_NAMES` is read together with the parser's own `RULE_COUNT`
+  and a length mismatch REFUSES, so a truncated scan cannot make an unclassified name look absent.
+
+###### ⛔⛔ RESULT 3 — THE PUBLISHED DECLARED-NAME COUNT WAS **128** AND IS **127**
+
+Verified three DIFFERENT ways (`docs/CLAIM_VERIFICATION.md` §3), not three repetitions:
+
+1. **RE-DERIVE** — the parser's own `RULE_NAMES` registry holds 1 608 entries, matching its
+   self-declared `RULE_COUNT = 1608` (so the extraction is provably not truncated), of which
+   **127** contain `_lr_`.
+2. **FALSIFY** — the competing hypothesis *"128 is right and my reader misses one"* dies three
+   ways: two other syntactic surfaces of the same file (`fn parse_*` names; bare string literals)
+   yield the **set-identical** 127; the registry's own length confirms completeness; and
+   ⭐ **slice 1's own decomposition already summed to 127** (97 matched + 24 `_lr_seed` +
+   6 `_lr_guard`), so the published total contradicted its own parts. That last one is an oracle I
+   did not build — the previous measurement's own sub-counts.
+3. **DURABILITY** — `SV_DECLARED_LR_RULES = 127` is **gated, not carried**: `--verify-families`
+   re-derives it and refuses on drift (RED arm 2 below).
+
+⛔ Nothing this changes moves a cost claim: the count is the **declared** population, while the
+`2.741 %` bound is measured over corpus **entries**. It is a defect in a published number, not in
+the ratchet.
+
+###### ⭐ RESULT 4 — A RED PROBE FOUND A REAL FRAGILITY IN THE NEW CODE, BEFORE IT SHIPPED
+
+Running the new checker against slice 1's OLD predicate **crashed** instead of reporting: the
+per-shape breakdown read `m.group(1)`, and the old pattern's group 1 is the optional `(_r\d+)?`, so
+it was `None`. The reporting was coupled to the predicate's internal group layout — a coupling to
+the one thing this leaf is a record of somebody editing. Fixed by naming the group
+(`(?P<shape>…)`) and degrading to `?` when it is absent, which RED arm 4 pins.
+
+**Five arms, GREEN control first, all fired:**
+
+| arm | expectation | result |
+|---|---|---|
+| GREEN | the shipped predicate passes | ✅ rc 0 |
+| RED 1 | slice 1's OLD predicate | ✅ rc 1, **30 unclassified** (24 `_lr_seed` + 6 `_lr_guard`) — this check would have caught the original defect on day one |
+| RED 2 | the pinned count set to 128 | ✅ rc 1, *"declares 127 … but SV_DECLARED_LR_RULES pins 128"* |
+| RED 3 | a reader blind to `RULE_COUNT` | ✅ rc **2** (REFUSES; never an empty roster) |
+| RED 4 | a predicate with no named `shape` group | ✅ rc 0, reports rather than crashing |
+
+⭐ RED 3's two negatives are drawn from the **real** corpus, not imagined: `const
+RULE_COUNTED_QUANTIFIER` (a prefix collision, ×3 in the regex parser) and `const THIN_RULE_COUNT`
+(a suffix collision) both defeat a loose `RULE_COUNT` match.
+
+###### ⚠️ WHAT THIS SLICE DELIBERATELY DOES NOT DO
+
+- (e) and (f) stay **open**. `--verify-families` is tracked and one command re-runs it, but it is
+  invoked from the ratchet's **tier 2**, which is on-demand — so the other nine families are
+  re-checked when an operator re-measures, **not on every commit**. Naming the gap rather than
+  hiding it: SV's own names are covered every run because tier 1 re-hashes the SV parser. Wiring an
+  every-run tier is (f)'s call.
+- The audit instruments in `rust/target/audit_scratch/` are still untracked — that is (e).
+- Slice 1's historical prose keeps its `128`; the correction is recorded here, per supersede-don't-mutate.
+
+###### Acceptance Checklist (enforced) — `.21` slice 2
+
+- [x] **REPRODUCE / ISSUE** — measured, not suspected. `_lr_alt` had **0** occurrences in all ten
+  generated parsers (`--verify-families`: `alt` absent from every shapes column), so its control was
+  a typed string no artifact backed — slice 1's own GAP 3. And the declared-name denominator
+  published in four surfaces read **128** while the parser's `RULE_NAMES` registry holds **127**
+  (1 608 entries total, matching its self-declared `RULE_COUNT = 1608`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY, for `_lr_alt`: `retract_consumed_normalization_rules`
+  (`rust/src/ast_pipeline/mod.rs:3139`) deletes every hoist the planner consumes, and the only
+  shape that leaves one referenced makes `base_alternatives` empty at `mod.rs:3335`, which grammar
+  well-formedness then refuses — so the shape is unobservable in a shipped parser by two
+  independent mechanisms, and the emitter at `mod.rs:3244` is the only place it can be read. Tool
+  output that located it, from the engine itself on probe B:
+  `grammar well-formedness ERROR: rule 'expr_lr_alt1' has no finite terminal derivation (it can
+  never produce a complete string) — it is ill-formed; add a terminating alternative`.
+  WHY, for the count: it was a **carried** constant, copied into four surfaces, so it could be
+  wrong in all four at once — the same defect `.21` slice 1 fixed for the family share and left in
+  place for this one.
+- [x] **FIX** — fix-hierarchy tier = **instrument correctness + its guard**; zero engine, grammar or
+  generated bytes. (1) new `--verify-families` mode: derives the parser roster from the artifacts,
+  reads each `RULE_NAMES` registry against its own `RULE_COUNT`, and refuses on any declared name
+  containing `_lr` that no emission shape claims; (2) `SV_DECLARED_LR_RULES = 127` gated by that
+  mode instead of carried; (3) the two `_lr_alt` controls replaced with the OBSERVED `expr_lr_alt1`
+  / `expr_lr_alt2`; (4) the shape token made a NAMED group so the reporter is not coupled to the
+  predicate's layout; (5) the mode invoked from the ratchet gate's tier 2; (6) the three probe
+  grammars preserved as tracked artifacts.
+- [x] **ADDRESSED (verified)** — measured before→after on the real gate. **RED first:**
+  `bash scripts/check_parse_cost_ratchet.sh` → **exit 1**, *"the parse-cost BASELINE IS STALE …
+  instrument: baseline `56df92badc9c7194…` vs live `bc5015a74d6a151f…`"* — slice 1's fourth identity
+  input caught its own successor's edit, unprompted. **GREEN after**
+  `PGEN_PARSE_COST_REBASELINE=1` → **exit 0**, *"identity fresh for: generated parser, grammar,
+  instrument, sample inputs; 192 pinned sample files"*. **Five-arm probe on the new checker** (table
+  above): GREEN + 4 RED, every one fired, including the OLD predicate leaving exactly **30** names
+  unclassified.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 19 enforced doctrines PASS**.
+  ⭐ Reporting-only, and gate-held rather than asserted: across the rebaseline `entries.tsv` is
+  **untouched** — all five columns byte-identical (`entries` 416,841,264, `committed` 7,124,616,
+  `memo_hits` 186,981,263, `lr_entries` 12,440,690, `lr_committed` 514) — and only `cost.md`
+  (4 lines: the instrument hash and 128→127) and the machine-dependent `advisory.json` moved.
+  `generated/systemverilog_parser.rs` hashes identically before and after, so no parser behaviour
+  can have moved. The scratch slot is restored **byte-identical to HEAD**
+  (`git diff --quiet -- grammars/scratch/scratch.ebnf`) and regenerates the default fixture with 0
+  LR rules. `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
+- promotion: `docs/knowledge/deriving-a-control-from-the-producer-is-not-the-same-as-observing-it.md`
+  **NEW**. The lesson is a genuine refinement of `docs/CLAIM_VERIFICATION.md` §3 leg 2 rather than
+  an instance of it: *"derive from the producer, not from a description of the producer"* kills a
+  test and an implementation descended from the same PROSE, and leaves alive a test and an
+  implementation descended from the same **reading of the same line** — which is exactly what
+  slice 1's `_lr_alt` arm was. Plus the corollary this slice paid for: a probe that confirms at the
+  DEFAULT position has not separated the hypothesis from its rival (probe B) — move the thing
+  (probe C). ⭐ The existing card `a-deterministic-counter-cannot-see-a-per-entry-cost-rise` is
+  **updated in place** (128 → 127 in both its `evidence:` header and its body), not duplicated.
 
 #### ⛔⛔⛔ `.22` NEW `todo` — the transactional coverage stack (TOOLBOX 3.5) never terminates on a corpus file that a bare parse accepts in 0.077 s, and the census silently drops it (opened 2026-08-15 session #235 by `.20` slice 4)
 

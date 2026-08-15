@@ -12,7 +12,7 @@ answers:
 tags: [instruments, performance, ratchets, gates, evidence, proxies, measurement]
 date: 2026-08-15
 status: current
-evidence: ENGINE-UNIVERSAL-SERVICES.20 slice 1, corrected by .21. The guarded left-recursion admission cost **+24.3 %** SV parse time (`.17` slice 9, clean one-binary A/B). A full 16 336-file rule-entry census measured the admission's own rule family at **24 644 435 / 899 064 022 entries = 2.741 %** of all entries (published as 0.681 % until `.21` corrected a classifier that counted 97 of 128 LR rule names), and the flip's entry DELTA is strictly smaller (the rules it replaced were themselves entered). ⇒ entries moved ~2.7 % while wall clock moved +24.3 %: the counter is at least ~8.9x less sensitive to that regression. Both metrics shipped, with the bound published on every run.
+evidence: ENGINE-UNIVERSAL-SERVICES.20 slice 1, corrected by .21. The guarded left-recursion admission cost **+24.3 %** SV parse time (`.17` slice 9, clean one-binary A/B). A full 16 336-file rule-entry census measured the admission's own rule family at **24 644 435 / 899 064 022 entries = 2.741 %** of all entries (published as 0.681 % until `.21` corrected a classifier that counted 97 of 127 LR rule names), and the flip's entry DELTA is strictly smaller (the rules it replaced were themselves entered). ⇒ entries moved ~2.7 % while wall clock moved +24.3 %: the counter is at least ~8.9x less sensitive to that regression. Both metrics shipped, with the bound published on every run.
 reverify: "bash scripts/check_parse_cost_ratchet.sh   # OK; then read docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/cost.md — the 2.741 % bound and the ~8.9x statement are printed by the instrument from a NAMED constant, not hand-written into prose"
 ---
 
@@ -46,7 +46,7 @@ entries — each entry got MORE EXPENSIVE.
 
 ⛔⛔ **This card first published `0.681 %` and `~35×`, and both were wrong by a factor of four —
 which is itself the lesson's sharpest instance.** The classifier that measured the coupling matched
-only `_lr_base`/`_lr_suffix`: **97 of the 128** LR rule names the parser declares, with no
+only `_lr_base`/`_lr_suffix`: **97 of the 127** LR rule names the parser declares, with no
 `_lr_seed` and — in a family the code called *guarded* — **not one `_lr_guard` rule**, leaving
 **75.1 %** of the family's entries uncounted (`ENGINE-UNIVERSAL-SERVICES.21`). ⭐ Note what that
 means and what it does not: the **binding counters were unaffected** (entries, committed and

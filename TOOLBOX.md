@@ -595,9 +595,14 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   there. **Measured bound: the LR-elimination family is 2.741 % of corpus entries, so the binding
   metric is at least ~8.9× less sensitive to that regression than wall clock.** ⛔ This read
   *"0.681 % … ~35×"* until `ENGINE-UNIVERSAL-SERVICES.21`: the classifier counted only
-  `_lr_base`/`_lr_suffix`, so it saw 97 of the parser's 128 LR rule names — no `_lr_seed`, and, in a
-  family named for the GUARD, **no `_lr_guard` rule at all** — leaving **75.1 %** of the family's
-  entries uncounted and the gate UNDER-claiming its own sensitivity by ~4×. It guards STRUCTURAL
+  `_lr_base`/`_lr_suffix`, so it saw 97 of the parser's **127** LR rule names — no `_lr_seed`, and,
+  in a family named for the GUARD, **no `_lr_guard` rule at all** — leaving **75.1 %** of the
+  family's entries uncounted and the gate UNDER-claiming its own sensitivity by ~4×. ⚠️ That
+  denominator read **128** until `.21` slice 2 and was wrong by one — its own decomposition
+  (97 + 24 `_lr_seed` + 6 `_lr_guard`) already summed to 127, and three independent surfaces of the
+  generated parser agree (the `RULE_NAMES` registry, the `fn parse_*` names, the string literals).
+  It is now GATED, not carried: `python3 stimuli/sv/corpus_parse_cost.py --verify-families`
+  re-derives it across all ten generated parsers and refuses on drift. It guards STRUCTURAL
   work exactly; it does not price the fused graph. Neither metric alone is sufficient and the report
   says so every run.
 

@@ -46,14 +46,18 @@ and subtracted, and the advisory sample is restricted to files where the remaini
 dominates.
 
 MODES
-  (default)  measure the pinned sample -> the tracked baseline artifacts
-  --census   full-corpus entry census (~10 min at -j8); the input to --select
-  --select   derive the pinned sample manifest FROM a census, deterministically
+  (default)          measure the pinned sample -> the tracked baseline artifacts
+  --census           full-corpus entry census (~10 min at -j8); the input to --select
+  --select           derive the pinned sample manifest FROM a census, deterministically
+  --verify-families  run the LR-family predicate over EVERY generated parser's declared rule
+                     names and refuse on any unclassified `_lr` name (`.21` (g)). Reads the
+                     artifacts, not a parse, so it needs no probe and takes ~1 s.
 
 USAGE
   python3 stimuli/sv/corpus_parse_cost.py --outdir <dir>
   python3 stimuli/sv/corpus_parse_cost.py --census --outdir <dir>
   python3 stimuli/sv/corpus_parse_cost.py --select --census-tsv <f> --out <manifest>
+  python3 stimuli/sv/corpus_parse_cost.py --verify-families
 
 CONTRACT: deterministic on the binding metric; repo-root-relative paths everywhere; refuses
 (exit 2) rather than reporting a clean measurement it could not take.
@@ -106,6 +110,31 @@ CORPUS_FAMILY_PROVENANCE = (
     "the previous 0.681 % counted only `_lr_base`/`_lr_suffix`"
 )
 BLIND_SPOT_FACTOR = "8.9"  # 24.3 / CORPUS_FAMILY_SHARE_PCT
+
+# ── the DECLARED-name population, and why it is gated rather than carried ────────────────────
+#
+# `ENGINE-UNIVERSAL-SERVICES.21` acceptance (g). The family share above is measured over corpus
+# ENTRIES; this is the other population — the LR rule names the parser DECLARES, entered or not.
+# Slice 1 published it as **128** and that was wrong by one: its own decomposition (97 matched +
+# 24 `_lr_seed` + 6 `_lr_guard`) sums to 127, and three independent surfaces of the generated
+# parser agree on 127 — the `RULE_NAMES` registry, the `fn parse_*` names, and the bare string
+# literals, set-identical in all three.
+#
+# ⛔ It is a GATED constant, not a carried one (`docs/CLAIM_VERIFICATION.md` §5B): `--verify-families`
+# re-derives it from `generated/` and REFUSES on drift. A number nothing re-derives goes stale
+# silently, which is the defect this whole leaf is a record of.
+SV_DECLARED_LR_RULES = 127
+SV_DECLARED_LR_PROVENANCE = (
+    "`generated/systemverilog_parser.rs` RULE_NAMES registry (1 608 entries), "
+    "`ENGINE-UNIVERSAL-SERVICES.21` acceptance (g); slice 1 published 128"
+)
+
+GENERATED_DIR = "generated"
+# ⛔ The blessed THROWAWAY slot (TOOLBOX.md 1.3). Its rule set is whatever probe grammar happens to
+# be loaded, so including it would make this mode's verdict depend on the last thing somebody
+# debugged. Excluded by name, with the reason stated, rather than silently filtered.
+SCRATCH_ARTIFACT = "generated/scratch_parser.rs"
+
 DEFAULT_PROBE = "rust/target/release/parseability_probe"
 FALLBACK_PROBE = "rust/target/debug/parseability_probe"
 CORPUS_MANIFEST = "stimuli/sv/characterization/durations.tsv"
@@ -148,7 +177,38 @@ PER_FILE_TIMEOUT_S = 120
 # rule merely starting that way — a miss in the FLATTERING direction, inflating the family so
 # the admission looks like it already owns cost it does not. `(?![a-z])` is what refuses it, and
 # the controls below pin that case together with one positive per emitted shape.
-LR_FAMILY_RE = re.compile(r"_lr_(base|suffix|seed|guard|alt)(?![a-z])")
+#
+# ⭐⭐ `_lr_alt` IS COVERED DELIBERATELY, AND ITS REACHABILITY IS NOW MEASURED RATHER THAN ASSUMED
+# (`ENGINE-UNIVERSAL-SERVICES.21` acceptance (g)). Slice 1 covered it on the EMITTER's authority —
+# the control string was typed from reading `mod.rs:3244`, and no parser has ever emitted one, so a
+# mis-read of that `format!` would have reproduced as a passing control. Three scratch-slot probes
+# settle it (`docs/tasks/artifacts/engine_universal_services/lr_alt_*.ebnf`):
+#
+#   A  a WELL-FORMED direct-LR grammar (`expr := expr "+" term | expr "-" term | term`) hoists two
+#      `_lr_alt` rules, the planner consumes both, and `retract_consumed_normalization_rules`
+#      (mod.rs:3139) deletes them ⇒ the generated parser declares `expr_lr_base`/`expr_lr_suffix`
+#      and NO `_lr_alt` rule. So the shape is unreachable in a rule-entry dump by construction.
+#   B  the one shape that leaves a hoist UNCONSUMED — one inline direct alternative plus one bare
+#      reference to an indirect wrapper, which makes `base_alternatives` empty (mod.rs:3335) so the
+#      planner returns None — is REFUSED by grammar well-formedness before codegen, and the refusal
+#      NAMES the rule: `rule 'expr_lr_alt1' has no finite terminal derivation`. ⭐ That diagnostic is
+#      the first real observation of the emitted name, from an oracle this instrument did not build.
+#   C  with the only direct alternative at position 1 the engine emits `expr_lr_alt2`, which
+#      separates "the suffix is the ALTERNATIVE's index+1" from "it is a running count of hoists".
+#      The first is confirmed; the second is refuted.
+#
+# ⇒ two independent mechanisms keep `_lr_alt` out of every shipped parser today, and the predicate
+# still matches it, because the predicate must describe the EMITTER rather than this month's
+# grammar. That is the whole lesson of the defect — but the honest statement is that this arm is
+# DEFENSIVE COVERAGE, not a live dump shape.
+#
+# ⛔ The shape token is a NAMED group. `--verify-families` reports a per-shape breakdown, and with a
+# positional group that reporting silently depends on this pattern's internal layout — a coupling
+# to the one thing this leaf is a record of somebody editing. Measured: a RED probe that swapped in
+# slice 1's old pattern (whose group 1 is `(_r\d+)?`, optional) crashed the reporter on `None`
+# instead of reporting the 30 names it fails to classify. A name makes the dependency explicit and
+# lets a predicate without it degrade to `?` rather than abort.
+LR_FAMILY_RE = re.compile(r"_lr_(?P<shape>base|suffix|seed|guard|alt)(?![a-z])")
 
 
 def is_lr_family(rule: str) -> bool:
@@ -181,7 +241,14 @@ def _self_check() -> None:
         ("casting_type_lr_guard0_suffix", True),                 # :1190
         ("casting_type_lr_guard0_constant_primary", True),       # :1241
         # ── ast_pipeline/mod.rs (the DIRECT pass) ────────────────────────────────────────────
-        ("expression_lr_alt1", True),                            # :3244
+        # ⭐ OBSERVED, not typed (`.21` acceptance (g)). Until slice 2 this arm was a single string
+        # read off `mod.rs:3244` that no parser had ever emitted, so a mis-read of that `format!`
+        # would have reproduced here as a passing control. Both names below were emitted by the
+        # engine's own well-formedness diagnostic on the preserved probes
+        # `docs/tasks/artifacts/engine_universal_services/lr_alt_survives_unconsumed.ebnf` (`_alt1`)
+        # and `…/lr_alt_index_discriminator.ebnf` (`_alt2`, the alternative at position 1).
+        ("expr_lr_alt1", True),                                  # :3244, observed (probe B)
+        ("expr_lr_alt2", True),                                  # :3244, observed (probe C)
         ("incomplete_class_scoped_type_sv_2023_lr_base", True),  # :3347
         # ⛔ allocate()/allocate_synthetic_rule_name() append `_{index}` on a name COLLISION, so
         # an END-anchored pattern drops these silently. This is why the predicate anchors on a
@@ -591,7 +658,8 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A("")
     A("⛔ **This section counted a QUARTER of its own subject until `ENGINE-UNIVERSAL-SERVICES.21`.**")
     A("The classifier was written from the shape the prose described (`X_lr_base ( X_lr_suffix )*`)")
-    A("and matched 97 of the 128 LR rule names the parser declares — no `_lr_seed`, and in a")
+    A(f"and matched 97 of the {SV_DECLARED_LR_RULES} LR rule names the parser declares — no "
+      "`_lr_seed`, and in a")
     A("heading that said GUARDED, not one `_lr_guard` rule. It is now derived from the two")
     A("eliminators' emission sites; see the classifier's own comment for the eight shapes.")
     A("")
@@ -653,6 +721,181 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A("`entries − committed` and is derived, never stored._")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(L) + "\n")
+
+
+# ── the DECLARED-name cross-family check (`.21` acceptance (g)) ─────────────────────────────
+#
+# ⛔ WHY THIS EXISTS. The classifier above is derived from the two ELIMINATORS, which are
+# engine-universal — nothing in them is SystemVerilog-specific. So a mis-derivation would mis-price
+# every family whose knot is guard-feasible, not just this one, and slice 1 checked exactly one
+# family. This mode runs the predicate over every generated parser's own rule registry and REFUSES
+# if any declared name containing `_lr` is left unclassified.
+#
+# ⭐ The roster is DERIVED from the artifacts (every `generated/*.rs` that declares a `RULE_NAMES`
+# registry IS a generated parser), never hand-listed: a hand list is one more copy to drift, and a
+# new family would silently escape the check the day it lands.
+
+RULE_NAMES_DECL = "const RULE_NAMES"
+# ⛔ Anchored on the FULL declaration, because the real corpus contains two near-misses that a
+# loose `RULE_COUNT` match absorbs: `const RULE_COUNTED_QUANTIFIER: RuleId` (a prefix collision, 3
+# of them in the regex parser) and `const THIN_RULE_COUNT: usize` (a suffix collision). Both are
+# pinned as negative controls below — measured from the artifacts, not imagined.
+RULE_COUNT_RE = re.compile(r"^\s*const RULE_COUNT: usize = (\d+)usize;")
+
+
+def read_rule_registry(path: str) -> tuple[list[str], int]:
+    """A generated parser's own canonical rule roster: `(RULE_NAMES, RULE_COUNT)`.
+
+    ⛔ The registry is read rather than the `fn parse_*` names, because it is the parser's own
+    self-declaration and it ships its own length. That length is the reader's ground truth: a
+    truncated scan produces fewer names than `RULE_COUNT` and REFUSES, so this function cannot
+    quietly return a short list — which is the failure mode that would make an unclassified name
+    look like an absent one.
+    """
+    names: list[str] = []
+    declared: int | None = None
+    capturing = False
+    buf: list[str] = []
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            if declared is None:
+                m = RULE_COUNT_RE.match(line)
+                if m:
+                    declared = int(m.group(1))
+            if not capturing and RULE_NAMES_DECL in line and "&[" in line:
+                capturing = True
+                line = line.split("&[", 1)[1]
+            if capturing:
+                buf.append(line)
+                if "];" in line:
+                    capturing = False
+                    if declared is not None:
+                        break
+    if not buf:
+        die(f"{os.path.relpath(path, ROOT)} declares no `RULE_NAMES` registry — this reader has "
+            f"outlived the codegen's shape; fix the reader rather than reporting an empty roster")
+    if declared is None:
+        die(f"{os.path.relpath(path, ROOT)} declares `RULE_NAMES` but no `RULE_COUNT` — the "
+            f"reader has no length to check itself against")
+    names = re.findall(r'"([^"]+)"', "".join(buf).split("];")[0])
+    if len(names) != declared:
+        die(f"{os.path.relpath(path, ROOT)}: read {len(names)} rule names but the parser declares "
+            f"RULE_COUNT = {declared}. The scan is truncated or the shape moved; refusing rather "
+            f"than classifying a partial roster")
+    return names, declared
+
+
+def _self_check_registry_reader() -> None:
+    """GROUND TRUTH for the registry reader, run on every invocation. Positives, the two real
+    near-miss negatives, and the length check proven to REFUSE."""
+    import io
+
+    def read_text(text: str) -> tuple[list[str], int]:
+        path = os.path.join(ROOT, "rust", "target", "_parse_cost_registry_control.rs")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with io.open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        try:
+            return read_rule_registry(path)
+        finally:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+
+    good = ('    const RULE_COUNT: usize = 2usize;\n'
+            '    const RULE_NAMES: &\'static [&\'static str] = &["a", "b_lr_base"];\n')
+    names, declared = read_text(good)
+    ok = names == ["a", "b_lr_base"] and declared == 2
+    # the two collisions that really occur in `generated/` must NOT be read as the declaration
+    near_miss = ('    const RULE_COUNTED_QUANTIFIER: RuleId = 20u16;\n'
+                 '    const THIN_RULE_COUNT: usize = 28usize;\n'
+                 '    const RULE_COUNT: usize = 1usize;\n'
+                 '    const RULE_NAMES: &\'static [&\'static str] = &["only"];\n')
+    names2, declared2 = read_text(near_miss)
+    ok = ok and names2 == ["only"] and declared2 == 1
+    if not ok:
+        print("parse-cost: CONTROL MISSED: the RULE_NAMES/RULE_COUNT reader does not discriminate; "
+              f"refusing (got {names}/{declared} and {names2}/{declared2})", file=sys.stderr)
+        sys.exit(2)
+
+
+def family_artifacts() -> list[str]:
+    """Every generated parser, derived from the artifacts themselves and sorted for determinism."""
+    d = os.path.join(ROOT, GENERATED_DIR)
+    if not os.path.isdir(d):
+        die(f"{GENERATED_DIR}/ is absent — it is not tracked; regenerate it:\n"
+            f"    make -C rust SHELL=/bin/bash regenerate_generated_parsers")
+    out = []
+    for name in sorted(os.listdir(d)):
+        if not name.endswith(".rs"):
+            continue
+        rel = f"{GENERATED_DIR}/{name}"
+        if rel == SCRATCH_ARTIFACT:
+            continue
+        with open(os.path.join(d, name), encoding="utf-8", errors="replace") as fh:
+            head = fh.read(1 << 22)
+        if RULE_NAMES_DECL in head:
+            out.append(rel)
+    if not out:
+        die(f"no generated parser under {GENERATED_DIR}/ declares a RULE_NAMES registry")
+    return out
+
+
+def run_verify_families() -> int:
+    """`.21` (g): the predicate, over every generated parser's DECLARED rule names."""
+    _self_check_registry_reader()
+    artifacts = family_artifacts()
+    unclassified: list[tuple[str, str]] = []
+    rows = []
+    for rel in artifacts:
+        names, declared = read_rule_registry(os.path.join(ROOT, rel))
+        # ⛔ The population is every name CONTAINING `_lr`, not every name the predicate matches.
+        # Scoping it to what the predicate already accepts would make the check pass by
+        # construction — the exact shape of the ten controls that could only confirm themselves.
+        lr_names = [n for n in names if "_lr" in n]
+        missed = [n for n in lr_names if not is_lr_family(n)]
+        unclassified.extend((rel, n) for n in missed)
+        shapes: dict[str, int] = {}
+        for n in lr_names:
+            m = LR_FAMILY_RE.search(n)
+            if m:
+                shape = m.groupdict().get("shape") or "?"
+                shapes[shape] = shapes.get(shape, 0) + 1
+        rows.append((rel, declared, len(lr_names), len(lr_names) - len(missed), shapes))
+
+    width = max(len(r[0]) for r in rows)
+    print(f"{'generated parser':<{width}}  {'rules':>6} {'_lr':>5} {'classified':>10}  shapes")
+    for rel, declared, lr_n, cls, shapes in rows:
+        shape_s = " ".join(f"{k}={v}" for k, v in sorted(shapes.items())) or "—"
+        print(f"{rel:<{width}}  {declared:>6} {lr_n:>5} {cls:>10}  {shape_s}")
+    total_lr = sum(r[2] for r in rows)
+    print(f"\n{len(rows)} generated parsers, {total_lr} declared LR rule names, "
+          f"{total_lr - len(unclassified)} classified.")
+
+    if unclassified:
+        for rel, n in unclassified:
+            print(f"parse-cost: UNCLASSIFIED LR RULE NAME: {n!r} in {rel}", file=sys.stderr)
+        print(f"parse-cost: {len(unclassified)} declared rule name(s) contain `_lr` but no emission "
+              f"shape claims them. The classifier has fallen behind an eliminator — re-derive it "
+              f"from the emission sites, never from this list.", file=sys.stderr)
+        return 1
+
+    # ⛔ The SV declared count is GATED, not carried (`docs/CLAIM_VERIFICATION.md` §5B): the number
+    # is published in four surfaces and slice 1's copy was already wrong by one.
+    sv = next((r for r in rows if r[0] == GENERATED_PARSER), None)
+    if sv is None:
+        print(f"parse-cost: NOT EVALUATED — {GENERATED_PARSER} is absent, so the pinned declared-LR "
+              f"count could not be re-derived", file=sys.stderr)
+    elif sv[2] != SV_DECLARED_LR_RULES:
+        print(f"parse-cost: the SystemVerilog parser now declares {sv[2]} LR rule names, but "
+              f"SV_DECLARED_LR_RULES pins {SV_DECLARED_LR_RULES} ({SV_DECLARED_LR_PROVENANCE}). "
+              f"Re-derive the published figure and update the constant deliberately.",
+              file=sys.stderr)
+        return 1
+    else:
+        print(f"parse-cost: SV declared LR rule names = {sv[2]}, matching the pinned constant.")
+    return 0
 
 
 # ── modes ───────────────────────────────────────────────────────────────────────────────────
@@ -726,6 +969,9 @@ def main() -> int:
     ap.add_argument("--jobs", type=int, default=8)
     ap.add_argument("--repeats", type=int, default=3,
                     help="median-of-K for the advisory wall clock (default 3)")
+    ap.add_argument("--verify-families", action="store_true",
+                    help="run the LR-family predicate over every generated parser's declared "
+                         "rule names; refuse on any unclassified `_lr` name (`.21` (g))")
     ap.add_argument("--census", action="store_true", help="full-corpus entry census")
     ap.add_argument("--select", action="store_true", help="derive the sample manifest")
     ap.add_argument("--census-tsv", default=None)
@@ -734,6 +980,10 @@ def main() -> int:
     ap.add_argument("--lr", type=int, default=40)
     ap.add_argument("--breadth", type=int, default=120)
     args = ap.parse_args()
+
+    if args.verify_families:
+        # ⛔ No probe needed: this reads the generated ARTIFACTS, not a parse.
+        return run_verify_families()
 
     if args.select:
         if not args.census_tsv or not args.out:
