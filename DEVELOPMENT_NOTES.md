@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-CI-PARITY-GATE-ROT-0030 — check the TOOL before you blame the filesystem, and let a control fail loudly
+
+Two lessons from one defect, and the second is the one I nearly skipped.
+
+**1. A control that fails is doing its job — read it before re-running it.** An adversarial batch of
+four scratch grammars produced results in which the deliberate control (`D2`, an ordinary direct-LR
+grammar known to generate cleanly) REFUSED. The temptation is to assume the harness is flaky and
+retry. The control was right: I had dropped `@entry: true` from the generated bodies. Fixing that
+exposed the real defect underneath — two of the four shapes were reporting rule names belonging to
+the PREVIOUS shape.
+
+**2. The first root cause was wrong, and one command separated the hypotheses.** "Two files written
+in the same second, make skipped the rule" reads immediately as coarse filesystem timestamps. It was
+not:
+
+    $ stat -c '%.9Y  %n' probe_1 probe_2
+    1786817878.583150835  probe_1
+    1786817878.583396903  probe_2       # APFS, nanosecond mtimes — filesystem is fine
+    $ make --version | head -1
+    GNU Make 3.81                        # the cause
+
+GNU Make 3.81 — Apple's `/usr/bin/make`, and the only make on this host — truncates mtimes to whole
+seconds; sub-second comparison arrived in make 4.x. With a prerequisite 7 ms NEWER than its target it
+prints `is up to date`. Two plausible causes, one `stat` invocation that discriminates them. Without
+it I would have "fixed" the filesystem layer and left the defect in place.
+
+**Why it stayed invisible.** A human editing a grammar and typing `make` takes longer than a second,
+so hand use never sees it. A scripted or agent-driven loop hits it most iterations. The workflow that
+gets automated is the workflow that was never exercised at speed — and this one fails silently, in
+the passing direction, with `make` exiting 0.
+
+**The shape of the right fix.** `rm` before regenerating is the local answer and it is what shipped
+for the probe path (as a recipe step plus a recursive `$(MAKE)`, never a sibling prerequisite — those
+have no guaranteed order under `-j`, which would make the fix a nondeterministic version of the same
+bug). The general answer is that freshness should be CONTENT-addressed, not time-addressed: the two
+gates in this repository built that way — the parse-cost baseline's identity table and the SV corpus
+census's byte-identical re-run — are provably immune to the entire class, and to submodule bumps and
+clock skew besides. When an instrument's output feeds a claim, the freshness of its inputs is part of
+the claim, and "the build system would have rebuilt it" is an assumption about a tool's resolution.
+
 ## 2026-08-15 - PGEN-PARSE-HARNESS-0004 — a loss that the correct workflow restores cannot be caught at commit time, however good the gate is
 
 The scratch slot is one tracked path carrying two parts with opposite lifecycles: a 32-line

@@ -6420,9 +6420,19 @@ RULE_COUNTED_QUANTIFIER` (a prefix collision, ×3 in the regex parser) and `cons
 
 - (e) and (f) stay **open**. `--verify-families` is tracked and one command re-runs it, but it is
   invoked from the ratchet's **tier 2**, which is on-demand — so the other nine families are
-  re-checked when an operator re-measures, **not on every commit**. Naming the gap rather than
-  hiding it: SV's own names are covered every run because tier 1 re-hashes the SV parser. Wiring an
-  every-run tier is (f)'s call.
+  re-checked when an operator re-measures, **not on every commit**. Wiring an every-run tier is
+  (f)'s call.
+
+  ⛔⛔ **CORRECTION (same session, director-challenged): the sentence that stood here was an
+  OVERSTATEMENT, in the flattering direction.** It read *"SV's own names are covered every run
+  because tier 1 re-hashes the SV parser"*, and that is wrong twice. (1) Tier 1 does **not** run the
+  predicate at all — it detects that the parser MOVED and demands a re-measure; the classification
+  check happens on that re-measure, not on the run that noticed. The honest verb is *"cannot move
+  unnoticed"*, not *"is covered"*. (2) `generated/` is **not tracked**, so on a fresh clone or a CI
+  job that has not regenerated, tier 1 reports **NOT EVALUATED** and neither tier runs — the claim
+  had no *"where generated/ is present"* qualifier. ⭐ The gate's own source comment already said
+  *"cannot move unnoticed"* correctly; the leaf prose is what drifted, which is the four-copies
+  failure this leaf is a record of, committed by its own author one slice later.
 - The audit instruments in `rust/target/audit_scratch/` are still untracked — that is (e).
 - Slice 1's historical prose keeps its `128`; the correction is recorded here, per supersede-don't-mutate.
 

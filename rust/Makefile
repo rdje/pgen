@@ -298,13 +298,41 @@ $(SCRATCH_PARSER): $(SCRATCH_JSON) $(RUST_AST_PIPELINE)
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR) $(SCRATCH_JSON) -o $(SCRATCH_PARSER)
 
+# ⛔⛔ CI-PARITY-GATE-ROT.32 — THE SCRATCH ARTIFACTS ARE DELETED BEFORE EVERY REGENERATION, AND
+# THAT IS A CORRECTNESS FIX, NOT A BIG HAMMER.
+#
+# This repository's only `make` is Apple's **GNU Make 3.81**, which compares prerequisite and
+# target timestamps at **WHOLE-SECOND** granularity. Measured on this volume (APFS, nanosecond
+# mtimes): with `grammars/scratch/scratch.ebnf` written 0.8 s AFTER `generated/scratch.json`, make
+# reports *"is up to date"* and the frontend runs **0** times — so the probe is driven against the
+# PREVIOUS grammar. Reproduced deterministically: the slot said `bravo`, the regenerated parser
+# still declared `alpha`.
+#
+# ⭐ WHY IT MATTERS HERE SPECIFICALLY. A human editing a grammar and typing `make` takes longer than
+# a second, so this is invisible in hand use. A SCRIPTED or AGENT-DRIVEN probe loop — the exact way
+# this slot is meant to be used — hits it constantly, and it fails SILENTLY and in the PASSING
+# direction: you get a green run against the wrong grammar. It is a second, independent mechanism
+# for the identical symptom `GENERATED-LINT-CORRECTNESS.13` recorded (a run judging the previous
+# grammar), which was diagnosed then as a build-ORDER problem.
+#
+# ⛔ The `rm` is scoped to this PHONY operator entry point, deliberately. Making $(SCRATCH_PARSER)
+# itself always-rebuild would rewrite a file `build.rs` keys on and drag cargo into a rebuild on
+# every unrelated `make` invocation. Here the caller has just edited the grammar and a regeneration
+# is exactly what they asked for. Cost: `focus_scratch` is now always ~2-4 s instead of ~0 s when
+# up to date — the right trade for a probe target where a wrong answer costs a session.
+#
 # `make focus_scratch` — regenerate the scratch artifact so subsequent
 # `cargo build/test --features generated_parsers` invocations pick up the
 # scratch slot (build.rs sets has_generated_scratch_parser when the artifact
-# exists). Edit grammars/scratch/scratch.ebnf, run this, rebuild the probe,
-# then drive `parseability_probe --parse scratch <input>`.
+# exists). Edit the grammar BODY of grammars/scratch/scratch.ebnf, run this,
+# rebuild the probe, then drive `parseability_probe --parse scratch <input>`.
+# ⛔ The removal is a RECIPE STEP followed by a recursive $(MAKE), not a sibling prerequisite.
+# Sibling prerequisites have no guaranteed order under `-j`, so `rm` could race the generation it
+# is supposed to precede — a fix that reintroduces a nondeterministic version of the same defect.
 .PHONY: focus_scratch
-focus_scratch: $(SCRATCH_PARSER)
+focus_scratch:
+	@rm -f $(SCRATCH_JSON) $(SCRATCH_PARSER)
+	@$(MAKE) $(SCRATCH_PARSER)
 	@echo ""
 	@echo "✅ scratch parser artifact ready: $(SCRATCH_PARSER)"
 	@echo ""

@@ -4233,3 +4233,142 @@ instance.
 invoking `annotation_parsers` + the per-family `focus_*` targets directly, which is the same sequence
 `regenerate_generated_parsers` runs minus the downgrading bootstrap step — stated in that slice's NO
 REGRESSION box rather than left as an unexplained deviation from the documented recipe.
+
+---
+
+### `.32` — GNU Make **3.81** compares timestamps at WHOLE-SECOND granularity, so a scripted edit→build loop silently consumes a STALE artifact (`done` for the acute path, `PGEN-CI-PARITY-GATE-ROT-0030`, 2026-08-15 session #236; the repo-wide sweep is acceptance (d), `todo`)
+
+#### ⛔ HOW IT WAS FOUND — a CONTROL failed, and the control was right
+
+Found while auditing `ENGINE-UNIVERSAL-SERVICES.21` slice 2's own published findings at the
+director's challenge. An adversarial batch of four scratch-slot grammars reported LR rule names that
+**did not exist in the grammars being tested** — shape `D1` (rules `y`, `w`) reported `expr_lr_base`,
+which belongs to the *previous* shape. The batch's deliberate control `D2` was what exposed it.
+
+⚠️ The first root cause was WRONG and is recorded because the correction is the point: the initial
+hypothesis was coarse filesystem mtime. **Refuted by measurement** — the repository volume is APFS
+with nanosecond mtimes:
+
+```
+$ stat -c '%.9Y  %n' rust/target/_mtime_probe_*
+1786817878.583150835  …_1      1786817878.583396903  …_2      1786817878.583439942  …_3
+```
+
+#### ⛔⛔ THE ACTUAL ROOT CAUSE — the tool, not the filesystem
+
+```
+$ make --version | head -1
+GNU Make 3.81
+$ type -a make ; ls /opt/homebrew/bin/gmake
+make is /usr/bin/make            # the ONLY make on this host — no 4.x anywhere
+$ printf 'out: in\n\t@echo RULE_RAN\n\t@cp in out\n' > Makefile
+$ : > in ; : > out ; : > in      # `in` is now NEWER than `out`
+$ make
+make: `out' is up to date.
+$ stat -c '%.9Y %n' in out
+1786817895.235307994 in          # 7 ms NEWER
+1786817895.228333746 out
+```
+
+GNU Make **3.81** (2006, the version Apple ships) truncates mtimes to whole seconds. Sub-second
+support arrived in make **4.x**. ⇒ **any prerequisite rewritten in the same second as its target is
+invisible to every rule in this repository.**
+
+#### ⭐ REPRODUCED DETERMINISTICALLY ON A REAL TARGET — no race, explicit timestamps
+
+```
+after ALPHA  : rules = "alpha"
+  1786817945.900000000 grammars/scratch/scratch.ebnf     # prereq, 0.8 s NEWER
+  1786817945.100000000 generated/scratch.json            # target
+  did the frontend run? 0                                 # make skipped it entirely
+after BRAVO  : rules = "alpha"   <-- the slot says `bravo`
+```
+
+⇒ the probe is driven against the **previous grammar**, silently, with `make` exiting 0.
+
+#### ⚠️ WHY THIS HAS BEEN INVISIBLE, AND WHY IT IS NOT NEW
+
+A human editing a grammar and typing `make` takes longer than a second, so hand use never sees it.
+A **scripted or agent-driven loop** — which is exactly how the scratch slot is meant to be driven
+(TOOLBOX 1.3) — hits it constantly. It fails **silently and in the PASSING direction**: a green run
+against the wrong input.
+
+⛔ **It is a second, independent mechanism for a symptom this repository has already paid for once.**
+`GENERATED-LINT-CORRECTNESS.13` records session #218 losing time to `UNKNOWN=9` / every probe
+`parsed=false` on a correct grammar, diagnosed then as a build-ORDER defect (`focus_scratch` builds
+`ast_pipeline` before regenerating). That diagnosis was correct for that incident. This is a
+different cause with the same signature, which is precisely why one fix did not prevent the other.
+
+#### THE FIX (acute path) — and why it is scoped rather than global
+
+`focus_scratch` deletes `$(SCRATCH_JSON)` and `$(SCRATCH_PARSER)` and then re-enters make. Timestamps
+stop being part of the correctness argument for the probe path.
+
+- ⛔ **A recipe step + recursive `$(MAKE)`, not a sibling prerequisite.** Sibling prerequisites have
+  no guaranteed order under `-j`, so an `rm` sibling could race the generation it must precede — a
+  fix that reintroduces a nondeterministic version of the same defect.
+- ⛔ **Not applied to `$(SCRATCH_PARSER)` itself.** That would rewrite a file `build.rs` keys on and
+  drag cargo into a rebuild on every unrelated `make`. `focus_scratch` is the phony operator entry
+  point whose caller has *just* edited the grammar, so an unconditional regeneration is what they
+  asked for. Cost: always ~2-4 s instead of ~0 s when up to date.
+
+#### ⚠️ HONEST BOUND — WHAT IS **NOT** FIXED
+
+Only the scratch probe path. **Every other rule in this repository still compares whole seconds**,
+including the per-family `focus_*` targets and the aggregate regeneration recipe. Those are minutes
+long, so a same-second prerequisite collision is unlikely — *unlikely, not impossible, and not
+measured*. That sweep is acceptance (d) and is `todo`.
+
+⭐ What is provably immune, and worth stating because it is the right pattern: **`PARSE-COST-RATCHET`
+hashes CONTENT, not mtime**, so its identity tier cannot be fooled this way. Likewise
+`SV-CORPUS-DENOMINATOR`'s byte-identical re-run. Content-addressed freshness is the general answer;
+`rm` is the local one.
+
+**Acceptance:** (a) ✅ the acute scratch path cannot serve a stale artifact — done, verified below;
+(b) ✅ record the mechanism where the next reader will meet it (`TOOLBOX.md` 1.3, the book's *Parse
+Harness* chapter, a knowledge card) — done; (c) ⏳ decide whether to require `make >= 4.0` (a
+prerequisite change with an install cost) or to keep content-addressed freshness as the doctrine —
+⛔ derive this from a census of which rules actually have sub-second-collidable prerequisites, not
+from taste; (d) ⏳ sweep the remaining `generated/` rules for the same exposure and price it.
+
+#### Acceptance Checklist (enforced) — `.32` (acute path)
+
+- [x] **REPRODUCE / ISSUE** — reproduced deterministically, not observed once. With the slot's mtime
+  pinned 0.8 s NEWER than `generated/scratch.json` inside a single second,
+  `make -C rust SHELL=/bin/bash focus_scratch` ran the frontend **0** times and the regenerated
+  parser still declared `alpha` while the grammar said `bravo`. Independently corroborated by the
+  batch that surfaced it: shapes `D1` and `D4` reported LR rule names belonging to the *previous*
+  shape (`expr_lr_*` for a grammar containing no rule `expr`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: GNU Make 3.81 truncates mtimes to whole seconds, so a
+  prerequisite rewritten in the same second as its target never looks newer. WHERE, by the
+  ops/build-flow toolbox — and note the FIRST hypothesis was refuted by it:
+
+  ```
+  $ stat -c '%.9Y  %n' rust/target/_mtime_probe_1 rust/target/_mtime_probe_2
+  1786817878.583150835  rust/target/_mtime_probe_1     # APFS nanosecond mtimes — the
+  1786817878.583396903  rust/target/_mtime_probe_2     # "coarse filesystem" hypothesis is REFUTED
+  $ make --version | head -1
+  GNU Make 3.81                                        # the tool, not the filesystem
+  $ : > in ; : > out ; : > in ; make
+  make: `out' is up to date.                           # with `in` 7 ms NEWER than `out`
+  ```
+
+  The affected rule is `rust/Makefile`'s `$(SCRATCH_JSON): $(SCRATCH_EBNF) …`.
+- [x] **FIX** — fix-hierarchy tier = **ops/build-flow**; zero engine, grammar or generated bytes.
+  `focus_scratch` becomes a recipe that `rm -f`s both scratch artifacts and re-enters via recursive
+  `$(MAKE)`, so the probe path never depends on a timestamp comparison. Scoped to the phony operator
+  entry point for the two reasons recorded above (`-j` ordering; not dragging cargo into a rebuild).
+- [x] **ADDRESSED (verified)** — measured before→after on the identical deterministic reproducer.
+  **BEFORE:** frontend ran **0** times, parser declared `alpha` for a grammar saying `bravo`.
+  **AFTER:** frontend ran **1** time, parser declares `bravo`. The two shapes invalidated by the bug
+  were re-run under a forced clean and now report their own rules — `D1` → `w_lr_base w_lr_suffix`
+  (was `expr_lr_*`), `D4` → `e_lr_base e_lr_suffix` (was `a_lr_*`/`b_lr_*`).
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 20 enforced doctrines PASS**.
+  The `SCRATCH-SLOT-HEADER` guard still fires through the restructured recipe (header-less slot →
+  `make` rc **2**; default fixture → rc **0**), so `PARSE-HARNESS.11` is intact. The slot is
+  byte-identical to HEAD and regenerates the default fixture with 0 LR rules.
+  `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes. ⭐ **Freshness audit of the claims this
+  session already committed**: `PGEN-ENGINE-UNIVERSAL-SERVICES-0039`'s probes A/B/C each ran the
+  frontend and the generator exactly once (`grep -c` on their captured logs = 1/1 each), so none of
+  them rode a stale artifact and none of that leaf's published findings are affected.
+- promotion: `docs/knowledge/your-build-tools-timestamp-resolution-is-part-of-your-correctness-argument.md` **NEW**.
