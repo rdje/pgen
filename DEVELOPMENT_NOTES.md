@@ -1,5 +1,34 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-15 - PGEN-ENGINE-UNIVERSAL-SERVICES-0041 — promoting an instrument is a re-derivation, not a `cp`
+
+**1. Moving a measurement's producer into version control is where you find out what it actually
+measured.** Four instruments went from a gitignored scratch directory to a tracked one. The copy
+would have taken a minute. What the promotion surfaced instead: two of them had re-typed the family
+predicate and had already drifted from the corrected one; a third had re-implemented a selection tier
+without the exclusion the real selector applies, so its headline line was structurally zero and its
+docstring claimed it answered an acceptance item it could not answer. None of that is visible while
+the files sit where nobody reads them. ⇒ budget the promotion as a review, and re-derive each
+published number from the promoted copy before calling it tracked.
+
+**2. A constant that is re-typed in a second file is not a duplicate — it is a future disagreement
+with a date on it.** The corrected predicate lived in one tracked file and in two scratch files. The
+moment slice 1 fixed the tracked one, the other two were wrong, silently, and both were still being
+run. The fix is an import plus a refusal (`REFUSE` on `ImportError`), not a comment saying "keep
+these in sync". That refusal caught a wrong relative-path depth on its very first run.
+
+**3. "The two instruments agree" is worth exactly as much as their independence, and independence is
+measurable.** The record conceded that two agreeing instruments shared a classifier. Measuring it was
+better than conceding it: they had never shared one — and the older predicate was END-anchored, so on
+the profile side it matched *nothing at all*. An agreement claim should carry the measurement of what
+the two sides do NOT share, or it is a rhetorical flourish.
+
+**4. When a re-run disagrees with the published number, suspect the proxy before the publication.**
+A promoted census printed `0/40` where the record said `5/40`. The instinct is to distrust the
+record. The record was right: the two were measuring different things, and the proxy was the one
+with the defect. Reading the actual selector (`if lrv > 0 and rel not in chosen`) took two minutes
+and turned a suspected regression into an independent corroboration of the published figure.
+
 ## 2026-08-15 - PGEN-CI-PARITY-GATE-ROT-0032 — when you price an exposure, make sure you are pricing the right duration
 
 Three lessons, and the first one is the one that would have shipped a wrong "safe" verdict.

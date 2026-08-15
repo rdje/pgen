@@ -6044,7 +6044,7 @@ without publishing a stale DATE* — is routed to `LIVE-MEANS-LIVE` rather than 
 - promotion: `docs/knowledge/a-conservation-control-cannot-catch-a-misassignment.md` (RESULT 2).
 
 
-#### ⚠️ `.21` `in progress` — the parse-cost instrument's "guarded-admission family" counted 97 of the **127** LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ✅ **(g) DISCHARGED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0039`; ⛔ **(b) MEASURED and BLOCKED on `.22`**; ⏳ (e)/(f) open)
+#### ⚠️ `.21` `in progress` — the parse-cost instrument's "guarded-admission family" counted 97 of the **127** LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ✅ **(e) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0041`; ⏳ **(f) is now the frontier**; ✅ **(g) DISCHARGED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0039`; ⛔ **(b) MEASURED and BLOCKED on `.22`**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -6134,7 +6134,9 @@ is the classifier that was defective. The agreement therefore bounds far less th
 and `return_annotation` / `semantic_annotation` each carry `left_recursion_eliminated=1`; whether
 their emitted names match the new predicate is unmeasured.
 
-⇒ **ADDED TO `.21` ACCEPTANCE, and the leaf STAYS `in progress`:** (e) promote the audit instruments
+⇒ **ADDED TO `.21` ACCEPTANCE, and the leaf STAYS `in progress`:** ✅ **(e) DISCHARGED by slice 3**
+(`PGEN-ENGINE-UNIVERSAL-SERVICES-0041`, below) · ✅ **(g) DISCHARGED by slice 2** · ⏳ **(f) is the
+frontier** — (e) promote the audit instruments
 + their profile artifacts into tracked paths, or delete the claims that depend on them — a measured
 number whose producer is untracked is a *"trust me"*; (f) make the corpus family share **DERIVED or
 GATED**, not carried — the census is 71 s, so a `--verify-family-share` mode re-run on demand (and a
@@ -6488,6 +6490,121 @@ RULE_COUNTED_QUANTIFIER` (a prefix collision, ×3 in the regex parser) and `cons
   DEFAULT position has not separated the hypothesis from its rival (probe B) — move the thing
   (probe C). ⭐ The existing card `a-deterministic-counter-cannot-see-a-per-entry-cost-rise` is
   **updated in place** (128 → 127 in both its `evidence:` header and its body), not duplicated.
+
+##### ✅ `.21` SLICE 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0041`, 2026-08-15 session #237) — (e) DISCHARGED: the audit instruments are TRACKED, the predicate has ONE home, and every published number re-derives
+
+The self-assessment's GAP 1 was that `.20` slice 4's intervals and `.21` slice 1's corpus figures were
+produced by instruments in gitignored `rust/target/audit_scratch/` — `git ls-files` → **0**. A measured
+number whose producer is untracked is a *"trust me"*, and `GATE-REACHABILITY`'s founding sentence
+applies verbatim.
+
+⇒ five instruments + a runner now live in
+`docs/tasks/artifacts/engine_universal_services/lr_profile/`, and the audit output is committed beside
+them (`lr_profile_audit.txt`).
+
+###### ⛔⛔ RESULT 1 — PROMOTION IS NOT A COPY, AND THE FIRST THING IT FOUND WAS A SECOND HOME FOR THE PREDICATE
+
+Two of the promoted files had **re-typed** the LR family predicate, and both copies had already
+drifted from the one slice 1 corrected:
+
+| file | predicate it carried | live predicate |
+|---|---|---|
+| `lr_attribute.py` | `_lr_(base\|suffix\|seed\|guard)` | `_lr_(base\|suffix\|seed\|guard\|alt)(?![a-z])` |
+| `sample_impact.py` | re-typed the wide form by hand | same, imported |
+| `family_census.py` | narrow/seed/guard triple only | same, imported |
+
+Every promoted instrument now **imports `LR_FAMILY_RE` from `stimuli/sv/corpus_parse_cost.py`** and
+REFUSES (exit 1) if it cannot — a new control C6. ⭐ That control paid for itself immediately: it
+fired on the promotion's own first run, catching a wrong `ROOT` depth (4 levels instead of 5) that
+would otherwise have been a silent mis-import.
+
+###### ⭐⭐ RESULT 2 — `.21` GAP 4 IS SHARPER THAN IT WAS WRITTEN, AND MEASURABLY SO
+
+GAP 4 conceded *"the QUANTITIES are independent, the classifier is SHARED"*. Measured while
+promoting: the classifiers were **never shared** — they were duplicated and divergent, and the old
+tracked predicate could not have been used on the profile side **at all**. `lr_breakdown.py` prices
+all three definitions on the same reports:
+
+```
+HIST-B   _lr_base$|_lr_suffix(_r\d+)?$   nodes=0   self=0 (0.00%)   incl=0 (0.00%)
+```
+
+It is END-anchored — correct for RULE NAMES, which is what the corpus instrument classifies, and
+structurally incapable of matching a `sample` SYMBOL string (`…::rule_expression_lr_base  (in
+parseability_probe)`). ⇒ the 75.1 % / 76 % agreement between the two sides bounds even less than
+GAP 4 conceded, and the fix is not *"make them share"* but *"make the one predicate the only one
+either can use"*, which is what the import does.
+
+###### ⭐⭐⭐ RESULT 3 — EVERY PUBLISHED NUMBER RE-DERIVES FROM THE TRACKED PRODUCERS, AND ONE IS NOW INDEPENDENTLY CORROBORATED
+
+| published claim | source | re-derived 2026-08-15 |
+|---|---|---|
+| LR self 1.83-3.60 %, inclusive 22.38-26.75 %, ratio 6.9-13.6× (n=8) | `.20` slice 4 | **identical, 8/8 reports**, all six controls green (C4 oracle: 139-209 symbols per report match `sample`'s own table exactly) |
+| corpus family share **2.7411 %**, **24 644 435** entries, **73** rules | `.21` slice 1 | **identical** — and `live_equals_historical_wide: true` |
+| narrow 0.6813 % / seed 1.6840 % / guard 0.3758 % | `.21` slice 1 | **identical** (6 125 716 / 15 140 142 / 3 378 577) |
+| pinned sample: `hot` 0 changed, `lr` **5 of 40** changed | `.21` slice 1, via `select_sample` | ⭐ **independently corroborated by a different code path**: `hot` 40/40, `lr` under NARROW 40/40, `lr` under LIVE 35/40 ⇒ **5 move** |
+| `files_nodump` | `.22` | **1** of 16 336 — the silent drop, now printed rather than inferred |
+
+⛔ **RESULT 3's last row cost a root-cause detour, and the detour is the finding.** `sample_impact.py`
+printed `pinned ∩ top-40 by NARROW = 0/40`, which reads as *"the pinned sample is entirely wrong"*.
+It is not: `select_sample` fills `hot` FIRST (the 40 heaviest by TOTAL entries) and then takes `lr`
+from **what is left** (`corpus_parse_cost.py:525`, `if lrv > 0 and rel not in chosen`). The heaviest
+files by LR entries ARE the heaviest by total entries, so `hot` consumes them and the pinned `lr`
+tier can never intersect a raw top-40 by LR. The scratch file had re-implemented the tier **without
+that exclusion**, so its headline line was structurally 0 and meaningless — while its own docstring
+claimed it answered acceptance (b). Corrected to mirror `select_sample`, it reproduces the leaf's
+published figures exactly. ⇒ a promoted instrument must be re-derived against the thing it claims to
+measure, not just copied to a tracked path.
+
+###### ⚠️ HONEST BOUNDS
+
+- The eight `sample` reports are **3.5-6 MB each (40 MB total)** and stay untracked. `prof_run.sh` is
+  tracked, so they are regenerable; the DERIVED table is committed. Same for the 16 335-row
+  `per_file.tsv` (66 s to regenerate) — a `--reuse` mode added here re-analyses it in milliseconds,
+  which is what made fixing the tier definition affordable at all.
+- `bl_callers.py` is promoted and **smoke-tested from its tracked home** (`parse_casting_type_lr_base`
+  → 4 BL sites, all SystemVerilog: both `_lr_guard` variants, `parse_from`, and a closure). That
+  proves the instrument runs; it does **not** re-derive `.20` slice 4's 2 505/1 964 folding census,
+  whose target vmaddr is recorded there.
+- (f) is **not** discharged here: the family share is now REPRODUCIBLE but still not GATED. GAP 2
+  stands — `CORPUS_FAMILY_SHARE_PCT` is guarded by a comment, and `DOCTRINE_ENFORCEMENT.md` §1 is
+  that a rule nothing checks is a suggestion. (e) makes (f) cheap; it does not do it.
+
+###### Acceptance Checklist (enforced) — `.21` slice 3, (e)
+
+- [x] **REPRODUCE / ISSUE** — the gap is measured, not asserted, by the ops/build-flow toolbox:
+
+  ```
+  $ git ls-files rust/target/audit_scratch/ | wc -l
+  0                                  # 4 instruments + 8 profile reports, none tracked
+  $ git check-ignore -q rust/target/audit_scratch/lr_attribute.py && echo IGNORED
+  IGNORED
+  ```
+
+  ⇒ every number in `.20` slice 4 and `.21` slice 1 rested on producers that a `cargo clean` deletes.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the instruments were written INSIDE the build's scratch
+  tree, which `.gitignore:` excludes wholesale, so tracking was never a decision anybody made or
+  declined — it was the default. WHERE: `rust/target/audit_scratch/{lr_attribute,lr_breakdown,
+  family_census,sample_impact}.py` + `prof_run.sh` + `{p1..p5,c1..c3}.txt`. The second, deeper cause
+  is located by `git ls-files` + `grep` rather than by reading: two of those files had re-typed the
+  family predicate, so promotion-by-copy would have durably shipped a divergent classifier.
+- [x] **FIX** — fix-hierarchy tier = **ops/build-flow + instrument**; zero engine, grammar or
+  generated bytes. Five instruments + `run_lr_profile_audit.sh` promoted to
+  `docs/tasks/artifacts/engine_universal_services/lr_profile/`; the predicate is imported from its
+  single home with a refusal on failure; `sample_impact.py`'s tier definition corrected to mirror
+  `select_sample`; `--reuse` added so re-analysis does not require a 66 s census.
+- [x] **ADDRESSED (verified)** — before→after on the symptom. BEFORE: `git ls-files` → 0 producers,
+  and the published intervals could not be re-derived. AFTER: `bash
+  docs/tasks/artifacts/engine_universal_services/lr_profile/run_lr_profile_audit.sh` → exit 0, and
+  every figure in RESULT 3 reproduces from the tracked producers, including `2.7411 %` /
+  `24 644 435` / `73` rules and the 8-report interval `1.83-3.60 % / 22.38-26.75 %`. The `lr` 5/40
+  figure is now corroborated by a **second, independent code path**.
+- [x] **NO REGRESSION** — the promotion adds no code to any shipped path: `generated/` is untouched
+  and byte-identical, and `bash scripts/check_doctrines.sh` reports **ALL 20 enforced doctrines
+  PASS**. The tracked parse-cost instrument `stimuli/sv/corpus_parse_cost.py` is **not modified** —
+  it is only imported — so `PARSE-COST-RATCHET`'s identity tier is unaffected and its baseline is
+  untouched; the doctrine driver re-runs it green. `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  passes.
 
 #### ⛔⛔⛔ `.22` NEW `todo` — the transactional coverage stack (TOOLBOX 3.5) never terminates on a corpus file that a bare parse accepts in 0.077 s, and the census silently drops it (opened 2026-08-15 session #235 by `.20` slice 4)
 

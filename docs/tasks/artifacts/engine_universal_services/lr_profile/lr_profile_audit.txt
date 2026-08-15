@@ -1,0 +1,79 @@
+==============================================================================
+ENGINE-UNIVERSAL-SERVICES.21 (e) — LR profile audit (tracked instruments)
+==============================================================================
+reports dir : rust/target/audit_scratch
+reports     : 8
+
+--- attribution (every report, all six controls enforced) ---------------------
+# predicate (imported, single home): _lr_(?P<shape>base|suffix|seed|guard|alt)(?![a-z])
+c1.txt     root=2945   oracle=139 syms OK  LRnodes=581   self=   61 ( 2.07%) incl=  659 (22.38%) ratio=10.8x
+c2.txt     root=3211   oracle=160 syms OK  LRnodes=647   self=   68 ( 2.12%) incl=  746 (23.23%) ratio=11.0x
+c3.txt     root=3837   oracle=209 syms OK  LRnodes=714   self=  138 ( 3.60%) incl=  954 (24.86%) ratio=6.9x
+p1.txt     root=4453   oracle=195 syms OK  LRnodes=846   self=  101 ( 2.27%) incl= 1054 (23.67%) ratio=10.4x
+p2.txt     root=4184   oracle=172 syms OK  LRnodes=930   self=   86 ( 2.06%) incl= 1035 (24.74%) ratio=12.0x
+p3.txt     root=3619   oracle=162 syms OK  LRnodes=876   self=   85 ( 2.35%) incl=  968 (26.75%) ratio=11.4x
+p4.txt     root=3638   oracle=156 syms OK  LRnodes=909   self=   84 ( 2.31%) incl=  959 (26.36%) ratio=11.4x
+p5.txt     root=4209   oracle=187 syms OK  LRnodes=917   self=   77 ( 1.83%) incl= 1046 (24.85%) ratio=13.6x
+
+--- predicate A/B: does `.21` slice 1's correction move these numbers? ---------
+
+=== p5.txt   worker root=4209
+  LIVE     base|suffix|seed|guard|alt (imported)   nodes=917   self=   77 ( 1.83%) incl= 1046 (24.85%)
+  HIST-A   base|suffix|seed|guard  (scratch)       nodes=917   self=   77 ( 1.83%) incl= 1046 (24.85%)
+  HIST-B   base|suffix END-anchored (pre-.21)      nodes=0     self=    0 ( 0.00%) incl=    0 ( 0.00%)
+
+------------------------------------------------------------------------------
+⭐ LIVE == HIST-A on every report: the predicate correction `.21` slice 1 made to the
+   CORPUS instrument does NOT move the PROFILE numbers, so `.20` slice 4's published
+   1.83-3.60 % / 22.38-26.75 % / 6.9-13.6x intervals survive it unchanged. The two
+   differ only by `_lr_alt` (0 rules in SV) and the `(?![a-z])` anchor (no near-miss
+   symbol in these reports) — stated as a MEASUREMENT here, not as an expectation.
+
+--- sample-impact tiers, re-analysed from the retained census (seconds) ------
+
+rows measured                       : 16335
+pinned tiers                        : hot 40, lr 40
+`hot` tier reproduced               : 40/40
+`lr` tier under NARROW reproduced   : 40/40
+`lr` tier under LIVE   reproduced   : 35/40
+
+------------------------------------------------------------------------------
+✅ every instrument control passed; the published intervals re-derive.
+
+=== full-corpus family census (tracked producer, re-run 2026-08-15 session #237) ===
+{
+  "distinct_rules": 1408,
+  "files_entering_any_lr": 12007,
+  "files_entering_any_lr_pct": 73.5,
+  "files_entering_narrow": 12007,
+  "files_entering_narrow_pct": 73.5,
+  "files_measured": 16335,
+  "files_nodump": 1,
+  "guard_entries": 3378577,
+  "guard_pct": 0.3758,
+  "live_equals_historical_wide": true,
+  "live_lr_entries": 24644435,
+  "live_lr_pct": 2.7411,
+  "live_lr_rules_entered": 73,
+  "live_predicate": "_lr_(?P<shape>base|suffix|seed|guard|alt)(?![a-z])",
+  "narrow_lr_entries": 6125716,
+  "narrow_lr_pct": 0.6813,
+  "seed_entries": 15140142,
+  "seed_pct": 1.684,
+  "total_committed": 34434223,
+  "total_entries": 899064022,
+  "wide_lr_entries": 24644435,
+  "wide_lr_pct": 2.7411
+}
+
+=== linker-folding smoke test (promoted bl_callers.py, run from its tracked home) ===
+$ python3 bl_callers.py rust/target/release/parseability_probe 100f29444   # parse_casting_type_lr_base
+__text vmaddr=0x1000008e0 fileoff=2272 size=0x3ea63bc
+text symbols: 11232
+
+=== target 0x100f29444 — 4 BL call sites ===
+       4  caller family: systemverilog
+    e.g. 0x100f27740  in  pgen::generated_parsers::systemverilog::SystemverilogParser::parse_casting_type_lr_guard0::hd731832d5fb79766
+    e.g. 0x1012858fc  in  pgen::generated_parsers::systemverilog::SystemverilogParser::parse_casting_type_lr_guard1::hcf4fe51942fd34a3
+    e.g. 0x1033b6710  in  pgen::generated_parsers::systemverilog::SystemverilogParser::parse_from::h374fa816ec619f17
+    e.g. 0x1038c59c8  in  pgen::generated_parsers::systemverilog::SystemverilogParser::parse_casting_type::_$u7b$$u7b$closure$u7d$$u7d$::h279192c633ae40f0
