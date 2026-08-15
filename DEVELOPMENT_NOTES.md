@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0045 — the second time I built the same deadlock, hours after documenting the first
+
+**1. "Derived or gated" has a second half, and gating the constant alone would have missed it.** The
+recorded defect was *a hand-carried constant guarded by a comment*, so the obvious fix is a gate on
+the constant. But the leaf's founding sentence describes something bigger: ONE figure hand-copied
+into FOUR surfaces, stale in all of them at once. A gate on the constant fixes the file nobody reads
+from. The fix had to be two legs — derivation with an identity block, AND co-publication holding
+every live surface equal to it — which is what `SV-CORPUS-DENOMINATOR` had already worked out and is
+why its name is in the acceptance text. ⇒ when adopting a pattern from a sibling gate, adopt the
+pattern, not the half of it your defect report happened to name.
+
+**2. A bootstrap deadlock does not look like the bootstrap deadlock you already fixed.** Slice 1's
+was an identity HASH ROW that could not exist until a rebaseline wrote it, while the rebaseline
+refused to write until it existed. Slice 4's was a prose ANCHOR in a generated report — different
+file, different mechanism, different data type, same graph. I walked into it having authored the
+first fix's explanation. The question that names the class in one sentence is *"is this file written
+by the thing my check is blocking?"*, and it must be asked of every surface AT THE MOMENT the surface
+is added to the gate. ⭐ Promoted to
+`docs/knowledge/a-bootstrap-check-must-not-block-the-act-that-bootstraps-it.md`.
+
+**3. Choose the identity input's GRANULARITY deliberately, and write down what it does not cover.**
+Hashing the whole instrument file would have staled the family share on a comment edit — a gate that
+fires on prose is a gate that teaches waivers. Hashing only `LR_FAMILY_RE.pattern` fires on exactly
+what the number depends on and misses a change to the census pipeline around it. Neither is right
+alone; what makes the pair honest is that the ratchet's OWN baseline already carries a whole-file
+`instrument` hash, so the two identity blocks are complements. ⇒ a narrower identity is defensible
+only when you can name the check that covers the rest.
+
+**4. The cheapest thing to measure was whether deferring was expensive.** `--verify-families` sat on
+the on-demand tier with a comment conceding it therefore ran approximately never. Its actual cost on
+every commit: **0.076 s**. The architectural reason for deferring it was real ("it reads `generated/`,
+which the baseline identity does not enumerate") and it was never a cost. ⇒ before accepting an
+architectural argument for deferring a check, time the check.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0044 — the number you wanted, measured twice, disagreeing with itself
 
 **1. When two passes of the same measurement disagree by more than the effect, you have measured your

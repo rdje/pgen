@@ -43,7 +43,7 @@ tier still reported `fresh`.
 |---|---|---|
 | grammar | `grammars/systemverilog.ebnf` | `1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c` |
 | generated parser | `generated/systemverilog_parser.rs` | `463c647603e83af1ed3e41fffb16ac2041f466fe1ac3b0df507161d3fcfc839e` |
-| instrument | `stimuli/sv/corpus_parse_cost.py` | `bc5015a74d6a151f9086e2c40b8267cfe56587b44658da5af86bd1e0701942bf` |
+| instrument | `stimuli/sv/corpus_parse_cost.py` | `c686fd66b6a37413fec3ac3a7593cfcac10345b6b46e051dde80c9169848f75f` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
 `sample inputs` digests the manifest ORDER plus every sampled file's bytes: the corpora
@@ -107,6 +107,10 @@ discard it: it catches structural growth EXACTLY and cannot be fooled by a busy 
 is a reason to state plainly what it does **not** prove — the +24.3 % is a rise in cost PER
 entry, not in the NUMBER of entries, and no counter can see that. `.20` acceptance (a)'s
 profile is what attributes it; this ratchet stops it growing further unwatched meanwhile.
+
+**Live LR-family share `2.741/8.9`** (corpus-entry share % / blind-spot factor), derived by
+`python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share` into
+`docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json` and re-hashed against its four recorded inputs on every run.
 
 ⚠️ The published bound was **~35×** until `.21`, computed on the 0.681 % the broken
 classifier saw. The gate was under-claiming its own sensitivity by about 4×; the corrected

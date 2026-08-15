@@ -14,16 +14,31 @@
 #
 # ⭐⭐ TWO TIERS, AND THE CHEAP ONE IS SOUND RATHER THAN A SHORTCUT.
 #
-#   TIER 1 (every run, ~0.4 s) — IDENTITY. Re-hash the three inputs the baseline names: the
-#     grammar, the generated parser, and a digest over the sampled corpus files themselves. The
-#     binding metric is an exact function of exactly those inputs (verified: deterministic across
-#     repeated release runs, and byte-identical between the debug and release probes). ⇒ if none
-#     of them moved, the measurement CANNOT have moved. Tier 1 is therefore a proof, not a
-#     sampling heuristic — and when it fails it does not guess, it demands a re-measure.
+#   TIER 1 (every run, ~2 s) — IDENTITY, on everything this gate PUBLISHES, in four arms:
+#     (1) BASELINE IDENTITY. Re-hash the four inputs the baseline names: the grammar, the
+#       generated parser, the instrument, and a digest over the sampled corpus files themselves.
+#       The binding metric is an exact function of exactly those inputs (verified: deterministic
+#       across repeated release runs, and byte-identical between the debug and release probes).
+#       ⇒ if none of them moved, the measurement CANNOT have moved. This is a proof, not a
+#       sampling heuristic — and when it fails it does not guess, it demands a re-measure.
+#     (2) THE LR-FAMILY CLASSIFIER (`--verify-families`, ~0.1 s). Every generated parser's
+#       declared `_lr` rule names must be classified by the shipped predicate.
+#     (3) THE PUBLISHED FAMILY SHARE (`--verify-family-share`, ~1 s). The corpus-wide share the
+#       blind-spot bound below is computed from is re-hashed against the tracked derivation.
+#     (4) CO-PUBLICATION. Every designated live surface must carry that derived share and factor,
+#       so the bound cannot be quoted anywhere in the repository after it has gone stale.
 #
 #   TIER 2 (on demand, ~2.5 min) — THE RATCHET ITSELF. Re-run the instrument into a SCRATCH
 #     directory and compare. Entries/committed/memo-hits must not RISE. Wall clock is reported
 #     against a wide band and never fails the gate.
+#
+# ⛔ ARMS 2-4 WERE ON DEMAND UNTIL `ENGINE-UNIVERSAL-SERVICES.21` ACCEPTANCE (f), AND THAT IS THE
+# DEFECT (f) CLOSES. `--verify-families` rode tier 2, so it ran when an operator chose to
+# re-measure and never on a commit; the family share was a hand-carried constant referenced only
+# by the file that defined it and guarded by a comment reading *"re-derive it, do not edit this
+# line"*. `.21` slice 1 had replaced a WRONG unwatched number with a RIGHT unwatched number —
+# `docs/CLAIM_VERIFICATION.md` §6 names that as an anti-pattern in its own right. All three now
+# ride the every-run tier, because they cost seconds and the thing they guard rots in silence.
 #
 # ⛔ WHY THE PARSER HASH IS THE TRIPWIRE AND NOT AN INCONVENIENCE. `generated/
 # systemverilog_parser.rs` changes exactly when the parser's behaviour can change. Making the
@@ -38,16 +53,19 @@
 #
 # ⚠️ HONEST LIMIT, stated rather than discovered later (DOCTRINE_ENFORCEMENT.md §3). The binding
 # metric observes the PROTOCOL graph. A production parse with no diagnostic consumer runs the
-# FUSED `cascade_*` graph, which ticks no per-rule counters — and the +24.3 % was measured there.
-# Measured bound: the LR-elimination family is 2.741 % of corpus entries, so this metric is at
-# least ~8.9× less sensitive to THAT regression than wall clock is. ⛔ That bound READ ~35× until
-# `ENGINE-UNIVERSAL-SERVICES.21`, because the classifier that measured it counted only
-# `_lr_base`/`_lr_suffix` and so saw 0.681 % — no `_lr_seed`, and in a family named for the GUARD,
-# no `_lr_guard` rule at all: 75.1 % of the family's entries were uncounted. The gate was
-# UNDER-claiming its own sensitivity by ~4×. It binds STRUCTURAL work
-# exactly; it does not claim to price the fused graph. The wall-clock advisory is the only view of
-# the other graph and is machine-dependent, which is precisely why it advises and does not bind.
-# Neither metric alone is sufficient, and the report says so on every run.
+# FUSED `cascade_*` graph, which ticks no per-rule counters — and the wall-clock regression was
+# measured there. So this metric is materially LESS sensitive to that regression than wall clock
+# is, by a factor this gate re-derives rather than states: the share and the factor live in
+# `docs/tasks/artifacts/…/parse_cost_ratchet/family_share.json` and arm 3 above re-hashes them
+# every run. ⛔ The bound READ ~35× until `ENGINE-UNIVERSAL-SERVICES.21`, because the classifier
+# that measured it counted only `_lr_base`/`_lr_suffix` — no `_lr_seed`, and in a family named for
+# the GUARD, no `_lr_guard` rule at all: 75.1 % of the family's entries were uncounted, and the
+# gate was UNDER-claiming its own sensitivity by ~4×. ⭐ The digits are deliberately NOT repeated
+# in this comment any more: a gate that both publishes a number and checks it is checking itself.
+# What binds is STRUCTURAL work, exactly; this gate does not claim to price the fused graph. The
+# wall-clock advisory is the only view of the other graph and is machine-dependent, which is
+# precisely why it advises and does not bind. Neither metric alone is sufficient, and the report
+# says so on every run.
 #
 # ⚠️ The vendored corpora are submodules, so a hosted checkout without them cannot measure at all.
 # That is reported as NOT EVALUATED — loudly, never as a pass
@@ -73,6 +91,30 @@ ART = "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet"
 STATE = os.environ.get("PGEN_PARSE_COST_STATE_DIR", "rust/target/parse_cost_ratchet")
 GRAMMAR_FILE = "grammars/systemverilog.ebnf"
 GENERATED_PARSER = "generated/systemverilog_parser.rs"
+GENERATED_DIR = "generated"
+FAMILY_SHARE = f"{ART}/family_share.json"
+
+# ── the CO-PUBLICATION surfaces (`ENGINE-UNIVERSAL-SERVICES.21` acceptance (f)) ─────────────────
+#
+# ⛔ THE NUMBER'S FAILURE MODE WAS NEVER "somebody edits the constant". It was that ONE figure was
+# hand-copied into four documents and went stale in all of them at once, silently, because no
+# reader could tell a live claim from a quotation. Gating the constant alone would fix the file
+# nobody was reading from. ⇒ every surface that states the bound as a LIVE fact carries the
+# derived pair, and this gate holds them equal to the artifact — the second leg
+# `SV-CORPUS-DENOMINATOR` uses, for the same reason.
+#
+# ⚠️ `check_parse_cost_ratchet.sh` is deliberately NOT in this list: an assertion about a file
+# cannot live inside that file as a literal
+# (docs/decisions/reference_self_referential_assertion_is_unsound.md). Its header now cites the
+# artifact instead of repeating the digits, which removes the copy rather than checking it.
+LIVE_SURFACES = [
+    "TOOLBOX.md",
+    "DOCTRINE_ENFORCEMENT.md",
+    "docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md",
+    f"{ART}/cost.md",
+]
+SHARE_ANCHOR_MARK = "Live LR-family share"
+SHARE_TUPLE_RE = re.compile(r"`(\d+\.\d+/\d+\.\d+)`")
 
 REMEASURE = os.environ.get("PGEN_PARSE_COST_REMEASURE", "0") == "1"
 REBASELINE = os.environ.get("PGEN_PARSE_COST_REBASELINE", "0") == "1"
@@ -119,6 +161,26 @@ def read_identity(text):
     return out
 
 
+def share_anchors(text):
+    """Every `share/factor` tuple inside a PARAGRAPH carrying the live-share MARKER.
+
+    ⛔ Marker-scoped for the same reason `check_sv_corpus_denominator.sh` is: this bound has an
+    ERA — it was published as `0.681/35.7` before `.21` corrected the classifier — and a
+    historical citation is history, not a stale live claim (supersede-don't-mutate). Only a
+    paragraph that declares itself live is read.
+    ⚠️ Paragraph-scoped rather than line-scoped, because the book and TOOLBOX wrap their prose, so
+    the marker and the tuple legitimately land on different lines. ALL tuples in a marker
+    paragraph are returned, so an unrelated number sharing it fails loudly instead of being
+    silently averaged into agreement.
+    """
+    out = []
+    for para in re.split(r"\n[ \t]*\n", text):
+        if SHARE_ANCHOR_MARK not in para:
+            continue
+        out.extend(m.group(1) for m in SHARE_TUPLE_RE.finditer(para))
+    return out
+
+
 def self_check():
     """GROUND TRUTH, re-run on every invocation (microseconds). Positive controls AND negatives;
     a MISS refuses (exit 2) rather than reporting a clean tree
@@ -141,9 +203,31 @@ def self_check():
             print(f"parse-cost-ratchet: CONTROL MISSED: {text!r} want={want} got={got}",
                   file=sys.stderr)
             misses += 1
+    anchor_cases = [
+        (f"x **{SHARE_ANCHOR_MARK} `2.741/8.9`** y", ["2.741/8.9"]),
+        # the marker and the tuple wrapped onto separate lines of one paragraph
+        (f"{SHARE_ANCHOR_MARK} —\nthe pair is `2.741/8.9` today", ["2.741/8.9"]),
+        # ⭐ the SAME digits with no marker are an era-dated citation, and must stay invisible
+        ("the bound was `0.681/35.7` before .21 corrected it", []),
+        # a marker with no tuple is a missing anchor, which the call site treats as missing
+        (f"{SHARE_ANCHOR_MARK} — pending re-derivation", []),
+        # unbackticked digits are prose, not an anchor
+        (f"{SHARE_ANCHOR_MARK} 2.741/8.9", []),
+        # two anchors, both seen — so disagreement fails rather than being averaged
+        (f"{SHARE_ANCHOR_MARK} `2.741/8.9`\n{SHARE_ANCHOR_MARK} `9.999/9.9`",
+         ["2.741/8.9", "9.999/9.9"]),
+        # a paragraph WITHOUT the marker is not read even if it is adjacent to one
+        (f"{SHARE_ANCHOR_MARK} `2.741/8.9`\n\nelsewhere `1.234/5.6` is quoted", ["2.741/8.9"]),
+    ]
+    for text, want in anchor_cases:
+        got = share_anchors(text)
+        if got != want:
+            print(f"parse-cost-ratchet: CONTROL MISSED: {text!r} want={want} got={got}",
+                  file=sys.stderr)
+            misses += 1
     if misses:
-        print(f"parse-cost-ratchet: the identity reader does not discriminate ({misses} control(s) "
-              f"missed); refusing", file=sys.stderr)
+        print(f"parse-cost-ratchet: the identity/anchor readers do not discriminate "
+              f"({misses} control(s) missed); refusing", file=sys.stderr)
         sys.exit(2)
 
 
@@ -246,6 +330,97 @@ if stale:
            "      change in what the parser costs. Re-measure — do not edit the number:\n"
            "        make -C rust SHELL=/bin/bash sv_parse_cost_ratchet")
 
+# ── TIER 1, arm 2: the LR-family CLASSIFIER, over every generated parser ────────────────────────
+#
+# ⛔ MOVED HERE FROM TIER 2 BY `.21` ACCEPTANCE (f). It reads `generated/`, which the baseline
+# identity does not enumerate, so it was hung off the on-demand re-measure — and an arm that runs
+# only when an operator chooses to re-measure runs approximately never. Measured cost of running
+# it on every commit instead: 0.1 s. There was never a cost argument for deferring it, only an
+# architectural one, and `GATE-REACHABILITY` is the record of what happens to checks nobody calls.
+# ⛔ `generated/` is NOT tracked, so its absence is NOT EVALUATED — never a pass, never a failure
+# (docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md).
+gen_present = (os.path.isdir(GENERATED_DIR)
+               and any(n.endswith(".rs") for n in os.listdir(GENERATED_DIR)))
+if gen_present:
+    fam = subprocess.run([sys.executable, INSTRUMENT, "--verify-families"],
+                         capture_output=True, text=True)
+    if fam.returncode != 0:
+        fail("the LR-family classifier does not classify every declared `_lr` rule name across "
+             "the generated parsers:\n"
+             + "".join(f"        {l}\n" for l in (fam.stderr or fam.stdout).strip().splitlines()[:6])
+             + "      Re-derive it from the eliminators' emission sites — never from this list.")
+else:
+    unevaluated.append(f"{GENERATED_DIR}/ holds no generated parser, so the LR-family classifier "
+                       f"could not be run over any declared rule names; regenerate with "
+                       f"`make -C rust SHELL=/bin/bash regenerate_generated_parsers`")
+
+# ── TIER 1, arm 3: the PUBLISHED FAMILY SHARE ───────────────────────────────────────────────────
+#
+# The corpus-wide share the blind-spot bound is computed from. Derived by a ~70 s full-corpus
+# census into a tracked artifact; re-hashed here against its four recorded inputs in ~1 s.
+share_proc = subprocess.run([sys.executable, INSTRUMENT, "--verify-family-share"],
+                            capture_output=True, text=True)
+if share_proc.returncode != 0:
+    fail("the published LR-family share no longer describes this tree:\n"
+         + "".join(f"        {l}\n"
+                   for l in (share_proc.stderr or share_proc.stdout).strip().splitlines()[:8]))
+
+# ── TIER 1, arm 4: CO-PUBLICATION of that share on every designated live surface ────────────────
+derived_pair = None
+if os.path.isfile(FAMILY_SHARE):
+    try:
+        with open(FAMILY_SHARE, encoding="utf-8") as fh:
+            fs = json.load(fh)
+        derived_pair = f"{fs['corpus_family_share_pct']}/{fs['blind_spot_factor']}"
+    except (OSError, KeyError, json.JSONDecodeError) as exc:
+        fail(f"{FAMILY_SHARE} could not be read for the co-publication check: {exc}")
+else:
+    fail(f"{FAMILY_SHARE} is missing — the published family share has no tracked derivation. "
+         f"Re-derive it:\n"
+         f"        make -C rust SHELL=/bin/bash sv_parse_cost_family_share")
+
+
+# ⛔⛔ ONE OF THESE SURFACES IS WRITTEN BY THE REBASELINE ITSELF, AND THAT IS A DEADLOCK IF IT IS
+# TREATED LIKE THE OTHERS. `cost.md` is REGENERATED by tier 2; its anchor therefore cannot be
+# correct until a rebaseline copies the fresh report in, and `if REBASELINE and not failures`
+# refuses to copy while any failure stands. That is precisely the bootstrap deadlock `.21` slice 1
+# found and fixed for the `instrument` identity row — the same shape, one surface over. ⇒ under
+# `PGEN_PARSE_COST_REBASELINE=1` a stale anchor in a REGENERATED artifact is a NOTE and the copy
+# decides; the hand-written surfaces stay hard failures on every path, unchanged.
+REGENERATED_SURFACES = {f"{ART}/cost.md"}
+
+
+def copublication_problem(surface, msg):
+    if REBASELINE and surface in REGENERATED_SURFACES:
+        notes.append(msg + "  [note, not a failure: this surface is REGENERATED by the rebaseline "
+                           "now running, and refusing here would block the act that fixes it]")
+    else:
+        fail(msg)
+
+
+if derived_pair:
+    for surface in LIVE_SURFACES:
+        if not os.path.isfile(surface):
+            copublication_problem(surface, f"designated live surface missing: {surface}")
+            continue
+        with open(surface, encoding="utf-8") as fh:
+            found = share_anchors(fh.read())
+        if not found:
+            copublication_problem(
+                surface,
+                f"{surface} carries NO live LR-family-share anchor. Add a paragraph containing "
+                f"'{SHARE_ANCHOR_MARK}' and the pair `{derived_pair}` "
+                f"(corpus-entry share % / blind-spot factor), so the bound cannot be quoted here "
+                f"after it has gone stale.")
+            continue
+        wrong = sorted(set(t for t in found if t != derived_pair))
+        if wrong:
+            copublication_problem(
+                surface,
+                f"{surface} publishes LR-family share pair(s) {wrong} but the tracked derivation "
+                f"says {derived_pair}. The share and its blind-spot factor move TOGETHER — "
+                f"update the anchor, or re-derive if the tree moved.")
+
 # ── TIER 2: the ratchet ─────────────────────────────────────────────────────────────────────────
 BINDING = ("entries", "committed", "memo_hits")
 
@@ -293,20 +468,9 @@ if REMEASURE or REBASELINE:
             print((proc.stderr or proc.stdout).strip(), file=sys.stderr)
             sys.exit(2)
 
-        # ⭐ `.21` acceptance (g) — the classifier is ENGINE-universal, so it is verified against
-        # EVERY generated parser's declared rule names, not just SystemVerilog's. It rides tier 2
-        # because it reads `generated/`, which tier 1 does not enumerate.
-        # ⚠️ HONEST LIMIT, stated rather than discovered later: tier 2 is on-demand, so this arm
-        # runs when an operator re-measures or rebaselines — NOT on every commit. Tier 1 re-hashes
-        # the SV parser, so SV's own family names cannot move unnoticed; the other nine families
-        # are only re-checked here. Wiring it to an every-run tier is `.21` acceptance (f)'s call.
-        fam = subprocess.run([sys.executable, INSTRUMENT, "--verify-families"],
-                             capture_output=True, text=True)
-        if fam.returncode != 0:
-            fail("the LR-family classifier does not classify every declared `_lr` rule name "
-                 "across the generated parsers:\n"
-                 + "".join(f"        {l}\n" for l in (fam.stderr or fam.stdout).strip().splitlines()[:6])
-                 + "      Re-derive it from the eliminators' emission sites — never from this list.")
+        # ⭐ `.21` acceptance (g)'s `--verify-families` USED to run here, and (f) moved it to
+        # tier 1 above. The honest limit it carried — *"tier 2 is on demand, so this arm runs when
+        # an operator re-measures, NOT on every commit"* — was the whole reason it had to move.
 
         base_tot, base_rows = totals_of(f"{ART}/entries.tsv")
         new_tot, new_rows = totals_of(f"{scratch}/entries.tsv")

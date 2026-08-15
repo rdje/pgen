@@ -6130,7 +6130,7 @@ may REJECT files ARM 2 accepts, and a timing comparison across different verdict
   `bash scripts/check_doctrines.sh` → ALL 20 enforced doctrines PASS;
   `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
 
-#### ⚠️ `.21` `in progress` — the parse-cost instrument's "guarded-admission family" counted 97 of the **127** LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ✅ **(e) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0041`; ⏳ **(f) is now the frontier**; ✅ **(g) DISCHARGED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0039`; ⛔ **(b) MEASURED and BLOCKED on `.22`**)
+#### ⚠️ `.21` `in progress` — the parse-cost instrument's "guarded-admission family" counted 97 of the **127** LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ✅ **(e) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0041`; ✅ **(f) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0045`; ✅ **(g) DISCHARGED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0039`; ⛔ **(b) MEASURED and BLOCKED on `.22`** — the ONLY item left open, which is why the leaf stays `in progress`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -6220,9 +6220,9 @@ is the classifier that was defective. The agreement therefore bounds far less th
 and `return_annotation` / `semantic_annotation` each carry `left_recursion_eliminated=1`; whether
 their emitted names match the new predicate is unmeasured.
 
-⇒ **ADDED TO `.21` ACCEPTANCE, and the leaf STAYS `in progress`:** ✅ **(e) DISCHARGED by slice 3**
-(`PGEN-ENGINE-UNIVERSAL-SERVICES-0041`, below) · ✅ **(g) DISCHARGED by slice 2** · ⏳ **(f) is the
-frontier** — (e) promote the audit instruments
+⇒ **ADDED TO `.21` ACCEPTANCE, and the leaf STAYS `in progress` — now held ONLY by (b):** ✅ **(e)
+DISCHARGED by slice 3** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0041`) · ✅ **(g) DISCHARGED by slice 2** ·
+✅ **(f) DISCHARGED by slice 4** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0045`) — (e) promote the audit instruments
 + their profile artifacts into tracked paths, or delete the claims that depend on them — a measured
 number whose producer is untracked is a *"trust me"*; (f) make the corpus family share **DERIVED or
 GATED**, not carried — the census is 71 s, so a `--verify-family-share` mode re-run on demand (and a
@@ -6230,7 +6230,7 @@ tracked artifact the way `SV-CORPUS-DENOMINATOR` does it) is affordable; (g) obs
 real by generating a parser from a directly-left-recursive grammar, and run the predicate over all
 ten families' declared rule names.
 
-###### ✅ SEQUENCING RULED 2026-08-15 (session #237) — **(f) IS DEFERRED BEHIND `.20`(b), WITH A TRIGGER**, and the ruling is recorded because a deferral without one is just a backlog
+###### ✅ SEQUENCING RULED 2026-08-15 (session #237) — **(f) IS DEFERRED BEHIND `.20`(b), WITH A TRIGGER**, and the ruling is recorded because a deferral without one is just a backlog ⭐ **OUTCOME 2026-08-16: the TRIGGER fired, not the deferral.** `.20`(b) came back noise-limited rather than discharged, and slice 3 had meanwhile edited `stimuli/sv/corpus_parse_cost.py` — the ruling's second trigger, verbatim. (f) ran there and is DISCHARGED by slice 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0045`). ⇒ the deferral cost nothing and the trigger is why: a deferral with a trigger is a schedule, a deferral without one is a backlog.
 
 ⛔ **This was mine to decide and I put it to the director first — that was the error, not the
 answer.** [[feedback_answer_your_own_technical_questions]]:
@@ -6737,6 +6737,166 @@ measure, not just copied to a tracked path.
   it is only imported — so `PARSE-COST-RATCHET`'s identity tier is unaffected and its baseline is
   untouched; the doctrine driver re-runs it green. `make -C rust SHELL=/bin/bash mdbook_docs_gate`
   passes.
+
+##### ✅ `.21` SLICE 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0045`, 2026-08-16 session #238) — (f) DISCHARGED: the published share is GATED, its factor is DERIVED, and the three arms that ran on demand now run on every commit
+
+The sequencing ruling above deferred (f) behind `.20`(b) **with a trigger**, and the trigger fired
+without waiting for (b): *"any change to `stimuli/sv/corpus_parse_cost.py`, the SV grammar, or the
+shipped SV parser"*. Slice 3 (`-0041`) made `lr_profile/family_census.py` IMPORT `LR_FAMILY_RE` from
+that file, so the carried share acquired a second consumer while remaining unwatched — and `.20`(b)
+is blocked on a quiet machine, not on work. ⇒ (f) ran now, exactly as its own ruling provided for.
+
+###### ⛔ WHAT (f) WAS ACTUALLY ABOUT, AND WHY GATING THE CONSTANT ALONE WOULD HAVE MISSED IT
+
+GAP 2 named one defect — *a hand-carried constant guarded by a comment* — and the leaf's founding
+sentence names a second one that is bigger: **one figure was hand-copied into four surfaces and went
+stale in all of them at once.** A gate on the constant fixes the file nobody reads from. So (f)
+landed BOTH legs, which is what `SV-CORPUS-DENOMINATOR` does and is why its name appears in the
+acceptance text:
+
+| leg | what it holds | cost |
+|---|---|---|
+| **derivation** | a full-corpus census writes a TRACKED artifact naming every input the share is a function of | ~70 s, on demand |
+| **identity** | those four inputs are re-hashed on every run; drift FAILS with the re-derive command | ~1 s, every run |
+| **co-publication** | every designated live surface must carry the derived `share/factor` pair | ~0 s, every run |
+
+###### ⭐⭐⭐ RESULT 1 — THE DERIVATION REPRODUCES THE PUBLISHED NUMBER EXACTLY, AGAINST AN ORACLE THIS SLICE DID NOT BUILD
+
+```
+$ python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share
+parse-cost: derived family share 2.741 % (24,644,435 of 899,064,022 entries over 16335 files,
+            1 no-dump) in 71 s -> …/parse_cost_ratchet/family_share.json
+parse-cost: the carried constant 2.741 % reproduces exactly.
+```
+
+⭐ Both halves land on a tracked oracle written by a different instrument in a different slice:
+`docs/tasks/artifacts/engine_universal_services/guard_ab_entries.txt` records `ARM 2 SHIPPED …
+entries= 899,064,022`, and the provenance string carried since slice 1 says `24 644 435 of
+899 064 022 entries over 16 335 files`. ⇒ leg 1 (re-derive) and leg 2 (falsify against an oracle I
+did not build) in one command — [[feedback_verify_a_claim_three_ways_before_publishing_it]].
+
+⭐ The **1 no-dump** is now PRINTED rather than swallowed. `.22` is a record of exactly that one file
+vanishing silently from this census and perturbing five pinned sample rows before anyone noticed.
+
+###### ⭐⭐ RESULT 2 — THE BLIND-SPOT FACTOR IS NO LONGER A NUMBER AT ALL
+
+`BLIND_SPOT_FACTOR = "8.9"  # 24.3 / CORPUS_FAMILY_SHARE_PCT` was a *comment asserting that two
+constants stay in step* — the same class of promise this leaf exists because nobody kept. It is now
+`blind_spot_factor()`, computed from `WALL_CLOCK_REGRESSION_PCT / CORPUS_FAMILY_SHARE_PCT`, so
+correcting the share cannot leave the factor behind. That is precisely how `~35×` survived beside a
+share nobody re-derived. Four ground-truth cases run on every invocation, and one of them is the
+historical pair: **share `0.681` ⇒ factor `35.7`**, so the arithmetic is pinned against the era it
+got wrong, not only against today's answer.
+
+###### ⭐⭐⭐ RESULT 3 — (f)'s SECOND HALF: THREE TIER-1 ARMS WHERE THERE WAS ONE, AND THE COST ARGUMENT NEVER EXISTED
+
+`--verify-families` rode tier 2 — the ON-DEMAND re-measure — with an honest limit written into the
+gate saying so. Measured cost of running it on every commit instead: **0.076 s**. The whole tier 1
+went **0.4 s → 2.24 s**, and the 1.8 s buys three arms:
+
+| arm | what it holds | measured |
+|---|---|---|
+| 2 `--verify-families` | every generated parser's declared `_lr` names are classified | 0.08 s |
+| 3 `--verify-family-share` | the published share still describes this tree (4 identity rows) | ~1.4 s |
+| 4 co-publication | 4 designated live surfaces carry the derived pair | ~0 s |
+
+⛔ There was never a cost argument for deferring arm 2, only an architectural one (*"it reads
+`generated/`, which the baseline identity does not enumerate"*), and `GATE-REACHABILITY` is this
+repository's record of what happens to a check nobody calls.
+
+###### ⭐⭐ RESULT 4 — **10/10 REFUSAL ARMS OBSERVED FIRING**, AND ONE OF THEM REPLAYS THE FOUNDING DEFECT
+
+`docs/tasks/artifacts/engine_universal_services/family_share_gate/probe.sh` drives every refusal
+against a MUTATED COPY of the artifact — which is why `--verify-family-share` takes
+`--family-share-artifact` as a parameter rather than reading a hard-coded path:
+
+```
+✓ GREEN tracked artifact   exit 0 · ✓ RED 1 artifact absent   exit 2 · ✓ RED 2 schema moved  exit 2
+✓ RED 3 carried != derived exit 1 · ✓ RED 4 factor stale      exit 1 · ✓ RED 5 row missing   exit 1
+✓ RED 6 pre-.21 classifier exit 1 · ✓ RED 7 grammar moved     exit 1 · ✓ RED 8 parser moved  exit 1
+✓ RED 9 corpus moved       exit 1                                     10 passed, 0 failed.
+```
+
+⭐ **RED 6** substitutes the digest of the actual pre-`.21` predicate (`_lr_base$|_lr_suffix(_r\d+)?$`,
+the one that produced `0.681 %` and `~35×`) and the gate refuses it. That is the difference between
+*"the number is right today"* and *"the number cannot go wrong unnoticed"*.
+
+###### ⛔⛔ THE REBASELINE DEADLOCKED, THE SAME WAY SLICE 1's DID, ONE SURFACE OVER
+
+`cost.md` is a co-publication surface **and** is REGENERATED by tier 2. So its anchor could not be
+correct until a rebaseline copied the fresh report in — and `if REBASELINE and not failures` refuses
+to copy while any failure stands. Identical in shape to slice 1's `instrument`-row deadlock (the row
+cannot exist until a rebaseline writes it; the rebaseline refused to write while it was missing),
+and fixed the same narrow way: under `PGEN_PARSE_COST_REBASELINE=1` a stale anchor in a REGENERATED
+artifact is a NOTE and the copy decides. Hand-written surfaces stay hard failures on every path.
+⇒ [[a-bootstrap-check-must-not-block-the-act-that-bootstraps-it]] is now a twice-measured shape, not
+a one-off.
+
+###### ⚠️ HONEST BOUNDS — stated, not discovered later
+
+- ⛔ **The classifier identity row hashes the PREDICATE, not the whole instrument**, deliberately: a
+  whole-file hash also fires on a comment edit, and a gate that fires on prose teaches waivers
+  (`GENERATED-LINT-CORRECTNESS.6`/`.12`). ⇒ a change to how entries are COUNTED
+  (`measure_one_entries`'s dump flag, the summation) does not stale `family_share.json`. It is not
+  unguarded — `PARSE-COST-RATCHET`'s own baseline carries a whole-file `instrument` hash, so a
+  pipeline edit stales THAT and puts the operator in the re-measure path already. **The two identity
+  blocks are complements; neither alone covers the file.**
+- ⚠️ Arm 4 is **marker-scoped**, so an era-dated citation of `0.681/35.7` in prose is deliberately
+  invisible (supersede-don't-mutate). A live claim written WITHOUT the marker is therefore still
+  ungated — the check can only hold surfaces that opt in by carrying the anchor.
+- ⚠️ `scripts/check_parse_cost_ratchet.sh` is NOT a co-publication surface: an assertion about a file
+  cannot live inside that file as a literal. Its header now **cites the artifact instead of
+  repeating the digits** — the copy is removed, not checked.
+- ⛔ This slice does not touch `.20`(b). (b) is still noise-limited and still needs ≥3 interleaved
+  timed rounds on a quiet machine.
+
+###### Acceptance Checklist (enforced) — `.21` slice 4, acceptance (f)
+
+- [x] **REPRODUCE / ISSUE** — the defect reproduces by command, exactly as GAP 2 recorded it:
+  ```
+  $ grep -rln "CORPUS_FAMILY_SHARE_PCT" --include=*.sh --include=*.py --include=*.yml .
+  stimuli/sv/corpus_parse_cost.py          # only the file that DEFINES it — nothing reads it
+  $ git ls-files 'scripts/*.sh' '.github/workflows/*.yml' 'rust/Makefile' | xargs grep -ln -- '--verify-families'
+  scripts/check_parse_cost_ratchet.sh      # …inside `if REMEASURE or REBASELINE:` — tier 2, on demand
+  ```
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY, in the ops/build-flow family (this is a gate/instrument
+  defect, so there is no rustc error and no parse to trace): the published share was a **carried
+  constant**, and `DOCTRINE_ENFORCEMENT.md` §1 is that a rule nothing checks is a suggestion — its
+  only guard was a source COMMENT (`stimuli/sv/corpus_parse_cost.py:105`) reading *"re-derive it …
+  NOT by editing this line"*. The blind-spot factor was a SECOND constant whose comment asserted it
+  tracked the first. And the one arm that did re-derive something (`--verify-families`) was wired
+  inside `if REMEASURE or REBASELINE:` at `scripts/check_parse_cost_ratchet.sh:279`, i.e. the
+  on-demand tier, with the gate's own comment conceding *"tier 2 is on-demand, so this arm runs when
+  an operator re-measures — NOT on every commit"*. WHERE, by `git ls-files`/`grep` above:
+  the constant at `stimuli/sv/corpus_parse_cost.py:107`, the factor at `:112`, the tier-2 wiring at
+  `scripts/check_parse_cost_ratchet.sh:279-309`.
+- [x] **FIX** — fix-hierarchy tier = **ops/build-flow + instrument**; ZERO engine, grammar or
+  generated bytes. (1) `--rederive-family-share` derives the share into a tracked
+  `family_share.json` carrying four identity rows; (2) `--verify-family-share` re-hashes them every
+  run; (3) `blind_spot_factor()` replaces the second constant with a derivation; (4)
+  `--verify-families` moves from tier 2 to tier 1; (5) a co-publication leg holds four live surfaces
+  equal to the derivation; (6) `make sv_parse_cost_family_share` is the operator entry point.
+  ⛔ The re-derivation deliberately does NOT rewrite the constant — a claim generated by the run that
+  measures it agrees with that run by construction (`COMMIT.md`'s rule for `claimed_status`).
+- [x] **ADDRESSED (verified)** — before→after on the symptom.
+  BEFORE: `grep -rln CORPUS_FAMILY_SHARE_PCT` → **1 file, the one that defines it**; `--verify-families`
+  invoked only under `REMEASURE or REBASELINE`; tier 1 = 0.4 s, one arm; no artifact.
+  AFTER: `bash scripts/check_parse_cost_ratchet.sh` → **exit 0** in **2.24 s** printing *"identity
+  fresh for: generated parser, grammar, instrument, sample inputs"*, having additionally run all
+  three new arms; the derivation reproduces `2.741 %` = `24,644,435 / 899,064,022` against the
+  tracked `guard_ab_entries.txt` oracle; and **10/10** refusal arms are observed firing
+  (`docs/tasks/artifacts/engine_universal_services/family_share_gate/probe.txt`), including RED 6,
+  which replays the pre-`.21` classifier and is refused. ⭐ The gate was driven RED first and
+  measured going GREEN: before the anchors were added it reported **5 breaches** naming all four
+  co-publication surfaces by path.
+- [x] **NO REGRESSION** — ⭐ **`entries.tsv` is BYTE-IDENTICAL across the rebaseline**
+  (`git status --short` lists only `advisory.json` — machine-dependent wall clock — and `cost.md`,
+  whose only content change is the new anchor paragraph plus the instrument's own hash row): the
+  three BINDING counters did not move, which is the proof this slice changed reporting and gating
+  only. `bash scripts/check_doctrines.sh` → **ALL 20 enforced doctrines PASS** (incl. the
+  regenerated `KNOWLEDGE_MAP.md`, `GATE-REACHABILITY` at 124 targets all dispositioned, and
+  `PARSE-COST-RATCHET` itself). `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes (10 per-parser
+  book gates + the main book). `generated/` untouched; no Rust source touched, so no clippy surface.
 
 #### ⭐⭐⭐ `.20` SLICE 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0044`, 2026-08-15/16 session #237) — (b) MEASURED THREE WAYS, and the three ways DISAGREE about which half is expensive. **(b) is NOT discharged: the tier ruling B binds on is noise-limited, and that refusal is the deliverable.**
 

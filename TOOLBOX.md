@@ -582,12 +582,22 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   in the repository stayed GREEN, because nothing measured parse cost at all.
 - **HOW:**
   ```bash
-  bash scripts/check_parse_cost_ratchet.sh                    # identity tier, ~0.4 s
+  bash scripts/check_parse_cost_ratchet.sh                    # tier 1, all four arms, ~2 s
   make -C rust SHELL=/bin/bash sv_parse_cost_ratchet          # the full ratchet, ~2.5 min
   make -C rust SHELL=/bin/bash sv_parse_cost_rebaseline       # promote a new baseline (deliberate)
+  make -C rust SHELL=/bin/bash sv_parse_cost_family_share     # re-derive the family share, ~70 s
   ```
 - **OUTPUT:** `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/` — `cost.md` (the
-  byte-compared report), `entries.tsv` (per-file), `advisory.json` (wall clock).
+  byte-compared report), `entries.tsv` (per-file), `advisory.json` (wall clock), `family_share.json`
+  (the corpus-wide LR-family share + the four identity rows it is a function of).
+- ⭐⭐ **TIER 1 IS FOUR ARMS, NOT ONE, SINCE `.21` (f).** (1) baseline identity; (2)
+  `--verify-families` — every generated parser's declared `_lr` names are classified (0.1 s);
+  (3) `--verify-family-share` — the published corpus share is re-hashed against its tracked
+  derivation (~1 s); (4) co-publication — every designated live surface carries that derived pair.
+  Arms 2-4 were on demand or ungated before (f), which is why the bound below could go stale in
+  four documents at once. Their refusals are proven by
+  `docs/tasks/artifacts/engine_universal_services/family_share_gate/probe.sh` (**10/10**, incl. a
+  RED arm replaying the pre-`.21` classifier).
 - ⭐⭐ **WHAT BINDS, AND WHY IT IS NOT WALL CLOCK.** The binding numbers are exact integers from 3.5 —
   rule entries, COMMITTED entries, memo hits — each verified deterministic across repeated release
   runs AND byte-identical between the debug and release probes. Wall clock is **advisory only**, on a
@@ -600,9 +610,16 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⛔ **THE DECLARED BLIND SPOT (read this before quoting the number).** The counters tick only in the
   PROTOCOL graph (3.4/3.5 ROUTING). The fused `cascade_*` twins — including
   `cascade_match_casting_type_lr_suffix` and friends — tick nothing, and the +24.3 % was measured
-  there. **Measured bound: the LR-elimination family is 2.741 % of corpus entries, so the binding
-  metric is at least ~8.9× less sensitive to that regression than wall clock.** ⛔ This read
-  *"0.681 % … ~35×"* until `ENGINE-UNIVERSAL-SERVICES.21`: the classifier counted only
+  there. **Measured bound — Live LR-family share `2.741/8.9`** (corpus-entry share % / blind-spot
+  factor): the LR-elimination family is 2.741 % of corpus entries, so the binding metric is at
+  least ~8.9× less sensitive to that regression than wall clock. ⭐ That pair is **GATED, not
+  quoted** since `.21` acceptance (f) — `PARSE-COST-RATCHET`'s every-run tier re-hashes the four
+  inputs it is a function of (grammar, generated parser, classifier, corpus) against
+  `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json`, and holds
+  this paragraph equal to it. Re-derive with `--rederive-family-share` (~70 s); never by editing
+  the digits here.
+
+  ⛔ This read *"0.681 % … ~35×"* until `ENGINE-UNIVERSAL-SERVICES.21`: the classifier counted only
   `_lr_base`/`_lr_suffix`, so it saw 97 of the parser's **127** LR rule names — no `_lr_seed`, and,
   in a family named for the GUARD, **no `_lr_guard` rule at all** — leaving **75.1 %** of the
   family's entries uncounted and the gate UNDER-claiming its own sensitivity by ~4×. ⚠️ That

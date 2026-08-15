@@ -46,18 +46,25 @@ and subtracted, and the advisory sample is restricted to files where the remaini
 dominates.
 
 MODES
-  (default)          measure the pinned sample -> the tracked baseline artifacts
-  --census           full-corpus entry census (~10 min at -j8); the input to --select
-  --select           derive the pinned sample manifest FROM a census, deterministically
-  --verify-families  run the LR-family predicate over EVERY generated parser's declared rule
-                     names and refuse on any unclassified `_lr` name (`.21` (g)). Reads the
-                     artifacts, not a parse, so it needs no probe and takes ~1 s.
+  (default)                measure the pinned sample -> the tracked baseline artifacts
+  --census                 full-corpus entry census; the input to --select
+  --select                 derive the pinned sample manifest FROM a census, deterministically
+  --verify-families        run the LR-family predicate over EVERY generated parser's declared
+                           rule names and refuse on any unclassified `_lr` name (`.21` (g)).
+                           Reads the artifacts, not a parse: no probe, ~0.1 s.
+  --verify-family-share    re-hash every input the carried corpus family share is a function of
+                           and fail when one moved (`.21` (f)). ~0.8 s — the every-run tier.
+  --rederive-family-share  DERIVE that share from a full-corpus census (~70 s) into the tracked
+                           artifact. Reports disagreement with the carried constant; never
+                           edits it.
 
 USAGE
   python3 stimuli/sv/corpus_parse_cost.py --outdir <dir>
   python3 stimuli/sv/corpus_parse_cost.py --census --outdir <dir>
   python3 stimuli/sv/corpus_parse_cost.py --select --census-tsv <f> --out <manifest>
   python3 stimuli/sv/corpus_parse_cost.py --verify-families
+  python3 stimuli/sv/corpus_parse_cost.py --verify-family-share
+  python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share
 
 CONTRACT: deterministic on the binding metric; repo-root-relative paths everywhere; refuses
 (exit 2) rather than reporting a clean measurement it could not take.
@@ -94,22 +101,63 @@ DEFAULT_MANIFEST = "stimuli/sv/parse_cost_sample.tsv"
 # record of, one input short instead of one gate short.
 INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 
-# ── the corpus-wide family share, and why it is a NAMED CONSTANT rather than prose ───────────
+# ── the corpus-wide family share, and why it is a GATED constant rather than a carried one ───
 #
 # This instrument measures the 192-file SAMPLE. The bound it publishes is a FULL-CORPUS figure,
-# so it cannot be derived here and must be carried. It was prose inside the report writer until
-# `ENGINE-UNIVERSAL-SERVICES.21`, which is how a single number ended up hand-copied into four
-# surfaces and stale in all of them at once. One constant, one provenance string, one place to
-# correct.
+# so it cannot be derived from a sample run and must be carried. It was prose inside the report
+# writer until `ENGINE-UNIVERSAL-SERVICES.21`, which is how a single number ended up hand-copied
+# into four surfaces and stale in all of them at once. One constant, one provenance string, one
+# place to correct.
 #
-# ⛔ Re-derive it with a full-corpus census (`--census`) summed under `is_lr_family`, NOT by
-# editing this line to match a remembered value.
+# ⛔⛔ AND THAT WAS NOT ENOUGH, WHICH IS WHAT ACCEPTANCE (f) IS A RECORD OF. Slice 1 replaced a
+# WRONG unwatched number with a RIGHT unwatched number: the corrected `2.741` was hand-carried,
+# referenced only by the file that defines it, and guarded by a COMMENT reading *"re-derive it,
+# do not edit this line"*. A comment is prose, and `DOCTRINE_ENFORCEMENT.md` §1 is that a rule
+# nothing checks is a suggestion — so the corrected figure would go stale exactly the way
+# `0.681` did, silently, the next time the grammar moved.
+#
+# ⇒ IT IS NOW GATED (`docs/CLAIM_VERIFICATION.md` §5B — derived or gated, never carried):
+#
+#   `--rederive-family-share`  re-derives it from a full-corpus census (~70 s) and writes the
+#                              TRACKED artifact below, naming every input the number depends on.
+#   `--verify-family-share`    re-hashes those inputs (~0.8 s) and fails when any of them moved,
+#                              so the carried figure cannot outlive the tree it describes. Wired
+#                              into `PARSE-COST-RATCHET`'s every-run tier, not left on demand.
+#
+# ⛔ The re-derivation deliberately does NOT rewrite this constant. Generating the claim from the
+# same run that measures it makes the comparison pass by construction — the failure mode
+# `COMMIT.md` names for the DONE-BAR register's `claimed_status`. The instrument reports the
+# disagreement; a human adopts it.
 CORPUS_FAMILY_SHARE_PCT = "2.741"
 CORPUS_FAMILY_PROVENANCE = (
     "24 644 435 of 899 064 022 entries over 16 335 files, `ENGINE-UNIVERSAL-SERVICES.21`; "
     "the previous 0.681 % counted only `_lr_base`/`_lr_suffix`"
 )
-BLIND_SPOT_FACTOR = "8.9"  # 24.3 / CORPUS_FAMILY_SHARE_PCT
+FAMILY_SHARE_ARTIFACT = (
+    "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
+)
+FAMILY_SHARE_SCHEMA = "pgen.parse_cost.family_share/v1"
+
+# `.17` slice 9's measured wall-clock cost of the guarded admission — the NUMERATOR of the
+# blind-spot bound. Named so the bound has exactly one arithmetic home.
+WALL_CLOCK_REGRESSION_PCT = "24.3"
+
+
+def blind_spot_factor(share: str | None = None, wall: str | None = None) -> str:
+    """How much less sensitive the BINDING counters are than wall clock to *this* regression.
+
+    ⛔ DERIVED, never carried. It was a second constant with the comment `# 24.3 / share`, which
+    is a promise that two numbers stay in step — and `ENGINE-UNIVERSAL-SERVICES.21` exists because
+    that kind of promise is not kept. Deriving it means correcting the share cannot leave the
+    factor behind, which is precisely how the published `~35×` survived alongside a share nobody
+    re-derived.
+
+    The two arguments exist so the ground-truth controls can drive it with values other than
+    today's, without reaching into module state to do it.
+    """
+    numerator = float(wall if wall is not None else WALL_CLOCK_REGRESSION_PCT)
+    denominator = float(share if share is not None else CORPUS_FAMILY_SHARE_PCT)
+    return f"{numerator / denominator:.1f}"
 
 # ── the DECLARED-name population, and why it is gated rather than carried ────────────────────
 #
@@ -682,12 +730,23 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A(f"corpus the family takes **{CORPUS_FAMILY_SHARE_PCT} %** of all rule entries")
     A(f"({CORPUS_FAMILY_PROVENANCE}). The flip's entry DELTA is smaller still — the rules it")
     A("replaced were themselves entered — so the entry count moved by a few percent at most while")
-    A(f"wall clock moved **+24.3 %**. ⇒ the binding metric is **at least ~{BLIND_SPOT_FACTOR}×")
+    A(f"wall clock moved **+{WALL_CLOCK_REGRESSION_PCT} %**. ⇒ the binding metric is "
+      f"**at least ~{blind_spot_factor()}×")
     A("less sensitive** to *this* regression than the advisory one. That is not a reason to")
     A("discard it: it catches structural growth EXACTLY and cannot be fooled by a busy machine. It")
-    A("is a reason to state plainly what it does **not** prove — the +24.3 % is a rise in cost PER")
+    A(f"is a reason to state plainly what it does **not** prove — the +{WALL_CLOCK_REGRESSION_PCT} "
+      f"% is a rise in cost PER")
     A("entry, not in the NUMBER of entries, and no counter can see that. `.20` acceptance (a)'s")
     A("profile is what attributes it; this ratchet stops it growing further unwatched meanwhile.")
+    A("")
+    # ⛔ THE CO-PUBLICATION ANCHOR (`.21` acceptance (f)). `PARSE-COST-RATCHET` holds every
+    # designated live surface equal to the tracked derivation, so this bound cannot be quoted
+    # anywhere in the repository after it has gone stale. The marker is what separates a LIVE
+    # claim from the era-dated citation in the very next paragraph.
+    A(f"**Live LR-family share `{CORPUS_FAMILY_SHARE_PCT}/{blind_spot_factor()}`** "
+      f"(corpus-entry share % / blind-spot factor), derived by")
+    A("`python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share` into")
+    A(f"`{FAMILY_SHARE_ARTIFACT}` and re-hashed against its four recorded inputs on every run.")
     A("")
     A(f"⚠️ The published bound was **~35×** until `.21`, computed on the 0.681 % the broken")
     A("classifier saw. The gate was under-claiming its own sensitivity by about 4×; the corrected")
@@ -898,14 +957,253 @@ def run_verify_families() -> int:
     return 0
 
 
-# ── modes ───────────────────────────────────────────────────────────────────────────────────
+def corpus_files() -> tuple[list[str], int]:
+    """The corpus the census walks: (files present on disk, files the manifest names).
 
-def run_census(probe: str, outdir: str, jobs: int) -> int:
+    ⛔ Both numbers are returned rather than just the first. The vendored corpora are git
+    SUBMODULES, so "present" and "named" diverge on a checkout without them — and silently
+    measuring the subset that happens to be there is how a shrinking denominator reads as a
+    clean run (`docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md`).
+    """
     manifest = os.path.join(ROOT, CORPUS_MANIFEST)
     if not os.path.isfile(manifest):
         die(f"corpus manifest missing: {CORPUS_MANIFEST}")
-    files = sorted({l.split("\t")[2] for l in open(manifest, encoding="utf-8") if l.strip()})
-    files = [f for f in files if os.path.isfile(os.path.join(ROOT, f))]
+    listed = sorted({l.split("\t")[2] for l in open(manifest, encoding="utf-8") if l.strip()})
+    present = [f for f in listed if os.path.isfile(os.path.join(ROOT, f))]
+    return present, len(listed)
+
+
+# ── the family share: derived by one mode, gated by another (`.21` acceptance (f)) ───────────
+#
+# ⛔ WHY TWO MODES AND NOT ONE. Re-deriving costs a full-corpus census (~70 s measured), which is
+# too slow to run on every commit and therefore exactly the kind of check that gets scheduled and
+# then never runs — `GATE-REACHABILITY`'s founding sentence. So the expensive derivation writes a
+# TRACKED artifact naming every input it consumed, and a cheap tier re-hashes those inputs. If
+# none of them moved, the recorded share CANNOT have moved: that tier is a proof, not a sample.
+# It is the same two-tier argument `PARSE-COST-RATCHET` already makes for the binding counters,
+# reused deliberately rather than invented again.
+
+FAMILY_SHARE_IDENTITY_LABELS = ("grammar", "generated parser", "classifier", "corpus inputs")
+
+
+def classifier_digest() -> str:
+    """The identity of the CLASSIFIER, as its exact pattern string.
+
+    ⛔⛔ DELIBERATELY NARROWER THAN A HASH OF THIS FILE, AND THE TRADE IS STATED RATHER THAN
+    DISCOVERED LATER. The share is a function of (grammar, parser, corpus, predicate). Hashing the
+    whole instrument would also fire on a comment edit, and a gate that fires on prose is a gate
+    that teaches waivers — the failure `GENERATED-LINT-CORRECTNESS.6`/`.12` are records of, and
+    the reason the third addition to that checker was refused on measurement.
+    ⚠️ HONEST LIMIT: this pins the PREDICATE, not the census pipeline around it. A change to how
+    entries are counted (`measure_one_entries`'s dump flag, the summation) would not stale this
+    artifact. It is not unguarded — `PARSE-COST-RATCHET`'s own baseline carries a whole-file
+    `instrument` hash, so a pipeline edit stales THAT and puts the operator in the re-measure path
+    already. The two identity blocks are complements, and neither alone covers the file.
+    """
+    return hashlib.sha256(LR_FAMILY_RE.pattern.encode("utf-8")).hexdigest()
+
+
+def family_share_identity() -> tuple[dict, list[str]]:
+    """(the identity rows that could be computed, the reasons the others could not).
+
+    Never silently partial: a missing input is RETURNED as a reason, so the caller can report NOT
+    EVALUATED rather than pass on a check it did not perform."""
+    ident, missing = {}, []
+    for label, rel in (("grammar", GRAMMAR_FILE), ("generated parser", GENERATED_PARSER)):
+        path = os.path.join(ROOT, rel)
+        if os.path.isfile(path):
+            ident[label] = {"path": rel, "sha256": sha256_of(path)}
+        else:
+            missing.append(f"{rel} is absent — generated/ is not tracked; regenerate it with "
+                           f"`make -C rust SHELL=/bin/bash regenerate_generated_parsers`"
+                           if rel == GENERATED_PARSER else f"{rel} is absent")
+    ident["classifier"] = {"path": f"{INSTRUMENT_FILE}:LR_FAMILY_RE",
+                           "sha256": classifier_digest()}
+    present, listed = corpus_files()
+    if present and len(present) == listed:
+        ident["corpus inputs"] = {"path": CORPUS_MANIFEST, "sha256": sample_input_digest(present)}
+    else:
+        missing.append(f"the vendored SV corpora are git submodules and only {len(present)} of "
+                       f"{listed} manifest-named files are checked out here")
+    return ident, missing
+
+
+def read_family_share_artifact(rel: str) -> dict:
+    path = rel if os.path.isabs(rel) else os.path.join(ROOT, rel)
+    if not os.path.isfile(path):
+        die(f"{rel} is missing — the corpus family share has no tracked derivation to be checked "
+            f"against. Re-derive it:\n"
+            f"    make -C rust SHELL=/bin/bash sv_parse_cost_family_share")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            art = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        die(f"{rel} is unreadable: {exc}")
+    if art.get("schema") != FAMILY_SHARE_SCHEMA:
+        die(f"{rel} declares schema {art.get('schema')!r}, expected {FAMILY_SHARE_SCHEMA!r}. Fix "
+            f"this reader rather than trusting fields it may not have written.")
+    return art
+
+
+def _self_check_family_share() -> None:
+    """GROUND TRUTH for the gating arithmetic, every invocation.
+
+    ⛔ The controls that matter here are the RED ones. A verifier that only ever agrees with
+    itself is what `.21` is a record of: ten cases drawn from the same prose as the classifier
+    they tested. Each case below is a specific way this gate could be wrong in the PASSING
+    direction, and each must be caught.
+    """
+    cases = [
+        # (share, wall clock, expected factor) — the published pair, then movements in both
+        # directions that MUST change the derived factor rather than silently reusing it.
+        ("2.741", "24.3", "8.9"),
+        ("0.681", "24.3", "35.7"),   # the pre-`.21` share reproduces the pre-`.21` ~35x bound
+        ("24.3", "24.3", "1.0"),     # a family that is the whole cost is not a blind spot
+        ("48.6", "24.3", "0.5"),     # and the factor must be allowed below 1, not clamped
+    ]
+    misses = [(share, wall, want, blind_spot_factor(share, wall))
+              for share, wall, want in cases if blind_spot_factor(share, wall) != want]
+    if misses:
+        for share, wall, want, got in misses:
+            print(f"parse-cost: CONTROL MISSED: share={share} wall={wall} want={want} got={got}",
+                  file=sys.stderr)
+        print("parse-cost: the blind-spot factor is not derived from the share; refusing",
+              file=sys.stderr)
+        sys.exit(2)
+
+
+def run_verify_family_share(artifact: str = FAMILY_SHARE_ARTIFACT) -> int:
+    """`.21` (f) TIER 1 (~0.8 s, every run): is the carried share still describing this tree?
+
+    `artifact` is a parameter so every refusal below can be driven RED against a mutated COPY
+    (`docs/tasks/artifacts/engine_universal_services/family_share_gate/probe.sh`) without ever
+    touching the tracked one. A control never observed failing is not known to work.
+    """
+    _self_check_family_share()
+    art = read_family_share_artifact(artifact)
+
+    failures: list[str] = []
+    # ── leg 1: the CARRIED constant must equal the DERIVED artifact ──────────────────────────
+    # This is the whole point of (f). Before it, `CORPUS_FAMILY_SHARE_PCT` was referenced only by
+    # the file that defines it, so editing it to any value at all was a silent, unopposed act.
+    if str(art.get("corpus_family_share_pct")) != CORPUS_FAMILY_SHARE_PCT:
+        failures.append(
+            f"the carried CORPUS_FAMILY_SHARE_PCT = {CORPUS_FAMILY_SHARE_PCT} % does NOT match the "
+            f"derived {artifact} value {art.get('corpus_family_share_pct')} %. "
+            f"One of the two is stale; the artifact is the measurement, so adopt it deliberately "
+            f"or re-derive:\n"
+            f"        make -C rust SHELL=/bin/bash sv_parse_cost_family_share")
+    if str(art.get("blind_spot_factor")) != blind_spot_factor():
+        failures.append(
+            f"the artifact records a blind-spot factor of {art.get('blind_spot_factor')}x but this "
+            f"instrument derives {blind_spot_factor()}x from "
+            f"{WALL_CLOCK_REGRESSION_PCT} / {CORPUS_FAMILY_SHARE_PCT}. The factor is DERIVED — "
+            f"re-derive the artifact rather than editing either number.")
+
+    # ── leg 2: identity — every input the recorded number is a function of ───────────────────
+    live, missing = family_share_identity()
+    recorded = art.get("identity", {})
+    for label in FAMILY_SHARE_IDENTITY_LABELS:
+        if label not in recorded:
+            failures.append(f"{artifact} has no `{label}` identity row, so that input "
+                            f"is unguarded — re-derive the artifact")
+    stale = [lbl for lbl, row in live.items()
+             if lbl in recorded and recorded[lbl].get("sha256") != row["sha256"]]
+    if stale:
+        failures.append(
+            "the corpus family share NO LONGER DESCRIBES THIS TREE — "
+            + ", ".join(f"`{lbl}` moved" for lbl in sorted(stale)) + ".\n"
+            + "".join(f"        {lbl}: artifact `{recorded[lbl]['sha256'][:16]}…` vs live "
+                      f"`{dict(live)[lbl]['sha256'][:16]}…`\n" for lbl in sorted(stale))
+            + f"      The share is an exact function of these inputs. Re-derive it (~70 s) — do "
+              f"not edit the number:\n"
+              f"        make -C rust SHELL=/bin/bash sv_parse_cost_family_share")
+
+    for m in missing:
+        print(f"parse-cost: NOT EVALUATED — {m}", file=sys.stderr)
+    if failures:
+        for f in failures:
+            print(f"parse-cost: ✗ {f}", file=sys.stderr)
+        return 1
+    checked = ", ".join(sorted(live))
+    print(f"parse-cost: family share {CORPUS_FAMILY_SHARE_PCT} % (blind-spot "
+          f"{blind_spot_factor()}x) — identity fresh for: {checked}")
+    return 0
+
+
+def run_rederive_family_share(probe: str, jobs: int, out_path: str) -> int:
+    """`.21` (f) TIER 2 (~70 s, on demand): the full-corpus census that DERIVES the share."""
+    _self_check_family_share()
+    files, listed = corpus_files()
+    if not files or len(files) != listed:
+        die(f"only {len(files)} of {listed} manifest-named corpus files are present. The vendored "
+            f"corpora are git submodules; a partial corpus derives a partial share:\n"
+            f"    git submodule update --init --recursive")
+    ident, missing = family_share_identity()
+    if missing:
+        die("cannot derive the family share — " + "; ".join(missing))
+
+    print(f"parse-cost: deriving the LR-family share over {len(files)} corpus files at -j{jobs} "
+          f"(~70 s) ...", file=sys.stderr)
+    t0 = time.perf_counter()
+    rows, nodump = measure_entries(probe, files, jobs)
+    if not rows:
+        die("every corpus file failed to produce a dump — refusing to publish an empty share")
+    total = sum(r[2] for r in rows)
+    lr_total = sum(r[5] for r in rows)
+    if total <= 0:
+        die("the census summed zero rule entries — refusing to publish a share with no denominator")
+    share = f"{100.0 * lr_total / total:.3f}"
+    elapsed = time.perf_counter() - t0
+
+    art = {
+        "schema": FAMILY_SHARE_SCHEMA,
+        "corpus_family_share_pct": share,
+        "blind_spot_factor": f"{float(WALL_CLOCK_REGRESSION_PCT) / float(share):.1f}",
+        "wall_clock_regression_pct": WALL_CLOCK_REGRESSION_PCT,
+        "lr_entries": lr_total,
+        "total_entries": total,
+        "files_measured": len(rows),
+        "files_nodump": len(nodump),
+        "files_in_manifest": listed,
+        "identity": ident,
+        "classifier_pattern": LR_FAMILY_RE.pattern,
+        "derivation": ("python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share "
+                       f"--out {out_path}"),
+        "note": ("The share of all PROTOCOL-graph rule entries taken by the left-recursion "
+                 "elimination family over the whole SV corpus. It is the DENOMINATOR of "
+                 "`PARSE-COST-RATCHET`'s published blind-spot bound: the binding counters are at "
+                 "least (wall_clock_regression_pct / this) times less sensitive than wall clock "
+                 "to a per-entry cost rise. ⛔ Derived, never hand-edited; "
+                 "`--verify-family-share` re-hashes every identity row above on every run."),
+    }
+    os.makedirs(os.path.dirname(os.path.join(ROOT, out_path)) or ".", exist_ok=True)
+    with open(os.path.join(ROOT, out_path), "w", encoding="utf-8") as fh:
+        json.dump(art, fh, indent=2, sort_keys=True)
+        fh.write("\n")
+
+    # ⛔ The no-dump count is PRINTED, not swallowed. `ENGINE-UNIVERSAL-SERVICES.22` is a record
+    # of exactly one file being dropped silently by this census and perturbing five pinned sample
+    # rows before anybody noticed it was gone.
+    print(f"parse-cost: derived family share {share} % "
+          f"({lr_total:,} of {total:,} entries over {len(rows)} files, {len(nodump)} no-dump) "
+          f"in {elapsed:.0f} s -> {out_path}", file=sys.stderr)
+    if share != CORPUS_FAMILY_SHARE_PCT:
+        print(f"parse-cost: ⚠️ the carried CORPUS_FAMILY_SHARE_PCT is {CORPUS_FAMILY_SHARE_PCT} % "
+              f"and the census derives {share} %. This mode deliberately does NOT edit the "
+              f"constant — a claim generated by the run that measures it agrees with that run by "
+              f"construction. Adopt it deliberately, then re-run `--verify-family-share`.",
+              file=sys.stderr)
+        return 1
+    print(f"parse-cost: the carried constant {CORPUS_FAMILY_SHARE_PCT} % reproduces exactly.",
+          file=sys.stderr)
+    return 0
+
+
+# ── modes ───────────────────────────────────────────────────────────────────────────────────
+
+def run_census(probe: str, outdir: str, jobs: int) -> int:
+    files, _listed = corpus_files()
     if not files:
         die("no corpus files found — the vendored corpora are git submodules; check them out")
     print(f"parse-cost: census over {len(files)} files at -j{jobs} ...", file=sys.stderr)
@@ -972,6 +1270,15 @@ def main() -> int:
     ap.add_argument("--verify-families", action="store_true",
                     help="run the LR-family predicate over every generated parser's declared "
                          "rule names; refuse on any unclassified `_lr` name (`.21` (g))")
+    ap.add_argument("--verify-family-share", action="store_true",
+                    help="re-hash every input the carried corpus family share depends on and "
+                         "fail when one moved (`.21` (f)); ~0.8 s, needs no probe")
+    ap.add_argument("--rederive-family-share", action="store_true",
+                    help="derive the corpus family share from a full-corpus census (~70 s) into "
+                         "the tracked artifact (`.21` (f))")
+    ap.add_argument("--family-share-artifact", default=FAMILY_SHARE_ARTIFACT,
+                    help="which family-share artifact --verify-family-share checks; a parameter "
+                         "so every refusal can be driven RED against a mutated COPY")
     ap.add_argument("--census", action="store_true", help="full-corpus entry census")
     ap.add_argument("--select", action="store_true", help="derive the sample manifest")
     ap.add_argument("--census-tsv", default=None)
@@ -984,6 +1291,10 @@ def main() -> int:
     if args.verify_families:
         # ⛔ No probe needed: this reads the generated ARTIFACTS, not a parse.
         return run_verify_families()
+
+    if args.verify_family_share:
+        # ⛔ No probe needed either: this hashes inputs, it does not measure.
+        return run_verify_family_share(args.family_share_artifact)
 
     if args.select:
         if not args.census_tsv or not args.out:
@@ -1012,6 +1323,8 @@ def main() -> int:
         return 0
 
     probe = resolve_probe(args.probe)
+    if args.rederive_family_share:
+        return run_rederive_family_share(probe, args.jobs, args.out or FAMILY_SHARE_ARTIFACT)
     if args.census:
         if not args.outdir:
             die("--census needs --outdir")

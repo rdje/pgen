@@ -13,7 +13,7 @@ tags: [instruments, performance, ratchets, gates, evidence, proxies, measurement
 date: 2026-08-15
 status: current
 evidence: ENGINE-UNIVERSAL-SERVICES.20 slice 1, corrected by .21. The guarded left-recursion admission cost **+24.3 %** SV parse time (`.17` slice 9, clean one-binary A/B). A full 16 336-file rule-entry census measured the admission's own rule family at **24 644 435 / 899 064 022 entries = 2.741 %** of all entries (published as 0.681 % until `.21` corrected a classifier that counted 97 of 127 LR rule names), and the flip's entry DELTA is strictly smaller (the rules it replaced were themselves entered). ⇒ entries moved ~2.7 % while wall clock moved +24.3 %: the counter is at least ~8.9x less sensitive to that regression. Both metrics shipped, with the bound published on every run.
-reverify: "bash scripts/check_parse_cost_ratchet.sh   # OK; then read docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/cost.md — the 2.741 % bound and the ~8.9x statement are printed by the instrument from a NAMED constant, not hand-written into prose"
+reverify: "bash scripts/check_parse_cost_ratchet.sh   # OK — its every-run tier re-hashes the four inputs the 2.741 %/8.9x pair is a function of against docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json AND holds this card's `Live LR-family share` anchor equal to it (ENGINE-UNIVERSAL-SERVICES.21 (f)); re-derive with `make -C rust SHELL=/bin/bash sv_parse_cost_family_share` (~70 s)"
 ---
 
 **A counter counts EVENTS. A slowdown can live entirely in the COST OF AN EVENT.** When it does, a
@@ -43,6 +43,15 @@ smaller still, because the rules it replaced were themselves being entered befor
 by a couple of percent where the clock moves **24 %** — roughly a **9×** sensitivity gap. The metric
 is not wrong; it is answering a different question. The parse did not do proportionally MORE rule
 entries — each entry got MORE EXPENSIVE.
+
+**Live LR-family share `2.741/8.9`** (corpus-entry share % / blind-spot factor). ⭐ Since
+`ENGINE-UNIVERSAL-SERVICES.21` acceptance (f) that pair is **GATED, not quoted**: it is derived by a
+full-corpus census into
+`docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json`, and
+`PARSE-COST-RATCHET`'s every-run tier re-hashes the four inputs it is a function of and holds this
+paragraph equal to the derivation. The point is not tidiness — the paragraph below is a record of
+this same card publishing a wrong number, and the paragraph above it is a record of the *corrected*
+number then sitting unwatched, which is the identical defect one turn later.
 
 ⛔⛔ **This card first published `0.681 %` and `~35×`, and both were wrong by a factor of four —
 which is itself the lesson's sharpest instance.** The classifier that measured the coupling matched
