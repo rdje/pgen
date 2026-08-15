@@ -1774,6 +1774,80 @@ original *"proven per row, do NOT bulk-truncate"* instruction, now with the numb
 is at stake. Anything with no home gets written into its tree **before** the cell is cut, exactly as
 `README-POLICY.2` wrote two homeless facts into `docs/decisions/` before trimming layer A.
 
+#### ⛔⛔ THE "POINTER TABLE" RECOMMENDATION IS REFUTED BY IN-REPO COUNTEREXAMPLE (2026-08-14, `PGEN-README-POLICY-0014`)
+
+Director challenge: *"are you confident there is no other strong and compelling solution? We need
+certainty it is the best, stable, sota, signoff, risk-free option, and the format we can use long
+term."* — the honest answer is **no**, and the survey that should have preceded the recommendation
+**refutes it**. This repository has already solved *"an index over many units"* four different ways,
+and the outcomes are measurable:
+
+| surface | bytes | max line | B/line | who writes it | what refuses growth | outcome |
+|---|---:|---:|---:|---|---|---|
+| `docs/TASK_TREE.md` | 606 509 | **76 591** | 1 309 | hand, free-form cell | **nothing** | ❌ this leaf |
+| `docs/decisions/INDEX.md` | 125 813 | 3 986 | 727 | hand, one row per record, **bidirectionally reconciled** | nothing (reconcile ≠ size) | ⚠️ **126 KB anyway** |
+| `KNOWLEDGE_MAP.md` | 533 060 | 1 550 | 286 | **DERIVED** + sync check | nothing | ⚠️ **533 KB anyway** |
+| the 3 `*_register_v0.json` | 3 203 / 11 390 / 15 557 | — | 73–155 | hand, **JSON schema** | **the schema** | ✅ small and stable |
+
+⛔ **`docs/decisions/INDEX.md` IS the pointer-table option, already running here.** One row per unit,
+enforced in both directions by `check_memory_architecture.sh` E2.5 — and it has still reached
+**125 813 B with a 3 986-byte line**. 19× better line shape than this file, and *the same trajectory*:
+nothing prevents a "summary" cell from becoming a narrative cell. ⇒ **projection choice alone does
+not bind.**
+
+⛔ **`KNOWLEDGE_MAP.md` IS the derivation option, already running here** — generator
+(`knowledge-map/scripts/gen_knowledge_map.sh`), `AUTO-GENERATED — DO NOT EDIT` banner, sync check in
+the doctrine driver — and it is **533 060 B**, within 12 % of the file this leaf exists to fix. What
+derivation *did* buy is real and it is not size: **max line 1 550 B vs 76 591 B**, and drift becomes
+impossible by construction. ⇒ **derivation bounds SHAPE and DRIFT, never SIZE.**
+
+⭐⭐ **The two refutations expose THREE orthogonal axes that the earlier framing collapsed into one
+list of options** — this is the substantive correction:
+
+| axis | question | controls | evidence |
+|---|---|---|---|
+| **1 — authorship** | hand vs derived | **drift**, write cost | `KNOWLEDGE_MAP.md` cannot drift; `INDEX.md` can |
+| **2 — projection** | narrative vs pointer | **size**, read cost | `INDEX.md` projects pointers and is 126 KB |
+| **3 — what REFUSES growth** | nothing / cap / **schema** | **long-term stability** | only the JSON registers stayed small |
+
+**Axis 3 is the one the director's question is actually about, and it was never named.** The only
+pattern in this repository that has stayed small over time is the **schema-bounded register**,
+because a schema *refuses* free-form prose **by construction** — not by policy, not by a cap, not by
+review. Every unbounded surface here eventually accreted narrative; no schema-bounded one did.
+
+#### What the evidence actually supports (a COMPOSITE, and explicitly NOT "risk-free")
+
+1. **Source of truth**: a **schema-bounded per-tree status block** — constrained fields (`tree id`,
+   `status` **enum**, `frontier leaf`, `owner`, `updated`), prose forbidden.
+2. **Index**: **DERIVED** from those blocks, `DO NOT EDIT` banner + sync check — the
+   `KNOWLEDGE_MAP.md` pattern, already proven in this repo.
+3. **Bound**: a **bytes-per-row / max-line instrument** beside A and B, because axes 1 and 2 were
+   each measured *not* to bound size.
+
+⛔ **THE DERIVATION SOURCE DOES NOT EXIST YET — this is the unpriced cost.** Measured over
+`docs/tasks/*.md`: **84 of 161 files (52 %) carry a `## Metadata` block.** Where present the core
+fields are strikingly consistent — `Status:` **84/84**, `Tree ID:` 83/84, `Created:` 81/84,
+`Roadmap lane:` 76/84, `Owner:` 74/84 — so the schema is *discoverable rather than invented*. But it
+is **not schema-bounded today**: Metadata block size runs to **19 114 B** (median 575 B) and **9 of
+84 have a `Status:` line over 120 characters**, i.e. the same accretion has already started one
+layer down. ⇒ the load-bearing work is *define the schema + backfill the trees*, not *write a
+generator*.
+
+⛔ **IT IS NOT RISK-FREE, AND CLAIMING SO WOULD BE THE DEFECT THIS TREE EXISTS TO CATCH.** Named risks:
+- the generator + sync check are **new machinery that can itself rot** — `GATE-REACHABILITY`'s
+  founding subject; it must be registered in the doctrine driver **in the same commit that lands it**
+  (`TOOLBOX.md`'s new-instrument rule);
+- the **72 % prose migration is unchanged** and remains the dominant risk (see the census above);
+- a schema too loose reproduces the disease — **measured, at 19 114 B, inside the Metadata blocks**;
+  a schema too tight pushes authors to write prose somewhere unbounded instead;
+- backfilling ~110 trees is a large mechanical change whose own review cost is real.
+
+⇒ **NOT READY FOR A DECISION.** The next step is a priced design slice comparing the composite
+against (a) cap+demote, (b) hand-maintained pointer table, (c) router+archive split, (d) derived
+index, (e) schema-bounded register + derived view — scored on the three axes above with the measured
+outcomes already in hand. Picking now would be *"a design built on unmeasured premises"*, which is
+the failure `ENGINE-UNIVERSAL-SERVICES.17` is a record of.
+
 **Recommended sequencing when this is worked** (not executed here — this leaf stays `todo`):
 1. per-row prose census + move (the expensive, load-bearing step; ~110 rows, and it only grows),
 2. rewrite the table to `tree | status | frontier | link`,
