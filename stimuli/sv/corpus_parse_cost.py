@@ -248,6 +248,21 @@ SV_DECLARED_LR_PROVENANCE = (
     "`ENGINE-UNIVERSAL-SERVICES.21` acceptance (g); slice 1 published 128"
 )
 
+# ── the pinned sample's tier sizes, in ONE home ───────────────────────────────────────────────
+#
+# ⛔ THEY WERE THE ARGPARSE DEFAULTS AND NOTHING ELSE, SO EVERY OTHER READER RE-TYPED THEM
+# (`ENGINE-UNIVERSAL-SERVICES.21` (b)). Measured: the `.21`(b) comparison instrument was written
+# with `breadth = 112` — the number of rows in the manifest — while the derivation's default is
+# **120**, and the two agreed only by arithmetic accident (see `select_sample`: both floor to the
+# same per-suite quota). A constant re-typed from an OUTPUT rather than imported from its
+# producer is the founding defect of this whole leaf, restated one file over.
+#
+# ⚠️ `breadth` is a REQUEST, not the realized count. `select_sample` spends it as an equal
+# per-sub-corpus quota, so the file holds `len(sub_corpora) * (breadth // len(sub_corpora))` rows
+# — today 14 * (120 // 14) = **112**. A reader adding 40 + 40 + 120 gets a total the manifest does
+# not have, which is why the realized figure is published beside the request wherever it appears.
+SAMPLE_TIERS = {"hot": 40, "lr": 40, "breadth": 120}
+
 GENERATED_DIR = "generated"
 # ⛔ The blessed THROWAWAY slot (TOOLBOX.md 1.3). Its rule set is whatever probe grammar happens to
 # be loaded, so including it would make this mode's verdict depend on the last thing somebody
@@ -734,6 +749,12 @@ def select_sample(census_tsv: str, hot: int, lr: int, breadth: int) -> list[tupl
                so the ratchet is sensitive to the specific thing that regressed;
       breadth  a deterministic stride across everything else — so the ratchet is not blind to a
                regression that lands somewhere the first two tiers do not look.
+
+    ⚠️ `breadth` is a REQUEST. It is spent as an equal per-sub-corpus quota `breadth // len(rest)`,
+    so the realized row count is `len(rest) * quota` and is ≤ the request — today 14 * (120 // 14)
+    = 112. Two different requests can therefore realize the SAME sample (112 and 120 both give a
+    quota of 8), which is exactly how a re-typed constant in a downstream reader went unnoticed
+    (`.21` (b)). Whenever the request is published, publish the realized count beside it.
     """
     rows = []
     with open(census_tsv, encoding="utf-8") as fh:
@@ -1537,9 +1558,10 @@ def main() -> int:
     ap.add_argument("--select", action="store_true", help="derive the sample manifest")
     ap.add_argument("--census-tsv", default=None)
     ap.add_argument("--out", default=None)
-    ap.add_argument("--hot", type=int, default=40)
-    ap.add_argument("--lr", type=int, default=40)
-    ap.add_argument("--breadth", type=int, default=120)
+    # ⛔ Defaults come from SAMPLE_TIERS, the single home; see its comment for why.
+    ap.add_argument("--hot", type=int, default=SAMPLE_TIERS["hot"])
+    ap.add_argument("--lr", type=int, default=SAMPLE_TIERS["lr"])
+    ap.add_argument("--breadth", type=int, default=SAMPLE_TIERS["breadth"])
     args = ap.parse_args()
 
     if args.verify_families:

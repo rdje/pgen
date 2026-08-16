@@ -6150,7 +6150,7 @@ may REJECT files ARM 2 accepts, and a timing comparison across different verdict
   `bash scripts/check_doctrines.sh` → ALL 20 enforced doctrines PASS;
   `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
 
-#### ⚠️ `.21` `in progress` — the parse-cost instrument's "guarded-admission family" counted 97 of the **127** LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ✅ **(e) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0041`; ✅ **(f) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0045`; ✅ **(g) DISCHARGED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0039`; ⛔ **(b) MEASURED and BLOCKED on `.22`** — the ONLY item left open, which is why the leaf stays `in progress`)
+#### ✅ `.21` `done` — the parse-cost instrument's "guarded-admission family" counted 97 of the **127** LR rules the parser declares — no `_lr_seed`, and no `_lr_guard` at all — and so missed **75.1 %** of their corpus entries (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a)/(c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0037`; ✅ **(e) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0041`; ✅ **(f) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0045`; ✅ **(g) DISCHARGED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0039`; ✅ **(b) DISCHARGED by slice 5** `PGEN-ENGINE-UNIVERSAL-SERVICES-0053` — re-derived on a REPRODUCIBLE census now that `.22`(e) cleared the blocker, and the re-derivation is **DECLINED on a measurement**: it buys **+0.45 %** family coverage for a one-time reset of every historical comparison. ⇒ **all seven items closed; the leaf is `done`**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -6917,6 +6917,117 @@ a one-off.
   regenerated `KNOWLEDGE_MAP.md`, `GATE-REACHABILITY` at 124 targets all dispositioned, and
   `PARSE-COST-RATCHET` itself). `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes (10 per-parser
   book gates + the main book). `generated/` untouched; no Rust source touched, so no clippy surface.
+
+#### ✅ `.21` SLICE 5 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0053`, 2026-08-16 session #240) — (b) DISCHARGED: the blocker is CLEARED, the delta is re-measured on a reproducible basis, and the re-derivation is DECLINED **on the measurement**
+
+`.21` slice 1 measured the re-derivation and declined it, and only its THIRD reason was decisive:
+the census was **not reproducible** — one silently dropped corpus file moved 5 `breadth` rows on
+its own, so a sample derived that day could not be pinned honestly. `.22`(e) fixed that file and
+`.22`(c) made an undeclared drop REFUSE. That blocker is now gone, so (b) is adjudicable.
+
+**THE INSTRUMENT IS TRACKED, WHICH IS THE `.21`(e) LESSON APPLIED TO THIS SLICE'S OWN WORK** —
+`docs/tasks/artifacts/engine_universal_services/sample_rederivation/compare_sample.py`, writing
+`result.txt` beside it. It **IMPORTS** `select_sample` and `SAMPLE_TIERS` from the shipped
+instrument rather than re-implementing either. Four legs, each a refusal rather than an assumption:
+
+| leg | what it proves | result |
+|---|---|---|
+| 1 REPRODUCIBILITY | two independent full-corpus censuses agree | ✅ **RAW BYTE-IDENTICAL**, 16 336 rows each, 0 no-dump |
+| 2 SELECTION STABILITY | the derivation is deterministic over identical inputs | ✅ same 192 rows from both |
+| 3 THE DELTA | fresh derivation vs the tracked manifest, per tier | `hot` **0/40** · `lr` **5/40** · `breadth` **19/112** = **24 slots** |
+| 4 EXTERNAL ORACLE | the fresh census must reproduce the tracked `entries.tsv` | ✅ **EXACT**: 416 841 264 entries / 12 440 690 family entries |
+
+⭐ **Leg 4 was not in the plan and is the one that makes the rest believable.** `entries.tsv` was
+produced by a DIFFERENT code path (a 192-file sample run, in another session); summing the
+16 336-file census over exactly those 192 paths reproduces both of its totals to the digit. If the
+comparison were misreading the census, this is where it would show, and it runs BEFORE the numbers
+are published.
+
+⭐ **The delta is IDENTICAL to slice 1's `24` — now on a reproducible basis rather than a moving
+one.** ⚠️ The script publishes both counting conventions side by side (24 slots · 48 symmetric
+difference) because printing only the larger would read as *"the delta grew since slice 1"* when
+nothing has changed — a false regression manufactured by a counting convention.
+
+###### ⛔⛔ THE ADJUDICATION — DECLINED, AND NOW FOR A PRICED REASON
+
+| | measured |
+|---|---|
+| cost of adopting | the ratchet's binding baseline moves **+0.40 %** (416 841 264 → 418 498 226) — a ONE-TIME reset ending comparability with every prior measurement |
+| benefit of adopting | coverage of the LR-elimination family, the mechanism the `lr` tier exists for, improves **+0.45 %** (12 440 690 → 12 496 291) |
+
+⇒ **DECLINE.** A one-time reset of every historical comparison buys 0.45 %. Slice 1's reasons 1
+and 2 survive on their own merits and reason 3 is now moot rather than blocking.
+
+⭐⭐ **THE FINDING, AND IT IS TRANSFERABLE: the SAME classifier defect was 4× wrong in the SHARE it
+published and 0.45 % wrong in the SELECTION it fed.** A classifier missing **75.1 %** of the
+family's entries barely moved a ranking, because the undercount was **systematic, not selective** —
+`_lr_seed`/`_lr_guard` rules are emitted alongside `_lr_base`/`_lr_suffix` for the same constructs
+in the same files, so every file's score shifted the same way and the order held. A share reads the
+absolute value and inherits the whole error; a top-N reads only the comparisons and inherits it
+only where one crosses a boundary. ⇒ *"was the input wrong"* is the wrong question; *"was it wrong
+in a way that REORDERS things"* is the one that prices the correction. Promoted →
+[[a-ranking-is-robust-to-an-undercount-that-a-share-is-not]].
+
+⛔ **DECLINING IS NOT IGNORING.** The `lr` tier's charter says *"the 40 heaviest by
+guarded-admission entries"* and 5 of its 40 rows do not satisfy that under the corrected
+classifier. That discrepancy between a file and its own description is now **DECLARED in the
+manifest's own header**, with the per-tier deltas, the +0.40 %/+0.45 % pricing and the re-derive
+command — so the next reader neither rediscovers the question nor over-reads the tier.
+
+###### ⛔⛔ TWO STALE HEADER FACTS FOUND WHILE DOING IT, ONE OF THEM IN THIS SLICE'S OWN SCRIPT
+
+1. **The manifest advertised `breadth=120`; the file holds `112`.** Not a typo — `breadth` is a
+   REQUEST, spent as an equal per-sub-corpus quota, so the realized count is
+   `len(rest) * (breadth // len(rest))` = `14 * (120 // 14)` = **112**. A reader adding
+   `40 + 40 + 120` gets a length this file does not have. Now published as *"120 REQUESTED / 112
+   REALIZED"* with the arithmetic, in the manifest and in `select_sample`'s docstring.
+2. ⛔ **This slice's own audit script RE-TYPED the tier sizes as `40, 40, 112`** — 112 taken from
+   the manifest's row count — under a comment claiming it read them from the producer. Measured:
+   both 112 and 120 floor to a per-suite quota of 8 across 14 sub-corpora, so the two requests
+   realize the IDENTICAL sample and the defect was silent while producing correct output. ⇒ *a
+   constant copied from an OUTPUT agrees with that output by construction and says nothing about
+   the PRODUCER* — the founding defect of this leaf, reproduced by the script written to audit it,
+   and caught only by reading the producer. Fixed by giving the sizes ONE home,
+   `corpus_parse_cost.SAMPLE_TIERS`, imported by both.
+
+###### Acceptance Checklist (enforced) — `.21` slice 5 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0053`)
+
+- [x] **REPRODUCE / ISSUE** — (b) asks *"re-derive the pinned sample … and state how many of the 40
+  change"*. Slice 1 stated it and could not pin it: `git log` shows the blocker recorded as
+  *"the census is not currently REPRODUCIBLE"*, with `breadth` differing 5/112 on 16 335 vs 16 336
+  rows. Re-run at HEAD: two full-corpus censuses, `16336 rows, 0 no-dump, all declared` each.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the answer is DECLINE, located by measurement not
+  argument: `python3 …/compare_sample.py` leg 3 puts the change at `hot` 0/40, `lr` 5/40,
+  `breadth` 19/112, and the cost/benefit block prices it at **+0.40 % baseline movement for
+  +0.45 % family coverage**. WHERE the residual discrepancy lives: the `lr` tier of
+  `stimuli/sv/parse_cost_sample.tsv`, ranked by the pre-`.21` `LR_FAMILY_RE`. ⛔ The second defect
+  was found with `git ls-files`-style source reading, not a test: `grep -n '"--breadth"'
+  stimuli/sv/corpus_parse_cost.py` → `default=120` against the audit script's re-typed `112`.
+- [x] **FIX** — instrument + declaration tier; **no engine, grammar or generated bytes**. (1) the
+  re-derivation is DECLINED and the declination is DECLARED in the manifest header with its
+  numbers; (2) `SAMPLE_TIERS` gives the tier sizes one home and both readers import it;
+  (3) `select_sample`'s docstring states request-vs-realized; (4) the comparison instrument is
+  TRACKED with its result artifact, so every figure above re-derives by one command.
+- [x] **ADDRESSED (verified)** — all four legs GREEN, exit 0, and the two that could have refused
+  did not: censuses **RAW BYTE-IDENTICAL** (`cmp` clean), and leg 4's external oracle reproduces
+  the tracked baseline **416 841 264 / 12 440 690** exactly across two code paths and two sessions.
+  ⭐ The refusal paths are live, not decorative: leg 1 refuses on any row-set or counter
+  divergence, leg 2 on a non-deterministic derivation, leg 4 on an `entries.tsv` header change
+  (it refuses rather than unpacking positionally) — and the script itself refuses at import time
+  if the repo root does not resolve, which fired on its first run and was fixed.
+- [x] **NO REGRESSION** — `bash scripts/check_parse_cost_ratchet.sh` green after the rebaseline the
+  instrument change forced; `entries.tsv` **byte-identical** (the sample did not move — that is
+  the whole point of declining); `--verify-families` and `--verify-family-share` green;
+  `scripts/check_doctrines.sh` **all 20 PASS**; `mdbook_docs_gate` green. The manifest edit is
+  header-only and `sample_input_digest` hashes PATHS plus file bytes, never comment lines — proven
+  by the identity tier reporting `sample inputs` fresh across it. No Rust or generated bytes, so
+  no clippy surface.
+- [x] **LOCKSTEP** — `stimuli/sv/parse_cost_sample.tsv` header; `TOOLBOX.md` 3.7's sample
+  description; the new tracked instrument + `result.txt`; the knowledge card + `KNOWLEDGE_MAP.md`
+  **re-derived** by its generator; `docs/TASK_TREE.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
+  `MEMORY.md`. ⛔ The DONE-BAR register is deliberately **UNCHANGED**: `systemverilog` stays
+  `Mostly Done`. This slice adjudicates a benchmark sample; it moves no proof surface SV's release
+  bar is gated on.
 
 #### ⭐⭐⭐ `.20` SLICE 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0044`, 2026-08-15/16 session #237) — (b) MEASURED THREE WAYS, and the three ways DISAGREE about which half is expensive. **(b) is NOT discharged: the tier ruling B binds on is noise-limited, and that refusal is the deliverable.**
 

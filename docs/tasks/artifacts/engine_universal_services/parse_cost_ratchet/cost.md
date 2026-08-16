@@ -43,7 +43,7 @@ tier still reported `fresh`.
 |---|---|---|
 | grammar | `grammars/systemverilog.ebnf` | `1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c` |
 | generated parser | `generated/systemverilog_parser.rs` | `46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7` |
-| instrument | `stimuli/sv/corpus_parse_cost.py` | `f8caacdc12ba661e70cc88123b789b1ccbf579d77e6060fb1b2aff2f61830c5d` |
+| instrument | `stimuli/sv/corpus_parse_cost.py` | `97c1f3f2e2e6bb0dec6e5abe99f95e659e2c9d18570af1a9ae9fab836410a6c9` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
 `sample inputs` digests the manifest ORDER plus every sampled file's bytes: the corpora

@@ -615,6 +615,14 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   192-file corpus sample** — 40 heaviest by entries, 40 heaviest by guarded-admission entries, 112 a
   stratified stride guaranteeing all 14 sub-corpora — and refuses if it RISES.
   `ENGINE-UNIVERSAL-SERVICES.20` acceptance (d).
+  ⚠️ **`breadth` is 120 REQUESTED / 112 REALIZED**: the request is spent as an equal per-sub-corpus
+  quota, so the file holds `14 × (120 // 14)` rows. `40 + 40 + 120` is not the sample's length.
+  ⛔ **The `lr` tier was ranked by the PRE-`.21` classifier**, and `.21`(b) re-derived it under the
+  corrected one and **DECLINED to adopt**, on a measurement: `hot` **0/40**, `lr` **5/40**,
+  `breadth` **19/112** change, which would move the ratchet's binding baseline **+0.40 %** to buy
+  **+0.45 %** family coverage. Declared in the manifest's own header; re-adjudicate with
+  `docs/tasks/artifacts/engine_universal_services/sample_rederivation/compare_sample.py` (4 legs,
+  incl. an external oracle holding the fresh census to the tracked `entries.tsv`).
 - **WHEN:** ⛔ before and after ANY change that can touch the parse hot path — a grammar edit, a
   codegen change, a left-recursion admission policy, a memo change. Also the first thing to read when
   asking *"is the parser slower than it was?"*

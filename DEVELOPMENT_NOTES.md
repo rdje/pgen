@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0053 — a defect propagates in full to whatever used the MAGNITUDE and barely at all to whatever used the ORDER
+
+**1. Price a correction's blast radius; do not assume it.** One classifier missed 75.1 % of a rule
+family's corpus entries. Two published things sat on it: a SHARE (`0.681 %` — wrong by **4×**) and a
+benchmark sample whose `lr` tier RANKS files by that same count. Re-derived on a reproducible census,
+the sample's coverage of the family moves **+0.45 %**. The share had to be corrected everywhere; the
+selection barely noticed. ⇒ ask *"was the input wrong in a way that REORDERS things"*, not *"was the
+input wrong"*. PROMOTED → [[a-ranking-is-robust-to-an-undercount-that-a-share-is-not]].
+
+**2. The mechanism, because it decides when the lesson applies.** The undercount was **systematic,
+not selective**: the missed `_lr_seed`/`_lr_guard` rules are emitted alongside the counted
+`_lr_base`/`_lr_suffix` ones, for the same constructs, in the same files. Every file's score shifted
+in the same direction, so the order held. A *selective* miss — one that hits some files and not
+others — would have reordered freely, and the same 75.1 % would have invalidated the selection
+completely. The number is not what tells you which case you are in; the emission pattern is.
+
+**3. Declining is a first-class outcome, and it has to be DECLARED where the artifact is read.**
+5 of the `lr` tier's 40 rows do not satisfy its own stated charter under the corrected classifier.
+That discrepancy is now written into the manifest's header with the per-tier deltas, the
++0.40 %/+0.45 % pricing, and the command to re-adjudicate — because a declination recorded only in a
+task file is indistinguishable, to the next reader, from nobody having noticed.
+
+**4. A comparison against a pinned artifact is void until the derivation is proven reproducible.**
+This adjudication was blocked for a session by exactly that: one silently dropped corpus file moved
+5 `breadth` rows on its own. The fix (`.22`(e)) let the delta be measured; the proof was two
+independent full-corpus censuses compared **raw**, byte for byte. ⭐ And then a leg nobody asked for:
+the fresh census, restricted to the pinned sample's 192 paths, must reproduce the tracked
+`entries.tsv` totals exactly — `416 841 264` / `12 440 690`, across two code paths and two sessions.
+That is what makes the 0.45 % believable rather than merely computed.
+
+**5. ⛔ The audit script re-typed the constant it was auditing, and produced correct output anyway.**
+It carried `breadth = 112`, taken from the manifest's ROW COUNT, while the derivation's default is
+**120** — under a comment claiming it read the value from the producer. Both floor to a per-suite
+quota of 8 across 14 sub-corpora, so the two realize the identical sample. Nothing could have caught
+it by testing; only reading the producer did. ⇒ *a constant copied from an OUTPUT agrees with that
+output by construction and tells you nothing about the PRODUCER* — see
+[[deriving-a-control-from-the-producer-is-not-the-same-as-observing-it]]. Fixed by giving the tier
+sizes one home and importing them.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0052 — a refuted number has CHILDREN, and they do not carry its refutation
 
 **1. Propagating a refutation is not a find-and-replace; the derived values are the dangerous half.**

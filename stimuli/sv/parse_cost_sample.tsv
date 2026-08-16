@@ -9,11 +9,37 @@
 #       --census-tsv <dir>/census.tsv --out stimuli/sv/parse_cost_sample.tsv
 #
 # tiers: hot=40 (heaviest by entries) lr=40 (heaviest by
-# guarded-admission entries) breadth=120 (deterministic stride).
+# guarded-admission entries) breadth=120 REQUESTED / 112 REALIZED.
+# ⚠️ breadth is a REQUEST: it is spent as an equal per-sub-corpus quota, so the
+# file holds 14 * (120 // 14) = 112 rows. 40+40+120 is not this file's length.
 #
 # ⛔ PINNED, not re-derived per run. A sample that re-selects itself from the
 # tree it is measuring can shed the file that regressed and report an
 # improvement. Re-derivation is a deliberate, reviewed act.
+#
+# ⛔⛔ DECLARED PROVENANCE — THIS SAMPLE'S `lr` TIER WAS RANKED BY THE PRE-`.21`
+# CLASSIFIER, which saw 97 of the parser's 127 LR rule names and missed 75.1 %
+# of the family's entries. `ENGINE-UNIVERSAL-SERVICES.21` acceptance (b)
+# re-derived the sample under the CORRECTED classifier and DECLINED to adopt it,
+# on a measurement rather than a preference:
+#
+#   hot      0 of 40 rows change   (the tier carrying the bulk of the entries)
+#   lr       5 of 40 rows change
+#   breadth 19 of 112 change       (a consequence: breadth fills what hot+lr leave)
+#   => the ratchet's binding baseline would move +0.40 %, and coverage of the
+#      LR-elimination family — the mechanism the tier exists for — would improve
+#      by +0.45 %. A one-time reset of every historical comparison buys 0.45 %.
+#
+# ⭐ A classifier wrong about 75.1 % of the family's ENTRIES changed the sample it
+# ranks by under half a percent: a ranking is far more robust to a systematic
+# undercount than a share is. The correction was still necessary — the published
+# SHARE was wrong by 4x — but the SELECTION it fed barely moved.
+#
+# Re-derive and re-adjudicate (2 censuses ~110 s, then the comparison):
+#   python3 stimuli/sv/corpus_parse_cost.py --census --outdir <dirA>
+#   python3 stimuli/sv/corpus_parse_cost.py --census --outdir <dirB>
+#   python3 docs/tasks/artifacts/engine_universal_services/sample_rederivation/\
+#       compare_sample.py --census-a <dirA>/census.tsv --census-b <dirB>/census.tsv
 hot	stimuli/sv/subs/Surelog/tests/BlackBePipeInt/dut.sv
 hot	stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh330.v
 hot	stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v

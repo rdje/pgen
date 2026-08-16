@@ -1,0 +1,98 @@
+==============================================================================
+ENGINE-UNIVERSAL-SERVICES.21 acceptance (b) — pinned-sample re-derivation
+==============================================================================
+instrument: stimuli/sv/corpus_parse_cost.py (select_sample IMPORTED, not re-typed)
+classifier: _lr_(?P<shape>base|suffix|seed|guard|alt)(?![a-z])
+tiers:      hot=40 lr=40 breadth=120 (request; realized breadth is len(sub_corpora) * (breadth // len(sub_corpora)))
+
+LEG 1 — CENSUS REPRODUCIBILITY (the leg `.21` slice 1 could not pass)
+  census A rows: 16,336
+  census B rows: 16,336
+  ✅ IDENTICAL on every column the selection reads (path, entries, lr_entries).
+     ⇒ `.21` slice 1's decisive blocker is CLEARED: a sample derived today can be
+       pinned honestly. (It differed by 5 breadth rows then, on 16 335 vs 16 336.)
+
+LEG 2 — SELECTION STABILITY
+  ✅ both censuses derive the SAME 192 rows.
+
+LEG 3 — FRESH DERIVATION vs THE TRACKED PINNED MANIFEST
+  tracked rows: 192   fresh rows: 192
+
+  | tier | tracked | fresh | rows that LEAVE | rows that ENTER |
+  |---|---:|---:|---:|---:|
+  | `hot` | 40 | 40 | 0 | 0 |
+  | `lr` | 40 | 40 | 5 | 5 |
+  | `breadth` | 112 | 112 | 19 | 19 |
+
+  SLOTS whose occupant changes: **24** of 192   (= `.21` slice 1's counting convention)
+  symmetric difference (rows out + rows in): **48**
+  rows present in both but in a DIFFERENT tier: **0**
+
+  rows that LEAVE the sample:
+    - [breadth] stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_wrap_2x1.v
+    - [breadth] stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_driver.sv
+    - [breadth] stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv
+    - [lr     ] stimuli/sv/subs/Surelog/tests/BlackParrotConf/dut.sv
+    - [breadth] stimuli/sv/subs/Surelog/tests/ClassScope/dut.sv
+    - [breadth] stimuli/sv/subs/Surelog/tests/ExpectStmt/dut.sv
+    - [breadth] stimuli/sv/subs/Surelog/tests/HierPathCont/dut.sv
+    - [breadth] stimuli/sv/subs/Surelog/tests/LongHex/dut.sv
+    - [breadth] stimuli/sv/subs/Surelog/tests/PackageValue/top.sv
+    - [breadth] stimuli/sv/subs/Surelog/tests/SelectHierPath/dut.sv
+    - [breadth] stimuli/sv/subs/Surelog/tests/TestSepCompNoHash/pkg1.sv
+    - [breadth] stimuli/sv/subs/iverilog/ivtest/ivltests/pr2395835.v
+    - [breadth] stimuli/sv/subs/iverilog/ivtest/ivltests/rop.v
+    - [breadth] stimuli/sv/subs/iverilog/ivtest/ivltests/sv_foreach9.v
+    - [breadth] stimuli/sv/subs/iverilog/ivtest/ivltests/task_nonansi_parray2.v
+    - [lr     ] stimuli/sv/subs/opentitan/hw/ip/lc_ctrl/rtl/lc_ctrl_state_pkg.sv
+    - [breadth] stimuli/sv/subs/opentitan/hw/ip/prim_generic/rtl/prim_flop_2sync.sv
+    - [lr     ] stimuli/sv/subs/opentitan/hw/ip/rv_dm/rtl/rv_dm_reg_pkg.sv
+    - [breadth] stimuli/sv/subs/opentitan/hw/ip/uart/dv/env/uart_env_cov.sv
+    - [breadth] stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/ac_range_check/dv/env/seq_lib/ac_range_check_smoke_racl_vseq.sv
+    - [lr     ] stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_reg_pkg.sv
+    - [lr     ] stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_reg_pkg.sv
+    - [breadth] stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_base_vseq.sv
+    - [breadth] stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/seq_lib/flash_ctrl_hw_prog_rma_wipe_err_vseq.sv
+  rows that ENTER the sample:
+    + [lr     ] stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_rd.v
+    + [lr     ] stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_register_rd.v
+    + [lr     ] stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_register_wr.v
+    + [breadth] stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/priority_encoder.v
+    + [breadth] stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_monitor.sv
+    + [breadth] stimuli/sv/subs/Cores-VeeR-EL2/verification/block/dec/el2_dec_wrapper.sv
+    + [breadth] stimuli/sv/subs/Surelog/tests/ClassParamAsParam/dut.sv
+    + [breadth] stimuli/sv/subs/Surelog/tests/Event/dut.sv
+    + [breadth] stimuli/sv/subs/Surelog/tests/HierPathBind/dut.sv
+    + [breadth] stimuli/sv/subs/Surelog/tests/LogicTypespec/dut.sv
+    + [breadth] stimuli/sv/subs/Surelog/tests/PackageTypeParam/dut.sv
+    + [breadth] stimuli/sv/subs/Surelog/tests/ScratchPad.sv
+    + [breadth] stimuli/sv/subs/Surelog/tests/TestSepComp/top.sv
+    + [lr     ] stimuli/sv/subs/iverilog/ivtest/ivltests/pr1570451b.v
+    + [breadth] stimuli/sv/subs/iverilog/ivtest/ivltests/pr2425055a.v
+    + [breadth] stimuli/sv/subs/iverilog/ivtest/ivltests/rptconcat.v
+    + [breadth] stimuli/sv/subs/iverilog/ivtest/ivltests/sv_foreach_fail1.v
+    + [breadth] stimuli/sv/subs/iverilog/ivtest/ivltests/task_nonansi_parray_fail.v
+    + [breadth] stimuli/sv/subs/opentitan/hw/ip/prim_generic/rtl/prim_flop.sv
+    + [lr     ] stimuli/sv/subs/opentitan/hw/ip/spi_host/rtl/spi_host_reg_top.sv
+    + [breadth] stimuli/sv/subs/opentitan/hw/ip/uart/dv/env/uart_env_cfg.sv
+    + [breadth] stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/ac_range_check/dv/env/seq_lib/ac_range_check_smoke_high_threshold_vseq.sv
+    + [breadth] stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/alert_handler/dv/env/alert_handler_scoreboard.sv
+    + [breadth] stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/seq_lib/flash_ctrl_host_addr_infection_vseq.sv
+
+LEG 4 — EXTERNAL ORACLE: does the census reproduce the tracked baseline?
+  baseline entries.tsv (192 rows): entries=416,841,264 lr_entries=12,440,690
+  fresh census over those paths:        entries=416,841,264 lr_entries=12,440,690
+  ✅ EXACT on both columns, across two independent code paths and sessions.
+
+WHAT ADOPTING WOULD COST AND BUY (measured, not argued)
+  binding-baseline entries, tracked sample: 416,841,264
+  binding-baseline entries, fresh sample:   418,498,226
+  ⇒ the ratchet's binding total would move +0.40 % — a ONE-TIME baseline reset,
+    which is the cost. The buy is that the `lr` tier finally means what it says.
+  LR-family entries covered, tracked sample: 12,440,690
+  LR-family entries covered, fresh sample:   12,496,291
+  ⇒ coverage of the mechanism `.20` exists to watch moves +0.45 %.
+
+==============================================================================
+✅ all legs pass — the delta above is a sound basis for the (b) adjudication.
+==============================================================================

@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0053 (leaf ENGINE-UNIVERSAL-SERVICES.21 slice 5 — (b) DISCHARGED, leaf CLOSED; instrument + DOCS, ZERO grammar/generated/Rust bytes)
+
+- ✅ **`.21` (b) was the last item open, and it was BLOCKED, not undecided.** Slice 1's decisive
+  reason was that the census was **not reproducible** — one silently dropped corpus file moved 5
+  `breadth` rows by itself. `.22`(e) fixed that file and `.22`(c) made an undeclared drop REFUSE, so
+  the delta can now be pinned honestly. **`.21` is `done`: all seven acceptance items closed.**
+- ⭐ **Four legs, each a refusal rather than an assumption**, in a TRACKED instrument
+  (`sample_rederivation/compare_sample.py`, which **IMPORTS** `select_sample` and `SAMPLE_TIERS`
+  rather than re-implementing them): (1) two independent full-corpus censuses are **RAW
+  BYTE-IDENTICAL**, 16 336 rows, 0 no-dump; (2) both derive the same 192 rows; (3) the delta is
+  `hot` **0/40** · `lr` **5/40** · `breadth` **19/112** = **24 slots**, identical to slice 1's
+  figure but now on a reproducible basis; (4) ⭐ an EXTERNAL oracle nobody asked for — the fresh
+  census restricted to the pinned sample's 192 paths reproduces the tracked `entries.tsv` totals
+  **416 841 264 / 12 440 690 EXACTLY**, across two code paths and two sessions.
+- ⛔⛔ **DECLINED, and now on a price rather than a blocker**: adopting moves the ratchet's binding
+  baseline **+0.40 %** — a one-time reset ending comparability with every prior measurement — to buy
+  **+0.45 %** coverage of the LR-elimination family. The declination is DECLARED in the manifest's
+  own header with the numbers and the re-derive command, because declining is not ignoring: 5 of the
+  `lr` tier's 40 rows do not satisfy its stated charter under the corrected classifier.
+- ⭐⭐ **THE TRANSFERABLE FINDING: the SAME classifier defect was 4× wrong in the SHARE it published
+  and 0.45 % wrong in the SELECTION it fed.** Missing **75.1 %** of a rule family's entries barely
+  moved a ranking, because the undercount was **systematic, not selective** — the missed rules are
+  emitted alongside the counted ones for the same constructs in the same files, so every score
+  shifted the same way and the order held. A share reads the absolute value and inherits the whole
+  error; a top-N reads only the comparisons. ⇒ *"was the input wrong"* is the wrong question;
+  *"was it wrong in a way that REORDERS things"* prices the correction. New card →
+  `docs/knowledge/a-ranking-is-robust-to-an-undercount-that-a-share-is-not.md`.
+- ⛔ **Two stale header facts found while doing it, one in this slice's OWN script.** (1) The
+  manifest advertised `breadth=120` while holding **112** rows — `breadth` is a REQUEST spent as an
+  equal per-sub-corpus quota, so the realized count is `14 × (120 // 14)`; now published as
+  *"120 REQUESTED / 112 REALIZED"* with the arithmetic. (2) ⛔ the audit script RE-TYPED the tier
+  sizes as `40, 40, 112` under a comment claiming it read them from the producer — silent because
+  both 112 and 120 floor to the same per-suite quota of 8, so it produced correct output from a
+  wrong constant. That is this leaf's founding defect reproduced by the script auditing it; fixed by
+  giving the sizes ONE home (`SAMPLE_TIERS`), imported by both.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0052 (leaf ENGINE-UNIVERSAL-SERVICES.26 slice 1 — PROPAGATE THE REFUTATION; instrument + gate + DOCS, ZERO grammar/generated/Rust bytes)
 
 - ⭐⭐⭐ **The propagation is the mechanical half. The finding is that the refuted `+24.3 %` had a
