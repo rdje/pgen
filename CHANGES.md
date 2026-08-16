@@ -1,5 +1,28 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0056 (director follow-up: "you are the only agent" + "I hope you addressed them properly"; DOCS only, ZERO code/grammar/generated/gate bytes)
+
+- ⛔⛔ **`-0055` LOGGED FINDING 2 INSTEAD OF FIXING IT, WHICH IS THE ONE OUTCOME THE PROJECT'S OWN
+  POLICY REJECTS.** The compression I flagged — publishing `0.45 %` without the `24 of 192 slots
+  (12.5 %)` beside it — was sitting in the **TITLE** of
+  `docs/knowledge/a-ranking-is-robust-to-an-undercount-that-a-share-is-not.md`, i.e. the single
+  highest-traffic surface it has, mirrored through `KNOWLEDGE_MAP.md`. I wrote a changelog entry
+  about it and left the title alone. ⇒ title, `evidence:`, the summary table and the body prose now
+  all carry **both** numbers, with the rule stated: *the row churn is what a re-derivation COSTS and
+  the 0.45 % is what it BUYS; quote both or neither, because keeping only the second makes the
+  decision look free.*
+- ⛔⛔ **FINDING 1's correction was itself mis-framed, and the director supplied the sharper reading:
+  there is only ONE agent here.** *"It was not my finding"* implies another author; `-0051` was me,
+  one session earlier. That makes the defect worse, not lighter: I READ `.26`'s routing evidence at
+  session start, quoted it, and hours later wrote *"what this slice found"* over the top of it. ⇒ the
+  durable guard is not *"check whose finding it was"* but **"before calling anything a finding, grep
+  the leaf for it"** — the leaf is the memory; a recollection of having just discovered something is
+  not evidence that it is new. Corrected in place in the `.26` slice-1 record.
+- ✅ **FINDING 3's correction verified complete**: the tracked card now separates the two failure
+  modes — *identical arms* versus *a real arm with a false tell* — in a table, names its own first
+  draft as the instance, and the measured 0 B / 4 031 B stderr split is in the `evidence:` line.
+- All 20 doctrines green; `KNOWLEDGE_MAP.md` re-derived by its generator.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0055 (director challenge "are these findings SOTA/signoff?"; DOCS only, ZERO code/grammar/generated/gate bytes)
 
 - **Audited all four findings by command rather than by re-reading my own prose. TWO do not survive,

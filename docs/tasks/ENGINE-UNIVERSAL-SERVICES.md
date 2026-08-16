@@ -7416,7 +7416,7 @@ command:** `git show 4f6208fd:docs/tasks/ENGINE-UNIVERSAL-SERVICES.md | grep -c 
 are wrong"` returns **1**. The finding was already written into this leaf's own ROUTING EVIDENCE by
 `-0051`, before this slice began — including *"the DENOMINATOR is wrong INDEPENDENTLY of the
 wall-clock refutation"* and the 0.41×/1.82× readings. ⇒ **this slice DISCHARGED a recorded finding;
-it did not make one.** That is real work — retiring the constant at its arithmetic home, moving the
+it did not make one.** ⛔⛔ **AND THE SHARPER READING, WHICH THE DIRECTOR SUPPLIED: there is only ONE agent on this project, so `-0051` was not somebody else — it was me, one session earlier.** So the defect is not mis-attributed credit, which would be venial; it is that I READ this leaf's routing evidence at session start, quoted it, and then wrote *"what this slice found"* over the top of it hours later. A finding I had recorded MYSELF was re-published as new. ⇒ the guard is not *"check whose finding it was"* but ***"before calling anything a finding, grep the leaf for it"*** — the leaf is the memory; a recollection of having just discovered something is not evidence that it is new. That is real work — retiring the constant at its arithmetic home, moving the
 gated anchor, bumping the artifact schema, re-deriving the census — but it is a different claim, and
 the flattering direction of the error is exactly why it is corrected in place rather than softened.
 ⭐ The finding that IS this slice's own is the **stale `CORPUS_FAMILY_PROVENANCE`** below, which

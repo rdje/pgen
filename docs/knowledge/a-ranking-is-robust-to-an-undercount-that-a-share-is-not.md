@@ -1,6 +1,6 @@
 ---
 id: a-ranking-is-robust-to-an-undercount-that-a-share-is-not
-title: The same classifier defect was 4x wrong in the SHARE it published and 0.45 % wrong in the SELECTION it fed — because a ranking survives a systematic undercount that a ratio cannot
+title: A classifier wrong about 75.1 % of a rule family moved the SHARE it published by 4x, moved 12.5 % of the sample rows it ranked, and moved the quantity that sample exists to cover by 0.45 % — three different blast radii from one defect
 answers:
   - "my classifier was wrong — which of the things built on it actually have to be redone"
   - "do I have to re-derive my sampled benchmark after fixing the metric that selected it"
@@ -11,7 +11,7 @@ answers:
 tags: [instruments, measurement, ratchets, sampling, benchmarks, evidence, proxies]
 date: 2026-08-16
 status: current
-evidence: ENGINE-UNIVERSAL-SERVICES.21 acceptance (b), 2026-08-16. One regex classified PGEN's left-recursion-elimination rule family. It matched 97 of the parser's 127 LR rule names and missed **75.1 %** of the family's corpus rule entries (18 518 719 of 24 644 435). Two things were built on it. (1) A published SHARE, `0.681 %` of all corpus entries — wrong by **4x**; the true figure is 2.741 %, and every surface quoting it was stale. (2) A pinned 192-file benchmark sample whose `lr` tier is *"the 40 heaviest by guarded-admission entries"* — re-derived under the corrected classifier over a reproducible full-corpus census (two censuses, RAW BYTE-IDENTICAL, 16 336 rows each), it moves `hot` **0/40**, `lr` **5/40**, `breadth` **19/112**, and the LR-family entries the sample covers change by **+0.45 %** (12 440 690 -> 12 496 291). The correction was necessary and the selection barely noticed it.
+evidence: ENGINE-UNIVERSAL-SERVICES.21 acceptance (b), 2026-08-16. One regex classified PGEN's left-recursion-elimination rule family. It matched 97 of the parser's 127 LR rule names and missed **75.1 %** of the family's corpus rule entries (18 518 719 of 24 644 435). Two things were built on it. (1) A published SHARE, `0.681 %` of all corpus entries — wrong by **4x**; the true figure is 2.741 %, and every surface quoting it was stale. (2) A pinned 192-file benchmark sample whose `lr` tier is *"the 40 heaviest by guarded-admission entries"* — re-derived under the corrected classifier over a reproducible full-corpus census (two censuses, RAW BYTE-IDENTICAL, 16 336 rows each), it moves `hot` **0/40**, `lr` **5/40**, `breadth` **19/112** — **24 of 192 slots, 12.5 % of the sample** — while the LR-family entries that sample COVERS change by only **+0.45 %** (12 440 690 -> 12 496 291). ⛔ Both numbers, always: a first draft of this card published only the 0.45 %, which makes the decision to decline look easier than it is. The correction was necessary and the selection barely noticed it.
 reverify: "python3 stimuli/sv/corpus_parse_cost.py --census --outdir <a> && python3 stimuli/sv/corpus_parse_cost.py --census --outdir <b> && python3 docs/tasks/artifacts/engine_universal_services/sample_rederivation/compare_sample.py --census-a <a>/census.tsv --census-b <b>/census.tsv   # 4 legs, exit 0; leg 4 is an external oracle — the fresh census must reproduce the tracked entries.tsv totals 416 841 264 / 12 440 690 exactly"
 ---
 
@@ -26,13 +26,16 @@ things depended on it:
 ```text
 consumer                                   what it used   how wrong it was
 -----------------------------------------  -------------  -----------------
-the published family SHARE (0.681 %)        the MAGNITUDE  4x  (true: 2.741 %)
-the pinned benchmark sample's `lr` tier     the ORDER      0.45 %
+the published family SHARE (0.681 %)        the MAGNITUDE  4x   (true: 2.741 %)
+the pinned sample's MEMBERSHIP              the ORDER      12.5 % of rows move
+the quantity that sample exists to COVER    the ORDER      0.45 %
 ```
 
 The share was wrong by a factor of four and had to be corrected on every surface carrying it. The
-sample — selected by ranking files on the very same broken count — changed by less than half a
-percent in the quantity it exists to cover.
+sample — selected by ranking files on the very same broken count — churned **12.5 % of its rows**
+while the quantity it exists to cover moved **less than half a percent**. ⛔ Quote both or neither:
+the row churn is what a re-derivation costs, and the 0.45 % is what it buys. A summary that keeps
+only the second makes the decision look free.
 
 ## Why the ranking survived
 
