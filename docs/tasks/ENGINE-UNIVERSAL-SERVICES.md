@@ -7181,15 +7181,32 @@ and the gap goes.
   tidy number that disagreed and retaining the untidy one that agreed — is the finding I most want on
   the record, because it is mine.
 
-###### ⭐ CONSEQUENCE FOR RULING B — DISCHARGED BY ATTRIBUTION, NOT BY WAIVER
+###### ⛔⛔⛔ CONSEQUENCE FOR RULING B — **CORRECTED 2026-08-16 (`-0051`), AFTER THE DIRECTOR CHALLENGED IT. THIS SLICE FIRST WROTE "DISCHARGED BY ATTRIBUTION" AND THAT WAS WRONG.**
 
-Ruling **B** forbids SV reaching `Done` *"carrying an unexplained +24.3 %"*, requiring it be
-*"attributed and then either eliminated or declared IRREDUCIBLE with the measurement that proves
-it."* It is now **attributed**: to a fixed-arm-order measurement artifact, with the raw data, the
-mechanism and the counterbalanced re-measurement on record. That is a legitimate discharge of B's
-own terms — not the *"accuracy before speed"* escape (e) forbids, and not a waiver. ⛔ **What stays
-open**: (b)'s split is still unresolved on wall clock (and is now a split of ~0-5 %, not 24 %), and
-(c)'s priced option list should be re-scoped to the deterministic costs, which are the real ones.
+⛔ **What slice 5 published, and why it does not hold.** It claimed ruling B *"discharged by
+attribution … B's own first branch"*. Re-read verbatim, B says: *"the parse-time cost of the guarded
+admission must be **attributed and then either eliminated or declared IRREDUCIBLE** with the
+measurement that proves it."* Attribution is B's **precondition**, not one of its branches — its two
+branches are *eliminated* and *declared IRREDUCIBLE*, and this slice satisfied **neither**. Calling
+attribution "B's own first branch" misdescribes the ruling I was discharging.
+
+⭐ **What is actually true.** The refutation kills B's **premise** — there is no +24.3 % to carry —
+but B binds on *"the parse-time cost of the guarded admission"*, whatever that cost turns out to be,
+and that cost currently has **no disposition at all**:
+
+| the real cost | status against B |
+|---|---|
+| wall clock | **UNRESOLVED** — at the noise floor; this slice's own admissibility test REFUSED to read it |
+| rule entries **+10.59 %** (86 100 253) | measured exactly, **never eliminated, never declared irreducible** |
+| parser bytes **+9.3 %** (12 159 121 B) | measured exactly, **same** |
+
+⇒ the honest verdict is **B's PREMISE is REFUTED; B's CLAUSE is NOT DISCHARGED.** It binds now on
+two exact deterministic numbers instead of one phantom wall-clock number, which is a *sharper*
+obligation than the one it replaced, not a lighter one. ⛔ Nothing here licenses SV reaching `Done`;
+that was the effect my wording would have had, and it is exactly the outcome B was written to
+prevent. ⚠️ Committed wrong in four places by `-0050` (this leaf, `MEMORY.md`, `CHANGES.md`, the
+commit message) and corrected forward in `-0051`; the `-0050` commit message stands as the dated
+record of the error.
 
 ###### Acceptance Checklist (enforced) — `.20` slice 5
 
@@ -7241,17 +7258,29 @@ open**: (b)'s split is still unresolved on wall clock (and is now a split of ~0-
   `parse_cost_ratchet/cost.md`, and four instrument headers (`stimuli/sv/corpus_parse_cost.py`,
   `scripts/check_parse_cost_ratchet.sh`, `rust/Makefile`, `run_guard_ab_entries.sh`).
 - ⛔⛔⛔ **ONE SURFACE IS NOT MERELY STALE — ITS THESIS INVERTS, AND IT IS A KNOWLEDGE CARD.**
-  `[[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]]` argues that the entry counter is
-  *"at least ~8.9× less sensitive"* than wall clock, deriving that bound as **2.741 % entries against
-  +24.3 % wall clock**. With wall clock at ≤5 %, the bound does not survive on either reading of the
-  entry figure: against the card's own 2.741 % share it becomes ≤1.9×, and against the work tier's
-  actual entry DELTA (**+10.6 %**, 812 963 769 → 899 064 022) the counter moved *more* than the clock,
-  i.e. it was MORE sensitive, not less. ⚠️ The card's GENERAL principle — a counter counts EVENTS and
-  a slowdown can live in the COST of an event — is untouched and remains true; it is the PGEN
-  evidence and the numeric bound that are refuted. ⭐ The `PARSE-COST-RATCHET` gate holds this card's
-  `Live LR-family share` anchor equal to `family_share.json`; **2.741 % is a measured share and is
-  unaffected**, so the gate does not break — only the interpretation built on top of it does.
-  ⇒ this card needs re-derivation of its thesis, not a find-and-replace.
+  `[[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]]` argues the entry counter is *"at
+  least ~8.9× less sensitive"* than wall clock, deriving that bound as **+24.3 % wall clock ÷ 2.741 %
+  entries**. **BOTH of its terms are wrong, and — found 2026-08-16 under director challenge — the
+  DENOMINATOR is wrong INDEPENDENTLY of the wall-clock refutation.**
+  - ⛔ **The denominator.** The card states *"the flip's entry DELTA is strictly smaller"* than the
+    2.741 % family share, reasoning that *"the rules it replaced were themselves entered"*. That was
+    an INFERENCE, and the tracked artifact **in this same leaf** measures it: `guard_ab_entries.txt`
+    gives ARM 1 812 963 769 → ARM 2 899 064 022, a delta of **86 100 253 = +10.59 %**, which is
+    **3.49× LARGER** than the family's 24 644 435 entries — not smaller. ⇒ the card reasoned from a
+    plausible inference that a later measurement in its own leaf refuted, and nobody went back.
+  - ⛔ **The numerator** is the refuted +24.3 %.
+  - ⭐ **The 8.9× fails under EVERY reading**, which is what makes this robust rather than a swap of
+    one estimate for another: with the correct denominator 10.59 %, the point-estimate wall clock
+    (≤ +4.33 %) gives **0.41×** — the counter moved ~2.4× MORE than the clock — and even the most
+    adversarial wall-clock reading available (+19.3 %, the extreme pairing of individual runs) gives
+    only **1.82×**. ⚠️ So the DIRECTION of the inversion depends on which wall-clock figure is used;
+    the REFUTATION of 8.9× does not.
+  - ⚠️ The card's GENERAL principle — a counter counts EVENTS, and a slowdown can live in the COST of
+    an event — is untouched and remains true. It is the PGEN evidence and the numeric bound that fail.
+  - ⭐ `PARSE-COST-RATCHET` holds this card's `Live LR-family share` anchor equal to
+    `family_share.json`; **2.741 % is a correctly measured SHARE and is unaffected**, so the gate does
+    not break — only the inference built on top of it does.
+  ⇒ this card needs its thesis re-derived, not its digits edited.
 - ⭐⭐ **The sharpest one is a DOCTRINE.** `PARSE-COST-RATCHET`'s registered description states *"the
   guarded admission cost +24.3 % parse time while … every registered doctrine stayed GREEN"* as its
   founding rationale. ⛔ It is mirrored in **two** files that the `<meta:mirror>` doctrine binds
