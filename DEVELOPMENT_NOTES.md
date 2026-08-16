@@ -107,8 +107,10 @@ pattern, not the half of it your defect report happened to name.
 **2. A bootstrap deadlock does not look like the bootstrap deadlock you already fixed.** Slice 1's
 was an identity HASH ROW that could not exist until a rebaseline wrote it, while the rebaseline
 refused to write until it existed. Slice 4's was a prose ANCHOR in a generated report — different
-file, different mechanism, different data type, same graph. I walked into it having authored the
-first fix's explanation. The question that names the class in one sentence is *"is this file written
+file, different mechanism, different data type, same graph. ⛔ Precisely: slice 1 landed the day
+before, in a different session, and I had READ its write-up — which is worse than having written
+it, because the record was sitting in the same file, correct and specific, and still did not
+transfer. The question that names the class in one sentence is *"is this file written
 by the thing my check is blocking?"*, and it must be asked of every surface AT THE MOMENT the surface
 is added to the gate. ⭐ Promoted to
 `docs/knowledge/a-bootstrap-check-must-not-block-the-act-that-bootstraps-it.md`.

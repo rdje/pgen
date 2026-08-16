@@ -55,9 +55,10 @@ it is bootstrap. If no, the gate is reporting something the operation cannot fix
 
 ## Why this is worth a card rather than a comment
 
-It was measured **twice inside one leaf**, by the same author, weeks apart in slice numbering and
-hours apart in wall clock — the second time in a check written *after* the first fix, by someone who
-had already written the first fix's explanation. The shape does not announce itself as the shape you
+It was measured **twice inside one leaf**, in slices a day apart — and the second time by
+someone who had *read* the first fix's write-up, not written it. That distinction matters:
+the record of instance 1 was sitting in the same file, correct and specific, and it still did
+not transfer. The shape does not announce itself as the shape you
 already know: the first instance was an identity HASH ROW, the second a prose ANCHOR in a generated
 report, and they look nothing alike until you ask the one question that names the class —
 

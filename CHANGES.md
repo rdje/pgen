@@ -63,8 +63,8 @@
      a pre-fix baseline captured by accident earlier in the session — which makes it a better
      baseline, not a worse one: it was not produced to support a conclusion.
 - ⭐⭐ **THE GROWTH LAW PREDICTED THE UNOBSERVABLE.** Slice 1's `×4.14 per arm`, extrapolated to the
-  real file's **9** else-if arms, forecast **6 051 461 940**; measured **5 648 150 434** — within
-  **6.7 %**. ⛔ Slice 1 said "10 arms"; it is 9, corrected rather than left to read as agreement it
+  real file's **9** else-if arms, forecast **6 051 461 940**; measured **5 648 150 434** — within **7.1 %** of the measured value
+  (6.7 % of the forecast — the larger figure is the honest one). ⛔ Slice 1 said "10 arms"; it is 9, corrected rather than left to read as agreement it
   did not earn.
 - ⭐ **The roster gained its second direction the day its first row went stale.** Fixing the defect
   left a declaration describing a file that now dumps in 0.04 s — a permanent invisible licence for

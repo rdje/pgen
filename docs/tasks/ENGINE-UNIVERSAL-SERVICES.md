@@ -7515,7 +7515,7 @@ reproduced to the unit, is a far stronger statement than "the tests still pass".
 
 ⭐⭐ **AND THE GROWTH LAW PREDICTED THE UNOBSERVABLE.** The ladder's `×4.14 per arm`, extrapolated
 in slice 1 to the real file's **9** else-if arms, forecast **6 051 461 940**. Measured:
-**5 648 150 434** — within **6.7 %** of a number that no instrument in the repository could produce
+**5 648 150 434** — within **7.1 %** (6.7 % of the forecast; the larger figure is the honest one) of a number that no instrument in the repository could produce
 at the time the forecast was made. ⛔ Slice 1's own text said *"the corpus file carries 10"*; it
 carries **9 `else if` arms** after the leading `if`, and the ladder's rung 9 (5 648 150 002) is that
 same construct with uniform arm bodies — a 432-entry difference from the real file's slightly

@@ -563,8 +563,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   all 192 rows of the pinned parse-cost sample, and that is an empirical fact about those files,
   ⛔ **not a guarantee**. ⚠️ Until `.22`(e) the sample was additionally selected from a census that
   DROPPED exactly the file where it fails; the census is now complete (16 336/16 336), so that
-  particular blind spot is closed — the identity is still not one. Before quoting a
-  failed-speculation percentage, check the sign.
+  particular blind spot is closed — the identity is still not one. ⛔⛔ **AND OVER THE WHOLE CORPUS
+  THE SIGN IS NOW NEGATIVE, MEASURED**: `entries 899 264 997` vs `committed 5 682 584 657` ⇒
+  `entries − committed = −4 783 319 660`, i.e. `committed/entries = 6.32×`. Before the fix the same
+  subtraction was POSITIVE (+864 629 799) only because the dominant file was being dropped. ⇒ this
+  is no longer a synthetic-ladder hazard; a corpus-wide failed-speculation figure computed this way
+  is now flatly wrong. Before quoting a failed-speculation percentage, check the sign.
 
 ### 3.6 Per-rule memo INSERT / EVICT / REPLAY census — "is the memo actually serving this rule?"
 - **WHAT:** `docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py` — splits a parse's memo
