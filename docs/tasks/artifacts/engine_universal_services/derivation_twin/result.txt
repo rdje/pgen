@@ -1,0 +1,19 @@
+==============================================================================
+ENGINE-UNIVERSAL-SERVICES.22 (b) — verdict agreement vs DERIVATION agreement
+==============================================================================
+probe:  rust/target/debug/parseability_probe
+files:  10 (the pathological file first, then a deterministic stride over the
+        pinned parse-cost sample — never a prefix, which would be `hot` tier only)
+
+RESULT
+  files whose THREE derivations are byte-identical : 7
+  files whose derivations DIFFER                   : 0
+  files skipped (rejected parse / absent)          : 3
+  files whose ARM IDENTITY could not be proven     : 0
+  tiers actually covered                           :  hot=3 lr=2 breadth=4 (+the pathological file)
+
+✅ (b) ANSWERED — on every file checked, the FUSED graph, the PROTOCOL graph and the
+   PROTOCOL graph WITH the transactional coverage recorder produce a BYTE-IDENTICAL AST.
+   The verdict agreement is backed by a derivation agreement, and the 3.4/3.5 dumps
+   describe the derivation a production parse actually performs.
+==============================================================================

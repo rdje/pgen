@@ -1284,10 +1284,47 @@ fn parse_with_systemverilog_ast_json(sample: &str) -> Result<JsonValue, String> 
     parse_with_systemverilog_ast_json_profile(sample, None)
 }
 
+/// `ENGINE-UNIVERSAL-SERVICES.22` acceptance (b) — DUMP THE AST OF A COVERAGE-ENABLED PARSE.
+///
+/// ⛔ WHY THIS EXISTS. (b) asks whether a file's `accepted: True` under the TOOLBOX 3.4/3.5 dump
+/// and its `pass` under a bare parse are the **same derivation** — *"a verdict agreement is not a
+/// derivation agreement"*. Answering it needs the same artifact from both configurations, and the
+/// AST-dump path could not produce one: `parse_with_systemverilog_ast_json_profile` never calls
+/// `enable_coverage`, so `--parse-dump-ast` always ran with `bare_parse = true`.
+///
+/// ⚠️ MEASURED, NOT ASSUMED: passing `--dump-rule-outcome-counts-json` alongside
+/// `--parse-dump-ast` looks like it should route the parse, because
+/// `set_global_dump_rule_outcome_counts_json` IS applied before dispatch — but the coverage
+/// `enable_coverage()` call lives in the `--parse` detail macro, which this path does not use, and
+/// no counts file is written. An A/B built that way compares bare against bare and agrees for the
+/// wrong reason.
+///
+/// ⇒ this variant enables coverage on the SAME parse whose AST it serializes, so the two arms
+/// differ in exactly one thing.
+#[cfg(has_generated_systemverilog_parser)]
+fn parse_systemverilog_ast_json_with_coverage(
+    sample: &str,
+    grammar_profile: Option<&str>,
+) -> Result<JsonValue, String> {
+    parse_with_systemverilog_ast_json_inner(sample, grammar_profile, true)
+}
+
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog_ast_json_profile(
     sample: &str,
     grammar_profile: Option<&str>,
+) -> Result<JsonValue, String> {
+    // ⛔ `false` keeps this path byte-identical to what it was before `.22`(b): coverage stays off,
+    // `bare_parse` stays true, and the fused graph runs. The new argument adds a caller, never a
+    // behaviour change to the existing one.
+    parse_with_systemverilog_ast_json_inner(sample, grammar_profile, false)
+}
+
+#[cfg(has_generated_systemverilog_parser)]
+fn parse_with_systemverilog_ast_json_inner(
+    sample: &str,
+    grammar_profile: Option<&str>,
+    enable_coverage: bool,
 ) -> Result<JsonValue, String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
@@ -1300,9 +1337,33 @@ fn parse_with_systemverilog_ast_json_profile(
     parser.set_grammar_profile(normalized_profile);
     preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
     let _dashboard = maybe_spawn_call_count_dashboard(&parser);
+    // ⛔ AFTER the stdlib preload, matching every other `enable_coverage` call site in this file:
+    // the preload is itself a parse, and recording it would put the stdlib's rule entries in the
+    // measured derivation. `enable_coverage` clears the stack, so the ordering is what decides
+    // whether the preload is inside or outside the observation.
+    if enable_coverage {
+        parser.enable_coverage();
+    }
     let parsed = parser
         .parse_full_systemverilog_file()
         .map_err(|err| err.to_string())?;
+    // ⛔⛔ THE ARM MUST PROVE ITSELF (`ENGINE-UNIVERSAL-SERVICES.22` (b)). An A/B whose two arms are
+    // secretly the same configuration agrees for the wrong reason, and this slice hit exactly that
+    // twice: first with `--dump-rule-outcome-counts-json` (parsed but never wired into this path),
+    // then with `PGEN_REPORT_MEMO_STATS=1` as a proposed tell — whose aggregate header is
+    // BYTE-IDENTICAL with and without coverage, differing only in which members of a tie group the
+    // top-30 cutoff prints. Neither was a tell.
+    //
+    // ⇒ the tell is now the coverage recorder's OWN read-back, which is zero by construction when
+    // coverage is off (nothing is ever pushed onto `coverage_stack`) and non-zero when it is on.
+    // It is printed on stderr so an A/B script can assert it, rather than left for a reader to
+    // infer from a flag having been typed.
+    if enable_coverage {
+        eprintln!(
+            "COVERAGE-DUMP-AST: enable_coverage=true exercised_rules={}",
+            parser.exercised_rule_names().len()
+        );
+    }
     parse_node_to_json(&parsed)
 }
 
@@ -1951,6 +2012,35 @@ pub fn parse_sample_ast_json_with_profile(
         "vhdl" => Some(parse_with_vhdl_ast_json(sample)),
         #[cfg(has_generated_scratch_parser)]
         "scratch" => Some(parse_with_scratch_ast_json(sample)),
+        _ => None,
+    }
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.22` (b) — AST-JSON dump of a COVERAGE-ENABLED parse.
+///
+/// The `parseability_probe --parse-dump-ast --dump-ast-with-coverage` surface. Same shape as
+/// `parse_sample_ast_json_from_entry`: `None` for a grammar whose coverage-enabled variant is not
+/// wired (currently `systemverilog` only), so the caller can REFUSE rather than fall back to a
+/// bare dump — an A/B whose two arms are secretly the same configuration agrees for the wrong
+/// reason, which is the exact trap (b) exists to avoid.
+///
+/// ⛔ Every `has_generated_*` decision stays in this file. A caller cfg-branching in tail-expression
+/// position needs an attribute on an expression, which is unstable; keeping the dispatch here is
+/// what makes the probe's arm a plain call.
+pub fn parse_sample_ast_json_with_coverage(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
+) -> Option<Result<JsonValue, String>> {
+    #[cfg(not(has_generated_systemverilog_parser))]
+    let _ = (sample, grammar_profile);
+
+    match grammar_name {
+        #[cfg(has_generated_systemverilog_parser)]
+        "systemverilog" => Some(parse_systemverilog_ast_json_with_coverage(
+            sample,
+            grammar_profile,
+        )),
         _ => None,
     }
 }

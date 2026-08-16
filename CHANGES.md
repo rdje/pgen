@@ -1,5 +1,38 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0054 (leaf ENGINE-UNIVERSAL-SERVICES.22 slice 4 — (b) DISCHARGED, leaf CLOSED; debug-tooling change, ZERO grammar/generated/engine bytes)
+
+- ✅ **(b): the verdict agreement IS a derivation agreement.** Three arms of ONE binary on the
+  pathological file — bare (FUSED `cascade_*` graph), `PGEN_REPORT_MEMO_STATS=1` (PROTOCOL graph,
+  coverage off), and coverage ON — produce a **byte-identical AST**, sha256
+  `0ae3fc88401ebdac0ea5d16b6e920541b61421efe7fa4322d3c9a530550cd044`, 38 164 B. Widened over a
+  strided sample: **7 byte-identical, 0 differing, 0 arm-identity failures**, tiers
+  `hot=3 lr=2 breadth=4` plus the pathological file. ⇒ every counter-based instrument in TOOLBOX
+  3.1-3.6 describes the derivation a production parse actually performs — the assumption the whole
+  observability twin rests on, and it had never been tested.
+- ⛔⛔ **The instrument did not exist, and BOTH obvious substitutes produce a FALSE PASS.**
+  (1) `--dump-rule-outcome-counts-json` beside `--parse-dump-ast` is parsed and then dropped —
+  `enable_coverage()` lives in the `--parse` detail macro, so no counts file is written and both
+  arms come out bare. (2) `PGEN_REPORT_MEMO_STATS=1` routes the parse but is **not** a coverage
+  tell: its aggregate header is BYTE-IDENTICAL with and without coverage
+  (`5710 … 29378 total, 6170 subtree-nodes, 369 distinct rules`) and the entire visible diff is
+  which members of a tie group the top-30 cutoff prints. ⭐ The second was drafted as a ✅ before
+  `sort`-ing both stderr files refuted it.
+- **Shipped:** `--dump-ast-with-coverage` (SV only) dumps the AST of a coverage-enabled parse and
+  prints the recorder's OWN read-back — `COVERAGE-DUMP-AST: enable_coverage=true
+  exercised_rules=134` — which is zero by construction when coverage is off, so it reports what the
+  recorder DID rather than what was typed. REFUSES (exit 1, no file) on a non-SV grammar and
+  alongside `--entry-rule`; both refusals observed firing. Coverage is enabled AFTER the stdlib
+  preload, matching every other call site, so the preload stays outside the observation.
+- ⛔ **The probe's own limiter carried the defect this tree hunts.** Its `[N]` bound was first a
+  PREFIX of the pinned manifest — ordered `hot(40), lr(40), breadth(112)` — so any `N < 40` would
+  have reported *"N files, all identical"* while touching only the heaviest tier. Now a
+  deterministic stride, with the tier census of what was actually checked printed in the result.
+  Its repo-root resolution was also off by one `..` (the **second** time this session at this
+  depth); it now asserts a marker file and refuses.
+- Verified: `clippy_on_rust_change` clean (strict source + strict generated, 68 pinned correctness
+  lints intact); `generated/` untouched; all 20 doctrines green; mdbook gate green.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0053 (leaf ENGINE-UNIVERSAL-SERVICES.21 slice 5 — (b) DISCHARGED, leaf CLOSED; instrument + DOCS, ZERO grammar/generated/Rust bytes)
 
 - ✅ **`.21` (b) was the last item open, and it was BLOCKED, not undecided.** Slice 1's decisive

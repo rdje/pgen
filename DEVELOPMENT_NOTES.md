@@ -1,5 +1,34 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0054 — in an A/B about observability, the hard part is proving the two arms are two things
+
+**1. An A/B whose arms are secretly identical does not fail — it PASSES.** `.22`(b) needed a bare
+parse compared against a coverage-enabled one. Two natural ways to build it both produced two BARE
+arms, and both would have reported a clean agreement: `--dump-rule-outcome-counts-json` beside
+`--parse-dump-ast` is parsed and then dropped (the `enable_coverage()` call lives in a macro that
+path does not use, and no counts file appears), and `PGEN_REPORT_MEMO_STATS=1` routes the parse but
+says nothing about coverage. ⇒ **before comparing, make each arm print something only that arm can
+produce**, and assert it per row.
+
+**2. A tell must report what the code DID, not what the operator asked for.** The rejected memo-stats
+tell was seductive because the two stderr blocks visibly differed — but `sort`-ing them showed the
+aggregate header byte-identical, the difference being which members of a tie group a top-30 cutoff
+prints. ⇒ a difference is not a signal until you have found the axis it lies on. The shipped tell is
+the coverage recorder's own read-back, `exercised_rules=N`, which is **zero by construction** when
+coverage is off; it cannot be produced by a flag that was merely typed.
+
+**3. A bound spent as a PREFIX over an ordered population is a coverage lie in the passing
+direction.** The probe's `[N]` argument first took the first N rows of a manifest ordered
+`hot(40), lr(40), breadth(112)`, so any `N < 40` would have printed *"N files, all identical"*
+having touched only the heaviest tier. Fixed to a deterministic stride that also prints the tier
+census of what it actually checked. ⚠️ Worth noticing where this happened: in the limiter of an
+instrument written to catch exactly this class of defect.
+
+**4. Off-by-one in a `..` chain resolves to a REAL directory, so the symptom is misleading.** Twice
+in one session, at the same depth (five levels under the repo root), a tracked script resolved its
+root one level short and reported *"no probe here"* / an import error rather than *"wrong root"*.
+Both now assert a marker file that exists only at the real root and refuse with that message.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0053 — a defect propagates in full to whatever used the MAGNITUDE and barely at all to whatever used the ORDER
 
 **1. Price a correction's blast radius; do not assume it.** One classifier missed 75.1 % of a rule

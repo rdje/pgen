@@ -529,6 +529,23 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
 - **OUTPUT:** the JSON file (rules sorted; zero-count rules omitted per map). Opt-in: unset ⇒ the coverage stack stays disabled and behavior is byte-identical. Build-mode-independent like 3.4.
 - **ROUTING (RGX-0078.5.i.7 D2-A):** the outcome dump enables coverage ⇒ the parse runs the PROTOCOL graph, so the raw/committed/memo-hit pins stay byte-exact forever under the observability twin (a BARE parse — no coverage/trace/counters/memo-stats consumer — runs the fused `cascade_*` graph instead; its byte-identity is enforced by the equivalence/AST oracles, not by counters).
+- ✅ **AND THE TWIN IS NOW MEASURED TO AGREE ON THE DERIVATION, NOT JUST THE VERDICT
+  (`ENGINE-UNIVERSAL-SERVICES.22` (b), 2026-08-16).** *A verdict agreement is not a derivation
+  agreement*, and this is the assumption every counter-based tool in 3.1-3.6 rests on. Measured
+  with `parseability_probe --parse-dump-ast --dump-ast-with-coverage` over three arms of ONE
+  binary — bare (FUSED), `PGEN_REPORT_MEMO_STATS=1` (PROTOCOL, coverage off), and coverage ON — the
+  ASTs are **byte-identical**, one sha256 across all three, on the pathological file and on a
+  strided sample (7 identical, 0 differing, tiers `hot=3 lr=2 breadth=4`). Probe:
+  `docs/tasks/artifacts/engine_universal_services/derivation_twin/probe.sh`.
+- ⛔⛔ **TWO OBVIOUS WAYS TO BUILD THAT A/B PRODUCE A FALSE PASS, AND BOTH WERE MEASURED.**
+  (1) `--dump-rule-outcome-counts-json` beside `--parse-dump-ast` is parsed and then dropped: the
+  `enable_coverage()` call lives in the `--parse` detail macro, so **no counts file is written and
+  both arms come out bare**. (2) `PGEN_REPORT_MEMO_STATS=1` routes the parse but is **not** a
+  coverage tell — its aggregate header is byte-identical with and without coverage, and the whole
+  visible diff is which members of a tie group the top-30 cutoff prints. ⇒ the flag's own tell is
+  the recorder's read-back (`COVERAGE-DUMP-AST: enable_coverage=true exercised_rules=N`), which is
+  zero by construction when coverage is off. **If you build an observability A/B, make each arm
+  print something only that arm can produce.**
 - ✅ **FIXED 2026-08-16 (`ENGINE-UNIVERSAL-SERVICES.22` (e)) — READ THIS BEFORE THE PARAGRAPH
   BELOW.** The memo now stores an INDEX into an append-only side table and a hit pushes ONE tagged
   marker; read-back is a linear multiplicity fold. The file described below dumps in **0.04 s**, the

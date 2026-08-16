@@ -7651,7 +7651,7 @@ shared path-normalising comparison helper the instruments import, instead of the
 copies that exist now — the second copy was written **after** the first defect was recorded, which is
 the evidence that prose does not transfer.
 
-#### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ✅ **(f) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0048`; ⏳ **(b) is the only item left**: (b) whether the file's `accepted: True` under 3.4 and its `pass` under a bare parse are the same DERIVATION — a verdict agreement is not a derivation agreement — slice 3 closed (f) by adjudicating all 7 tracked consumers and turned up that ONE 2 787-byte file is **99.39 %** of the corpus's committed multiplicity)
+#### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ✅ **(f) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0048`; ✅ **(b) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0054` — the fused graph, the PROTOCOL graph and the PROTOCOL graph WITH the coverage recorder produce a **byte-identical AST** (one sha256 across all three arms), so the verdict agreement IS a derivation agreement; ⛔ the tool that could say so did not exist, and the two obvious substitutes both produce a FALSE PASS. **The leaf is now fully CLOSED** — slice 3 closed (f) by adjudicating all 7 tracked consumers and turned up that ONE 2 787-byte file is **99.39 %** of the corpus's committed multiplicity)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -7705,6 +7705,129 @@ corpus and publish a tracked number are:
 engine-universal, but SV is the only family with a full-corpus census, so no other family has a
 tracked number that could be short. ⭐ (f) is now CHEAP by construction — the whole point of (e) is
 that the file dumps in 0.04 s, so every one of these is a re-run rather than an investigation.
+
+##### ✅ `.22` SLICE 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0054`, 2026-08-16 session #240) — (b) DISCHARGED: the verdict agreement IS a derivation agreement, and the tool that can say so did not exist
+
+(b) asked whether the file's `accepted: True` under TOOLBOX 3.4/3.5 and its `pass` under a bare
+parse are the **same derivation** — *"a verdict agreement is not a derivation agreement"*. It is a
+sharp question here rather than a pedantic one: `.22` is a record of the coverage recorder being
+catastrophically wrong about **cost** (a 2 787-byte file that never terminated, ~93 GB of forecast
+coverage stack), so *"is it also wrong about the ANSWER"* had to be measured, not reasoned about.
+
+###### ⛔ THE INSTRUMENT DID NOT EXIST, AND THE TWO OBVIOUS SUBSTITUTES BOTH PRODUCE A FALSE PASS
+
+`--parse-dump-ast` is the only surface that emits a derivation, and it **always** ran
+`bare_parse = true`: `parse_with_systemverilog_ast_json_profile` never called `enable_coverage`.
+So the two arms of the A/B could not be built, and both natural attempts to build them anyway are
+measured failures — each of which would have reported a clean PASS:
+
+| attempted arm | why it looks right | why it is VACUOUS (measured) |
+|---|---|---|
+| `--parse-dump-ast … --dump-rule-outcome-counts-json out.json` | the global IS applied before dispatch, so the flag is genuinely parsed | `enable_coverage()` lives in the `--parse` detail macro, which this path does not use. **No counts file is written** and BOTH arms come out bare. |
+| `PGEN_REPORT_MEMO_STATS=1` as the *coverage* tell | it does flip `bare_parse`, and the stderr blocks visibly differ | ⛔ the aggregate header is **BYTE-IDENTICAL** with and without coverage — `5710 success entries (1948 tainted) + 23668 cached failures (2190 tainted) = 29378 total, 6170 subtree-nodes, 369 distinct rules` — and the whole diff is **which members of a tie group the top-30 cutoff prints**. It routes the parse; it says nothing about coverage. |
+
+⭐ The second one was drafted as a ✅ *"coverage is observably ON"* before `sort`-ing both stderr
+files refuted it. That is the same defect this leaf's own slice 1 is a record of, one level up: an
+observation that is really an artifact of the observer.
+
+###### THE FIX — A TELL THAT CANNOT BE FAKED BY TYPING A FLAG
+
+`--dump-ast-with-coverage` (SystemVerilog only) dumps the AST of a parse with the transactional
+coverage recorder enabled, and the parse **prints the recorder's own read-back**:
+`COVERAGE-DUMP-AST: enable_coverage=true exercised_rules=134`. That number is **zero by
+construction** when coverage is off — nothing is ever pushed onto `coverage_stack` — so it reports
+what the recorder DID, not what the operator asked for. ⛔ It REFUSES (exit 1, no file written) on
+any non-SV grammar and alongside `--entry-rule`, whose dump path has no coverage-enabled variant:
+falling back to a bare dump under a flag that says coverage is exactly how the vacuous arms above
+came about.
+
+###### THE RESULT — THREE ARMS, ONE BINARY, EACH PROVING ITS OWN IDENTITY
+
+| arm | configuration | its own tell | AST |
+|---|---|---|---|
+| A | bare ⇒ **FUSED** `cascade_*` graph | **0 bytes** of stderr | `38 164 B` |
+| B | `PGEN_REPORT_MEMO_STATS=1` ⇒ **PROTOCOL** graph, coverage OFF | a `=== MEMO STATS:` block | `38 164 B` |
+| C | `--dump-ast-with-coverage` ⇒ PROTOCOL **+ the coverage recorder** | `enable_coverage=true exercised_rules=134` | `38 164 B` |
+
+⇒ **all three sha256 `0ae3fc88401ebdac0ea5d16b6e920541b61421efe7fa4322d3c9a530550cd044`.**
+
+✅ **(b) ANSWERED: the verdict agreement is backed by a DERIVATION agreement.** The fused graph, the
+protocol graph and the protocol graph carrying the recorder that `.22` is about all produce a
+byte-identical AST. ⇒ every counter-based instrument in TOOLBOX 3.1-3.6 is describing the
+derivation a production parse actually performs — which is the assumption the whole observability
+twin rests on, and it had never been tested.
+
+⭐ **It is not a one-file result.** The tracked probe re-runs the three arms over a deterministic
+stride across the pinned sample: **7 files byte-identical on all three arms, 0 differing, 0 whose
+arm identity could not be proven**, covering `hot=3 lr=2 breadth=4` plus the pathological file
+(3 skipped — their parse is REJECTED, so there is no derivation to compare, and they are counted
+separately rather than folded into the pass count). Cost: **2 m 45 s** on the debug probe.
+
+⚠️ **Honest bounds, stated rather than discovered later.**
+1. This is an equality of the SERIALIZED TYPED AST, which is what the return annotations shape.
+   Two derivations differing only where the grammar's annotations project nothing would be
+   invisible to it. That bound is inherent to the only derivation artifact PGEN emits — it is the
+   strongest available surface, not a shortcut.
+2. The population is **10 files**, not the whole sample: the debug probe costs ~16 s/file across
+   three arms, so the full 193 would be ~50 min. Priced and declined for this slice; the sweep is
+   one command and `PGEN_PROBE=…/release/parseability_probe` makes it cheap once a release build
+   carrying the flag exists.
+
+###### THE PROBE IS TRACKED, AND ITS OWN LIMITER CARRIED THE DEFECT THIS TREE HUNTS
+
+`docs/tasks/artifacts/engine_universal_services/derivation_twin/probe.sh` + `result.txt`. It runs
+the three arms per file, **refuses** (rather than reporting a mismatch) if any arm cannot prove its
+identity, and reports rejected parses separately so a file with no derivation can never be counted
+as agreeing. ⛔ Its `[N]` bound was first spent as a **prefix** of the pinned manifest — which is
+ordered `hot(40), lr(40), breadth(112)`, so any `N < 40` would have checked ONLY the heaviest files
+while printing *"N files, all identical"*. A coverage lie in the passing direction, in the limiter
+of the instrument written to catch coverage lies. It is now a deterministic STRIDE and prints the
+tier census of what it actually touched. ⛔ Its repo-root resolution was also off by one `..` — the
+**second** time in this session at this exact depth (five levels under the root) — so it now
+asserts a marker file and refuses rather than reporting a confusing "no probe here".
+
+###### Acceptance Checklist (enforced) — `.22` slice 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0054`)
+
+- [x] **REPRODUCE / ISSUE** — (b) has been open since the leaf was written and could not be
+  answered, because no surface emits a derivation from a coverage-enabled parse. Reproduced at
+  HEAD: `parseability_probe --parse-dump-ast systemverilog <file> --dump-rule-outcome-counts-json
+  <out>` exits 0, writes the AST, and writes **no counts file at all** — the flag is parsed and
+  then dropped by this command, so the intended A/B has two identical arms.
+- [x] **ROOT CAUSE (WHY + WHERE)** — **WHY**: `--parse-dump-ast` always runs `bare_parse = true`,
+  because the routing conjunction is `!coverage_enabled && !logger_enabled && !counters_observed &&
+  !report_memo_stats_enabled` (`ast_based_generator.rs:1993`) and nothing on this path sets any
+  term. **WHERE**, to the function:
+  `parser_registry.rs::parse_with_systemverilog_ast_json_profile` never calls `enable_coverage()`,
+  unlike the `--parse` detail macro at `parser_registry.rs:354` which does it under
+  `if __outcome_dump.is_some()`. ⛔ The second, independent finding was located by MEASUREMENT, not
+  reading: `PGEN_REPORT_MEMO_STATS=1` was proposed as the coverage tell, and `sort`-ing the two
+  stderr files shows the aggregate header byte-identical — the difference is tie-order inside a
+  top-30 cutoff, so that tell is vacuous.
+- [x] **FIX** — debug-tooling tier; **ZERO grammar bytes, ZERO generated-parser bytes, ZERO engine
+  bytes**. A `parse_systemverilog_ast_json_with_coverage` variant that enables coverage AFTER the
+  stdlib preload (matching every other `enable_coverage` call site, so the preload stays outside
+  the observation), a registry dispatcher keeping every `has_generated_*` decision in one file, and
+  the `--dump-ast-with-coverage` flag. The existing path is threaded with `false` and is unchanged
+  by construction.
+- [x] **ADDRESSED (verified)** — three arms on ONE binary over
+  `stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv`, each proving its own identity: A
+  `--parse-dump-ast` **0 B stderr** (fused), B `PGEN_REPORT_MEMO_STATS=1` a `MEMO STATS` block
+  (protocol), C `--dump-ast-with-coverage` → `COVERAGE-DUMP-AST: enable_coverage=true
+  exercised_rules=134` (coverage live — zero by construction otherwise). All three ASTs are
+  **byte-identical**, sha256 `0ae3fc88401ebdac0ea5d16b6e920541b61421efe7fa4322d3c9a530550cd044`,
+  38 164 B. ⭐ Both REFUSAL paths observed firing: non-SV grammar → exit 1, no file; with
+  `--entry-rule` → exit 1, no file.
+- [x] **NO REGRESSION** — `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` clean
+  (strict source + strict generated). The pre-existing AST-dump path is **byte-identical** in
+  behaviour: it is threaded with `with_coverage = false` and its arm A dump reproduces the same
+  38 164-byte AST the release binary produced before this change. `generated/` untouched, so the
+  shipped parsers cannot have moved; `scripts/check_doctrines.sh` all green; `mdbook_docs_gate`
+  green.
+- [x] **LOCKSTEP** — this leaf; the tracked probe + `result.txt`; `TOOLBOX.md` (3.4/3.5 gain the
+  derivation-equality result and the two rejected tells); `docs/TASK_TREE.md`; `CHANGES.md`;
+  `DEVELOPMENT_NOTES.md`; `MEMORY.md`. ⛔ The DONE-BAR register is deliberately **UNCHANGED**:
+  `systemverilog` stays `Mostly Done`. This slice validates an observability assumption; it moves
+  no proof surface SV's release bar is gated on.
 
 ##### ✅ `.22` SLICE 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0048`, 2026-08-16 session #238) — (f) DISCHARGED: every consumer adjudicated, and the audit turns up a number that changes how the corpus reads
 
