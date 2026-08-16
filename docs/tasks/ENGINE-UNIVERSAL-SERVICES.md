@@ -7129,7 +7129,7 @@ shared path-normalising comparison helper the instruments import, instead of the
 copies that exist now — the second copy was written **after** the first defect was recorded, which is
 the evidence that prose does not transfer.
 
-#### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ⏳ **(b) and (f) remain**: (b) whether the file's `accepted: True` under 3.4 and its `pass` under a bare parse are the same DERIVATION — a verdict agreement is not a derivation agreement; (f) re-derive or exonerate every FULL-CORPUS census taken while the drop existed, opened BY slice 2 because fixing the defect is what made the short denominators visible)
+#### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ✅ **(f) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0048`; ⏳ **(b) is the only item left**: (b) whether the file's `accepted: True` under 3.4 and its `pass` under a bare parse are the same DERIVATION — a verdict agreement is not a derivation agreement — slice 3 closed (f) by adjudicating all 7 tracked consumers and turned up that ONE 2 787-byte file is **99.39 %** of the corpus's committed multiplicity)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -7183,6 +7183,100 @@ corpus and publish a tracked number are:
 engine-universal, but SV is the only family with a full-corpus census, so no other family has a
 tracked number that could be short. ⭐ (f) is now CHEAP by construction — the whole point of (e) is
 that the file dumps in 0.04 s, so every one of these is a re-run rather than an investigation.
+
+##### ✅ `.22` SLICE 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0048`, 2026-08-16 session #238) — (f) DISCHARGED: every consumer adjudicated, and the audit turns up a number that changes how the corpus reads
+
+###### ⭐⭐⭐ THE FINDING THE AUDIT WAS NOT LOOKING FOR — **ONE 2 787-BYTE FILE IS 99.39 % OF THE CORPUS'S COMMITTED MULTIPLICITY**
+
+Re-deriving the full-corpus census with the fixed engine returns `total_committed = 5 682 584 657`.
+The previously-dropped file alone accounts for **5 648 150 434** of it:
+
+| | committed rule entries | share |
+|---|---:|---:|
+| `…/ExponTimeIfElseGen/dut.sv` (2 787 bytes) | **5 648 150 434** | **99.39 %** |
+| the other **16 335** files, together | 34 434 223 | 0.61 % |
+
+⭐ **34 434 223 is exactly `guard_ab_entries.txt`'s ARM 2 `committed` figure**, which independently
+confirms that census was taken without the file — the arithmetic closes on a number written by a
+different instrument three sessions ago.
+
+⛔⛔ **CONSEQUENCE, and it is not cosmetic:** any corpus-wide `committed` aggregate is now DOMINATED
+by a single input. Before the fix it was 0 % of the total (it contributed nothing); after, it is
+99 %. A `committed`-keyed metric over this corpus is therefore a metric about one file. `.20`(b)'s
+work tier keys on `entries`, not `committed`, so it is unaffected — but anyone re-running a
+committed-keyed census must know this or they will read a 165× jump as a regression.
+
+###### ⭐⭐ ROW BY ROW — three exonerated by MEASUREMENT, two by BOUND, one re-derived, one routed
+
+| consumer | verdict |
+|---|---|
+| `parse_cost_ratchet/entries.tsv` + `cost.md` | ✅ **exonerated** — sample-scoped; the file could never enter the sample (`select_sample` reads the census that dropped it) |
+| `parse_cost_ratchet/family_share.json` | ✅ **re-derived** (slice 2) — `899 064 022 → 899 264 997`, share `2.741 %` unchanged |
+| `lr_profile/lr_profile_audit.txt` | ✅ **re-derived** — `total_entries 899 064 022 → 899 264 997`, `live_lr_pct 2.7411 → 2.7412`, `narrow 0.6813` and `73 rules` unchanged |
+| `engine_universal_services/guard_ab_entries.txt` (`.20`(b) work tier) | ✅ **exonerated BY BOUND** — see below |
+| `spine_step0/census_spine.py`, `spine_dispatch_step0/census_dispatch.py` | ✅ **exonerated by measurement** — they census `generated/regex_parser.rs` and a 1 331-pattern REGEX corpus; they never touch an SV file |
+| `sv_corpus_grad/memo_insert_evict_census.py`, `batch1_preflight/preflight_store_counters.sh` | ✅ **exonerated by measurement** — single-input / 8-bench-pattern tools, not corpus censuses |
+| `stimuli/sv/characterization/rule_coverage_sv_2017.{md,tsv}` | ⛔ **SHORT — and independently stale.** ROUTED to `SV-CORPUS-GRAD.7` |
+
+###### ⭐⭐ THE BOUND THAT REPLACED A 42-MINUTE REBUILD
+
+`.20`(b)'s split is a comparison BETWEEN three arms whose probes embed the PRE-fix engine, so
+re-deriving it honestly would mean rebuilding two release probes (~21 min / 12 GB each). It is
+cheaper to ask what the answer COULD be. The dropped file is **0.0224 %** of ARM 2's entries;
+bracketing its unknown contribution to ARM 1 / ARM 3 at 0× … 2× that count:
+
+| scenario | absorption | guards |
+|---|---:|---:|
+| published (all three arms short) | 23.7 % | 76.3 % |
+| the file adds 1× to all three arms | 23.7 % | 76.3 % |
+| the file adds 2× to **ARM 1 only** (worst for guards) | 23.4 % | 76.6 % |
+| the file adds 2× to **ARM 3 only** (worst for absorption) | 24.2 % | 75.8 % |
+
+⇒ the split cannot move by more than **0.5 pt** even adversarially, and does not move at one decimal
+in the realistic case. ⭐ **Exonerated by bound is a real discharge, not a shortcut** — but only
+because the bound is computed and published rather than asserted. The absolute per-arm TOTALS remain
+short by ~0.02 % and the artifact says `files=16335 nodump=1` on its own face.
+
+###### ⛔⛔ AND THE AUDIT FOUND `.21`(e)'s OWN FAILURE, ONE LEVEL UP
+
+`lr_profile_audit.txt` is a TRACKED artifact that **no command regenerated** — it was a snapshot
+pasted in by hand, so it sat carrying `total_entries: 899 064 022` from a census taken while the
+defect was dropping a file, and nothing said so. That is exactly the *"a measured number whose
+producer is not durable"* defect `.21`(e) exists to have fixed: (e) promoted the INSTRUMENTS and left
+their OUTPUT hand-carried. ⇒ `run_lr_profile_audit.sh` now `tee`s to its own tracked artifact, so
+re-running the audit IS updating it.
+
+###### Acceptance Checklist (enforced) — `.22` slice 3, acceptance (f)
+
+- [x] **REPRODUCE / ISSUE** — the short denominator is visible in the tracked artifacts themselves:
+  ```
+  $ grep -a "files=" docs/tasks/artifacts/engine_universal_services/guard_ab_entries.txt
+  ARM 1 … files=16335  nodump=1 …   ARM 3 … files=16335  nodump=1 …   ARM 2 … files=16335  nodump=1
+  $ grep -a total_entries docs/tasks/artifacts/engine_universal_services/lr_profile/lr_profile_audit.txt
+    "total_entries": 899064022          # a 16 335-file census published as a corpus figure
+  ```
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. WHY: every one of these numbers came from
+  a TOOLBOX 3.5 outcome dump per corpus file, and `.22`'s engine defect made that dump produce
+  nothing for one file while `measure_one_entries` returned a bare `None`; the count was printed and
+  the run continued. WHERE, enumerated by command rather than by memory:
+  `git ls-files | xargs grep -ln -- dump-rule-outcome-counts-json` → **14** consumers, of which the
+  seven that publish a tracked number are adjudicated in the table above.
+- [x] **FIX** — fix-hierarchy tier = **ops/build-flow**; ZERO engine, grammar or generated bytes (the
+  engine fix was slice 2). `lr_profile_audit.txt` re-derived AND its runner made self-writing;
+  `guard_ab_entries.txt` exonerated by a published bound instead of a 42-minute rebuild; four
+  consumers exonerated by measuring their actual scope; one routed with evidence.
+- [x] **ADDRESSED (verified)** — before→after. BEFORE: seven tracked consumers of a census known to
+  be short, none adjudicated. AFTER: **6 of 7 closed** (2 re-derived, 4 exonerated by measurement,
+  1 by bound) and the 7th routed to the leaf that already owns its currency, carrying the
+  measurement. Re-run proof: `bash …/lr_profile/run_lr_profile_audit.sh --census` → *"every
+  instrument control passed; the published intervals re-derive"*, and the tracked artifact now reads
+  `total_entries 899 264 997` — `899 264 997 − 899 064 022 = 200 975`, exactly the recovered file's
+  independently-measured entry count.
+- [x] **NO REGRESSION** — read-only with respect to the engine: `generated/` untouched, no Rust
+  source touched, no clippy surface. `bash scripts/check_doctrines.sh` → **ALL 20 enforced doctrines
+  PASS**, including `PARSE-COST-RATCHET` (the carried `2.741 %` still reproduces at three decimals
+  across the re-derivation, which is why the gate stayed green while its numerator AND denominator
+  both moved). `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
 
 ##### ✅ `.22` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0046`, 2026-08-16 session #238) — (a) ROOT-CAUSED to a line, with a GROWTH LAW; (c) the silent drop now REFUSES; (d) the ground-truth claim restated
 

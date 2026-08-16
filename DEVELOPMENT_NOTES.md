@@ -1,5 +1,33 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0048 — "exonerated by bound" is a real discharge, and an audit's best finding is usually not the one it went looking for
+
+**1. Price the re-derivation before you run it, and a BOUND may close the row for free.** `.20`(b)'s
+split would have needed two 21-minute / 12 GB release rebuilds to re-derive honestly. Asking instead
+*what could the answer be* took one calculation: the missing file is 0.0224 % of the arm, so even
+attributing 2× its entries to a single arm moves the split by ≤0.5 pt. ⇒ an audit row can be closed
+by a computed, published bound — but only computed and published. "It's a small file, it can't
+matter" is the same sentence without the evidence, and it is not a discharge.
+
+**2. Fixing a defect changes what the aggregate MEANS, not just its value.** Restoring one 2 787-byte
+file took corpus `total_committed` from 34 M to 5.68 G, because that file alone is 99.39 % of the
+corpus's committed multiplicity. Nothing regressed; a number that had been an average over 16 335
+files became a number about one of them. ⇒ after any fix that restores dropped inputs, ask which
+aggregates the restored input now DOMINATES — a metric can stop being fit for purpose without ever
+being wrong.
+
+**3. The remainder was the proof.** 5 682 584 657 − 5 648 150 434 = 34 434 223, and 34 434 223 is
+verbatim the ARM 2 `committed` figure a different instrument wrote three sessions earlier. I did not
+plan that check; it fell out of subtracting. ⇒ when a new measurement and an old artifact should
+differ by exactly one known quantity, do the subtraction — an exact hit across two instruments and
+three sessions is worth more than either number alone.
+
+**4. Promoting an instrument does not promote its output.** `.21`(e) tracked four analysis scripts
+precisely so their numbers would be reproducible — and left `lr_profile_audit.txt` a hand-pasted
+snapshot that no command regenerated. It then sat carrying a stale corpus total with nothing to
+notice. ⇒ *"is the producer tracked?"* is only half of leg 3; the other half is *"does running the
+producer UPDATE the artifact, or does a human have to remember to paste it?"*
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0047 — pin the numbers BEFORE you touch the thing that produces them
 
 **1. A semantics-preserving change is only provable if you pinned the semantics first.** The design

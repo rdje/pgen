@@ -36,6 +36,14 @@ ROOT="$(cd "$HERE/../../../../.." && pwd)"; cd "$ROOT"
 REPORTS_DIR="${PGEN_LR_PROFILE_REPORTS:-rust/target/audit_scratch}"
 mapfile -t REPORTS < <(ls "$REPORTS_DIR"/p[0-9].txt "$REPORTS_DIR"/c[0-9].txt 2>/dev/null)
 
+# ⛔⛔ THE RUNNER NOW WRITES ITS OWN TRACKED ARTIFACT, AND IT DID NOT BEFORE — which is `.21` (e)'s
+# own failure one level up. `lr_profile_audit.txt` was a snapshot pasted in by hand, so it went
+# stale the moment the engine moved and NOTHING said so: measured 2026-08-16, it still carried
+# `total_entries: 899 064 022` from a census taken while `.22`'s defect was silently dropping a
+# corpus file. A tracked output that no command regenerates is the same "trust me" the promotion
+# was supposed to end. ⇒ tee, always, so re-running the audit IS updating the artifact.
+exec > >(tee "$HERE/lr_profile_audit.txt") 2>&1
+
 printf '%s\n' "=============================================================================="
 printf 'ENGINE-UNIVERSAL-SERVICES.21 (e) — LR profile audit (tracked instruments)\n'
 printf '%s\n' "=============================================================================="
@@ -77,4 +85,8 @@ esac
 printf '\n%s\n' "------------------------------------------------------------------------------"
 [ "$rc" -eq 0 ] && printf '✅ every instrument control passed; the published intervals re-derive.\n' \
                 || printf '⛔ an instrument refused — read its REFUSE line above.\n'
+
+# let the tee-writer drain before the shell exits, or the tail of the artifact is lost
+exec 1>&- 2>&-
+wait
 exit "$rc"

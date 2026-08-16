@@ -5623,6 +5623,33 @@ currently stranded — exactly the census-vs-heuristic distinction above, applie
   the authoritative rule-participation % (`.7a`) and the LRM-structure clause
   matrix + negatives density (`.7b`). The measured worklists feed `.9`.
 
+##### ⛔⛔ ROUTED IN — `.7c`'s **92.3 % / 104 gaps** IS ITSELF STALE ON A **THIRD** AXIS, AND THIS ONE IS AN ENGINE DEFECT (from `ENGINE-UNIVERSAL-SERVICES.22`, 2026-08-16 session #238)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was measured, and whether it reproduces
+outside the family it is sent to):
+
+- `stimuli/sv/characterization/rule_coverage_sv_2017.{md,tsv}` is TRACKED, dated **2026-08-08**, and
+  built by `corpus_rule_coverage.py`, which takes a **TOOLBOX 3.5 outcome dump per accepted corpus
+  file**. `ENGINE-UNIVERSAL-SERVICES.22` proved that dump silently produced NOTHING for
+  `stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv` — the memo coverage recorder
+  materialised the shared parse DAG as a tree and the process was killed at 13.7 GB. ⇒ that file
+  contributed **zero committed-rule testimony** to the numerator, silently, and no gate could see it.
+- ⛔ **The defect is FIXED** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0047`): the file now dumps in 0.04 s and
+  the full-corpus census is `16 336/16 336, 0 no-dump`. So this axis is now RE-MEASURABLE, cheaply —
+  it was not, before.
+- ⚠️ **A SECOND, INDEPENDENT staleness on the same artifact**: it declares *"9693 accepted corpus
+  files"* while HEAD's `results.tsv` records **9 774** — it predates `.17` slice 9's LR-admission
+  flip, which moved 12 files `fail → pass`. That is the same both-sides-of-the-fraction shape `.7c`
+  was opened for, one vintage later.
+- ⛔ It does NOT reproduce outside SystemVerilog: the recorder was engine-universal, but SV is the
+  only family with a full-corpus rule-coverage artifact, so no other family has a number that could
+  be short.
+
+⇒ **`.9`'s worklist is burned from a gap list that is stale on three axes** (grammar size, corpus
+vintage, and one silently-omitted file). Re-deriving is now a single re-run rather than an
+investigation. Owned here rather than by `ENGINE-UNIVERSAL-SERVICES.22`, whose acceptance (f)
+measured it: `.22` owns the engine defect and has closed it; the artifact's currency is `.7`/`.9`'s.
+
 #### `.7a` — The rule-coverage instrument: measured coverage = 91.1% (120 gaps) ⛔ SUPERSEDED by `.7c` (HEAD: **92.3 % / 104 gaps**)
 
 - **Status: `done`** (`PGEN-SV-CORPUS-GRAD-0008`, session #192, 2026-07-22).
