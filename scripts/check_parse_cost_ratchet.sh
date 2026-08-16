@@ -543,9 +543,22 @@ if REMEASURE or REBASELINE:
             print(f"parse-cost-ratchet: REBASELINED — {ART} now records this measurement.",
                   file=sys.stderr)
 elif not stale:
-    notes.append("tier 2 (the re-measure) did not run, and did not need to: every input the "
-                 "binding metric depends on is byte-identical to the baseline's, so the "
-                 "measurement cannot have moved. Force it with PGEN_PARSE_COST_REMEASURE=1.")
+    # ⛔ ENGINE-UNIVERSAL-SERVICES.24 (c) — THIS NOTE USED TO OVERSTATE ITS OWN GUARANTEE, and the
+    # overstatement was DEMONSTRATED rather than argued. It read "…so the measurement cannot have
+    # moved", which is a claim about the whole pipeline; the identity table pins four INPUTS
+    # (grammar, generated parser, instrument, sample files) and NOT the executable that produces the
+    # numbers — `DEFAULT_PROBE = rust/target/release/parseability_probe`, an untracked build artifact
+    # nothing hashes and nothing ties to the parser it was compiled from. `.20` slice 4 built a
+    # release probe from an experimental arm (guard emission suppressed) and, with that binary on
+    # disk, this note printed verbatim while `nm … | grep -c _lr_guard` read 0 against a pinned
+    # parser declaring 6. A gate that overstates its guarantee is the failure `.21` was opened for,
+    # one surface over — so it now says exactly what it proved and names what it did not.
+    notes.append("tier 2 (the re-measure) did not run, and did not need to: every INPUT the "
+                 "binding metric depends on is byte-identical to the baseline's. ⛔ That bounds the "
+                 "INPUTS, not the pipeline: the probe BINARY that computes the numbers is untracked "
+                 "and unpinned, so a probe built from a different parser would be measured without "
+                 "this tier noticing (ENGINE-UNIVERSAL-SERVICES.24, demonstrated live). "
+                 "Force a re-measure with PGEN_PARSE_COST_REMEASURE=1.")
 
 # ── verdict ─────────────────────────────────────────────────────────────────────────────────────
 for u in unevaluated:

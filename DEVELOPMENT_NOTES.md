@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0064 — when a leaf offers two options, the first job is to check whether either is the right one
+
+**1. ⭐ A leaf's option list is a hypothesis list, and it ages the same way.** `.24` offered two
+fixes and argued for the second. Both are worse than a third that nobody wrote down: compute the
+fingerprint at BUILD time rather than at EMIT time. The hook it needs — `build.rs` already resolving
+the parser path and already declaring `rerun-if-changed` on it — has been sitting there the whole
+time. ⇒ before executing an option, look for the one the list does not contain; this is the same
+failure mode as `.19`'s hypotheses, one abstraction up.
+
+**2. Re-derive the leaf's own premise before accepting its recommendation.** `.24` rejected option
+(i) because the probe is *"rebuilt often … so identity would churn on every rebuild"*. Measured: 5 of
+the last 200 commits rebuild the probe without the parser even possibly moving. The premise was not
+wrong in direction but it was wrong in magnitude, and magnitude is what the choice turned on.
+
+**3. ⛔ Quote the interval, not the flattering end.** My own churn figure has an unrecoverable
+component: *"touches `ast_pipeline`"* means the parser MAY move, and `generated/` is untracked, so I
+cannot know historically which of those 40 commits actually moved it. The honest number is a range,
+**5–40 of 200**, and writing "2.5 %" alone would have been the strongest possible argument for the
+option I had already chosen — which is exactly when to distrust it.
+
+**4. Ship the honesty fix before the mechanism fix.** (c) — the gate's note claiming more than it
+proved — is true regardless of which option (a) picks, so it ships now rather than riding a
+dependency decision and a RED-arm fixture. A gate that overstates its guarantee is *worse* while the
+real fix is pending, not better: every run in the meantime teaches a reader something false.
+
+**5. A fixture in an untracked directory is a control with an expiry date.** (b) needs
+`rust/target/lr_ab_arms/probe_arm3`. It exists today; nothing guarantees it exists tomorrow, and
+nothing in git can say when it stopped. Recorded as a bound on slice 2 rather than discovered by
+slice 2.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0063 — adding a capability and adding its counter are two changes, and only one of them gets remembered
 
 **1. ⭐ A new engine pass needs its REPORTING extended in the same commit, and this one did not get
