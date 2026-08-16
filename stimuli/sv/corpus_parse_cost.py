@@ -3,18 +3,31 @@
 
 `ENGINE-UNIVERSAL-SERVICES.20` acceptance (d), under the 2026-08-14 ruling C.
 
-⛔ WHY THIS EXISTS. `.17` slice 9 shipped the guarded left-recursion admission and it cost
-**+24.3 % parse time** on the SV corpus. Every gate the repository has was GREEN across that
-slowdown — the generated lint, the two-sided repro ratchet, the corpus pass/fail count and all
-registered doctrines. *A cost nothing measures is a cost that grows.* This instrument is the
-thing that measures it.
+⛔ WHY THIS EXISTS. `.17` slice 9 shipped the guarded left-recursion admission and the tree
+could not say what it had cost. Every gate the repository has was GREEN across it — the
+generated lint, the two-sided repro ratchet, the corpus pass/fail count and all registered
+doctrines — because nothing here measured parse cost at all. *A cost nothing measures is a cost
+that grows.* This instrument is the thing that measures it.
+
+⛔⛔ AND THE FIGURE THAT COMMISSIONED IT WAS ITSELF UNMEASURED — REFUTED 2026-08-16 BY `.20`
+SLICE 5 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0050`). This file used to open by stating that the
+admission cost **+24.3 % parse time**. That number is not reproducible from the raw data of the
+runs that produced it: seven estimator × era combinations put ARM2/ARM1 in **[0.9909, 1.0433]**,
+including the pre-`.22`(e) data of the very run that reported it. Its mechanism was a
+FIXED-ARM-ORDER artifact — ARM 1 ran LAST in both contaminating passes, and on a session-drifting
+host the last arm looks fastest. ⭐ That strengthens the case for this instrument instead of
+weakening it: a wall-clock number nobody could re-derive was believed for three sessions, drove
+five slices and a director-facing ruling, and was wrong by ~20 points. Everything published here
+is re-derivable by construction. ⛔ The DETERMINISTIC costs of the same change STAND and are the
+ones this instrument can see: **+10.59 % rule entries** (`guard_ab_entries.txt`) and +9.3 %
+parser bytes.
 
 ⭐⭐ TWO METRICS, TWO GRAPHS, AND ONLY ONE OF THEM BINDS — which is the whole design.
 
 PGEN runs a parse through one of two graphs (the "observability twin", TOOLBOX 2.1 / 3.4
 ROUTING). A BARE parse runs the fused `cascade_*` functions; a parse with any diagnostic
-consumer attached runs the PROTOCOL graph. They are different code, and the +24.3 % was
-measured on the fused one.
+consumer attached runs the PROTOCOL graph. They are different code, and the wall-clock claim
+that opened `.20` was made on the fused one.
 
 | metric | graph observed | machine-dependent? | verdict role |
 |---|---|---|---|
@@ -27,8 +40,10 @@ measured on the fused one.
   concretely: the first cost figure this leaf recorded, `~11 %`, was WRONG because it compared
   wall clock across "materially faster machine conditions". A wall-clock-primary ratchet
   inherits exactly that defect.
-- **Wall clock advises** because it is the only view of the fused graph the +24.3 % was
-  measured on — and it is the half that cannot survive a machine change or a hosted runner.
+- **Wall clock advises** because it is the only view of the fused graph — and it is the half
+  that cannot survive a machine change or a hosted runner. `.20` slice 5 is the proof of that
+  claim, not an illustration of it: the one wall-clock figure this leaf ever published did not
+  survive re-analysis of its own raw data.
 
 ⛔ THE BLIND SPOT IS DECLARED, NOT DISCOVERED LATER. The entry counters tick only in the
 PROTOCOL graph. The fused twins of the very rules this leaf is about — `cascade_match_
@@ -129,35 +144,91 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # `COMMIT.md` names for the DONE-BAR register's `claimed_status`. The instrument reports the
 # disagreement; a human adopts it.
 CORPUS_FAMILY_SHARE_PCT = "2.741"
-CORPUS_FAMILY_PROVENANCE = (
-    "24 644 435 of 899 064 022 entries over 16 335 files, `ENGINE-UNIVERSAL-SERVICES.21`; "
-    "the previous 0.681 % counted only `_lr_base`/`_lr_suffix`"
-)
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )
-FAMILY_SHARE_SCHEMA = "pgen.parse_cost.family_share/v1"
+# v1 carried two fields this instrument no longer computes — `blind_spot_factor` and
+# `wall_clock_regression_pct`. The schema is BUMPED rather than silently shrunk so a v1 artifact
+# meets the reader's explicit refusal instead of being read for keys it happens not to have.
+FAMILY_SHARE_SCHEMA = "pgen.parse_cost.family_share/v2"
 
-# `.17` slice 9's measured wall-clock cost of the guarded admission — the NUMERATOR of the
-# blind-spot bound. Named so the bound has exactly one arithmetic home.
-WALL_CLOCK_REGRESSION_PCT = "24.3"
+# ── the RETIRED blind-spot factor, and why no number replaces it (`.26`, 2026-08-16) ──────────
+#
+# ⛔⛔ THIS INSTRUMENT PUBLISHED A SENSITIVITY BOUND OF `~8.9×` AND BOTH OF ITS TERMS WERE WRONG.
+# It was derived as `WALL_CLOCK_REGRESSION_PCT / CORPUS_FAMILY_SHARE_PCT` = 24.3 / 2.741.
+#
+#   NUMERATOR — the `+24.3 %` is REFUTED (`.20` slice 5, `PGEN-ENGINE-UNIVERSAL-SERVICES-0050`):
+#     not reproducible from the raw data of the runs that produced it, a fixed-arm-order artifact.
+#   DENOMINATOR — the family SHARE was the wrong quantity, INDEPENDENTLY of the numerator. "How
+#     sensitive is this counter to that change" is answered by how much the counter MOVED, not by
+#     how large the family is. The bound reasoned that the flip's entry delta must be *"strictly
+#     smaller"* than the 2.741 % share because the rules it replaced were themselves entered —
+#     an INFERENCE, and a tracked artifact in this same leaf measures it: `guard_ab_entries.txt`
+#     gives ARM 1 812 963 769 -> ARM 2 899 064 022, a delta of 86 100 253 = +10.59 %, which is
+#     3.49x LARGER than the family's own 24 644 435 entries. The counters SAW that change plainly.
+#
+# ⇒ THE FACTOR IS RETIRED, NOT RE-COMPUTED. Under the point-estimate wall clock (<= +4.33 %) the
+# factor would be 0.41x — the counter moving ~2.4x MORE than the clock — and under the most
+# adversarial pairing available (+19.3 %) only 1.82x. It fails under every reading, and no
+# admissible wall-clock figure for the change exists at all (`.20` (b): worst spread 65.2 s
+# against a 0.6 s admissibility bar). Publishing any ratio here would be publishing an unearned
+# number, which is the exact defect this whole leaf is a record of.
+#
+# ⭐ WHAT SURVIVES IS THE STRUCTURAL LIMIT, AND IT NEEDS NO NUMBER. These counters tick only in
+# the PROTOCOL graph; a production parse runs the FUSED `cascade_*` graph. And a counter counts
+# EVENTS — a rise in the cost PER event is invisible to it by construction, on any graph. That is
+# a property of the metric, not a measurement, so it cannot go stale and does not expire.
+FLIP_ENTRY_DELTA_PCT = "10.59"
+FLIP_ENTRY_DELTA_PROVENANCE = (
+    "ARM 1 812 963 769 -> ARM 2 899 064 022 rule entries over 16 335 corpus files, "
+    "`docs/tasks/artifacts/engine_universal_services/guard_ab_entries.txt` "
+    "(`ENGINE-UNIVERSAL-SERVICES.20` (b), three-arm A/B)"
+)
+# ⛔ CITED, NOT GATED — deliberately, and the reason is stated rather than left as an omission.
+# It is a HISTORICAL A/B: ARM 1 is a parser built from the pre-flip admission policy, and that
+# binary does not exist in this tree. Nothing here can re-derive the delta, so pinning it would
+# compare a constant against itself and call the tautology a check
+# (`docs/decisions/reference_self_referential_assertion_is_unsound.md`). The live, re-derivable
+# number is the family SHARE below, and that one IS gated.
 
 
-def blind_spot_factor(share: str | None = None, wall: str | None = None) -> str:
-    """How much less sensitive the BINDING counters are than wall clock to *this* regression.
+def format_family_provenance(art: dict) -> str:
+    """The raw counts behind the carried share — READ from the tracked derivation, never carried.
 
-    ⛔ DERIVED, never carried. It was a second constant with the comment `# 24.3 / share`, which
-    is a promise that two numbers stay in step — and `ENGINE-UNIVERSAL-SERVICES.21` exists because
-    that kind of promise is not kept. Deriving it means correcting the share cannot leave the
-    factor behind, which is precisely how the published `~35×` survived alongside a share nobody
-    re-derived.
+    ⛔ THIS WAS A CARRIED STRING AND IT WENT STALE EXACTLY AS THE REST OF THIS FILE PREDICTS. It
+    read *"24 644 435 of 899 064 022 entries over 16 335 files"* while the artifact it claims to
+    describe said 24 650 497 / 899 264 997 / 16 336 — `.22`(e) moved the census and `.22`(f)
+    re-derived the artifact, leaving this one sentence behind. ⛔ Every arm of
+    `PARSE-COST-RATCHET` stayed GREEN over it, and not by luck: the gate compares the SHARE, and
+    both count pairs round to the same `2.741 %`. A description nothing re-derives is prose, so
+    this is now a projection of the artifact rather than a second copy of it.
 
-    The two arguments exist so the ground-truth controls can drive it with values other than
-    today's, without reaching into module state to do it.
+    ⭐ No gate arm is added for the copy, because deriving it REMOVES the copy. The residual
+    question — could the artifact be re-derived to different counts without `cost.md` following? —
+    is closed by construction: the census is an exact function of the identity inputs, so
+    different counts imply a moved input, which stales `cost.md`'s own identity table and forces
+    the rebaseline that regenerates this line. (`.22`(c) is what makes that hold: a silently
+    dropped file would change the counts with no input moving, and an undeclared drop now
+    refuses.)
     """
-    numerator = float(wall if wall is not None else WALL_CLOCK_REGRESSION_PCT)
-    denominator = float(share if share is not None else CORPUS_FAMILY_SHARE_PCT)
-    return f"{numerator / denominator:.1f}"
+    lr, total = art.get("lr_entries"), art.get("total_entries")
+    files = art.get("files_measured")
+    if not isinstance(lr, int) or not isinstance(total, int) or not isinstance(files, int):
+        die(f"{FAMILY_SHARE_ARTIFACT} is missing the raw counts the report cites "
+            f"(lr_entries/total_entries/files_measured). Re-derive it:\n"
+            f"    make -C rust SHELL=/bin/bash sv_parse_cost_family_share")
+    if total <= 0:
+        die(f"{FAMILY_SHARE_ARTIFACT} records total_entries={total}: a share with no denominator "
+            f"is not a measurement. Re-derive it.")
+    # Thin-space grouping, matching every other large number this repository publishes. Applied
+    # per NUMBER rather than to the finished sentence: a blanket `replace(",", " ")` would also
+    # eat the prose commas, which is how a formatter quietly rewrites the text around it.
+    def grouped(n: int) -> str:
+        return f"{n:,}".replace(",", " ")
+
+    return (f"{grouped(lr)} of {grouped(total)} entries over {grouped(files)} files, "
+            f"`ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only "
+            f"`_lr_base`/`_lr_suffix`")
 
 # ── the DECLARED-name population, and why it is gated rather than carried ────────────────────
 #
@@ -721,6 +792,12 @@ def write_entries_tsv(path: str, rows: list[tuple], tiers: dict[str, str]) -> No
 
 def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
                  tiers: dict[str, str]) -> None:
+    # ⛔ The corpus-wide family figures are PROJECTED from the tracked derivation, not restated.
+    # This report measures the 192-file SAMPLE and cannot derive a corpus number; before `.26` it
+    # carried one as a string, and that string was stale (see `format_family_provenance`). The
+    # reader refuses on a missing or wrong-schema artifact rather than writing a report that
+    # cites numbers it did not obtain.
+    family_share = read_family_share_artifact(FAMILY_SHARE_ARTIFACT)
     total = sum(r[2] for r in rows)
     committed = sum(r[3] for r in rows)
     memo = sum(r[4] for r in rows)
@@ -837,29 +914,44 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A("")
     A("⛔⛔ **AND IT CARRIES A FINDING THAT BOUNDS THIS WHOLE INSTRUMENT.** Across the full")
     A(f"corpus the family takes **{CORPUS_FAMILY_SHARE_PCT} %** of all rule entries")
-    A(f"({CORPUS_FAMILY_PROVENANCE}). The flip's entry DELTA is smaller still — the rules it")
-    A("replaced were themselves entered — so the entry count moved by a few percent at most while")
-    A(f"wall clock moved **+{WALL_CLOCK_REGRESSION_PCT} %**. ⇒ the binding metric is "
-      f"**at least ~{blind_spot_factor()}×")
-    A("less sensitive** to *this* regression than the advisory one. That is not a reason to")
-    A("discard it: it catches structural growth EXACTLY and cannot be fooled by a busy machine. It")
-    A(f"is a reason to state plainly what it does **not** prove — the +{WALL_CLOCK_REGRESSION_PCT} "
-      f"% is a rise in cost PER")
-    A("entry, not in the NUMBER of entries, and no counter can see that. `.20` acceptance (a)'s")
-    A("profile is what attributes it; this ratchet stops it growing further unwatched meanwhile.")
+    A(f"({format_family_provenance(family_share)}).")
+    A("")
+    A("⛔ **What this metric cannot see, stated as a property rather than as a number.** These")
+    A("counters tick only in the PROTOCOL graph, and a counter counts EVENTS — a rise in the cost")
+    A("PER event is invisible to it on any graph. So the binding numbers guard **structural work**")
+    A("exactly and price nothing. That limit is a property of the metric, so it cannot go stale.")
+    A("")
+    A("⭐ **On the one change this ratchet was built for, the counters were not the blind half.**")
+    A(f"The guarded admission moved them **+{FLIP_ENTRY_DELTA_PCT} %** — "
+      f"**3.49× larger** than the whole")
+    A("family's own entry count, and far outside any band a ratchet could hide. The wall clock,")
+    A("meanwhile, produced no admissible figure for the same change at all.")
+    A(f"({FLIP_ENTRY_DELTA_PROVENANCE}.)")
+    A("")
+    A("⛔⛔ **This section published a sensitivity bound of `~8.9×`, and BOTH terms were wrong.**")
+    A(f"Retired by `ENGINE-UNIVERSAL-SERVICES.26`. It was `24.3 / {CORPUS_FAMILY_SHARE_PCT}`. The")
+    A("numerator, a `+24.3 %` wall-clock regression, is REFUTED — not reproducible from the raw")
+    A("data of the runs that produced it (`.20` slice 5). The denominator was the wrong quantity")
+    A("independently of that: sensitivity is how much the counter MOVED, not how large the family")
+    A("is, and the bound's *\"the flip's entry delta is strictly smaller\"* was an INFERENCE that a")
+    A("tracked artifact in its own leaf had already refuted. ⇒ **the factor is retired, not")
+    A("re-computed**: it fails under every available reading (0.41× on the point estimate, 1.82× on")
+    A("the most adversarial pairing), and no admissible wall-clock figure exists to rebuild it")
+    A("from. `.20` acceptance (a)'s profile is what attributes fused-graph cost; this ratchet stops")
+    A("structural work growing unwatched meanwhile.")
     A("")
     # ⛔ THE CO-PUBLICATION ANCHOR (`.21` acceptance (f)). `PARSE-COST-RATCHET` holds every
     # designated live surface equal to the tracked derivation, so this bound cannot be quoted
     # anywhere in the repository after it has gone stale. The marker is what separates a LIVE
     # claim from the era-dated citation in the very next paragraph.
-    A(f"**Live LR-family share `{CORPUS_FAMILY_SHARE_PCT}/{blind_spot_factor()}`** "
-      f"(corpus-entry share % / blind-spot factor), derived by")
+    A(f"**Live LR-family share `{CORPUS_FAMILY_SHARE_PCT}`** (corpus-entry share %), derived by")
     A("`python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share` into")
     A(f"`{FAMILY_SHARE_ARTIFACT}` and re-hashed against its four recorded inputs on every run.")
     A("")
-    A(f"⚠️ The published bound was **~35×** until `.21`, computed on the 0.681 % the broken")
-    A("classifier saw. The gate was under-claiming its own sensitivity by about 4×; the corrected")
-    A("figure is still a large blind spot and is still the reason (a) exists.")
+    A("⚠️ This anchor was the PAIR `2.741/8.9` until `.26` retired the second element. The share")
+    A("itself is unaffected — it is a correctly measured quantity, and the two eras of it are on")
+    A("record: it read **0.681 %** until `.21`, computed by a classifier that saw 97 of the")
+    A("parser's 127 LR rule names. What `.26` removed is the ratio built on top of it.")
     A("")
     A("## Per tier")
     A("")
@@ -1159,29 +1251,53 @@ def read_family_share_artifact(rel: str) -> dict:
 
 
 def _self_check_family_share() -> None:
-    """GROUND TRUTH for the gating arithmetic, every invocation.
+    """GROUND TRUTH for the share arithmetic and its projection, every invocation.
 
     ⛔ The controls that matter here are the RED ones. A verifier that only ever agrees with
     itself is what `.21` is a record of: ten cases drawn from the same prose as the classifier
     they tested. Each case below is a specific way this gate could be wrong in the PASSING
     direction, and each must be caught.
+
+    ⛔ Until `.26` these controls exercised `blind_spot_factor()`, a derivation that is now
+    RETIRED. They are not deleted along with it — they are re-pointed at what the instrument
+    still computes: the share the artifact's own raw counts imply, and the projection of those
+    counts into the report. Losing the arms with the arithmetic would have left the replacement
+    unguarded, which is the shape of defect this leaf exists to stop repeating.
     """
-    cases = [
-        # (share, wall clock, expected factor) — the published pair, then movements in both
-        # directions that MUST change the derived factor rather than silently reusing it.
-        ("2.741", "24.3", "8.9"),
-        ("0.681", "24.3", "35.7"),   # the pre-`.21` share reproduces the pre-`.21` ~35x bound
-        ("24.3", "24.3", "1.0"),     # a family that is the whole cost is not a blind spot
-        ("48.6", "24.3", "0.5"),     # and the factor must be allowed below 1, not clamped
+    misses: list[str] = []
+
+    # (lr_entries, total_entries) -> the share those counts imply, to the published precision.
+    # ⭐ Case 2 is the LIVE artifact's own counts and case 1 is the counts the report USED to
+    # carry: both round to 2.741, which is exactly why the stale sentence was invisible to a gate
+    # that compares the share. Recorded as a control so the reason stays visible.
+    share_cases = [
+        ((24_644_435, 899_064_022), "2.741"),   # the pre-`.22`(e) counts the report carried
+        ((24_650_497, 899_264_997), "2.741"),   # the live artifact's counts
+        ((681, 100_000), "0.681"),              # the pre-`.21` era reproduces at this precision
+        ((1, 1), "100.000"),                    # a family that is the whole corpus
+        ((0, 1_000), "0.000"),                  # and an empty family is 0, never a crash
     ]
-    misses = [(share, wall, want, blind_spot_factor(share, wall))
-              for share, wall, want in cases if blind_spot_factor(share, wall) != want]
+    for (lr, total), want in share_cases:
+        got = f"{100.0 * lr / total:.3f}"
+        if got != want:
+            misses.append(f"share({lr}/{total}) want={want} got={got}")
+
+    # The projection into the report must read the ARTIFACT, and must refuse rather than print a
+    # placeholder when a count it cites is absent — the failure mode that let a stale sentence
+    # survive four sessions was a projection that never looked.
+    projected = format_family_provenance(
+        {"lr_entries": 24_650_497, "total_entries": 899_264_997, "files_measured": 16_336})
+    for token in ("24 650 497", "899 264 997", "16 336"):
+        if token not in projected:
+            misses.append(f"provenance projection dropped {token!r}: {projected!r}")
+    if "," not in projected:
+        misses.append(f"provenance projection ate its prose commas: {projected!r}")
+
     if misses:
-        for share, wall, want, got in misses:
-            print(f"parse-cost: CONTROL MISSED: share={share} wall={wall} want={want} got={got}",
-                  file=sys.stderr)
-        print("parse-cost: the blind-spot factor is not derived from the share; refusing",
-              file=sys.stderr)
+        for m in misses:
+            print(f"parse-cost: CONTROL MISSED: {m}", file=sys.stderr)
+        print("parse-cost: the family-share arithmetic/projection does not reproduce its own "
+              "ground truth; refusing", file=sys.stderr)
         sys.exit(2)
 
 
@@ -1206,12 +1322,26 @@ def run_verify_family_share(artifact: str = FAMILY_SHARE_ARTIFACT) -> int:
             f"One of the two is stale; the artifact is the measurement, so adopt it deliberately "
             f"or re-derive:\n"
             f"        make -C rust SHELL=/bin/bash sv_parse_cost_family_share")
-    if str(art.get("blind_spot_factor")) != blind_spot_factor():
-        failures.append(
-            f"the artifact records a blind-spot factor of {art.get('blind_spot_factor')}x but this "
-            f"instrument derives {blind_spot_factor()}x from "
-            f"{WALL_CLOCK_REGRESSION_PCT} / {CORPUS_FAMILY_SHARE_PCT}. The factor is DERIVED — "
-            f"re-derive the artifact rather than editing either number.")
+    # ⛔ NEW IN `.26`, replacing the retired blind-spot-factor leg: the artifact's own RAW COUNTS
+    # must reproduce the share it declares. Before this, `corpus_family_share_pct` was the only
+    # field anything compared, so `lr_entries`/`total_entries` could disagree with it — or with
+    # each other across a re-derivation — and every arm stayed green. The report now CITES those
+    # counts, so they are a published claim and are checked like one.
+    if str(art.get("corpus_family_share_pct")) == CORPUS_FAMILY_SHARE_PCT:
+        lr, total = art.get("lr_entries"), art.get("total_entries")
+        if not isinstance(lr, int) or not isinstance(total, int) or total <= 0:
+            failures.append(
+                f"{artifact} declares a share of {CORPUS_FAMILY_SHARE_PCT} % but carries no usable "
+                f"raw counts (lr_entries={lr!r}, total_entries={total!r}). A share with no "
+                f"numerator and denominator cannot be re-derived by a reader.")
+        else:
+            implied = f"{100.0 * lr / total:.3f}"
+            if implied != CORPUS_FAMILY_SHARE_PCT:
+                failures.append(
+                    f"{artifact} records {lr:,} / {total:,} entries, which is {implied} % — not "
+                    f"the {CORPUS_FAMILY_SHARE_PCT} % it declares. The counts and the share come "
+                    f"from one census and cannot disagree; re-derive:\n"
+                    f"        make -C rust SHELL=/bin/bash sv_parse_cost_family_share")
 
     # ── leg 2: identity — every input the recorded number is a function of ───────────────────
     live, missing = family_share_identity()
@@ -1239,8 +1369,9 @@ def run_verify_family_share(artifact: str = FAMILY_SHARE_ARTIFACT) -> int:
             print(f"parse-cost: ✗ {f}", file=sys.stderr)
         return 1
     checked = ", ".join(sorted(live))
-    print(f"parse-cost: family share {CORPUS_FAMILY_SHARE_PCT} % (blind-spot "
-          f"{blind_spot_factor()}x) — identity fresh for: {checked}")
+    print(f"parse-cost: family share {CORPUS_FAMILY_SHARE_PCT} % "
+          f"({art['lr_entries']:,} / {art['total_entries']:,} entries) — identity fresh for: "
+          f"{checked}")
     return 0
 
 
@@ -1273,8 +1404,6 @@ def run_rederive_family_share(probe: str, jobs: int, out_path: str) -> int:
     art = {
         "schema": FAMILY_SHARE_SCHEMA,
         "corpus_family_share_pct": share,
-        "blind_spot_factor": f"{float(WALL_CLOCK_REGRESSION_PCT) / float(share):.1f}",
-        "wall_clock_regression_pct": WALL_CLOCK_REGRESSION_PCT,
         "lr_entries": lr_total,
         "total_entries": total,
         "files_measured": len(rows),
@@ -1286,11 +1415,18 @@ def run_rederive_family_share(probe: str, jobs: int, out_path: str) -> int:
         "derivation": ("python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share "
                        f"--out {out_path}"),
         "note": ("The share of all PROTOCOL-graph rule entries taken by the left-recursion "
-                 "elimination family over the whole SV corpus. It is the DENOMINATOR of "
-                 "`PARSE-COST-RATCHET`'s published blind-spot bound: the binding counters are at "
-                 "least (wall_clock_regression_pct / this) times less sensitive than wall clock "
-                 "to a per-entry cost rise. ⛔ Derived, never hand-edited; "
-                 "`--verify-family-share` re-hashes every identity row above on every run."),
+                 "elimination family over the whole SV corpus — `PARSE-COST-RATCHET`'s one "
+                 "co-published live number, quoted verbatim on every designated live surface. "
+                 "⛔ v1 of this schema also carried `blind_spot_factor` and "
+                 "`wall_clock_regression_pct`; ENGINE-UNIVERSAL-SERVICES.26 RETIRED both. The "
+                 "factor was wall_clock / this share, and both terms were wrong: the +24.3 % "
+                 "numerator is refuted (.20 slice 5, not reproducible from its own raw data), and "
+                 "the share was the wrong denominator independently of that — sensitivity is how "
+                 "much the counter MOVED (+10.59 %, guard_ab_entries.txt), not how large the "
+                 "family is. No ratio replaces it: no admissible wall-clock figure for the change "
+                 "exists. ⛔ Derived, never hand-edited; `--verify-family-share` re-hashes every "
+                 "identity row above and re-checks lr_entries/total_entries against the declared "
+                 "share on every run."),
     }
     os.makedirs(os.path.dirname(os.path.join(ROOT, out_path)) or ".", exist_ok=True)
     with open(os.path.join(ROOT, out_path), "w", encoding="utf-8") as fh:

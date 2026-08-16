@@ -21,11 +21,16 @@
 # of (grammar, parser, input) and are byte-identical between the debug and release probes. So this
 # comparison is reproducible on a loaded machine, on a different machine, and next month; the
 # wall-clock tier measured a 10-27 % run-to-run spread on the very same corpus the same evening.
-# ⚠️ And the honest bound that keeps it in its lane: entries CANNOT be converted into seconds. `.21`
-# measured the LR family at 0.681 % of entries while wall clock moved +24.3 %, i.e. the counters are
-# ~8.9x less sensitive to a per-entry cost rise — see
-# `docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md`. This tier answers
-# *"which half does more WORK"*, never *"which half costs more TIME"*.
+# ⚠️ And the honest bound that keeps it in its lane: entries CANNOT be converted into seconds. A
+# counter counts EVENTS, so a rise in the cost PER event is invisible to it — a property of the
+# metric, not a measured factor. This tier answers *"which half does more WORK"*, never *"which
+# half costs more TIME"*. See
+# `docs/knowledge/a-deterministic-counter-cannot-see-a-per-entry-cost-rise.md`.
+# ⛔ This comment used to quantify that as *"~8.9x less sensitive"*, from 0.681 % of entries against
+# a +24.3 % wall clock. `ENGINE-UNIVERSAL-SERVICES.26` retired the factor: the share was corrected
+# to 2.741 % by `.21`, the +24.3 % was REFUTED by `.20` slice 5, and the share was the wrong
+# denominator regardless — this very script measures the counters moving **+10.59 %** on that
+# change, 3.49x MORE than the family's whole entry count. The counters were not the blind half here.
 #
 # ⛔ Requires the three probe binaries (see `run_guard_ab_timed.sh`'s header for how they are built).
 # Nothing tracked is written; `generated/` is never touched.

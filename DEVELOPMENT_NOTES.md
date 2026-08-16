@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0052 — a refuted number has CHILDREN, and they do not carry its refutation
+
+**1. Propagating a refutation is not a find-and-replace; the derived values are the dangerous half.**
+`.26` was chartered to correct twelve surfaces asserting a refuted `+24.3 %`. Eleven were prose. The
+twelfth was an **input**: `WALL_CLOCK_REGRESSION_PCT = "24.3"`, divided by the family share to derive
+the blind-spot factor `~8.9×` that a doctrine co-published on four gated surfaces and pinned in a
+tracked artifact. ⇒ when a number is refuted, grep for the number, then grep for everything COMPUTED
+from it — the child does not inherit the parent's ⛔ marker, and it is the child that a gate is
+holding equal across the repository. PROMOTED →
+[[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]] (thesis re-derived, not digits edited).
+
+**2. A correct input in the wrong ROLE still yields a fabricated number.** The retired factor's
+denominator — `2.741 %` — was itself a hard-won correction (`.21` fixed it from `0.681 %` after a
+classifier defect). It was right, and the bound built on it was still wrong, because *"how sensitive
+is my counter to this change"* is answered by **how much the counter MOVED**, not by how large the
+changed component is. Those differ by 3.49× here, in the direction that made the gate look blinder
+than it was. Fixing the input you noticed is not the same as re-deriving the claim.
+
+**3. A gate that compares a ROUNDED value cannot see the raw counts drift under it.** The
+instrument's provenance string read *"24 644 435 of 899 064 022 over 16 335 files"* while its own
+artifact said `24 650 497 / 899 264 997 / 16 336`. Every arm stayed GREEN, by construction: both
+pairs round to `2.741 %`, and the share is what the gate compares. ⇒ the fix was to DELETE the copy —
+the report now projects the counts from the artifact — rather than to add a check for a duplicate
+that did not need to exist. A derived projection cannot go stale; a second copy always can.
+
+**4. State a blind spot as a PROPERTY and it stays true; state it as a RATIO and you have taken on a
+second measurement to keep alive.** *"A counter cannot see a cost that moved per event"* follows from
+what the metric counts. *"…and it is ~9× less sensitive here"* is a claim about two measured
+quantities and is only as good as the worse of them — which, here, was wall clock: the very metric
+the design had just disqualified as too noisy to bind the gate. If a number is too noisy to bind,
+it is too noisy to define that gate's sensitivity.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0050 — a refusal aimed in one direction preserves exactly the belief that put you there
 
 **1. Interleaving cancels drift for TWO arms and hides it for THREE.** The `A B A B` argument works

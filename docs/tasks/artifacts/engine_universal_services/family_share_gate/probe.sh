@@ -86,9 +86,21 @@ a="$(mutate red3.json 'd["corpus_family_share_pct"] = "2.900"')"
 arm "RED 3 carried != derived" 1 "$a" \
     "the carried CORPUS_FAMILY_SHARE_PCT can no longer be edited unopposed"
 
-a="$(mutate red4.json 'd["blind_spot_factor"] = "35.7"')"
-arm "RED 4 blind-spot factor stale" 1 "$a" \
-    "the pre-.21 ~35x bound cannot survive beside a corrected share"
+# ⛔ RED 4 USED TO MUTATE `blind_spot_factor`, A FIELD `ENGINE-UNIVERSAL-SERVICES.26` RETIRED.
+# Both of that factor's terms were wrong (a refuted +24.3 % numerator over a denominator that was
+# the wrong quantity), so the field is gone from schema v2. ⭐ MEASURED before repointing, not
+# assumed: that mutation now exits 0 where the arm asserts 1, i.e. the suite reports it ✗ — this
+# probe catches its own obsolescence loudly rather than quietly testing a field nothing reads.
+# ⇒ REPOINTED at the leg that replaced it: the artifact's own raw counts must reproduce the share
+# it declares. That leg exists because the retired provenance string disagreed with the artifact
+# for four sessions while every arm stayed green — both count pairs rounded to the same 2.741 %.
+a="$(mutate red4.json 'd["lr_entries"] = 30000000')"
+arm "RED 4 raw counts != share" 1 "$a" \
+    "lr_entries/total_entries must re-derive the declared share, not merely sit beside it"
+
+a="$(mutate red4b.json 'd.pop("total_entries")')"
+arm "RED 4b counts absent" 1 "$a" \
+    "a declared share with no numerator/denominator cannot be re-derived by a reader"
 
 a="$(mutate red5.json 'd["identity"].pop("corpus inputs")')"
 arm "RED 5 identity row missing" 1 "$a" \

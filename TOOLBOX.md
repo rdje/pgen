@@ -162,7 +162,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
-| **"Did the whole SV parser get SLOWER — and would anything have told me?"** — ⛔ never answer with an ad-hoc timing script against a remembered number; that published `~11 %` for a **+24.3 %** regression | [3.7 the SV parse-cost ratchet](#37-the-sv-parse-cost-ratchet--did-the-whole-parser-get-slower-and-would-anything-have-told-me) |
+| **"Did the whole SV parser get SLOWER — and would anything have told me?"** — ⛔ never answer with an ad-hoc timing script against a remembered number; that produced `~11 %`, then `+24.3 %`, and **BOTH were machine-variance artifacts** (`.26`) | [3.7 the SV parse-cost ratchet](#37-the-sv-parse-cost-ratchet--did-the-whole-parser-get-slower-and-would-anything-have-told-me) |
 | **"WHERE does the parse time actually go?"** — ⛔ the counters cannot answer this: they all route to the PROTOCOL graph, and a production parse runs the FUSED one. Three traps, all silent | [3.8 sampling a parse with `/usr/bin/sample`](#38-sampling-a-parse-with-usrbinsample--the-only-view-of-the-fused-graph-and-its-two-traps) |
 | **"Is the memo actually SERVING this rule?" — ⛔ `rule_memo_hit_counts` FUSES success replays with cached failures; 208 "hits" were 208 failures and 0 replays** | [3.6 memo insert/evict/replay census](#36-per-rule-memo-insert--evict--replay-census--is-the-memo-actually-serving-this-rule) |
 | "Which rules could a derived DFA scanner fuse? the measured ceiling? the choice-site / merged-choice surface?" | [5.3 `--report-fusibility-census`](#53---report-fusibility-census) |
@@ -618,8 +618,10 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **WHEN:** ⛔ before and after ANY change that can touch the parse hot path — a grammar edit, a
   codegen change, a left-recursion admission policy, a memo change. Also the first thing to read when
   asking *"is the parser slower than it was?"*
-- **WHY IT EXISTS:** `.17` slice 9's guarded LR admission cost **+24.3 %** parse time and every gate
-  in the repository stayed GREEN, because nothing measured parse cost at all.
+- **WHY IT EXISTS:** `.17` slice 9's guarded LR admission shipped and every gate in the repository
+  stayed GREEN, because nothing measured parse cost at all. Its deterministic cost, measured
+  afterwards: **+10.59 % rule entries**. ⛔ Its *wall-clock* cost was published as **+24.3 %** and is
+  **REFUTED** — see the blind-spot block below and `.20` slice 5.
 - **HOW:**
   ```bash
   bash scripts/check_parse_cost_ratchet.sh                    # tier 1, all four arms, ~2 s
@@ -636,40 +638,57 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   derivation (~1 s); (4) co-publication — every designated live surface carries that derived pair.
   Arms 2-4 were on demand or ungated before (f), which is why the bound below could go stale in
   four documents at once. Their refusals are proven by
-  `docs/tasks/artifacts/engine_universal_services/family_share_gate/probe.sh` (**10/10**, incl. a
-  RED arm replaying the pre-`.21` classifier).
+  `docs/tasks/artifacts/engine_universal_services/family_share_gate/probe.sh` (**11/11**, incl. a
+  RED arm replaying the pre-`.21` classifier, and two added by `.26` for the leg that holds the
+  artifact's RAW COUNTS to the share it declares).
 - ⭐⭐ **WHAT BINDS, AND WHY IT IS NOT WALL CLOCK.** The binding numbers are exact integers from 3.5 —
   rule entries, COMMITTED entries, memo hits — each verified deterministic across repeated release
   runs AND byte-identical between the debug and release probes. Wall clock is **advisory only**, on a
   wide ±50 % band that never fails the gate: a wall-clock-primary ratchet inherits the very defect
-  that made this leaf publish `~11 %` for a **+24.3 %** regression (it compared across *"materially
-  faster machine conditions"*).
+  this leaf demonstrated **twice**. It first published `~11 %` (compared across *"materially faster
+  machine conditions"*), corrected that to `+24.3 %` — and `.20` slice 5 then refuted the correction
+  too, as a fixed-arm-order artifact. ⛔ Two wall-clock figures, three sessions apart, both wrong,
+  neither caught by anything but a re-analysis of their own raw data.
 - ⚠️ **THE PROCESS FLOOR IS SUBTRACTED AND RE-MEASURED EVERY RUN, NEVER ASSUMED.** A probe invocation
   costs ~9.8 ms before it parses anything (fork + exec + SV stdlib preload) and the median corpus file
   takes ~18 ms total — so a raw per-file wall-clock number is mostly a measurement of `fork`.
-- ⛔ **THE DECLARED BLIND SPOT (read this before quoting the number).** The counters tick only in the
-  PROTOCOL graph (3.4/3.5 ROUTING). The fused `cascade_*` twins — including
-  `cascade_match_casting_type_lr_suffix` and friends — tick nothing, and the +24.3 % was measured
-  there. **Measured bound — Live LR-family share `2.741/8.9`** (corpus-entry share % / blind-spot
-  factor): the LR-elimination family is 2.741 % of corpus entries, so the binding metric is at
-  least ~8.9× less sensitive to that regression than wall clock. ⭐ That pair is **GATED, not
-  quoted** since `.21` acceptance (f) — `PARSE-COST-RATCHET`'s every-run tier re-hashes the four
-  inputs it is a function of (grammar, generated parser, classifier, corpus) against
-  `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json`, and holds
-  this paragraph equal to it. Re-derive with `--rederive-family-share` (~70 s); never by editing
-  the digits here.
+- ⛔ **THE DECLARED BLIND SPOT — A PROPERTY, NOT A NUMBER (`.26`, 2026-08-16).** The counters tick
+  only in the PROTOCOL graph (3.4/3.5 ROUTING); the fused `cascade_*` twins — including
+  `cascade_match_casting_type_lr_suffix` and friends — tick nothing. And a counter counts **events**:
+  a rise in the cost PER event is invisible to it on any graph. That limit is a property of the
+  metric, so unlike a measured bound it cannot go stale.
+  **Live LR-family share `2.741`** (corpus-entry share %) — the LR-elimination family's share of all
+  corpus rule entries. ⭐ **GATED, not quoted** since `.21` acceptance (f): `PARSE-COST-RATCHET`'s
+  every-run tier re-hashes the four inputs it is a function of (grammar, generated parser,
+  classifier, corpus) against
+  `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json`, holds this
+  paragraph equal to it, and re-checks that the artifact's own raw counts reproduce it. Re-derive
+  with `--rederive-family-share` (~70 s); never by editing the digits here.
 
-  ⛔ This read *"0.681 % … ~35×"* until `ENGINE-UNIVERSAL-SERVICES.21`: the classifier counted only
-  `_lr_base`/`_lr_suffix`, so it saw 97 of the parser's **127** LR rule names — no `_lr_seed`, and,
-  in a family named for the GUARD, **no `_lr_guard` rule at all** — leaving **75.1 %** of the
-  family's entries uncounted and the gate UNDER-claiming its own sensitivity by ~4×. ⚠️ That
-  denominator read **128** until `.21` slice 2 and was wrong by one — its own decomposition
-  (97 + 24 `_lr_seed` + 6 `_lr_guard`) already summed to 127, and three independent surfaces of the
-  generated parser agree (the `RULE_NAMES` registry, the `fn parse_*` names, the string literals).
-  It is now GATED, not carried: `python3 stimuli/sv/corpus_parse_cost.py --verify-families`
-  re-derives it across all ten generated parsers and refuses on drift. It guards STRUCTURAL
-  work exactly; it does not price the fused graph. Neither metric alone is sufficient and the report
-  says so every run.
+  ⛔⛔ **This anchor was the PAIR `2.741/8.9` until `.26`, and the retired half was wrong in BOTH
+  its terms.** The factor was `24.3 / 2.741`. The **numerator** — a `+24.3 %` wall-clock regression
+  — is REFUTED (`.20` slice 5, `PGEN-ENGINE-UNIVERSAL-SERVICES-0050`): not reproducible from the raw
+  data of the runs that produced it, a fixed-arm-order artifact. The **denominator** was the wrong
+  quantity independently of that — sensitivity is how much the counter MOVED, not how large the rule
+  family is. Measured: the flip moved the binding counters **+10.59 %** (ARM 1 812 963 769 → ARM 2
+  899 064 022, `guard_ab_entries.txt`), **3.49× larger** than the family's own 24 644 435 entries, so
+  the counters saw that change plainly. The published bound had reasoned the opposite from an
+  inference — *"the flip's entry delta is strictly smaller"* — that a tracked artifact in its own
+  leaf had already refuted. ⇒ the factor is **retired, not re-computed**: it fails under every
+  available reading (0.41× on the point estimate, 1.82× on the most adversarial pairing) and `.20`
+  (b) established that no admissible wall-clock figure for the change exists to rebuild it from.
+  ⭐ The share itself is a correctly measured quantity and is **unaffected**.
+
+  ⚠️ The share read **0.681 %** (and the retired factor `~35×`) until `ENGINE-UNIVERSAL-SERVICES.21`:
+  the classifier counted only `_lr_base`/`_lr_suffix`, so it saw 97 of the parser's **127** LR rule
+  names — no `_lr_seed`, and, in a family named for the GUARD, **no `_lr_guard` rule at all** —
+  leaving **75.1 %** of the family's entries uncounted. ⚠️ That denominator read **128** until `.21`
+  slice 2 and was wrong by one — its own decomposition (97 + 24 `_lr_seed` + 6 `_lr_guard`) already
+  summed to 127, and three independent surfaces of the generated parser agree (the `RULE_NAMES`
+  registry, the `fn parse_*` names, the string literals). It is now GATED, not carried:
+  `python3 stimuli/sv/corpus_parse_cost.py --verify-families` re-derives it across all ten generated
+  parsers and refuses on drift. It guards STRUCTURAL work exactly; it does not price the fused
+  graph. Neither metric alone is sufficient and the report says so every run.
 
 ### 3.8 Sampling a parse with `/usr/bin/sample` — the ONLY view of the fused graph, and its four traps
 - **WHAT:** `/usr/bin/sample <pid> <secs> 1 -f out.txt` on a **BARE** parse. ⭐ This is the only
@@ -823,7 +842,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **WHAT:** static well-formedness report — left-recursion info; HARD-gated errors for non-terminating rules, ordered-choice shadowing (both verdicts are now SELECTION-SEMANTICS-CONDITIONAL: exact-duplicate fires only where the tie-break provably keeps the EARLIER twin — under `@associativity: right`, a later-higher `@priority`, or `@deterministic_group` evaluation-order rotation the engine SELECTS the later twin, so no verdict; under `@associativity: nonassoc` an equal-priority tie fails the whole choice — a distinct "restructure deliberately" verdict since merge/remove would change acceptance (A2.4); fixed-terminal-prefix ONLY on an `@branch_policy: ordered` rule with no branch-phase predicate and no partition rotation — under the default `longest_match`/`priority_first` the later alternative is LIVE (A2.3)), unreachable rules, **undefined references** (a rule referencing a rule never defined — codegen would emit a never-matching stub; the check runs on the UNFILTERED grammar and allowlists codegen's native builtins), unbound fact-kinds, and profile orphans; nullable-repetition warnings; always-succeeds notes — then exits (nonzero on any error-class finding).
 - **WHEN:** after any grammar edit; to adjudicate a `no_path`/dead-rule candidate; **"every parse rejects at `furthest_position=0` and nothing points at the cause"** (the undefined-ref signature); "is my grammar well-formed?".
 - **HOW:** `./rust/target/debug/ast_pipeline grammars/<g>.ebnf --lint-grammar`.
-- ⭐⭐ **THE LEFT-RECURSION VERDICT IS DERIVED FROM THE ELIMINATION PASS, NOT ASSERTED (`GRAMMAR-WELLFORMED.A2.6`).** The lint runs on the **post-elimination** grammar, so a cycle still present is one the pass **declined**, and the headline says exactly that — `left_recursion_eliminated=N` (the pass's own record, and it NAMES the rules) versus `left_recursion_unhandled=M` (a **warning**). Until `A2.6` this class printed *"handled by PGEN's LR elimination + runtime cycle-breaking (informational, not an error)"* about every cycle it found; measured on the shipped SV grammar that sentence was false for **30 of 30** — the pass had rewritten **2** rules. ⛔ An `unhandled` cycle is not merely untidy: the runtime guard does not handle it, it **rejects** same-position re-entry, so those derivations are unreachable. The demonstrated case was SV's `casting_type -> constant_primary -> constant_cast -> casting_type` — LRM-legal `int'(2)'(3)` was REJECTED (`ENGINE-UNIVERSAL-SERVICES.13`), and `.17` slice 9's guarded admission **CLOSED it**. ⭐ **Current, re-derived over all 17 tracked grammars (`ENGINE-UNIVERSAL-SERVICES.20` slice 4, 2026-08-15): every one of the 10 shipped parser FAMILIES is `left_recursion_unhandled=0`** — SV `unhandled=0 eliminated=2`, `return_annotation` and `semantic_annotation` `eliminated=1`, the rest `0/0`. The ONLY grammar with survivors is `systemverilog_lrm_profiled_wrapper` (**23** unhandled, 4 eliminated), which is the `lrm_extraction_harness` and **not a family** — it also carries 42 profile-orphans, 23 shadowed branches and 5 undefined references, and has never generated a shipped parser. ⛔ The previously published line here (*"SV **30**, wrapper 23, `ebnf` **5**"*) was the PRE-flip state and had gone stale by two of its three numbers; `ebnf` is **0**. ⚠️ LR elimination is therefore CORRECT and CLOSED for everything that ships — what remains open is its **cost** (+24.3 % parse time, `ENGINE-UNIVERSAL-SERVICES.20`), not its coverage.
+- ⭐⭐ **THE LEFT-RECURSION VERDICT IS DERIVED FROM THE ELIMINATION PASS, NOT ASSERTED (`GRAMMAR-WELLFORMED.A2.6`).** The lint runs on the **post-elimination** grammar, so a cycle still present is one the pass **declined**, and the headline says exactly that — `left_recursion_eliminated=N` (the pass's own record, and it NAMES the rules) versus `left_recursion_unhandled=M` (a **warning**). Until `A2.6` this class printed *"handled by PGEN's LR elimination + runtime cycle-breaking (informational, not an error)"* about every cycle it found; measured on the shipped SV grammar that sentence was false for **30 of 30** — the pass had rewritten **2** rules. ⛔ An `unhandled` cycle is not merely untidy: the runtime guard does not handle it, it **rejects** same-position re-entry, so those derivations are unreachable. The demonstrated case was SV's `casting_type -> constant_primary -> constant_cast -> casting_type` — LRM-legal `int'(2)'(3)` was REJECTED (`ENGINE-UNIVERSAL-SERVICES.13`), and `.17` slice 9's guarded admission **CLOSED it**. ⭐ **Current, re-derived over all 17 tracked grammars (`ENGINE-UNIVERSAL-SERVICES.20` slice 4, 2026-08-15): every one of the 10 shipped parser FAMILIES is `left_recursion_unhandled=0`** — SV `unhandled=0 eliminated=2`, `return_annotation` and `semantic_annotation` `eliminated=1`, the rest `0/0`. The ONLY grammar with survivors is `systemverilog_lrm_profiled_wrapper` (**23** unhandled, 4 eliminated), which is the `lrm_extraction_harness` and **not a family** — it also carries 42 profile-orphans, 23 shadowed branches and 5 undefined references, and has never generated a shipped parser. ⛔ The previously published line here (*"SV **30**, wrapper 23, `ebnf` **5**"*) was the PRE-flip state and had gone stale by two of its three numbers; `ebnf` is **0**. ⛔⛔ **THAT LAST NUMBER IS NOW CONTESTED BY A SECOND INSTRUMENT AND IS ROUTED, NOT SILENTLY CORRECTED (`ENGINE-UNIVERSAL-SERVICES.27`, measured 2026-08-16):** `python3 stimuli/sv/corpus_parse_cost.py --verify-families` reads `generated/ebnf.rs` and finds **6** declared `_lr_*` rule names (`base=1 seed=1 suffix=4`) — a shape only an elimination that RAN can emit, so `eliminated=0` and 6 emitted LR rules cannot both describe the same artifact. Which side is stale is UNMEASURED here (the lint reads `grammars/*.ebnf`; `--verify-families` reads `generated/*.rs`, and `generated/ebnf.rs` is the SEED-ONLY artifact `.16` is a record of, regenerated 2026-08-16 — the day AFTER this line's measurement). ⚠️ LR elimination is CORRECT and CLOSED for everything that ships — what remains open is its **cost**, and ⛔ the `+24.3 % parse time` this line used to name is **REFUTED** (`ENGINE-UNIVERSAL-SERVICES.20` slice 5): the measured, deterministic cost is **+10.59 % rule entries**, and no admissible wall-clock figure exists.
 - ⭐ **`PGEN_LINT_DUMP_ALL=1` prints EVERY finding of EVERY class** (the per-class print cap is 40; left-recursion's was **10**, and it hid 20 of SV's 30 — the sweep that found `A2.6` had to go around the instrument). The truncation line now names the escape:
   ```bash
   PGEN_LINT_DUMP_ALL=1 ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar
@@ -1200,8 +1219,8 @@ Cause map: `NO reach path` = dead-rule candidate (adjudicate via 5.1) · `parsed
 2. `--trace-rules <dominator>` (2.2) → the actual call pattern; `PGEN_REPORT_MEMO_STATS=1` (3.3) for memo behavior.
 3. ⛔ **"Did the whole SV parser get slower?" is a different question, and it has a standing
    instrument** — see 3.7. Do NOT answer it with an ad-hoc timing script against a remembered
-   number: that is exactly how this repository published a `~11 %` figure that was really
-   **+24.3 %** (`ENGINE-UNIVERSAL-SERVICES.20`).
+   number: this repository did that twice on one change and got `~11 %` and then `+24.3 %`, and
+   **both were machine-variance artifacts** (`ENGINE-UNIVERSAL-SERVICES.20` slice 5 / `.26`).
 4. ⛔ **"WHERE does the time go?" needs a SAMPLER, not a counter** — 3.8. Every tool in 3.1–3.6
    routes the parse to the PROTOCOL graph, so none of them observes the fused `cascade_*` code a
    production parse runs. Measured consequence: the SV LR machinery is **1.9 % of self-time and

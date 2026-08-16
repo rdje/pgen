@@ -8,12 +8,13 @@ artifact:   docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/fa
   ✓ RED 1 artifact absent              exit 2 (expected 2) — a missing derivation REFUSES; it never reads as 'nothing to check'
   ✓ RED 2 schema moved                 exit 2 (expected 2) — a reader that outlived its producer's schema refuses instead of unpacking
   ✓ RED 3 carried != derived           exit 1 (expected 1) — the carried CORPUS_FAMILY_SHARE_PCT can no longer be edited unopposed
-  ✓ RED 4 blind-spot factor stale      exit 1 (expected 1) — the pre-.21 ~35x bound cannot survive beside a corrected share
+  ✓ RED 4 raw counts != share          exit 1 (expected 1) — lr_entries/total_entries must re-derive the declared share, not merely sit beside it
+  ✓ RED 4b counts absent               exit 1 (expected 1) — a declared share with no numerator/denominator cannot be re-derived by a reader
   ✓ RED 5 identity row missing         exit 1 (expected 1) — an input with no row is UNGUARDED and says so, rather than passing
   ✓ RED 6 pre-.21 classifier           exit 1 (expected 1) — THE FOUNDING DEFECT: the narrow predicate that produced 0.681 % is refused
   ✓ RED 7 grammar moved                exit 1 (expected 1) — a grammar edit stales the share — the event .21 said would rot it silently
   ✓ RED 8 generated parser moved       exit 1 (expected 1) — a regenerated parser stales it too, at the moment cost can move
   ✓ RED 9 corpus moved                 exit 1 (expected 1) — a submodule bump changes what was measured without touching one PGEN byte
 
-10 passed, 0 failed.
+11 passed, 0 failed.
 ⭐ every refusal in the family-share gate has now been OBSERVED firing.

@@ -1,5 +1,49 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0052 (leaf ENGINE-UNIVERSAL-SERVICES.26 slice 1 — PROPAGATE THE REFUTATION; instrument + gate + DOCS, ZERO grammar/generated/Rust bytes)
+
+- ⭐⭐⭐ **The propagation is the mechanical half. The finding is that the refuted `+24.3 %` had a
+  DERIVED CHILD nobody treated as suspect** — `PARSE-COST-RATCHET`'s co-published blind-spot factor
+  `~8.9×`, computed as `+24.3 % wall clock ÷ 2.741 % family share` — **and both of its terms are
+  wrong, for two independent reasons.** It is RETIRED, not re-computed.
+- ⛔ **Numerator:** the refuted `+24.3 %` (`.20` slice 5). ⛔ **Denominator:** the family SHARE was
+  the wrong QUANTITY regardless — sensitivity is how much the counter MOVED, and this leaf's own
+  `guard_ab_entries.txt` measures that at **812 963 769 → 899 064 022 = +10.59 %**, **3.49× LARGER**
+  than the family's whole 24 644 435 entries. ⭐ The counters were not the blind half on this change;
+  they saw it plainly while wall clock produced no admissible figure at all.
+- ⭐ **Retired rather than re-derived because it fails under every reading**: 0.41× on the point
+  estimate, 1.82× on the most adversarial pairing, and `.20`(b) leaves no admissible wall clock to
+  rebuild any ratio from. What replaces it is a **property** — a counter counts EVENTS, so a
+  per-event cost rise is invisible to it on any graph — which needs no measurement and cannot rot.
+  ⛔ The `2.741 %` share is correctly measured, **unaffected**, still co-published and gated.
+- ⭐⭐ **UNSOUGHT: the instrument's own provenance string was stale, and the gate could not see it by
+  construction.** `CORPUS_FAMILY_PROVENANCE` read *"24 644 435 of 899 064 022 over 16 335 files"*
+  while `family_share.json` said `24 650 497 / 899 264 997 / 16 336` (`.22`(e) moved the census,
+  `.22`(f) re-derived the artifact, the sentence stayed). **All four gate arms were GREEN over it,
+  and not by luck — the gate compares the SHARE, and both count pairs round to `2.741 %`.** ⇒ fixed
+  by REMOVING the copy: the report now PROJECTS the counts from the artifact.
+- **Shipped:** `blind_spot_factor()` + `WALL_CLOCK_REGRESSION_PCT` deleted; `family_share.json`
+  schema **v1 → v2** (both retired fields dropped, re-derived); the co-publication anchor moved from
+  the pair `2.741/8.9` to the single live value `2.741`, with a new control proving the superseded
+  pair form does **not** half-match; `run_guard_ab_timed.sh`'s live `chartered = 0.243 * t1`
+  admissibility anchor retired for a resolvable floor its own spread justifies; the mirrored doctrine
+  text moved together in `check_doctrines.sh` + `DOCTRINE_ENFORCEMENT.md`; the knowledge card's
+  THESIS re-derived (not its digits edited); `KNOWLEDGE_MAP.md` re-derived by its generator.
+- ⭐ **RED→GREEN observed, not asserted:** the first rebaseline FAILED with 3 breaches — one per
+  hand-written live surface still carrying the retired pair — then GREEN. `entries.tsv` is
+  **byte-identical** across the rebaseline, so all three binding counters are unmoved: what changed
+  is what is PUBLISHED, never what is MEASURED. The full-corpus re-derivation reproduced the
+  artifact exactly (`2.741 %`, 24 650 497 / 899 264 997, 16 336 files, 0 no-dump, 50 s).
+- ⚠️ **NEW `.27`** — while correcting the LR-verdict bullet, two tracked instruments were found to
+  DISAGREE about `generated/ebnf.rs`: the published sweep says `ebnf` eliminated **0**, while
+  `--verify-families` reports **6** declared `_lr_*` names (`base=1 seed=1 suffix=4`), a shape only
+  an elimination that RAN can emit. Which side is stale is deliberately UNMEASURED here (the lint
+  reads the grammar, the classifier reads the seed-only artifact `.16` owns). Marked CONTESTED in
+  place, routed with acceptance.
+- ⛔ **History untouched (acceptance (d))**: `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `.20` slices 1-4,
+  `guard_ab_timed.txt`, `cross_era_result.txt` and `analyze_cross_era.py` are dated records or the
+  refutation's own output. Corrections are forward and in place.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0051 (leaf ENGINE-UNIVERSAL-SERVICES.20 slice 5 — director challenge "do you stand by these findings?"; DOCS only, ZERO code/grammar/generated/gate bytes) — one finding was overstated in the direction that would have let SV ship, and one is stronger than I said
 
 - ⛔⛔⛔ **RETRACTED — `-0050`'s "Ruling B DISCHARGED BY ATTRIBUTION" is WRONG, and it failed in the

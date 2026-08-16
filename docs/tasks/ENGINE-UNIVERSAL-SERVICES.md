@@ -7239,7 +7239,7 @@ record of the error.
   shipped `97b89833855ea1a3`, and `git diff --quiet -- rust/src/` holds at exit). `stimuli/` tracked
   artifacts untouched. `bash scripts/check_doctrines.sh` → all enforced doctrines PASS.
 
-#### ⛔⛔⛔ `.26` NEW `todo` — the REFUTED `+24.3 %` is still asserted as CURRENT FACT on ~12 tracked surfaces, including a DOCTRINE's own text (opened 2026-08-16 session #239 by `.20` slice 5, which refuted it)
+#### ⛔⛔⛔ `.26` — the REFUTED `+24.3 %` was still asserted as CURRENT FACT on ~12 tracked surfaces, including a DOCTRINE's own text (✅ **`done` — slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0052`, 2026-08-16 session #240; opened 2026-08-16 session #239 by `.20` slice 5, which refuted it. ⭐⭐ The propagation turned up that the number's DERIVED CHILD — the co-published `~8.9×` blind-spot factor — was wrong in **both** of its terms, so the fix is a RETIREMENT, not an edit)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — measured before opening):
 
@@ -7295,6 +7295,152 @@ record of the error.
 owning slice named; (b) the two mirrored doctrine surfaces move together and `<meta:mirror>` stays
 GREEN; (c) `KNOWLEDGE_MAP.md` re-derived rather than hand-edited if its source card changes;
 (d) ⛔ no dated record is rewritten — corrections are forward, in place, and point at `.20` slice 5.
+
+#### ✅ `.26` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0052`, 2026-08-16 session #240) — the refutation is propagated, and the number it FATHERED is retired rather than edited
+
+⭐⭐⭐ **THE HEADLINE IS NOT THE PROPAGATION.** Correcting twelve surfaces is mechanical. What this
+slice found while doing it is that the refuted `+24.3 %` had a **derived child** that no surface
+treated as suspect — `PARSE-COST-RATCHET`'s co-published blind-spot factor `~8.9×`, computed as
+`+24.3 % wall clock ÷ 2.741 % family share` — and that **both of its terms are wrong, for two
+independent reasons**. It is therefore RETIRED, not re-computed.
+
+- ⛔ **The numerator** is the refuted `+24.3 %` (`.20` slice 5, `-0050`).
+- ⛔ **The denominator was the wrong QUANTITY, independently of the numerator.** *"How sensitive is
+  this counter to that change"* is answered by **how much the counter MOVED**, not by how large the
+  changed rule family is. The retired bound substituted the SHARE for the MOVE via an inference —
+  *"the flip's entry delta is strictly smaller, because the rules it replaced were themselves
+  entered"* — that a tracked artifact **in this same leaf** had already refuted:
+  `guard_ab_entries.txt` gives ARM 1 `812 963 769` → ARM 2 `899 064 022` entries = **+10.59 %**,
+  which is **3.49× LARGER** than the family's whole `24 644 435` entries.
+- ⭐ **The counters were not the blind half on this change.** They moved +10.59 %, far outside any
+  band a ratchet could hide; the wall clock produced no admissible figure at all. The published
+  bound had the two halves exactly backwards.
+- ⭐ **It fails under every reading available**, which is what makes the retirement robust rather
+  than a swap of one estimate for another: point-estimate wall clock (≤ +4.33 %) over the measured
+  +10.59 % gives **0.41×**; the most adversarial pairing (+19.3 %) gives **1.82×**. Neither is 8.9×,
+  and `.20`(b) established that no admissible wall-clock figure survives to rebuild any ratio from.
+- ⭐ **What replaces it is a PROPERTY, not a number.** A counter counts EVENTS, so a rise in the
+  cost PER event is invisible to it on any graph. That follows from what the metric counts, needs no
+  measurement, and cannot go stale — which is strictly better than a bound that has now been wrong
+  twice. ⛔ The `2.741 %` SHARE is a correctly measured live quantity and is **unaffected**; it
+  stays co-published and gated.
+
+⭐⭐ **A SECOND, UNSOUGHT FINDING — THE INSTRUMENT'S OWN PROVENANCE STRING WAS STALE, AND THE GATE
+COULD NOT SEE IT BY CONSTRUCTION.** `CORPUS_FAMILY_PROVENANCE` read *"24 644 435 of 899 064 022
+entries over 16 335 files"* while `family_share.json` — the artifact it claims to describe — said
+`24 650 497 / 899 264 997 / 16 336`. `.22`(e) moved the census and `.22`(f) re-derived the artifact;
+this one sentence was left behind. ⛔ **All four arms of `PARSE-COST-RATCHET` stayed GREEN over it,
+and not by luck: the gate compares the SHARE, and both count pairs round to the same `2.741 %`.**
+⇒ fixed by REMOVING the copy rather than by adding a check — the report now PROJECTS the counts
+from the tracked artifact (`format_family_provenance`), so there is no second copy to go stale.
+⭐ The residual hole is closed by construction and the reasoning is recorded in the code: different
+counts imply a moved identity input, which stales `cost.md`'s own identity table and forces the
+rebaseline that regenerates the line — and `.22`(c) is what makes that hold, since a silently
+dropped file would have changed the counts with no input moving, and an undeclared drop now refuses.
+
+**WHAT SHIPPED**
+
+| surface | change |
+|---|---|
+| `stimuli/sv/corpus_parse_cost.py` | `WALL_CLOCK_REGRESSION_PCT` + `blind_spot_factor()` **deleted**; `FLIP_ENTRY_DELTA_PCT` (cited, explicitly NOT gated, with the reason) added; `format_family_provenance()` projects the artifact; report section rewritten; schema **v1 → v2** |
+| `scripts/check_parse_cost_ratchet.sh` | anchor regex pair → single value; `derived_pair` → `derived_share`; header rationale + honest-limit block rewritten; **8 anchor controls** incl. a new one proving the superseded pair form does NOT half-match |
+| `family_share.json` | re-derived; `blind_spot_factor` + `wall_clock_regression_pct` **dropped**; `note` rewritten; schema v2 |
+| `cost.md` | regenerated — provenance now the LIVE counts, factor paragraph replaced by the property + the +10.59 % measurement |
+| `scripts/check_doctrines.sh` + `DOCTRINE_ENFORCEMENT.md` §10 | the mirrored doctrine text, moved TOGETHER (acceptance (b)) |
+| `docs/knowledge/a-deterministic-counter-…md` | title, `evidence:`, `reverify:` and the whole thesis re-derived — the card now teaches *"state a blind spot as a property, and price any NUMBER you put on it"* |
+| `TOOLBOX.md` | 3.7 blind-spot block, WHY-IT-EXISTS, the `~11 %` lesson (now **two** refuted wall-clock figures), the index row, Protocol C, and the LR-verdict bullet |
+| `rust/Makefile`, `run_guard_ab_entries.sh` | header rationales |
+| `run_guard_ab_timed.sh` | ⛔ the **live computation** `chartered = 0.243 * t1` retired — it anchored admissibility on the refuted number; replaced by a *resolvable floor* the run's own spread justifies |
+| `docs/TASK_TREE.md` | both in-place assertions annotated ⛔ REFUTED, pointing at `.20` slice 5 |
+| `family_share_gate/probe.sh` + `probe.txt` | RED 4 repointed (it mutated the retired field) + RED 4b added → **11/11 arms observed firing** |
+| `docs/book/src/diagnosing-unknowns.md` | the row still claimed *"the report states the bound on every run"* — corrected to the property + the one live number |
+| `KNOWLEDGE_MAP.md` | **re-derived** by `knowledge-map/scripts/gen_knowledge_map.sh` (acceptance (c)) |
+
+⛔ **NOT TOUCHED, DELIBERATELY (acceptance (d))** — `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `.20`
+slices 1-4's prose, `guard_ab_timed.txt`, `cross_era_result.txt` and `analyze_cross_era.py` are
+dated records of what was believed and when, or are the refutation's own output. History is not
+rewritten; corrections are forward and in place.
+
+#### Acceptance Checklist (enforced) — `.26` slice 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0052`)
+
+- [x] **REPRODUCE / ISSUE** — the census that opened this leaf, re-run at HEAD:
+  `git ls-files | xargs grep -ln "24\.3 *%\|+24\.3"` → **21 tracked files** (the leaf recorded 18;
+  `-0050`/`-0051` added three more while refuting it, which is the propagation rate the leaf is
+  about). Triaged into HISTORY (must not move) and LIVE-and-false (this worklist).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `git ls-files` census + a direct read of the derivation chain.
+  **WHY** = the refuted figure was not merely quoted, it was an INPUT: `corpus_parse_cost.py:143`
+  held `WALL_CLOCK_REGRESSION_PCT = "24.3"` and `blind_spot_factor()` divided it by the family
+  share, so the refutation invalidated a number the gate co-published on four surfaces and pinned
+  in `family_share.json`. **WHERE** = that constant, its consumer `blind_spot_factor()`, the
+  artifact fields `blind_spot_factor`/`wall_clock_regression_pct`, `check_parse_cost_ratchet.sh`'s
+  `SHARE_TUPLE_RE`, and `run_guard_ab_timed.sh`'s `chartered = 0.243 * t1`. ⛔ The DENOMINATOR
+  defect is separate and was found by reading this leaf's own tracked artifact against the card's
+  claim: `guard_ab_entries.txt` measures +10.59 % where the card inferred *"strictly smaller"* than
+  2.741 %.
+- [x] **FIX** — retire the factor at its arithmetic home rather than editing digits at twelve call
+  sites; project the provenance from the artifact instead of carrying it; move the co-publication
+  anchor from a pair to the one live number that is actually derived. ZERO grammar bytes, ZERO
+  generated-parser bytes, ZERO Rust bytes — the parser is untouched by construction.
+- [x] **ADDRESSED (verified)** — RED→GREEN observed live, not asserted: the first rebaseline run
+  **FAILED with 3 breaches**, one per hand-written live surface still carrying the retired pair
+  (`TOOLBOX.md`, `DOCTRINE_ENFORCEMENT.md`, the knowledge card), each reported as *"carries NO live
+  LR-family-share anchor"* — the new refusal path firing on real inputs. After the corrections:
+  `bash scripts/check_parse_cost_ratchet.sh` → `parse-cost-ratchet: OK (identity fresh for:
+  generated parser, grammar, instrument, sample inputs; 192 pinned sample files)`. The full-corpus
+  re-derivation reproduced the artifact EXACTLY — `parse-cost: derived family share 2.741 %
+  (24,650,497 of 899,264,997 entries over 16336 files, 0 no-dump) in 50 s` — which is also the
+  measurement proving the retired provenance string was stale.
+- [x] **NO REGRESSION** — `entries.tsv` is **byte-identical** across the rebaseline (`git diff
+  --stat` lists only `advisory.json`, `cost.md`, `family_share.json`), so all three BINDING counters
+  are unmoved: this slice changed what is PUBLISHED, never what is MEASURED. `--verify-families`
+  green (10 parsers, 137 declared LR names, 137 classified; SV 127 matches the pinned constant);
+  `--verify-family-share` green; `scripts/check_doctrines.sh` **all 20 green including
+  `<meta:mirror>`**; `mdbook_docs_gate` green (10 per-parser books + the main book);
+  `family_share_gate/probe.sh` **11/11 arms observed firing** (was 10/10 — RED 4 mutated the
+  retired `blind_spot_factor` field, and ⭐ that mutation was MEASURED to now exit 0 against an
+  asserted 1, i.e. the suite reports it ✗ rather than quietly testing a dead field, so it was
+  repointed at the new raw-counts leg and RED 4b added); `bash -n` clean on both edited shell
+  instruments and `ast.parse` clean on the embedded Python. ⛔ No Rust or generated bytes changed,
+  so `clippy` has nothing to re-lint and the generated parsers cannot have moved.
+- [x] **LOCKSTEP** — the two mirrored doctrine surfaces moved together (acceptance (b));
+  `KNOWLEDGE_MAP.md` re-derived, never hand-edited (acceptance (c)); `TOOLBOX.md`,
+  `docs/TASK_TREE.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md` updated. ⛔ The DONE-BAR
+  register is deliberately **UNCHANGED**: `systemverilog` stays `Mostly Done`. This slice removes a
+  false cost claim; it does not move any proof surface SV's release bar is gated on.
+
+#### ⚠️ `.27` NEW `todo` — two tracked instruments DISAGREE about whether `generated/ebnf.rs` contains left-recursion elimination output at all (opened 2026-08-16 session #240 by `.26` slice 1, measured while correcting the surface that carries the claim)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — measured before opening):
+
+- ⛔ **The disagreement, both sides measured.** `TOOLBOX.md`'s LR-verdict bullet publishes, from
+  `.20` slice 4's 2026-08-15 sweep over all 17 tracked grammars: SV `eliminated=2`,
+  `return_annotation` and `semantic_annotation` `eliminated=1`, **"the rest `0/0`"** — i.e. `ebnf`
+  eliminated nothing. Against that, `python3 stimuli/sv/corpus_parse_cost.py --verify-families`
+  reports `generated/ebnf.rs   144 rules   6 _lr   6 classified   base=1 seed=1 suffix=4`.
+- ⛔ **Those cannot both describe one artifact.** `_lr_base`/`_lr_seed`/`_lr_suffix` names are
+  emitted only BY the elimination pass; a shape of `base=1 seed=1 suffix=4` is the signature of
+  exactly one eliminated rule with four alternatives. `eliminated=0` and six emitted LR rules are
+  contradictory.
+- ⚠️ **Which side is stale is UNMEASURED, deliberately.** The lint reads `grammars/*.ebnf`;
+  `--verify-families` reads `generated/*.rs`. `generated/ebnf.rs` is the **SEED-ONLY** artifact
+  `.16` is a record of — it is not tracked, it is regenerated locally, and its mtime here is
+  2026-08-16, the day AFTER the published sweep. So the honest hypotheses are (i) the published
+  sweep was wrong for `ebnf` when written, or (ii) `generated/ebnf.rs` has diverged from
+  `grammars/ebnf.ebnf` exactly as `.16` predicts. Re-running the lint needs a fresh `pgen` binary
+  (the tracked release build predates `--lint-grammar`), which is why this is ROUTED and not
+  resolved inline.
+- **Reproduces outside this family:** the same total moved **131 → 137** since `-0039` published it,
+  and the whole `+6` is `ebnf`. The count is GATED (all 137 classified) so nothing is unguarded —
+  what is unguarded is the PROSE claim about which grammars carry elimination at all.
+- ⭐ **Corrected in place, not silently**: the `TOOLBOX.md` bullet now marks its `ebnf` **0** as
+  CONTESTED, names both instruments and points here. A number is not quietly edited on the strength
+  of one instrument.
+
+**Acceptance:** (a) build a current `pgen` and re-run `--lint-grammar` over `grammars/ebnf.ebnf` to
+get the authoritative `left_recursion_eliminated` for it; (b) adjudicate which of the two published
+surfaces was wrong and correct it forward; (c) if the answer is seed divergence, route the finding
+into `.16` with the measurement attached; (d) state whether any OTHER of the 17 grammars in the
+published sweep disagrees with `--verify-families`, since the same join was never run.
 
 #### ⛔⛔ `.24` NEW `todo` — `PARSE-COST-RATCHET`'s identity block pins every INPUT and not the EXECUTABLE, so the gate says *"the measurement cannot have moved"* while the probe on disk embeds a different parser (opened 2026-08-15 session #237 by `.20` slice 4, DEMONSTRATED LIVE)
 

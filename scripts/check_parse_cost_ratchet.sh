@@ -7,10 +7,19 @@
 #   A cost nothing measures is a cost that grows.
 #
 # ⛔ THE DEFECT THIS CLOSES — MEASURED, NOT HYPOTHETICAL. `.17` slice 9 shipped the guarded
-# left-recursion admission and it cost **+24.3 % parse time** on the SV corpus. Across that
-# slowdown, EVERY gate this repository has was GREEN: the generated lint, the two-sided repro
-# ratchet, the corpus pass/fail count, and all registered doctrines. Nothing in the tree measured
-# parse cost at all, so nothing could report that it had moved.
+# left-recursion admission, and the repository could not say what it had cost. EVERY gate here was
+# GREEN across it: the generated lint, the two-sided repro ratchet, the corpus pass/fail count, and
+# all registered doctrines. Nothing in the tree measured parse cost at all, so nothing could report
+# that it had moved. What the change DID cost, on the metric this gate binds: **+10.59 % rule
+# entries** (`docs/tasks/artifacts/engine_universal_services/guard_ab_entries.txt`).
+#
+# ⛔⛔ AND THE NUMBER THAT COMMISSIONED THIS GATE IS REFUTED, WHICH ARGUES FOR IT RATHER THAN
+# AGAINST IT (`ENGINE-UNIVERSAL-SERVICES.20` slice 5 / `.26`, 2026-08-16). This header used to say
+# the admission cost **+24.3 % parse time**. It is not reproducible from the raw data of the runs
+# that produced it — seven estimator × era combinations put ARM2/ARM1 in [0.9909, 1.0433] — and the
+# mechanism was a fixed-arm-order measurement artifact. A wall-clock figure nobody could re-derive
+# was carried for three sessions, through five slices and a director-facing ruling, and was wrong
+# by ~20 points. That is the case for a ratchet keyed on numbers a reader can re-derive.
 #
 # ⭐⭐ TWO TIERS, AND THE CHEAP ONE IS SOUND RATHER THAN A SHORTCUT.
 #
@@ -23,10 +32,10 @@
 #       sampling heuristic — and when it fails it does not guess, it demands a re-measure.
 #     (2) THE LR-FAMILY CLASSIFIER (`--verify-families`, ~0.1 s). Every generated parser's
 #       declared `_lr` rule names must be classified by the shipped predicate.
-#     (3) THE PUBLISHED FAMILY SHARE (`--verify-family-share`, ~1 s). The corpus-wide share the
-#       blind-spot bound below is computed from is re-hashed against the tracked derivation.
-#     (4) CO-PUBLICATION. Every designated live surface must carry that derived share and factor,
-#       so the bound cannot be quoted anywhere in the repository after it has gone stale.
+#     (3) THE PUBLISHED FAMILY SHARE (`--verify-family-share`, ~1 s). The corpus-wide LR-family
+#       share is re-hashed against the tracked derivation, and its raw counts must reproduce it.
+#     (4) CO-PUBLICATION. Every designated live surface must carry that derived share, so it
+#       cannot be quoted anywhere in the repository after it has gone stale.
 #
 #   TIER 2 (on demand, ~2.5 min) — THE RATCHET ITSELF. Re-run the instrument into a SCRATCH
 #     directory and compare. Entries/committed/memo-hits must not RISE. Wall clock is reported
@@ -52,16 +61,24 @@
 # parser hash alone would report a fresh baseline over a corpus that had changed underneath it.
 #
 # ⚠️ HONEST LIMIT, stated rather than discovered later (DOCTRINE_ENFORCEMENT.md §3). The binding
-# metric observes the PROTOCOL graph. A production parse with no diagnostic consumer runs the
-# FUSED `cascade_*` graph, which ticks no per-rule counters — and the wall-clock regression was
-# measured there. So this metric is materially LESS sensitive to that regression than wall clock
-# is, by a factor this gate re-derives rather than states: the share and the factor live in
-# `docs/tasks/artifacts/…/parse_cost_ratchet/family_share.json` and arm 3 above re-hashes them
-# every run. ⛔ The bound READ ~35× until `ENGINE-UNIVERSAL-SERVICES.21`, because the classifier
-# that measured it counted only `_lr_base`/`_lr_suffix` — no `_lr_seed`, and in a family named for
-# the GUARD, no `_lr_guard` rule at all: 75.1 % of the family's entries were uncounted, and the
-# gate was UNDER-claiming its own sensitivity by ~4×. ⭐ The digits are deliberately NOT repeated
-# in this comment any more: a gate that both publishes a number and checks it is checking itself.
+# metric observes the PROTOCOL graph; a production parse with no diagnostic consumer runs the FUSED
+# `cascade_*` graph, which ticks no per-rule counters. And a counter counts EVENTS — a rise in the
+# cost PER event is invisible to it on any graph. ⭐ That is a PROPERTY of the metric, not a
+# measurement of it, which is why it is stated here without a number: it cannot go stale.
+#
+# ⛔⛔ IT USED TO CARRY A NUMBER — *"at least ~8.9× less sensitive than wall clock"* — AND BOTH OF
+# ITS TERMS WERE WRONG (`ENGINE-UNIVERSAL-SERVICES.26`). It was `24.3 / 2.741`: a refuted
+# wall-clock numerator, over a denominator that was the wrong quantity independently of that.
+# Sensitivity is how much the counter MOVED, not how large the rule family is — and the flip moved
+# the binding counters **+10.59 %**, 3.49× larger than the whole family's own entry count. The
+# factor is RETIRED, not re-computed: it fails under every reading available (0.41× on the point
+# estimate, 1.82× on the most adversarial pairing), and `.20` (b) established that no admissible
+# wall-clock figure for the change exists to rebuild it from. ⛔ The share ITSELF is a correctly
+# measured live quantity and is unaffected; it stays co-published and gated by arms 3-4.
+# ⚠️ It READ 0.681 %/~35× until `.21`, because the classifier that measured it counted only
+# `_lr_base`/`_lr_suffix` — no `_lr_seed`, and in a family named for the GUARD, no `_lr_guard` rule
+# at all: 75.1 % of the family's entries were uncounted. ⭐ The digits are deliberately NOT
+# repeated in this comment: a gate that both publishes a number and checks it is checking itself.
 # What binds is STRUCTURAL work, exactly; this gate does not claim to price the fused graph. The
 # wall-clock advisory is the only view of the other graph and is machine-dependent, which is
 # precisely why it advises and does not bind. Neither metric alone is sufficient, and the report
@@ -100,7 +117,7 @@ FAMILY_SHARE = f"{ART}/family_share.json"
 # hand-copied into four documents and went stale in all of them at once, silently, because no
 # reader could tell a live claim from a quotation. Gating the constant alone would fix the file
 # nobody was reading from. ⇒ every surface that states the bound as a LIVE fact carries the
-# derived pair, and this gate holds them equal to the artifact — the second leg
+# derived share, and this gate holds them equal to the artifact — the second leg
 # `SV-CORPUS-DENOMINATOR` uses, for the same reason.
 #
 # ⚠️ `check_parse_cost_ratchet.sh` is deliberately NOT in this list: an assertion about a file
@@ -114,7 +131,12 @@ LIVE_SURFACES = [
     f"{ART}/cost.md",
 ]
 SHARE_ANCHOR_MARK = "Live LR-family share"
-SHARE_TUPLE_RE = re.compile(r"`(\d+\.\d+/\d+\.\d+)`")
+# ⛔ ONE VALUE, NOT A PAIR, SINCE `ENGINE-UNIVERSAL-SERVICES.26`. The anchor was
+# `share/blind-spot-factor`; the factor is retired because both of its terms were wrong (see the
+# honest-limit block above). ⭐ A surface left on the old `2.741/8.9` form does not silently half-
+# match: `2.741` is not followed by a closing backtick there, so the paragraph yields NO anchor and
+# the call site reports it as MISSING. Failing loudly on the superseded form is the point.
+SHARE_TUPLE_RE = re.compile(r"`(\d+\.\d+)`")
 
 REMEASURE = os.environ.get("PGEN_PARSE_COST_REMEASURE", "0") == "1"
 REBASELINE = os.environ.get("PGEN_PARSE_COST_REBASELINE", "0") == "1"
@@ -204,20 +226,23 @@ def self_check():
                   file=sys.stderr)
             misses += 1
     anchor_cases = [
-        (f"x **{SHARE_ANCHOR_MARK} `2.741/8.9`** y", ["2.741/8.9"]),
-        # the marker and the tuple wrapped onto separate lines of one paragraph
-        (f"{SHARE_ANCHOR_MARK} —\nthe pair is `2.741/8.9` today", ["2.741/8.9"]),
+        (f"x **{SHARE_ANCHOR_MARK} `2.741`** y", ["2.741"]),
+        # the marker and the value wrapped onto separate lines of one paragraph
+        (f"{SHARE_ANCHOR_MARK} —\nthe share is `2.741` today", ["2.741"]),
         # ⭐ the SAME digits with no marker are an era-dated citation, and must stay invisible
-        ("the bound was `0.681/35.7` before .21 corrected it", []),
-        # a marker with no tuple is a missing anchor, which the call site treats as missing
+        ("the share was `0.681` before .21 corrected it", []),
+        # a marker with no value is a missing anchor, which the call site treats as missing
         (f"{SHARE_ANCHOR_MARK} — pending re-derivation", []),
         # unbackticked digits are prose, not an anchor
-        (f"{SHARE_ANCHOR_MARK} 2.741/8.9", []),
+        (f"{SHARE_ANCHOR_MARK} 2.741", []),
+        # ⛔ THE SUPERSEDED PAIR FORM MUST NOT HALF-MATCH (`.26`). A surface still carrying
+        # `2.741/8.9` yields nothing, so it is reported MISSING rather than silently agreeing on
+        # its first component — the retired factor cannot ride along unnoticed.
+        (f"{SHARE_ANCHOR_MARK} `2.741/8.9`", []),
         # two anchors, both seen — so disagreement fails rather than being averaged
-        (f"{SHARE_ANCHOR_MARK} `2.741/8.9`\n{SHARE_ANCHOR_MARK} `9.999/9.9`",
-         ["2.741/8.9", "9.999/9.9"]),
+        (f"{SHARE_ANCHOR_MARK} `2.741`\n{SHARE_ANCHOR_MARK} `9.999`", ["2.741", "9.999"]),
         # a paragraph WITHOUT the marker is not read even if it is adjacent to one
-        (f"{SHARE_ANCHOR_MARK} `2.741/8.9`\n\nelsewhere `1.234/5.6` is quoted", ["2.741/8.9"]),
+        (f"{SHARE_ANCHOR_MARK} `2.741`\n\nelsewhere `1.234` is quoted", ["2.741"]),
     ]
     for text, want in anchor_cases:
         got = share_anchors(text)
@@ -366,12 +391,12 @@ if share_proc.returncode != 0:
                    for l in (share_proc.stderr or share_proc.stdout).strip().splitlines()[:8]))
 
 # ── TIER 1, arm 4: CO-PUBLICATION of that share on every designated live surface ────────────────
-derived_pair = None
+derived_share = None
 if os.path.isfile(FAMILY_SHARE):
     try:
         with open(FAMILY_SHARE, encoding="utf-8") as fh:
             fs = json.load(fh)
-        derived_pair = f"{fs['corpus_family_share_pct']}/{fs['blind_spot_factor']}"
+        derived_share = str(fs["corpus_family_share_pct"])
     except (OSError, KeyError, json.JSONDecodeError) as exc:
         fail(f"{FAMILY_SHARE} could not be read for the co-publication check: {exc}")
 else:
@@ -398,7 +423,7 @@ def copublication_problem(surface, msg):
         fail(msg)
 
 
-if derived_pair:
+if derived_share:
     for surface in LIVE_SURFACES:
         if not os.path.isfile(surface):
             copublication_problem(surface, f"designated live surface missing: {surface}")
@@ -409,17 +434,18 @@ if derived_pair:
             copublication_problem(
                 surface,
                 f"{surface} carries NO live LR-family-share anchor. Add a paragraph containing "
-                f"'{SHARE_ANCHOR_MARK}' and the pair `{derived_pair}` "
-                f"(corpus-entry share % / blind-spot factor), so the bound cannot be quoted here "
-                f"after it has gone stale.")
+                f"'{SHARE_ANCHOR_MARK}' and the value `{derived_share}` (corpus-entry share %), "
+                f"so the share cannot be quoted here after it has gone stale. ⛔ If this surface "
+                f"still carries the pre-`ENGINE-UNIVERSAL-SERVICES.26` pair form "
+                f"`{derived_share}/<factor>`, that is what you are seeing: the blind-spot factor "
+                f"is RETIRED — both of its terms were wrong — and the anchor is the share alone.")
             continue
-        wrong = sorted(set(t for t in found if t != derived_pair))
+        wrong = sorted(set(t for t in found if t != derived_share))
         if wrong:
             copublication_problem(
                 surface,
-                f"{surface} publishes LR-family share pair(s) {wrong} but the tracked derivation "
-                f"says {derived_pair}. The share and its blind-spot factor move TOGETHER — "
-                f"update the anchor, or re-derive if the tree moved.")
+                f"{surface} publishes LR-family share(s) {wrong} but the tracked derivation says "
+                f"{derived_share}. Update the anchor, or re-derive if the tree moved.")
 
 # ── TIER 2: the ratchet ─────────────────────────────────────────────────────────────────────────
 BINDING = ("entries", "committed", "memo_hits")

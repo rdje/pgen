@@ -43,7 +43,7 @@ tier still reported `fresh`.
 |---|---|---|
 | grammar | `grammars/systemverilog.ebnf` | `1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c` |
 | generated parser | `generated/systemverilog_parser.rs` | `46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7` |
-| instrument | `stimuli/sv/corpus_parse_cost.py` | `34845c25f9836c71d8df4cfe21c7fb9b0e5f701a278c8690551cac7cb1780dba` |
+| instrument | `stimuli/sv/corpus_parse_cost.py` | `f8caacdc12ba661e70cc88123b789b1ccbf579d77e6060fb1b2aff2f61830c5d` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
 `sample inputs` digests the manifest ORDER plus every sampled file's bytes: the corpora
@@ -99,22 +99,39 @@ mistake the family's entry count for productive work.
 
 ⛔⛔ **AND IT CARRIES A FINDING THAT BOUNDS THIS WHOLE INSTRUMENT.** Across the full
 corpus the family takes **2.741 %** of all rule entries
-(24 644 435 of 899 064 022 entries over 16 335 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`). The flip's entry DELTA is smaller still — the rules it
-replaced were themselves entered — so the entry count moved by a few percent at most while
-wall clock moved **+24.3 %**. ⇒ the binding metric is **at least ~8.9×
-less sensitive** to *this* regression than the advisory one. That is not a reason to
-discard it: it catches structural growth EXACTLY and cannot be fooled by a busy machine. It
-is a reason to state plainly what it does **not** prove — the +24.3 % is a rise in cost PER
-entry, not in the NUMBER of entries, and no counter can see that. `.20` acceptance (a)'s
-profile is what attributes it; this ratchet stops it growing further unwatched meanwhile.
+(24 650 497 of 899 264 997 entries over 16 336 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`).
 
-**Live LR-family share `2.741/8.9`** (corpus-entry share % / blind-spot factor), derived by
+⛔ **What this metric cannot see, stated as a property rather than as a number.** These
+counters tick only in the PROTOCOL graph, and a counter counts EVENTS — a rise in the cost
+PER event is invisible to it on any graph. So the binding numbers guard **structural work**
+exactly and price nothing. That limit is a property of the metric, so it cannot go stale.
+
+⭐ **On the one change this ratchet was built for, the counters were not the blind half.**
+The guarded admission moved them **+10.59 %** — **3.49× larger** than the whole
+family's own entry count, and far outside any band a ratchet could hide. The wall clock,
+meanwhile, produced no admissible figure for the same change at all.
+(ARM 1 812 963 769 -> ARM 2 899 064 022 rule entries over 16 335 corpus files, `docs/tasks/artifacts/engine_universal_services/guard_ab_entries.txt` (`ENGINE-UNIVERSAL-SERVICES.20` (b), three-arm A/B).)
+
+⛔⛔ **This section published a sensitivity bound of `~8.9×`, and BOTH terms were wrong.**
+Retired by `ENGINE-UNIVERSAL-SERVICES.26`. It was `24.3 / 2.741`. The
+numerator, a `+24.3 %` wall-clock regression, is REFUTED — not reproducible from the raw
+data of the runs that produced it (`.20` slice 5). The denominator was the wrong quantity
+independently of that: sensitivity is how much the counter MOVED, not how large the family
+is, and the bound's *"the flip's entry delta is strictly smaller"* was an INFERENCE that a
+tracked artifact in its own leaf had already refuted. ⇒ **the factor is retired, not
+re-computed**: it fails under every available reading (0.41× on the point estimate, 1.82× on
+the most adversarial pairing), and no admissible wall-clock figure exists to rebuild it
+from. `.20` acceptance (a)'s profile is what attributes fused-graph cost; this ratchet stops
+structural work growing unwatched meanwhile.
+
+**Live LR-family share `2.741`** (corpus-entry share %), derived by
 `python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share` into
 `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json` and re-hashed against its four recorded inputs on every run.
 
-⚠️ The published bound was **~35×** until `.21`, computed on the 0.681 % the broken
-classifier saw. The gate was under-claiming its own sensitivity by about 4×; the corrected
-figure is still a large blind spot and is still the reason (a) exists.
+⚠️ This anchor was the PAIR `2.741/8.9` until `.26` retired the second element. The share
+itself is unaffected — it is a correctly measured quantity, and the two eras of it are on
+record: it read **0.681 %** until `.21`, computed by a classifier that saw 97 of the
+parser's 127 LR rule names. What `.26` removed is the ratio built on top of it.
 
 ## Per tier
 

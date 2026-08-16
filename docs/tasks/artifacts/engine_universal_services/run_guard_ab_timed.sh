@@ -248,9 +248,15 @@ worst_arm = max(spread, key=spread.get)
 worst = spread[worst_arm]
 effect = t2 - t1                       # the quantity (b) is chartered to split
 bar = abs(effect) / 4.0                # "spread < ¼ of the effect" — `.20` slice 4's own criterion
-# The routing evidence measured the flip at +24.3 %; carrying it as a second, FIXED anchor keeps the
-# admissibility bar from collapsing along with the effect if the effect itself comes out near zero.
-chartered = 0.243 * t1
+# ⛔⛔ THE SECOND, FIXED ANCHOR IS RETIRED (`ENGINE-UNIVERSAL-SERVICES.26`, 2026-08-16). This line
+# used to read `chartered = 0.243 * t1`, carrying the routing evidence's +24.3 % as an absolute
+# reference effect so the bar could not collapse along with the measured one. `.20` slice 5 then
+# REFUTED that +24.3 %: it is not reproducible from the raw data of the runs that produced it, and
+# its mechanism was the fixed-arm-order artifact THIS script's own Latin square exists to remove.
+# ⇒ there is no chartered wall-clock effect to compare against, and inventing a replacement
+# constant would repeat the defect. What survives is a statement the run's own data justifies: the
+# spread as a fraction of ARM 1 is a FLOOR on what this host can resolve at all.
+resolvable_floor_pct = 100.0 * worst / t1
 
 print()
 print(f"ratios (medians)   ARM2/ARM1 = {t2/t1:.4f} ({100*(t2/t1-1):+.1f} %)   "
@@ -259,10 +265,10 @@ print(f"ratios (medians)   ARM2/ARM1 = {t2/t1:.4f} ({100*(t2/t1-1):+.1f} %)   "
 print()
 print("ADMISSIBILITY — is this instrument able to resolve the effect it is aimed at?")
 print(f"  measured effect  ARM2 - ARM1        = {effect:>8.1f}s   ({100*effect/t1:+.1f} % of ARM 1)")
-print(f"  chartered effect 0.243 x ARM1       = {chartered:>8.1f}s   (the +24.3 % the routing "
-      f"evidence measured)")
 print(f"  bar              effect / 4         = {bar:>8.1f}s")
 print(f"  worst per-arm spread ({worst_arm})              = {worst:>8.1f}s")
+print(f"  ⇒ resolvable floor on THIS host     = {resolvable_floor_pct:>8.1f} %   (no effect smaller "
+      f"than this is readable here, whatever it is)")
 
 if worst < bar:
     print("  ✅ ADMISSIBLE — the spread is under a quarter of the effect; the split below is readable.")
@@ -279,14 +285,12 @@ else:
     lo = (min(tot["arm2"]) - max(tot["arm1"])) / max(tot["arm1"])
     hi = (max(tot["arm2"]) - min(tot["arm1"])) / min(tot["arm1"])
     print(f"       ARM2 vs ARM1 lies within [{100*lo:+.1f} %, {100*hi:+.1f} %] across all runs.")
-    if worst >= abs(chartered) / 4.0:
-        print("       ⛔ The spread also exceeds a quarter of the CHARTERED +24.3 % effect, so this")
-        print("          is a noisy host, not merely a shrunken effect. Settle the machine and re-run.")
-    else:
-        print("       ⭐ But the spread IS under a quarter of the chartered +24.3 % effect. The host is")
-        print("          quiet enough to have resolved the ORIGINAL regression — so the reason it")
-        print("          cannot resolve this one is that the effect itself has SHRUNK. That is a")
-        print("          finding about the parser, not about the instrument: report it as one.")
+    print(f"       ⇒ this host cannot resolve ANY effect below {resolvable_floor_pct:.1f} %, so "
+          f"'noisy host'")
+    print("          versus 'small effect' is not separable from here. ⛔ It used to be reported as")
+    print("          separable, by comparing against a CHARTERED +24.3 % — a number `.20` slice 5")
+    print("          then refuted. Settle the machine and re-run, or take the question to the")
+    print("          deterministic tier (`run_guard_ab_entries.sh`), which has no noise floor.")
 PY
 echo "------------------------------------------------------------------------------"
 if [ "$LIMIT" != 0 ]; then

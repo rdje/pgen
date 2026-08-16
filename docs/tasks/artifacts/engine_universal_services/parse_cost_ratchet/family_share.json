@@ -1,5 +1,4 @@
 {
-  "blind_spot_factor": "8.9",
   "classifier_pattern": "_lr_(?P<shape>base|suffix|seed|guard|alt)(?![a-z])",
   "corpus_family_share_pct": "2.741",
   "derivation": "python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share --out docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json",
@@ -26,8 +25,7 @@
   },
   "lr_entries": 24650497,
   "nodump": [],
-  "note": "The share of all PROTOCOL-graph rule entries taken by the left-recursion elimination family over the whole SV corpus. It is the DENOMINATOR of `PARSE-COST-RATCHET`'s published blind-spot bound: the binding counters are at least (wall_clock_regression_pct / this) times less sensitive than wall clock to a per-entry cost rise. \u26d4 Derived, never hand-edited; `--verify-family-share` re-hashes every identity row above on every run.",
-  "schema": "pgen.parse_cost.family_share/v1",
-  "total_entries": 899264997,
-  "wall_clock_regression_pct": "24.3"
+  "note": "The share of all PROTOCOL-graph rule entries taken by the left-recursion elimination family over the whole SV corpus \u2014 `PARSE-COST-RATCHET`'s one co-published live number, quoted verbatim on every designated live surface. \u26d4 v1 of this schema also carried `blind_spot_factor` and `wall_clock_regression_pct`; ENGINE-UNIVERSAL-SERVICES.26 RETIRED both. The factor was wall_clock / this share, and both terms were wrong: the +24.3 % numerator is refuted (.20 slice 5, not reproducible from its own raw data), and the share was the wrong denominator independently of that \u2014 sensitivity is how much the counter MOVED (+10.59 %, guard_ab_entries.txt), not how large the family is. No ratio replaces it: no admissible wall-clock figure for the change exists. \u26d4 Derived, never hand-edited; `--verify-family-share` re-hashes every identity row above and re-checks lr_entries/total_entries against the declared share on every run.",
+  "schema": "pgen.parse_cost.family_share/v2",
+  "total_entries": 899264997
 }
