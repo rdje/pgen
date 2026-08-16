@@ -1,5 +1,31 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0055 (director challenge "are these findings SOTA/signoff?"; DOCS only, ZERO code/grammar/generated/gate bytes)
+
+- **Audited all four findings by command rather than by re-reading my own prose. TWO do not survive,
+  and both defects were in TRACKED files, not only in the chat.**
+- ⛔⛔ **FINDING 1 was NOT MINE, and I presented it as the slice's headline.** `git show
+  4f6208fd:docs/tasks/ENGINE-UNIVERSAL-SERVICES.md | grep -c "BOTH of its terms are wrong"` returns
+  **1**: `-0051` had already written the derived-child finding — including *"the DENOMINATOR is wrong
+  INDEPENDENTLY of the wall-clock refutation"* and the 0.41×/1.82× readings — into `.26`'s routing
+  evidence before `-0052` began. ⇒ `-0052` **discharged a recorded finding; it did not make one**.
+  Corrected in place in the leaf. ⭐ The finding that IS `-0052`'s own is the stale
+  `CORPUS_FAMILY_PROVENANCE` that four green gate arms could not see.
+- ⛔ **FINDING 3's supporting sentence was factually wrong**, in the callout AND in the new knowledge
+  card: *"both produced two bare arms"*. Measured — arm A emits **0 B** of stderr, arm B **4 031 B**
+  with a MEMO STATS block ⇒ arm B genuinely moved off the fused graph. ⭐ The correction makes the
+  lesson SHARPER, not weaker: there are **two** ways to not-really-run-two-things — identical arms,
+  and *a real arm with a false tell* — and the second is more dangerous because the arms visibly
+  differ, which reads as confirmation. The card now separates them in a table and names its own
+  first draft as the instance.
+- ⚠️ **FINDING 2 stands on its numbers but the callout compressed two of them into one.** *"0.45 %
+  wrong in the SELECTION"* is the movement in LR-family entries COVERED; **24 of 192 slots (12.5 %)**
+  of the sample change. Both are in the tracked `sample_rederivation/result.txt`; the callout dropped
+  the larger one, in the direction that makes the decline look easier.
+- ✅ **FINDING 4 stands, verified two ways**: BOTH the debug (`Aug 13`) and release (`Jul 25`) `pgen`
+  binaries reject `--lint-grammar`, so *"resolving `.27` needs a fresh build"* is a fact, not an
+  excuse for not measuring it.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0054 (leaf ENGINE-UNIVERSAL-SERVICES.22 slice 4 — (b) DISCHARGED, leaf CLOSED; debug-tooling change, ZERO grammar/generated/engine bytes)
 
 - ✅ **(b): the verdict agreement IS a derivation agreement.** Three arms of ONE binary on the

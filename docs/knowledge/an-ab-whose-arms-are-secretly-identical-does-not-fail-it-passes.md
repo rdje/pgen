@@ -11,13 +11,23 @@ answers:
 tags: [instruments, evidence, measurement, controls, observability, gates]
 date: 2026-08-16
 status: current
-evidence: ENGINE-UNIVERSAL-SERVICES.22 acceptance (b), 2026-08-16. PGEN needed to know whether a parse observed by its coverage recorder produces the SAME derivation as an unobserved one. Two natural ways to build that A/B were tried and BOTH produced two identical BARE arms, each of which would have reported a clean agreement. (1) Passing `--dump-rule-outcome-counts-json` beside `--parse-dump-ast` — the global IS applied before dispatch, but `enable_coverage()` lives in a macro that path does not use, so no counts file is written. (2) `PGEN_REPORT_MEMO_STATS=1` as the coverage tell — it routes the parse, and the two stderr blocks visibly differ, but `sort`-ing them shows the aggregate header BYTE-IDENTICAL (`5710 success entries … 29378 total, 6170 subtree-nodes, 369 distinct rules`); the whole diff is which members of a tie group a top-30 cutoff prints. The shipped tell is the recorder's own read-back, `exercised_rules=134`, which is zero by construction when coverage is off.
+evidence: ENGINE-UNIVERSAL-SERVICES.22 acceptance (b), 2026-08-16. PGEN needed to know whether a parse observed by its coverage recorder produces the SAME derivation as an unobserved one. Two natural ways to build that A/B were tried and BOTH would have reported a clean agreement — for two DIFFERENT reasons, which is the sharper lesson.  (1) Passing `--dump-rule-outcome-counts-json` beside `--parse-dump-ast` — the global IS applied before dispatch, but `enable_coverage()` lives in a macro that path does not use, so no counts file is written. (2) `PGEN_REPORT_MEMO_STATS=1` as the coverage tell — this one DOES produce a genuinely second arm (measured: 0 B of stderr bare vs 4 031 B with a MEMO STATS block, so the parse really moved off the fused graph), and that is exactly why it is dangerous: the arm is real, the TELL is not. Falsified by `sort`-ing both files, which shows the aggregate header BYTE-IDENTICAL (`5710 success entries … 29378 total, 6170 subtree-nodes, 369 distinct rules`); the whole diff is which members of a tie group a top-30 cutoff prints. The shipped tell is the recorder's own read-back, `exercised_rules=134`, which is zero by construction when coverage is off.
 reverify: "bash docs/tasks/artifacts/engine_universal_services/derivation_twin/probe.sh 10   # exit 0; the run REFUSES rather than comparing if any row cannot prove its three arms were three configurations"
 ---
 
-**A control that fails is loud. An A/B whose two arms are secretly the same configuration is
-silent — and it reports a PASS.** That asymmetry is the whole problem: the failure mode of a
-comparison is not "it errors", it is "it agrees, for a reason you did not intend".
+**A control that fails is loud. An A/B that did not really run two things is silent — and it
+reports a PASS.** That asymmetry is the whole problem: the failure mode of a comparison is not
+"it errors", it is "it agrees, for a reason you did not intend".
+
+⚠️ **And there are TWO ways to not-really-run-two-things, which is easy to conflate and worth
+separating** — this card's own first draft conflated them, and a director challenge caught it:
+
+| failure | what is wrong | why it is hard to see |
+|---|---|---|
+| **identical arms** | the second configuration never engaged at all | nothing distinguishes the runs, so of course they agree |
+| **a real arm with a false TELL** | the arms genuinely differ, but not along the axis you are claiming | the arms DO differ visibly, which reads as confirmation |
+
+The second is the more dangerous one, because the evidence *looks* stronger.
 
 PGEN needed to answer a question about its own observability: does attaching the coverage recorder
 to a parse change the *derivation*, or only the cost? Both arms were easy to describe and hard to
@@ -29,10 +39,12 @@ attempt 1  --parse-dump-ast … --dump-rule-outcome-counts-json out.json
            ⛔ but enable_coverage() lives in a macro this command does not use
            ⇒ no counts file written, BOTH arms bare, ASTs identical, "PASS"
 
-attempt 2  PGEN_REPORT_MEMO_STATS=1  as the coverage tell
-           it really does route the parse; the two stderr blocks really do differ
-           ⛔ sort them: the aggregate header is BYTE-IDENTICAL
-           ⇒ the diff is tie-order inside a top-30 cutoff, not coverage
+attempt 2  PGEN_REPORT_MEMO_STATS=1  as the COVERAGE tell            <- a REAL arm,
+           measured: 0 B stderr bare vs 4 031 B here, so the parse         a FALSE tell
+           genuinely moved off the fused graph — the arm is real
+           ⛔ but sort the two files: the aggregate header is BYTE-IDENTICAL
+           ⇒ the visible diff is tie-order inside a top-30 cutoff. It proves
+             ROUTING, and says nothing whatever about COVERAGE.
 ```
 
 Neither attempt errored. Neither produced a suspicious number. Both would have gone into a task

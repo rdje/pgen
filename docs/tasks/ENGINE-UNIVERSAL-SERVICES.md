@@ -7409,11 +7409,23 @@ GREEN; (c) `KNOWLEDGE_MAP.md` re-derived rather than hand-edited if its source c
 
 #### ✅ `.26` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0052`, 2026-08-16 session #240) — the refutation is propagated, and the number it FATHERED is retired rather than edited
 
-⭐⭐⭐ **THE HEADLINE IS NOT THE PROPAGATION.** Correcting twelve surfaces is mechanical. What this
-slice found while doing it is that the refuted `+24.3 %` had a **derived child** that no surface
-treated as suspect — `PARSE-COST-RATCHET`'s co-published blind-spot factor `~8.9×`, computed as
-`+24.3 % wall clock ÷ 2.741 % family share` — and that **both of its terms are wrong, for two
-independent reasons**. It is therefore RETIRED, not re-computed.
+⛔⛔ **ATTRIBUTION CORRECTION (director challenge, 2026-08-16 — *"are these findings signoff?"*).**
+This paragraph first claimed *"the headline is not the propagation — what THIS SLICE found is that
+the refuted `+24.3 %` had a derived child …"*. **That is false, and `git show` refutes it in one
+command:** `git show 4f6208fd:docs/tasks/ENGINE-UNIVERSAL-SERVICES.md | grep -c "BOTH of its terms
+are wrong"` returns **1**. The finding was already written into this leaf's own ROUTING EVIDENCE by
+`-0051`, before this slice began — including *"the DENOMINATOR is wrong INDEPENDENTLY of the
+wall-clock refutation"* and the 0.41×/1.82× readings. ⇒ **this slice DISCHARGED a recorded finding;
+it did not make one.** That is real work — retiring the constant at its arithmetic home, moving the
+gated anchor, bumping the artifact schema, re-deriving the census — but it is a different claim, and
+the flattering direction of the error is exactly why it is corrected in place rather than softened.
+⭐ The finding that IS this slice's own is the **stale `CORPUS_FAMILY_PROVENANCE`** below, which
+nothing had recorded and which four green gate arms could not see.
+
+**What the slice discharged**, restated without the false authorship: the refuted `+24.3 %` had a
+**derived child** that no surface treated as suspect — `PARSE-COST-RATCHET`'s co-published
+blind-spot factor `~8.9×`, computed as `+24.3 % wall clock ÷ 2.741 % family share` — whose **both
+terms are wrong, for two independent reasons** (`-0051`). It is therefore RETIRED, not re-computed.
 
 - ⛔ **The numerator** is the refuted `+24.3 %` (`.20` slice 5, `-0050`).
 - ⛔ **The denominator was the wrong QUANTITY, independently of the numerator.** *"How sensitive is
