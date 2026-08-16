@@ -2048,6 +2048,38 @@ sv_parse_cost_rebaseline:
 	cd $(RUST_DIR)/.. && PGEN_PARSE_COST_REBASELINE=1 bash scripts/check_parse_cost_ratchet.sh
 	@echo "✅ parse-cost baseline promoted — review the diff before committing."
 
+# ── ENGINE-UNIVERSAL-SERVICES.29 (b) — is `generated/` what HEAD's source PRODUCES? ─────────
+#
+# ⛔ WHY THESE TARGETS EXIST. `generated/` is untracked, so nothing in git can report on it, and
+# every existing check answers a DIFFERENT question: a recorded hash detects MOVEMENT, never
+# STALENESS; `fixed_point_gate` proves regeneration converges across ITS OWN CYCLES and overwrites
+# the on-disk artifact in cycle 1, so a stale copy is invisible to it by construction; a green
+# build proves the artifact compiles. Measured 2026-08-16: both annotation parsers — the pair the
+# annotation backend links to generate every OTHER parser — carried a line the code generator
+# cannot emit, written from an uncommitted editor state, and nothing said so for a day.
+# Re-derive and diff is the only thing that answers it. This is tier 2 (~57 s); the doctrine's
+# every-commit tier 1 (~1 s) rides `scripts/check_doctrines.sh`.
+.PHONY: generated_reproducibility_gate
+generated_reproducibility_gate:
+	@echo "🧬 Re-deriving every generated/ artifact from HEAD and demanding byte-identity (~57 s)..."
+	cd $(RUST_DIR)/.. && bash scripts/check_generated_reproducibility.sh --verify
+	@echo "✅ generated/ is what HEAD's source produces."
+
+# Promote a NEW baseline — deliberate, never automatic, and it REFUSES if tier 2 found a breach,
+# because recording a divergence is how a stale artifact becomes the new normal.
+.PHONY: generated_reproducibility_rebaseline
+generated_reproducibility_rebaseline:
+	@echo "🧬 Re-deriving, then RECORDING the result as the new reproducibility baseline..."
+	cd $(RUST_DIR)/.. && bash scripts/check_generated_reproducibility.sh --rebaseline
+	@echo "✅ reproducibility baseline promoted — review the diff before committing."
+
+# Every refusal arm, observed firing. A control never seen RED is not known to work.
+.PHONY: generated_reproducibility_self_test
+generated_reproducibility_self_test:
+	@echo "🧬 Firing every generated-reproducibility refusal arm..."
+	cd $(RUST_DIR)/.. && bash scripts/check_generated_reproducibility.sh --self-test
+	@echo "✅ all arms behaved as designed."
+
 # ── ENGINE-UNIVERSAL-SERVICES.21 acceptance (f) — DERIVE the published LR-family share ──────
 #
 # ⛔ WHY THIS TARGET EXISTS. The ratchet co-publishes ONE live number — the LR-elimination

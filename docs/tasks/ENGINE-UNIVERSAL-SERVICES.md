@@ -8493,7 +8493,7 @@ rule — verify against the preserved synthetic that the diagnostic names `expr`
 census `python3 stimuli/sv/corpus_parse_cost.py --verify-families` is the before/after oracle, and
 `generated/*` byte-identity is the stronger one).
 
-#### ⛔⛔ `.19` `in progress` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9; ⭐⭐ **slice 1 `PGEN-ENGINE-UNIVERSAL-SERVICES-0059` 2026-08-16 session #241 — acceptance (a) DISCHARGED and the founding 99 747 B is REFUTED: it is 33 249 embedded `-o` path sites × 3 chars, proven by byte-identity after normalisation, leaving a 2 578 B residual; ✅ **slice 2 `PGEN-ENGINE-UNIVERSAL-SERVICES-0060` — acceptance (b) DISCHARGED: the input did NOT move (`raw_ast` byte-identical to a fresh re-derivation) and the flip did NOT move codegen — the entire residual is `.22`(e)'s fixed emitted block, a CONSTANT +2 578 B across eight families, committed two days AFTER this leaf was opened ⇒ at the moment `.19` was written the residual was ZERO. Only (c) remains, and `.29` NEW is its real subject**)
+#### ✅ `.19` CLOSED — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9; ⭐⭐ **slice 1 `PGEN-ENGINE-UNIVERSAL-SERVICES-0059` 2026-08-16 session #241 — acceptance (a) DISCHARGED and the founding 99 747 B is REFUTED: it is 33 249 embedded `-o` path sites × 3 chars, proven by byte-identity after normalisation, leaving a 2 578 B residual; ✅ **slice 2 `PGEN-ENGINE-UNIVERSAL-SERVICES-0060` — acceptance (b) DISCHARGED: the input did NOT move (`raw_ast` byte-identical to a fresh re-derivation) and the flip did NOT move codegen — the entire residual is `.22`(e)'s fixed emitted block, a CONSTANT +2 578 B across eight families, committed two days AFTER this leaf was opened ⇒ at the moment `.19` was written the residual was ZERO. ✅ **(c) CLOSED by `.29` slice 2** (`-0062`) — the 21st doctrine `GENERATED-REPRODUCIBILITY`, a BROADER instrument than this leaf specified: (c) asked for a freshness check on ONE input to ONE artifact, and the defect that actually occurred was in an artifact's OUTPUT in a different family, so the doctrine covers all 10 artifacts and both directions. (d) honoured throughout. ⇒ **LEAF CLOSED**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -8780,7 +8780,7 @@ above rests on behaviour matching, and every step is a byte- or field-level iden
   leaf `.29`, and slice 1's LOCKSTEP box corrected forward. No book chapter and no `TOOLBOX.md`
   entry: this slice adds no instrument and changes no user-visible behaviour.
 
-#### ⛔⛔ `.29` `in progress` — `generated/` is NOT reproducible from HEAD: the annotation pair carries a line the tracked code generator cannot emit, and the annotation pair is what generates everything else (opened 2026-08-16 session #241 by `.19` slice 2; ✅ **(a) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0061` — repaired through the canonical target, the probe went **RED → GREEN**, and all **8** non-annotation parsers are **byte-identical** across the repair, so the blast-radius bound is a measurement now and not an argument; **(b) the gate is next and also closes `.19` (c)**)
+#### ✅ `.29` CLOSED — `generated/` is NOT reproducible from HEAD: the annotation pair carries a line the tracked code generator cannot emit, and the annotation pair is what generates everything else (opened 2026-08-16 session #241 by `.19` slice 2; ✅ **(a) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0061` — repaired through the canonical target, the probe went **RED → GREEN**, and all **8** non-annotation parsers are **byte-identical** across the repair, so the blast-radius bound is a measurement now and not an argument; ✅ **(b) DISCHARGED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0062` — the **21st doctrine** `GENERATED-REPRODUCIBILITY`, two tiers (identity **1.0 s** every commit / oracle **57 s** on demand), **7/7** refusal arms observed firing, and it REFUSED its own author's `rust/Makefile` edit on the very next run. It also **closes `.19` (c)** with a broader instrument than that leaf specified, and turned up that the book's published doctrine count was already stale at 19-vs-20 — now gated by a marker-scoped `<meta:book-count>` arm. ⛔ Unsought: `CI-PARITY-GATE-ROT.34` NEW — a make target named in a check script's error STRING is counted REACHABLE, and the false badge BLOCKS recording the truth)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -8943,6 +8943,130 @@ rather than the assumed one, and this slice updates it again to the repaired sta
   and the knowledge card's `reverify:` updated with it. No book chapter and no `TOOLBOX.md` entry:
   no user-visible behaviour changed and no CLI surface was added — the repair restores an artifact
   to what the already-documented recipe produces.
+
+##### ⭐⭐⭐ `.29` SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0062`, 2026-08-16 session #241) — (b) DISCHARGED: the **21st doctrine** `GENERATED-REPRODUCIBILITY`, which also closes `.19` acceptance (c)
+
+**RESULT 1 — the doctrine is registered, and it is the rule slice 1 could only assert.**
+`scripts/check_generated_reproducibility.sh`, registered in `scripts/check_doctrines.sh` and
+mirrored in `DOCTRINE_ENFORCEMENT.md` §10 (the `<meta:mirror>` check now reports **21**).
+
+| tier | what it does | cost | when |
+|---|---|---|---|
+| 1 IDENTITY | re-hash each artifact, its input JSON, and a digest over the tracked emission sources **+ the recipe that invokes them** | **1.0 s**, no build | every commit, via the driver |
+| 2 ORACLE | re-derive all **10** artifacts through the tracked recipe, demand byte-identity | **57 s** | `make -C rust SHELL=/bin/bash generated_reproducibility_gate` |
+
+⭐ **The emission source set is DERIVED, never hand-listed** — `git ls-files rust/src/ast_pipeline`
+(28 files) plus `rust/Makefile`, because the recipe chooses the flags and the `-o` spelling and is
+therefore part of what determines the artifact (`CI-PARITY-GATE-ROT.31` was a Makefile-only change
+to that recipe). Deliberately **over-inclusive**: its failure direction is a spurious re-verify, not
+silent staleness.
+
+⭐⭐ **IT FIRED ON ITS OWN AUTHOR, IMMEDIATELY.** Adding the make targets edited `rust/Makefile`,
+which is in the identity — so tier 1 refused the very next run and demanded a re-verify. That is the
+design working on the first real input it met, not a constructed demonstration. ⛔ Its first refusal
+message overstated (*"produced by a code generator that no longer exists in this tree"*) when only
+the recipe had moved; corrected in place to name what the digest covers and to say the tier **cannot
+tell which, by design, and will not guess**.
+
+**RESULT 2 — 7/7 refusal arms observed firing** (`--self-test`, also `make -C rust
+generated_reproducibility_self_test`): two GREEN controls, moved emission sources, a moved artifact,
+an artifact with **no recorded row at all**, a baseline carrying **no `emission_sha`** (which must
+REFUSE with exit 2 rather than compare against an empty string and pass by construction), and an
+unknown argument. Plus the NOT-EVALUATED paths: an absent `generated/`, an absent `ast_pipeline`,
+and an **under-featured** `ast_pipeline` — that last one because an under-featured binary cannot
+generate at all, and a comparison loop reading a missing file as *"no difference"* reports a clean
+pass.
+
+**RESULT 3 — `.19` acceptance (c) is CLOSED by this, and it is a BROADER instrument than that leaf
+asked for.** `.19` (c) specified *"a freshness check on `generated/systemverilog.json`"*. That would
+have watched one input to one artifact; the defect that actually occurred was in an artifact's
+**output**, in a different family. The doctrine covers all 10 artifacts and both directions.
+
+**RESULT 4 — the book's published doctrine count was ALREADY STALE, and is now gated.**
+`docs/book/src/gate-flow.md` said **19** in two places against a registry of **20** — a third copy of
+the roster size that nothing compared, drifting in the direction that makes the project look *less*
+guarded than it is. New `<meta:book-count>` arm in the driver, **marker-scoped**
+(`<!-- DOCTRINE-COUNT -->`) rather than spelling-matched, because enumerating sentence spellings is
+what made `LIVE-DOC-CURRENCY`'s instrument B measure one population as 10, then 16, then 18. Both RED
+arms observed: a stale count FAILS, and a **removed marker** FAILS rather than passing vacuously.
+The book also gains a full section on the doctrine — *§3 → Is what's on disk what the source
+produces?* — with the four-candidate table of why nothing existing could see it.
+
+⛔⛔ **UNSOUGHT AND ROUTED — `CI-PARITY-GATE-ROT.34` NEW: a make target NAMED in a check script's
+actionable error message is counted REACHABLE, and the false badge BLOCKS recording the truth.**
+`GATE-REACHABILITY` classified `generated_reproducibility_gate` as `git-hook` (its strongest,
+AUTOMATIC class) although nothing invokes it — because root scan R3 parses `scripts/check_*.sh`,
+strips `#` comments, and then treats a `make …` phrase inside a quoted **error string** as a command.
+Proven by RED probe: replacing that string with a placeholder, changing nothing else, reclassified it
+to `⛔ UNTRIAGED` on the next run. ⇒ printing *"fix it with: make …"* — which this repository
+encourages — certifies the target it names. ⛔ The sharper half is that the register is a two-sided
+ratchet, so the honest row (`accepted-operator-invoked`) **cannot be recorded while the false edge
+stands**: writing it fails the doctrine with *"1 register entr(ies) name a target that is no longer
+orphaned"*. Exposure MEASURED at **2 of 118** `*_gate` targets named that way, of which
+**exactly one** is genuinely mis-certified — this one; `fixed_point_gate`'s mention is in a stripped
+comment and it is reachable three other ways. Not fixed here deliberately: `invoked_targets()` is the
+function whose own source documents five calibration defects, guarded by 8 ground-truth controls, and
+editing it as a side effect of landing an unrelated doctrine is the scope-widening this repository
+keeps a file of incidents about. `.34` acceptance (c) is the row this leaf is substituting for.
+
+**Acceptance status:** (a) ✅ slice 1 · (b) ✅ **DISCHARGED here** · (c) ✅ designed with `.16` in
+view — see the bound below · (d) ✅ `-0060`/`-0061`. ⇒ **`.29` CLOSED.** And **`.19` is CLOSED**:
+(a) `-0059`, (b) `-0060`, (c) this slice, (d) honoured throughout.
+
+⛔ **HONEST BOUNDS:**
+1. **Tier 1 proves *"nothing that could have changed the artifacts has changed"*, not *"the artifacts
+   are correct"*.** It inherits whatever tier 2 last established. Stated before the gate was trusted,
+   and identical to what `PARSE-COST-RATCHET` says of itself.
+2. **`.16` is NOT closed by this, and the leaf must not read as if it were.** `generated/ebnf.rs` is a
+   SEED-ONLY artifact with no regeneration target at all, so it is not in `GENERATED_PARSER_FAMILIES`
+   and not in this doctrine's roster. The two were *designed together* as `.19` (c) required — the
+   roster is derived and mirror-checked against `rust/Makefile`, so `ebnf` joins the moment `.16`
+   gives it a recipe — but the artifact is unguarded today and `.16` stays open.
+3. **Tier 2 is operator-invoked.** `.21` acceptance (f) is the precedent that an arm running only
+   when an operator chooses to re-measure runs approximately never; the mitigation here is that
+   tier 1 is a *proof* rather than a sample, so tier 2 is needed only when tier 1 says the ground
+   moved. That is an argument, not a measurement, and a future leaf may find it wrong.
+
+###### Acceptance Checklist (enforced) — `.29` slice 2
+
+- [x] **REPRODUCE / ISSUE** — slice 1 repaired the artifacts and closed with the honest bound
+  *"there is still no gate — until (b), only a probe someone has to remember to run stands between
+  the tree and a recurrence"*. `grep -c GENERATED-REPRODUCIBILITY scripts/check_doctrines.sh` → **0**
+  before this slice.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY nothing existing could close it, each measured rather than
+  argued: a recorded hash detects MOVEMENT not STALENESS; `fixed_point_gate` overwrites the on-disk
+  artifact in cycle 1 so a stale copy is invisible *by construction*; `PARSE-COST-RATCHET` tier 1
+  re-hashes the SV parser only; a green build proves compilation. WHERE the rule now lives:
+  `scripts/check_generated_reproducibility.sh`, registered at `scripts/check_doctrines.sh`
+  `DOCTRINES=(…)` and mirrored at `DOCTRINE_ENFORCEMENT.md` §10.
+  ⭐ The gate's own diagnosis of the SECOND defect this slice found is a RED probe, not a reading:
+  `bash scripts/check_gate_reachability.sh --report` printed
+  `generated_reproducibility_gate    git-hook`, and with the target's name removed from an error
+  STRING the same command printed `generated_reproducibility_gate    ⛔ UNTRIAGED` — routed as
+  `CI-PARITY-GATE-ROT.34`.
+- [x] **FIX** — fix-hierarchy tier = **ops/build-flow** (a new enforcer + registry line + three make
+  targets; ZERO grammar, ZERO generated, ZERO engine bytes). Why no lower tier: the rule is about
+  artifacts that are *outside* the grammar and engine surfaces entirely — an untracked build output
+  — so neither a declarative nor a grammar change can express it. Two tiers rather than one because
+  the oracle costs 57 s and a 57-second pre-commit hook is a hook people disable.
+- [x] **ADDRESSED (verified)** — before→after: **no gate → 21st registered doctrine**, tier 1 green
+  at **1.0 s** (`generated-reproducibility: OK (10 artifacts unmoved, emission sources unmoved since
+  ec24913 …)`), tier 2 green at **57 s** over all 10 artifacts, and **7/7 refusal arms observed
+  firing** via `--self-test`. The gate then refused its own author's `rust/Makefile` edit on the
+  next run and was satisfied only by a real re-derivation.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 21 PASS**, including the two
+  meta-checks (`<meta:mirror>` 21 ids, `<meta:book-count>` 21 at 2 marked sites).
+  `make -C rust SHELL=/bin/bash mdbook_docs_gate` → all 10 per-parser book gates + the docs gate
+  PASS. `bash scripts/check_gate_reachability.sh` → OK, 125 targets all dispositioned.
+  `generated/systemverilog_parser.rs` sha256
+  `46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7`, unchanged across the whole
+  slice. Both `<meta:book-count>` RED arms were fired and the GREEN state restored and re-verified.
+- [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10 (new row), `scripts/check_doctrines.sh` (registry
+  + the new `<meta:book-count>` arm), `rust/Makefile` (three targets),
+  `docs/book/src/gate-flow.md` (new §3 section + both published counts now marker-wrapped),
+  `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, the new baseline
+  `rust/test_data/grammar_quality/generated_reproducibility_v0.json`, and
+  `docs/tasks/CI-PARITY-GATE-ROT.md` `.34`.
 
 
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)

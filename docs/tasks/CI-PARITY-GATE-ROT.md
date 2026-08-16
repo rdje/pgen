@@ -4614,3 +4614,71 @@ affected rule is in X"*) — and the arm that proves it is a control box naming 
 which must PASS; (c) ⭐ whatever (a) decides, `.32`(b) itself is already corrected in place with the
 false claim recorded rather than backfilled — the record of the miss is the fixture (b) would reuse.
 
+
+### `.34` NEW `todo` — a make target NAMED inside a check script's actionable error message is counted REACHABLE, and the false badge then BLOCKS recording the truth (opened 2026-08-16 session #241 by `ENGINE-UNIVERSAL-SERVICES.29`(b), which hit it while registering a new doctrine)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was measured, and whether it reproduces
+outside the leaf that surfaced it):
+
+- **The mechanism, located.** `scripts/check_gate_reachability.sh` root scan **(R3)** reads every
+  `.githooks/*` and `scripts/check_*.sh` and calls `invoked_targets()` on the result, which extracts
+  make targets from *command segments*. It strips shell comments first — so a target named in a
+  `#` comment is correctly ignored — but a target named inside a **quoted error STRING** is parsed
+  as a command and becomes an edge. ⇒ printing an actionable *"fix it with: make -C rust
+  SHELL=/bin/bash <target>"* certifies `<target>` as reachable, in the strongest class
+  (`git-hook`, which the inventory counts as **AUTOMATIC**).
+- **Measured, with a RED probe rather than by reading.** `ENGINE-UNIVERSAL-SERVICES.29`(b) added
+  `generated_reproducibility_gate` (tier 2 of the new `GENERATED-REPRODUCIBILITY` doctrine, invoked
+  by no aggregate, workflow or hook). The inventory reported:
+
+  ```text
+  generated_reproducibility_gate               git-hook
+  ```
+
+  Replacing the target's name in `check_generated_reproducibility.sh`'s error string with a
+  placeholder — changing nothing else — reclassified it immediately:
+
+  ```text
+  generated_reproducibility_gate               ⛔ UNTRIAGED
+  gate-reachability: … Either wire the target into an aggregate / CI workflow / hook, or record a
+  deliberate disposition for it in …/gate_reachability_register_v0.json.
+  ```
+
+  ⇒ the sole reason it was ever classified reachable is a string in an error message.
+- ⛔⛔ **THE SHARPER HALF: the false badge PREVENTS the corrective action.** The register is a
+  two-sided ratchet — it fails on a disposition naming a target the inventory believes is reachable
+  (*"1 register entr(ies) name a target that is no longer orphaned … remove them so the register
+  cannot accumulate dead exemptions"*). So the honest row could **not** be recorded while the false
+  edge stands: an attempt to write `generated_reproducibility_gate:
+  accepted-operator-invoked` fails the doctrine. The mis-classification is therefore not cosmetic —
+  it actively keeps the true state out of the register.
+- **The exposed population is SMALL, and that is measured, not assumed.** Of **118** `*_gate` make
+  targets, exactly **2** are named in a `make …` phrase inside `scripts/check_*.sh` or
+  `.githooks/*`: `fixed_point_gate` (whose mention is inside a `#` comment in
+  `check_gate_reachability.sh` — stripped, and which is genuinely reachable via the aggregate and
+  two workflows regardless) and `generated_reproducibility_gate`. ⇒ **exactly one target is
+  currently mis-certified, and it is the one that surfaced this.** No pre-existing lane is
+  falsely green.
+- **It reproduces outside this instance by construction**, which is why it is worth a leaf despite
+  the population of one: the trigger is *"a check script prints an actionable make command"*, which
+  this repository actively encourages — `check_parse_cost_ratchet.sh` and
+  `check_generated_reproducibility.sh` both do it because a refusal that does not say how to fix
+  itself is a worse refusal. Every future doctrine that follows that good practice AND ships a
+  `*_gate` target inherits the false badge.
+- ⚠️ **Not fixed here, and the reason is stated rather than implied.** `invoked_targets()` /
+  `command_segments()` are the functions whose own source documents **five** calibration defects
+  found while writing them, and the inventory is guarded by 8 ground-truth controls precisely
+  because it produced six different confident answers. Editing that parser as a side effect of
+  landing an unrelated doctrine is the scope-widening this repository has a file of incidents about.
+  `ENGINE-UNIVERSAL-SERVICES.29` records the true disposition in prose in the meantime.
+
+**Acceptance:** (a) make R3's extraction distinguish an EXECUTED make invocation from one QUOTED
+inside a message — the natural discriminator is that the latter sits inside a string literal, and
+whatever is chosen must be proven on the existing 8 ground-truth controls **before** it is trusted,
+since the population it re-classifies is 125 targets; (b) a RED arm added to the controls that
+replays exactly this case — a target named only in an error string must come out ORPHAN — because
+the defect is invisible in the passing direction and was found only by someone probing their own
+green result; (c) once (a) lands, add the deliberate row
+`generated_reproducibility_gate: accepted-operator-invoked` to the register, which is the row this
+leaf's existence is currently substituting for; (d) ⛔ do NOT fix this by removing the target name
+from the error message — the message is correct practice and the defect is in the reader.

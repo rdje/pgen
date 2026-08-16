@@ -153,7 +153,7 @@ Two gates check the *proof surface itself* rather than the product:
   `actions/checkout` produces), runs **33 surface audits** over the real
   repository, then **replays the command each tracked workflow runs** inside the
   export. See §3 for why the export is the interesting part.
-- **`scripts/check_doctrines.sh`** — the doctrine enforcer, **19** registered
+- **`scripts/check_doctrines.sh`** — the doctrine enforcer, <!-- DOCTRINE-COUNT -->**21**<!-- /DOCTRINE-COUNT --> registered
   checks, run by `.githooks/pre-commit` on **every commit**. This is the only layer
   that runs without a human deciding to (§6). The registry inside it is the single
   source of the roster; `DOCTRINE_ENFORCEMENT.md` §10 is its reviewed mirror and a
@@ -225,6 +225,70 @@ target: hosted workflows through the composite action
 `.github/actions/regenerate-parsers`, and the local parity gate through its
 preparation step (`PGEN_CI_WORKFLOW_LOCAL_PREPARE`, default `true`). Copies of a
 recipe drift; one definition cannot.
+
+### Is what's on disk what the source produces? — `GENERATED-REPRODUCIBILITY`
+
+Being untracked has a second consequence, and it went unguarded far longer than
+the first: **nothing in git can report on `generated/`, so nothing noticed when an
+artifact stopped matching the source that is supposed to produce it.**
+
+Measured 2026-08-16: both annotation parsers — the two included by literal path
+above, i.e. the pair the annotation backend links to generate *every other parser*
+— carried a line the code generator **cannot emit**:
+
+```rust
+self.coverage_deltas.clear();
+```
+
+`grep -c` over the generator → **0**. `git log -S` → **no commit, ever**. The
+emitter's own source comment at that site defends the omission deliberately. The
+artifacts had been written from an uncommitted editor state about eighty minutes
+before the commit that finalised the emission, and the project's resume pointer
+recorded *"`generated/` FRESH"* the whole time.
+
+Each existing candidate was measured, and none could see it:
+
+| candidate | what it actually proves | why it misses this |
+|---|---|---|
+| a recorded hash | the artifact has not moved since someone recorded the hash | detects **movement**, never **staleness** |
+| `fixed_point_gate` | regeneration converges across its own cycles | it **overwrites** the on-disk artifact in cycle 1 — the stale copy is invisible *by construction* |
+| `PARSE-COST-RATCHET` tier 1 | the SV parser's cost inputs are unmoved | same movement-vs-staleness gap |
+| a green build | the artifact **compiles** | compiling is not being current |
+
+**Re-derive and diff is the only thing that answers the question.** The doctrine
+does exactly that, in two tiers:
+
+```bash
+bash scripts/check_doctrines.sh                                  # tier 1, ~1.0 s, every commit
+make -C rust SHELL=/bin/bash generated_reproducibility_gate      # tier 2, ~57 s, on demand
+make -C rust SHELL=/bin/bash generated_reproducibility_rebaseline
+```
+
+**Tier 1** re-hashes the three things each artifact is a function of — the
+artifact, its input JSON, and a digest over the tracked emission sources *plus the
+recipe that invokes them*. If none moved, the artifacts cannot have become stale;
+if one moved, the gate demands a re-verify rather than guessing which way. The
+emission source set is **derived** (`git ls-files rust/src/ast_pipeline` +
+`rust/Makefile`), so a generator file added tomorrow joins by construction, and it
+is deliberately over-inclusive: its failure direction is a spurious re-verify, not
+silent staleness.
+
+**Tier 2** re-derives all ten artifacts through the tracked recipe and demands
+byte-identity.
+
+⛔ Both tiers **assert the embedded `-o` path site count before trusting a hash**,
+and refuse rather than compare when the two sides disagree. A generated parser
+writes its own output path into the emitted source once per rule-entry site —
+36 346 times in the SystemVerilog parser — so re-deriving to a different filename
+changes the artifact's size for reasons that have nothing to do with the source.
+That trap has inverted three published readings in this repository; see
+[Diagnosing Unknowns → Comparing two generated parsers](diagnosing-unknowns.md#comparing-two-generated-parsers).
+
+⚠️ Honest bound, and it is the same one `PARSE-COST-RATCHET` states about itself:
+tier 1 proves *"nothing that could have changed the artifacts has changed"*, not
+*"the artifacts are correct"*. It inherits whatever tier 2 last established. On a
+fresh clone `generated/` is absent, and the check reports **NOT EVALUATED** —
+loudly, never as a pass.
 
 ---
 
@@ -449,7 +513,7 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 > this flow.** Hosted Actions are paused to conserve account minutes, so 14 of the
 > 15 tracked workflows are `workflow_dispatch`-only, and the one that still
 > auto-runs (`memory-architecture-gate.yml`) runs the doctrine driver and no `make`
-> target at all. **The automatic layer covers the 19 enforced doctrines and none of
+> target at all. **The automatic layer covers the <!-- DOCTRINE-COUNT -->21<!-- /DOCTRINE-COUNT --> enforced doctrines and none of
 > the 123 gate targets.** Every proof lane described in this chapter runs only when
 > a human asks — the 92 "reachable" ones exactly as much as the 30 orphans.
 >

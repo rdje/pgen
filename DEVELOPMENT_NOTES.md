@@ -1,5 +1,50 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0062 — a gate that fires on its own author is the only kind you know works
+
+**1. ⭐ The best first input for a new gate is the commit that adds it.** Registering
+`GENERATED-REPRODUCIBILITY` meant editing `rust/Makefile` to add its targets — and `rust/Makefile` is
+inside the identity the gate keys on, so tier 1 refused on the very next run and was satisfied only
+by a real re-derivation. No constructed demonstration is as convincing as a gate refusing the change
+that created it. ⇒ when a new check passes on its first run, ask whether it was *given* anything to
+judge.
+
+**2. A refusal message is a claim and can be overstated like any other.** The first version said
+*"whatever is in generated/ was produced by a code generator that no longer exists in this tree"* —
+untrue when only the Makefile recipe moved. Corrected to name what the digest covers and to state
+that the tier **cannot tell which, by design, and will not guess**. ⇒ a gate that overstates teaches
+the reader to discount it, which is the same end state as a gate nobody runs.
+
+**3. Choose an over-inclusive identity and SAY that you did.** The emission digest covers all 28
+tracked `rust/src/ast_pipeline` files plus the whole Makefile, so edits that cannot affect emission
+still cost one re-verify. That is the right direction to be wrong in: the failure mode is friction,
+whereas an under-inclusive set fails silently, which is the defect the doctrine exists to prevent.
+⛔ And DERIVE the set (`git ls-files`) rather than listing it, so a generator file added tomorrow
+joins by construction.
+
+**4. ⛔ A third copy of a number is a third chance to be stale.** `DOCTRINE_ENFORCEMENT.md` §10 was
+gated against the registry; `docs/book/src/gate-flow.md` published the same count twice and was
+gated against nothing — and it said **19** against a registry of **20**. It drifted in the direction
+that makes the project look *less* guarded than it is, which is the direction nobody double-checks.
+Now gated, and **marker-scoped** (`<!-- DOCTRINE-COUNT -->`) rather than spelling-matched, because
+enumerating sentence spellings is what made one population measure 10, then 16, then 18.
+
+**5. ⛔⛔ AN ACTIONABLE ERROR MESSAGE CAN CERTIFY THE THING IT NAMES.** `GATE-REACHABILITY` reported
+the new tier-2 target as `git-hook` reachable — its strongest, AUTOMATIC class — although nothing
+invokes it. Cause: the inventory scans `scripts/check_*.sh`, strips `#` comments, then treats a
+`make …` phrase inside a quoted **error string** as an executed command. A RED probe replacing that
+string with a placeholder reclassified it to `⛔ UNTRIAGED` on the next run. ⇒ printing *"fix it
+with: make …"* — good practice, which this repository encourages — makes the target it names look
+guarded. **And the false badge blocks the repair**: the register is a two-sided ratchet that refuses
+a disposition for a target it believes is reachable, so the honest row could not be written. Routed
+as `CI-PARITY-GATE-ROT.34`, exposure measured at 2 of 118 with exactly one genuinely affected.
+
+**6. The lesson under 5 is about WHERE I looked.** The doctrine was green. The inventory was green.
+Nothing asked me to check whether the green was earned — I checked because a target I had just
+written, which nothing calls, was reported as automatically covered, and that did not match what I
+knew. ⇒ a pass that contradicts something you know first-hand is the cheapest defect report you will
+ever get.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0061 — repair and measure in the same act, so the bound stops being an argument
 
 **1. Repair through the canonical target, never by hand.** The fix for a stale derived artifact is

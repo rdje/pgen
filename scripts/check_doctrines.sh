@@ -66,6 +66,7 @@ DOCTRINES=(
   "SV-CORPUS-DENOMINATOR|the SV corpus DENOMINATOR is re-derived and published beside the defect bar: the tracked verdict-coverage artifacts are byte-identical to a fresh census re-run, and every designated live surface carries the derived adjudicated/routed/no-verdict/dark/bar tuple — a bar without its denominator is not a claim about the corpus (SV-CORPUS-GRAD.13b; the artifact was MEASURED stale one day after landing, published bar 319 vs HEAD's 318, with NOTHING in the repo invoking the instrument)|scripts/check_sv_corpus_denominator.sh"
   "PARSE-COST-RATCHET|the SV parser's parse COST is measured and cannot rise unwatched: the tracked baseline's instrument identity (grammar + generated parser + instrument + a digest of the sampled corpus files) is re-hashed every run alongside three more every-run arms added by ENGINE-UNIVERSAL-SERVICES.21 (f) — the LR-family classifier over all ten generated parsers, the published corpus family share re-hashed against its tracked derivation, and CO-PUBLICATION of that derived share on every designated live surface — and a re-measure refuses on any rise in the binding counters — entries / committed / memo-hits, each verified deterministic and build-mode-independent before being made binding (ENGINE-UNIVERSAL-SERVICES.20 acceptance (d); the guarded admission shipped while the lint, the two-sided repro ratchet, the corpus pass/fail count and every registered doctrine stayed GREEN, because nothing measured parse cost at all — it cost +10.59 % rule entries, and the +24.3 % PARSE TIME this doctrine was founded on is REFUTED by .20 slice 5 as a fixed-arm-order artifact, which is the argument FOR a re-derivable ratchet, not against one; .26 retired the blind-spot factor built on it)|scripts/check_parse_cost_ratchet.sh"
   "SCRATCH-SLOT-HEADER|the blessed throwaway scratch slot keeps its OPERATING MANUAL — the header block that is the only record of how to regenerate, drive and restore the slot, and of the rebuild-ast_pipeline-AFTER ordering trap — because the body is meant to be overwritten and the header is not (PARSE-HARNESS.11; measured 2026-08-15: an agent replaced the whole file, and the correct workflow ends in \`git checkout\`, so the loss can NEVER reach a commit for a commit-time gate to see — the probe-time tier in \`make focus_scratch\` is the one that catches it, and this tier catches a removal that IS committed)|scripts/check_scratch_slot_header.sh"
+  "GENERATED-REPRODUCIBILITY|every artifact in the untracked generated/ tree is what HEAD's tracked source PRODUCES — not merely what it compiles into, and not merely unchanged since someone recorded a hash (ENGINE-UNIVERSAL-SERVICES.29; measured 2026-08-16: both annotation parsers carried a line the code generator CANNOT emit — grep -c 0, git log -S no commit ever — written from an uncommitted editor state, and they are the pair the annotation backend links to generate every OTHER parser, while layer A recorded 'generated/ FRESH' throughout)|scripts/check_generated_reproducibility.sh"
   "README-STABILITY|README.md stays a stable LANDING PAGE — both a line cap and a byte cap, because a line cap alone is measurably bypassable — at adoption layer-A MEMORY.md passed its 60-line cap carrying 138,403 unbounded bytes, a bypass since CLOSED by giving MEMORY-ARCH the same two caps (README-POLICY.2) — plus a changelog-leakage tripwire and a link back to the reviewed policy (README-POLICY.1; adopted at 510 lines/48,811 bytes with NO instrument watching size: the two guards that touch README.md audit doc PATHS and the root file SET)|scripts/check_readme_stability.sh"
 )
 
@@ -121,6 +122,49 @@ else
   else
     report+=("✓ PASS  <meta:mirror> — ${MIRROR} §10 lists exactly the ${#DOCTRINES[@]} registered doctrines")
   fi
+fi
+
+# ------------------------------------------------------------------ meta-check: the BOOK's count
+# ⛔ A THIRD COPY OF THE ROSTER SIZE LIVES IN THE BOOK, AND IT WAS MEASURABLY STALE.
+# `docs/book/src/gate-flow.md` publishes the number of registered doctrines twice — it is the
+# reader-facing surface, and per the standing directive the book is the primary window into this
+# project. Measured 2026-08-16 (`ENGINE-UNIVERSAL-SERVICES.29`(b)): the book said **19** while the
+# registry held **20**. Nothing compared them: the mirror check above governs
+# `DOCTRINE_ENFORCEMENT.md` only, so the book was free to drift, and it did — silently, and in the
+# direction that makes the project look LESS guarded than it is.
+# ⭐ MARKER-SCOPED, NOT SPELLING-MATCHED. The count is wrapped in `<!-- DOCTRINE-COUNT -->` … so
+# prose around it can be rewritten freely without touching this check. Enumerating sentence
+# spellings is exactly what made `LIVE-DOC-CURRENCY`'s instrument B measure one population as 10,
+# then 16, then 18 — every miss silent in the passing direction.
+# ⚠️ It asserts the COUNT, not the roster: the book is a narrative surface and is not asked to carry
+# 21 ids. `DOCTRINE_ENFORCEMENT.md` §10 is where the id set is gated, above.
+BOOK="docs/book/src/gate-flow.md"
+if [ -f "$ROOT/$BOOK" ]; then
+  book_counts="$(grep -o '<!-- DOCTRINE-COUNT -->\**[0-9]\{1,4\}' "$ROOT/$BOOK" | grep -o '[0-9]\{1,4\}$')"
+  if [ -z "$book_counts" ]; then
+    report+=("✗ FAIL  <meta:book-count> — ${BOOK} carries no <!-- DOCTRINE-COUNT --> marker. A check that"
+             "        cannot inspect its subject must SAY SO, not pass: re-wrap the published count, or"
+             "        the book is free to drift from the registry again (it was 19 against a registry of 20).")
+    fail=1
+  else
+    bad_counts=""
+    while IFS= read -r n; do
+      [ "$n" = "${#DOCTRINES[@]}" ] || bad_counts="$bad_counts $n"
+    done <<< "$book_counts"
+    if [ -n "$bad_counts" ]; then
+      printf 'book publishes doctrine count(s)%s but the registry holds %s — update %s\n' \
+        "$bad_counts" "${#DOCTRINES[@]}" "$BOOK" >&2
+      report+=("✗ FAIL  <meta:book-count> — ${BOOK} publishes a stale registered-doctrine count (see above)")
+      fail=1
+    else
+      # ⛔ `printf '%s' | wc -l` counts NEWLINES, so it reads one short on a trailing-newline-free
+      # string — it printed "1 marked site(s)" for two. Count the lines themselves.
+      report+=("✓ PASS  <meta:book-count> — ${BOOK} publishes ${#DOCTRINES[@]}, matching the registry ($(printf '%s\n' "$book_counts" | grep -c .) marked site(s))")
+    fi
+  fi
+else
+  report+=("✗ FAIL  <meta:book-count> — ${BOOK} is missing, so the published doctrine count cannot be checked")
+  fail=1
 fi
 
 printf '\n================ DOCTRINE ENFORCEMENT REPORT ================\n' >&2

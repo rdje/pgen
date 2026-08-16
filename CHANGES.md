@@ -1,5 +1,55 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0062 (leaf ENGINE-UNIVERSAL-SERVICES.29 slice 2 — (b) DISCHARGED, `.29` and `.19` both CLOSED; CI-PARITY-GATE-ROT.34 NEW; ops/build-flow, ZERO grammar/generated/engine bytes)
+
+- ⭐⭐ **THE 21st DOCTRINE — `GENERATED-REPRODUCIBILITY`.** `scripts/check_generated_reproducibility.sh`,
+  registered in the driver and mirrored in `DOCTRINE_ENFORCEMENT.md` §10. Two tiers: **identity
+  ~1.0 s on every commit** (re-hash each artifact, its input JSON, and a digest over the tracked
+  emission sources **plus the recipe that invokes them**) and the **oracle ~57 s on demand**
+  (`make -C rust SHELL=/bin/bash generated_reproducibility_gate` re-derives all **10** artifacts and
+  demands byte-identity).
+- ⭐ **The emission source set is DERIVED, never hand-listed** (`git ls-files rust/src/ast_pipeline`
+  + `rust/Makefile`, because the recipe chooses the flags and the `-o` spelling), and deliberately
+  over-inclusive: its failure direction is a spurious re-verify, never silent staleness.
+- ⭐⭐ **IT FIRED ON ITS OWN AUTHOR.** Adding the make targets edited `rust/Makefile`, which is in the
+  identity, so tier 1 refused on the very next run and was satisfied only by a real re-derivation.
+  Its first refusal message overstated (*"a code generator that no longer exists"*) when only the
+  recipe had moved; corrected in place to say the tier **cannot tell which, by design, and will not
+  guess**.
+- **7/7 refusal arms observed firing** (`--self-test`): two GREEN controls, moved emission sources, a
+  moved artifact, an artifact with no recorded row, a baseline with **no `emission_sha`** (must
+  REFUSE with exit 2 rather than compare against an empty string and pass by construction), and an
+  unknown argument. NOT-EVALUATED paths cover an absent `generated/`, an absent `ast_pipeline`, and
+  an **under-featured** one — that last because it cannot generate at all, and a loop reading a
+  missing file as "no difference" reports a clean pass.
+- ✅ **`.19` acceptance (c) CLOSED by this, with a BROADER instrument than that leaf specified**: (c)
+  asked for a freshness check on one input to one artifact; the defect that actually occurred was in
+  an artifact's **output**, in a different family. ⇒ **`.19` and `.29` are both CLOSED.**
+- ⛔ **The book's published doctrine count was ALREADY STALE — 19 against a registry of 20** — a third
+  copy of the roster size that nothing compared, drifting in the direction that makes the project
+  look *less* guarded than it is. New `<meta:book-count>` driver arm, **marker-scoped**
+  (`<!-- DOCTRINE-COUNT -->`) rather than spelling-matched, because enumerating spellings is what
+  made `LIVE-DOC-CURRENCY`'s instrument B measure one population as 10, then 16, then 18. Both RED
+  arms observed: a stale count FAILS, and a **removed marker** FAILS rather than passing vacuously.
+- 📖 `docs/book/src/gate-flow.md` gains a full section — *Is what's on disk what the source
+  produces?* — with the measured four-candidate table of why nothing existing could see this.
+- ⛔⛔ **UNSOUGHT, ROUTED as `CI-PARITY-GATE-ROT.34`: a make target NAMED inside a check script's
+  actionable error message is counted REACHABLE, and the false badge BLOCKS recording the truth.**
+  `GATE-REACHABILITY` classified `generated_reproducibility_gate` as `git-hook` (its strongest,
+  AUTOMATIC class) although nothing invokes it — root scan R3 strips `#` comments but parses a
+  `make …` phrase inside a quoted **error string** as a command. Proven by RED probe: replacing that
+  string with a placeholder reclassified it to `⛔ UNTRIAGED` immediately. The register is a
+  two-sided ratchet, so the honest `accepted-operator-invoked` row **cannot be recorded while the
+  false edge stands**. Exposure MEASURED at 2 of 118 `*_gate` targets, exactly **one** genuinely
+  mis-certified — this one. Not fixed here: `invoked_targets()` is the function whose own source
+  documents five calibration defects, guarded by 8 ground-truth controls.
+- ⚠️ **Honest bounds**: tier 1 proves *"nothing that could have changed the artifacts has changed"*,
+  not *"the artifacts are correct"* — it inherits whatever tier 2 last established. **`.16` is NOT
+  closed**: `generated/ebnf.rs` is seed-only with no regeneration target, so it is outside the
+  roster; the two were designed together (the roster is derived and mirror-checked against
+  `rust/Makefile`, so `ebnf` joins the moment `.16` gives it a recipe) but the artifact is unguarded
+  today.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0061 (leaf ENGINE-UNIVERSAL-SERVICES.29 slice 1 — acceptance (a) DISCHARGED; artifact repair + new tracked instrument, ZERO tracked code/grammar/gate bytes)
 
 - ✅ **`generated/` reproduces from HEAD again.** The annotation pair was repaired through the
