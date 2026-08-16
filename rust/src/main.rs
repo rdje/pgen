@@ -4362,11 +4362,17 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     // so a cycle that is still here is one the pass declined, and saying otherwise was false for
     // 30 of the 30 findings the shipped SystemVerilog lint printed.
     let elimination = &grammar.left_recursion_elimination;
+    // ⛔ ENGINE-UNIVERSAL-SERVICES.27 — BOTH lists, because they are DISJOINT by construction and
+    // passing only the direct one UNDER-REPORTED elimination on every purely-indirect grammar.
+    // Measured: `ebnf` linted `left_recursion_eliminated=0` while its generated parser declared 6
+    // `_lr_*` rule names. `.13` slice 5 added the indirect pass and its outcome fields; this call
+    // site was never extended to read them.
     let lr_report = classify_left_recursion(
         g,
         order,
         elimination.ran,
         &elimination.eliminated_base_rules,
+        &elimination.indirect_eliminated_base_rules,
     );
     let nonterm = detect_nonterminating_rules(g, order);
     // GRAMMAR-WELLFORMED.A2.3: the annotations feed the per-rule effective @branch_policy — the
@@ -4452,10 +4458,18 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
                 lr_report.surviving.len()
             )
         };
+        // ⛔ THE COUNT IS THE TOTAL, AND THE SPLIT IS PRINTED BESIDE IT (`.27`). It reported the
+        // DIRECT count alone from `.13` slice 5 until 2026-08-16, which made a purely-indirect
+        // grammar read as *"nothing was eliminated"* while its generated parser carried the
+        // eliminator's own `_lr_*` rules — a contradiction two instruments had to disagree about
+        // before anyone looked. The split is spelled out rather than folded away so that no reader
+        // has to know which pass did the work to interpret the number.
         format!(
-            "{}, left_recursion_eliminated={} (info — derived from the pass's own outcome)",
+            "{}, left_recursion_eliminated={} (info — {} direct + {} indirect, disjoint by construction; derived from the pass's own outcome)",
             unhandled,
-            lr_report.eliminated_rules.len()
+            lr_report.eliminated_rules.len() + lr_report.indirect_eliminated_rules.len(),
+            lr_report.eliminated_rules.len(),
+            lr_report.indirect_eliminated_rules.len()
         )
     } else {
         format!(
@@ -4498,11 +4512,23 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     // pass's own record of what it rewrote (informational, and now EARNED — it names rules); the
     // `surviving` half is what the pass declined, which the runtime guard rejects rather than
     // handles. The cap was 10 with no override here, and it hid 20 of SystemVerilog's 30.
-    if lr_report.elimination_ran && !lr_report.eliminated_rules.is_empty() {
+    // `.27` — NAME the indirect rules too. The list was direct-only, so on a purely-indirect
+    // grammar this line did not print AT ALL and the reader had no way to learn which rule was
+    // rewritten without reaching for `--report-indirect-lr-plan`.
+    if lr_report.elimination_ran
+        && !(lr_report.eliminated_rules.is_empty() && lr_report.indirect_eliminated_rules.is_empty())
+    {
+        let mut named: Vec<String> = lr_report.eliminated_rules.clone();
+        named.extend(
+            lr_report
+                .indirect_eliminated_rules
+                .iter()
+                .map(|r| format!("{r} (indirect)")),
+        );
         println!(
             "  [info]  grammar info: PGEN's LR-elimination pass ELIMINATED {} left-recursive rule(s) on this grammar: {} — these are handled, and this line is derived from the pass's own outcome, not asserted",
-            lr_report.eliminated_rules.len(),
-            lr_report.eliminated_rules.join(", ")
+            named.len(),
+            named.join(", ")
         );
     }
     print_lint_findings(

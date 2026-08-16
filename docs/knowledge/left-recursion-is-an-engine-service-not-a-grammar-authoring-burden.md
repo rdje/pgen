@@ -122,7 +122,7 @@ cd rust && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pi
 2026-08-12).** `--lint-grammar` no longer prints only the first 10 findings with no way to see the
 rest — every class shares one cap of 40 plus a `PGEN_LINT_DUMP_ALL=1` escape that the truncation line
 names. And the verdict is now DERIVED from the elimination pass's own outcome rather than asserted:
-`left_recursion_eliminated=N` (the rules the pass rewrote, by name) versus
+`left_recursion_eliminated=N` (the rules the pass rewrote, by name, split as `D direct + I indirect` — it counted only the DIRECT pass until `ENGINE-UNIVERSAL-SERVICES.27`, 2026-08-16, and so under-reported every purely-indirect grammar) versus
 `left_recursion_unhandled=M` (a warning — the pass ran, these survived it). ⛔ The count that
 uncapping revealed is the reason this matters: SV's linter was telling **30 of 30** surviving cycles
 they were handled while the pass had rewritten **2**, and one of those 30 costs real text — the

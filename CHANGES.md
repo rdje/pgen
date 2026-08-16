@@ -1,5 +1,42 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0063 (leaf ENGINE-UNIVERSAL-SERVICES.27 CLOSED; ENGINE diagnostic change, ZERO grammar/generated/emission bytes)
+
+- ⭐⭐ **THE LINT WAS THE WRONG SIDE, AND IT HAD BEEN UNDER-REPORTING SINCE `.13` SLICE 5.**
+  `left_recursion_eliminated=` counted the **DIRECT** pass only. `.13` slice 5 added the indirect
+  pass *and* its three outcome fields, and never extended the one call site that reports elimination
+  — so every purely-indirect elimination has been invisible to the lint since.
+- **Measured before→after on one binary:** `ebnf` **0 → 1** (`0 direct + 1 indirect`), with the
+  `[info]` naming line appearing for the first time (`return_expression (indirect)`);
+  `systemverilog` **2 → 5**, naming `casting_type (indirect)`, `property_expr (indirect)`,
+  `incomplete_class_scoped_type_sv_2023 (indirect)`. ⭐ `casting_type` and `property_expr` are
+  `.13`/`.15`/`.17`'s two knots — the lint has been silent about eliminating them since the flip.
+- **The competing hypothesis is REFUTED, not ranked:** `generated/ebnf.rs` re-derives
+  **byte-identically** from today's grammar (`97c17533…`), so neither instrument was stale and
+  `.16`'s seed-divergence explanation does not apply. ⇒ acceptance (c) is **not owed**.
+- **(d) answered by measurement — the join nobody had run.** Over all 11 grammars with a generated
+  parser: **11 of 11 consistent** after the fix. SystemVerilog was under-reported too (2 of its 5),
+  but a non-zero direct count masked it; `ebnf` is the only grammar whose elimination is *purely*
+  indirect, so it was the only row where the omission read as *"nothing was eliminated"*. ⭐ Both
+  instruments also report **144 rules** for `ebnf`, which is why nobody noticed: a 139-rule grammar
+  with one elimination and a 144-rule grammar with none land on the same total.
+- The headline now prints the TOTAL with the split beside it —
+  `left_recursion_eliminated=5 (info — 2 direct + 3 indirect, disjoint by construction)`.
+  ⚠️ That is a change of meaning for a published number, taken deliberately (the name says
+  *eliminated*, and an indirect elimination is one) and made loud rather than silent: every live
+  surface is corrected in this commit, while the pasted lint outputs in
+  `docs/tasks/GRAMMAR-WELLFORMED.md` and `docs/tasks/SV-CORPUS-GRAD.md` are left as the dated
+  EVIDENCE they are.
+- ⭐⭐ **NO REGRESSION, and the load-bearing evidence is the doctrine that landed one commit
+  earlier.** This change edits `rust/src/ast_pipeline/`, which is inside `GENERATED-REPRODUCIBILITY`'s
+  emission identity, so tier 1 REFUSED and demanded a re-verify; tier 2 re-derived **all 10
+  generated artifacts byte-identically**, proving a lint-only change moved no emitted byte. That is
+  the gate's second real catch, neither of them contrived.
+- Also verified: `cargo test --lib grammar_wellformedness::tests` → **49 passed / 0 failed**
+  (including a new arm pinning the purely-indirect case); `clippy_on_rust_change` both stages PASS
+  under the memory guard (peak 7 929 MB, 167 s); `check_doctrines.sh` → ALL 21 PASS;
+  `mdbook_docs_gate` → PASS.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0062 (leaf ENGINE-UNIVERSAL-SERVICES.29 slice 2 — (b) DISCHARGED, `.29` and `.19` both CLOSED; CI-PARITY-GATE-ROT.34 NEW; ops/build-flow, ZERO grammar/generated/engine bytes)
 
 - ⭐⭐ **THE 21st DOCTRINE — `GENERATED-REPRODUCIBILITY`.** `scripts/check_generated_reproducibility.sh`,

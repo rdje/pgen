@@ -7612,7 +7612,7 @@ quality that makes it work? (d) ⚠️ **PARKED under the SV lane lock and under
 [[feedback_prefer_feature_work_over_governance_lanes]]**: this is a governance lane and does not
 block the SV release. It is opened so it cannot be lost, not to be worked next.
 
-#### ⚠️ `.27` NEW `todo` — two tracked instruments DISAGREE about whether `generated/ebnf.rs` contains left-recursion elimination output at all (opened 2026-08-16 session #240 by `.26` slice 1, measured while correcting the surface that carries the claim)
+#### ✅ `.27` CLOSED — two tracked instruments DISAGREE about whether `generated/ebnf.rs` contains left-recursion elimination output at all (opened 2026-08-16 session #240 by `.26` slice 1; ✅ **CLOSED 2026-08-16 session #241 by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0063` — `--verify-families` was the CORRECT side, NEITHER instrument was stale, and the lint headline was **DIRECT-ONLY**: SV published `eliminated=2` and is **5**, `ebnf` published **0** and is **1**. Fixed in the engine; the full join is now **11 of 11 consistent**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — measured before opening):
 
@@ -7645,6 +7645,131 @@ get the authoritative `left_recursion_eliminated` for it; (b) adjudicate which o
 surfaces was wrong and correct it forward; (c) if the answer is seed divergence, route the finding
 into `.16` with the measurement attached; (d) state whether any OTHER of the 17 grammars in the
 published sweep disagrees with `--verify-families`, since the same join was never run.
+
+##### ⭐⭐ `.27` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0063`, 2026-08-16 session #241) — the LINT was the wrong side, it had been under-reporting since `.13` slice 5, and `ebnf` was the only grammar where that was visible
+
+**RESULT 1 — (a): the disagreement REPRODUCES on a fresh binary, and both instruments report 144
+rules.** `ast_pipeline grammars/ebnf.ebnf --lint-grammar` →
+`'ebnf' (144 rules) — left_recursion_unhandled=0, left_recursion_eliminated=0`, against
+`--verify-families` → `generated/ebnf.rs  144 rules  6 _lr  6 classified  base=1 seed=1 suffix=4`.
+⭐ The **rule counts agreeing at 144 is why nobody noticed**: a 139-rule grammar with one eliminated
+rule and a 144-rule grammar with none land on the same total.
+
+**RESULT 2 — (c) is NOT owed: the `.16` seed-divergence hypothesis is REFUTED by re-derivation.**
+`generated/ebnf.rs` re-derived from today's `grammars/ebnf.ebnf`, at the same `-o` spelling, is
+**byte-identical**:
+
+```text
+97c1753306787edb8c3a9ba346fb49043b1a73d14f629b3689d6c512debe2631  <fresh>/generated/ebnf.rs
+97c1753306787edb8c3a9ba346fb49043b1a73d14f629b3689d6c512debe2631  generated/ebnf.rs
+```
+
+⇒ the seed is CURRENT and neither instrument was stale. (A useful datum for `.16`, which stays open
+for the structural reason — no regeneration target — not for an observed divergence today.)
+
+**RESULT 3 — (b) ADJUDICATED: `--verify-families` was right, and the LINT HEADLINE WAS DIRECT-ONLY.**
+The instrument that names the mechanism is the one this leaf's own routing pointed at:
+
+```text
+$ ast_pipeline grammars/ebnf.ebnf --report-indirect-lr-plan
+eliminated_base_rules=0 …
+indirect_eliminated_base_rules=1 indirect_clone_rules=1 indirect_refusals=0
+    ✅ absorbed at 'return_expression'
+```
+
+WHERE: `rust/src/main.rs` passed only `elimination.eliminated_base_rules` into
+`classify_left_recursion`, and the headline printed `lr_report.eliminated_rules.len()`. ⛔ The
+struct's own doc comment states the two lists are *"disjoint from `eliminated_base_rules` by
+construction"* — so omitting the indirect one **under-reported** rather than double-counted. ⭐ The
+cause is a lockstep miss with a precise date: `.13` slice 5 (`-0018`) added the indirect pass **and**
+its three outcome fields, and never extended the one call site that reports elimination. Every
+purely-indirect elimination has been invisible to the lint since.
+
+**RESULT 4 — (d) ANSWERED by measurement, and `ebnf` is the ONLY row that could have shown it.**
+The join the leaf says was never run, over all 11 grammars with a generated parser:
+
+| grammar | headline (now) | direct | indirect | generated `_lr` names | verdict |
+|---|---|---|---|---|---|
+| json · regex · svpp · vhdl · rtl_const_expr · rtl_frontend · scratch | 0 | 0 | 0 | 0 | ✓ |
+| systemverilog | **5** (was 2) | 2 | 3 | 127 | ✓ |
+| return_annotation · semantic_annotation | 1 | 1 | 0 | 2 | ✓ |
+| **ebnf** | **1** (was 0) | **0** | **1** | 6 | ✓ |
+
+⇒ **SystemVerilog was under-reported too** (2 of its 5), but a non-zero direct count masked it;
+`ebnf` is the only grammar whose elimination is *purely* indirect, so it is the only one where the
+omission read as *"nothing was eliminated"* and produced a contradiction two instruments had to
+disagree about. **11 of 11 consistent** after the fix.
+
+⭐⭐ **AND THE NAMES IT WAS HIDING ARE THE ONES THIS TREE HAS BEEN WORKING ON ALL CAMPAIGN.** The
+`[info]` line did not print at all for a purely-indirect grammar; on SystemVerilog it now reads:
+
+```text
+ELIMINATED 5 left-recursive rule(s): block_event_expression, select_expression,
+  casting_type (indirect), property_expr (indirect), incomplete_class_scoped_type_sv_2023 (indirect)
+```
+
+`casting_type` and `property_expr` are `.13`/`.15`/`.17`'s two knots. The lint has been silent about
+eliminating them since the flip.
+
+**Acceptance status:** (a) ✅ · (b) ✅ · (c) ✅ **not owed — refuted by measurement**, and said so
+rather than routing a hypothesis · (d) ✅. ⇒ **LEAF CLOSED.**
+
+⛔ **HONEST BOUNDS:**
+1. **`left_recursion_eliminated=` now reports the TOTAL, which is a change of meaning for a published
+   number.** Deliberate: the name says *eliminated*, and an indirect elimination is one — the old
+   value was wrong for its own name. It is not silent — the split is printed beside it (`N (info — D
+   direct + I indirect, disjoint by construction)`), every affected live surface is corrected in this
+   commit, and a scraper matching `left_recursion_eliminated=(\d+)` now gets a number that is *more*
+   true, not differently true.
+2. **The join covers the 11 grammars with a generated parser, not all 17 tracked ones.** The other
+   six have no `generated/*.rs` for `--verify-families` to read, so no join exists for them; their
+   headline is now correct by the same fix but is unjoined. Named, not implied.
+
+###### Acceptance Checklist (enforced) — `.27` slice 1
+
+- [x] **REPRODUCE / ISSUE** — `--lint-grammar` on `grammars/ebnf.ebnf` →
+  `left_recursion_eliminated=0` against `python3 stimuli/sv/corpus_parse_cost.py --verify-families` →
+  `generated/ebnf.rs  144 rules  6 _lr  6 classified  base=1 seed=1 suffix=4`. Both re-run on a
+  binary built from HEAD; the contradiction is live, not historical.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the headline counted the DIRECT pass only, and the two
+  outcome lists are disjoint by construction, so an indirect elimination was invisible. WHERE:
+  `rust/src/main.rs` `classify_left_recursion(g, order, elimination.ran,
+  &elimination.eliminated_base_rules)` — the call omitted `indirect_eliminated_base_rules`, added by
+  `.13` slice 5 along with the pass itself. Named by the toolbox, not by reading:
+  `ast_pipeline grammars/ebnf.ebnf --report-indirect-lr-plan` →
+  `indirect_eliminated_base_rules=1 … ✅ absorbed at 'return_expression'` while
+  `eliminated_base_rules=0`. The competing hypothesis is refuted in the same breath: the artifact
+  re-derives **byte-identically** (`97c17533…`), so neither side was stale.
+- [x] **FIX** — fix-hierarchy tier = **ENGINE (diagnostic surface)**; ZERO grammar bytes, ZERO
+  generated bytes, ZERO codegen-emission bytes. `LeftRecursionReport` gains
+  `indirect_eliminated_rules`; `classify_left_recursion` takes it; the headline prints the TOTAL with
+  the split spelled out; the `[info]` line names indirect rules with an `(indirect)` tag. Why no
+  lower tier: the defect is in what the engine REPORTS about its own pass, so no declarative or
+  grammar change can express it.
+- [x] **ADDRESSED (verified)** — measured before→after on one binary: `ebnf`
+  `left_recursion_eliminated=0` → **`1 (info — 0 direct + 1 indirect …)`** with the `[info]` line
+  appearing for the first time (`return_expression (indirect)`); `systemverilog` **2 → 5**, naming
+  `casting_type (indirect)`, `property_expr (indirect)`,
+  `incomplete_class_scoped_type_sv_2023 (indirect)`. The full 11-grammar join goes from **1
+  disagreement to 0** — `11 of 11 consistent`.
+- [x] **NO REGRESSION** — ⭐ **the load-bearing evidence is the new `GENERATED-REPRODUCIBILITY`
+  doctrine, on its second real catch**: this change edits `rust/src/ast_pipeline/`, which is inside
+  the emission identity, so tier 1 REFUSED and demanded a re-verify; tier 2 then re-derived **all 10
+  generated artifacts byte-identically**, proving a lint-only change moved no emitted byte. (The gate
+  landed one commit earlier and has now fired on two independent changes, neither of them contrived.)
+  `cargo test --lib grammar_wellformedness::tests` → **49 passed, 0 failed**, including a new arm
+  pinning the purely-indirect case. `scripts/run_with_memory_guard.sh … make clippy_on_rust_change`
+  → both stages pass (source all-targets + STRICT generated, 10/10 artifacts, 68 pinned correctness
+  lints intact), peak 7 929 MB / 167 s. `bash scripts/check_doctrines.sh` → **ALL 21 PASS**.
+  `make -C rust SHELL=/bin/bash mdbook_docs_gate` → PASS.
+- [x] **LOCKSTEP** — every live surface carrying the stale number, corrected forward rather than
+  edited silently: `TOOLBOX.md` §5.1's LR bullet (SV `2 → 5`, `ebnf` `0 → 1`, and the CONTESTED
+  block replaced by the resolution), `docs/book/src/diagnosing-unknowns.md`,
+  `docs/knowledge/left-recursion-is-an-engine-service-not-a-grammar-authoring-burden.md`,
+  `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`. ⛔ Deliberately NOT
+  edited: the pasted lint outputs in `docs/tasks/GRAMMAR-WELLFORMED.md` and
+  `docs/tasks/SV-CORPUS-GRAD.md` — those are dated EVIDENCE of past runs, and rewriting them would
+  destroy the record that the number was ever different.
 
 #### ⛔⛔ `.24` NEW `todo` — `PARSE-COST-RATCHET`'s identity block pins every INPUT and not the EXECUTABLE, so the gate says *"the measurement cannot have moved"* while the probe on disk embeds a different parser (opened 2026-08-15 session #237 by `.20` slice 4, DEMONSTRATED LIVE)
 

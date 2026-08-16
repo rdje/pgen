@@ -1200,8 +1200,18 @@ pub struct LeftRecursionReport {
     /// Did the LR-elimination pass run on the grammar being linted? When false, no handling claim
     /// is made in either direction and every cycle stays a structural [`WellformednessIssue::LeftRecursive`].
     pub elimination_ran: bool,
-    /// Base rules the pass actually rewrote (from its own outcome record), in pass order.
+    /// Base rules the DIRECT pass actually rewrote (from its own outcome record), in pass order.
     pub eliminated_rules: Vec<String>,
+    /// `ENGINE-UNIVERSAL-SERVICES.27` — base rules the INDIRECT pass absorbed a chain at.
+    /// ⛔ DISJOINT from [`Self::eliminated_rules`] by construction (the direct planner matches a
+    /// one-hop wrapper, the indirect one a multi-hop route, and the indirect pass runs on what the
+    /// direct pass left behind) — which is exactly why omitting it UNDER-REPORTED elimination
+    /// rather than double-counting it. Measured 2026-08-16: `grammars/ebnf.ebnf` linted
+    /// `left_recursion_eliminated=0` while `generated/ebnf.rs` declared **6** `_lr_*` rule names,
+    /// because its single elimination is purely indirect. Of the eleven grammars with a generated
+    /// parser, `ebnf` is the only one where that reads as *"nothing was eliminated"* — SystemVerilog
+    /// also has indirect eliminations (3) but a non-zero direct count (2) masked the omission.
+    pub indirect_eliminated_rules: Vec<String>,
     /// Cycles still present in the linted grammar. When `elimination_ran`, each is a
     /// [`WellformednessIssue::LeftRecursionUnhandled`] warning: the pass declined it and only the
     /// runtime guard — which rejects rather than handles — remains.
@@ -1225,6 +1235,7 @@ pub fn classify_left_recursion(
     rule_order: &[String],
     elimination_ran: bool,
     eliminated_rules: &[String],
+    indirect_eliminated_rules: &[String],
 ) -> LeftRecursionReport {
     let surviving = detect_left_recursion(grammar, rule_order)
         .into_iter()
@@ -1238,6 +1249,7 @@ pub fn classify_left_recursion(
     LeftRecursionReport {
         elimination_ran,
         eliminated_rules: eliminated_rules.to_vec(),
+        indirect_eliminated_rules: indirect_eliminated_rules.to_vec(),
         surviving,
     }
 }
@@ -3351,7 +3363,7 @@ mod tests {
         let order: Vec<String> = vec!["a".into(), "b".into()];
 
         // 1. The pass RAN and eliminated nothing ⇒ every survivor is UNHANDLED, and says so.
-        let ran = classify_left_recursion(&g, &order, true, &[]);
+        let ran = classify_left_recursion(&g, &order, true, &[], &[]);
         assert!(ran.elimination_ran);
         assert!(
             !ran.surviving.is_empty(),
@@ -3377,7 +3389,7 @@ mod tests {
         }
 
         // 2. The pass did NOT run ⇒ no claim in either direction; the finding stays structural.
-        let not_run = classify_left_recursion(&g, &order, false, &[]);
+        let not_run = classify_left_recursion(&g, &order, false, &[], &[]);
         assert!(!not_run.elimination_ran);
         assert!(
             not_run
@@ -3401,10 +3413,35 @@ mod tests {
         // 3. The eliminated half is carried through verbatim — it is the pass's record, not a
         //    recomputation, so a regressed pass shows up here as an empty list rather than a lie.
         let with_eliminated =
-            classify_left_recursion(&g, &order, true, &["select_expression".to_string()]);
+            classify_left_recursion(&g, &order, true, &["select_expression".to_string()], &[]);
         assert_eq!(
             with_eliminated.eliminated_rules,
             vec!["select_expression".to_string()]
+        );
+
+        // 4. ENGINE-UNIVERSAL-SERVICES.27 — the INDIRECT half is carried through as its own list,
+        //    and the two are DISJOINT. This is the case that was silently dropped: a grammar whose
+        //    ONLY elimination is indirect reported `left_recursion_eliminated=0` while its
+        //    generated parser carried the eliminator's `_lr_*` rules. Measured on `grammars/ebnf.ebnf`
+        //    (direct 0, indirect 1, six emitted `_lr_*` names) — the only one of the eleven grammars
+        //    with a generated parser where the omission reads as "nothing was eliminated", because
+        //    SystemVerilog's non-zero direct count (2) masked its own three indirect ones.
+        let indirect_only =
+            classify_left_recursion(&g, &order, true, &[], &["return_expression".to_string()]);
+        assert!(
+            indirect_only.eliminated_rules.is_empty(),
+            "the direct list must stay empty: {indirect_only:?}"
+        );
+        assert_eq!(
+            indirect_only.indirect_eliminated_rules,
+            vec!["return_expression".to_string()],
+            "the indirect list must be carried verbatim, not folded into the direct one"
+        );
+        // The headline count the lint prints is the SUM of the two, which is 1 here and was 0
+        // before this leaf — the regression that made two instruments contradict each other.
+        assert_eq!(
+            indirect_only.eliminated_rules.len() + indirect_only.indirect_eliminated_rules.len(),
+            1
         );
     }
 

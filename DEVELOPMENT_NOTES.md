@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0063 — adding a capability and adding its counter are two changes, and only one of them gets remembered
+
+**1. ⭐ A new engine pass needs its REPORTING extended in the same commit, and this one did not get
+that.** `.13` slice 5 added the indirect LR pass, added `indirect_eliminated_base_rules` /
+`indirect_clone_rules` / `indirect_refusals` to the outcome struct, and wired the *survey*
+(`--report-indirect-lr-plan`) to read them. It did not extend the LINT, which kept reading
+`eliminated_base_rules` alone — so from that commit onward the headline under-reported every
+purely-indirect elimination, and nobody could tell because the pass and its report were separate
+surfaces. ⇒ when adding a capability, grep for every reader of the field you are extending, not just
+the one you are writing.
+
+**2. Two instruments disagreeing is a gift; the mistake is asking which is STALE.** The leaf framed
+it as *"which side is stale"* and both plausible answers were wrong — nothing was stale.
+`generated/ebnf.rs` re-derives byte-identically from today's grammar, so both instruments described
+the same artifact correctly and were **measuring different quantities**. ⇒ before dating two
+disagreeing numbers, check whether they are the same quantity at all.
+
+**3. ⛔ The coincidence that hid it for a day: both instruments said `144 rules`.** A 139-rule
+grammar with one eliminated rule and a 144-rule grammar with none land on the same total, so the one
+number a reader would sanity-check AGREED. ⇒ a matching total is not corroboration when the totals
+are sums over different populations.
+
+**4. ⭐ The masking pattern generalises: a non-zero value hides a missing addend.** SystemVerilog was
+under-reported too — 2 of its 5 — and nobody noticed for the same reason nobody notices most partial
+counts: `eliminated=2` reads as *"the pass did something"*, which is true, so it never triggers the
+question. `ebnf` was the only grammar with **zero** direct eliminations, and only there did the
+omission produce the visibly false *"nothing was eliminated"*. ⇒ look for the row where the value
+goes to zero; that is where a missing term becomes a contradiction instead of an inaccuracy.
+
+**5. Changing what a published number MEANS is sometimes the correct fix, and the honesty is in the
+loudness.** `left_recursion_eliminated=` now reports the total rather than the direct count. That is
+a meaning change, taken because the old value was wrong *for its own name* — but the split is
+printed beside it, every live surface is corrected in the same commit, and the dated lint outputs
+pasted into task leaves are left alone because they are evidence of past runs, not claims about now.
+
+**6. ⭐ The new doctrine caught this, on its second real change and neither contrived.** Editing
+`rust/src/ast_pipeline/` moved `GENERATED-REPRODUCIBILITY`'s emission identity, so tier 1 refused and
+tier 2 re-derived all ten artifacts byte-identically — turning *"a lint change obviously cannot move
+codegen"* from an assumption into a measurement, for 57 seconds.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0062 — a gate that fires on its own author is the only kind you know works
 
 **1. ⭐ The best first input for a new gate is the commit that adds it.** Registering
