@@ -72,6 +72,21 @@ MODES
   --rederive-family-share  DERIVE that share from a full-corpus census (~70 s) into the tracked
                            artifact. Reports disagreement with the carried constant; never
                            edits it.
+  --verify-probe-fingerprint
+                           ask the PROBE which generated SystemVerilog parser it was compiled
+                           against and compare it with the one on disk (`.24` (ii′)). Milli-
+                           seconds. 0 = matches · 1 = differs · 3 = NOT EVALUATED (no probe).
+
+⛔ EVERY MEASURING MODE IS GATED ON THAT FINGERPRINT (`ENGINE-UNIVERSAL-SERVICES.24`). The
+identity table this instrument writes pins four INPUTS and never pinned the EXECUTABLE, and a
+probe built from an experimental arm was measured — silently — while the gate reported a fresh
+baseline. Measured on four sampled files, such a probe reports 762,345 rule entries where the
+shipped one reports 11,240,430, and a FALL is not a ratchet breach but an invitation to
+rebaseline. `PGEN_PARSE_COST_ALLOW_PROBE_MISMATCH=1` downgrades the refusal to a warning for the
+legitimate experimental-arm workflow, and stamps the mismatch into `advisory.json` so the result
+can never later pass for a baseline. `PGEN_PARSE_COST_PROBE=<path>` selects the probe binary
+(same as `--probe`), which is how the gate's refusals are driven RED without moving a 77 MB
+artifact over the default path.
 
 USAGE
   python3 stimuli/sv/corpus_parse_cost.py --outdir <dir>
@@ -80,9 +95,11 @@ USAGE
   python3 stimuli/sv/corpus_parse_cost.py --verify-families
   python3 stimuli/sv/corpus_parse_cost.py --verify-family-share
   python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share
+  python3 stimuli/sv/corpus_parse_cost.py --verify-probe-fingerprint
 
 CONTRACT: deterministic on the binding metric; repo-root-relative paths everywhere; refuses
-(exit 2) rather than reporting a clean measurement it could not take.
+(exit 2) rather than reporting a clean measurement it could not take. `--verify-probe-fingerprint`
+additionally uses exit 3 for NOT EVALUATED, which is never a pass.
 """
 
 from __future__ import annotations
@@ -408,6 +425,55 @@ def _self_check() -> None:
         print("parse-cost: the LR-family classifier does not discriminate; refusing", file=sys.stderr)
         sys.exit(2)
 
+    # ── the PROBE-FINGERPRINT reader (`ENGINE-UNIVERSAL-SERVICES.24`) ────────────────────────
+    #
+    # ⛔ EVERY FAILURE PATH IS PINNED, NOT JUST THE HAPPY ONE. This reader's whole job is to tell
+    # apart states that call for OPPOSITE responses — "rebuild your probe" versus "your probe
+    # embeds a different parser" — and a reader that collapses them into one shrug is worse than
+    # no reader, because it makes the second look routine. The negatives below are therefore
+    # asserted to return an ERROR (never a digest), which is what stops a malformed payload from
+    # being compared as if it were a fingerprint.
+    good = "a" * 64
+    fp_cases = [
+        # the happy path
+        ('{"pgen_parser_fingerprint_version": 1, "parsers": {"systemverilog": "%s"}, '
+         '"absent": []}' % good, (good, None)),
+        # a family this binary was built without is ABSENT, not a mismatch
+        ('{"pgen_parser_fingerprint_version": 1, "parsers": {"vhdl": "%s"}, '
+         '"absent": ["systemverilog"]}' % good, (None, "built with NO")),
+        # a probe that predates the flag prints usage on stdout, or nothing
+        ("Usage:\n  parseability_probe --supports <grammar_name>", (None, "PREDATES")),
+        ("", (None, "PREDATES")),
+        # a payload whose SHAPE moved must refuse rather than be positionally mis-read
+        ('{"pgen_parser_fingerprint_version": 2, "parsers": {"systemverilog": "%s"}}' % good,
+         (None, "version")),
+        ('{"pgen_parser_fingerprint_version": 1, "fingerprints": {"systemverilog": "%s"}}' % good,
+         (None, "no `parsers` map")),
+        # ⛔ a NON-sha256 value is refused, never compared. A placeholder would compare unequal
+        # and read as "wrong parser" — pointing the reader at the parser instead of at the build.
+        ('{"pgen_parser_fingerprint_version": 1, "parsers": {"systemverilog": "unknown"}}',
+         (None, "not a sha256")),
+        ('{"pgen_parser_fingerprint_version": 1, "parsers": {"systemverilog": "%s"}}'
+         % ("A" * 64), (None, "not a sha256")),
+        # a JSON scalar is valid JSON and is still not a report
+        ("42", (None, "not a JSON object")),
+    ]
+    fp_misses = []
+    for payload, (want_digest, want_err_substr) in fp_cases:
+        got_digest, got_err = read_fingerprint_report(payload, PROBE_FINGERPRINT_FAMILY)
+        ok = (got_digest == want_digest
+              and (want_err_substr is None) == (got_err is None)
+              and (want_err_substr is None or want_err_substr in (got_err or "")))
+        if not ok:
+            fp_misses.append((payload[:60], want_digest, want_err_substr, got_digest, got_err))
+    if fp_misses:
+        for payload, wd, we, gd, ge in fp_misses:
+            print(f"parse-cost: CONTROL MISSED: {payload!r} want=({wd}, ~{we}) got=({gd}, {ge})",
+                  file=sys.stderr)
+        print("parse-cost: the probe-fingerprint reader does not discriminate; refusing",
+              file=sys.stderr)
+        sys.exit(2)
+
 
 def die(msg: str, code: int = 2) -> None:
     print(f"parse-cost: {msg}", file=sys.stderr)
@@ -422,23 +488,219 @@ def sha256_of(path: str) -> str:
     return h.hexdigest()
 
 
-def resolve_probe(explicit: str | None) -> str:
-    """The parse binary. Either build is legitimate: entry counts are build-mode-independent
-    (verified — the debug and release probes emit byte-identical dumps), so a tree with only a
-    debug build can still run the BINDING metric. The advisory one says which build it used,
-    because that number is not build-independent at all."""
+def find_probe(explicit: str | None) -> str | None:
+    """The parse binary, or None when there is none on disk.
+
+    Either build is legitimate: entry counts are build-mode-independent (verified — the debug and
+    release probes emit byte-identical dumps), so a tree with only a debug build can still run the
+    BINDING metric. The advisory one says which build it used, because that number is not
+    build-independent at all.
+    """
+    # ⛔ THE ENV OVERRIDE EXISTS SO THE REFUSALS CAN BE DRIVEN RED, and that is not a hole: the
+    # fingerprint guard below catches a wrong binary however it was SELECTED, so widening the
+    # selection widens what the guard is proven against. Without it the only way to replay the
+    # `.20` slice 4 incident is to move a 77 MB binary over the default path and hope the restore
+    # runs — a control whose own setup can corrupt the tree is a control people stop running.
+    explicit = explicit or os.environ.get("PGEN_PARSE_COST_PROBE") or None
     if explicit:
         p = explicit if os.path.isabs(explicit) else os.path.join(ROOT, explicit)
         if not os.access(p, os.X_OK):
-            die(f"--probe {explicit} is not executable")
+            die(f"probe {explicit} is not executable")
         return p
     for rel in (DEFAULT_PROBE, FALLBACK_PROBE):
         p = os.path.join(ROOT, rel)
         if os.access(p, os.X_OK):
             return p
-    die("no parseability_probe found. Build one:\n"
-        "  (cd rust && cargo build --release --features generated_parsers --bin parseability_probe)")
+    return None
+
+
+def resolve_probe(explicit: str | None) -> str:
+    """`find_probe`, but a missing probe is fatal — for the modes that must measure."""
+    probe = find_probe(explicit)
+    if probe is None:
+        die("no parseability_probe found. Build one:\n"
+            "  (cd rust && cargo build --release --features generated_parsers "
+            "--bin parseability_probe)")
+    return probe  # type: ignore[return-value]
+
+
+# ── the PROBE FINGERPRINT: which parser does the executable actually embed? ──────────────────
+#
+# ⛔⛔ THE DEFECT THIS CLOSES, DEMONSTRATED RATHER THAN ARGUED (`ENGINE-UNIVERSAL-SERVICES.24`).
+# `PARSE-COST-RATCHET`'s identity table pins four INPUTS — grammar, generated parser, instrument,
+# sampled files — every one of them a SOURCE. The thing that actually produces the numbers is
+# `DEFAULT_PROBE`, an UNTRACKED build artifact that nothing hashed and nothing tied to the parser
+# it was compiled from. `.20` slice 4 built a release probe from an experimental arm (guard
+# emission suppressed) and the every-commit tier printed *"the measurement cannot have moved"*
+# while `nm … | grep -c _lr_guard` read **0** against a pinned parser declaring **6**.
+#
+# ⭐ AND IT FAILS IN THE PASSING DIRECTION, WHICH IS WHY IT IS A REFUSAL AND NOT A WARNING.
+# Measured on four sampled files: that wrong binary reports **762,345** rule entries where the
+# shipped one reports **11,240,430** — 14.7× smaller. The ratchet breaches on a RISE; a FALL is a
+# note reading *"an improvement — promote it deliberately so the ratchet tightens"*. So the gap
+# does not merely mislead a reader, it invites a rebaseline that permanently lowers the ratchet
+# to a number no real parser produces.
+#
+# THE FIX (`.24` (ii′)): `rust/build.rs` already resolves every generated parser and already
+# declares `cargo:rerun-if-changed` for it, so it re-runs exactly when one moves. It now hashes
+# each resolved parser and publishes the digest as `PGEN_<FAMILY>_PARSER_SHA256`; the probe reads
+# them back under `--parser-fingerprint`. This costs ZERO generated bytes — the alternative,
+# emitting the fingerprint INTO the parser, moves every generated artifact and re-baselines
+# everything keyed on them.
+#
+# ⭐ TWO INDEPENDENT sha256 IMPLEMENTATIONS AGREE, WHICH IS WHAT MAKES THE COMPARISON MEANINGFUL:
+# `build.rs` hashes with the Rust `sha2` crate, this file with Python's `hashlib` (OpenSSL). They
+# were checked over all 9 resolved parsers — 9/9 identical — and every run of this guard re-checks
+# the SystemVerilog one. A disagreement would surface here as a mismatch, loudly, rather than as
+# a silently unequal fingerprint.
+PROBE_FINGERPRINT_CONTRACT_VERSION = 1
+PROBE_FINGERPRINT_FAMILY = "systemverilog"
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+# ⛔ THE ESCAPE HATCH IS DELIBERATE, AND SO IS THE FACT THAT IT LEAVES A MARK. Measuring an
+# EXPERIMENTAL arm against the shipped baseline is a thing this campaign does routinely — `.20`
+# slices 3-5 exist because of it — so a hard, unconditional refusal would break a legitimate
+# workflow and get worked around. Instead the refusal is downgraded to a loud warning that is
+# STAMPED INTO `advisory.json`, so a measurement taken with a mismatched probe can never be
+# mistaken for a baseline-grade one after the fact. ⛔ The GATE does not honour it: a re-measure
+# or a rebaseline driven through `scripts/check_parse_cost_ratchet.sh` refuses regardless, because
+# that is the path whose output becomes the tracked reference.
+ALLOW_PROBE_MISMATCH_ENV = "PGEN_PARSE_COST_ALLOW_PROBE_MISMATCH"
+
+
+def probe_label(probe: str) -> str:
+    """A probe's path as a reader should see it: repo-root-relative inside the tree, absolute
+    outside it. ⛔ Never a bare `relpath`, which renders an out-of-tree binary as a ladder of
+    `../..` — unreadable exactly when the reader most needs to know WHICH binary this was."""
+    rel = os.path.relpath(probe, ROOT)
+    return probe if rel.startswith("..") else rel
+
+
+def read_fingerprint_report(stdout_text: str, family: str) -> tuple[str | None, str | None]:
+    """`(digest, error)` from a `--parser-fingerprint` payload. Exactly one is None.
+
+    ⛔ A PURE FUNCTION so it can carry ground truth (`_self_check` below). Every way this can
+    fail is a DISTINCT message, because "the probe predates this flag" and "the probe embeds a
+    different parser" call for opposite responses — rebuild versus investigate — and a single
+    "could not verify" would blur them into one shrug.
+    """
+    try:
+        report = json.loads(stdout_text)
+    except json.JSONDecodeError:
+        return None, ("the probe printed no fingerprint payload. It almost certainly PREDATES "
+                      "`--parser-fingerprint` (ENGINE-UNIVERSAL-SERVICES.24); rebuild it")
+    if not isinstance(report, dict):
+        return None, "the fingerprint payload is not a JSON object"
+    version = report.get("pgen_parser_fingerprint_version")
+    if version != PROBE_FINGERPRINT_CONTRACT_VERSION:
+        return None, (f"the fingerprint payload declares contract version {version!r}, and this "
+                      f"reader speaks {PROBE_FINGERPRINT_CONTRACT_VERSION}. Fix this reader "
+                      f"rather than trusting a payload whose shape it does not know")
+    parsers = report.get("parsers")
+    if not isinstance(parsers, dict):
+        return None, "the fingerprint payload carries no `parsers` map"
+    digest = parsers.get(family)
+    if digest is None:
+        return None, (f"the probe was built with NO `{family}` parser on disk, so it embeds none "
+                      f"and cannot measure one. Regenerate and rebuild:\n"
+                      f"    make -C rust SHELL=/bin/bash regenerate_generated_parsers")
+    if not isinstance(digest, str) or not SHA256_RE.match(digest):
+        # ⛔ A non-sha256 value is REFUSED rather than compared. A placeholder that merely
+        # compares unequal would read as "wrong parser" — a different verdict, pointing the
+        # reader at the parser instead of at the build that failed to hash it.
+        return None, f"the `{family}` fingerprint is not a sha256 digest: {digest!r}"
+    return digest, None
+
+
+def probe_parser_fingerprint(probe: str, family: str = PROBE_FINGERPRINT_FAMILY
+                             ) -> tuple[str | None, str | None]:
+    """Ask a probe binary which generated parser it was compiled against."""
+    try:
+        proc = subprocess.run([probe, "--parser-fingerprint"], capture_output=True, text=True,
+                              timeout=60)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return None, f"the probe would not run `--parser-fingerprint`: {exc}"
+    if proc.returncode != 0:
+        first = (proc.stderr or proc.stdout).strip().splitlines()
+        return None, (f"`{probe_label(probe)} --parser-fingerprint` exited "
+                      f"{proc.returncode}. It almost certainly PREDATES the flag "
+                      f"(ENGINE-UNIVERSAL-SERVICES.24); rebuild it"
+                      + (f" [{first[0]}]" if first else ""))
+    return read_fingerprint_report(proc.stdout, family)
+
+
+def probe_parser_verdict(probe: str) -> tuple[bool, str, str | None]:
+    """`(matches, human-readable line, embedded-digest-or-None)`.
+
+    ⛔ The digest is RETURNED rather than re-fetched by the caller. It costs a process spawn, and
+    two spawns can disagree — a stamp that does not describe the verdict beside it is precisely
+    the class of drift this leaf exists to remove.
+    """
+    gen = os.path.join(ROOT, GENERATED_PARSER)
+    if not os.path.isfile(gen):
+        return False, (f"{GENERATED_PARSER} is absent, so there is nothing to compare the probe "
+                       f"against; generated/ is not tracked — regenerate it"), None
+    on_disk = sha256_of(gen)
+    embedded, err = probe_parser_fingerprint(probe)
+    if err is not None:
+        return False, err, None
+    if embedded == on_disk:
+        return True, (f"{probe_label(probe)} embeds {GENERATED_PARSER} "
+                      f"`{on_disk[:16]}…` — the parser on disk"), embedded
+    return False, (f"THE PROBE EMBEDS A DIFFERENT PARSER.\n"
+                   f"        probe    {probe_label(probe)}: `{embedded[:16]}…`\n"
+                   f"        on disk  {GENERATED_PARSER}: `{on_disk[:16]}…`\n"
+                   f"      The numbers this run would publish describe the probe's parser, not "
+                   f"this tree's. Rebuild the probe:\n"
+                   f"        (cd rust && cargo build --release --features generated_parsers "
+                   f"--bin parseability_probe)\n"
+                   f"      — or, if measuring an EXPERIMENTAL arm on purpose, set "
+                   f"{ALLOW_PROBE_MISMATCH_ENV}=1, which downgrades this to a warning and stamps "
+                   f"the mismatch into advisory.json so the result cannot later pass for a "
+                   f"baseline."), embedded
+
+
+def require_probe_matches_parser(probe: str) -> dict:
+    """Gate every MEASURING mode on the probe embedding the parser on disk.
+
+    Returns the stamp that goes into `advisory.json`, so every measurement this instrument
+    publishes says which parser its executable actually carried.
+    """
+    matches, detail, embedded = probe_parser_verdict(probe)
+    stamp = {"probe_parser_sha256": embedded,
+             "probe_parser_matches_generated": matches}
+    if matches:
+        return stamp
+    if os.environ.get(ALLOW_PROBE_MISMATCH_ENV) == "1":
+        print(f"parse-cost: ⛔ WARNING — {detail}\n"
+              f"parse-cost: proceeding because {ALLOW_PROBE_MISMATCH_ENV}=1. This measurement is "
+              f"NOT baseline-grade and advisory.json records why.", file=sys.stderr)
+        return stamp
+    die(f"REFUSING to measure — {detail}")
     raise AssertionError("unreachable")
+
+
+def run_verify_probe_fingerprint(probe: str | None) -> int:
+    """Exit 0 = the probe embeds the parser on disk · 1 = it does not · 3 = NOT EVALUATED.
+
+    ⛔ Exit 3 is its own code and not a pass. The probe is an untracked build artifact, so a tree
+    that has never built one is a legitimate state — but reporting it as OK would be the exact
+    failure `feedback_a_check_that_cannot_run_must_say_so` names. The caller branches on it.
+    ⛔ `ALLOW_PROBE_MISMATCH_ENV` is deliberately NOT honoured here: this mode is what the gate
+    calls, and an escape hatch that reaches the gate is not an escape hatch, it is a hole.
+    """
+    if probe is None:
+        print("parse-cost: NOT EVALUATED — no parseability_probe on disk (it is an untracked "
+              "build artifact). Build one:\n"
+              "  (cd rust && cargo build --release --features generated_parsers "
+              "--bin parseability_probe)", file=sys.stderr)
+        return 3
+    matches, detail, _embedded = probe_parser_verdict(probe)
+    if matches:
+        print(f"parse-cost: probe fingerprint OK — {detail}", file=sys.stderr)
+        return 0
+    print(f"parse-cost: probe fingerprint BREACH — {detail}", file=sys.stderr)
+    return 1
 
 
 def sub_corpus_of(rel: str) -> str:
@@ -1492,7 +1754,8 @@ def run_census(probe: str, outdir: str, jobs: int) -> int:
     return 0
 
 
-def run_measure(probe: str, outdir: str, manifest_path: str, jobs: int, repeats: int) -> int:
+def run_measure(probe: str, outdir: str, manifest_path: str, jobs: int, repeats: int,
+                probe_stamp: dict | None = None) -> int:
     pinned = read_manifest(manifest_path)
     tiers = {rel: tier for tier, rel in pinned}
     files = [rel for _t, rel in pinned]
@@ -1516,6 +1779,13 @@ def run_measure(probe: str, outdir: str, manifest_path: str, jobs: int, repeats:
     advisory_files = [rel for tier, rel in pinned if tier == "hot"]
     adv = measure_wallclock(probe, advisory_files, repeats)
     adv["probe"] = os.path.relpath(probe, ROOT)
+    # ⛔ WHICH PARSER THE EXECUTABLE CARRIED, recorded in the artifact itself
+    # (`ENGINE-UNIVERSAL-SERVICES.24`). `probe` alone is a PATH — it says where the binary was,
+    # never what was inside it, and the whole defect this closes is a path that pointed at a
+    # binary built from a different parser. A measurement that cannot say which parser produced
+    # it is a measurement whose staleness is undetectable after the run.
+    if probe_stamp:
+        adv.update(probe_stamp)
     adv["note"] = ("ADVISORY ONLY — machine-dependent, measured on the FUSED cascade_* graph "
                    "that the BINDING entry counters cannot see. Compared with a wide band; a "
                    "breach warns, never fails.")
@@ -1548,6 +1818,10 @@ def main() -> int:
     ap.add_argument("--verify-family-share", action="store_true",
                     help="re-hash every input the carried corpus family share depends on and "
                          "fail when one moved (`.21` (f)); ~0.8 s, needs no probe")
+    ap.add_argument("--verify-probe-fingerprint", action="store_true",
+                    help="ask the probe which generated SystemVerilog parser it was compiled "
+                         "against and compare it with the one on disk (`.24` (ii′)); "
+                         "0 = matches, 1 = differs, 3 = NOT EVALUATED (no probe built)")
     ap.add_argument("--rederive-family-share", action="store_true",
                     help="derive the corpus family share from a full-corpus census (~70 s) into "
                          "the tracked artifact (`.21` (f))")
@@ -1598,7 +1872,18 @@ def main() -> int:
         print(f"parse-cost: wrote {len(sample)} rows -> {args.out}", file=sys.stderr)
         return 0
 
+    if args.verify_probe_fingerprint:
+        # ⛔ `find_probe`, not `resolve_probe`: an absent probe is NOT EVALUATED (exit 3) for this
+        # mode, because the probe is an untracked build artifact and a tree that has never built
+        # one is a legitimate state. Every mode BELOW measures, so for those it stays fatal.
+        return run_verify_probe_fingerprint(find_probe(args.probe))
+
     probe = resolve_probe(args.probe)
+    # ⛔ ONE CALL SITE FOR EVERY MEASURING MODE (`ENGINE-UNIVERSAL-SERVICES.24`). The census, the
+    # family-share re-derivation and the pinned-sample measurement all publish numbers produced by
+    # this binary, so all three are gated identically. Placing the guard here rather than inside
+    # each mode is what stops the next mode from being added without it.
+    probe_stamp = require_probe_matches_parser(probe)
     if args.rederive_family_share:
         return run_rederive_family_share(probe, args.jobs, args.out or FAMILY_SHARE_ARTIFACT)
     if args.census:
@@ -1607,7 +1892,7 @@ def main() -> int:
         return run_census(probe, args.outdir, args.jobs)
     if not args.outdir:
         die("--outdir is required")
-    return run_measure(probe, args.outdir, args.manifest, args.jobs, args.repeats)
+    return run_measure(probe, args.outdir, args.manifest, args.jobs, args.repeats, probe_stamp)
 
 
 if __name__ == "__main__":

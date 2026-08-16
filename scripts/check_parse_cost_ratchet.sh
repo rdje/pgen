@@ -23,7 +23,7 @@
 #
 # ⭐⭐ TWO TIERS, AND THE CHEAP ONE IS SOUND RATHER THAN A SHORTCUT.
 #
-#   TIER 1 (every run, ~2 s) — IDENTITY, on everything this gate PUBLISHES, in four arms:
+#   TIER 1 (every run, ~2 s) — IDENTITY, on everything this gate PUBLISHES, in five arms:
 #     (1) BASELINE IDENTITY. Re-hash the four inputs the baseline names: the grammar, the
 #       generated parser, the instrument, and a digest over the sampled corpus files themselves.
 #       The binding metric is an exact function of exactly those inputs (verified: deterministic
@@ -36,10 +36,17 @@
 #       share is re-hashed against the tracked derivation, and its raw counts must reproduce it.
 #     (4) CO-PUBLICATION. Every designated live surface must carry that derived share, so it
 #       cannot be quoted anywhere in the repository after it has gone stale.
+#     (5) THE PROBE FINGERPRINT (`--verify-probe-fingerprint`, ~0.02 s). The four identity rows
+#       are all SOURCES; the thing that produces the numbers is an untracked build artifact.
+#       `rust/build.rs` now hashes every generated parser it resolves and the probe reports which
+#       one it embeds, so this arm can ask the question the identity table could not. ⛔ At TIER 1
+#       a mismatch is a NOTE, not a breach: this tier computes no measurement, so a stale probe
+#       misleads nobody here. It becomes a REFUSAL at tier 2, which does.
 #
 #   TIER 2 (on demand, ~2.5 min) — THE RATCHET ITSELF. Re-run the instrument into a SCRATCH
 #     directory and compare. Entries/committed/memo-hits must not RISE. Wall clock is reported
-#     against a wide band and never fails the gate.
+#     against a wide band and never fails the gate. ⛔ PRE-FLIGHTED on arm 5: a probe embedding a
+#     different parser REFUSES before one file is measured.
 #
 # ⛔ ARMS 2-4 WERE ON DEMAND UNTIL `ENGINE-UNIVERSAL-SERVICES.21` ACCEPTANCE (f), AND THAT IS THE
 # DEFECT (f) CLOSES. `--verify-families` rode tier 2, so it ran when an operator chose to
@@ -59,6 +66,17 @@
 # ⛔ THE SAMPLE-INPUT DIGEST IS NOT REDUNDANT WITH THE PARSER HASH. The corpora are git
 # SUBMODULES. A submodule bump changes what is measured without touching one byte of PGEN, so a
 # parser hash alone would report a fresh baseline over a corpus that had changed underneath it.
+#
+# ⛔⛔ AND NONE OF THE FOUR IS THE EXECUTABLE — WHICH IS THE HOLE ARM 5 CLOSES
+# (`ENGINE-UNIVERSAL-SERVICES.24`). All four rows are SOURCES. The numbers are produced by
+# `rust/target/release/parseability_probe`, an untracked build artifact nothing hashed and nothing
+# tied to the parser it was compiled from. `.20` slice 4 built one from a guard-suppressed
+# experimental arm and this gate printed *"the measurement cannot have moved"* while `nm … |
+# grep -c _lr_guard` read 0 against a pinned parser declaring 6. ⭐ The gap fails in the PASSING
+# direction, which is why it is closed rather than documented: on four sampled files that wrong
+# binary reports 762,345 rule entries where the shipped one reports 11,240,430, and a FALL is not
+# a breach here — it is a note inviting a rebaseline that would lower the ratchet permanently to a
+# number no real parser produces.
 #
 # ⚠️ HONEST LIMIT, stated rather than discovered later (DOCTRINE_ENFORCEMENT.md §3). The binding
 # metric observes the PROTOCOL graph; a production parse with no diagnostic consumer runs the FUSED
@@ -447,6 +465,45 @@ if derived_share:
                 f"{surface} publishes LR-family share(s) {wrong} but the tracked derivation says "
                 f"{derived_share}. Update the anchor, or re-derive if the tree moved.")
 
+# ── TIER 1, arm 5: THE PROBE FINGERPRINT — which parser does the EXECUTABLE embed? ──────────────
+#
+# ⛔ THE ESCAPE HATCH MUST NOT REACH THE GATE. `PGEN_PARSE_COST_ALLOW_PROBE_MISMATCH=1` exists so
+# an operator can deliberately measure an experimental arm; it is stripped from the environment
+# here because this is the path whose output becomes the TRACKED reference, and an escape hatch
+# that reaches the gate is not an escape hatch, it is a hole.
+GATE_ENV = {k: v for k, v in os.environ.items()
+            if k != "PGEN_PARSE_COST_ALLOW_PROBE_MISMATCH"}
+
+
+def probe_fingerprint_check():
+    """`(code, message)` — 0 matches / 1 differs / 3 NOT EVALUATED, with the instrument's own text."""
+    proc = subprocess.run([sys.executable, INSTRUMENT, "--verify-probe-fingerprint"],
+                          capture_output=True, text=True, env=GATE_ENV)
+    return proc.returncode, (proc.stderr or proc.stdout).strip()
+
+
+probe_fp_code, probe_fp_msg = probe_fingerprint_check()
+if probe_fp_code == 1:
+    # ⛔ A NOTE AND NOT A FAILURE, DELIBERATELY. Tier 1 computes no measurement, so a probe built
+    # from another parser cannot mislead anything this tier reports — and failing every commit
+    # for a stale untracked build artifact is how a gate teaches people to bypass it. It becomes
+    # a hard refusal in tier 2, which is the tier that measures.
+    # ⛔ The HEADLINE says "could not be confirmed", not "embeds a different parser". Arm 5 has two
+    # distinct negative verdicts — the probe predates the flag, or it embeds another parser — and
+    # they call for different acts. The instrument's own line, quoted below, says which.
+    notes.append("the probe on disk could NOT be confirmed to embed the parser this baseline "
+                 "pins. Tier 1 measures nothing, so nothing here is wrong because of it — but a "
+                 "re-measure would be, and tier 2 will REFUSE until it is resolved "
+                 "(ENGINE-UNIVERSAL-SERVICES.24):\n"
+                 + "".join(f"        {l}\n" for l in probe_fp_msg.splitlines()[:8]))
+elif probe_fp_code == 3:
+    unevaluated.append("the probe fingerprint could not be checked: no parseability_probe is "
+                       "built (it is an untracked build artifact)")
+elif probe_fp_code != 0:
+    fail(f"`{INSTRUMENT} --verify-probe-fingerprint` exited {probe_fp_code}, which is not one of "
+         f"its declared codes (0 matches / 1 differs / 3 not evaluated):\n"
+         + "".join(f"        {l}\n" for l in probe_fp_msg.splitlines()[:8]))
+
 # ── TIER 2: the ratchet ─────────────────────────────────────────────────────────────────────────
 BINDING = ("entries", "committed", "memo_hits")
 
@@ -482,13 +539,26 @@ if REMEASURE or REBASELINE:
         unevaluated.append("tier 2 (the ratchet) could not run: the pinned sample is not checked out")
     elif not os.path.isfile(GENERATED_PARSER):
         unevaluated.append("tier 2 (the ratchet) could not run: the generated parser is absent")
+    elif probe_fp_code == 1:
+        # ⛔ REFUSE BEFORE MEASURING, not after (`ENGINE-UNIVERSAL-SERVICES.24` (b)). Running the
+        # instrument first and judging the numbers afterwards is how the wrong binary got measured
+        # in the first place: the numbers look plausible, and on this ratchet a FALL reads as an
+        # improvement worth promoting.
+        fail("tier 2 REFUSES to re-measure: the probe that would produce the numbers cannot be "
+             "confirmed to embed the parser this baseline pins.\n"
+             + "".join(f"        {l}\n" for l in probe_fp_msg.splitlines()[:8])
+             + "      Rebuild the probe and re-run. A measurement taken with the wrong binary "
+               "cannot be compared with this baseline, and a FALL here would read as an "
+               "improvement worth promoting.")
+    elif probe_fp_code == 3:
+        unevaluated.append("tier 2 (the ratchet) could not run: no parseability_probe is built")
     else:
         scratch = os.path.join(ROOT, STATE, "scratch")
         shutil.rmtree(scratch, ignore_errors=True)
         os.makedirs(scratch, exist_ok=True)
         print("parse-cost-ratchet: re-measuring the pinned sample (~2.5 min) ...", file=sys.stderr)
         proc = subprocess.run([sys.executable, INSTRUMENT, "--outdir", scratch],
-                              capture_output=True, text=True)
+                              capture_output=True, text=True, env=GATE_ENV)
         if proc.returncode != 0:
             print("parse-cost-ratchet: REFUSING — the instrument would not run:", file=sys.stderr)
             print((proc.stderr or proc.stdout).strip(), file=sys.stderr)
@@ -543,22 +613,27 @@ if REMEASURE or REBASELINE:
             print(f"parse-cost-ratchet: REBASELINED — {ART} now records this measurement.",
                   file=sys.stderr)
 elif not stale:
-    # ⛔ ENGINE-UNIVERSAL-SERVICES.24 (c) — THIS NOTE USED TO OVERSTATE ITS OWN GUARANTEE, and the
-    # overstatement was DEMONSTRATED rather than argued. It read "…so the measurement cannot have
-    # moved", which is a claim about the whole pipeline; the identity table pins four INPUTS
-    # (grammar, generated parser, instrument, sample files) and NOT the executable that produces the
-    # numbers — `DEFAULT_PROBE = rust/target/release/parseability_probe`, an untracked build artifact
-    # nothing hashes and nothing ties to the parser it was compiled from. `.20` slice 4 built a
-    # release probe from an experimental arm (guard emission suppressed) and, with that binary on
-    # disk, this note printed verbatim while `nm … | grep -c _lr_guard` read 0 against a pinned
-    # parser declaring 6. A gate that overstates its guarantee is the failure `.21` was opened for,
-    # one surface over — so it now says exactly what it proved and names what it did not.
-    notes.append("tier 2 (the re-measure) did not run, and did not need to: every INPUT the "
-                 "binding metric depends on is byte-identical to the baseline's. ⛔ That bounds the "
-                 "INPUTS, not the pipeline: the probe BINARY that computes the numbers is untracked "
-                 "and unpinned, so a probe built from a different parser would be measured without "
-                 "this tier noticing (ENGINE-UNIVERSAL-SERVICES.24, demonstrated live). "
-                 "Force a re-measure with PGEN_PARSE_COST_REMEASURE=1.")
+    # ⛔ THIS NOTE HAS BEEN WRONG ONCE AND NARROW TWICE, AND THE HISTORY IS THE ARGUMENT FOR
+    # KEEPING IT EXACT. It originally read "…so the measurement cannot have moved" — a claim about
+    # the whole PIPELINE made by a table that pins four INPUTS. `.20` slice 4 demonstrated the gap
+    # live: a release probe built from a guard-suppressed arm, this note printing verbatim, and
+    # `nm … | grep -c _lr_guard` reading 0 against a pinned parser declaring 6.
+    # `.24` (c) narrowed it to the inputs and NAMED the unpinned executable; `.24` (b) then closed
+    # the gap, so the sentence below is the first version that describes a property the gate
+    # actually holds — the probe is now fingerprinted (arm 5) and tier 2 refuses on a mismatch.
+    # ⛔ It still does not claim the FUSED graph: the binding counters observe the PROTOCOL graph,
+    # which is a limit of the metric and not of this check.
+    probe_clause = {
+        0: ("and the probe that would take the measurement provably embeds that same parser "
+            "(arm 5, ENGINE-UNIVERSAL-SERVICES.24)"),
+        1: ("⛔ but the probe on disk could NOT be confirmed to embed it — see the note above; "
+            "tier 2 will REFUSE until that is resolved"),
+        3: ("⚠️ the probe is not built, so arm 5 could not confirm which parser a re-measure "
+            "would use; tier 2 would report the same"),
+    }.get(probe_fp_code, "⚠️ arm 5 did not return a verdict this reader knows")
+    notes.append(f"tier 2 (the re-measure) did not run, and did not need to: every INPUT the "
+                 f"binding metric depends on is byte-identical to the baseline's, {probe_clause}. "
+                 f"Force a re-measure with PGEN_PARSE_COST_REMEASURE=1.")
 
 # ── verdict ─────────────────────────────────────────────────────────────────────────────────────
 for u in unevaluated:

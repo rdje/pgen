@@ -1,0 +1,27 @@
+===========================================================================
+ENGINE-UNIVERSAL-SERVICES.24 — the SIZE and DIRECTION of a wrong-probe error
+===========================================================================
+sample (derived from docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/entries.tsv):
+  breadth	stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_wrap_2x1.v
+  breadth	stimuli/sv/subs/Surelog/tests/ExpectStmt/dut.sv
+  breadth	stimuli/sv/subs/Surelog/tests/HierPathCont/dut.sv
+  hot	stimuli/sv/subs/Surelog/tests/BlackBePipeInt/dut.sv
+
+-- the SHIPPED probe (embeds the parser on disk) ---------------------------
+shipped:                     parse-cost: 4 files — BINDING entries=11,240,430 committed=1,227,331 failed_speculation=10,013,099 memo_hits=5,160,720 (lr-family 376,759); ADVISORY parse=1371 ms over 1 hot files (floor 7.7 ms/invocation)
+
+-- the .20 slice-4 ARM (guard emission suppressed) -------------------------
+⛔ needs PGEN_PARSE_COST_ALLOW_PROBE_MISMATCH=1 — the guard refuses it otherwise, which
+   is the property this whole leaf ships.
+arm3:                        parse-cost: 4 files — BINDING entries=762,345 committed=32,521 failed_speculation=729,824 memo_hits=345,607 (lr-family 19,650); ADVISORY parse=57 ms over 1 hot files (floor 10.0 ms/invocation)
+
+rule entries, shipped probe : 11240430
+rule entries, arm3 probe    : 762345
+ratio shipped/arm3          : 14.7×
+direction                   : the wrong probe reads LOWER — a FALL, which this ratchet reports as an IMPROVEMENT worth promoting
+
+-- the STAMP: a mismatched measurement must say so in its own artifact -----
+  ✓ arm3     advisory.json probe_parser_matches_generated = False (expected False); probe_parser_sha256 = null…
+  ✓ shipped  advisory.json probe_parser_matches_generated = True (expected True); probe_parser_sha256 = 46bc8a56469a0abd…
+
+⭐ both artifacts declare which parser their executable carried.

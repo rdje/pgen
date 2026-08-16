@@ -1,0 +1,31 @@
+===========================================================================
+ENGINE-UNIVERSAL-SERVICES.24 (b) — probe-fingerprint arm, RED probes
+===========================================================================
+instrument:   stimuli/sv/corpus_parse_cost.py
+gate:         scripts/check_parse_cost_ratchet.sh
+parser:       generated/systemverilog_parser.rs  sha256 46bc8a56469a0abd…
+real probe:   rust/target/release/parseability_probe
+arm3 fixture: rust/target/lr_ab_arms/probe_arm3
+
+-- REAL-BINARY arms (the incident, replayed) -------------------------------
+  ✓ GREEN real release probe             exit 0 (expected 0) — the shipped probe embeds the parser on disk, so the REDs are not vacuous
+  ✓ RED 1 the .20 slice-4 arm3 binary    exit 1 (expected 1) — THE INCIDENT: the guard-suppressed binary is refused, not measured
+
+-- STUB arms (the payload paths a real rebuild cannot reach cheaply) -------
+  ✓ GREEN 2 stub with the LIVE digest    exit 0 (expected 0) — a stub printing the right digest PASSES — the REDs below fail on payload, not on being stubs
+  ✓ RED 2 a DIFFERENT parser digest      exit 1 (expected 1) — the comparison itself fires — the path arm3 cannot reach, because it predates the flag
+  ✓ RED 3 built with NO SV parser        exit 1 (expected 1) — 'not measured' is its own verdict and never reads as a match
+  ✓ RED 4 payload schema moved           exit 1 (expected 1) — a reader that outlived its producer refuses instead of unpacking it anyway
+  ✓ RED 5 a placeholder, not a digest    exit 1 (expected 1) — a stand-in is REFUSED, never compared — else it would read as 'wrong parser'
+  ✓ RED 6 a probe predating the flag     exit 1 (expected 1) — usage-on-stdout is diagnosed as an old binary, with 'rebuild it' as the act
+  ✓ RED 7 the probe exits non-zero       exit 1 (expected 1) — a refusing probe is a refusing check, never a silent pass
+  ✓ RED 8 no probe on disk at all        exit 3 (expected 3) — NOT EVALUATED is its own exit code — a tree with no probe is not a clean tree
+
+-- GATE arms (the property acceptance (b) actually names) ------------------
+  ✓ GREEN 3 gate tier 1, right probe     exit 0 (expected 0) — the gate passes on the real tree with the real probe
+  ✓ RED 9 gate tier 1 NOTES a mismatch   exit 0 (expected 0) — tier 1 measures nothing, so it warns rather than blocking every commit
+  ✓ RED 10 gate tier 2 REFUSES           exit 1 (expected 1) — ACCEPTANCE (b): the re-measure refuses BEFORE it measures one file
+  ✓ RED 11 escape hatch cannot reach it  exit 1 (expected 1) — the operator override is stripped by the gate — the tracked-reference path has no hatch
+
+14 passed, 0 failed.
+⭐ every refusal in the probe-fingerprint arm has now been OBSERVED firing.

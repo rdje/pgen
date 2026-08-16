@@ -1,5 +1,64 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0066 — the size of a gap is not what decides between a footnote and a refusal; the DIRECTION is
+
+**1. ⭐⭐ I INHERITED THIS LEAF'S OWN "blast radius is NOT alarming" AND IT WAS THE WRONG FRAME.**
+Slice 1 priced the unpinned probe as latent: tier 1 computes no measurement, so no commit can be
+misled. True, and it hides the question that mattered. `PARSE-COST-RATCHET` breaches on a **RISE**;
+a fall prints *"an improvement — promote it deliberately so the ratchet tightens"*. So I measured
+which way the error actually travels: the guard-suppressed arm reports **762,345** rule entries
+against the shipped probe's **11,240,430** on the same four files — **14.7× LOWER**. That is not a
+gap that hides a wrong binary, it is a gap that **rewards** one and invites it into the baseline.
+⇒ before filing an unguarded input as *"latent, small radius"*, work out which way an error travels
+through the verdict. Toward PASS is not latent; it is silently active.
+**PROMOTED →** [[a-one-sided-gate-rewards-the-instrument-that-under-reports]].
+
+**2. ⛔⛔ A THIRD WAY A CONTROL CAN BE INERT — the arm is right, the fixture is right, and something
+ELSE supplies the verdict.** My 14-arm suite's `RED 10`/`RED 11` both assert *"the gate exits 1"*.
+On the first run they passed — and were worthless, because the same run's `GREEN 3` had FAILED: my
+edit to the instrument had staled the baseline, so the gate was already exiting 1 for an unrelated
+reason. A gate with one exit code for every kind of failure cannot tell an arm WHY it went red, so
+an arm asserting only the code is conditional on nothing else being broken — which is precisely
+what you do not know while building a fix. The GREEN control is the only reason I caught it.
+⇒ every RED suite needs a GREEN arm on the same path whose failure invalidates the run; resolve the
+baseline first and re-run; and assert the REASON (grep the refusal text, keep a per-arm transcript)
+rather than the exit status alone. **PROMOTED →** [[a-check-whose-inputs-all-pass-has-not-been-tested]]
+(new third section, alongside the predicate and fixture versions).
+
+**3. The cheap fix already had its hook declared — I just had to look.** The leaf framed the choice
+as *"hash the probe binary"* vs *"emit a fingerprint into the parser"*, and slice 1 found a third
+option: compute it in `build.rs`. What makes that work is not cleverness, it is that `build.rs`
+**already** resolved every generated parser and **already** emitted `cargo:rerun-if-changed` for
+each — the dependency edge the fix needs was present and unused. ⇒ before adding a mechanism, check
+whether the edge you need is already declared somewhere; the difference here was *zero generated
+bytes* versus re-baselining six byte-identity controls and a reproducibility doctrine.
+
+**4. ⚠️ Cargo builds build scripts at `opt-level = 0` in EVERY profile — including release.** I
+shipped the hashing, measured it, and it cost **5.5 s** per build-script run over the 236 MB of
+generated parsers (5.48/5.48/5.51). `[profile.dev.build-override]` + `[profile.release.build-override]`
+`opt-level = 2` takes it to **0.39 s** — **14.1×**. Slice 1's estimate of *"~0.4 s per parser
+rebuild"* happened to be right for the SV parser alone and only under optimization. ⇒ a "cheap"
+check that is not actually cheap gets deleted later by someone with a deadline; measure the thing
+you just added on the profile it will really run under, not the one you imagined.
+
+**5. Absent must not look like wrong.** A build with no parser on disk leaves the env var UNSET
+(`option_env!`), and the reader says *"built with no such parser"*. A placeholder digest would have
+compared unequal and read as *"the probe embeds a different parser"* — sending the next reader to
+audit the parser instead of the build. Two states, two messages, because they call for opposite
+acts.
+
+**6. Let the legitimate act happen, and make it leave a mark.** Measuring an experimental arm on
+purpose is a workflow this campaign runs constantly, so an unconditional refusal would have been
+worked around within a week. The override exists and **stamps the mismatch into `advisory.json`**;
+the gate strips the variable from the environment it hands the instrument. An escape hatch reachable
+from the path whose output becomes the tracked reference is not an escape hatch.
+
+**7. Scope hygiene, twice.** (a) `rustfmt` also reformatted three PRE-EXISTING hunks in the file I
+was editing; I reverted them, so the diff carries this slice and nothing else. (b) I found a real
+`ZeroDivisionError` in `write_report` while building the reproduction — in a file this slice already
+edits — and **routed it to `.30` rather than folding it in**, because an unrelated fix inside a slice
+whose central claim is *"entries.tsv byte-identical"* weakens both.
+
 ## 2026-08-16 - PGEN-CI-PARITY-GATE-ROT-0033 — a control you have never seen fail is not ground truth, and mine were not
 
 **1. ⭐⭐ THE CONTROLS I WROTE TO PROVE THE FIX WERE THEMSELVES UNFALSIFIABLE — three of six.** The

@@ -8,7 +8,7 @@ use pgen::ast_pipeline::{
 use pgen::parser_registry;
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`; dump support `SV-AST-SHAPE-FIDELITY.2.4`) parse `--parse` input — or dump the AST of `--parse-dump-ast[-pretty]` input — from an ALTERNATE start symbol (e.g. `library_text`, or a PEG-shadowed expression-position rule) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative or shadowed rule (unreachable from the default entry) be reproduced/traced/AST-dumped in isolation. AST-dump `--entry-rule` is currently wired for `systemverilog` only. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots.\n--dump-ast-with-coverage  : (`ENGINE-UNIVERSAL-SERVICES.22` (b)) `--parse-dump-ast[-pretty]` only. Dump the AST of a parse run with TRANSACTIONAL COVERAGE enabled — the exact configuration the TOOLBOX 3.4/3.5 dumps measure under — so it can be compared against a bare parse's AST. Without it the dump path always runs `bare_parse = true` (the fused `cascade_*` graph), and passing `--dump-rule-outcome-counts-json` beside it does NOT change that: the coverage call lives in the `--parse` detail macro, so both arms come out bare and agree for the wrong reason. SystemVerilog only, and it REFUSES on any other grammar or alongside `--entry-rule` rather than silently dumping bare."
+    "Usage:\n  parseability_probe --parser-fingerprint\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`; dump support `SV-AST-SHAPE-FIDELITY.2.4`) parse `--parse` input — or dump the AST of `--parse-dump-ast[-pretty]` input — from an ALTERNATE start symbol (e.g. `library_text`, or a PEG-shadowed expression-position rule) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative or shadowed rule (unreachable from the default entry) be reproduced/traced/AST-dumped in isolation. AST-dump `--entry-rule` is currently wired for `systemverilog` only. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots.\n--parser-fingerprint      : (`ENGINE-UNIVERSAL-SERVICES.24` (ii′)) print, as JSON on stdout, the sha256 of every generated parser THIS BINARY was compiled against — computed by `build.rs`, which already `rerun-if-changed`s each resolved parser. Answers the question a source-only identity table cannot: which parser does the executable that produces the numbers actually embed? Consumed by `stimuli/sv/corpus_parse_cost.py`, which REFUSES to measure when the probe's SystemVerilog digest differs from the parser on disk.\n--dump-ast-with-coverage  : (`ENGINE-UNIVERSAL-SERVICES.22` (b)) `--parse-dump-ast[-pretty]` only. Dump the AST of a parse run with TRANSACTIONAL COVERAGE enabled — the exact configuration the TOOLBOX 3.4/3.5 dumps measure under — so it can be compared against a bare parse's AST. Without it the dump path always runs `bare_parse = true` (the fused `cascade_*` graph), and passing `--dump-rule-outcome-counts-json` beside it does NOT change that: the coverage call lives in the `--parse` detail macro, so both arms come out bare and agree for the wrong reason. SystemVerilog only, and it REFUSES on any other grammar or alongside `--entry-rule` rather than silently dumping bare."
 }
 
 /// `SV-CORPUS-GRAD.12c.1` — read the input as USER SOURCE TEXT.
@@ -733,6 +733,77 @@ fn command_parse(
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
+/// `ENGINE-UNIVERSAL-SERVICES.24` (ii′) — the build-time parser fingerprint, one row per generated
+/// parser this binary was compiled against.
+///
+/// `build.rs` hashes each generated parser it resolves and publishes the digest as
+/// `PGEN_<FAMILY>_PARSER_SHA256`; this mode reads them back. It answers the one question the
+/// `PARSE-COST-RATCHET` identity table could not: **which parser does the executable that produces
+/// the numbers actually embed?** The table pins the grammar, the parser file, the instrument and
+/// the sampled inputs — all SOURCES — while the probe binary itself is an untracked build artifact
+/// nothing hashed.
+///
+/// ⛔ `option_env!` and not `env!`: a build with no generated parser on disk must still produce a
+/// working binary that says the fingerprint is UNAVAILABLE. Compiling it away instead would make a
+/// cold clone unbuildable, and defaulting it to a placeholder would make "not measured" look
+/// exactly like "wrong parser".
+const PARSER_FINGERPRINTS: &[(&str, Option<&str>)] = &[
+    ("ebnf", option_env!("PGEN_EBNF_PARSER_SHA256")),
+    ("json", option_env!("PGEN_JSON_PARSER_SHA256")),
+    ("regex", option_env!("PGEN_REGEX_PARSER_SHA256")),
+    (
+        "rtl_const_expr",
+        option_env!("PGEN_RTL_CONST_EXPR_PARSER_SHA256"),
+    ),
+    (
+        "rtl_frontend",
+        option_env!("PGEN_RTL_FRONTEND_PARSER_SHA256"),
+    ),
+    ("scratch", option_env!("PGEN_SCRATCH_PARSER_SHA256")),
+    (
+        "systemverilog",
+        option_env!("PGEN_SYSTEMVERILOG_PARSER_SHA256"),
+    ),
+    (
+        "systemverilog_preprocessor",
+        option_env!("PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_SHA256"),
+    ),
+    ("vhdl", option_env!("PGEN_VHDL_PARSER_SHA256")),
+];
+
+/// The dump contract version for `--parser-fingerprint`. Bump it when the SHAPE changes, so a
+/// consumer that outlives this schema refuses instead of positionally mis-reading it.
+const PARSER_FINGERPRINT_VERSION: u32 = 1;
+
+#[derive(Debug, Serialize)]
+struct ParserFingerprintReport {
+    pgen_parser_fingerprint_version: u32,
+    /// family -> sha256 of the generated parser this binary compiled against.
+    parsers: std::collections::BTreeMap<String, String>,
+    /// families whose parser was absent at build time, so this binary embeds none.
+    absent: Vec<String>,
+}
+
+fn command_parser_fingerprint() -> Result<()> {
+    let mut parsers = std::collections::BTreeMap::new();
+    let mut absent = Vec::new();
+    for (family, digest) in PARSER_FINGERPRINTS {
+        match digest {
+            Some(d) => {
+                parsers.insert((*family).to_string(), (*d).to_string());
+            }
+            None => absent.push((*family).to_string()),
+        }
+    }
+    let report = ParserFingerprintReport {
+        pgen_parser_fingerprint_version: PARSER_FINGERPRINT_VERSION,
+        parsers,
+        absent,
+    };
+    println!("{}", serde_json::to_string(&report)?);
+    Ok(())
+}
+
 fn main() -> Result<()> {
     // `SV-CORPUS-GRAD.8c.3` — run the ENTIRE probe body on a dedicated
     // 256 MiB-stack thread so the generated parsers' 4096-frame recursion
@@ -750,6 +821,19 @@ fn main() -> Result<()> {
 
 fn probe_main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
+    // `ENGINE-UNIVERSAL-SERVICES.24` (ii′) — handled BEFORE the arity check, because it is the one
+    // mode that takes no operand: it reports what this binary was built from, not what it parses.
+    if args.len() >= 2 && args[1] == "--parser-fingerprint" {
+        if args.len() != 2 {
+            eprintln!("{}", usage());
+            eprintln!();
+            eprintln!(
+                "--parser-fingerprint takes no arguments (it reports this binary's own build)"
+            );
+            std::process::exit(2);
+        }
+        return command_parser_fingerprint();
+    }
     if args.len() < 3 {
         eprintln!("{}", usage());
         std::process::exit(2);

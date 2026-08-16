@@ -123,3 +123,35 @@ code would make this arm fail — and have I run it?"** If no such edit exists, 
 documentation. Related: [[deriving-a-control-from-the-producer-is-not-the-same-as-observing-it]]
 (a control read off the emitting source is still a string you typed) and
 [[a-negative-control-can-disable-the-assertion-it-is-testing]].
+
+## ⛔⛔ The third version: the arm is right, the fixture is right, and something ELSE supplies the verdict
+
+Predicate and fixture were the first two ways an arm can be inert. `ENGINE-UNIVERSAL-SERVICES.24`
+slice 2 (2026-08-17) hit a third, and it is the sneakiest, because nothing about the arm is wrong.
+
+A suite of 14 arms proved a gate refuses when the measuring binary embeds the wrong parser. Two of
+them — *"tier 2 REFUSES"* and *"the operator override cannot reach the gate"* — assert the gate
+exits **1**. On the first run they passed. They were **worthless**: the same run's GREEN control
+("the gate passes on the real tree with the real probe") had FAILED, because editing the instrument
+had staled the baseline and the gate was already exiting 1 for *that* reason. Two REDs green on a
+co-occurring failure, inside a suite written to attribute a cause.
+
+**A gate with one exit code for every kind of failure cannot, by itself, tell an arm WHY it went
+red.** So an arm asserting only `exit == 1` is conditional on nothing else in the system being
+broken at the same time — and "nothing else is broken" is exactly what you do not know while
+building a fix.
+
+Three cheap remedies, in increasing strength:
+
+1. ⭐ **Every RED suite needs a GREEN arm on the same path, and the GREEN arm's failure must
+   invalidate the run.** Here it did its job perfectly — it was the only reason the two inert REDs
+   were caught rather than published as proof.
+2. **Order matters: resolve the baseline first, re-run second.** The suite was re-run after the
+   rebaseline, and only then is exit 1 attributable.
+3. ⭐⭐ **Assert the REASON, not just the code.** Grep the refusal text (or a stable marker) rather
+   than the exit status. A transcript of what each arm actually printed —
+   `probe_fingerprint_gate/detail.txt` — is what let the attribution be *checked* afterwards
+   instead of assumed.
+
+⇒ add to the question above: **"if something unrelated were also broken right now, would this arm
+still pass — and would I be able to tell?"**

@@ -21,6 +21,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 - [Predicate Self-Explaining Trace](#predicate-self-explaining-trace)
 - [Workflow Recipes](#workflow-recipes)
 - [Library Plumbing (`--lib-in`, `--lib-out`)](#library-plumbing---lib-in---lib-out)
+- [Which Parser Is In This Binary? (`--parser-fingerprint`)](#which-parser-is-in-this-binary---parser-fingerprint)
 - [Environment Variables](#environment-variables)
 - [Cost / Performance](#cost--performance)
 
@@ -43,6 +44,8 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 | `--dump-rule-call-counts-exclude R1,R2,...` | Hide noisy rules from dashboard | [Exclusion](#excluding-noisy-rules-from-the-dashboard) |
 | `--dump-rule-entry-counts-json FILE` | Write exact per-rule entry counts as JSON after `--parse` | [Entry-count dump](#machine-readable-entry-counts---dump-rule-entry-counts-json) |
 | `--dump-rule-outcome-counts-json FILE` | Write raw + COMMITTED + memo-HIT per-rule counts as JSON (`raw − committed` = failed-speculation work; `raw − memo_hits` = body executions) | [Outcome-count dump](#committed-vs-discarded-outcome-counts---dump-rule-outcome-counts-json) |
+| `--dump-ast-with-coverage` | Dump the AST of a parse run with transactional coverage ENABLED (the configuration the coverage dumps measure under), so it can be compared against a bare parse's | [Outcome-count dump](#committed-vs-discarded-outcome-counts---dump-rule-outcome-counts-json) |
+| `--parser-fingerprint` | Print, as JSON, the sha256 of every generated parser **this binary was compiled against** | [Parser fingerprint](#which-parser-is-in-this-binary---parser-fingerprint) |
 | `--max-bytes N` | Bound AST dump size | [Basic](#basic-usage) |
 | `--lib-in DIR` | Read `@import_from_library` artifacts from `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
 | `--lib-out DIR` | Write `@export_to_library` artifacts to `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
@@ -657,6 +660,54 @@ parseability_probe --parse <grammar> file2.sv --lib-in artifacts/
 ```
 
 Both default to `None` (no library I/O), keeping single-file behaviour byte-identical to runs without these flags.
+
+---
+
+## Which Parser Is In This Binary? (`--parser-fingerprint`)
+
+The probe is an **untracked build artifact**. Its path says where it is; nothing about the path
+says which generated parser is compiled into it. That distinction stops being academic the moment
+you build an experimental arm:
+
+```bash
+$ parseability_probe --parser-fingerprint
+{"pgen_parser_fingerprint_version":1,"parsers":{"ebnf":"97c1753306787edb…","systemverilog":"46bc8a56469a0abd…", …},"absent":[]}
+```
+
+Each value is the **sha256 of the generated parser source this binary was compiled against**,
+computed by `rust/build.rs` — which already declares `cargo:rerun-if-changed` for every parser it
+resolves, so it re-runs exactly when one moves — and published as `PGEN_<FAMILY>_PARSER_SHA256`.
+Families whose parser was absent at build time appear in `absent` rather than carrying a
+placeholder digest: *"not measured"* and *"wrong parser"* are different answers and must not look
+alike.
+
+Compare it against the tree with:
+
+```bash
+python3 stimuli/sv/corpus_parse_cost.py --verify-probe-fingerprint
+#   exit 0 = the probe embeds the parser on disk
+#   exit 1 = it does not          exit 3 = NOT EVALUATED (no probe built)
+```
+
+### Why this exists
+
+`PARSE-COST-RATCHET`'s baseline pins four inputs — the grammar, the generated parser, the
+instrument, and a digest over the sampled corpus files. All four are **sources**. The numbers are
+produced by the probe, which nothing hashed. With a release probe on disk built from an arm that
+suppressed left-recursion guard emission, the gate reported a fresh baseline while
+`nm … | grep -c _lr_guard` read `0` against a pinned parser declaring `6`.
+
+The gap failed in the **passing** direction, which is why it is now a refusal rather than a note in
+a document: measured on four sampled files, that binary reports **762,345** rule entries where the
+shipped one reports **11,240,430**. A ratchet breaches on a *rise* — a fall reads as an improvement
+worth promoting, so the wrong binary invited a rebaseline that would have lowered the ratchet
+permanently to a number no real parser produces.
+
+Every measuring mode of the cost instrument is now gated on this fingerprint. To measure an
+experimental arm deliberately, set `PGEN_PARSE_COST_ALLOW_PROBE_MISMATCH=1`: the refusal becomes a
+warning and the mismatch is stamped into `advisory.json`, so the result cannot later pass for a
+baseline. The gate strips that variable from the environment — the path whose output becomes the
+tracked reference does not get an escape hatch.
 
 ---
 

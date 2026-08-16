@@ -117,6 +117,22 @@ typed-arena = "2.0.2"
 # state on consumers (the README allocator architecture is unaffected).
 smallvec = "1"
 
+[build-dependencies]
+# ENGINE-UNIVERSAL-SERVICES.24 (ii′) — the BUILD-TIME parser fingerprint. `build.rs` already
+# `rerun-if-changed`s every generated parser it resolves, so it re-runs exactly when one moves;
+# hashing it there lets each binary report which parser it embeds (`parseability_probe
+# --parser-fingerprint`), which is what closes the `PARSE-COST-RATCHET` gap where the identity
+# table pinned four INPUTS and not the EXECUTABLE that produces the numbers.
+#
+# ⛔ sha256 SPECIFICALLY, and not a hand-rolled hash: the four existing ratchet identity rows are
+# sha256, and a fifth quantity in a different algorithm cannot be compared against them — the
+# Python side re-hashes the same file with `hashlib.sha256` and the two must agree byte for byte.
+# `std`'s `DefaultHasher` is ruled out at the source: its algorithm is explicitly not stable
+# across releases, so a fingerprint built on it would rot with the toolchain instead of with the
+# parser. This is the crate's ONLY build-dependency, and it is deliberately a build-dependency
+# rather than a dependency — nothing at run time hashes anything.
+sha2 = "0.10"
+
 [features]
 default = ["normal"]
 normal = []
@@ -147,6 +163,23 @@ never_free_arena_perf = []
 [profile.release]
 lto = "fat"
 codegen-units = 1
+
+# ENGINE-UNIVERSAL-SERVICES.24 (ii′) — build SCRIPTS optimized, in both profiles.
+#
+# ⛔ MEASURED, not assumed. Cargo's default for a build script is `opt-level = 0` in EVERY
+# profile, and `build.rs` now sha256s the 236 MB of generated parsers it resolves. Unoptimized,
+# `sha2`'s portable backend runs that in **5.5 s** (3 runs: 5.48/5.48/5.51) — a cost paid on
+# every build-script re-run, i.e. every time a generated parser moves. Optimized it is **0.39 s**
+# (0.39/0.39/0.39), a **14.1×** reduction, which is the difference between a fingerprint nobody
+# notices and one somebody wants removed.
+#
+# `opt-level = 2` rather than 3: it captures the win (the gap is the vectorized compression
+# function, not inlining depth) without pulling build-script compile time up with it.
+[profile.dev.build-override]
+opt-level = 2
+
+[profile.release.build-override]
+opt-level = 2
 
 [[example]]
 name = "pgen_pcre2_compile_ratio"
