@@ -1,5 +1,26 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0058 (director: "did you adopt docs/CLAIM_VERIFICATION.md? you wrote it but don't live by it"; DOCS only, ZERO code/grammar/generated/gate bytes)
+
+- ⛔⛔⛔ **MEASURED ANSWER: I WROTE THAT STANDARD AND NEVER ENFORCED IT.**
+  `grep -c "CLAIM-VERIFICATION" scripts/check_doctrines.sh` → **0**; no `scripts/check_claim*.sh`;
+  nothing in the hooks, Makefile or workflows invokes it. Of the **five** portable architectures its
+  own §0 table lists, it is the **only one with no registered check** — and it is the one whose
+  subject is *"is this number earned?"*.
+- ⛔⛔ **§4 is the specific rule I broke, and it would have caught two of the four findings by
+  FORMAT.** §4: *"State the claim, then the legs that earn it. When a leg is missing, NAME it."* My
+  callout stated four claims and named **zero** legs. Under §5A's claim tag, F1 would have had to
+  carry the `falsify:` leg that refutes its own novelty, and F2 could not have published `0.45 %`
+  without its counterpart. ⇒ not failures of care that a reminder fixes — failures to use a format I
+  had already written and never wired.
+- ⚠️ **The control that makes this diagnosis real: the mechanized parts HELD.** §5B (derived-or-gated
+  constants) is live in `PARSE-COST-RATCHET`'s identity tier and caught the stale provenance; §6's
+  untracked-producer rule was honoured (every instrument tracked with its result); §4's auditor's
+  asymmetry was honoured at `.27` (left CONTESTED rather than adjudicated on one instrument). Only
+  the leg left as PROSE failed. That is `DOCTRINE_ENFORCEMENT.md` §1 with me as the subject.
+- Routed into `.28` acceptance (a2): **register `CLAIM-VERIFICATION` as the 21st doctrine**, with
+  §5A's claim tag as the mechanizable core. Still PARKED behind the SV lane lock.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0057 (director question: "will the record prevent it, or are we doomed to see it again?"; DOCS only, ZERO code/grammar/generated/gate bytes)
 
 - **Answer: NO, and this session measured it twice within hours.** `-0053` promoted the lesson *"a

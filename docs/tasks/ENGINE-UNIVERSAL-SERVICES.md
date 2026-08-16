@@ -7570,7 +7570,41 @@ class outright because novelty is a fact about the repository; the other two nar
 without closing them. The residual stays with the challenge, which is why its cadence is a director
 question and not an engineering one.
 
+⛔⛔⛔ **AND THE ROOT OF ALL OF IT, MEASURED AFTER THE DIRECTOR ASKED *"did you adopt
+`docs/CLAIM_VERIFICATION.md`?"*: I WROTE THAT STANDARD AND NEVER ENFORCED IT.**
+
+```
+grep -c "CLAIM-VERIFICATION" scripts/check_doctrines.sh            -> 0
+ls scripts/check_claim*.sh                                          -> No such file
+git ls-files 'scripts/*.sh' 'rust/Makefile' '.githooks/*' \
+  '.github/workflows/*.yml' | xargs grep -ln CLAIM_VERIFICATION     -> (nothing invokes it)
+```
+
+- ⛔ Its own §0 table lists **five** portable architectures. Four are mechanized —
+  task-trees, `MEMORY-ARCH`, `KNOWLEDGE-MAP`, and the twenty checks the doctrine driver runs.
+  **Claim-verification is the only one with no registered check**, and it is the one whose subject
+  is *"is this number earned?"*. Its own §5 opens *"Prose is discoverable, not enforceable"* and
+  prescribes two cheap mechanizations — **§5A the claim tag** and **§5B the derived-constant rule**.
+  §5B is applied in exactly one place (`PARSE-COST-RATCHET`'s identity tier). **§5A is applied
+  nowhere.**
+- ⛔⛔ **§4 is the specific rule I broke this session, and it is the one that would have caught two
+  of the four findings by FORMAT rather than by virtue.** §4: *"State the claim, then the legs that
+  earn it. **When a leg is missing, name it.** A claim with a named gap is usable; a claim with a
+  hidden gap is the defect."* My findings callout stated four claims and **named zero legs**. Under
+  §5A's tag, F1 would have had to carry a `falsify:` leg — the `git show … | grep` that refutes its
+  novelty — and F2 could not have published `0.45 %` without its counterpart. ⇒ these were not
+  failures of care that a reminder fixes; they were failures to use a format I had already written.
+- ⚠️ Two of the four DID satisfy the standard, which is the useful control: `.27` was left
+  **CONTESTED rather than adjudicated**, honouring §4's *auditor's asymmetry* (*"one of these two is
+  wrong, and it might be mine"*), and every instrument this session was **tracked with its result**,
+  honouring §6's *"a measured number whose producing script is untracked"*. ⇒ the parts of the
+  standard I had mechanized held; the part left as prose did not. That is `DOCTRINE_ENFORCEMENT.md`
+  §1 restated with me as the subject.
+
 **Acceptance:** (a) build `FINDING-PRIOR-ART` as an evidence check on the `DESIGN-PRIOR-ART` model;
+(a2) ⭐ **REGISTER `CLAIM-VERIFICATION` as the 21st doctrine** — the standard's own §5A claim tag,
+required on published figures, is the mechanizable core, and its absence is why (a) and (b) are
+needed at all;
 (b) decide whether the co-publication rule generalizes beyond the two doctrines that already use it;
 (c) ⛔ **DIRECTOR CALL: should the challenge become SCHEDULED** — e.g. a self-challenge pass required
 on any commit publishing a findings callout — or does making it routine destroy the adversarial
