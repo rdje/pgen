@@ -1,5 +1,52 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-CI-PARITY-GATE-ROT-0033 (leaf CI-PARITY-GATE-ROT.34 CLOSED, `.35` + `.36` NEW; ops/build-flow, ZERO code/grammar/generated/emission bytes)
+
+- ✅ **`GATE-REACHABILITY` no longer reads an error MESSAGE as an invocation.**
+  `check_generated_reproducibility.sh` prints an actionable multi-line refusal ending
+  `make -C rust SHELL=/bin/bash generated_reproducibility_gate`; the line-by-line reader took that
+  third line for a command and certified the target reachable in the **strongest** class (`git-hook`
+  = AUTOMATIC). ⛔ The sharper half: the register is a two-sided ratchet, so the false badge also
+  **BLOCKED** recording the honest `accepted-operator-invoked` row. The fix is in the READER, never
+  the message — `git diff` carries zero bytes of `check_generated_reproducibility.sh`.
+- ⭐⭐ **THE OBVIOUS FIX WAS IMPLEMENTED FIRST AND MEASURED WRONG.** A double-quote *parity* reader
+  mis-classifies **1 862 lines** across 22 gate scripts, because three live shapes break it:
+  `x="$( … )"` substitution bodies (20 scripts) that are genuinely EXECUTED, and multi-line `'…'`
+  jq/awk/perl programs (12) + heredoc payloads (13) whose stray `"` desync it. So the reader now
+  models the four contexts a shell body has — `NORMAL`, `'…'`, `"…"` (with `$(` and backticks
+  re-entering `NORMAL`), heredoc bodies — and suppresses only lines that **BEGIN** inside a quoted
+  string or payload. Blanking string INTERIORS was priced and refused: **433** lines carry both a
+  double quote and a make/script mention.
+- ⭐ **Prose is not shell.** `COMMIT.md` is read with `shell_syntax=False`: the stack model calls
+  **38 of its 204 lines** "string data" off **4** apostrophes, and misses today's six `make` lines by
+  luck alone.
+- **Result — exactly ONE row of 125 moves**, as the leaf predicted: `generated_reproducibility_gate`
+  `git-hook` → `ORPHAN` → dispositioned. Three variants (dq-only / +sq / +heredoc) each produce the
+  identical single move ⇒ the extra arms are inert on today's corpus and were chosen on semantics,
+  with the safe failure direction (a lost edge is a LOUD false orphan; a false edge is silent).
+  Gate: `OK (125 targets; 93 reachable, 31 orphan + 1 policy-only, all dispositioned; 14
+  ground-truth controls reproduced)`.
+- ⭐⭐ **Six new ground-truth arms, every one WATCHED FAILING first** — by `sed`-MUTATING the live
+  reader, never by re-typing the old one:
+  `docs/tasks/artifacts/ci_parity_gate_rot/run_gate_reachability_string_reader_probes.sh`, 8 arms.
+  ⛔ Writing them caught **three defects in this leaf's own work**: the first cut of three arms was
+  NON-DISCRIMINATING (their fixtures balanced their own quotes), i.e. controls that could not fail,
+  shipped inside the fix for exactly that disease.
+- ⚠️ **A fourth arm failed for a PRE-EXISTING reason and was ROUTED, not folded in** (`.35`):
+  `out="$(make -C rust … x)"` on ONE line yields no edge either way — `out="$(make` is eaten whole as
+  a `VAR_ASSIGN` token, leaving `-C` as the command word. Measured population: **0**.
+- ⛔⛔ **UNSOUGHT AND BIGGER (`.36`): four live surfaces publish "the AUTOMATIC tier is ZERO", and it
+  has been 14 since 2026-07-30.** Removing the false `git-hook` edge left that class empty and made
+  the 14 `ci-workflow-auto` targets obvious. Cause: `DONE-BAR.4` (director-approved) enabled `push:`
+  on the three no-regeneration lanes, so **4 of 15** workflows auto-trigger, not 1. The instrument was
+  right every run; four PROSE copies of its answer were wrong. Two inside this commit's blast radius
+  are corrected here (the script's own R2 comment; `gate-flow.md` §6, whose table this change had to
+  edit anyway); the rest are `.36`, including a register escalation that invites a director call
+  **already answered 17 days earlier**.
+- **Lockstep:** `docs/book/src/gate-flow.md` §6, `docs/book/src/operations-and-governance.md` (the
+  seventh calibration answer), the register (32 entries), `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
+  `docs/TASK_TREE.md`. All 21 doctrines PASS.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0065 (director challenge "do you still stand by findings 3 and 4?"; DOCS only, ZERO code/grammar/generated/gate bytes)
 
 - ⛔ **FINDING 3 DOES NOT FULLY SURVIVE — a session summary conflated TWO dates, and the

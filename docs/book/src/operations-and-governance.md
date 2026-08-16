@@ -296,11 +296,11 @@ the project carries a standing directive that every parser ships a live mdBook �
 so they were wired onto `mdbook_docs_gate`, which everything already runs, for
 about three seconds.
 
-The remaining thirty-one carry a recorded disposition in a tracked register, and
+The rest carry a recorded disposition in a tracked register (32 today), and
 this is a **ratchet rather than a report**: the orphan set is re-derived every
 run, an untriaged orphan fails the check, and a register entry that no longer
 names an orphan fails too, so the exemption list can neither be bypassed nor
-quietly accumulate. Twenty-eight of those dispositions are honest accepted risk —
+quietly accumulate. Most of those dispositions are honest accepted risk —
 real proof lanes deliberately left outside the aggregates because of their cost —
 and the register says so in its own text rather than implying they are covered.
 
@@ -313,6 +313,17 @@ the code. Every one was caught by requiring the output to reproduce facts the
 project had already measured. Those facts are now assertions inside the check: if
 it cannot reproduce them it reports **MISCALIBRATED** and refuses, because a
 wrong reachability number would certify the very rot it exists to find.
+
+A **seventh** answer arrived later, and it is the one that shows why those
+assertions were not enough on their own. A make target named inside a check
+script's multi-line error *message* was read as a command and certified reachable
+in the strongest class — and every one of the eight existing controls stayed green
+while it was, because they are all positive facts about real targets and the defect
+is invisible in the passing direction. It was found only because someone probed
+their own green result. The reader now models shell quoting properly; the six new
+controls added with it are synthetic, and each was watched failing against a
+deliberately mutated reader before being trusted. **A control nobody has seen fail
+is not yet ground truth.**
 
 Second, it asks `make` what a derived prerequisite list contains rather than
 re-implementing `$(wildcard)` and `$(patsubst)`. A second implementation of a

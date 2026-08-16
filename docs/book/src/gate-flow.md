@@ -505,17 +505,27 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 
 | tier | invoked by | count today |
 |---|---|---|
-| **AUTOMATIC** | a git hook, or a workflow on `push`/`pull_request` | **0** |
-| **OPERATOR** | an aggregate, or a `workflow_dispatch`-only workflow | 92 |
-| **ORPHAN** | nothing at all | 30 (+1 policy-only) |
+| **AUTOMATIC** | a git hook, or a workflow on `push`/`pull_request` | 14 |
+| **OPERATOR** | an aggregate, or a `workflow_dispatch`-only workflow | 79 |
+| **ORPHAN** | nothing at all | 31 (+1 policy-only) |
 
-> ⚠️ **The automatic tier is zero, and that is the single most important fact about
-> this flow.** Hosted Actions are paused to conserve account minutes, so 14 of the
-> 15 tracked workflows are `workflow_dispatch`-only, and the one that still
-> auto-runs (`memory-architecture-gate.yml`) runs the doctrine driver and no `make`
-> target at all. **The automatic layer covers the <!-- DOCTRINE-COUNT -->21<!-- /DOCTRINE-COUNT --> enforced doctrines and none of
-> the 123 gate targets.** Every proof lane described in this chapter runs only when
-> a human asks — the 92 "reachable" ones exactly as much as the 30 orphans.
+> ⚠️ **The automatic tier is thin, and that is the single most important fact about
+> this flow.** It was **zero** until 2026-07-30, when `DONE-BAR.4` enabled `push:`
+> on the three lanes that need no `generated/` regeneration and so run on a bare
+> checkout — `branch-protection-contract-gate`, `fixed-point-gate` and
+> `mdbook-docs-gate`. Those three, plus `parser_books_gate` and the ten per-parser
+> book gates `mdbook_docs_gate` pulls in, are the whole automatic tier.
+> The other 11 tracked workflows stay `workflow_dispatch`-only to conserve account
+> minutes, and `memory-architecture-gate.yml` — the only one also on
+> `pull_request` — runs the doctrine driver and no `make` target at all. **The
+> automatic layer covers the <!-- DOCTRINE-COUNT -->21<!-- /DOCTRINE-COUNT --> enforced doctrines and 14 of the 118 gate
+> targets.** Every other proof lane in this chapter runs only when a human asks —
+> the 79 operator-reachable ones exactly as much as the 31 orphans.
+>
+> ⛔ **Read those counts from the instrument, not from here.** Four prose copies of
+> this table's figures went stale the day `DONE-BAR.4` landed and still asserted a
+> zero automatic tier two weeks later, while `--report` had been deriving 14 on
+> every run — tracked as `CI-PARITY-GATE-ROT.36`.
 >
 > ⭐ Even that doctrine coverage was partial until 2026-07-29: the workflow named
 > five enforcers **individually**, so 8 of the then-13 registered doctrines had no
@@ -531,11 +541,27 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 > a lane is cheap enough to ride along with something people already run; it is not
 > a substitute for the automatic tier.
 
-The 31 orphan and policy-only targets each carry a recorded disposition in
+The 32 orphan and policy-only targets each carry a recorded disposition in
 `rust/test_data/grammar_quality/gate_reachability_register_v0.json`. This is a
 ratchet, not a report: the orphan set is re-derived every run, an untriaged orphan
 fails the check, and a register entry that no longer names an orphan fails too, so
 the exemption list can neither be bypassed nor quietly accumulate.
+
+⛔ **A target named inside a check script's error MESSAGE is not invoked by it, and
+reading it as an invocation is worse than cosmetic.** `check_generated_reproducibility.sh`
+prints an actionable refusal ending `make -C rust SHELL=/bin/bash
+generated_reproducibility_gate`; because that message spans lines, the line-by-line
+reader took its third line for a command and certified the target reachable in the
+strongest class. The ratchet is two-sided, so the false badge then *blocked* the
+honest `accepted-operator-invoked` disposition — a mis-classification that keeps the
+truth out of the register. `CI-PARITY-GATE-ROT.34` fixed the **reader**, never the
+message: a refusal that does not say how to fix itself is a worse refusal. The
+reader now models the four contexts a shell body has — `NORMAL`, `'…'`, `"…"` (with
+`$(` and backticks re-entering `NORMAL`) and heredoc bodies — and suppresses only
+lines that *begin* inside a quoted string or heredoc payload, so a quoted command
+word such as `bash "$ROOT/scripts/x.sh"` keeps its edge. Six synthetic ground-truth
+arms replay the defect and the three live corpus shapes a naive quote-parity fix
+breaks; each was watched failing against a mutated reader before being trusted.
 
 ---
 

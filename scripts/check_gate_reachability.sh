@@ -89,7 +89,105 @@ LEADERS = {"if", "then", "else", "elif", "do", "done", "!", "(", "{", "&&", "||"
 SQ = re.compile(r"'[^']*'")
 VAR_ASSIGN = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)=.*?scripts/([a-z0-9_]+)\.sh", re.M)
 
-def command_segments(text):
+# ⚠️⚠️ SIXTH CALIBRATION DEFECT — A MESSAGE ABOUT A COMMAND IS NOT THAT COMMAND
+# (`CI-PARITY-GATE-ROT.34`, found by `ENGINE-UNIVERSAL-SERVICES.29`(b) probing its own green result).
+# Shell comments were stripped, and single-quoted literals were neutralised — but a target named
+# inside a MULTI-LINE DOUBLE-QUOTED string was not, because the neutralisation was line-local and the
+# string spans lines. `check_generated_reproducibility.sh` prints an actionable refusal:
+#     breach "$fam moved since it was last PROVEN to re-derive from HEAD (…).
+#       Tier 1 detects MOVEMENT; only tier 2 can say whether the new state is correct:
+#         make -C rust SHELL=/bin/bash generated_reproducibility_gate"
+# Line-by-line scanning read the third line as a command whose command word is `make`, so
+# `generated_reproducibility_gate` was certified reachable in the STRONGEST class (`git-hook`, which
+# the inventory counts as AUTOMATIC) by a string in an error message. ⛔ The sharper half: the
+# register is a two-sided ratchet, so the false badge also BLOCKED recording the honest
+# `accepted-operator-invoked` disposition — a mis-classification that keeps the truth out.
+# ⛔ The fix is in the READER, never in the message: a refusal that does not say how to fix itself is
+# a worse refusal, and this repository deliberately writes them that way.
+#
+# ⭐ WHY THIS NEEDS A CONTEXT STACK AND NOT A QUOTE COUNTER — measured on the real corpus, where a
+# naive "track double-quote parity across lines" reader desynced on **1 862** lines. Three shapes,
+# all live here, all of which a parity counter gets wrong:
+#   1. the message string itself                 —  breach "… \n … make -C rust … \n …"
+#   2. `x="$( … )"` command substitution         —  the body IS executed; blanking it drops real edges
+#   3. multi-line `'…'` jq/awk/perl programs and heredoc bodies whose payload carries stray `"`
+# So the four contexts a shell body actually has are modelled: NORMAL, '…', "…" (inside which `$(`
+# and a backtick re-enter NORMAL), and heredoc bodies. Only lines that BEGIN inside a quoted string —
+# or inside a heredoc body — are suppressed; a line that begins in NORMAL is scanned exactly as
+# before, so a quoted command word (`bash "$ROOT/scripts/x.sh"`) keeps its edge. Blanking string
+# INTERIORS instead was measured and refused: 433 lines carry both a double quote and a make/script
+# mention, so interior-blanking would have dropped edges wholesale.
+# ⚠️ HONEST BOUNDS, stated rather than implied:
+#   - a heredoc genuinely piped to a shell (`bash <<EOF … make … EOF`) loses its edges. Measured
+#     today: zero such edges exist. The failure direction is safe — a lost edge yields a FALSE
+#     ORPHAN, which fails the gate loudly; a false edge is the silent one this defect was.
+#   - a same-line quoted invocation under a real RUNNER (`eval "make -C rust x"`) still counts, and
+#     should: eval executes it.
+#   - PROSE is not shell. `COMMIT.md` is scanned with `shell_syntax=False` and keeps the line-local
+#     rule, because modelling markdown punctuation as shell string state is the same category error
+#     this file already documents twice. Measured: the stack model calls 38 of COMMIT.md's 204 lines
+#     "string data" off 4 apostrophes, and misses today's six `make` lines only by luck.
+HEREDOC = re.compile(r"<<-?\s*(?:'([A-Za-z_][A-Za-z0-9_]*)'"
+                     r"|\"([A-Za-z_][A-Za-z0-9_]*)\""
+                     r"|([A-Za-z_][A-Za-z0-9_]*))")
+
+def string_data_lines(text):
+    """Indices of the physical lines that are DATA, not shell commands: every line that BEGINS
+    inside an unterminated quoted string, plus every heredoc body line."""
+    data, stack, pending, body_delim = set(), [], [], None
+    for idx, line in enumerate(text.split("\n")):
+        if body_delim is not None:                     # inside a heredoc body: payload, not shell
+            if line.strip() == body_delim:
+                body_delim = pending.pop(0) if pending else None
+            else:
+                data.add(idx)
+            continue
+        if stack and stack[-1] in ("sq", "dq"):
+            data.add(idx)
+        i, n = 0, len(line)
+        while i < n:
+            top = stack[-1] if stack else None
+            c = line[i]
+            if top == "sq":                            # no escapes inside '…'
+                if c == "'":
+                    stack.pop()
+                i += 1
+                continue
+            if c == "\\":
+                i += 2
+                continue
+            if top == "dq":                            # "…" — but $( ) and ` ` re-enter NORMAL
+                if c == '"':
+                    stack.pop()
+                elif c == "$" and line[i + 1:i + 2] == "(":
+                    stack.append("sub"); i += 2; continue
+                elif c == "`":
+                    stack.append("bt")
+                i += 1
+                continue
+            if c == "'":
+                stack.append("sq")
+            elif c == '"':
+                stack.append("dq")
+            elif c == "`":
+                stack.pop() if top == "bt" else stack.append("bt")
+            elif c == "$" and line[i + 1:i + 2] == "(":
+                stack.append("sub"); i += 2; continue
+            elif c == ")" and top == "sub":
+                stack.pop()
+            elif line.startswith("<<<", i):             # herestring, not a heredoc
+                i += 3; continue
+            elif line.startswith("<<", i):
+                m = HEREDOC.match(line, i)
+                if m:
+                    pending.append(m.group(1) or m.group(2) or m.group(3))
+                    i = m.end(); continue
+            i += 1
+        if body_delim is None and pending:
+            body_delim = pending.pop(0)
+    return data
+
+def command_segments(text, shell_syntax=True):
     """Yield (command_word, segment) for each executable segment of a shell/make body."""
     # ⚠️ FOURTH calibration defect, again caught by a ground-truth control. A backslash-continued
     # call is ONE command, but scanning line-by-line made every continuation line look like its own
@@ -101,7 +199,10 @@ def command_segments(text):
     # `clippy_on_rust_change` reachable from an aggregate, contradicting the measured fact that it
     # belongs to no aggregate and no CI workflow. Join continuations first, as the shell does.
     text = re.sub(r"\\\n\s*", " ", text)
-    for line in text.splitlines():
+    data = string_data_lines(text) if shell_syntax else set()
+    for idx, line in enumerate(text.split("\n")):
+        if idx in data:                      # string / heredoc payload — a message, not a command
+            continue
         line = SQ.sub("''", line)            # neutralise single-quoted literals (assertion needles)
         for seg in re.split(r"&&|\|\||[|;]", line):
             toks = [t.strip("`") for t in seg.strip().split()]
@@ -161,11 +262,11 @@ def add_edge(a, b):
     if b in universe and a != b:
         edges.setdefault(a, set()).add(b)
 
-def invoked_targets(text):
+def invoked_targets(text, shell_syntax=True):
     """Make targets INVOKED by this body (command position only), plus scripts it EXECUTES."""
     var_scripts = dict((m.group(1), m.group(2)) for m in VAR_ASSIGN.finditer(text))
     made, ran = set(), set()
-    for cmd, toks, seg in command_segments(text):
+    for cmd, toks, seg in command_segments(text, shell_syntax):
         is_make = cmd in ("make", "$(MAKE)") or cmd.endswith("/make")
         runner = cmd in RUNNERS or bool(SCRIPT_RE.search(cmd))
         if not (is_make or runner):
@@ -292,14 +393,19 @@ for tok in re.findall(r"[a-z0-9_]+_gate", read("rust/config/sota_exit_policy.env
 
 # (R2) a tracked hosted CI workflow.
 # ⭐⭐ A DISPATCH-ONLY WORKFLOW IS NOT AN AUTOMATIC INVOKER, AND CONFLATING THE TWO OVERSTATED THIS
-# INSTRUMENT'S OWN HEADLINE. Hosted Actions have been paused since `af85a5fd` (2026-04-14) to
-# conserve account minutes, so **14 of the 15 tracked workflows are `workflow_dispatch`-only** —
-# they run when a human decides to, exactly like an aggregate. Only `memory-architecture-gate.yml`
-# still carries `push`/`pull_request`. Reporting "reachable from something that RUNS" for a target
+# INSTRUMENT'S OWN HEADLINE. Hosted Actions were paused by `af85a5fd` (2026-04-14) to conserve
+# account minutes, leaving most tracked workflows `workflow_dispatch`-only — they run when a human
+# decides to, exactly like an aggregate. Reporting "reachable from something that RUNS" for a target
 # whose sole invoker is a paused workflow is the same category error this doctrine exists to name:
 # it can run, but nothing makes it. So the trigger set is READ from each workflow and the class is
 # split — `ci-workflow-auto` vs `ci-workflow-manual` — and the report separates what runs
 # CONTINUOUSLY from what runs when someone asks.
+# ⛔ THE TRIGGER SPLIT IS DERIVED EVERY RUN; DO NOT RE-STATE ITS RESULT IN PROSE. This comment used
+# to assert "14 of the 15 are dispatch-only; only memory-architecture-gate.yml carries push", and
+# that went stale on 2026-07-30 when `DONE-BAR.4` deliberately enabled `push:` on the three cheap
+# no-regeneration lanes (branch-protection, fixed-point, mdbook-docs) to move the AUTOMATIC tier off
+# zero. The instrument was right the whole time and four PROSE copies of its answer were wrong —
+# tracked as `CI-PARITY-GATE-ROT.36`. Read the `--report` header for the live split.
 AUTO_TRIGGERS = ("push", "pull_request", "schedule", "merge_group")
 
 def workflow_trigger_class(rel):
@@ -335,7 +441,7 @@ for p in sorted(glob.glob(os.path.join(ROOT, ".githooks/*"))) + \
 # ⭐ Tracked as its OWN class, not merged with the machine-enforced ones. A gate whose only
 # invoker is a prose instruction is exactly the class this inventory exists to surface: nothing
 # fails if it is skipped.
-made, _ = invoked_targets(read("COMMIT.md"))
+made, _ = invoked_targets(read("COMMIT.md"), shell_syntax=False)
 for callee in made:
     add_root(callee, "commit-workflow-policy")
 
@@ -425,8 +531,70 @@ for _wf, _want in (("memory-architecture-gate.yml", "ci-workflow-auto"),
     if _got != _want:
         control_failures.append(
             f"  .github/workflows/{_wf}: trigger class {_got}, expected {_want}\n"
-            f"      known because: hosted Actions were paused by af85a5fd (2026-04-14), leaving "
-            f"memory-architecture-gate.yml as the only workflow on push/pull_request")
+            f"      known because: memory-architecture-gate.yml is the E4 doctrine lane and carries "
+            f"push+pull_request; sota-exit-gate.yml is one of the lanes hosted Actions were paused "
+            f"on by af85a5fd (2026-04-14) and is still workflow_dispatch-only. ⛔ These two are "
+            f"pinned because they bracket the split — they are NOT a claim about how many workflows "
+            f"are auto-triggered, which DONE-BAR.4 changed on 2026-07-30 and is derived every run")
+
+# ⭐⭐ AND THE STRING-VS-COMMAND READER GETS ITS OWN ARMS, ON SYNTHETIC BODIES (`CI-PARITY-GATE-ROT.34`).
+# The six controls above are all POSITIVE facts about real targets, and the sixth calibration defect
+# proves why that is not enough: a target named only inside an error message came out `git-hook`, and
+# every real-target control stayed green while it did. The defect is invisible in the PASSING
+# direction — it was found only because someone probed their own green result. So the RED case is
+# replayed here directly, alongside the three live corpus shapes a naive fix breaks, and both
+# directions run on every invocation (microseconds, no subprocess).
+# ⛔ Each arm was OBSERVED firing before being trusted, by MUTATING the live reader rather than by
+# describing the old one: docs/tasks/artifacts/ci_parity_gate_rot/
+# run_gate_reachability_string_reader_probes.sh (8 arms — BASE + 6 proven-RED + the whole-inventory
+# diff), transcript alongside it in gate_reachability_string_reader_probes.txt.
+SYNTAX_CONTROLS = [
+    ("RED — a target named only in a multi-line error message is NOT an invocation",
+     'breach "$fam moved since it was last PROVEN to re-derive from HEAD.\n'
+     '      Tier 1 detects MOVEMENT; only tier 2 can say whether the new state is correct:\n'
+     '        make -C rust SHELL=/bin/bash probe_synthetic_gate"\n',
+     set(),
+     "CI-PARITY-GATE-ROT.34: this is the verbatim shape from check_generated_reproducibility.sh "
+     "that certified generated_reproducibility_gate as git-hook-reachable"),
+    ("GREEN — the same target genuinely invoked is still an invocation",
+     '\tmake -C rust SHELL=/bin/bash probe_synthetic_gate\n',
+     {"probe_synthetic_gate"},
+     "a fix that suppressed the real invocation too would 'pass' the RED arm by going blind"),
+    ("GREEN — the body of a multi-line command substitution still executes",
+     'out="$(\n  make -C rust SHELL=/bin/bash probe_synthetic_gate\n)"\n',
+     {"probe_synthetic_gate"},
+     "corpus shape 2: the `x=\"$(` … `)\"` form spans 20 gate scripts. The opening `\"` is never "
+     "closed on its own line, so a double-quote PARITY reader calls the body string data and drops "
+     "real edges; `$(` must re-enter NORMAL. ⚠️ Its SINGLE-LINE sibling `x=\"$(make … )\"` is a "
+     "PRE-EXISTING blind spot (`out=\"$(make` is eaten as one VAR_ASSIGN token, leaving `-C` as the "
+     "command word) — measured population 0 in the scanned corpus, routed as CI-PARITY-GATE-ROT.35 "
+     "rather than fixed here, because its failure direction is a FALSE ORPHAN, which fails loudly"),
+    ("GREEN — a multi-line single-quoted program does not swallow the command after it",
+     "awk '\n  BEGIN { FS = \"\\t\" }\n  { gsub(/\"/, \"\"); print }\n' file >/dev/null\n"
+     "make -C rust SHELL=/bin/bash probe_synthetic_gate\n",
+     {"probe_synthetic_gate"},
+     "corpus shape 3a: multi-line jq/awk/perl programs span 12 gate scripts and their payloads carry "
+     "an ODD number of double quotes (here `gsub(/\"/, \"\")`). Without single-quote state the "
+     "reader opens a phantom string on the program body and eats every command after it"),
+    ("GREEN — a heredoc body does not swallow the command after it",
+     "cat <<'MSG'\ntip: quote the path — e.g. --out \"$dir/report.txt\nMSG\n"
+     "make -C rust SHELL=/bin/bash probe_synthetic_gate\n",
+     {"probe_synthetic_gate"},
+     "corpus shape 3b: 13 gate scripts embed python/awk/prose heredocs whose payload is not shell "
+     "and need not balance its quotes — one stray `\"` desyncs everything after the heredoc"),
+    ("RED — a target named only inside a heredoc body is payload, not an invocation",
+     "cat <<'MSG'\nrepair it with:\n  make -C rust SHELL=/bin/bash probe_synthetic_gate\nMSG\n",
+     set(),
+     "the same defect one layer out: a heredoc is how the longer refusals here are printed — "
+     "ci_workflow_local_gate.sh names three make targets inside one such message"),
+]
+for _label, _body, _want, _why in SYNTAX_CONTROLS:
+    _got, _ = invoked_targets(_body)
+    if _got != _want:
+        control_failures.append(
+            f"  string-vs-command reader: {_label}\n"
+            f"      expected make targets {sorted(_want) or '(none)'}, got {sorted(_got) or '(none)'}\n"
+            f"      known because: {_why}")
 
 policy_required = re.search(r'PGEN_SOTA_POLICY_REQUIRED_CHECKS="([^"]*)"',
                             read("rust/config/sota_exit_policy.env"))
@@ -520,7 +688,7 @@ if fails:
 print(f"gate-reachability: OK ({len(rows)} targets; "
       f"{sum(1 for r in rows if r['status']=='reachable')} reachable, "
       f"{len(orphan_names)} orphan + {len(policy_names)} policy-only, all dispositioned; "
-      f"{len(CONTROLS) + 2} ground-truth controls reproduced)")
+      f"{len(CONTROLS) + 2 + len(SYNTAX_CONTROLS)} ground-truth controls reproduced)")
 
 if "--json" in sys.argv:
     out = sys.argv[sys.argv.index("--json") + 1]

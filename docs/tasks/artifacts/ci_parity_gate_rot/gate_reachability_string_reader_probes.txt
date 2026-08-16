@@ -1,0 +1,18 @@
+== BASE — the live reader: the six syntax arms must all pass ==
+  ✅ BASE — no control failure from the unmutated reader
+== RED-1 — suppression disabled (this IS the pre-fix reader) ==
+  ✅ RED-1a multi-line error message — control fired: RED — a target named only in a multi-line error message is NOT an invocation
+  ✅ RED-1b heredoc payload — control fired: RED — a target named only inside a heredoc body is payload, not an invocation
+== RED-2 — single-quote state dropped ==
+  ✅ RED-2 multi-line single-quoted program — control fired: GREEN — a multi-line single-quoted program does not swallow the command after it
+== RED-3 — $( re-entry inside a double-quoted string dropped ==
+  ✅ RED-3 multi-line command substitution — control fired: GREEN — the body of a multi-line command substitution still executes
+== RED-4 — heredoc tracking dropped ==
+  ✅ RED-4a heredoc body desyncs what follows — control fired: GREEN — a heredoc body does not swallow the command after it
+  ✅ RED-4b heredoc payload becomes an invocation — control fired: RED — a target named only inside a heredoc body is payload, not an invocation
+== DIFF — the whole inventory moves EXACTLY one target ==
+  ✅ DIFF — exactly one target changed classification (one '<' row + one '>' row)
+>   generated_reproducibility_gate               accepted-operator-invoked: tier 2 of the GENERATED-REPRODUCIBILITY doctrine: it REGENERATES every family from HEAD and compares byte-for-byte, so it costs ~57 s and cannot be a per-commit lane. Tier 1 — the ~1.0 s identity check in scripts/check_generated_reproducibility.sh — DOES run on every commit via the doctrine enforcer, and it is what tells an operator to invoke this target. ⛔ THIS ROW IS THE ONE CI-PARITY-GATE-ROT.34 EXISTED TO UNBLOCK: the target was mis-certified `git-hook`-reachable purely because tier 1's actionable refusal NAMES it in an error string, and the register's two-sided ratchet then refused this honest disposition as a dead exemption. The reader was fixed (a string is not a command); the message was deliberately left alone.
+<   generated_reproducibility_gate               git-hook
+
+GATE-REACHABILITY-PROBE: arms=8 red_arms_fired=6 verdict=ALL-EXPECTED

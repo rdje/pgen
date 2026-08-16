@@ -1,5 +1,54 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-CI-PARITY-GATE-ROT-0033 — a control you have never seen fail is not ground truth, and mine were not
+
+**1. ⭐⭐ THE CONTROLS I WROTE TO PROVE THE FIX WERE THEMSELVES UNFALSIFIABLE — three of six.** The
+leaf's acceptance asked for "a RED arm that replays exactly this case". I wrote six arms, ran them,
+and they were green. Then I mutated the reader to break each one on purpose — and **three did not
+fire**. Their fixtures happened to balance their own quotes (`{a: "x"}` in a jq body, a
+`print("…")` in a heredoc, a payload whose `make` was not at command position), so they asserted a
+property the mutation could not violate. ⇒ **I had shipped a check that cannot fail inside the fix
+for a doctrine whose whole subject is checks that cannot fail.** The only reason it did not land is
+that the mutation harness was written BEFORE the commit rather than after.
+⇒ **Write the RED harness first, and make each arm's mutation part of the arm's definition.**
+
+**2. Implement the obvious design, then measure it before believing it.** The natural fix here is
+"track double-quote parity across lines". It is wrong on **1 862 corpus lines**, and no amount of
+reading the code would have said so — the three shapes that break it (`"$( … )"` bodies that are
+executed; multi-line `'…'` programs; heredoc payloads) are invisible until you run the census. The
+census took four minutes and changed the design completely. ⛔ The cost of skipping it would have
+been a reader that DROPS real edges in 22 gate scripts, i.e. trading a silent false-reachable for a
+noisy false-orphan across the whole inventory.
+
+**3. Choose the failure DIRECTION deliberately, and say which one you chose.** Three variants were
+run end to end and all three produce the identical single move ⇒ measurement could not choose
+between them. The tie-breaker is asymmetry: a **lost** edge yields a false ORPHAN, which fails the
+gate loudly; a **false** edge is silent, and silence is precisely the defect being fixed. So the
+most aggressive suppression wins, and the bound it costs is stated in the script rather than left
+for a future reader to discover.
+
+**4. ⛔ A pre-existing failure surfaced by your own probe is a ROUTE, not a fold-in.** One arm
+exposed that `out="$(make … x)"` on a single line has never been seen by this reader. The temptation
+to fix it in the same commit is strong — it is four lines away and obviously wrong. But `.34`'s own
+routing evidence refuses side-effect edits to this parser ("six different confident answers"), and
+that refusal binds on its author too. Measured population **0**, routed as `.35` with a falsifiable
+prediction attached (the re-diff must move zero targets).
+
+**5. ⛔⛔ FIXING AN INSTRUMENT IS THE MOMENT ITS PROSE COPIES GET AUDITED — take it.** Removing the
+one false `git-hook` edge emptied that class, which made it obvious that the surviving AUTOMATIC
+targets are all workflow-triggered — and that **four live surfaces still say the tier is ZERO**,
+seventeen days after `DONE-BAR.4` deliberately moved it to 14. The derived instrument was correct on
+every single run; only the hand-written copies of its answer rotted. Same class as
+`CORPUS_FAMILY_PROVENANCE` and the `2.741/8.9` pair, and already owned as policy by
+`docs/DERIVED_STATE_CONTAINMENT.md` **R1** (a derivable-exact field must not be hand-written) and
+**R3** (carry the derivation, not the value) — so this is a fresh instance of a stated rule, not a
+new lesson. Worst of it: one of those copies is an ESCALATION asking the director for a decision
+that had already been taken.
+
+⇒ promoted to `docs/knowledge/a-check-whose-inputs-all-pass-has-not-been-tested.md` (note 1 — the
+new mechanism is a control made unfalsifiable **by its own fixture**, and the per-arm mutation
+remedy); notes 2-5 are per-slice history and stay here.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0064 — when a leaf offers two options, the first job is to check whether either is the right one
 
 **1. ⭐ A leaf's option list is a hypothesis list, and it ages the same way.** `.24` offered two

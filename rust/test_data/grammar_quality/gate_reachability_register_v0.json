@@ -46,6 +46,11 @@
       "reason": "the cheap no-cargo subset of generated_clippy_correctness_gate, which IS reachable. The subset itself runs on every Rust change as generated_clippy_correctness_gate.sh --policy-only from clippy_on_rust_change.sh (COMMIT.md step 2); this make target is a typing convenience."
     },
     {
+      "target": "generated_reproducibility_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "tier 2 of the GENERATED-REPRODUCIBILITY doctrine: it REGENERATES every family from HEAD and compares byte-for-byte, so it costs ~57 s and cannot be a per-commit lane. Tier 1 — the ~1.0 s identity check in scripts/check_generated_reproducibility.sh — DOES run on every commit via the doctrine enforcer, and it is what tells an operator to invoke this target. ⛔ THIS ROW IS THE ONE CI-PARITY-GATE-ROT.34 EXISTED TO UNBLOCK: the target was mis-certified `git-hook`-reachable purely because tier 1's actionable refusal NAMES it in an error string, and the register's two-sided ratchet then refused this honest disposition as a dead exemption. The reader was fixed (a string is not a command); the message was deliberately left alone."
+    },
+    {
       "target": "parse_harness_combinator_gate",
       "disposition": "accepted-operator-invoked",
       "reason": "the interpreter-vs-generated-parser oracle — the decisive instrument for a codegen change (GENERATED-LINT-CORRECTNESS.1/.2 both turned on it); run per codegen change, not per commit"

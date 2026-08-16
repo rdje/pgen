@@ -4682,3 +4682,211 @@ green result; (c) once (a) lands, add the deliberate row
 `generated_reproducibility_gate: accepted-operator-invoked` to the register, which is the row this
 leaf's existence is currently substituting for; (d) ⛔ do NOT fix this by removing the target name
 from the error message — the message is correct practice and the defect is in the reader.
+
+#### ✅ CLOSED 2026-08-16 (session #242, `PGEN-CI-PARITY-GATE-ROT-0033`) — all four clauses met
+
+**(a) THE READER NOW MODELS SHELL QUOTING — and the design was chosen by measurement, not by
+reading.** The obvious fix ("track double-quote parity across lines") was implemented first and
+**measured on the real corpus before being trusted**: it mis-classifies **1 862 lines** across 22
+gate scripts, because three live shapes all break a parity counter —
+
+| shape | example | what a parity counter does |
+|---|---|---|
+| 1. the message string | `breach "…\n … make -C rust … \n …"` | correct — this is the target |
+| 2. `x="$( … )"` substitution | 20 gate scripts | ⛔ blanks a body that IS executed |
+| 3. multi-line `'…'` jq/awk/perl + heredoc payloads | 12 + 13 gate scripts | ⛔ desyncs on stray `"` |
+
+So `string_data_lines()` models the four contexts a shell body actually has — `NORMAL`, `'…'`,
+`"…"` (inside which `$(` and a backtick **re-enter** `NORMAL`), and heredoc bodies — and suppresses
+only lines that **BEGIN** inside a quoted string or a heredoc payload. ⭐ Blanking string INTERIORS
+was priced and REFUSED: **433** lines carry both a double quote and a make/script mention, so
+interior-blanking would drop edges wholesale (`bash "$ROOT/scripts/x.sh"` is a quoted command word).
+⛔ `COMMIT.md` is scanned with `shell_syntax=False`: prose is not shell, and the stack model calls
+**38 of its 204 lines** "string data" off **4** apostrophes — missing today's six `make` lines by
+luck alone.
+
+**THE FULL 125-TARGET REPORT MOVES EXACTLY ONE ROW**, as this leaf predicted, and all 8 pre-existing
+ground-truth controls reproduce:
+
+```text
+- reachable at all: 94        →  reachable at all: 93
+- ORPHANS: 30                 →  ORPHANS: 31
+- generated_reproducibility_gate               git-hook
++ generated_reproducibility_gate               ⛔ UNTRIAGED
+```
+
+⭐ Three variants (dq-only / +single-quote / +heredoc) were each run to completion and **all three
+produce the identical single move** ⇒ the sq and heredoc arms are inert on today's corpus, so the
+choice among them is semantic, not empirical. All three are suppressed, because a heredoc body and
+a single-quoted program are data exactly as a double-quoted string is, and the failure direction is
+safe: **a lost edge yields a FALSE ORPHAN, which fails the gate loudly; a false edge is the silent
+one this defect was.**
+
+**(b) SIX GROUND-TRUTH ARMS, EVERY ONE OBSERVED FIRING.** `SYNTAX_CONTROLS` runs on every invocation
+(microseconds, no subprocess): 2 RED (a target named only in a multi-line message / only in a heredoc
+payload ⇒ no invocation) and 4 GREEN (a plain invocation; the three corpus shapes above). The control
+count in the OK line is derived, `8 → 14`.
+⛔ **A control nobody has watched fail is not ground truth**, so
+`docs/tasks/artifacts/ci_parity_gate_rot/run_gate_reachability_string_reader_probes.sh` proves each
+one — by **MUTATING the live reader** with `sed`, never by re-typing the old one
+(`GENERATED-LINT-CORRECTNESS.4`'s hand-copied-rule trap). 8 arms, all green:
+`BASE` · `RED-1a/1b` (suppression off = the pre-fix reader) · `RED-2` (sq state off) · `RED-3` (`$(`
+re-entry off) · `RED-4a/4b` (heredoc tracking off) · `DIFF` (HEAD vs tree = exactly one row).
+Transcript: `docs/tasks/artifacts/ci_parity_gate_rot/gate_reachability_string_reader_probes.txt`.
+
+⭐⭐ **AND THE ARMS CAUGHT THREE DEFECTS IN THIS LEAF'S OWN WORK, WHICH IS THE POINT OF WRITING THEM
+FIRST.** The first cut of arms 4, 5 and 6 was **non-discriminating** — each "passed" under the
+mutation meant to break it, because its fixture happened to balance its quotes (`{a: "x"}`, a
+`print("…")`, a payload whose `make` was not at command position). A control that cannot fail is
+the exact disease this doctrine exists to name, shipped inside the fix for it. Rebuilt against the
+real corpus shapes: an awk body with `gsub(/"/, "")` (**odd** quote count), a heredoc payload with
+one stray `"`, and a payload naming the target at command position.
+
+⚠️ **AND ONE ARM FAILED FOR A REASON THAT WAS NOT MINE — a PRE-EXISTING blind spot, measured and
+ROUTED rather than fixed here.** `out="$(make -C rust … x)"` on ONE line yields no edge in the
+pre-fix reader either: `out="$(make` is eaten whole as a `VAR_ASSIGN` token, leaving `-C` as the
+command word. Measured population in the scanned corpus: **0**. Routed as `.35` rather than widened
+into this commit — this leaf's own ROUTING EVIDENCE says editing that parser as a side effect is the
+scope-widening this repository has a file of incidents about, and it binds on its author too.
+
+**(c) THE REGISTER ROW IS RECORDED** — `generated_reproducibility_gate: accepted-operator-invoked`,
+32 entries, gate GREEN:
+```text
+gate-reachability: OK (125 targets; 93 reachable, 31 orphan + 1 policy-only, all dispositioned;
+                       14 ground-truth controls reproduced)
+```
+
+**(d) THE MESSAGE WAS NOT TOUCHED.** `git diff --stat` carries no change to
+`scripts/check_generated_reproducibility.sh`.
+
+⛔⛔ **UNSOUGHT, AND THE BIGGER FINDING: FIXING THE READER EXPOSED THAT FOUR LIVE SURFACES PUBLISH A
+ZERO AUTOMATIC TIER THAT HAS BEEN 14 SINCE 2026-07-30.** Removing the false `git-hook` edge left
+**zero** targets in that class — correct — and made it obvious that the 14 remaining AUTOMATIC
+targets are all `ci-workflow-auto`. Cause: `DONE-BAR.4` (director-approved 2026-07-30) enabled
+`push:` on the three lanes needing no `generated/` regeneration, so **4 of 15** workflows
+auto-trigger, not 1. The instrument was right on every run; four PROSE COPIES of its answer were
+wrong. Two were inside this commit's blast radius and are corrected here (this script's own R2
+comment; `docs/book/src/gate-flow.md` §6, whose table this leaf had to edit anyway); the remaining
+copies are routed as `.36`. ⇒ this is a fresh instance of a rule already written down —
+`docs/DERIVED_STATE_CONTAINMENT.md` **R1** (a derivable-exact field must not be hand-written) and
+**R3** (carry the derivation, not the value) — which is why `.36` acceptance (b) prefers a pointer
+to `--report` over a re-measured figure.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `bash scripts/check_gate_reachability.sh --report | grep
+  generated_reproducibility` → `generated_reproducibility_gate               git-hook`, i.e. a target
+  invoked by nothing is certified AUTOMATIC. Attempting the honest register row failed the two-sided
+  ratchet ("1 register entr(ies) name a target that is no longer orphaned").
+- [x] **ROOT CAUSE (WHY + WHERE)** — **WHERE:** `scripts/check_gate_reachability.sh`
+  `command_segments()`, which scanned **line by line** and neutralised only *single*-quoted literals
+  (the line-local `SQ` regex). **WHY:** the third physical line of
+  `check_generated_reproducibility.sh:266-268`'s multi-line **double**-quoted `breach "…"` message
+  therefore presented `make` as its command word. Established by CAUSAL REPLAY, not by reading — the
+  live reader was `sed`-mutated back to its pre-fix form and the arm re-run:
+  ```text
+  GATE-REACHABILITY-PROBE: arms=8 red_arms_fired=6 verdict=ALL-EXPECTED
+    RED-1a … control fired: RED — a target named only in a multi-line error message is NOT an invocation
+  ```
+  i.e. with `data = set()` the target IS extracted and with the context scanner it is not, with
+  nothing else changed. ⛔ The instrument is new, so its token `GATE-REACHABILITY-PROBE:` is
+  registered in `scripts/check_diagnosis_evidence.sh` `DIAGNOSIS_SIG` **and** `TOOLBOX.md`'s family-5
+  row **in this same commit** — the two-way obligation TOOLBOX.md states; citing a tool that did not
+  produce the diagnosis would have been the dishonest alternative. Ops/build-flow defect (family 5).
+- [x] **FIX** — the minimal tier is the READER, never the message (clause (d)): a 4-context shell
+  scanner suppressing only lines that BEGIN inside a quoted string or heredoc payload, plus
+  `shell_syntax=False` for prose. Why no lower tier: a quote-parity counter is the cheaper design and
+  was **measured wrong on 1 862 corpus lines**; deleting the target name from the message is refused
+  by (d).
+- [x] **ADDRESSED (verified)** — `generated_reproducibility_gate`: `git-hook` → `ORPHAN` →
+  dispositioned. Full-report diff **exactly 1 target of 125** moved (probe arm `DIFF`, which
+  re-derives it from `git show HEAD:` rather than trusting a saved file). Gate now exits 0:
+  `gate-reachability: OK (125 targets; 93 reachable, 31 orphan + 1 policy-only, all dispositioned;
+  14 ground-truth controls reproduced)`.
+- [x] **NO REGRESSION** — all 8 pre-existing ground-truth controls reproduce (`ast_dump_contract_gate`
+  ORPHAN, `clippy_on_rust_change` policy-only, `mdbook_docs_gate` / `branch_protection_contract_gate`
+  / `ci_workflow_local_gate` / `json_parser_book_gate` reachable, both workflow trigger classes) plus
+  the SOTA-policy required-checks control; 6 new arms GREEN and each proven RED under mutation
+  (`GATE-REACHABILITY-PROBE: arms=8 red_arms_fired=6 verdict=ALL-EXPECTED`). No parser surface can
+  have moved and it is MEASURED rather than argued —
+  `generated-reproducibility: OK (10 artifacts unmoved, emission sources unmoved since 070ade5 —
+  tier 2 last proved them **byte-identical** to HEAD)`. All 21 doctrines PASS with the change staged
+  (`bash scripts/check_doctrines.sh`). Clippy N/A and deliberately not cited: zero Rust bytes —
+  `git diff --stat` is confined to the two check scripts, the register, `TOOLBOX.md`, the two book
+  chapters, the knowledge card, the probe pair and the trackers.
+- [x] **LOCKSTEP** — `docs/book/src/gate-flow.md` §6 (tier table re-derived + the string-vs-command
+  paragraph), `docs/book/src/operations-and-governance.md` (the seventh calibration answer),
+  `TOOLBOX.md` family-5 row (the new instrument's token, same commit as the instrument),
+  `docs/knowledge/a-check-whose-inputs-all-pass-has-not-been-tested.md` (the fixture half of the
+  lesson — deduped into the existing card rather than forked), `KNOWLEDGE_MAP.md` regenerated,
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+
+---
+
+### `.35` NEW `todo` — a make invocation inside a SINGLE-LINE command substitution on an assignment's right-hand side is invisible to the reachability reader (opened 2026-08-16 session #242 by `.34`, whose own control arm hit it)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **The mechanism, located.** In `scripts/check_gate_reachability.sh` `command_segments()`, the
+  leader-stripping loop pops any token matching `^[A-Za-z_][A-Za-z0-9_]*=`. For
+  `out="$(make -C rust SHELL=/bin/bash x)"` the whole of `out="$(make` is ONE whitespace-delimited
+  token, so it is popped as a variable assignment and the command word becomes **`-C`** — neither
+  `make` nor a runner, so the segment is skipped entirely.
+- **Measured, not assumed.** Token replay prints `segment: out="$(make -C rust SHELL=/bin/bash
+  probe_synthetic_gate)" -> command word: -C`. It is **PRE-EXISTING**: `.34` changed nothing on this
+  path, and the same replay against the pre-`.34` reader gives the same answer.
+- **Population today: ZERO.**
+  `grep -rnE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=.*\$\(.*\bmake\b'` over `.githooks/`,
+  `scripts/check_*.sh`, `rust/scripts/*.sh`, `rust/Makefile` and `.github/workflows/*.yml` → **0
+  hits**. ⇒ nothing is mis-classified today; this is a latent hole, which is why it was routed rather
+  than folded into `.34`.
+- **Failure direction is SAFE, and that is why it can wait.** A missed edge makes a reachable target
+  look ORPHAN, and an untriaged orphan **fails the gate loudly**. The silent direction — a false
+  edge — is what `.34` fixed.
+- **Why not fixed in `.34`.** `.34`'s own routing evidence refuses side-effect edits to this parser
+  ("five calibration defects … six different confident answers"), and that refusal binds on its
+  author. The multi-line sibling `x="$(` … `)"` IS covered and is pinned by a `.34` control arm.
+
+**Acceptance:** (a) make the leader-stripping loop split `NAME=` from a following `$(`/backtick so
+the substitution body is scanned in command position, proven on all 14 ground-truth controls;
+(b) a control arm pinning the single-line form, watched failing first; (c) re-diff the full report
+and state how many targets move (expected 0 given the population, which makes (c) a *falsifiable*
+prediction rather than a formality).
+
+---
+
+### `.36` NEW `todo` — four live surfaces publish "the AUTOMATIC tier is ZERO" and it has been 14 since `DONE-BAR.4` landed on 2026-07-30 (opened 2026-08-16 session #242 by `.34`, which exposed it while removing the last `git-hook` edge)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **The measurement.** `scripts/check_gate_reachability.sh --json` → 14 targets carry an AUTOMATIC
+  invoker class, every one of them `ci-workflow-auto`: `branch_protection_contract_gate`,
+  `fixed_point_gate`, `mdbook_docs_gate`, `parser_books_gate` and the ten per-parser book gates.
+  Reading each workflow's `on:` block directly: **4 of 15** auto-trigger
+  (`branch-protection-contract-gate`, `fixed-point-gate`, `mdbook-docs-gate` on `push`;
+  `memory-architecture-gate` on `push` + `pull_request`), not 1.
+- **Cause, and it is not a defect — it is an executed director decision.** Each of the three carries
+  an in-file rationale: *"AUTOMATIC LANE (DONE-BAR.4, director-approved 2026-07-30 session #227) …
+  Enabled to move the AUTOMATIC tier over the make gate targets off ZERO."* The wiring landed; the
+  prose describing it did not move.
+- **The stale copies, enumerated.** (1) `.github/workflows/memory-architecture-gate.yml` header —
+  *"This is the ONLY workflow still triggered by `push` + `pull_request`; the other 14 are
+  `workflow_dispatch`-only"*; (2) `rust/test_data/grammar_quality/gate_reachability_register_v0.json`
+  `measured_context` + `honest_limit` — *"the AUTOMATIC tier over these gate targets is ZERO"*,
+  *"with the AUTOMATIC tier at zero, wiring moves a target from ORPHAN to OPERATOR and makes nothing
+  run"*, and its escalation *"the lever … is RESUMING HOSTED AUTO-TRIGGERS … a director decision"* —
+  which was **already taken**; (3) `scripts/check_gate_reachability.sh` R2 comment ✅ FIXED in `.34`;
+  (4) `docs/book/src/gate-flow.md` §6 tier table + callout ✅ FIXED in `.34`.
+- **Direction of the error: UNDERSTATING coverage.** Safer than the reverse, but it is still a false
+  published claim, and it makes a discharged escalation read as open — the register invites a
+  director call that was answered 17 days earlier.
+- **The general trap, which is the reusable half.** The instrument DERIVES the split on every run and
+  was right throughout; what rotted were hand-written copies of its answer. Same class as
+  `CORPUS_FAMILY_PROVENANCE` (`ENGINE-UNIVERSAL-SERVICES.26`) and the `2.741/8.9` pair.
+
+**Acceptance:** (a) correct copies (1) and (2), and re-word the register's escalation to state that
+the cheap-subset lever was EXERCISED by `DONE-BAR.4` and what remains unexercised; (b) decide whether
+the register's `measured_context` should carry a derived figure at all, or only a pointer to
+`--report` — prefer the pointer, per `docs/DERIVED_STATE_CONTAINMENT.md` R1/R3; (c) sweep for further
+copies of "automatic tier is zero" across tracked surfaces and report the count found, so this is a
+census rather than a spot fix.

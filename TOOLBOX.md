@@ -89,7 +89,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 | 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
-| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout` |
+| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:` |
 
 ⛔ **A bare `file.rs:NNN` citation is NOT a signature, and neither is *"verified by grep"*.** Both
 were measured and deliberately refused (`GENERATED-LINT-CORRECTNESS.4`): a line number is a
