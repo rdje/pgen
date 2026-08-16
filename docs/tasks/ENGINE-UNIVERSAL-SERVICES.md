@@ -7711,6 +7711,29 @@ ELIMINATED 5 left-recursive rule(s): block_event_expression, select_expression,
 `casting_type` and `property_expr` are `.13`/`.15`/`.17`'s two knots. The lint has been silent about
 eliminating them since the flip.
 
+⛔ **THE TIMELINE IS TWO DATES, NOT ONE — and a session summary conflated them before a director
+challenge forced the re-derivation** (2026-08-16). The MECHANISM (headline reads the direct list
+only) dates from `.13` slice 5; which RULES it hid on SystemVerilog changed at the flip. Measured on
+one binary with the `.17` slice 9 A/B lever, not recalled:
+
+```text
+$ … --report-indirect-lr-plan --indirect-lr-admit-starvation-safe-only   # pre-flip policy
+eliminated_base_rules=2 … indirect_eliminated_base_rules=1
+    ✅ absorbed at 'incomplete_class_scoped_type_sv_2023'
+
+$ … --report-indirect-lr-plan                                            # shipped policy
+eliminated_base_rules=2 … indirect_eliminated_base_rules=3
+    ✅ absorbed at 'casting_type'    ✅ absorbed at 'property_expr'
+    ✅ absorbed at 'incomplete_class_scoped_type_sv_2023'
+```
+
+⇒ **since `.13` slice 5** the lint hid `incomplete_class_scoped_type_sv_2023` on SV and
+`return_expression` on `ebnf`; **only since the flip** did it also hide `casting_type` and
+`property_expr`, because before it those two were DECLINED, not eliminated
+(`starvation-safe candidates: 0/28`). The leaf text above was already right; the summary that said
+*"silent about them since `.13` slice 5"* was not, and the correction is recorded here rather than
+left in a conversation → [[a-non-zero-value-hides-a-missing-addend]].
+
 **Acceptance status:** (a) ✅ · (b) ✅ · (c) ✅ **not owed — refuted by measurement**, and said so
 rather than routing a hypothesis · (d) ✅. ⇒ **LEAF CLOSED.**
 
