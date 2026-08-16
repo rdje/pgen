@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # ENGINE-UNIVERSAL-SERVICES.29 — is `generated/` what HEAD's source produces?
 #
-# ⛔⛔ THIS PROBE IS **RED TODAY, BY DESIGN**. It reports a real, open defect: the two annotation
-# parsers in `generated/` carry a line the tracked code generator cannot emit, so they cannot be
-# re-derived from HEAD. `.29` acceptance (a) is what turns it green; until then a nonzero exit is
-# the correct verdict and not a broken probe.
+# ⭐⭐ THIS PROBE WAS OBSERVED RED, THEN GREEN — WHICH IS WHY IT CAN BE TRUSTED. When it was written
+# (`.19` slice 2) it exited **1** on both annotation parsers, naming the single divergent line; the
+# preserved output is `reproducibility_probe_BEFORE_repair.txt`. `.29` acceptance (a) repaired the
+# pair through the canonical `make -C rust annotation_parsers`, and the probe now exits **0**
+# (`reproducibility_probe.txt`). A control never observed failing is not known to work
+# (`docs/CLAIM_VERIFICATION.md` §3 leg 2); this one has been seen in both states on real inputs.
 #
 # WHY THIS AND NOT AN EXISTING GATE. Nothing in the repository asks whether the artifacts ON DISK are
 # what the tracked source produces:

@@ -8780,7 +8780,7 @@ above rests on behaviour matching, and every step is a byte- or field-level iden
   leaf `.29`, and slice 1's LOCKSTEP box corrected forward. No book chapter and no `TOOLBOX.md`
   entry: this slice adds no instrument and changes no user-visible behaviour.
 
-#### ⛔⛔ `.29` NEW `todo` — `generated/` is NOT reproducible from HEAD: the annotation pair carries a line the tracked code generator cannot emit, and the annotation pair is what generates everything else (opened 2026-08-16 session #241 by `.19` slice 2)
+#### ⛔⛔ `.29` `in progress` — `generated/` is NOT reproducible from HEAD: the annotation pair carries a line the tracked code generator cannot emit, and the annotation pair is what generates everything else (opened 2026-08-16 session #241 by `.19` slice 2; ✅ **(a) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0061` — repaired through the canonical target, the probe went **RED → GREEN**, and all **8** non-annotation parsers are **byte-identical** across the repair, so the blast-radius bound is a measurement now and not an argument; **(b) the gate is next and also closes `.19` (c)**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -8841,6 +8841,108 @@ tier 1 already uses); (c) whatever (b) lands, `.16`'s `generated/ebnf.rs` seed-o
 same class one level over — the two must be designed together, exactly as `.19` acceptance (c)
 already said about the JSON; (d) correct the layer-A *"`generated/` FRESH"* claim rather than
 leaving it to be re-read as true.
+
+##### ⭐⭐ `.29` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0061`, 2026-08-16 session #241) — (a) DISCHARGED: repaired, and the blast-radius bound is now a MEASUREMENT instead of an argument
+
+**RESULT 1 — `generated/` is reproducible from HEAD again.** The repair ran through the CANONICAL
+target (`make -C rust SHELL=/bin/bash annotation_parsers`), not a hand-rolled invocation, so the
+recipe keeps one home:
+
+```text
+~ return_annotation      REPAIRED 04e3fcce9e9e… -> ce8512e8d836…
+~ semantic_annotation    REPAIRED ac9e6e56e31d… -> b0f3eebbaa73…
+✓ reproducibility probe GREEN — generated/ now matches what HEAD produces
+```
+
+**RESULT 2 — the leaf's blast-radius bound HELD, and it is no longer an argument.** `ast_pipeline`
+was relinked against the repaired pair (feature surface asserted `ebnf_dual_run=true
+generated_parsers=true`, because an under-featured binary cannot generate at all and would have
+failed *silently* as a comparison), then all **eight** non-annotation parsers were regenerated at
+make's own `-o` spelling and compared to a snapshot taken before the repair:
+
+```text
+✓ json                        byte-identical (217 sites)     ✓ vhdl            byte-identical (3075)
+✓ regex                       byte-identical (11647 sites)   ✓ rtl_const_expr  byte-identical (605)
+✓ systemverilog               byte-identical (36346 sites)   ✓ rtl_frontend    byte-identical (2508)
+✓ systemverilog_preprocessor  byte-identical (895 sites)     ✓ scratch         byte-identical (71)
+```
+
+⇒ the divergent `enable_coverage()` line provably does not reach family codegen. The routing
+evidence called that *"an argument, not a byte comparison"*; it is now the comparison. **2 m 12 s.**
+
+⭐ **THE PROBE WAS OBSERVED RED, THEN GREEN.** `reproducibility_probe.sh` exited **1** before the
+repair, naming the single divergent line in each parser
+(`reproducibility_probe_BEFORE_repair.txt`), and exits **0** after
+(`reproducibility_probe.txt`). A control never seen failing is not known to work
+(`docs/CLAIM_VERIFICATION.md` §3 leg 2) — this one has now been seen in both states, on real inputs,
+without anyone constructing a synthetic failure for it.
+
+⭐ **Every comparison asserts the embedded `-o` site count before trusting a hash.** Regenerating to
+a scratch filename would change the artifact's size for reasons unrelated to the repair
+(TOOLBOX 5.6), so both instruments regenerate into a mimic `<work>/root/{generated,rust}` tree and
+**refuse with exit 2** if the live and fresh site counts disagree. That is the lesson of `.19` wired
+into the instrument rather than written next to it.
+
+**RESULT 3 — nothing downstream moved.** `generated/systemverilog_parser.rs` is
+`46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7`, unchanged;
+`bash scripts/check_parse_cost_ratchet.sh` → *"OK (identity fresh for: generated parser, grammar,
+instrument, sample inputs; 192 pinned sample files)"*, so `PARSE-COST-RATCHET` owes no re-baseline;
+`bash scripts/check_doctrines.sh` → **ALL 20 PASS**; and a live SystemVerilog parse still passes.
+
+**Acceptance status:** (a) ✅ **DISCHARGED** · (b) ⏳ the gate — next slice, and it also closes
+`.19` (c) · (c) ⏳ with `.16` · (d) ✅ discharged in `-0060` (layer A now states the measured truth
+rather than the assumed one, and this slice updates it again to the repaired state).
+
+⛔ **HONEST BOUNDS:**
+1. **`rust/target/release/parseability_probe` predates the repair** (built 11:19; the repair ran at
+   ~18:50). It links the annotation pair, so it is stale by exactly the one line — inside
+   `enable_coverage()` on the ANNOTATION parsers, which no parse path reads. Its eight family
+   parsers are byte-identical by Result 2, so its parsing behaviour cannot have changed. Proving
+   that by rebuild costs ≈22 min / 12 GB and buys a binary that must differ only in that line; not
+   spent, and stated rather than left to be assumed.
+2. **The gate does not exist yet.** Until (b) lands, the only thing standing between the tree and a
+   recurrence is a probe someone has to remember to run — which is precisely
+   `DOCTRINE_ENFORCEMENT.md` §1, and precisely why (b) is not deferred past the next slice.
+3. **Scope: the annotation pair only.** The probe checks the two artifacts whose staleness
+   propagates. The eight families are checked by *this* slice's blast-radius run, which costs 2 m 12 s
+   and therefore belongs on an operator/CI tier, not on every commit — a constraint (b) must design
+   around rather than discover.
+
+###### Acceptance Checklist (enforced) — `.29` slice 1
+
+- [x] **REPRODUCE / ISSUE** — `bash docs/tasks/artifacts/engine_universal_services/es19_residual_attribution/reproducibility_probe.sh`
+  → exit **1**, `2 artifact(s) do NOT re-derive from HEAD`, with `live 2 125 099 B` vs
+  `fresh 2 125 061 B` and the single divergent line printed per parser. Preserved verbatim as
+  `reproducibility_probe_BEFORE_repair.txt`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the on-disk annotation pair was emitted from an
+  uncommitted editor state, so it carries a line the tracked generator cannot produce. WHERE:
+  `generated/return_annotation_parser.rs:313` and `generated/semantic_annotation_parser.rs:499`,
+  `self.coverage_deltas.clear();`, located by `diff -u0` against a HEAD re-derivation;
+  `grep -c 'coverage_deltas.clear()' rust/src/ast_pipeline/ast_based_generator.rs` → **0** and
+  `git log -S 'coverage_deltas.clear()' -- rust/src/ast_pipeline/ast_based_generator.rs` → **no
+  commit ever**, while the emitter's own comment at that site defends the omission.
+- [x] **FIX** — fix-hierarchy tier = **none of the three; this is an ARTIFACT repair, not a code
+  change.** The correct engine behaviour was already committed; only the derived artifact lagged.
+  Repaired by re-deriving through the canonical `make -C rust SHELL=/bin/bash annotation_parsers`
+  rather than by editing anything. **ZERO tracked code / grammar / gate bytes**; the only bytes that
+  moved are two files in the untracked `generated/` tree.
+- [x] **ADDRESSED (verified)** — before→after on the named, re-runnable oracle: the reproducibility
+  probe goes **exit 1 → exit 0**, `2 artifacts do NOT re-derive` → `every checked artifact re-derives
+  byte-identically from HEAD`. Both outputs are tracked beside the probe.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 20 PASS**.
+  `bash scripts/check_parse_cost_ratchet.sh` → **OK**, identity fresh across all four inputs, so no
+  re-baseline is owed. `shasum -a 256 generated/systemverilog_parser.rs` →
+  `46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7`, unchanged. ⭐ The load-bearing
+  evidence is the blast-radius run itself: **all 8 non-annotation generated parsers byte-identical**
+  across the repair, each compared at make's own `-o` spelling with the site count asserted first
+  (`es29_generated_reproducibility/blast_radius.txt`). A live parse still passes
+  (`parse_full passed for grammar 'systemverilog'`).
+- [x] **LOCKSTEP** — `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, the new
+  tracked instrument `es29_generated_reproducibility/blast_radius.sh` + `blast_radius.txt`, the
+  sibling probe's header corrected from *"RED today by design"* to the observed RED→GREEN record,
+  and the knowledge card's `reverify:` updated with it. No book chapter and no `TOOLBOX.md` entry:
+  no user-visible behaviour changed and no CLI surface was added — the repair restores an artifact
+  to what the already-documented recipe produces.
 
 
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)

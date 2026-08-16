@@ -1,0 +1,19 @@
+
+ES19-REPRODUCIBILITY: is generated/ what HEAD produces?
+HEAD: e7cb2433 PGEN-ENGINE-UNIVERSAL-SERVICES-0059 (…the truncation that produced a mojibake tail here is fixed in the probe)
+
+building ast_pipeline_bootstrap from HEAD...
+  ✗ return_annotation                DOES NOT reproduce from HEAD
+  live  2125099 B  04e3fcce9e9e3630eba587c5dd91606f2aa8babd7f566158d94d0cff650b9133
+  fresh 2125061 B  ce8512e8d836ae2253705f60021ed61413abad18a6f4cc683ee35612dbe2d97c
+  diff (live → fresh):
+      @@ -313 +312,0 @@
+      -        self.coverage_deltas.clear();
+  ✗ semantic_annotation              DOES NOT reproduce from HEAD
+  live  12189738 B  ac9e6e56e31d1bf4b22f0e58b4537a2a99cee97beb3d5775c73d51268f188472
+  fresh 12189700 B  b0f3eebbaa732cfdd6b39866bfc4a1e58401151461bcd672eadb03a2b49610f3
+  diff (live → fresh):
+      @@ -499 +498,0 @@
+      -        self.coverage_deltas.clear();
+
+ES19-REPRODUCIBILITY: 2 artifact(s) do NOT re-derive from HEAD — see ENGINE-UNIVERSAL-SERVICES.29

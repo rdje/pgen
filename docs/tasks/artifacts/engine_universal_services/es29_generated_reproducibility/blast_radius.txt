@@ -1,0 +1,24 @@
+
+ES29-BLAST-RADIUS: repair the annotation pair, prove the families did not move
+HEAD: fc0bf31f PGEN-ENGINE-UNIVERSAL-SERVICES-0060 (leaf ENGINE-UNIVERSAL-SERVICES.19 slice 2 — …
+
+STEP 1  snapshot
+  10 artifacts snapshotted
+STEP 2  repair (make -C rust annotation_parsers)
+  ~ return_annotation      REPAIRED 04e3fcce9e9e… -> ce8512e8d836…
+  ~ semantic_annotation    REPAIRED ac9e6e56e31d… -> b0f3eebbaa73…
+STEP 3  the pair re-derives from HEAD
+  ✓ reproducibility probe GREEN — generated/ now matches what HEAD produces
+STEP 4  relink ast_pipeline
+  ✓ relinked, dual-feature (AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run=true generated_parsers=true)
+STEP 5  regenerate 8 families at make's -o spelling and compare
+  ✓ json                         byte-identical across the repair (217 sites)
+  ✓ regex                        byte-identical across the repair (11647 sites)
+  ✓ systemverilog                byte-identical across the repair (36346 sites)
+  ✓ systemverilog_preprocessor   byte-identical across the repair (895 sites)
+  ✓ vhdl                         byte-identical across the repair (3075 sites)
+  ✓ rtl_const_expr               byte-identical across the repair (605 sites)
+  ✓ rtl_frontend                 byte-identical across the repair (2508 sites)
+  ✓ scratch                      byte-identical across the repair (71 sites)
+
+ES29-BLAST-RADIUS: annotation pair REPAIRED; all 8 family artifacts byte-identical

@@ -1,5 +1,41 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0061 — repair and measure in the same act, so the bound stops being an argument
+
+**1. Repair through the canonical target, never by hand.** The fix for a stale derived artifact is
+`make -C rust annotation_parsers`, the same recipe a cold clone runs. A hand-rolled `ast_pipeline …
+-o …` would have produced the same bytes and quietly created a second definition of the recipe,
+which is the failure `FLOW-INTEGRITY` exists to prevent. ⇒ if a repair needs a command, prefer the
+one already tracked; if none exists, that absence is the finding.
+
+**2. ⭐ Repair and measurement belong in ONE act, because the measurement only exists in the
+transition.** `.19` slice 2 could argue that the annotation pair's divergence cannot reach family
+codegen — the divergent line lives in `enable_coverage()` and nothing on the parse path reads
+`coverage_deltas` — and said so explicitly as an argument. The only way to turn that into a byte
+comparison is to snapshot the families, repair, relink, regenerate, and diff, in that order. Repair
+first and the baseline is gone; measure first and there is nothing to compare against. **All 8
+byte-identical, 2 m 12 s.**
+
+**3. Assert the feature surface before believing a codegen comparison.** An under-featured
+`ast_pipeline` cannot generate any parser at all (`@entry: true` trips the annotation-backend
+refusal), so a relink that silently dropped `generated_parsers` would not have produced wrong bytes
+— it would have produced *no* bytes, and a comparison loop that treats a missing file as "no
+difference" reports a clean pass. The script asserts
+`ebnf_dual_run=true generated_parsers=true` and dies otherwise.
+
+**4. ⭐ A control observed in both states is worth more than a control designed to be right.** The
+reproducibility probe was written while the defect was live, so it was seen RED on real inputs,
+naming the exact divergent line — and GREEN two minutes later on the same inputs. No synthetic
+failure had to be constructed for it, and both outputs are tracked side by side.
+
+**5. ⛔ A non-UTF-8 byte makes `grep` go silent, and it fails in the passing direction.** A mojibake
+tail — produced by byte-oriented truncation of a commit subject carrying multi-byte marks, which is
+its own small lesson about `cut -c` and awk's `substr` — made `grep -v` over that file emit
+**nothing at all** rather than the 19 lines it should have. A pipeline that filters and redirects
+therefore wrote an empty artifact and reported success. `LC_ALL=C grep -a` reads it as text. ⇒ when
+a text-processing pipeline yields an empty file, suspect binary detection before suspecting the
+pattern.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0060 — the oracle was already in the inputs, and the thing it turned up was not what I went looking for
 
 **1. A "residual" measured against a RECORDING is dated, not real.** Slice 1 left +2 578 bytes

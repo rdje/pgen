@@ -1,5 +1,35 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0061 (leaf ENGINE-UNIVERSAL-SERVICES.29 slice 1 — acceptance (a) DISCHARGED; artifact repair + new tracked instrument, ZERO tracked code/grammar/gate bytes)
+
+- ✅ **`generated/` reproduces from HEAD again.** The annotation pair was repaired through the
+  CANONICAL `make -C rust SHELL=/bin/bash annotation_parsers` — not a hand-rolled invocation — so the
+  regeneration recipe keeps one home (`FLOW-INTEGRITY`).
+- ⭐⭐ **The blast-radius bound is a MEASUREMENT now, not an argument.** `.19` slice 2 argued the
+  divergent `enable_coverage()` line could not reach family codegen because nothing on the parse path
+  reads `coverage_deltas`, and said explicitly that this was an argument. `ast_pipeline` was relinked
+  against the repaired pair (feature surface **asserted** — an under-featured binary cannot generate
+  at all and would have failed silently as a comparison) and all **eight** non-annotation parsers
+  regenerated at make's own `-o` spelling: **byte-identical**, every one — json 217 sites, regex
+  11 647, systemverilog 36 346, svpp 895, vhdl 3 075, rtl_const_expr 605, rtl_frontend 2 508, scratch
+  71. **2 m 12 s.**
+- ⭐ **The probe was observed RED, then GREEN.** `reproducibility_probe.sh` exited 1 before the
+  repair, naming the single divergent line per parser, and exits 0 after; both outputs are tracked
+  (`reproducibility_probe_BEFORE_repair.txt` / `reproducibility_probe.txt`). A control never seen
+  failing is not known to work (`docs/CLAIM_VERIFICATION.md` §3 leg 2).
+- ⭐ Both instruments **assert the embedded `-o` site count before trusting a hash** and refuse with
+  exit 2 on a mismatch — `.19`'s lesson wired into the instrument rather than written beside it.
+- New tracked instrument `es29_generated_reproducibility/blast_radius.sh` (`--repair`; a bare run
+  prints the plan and touches nothing).
+- **Nothing downstream moved**: `generated/systemverilog_parser.rs` sha256 `46bc8a56…` unchanged;
+  `check_parse_cost_ratchet.sh` → OK with identity fresh on all four inputs, so **no re-baseline is
+  owed**; `check_doctrines.sh` → ALL 20 PASS; a live SystemVerilog parse still passes.
+- ⛔ **Honest bound: there is still NO GATE.** Until `.29` (b), only a probe someone must remember to
+  run stands between the tree and a recurrence — which is `DOCTRINE_ENFORCEMENT.md` §1, and why (b)
+  is the immediate next slice. It also closes `.19` acceptance (c). Also stated: the release
+  `parseability_probe` predates the repair by exactly that one line, inside a method no parse path
+  reads; a rebuild costs ≈22 min / 12 GB and was not spent.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0060 (leaf ENGINE-UNIVERSAL-SERVICES.19 slice 2 — acceptance (b) DISCHARGED; .29 NEW; DOCS + tracked evidence, ZERO code/grammar/generated/gate bytes)
 
 - ⭐⭐⭐ **AT THE MOMENT `.19` WAS WRITTEN, THE RESIDUAL WAS ZERO.** Both hypotheses are refuted and
