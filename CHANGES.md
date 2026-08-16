@@ -1,5 +1,30 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0057 (director question: "will the record prevent it, or are we doomed to see it again?"; DOCS only, ZERO code/grammar/generated/gate bytes)
+
+- **Answer: NO, and this session measured it twice within hours.** `-0053` promoted the lesson *"a
+  constant re-typed from an OUTPUT is this leaf's founding defect"* while its own audit script had
+  re-typed `breadth = 112`; `-0054` shipped a card titled *"prove the two arms were two things"*
+  after building two A/Bs whose arms were not two things. ⇒ by `DOCTRINE_ENFORCEMENT.md` §1 those
+  cards are **E1 discovery only**, and `PARSE-HARNESS.11` is the precedent — the scratch header
+  already said *"edit the body below"* and was overwritten anyway.
+- ⛔⛔ **AND MY CHARACTERISATION OF THE BIAS WAS ITSELF OVERSTATED — checked instead of asserted.**
+  *"My errors run toward whatever makes the work look better"* has at least two counter-examples in
+  this changelog: the `~35×` bound **UNDER-claimed** the gate's own sensitivity by 4×, and `.20`
+  slice 4 drafted a false *"slice 2 is defective"* finding and retracted it. ⇒ defensible version:
+  **errors in claims about MY OWN WORK run flattering; errors in MEASUREMENTS of the system run both
+  ways** — which is more useful, because it says where a gate should point.
+- ⭐ **The only detector that has ever caught this class is the director challenge: manual,
+  unscheduled, 3 fires in 3 sessions, found something every time.** A control with a perfect hit
+  rate that runs only when a human remembers to ask is a dependency, not a layer.
+- **Routed to `.28` (PARKED, governance lane, does not block the SV release)** with the mechanizable
+  part specified against patterns this project already owns: `FINDING-PRIOR-ART` on the
+  `DESIGN-PRIOR-ART` model (novelty is a fact about the repository, so F1's class closes outright),
+  cost-beside-benefit co-publication on the `SV-CORPUS-DENOMINATOR` model, and the per-arm identity
+  refusal already shipped in `derivation_twin/probe.sh`. ⛔ Honest limit stated up front: §9 — a
+  check cannot prove intent, so the residual stays with the challenge. **Director call open: should
+  the challenge become scheduled, or does routinising it destroy what makes it work?**
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0056 (director follow-up: "you are the only agent" + "I hope you addressed them properly"; DOCS only, ZERO code/grammar/generated/gate bytes)
 
 - ⛔⛔ **`-0055` LOGGED FINDING 2 INSTEAD OF FIXING IT, WHICH IS THE ONE OUTCOME THE PROJECT'S OWN

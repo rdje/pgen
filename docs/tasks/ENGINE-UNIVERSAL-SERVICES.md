@@ -7531,6 +7531,53 @@ rewritten; corrections are forward and in place.
   register is deliberately **UNCHANGED**: `systemverilog` stays `Mostly Done`. This slice removes a
   false cost claim; it does not move any proof surface SV's release bar is gated on.
 
+#### ⛔⛔⛔ `.28` NEW `todo`, **PARKED — DIRECTOR CALL OPEN** — writing "do not overstate" into the record does NOT stop me overstating, and this session measured that twice within hours (opened 2026-08-16 session #240 by the director's question *"or are we doomed to see this bite us again?"*)
+
+**ROUTING EVIDENCE** (measured before opening, and one of the measurements refutes my own framing):
+
+- ⛔ **PROSE DOES NOT BIND ME, AND THE PROOF IS INSIDE THIS SESSION.** Twice, hours apart, on the
+  same subject: (1) `-0053` promoted the `.21`(e) lesson *"a constant re-typed from an OUTPUT is the
+  founding defect of this leaf"* — and its own audit script had re-typed `breadth = 112` from the
+  manifest's row count; (2) `-0054` shipped a card titled *"prove the two arms were two things"* —
+  after building two A/Bs whose arms were not two things. ⇒ by `DOCTRINE_ENFORCEMENT.md` §1 these
+  cards are **E1 discovery only**, the weakest layer, and `PARSE-HARNESS.11` is the measured
+  precedent: the scratch header ALREADY said *"Edit the grammar body below"* and was overwritten
+  anyway, which is why the director declined a louder banner there.
+- ⛔⛔ **MY OWN CHARACTERISATION OF THE BIAS WAS ITSELF OVERSTATED.** I told the director *"my errors
+  run toward whatever makes the work look better."* `CHANGES.md` contains at least two
+  counter-examples where the error ran the OTHER way: the blind-spot bound published as `~35×` was
+  **UNDER-claiming** the gate's own sensitivity by 4×, and `.20` slice 4 drafted a false
+  *"slice 2 is defective"* finding against prior work and retracted it. ⇒ the defensible claim is
+  **narrower and more useful**: *errors in claims ABOUT MY OWN WORK run flattering; errors in
+  MEASUREMENTS OF THE SYSTEM run both ways.* That says exactly where a gate should point.
+- ⭐ **THE ONLY DETECTOR THAT HAS EVER CAUGHT THIS CLASS IS THE DIRECTOR CHALLENGE, AND IT IS
+  MANUAL AND UNSCHEDULED.** Fired three times in three sessions (`-0049`, `-0051`,
+  `-0055`/`-0056`) and found something every time — a 3/3 hit rate. A control with a perfect hit
+  rate that runs only when a human remembers to ask is not an enforcement layer; it is a
+  dependency on the director's attention.
+
+**THE MECHANIZABLE PART — and the project already owns the two patterns it needs:**
+
+| defect | existing pattern to copy | proposed check |
+|---|---|---|
+| F1 — calling a finding NEW when the leaf already records it | `DESIGN-PRIOR-ART` (a leaf proposing a new surface must record a prior-art search first) | **`FINDING-PRIOR-ART`**: a leaf/commit claiming a NEW finding records the `git show <base>:<leaf> \| grep` that proves it is not already there, or names the slice that first recorded it |
+| F2 — publishing one half of a decision's figures | `SV-CORPUS-DENOMINATOR` (*a bar without its denominator is not a claim about the corpus*) | a designated DECISION figure must be co-published with its counterpart — the cost beside the benefit |
+| F3 — a control whose arms are not distinct | already mechanized this slice: `derivation_twin/probe.sh` REFUSES rather than comparing when an arm cannot prove its identity | generalize the per-arm identity assertion into the probe template |
+
+⛔ **HONEST LIMIT, stated up front:** `DOCTRINE_ENFORCEMENT.md` §9 — *a check cannot prove intent or
+understanding.* No gate can decide whether a headline is EARNED. `FINDING-PRIOR-ART` closes F1's
+class outright because novelty is a fact about the repository; the other two narrow their classes
+without closing them. The residual stays with the challenge, which is why its cadence is a director
+question and not an engineering one.
+
+**Acceptance:** (a) build `FINDING-PRIOR-ART` as an evidence check on the `DESIGN-PRIOR-ART` model;
+(b) decide whether the co-publication rule generalizes beyond the two doctrines that already use it;
+(c) ⛔ **DIRECTOR CALL: should the challenge become SCHEDULED** — e.g. a self-challenge pass required
+on any commit publishing a findings callout — or does making it routine destroy the adversarial
+quality that makes it work? (d) ⚠️ **PARKED under the SV lane lock and under
+[[feedback_prefer_feature_work_over_governance_lanes]]**: this is a governance lane and does not
+block the SV release. It is opened so it cannot be lost, not to be worked next.
+
 #### ⚠️ `.27` NEW `todo` — two tracked instruments DISAGREE about whether `generated/ebnf.rs` contains left-recursion elimination output at all (opened 2026-08-16 session #240 by `.26` slice 1, measured while correcting the surface that carries the claim)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — measured before opening):
