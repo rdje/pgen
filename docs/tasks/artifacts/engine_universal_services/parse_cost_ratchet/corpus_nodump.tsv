@@ -26,5 +26,12 @@
 #
 # 4 tab-separated fields:  path <TAB> reason <TAB> owning-leaf <TAB> note
 #
+# ⭐⭐ THE ROSTER IS CURRENTLY EMPTY, AND THAT IS THE POINT. Its one row —
+# `stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv`, declared by `.22` slice 1 —
+# was RETIRED by `.22` slice 2, which fixed the engine defect behind it: the file now
+# dumps in 0.04 s and the full-corpus census measures 16 336 / 16 336 with 0 no-dump.
+# ⛔ The check is BIDIRECTIONAL over the full corpus, so this row could not simply be
+# left behind: a declaration that no longer describes a real drop is a standing licence
+# for that exact file to vanish again, silently, and it now REFUSES.
+#
 path	reason	owning_leaf	note
-stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv	timeout	ENGINE-UNIVERSAL-SERVICES.22	Bare parse 0.108 s and the TOOLBOX 3.4 entry dump 0.056 s / 200 975 entries / accepted=True; the TOOLBOX 3.5 outcome dump never terminates. Same PROTOCOL graph in both, so the defect is the transactional coverage stack alone. Root cause: memoized_call stores coverage_stack[checkpoint..].to_vec() per memo entry and replays it with extend_from_slice on every hit, which materialises the shared parse DAG as a TREE. Measured growth on the else-if ladder: entries LINEAR (+19 295/arm), coverage stack EXPONENTIAL (x4.14/arm) reaching 353 005 042 slots at 7 arms; this file has 10, extrapolating to ~93 GB. /usr/bin/sample: _platform_memmove is 4302 of 4314 samples = 99.7 % of CPU.

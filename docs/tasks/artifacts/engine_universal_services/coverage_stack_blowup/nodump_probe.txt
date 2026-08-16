@@ -12,7 +12,9 @@ cheap no-dump: rust/target/e22/nodump_probe_absent.sv (absent by construction)
        rows=1 nodump=[('rust/target/e22/nodump_probe_absent.sv', 'empty-dump')]
   PASS RED roster names another file          exit 2 (want 2) — a roster row cannot cover a file it does not name
        rows=1 nodump=[('rust/target/e22/nodump_probe_absent.sv', 'empty-dump')]
-  PASS TRACKED roster declares the real file  stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv -> 'timeout' (want 'timeout')
+  PASS RED stale roster row (full corpus)     exit 2 (want 2) — a declaration whose defect is FIXED must be deleted, not left standing
+  PASS GREEN stale row, SCOPED run            exit 0 (want 0) — a scoped run does not exercise most rows, so silence there is not evidence
+  PASS roster no longer declares the fix      stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv -> None (want None: .22 (e) fixed it)
 
-5 passed, 0 failed.
+7 passed, 0 failed.
 * the refusal has been OBSERVED firing, and observed NOT firing on a declared drop.

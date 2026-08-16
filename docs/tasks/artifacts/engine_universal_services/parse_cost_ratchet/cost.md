@@ -42,8 +42,8 @@ tier still reported `fresh`.
 | input | repo-root-relative path | sha256 |
 |---|---|---|
 | grammar | `grammars/systemverilog.ebnf` | `1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c` |
-| generated parser | `generated/systemverilog_parser.rs` | `463c647603e83af1ed3e41fffb16ac2041f466fe1ac3b0df507161d3fcfc839e` |
-| instrument | `stimuli/sv/corpus_parse_cost.py` | `0f0c50dd69e2366277aad083f893acc05bd76ef97f11a583468694bfb910a0ba` |
+| generated parser | `generated/systemverilog_parser.rs` | `46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7` |
+| instrument | `stimuli/sv/corpus_parse_cost.py` | `34845c25f9836c71d8df4cfe21c7fb9b0e5f701a278c8690551cac7cb1780dba` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
 `sample inputs` digests the manifest ORDER plus every sampled file's bytes: the corpora

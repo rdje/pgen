@@ -13,8 +13,16 @@
 # ⛔ ENTRY and OUTCOME take the SAME graph, so any divergence between them is the coverage stack and
 # nothing else. That is the whole design of this probe: it isolates one variable.
 #
+# ⭐ THE PRE-FIX RUN IS PRESERVED BESIDE THIS SCRIPT as `probe_before_fix.txt`, because after
+# `ENGINE-UNIVERSAL-SERVICES.22` (e) this probe can no longer reproduce the defect it was built
+# to measure — the growth it recorded is gone from the engine. A probe whose subject is fixed
+# stops being evidence the moment it is re-run, so the measurement is kept as a file rather
+# than as a re-runnable command (`GENERATED-LINT-CORRECTNESS.13`, the same reason a scratch-slot
+# probe is snapshotted before the slot is restored). Re-running this script now measures the
+# FIXED engine, which is what `verify_fix.sh` does deliberately.
+#
 # Usage:  bash docs/tasks/artifacts/engine_universal_services/coverage_stack_blowup/probe.sh [max_arms] [timeout_s]
-# Output: .../coverage_stack_blowup/probe.txt
+# Output: .../coverage_stack_blowup/probe.txt   (pre-fix evidence: probe_before_fix.txt)
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../../../.." && pwd)"; cd "$ROOT" || exit 2

@@ -4,8 +4,8 @@
   "corpus_family_share_pct": "2.741",
   "derivation": "python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share --out docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json",
   "files_in_manifest": 16336,
-  "files_measured": 16335,
-  "files_nodump": 1,
+  "files_measured": 16336,
+  "files_nodump": 0,
   "identity": {
     "classifier": {
       "path": "stimuli/sv/corpus_parse_cost.py:LR_FAMILY_RE",
@@ -17,22 +17,17 @@
     },
     "generated parser": {
       "path": "generated/systemverilog_parser.rs",
-      "sha256": "463c647603e83af1ed3e41fffb16ac2041f466fe1ac3b0df507161d3fcfc839e"
+      "sha256": "46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7"
     },
     "grammar": {
       "path": "grammars/systemverilog.ebnf",
       "sha256": "1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c"
     }
   },
-  "lr_entries": 24644435,
-  "nodump": [
-    {
-      "path": "stimuli/sv/subs/Surelog/tests/ExponTimeIfElseGen/dut.sv",
-      "reason": "empty-dump"
-    }
-  ],
+  "lr_entries": 24650497,
+  "nodump": [],
   "note": "The share of all PROTOCOL-graph rule entries taken by the left-recursion elimination family over the whole SV corpus. It is the DENOMINATOR of `PARSE-COST-RATCHET`'s published blind-spot bound: the binding counters are at least (wall_clock_regression_pct / this) times less sensitive than wall clock to a per-entry cost rise. \u26d4 Derived, never hand-edited; `--verify-family-share` re-hashes every identity row above on every run.",
   "schema": "pgen.parse_cost.family_share/v1",
-  "total_entries": 899064022,
+  "total_entries": 899264997,
   "wall_clock_regression_pct": "24.3"
 }

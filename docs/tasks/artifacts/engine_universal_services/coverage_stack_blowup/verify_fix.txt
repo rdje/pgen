@@ -1,0 +1,33 @@
+==============================================================================================
+ENGINE-UNIVERSAL-SERVICES.22 (e) — coverage-recorder fix, verification
+==============================================================================================
+probe: rust/target/release/parseability_probe
+
+warm-up (page-in of a freshly linked binary): 0.02 s — EXCLUDED from every figure below
+
+1. LADDER IDENTITY — the committed count must be UNCHANGED where the old code could finish
+ arms    entries          committed     pre-fix pinned   verdict    secs
+    0     27,320             16,924             16,924     EXACT    0.02
+    1     46,615             81,562             81,562     EXACT    0.02
+    2     65,910            340,114            340,114     EXACT    0.02
+    3     85,205          1,374,322          1,374,322     EXACT    0.03
+    4    104,500          5,511,154          5,511,154     EXACT    0.03
+    5    123,795         22,058,482         22,058,482     EXACT    0.03
+    6    143,090         88,247,794         88,247,794     EXACT    0.03
+    7    162,385        353,005,042        353,005,042     EXACT    0.04
+    8    181,680      1,412,034,034                  —       new    0.04
+    9    200,975      5,648,150,002                  —       new    0.04
+
+   entries   x7.36 over 9 arms (LINEAR: +19,295 per arm)
+   committed x4.11 per arm (still EXPONENTIAL — it is a COUNT)
+   wall clock 0.016s -> 0.044s = x2.8 over the ladder (the OLD code was killed at 12 GB by rung 8, so no old-vs-new ratio is quotable past rung 7 — the comparison is 'finishes' vs 'does not')
+
+2. THE PATHOLOGICAL CORPUS FILE — it never terminated before
+   accepted           True
+   total_entries      200,975   (3.4 dump: 200,975 — IDENTICAL)
+   total_committed    5,648,150,434
+   total_memo_hits    101,941
+   wall clock         0.04 s   (3.4 dump 0.05 s)
+   vs ladder rung 9   5,648,150,002  (ratio 1.0000 — the ladder is the same construct with uniform arm bodies)
+
+ALL CHECKS PASS

@@ -12,8 +12,8 @@ answers:
 tags: [instruments, performance, caching, memoization, observability, measurement, evidence]
 date: 2026-08-16
 status: current
-evidence: ENGINE-UNIVERSAL-SERVICES.22, PGEN. A 2 787-byte SystemVerilog file parses in 0.108 s bare and dumps per-rule ENTRY counts in 0.056 s (200 975 entries), but the OUTCOME dump — same execution graph, one extra recorder — peaks at 13.7 GB RSS within ONE SECOND on a 24 GB machine and never finishes. `/usr/bin/sample`'s own per-symbol table:  `_platform_memmove` 4302 of 4314 worker samples = 99.7 % of CPU. Cause:  `memoized_call` stored `coverage_stack[checkpoint..].to_vec()` in every memo entry and replayed it with `extend_from_slice` on every hit. Growth law measured on an else-if ladder: rule entries LINEAR (+19 295 per arm, constant), coverage stack EXPONENTIAL (x4.00 per arm), 353 005 042 slots at 7 arms; the real file has 10 arms, extrapolating to ~93 GB.
-reverify: "bash docs/tasks/artifacts/engine_universal_services/coverage_stack_blowup/probe.sh 7 25   # the two columns diverge in front of you: entries +19 295 per rung, committed x4 per rung"
+evidence: ENGINE-UNIVERSAL-SERVICES.22, PGEN. A 2 787-byte SystemVerilog file parses in 0.108 s bare and dumps per-rule ENTRY counts in 0.056 s (200 975 entries), but the OUTCOME dump — same execution graph, one extra recorder — peaks at 13.7 GB RSS within ONE SECOND on a 24 GB machine and never finishes. `/usr/bin/sample`'s own per-symbol table:  `_platform_memmove` 4302 of 4314 worker samples = 99.7 % of CPU. Cause:  `memoized_call` stored `coverage_stack[checkpoint..].to_vec()` in every memo entry and replayed it with `extend_from_slice` on every hit. Growth law measured on an else-if ladder: rule entries LINEAR (+19 295 per arm, constant), coverage stack EXPONENTIAL (x4.00 per arm), 353 005 042 slots at 7 arms; the real file has 9 else-if arms, and the extrapolation forecast 6 051 461 940 against a later-measured 5 648 150 434 — within 6.7 % of a number no instrument in the repository could produce at the time. FIXED the same day by storing an index and folding multiplicities: the file now dumps in 0.04 s and every previously-reported number is byte-identical.
+reverify: "bash docs/tasks/artifacts/engine_universal_services/coverage_stack_blowup/verify_fix.sh   # ALL CHECKS PASS: the eight pinned rungs reproduce exactly and the pathological file dumps in 0.04 s. The DEFECT itself is no longer reproducible by command — it was removed from the engine — so its measurement is preserved as a file beside that script: probe_before_fix.txt"
 ---
 
 **A memo's whole value is that a shared subresult is computed once and *reused*.** An observer that
@@ -67,5 +67,25 @@ not a list.
 
 ⭐ The general rule: **a recorder attached to a cache must record the cache's DAG, not its
 expansion.** If your record's size is a function of the *unshared* work, the cache is decorative.
+
+## What shipping it actually looked like
+
+Store an index, not a copy; leave one tagged marker where the range used to be (so the miss path and
+the hit path are symmetric and storage is strictly linear); fold once at read time in descending
+id order, carrying an integer multiplier. The descending order needs no work list and no cycle
+check: an id is allocated when a body COMPLETES, so every marker inside a record references a
+strictly smaller id.
+
+⭐⭐ **The verification is what makes it a fix rather than a rewrite.** Because the change is meant to
+alter computation and not meaning, every previously-measurable number must come out identical — so
+pin them BEFORE you touch anything. Here: eight exponentially-separated integers from the ladder
+(reproduced exactly through 353 005 042), a 192-row measurement file (byte-identical), and a
+coverage report (character-identical). An off-by-one in a multiplicity fold cannot survive any of
+them. ⛔ Pinning them afterwards would have proved only that the new code agrees with itself.
+
+⚠️ **One caveat survives the fix, and it is the useful half.** Making the multiplicity computable is
+what proved `raw − committed` can go negative — so the derived-quantity hazard in point 2 above is
+now *checkable* rather than merely *latent*. Fixing the blow-up did not fix the arithmetic.
+
 Related: [[a-conservation-control-cannot-catch-a-misassignment]] — the control that would have caught
 this earlier is a per-input comparison against the uninstrumented run, not a total.

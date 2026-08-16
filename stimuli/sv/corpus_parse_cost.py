@@ -410,6 +410,12 @@ def read_nodump_roster() -> dict[str, str]:
             if not line.strip() or line.startswith("#"):
                 continue
             parts = line.split("\t")
+            # ⛔ The column header is DATA to a naive reader, and it was: the bidirectional check
+            # duly reported that a file named `path` "dumps fine". Skipped explicitly rather than
+            # by commenting it out in the file, because the next author will write the header
+            # again and the reader is the only place that can be sure.
+            if parts[0] == "path":
+                continue
             if len(parts) < 3:
                 die(f"{NODUMP_ROSTER}:{n}: expected at least 3 tab-separated fields "
                     f"(path, reason, owning-leaf), got {len(parts)}")
@@ -417,11 +423,20 @@ def read_nodump_roster() -> dict[str, str]:
     return out
 
 
-def adjudicate_nodump(nodump: list[NoDump], scope: str) -> None:
-    """REFUSE (exit 2) on any no-dump file the roster does not declare.
+def adjudicate_nodump(nodump: list[NoDump], scope: str, full_corpus: bool = False) -> None:
+    """REFUSE (exit 2) on any no-dump file the roster does not declare — and, over the FULL
+    corpus, on any roster row that no longer describes a real drop.
 
     ⛔ Refuses rather than warning. A warning printed into a 16 336-file run's stderr is a count
     with extra characters — this whole leaf exists because that is what happened.
+
+    ⭐⭐ THE CHECK IS BIDIRECTIONAL, AND THE SECOND DIRECTION WAS ADDED THE DAY THE FIRST ROW WENT
+    STALE. `.22` slice 1 declared one file; slice 2 FIXED it, and the row would have sat there
+    forever describing a defect that no longer exists — a permanent, invisible licence to drop that
+    exact file if it ever regressed. That is `GATE-REACHABILITY`'s *"a register entry that no longer
+    names an orphan fails too"* and `SV-CORPUS-DENOMINATOR`'s bidirectional reconcile, applied here.
+    ⛔ Only over the FULL corpus: a scoped run (the pinned 192-file sample) legitimately does not
+    touch most of the corpus, so a row it does not exercise is not evidence of anything.
     """
     roster = read_nodump_roster()
     undeclared = [n for n in nodump if n.path not in roster]
@@ -435,6 +450,15 @@ def adjudicate_nodump(nodump: list[NoDump], scope: str) -> None:
             f"owns fixing it — one tab-separated row: path\\treason\\towning-leaf\\tnote.\n"
             f"  ⛔ Do NOT raise PER_FILE_TIMEOUT_S: `ENGINE-UNIVERSAL-SERVICES.22` measured the "
             f"blow-up as exponential (×4.14 per else-if arm), so no timeout is large enough.")
+    if full_corpus:
+        observed = {n.path for n in nodump}
+        stale = sorted(p for p in roster if p not in observed)
+        if stale:
+            die(f"{len(stale)} row(s) in {NODUMP_ROSTER} name a file that DUMPS FINE in this "
+                f"{scope}: {', '.join(stale)}.\n"
+                f"  The defect they declare is gone. Delete the row — a stale declaration is a "
+                f"standing licence for that file to be dropped again, silently, by a future "
+                f"regression nobody would then have to justify.")
 
 
 # ── measurement: the BINDING metric ─────────────────────────────────────────────────────────
@@ -1236,7 +1260,7 @@ def run_rederive_family_share(probe: str, jobs: int, out_path: str) -> int:
           f"(~70 s) ...", file=sys.stderr)
     t0 = time.perf_counter()
     rows, nodump = measure_entries(probe, files, jobs)
-    adjudicate_nodump(nodump, "full-corpus family-share census")
+    adjudicate_nodump(nodump, "full-corpus family-share census", full_corpus=True)
     if not rows:
         die("every corpus file failed to produce a dump — refusing to publish an empty share")
     total = sum(r[2] for r in rows)
@@ -1299,7 +1323,7 @@ def run_census(probe: str, outdir: str, jobs: int) -> int:
         die("no corpus files found — the vendored corpora are git submodules; check them out")
     print(f"parse-cost: census over {len(files)} files at -j{jobs} ...", file=sys.stderr)
     rows, nodump = measure_entries(probe, files, jobs)
-    adjudicate_nodump(nodump, "full-corpus census")
+    adjudicate_nodump(nodump, "full-corpus census", full_corpus=True)
     os.makedirs(outdir, exist_ok=True)
     out = os.path.join(outdir, "census.tsv")
     with open(out, "w", encoding="utf-8") as fh:

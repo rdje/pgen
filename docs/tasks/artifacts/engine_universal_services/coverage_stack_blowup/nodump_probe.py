@@ -12,7 +12,11 @@ the growth is `Vec` reallocation, so no timeout makes it affordable). Making eve
 probe allocate 57 % of their RAM to re-derive a `dict` lookup would be a poor trade. ⇒ the roster
 LOGIC is exercised here with a no-dump that costs nothing (a path that produces no dump instantly),
 and the pathological file's own behaviour is measured by its neighbours in this directory —
-`probe.sh` (the growth law) and the tracked roster row. One instrument, one job.
+`probe_before_fix.txt` (the growth law, as it stood BEFORE the fix) and `verify_fix.sh` (the same
+file, now dumping in 0.04 s). One instrument, one job.
+
+⭐ The 13.7 GB figure above is the PRE-FIX behaviour and is retained deliberately: it is the reason
+this probe is cheap, and `.22` (e) has since removed it from the engine.
 
 The real `parseability_probe`, the real `measure_one_entries` failure classification and the real
 `adjudicate_nodump` are all exercised; only the *cause* of the no-dump is made cheap.
@@ -99,13 +103,46 @@ def main() -> int:
             "a roster row cannot cover a file it does not name"),
     ]
 
-    # The tracked roster must actually carry the pathological file, since this probe does not run
-    # it. Asserted here rather than assumed, so the two halves of the evidence stay joined.
-    roster = cpc.read_nodump_roster()
-    ok = roster.get(PATHOLOGICAL) == "timeout"
+    # ⭐ THE BIDIRECTIONAL HALF (.22 slice 2). A roster row that no longer describes a real drop is
+    # a standing licence for that file to vanish again; over the FULL corpus it must REFUSE. Driven
+    # here with an empty observed-set, which is exactly what a fixed defect looks like.
+    real_reader = cpc.read_nodump_roster
+    cpc.read_nodump_roster = lambda: {"stimuli/sv/some/fixed_file.sv": "timeout"}
+    code = 0
+    try:
+        cpc.adjudicate_nodump([], "probe full corpus", full_corpus=True)
+    except SystemExit as exc:
+        code = exc.code if isinstance(exc.code, int) else 2
+    finally:
+        cpc.read_nodump_roster = real_reader
+    ok = code == 2
     results.append(ok)
-    emit(f"  {'PASS' if ok else 'FAIL'} {'TRACKED roster declares the real file':<38} "
-         f"{PATHOLOGICAL} -> {roster.get(PATHOLOGICAL)!r} (want 'timeout')")
+    emit(f"  {'PASS' if ok else 'FAIL'} {'RED stale roster row (full corpus)':<38} exit {code} "
+         f"(want 2) — a declaration whose defect is FIXED must be deleted, not left standing")
+
+    # ...and the same row must NOT refuse a scoped run, which legitimately does not touch it.
+    cpc.read_nodump_roster = lambda: {"stimuli/sv/some/fixed_file.sv": "timeout"}
+    code = 0
+    try:
+        cpc.adjudicate_nodump([], "probe scoped sample")
+    except SystemExit as exc:
+        code = exc.code if isinstance(exc.code, int) else 2
+    finally:
+        cpc.read_nodump_roster = real_reader
+    ok = code == 0
+    results.append(ok)
+    emit(f"  {'PASS' if ok else 'FAIL'} {'GREEN stale row, SCOPED run':<38} exit {code} "
+         f"(want 0) — a scoped run does not exercise most rows, so silence there is not evidence")
+
+    # ⛔ THE PATHOLOGICAL FILE IS NO LONGER DECLARED, and that is the assertion now. Slice 1 pinned
+    # the opposite (`roster[PATHOLOGICAL] == "timeout"`); slice 2 FIXED the engine defect, so the
+    # row was retired and this arm was inverted rather than deleted — a probe that stops asserting
+    # anything about its own subject is how a fixed defect quietly becomes an unwatched one.
+    roster = cpc.read_nodump_roster()
+    ok = PATHOLOGICAL not in roster
+    results.append(ok)
+    emit(f"  {'PASS' if ok else 'FAIL'} {'roster no longer declares the fix':<38} "
+         f"{PATHOLOGICAL} -> {roster.get(PATHOLOGICAL)!r} (want None: .22 (e) fixed it)")
 
     emit()
     emit(f"{sum(results)} passed, {len(results) - sum(results)} failed.")

@@ -1057,7 +1057,24 @@ impl AstBasedGenerator {
                 // snapshot/truncate is O(1) on it. Cost is borne only by the
                 // certification gate, which parses small clean witness samples.
                 // Parser-AGNOSTIC: every generated parser gains it identically.
+                //
+                // ⭐⭐ ENGINE-UNIVERSAL-SERVICES.22 (e) — A SLOT IS EITHER A RULE
+                // ID OR A REPLAY MARKER. The high bit tags a marker whose low
+                // 31 bits index `coverage_deltas`. Rule ids and delta ids both
+                // fit by construction (RULE_COUNT <= 10^4; delta ids are
+                // bounded by memo inserts), so the stack stays a Vec<u32> and
+                // no new type crosses the codegen boundary.
                 coverage_stack: Vec<u32>,
+                // ⭐⭐ ENGINE-UNIVERSAL-SERVICES.22 (e) — the append-only side
+                // table a REPLAY marker points into: `coverage_deltas[d]` holds
+                // exactly the slots the memoized body contributed. Append-only
+                // on purpose: a memo entry created inside a speculation that
+                // later ROLLS BACK survives (the memo is not transactional), so
+                // its delta must remain addressable even though the marker
+                // referencing it was truncated away. The wasted rows are
+                // unreachable, bounded by the memo's own size, and never
+                // expanded by the fold.
+                coverage_deltas: Vec<Vec<u32>>,
                 coverage_enabled: bool,
                 #cascade_struct_fields
             }
@@ -1628,6 +1645,7 @@ impl AstBasedGenerator {
                     // GRAMMAR-WELLFORMED.G.4.6 — coverage off by default
                     // (opt-in via enable_coverage); empty stack = zero cost.
                     coverage_stack: Vec::new(),
+                    coverage_deltas: Vec::new(),
                     coverage_enabled: false,
                     #cascade_field_init
                 }
@@ -1670,7 +1688,32 @@ impl AstBasedGenerator {
             pub fn enable_coverage(&mut self) {
                 self.coverage_enabled = true;
                 self.coverage_stack.clear();
+                // ⛔⛔ ENGINE-UNIVERSAL-SERVICES.22 (e) — `coverage_deltas` IS
+                // DELIBERATELY *NOT* CLEARED HERE, and the reason is a bug that
+                // does not exist yet.
+                //
+                // Clearing it is correct on every call site that exists today
+                // (each constructs a fresh parser and enables coverage exactly
+                // once), and that is precisely what makes it dangerous: the
+                // safety argument is a property of the CALLERS, not of this type.
+                // Enable coverage twice on one parser and every `MemoEntry` from
+                // the first parse still carries `Some(delta_id)` into a
+                // renumbered table — a dangling index that does not panic, does
+                // not warn, and silently mis-attributes committed counts. The
+                // failing direction would be a plausible wrong number.
+                //
+                // Leaving the table monotonic makes a delta id valid for the
+                // lifetime of the parser BY CONSTRUCTION, so no caller can get
+                // this wrong. Cost: rows from an abandoned parse linger — bounded
+                // by the memo that references them, unreachable from the live
+                // stack, and never expanded by the fold, which only walks deltas
+                // whose multiplicity is non-zero.
             }
+
+            /// ENGINE-UNIVERSAL-SERVICES.22 (e) — the high bit of a coverage slot
+            /// marks a REPLAY of `coverage_deltas[slot & !TAG]` rather than a
+            /// direct rule entry.
+            const COVERAGE_REPLAY_TAG: u32 = 0x8000_0000;
 
             /// GRAMMAR-WELLFORMED.G.4.6 — the rules EXERCISED by the accepted
             /// parse, as names. Sound + complete for the witness side: it is the
@@ -1681,9 +1724,19 @@ impl AstBasedGenerator {
             /// only after a successful parse made with coverage enabled; returns
             /// an empty set otherwise. Indices map through `RULE_NAMES`.
             pub fn exercised_rule_names(&self) -> std::collections::HashSet<String> {
-                self.coverage_stack
-                    .iter()
-                    .filter_map(|&id| Self::RULE_NAMES.get(id as usize).map(|s| s.to_string()))
+                // ENGINE-UNIVERSAL-SERVICES.22 (e) — derived from the same fold as
+                // the counts, so the SET and the HISTOGRAM can never disagree about
+                // which rules the accepted parse entered. (Before the fold existed
+                // this was a direct walk of the stack; a REPLAY marker is not a rule
+                // id, so a direct walk would now silently miss every memo-hit
+                // subtree — the completeness hole H.10.2.2 closed, reopened by the
+                // representation change. Deriving both from one function is what
+                // makes that impossible rather than merely unlikely.)
+                self.exercised_rule_entry_counts()
+                    .into_iter()
+                    .enumerate()
+                    .filter(|&(_, n)| n > 0)
+                    .filter_map(|(id, _)| Self::RULE_NAMES.get(id).map(|s| s.to_string()))
                     .collect()
             }
 
@@ -1696,11 +1749,51 @@ impl AstBasedGenerator {
             /// so `rule_call_counts()[id] − committed[id]` is the rule's
             /// FAILED-speculation entry count. Read-only; meaningful only after a
             /// successful parse made with coverage enabled. Indexed like RULE_NAMES.
+            /// ⭐⭐ ENGINE-UNIVERSAL-SERVICES.22 (e) — THE MULTIPLICITY FOLD.
+            /// The recorded tree is not materialised; it is COUNTED. Each REPLAY
+            /// marker contributes its delta's contents once per time the marker
+            /// is reached, so the pass runs deltas in DESCENDING id order and
+            /// propagates a multiplier.
+            ///
+            /// ⛔ The descending order is not a heuristic, it is a proof
+            /// obligation discharged by construction: a delta id is allocated
+            /// when a body COMPLETES, and a REPLAY marker can only reference an
+            /// already-completed insert, so every marker inside `deltas[d]`
+            /// points at an id STRICTLY LESS than `d`. One descending pass
+            /// therefore finalises `mult[d]` before it is ever read, with no
+            /// recursion, no work list and no cycle risk.
+            ///
+            /// Linear in total recorded slots; one `u64` per delta of scratch.
+            /// The multiplicity is genuinely large on a highly-shared parse
+            /// (measured ~10^10 on a 2 787-byte SystemVerilog file) — which is
+            /// exactly why it must be an integer and not a list.
             pub fn exercised_rule_entry_counts(&self) -> Vec<u64> {
+                let tag = Self::COVERAGE_REPLAY_TAG;
                 let mut counts = vec![0u64; Self::RULE_COUNT];
-                for &id in self.coverage_stack.iter() {
-                    if let Some(slot) = counts.get_mut(id as usize) {
-                        *slot += 1;
+                let mut mult = vec![0u64; self.coverage_deltas.len()];
+
+                for &slot in self.coverage_stack.iter() {
+                    if slot & tag != 0 {
+                        if let Some(m) = mult.get_mut((slot & !tag) as usize) {
+                            *m = m.saturating_add(1);
+                        }
+                    } else if let Some(c) = counts.get_mut(slot as usize) {
+                        *c = c.saturating_add(1);
+                    }
+                }
+                for d in (0..self.coverage_deltas.len()).rev() {
+                    let times = mult[d];
+                    if times == 0 {
+                        continue;
+                    }
+                    for &slot in self.coverage_deltas[d].iter() {
+                        if slot & tag != 0 {
+                            if let Some(m) = mult.get_mut((slot & !tag) as usize) {
+                                *m = m.saturating_add(times);
+                            }
+                        } else if let Some(c) = counts.get_mut(slot as usize) {
+                            *c = c.saturating_add(times);
+                        }
                     }
                 }
                 counts
@@ -9045,9 +9138,19 @@ impl AstBasedGenerator {
                         // a later rollback still truncates it — the record
                         // stays transactional (sound) while regaining
                         // completeness on cache hits.
+                        // ⭐⭐ ENGINE-UNIVERSAL-SERVICES.22 (e) — ONE SLOT, NOT A
+                        // SUBTREE. This was `extend_from_slice(coverage)`, which
+                        // re-materialised everything the cached body had recorded
+                        // — on every hit, at every level, so the shared DAG became
+                        // the full derivation TREE and the record grew ×4 per
+                        // nesting level while the parse itself grew linearly. The
+                        // marker stands for exactly the same entries, is truncated
+                        // by the same rollback, and is expanded WITH ITS
+                        // MULTIPLICITY by `exercised_rule_entry_counts`, so the
+                        // reported numbers are unchanged.
                         if self.coverage_enabled {
-                            if let Some(coverage) = &entry.coverage_delta {
-                                self.coverage_stack.extend_from_slice(coverage);
+                            if let Some(delta_id) = entry.coverage_delta {
+                                self.coverage_stack.push(Self::COVERAGE_REPLAY_TAG | delta_id);
                             }
                             // RGX-0078.5.i.4 (P1 STEP-0) — see the fail-set hit above.
                             self.semantic_runtime_state.record_memo_hit(rule_id as usize);
@@ -9163,8 +9266,32 @@ impl AstBasedGenerator {
                         .extract_delta_since(&memo_entry_checkpoint);
                     // GRAMMAR-WELLFORMED.H.10.2.2 — `None` (no allocation) when
                     // coverage recording is off: ordinary parsing pays nothing.
+                    //
+                    // ⭐⭐ ENGINE-UNIVERSAL-SERVICES.22 (e) — MOVE THE RANGE OUT AND
+                    // LEAVE ONE MARKER BEHIND. Two things happen here and both are
+                    // load-bearing:
+                    //   1. the body's slots go into the append-only side table and
+                    //      the MemoEntry keeps only the INDEX, so a later hit is
+                    //      O(1) instead of O(subtree);
+                    //   2. the live stack is TRUNCATED back to the checkpoint and
+                    //      the same marker is pushed in place of the range.
+                    // (2) is what makes storage strictly linear rather than merely
+                    // non-exponential: without it an enclosing rule's own range
+                    // would still contain every descendant MISS verbatim, i.e.
+                    // O(entries × depth). With it, the miss path and the hit path
+                    // are symmetric — each leaves exactly one slot.
+                    //
+                    // ⛔ Truncating here is sound because `memo_coverage_checkpoint`
+                    // was taken immediately before `f(self)`, so the range being
+                    // replaced was produced by the body and by nothing else; and the
+                    // rule's OWN entry push happened in the rule function before
+                    // `memoized_call`, i.e. BELOW the checkpoint, so it survives.
                     let coverage_delta = if self.coverage_enabled {
-                        Some(self.coverage_stack[memo_coverage_checkpoint..].to_vec())
+                        let delta_id = self.coverage_deltas.len() as u32;
+                        let slots = self.coverage_stack.split_off(memo_coverage_checkpoint);
+                        self.coverage_deltas.push(slots);
+                        self.coverage_stack.push(Self::COVERAGE_REPLAY_TAG | delta_id);
+                        Some(delta_id)
                     } else {
                         None
                     };
@@ -12009,14 +12136,44 @@ mod semantic_usage_tests {
             nospace.contains("letmemo_coverage_checkpoint=self.coverage_stack.len()"),
             "memoized_call must snapshot the coverage-stack length before executing the rule body"
         );
+        // ⭐⭐ ENGINE-UNIVERSAL-SERVICES.22 (e) — the replay is now a MARKER, not a
+        // COPY, and these pins moved with it. The completeness obligation above is
+        // unchanged; what changed is that storing and replaying the body's entries
+        // by VALUE materialised the shared parse DAG as a tree (measured ×4.00 per
+        // nesting level against a LINEAR parse, 13.7 GB RSS in one second on a
+        // 2 787-byte file). All three pins below are load-bearing: dropping the
+        // side-table move re-copies, dropping the truncate makes storage
+        // O(entries × depth) again, and dropping the marker push re-opens the
+        // H.10.2.2 completeness hole.
         assert!(
+            nospace.contains("self.coverage_stack.split_off(memo_coverage_checkpoint)")
+                && nospace.contains("self.coverage_deltas.push(slots)"),
+            "memoized_call must MOVE the body's coverage slots into the append-only side table"
+        );
+        // ⛔ COUNTED, not merely present. There are TWO marker pushes — one where the
+        // insert replaces the range it moved out, one where a hit replays the cached
+        // delta — and they emit the same text, so a `contains` check cannot tell them
+        // apart and would pass with either one deleted. Losing the insert-side push
+        // leaves the enclosing rule's range containing its descendants verbatim;
+        // losing the hit-side push re-opens the H.10.2.2 completeness hole. Both are
+        // silent failures, so the pin counts.
+        assert_eq!(
             nospace
-                .contains("self.coverage_stack[memo_coverage_checkpoint..].to_vec()"),
-            "memoized_call must store the body's coverage delta in the MemoEntry on success"
+                .matches("self.coverage_stack.push(Self::COVERAGE_REPLAY_TAG|delta_id)")
+                .count(),
+            2,
+            "memoized_call must push a REPLAY marker in exactly TWO places: where the insert \
+             replaces the range it moved into the side table, and where a hit replays a \
+             cached delta"
         );
         assert!(
-            nospace.contains("self.coverage_stack.extend_from_slice(coverage)"),
-            "a memo hit must replay the cached coverage delta onto the live coverage stack"
+            !nospace.contains("self.coverage_stack.extend_from_slice(coverage)"),
+            "the by-value coverage replay is the ENGINE-UNIVERSAL-SERVICES.22 defect and must \
+             not come back: it re-materialises the shared parse DAG as a tree"
+        );
+        assert!(
+            nospace.contains("coverage_deltas:Vec<Vec<u32>>"),
+            "the parser must carry the append-only coverage-delta side table"
         );
         // MEMO-STORE-SOUNDNESS.2 — the memo must be TAINT-GATED with
         // write-epoch VALIDATION: the body's predicate-evaluation delta

@@ -47,13 +47,31 @@ owning leaf (`…/parse_cost_ratchet/corpus_nodump.tsv`), and any undeclared dro
 in all three corpus-touching modes. ⛔ Not by raising the timeout — at ×4.00 per arm no timeout is
 large enough.
 
+✅ **AND (e) IS SHIPPED (`PGEN-ENGINE-UNIVERSAL-SERVICES-0047`) — THE ENGINE NO LONGER BUILDS THE
+TREE, IT COUNTS IT.** `MemoEntry.coverage_delta` is now an `Option<u32>` index into an append-only
+`coverage_deltas` side table; the memo INSERT moves its range out (`split_off`) and leaves one tagged
+`COVERAGE_REPLAY_TAG` marker, a memo HIT pushes one marker, and `exercised_rule_entry_counts` folds
+the DAG once in descending delta order carrying a `u64` multiplier — linear in recorded slots, with
+the descending order discharged by construction (a delta id is allocated when a body COMPLETES, so
+every marker inside it references a strictly smaller id). ⛔ The replay is KEPT: `GRAMMAR-WELLFORMED.
+H.10.2.2` added it to close a real completeness hole. Results: the pathological file dumps in
+**0.04 s**; the full-corpus census is **16 336/16 336, 0 no-dump** and its denominator recovered
+**exactly 200 975** entries; the pinned 192-file `entries.tsv` is **BYTE-IDENTICAL**; certificate
+coverage at seed 0 is **character-identical** (`witness=1496 UNKNOWN=109`); the eight pinned ladder
+rungs reproduce exactly through `353 005 042`. The roster's stale-row direction was added the same
+day, and the roster is now empty by design.
+
 ⛔ **A SECOND, WIDER CONSEQUENCE FOR ANY CONSUMER OF 3.5:** `raw − committed` is published as *failed
 speculation* and is **not an invariant**. `committed` is the coverage stack folded per rule, so a
 memo hit adds a subtree the parser never re-entered; measured `committed/entries` runs **0.62× →
 2 173.88×**, i.e. the difference goes negative. It is positive on all 192 pinned-sample rows, but
 that sample was selected from a census that DROPS the files where it fails. Consumers must check the
-sign. The ENGINE fix is `.22`(e), which is an engine-SEMANTICS decision (what `total_committed`
-means under memo replay) with three priced options recorded in the leaf.
+sign. ⛔ That framing — *"the fix is an engine-SEMANTICS decision"* — was **wrong and is corrected**:
+the chosen design changes how the number is computed, not what it is, which the byte-identical
+`entries.tsv` proves on 192 real inputs. What remains open is `.22`(b) (is a verdict agreement a
+DERIVATION agreement?) and `.22`(f), opened by the fix itself: every FULL-CORPUS census taken with
+the 3.5 dump while the drop existed measured 16 335 files and published a 16 336-file denominator,
+so each must be re-derived or explicitly exonerated.
 
 ## Steering Note (2026-08-14) — the eliminator's ADMISSION CRITERION flipped, and one generated parser moved with it (`ENGINE-UNIVERSAL-SERVICES.17` slice 9)
 

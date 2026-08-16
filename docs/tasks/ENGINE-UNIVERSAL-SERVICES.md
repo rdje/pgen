@@ -7129,7 +7129,7 @@ shared path-normalising comparison helper the instruments import, instead of the
 copies that exist now — the second copy was written **after** the first defect was recorded, which is
 the evidence that prose does not transfer.
 
-#### ⛔⛔⛔ `.22` `in progress` — the transactional coverage stack (TOOLBOX 3.5) never terminates on a corpus file that a bare parse accepts in 0.077 s, and the census silently drops it (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ⏳ **(e) the FIX is the frontier**, ⏳ **(b) open**)
+#### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ⏳ **(b) and (f) remain**: (b) whether the file's `accepted: True` under 3.4 and its `pass` under a bare parse are the same DERIVATION — a verdict agreement is not a derivation agreement; (f) re-derive or exonerate every FULL-CORPUS census taken while the drop existed, opened BY slice 2 because fixing the defect is what made the short denominators visible)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -7162,7 +7162,27 @@ a bigger timeout; (d) restate slice 1's ground-truth claim with the reproducible
 (**16 335/16 335**, 1 no-dump) rather than the published `16 336/16 336`; ✅ **(e) ADDED by slice 1 —
 FIX the blow-up itself**, since (a) located it and *"logging them is the first step, fixing them is
 the end goal"*: the record recorder must stop materialising the shared parse DAG as a tree while
-KEEPING the completeness guarantee `GRAMMAR-WELLFORMED.H.10.2.2` added the replay for.
+KEEPING the completeness guarantee `GRAMMAR-WELLFORMED.H.10.2.2` added the replay for; ⏳ **(f) ADDED
+by slice 2 — RE-DERIVE (or explicitly exonerate) every FULL-CORPUS census taken with the 3.5 dump
+while the drop existed**, because each of them measured 16 335 files and published a denominator of
+16 336's worth of corpus.
+
+**(f) ROUTING EVIDENCE — measured, not suspected.** `git ls-files | xargs grep -ln
+-- dump-rule-outcome-counts-json` names **14** tracked consumers; the ones that census the WHOLE SV
+corpus and publish a tracked number are:
+
+| artifact | status |
+|---|---|
+| `parse_cost_ratchet/entries.tsv` + `cost.md` | ✅ **exonerated** — sample-scoped (192 pinned files) and the dropped file was never in the sample (it could not be: `select_sample` reads the census that dropped it) |
+| `parse_cost_ratchet/family_share.json` | ✅ **re-derived by slice 2** — `899 064 022 → 899 264 997`, share unchanged at `2.741 %` |
+| `engine_universal_services/guard_ab_entries.txt` (`.20`(b) work tier) | ⏳ **short** — all three arms record `files=16335 nodump=1`, so each arm's total is short by that file. ⭐ The SPLIT (absorption 23.7 % / guards 76.3 %) is computed on a CONSISTENT 16 335 basis in all three arms, so it is likely near-unmoved — *likely* is not a measurement, and re-running is now cheap |
+| `lr_profile/lr_profile_audit.txt` (`.21`(e)) | ⏳ **short** — carries `24 644 435 / 899 064 022 / 73 rules` |
+| `corpus_rule_coverage.py`, `spine_step0/census_spine.py`, `spine_dispatch_step0/census_dispatch.py`, `sv_corpus_grad/memo_insert_evict_census.py` | ⚠️ **unmeasured** — whether each ran full-corpus, and whether its tracked output is short, is not known |
+
+⛔ It reproduces outside SystemVerilog **by construction and only there**: the recorder was
+engine-universal, but SV is the only family with a full-corpus census, so no other family has a
+tracked number that could be short. ⭐ (f) is now CHEAP by construction — the whole point of (e) is
+that the file dumps in 0.04 s, so every one of these is a re-run rather than an investigation.
 
 ##### ✅ `.22` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0046`, 2026-08-16 session #238) — (a) ROOT-CAUSED to a line, with a GROWTH LAW; (c) the silent drop now REFUSES; (d) the ground-truth claim restated
 
@@ -7303,10 +7323,247 @@ chosen:
 | **B** fold eagerly into a per-rule histogram | replay adds a histogram instead of appending slots | `try_parse` rollback needs a histogram checkpoint = O(RULE_COUNT) per speculation — **1 608 counters × millions of speculations** | almost certainly worse than the disease |
 | **C** cap + declare | refuse the dump past a stack ceiling | trivial | ⛔ answers a wrong number with a smaller wrong number |
 
-⛔ **A is the only one that preserves both properties**, but it changes what `total_committed`
-MEANS (a derivation-tree multiplicity, which is genuinely exponential and correctly so) and
-therefore what `raw − committed` means. That is an engine-semantics decision with a published
-consequence, so it is owned as `.22`(e) rather than bolted onto a diagnosis slice.
+⛔ **A is the only one that preserves both properties.**
+
+###### ✅ `.22` (e) DESIGN CHOSEN 2026-08-16 (session #238) — **OPTION A, and it turns out to be SEMANTICS-PRESERVING**, which is the fact that makes it a slice rather than a director call
+
+Slice 1 recorded (e) as *"an engine-semantics decision, because A changes what `total_committed`
+MEANS"*. ⛔ **That framing is wrong and is corrected here before any code is touched.** A does not
+change the number at all — it changes how the number is COMPUTED. The multiplicity of a rule in the
+accepted derivation tree is what `committed` has always meant and always reported; today it is
+obtained by materialising the tree, and A obtains it by counting. ⇒ every currently-measurable
+`committed` value must come out **byte-identical**, which is both the design's justification and its
+strongest available oracle.
+
+**THE REPRESENTATION.** `coverage_stack` stays `Vec<u32>`; the high bit tags a REPLAY marker whose
+low 31 bits are an index into a new append-only side table `coverage_deltas: Vec<Vec<u32>>`. Rule
+ids and delta ids both fit (RULE_COUNT ≤ 10^4; delta ids ≤ memo inserts). No new type crosses the
+codegen boundary, so the diff is small and every generated parser gains it identically.
+
+| site | today | A |
+|---|---|---|
+| memo INSERT | copy the body's stack range into the `MemoEntry` | allocate id `d`, move the range into `coverage_deltas[d]`, **truncate the live stack back to the checkpoint and push one `REPLAY\|d`** |
+| memo HIT | `extend_from_slice(delta)` — O(subtree) | `push(REPLAY\|d)` — **O(1)** |
+| `try_parse` rollback | `truncate(saved_len)` | unchanged — a marker is one slot, so transactionality is untouched |
+| read-back | fold the stack into a histogram | **multiplicity fold**, below |
+
+⭐ **Truncating at insert is what makes storage strictly LINEAR, and it is the half a naive Option A
+would miss.** Marking hits alone still leaves an ancestor's range containing every descendant MISS
+verbatim — O(entries × depth), not exponential but not free either. Replacing the consumed range
+with its own marker makes the miss path and the hit path symmetric: each leaves exactly one slot, so
+total storage is O(total pushes).
+
+**THE FOLD — exact, linear, no materialisation.** A delta can only reference STRICTLY SMALLER delta
+ids, by construction: ids are allocated when a body COMPLETES, and a hit requires an already
+completed insert. So one descending pass suffices, with no recursion and no cycle risk:
+
+```
+mult[d] = 0
+walk the live stack:  Rule(id) -> counts[id] += 1 ;  Replay(d) -> mult[d] += 1
+for d in (0..deltas.len()).rev(), where mult[d] > 0:
+    walk deltas[d]:   Rule(id) -> counts[id] += mult[d] ;  Replay(e) -> mult[e] += mult[d]
+```
+
+O(total slots) time, one `u64` per delta of extra space. ⭐ The true multiplicity really is ~10^10 on
+the pathological file — that is a NUMBER, not a list, and `u64` holds it (`saturating_add` guards
+the pathological-of-the-pathological, and saturation is reported rather than silent).
+
+**WHAT IT DOES NOT FIX, stated up front:** `raw − committed` remains **not an invariant** — A makes
+the true multiplicity computable, which is precisely what proves the difference can go negative. The
+sign warning stays in TOOLBOX 3.5, the book and `RUST_CODEBASE_ANALYSIS.md`.
+
+**THE VERIFICATION PLAN, chosen because it is falsifiable:**
+1. ⭐ `entries.tsv` over the pinned 192 files must be **byte-identical** — the `committed` column is
+   the fold's output on 192 real inputs, so a wrong fold cannot survive it.
+2. The ladder rungs must reproduce **16 924 / 81 562 / 340 114 / 1 374 322 / 5 511 154 / 22 058 482 /
+   88 247 794 / 353 005 042** exactly — a pinned exponential sequence is an unusually sharp oracle.
+3. The pathological corpus file must now **COMPLETE**, and its committed count must land near the
+   extrapolated ~2.5 × 10^10.
+4. Certificate coverage at seeds 0/7/42 unchanged (`exercised_rule_names` is the witness side).
+5. All 20 doctrines + `mdbook_docs_gate`.
+
+##### ✅ `.22` SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0047`, 2026-08-16 session #238) — (e) SHIPPED: the recorder counts the tree instead of building it, and every number it used to report is unchanged
+
+###### ⭐⭐⭐ RESULT 1 — THE FILE THAT COULD NOT BE MEASURED IS NOW MEASURED, AND IT IS NOT CLOSE
+
+| | before | after |
+|---|---|---|
+| `…/ExponTimeIfElseGen/dut.sv` under TOOLBOX 3.5 | ⛔ **13.7 GB RSS in 1 s**, no dump, 5 of 5 attempts killed | ✅ **5 s**, peak below the guard's 1 MB resolution |
+| its `total_entries` | — (never produced) | **200 975** — byte-identical to the coverage-FREE 3.4 dump |
+| its `total_committed` | — | **5 648 150 434** |
+| ladder rung 8 (killed at 12 GB after 17.3 s) | ⛔ killed | ✅ **0.30 s** |
+
+⭐ The committed count is **5.65 × 10⁹** — the multiplicity of rule entries in the accepted
+derivation TREE. It was always that number; it simply could not be reported, because reporting it
+meant building a 22.6 GB list of it on a 24 GB machine. It is now an integer.
+
+###### ⭐⭐⭐ RESULT 2 — THE PINNED EXPONENTIAL SEQUENCE REPRODUCES **EXACTLY**, ON ALL EIGHT RUNGS
+
+The sharpest oracle available: the eight ladder rungs the OLD code could still finish, re-measured
+through the new fold.
+
+| arms | entries | committed (new fold) | pre-fix pinned | verdict | secs |
+|---:|---:|---:|---:|---|---:|
+| 0 | 27 320 | 16 924 | 16 924 | **EXACT** | 0.08 |
+| 1 | 46 615 | 81 562 | 81 562 | **EXACT** | 0.11 |
+| 2 | 65 910 | 340 114 | 340 114 | **EXACT** | 0.14 |
+| 3 | 85 205 | 1 374 322 | 1 374 322 | **EXACT** | 0.16 |
+| 4 | 104 500 | 5 511 154 | 5 511 154 | **EXACT** | 0.19 |
+| 5 | 123 795 | 22 058 482 | 22 058 482 | **EXACT** | 0.22 |
+| 6 | 143 090 | 88 247 794 | 88 247 794 | **EXACT** | 0.25 |
+| 7 | 162 385 | 353 005 042 | 353 005 042 | **EXACT** | 0.28 |
+| 8 | 181 680 | 1 412 034 034 | *(killed at 12 GB)* | new | 0.30 |
+| 9 | 200 975 | 5 648 150 002 | *(never finished)* | new | 0.33 |
+
+⛔ **An off-by-one in a multiplicity fold cannot survive `353 005 042`.** That is why the sequence
+was pinned before the fix rather than after: eight independent exponentially-separated integers,
+reproduced to the unit, is a far stronger statement than "the tests still pass".
+
+⭐⭐ **AND THE GROWTH LAW PREDICTED THE UNOBSERVABLE.** The ladder's `×4.14 per arm`, extrapolated
+in slice 1 to the real file's **9** else-if arms, forecast **6 051 461 940**. Measured:
+**5 648 150 434** — within **6.7 %** of a number that no instrument in the repository could produce
+at the time the forecast was made. ⛔ Slice 1's own text said *"the corpus file carries 10"*; it
+carries **9 `else if` arms** after the leading `if`, and the ladder's rung 9 (5 648 150 002) is that
+same construct with uniform arm bodies — a 432-entry difference from the real file's slightly
+different declarations. Corrected here rather than left to read as agreement it did not earn.
+
+###### ⭐⭐ RESULT 3 — TIME IS NOW LINEAR WHILE THE REPORTED NUMBER STAYS EXPONENTIAL
+
+**0.016 s → 0.044 s across the nine rungs (×2.8)** while `committed` moves **×333 731**. That is the
+whole point restated as a measurement: **the parse was always linear; only the RECORD was
+exponential.** ⛔ No old-vs-new speed ratio is quotable past rung 7, because the old code did not
+produce a number there — the honest comparison is *finishes* versus *does not*.
+
+⚠️ **My own verification script published a false speedup for one run and it is recorded here.**
+Its first table read `wall clock 19.55s -> 0.04s = x0.0`, which looks like a 500× win and is
+entirely the page-in cost of a freshly linked 77 MB binary: rung 0 at 19.55 s, rung 1 at 0.02 s, the
+same work. A warm-up run is now taken and EXCLUDED, and the ratio line says what it is comparing.
+⇒ the same *"first reading is too flattering"* failure slice 1 caught in the routing evidence,
+committed by its own author two slices later, in the opposite direction.
+
+###### ⭐⭐⭐ RESULT 4 — THE STRONGEST ORACLE: **`entries.tsv` IS BYTE-IDENTICAL**
+
+The pinned 192-file sample, re-measured through the release probe built from the changed engine:
+
+```
+$ python3 stimuli/sv/corpus_parse_cost.py --outdir rust/target/e22/scratch_after
+parse-cost: 192 files — BINDING entries=416,841,264 committed=7,124,616
+            failed_speculation=409,716,648 memo_hits=186,981,263 (lr-family 12,440,690)
+$ diff …/parse_cost_ratchet/entries.tsv rust/target/e22/scratch_after/entries.tsv
+(no output)
+```
+
+⭐ **Byte-identical across a change to the memo coverage recorder, a regeneration of all ten
+parsers, and a rebaseline.** `git status` does not even list `entries.tsv` as modified. All three
+binding counters — entries, committed, memo-hits — are unchanged over 192 real corpus inputs. The
+design's central claim (*A changes how the number is computed, not what it is*) is not argued here;
+it is measured on 192 files.
+
+###### ⭐⭐⭐ RESULT 5 — THE CORPUS DENOMINATOR IS WHOLE AGAIN, AND IT RECOVERED **EXACTLY** THE MISSING FILE
+
+| | slice 1 (honest, post-correction) | slice 2 (after the fix) |
+|---|---:|---:|
+| files measured | 16 335 | **16 336** |
+| no-dump | 1 | **0** |
+| corpus rule entries | 899 064 022 | **899 264 997** |
+| LR-family entries | 24 644 435 | 24 650 497 |
+| family share | 2.741 % | **2.741 %** |
+
+⭐⭐ **`899 264 997 − 899 064 022 = 200 975`, and 200 975 is exactly what the coverage-FREE TOOLBOX
+3.4 dump independently reports for that file.** The denominator was short by precisely one file and
+nothing else — an arithmetic identity across two different instruments, not a plausibility check.
+⭐ And the carried constant `2.741 %` still reproduces, so the `.21`(f) gate stayed green through an
+engine change that moved its numerator AND its denominator.
+
+⛔ **`.22`(d) IS THEREFORE SUPERSEDED BY `.22`(e), AND BOTH STATEMENTS ARE TRUE IN ORDER.** Slice 1
+corrected the published `16 336/16 336` to `16 335/16 335` because that was the reproducible number
+*while the defect existed*. Slice 2 restores `16 336/16 336` — now EARNED rather than assumed, and
+gate-held by a bidirectional roster instead of by nobody.
+
+###### ⭐⭐ RESULT 6 — THE ROSTER'S SECOND DIRECTION, ADDED THE DAY ITS FIRST ROW WENT STALE
+
+Slice 1 shipped a roster that refuses an UNDECLARED drop. Fixing the defect exposed the other half:
+the declared row now described a file that dumps fine in 0.04 s, and nothing complained — a
+permanent, invisible licence for that exact file to vanish again. ⇒ `adjudicate_nodump` now also
+REFUSES on a roster row not observed dropping, **over the full corpus only** (a scoped run
+legitimately does not touch most rows, so silence there is not evidence). The row was then retired
+and the roster is empty by design.
+
+⛔ The new check's first run caught a defect in its own input: the TSV's column HEADER was being
+read as a data row, so it reported that a file named `path` *"dumps fine"*. The reader skips it
+explicitly rather than the file commenting it out — the next author will write the header again, and
+the reader is the only place that can be sure.
+
+**7/7 arms fire** (`…/coverage_stack_blowup/nodump_probe.txt`), including the two new ones and the
+inverted subject arm: the pathological file must now be ABSENT from the roster. ⭐ That arm was
+inverted rather than deleted — a probe that stops asserting anything about its own subject is how a
+fixed defect quietly becomes an unwatched one.
+
+###### ⭐⭐ RESULT 7 — THE WITNESS SIDE IS UNCHANGED, CHARACTER FOR CHARACTER
+
+`exercised_rule_names()` is the certifying linter's witness surface and it no longer walks the stack
+directly — a REPLAY marker is not a rule id, so a direct walk would now silently miss every memo-hit
+subtree. It is derived from the same fold as the counts, which makes set-versus-histogram
+disagreement impossible rather than merely unlikely. Measured against a baseline captured earlier
+the same session, before the change, on the same command:
+
+```
+before: CERTIFICATE-COVERAGE: … proof=3 witness=1496 UNKNOWN=109 fully_certified=false
+        (sample_parse_failures=0, proof_reverify_failures=0)
+after:  CERTIFICATE-COVERAGE: … proof=3 witness=1496 UNKNOWN=109 fully_certified=false
+        (sample_parse_failures=0, proof_reverify_failures=0)
+```
+
+⭐ The pre-fix line was captured by accident — a long cert run started while the tree still held the
+old artifacts — and it is the better baseline for exactly that reason: it was not produced to
+support a conclusion.
+
+###### Acceptance Checklist (enforced) — `.22` slice 2, acceptance (e)
+
+- [x] **REPRODUCE / ISSUE** — the defect slice 1 root-caused, re-confirmed on the shipped tree
+  before the change: `…/ExponTimeIfElseGen/dut.sv` under `--dump-rule-outcome-counts-json` reaches
+  **13.7 GB RSS in one second** (`ps -o rss=` at 1 s intervals: 13735 / 8327 / 5367 MB) and never
+  writes a dump, while the same file under `--dump-rule-entry-counts-json` completes in 0.056 s with
+  200 975 entries. Growth law on the ladder: entries LINEAR, coverage stack **×4.00 per arm**.
+- [x] **ROOT CAUSE (WHY + WHERE)** — performance family, located by `/usr/bin/sample`'s own
+  per-symbol table: `_platform_memmove` **4302 of 4314** worker samples = **99.7 %** of CPU, called
+  from `memoized_call`. WHERE, at the emission sites in
+  `rust/src/ast_pipeline/ast_based_generator.rs`: `:9166` stored
+  `self.coverage_stack[memo_coverage_checkpoint..].to_vec()` into every `MemoEntry` and `:9049`
+  replayed it with `extend_from_slice` on every hit — so the recorder materialised the shared parse
+  DAG as a TREE. A memo hit never re-enters the subtree; the recorder appended it anyway.
+- [x] **FIX** — fix-hierarchy tier = **ENGINE (codegen)**, the lowest tier available and the only one
+  that can work: the defect is in emitted runtime structure, not in a grammar or a declaration.
+  `MemoEntry.coverage_delta` becomes `Option<u32>` — an index into a new append-only
+  `coverage_deltas` side table; the insert MOVES its range out (`split_off`) and leaves ONE tagged
+  marker; a hit pushes ONE marker; read-back is a linear descending multiplicity fold.
+  ⛔ The replay is KEPT, not deleted: `GRAMMAR-WELLFORMED.H.10.2.2` added it to close a real
+  completeness hole, so removing it would trade this defect for that one. Codegen pins updated and
+  strengthened — the marker-push pin is now COUNTED (`assert_eq!(…count(), 2)`), because both sites
+  emit identical text and a `contains` check would pass with either deleted.
+- [x] **ADDRESSED (verified)** — five independent oracles, each chosen to fail on drift:
+  (1) the eight pinned ladder rungs reproduce **EXACTLY** through `353 005 042`;
+  (2) `entries.tsv` over the 192 pinned corpus files is **BYTE-IDENTICAL** (`git status` does not
+  list it) — entries 416 841 264 / committed 7 124 616 / memo-hits 186 981 263 all unmoved;
+  (3) the pathological file now dumps in **0.04 s** with `total_entries` **200 975**, identical to
+  the coverage-free 3.4 dump;
+  (4) the full-corpus census is **16 336/16 336, 0 no-dump**, and the denominator recovered
+  **exactly 200 975** entries — the dropped file's independently-measured count;
+  (5) certificate coverage at seed 0 is **character-identical** (`witness=1496 UNKNOWN=109`).
+- [x] **NO REGRESSION** — `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` **passes
+  both stages**: source lint ok, and the STRICT generated-parser stage ok with 10/10 artifacts
+  present and all **68** pinned correctness lints still in `clippy::correctness`.
+  `bash scripts/check_doctrines.sh` → **ALL 20 enforced doctrines PASS**, including
+  `PARSE-COST-RATCHET`, whose identity tier correctly FAILED first on the moved parser hash and was
+  resolved by a rebaseline that moved no binding counter.
+  `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes. All ten parsers regenerated from the
+  changed codegen and the release probe rebuilt from them (`nm … | grep -c _lr_guard` → 11,
+  unchanged).
+- [x] **LOCKSTEP** — TOOLBOX 3.5's non-termination warning and its `raw − committed` sign warning
+  updated to say the blow-up is FIXED while the sign caveat STANDS (the fix makes the true
+  multiplicity computable, which is what proves the difference can go negative);
+  `docs/book/src/diagnosing-unknowns.md`, `docs/reference/RUST_CODEBASE_ANALYSIS.md`, the knowledge
+  card, and this leaf all moved with it.
 
 ###### Acceptance Checklist (enforced) — `.22` slice 1, acceptance (a) + (c) + (d)
 

@@ -1,5 +1,38 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0047 — pin the numbers BEFORE you touch the thing that produces them
+
+**1. A semantics-preserving change is only provable if you pinned the semantics first.** The design
+claim was "this changes how `total_committed` is computed, not what it is". That is unfalsifiable
+after the fact — any post-hoc measurement agrees with the new code by construction. What made it
+provable was that slice 1 had already published eight exponentially-separated integers from the
+ladder and a 192-row `entries.tsv`, for reasons that had nothing to do with this fix. Re-running them
+turned an argument into an observation. ⇒ when a slice measures something expensive, publish the raw
+sequence, not just the conclusion: the next slice may need it as an oracle.
+
+**2. My own instrument published a 500× speedup that was the loader.** The first verification table
+read `19.55s -> 0.04s = x0.0`. Same work, same binary — rung 0 paid the page-in cost of a freshly
+linked 77 MB executable and rung 1 did not. Slice 1 had caught the routing evidence being too GENTLE;
+this was the same defect pointing the other way, two slices later, in a script I wrote to check
+myself. ⇒ a first-invocation timing is a measurement of the loader until proven otherwise, and any
+ratio derived across a cold and a warm run is not a ratio.
+
+**3. Fixing a defect makes its declarations stale, and nothing was watching that direction.** The
+no-dump roster refused UNDECLARED drops. Once the engine was fixed, its one row described a file that
+dumps in 0.04 s — and passed silently, standing as a permanent licence for that exact file to vanish
+again. The bidirectional check went in the same hour. ⭐ The general form: **a register of known
+exceptions needs both directions, and the second one only becomes visible on the day you succeed.**
+It is the same shape `GATE-REACHABILITY` already carries ("a register entry that no longer names an
+orphan fails too") — which I had read, and did not apply until the failure arrived.
+
+**4. The bootstrap for a runtime-type change is a sequencing problem, not a build problem.** Changing
+`MemoEntry` broke the lib against the existing generated parsers, and the generator lives in that
+lib. Deleting `generated/` did not help: `has_generated_*` cfgs then compiled out functions the lib
+still referenced. What worked was minimal and obvious in hindsight — keep every generator change,
+temporarily revert ONLY the runtime type, build the generator, regenerate all ten parsers, restore
+the type, rebuild. ⇒ the generator does not need the type it emits to be correct yet; separate the
+two edits in TIME and the chicken-and-egg disappears.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0046 — one hang, one law, and the number the law invalidated on the way past
 
 **1. A hang justifies a longer wait; a GROWTH LAW forecloses one.** The obvious response to "the

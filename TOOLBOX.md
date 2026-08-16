@@ -529,8 +529,15 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
 - **OUTPUT:** the JSON file (rules sorted; zero-count rules omitted per map). Opt-in: unset ⇒ the coverage stack stays disabled and behavior is byte-identical. Build-mode-independent like 3.4.
 - **ROUTING (RGX-0078.5.i.7 D2-A):** the outcome dump enables coverage ⇒ the parse runs the PROTOCOL graph, so the raw/committed/memo-hit pins stay byte-exact forever under the observability twin (a BARE parse — no coverage/trace/counters/memo-stats consumer — runs the fused `cascade_*` graph instead; its byte-identity is enforced by the equivalence/AST oracles, not by counters).
-- ⛔⛔⛔ **THIS DUMP CAN FAIL TO TERMINATE ON AN INPUT THAT PARSES IN 0.1 s, AND IT IS THE COVERAGE
-  STACK — measured, not suspected (`ENGINE-UNIVERSAL-SERVICES.22`).** `stimuli/sv/subs/Surelog/
+- ✅ **FIXED 2026-08-16 (`ENGINE-UNIVERSAL-SERVICES.22` (e)) — READ THIS BEFORE THE PARAGRAPH
+  BELOW.** The memo now stores an INDEX into an append-only side table and a hit pushes ONE tagged
+  marker; read-back is a linear multiplicity fold. The file described below dumps in **0.04 s**, the
+  full-corpus census is **16 336/16 336 with 0 no-dump**, and the reported numbers are byte-identical
+  (the pinned 192-file `entries.tsv` did not move by one byte, and certificate coverage at seed 0 is
+  character-identical). ⇒ if a 3.5 dump hangs for you TODAY, it is a NEW defect, not this one.
+  The historical account is kept because it is the fastest way to recognise the shape:
+- ⛔⛔ **(HISTORICAL) THIS DUMP COULD FAIL TO TERMINATE ON AN INPUT THAT PARSES IN 0.1 s, AND IT WAS
+  THE COVERAGE STACK — measured, not suspected (`ENGINE-UNIVERSAL-SERVICES.22`).** `stimuli/sv/subs/Surelog/
   tests/ExponTimeIfElseGen/dut.sv` (**2 787 bytes**) parses BARE in 0.108 s and dumps under **3.4**
   in 0.056 s with 200 975 entries — and under 3.5 it peaks at **13.7 GB RSS inside ONE SECOND** on a
   24 GB machine and never writes a dump. 3.4 and 3.5 take the SAME graph, so the delta is the
@@ -543,16 +550,21 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   arm)**, reaching **353 005 042** slots at 7 arms; the corpus file carries 10, extrapolating to
   ~93 GB. ⇒ ⛔ **do not answer a 3.5 hang with a bigger timeout** — no timeout is large enough. If
   3.5 hangs, take the measurement with **3.4** (which has no coverage stack) and say which columns
-  you therefore do not have.
-- ⛔⛔ **AND THAT BREAKS `raw − committed` AS A GENERAL IDENTITY.** The docstring above reads
+  you therefore do not have. ⭐ The general lesson outlived the defect:
+  [[an-observer-that-replays-a-memoized-result-turns-the-dag-back-into-a-tree]].
+- ⛔⛔ **AND THAT BREAKS `raw − committed` AS A GENERAL IDENTITY — THIS HALF IS *NOT* FIXED, AND THE
+  FIX IS WHAT PROVES IT.** Making the true multiplicity computable is exactly what let it be
+  measured; the sign caveat below therefore stands and is now checkable rather than latent.** The docstring above reads
   *"`raw − committed` = the rule's FAILED-speculation entries"*, and it holds only while memo
   REPLAY is negligible. It is not an invariant: `committed` is `coverage_stack.len()` folded per
   rule, so a memo hit re-appends a whole cached subtree that the parser never re-entered, while
   `raw` counts real invocations only. Measured on the ladder above, `committed / entries` runs
   **0.62× → 2 173.88×** across 8 rungs — i.e. `raw − committed` goes NEGATIVE. It is positive on
   all 192 rows of the pinned parse-cost sample, and that is an empirical fact about those files,
-  ⛔ **not a guarantee** — and the sample was selected from a census that DROPS exactly the files
-  where it would fail. Before quoting failed-speculation percentages, check the sign.
+  ⛔ **not a guarantee**. ⚠️ Until `.22`(e) the sample was additionally selected from a census that
+  DROPPED exactly the file where it fails; the census is now complete (16 336/16 336), so that
+  particular blind spot is closed — the identity is still not one. Before quoting a
+  failed-speculation percentage, check the sign.
 
 ### 3.6 Per-rule memo INSERT / EVICT / REPLAY census — "is the memo actually serving this rule?"
 - **WHAT:** `docs/tasks/artifacts/sv_corpus_grad/memo_insert_evict_census.py` — splits a parse's memo

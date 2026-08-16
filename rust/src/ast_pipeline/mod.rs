@@ -1290,11 +1290,30 @@ pub struct MemoEntry<'input> {
     /// live coverage stack, inside the current speculation, so a later
     /// rollback still truncates it — transactionality preserved).
     ///
+    /// ⭐⭐ `ENGINE-UNIVERSAL-SERVICES.22` (e) — THIS IS AN INDEX, NOT A COPY, AND
+    /// THAT IS THE WHOLE FIX. It used to be `Option<Vec<u32>>`: the body's
+    /// coverage entries were COPIED in here and `extend_from_slice`d back onto
+    /// the live stack on every hit. A memo hit does not re-enter the subtree —
+    /// that is what a memo is for — so replaying its contents materialised the
+    /// shared parse DAG as a TREE, and every level multiplied. Measured on an
+    /// `else if` ladder: rule entries LINEAR (+19 295 per arm) while the
+    /// coverage stack grew **×4.00 per arm**, reaching 353 005 042 slots at 7
+    /// arms; a 2 787-byte corpus file with 10 arms peaked at **13.7 GB RSS in
+    /// one second** and never produced a dump, while a bare parse of it takes
+    /// 0.108 s. `/usr/bin/sample`: `_platform_memmove` 4302 of 4314 samples.
+    ///
+    /// Now it is an index into the parser's append-only `coverage_deltas` side
+    /// table, and a hit pushes ONE tagged slot. The completeness guarantee
+    /// above is unchanged — the marker stands for exactly the entries the copy
+    /// used to carry, is truncated by the same `try_parse` rollback, and is
+    /// expanded with its multiplicity by the read-back fold. The reported
+    /// numbers are byte-identical; only the storage stopped being exponential.
+    ///
     /// `None` when coverage recording was disabled at memoization time (the
     /// ordinary-parsing default — no allocation, zero cost) or the parse
-    /// failed; `Some(entries)` when coverage was enabled and the body
+    /// failed; `Some(delta_id)` when coverage was enabled and the body
     /// succeeded.
-    pub coverage_delta: Option<Vec<u32>>,
+    pub coverage_delta: Option<u32>,
 }
 
 /// RGX-0078.5.i.7 (MTB-A) — one committed-derivation TAPE event of the fused
