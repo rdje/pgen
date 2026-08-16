@@ -1,0 +1,80 @@
+--- rust/target/e22_backup/generated_pre_e/systemverilog_parser.rs	2026-08-15 10:11:50
++++ generated/systemverilog_parser.rs	2026-08-16 01:51:55
+@@ -86,0 +87 @@
++    coverage_deltas: Vec<Vec<u32>>,
+@@ -4529,0 +4531 @@
++            coverage_deltas: Vec::new(),
+@@ -4580,0 +4583,4 @@
++    /// ENGINE-UNIVERSAL-SERVICES.22 (e) — the high bit of a coverage slot
++    /// marks a REPLAY of `coverage_deltas[slot & !TAG]` rather than a
++    /// direct rule entry.
++    const COVERAGE_REPLAY_TAG: u32 = 0x8000_0000;
+@@ -4590,3 +4596,5 @@
+-        self.coverage_stack
+-            .iter()
+-            .filter_map(|&id| Self::RULE_NAMES.get(id as usize).map(|s| s.to_string()))
++        self.exercised_rule_entry_counts()
++            .into_iter()
++            .enumerate()
++            .filter(|&(_, n)| n > 0)
++            .filter_map(|(id, _)| Self::RULE_NAMES.get(id).map(|s| s.to_string()))
+@@ -4603,0 +4612,18 @@
++    /// ⭐⭐ ENGINE-UNIVERSAL-SERVICES.22 (e) — THE MULTIPLICITY FOLD.
++    /// The recorded tree is not materialised; it is COUNTED. Each REPLAY
++    /// marker contributes its delta's contents once per time the marker
++    /// is reached, so the pass runs deltas in DESCENDING id order and
++    /// propagates a multiplier.
++    ///
++    /// ⛔ The descending order is not a heuristic, it is a proof
++    /// obligation discharged by construction: a delta id is allocated
++    /// when a body COMPLETES, and a REPLAY marker can only reference an
++    /// already-completed insert, so every marker inside `deltas[d]`
++    /// points at an id STRICTLY LESS than `d`. One descending pass
++    /// therefore finalises `mult[d]` before it is ever read, with no
++    /// recursion, no work list and no cycle risk.
++    ///
++    /// Linear in total recorded slots; one `u64` per delta of scratch.
++    /// The multiplicity is genuinely large on a highly-shared parse
++    /// (measured ~10^10 on a 2 787-byte SystemVerilog file) — which is
++    /// exactly why it must be an integer and not a list.
+@@ -4604,0 +4631 @@
++        let tag = Self::COVERAGE_REPLAY_TAG;
+@@ -4606,3 +4633,23 @@
+-        for &id in self.coverage_stack.iter() {
+-            if let Some(slot) = counts.get_mut(id as usize) {
+-                *slot += 1;
++        let mut mult = vec![0u64; self.coverage_deltas.len()];
++        for &slot in self.coverage_stack.iter() {
++            if slot & tag != 0 {
++                if let Some(m) = mult.get_mut((slot & !tag) as usize) {
++                    *m = m.saturating_add(1);
++                }
++            } else if let Some(c) = counts.get_mut(slot as usize) {
++                *c = c.saturating_add(1);
++            }
++        }
++        for d in (0..self.coverage_deltas.len()).rev() {
++            let times = mult[d];
++            if times == 0 {
++                continue;
++            }
++            for &slot in self.coverage_deltas[d].iter() {
++                if slot & tag != 0 {
++                    if let Some(m) = mult.get_mut((slot & !tag) as usize) {
++                        *m = m.saturating_add(times);
++                    }
++                } else if let Some(c) = counts.get_mut(slot as usize) {
++                    *c = c.saturating_add(times);
++                }
+@@ -1572737,2 +1572784,2 @@
+-                    if let Some(coverage) = &entry.coverage_delta {
+-                        self.coverage_stack.extend_from_slice(coverage);
++                    if let Some(delta_id) = entry.coverage_delta {
++                        self.coverage_stack.push(Self::COVERAGE_REPLAY_TAG | delta_id);
+@@ -1572778 +1572825,5 @@
+-                Some(self.coverage_stack[memo_coverage_checkpoint..].to_vec())
++                let delta_id = self.coverage_deltas.len() as u32;
++                let slots = self.coverage_stack.split_off(memo_coverage_checkpoint);
++                self.coverage_deltas.push(slots);
++                self.coverage_stack.push(Self::COVERAGE_REPLAY_TAG | delta_id);
++                Some(delta_id)

@@ -8493,7 +8493,7 @@ rule — verify against the preserved synthetic that the diagnostic names `expr`
 census `python3 stimuli/sv/corpus_parse_cost.py --verify-families` is the before/after oracle, and
 `generated/*` byte-identity is the stronger one).
 
-#### ⛔⛔ `.19` `in progress` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9; ⭐⭐ **slice 1 `PGEN-ENGINE-UNIVERSAL-SERVICES-0059` 2026-08-16 session #241 — acceptance (a) DISCHARGED and the founding 99 747 B is REFUTED: it is 33 249 embedded `-o` path sites × 3 chars, proven by byte-identity after normalisation, leaving a 2 578 B residual for slice 2**)
+#### ⛔⛔ `.19` `in progress` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9; ⭐⭐ **slice 1 `PGEN-ENGINE-UNIVERSAL-SERVICES-0059` 2026-08-16 session #241 — acceptance (a) DISCHARGED and the founding 99 747 B is REFUTED: it is 33 249 embedded `-o` path sites × 3 chars, proven by byte-identity after normalisation, leaving a 2 578 B residual; ✅ **slice 2 `PGEN-ENGINE-UNIVERSAL-SERVICES-0060` — acceptance (b) DISCHARGED: the input did NOT move (`raw_ast` byte-identical to a fresh re-derivation) and the flip did NOT move codegen — the entire residual is `.22`(e)'s fixed emitted block, a CONSTANT +2 578 B across eight families, committed two days AFTER this leaf was opened ⇒ at the moment `.19` was written the residual was ZERO. Only (c) remains, and `.29` NEW is its real subject**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -8647,10 +8647,200 @@ the shape the leaf assumed · (d) honoured: nothing here rests on behaviour matc
   `46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7` before and after the run, and
   `git status --short` shows no `generated/` movement — the probe writes only under
   `rust/target/es19_path_embedding/` and deletes its four 131 MB artifacts unless `PGEN_ES19_KEEP=1`.
-- [x] **LOCKSTEP** — `TOOLBOX.md` (the path-embedding trap gains its measured SV case),
-  `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, and the new tracked
-  artifact pair `es19_path_embedding/probe.sh` + `probe.txt`. No book chapter: this slice changes
-  no user-visible behaviour and adds no CLI surface.
+- [x] **LOCKSTEP** — `TOOLBOX.md` (the path-embedding trap gains its measured SV case) + its
+  quick-chooser row, `docs/book/src/diagnosing-unknowns.md` (new *Comparing two generated parsers*
+  section + at-a-glance row), `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, and the new tracked artifact pair `es19_path_embedding/probe.sh` +
+  `probe.txt`.
+  ⛔ **CORRECTED FORWARD BY SLICE 2.** As committed in `-0059` this box ended *"No book chapter: this
+  slice changes no user-visible behaviour and adds no CLI surface"* — and the same commit changed
+  `docs/book/src/diagnosing-unknowns.md`, which `git show --stat PGEN-ENGINE-UNIVERSAL-SERVICES-0059`
+  lists. The reasoning was right (no behaviour moved) and the sentence was simply not re-read after
+  the book edit was made. History is append-only here, so it is repaired in place by the next slice
+  and recorded rather than amended.
+
+##### ⭐⭐ `.19` SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0060`, 2026-08-16 session #241) — acceptance (b) DISCHARGED without building anything: the input did not move, the flip did not move codegen, and the whole residual postdates the leaf
+
+**RESULT 1 — hypothesis (b), *"an INPUT moved"*, is REFUTED by re-derivation.** `generated/systemverilog.json`
+is a git-ignored derived artifact, so it was regenerated and compared field by field against the copy
+codegen actually consumed:
+
+```text
+metadata.generated_at :  on-disk '2026-08-15T23:21:52…'   fresh '2026-08-16T16:27:45…'
+metadata.source_file  :  on-disk '../grammars/systemverilog.ebnf'  fresh 'grammars/systemverilog.ebnf'
+raw_ast               :  IDENTICAL
+```
+
+⭐ The **whole** codegen input — `raw_ast` — is byte-identical; the only two differing fields are
+provenance, and **neither reaches the emitted parser** (`grep -c 'systemverilog\.json'` → 0,
+`grep -c 'grammars/systemverilog\.ebnf'` → 0, no `generated_at`/date string). ⭐⭐ And note *why*
+`source_file` differs: `../grammars/…` vs `grammars/…`, the **same three characters** as the `-o`
+spelling slice 1 measured — the JSON records its provenance the same way the parser does, so the
+leaf's founding mechanism turns out to be visible in its input too.
+
+The window is closed on both ends by `git log 88b06424..HEAD`: **`grammars/systemverilog.ebnf`
+has not changed at all**, and **`rust/src/ebnf_frontend.rs` has not changed at all**. Same grammar,
+same frontend, identical `raw_ast` ⇒ the input codegen consumed at session #232 is the input it
+consumes today.
+
+**RESULT 2 — hypothesis (a), *"`.17` slice 9's diff perturbs SV codegen even under the narrow
+admission"*, is REFUTED, and the residual is attributed to a commit that did not exist when the leaf
+was written.** ⭐ The oracle was already sitting in the inputs (`docs/CLAIM_VERIFICATION.md` §3 leg
+2 — *prefer an oracle you did not build*): session #238 snapshotted the whole `generated/` tree
+before landing `.22`(e), at `rust/target/e22_backup/generated_pre_e/`. Against it, with an
+**identical `-o` spelling on both sides** (36 346 path sites each, so no path effect between them):
+
+```text
+json_parser.rs                        686521 → 689099      +2578
+regex_parser.rs                     38333823 → 38336401    +2578
+rtl_const_expr_parser.rs             2120098 → 2122676     +2578
+rtl_frontend_parser.rs              10226652 → 10229230    +2578
+scratch_parser.rs                     259916 → 262494      +2578
+systemverilog_parser.rs            143907016 → 143909594   +2578   ← the residual, exactly
+systemverilog_preprocessor_parser.rs 2891131 → 2893709     +2578
+vhdl_parser.rs                      11771979 → 11774557    +2578
+return_annotation_parser.rs          2122483 → 2125099     +2616   ← +38, see .29
+semantic_annotation_parser.rs       12187122 → 12189738    +2616   ← +38, see .29
+```
+
+⛔ **A CONSTANT across artifacts spanning 260 KB to 143 MB and 1 488 to 1 608 rules — so it is a
+FIXED emitted block, not a per-rule cost**, which is what makes the SV row's +2 578 the same number
+slice 1 measured rather than a coincidence of magnitude. `diff -u0` over the two 143 MB SystemVerilog
+parsers returns **9 hunks, 60 added / 9 removed lines, and every one of them is `.22`(e)'s
+multiplicity fold** — the `coverage_deltas: Vec<Vec<u32>>` field, the `COVERAGE_REPLAY_TAG` constant,
+the descending-order fold in `exercised_rule_entry_counts`, and the two memo call sites. Nothing
+else differs.
+
+⭐ **Falsified against a TRACKED source rather than against the untracked snapshot** (the snapshot is
+scratch, so believing it on its own would be a leg-3 breach): `grep -c COVERAGE_REPLAY_TAG
+rust/src/ast_pipeline/ast_based_generator.rs` → **6**, and `git log -S COVERAGE_REPLAY_TAG` names
+exactly one commit — **`0ff4654a`**, `.22` slice 2, committed **2026-08-16 02:39**. `.19` was opened
+**2026-08-14**.
+
+⇒ ⭐⭐⭐ **AT THE MOMENT `.19` WAS WRITTEN, THE RESIDUAL WAS ZERO.** The tracked pre-flip artifact and
+session #232's re-derivation differed by the `-o` path spelling **and by nothing else at all**. Both
+hypotheses were false, the whole 99 747 bytes was the path, and the +2 578 slice 1 measured is an
+artifact of comparing *today's* toolchain against a two-day-old recording — created by a commit that
+landed after the leaf existed.
+
+⭐ **This also exonerates the flip on an axis `.20` ruling B cares about.** Ruling B binds SV's `Done`
+on the flip's measured costs (`+10.59 %` rule entries, `+9.3 %` parser bytes). A narrow-arm codegen
+perturbation would have been a further unpriced cost; there is none — under the narrow lever the flip
+emits the same bytes, and structurally it never touched the emitter (`git show --stat 0994c3c0 --
+rust/src/` lists `indirect_lr_elimination.rs`, `ast_pipeline/mod.rs`, `bin/pgen_ast.rs`, `main.rs`
+and **not** `ast_based_generator.rs`, which is the only file `.22`(e) changed besides `mod.rs`).
+
+**Acceptance status:** (a) ✅ slice 1 · (b) ✅ **DISCHARGED here** · (c) ⏳ open, and slice 2 found it
+a far better subject than the one the leaf assumed — see `.29` · (d) honoured throughout: nothing
+above rests on behaviour matching, and every step is a byte- or field-level identity.
+
+⛔ **HONEST BOUNDS, stated not discovered:**
+1. **The recorded artifacts were not replayed byte-for-byte.** Doing so needs an `ast_pipeline` built
+   at `0994c3c0`, and that build FAILS: today's generated parsers do not compile against that
+   commit's runtime (**22 errors, 11 × `E0277: no implementation for u32 | Vec<u32>` and 11 ×
+   `E0308: mismatched types`**) — which is itself `.22`(e)'s emission change, observed from a third
+   direction. The attribution above is therefore by **constant-delta across ten artifacts + a
+   hunk-level diff + a tracked-source falsification**, not by replay. A worktree at `0994c3c0` was
+   created, the build attempted, and the worktree removed; the failure is recorded rather than
+   hidden.
+2. **The +38 on the two annotation families is NOT part of `.22`(e)'s block** and is a separate
+   defect, opened as `.29` rather than absorbed into this result.
+
+###### Acceptance Checklist (enforced) — `.19` slice 2
+
+- [x] **REPRODUCE / ISSUE** — slice 1's own residual, restated as the question acceptance (b) asks:
+  today's narrow arm is **+2 578 bytes** against BOTH recorded artifacts, the same constant at both
+  `-o` spellings, and the leaf must say whether that is the input or the code.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `.22`(e) emits a fixed block into every generated parser.
+  WHERE: `rust/src/ast_pipeline/ast_based_generator.rs`, introduced by `0ff4654a` —
+  `git log --oneline -S "COVERAGE_REPLAY_TAG" -- rust/src/ast_pipeline/ast_based_generator.rs`
+  returns exactly that one commit, and `git show --stat 0994c3c0 -- rust/src/` shows the flip never
+  touched that file. Located to the byte: `diff -u0` over the pre-`.22`(e) and current SystemVerilog
+  parsers yields **9 hunks / 60 added / 9 removed lines**, all of them the multiplicity fold
+  (`docs/tasks/artifacts/engine_universal_services/es19_residual_attribution/e22e_sv_emission.diff`).
+  The competing WHY is refuted in the same breath: the input's `raw_ast` is byte-identical to a fresh
+  re-derivation and neither differing metadata field reaches the parser.
+- [x] **FIX** — fix-hierarchy tier = **none; this slice ships no fix, correctly.** Acceptance (b) is
+  a discrimination between two hypotheses, and both are refuted. Nothing in the engine is wrong;
+  what was wrong was a record. ZERO code / grammar / generated / gate bytes.
+- [x] **ADDRESSED (verified)** — before→after on what the leaf cannot account for: **2 578 B → 0 B**,
+  and combined with slice 1 the founding **99 747 B → 0 B**. Re-runnable oracles, both deterministic:
+  a `--emit-raw-ast-json` re-derivation of `generated/systemverilog.json` compared field by field →
+  `raw_ast` IDENTICAL; and the ten-artifact delta table + `diff -u0` hunk census against
+  `rust/target/e22_backup/generated_pre_e/`, both preserved in
+  `es19_residual_attribution/attribution.txt`.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → all registered doctrines PASS.
+  `generated/systemverilog_parser.rs` is untouched by this slice —
+  `46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7`, the same value slice 1
+  recorded — and every measurement above is read-only except the two scratch re-derivations under
+  `rust/target/`, which write nowhere else. The `0994c3c0` worktree was removed (`git worktree list`
+  → one entry, the repository itself).
+- [x] **LOCKSTEP** — `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, the new
+  tracked artifact pair `es19_residual_attribution/{attribution.txt,e22e_sv_emission.diff}`, the new
+  leaf `.29`, and slice 1's LOCKSTEP box corrected forward. No book chapter and no `TOOLBOX.md`
+  entry: this slice adds no instrument and changes no user-visible behaviour.
+
+#### ⛔⛔ `.29` NEW `todo` — `generated/` is NOT reproducible from HEAD: the annotation pair carries a line the tracked code generator cannot emit, and the annotation pair is what generates everything else (opened 2026-08-16 session #241 by `.19` slice 2)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **Measured by re-derivation, not inferred, and the producer is TRACKED and RE-RUNNABLE** —
+  `docs/tasks/artifacts/engine_universal_services/es19_residual_attribution/reproducibility_probe.sh`
+  (~3 s; output `reproducibility_probe.txt`). It builds `ast_pipeline_bootstrap` from HEAD into its
+  own target dir, re-runs the tracked recipe from a mimic tree so the `-o` string is byte-identical
+  to what `rust/Makefile` passes, **asserts that the embedded `-o` site counts match before
+  comparing** (TOOLBOX 5.6 — otherwise the comparison measures the path), and diffs. ⛔ It is
+  **RED today by design**, which is the correct verdict for an open defect; `.29` (a) is what makes
+  it exit 0. Both artifacts diverge by exactly one line:
+
+  ```text
+  ✗ return_annotation     live 2 125 099 B → fresh 2 125 061 B   @@ -313 +312,0 @@
+  ✗ semantic_annotation   live 12 189 738 B → fresh 12 189 700 B  @@ -499 +498,0 @@
+  -        self.coverage_deltas.clear();
+  ```
+- **The tracked generator cannot produce that line, and says so in its own source.**
+  `grep -c 'coverage_deltas.clear()' rust/src/ast_pipeline/ast_based_generator.rs` → **0**;
+  `git log -S 'coverage_deltas.clear()' -- rust/src/ast_pipeline/ast_based_generator.rs` → **no
+  commit ever**. The emitter carries a deliberate comment at the site where the line would go: *"⛔⛔
+  `coverage_deltas` IS DELIBERATELY NOT CLEARED HERE, and the reason is a bug that does not exist
+  yet … the safety argument is a property of the CALLERS, not of this type."* ⇒ the on-disk artifact
+  is not merely old, it embodies a decision the tree later reversed.
+- **Provenance, from the timestamps, and it is a working-tree state that was never committed.**
+  `rust/target/debug/ast_pipeline_bootstrap` was built **2026-08-16 01:19** and the annotation pair
+  written the same minute; the eight family parsers were written at **01:51** and match HEAD; the
+  commit that finalised the emission, `0ff4654a`, landed at **02:39**. ⇒ the annotation pair was
+  emitted from an intermediate editor state ~80 minutes before the commit, and the families from a
+  later one.
+- ⛔ **The blast radius is bounded, and the bound is a reading of the emitted code rather than a
+  measurement — say so.** The divergent line sits inside `pub fn enable_coverage(&mut self)`, whose
+  only effect is on `self.coverage_deltas`, read back solely by `exercised_rule_entry_counts()` /
+  `exercised_rule_names()`. Neither is on the parse path, so the ANNOTATION AST these parsers return
+  cannot differ, and therefore the eight family artifacts should be unaffected. ⚠️ **That is an
+  argument, not a byte comparison** — the byte comparison needs an `ast_pipeline` relinked against
+  freshly-derived annotation parsers, which is acceptance (a) below.
+- **Reproduces outside SystemVerilog by construction, and outside this instance too.** Both
+  annotation parsers carry it (**+38 B each**, which is exactly why they show `+2 616` where the
+  other eight show `+2 578`). More importantly the CLASS is not about this line: it is that **nothing
+  in the repository compares `generated/` against what HEAD's source produces**. `fixed_point_gate`
+  is the nearest thing and it does not close this — it proves regeneration converges **across its own
+  cycles**, overwriting whatever was on disk in cycle 1, so a stale pre-existing artifact is invisible
+  to it by construction.
+- ⛔ **It also refutes a live claim in layer A.** `MEMORY.md` records *"`generated/` FRESH"*. It is
+  not: two of its 33 artifacts cannot be reproduced from HEAD, and they are the two the annotation
+  backend links, i.e. the pair that participates in generating every other parser.
+
+**Acceptance:** (a) repair by re-derivation and MEASURE the blast radius in the same act — regenerate
+the annotation pair from HEAD, relink `ast_pipeline`, regenerate all ten families, and assert the
+eight non-annotation artifacts are **byte-identical** across the repair (if they are not, the bound
+above is wrong and that is the finding); (b) the gate — this is `.19` acceptance (c)'s real subject,
+and it is broader than the JSON-freshness check that leaf assumed: a check that `generated/` is what
+HEAD's source produces, priced honestly (a full re-derivation is minutes, so it belongs on an
+operator/CI tier with a cheap identity proxy on every commit, in the shape `PARSE-COST-RATCHET`
+tier 1 already uses); (c) whatever (b) lands, `.16`'s `generated/ebnf.rs` seed-only defect is the
+same class one level over — the two must be designed together, exactly as `.19` acceptance (c)
+already said about the JSON; (d) correct the layer-A *"`generated/` FRESH"* claim rather than
+leaving it to be re-read as true.
 
 
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)

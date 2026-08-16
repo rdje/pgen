@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0060 (leaf ENGINE-UNIVERSAL-SERVICES.19 slice 2 — acceptance (b) DISCHARGED; .29 NEW; DOCS + tracked evidence, ZERO code/grammar/generated/gate bytes)
+
+- ⭐⭐⭐ **AT THE MOMENT `.19` WAS WRITTEN, THE RESIDUAL WAS ZERO.** Both hypotheses are refuted and
+  the leaf's whole 99 747 bytes was the `-o` path spelling, nothing else.
+- **Hypothesis (b), "an INPUT moved", REFUTED by re-derivation.** A fresh `--emit-raw-ast-json` of
+  `generated/systemverilog.json` differs from the copy codegen consumed in exactly two provenance
+  fields — `generated_at`, and `source_file` (`../grammars/…` vs `grammars/…`, the **same three
+  characters** as the `-o` spelling) — while **`raw_ast` is byte-identical**. Neither field reaches
+  the emitted parser (both `grep -c` → 0). `git log 88b06424..HEAD` shows
+  `grammars/systemverilog.ebnf` and `rust/src/ebnf_frontend.rs` both **unchanged**.
+- **Hypothesis (a), "the flip's diff perturbs SV codegen", REFUTED**, using an oracle already in the
+  inputs: session #238's pre-`.22`(e) snapshot of `generated/`. The delta is a **CONSTANT +2 578 B
+  across eight families** spanning 260 KB → 143 MB and 1 488 → 1 608 rules, so it is a FIXED emitted
+  block. `diff -u0` over the two 143 MB SV parsers → **9 hunks, 60 added / 9 removed lines, all of
+  them `.22`(e)'s multiplicity fold**. Falsified against TRACKED source, not the scratch snapshot:
+  `git log -S COVERAGE_REPLAY_TAG` names exactly `0ff4654a`, committed **2026-08-16 02:39** — two
+  days after `.19` was opened.
+- ⭐ **This exonerates the flip on an axis `.20` ruling B cares about**: under the narrow lever it
+  emits the same bytes, and it never touched `ast_based_generator.rs` at all.
+- ⛔⛔ **UNSOUGHT, and it refutes a layer-A claim: `generated/` is NOT reproducible from HEAD.** A
+  fresh `ast_pipeline_bootstrap` built from HEAD re-derives `return_annotation_parser.rs` **38 bytes
+  smaller**, and `diff -u0` returns exactly one line — `self.coverage_deltas.clear();` — which the
+  tracked generator **cannot emit** (`grep -c` → 0, `git log -S` → no commit ever) and whose absence
+  its own source comment explains deliberately. Both annotation parsers carry it, and they are the
+  pair the annotation backend links to generate every other parser. `MEMORY.md` said *"`generated/`
+  FRESH"*; corrected. Opened as **`.29`** with the repair, the blast-radius measurement, and the gate
+  as acceptance — and `.19` acceptance (c) is retargeted onto it, since the real gap is that nothing
+  compares `generated/` against what HEAD's source produces (`fixed_point_gate` proves regeneration
+  converges across its own cycles, overwriting the stale artifact in cycle 1).
+- ⚠️ **Honest bound**: the recorded artifacts were not replayed byte-for-byte — an `ast_pipeline`
+  built at `0994c3c0` does not compile against today's generated parsers (**22 errors, 11 ×
+  `E0277: no implementation for u32 | Vec<u32>`**), which is `.22`(e)'s emission change seen from a
+  third direction. The attribution is by constant-delta + hunk diff + tracked-source falsification.
+- Slice 1's LOCKSTEP box said *"No book chapter"* while the same commit changed
+  `docs/book/src/diagnosing-unknowns.md`; corrected forward in the leaf rather than amended.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0059 (leaf ENGINE-UNIVERSAL-SERVICES.19 slice 1 — acceptance (a) DISCHARGED, the founding 99 747 bytes REFUTED; DOCS + one tracked probe, ZERO code/grammar/generated/gate bytes)
 
 - ⛔⛔ **NEITHER OF `.19`'s TWO HYPOTHESES. The 99 747-byte gap is 100 % the embedded `-o` path.**

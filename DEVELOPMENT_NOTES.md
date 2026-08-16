@@ -1,5 +1,41 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0060 — the oracle was already in the inputs, and the thing it turned up was not what I went looking for
+
+**1. A "residual" measured against a RECORDING is dated, not real.** Slice 1 left +2 578 bytes
+unexplained against two artifacts recorded two days earlier. The instinct is to treat that as a
+property of the code; it was a property of the *comparison*. `git log -S` on the emitted token named
+one commit, `0ff4654a`, timestamped **after the leaf was opened** — so the residual did not exist
+when the question was asked. ⇒ before chasing a delta against a recording, date the recording and
+list what landed in between; `git log <recording-time>..HEAD -- <the producing source>` is the whole
+technique.
+
+**2. A constant delta across ten artifacts is worth more than a big diff on one.** `.22`(e)'s block
+measures **+2 578 bytes on eight families spanning 260 KB to 143 MB and 1 488 to 1 608 rules**. That
+invariance is what upgrades "same number, probably the same cause" into "a FIXED emitted block, so
+of course it is the same number" — a per-rule cost could not be constant across a 550× size range.
+⇒ when a delta reappears, check whether it is constant before checking what it contains.
+
+**3. Falsify against a TRACKED source, never against the scratch artifact that suggested the
+answer.** The pre-`.22`(e) snapshot lives in `rust/target/`, i.e. ungoverned scratch; believing it on
+its own would be exactly the leg-3 breach `docs/CLAIM_VERIFICATION.md` §3 names. The confirmation
+that costs nothing is `grep -c COVERAGE_REPLAY_TAG rust/src/…` → 6 and `git log -S` → one commit,
+both against tracked files. ⇒ a scratch artifact may point at the answer; it may not *be* the answer.
+
+**4. ⭐ A failed build is a measurement.** Trying to replay the recorded artifacts needed
+`ast_pipeline` at `0994c3c0`, and it does not compile against today's generated parsers — **22
+errors, 11 of them `E0277: no implementation for u32 | Vec<u32>`**. That failure is not an obstacle
+to route around; it is `.22`(e)'s emission change observed from a third, independent direction, and
+it belongs in the record beside the two that succeeded.
+
+**5. ⛔ The finding I did not go looking for was the largest one.** Explaining a **+38-byte** anomaly
+on two of the ten rows — the kind of thing it is very tempting to round off — turned up that
+`generated/` is **not reproducible from HEAD**: both annotation parsers carry a
+`self.coverage_deltas.clear();` line the tracked generator cannot emit and whose absence its own
+comment defends, and they are the pair the annotation backend links to build every other parser.
+Layer A said *"`generated/` FRESH"*. ⇒ when a table has one row that does not fit the pattern,
+that row is the next investigation, not a rounding error. Opened as `.29`.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0059 — the answer to a three-session-old leaf was already on disk, and the cheapest test was the one nobody listed
 
 **1. An artifact whose size is a function of its own output path is byte-incomparable across

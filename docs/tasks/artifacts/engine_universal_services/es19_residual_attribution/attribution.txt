@@ -1,0 +1,26 @@
+ES19-RESIDUAL-ATTRIBUTION — where the +2 578 bytes came from
+
+The .22(e) codegen change (0ff4654a, 2026-08-16) adds a CONSTANT block to every
+generated parser, independent of grammar size or rule count. Measured against the
+pre-.22(e) snapshot of generated/ taken by session #238 (rust/target/e22_backup/
+generated_pre_e/), with an IDENTICAL -o path spelling on both sides (36 346 sites each
+for SystemVerilog, so no path effect between them):
+
+artifact                                     pre-.22(e)        today    delta
+json_parser.rs                                   686521       689099    +2578
+regex_parser.rs                                38333823     38336401    +2578
+return_annotation_parser.rs                     2122483      2125099    +2616
+rtl_const_expr_parser.rs                        2120098      2122676    +2578
+rtl_frontend_parser.rs                         10226652     10229230    +2578
+scratch_parser.rs                                259916       262494    +2578
+semantic_annotation_parser.rs                  12187122     12189738    +2616
+systemverilog_parser.rs                       143907016    143909594    +2578
+systemverilog_preprocessor_parser.rs            2891131      2893709    +2578
+vhdl_parser.rs                                 11771979     11774557    +2578
+
+8 of 10 families: +2 578 EXACTLY — the residual .19 slice 1 measured.
+The 2 annotation families: +2 616 = 2 578 + 38, the 38 being ONE extra emitted line
+`self.coverage_deltas.clear();` that HEAD cannot emit — see .29.
+
+The SystemVerilog emission diff (9 hunks, 60 added / 9 removed lines, ALL of it the
+.22(e) multiplicity fold and nothing else) is in e22e_sv_emission.diff.
