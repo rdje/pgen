@@ -16,3 +16,32 @@ FIRST PASS, sequential, one run per arm, earlier the same evening:
    between passes with an IDENTICAL binary and corpus, and the per-arm spread reaches 100.8s
    (27 %). An instrument whose noise floor exceeds the 24 % effect it is aimed at cannot
    adjudicate it. The machine had just absorbed three 21-minute / 12 GB release builds.
+
+==============================================================================
+TIMED tier, 3 COUNTERBALANCED rounds on the cleared host (`.20` slice 5, 2026-08-16)
+==============================================================================
+Arms rebuilt on the post-`.22`(e) engine (3 parsers + 3 release probes), each probe identity-
+checked by the parser path it embeds. Rounds walk a 3x3 Latin square so every arm occupies
+every slot exactly once; one discarded warm-up parse per probe removes the cold-binary artifact.
+All nine runs reproduced their arm's corpus verdicts EXACTLY (9762 / 9774 / 9487).
+
+arm                                       runs      median     spread   per-round (run order)
+ARM 1  narrow (pre-flip policy)              3      285.8s       4.6s   288.5  283.9  285.8
+ARM 3  absorbed, guards SUPPRESSED           3      276.0s      26.8s   298.7  271.9  276.0
+ARM 2  SHIPPED                               3      283.2s      65.2s   273.5  283.2  338.7
+
+ADMISSIBILITY (computed, not eyeballed): worst per-arm spread 65.2s vs bar 0.6s
+   => NOT ADMISSIBLE, NO SPLIT PRINTED. The absorption/guard split remains unresolved on the
+   wall-clock axis, and this run does not change that.
+
+⛔⛔⛔ BUT THE RUN ANSWERS A BIGGER QUESTION THAN THE ONE IT ASKED. ARM2/ARM1 = 0.9909.
+   Re-analysing slice 4's OWN RAW per-file data (preserved above as timed.prev.43148, whose
+   medians reproduce its published table exactly) under four estimators, in both eras:
+
+        ARM2/ARM1 across 7 estimator x era combinations:  [0.9909, 1.0433]
+
+   The published anchors are 1.243 (`.17` s9) and 1.318 (slice 4 pass 1). NEITHER is inside
+   that interval, and the PRE-`.22`(e) data does not contain them either — so the engine change
+   is not the explanation. The +24.3 % is not reproducible from the raw data of the runs that
+   produced it. Full derivation, provenance oracle and RED controls:
+   guard_ab_cross_era/analyze_cross_era.py

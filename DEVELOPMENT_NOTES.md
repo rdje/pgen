@@ -1,5 +1,42 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0050 — a refusal aimed in one direction preserves exactly the belief that put you there
+
+**1. Interleaving cancels drift for TWO arms and hides it for THREE.** The `A B A B` argument works
+because slot order reverses within each pair. Repeat `A B C` and each arm is pinned to a slot, so a
+within-round drift of Δ gives `+0Δ / +1Δ / +2Δ` *every round* — it accumulates rather than cancelling,
+and the design looks rigorous while being biased. A Latin square (each arm in each slot exactly once)
+cancels it exactly, which makes the round count part of the design: a multiple of the arm count, or
+the square is incomplete and the claim is void. PROMOTED →
+[[interleaving-cancels-drift-for-two-arms-and-hides-it-for-three]].
+
+**2. When you refuse a measurement, audit what was already resting on it.** This is the expensive one
+and it is mine. Slice 4 correctly noticed its timing pass was noise-limited and correctly refused to
+publish the split it had gone looking for. But the same pass had also measured the TOTAL effect at
+**1.002**, and that reading was left on the floor while the leaf kept carrying **+24.3 %** in its
+heading for three more sessions. The refusal was scoped to the conclusion I was chasing; the premise
+went unexamined. ⇒ a refusal that reaches only the current question is skepticism aimed in one
+direction, and it will preserve the belief that sent you there. When an instrument is declared unfit,
+enumerate every claim it has already produced — not just the one in front of you.
+
+**3. A safety fix is worth more than the bug it prevents, sometimes immediately.** I added a
+move-aside for stale round directories on general principle: the aggregator refused on a MISSING
+input but would have silently averaged a leftover one. The directory it moved aside on its first real
+run was slice 4's raw per-file data — the only surviving evidence able to adjudicate the +24.3 %, and
+it lived in gitignored `rust/target/`, one `clean` from gone. ⇒ preserve rather than delete by
+default; the evidence you cannot yet see a use for is the evidence that settles the next argument.
+
+**4. Say which AXIS you refuted.** The wall-clock figure collapsed; the deterministic tiers did not.
+The same change still costs **+10.6 %** rule entries and **+9.3 %** parser bytes, both exact and
+reproducible. A refutation that does not name its axis reads as *"the cost was imaginary"*, which is
+false and would licence removing the ratchet that should now be trusted more, not less.
+
+**5. Check the second-order consumers of a refuted number, not just the copies.** ~12 surfaces quote
+the +24.3 %; most need a find-and-replace. One does not: a knowledge card derived a *"~8.9× less
+sensitive"* bound from it, and with wall clock at ≤5 % that bound does not merely shift — it inverts,
+because the entry counter moved **+10.6 %**, i.e. MORE than the clock. ⇒ a number that has been
+reasoned FROM needs its conclusion re-derived, not its digits edited. Owned by `.26`.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0048 — "exonerated by bound" is a real discharge, and an audit's best finding is usually not the one it went looking for
 
 **1. Price the re-derivation before you run it, and a BOUND may close the row for free.** `.20`(b)'s

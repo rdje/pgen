@@ -14,3 +14,35 @@ revert control: ARM 2 regenerated d7d372c0e36847e5 vs shipped generated/ d7d372c
 ------------------------------------------------------------------------------
 ✅ three arms generated; engine restored byte-exactly.
 memory-guard: completed exit=0 peak_tree_rss=7585MB elapsed=196s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/generated_logs/memory_guard/guard.69444.marker
+
+==============================================================================
+RE-DERIVED 2026-08-16 (`.20` slice 5) AFTER `.22`(e) MOVED THE ENGINE
+==============================================================================
+`.22`(e) reshaped `MemoEntry.coverage_delta` from `Option<Vec<u32>>` into an `Option<u32>` index, so
+the three arms were regenerated before the timed tier could compare anything.
+⚠️ Precisely what that changes, because the loose version of this sentence is wrong: with coverage
+recording OFF — which is how `parseability_probe` parses — the payload is `None` on BOTH sides of the
+change (`ast_based_generator.rs:9289`, `:9166` before it; the engine's comment: *"ordinary parsing
+pays nothing"*). The instruction path an ordinary memo insert walks is therefore UNCHANGED. What moved
+is the SIZE of every `MemoEntry` — three words of `Vec` header down to one — plus a flat +2 566 bytes
+of emitted parser. Second-order, but unmeasured, and on a table walked hundreds of millions of times.
+The question this re-run answers is not "what is the split" but "is the engine change ARM-NEUTRAL",
+because a change that landed unevenly across the arms would be attributed to the guards.
+
+ARM 1  narrow admission (pre-slice-9)          norm_bytes=130515304   RULE_COUNT=1488   lr_names=7     guard_names=0   path_sites=33249
+ARM 2  SHIPPED (absorbed + guarded)            norm_bytes=142674425   RULE_COUNT=1608   lr_names=127   guard_names=6   path_sites=36346
+ARM 3  absorbed, guards SUPPRESSED             norm_bytes=142443942   RULE_COUNT=1602   lr_names=121   guard_names=0   path_sites=36291
+
+revert control: ARM 2 regenerated 97b89833855ea1a3 vs shipped generated/ 97b89833855ea1a3  IDENTICAL — the patch left no residue
+✅ three arms generated; engine restored byte-exactly.
+
+⭐⭐ IT IS ARM-NEUTRAL TO THE BYTE. `.22`(e) added **exactly +2 566 bytes to every arm** — the same
+constant three times, not three similar numbers — so the split it feeds is unchanged in both terms:
+
+                    absorption (ARM3-ARM1)        guards (ARM2-ARM3)        total
+  pre-`.22`(e)        11 928 638  (98.10 %)        230 483  (1.90 %)     12 159 121
+  post-`.22`(e)       11 928 638  (98.10 %)        230 483  (1.90 %)     12 159 121
+
+RULE_COUNT (1488/1602/1608), lr_names (7/121/127) and guard_names (0/6/0) are likewise unmoved. ⇒ the
+STRUCTURAL tier's published 98.10 / 1.90 survives the engine change exactly, and the timed tier is
+comparing three parsers that differ from each other in precisely what they differed in before.

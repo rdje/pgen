@@ -5221,7 +5221,18 @@ was comfortable in a way `+24.3 %` is not.
   its promotion finally happened, seven slices later, with the ratchet paid rather than waived, and a
   `KNOWLEDGE_MAP.md` regeneration.
 
-#### ⛔⛔⛔ `.20` `in progress` — (d) DISCHARGED slice 1, (a) FIRST PASS slice 2, **(b) MEASURED THREE WAYS slices 3+4** (`-0042`/`-0044`: STRUCTURE guards **1.9 %** · WORK (entries) guards **76.3 %** — the two deterministic tiers rank the halves OPPOSITELY, which is the mechanism: 6 constantly-entered rules vs 114 rarely-entered ones — and TIME is **noise-limited on this machine**, so ⛔ **(b) is NOT discharged**); (c)/(e) OPEN — the guarded admission costs **+24.3 %** parse time on the SV corpus, and *"costs are REJECTED, not traded"* is a NON-NEGOTIABLE (opened 2026-08-14 session #232 by `.17` slice 9)
+#### ⛔⛔⛔ `.20` `in progress` — (d) DISCHARGED slice 1, (a) FIRST PASS slice 2, (b) MEASURED THREE WAYS slices 3+4, and ⭐⭐⭐ **slice 5 REFUTES THE LEAF'S FOUNDING NUMBER: the `+24.3 %` is NOT REPRODUCIBLE from the raw data of the runs that produced it** (`-0050`; 7 estimator × era combinations put ARM2/ARM1 in **[0.9909, 1.0433]**, including slice 4's OWN pre-`.22`(e) raw data, so the engine change is not the explanation — the number was a fixed-arm-order measurement artifact). STRUCTURE guards **1.9 %** · WORK (entries) guards **76.3 %** — both stand, both are real, and both measure something other than wall clock (opened 2026-08-14 session #232 by `.17` slice 9)
+
+⛔⛔⛔ **CORRECTION 2026-08-16 (slice 5) — READ THIS BEFORE THE ROUTING EVIDENCE BELOW.** The routing
+evidence is preserved verbatim because it is the record of what was believed and why, but its
+headline measurement **does not survive re-analysis of its own raw data**. Every number in it that
+depends on comparing arms across *sequentially ordered* runs is contaminated by host drift: the arm
+that ran LAST looked fastest, and in both contaminating passes that arm was ARM 1. Under a
+counterbalanced Latin square, and under four estimators applied to both eras' raw per-file data, the
+wall-clock effect sits at the noise floor — **bounded well under 5 %, not 24.3 %**. What remains true
+and unretracted: the flip's DETERMINISTIC costs, which were never measured this way — **+10.6 % rule
+entries** (812 963 769 → 899 064 022) and **+9.3 % parser bytes** (12 159 121 B). ⇒ read the bullets
+below as history, and `.20` slice 5 as the current state.
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -7030,6 +7041,231 @@ statements, and **the aggregator now REFUSES on a missing input instead of skipp
   is untouched; `stimuli/` tracked artifacts are untouched (`git status --porcelain stimuli/` empty,
   `results.tsv` mtime unchanged at 08-14 22:32). `bash scripts/check_doctrines.sh` → ALL 20 enforced
   doctrines PASS. `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes.
+
+##### ⭐⭐⭐ `.20` SLICE 5 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0050`, 2026-08-16 session #239) — (b) TIMED tier on the cleared host: the split is STILL not admissible, and on the way to proving that the leaf's founding **+24.3 % turns out not to be in its own raw data**
+
+The director cleared the host — *"every other agent stopped, the machine is MINE ALONE"* — which is
+the precondition slice 4 named. It was necessary and not sufficient: before the machine could answer
+anything the arms had to be rebuilt, and the instrument that would read them had four defects.
+
+###### ⛔ THE ARMS WERE REBUILT, AND `.22`(e) IS PROVABLY ARM-NEUTRAL
+
+`.22`(e) moved the engine between slice 4 and this slice, so the probes on disk embedded a different
+generator than the shipped parser does. All three parsers were regenerated and all three release
+probes rebuilt (~21 min / 12 GB each). ⭐ That answers a question slice 4 could not have asked — a
+change landing unevenly across the arms would be charged to the guards — and the answer is **neutral
+to the byte: exactly +2 566 bytes to each of the three arms**, the same constant three times.
+
+|  | ARM 1 narrow | ARM 3 absorbed, unguarded | ARM 2 shipped | absorption | guards |
+|---|---:|---:|---:|---:|---:|
+| pre-`.22`(e) | 130 512 738 | 142 441 376 | 142 671 859 | 11 928 638 (**98.10 %**) | 230 483 (**1.90 %**) |
+| post-`.22`(e) | 130 515 304 | 142 443 942 | 142 674 425 | 11 928 638 (**98.10 %**) | 230 483 (**1.90 %**) |
+
+`RULE_COUNT` (1488/1602/1608), `lr_names` (7/121/127) and `guard_names` (0/6/0) are likewise unmoved
+⇒ the STRUCTURAL tier's published split survives the engine change in every digit.
+
+⚠️ **What `.22`(e) does and does not change**, because the loose version of this is wrong and I wrote
+it into three tracked files before checking: with coverage recording OFF — how `parseability_probe`
+parses — the coverage payload is `None` on BOTH sides (`ast_based_generator.rs:9289`, `:9166` before
+it; the engine's own comment: *"ordinary parsing pays nothing"*). The instruction path an ordinary
+memo insert walks is UNCHANGED. What moved is the SIZE of every `MemoEntry`, `Option<Vec<u32>>` →
+`Option<u32>`. Corrected in all three files.
+
+###### ⛔⛔ FOUR DEFECTS IN THE INSTRUMENT, FOUND BEFORE IT WAS TRUSTED
+
+**(1) THE ARM IDENTITY CHECK COULD NOT TELL TWO OF THE THREE ARMS APART.** Slice 4 identified arms
+with `nm probe | grep -c _lr_guard`; measured, that reads **0 for ARM 1 and 0 for ARM 3 alike**, so it
+would pass a run in which one arm's parser was used for both. `_lr_suffix` does not repair it — ARM 1
+has **13**, not 0. ⭐ The exact identity was already inside the defect `.25` records: a generated
+parser embeds its own `-o` path (36 346 sites), so each probe NAMES its parser and no other; the
+matrix is diagonal. ⛔ On its FIRST run the new check found a real asymmetry in slice 4's own arms —
+`probe_arm2` was built from `generated/systemverilog_parser.rs`, **not** from
+`sv_arm2_shipped_parser.rs`, so the SHIPPED arm was the one binary not off the same shelf. ⚠️ Exactly
+what that means: the parsers are byte-identical once the path is normalised (the structural runner's
+revert control proves it), so the arm was BEHAVIOURALLY right — the defect is homogeneity. Price: 11
+characters × 36 346 sites ≈ **400 KB** of `__cstring` ARM 3 carried and ARM 2 did not.
+
+**(2) THE INTERLEAVING DID NOT CANCEL WHAT IT CLAIMED TO, AND THIS IS THE ONE THAT MATTERS.** The
+script's header argues that `A2 → A1 → A2 → A1` makes monotonic drift cancel. ⭐ True for a PAIR,
+where slot order reverses between members — and it ran **three** arms in a FIXED order, `arm2, arm1,
+arm3`, every round. Under a within-round drift of Δ per slot that is arm2 `+0Δ`, arm1 `+1Δ`, arm3
+`+2Δ` in *every* round: the bias does not cancel, it ACCUMULATES. ⇒ rounds now walk a **3×3 cyclic
+Latin square** (`arm2 arm1 arm3` / `arm1 arm3 arm2` / `arm3 arm2 arm1`), every arm in every slot
+exactly once, so a slot-linear drift cancels EXACTLY. Round count must be a multiple of 3 or the
+runner refuses. Audited from the per-run `context.txt` files, not taken on the script's word.
+
+**(3) A STALE ROUND WAS WORSE THAN A MISSING ONE, AND ONLY THE MISSING ONE WAS GUARDED.** Slice 4
+taught the aggregator to REFUSE on an absent `durations.tsv`; it could not refuse one PRESENT but left
+from an earlier invocation, which is republished as freshly measured. Previous output is now MOVED
+ASIDE (never deleted — it is evidence) before round 1. ⭐⭐ **That safety fix is what made this slice's
+central finding possible**: the moved-aside directory is slice 4's raw data, and without it the
+re-analysis below could not have been done.
+
+**(4) THE WARM-UP ARTIFACT, FOUND BY THE SMOKE SEAM ADDED TO AVOID PAYING 55 MINUTES TO TEST 3
+MINUTES OF ORCHESTRATION.** Every arm's FIRST run cost **~5.2 s against ~0.5 s** for its second and
+third on identical work — cold page-in of a freshly linked 77 MB binary, the artifact `.22`(e) slice 2
+already published an `x0.0` speedup from. It favours no arm but lands wholly in round 1, inflating
+every arm's spread — and the spread is what the admissibility test adjudicates. One discarded parse
+per probe removes it: measured before→after, per-arm spread **4.8 / 5.0 / 5.3 s → 0.0 / 0.0 / 0.0 s**.
+
+###### ⭐⭐ THE ADMISSIBILITY CRITERION IS NOW COMPUTED, AND IT STILL SAYS NO
+
+Slice 4 refused its split by reading a table. It is a computation now: a split prints only when the
+worst per-arm spread is **< ¼ of the measured effect**, else the runner prints the bound it CAN
+support. A second FIXED anchor (0.243 × ARM 1) stops the bar collapsing with the effect and separates
+*noisy host* from *shrunken effect*. ⭐ **Falsified against an oracle I did not build**: fed slice 4's
+own recorded numbers the criterion independently reproduces slice 4's refusal and its *noisy host*
+reading. Four branches exercised on synthetic input (admissible; not-admissible/noisy;
+not-admissible/shrunken; refuse-on-missing-round).
+
+**The measured pass — 3 counterbalanced rounds, all nine runs reproducing their arm's verdicts
+EXACTLY (9762 / 9774 / 9487):**
+
+| arm | median | spread | per-round |
+|---|---:|---:|---|
+| ARM 1 narrow | 285.8 s | 4.6 s | 288.5 · 283.9 · 285.8 |
+| ARM 3 absorbed, guards suppressed | 276.0 s | 26.8 s | 298.7 · 271.9 · 276.0 |
+| ARM 2 SHIPPED | 283.2 s | 65.2 s | 273.5 · 283.2 · 338.7 |
+
+Worst spread 65.2 s against a bar of 0.6 s ⇒ **NOT ADMISSIBLE, no split printed.** ⛔ **(b)'s
+absorption-vs-guard split remains UNRESOLVED on the wall-clock axis.** The two slow runs landed in
+different rounds and different slots (ARM 3 round 1 slot 3, ARM 2 round 3 slot 2), which is what a
+random external transient looks like and what the Latin square exists to keep off a fixed arm.
+
+###### ⛔⛔⛔ AND THEN THE NUMBER THE WHOLE LEAF RESTS ON DID NOT REPRODUCE
+
+ARM2/ARM1 came out at **0.9909**. That is not a split, it is the *total* effect — the +24.3 %. So the
+question stopped being *"how do we divide the regression"* and became *"is there one"*. Slice 4's own
+raw per-file output survived in the moved-aside directory, so the same estimators can be applied to
+**both eras**, one of which is not this slice's data:
+
+| era | estimator | ARM 1 | ARM 3 | ARM 2 | ARM2/ARM1 |
+|---|---|---:|---:|---:|---:|
+| PRE-`.22`(e) — slice 4 raw | median of totals | 365.8 s | 388.1 s | 366.6 s | **1.0022** |
+| PRE-`.22`(e) — slice 4 raw | mean of totals | 365.8 s | 388.1 s | 366.6 s | **1.0022** |
+| PRE-`.22`(e) — slice 4 raw | sum per-file MIN | 318.2 s | 328.2 s | 326.1 s | **1.0246** |
+| POST-`.22`(e) — slice 5 raw | median of totals | 285.8 s | 276.0 s | 283.2 s | **0.9909** |
+| POST-`.22`(e) — slice 5 raw | mean of totals | 286.1 s | 282.2 s | 298.5 s | **1.0433** |
+| POST-`.22`(e) — slice 5 raw | sum per-file MIN | 266.3 s | 264.6 s | 270.9 s | **1.0171** |
+| POST-`.22`(e) — slice 5 raw | sum per-file MEDIAN | 279.8 s | 275.1 s | 280.3 s | **1.0019** |
+
+⇒ **7 estimator × era combinations, every one in [0.9909, 1.0433].** The published anchors are
+**1.243** (`.17` slice 9) and **1.318** (slice 4 pass 1). Neither is inside that interval, and neither
+is within 20 points of its top.
+
+⭐ **PROVENANCE IS NOT ASSERTED, IT IS ASSERTED-ON**: the pre-era `median of totals` row reproduces
+slice 4's PUBLISHED table (365.8 / 388.1 / 366.6) **exactly**, and the analyzer exits non-zero if it
+ever does not. That is what makes the pre-era row evidence rather than a re-run.
+
+⛔⛔ **`.22`(e) IS NOT THE EXPLANATION** — my first hypothesis, and the data refutes it. The +24.3 % is
+absent from the PRE-`.22`(e) raw data too. **THE MECHANISM IS THE ONE DEFECT (2) NAMES**: both
+contaminating passes ran the arms in a fixed order — `.17` slice 9 narrow-then-shipped, slice 4 pass 1
+in the order 2 → 3 → 1 — and in both, **ARM 1 ran last**. The host drifts monotonically over a session
+(slice 4 recorded ARM 1 moving +21 % between passes on an identical binary), so the arm that runs last
+looks fastest, and ARM 1 looking fast is precisely what inflates ARM2/ARM1. Counterbalance the order
+and the gap goes.
+
+⚠️ **HONEST BOUNDS, because this refutes my own published work and must not overshoot:**
+- This does **not** prove the flip is free. The DETERMINISTIC tiers stand and are unretracted: the
+  flip costs **+10.6 % rule entries** (812 963 769 → 899 064 022) and **+9.3 % parser bytes**. What is
+  refuted is the **wall-clock** figure alone.
+- The residual wall-clock effect is **not zero and not a point value**. The MIN estimator over the
+  three post-era round-pairs gives 1.0010 / 1.0001 / 1.0346 — the estimator itself moves the ratio by
+  ~3 points. The honest statement is **"at the noise floor, bounded well under 5 %"**.
+- ⛔ I cannot re-run `.17` slice 9's conditions: its raw per-file data was not preserved, only its
+  totals. The claim is therefore *"not reproducible from the raw data that survives"*, which is
+  slice 4's pass — not *"never happened"*.
+- ⛔ Slice 4 refused to publish its SPLIT and was right to. But it kept the **+24.3 % headline**,
+  carried from `.17` slice 9, even though its OWN interleaved pass put the total at **1.002**. The
+  refusal was scoped to the split and never applied to the premise. That asymmetry — refusing the
+  tidy number that disagreed and retaining the untidy one that agreed — is the finding I most want on
+  the record, because it is mine.
+
+###### ⭐ CONSEQUENCE FOR RULING B — DISCHARGED BY ATTRIBUTION, NOT BY WAIVER
+
+Ruling **B** forbids SV reaching `Done` *"carrying an unexplained +24.3 %"*, requiring it be
+*"attributed and then either eliminated or declared IRREDUCIBLE with the measurement that proves
+it."* It is now **attributed**: to a fixed-arm-order measurement artifact, with the raw data, the
+mechanism and the counterbalanced re-measurement on record. That is a legitimate discharge of B's
+own terms — not the *"accuracy before speed"* escape (e) forbids, and not a waiver. ⛔ **What stays
+open**: (b)'s split is still unresolved on wall clock (and is now a split of ~0-5 %, not 24 %), and
+(c)'s priced option list should be re-scoped to the deterministic costs, which are the real ones.
+
+###### Acceptance Checklist (enforced) — `.20` slice 5
+
+- [x] **REPRODUCE / ISSUE** — the arms rebuilt on the current engine (3 parsers + 3 release probes,
+  each identity-checked by the parser path it embeds), then 3 counterbalanced rounds on the cleared
+  host. All nine runs reproduced their arm's corpus verdicts exactly (9762 / 9774 / 9487), ARM 2
+  against the tracked oracle `stimuli/sv/characterization/results.tsv` (9774 pass / 16 336 rows).
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. WHY the +24.3 % is not reproducible:
+  both passes that produced it ran the arms in a FIXED order with ARM 1 last, against a host that
+  drifts monotonically within a session. WHERE, by command:
+
+  ```
+  $ bash .../build_guard_ab_probes.sh --verify-only
+  arm2 ... names_own=0 ... ⛔ does not name sv_arm2_shipped_parser.rs — built from some other parser
+  $ python3 .../guard_ab_cross_era/analyze_cross_era.py
+  ✅ PROVENANCE — the pre era reproduces `.20` slice 4's PUBLISHED medians exactly
+  ⇒ 7 estimator x era combinations. ARM2/ARM1 in [0.9909, 1.0433].
+  ```
+- [x] **FIX** — no shipped byte changes. Four instrument defects fixed (arm identity, fixed-order
+  interleave → Latin square, stale-round hole, warm-up artifact); the admissibility criterion made
+  mechanical; a tracked build driver added so the probe recipe is no longer a comment; slice 4's raw
+  data preserved as a tracked 147 KB matrix with a tracked analyzer over it.
+- [x] **ADDRESSED (verified)** — BEFORE: the timed tier was noise-limited and the leaf carried
+  +24.3 % as fact. AFTER: the tier is counterbalanced, warmed and self-policing; it still refuses the
+  split (worst spread 65.2 s vs bar 0.6 s) and says so mechanically; and the +24.3 % is refuted
+  across 7 estimator × era combinations with a provenance oracle and 3/3 RED/GREEN controls
+  (`analyze_cross_era.py --self-test`).
+- [x] **NO REGRESSION** — `generated/` untouched (regeneration was to `rust/target/lr_ab_arms/`
+  only; the structural runner's revert control reports ARM 2 regenerated `97b89833855ea1a3` ==
+  shipped `97b89833855ea1a3`, and `git diff --quiet -- rust/src/` holds at exit). `stimuli/` tracked
+  artifacts untouched. `bash scripts/check_doctrines.sh` → all enforced doctrines PASS.
+
+#### ⛔⛔⛔ `.26` NEW `todo` — the REFUTED `+24.3 %` is still asserted as CURRENT FACT on ~12 tracked surfaces, including a DOCTRINE's own text (opened 2026-08-16 session #239 by `.20` slice 5, which refuted it)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — measured before opening):
+
+- **Measured, not estimated**: `git ls-files | xargs grep -ln "24\.3 *%\|+24\.3"` returns **18 tracked
+  files**. Triaged, they are two populations, and only one is a defect.
+- ⛔ **HISTORY — must NOT be rewritten** (dated records of what was believed and when):
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, the superseded prose inside `.20` slices 1-4, and
+  `guard_ab_timed.txt`'s first two sections. `.20`'s own heading and routing evidence already carry an
+  in-place CORRECTION pointing at slice 5, which is the correct-forward shape.
+- ✅ **ALREADY CORRECTED BY SLICE 5** (done in-slice because the book is the director's only window
+  into the project, and the map is derived): `docs/book/src/diagnosing-unknowns.md` (the one line, both
+  mentions), `MEMORY.md` (layer A), and `KNOWLEDGE_MAP.md` (**re-derived** via
+  `knowledge-map/scripts/gen_knowledge_map.sh`, never hand-edited).
+- ⛔ **LIVE and STILL FALSE — this leaf's worklist**: `TOOLBOX.md`, `docs/TASK_TREE.md`, the knowledge
+  card `[[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]]`, the artifact
+  `parse_cost_ratchet/cost.md`, and four instrument headers (`stimuli/sv/corpus_parse_cost.py`,
+  `scripts/check_parse_cost_ratchet.sh`, `rust/Makefile`, `run_guard_ab_entries.sh`).
+- ⛔⛔⛔ **ONE SURFACE IS NOT MERELY STALE — ITS THESIS INVERTS, AND IT IS A KNOWLEDGE CARD.**
+  `[[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]]` argues that the entry counter is
+  *"at least ~8.9× less sensitive"* than wall clock, deriving that bound as **2.741 % entries against
+  +24.3 % wall clock**. With wall clock at ≤5 %, the bound does not survive on either reading of the
+  entry figure: against the card's own 2.741 % share it becomes ≤1.9×, and against the work tier's
+  actual entry DELTA (**+10.6 %**, 812 963 769 → 899 064 022) the counter moved *more* than the clock,
+  i.e. it was MORE sensitive, not less. ⚠️ The card's GENERAL principle — a counter counts EVENTS and
+  a slowdown can live in the COST of an event — is untouched and remains true; it is the PGEN
+  evidence and the numeric bound that are refuted. ⭐ The `PARSE-COST-RATCHET` gate holds this card's
+  `Live LR-family share` anchor equal to `family_share.json`; **2.741 % is a measured share and is
+  unaffected**, so the gate does not break — only the interpretation built on top of it does.
+  ⇒ this card needs re-derivation of its thesis, not a find-and-replace.
+- ⭐⭐ **The sharpest one is a DOCTRINE.** `PARSE-COST-RATCHET`'s registered description states *"the
+  guarded admission cost +24.3 % parse time while … every registered doctrine stayed GREEN"* as its
+  founding rationale. ⛔ It is mirrored in **two** files that the `<meta:mirror>` doctrine binds
+  together (`DOCTRINE_ENFORCEMENT.md` §10 and `scripts/check_doctrines.sh`), so they must move
+  together or the mirror check fails. ⚠️ The doctrine's RATIONALE survives intact and is arguably
+  strengthened — a number nothing measured was believed for three sessions and was wrong by 20 points
+  — so this is a correction of the figure, never a case for removing the ratchet.
+- **Reproduces outside this family by construction**: this is the four-copies failure `.21` is a
+  record of, one layer up — a refuted number propagates exactly as a correct one does.
+
+**Acceptance:** (a) every LIVE surface above states the current, true figure, with the refutation's
+owning slice named; (b) the two mirrored doctrine surfaces move together and `<meta:mirror>` stays
+GREEN; (c) `KNOWLEDGE_MAP.md` re-derived rather than hand-edited if its source card changes;
+(d) ⛔ no dated record is rewritten — corrections are forward, in place, and point at `.20` slice 5.
 
 #### ⛔⛔ `.24` NEW `todo` — `PARSE-COST-RATCHET`'s identity block pins every INPUT and not the EXECUTABLE, so the gate says *"the measurement cannot have moved"* while the probe on disk embeds a different parser (opened 2026-08-15 session #237 by `.20` slice 4, DEMONSTRATED LIVE)
 
