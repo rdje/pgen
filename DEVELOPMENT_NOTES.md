@@ -1,5 +1,36 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0059 — the answer to a three-session-old leaf was already on disk, and the cheapest test was the one nobody listed
+
+**1. An artifact whose size is a function of its own output path is byte-incomparable across
+invocations.** Every generated parser writes its `-o` destination into the emitted source once per
+rule-entry site — **33 249** times in the narrow SystemVerilog arm, 36 346 in the shipped one. So
+`make` (from `rust/`, `-o ../generated/…`, 36 chars) and an ad-hoc run (from the repo root,
+`-o generated/…`, 33 chars) produce byte-EQUIVALENT parsers 99 747 bytes apart. ⇒ before believing
+any byte difference between two generated parsers, ask whether both were written through a
+character-for-character identical `-o` string. `TOOLBOX.md` §5.6 is the pre-step.
+
+**2. A matching byte count is an illustration; only identity is a test.** `33 249 × 3 = 99 747` is
+exactly as consistent with *"the path explains 99 747 bytes and something else nets to zero"* as
+with the truth. What settles it is normalising the long spelling to the short one inside the 131 MB
+file and demanding sha256 identity — and then driving that same comparison against a deliberately
+wrong normalisation so the control is observed going RED. ⇒ when arithmetic agrees, that is the
+moment to look for the identity check, not the moment to publish.
+
+**3. The competing hypothesis you assume away is the one that bites.** *"Maybe the INPUT path is
+embedded too"* was tested rather than reasoned about: generating with the input JSON named
+absolutely and relatively yields a byte-identical parser. It cost one extra 26-second codegen run
+and it is the difference between a bounded claim and a confident one.
+
+**4. ⭐ The transferable failure is about TIME, not about paths.** The mechanism was discovered by
+this same tree in session #238; the leaf it refutes was opened in session #232 and sat at the head
+of the queue for three further sessions with two hypotheses the project could already refute. Both
+of its priced experiments needed a build at an old commit; the hypothesis that was correct needed
+one `grep -oF … | wc -l` against a file already on disk. ⇒ before executing a queued leaf's priced
+experiment, ask *what has this tree learned since the leaf was written?* — `git log <opening>..HEAD
+-- docs/tasks/<TREE>.md` is the one-command version. Promoted:
+`docs/knowledge/a-hypothesis-list-is-a-snapshot-of-what-you-knew-that-day.md`.
+
 ## 2026-08-16 - PGEN-ENGINE-UNIVERSAL-SERVICES-0054 — in an A/B about observability, the hard part is proving the two arms are two things
 
 **1. An A/B whose arms are secretly identical does not fail — it PASSES.** `.22`(b) needed a bare

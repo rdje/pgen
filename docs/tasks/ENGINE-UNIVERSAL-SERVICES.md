@@ -7699,7 +7699,7 @@ gate's own sentence either way: *"the measurement cannot have moved"* is a claim
 pipeline, and until (a) lands it is a claim about the inputs only. A gate that overstates its own
 guarantee is the failure `.21` was opened for, one surface over.
 
-#### ⚠️ `.25` NEW `todo` — every generated parser embeds its own OUTPUT PATH once per emitted site (**36 346** times in SV, 1.3 MB), which makes two parsers byte-incomparable and has now inverted one published reading (opened 2026-08-15 session #237 by `.20` slice 4 + `CI-PARITY-GATE-ROT.32`(d))
+#### ⚠️ `.25` NEW `todo` — every generated parser embeds its own OUTPUT PATH once per emitted site (**36 346** times in SV, 1.3 MB), which makes two parsers byte-incomparable and has now inverted **three** published readings — the third of which FOUNDED a task leaf on two hypotheses that were both wrong (opened 2026-08-15 session #237 by `.20` slice 4 + `CI-PARITY-GATE-ROT.32`(d); third instance routed in from `.19` slice 1, 2026-08-16 session #241)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -7721,6 +7721,23 @@ guarantee is the failure `.21` was opened for, one surface over.
      look **203 KB LARGER** than the shipped parser, i.e. *guards make the parser smaller* — the
      opposite of the truth (they add 230 483 B). Corrected by normalising the path inside the
      instrument.
+  3. ⭐⭐ **AND A THIRD, ROUTED IN FROM `.19` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0059`,
+     2026-08-16 session #241) — this one did not merely mis-state a number, it FOUNDED A TASK LEAF.**
+     `.19` exists because a narrow-arm re-derivation came out **99 747 bytes** from the tracked
+     pre-flip artifact, and it named two hypotheses: the flip's diff perturbed codegen, or the
+     git-ignored input JSON moved. Both are **refuted**. The two artifacts were generated through
+     different spellings of the same destination — `../generated/systemverilog_parser.rs` (36 chars,
+     what `rust/Makefile` passes from `rust/`) versus `generated/systemverilog_parser.rs` (33 chars,
+     what an ad-hoc run from the repo root passes) — and the narrow arm carries **33 249** path
+     sites, so **33 249 × 3 = 99 747**, exactly. Proven by identity rather than arithmetic:
+     normalising the long spelling to the short one inside the 131 MB artifact makes the two arms
+     **sha256-identical**. ⛔ The escalation this instance adds is about TIME, not about size: the
+     mechanism was discovered by `.20` slice 3 in session **#238**, and `.19` was opened in session
+     **#232**, so a leaf carrying two wrong hypotheses sat in the queue for **three sessions after
+     the tree already knew the answer**. ⇒ (Q1) is not only *"a third reader will not know to
+     normalise"*; it is *"an open leaf's hypothesis list does not get re-read when the tree learns a
+     new trap"*, which no comparison helper fixes. Instrument:
+     `docs/tasks/artifacts/engine_universal_services/es19_path_embedding/probe.sh`.
 - **Two separable questions, and the leaf must not conflate them:**
   - **(Q1) measurement hygiene** — every comparison of two generated parsers must normalise the
     embedded path. Two instruments now do; a third reader will not know to.
@@ -8476,7 +8493,7 @@ rule — verify against the preserved synthetic that the diagnostic names `expr`
 census `python3 stimuli/sv/corpus_parse_cost.py --verify-families` is the before/after oracle, and
 `generated/*` byte-identity is the stronger one).
 
-#### ⛔⛔ `.19` NEW `todo` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9)
+#### ⛔⛔ `.19` `in progress` — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9; ⭐⭐ **slice 1 `PGEN-ENGINE-UNIVERSAL-SERVICES-0059` 2026-08-16 session #241 — acceptance (a) DISCHARGED and the founding 99 747 B is REFUTED: it is 33 249 embedded `-o` path sites × 3 chars, proven by byte-identity after normalisation, leaving a 2 578 B residual for slice 2**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -8518,6 +8535,122 @@ hypothesis (b) (the input moved) and matching `4330ff8e…` proves (a) (the diff
 two should be designed together; (d) ⛔ do NOT close this by observing that the behaviour matches —
 *"it behaves the same"* and *"nothing else moved"* are different claims, and this leaf exists because
 the second one is unproven.
+
+##### ⭐⭐ `.19` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0059`, 2026-08-16 session #241) — the 99 747 bytes are the `-o` PATH, and the mechanism was discovered by this same tree two sessions AFTER the leaf was opened
+
+⛔⛔ **NEITHER HYPOTHESIS. The gap is 100 % the embedded output-path spelling, and the proof is
+byte-identity rather than arithmetic.** The generated SystemVerilog parser writes its own `-o` path
+into the emitted source **once per rule-entry site**, so two byte-equivalent parsers generated
+through different spellings of the same destination have different sizes:
+
+| arm | cwd | `-o` spelling | chars | bytes |
+|---|---|---|---|---|
+| tracked pre-flip `4330ff8e…` | `rust/` (make) | `../generated/systemverilog_parser.rs` | **36** | 131 642 655 |
+| session #232 re-derivation `dae09343…` | repo root (ad-hoc) | `generated/systemverilog_parser.rs` | **33** | 131 542 908 |
+
+The narrow arm carries **33 249** such sites, and **33 249 × 3 = 99 747** — the gap, exactly.
+
+⭐ **WHY THE LEAF COULD NOT HAVE LISTED IT.** `.19` was opened 2026-08-14 (session #232). The
+path-embedding effect was not discovered until **session #238**, by `.20` slice 3
+(`PGEN-ENGINE-UNIVERSAL-SERVICES-0042`), where it INVERTED that slice's first reading of a
+three-arm structural A/B before a normalisation step was added. The hypothesis list here is not
+careless; it is **two sessions older than the mechanism**. ⇒ the transferable lesson is about
+re-reading an open leaf's hypotheses whenever the tree learns a new measurement trap, not about the
+leaf's author → [[a-hypothesis-list-is-a-snapshot-of-what-you-knew-that-day]].
+
+**DIAGNOSIS — the instrument, tracked, with a RED control**
+`docs/tasks/artifacts/engine_universal_services/es19_path_embedding/probe.sh` (output: `probe.txt`).
+Six arms, ~1 m 44 s, four SystemVerilog codegen runs. ⛔ It **never touches**
+`generated/systemverilog_parser.rs`: it builds a mimic tree `<work>/root/{generated,rust}` so both
+`-o` strings are byte-identical to the real invocations while the shipped artifact is left alone.
+
+```text
+arm A (make spelling, 36 chars)  131645233  907be655…9abdf6c8
+arm A (repeat)                   131645233  907be655…9abdf6c8
+arm B (ad-hoc spelling, 33 chars) 131545486  d14a07d1…909db31e
+path sites: 33249 (long arm) / 33249 (short arm)
+ARM 1  ✓ two runs of one binary at one spelling are byte-identical
+ARM 2  ✓ measured gap 99747 == sites(33249) × Δchars(3) == the gap .19 recorded
+ARM 3  ✓ arm A with its -o spelling rewritten to arm B's is BYTE-IDENTICAL to arm B
+ARM 4  ✓ naming the input JSON two different ways yields a byte-identical parser
+ARM 5  ✓ a deliberately WRONG normalisation is refused (RED as designed)
+ARM 6  ⚠️ residual vs BOTH recorded artifacts: +2578 bytes, identical at both spellings
+```
+
+⭐ **ARM 3 IS THE LEAF'S ACTUAL ANSWER, AND ARM 2 IS NOT.** A byte COUNT that matches is equally
+consistent with *"the path explains every byte"* and with *"the path explains 99 747 bytes and
+something else nets to zero"* — that is an illustration, not a test (`docs/CLAIM_VERIFICATION.md`
+§3 leg 2). Arm 3 rewrites the long spelling to the short one inside the 131 MB artifact and demands
+**sha256 identity**, which only the first reading survives. Arm 5 then drives that same comparison
+against a deliberately wrong normalisation and requires it to go RED, so the control is known to
+work rather than merely never having failed.
+
+⭐ **ARM 4 CLOSES A COMPETING HYPOTHESIS RATHER THAN ASSUMING IT AWAY.** *"Maybe the INPUT path is
+embedded too"* is refuted by generating the same arm with the input JSON named absolutely and
+relatively: byte-identical. Independently, `grep -c 'systemverilog\.json'` over the emitted parser
+is **0**, as is any `generated_at`/date string — the `-o` path is the only provenance the artifact
+carries.
+
+**RESULT 1 — `.19` acceptance (a) is DISCHARGED.** Codegen is deterministic: two runs of one binary
+at one spelling produced `907be655…`, byte-identical. The `a mismatch ends the investigation here`
+branch did not fire.
+
+**RESULT 2 — hypotheses (a) and (b) are both REFUTED as explanations of the 99 747.** Not ranked,
+not weighed — refuted, because the whole quantity is accounted for by a third mechanism and arm 3
+shows there are no other differing bytes to distribute between them.
+
+**RESULT 3 — but a RESIDUAL survives, and it is exactly the question (a)/(b) were asked about, 39×
+smaller.** Today's narrow arm is **+2 578 bytes** against BOTH recorded artifacts — the *same*
+constant at both spellings, which is itself the check that the path model is complete (a per-site
+path effect must be orthogonal to everything else, and it measures orthogonal). ⛔ This is **not**
+`.19`'s founding gap and it is **not** dismissed: today's binary and today's JSON are not session
+#232's, so a byte-for-byte replay was never expected — what was not known before this slice is that
+the unexplained part is 2 578 bytes rather than 99 747. Acceptance (b) is therefore still owed, and
+now has a sharp target. Bounded by `git log 88b06424..HEAD`: **`grammars/systemverilog.ebnf` has not
+changed at all**, and exactly **two** commits touched `rust/src/ast_pipeline/` — `0994c3c0` (the
+flip, `.17` slice 9, which hypothesis (a) names) and `0ff4654a` (`.22` slice 2, an ENGINE/codegen
+change that landed *after* this leaf was opened and regenerated all 10 parsers). ⇒ slice 2 runs
+acceptance (b) against the residual.
+
+**Acceptance status:** (a) ✅ DISCHARGED · (b) ⏳ slice 2, retargeted from 99 747 B to 2 578 B ·
+(c) ⏳ open, and its premise moved — the gate that would have caught THIS is not a JSON freshness
+check but a path-normalising comparison, so (c) must be re-derived after (b) rather than built to
+the shape the leaf assumed · (d) honoured: nothing here rests on behaviour matching.
+
+###### Acceptance Checklist (enforced) — `.19` slice 1
+
+- [x] **REPRODUCE / ISSUE** — the leaf's own recorded pair, re-stated as a measurement rather than
+  re-read: `4330ff8e…` 131 642 655 B vs `dae09343…` 131 542 908 B, **99 747 B apart**, same policy
+  and same rule set. Re-derived live by `probe.sh` arm 2 from today's tree: measured gap **99747**.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the code generator writes the `-o` destination into the
+  emitted source once per rule-entry site, so the artifact's size is a function of its own output
+  path. WHERE: **33 249** occurrences in the narrow arm, counted with
+  `grep -oF '../generated/systemverilog_parser.rs' a1_long.rs | wc -l` (occurrences, not
+  `grep -c` lines, and fixed-string so `.` is not a wildcard); the first site is
+  `let filename_str = "../generated/systemverilog_parser.rs";`. Named and located, not inferred:
+  `LC_ALL=C sed` normalising that spelling to the 33-char one makes arm A **sha256-identical** to
+  arm B (`d14a07d1fe20f39a8f2d35af18d86d805c74f590feb835f695aa4ee7909db31e`), which is the WHERE
+  stated as an identity over the whole 131 MB rather than as a count.
+- [x] **FIX** — fix-hierarchy tier = **none; this slice ships no fix, and that is the correct
+  outcome.** The defect was in a *hypothesis list*, not in the engine: nothing in the tree is wrong
+  about the artifacts, and changing codegen to stop embedding its `-o` path would be a behaviour
+  change made to flatter a measurement. What ships is the tracked instrument + the corrected record.
+  ZERO code / grammar / generated / gate bytes.
+- [x] **ADDRESSED (verified)** — before→after on the unexplained quantity: **99 747 B → 2 578 B**,
+  a 97.4 % reduction in what the leaf cannot account for, measured by the named re-runnable oracle
+  `bash docs/tasks/artifacts/engine_universal_services/es19_path_embedding/probe.sh` → `ALL ARMS
+  PASS (6 arms, 1 of them RED-by-design)`, exit 0. Acceptance (a) discharged in the same run:
+  `907be655…` twice.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → all registered doctrines PASS.
+  ⭐ The load-bearing no-regression evidence for a probe that generates parsers is that the SHIPPED
+  artifact is untouched: `shasum -a 256 generated/systemverilog_parser.rs` reads
+  `46bc8a56469a0abd1f6b495608583af6cc7f2cc3b4721625bed4deed3000f9c7` before and after the run, and
+  `git status --short` shows no `generated/` movement — the probe writes only under
+  `rust/target/es19_path_embedding/` and deletes its four 131 MB artifacts unless `PGEN_ES19_KEEP=1`.
+- [x] **LOCKSTEP** — `TOOLBOX.md` (the path-embedding trap gains its measured SV case),
+  `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, and the new tracked
+  artifact pair `es19_path_embedding/probe.sh` + `probe.txt`. No book chapter: this slice changes
+  no user-visible behaviour and adds no CLI surface.
 
 
 #### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)

@@ -42,6 +42,7 @@ the generation-input / memo observability.
 | How much parse work is DISCARDED (failed speculation), per rule? | `--dump-rule-outcome-counts-json` | `parseability_probe --parse <g> f --dump-rule-outcome-counts-json o.json` |
 | **Did the whole SV parser get SLOWER — and would anything have told me?** ⛔ never answer with an ad-hoc timing script against a remembered number | the parse-cost **ratchet** (doctrine `PARSE-COST-RATCHET`) | `bash scripts/check_parse_cost_ratchet.sh` (~2 s identity tier, four arms) · `make -C rust sv_parse_cost_ratchet` (~2.5 min) |
 | **WHERE does the parse time actually go?** ⛔ no counter can answer this — they all route to the PROTOCOL graph, and a production parse runs the FUSED one | `/usr/bin/sample` on a BARE parse | `parseability_probe --parse systemverilog big.sv --profile sv_2017 &` then `/usr/bin/sample $! 4 1 -f prof.txt` |
+| **Two generated parsers differ by N bytes — what moved?** ⛔ ask FIRST whether both were written through the same `-o` spelling | normalise the embedded output path | `LC_ALL=C sed 's\|\.\./generated/<fam>_parser\.rs\|generated/<fam>_parser.rs\|g' armA.rs > armA_norm.rs` then compare sha256 (see [below](#comparing-two-generated-parsers)) |
 | Which rules a derived DFA scanner could fuse + the measured ceiling? the choice-site / merged-choice surface? | `--report-fusibility-census` | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c.json] [--fusibility-outcome-counts o.json]` |
 | Witness-pass tuning (A/B, budget, ordering)? | `PGEN_WITNESS_*` | see [witness knobs](#witness-pass-knobs) |
 
@@ -429,6 +430,50 @@ budget is adequate and the cause is elsewhere (a forcing/store-gate bug).
 | **LR-family classifier check** (all ten families) | `python3 stimuli/sv/corpus_parse_cost.py --verify-families` | ~1 s, reads the generated artifacts rather than running a parse. Runs the parse-cost ratchet's left-recursion-family predicate over **every** generated parser's own `RULE_NAMES` registry and REFUSES on any declared name containing `_lr` that no emission shape claims. ⭐ Use it after touching either eliminator (`indirect_lr_elimination.rs`, `ast_pipeline/mod.rs`): the predicate is derived from their emission sites, so a new emitted shape silently under-counts the family until this refuses. Live: 10 parsers, **131** declared LR names, 131 classified — 127 in SystemVerilog, 2 each in the two annotation families, 0 elsewhere. ⛔ It is also the gate on the published SV declared-name count, which is derived here rather than carried (it was published as 128 and is 127). Rides the ratchet's tier 2, so it is **on-demand**, not every-commit |
 | **Sampling a parse** (`/usr/bin/sample`) | `parseability_probe --parse <g> big.sv --profile P &` then `/usr/bin/sample $! 4 1 -f prof.txt` | the ONLY instrument that observes the FUSED `cascade_*` graph — every counter-based tool routes the parse to the PROTOCOL graph by construction. ⛔ **Four silent traps**, all measured: the denominator is the **worker thread** (the main thread is 100 % `__ulock_wait`, so the process total halves every percentage); **self-time answers "where is the CPU", not "who caused it"** (measured on SV's LR machinery: self ≈ 2 %, inclusive ≈ 24 %); the **linker folds** the generated parsers' identical helpers, so a per-family symbol name can be a lie; and a report has **four sections** — ingesting `Total number in stack …` as call-graph rows produced an **8×** wrong number whose conservation control stayed green. Full detail in `TOOLBOX.md` 3.8 |
 | Well-formedness gen-AST (tests) | `PGEN_WELLFORMEDNESS_GEN_AST=<path> cargo test --lib …` | the gen-AST a well-formedness test loads |
+
+---
+
+## Comparing two generated parsers
+
+Not a tool — a **mandatory pre-step**, and the trap behind it has inverted three published readings
+in this repository.
+
+Every generated parser writes its own `-o` destination into the emitted source **once per rule-entry
+site**: **36 346** occurrences in the shipped SystemVerilog parser, **0.91 %** of the artifact.
+⇒ *the artifact's size is a function of its own output path*, and one extra character in the `-o`
+spelling adds one byte per site. `rust/Makefile` generates with `-o ../generated/<fam>_parser.rs`
+from `rust/` (36 characters for SystemVerilog); an ad-hoc run from the repository root passes
+`generated/<fam>_parser.rs` (33). Those two produce **byte-equivalent parsers of different sizes**.
+
+So before believing any byte-level difference between two generated parsers:
+
+```bash
+# count the sites — occurrences, not `grep -c` lines, and -F so `.` is not a wildcard
+grep -oF '../generated/systemverilog_parser.rs' generated/systemverilog_parser.rs | wc -l
+
+# normalise arm A's spelling to arm B's, then compare
+LC_ALL=C sed 's|\.\./generated/systemverilog_parser\.rs|generated/systemverilog_parser.rs|g' \
+    armA.rs > armA_normalised.rs
+shasum -a 256 armA_normalised.rs armB.rs
+```
+
+⭐ **Demand identity, never a matching byte count.** A count that matches is equally consistent with
+*"the path explains every byte"* and with *"the path explains N bytes and something else nets to
+zero"* — that is an illustration, not a test. The reference instrument, which carries a RED control
+proving its comparison can fail, is
+`docs/tasks/artifacts/engine_universal_services/es19_path_embedding/probe.sh`.
+
+The three readings this trap inverted: a census identity control reporting **10/10 families
+mismatching** their shipped artifacts (the census wrote to a different path); a three-arm structural
+A/B that made suppressing guards look like it made the parser **203 KB larger**, the exact opposite
+of the truth; and a whole task leaf opened on **99 747 unaccounted bytes** with two hypotheses that
+were both wrong — the two arms differed by 3 path characters × 33 249 sites, exactly, and normalising
+made them sha256-identical.
+
+⚠️ The **input** path is not embedded, and that was tested rather than assumed: generating with the
+input JSON named absolutely and relatively yields a byte-identical parser, and no `generated_at` or
+date string survives into the emitted parser either. The `-o` path is the only provenance a
+generated parser carries, which is why it is the only thing to normalise.
 
 ---
 

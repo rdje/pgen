@@ -1,0 +1,32 @@
+
+ES19-PATH-EMBEDDING: is the 99 747-byte gap the embedded -o path?
+pipeline : 1f6d7c7c
+input    : generated/systemverilog.json (1087124 bytes)
+
+arm A (make spelling, 36 chars)  131645233  907be655f3882761e833a3e975d5c6282fd4da7d1a4710a616412b7e9abdf6c8
+arm A (repeat)                    131645233  907be655f3882761e833a3e975d5c6282fd4da7d1a4710a616412b7e9abdf6c8
+arm B (ad-hoc spelling, 33 chars) 131545486  d14a07d1fe20f39a8f2d35af18d86d805c74f590feb835f695aa4ee7909db31e
+path sites: 33249 (long arm) / 33249 (short arm)
+
+ARM 1  determinism — acceptance (a)
+  ✓ two runs of one binary at one spelling are byte-identical (907be655f3882761e833a3e975d5c6282fd4da7d1a4710a616412b7e9abdf6c8)
+ARM 2  byte arithmetic
+  ✓ measured gap 99747 == sites(33249) × Δchars(3) = 99747
+  ✓ and it EQUALS the gap .19 recorded between 4330ff8e… and dae09343… (99747)
+  ✓ both spellings carry the same site count — the count is a property of the grammar
+ARM 3  normalised identity (the falsification leg)
+  ✓ arm A with its -o spelling rewritten to arm B's is BYTE-IDENTICAL to arm B (d14a07d1fe20f39a8f2d35af18d86d805c74f590feb835f695aa4ee7909db31e)
+  ✓ ⇒ the -o path is the ONLY difference between the two arms — not merely 99 747 bytes' worth
+ARM 4  input-path independence
+  ✓ naming the input JSON two different ways yields a byte-identical parser
+ARM 5  RED control — arm 3 must be able to fail
+  ✓ a deliberately WRONG normalisation is refused (RED as designed)
+ARM 6  residual vs the recorded pair (reported, not hidden)
+  residual vs 4330ff8e… : +2578 bytes
+  residual vs dae09343… : +2578 bytes
+  ✓ the residual is the SAME at both spellings ⇒ orthogonal to the path effect
+  ⚠️  residual is NOT zero: +2578 bytes of SV codegen moved between session #232 and today,
+     at BOTH spellings, independent of this leaf's question. Owned by .19 slice 2.
+
+ES19-PATH-EMBEDDING: ALL ARMS PASS (6 arms, 1 of them RED-by-design)
+(the four 131 MB parsers were deleted; PGEN_ES19_KEEP=1 keeps them)
