@@ -8013,14 +8013,34 @@ alone and only under optimization; it did not survive contact with the default p
   ⭐ `GREEN 2` — a stub printing the **live** digest must PASS — is what keeps them honest: the
   REDs fail on their payload, not on being stubs.
 
-⛔⛔ **AND THE FIRST RUN OF THIS SUITE PROVED TWO OF ITS OWN ARMS NON-DISCRIMINATING.** Run before
-the rebaseline, `RED 10` and `RED 11` (both asserting the gate exits **1**) passed — while
-`GREEN 3` FAILED, because the edited instrument had staled the baseline and the gate was exiting 1
-for that reason instead. Two REDs green for the wrong cause, in a suite written to prove a cause.
-The GREEN control is what exposed it; the suite was re-run after the rebaseline and only then is
-`RED 10`'s exit 1 attributable to the fingerprint refusal — verified in `detail.txt`, which shows
-the tier-2 text and no measurement taken. → [[a-check-whose-inputs-all-pass-has-not-been-tested]],
-one leaf on from where it was written.
+⛔⛔ **AND THE FIRST RUN OF THIS SUITE LEFT TWO OF ITS OWN ARMS UNATTRIBUTABLE.** Run before the
+rebaseline, `RED 10` and `RED 11` (both asserting the gate exits **1**) passed — while `GREEN 3`
+FAILED, because the edited instrument had staled the baseline and gave the gate a second, unrelated
+reason to exit 1. The GREEN control is what exposed it; the suite was re-run after the rebaseline
+and only then is `RED 10`'s exit 1 attributable to the fingerprint refusal — verified in
+`detail.txt`, which shows the tier-2 text and no measurement taken.
+→ [[a-check-whose-inputs-all-pass-has-not-been-tested]], one leaf on from where it was written.
+
+⚠️ **CORRECTION (2026-08-17, director challenge *"do you still stand by all of these findings?"* —
+`PGEN-ENGINE-UNIVERSAL-SERVICES-0067`).** The first version of the paragraph above said those two
+arms passed *"for the wrong cause"* and that a staled baseline was *supplying* the exit code. That
+is **not what happened, and the difference is material.** Re-created deliberately — stale
+`instrument` identity row **plus** a mismatched probe — the gate prints:
+
+```text
+parse-cost-ratchet: 2 breach(es):
+  ✗ the parse-cost BASELINE IS STALE — it no longer describes this tree.
+  ✗ tier 2 REFUSES to re-measure: the probe that would produce the numbers cannot be confirmed …
+```
+
+⇒ the fingerprint refusal **was** firing. The exit code was **OVERDETERMINED**, not wrong. The
+finding survives in a sharper form: an arm asserting only an exit code cannot ATTRIBUTE it, and —
+because the harness printed per-arm detail only for FAILING arms — the first run emitted no
+evidence either way, so the question had to be settled by re-running an experiment rather than by
+reading the transcript. **An arm that cannot be audited after the fact is not evidence even when it
+is right.** ⛔ *"worthless"* was also too strong and is withdrawn: unattributable is the accurate
+word, and it is what makes *"assert the REASON, and record what the PASSING arms printed"* the
+right remedy rather than merely a tidier one.
 
 **RESULT 4 — ⛔ THE ESCAPE HATCH, AND WHY REFUSING OUTRIGHT WOULD HAVE BEEN THE WRONG DESIGN.**
 Measuring an experimental arm is a thing this campaign does routinely — `.20` slices 3-5 exist
@@ -8133,6 +8153,24 @@ with a mismatched or unbuilt probe it says that instead of claiming a property i
   the neighbouring case — *"every sampled file failed to produce a DUMP"* — so the guard exists one
   condition over: a file can dump and still be REJECTED, and a sample of only-rejected files
   therefore reaches the divide.
+- ⛔⛔ **SHARPENED under the director's 2026-08-17 challenge, and the original routing UNDERSTATED
+  it.** The sibling at `:1193` (`100.0 * lr_committed / lr_total`) was filed as *"a second genuinely
+  reachable crash"*. It is not merely reachable — it is reached by **the simplest legal SystemVerilog
+  file that exists**:
+
+  ```text
+  $ printf 'module m;\nendmodule\n' > trivial.sv     # 2 lines, ACCEPTED by the parser
+  $ python3 stimuli/sv/corpus_parse_cost.py --manifest <that one row> --outdir …
+  File "stimuli/sv/corpus_parse_cost.py", line 1193, in write_report
+      f"**{100.0 * lr_committed / lr_total:.3f} %**. The elimination machinery is, to three")
+  ZeroDivisionError: division by zero          rc=1
+  ```
+
+  A two-line module has no left-recursion-family entries, so `lr_total` is 0. ⇒ measuring ANY sample
+  of small or LR-free files crashes the instrument, which is a materially larger population than
+  *"a sample where everything is rejected"*. Both paths exit **1**, and the file's own docstring
+  contracts *"refuses (exit 2) rather than reporting a clean measurement it could not take"* — so
+  the exit CODE is wrong as well as the diagnostic.
 - ⚠️ **Blast radius, priced honestly:** the pinned 192-file sample has 100+ accepted rows, so the
   tracked baseline path cannot hit this. It bites exactly where a small ad-hoc sample or an
   experimental arm is measured — which is what this campaign does — and it presents as a Python
@@ -8146,10 +8184,14 @@ with a mismatched or unbuilt probe it says that instead of claiming a property i
   *"`entries.tsv` byte-identical"*. Routed instead of fixed, per the defects policy: logging is step
   one, the leaf is what makes step two happen.
 
-**Acceptance:** (a) a sample with zero ACCEPTED files must produce the instrument's own diagnostic
-and exit 2, never a traceback — and the report must still be written, with the accepted-only ratio
-declared as not-applicable rather than omitted silently; (b) a RED arm reproducing exactly this
-case, proven to go GREEN after the fix; (c) fix the SIBLINGS rather than only the one that fired —
+**Acceptance:** (a) a sample with zero ACCEPTED files, **and a sample with zero LR-family entries**,
+must each produce the instrument's own diagnostic and exit 2, never a traceback — and the report
+must still be written, with the ratio declared not-applicable rather than omitted silently. ⚠️ For
+`lr_total = 0` a REFUSAL is probably the wrong verb: a two-line module legitimately has no LR
+entries, so the honest behaviour is to WRITE the report with that one ratio marked n/a; decide it in
+the leaf rather than reflexively reusing (a)'s verb for both; (b) a RED arm reproducing **both**
+cases (`module m; endmodule` is the whole fixture for the second), proven to go GREEN after the fix;
+(c) fix the SIBLINGS rather than only the one that fired —
 `grep -n "100.0 \*" stimuli/sv/corpus_parse_cost.py` finds **three more** unguarded denominators in
 `write_report`: `/ total` at :1163 and :1187, and ⭐ `/ lr_total` at :1193, which is the second
 genuinely reachable crash (a sample containing no LR-family entry at all divides by zero there,

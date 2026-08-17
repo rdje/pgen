@@ -131,27 +131,39 @@ slice 2 (2026-08-17) hit a third, and it is the sneakiest, because nothing about
 
 A suite of 14 arms proved a gate refuses when the measuring binary embeds the wrong parser. Two of
 them — *"tier 2 REFUSES"* and *"the operator override cannot reach the gate"* — assert the gate
-exits **1**. On the first run they passed. They were **worthless**: the same run's GREEN control
-("the gate passes on the real tree with the real probe") had FAILED, because editing the instrument
-had staled the baseline and the gate was already exiting 1 for *that* reason. Two REDs green on a
-co-occurring failure, inside a suite written to attribute a cause.
+exits **1**. On the first run they passed, while the same run's GREEN control ("the gate passes on
+the real tree with the real probe") **FAILED**: editing the instrument had staled the baseline, so
+the gate had a second, unrelated reason to exit 1.
+
+⚠️ **What that does and does not prove — and the difference was itself measured, because the first
+write-up of this section got it wrong.** It is tempting to say the two arms passed *for the wrong
+reason*. Re-creating the first-run condition (stale identity row **and** a mismatched probe) shows
+the gate printing **`2 breach(es)`** — the stale baseline *and* the tier-2 fingerprint refusal. The
+refusal **was** firing. The exit code was **OVERDETERMINED**, not wrong.
+
+That is the real defect, and it is subtler than "the arm was wrong":
 
 **A gate with one exit code for every kind of failure cannot, by itself, tell an arm WHY it went
-red.** So an arm asserting only `exit == 1` is conditional on nothing else in the system being
-broken at the same time — and "nothing else is broken" is exactly what you do not know while
-building a fix.
+red.** An arm asserting only `exit == 1` is *unattributable* whenever anything else is
+simultaneously broken — and "nothing else is broken" is exactly what you do not know while building
+a fix. Worse, the harness printed per-arm detail only for FAILING arms, so the passing arms emitted
+no evidence at all: from the transcript alone it was impossible to tell whether they had
+discriminated. **An arm that cannot be audited after the fact is not evidence, even when it happens
+to be right.**
 
 Three cheap remedies, in increasing strength:
 
 1. ⭐ **Every RED suite needs a GREEN arm on the same path, and the GREEN arm's failure must
-   invalidate the run.** Here it did its job perfectly — it was the only reason the two inert REDs
-   were caught rather than published as proof.
-2. **Order matters: resolve the baseline first, re-run second.** The suite was re-run after the
-   rebaseline, and only then is exit 1 attributable.
-3. ⭐⭐ **Assert the REASON, not just the code.** Grep the refusal text (or a stable marker) rather
-   than the exit status. A transcript of what each arm actually printed —
-   `probe_fingerprint_gate/detail.txt` — is what let the attribution be *checked* afterwards
-   instead of assumed.
+   invalidate the run.** Here it did its job exactly — it is the only reason the unattributable
+   REDs were noticed at all instead of being published as proof.
+2. **Order matters: resolve the unrelated breakage first, re-run second.** The suite was re-run
+   after the rebaseline, and only then is exit 1 attributable to the thing under test.
+3. ⭐⭐ **Assert the REASON, not just the code, and record what every arm printed — including the
+   passing ones.** Grep the refusal text or a stable marker rather than the exit status, and keep a
+   per-arm transcript (`probe_fingerprint_gate/detail.txt`). Detail-on-failure-only is what made
+   the first run unauditable: the question *"did it discriminate?"* had to be answered by
+   re-running an experiment, days later, because the evidence was never captured.
 
-⇒ add to the question above: **"if something unrelated were also broken right now, would this arm
-still pass — and would I be able to tell?"**
+⇒ add two questions to the one above: **"if something unrelated were also broken right now, would
+this arm still pass?"** and **"six months from now, could a reader tell from the transcript WHY it
+passed?"**

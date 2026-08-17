@@ -39,11 +39,17 @@
   `rust/target/lr_ab_arms/probe_arm3`) and STUB arms (an executable printing a chosen payload —
   the only way to reach the digest COMPARISON and every malformed-payload path without a 21-minute
   release build per arm), kept honest by a stub-with-the-live-digest GREEN.
-- ⛔⛔ **THE FIRST RUN PROVED TWO OF ITS OWN ARMS NON-DISCRIMINATING.** `RED 10`/`RED 11` (both
-  asserting exit **1**) passed while `GREEN 3` FAILED — the edited instrument had staled the
-  baseline, so the gate was exiting 1 for an unrelated reason. A third way for a control to be
-  inert: predicate right, fixture right, and *something else* supplying the verdict. Caught by the
-  GREEN control; re-run after the rebaseline for 14/14, with `detail.txt` showing the attribution.
+- ⛔⛔ **THE FIRST RUN LEFT TWO OF ITS OWN ARMS UNATTRIBUTABLE.** `RED 10`/`RED 11` (both asserting
+  exit **1**) passed while `GREEN 3` FAILED — the edited instrument had staled the baseline, giving
+  the gate a second, unrelated reason to exit 1. Caught by the GREEN control; re-run after the
+  rebaseline for 14/14, with `detail.txt` showing the attribution.
+  ⚠️ **Corrected 2026-08-17 under director challenge (`-0067`)**: the first write-up said those arms
+  passed *"for the wrong cause"*. Re-created deliberately (stale identity row **and** wrong probe),
+  the gate prints **`2 breach(es)`** — the fingerprint refusal **was** firing. The exit code was
+  **OVERDETERMINED**, not wrong. The sharper finding: an arm asserting only an exit code cannot
+  ATTRIBUTE it, and the harness printed detail only for FAILING arms, so the first run emitted no
+  evidence either way — the question had to be settled by re-running an experiment rather than by
+  reading the transcript.
 - ⚠️ **The escape hatch, and why an unconditional refusal was the wrong design.**
   `PGEN_PARSE_COST_ALLOW_PROBE_MISMATCH=1` keeps the legitimate experimental-arm workflow and
   **stamps the mismatch into `advisory.json`**; the gate strips it from the environment, so the

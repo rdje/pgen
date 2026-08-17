@@ -13,17 +13,29 @@ gap that hides a wrong binary, it is a gap that **rewards** one and invites it i
 through the verdict. Toward PASS is not latent; it is silently active.
 **PROMOTED →** [[a-one-sided-gate-rewards-the-instrument-that-under-reports]].
 
-**2. ⛔⛔ A THIRD WAY A CONTROL CAN BE INERT — the arm is right, the fixture is right, and something
-ELSE supplies the verdict.** My 14-arm suite's `RED 10`/`RED 11` both assert *"the gate exits 1"*.
-On the first run they passed — and were worthless, because the same run's `GREEN 3` had FAILED: my
-edit to the instrument had staled the baseline, so the gate was already exiting 1 for an unrelated
-reason. A gate with one exit code for every kind of failure cannot tell an arm WHY it went red, so
-an arm asserting only the code is conditional on nothing else being broken — which is precisely
-what you do not know while building a fix. The GREEN control is the only reason I caught it.
-⇒ every RED suite needs a GREEN arm on the same path whose failure invalidates the run; resolve the
-baseline first and re-run; and assert the REASON (grep the refusal text, keep a per-arm transcript)
-rather than the exit status alone. **PROMOTED →** [[a-check-whose-inputs-all-pass-has-not-been-tested]]
-(new third section, alongside the predicate and fixture versions).
+**2. ⛔⛔ A THIRD WAY A CONTROL CAN BE INERT — the arm is right, the fixture is right, and the exit
+code is OVERDETERMINED.** My 14-arm suite's `RED 10`/`RED 11` both assert *"the gate exits 1"*. On
+the first run they passed while the same run's `GREEN 3` FAILED: my edit to the instrument had
+staled the baseline, giving the gate a second, unrelated reason to exit 1. A gate with one exit code
+for every kind of failure cannot tell an arm WHY it went red, so an arm asserting only the code is
+*unattributable* whenever anything else is simultaneously broken — which is precisely the state you
+are in while building a fix. The GREEN control is the only reason I noticed.
+
+⚠️ **And my first write-up of this lesson was itself wrong, which is the part worth keeping.** I
+published *"they passed for the wrong cause — a staled baseline was supplying exit 1"*. Under the
+director's challenge I re-created the condition deliberately (stale identity row **plus** mismatched
+probe) and the gate prints **`2 breach(es)`**: the stale baseline AND the tier-2 fingerprint
+refusal. The refusal **was** firing. So the arms were not wrong, they were **unattributable** — and
+I could not have known which, because the harness printed per-arm detail only for FAILING arms. ⇒ I
+diagnosed a control-quality defect from a transcript that contained no evidence about it, and got
+the diagnosis wrong in the flattering direction (a wrong arm is a better story than an
+unauditable one).
+⇒ every RED suite needs a GREEN arm on the same path whose failure invalidates the run; resolve
+unrelated breakage first and re-run; assert the REASON rather than the exit status; and **record
+what the PASSING arms printed too**, or the question *"did it discriminate?"* can only be answered
+by re-running the experiment days later — which is exactly what this correction cost.
+**PROMOTED →** [[a-check-whose-inputs-all-pass-has-not-been-tested]] (new third section, alongside
+the predicate and fixture versions).
 
 **3. The cheap fix already had its hook declared — I just had to look.** The leaf framed the choice
 as *"hash the probe binary"* vs *"emit a fingerprint into the parser"*, and slice 1 found a third
