@@ -1,5 +1,40 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0074 — I escalated a defect as a design question, and the fix removed a whole class of trap I had been documenting for four slices
+
+**1. ⛔⛔ A DEFECT IS NOT A PREFERENCE, AND DESCRIBING IT ACCURATELY DOES NOT MAKE IT ONE.** I
+measured that every trace line shows a generated-parser path beside an *input* byte offset, wrote
+that down precisely — and then asked the director to rule on it. The tell was in my own sentence:
+once you have said two displayed quantities do not correspond, there is no second option to weigh.
+What remained was a technical question (*what does the number index? what identifiers does the
+parser already have?*) answerable in the tree. ⚠️ The costume that made it convincing was the leaf's
+own note that *"a diagnostics-behaviour change needs its own decision"* — true, and it means **a
+deliberate slice**, not **a director call**. **A change deserving care is not thereby a change
+deserving escalation.** Test: *if the director answers "do whatever is right", do I know what to do?*
+If yes, it was never a director question. **PROMOTED →** the fourth costume in
+[[feedback_answer_your_own_technical_questions]].
+
+**2. ⭐⭐ FIXING THE LABEL DELETED THE TRAP I HAD SPENT FOUR SLICES DOCUMENTING.** The `-o` path was
+in the artifact only to serve that label. Correct the label and the path has no consumer:
+**63 186 → 60 482 → 11 → 0** embedded sites. `TOOLBOX.md` 5.6 — which has inverted three published
+readings and founded a task leaf on two wrong hypotheses — now describes a mechanism that no longer
+exists. ⇒ **when a defect keeps generating measurement traps, ask what the offending value is FOR
+before building the next instrument to survive it.** I built a shared normaliser (`.25`), an
+era-aware bank (`.31` s2) and a site-count assertion in a doctrine — all correct, all now nearly
+vestigial, because none of them asked why the string was there.
+
+**3. ⭐ THE ERA-DERIVED ARMS PAID OUT ON A CHANGE I HAD NOT FORESEEN.** Slice 2's banks derive which
+emission era the tree is in instead of pinning a number. A third era arrived one slice later —
+sites `0`, which I did not anticipate when writing them — and `es19` passed **6/6 unchanged**, its
+era identity computing `−99 747 == (0 − 33 249) × 3`. That is the difference between a bank that
+re-pins and a bank that derives, observed rather than argued.
+
+**4. ⚠️ MY OWN VERIFICATION MISMATCHED FIRST, FOR THE LEAF'S OWN REASON.** The check — substitute the
+new label back and demand slice 2's recorded trace sha — failed. Cause: the trace's last line names
+the parsed INPUT PATH, and I had captured into a differently-named scratch directory. **A path
+leaking into output and making two identical things differ**, which is precisely what this leaf is
+about. Re-run with the original paths: both hashes match exactly.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0073 — the limitation I wrote under my own fix was an unverified claim, and it erred modestly enough that re-reading would never have caught it
 
 **1. ⛔⛔ I VERIFIED THE NUMBER AND NOT THE SENTENCE NEXT TO IT.** Slice 1's fix was measured three

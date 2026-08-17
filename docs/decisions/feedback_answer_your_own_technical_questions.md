@@ -14,6 +14,9 @@ answers:
   - "what counts as an objective/scope question versus a task"
   - "I have a deep technical question — do I ask or answer it myself"
   - "must I be able to disprove my own claims"
+  - "I found something that is plainly wrong — do I ask the director or fix it"
+  - "is a diagnostics-behaviour change a director call"
+  - "does a change that needs care also need escalation"
 reverify: sed -n '/SEQUENCING IS EXECUTION/,/^$/p' docs/decisions/feedback_answer_your_own_technical_questions.md
 ---
 
@@ -120,6 +123,38 @@ once per leaf; it applies to every claim you write down, including the ones insi
    44 just won are unratcheted" is a decision. "Your call?" on the same facts is an abdication.
 5. **When you do surface something**, surface *findings and decisions taken* — things that change
    the director's picture — not questions whose answers live in the source tree.
+
+**⭐⭐ THE FOURTH COSTUME: A DEFECT DRESSED AS A DESIGN PREFERENCE (director, 2026-08-17, session
+#243).** `ENGINE-UNIVERSAL-SERVICES.31` acceptance (e) asked whether the emitted diagnostic label
+should be the generated parser's `-o` path at all. The engineer MEASURED the symptom — every trace
+line renders `[../generated/json_parser.rs:0]` where `0` is an **input byte offset**, so the reader
+is shown a file path and a number that does not index it — wrote that down, and then **asked the
+director to rule on it**. The director's answer:
+
+> *"are you asking me this question. Is there really a need to ask me this question? given the
+> sympthom you described, I think, if we want to be sota and signoff and truthful the decision is
+> obvious, because this ... to me is wrong!"*
+
+⇒ ⛔ **A thing that is WRONG is not a preference, and describing it accurately does not convert it
+into one.** The tell was in the engineer's own sentence: having stated that two displayed quantities
+do not correspond, there is no second option to weigh — the only open question was *what the correct
+label is*, which is a technical question with a measurable answer (what does the number index? what
+identifiers does the parser already have?). Both were answerable in the tree.
+
+⚠️ **Why this costume is the most convincing of the four.** The leaf itself had written *"changing
+the string is a diagnostics-behaviour change and needs its own decision"* — true as far as it goes,
+and it made deferring feel like discipline rather than abdication. But "needs its own decision" means
+*a deliberate slice with its own before/after*, not *a director call*. **A change deserving care is
+not thereby a change deserving escalation**, and conflating the two is how a defect gets parked with
+a ⏳ beside it.
+
+⛔ The measured cost of the delay was small only by luck: the same slice had just reduced the change
+from a 60 482-site rebaseline to a one-line edit. Had the hoist not landed first, the question would
+have parked a known-wrong diagnostic behind a director call for as long as the director took to read
+it.
+
+⇒ **Test to apply before writing "your call":** *if the director answers "do whatever is right",
+do I know what to do?* If yes, it was never a director question.
 
 Companions: [[feedback_why_and_where_before_solution]] (know WHY+WHERE before designing),
 [[feedback_no_codebase_change_without_tool_backed_facts]], [[feedback_instrument_needs_ground_truth]],

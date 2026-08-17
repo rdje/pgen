@@ -444,8 +444,16 @@ byte per embedded site. `rust/Makefile` generates with `-o ../generated/<fam>_pa
 `rust/` (36 characters for SystemVerilog); an ad-hoc run from the repository root passes
 `generated/<fam>_parser.rs` (33). Those two produce **byte-equivalent parsers of different sizes**.
 
-**How many sites is that? One per artifact today — and it was 36 346 in SystemVerilog alone until
-2026-08-17.** The path used to be emitted as a string literal at every `Logger::log_*` call the
+**How many sites is that? None at all today — and it was 36 346 in SystemVerilog alone until
+2026-08-17.** The label the path was serving turned out to be wrong: the logger renders it as
+`file:line` while the number beside it is an **input byte offset**, so a reader was shown a path to
+the generated parser next to a position in a completely different file. Corrected, the label names
+what the offset indexes (`systemverilog input byte`), the path lost its last consumer, and two
+different `-o` spellings now produce **byte-identical** parsers. The normalisation step below is
+kept as a tripwire — if a generated parser ever embeds its output path again, the reproducibility
+gate breaches.
+
+**The history, because published figures sit on one of these eras.** The path used to be emitted as a string literal at every `Logger::log_*` call the
 generator writes: 36 346 occurrences in the shipped SystemVerilog parser (0.91 % of it), 60 482
 across all eleven artifacts. It is now emitted once, as a module constant every site references by
 name, which cost **−1 131 846 bytes (−0.48 %)** of generated source and shrank this trap's blast

@@ -112,14 +112,19 @@ done <<< "$DEAD_JSON"
 [ "$bad" = 0 ] || fail "$bad artifact(s) could not be measured"
 # Which era is this tree in? Read the EMITTER, do not guess from the number we are about to check.
 n_artifacts=$(artifacts | wc -l | tr -d ' ')
-if grep -qE "^[[:space:]]*const #source_label: &str = #filename;" "$EMITTER"; then
-  expected="$n_artifacts"; era="slice 2 (class L hoisted to one \`$LABEL_CONST\` constant per artifact)"
+if grep -qE "^[[:space:]]*const #source_label: &str = #source_label_value;" "$EMITTER"; then
+  # `.31` (e): the constant holds `"<grammar> input byte"`, so the `-o` path is embedded NOWHERE.
+  expected=0;               era="slice 3 / (e) (the label names the INPUT the position indexes; no output path is embedded at all)"
+elif grep -qE "^[[:space:]]*const #source_label: &str = #filename;" "$EMITTER"; then
+  expected="$n_artifacts";  era="slice 2 (class L hoisted to one \`$LABEL_CONST\` constant per artifact)"
 else
   expected="$SITES_AFTER";  era="slice 1 (class D removed, class L still emitted per site)"
 fi
 if [ "$total" = "$expected" ]; then
   if [ "$expected" = "$SITES_AFTER" ]; then
     pass "embedded sites total $SITES_BEFORE -> $total, i.e. exactly −$DEAD_TOTAL — era: $era"
+  elif [ "$expected" = 0 ]; then
+    pass "embedded sites total is 0 across all $n_artifacts artifacts — era: $era; the path-embedding trap of TOOLBOX 5.6 is ELIMINATED, not merely reduced ($SITES_BEFORE -> $SITES_AFTER -> $n_artifacts -> 0 across the three slices)"
   else
     pass "embedded sites total is $total = one per artifact ($n_artifacts) — era: $era; slice 1's own $SITES_BEFORE -> $SITES_AFTER stays the record of that era, re-derivable from the es31_label_hoist bank's ARM 1"
   fi

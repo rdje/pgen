@@ -28,14 +28,23 @@ evidence: |
   the arithmetic was FITTED (the identity needs a ratio of exactly 6/5, and the real arm-2 numerator
   `48-5=43` implies a non-integer denominator 35.83). It is a CARRIED PROSE COPY
   (`DERIVED_STATE_CONTAINMENT.md` R1/R3), a different failure, kept below only as a worked example.
-reverify: "python3 scripts/compare_generated_parsers.py --self-test   # 8/8, four RED-by-design; then `for f in generated/*_parser.rs; do python3 scripts/compare_generated_parsers.py --sites $f; done` must equal `grep -oF <derived spelling> $f | wc -l` for all 11 artifacts"
+reverify: "python3 scripts/compare_generated_parsers.py --self-test   # 8/8, four RED-by-design (the lesson lives in the SELF-TEST's synthetic fixtures, which still embed paths). Then, on the live tree: `for f in generated/*_parser.rs generated/ebnf.rs; do python3 scripts/compare_generated_parsers.py --sites $f; done` must print 0 for all 11 — the tripwire state since ENGINE-UNIVERSAL-SERVICES.31 (e); any non-zero means an emitter regression and GENERATED-REPRODUCIBILITY breaches on it"
 ---
 
 Every parser PGEN generates writes its own `-o` destination into the emitted source. So *the size of
 a generated parser is a function of its own output path*, and comparing two of them requires
 normalising that path away first.
 
-> ⭐ **Era note (2026-08-17, `ENGINE-UNIVERSAL-SERVICES.31` slice 2).** The numbers below —
+> ⭐⭐ **Era note 2 (2026-08-17, `ENGINE-UNIVERSAL-SERVICES.31` slice 3 / (e)).** The path is now
+> embedded **ZERO** times. Slice 2 hoisted it to one constant; (e) then found the constant held the
+> WRONG VALUE — the `Logger` renders it as `file:line` beside an **input byte offset**, so a reader
+> was shown a path to the generated parser and a position in a different file — and correcting the
+> label removed the path's last consumer. ⛔ **The lesson is untouched and the module is kept**: it
+> is now a re-introduction TRIPWIRE (`--sites` must be 0; `GENERATED-REPRODUCIBILITY` breaches on
+> non-zero), and the substring hazard below is a property of two SPELLINGS, which would return
+> intact the moment anything embeds a path again.
+>
+> ⭐ **Era note 1 (`ENGINE-UNIVERSAL-SERVICES.31` slice 2).** The numbers below —
 > **36 346** sites in the SystemVerilog parser, **63 186** across the eleven artifacts — describe
 > the emission in which the path was a string literal at every diagnostic site. It is now emitted
 > **once per artifact**, as a module constant every site references by name. ⛔ **That changes the

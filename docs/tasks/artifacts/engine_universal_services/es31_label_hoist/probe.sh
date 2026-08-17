@@ -78,6 +78,26 @@ git diff --quiet -- rust/src/ \
 ls generated/*_parser.rs >/dev/null 2>&1 \
   || { printf 'es31-hoist-probe: refusing — generated/ holds no parser, so ARM A has nothing to compare against.\n' >&2; exit 2; }
 
+# ⛔⛔ ERA-PINNED SINCE `ENGINE-UNIVERSAL-SERVICES.31` (e). This bank measures the price of HOISTING
+# the `-o` path from one literal per logging site to one module constant. (e) then changed what that
+# constant HOLDS — the path was the wrong label (it named the generated parser beside an INPUT byte
+# offset), so it is now `"<grammar> input byte"` and **no generated parser embeds its output path at
+# all**. Consequences, both fatal to this bank and neither a defect:
+#   - `unhoist.patch` no longer applies (the emitter moved);
+#   - the arithmetic in ARM B/F is a function of the PATH's length, which is no longer emitted;
+#   - `--sites` correctly reports 0, so ARM D's "one per artifact" no longer describes anything.
+# ⭐ It REFUSES rather than failing arm by arm, because a bank whose subject has been removed on
+# purpose must say so — reds that read as regressions are exactly the trap
+# `a-bank-pinned-to-the-shipped-behaviour-is-pinned-to-a-moving-target` records. The measurement of
+# record is `price.md` (the full per-artifact table) and `probe.txt` (the 9/9 run that produced it).
+if ! grep -q 'const #source_label: &str = #filename;' "$EMITTER"; then
+  printf 'ES31-LABEL-HOIST: ERA-PINNED — this tree is post-`.31`(e), where the emitted label is no\n'
+  printf '  longer the `-o` path and no artifact embeds one. This bank measured the HOIST (slice 2)\n'
+  printf '  and cannot run here; its result is recorded in price.md and probe.txt beside this file.\n'
+  printf '  Refusing rather than reporting arms red against a correct tree.\n'
+  exit 0
+fi
+
 rm -rf "$WORK"; mkdir -p "$WORK/root/generated" "$WORK/root/rust" "$WORK/bin"
 
 printf '\nES31-LABEL-HOIST: what does class L cost, and does hoisting it lose anything?\n'

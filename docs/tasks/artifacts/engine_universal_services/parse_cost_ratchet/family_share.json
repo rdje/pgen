@@ -16,7 +16,7 @@
     },
     "generated parser": {
       "path": "generated/systemverilog_parser.rs",
-      "sha256": "74cdbb5d2edcc13b3ce50a550e6abf0772af833c245fa1c89fd3d42e8b95aa01"
+      "sha256": "592bccec3bfc444f8f4d8c91aacbe1ac0732772776f806e5f58b3f221f156aeb"
     },
     "grammar": {
       "path": "grammars/systemverilog.ebnf",

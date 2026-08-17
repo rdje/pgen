@@ -209,13 +209,27 @@ rederive_and_compare() {
   # embedded path is absent or ambiguous, instead of returning a number nobody can interpret.
   local live_sites fresh_sites live_spelling fresh_spelling
   live_sites=$(python3 "$ROOT/scripts/compare_generated_parsers.py" --sites "$live") \
-    || die "cannot compare ${fam}: the shared helper REFUSED to derive an embedded -o path from $live"
+    || die "cannot compare ${fam}: the shared helper REFUSED on $live (ambiguous embedded path). Absence is fine and reports 0; ambiguity is not."
   fresh_sites=$(python3 "$ROOT/scripts/compare_generated_parsers.py" --sites "$fresh") \
-    || die "cannot compare ${fam}: the shared helper REFUSED to derive an embedded -o path from $fresh"
+    || die "cannot compare ${fam}: the shared helper REFUSED on $fresh (ambiguous embedded path). Absence is fine and reports 0; ambiguity is not."
   live_spelling=$(python3 "$ROOT/scripts/compare_generated_parsers.py" --spelling "$live")
   fresh_spelling=$(python3 "$ROOT/scripts/compare_generated_parsers.py" --spelling "$fresh")
-  if [ "$live_sites" = 0 ] || [ "$live_sites" != "$fresh_sites" ] || [ "$live_spelling" != "$fresh_spelling" ]; then
+  # ⛔⛔ THE POLARITY OF THIS TEST INVERTED AT `ENGINE-UNIVERSAL-SERVICES.31` (e), AND LEAVING IT
+  # ALONE WOULD HAVE MADE THE GATE REFUSE ON EVERY CORRECT TREE. `live_sites = 0` used to mean
+  # *"the helper could not derive anything — something is wrong"*. It now means *"this artifact
+  # embeds no output path at all"*, which is the STRONGEST possible state: with nothing to
+  # normalise, the byte comparison below is unconditionally about the source. What the comparison
+  # actually needs is only that the two sides AGREE, so that is all this asserts.
+  if [ "$live_sites" != "$fresh_sites" ] || [ "$live_spelling" != "$fresh_spelling" ]; then
     die "cannot compare ${fam}: embedded -o sites live=$live_sites ('$live_spelling') fresh=$fresh_sites ('$fresh_spelling'). The two sides were not written through the same path spelling, so any verdict would measure the PATH (TOOLBOX 5.6), not the source."
+  fi
+  # ⭐ AND THE RETIRED PROPERTY GETS A TRIPWIRE RATHER THAN A DELETION. No generated parser should
+  # embed its `-o` path any more; if one starts again, the emitter has regressed toward the defect
+  # `.31` (e) removed — an artifact whose SIZE is a function of its own output path, and a
+  # diagnostic label naming a file the position does not index. Reported loudly, not silently
+  # tolerated, exactly as `LIVE-DOC-CURRENCY`'s dormant instrument B stays wired for re-introduction.
+  if [ "$live_sites" != 0 ]; then
+    breach "$fam embeds its -o path $live_sites time(s) — since ENGINE-UNIVERSAL-SERVICES.31 (e) a generated parser embeds it ZERO times. The emitter has started writing its output path into the artifact again; see TOOLBOX.md 5.6."
   fi
 
   local a b

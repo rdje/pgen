@@ -1,28 +1,34 @@
 #!/usr/bin/env python3
 """ENGINE-UNIVERSAL-SERVICES.25 (c) — the ONE home for comparing two generated parsers.
 
-WHY THIS FILE EXISTS
---------------------
-Every parser PGEN generates writes its own `-o` destination into the emitted source. So *the size
-of a generated parser is a function of its own output path*, and one extra character in the `-o`
-spelling adds one byte per embedded site.
+WHY THIS FILE EXISTS — AND WHY IT IS NOW A TRIPWIRE
+---------------------------------------------------
+Every parser PGEN generated used to write its own `-o` destination into the emitted source, so *the
+size of a generated parser was a function of its own output path* and one extra character in the
+`-o` spelling added one byte per embedded site. That trap inverted **three** published readings in
+this repository, one of which founded a task leaf on two hypotheses that were both wrong
+(TOOLBOX 5.6, `ENGINE-UNIVERSAL-SERVICES.25`). Three independent copies of "normalise the path
+first" then grew — the second written *after* the first defect was recorded, which is the evidence
+that prose does not transfer. This module is that logic's single home.
 
-⭐⭐ SINCE `ENGINE-UNIVERSAL-SERVICES.31` SLICE 2 THAT SITE COUNT IS **1 PER ARTIFACT**, NOT 60 482.
-The path is emitted once, as `const PGEN_SOURCE_LABEL: &str = "<path>";`, and every
-`Logger::log_*` site references it by name. Up to `PGEN-ENGINE-UNIVERSAL-SERVICES-0069` it was a
-literal at every site — **36 346 times** in `generated/systemverilog_parser.rs`, **63 186** across
-the eleven artifacts (60 482 after slice 1 removed the dead class-D bindings). ⇒ this module's
-whole subject shrank by four orders of magnitude, and it is kept, not retired, for three reasons:
-the coupling is *reduced*, not removed (a spelling change still moves the artifact, by 1 byte per
-artifact); it is the tracked home of the derive-don't-be-told rule; and it is what the
-`GENERATED-REPRODUCIBILITY` gate calls to assert both sides were written through the same spelling
-before it trusts a hash.
+⭐⭐ **THE TRAP IS NOW ELIMINATED, NOT REDUCED, AND THIS MODULE'S JOB CHANGED WITH IT.** Three slices
+of `ENGINE-UNIVERSAL-SERVICES.31` took the embedded-site count **63 186 → 60 482 → 11 → 0**:
 
-⛔ That trap has inverted **three** published readings in this repository, and one of them founded
-a task leaf on two hypotheses that were both wrong (TOOLBOX 5.6, `ENGINE-UNIVERSAL-SERVICES.25`).
-Each was caught by a control rather than by reading. Three independent copies of "normalise the
-path first" then grew — and the second copy was written *after* the first defect was recorded,
-which is the evidence that prose does not transfer. This module is that logic's single home.
+    slice 1  (a)  the dead `let filename_str` binding, read by nothing, deleted      63 186 → 60 482
+    slice 2  (b)(c)(d)  the surviving literals hoisted to ONE module constant        60 482 → 11
+    slice 3  (e)  that constant's VALUE corrected — the path was the WRONG LABEL,
+                  naming the generated parser beside an INPUT byte offset — so it
+                  now reads `"<grammar> input byte"` and the path is gone entirely        11 → 0
+
+⇒ **no generated parser embeds its output path any more.** `--sites` reports `0` and `--spelling`
+reports `(none)`; both are the CORRECT answer, not a failure. `--compare` still works and is now
+*stronger*: with nothing to normalise it is a raw byte comparison.
+
+⛔ **The module is kept, deliberately, as a RE-INTRODUCTION TRIPWIRE** — the shape
+`LIVE-DOC-CURRENCY`'s dormant instrument B uses. `GENERATED-REPRODUCIBILITY` calls `--sites` on
+every artifact it verifies and BREACHES on any non-zero, so an emitter that starts writing its
+output path back into the artifact is caught the next time that gate runs. A deleted module could
+not do that, and the property it guards is one this repository has already paid for four times.
 
 THE DETECTION RULE IS DERIVED FROM THE PRODUCER, NOT FROM THE CALLER
 --------------------------------------------------------------------
@@ -38,6 +44,7 @@ possible, and it is unchanged by the hoist — only the count moved. Measured, p
     post-slice-1  the same minus the dead class-D bindings         (total 60 482)
     post-slice-2  1 per artifact, the `const PGEN_SOURCE_LABEL` declaration
                                                                   (total 11, 11/11 exact)
+    post-slice-3  NONE — the constant holds `"<grammar> input byte"`      (total 0, 11/11 exact)
 
 ⛔⛔ Deriving it matters, and the failure it prevents is measured. The `-o` spellings in play are
 `../generated/systemverilog_parser.rs` (36 chars, what `rust/Makefile` passes from `rust/`) and
@@ -56,8 +63,12 @@ HONEST BOUNDS (stated here, before the module is trusted)
 - Normalised bytes are a COMPARISON BASIS, not the artifact's size. Both sides are rewritten to one
   fixed token, so `--normalise` output is only ever meaningful against another `--normalise` output
   produced by this same module.
-- It REFUSES (exit 2) rather than guesses whenever the artifact carries zero or more than one
-  distinct `.rs` literal. A guess here is exactly how a wrong reading gets published.
+- It REFUSES (exit 2) rather than guesses whenever the artifact carries MORE THAN ONE distinct
+  `.rs` literal. A guess here is exactly how a wrong reading gets published. ⚠️ ZERO used to refuse
+  too and no longer does — zero is the correct state since `.31` (e), and the old refusal message
+  said so in advance: *"the emitter stopped embedding its `-o` path (in which case this module is
+  obsolete and should be retired deliberately, not bypassed)"*. Retired deliberately, into the
+  tripwire role above.
 - Equal normalised sha256 proves the `-o` path was the ONLY difference. It does NOT prove the two
   arms were generated from the same grammar — two arms with different rule counts normalise to
   different bytes, which is a real difference and is reported as one.
@@ -112,20 +123,26 @@ def read_artifact(path: Path) -> str:
         raise Refusal(f"{path} is not valid UTF-8 ({exc}) — this is not a generated parser") from exc
 
 
-def derive_spelling(src: str, where: str = "<artifact>") -> str:
-    """The embedded `-o` spelling, read out of the artifact itself.
+NO_EMBEDDING = "(none)"
 
-    REFUSES on zero candidates (not a generated parser, or the emission changed) and on more than
-    one (ambiguous — picking the most frequent would be a guess, and a guess is what this module
-    exists to remove).
+
+def derive_spelling_or_none(src: str, where: str = "<artifact>") -> str | None:
+    """The embedded `-o` spelling, read out of the artifact itself — or `None` if there is none.
+
+    ⭐⭐ `None` IS THE CORRECT STATE SINCE `ENGINE-UNIVERSAL-SERVICES.31` (e), AND THIS FUNCTION'S
+    OWN PREDECESSOR SAID SO. It used to REFUSE on zero candidates, with the message *"the emitter
+    stopped embedding its `-o` path (in which case this module is obsolete and should be retired
+    deliberately, not bypassed)"*. That is exactly what happened: fixing the emitted diagnostic
+    label — it named the generated parser's path beside an INPUT byte offset — removed the last
+    consumer of the path, and no generated parser embeds it any more. Retired deliberately, here.
+
+    ⛔ It still REFUSES on MORE than one candidate. Ambiguity is a different question from absence:
+    picking the most frequent literal would be a guess, and removing guesses is why this module
+    exists.
     """
     distinct = set(_RS_LITERAL.findall(src))
     if not distinct:
-        raise Refusal(
-            f"{where}: no `\"….rs\"` string literal — this is not a generated parser, or the "
-            f"emitter stopped embedding its `-o` path (in which case this module is obsolete and "
-            f"should be retired deliberately, not bypassed)"
-        )
+        return None
     if len(distinct) > 1:
         listed = ", ".join(sorted(distinct)[:5])
         raise Refusal(
@@ -133,6 +150,23 @@ def derive_spelling(src: str, where: str = "<artifact>") -> str:
             f"Refusing rather than guessing which one is the `-o` path."
         )
     return distinct.pop()
+
+
+def derive_spelling(src: str, where: str = "<artifact>") -> str:
+    """[`derive_spelling_or_none`], refusing on absence.
+
+    For the operations that are meaningless without an embedded path (`--normalise` alone). The
+    comparison path deliberately does NOT use this: with no embedding, normalisation is the
+    identity and a raw byte comparison is the stronger check, not a degraded one.
+    """
+    spelling = derive_spelling_or_none(src, where)
+    if spelling is None:
+        raise Refusal(
+            f"{where}: no `\"….rs\"` string literal to normalise. Since "
+            f"`ENGINE-UNIVERSAL-SERVICES.31` (e) that is the CORRECT state for a generated parser "
+            f"— use `--compare`, which needs no normalisation when there is nothing to normalise."
+        )
+    return spelling
 
 
 def site_count(src: str, spelling: str) -> int:
@@ -146,8 +180,11 @@ def normalise(src: str, spelling: str, token: str = NORMALISED_TOKEN) -> str:
 
 def describe(path: Path, token: str = NORMALISED_TOKEN) -> dict:
     src = read_artifact(path)
-    spelling = derive_spelling(src, str(path))
-    norm = normalise(src, spelling, token)
+    # ⭐ Absence is the CORRECT state since `.31` (e); normalisation is then the identity and the
+    # comparison below becomes a RAW byte comparison, which is strictly stronger than a normalised
+    # one. `sites: 0` is the property to assert, not a failure to report.
+    spelling = derive_spelling_or_none(src, str(path))
+    norm = src if spelling is None else normalise(src, spelling, token)
     # ⛔ CHARACTERS AND BYTES ARE NOT THE SAME NUMBER HERE, AND BOTH ARE PUBLISHED SOMEWHERE. A
     # generated parser carries emoji in its trace strings: `generated/systemverilog_parser.rs` is
     # 143 909 594 bytes and 143 801 151 characters — a 108 443 gap, i.e. larger than the whole dead
@@ -156,9 +193,9 @@ def describe(path: Path, token: str = NORMALISED_TOKEN) -> dict:
     # later reader can tell which basis a figure sits on.
     return {
         "path": str(path),
-        "spelling": spelling,
-        "spelling_chars": len(spelling),
-        "sites": site_count(src, spelling),
+        "spelling": NO_EMBEDDING if spelling is None else spelling,
+        "spelling_chars": 0 if spelling is None else len(spelling),
+        "sites": 0 if spelling is None else site_count(src, spelling),
         "raw_chars": len(src),
         "raw_bytes": len(src.encode("utf-8")),
         "normalised_chars": len(norm),
@@ -342,13 +379,15 @@ def main(argv: list[str] | None = None) -> int:
             return self_test()
 
         if args.spelling:
-            print(derive_spelling(read_artifact(Path(args.spelling)), args.spelling))
+            found = derive_spelling_or_none(read_artifact(Path(args.spelling)), args.spelling)
+            print(NO_EMBEDDING if found is None else found)
             return 0
 
         if args.sites:
             path = Path(args.sites)
             src = read_artifact(path)
-            print(site_count(src, derive_spelling(src, args.sites)))
+            found = derive_spelling_or_none(src, args.sites)
+            print(0 if found is None else site_count(src, found))
             return 0
 
         if args.describe:

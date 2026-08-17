@@ -81,6 +81,11 @@ pub fn generate_parser_ast_based(
     // `ReturnAnnotationParser`. We preserve that contract here.
     let parser_name = snake_to_pascal(grammar_name);
     let mut generator = AstBasedGenerator::new(parser_name);
+    // ENGINE-UNIVERSAL-SERVICES.31 (e) — keep the REGISTERED spelling. `snake_to_pascal` is lossy
+    // for a reader (`rtl_const_expr` -> `RtlConstExpr`), and the emitted diagnostic label must name
+    // the grammar the way `--parse <grammar>` does. Threading the original beats inverting the
+    // transform: an inverse would be a second derivation of one fact.
+    generator.source_grammar_name = Some(grammar_name.to_string());
     generator.emit_typed_entry_skeleton = emit_typed_entry_skeleton;
 
     // Transfer annotations if provided

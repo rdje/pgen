@@ -291,12 +291,13 @@ it, instead of claiming coverage it does not have.
 
 ⛔ Both tiers **assert the embedded `-o` path site count before trusting a hash**,
 and refuse rather than compare when the two sides disagree. A generated parser
-writes its own output path into the emitted source — once per artifact today, and
-36 346 times in the SystemVerilog parser until the label was hoisted to a module
-constant on 2026-08-17 — so re-deriving to a different filename changes the
-artifact's size for reasons that have nothing to do with the source. The hoist
-shrank that effect by four orders of magnitude but did not remove it, so the
-assertion stays. That trap has inverted three published readings; see
+used to write its own output path into the emitted source — 36 346 times in the
+SystemVerilog parser — so re-deriving to a different filename changed the
+artifact's size for reasons unrelated to the source. It no longer writes it at
+all: the path was serving a diagnostic label that named the generated parser
+beside an *input* byte offset, and correcting that label removed the path's last
+consumer on 2026-08-17. The assertion stays as a **tripwire** — the count must be
+zero, and any non-zero is an emitter regression. That trap has inverted three published readings; see
 [Diagnosing Unknowns → Comparing two generated parsers](diagnosing-unknowns.md#comparing-two-generated-parsers).
 
 ⚠️ Honest bound, and it is the same one `PARSE-COST-RATCHET` states about itself:

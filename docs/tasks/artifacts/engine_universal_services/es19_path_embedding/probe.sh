@@ -148,7 +148,7 @@ PREDICTED=$((SITES * DELTA_CHARS))
 if [ "$SITES" = "$RECORDED_SITES" ]; then
   pass "the live site count still equals the recorded one ($SITES) — one era, and the live gap IS the recorded gap"
 else
-  pass "ERA SHIFT, expected and named: live sites $SITES vs recorded $RECORDED_SITES — \`ENGINE-UNIVERSAL-SERVICES.31\` slice 2 hoisted the per-site literal to one module constant, so the live gap is $GAP where the recorded one was $RECORDED_GAP"
+  pass "ERA SHIFT, expected and named: live sites $SITES vs recorded $RECORDED_SITES — \`ENGINE-UNIVERSAL-SERVICES.31\` slice 2 hoisted the per-site literal to ONE module constant, and (e) then removed the path from it entirely (the label was naming the generated parser beside an INPUT byte offset), so the live gap is $GAP where the recorded one was $RECORDED_GAP"
 fi
 [ "$SITES" = "$SITES_SHORT" ] \
   && pass "both spellings carry the same site count — the count is a property of the emission, not of the path" \
@@ -161,7 +161,11 @@ printf 'ARM 3  normalised identity (the falsification leg)\n'
 # was already recorded. The shared helper normalises BOTH sides to one fixed token, so the check is
 # symmetric rather than "rewrite A into B's spelling and hope B's spelling was the right one".
 if python3 "$CMP" --compare "$WORK/a1_long.rs" "$WORK/b1_short.rs" > "$WORK/arm3.txt" 2>&1; then
-  pass "arm A and arm B are BYTE-IDENTICAL once the embedded -o path is normalised away"
+  if [ "$SITES" = 0 ]; then
+    pass "arm A and arm B are BYTE-IDENTICAL with NOTHING to normalise — the strongest form of this arm, and the one \`.31\`(e) made reachable"
+  else
+    pass "arm A and arm B are BYTE-IDENTICAL once the embedded -o path is normalised away"
+  fi
   pass "⇒ the -o path is the ONLY difference between the two arms — not merely 99 747 bytes' worth"
 else
   fail "normalised arm A != arm B — something OTHER than the path also moved"

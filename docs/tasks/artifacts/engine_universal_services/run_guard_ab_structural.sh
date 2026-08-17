@@ -58,11 +58,12 @@ fi
 # MEASUREMENT'S FIRST ANSWER. A generated parser embeds its own `-o` path as a diagnostic string —
 # **36 346 times** in the SV parser as it stood when this runner was written — so one extra character
 # in the output FILENAME added 36 346 bytes to the file.
-# ⭐ SINCE `ENGINE-UNIVERSAL-SERVICES.31` SLICE 2 THAT COUNT IS **1**: the path is emitted once as
-# `const PGEN_SOURCE_LABEL` and referenced by name. The normalisation below is therefore no longer
-# load-bearing at six figures — but it is KEPT, because one site is still one byte per character and
-# a helper that reads `path_sites` from the artifact costs nothing. ⛔ A re-run of this runner today
-# reports `path_sites=1` on every arm; that is the hoist, not a broken instrument.
+# ⭐⭐ SINCE `ENGINE-UNIVERSAL-SERVICES.31` THAT COUNT IS **0**. Slice 2 hoisted the path to ONE
+# module constant, and (e) then replaced its VALUE — the path was the wrong label, naming the
+# generated parser beside an INPUT byte offset — so no generated parser embeds its output path at
+# all. The normalisation below is now a NO-OP and the byte figures are directly comparable. ⛔ A
+# re-run of this runner today reports `path_sites=0` on every arm; that is the fix, not a broken
+# instrument, and the helper reports 0 rather than refusing precisely so this reads as a fact.
 # Comparing ARM 3 against `generated/systemverilog_parser.rs` (whose
 # embedded path is 12 characters shorter) made ARM 3 look 203 KB LARGER than the shipped parser; with
 # the path normalised it is 233 KB SMALLER, which is the opposite conclusion about what guards cost.

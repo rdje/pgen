@@ -1142,6 +1142,7 @@ mod tests {
     fn generator_for(annotations: Option<Annotations>) -> AstBasedGenerator {
         AstBasedGenerator {
             grammar_name: "scan_test".to_string(),
+            source_grammar_name: None,
             entry_rule: Some("entry".to_string()),
             logger: None,
             annotations,

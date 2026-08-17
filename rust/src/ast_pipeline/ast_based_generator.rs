@@ -30,23 +30,44 @@ use syn::Ident;
 // deep in generated parser calls. Keep this bounded, but above real corpus depth.
 const GENERATED_RECURSION_GUARD_MAX_DEPTH: usize = 4096;
 
-/// `ENGINE-UNIVERSAL-SERVICES.31` (b)/(c) — the name of the ONE module constant a generated
-/// parser holds its `-o` destination path in.
+/// `ENGINE-UNIVERSAL-SERVICES.31` — the name of the ONE module constant a generated parser holds
+/// its diagnostic label in.
 ///
-/// That path is the `file` argument of every `Logger::log_*` call the emitter writes, and it is
-/// the SAME string at every one of them: 60 482 occurrences across the eleven shipped artifacts,
-/// 34 738 of them in SystemVerilog alone. Emitting it as a literal per site made the artifact's
-/// size a function of its own output path's spelling (`TOOLBOX.md` 5.6). It is now emitted once,
-/// as a private module constant, and referenced by name at every site — so the `file` argument
-/// still receives a byte-identical string and no diagnostic loses information.
+/// **(b)/(c)** made it ONE constant. Until then the label was emitted as a literal at every
+/// `Logger::log_*` site — 60 482 occurrences across the eleven artifacts, 34 738 in SystemVerilog
+/// alone — which made an artifact's size a function of its own output path's spelling
+/// (`TOOLBOX.md` 5.6).
+///
+/// ⛔⛔ **(e) then changed what the label SAYS, because the old value was WRONG.** It was the `-o`
+/// destination path, and the `Logger` renders it as `[{file}:{line}]` where `line` is
+/// `self.position` — an **input byte offset**. So every trace line read
+/// `[../generated/json_parser.rs:0]`: a path to the generated parser beside a number that indexes
+/// a completely different file, in the universally-understood `file:line` shape it violates. The
+/// label now names **what the offset actually indexes** — the input, under the grammar that is
+/// parsing it.
+///
+/// ⭐ The old value carried no information either: the family is already on the same line twice,
+/// as the module path (`pgen::generated_parsers::json::…`) and as the trace component
+/// (`[TRACE][generated.json]`). It was redundancy on top of being misleading.
 const GENERATED_SOURCE_LABEL: &str = "PGEN_SOURCE_LABEL";
 
 /// The identifier token for [`GENERATED_SOURCE_LABEL`], for interpolation into a `quote!` body.
 ///
-/// ⛔ Every `Logger::log_*` `file` argument must interpolate THIS, never the raw `&str` filename —
-/// interpolating the `&str` emits the whole path as a literal again, once per site.
+/// ⛔ Every `Logger::log_*` `file` argument must interpolate THIS, never a raw `&str` — an `&str`
+/// quotes as a literal and is emitted once per site.
 fn source_label_ident() -> Ident {
     format_ident!("{}", GENERATED_SOURCE_LABEL)
+}
+
+/// The VALUE of that constant: what the `Logger`'s position argument is an offset into.
+///
+/// ⛔ It must be self-describing, because the renderer it feeds (`VerbosityLogger::emit`) is SHARED
+/// with `pgen_trace!` call sites where `file`/`line` really are `file!()`/`line!()`. One renderer,
+/// two meanings — so the generated side has to carry its own units or it inherits a convention it
+/// does not obey. `"<grammar> input byte"` renders as
+/// `[systemverilog input byte:113637]`, which cannot be misread as a source location.
+fn generated_source_label_value(registered_grammar_name: &str) -> String {
+    format!("{registered_grammar_name} input byte")
 }
 
 macro_rules! eprintln {
@@ -102,7 +123,25 @@ pub(crate) fn comment_arm_suppression_for_grammar(
 
 /// AST-based generator that produces guaranteed syntactically correct Rust code
 pub struct AstBasedGenerator {
+    /// ⛔ PascalCase — `snake_to_pascal(<grammar>)`, so `systemverilog` arrives here as
+    /// `Systemverilog` and `rtl_const_expr` as `RtlConstExpr`. It exists to build the emitted TYPE
+    /// name (`<Pascal>Parser`) and must not be used where a reader expects the grammar's
+    /// REGISTERED spelling — the one `--parse <grammar>` takes. Use [`Self::registered_grammar_name`].
     pub grammar_name: String,
+    /// The grammar's REGISTERED spelling (`systemverilog`, `rtl_const_expr`), as the caller had it
+    /// before `snake_to_pascal`.
+    ///
+    /// ⭐ Threaded rather than re-derived (`ENGINE-UNIVERSAL-SERVICES.31` (e)). Inverting
+    /// `snake_to_pascal` would be a SECOND derivation of one fact that must agree with the first —
+    /// the class `.32`/`.33` are records of. The real generation path has the original in scope and
+    /// was throwing it away.
+    ///
+    /// `None` only for generators constructed directly (unit tests, and
+    /// `comment_arm_suppression_for_grammar`, which computes a predicate and emits no parser). The
+    /// label then falls back to the Pascal name, which is visibly not a registered spelling rather
+    /// than a plausible wrong one — and every shipped artifact is asserted to carry the registered
+    /// form by the `es31_label_meaning` bank.
+    pub source_grammar_name: Option<String>,
     pub entry_rule: Option<String>,
     pub logger: Option<Box<dyn Logger>>,
     pub annotations: Option<Annotations>,
@@ -512,9 +551,18 @@ impl AstBasedGenerator {
             })
     }
 
+    /// The grammar's REGISTERED spelling when the caller supplied it, else the PascalCase name.
+    ///
+    /// ⛔ Read this, never `grammar_name`, anywhere the value reaches a HUMAN — the two differ for
+    /// every multi-word grammar (`RtlConstExpr` vs `rtl_const_expr`).
+    pub fn registered_grammar_name(&self) -> &str {
+        self.source_grammar_name.as_deref().unwrap_or(&self.grammar_name)
+    }
+
     pub fn new(grammar_name: String) -> Self {
         Self {
             grammar_name,
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -683,13 +731,14 @@ impl AstBasedGenerator {
         eprintln!("        Generated import statements");
         eprintln!("        File: {}:{}", file!(), line!());
 
-        // ENGINE-UNIVERSAL-SERVICES.31 (b)/(c) — the `-o` destination, emitted ONCE.
-        // Every `Logger::log_*` site below references this constant instead of repeating the
-        // literal, so the `file` argument is byte-identical while the artifact stops carrying
-        // one copy of its own output path per emitted logging site.
+        // ENGINE-UNIVERSAL-SERVICES.31 (b)/(c)/(e) — the diagnostic label, emitted ONCE, and
+        // naming what the `Logger`'s position argument is an offset INTO.
+        // ⛔ NOT `#filename`. That emitted the `-o` path beside an input byte offset, i.e. a file
+        // and a number that does not index it — see `generated_source_label_value`.
         let source_label = source_label_ident();
+        let source_label_value = generated_source_label_value(self.registered_grammar_name());
         let source_label_decl = quote! {
-            const #source_label: &str = #filename;
+            const #source_label: &str = #source_label_value;
         };
 
         // Generate types
@@ -10943,6 +10992,7 @@ mod semantic_usage_tests {
 
         AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -10979,6 +11029,7 @@ mod semantic_usage_tests {
 
         AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -11033,6 +11084,7 @@ mod semantic_usage_tests {
 
         AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -11089,6 +11141,7 @@ mod semantic_usage_tests {
         );
         let generator = AstBasedGenerator {
             grammar_name: "entry_fast_path_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -11149,6 +11202,7 @@ mod semantic_usage_tests {
         );
         let generator = AstBasedGenerator {
             grammar_name: "separator_fast_path_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -11239,6 +11293,7 @@ mod semantic_usage_tests {
         );
         let generator = AstBasedGenerator {
             grammar_name: "gen_store_fast_path_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -11354,6 +11409,7 @@ mod semantic_usage_tests {
 
         AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -11423,6 +11479,7 @@ mod semantic_usage_tests {
 
         AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -11497,6 +11554,7 @@ mod semantic_usage_tests {
 
         AstBasedGenerator {
             grammar_name: "branch_emit_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -11592,6 +11650,7 @@ mod semantic_usage_tests {
     fn quant_guard_generator(annotations: Option<Annotations>) -> AstBasedGenerator {
         AstBasedGenerator {
             grammar_name: "quant_guard_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations,
@@ -11885,6 +11944,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13096,6 +13156,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13132,6 +13193,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13165,6 +13227,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13233,6 +13296,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13311,6 +13375,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13377,6 +13442,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13436,6 +13502,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13467,6 +13534,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_declares_structured_recovery_types() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -13499,6 +13567,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_emits_recovery_event_accessors() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -13556,6 +13625,7 @@ mod semantic_usage_tests {
     fn h115_generator() -> AstBasedGenerator {
         AstBasedGenerator {
             grammar_name: "claims_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -13768,6 +13838,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_records_recovery_events_in_helper_methods() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -13829,6 +13900,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13853,6 +13925,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_emits_coverage_target_types_and_accessors() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -13921,6 +13994,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -13967,6 +14041,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_records_coverage_target_events_in_helper_methods() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -14027,6 +14102,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14051,6 +14127,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_emits_negative_case_types_and_accessors() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -14114,6 +14191,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14157,6 +14235,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_records_negative_case_events_in_helper_methods() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -14211,6 +14290,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14235,6 +14315,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_emits_deterministic_partition_types_and_accessors() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -14313,6 +14394,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14355,6 +14437,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_records_deterministic_partition_events_in_helper_methods() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -14428,6 +14511,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14472,6 +14556,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_compares_recovery_candidates_without_moving_best_marker() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -14520,6 +14605,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14565,6 +14651,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14610,6 +14697,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14684,6 +14772,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14736,6 +14825,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14792,6 +14882,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14842,6 +14933,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14898,6 +14990,7 @@ mod semantic_usage_tests {
 
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: Some(annotations),
@@ -14946,6 +15039,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_declares_relational_runtime_helper_methods() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
@@ -14985,6 +15079,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_supports_named_dollar_semantic_references() {
         let generator = AstBasedGenerator {
             grammar_name: "usage_test".to_string(),
+            source_grammar_name: None,
             entry_rule: None,
             logger: None,
             annotations: None,
