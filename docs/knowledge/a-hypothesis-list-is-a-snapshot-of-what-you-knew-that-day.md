@@ -99,6 +99,29 @@ what the choice turned on.
 ⇒ two questions before executing any option a leaf recommends: **what is not on this list?** and
 **does the reason it gives for rejecting the others still measure true?**
 
+## The same class, with more authority: an ACCEPTANCE CRITERION
+
+⭐⭐ **An acceptance criterion ages exactly like a hypothesis, and it is the most dangerous member of
+the family, because a leaf's other content invites judgement while its acceptance list reads like an
+order.** Measured twice in one session (2026-08-17, session #244):
+
+- **`ENGINE-UNIVERSAL-SERVICES.23`(b)** asked to *"verify the diagnostic names `expr`, not
+  `expr_lr_alt1`"*. The diagnostic named **four** rules and `expr` was already one of them, so the
+  criterion was satisfied before any work was done — because the leaf's symptom quote had been
+  filtered to the one line that matched its hypothesis. A test derived from a filtered symptom can
+  pass with the defect fully intact.
+- **`ENGINE-UNIVERSAL-SERVICES.16`(b)** asked for *"a gate that FAILS when the artifact is older than
+  its inputs"* — an **mtime** comparison. Four days after it was written, `CI-PARITY-GATE-ROT.32`
+  measured that this host's only `make` is GNU 3.81, which compares mtimes at whole seconds, and that
+  **10 of 10 families** are exposed to that blind spot. Building what (b) literally asked for would
+  have shipped a gate carrying the same blind spot as the bug it guards.
+
+⇒ the trigger is the same one this card already recommends, aimed one item further down the leaf:
+before executing an acceptance item, ask **what has the project measured since this was written that
+changes what this item should be?** When the answer is "something", *restate the criterion in the
+leaf with the measurement that moved it* — neither obeying it literally nor quietly doing something
+else, both of which leave the tree claiming a bar it did not meet.
+
 ## The honest bound
 
 This card documents a class, not a gate. There is no mechanical check here, deliberately: detecting

@@ -273,8 +273,20 @@ emission source set is **derived** (`git ls-files rust/src/ast_pipeline` +
 is deliberately over-inclusive: its failure direction is a spurious re-verify, not
 silent staleness.
 
-**Tier 2** re-derives all ten artifacts through the tracked recipe and demands
-byte-identity.
+**Tier 2** re-derives all **eleven** artifacts through the tracked recipe and
+demands byte-identity.
+
+⭐⭐ **The eleventh joined on 2026-08-17, and it was the one nothing could see rot.**
+`generated/ebnf.rs` is the meta-parser — arm 2 of the frontend differential, and the
+artifact `--features ebnf_dual_run` compiles in. The Makefile seeds it under
+`if [ ! -f … ]` and never regenerates it, so its only staleness check was that
+branch's `else`: *does it still compile* — the weakest of the four candidates in the
+table above. Measured with one comment line appended to it, the two checks disagree
+exactly where it matters: `cargo build` returns **rc 0 with 0 rustc errors**, while
+the gate reports `ebnf DOES NOT re-derive from HEAD` and fails. It is deliberately
+*not* added to `GENERATED_PARSER_FAMILIES` — its recipe takes the bootstrap flags
+with the ordinary binary, and the frontend that produces every other family's JSON
+is compiled from it, so that roster would need a target inside the cycle.
 
 ⛔ **Tier 2 proves its own generator is current, and until 2026-08-17 it did
 not.** The two annotation parsers were always re-derived by a generator the gate
@@ -333,11 +345,10 @@ flags too, since reading the variable is only half the recipe.
 itself: tier 1 proves *"nothing that could have changed the artifacts has
 changed"*, not *"the artifacts are correct"* — it inherits whatever tier 2 last
 established. On a fresh clone `generated/` is absent and the check reports **NOT
-EVALUATED**, loudly, never as a pass. And a recipe that bypasses
-`$(RUST_GENERATOR…)` altogether is outside the derivation: one such line seeds
-`generated/ebnf.rs` with its flags spelled inline, which is out of this gate's
-scope for the independent reason that `ebnf.rs` is not one of the ten artifacts it
-checks.
+EVALUATED**, loudly, never as a pass. And the derivation understands a composed
+recipe variable of exactly the shape `<binary> $(<flag-variable>)`; anything else —
+a wrapper, an `env` prefix, a computed value — is a **refusal**, not a silent
+mis-read, because resolving it would mean reimplementing make's own expansion.
 
 ---
 

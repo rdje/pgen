@@ -119,8 +119,21 @@ AST_PIPELINE_SOURCES = $(wildcard $(RUST_DIR)/src/*.rs) \
 #
 # ⛔ `FLOW-INTEGRITY` invariant (10) holds this: no `rust/Makefile` line that invokes
 # `--generate-parser` may carry `--debug` or `--trace` again.
-RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion
-RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --eliminate-left-recursion
+# ⭐⭐ THE FLAG LIST HAS ONE HOME (`ENGINE-UNIVERSAL-SERVICES.16`). It used to have THREE — the two
+# variables below and a third copy spelled inline in the `generated/ebnf.rs` seed recipe, which
+# cannot use `$(RUST_GENERATOR_BOOTSTRAP)` because that names the BOOTSTRAP BINARY while the seed
+# runs `$(RUST_AST_PIPELINE)` in bootstrap MODE. Splitting the flags out from the binary lets all
+# three spellings share one list. Measured by `ENGINE-UNIVERSAL-SERVICES.33`'s census before the
+# split: 3 homes inside this file alone, plus 18 hand-spelled invocations across the gate tier.
+# ⛔ `scripts/check_generated_reproducibility.sh` READS these two variables to re-derive every
+# artifact, and REFUSES rather than falling back if it cannot — so a flag added here reaches the
+# doctrine automatically, and one added at a `$(RUST_GENERATOR…)` CALL SITE is refused by that same
+# check. `FLOW-INTEGRITY` invariant (10) also still scans these two lines: they are the only
+# `--generate-parser` lines left in the tracked Makefiles, so its population is one place, not three.
+GENERATOR_FLAGS = --generate-parser --eliminate-left-recursion
+GENERATOR_FLAGS_BOOTSTRAP = --generate-parser --bootstrap-mode --eliminate-left-recursion
+RUST_GENERATOR = $(RUST_AST_PIPELINE) $(GENERATOR_FLAGS)
+RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) $(GENERATOR_FLAGS_BOOTSTRAP)
 RUST_FRONTEND_TO_JSON = $(RUST_EBNF_FRONTEND_BIN)
 
 # ⛔⛔ CI-PARITY-GATE-ROT.32 (d) — EVERY OPERATOR ENTRY POINT GUARDS MAKE 3.81's WHOLE-SECOND BLIND
@@ -977,7 +990,7 @@ regex_parser_bootstrap:
 		echo "          the annotation pair does not exist yet, so annotations route"; \
 		echo "          through the hand-rolled bootstrap surface BY DESIGN here —"; \
 		echo "          without the flag the RGX-0078.5.i.1.t2 guard refuses, see PGEN-RGX-0090)"; \
-		$(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
+		$(RUST_AST_PIPELINE) $(GENERATOR_FLAGS_BOOTSTRAP) $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
 		echo "🌱 generated/ebnf.rs seeded."; \
 		echo "  Rebuilding ast_pipeline now that has_generated_ebnf_parser is set..."; \
 		cd $(RUST_DIR) && cargo build --features ebnf_dual_run --bin ast_pipeline; \

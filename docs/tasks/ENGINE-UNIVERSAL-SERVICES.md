@@ -10607,7 +10607,7 @@ view — see the bound below · (d) ✅ `-0060`/`-0061`. ⇒ **`.29` CLOSED.** A
   `docs/tasks/CI-PARITY-GATE-ROT.md` `.34`.
 
 
-#### ⛔ `.16` NEW `todo` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (opened 2026-08-13 session #224 by `.13` slice 5)
+#### ✅ `.16` — `generated/ebnf.rs` is a SEED-ONLY artifact, so local and fresh-clone builds can diverge indefinitely (`done` — **(a)+(b) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0077`, 2026-08-17 session #244; opened 2026-08-13 session #224 by `.13` slice 5. ⭐ Closed by joining `GENERATED-REPRODUCIBILITY` as a **SEED cohort** — roster **10 → 11**; ⚠️ (b) asked for an **mtime** gate and mtime is the measured-wrong instrument here, so it is restated; ⭐⭐ the enabling change removed `rust/Makefile`'s THIRD copy of the flag list, closing `.33`'s surviving bound and `CI-PARITY-GATE-ROT.38`(a))
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -10626,9 +10626,90 @@ reproduces outside the family it is being sent to):
 - **Not worked here** (SV lane lock; this is `ebnf`-family flow machinery). Trigger to start:
   the next `ebnf_dual_run` gate investigation, or any change to `grammars/ebnf.ebnf`.
 
-**Acceptance:** (a) decide whether `ebnf` joins `GENERATED_PARSER_FAMILIES` or gets an explicit
-freshness check; (b) whichever is chosen, a gate that FAILS when the artifact is older than its
-inputs — the current state is undetectable by construction.
+**Acceptance:** ✅ **(a) DECIDED by slice 1** — decide whether `ebnf` joins
+`GENERATED_PARSER_FAMILIES` or gets an explicit freshness check; ⚠️ **(b) RESTATED then DISCHARGED by
+slice 1** — a gate that FAILS when the artifact is older than its inputs; **mtime is the wrong
+instrument and this repository has measured that**, so what shipped is re-derive-and-diff.
+
+##### ✅ `.16` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0077`, 2026-08-17 session #244) — leaf CLOSED: the one artifact nothing could see rot now re-derives with the other ten, and the enabling change gave the flag list ONE home
+
+**(a) DECIDED: neither option as written — a THIRD cohort in the doctrine, not an eighth family.**
+`ebnf` cannot simply join `GENERATED_PARSER_FAMILIES`, and the reason is structural rather than
+preference: its recipe takes the **BOOTSTRAP flags with the ORDINARY binary** (the annotation pair
+does not exist when it is seeded), and the frontend binary that produces every *other* family's
+`.json` is itself compiled **from** it. Adding it to that roster means a `focus_ebnf` target inside
+that cycle. Adding it to `GENERATED-REPRODUCIBILITY` needs neither: the gate already builds a
+bootstrap generator from HEAD, already proves the family generator current, and already re-derives
+into a mimic tree. Roster **10 → 11**.
+
+⚠️⚠️ **(b) IS RESTATED, AND THE REASON IS A MEASUREMENT THIS REPOSITORY ALREADY OWNS.** It asked for
+*"a gate that FAILS when the artifact is older than its inputs"* — an **mtime** comparison. Since it
+was written, `CI-PARITY-GATE-ROT.32` measured that `/usr/bin/make` here is GNU Make **3.81**, which
+compares mtimes at **whole seconds**, so a prerequisite rewritten inside the same second is invisible
+and a rule is skipped at exit 0 — **10 of 10 families exposed** on the json→parser edge. A gate keyed
+on the same comparison inherits the same blind spot, in the same direction. ⇒ what shipped is
+**re-derive and diff**, which answers what mtime only approximates, in both directions, and is what
+the other ten artifacts already get → [[your-build-tools-timestamp-resolution-is-part-of-your-correctness-argument]].
+
+⛔⛔ **THE OLD CHECK AND THE NEW ONE DISAGREE EXACTLY WHERE IT MATTERS, MEASURED END TO END.**
+`rust/Makefile`'s bootstrap `else` branch verifies the artifact *"still compiles against these
+sources"* — the weakest of the four candidates `GENERATED-REPRODUCIBILITY`'s own header rejects. With
+**one comment line** appended to `generated/ebnf.rs` — still valid Rust, still not what the source
+produces:
+
+| check | verdict |
+|---|---|
+| `cargo build --features ebnf_dual_run --bin ast_pipeline` (the old check) | **rc 0, 0 rustc errors** — sees nothing |
+| `check_generated_reproducibility.sh --verify` (the new one) | `ebnf DOES NOT re-derive from HEAD: live 219a07581ef9… (11 668 785 B) vs fresh 6a37b20a17a3… (11 668 701 B)`, **rc 1** |
+
+⇒ `.16`'s *"undetectable by construction"* is now detectable, and the demonstration is the exact class
+the leaf describes: an artifact that **compiles** and is **not current**.
+
+⭐⭐⭐ **THE ENABLING CHANGE CLOSED `.33`'s SURVIVING BOUND AND `CI-PARITY-GATE-ROT.38`(a) ON THE WAY.**
+The seed recipe could not use `$(RUST_GENERATOR_BOOTSTRAP)` — that names the bootstrap **binary**
+while the seed runs `$(RUST_AST_PIPELINE)` in bootstrap **mode** — so it spelled the flags inline, the
+**third** copy `.33`'s census counted inside `rust/Makefile` itself. Splitting the flags out from the
+binary lets all three spellings share one list:
+
+```make
+GENERATOR_FLAGS           = --generate-parser --eliminate-left-recursion
+GENERATOR_FLAGS_BOOTSTRAP = --generate-parser --bootstrap-mode --eliminate-left-recursion
+RUST_GENERATOR            = $(RUST_AST_PIPELINE) $(GENERATOR_FLAGS)
+RUST_GENERATOR_BOOTSTRAP  = $(RUST_AST_PIPELINE_BOOTSTRAP) $(GENERATOR_FLAGS_BOOTSTRAP)
+```
+
+Census re-run: **3 homes → 2**. `make` expands both composed variables to byte-identical command
+lines (verified with a `-f` overlay target, not assumed).
+
+⭐ **AND READING THE FLAG LIST ALONE WOULD HAVE BEEN WEAKER THAN THE MIRROR IT REPLACED.** A
+`RUST_GENERATOR` edited back to spelling its flags inline would leave the gate re-deriving with a list
+nothing passes — silently, in the passing direction. So the derivation additionally asserts each
+composed variable is **exactly** `<binary> $(<flag-variable>)`, with its own RED arm.
+
+⚠️ **THE CENSUS INSTRUMENT BROKE ON ITS OWN SUBJECT, AND SAID SO LOUDLY.** `census.sh` extracted the
+shipped recipe with `sed 's/^RUST_GENERATOR = \$(RUST_AST_PIPELINE) //p'` — a hard-coded assumption
+about the Makefile's shape. The first run after the split reported **18 of 18 invocations differing in
+a way that COULD change emission**, because the "shipped recipe" it compared against had become the
+literal string `$(GENERATOR_FLAGS)`. Fixed to read the flag variables and to REFUSE (exit 2) on an
+unresolved expansion rather than compare against a literal. ⇒ **an instrument that hard-codes the
+shape of what it reads is the defect it was built to count** — and it only surfaced because a human
+re-ran it after changing that shape, which is an argument for re-running a census as part of the
+change rather than after it.
+
+**Verification:** `--self-test` **20/20 arms** (3 new: the flag list is EMPTY, the composed variable
+is not built from the flags, the composed variable names another binary — plus a GREEN arm asserting
+the `ebnf` SEED cohort is actually REACHED, without which it could be skipped while every other arm
+stayed green, which is the failure `.32` found in this same suite). Tier 2 **11/11 byte-identical**;
+tier 1 reports **11 artifacts unmoved**.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `git ls-files` + reading `rust/Makefile`'s `regex_parser_bootstrap` recipe: `generated/ebnf.rs` is produced under `if [ ! -f $(GENERATED_DIR)/ebnf.rs ]` and by nothing else, so its only staleness check is the `else` branch's `cargo build … || echo "no longer compiles"`. Demonstrated with one appended comment line: `cargo build --features ebnf_dual_run --bin ast_pipeline` returns **rc 0 with 0 rustc errors** over an artifact that is not what the source produces.
+- [x] **ROOT CAUSE (WHY + WHERE)** — two loci. (1) `rust/Makefile:969` guards the whole seed on file PRESENCE, and its `else` branch tests COMPILATION, which `GENERATED-REPRODUCIBILITY`'s own header already names as unable to distinguish current from stale. (2) `scripts/check_generated_reproducibility.sh` — the doctrine that *does* answer the question — excluded the artifact, because its roster is `PAIR` + `FAMILIES` and `ebnf.rs` is in neither; located by `git ls-files`/`grep -n` while writing `.33`'s surviving bound, and recorded there before this leaf was worked.
+- [x] **FIX** — ops/build-flow: `rust/Makefile` gains `GENERATOR_FLAGS` / `GENERATOR_FLAGS_BOOTSTRAP` so the flag list has ONE home that all three spellings reference (3 → 2 homes, `make -f` overlay proving both composed variables expand byte-identically); the check reads those variables, asserts each composed variable is exactly `<binary> $(<flag-variable>)`, and gains a `SEED` cohort re-derived with the bootstrap flags through the ordinary binary. ZERO Rust bytes, ZERO grammar bytes, ZERO generated bytes.
+- [x] **ADDRESSED (verified)** — before→after on the same perturbed artifact: `cargo build` rc **0** / 0 rustc errors (unchanged, and that is the point) versus the gate's `ebnf DOES NOT re-derive from HEAD: live 219a07581ef9… (11 668 785 B) vs fresh 6a37b20a17a3… (11 668 701 B)` at **rc 1**. Restored and re-verified: `✓ ebnf re-derives byte-identically`, tier 1 `OK (11 artifacts unmoved)`.
+- [x] **NO REGRESSION** — `bash scripts/check_generated_reproducibility.sh --self-test` **20/20 arms as designed**; `make -C rust SHELL=/bin/bash generated_reproducibility_gate` **11/11 byte-identical**, every row `0 sites`; `make -C rust ... -p` confirms `RUST_GENERATOR` / `RUST_GENERATOR_BOOTSTRAP` expand to the same command lines as before the split; `make -C rust SHELL=/bin/bash mdbook_docs_gate` green; `bash scripts/check_doctrines.sh` **21/21 PASS** (including `FLOW-INTEGRITY` invariant (10), whose population is now the two `GENERATOR_FLAGS*` lines rather than three sites); `bash -n` clean. No clippy flow: zero Rust bytes.
+- [x] **LOCKSTEP** — `rust/Makefile`, `scripts/check_generated_reproducibility.sh`, `rust/test_data/grammar_quality/generated_reproducibility_v0.json` (rebaselined: an `ebnf` row added, `emission_sha` moved because `rust/Makefile` is inside it, the ten pre-existing artifact hashes unchanged), the `es33_makefile_mirror` census (re-run, and its own extraction repaired), this leaf, `docs/tasks/CI-PARITY-GATE-ROT.md` (`.38`(a) discharged), `DOCTRINE_ENFORCEMENT.md`, `docs/book/src/gate-flow.md`, `TOOLBOX.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
 **HONEST BOUNDS (each measured, none argued):**
 

@@ -1,12 +1,11 @@
 ENGINE-UNIVERSAL-SERVICES.33 (c) — census of hard-coded generator-recipe mirrors
-commit: 9f856ac6   scope files: 123
+commit: 909cdb83   scope files: 123
 
 ── 1. THE RECIPE'S HOMES INSIDE rust/Makefile ────────────────────────────────────────────────
    (a --generate-parser line that is not a comment; the checker's own view of the file)
-     122: RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion
-     123: RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --eliminate-left-recursion
-     980: $(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
-   => 3 homes for the flag list inside rust/Makefile itself
+     133: GENERATOR_FLAGS = --generate-parser --eliminate-left-recursion
+     134: GENERATOR_FLAGS_BOOTSTRAP = --generate-parser --bootstrap-mode --eliminate-left-recursion
+   => 2 homes for the flag list inside rust/Makefile itself
 
 ── 2/3. THE ENFORCEMENT/GATE TIER — every candidate line, CLASSIFIED AND SHOWN ───────────────
 
@@ -98,21 +97,19 @@ commit: 9f856ac6   scope files: 123
       "FLOW-INTEGRITY|the gate flow cannot drift back: workflows that need generated parsers regenerate them and budget for it, the recipe keeps one home, a
    ·  scripts/check_flow_integrity.sh:325
       if line.lstrip().startswith("#") or "--generate-parser" not in line:
-   ·  scripts/check_generated_reproducibility.sh:265
-      [ "${#words[@]}" -ge 2 ] || die "$MAKEFILE's ${var} carries no flags at all after '${want_bin}' — a generator invocation with no --generate-parser can
-   ·  scripts/check_generated_reproducibility.sh:667
-      RECIPE='RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion'
-   ·  scripts/check_generated_reproducibility.sh:678
-      arm_mk "REFUSE(2): leading token is not the binary"  2 "$RECIPE" 'RUST_GENERATOR = env PGEN_X=1 $(RUST_AST_PIPELINE) --generate-parser'
-   ·  scripts/check_generated_reproducibility.sh:708
-      if grep -q 'recipe DERIVED from rust/Makefile — families: --generate-parser --eliminate-left-recursion | annotation pair: --generate-parser --bootstra
+   ·  scripts/check_generated_reproducibility.sh:335
+      [ "${#words[@]}" -ge 1 ] || die "$MAKEFILE's ${flag_var} is defined but empty — a generator invocation with no --generate-parser cannot produce a pars
+   ·  scripts/check_generated_reproducibility.sh:765
+      RECIPE='GENERATOR_FLAGS = --generate-parser --eliminate-left-recursion'
+   ·  scripts/check_generated_reproducibility.sh:783
+      arm_mk "REFUSE(2): composed var not built from flags" 2 "$COMPOSED" 'RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursio
+   ·  scripts/check_generated_reproducibility.sh:811
+      if grep -q 'recipe DERIVED from rust/Makefile — families: --generate-parser --eliminate-left-recursion | pair + ebnf seed: --generate-parser --bootstr
 
-   ⚠️ GROUND-TRUTH CONTROL: the two rules DISAGREE on 2 line(s). Adjudicate each
+   ⚠️ GROUND-TRUTH CONTROL: the two rules DISAGREE on 1 line(s). Adjudicate each
       before trusting the counts above — a disagreement is the instrument saying it is unsure.
-   ⚠️ scripts/check_generated_reproducibility.sh:667  unquoted=False names_binary=True
-      RECIPE='RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion'
-   ⚠️ scripts/check_generated_reproducibility.sh:678  unquoted=False names_binary=True
-      arm_mk "REFUSE(2): leading token is not the binary"  2 "$RECIPE" 'RUST_GENERATOR = env PGEN_X=1 $(RUST_AST_PIPELINE) --generate-parser'
+   ⚠️ scripts/check_generated_reproducibility.sh:783  unquoted=False names_binary=True
+      arm_mk "REFUSE(2): composed var not built from flags" 2 "$COMPOSED" 'RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursio
 
       ADJUDICATION (recorded, because a judgement is not something a regex made): every
       disagreement above is a self-test perturbation LITERAL in this repository's own
@@ -144,14 +141,19 @@ commit: 9f856ac6   scope files: 123
       --eliminate-left-recursion in RUST_GENERATOR is INERT. Measured: json / regex / vhdl /
       systemverilog re-derive BYTE-IDENTICALLY with and without it.
 
-── 5. WHAT ENGINE-UNIVERSAL-SERVICES.33 SLICE 1 FIXED, AND WHAT IT ROUTED ────────────────────
-   FIXED   scripts/check_generated_reproducibility.sh — it DERIVES RUST_GENERATOR /
-           RUST_GENERATOR_BOOTSTRAP from rust/Makefile and REFUSES (exit 2) on any shape it
-           cannot resolve; its $(RUST_GENERATOR…) call sites are held flag-free. 18/18
-           self-test arms, 8 of them new. Its own hand-spelled invocation count is now 0.
-   ROUTED  CI-PARITY-GATE-ROT.38  the bucket-M/S population above + rust/Makefile's third
-                                  inline copy of the bootstrap flag list (line 980).
+── 5. WHAT HAS BEEN FIXED AGAINST THIS CENSUS, AND WHAT IS STILL ROUTED ──────────────────────
+   .33 s1  scripts/check_generated_reproducibility.sh DERIVES the recipe from rust/Makefile and
+           REFUSES (exit 2) on any shape it cannot resolve; its $(RUST_GENERATOR…) call sites
+           are held flag-free. Its own hand-spelled invocation count went 2 -> 0.
+   .16 s1  rust/Makefile's THIRD inline copy of the bootstrap flag list is GONE: the flags live
+           in GENERATOR_FLAGS / GENERATOR_FLAGS_BOOTSTRAP, which the two composed variables and
+           the generated/ebnf.rs seed all reference => 3 homes -> 2. The check reads THOSE and
+           asserts each composed variable is exactly '<binary> $(<flag-variable>)'.
+           generated/ebnf.rs also JOINED the doctrine as a SEED cohort (roster 10 -> 11).
+   ROUTED  CI-PARITY-GATE-ROT.38  the bucket-M/S population above (18 invocations, 11 of them
+                                  substituting a SHIPPED parser). Its (a) is now DISCHARGED by
+                                  .16 above; (b)-(e) remain.
            ENGINE-UNIVERSAL-SERVICES.34  --eliminate-left-recursion is an INERT CLI flag that
-                                  three surfaces document as meaningful.
+                                  three surfaces document as meaningful — the 5 rows above.
            ENGINE-UNIVERSAL-SERVICES.35  the baseline's verified_at_commit names the PARENT of
                                   the commit that lands it, because --rebaseline runs pre-commit.

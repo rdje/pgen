@@ -1,8 +1,8 @@
 {
   "_comment": "GENERATED-REPRODUCIBILITY baseline. DERIVED — never hand-edit. Rewrite with: bash scripts/check_generated_reproducibility.sh --rebaseline",
   "_what_this_proves": "every artifact below re-derived BYTE-IDENTICALLY from HEAD at the recorded commit. Tier 1 re-hashes these three fields and demands a re-verify the moment any of them moves.",
-  "verified_at_commit": "0be094a9921fc22f2ed6892e4d1098f15c32de53",
-  "emission_sha": "64afd21705f72523020fa7c433641c7cecdf9250a2214d1bb3c22529a2b799aa",
+  "verified_at_commit": "909cdb831d9056e1b21fb1cb63da7a87506242b9",
+  "emission_sha": "465e59bdf3bd8967546271f9c1f0995fac228f7f6615637b654255b1e21be0df",
   "artifacts": {
     "return_annotation": { "parser_sha": "75e10432d362194befc94161208f4d3f513620fda52ae79ad0ffc7fbd19f6756", "input_sha": "9e1237695931ff6e51e12194eae6358f837b90aeb05ed8d9cd05ef1691028a9e" },
     "semantic_annotation": { "parser_sha": "073d8909a5766c255dc152b8f92e14878ec4030fa6d2da8ba18b9bfbcefb8913", "input_sha": "76b122274aeac8f45cbc3556677b138c95a83ccfe9d6a5aedcc7ab393057525b" },
@@ -13,6 +13,7 @@
     "vhdl": { "parser_sha": "ac2b0ac24224ffd3f40d16874be05e489d11d347956da90388769a5865df0d6c", "input_sha": "1fb6b8be631aab52af9c21ce3fffbd2768ab427aa4920ffead0987f8750fdc05" },
     "rtl_const_expr": { "parser_sha": "8ebca23e1ebcf7fe07b9b54ac81bb03c4c5e181ddcd0394851e1e6f7f3fb80fc", "input_sha": "f023d4c97485b4921385ea7b1860c7b91524c3c469db1d4947ce6e49fb872837" },
     "rtl_frontend": { "parser_sha": "c8782dcd14bf9d29640a19ad0f5ebbd749b69e11e9f3195da1cf6bd05a083712", "input_sha": "f65d95e3c556d305fde248e932e0272beb580089fa35dcaa7de98c51e09c7092" },
-    "scratch": { "parser_sha": "3246bfaf04f10e5656aca9b77f14e7e46c2ddb1821aeb75a2c0278341cf73ec3", "input_sha": "6057fd9c8bb640ce4a7d78ca0833a6f4be2816ae67b7c84cd6bccc6efe03a7e4" }
+    "scratch": { "parser_sha": "3246bfaf04f10e5656aca9b77f14e7e46c2ddb1821aeb75a2c0278341cf73ec3", "input_sha": "6057fd9c8bb640ce4a7d78ca0833a6f4be2816ae67b7c84cd6bccc6efe03a7e4" },
+    "ebnf": { "parser_sha": "6a37b20a17a3c0de9eed485618d8f27fbc5b0acf3d1abb5bdc275df8c41bfd9b", "input_sha": "7683f870c48f5cb13a51ed2beaa247fcfccee1cda1731e3f98975e7d6260f648" }
   }
 }

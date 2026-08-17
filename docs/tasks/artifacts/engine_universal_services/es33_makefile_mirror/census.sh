@@ -87,9 +87,19 @@ echo "                     (those name destinations; they add outputs, they do n
 echo "   BUCKET rule     : M if the file feeds its parser back through PGEN_<FAMILY>_PARSER_PATH (it"
 echo "                     stands in for a SHIPPED parser) ; S if it only probes its own artifact"
 echo
-SHIPPED_FAM=$(sed -n 's/^RUST_GENERATOR = \$(RUST_AST_PIPELINE) //p' rust/Makefile)
-SHIPPED_PAIR=$(sed -n 's/^RUST_GENERATOR_BOOTSTRAP = \$(RUST_AST_PIPELINE_BOOTSTRAP) //p' rust/Makefile)
-[ -n "$SHIPPED_FAM" ] && [ -n "$SHIPPED_PAIR" ] || { echo "census: could not read the shipped recipe from rust/Makefile" >&2; exit 2; }
+# ⛔ READ THE FLAG VARIABLES, NOT A STRIPPED PREFIX OF THE COMPOSED ONES. This block first said
+#    `sed 's/^RUST_GENERATOR = \$(RUST_AST_PIPELINE) //p'`, i.e. it assumed the composed variable
+#    held the flags inline. `ENGINE-UNIVERSAL-SERVICES.16` split them out, and the very next census
+#    run reported **18 of 18 invocations differing in a way that COULD change emission** — because
+#    the "shipped recipe" it was comparing against had become the literal string `$(GENERATOR_FLAGS)`.
+#    ⇒ an instrument that hard-codes the shape of what it reads is the same defect it was built to
+#    count, and it failed LOUDLY here only because a human re-ran it after changing that shape.
+SHIPPED_FAM=$(sed -n 's/^GENERATOR_FLAGS = //p' rust/Makefile)
+SHIPPED_PAIR=$(sed -n 's/^GENERATOR_FLAGS_BOOTSTRAP = //p' rust/Makefile)
+[ -n "$SHIPPED_FAM" ] && [ -n "$SHIPPED_PAIR" ] || { echo "census: could not read GENERATOR_FLAGS / GENERATOR_FLAGS_BOOTSTRAP from rust/Makefile — refusing to compare against an empty recipe" >&2; exit 2; }
+case "$SHIPPED_FAM$SHIPPED_PAIR" in
+  *'$('*) echo "census: the flag variables still carry an unresolved make expansion — every comparison below would be against a literal, not a recipe" >&2; exit 2 ;;
+esac
 echo "   shipped families : $SHIPPED_FAM"
 echo "   shipped pair     : $SHIPPED_PAIR"
 echo
@@ -240,14 +250,19 @@ echo "      --eliminate-left-recursion in RUST_GENERATOR is INERT. Measured: jso
 echo "      systemverilog re-derive BYTE-IDENTICALLY with and without it."
 echo
 
-echo '── 5. WHAT ENGINE-UNIVERSAL-SERVICES.33 SLICE 1 FIXED, AND WHAT IT ROUTED ────────────────────'
-echo "   FIXED   scripts/check_generated_reproducibility.sh — it DERIVES RUST_GENERATOR /"
-echo "           RUST_GENERATOR_BOOTSTRAP from rust/Makefile and REFUSES (exit 2) on any shape it"
-echo "           cannot resolve; its \$(RUST_GENERATOR…) call sites are held flag-free. 18/18"
-echo "           self-test arms, 8 of them new. Its own hand-spelled invocation count is now 0."
-echo "   ROUTED  CI-PARITY-GATE-ROT.38  the bucket-M/S population above + rust/Makefile's third"
-echo "                                  inline copy of the bootstrap flag list (line 980)."
+echo '── 5. WHAT HAS BEEN FIXED AGAINST THIS CENSUS, AND WHAT IS STILL ROUTED ──────────────────────'
+echo "   .33 s1  scripts/check_generated_reproducibility.sh DERIVES the recipe from rust/Makefile and"
+echo "           REFUSES (exit 2) on any shape it cannot resolve; its \$(RUST_GENERATOR…) call sites"
+echo "           are held flag-free. Its own hand-spelled invocation count went 2 -> 0."
+echo "   .16 s1  rust/Makefile's THIRD inline copy of the bootstrap flag list is GONE: the flags live"
+echo "           in GENERATOR_FLAGS / GENERATOR_FLAGS_BOOTSTRAP, which the two composed variables and"
+echo "           the generated/ebnf.rs seed all reference => 3 homes -> 2. The check reads THOSE and"
+echo "           asserts each composed variable is exactly '<binary> \$(<flag-variable>)'."
+echo "           generated/ebnf.rs also JOINED the doctrine as a SEED cohort (roster 10 -> 11)."
+echo "   ROUTED  CI-PARITY-GATE-ROT.38  the bucket-M/S population above (18 invocations, 11 of them"
+echo "                                  substituting a SHIPPED parser). Its (a) is now DISCHARGED by"
+echo "                                  .16 above; (b)-(e) remain."
 echo "           ENGINE-UNIVERSAL-SERVICES.34  --eliminate-left-recursion is an INERT CLI flag that"
-echo "                                  three surfaces document as meaningful."
+echo "                                  three surfaces document as meaningful — the 5 rows above."
 echo "           ENGINE-UNIVERSAL-SERVICES.35  the baseline's verified_at_commit names the PARENT of"
 echo "                                  the commit that lands it, because --rebaseline runs pre-commit."

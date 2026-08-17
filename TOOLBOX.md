@@ -1006,9 +1006,9 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 ### 5.5b "Is `generated/` what HEAD's source produces?" — and why `make`'s exit 0 is not the answer
 
 - **WHAT:** `make -C rust SHELL=/bin/bash generated_reproducibility_gate` (doctrine
-  `GENERATED-REPRODUCIBILITY`, tier 2) — re-derives all ten artifacts through the tracked recipe and
+  `GENERATED-REPRODUCIBILITY`, tier 2) — re-derives all **eleven** artifacts through the tracked recipe and
   demands byte-identity. `bash scripts/check_generated_reproducibility.sh` alone is tier 1 (identity
-  only, every commit); `--self-test` fires all **18** refusal arms.
+  only, every commit); `--self-test` fires all **20** refusal arms.
 - **WHEN:** after ANY emission-source change, before quoting *"the parser is what HEAD produces"* in
   a release argument, and ⛔ **whenever you have just run a `make` target that was supposed to
   regenerate something**.

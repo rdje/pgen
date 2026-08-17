@@ -1,5 +1,36 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0077 — the acceptance criterion asked for the wrong instrument, and the repo had already measured why
+
+**1. ⛔⛔ AN ACCEPTANCE CRITERION IS A HYPOTHESIS FROM THE DAY IT WAS WRITTEN, NOT AN ORDER.** `.16`(b)
+asked for *"a gate that FAILS when the artifact is older than its inputs"* — an mtime comparison. Four
+days later `CI-PARITY-GATE-ROT.32` measured that this host's only `make` is GNU 3.81, which compares
+mtimes at WHOLE SECONDS, and that **10 of 10 families** are exposed to that blind spot. Building what
+(b) literally asked for would have shipped a gate with the same blind spot as the bug it guards. ⇒
+**before implementing an acceptance item, check whether anything measured since it was written changes
+what it should be** — and if it does, restate it in the leaf with the measurement, rather than either
+obeying it or silently doing something else. This is the second time in one session
+(`.23`(b) was already-true-as-written), which is a pattern about task-trees, not about these two leaves:
+[[a-hypothesis-list-is-a-snapshot-of-what-you-knew-that-day]] says this about hypotheses; acceptance
+criteria are the same object with more authority. promotion: declined (the existing card covers the
+lesson; what is new here is only the *scope* — acceptance criteria, not just hypothesis lists — and I
+have added that sentence to the card's own framing rather than forking a near-duplicate).
+
+**2. ⭐⭐ THE CHEAPEST FIX WAS THE ONE A PARKED LEAF HAD ALREADY NAMED AND NOBODY HAD PRICED.**
+`CI-PARITY-GATE-ROT.38` said a shared flag variable *"is the obvious shape and is un-priced"*. It cost
+four Makefile lines. `.33` had priced the *general* case — a resolver for make's expansion — declined
+it correctly, and that correct refusal is what made the cheap special case invisible for a session. ⇒
+**when you decline an expensive general fix, write down the specific case that would still be cheap**,
+or the decline reads as "this whole area is closed".
+
+**3. ⚠️ MY CENSUS INSTRUMENT BROKE ON THE VERY CHANGE IT EXISTS TO MEASURE.** `census.sh` read the
+shipped recipe as `RUST_GENERATOR` minus a hard-coded binary prefix. The moment the flags moved out of
+that variable, it reported 18 of 18 invocations differing "in a way that COULD change emission" —
+maximally alarming, entirely an artifact of its own assumption. It surfaced only because I re-ran it as
+part of the change. ⇒ **an instrument that hard-codes the shape of what it reads is an instance of the
+defect it counts** — and the practical rule is to re-run every census the change touches *inside* the
+change, not after it, because a census run later is a census read by someone with no reason to doubt it.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0076 — I fixed one of two sites that disagreed, and the bug moved instead of leaving
 
 **1. ⛔⛔ WHEN TWO SITES HOLD THE SAME NOTION DIFFERENTLY, FIXING ONE RELOCATES THE DEFECT.** The

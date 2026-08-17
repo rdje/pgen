@@ -4964,7 +4964,7 @@ evidence a generator was rebuilt, next to the existing grammar-edge warning.
 
   | | |
   |---|---:|
-  | homes for the flag list inside `rust/Makefile` itself | **3** (`:122`, `:123`, and `:980`'s inline `generated/ebnf.rs` seed) |
+  | homes for the flag list inside `rust/Makefile` itself | **3** at the census, ✅ **2 since `ENGINE-UNIVERSAL-SERVICES.16`** (`:122`, `:123`, and `:980`'s inline `generated/ebnf.rs` seed — the third is gone) |
   | hand-spelled generator invocations in `scripts/` + `rust/scripts/` + `.githooks/` | **18** |
   | — bucket **M**: feeds its parser back through `PGEN_<FAMILY>_PARSER_PATH`, so it stands in for a SHIPPED parser | **11** in 10 files |
   | — bucket **S**: own-artifact probe, drift changes what the gate measured not what ships | **7** in 4 files |
@@ -4993,17 +4993,26 @@ evidence a generator was rebuilt, next to the existing grammar-edge warning.
   `RUST_GENERATOR` / `RUST_GENERATOR_BOOTSTRAP` out of `rust/Makefile` and refusing on any shape it
   cannot resolve — `ENGINE-UNIVERSAL-SERVICES.33` slice 1, 18/18 self-test arms. The derivation is
   ~30 lines of shell and costs nothing per run.
-- ⛔ **THE MAKEFILE'S OWN THIRD COPY IS THE ONE NO DERIVATION CAN REACH.** `rust/Makefile:980` spells
-  `--generate-parser --bootstrap-mode --eliminate-left-recursion` inline (it needs
-  `$(RUST_AST_PIPELINE)` in bootstrap mode, so it cannot use `$(RUST_GENERATOR_BOOTSTRAP)`, which
-  names the bootstrap *binary*). `.33` priced closing the general case and **declined**: it needs a
-  resolver for make variables, i.e. a second implementation of make's expansion — the duplication
-  class being removed. A `RUST_GENERATOR_BOOTSTRAP_FLAGS` variable that all three spellings reference
-  is the obvious shape and is un-priced.
+- ✅ **THE MAKEFILE'S OWN THIRD COPY IS GONE (2026-08-17, `ENGINE-UNIVERSAL-SERVICES.16` slice 1).**
+  `rust/Makefile:980` spelled `--generate-parser --bootstrap-mode --eliminate-left-recursion` inline
+  because it needs `$(RUST_AST_PIPELINE)` in bootstrap MODE, so it could not use
+  `$(RUST_GENERATOR_BOOTSTRAP)`, which names the bootstrap *binary*. `.33` had priced the general case
+  (a resolver for make variables) and declined it; the fix that landed is the cheap one this row
+  itself called *"the obvious shape … un-priced"* — split the FLAGS out of the binary. All three
+  spellings now reference `GENERATOR_FLAGS_BOOTSTRAP` / `GENERATOR_FLAGS`. ⛔ Note what did NOT
+  change: the general make-expansion resolver is still refused, and a composed variable of any other
+  shape is a REFUSAL rather than a silent mis-read.
 
-**Acceptance:** (a) factor the flag list into ONE Makefile variable the three Makefile spellings all
-reference, so `rust/Makefile` holds one home rather than three — `FLOW-INTEGRITY`'s *"the recipe keeps
-ONE home"* invariant already exists for the shipping recipe and does not cover this; (b) for the
+**Acceptance:** ✅ **(a) DISCHARGED 2026-08-17 session #244 by `ENGINE-UNIVERSAL-SERVICES.16` slice 1**
+(`PGEN-ENGINE-UNIVERSAL-SERVICES-0077`) — factor the flag list into ONE Makefile variable the three
+Makefile spellings all reference, so `rust/Makefile` holds one home rather than three. Shipped as
+`GENERATOR_FLAGS` / `GENERATOR_FLAGS_BOOTSTRAP`, with `RUST_GENERATOR` / `RUST_GENERATOR_BOOTSTRAP`
+composed from them and the `generated/ebnf.rs` seed referencing the bootstrap list directly; census
+re-run **3 homes → 2**, and `make -p` confirms both composed variables expand to byte-identical
+command lines. ⭐ It was done there rather than here because `.16` REQUIRED it: the seed recipe is the
+third copy, and covering `generated/ebnf.rs` in `GENERATED-REPRODUCIBILITY` meant deriving its flags.
+⛔ `scripts/check_generated_reproducibility.sh` now also asserts each composed variable is exactly
+`<binary> $(<flag-variable>)`, so re-inlining the flags is a refusal rather than a silent divergence; (b) for the
 **11 bucket-M** invocations, either derive the flags from the Makefile (the `.33` shape, which is
 `sed` + a refusal) or state per-gate why its parser need not match what ships, and gate the residue;
 (c) for the **7 bucket-S** invocations, publish the disposition rather than fixing them — a

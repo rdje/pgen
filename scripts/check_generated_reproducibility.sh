@@ -39,6 +39,28 @@
 #           Re-derive every artifact through the tracked recipe and demand byte-identity, then
 #           rewrite the baseline. `--verify` runs it here; `--rebaseline` records the result.
 #
+# ⭐⭐ THE ROSTER IS 11, NOT 10, SINCE `ENGINE-UNIVERSAL-SERVICES.16` — THE ARTIFACT NOTHING COULD SEE
+# ROT IS NOW COVERED. `generated/ebnf.rs` is the META-PARSER: arm 2 of the frontend differential, and
+# the artifact `--features ebnf_dual_run` compiles in. `rust/Makefile` seeds it under `if [ ! -f … ]`
+# and NEVER regenerates it, so its only staleness check was that branch's `else`: *"does it still
+# compile"* — the weakest of the four candidates this header already rejects. `.16` measured the local
+# copy dated 2026-07-30 while the grammar and the code generator had both moved.
+# ⛔ MEASURED END TO END, because the two checks disagree exactly where it matters. With one comment
+# line appended to `generated/ebnf.rs` — still valid Rust, still not what the source produces:
+#     cargo build --features ebnf_dual_run --bin ast_pipeline   ->  rc 0, 0 rustc errors  (sees nothing)
+#     this gate                                                 ->  `ebnf DOES NOT re-derive from
+#         HEAD: live 219a07581ef9… (11 668 785 B) vs fresh 6a37b20a17a3… (11 668 701 B)`, rc 1
+# ⚠️ `.16` acceptance (b) asked for *"a gate that FAILS when the artifact is older than its inputs"*.
+# That is deliberately NOT what shipped: mtime is the wrong instrument for this question in this
+# repository, measured — GNU Make 3.81 compares mtimes at WHOLE SECONDS, so a prerequisite rewritten
+# inside the same second is invisible and a rule is skipped at exit 0 (`CI-PARITY-GATE-ROT.32`, 10 of
+# 10 families exposed on the json→parser edge). A gate keyed on that comparison inherits the blind
+# spot. Re-derive-and-diff answers what mtime approximates, in both directions.
+# ⚠️ `ebnf` is NOT in `GENERATED_PARSER_FAMILIES` and must not be: its recipe takes the BOOTSTRAP
+# flags with the ORDINARY binary, and the frontend binary that produces every other family's `.json`
+# is compiled FROM it. It is a cohort of its own here, which needs no `focus_ebnf` target inside that
+# cycle.
+#
 # ⛔⛔ TIER 2 MUST PROVE ITS GENERATOR IS CURRENT, AND UNTIL `ENGINE-UNIVERSAL-SERVICES.32` IT DID
 # NOT — SO IT COULD PASS BY CONSTRUCTION. The annotation PAIR has always been re-derived by an
 # `ast_pipeline_bootstrap` built from HEAD in this gate's own scratch dir. The EIGHT FAMILIES were
@@ -145,13 +167,15 @@
 # read clean. All 21 call sites are uniform today; `assert_call_sites_add_no_flags` holds them that
 # way and refuses on the first that is not.
 #
-# ⚠️ SURVIVING BOUND, priced and stated rather than discovered later: a recipe that bypasses
-# `$(RUST_GENERATOR…)` ENTIRELY is outside this derivation. One such line exists —
-# `rust/Makefile:980` seeds `generated/ebnf.rs` with the bootstrap flags spelled inline, a THIRD copy
-# of the flag list inside the Makefile itself — and it is outside this gate's scope for an
-# independent reason: `ebnf.rs` is in neither `PAIR` nor `FAMILIES`. Closing the general case needs a
-# resolver for make variables (`$(SYSTEMVERILOG_PARSER)` → a path), i.e. exactly the duplicate
-# implementation rejected above. Recorded in the `.33` census instead of guessed at here.
+# ✅ THE BOUND `.33` STATED HERE IS CLOSED BY `ENGINE-UNIVERSAL-SERVICES.16`. It read: *"a recipe that
+# bypasses `$(RUST_GENERATOR…)` entirely is outside this derivation — `rust/Makefile:980` seeds
+# `generated/ebnf.rs` with the bootstrap flags spelled inline, a THIRD copy of the flag list inside
+# the Makefile itself."* That copy is gone: the flags now live in `GENERATOR_FLAGS` /
+# `GENERATOR_FLAGS_BOOTSTRAP`, which all three spellings reference, and this check reads THOSE.
+# ⚠️ WHAT REMAINS is narrower and named: the derivation understands a composed variable of the exact
+# shape `<binary> $(<flag-variable>)` and REFUSES anything else, so a recipe wrapped in `env …` or
+# built by `$(if …)` is a refusal rather than a silent mis-read. Resolving those would need a general
+# resolver for make's expansion — the duplicate implementation rejected above.
 #
 # ⭐ HONEST BOUND, stated before the check is trusted rather than after: tier 1 proves *"nothing that
 # could have changed the artifacts has changed"*, NOT *"the artifacts are correct"*. It inherits
@@ -201,6 +225,23 @@ fi
 # it by tier 2 so the mirror cannot drift silently.
 PAIR=(return_annotation semantic_annotation)
 FAMILIES=(json regex systemverilog systemverilog_preprocessor vhdl rtl_const_expr rtl_frontend scratch)
+# ⭐⭐ THE SEED COHORT — `generated/ebnf.rs` (`ENGINE-UNIVERSAL-SERVICES.16`). It is the META-PARSER:
+# the artifact `--features ebnf_dual_run` compiles in as arm 2 of the frontend differential, and the
+# one every grammar is read through on that path. ⛔ IT WAS THE ONE ARTIFACT NOTHING COULD SEE ROT,
+# and that is measured, not suspected: `rust/Makefile`'s bootstrap generates it under
+# `if [ ! -f … ]` and then NEVER regenerates it, so its only staleness check was the `else` branch's
+# *"does it still compile"* — which this doctrine's own header names as the weakest of the four
+# candidates it rejected. `.16` measured the local copy dated 2026-07-30 while the grammar and the
+# code generator had both moved. ⇒ a stale arm 2 makes `ebnf_dual_run_diff` compare today's
+# hand-written frontend against a fortnight-old meta-parser: green locally, a different comparison on
+# a cold runner.
+# ⚠️ IT IS NOT IN `GENERATED_PARSER_FAMILIES` AND MUST NOT BE. Its recipe takes the BOOTSTRAP FLAGS
+# with the ORDINARY binary (the annotation pair does not exist when it is seeded), and the frontend
+# binary that produces every other family's `.json` is itself compiled FROM it — so it is a cohort of
+# its own here rather than an eighth family there. Joining the roster would need a `focus_ebnf` target
+# inside that cycle; joining THIS gate needs neither, and re-derive-and-diff is strictly stronger than
+# the mtime comparison `.16` asked for (see the ⛔ note in run_tier2).
+SEED=(ebnf)
 
 fail=0
 # ⛔⛔ SKIPPED COHORTS MUST REACH THE HEADLINE (`ENGINE-UNIVERSAL-SERVICES.32`). A NOT-EVALUATED
@@ -215,6 +256,23 @@ die()   { note "$1"; exit 2; }
 breach(){ note "$1"; fail=1; }
 
 sha_file() { shasum -a 256 "$1" 2>/dev/null | cut -d' ' -f1; }
+
+# ⛔ THE SEED ARTIFACT DOES NOT FOLLOW THE `<family>_parser.rs` NAMING, and hard-coding that pattern
+# everywhere is how it stayed outside this gate. One helper, so a caller cannot get it wrong.
+artifact_rel() {
+  case "$1" in
+    ebnf) printf '%s\n' "$GENERATED/ebnf.rs" ;;
+    *)    printf '%s\n' "$GENERATED/$1_parser.rs" ;;
+  esac
+}
+# The `-o` spelling `rust/Makefile` passes, relative to `rust/` — mimicked exactly (see the mimic-tree
+# note on rederive_and_compare).
+artifact_out() {
+  case "$1" in
+    ebnf) printf '../generated/ebnf.rs\n' ;;
+    *)    printf '../generated/%s_parser.rs\n' "$1" ;;
+  esac
+}
 
 # emission_sha — the digest tier 1 keys on. DERIVED from git, so it cannot rot into a hand-list.
 emission_sha() {
@@ -231,7 +289,7 @@ generated_present() { [ -d "$GENERATED" ] && ls "$GENERATED"/*_parser.rs >/dev/n
 
 # ── the generator recipe, DERIVED from the Makefile (`ENGINE-UNIVERSAL-SERVICES.33`) ──────────────
 #
-# derive_generator_recipe <make-variable> <expected leading binary reference>
+# derive_generator_recipe <flag-variable> <composed-variable> <expected leading binary reference>
 #   Prints the generator FLAGS space-separated on ONE line. Refuses with exit 2 rather than falling
 #   back to a default, because a default IS the mirror this replaces: a fallback that happens to be
 #   right today is indistinguishable from a fallback that is silently wrong tomorrow, and the wrong
@@ -241,13 +299,21 @@ generated_present() { [ -d "$GENERATED" ] && ls "$GENERATED"/*_parser.rs >/dev/n
 #   printed and then IGNORED — and `mapfile` is bash 4+, which the git hook's shell need not be. A
 #   space-separated line is lossless here because a token containing whitespace cannot survive the
 #   `read -ra` split above it.
-GEN_FLAGS=()            # RUST_GENERATOR's flags          — the eight families
-GEN_FLAGS_BOOTSTRAP=()  # RUST_GENERATOR_BOOTSTRAP's flags — the annotation pair
+#
+#   ⭐⭐ IT READS THE FLAG LIST, THEN PROVES THE VARIABLE THE CALL SITES USE IS BUILT FROM IT
+#   (`ENGINE-UNIVERSAL-SERVICES.16`). `rust/Makefile` now separates `GENERATOR_FLAGS` from
+#   `RUST_GENERATOR = $(RUST_AST_PIPELINE) $(GENERATOR_FLAGS)`, because the `generated/ebnf.rs` seed
+#   needs the BOOTSTRAP FLAGS with the ORDINARY binary and so could not share either composed
+#   variable — that third inline copy is what `.33`'s census found and what `.16` needed removed.
+#   Reading the flag list alone would be weaker than the mirror it replaced: a `RUST_GENERATOR` that
+#   stopped referencing `$(GENERATOR_FLAGS)` would leave this check re-deriving with flags nothing
+#   passes. So the composed line is asserted to be EXACTLY `<binary> $(<flag-variable>)`.
+GEN_FLAGS=()            # GENERATOR_FLAGS           — the eight families
+GEN_FLAGS_BOOTSTRAP=()  # GENERATOR_FLAGS_BOOTSTRAP — the annotation pair AND the ebnf seed
 
-derive_generator_recipe() {
-  local var="$1" want_bin="$2" defs line tok
-  local -a words
-
+# read_make_variable <name> — the single `^<name> = ` definition, or a refusal.
+read_make_variable() {
+  local var="$1" defs
   [ -f "$MAKEFILE" ] || die "$MAKEFILE is absent, so the generator recipe cannot be derived. This gate re-derives every artifact through the Makefile's recipe; it will not guess one."
   # ⛔ EXACTLY ONE definition. Two would mean the LAST one wins in make while `sed` prints both, so
   # picking either is a coin toss dressed as a derivation.
@@ -257,21 +323,32 @@ derive_generator_recipe() {
     0) die "$MAKEFILE has no '^${var} = ' definition, so the generator recipe cannot be derived. If the variable was renamed, teach this check the new name — do NOT let it fall back to a hard-coded flag list." ;;
     *) die "$MAKEFILE defines ${var} $defs times. make takes the last; a derivation that picked one would be guessing. Collapse them to one definition." ;;
   esac
+  sed -n "s/^${var} = //p" "$MAKEFILE"
+}
 
-  line=$(sed -n "s/^${var} = //p" "$MAKEFILE")
+derive_generator_recipe() {
+  local flag_var="$1" composed_var="$2" want_bin="$3" line composed tok
+  local -a words
+
+  line=$(read_make_variable "$flag_var") || exit 2
   read -ra words <<< "$line"   # word-split on IFS, and NOT glob-expanded (unlike `set -- $line`)
-  [ "${#words[@]}" -ge 1 ] || die "$MAKEFILE's ${var} is defined but empty"
-  [ "${words[0]}" = "$want_bin" ] || die "$MAKEFILE's ${var} starts with '${words[0]}', not '${want_bin}'. The recipe no longer has the shape this derivation understands (a wrapper, an env prefix or a different binary), so the flags after it may not be the generator's. Teach the derivation the new shape."
-  [ "${#words[@]}" -ge 2 ] || die "$MAKEFILE's ${var} carries no flags at all after '${want_bin}' — a generator invocation with no --generate-parser cannot produce a parser, so this is a malformed recipe rather than an empty one."
+  [ "${#words[@]}" -ge 1 ] || die "$MAKEFILE's ${flag_var} is defined but empty — a generator invocation with no --generate-parser cannot produce a parser, so this is a malformed recipe rather than an empty one."
 
-  for tok in "${words[@]:1}"; do
+  for tok in "${words[@]}"; do
     case "$tok" in
-      *'$('*|*'${'*) die "$MAKEFILE's ${var} carries the unresolved make expansion '$tok'. Resolving it here would be a SECOND implementation of make's expansion — the duplication ENGINE-UNIVERSAL-SERVICES.33 removed — so this refuses instead. Inline the value, or extend the derivation deliberately." ;;
+      *'$('*|*'${'*) die "$MAKEFILE's ${flag_var} carries the unresolved make expansion '$tok'. Resolving it here would be a SECOND implementation of make's expansion — the duplication ENGINE-UNIVERSAL-SERVICES.33 removed — so this refuses instead. Inline the value, or extend the derivation deliberately." ;;
       -*) ;;
-      *) die "$MAKEFILE's ${var} carries the non-flag token '$tok' after '${want_bin}'. A positional argument in the recipe variable means the shape changed (an input file moved into it?), and appending flags after it would build a different command line." ;;
+      *) die "$MAKEFILE's ${flag_var} carries the non-flag token '$tok'. A positional argument in the flag list means the shape changed (an input file moved into it?), and appending it to a command line would build a different invocation." ;;
     esac
   done
-  printf '%s\n' "${words[*]:1}"
+
+  # ⛔ AND THE COMPOSED VARIABLE MUST STILL BE BUILT FROM THAT LIST. Without this, a `RUST_GENERATOR`
+  # edited to spell its flags inline again would leave this check re-deriving with a list nothing
+  # passes — the mirror restored, silently, in the passing direction.
+  composed=$(read_make_variable "$composed_var") || exit 2
+  [ "$composed" = "$want_bin \$($flag_var)" ] || die "$MAKEFILE's ${composed_var} is '${composed}', not '${want_bin} \$(${flag_var})'. This check re-derives with ${flag_var}'s list, so the variable the recipes actually invoke must be exactly that binary plus that list — otherwise the two can diverge and this gate would compare against a command line \`make\` does not run."
+
+  printf '%s\n' "${words[*]}"
 }
 
 # ⭐ READING THE VARIABLE IS ONLY HALF THE RECIPE. A `$(RUST_GENERATOR) $(X_JSON) -o $(X_PARSER)`
@@ -322,19 +399,22 @@ $(printf '%s\n' "$offenders" | sed 's/^/        /')
 # string byte-identical to what `rust/Makefile` passes — and the site counts are ASSERTED, never
 # assumed, because this exact trap has inverted three published readings in this repository.
 rederive_and_compare() {
-  local fam="$1" kind="$2" tool="$3"   # kind = pair|family
-  local out="../generated/${fam}_parser.rs"
-  local live="$ROOT/$GENERATED/${fam}_parser.rs"
+  local fam="$1" kind="$2" tool="$3"   # kind = pair|family|seed
+  local rel; rel=$(artifact_rel "$fam")
+  local out; out=$(artifact_out "$fam")
+  local live="$ROOT/$rel"
   local json="$ROOT/$GENERATED/${fam}.json"
-  local fresh="$WORK/root/generated/${fam}_parser.rs"
+  local fresh="$WORK/root/${rel}"
 
-  [ -f "$live" ] || { breach "$GENERATED/${fam}_parser.rs is absent while other artifacts are present — regenerate with \`make -C rust SHELL=/bin/bash regenerate_generated_parsers\`"; return; }
+  [ -f "$live" ] || { breach "$rel is absent while other artifacts are present — regenerate with \`make -C rust SHELL=/bin/bash regenerate_generated_parsers\`"; return; }
   [ -f "$json" ] || { breach "$GENERATED/${fam}.json is absent, so ${fam} cannot be re-derived"; return; }
 
   # ⭐ THE FLAGS ARE THE MAKEFILE'S, READ FROM IT (`ENGINE-UNIVERSAL-SERVICES.33`) — never a copy
   # kept here in step with it. `run_tier2` derives them once and refuses before reaching this loop.
+  # ⛔ The SEED cohort takes the BOOTSTRAP flags with the ORDINARY binary, which is exactly why the
+  # Makefile had to grow a flag-only variable: no composed variable expresses that pair.
   local -a args=("${GEN_FLAGS[@]}")
-  [ "$kind" = pair ] && args=("${GEN_FLAGS_BOOTSTRAP[@]}")
+  case "$kind" in pair|seed) args=("${GEN_FLAGS_BOOTSTRAP[@]}") ;; esac
 
   ( cd "$WORK/root/rust" && "$tool" "$json" "${args[@]}" -o "$out" ) >"$WORK/${fam}.log" 2>&1 \
     || { breach "codegen FAILED for ${fam} — see $WORK/${fam}.log"; return; }
@@ -390,12 +470,12 @@ run_tier2() {
   # recipe is a breach whether or not `generated/` exists, and putting it first means every refusal
   # arm costs nothing — no bootstrap build, no codegen.
   local recipe
-  recipe=$(derive_generator_recipe RUST_GENERATOR '$(RUST_AST_PIPELINE)') || exit 2
+  recipe=$(derive_generator_recipe GENERATOR_FLAGS RUST_GENERATOR '$(RUST_AST_PIPELINE)') || exit 2
   read -ra GEN_FLAGS <<< "$recipe"
-  recipe=$(derive_generator_recipe RUST_GENERATOR_BOOTSTRAP '$(RUST_AST_PIPELINE_BOOTSTRAP)') || exit 2
+  recipe=$(derive_generator_recipe GENERATOR_FLAGS_BOOTSTRAP RUST_GENERATOR_BOOTSTRAP '$(RUST_AST_PIPELINE_BOOTSTRAP)') || exit 2
   read -ra GEN_FLAGS_BOOTSTRAP <<< "$recipe"
   assert_call_sites_add_no_flags
-  printf 'generated-reproducibility: recipe DERIVED from %s — families: %s | annotation pair: %s\n' \
+  printf 'generated-reproducibility: recipe DERIVED from %s — families: %s | pair + ebnf seed: %s\n' \
     "$MAKEFILE" "${GEN_FLAGS[*]}" "${GEN_FLAGS_BOOTSTRAP[*]}"
 
   generated_present || { skipped="${skipped} every artifact"; note "NOT EVALUATED — $GENERATED/ holds no generated parser. Regenerate with \`make -C rust SHELL=/bin/bash regenerate_generated_parsers\`, then re-run."; return 0; }
@@ -456,6 +536,18 @@ run_tier2() {
     *) skipped="${skipped} the 8 family artifacts"; note "NOT EVALUATED for the ${#FAMILIES[@]} family artifacts — $pipeline is UNDER-FEATURED ($surface). It cannot generate any parser at all, and a comparison loop that reads a missing file as 'no difference' would report a clean pass."; return 0 ;;
   esac
   for f in "${FAMILIES[@]}"; do rederive_and_compare "$f" family "$ROOT/$pipeline"; done
+
+  # ⭐⭐ THE SEED COHORT (`ENGINE-UNIVERSAL-SERVICES.16`) — same generator as the families, BOOTSTRAP
+  # flags, and it rides the currency proof above rather than a second one.
+  # ⛔ THIS IS WHAT `.16` ASKED FOR, AND IT IS DELIBERATELY NOT WHAT `.16` ASKED FOR. Its acceptance
+  # (b) wanted *"a gate that FAILS when the artifact is older than its inputs"* — an mtime comparison.
+  # This repository has since MEASURED mtime to be the wrong instrument for exactly this question:
+  # `/usr/bin/make` here is GNU Make 3.81, which compares mtimes at WHOLE SECONDS, so a prerequisite
+  # rewritten inside the same second is invisible and a rule is skipped at exit 0
+  # (`CI-PARITY-GATE-ROT.32`, 10 of 10 families exposed on the json→parser edge). A gate keyed on the
+  # same comparison inherits the same blind spot. Re-derive-and-diff answers the question mtime only
+  # approximates, in both directions, and it is what the other ten artifacts already get.
+  for f in "${SEED[@]}"; do rederive_and_compare "$f" seed "$ROOT/$pipeline"; done
 }
 
 write_baseline() {
@@ -468,8 +560,9 @@ write_baseline() {
     printf '  "emission_sha": "%s",\n' "$esha"
     printf '  "artifacts": {\n'
     local first=1 fam
-    for fam in "${PAIR[@]}" "${FAMILIES[@]}"; do
-      local p="$GENERATED/${fam}_parser.rs" j="$GENERATED/${fam}.json"
+    for fam in "${PAIR[@]}" "${FAMILIES[@]}" "${SEED[@]}"; do
+      local p; p=$(artifact_rel "$fam")
+      local j="$GENERATED/${fam}.json"
       [ -f "$p" ] && [ -f "$j" ] || continue
       [ "$first" = 1 ] || printf ',\n'; first=0
       printf '    "%s": { "parser_sha": "%s", "input_sha": "%s" }' "$fam" "$(sha_file "$p")" "$(sha_file "$j")"
@@ -531,7 +624,7 @@ tier1() {
   fi
 
   local checked=0 fam
-  for fam in "${PAIR[@]}" "${FAMILIES[@]}"; do
+  for fam in "${PAIR[@]}" "${FAMILIES[@]}" "${SEED[@]}"; do
     local rec_p rec_i
     rec_p=$(sed -n "s/.*\"$fam\": { \"parser_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
     rec_i=$(sed -n "s/.*\"$fam\":.*\"input_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
@@ -539,7 +632,8 @@ tier1() {
       breach "$fam has no recorded row in $BASELINE, so its reproducibility is UNPROVEN while its siblings' is. Re-record with \`make -C rust SHELL=/bin/bash generated_reproducibility_rebaseline\`."
       continue
     fi
-    local p="$GENERATED/${fam}_parser.rs" j="$GENERATED/${fam}.json"
+    local p; p=$(artifact_rel "$fam")
+    local j="$GENERATED/${fam}.json"
     [ -f "$p" ] && [ -f "$j" ] || { breach "$p or $j is absent while other artifacts are present — the tree is half-generated"; continue; }
     local live_p live_i; live_p=$(sha_file "$p"); live_i=$(sha_file "$j")
     if [ "$live_p" != "$rec_p" ] || [ "$live_i" != "$rec_i" ]; then
@@ -664,7 +758,12 @@ open(os.environ["MK_OUT"], "w", encoding="utf-8").write(s.replace(old, new, 1))
 PY
     printf '%s\n' "$out"
   }
-  RECIPE='RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion'
+  # ⛔ The perturbation targets are the FLAG-ONLY variable and the COMPOSED variable that must be
+  # built from it (`ENGINE-UNIVERSAL-SERVICES.16`). `mk` refuses when its target text is absent, so
+  # renaming either variable in `rust/Makefile` makes these arms report ✗ rather than pass quietly —
+  # which is how this block stayed honest when the Makefile was refactored under it.
+  RECIPE='GENERATOR_FLAGS = --generate-parser --eliminate-left-recursion'
+  COMPOSED='RUST_GENERATOR = $(RUST_AST_PIPELINE) $(GENERATOR_FLAGS)'
   CALLSITE='$(RUST_GENERATOR) $(JSON_JSON)'
   NARROW='--indirect-lr-admit-starvation-safe-only'
   arm_mk() { # arm_mk <name> <expected-rc> <old-literal> <new-literal>
@@ -673,12 +772,16 @@ PY
     arm "$name" "$want" env PGEN_GENREPRO_SELFTEST=1 PGEN_GENREPRO_SELFTEST_MAKEFILE="$path" bash "$0" --verify
   }
 
-  arm_mk "REFUSE(2): recipe variable is absent"        2 "$RECIPE" '# RUST_GENERATOR removed by the self-test'
-  arm_mk "REFUSE(2): recipe variable defined twice"    2 "$RECIPE" "$RECIPE"$'\n'"$RECIPE"
-  arm_mk "REFUSE(2): leading token is not the binary"  2 "$RECIPE" 'RUST_GENERATOR = env PGEN_X=1 $(RUST_AST_PIPELINE) --generate-parser'
+  arm_mk "REFUSE(2): flag variable is absent"          2 "$RECIPE" '# GENERATOR_FLAGS removed by the self-test'
+  arm_mk "REFUSE(2): flag variable defined twice"      2 "$RECIPE" "$RECIPE"$'\n'"$RECIPE"
   arm_mk "REFUSE(2): a flag holds a make expansion"    2 "$RECIPE" "$RECIPE"' --profile=$(SOME_PROFILE)'
-  arm_mk "REFUSE(2): a non-flag token in the recipe"   2 "$RECIPE" "$RECIPE"' extra_positional.json'
-  arm_mk "REFUSE(2): recipe carries no flags at all"   2 "$RECIPE" 'RUST_GENERATOR = $(RUST_AST_PIPELINE)'
+  arm_mk "REFUSE(2): a non-flag token in the flags"    2 "$RECIPE" "$RECIPE"' extra_positional.json'
+  arm_mk "REFUSE(2): the flag list is EMPTY"           2 "$RECIPE" 'GENERATOR_FLAGS ='
+  # ⭐ THE COMPOSITION ARM — reading the flag list alone would be WEAKER than the mirror it replaced:
+  # a `RUST_GENERATOR` that stopped referencing `$(GENERATOR_FLAGS)` would leave this gate re-deriving
+  # with flags nothing passes, silently and in the passing direction.
+  arm_mk "REFUSE(2): composed var not built from flags" 2 "$COMPOSED" 'RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion'
+  arm_mk "REFUSE(2): composed var names another binary" 2 "$COMPOSED" 'RUST_GENERATOR = env PGEN_X=1 $(RUST_AST_PIPELINE) $(GENERATOR_FLAGS)'
   arm_mk "REFUSE(2): a CALL SITE adds a flag"          2 "$CALLSITE" '$(RUST_GENERATOR) '"$NARROW"' $(JSON_JSON)'
 
   # ⭐⭐ THE LOAD-BEARING ARM: the derived flags REACH the generator, so a recipe change cannot be
@@ -705,10 +808,21 @@ PY
   # TEXT rather than on an exit code, because a derivation that silently returned the wrong flags
   # would still exit 0.
   arms=$((arms + 1))
-  if grep -q 'recipe DERIVED from rust/Makefile — families: --generate-parser --eliminate-left-recursion | annotation pair: --generate-parser --bootstrap-mode --eliminate-left-recursion' "$T/currency_ok"; then
+  if grep -q 'recipe DERIVED from rust/Makefile — families: --generate-parser --eliminate-left-recursion | pair + ebnf seed: --generate-parser --bootstrap-mode --eliminate-left-recursion' "$T/currency_ok"; then
     printf '  ✓ %-46s exact\n' "GREEN: derived recipe == the shipped recipe"
   else
     printf '  ✗ %-46s the derived recipe is not the shipped one\n' "GREEN: derived recipe == the shipped recipe" >&2; bad=$((bad + 1))
+  fi
+
+  # ⭐ GREEN: the SEED cohort is actually REACHED (`ENGINE-UNIVERSAL-SERVICES.16`). Without this arm
+  # the cohort could be silently skipped and every other arm would still be green — which is the
+  # failure `.32` found in this same suite (a run that checked 2 of 10 announcing itself as full).
+  arms=$((arms + 1))
+  if grep -qE '✓ ebnf +re-derives byte-identically' "$T/currency_ok"; then
+    printf '  ✓ %-46s reached\n' "GREEN: the ebnf SEED artifact is checked"
+  else
+    printf '  ✗ %-46s the seed-only artifact was not re-derived — .16 is not closed\n' \
+      "GREEN: the ebnf SEED artifact is checked" >&2; bad=$((bad + 1))
   fi
 
   cp "$T/baseline.orig" "$BASELINE"; rm -rf "$T"
