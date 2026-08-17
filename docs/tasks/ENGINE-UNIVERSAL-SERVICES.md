@@ -9904,7 +9904,7 @@ support a conclusion.
   source touched, so no clippy surface.
 
 
-#### ⚠️ `.23` NEW `todo` — the direct-LR normalizer's "all alternatives are left-recursive → leave it alone" guard MISSES the mixed case, so well-formedness reports the error against an ENGINE-INVENTED rule name the author never wrote (opened 2026-08-15 session #236 by `.21` slice 2)
+#### ✅ `.23` — the direct-LR normalizer's "all alternatives are left-recursive → leave it alone" guard MISSED the mixed case, so well-formedness reported the error against an ENGINE-INVENTED rule name the author never wrote (`done` — **(a)+(b)+(c) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0076`, 2026-08-17 session #244; opened 2026-08-15 session #236 by `.21` slice 2. ⚠️ The leaf's quoted symptom was PARTIAL — the diagnostic named **four** rules, three of them the author's — so acceptance (b) was already true as written and is RESTATED; ⭐⭐⭐ fixing only the normalizer MOVED the invented name (`expr_lr_alt1` → `expr_lr_base`) because the SAME mis-classification lived in the planner, so the fix is ONE predicate with two consumers; ✅ **10/10 artifacts byte-identical** — zero shipped bytes moved)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED, and whether it reproduces
 outside the family it is filed under):
@@ -9936,14 +9936,100 @@ outside the family it is filed under):
   downstream mis-prices. It is filed rather than fixed because of that, and because of the SV lane
   lock.
 
-**Acceptance:** (a) decide whether `seed_alternatives` should count a bare reference to a rule whose
-body begins with the base rule as a seed at all — ⛔ derived by reading what `extract_wrapper_suffix`
-will later accept, not by pattern-matching this one synthetic, or the next shape is missed the same
-way; (b) if it should not, the guard at mod.rs:3237 fires and the error lands on the author's own
-rule — verify against the preserved synthetic that the diagnostic names `expr`, not `expr_lr_alt1`;
-(c) confirm the fix cannot change any shipped family's emitted rule set (the 10-family declared-name
-census `python3 stimuli/sv/corpus_parse_cost.py --verify-families` is the before/after oracle, and
-`generated/*` byte-identity is the stronger one).
+**Acceptance:** ✅ **(a) DISCHARGED by slice 1** — decide whether `seed_alternatives` should count a
+bare reference to a rule whose body begins with the base rule as a seed at all — ⛔ derived by reading
+what `extract_wrapper_suffix` will later accept, not by pattern-matching this one synthetic, or the
+next shape is missed the same way; ⚠️ **(b) RESTATED then DISCHARGED by slice 1** — its written
+success criterion (*"the diagnostic names `expr`, not `expr_lr_alt1`"*) was **already true before the
+fix**, because the diagnostic named FOUR rules and `expr` was one of them; see slice 1; ✅ **(c)
+DISCHARGED by slice 1** — confirm the fix cannot change any shipped family's emitted rule set (the
+10-family declared-name census `python3 stimuli/sv/corpus_parse_cost.py --verify-families` is the
+before/after oracle, and `generated/*` byte-identity is the stronger one).
+
+##### ✅ `.23` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0076`, 2026-08-17 session #244) — leaf CLOSED: ONE notion of "left-recursive alternative", two consumers — and fixing only the first consumer MOVED the invented name instead of removing it
+
+⚠️⚠️ **THE LEAF'S OWN SYMPTOM DESCRIPTION WAS PARTIAL, AND ACCEPTANCE (b) WAS THEREFORE UNEARNABLE AS
+WRITTEN.** It quoted one diagnostic line and framed the defect as *"the error lands on a synthetic
+name **instead of** the author's rule"*. Re-run at `9f856ac6`, the generator prints **four**:
+
+```text
+grammar well-formedness ERROR: rule 'scratch'      has no finite terminal derivation …
+grammar well-formedness ERROR: rule 'expr_lr_alt1' has no finite terminal derivation …
+grammar well-formedness ERROR: rule 'expr'         has no finite terminal derivation …
+grammar well-formedness ERROR: rule 'mulwrap'      has no finite terminal derivation …
+Error: grammar 'lr_alt_survives_unconsumed' is ill-formed: 4 non-terminating rule(s)
+```
+
+⇒ (b) asked to *"verify the diagnostic names `expr`, not `expr_lr_alt1`"*, and it named **both** all
+along. The real defect is **an extra, un-actionable name in the list**, not a displaced one — so (b)
+is restated as *"every name the diagnostic prints must be a rule the author wrote"*, which is
+checkable and was **false** before and **true** after. ⛔ A quoted single line is a filtered
+measurement; the leaf that wrote it had the whole list on screen.
+
+**(a) THE CRITERION, DERIVED FROM THE PLANNER AS THE LEAF DEMANDED.** `detect_left_recursive_chain_plan`
+treats an alternative as a *wrapper* — i.e. left-recursive — iff `extract_rule_reference_name` succeeds
+**and** `extract_wrapper_suffix` then succeeds (the referenced rule's body is a `Sequence` starting
+with the base rule, or an `Or` all of whose alternatives are). The normalizer's `seed_alternatives`
+recognised only the **inline** shape. ⇒ the two sites held **different notions of "left-recursive"**,
+and a rule mixing the two shapes satisfied neither guard. Answer to (a): **no**, such an alternative
+must not count as a seed.
+
+⭐⭐⭐ **AND FIXING ONLY THAT MOVED THE INVENTED NAME RATHER THAN REMOVING IT — MEASURED, NOT
+FORESEEN.** With the seed count corrected and nothing else, the same synthetic reported:
+
+| | the diagnostic's rule list | non-terminating count |
+|---|---|---:|
+| before | `scratch`, **`expr_lr_alt1`**, `expr`, `mulwrap` | 4 |
+| normalizer half only | `scratch`, **`expr_lr_base`**, `expr`, `mulwrap` | 4 |
+| **both halves** | `scratch`, `expr`, `mulwrap` | **3** |
+
+Because suppressing the hoist leaves the inline direct alternative for the planner, which classifies
+it as a **base** alternative — it is not one, it is left-recursive — builds a plan, and moves it into
+`expr_lr_base`. ⇒ **the same mis-classification lived at both sites**, which is why the fix is ONE
+predicate, `alternative_is_left_recursive`, with two consumers: the normalizer's seed count and a new
+refusal in the planner when every `base_alternatives` entry is itself left-recursive. A second
+notion of "left-recursive" is what the leaf was about; adding a third to fix it was not an option.
+
+⚠️ **HONEST BOUND — the planner half has no arm of its own, and that is a closed property rather than
+an omission.** An alternative reaches `base_alternatives` only if it is *not* (bare reference +
+wrapper suffix), and it is left-recursive only if it is inline-direct *or* (bare reference + wrapper
+suffix) ⇒ a left-recursive `base_alternatives` entry must be **inline-direct**, and an inline-direct
+alternative survives to the planner only where the normalizer declined to hoist it. So the refusal is
+reachable **exactly** when the normalizer's guard fires, ARM 1 exercises both halves, and the evidence
+that the planner half is load-bearing is the middle row of the table above — a state I actually
+built and measured, not an argument.
+
+⚠️ **The predicate is deliberately ONE hop**, matching `extract_wrapper_suffix` and therefore the
+elimination the planner can actually perform. A longer cycle stays the indirect eliminator's subject
+and `--lint-grammar`'s `left_recursion_unhandled`; claiming it here would make the predicate disagree
+with the transformation it guards. ARM 6 is the control that keeps it narrow: a bare reference to a
+**non-wrapper** rule (`atom := "n"`) is a genuine seed and must still be counted as one.
+
+**(c) NO SHIPPED FAMILY MOVED, ON THE STRONGEST AVAILABLE ORACLE.** The leaf named `--verify-families`
+as the before/after and byte-identity as *"the stronger one"* — and byte-identity is now a **gate**
+(`GENERATED-REPRODUCIBILITY` tier 2, hardened one slice earlier in this same session), so (c) is a
+re-derive-and-diff over all ten artifacts rather than a rule-name comparison: **10/10 byte-identical**,
+every row `0 sites`. ⭐ Plus `generated/ebnf.rs` **by hand** (`6a37b20a17a3…`, identical), because that
+artifact is outside the gate's roster — the scope gap `.33` slice 1 wrote down, paying off immediately.
+`--verify-families` is unchanged at **137 declared LR names / 137 classified**, SV **127**.
+⛔ Why a no-op was expected and still had to be measured: the new refusals fire only when a rule has
+**no genuine seed**, and such a rule is non-terminating, so no grammar that generates at all can
+contain one. That is an argument; the gate is the evidence.
+
+**Control bank:** `docs/tasks/artifacts/engine_universal_services/es23_lr_alt_guard/probe.sh`
+(+ `probe.txt`), **14/14 arms** — the defect's shape, the guard's original all-direct case, the
+anti-over-eagerness arm (the same mixed shape *with* a seed must still be eliminated **and parse**,
+without which "suppress everything" would pass), plain inline-direct, plain one-hop wrapper, the
+narrowness control, and the delegated shipped-artifact identity.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/debug/ast_pipeline docs/tasks/artifacts/engine_universal_services/lr_alt_survives_unconsumed.ebnf --generate-parser --eliminate-left-recursion -o …` printed `grammar well-formedness ERROR: rule 'expr_lr_alt1' has no finite terminal derivation` among **4** non-terminating rules, one of which (`expr_lr_alt1`) does not appear anywhere in the author's grammar. Feature surface confirmed first with `scripts/require_ast_pipeline_features.sh` (`AST-PIPELINE-FEATURE-GUARD: ok`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — two sites, one disagreement. `rust/src/ast_pipeline/mod.rs` `normalize_direct_left_recursive_alternatives` counted an alternative as a seed unless it was an inline `Sequence` prefixed with the base rule, while `detect_left_recursive_chain_plan` counts a bare reference to a rule `extract_wrapper_suffix` accepts as a wrapper. Derived by reading those two functions (`extract_wrapper_suffix`, `sequence_suffix_if_prefixed_with_rule`, `extract_rule_reference_name`) rather than from the synthetic, per (a). The intermediate build — normalizer fixed, planner not — is the locating measurement: the invented name changed from `expr_lr_alt1` to `expr_lr_base`, proving the mis-classification was at both sites.
+- [x] **FIX** — engine tier, one new predicate `alternative_is_left_recursive` (inline-direct OR one-hop wrapper, reusing the planner's own two calls) consumed by both sites: the normalizer's seed count, and a new `detect_left_recursive_chain_plan` refusal when every `base_alternatives` entry is left-recursive. No grammar bytes, no new CLI surface, no annotation surface.
+- [x] **ADDRESSED (verified)** — the diagnostic's rule list before→after: `scratch, expr_lr_alt1, expr, mulwrap` (**4**, one engine-invented) → `scratch, expr, mulwrap` (**3**, every one written by the author, asserted mechanically in ARM 1). The grammar is still correctly REFUSED — the verdict was never wrong, only the locus.
+- [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash generated_reproducibility_gate` **10/10 byte-identical** (the (c) oracle) plus `generated/ebnf.rs` re-derived identical by hand; `python3 stimuli/sv/corpus_parse_cost.py --verify-families` unchanged at **137/137**, SV **127**; `make -C rust SHELL=/bin/bash parse_harness_combinator_gate` **35/35 CLEAN in 487 s**, including all six LR cases (`left_recursion`, `left_recursion_folded_ast`, `direct_left_recursion`, `direct_left_recursion_multi_alt`, `direct_left_recursion_folded_ast`, `indirect_left_recursion_folded_ast`), which drive the REAL codegen through `compile_and_parse` and assert byte-identical verdict + AST; the `es23` bank **14/14**; `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` clean; `bash scripts/check_doctrines.sh` **21/21 PASS**.
+- [x] **LOCKSTEP** — `rust/src/ast_pipeline/mod.rs`, the `es23_lr_alt_guard` bank, this leaf, `rust/test_data/grammar_quality/generated_reproducibility_v0.json` (rebaselined: `emission_sha` moved because a code-generator file changed; every artifact hash is **unchanged**, which is what makes it bookkeeping), `docs/book/src/developer-architecture.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
 #### ✅ `.19` CLOSED — the pre-slice-9 ADMISSION reproduces the pre-slice-9 BEHAVIOUR but not the pre-slice-9 BYTES: 99 747 bytes of SystemVerilog codegen are unaccounted for (opened 2026-08-14 session #232 by `.17` slice 9; ⭐⭐ **slice 1 `PGEN-ENGINE-UNIVERSAL-SERVICES-0059` 2026-08-16 session #241 — acceptance (a) DISCHARGED and the founding 99 747 B is REFUTED: it is 33 249 embedded `-o` path sites × 3 chars, proven by byte-identity after normalisation, leaving a 2 578 B residual; ✅ **slice 2 `PGEN-ENGINE-UNIVERSAL-SERVICES-0060` — acceptance (b) DISCHARGED: the input did NOT move (`raw_ast` byte-identical to a fresh re-derivation) and the flip did NOT move codegen — the entire residual is `.22`(e)'s fixed emitted block, a CONSTANT +2 578 B across eight families, committed two days AFTER this leaf was opened ⇒ at the moment `.19` was written the residual was ZERO. ✅ **(c) CLOSED by `.29` slice 2** (`-0062`) — the 21st doctrine `GENERATED-REPRODUCIBILITY`, a BROADER instrument than this leaf specified: (c) asked for a freshness check on ONE input to ONE artifact, and the defect that actually occurred was in an artifact's OUTPUT in a different family, so the doctrine covers all 10 artifacts and both directions. (d) honoured throughout. ⇒ **LEAF CLOSED**)
 

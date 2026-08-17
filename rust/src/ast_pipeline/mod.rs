@@ -3234,6 +3234,9 @@ impl RustASTPipeline {
             if alternatives.len() < 2 {
                 continue;
             }
+            // Own the alternatives before consulting `grammar_tree` again below: the seed count
+            // has to ask the PLANNER's question, which reads other rules' bodies.
+            let alternatives = alternatives.clone();
 
             let mut direct_indices: Vec<usize> = Vec::new();
             let mut seed_alternatives = 0usize;
@@ -3246,13 +3249,28 @@ impl RustASTPipeline {
                 };
                 if is_direct {
                     direct_indices.push(index);
-                } else {
+                    continue;
+                }
+                // ⛔⛔ AN ALTERNATIVE THE PLANNER WILL TREAT AS A WRAPPER IS LEFT-RECURSIVE TOO, AND
+                // COUNTING IT AS A SEED IS WHAT BROKE THE GUARD BELOW (`ENGINE-UNIVERSAL-SERVICES.23`).
+                // A bare reference to a rule whose body starts with `rule_name` recurses through one
+                // hop; it derives nothing on its own.
+                if !Self::alternative_is_left_recursive(&rule_name, alternative, grammar_tree) {
                     seed_alternatives += 1;
                 }
             }
             // ⛔ A rule whose alternatives are ALL left-recursive derives nothing, and hoisting its
             // alternatives would only move the non-termination behind a helper rule. That belongs
             // to the linter's `non_terminating` error, so leave it visible where it is.
+            //
+            // ⭐ THE MIXED CASE USED TO ESCAPE THIS GUARD, and the cost was a diagnostic naming a
+            // rule the author cannot edit. For `expr := expr "+" term | mulwrap` with
+            // `mulwrap := expr "*" term`, the bare `mulwrap` reference counted as a seed, so the
+            // guard did not fire and `expr_lr_alt1` was hoisted. The planner then classified BOTH
+            // alternatives as wrappers, left `base_alternatives` empty, returned `None`, and never
+            // consumed the hoist — so the well-formedness error listed the synthetic name alongside
+            // the author's own non-terminating rules. The hoist was dead work whose only observable
+            // effect was that noise.
             if direct_indices.is_empty() || seed_alternatives == 0 {
                 continue;
             }
@@ -3352,6 +3370,20 @@ impl RustASTPipeline {
         }
 
         if wrapper_rules.is_empty() || base_alternatives.is_empty() {
+            return None;
+        }
+        // ⛔⛔ A "BASE" ALTERNATIVE THAT IS ITSELF LEFT-RECURSIVE IS NOT A SEED, AND BUILDING A PLAN
+        // ON ONE INVENTS A RULE NAME THE AUTHOR CANNOT EDIT (`ENGINE-UNIVERSAL-SERVICES.23`).
+        // Normally the normalizer has already hoisted every inline direct alternative into a wrapper
+        // before this runs, so nothing here can be left-recursive — except in the one case where its
+        // guard deliberately declined to hoist: a rule with NO genuine seed. Then the inline
+        // alternative lands in `base_alternatives`, the plan moves it into `<rule>_lr_base`, and the
+        // well-formedness error that must follow names that synthetic rule instead of the author's.
+        // ⇒ refuse, and let the non-termination be reported where the author wrote it.
+        if base_alternatives
+            .iter()
+            .all(|(_, alternative)| Self::alternative_is_left_recursive(rule_name, alternative, grammar_tree))
+        {
             return None;
         }
 
@@ -3776,6 +3808,36 @@ impl RustASTPipeline {
             }
             _ => None,
         }
+    }
+
+    /// Is `alternative` of `rule_name` **left-recursive** — either written inline in the choice, or
+    /// reached through one hop by a bare reference to a wrapper rule that begins with `rule_name`?
+    ///
+    /// ⛔ ONE NOTION, TWO CONSUMERS, AND THAT IS THE WHOLE POINT (`ENGINE-UNIVERSAL-SERVICES.23`).
+    /// `normalize_direct_left_recursive_alternatives` needs it to decide whether a rule has any
+    /// genuine SEED left; `detect_left_recursive_chain_plan` needs it to refuse a rule whose "base"
+    /// alternatives are all left-recursive. Both used to answer the question themselves, with
+    /// *different* answers: the normalizer recognised only the inline shape, the planner only the
+    /// one-hop shape, and a rule mixing the two satisfied neither guard. A single predicate is what
+    /// makes the two sites agree by construction rather than by review.
+    ///
+    /// ⚠️ Deliberately ONE hop, because that is exactly what `extract_wrapper_suffix` — and therefore
+    /// the elimination the planner can actually perform — recognises. A longer cycle is the *indirect*
+    /// eliminator's subject and is reported by `--lint-grammar`'s `left_recursion_unhandled`; claiming
+    /// it here would make this predicate disagree with the transformation it is guarding.
+    fn alternative_is_left_recursive(
+        rule_name: &str,
+        alternative: &ASTNode,
+        grammar_tree: &HashMap<String, ASTNode>,
+    ) -> bool {
+        if let ASTNode::Sequence { elements } = alternative {
+            if Self::sequence_suffix_if_prefixed_with_rule(elements, rule_name).is_some() {
+                return true;
+            }
+        }
+        Self::extract_rule_reference_name(alternative)
+            .and_then(|wrapper| Self::extract_wrapper_suffix(rule_name, &wrapper, grammar_tree))
+            .is_some()
     }
 
     fn sequence_suffix_if_prefixed_with_rule(

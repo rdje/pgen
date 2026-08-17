@@ -53,6 +53,15 @@ pipeline's `eliminate_left_recursive_patterns` pass** (on by default; toggle
    left-recursive alternatives hoisted into synthetic rules so the wrapper planner can see them
    (`normalize_direct_left_recursive_alternatives`, `GRAMMAR-WELLFORMED.A2.5`). Before that, such an
    alternative reached codegen intact and was *dead code* the runtime guard rejected.
+   ⭐ Both this stage and stage 2 ask **one** question — *is this alternative left-recursive, inline
+   or through a single wrapper hop?* (`alternative_is_left_recursive`) — and they used to answer it
+   differently: stage 1 saw only the inline shape, stage 2 only the one-hop shape. A rule mixing the
+   two, `expr := expr "+" term | mulwrap` with `mulwrap := expr "*" term`, therefore escaped **both**
+   guards: it derives nothing, so it must be reported as non-terminating where the author wrote it,
+   and instead the pipeline hoisted a synthetic rule and reported the error against *that* name
+   (`ENGINE-UNIVERSAL-SERVICES.23`). Sharing the predicate is what makes the two stages agree by
+   construction. The predicate is deliberately **one hop**, matching what stage 2 can actually
+   eliminate — a longer cycle is stage 3's subject and `--lint-grammar`'s `left_recursion_unhandled`.
 2. **Wrapper chains are eliminated** — `X := seed | W`, `W := X suffix` becomes
    `X := X_lr_base ( X_lr_suffix )*` (`detect_left_recursive_chain_plan`).
 3. **Indirect routes are eliminated** — `X := … A …`, `A := … B …`, `B := … X …`, where the cycle

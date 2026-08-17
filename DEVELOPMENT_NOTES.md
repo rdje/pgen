@@ -1,5 +1,34 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0076 — I fixed one of two sites that disagreed, and the bug moved instead of leaving
+
+**1. ⛔⛔ WHEN TWO SITES HOLD THE SAME NOTION DIFFERENTLY, FIXING ONE RELOCATES THE DEFECT.** The
+normalizer thought "left-recursive" meant *inline*; the planner thought it meant *one-hop wrapper*. I
+corrected the normalizer, re-ran the synthetic, and the invented rule name in the diagnostic changed
+from `expr_lr_alt1` to `expr_lr_base` — same defect, new author. ⇒ **before fixing a
+mis-classification, find every site that classifies, and ask whether they agree.** The remedy is not
+two correct copies but ONE predicate with two consumers (`alternative_is_left_recursive`), because two
+copies that must agree is the state I was repairing. ⭐ The thing that caught it was re-running the
+reproducer after the *first* half rather than after the *whole* fix — a partial-fix measurement is
+cheap and it is the only thing that can show a defect relocating.
+
+**2. ⚠️ A QUOTED SINGLE LINE IS A FILTERED MEASUREMENT, AND IT MADE AN ACCEPTANCE CRITERION
+UNEARNABLE.** The leaf quoted one `well-formedness ERROR:` line and wrote acceptance (b) as *"verify
+the diagnostic names `expr`, not `expr_lr_alt1`"*. The generator prints four lines and `expr` was
+already among them, so (b) was satisfied before any work. The real defect was an **extra** name, not a
+**displaced** one. ⇒ **when you record a symptom, record the whole output the tool printed, not the
+line that matches your hypothesis** — the filtered version is what a later reader turns into a test,
+and a test derived from a filtered symptom can pass without the defect being gone.
+
+**3. ⭐ THE ANTI-OVER-EAGERNESS ARM IS THE ONE THAT EARNS THE FIX.** ARMs proving the bad case is gone
+would all pass if I had simply disabled the normalizer. What makes the change credible is ARM 3 — the
+*same* mixed shape with a genuine seed must still be normalized, still be eliminated, and still
+**parse** `n+n*n` — plus ARM 6, a bare reference to a NON-wrapper rule that must still count as a
+seed. ⇒ **for a fix that makes a guard fire more often, the load-bearing control is the case that must
+still NOT trigger it.** promotion: declined (this is the general "test the negative side of a
+predicate" discipline already carried by `a-negative-control-can-disable-the-assertion-it-is-testing`
+and `prove-each-refusal-path-with-an-input-only-it-can-trigger`; a third card would be a near-duplicate).
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0075 — the cheap tier fired, I did what it told me to do, and that is how the wrong answer became the baseline
 
 **1. ⛔⛔ A CHEAP TIER THAT PRESCRIBES A REMEDY INHERITS THE REMEDY'S BLIND SPOT.** I have written the

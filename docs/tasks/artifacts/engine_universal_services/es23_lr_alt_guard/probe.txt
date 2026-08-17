@@ -1,0 +1,29 @@
+ENGINE-UNIVERSAL-SERVICES.23 — direct-LR normalizer / planner control bank
+commit: 0be094a9
+
+  ✓ ARM 1  mixed/no-seed names ONLY author rules             [expr,mulwrap,scratch]
+  ✓ ARM 1b the grammar is still REFUSED, as 3 rules          
+  ✓ ARM 2  all-direct/no-seed names ONLY author rules        [expr,scratch]
+  ✓ ARM 3  mixed/seeded is STILL eliminated                  [RULE_EXPR_LR_BASE,RULE_EXPR_LR_SUFFIX]
+  ✓ ARM 3b lint: unhandled=0, eliminated=1                   
+  ✓ ARM 3c mixed/seeded accepts 'n+n*n'                      
+  ✓ ARM 3c mixed/seeded accepts 'n'                          
+  ✓ ARM 4  plain inline direct LR still eliminated           [RULE_EXPR_LR_BASE,RULE_EXPR_LR_SUFFIX]
+  ✓ ARM 4b plain inline direct LR accepts 'n+n'              
+  ✓ ARM 5  plain one-hop wrapper still eliminated            [RULE_EXPR_LR_BASE,RULE_EXPR_LR_SUFFIX]
+  ✓ ARM 5b plain one-hop wrapper accepts 'n*n'               
+  ✓ ARM 6  a bare ref to a NON-wrapper is still a seed       [RULE_EXPR_LR_BASE,RULE_EXPR_LR_SUFFIX]
+  ✓ ARM 6b that grammar accepts 'n+n'                        
+  ✓ ARM 7  shipped-artifact identity is delegated            run: make -C rust SHELL=/bin/bash generated_reproducibility_gate (measured 10/10 byte-identical, + generated/ebnf.rs by hand)
+
+14/14 arms behaved as designed
+
+⚠️ HONEST BOUND — the planner half has no arm of its OWN, and that is a property, not an omission.
+   `detect_left_recursive_chain_plan`'s new refusal is reachable EXACTLY when the normalizer's guard
+   fired, and the argument is closed rather than statistical: an alternative lands in
+   `base_alternatives` only if it is not (bare reference + wrapper suffix), and it is left-recursive
+   only if it is inline-direct OR (bare reference + wrapper suffix) — so a left-recursive
+   `base_alternatives` entry must be INLINE-DIRECT, and an inline-direct alternative survives to the
+   planner only when the normalizer declined to hoist it. ⇒ ARM 1 exercises both halves, and the
+   evidence that the planner half is load-bearing is a MEASUREMENT taken in between: with only the
+   normalizer corrected, ARM 1's grammar reported `expr_lr_base` in place of `expr_lr_alt1`.
