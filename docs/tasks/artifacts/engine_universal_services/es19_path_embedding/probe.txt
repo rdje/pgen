@@ -30,3 +30,39 @@ ARM 6  residual vs the recorded pair (reported, not hidden)
 
 ES19-PATH-EMBEDDING: ALL ARMS PASS (6 arms, 1 of them RED-by-design)
 (the four 131 MB parsers were deleted; PGEN_ES19_KEEP=1 keeps them)
+
+════════════════════════════════════════════════════════════════════════════════
+POST-HOIST ERA — re-run 2026-08-17 session #243, after ENGINE-UNIVERSAL-SERVICES.31
+slice 2 hoisted the per-site literal to one `const PGEN_SOURCE_LABEL` per artifact.
+The run above is kept as the PRE-hoist record: same identity, different site count.
+════════════════════════════════════════════════════════════════════════════════
+
+ES19-PATH-EMBEDDING: is the 99 747-byte gap the embedded -o path?
+pipeline : da32012d
+input    : generated/systemverilog.json (1087124 bytes)
+arm A (make spelling, 36 chars)  130878628  987fe91388e73797802fe85497ba448e91f53c6e4383a02940a85d45531e2499
+arm A (repeat)                    130878628  987fe91388e73797802fe85497ba448e91f53c6e4383a02940a85d45531e2499
+arm B (ad-hoc spelling, 33 chars) 130878625  1043ed33014524574e8b43fa9e0f661a509381a5619ebd1ab31b151ca5d403e3
+path sites: 1 (long arm) / 1 (short arm)
+ARM 1  determinism — acceptance (a)
+  ✓ two runs of one binary at one spelling are byte-identical (987fe91388e73797802fe85497ba448e91f53c6e4383a02940a85d45531e2499)
+ARM 2  byte arithmetic — the identity, at TODAY's site count and at the recorded one
+  ✓ LIVE: measured gap 3 == sites(1) × Δchars(3) = 3
+  ✓ RECORDED ERA: the gap .19 measured between 4330ff8e… and dae09343… is 99747 == recorded_sites(33249) × Δchars(3) — the same identity, at that era's site count
+  ✓ ERA SHIFT, expected and named: live sites 1 vs recorded 33249 — `ENGINE-UNIVERSAL-SERVICES.31` slice 2 hoisted the per-site literal to one module constant, so the live gap is 3 where the recorded one was 99747
+  ✓ both spellings carry the same site count — the count is a property of the emission, not of the path
+ARM 3  normalised identity (the falsification leg)
+  ✓ arm A and arm B are BYTE-IDENTICAL once the embedded -o path is normalised away
+  ✓ ⇒ the -o path is the ONLY difference between the two arms — not merely 99 747 bytes' worth
+ARM 4  input-path independence
+  ✓ naming the input JSON two different ways yields a byte-identical parser
+ARM 5  RED control — arm 3 must be able to fail
+  ✓ a planted non-path difference is refused (RED as designed)
+ARM 6  residual vs the recorded pair (reported, not hidden)
+  residual vs 4330ff8e… : -764027 bytes
+  residual vs dae09343… : -664283 bytes
+  ✓ the two residuals differ by -99744, which is EXACTLY (live_sites 1 − recorded_sites 33249) × Δchars(3) ⇒ the only thing this axis moved between the eras is the site count
+  ⚠️  residual is NOT zero: -764027 bytes of SV codegen moved between session #232 and today,
+     at BOTH spellings, independent of this leaf's question. Owned by .19 slice 2.
+ES19-PATH-EMBEDDING: ALL ARMS PASS (6 arms, 1 of them RED-by-design)
+(the four 131 MB parsers were deleted; PGEN_ES19_KEEP=1 keeps them)

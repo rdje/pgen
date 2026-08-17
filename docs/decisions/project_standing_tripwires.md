@@ -1,8 +1,8 @@
 ---
 name: project-standing-tripwires
-description: PROJECT (2026-08-09, MEMORY-ARCH.6) — the live traps that have each already cost a session, demoted here out of the layer-A resume pointer. Each is a mechanism that FAILS SILENTLY OR IN THE PASSING DIRECTION, so nothing warns you: a column-0 comment deletes grammar alternatives with every census still green, a corpus timeout is a fact about the instrument, an acceptance gate is vacuous for one tree shape, three gates are RED or blind on HEAD, a rule-census move silently invalidates the cert contracts, and the clippy flow prints ✅ while skipping. Read the owning leaf before acting in any of these areas.
+description: PROJECT (2026-08-09, MEMORY-ARCH.6; row 9 added 2026-08-17) — the live traps that have each already cost a session, demoted here out of the layer-A resume pointer. Each is a mechanism that FAILS SILENTLY OR IN THE PASSING DIRECTION, so nothing warns you: a column-0 comment deletes grammar alternatives with every census still green, a corpus timeout is a fact about the instrument, an acceptance gate is vacuous for one tree shape, three gates are RED or blind on HEAD, a rule-census move silently invalidates the cert contracts, and the clippy flow prints ✅ while skipping. Read the owning leaf before acting in any of these areas.
 id: project-standing-tripwires
-title: The 8 live traps — every one of which fails silently or in the passing direction, so the signal you would trust is green
+title: The live traps — every one of which fails silently or in the passing direction, so the signal you would trust is green (the COUNT is derived by this record's own `reverify`, never stored)
 date: 2026-08-09
 reverify: "grep -c '^| [0-9]' docs/decisions/project_standing_tripwires.md"
 answers:
@@ -41,6 +41,7 @@ tripwire list is justified at all: a trap that announces itself needs no note.
 | 6 | ⛔ **A rule-census move ⇒ re-baseline the cert contract(s) `--dump-rule-profiles` names, in the SAME commit.** | `CI-PARITY-GATE-ROT.22` |
 | 7 | ⛔ **`clippy_on_rust_change` prints ✅ and SKIPS on a grammar-only change** (because `generated/` is gitignored) — force it with `PGEN_CLIPPY_FORCE=1`. | `CI-PARITY-GATE-ROT.23` |
 | 8 | Sweep traps — a sweep covers only the lane it was pasted into, and a control pinned to a corpus row can make the sweep refuse. | `LANG-CAPABILITY-AUDIT.10.3`, `CI-PARITY-GATE-ROT.19` / `.4b`·2 |
+| 9 | ⛔⛔ **`make` can hand you a STALE GENERATOR at exit 0, and `GENERATED-REPRODUCIBILITY` tier 2 can then pass over it.** GNU Make 3.81 compares mtimes at WHOLE SECONDS, so an emission source rewritten in the same second as the last generator build is invisible (measured: prerequisite 127.2 ms newer, rule skipped); tier 2 then re-derives the eight FAMILY artifacts *with that same binary*, so both sides agree and it prints *"every checked artifact is what HEAD produces"* (measured, over 8 artifacts that were not). Assert an sha against an independently-built arm — never `make`'s exit 0. | `CI-PARITY-GATE-ROT.37` (the make edge), `ENGINE-UNIVERSAL-SERVICES.32` (the doctrine hole) |
 
 ⭐ **Maintenance rule.** A tripwire leaves this list only when its owning leaf CLOSES — never
 because it has gone quiet. Entries 4–7 in particular describe gates that are red or blind *right

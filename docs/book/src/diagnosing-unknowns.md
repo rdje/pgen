@@ -438,12 +438,22 @@ budget is adequate and the cause is elsewhere (a forcing/store-gate bug).
 Not a tool — a **mandatory pre-step**, and the trap behind it has inverted three published readings
 in this repository.
 
-Every generated parser writes its own `-o` destination into the emitted source **once per rule-entry
-site**: **36 346** occurrences in the shipped SystemVerilog parser, **0.91 %** of the artifact.
-⇒ *the artifact's size is a function of its own output path*, and one extra character in the `-o`
-spelling adds one byte per site. `rust/Makefile` generates with `-o ../generated/<fam>_parser.rs`
-from `rust/` (36 characters for SystemVerilog); an ad-hoc run from the repository root passes
+Every generated parser writes its own `-o` destination into the emitted source. ⇒ *the artifact's
+size is a function of its own output path*, and one extra character in the `-o` spelling adds one
+byte per embedded site. `rust/Makefile` generates with `-o ../generated/<fam>_parser.rs` from
+`rust/` (36 characters for SystemVerilog); an ad-hoc run from the repository root passes
 `generated/<fam>_parser.rs` (33). Those two produce **byte-equivalent parsers of different sizes**.
+
+**How many sites is that? One per artifact today — and it was 36 346 in SystemVerilog alone until
+2026-08-17.** The path used to be emitted as a string literal at every `Logger::log_*` call the
+generator writes: 36 346 occurrences in the shipped SystemVerilog parser (0.91 % of it), 60 482
+across all eleven artifacts. It is now emitted once, as a module constant every site references by
+name, which cost **−1 131 846 bytes (−0.48 %)** of generated source and shrank this trap's blast
+radius by four orders of magnitude: a 3-character spelling difference moves SystemVerilog by **3**
+bytes where it used to move it by **109 038**.
+
+⛔ **Reduced is not removed, so the pre-step below is still mandatory.** One embedded site is still
+one byte per character of difference, and the comparison helper still refuses rather than guesses.
 
 So before believing any byte-level difference between two generated parsers:
 
@@ -468,7 +478,8 @@ mismatching** their shipped artifacts (the census wrote to a different path); a 
 A/B that made suppressing guards look like it made the parser **203 KB larger**, the exact opposite
 of the truth; and a whole task leaf opened on **99 747 unaccounted bytes** with two hypotheses that
 were both wrong — the two arms differed by 3 path characters × 33 249 sites, exactly, and normalising
-made them sha256-identical.
+made them sha256-identical. All three belong to the per-site era; each would today be a 3-byte
+discrepancy rather than a six-figure one, which is the point of having hoisted it.
 
 ⚠️ The **input** path is not embedded, and that was tested rather than assumed: generating with the
 input JSON named absolutely and relatively yields a byte-identical parser, and no `generated_at` or

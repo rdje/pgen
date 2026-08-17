@@ -31,10 +31,19 @@ evidence: |
 reverify: "python3 scripts/compare_generated_parsers.py --self-test   # 8/8, four RED-by-design; then `for f in generated/*_parser.rs; do python3 scripts/compare_generated_parsers.py --sites $f; done` must equal `grep -oF <derived spelling> $f | wc -l` for all 11 artifacts"
 ---
 
-Every parser PGEN generates writes its own `-o` destination into the emitted source, once per
-diagnostic site — **36 346** times in the SystemVerilog parser, **63 186** across the eleven shipped
-artifacts. So *the size of a generated parser is a function of its own output path*, and comparing
-two of them requires normalising that path away first.
+Every parser PGEN generates writes its own `-o` destination into the emitted source. So *the size of
+a generated parser is a function of its own output path*, and comparing two of them requires
+normalising that path away first.
+
+> ⭐ **Era note (2026-08-17, `ENGINE-UNIVERSAL-SERVICES.31` slice 2).** The numbers below —
+> **36 346** sites in the SystemVerilog parser, **63 186** across the eleven artifacts — describe
+> the emission in which the path was a string literal at every diagnostic site. It is now emitted
+> **once per artifact**, as a module constant every site references by name. ⛔ **That changes the
+> magnitude of this trap and not one word of its lesson**: one embedded site is still one byte per
+> character of spelling difference, the short spelling is still a substring of the long one, and a
+> helper told which key to use is still a helper that has not removed the caller's judgement. What
+> the hoist bought is that a mistake here now costs 3 bytes instead of 109 038 — i.e. it is now
+> *harder to notice*, which is an argument for the derived key, not against it.
 
 This repository learned that lesson three times, wrote it down each time, and grew **three
 independent implementations of the fix**. All three shared one design decision, and it is the wrong

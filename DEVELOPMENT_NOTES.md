@@ -1,5 +1,56 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0071 — a prohibition's stated REASON is a hypothesis, and a determinism control cannot see a tool that changed between its arms
+
+**1. ⛔⛔ I RAN A MEASUREMENT WHILE A BACKGROUND JOB WAS REWRITING THE BINARY IT READS, AND THE
+DETERMINISM ARM PASSED.** The `es31_label_hoist` bank ends by rebuilding the tree's `ast_pipeline`
+from the restored source (~74 s). I saw its final result line, treated that as "finished", and
+launched `es19_path_embedding/probe.sh` — which reads that same path. es19 generates four parsers in
+order A1, A2, B1, B2. A1 and A2 ran against the OLD binary and were byte-identical **to each other**,
+so ARM 1 (determinism) reported ✓; by B1 the rebuild had landed and the binary was the new one. The
+probe then reported **four failed arms**, headlined *"normalised arm A != arm B — something OTHER
+than the path also moved"* and *"the path model is incomplete"*.
+⇒ **a repeat-N-times control certifies the tool did not vary WITHIN the repeats, not that it was the
+same tool for the rest of the measurement.** The tell was printed the whole time and I skimmed past
+it: `path sites: 31761 (long arm) / 1 (short arm)` — two emission eras in one run of one script.
+⛔ And note the FAILURE DIRECTION: not "no difference" but *"an unexplained difference"*, which reads
+as a finding worth a leaf. That exact sentence is what founded `.19` on two wrong hypotheses; here it
+was manufactured a second time by an operational mistake.
+**PROMOTED →** [[a-determinism-control-cannot-see-a-tool-that-changed-between-its-arms]]. The general
+fix is cheap: make each arm print something that identifies the **tool**, and have the script assert
+those equal — the mature version already exists in this repo as `PARSE-COST-RATCHET` arm 5, which
+asks the probe which generated parser it embeds. Re-run on a quiescent tree: **6/6 arms pass**.
+
+**2. ⭐ THE REASON GIVEN FOR A PROHIBITION WAS WRONG WHILE THE PROHIBITION WAS RIGHT.**
+`.31` acceptance (b) forbade pricing the label hoist by `sites × Δlen`, *"because `prettyplease`
+re-wraps lines when a 38-character literal becomes a short identifier, which makes the product an
+illustration rather than a measurement."* Measured over two arms: `prettyplease` does **not** re-wrap
+— every emitted log site already occupies its own line, so shortening one argument moves no line
+break — and the forbidden arithmetic reproduces all eleven rows exactly, residual == the constant's
+own declaration line, nothing left over.
+⇒ **the rule survives, its rationale does not.** The prohibition was still correct, because "the
+arithmetic happens to be right here" is a *result of this measurement*, not a licence for the next
+one; and the only reason we can say the shortcut would have worked is that it was not taken. Write
+the rule and its reason as separate claims, and let a measurement refute either independently.
+
+**3. ⛔ `make` EXITED 0 AND HANDED ME A STALE GENERATOR.** `regenerate_generated_parsers` printed
+`SOTA parser generated:` for all nine artifacts and produced **two from the pre-edit emitter**: the
+prerequisite was **127.2 ms** newer than `ast_pipeline_bootstrap`, and GNU Make 3.81 compares WHOLE
+SECONDS. This is `CI-PARITY-GATE-ROT.32`'s trap on an edge its sweep never censused — the one that
+builds the GENERATOR — and the window there is worse than on the grammar edges, because a `cargo
+build` writes its target at the end of a multi-second link. A human editing, thinking and typing
+`make` never sees it; an agent loop hits it constantly.
+⇒ routed as `CI-PARITY-GATE-ROT.37` (parked; make lane closed) and `ENGINE-UNIVERSAL-SERVICES.32`
+(active), because the same staleness can make `GENERATED-REPRODUCIBILITY` tier 2 pass by
+construction for the eight family artifacts. **promotion: declined** for this item —
+[[your-build-tools-timestamp-resolution-is-part-of-your-correctness-argument]] already carries the
+lesson; what is new is the EDGE, which belongs in the two leaves, not in a second card.
+
+**4. ⭐ A BASELINE ROSTER IS DERIVED, NOT REMEMBERED.** Slice 1's probe comment listed three
+artifact-keyed baselines to re-key in lockstep. `git grep -l <the SV parser sha256>` returns **two**;
+the third, `CODEGEN-DETERMINISM`, is a task tree that owns no tracked baseline at all. One `git grep`
+is cheaper than the sentence that got it wrong, and it cannot go stale between slices.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0070 — a control that only tests one layer of a two-layer fix reports "not reachable" and looks like evidence
 
 **1. ⛔⛔ MY RED CONTROL DISARMED ITSELF, AND IT PRINTED AS A CLEAN RESULT.** To prove the fixtures

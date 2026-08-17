@@ -102,9 +102,12 @@ generated_present() { [ -d "$GENERATED" ] && ls "$GENERATED"/*_parser.rs >/dev/n
 
 # ── tier 2: re-derive one artifact into a mimic tree and compare ──────────────────────────────────
 #
-# ⭐ THE MIMIC TREE IS LOAD-BEARING, NOT TIDINESS. A generated parser embeds its own `-o` path once
-# per rule-entry site (TOOLBOX 5.6 — 36 346 times in SystemVerilog), so re-deriving to a scratch
-# filename changes the artifact's SIZE for reasons that have nothing to do with the source. The
+# ⭐ THE MIMIC TREE IS LOAD-BEARING, NOT TIDINESS. A generated parser embeds its own `-o` path
+# (TOOLBOX 5.6 — once per artifact since `ENGINE-UNIVERSAL-SERVICES.31` slice 2, and 36 346 times in
+# SystemVerilog before it), so re-deriving to a scratch filename changes the artifact's SIZE for
+# reasons that have nothing to do with the source. ⛔ The hoist shrank that effect by four orders of
+# magnitude and did NOT remove it — one site is still one byte per character — and it made the
+# failure HARDER to notice, which is why the assertion below stays exactly as strict as it was. The
 # mimic `<work>/root/{generated,rust}` tree, entered from `<work>/root/rust`, makes the emitted
 # string byte-identical to what `rust/Makefile` passes — and the site counts are ASSERTED, never
 # assumed, because this exact trap has inverted three published readings in this repository.

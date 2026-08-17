@@ -30,6 +30,16 @@
 #    <work>/root/{generated,rust} so the two `-o` strings are byte-identical to the real
 #    invocations while the shipped artifact is left alone. Nothing here writes outside <work>.
 #
+# ⛔⛔ THIS PROBE SPANS TWO EMISSION ERAS SINCE `ENGINE-UNIVERSAL-SERVICES.31` SLICE 2, AND SAYING SO
+#    IS THE WHOLE POINT. The recorded pair above was produced when the `-o` path was emitted as a
+#    LITERAL at every logging site (33 249 of them in the narrow arm). `.31` slice 2 hoisted that
+#    literal to ONE module constant, so a parser built by TODAY's binary embeds the path **once**.
+#    ⇒ a post-hoist re-run measures a gap of 3 bytes, not 99 747, and reading that as a refutation
+#    of `.19` would be exactly backwards — it is the same identity `sites × Δchars` evaluated at a
+#    site count the project deliberately reduced. Every arm below therefore DERIVES its site count
+#    and never assumes an era: the live identity and the recorded era's identity are checked
+#    separately, and their difference is itself asserted to be nothing but the change in site count.
+#
 # HOW:  bash docs/tasks/artifacts/engine_universal_services/es19_path_embedding/probe.sh
 #       PGEN_ES19_KEEP=1 …   keep the four 131 MB parsers instead of deleting them
 # COST: 4 SystemVerilog codegen runs, ~26 s each (~2 min), ~525 MB peak under rust/target/.
@@ -49,6 +59,7 @@ SHORT_REL="generated/systemverilog_parser.rs"            # 33 chars — what the
 RECORDED_LONG_BYTES=131642655                            # 4330ff8e… tracked pre-flip
 RECORDED_SHORT_BYTES=131542908                           # dae09343… session #232 re-derivation
 RECORDED_GAP=99747
+RECORDED_SITES=33249                                     # the PRE-HOIST era's per-site emission
 
 fails=0
 pass() { printf '  ✓ %s\n' "$1"; }
@@ -119,18 +130,28 @@ else
   fail "codegen is NON-DETERMINISTIC: $A1_SHA vs $A2_SHA — the investigation ends here"
 fi
 
-# ── ARM 2 — the gap is 3 bytes per site, and that reproduces the RECORDED gap ─────────────────────
-printf 'ARM 2  byte arithmetic\n'
+# ── ARM 2 — the gap is Δchars per site, live AND in the recorded era ──────────────────────────────
+# ⛔ TWO IDENTITIES, NOT ONE. The mechanism `.19` proved is `gap == sites × Δchars`; the number
+# 99 747 is that identity evaluated at the PRE-HOIST site count. Since `.31` slice 2 the live site
+# count is 1, so checking the live gap against 99 747 would fail for a reason that has nothing to do
+# with `.19`. The identity is checked at BOTH era's site counts, and each is labelled.
+printf 'ARM 2  byte arithmetic — the identity, at TODAY'"'"'s site count and at the recorded one\n'
 GAP=$((A1_SZ - B1_SZ))
-PREDICTED=$((SITES * (${#LONG_REL} - ${#SHORT_REL})))
+DELTA_CHARS=$((${#LONG_REL} - ${#SHORT_REL}))
+PREDICTED=$((SITES * DELTA_CHARS))
 [ "$GAP" = "$PREDICTED" ] \
-  && pass "measured gap $GAP == sites($SITES) × Δchars(3) = $PREDICTED" \
-  || fail "measured gap $GAP != sites($SITES) × Δchars(3) = $PREDICTED"
-[ "$GAP" = "$RECORDED_GAP" ] \
-  && pass "and it EQUALS the gap .19 recorded between 4330ff8e… and dae09343… ($RECORDED_GAP)" \
-  || fail "gap $GAP != the recorded $RECORDED_GAP"
+  && pass "LIVE: measured gap $GAP == sites($SITES) × Δchars($DELTA_CHARS) = $PREDICTED" \
+  || fail "LIVE: measured gap $GAP != sites($SITES) × Δchars($DELTA_CHARS) = $PREDICTED"
+[ "$RECORDED_GAP" = "$((RECORDED_SITES * DELTA_CHARS))" ] \
+  && pass "RECORDED ERA: the gap .19 measured between 4330ff8e… and dae09343… is $RECORDED_GAP == recorded_sites($RECORDED_SITES) × Δchars($DELTA_CHARS) — the same identity, at that era's site count" \
+  || fail "RECORDED ERA: $RECORDED_GAP != recorded_sites($RECORDED_SITES) × Δchars($DELTA_CHARS)"
+if [ "$SITES" = "$RECORDED_SITES" ]; then
+  pass "the live site count still equals the recorded one ($SITES) — one era, and the live gap IS the recorded gap"
+else
+  pass "ERA SHIFT, expected and named: live sites $SITES vs recorded $RECORDED_SITES — \`ENGINE-UNIVERSAL-SERVICES.31\` slice 2 hoisted the per-site literal to one module constant, so the live gap is $GAP where the recorded one was $RECORDED_GAP"
+fi
 [ "$SITES" = "$SITES_SHORT" ] \
-  && pass "both spellings carry the same site count — the count is a property of the grammar" \
+  && pass "both spellings carry the same site count — the count is a property of the emission, not of the path" \
   || fail "site count differs across spellings: $SITES vs $SITES_SHORT"
 
 # ── ARM 3 — NORMALISED IDENTITY: the path is not merely the right COUNT of bytes ──────────────────
@@ -175,10 +196,20 @@ printf 'ARM 6  residual vs the recorded pair (reported, not hidden)\n'
 RES_LONG=$((A1_SZ - RECORDED_LONG_BYTES))
 RES_SHORT=$((B1_SZ - RECORDED_SHORT_BYTES))
 printf '  residual vs 4330ff8e… : %+d bytes\n  residual vs dae09343… : %+d bytes\n' "$RES_LONG" "$RES_SHORT"
-if [ "$RES_LONG" = "$RES_SHORT" ]; then
-  pass "the residual is the SAME at both spellings ⇒ orthogonal to the path effect"
+# ⛔ ERA-AWARE. Pre-hoist the two residuals were EQUAL, which is what "the path effect is orthogonal
+# to everything else" looks like when both eras embed the path the same number of times. Since `.31`
+# slice 2 they differ by exactly the change in site count, and asserting THAT is strictly stronger:
+# it says the only thing this axis moved between the two eras is how many times the path is emitted.
+RES_DIFF=$((RES_LONG - RES_SHORT))
+ERA_DIFF=$(( (SITES - RECORDED_SITES) * DELTA_CHARS ))
+if [ "$RES_DIFF" = "$ERA_DIFF" ]; then
+  if [ "$RES_DIFF" = 0 ]; then
+    pass "the residual is the SAME at both spellings ⇒ orthogonal to the path effect"
+  else
+    pass "the two residuals differ by $RES_DIFF, which is EXACTLY (live_sites $SITES − recorded_sites $RECORDED_SITES) × Δchars($DELTA_CHARS) ⇒ the only thing this axis moved between the eras is the site count"
+  fi
 else
-  fail "residual differs by spelling ($RES_LONG vs $RES_SHORT) — the path model is incomplete"
+  fail "residuals differ by $RES_DIFF, which the site-count change alone predicts as $ERA_DIFF — the path model is incomplete"
 fi
 [ "$RES_LONG" = 0 ] \
   && pass "residual is ZERO — today's narrow arm replays the recorded pair exactly" \

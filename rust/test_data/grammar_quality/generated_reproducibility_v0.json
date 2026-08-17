@@ -1,18 +1,18 @@
 {
   "_comment": "GENERATED-REPRODUCIBILITY baseline. DERIVED — never hand-edit. Rewrite with: bash scripts/check_generated_reproducibility.sh --rebaseline",
   "_what_this_proves": "every artifact below re-derived BYTE-IDENTICALLY from HEAD at the recorded commit. Tier 1 re-hashes these three fields and demands a re-verify the moment any of them moves.",
-  "verified_at_commit": "1ce208c600af94695ea8837915dee7025874a585",
-  "emission_sha": "014bf3823a2da9cec8965101b77381671ad7f4cbf0a60c78b366449f61b84b2c",
+  "verified_at_commit": "da32012da8e8e8ddd2c5fca24c089a95e5139be0",
+  "emission_sha": "948dca3ab4e69e1a5bf5b8bd660c26461ee04e8aa7667d2518e9bb53bf594640",
   "artifacts": {
-    "return_annotation": { "parser_sha": "22a3f5600062cda2d4dbb04809ca7840ae4e7787faa708528356b4a274bfaeb1", "input_sha": "5c43a99364c87d5359776b9f12f60dacd6554b75a318c3c14ba4e5655c1e7f4f" },
-    "semantic_annotation": { "parser_sha": "56759b04a08a39b0d1d4e11287d80f63b8ce6ba8167b3a0ad2cda9acc3ceb967", "input_sha": "2130e41ac52d22d7fbdebf5aee7ca7b9fd5e29f4a8fa5894dda99472f944a971" },
-    "json": { "parser_sha": "a4daf28e3d11ff7d7ccf06902182d332a912f2fb8790b5d97513cac554d575e4", "input_sha": "f5343abe4759a8cbd078bedf91aab83a7d9d3e0f807812dce96bf82a8c7b53e6" },
-    "regex": { "parser_sha": "547aee14a628ea4235a6a38ac07bd1fad44d8decc337e1f6a4286f38ab9b4406", "input_sha": "0d62419a18c73c67b2f63f02b2009cce68974951ea86bee67a6884ddf11dec64" },
-    "systemverilog": { "parser_sha": "be91ee4ca17e7d227951fbdd99e908f6e5caadab1cb324cbedccc8840b6b0f24", "input_sha": "b4fe30e69a8b321f7ee5d58edd1eab19e31dcd46c8ce5a6690a44c5fccd924bb" },
-    "systemverilog_preprocessor": { "parser_sha": "61002f77dcdd6d9f0e953f50eee312d0aaa51eb0040f7bb0815cd1f806b496b5", "input_sha": "540d6d97ce8dc1b6fa72b8072e0e99b25db4f5061abc885dcfacff2ddc81bd4e" },
-    "vhdl": { "parser_sha": "ca41445d01e8863a438598ddab277c85c3160ea17dd79cdd3b0667ab2fb3dc6f", "input_sha": "d97a509a11ee62bc1707afee39b12ef568a6097b3981838aed598078dc8baea6" },
-    "rtl_const_expr": { "parser_sha": "916740851888ccce3caeac04d965d219cde24e4f0f13b554a94d104fb882c80a", "input_sha": "8aaa149dfb6d1380b9a7b6df8c9b07f84d93875a99132bb9d2cf56f242910599" },
-    "rtl_frontend": { "parser_sha": "a884466ecd2e08aa4aca7eb77c41de288aff5f7bc0ac27bc10e8c815b198048c", "input_sha": "b4a280551eb58221a701d4bbd298c106779a54a8704fd55f8c1daf7e98cc6f32" },
-    "scratch": { "parser_sha": "e9bb06d22bd0ecceca321b52a0f202b13ccaf9e12bf6c613e05dd92b1d196cc3", "input_sha": "c8038485f49e286e4d890a543a2d373567da5aef0201e4d9b2a4da8413e51b60" }
+    "return_annotation": { "parser_sha": "bfc32075b9f8b91e75881c25502218c24e5f91bd4145f6c8a432fe7ad20fda40", "input_sha": "a9489da1c6a33e7c2a0bb790f5d0c564303da8fd8cd56a6f113923d3046d3f94" },
+    "semantic_annotation": { "parser_sha": "b805d1f1c5175db43e35c922c10b9bf2c3ffe92dc0eb2aa01d6c578dbfa9d214", "input_sha": "4bbe2711ee3d0398f3fe597a2e4bd310e4a863e05cfdd835d1b24fc56b81541f" },
+    "json": { "parser_sha": "50d0a52f6116e8eefdd7521f452217a2064370a25393c3bba463770c211c13aa", "input_sha": "a79973b3abec0ccb6d952f12dc178482f41a3468df56d508bfe3f553a87ba0a6" },
+    "regex": { "parser_sha": "ca70bec5a8f55869e667c195d41217b191f92614b8cb8172a64634d700eae996", "input_sha": "843ddb50e84446f47c01ecf68935c730fd6ad7bdf66750e851ee5e9476bbf132" },
+    "systemverilog": { "parser_sha": "74cdbb5d2edcc13b3ce50a550e6abf0772af833c245fa1c89fd3d42e8b95aa01", "input_sha": "3b7e7dd1466f6085cb5676fb82f49bbe5af654619c1ba9e2b07c894c3dd47252" },
+    "systemverilog_preprocessor": { "parser_sha": "7a3cd4b6a721256a5b9eff78f736401f9768414726ca8aaf39dd240811da2f38", "input_sha": "31519f483662efa34ef747642fabc7d815a7c25e5da0397eedfc013612ca0d9d" },
+    "vhdl": { "parser_sha": "3d9a702b18b2a4a9c66b820579899658c8bcb369c29b93c8f1952760979a400f", "input_sha": "92a6a76b43818272caceb5f34b5eb23f5e868c95e2e0da058842a2690002d4bc" },
+    "rtl_const_expr": { "parser_sha": "83a1d51a5bcbc5ff19707262f558253bb2c8016ac6179a7a1844746f6db70cb5", "input_sha": "203ed6d722b96c5b720b0942d803fb755940b6acae68b2820df59a001f6e2096" },
+    "rtl_frontend": { "parser_sha": "f39b1ccbedc625bb8ae5d346f642bd77082514aa65be1e2687c2db463d8b01b3", "input_sha": "8eb05d89ad802207b1fa0b2668505cc6ddbb0741b12d03110201b7e727267208" },
+    "scratch": { "parser_sha": "034eb0ff64fddc52da112a22fcd17ebe46b9659daa5f841aa9141235e5a5f091", "input_sha": "30d27c82ce0b24f443534dff762f9aceef456f24ab6261f38854b0bc6d1e9d9b" }
   }
 }

@@ -1,0 +1,46 @@
+
+ES31-LABEL-HOIST: what does class L cost, and does hoisting it lose anything?
+commit : da32012d
+
+building ARM 2 (SHIPPED, hoisted) from HEAD…
+applying unhoist.patch and building ARM 1 (per-site literals)…
+generating arm2 …
+generating arm1 …
+
+ARM A  the mimic tree reproduces the shipped tree
+  ✓ all 11 artifacts: ARM 2 is byte-identical to generated/ — the A/B measures what ships
+
+ARM B  the price (acceptance (b))
+  family                             ARM1 bytes     ARM2 bytes       delta  A1 sites  A2 sites
+  json                                   688577         686144       -2433       208         1
+  regex                                38320117       38172358     -147759     11371         1
+  systemverilog                       143801858      143072432     -729426     34738         1
+  systemverilog_preprocessor            2887789        2859960      -27829       821         1
+  vhdl                                 11761507       11727370      -34137      2850         1
+  rtl_const_expr                        2119412        2107231      -12181       557         1
+  rtl_frontend                         10218076       10171367      -46709      2339         1
+  scratch                                262372         261403        -969        69         1
+  ebnf                                 11684875       11668706      -16169      3245         1
+  return_annotation                     2122576        2106652      -15924       640         1
+  semantic_annotation                  12181378       12083068      -98310      3644         1
+  TOTAL                               236048537      234916691    -1131846     60482        11
+  ✓ class L costs 1131846 bytes across the eleven artifacts (0.48% of the tree)
+
+ARM C  reconstruction identity — ARM 2 minus the constant, identifier→literal, IS ARM 1
+  ✓ all 11 artifacts reconstruct ARM 1 byte-identically ⇒ nothing but the substitution moved, and every `file` argument still receives the same string (acceptance (c), source level)
+
+ARM D  embedded -o sites
+  ✓ ARM 2 embeds the -o path exactly 11 times — once per artifact — where ARM 1 embeds it 60482 times
+  ✓ ⇒ a one-character difference in the -o spelling now moves an artifact by 1 byte, not by 5498 on average (TOOLBOX 5.6's trap, reduced by 5498×)
+
+ARM E  RED control — ARM C must be able to fail
+  ✓ reconstructing with a wrong literal is refused (RED as designed)
+  ✓ an artifact carrying no `const PGEN_SOURCE_LABEL` is REFUSED (exit 2), not compared
+
+ARM F  where the bytes went (acceptance (b): measured, then explained)
+  ✓ all 11 rows: delta == −sites×(len(literal)−len(ident)) + len(declaration), exactly
+  ✓ ⇒ prettyplease did NOT re-wrap — every log site already had its own line, so shortening one argument moved no line breaks
+
+ES31-LABEL-HOIST: 9/9 arms as declared
+(the 22 generated parsers were deleted; PGEN_ES31_KEEP=1 keeps them)
+restoring the tree's own binaries from the restored source…

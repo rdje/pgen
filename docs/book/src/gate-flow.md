@@ -278,10 +278,12 @@ byte-identity.
 
 ⛔ Both tiers **assert the embedded `-o` path site count before trusting a hash**,
 and refuse rather than compare when the two sides disagree. A generated parser
-writes its own output path into the emitted source once per rule-entry site —
-36 346 times in the SystemVerilog parser — so re-deriving to a different filename
-changes the artifact's size for reasons that have nothing to do with the source.
-That trap has inverted three published readings in this repository; see
+writes its own output path into the emitted source — once per artifact today, and
+36 346 times in the SystemVerilog parser until the label was hoisted to a module
+constant on 2026-08-17 — so re-deriving to a different filename changes the
+artifact's size for reasons that have nothing to do with the source. The hoist
+shrank that effect by four orders of magnitude but did not remove it, so the
+assertion stays. That trap has inverted three published readings; see
 [Diagnosing Unknowns → Comparing two generated parsers](diagnosing-unknowns.md#comparing-two-generated-parsers).
 
 ⚠️ Honest bound, and it is the same one `PARSE-COST-RATCHET` states about itself:

@@ -3,10 +3,20 @@
 
 WHY THIS FILE EXISTS
 --------------------
-Every parser PGEN generates writes its own `-o` destination into the emitted source, once per
-emitted diagnostic site — **36 346 times** in `generated/systemverilog_parser.rs`, 63 186 times
-across the eleven shipped artifacts. So *the size of a generated parser is a function of its own
-output path*, and one extra character in the `-o` spelling adds one byte per site.
+Every parser PGEN generates writes its own `-o` destination into the emitted source. So *the size
+of a generated parser is a function of its own output path*, and one extra character in the `-o`
+spelling adds one byte per embedded site.
+
+⭐⭐ SINCE `ENGINE-UNIVERSAL-SERVICES.31` SLICE 2 THAT SITE COUNT IS **1 PER ARTIFACT**, NOT 60 482.
+The path is emitted once, as `const PGEN_SOURCE_LABEL: &str = "<path>";`, and every
+`Logger::log_*` site references it by name. Up to `PGEN-ENGINE-UNIVERSAL-SERVICES-0069` it was a
+literal at every site — **36 346 times** in `generated/systemverilog_parser.rs`, **63 186** across
+the eleven artifacts (60 482 after slice 1 removed the dead class-D bindings). ⇒ this module's
+whole subject shrank by four orders of magnitude, and it is kept, not retired, for three reasons:
+the coupling is *reduced*, not removed (a spelling change still moves the artifact, by 1 byte per
+artifact); it is the tracked home of the derive-don't-be-told rule; and it is what the
+`GENERATED-REPRODUCIBILITY` gate calls to assert both sides were written through the same spelling
+before it trusts a hash.
 
 ⛔ That trap has inverted **three** published readings in this repository, and one of them founded
 a task leaf on two hypotheses that were both wrong (TOOLBOX 5.6, `ENGINE-UNIVERSAL-SERVICES.25`).
@@ -18,21 +28,28 @@ THE DETECTION RULE IS DERIVED FROM THE PRODUCER, NOT FROM THE CALLER
 --------------------------------------------------------------------
 ⭐ The caller never tells this module which path to normalise. It is read out of the artifact:
 every generated parser contains **exactly one** distinct string literal ending in `.rs`, and its
-occurrence count equals the embedded-site count exactly. Measured over all eleven artifacts:
+occurrence count equals the embedded-site count exactly. That property is what makes the derivation
+possible, and it is unchanged by the hoist — only the count moved. Measured, per era:
 
-    json 217 · regex 11 647 · return_annotation 675 · rtl_const_expr 605 · rtl_frontend 2 508
-    scratch 71 · semantic_annotation 3 758 · systemverilog 36 346 · svpp 895 · vhdl 3 075
-    ebnf 3 389                                                        (total 63 186, 11/11 exact)
+    pre-slice-1   json 217 · regex 11 647 · return_annotation 675 · rtl_const_expr 605
+                  rtl_frontend 2 508 · scratch 71 · semantic_annotation 3 758
+                  systemverilog 36 346 · svpp 895 · vhdl 3 075 · ebnf 3 389
+                                                                  (total 63 186, 11/11 exact)
+    post-slice-1  the same minus the dead class-D bindings         (total 60 482)
+    post-slice-2  1 per artifact, the `const PGEN_SOURCE_LABEL` declaration
+                                                                  (total 11, 11/11 exact)
 
 ⛔⛔ Deriving it matters, and the failure it prevents is measured. The `-o` spellings in play are
 `../generated/systemverilog_parser.rs` (36 chars, what `rust/Makefile` passes from `rust/`) and
 `generated/systemverilog_parser.rs` (33 chars, what an ad-hoc run from the repo root passes) — and
 **the short spelling is a SUBSTRING of the long one**. A helper handed the short spelling and run
 over a long-spelling artifact rewrites `"../generated/x.rs"` into `"../<TOKEN>"`: measured on the
-shipped SystemVerilog parser, that leaves **36 346 `"../<TOKEN>"` residues and 0 normalised sites**,
-i.e. a "normalisation" that normalised nothing while reporting success. Two arms normalised that way
-with their OWN spellings still differ by 3 bytes per site — which reads as *"something other than
-the path moved"*, the exact false verdict `.19` was founded on.
+then-shipped SystemVerilog parser (pre-slice-2, when the count was per site), that leaves **36 346
+`"../<TOKEN>"` residues and 0 normalised sites**, i.e. a "normalisation" that normalised nothing
+while reporting success. Two arms normalised that way with their OWN spellings still differ by 3
+bytes per site — which reads as *"something other than the path moved"*, the exact false verdict
+`.19` was founded on. ⚠️ The substring hazard is a property of the two SPELLINGS, not of the site
+count, so it survives the hoist unchanged; only its blast radius shrank from 36 346 sites to 1.
 
 HONEST BOUNDS (stated here, before the module is trusted)
 ---------------------------------------------------------

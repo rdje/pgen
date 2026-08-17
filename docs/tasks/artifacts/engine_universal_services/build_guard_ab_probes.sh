@@ -60,8 +60,12 @@ declare -A SRC=(
 # hand-picked threshold rather than a fact.
 #
 # ⭐ The exact identity was already sitting there, in the defect `.25` is a record of: a generated
-# parser embeds its own `-o` path as a diagnostic string (36 346 sites in SV), so every probe NAMES
-# the parser it was built from and names no other. Measured on the three pre-`.22`(e) probes, the
+# parser embeds its own `-o` path as a diagnostic string (36 346 sites in SV when this was written;
+# ⭐ **1 since `ENGINE-UNIVERSAL-SERVICES.31` slice 2 hoisted it to `const PGEN_SOURCE_LABEL`**), so
+# every probe NAMES the parser it was built from and names no other. ⛔ The identity SURVIVES the
+# hoist unchanged — the string is still present, still exactly once per artifact, still distinct per
+# arm, so the diagonal matrix below is still exact. What does NOT survive is the SIZE arithmetic at
+# the end of this comment; see the note there. Measured on the three pre-`.22`(e) probes, the
 # matrix is diagonal — each probe matches exactly one arm parser, 3 distinct strings, 0 for the other
 # two — which makes this an exact mutually-exclusive check, not a threshold.
 #
@@ -73,9 +77,12 @@ declare -A SRC=(
 # was the one arm whose binary did not come off the same shelf as the others. ⚠️ Say exactly what that
 # does and does not mean: the two parsers are byte-identical once the path is normalised (the
 # structural runner's own revert control proves it), so the arm was BEHAVIOURALLY right — the defect
-# is homogeneity, not correctness. Its price is dead string text: 11 characters × 36 346 sites ≈
-# **400 KB** of `__cstring` that ARM 3's binary carries and ARM 2's does not, ~0.5 % of a 76 MB
-# binary. Well under the noise floor this tier fights, but it was neither measured nor declared, and
+# is homogeneity, not correctness. Its price WAS dead string text: 11 characters × 36 346 sites ≈
+# **400 KB** of `__cstring` that ARM 3's binary carried and ARM 2's did not, ~0.5 % of a 76 MB
+# binary. ⭐ Post-`.31`-slice-2 the same asymmetry costs **11 bytes**, because the path is emitted
+# once — so if this check is re-run today, expect the size argument to vanish while the IDENTITY
+# argument above is untouched. ⛔ Do not read the vanished bytes as "the asymmetry was harmless": it
+# was neither measured nor declared, and
 # an unstated asymmetry in a comparison is exactly what `.25` is a record of. Rebuilding all three
 # from `$OUT/` leaves a 1-character residue (ARM 1, ~33 KB) which is reported per arm below.
 declare -A WANT_GUARD=( [arm1]=0 [arm3]=0 [arm2]=1 )   # 0 = must be absent, 1 = must be present

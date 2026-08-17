@@ -56,8 +56,14 @@ fi
 
 # ⛔⛔ RAW `stat` BYTES ARE NOT COMPARABLE ACROSS ARMS, AND READING THEM AS IF THEY WERE INVERTED THIS
 # MEASUREMENT'S FIRST ANSWER. A generated parser embeds its own `-o` path as a diagnostic string —
-# **36 346 times** in the shipped SV parser — so one extra character in the output FILENAME adds
-# 36 346 bytes to the file. Comparing ARM 3 against `generated/systemverilog_parser.rs` (whose
+# **36 346 times** in the SV parser as it stood when this runner was written — so one extra character
+# in the output FILENAME added 36 346 bytes to the file.
+# ⭐ SINCE `ENGINE-UNIVERSAL-SERVICES.31` SLICE 2 THAT COUNT IS **1**: the path is emitted once as
+# `const PGEN_SOURCE_LABEL` and referenced by name. The normalisation below is therefore no longer
+# load-bearing at six figures — but it is KEPT, because one site is still one byte per character and
+# a helper that reads `path_sites` from the artifact costs nothing. ⛔ A re-run of this runner today
+# reports `path_sites=1` on every arm; that is the hoist, not a broken instrument.
+# Comparing ARM 3 against `generated/systemverilog_parser.rs` (whose
 # embedded path is 12 characters shorter) made ARM 3 look 203 KB LARGER than the shipped parser; with
 # the path normalised it is 233 KB SMALLER, which is the opposite conclusion about what guards cost.
 # ⇒ every byte figure below is measured AFTER replacing the embedded path with a fixed token.

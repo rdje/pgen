@@ -9,6 +9,8 @@ answers:
   - "why did a would_absorb=2 become would_absorb=0 after we shipped the absorption"
   - "how do I keep a before/after baseline once the after becomes the default"
   - "is a zero-check still a check after the thing it counted became non-zero on purpose"
+  - "my bank pins a total that just changed for a good reason and there is no flag to reproduce the old one"
+  - "should I re-pin the constant when a probe goes red after an intentional change"
 tags: [instruments, probe-banks, evidence, regression, baselines, ast-pipeline, gates]
 date: 2026-08-14
 status: current
@@ -105,3 +107,35 @@ running"*; a set can ([[a-fused-counter-is-not-evidence-about-any-of-its-parts]]
 
 See also [[a-conservative-criterion-and-a-measurement-are-different-objects]] — the criterion this
 flip promoted, and the slice that deliberately did not promote it.
+
+## ⭐ The third remedy: when there is no lever to pass, DERIVE THE ERA from the producer
+
+The two remedies above assume the bank can name the policy it measures — pass
+`--indirect-lr-admit-starvation-safe-only`, pin an exact set. Some populations have no such lever:
+they are simply a property of what the emitter emits today.
+
+Measured in `ENGINE-UNIVERSAL-SERVICES.31` slice 2. Slice 1's bank asserted a stored total —
+"embedded `-o` sites across the eleven artifacts == **60 482**" — which was exactly right for one
+commit. Slice 2 hoisted the emitted label to one constant per artifact and the same population
+became **11**. There is no flag that reproduces the old emission; the bank would simply have gone
+red against a correct tree, and the red would have read as *"the slice-1 fix was reverted."*
+
+The fix is to make the expectation a **function of the producer**, not a constant beside it:
+
+```bash
+# read the EMITTER, do not guess from the number about to be checked
+if grep -qE '^[[:space:]]*const #source_label: &str = #filename;' "$EMITTER"; then
+  expected="$n_artifacts"   # the hoisted era: one declaration per artifact
+else
+  expected="$SITES_AFTER"   # the per-site era: slice 1's measured total
+fi
+```
+
+Both eras' numbers stay in the file as *records*, and the bank checks the one the tree is actually
+in — so it can go red for a real regression in either era, and cannot go red merely because the
+project moved forward. The sibling bank in the same slice took the same shape for a byte gap:
+it checks the identity `gap == sites × Δchars` at **today's** site count *and* at the **recorded**
+one, then asserts that the difference between the two eras is nothing but the site-count change.
+
+⛔ The tempting shortcut — re-pin the constant to `11` — buys exactly one commit of correctness and
+teaches the next author that a red bank means "update the number."

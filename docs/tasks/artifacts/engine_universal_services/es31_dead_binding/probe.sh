@@ -9,8 +9,12 @@
 #
 # This bank is the after-the-fact proof. Its load-bearing claim is not "the warnings are gone" —
 # that is easy and weak — but **"the ONLY thing that changed is those lines"**, which is what makes
-# the artifact-keyed rebaseline (`GENERATED-REPRODUCIBILITY`, `PARSE-COST-RATCHET`,
-# `CODEGEN-DETERMINISM`) a bookkeeping act rather than a behavioural one.
+# the artifact-keyed rebaseline a bookkeeping act rather than a behavioural one.
+# ⚠️ CORRECTION (`.31` slice 2): this line named THREE baselines and there are **two**.
+# `git grep -l <the SV parser's sha256>` returns `generated_reproducibility_v0.json` and the
+# `parse_cost_ratchet/` artifacts, and nothing else; `CODEGEN-DETERMINISM` is a task TREE that owns
+# no tracked artifact-keyed baseline at all. Derived, not remembered — the same class as the carried
+# site count this leaf's sibling retracted (`DERIVED_STATE_CONTAINMENT.md` R1/R3).
 #
 # HOW:  bash docs/tasks/artifacts/engine_universal_services/es31_dead_binding/probe.sh
 #       bash …/probe.sh --before rust/target/es31_before    # adds the line-removal identity arm
@@ -41,8 +45,15 @@ systemverilog_preprocessor_parser.rs 74
 vhdl_parser.rs 225
 ebnf.rs 144'
 DEAD_TOTAL=2704
-SITES_BEFORE=63186          # embedded `-o` occurrences, all 11 artifacts, pre-change
-SITES_AFTER=60482           # = 63 186 − 2 704
+SITES_BEFORE=63186          # embedded `-o` occurrences, all 11 artifacts, before slice 1
+SITES_AFTER=60482           # = 63 186 − 2 704, the count slice 1 left behind
+# ⛔⛔ THAT 60 482 IS AN ERA CONSTANT AND IT HAS SINCE MOVED — which is why arm 3 no longer compares
+# against it blindly. `ENGINE-UNIVERSAL-SERVICES.31` slice 2 hoisted the surviving class-L literals
+# to ONE module constant per artifact, so the live total is now the ARTIFACT COUNT. A bank that had
+# kept asserting 60 482 would have gone red against a correct tree one commit later
+# ([[a-bank-pinned-to-the-shipped-behaviour-is-pinned-to-a-moving-target]]). Arm 3 therefore DERIVES
+# which era it is in from the emitter's own source, and checks the count that era predicts.
+LABEL_CONST='PGEN_SOURCE_LABEL'
 
 fails=0; arms=0
 pass() { arms=$((arms+1)); printf '  ✓ %s\n' "$1"; }
@@ -99,10 +110,21 @@ while read -r name dead; do
   total=$((total + now))
 done <<< "$DEAD_JSON"
 [ "$bad" = 0 ] || fail "$bad artifact(s) could not be measured"
-if [ "$total" = "$SITES_AFTER" ]; then
-  pass "embedded sites total $SITES_BEFORE -> $total, i.e. exactly −$DEAD_TOTAL"
+# Which era is this tree in? Read the EMITTER, do not guess from the number we are about to check.
+n_artifacts=$(artifacts | wc -l | tr -d ' ')
+if grep -qE "^[[:space:]]*const #source_label: &str = #filename;" "$EMITTER"; then
+  expected="$n_artifacts"; era="slice 2 (class L hoisted to one \`$LABEL_CONST\` constant per artifact)"
 else
-  fail "embedded sites total is $total, expected $SITES_AFTER (= $SITES_BEFORE − $DEAD_TOTAL)"
+  expected="$SITES_AFTER";  era="slice 1 (class D removed, class L still emitted per site)"
+fi
+if [ "$total" = "$expected" ]; then
+  if [ "$expected" = "$SITES_AFTER" ]; then
+    pass "embedded sites total $SITES_BEFORE -> $total, i.e. exactly −$DEAD_TOTAL — era: $era"
+  else
+    pass "embedded sites total is $total = one per artifact ($n_artifacts) — era: $era; slice 1's own $SITES_BEFORE -> $SITES_AFTER stays the record of that era, re-derivable from the es31_label_hoist bank's ARM 1"
+  fi
+else
+  fail "embedded sites total is $total, but the emitter says this tree is in $era, which predicts $expected"
 fi
 
 # ── ARM 4 — RED CONTROL: the arm-1 check must be able to FAIL ────────────────────────────────────
@@ -124,6 +146,16 @@ if [ -z "$BEFORE" ]; then
   note "This is the arm that proves the rebaseline is bookkeeping, not behaviour."
 elif [ ! -d "$BEFORE" ]; then
   fail "--before '$BEFORE' is not a directory"
+elif [ "$expected" = "$n_artifacts" ]; then
+  # ⛔ ERA GUARD. This arm isolates ONE change — slice 1's dead-line removal. Once slice 2 hoisted
+  # class L, a live tree's AFTER differs from any pre-slice-1 BEFORE by TWO changes, so the
+  # comparison would report "differs by more than the removed lines" about a correct tree. That is a
+  # false finding, and it is exactly the shape this bank exists to prevent, so it refuses to make
+  # the comparison instead of making it wrongly. Slice 1's own 11/11 result stands in its leaf.
+  note "NOT EVALUATED — this tree is in the slice-2 (hoisted) era, so AFTER differs from any"
+  note "pre-slice-1 snapshot by TWO changes and this arm cannot isolate slice 1's. Its 11/11"
+  note "result is recorded in docs/tasks/ENGINE-UNIVERSAL-SERVICES.md \`.31\` SLICE 1; the"
+  note "slice-2 substitution has its own identity arm in the es31_label_hoist bank (ARM C)."
 else
   ident=0; diffs=0
   while IFS= read -r f; do
