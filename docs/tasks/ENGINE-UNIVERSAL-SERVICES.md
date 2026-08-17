@@ -8692,7 +8692,7 @@ a generated-file path beside an offset into a different file entirely.
 - [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash generated_reproducibility_gate` **10/10 re-derive byte-identically** from HEAD; `make -C rust SHELL=/bin/bash sv_parse_cost_ratchet` re-measured and `entries.tsv` is **byte-identical** to the baseline (all five counters unmoved), family share re-derives **2.741 %** over 16 336 files; the (c) traces are byte-identical over 14 589 lines; `es31_label_hoist/probe.sh` **9/9 arms** (2 RED-by-design), `es19_path_embedding/probe.sh` **6/6** under its new era-aware arms, `es31_dead_binding/probe.sh` **5/5** (arm 5 correctly reports NOT EVALUATED under its era guard); `make -C rust SHELL=/bin/bash ast_shape_contract_gate` **18/18**; certificate coverage on `json` at seeds **0/7/42** identical, `UNKNOWN=0 fully_certified=true sample_parse_failures=0`; `bash scripts/check_doctrines.sh` **21/21 PASS**; `clippy_on_rust_change` clean (source + generated stages, 68 pinned correctness lints intact).
 - [x] **LOCKSTEP** — both artifact-keyed baselines rebaselined in this commit, roster DERIVED by `git grep` rather than remembered (and slice 1's third, `CODEGEN-DETERMINISM`, corrected — it owns none); `TOOLBOX.md` 5.6 + the quick-chooser row, `docs/book/src/diagnosing-unknowns.md`, `docs/book/src/gate-flow.md`, `DOCTRINE_ENFORCEMENT.md`, `scripts/compare_generated_parsers.py`, `scripts/check_generated_reproducibility.sh`, the `derive-the-comparison-key…` knowledge card, and the `es19_path_embedding` / `es31_dead_binding` / `run_guard_ab_structural` / `build_guard_ab_probes` banks all carry the era shift; `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md` updated.
 
-#### ⛔ `.32` NEW `todo` — `GENERATED-REPRODUCIBILITY` tier 2 re-derives the eight FAMILY artifacts with a binary it never proves is current with HEAD, so a stale generator makes the doctrine pass by construction (opened 2026-08-17 session #243 by `.31` slice 2, whose own regeneration produced the stale generator that exposed it)
+#### ✅ `.32` CLOSED — `GENERATED-REPRODUCIBILITY` tier 2 re-derived the eight FAMILY artifacts with a binary it never proved current, so a stale generator made the doctrine pass by construction (opened AND closed 2026-08-17 session #243 by `.31` slice 2, whose own regeneration produced the stale generator that exposed it; ✅ **(a)-(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0072` — tier 2 now asks **cargo**, which costs **0.8 s** when the binary is current and rebuilds when it is not, and ⭐ the fix's own RED arm found a SECOND defect on its first run: the gate printed *"TIER 2 OK — every checked artifact is what HEAD produces"* after skipping eight of them)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -8755,6 +8755,72 @@ binary — and prove the gate now refuses; (c) state the residual bound in the c
 (*"those four identity rows are all SOURCES; the numbers are produced by an untracked build
 artifact nothing hashed"*) — this is that lesson recurring on the gate that was adopted to catch it,
 so the fix should ask whether a THIRD instrument has the same shape.
+
+##### ✅ `.32` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0072`, 2026-08-17 session #243) — tier 2 asks CARGO whether its generator is current, at **0.8 s**; and its RED arm immediately caught the gate over-claiming what it had checked
+
+**THE CHANGE.** `scripts/check_generated_reproducibility.sh` tier 2 now runs
+`cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline` before using the
+families' generator, and reports NOT EVALUATED if that fails. Two smaller changes ride with it: every
+NOT-EVALUATED cohort is recorded in a `skipped` list, the tier-2 headline becomes **TIER 2 PARTIAL**
+naming what it skipped, and `--rebaseline` REFUSES on a partial run.
+
+**THE DECISION, AND IT IS NOT THE ONE THE LEAF EXPECTED.** Three candidates, priced
+(`es32_generator_currency/measurements.md` M3):
+
+| candidate | verdict |
+|---|---|
+| (A) build `ast_pipeline` into the gate's own `CARGO_TARGET_DIR`, as the pair already does | rejected on **price** — a cold ~216 MB build every run |
+| (B) publish `emission_sha` from `build.rs` and compare, the shape `.24` used | ⛔ rejected on **DESIGN**: the gate derives that digest from `git ls-files` and a `build.rs` cannot, so it needs a **second implementation of one digest that must agree with the first**. This repository has paid for that class four times (the `2.741` classifier, the carried `43 615`, four stale prose copies of one number, `128`-vs-`127`) |
+| (C) ⭐ **invoke cargo on the tree's own target dir** | **ADOPTED** — cargo *is* the authority on "is this binary current with these sources", so there is no second implementation to drift, no digest to keep in lockstep, and no false positive when a file is touched but unchanged (which a mtime comparison would report as staleness) |
+
+⭐ **(B) was the leaf's own preferred candidate when it was opened.** It was rejected by asking what
+it would COST IN AGREEMENT rather than in seconds — the cheaper-looking option needed a duplicate of
+a derivation, and a duplicate that must agree is the defect this tree has recorded four times.
+
+**MEASURED (all three in `es32_generator_currency/measurements.md`).**
+
+| | measurement |
+|---|---|
+| **M1** the false pass, constructed | pair correct, 8 families + `ebnf.rs` stale, matching stale binary ⇒ the gate printed **`TIER 2 OK — every checked artifact is what HEAD produces`** at **exit 0** over 8 artifacts HEAD does not produce (they carry 69–34 738 embedded sites; HEAD emits **1**) |
+| **M2** cargo detects the real mechanism | one emission source perturbed ⇒ `pipeline_build.log` records **`Compiling pgen v1.0.0`** and the gate re-derives with the rebuilt tool, rc 0 |
+| **M3** the price | **0.8 s** current · **41.7 s** incremental rebuild · (A) rejected |
+
+⭐ **M1's own output contains the disproof of its headline**: the two PAIR rows read `1 sites`
+because their generator is built from HEAD inside the gate; the eight family rows do not.
+
+⛔⛔ **AND THE NEW RED ARM FOUND A SECOND DEFECT ON ITS FIRST EXECUTION, IN THE CHECK IT WAS
+HARDENING.** The arm asserts that an un-provable generator leaves the family rows absent — and it
+failed, because the caller printed *"TIER 2 OK — every checked artifact is what HEAD produces"*
+regardless of whether a cohort had been skipped. ⇒ a run that checked **2 of 10** artifacts
+announced itself in the same words as a run that checked all 10, and `--rebaseline` would then have
+recorded rows nothing verified. Fixed in the same slice: `skipped` is tracked, the headline says
+**PARTIAL** and names the cohort, and `--rebaseline` refuses. ⭐ This is the second time in two
+slices that a control earned its place by going red against the thing it was added to protect.
+
+⚠️ **HONEST BOUNDS, stated in the check's own header rather than discovered later.** (C) proves the
+binary is current with the **working tree** — the same notion of "HEAD" tier 1's `emission_sha`
+already uses (both read tracked files as they stand, not `git show HEAD:`) — and it cannot detect a
+binary hand-**copied** over cargo's output path, because cargo keys on its fingerprint of the
+sources, not on the output bytes. Neither bound is the mechanism that produced the defect. ⚠️ It
+also MUTATES `rust/target/`, which is announced every run and is why it lives in tier 2, never
+tier 1.
+
+⛔ **Acceptance (d) answered: does a THIRD instrument have this shape?** Checked, not assumed.
+`PARSE-COST-RATCHET` arm 5 already closed the same gap for the release probe (`.24`), and the
+annotation PAIR was already immune here. The remaining instruments that shell out to a built binary
+— `parse_harness`'s `--report-feature-surface` guard and `scripts/require_ast_pipeline_features.sh`
+— check FEATURES, which is a different property, and both are invoked from flows that build first.
+⇒ no third instance found today; the search is recorded so a future one starts from a list rather
+than from scratch.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — constructed state (pair correct, 8 families + `ebnf.rs` at the previous emission, matching stale `rust/target/debug/ast_pipeline`); `bash scripts/check_generated_reproducibility.sh --verify` printed `TIER 2 OK — every checked artifact is what HEAD produces` at **exit 0** with rows reading `systemverilog … (34738 sites)` where HEAD emits **1**.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `scripts/check_generated_reproducibility.sh:187-199` (pre-fix): the pair is re-derived by an `ast_pipeline_bootstrap` built from HEAD into `$WORK/boot`, while the eight families are re-derived by `rust/target/debug/ast_pipeline` taken from disk and guarded only by `--report-feature-surface` (features) and `[ -x ]` (presence) — never currency. A stale generator therefore produces BOTH sides of the comparison, so byte-identity is guaranteed. Located by reading the two cohorts' code paths and CONFIRMED by the constructed run above, whose own PAIR rows (`1 sites`) disagree with its family rows (`34738 sites`) inside one report. `bash -n` clean on every edit.
+- [x] **FIX** — ops/build-flow tier, minimal: `cd rust && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline` before the family loop, NOT EVALUATED on failure; plus the `skipped` tracker, the PARTIAL headline and the `--rebaseline` refusal the RED arm exposed. No engine, grammar or generated bytes.
+- [x] **ADDRESSED (verified)** — with one emission source perturbed, `rust/target/generated_reproducibility/pipeline_build.log` records `Compiling pgen v1.0.0 … Finished in 41.66s` and the gate re-derives 10/10 byte-identically against the rebuilt tool (rc 0). Cost when already current: **0.8 s**. Before→after on the over-claiming headline: `TIER 2 OK — every checked artifact…` → `TIER 2 PARTIAL — … NOT EVALUATED for: the 8 family artifacts`.
+- [x] **NO REGRESSION** — `bash scripts/check_generated_reproducibility.sh --self-test` **9/9 arms as declared** (7 pre-existing + the 2 new, one RED and one GREEN-pair so the RED cannot be vacuous); `make -C rust SHELL=/bin/bash generated_reproducibility_gate` **10/10 byte-identical**; `bash scripts/check_doctrines.sh` **21/21 PASS**; `generated/` untouched (this slice emits nothing). No clippy flow: zero Rust bytes staged.
+- [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10 row, `docs/book/src/gate-flow.md`, `TOOLBOX.md`, `docs/decisions/project_standing_tripwires.md` (row 9 updated to record the closure), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`. Measurements recorded in `docs/tasks/artifacts/engine_universal_services/es32_generator_currency/measurements.md`.
 
 
 #### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ✅ **(f) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0048`; ✅ **(b) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0054` — the fused graph, the PROTOCOL graph and the PROTOCOL graph WITH the coverage recorder produce a **byte-identical AST** (one sha256 across all three arms), so the verdict agreement IS a derivation agreement; ⛔ the tool that could say so did not exist, and the two obvious substitutes both produce a FALSE PASS. **The leaf is now fully CLOSED** — slice 3 closed (f) by adjudicating all 7 tracked consumers and turned up that ONE 2 787-byte file is **99.39 %** of the corpus's committed multiplicity)

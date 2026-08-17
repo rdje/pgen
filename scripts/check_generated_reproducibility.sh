@@ -39,6 +39,47 @@
 #           Re-derive every artifact through the tracked recipe and demand byte-identity, then
 #           rewrite the baseline. `--verify` runs it here; `--rebaseline` records the result.
 #
+# ⛔⛔ TIER 2 MUST PROVE ITS GENERATOR IS CURRENT, AND UNTIL `ENGINE-UNIVERSAL-SERVICES.32` IT DID
+# NOT — SO IT COULD PASS BY CONSTRUCTION. The annotation PAIR has always been re-derived by an
+# `ast_pipeline_bootstrap` built from HEAD in this gate's own scratch dir. The EIGHT FAMILIES were
+# re-derived by whatever `rust/target/debug/ast_pipeline` happened to be on disk, guarded only for
+# its FEATURE surface and its PRESENCE — never its CURRENCY. A stale generator therefore produced
+# BOTH sides of the comparison, and byte-identity between two outputs of one stale tool is
+# guaranteed. Measured, not argued: with the pair correct, the eight families left at a previous
+# emission and a matching stale binary in place, this script printed
+#
+#     ✓ systemverilog   re-derives byte-identically (34738 sites)
+#     generated-reproducibility: TIER 2 OK — every checked artifact is what HEAD produces
+#
+# at exit 0, over eight artifacts that HEAD's emitter does not produce (it emits 1 embedded site,
+# not 34 738). ⭐ The run's own output contained the disproof of its headline: the two PAIR rows
+# read `1 sites` because their generator came from HEAD, and the eight family rows did not.
+#
+# ⭐⭐ THE FIX IS TO ASK CARGO, AND THE REASON IT IS CARGO IS THE INTERESTING PART. Three candidates
+# were priced (`ENGINE-UNIVERSAL-SERVICES.32`):
+#   (A) build `ast_pipeline` into THIS gate's own CARGO_TARGET_DIR, as the pair already does —
+#       sound, but a COLD ~216 MB build every run. Rejected on price.
+#   (B) have `build.rs` publish the `emission_sha` into the binary, the shape `.24` used for the
+#       parser fingerprint — ⛔ REJECTED ON DESIGN, not price: the gate derives `emission_sha` from
+#       `git ls-files`, and a `build.rs` cannot, so this needs a SECOND implementation of one digest
+#       that must agree with the first. Two things that must agree can drift, and this repository
+#       has paid for that four times (the `2.741` classifier, the carried `43 615`, the four stale
+#       prose copies of one number, the `128`-vs-`127` denominator).
+#   (C) ⭐ INVOKE CARGO on the tree's own target dir. Cargo is the authority on *"is this binary
+#       current with these sources"* — that is its entire job — so there is no second implementation
+#       to drift, no digest to keep in lockstep, and no false positive when a file is touched but
+#       unchanged (which a mtime comparison would report as staleness). Measured cost when the
+#       binary is already current: **0.8 s**. When it is not, it does the only correct thing and
+#       rebuilds. ADOPTED.
+# ⚠️ HONEST BOUNDS of (C), stated here rather than discovered later: it proves the binary is current
+# with the WORKING TREE, which is the same notion of "HEAD" tier 1's `emission_sha` already uses
+# (both read the tracked files as they stand, not `git show HEAD:`); and it cannot detect a binary
+# hand-COPIED over cargo's output path, because cargo keys on its own fingerprint of the sources
+# rather than on the output bytes. Neither bound is the mechanism that produced the defect — that
+# was `make` skipping a rebuild on GNU Make 3.81's whole-second mtime comparison
+# (`CI-PARITY-GATE-ROT.37`), which cargo detects exactly. ⚠️ And it MUTATES `rust/target/`: that is
+# announced on every run, and it is why this lives in tier 2 (on demand) and never in tier 1.
+#
 # ⭐ HONEST BOUND, stated before the check is trusted rather than after: tier 1 proves *"nothing that
 # could have changed the artifacts has changed"*, NOT *"the artifacts are correct"*. It inherits
 # whatever tier 2 last established. That is a real limitation and it is the same one
@@ -81,6 +122,13 @@ PAIR=(return_annotation semantic_annotation)
 FAMILIES=(json regex systemverilog systemverilog_preprocessor vhdl rtl_const_expr rtl_frontend scratch)
 
 fail=0
+# ⛔⛔ SKIPPED COHORTS MUST REACH THE HEADLINE (`ENGINE-UNIVERSAL-SERVICES.32`). A NOT-EVALUATED
+# cohort returns 0, and the caller used to print *"TIER 2 OK — every checked artifact is what HEAD
+# produces"* regardless — so a run that checked 2 of 10 artifacts announced itself in the same words
+# as a run that checked all 10. Found by this leaf's own RED arm on its first execution, against the
+# very check being hardened. The headline now NAMES what it skipped, and `--rebaseline` REFUSES on a
+# partial run rather than recording a baseline half of which nothing verified.
+skipped=""
 note()  { printf 'generated-reproducibility: %s\n' "$1" >&2; }
 die()   { note "$1"; exit 2; }
 breach(){ note "$1"; fail=1; }
@@ -160,7 +208,7 @@ rederive_and_compare() {
 }
 
 run_tier2() {
-  generated_present || { note "NOT EVALUATED — $GENERATED/ holds no generated parser. Regenerate with \`make -C rust SHELL=/bin/bash regenerate_generated_parsers\`, then re-run."; return 0; }
+  generated_present || { skipped="${skipped} every artifact"; note "NOT EVALUATED — $GENERATED/ holds no generated parser. Regenerate with \`make -C rust SHELL=/bin/bash regenerate_generated_parsers\`, then re-run."; return 0; }
 
   # The roster must match the Makefile's, or this gate silently checks a subset.
   local mk_fams
@@ -181,20 +229,41 @@ run_tier2() {
   printf 'building ast_pipeline_bootstrap from HEAD…\n'
   ( cd rust && CARGO_TARGET_DIR="$ROOT/$WORK/boot" cargo build \
       --bin ast_pipeline_bootstrap --no-default-features --features bootstrap ) >"$WORK/boot.log" 2>&1 \
-    || { note "NOT EVALUATED — ast_pipeline_bootstrap does not build from HEAD (see $WORK/boot.log). That is a larger finding than this gate measures."; return 0; }
+    || { skipped="${skipped} the annotation pair"; note "NOT EVALUATED — ast_pipeline_bootstrap does not build from HEAD (see $WORK/boot.log). That is a larger finding than this gate measures."; return 0; }
   for f in "${PAIR[@]}"; do rederive_and_compare "$f" pair "$ROOT/$WORK/boot/debug/ast_pipeline_bootstrap"; done
 
-  # The families, through the ordinary dual-feature ast_pipeline. It must already be current: this
-  # gate does not build a 216 MB binary as a side effect, it reports that it could not run.
+  # ⭐⭐ THE FAMILIES' GENERATOR MUST BE PROVEN CURRENT, NOT MERELY PRESENT AND WELL-FEATURED
+  # (`ENGINE-UNIVERSAL-SERVICES.32`; see the header for the measured false pass this closes and for
+  # why cargo rather than a second digest). Cargo is asked whether the binary is current with the
+  # tree's sources; when it is, this costs ~0.8 s, and when it is not, rebuilding is the only
+  # correct response. ⚠️ It MUTATES `rust/target/` and can therefore take minutes on a genuinely
+  # stale tree — announced, because a check that silently spends five minutes teaches bypassing.
   local pipeline="rust/target/debug/ast_pipeline"
-  if [ ! -x "$pipeline" ]; then
-    note "NOT EVALUATED for the ${#FAMILIES[@]} family artifacts — $pipeline is absent. Build it with \`cd rust && cargo build --features \"generated_parsers ebnf_dual_run\" --bin ast_pipeline\`, then re-run."
+  printf 'ensuring ast_pipeline is CURRENT with the tree (cargo decides; ~0.8 s if it already is)…\n'
+  if [ "${PGEN_GENREPRO_SELFTEST_FAIL_CURRENCY:-}" = 1 ] && [ "${PGEN_GENREPRO_SELFTEST:-}" = 1 ]; then
+    # SELF-TEST ONLY, and gated on TWO variables so it cannot be reached from an ordinary run:
+    # exercise the refusal path without spending a real rebuild. It proves the gate REFUSES when the
+    # currency step fails — it does NOT re-prove that cargo detects staleness, which is cargo's own
+    # contract and is covered by the one-shot end-to-end measurement recorded in `.32`.
+    skipped="${skipped} the 8 family artifacts"; note "NOT EVALUATED for the ${#FAMILIES[@]} family artifacts — the generator currency step FAILED (self-test injection). Without it, a stale generator would produce BOTH sides of the comparison and this gate would pass by construction."
     return 0
   fi
+  if ! ( cd rust && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline ) \
+        >"$WORK/pipeline_build.log" 2>&1; then
+    skipped="${skipped} the 8 family artifacts"; note "NOT EVALUATED for the ${#FAMILIES[@]} family artifacts — ast_pipeline does not build from the current tree (see $WORK/pipeline_build.log). A gate that continued here would re-derive with a STALE generator and compare it against artifacts that same generator produced, which passes by construction."
+    return 0
+  fi
+  if [ ! -x "$pipeline" ]; then
+    skipped="${skipped} the 8 family artifacts"; note "NOT EVALUATED for the ${#FAMILIES[@]} family artifacts — $pipeline is absent even after a successful build. Build it with \`cd rust && cargo build --features \"generated_parsers ebnf_dual_run\" --bin ast_pipeline\`, then re-run."
+    return 0
+  fi
+  # ⭐ The feature-surface arm is KEPT even though cargo now builds with the right features: it is
+  # free, it has its own RED arm, and it is the only thing that would notice if the invocation above
+  # ever drifted away from the feature set the families need.
   local surface; surface=$("$pipeline" --report-feature-surface 2>&1)
   case "$surface" in
     *"ebnf_dual_run=true generated_parsers=true"*) ;;
-    *) note "NOT EVALUATED for the ${#FAMILIES[@]} family artifacts — $pipeline is UNDER-FEATURED ($surface). It cannot generate any parser at all, and a comparison loop that reads a missing file as 'no difference' would report a clean pass."; return 0 ;;
+    *) skipped="${skipped} the 8 family artifacts"; note "NOT EVALUATED for the ${#FAMILIES[@]} family artifacts — $pipeline is UNDER-FEATURED ($surface). It cannot generate any parser at all, and a comparison loop that reads a missing file as 'no difference' would report a clean pass."; return 0 ;;
   esac
   for f in "${FAMILIES[@]}"; do rederive_and_compare "$f" family "$ROOT/$pipeline"; done
 }
@@ -224,11 +293,18 @@ write_baseline() {
 case "${1:-}" in
   --verify)
     run_tier2
-    [ "$fail" = 0 ] && printf 'generated-reproducibility: TIER 2 OK — every checked artifact is what HEAD produces\n'
+    if [ "$fail" = 0 ]; then
+      if [ -n "$skipped" ]; then
+        printf 'generated-reproducibility: TIER 2 PARTIAL — what ran is what HEAD produces, but NOT EVALUATED for:%s. This is NOT a clean verification.\n' "$skipped"
+      else
+        printf 'generated-reproducibility: TIER 2 OK — every checked artifact is what HEAD produces\n'
+      fi
+    fi
     exit "$fail" ;;
   --rebaseline)
     run_tier2
     [ "$fail" = 0 ] || { note "refusing to rebaseline: tier 2 found a breach. Regenerate the artifacts, do not record the divergence."; exit 1; }
+    [ -z "$skipped" ] || { note "refusing to rebaseline: tier 2 was NOT EVALUATED for:$skipped. Recording a baseline whose rows nothing verified is exactly the 'proven by a hash somebody wrote down' failure this doctrine exists to prevent."; exit 1; }
     generated_present || die "refusing to rebaseline from an absent generated/ tree"
     write_baseline; exit 0 ;;
   --self-test) ;;   # handled below
@@ -340,6 +416,35 @@ PY
   cp "$T/baseline.orig" "$BASELINE"
   arm "REFUSE(2): unknown argument"                    2 bash "$0" --nonsense
   arm "GREEN control again: baseline restored"         0 bash "$0"
+
+  # ── `ENGINE-UNIVERSAL-SERVICES.32` — the generator-currency refusal path ────────────────────────
+  # ⛔ EXIT CODE CANNOT DISCRIMINATE HERE: a NOT-EVALUATED note returns 0, exactly like a pass, which
+  # is the whole hazard this arm guards. It therefore asserts on OUTPUT — the family rows must be
+  # ABSENT and the refusal note present — rather than on rc.
+  # ⚠️ HONEST SCOPE, so nobody reads more into it than it proves: this fires the gate's REFUSAL when
+  # the currency step fails. It does NOT re-prove that cargo detects a stale generator — that is
+  # cargo's own contract, and the end-to-end demonstration (pair correct, families stale, matching
+  # stale binary, gate printing "every checked artifact is what HEAD produces" over eight artifacts
+  # that were not) is a one-shot measurement recorded in `.32`, not something to re-run per commit.
+  arms=$((arms + 1))
+  PGEN_GENREPRO_SELFTEST=1 PGEN_GENREPRO_SELFTEST_FAIL_CURRENCY=1 bash "$0" --verify >"$T/currency" 2>&1
+  if grep -q 'the generator currency step FAILED' "$T/currency" \
+     && ! grep -q '✓ systemverilog' "$T/currency" \
+     && ! grep -q 'TIER 2 OK' "$T/currency"; then
+    printf '  ✓ %-46s refused\n' "RED: family generator not proven current"
+  else
+    printf '  ✗ %-46s did NOT refuse — a stale generator would pass by construction\n' \
+      "RED: family generator not proven current" >&2; bad=$((bad + 1))
+  fi
+  # And the same run WITHOUT the injection must reach the families, or the arm above is vacuous.
+  arms=$((arms + 1))
+  bash "$0" --verify >"$T/currency_ok" 2>&1
+  if grep -q '✓ systemverilog' "$T/currency_ok" && grep -q 'TIER 2 OK' "$T/currency_ok"; then
+    printf '  ✓ %-46s reached\n' "GREEN pair: the families ARE checked normally"
+  else
+    printf '  ✗ %-46s the un-injected run did not reach the families, so the RED arm proves nothing\n' \
+      "GREEN pair: the families ARE checked normally" >&2; bad=$((bad + 1))
+  fi
 
   cp "$T/baseline.orig" "$BASELINE"; rm -rf "$T"
   printf '\n%d/%d arms behaved as designed\n' "$((arms - bad))" "$arms"

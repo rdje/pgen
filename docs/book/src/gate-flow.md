@@ -276,6 +276,19 @@ silent staleness.
 **Tier 2** re-derives all ten artifacts through the tracked recipe and demands
 byte-identity.
 
+⛔ **Tier 2 proves its own generator is current, and until 2026-08-17 it did
+not.** The two annotation parsers were always re-derived by a generator the gate
+builds from HEAD in its own scratch directory; the eight family parsers were
+re-derived by whatever `ast_pipeline` happened to be on disk — checked for its
+features and its presence, never for whether it matched the current sources. A
+stale generator therefore produced *both* sides of the comparison, and two
+outputs of one stale tool are byte-identical by construction. Measured: the gate
+printed *"TIER 2 OK — every checked artifact is what HEAD produces"* at exit 0
+over eight artifacts that HEAD's emitter does not produce. It now asks cargo
+whether the binary is current — 0.8 s when it is, a rebuild when it is not — and
+when a cohort cannot be checked the headline reads **TIER 2 PARTIAL** and names
+it, instead of claiming coverage it does not have.
+
 ⛔ Both tiers **assert the embedded `-o` path site count before trusting a hash**,
 and refuse rather than compare when the two sides disagree. A generated parser
 writes its own output path into the emitted source — once per artifact today, and

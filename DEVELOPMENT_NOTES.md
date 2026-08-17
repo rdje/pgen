@@ -1,5 +1,36 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0072 — the cheaper-looking fix cost a duplicate derivation, and the new control went red against the check it was added to protect
+
+**1. ⭐⭐ I PRICED THE WRONG AXIS FIRST, AND THE RIGHT AXIS WAS *AGREEMENT*, NOT SECONDS.** `.32`
+opened preferring a `build.rs` fingerprint — mirror `ENGINE-UNIVERSAL-SERVICES.24`, publish the
+`emission_sha` into the binary, compare. It is cheap in CPU and it is wrong: the gate derives that
+digest from `git ls-files`, a build script cannot, so the two would be **separate implementations of
+one digest that must agree**. This repository has paid for that class four times — the `2.741`
+classifier written from its own design's prose, the carried `43 615`, four stale prose copies of one
+number, `128`-vs-`127`. ⇒ **before pricing a candidate in seconds, ask how many implementations of
+one fact it leaves behind.** The adopted fix invokes cargo, which is the authority on the question
+and therefore introduces no second implementation at all. **promotion: declined** — the lesson is a
+sharpening of [[derive-the-comparison-key-from-the-artifact-not-from-the-caller]] (do not build a
+second copy of a derivation) rather than a new card; recorded in the leaf and in the check's header,
+where the next author of this gate will meet it.
+
+**2. ⛔⛔ THE NEW RED ARM WENT RED AGAINST THE CHECK IT WAS ADDED TO PROTECT — CORRECTLY.** The arm
+asserts that when the family generator cannot be shown current, the family rows are absent from the
+report. It failed, and the failure was real: the caller printed *"TIER 2 OK — every checked artifact
+is what HEAD produces"* whether or not a cohort had been skipped. A run that verified **2 of 10**
+artifacts announced itself in the same words as one that verified all 10, and `--rebaseline` would
+then have recorded rows nothing verified — the exact *"proven by a hash somebody wrote down"* failure
+the doctrine exists to prevent, reintroduced inside the doctrine. ⇒ a NOT-EVALUATED that returns 0
+must reach the **headline**, not just stderr, because the headline is what gets quoted.
+
+**3. ⭐ PRICE A NO-OP ONLY ON A TREE THE TOOL ITSELF LAST TOUCHED.** My first measurement of "cargo
+when the binary is already current" read **5 m 32 s** and I nearly recorded it as the cost of the
+currency check — which would have made the adopted fix look untenable. The binary had been
+hand-`cp`'d minutes earlier while constructing the staleness demonstration, so cargo's fingerprint
+was genuinely stale and it was doing real work. The honest figure is **0.8 s**, measured on the
+second run. The tell was `user 0m32s` against `real 5m32s`: a no-op does not block.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0071 — a prohibition's stated REASON is a hypothesis, and a determinism control cannot see a tool that changed between its arms
 
 **1. ⛔⛔ I RAN A MEASUREMENT WHILE A BACKGROUND JOB WAS REWRITING THE BINARY IT READS, AND THE

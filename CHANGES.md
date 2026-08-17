@@ -1,5 +1,47 @@
 # CHANGES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0072 (leaf ENGINE-UNIVERSAL-SERVICES.32 CLOSED; ops/build-flow, ZERO grammar/generated/engine bytes)
+
+- ⛔⛔ **A REGISTERED DOCTRINE COULD PASS BY CONSTRUCTION, AND IT IS ON THE SV RELEASE PATH.**
+  `GENERATED-REPRODUCIBILITY` tier 2 re-derived the two annotation parsers with a generator it
+  builds from HEAD in its own scratch dir — and the **eight family parsers** with whatever
+  `rust/target/debug/ast_pipeline` happened to be on disk, guarded for its FEATURE surface and its
+  PRESENCE but never its CURRENCY. A stale generator therefore produced BOTH sides of the
+  comparison, and byte-identity between two outputs of one stale tool is guaranteed.
+- **MEASURED, not argued.** With the pair correct, the eight families left at the previous emission
+  and a matching stale binary in place, the gate printed
+  `TIER 2 OK — every checked artifact is what HEAD produces` at **exit 0** over eight artifacts that
+  HEAD does not produce (they carry 69–34 738 embedded `-o` sites; HEAD emits **1**).
+  ⭐ The run's own output contained the disproof of its headline: the two PAIR rows read `1 sites`
+  because their generator came from HEAD, and the eight family rows did not.
+- ⭐⭐ **THE FIX IS TO ASK CARGO, AND THE REJECTED CANDIDATE IS THE INTERESTING PART.** Three were
+  priced. (A) build `ast_pipeline` into the gate's own `CARGO_TARGET_DIR` — rejected on PRICE, a cold
+  ~216 MB build every run. (B) publish an `emission_sha` from `build.rs` and compare it, the shape
+  `ENGINE-UNIVERSAL-SERVICES.24` used for the parser fingerprint — ⛔ **rejected on DESIGN, not
+  price**: the gate derives that digest from `git ls-files` and a build script cannot, so it needs a
+  SECOND implementation of one digest that must agree with the first, and this repository has paid
+  for that class four times. (C) **invoke cargo on the tree's own target dir** — ADOPTED: cargo IS
+  the authority on "is this binary current with these sources", so there is nothing to keep in
+  lockstep and no false positive when a file is touched but unchanged.
+- **Priced: 0.8 s** when the binary is already current; **41.7 s** for an incremental rebuild when it
+  is not. ⚠️ A first "no-op" measurement read 5 m 32 s and was wrong as a price — the binary had been
+  hand-copied during the demonstration, so cargo was doing real work. *Price a no-op only on a tree
+  the tool itself last touched.*
+- ⭐ **Proven end-to-end:** with one emission source perturbed, `pipeline_build.log` records
+  `Compiling pgen v1.0.0 … Finished in 41.66s` and the gate then re-derives 10/10 byte-identically
+  against the rebuilt tool.
+- ⛔⛔ **AND THE NEW RED ARM CAUGHT A SECOND DEFECT ON ITS FIRST EXECUTION, IN THE CHECK IT WAS
+  HARDENING.** The gate printed *"TIER 2 OK — every checked artifact is what HEAD produces"*
+  regardless of whether a cohort had been skipped, so a run that checked **2 of 10** artifacts
+  announced itself in the same words as a run that checked all 10 — and `--rebaseline` would then
+  have recorded rows nothing verified. Fixed in the same slice: skipped cohorts are tracked, the
+  headline reads **TIER 2 PARTIAL** and names them, and `--rebaseline` refuses on a partial run.
+- `--self-test` **9/9 arms** (7 pre-existing + a RED refusal arm and a GREEN pair proving the RED is
+  not vacuous). `generated_reproducibility_gate` 10/10 byte-identical; 21/21 doctrines.
+- ⛔ **The MAKE half stays open and parked**: `CI-PARITY-GATE-ROT.37` owns the whole-second mtime
+  trap on the `sources -> generator binary` edge, which is *how* the binary goes stale. This leaf is
+  *why nothing noticed*. Fixing either alone leaves the other live.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0071 (leaf ENGINE-UNIVERSAL-SERVICES.31 (b) PRICED + (c) DISCHARGED + (d) DRIVEN, `.32` NEW, `CI-PARITY-GATE-ROT.37` NEW; engine/codegen-emission + lockstep rebaseline, ZERO grammar bytes)
 
 - ✅ **A GENERATED PARSER NO LONGER CARRIES ONE COPY OF ITS OWN OUTPUT PATH PER LOGGING SITE.** The
