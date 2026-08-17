@@ -1,0 +1,10 @@
+  RED   control_specparam_pathpulse_scalar.sv    arm=pulse>general        the ordinary route produces no `pulse` node          ✓
+  RED   control_specparam_pathpulse_scalar.sv    arm=pulse>input_output   same, for the path-specific alternative's kind       ✓
+  GREEN control_specparam_pathpulse_scalar.sv    arm=!pulse               the manifest's own claim for this control            ✓
+  GREEN fixed_pathpulse_global.sv                arm=pulse>general        A.7.5 alternative 1 fired; `general` is UNIQUE to it ✓
+  RED   fixed_pathpulse_global.sv                arm=!pulse               the negation must fail where the pulse route IS taken ✓
+  GREEN fixed_pathpulse_path_specific.sv         arm=pulse>input_output   A.7.5 alternative 2 fired                            ✓
+  RED   fixed_pathpulse_path_specific.sv         arm=pulse>general        the two alternatives must not satisfy each other's claim ✓
+  GREEN fixed_pathpulse_lrm_30_7_1.sv            arm=pulse>input_output   IEEE 1800-2023 §30.7.1's own example, on the pulse route ✓
+
+ARM-RED-CONTROL: 8/8 as declared, 4 of them RED — the checker is proven able to fail

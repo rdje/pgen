@@ -1,5 +1,53 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0221 — the fix I had scheduled needed a feature, and reading the standard's lexical rule deleted the feature
+
+**1. ⭐⭐⭐ "THIS FIX NEEDS THE LEXICAL PILLAR" WAS A PLAN MADE FROM THE PRODUCTION, NOT FROM THE
+LEXER.** Slice 3 scheduled the PATHPULSE pair as needing `[> … ]` follow restrictions, on a reasoning
+that is *correct about the composed form*: `PATHPULSE$` · descriptor · `$` · descriptor as four
+grammar elements would accept `PATHPULSE$ clk $ q`, because layout is skipped before every element,
+and over-acceptance is a defect by this project's north star. What that reasoning never asked is
+whether the composed form is the right model at all. IEEE 1800 **A.9.3** gives
+`simple_identifier ::= [a-zA-Z_]{[a-zA-Z0-9_$]}` — **`$` is an identifier character** — so
+`PATHPULSE$clk$q` is ONE lexical token, the spaced spelling is a different token *sequence*, and a
+single contiguous regex refuses it **by construction**. ⇒ the feature was never needed; a
+sentence of the standard replaced it. **Before pricing a mechanism to enforce a constraint, check
+whether the constraint is a consequence of a shape you can just declare.**
+⭐ And the piece that made it possible is in the CLAUSE, not the Annex: §30.7.1 adds *"the terminals
+may not be a bit-select or part-select of a vector"*, which removes the only non-identifier-shaped
+part of the descriptor. A production that looks un-regex-able in Annex A became regex-able once the
+clause was read. **The Annex is the shape; the clause is the constraint.** Promoted →
+`docs/knowledge/a-token-the-standard-writes-contiguously-must-be-one-terminal.md`.
+
+**2. ⛔⛔ MY EVIDENCE THAT THE PRODUCTION WAS DEAD WOULD HAVE READ THE SAME IF IT WERE ALIVE.** The
+sweep recorded it as *"an AST dump of `specparam PATHPULSE$a$y = (1);` contains `pulse_control` ZERO
+times"*. True — and it reads zero on a REACHED production too, because no annotation emits a rule's
+own name into the AST. The conclusion was right and the instrument was not discriminating. The real
+discriminator is the declared `kind`, verified UNIQUE before being trusted (`grep -c 'kind: "general"'`
+= 1, `'kind: "pulse"'` = 1), and it is now pinned as an `arm` on four repro rows with a RED control
+proving each claim can fail. ⇒ **an instrument that returns the same value in both states is not
+evidence, however true its reading is.**
+
+**3. ⭐ THE `.13h` RULE PAID OFF IN THE VERY NEXT SLICE THAT COULD REPRODUCE IT.** `.13h` wrote:
+*a corpus delta joined on pass/fail measures only the rows that CROSSED it; the honest join is over
+the MANIFEST.* I joined both ways here to see whether it mattered: pass/fail finds **2** transitions,
+the manifest finds **3**. The third — `verilator/test_regress/t/t_specparam.v` — still fails and left
+the defect bar anyway, because the parse now dies on an `` `ifdef `` instead of on the specparam. Half
+of this slice's bar movement was invisible to the obvious join.
+
+**4. ⚠️ A TRACKED PUBLISHED MEASUREMENT WENT STALE IN ONE COMMIT, AND SO DID A LANE.** The sweep
+artifact still said *"5 are defects / 313 terminals"* after slice 3 deleted one of its rows (live: 4 /
+312), and `characterization_v2005.md` was **two parser-states** behind because slice 3 promoted the SV
+lane and not the `verilog_2005` one. Both were found by a slice that happened to need the number —
+which is exactly how `.13i` was found, one slice earlier. **A published artifact with no watcher does
+not rot slowly; it rots at the next commit.**
+
+**5. ⭐ THE INSTRUMENT WAS PRINTING A CLAIM ITS OWN TREE HAD REFUTED.** The sweep's closing note read
+*"…which is why these are under-acceptance defects. LRM-legal source that WOULD use the construct is
+rejected today"* — refuted by `.13c.2f` slice 1, re-scoped by slice 2, and still being printed beside
+the two survivors for which it is measurably false. Corrected in the producer rather than in prose,
+because the producer is what the next reader runs.
+
 ## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0220 — the first shipped-bytes change of the session, and the two things that nearly went out wrong
 
 **1. ⭐⭐ "BUNDLE THEM TO SAVE THE CEREMONY" WAS A PLAN MADE BEFORE THE MEASUREMENT.** Slice 1 decided

@@ -193,10 +193,19 @@ for name, text in kw:
     # ⭐⭐ SIGNAL C — PUNCTUATION TRANSLITERATED INTO THE TOKEN TEXT. Added after signals A and B
     # MISSED a whole production: the LRM writes `PATHPULSE$`, and the extraction emitted a terminal
     # matching the literal characters `PATHPULSE_dollar`. No SystemVerilog source contains that, so
-    # `pulse_control_specparam` is unreachable through BOTH its alternatives — and neither A nor B
-    # fires, because `PATHPULSE_dollar` is near no nonterminal and contains none. Measured: an AST
-    # dump of `specparam PATHPULSE$a$y = (1);` contains `pulse_control` ZERO times; the input is
-    # accepted only by falling through to the ordinary `specparam_assignment`.
+    # `pulse_control_specparam` was unreachable through BOTH its alternatives — and neither A nor B
+    # fires, because `PATHPULSE_dollar` is near no nonterminal and contains none.
+    # ✅ ITS FOUNDING POPULATION IS FIXED AND THE SIGNAL NOW REPORTS ZERO (`.13c.2f` slice 4): both
+    # terminals match `PATHPULSE\$…` — the character the LRM writes — so C is a live tripwire over an
+    # empty population, not a dead branch. An empty C is the AFTER-measurement of that fix.
+    # ⚠️ AND THE EVIDENCE THAT FOUNDED IT WAS THE WEAK FORM OF THE RIGHT TEST. It was recorded as
+    # *"an AST dump of `specparam PATHPULSE$a$y = (1);` contains `pulse_control` ZERO times"* — true,
+    # and it reads zero on a REACHED production too, because no annotation emits the rule's name. The
+    # discriminator is the declared `kind`: `simple` = the ordinary `specparam_assignment`,
+    # `general`/`input_output` under a `pulse` node = this production. Measured after the fix, that
+    # very input still reports `pulse=0` — a single limit value is a legal parenthesised
+    # `constant_mintypmax_expression`, so both alternatives tie and the earlier one wins
+    # (`.13c.2h`). A `(1, 2)` input is what separates them.
     translit = [x for x in PUNCT_NAMES if f"_{x}" in text or text.startswith(x + "_")]
     if translit:
         sig.append(("C", "punctuation transliterated: " + ", ".join(sorted(translit))))
@@ -277,9 +286,16 @@ print("     which is worse: unreachable under-accepts, wrong mis-parses. Only th
 print("   - whether re-pointing a reference is a one-line fix. It is not, at least once: the sv_2017")
 print("     cross-body shape demands a `;` after EVERY item, so the repair must mirror the sv_2023")
 print("     pair. Every fix here is ACCEPT-WIDENING and owes the full ceremony.")
-print("   - DEAD-on-the-corpus is not DEAD-in-the-language: it means no corpus file exercises the")
-print("     alternative, which is why these are under-acceptance defects rather than harmless dead")
-print("     code. LRM-legal source that WOULD use the construct is rejected today.")
+print("   - ⛔ WHETHER THE CONSTRUCT IS REJECTED. This sweep measures REACHABILITY of an")
+print("     ALTERNATIVE, and a construct can be reachable through a DIFFERENT production, so")
+print("     `unreachable` does NOT imply `rejected`. This bullet asserted the implication until")
+print("     `.13c.2f`, and pinning a minimal input per site refuted it: of the five sites the")
+print("     sweep has ever listed, THREE rejected (`function_declaraton`, both `PATHPULSE$`")
+print("     forms — all three now fixed) and the two that remain, `class_qualifier` and")
+print("     `tx_path_delay_expression`, ACCEPT today through other productions. ⇒ every row here")
+print("     owes a pinned REJECT before it is called an under-acceptance, and a row with none is")
+print("     an unreachable alternative — still a defect, because the grammar claims support it")
+print("     does not deliver, but not axis-2 mass.")
 
 # ── cross-family: does this shape exist in any OTHER tracked grammar? ─────────────────────────────
 # ⛔ THIS LIVES IN THE SCRIPT, NOT APPENDED TO ITS OUTPUT. It was first written by appending to the

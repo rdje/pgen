@@ -1,5 +1,50 @@
 # CHANGES.md
 
+## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0221 (leaf SV-CORPUS-GRAD.13c.2f slice 4 — the PATHPULSE pair SHIPS; SV EBNF, grammar tier, ZERO Rust/engine bytes)
+
+- ✅ **IEEE 1800-2023 §30.7.1's OWN EXAMPLE NOW PARSES, ON BOTH PROFILES** — the `specify` block whose
+  `specparam` sets three PATHPULSE limits went **REJECT `furthest_position=166` → ACCEPT**. Both
+  A.7.5 alternatives of `pulse_control_specparam` were unreachable: the extraction transliterated the
+  LRM's literal `$` into the word `_dollar` and, for the path-specific form, flattened both
+  NONTERMINAL references into the token text as well. Probes proven current by `--parser-fingerprint`
+  on both arms (`36942bb53c45800d` before, `ee393ed57cde037d` after, each = the live artifact sha).
+- ⭐⭐⭐ **THE PLANNED FIX WAS SUPERSEDED BY READING THE STANDARD'S OWN LEXICAL RULE.** Slice 3 had
+  scheduled this as *"needs the lexical pillar (`[> …]`), because `trivia` skips whitespace and a
+  naive repair would accept `PATHPULSE$ a $ y`"*. The premise is right and the conclusion does not
+  follow: **A.9.3 makes `$` an identifier character**, so `PATHPULSE$clk$q` is ONE lexical token and
+  the spaced spelling is a different token *sequence*. ⇒ **one contiguous regex per token**, and the
+  over-acceptance is refused BY CONSTRUCTION rather than by an enforced rule. §30.7.1's own
+  restriction — *"the terminals may not be a bit-select or part-select of a vector"* — is what makes
+  the descriptor regex-able at all. **The Annex is the shape; the clause is the constraint.**
+- ⛔⛔ **A VERDICT IS NOT THE EVIDENCE HERE — THE AST ARM IS.** `specparam PATHPULSE$a$y = 3;` accepted
+  *before* the fix too, by falling through to the ordinary `specparam_assignment`. The discriminator
+  is the declared `kind` (`general` and `pulse` are each UNIQUE to one alternative), and the four new
+  `arm` claims are proven able to fail: `ARM-RED-CONTROL: 8/8 as declared, 4 of them RED`.
+- **CORPUS `pass 9774 → 9776`** over 16 336 files, and every transition is the standard's own text:
+  ispras' clause-30.7.1 test, its IEEE 1364-2005 twin, and Verilator's own PATHPULSE regression
+  `t_specparam.v` (which still fails, but now at an `` `ifdef `` on line 40, past every PATHPULSE
+  specparam). ⭐ **The join is over the MANIFEST, not pass/fail** — `.13h`'s rule, reproduced in the
+  very next slice that could: pass/fail finds **2** transitions, the manifest finds **3**.
+- **AXIS-2 BAR `302 → 300`, denominator UNMOVED** (`7556/2459/6321/4392/300`): `match` 5 820 → 5 821,
+  `unexplained_rejects_valid` 281 → 279, **accepts-invalid byte-identical at 21**. The
+  `verilog_2005` lane moves with it (`68 → 67`, accepts-invalid byte-identical at 14) — and it was
+  found **two parser-states stale**, because slice 3 promoted one lane and not the other.
+- **10 new pinned repros** (`ADJUDICATION-REPROS: checked=39 armed=12 listed=39 failures=0`),
+  including the over-acceptance guard `invalid_pathpulse_spaced_descriptors.sv` — if the token is
+  ever re-composed out of grammar elements, that row starts parsing and the ratchet fires.
+- ⚠️ **A tracked published measurement had gone stale in ONE commit**: the sweep artifact still read
+  *"5 are defects"* after slice 3 deleted one of its rows. Refreshed (now **2 defects / 9 sites**),
+  and its closing claim — *"LRM-legal source that WOULD use the construct is rejected today"* — was
+  **corrected in the producer**, because slices 1-2 had refuted it and it was still being printed.
+- **NO REGRESSION:** 0 corpus rows worsened; `--lint-grammar` headline byte-identical;
+  `ast_shape_contract_gate` 18/18; `generated_reproducibility_gate` **TIER 2 OK 11/11 byte-identical**;
+  parse-cost binding counters **+0/+0/+0** and family share **2.741 %** exact;
+  `generated_clippy_correctness_gate` 0 findings; doctrines **21/21 PASS**.
+- **NEW:** `.13c.2h` — a single-limit `PATHPULSE$x$y = (1)` still parses as an ORDINARY specparam,
+  because `( constant_mintypmax_expression )` is a legal `constant_primary`, so both alternatives tie
+  on the identical span and `longest_match` keeps the earlier one. Measured, owned, deliberately not
+  bundled (it changes AST shape for text that already parses).
+
 ## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0220 (leaf SV-CORPUS-GRAD.13c.2d/.13c.2f slice 3 — THE FIX SHIPS; SV EBNF, grammar tier, ZERO Rust/engine bytes)
 
 - ✅ **IEEE 1800-2017 §19.6.1's OWN EXAMPLE NOW PARSES UNDER `sv_2017`.** A `cross` body that declares

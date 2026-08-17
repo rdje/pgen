@@ -6,8 +6,8 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `20a80ffd16ec6b8702b00d73d69ff4d1347888bf4c39dfc57497580185a1cc3e` |
-| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `9c7e70a72e671e04dc3c19fff2ea35a712488ddfd0af9ba78996965c2a7f4a01` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `62f41ea39ba8dc0830b3101bb2322614b4677f42f9798ce64f455f42753cb19b` |
+| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `c30ed5ce4243633fd7a02bd4a2dd7c39b7536f0c78452cf12d2823088e65d506` |
 
 ## The headline
 
@@ -19,10 +19,10 @@
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 5,820 | 35.6 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `match` | 5,821 | 35.6 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,091 | 6.7 % | parse stops on a macro use - positionally gated since .12a |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 281 | 1.7 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
-| ADJUDICATED | `divergence:explained_svpp_conditional` | 199 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 279 | 1.7 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `divergence:explained_svpp_conditional` | 200 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 140 | 0.9 % | parse stops on an `include - positionally gated since .12a |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 21 | 0.1 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_svpp_protected_envelope` | 4 | 0.0 % | IEEE 1800-2017 §34 encrypted envelope - not source text yet |

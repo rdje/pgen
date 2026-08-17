@@ -8806,10 +8806,12 @@ re-measure with the accepts-invalid set held, release + schema + ledger), not a 
 which production is meant, and for `class_qualifier` whether it must be **written** rather than
 re-pointed (its production is absent from the grammar entirely); ⚠️ **(b) DISCHARGED by slice 1, and
 its result OVERTURNS this leaf's own framing** — pin the current REJECT for each with a minimal input,
-the way `.13c.2d` did, so the fix has a before→after and not a claim; (c) ⛔ land all four fixes — these three
-plus `.13c.2d`'s — in **ONE** accept-widening ceremony (SV regeneration + corpus re-measure with the
-accepts-invalid set held + release/schema/ledger), because spending it per-site spends it four times;
-(d) decide the EXTRACTOR question above — a hand-fix that leaves
+the way `.13c.2d` did, so the fix has a before→after and not a claim; ✅ **(c) DISCHARGED across
+slices 3 and 4, and its own "ONE ceremony" premise was SUPERSEDED on a measurement** — every site
+with a demonstrated REJECT is fixed (`function_declaraton` in slice 3, both `PATHPULSE$` forms in
+slice 4) and the two without one are ruled NOT to be fixed; bundling was re-priced at ~2 min of
+regeneration plus 80 s of corpus, i.e. it saves almost nothing and costs attribution, so the rule is
+**one fix per ceremony when the fixes differ in risk**; (d) decide the EXTRACTOR question above — a hand-fix that leaves
 `tools/extract_systemverilog_lrm_profiles.py` emitting the same shape is a fix with a re-introduction
 path, and the sibling grammar is tracked, so the re-introduction would land in git. ⛔⛔ **And the
 guard that would have caught this ALREADY EXISTS AND REPORTS ZERO**: `--lint-grammar` on
@@ -8819,10 +8821,15 @@ spelling**, which is a *well-formed* grammar. The lint is not missing; it is **s
 upstream. ⇒ the fix is not "add a check", it is "stop normalising the symptom into legality", and
 those are different files. A post-condition on the extractor — *every name it references must be one
 it defined, else report what was dropped* — is the shape that survives, because it runs before the
-fallback erases the evidence; (e) re-run the
-sweep afterwards and show the defect count reach **0** while the 5 exonerated keywords stay
-exonerated — and extend it to cover the sibling grammar, which today needs its own authority (Annex B
-is the SV keyword table and applies to both, so this is a scope change, not a new instrument).
+fallback erases the evidence; ⚠️ **(e) RE-SCOPED by measurement, and the re-scoping is the honest
+part** — it asked for the defect count to reach **0**, and it reads **2**: slices 3 and 4 took it
+`5 → 4 → 2` and the two survivors (`class_qualifier` 8 sites, `tx_path_delay_expression` 1 site) are
+ruled NOT to be fixed, because neither has a demonstrated reject and writing an absent production from
+the LRM risks over-acceptance for no measured gain. **0 was never the right target for a count that
+mixes "unreachable" with "rejects"**; the target that survives is *"every site with a pinned REJECT is
+fixed"*, which is met. The 5 exonerated keywords stayed exonerated across all three runs and the two
+authorities still partition every row identically. Still open in (e): extending the sweep to the
+sibling generated grammar, which is (d)'s subject anyway.
 
 ##### ⛔⛔ `.13c.2f` SLICE 1 (`PGEN-SV-CORPUS-GRAD-0218`, 2026-08-17 session #244) — (a)+(b) DISCHARGED, and the measurement OVERTURNS what `.13c.2d`'s sweep write-up published four commits ago
 
@@ -9050,6 +9057,195 @@ practice `.11` should record.
 - [x] **ADDRESSED (verified)** — `cross_function.sv` sv_2017 **REJECT `furthest_position=65` → ACCEPT**, with the after-probe proven current by `--parser-fingerprint` = `36942bb53c45800d` = the new artifact sha. sv_2023 unchanged at ACCEPT.
 - [x] **NO REGRESSION** — SV corpus **16 336 files, 0 verdict changes, 0 timeouts, 0 crashes** (baseline provenance stated above); accepts-invalid controls `;;` and bare `;` still **REJECT** on both profiles while the single-`;` form ACCEPTs; `--lint-grammar` `ordered_choice_shadowing=0 / non_terminating=0 / unreachable_rules=0 / undefined_references=0`; `ast_shape_contract_gate` **18/18**; `generated_reproducibility_gate` **11/11 byte-identical**; parse-cost binding counters **+0 / +0 / +0** and family share **2.741 %** exact; `generated_clippy_correctness_gate` **0 findings**; `bash scripts/check_doctrines.sh` **21/21 PASS** with `SV-CORPUS-DENOMINATOR` tuple unchanged at `7556/2459/6321/4392/302`.
 - [x] **LOCKSTEP** — `grammars/systemverilog.ebnf`, `rust/test_data/grammar_quality/generated_reproducibility_v0.json` + the `parse_cost_ratchet` artifacts (both rebaselined — the SV artifact legitimately moved), `stimuli/sv/characterization/characterization.md`, this leaf, `docs/tasks/GENERATED-LINT-CORRECTNESS.md` (`.11` gained a third reproduction — NOT a new leaf), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+
+##### ✅ `.13c.2f` SLICE 4 (`PGEN-SV-CORPUS-GRAD-0221`, 2026-08-17 session #244) — THE PATHPULSE PAIR SHIPS: both A.7.5 alternatives are reachable, and the **axis-2 bar moves 302 → 300**
+
+⭐⭐⭐ **THE PLANNED FIX WAS SUPERSEDED BY READING THE STANDARD'S OWN LEXICAL RULE, AND THE SLICE IS
+SMALLER AND STRICTER FOR IT.** Slice 3 scheduled this pair as *"needs the **lexical pillar**
+(`[> …]` follow restrictions): `trivia` skips whitespace, so a naive repair would accept
+`PATHPULSE$ a $ y`"*. That premise is right and its conclusion does not follow. The composed form —
+`PATHPULSE$` · descriptor · `$` · descriptor as four grammar elements — is what needs a follow
+restriction; **it was never built.** IEEE 1800 **A.9.3** gives
+`simple_identifier ::= [a-zA-Z_]{[a-zA-Z0-9_$]}`, so `$` is an identifier character and
+`PATHPULSE$clk$q` is **ONE lexical token**; the spaced spelling is a different token *sequence*, not
+the same token with layout inside it. ⇒ the faithful model is **one contiguous regex per token**, and
+the over-acceptance is refused **by construction** rather than by an enforced rule.
+⭐ The clause text is what closes it: §30.7.1 adds *"the terminals may not be a bit-select or
+part-select of a vector"*, which deletes the only non-identifier-shaped part of the descriptor. **A
+production that looks un-regex-able in Annex A became regex-able once the clause's restriction was
+read** — the Annex is the shape, the clause is the constraint, and the constraint decides the lexical
+class. Promoted → [[a-token-the-standard-writes-contiguously-must-be-one-terminal]].
+
+**REPRODUCE — and the reproducer is the STANDARD'S OWN EXAMPLE, not a synthetic.** IEEE 1800-2023
+§30.7.1 prints a `specify` block whose `specparam` sets three PATHPULSE limits. Verbatim, it
+**REJECTS on both profiles** at `furthest_position=166` — byte 166 is the `,` inside
+`PATHPULSE$clk$q = (2,9)`. Its one-difference control (the same block with the `specparam` removed)
+**ACCEPTS on both**, so the rejection is the specparam and not the module paths or the `*>`
+connection.
+
+**ROOT CAUSE (WHY + WHERE).** `grammars/systemverilog.ebnf:6411`/`:6413` defined the pair as
+`trivia /PATHPULSE_dollar\b/` and
+`trivia /PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor\b/`
+— the LRM's literal `$` transliterated into the word `_dollar`, and for the second one both
+NONTERMINAL references flattened into the token text as well. Both are referenced only by
+`pulse_control_specparam` (`:5016`/`:5018`), so **0 of 16 427** corpus SV files can reach either
+alternative.
+
+**THE FIX — two terminals, ZERO Rust bytes, ZERO engine bytes, no new mechanism:**
+
+```diff
+-kw_PATHPULSE_dollar_e0f78dc5 := trivia /PATHPULSE_dollar\b/
++kw_PATHPULSE_dollar_e0f78dc5 := trivia /PATHPULSE\$/
+
+-kw_PATHPULSE_…_descriptor_b3eb892a := trivia /PATHPULSE_dollar_specify_input_…_descriptor\b/
++kw_PATHPULSE_…_descriptor_b3eb892a := trivia /PATHPULSE\$[a-zA-Z_][a-zA-Z0-9_$]*\$[a-zA-Z_][a-zA-Z0-9_$]*/
+```
+
+⭐ **The rule NAMES are kept deliberately.** They are faithful transliterations of the LRM's own
+spelling — which is exactly what the new regexes implement — so the names were never the wrong thing;
+the matched TEXT was. Renaming would also drop them out of the sweep's `kw_*` denominator for no
+measured gain.
+⛔ **A prefix over-match cannot widen alternative 1**, and that was checked rather than assumed: if
+`/PATHPULSE\$/` matched only the prefix of a longer identifier, the next element must be `assign`
+(`=`), and every remaining character of an identifier is an identifier character, never `=`. So the
+alternative fails, exactly as it must.
+
+**MEASURED BEFORE → AFTER, each arm's probe proven current by `--parser-fingerprint`:**
+
+| | probe embeds | §30.7.1 example | `PATHPULSE$ = (1,2)` | `PATHPULSE$a$y = (1,2)` |
+|---|---|---|---|---|
+| before | `36942bb53c45800d` = live artifact | **REJECT** `pos=166` | **REJECT** `pos=35` | **REJECT** `pos=38` |
+| after | `ee393ed57cde037d` = live artifact | ✅ **ACCEPT** | ✅ **ACCEPT** | ✅ **ACCEPT** |
+
+⛔⛔ **AND A VERDICT IS NOT THE EVIDENCE HERE — THE AST ARM IS.** `specparam PATHPULSE$a$y = 3;`
+accepted **before** the fix too (it fell through to the ordinary `specparam_assignment`), so an
+ACCEPT proves nothing on its own. The discriminator is the declared `kind`: `general` is **unique**
+to A.7.5 alternative 1 (`grep -c 'kind: "general"'` = 1) and `pulse` is **unique** to
+`specparam_assignment`'s pulse alternative (= 1). Measured after: `PATHPULSE$ = (1,2)` →
+`pulse=1 general=1`; `PATHPULSE$clk$q = (2,9)` → `pulse=1 input_output=1`; §30.7.1's example →
+`pulse=2`. ⚠️ Note what the earlier evidence could not do: grepping the AST for `pulse_control`
+returns **0** whether the production fired or not, because no annotation emits the rule's own name —
+the sweep's founding note has been corrected in place to say so.
+
+**OVER-ACCEPTANCE CONTROLS — the whole point of the shape, measured on both profiles:**
+
+| input | verdict | why it must be that |
+|---|---|---|
+| `PATHPULSE$ clk $ q = (2, 9);` | ⛔ **REJECT** | A.9.3: three tokens, not one — the composed form would have accepted this |
+| `PATHPULSE$clk = (2, 9);` | ⛔ **REJECT** | A.7.5 has no one-descriptor alternative |
+| `PATHPULSE$clk$q = (1, 2, 3);` | ⛔ **REJECT** | `( reject [ , error ] )` — at most two |
+| `specparam CAP = (1, 2);` | ⛔ **REJECT** | slice 2's control: a plain specparam takes a `constant_mintypmax_expression` |
+| `PATHPULSE$ = 3;` | ✅ ACCEPT, `!pulse` | §30.7.1's own third line — an ordinary assignment, and the RED control for every arm claim |
+
+All ten are pinned in `stimuli/sv/adjudication_repros/` + `MANIFEST.tsv` as the two-sided ratchet
+(`ADJUDICATION-REPROS: checked=39 armed=12 listed=39 failures=0`), so a later re-composition of the
+token fails a test instead of passing silently.
+⭐ **The four new `arm` claims were proven able to go RED**, using the runner's OWN checker rather
+than a re-implementation: `docs/tasks/artifacts/sv_corpus_grad/es13c2f4_pathpulse/arm_red_control.py`
+→ **`ARM-RED-CONTROL: 8/8 as declared, 4 of them RED`** (a control never seen RED is not known to
+work — `docs/CLAIM_VERIFICATION.md` §3 leg 2).
+
+**THE CORPUS — 16 336 files, `pass 9774 → 9776`, and every transition is the standard's own text.**
+⭐⭐ **The join is over the MANIFEST, not over pass/fail** — the rule `.13h` wrote down one slice
+earlier, and it earns its place again: a pass/fail join finds **2** transitions and the manifest join
+finds **3**. Tracked at
+`docs/tasks/artifacts/sv_corpus_grad/es13c2f4_pathpulse/corpus_transitions.tsv`:
+
+| lane | row | observed | adjudication | bar |
+|---|---|---|---|---|
+| main | `ispras ieee-1800-2012/30/30.07.01_01.sv` | fail → **pass** | `unexplained_rejects_valid` → **`match`** | **−1** |
+| main | `verilator test_regress/t/t_specparam.v` | fail → fail | `unexplained_rejects_valid` → **`explained_svpp_conditional`** | **−1** |
+| main | `ispras ieee-1364-2005/test_14_06_01_1.v` | fail → **pass** | `deferred:v2005_profile_lane` (unchanged) | 0 |
+| v2005 | `ispras ieee-1364-2005/test_14_06_01_1.v` | fail → **pass** | `unexplained_rejects_valid` → **`match`** | **−1** |
+
+⭐ `30.07.01_01.sv` is the ispras clause-keyed test for **clause 30.7.1 itself**, and
+`test_14_06_01_1.v` is its IEEE 1364-2005 twin — the two corpus rows that exist precisely to ask this
+question. `t_specparam.v` is Verilator's own PATHPULSE regression (`PATHPULSE$a$b = (3.0:3.1:3.2,
+4.0:4.1:4.2)`, mintypmax in both limit values): it still fails, but now at byte **1170**, an
+`` `ifdef `` on line 40, having parsed every PATHPULSE specparam above it.
+⭐⭐ **The third row is invisible to a pass/fail join** — the same blindness `.13h` measured, in the
+very next slice that could reproduce it, which is the strongest available evidence that its rule was
+worth writing down.
+⚠️ **And the fourth row is `.13h`(f)'s ruling reproduced**: `test_14_06_01_1.v` improves in the MAIN
+lane where it is `deferred:v2005_profile_lane`, so that gain is **bar-invisible by design** — and the
+`verilog_2005` lane, whose job is exactly that row, picks the credit up.
+
+**THE BAR — `302 → 300`, and the denominator did NOT move.** Tuple
+`7556/2459/6321/4392/**300**`: ADJUDICATED / ROUTED / NO-VERDICT / DARK all unchanged, `match`
+5 820 → 5 821, `unexplained_rejects_valid` 281 → 279, **`accepts-invalid` byte-identical at 21** —
+two fewer known defects over the same 46.3 % of the corpus, which is a strictly smaller claim than
+*"the bar fell"*. The `verilog_2005` lane moves with it: `match` 2 186 → 2 187,
+`unexplained_rejects_valid` 54 → 53, its `accepts-invalid` byte-identical at 14.
+⛔ **The doctrine PROVED the republication was required** rather than my remembering to do it — on
+the untouched book `SV-CORPUS-DENOMINATOR` went RED with the derivation
+(`publishes ['…/302'] but the census derives …/300`), and green after.
+
+⚠️ **THE `verilog_2005` LANE WAS TWO PARSER-STATES STALE WHEN THIS SLICE FOUND IT** —
+`characterization_v2005.md` recorded parser `463c6476…` (that is `.13h`'s state, 2026-08-14) while
+the SV lane had already been promoted to `36942bb5…` by slice 3. So slice 3 re-ran one lane and not
+the other. Re-measured here: `pass 2181 → 2182`. ⛔ This is the SECOND consecutive occurrence of the
+class `.13i` owns (*six tracked oracles carry an instrument-identity block and only one is
+gate-checked*), and the first one was found the same way — by a slice that happened to need the
+number. Recorded at `.13i` rather than opened again.
+
+⚠️ **A TRACKED PUBLISHED MEASUREMENT WENT STALE IN ONE COMMIT, AND NOTHING SAID SO.**
+`nonterminal_as_literal_sweep.txt` still read *"**5 are defects**, 313 kw_* terminals"* — slice 3 had
+deleted `kw_function_declaraton_06b7ed29` and left the artifact behind (it is absent from slice 3's
+own LOCKSTEP list). Live at the start of this slice: **4 defects / 312**. Refreshed here, and the
+same class is why `.13i` exists. ⇒ **the sweep is now 2 defects / 9 sites**, `class_qualifier` (8) and
+`tx_path_delay_expression` (1) — the two slice 3 ruled NOT to fix, for a stated reason.
+
+⭐ **AND THE INSTRUMENT ITSELF PUBLISHED A CLAIM ITS OWN TREE HAD REFUTED.** Its closing note read
+*"…which is why these are under-acceptance defects rather than harmless dead code. LRM-legal source
+that WOULD use the construct is rejected today"* — the exact sentence `.13c.2f` slice 1 refuted and
+slice 2 re-scoped, still being printed beside the two survivors, for which it is **measurably false**
+(both ACCEPT today through other productions). Corrected in the producer, not just in prose.
+
+###### Acceptance Checklist (enforced) — `.13c.2f` slice 4
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse systemverilog rust/target/es13c2f4/lrm_30_7_1.sv --profile sv_2017` → **REJECT `furthest_position=166`**, and the same on `--profile sv_2023`, on IEEE 1800-2023 §30.7.1's own `specify`-block example; the one-difference control `lrm_30_7_1_control.sv` (same block, specparam removed) → `parse_full passed` on both. Minimal forms: `PATHPULSE$ = (1, 2);` REJECT `pos=35`, `PATHPULSE$a$y = (1, 2);` REJECT `pos=38`. Probe proven current by `--parser-fingerprint` = `36942bb53c45800d` = the live artifact sha.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:6411` was `trivia /PATHPULSE_dollar\b/` and `:6413` was `trivia /PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor\b/`: the LRM's literal `$` transliterated into the word `_dollar`, and both nonterminal references flattened into the token text. Their only references are `pulse_control_specparam` (`:5016`/`:5018`), so **0 of 16 427** corpus SV files can reach either alternative — located by the tracked sweep `docs/tasks/artifacts/sv_corpus_grad/nonterminal_as_literal_sweep.py`. That the production was dead rather than merely unexercised is proven by the AST, not the verdict: `--parse-dump-ast` over an ACCEPTING `PATHPULSE$a$y = 3;` carries `kind: "pulse"` **0** times.
+- [x] **FIX** — grammar tier (declarative, no engine change): one contiguous regex per token, `trivia /PATHPULSE\$/` and `trivia /PATHPULSE\$[a-zA-Z_][a-zA-Z0-9_$]*\$[a-zA-Z_][a-zA-Z0-9_$]*/`, justified by A.9.3 (`$` is an identifier character ⇒ the whole span is ONE token) plus §30.7.1's *"may not be a bit-select or part-select"* restriction (⇒ no `[ … ]` range belongs inside). ⛔ The composed form plus a `[> … ]` follow restriction — slice 3's plan — is **superseded**, not deferred: it would need a rule to forbid what a single terminal cannot express. ZERO Rust bytes, ZERO engine bytes.
+- [x] **ADDRESSED (verified)** — §30.7.1's own example **REJECT `furthest_position=166` → ACCEPT** on both profiles, after-probe proven current by `--parser-fingerprint` = `ee393ed57cde037d` = the new artifact sha; both minimal forms REJECT → ACCEPT. The production is REACHED, by AST arm rather than verdict: `pulse>general` and `pulse>input_output` present where they must be, absent where they must not (`ARM-RED-CONTROL: 8/8 as declared, 4 of them RED`). Corpus `pass 9774 → 9776` with **3 manifest transitions, all improvements, 0 regressions**; axis-2 bar **302 → 300** and the `verilog_2005` lane `68 → 67`; sweep defects **4 → 2**.
+- [x] **NO REGRESSION** — SV corpus **16 336 files, 0 rows worsened** (the only three that moved all improved), `timeout=0 crash=0`; **accepts-invalid byte-identical at 21** (main) and **14** (v2005) — the accept-widening admitted no new invalid SV; four over-acceptance controls REJECT, including the whitespace-separated spelling the composed fix would have admitted; `ADJUDICATION-REPROS: checked=39 armed=12 listed=39 failures=0`; `--lint-grammar` `non_terminating=0 / ordered_choice_shadowing=0 / unreachable_rules=0 / undefined_references=0 / profile_orphans=0`, byte-identical to the pre-edit headline; `ast_shape_contract_gate` **18/18**; `generated_reproducibility_gate` **TIER 2 OK — 11/11 byte-identical, 0 sites**; parse-cost binding counters **+0 / +0 / +0** (entries 416,841,264 · committed 7,124,616 · memo hits 186,981,263) and family share **2.741 %** re-derived exactly; `generated_clippy_correctness_gate` **0 findings across 10 required + 1 optional artifacts**; `bash scripts/check_doctrines.sh` **21/21 PASS**.
+- [x] **LOCKSTEP** — `grammars/systemverilog.ebnf`; both corpus lanes promoted (`characterization.md`, `characterization_v2005.md`, `results*.tsv`, `positions*.tsv`, `durations*.tsv`) with instrument identity re-derived; `adjudication_manifest{,_v2005}.tsv` + summaries re-adjudicated; `verdict_coverage/` census re-run; `docs/book/src/grammar-wellformedness.md` live tuple `302 → 300`; `stimuli/sv/adjudication_repros/` +10 rows; `nonterminal_as_literal_sweep.py` + `.txt` (stale artifact refreshed AND its refuted closing claim corrected); the new artifacts under `docs/tasks/artifacts/sv_corpus_grad/es13c2f4_pathpulse/`; `docs/knowledge/a-token-the-standard-writes-contiguously-must-be-one-terminal.md` + `KNOWLEDGE_MAP.md`; the `generated_reproducibility_v0.json` and `parse_cost_ratchet` baselines (both rebaselined — the SV artifact legitimately moved); this leaf, `.13c.2h` NEW, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+
+#### ⚠️ `.13c.2h` NEW `todo` — a single-limit `PATHPULSE$x$y = (1)` still parses as an ORDINARY specparam, so the AST loses the pulse-control identity (opened 2026-08-17 session #244 by `.13c.2f` slice 4)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **Measured, not suspected**, on the shipped parser immediately after slice 4, by AST `kind` count:
+
+  | input | `pulse` | route taken |
+  |---|---:|---|
+  | `specparam PATHPULSE$clk$q = (1, 2);` | **1** | ✅ `pulse_control_specparam` |
+  | `specparam PATHPULSE$ = (1, 2);` | **1** | ✅ `pulse_control_specparam` |
+  | `specparam PATHPULSE$clk$q = (1);` | **0** | ⚠️ ordinary `specparam_assignment` |
+  | `specparam PATHPULSE$a$c = (3.0:3.1:3.2);` | **0** | ⚠️ ordinary `specparam_assignment` |
+
+- **WHY, mechanically.** `( constant_mintypmax_expression )` is a legal `constant_primary`, so for a
+  SINGLE limit value both alternatives of `specparam_assignment` consume the **identical span**.
+  PGEN's default `longest_match` breaks an exact tie in favour of the **earlier** alternative, and
+  `specparam_identifier assign constant_mintypmax_expression` is written first (`:5486`). With TWO
+  limit values the ordinary alternative cannot match at all, so the pulse route wins outright — which
+  is exactly the split the table shows.
+- **This is an LRM-level ambiguity, not a PGEN defect in the acceptance sense.** `PATHPULSE$a$c` is a
+  legal `specparam_identifier` (A.9.3), so both readings are legal parses of the same text and no
+  input is rejected. What is lost is downstream **identity**: a consumer computing pulse limits sees
+  `{kind: "simple", name: "PATHPULSE$a$c"}` and must re-recognise the name itself.
+- **Reproduces outside SystemVerilog: NO** — it is a property of A.7.5's two alternatives overlapping
+  on one input shape; no other family has a rule pair with this overlap.
+- ⛔ **Deliberately NOT fixed in slice 4**, and the reason is the one slice 3 recorded: one fix per
+  ceremony when the fixes differ in risk. Re-ordering `specparam_assignment`'s alternatives changes
+  the AST shape for text that already parses — a downstream-contract question (Nexsim consumes the
+  AST), not an acceptance question — so it is owned rather than bundled.
+
+**Acceptance:** (a) rule whether the pulse reading SHOULD win the tie — cite the LRM clause, not a
+preference, and note that §30.7.1's own example uses only the two-value form; (b) if yes, price the
+change: it is an alternative re-ordering plus an `ast_shape_contract` review, and it must show the
+one-value forms flipping to `pulse` with every other specparam's AST byte-identical; (c) either way,
+pin both single-limit forms as `arm`-carrying repros so the chosen reading is a ratchet rather than
+an accident.
 
 #### ⚠️ `.13c.2g` NEW `todo` — a TRACKED generated grammar cites its sources as absolute paths into a DIFFERENT checkout (opened 2026-08-17 session #244 by `.13c.2f`'s cross-family measurement)
 

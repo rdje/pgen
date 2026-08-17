@@ -1880,7 +1880,19 @@ observation was simply unused.
 > **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4392/302`.** (`SV-CORPUS-GRAD.13h` moved the bar **309 → 302** and `dark`
+> `7556/2459/6321/4392/300`.** (`SV-CORPUS-GRAD.13c.2f` slice 4 moved the bar **302 → 300** by
+> making IEEE 1800 A.7.5's two `PATHPULSE$` tokens matchable: `match` 5 820 → 5 821,
+> `unexplained_rejects_valid` 281 → 279, `accepts-invalid` unchanged at 21, and the
+> ADJUDICATED/ROUTED/NO-VERDICT/DARK split **entirely unmoved** — two fewer known defects over the
+> same 46.3 % of the corpus. ⛔ Two rows left `unexplained_rejects_valid`, and only ONE of them
+> crossed `fail → pass`: `ispras-sv-tests/ieee-1800-2012/30/30.07.01_01.sv` (clause 30.7.1's own
+> example) became `match`, while `verilator/test_regress/t/t_specparam.v` still FAILS and
+> reclassified to `explained_svpp_conditional` because its parse now runs past every `PATHPULSE$`
+> specparam and dies on a `` `ifdef `` at byte 1170. That second row is invisible to a delta joined
+> on pass/fail — the same blindness `.13h` documented one slice earlier, reproduced, which is why
+> the join is over the MANIFEST. The `verilog_2005` lane moved with it: `match` 2 186 → 2 187,
+> `unexplained_rejects_valid` 54 → 53, `accepts-invalid` unchanged at 14. The step before it,
+> `SV-CORPUS-GRAD.13h`, moved the bar **309 → 302** and `dark`
 > **4 398 → 4 392** by promoting the corpus oracle after the `ENGINE-UNIVERSAL-SERVICES.17`
 > slice-9 admission flip: `match` 5 814 → 5 820, `unexplained_rejects_valid` 288 → 281,
 > `accepts-invalid` byte-identical at 21, and the ADJUDICATED/ROUTED/NO-VERDICT split unmoved —

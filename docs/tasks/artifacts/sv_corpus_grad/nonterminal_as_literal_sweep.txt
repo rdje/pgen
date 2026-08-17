@@ -1,42 +1,22 @@
 SV-CORPUS-GRAD.13c.2d — sweep: kw_* terminals that spell a NONTERMINAL
-grammar: grammars/systemverilog.ebnf   rules: 1481   nonterminals (kw_* excluded): 1172
-kw_* trivia terminals: 313
+grammar: grammars/systemverilog.ebnf   rules: 1480   nonterminals (kw_* excluded): 1172
+kw_* trivia terminals: 312
 corpus: 32931 files, of which 16427 are SystemVerilog source
 
 ⛔ DEFECTS — the literal is NOT in Annex B, so it spells a nonterminal, not a keyword
 
 #   matched literal text                           sites  signals
 ------------------------------------------------------------------------------------------------------------
-1   PATHPULSE_dollar                                   1  C: punctuation transliterated: dollar
-    defined  grammars/systemverilog.ebnf:6395
-    used at  5000
-    corpus   0 SV-source file(s) contain this literal — UNREACHABLE
-    candidate  ⛔ NO nonterminal of this exact name exists. 0 NAME NEIGHBOUR(S): 
-               ⚠️ a name neighbour is NOT a repair — see the note below the table.
-
-2   PATHPULSE_dollar_specify_input_terminal_descri     1  B: contains specify_output_terminal_descriptor, specify_input_terminal_descriptor, output_terminal | C: punctuation transliterated: dollar
-    defined  grammars/systemverilog.ebnf:6397
-    used at  5002
-    corpus   0 SV-source file(s) contain this literal — UNREACHABLE
-    candidate  the production flattened 4 nonterminals, all present: specify_output_terminal_descriptor, specify_input_terminal_descriptor, output_terminal
-
-3   class_qualifier                                    8  A: near 'class_item_qualifier' (0.857)
-    defined  grammars/systemverilog.ebnf:6467
-    used at  3296, 3310, 3323, 3328, 3340, 4471, 4483, 4534
+1   class_qualifier                                    8  A: near 'class_item_qualifier' (0.857)
+    defined  grammars/systemverilog.ebnf:6496
+    used at  3312, 3326, 3339, 3344, 3356, 4487, 4499, 4550
     corpus   0 SV-source file(s) contain this literal — UNREACHABLE; plus 1 non-SV file(s), which cannot exercise it
     candidate  ⛔ NO nonterminal of this exact name exists. 1 NAME NEIGHBOUR(S): class_item_qualifier
                ⚠️ a name neighbour is NOT a repair — see the note below the table.
 
-4   function_declaraton                                1  A: near 'function_declaration' (0.974)
-    defined  grammars/systemverilog.ebnf:6591
-    used at  1834
-    corpus   0 SV-source file(s) contain this literal — UNREACHABLE
-    candidate  ⛔ NO nonterminal of this exact name exists. 2 NAME NEIGHBOUR(S): function_body_declaration, function_declaration
-               ⚠️ a name neighbour is NOT a repair — see the note below the table.
-
-5   tx_path_delay_expression                           1  A: near 'tzx_path_delay_expression' (0.980) | B: contains path_delay_expression
-    defined  grammars/systemverilog.ebnf:7019
-    used at  3156
+2   tx_path_delay_expression                           1  A: near 'tzx_path_delay_expression' (0.980) | B: contains path_delay_expression
+    defined  grammars/systemverilog.ebnf:7047
+    used at  3172
     corpus   0 SV-source file(s) contain this literal — UNREACHABLE
     candidate  ⛔ NO nonterminal of this exact name exists. 9 NAME NEIGHBOUR(S): path_delay_expression, t0x_path_delay_expression, t1x_path_delay_expression, t_path_delay_expression, tx0_path_delay_expression, tx1_path_delay_expression…
                ⚠️ a name neighbour is NOT a repair — see the note below the table.
@@ -50,9 +30,9 @@ corpus: 32931 files, of which 16427 are SystemVerilog source
     timeunit                      3 site(s), reachable in 64 SV file(s)
 
 ------------------------------------------------------------------------------------------------------------
-=> 10 of 313 kw_* terminals matched a signal; **5 are defects**, 5 are correct keywords (50 % of the raw signal set was a false positive)
-   defect usage sites in the grammar: 12
-   ✓ CROSS-CHECK: Annex-B membership and corpus reachability partition all 10 rows IDENTICALLY.
+=> 7 of 312 kw_* terminals matched a signal; **2 are defects**, 5 are correct keywords (71 % of the raw signal set was a false positive)
+   defect usage sites in the grammar: 9
+   ✓ CROSS-CHECK: Annex-B membership and corpus reachability partition all 7 rows IDENTICALLY.
      Two authorities with no shared input — a standards table and 16 427 source
      files — so neither verdict rests on the other.
 
@@ -68,9 +48,16 @@ corpus: 32931 files, of which 16427 are SystemVerilog source
    - whether re-pointing a reference is a one-line fix. It is not, at least once: the sv_2017
      cross-body shape demands a `;` after EVERY item, so the repair must mirror the sv_2023
      pair. Every fix here is ACCEPT-WIDENING and owes the full ceremony.
-   - DEAD-on-the-corpus is not DEAD-in-the-language: it means no corpus file exercises the
-     alternative, which is why these are under-acceptance defects rather than harmless dead
-     code. LRM-legal source that WOULD use the construct is rejected today.
+   - ⛔ WHETHER THE CONSTRUCT IS REJECTED. This sweep measures REACHABILITY of an
+     ALTERNATIVE, and a construct can be reachable through a DIFFERENT production, so
+     `unreachable` does NOT imply `rejected`. This bullet asserted the implication until
+     `.13c.2f`, and pinning a minimal input per site refuted it: of the five sites the
+     sweep has ever listed, THREE rejected (`function_declaraton`, both `PATHPULSE$`
+     forms — all three now fixed) and the two that remain, `class_qualifier` and
+     `tx_path_delay_expression`, ACCEPT today through other productions. ⇒ every row here
+     owes a pinned REJECT before it is called an under-acceptance, and a row with none is
+     an unreachable alternative — still a defect, because the grammar claims support it
+     does not deliver, but not axis-2 mass.
 
 ====================================================================================================
 CROSS-FAMILY — does this shape exist in any OTHER tracked grammar?

@@ -1822,7 +1822,7 @@ ispras-sv-tests	ieee-1364-2005/test_14_03_01_4.v	pass	out_of_scope_with_cause:v2
 ispras-sv-tests	ieee-1364-2005/test_14_03_01_5.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_14_03_03_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_14_03_03_2.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: VARYING) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
-ispras-sv-tests	ieee-1364-2005/test_14_06_01_1.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
+ispras-sv-tests	ieee-1364-2005/test_14_06_01_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_14_06_04_2_1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_14_06_04_2_2.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: VARYING) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
 ispras-sv-tests	ieee-1364-2005/test_14_06_04_2_3.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ispras: IEEE 1364-2005 half (TYPE: POSITIVE) - keyed for the verilog_2005 profile lane (incl. the KNOWN_TEXT_BUGS list), not the sv_2017 bulk run
@@ -2793,7 +2793,7 @@ ispras-sv-tests	ieee-1800-2012/30/30.05.01_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/30/30.05.03_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/30/30.05.03_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/30/30.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/30/30.07.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/30/30.07.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/30/30.07.04.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/30/30.07.04.02_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/30/30.07.04.02_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -15690,7 +15690,7 @@ verilator	test_regress/t/t_slice_cond_2d_side_effect.v	pass	must_accept	match	ve
 verilator	test_regress/t/t_slice_cond_side_effect.v	pass	must_accept	match	verilator: driver t_slice_cond_side_effect.py expects success
 verilator	test_regress/t/t_slice_init.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_slice_init.py expects success
 verilator	test_regress/t/t_slice_struct_array_modport.v	pass	must_accept	match	verilator: driver t_slice_struct_array_modport.py expects success
-verilator	test_regress/t/t_specparam.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_specparam.py expects success - .12a: parse stops where svpp cannot alter the text, so the preprocessor dependency does not explain THIS failure
+verilator	test_regress/t/t_specparam.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_specparam.py expects success
 verilator	test_regress/t/t_split_var_0.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_split_var_0.py expects success
 verilator	test_regress/t/t_split_var_1_bad.v	pass	must_accept	match	verilator: driver t_split_var_1_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_split_var_3_wreal.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_split_var_3_wreal.py expects success

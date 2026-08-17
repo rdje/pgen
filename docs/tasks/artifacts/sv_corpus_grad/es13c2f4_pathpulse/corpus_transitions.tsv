@@ -1,0 +1,5 @@
+lane	suite	relpath	observed_before	observed_after	adjudication_before	adjudication_after	bar_effect
+main	ispras-sv-tests	ieee-1364-2005/test_14_06_01_1.v	fail	pass	deferred:v2005_profile_lane	deferred:v2005_profile_lane	0 (bar-invisible)
+main	ispras-sv-tests	ieee-1800-2012/30/30.07.01_01.sv	fail	pass	divergence:unexplained_rejects_valid	match	-1 (leaves the bar)
+main	verilator	test_regress/t/t_specparam.v	fail	fail	divergence:unexplained_rejects_valid	divergence:explained_svpp_conditional	-1 (leaves the bar)
+v2005	ispras-sv-tests	ieee-1364-2005/test_14_06_01_1.v	fail	pass	divergence:unexplained_rejects_valid	match	-1 (leaves the bar)

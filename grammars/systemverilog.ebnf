@@ -6408,9 +6408,22 @@ kw_F_e69f20e9 := trivia /F\b/
 
 kw_N_b51a6073 := trivia /N\b/
 
-kw_PATHPULSE_dollar_e0f78dc5 := trivia /PATHPULSE_dollar\b/
+# SV-CORPUS-GRAD.13c.2f slice 4 — the two `PATHPULSE$` tokens of IEEE 1800 A.7.5.
+# The extraction transliterated the LRM's literal `$` into the word `_dollar` and, for the
+# path-specific form, flattened two NONTERMINAL references into the token text as well — so both
+# alternatives of `pulse_control_specparam` could only fire on source containing those literal
+# characters, which no SystemVerilog source does. The rule NAMES are faithful transliterations of
+# the LRM spelling and are kept; it is the matched TEXT that was wrong.
+# ⛔ One regex per token, deliberately, rather than `PATHPULSE$` + descriptor + `$` + descriptor as
+# separate grammar elements: `trivia` skips layout before every element, so the composed form would
+# also accept `PATHPULSE$ clk $ q`, and §A.9.3 makes `PATHPULSE$clk$q` ONE simple identifier
+# (`$` is an identifier character) — the whitespace-separated spelling is three tokens and is not
+# legal. A contiguous regex cannot match it by construction.
+# ⛔ §30.7.1 restricts the two terminals: "the terminals may not be a bit-select or part-select of
+# a vector" — so a plain identifier is the whole surface, and no `[ … ]` range belongs here.
+kw_PATHPULSE_dollar_e0f78dc5 := trivia /PATHPULSE\$/
 
-kw_PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor_b3eb892a := trivia /PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor\b/
+kw_PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor_b3eb892a := trivia /PATHPULSE\$[a-zA-Z_][a-zA-Z0-9_$]*\$[a-zA-Z_][a-zA-Z0-9_$]*/
 
 kw_P_511993d3 := trivia /P\b/
 

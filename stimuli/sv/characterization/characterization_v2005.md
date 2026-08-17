@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `f672902df6b27c7b8e353ca36f902c549b363f8b10a731e60377d2ef550ce090` |
-| grammar | `grammars/systemverilog.ebnf` | `1d4564bddb0dd4467eb71c018a03ff4141ce2c05d106fba17e00df41c7c9e58c` |
-| generated parser | `generated/systemverilog_parser.rs` | `463c647603e83af1ed3e41fffb16ac2041f466fe1ac3b0df507161d3fcfc839e` |
+| parse binary | `rust/target/release/parseability_probe` | `822b8b61900f2126b3dc2b12bbb68f1e88641d71636218105f4fe499daa7e204` |
+| grammar | `grammars/systemverilog.ebnf` | `1b660c369945bb1e3a67857b2b31c1ed51997934953385195db7b4bae68033a6` |
+| generated parser | `generated/systemverilog_parser.rs` | `ee393ed57cde037da8340d72f0b1faa89b0a56202ef229491a79ebd6d2c03203` |
 
-Measured at `HEAD` = `5e40bf37+dirty` (2026-08-14).
+Measured at `HEAD` = `6d1a18b3+dirty` (2026-08-17).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -42,7 +42,7 @@ Measured at `HEAD` = `5e40bf37+dirty` (2026-08-14).
 > A timeout is a statement about the machine as much as about the parser. Every
 > `timeout` row is re-run **alone** at the same deadline before it is recorded, and the
 > population sitting within 2x of the deadline is published so the flip-risk set is a
-> known number. Per-file durations: `stimuli/sv/characterization/durations_v2005.tsv`.
+> known number. Per-file durations: `rust/target/es13c2f4/corpus_after_v2005/durations_v2005.tsv`.
 
 | population | files |
 |---|---|
@@ -53,23 +53,27 @@ Measured at `HEAD` = `5e40bf37+dirty` (2026-08-14).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.57` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
+Slowest completing file: `0.52` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v`.
+
+⚠️ **NON-CANONICAL RUN** — written to `rust/target/es13c2f4/corpus_after_v2005` via `PGEN_CORPUS_OUT_DIR`,
+not to the tracked `stimuli/sv/characterization`. Diff it against the tracked artifact
+before promoting anything.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 2459 | 2181 | 278 | 0 | 0 | 88.7% |
+| 2459 | 2182 | 277 | 0 | 0 | 88.7% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
-| ispras-sv-tests | 356 | 316 | 40 | 0 | 0 | 88.8% |
+| ispras-sv-tests | 356 | 317 | 39 | 0 | 0 | 89.0% |
 | iverilog | 1762 | 1584 | 178 | 0 | 0 | 89.9% |
 | sv2v | 341 | 281 | 60 | 0 | 0 | 82.4% |
 
-_Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv` (3 columns: sub-corpus, status,
+_Raw per-file results: `rust/target/es13c2f4/corpus_after_v2005/results_v2005.tsv` (3 columns: sub-corpus, status,
 repo-root-relative path — a stable contract three consumers unpack positionally)._
-_Per-file durations: `stimuli/sv/characterization/durations_v2005.tsv` (the same rows plus a 4th wall-seconds column)._
+_Per-file durations: `rust/target/es13c2f4/corpus_after_v2005/durations_v2005.tsv` (the same rows plus a 4th wall-seconds column)._
 _Both are sorted by (sub-corpus, path), so two runs are directly diffable._
