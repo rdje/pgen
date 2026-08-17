@@ -5020,3 +5020,41 @@ probe-only recipe may legitimately differ, and an exemption is only safe once it
 (d) fire a RED arm per fixed site, because `.33` slice 1's own new arm found a bug that had made
 **seven** sibling arms pass for an accidental reason; (e) re-run `census.sh` and show the counts move,
 so this closes on a measurement rather than on a claim.
+
+---
+
+### `.39` NEW `todo` (⛔ PARKED — the make lane is CLOSED by director ordering 2026-08-15) — `GATE-REACHABILITY` is GREEN over a gate whose only callers are multi-hour aggregates, so it reported a REGRESSION ~2.5 weeks late (routed in 2026-08-18 session #244 by `SV-CORPUS-GRAD.13c.2i`(d))
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **The incident, measured.** `ebnf_frontend_dual_run_gate` was RED on `systemverilog`
+  (`151 > ceiling 150`) from **2026-08-09** — the commit `019e1739` that added the 151st
+  divergence — until it was found on **2026-08-18** by a slice that ran the gate for an unrelated
+  lockstep reason. Nine days by commit date; the last SV grammar edit before that was 2026-08-12,
+  so several grammar-changing commits landed over a RED two-sided ratchet.
+- ⛔ **`GATE-REACHABILITY` was GREEN throughout, and correctly so.** Its rule is that every tracked
+  gate target is invoked by something that RUNS. This one is:
+  `grep -rn "ebnf_frontend_dual_run_gate" --include=*.sh --include=Makefile` names
+  `rust/scripts/sota_exit_gate.sh:1116` and `rust/scripts/regex_parser_family_contract_gate.sh:202`.
+  Both are **operator-invoked aggregates**, and `sota_exit_gate` is the flagship — measured in
+  `MEMORY.md` as *"not re-proven end-to-end since `CI-PARITY-GATE-ROT.7`"*. ⇒ **reachable by an
+  aggregate nobody runs is not watched**, and the doctrine cannot see the difference because it
+  measures the call graph, not the call FREQUENCY.
+- **Reproduces outside this gate: NOT MEASURED, and that is the leaf's first job.** The same shape
+  applies to every target whose only callers are `sota_exit_gate` / a family contract gate, and the
+  reachability register already enumerates the call edges — so the census is a join, not a new
+  instrument.
+- ⚠️ **This is NOT an argument for running everything on every commit.** `sota_exit_gate` is hours;
+  `CI-PARITY-GATE-ROT`'s own history is full of gates that taught bypasses by being too expensive
+  for the moment they fired. The question is which *cheap* members of an expensive aggregate deserve
+  promotion to the automatic tier — `ebnf_frontend_dual_run_gate` is **101 s** with a warm build,
+  measured on the run that closed `.13c.2i`.
+
+**Acceptance:** (a) census every tracked gate target by its callers' TIER (automatic / cheap-operator
+/ heavy-aggregate), joining the reachability register against the doctrine driver and the workflows —
+derived, never hand-listed; (b) for each target whose only tier is *heavy aggregate*, record its
+measured wall-clock cost, because that is the number that decides promotion; (c) propose a promotion
+set with its total cost, and ⛔ price it against the automatic tier's current budget rather than
+asserting it is affordable; (d) state the honest bound: this closes the *reporting-latency* half of
+`GATE-REACHABILITY`, not the coverage half, and the two are different properties.

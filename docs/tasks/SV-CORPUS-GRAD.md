@@ -9353,9 +9353,12 @@ ceiling that fails in both directions.
 ⛔ do not bisect the grammar's history first, that is the instrument's job; ✅ **(b) DISCHARGED** —
 adjudicate the named divergence: a meta-parser fidelity gap (fix `grammars/ebnf.ebnf` or the
 projection) versus an SV construct arm 2 legitimately cannot compare (then the ceiling moves, WITH
-the construct recorded); ✅ **(c) DISCHARGED — the gate is GREEN** across all 14 grammars; ⏳ **(d)**
-route the *watched-ness* half — a gate whose only caller is a multi-hour aggregate is a gate that
-reports weeks late — to `CI-PARITY-GATE-ROT`, whose subject that is.
+the construct recorded); ✅ **(c) DISCHARGED — the gate is GREEN** across all 14 grammars; ✅ **(d) DISCHARGED** —
+the *watched-ness* half is routed to **`CI-PARITY-GATE-ROT.39`** with its measurement: the gate was
+RED from `019e1739` (2026-08-09) to 2026-08-18 while `GATE-REACHABILITY` stayed GREEN and correct,
+because its rule measures the call GRAPH and both callers (`sota_exit_gate`,
+`regex_parser_family_contract_gate`) are operator-invoked aggregates — *reachable by an aggregate
+nobody runs is not watched*. ⇒ **`.13c.2i` is CLOSED.**
 
 ##### ✅ `.13c.2i` (a)+(b)+(c) DISCHARGED (`PGEN-SV-CORPUS-GRAD-0223`, 2026-08-18 session #244) — the instrument could count the defect and not name it, and that was the whole blocker
 
