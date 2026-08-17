@@ -12,6 +12,25 @@ The output is intentionally pragmatic:
 - shared rules are emitted once,
 - version-divergent rules are emitted as shared wrappers plus profiled subrules,
 - a stable hand-maintained lexical foundation is used for the parser-facing layer.
+
+⛔⛔ THIS TOOL SEEDS GRAMMARS; IT DOES NOT MAINTAIN THEM, AND ITS OUTPUTS HAVE BEEN HAND-SUPERSEDED.
+Measured 2026-08-17 (`SV-CORPUS-GRAD.13c.2f`(d)) against the tracked artifacts:
+
+  target                                        divergence from a fresh run
+  grammars/systemverilog_lrm_profiled_generated.ebnf   289 lines  (hand-added entry rule,
+                                                       operand/base expression split, …)
+  grammars/systemverilog.ebnf  (--output-active-ebnf)  7 277 lines — 1 480 rules vs 1 359 and
+                                                       **1 090 return annotations vs 0**
+
+⇒ writing either target blind DESTROYS the deliverable: the flattened output carries NO return
+annotations at all, so the AST every downstream consumer is shaped by would simply vanish, and this
+tool's own known defects (21 `$`-transliterated `_dollar` terminals, e.g. `/sv_dollar_root\b/` where
+the LRM writes `$root`) would be re-introduced over their hand fixes. The command that does it is
+recorded verbatim in `DEVELOPMENT_NOTES.md`, so the path is a documented one.
+
+⇒ **every output is written only when it is byte-identical to what already exists, unless
+`--promote-outputs` is passed.** The refusal is the point: a silent overwrite here is unrecoverable
+without git, and the tool cannot tell a hand fix from a defect it is about to restore.
 """
 
 from __future__ import annotations
@@ -886,6 +905,77 @@ def emit_manual_rule_lines(literal_tokens: dict[str, str]) -> list[str]:
     return lines
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def repo_relative(path: Path) -> str:
+    """`path` as a repository-root-relative string when it is inside the repo.
+
+    ⛔ `SV-CORPUS-GRAD.13c.2g`: this header used to record `path` as the caller resolved it, so a
+    TRACKED artifact cited its sources as absolute paths into whichever checkout last ran the tool —
+    the exact class the repository's path policy exists to prevent, and stale on top of being
+    absolute. A path outside the repo is left absolute, because eliding it would be a lie rather
+    than a relativisation.
+    """
+    try:
+        return str(path.resolve().relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path.resolve())
+
+
+def write_output(path: Path, content: str, label: str, promote: bool) -> str:
+    """Write `content` to `path`, REFUSING to replace anything this run did not reproduce.
+
+    ⛔⛔ THE REFUSAL IS THE FEATURE — see the module docstring for the measurement. Both outputs of
+    this tool have been hand-superseded (289 and 7 277 lines), and the flattened one carries **0**
+    return annotations against the deliverable's 1 090, so a blind write is an unrecoverable loss of
+    the AST contract. This tool cannot tell a hand fix from a defect it is about to restore, so it
+    refuses instead of guessing, and `--promote-outputs` is the deliberate, loud consent.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        existing = path.read_text(encoding="utf-8")
+        if existing == content:
+            return f"{label}: unchanged (byte-identical) -> {repo_relative(path)}"
+        if not promote:
+            old, new = existing.splitlines(), content.splitlines()
+            raise SystemExit(
+                f"error: REFUSING to overwrite {repo_relative(path)} ({label}).\n"
+                f"       It is NOT what this tool produces: {len(old)} lines on disk vs "
+                f"{len(new)} about to be written.\n"
+                "       This tool SEEDS grammars and does not maintain them — both of its outputs\n"
+                "       have been hand-superseded, and the flattened one carries ZERO return\n"
+                "       annotations, so overwriting it deletes the AST contract every downstream\n"
+                "       consumer is shaped by (SV-CORPUS-GRAD.13c.2f(d)).\n"
+                "       Point --output-* at a scratch path to inspect the difference, or pass\n"
+                "       --promote-outputs if replacing the tracked file is genuinely what you mean."
+            )
+    path.write_text(content, encoding="utf-8")
+    return f"{label}: written -> {repo_relative(path)}"
+
+
+def census_unresolved_name_tokens(literal_tokens: dict[str, str]) -> list[str]:
+    """Fall-through tokens that LOOK like a nonterminal reference the extraction never defined.
+
+    `normalize_atom_token` ends in an unconditional fall-through: a token that is not a known rule,
+    not punctuation and not quoted becomes a literal terminal matching its own spelling. That
+    normalisation is what makes an unresolved reference **well-formed**, which is why
+    `--lint-grammar`'s `undefined_references` reads 0 over a grammar carrying the defect — the check
+    is not missing, it is starved of its input (`SV-CORPUS-GRAD.13c.2f`).
+
+    ⛔ REPORTED, NOT REFUSED, and the reason is measured: 76 of the 324 emitted `kw_*` terminals are
+    identifier-shaped non-keywords, and most are legitimate (edge-descriptor letters `A`..`Z`, time
+    units `fs`/`ps`/`ns`, keyword fragments). A gate at 76 rows teaches waivers — the failure
+    `GENERATED-LINT-CORRECTNESS.4` priced and refused. Two EXACT sub-signals are reported alongside,
+    and they are the ones that have ever been defects: a transliterated `$` (`_dollar`), and a token
+    containing a defined rule's name.
+    """
+    return sorted(
+        tok for tok in literal_tokens
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_$]*", tok) and "_dollar" in tok
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--md-2017", required=True, help="2017 Annex markdown path")
@@ -896,6 +986,12 @@ def main() -> int:
         help="Optional output path for the flattened active systemverilog.ebnf grammar",
     )
     ap.add_argument("--output-report", required=True, help="Output JSON report path")
+    ap.add_argument(
+        "--promote-outputs",
+        action="store_true",
+        help="deliberately replace an output that differs from what this run produces "
+             "(default: REFUSE — see the module docstring)",
+    )
     args = ap.parse_args()
 
     version_paths = OrderedDict(
@@ -912,10 +1008,13 @@ def main() -> int:
     profiled_lines, literal_tokens, report_rules = emit_profiled_rules(versions)
 
     output_lines: list[str] = []
-    output_lines.append("# Auto-generated by tools/extract_systemverilog_lrm_profiles.py")
-    output_lines.append("# Source markdowns:")
+    output_lines.append("# SEEDED by tools/extract_systemverilog_lrm_profiles.py — then HAND-MAINTAINED.")
+    output_lines.append("# ⛔ This file is NOT what a fresh run of that tool produces, and re-running it to")
+    output_lines.append("#    'refresh' this file is a REGRESSION, not an update: the tool refuses to")
+    output_lines.append("#    overwrite an output it did not reproduce (SV-CORPUS-GRAD.13c.2f(d)).")
+    output_lines.append("# Source markdowns (repo-root-relative — SV-CORPUS-GRAD.13c.2g):")
     for profile, path in version_paths.items():
-        output_lines.append(f"# - {profile}: {path}")
+        output_lines.append(f"# - {profile}: {repo_relative(path)}")
     output_lines.append("")
     output_lines.append("# Shared lexical foundation")
     output_lines.append("")
@@ -931,45 +1030,59 @@ def main() -> int:
         output_lines.append(emit_literal_token_rule(literal, token_name))
         output_lines.append("")
 
+    written: list[str] = []
+
     output_path = Path(args.output_ebnf).expanduser().resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text("\n".join(output_lines).rstrip() + "\n", encoding="utf-8")
+    written.append(write_output(
+        output_path, "\n".join(output_lines).rstrip() + "\n",
+        "output_ebnf", args.promote_outputs))
 
     if args.output_active_ebnf:
         active_output_path = Path(args.output_active_ebnf).expanduser().resolve()
-        active_output_path.parent.mkdir(parents=True, exist_ok=True)
         active_output_lines = list(ACTIVE_GRAMMAR_PREAMBLE_LINES)
         active_output_lines.extend(output_lines)
-        active_output_path.write_text(
-            "\n".join(active_output_lines).rstrip() + "\n", encoding="utf-8"
-        )
+        written.append(write_output(
+            active_output_path, "\n".join(active_output_lines).rstrip() + "\n",
+            "output_active_ebnf", args.promote_outputs))
 
+    dollar_tokens = census_unresolved_name_tokens(literal_tokens)
     report = {
         "profiles": {
             profile: {
-                "source_markdown": str(path),
+                "source_markdown": repo_relative(path),
                 "extracted_rule_count": len(rules),
             }
             for profile, (path, rules) in zip(version_paths.keys(), zip(version_paths.values(), versions.values()))
         },
         "generated_rule_count": len(report_rules) + len(MANUAL_RULE_BODIES),
         "generated_literal_token_count": len(literal_tokens),
+        # ⛔ SV-CORPUS-GRAD.13c.2f(d): the fall-through in `normalize_atom_token` turns a token this
+        # extraction failed to resolve into a well-formed terminal matching its own spelling, which
+        # is why `--lint-grammar` cannot see the defect. This census is the post-condition — it runs
+        # BEFORE the fallback's evidence is erased downstream.
+        "transliterated_dollar_tokens": dollar_tokens,
+        "transliterated_dollar_token_count": len(dollar_tokens),
         "rules": report_rules,
     }
     report_path = Path(args.output_report).expanduser().resolve()
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    written.append(write_output(
+        report_path, json.dumps(report, indent=2, sort_keys=True) + "\n",
+        "output_report", args.promote_outputs))
 
-    print(f"md_2017: {version_paths['sv_2017']}")
-    print(f"md_2023: {version_paths['sv_2023']}")
+    print(f"md_2017: {repo_relative(version_paths['sv_2017'])}")
+    print(f"md_2023: {repo_relative(version_paths['sv_2023'])}")
     print(f"extracted_2017_rules: {len(versions['sv_2017'])}")
     print(f"extracted_2023_rules: {len(versions['sv_2023'])}")
-    print(f"output_ebnf: {output_path}")
-    if args.output_active_ebnf:
-        print(
-            f"output_active_ebnf: {Path(args.output_active_ebnf).expanduser().resolve()}"
-        )
-    print(f"output_report: {report_path}")
+    for line in written:
+        print(line)
+    print(
+        f"transliterated_dollar_tokens: {len(dollar_tokens)} — a `$` the LRM writes literally, "
+        "emitted as the word `_dollar`, so the terminal can only match source containing that word "
+        "(SV-CORPUS-GRAD.13c.2f). The shipped grammars/systemverilog.ebnf carries 0 of these; every "
+        "one below is a defect this tool would RE-INTRODUCE if its output were promoted:"
+    )
+    for tok in dollar_tokens:
+        print(f"  - {tok}")
     return 0
 
 
