@@ -141,7 +141,7 @@ do not correspond, there is no second option to weigh — the only open question
 label is*, which is a technical question with a measurable answer (what does the number index? what
 identifiers does the parser already have?). Both were answerable in the tree.
 
-⚠️ **Why this costume is the most convincing of the four.** The leaf itself had written *"changing
+⚠️ **Why this costume is the most convincing of the five.** The leaf itself had written *"changing
 the string is a diagnostics-behaviour change and needs its own decision"* — true as far as it goes,
 and it made deferring feel like discipline rather than abdication. But "needs its own decision" means
 *a deliberate slice with its own before/after*, not *a director call*. **A change deserving care is
@@ -155,6 +155,43 @@ it.
 
 ⇒ **Test to apply before writing "your call":** *if the director answers "do whatever is right",
 do I know what to do?* If yes, it was never a director question.
+
+---
+
+## Costume 5 — the NEXT SLICE, offered as a choice (2026-08-17, session #244)
+
+Under a `💡 Suggestion — your call` heading I wrote that `SV-CORPUS-GRAD.13c.2f`(c) *"holds five
+grammar fixes for one accept-widening ceremony … that's the next substantial SV-release slice, and
+it's the first one this session that moves shipped parser bytes."*
+
+The director's reply names it exactly:
+
+> *"not sure what your asking me here … anyhow, it is yours to make, but it got to be sota, signoff
+> and production-grade."*
+
+⛔ **There was no question in it.** Re-read as written, the paragraph states a fact (the leaf holds
+five fixes), an ordering (they land together), and a size warning (it moves shipped bytes) — and then
+attaches *"your call"* to nothing that was actually offered as an alternative. **A statement with a
+question-shaped heading is the costume.** The previous four dressed a defect as a design preference,
+a scheduling question, a cost question and a diagnostics-behaviour question; this one dresses
+**ordinary sequencing** — which
+[[feedback_sequence_approved_work_yourself]] had *already* ruled is execution, not a director call.
+
+⚠️ **Why it slipped past a rule I had already been given.** The size warning felt like new
+information: *this one moves shipped parser bytes, so surely it needs sign-off.* It does not. The
+`.13c.2f` acceptance criteria were already written and already approved as a leaf; "bigger" is not
+"different in kind". ⇒ **the risk of a slice is a reason to be more careful IN it, never a reason to
+hand it back.** That is the same substitution costume 4 made — *a change deserving care is not
+thereby a change deserving escalation* — arriving through the size axis instead of the
+behaviour-change axis.
+
+⭐ **The tell available in advance, and cheaper than the test above:** I could not write the
+alternatives down. Costume 5's paragraph contains no "either A or B"; a genuine director question can
+always be stated as a choice between named options with their prices. **If you cannot name the
+options, you are not asking — you are reporting, and the heading is wrong.**
+
+⇒ **Second test, to run before the first:** *what are the two options, and what does each cost?* If
+that sentence will not write itself, delete the heading and make the call.
 
 Companions: [[feedback_why_and_where_before_solution]] (know WHY+WHERE before designing),
 [[feedback_no_codebase_change_without_tool_backed_facts]], [[feedback_instrument_needs_ground_truth]],

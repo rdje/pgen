@@ -8906,6 +8906,56 @@ that arm needs its own probe; noted here so the fix slice does not assume it.
 - [x] **NO REGRESSION** — no repository behaviour changed; `bash scripts/check_doctrines.sh` **21/21 PASS**; the sweep instrument remains deterministic (3 runs, one sha256) and its Annex-B ground-truth controls still refuse on a broken extraction.
 - [x] **LOCKSTEP** — `docs/tasks/artifacts/sv_corpus_grad/nonterminal_as_literal_sweep.py` + `.txt` (signal C, counts re-synced), this leaf, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
+##### ⛔⛔ `.13c.2f` SLICE 2 (`PGEN-SV-CORPUS-GRAD-0219`, 2026-08-17 session #244) — a RE-VERIFICATION under DIRECTOR CHALLENGE: slice 1's retraction **OVER-RETRACTED**, and its headline denominator was wrong
+
+Director: *"Do these claims still hold?"* — the same challenge that produced `ENGINE-UNIVERSAL-SERVICES.32` slice 2. Each claim re-derived against `docs/CLAIM_VERIFICATION.md` §3's three legs. **Two of four were wrong, one imprecise, one held.**
+
+| claim as published | verdict | corrected |
+|---|---|---|
+| `class_qualifier` is missing because Annex A writes `:=` — **1 of 749** productions | ⛔ **number wrong** | **1 of 750** |
+| the lint reports `undefined_references=0` because the name became a terminal | ✅ **holds** — now with a RED control | — |
+| slice 1's retraction: **only ONE** of the sites rejects | ⛔ **OVER-RETRACTED** | **THREE of five** reject |
+| `.17`'s ordering question needs a NEW instrument | ⚠️ **imprecise** | narrowed, below |
+
+⛔ **1. THE DENOMINATOR WAS WRONG, AND THE REASON IS THE ONE §2 NAMES.** Published *"748 `::=` productions and exactly 1 `:=`"* from `grep -cE '::='`. That counts **lines containing** the token, not **production heads** — and the extractor's own `RULE_HEAD_RE` is `^\s*([A-Za-z_$][A-Za-z0-9_$,]*)\s*::\s*=\s*(.*?)\s*$`, which also accepts `:: =` **with a space**. Re-derived by *reading the regex out of the producer* and applying it (leg 2's *"derive classifiers from the PRODUCER, never from a description of it"*): **749** heads recognised, **1** single-colon line unrecognised ⇒ **1 of 750**. The finding is unchanged in substance and its headline number was off by one.
+
+✅ **2. THE STARVED-LINT CLAIM HOLDS, AND NOW HAS THE RED CONTROL IT LACKED.** Deleting only the terminal's *definition* line from a scratch copy of the grammar takes `undefined_references=0 (error)` → **`undefined_references=8 (error)`**, naming `casting_type_lr_seed_method_call_receiver_sv_2017` and siblings. ⭐ That **8** is an independent confirmation of the sweep's own 8-site count, from a different instrument. And it proves the causal claim rather than asserting it: the lint is green because the name resolves to a **defined terminal**, not because there is nothing to find.
+⭐ The *"the extractor did this"* half is also falsified against its competing hypothesis (*"someone hand-wrote the terminal in the shipped grammar"*): the hash suffix is **byte-identical** in both files — `kw_class_qualifier_fa08937d` in `grammars/systemverilog.ebnf` **and** in the extractor's own `grammars/systemverilog_lrm_profiled_generated.ebnf`. A shared generated suffix is evidence a shared generator produced them; two hand edits would not collide.
+
+⛔⛔ **3. THE RETRACTION OVER-RETRACTED — THREE SITES REJECT, NOT ONE — AND MY EXONERATING CONTROL WAS THE DEFECT.** Slice 1 measured `specparam PATHPULSE$ = (1, 2);` REJECT and then dismissed it, because `specparam CAP = (1, 2);` — no PATHPULSE in it — **also** rejects, which read as *"the comma is a general problem, not my defect"*. Read the normative text and the two verdicts are **opposite**:
+
+```text
+specparam_assignment      ::= specparam_identifier = constant_mintypmax_expression
+                            | pulse_control_specparam
+pulse_control_specparam   ::= PATHPULSE$ = ( reject_limit_value [ , error_limit_value ] )
+                            | PATHPULSE$<in>$<out> = ( reject_limit_value [ , error_limit_value ] )
+limit_value               ::= constant_mintypmax_expression
+```
+
+`CAP = (1, 2)` rejecting is **CORRECT** — a plain specparam takes a `constant_mintypmax_expression`, and `(1, 2)` is not one. `PATHPULSE$ = (1, 2)` rejecting is **UNDER-ACCEPTANCE** — that is `pulse_control_specparam` alternative 1, and it is unreachable because its terminal matches `PATHPULSE_dollar`. Corrected table:
+
+| site | minimal input | verdict | LRM |
+|---|---|---|---|
+| `function_declaraton` | §19.6.1 `cross` body declaring a function | **REJECT** `pos=65` (sv_2017) / ACCEPT (sv_2023) | legal ⇒ ⛔ **under-acceptance** |
+| `PATHPULSE_dollar` | `specparam PATHPULSE$ = (1, 2);` | **REJECT** `pos=68` | A.7.5 alt 1 ⇒ ⛔ **under-acceptance** |
+| `PATHPULSE_dollar_…$…` | `specparam PATHPULSE$a$y = (1, 2);` | **REJECT** `pos=71` | A.7.5 alt 2 ⇒ ⛔ **under-acceptance** |
+| `class_qualifier` | `local::y` / `this.x` / `C::x` | ACCEPT | reachable by another production |
+| `tx_path_delay_expression` | 12-way `specify` list | ACCEPT | reachable by another production |
+| *(control)* `CAP = (1, 2)` | plain specparam | REJECT `pos=61` | **not** legal ⇒ correct |
+
+⇒ **THREE demonstrated under-acceptances of five sites.** ⛔ The failure mode is precise and worth naming: **a control that reproduces the symptom does not exonerate the suspect unless the control's input is legal in the same way.** I compared *syntactic shape* and ignored *legality*, so a correct rejection was used to excuse an incorrect one. §2's general form restated — my control and my subject shared a parent (the parenthesised comma) and differed on the only axis that mattered.
+
+⚠️ **4. THE ORDERING CLAIM IS NARROWED.** Published: *"`.17`'s ordering question needs a new instrument."* `--report-indirect-lr-plan --indirect-lr-plan-guard-dry-run` **exists** and I had not run it. Run: it reports `would_absorb=0 would_refuse=0 … left_recursive_rule_rows 0 -> 0`, because the shipped grammar's surviving candidate set is **empty** (`candidates=0`) — everything is already absorbed. ⇒ the accurate claim is *"the existing surfaces report POST-elimination state and the SURVIVING candidate set; neither can show which candidate the sort chose among competitors, which is what the ordering question asks."* Still an instrument gap, one size smaller than published, and it was found by running the tool instead of trusting the sentence.
+
+###### Acceptance Checklist (enforced) — `.13c.2f` slice 2
+
+- [x] **REPRODUCE / ISSUE** — director challenge *"do these claims still hold?"*. Re-derived each: applying the extractor's own `RULE_HEAD_RE` to Annex A yields **749** heads + **1** single-colon line (published: 748 + 1); `./rust/target/release/parseability_probe --parse systemverilog … --profile sv_2017` returns REJECT for `PATHPULSE$ = (1, 2)` at `furthest_position=68` and for `PATHPULSE$a$y = (1, 2)` at `71`, both LRM-legal per A.7.5.
+- [x] **ROOT CAUSE (WHY + WHERE)** — two authoring defects, both mine. (1) the denominator came from `grep -cE '::='` (lines containing) rather than from the producer's regex (production heads), and `RULE_HEAD_RE` additionally accepts `:: =`. (2) `specparam CAP = (1, 2)` was used as an exonerating control for `specparam PATHPULSE$ = (1, 2)`; the two share the parenthesised-comma shape and differ in LEGALITY — A.7.5 gives `limit_value ::= constant_mintypmax_expression` inside `pulse_control_specparam`, so one rejection is correct and the other is a defect. Located in `docs/systemverilog/2023/txt/section-Annex_A-normative-formal-syntax.txt:680-691` and `tools/extract_systemverilog_lrm_profiles.py:29`.
+- [x] **FIX** — corrections published forward, no code: `1 of 749` → **`1 of 750`**; *"only one rejects"* → **three of five**, with the LRM citation that separates the correct rejection from the two defective ones; the `.17` ordering claim narrowed to what the dry-run actually reports. ZERO grammar, Rust, generated or gate bytes.
+- [x] **ADDRESSED (verified)** — before→after on each claim in the table above. The one claim that held is now *stronger* than published: `undefined_references` **0 → 8** under a RED control that removes only the terminal's definition, and the same `kw_class_qualifier_fa08937d` suffix appears in both the shipped grammar and the extractor's output, falsifying the hand-authored hypothesis.
+- [x] **NO REGRESSION** — no repository behaviour changed; `bash scripts/check_doctrines.sh` **21/21 PASS**; the probe used for every verdict is proven current with the shipped parser by `--parser-fingerprint` (`592bccec3bfc444f` = the live `generated/systemverilog_parser.rs` sha).
+- [x] **LOCKSTEP** — this leaf, `docs/decisions/feedback_answer_your_own_technical_questions.md` (the FIFTH costume), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+
 #### ⚠️ `.13c.2g` NEW `todo` — a TRACKED generated grammar cites its sources as absolute paths into a DIFFERENT checkout (opened 2026-08-17 session #244 by `.13c.2f`'s cross-family measurement)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):

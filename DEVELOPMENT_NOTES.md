@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0219 — my retraction needed a retraction, because I exonerated a defect with a control that shared its symptom and not its legality
+
+**1. ⛔⛔ AN OVER-RETRACTION IS A CLAIM TOO, AND IT FEELS LIKE RIGOUR.** Yesterday's slice caught itself
+overclaiming ("all four are under-acceptance") and swung to "only one rejects". That felt like the
+disciplined move — correcting *against* my own interest. It was still wrong: **three of five reject.**
+⇒ **the direction of a correction is not evidence of its accuracy.** A retraction earns the same three
+legs as the claim it replaces, and I gave it one.
+
+**2. ⭐⭐ THE MECHANISM: I USED A CONTROL THAT REPRODUCED THE SYMPTOM AS AN EXONERATION.**
+`specparam PATHPULSE$ = (1, 2);` rejects. So does `specparam CAP = (1, 2);`, which has no PATHPULSE in
+it — so I concluded the comma was a general problem and my defect was innocent. But `CAP = (1, 2)`
+rejecting is **correct** (A.7.5: a plain specparam takes a `constant_mintypmax_expression`), while
+`PATHPULSE$ = (1, 2)` rejecting is a **defect** (it is `pulse_control_specparam`, whose terminal is
+dead). Two rejections that look identical, with opposite verdicts. ⇒ **a control exonerates a suspect
+only if its input is legal in the same way as the subject's.** Shape-matching is not control-matching,
+and the LRM — not the parser's output — is what decides which of two identical-looking rejections is a
+bug. **PROMOTED →** `docs/knowledge/a-control-that-shares-the-symptom-does-not-share-the-verdict.md`.
+
+**3. ⛔ MY DENOMINATOR CAME FROM MY OWN GREP INSTEAD OF FROM THE PRODUCER.** I published "1 of 749"
+from `grep -cE '::='`. That counts lines *containing* the token; the extractor's `RULE_HEAD_RE` counts
+production *heads* and also accepts `:: =` with a space. Correct: **1 of 750**. `CLAIM_VERIFICATION.md`
+leg 2 says in as many words: *derive classifiers from the PRODUCER, never from a description of it* — I
+had read that standard this session and still hand-rolled the regex, because the claim was "obviously"
+about counting colons. ⇒ **when a number is about what a tool recognises, the tool's own recogniser is
+the only correct instrument** — and it is usually one `re.search` away in the source.
+
+**4. ⚠️ I ASSERTED A TOOL DID NOT EXIST WITHOUT RUNNING `--help`.** "`.17`'s ordering question needs a
+new instrument" — but `--indirect-lr-plan-guard-dry-run` exists. Running it narrowed rather than
+demolished the claim (it reports an empty surviving set on the shipped grammar), which is the point:
+**the difference between "no tool exists" and "the tool cannot answer this" is one command, and only
+one of them is publishable.**
+
 ## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0218 — I published "these are under-acceptance" and the very next acceptance item refuted it
 
 **1. ⛔⛔ "UNREACHABLE" AND "REJECTED" ARE DIFFERENT CLAIMS, AND I SHIPPED THE SECOND WHILE HOLDING
