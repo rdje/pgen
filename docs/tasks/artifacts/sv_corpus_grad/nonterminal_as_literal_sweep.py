@@ -20,17 +20,22 @@ grammar looks like it supports it.
 (`docs/CLAIM_VERIFICATION.md` §1) — and the hand search was short by two, including the one with
 EIGHT usage sites.
 
-TWO CANDIDATE SIGNALS, both printed, because neither alone finds the population:
+THREE CANDIDATE SIGNALS, all printed, because none alone finds the population:
   A  the matched text IS a nonterminal, or is within `CUTOFF` of one (catches the LRM's own TYPO
      `function_declaraton`, which is not a nonterminal anywhere — that is the whole point of it);
   B  the matched text CONTAINS a nonterminal name (catches the flattened multi-nonterminal
-     productions, e.g. `PATHPULSE$<desc>$<desc>` collapsed into one token).
+     productions, e.g. `PATHPULSE$<desc>$<desc>` collapsed into one token);
+  C  the matched text carries a TRANSLITERATED punctuation name (`PATHPULSE$` emitted as
+     `PATHPULSE_dollar`). ⛔ C was added only after A and B were measured to MISS an entire
+     production: `pulse_control_specparam`'s bare alternative is near no nonterminal and contains
+     none, so neither A nor B fires, and it is just as unreachable as the flattened one. Two signals
+     that agree are not two signals that are complete.
 
-⛔⛔ AND THEN AN AUTHORITY, BECAUSE THE SIGNALS ALONE ARE 55 % FALSE POSITIVES (5 of 9). A grammar names its
+⛔⛔ AND THEN AN AUTHORITY, BECAUSE THE SIGNALS ALONE ARE 50 % FALSE POSITIVES (5 of 10). A grammar names its
 nonterminals after the constructs they build, so `assign`, `coverpoint`, `deassign`, `nettype` and
 `timeunit` all sit within `CUTOFF` of `assign` / `cover_point` / `net_type` / `time_unit` — and every
 one of them is a genuine reserved keyword whose `kw_*` terminal is exactly right. Publishing the raw
-signal set would have reported **9 defects where there are 4**.
+signal set would have reported **10 defects where there are 5**.
 
 The authority is **IEEE 1800-2023 Annex B**, the normative reserved-keyword table, tracked in this
 repository at `docs/systemverilog/2023/txt/section-Annex_B-normative-keywords.txt`. A `kw_*` terminal
@@ -58,6 +63,12 @@ import re
 import sys
 
 CUTOFF = 0.85
+# Punctuation the LRM writes literally and an extraction may transliterate into a NAME.
+# `$` is the one that has actually bitten (`PATHPULSE$` -> `PATHPULSE_dollar`); the rest are
+# the same shape and cost nothing to watch. ⛔ Deliberately checked as `_<name>` or
+# `<name>_` so that a keyword merely CONTAINING one of these words does not fire.
+PUNCT_NAMES = ("dollar", "lparen", "rparen", "lbrace", "rbrace", "lbrack", "rbrack",
+               "comma", "semi", "colon", "dot", "tick", "hash", "star", "slash")
 GRAMMAR = "grammars/systemverilog.ebnf"
 ANNEX_B = "docs/systemverilog/2023/txt/section-Annex_B-normative-keywords.txt"
 CORPUS_ROOTS = ["stimuli/sv/subs", "stimuli/sv/uvm"]
@@ -88,7 +99,7 @@ lines = src.splitlines()
 if not os.path.isfile(ANNEX_B):
     sys.exit(f"sweep: {ANNEX_B} is missing — without the normative keyword table this sweep cannot "
              "tell a correct keyword terminal from a nonterminal transcribed as one, and a report "
-             "that cannot make that distinction is 55 % false positives. Refusing.")
+             "that cannot make that distinction is half false positives. Refusing.")
 annex_raw = open(ANNEX_B, encoding="utf-8", errors="replace").read()
 # The table is one keyword per line, with page furniture around it. Take every line that is a single
 # bare identifier — furniture ("Copyright © 2024 IEEE. All rights reserved.") never is.
@@ -179,6 +190,16 @@ for name, text in kw:
                     key=lambda r: (-len(r), r))   # name breaks length ties: sets are unordered
     if inside:
         sig.append(("B", "contains " + ", ".join(inside[:3])))
+    # ⭐⭐ SIGNAL C — PUNCTUATION TRANSLITERATED INTO THE TOKEN TEXT. Added after signals A and B
+    # MISSED a whole production: the LRM writes `PATHPULSE$`, and the extraction emitted a terminal
+    # matching the literal characters `PATHPULSE_dollar`. No SystemVerilog source contains that, so
+    # `pulse_control_specparam` is unreachable through BOTH its alternatives — and neither A nor B
+    # fires, because `PATHPULSE_dollar` is near no nonterminal and contains none. Measured: an AST
+    # dump of `specparam PATHPULSE$a$y = (1);` contains `pulse_control` ZERO times; the input is
+    # accepted only by falling through to the ordinary `specparam_assignment`.
+    translit = [x for x in PUNCT_NAMES if f"_{x}" in text or text.startswith(x + "_")]
+    if translit:
+        sig.append(("C", "punctuation transliterated: " + ", ".join(sorted(translit))))
     if sig:
         hits[name] = (text, sig)
 

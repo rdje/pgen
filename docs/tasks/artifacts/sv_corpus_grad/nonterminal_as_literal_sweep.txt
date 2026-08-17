@@ -7,27 +7,34 @@ corpus: 32931 files, of which 16427 are SystemVerilog source
 
 #   matched literal text                           sites  signals
 ------------------------------------------------------------------------------------------------------------
-1   PATHPULSE_dollar_specify_input_terminal_descri     1  B: contains specify_output_terminal_descriptor, specify_input_terminal_descriptor, output_terminal
+1   PATHPULSE_dollar                                   1  C: punctuation transliterated: dollar
+    defined  grammars/systemverilog.ebnf:6395
+    used at  5000
+    corpus   0 SV-source file(s) contain this literal — UNREACHABLE
+    candidate  ⛔ NO nonterminal of this exact name exists. 0 NAME NEIGHBOUR(S): 
+               ⚠️ a name neighbour is NOT a repair — see the note below the table.
+
+2   PATHPULSE_dollar_specify_input_terminal_descri     1  B: contains specify_output_terminal_descriptor, specify_input_terminal_descriptor, output_terminal | C: punctuation transliterated: dollar
     defined  grammars/systemverilog.ebnf:6397
     used at  5002
     corpus   0 SV-source file(s) contain this literal — UNREACHABLE
     candidate  the production flattened 4 nonterminals, all present: specify_output_terminal_descriptor, specify_input_terminal_descriptor, output_terminal
 
-2   class_qualifier                                    8  A: near 'class_item_qualifier' (0.857)
+3   class_qualifier                                    8  A: near 'class_item_qualifier' (0.857)
     defined  grammars/systemverilog.ebnf:6467
     used at  3296, 3310, 3323, 3328, 3340, 4471, 4483, 4534
     corpus   0 SV-source file(s) contain this literal — UNREACHABLE; plus 1 non-SV file(s), which cannot exercise it
     candidate  ⛔ NO nonterminal of this exact name exists. 1 NAME NEIGHBOUR(S): class_item_qualifier
                ⚠️ a name neighbour is NOT a repair — see the note below the table.
 
-3   function_declaraton                                1  A: near 'function_declaration' (0.974)
+4   function_declaraton                                1  A: near 'function_declaration' (0.974)
     defined  grammars/systemverilog.ebnf:6591
     used at  1834
     corpus   0 SV-source file(s) contain this literal — UNREACHABLE
     candidate  ⛔ NO nonterminal of this exact name exists. 2 NAME NEIGHBOUR(S): function_body_declaration, function_declaration
                ⚠️ a name neighbour is NOT a repair — see the note below the table.
 
-4   tx_path_delay_expression                           1  A: near 'tzx_path_delay_expression' (0.980) | B: contains path_delay_expression
+5   tx_path_delay_expression                           1  A: near 'tzx_path_delay_expression' (0.980) | B: contains path_delay_expression
     defined  grammars/systemverilog.ebnf:7019
     used at  3156
     corpus   0 SV-source file(s) contain this literal — UNREACHABLE
@@ -43,9 +50,9 @@ corpus: 32931 files, of which 16427 are SystemVerilog source
     timeunit                      3 site(s), reachable in 64 SV file(s)
 
 ------------------------------------------------------------------------------------------------------------
-=> 9 of 313 kw_* terminals matched a signal; **4 are defects**, 5 are correct keywords (55 % of the raw signal set was a false positive)
-   defect usage sites in the grammar: 11
-   ✓ CROSS-CHECK: Annex-B membership and corpus reachability partition all 9 rows IDENTICALLY.
+=> 10 of 313 kw_* terminals matched a signal; **5 are defects**, 5 are correct keywords (50 % of the raw signal set was a false positive)
+   defect usage sites in the grammar: 12
+   ✓ CROSS-CHECK: Annex-B membership and corpus reachability partition all 10 rows IDENTICALLY.
      Two authorities with no shared input — a standards table and 16 427 source
      files — so neither verdict rests on the other.
 

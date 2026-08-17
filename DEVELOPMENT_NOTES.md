@@ -1,5 +1,53 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0218 — I published "these are under-acceptance" and the very next acceptance item refuted it
+
+**1. ⛔⛔ "UNREACHABLE" AND "REJECTED" ARE DIFFERENT CLAIMS, AND I SHIPPED THE SECOND WHILE HOLDING
+EVIDENCE ONLY FOR THE FIRST.** The sweep proved four grammar alternatives can never fire. I wrote that
+this means LRM-legal source is rejected today. It does not: a construct can be reachable through a
+*different* production, and three of the four are — `this.x`, `local::y`, a twelve-way path-delay list
+and `PATHPULSE$a$y = (1)` all parse. ⇒ **from "this path is dead" you may conclude the grammar is
+misleading; you may NOT conclude the language is under-accepted.** The bridge between them is a
+minimal input, which is exactly what the leaf's own acceptance (b) asked for and what I wrote the
+claim without. **The tell was that (b) existed:** if a later acceptance item is going to measure your
+claim, you do not yet have the claim.
+
+**2. ⭐⭐ THE VERDICT WAS THE WRONG INSTRUMENT; THE AST WAS THE RIGHT ONE.** `PATHPULSE$a$y = (1);`
+ACCEPTS, which reads as "not a defect". The AST of that same parse contains `pulse_control` zero
+times — it matched as an ordinary `specparam_assignment` with `PATHPULSE$a$y` as an identifier. The
+production is unreachable and the accept is a coincidence of a permissive neighbour. ⇒ **when a
+construct has a dedicated production, an accept does not tell you the production ran** — dump the tree.
+This is the same lesson `.22`(b) recorded as "a verdict agreement is not a derivation agreement",
+arriving from the opposite direction, so I am citing rather than forking:
+[[a-by-verification-oracle-is-not-evidence-outside-the-shape-that-verified-it]] is the nearest card and
+does not quite cover it; promotion: declined for now — one more instance and it earns its own card,
+because two arrivals from opposite directions is what makes a class real.
+
+**3. ⭐⭐⭐ TWO SIGNALS THAT AGREE ARE NOT TWO SIGNALS THAT ARE COMPLETE.** My sweep had signals A and B,
+cross-checked against a second authority, partitioning nine rows perfectly — and it missed an entire
+production, because `PATHPULSE_dollar` is near no nonterminal and contains none. Agreement measures
+*consistency*, and I read it as *coverage*. The miss was found by chasing an unrelated reject, i.e. by
+luck. ⇒ **after a cross-check comes back clean, ask what shape of member would be invisible to BOTH
+signals** — that question is cheap, and here it was one `$`-transliteration away.
+
+**4. ⭐⭐ ONE CHARACTER IN A STANDARD, EIGHT DEAD ALTERNATIVES — AND THE GUARD I WAS ABOUT TO PROPOSE
+ALREADY EXISTS AND REPORTS ZERO.** Annex A has 749 productions; exactly one is written `:=` instead of
+`::=`, and the extractor's `RULE_HEAD_RE` requires `::=`. That single typographic slip is why
+`class_qualifier` has no production in the grammar. I then wrote that the cheap guard is a
+post-condition — *every nonterminal referenced must be defined* — and that **nothing checks it today**.
+Wrong, and I checked before publishing: `--lint-grammar` on `grammars/systemverilog.ebnf` reports
+`undefined_references=0 (error)`. The lint is wired, is an ERROR-severity check, and is green.
+
+⇒ the real lesson is sharper and worse: **the extractor's fallback DESTROYS the evidence the existing
+guard looks for.** An unresolved name did not survive as a dangling reference for the lint to catch —
+it was silently converted into a terminal that matches its own spelling, which is a *well-formed*
+grammar. A guard cannot fire on a defect that has been normalised into legality upstream of it. ⇒
+**when proposing a new check, first ask whether an existing one is being starved of its input** — the
+answer changes the fix from "add a check" to "stop laundering the symptom", and those land in
+completely different files. promotion: declined (recorded as `.13c.2f`(d)'s own evidence; the general
+form — *a green check may mean its input was sanitised, not that the property holds* — is close enough
+to [[a-check-whose-inputs-all-pass-has-not-been-tested]] that a second card would dilute it).
+
 ## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0217 — three times in one slice, the thing I was about to publish was an assumption wearing a measurement's clothes
 
 **1. ⛔⛔ A SIMILARITY SIGNAL OVER A GRAMMAR IS 55 % FALSE POSITIVES, BECAUSE GRAMMARS NAME

@@ -8681,10 +8681,16 @@ unreachable under-accepts, wrong mis-parses. The column now says what it can and
 computing it says **one** does (the flattened PATHPULSE pair), and the other three are absent with
 1, 2 and 9 neighbours respectively.
 
-⛔ **UNREACHABLE-ON-THE-CORPUS IS NOT DEAD CODE — IT IS UNDER-ACCEPTANCE.** All four are unreachable
-because no corpus file contains the literal text; that is precisely why they are defects. LRM-legal
-source that *would* use the construct is rejected today, which is axis-2 material on the SV release
-path, not tidy-up.
+⛔⛔ **THIS PARAGRAPH ORIGINALLY OVERCLAIMED, AND `.13c.2f` SLICE 1 REFUTED IT — corrected here, with
+the correction kept visible.** It read: *"unreachable-on-the-corpus is not dead code — it is
+UNDER-ACCEPTANCE. All four are unreachable … LRM-legal source that would use the construct is rejected
+today."* Acceptance (b) then pinned a minimal input per site and **only one of the four rejects**
+(`function_declaraton`: sv_2017 REJECT / sv_2023 ACCEPT). The inference *unreachable ⇒ the construct
+cannot parse* does not follow: a construct can be reachable through a **different** production, and
+three of the four are. ⇒ the standing claim is **one confirmed under-acceptance** plus three
+unreachable alternatives whose user impact is nil-or-unmeasured — still defects (the grammar claims
+support it does not deliver, and `PATHPULSE` accepts *for the wrong reason*, which an AST dump proves),
+but not the axis-2 mass the first wording implied. See `.13c.2f` slice 1 for the per-site table.
 
 ⭐ **SEQUENCING, decided here and stated: adjudicate all four against the LRM, then fix them in ONE
 ceremony.** Each fix is accept-widening and owes SV regeneration + a corpus re-measure with the
@@ -8796,18 +8802,109 @@ re-measure with the accepts-invalid set held, release + schema + ledger), not a 
   (`static | protected | local` versus the scope prefix). Substituting the neighbour would replace an
   unreachable alternative with a WRONG one — unreachable under-accepts, wrong mis-parses.
 
-**Acceptance:** (a) adjudicate each of the three against the LRM text — which production is meant,
-and for `class_qualifier` whether it must be **written** rather than re-pointed (its production is
-absent from the grammar entirely); (b) pin the current REJECT for each with a minimal input, the way
-`.13c.2d` did, so the fix has a before→after and not a claim; (c) ⛔ land all four fixes — these three
+**Acceptance:** ✅ **(a) DISCHARGED by slice 1** — adjudicate each of the three against the LRM text —
+which production is meant, and for `class_qualifier` whether it must be **written** rather than
+re-pointed (its production is absent from the grammar entirely); ⚠️ **(b) DISCHARGED by slice 1, and
+its result OVERTURNS this leaf's own framing** — pin the current REJECT for each with a minimal input,
+the way `.13c.2d` did, so the fix has a before→after and not a claim; (c) ⛔ land all four fixes — these three
 plus `.13c.2d`'s — in **ONE** accept-widening ceremony (SV regeneration + corpus re-measure with the
 accepts-invalid set held + release/schema/ledger), because spending it per-site spends it four times;
 (d) decide the EXTRACTOR question above — a hand-fix that leaves
 `tools/extract_systemverilog_lrm_profiles.py` emitting the same shape is a fix with a re-introduction
-path, and the sibling grammar is tracked, so the re-introduction would land in git; (e) re-run the
+path, and the sibling grammar is tracked, so the re-introduction would land in git. ⛔⛔ **And the
+guard that would have caught this ALREADY EXISTS AND REPORTS ZERO**: `--lint-grammar` on
+`grammars/systemverilog.ebnf` says `undefined_references=0 (error)`, an ERROR-severity check, green —
+because the extractor's fallback converts an unresolved name into a **terminal matching its own
+spelling**, which is a *well-formed* grammar. The lint is not missing; it is **starved of its input**,
+upstream. ⇒ the fix is not "add a check", it is "stop normalising the symptom into legality", and
+those are different files. A post-condition on the extractor — *every name it references must be one
+it defined, else report what was dropped* — is the shape that survives, because it runs before the
+fallback erases the evidence; (e) re-run the
 sweep afterwards and show the defect count reach **0** while the 5 exonerated keywords stay
 exonerated — and extend it to cover the sibling grammar, which today needs its own authority (Annex B
 is the SV keyword table and applies to both, so this is a scope change, not a new instrument).
+
+##### ⛔⛔ `.13c.2f` SLICE 1 (`PGEN-SV-CORPUS-GRAD-0218`, 2026-08-17 session #244) — (a)+(b) DISCHARGED, and the measurement OVERTURNS what `.13c.2d`'s sweep write-up published four commits ago
+
+⛔⛔ **THE CORRECTION FIRST, because it was published and is wrong.** `PGEN-SV-CORPUS-GRAD-0217` wrote
+*"UNREACHABLE-ON-THE-CORPUS IS NOT DEAD CODE — IT IS UNDER-ACCEPTANCE … LRM-legal source that would
+use the construct is rejected today"*, as a claim about **all four** sites. Acceptance (b) asked for a
+pinned REJECT per site, and that is what refutes it: **only one of the four rejects.** The sentence was
+reasoned from *unreachable ⇒ the construct cannot parse*, which does not follow — a construct can be
+reachable by a **different** production. Measured, per site:
+
+| site | minimal input | sv_2017 | sv_2023 | verdict |
+|---|---|---|---|---|
+| `function_declaraton` | IEEE 1800-2017 §19.6.1's `cross` body declaring a function | **REJECT** `furthest_position=65` | **ACCEPT** | ✅ **real under-acceptance**, profile-split |
+| `class_qualifier` | `local::y` in `randomize() with`; `this.x`; `C::x` | ACCEPT | — | ⚠️ **no reject demonstrated** |
+| `tx_path_delay_expression` | a `specify` 12-way `(a => y) = (1,…,12)` | ACCEPT | ACCEPT | ⚠️ **no reject demonstrated** |
+| `PATHPULSE$…$…` | `specparam PATHPULSE$a$y = (1);` | ACCEPT | — | ⚠️ **accepts, but for the WRONG REASON** — see below |
+
+⇒ the honest statement is **one confirmed under-acceptance and three unreachable alternatives whose
+user impact is measured as nil-or-unknown**. That is a materially smaller claim than the one shipped,
+and the leaf that made it is corrected forward rather than rewritten.
+
+**(a) THE LRM ADJUDICATION, each against the tracked normative text**
+(`docs/systemverilog/2023/txt/section-Annex_A-normative-formal-syntax.txt`):
+
+- ⭐⭐⭐ **`class_qualifier` — ROOT-CAUSED IN THE EXTRACTOR, and the cause is one character.** Annex A
+  line 1987 reads `class_qualifier := [ local ::48 ] [ implicit_class_handle . | class_scope ]` —
+  with a **single-colon** `:=`. `tools/extract_systemverilog_lrm_profiles.py:29` is
+  `RULE_HEAD_RE = re.compile(r"^\s*([A-Za-z_$][A-Za-z0-9_$,]*)\s*::\s*=\s*(.*?)\s*$")`, which
+  requires `::` then `=`. ⇒ the line is not recognised as a production head at all.
+  ⛔ **Measured, and it is the only one:** Annex A carries **748** `::=` productions and **exactly 1**
+  written `:=` — this one. `grep -cE '^class_qualifier' grammars/systemverilog.ebnf` = **0**, and the
+  8 references in `primary`-family rules resolved to a literal terminal instead. **One typographic
+  slip in the standard, 1 of 749, and 8 dead alternatives downstream.**
+- **`tx_path_delay_expression`** — A.7.4's twelve-way `list_of_path_delay_expressions` names
+  `t0x_`, `tx1_`, `t1x_`, `tx0_`, `txz_`, `tzx_path_delay_expression` and **no bare `tx_`**. The
+  grammar's own line `:3156` is a mangled rendering (`t_` and `tz_` repeated where the LRM names the
+  six specific variants), so this is a transcription artifact rather than a single wrong reference.
+- **`PATHPULSE$…$…`** — A.7.5 line 687 is
+  `PATHPULSE$specify_input_terminal_descriptor$specify_output_terminal_descriptor`: two NONTERMINAL
+  references and two `$` separators, collapsed into one token.
+
+⭐⭐⭐ **AND (b) FOUND WHAT THE SWEEP'S SIGNALS COULD NOT: `pulse_control_specparam` IS ENTIRELY DEAD,
+BOTH ALTERNATIVES.** Chasing the PATHPULSE reject produced a chain of measurements that each moved
+the answer:
+
+1. `specparam PATHPULSE$a$y = (1, 2);` REJECTs at the **comma** (`furthest_position=71`), which looks
+   like the flattened-token defect.
+2. ⛔ But `specparam CAP = (1, 2);` — an ordinary specparam with no PATHPULSE in it — **also rejects**
+   (`=61`). So the comma was never evidence about this defect. Attributing it would have been the
+   `an-instrument-firing-is-not-the-defect-reproducing` failure, again.
+3. `specparam PATHPULSE$a$y = (1);` **ACCEPTs** — so the site does not reject at all.
+4. ⭐ **The decisive measurement is the AST, not the verdict.**
+   `--parse-dump-ast-pretty` over that accepting input contains `pulse_control` **zero** times: it
+   parsed as an ordinary `specparam_assignment`, with `PATHPULSE$a$y` read as a specparam
+   *identifier*. The accept is real and the production is still unreachable.
+5. ⛔⛔ **And the SIBLING alternative is dead too, for a reason neither signal A nor B can see.**
+   `grammars/systemverilog.ebnf:5000` is
+   `pulse_control_specparam := kw_PATHPULSE_dollar_e0f78dc5 assign lparen reject_limit_value …`, and
+   that terminal is `trivia /PATHPULSE_dollar\b/` — the LRM's **`$` transliterated into the word
+   `_dollar`**. No SystemVerilog source contains `PATHPULSE_dollar` (**0** corpus files). So the
+   whole production is unreachable, and `PATHPULSE$ = (1)` likewise accepts only by falling through.
+
+⇒ **SIGNAL C ADDED to the sweep** — a `kw_*` terminal carrying a transliterated punctuation name.
+Population: **2**, both PATHPULSE, both unreachable. The sweep's defect count moves **4 → 5**.
+⛔ **Two signals that agree are not two signals that are complete**: A and B partitioned their
+population perfectly and cross-checked against a second authority, and they still missed an entire
+production, because `PATHPULSE_dollar` is near no nonterminal and contains none.
+
+⚠️ **A SEPARATE DEFECT, NOT THIS LEAF'S, MEASURED IN PASSING:** `specparam X = (1, 2);` rejects for a
+plain specparam — which is **correct** (A.7.5 gives `specparam_assignment ::= specparam_identifier =
+constant_mintypmax_expression`, and `(1,2)` is not one) — but it means the `[ , error_limit_value ]`
+half of `pulse_control_specparam` has never been exercised either. Once the production is reachable
+that arm needs its own probe; noted here so the fix slice does not assume it.
+
+###### Acceptance Checklist (enforced) — `.13c.2f` slice 1
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse systemverilog rust/target/es13c2f/cross_function.sv --profile sv_2017` → REJECT `furthest_position=65`, against `--profile sv_2023` → `parse_full passed`. The other three sites' minimal inputs all ACCEPT, which is the result that overturns the published framing.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `tools/extract_systemverilog_lrm_profiles.py:29`'s `RULE_HEAD_RE` requires `::` + `=`; IEEE 1800-2023 Annex A line 1987 writes `class_qualifier :=` with one colon, and it is the **only** such line among **749** productions (`grep -cE '^[a-z_][a-zA-Z0-9_]*[0-9]* := '` = 1, `grep -cE '::='` = 748) ⇒ the production is absent (`grep -cE '^class_qualifier' grammars/systemverilog.ebnf` = 0) and its 8 references became a literal terminal. For PATHPULSE the locus is `grammars/systemverilog.ebnf:5000`/`:6397`, where `$` is transliterated to `_dollar`; proven unreachable by `--parse-dump-ast-pretty` showing `pulse_control` **0** times over an input that accepts.
+- [x] **FIX** — none in this slice, deliberately: `.13c.2f`(c) holds all fixes for ONE accept-widening ceremony. What shipped is the adjudication, the pinned per-site verdicts, and **signal C** in the sweep (defect count 4 → 5). ZERO grammar, Rust, generated or gate bytes.
+- [x] **ADDRESSED (verified)** — before→after on what the tree CLAIMS: *"all four are under-acceptance"* → **one** confirmed under-acceptance (`function_declaraton`, REJECT→ACCEPT across profiles) and three unreachable alternatives with no demonstrated rejection, one of which (`PATHPULSE`) is now known to accept **for the wrong reason** with the AST as the evidence. Sweep defect count **4 → 5** with signal C.
+- [x] **NO REGRESSION** — no repository behaviour changed; `bash scripts/check_doctrines.sh` **21/21 PASS**; the sweep instrument remains deterministic (3 runs, one sha256) and its Annex-B ground-truth controls still refuse on a broken extraction.
+- [x] **LOCKSTEP** — `docs/tasks/artifacts/sv_corpus_grad/nonterminal_as_literal_sweep.py` + `.txt` (signal C, counts re-synced), this leaf, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
 #### ⚠️ `.13c.2g` NEW `todo` — a TRACKED generated grammar cites its sources as absolute paths into a DIFFERENT checkout (opened 2026-08-17 session #244 by `.13c.2f`'s cross-family measurement)
 
