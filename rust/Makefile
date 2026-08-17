@@ -2063,7 +2063,14 @@ sv_parse_cost_rebaseline:
 generated_reproducibility_gate:
 	@echo "🧬 Re-deriving every generated/ artifact from HEAD and demanding byte-identity (~57 s)..."
 	cd $(RUST_DIR)/.. && bash scripts/check_generated_reproducibility.sh --verify
-	@echo "✅ generated/ is what HEAD's source produces."
+# ⛔⛔ NO `✅ generated/ is what HEAD's source produces.` HERE, AND THAT REMOVAL IS THE POINT
+# (`ENGINE-UNIVERSAL-SERVICES.32` slice 2, under director challenge). A NOT-EVALUATED cohort exits
+# 0, so that unconditional `@echo` printed an UNQUALIFIED claim about the whole tree after a run
+# that may have checked 2 of 10 artifacts — a second copy of a verdict the script already derives,
+# and the copy could not tell the two apart (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3). The script
+# now prints `TIER 2 OK …` or `TIER 2 PARTIAL — … NOT EVALUATED for: …` and that line is the
+# verdict. ⛔ Do not re-add a success echo here: any wording chosen at recipe-authoring time cannot
+# know what the run actually covered.
 
 # Promote a NEW baseline — deliberate, never automatic, and it REFUSES if tier 2 found a breach,
 # because recording a divergence is how a stale artifact becomes the new normal.

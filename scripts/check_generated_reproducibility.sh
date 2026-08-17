@@ -71,14 +71,39 @@
 #       unchanged (which a mtime comparison would report as staleness). Measured cost when the
 #       binary is already current: **0.8 s**. When it is not, it does the only correct thing and
 #       rebuilds. ADOPTED.
-# ⚠️ HONEST BOUNDS of (C), stated here rather than discovered later: it proves the binary is current
-# with the WORKING TREE, which is the same notion of "HEAD" tier 1's `emission_sha` already uses
-# (both read the tracked files as they stand, not `git show HEAD:`); and it cannot detect a binary
-# hand-COPIED over cargo's output path, because cargo keys on its own fingerprint of the sources
-# rather than on the output bytes. Neither bound is the mechanism that produced the defect — that
-# was `make` skipping a rebuild on GNU Make 3.81's whole-second mtime comparison
-# (`CI-PARITY-GATE-ROT.37`), which cargo detects exactly. ⚠️ And it MUTATES `rust/target/`: that is
-# announced on every run, and it is why this lives in tier 2 (on demand) and never in tier 1.
+# ⚠️ HONEST BOUNDS of (C). ⛔⛔ ONE OF THESE WAS PUBLISHED WRONG AND IS RETRACTED HERE
+# (`ENGINE-UNIVERSAL-SERVICES.32` slice 2, under director challenge). The first draft of this block
+# claimed *"it cannot detect a binary hand-COPIED over cargo's output path, because cargo keys on
+# its own fingerprint of the sources rather than on the output bytes."* That was reasoned, not
+# measured, and it is FALSE: `target/debug/ast_pipeline` is a hardlink/copy of the real artifact in
+# `target/debug/deps/`, and cargo re-establishes it on every invocation. Measured twice, two
+# different perturbations — replacing it with a DIFFERENT valid binary, and TRUNCATING it to 1 000
+# bytes — cargo restored it to byte-identity in **0.57 s** without recompiling.
+# ⭐ The consequence is the one that matters: the fix therefore DOES close the constructed
+# demonstration (M1) that opened this leaf. Re-run end to end with the json artifact left at the
+# previous emission and its un-hoisted generator hand-placed over cargo's output, the gate no longer
+# passes — cargo repairs the binary, the fresh re-derivation comes out with 1 embedded site against
+# the artifact's 208, and the site-count assertion REFUSES with exit 2 and an actionable message
+# where the pre-fix code printed `✓ json re-derives byte-identically (208 sites)`.
+# ⚠️ Publishing an unmeasured bound is the same defect as publishing an unmeasured number, and the
+# direction here was CONSERVATIVE — it understated the fix — which is precisely why nothing would
+# have caught it: an author re-reading it would find nothing to disagree with.
+#
+# The bounds that DO survive, each stated as what it is:
+#   - **Working tree, not `git show HEAD:`** — it proves the binary is current with the tracked
+#     files as they stand, which is the same notion of "HEAD" tier 1's `emission_sha` already uses.
+#     Uncommitted emitter edits are therefore inside the guarantee, not outside it.
+#   - ⛔ **Cargo sees the CRATE, not the RECIPE.** `rust/Makefile` is in `emission_sha` but is not a
+#     cargo input, and this script MIRRORS the Makefile's generator flags
+#     (`--generate-parser --eliminate-left-recursion`, `+ --bootstrap-mode` for the pair) in
+#     `rederive_and_compare` rather than reading them from it. Two implementations of one recipe
+#     that must agree — the same class this leaf REJECTED candidate (B) for — sitting inside the
+#     check it hardened. Routed as `ENGINE-UNIVERSAL-SERVICES.33`, not fixed here.
+#   - ⚠️ It MUTATES `rust/target/`: announced on every run, and the reason this lives in tier 2 (on
+#     demand) and never in tier 1.
+# Neither surviving bound is the mechanism that produced the defect — that was `make` skipping a
+# rebuild on GNU Make 3.81's whole-second mtime comparison (`CI-PARITY-GATE-ROT.37`), which cargo
+# detects exactly.
 #
 # ⭐ HONEST BOUND, stated before the check is trusted rather than after: tier 1 proves *"nothing that
 # could have changed the artifacts has changed"*, NOT *"the artifacts are correct"*. It inherits

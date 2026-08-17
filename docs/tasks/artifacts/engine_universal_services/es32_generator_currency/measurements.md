@@ -1,4 +1,6 @@
-# ENGINE-UNIVERSAL-SERVICES.32 — the three measurements the fix rests on
+# ENGINE-UNIVERSAL-SERVICES.32 — the measurements the fix rests on
+
+⛔ The count is NOT in this heading. It said *"the three measurements"* and slice 2 added two more, one of which REFUTES a bound slice 1 published — a stored count in a title is the same defect as a stored count in prose (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3). Count the `## M` headings.
 
 ⛔ These are ONE-SHOT measurements, deliberately not wired into the self-test. Each costs a real
 build or a hand-constructed tree state, and re-running them per commit would buy nothing: the
@@ -95,4 +97,55 @@ already computes. It is **rejected on design rather than on price**: the gate de
 from `git ls-files`, and a `build.rs` cannot, so the two would be **separate implementations of one
 digest that must agree**. This repository has paid for that class four times — the `2.741`
 classifier written from its own design's prose, the carried `43 615`, four stale prose copies of one
-number, and the `128`-vs-`127` denominator. Cargo has no second implementation to drift.
+number, and the `128`-vs-`127` denominator. Cargo has no second implementation to drift. ⚠️ Slice 2 found that the check DOES still carry one — the Makefile's generator flags, mirrored rather than read — so the argument holds against (B) and now indicts a line the check already had (`.33`).
+
+---
+
+## M4 — does the fix CLOSE M1? (added by slice 2, under director challenge)
+
+Slice 1 published a bound saying the adopted fix *cannot* detect a hand-placed binary — which, if
+true, would mean it does not close the very demonstration in M1. **Measured instead of inferred.**
+
+Faithful M1 minimised to one family: source HOISTED, cargo's fingerprint CURRENT, the un-hoisted
+generator hand-`cp`'d over `rust/target/debug/ast_pipeline`, and `generated/json_parser.rs` left as
+the artifact that generator produces.
+
+```text
+  stale json sites: 208  (hoisted would be 1)
+  binary now: 216536768 bytes (unhoisted arm)
+  gate rc=2
+  generated-reproducibility: cannot compare json: embedded -o sites live=208 ('../generated/json_parser.rs')
+      fresh=1 ('../generated/json_parser.rs'). The two sides were not written through the same path
+      spelling, so any verdict would measure the PATH (TOOLBOX 5.6), not the source.
+```
+
+⇒ **the fix closes M1.** Cargo repaired the binary — the FRESH side came out at **1** site, the
+hoisted emission — and the pre-existing site-count assertion then refused. Pre-fix, the same state
+printed `✓ json re-derives byte-identically (208 sites)`.
+
+⚠️ **The probe's own verdict line said the opposite.** It accepted only `rc=1` (a breach) as a pass
+and the real outcome was `rc=2` (a refusal); both are correct non-passes. Reading the verdict line
+instead of the evidence beneath it would have "confirmed" a retraction that is itself wrong.
+⇒ *a control's predicate must enumerate every outcome that counts as passing, not the one its author
+expected.*
+
+## M5 — the refuted bound, measured twice
+
+| perturbation of `rust/target/debug/ast_pipeline` | `cargo build … --bin ast_pipeline` |
+|---|---|
+| replaced with a different valid binary (`ast_pipeline_bootstrap`, 29 522 520 B) | restored to **byte-identity** with the real artifact in **0.57 s**, no recompile |
+| truncated to 1 000 bytes | restored to byte-identity in **0.57 s** |
+
+⛔ So *"cargo keys on its own fingerprint of the sources rather than on the output bytes"* is FALSE
+as an operational claim: `target/debug/<bin>` is a hardlink/copy of `target/debug/deps/<bin>-<hash>`
+and cargo re-establishes it every run. ⚠️ The retracted bound erred in the **conservative**
+direction — it understated the fix — which is exactly why re-reading it would never have caught it.
+
+## The surviving bounds
+
+- **Working tree, not `git show HEAD:`** — the same notion of "HEAD" tier 1's `emission_sha` uses.
+- ⛔ **Cargo sees the CRATE, not the RECIPE.** `rust/Makefile` is inside `emission_sha` but is not a
+  cargo input, and the check MIRRORS the Makefile's generator flags in `rederive_and_compare`
+  instead of reading them from it — two implementations of one recipe that must agree, which is
+  what candidate (B) was rejected for, inside the check that rejected it. Routed → `.33`.
+- ⚠️ It mutates `rust/target/`, announced every run; the reason it is tier 2 only.

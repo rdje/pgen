@@ -8799,11 +8799,10 @@ slices that a control earned its place by going red against the thing it was add
 
 ⚠️ **HONEST BOUNDS, stated in the check's own header rather than discovered later.** (C) proves the
 binary is current with the **working tree** — the same notion of "HEAD" tier 1's `emission_sha`
-already uses (both read tracked files as they stand, not `git show HEAD:`) — and it cannot detect a
-binary hand-**copied** over cargo's output path, because cargo keys on its fingerprint of the
-sources, not on the output bytes. Neither bound is the mechanism that produced the defect. ⚠️ It
-also MUTATES `rust/target/`, which is announced every run and is why it lives in tier 2, never
-tier 1.
+already uses (both read tracked files as they stand, not `git show HEAD:`). ⛔⛔ **A second bound
+published here — *"it cannot detect a binary hand-copied over cargo's output path"* — is REFUTED and
+retracted by slice 2; see below.** ⚠️ It also MUTATES `rust/target/`, which is announced every run
+and is why it lives in tier 2, never tier 1.
 
 ⛔ **Acceptance (d) answered: does a THIRD instrument have this shape?** Checked, not assumed.
 `PARSE-COST-RATCHET` arm 5 already closed the same gap for the release probe (`.24`), and the
@@ -8821,6 +8820,113 @@ than from scratch.
 - [x] **ADDRESSED (verified)** — with one emission source perturbed, `rust/target/generated_reproducibility/pipeline_build.log` records `Compiling pgen v1.0.0 … Finished in 41.66s` and the gate re-derives 10/10 byte-identically against the rebuilt tool (rc 0). Cost when already current: **0.8 s**. Before→after on the over-claiming headline: `TIER 2 OK — every checked artifact…` → `TIER 2 PARTIAL — … NOT EVALUATED for: the 8 family artifacts`.
 - [x] **NO REGRESSION** — `bash scripts/check_generated_reproducibility.sh --self-test` **9/9 arms as declared** (7 pre-existing + the 2 new, one RED and one GREEN-pair so the RED cannot be vacuous); `make -C rust SHELL=/bin/bash generated_reproducibility_gate` **10/10 byte-identical**; `bash scripts/check_doctrines.sh` **21/21 PASS**; `generated/` untouched (this slice emits nothing). No clippy flow: zero Rust bytes staged.
 - [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10 row, `docs/book/src/gate-flow.md`, `TOOLBOX.md`, `docs/decisions/project_standing_tripwires.md` (row 9 updated to record the closure), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`. Measurements recorded in `docs/tasks/artifacts/engine_universal_services/es32_generator_currency/measurements.md`.
+
+##### ⛔ `.32` SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0073`, 2026-08-17 session #243, **DIRECTOR CHALLENGE**) — slice 1's honest bound was REASONED, not measured, and it is FALSE; the fix is stronger than I published and it DOES close M1
+
+**THE RETRACTION.** Slice 1 published, in the check's header and in this leaf:
+
+> *"it cannot detect a binary hand-COPIED over cargo's output path, because cargo keys on its own
+> fingerprint of the sources rather than on the output bytes."*
+
+⛔ **That was reasoned from how I assumed cargo works, and it is wrong.** `target/debug/ast_pipeline`
+is a hardlink/copy of the real artifact under `target/debug/deps/`, and cargo re-establishes it on
+every invocation. Measured twice, with two different perturbations:
+
+| perturbation | cargo's response |
+|---|---|
+| replace the binary with a **different valid binary** (`ast_pipeline_bootstrap`, 29 MB) | restored to **byte-identity** with the real artifact in **0.57 s**, no recompile |
+| **truncate** the binary to 1 000 bytes | restored to byte-identity in **0.57 s** |
+
+⭐⭐ **AND THE CONSEQUENCE IS THE ONE THAT MATTERS: the fix DOES close M1.** Slice 1 left a reader
+able to ask *"does the adopted fix close the demonstration that opened the leaf?"* and be told, by my
+own words, **no**. Re-run end to end (`M4` below): json left at the previous emission, its
+un-hoisted generator hand-placed over cargo's output, cargo's fingerprint current —
+
+```text
+  stale json sites: 208  (hoisted would be 1)
+  binary now: 216536768 bytes (unhoisted arm)
+  gate rc=2
+  generated-reproducibility: cannot compare json: embedded -o sites live=208 fresh=1 …
+      any verdict would measure the PATH, not the source.
+```
+
+⇒ cargo repaired the binary (the FRESH side came out at **1** site, the hoisted emission), and the
+pre-existing site-count assertion then REFUSED — where the pre-fix code printed
+`✓ json re-derives byte-identically (208 sites)`. **Non-pass, loud, actionable.**
+
+⚠️ **MY PROBE'S VERDICT LINE WAS ALSO WRONG, AND IT PRINTED `✗ the fix does NOT close M1`.** It
+accepted only `rc=1` (a breach) as success and the real outcome was `rc=2` (a refusal) — both are
+correct non-passes, and a predicate that admits one of two correct outcomes manufactures a false
+negative. Had I read the verdict line instead of the evidence under it, this slice would have
+"confirmed" a retraction that is itself wrong. ⇒ **a control's predicate must enumerate every
+outcome that counts as passing, not the one the author expected.**
+
+⛔ **AND A SMALLER ONE, SAME CLASS.** Slice 1's write-up said the bound was published in **four**
+surfaces. `grep` says **two** — the check header and this leaf. `DOCTRINE_ENFORCEMENT.md`,
+`TOOLBOX.md`, `gate-flow.md` and `measurements.md` never carried it. A count asserted from memory,
+in a slice about not asserting from memory.
+
+**A SECOND DEFECT, FOUND BY THE SAME CHALLENGE.** `make -C rust generated_reproducibility_gate`
+ended with an unconditional `@echo "✅ generated/ is what HEAD's source produces."` — **no
+`checked` qualifier at all**, printed on rc 0, which a NOT-EVALUATED cohort also returns. So slice
+1's PARTIAL headline was immediately over-written by an unqualified operator-facing claim. The echo
+is REMOVED: the script's own line is the verdict, and a recipe cannot know at authoring time what a
+run covered (`DERIVED_STATE_CONTAINMENT.md` R1/R3).
+
+⚠️ **THE SURVIVING BOUND IS A NEW FINDING, AND IT IS THIS LEAF'S OWN REJECTED CANDIDATE.** Cargo
+sees the CRATE, not the RECIPE: `rust/Makefile` is inside `emission_sha` but is not a cargo input,
+and this script **mirrors** the Makefile's generator flags rather than reading them. Two
+implementations of one recipe that must agree — exactly what candidate (B) was rejected for —
+sitting inside the check that rejected it. ⇒ **`.33` NEW**, routed, not fixed here.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — director challenge *"do your claims still hold?"*. Re-derived each: `grep -rn 'hand-copied'` locates the bound in **2** surfaces (not the 4 slice 1 claimed); `cp rust/target/debug/ast_pipeline_bootstrap rust/target/debug/ast_pipeline` followed by `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline` restored byte-identity in **0.57 s**, refuting the bound on its first test.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `scripts/check_generated_reproducibility.sh:74-81` (slice 1) asserted a property of cargo from reasoning rather than from a test; `target/debug/<bin>` is a hardlink/copy of `target/debug/deps/<bin>-<hash>` and cargo re-establishes it every run, so the output path is *not* outside its fingerprint's reach. Second locus: `rust/Makefile:2063-2066`, an unconditional `@echo` restating a verdict the script derives, which cannot distinguish `TIER 2 OK` from `TIER 2 PARTIAL`. Both located by `grep -rn` + direct perturbation, `bash -n` clean.
+- [x] **FIX** — ops/build-flow: retract the bound in both surfaces with the measurement that refutes it; delete the Makefile echo and say why it must not come back; state the surviving bounds, one of which (the recipe mirror) is routed to `.33`. Zero engine, grammar, generated or gate-logic bytes — the check's behaviour is unchanged by this slice.
+- [x] **ADDRESSED (verified)** — M4 end-to-end: the constructed M1 state now yields `gate rc=2` with `cannot compare json: embedded -o sites live=208 fresh=1` where the pre-fix run printed `✓ json re-derives byte-identically (208 sites)`. Before→after on the operator-facing claim: `✅ generated/ is what HEAD's source produces.` (unconditional) → the script's own `TIER 2 OK` / `TIER 2 PARTIAL — … NOT EVALUATED for: …`.
+- [x] **NO REGRESSION** — `bash scripts/check_generated_reproducibility.sh --self-test` **9/9 arms as declared**; `make -C rust SHELL=/bin/bash generated_reproducibility_gate` **10/10 byte-identical**; the baseline was rebaselined because `rust/Makefile` is inside `emission_sha` by construction, and the artifact hashes are **unchanged** across it — only `emission_sha` and `verified_at_commit` moved, which is what makes this bookkeeping; `bash scripts/check_doctrines.sh` **21/21 PASS**. No clippy flow: zero Rust bytes.
+- [x] **LOCKSTEP** — `scripts/check_generated_reproducibility.sh`, `rust/Makefile`, this leaf, `docs/tasks/artifacts/engine_universal_services/es32_generator_currency/measurements.md` (M4/M5 added, the fingerprint section corrected), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+
+#### ⚠️ `.33` NEW `todo` — `GENERATED-REPRODUCIBILITY` MIRRORS the Makefile's generator flags instead of reading them, so the recipe has two implementations that must agree (opened 2026-08-17 session #243 by `.32` slice 2, which found it while writing down the bounds of `.32` slice 1's own fix)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **The duplication, located exactly.**
+
+  | where | the recipe |
+  |---|---|
+  | `rust/Makefile:122` | `RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion` |
+  | `rust/Makefile:123` | `RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --eliminate-left-recursion` |
+  | `scripts/check_generated_reproducibility.sh:172` | `args=(--generate-parser --eliminate-left-recursion)` |
+  | `scripts/check_generated_reproducibility.sh:173` | `args=(--generate-parser --bootstrap-mode --eliminate-left-recursion)` |
+
+- ⛔ **This is the exact class `.32` slice 1 REJECTED candidate (B) for**, sitting in the check that
+  rejected it: *"two implementations of one fact that must agree can drift."* The leaf argued that
+  case about a digest and did not look at the flags three lines above its own comparison.
+- **Failure direction: PASSING, on one of the two orderings.** If the Makefile gains a generator flag
+  and the artifacts are regenerated with it, this check re-derives with the OLD flags and reports a
+  mismatch — loud, safe. If the Makefile gains a flag and the artifacts have NOT yet been
+  regenerated, the check re-derives with its own old flags, matches the old artifacts, and passes —
+  while `make` would now produce something different. That second ordering is the dangerous one and
+  it is the ordinary one during a flag change.
+- **Population today: ZERO.** The two spellings agree right now (verified by the table above), so
+  nothing is currently wrong. This is a latent duplication, routed at the moment it was found rather
+  than after it fires — which is the whole argument of `.32` slice 1's own decision.
+- **Reproduces outside SystemVerilog: yes, by construction** — `RUST_GENERATOR` drives all eight
+  families and `RUST_GENERATOR_BOOTSTRAP` the annotation pair; the check mirrors both.
+- ⛔ **The roster half is already DERIVED and the flags half is not**, which is the tell: `run_tier2`
+  reads `GENERATED_PARSER_FAMILIES` out of `rust/Makefile` with `sed` and refuses on drift, then
+  hard-codes the flags beside it. One author saw the hazard for the family list and not for the
+  recipe — the same shape as `CI-PARITY-GATE-ROT.32`'s "a sweep covers only the lane it was pasted
+  into".
+
+**Acceptance:** (a) DERIVE the flags from `rust/Makefile` the way `GENERATED_PARSER_FAMILIES`
+already is, or state in the check why they cannot be and gate the mirror some other way; (b) fire a
+RED arm proving the check REFUSES (not silently mismatches) when the Makefile's recipe and the
+mirror disagree; (c) sweep for further hard-coded mirrors of the Makefile inside `scripts/` and
+publish the count found, so this is a census rather than a spot fix — `.32` slice 2 found this one
+by accident while writing bounds, which is not a search.
 
 
 #### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ✅ **(f) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0048`; ✅ **(b) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0054` — the fused graph, the PROTOCOL graph and the PROTOCOL graph WITH the coverage recorder produce a **byte-identical AST** (one sha256 across all three arms), so the verdict agreement IS a derivation agreement; ⛔ the tool that could say so did not exist, and the two obvious substitutes both produce a FALSE PASS. **The leaf is now fully CLOSED** — slice 3 closed (f) by adjudicating all 7 tracked consumers and turned up that ONE 2 787-byte file is **99.39 %** of the corpus's committed multiplicity)

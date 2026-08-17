@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0073 — the limitation I wrote under my own fix was an unverified claim, and it erred modestly enough that re-reading would never have caught it
+
+**1. ⛔⛔ I VERIFIED THE NUMBER AND NOT THE SENTENCE NEXT TO IT.** Slice 1's fix was measured three
+ways; the *bound* I wrote beneath it — "cargo cannot detect a hand-copied binary" — was reasoned
+from how I assumed cargo works and never tested. It is false: cargo re-establishes
+`target/debug/<bin>` from `target/debug/deps/` on every run, measured at **0.57 s** under two
+different perturbations. ⭐ The damage was not the sentence. The sentence said my fix did **not**
+close the demonstration the leaf was opened for — so a reader asking the one obvious question would
+have been told no, by me, in the check's header.
+⇒ **an honest bound is a claim about the world, usually a NEGATIVE one, and negative claims are the
+ones that feel too obvious to test.** It also gets three protections an overclaim never gets: it
+reads as integrity, it fails in the conservative direction, and nothing can disagree with it because
+it describes an absence. **PROMOTED →**
+[[an-unmeasured-honest-bound-is-an-unverified-claim-wearing-a-humble-face]]. The usable test: *what
+does this bound tell a reader they still have to worry about? If it is the thing I just fixed,
+measure it.*
+
+**2. ⚠️ MY PROBE PRINTED `✗ the fix does NOT close M1` AND THE EVIDENCE UNDER IT SAID THE OPPOSITE.**
+The predicate accepted only `rc=1` (a breach) as success; the real outcome was `rc=2` (a refusal),
+which is equally a non-pass — the gate's *site-count* assertion fired before the hash comparison
+could. Two correct outcomes, one in the predicate. Had I trusted the verdict line I would have
+published a retraction of a correct fix. ⇒ **enumerate every outcome that counts as passing, not the
+one you expected**; and when a control's verdict disagrees with its own transcript, the transcript
+wins until you can say why.
+
+**3. ⛔ THE CHALLENGE ALSO FOUND A SECOND DEFECT I HAD SHIPPED HOURS EARLIER.** I had just taught the
+script to say `TIER 2 PARTIAL` when a cohort is skipped — and the make recipe printed
+`✅ generated/ is what HEAD's source produces.` unconditionally on the next line, with no `checked`
+qualifier at all. A derived verdict with a hand-written duplicate beside it, and the duplicate
+cannot distinguish the two cases (`DERIVED_STATE_CONTAINMENT.md` R1/R3). Removed, with a comment
+saying why it must not come back.
+
+**4. ⛔ AND THE ARGUMENT I USED TO REJECT A CANDIDATE INDICTS A LINE THREE LINES FROM MY OWN
+COMPARISON.** I rejected the `build.rs`-fingerprint option because it needed a second implementation
+of one digest that must agree. The same check hard-codes the Makefile's generator flags rather than
+reading them — the same duplication, in the file making the argument. Routed as `.33` at the moment
+it was found, with population 0 today. ⇒ when you name a defect class to reject an option, **run the
+class over the file you are editing before you finish the sentence.**
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0072 — the cheaper-looking fix cost a duplicate derivation, and the new control went red against the check it was added to protect
 
 **1. ⭐⭐ I PRICED THE WRONG AXIS FIRST, AND THE RIGHT AXIS WAS *AGREEMENT*, NOT SECONDS.** `.32`
