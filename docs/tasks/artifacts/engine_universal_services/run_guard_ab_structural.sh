@@ -62,15 +62,21 @@ fi
 # the path normalised it is 233 KB SMALLER, which is the opposite conclusion about what guards cost.
 # ⇒ every byte figure below is measured AFTER replacing the embedded path with a fixed token.
 #
-# ⛔ THIS COMMENT SAID **43 615** UNTIL `ENGINE-UNIVERSAL-SERVICES.25` SLICE 1, AND ITS OWN NEIGHBOURS
-# REFUTED IT THE WHOLE TIME. 203 KB + 233 KB = 436 KB = 12 chars × 36 346 sites, so the two byte
-# figures on the line above imply 36 346; and re-running the ORIGINAL `row()` on the shipped parser
-# rewritten to this script's own arm-2 spelling reports `path_sites=36346`. The wrong figure is the
-# RIGHT byte delta over the WRONG character width — 36 346 × 42 = 1 526 532, and 1 526 532 ÷ 35 =
-# 43 615 exactly — i.e. a numerator taken from one `-o` spelling and a denominator from another.
-# ⭐ That is precisely why `row()` no longer derives the count itself: the SHARED helper
-# (`scripts/compare_generated_parsers.py`, `.25` (c)) reads the embedded spelling OUT OF THE ARTIFACT
-# instead of being told it, so a caller cannot supply a mismatched path at all.
+# ⛔⛔ THIS COMMENT SAID **43 615** UNTIL `ENGINE-UNIVERSAL-SERVICES.25` SLICE 1, AND THIS SCRIPT'S
+# OWN OUTPUT REFUTED IT THE WHOLE TIME. `guard_ab_structural.txt` — written by this very runner, in
+# the same commit — records `path_sites=33249 / 36346 / 36291` for arms 1/2/3. No arm reports 43 615.
+# The two byte figures on the line above say the same thing independently (203 KB + 233 KB = 436 KB
+# = 12 chars × 36 346 sites), as does re-running the ORIGINAL `row()` on the shipped parser rewritten
+# to this script's own arm-2 spelling (`path_sites=36346`).
+# ⛔ `.25` slice 1 ALSO published a mechanism for the wrong figure — *"36 346 × 42 ÷ 35, the right
+# byte delta over the wrong character width"* — and that is RETRACTED under director challenge: the
+# instrument never mis-computed, and the arithmetic was fitted (the identity needs a ratio of exactly
+# 6/5; the real arm-2 numerator 48-5=43 implies a non-integer denominator 35.83). The honest class is
+# **instrument right, prose copy wrong** (`DERIVED_STATE_CONTAINMENT.md` R1/R3) — a number that was
+# CARRIED, not mis-derived.
+# ⭐ Which is exactly why `row()` no longer derives the count itself and no reader should re-type it:
+# the SHARED helper (`scripts/compare_generated_parsers.py`, `.25` (c)) reads the embedded spelling
+# OUT OF THE ARTIFACT, so the count printed below is derived on every run.
 #
 # ⛔ `--token '<OUT>'` IS DELIBERATE AND MUST NOT BE "TIDIED" TO THE HELPER'S DEFAULT. The token's
 # length enters every normalised byte count as `sites × Δlen`, and `.20` slice 3 PUBLISHED its

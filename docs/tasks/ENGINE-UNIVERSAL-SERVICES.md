@@ -8198,7 +8198,7 @@ genuinely reachable crash (a sample containing no LR-family entry at all divides
 and unlike `total` nothing upstream refuses that). State reachability per site rather than
 guarding all four reflexively.
 
-#### ⚠️ `.25` `in progress` — every generated parser embeds its own OUTPUT PATH once per emitted site (**36 346** times in SV, **63 186** across all eleven artifacts), which makes two parsers byte-incomparable and has now inverted **four** published readings — the third of which FOUNDED a task leaf on two hypotheses that were both wrong, and the fourth of which lived INSIDE the script that warns about it (opened 2026-08-15 session #237 by `.20` slice 4 + `CI-PARITY-GATE-ROT.32`(d); third instance routed in from `.19` slice 1, 2026-08-16 session #241. ✅ **(a) DISCHARGED + (c) SHIPPED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0068` — the path is ONE constant threaded to every site and **2 704 of the 63 186 sites are provably DEAD** (`let filename_str`, never read, confirmed by rustc's own lint at 2 848 locations); the three independent normalisation copies now share `scripts/compare_generated_parsers.py`, which DERIVES the spelling from the artifact instead of taking it from the caller. ⛔ Slice 1 also refuted a **fourth** instance of the trap living inside the script that warns about it — `run_guard_ab_structural.sh`'s published `43 615` is `36 346 × 42 ÷ 35`, the right byte delta over the wrong character width. ⏳ **(b) half settled**: class D priced exactly (−176 209 B, −2 848 warnings); class L needs a mimic-tree A/B. The emission change itself is routed to **`.31`** so its lockstep rebaseline is deliberate)
+#### ⚠️ `.25` `in progress` — every generated parser embeds its own OUTPUT PATH once per emitted site (**36 346** times in SV, **63 186** across all eleven artifacts), which makes two parsers byte-incomparable and has now inverted **three** published readings — the third of which FOUNDED a task leaf on two hypotheses that were both wrong (opened 2026-08-15 session #237 by `.20` slice 4 + `CI-PARITY-GATE-ROT.32`(d); third instance routed in from `.19` slice 1, 2026-08-16 session #241. ✅ **(a) DISCHARGED + (c) SHIPPED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0068` — the path is ONE constant threaded to every site and **2 704 of the 63 186 sites are provably DEAD** (`let filename_str`, never read, confirmed by rustc's own lint at 2 848 locations); the three independent normalisation copies now share `scripts/compare_generated_parsers.py`, which DERIVES the spelling from the artifact instead of taking it from the caller. ⛔ Slice 1 also corrected `run_guard_ab_structural.sh`'s published site count **43 615 → 36 346** — ⚠️ first written up as a FOURTH instance of this trap and RETRACTED under director challenge: the script's own tracked output printed 36 346 in the same commit, so it is a CARRIED PROSE COPY (`DERIVED_STATE_CONTAINMENT.md` R1/R3), not a mis-normalisation. ⏳ **(b) half settled**: class D priced exactly (−176 203 B, −2 848 warnings); class L needs a mimic-tree A/B. The emission change itself is routed to **`.31`** so its lockstep rebaseline is deliberate)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -8303,7 +8303,7 @@ asymmetry).
 
 **(b) — PRICED: the DEAD half is settled, the LIVE half is ROUTED.**
 - **Class D is a pure removal.** The binding is never read, so deleting it cannot change any
-  diagnostic, any trace line or any parse. Price: **−176 209 bytes** across the eleven artifacts
+  diagnostic, any trace line or any parse. Price: **−176 203 bytes** across the eleven artifacts
   (SV −107 736, i.e. 0.075 % of the artifact) and **−2 848 build warnings**. ⛔ The bytes are the
   *small* half of that price — the warnings are 2 848 lines of noise in every build, which is what
   a real defect looks like when nothing fails.
@@ -8339,13 +8339,33 @@ never asked.
 
 ⛔⛔ **AND THE PUBLISHED `43 615` IN `run_guard_ab_structural.sh` WAS WRONG — ITS OWN NEIGHBOURS
 REFUTED IT THE WHOLE TIME.** The comment claimed the SV parser embeds its `-o` path *"43 615
-times"*. Three independent refutations: (1) the two byte figures on the very next line,
+times"*. Four independent refutations: (1) the two byte figures on the very next line,
 `203 KB + 233 KB = 436 KB = 12 chars × 36 346 sites`; (2) re-running the **ORIGINAL** `row()` on the
 shipped parser rewritten to that script's own arm-2 spelling reports `path_sites=36346`; (3) the
-shared helper and `grep -oF` both report 36 346. ⭐ The mechanism is exact and is the same disease:
-**36 346 × 42 = 1 526 532, and 1 526 532 ÷ 35 = 43 615** — the right byte delta over the *wrong*
-character width, i.e. a numerator taken from one `-o` spelling and a denominator from another.
-A caller-supplied path produced the number that warned about caller-supplied paths.
+shared helper and `grep -oF` both report 36 346; and ⭐⭐ (4) — **the decisive one, found only after a
+director challenge** — the `-0042` run's OWN tracked output,
+`docs/tasks/artifacts/engine_universal_services/guard_ab_structural.txt`, records
+`path_sites=33249 / 36346 / 36291` for arms 1/2/3. **No arm reports 43 615.**
+
+⛔⛔⛔ **AND THAT REFUTES THE MECHANISM SLICE 1 FIRST PUBLISHED, WHICH IS RETRACTED HERE.** This
+paragraph originally read *"the mechanism is exact: 36 346 × 42 ÷ 35 = 43 615 — the right byte delta
+over the wrong character width, a numerator from one `-o` spelling and a denominator from another."*
+That is **wrong**, and it was wrong in the flattering direction: it made the defect an instance of
+the very trap the leaf is about. ⛔ The instrument never mis-computed anything — its own artifact
+printed **36 346** in the same commit that published **43 615** in prose. And the arithmetic was a
+FIT, not a derivation: `43 615 / 36 346 = 1.19999`, so the identity needs a ratio of exactly `6/5`;
+`42` does happen to equal arm 1's `len("rust/target/lr_ab_arms/sv_arm1_narrow_parser.rs") − 5`, but
+`35` corresponds to **no path in play**, and with the real arm-2 numerator (`48 − 5 = 43`) the
+implied denominator is `35.83` — not an integer. ⇒ I searched for numbers that reproduced the target
+and published the search result as a measurement.
+
+⭐ **The correct class is narrower and already has a name in this repository: INSTRUMENT RIGHT,
+PROSE COPY WRONG** — `DERIVED_STATE_CONTAINMENT.md` R1/R3, the same shape as
+`CI-PARITY-GATE-ROT.36` (an instrument correct every run beside four wrong prose copies). A
+hand-written number sat in a block comment, contradicted by its own tool's tracked output, in the
+same commit, for four sessions. The remedy is unchanged and is what (c) shipped — the count is now
+derived by a shared helper rather than typed — but the *reason* is that the number was **carried**,
+not that it was **mis-derived**.
 
 ⭐ **A SECOND, WORSE DEFECT IN THE SAME `row()`, FOUND WHILE PROVING THE MIGRATION.** The original
 used its `$2` as *both* the file to read *and* the spelling to normalise, so it silently assumed the
@@ -8399,7 +8419,7 @@ price/decide the 60 482 live sites, with the lockstep rebaseline that entails.
 - [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash generated_reproducibility_gate`: **10/10 artifacts re-derive byte-identical** through the edited code path (675/3758/217/11647/36346/895/3075/605/2508/71 sites, each equal to the helper's derivation); `check_generated_reproducibility.sh --self-test` **7/7**; `check_doctrines.sh` **21/21 PASS**; migrated `row()` byte-identical to the original on the same artifact; **zero grammar, engine, codegen and generated bytes touched** (`git status` shows no `generated/`, `grammars/` or `rust/src/` change), so no parser moved and no clippy surface changed.
 - [x] **LOCKSTEP** — `TOOLBOX.md` 5.6 updated to name the shared helper as the mandatory pre-step and to record the substring hazard; `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md` updated. Book: N/A — no user-facing surface changes (an internal comparison instrument for repo maintainers).
 
-#### ⚠️ `.31` NEW `todo` — the emitted `-o` path is DEAD at **2 704** of its **63 186** sites and constant at the other 60 482, so the generator emits 2 848 build warnings and ~1.3 MB of a value nothing can vary (opened 2026-08-17 session #242 by `.25` slice 1)
+#### ⚠️ `.31` `in progress` — the emitted `-o` path is DEAD at **2 704** of its **63 186** sites and constant at the other 60 482, so the generator emits 2 848 build warnings and ~1.3 MB of a value nothing can vary (opened 2026-08-17 session #242 by `.25` slice 1. ✅ **(a) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0069` — warnings **2 848 → 0**, artifacts **−176 203 B**, and BEFORE-minus-those-lines is **byte-identical to AFTER in all 11 artifacts**, so the artifact-keyed rebaseline is bookkeeping not behaviour. ⛔ The canonical regeneration target covers only **9 of 11** — `scratch` needs `focus_scratch` and `ebnf.rs` is reseeded ONLY when absent — and an mtime assertion, not the target's exit 0, is what caught it. ⏳ **(b)/(c)/(e) OPEN**: the 60 482 live sites are still unpriced, and (e)'s question of whether the label should be the output path at all is untouched)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -8440,6 +8460,61 @@ and re-run `make -C rust generated_reproducibility_gate` (10/10) plus
 the output path at all: it names the *generated file* beside an *input byte offset*, so a reader is
 shown two things that do not correspond. Changing the string is a diagnostics-behaviour change and
 needs its own decision — do not fold it into a mechanical hoist.
+
+##### ✅ `.31` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0069`, 2026-08-17 session #242) — (a) DISCHARGED: **2 848 warnings → 0**, and BEFORE-minus-those-lines is byte-identical to AFTER in **all 11 artifacts**
+
+**THE CHANGE.** One statement deleted from the emitted rule method
+(`rust/src/ast_pipeline/ast_based_generator.rs:4042`), replaced by a DO-NOT-RE-ADD marker naming
+this leaf. The `#filename` value is untouched at its ~50 real `self.logger.log_*(#filename, …)` call
+sites — this removed a dead duplicate of it, not the emission.
+
+**MEASURED BEFORE → AFTER.**
+
+| | before | after |
+|---|---|---|
+| `unused variable: filename_str` (`--features generated_parsers`) | **2 560** | **0** |
+| `unused variable: filename_str` (`+ ebnf_dual_run`) | **2 848** | **0** |
+| `filename_str` occurrences across 11 artifacts | **2 704** | **0** |
+| embedded `-o` sites across 11 artifacts | **63 186** | **60 482** |
+| total artifact bytes | 236 224 740 | 236 048 537 (**−176 203**) |
+
+⭐ **Every per-artifact byte delta equals that artifact's dead-line count times its line width,
+independently, in all eleven rows** — and summing them caught an arithmetic error in `.25` slice 1's
+own published total: **−176 209 was wrong, the measured figure is −176 203**, corrected on all five
+surfaces that carried it.
+
+⭐⭐ **ARM 5 IS THE CLAIM THE REBASELINE RESTS ON, AND IT HOLDS FOR ALL ELEVEN:** BEFORE with only
+its `^\s*let filename_str = ` lines stripped is **byte-identical (sha256) to AFTER**. ⇒ the
+artifact-keyed rebaseline below is *bookkeeping*, not a behavioural change. Its RED control — strip
+a DIFFERENT line and demand a mismatch — fires.
+Bank: `docs/tasks/artifacts/engine_universal_services/es31_dead_binding/probe.sh` → **7/7 arms**.
+
+⛔⛔ **THE CANONICAL REGENERATION TARGET COVERS 9 OF THE 11 ARTIFACTS, AND ONLY AN MTIME ASSERTION
+CAUGHT IT.** `make regenerate_generated_parsers` rebuilds *"annotation pair + 7 grammar families"*.
+It leaves:
+- **`generated/scratch_parser.rs`** — owned by `make focus_scratch` (run separately here);
+- ⛔ **`generated/ebnf.rs`** — reseeded by `regex_parser_bootstrap` **only when ABSENT**
+  (`rust/Makefile:969`, `if [ ! -f $(GENERATED_DIR)/ebnf.rs ]`); an existing one is merely
+  *compile-checked*, never re-derived. Refreshed here by `rm` + `make -C rust regex_parser_bootstrap`.
+
+⭐ Because a regeneration is QUIET since `CI-PARITY-GATE-ROT.31`, log volume is no tell — the mtime
+comparison against the before-snapshot is what reported `stale=2`
+([[feedback_verify_sv_parser_regen_mtime]]). Had I trusted the target's exit 0, this leaf would have
+published *"warnings → 0"* while 290 survived in two artifacts nothing had rebuilt.
+⭐ And `ebnf.rs` landing **byte-identical modulo the removed lines** independently re-confirms
+`.27`'s finding that it re-derives byte-identically from today's `grammars/ebnf.ebnf`.
+⚠️ **`.16` is UNAFFECTED and still open**: it owns the question of why that artifact has only an
+absence-guarded reseed and no idempotent refresh target in the reproducibility roster. This slice
+used the existing recipe; it did not give it one.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `cargo check --features "generated_parsers ebnf_dual_run" --message-format short` emitted **2 848** `unused variable: filename_str` warnings at 2 848 distinct locations, and `grep -c filename_str` over the eleven artifacts totalled **2 704** with **0** non-assignment uses.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `ast_based_generator.rs:4042` emitted `let filename_str = #filename;` once per rule method inside the `quote!` block; nothing in the emitted body ever referenced it. Located by `git grep -n filename_str` over the whole tracked tree (only the emitter and an unrelated local in `test_discovery.rs`) and confirmed by rustc's own lint at 2 848 distinct locations. Every edited script re-checked with `bash -n `.
+- [x] **FIX** — engine tier, minimal: delete the one emitted statement, leave the ~50 live `log_*(#filename, …)` sites untouched, and leave a DO-NOT-RE-ADD marker naming this leaf so the next author reads why.
+- [x] **ADDRESSED (verified)** — warnings **2 848 → 0** and **2 560 → 0** on the two feature sets; `filename_str` occurrences **2 704 → 0** across all eleven artifacts; embedded `-o` sites **63 186 → 60 482**, i.e. exactly −2 704; artifact bytes **−176 203**, equal to the independent per-artifact sum.
+- [x] **NO REGRESSION** — `es31_dead_binding/probe.sh --before` **7/7 arms**, including the load-bearing one: for all 11 artifacts BEFORE-minus-those-lines is **byte-identical** to AFTER, so nothing but the dead lines moved (RED control fires). `make -C rust generated_reproducibility_gate` **10/10 byte-identical** after rebaseline; `sv_parse_cost_ratchet` binding counters (entries/committed/memo-hits) **unmoved** — a dead local cannot change runtime work; `check_doctrines.sh` **21/21 PASS**; clippy flow clean.
+- [x] **LOCKSTEP** — `GENERATED-REPRODUCIBILITY` and `PARSE-COST-RATCHET` baselines rebaselined in this same commit (both key on artifact hashes, both moved for exactly this reason); `TOOLBOX.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md` updated. Book: N/A — no user-facing behaviour changes (a dead binding removed from generated source).
 
 #### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ✅ **(f) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0048`; ✅ **(b) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0054` — the fused graph, the PROTOCOL graph and the PROTOCOL graph WITH the coverage recorder produce a **byte-identical AST** (one sha256 across all three arms), so the verdict agreement IS a derivation agreement; ⛔ the tool that could say so did not exist, and the two obvious substitutes both produce a FALSE PASS. **The leaf is now fully CLOSED** — slice 3 closed (f) by adjudicating all 7 tracked consumers and turned up that ONE 2 787-byte file is **99.39 %** of the corpus's committed multiplicity)
 

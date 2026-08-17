@@ -4039,7 +4039,15 @@ impl AstBasedGenerator {
         // Build the complete method
         Ok(quote! {
             pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
-                let filename_str = #filename;
+                // ⛔ DO NOT RE-ADD `let filename_str = #filename;` HERE
+                // (`ENGINE-UNIVERSAL-SERVICES.31`, 2026-08-17). It was emitted once per rule
+                // method and READ BY NOTHING — measured 2 704 bindings across the eleven
+                // generated artifacts with 0 non-assignment uses, which rustc reported as
+                // 2 848 `unused variable: filename_str` warnings on every build of this
+                // crate (2 848 rather than 2 704 because `generated/ebnf.rs` is `include!`d
+                // at two sites). The `#filename` value is still emitted at the ~50 real
+                // `self.logger.log_*(#filename, …)` call sites below, which is its only
+                // consumer; this binding was a dead duplicate of it.
                 // Check for recursion cycles (recursive rules only after Optim #16)
                 let position = self.position;
                 #cycle_check_emit

@@ -20,10 +20,14 @@ evidence: |
   `../generated/systemverilog_parser.rs`) leaves **36 346 `"../<TOKEN>"` residues and 0 clean
   sites** — success reported, nothing normalised. `run_guard_ab_structural.sh`'s `row()` used its
   file argument as BOTH the file to read and the spelling to normalise, so a relocated artifact
-  reported `path_sites=0` with unnormalised bytes: a silent zero in the passing direction. And its
-  published site count `43 615` is `36 346 × 42 ÷ 35` — the right byte delta over the wrong
-  character width, i.e. a numerator from one spelling and a denominator from another, inside the
-  script whose own comment warns about exactly this.
+  reported `path_sites=0` with unnormalised bytes: a silent zero in the passing direction.
+  ⚠️ CORRECTION (same session, under director challenge): that script's published site count
+  `43 615` (true value 36 346) was first attributed to this same trap via `36 346 × 42 ÷ 35`.
+  RETRACTED — the run's OWN tracked output (`guard_ab_structural.txt`) recorded
+  `path_sites=33249 / 36346 / 36291` in the same commit, so the instrument never mis-computed; and
+  the arithmetic was FITTED (the identity needs a ratio of exactly 6/5, and the real arm-2 numerator
+  `48-5=43` implies a non-integer denominator 35.83). It is a CARRIED PROSE COPY
+  (`DERIVED_STATE_CONTAINMENT.md` R1/R3), a different failure, kept below only as a worked example.
 reverify: "python3 scripts/compare_generated_parsers.py --self-test   # 8/8, four RED-by-design; then `for f in generated/*_parser.rs; do python3 scripts/compare_generated_parsers.py --sites $f; done` must equal `grep -oF <derived spelling> $f | wc -l` for all 11 artifacts"
 ---
 
@@ -77,8 +81,30 @@ derived  row(), same artifact        path_sites=36346    norm_bytes=142674425   
 
 **2 — a numerator from one spelling over a denominator from another.** A derived count
 `(len(src) - len(norm)) // (len(path) - len(TOKEN))` is only sound when the `path` in the numerator
-and the `path` in the denominator are the same string. When they are not, it yields a plausible
-integer: `36 346 × 42 ÷ 35 = 43 615`, which was published and carried for sessions.
+and the `path` in the denominator are the same string. When they are not it yields a plausible
+integer rather than an error — which is the shape to fear, because a plausible integer is quotable.
+⚠️ **This variant is a PROPERTY of that expression, not an incident**: no observed number in this
+repository has been traced to it. The one that looked like it — `run_guard_ab_structural.sh`'s
+`43 615` — was investigated and is **not** this failure; see the retraction below.
+
+## ⛔⛔ A retraction, because the near-miss is the most instructive part
+
+`43 615` (true value **36 346**) was first written up as an instance of variant 2, with the
+"mechanism" `36 346 × 42 ÷ 35`. It is **neither**:
+
+- The run's own tracked output recorded `path_sites=33249 / 36346 / 36291` **in the same commit**.
+  The instrument was right; only a hand-typed block comment was wrong.
+- The arithmetic was a **search result**. `43 615 / 36 346 = 1.19999`, so any such identity needs a
+  ratio of exactly `6/5`. `42` really is arm 1's `len(path) - 5`, which is what made it feel earned
+  — but `35` matches no path in play, and the real arm-2 numerator (`48 - 5 = 43`) implies a
+  denominator of `35.83`, not an integer.
+
+⇒ **the tell: one term was nameable and the other was not.** A mechanism you can only
+half-instantiate is a coincidence with one lucky factor. And the decisive evidence — the run's own
+output file, tracked, one `cat` away — went unread precisely *because* the fitted story already
+explained the number. The real class is **instrument right, prose copy wrong**
+(`DERIVED_STATE_CONTAINMENT.md` R1/R3): a **carried** number, not a **mis-derived** one — which is
+still an argument for deriving the count, just not the argument first given.
 
 ## What to do instead — read the key out of the artifact
 

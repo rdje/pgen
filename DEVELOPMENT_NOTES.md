@@ -1,19 +1,80 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0069 — a target's exit 0 is not a claim about the files it did not build, and a mechanism you can only half-instantiate is a coincidence
+
+**1. ⛔⛔ `regenerate_generated_parsers` RETURNED 0 AND LEFT 2 OF 11 ARTIFACTS UNTOUCHED.** Its own
+banner is honest — *"annotation pair + 7 grammar families"* — but I was about to read exit 0 as
+*"generated/ is now current"*. `scratch_parser.rs` belongs to `focus_scratch`, and ⛔
+`generated/ebnf.rs` is reseeded by `regex_parser_bootstrap` **only when ABSENT**
+(`rust/Makefile:969`); an existing one is merely compile-checked. Since `CI-PARITY-GATE-ROT.31` made
+generation QUIET, log volume is no longer a tell either. What caught it was asserting **mtimes**
+against a before-snapshot — `stale=2` — which is the standing instruction
+([[feedback_verify_sv_parser_regen_mtime]]) and the only reason this leaf did not publish
+*"warnings → 0"* while 290 survived in two files nothing had rebuilt.
+⇒ before claiming a tree-wide property, enumerate the tree and check each member was actually
+rewritten. A recipe's exit code describes the recipe's roster, not yours.
+
+**2. ⛔⛔⛔ I PUBLISHED A FITTED IDENTITY AS A MEASURED MECHANISM, AND THE DECISIVE EVIDENCE WAS ONE
+`cat` AWAY.** `-0068` explained a wrong published count (43 615 vs the true 36 346) as
+`36 346 × 42 ÷ 35`, *"the right byte delta over the wrong character width"*. The run that produced
+that comment had written its own output to a **tracked** file recording `path_sites=…/36346/…` in
+the same commit — so the instrument was never wrong, and there was no mis-derivation to be the
+mechanism. The arithmetic was a search: `43 615 / 36 346 = 1.19999` forces a ratio of exactly `6/5`,
+and while `42` genuinely is one arm's `len−5`, `35` matches nothing.
+⭐ **The tell I had and ignored: I could name one factor and not the other.** A mechanism that only
+half-instantiates is a coincidence with one lucky term. And I did not open the artifact precisely
+*because* the fitted story already accounted for the number — the explanation suppressed the
+search that would have refuted it.
+⇒ two rules worth keeping: **(i)** when a story requires N constants, refuse to publish until all N
+are independently nameable; **(ii)** when a defect is attributed to a tool, read the tool's own
+output before the source — it is cheaper than the source and it is contemporaneous evidence.
+
+**3. ⚠️ AND A PLAIN ADDITION ERROR SURVIVED THE SAME COMMIT: `−176 209` vs the true `−176 203`.**
+Eleven per-artifact figures, summed by hand, off by 6. It was caught only when the change actually
+landed and the measured deltas could be compared per artifact. ⇒ a total that is a sum of published
+parts should be *computed from those parts by the same command that prints them*, never typed —
+which is the derived-constant rule (`docs/CLAIM_VERIFICATION.md` §5B) applied to arithmetic I
+thought was too small to mechanise.
+
+**4. ⭐ THE HONEST SHAPE OF A "PURELY MECHANICAL" CHANGE IS AN IDENTITY, NOT AN ASSERTION.** The
+whole risk of removing an emitted line is that it moves something else. `BEFORE minus exactly those
+lines == AFTER`, byte-for-byte, across all eleven artifacts, is a claim a reader can re-run, and it
+is what licenses rebaselining three artifact-keyed gates without re-arguing each. The arm cost ten
+lines of shell; its RED control — strip a *different* line, demand a mismatch — is what makes it a
+test rather than a restatement.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0068 — writing the warning down a third time is not what stops the fourth instance; deleting the parameter that carries the mistake is
 
-**1. ⛔⛔ THE FOURTH INSTANCE OF THIS TRAP WAS LIVE INSIDE THE SCRIPT CARRYING THE WARNING ABOUT
-IT.** `run_guard_ab_structural.sh` opens with a two-paragraph block comment explaining that raw
-bytes are not comparable across arms because a generated parser embeds its own `-o` path — and then
-publishes that count as **43 615** for a parser that embeds **36 346**. The mechanism is exact:
-`36 346 × 42 ÷ 35 = 43 615`, i.e. the right byte delta over the wrong character width, a numerator
-taken from one `-o` spelling and a denominator from another. That is the *same defect the comment
-describes*, committed by the author of the comment, in the same file, in the same commit.
-⇒ when a defect recurs after being documented, a clearer sentence is not the remedy. `.25`'s
-acceptance (c) asked for a shared helper; what makes it a fix is not that it is shared but that it
-**does not accept a path argument at all** — the helper reads the spelling out of the artifact, so
-the wrong call is unavailable rather than merely discouraged.
+**1. ⛔⛔⛔ I PUBLISHED A FITTED ARITHMETIC IDENTITY AS A MEASURED MECHANISM, AND A DIRECTOR
+CHALLENGE IS WHAT CAUGHT IT — THIS IS THE MOST IMPORTANT ENTRY HERE.** `run_guard_ab_structural.sh`
+publishes the SV embedded-path count as **43 615** where it is **36 346**, and I wrote up the cause
+as *"the mechanism is exact: `36 346 × 42 ÷ 35 = 43 615`, the right byte delta over the wrong
+character width"* — i.e. as a fourth instance of the very trap the script warns about. **Both claims
+are wrong**, and both were wrong in the FLATTERING direction, because they made a stray number into
+a tidy instance of my own leaf's thesis.
+- The `-0042` run's own tracked artifact records `path_sites=33249 / 36346 / 36291`. **The
+  instrument printed 36 346 correctly, in the same commit that published 43 615 in prose.** Nothing
+  was ever mis-normalised, so there was no "wrong width" computation to be the mechanism.
+- The arithmetic was a SEARCH RESULT, not a derivation. `43 615 / 36 346 = 1.19999`, so any such
+  identity needs a ratio of exactly `6/5`. `42` does equal arm 1's
+  `len("rust/target/lr_ab_arms/sv_arm1_narrow_parser.rs") − 5` — which is what made it feel
+  earned — but `35` corresponds to **no path in play**, and with the real arm-2 numerator
+  (`48 − 5 = 43`) the implied denominator is `35.83`, not an integer. I looked for numbers that
+  reproduced the target and reported finding them as evidence.
+⇒ **the tell I should have heeded: I could name one term and not the other.** A mechanism you can
+only half-instantiate is a coincidence with one lucky factor. ⛔ And the cheap decisive evidence —
+the run's own output file, sitting tracked beside the script — was one `cat` away and I never
+looked, because the fitted story already "explained" everything.
+⭐ The correct class is narrower, already named here, and still supports the fix: **instrument
+right, prose copy wrong** (`DERIVED_STATE_CONTAINMENT.md` R1/R3, the shape `CI-PARITY-GATE-ROT.36`
+found four copies of). The count was **carried**, not **mis-derived**. `.25` (c)'s helper is still
+the right remedy — derive the count instead of typing it — but for that reason, not mine.
 **PROMOTED →** [[derive-the-comparison-key-from-the-artifact-not-from-the-caller]].
+
+**1b. ⚠️ AND THE CORRECTION COST SEVEN SURFACES, WHICH IS THE STANDING LESSON RESTATED.** The
+retracted mechanism had been written into the leaf, `TOOLBOX.md`, `CHANGES.md`, this file,
+`MEMORY.md`, `docs/TASK_TREE.md` and a knowledge card **within one commit**. A wrong number carried
+into N surfaces is wrong in N surfaces — which is the exact argument for `.25` (c) deriving it.
 
 **2. ⭐⭐ A SUBSTRING RELATION TURNS "NORMALISE IT FIRST" INTO A SILENT NO-OP.** The two spellings in
 play are `../generated/systemverilog_parser.rs` and `generated/systemverilog_parser.rs`, and the
@@ -54,7 +115,7 @@ record it was meant to protect. Proof the migration is clean: the migrated `row(
 original **byte-exactly** (`142674425 / 36346`) in the original's correct-usage position.
 
 **6. ⭐ A DEAD BINDING IS A DEFECT EVEN WHEN IT COSTS ALMOST NO BYTES.** The 2 704 dead
-`let filename_str` lines are 176 209 bytes — 0.075 % of the SV parser, a rounding error. Their real
+`let filename_str` lines are 176 203 bytes — 0.075 % of the SV parser, a rounding error. Their real
 cost is **2 848 compiler warnings on every build**, i.e. a permanent noise floor that trains readers
 to ignore the warning channel. Pricing this in bytes would have concluded "not worth touching"; the
 right denominator was the signal it destroys.

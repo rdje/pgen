@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0069 (leaf ENGINE-UNIVERSAL-SERVICES.31 (a) DISCHARGED + `.25` slice 1 CORRECTIONS under director challenge; engine/codegen-emission, ZERO grammar bytes)
+
+- ✅ **THE DEAD BINDING IS GONE: 2 848 BUILD WARNINGS → 0.** One statement deleted from the emitted
+  rule method (`ast_based_generator.rs:4042`), with a DO-NOT-RE-ADD marker naming the leaf. Measured:
+  `unused variable: filename_str` **2 560 → 0** (`--features generated_parsers`) and **2 848 → 0**
+  (`+ ebnf_dual_run`); `filename_str` occurrences across the eleven artifacts **2 704 → 0**; embedded
+  `-o` sites **63 186 → 60 482** (exactly −2 704); artifact bytes **−176 203**.
+- ⭐⭐ **AND NOTHING BUT THOSE LINES MOVED — proven, not asserted.** For **all 11 artifacts**, BEFORE
+  with only its `^\s*let filename_str = ` lines stripped is **byte-identical (sha256) to AFTER**.
+  That is what makes the artifact-keyed rebaseline bookkeeping rather than a behavioural change.
+  Bank `es31_dead_binding/probe.sh` → **7/7 arms**, RED control fires.
+- ⛔⛔ **THE CANONICAL REGENERATION TARGET COVERS 9 OF 11, AND AN MTIME ASSERTION IS WHAT CAUGHT IT.**
+  `regenerate_generated_parsers` leaves `scratch_parser.rs` (owned by `focus_scratch`) and
+  ⛔ `generated/ebnf.rs`, which `regex_parser_bootstrap` reseeds **only when ABSENT**
+  (`rust/Makefile:969`) — an existing one is compile-checked, never re-derived. Regeneration is QUIET
+  since `CI-PARITY-GATE-ROT.31`, so log volume is no tell; the mtime comparison reported `stale=2`.
+  Trusting exit 0 would have published *"warnings → 0"* with 290 surviving.
+- ⭐ `ebnf.rs` landing byte-identical modulo the removed lines independently re-confirms `.27`'s
+  finding that it re-derives byte-identically from today's `grammars/ebnf.ebnf`. ⚠️ `.16` is
+  unaffected and still owns the missing idempotent refresh target.
+- ⛔⛔⛔ **RETRACTION — `-0068` PUBLISHED A FITTED ARITHMETIC IDENTITY AS A MEASURED MECHANISM.**
+  It reported `run_guard_ab_structural.sh`'s wrong site count (**43 615**, true **36 346**) as a
+  *fourth instance of the path-normalisation trap*, caused by *"36 346 × 42 ÷ 35 — the right byte
+  delta over the wrong character width"*. **Both halves are wrong**, and both flattered the leaf's
+  own thesis. The `-0042` run's own tracked output (`guard_ab_structural.txt`) records
+  `path_sites=33249 / 36346 / 36291` — the instrument printed the right number in the same commit,
+  so nothing was mis-normalised — and the arithmetic was a SEARCH RESULT: the identity needs a ratio
+  of exactly `6/5`, `42` really is arm 1's `len−5` but `35` matches no path in play, and the real
+  arm-2 numerator (`48−5=43`) implies a non-integer denominator `35.83`. ⇒ correct class is
+  **instrument right, prose copy wrong** (`DERIVED_STATE_CONTAINMENT.md` R1/R3, as in
+  `CI-PARITY-GATE-ROT.36`) — a **carried** number, not a mis-derived one. The trap's inversion count
+  returns to **three**. Corrected in place on all seven surfaces that carried it.
+- ⚠️ **SECOND CORRECTION: `-0068`'s published byte saving `−176 209` was an ADDITION ERROR; the
+  measured figure is `−176 203`.** Caught because the eleven per-artifact deltas now match their
+  dead-line columns independently. Corrected on all five surfaces.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0068 (leaf ENGINE-UNIVERSAL-SERVICES.25 (a) DISCHARGED + (c) SHIPPED, `.31` NEW; ops/build-flow, ZERO grammar/generated/codegen/engine bytes)
 
 - ✅ **(a) — THE EMITTER READ, AND NOTHING ABOUT THE PER-SITE EMISSION IS PER-SITE.**
@@ -30,10 +66,19 @@
   bytes per site — the exact false verdict `.19` was founded on. The helper derives the spelling from
   the artifact (every generated parser holds **exactly one** distinct `"….rs"` literal, **11/11**
   exact against `grep -oF`) and REFUSES (exit 2) on zero or on ambiguity.
-- ⛔⛔ **A FOURTH INSTANCE OF THE TRAP WAS LIVE INSIDE THE SCRIPT THAT WARNS ABOUT IT.**
-  `run_guard_ab_structural.sh` published the SV site count as **43 615**; it is **36 346**. The
-  number is `36 346 × 42 ÷ 35` — the right byte delta over the **wrong character width** — and its
+- ⛔⛔ **A CARRIED PROSE COPY WAS WRONG INSIDE THE SCRIPT THAT WARNS ABOUT THIS TRAP.**
+  `run_guard_ab_structural.sh` published the SV site count as **43 615**; it is **36 346**, and its
   own next line refuted it the whole time (`203 KB + 233 KB = 436 KB = 12 chars × 36 346`).
+  ⚠️ **CORRECTED UNDER DIRECTOR CHALLENGE, SAME SESSION:** this was first published as a *fourth
+  instance of the path-normalisation trap*, with the mechanism *"36 346 × 42 ÷ 35, the right byte
+  delta over the wrong character width"*. **Both halves are retracted.** The `-0042` run's own
+  tracked output (`guard_ab_structural.txt`) records `path_sites=33249 / 36346 / 36291` — the
+  instrument printed the right number in the same commit, so nothing was mis-normalised — and the
+  arithmetic was a FIT: the identity needs a ratio of exactly `6/5`, and the real arm-2 numerator
+  (`48 − 5 = 43`) implies a non-integer denominator of `35.83`. ⇒ the correct and narrower class is
+  **instrument right, prose copy wrong** (`DERIVED_STATE_CONTAINMENT.md` R1/R3, as in
+  `CI-PARITY-GATE-ROT.36`): a number that was *carried*, not *mis-derived*. The trap's inversion
+  count stays at **three**.
   ⭐ A second defect in the same helper: it used its file argument as the spelling, so a **relocated**
   artifact reported `path_sites=0` with unnormalised bytes — a silent zero in the passing direction.
 - ⚠️ **TWO PUBLISHED-NUMBER BASES PRESERVED DELIBERATELY.** `.20` slice 3's three-arm table was
@@ -48,7 +93,7 @@
   `es19_path_embedding/probe.sh` **6/6 arms, exit 0** after its ARM 3 and ARM 5 were migrated;
   `check_doctrines.sh` **21/21 PASS**; migrated `row()` byte-exactly equal to the original.
 - ⏳ **(b) half settled, and the emission change deliberately NOT folded in.** Class D is priced
-  exactly (**−176 209 B, −2 848 warnings**, zero behavioural change); class L needs a mimic-tree A/B
+  exactly (**−176 203 B, −2 848 warnings**, zero behavioural change); class L needs a mimic-tree A/B
   because `prettyplease` re-wraps lines, making `sites × Δlen` an illustration. Both move EVERY
   generated artifact, so `GENERATED-REPRODUCIBILITY`, `PARSE-COST-RATCHET` and `CODEGEN-DETERMINISM`
   re-key in lockstep — routed to **`.31`** so that rebaseline is a deliberate act.
