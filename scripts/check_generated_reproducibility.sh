@@ -93,17 +93,65 @@
 #   - **Working tree, not `git show HEAD:`** — it proves the binary is current with the tracked
 #     files as they stand, which is the same notion of "HEAD" tier 1's `emission_sha` already uses.
 #     Uncommitted emitter edits are therefore inside the guarantee, not outside it.
-#   - ⛔ **Cargo sees the CRATE, not the RECIPE.** `rust/Makefile` is in `emission_sha` but is not a
-#     cargo input, and this script MIRRORS the Makefile's generator flags
-#     (`--generate-parser --eliminate-left-recursion`, `+ --bootstrap-mode` for the pair) in
-#     `rederive_and_compare` rather than reading them from it. Two implementations of one recipe
-#     that must agree — the same class this leaf REJECTED candidate (B) for — sitting inside the
-#     check it hardened. Routed as `ENGINE-UNIVERSAL-SERVICES.33`, not fixed here.
+#   - ✅ **Cargo sees the CRATE, not the RECIPE — CLOSED by `ENGINE-UNIVERSAL-SERVICES.33`.** This
+#     bound used to read: *"this script MIRRORS the Makefile's generator flags in
+#     `rederive_and_compare` rather than reading them from it."* It no longer mirrors them —
+#     `derive_generator_recipe` READS `RUST_GENERATOR` / `RUST_GENERATOR_BOOTSTRAP` out of
+#     `rust/Makefile`, the way the family roster was already read, and REFUSES (exit 2) on any shape
+#     it cannot resolve rather than falling back to a default. See THE RECIPE IS DERIVED below.
 #   - ⚠️ It MUTATES `rust/target/`: announced on every run, and the reason this lives in tier 2 (on
 #     demand) and never in tier 1.
 # Neither surviving bound is the mechanism that produced the defect — that was `make` skipping a
 # rebuild on GNU Make 3.81's whole-second mtime comparison (`CI-PARITY-GATE-ROT.37`), which cargo
 # detects exactly.
+#
+# ⭐⭐ THE RECIPE IS DERIVED FROM `rust/Makefile`, NOT MIRRORED (`ENGINE-UNIVERSAL-SERVICES.33`).
+# ⛔⛔ AND THE FALSE PASS THE MIRROR ALLOWED WAS MEASURED END TO END, NOT REASONED ABOUT — including
+# the step that made it permanent. With `--indirect-lr-admit-starvation-safe-only` added to
+# `RUST_GENERATOR` (a real emission-affecting flag; the repository's own docstring says *"NOT the
+# shipped policy, and nothing in `rust/Makefile` passes this"*) and the artifacts left alone, which
+# is the ORDINARY state during a recipe change:
+#
+#   1. tier 1 BREACHED correctly — `rust/Makefile` is inside `emission_sha`, so the alarm fired;
+#   2. the operator did exactly what the breach message instructs, `--rebaseline`, and tier 2
+#      re-derived with its own STALE hard-coded flags, matched, printed
+#      `✓ systemverilog re-derives byte-identically`, and RECORDED the baseline;
+#   3. tier 1 then reported `OK … tier 2 last proved them byte-identical to HEAD`.
+#
+# What `make` would actually have emitted for SystemVerilog under that recipe: **130 878 616 B**
+# (`d518dec16abb…`) against the `143 072 420 B` (`592bccec3bfc…`) on disk — **12 193 804 B** and a
+# different left-recursion admission policy. ⇒ tier 1 does not save the check from a stale mirror;
+# it ROUTES THE OPERATOR INTO the false pass, and `--rebaseline` launders it into the baseline that
+# silences tier 1. A mirror inside the oracle is worse than a mirror beside it.
+#
+# ⚠️ THE FIRST PERTURBATION CHOSEN FOR THAT DEMONSTRATION WAS VACUOUS, AND ONLY A CONTROL CAUGHT IT.
+# Dropping `--eliminate-left-recursion` from `RUST_GENERATOR` produces a **byte-identical** artifact
+# for json / regex / vhdl / systemverilog, because `main.rs:1104` reads
+# `if args.eliminate_left_recursion { config.eliminate_left_recursion = true; }` over a field that
+# `PipelineConfig::default()` already sets to `true`, and there is no negating flag — so the flag in
+# the shipping recipe **cannot change emission**. A demonstration built on it would have "reproduced"
+# a false pass that was not false. Routed as a census finding, not fixed here.
+#
+# HOW THE DERIVATION REFUSES RATHER THAN GUESSES. `derive_generator_recipe <VAR> <expected-binary>`
+# takes the single `^<VAR> = ` definition, asserts word 0 is the expected `$(RUST_AST_PIPELINE…)`
+# reference, and returns the remaining words as the flag list. It REFUSES (exit 2) on: no definition,
+# more than one definition, a different leading binary reference, an empty flag list, a non-flag
+# token, or a flag carrying an unresolved make expansion (`$(…)`/`${…}`) — because resolving one
+# would be a second implementation of make's expansion, which is the very class this leaf exists to
+# remove. Every refusal is fired by `--self-test`.
+#
+# ⭐ AND THE CALL SITES ARE CHECKED TOO, because reading the variable is only half the recipe: a
+# `$(RUST_GENERATOR) … -o …` line could add a generator flag of its own and the variable would still
+# read clean. All 21 call sites are uniform today; `assert_call_sites_add_no_flags` holds them that
+# way and refuses on the first that is not.
+#
+# ⚠️ SURVIVING BOUND, priced and stated rather than discovered later: a recipe that bypasses
+# `$(RUST_GENERATOR…)` ENTIRELY is outside this derivation. One such line exists —
+# `rust/Makefile:980` seeds `generated/ebnf.rs` with the bootstrap flags spelled inline, a THIRD copy
+# of the flag list inside the Makefile itself — and it is outside this gate's scope for an
+# independent reason: `ebnf.rs` is in neither `PAIR` nor `FAMILIES`. Closing the general case needs a
+# resolver for make variables (`$(SYSTEMVERILOG_PARSER)` → a path), i.e. exactly the duplicate
+# implementation rejected above. Recorded in the `.33` census instead of guessed at here.
 #
 # ⭐ HONEST BOUND, stated before the check is trusted rather than after: tier 1 proves *"nothing that
 # could have changed the artifacts has changed"*, NOT *"the artifacts are correct"*. It inherits
@@ -140,6 +188,14 @@ BASELINE="rust/test_data/grammar_quality/generated_reproducibility_v0.json"
 GENERATED="generated"
 WORK="rust/target/generated_reproducibility"
 
+# The recipe's home. ⛔ NOT a knob: the only way to point this elsewhere is the two-variable
+# self-test pair below, so an escape hatch cannot reach an ordinary run (the rule this script's
+# `PGEN_PARSE_COST_ALLOW_PROBE_MISMATCH` sibling states: a hatch that reaches the gate is a hole).
+MAKEFILE="rust/Makefile"
+if [ "${PGEN_GENREPRO_SELFTEST:-}" = 1 ] && [ -n "${PGEN_GENREPRO_SELFTEST_MAKEFILE:-}" ]; then
+  MAKEFILE="$PGEN_GENREPRO_SELFTEST_MAKEFILE"
+fi
+
 # The two annotation parsers come from `ast_pipeline_bootstrap` in --bootstrap-mode; the eight
 # families from `ast_pipeline`. Both rosters are the Makefile's, mirrored here and CHECKED against
 # it by tier 2 so the mirror cannot drift silently.
@@ -173,6 +229,87 @@ emission_sha() {
 # generated_present — `generated/` may be entirely absent (fresh clone) or partially built.
 generated_present() { [ -d "$GENERATED" ] && ls "$GENERATED"/*_parser.rs >/dev/null 2>&1; }
 
+# ── the generator recipe, DERIVED from the Makefile (`ENGINE-UNIVERSAL-SERVICES.33`) ──────────────
+#
+# derive_generator_recipe <make-variable> <expected leading binary reference>
+#   Prints the generator FLAGS space-separated on ONE line. Refuses with exit 2 rather than falling
+#   back to a default, because a default IS the mirror this replaces: a fallback that happens to be
+#   right today is indistinguishable from a fallback that is silently wrong tomorrow, and the wrong
+#   direction here PASSES (see the header's measured chain).
+#   ⛔ ONE LINE, and read back with `read -ra`, deliberately: a `mapfile` from a process substitution
+#   reports the status of `mapfile`, NOT of the refusing subshell, so every `die` below would be
+#   printed and then IGNORED — and `mapfile` is bash 4+, which the git hook's shell need not be. A
+#   space-separated line is lossless here because a token containing whitespace cannot survive the
+#   `read -ra` split above it.
+GEN_FLAGS=()            # RUST_GENERATOR's flags          — the eight families
+GEN_FLAGS_BOOTSTRAP=()  # RUST_GENERATOR_BOOTSTRAP's flags — the annotation pair
+
+derive_generator_recipe() {
+  local var="$1" want_bin="$2" defs line tok
+  local -a words
+
+  [ -f "$MAKEFILE" ] || die "$MAKEFILE is absent, so the generator recipe cannot be derived. This gate re-derives every artifact through the Makefile's recipe; it will not guess one."
+  # ⛔ EXACTLY ONE definition. Two would mean the LAST one wins in make while `sed` prints both, so
+  # picking either is a coin toss dressed as a derivation.
+  defs=$(grep -c "^${var} = " "$MAKEFILE")
+  case "$defs" in
+    1) ;;
+    0) die "$MAKEFILE has no '^${var} = ' definition, so the generator recipe cannot be derived. If the variable was renamed, teach this check the new name — do NOT let it fall back to a hard-coded flag list." ;;
+    *) die "$MAKEFILE defines ${var} $defs times. make takes the last; a derivation that picked one would be guessing. Collapse them to one definition." ;;
+  esac
+
+  line=$(sed -n "s/^${var} = //p" "$MAKEFILE")
+  read -ra words <<< "$line"   # word-split on IFS, and NOT glob-expanded (unlike `set -- $line`)
+  [ "${#words[@]}" -ge 1 ] || die "$MAKEFILE's ${var} is defined but empty"
+  [ "${words[0]}" = "$want_bin" ] || die "$MAKEFILE's ${var} starts with '${words[0]}', not '${want_bin}'. The recipe no longer has the shape this derivation understands (a wrapper, an env prefix or a different binary), so the flags after it may not be the generator's. Teach the derivation the new shape."
+  [ "${#words[@]}" -ge 2 ] || die "$MAKEFILE's ${var} carries no flags at all after '${want_bin}' — a generator invocation with no --generate-parser cannot produce a parser, so this is a malformed recipe rather than an empty one."
+
+  for tok in "${words[@]:1}"; do
+    case "$tok" in
+      *'$('*|*'${'*) die "$MAKEFILE's ${var} carries the unresolved make expansion '$tok'. Resolving it here would be a SECOND implementation of make's expansion — the duplication ENGINE-UNIVERSAL-SERVICES.33 removed — so this refuses instead. Inline the value, or extend the derivation deliberately." ;;
+      -*) ;;
+      *) die "$MAKEFILE's ${var} carries the non-flag token '$tok' after '${want_bin}'. A positional argument in the recipe variable means the shape changed (an input file moved into it?), and appending flags after it would build a different command line." ;;
+    esac
+  done
+  printf '%s\n' "${words[*]:1}"
+}
+
+# ⭐ READING THE VARIABLE IS ONLY HALF THE RECIPE. A `$(RUST_GENERATOR) $(X_JSON) -o $(X_PARSER)`
+# line could add a generator flag of its own, and the variable would still read clean — so the
+# derived flag list would be short while `make` passed more. All 21 call sites are uniform today
+# (measured, `.33` census); this holds them that way.
+assert_call_sites_add_no_flags() {
+  local offenders
+  offenders=$(MAKEFILE="$MAKEFILE" python3 - <<'PY'
+import os, re, sys
+
+path = os.environ["MAKEFILE"]
+ref = re.compile(r"\$\(RUST_GENERATOR(?:_BOOTSTRAP)?\)")
+bad = []
+for lineno, raw in enumerate(open(path, encoding="utf-8", errors="replace"), 1):
+    line = raw.rstrip("\n")
+    if line.lstrip().startswith("#"):
+        continue
+    m = ref.search(line)
+    if not m or line.startswith("RUST_GENERATOR"):
+        continue                       # the definitions themselves are derive_generator_recipe's job
+    tail = line[m.end():]
+    # Everything the recipe passes BEFORE `-o` is a generator argument. A shell tail after the
+    # output path (`2>&1 | tee …`) is not, so the scan stops at the first `-o`.
+    head = tail.split(" -o ", 1)[0] if " -o " in tail else tail
+    extra = [t for t in head.split() if t.startswith("-")]
+    if " -o " not in tail:
+        bad.append(f"{lineno}: no ' -o ' in the invocation, so its argument list cannot be bounded: {line.strip()}")
+    elif extra:
+        bad.append(f"{lineno}: adds generator flag(s) {' '.join(extra)}: {line.strip()}")
+print("\n".join(bad))
+PY
+  ) || die "the call-site scan of $MAKEFILE could not run (python3 failed), so this gate cannot know which flags make passes"
+  [ -z "$offenders" ] || die "$MAKEFILE passes generator flags at a CALL SITE, which the derived recipe variable does not see:
+$(printf '%s\n' "$offenders" | sed 's/^/        /')
+      This gate re-derives with the variable's flags alone, so its comparison would measure a different command line than \`make\` runs. Move the flag into the recipe variable, or teach the derivation to read call sites."
+}
+
 # ── tier 2: re-derive one artifact into a mimic tree and compare ──────────────────────────────────
 #
 # ⭐ THE MIMIC TREE IS LOAD-BEARING, NOT TIDINESS. A generated parser embeds its own `-o` path
@@ -194,8 +331,10 @@ rederive_and_compare() {
   [ -f "$live" ] || { breach "$GENERATED/${fam}_parser.rs is absent while other artifacts are present — regenerate with \`make -C rust SHELL=/bin/bash regenerate_generated_parsers\`"; return; }
   [ -f "$json" ] || { breach "$GENERATED/${fam}.json is absent, so ${fam} cannot be re-derived"; return; }
 
-  local args=(--generate-parser --eliminate-left-recursion)
-  [ "$kind" = pair ] && args=(--generate-parser --bootstrap-mode --eliminate-left-recursion)
+  # ⭐ THE FLAGS ARE THE MAKEFILE'S, READ FROM IT (`ENGINE-UNIVERSAL-SERVICES.33`) — never a copy
+  # kept here in step with it. `run_tier2` derives them once and refuses before reaching this loop.
+  local -a args=("${GEN_FLAGS[@]}")
+  [ "$kind" = pair ] && args=("${GEN_FLAGS_BOOTSTRAP[@]}")
 
   ( cd "$WORK/root/rust" && "$tool" "$json" "${args[@]}" -o "$out" ) >"$WORK/${fam}.log" 2>&1 \
     || { breach "codegen FAILED for ${fam} — see $WORK/${fam}.log"; return; }
@@ -247,12 +386,24 @@ rederive_and_compare() {
 }
 
 run_tier2() {
+  # ⛔ THE RECIPE IS DERIVED FIRST, BEFORE `generated_present`, and it can only REFUSE. A malformed
+  # recipe is a breach whether or not `generated/` exists, and putting it first means every refusal
+  # arm costs nothing — no bootstrap build, no codegen.
+  local recipe
+  recipe=$(derive_generator_recipe RUST_GENERATOR '$(RUST_AST_PIPELINE)') || exit 2
+  read -ra GEN_FLAGS <<< "$recipe"
+  recipe=$(derive_generator_recipe RUST_GENERATOR_BOOTSTRAP '$(RUST_AST_PIPELINE_BOOTSTRAP)') || exit 2
+  read -ra GEN_FLAGS_BOOTSTRAP <<< "$recipe"
+  assert_call_sites_add_no_flags
+  printf 'generated-reproducibility: recipe DERIVED from %s — families: %s | annotation pair: %s\n' \
+    "$MAKEFILE" "${GEN_FLAGS[*]}" "${GEN_FLAGS_BOOTSTRAP[*]}"
+
   generated_present || { skipped="${skipped} every artifact"; note "NOT EVALUATED — $GENERATED/ holds no generated parser. Regenerate with \`make -C rust SHELL=/bin/bash regenerate_generated_parsers\`, then re-run."; return 0; }
 
   # The roster must match the Makefile's, or this gate silently checks a subset.
   local mk_fams
-  mk_fams=$(sed -n 's/^GENERATED_PARSER_FAMILIES = //p' rust/Makefile)
-  [ -n "$mk_fams" ] || die "could not read GENERATED_PARSER_FAMILIES from rust/Makefile — the roster mirror cannot be checked, so this gate would silently check a subset"
+  mk_fams=$(sed -n 's/^GENERATED_PARSER_FAMILIES = //p' "$MAKEFILE")
+  [ -n "$mk_fams" ] || die "could not read GENERATED_PARSER_FAMILIES from $MAKEFILE — the roster mirror cannot be checked, so this gate would silently check a subset"
   local f
   for f in $mk_fams; do
     case " ${FAMILIES[*]} " in *" $f "*) ;; *) die "rust/Makefile builds family '$f' which this gate does not check — the roster has drifted; add it to FAMILIES";; esac
@@ -483,6 +634,81 @@ PY
   else
     printf '  ✗ %-46s the un-injected run did not reach the families, so the RED arm proves nothing\n' \
       "GREEN pair: the families ARE checked normally" >&2; bad=$((bad + 1))
+  fi
+
+  # ── `ENGINE-UNIVERSAL-SERVICES.33` — the DERIVED generator recipe ───────────────────────────────
+  # Every arm below perturbs a SCRATCH copy of `rust/Makefile` and is reached through the two-variable
+  # self-test pair, so no arm can be triggered from an ordinary run and none of them touches the real
+  # Makefile. ⭐ They are cheap by construction: `run_tier2` derives the recipe BEFORE it builds
+  # anything, so a refusal costs no bootstrap build and no codegen.
+  # ⛔ THE PERTURBATION TEXT TRAVELS THROUGH THE ENVIRONMENT, NEVER THROUGH A RE-EXPANDED STRING.
+  # Every string involved contains `$(…)`, so interpolating it into a `python3 -c "…"` argument would
+  # hand it to bash's command substitution a second time. And `mk` REFUSES when its target text is
+  # not found: a perturbation that silently matched nothing would leave an arm testing an unmodified
+  # Makefile and reporting ✓ — a control that cannot go RED.
+  # ⛔⛔ `out` IS ASSIGNED ON ITS OWN LINE, AND THE ONE-LINE FORM WAS A REAL BUG THIS ARM SET CAUGHT.
+  # `local name="$1" out="$T/Makefile.$name"` expands every word BEFORE `local` runs, so `$name` was
+  # read before it was assigned: under `set -u` the direct call died with `name: unbound variable`,
+  # and the seven arms reached through `arm_mk` "passed" only because bash's dynamic scoping handed
+  # them `arm_mk`'s own `name`. Seven controls agreeing for an accidental reason, found by the eighth.
+  mk() { # mk <slug> <old-literal> <new-literal>  -> prints the scratch Makefile path
+    local slug="$1" out
+    out="$T/Makefile.$(printf '%s' "$slug" | tr -cs 'A-Za-z0-9' '_')"
+    MK_SRC="$MAKEFILE" MK_OUT="$out" MK_OLD="$2" MK_NEW="$3" python3 - <<'PY' || return 1
+import os, sys
+s = open(os.environ["MK_SRC"], encoding="utf-8").read()
+old, new = os.environ["MK_OLD"], os.environ["MK_NEW"]
+if old not in s:
+    sys.exit("self-test: the Makefile text to perturb is not present: " + old[:90])
+open(os.environ["MK_OUT"], "w", encoding="utf-8").write(s.replace(old, new, 1))
+PY
+    printf '%s\n' "$out"
+  }
+  RECIPE='RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion'
+  CALLSITE='$(RUST_GENERATOR) $(JSON_JSON)'
+  NARROW='--indirect-lr-admit-starvation-safe-only'
+  arm_mk() { # arm_mk <name> <expected-rc> <old-literal> <new-literal>
+    local name="$1" want="$2" path
+    path=$(mk "$name" "$3" "$4") || { printf '  ✗ %-46s could not build the scratch Makefile\n' "$name" >&2; bad=$((bad + 1)); arms=$((arms + 1)); return; }
+    arm "$name" "$want" env PGEN_GENREPRO_SELFTEST=1 PGEN_GENREPRO_SELFTEST_MAKEFILE="$path" bash "$0" --verify
+  }
+
+  arm_mk "REFUSE(2): recipe variable is absent"        2 "$RECIPE" '# RUST_GENERATOR removed by the self-test'
+  arm_mk "REFUSE(2): recipe variable defined twice"    2 "$RECIPE" "$RECIPE"$'\n'"$RECIPE"
+  arm_mk "REFUSE(2): leading token is not the binary"  2 "$RECIPE" 'RUST_GENERATOR = env PGEN_X=1 $(RUST_AST_PIPELINE) --generate-parser'
+  arm_mk "REFUSE(2): a flag holds a make expansion"    2 "$RECIPE" "$RECIPE"' --profile=$(SOME_PROFILE)'
+  arm_mk "REFUSE(2): a non-flag token in the recipe"   2 "$RECIPE" "$RECIPE"' extra_positional.json'
+  arm_mk "REFUSE(2): recipe carries no flags at all"   2 "$RECIPE" 'RUST_GENERATOR = $(RUST_AST_PIPELINE)'
+  arm_mk "REFUSE(2): a CALL SITE adds a flag"          2 "$CALLSITE" '$(RUST_GENERATOR) '"$NARROW"' $(JSON_JSON)'
+
+  # ⭐⭐ THE LOAD-BEARING ARM: the derived flags REACH the generator, so a recipe change cannot be
+  # ignored. Before `.33` the flag list was hard-coded, and a recipe carrying an argument the
+  # generator does not accept was invisible — the gate re-derived with its own list and printed
+  # `TIER 2 OK`. ⚠️ HONEST SCOPE: it proves the flags are LIVE, not that any particular flag changes
+  # emission. The end-to-end emission demonstration (`--indirect-lr-admit-starvation-safe-only` on
+  # `RUST_GENERATOR`: `make` would emit a 130 878 616 B SystemVerilog parser against the 143 072 420 B
+  # on disk, and the pre-fix gate declared it byte-identical and then RECORDED that) is a one-shot
+  # measurement in `docs/tasks/artifacts/engine_universal_services/es33_makefile_mirror/`, not
+  # something to re-spend a 130 MB codegen on per run — the same split `.32` made for cargo.
+  arms=$((arms + 1))
+  live_mk=$(mk live "$RECIPE" "$RECIPE"' --pgen-es33-selftest-not-a-real-flag')
+  PGEN_GENREPRO_SELFTEST=1 PGEN_GENREPRO_SELFTEST_MAKEFILE="$live_mk" bash "$0" --verify >"$T/live" 2>&1
+  live_rc=$?
+  if [ "$live_rc" != 0 ] && grep -q 'codegen FAILED' "$T/live" && ! grep -q 'TIER 2 OK' "$T/live"; then
+    printf '  ✓ %-46s rc=%s\n' "RED: the DERIVED flags reach the generator" "$live_rc"
+  else
+    printf '  ✗ %-46s rc=%s — a recipe change is being ignored, so the mirror is back\n' \
+      "RED: the DERIVED flags reach the generator" "$live_rc" >&2; bad=$((bad + 1))
+  fi
+
+  # GREEN: the real Makefile derives exactly the recipe the project ships. Asserted on the derived
+  # TEXT rather than on an exit code, because a derivation that silently returned the wrong flags
+  # would still exit 0.
+  arms=$((arms + 1))
+  if grep -q 'recipe DERIVED from rust/Makefile — families: --generate-parser --eliminate-left-recursion | annotation pair: --generate-parser --bootstrap-mode --eliminate-left-recursion' "$T/currency_ok"; then
+    printf '  ✓ %-46s exact\n' "GREEN: derived recipe == the shipped recipe"
+  else
+    printf '  ✗ %-46s the derived recipe is not the shipped one\n' "GREEN: derived recipe == the shipped recipe" >&2; bad=$((bad + 1))
   fi
 
   cp "$T/baseline.orig" "$BASELINE"; rm -rf "$T"

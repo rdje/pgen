@@ -4953,3 +4953,61 @@ the count found, so this is a census rather than a spot fix; (b) wire
 rules, priced — a generator rebuild is minutes, so an unconditional `rm` is NOT free here and the
 exact-window guard is the right shape; (c) state in `TOOLBOX.md` that `make`'s exit 0 is not
 evidence a generator was rebuilt, next to the existing grammar-edge warning.
+
+### `.38` NEW `todo` (⛔ PARKED — the make lane is CLOSED by director ordering 2026-08-15) — **eighteen** hand-spelled copies of the generator recipe live in the gate tier, eleven of them standing in for a SHIPPED parser, and the Makefile holds three copies of the flag list itself (opened 2026-08-17 session #244 by `ENGINE-UNIVERSAL-SERVICES.33` slice 1, whose acceptance (c) census produced the population)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **The census is an instrument, re-runnable, not a count**:
+  `docs/tasks/artifacts/engine_universal_services/es33_makefile_mirror/census.sh` (+ `census.txt`).
+  Derived at `9f856ac6`:
+
+  | | |
+  |---|---:|
+  | homes for the flag list inside `rust/Makefile` itself | **3** (`:122`, `:123`, and `:980`'s inline `generated/ebnf.rs` seed) |
+  | hand-spelled generator invocations in `scripts/` + `rust/scripts/` + `.githooks/` | **18** |
+  | — bucket **M**: feeds its parser back through `PGEN_<FAMILY>_PARSER_PATH`, so it stands in for a SHIPPED parser | **11** in 10 files |
+  | — bucket **S**: own-artifact probe, drift changes what the gate measured not what ships | **7** in 4 files |
+  | DIFFERING from the shipped recipe | **5** |
+  | — differing ONLY by the inert `--eliminate-left-recursion` (`ENGINE-UNIVERSAL-SERVICES.34`) | **5** |
+  | — differing in a way that COULD change emission | **0** |
+
+- ⛔ **AT RISK, NOT CURRENTLY WRONG — and the distinction is measured, not hedged.** Every difference
+  found is the inert flag, so no gate in the population is measuring a parser the project does not
+  ship *today*. The hazard is the ordinary one: the next flag added to `RUST_GENERATOR` is real, and
+  eighteen sites keep their own copy of the list that would have to be edited with it.
+- **Failure direction: PASSING, and specifically for bucket M.** A bucket-M gate generates a parser,
+  substitutes it as the family's via `PGEN_<FAMILY>_PARSER_PATH`, builds against it and reports a
+  verdict *about the family*. If its flag list falls behind `RUST_GENERATOR`, that verdict is about a
+  parser the project does not ship — and it reports GREEN, because the parser it built is internally
+  consistent. Nothing compares it to the shipping recipe.
+- **The ten bucket-M files**: `ebnf_frontend_dual_run_diff_gate.sh`, `ebnf_frontend_readiness_gate.sh`,
+  `ebnf_stimuli_quality_gate.sh` (×2), `hdl_frontend_readiness_gate.sh`,
+  `sv_external_corpus_triage_gate.sh`, `sv_preprocessor_quality_gate.sh`,
+  `sv_semantic_scope_contract_gate.sh`, `sv_stimuli_quality_gate.sh`,
+  `vhdl_external_corpus_triage_gate.sh`, `vhdl_stimuli_quality_gate.sh` — all under `rust/scripts/`.
+- **Reproduces outside SystemVerilog: yes, and that is the point** — the population spans ebnf, hdl,
+  sv, svpp and vhdl. The recipe is engine-universal, so this is not an SV finding.
+- ⭐ **ONE site is already fixed and is the proof the shape is fixable cheaply**:
+  `scripts/check_generated_reproducibility.sh` went from 2 hand-spelled lists to **0** by reading
+  `RUST_GENERATOR` / `RUST_GENERATOR_BOOTSTRAP` out of `rust/Makefile` and refusing on any shape it
+  cannot resolve — `ENGINE-UNIVERSAL-SERVICES.33` slice 1, 18/18 self-test arms. The derivation is
+  ~30 lines of shell and costs nothing per run.
+- ⛔ **THE MAKEFILE'S OWN THIRD COPY IS THE ONE NO DERIVATION CAN REACH.** `rust/Makefile:980` spells
+  `--generate-parser --bootstrap-mode --eliminate-left-recursion` inline (it needs
+  `$(RUST_AST_PIPELINE)` in bootstrap mode, so it cannot use `$(RUST_GENERATOR_BOOTSTRAP)`, which
+  names the bootstrap *binary*). `.33` priced closing the general case and **declined**: it needs a
+  resolver for make variables, i.e. a second implementation of make's expansion — the duplication
+  class being removed. A `RUST_GENERATOR_BOOTSTRAP_FLAGS` variable that all three spellings reference
+  is the obvious shape and is un-priced.
+
+**Acceptance:** (a) factor the flag list into ONE Makefile variable the three Makefile spellings all
+reference, so `rust/Makefile` holds one home rather than three — `FLOW-INTEGRITY`'s *"the recipe keeps
+ONE home"* invariant already exists for the shipping recipe and does not cover this; (b) for the
+**11 bucket-M** invocations, either derive the flags from the Makefile (the `.33` shape, which is
+`sed` + a refusal) or state per-gate why its parser need not match what ships, and gate the residue;
+(c) for the **7 bucket-S** invocations, publish the disposition rather than fixing them — a
+probe-only recipe may legitimately differ, and an exemption is only safe once it is written down;
+(d) fire a RED arm per fixed site, because `.33` slice 1's own new arm found a bug that had made
+**seven** sibling arms pass for an accidental reason; (e) re-run `census.sh` and show the counts move,
+so this closes on a measurement rather than on a claim.

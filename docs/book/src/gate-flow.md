@@ -300,11 +300,44 @@ consumer on 2026-08-17. The assertion stays as a **tripwire** — the count must
 zero, and any non-zero is an emitter regression. That trap has inverted three published readings; see
 [Diagnosing Unknowns → Comparing two generated parsers](diagnosing-unknowns.md#comparing-two-generated-parsers).
 
-⚠️ Honest bound, and it is the same one `PARSE-COST-RATCHET` states about itself:
-tier 1 proves *"nothing that could have changed the artifacts has changed"*, not
-*"the artifacts are correct"*. It inherits whatever tier 2 last established. On a
-fresh clone `generated/` is absent, and the check reports **NOT EVALUATED** —
-loudly, never as a pass.
+⭐⭐ **Tier 2 READS the generation recipe out of `rust/Makefile`; it used to keep
+its own copy, and the copy did real damage in a way tier 1 could not stop.** Cargo
+answers *"is this binary current with these sources"*, but it sees the crate and
+not the recipe — so the flags themselves had to be derived rather than mirrored.
+Measured on 2026-08-17, before the fix, with a flag added to `RUST_GENERATOR` and
+the artifacts left alone (the ordinary state during a recipe change):
+
+| step | what happened |
+|---|---|
+| tier 1 | ✅ breached — the emission sources moved, exit 1 |
+| the operator does what the breach message instructs: rebaseline | ⛔ tier 2 re-derives with its **stale** flags, matches, and **records** the baseline, exit 0 |
+| tier 1 again | ⛔ *"OK … tier 2 last proved them byte-identical to HEAD"*, exit 0 |
+
+`make` would have emitted a **130 878 616 B** SystemVerilog parser against the
+**143 072 420 B** on disk, with a different left-recursion admission policy. So
+tier 1 does not protect the oracle from a stale mirror — **it routes the operator
+into the false pass, and the recording step makes it permanent.** The lesson
+generalises past this gate — KM card
+`a-cheap-tier-that-prescribes-a-remedy-inherits-the-remedys-blind-spot`
+(`docs/knowledge/`).
+
+The recipe is now read from the Makefile's two generator variables, printed on
+every tier-2 run, and the check **refuses (exit 2)** on any recipe shape it cannot
+resolve — a missing or duplicated definition, an unexpected leading binary, an
+empty or non-flag argument list, or a flag carrying an unresolved `$(…)`
+expansion, because resolving one would be a second implementation of make's own
+expansion. All 21 `$(RUST_GENERATOR…)` call sites are held free of extra generator
+flags too, since reading the variable is only half the recipe.
+
+⚠️ Honest bounds, and the first is the same one `PARSE-COST-RATCHET` states about
+itself: tier 1 proves *"nothing that could have changed the artifacts has
+changed"*, not *"the artifacts are correct"* — it inherits whatever tier 2 last
+established. On a fresh clone `generated/` is absent and the check reports **NOT
+EVALUATED**, loudly, never as a pass. And a recipe that bypasses
+`$(RUST_GENERATOR…)` altogether is outside the derivation: one such line seeds
+`generated/ebnf.rs` with its flags spelled inline, which is out of this gate's
+scope for the independent reason that `ebnf.rs` is not one of the ten artifacts it
+checks.
 
 ---
 

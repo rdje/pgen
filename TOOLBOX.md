@@ -1008,7 +1008,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **WHAT:** `make -C rust SHELL=/bin/bash generated_reproducibility_gate` (doctrine
   `GENERATED-REPRODUCIBILITY`, tier 2) — re-derives all ten artifacts through the tracked recipe and
   demands byte-identity. `bash scripts/check_generated_reproducibility.sh` alone is tier 1 (identity
-  only, every commit); `--self-test` fires all **9** refusal arms.
+  only, every commit); `--self-test` fires all **18** refusal arms.
 - **WHEN:** after ANY emission-source change, before quoting *"the parser is what HEAD produces"* in
   a release argument, and ⛔ **whenever you have just run a `make` target that was supposed to
   regenerate something**.
@@ -1034,6 +1034,30 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   cohort it cannot check reports **TIER 2 PARTIAL** and names it rather than claiming coverage.
 - ⚠️ **Read the headline, not the exit code.** `TIER 2 PARTIAL` exits 0 — NOT EVALUATED is not a
   failure — so a caller that keys on `rc` alone cannot tell a full verification from a two-of-ten one.
+- ⛔⛔ **AND UNTIL `ENGINE-UNIVERSAL-SERVICES.33` IT MIRRORED THE MAKEFILE'S GENERATOR FLAGS, WHICH IS
+  THE PART TO REMEMBER WHEN YOU CHANGE A RECIPE.** Cargo answers *"is this binary current"*; it sees
+  the crate, not the recipe — so the flags were a hand-kept copy. Measured before the fix, with a flag
+  added to `RUST_GENERATOR` and the artifacts untouched: tier 1 breached (rc 1) → the operator did
+  what the message says and ran `--rebaseline` → tier 2 re-derived with the STALE flags, matched, and
+  **RECORDED** it (rc 0) → tier 1 went green over a parser `make` would emit at **130 878 616 B**
+  against the **143 072 420 B** on disk. ⇒ **a cheap tier that tells you to re-run the oracle inherits
+  the oracle's blind spot, and the recording step makes the wrong answer permanent.** The recipe is now
+  DERIVED and PRINTED on every tier-2 run — read that line when you are debugging a re-derivation:
+  ```text
+  generated-reproducibility: recipe DERIVED from rust/Makefile — families: --generate-parser
+      --eliminate-left-recursion | annotation pair: --generate-parser --bootstrap-mode --eliminate-left-recursion
+  ```
+- ⚠️ **`--eliminate-left-recursion` on that line is INERT and will mislead an A/B** (`.34`, open):
+  `main.rs:1104` only ever sets a field `PipelineConfig::default()` already sets `true`, and there is
+  no negating flag — json / regex / vhdl / systemverilog re-derive **byte-identically** with and
+  without it. It cost a slice: a false-pass demonstration built on that flag reproduced a `TIER 2 OK`
+  that was **correct behaviour**. If you need a genuinely emission-affecting generator flag for a
+  control, `--indirect-lr-admit-starvation-safe-only` moves SystemVerilog by **12 193 804 B**.
+- ⚠️ **Eighteen other places in `scripts/` + `rust/scripts/` still spell the recipe by hand, eleven of
+  them substituting their parser as a family's SHIPPED one** — census instrument
+  `docs/tasks/artifacts/engine_universal_services/es33_makefile_mirror/census.sh`, routed as
+  `CI-PARITY-GATE-ROT.38`. All five current differences are the inert flag, so this is *at risk*, not
+  wrong today; re-run the census rather than trusting that sentence.
 
 ### 5.6 Comparing two GENERATED PARSERS — normalise the embedded `-o` path FIRST
 

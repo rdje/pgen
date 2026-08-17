@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0075 — the cheap tier fired, I did what it told me to do, and that is how the wrong answer became the baseline
+
+**1. ⛔⛔ A CHEAP TIER THAT PRESCRIBES A REMEDY INHERITS THE REMEDY'S BLIND SPOT.** I have written the
+two-tier bound several times now — *"tier 1 proves nothing that could have changed the artifacts has
+changed, NOT that they are correct; it inherits whatever tier 2 last established"* — and I had it
+backwards in one direction. Tier 1 does not only inherit tier 2's authority; when it breaches it
+**instructs the operator to re-run tier 2**. So a blind spot in tier 2 is not something tier 1
+defends against — tier 1 is the mechanism that walks you into it, and `--rebaseline` then **records**
+the wrong answer, which silences tier 1 permanently. Measured through all three steps, not reasoned:
+a recipe flag added, tier 1 rc 1, rebaseline rc 0, tier 1 rc 0, over a SystemVerilog parser
+**12 193 804 B** away from what `make` would emit. ⇒ **read every cheap tier's breach message as a
+specification of the oracle it names, and audit that oracle for duplicated inputs before trusting the
+pair.** **PROMOTED →** `docs/knowledge/a-cheap-tier-that-prescribes-a-remedy-inherits-the-remedys-blind-spot.md`.
+
+**2. ⚠️ MY FIRST REPRODUCTION OF THAT CHAIN WAS VACUOUS, AND NOTHING BUT A CONTROL COULD HAVE SAID
+SO.** I perturbed the recipe by removing `--eliminate-left-recursion`, watched the gate print
+`TIER 2 OK`, and had a "reproduced false pass". Then I asked the boring question — *does this flag
+change emission at all?* — and four families came back **byte-identical**, because
+`main.rs:1104` only ever assigns a field the default already holds and no negating flag exists. The
+pass was **correct behaviour**. ⇒ **before a perturbation counts as a defect reproduction, prove the
+perturbation is observable in the artifact.** [[an-ab-whose-arms-are-secretly-identical-does-not-fail-it-passes]]
+and [[an-instrument-firing-is-not-the-defect-reproducing]] both already say this; what is new is that
+the *subject* of the A/B was a flag the shipping recipe carries, so the vacuity was invisible from
+the recipe alone. Routed as `.34` rather than fixed inside a leaf about mirrors.
+
+**3. ⭐⭐ SEVEN CONTROLS AGREED FOR AN ACCIDENTAL REASON AND THE EIGHTH EXPOSED IT.** The new arm set
+came in **17/18** with `line 650: name: unbound variable`. Cause: `local name="$1"
+out="$T/Makefile.$name"` — bash expands every word of `local` *before* executing it, so `$name` was
+read before assignment. The seven arms that "passed" reach the helper through a caller that has its
+own `local name`, so **dynamic scoping** silently supplied it. ⇒ **a helper that reads a variable it
+did not set is not isolated, and in a control suite that means arms can pass by borrowing.** The only
+reason this surfaced is that the eighth arm called the helper from a scope where the name was absent.
+**Fire every arm; a green suite is not evidence that each arm measured its own subject.**
+
+**4. ⭐ A CENSUS RULE I WROTE TWICE WAS STILL WRONG THE SECOND TIME, IN THE FLATTERING DIRECTION.**
+Cut 1 (line contains the flag) over-counted by 6. Cut 2 (…and names a binary) fixed four and still
+counted my **own** self-test perturbation literals as mirrors — i.e. it reported that the check I had
+just fixed still spelled the flags. Cut 3 works because it stopped being a name heuristic and became
+a **shell-semantics** rule: an unquoted word is an argument, a quoted one is data. ⇒ **when a
+classifier keeps needing another special case, the rule is at the wrong level of the language.** I
+kept cut 2 wired as a ground-truth control that PRINTS disagreements, because a rule that was wrong
+once is the best available adversary for its successor.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0074 — I escalated a defect as a design question, and the fix removed a whole class of trap I had been documenting for four slices
 
 **1. ⛔⛔ A DEFECT IS NOT A PREFERENCE, AND DESCRIBING IT ACCURATELY DOES NOT MAKE IT ONE.** I

@@ -1,0 +1,157 @@
+ENGINE-UNIVERSAL-SERVICES.33 (c) — census of hard-coded generator-recipe mirrors
+commit: 9f856ac6   scope files: 123
+
+── 1. THE RECIPE'S HOMES INSIDE rust/Makefile ────────────────────────────────────────────────
+   (a --generate-parser line that is not a comment; the checker's own view of the file)
+     122: RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion
+     123: RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --eliminate-left-recursion
+     980: $(RUST_AST_PIPELINE) --generate-parser --bootstrap-mode --eliminate-left-recursion $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs; \
+   => 3 homes for the flag list inside rust/Makefile itself
+
+── 2/3. THE ENFORCEMENT/GATE TIER — every candidate line, CLASSIFIED AND SHOWN ───────────────
+
+   ⛔ TWO EARLIER CUTS OF THIS RULE OVER-COUNTED, AND BOTH ARE RECORDED BECAUSE THE SECOND ONE
+      WAS STILL WRONG AFTER LOOKING RIGHT. Cut 1 counted 'a non-comment line containing
+      --generate-parser' and over-counted by 6 — a doctrine DESCRIPTION string in the registry,
+      a python comparison inside an enforcer, an error message, and three self-test literals.
+      Cut 2 additionally required a BINARY REFERENCE on the line, which fixed 4 of the 6 and
+      still counted this repository's own self-test perturbation literals as mirrors — reading
+      as 'the fixed check still spells the flags', the exact opposite of the truth.
+      Cut 3 is a SHELL-SEMANTICS rule rather than a name heuristic, and it is exact.
+
+   INVOCATION rule : --generate-parser occurs OUTSIDE any quote on the joined logical line.
+                     An unquoted word is an argument passed to a command; a quoted one is DATA
+                     (a description, an error message, a python string, a perturbation literal).
+                     ⭐ The binary-reference test from cut 2 is still evaluated as a GROUND-TRUTH
+                     CONTROL: any line the two rules classify differently is printed as a
+                     DISAGREEMENT, so the instrument reports its own uncertainty instead of
+                     silently picking one. Binary pattern:
+                     AST_PIPELINE | BOOTSTRAP_BIN | RUST_GENERATOR | $tool | $pipeline
+   RECIPE flags    : every --flag except the IO set  --output --emit-raw-ast-json --dump-gen-ast
+                     (those name destinations; they add outputs, they do not shape emission)
+   BUCKET rule     : M if the file feeds its parser back through PGEN_<FAMILY>_PARSER_PATH (it
+                     stands in for a SHIPPED parser) ; S if it only probes its own artifact
+
+   shipped families : --generate-parser --eliminate-left-recursion
+   shipped pair     : --generate-parser --bootstrap-mode --eliminate-left-recursion
+
+   S  rust/scripts/annotation_nonbootstrap_e2e_gate.sh:142
+         flags   --generate-parser
+         verdict DIFFERS — missing --eliminate-left-recursion
+   S  rust/scripts/annotation_nonbootstrap_e2e_gate.sh:145
+         flags   --generate-parser
+         verdict DIFFERS — missing --eliminate-left-recursion
+   S  rust/scripts/annotation_nonbootstrap_e2e_gate.sh:148
+         flags   --generate-parser
+         verdict DIFFERS — missing --eliminate-left-recursion
+   S  rust/scripts/ast_dump_contract_gate.sh:215
+         flags   --generate-parser
+         verdict DIFFERS — missing --eliminate-left-recursion
+   M  rust/scripts/ebnf_frontend_dual_run_diff_gate.sh:225
+         flags   --generate-parser
+         verdict DIFFERS — missing --eliminate-left-recursion
+   M  rust/scripts/ebnf_frontend_readiness_gate.sh:160
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   M  rust/scripts/ebnf_stimuli_quality_gate.sh:600
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   M  rust/scripts/ebnf_stimuli_quality_gate.sh:648
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   S  rust/scripts/fixed_point_bootstrap_gate.sh:99
+         flags   --generate-parser --bootstrap-mode --eliminate-left-recursion
+         verdict SAME as shipped pair
+   S  rust/scripts/fixed_point_bootstrap_gate.sh:103
+         flags   --generate-parser --bootstrap-mode --eliminate-left-recursion
+         verdict SAME as shipped pair
+   M  rust/scripts/hdl_frontend_readiness_gate.sh:165
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   M  rust/scripts/sv_external_corpus_triage_gate.sh:194
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   M  rust/scripts/sv_preprocessor_quality_gate.sh:298
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   M  rust/scripts/sv_semantic_scope_contract_gate.sh:107
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   M  rust/scripts/sv_stimuli_quality_gate.sh:1945
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   S  rust/scripts/sv_syntax_closure_gate.sh:158
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   M  rust/scripts/vhdl_external_corpus_triage_gate.sh:134
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+   M  rust/scripts/vhdl_stimuli_quality_gate.sh:344
+         flags   --generate-parser --eliminate-left-recursion
+         verdict SAME as shipped families
+
+   => INVOCATIONS: 11 in bucket M (10 files, they substitute a SHIPPED parser)
+                   7 in bucket S (4 files, own-artifact probes)
+      REJECTED as not-an-invocation (quoted DATA): 6 line(s), each shown below
+
+   ·  scripts/check_doctrines.sh:63
+      "FLOW-INTEGRITY|the gate flow cannot drift back: workflows that need generated parsers regenerate them and budget for it, the recipe keeps one home, a
+   ·  scripts/check_flow_integrity.sh:325
+      if line.lstrip().startswith("#") or "--generate-parser" not in line:
+   ·  scripts/check_generated_reproducibility.sh:265
+      [ "${#words[@]}" -ge 2 ] || die "$MAKEFILE's ${var} carries no flags at all after '${want_bin}' — a generator invocation with no --generate-parser can
+   ·  scripts/check_generated_reproducibility.sh:667
+      RECIPE='RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion'
+   ·  scripts/check_generated_reproducibility.sh:678
+      arm_mk "REFUSE(2): leading token is not the binary"  2 "$RECIPE" 'RUST_GENERATOR = env PGEN_X=1 $(RUST_AST_PIPELINE) --generate-parser'
+   ·  scripts/check_generated_reproducibility.sh:708
+      if grep -q 'recipe DERIVED from rust/Makefile — families: --generate-parser --eliminate-left-recursion | annotation pair: --generate-parser --bootstra
+
+   ⚠️ GROUND-TRUTH CONTROL: the two rules DISAGREE on 2 line(s). Adjudicate each
+      before trusting the counts above — a disagreement is the instrument saying it is unsure.
+   ⚠️ scripts/check_generated_reproducibility.sh:667  unquoted=False names_binary=True
+      RECIPE='RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --eliminate-left-recursion'
+   ⚠️ scripts/check_generated_reproducibility.sh:678  unquoted=False names_binary=True
+      arm_mk "REFUSE(2): leading token is not the binary"  2 "$RECIPE" 'RUST_GENERATOR = env PGEN_X=1 $(RUST_AST_PIPELINE) --generate-parser'
+
+      ADJUDICATION (recorded, because a judgement is not something a regex made): every
+      disagreement above is a self-test perturbation LITERAL in this repository's own
+      enforcer — text that exists to be planted in a scratch Makefile and perturbed. The
+      shell-semantics rule is right and cut 2 was wrong. ⭐ They are nonetheless MIRRORS
+      WITH A GUARD, not silent ones: `mk` refuses when its target text is absent from the
+      Makefile, so a recipe change makes the arm report ✗ rather than pass quietly.
+
+   ── DERIVED SUMMARY of sections 2/3 (never typed) ──
+   hand-spelled generator invocations in the enforcement/gate tier : 18
+       bucket M — substitutes a SHIPPED parser                     : 11 in 10 files
+       bucket S — own-artifact probe                               : 7 in 4 files
+   of those, DIFFERING from the shipped recipe                     : 5
+       differing ONLY by the inert --eliminate-left-recursion      : 5
+       differing in a way that COULD change emission               : 0
+   invocations left in scripts/check_generated_reproducibility.sh  : 0   (it was 2 before this slice: the hard-coded family list and the pair list)
+
+   ⇒ READ THIS AS 'AT RISK', NOT 'CURRENTLY WRONG'. Every difference found is the inert flag,
+     so no gate in the population is measuring a parser the project does not ship TODAY. The
+     hazard is the ordinary one: the next flag added to RUST_GENERATOR is real, and each of
+     these sites keeps its own copy of the list that would have to be edited too.
+
+── 4. THE FLAG THE SHIPPED RECIPE CARRIES THAT CANNOT CHANGE ANYTHING ────────────────────────
+   rust/src/main.rs:
+      1104:    if args.eliminate_left_recursion {
+      1105-        config.eliminate_left_recursion = true;
+      1106-    }
+   => the field already defaults to true and there is no negating flag, so
+      --eliminate-left-recursion in RUST_GENERATOR is INERT. Measured: json / regex / vhdl /
+      systemverilog re-derive BYTE-IDENTICALLY with and without it.
+
+── 5. WHAT ENGINE-UNIVERSAL-SERVICES.33 SLICE 1 FIXED, AND WHAT IT ROUTED ────────────────────
+   FIXED   scripts/check_generated_reproducibility.sh — it DERIVES RUST_GENERATOR /
+           RUST_GENERATOR_BOOTSTRAP from rust/Makefile and REFUSES (exit 2) on any shape it
+           cannot resolve; its $(RUST_GENERATOR…) call sites are held flag-free. 18/18
+           self-test arms, 8 of them new. Its own hand-spelled invocation count is now 0.
+   ROUTED  CI-PARITY-GATE-ROT.38  the bucket-M/S population above + rust/Makefile's third
+                                  inline copy of the bootstrap flag list (line 980).
+           ENGINE-UNIVERSAL-SERVICES.34  --eliminate-left-recursion is an INERT CLI flag that
+                                  three surfaces document as meaningful.
+           ENGINE-UNIVERSAL-SERVICES.35  the baseline's verified_at_commit names the PARENT of
+                                  the commit that lands it, because --rebaseline runs pre-commit.

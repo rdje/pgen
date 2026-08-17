@@ -8992,7 +8992,7 @@ not report arms red against a correct tree.
 - [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash generated_reproducibility_gate` **10/10 byte-identical** (every row now `0 sites`); `es19_path_embedding` **6/6** with `gap 0 == sites(0) × 3`; `es31_dead_binding` **5/5**; `compare_generated_parsers.py --self-test` **8/8**; `sv_parse_cost_ratchet` re-measured and rebaselined; `bash scripts/check_doctrines.sh` **21/21 PASS**; clippy flow clean.
 - [x] **LOCKSTEP** — `scripts/compare_generated_parsers.py` (retired into a tripwire, header rewritten), `scripts/check_generated_reproducibility.sh` (polarity + the non-zero breach), the `es19`/`es31_dead_binding`/`es31_label_hoist`/`run_guard_ab_structural` banks, `TOOLBOX.md` 5.6 + the quick chooser, `docs/book/src/diagnosing-unknowns.md`, `docs/book/src/gate-flow.md`, `DOCTRINE_ENFORCEMENT.md`, the `derive-the-comparison-key…` card (era note 2 + a corrected `reverify`), `docs/decisions/feedback_answer_your_own_technical_questions.md` (the fourth costume), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`. Both artifact-keyed baselines rebaselined in this commit.
 
-#### ⚠️ `.33` NEW `todo` — `GENERATED-REPRODUCIBILITY` MIRRORS the Makefile's generator flags instead of reading them, so the recipe has two implementations that must agree (opened 2026-08-17 session #243 by `.32` slice 2, which found it while writing down the bounds of `.32` slice 1's own fix)
+#### ✅ `.33` — `GENERATED-REPRODUCIBILITY` MIRRORED the Makefile's generator flags instead of reading them, so the recipe had two implementations that must agree (`done` — **(a)+(b)+(c) all DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0075`, 2026-08-17 session #244; opened 2026-08-17 session #243 by `.32` slice 2, which found it while writing down the bounds of `.32` slice 1's own fix. ⭐ The measured chain is worse than the routing note said — tier 1 fires but then **routes the operator into** the false pass, and `--rebaseline` launders it; ⚠️ the first demonstration of that was VACUOUS and a control caught it, opening `.34`; ⭐⭐ the census rule was wrong TWICE and both cuts are recorded in its own output)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -9025,12 +9025,192 @@ not report arms red against a correct tree.
   recipe — the same shape as `CI-PARITY-GATE-ROT.32`'s "a sweep covers only the lane it was pasted
   into".
 
-**Acceptance:** (a) DERIVE the flags from `rust/Makefile` the way `GENERATED_PARSER_FAMILIES`
-already is, or state in the check why they cannot be and gate the mirror some other way; (b) fire a
-RED arm proving the check REFUSES (not silently mismatches) when the Makefile's recipe and the
-mirror disagree; (c) sweep for further hard-coded mirrors of the Makefile inside `scripts/` and
-publish the count found, so this is a census rather than a spot fix — `.32` slice 2 found this one
-by accident while writing bounds, which is not a search.
+**Acceptance:** ✅ **(a) DISCHARGED by slice 1** — DERIVE the flags from `rust/Makefile` the way
+`GENERATED_PARSER_FAMILIES` already is, or state in the check why they cannot be and gate the mirror
+some other way; ✅ **(b) DISCHARGED by slice 1** — fire a RED arm proving the check REFUSES (not
+silently mismatches) when the Makefile's recipe and the mirror disagree; ✅ **(c) DISCHARGED by
+slice 1** — sweep for further hard-coded mirrors of the Makefile inside `scripts/` and publish the
+count found, so this is a census rather than a spot fix — `.32` slice 2 found this one by accident
+while writing bounds, which is not a search.
+
+##### ✅ `.33` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0075`, 2026-08-17 session #244) — (a)+(b)+(c) DISCHARGED, leaf CLOSED: the recipe is READ from the Makefile, and the false pass it allowed was measured all the way through the step that made it permanent
+
+⛔⛔ **THE ROUTING NOTE UNDERSTATED THIS, AND THE UNDERSTATEMENT WAS THE INTERESTING PART.** `.32`
+slice 2 wrote that the dangerous ordering *"re-derives with its own old flags, matches the old
+artifacts, and passes"*. True — and incomplete, because `rust/Makefile` is inside `emission_sha`, so
+tier 1 **does** fire on a recipe change. The obvious reading of that is *"tier 1 saves us"*. It does
+not. Measured end to end (`measurements.md` M1/M2), with `--indirect-lr-admit-starvation-safe-only`
+added to `RUST_GENERATOR` and the artifacts left alone:
+
+| step | what happened before the fix |
+|---|---|
+| tier 1 | ✅ BREACHED — `the EMISSION SOURCES moved (recorded 2f89a4cb62e7…, live 361cf728ed52…)`, rc 1 |
+| the operator does **what the breach message instructs**, `--rebaseline` | ⛔ tier 2 re-derives with its own STALE flags, matches, prints `✓ systemverilog re-derives byte-identically`, and **RECORDS the baseline**, rc 0 |
+| tier 1 again | ⛔ `OK (10 artifacts unmoved … tier 2 last proved them byte-identical to HEAD)`, rc 0 |
+
+What `make` would have emitted under that recipe: **130 878 616 B** (`d518dec16abb…`) against the
+**143 072 420 B** (`592bccec3bfc…`) on disk — **12 193 804 B** and a different left-recursion
+admission policy. ⇒ **tier 1 does not protect the oracle from a stale mirror; it routes the operator
+INTO the false pass, and `--rebaseline` launders it into the baseline that silences tier 1.** A
+mirror inside the oracle is worse than a mirror beside it, because everything downstream inherits
+what the oracle last established.
+
+⚠️⚠️ **AND THE FIRST DEMONSTRATION OF THAT WAS VACUOUS — CAUGHT BY A CONTROL, NOT BY REVIEW.** The
+perturbation first chosen was *removing* `--eliminate-left-recursion` from `RUST_GENERATOR`. It
+produced a `TIER 2 OK` as well, and that pass was **correct**: asked *"does this flag change emission
+at all"*, json / regex / vhdl / systemverilog re-derive **byte-identically** with and without it,
+because `rust/src/main.rs:1104` reads `if args.eliminate_left_recursion { config.eliminate_left_recursion = true; }`
+over a field `PipelineConfig::default()` already sets to `true`, and no negating flag exists. **The
+shipped recipe carries an inert flag.** Routed → `.34`. ⛔ Without that control this leaf would have
+justified its fix with a reproduction that proved nothing — two cards this repository already holds
+name it exactly: [[an-ab-whose-arms-are-secretly-identical-does-not-fail-it-passes]] (the with-flag
+and without-flag arms were the same command) and
+[[an-instrument-firing-is-not-the-defect-reproducing]] (a `TIER 2 OK` is only a defect when the
+recipe it re-derived would really have produced something else).
+
+**THE FIX.** `derive_generator_recipe <VAR> <expected-binary>` takes the single `^<VAR> = `
+definition, asserts word 0 is the expected `$(RUST_AST_PIPELINE…)` reference, and returns the rest as
+the flag list. It **REFUSES (exit 2)** on: no definition, more than one definition, a different
+leading binary, an empty flag list, a non-flag token, or a flag carrying an unresolved make expansion
+— that last one deliberately, because resolving `$(…)` would be a second implementation of make's
+expansion, i.e. the very class this leaf exists to remove. ⭐ And reading the variable is only half
+the recipe, so `assert_call_sites_add_no_flags` holds all **21** `$(RUST_GENERATOR…)` call sites
+flag-free between the variable and `-o`. The derived recipe is now PRINTED on every tier-2 run.
+
+⚠️ **SURVIVING BOUND, priced rather than discovered later.** A recipe that bypasses
+`$(RUST_GENERATOR…)` entirely is outside the derivation. One exists — `rust/Makefile:980` seeds
+`generated/ebnf.rs` with the bootstrap flags spelled inline, a **third** copy of the list inside the
+Makefile — and it is out of this gate's scope independently, because `ebnf.rs` is in neither `PAIR`
+nor `FAMILIES`. Closing the general case needs a resolver for make variables
+(`$(SYSTEMVERILOG_PARSER)` → a path), which is the duplicate implementation just rejected. Routed →
+`CI-PARITY-GATE-ROT.38`.
+
+⭐⭐ **(c) THE CENSUS IS AN INSTRUMENT, NOT A COUNT** —
+`docs/tasks/artifacts/engine_universal_services/es33_makefile_mirror/census.sh` (+ `census.txt`). The
+leaf asked for a census *"rather than a spot fix"* precisely because the finding arrived by accident;
+a number produced by a search nobody can re-run has the same defect. Derived at `9f856ac6`:
+
+| | |
+|---|---:|
+| homes for the flag list inside `rust/Makefile` itself | **3** |
+| hand-spelled generator invocations in `scripts/` + `rust/scripts/` + `.githooks/` | **18** |
+| — bucket **M**, substitutes its parser as a SHIPPED one via `PGEN_<FAMILY>_PARSER_PATH` | **11** in 10 files |
+| — bucket **S**, own-artifact probe | **7** in 4 files |
+| of those, DIFFERING from the shipped recipe | **5** |
+| — differing ONLY by the inert `--eliminate-left-recursion` | **5** |
+| — differing in a way that COULD change emission | **0** |
+| invocations left in `check_generated_reproducibility.sh` | **0** (was 2) |
+
+⇒ **at risk, not currently wrong**, and the census says so in those words. No gate in the population
+measures a parser the project does not ship today; the hazard is that the next flag added to
+`RUST_GENERATOR` is real and eighteen sites keep their own copy of the list. Routed →
+`CI-PARITY-GATE-ROT.38`.
+
+⛔⛔ **THE CENSUS RULE WAS WRONG TWICE, AND BOTH CUTS ARE RECORDED IN ITS OWN OUTPUT.** Cut 1 counted
+*"a non-comment line containing `--generate-parser`"* and over-counted by **6** — a doctrine
+DESCRIPTION string in `check_doctrines.sh`, a python comparison inside `check_flow_integrity.sh`, an
+error message, and three self-test literals. Cut 2 added *"and names a binary"*, fixed 4 of the 6, and
+**still counted this repository's own self-test perturbation literals as mirrors** — which reads as
+*"the fixed check still spells the flags"*, the exact opposite of the truth. Cut 3 is a
+**shell-semantics** rule: `--generate-parser` must occur **outside any quote**, because an unquoted
+word is an argument and a quoted one is data. ⭐ Cut 2 is KEPT as a **ground-truth control** — any
+line the two rules classify differently is printed as a DISAGREEMENT, so the instrument reports its
+own uncertainty instead of silently picking one. It currently reports **2**, both adjudicated in the
+output (they are the self-test literals; they are mirrors *with a guard*, since `mk` refuses when its
+target text is absent from the Makefile).
+
+⭐⭐ **THE NEW LOAD-BEARING ARM FOUND A DEFECT IN THE ARM HARNESS ON ITS FIRST EXECUTION, AND THAT
+DEFECT HAD MADE THE OTHER SEVEN PASS FOR AN ACCIDENTAL REASON.** The suite went **17/18** with
+`line 650: name: unbound variable`: `local name="$1" out="$T/Makefile.$name"` expands every word
+before `local` runs, so `$name` was read before assignment. The seven arms reached through `arm_mk`
+survived only because bash's **dynamic scoping** handed them the caller's `name`. Seven controls
+agreeing for the wrong reason, exposed by the eighth. Fixed (`out` assigned on its own line, slug
+sanitised); **18/18 after**.
+
+⚠️ **HONEST SCOPE OF THE CHEAP ARM, stated because the expensive version exists and was run.** The
+per-run RED arm plants a flag the generator does not accept and proves the derived flags **reach**
+it (`codegen FAILED`, rc 1, no `TIER 2 OK`). It does **not** re-prove that a particular flag changes
+emission — that is the M1/M3 one-shot in `measurements.md`, deliberately not re-spent as a 130 MB
+codegen per run, the same split `.32` made for cargo's own contract.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `bash scripts/check_generated_reproducibility.sh --verify` over a `rust/Makefile` whose `RUST_GENERATOR` carries `--indirect-lr-admit-starvation-safe-only` printed `generated-reproducibility: TIER 2 OK — every checked artifact is what HEAD produces` at rc 0, then `--rebaseline` recorded it at rc 0, then tier 1 returned `OK … tier 2 last proved them byte-identical to HEAD` — over an artifact `make` would emit **12 193 804 B** smaller.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `scripts/check_generated_reproducibility.sh:197-198` held `args=(--generate-parser --eliminate-left-recursion)` as a literal beside a `sed`-derived family roster, so `git ls-files`/`grep -n` locate two implementations of one recipe: `rust/Makefile:122-123` and the check. Located with `grep -n` over the tracked tree + `make -n`-free direct perturbation; the census instrument (`census.sh`, `bash -n` clean) then re-derives the whole population rather than the one site.
+- [x] **FIX** — ops/build-flow, engine-neutral: `derive_generator_recipe` READS both recipe variables from `rust/Makefile` and refuses (exit 2) on six unresolvable shapes; `assert_call_sites_add_no_flags` holds 21 call sites flag-free; the derived recipe is printed on every tier-2 run. ZERO engine, grammar, generated or `Cargo` bytes — `git diff --stat` touches one script plus docs and artifacts.
+- [x] **ADDRESSED (verified)** — same perturbed tree, after: `systemverilog DOES NOT re-derive from HEAD: live 592bccec3bfc… (143072420 B) vs fresh d518dec16abb… (130878616 B)` at **rc 1**, with the diff naming the dropped `RULE_CASTING_TYPE_LR_SEED_*` constants; and the laundering step is refused — `--rebaseline` → `refusing to rebaseline: tier 2 found a breach` at **rc 1**, `git diff --quiet` on the baseline clean. Before→after on the operator-facing verdict: `TIER 2 OK` rc 0 → breach rc 1.
+- [x] **NO REGRESSION** — `bash scripts/check_generated_reproducibility.sh --self-test` **18/18 arms as designed** (8 new); `bash scripts/check_generated_reproducibility.sh` tier 1 `OK (10 artifacts unmoved …)`; `make -C rust SHELL=/bin/bash generated_reproducibility_gate` **10/10 byte-identical**, every row `0 sites`, recipe line printed; `bash scripts/check_doctrines.sh` **21/21 PASS**; `bash -n` clean on both changed shell files. No clippy flow: zero Rust bytes. Baseline **not** rebaselined — no artifact and no emission source moved.
+- [x] **LOCKSTEP** — `scripts/check_generated_reproducibility.sh`, `docs/tasks/artifacts/engine_universal_services/es33_makefile_mirror/{census.sh,census.txt,measurements.md}`, this leaf, `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` (`.34`/`.35` NEW), `docs/tasks/CI-PARITY-GATE-ROT.md` (`.38` NEW), `DOCTRINE_ENFORCEMENT.md` (the `GENERATED-REPRODUCIBILITY` row), `docs/book/src/gate-flow.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+
+#### ⚠️ `.34` NEW `todo` — the SHIPPED generation recipe carries a flag that cannot change anything, and three surfaces document it as meaningful (opened 2026-08-17 session #244 by `.33` slice 1, whose first demonstration it silently invalidated)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **The mechanism, in the source.** `rust/src/main.rs:1104`:
+
+  ```rust
+  if args.eliminate_left_recursion {
+      config.eliminate_left_recursion = true;
+  }
+  // Note: eliminate_left_recursion defaults to true in PipelineConfig::default()
+  ```
+
+  `PipelineConfig::default()` (`rust/src/ast_pipeline/mod.rs:2661`) already sets it `true`, and
+  `grep -n 'no-eliminate\|no_eliminate' rust/src/main.rs` finds only
+  `no_eliminate_indirect_left_recursion` — a **different** switch. ⇒ `--eliminate-left-recursion`
+  can only assign the value already present. It is INERT on the CLI.
+- **Measured, not inferred.** Re-derived with and without the flag: json `0603dc8b2e41` /
+  686 132 B, regex `8bcd41d3128f` / 38 172 346 B, vhdl `ac2b0ac24224` / 11 727 358 B, systemverilog
+  `592bccec3bfc` / 143 072 420 B — **byte-identical on all four**.
+- **Three surfaces treat it as meaningful**: `rust/Makefile:122-123` and `:980` carry it in the
+  shipped recipe; `rust/src/parse_harness.rs:92` documents its option as *"mirrors the shipped
+  `RUST_GENERATOR`"*; and `.33`'s own census prints it as the difference between 5 gate invocations
+  and the shipped recipe, i.e. **5 rows of the census are noise created by this flag**.
+- ⛔ **It cost a slice.** `.33` slice 1's first false-pass demonstration used this flag, and the
+  reproduction was CORRECT behaviour rather than a defect. A flag that looks load-bearing and is not
+  is an active hazard to anyone measuring an A/B against the recipe.
+- **Failure direction: silent, in the harmless direction TODAY** — nothing is mis-generated. The
+  hazard is diagnostic: it makes the recipe unreadable and it makes recipe-drift censuses noisy.
+- **Reproduces outside SystemVerilog: yes, by construction** — it is a `PipelineConfig` default, so
+  it is family-independent; measured on four families above.
+
+**Acceptance:** (a) decide the direction — either make the flag REAL (add the negating
+`--no-eliminate-left-recursion` the note implies, so the recipe's flag documents a choice) or REMOVE
+it from all three Makefile spellings and from `parse_harness.rs`'s claim; ⛔ do NOT do both halves
+silently, and price which one the `PARSE-COST-RATCHET` / `GENERATED-REPRODUCIBILITY` baselines
+survive, since removing it from the recipe changes `emission_sha` (a bookkeeping rebaseline, not an
+artifact move — the artifacts are byte-identical either way, which is exactly what makes this safe);
+(b) re-run `.33`'s census and show the 5 noise rows collapse; (c) state whether `parse_harness.rs`'s
+`eliminate_left_recursion: true` default is still the right mirror once (a) lands.
+
+#### ⚠️ `.35` NEW `todo` — `GENERATED-REPRODUCIBILITY`'s baseline records the PARENT of the commit that lands it, so its `verified_at_commit` names a tree it was not derived from (opened 2026-08-17 session #244 by `.33` slice 1, which read the field while establishing a baseline)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **Observed at HEAD.** `git rev-parse --short HEAD` = `9f856ac6`, while the baseline reads
+  `"verified_at_commit": "fc03c9d03df08c2a00db692b49dfe365f17a44c7"` — the PARENT. Yet
+  `git show --stat 9f856ac6 -- rust/test_data/grammar_quality/generated_reproducibility_v0.json`
+  shows the file **did** change in `9f856ac6` (12 rows rewritten).
+- **The mechanism is structural, not an oversight.** `write_baseline` records
+  `$(git rev-parse HEAD)`, and `--rebaseline` is necessarily run **before** the commit that lands its
+  output — so the field always names the previous commit while the verification used the *working
+  tree* that became the next one.
+- ⛔ **Not a false pass, and this matters for the routing priority.** The load-bearing field is
+  `emission_sha`, which is derived from file CONTENT and is correct; `verified_at_commit` is only
+  printed in tier 1's OK line (`… since fc03c9d …`). So the damage is a misleading provenance label,
+  not an unsound verdict — which is why it is routed rather than fixed inside `.33`.
+- **Failure direction: silently misleading, and it points BACKWARDS** — a reader auditing *"was this
+  baseline established against current sources?"* is sent to a commit whose emitter differs from the
+  one that produced the rows.
+- **Reproduces outside SystemVerilog: N/A** — the field is per-baseline, not per-family; the identical
+  shape exists in `PARSE-COST-RATCHET`'s baselines and is **unmeasured** there.
+
+**Acceptance:** (a) decide what the field should name — the commit is not knowable at write time, so
+the honest options are a tree-state digest (which `emission_sha` already is, making the field
+redundant) or an explicit `verified_against: working tree at <parent>` wording; (b) check the same
+shape in `PARSE-COST-RATCHET`'s baselines rather than assuming; (c) if the field becomes redundant,
+DELETE it rather than keep a decorative one — `LIVE-DOC-CURRENCY` measured 25 of 61 hand-maintained
+`Last updated:` declarations simply wrong and deleted the field.
 
 
 #### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ✅ **(f) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0048`; ✅ **(b) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0054` — the fused graph, the PROTOCOL graph and the PROTOCOL graph WITH the coverage recorder produce a **byte-identical AST** (one sha256 across all three arms), so the verdict agreement IS a derivation agreement; ⛔ the tool that could say so did not exist, and the two obvious substitutes both produce a FALSE PASS. **The leaf is now fully CLOSED** — slice 3 closed (f) by adjudicating all 7 tracked consumers and turned up that ONE 2 787-byte file is **99.39 %** of the corpus's committed multiplicity)
