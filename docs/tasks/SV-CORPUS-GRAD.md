@@ -8632,9 +8632,74 @@ is not a promotion), and the probe arm it needs.
 - Already visible but unadjudicated: `GRAMMAR-WELLFORMED-H127` lists `kw_function_declaraton` among
   the sv_2023 `no_path` residual and classified it as blessed-synthetic, which this finding
   supersedes for the sv_2017 arm.
-- **Owed:** a probe pinning the current REJECT, the LRM-typo citation, the one-line reference fix,
-  and a **sweep for the same shape** — a `kw_*` terminal whose spelling is an Annex A NONTERMINAL
-  name (`kw_tx_path_delay_expression_7b2dee37` is the other candidate the grep found).
+- **Owed:** ✅ a probe pinning the current REJECT (2026-08-12), ✅ the LRM-typo citation, ⏳ the
+  reference fix (not one line — see below), and ✅ **the SWEEP — DISCHARGED 2026-08-17 session #244**
+  (`PGEN-SV-CORPUS-GRAD-0217`): a `kw_*` terminal whose spelling is an Annex A NONTERMINAL name
+  (`kw_tx_path_delay_expression_7b2dee37` was named as the other candidate the grep found).
+
+##### ✅ THE SWEEP, DISCHARGED — **4 defects across 11 grammar sites**, where the hand search had found 1 and named 1 (2026-08-17 session #244, `PGEN-SV-CORPUS-GRAD-0217`)
+
+**Instrument:** `docs/tasks/artifacts/sv_corpus_grad/nonterminal_as_literal_sweep.py` (+ `.txt`),
+re-runnable. ⛔ A count produced by a search nobody can re-run is not a census
+(`docs/CLAIM_VERIFICATION.md` §1) — and the hand search was short by **two**, including the site with
+**eight** usages.
+
+| # | literal text | sites | `candidate` verdict |
+|---|---|---:|---|
+| 1 | `PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor` | 1 | the production flattened **4** nonterminals, all present |
+| 2 | `class_qualifier` | **8** | ⛔ no nonterminal of this name exists — 1 name neighbour |
+| 3 | `function_declaraton` | 1 | ⛔ absent — 2 name neighbours (incl. `function_declaration`) |
+| 4 | `tx_path_delay_expression` | 1 | ⛔ absent — **9** name neighbours |
+
+**Denominator:** 313 `kw_*` trivia terminals; 9 matched a signal; **4 are defects, 5 are correct
+keywords**, and 11 grammar sites are affected.
+
+⛔⛔ **THE RAW SIGNAL SET WAS 55 % FALSE POSITIVES, AND THAT IS THE INTERESTING PART.** A grammar
+names its nonterminals after the constructs they build, so `assign`, `coverpoint`, `deassign`,
+`nettype` and `timeunit` all sit within the similarity cutoff of `assign` / `cover_point` /
+`net_type` / `time_unit` — and every one is a genuine reserved keyword whose `kw_*` terminal is
+exactly right. Publishing the signal set would have reported **9 defects where there are 4**. The
+discriminator is an AUTHORITY the repository already tracks: **IEEE 1800-2023 Annex B**, the
+normative reserved-keyword table (`docs/systemverilog/2023/txt/section-Annex_B-normative-keywords.txt`).
+
+⭐⭐ **CROSS-CHECKED BY A SECOND AUTHORITY WITH NO SHARED INPUT, INSIDE THE RUN.** A genuine keyword
+appears in real SystemVerilog source (`assign`: **3 828** corpus files); a nonterminal-spelled-as-literal
+appears in **zero**. Annex-B membership and corpus reachability partition all 9 rows **identically** —
+a standards table and 16 427 source files agreeing, so neither verdict rests on the other. The script
+prints any disagreement rather than picking a side, and its Annex-B extraction is itself guarded by
+ground-truth controls (a size band plus five must-be-present and three must-be-absent probes) that
+REFUSE rather than let a broken extraction make every terminal look like a defect.
+
+⛔⛔ **A NAME NEIGHBOUR IS NOT A REPAIR, and this population contains the counter-example.** The first
+draft of the report printed *"ONE candidate present in the grammar: `class_item_qualifier`"* for
+`class_qualifier`, which reads as a prescription. In IEEE 1800 they are **different productions** —
+`class_item_qualifier ::= static | protected | local` versus
+`class_qualifier ::= [ local:: ] [ implicit_class_handle . | class_scope ]`. Substituting the
+neighbour would replace an *unreachable* alternative with a *wrong* one, and wrong is worse:
+unreachable under-accepts, wrong mis-parses. The column now says what it can and refuses the rest.
+⚠️ The same draft asserted *"three of the four have their intended nonterminal in the grammar"*;
+computing it says **one** does (the flattened PATHPULSE pair), and the other three are absent with
+1, 2 and 9 neighbours respectively.
+
+⛔ **UNREACHABLE-ON-THE-CORPUS IS NOT DEAD CODE — IT IS UNDER-ACCEPTANCE.** All four are unreachable
+because no corpus file contains the literal text; that is precisely why they are defects. LRM-legal
+source that *would* use the construct is rejected today, which is axis-2 material on the SV release
+path, not tidy-up.
+
+⭐ **SEQUENCING, decided here and stated: adjudicate all four against the LRM, then fix them in ONE
+ceremony.** Each fix is accept-widening and owes SV regeneration + a corpus re-measure with the
+accepts-invalid set held. Fixing `function_declaraton` alone now would spend that ceremony once and
+then spend it again for the other three. ⇒ the three sites this sweep added are routed to `.13c.2f`,
+and both leaves' fixes land together.
+
+###### Acceptance Checklist (enforced) — `.13c.2d`, the sweep
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf` is not needed to see it: `grep -n kw_function_declaraton_06b7ed29 grammars/systemverilog.ebnf` shows `:1834` referencing it as `cross_body_item_sv_2017`'s only alternative and `:6591` defining it as `trivia /function_declaraton\b/`. The leaf's own 2026-08-12 probe pinned the consequence: `--profile sv_2017 → REJECT, furthest_position=107` against `--profile sv_2023 → parse_full passed` on IEEE 1800-2017 §19.6.1's own example.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the LRM→EBNF extraction transcribed a referenced NONTERMINAL as a terminal matching its own spelling. Located across the whole grammar by `docs/tasks/artifacts/sv_corpus_grad/nonterminal_as_literal_sweep.py`, which reads `grammars/systemverilog.ebnf` (1 481 rules, 313 `kw_*` trivia terminals) and prints each defect's defining line and every usage line: `:6397`/`:5002`, `:6467`/8 sites, `:6591`/`:1834`, `:7019`/`:3156`.
+- [x] **FIX** — none in this slice, deliberately and with the reason stated: every repair is accept-widening and owes one ceremony, so the sweep is completed FIRST and all four land together (`.13c.2f`(c)). What shipped is the instrument plus the adjudication. ZERO grammar bytes, ZERO Rust bytes, ZERO generated bytes.
+- [x] **ADDRESSED (verified)** — the leaf's owed sweep is discharged with a measurement: **4 defects across 11 grammar sites**, where the hand search had found **1** and named **1** more. Before→after on what the tree knows: 2 candidate sites → 4 adjudicated defects + 5 exonerated keywords, each with its defining line, its usage lines and its corpus reachability.
+- [x] **NO REGRESSION** — no repository behaviour changed (no grammar, engine, generated or gate byte moved); `bash scripts/check_doctrines.sh` **21/21 PASS**. The instrument's own correctness is guarded by ground-truth controls that REFUSE rather than publish: an Annex-B extraction size band (200-400 against the ~250 the standard lists), five must-be-present keywords, three must-be-absent nonterminals, and a non-empty grammar-rule assertion — plus the independent cross-check that Annex-B membership and corpus reachability partition all 9 rows identically.
+- [x] **LOCKSTEP** — `docs/tasks/artifacts/sv_corpus_grad/nonterminal_as_literal_sweep.py` + `.txt`, this leaf, `.13c.2f`/`.13c.2g` NEW, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
 ##### ✅ The REJECT is now PINNED (2026-08-12 session #220, tools-first; no code touched)
 
@@ -8671,6 +8736,117 @@ which is the same reasoning `.13c.2a` recorded five lines above in the grammar (
 the Annex A transcription, [[annex-a-footnotes-license-derivations-the-productions-cannot-derive]]).
 ⛔ That makes this an **accept-widening** change: it needs the full ceremony (SV regeneration, corpus
 re-measure with the accepts-invalid set held, release + schema + ledger), not a drive-by edit.
+
+#### ⚠️ `.13c.2f` NEW `todo` — the sweep found THREE more sites of the same class, one of them with EIGHT usages (opened 2026-08-17 session #244 by `.13c.2d`'s own sweep, `PGEN-SV-CORPUS-GRAD-0217`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **The population is derived, not hand-listed**, by
+  `docs/tasks/artifacts/sv_corpus_grad/nonterminal_as_literal_sweep.py` (output `.txt` tracked
+  beside it). Re-run it rather than trusting the table below.
+- **The three sites `.13c.2d` did not own**, each a `kw_*` terminal matching the literal spelling of
+  something the LRM means as a nonterminal:
+
+  | literal text | grammar sites | why it is a defect |
+  |---|---:|---|
+  | `class_qualifier` | **8** (`:3296 :3310 :3323 :3328 :3340 :4471 :4483 :4534`) | IEEE 1800 A.8.4 defines `class_qualifier ::= [ local:: ] [ implicit_class_handle . \| class_scope ]`; the grammar never transcribed that production and matches the literal characters instead, so every one of the eight alternatives is unreachable |
+  | `tx_path_delay_expression` | 1 (`:3156`) | inside `list_of_path_delay_expressions`; A.7.4 lists `t0x`/`tx1`/`t1x`/`tx0`/`txz`/`tzx` variants and **no bare `tx_`**, so the site is a transcription artifact |
+  | `PATHPULSE$…$…` | 1 (`:5002`) | A.7.5's `PATHPULSE$specify_input_terminal_descriptor$specify_output_terminal_descriptor` collapsed the two NONTERMINAL references and the two `$` separators into one token |
+
+- **Failure direction: UNDER-acceptance, silently.** Each alternative can only fire on source that
+  literally contains the characters of a nonterminal's name. Measured: **0 of 16 427** SystemVerilog
+  corpus files contain any of the three literals (the single `class_qualifier` hit anywhere in the
+  corpus tree is a *comment* inside `verible/verilog/parser/verilog.y`, which is not SV source and
+  cannot exercise the alternative). So no corpus row can ever have reported these — which is why the
+  defect survived a 16 336-file graduation campaign.
+- ⛔⛔ **Reproduces outside SystemVerilog: NO — and the FIRST draft of this row asserted that instead
+  of measuring it, and was wrong about the premise.** It claimed *"the other families' grammars are
+  hand-authored or self-hosted and have no `kw_*` trivia terminals of this shape"*. Measured:
+  **three** other tracked grammars carry `kw_*` trivia terminals. The conclusion survives, the reason
+  does not:
+
+  | grammar | `kw_*` terminals | with `_` in the matched text | signal hits |
+  |---|---:|---:|---:|
+  | `grammars/vhdl.ebnf` | 73 | **0** | **0** |
+  | `grammars/rtl_frontend.ebnf` | 40 | 3 | **0** |
+  | `grammars/systemverilog_lrm_profiled_generated.ebnf` | 325 | 52 | **6** |
+
+  ⇒ VHDL and `rtl_frontend` are clean *by measurement*, not by an argument about how they were
+  authored. This stays an SV-family finding, inside the release lane.
+- ⭐⭐⭐ **AND THE THIRD ROW CHANGES WHERE THE FIX BELONGS.**
+  `grammars/systemverilog_lrm_profiled_generated.ebnf` is TRACKED and its own first line reads
+  *"Auto-generated by `tools/extract_systemverilog_lrm_profiles.py`"*. It carries **all four**
+  defects plus two more signals to adjudicate (`\\one_to_three_digit_octal_number`, `sv_rule`). ⇒ the
+  shape is produced by the **extractor**, so repairing `grammars/systemverilog.ebnf` by hand fixes
+  the symptom while the generator keeps emitting it — and the next regeneration of that sibling
+  re-introduces it. Any fix has to decide whether the extractor learns to resolve a referenced
+  nonterminal, or whether the hand-maintained grammar is the only surface that matters and the
+  sibling is documented as a known-divergent artifact.
+- ⚠️ **A THIRD FINDING, ROUTED NOT WORKED:** that generated grammar's header cites its sources as
+  **absolute paths into a different checkout** — an `/Users/<name>/…` home-directory prefix, while
+  this clone lives under a `/Volumes/…` mount. That is the exact class the repository's path policy
+  exists to prevent, in a tracked file, and it is stale on top of being absolute. It is not this
+  leaf's subject — routed as `.13c.2g`.
+  ⛔ The literal strings are deliberately NOT quoted here: `DIAG-SEVERITY+DOCPATH` blocks a tracked
+  `.md` that carries a repo-internal absolute path, and it **blocked this very commit** when they
+  were. Read them from the artifact with
+  `sed -n '1,5p' grammars/systemverilog_lrm_profiled_generated.ebnf`.
+- ⚠️ **A name neighbour is NOT the repair.** `class_qualifier`'s nearest grammar name is
+  `class_item_qualifier`, and in IEEE 1800 those are different productions
+  (`static | protected | local` versus the scope prefix). Substituting the neighbour would replace an
+  unreachable alternative with a WRONG one — unreachable under-accepts, wrong mis-parses.
+
+**Acceptance:** (a) adjudicate each of the three against the LRM text — which production is meant,
+and for `class_qualifier` whether it must be **written** rather than re-pointed (its production is
+absent from the grammar entirely); (b) pin the current REJECT for each with a minimal input, the way
+`.13c.2d` did, so the fix has a before→after and not a claim; (c) ⛔ land all four fixes — these three
+plus `.13c.2d`'s — in **ONE** accept-widening ceremony (SV regeneration + corpus re-measure with the
+accepts-invalid set held + release/schema/ledger), because spending it per-site spends it four times;
+(d) decide the EXTRACTOR question above — a hand-fix that leaves
+`tools/extract_systemverilog_lrm_profiles.py` emitting the same shape is a fix with a re-introduction
+path, and the sibling grammar is tracked, so the re-introduction would land in git; (e) re-run the
+sweep afterwards and show the defect count reach **0** while the 5 exonerated keywords stay
+exonerated — and extend it to cover the sibling grammar, which today needs its own authority (Annex B
+is the SV keyword table and applies to both, so this is a scope change, not a new instrument).
+
+#### ⚠️ `.13c.2g` NEW `todo` — a TRACKED generated grammar cites its sources as absolute paths into a DIFFERENT checkout (opened 2026-08-17 session #244 by `.13c.2f`'s cross-family measurement)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **Located exactly**, and ⛔ **quoted only by SHAPE, because reproducing the literal strings here
+  is itself the violation** — `DIAG-SEVERITY+DOCPATH` blocked this commit when they were pasted in
+  full, which is the doctrine demonstrating the finding it is being told about. Read them with:
+
+  ```bash
+  sed -n '1,5p' grammars/systemverilog_lrm_profiled_generated.ebnf
+  ```
+
+  Lines 2-4 are a `# Source markdowns:` block whose two entries are **absolute** paths beginning
+  with an `/Users/<name>/Documents/…` home-directory prefix. This clone lives under a `/Volumes/…`
+  mount, so each path is both absolute **and stale** — it names a checkout that is not this one.
+- **It is TRACKED**, so the violation is in git rather than in a scratch artifact, and it is
+  **regenerated** by `tools/extract_systemverilog_lrm_profiles.py`, so removing it by hand would be
+  undone by the next run: the emitter is the fix site.
+- ⚠️ **The sv_2017 path is also suspicious on its own terms** — `section-41-data-read-api.md` is not
+  where Annex A lives, while the sv_2023 line correctly names
+  `section-Annex_A-normative-formal-syntax.md`. Whether the sv_2017 arm was extracted from the wrong
+  section, or the header merely records the wrong one, is **unmeasured** and must not be assumed
+  either way; it is the first thing to check because the consequences differ enormously.
+- **Failure direction: silent.** Nothing reads these paths at build time, so the only cost today is a
+  false provenance record — but provenance is what a reader uses to decide whether a generated
+  artifact is current, which is the same class `ENGINE-UNIVERSAL-SERVICES.16` just closed for
+  `generated/ebnf.rs`.
+- ⛔ **Reproduces outside SystemVerilog: unmeasured.** Whether other tracked generated artifacts carry
+  absolute paths is a one-command sweep nobody has run; it belongs to this leaf, not to a guess here.
+- **Why not fixed on sight:** it is not an SV *parser* defect and the repository's path policy is
+  enforced for `.md` files by `DIAG-SEVERITY+DOCPATH` but not for `.ebnf`, so closing it properly
+  means deciding whether that doctrine's scope should widen — a decision, not an edit.
+
+**Acceptance:** (a) sweep every TRACKED generated artifact for absolute checkout paths and publish the
+count (the census discipline, not a spot fix); (b) determine whether the sv_2017 source line is a
+wrong RECORD or a wrong EXTRACTION — they have very different consequences; (c) make the emitter write
+repository-relative paths; (d) decide whether `DIAG-SEVERITY+DOCPATH` should cover generated
+non-`.md` artifacts, so this cannot come back.
 
 #### `.13c.2b` — DEFECT: a size cast is rejected in a CONSTANT expression (**DIAGNOSED** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0216`; opened 2026-08-11 by `.13c.2`; the FIX is `ENGINE-UNIVERSAL-SERVICES.13`)
 
