@@ -1,0 +1,15 @@
+ENVELOPE-CAP — SV-CORPUS-GRAD.13c.2i
+
+  ✓ A1 default run truncates the list at the cap         40
+  ✓ A2 PGEN_ENVELOPE_DUMP_ALL lists every one            151
+  ✓ A3 divergence_total is identical with the cap lifted 151
+  ✓ A3 tokens_compared is identical with the cap lifted  13933
+  ✓ A3 token_matches is identical with the cap lifted    11672
+  ✓ A3 kind_divergences is identical with the cap lifted 150
+  ✓ A4a =0 leaves the cap in force                       40
+  ✓ A4b =<empty> leaves the cap in force                 40
+  ✓ A5 the tracked ceiling EQUALS the measured total     151
+  ✓ A6 the ratchet has both a rise and a fall arm       
+  ✓ A7 the inline-annotation class is nameable           37 instances
+
+ENVELOPE-CAP: 11/11 as declared

@@ -1,5 +1,36 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0223 — an instrument that counts a defect and cannot name it is a blocker, not a report
+
+**1. ⭐⭐⭐ "TRUNCATION IS ALWAYS VISIBLE" IS TRUE AND IT IS NOT THE PROPERTY THAT MATTERS.** The
+envelope differ caps its divergence list at 40 and publishes the uncapped total beside it, and its
+own source comment says that makes truncation visible. It does. It also makes the report useless for
+the one question a RED ratchet asks — *which* divergence is the new one — because a set-diff of the
+ceiling-era report against today's is **empty on both sides**: identical first 40 rows, and the
+extra row past the cap. ⇒ **a cap that preserves the COUNT still destroys the DIAGNOSIS**, and the
+fix is the same escape the lint already has (`PGEN_LINT_DUMP_ALL`). I named the new one after it
+rather than inventing a spelling, so it is guessable from the one a reader already knows.
+
+**2. ⛔ THE ANTI-SPIN TRIPWIRE FIRED ON ME AND IT WAS RIGHT.** I had spent two turns bisecting the
+grammar's history — HEAD, HEAD~1, HEAD~2, HEAD~3, HEAD~5, then four more revisions — narrowing
+*when* the 151st divergence appeared while still unable to say *what* it was. That is the shape the
+standing directive names: analysis without new tool output that pinpoints WHY+WHERE. Stopping to
+build the cap escape took one edit and named it on the first run. **When a bisect is telling you
+"somewhere in these ten commits", the instrument is the thing to fix, not the search.**
+
+**3. ⭐ A REPORTING KNOB THAT PERTURBS THE MEASUREMENT IS NOT A REPORTING KNOB.** Every ratchet in
+that gate keys on four counts, so the probe asserts all four are byte-identical with the cap lifted
+and in force, plus that `0` and empty mean OFF. Cheap, and it is the difference between a debug flag
+and a second code path.
+
+**4. ⛔ THE BETTER FIX WAS AVAILABLE AND I DID NOT TAKE IT, DELIBERATELY.** The class the 151st
+divergence belongs to numbers **37** and exists because the projection drops a distinction arm 1
+makes. Closing it would sharpen the gate far more than moving a ceiling by one. But
+`envelope_divergence_ceiling()` is **two-sided** — a count BELOW the ceiling fails with *"lower the
+ceiling"* — so that fix re-baselines every grammar at once, and the module belongs to another
+leaf. Routed with the measurement attached (`LANG-CAPABILITY-AUDIT.10.16`) rather than attempted
+between two other slices. **Routing is only honest when it carries the number that makes the case.**
+
 ## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0222 — the acceptance clause offered two answers and the measurement picked a third
 
 **1. ⭐⭐⭐ AN ACCEPTANCE CLAUSE THAT ENUMERATES THE ANSWERS CAN ENUMERATE THE WRONG ONES.**

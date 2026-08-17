@@ -9348,14 +9348,69 @@ ceiling that fails in both directions.
 - **Reproduces outside SystemVerilog: NO** — the other 13 grammars pass their ceilings in the same
   run, and this is the SV grammar's own projection.
 
-**Acceptance:** (a) give the differ a cap escape (an env var in the `PGEN_LINT_DUMP_ALL` family) or a
-per-rule divergence count, so the 151st divergence can be NAMED — ⛔ do not bisect the grammar's
-history first, that is the instrument's job; (b) adjudicate the named divergence: a meta-parser
-fidelity gap (fix `grammars/ebnf.ebnf` or the projection) versus an SV construct arm 2 legitimately
-cannot compare (then the ceiling moves, WITH the construct recorded); (c) either way the gate must go
-GREEN, because a two-sided ratchet left RED cannot detect the next regression in either direction;
-(d) route the *watched-ness* half — a gate whose only caller is a multi-hour aggregate is a gate that
+**Acceptance:** ✅ **(a) DISCHARGED** — give the differ a cap escape (an env var in the
+`PGEN_LINT_DUMP_ALL` family) or a per-rule divergence count, so the 151st divergence can be NAMED —
+⛔ do not bisect the grammar's history first, that is the instrument's job; ✅ **(b) DISCHARGED** —
+adjudicate the named divergence: a meta-parser fidelity gap (fix `grammars/ebnf.ebnf` or the
+projection) versus an SV construct arm 2 legitimately cannot compare (then the ceiling moves, WITH
+the construct recorded); ✅ **(c) DISCHARGED — the gate is GREEN** across all 14 grammars; ⏳ **(d)**
+route the *watched-ness* half — a gate whose only caller is a multi-hour aggregate is a gate that
 reports weeks late — to `CI-PARITY-GATE-ROT`, whose subject that is.
+
+##### ✅ `.13c.2i` (a)+(b)+(c) DISCHARGED (`PGEN-SV-CORPUS-GRAD-0223`, 2026-08-18 session #244) — the instrument could count the defect and not name it, and that was the whole blocker
+
+⭐⭐⭐ **THE CAP WAS THE DEFECT, NOT THE DIVERGENCE.** The report's `divergences` list is capped at 40
+with the uncapped total alongside, which the source calls *"truncation is always visible"* — and
+visible is not diagnosable. Set-diffing the ceiling-era report against today's returned **empty on
+both sides**, because both are the same first 40 rows and the 151st sits past the cap. That is the
+exact shape TOOLBOX 5.1 records for `--lint-grammar`'s per-class cap, which hid 20 of SV's 30
+left-recursion findings until `PGEN_LINT_DUMP_ALL` existed. ⇒ `PGEN_ENVELOPE_DUMP_ALL=1` lifts it,
+named after that variable on purpose so the escape is guessable from the one a reader already knows.
+
+⭐ **A REPORTING KNOB MUST NOT PERTURB THE MEASUREMENT, and that is asserted rather than assumed**:
+with the cap lifted, `divergence_total` **151**, `tokens_compared` **13 933**, `token_matches`
+**11 672** and `kind_divergences` **150** are all identical to the capped run. Only the LIST grows.
+`0` and empty mean OFF, so the variable cannot be enabled by accident.
+
+**(b) THE ADJUDICATION — the extra divergence, named:**
+
+```text
+ONLY TODAY:      use_clause_param_override_sv_only  tok 2  arm1=semantic_annotation_inline  arm2=semantic_annotation
+                 use_clause                         tok 3  (the same class, index shifted by the new rule)
+ONLY 150-ERA:    use_clause                         tok 1  (same divergence, before the shift)
+```
+
+⇒ **one more instance of an already-accepted asymmetry, not a new fidelity loss.** Arm 1 emits
+`semantic_annotation_inline` for an annotation written INSIDE a rule body
+(`ebnf_frontend.rs:1005`); the projection emits `"semantic_annotation"` for every position
+(`ebnf_envelope_differential.rs:327/497`), so the distinction is dropped. The class already numbers
+**37** on this grammar, and the gate script's `systemverilog_preprocessor` row has named it as a
+documented blind spot since the gate was built. The instance arrived with `019e1739` (2026-08-09,
+`SV-CORPUS-GRAD.3.20`), which added `use_clause_param_override_sv_only` carrying an inline
+`@probe_sample:` at `grammars/systemverilog.ebnf:6232`.
+
+**(c) THE CEILING MOVES 150 → 151 WITH THE CONSTRUCT RECORDED IN THE GATE SCRIPT**, not as a bare
+number. ⛔ The alternative — fixing the projection so the class goes 37 → 0 — is the *better* fix and
+is deliberately NOT taken here: it moves every grammar's ceiling at once (the ratchet is two-sided,
+so a FALL fails too) and it belongs to `LANG-CAPABILITY-AUDIT.10.6`, which owns
+`ebnf_envelope_differential.rs`. Routed there with this measurement rather than attempted as a
+drive-by. ⚠️ Whether arm 2's AST *carries* the position and the projection discards it, or arm 2
+never had it, is the question that decides that fix; this leaf did not answer it.
+
+**Bank:** `docs/tasks/artifacts/sv_corpus_grad/es13c2i_envelope_cap/probe.sh` → **`ENVELOPE-CAP:
+11/11 as declared`**, including the four binding-count identity arms, the two OFF-spelling arms, an
+arm holding the tracked ceiling EQUAL to the measured total, and one asserting the ratchet still has
+both a rise and a fall arm — a two-sided ratchet that has only been tested in one direction is a
+one-sided ratchet.
+
+###### Acceptance Checklist (enforced) — `.13c.2i` (a)+(b)+(c)
+
+- [x] **REPRODUCE / ISSUE** — `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate` → `⚠️ EBNF dual-run differential has 1 failing grammar flow(s)` / `envelope ratchet: envelope divergences REGRESSED: 151 > ceiling 150` on `systemverilog`, with `tokens_compared=13933 kind_divergences=150 payload_divergences=1`. Pre-existing: the grammars at `HEAD` and `HEAD~1` both give 151 over an identical token count, and `3cb4b95b` (the ceiling's founding commit) gives 150 over 13 880.
+- [x] **ROOT CAUSE (WHY + WHERE)** — two layers. (1) the DIAGNOSIS was blocked by `MAX_REPORTED_DIVERGENCES = 40` in `rust/src/ebnf_envelope_differential.rs`: with no override, a set-diff of the two eras' `divergences` lists is empty on both sides because the extra row is past the cap. (2) with `PGEN_ENVELOPE_DUMP_ALL=1` the 151st is named — `use_clause_param_override_sv_only` token 2, `arm1=semantic_annotation_inline` vs `arm2=semantic_annotation`, the class arm 1 distinguishes at `ebnf_frontend.rs:1005` and the projection flattens at `ebnf_envelope_differential.rs:327/497`. It arrived with `019e1739` (`git log -S`), which added that rule with an inline `@probe_sample:` at `grammars/systemverilog.ebnf:6232`.
+- [x] **FIX** — engine-diagnostic tier + a recorded ceiling. `reported_divergence_cap()` reads `PGEN_ENVELOPE_DUMP_ALL` once per comparison (presence-gated, `0`/empty = off) and the loop consults it instead of the constant; the gate's `systemverilog` ceiling moves 150 → 151 with the construct, the commit that introduced it and the reason written beside it. ⛔ Fixing the projection instead (class 37 → 0) is the better fix and is ROUTED to `LANG-CAPABILITY-AUDIT.10.6`, because it re-baselines all 14 ceilings and that module is that leaf's.
+- [x] **ADDRESSED (verified)** — `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate` → **`✅ EBNF dual-run differential passed for all tracked grammars`** (was: 1 failing flow). `ENVELOPE-CAP: 11/11 as declared`, with A2 listing **151 of 151** where A1 lists 40, and A7 naming the inline-annotation class at **37** instances.
+- [x] **NO REGRESSION** — the knob perturbs nothing: `divergence_total` 151, `tokens_compared` 13 933, `token_matches` 11 672, `kind_divergences` 150 are byte-identical with the cap lifted and in force (probe A3 ×4); `0` and empty leave the cap in force (A4a/A4b); every other grammar's ceiling is untouched and all 14 flows pass; `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` → strict source lint + generated stage **pass**; `bash scripts/check_doctrines.sh` **21/21 PASS**.
+- [x] **LOCKSTEP** — `rust/src/ebnf_envelope_differential.rs`, `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`, the new probe bank, this leaf, `docs/tasks/LANG-CAPABILITY-AUDIT.md` (`.10.6` gains the routed projection question), `TOOLBOX.md` §1.9 (the cap escape is a debug surface), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
 #### ⚠️ `.13c.2g` — a TRACKED generated grammar cites its sources as absolute paths into a DIFFERENT checkout (**`done`** 2026-08-17 session #244, `PGEN-SV-CORPUS-GRAD-0222`; opened 2026-08-17 by `.13c.2f`'s cross-family measurement)
 

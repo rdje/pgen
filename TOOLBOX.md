@@ -371,6 +371,24 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   result, in the passing direction, with nothing on stdout to notice.
 - **OUTPUT:** a per-grammar report — `is_envelope_equivalent` (the frontend-REPLACEMENT verdict), `tokens_compared`, `token_matches`, `payload_not_comparable`, `payload_divergences`, `kind_divergences`, `tokens_unverified`, `divergence_total`, `unmapped_arm2_constructs`, `unresolved_include_directives`, and a located `divergences` list (rule name + token index + both arms' tokens, capped at 40 with the uncapped total alongside). Measured at the time of writing: **34 014 token positions across 14 grammars**, with **6 ENVELOPE-EQUIVALENT** — `builtin_return_annotation`, `builtin_semantic_annotation`, **`ebnf` itself (913/913)**, `rtl_const_expr`, `rtl_frontend`, `vhdl`.
 - ⭐ **GROUND TRUTH — it refuses rather than guesses.** Every run first executes a **positive** control (a synthetic grammar that must project identically — 27/27 positions) and a **negative** control (a planted mutation the differ must catch exactly once, at exactly that index). A positive miss means the PROJECTION is broken; a negative miss means the DIFFER is blind. Either aborts before a number is published.
+- ⭐⭐ **`PGEN_ENVELOPE_DUMP_ALL=1` LIFTS THE 40-ROW DIVERGENCE CAP — reach for it the moment you need
+  to know WHICH divergence, not how many** (`SV-CORPUS-GRAD.13c.2i`). The report caps `divergences`
+  at 40 and carries the uncapped `divergence_total` alongside, which the source calls *"truncation is
+  always visible"* — ⛔ **and visible is not diagnosable.** Measured: with the gate RED on
+  `systemverilog` at `151 > ceiling 150`, a set-diff of the ceiling-era report against today's came
+  back **empty on both sides** — same first 40 rows, extra row past the cap — so the instrument could
+  count the defect and never name it. With the cap lifted, one command names it
+  (`use_clause_param_override_sv_only`, `arm1=semantic_annotation_inline` vs
+  `arm2=semantic_annotation`). Same failure the lint's per-class cap had before `PGEN_LINT_DUMP_ALL`
+  (5.1), which is why the variable is named after it.
+  ```bash
+  PGEN_ENVELOPE_DUMP_ALL=1 ./target/debug/ebnf_dual_run_diff --input ../grammars/<g>.ebnf \
+      --output /tmp/r.json --envelope-differential /tmp/envelope.json
+  ```
+  ⭐ It is a REPORTING knob and that is asserted, not assumed: `divergence_total`, `tokens_compared`,
+  `token_matches` and `kind_divergences` are byte-identical with it set and unset (bank
+  `docs/tasks/artifacts/sv_corpus_grad/es13c2i_envelope_cap/probe.sh`, **11/11**, four identity arms).
+  `0` and empty mean OFF, so it cannot be enabled by accident.
 - ⚠️ **HONEST BOUNDS, carried in the report itself:** return-annotation payloads are compared by KIND only (arm 1 has raw source text, arm 2 has a parsed tree; recovering the text would need a pretty-printer whose own bugs would read as findings) and are counted under `payload_not_comparable`; arm 2 is known-blind to `[> … ]` lexical annotations; `systemverilog_lrm_profiled_wrapper`'s low agreement is the include asymmetry (arm 1 resolves `include(…)`, arm 2 stops at the directive), flagged by `unresolved_include_directives`, not a defect rate. A token after a rule's first KIND divergence is counted `tokens_unverified` — never as agreement, never as disagreement.
 - **The gate carries a two-sided per-grammar ratchet** (`envelope_divergence_ceiling()` in the gate script): a count above the ceiling fails as a regression, a count *below* it fails too with "lower the ceiling", and a grammar with no declared ceiling fails. Both directions were proven to fire before the ratchet was trusted. Full map: `docs/tasks/LANG-CAPABILITY-AUDIT.md` `.10.6` + book *The Gate Flow* §7.9.
 

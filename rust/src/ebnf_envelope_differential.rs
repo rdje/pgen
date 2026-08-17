@@ -244,7 +244,32 @@ impl DifferentialReport {
 
 /// Cap on the divergence list carried in a report. The uncapped count travels alongside it
 /// (`divergence_total`), so truncation is always visible.
+///
+/// ⛔ **VISIBLE IS NOT THE SAME AS DIAGNOSABLE, and this cap cost a leaf to learn it**
+/// (`SV-CORPUS-GRAD.13c.2i`). `ebnf_frontend_dual_run_gate` went RED on `systemverilog` at
+/// `151 > ceiling 150`, and a set-diff of the divergence lists from the ceiling's founding commit
+/// and from today came back **empty on both sides**: both are the same first 40 rows, and the extra
+/// divergence sits past the cap. So the report says *how many* and can never say *which* — the same
+/// shape `--lint-grammar`'s per-class cap had, which hid 20 of SystemVerilog's 30 left-recursion
+/// findings until `PGEN_LINT_DUMP_ALL` existed (TOOLBOX 5.1).
+///
+/// ⇒ `PGEN_ENVELOPE_DUMP_ALL=1` lifts the cap, deliberately mirroring that variable's name so the
+/// escape is guessable from the one a reader already knows. Read via [`reported_divergence_cap`],
+/// once per call rather than per token.
 pub const MAX_REPORTED_DIVERGENCES: usize = 40;
+
+/// The divergence-list cap in force for this run — [`MAX_REPORTED_DIVERGENCES`], or unbounded when
+/// `PGEN_ENVELOPE_DUMP_ALL` is set to anything other than `0`/empty.
+///
+/// ⭐ Presence-gated read, exactly like the other `PGEN_*_DUMP_ALL` knobs: the comparison itself is
+/// untouched, so `divergence_total`, `token_matches` and every ratchet-bearing count are
+/// byte-identical with the variable set and unset. Only the LIST grows.
+pub fn reported_divergence_cap() -> usize {
+    match std::env::var("PGEN_ENVELOPE_DUMP_ALL") {
+        Ok(value) if !value.is_empty() && value != "0" => usize::MAX,
+        _ => MAX_REPORTED_DIVERGENCES,
+    }
+}
 
 /// Project arm 2's typed AST — the `serde_json` serialization of the generated meta-parser's
 /// `parse_full_grammar_file()` node — into arm 1's envelope vocabulary.
@@ -625,6 +650,9 @@ pub fn diff_envelopes(
     let arm2 = &projection.rules;
     let arm1_names: Vec<Option<&String>> = arm1.iter().map(|rule| rule.name.as_ref()).collect();
     let arm2_names: Vec<Option<&String>> = arm2.iter().map(|rule| rule.name.as_ref()).collect();
+    // Read once per comparison, not per token: the cap is a reporting knob, and re-reading the
+    // environment inside the loop would make the instrument's cost depend on the divergence count.
+    let divergence_cap = reported_divergence_cap();
 
     let mut report = DifferentialReport {
         grammar: grammar.to_string(),
@@ -691,7 +719,7 @@ pub fn diff_envelopes(
                 TokenComparison::PayloadDivergence | TokenComparison::KindDivergence
             ) {
                 report.divergence_total += 1;
-                if report.divergences.len() < MAX_REPORTED_DIVERGENCES {
+                if report.divergences.len() < divergence_cap {
                     report.divergences.push(Divergence {
                         rule_index,
                         rule_name: rule_name.clone(),

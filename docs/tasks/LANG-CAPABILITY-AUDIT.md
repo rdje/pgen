@@ -2905,6 +2905,41 @@ assumed here.
   anchored rule terminator. ⚠️ Prove the repair against the differential, not against a parse
   verdict: the defect is `Ok` on both sides today.
 
+### `.10.16` — the PROJECTION flattens arm 1's inline/before-rule annotation distinction, and it is the single largest divergence class on SystemVerilog (`todo`, routed in 2026-08-18 by `SV-CORPUS-GRAD.13c.2i`)
+
+- **Status: `todo`**, opened with its measurement rather than as a note.
+- **WHY + WHERE**: arm 1 emits **`semantic_annotation_inline`** for an annotation written INSIDE a
+  rule body (`rust/src/ebnf_frontend.rs:1005`); the projection emits `"semantic_annotation"` for
+  every position (`rust/src/ebnf_envelope_differential.rs:327` and `:497`), so the distinction is
+  dropped before the diff ever runs. The gate script's `systemverilog_preprocessor` row has named
+  this as a documented arm-2 blind spot since the gate was built; what was never measured is its
+  SIZE.
+- **Measured, with `PGEN_ENVELOPE_DUMP_ALL=1` — the cap escape `SV-CORPUS-GRAD.13c.2i` added
+  precisely so this could be counted**: on `systemverilog` the class is **37 of 151** divergences,
+  the largest single `arm1→arm2` pair after `semantic_annotation → rule_reference` (56):
+
+  | arm1 kind | arm2 kind | count |
+  |---|---|---:|
+  | `semantic_annotation` | `rule_reference` | 56 |
+  | *(absent)* | `semantic_annotation` | 46 |
+  | **`semantic_annotation_inline`** | **`semantic_annotation`** | **37** |
+  | `return_scalar` | `return_object` | 5 |
+  | others | | 7 |
+
+- ⛔ **THE OPEN QUESTION IS WHICH ARM LOST IT**, and this leaf must answer that before proposing a
+  fix: does arm 2's typed AST *carry* the position (so the PROJECTION discards it, a cheap fix in
+  `project_semantic_annotation`), or does `grammars/ebnf.ebnf` never distinguish the two positions
+  (a meta-grammar fix, and a much bigger one)? ⚠️ `.10.14` is adjacent — a leading `@annotation`
+  binding to the PREVIOUS rule is the same seam — so check whether one fix subsumes the other before
+  pricing either.
+- ⛔ **It re-baselines EVERY ceiling, which is why it is a leaf and not a drive-by.**
+  `envelope_divergence_ceiling()` is a **two-sided** ratchet: a count BELOW the ceiling fails too,
+  with *"lower the ceiling"*. So closing this class moves `systemverilog` (151), the two
+  `systemverilog_*` rows and any other grammar carrying inline annotations, all in one commit.
+- **Where it came from**: `SV-CORPUS-GRAD.13c.2i` needed to name the 151st SV divergence to get
+  `ebnf_frontend_dual_run_gate` green again; the row it named was one more instance of this class,
+  so the ceiling moved 150 → 151 with the construct recorded and the CLASS was routed here.
+
 
 ### `.10.15` — ⛔ `.10.3` REMOVED THE EMISSION AND LEFT `.10.4`'s ASSERTION BEHIND — a RED lib test, 146 commits old (`todo`, found 2026-08-11 by `ENGINE-UNIVERSAL-SERVICES.8`'s confirmatory sweep)
 

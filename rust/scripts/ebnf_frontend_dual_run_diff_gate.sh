@@ -70,7 +70,16 @@ envelope_divergence_ceiling() {
         # PREVIOUS rule's expression instead of the rule it precedes.
         return_annotation) echo 6 ;;
         regex) echo 38 ;;
-        systemverilog) echo 150 ;;
+        # SV-CORPUS-GRAD.13c.2i — 150 -> 151, and the extra divergence is NAMED rather than bumped.
+        # The ceiling was set at 150/13 880 tokens on 2026-07-31; `019e1739` (2026-08-09,
+        # SV-CORPUS-GRAD.3.20) then added `use_clause_param_override_sv_only` carrying an INLINE
+        # `@probe_sample:`, and arm 1 emits `semantic_annotation_inline` where arm 2's projection
+        # emits `semantic_annotation` — the SAME blind spot already named on the svpp row below,
+        # whose population here is 37. ⇒ one more instance of an accepted asymmetry, not a new
+        # fidelity loss. ⛔ It was invisible for ~2.5 weeks because the report's divergence list is
+        # capped at 40 and this one sits past it; `PGEN_ENVELOPE_DUMP_ALL=1` now lifts that cap,
+        # which is how the row above was identified at all.
+        systemverilog) echo 151 ;;
         systemverilog_lrm_profiled_generated) echo 317 ;;
         # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
         # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation
