@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0070 — a control that only tests one layer of a two-layer fix reports "not reachable" and looks like evidence
+
+**1. ⛔⛔ MY RED CONTROL DISARMED ITSELF, AND IT PRINTED AS A CLEAN RESULT.** To prove the fixtures
+really reach the `ZeroDivisionError`, I mutated the fix — `if not denominator:` → `if False:` — and
+expected a crash. The mutant exited **0**. Not because the fixture was wrong, but because the fix
+has **two layers**: the `pct()` guard AND an `if lr_total:` branch at the call site. Disabling one
+leaves the other, so the arm concluded *"these fixtures do not reach the defect"* about a defect
+they reach every time.
+⇒ **a mutation-based control tests the layer you mutated, not the property you care about.** It
+degrades silently as the fix grows layers, and its failure message actively misdirects.
+**PROMOTED →** [[a-mutation-control-tests-the-layer-you-mutated-not-the-property]]. The fix:
+replay the **real historical blob** (`git rev-list HEAD -- <file>`, newest one still containing the
+unguarded expression), which cannot drift out of step with the fix however many layers it acquires.
+⛔ Second self-inflicted bug in the same arm: the replay must sit two directories below the repo
+root, because the instrument computes `ROOT = dirname(__file__)/../..`. My first copy under
+`rust/target/` resolved ROOT to `rust/` and died at exit 2 — indistinguishable from "not reachable".
+
+**2. ⭐ MY OWN PROBE WENT RED AGAINST CORRECT CODE, AND IT WAS THE PROBE THAT WAS WRONG.** I asserted
+that `lr_total / total` should print `n/a` on an LR-free sample. It should not: that ratio is
+**exactly 0.000 %**, fully measured. Only `lr_committed / lr_total` is undefined. Guarding "all the
+ratios" would have made the instrument claim ignorance about a number it knew precisely.
+⇒ when adding zero-guards, separate **undefined** (0/0) from **legitimately zero** (0/N). They look
+identical in a `grep` for `100.0 *` and they are opposite defects.
+
+**3. ⭐⭐ "REFUSE" IS NOT AUTOMATICALLY THE SAFE VERB.** The leaf's acceptance said exit 2 for both
+cases, and flagged that this was probably wrong for one of them. It is wrong for **both**: the
+binding counters are exact in each case and only a *derived* ratio is undefined. A refusal would
+have blocked measuring an all-rejecting experimental arm — which is exactly what `.20`(b) does. The
+useful distinction is **"a measurement I could not take"** (refuse) versus **"a measurement I took,
+one of whose derived views is undefined"** (publish it as n/a, with the reason). The docstring
+contract names the first; I had been about to apply it to the second.
+
+**4. ⚠️ EDITING AN INSTRUMENT MOVES A BASELINE, BY DESIGN.** `corpus_parse_cost.py` is one of
+`PARSE-COST-RATCHET`'s four identity inputs (`.21` (f) added it precisely so a changed instrument
+cannot silently re-describe a tree). So a pure bug-fix necessarily fails the gate until rebaselined
+— and the *right* evidence that the fix is inert is that `entries.tsv` is byte-identical and
+`cost.md` differs by exactly one line: the instrument's own hash.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0069 — a target's exit 0 is not a claim about the files it did not build, and a mechanism you can only half-instantiate is a coincidence
 
 **1. ⛔⛔ `regenerate_generated_parsers` RETURNED 0 AND LEFT 2 OF 11 ARTIFACTS UNTOUCHED.** Its own

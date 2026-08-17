@@ -1073,6 +1073,38 @@ def write_entries_tsv(path: str, rows: list[tuple], tiers: dict[str, str]) -> No
                      f"\t{ent}\t{com}\t{memo}\t{lr_e}\t{lr_c}\n")
 
 
+def pct(numerator: float, denominator: float, digits: int = 1) -> str:
+    """A published percentage, or `n/a` when its denominator is zero.
+
+    ⛔ `ENGINE-UNIVERSAL-SERVICES.30`. `write_report` published four ratios with unguarded
+    denominators, and **two of them were genuinely reached** — the instrument died with a Python
+    `ZeroDivisionError` and exit 1, violating this file's own docstring contract that it *"refuses
+    (exit 2) rather than reporting a clean measurement it could not take"*.
+
+    Reachability was MEASURED per site rather than assumed, because guarding all four reflexively
+    would have hidden which ones actually bite:
+
+    - ``/ lr_total`` — **REACHED**, by `printf 'module m;\\nendmodule\\n'`: the simplest legal
+      SystemVerilog file has no left-recursion-family entries at all. An EMPTY file reaches it too.
+      ⇒ measuring any small or LR-free sample crashed the instrument.
+    - ``/ acc_entries`` — **REACHED**, by any sample whose every file is REJECTED (an experimental
+      arm that regresses is exactly such a sample, and measuring one is the point of `.20`).
+    - ``/ total`` (two sites) — **NOT reached today**: `run_measure` refuses an empty `rows`, and
+      every file that dumps contributes at least one entry (measured: a 0-byte file yields **392**,
+      the entry-rule machinery alone). ⚠️ That is an empirical fact about the parser, not an
+      invariant, so these route through this same helper anyway — one shared guard costs nothing
+      and removes the need to re-adjudicate reachability every time the emission changes.
+
+    ⭐ It returns `n/a` rather than refusing. Both reached cases are LEGITIMATE measurements: the
+    binding counters are fully measured and only a derived ratio is undefined. Refusing would make
+    the instrument unusable on precisely the small ad-hoc samples this campaign runs. See the leaf
+    for why acceptance (a)'s literal *"exit 2"* verb was declined for both.
+    """
+    if not denominator:
+        return "n/a"
+    return f"{100.0 * numerator / denominator:.{digits}f} %"
+
+
 def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
                  tiers: dict[str, str]) -> None:
     # ⛔ The corpus-wide family figures are PROJECTED from the tracked derivation, not restated.
@@ -1160,7 +1192,7 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A(f"| **failed speculation** (`entries − committed`) | **{total - committed:,}** | more probing waste — the mechanism a GUARD spends through |")
     A(f"| **memo hits** | **{memo:,}** | memo behaviour moved |")
     A("")
-    A(f"Failed speculation is **{100.0 * (total - committed) / total:.1f} %** of all rule entries in")
+    A(f"Failed speculation is **{pct(total - committed, total)}** of all rule entries in")
     A("this sample: the parse is overwhelmingly probing work, so a guard that probes more shows")
     A("up here long before it shows up in the raw entry count.")
     A("")
@@ -1168,8 +1200,15 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A("commits nothing durable, so its entries are ALL speculation by construction and it drags")
     A("the whole-sample ratio up. The accepted-only sub-total is published beside it so neither is")
     A(f"mistaken for the other: over the {accepted} accepted files, entries {acc_entries:,} and")
-    A(f"committed {acc_committed:,} — {100.0 * (acc_entries - acc_committed) / acc_entries:.1f} %")
+    A(f"committed {acc_committed:,} — {pct(acc_entries - acc_committed, acc_entries)}")
     A("failed speculation even where the parse succeeded.")
+    if not acc_entries:
+        A("")
+        A("⛔ **NO FILE IN THIS SAMPLE WAS ACCEPTED, so the accepted-only ratio above is `n/a`** "
+          "(`ENGINE-UNIVERSAL-SERVICES.30`). The binding counters are still exact — they count "
+          "rule entries, which a rejected parse performs — but the whole-sample failed-speculation "
+          "figure is **100 % by construction** here, because a rejected parse commits nothing "
+          "durable. Read this report as a measurement of an all-rejecting arm, never as a baseline.")
     A("")
     A("## The left-recursion-elimination family")
     A("")
@@ -1184,16 +1223,28 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A("|---|---:|")
     A(f"| family entries (`_lr_base`/`_lr_suffix`/`_lr_seed`/`_lr_guard`/`_lr_alt`) | {lr_total:,} |")
     A(f"| of those, committed | {lr_committed:,} |")
-    A(f"| family share of all entries in this sample | {100.0 * lr_total / total:.3f} % |")
+    A(f"| family share of all entries in this sample | {pct(lr_total, total, 3)} |")
     A("")
     A("⭐ Published so `.20` acceptance (b)'s third A/B arm computes its delta straight off this")
     A("artifact instead of re-deriving it.")
     A("")
-    A(f"⭐ The family commits **{lr_committed:,}** of its {lr_total:,} entries — "
-      f"**{100.0 * lr_committed / lr_total:.3f} %**. The elimination machinery is, to three")
-    A("significant figures, **pure speculation**: it is entered, it probes, it rolls back. That is")
-    A("the expected shape of a structural guard and it is stated here so a later reader does not")
-    A("mistake the family's entry count for productive work.")
+    if lr_total:
+        A(f"⭐ The family commits **{lr_committed:,}** of its {lr_total:,} entries — "
+          f"**{pct(lr_committed, lr_total, 3)}**. The elimination machinery is, to three")
+        A("significant figures, **pure speculation**: it is entered, it probes, it rolls back. That is")
+        A("the expected shape of a structural guard and it is stated here so a later reader does not")
+        A("mistake the family's entry count for productive work.")
+    else:
+        # ⛔ NOT an error, and NOT a refusal (`ENGINE-UNIVERSAL-SERVICES.30`). A sample can
+        # legitimately contain no left-recursion-family entry at all — `module m; endmodule` is
+        # such a file, and so is an empty one. The commit ratio is undefined rather than zero, so
+        # it is declared n/a instead of being printed as `0.000 %`, which would read as a measured
+        # result. Saying nothing at all would be worse still: a silently absent row is
+        # indistinguishable from an instrument that stopped measuring its subject.
+        A("⚠️ **This sample contains NO left-recursion-family entries at all, so the family commit "
+          "ratio is `n/a`** (`ENGINE-UNIVERSAL-SERVICES.30`) — undefined, not zero. That is an "
+          "ordinary property of a small or LR-free sample, not a defect: the simplest legal "
+          "SystemVerilog file (`module m; endmodule`) has none.")
     A("")
     A("⛔⛔ **AND IT CARRIES A FINDING THAT BOUNDS THIS WHOLE INSTRUMENT.** Across the full")
     A(f"corpus the family takes **{CORPUS_FAMILY_SHARE_PCT} %** of all rule entries")

@@ -1,5 +1,40 @@
 # CHANGES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0070 (leaf ENGINE-UNIVERSAL-SERVICES.30 CLOSED; instrument fix, ZERO grammar/generated/engine bytes)
+
+- ✅ **THE INSTRUMENT NO LONGER CRASHES ON A TWO-LINE MODULE.** `write_report` published four
+  percentages with unguarded denominators; **two were genuinely reached** and killed
+  `stimuli/sv/corpus_parse_cost.py` with a Python traceback and exit 1 — violating the file's own
+  docstring contract that it *"refuses (exit 2) rather than reporting a clean measurement it could
+  not take"*. It did not refuse; it crashed. Before→after on both reproducers: `ZeroDivisionError`
+  rc=1 → **rc=0 with the report written** (8 822 B / 9 249 B) and the undefined ratios declared.
+- ⭐ **ALL FOUR SITES ADJUDICATED INDIVIDUALLY**, as the leaf demanded, rather than guarded
+  reflexively: `/ lr_total` **REACHED** (by `module m; endmodule`, and by an EMPTY file);
+  `/ acc_entries` **REACHED** (any all-rejecting sample); the two `/ total` sites **not reached
+  today** — a 0-byte file still yields **392** rule entries, so `total` is never 0 while a row
+  exists. The unreached pair routes through the same shared `pct()` helper anyway, because their
+  safety rests on an empirical fact about the parser rather than an invariant.
+- ⭐⭐ **THE VERB IS `n/a`, NOT A REFUSAL — declining acceptance (a)'s literal "exit 2" for BOTH
+  cases, stated rather than done quietly.** Both are legitimate measurements: the binding counters
+  are fully measured and only a derived ratio is undefined. Refusing would make the instrument
+  unusable on precisely the small ad-hoc samples this campaign runs, and measuring an all-rejecting
+  arm is the point of `.20`(b). The n/a is published **with its reason**, never as `0.000 %` (which
+  reads as a measurement) and never as a silently absent row.
+- ⛔ **AND THE CONVERSE, CAUGHT BY MY OWN PROBE GOING RED AGAINST CORRECT CODE:** `lr_total / total`
+  must stay **numeric** — with an empty family it is exactly `0.000 %`, not undefined. Marking a
+  measured zero as *unknown* is a defect in the opposite direction.
+- ⛔⛔ **THE RED CONTROL REPLAYS THE REAL PRE-FIX BLOB, BECAUSE A SYNTHETIC MUTANT DISARMED
+  ITSELF.** Reverting `pct()`'s guard alone exits **0** — the fix has two layers (the guard and the
+  `if lr_total:` branch), so a single-point mutant reports *"the fixtures do not reach the defect"*
+  while the defect is perfectly reachable. The arm now replays the newest historical blob still
+  carrying the unguarded expression (`54deff5d`), which cannot drift out of step with the fix.
+  ⛔ It must also live two directories below the repo root, because the instrument computes
+  `ROOT = dirname(__file__)/../..`. Bank **8/8 arms**.
+- **NO REGRESSION:** on the 192-file pinned sample `entries.tsv` is **byte-identical** and `cost.md`
+  differs by **exactly one line** — the instrument's own sha256 identity row, which must move
+  because the instrument was edited. All three binding counters unchanged. `PARSE-COST-RATCHET`
+  rebaselined for that reason; doctrines 21/21.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0069 (leaf ENGINE-UNIVERSAL-SERVICES.31 (a) DISCHARGED + `.25` slice 1 CORRECTIONS under director challenge; engine/codegen-emission, ZERO grammar bytes)
 
 - ✅ **THE DEAD BINDING IS GONE: 2 848 BUILD WARNINGS → 0.** One statement deleted from the emitted

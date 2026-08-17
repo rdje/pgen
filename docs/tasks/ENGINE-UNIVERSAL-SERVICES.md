@@ -8134,7 +8134,7 @@ with a mismatched or unbuilt probe it says that instead of claiming a property i
   `docs/book/src/diagnosing-unknowns.md` (two surfaces) and
   `docs/book/src/parseability-probe-debug.md` (quick-reference row + a new section).
 
-#### ⚠️ `.30` NEW `todo` — `write_report` DIVIDES BY ZERO when a measured sample has no ACCEPTED file, so the instrument CRASHES instead of reporting (found 2026-08-17 session #242 while building `.24` slice 2's reproduction)
+#### ✅ `.30` CLOSED — `write_report` DIVIDED BY ZERO on a sample with no ACCEPTED file **and on the simplest legal SystemVerilog file**, so the instrument CRASHED instead of reporting (found 2026-08-17 session #242 while building `.24` slice 2's reproduction; ✅ **CLOSED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0070` — one shared `pct()` helper returns `n/a` on a zero denominator, all four sites adjudicated INDIVIDUALLY (2 reached, 2 not — a 0-byte file yields 392 entries, so `/ total` is unreachable while any row exists), and acceptance (a)'s literal *exit 2* verb DECLINED for both cases with the reason recorded: they are legitimate measurements whose derived ratio is undefined, not measurements that could not be taken. ⛔ The RED control replays the REAL pre-fix blob from git, because a synthetic single-point mutant exits 0 — the fix has two layers — i.e. a control that disarms itself while still printing as evidence. Bank **8/8**; `entries.tsv` byte-identical on the pinned sample)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — measured before opening):
 
@@ -8197,6 +8197,79 @@ cases (`module m; endmodule` is the whole fixture for the second), proven to go 
 genuinely reachable crash (a sample containing no LR-family entry at all divides by zero there,
 and unlike `total` nothing upstream refuses that). State reachability per site rather than
 guarding all four reflexively.
+
+##### ✅ `.30` CLOSED (`PGEN-ENGINE-UNIVERSAL-SERVICES-0070`, 2026-08-17 session #242) — both crashes fixed, all four sites adjudicated INDIVIDUALLY, and the RED control replays the real pre-fix code rather than a mutant
+
+**(a) BOTH CRASHES REPRODUCED FIRST, then fixed.** Not inherited from the routing note — re-run here:
+
+```text
+$ printf 'module m;\nendmodule\n' > trivial.sv      # the simplest legal SV file
+  File "stimuli/sv/corpus_parse_cost.py", line 1193, in write_report
+    f"**{100.0 * lr_committed / lr_total:.3f} %**. …
+ZeroDivisionError: division by zero                       rc=1
+$ # a sample whose every file is REJECTED
+  File "stimuli/sv/corpus_parse_cost.py", line 1171, in write_report
+    A(f"committed {acc_committed:,} — {100.0 * (acc_entries - acc_committed) / acc_entries:.1f} %")
+ZeroDivisionError: division by zero                       rc=1
+```
+
+**(c) PER-SITE REACHABILITY, MEASURED — the leaf's own instruction not to guard all four
+reflexively.**
+
+| site | denominator | verdict |
+|---|---|---|
+| `:1193` | `lr_total` | ⛔ **REACHED** — by `module m; endmodule`, and by an EMPTY file |
+| `:1171` | `acc_entries` | ⛔ **REACHED** — by any all-rejecting sample |
+| `:1163` | `total` | ✅ **not reached today** — `run_measure` refuses an empty `rows`, and every dumping file contributes ≥1 entry: measured, a **0-byte file yields 392** |
+| `:1187` | `total` | ✅ same |
+
+⭐ The two unreached sites route through the **same shared `pct()` helper** anyway — not reflexively,
+but because their non-reachability rests on an *empirical fact about the parser*, not an invariant.
+One guard costs nothing and removes the need to re-adjudicate whenever the emission changes; the
+per-site verdicts are recorded in the helper's own docstring so the reasoning cannot be lost.
+
+**⭐⭐ THE VERB IS `n/a`, NOT A REFUSAL — AND THAT DECLINES ACCEPTANCE (a)'s LITERAL "exit 2" FOR
+BOTH CASES.** The leaf pre-authorised deciding this for `lr_total`; I extend the same reasoning to
+`acc_entries` and say so rather than quietly doing it. Both are **legitimate measurements**: the
+binding counters are fully measured and only a *derived ratio* is undefined. Refusing would make the
+instrument unusable on exactly the small ad-hoc samples this campaign runs — and measuring an
+all-rejecting arm is the point of `.20`(b). Instead:
+- `lr_committed / lr_total` → `n/a` **with its reason**, never `0.000 %` (which would read as a
+  measured result) and never a silently absent row (indistinguishable from an instrument that
+  stopped measuring its subject);
+- `acc_entries` → `n/a` plus a ⛔ block stating the whole-sample figure is **100 % by construction**
+  on an all-rejecting sample and that the report must not be read as a baseline.
+
+⛔ **AND THE CONVERSE, WHICH I GOT WRONG FIRST: `lr_total / total` MUST STAY NUMERIC.** With an
+empty family that ratio is **not** undefined — it is exactly `0.000 %`. My first probe arm demanded
+`n/a` there and correctly went RED against the correct code. Marking a measured zero as *"unknown"*
+is its own defect, in the opposite direction.
+
+**(b) THE RED CONTROL REPLAYS THE REAL PRE-FIX CODE, AND THE FIRST ATTEMPT PROVED WHY IT HAD TO.**
+A synthetic mutant reverting `pct()`'s guard alone (`if not denominator:` → `if False:`) exits **0** —
+because the fix has **two** layers, the guard *and* the `if lr_total:` branch at the call site. A
+single-point mutant reports *"the fixtures do not reach the defect"* while the defect is perfectly
+reachable: **a control that silently disarms itself and still prints as evidence.** The arm now
+replays the newest historical blob still carrying the unguarded expression
+(`git rev-list HEAD -- <instrument>`, first blob matching it → `54deff5d`), which cannot drift out
+of step with the fix however many layers it grows. ⚠️ A history with no such blob reports
+**NOT EVALUATED and FAILS**, never passes.
+⛔ A second self-inflicted defect in the same arm: the replay must live **two directories below the
+repo root**, because the instrument computes `ROOT = dirname(__file__)/../..` — a copy under
+`rust/target/` resolved ROOT to `rust/` and died at exit 2, which is indistinguishable from
+*"not reachable"*.
+
+**Bank:** `docs/tasks/artifacts/engine_universal_services/es30_zero_denominator/probe.sh` → **8/8
+arms**, one RED-by-design.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — both crashes re-run before any edit: `printf 'module m;\nendmodule\n'` → `ZeroDivisionError` at `:1193` rc=1; an all-rejecting one-file sample → `ZeroDivisionError` at `:1171` rc=1. Both violate the file's own docstring contract (*"refuses (exit 2) rather than reporting a clean measurement it could not take"*) — it did not refuse, it crashed.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `write_report` published four percentages dividing by `total`, `acc_entries` and `lr_total` with no zero check, while `run_measure`'s existing refusal covers only the neighbouring *"every file failed to DUMP"* case: a file can dump and still be REJECTED, and a file can be accepted yet contain no LR-family rule. Reachability established per site by measurement (a 0-byte file yields **392** entries, so `total` is never 0 while a row exists). The pre-fix blob was located with `git rev-list HEAD -- stimuli/sv/corpus_parse_cost.py` and replayed to confirm the fixtures reach it. Syntax re-checked with `bash -n ` and `python3 -m py_compile`.
+- [x] **FIX** — declarative tier: one shared `pct(numerator, denominator, digits)` helper returning `n/a` on a zero denominator, used at all four sites, plus two call-site branches that print the *reason* the ratio is undefined instead of a bare `n/a`. No engine, grammar or generated bytes.
+- [x] **ADDRESSED (verified)** — before→after on both reproducers: `ZeroDivisionError` rc=1 → **rc=0 with `cost.md` written** (8 822 B and 9 249 B), the undefined ratios declared `n/a` with their reasons, and no traceback reaching the operator. Bank **8/8**, RED control confirms the fixtures still kill the pre-fix instrument.
+- [x] **NO REGRESSION** — on the real 192-file pinned sample the re-measure leaves `entries.tsv` **byte-identical** and `cost.md` differing by **exactly one line**: the instrument's own sha256 identity row, which must move because the instrument was edited. All three binding counters unchanged (entries 416 841 264 / committed 7 124 616 / memo-hits 186 981 263); `check_parse_cost_ratchet.sh` OK on all five tier-1 arms after rebaseline; `check_doctrines.sh` 21/21.
+- [x] **LOCKSTEP** — `PARSE-COST-RATCHET` rebaselined (the instrument is one of its four identity inputs, so editing it necessarily moves the baseline); `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md` updated. Book: N/A — an internal measurement instrument, no user-facing surface.
 
 #### ⚠️ `.25` `in progress` — every generated parser embeds its own OUTPUT PATH once per emitted site (**36 346** times in SV, **63 186** across all eleven artifacts), which makes two parsers byte-incomparable and has now inverted **three** published readings — the third of which FOUNDED a task leaf on two hypotheses that were both wrong (opened 2026-08-15 session #237 by `.20` slice 4 + `CI-PARITY-GATE-ROT.32`(d); third instance routed in from `.19` slice 1, 2026-08-16 session #241. ✅ **(a) DISCHARGED + (c) SHIPPED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0068` — the path is ONE constant threaded to every site and **2 704 of the 63 186 sites are provably DEAD** (`let filename_str`, never read, confirmed by rustc's own lint at 2 848 locations); the three independent normalisation copies now share `scripts/compare_generated_parsers.py`, which DERIVES the spelling from the artifact instead of taking it from the caller. ⛔ Slice 1 also corrected `run_guard_ab_structural.sh`'s published site count **43 615 → 36 346** — ⚠️ first written up as a FOURTH instance of this trap and RETRACTED under director challenge: the script's own tracked output printed 36 346 in the same commit, so it is a CARRIED PROSE COPY (`DERIVED_STATE_CONTAINMENT.md` R1/R3), not a mis-normalisation. ⏳ **(b) half settled**: class D priced exactly (−176 203 B, −2 848 warnings); class L needs a mimic-tree A/B. The emission change itself is routed to **`.31`** so its lockstep rebaseline is deliberate)
 
