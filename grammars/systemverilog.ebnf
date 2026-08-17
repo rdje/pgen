@@ -1806,8 +1806,8 @@ covergroup_value_range := covergroup_value_range_sv_2017 -> {kind: "sv_2017", bo
 // covergroup_variable_identifier := variable_identifier
 
 @profiles: ["sv_2017"]
-cross_body_sv_2017 := lbrace ( cross_body_item semi )* rbrace -> {kind: "block", items: $2}
-                    | semi                                   -> {kind: "empty"}
+cross_body_sv_2017 := lbrace cross_body_item* rbrace -> {kind: "block", items: $2}
+                    | semi                            -> {kind: "empty"}
 
 @profiles: ["sv_2023"]
 cross_body_sv_2023 := lbrace cross_body_item* rbrace -> {kind: "block", items: $2}
@@ -1830,9 +1830,25 @@ cross_body := cross_body_sv_2017 -> {kind: "sv_2017", body: $1}
 // repair matches the sv_2023 pair below, which already carries it on the item — and so the double
 // form STOPS parsing: `cross_body_item` is non-nullable, so `( cross_body_item semi )*` can no
 // longer absorb a stray `;`. One edit, a rejects-valid AND an accepts-invalid fix.
+// ⛔⛔ AND A.2.11 ALSO MISSPELLS THE NONTERMINAL (`SV-CORPUS-GRAD.13c.2d`/`.13c.2f`). IEEE 1800-2017
+// A.2.11 writes `function_declaraton` — corrected to `function_declaration` in 1800-2023 — and the
+// LRM→EBNF extraction transcribed the TYPO as a token: this rule used to read
+//     cross_body_item_sv_2017 := kw_function_declaraton_06b7ed29 -> {kind: "function_decl"}
+// where that terminal is `trivia /function_declaraton\b/`. An alternative that can only fire on
+// source literally containing those characters is UNREACHABLE, and §19.6.1's own example — a `cross`
+// body declaring a function and using it in a `bins` — was REJECTED under `sv_2017` while `sv_2023`
+// accepted it (measured: `furthest_position=65` vs `parse_full passed`).
+// ⭐ THE `;` HAD TO MOVE WITH IT, which is why this is not a one-word edit. `cross_body_sv_2017` used
+// to read `lbrace ( cross_body_item semi )* rbrace`, demanding a `;` after EVERY item — so merely
+// re-pointing the reference would then require `endfunction ;`, which §19.6.1 does not write. The
+// repair mirrors the sv_2023 pair below, which already carries the `;` on the
+// `bins_selection_or_option` alternative rather than on the loop. Both arms now have the same shape,
+// which is the correct outcome: the two editions differ only by the typo, and the typo is the defect.
+// ⚠️ The accepts-invalid half of `.13c.2a` is PRESERVED by this shape, not re-opened: `cross_body_item`
+// is non-nullable and a bare `;` matches neither alternative, so `option.weight = 2;;` still fails.
 @profiles: ["sv_2017"]
-cross_body_item_sv_2017 := kw_function_declaraton_06b7ed29  -> {kind: "function_decl"}
-                         | bins_selection_or_option         -> {kind: "selection_or_option", body: $1}
+cross_body_item_sv_2017 := function_declaration              -> {kind: "function_decl",        body: $1}
+                         | bins_selection_or_option semi     -> {kind: "selection_or_option",  body: $1}
 
 @profiles: ["sv_2023"]
 cross_body_item_sv_2023 := function_declaration              -> {kind: "function_decl",        body: $1}
@@ -6588,7 +6604,6 @@ kw_fs_3f4bb586 := trivia /fs\b/
 
 kw_function_c218e39e := trivia /function\b/
 
-kw_function_declaraton_06b7ed29 := trivia /function_declaraton\b/
 
 kw_generate_9e59d425 := trivia /generate\b/
 

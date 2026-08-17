@@ -8956,6 +8956,101 @@ limit_value               ::= constant_mintypmax_expression
 - [x] **NO REGRESSION** — no repository behaviour changed; `bash scripts/check_doctrines.sh` **21/21 PASS**; the probe used for every verdict is proven current with the shipped parser by `--parser-fingerprint` (`592bccec3bfc444f` = the live `generated/systemverilog_parser.rs` sha).
 - [x] **LOCKSTEP** — this leaf, `docs/decisions/feedback_answer_your_own_technical_questions.md` (the FIFTH costume), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
+##### ✅ `.13c.2d` / `.13c.2f` SLICE 3 (`PGEN-SV-CORPUS-GRAD-0220`, 2026-08-17 session #244) — THE FIX SHIPS: `cross_body_item_sv_2017` references the real nonterminal, and §19.6.1's own example goes REJECT → ACCEPT
+
+⭐ **THE DECISION, MADE RATHER THAN ESCALATED** (director: *"it is yours to make, but it got to be
+sota, signoff and production-grade"*). Slice 1 had planned **one ceremony for all** the sites. That is
+superseded, and the reason is a measurement rather than a preference: after `.13c.2f` slice 2, the
+sites have **different risk profiles**, so bundling them makes the safe fix's before→after
+unattributable.
+
+| site | shipped here? | why |
+|---|---|---|
+| `function_declaraton` | ✅ **YES** | demonstrated REJECT, LRM-clear, and its own sv_2023 sibling is the proven template — no new mechanism |
+| `PATHPULSE_dollar` ×2 | ⏳ next slice | demonstrated REJECT, but the correct fix needs the **lexical pillar** (`[> …]` follow restrictions): `trivia` skips whitespace, so a naive repair would accept `PATHPULSE$ a $ y`, and over-acceptance is a defect by this project's north star. Different mechanism, its own control |
+| `class_qualifier`, `tx_path_delay_expression` | ⛔ **NOT fixed** | **no demonstrated defect** — both constructs parse today via other productions. Their productions are absent/mangled, so "fixing" them means WRITING grammar from the LRM, which risks over-acceptance in exchange for no measured gain |
+
+⛔ Re-pricing the bundling argument honestly: regeneration is ~2 min and the corpus run **80 s**, so
+bundling saves almost nothing and costs attribution. **One fix per ceremony when the fixes differ in
+risk.**
+
+**THE EDIT — and it is not one line, exactly as `.13c.2d` predicted.**
+
+```diff
+-cross_body_sv_2017 := lbrace ( cross_body_item semi )* rbrace
++cross_body_sv_2017 := lbrace cross_body_item* rbrace
+
+-cross_body_item_sv_2017 := kw_function_declaraton_06b7ed29  -> {kind: "function_decl"}
+-                         | bins_selection_or_option         -> {kind: "selection_or_option", body: $1}
++cross_body_item_sv_2017 := function_declaration              -> {kind: "function_decl",       body: $1}
++                         | bins_selection_or_option semi     -> {kind: "selection_or_option", body: $1}
+```
+
+plus deleting the orphaned `kw_function_declaraton_06b7ed29 := trivia /function_declaraton\b/`, which
+`unreachable_rules` (an **error**-severity lint) would otherwise fire on. The `;` moves from the loop
+onto the `bins_selection_or_option` alternative, mirroring the sv_2023 pair — because re-pointing the
+reference alone would demand `endfunction ;`, which §19.6.1 does not write.
+
+**MEASURED BEFORE → AFTER, each arm's probe proven current by `--parser-fingerprint`:**
+
+| | probe embeds | `cross_function.sv` sv_2017 | sv_2023 |
+|---|---|---|---|
+| before | `592bccec3bfc444f` = live artifact | **REJECT** `furthest_position=65` | ACCEPT |
+| after | `36942bb53c45800d` = live artifact | ✅ **ACCEPT** | ACCEPT |
+
+⭐⭐ **THE ISOLATION ARGUMENT, because an accept-widening change must not widen anything else.** The
+old and new forms accept the **same language** on the surviving path — `{ (bins_selection_or_option ;)* }`
+either way — so the only difference is the *added* `function_declaration` alternative. The PEG-ordering
+hazard (a new first alternative shadowing the second) is checked **mechanically**, not argued:
+`--lint-grammar` reports `ordered_choice_shadowing=0 (error)` on the edited grammar, and the two
+alternatives' first tokens are disjoint (`kw_function_c218e39e` vs `attribute_instance*`/`coverage_option`).
+Accepts-invalid controls, all as required: `{ option.weight = 2; }` **ACCEPT**, `{ option.weight = 2;; }`
+**REJECT**, `{ ; }` **REJECT** — on **both** profiles, so `.13c.2a`'s accepts-invalid fix is preserved
+rather than re-opened.
+
+**CORPUS: 16 336 files, `pass=9774 fail=6562 timeout=0 crash=0`, and a per-file diff of `0` changes.**
+⚠️ **State the baseline's provenance honestly**: `stimuli/sv/characterization/results.tsv` is
+**untracked**, and the copy this diff used was the on-disk one, whose report header records it as
+measured at HEAD `5e40bf37` (2026-08-14) against parser `463c6476` — **not** the state immediately
+before this edit. ⇒ what the 0-change diff establishes is *"no verdict has moved across three parser
+eras, this change included"*, which **does** exclude a regression introduced here (a broken file would
+now fail where it passed) while **not** attributing the (zero) gains to this change alone. The
+attribution that IS isolated is the minimal repro above.
+⛔ And the first version of this paragraph said the results were *"byte-identical to the tracked
+baseline"* — vacuous, since the file is untracked and `git diff` therefore reports nothing about it.
+
+**PARSE COST: all three binding counters BYTE-IDENTICAL** — rule entries **416,841,264**, committed
+**7,124,616**, memo hits **186,981,263**, `+0` on each. The LR-family share re-derives to **2.741 %**
+exactly (24,650,497 of 899,265,461 entries, 0 no-dump), so the live doctrine anchor is unmoved. The
+wall-clock advisory moved `-0.2 %` / `+1.0 %` across two runs, inside its ±50 % band and machine-dependent
+by construction.
+
+⚠️⚠️ **AND THE CEREMONY TURNED UP A DEAD GATE TRIGGER — ROUTED, MEASURED, NOT ASSUMED.**
+`make clippy_on_rust_change` printed *"No Rust/generated Rust changes detected; skipping clippy flow"*
+after this change regenerated a **143 MB** parser whose sha moved. Located:
+`rust/scripts/clippy_on_rust_change.sh:46-52` builds its change list from
+`git ls-files --others --exclude-standard`, and `generated/` is **gitignored** — so the trigger clause
+`path == generated/*.rs` on line 61 is **dead by construction**. Measured: `git ls-files --others
+--exclude-standard | grep -c '^generated/'` = **0** while `git ls-files --others | grep -c '^generated/'`
+= **33**. ⛔ And `grammars/*.ebnf` is not in the trigger list at all, so the canonical *edit a grammar →
+regenerate → lint the generated parser* workflow has **no automatic trigger whatsoever**.
+⚠️ **This was very nearly filed as a NEW leaf, and it is a DUPLICATE**: `GENERATED-LINT-CORRECTNESS.11`
+has owned it since 2026-08-06, with the `--exclude-standard` mechanism and two prior reproductions.
+Folded in as the **third**, contributing the two-sided count (a bare `0` is equally consistent with
+*"filtered"* and *"none exist"*; `0` vs `33` separates them). The gate was run **explicitly** for this
+slice instead: `generated_clippy_correctness_gate` → **0 findings across 10 required + 1 optional
+artifacts** — the third grammar-only commit to choose the gate over `--force`, which is now the
+practice `.11` should record.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse systemverilog rust/target/es13c2f/cross_function.sv --profile sv_2017` → **REJECT `furthest_position=65`** against `--profile sv_2023` → `parse_full passed`, on IEEE 1800-2017 §19.6.1's own `cross`-body-declares-a-function example. Probe proven current by `--parser-fingerprint` = `592bccec3bfc444f` = the live artifact sha.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:1834` referenced `kw_function_declaraton_06b7ed29`, defined at `:6607` as `trivia /function_declaraton\b/` — the LRM's A.2.11 **typo transcribed as a token**, so the alternative can only fire on source literally containing those characters (**0** of 16 427 corpus SV files do). Located by the tracked sweep `docs/tasks/artifacts/sv_corpus_grad/nonterminal_as_literal_sweep.py`; the `;` coupling was found by reading `cross_body_sv_2017`'s `( cross_body_item semi )*` against the sv_2023 pair.
+- [x] **FIX** — grammar tier (the declarative one, no engine change): re-point the alternative to `function_declaration` and move the `;` onto `bins_selection_or_option`, mirroring the already-correct sv_2023 arm; delete the orphaned terminal. ZERO Rust bytes, ZERO engine bytes.
+- [x] **ADDRESSED (verified)** — `cross_function.sv` sv_2017 **REJECT `furthest_position=65` → ACCEPT**, with the after-probe proven current by `--parser-fingerprint` = `36942bb53c45800d` = the new artifact sha. sv_2023 unchanged at ACCEPT.
+- [x] **NO REGRESSION** — SV corpus **16 336 files, 0 verdict changes, 0 timeouts, 0 crashes** (baseline provenance stated above); accepts-invalid controls `;;` and bare `;` still **REJECT** on both profiles while the single-`;` form ACCEPTs; `--lint-grammar` `ordered_choice_shadowing=0 / non_terminating=0 / unreachable_rules=0 / undefined_references=0`; `ast_shape_contract_gate` **18/18**; `generated_reproducibility_gate` **11/11 byte-identical**; parse-cost binding counters **+0 / +0 / +0** and family share **2.741 %** exact; `generated_clippy_correctness_gate` **0 findings**; `bash scripts/check_doctrines.sh` **21/21 PASS** with `SV-CORPUS-DENOMINATOR` tuple unchanged at `7556/2459/6321/4392/302`.
+- [x] **LOCKSTEP** — `grammars/systemverilog.ebnf`, `rust/test_data/grammar_quality/generated_reproducibility_v0.json` + the `parse_cost_ratchet` artifacts (both rebaselined — the SV artifact legitimately moved), `stimuli/sv/characterization/characterization.md`, this leaf, `docs/tasks/GENERATED-LINT-CORRECTNESS.md` (`.11` gained a third reproduction — NOT a new leaf), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
+
 #### ⚠️ `.13c.2g` NEW `todo` — a TRACKED generated grammar cites its sources as absolute paths into a DIFFERENT checkout (opened 2026-08-17 session #244 by `.13c.2f`'s cross-family measurement)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):

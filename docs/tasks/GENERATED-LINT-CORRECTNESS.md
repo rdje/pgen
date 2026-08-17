@@ -1472,6 +1472,25 @@ the RED-W2 arm is what turned a latent hazard into a measured one.
   under the 68 pinned lints and reported `0 clippy::correctness findings` across 10+1 artifacts.
   That is a STRONGER substitute, and it should probably become the recorded posture — but the
   substitution was chosen by the author, not by the flow, which is exactly the gap.
+- ⭐⭐ **REPRODUCED A THIRD TIME 2026-08-17 by `SV-CORPUS-GRAD.13c.2d`/`.13c.2f` slice 3**
+  (`PGEN-SV-CORPUS-GRAD-0220`) — a grammar-only edit regenerated a **143 MB** SystemVerilog parser
+  (`592bccec3bfc444f` → `36942bb53c45800d`, 143 072 420 → 143 131 355 B) and the flow printed the same
+  sentence at exit 0. ⛔ **This time the filtering was measured on BOTH sides**, which is stronger
+  than the original `count = 0`: a zero is equally consistent with *"the paths are filtered"* and
+  with *"there are no such paths"*, and only the pair separates them —
+
+  | command | count of `^generated/` |
+  |---|---:|
+  | `git ls-files --others --exclude-standard` (what the script uses) | **0** |
+  | `git ls-files --others` (same command, filter removed) | **33** |
+
+  ⇒ 33 generated artifacts exist and every one is invisible to the detector. The trigger clause is
+  dead **by construction**, not merely unlucky.
+- ⭐ **THIRD DATA POINT FOR THE POSTURE QUESTION ABOVE, and it now looks decided by practice:** this
+  slice also reached for `make generated_clippy_correctness_gate` rather than `--force`, and got
+  **0 findings across 10 required + 1 optional artifacts**. Three grammar-only commits, two of which
+  independently chose the gate over `--force`. ⇒ when this leaf is worked, the recorded posture
+  should be the gate, and the flow should be the thing that *invokes* it.
 
 ### `.12` — `DIAGNOSIS_SIG` omits `--dump-rule-entry-counts`, a first-class TOOLBOX instrument (`todo`, routed by `SV-CORPUS-GRAD.11a` 2026-08-10)
 
@@ -1633,3 +1652,4 @@ in total — the habit existed, it simply had no tool and no instruction pointin
 | `PGEN-GENERATED-LINT-CORRECTNESS-0009` | `.7` + `.8` | the sixth family is REFUSED at 0 of 307 — and the real misbehaviour is that box-scoping was VACUOUS: any ticked box in any staged task file satisfied the checklist, so 33 trees carried a standing free pass |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0010` | `.9` (opened) | the bare `\bwhy\b` over-match is a FAILS-OPEN widening on the named step — decided (director-delegated) and priced at 0 backed boxes dropped, implementation pending |
 | `PGEN-GENERATED-LINT-CORRECTNESS-0011` | `.9` | `ROOT_KW` narrowed — and the same alternative was ALSO failing CLOSED: an unticked `**FIX**` box saying "why" blocked a complete, backed leaf |
+

@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0220 — the first shipped-bytes change of the session, and the two things that nearly went out wrong
+
+**1. ⭐⭐ "BUNDLE THEM TO SAVE THE CEREMONY" WAS A PLAN MADE BEFORE THE MEASUREMENT.** Slice 1 decided
+all the grammar fixes should land together, to spend SV regeneration + a corpus run once. By slice 3
+the sites had been measured and they are **not the same kind of change**: one needs no new mechanism,
+one needs the lexical-annotation pillar and a whitespace over-acceptance control, two have no
+demonstrated defect at all. And the re-priced cost of "another ceremony" is ~2 min of regeneration
+plus an **80 s** corpus run. ⇒ **bundling is justified by shared cost, not by shared subject** — and
+when the costs turn out small, bundling only buys you an unattributable before→after. I superseded my
+own plan and said so in the leaf rather than quietly doing something else.
+
+**2. ⛔ I WROTE THAT THE CORPUS RESULTS WERE "BYTE-IDENTICAL TO THE TRACKED BASELINE". THE FILE IS
+UNTRACKED.** `git diff` said nothing about `stimuli/sv/characterization/results.tsv` — not because it
+matched, but because git does not track it, so the check was vacuous in the passing direction. The
+real baseline was the on-disk copy, whose own report header records it as measured **three days and
+three parser eras ago**. The corrected claim is narrower and still sufficient: 0 verdicts moved
+*across all of that*, which excludes a regression introduced here without attributing the zero gains
+to this change alone. ⇒ **before citing a diff as evidence, confirm the thing you diffed is under
+version control** — `git diff` on an untracked file is silence, and silence reads as agreement.
+
+**3. ⚠️ I ALMOST FILED A LEAF THAT HAS EXISTED FOR ELEVEN DAYS.** The ceremony exposed
+`clippy_on_rust_change` skipping after a 143 MB regeneration; I wrote a full `.14` routing block
+before grepping the tree and finding `GENERATED-LINT-CORRECTNESS.11`, which already had the
+mechanism, the `--exclude-standard` cause, and *two* prior reproductions. Deleted it and folded mine
+in as the third. ⇒ **the dedupe step in `MEMORY_ARCHITECTURE.md` §10 is cheap and I skipped it
+because the finding felt new to me** — feeling new is a fact about the author, not about the tree.
+⭐ The fold was worth more than the new leaf would have been: my version contributed the **two-sided**
+count (`--exclude-standard` → 0, without it → 33), and a bare `0` cannot distinguish *filtered* from
+*absent*, which is what the original entry had. promotion: declined — this is the existing
+`MEMORY_ARCHITECTURE.md` §10 dedupe discipline, not a new class; what is transferable is the
+two-sided-count point, which now lives in `.11` itself.
+
 ## 2026-08-17 - PGEN-SV-CORPUS-GRAD-0219 — my retraction needed a retraction, because I exonerated a defect with a control that shared its symptom and not its legality
 
 **1. ⛔⛔ AN OVER-RETRACTION IS A CLAIM TOO, AND IT FEELS LIKE RIGOUR.** Yesterday's slice caught itself
