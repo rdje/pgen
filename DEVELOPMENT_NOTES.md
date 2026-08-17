@@ -1,5 +1,64 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0068 — writing the warning down a third time is not what stops the fourth instance; deleting the parameter that carries the mistake is
+
+**1. ⛔⛔ THE FOURTH INSTANCE OF THIS TRAP WAS LIVE INSIDE THE SCRIPT CARRYING THE WARNING ABOUT
+IT.** `run_guard_ab_structural.sh` opens with a two-paragraph block comment explaining that raw
+bytes are not comparable across arms because a generated parser embeds its own `-o` path — and then
+publishes that count as **43 615** for a parser that embeds **36 346**. The mechanism is exact:
+`36 346 × 42 ÷ 35 = 43 615`, i.e. the right byte delta over the wrong character width, a numerator
+taken from one `-o` spelling and a denominator from another. That is the *same defect the comment
+describes*, committed by the author of the comment, in the same file, in the same commit.
+⇒ when a defect recurs after being documented, a clearer sentence is not the remedy. `.25`'s
+acceptance (c) asked for a shared helper; what makes it a fix is not that it is shared but that it
+**does not accept a path argument at all** — the helper reads the spelling out of the artifact, so
+the wrong call is unavailable rather than merely discouraged.
+**PROMOTED →** [[derive-the-comparison-key-from-the-artifact-not-from-the-caller]].
+
+**2. ⭐⭐ A SUBSTRING RELATION TURNS "NORMALISE IT FIRST" INTO A SILENT NO-OP.** The two spellings in
+play are `../generated/systemverilog_parser.rs` and `generated/systemverilog_parser.rs`, and the
+short one is a **substring** of the long one. Normalising a long-spelling artifact with the short
+spelling leaves **36 346 `"../<TOKEN>"` residues and 0 normalised sites** — no exception, no empty
+result, no zero-length match: it reports success. Two arms each "normalised" with their own spelling
+then differ by 3 bytes per site, which reads as *"something other than the path moved"*. That is the
+false verdict `.19` was founded on, and the substring relation is why the natural fix (let each side
+declare its own path) does not work either.
+
+**3. ⛔ TWO MORE SILENT-ZERO SHAPES IN ONE 12-LINE HELPER.** (i) It used its file argument as *both*
+the file to read and the spelling to normalise, so it silently assumed the artifact still sits where
+it was generated. Measured on a relocated copy: `path_sites=0`, bytes **unnormalised**, no warning —
+a zero that flows straight into every downstream figure. (ii) A derived count
+`(len(src)-len(norm)) // (len(path)-len(TOKEN))` is sound only while numerator and denominator use
+the same string; when they do not it yields a *plausible integer*, which is worse than a crash
+because it is quotable. ⇒ prefer an instrument that REFUSES (exit 2) over one that returns a number
+for an ill-posed question.
+
+**4. ⭐⭐ THE ORACLE I DID NOT BUILD WAS THE COMPILER, AND MY PREDICTION AGAINST IT WAS WRONG.** I
+derived 2 704 dead `let filename_str` bindings by grep and predicted `cargo check` would emit exactly
+that many warnings. It emitted **2 848**. The auditor's asymmetry says the re-derivation carries the
+heavier burden, so I measured per *unique location* instead of arguing: `generated/ebnf.rs` is
+`include!`d at two sites, so its 144 count twice, `2 704 + 144 = 2 848` — and the per-artifact split
+then matched my grep column in **11 of 11** rows. Had I "corrected" the grep to match 2 848, or the
+expectation to match 2 704, I would have buried a real structural fact about how the crate includes
+its generated code.
+
+**5. ⚠️ I ALMOST SILENTLY RE-BASED THREE PUBLISHED NUMBERS, TWICE, IN THE SAME EDIT.** Migrating
+`row()` onto the shared helper would have changed its `norm_bytes` twice over: the helper's default
+token is 15 characters longer than `<OUT>` (`sites × Δlen` on every figure), and the helper measured
+**bytes** where the original measured **characters** — and these artifacts carry emoji, so the SV
+parser is 143 909 594 bytes against 143 801 151 characters, a **108 443** gap that is itself larger
+than the entire dead-binding population. `.20` slice 3's three-arm table (ARM1 130 512 738 · ARM3
+142 441 376 · ARM2 142 671 859) sits on the character/`<OUT>` basis. ⇒ a shared helper must expose
+its *basis* as a named argument, not bake in a default, or consolidation silently invalidates the
+record it was meant to protect. Proof the migration is clean: the migrated `row()` reproduces the
+original **byte-exactly** (`142674425 / 36346`) in the original's correct-usage position.
+
+**6. ⭐ A DEAD BINDING IS A DEFECT EVEN WHEN IT COSTS ALMOST NO BYTES.** The 2 704 dead
+`let filename_str` lines are 176 209 bytes — 0.075 % of the SV parser, a rounding error. Their real
+cost is **2 848 compiler warnings on every build**, i.e. a permanent noise floor that trains readers
+to ignore the warning channel. Pricing this in bytes would have concluded "not worth touching"; the
+right denominator was the signal it destroys.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0066 — the size of a gap is not what decides between a footnote and a refusal; the DIRECTION is
 
 **1. ⭐⭐ I INHERITED THIS LEAF'S OWN "blast radius is NOT alarming" AND IT WAS THE WRONG FRAME.**

@@ -95,11 +95,16 @@ A2_SHA=$(sha "$WORK/a2_long.rs");  A2_SZ=$(size "$WORK/a2_long.rs")
 B1_SHA=$(sha "$WORK/b1_short.rs"); B1_SZ=$(size "$WORK/b1_short.rs")
 B2_SHA=$(sha "$WORK/b2_short_relinput.rs")
 
-# ⛔ OCCURRENCES, not lines-with-a-match, and FIXED-string: `grep -c` counts LINES (two sites on one
-# line would undercount) and an unanchored `.` in the pattern is a regex wildcard. Both spellings are
-# one-per-line today, which is a measurement, not something to rely on.
-SITES=$(grep -oF "$LONG_REL" "$WORK/a1_long.rs" | wc -l | tr -d ' ')
-SITES_SHORT=$(grep -oF "$SHORT_REL" "$WORK/b1_short.rs" | wc -l | tr -d ' ')
+# ⛔ OCCURRENCES, not lines-with-a-match: `grep -c` counts LINES (two sites on one line would
+# undercount). Both spellings are one-per-line today, which is a measurement, not something to rely
+# on — so the count comes from the SHARED helper (`ENGINE-UNIVERSAL-SERVICES.25` (c)), which counts
+# occurrences and DERIVES the spelling from each artifact instead of being told it. That derivation
+# is the point: the short spelling is a SUBSTRING of the long one, so a helper handed the wrong one
+# silently normalises `"../generated/x.rs"` into `"../<TOKEN>"` and reports success.
+CMP="$ROOT/scripts/compare_generated_parsers.py"
+need "$CMP"
+SITES=$(python3 "$CMP" --sites "$WORK/a1_long.rs")       || exit 2
+SITES_SHORT=$(python3 "$CMP" --sites "$WORK/b1_short.rs") || exit 2
 
 printf 'arm A (make spelling, %2d chars)  %s  %s\n' "${#LONG_REL}"  "$A1_SZ" "$A1_SHA"
 printf 'arm A (repeat)                    %s  %s\n'                 "$A2_SZ" "$A2_SHA"
@@ -130,13 +135,16 @@ PREDICTED=$((SITES * (${#LONG_REL} - ${#SHORT_REL})))
 
 # ── ARM 3 — NORMALISED IDENTITY: the path is not merely the right COUNT of bytes ──────────────────
 printf 'ARM 3  normalised identity (the falsification leg)\n'
-LC_ALL=C sed "s|${LONG_REL//./\\.}|${SHORT_REL}|g" "$WORK/a1_long.rs" > "$WORK/a1_normalised.rs"
-NORM_SHA=$(sha "$WORK/a1_normalised.rs")
-if [ "$NORM_SHA" = "$B1_SHA" ]; then
-  pass "arm A with its -o spelling rewritten to arm B's is BYTE-IDENTICAL to arm B ($NORM_SHA)"
+# ⭐ ONE HOME (`ENGINE-UNIVERSAL-SERVICES.25` (c)): this used to be a local `sed` — the second of
+# three independent copies of "normalise the path first", the copy written AFTER the first defect
+# was already recorded. The shared helper normalises BOTH sides to one fixed token, so the check is
+# symmetric rather than "rewrite A into B's spelling and hope B's spelling was the right one".
+if python3 "$CMP" --compare "$WORK/a1_long.rs" "$WORK/b1_short.rs" > "$WORK/arm3.txt" 2>&1; then
+  pass "arm A and arm B are BYTE-IDENTICAL once the embedded -o path is normalised away"
   pass "⇒ the -o path is the ONLY difference between the two arms — not merely 99 747 bytes' worth"
 else
-  fail "normalised arm A ($NORM_SHA) != arm B ($B1_SHA) — something OTHER than the path also moved"
+  fail "normalised arm A != arm B — something OTHER than the path also moved"
+  sed 's/^/      /' "$WORK/arm3.txt" >&2
 fi
 
 # ── ARM 4 — the INPUT path is not embedded (a competing hypothesis, tested) ───────────────────────
@@ -149,12 +157,14 @@ printf 'ARM 4  input-path independence\n'
 # A control never observed failing is not known to work (`docs/CLAIM_VERIFICATION.md` §3 leg 2).
 # Normalise to a spelling that is one character LONGER than arm B's and demand a MISMATCH.
 printf 'ARM 5  RED control — arm 3 must be able to fail\n'
-LC_ALL=C sed "s|${LONG_REL//./\\.}|x${SHORT_REL}|g" "$WORK/a1_long.rs" > "$WORK/a1_wrongnorm.rs"
-WRONG_SHA=$(sha "$WORK/a1_wrongnorm.rs")
-if [ "$WRONG_SHA" != "$B1_SHA" ]; then
-  pass "a deliberately WRONG normalisation is refused (RED as designed)"
+# Plant ONE byte of real (non-path) difference into a copy of arm B and demand arm 3's comparison
+# refuse it. ⛔ The planted line carries no `.rs` literal, so it cannot be normalised away — which is
+# exactly what makes this a test of arm 3 rather than a restatement of it.
+{ printf '// PLANTED: a real difference the path normalisation must NOT absorb\n'; cat "$WORK/b1_short.rs"; } > "$WORK/b1_planted.rs"
+if python3 "$CMP" --compare "$WORK/a1_long.rs" "$WORK/b1_planted.rs" >/dev/null 2>&1; then
+  fail "the planted difference MATCHED — arm 3 cannot distinguish anything and proves nothing"
 else
-  fail "the wrong normalisation MATCHED — arm 3 cannot distinguish anything and proves nothing"
+  pass "a planted non-path difference is refused (RED as designed)"
 fi
 
 # ── ARM 6 — the RESIDUAL against the two recorded artifacts, reported not hidden ──────────────────

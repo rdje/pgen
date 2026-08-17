@@ -1007,7 +1007,38 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 
 - **WHAT:** not a tool — a **mandatory pre-step** for any comparison of two generated parser artifacts (byte-identity, size delta, `diff`, a codegen-determinism control, an A/B on emitted bytes). Every generated parser writes its own `-o` destination into the emitted source **once per rule-entry site**: **36 346** occurrences in the shipped SystemVerilog parser (1 308 456 B, **0.91 %** of the artifact), **33 249** in the narrow-admission arm. ⇒ **the artifact's size is a function of its own output path**, and one extra character in the `-o` spelling adds one byte per site.
 - **WHEN:** ⛔ **before you believe ANY byte-level difference between two generated parsers.** If the two arms were not written through a **character-for-character identical `-o` string**, the difference you are reading is at least partly the path. Reproduce the spelling exactly (`rust/Makefile` passes `-o ../generated/<fam>_parser.rs` from `rust/`, 36 chars for SV; an ad-hoc run from the repo root passes `generated/<fam>_parser.rs`, 33 chars), or normalise before comparing.
-- **HOW:**
+- **HOW — ⭐ ONE HOME SINCE `ENGINE-UNIVERSAL-SERVICES.25` (c): `scripts/compare_generated_parsers.py`.**
+  Do not hand-roll this again; there were three independent copies and the third was written after
+  the first defect was recorded.
+  ```bash
+  python3 scripts/compare_generated_parsers.py --compare armA.rs armB.rs   # rc 0 same / 1 differ / 2 refuse
+  python3 scripts/compare_generated_parsers.py --sites    generated/systemverilog_parser.rs   # 36346
+  python3 scripts/compare_generated_parsers.py --spelling generated/systemverilog_parser.rs
+  python3 scripts/compare_generated_parsers.py --describe armA.rs           # every derived figure, JSON
+  python3 scripts/compare_generated_parsers.py --self-test                  # 8/8, four RED-by-design
+  ```
+- ⛔⛔ **NEVER TELL A COMPARISON HELPER WHICH PATH TO NORMALISE — IT MUST READ IT OUT OF THE
+  ARTIFACT, AND THE REASON IS A SUBSTRING.** `generated/x_parser.rs` (33 chars, the ad-hoc spelling)
+  is a SUBSTRING of `../generated/x_parser.rs` (36 chars, what `rust/Makefile` passes). Measured on
+  the shipped SV parser, normalising with the short spelling leaves **36 346 `"../<TOKEN>"` residues
+  and 0 normalised sites** — it reports success and normalises nothing, and two arms treated that way
+  still differ by 3 bytes per site, which reads as *"something other than the path moved"*. The
+  helper derives the spelling instead (every generated parser holds **exactly one** distinct
+  `"….rs"` literal, 11/11 exact against `grep -oF`) and REFUSES with exit 2 on zero or on ambiguity.
+  ⚠️ Two further silent-zero variants it removes: a helper that uses its FILE ARGUMENT as the
+  spelling reports `path_sites=0` with unnormalised bytes the moment an artifact is read from
+  anywhere but its generation path; and a derived count whose numerator and denominator come from
+  different spellings prints a plausible integer — `36 346 × 42 ÷ 35 = 43 615`, which is precisely
+  how `run_guard_ab_structural.sh` came to publish **43 615** for a parser that embeds 36 346.
+  Full record → [[derive-the-comparison-key-from-the-artifact-not-from-the-caller]].
+- ⚠️ **CHARACTERS ARE NOT BYTES HERE, AND BOTH ARE PUBLISHED SOMEWHERE.** These artifacts carry emoji
+  in their trace strings: `generated/systemverilog_parser.rs` is **143 909 594 bytes** and
+  **143 801 151 characters** — a 108 443 gap. `wc -c`/`stat` report bytes; Python `len(str)` reports
+  characters, which is the basis `.20` slice 3's three-arm table was published on. The helper reports
+  `raw_chars`/`raw_bytes` and `normalised_chars`/`normalised_bytes` under separate names, and its
+  `--token` argument exists so a caller comparing against an already-published normalised figure can
+  ask for the token that figure was produced with instead of silently re-basing it.
+- **Doing it by hand anyway** (the helper is strictly better — this is only for reading its guts):
   ```bash
   # count the sites (occurrences, NOT `grep -c` lines, and -F so `.` is not a wildcard)
   grep -oF '../generated/systemverilog_parser.rs' generated/systemverilog_parser.rs | wc -l
@@ -1018,7 +1049,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   shasum -a 256 armA_normalised.rs armB.rs
   ```
 - **OUTPUT:** equal sha256 ⇒ the path was the ONLY difference. ⭐ Demand **identity**, never a matching byte COUNT: a count that matches is equally consistent with *"the path explains every byte"* and *"the path explains N bytes and something else nets to zero"* — that is an illustration, not a test (`docs/CLAIM_VERIFICATION.md` §3 leg 2). The reference instrument, with a RED control proving the comparison can fail, is `docs/tasks/artifacts/engine_universal_services/es19_path_embedding/probe.sh` (6 arms, ~1 m 44 s, and it never touches the shipped artifact — it generates into a mimic `<work>/root/{generated,rust}` tree so both `-o` strings are byte-identical to the real invocations).
-- ⛔⛔ **THIS TRAP HAS INVERTED THREE PUBLISHED READINGS, AND ONE OF THEM FOUNDED A TASK LEAF** (owner: `ENGINE-UNIVERSAL-SERVICES.25`). (1) `CI-PARITY-GATE-ROT.32`(d)'s census identity control reported **10/10 families mismatching** their shipped artifacts — read as a codegen-determinism emergency; the census simply wrote to a different path. (2) `.20` slice 3's three-arm table, read from raw `stat` bytes, made the guard-suppressed arm look **203 KB LARGER** than the shipped parser, i.e. *guards make the parser smaller* — the exact opposite of the truth. (3) `.19` was **opened as a leaf** because a re-derivation came out **99 747 bytes** from the tracked artifact, with two hypotheses (the flip's diff moved codegen / the git-ignored input JSON moved) that were **both refuted**: the two arms differ by 3 path characters × 33 249 sites = 99 747, exactly, and normalising makes them sha256-identical. ⛔ The sharpest part of (3) is the TIMING — the mechanism was already known when the leaf was written up, having been found by this same tree in session #238 while `.19` was opened in #232, so wrong hypotheses sat in the queue for three sessions after the answer existed.
+- ⛔⛔ **THIS TRAP HAS INVERTED FOUR PUBLISHED READINGS, AND ONE OF THEM FOUNDED A TASK LEAF** (owner: `ENGINE-UNIVERSAL-SERVICES.25`). ⭐ **The fourth was found by `.25` slice 1 INSIDE the script that carries the warning about it** — `run_guard_ab_structural.sh` published the SV site count as **43 615** where it is **36 346**, and the number is `36 346 × 42 ÷ 35`: the right byte delta over the wrong character width. Its own next line refuted it the whole time (`203 KB + 233 KB = 436 KB = 12 chars × 36 346`). ⇒ writing the warning down a third time was not what fixed this; deleting the parameter that carries the mistake was. (1) `CI-PARITY-GATE-ROT.32`(d)'s census identity control reported **10/10 families mismatching** their shipped artifacts — read as a codegen-determinism emergency; the census simply wrote to a different path. (2) `.20` slice 3's three-arm table, read from raw `stat` bytes, made the guard-suppressed arm look **203 KB LARGER** than the shipped parser, i.e. *guards make the parser smaller* — the exact opposite of the truth. (3) `.19` was **opened as a leaf** because a re-derivation came out **99 747 bytes** from the tracked artifact, with two hypotheses (the flip's diff moved codegen / the git-ignored input JSON moved) that were **both refuted**: the two arms differ by 3 path characters × 33 249 sites = 99 747, exactly, and normalising makes them sha256-identical. ⛔ The sharpest part of (3) is the TIMING — the mechanism was already known when the leaf was written up, having been found by this same tree in session #238 while `.19` was opened in #232, so wrong hypotheses sat in the queue for three sessions after the answer existed.
 - ⚠️ **The input path is NOT embedded, and that was tested rather than assumed** — generating with the input JSON named absolutely and relatively yields a byte-identical parser, and `grep -c 'systemverilog\.json'` over the emitted parser is **0**, as is any `generated_at`/date string. The `-o` path is the only provenance a generated parser carries, which is exactly why it is the only thing to normalise.
 
 ---

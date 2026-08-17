@@ -8198,7 +8198,7 @@ genuinely reachable crash (a sample containing no LR-family entry at all divides
 and unlike `total` nothing upstream refuses that). State reachability per site rather than
 guarding all four reflexively.
 
-#### ⚠️ `.25` NEW `todo` — every generated parser embeds its own OUTPUT PATH once per emitted site (**36 346** times in SV, 1.3 MB), which makes two parsers byte-incomparable and has now inverted **three** published readings — the third of which FOUNDED a task leaf on two hypotheses that were both wrong (opened 2026-08-15 session #237 by `.20` slice 4 + `CI-PARITY-GATE-ROT.32`(d); third instance routed in from `.19` slice 1, 2026-08-16 session #241)
+#### ⚠️ `.25` `in progress` — every generated parser embeds its own OUTPUT PATH once per emitted site (**36 346** times in SV, **63 186** across all eleven artifacts), which makes two parsers byte-incomparable and has now inverted **four** published readings — the third of which FOUNDED a task leaf on two hypotheses that were both wrong, and the fourth of which lived INSIDE the script that warns about it (opened 2026-08-15 session #237 by `.20` slice 4 + `CI-PARITY-GATE-ROT.32`(d); third instance routed in from `.19` slice 1, 2026-08-16 session #241. ✅ **(a) DISCHARGED + (c) SHIPPED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0068` — the path is ONE constant threaded to every site and **2 704 of the 63 186 sites are provably DEAD** (`let filename_str`, never read, confirmed by rustc's own lint at 2 848 locations); the three independent normalisation copies now share `scripts/compare_generated_parsers.py`, which DERIVES the spelling from the artifact instead of taking it from the caller. ⛔ Slice 1 also refuted a **fourth** instance of the trap living inside the script that warns about it — `run_guard_ab_structural.sh`'s published `43 615` is `36 346 × 42 ÷ 35`, the right byte delta over the wrong character width. ⏳ **(b) half settled**: class D priced exactly (−176 209 B, −2 848 warnings); class L needs a mimic-tree A/B. The emission change itself is routed to **`.31`** so its lockstep rebaseline is deliberate)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -8259,6 +8259,187 @@ baselines all re-baseline in lockstep; (c) ⭐ regardless of (a)/(b)'s outcome, 
 shared path-normalising comparison helper the instruments import, instead of the two independent
 copies that exist now — the second copy was written **after** the first defect was recorded, which is
 the evidence that prose does not transfer.
+
+##### ✅ `.25` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0068`, 2026-08-17 session #242) — (a) DISCHARGED and (c) SHIPPED: the path is ONE constant threaded to **63 186** sites, **2 704** of which are provably DEAD, and the three "normalise it first" copies now have ONE home
+
+**(a) — WHAT THE EMITTER ACTUALLY DOES (read before proposing anything, per the leaf's own bar).**
+`generate_parser(grammar_tree, rule_order, filename)`
+(`rust/src/ast_pipeline/ast_based_generator.rs:516`) receives the `-o` destination as a single
+`&str` and threads **that one value** down every emission path — 50 `log_*(#filename, …)` call
+shapes plus the per-rule binding at `:4042`. Its consumer is the `Logger` trait
+(`rust/src/ast_pipeline/mod.rs:522-526`), whose `file` argument `VerbosityLogger::emit` renders as
+`📍 {file}:{line}` (`mod.rs:569`).
+
+⇒ **the answer to (Q2) is that nothing about it is per-site.** It is not `file!()`-style
+provenance and it carries no per-site information: all 36 346 SystemVerilog occurrences are the
+same string. ⭐ And the pair it renders is not what it looks like — the second field is
+`self.position`, the **input byte offset**, not a source line (TOOLBOX 2.1 already says so), so the
+emitted `file:line` is *the generated parser's own output path* beside *an offset into the user's
+input*. Neither half of that pair varies per site.
+
+**THE POPULATION SPLITS IN TWO, AND ONLY ONE HALF IS EVEN READ.** Measured over all eleven
+artifacts (`grep -oF <derived spelling>`, occurrences not lines):
+
+| class | what is emitted | sites | is the value ever READ? |
+|---|---|---|---|
+| **D — dead** | `let filename_str = "<path>";`, once per rule method | **2 704** | ⛔ **never** — 0 non-assignment uses in any artifact |
+| **L — live** | `self.logger.log_{error,warning,success,debug}("<path>", …)` | **60 482** | yes — the trace label above |
+| | | **63 186** | |
+
+Per artifact — `sv 36 346 · regex 11 647 · ebnf 3 389 · svpp 895 · vhdl 3 075 · semantic_annotation
+3 758 · rtl_frontend 2 508 · return_annotation 675 · rtl_const_expr 605 · json 217 · scratch 71`,
+of which the dead bindings are `1 608 · 276 · 144 · 74 · 225 · 114 · 169 · 35 · 48 · 9 · 2`
+(SV's 1 608 is exactly its `RULE_COUNT`).
+
+⭐⭐ **rustc IS THE ORACLE, AND IT AGREES ARTIFACT-FOR-ARTIFACT — an oracle I did not build**
+(`docs/CLAIM_VERIFICATION.md` §3 leg 2). `cargo check --features "generated_parsers ebnf_dual_run"
+--message-format short` emits **2 848** `unused variable: filename_str` warnings at 2 848 distinct
+locations, and the per-file split reproduces the grep-derived dead column **exactly** in all eleven
+rows. The 2 848 ≠ 2 704 gap is not a disagreement: `generated/ebnf.rs` is `include!`d at **two**
+sites (`rust/src/lib.rs:77` and a `src/bin/` consumer), so its 144 are counted twice —
+`2 704 + 144 = 2 848`. ⚠️ **My first prediction was 2 704 and was WRONG**; the double-include was
+found by re-deriving per unique location instead of defending the prediction (§4, the auditor's
+asymmetry).
+
+**(b) — PRICED: the DEAD half is settled, the LIVE half is ROUTED.**
+- **Class D is a pure removal.** The binding is never read, so deleting it cannot change any
+  diagnostic, any trace line or any parse. Price: **−176 209 bytes** across the eleven artifacts
+  (SV −107 736, i.e. 0.075 % of the artifact) and **−2 848 build warnings**. ⛔ The bytes are the
+  *small* half of that price — the warnings are 2 848 lines of noise in every build, which is what
+  a real defect looks like when nothing fails.
+- **Class L needs a mimic-tree A/B before any number is published.** Hoisting 60 482 literals to
+  one `const` cannot be priced by arithmetic: `prettyplease` re-wraps lines when a 38-character
+  literal becomes a short identifier, so `sites × Δlen` is an *illustration*, not a measurement
+  (§3 leg 2). It must be measured by generating both arms into a mimic tree, exactly as
+  `es19_path_embedding/probe.sh` does.
+- **Blast radius, unchanged from the leaf's own warning and now confirmed by running it:** either
+  change moves every generated artifact, so `GENERATED-REPRODUCIBILITY`'s baseline,
+  `PARSE-COST-RATCHET`'s identity rows and `CODEGEN-DETERMINISM`'s baselines re-key in lockstep.
+  ⇒ **the emission change is NOT folded into this slice.** It is slice 2, so that the rebaseline is
+  a deliberate act with its own before→after rather than a side effect of a tooling commit.
+
+**(c) — SHIPPED: `scripts/compare_generated_parsers.py`, and it has THREE callers, not two.**
+The leaf said two copies existed. A third was found: `scripts/check_generated_reproducibility.sh`
+(the `GENERATED-REPRODUCIBILITY` doctrine gate) counted sites with its own `grep -oF "$out"`.
+All three now call the shared helper.
+
+⭐⭐ **THE HELPER NEVER TAKES THE PATH FROM ITS CALLER — IT DERIVES IT FROM THE ARTIFACT**, which is
+what makes it a fix rather than a fourth copy. Every generated parser contains **exactly one**
+distinct string literal ending in `.rs`, and its occurrence count equals the embedded-site count;
+measured 11/11 exact against an independent `grep -oF`. The helper reads that literal out of the
+file, and REFUSES (exit 2) on zero or on more than one rather than guessing.
+
+⛔⛔ **WHY DERIVING IS LOAD-BEARING: THE SHORT SPELLING IS A SUBSTRING OF THE LONG ONE.** Measured
+on the shipped SV parser — normalising it with the *short* spelling `generated/systemverilog_parser.rs`
+leaves **36 346 `"../<TOKEN>"` residues and 0 clean sites**: a normalisation that normalised nothing
+while reporting success. Two arms each normalised with their own spelling then still differ by 3
+bytes per site, which reads as *"something other than the path moved"* — **the exact false verdict
+`.19` was founded on.** A caller cannot make that mistake against this helper because a caller is
+never asked.
+
+⛔⛔ **AND THE PUBLISHED `43 615` IN `run_guard_ab_structural.sh` WAS WRONG — ITS OWN NEIGHBOURS
+REFUTED IT THE WHOLE TIME.** The comment claimed the SV parser embeds its `-o` path *"43 615
+times"*. Three independent refutations: (1) the two byte figures on the very next line,
+`203 KB + 233 KB = 436 KB = 12 chars × 36 346 sites`; (2) re-running the **ORIGINAL** `row()` on the
+shipped parser rewritten to that script's own arm-2 spelling reports `path_sites=36346`; (3) the
+shared helper and `grep -oF` both report 36 346. ⭐ The mechanism is exact and is the same disease:
+**36 346 × 42 = 1 526 532, and 1 526 532 ÷ 35 = 43 615** — the right byte delta over the *wrong*
+character width, i.e. a numerator taken from one `-o` spelling and a denominator from another.
+A caller-supplied path produced the number that warned about caller-supplied paths.
+
+⭐ **A SECOND, WORSE DEFECT IN THE SAME `row()`, FOUND WHILE PROVING THE MIGRATION.** The original
+used its `$2` as *both* the file to read *and* the spelling to normalise, so it silently assumed the
+artifact still sits at the path it was generated to. Copy or move that artifact and it reports
+`path_sites=0` with **unnormalised** bytes — a silent zero, in the passing direction, with no
+refusal. Measured: original on a relocated artifact → `path_sites=0 norm_bytes=144237303`; the
+migrated `row()` → `path_sites=36346 norm_bytes=142674425` from either location.
+
+⚠️ **`--token '<OUT>'` IS PASSED DELIBERATELY AND IS NOT TIDINESS.** The token's length enters every
+normalised byte figure as `sites × Δlen`, and `.20` slice 3 PUBLISHED its three-arm table
+(ARM1 130 512 738 · ARM3 142 441 376 · ARM2 142 671 859) on `<OUT>`. Defaulting it would have
+silently re-based numbers already in the record. ⚠️ Same class, caught the same way: those figures
+are **characters**, not bytes — these artifacts carry emoji, so the shipped SV parser is 143 909 594
+bytes and 143 801 151 characters, a **108 443** gap, itself larger than the whole dead-binding
+population. The helper now reports `raw_chars`/`raw_bytes` and `normalised_chars`/`normalised_bytes`
+as separately named fields so a later reader can tell which basis a figure sits on.
+
+**VERIFICATION — every arm run, not asserted.**
+- `--self-test` **8/8**, four of them RED-by-design (a real content difference must survive
+  normalisation; the caller-supplied-short-spelling trap; two REFUSE arms; a wrong normalisation).
+- ⭐ **The suite was proven able to FAIL, on three mutants of the live module**: ambiguity-guess
+  instead of refusal → 7/8; `normalise()` made a no-op → 6/8; and `derive_spelling()` returning the
+  short caller-style spelling — **the exact historical defect** — → 5/8. A control never observed
+  failing is not known to work.
+- `make -C rust generated_reproducibility_gate` (tier 2, the tier my gate edit lives in):
+  **10 of 10 artifacts re-derive byte-identically**, every site count equal to the helper's
+  derivation. ⚠️ The first run reported NOT EVALUATED for 8 families against an under-featured
+  `ast_pipeline` (TOOLBOX 1.4's #140-class trap) — rebuilt dual-feature, then 10/10.
+- `bash scripts/check_generated_reproducibility.sh --self-test` **7/7** (tier 1, unchanged).
+- ⭐ `es19_path_embedding/probe.sh` re-run end to end after migrating its ARM 3 and ARM 5:
+  **ALL 6 ARMS PASS, exit 0**. The helper derives `path sites: 33249` on both spellings — equal to
+  the value `.19` recorded — and ARM 2 still reproduces `99 747 == 33 249 × 3` exactly. ⭐ ARM 5 was
+  **redesigned to test the helper rather than restate it**: it now plants a real non-path difference
+  (a comment line carrying no `.rs` literal, so normalisation provably cannot absorb it) and demands
+  the comparison refuse — which it does. ⚠️ ARM 6 reports a **+2 578 B** residual against the two
+  artifacts `.19` recorded, identical at BOTH spellings ⇒ orthogonal to the path effect and simply
+  the SV codegen that has moved since session #232; reported, not hidden, and outside this leaf.
+- `bash scripts/check_doctrines.sh` — **all 21 doctrines PASS**.
+- Migrated `row()` proven **byte-exactly equal** to the original in its correct-usage position
+  (`142674425 / 36346` both sides) before the original's own defects were fixed on top.
+
+**ROUTED, not folded in:** ⚠️ **`.31` NEW** — remove the 2 704 dead `let filename_str` bindings and
+price/decide the 60 482 live sites, with the lockstep rebaseline that entails.
+
+###### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `grep -oF '../generated/systemverilog_parser.rs' generated/systemverilog_parser.rs | wc -l` → **36 346**; the same derivation over all eleven artifacts totals **63 186** embedded sites, and three separate scripts each carried their own copy of "normalise it before comparing".
+- [x] **ROOT CAUSE (WHY + WHERE)** — the `-o` path is ONE `&str` taken by `generate_parser` (`ast_based_generator.rs:516`) and threaded to every emission site, consumed only as `Logger::log_*`'s `file` label (`mod.rs:522-526`, rendered `mod.rs:569`); `:4042` additionally emits `let filename_str = <path>;` per rule method, which **nothing reads** — `cargo check` names 2 848 such bindings at 2 848 distinct locations. The `43 615` in `run_guard_ab_structural.sh` was located by `git log -S'43 615'` → `-0042`, and is the right byte delta over the wrong character width (36 346 × 42 ÷ 35). Syntax of every edited script re-checked with `bash -n `.
+- [x] **FIX** — declarative tier: no engine or grammar byte changes. ONE tracked helper (`scripts/compare_generated_parsers.py`) that DERIVES the embedded spelling from the artifact, and three callers migrated onto it. The emission change itself is deliberately **not** in this slice (it re-baselines every artifact-keyed gate) and is routed to `.31`.
+- [x] **ADDRESSED (verified)** — before→after: three independent normalisation copies → one shared home with an 8/8 self-test; the site count in `check_generated_reproducibility.sh` moves from a caller-supplied `grep -oF "$out"` to a derived-and-refusing lookup; `run_guard_ab_structural.sh`'s `43 615` → **36 346**, and its `row()` from position-dependent (silent `path_sites=0` on a relocated artifact) to position-independent (`36 346` from either location, `norm_bytes` unchanged at `142674425`).
+- [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash generated_reproducibility_gate`: **10/10 artifacts re-derive byte-identical** through the edited code path (675/3758/217/11647/36346/895/3075/605/2508/71 sites, each equal to the helper's derivation); `check_generated_reproducibility.sh --self-test` **7/7**; `check_doctrines.sh` **21/21 PASS**; migrated `row()` byte-identical to the original on the same artifact; **zero grammar, engine, codegen and generated bytes touched** (`git status` shows no `generated/`, `grammars/` or `rust/src/` change), so no parser moved and no clippy surface changed.
+- [x] **LOCKSTEP** — `TOOLBOX.md` 5.6 updated to name the shared helper as the mandatory pre-step and to record the substring hazard; `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md` updated. Book: N/A — no user-facing surface changes (an internal comparison instrument for repo maintainers).
+
+#### ⚠️ `.31` NEW `todo` — the emitted `-o` path is DEAD at **2 704** of its **63 186** sites and constant at the other 60 482, so the generator emits 2 848 build warnings and ~1.3 MB of a value nothing can vary (opened 2026-08-17 session #242 by `.25` slice 1)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **Measured, on the shipped artifacts** (derivation in `.25` slice 1 above): every generated parser
+  threads ONE `&str` — the `-o` destination — to every emission site.
+
+  | class | emitted | sites | read? |
+  |---|---|---|---|
+  | **D** | `let filename_str = "<path>";`, once per rule method | **2 704** | ⛔ never |
+  | **L** | `self.logger.log_*("<path>", …)` | **60 482** | yes, as the trace `file` label |
+
+- **Class D is confirmed dead by an oracle this project did not write**: `cargo check --features
+  "generated_parsers ebnf_dual_run"` emits **2 848** `unused variable: filename_str` warnings at
+  2 848 distinct locations, and the per-artifact split reproduces the grep-derived column exactly in
+  all eleven rows (2 848 = 2 704 + `ebnf.rs`'s 144 counted at its two `include!` sites).
+- **Reproduces outside SystemVerilog: yes, by construction** — it is the generator's emission, so
+  every family carries it in proportion to its rule count. SV is simply the largest instance
+  (1 608 dead bindings = exactly its `RULE_COUNT`).
+- **Blast radius today: zero correctness impact.** The string is diagnostic and the dead binding is
+  not even that. The cost is 2 848 warnings per build, ~176 KB of dead source, and ~1.3 MB of a
+  constant repeated at 60 482 sites.
+- ⛔ **The reason this is a separate leaf and not a `.25` slice**: either change moves EVERY generated
+  artifact, so `GENERATED-REPRODUCIBILITY`'s baseline, `PARSE-COST-RATCHET`'s identity rows and
+  `CODEGEN-DETERMINISM`'s baselines re-key in lockstep. That rebaseline must be a deliberate act
+  carrying its own before→after, not a side effect of a tooling commit.
+
+**Acceptance:** (a) remove the class-D binding and prove the warning count goes **2 848 → 0** with
+the parsers otherwise byte-identical **once the `-o` path is normalised**
+(`scripts/compare_generated_parsers.py --compare`), so the diff is provably the dead lines and
+nothing else; (b) price class L by generating BOTH arms into a mimic tree — ⛔ never by
+`sites × Δlen` arithmetic, because `prettyplease` re-wraps lines when a 38-character literal becomes
+a short identifier, which makes the product an illustration rather than a measurement; (c) if L is
+hoisted, prove no diagnostic loses information — the `Logger::log_*` `file` argument must receive a
+byte-identical string, so a trace taken before and after must be identical; (d) drive the lockstep
+rebaseline of every artifact-keyed baseline in ONE commit, with each gate's before→after recorded,
+and re-run `make -C rust generated_reproducibility_gate` (10/10) plus
+`make -C rust sv_parse_cost_ratchet` afterwards. ⚠️ (e) ASK FIRST whether the emitted label should be
+the output path at all: it names the *generated file* beside an *input byte offset*, so a reader is
+shown two things that do not correspond. Changing the string is a diagnostics-behaviour change and
+needs its own decision — do not fold it into a mechanical hoist.
 
 #### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ✅ **(f) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0048`; ✅ **(b) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0054` — the fused graph, the PROTOCOL graph and the PROTOCOL graph WITH the coverage recorder produce a **byte-identical AST** (one sha256 across all three arms), so the verdict agreement IS a derivation agreement; ⛔ the tool that could say so did not exist, and the two obvious substitutes both produce a FALSE PASS. **The leaf is now fully CLOSED** — slice 3 closed (f) by adjudicating all 7 tracked consumers and turned up that ONE 2 787-byte file is **99.39 %** of the corpus's committed multiplicity)
 

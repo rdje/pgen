@@ -124,11 +124,22 @@ rederive_and_compare() {
   ( cd "$WORK/root/rust" && "$tool" "$json" "${args[@]}" -o "$out" ) >"$WORK/${fam}.log" 2>&1 \
     || { breach "codegen FAILED for ${fam} — see $WORK/${fam}.log"; return; }
 
-  local live_sites fresh_sites
-  live_sites=$(grep -oF "$out" "$live"  | wc -l | tr -d ' ')
-  fresh_sites=$(grep -oF "$out" "$fresh" | wc -l | tr -d ' ')
-  if [ "$live_sites" = 0 ] || [ "$live_sites" != "$fresh_sites" ]; then
-    die "cannot compare ${fam}: embedded -o sites live=$live_sites fresh=$fresh_sites. The two sides were not written through the same path spelling, so any verdict would measure the PATH (TOOLBOX 5.6), not the source."
+  # ⭐ The spelling is DERIVED FROM EACH ARTIFACT by the shared helper
+  # (`scripts/compare_generated_parsers.py`, `ENGINE-UNIVERSAL-SERVICES.25` (c)) — never taken from
+  # `$out`. A caller-supplied spelling is the defect the helper exists to remove: the short spelling
+  # is a SUBSTRING of the long one, so counting the short one over a long-spelling artifact returns
+  # the full count and reads as agreement. Here both sides are written through `$out` today, so this
+  # is a hardening rather than a repair; the helper also REFUSES (exit 2) on an artifact whose
+  # embedded path is absent or ambiguous, instead of returning a number nobody can interpret.
+  local live_sites fresh_sites live_spelling fresh_spelling
+  live_sites=$(python3 "$ROOT/scripts/compare_generated_parsers.py" --sites "$live") \
+    || die "cannot compare ${fam}: the shared helper REFUSED to derive an embedded -o path from $live"
+  fresh_sites=$(python3 "$ROOT/scripts/compare_generated_parsers.py" --sites "$fresh") \
+    || die "cannot compare ${fam}: the shared helper REFUSED to derive an embedded -o path from $fresh"
+  live_spelling=$(python3 "$ROOT/scripts/compare_generated_parsers.py" --spelling "$live")
+  fresh_spelling=$(python3 "$ROOT/scripts/compare_generated_parsers.py" --spelling "$fresh")
+  if [ "$live_sites" = 0 ] || [ "$live_sites" != "$fresh_sites" ] || [ "$live_spelling" != "$fresh_spelling" ]; then
+    die "cannot compare ${fam}: embedded -o sites live=$live_sites ('$live_spelling') fresh=$fresh_sites ('$fresh_spelling'). The two sides were not written through the same path spelling, so any verdict would measure the PATH (TOOLBOX 5.6), not the source."
   fi
 
   local a b

@@ -56,22 +56,46 @@ fi
 
 # ⛔⛔ RAW `stat` BYTES ARE NOT COMPARABLE ACROSS ARMS, AND READING THEM AS IF THEY WERE INVERTED THIS
 # MEASUREMENT'S FIRST ANSWER. A generated parser embeds its own `-o` path as a diagnostic string —
-# **43 615 times** in the SV parser, measured here — so one extra character in the output FILENAME
-# adds 43 615 bytes to the file. Comparing ARM 3 against `generated/systemverilog_parser.rs` (whose
+# **36 346 times** in the shipped SV parser — so one extra character in the output FILENAME adds
+# 36 346 bytes to the file. Comparing ARM 3 against `generated/systemverilog_parser.rs` (whose
 # embedded path is 12 characters shorter) made ARM 3 look 203 KB LARGER than the shipped parser; with
 # the path normalised it is 233 KB SMALLER, which is the opposite conclusion about what guards cost.
 # ⇒ every byte figure below is measured AFTER replacing the embedded path with a fixed token.
+#
+# ⛔ THIS COMMENT SAID **43 615** UNTIL `ENGINE-UNIVERSAL-SERVICES.25` SLICE 1, AND ITS OWN NEIGHBOURS
+# REFUTED IT THE WHOLE TIME. 203 KB + 233 KB = 436 KB = 12 chars × 36 346 sites, so the two byte
+# figures on the line above imply 36 346; and re-running the ORIGINAL `row()` on the shipped parser
+# rewritten to this script's own arm-2 spelling reports `path_sites=36346`. The wrong figure is the
+# RIGHT byte delta over the WRONG character width — 36 346 × 42 = 1 526 532, and 1 526 532 ÷ 35 =
+# 43 615 exactly — i.e. a numerator taken from one `-o` spelling and a denominator from another.
+# ⭐ That is precisely why `row()` no longer derives the count itself: the SHARED helper
+# (`scripts/compare_generated_parsers.py`, `.25` (c)) reads the embedded spelling OUT OF THE ARTIFACT
+# instead of being told it, so a caller cannot supply a mismatched path at all.
+#
+# ⛔ `--token '<OUT>'` IS DELIBERATE AND MUST NOT BE "TIDIED" TO THE HELPER'S DEFAULT. The token's
+# length enters every normalised byte count as `sites × Δlen`, and `.20` slice 3 PUBLISHED its
+# three-arm table (ARM1 130 512 738 · ARM3 142 441 376 · ARM2 142 671 859) on `<OUT>`. Re-basing
+# silently would move numbers already in the record; the helper takes the token as an argument so
+# the choice is visible here instead.
+CMP="$ROOT/scripts/compare_generated_parsers.py"
+#
+# ⛔ `normalised_chars`, NOT bytes. These artifacts carry emoji in their trace strings, so the two
+# differ by 108 443 on the shipped SV parser — more than the whole figure some readings turn on.
+# `.20` slice 3 published its table in CHARACTERS (Python `len(str)`); `wc -c` and `stat` are BYTES.
 row() {  # row <label> <parser>
-  python3 - "$1" "$2" <<'PY'
+  local desc sites norm_bytes
+  desc=$(python3 "$CMP" --describe "$2" --token '<OUT>') || {
+    echo "row: the shared helper REFUSED to derive an embedded -o path from $2" >&2; return 2; }
+  sites=$(printf '%s' "$desc"      | sed -n 's/.*"sites": \([0-9]*\).*/\1/p')
+  norm_bytes=$(printf '%s' "$desc" | sed -n 's/.*"normalised_chars": \([0-9]*\).*/\1/p')
+  python3 - "$1" "$2" "$sites" "$norm_bytes" <<'PY'
 import re, sys
-label, path = sys.argv[1], sys.argv[2]
+label, path, sites, norm_bytes = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 src = open(path, encoding="utf-8", errors="replace").read()
-norm = src.replace(path, "<OUT>").replace(path.lstrip("./"), "<OUT>")
-sites = (len(src) - len(norm)) // max(1, len(path) - len("<OUT>"))
 rules = re.search(r"RULE_COUNT: usize = (\d+)", src)
 lr = {m for m in re.findall(r'"[a-z_0-9]*_lr_(?:base|suffix|seed|guard|alt)[a-z_0-9]*"', src)}
 gd = {m for m in lr if "_lr_guard" in m}
-print(f"{label:<46} norm_bytes={len(norm):<11} RULE_COUNT={rules.group(1) if rules else '?':<6} "
+print(f"{label:<46} norm_bytes={norm_bytes:<11} RULE_COUNT={rules.group(1) if rules else '?':<6} "
       f"lr_names={len(lr):<5} guard_names={len(gd):<3} path_sites={sites}")
 PY
 }

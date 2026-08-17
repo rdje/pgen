@@ -1,5 +1,58 @@
 # CHANGES.md
 
+## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0068 (leaf ENGINE-UNIVERSAL-SERVICES.25 (a) DISCHARGED + (c) SHIPPED, `.31` NEW; ops/build-flow, ZERO grammar/generated/codegen/engine bytes)
+
+- ✅ **(a) — THE EMITTER READ, AND NOTHING ABOUT THE PER-SITE EMISSION IS PER-SITE.**
+  `generate_parser(…, filename)` (`ast_based_generator.rs:516`) takes the `-o` destination as ONE
+  `&str` and threads that single value to every emission site; its only consumer is the `Logger`
+  trait's `file` argument (`ast_pipeline/mod.rs:522-526`), rendered `📍 {file}:{line}`
+  (`mod.rs:569`). ⭐ And the pair is not what it reads as — the second field is `self.position`, the
+  **input byte offset**, so a reader is shown the generated parser's own output path beside an offset
+  into their own input. All 36 346 SystemVerilog occurrences are the same string.
+- ⭐⭐ **THE POPULATION SPLITS, AND ONLY ONE HALF IS EVER READ.** Across all eleven artifacts there
+  are **63 186** embedded sites: **2 704** are `let filename_str = "<path>";` (one per rule method,
+  **never read** — 0 non-assignment uses anywhere) and **60 482** are live `log_*` arguments.
+  SV's 1 608 dead bindings are exactly its `RULE_COUNT`.
+- ⭐⭐ **rustc is the cross-check, and it agrees artifact-for-artifact.**
+  `cargo check --features "generated_parsers ebnf_dual_run"` emits **2 848**
+  `unused variable: filename_str` warnings at 2 848 distinct locations; the per-file split reproduces
+  the grep-derived dead column exactly in **11 of 11** rows. ⚠️ My first prediction was 2 704 and was
+  **wrong**: `generated/ebnf.rs` is `include!`d at two sites, so its 144 count twice
+  (`2 704 + 144 = 2 848`) — found by re-deriving per unique location rather than defending the
+  prediction.
+- ✅ **(c) — ONE HOME: `scripts/compare_generated_parsers.py`, with THREE callers, not the two the
+  leaf expected.** The third was `scripts/check_generated_reproducibility.sh` (a doctrine gate),
+  which counted sites with its own `grep -oF "$out"`. All three migrated.
+- ⛔⛔ **THE HELPER NEVER TAKES THE PATH FROM ITS CALLER — AND THAT IS THE FIX, NOT A STYLE CHOICE.**
+  `generated/x_parser.rs` is a **substring** of `../generated/x_parser.rs`, so normalising the
+  shipped SV parser with the short spelling leaves **36 346 `"../<TOKEN>"` residues and 0 clean
+  sites**: success reported, nothing normalised, and two arms treated that way still differ by 3
+  bytes per site — the exact false verdict `.19` was founded on. The helper derives the spelling from
+  the artifact (every generated parser holds **exactly one** distinct `"….rs"` literal, **11/11**
+  exact against `grep -oF`) and REFUSES (exit 2) on zero or on ambiguity.
+- ⛔⛔ **A FOURTH INSTANCE OF THE TRAP WAS LIVE INSIDE THE SCRIPT THAT WARNS ABOUT IT.**
+  `run_guard_ab_structural.sh` published the SV site count as **43 615**; it is **36 346**. The
+  number is `36 346 × 42 ÷ 35` — the right byte delta over the **wrong character width** — and its
+  own next line refuted it the whole time (`203 KB + 233 KB = 436 KB = 12 chars × 36 346`).
+  ⭐ A second defect in the same helper: it used its file argument as the spelling, so a **relocated**
+  artifact reported `path_sites=0` with unnormalised bytes — a silent zero in the passing direction.
+- ⚠️ **TWO PUBLISHED-NUMBER BASES PRESERVED DELIBERATELY.** `.20` slice 3's three-arm table was
+  published in **characters** on the token `<OUT>`; these artifacts carry emoji, so the SV parser is
+  143 909 594 **bytes** and 143 801 151 **characters** (a 108 443 gap, larger than the whole dead
+  population). The helper reports both under separate names and takes `--token`, so the runner asks
+  for `<OUT>` instead of silently re-basing figures already in the record.
+- **Verification — every arm run:** helper `--self-test` **8/8** (4 RED-by-design), proven able to
+  fail on **three mutants of the live module** (7/8, 6/8, 5/8 — the last being the exact historical
+  defect); `make -C rust generated_reproducibility_gate` **10/10 artifacts byte-identical** through
+  the edited path; `check_generated_reproducibility.sh --self-test` **7/7**;
+  `es19_path_embedding/probe.sh` **6/6 arms, exit 0** after its ARM 3 and ARM 5 were migrated;
+  `check_doctrines.sh` **21/21 PASS**; migrated `row()` byte-exactly equal to the original.
+- ⏳ **(b) half settled, and the emission change deliberately NOT folded in.** Class D is priced
+  exactly (**−176 209 B, −2 848 warnings**, zero behavioural change); class L needs a mimic-tree A/B
+  because `prettyplease` re-wraps lines, making `sites × Δlen` an illustration. Both move EVERY
+  generated artifact, so `GENERATED-REPRODUCIBILITY`, `PARSE-COST-RATCHET` and `CODEGEN-DETERMINISM`
+  re-key in lockstep — routed to **`.31`** so that rebaseline is a deliberate act.
+
 ## 2026-08-17 - PGEN-ENGINE-UNIVERSAL-SERVICES-0066 (leaf ENGINE-UNIVERSAL-SERVICES.24 CLOSED, `.30` NEW; engine/build-flow, ZERO grammar/generated/codegen/emission bytes)
 
 - ⛔⛔ **THE GAP WAS WORSE THAN THE LEAF PRICED IT, AND THE NEW MEASUREMENT IS WHY IT IS A REFUSAL.**
