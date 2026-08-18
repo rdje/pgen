@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `a533490c0899dd11a0bd5429d61c79f4c2dc1c60d98159e2198ac1a74912a1ab` |
-| grammar | `grammars/systemverilog.ebnf` | `f637740905c9464f6f282a1810791f56f127990fef5631286b95f896c120ee8f` |
-| generated parser | `generated/systemverilog_parser.rs` | `dddea0b12222a6b29ddec60e7b735755d94148421926cdcd80ab472ef04f39e0` |
+| parse binary | `rust/target/release/parseability_probe` | `7ccb12a2731ff03a8fa6a14eebf019c434238e7bed3a78c5f28dbd782bf5b288` |
+| grammar | `grammars/systemverilog.ebnf` | `8c82980cf5d28f14bac7955ff95e1f94a9a08c1d7285a0d8f36bb62521ce81cb` |
+| generated parser | `generated/systemverilog_parser.rs` | `307d353d047f9843485a4e1ae3fa515a86f144f99b9abbe1b1796f1815a13ccd` |
 
-Measured at `HEAD` = `cc153af7+dirty` (2026-08-18).
+Measured at `HEAD` = `791f64a6+dirty` (2026-08-18).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,7 +53,7 @@ Measured at `HEAD` = `cc153af7+dirty` (2026-08-18).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.46` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `5.45` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 

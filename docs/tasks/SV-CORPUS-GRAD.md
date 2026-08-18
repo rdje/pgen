@@ -10340,7 +10340,7 @@ routed finding look smaller.
   bump instead of two. ⛔ Not before the SV release: an AST-shape change to a consumer-facing field
   on the delivery path buys maintainability, not correctness.
 
-#### ⚠️ `.13c.2o` NEW `todo` — PGEN cannot parse IEEE 1800-2023 COVERGROUP INHERITANCE unless you type the LRM's footnote number into your source (opened 2026-08-18 session #246 by `.13c.2m`'s re-derivation under DIRECTOR CHALLENGE, `PGEN-SV-CORPUS-GRAD-0231`)
+#### ✅ `.13c.2o` `done` — PGEN could not parse IEEE 1800-2023 COVERGROUP INHERITANCE unless you typed the LRM's footnote number into your source (opened AND closed 2026-08-18 session #246 by `.13c.2m`'s re-derivation under DIRECTOR CHALLENGE; `PGEN-SV-CORPUS-GRAD-0231` / `-0232`)
 
 - **HOW IT WAS FOUND — by challenging a published claim, not by looking for it.** `.13c.2m` had
   described the footnote-marker leak as `43`/`48`. Re-deriving that census under challenge instead of
@@ -10370,18 +10370,73 @@ routed finding look smaller.
   (`covergroup cg extends base;`) the branch fails at `❌ Regex 'extends\b' no match at position 52
   (next: 'cg extends')`, which is the LRM being right — the derived covergroup carries no new name —
   and is why the first attempt to reproduce this used the wrong input and had to be bisected.
-- **WHAT THIS LEAF OWES**: (a) the fix — delete the mandatory `kw_n_29_7719a1c7` from that branch,
-  which is a NARROWING for the `;29` form and a WIDENING for the legal form, so both pinned rows flip
-  in the same commit; (b) the corpus measured before and after in BOTH directions (pass count AND the
-  accepts-invalid set — a narrowing can only be seen on the second); (c) ⭐ the durable half: an
-  instrument that asks, of every `kw_n_<digits>_<hash>` token, whether its digits appear as a
-  FOOTNOTE in the LRM source rather than as a grammar literal — the census done by hand here (5
-  legitimate, 3 markers) is exactly the shape that rots, and the LRM sources are tracked so the
-  question is mechanisable; (d) a decision on whether the extractor guardrail belongs here or in
-  `LRM-GRAMMAR-FIDELITY` — routed there with this leaf as its second test case.
-- ⚠️ **PRICE.** Deleting a mandatory token from a sequence cannot raise `entries` at that site, so
-  unlike `.13c.2k` this fix is not expected to trouble `PARSE-COST-RATCHET`. Stated as an
-  EXPECTATION, not a measurement — `-0231` corrected a reasoned cost claim of exactly this shape.
+- [x] **ADDRESSED (verified)** — `kw_n_29_7719a1c7` deleted from the extends branch (and its now
+  orphaned token definition removed, so the fix leaves no unreachable rule behind); positional refs
+  renumbered `6→5` / `8→7`, with the AST field names and their sources unchanged. Verified on TWO
+  authorities — the grammar-AST interpreter before the rebuild, then the SHIPPED parser:
+
+  | reproducer | `sv_2017` | `sv_2023` before | `sv_2023` after |
+  |---|---|---|---|
+  | `defect_covergroup_extends.sv` (the LRM form) | REJECT (correct — 2023-only) | **REJECT** | ✅ **ACCEPT** |
+  | `accepts_invalid_covergroup_extends_footnote.sv` (`…;29`) | REJECT | **ACCEPT** | ✅ **REJECT** |
+  | `control_covergroup_plain.sv` | ACCEPT | ACCEPT | ACCEPT |
+
+  ⭐⭐ **THIS IS THE FIRST EXERCISE OF THE `accepts_invalid` ROUND TRIP, one commit after `.13c.2k`
+  built it**: the row went RED with *"flip its `expect` to REJECT and its class to `invalid`"*, and
+  it now guards the fix against regression forever. The class was designed for this and did it on
+  its first real use.
+- [x] **NO REGRESSION** — both corpus lanes are **BYTE-IDENTICAL** (`results.tsv` and
+  `results_v2005.tsv`), verdict coverage unmoved at `7556/2459/6321/4392/288`, dark worklist 52,
+  `ADJUDICATION-REPROS: checked=116 armed=45 listed=66 failures=0`, `generated_reproducibility`
+  TIER 2 OK 11/11, all 21 doctrines PASS.
+  ⛔ **AND THE ZERO IS EXPLAINED, not waved through.** The corpus DOES contain the construct — exactly
+  one file, `verilator/test_regress/t/t_covergroup_unsup.v:223`, `covergroup extends cg_empty;` at
+  byte **6167**. That file still fails, and it fails at `furthest_position=1698`, on
+  `covergroup cg_bracket; {} endgroup` roughly 4.5 KB EARLIER — an intentionally-invalid construct in
+  a file whose whole purpose is unsupported covergroup syntax. So the corpus **cannot witness this
+  fix**: it is a coverage gap with a named cause, not evidence the fix does nothing. The two pinned
+  reproducers are the proof, exactly as `.13c.2c`'s `verilog_2005` leg was.
+- [x] ⭐ **COST: MEASURED, NOT PREDICTED — and the prediction was right for once.** All three binding
+  counters are **EXACTLY unchanged**: `entries` 417,009,457, `committed` 7,123,491, `memo_hits`
+  187,512,221, `+0` each. The LR-family share re-derives `2.739 %` and **reproduces exactly**. ⚠️ The
+  leaf published an EXPECTATION before measuring and labelled it as one — `-0231` had just corrected
+  a reasoned cost claim, so the discipline was applied to the very next one.
+- **WHAT REMAINS, routed rather than done**: (a) ⭐ the durable half — an instrument that asks, of
+  every `kw_n_<digits>_<hash>` token, whether its digits appear as a FOOTNOTE in the tracked LRM
+  source rather than as a grammar literal. The census done BY HAND here (5 legitimate, 3 markers) is
+  exactly the shape that rots, and both LRM sources are tracked, so the question is mechanisable;
+  ⇒ **`.13c.2p`**. (b) the extractor guardrail — routed to `LRM-GRAMMAR-FIDELITY` with this leaf as
+  its second test case (the first being `.13c.2m`'s lost colon), since the DEFECT is in the SV
+  grammar but the PRODUCER is cross-family.
+
+#### ⚠️ `.13c.2p` NEW `todo` — the footnote-marker census is a HAND count, and a hand count of a class is the shape that rots (opened 2026-08-18 session #246 by `.13c.2o`, `PGEN-SV-CORPUS-GRAD-0232`)
+
+- **WHAT IT IS.** `.13c.2o` decided, by reading, which of the grammar's `kw_n_<digits>_<hash>` tokens
+  are legitimate LRM literals and which are footnote markers the extractor mistook for syntax. The
+  answer today is **5 legitimate** — `0`/`1`/`2` (`finish_number`, `level_symbol`, `assert #0`) and
+  `01`/`10` (`edge_descriptor`, A.7.4) — and **3 markers**: `43` (1800-2017), `48` (1800-2023), `29`
+  (the covergroup one, now fixed).
+- ⛔ **WHY IT IS A LEAF AND NOT A PARAGRAPH.** `.13c.2m` published *"every `kw_n_<digits>_<hash>` rule
+  … is a footnote marker by construction"* and that was **wrong for five of eight**. The corrected
+  census is better but has the same defect in waiting: it is a judgement made once, written in prose,
+  and re-checked by nobody. The `.13c.2e` rule applies — one instance is never the class — and so
+  does the `-0228`/`-0231` rule: a hand count is a claim.
+- ⭐ **AND IT IS MECHANISABLE, which is why it is worth doing rather than re-reading.** Both LRM
+  sources are TRACKED in this repository. For a token `kw_n_<D>_<hash>`, the question *"is `<D>` a
+  footnote marker or a grammar literal?"* is answerable from those sources: a marker appears
+  **immediately after a token with no separating space** in an Annex A production line (`;29`,
+  `::43`, `this41`, `$42`) and its digits appear again at the start of a footnote line (`29) The
+  extends specification …`). A literal appears as a standalone alternative (`| 0`, `| 01`). ⇒ the
+  instrument reads the production line and the footnote block rather than the analyst's memory.
+- **WHAT THIS LEAF OWES**: (a) that instrument, with controls that make it able to go RED (a
+  legitimate literal reclassified as a marker must fail; a known marker must be found); (b) a run
+  over the CURRENT grammar with the verdict for all 8 tokens; (c) the same question asked of the
+  `kw_<name>_<hash>` family — is `<name>` an Annex A NONTERMINAL rather than an Annex B keyword? —
+  which is `.13c.2m`'s outstanding sweep half and shares this machinery exactly.
+- ⚠️ **BOUND.** This decides *which tokens came from footnotes*. It does not decide whether a marker
+  is HARMFUL: `43`/`48` sit in optional groups and only over-accept, while `29` was mandatory and
+  rejected a legal construct. The instrument should report the position class alongside the verdict,
+  because that is what ranks the fixes.
 
 #### `.13c.2e` — `select_condition`'s `intersect { … }` BRACES are not modelled, so the range list swallows the rest of the expression (**`done`** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0214`; opened 2026-08-12 session #218 by `ENGINE-UNIVERSAL-SERVICES.10`)
 

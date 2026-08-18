@@ -1,5 +1,53 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0231/0232 — challenged on two findings; the measurements held, two statements did not, and the re-derivation found a worse defect than the one under review
+
+**1. ⛔⛔ THIS TIME BOTH ERRORS OVERSTATED. `-0228`'s BOTH UNDERSTATED.** That symmetry is the useful
+part. The direction of an error is not a property of the author's temperament; it is a property of
+what got skipped. `-0228` skipped *enumeration* and produced floors ("at least four") that were true
+and small. This time I skipped *counting the arms* and *measuring the alternative*, and produced a
+count that was too big ("5 refusal arms" for 4 + a control) and a modality that was too strong
+("irreducible" for "not eliminated, and I did not try hard"). ⇒ the lesson is not "be less
+confident"; it is that every published number needs the command that produced it, in both
+directions.
+
+**2. ⭐⭐ THE CHALLENGE PAID FOR ITSELF BY FINDING A WORSE DEFECT.** Re-deriving `.13c.2m`'s footnote
+census instead of re-reading it turned up `kw_n_29_7719a1c7` — a marker that, unlike `43`/`48`, sits
+in its production with **no `?`**. Measured: `covergroup extends base;` REJECTED on sv_2023 while
+`covergroup extends base;29` ACCEPTED. PGEN could not parse IEEE 1800-2023 covergroup inheritance at
+all unless the footnote number was typed into the source. That is REJECTS-VALID — the axis the
+release bar is actually about — and it was sitting one grep away from a finding I had already
+published and moved on from. **A census you wrote yourself is not evidence; re-deriving it is.**
+
+**3. ⛔ MY FIRST REPRODUCTION OF IT WAS WRONG, AND THE TRACE SAID SO.** I wrote
+`covergroup cg extends base;` — with a name — and got REJECT on both profiles, which looked like
+confirmation. It was not: the trace showed `Regex 'extends\b' no match at position 52 (next: 'cg
+extends')`, i.e. the branch never even started, because A.2.11's extends form carries **no new
+name**. The LRM was right and my test was wrong. Had I stopped at the first REJECT I would have
+"confirmed" the defect for the wrong reason and then "fixed" something else. ⇒ a REJECT that agrees
+with your hypothesis still needs the trace.
+
+**4. ⭐ THE ROUND TRIP WORKED ON ITS FIRST REAL USE, ONE COMMIT AFTER IT WAS BUILT.** `.13c.2k` added
+the `accepts_invalid` class on the argument that a known over-acceptance should go RED *when fixed*.
+The very next slice fixed one, and the row did exactly that — reported *"flip its `expect` to REJECT
+and its class to `invalid`"* — and is now a regression guard. Designing the failure direction first
+is what made the fix's completion mechanical instead of remembered.
+
+**5. ⭐⭐ "THE CORPUS DIDN'T MOVE" IS TWO DIFFERENT STATEMENTS AND ONLY ONE OF THEM IS HONEST.** Both
+lanes came back byte-identical. The lazy reading is "no regression". The real question is whether the
+corpus could have witnessed the fix at all, and here it nearly could: one file DOES contain
+`covergroup extends`, at byte 6167 — but it dies at 1698 on an intentionally-invalid construct 4.5 KB
+earlier. So the zero has a named cause and the reproducers carry the proof. ⇒ when a corpus reports
+zero, go and find out whether the construct is even reachable in it.
+
+**6. ⛔ I ALSO CORRECTED A CLAIM IN THE OPPOSITE DIRECTION — one that was too WEAK.** `.13c.2m`
+deferred its own diagnosis ("a REPRODUCTION of the symptom, not yet a diagnosis") while the callout I
+sent asserted "the extractor welded" as fact. Running the extractor settled it in three minutes: a
+fresh pass reproduces the weld verbatim, and the mechanism is ONE LOST COLON — the markdown prints
+`class_qualifier :=` where every other head prints `::=`, so the line is appended to `primary`'s last
+alternative. Single-colon heads: 1 of 718 in 2017, 1 of 735 in 2023. ⇒ the deferral was right to
+exist and wrong to survive contact with a three-minute experiment.
+
 ## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0230 — the defect was easy to see; the place to KEEP it was the thing that was missing
 
 **1. ⛔⛔ THE LEAF REPORTED A DEFECT AND A GAP, AND THE GAP WAS THE BIGGER ITEM.** `.13c.2k` was

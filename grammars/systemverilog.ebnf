@@ -1768,8 +1768,24 @@ covergroup_declaration_sv_2017 := kw_covergroup_80dfc68d declared_covergroup_ide
 @profiles: ["sv_2023"]
 covergroup_declaration_sv_2023 := kw_covergroup_80dfc68d declared_covergroup_identifier ( lparen ( tf_port_list )? rparen )? ( coverage_event )? semi coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
                                         -> {kind: "single",  name: $2, ports: $3, event: $4, items: $6, end_label: $8}
-                                | kw_covergroup_80dfc68d kw_extends_2b781ff8 covergroup_identifier semi kw_n_29_7719a1c7 coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
-                                        -> {kind: "extends", parent: $3, items: $6, end_label: $8}
+                                # SV-CORPUS-GRAD.13c.2o — the `kw_n_29_7719a1c7` that used to sit
+                                # between `semi` and the item list was IEEE 1800-2023's FOOTNOTE
+                                # MARKER, not syntax. A.2.11 prints the alternative as
+                                # `| covergroup extends covergroup_identifier ;29`, and footnote 29
+                                # (same file, line 3495) reads "The extends specification of
+                                # covergroup is allowed only within a class". The extractor emitted
+                                # the marker as a token — `kw_n_29_7719a1c7 := trivia /29\b/` — and
+                                # placed it in the sequence with NO `?`, so covergroup INHERITANCE
+                                # could only be parsed by typing the footnote number into the source:
+                                # measured on the shipped parser, `covergroup extends base;`
+                                # REJECTED on sv_2023 while `covergroup extends base;29` ACCEPTED.
+                                # ⇒ a rejects-valid defect and an over-acceptance on one token; both
+                                # halves are pinned (`defect_covergroup_extends.sv` /
+                                # `accepts_invalid_covergroup_extends_footnote.sv`) so they flip
+                                # together. Positional refs renumbered 6→5 and 8→7 by the deletion;
+                                # the AST field names and their sources are unchanged.
+                                | kw_covergroup_80dfc68d kw_extends_2b781ff8 covergroup_identifier semi coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
+                                        -> {kind: "extends", parent: $3, items: $5, end_label: $7}
 
 @profiles: ["sv_2017", "sv_2023"]
 covergroup_declaration := covergroup_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
@@ -6820,7 +6836,6 @@ kw_n_1_tick_bx_ab9cb068 := trivia /1[ \t]*'b[ \t]*x/
 
 kw_n_1step_e6d37e7c := trivia /1step\b/
 
-kw_n_29_7719a1c7 := trivia /29\b/
 
 kw_n_2_da4b9237 := trivia /2\b/
 
