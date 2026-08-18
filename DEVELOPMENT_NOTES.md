@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0226 — I verified a three-profile change on two profiles, and the ratchet that should have caught it watched one
+
+**1. ⛔⛔ "NO `@profiles` GATE" IS THE TELL I DID NOT READ.** `pulse_control_specparam`, its two
+terminals and `specparam_assignment` carry no profile gate, which means every one of them governs
+`sv_2017`, `sv_2023` **and `verilog_2005`** identically. I regenerated, corpus-tested and ruled on
+two of the three, and wrote the ruling up citing two standards. The director named the gap directly:
+the goal is *"100 % IEEE 1800-2017/2023 **and 1364-2005** compliant"*. ⇒ **before shipping a grammar
+edit, ask what gates the rule; an ungated rule is a change to every profile the parser ships.**
+
+**2. ✅ THE THIRD AUTHORITY AGREED, WHICH IS THE OUTCOME THAT MAKES THIS EASY TO UNDER-RATE.**
+1364-2005 matches 1800 production-for-production here — same A.7.5 alternatives, same
+`simple_identifier` admitting `$`, same parenthesised `constant_primary`, same
+`PATHPULSE$ = 3;` example. Nothing changed. ⛔ **That is exactly when the lesson gets dropped**, so:
+the verification had a hole, the hole was real, and it closed on luck rather than on method. A
+conclusion that survives a missing check is not evidence the check was unnecessary.
+
+**3. ⚠️ THE CLAUSE NUMBER MOVED WHILE THE TEXT DID NOT** — 1364-2005 §14.6.1 vs 1800-2017/2023
+§30.7.1 — so a citation has to name its revision. ⭐ And that renumbering handed me a free
+cross-check I had not looked for: the two corpus rows my fix moved are
+`ieee-1364-2005/test_14_06_01_1.v` and `ieee-1800-2012/30/30.07.01_01.sv` — the same construct under
+both schemes. The ispras corpus encodes clause numbers in filenames, so **the corpus itself can
+confirm which clause a fix touched**, independently of my reading of the spec.
+
+**4. ⭐⭐ THE RATCHET WAS THE REAL DEFECT, NOT MY READING.** `run_adjudication_repros.py` hard-coded
+`--profile sv_2017`. So the over-acceptance guards I had just written — including the one that
+refuses `PATHPULSE$ clk $ q` — could not have failed on a relaxation that only shows under
+`verilog_2005`. A guard that watches one of three profiles reports coverage it does not have, which
+is the same shape as the divergence cap two slices earlier: **the instrument was honest about what
+it printed and silent about what it could not see.** Fixed with a declared `profiles` column
+(default `sv_2017`, so no historical row is silently re-adjudicated) and a REFUSAL on an unknown
+profile name.
+
+**5. ⭐ THE DEFAULT MATTERED MORE THAN THE FEATURE.** The tempting version runs all three profiles on
+every row. That would have re-adjudicated 29 rows nobody has ever measured on the other two
+profiles, and any failure would have been indistinguishable from a regression. **A widening that
+re-interprets existing rows is not a widening, it is a re-baseline** — so the column defaults to
+today's behaviour and each row opts in.
+
 ## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0225 — I escalated a compliance question as a preference, and three findings I had just published each carried an error
 
 **1. ⭐⭐⭐ "YOUR CALL" WAS THE WRONG SENTENCE, AND THE DIRECTOR SAID SO EXACTLY.** I surfaced the

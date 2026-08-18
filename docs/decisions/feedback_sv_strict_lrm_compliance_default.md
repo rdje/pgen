@@ -77,11 +77,39 @@ why do you need to infer when you have all the LRM material handy."* Both revisi
 searchable Markdown (plus the PDFs):
 
 ```bash
-docs/systemverilog/2017/md/    docs/systemverilog/2023/md/
-grep -rn "'{}"  docs/systemverilog/2017/md/ docs/systemverilog/2023/md/
+docs/systemverilog/2017/    docs/systemverilog/2023/    docs/verilog/2005/
+#   each with:  md/  (searchable per-section Markdown)   txt/  (plain text)   *.pdf  (the real thing)
+grep -rn "'{}"  docs/systemverilog/2017/md/ docs/systemverilog/2023/md/ docs/verilog/2005/md/
 grep -rn -A8 "^assignment_pattern ::=" docs/systemverilog/2017/md/
 grep -rniE "<construct>.{0,80}(shall not|illegal|not supported|not permitted)" docs/systemverilog/
 ```
+
+⛔⛔ **THERE ARE THREE AUTHORITIES, NOT TWO, AND THIS BLOCK LISTED TWO UNTIL 2026-08-18.** The SV
+parser ships **three** dialect profiles — `sv_2017`, `sv_2023`, `verilog_2005` — so the compliance
+goal is **IEEE 1800-2017 + IEEE 1800-2023 + IEEE 1364-2005**, and `docs/verilog/2005/` was missing
+from the recipe above. Director, 2026-08-18: *"the goal of PGEN SystemVerilog parser is to be 100 %
+IEEE 1800-2017/2023 and 1364-2005 compliant. You have the paths to all these 3 specs."*
+
+| profile | normative authority | tree | note |
+|---|---|---|---|
+| `sv_2017` | IEEE 1800-2017 | `docs/systemverilog/2017/` | ⚠️ its Annex A productions live in `md/section-41-data-read-api.md` — the section split misnames that file, and it is the file the LRM extractor consumes as `--md-2017` |
+| `sv_2023` | IEEE 1800-2023 | `docs/systemverilog/2023/` | Annex A is `md/section-Annex_A-normative-formal-syntax.md`; Annex B (the keyword table the `kw_*` sweep uses as its authority) is `txt/section-Annex_B-normative-keywords.txt` |
+| `verilog_2005` | IEEE 1364-2005 | `docs/verilog/2005/` | Annex A is `md/section-Annex_A-normative-formal-syntax-definition.md` |
+
+⚠️ **The clause NUMBERS differ across the three even where the text is identical** — pulse control is
+1364-2005 **§14.6.1** and 1800-2017/2023 **§30.7.1** — so cite the clause per revision, never once.
+⭐ A useful cross-check falls out of that: the ispras corpus encodes clause numbers in filenames, so
+`ieee-1364-2005/test_14_06_01_1.v` and `ieee-1800-2012/30/30.07.01_01.sv` are the SAME construct
+under both numbering schemes, and a fix that moves one should move the other.
+
+⛔ **A rule verified on two of the three authorities is verified on two of the three.** Measured
+2026-08-18 (`SV-CORPUS-GRAD.13c.2h`): a ruling was published citing 1800-2017/2023 alone, on a
+grammar rule carrying **no `@profiles` gate** — i.e. one that governs `verilog_2005` identically.
+Re-derived, 1364-2005 agreed production-for-production (A.7.5, `simple_identifier3` admitting `$`,
+`constant_primary ::= … | ( constant_mintypmax_expression )`) and all 12 pinned repros behave
+identically under `--profile verilog_2005`. **The conclusion held and the verification had a hole**,
+which is the case worth naming: an ungated rule is a THREE-profile change, and the profile you did
+not test is the one that ships to somebody.
 
 ⛔ **The aggravating detail: this session HAD searched the LRM correctly, minutes earlier**, to
 confirm A.8.1's `{ }` production and footnote 35 — then asserted the *negative* claim from memory

@@ -1,0 +1,11 @@
+THREE-PROFILES — SV-CORPUS-GRAD.13c.2h
+
+  ✓ A1 tracked manifest is green                         0
+  ✓ A2 twelve rows declare all three profiles            12
+  ✓ A3 checked = rows + 2 per multi-profile row          65
+  ✓ A4 an unknown profile REFUSES                       
+  ✓ A5 a false per-profile claim FAILS                   1
+  ✓ A6 the failure NAMES the offending profile          
+  ✓ A7 the tracked manifest is byte-restored             9a098869f7df36a6a51f600a1d9eaaef3014f75a99a6a02ab8efe5cdfff31cc7
+
+THREE-PROFILES: 7/7 as declared

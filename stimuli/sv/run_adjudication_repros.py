@@ -93,20 +93,48 @@ ARM_HINT = ("⛔ THE VERDICT IS RIGHT AND THE ARM IS WRONG. The text parsed, but
             "An ACCEPT alone would have reported this as green.")
 
 
-def parses(path: Path) -> bool:
+DEFAULT_PROFILE = "sv_2017"
+KNOWN_PROFILES = ("sv_2017", "sv_2023", "verilog_2005")
+
+
+def row_profiles(row: dict) -> list[str]:
+    """Which dialect profiles this row binds on.
+
+    ⛔ THE PARSER SHIPS THREE PROFILES AND THIS RUNNER CHECKED ONE (SV-CORPUS-GRAD.13c.2h,
+    director 2026-08-18). The compliance goal is IEEE 1800-2017 + 1800-2023 + **1364-2005**, and a
+    grammar rule with no `@profiles` gate governs all three identically — so an over-acceptance
+    guard pinned only on `sv_2017` cannot see a relaxation that shows up under `verilog_2005`.
+    ⭐ Default stays `sv_2017` so every historical row keeps its exact meaning; a row DECLARES the
+    wider set when its construct is ungated. Fixing this by silently running all three everywhere
+    would have re-adjudicated 29 rows nobody measured on the other two.
+    """
+    spec = (row.get("profiles") or "").strip()
+    if not spec:
+        return [DEFAULT_PROFILE]
+    out = []
+    for name in (x.strip() for x in spec.split(",") if x.strip()):
+        if name not in KNOWN_PROFILES:
+            raise SystemExit(f"⛔ REFUSING: {row['id']} declares unknown profile '{name}'. "
+                             f"Known: {', '.join(KNOWN_PROFILES)}. A silently-ignored profile "
+                             "would make this ratchet report coverage it does not have.")
+        out.append(name)
+    return out
+
+
+def parses(path: Path, profile: str = DEFAULT_PROFILE) -> bool:
     proc = subprocess.run(
-        [str(PROBE), "--parse", "systemverilog", str(path), "--profile", "sv_2017"],
+        [str(PROBE), "--parse", "systemverilog", str(path), "--profile", profile],
         capture_output=True, text=True, timeout=TIMEOUT_S)
     return proc.returncode == 0
 
 
-def parse_ast(path: Path):
+def parse_ast(path: Path, profile: str = DEFAULT_PROFILE):
     """The typed AST for `path`, or None when the probe declines to produce one."""
     with tempfile.TemporaryDirectory(dir=str(ROOT / "tmp")) as workdir:
         out = Path(workdir) / "ast.json"
         proc = subprocess.run(
             [str(PROBE), "--parse-dump-ast", "systemverilog", str(path), str(out),
-             "--profile", "sv_2017"],
+             "--profile", profile],
             capture_output=True, text=True, timeout=TIMEOUT_S)
         if proc.returncode != 0 or not out.exists():
             return None
@@ -190,32 +218,37 @@ def main() -> int:
 
     checked = 0
     armed = 0
+    multi = 0
     for row in sorted(rows, key=lambda r: r["id"]):
         path = REPROS / row["id"]
         if not path.exists():
             continue
-        got = "ACCEPT" if parses(path) else "REJECT"
-        checked += 1
-        ok = got == row["expect"]
-        bad_arms: list[str] = []
-        if ok and got == "ACCEPT" and (row.get("arm") or "").strip():
-            bad_arms = arm_failures(row, parse_ast(path))
-            armed += 1
-        if args.verbose or not ok or bad_arms:
-            status = "ok  " if ok and not bad_arms else "FAIL"
-            arm = f" arm={row['arm']}" if (row.get("arm") or "").strip() else ""
-            print(f"{status} {row['id']:<44} "
-                  f"{row['class']:<8} expect={row['expect']} got={got}{arm}")
-        if not ok:
-            failures.append(f"{row['id']}: expected {row['expect']}, got {got}\n"
-                            f"      {FIX_HINT.get((row['class'], got), '')}\n"
-                            f"      construct: {row['construct']}  (LRM {row['lrm']})")
-        for bad in bad_arms:
-            failures.append(f"{row['id']}: {bad}\n      {ARM_HINT}\n"
-                            f"      construct: {row['construct']}  (LRM {row['lrm']})")
+        profiles = row_profiles(row)
+        if len(profiles) > 1:
+            multi += 1
+        for profile in profiles:
+            got = "ACCEPT" if parses(path, profile) else "REJECT"
+            checked += 1
+            ok = got == row["expect"]
+            bad_arms: list[str] = []
+            if ok and got == "ACCEPT" and (row.get("arm") or "").strip():
+                bad_arms = arm_failures(row, parse_ast(path, profile))
+                armed += 1
+            if args.verbose or not ok or bad_arms:
+                status = "ok  " if ok and not bad_arms else "FAIL"
+                arm = f" arm={row['arm']}" if (row.get("arm") or "").strip() else ""
+                print(f"{status} {row['id']:<44} {row['class']:<8} "
+                      f"profile={profile:<12} expect={row['expect']} got={got}{arm}")
+            if not ok:
+                failures.append(f"{row['id']} [{profile}]: expected {row['expect']}, got {got}\n"
+                                f"      {FIX_HINT.get((row['class'], got), '')}\n"
+                                f"      construct: {row['construct']}  (LRM {row['lrm']})")
+            for bad in bad_arms:
+                failures.append(f"{row['id']} [{profile}]: {bad}\n      {ARM_HINT}\n"
+                                f"      construct: {row['construct']}  (LRM {row['lrm']})")
 
     print(f"\nADJUDICATION-REPROS: checked={checked} armed={armed} listed={len(rows)} "
-          f"failures={len(failures)}")
+          f"multi_profile_rows={multi} failures={len(failures)}")
     if failures:
         print("\n".join(f"  ⛔ {f}" for f in failures))
         return 1

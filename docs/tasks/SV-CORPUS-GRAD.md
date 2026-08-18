@@ -9303,6 +9303,57 @@ deterministically (`longest_match`, exact tie → earlier alternative), which is
 stable resolution of an ambiguity the standard leaves open. ⛔ **No grammar change**, and none is
 owed: no LRM-legal input is rejected and no illegal input is accepted.
 
+##### ⛔⛔ THE RULING WAS PUBLISHED ON TWO OF THE **THREE** NORMATIVE AUTHORITIES — corrected 2026-08-18 (`PGEN-SV-CORPUS-GRAD-0226`)
+
+Director: *"the goal of PGEN SystemVerilog parser is to be 100 % IEEE 1800-2017/2023 **and
+1364-2005** compliant. You have the paths to all these 3 specs."* The ruling above cited
+1800-2017/2023 only. ⛔ **That is not a presentational gap:** `pulse_control_specparam`, its two
+terminals and `specparam_assignment` carry **no `@profiles` gate**, so `.13c.2f` slice 4 changed
+what the **`verilog_2005`** profile accepts — and that profile was never directly probed before the
+grammar shipped.
+
+**Re-derived against IEEE 1364-2005** (`docs/verilog/2005/`), the third authority agrees
+production-for-production, so the three-row table above holds unchanged on all three:
+
+| fact the ruling rests on | 1364-2005 | citation |
+|---|---|---|
+| `pulse_control_specparam`'s two alternatives + `limit_value ::= constant_mintypmax_expression` | **identical** | `md/section-Annex_A-…-definition.md:292-298` |
+| `specparam_assignment ::= specparam_identifier = … \| pulse_control_specparam` | **identical** | `:289-291` |
+| `$` is an identifier character | **identical** — `simple_identifier3 ::= [ a-zA-Z_ ] { [ a-zA-Z0-9_$ ] }` | `:1279` |
+| `constant_primary ::= … \| ( constant_mintypmax_expression )` | **identical** | `:1112` |
+| the decisive example line `PATHPULSE$ = 3;` | **present** | §**14.6.1**, `md/section-14-specify-blocks.md:1108` |
+| *"the terminals may not be a bit-select or part-select of a vector"* | **identical** | `:1089-1090` |
+
+⚠️ **The clause NUMBER differs where the text does not** — 1364-2005 §**14.6.1** vs 1800-2017/2023
+§**30.7.1** — so a citation must name the revision. ⭐ That renumbering is also a free cross-check:
+the two corpus rows this fix moved are `ieee-1364-2005/test_14_06_01_1.v` and
+`ieee-1800-2012/30/30.07.01_01.sv` — the SAME construct under both numbering schemes, which is why
+they moved together.
+
+**MEASURED on the third profile, all 12 rows** (`--profile verilog_2005`): the five `fixed_` rows
+ACCEPT with the pulse production REACHED (`pulse` = 1, 1, 1, 1, 2), the three controls behave as
+declared (`pulse` = 0), and **all four over-acceptance guards still REJECT** — including
+`PATHPULSE$ clk $ q`. ⇒ the fix is conformant on `sv_2017`, `sv_2023` and `verilog_2005` alike, and
+the ruling's conclusion is unchanged. **The conclusion held; the verification had a hole.**
+
+⭐⭐ **AND THE HOLE IS NOW CLOSED MECHANICALLY, not by remembering.** The ratchet
+`stimuli/sv/run_adjudication_repros.py` hard-coded `--profile sv_2017`, so a relaxation visible only
+under `verilog_2005` could not have failed it. It gains a `profiles` column: a row DECLARES the
+profiles it binds on, default `sv_2017` so every historical row keeps its exact meaning, and the
+twelve PATHPULSE rows declare all three. `checked` **41 → 65**, `armed` **14 → 28**.
+⛔ An unknown profile spelling **REFUSES** rather than being ignored — a silently-dropped profile
+would make the ratchet report coverage it does not have. Bank:
+`docs/tasks/artifacts/sv_corpus_grad/es13c2h_three_profiles/probe.sh` → **`THREE-PROFILES: 7/7 as
+declared`**, with two RED arms (an unknown profile name; a deliberately false `verilog_2005` claim
+on an SV-only covergroup construct, which must fail WITH the profile named) and an arm asserting the
+probe byte-restores the tracked manifest it edits.
+
+⇒ **the general rule, recorded because it cost a verification hole:** *a grammar rule with no
+`@profiles` gate is a THREE-profile change, and the profile you did not test is the one that ships
+to somebody.* Written into
+[[feedback_sv_strict_lrm_compliance_default]], whose LRM-lookup recipe had listed **two** trees for
+a three-authority goal.
+
 ⚠️ **Two bounds stated rather than discovered later.** (i) §6.20.4 says specparams *"are permitted
 both within the specify block and in the main module body"*, so the reduced repros that declare
 `PATHPULSE$…` in a module body are grammatically legal; §30.7.1's *semantics* only make sense inside
